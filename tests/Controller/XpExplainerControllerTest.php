@@ -9,39 +9,29 @@ use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 /**
- * While the xp-system feature flag is active, the XP explainer page must be invisible
- * to everyone except admins. Delete the flag-related tests on launch day.
+ * The XP explainer is public since the launch (no feature flag).
  */
 final class XpExplainerControllerTest extends WebTestCase
 {
-    public function testAnonymousVisitorGets404WhileFlagged(): void
+    public function testAnonymousVisitorSeesTheExplainer(): void
     {
         $browser = self::createClient();
-
-        $browser->request('GET', '/en/how-xp-works');
-
-        self::assertResponseStatusCodeSame(404);
-    }
-
-    public function testNonAdminGets404WhileFlagged(): void
-    {
-        $browser = self::createClient();
-        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
-
-        $browser->request('GET', '/en/how-xp-works');
-
-        self::assertResponseStatusCodeSame(404);
-    }
-
-    public function testAdminSeesExplainerWhileFlagged(): void
-    {
-        $browser = self::createClient();
-        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
 
         $browser->request('GET', '/en/how-xp-works');
 
         self::assertResponseIsSuccessful();
         $content = (string) $browser->getResponse()->getContent();
         self::assertStringContainsString('How XP &amp; Levels work', $content);
+        self::assertStringNotContainsString('Achievements give XP', $content, 'Achievements grant Achievement Points only');
+    }
+
+    public function testSignedInPlayerSeesTheExplainer(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $browser->request('GET', '/en/how-xp-works');
+
+        self::assertResponseIsSuccessful();
     }
 }

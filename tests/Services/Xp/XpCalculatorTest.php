@@ -208,9 +208,4 @@ final class XpCalculatorTest extends TestCase
 
         (new XpCalculator())->calculate(self::context(occurrence: 0));
     }
-
-    public function testFullFormulaCutoffParses(): void
-    {
-        self::assertSame(XpCalculator::FULL_FORMULA_FROM, XpCalculator::fullFormulaFrom()->format('Y-m-d H:i:s'));
-    }
 }

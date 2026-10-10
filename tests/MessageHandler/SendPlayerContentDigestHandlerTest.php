@@ -17,6 +17,7 @@ use SpeedPuzzling\Web\Services\ContentDigestUnsubscribeUrl;
 use SpeedPuzzling\Web\Services\Digest\WeeklyDigestDataProvider;
 use SpeedPuzzling\Web\Services\PlayerAccountEmail;
 use SpeedPuzzling\Web\Services\Xp\XpFeatureGate;
+use SpeedPuzzling\Web\Services\Xp\XpLaunchReadiness;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\TestDouble\TransportSpy;
@@ -98,12 +99,12 @@ final class SendPlayerContentDigestHandlerTest extends KernelTestCase
         self::assertFalse((bool) $log['had_activity']);
     }
 
-    public function testSuppressedWhileFeatureFlagActive(): void
+    public function testSuppressedBeforeTheXpLaunch(): void
     {
         $period = DigestPeriod::weeklyFor($this->clock->now());
 
         $transport = new TransportSpy();
-        $handler = $this->handler($transport, flagActive: true);
+        $handler = $this->handler($transport, launched: false);
 
         $handler(new SendPlayerContentDigest(PlayerFixture::PLAYER_WITH_STRIPE, 'weekly', $period->key));
         $this->entityManager->flush();
@@ -196,7 +197,26 @@ final class SendPlayerContentDigestHandlerTest extends KernelTestCase
         $handler(new SendPlayerContentDigest(PlayerFixture::PLAYER_WITH_STRIPE, 'weekly', $period->key));
     }
 
-    private function handler(TransportInterface $transport, bool $flagActive = false): SendPlayerContentDigestHandler
+    private function xpFeatureGate(bool $launched): XpFeatureGate
+    {
+        return new XpFeatureGate(new readonly class ($launched) implements XpLaunchReadiness {
+            public function __construct(
+                private bool $launched,
+            ) {
+            }
+
+            public function isReady(): bool
+            {
+                return $this->launched;
+            }
+
+            public function forget(): void
+            {
+            }
+        });
+    }
+
+    private function handler(TransportInterface $transport, bool $launched = true): SendPlayerContentDigestHandler
     {
         $container = self::getContainer();
 
@@ -210,7 +230,7 @@ final class SendPlayerContentDigestHandlerTest extends KernelTestCase
             contentDigestUnsubscribeUrl: $container->get(ContentDigestUnsubscribeUrl::class),
             database: $this->database,
             clock: $this->clock,
-            xpFeatureGate: new XpFeatureGate(adminOnly: $flagActive),
+            xpFeatureGate: $this->xpFeatureGate($launched),
             logger: new NullLogger(),
             playerAccountEmail: $container->get(PlayerAccountEmail::class),
         );

@@ -55,9 +55,9 @@ final class SendContentDigestConsoleCommand extends Command
             return self::INVALID;
         }
 
-        // No digest leaves the system while the xp-system flag is active (§1.10).
+        // No digest leaves the system before the XP launch (XpLaunchReadiness, §1.10).
         if ($this->xpFeatureGate->isEmailSendingEnabled() === false) {
-            $io->warning('xp-system feature flag is active — digest sending is suppressed, nothing dispatched.');
+            $io->warning('XP launch not switched on yet — digest sending is suppressed, nothing dispatched.');
 
             return self::SUCCESS;
         }

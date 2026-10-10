@@ -7,13 +7,14 @@ namespace SpeedPuzzling\Web\Query;
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Results\SolveXpDisplayInfo;
-use SpeedPuzzling\Web\Services\Xp\XpCalculator;
+use SpeedPuzzling\Web\Services\Xp\XpFormulaCutoff;
 
 readonly class GetSolveXpDisplayInfo
 {
     public function __construct(
         private Connection $database,
         private GetPuzzleSpeedPercentiles $getPuzzleSpeedPercentiles,
+        private XpFormulaCutoff $xpFormulaCutoff,
     ) {
     }
 
@@ -99,7 +100,7 @@ SQL;
             occurrenceIndex: (is_numeric($before) ? (int) $before : 0) + 1,
             isTimed: $isTimed,
             isSolo: $isSolo,
-            isBackfill: new DateTimeImmutable($row['tracked_at']) < XpCalculator::fullFormulaFrom(),
+            isBackfill: $this->xpFormulaCutoff->isHistory(new DateTimeImmutable($row['tracked_at'])),
             puzzleHasDifficultyTier: $row['difficulty_tier'] !== null,
             speedMedianReliable: $isSolo && $isTimed
                 && $this->getPuzzleSpeedPercentiles->forPuzzle($row['puzzle_id'])->hasReliableMedian(),

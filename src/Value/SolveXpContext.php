@@ -27,7 +27,7 @@ final readonly class SolveXpContext
          * A timed solve after an earlier relax solve of the same puzzle is occurrence 2.
          */
         public int $occurrenceIndex,
-        /** tracked_at before XpCalculator::fullFormulaFrom() — core formula only, no bonuses. */
+        /** tracked_at before XpFormulaCutoff::fullFormulaFrom() (the deploy moment) — core formula only, no bonuses. */
         public bool $isBackfill,
         public SpeedPercentile $speedPercentile = SpeedPercentile::None,
         /** How many XP-earning solves this player already has in this solve's ISO week (UTC). */

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Services\Xp;
 
-use DateTimeImmutable;
 use InvalidArgumentException;
 use SpeedPuzzling\Web\Value\SolveXpContext;
 use SpeedPuzzling\Web\Value\XpAward;
@@ -27,17 +26,10 @@ use SpeedPuzzling\Web\Value\XpReason;
  *
  * Each part is rounded half-up to int independently; zero-valued parts produce no award;
  * the base part has a floor of 1 whenever core > 0. Backfill solves (tracked before the
- * cutoff) earn only the first three award kinds. Relax repeats earn nothing at all.
+ * cutoff, XpFormulaCutoff = the deploy moment) earn only the first three award kinds. Relax repeats earn nothing at all.
  */
 readonly final class XpCalculator
 {
-    /**
-     * Solves tracked BEFORE this moment use the backfill formula (core only); at/after it,
-     * the full formula. Set at deploy/launch by Jan — class constants cannot hold objects,
-     * hence the string; consume via fullFormulaFrom().
-     */
-    public const string FULL_FORMULA_FROM = '2026-08-01 00:00:00';
-
     /**
      * Anti-abuse plausibility guard (§1.8): pieces-per-minute above this on a ≥500pc timed
      * solo solve disqualifies the speed bonus (silently — warning log only). World-record
@@ -57,11 +49,6 @@ readonly final class XpCalculator
     private const float UNBOXED_BONUS_RATE = 0.20;
     private const float WEEKLY_BOOST_RATE = 0.50;
     private const int DAILY_WARMUP_XP = 2;
-
-    public static function fullFormulaFrom(): DateTimeImmutable
-    {
-        return new DateTimeImmutable(self::FULL_FORMULA_FROM);
-    }
 
     /**
      * §1.8 plausibility guard — callers must resolve SpeedPercentile::None (plus a warning

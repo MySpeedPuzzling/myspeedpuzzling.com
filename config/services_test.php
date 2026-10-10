@@ -53,6 +53,10 @@ return static function (ContainerConfigurator $configurator): void {
     $services->set(\SpeedPuzzling\Web\Tests\TestDouble\InMemoryApiUsageCounter::class);
     $services->alias(\SpeedPuzzling\Web\Services\ApiUsage\ApiUsageCounter::class, \SpeedPuzzling\Web\Tests\TestDouble\InMemoryApiUsageCounter::class);
 
+    // The XP launch switch without a statement per page (production: Redis) - see FixedXpLaunchReadiness
+    $services->set(\SpeedPuzzling\Web\Tests\TestDouble\FixedXpLaunchReadiness::class);
+    $services->alias(\SpeedPuzzling\Web\Services\Xp\XpLaunchReadiness::class, \SpeedPuzzling\Web\Tests\TestDouble\FixedXpLaunchReadiness::class);
+
     // Mercure test double
     $services->set(NullMercureHub::class);
     $services->alias(HubInterface::class, NullMercureHub::class);

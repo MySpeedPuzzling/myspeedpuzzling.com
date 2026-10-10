@@ -37,13 +37,13 @@ final class OrganizationPagesQueryBudgetTest extends WebTestCase
     public static function providePages(): iterable
     {
         yield 'organization page, guest' => [self::RIVERBEND, null, 4];
-        yield 'organization page, player' => [self::RIVERBEND, PlayerFixture::PLAYER_REGULAR, 10];
-        yield 'organization page, team' => [self::RIVERBEND, PlayerFixture::PLAYER_WITH_STRIPE, 10];
-        yield 'organization page, maintainer' => [self::RIVERBEND, PlayerFixture::PLAYER_WITH_FAVORITES, 10];
-        // + the XP ring in the header (GetXpProfile) - admins only while the xp-system flag is on
+        // Signed in: + the XP ring in the header (GetXpProfile) - every signed-in player since the launch, until the level rides on the viewer's profile row
+        yield 'organization page, player' => [self::RIVERBEND, PlayerFixture::PLAYER_REGULAR, 11];
+        yield 'organization page, team' => [self::RIVERBEND, PlayerFixture::PLAYER_WITH_STRIPE, 11];
+        yield 'organization page, maintainer' => [self::RIVERBEND, PlayerFixture::PLAYER_WITH_FAVORITES, 11];
         yield 'organization page, admin' => [self::RIVERBEND, PlayerFixture::PLAYER_ADMIN, 11];
         yield 'directory, guest' => [self::DIRECTORY, null, 2];
-        yield 'directory, player' => [self::DIRECTORY, PlayerFixture::PLAYER_REGULAR, 6];
+        yield 'directory, player' => [self::DIRECTORY, PlayerFixture::PLAYER_REGULAR, 7];
     }
 
     #[DataProvider('providePages')]

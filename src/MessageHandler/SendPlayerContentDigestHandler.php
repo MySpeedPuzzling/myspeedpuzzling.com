@@ -64,9 +64,9 @@ readonly final class SendPlayerContentDigestHandler
             return;
         }
 
-        // No digest leaves the system while the xp-system flag is active (§1.10).
+        // No digest leaves the system before the XP launch (XpLaunchReadiness, §1.10).
         if ($this->xpFeatureGate->isEmailSendingEnabled() === false) {
-            $this->logger->notice('Digest suppressed by xp-system feature flag', ['playerId' => $message->playerId]);
+            $this->logger->notice('Digest suppressed - XP launch not switched on yet', ['playerId' => $message->playerId]);
 
             return;
         }

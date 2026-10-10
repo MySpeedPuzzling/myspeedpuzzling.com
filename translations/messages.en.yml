@@ -262,6 +262,7 @@ homepage:
 ladder:
     board:
         msp_rating: "MSP Rating"
+        times: "Times"
     title: "Leaderboards"
     country: "Country"
     meta:

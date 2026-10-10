@@ -241,6 +241,7 @@
 "ladder":
   "board":
     "msp_rating": "MSP Rating"
+    "times": "Temps"
   "title": "Classements"
   "country": "Pays"
   "meta":

@@ -253,6 +253,7 @@
   "link_to_hub": "最多解決パズルや最もアクティブなプレイヤーをお探しですか？<a class=\"text-decoration-underline\" href=\"%link%\">新しいハブ</a>に移動しました！"
   "board":
     "msp_rating": "MSP Rating"
+    "times": "タイム"
 "filters":
   "button": "フィルター"
   "filter_by": "フィルター条件"

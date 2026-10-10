@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\Controller;
 
 use Doctrine\DBAL\ArrayParameterType;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
@@ -205,7 +206,7 @@ final class ProgressionPagesTest extends WebTestCase
         self::assertSelectorTextContains('.achievement-hero', 'You hold Silver');
     }
 
-    public function testLadderHasNoPromoBannersAndTheSwitcherListsTheMspRating(): void
+    public function testLadderHasNoPromoBannersAndTheTimesDropdownOnlyHoldsTimeLadders(): void
     {
         $browser = self::createClient();
 
@@ -214,7 +215,71 @@ final class ProgressionPagesTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('h1', 'Leaderboards');
         self::assertCount(0, $crawler->filter('.alert-primary'));
-        self::assertCount(1, $crawler->filter('.dropdown-menu a.dropdown-item[href="/en/msp-rating"]'));
+        // The boards are the pill row; the dropdown is the sub-choice inside "Times" only
+        self::assertCount(0, $crawler->filter('.dropdown-menu a[href="/en/msp-rating"]'));
+        self::assertCount(0, $crawler->filter('.dropdown-menu a[href^="/en/players/xp-leaderboard"]'));
+    }
+
+    /**
+     * @return array<string, array{string, string}>
+     */
+    public static function provideLeaderboardPages(): array
+    {
+        return [
+            'times overview' => ['/en/ladder', 'Times'],
+            'times per pieces' => ['/en/ladder/solo/500-pieces', 'Times'],
+            'msp rating' => ['/en/msp-rating', 'MSP Rating'],
+            'level' => ['/en/players/xp-leaderboard', 'Level (XP)'],
+            'achievement points' => ['/en/players/xp-leaderboard?tab=achievement-points', 'Achievement Points'],
+            'karma' => ['/en/players/xp-leaderboard?tab=karma', 'Karma'],
+        ];
+    }
+
+    #[DataProvider('provideLeaderboardPages')]
+    public function testEveryLeaderboardHasThePillRowWithItsBoardActive(string $url, string $active): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $crawler = $browser->request('GET', $url);
+
+        self::assertResponseIsSuccessful();
+        $pills = $crawler->filter('nav.leaderboards-nav a.leaderboards-nav-pill');
+        self::assertSame(
+            ['Times', 'MSP Rating', 'Level (XP)', 'Achievement Points', 'Karma'],
+            $pills->each(static fn ($pill): string => trim($pill->text())),
+        );
+        $current = $crawler->filter('nav.leaderboards-nav a[aria-current="page"]');
+        self::assertCount(1, $current);
+        self::assertSame($active, trim($current->text()));
+        self::assertStringContainsString('active', (string) $current->attr('class'));
+    }
+
+    public function testBeforeLaunchNonAdminsSeeOnlyTimesAndMspRatingPills(): void
+    {
+        FixedXpLaunchReadiness::$ready = false;
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
+
+        $crawler = $browser->request('GET', '/en/ladder');
+
+        self::assertResponseIsSuccessful();
+        self::assertSame(
+            ['Times', 'MSP Rating'],
+            $crawler->filter('nav.leaderboards-nav a')->each(static fn ($pill): string => trim($pill->text())),
+        );
+    }
+
+    public function testBeforeLaunchAdminsSeeEveryPill(): void
+    {
+        FixedXpLaunchReadiness::$ready = false;
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+
+        $crawler = $browser->request('GET', '/en/msp-rating');
+
+        self::assertResponseIsSuccessful();
+        self::assertCount(5, $crawler->filter('nav.leaderboards-nav a'));
     }
 
     public function testMspRatingLadderSaysWhatItIsAndHasColumnHeaders(): void

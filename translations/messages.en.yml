@@ -2086,12 +2086,7 @@ xp:
     max_level_reached: "Top of the mountain — level 50!"
     progress_label: "%xp% XP to level %level%"
     receipt:
-        title: "Your XP for this solve"
         total: "Total"
-        waiting_teaser: "{1}This solve counted toward 1 waiting achievement 🔒|]1,Inf[This solve counted toward %count% waiting achievements 🔒"
-        max_level_title: "Level 50 — XP still counts, glory is forever"
-        nearest_achievements: "Your next achievements are within reach:"
-        max_level_all_done: "You have conquered everything there is to conquer. We are honestly impressed."
         relax_repeat: "A familiar puzzle, purely for the joy of it — no XP this time, and that's the point."
         counting: "Counting your XP…"
     line:
@@ -2111,16 +2106,10 @@ xp:
         difficulty_pending: "Difficulty bonus pending — settles when this puzzle gets rated"
         speed_pending: "Speed bonus pending — needs times from 3 puzzlers"
     levelup:
-        aria: "Level up! You reached level %level%"
         label: "Level up!"
         max_label: "The summit!"
         message: "Your puzzling journey keeps climbing. Beautifully done!"
-        max_message: "Level 50. The highest there is. From here on, the Achievement Points ladder is your mountain."
         enter_ap_ladder: "Enter the AP ladder"
-        view_ap_ladder: "See the AP ladder"
-        skip_hint: "Tap anywhere to continue"
-    achievement_toast:
-        title: "New achievement!"
     estimate:
         line: "Solving this earns ~%base% XP + up to %bonus% bonus"
         repeat_note: "You've solved this one before — this time it counts ×%multiplier%."
@@ -2496,12 +2485,6 @@ added_time_recap:
         prediction_unavailable_baseline: "Complete more first-attempt solves on %pieces%-piece puzzles to unlock time predictions."
         prediction_unavailable_difficulty: "Not enough solvers have completed this puzzle yet to generate predictions."
         prediction_unavailable_opted_out: "Ranking is disabled in your profile settings."
-    ranking:
-        title: "Your Ranking"
-        position: "#%rank% out of %total% solvers"
-        first_place: "You have the fastest time on this puzzle!"
-        first_solver: "You're the first solver of this puzzle!"
-        top_percent: "Top %percent%%"
     history:
         title: "Your History on This Puzzle"
         first_time: "This is your first time solving this puzzle! Solve it again to track your improvement."
@@ -2513,15 +2496,6 @@ added_time_recap:
         difficulty: "Difficulty"
         predicted_range: "Predicted range"
         need_more_solvers: "More solvers are needed to compute difficulty for this puzzle."
-    progress:
-        title: "Your Overall Progress (%pieces%-piece)"
-        skill_tier: "Skill Tier"
-        skill_percentile: "Top %percent%% of players"
-        skill_tier_unavailable: "Complete %count% more qualifying %pieces%-piece puzzles to unlock your Skill Tier."
-        elo_title: "MSP Rating"
-        elo_first_attempts: "First attempts"
-        elo_total_solves: "Total solves"
-        elo_unavailable: "Solve more %pieces%-piece puzzles to qualify for the MSP Rating ladder."
 
 added_tracking_recap:
     meta:
@@ -2533,6 +2507,45 @@ added_tracking_recap:
     manufacturer: "Manufacturer"
     pieces: "Pieces"
     group_puzzlers: "Puzzled with"
+
+recap_progress:
+    title: "Your progress"
+    level:
+        title: "Level %level%"
+        xp_gained: "+%xp% XP"
+        to_next: "%current% of %needed% XP to Level %level%"
+        max: "The top level - your XP keeps counting"
+        late: "Your XP for this time is still being counted. It shows up in your XP history in a moment."
+        announce: "+%xp% XP for this time."
+        announce_level_up: "+%xp% XP for this time. Level %level%!"
+    receipt:
+        summary: "How your XP was counted"
+        history_link: "Your XP history"
+    sheet:
+        continue: "Continue"
+        max_message: "Level 50, the top level. Your XP keeps counting from here."
+    achievement:
+        new: "New achievement"
+        tap: "Tap the puzzle to reveal your tier"
+        points: "+%points% AP"
+        see: "See the achievement"
+    tease:
+        title: "You earned an achievement with this time."
+        text: "Become a member to find out which."
+        button: "Become a member"
+    place:
+        title: "#%rank% of %total% on this puzzle"
+        first_solver: "You are the first to solve this puzzle"
+        fastest: "The fastest time on this puzzle"
+        faster_than: "Faster than %percent% % of puzzlers"
+    competition:
+        rating: "MSP Rating %rating% · #%rank% of %total%"
+        rating_progress: "MSP Rating: %first% of %first_needed% first tries, %solves% of %solves_needed% puzzles"
+        skill: "Skill tier %tier% · top %percent% %"
+        skill_progress: "{1}1 more qualifying puzzle to your skill tier|]1,Inf[%count% more qualifying puzzles to your skill tier"
+        skill_soon: "Your skill tier shows up within 15 minutes"
+        locked_title: "Skill tier and MSP Rating"
+        locked_text: "See where you stand among %pieces%-piece puzzlers. For members."
 
 global_search:
     info: "Welcome new search! Search by puzzle name, ean or code. Search player by name or code. Please let us know your feedback."

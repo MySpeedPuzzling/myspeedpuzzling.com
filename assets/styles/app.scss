@@ -134,6 +134,12 @@
 
 // How progress works, achievements catalogue, holders, XP history (docs/features/xp-levels/launch-2026-10.md)
 @import "progression-pages";
+// Progression UX polish (docs/features/xp-levels/ux-polish/design-spec.md)
+@import "page-crumbs";
+@import "achievements-shelf";
+@import "achievement-medal";
+@import "leaderboard-window";
+@import "leaderboard-window-ladders";
 // The recap after logging a time: one progress card (docs/features/xp-levels/launch-2026-10.md)
 @import "xp-recap";
 

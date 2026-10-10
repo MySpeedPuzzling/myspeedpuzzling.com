@@ -359,3 +359,58 @@ $progression-muted: #5b616d;
 .methodology-anchor {
     scroll-margin-top: calc(var(--header-height, 101px) + .75rem);
 }
+
+// --- Leaderboards pill row (templates/_leaderboards_nav.html.twig) -------------------------------------------------
+
+.leaderboards-nav {
+    position: relative;
+    display: flex;
+    gap: .5rem;
+    margin: 0 -15px 1rem;
+    padding: 2px 15px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+
+    &::-webkit-scrollbar {
+        display: none;
+    }
+
+    @include media-breakpoint-up(md) {
+        flex-wrap: wrap;
+        margin-inline: 0;
+        padding-inline: 0;
+    }
+}
+
+.leaderboards-nav-pill {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    min-height: 44px;
+    padding: 0 1.125rem;
+    border: 1px solid #dae1e7;
+    border-radius: 999px;
+    background: #fff;
+    color: #373f50;
+    font-size: .9375rem;
+    font-weight: 500;
+    white-space: nowrap;
+    text-decoration: none;
+
+    &:hover {
+        border-color: #373f50;
+        color: #111;
+    }
+
+    &:focus-visible {
+        outline: 2px solid $primary;
+        outline-offset: 2px;
+    }
+
+    &.active {
+        border-color: #373f50;
+        background: #373f50;
+        color: #fff;
+    }
+}

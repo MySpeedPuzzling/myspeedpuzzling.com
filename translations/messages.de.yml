@@ -251,6 +251,7 @@
   "link_to_hub": "Suchen Sie nach dem meist gelösten Puzzle oder den aktivsten Spielern? Wir haben es zum&nbsp;<a class=\"text-decoration-underline\" href=\"%link%\">neuen Hub</a> verschoben!"
   "board":
     "msp_rating": "MSP Rating"
+    "times": "Zeiten"
 "filters":
   "button": "Filter"
   "filter_by": "Filtern nach"

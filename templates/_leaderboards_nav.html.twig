@@ -1,0 +1,35 @@
+{#
+    The pill row on top of every leaderboard (docs/features/xp-levels/launch-2026-10.md, "Leaderboards"):
+    Times (/ladder, its countries and per-pieces ladders) · MSP Rating · the progression boards (ProgressLeaderboardTab:
+    Level/XP, Achievement Points, Karma - behind the xp-system launch switch). Scrolls sideways on phones, the active
+    pill is scrolled into view (leaderboards_nav_controller.js).
+#}
+{%- set current_route = app.request.attributes.get('_route') -%}
+{%- set current_board = current_route == 'xp_leaderboard' and tab is defined ? tab : null -%}
+{%- set nav_country = active_country|default(null) -%}
+{%- set pills = [
+    {
+        href: path('ladder' ~ (nav_country ? '_country' : ''), {countryCode: nav_country ? nav_country.name : null}),
+        label: 'ladder.board.times'|trans,
+        active: current_route starts with 'ladder',
+    },
+    {
+        href: path('msp_rating_ladder'),
+        label: 'ladder.board.msp_rating'|trans,
+        active: current_route starts with 'msp_rating_ladder',
+    },
+] -%}
+{%- if xp_system_visible() -%}
+    {%- for board_tab in enum('SpeedPuzzling\\Web\\Value\\ProgressLeaderboardTab').cases() -%}
+        {%- set pills = pills|merge([{
+            href: path('xp_leaderboard', {tab: board_tab.value}),
+            label: (board_tab.translationPrefix() ~ '.tab')|trans,
+            active: current_board == board_tab,
+        }]) -%}
+    {%- endfor -%}
+{%- endif -%}
+<nav class="leaderboards-nav" aria-label="{{ 'ladder.title'|trans }}" data-controller="leaderboards-nav">
+    {%- for pill in pills %}
+        <a href="{{ pill.href }}" class="leaderboards-nav-pill{{ pill.active ? ' active' }}"{% if pill.active %} aria-current="page" data-leaderboards-nav-target="active"{% endif %}>{{ pill.label }}</a>
+    {%- endfor %}
+</nav>

@@ -11,8 +11,8 @@ Two e-mails:
 - **Activity digest** - Monday, to everybody with activity in their period: the period first, progress second, one
   button to the "Your week" page, every line a link.
   **No activity in the period = no digest at all** (no "quiet" variant).
-- **"We miss you"** - Tuesdays (from Tue 27 Oct 2026), to a player whose last logged result is **≥ 28 days** (and
-  < 24 months) old:
+- **"We miss you"** - Tuesdays (from Tue 27 Oct 2026), to a player whose last logged result is **≥ 28 days** old (never a
+  dormant account):
   friendly, lightly humorous ("have you been puzzling in secret?"), invites them to add the times they forgot and to
   come back. **Once per inactive spell**, never again until they have had activity again (Jan, 2026-10-11 - replaced
   the earlier "no-activity mail the day after").
@@ -68,9 +68,13 @@ one player per address; **most engaged first** (latest `player_activity_day`, th
   unsubscribe instead of a fourth switch: it is the same relationship, "tell me about my puzzling", and one switch is
   easier to understand), at least one result ever (players who never logged a time are not "missed"), and the **last
   logged result ≥ 28 days ago** (`GetContentDigestRecipients::MISS_YOU_AFTER_DAYS`; logged = `tracked_at`, any result,
-  solo or pair/team, a back-dated or not yet verified one too) **but not older than 24 months**
-  (`MISS_YOU_MAX_DORMANCY_MONTHS`): those accounts are left to the newsletter - old addresses bounce, hit spam traps or
-  complain, and that hurts the deliverability of every other e-mail.
+  solo or pair/team, a back-dated or not yet verified one too), and **not dormant**: dormant = no result **and** no
+  visit for more than 9 months (`MISS_YOU_DORMANT_AFTER_MONTHS`) - never mailed, left to the newsletter: old addresses
+  bounce, hit spam traps or complain, and that hurts the deliverability of every other e-mail. A **visit** = a signed-in
+  day on the website (`player_activity_day`, recorded since 2026-07-31, pruned after 24 months) or a sign-in
+  (`user_account.last_login_at`, set by `AuthenticationAuditSubscriber` on every successful sign-in on the main
+  firewall: password, e-mailed link or code, social login, and a remember-me cookie starting a new session). API and PAT
+  calls are not visits. One set-based query (two LATERALs), no per-player lookups.
 - **Once per inactive spell**: the spell is named by the last logged result - the log row's `period_key` is
   `miss-you:<last tracked_at>` (`MissYouRun::spellKey()`, `had_activity = false`), so the unique `(player_id,
   period_key)` claim makes it race-safe and once; the recipients query also skips anybody with a "We miss you" row
@@ -79,25 +83,22 @@ one player per address; **most engaged first** (latest `player_activity_day`, th
   Tue 27 Oct 2026** - two weeks after the launch newsletter (`MissYouRun::FIRST_DAY`, a guard in planner *and* handler), never while the launch switch is off;
   a queued message older than 2 days after its run day is dropped. Paced over 07:00-19:00, most recently active first,
   with a **stricter breaker** (≥ 10 failures and ≥ 3 %: these addresses have been quiet, the first run for years).
-- **Numbers** (dev copy, measured 2026-10-11): dormant ≥ 28 days with an account ≈ 5,010 - 28 days-3 months 1,050 ·
-  3-6 months 1,072 · 6-12 months 1,010 · 1-2 years 1,613 · over 2 years 265 (never mailed). Newly crossing 28 days ≈ 175
-  a week (111-248). 52 % of 4-week breaks end on their own within 12 weeks, 73 % eventually - hence the holdout: the
-  mail has to beat that baseline to be worth sending.
-- **Slicing the first wave**: `--last-activity-after=<date|age>` / `--last-activity-before=<date|age>` (a date
-  `2026-04-27` = Prague midnight, or an age `28 days` / `6 months` / `1 year` counted back from now), `--max-recipients N`
-  (all frequencies together, most recently active first, the holdout included), `--dry-run` (counts per frequency, the
-  holdout, and per recency bucket 28d-3m / 3-6m / 6-12m / 1-2y).
-- **Wave plan** (Jan):
+- **Numbers** (dev copy, data to 25 Sep 2026): last result 28 days-9 months ≈ 2,700; result older but visited within
+  9 months ≈ 56; dormant (excluded) ≈ 2,254. Newly crossing 28 days ≈ 175 a week (111-248). 52 % of 4-week breaks end on
+  their own within 12 weeks, 73 % eventually - hence the holdout: the mail has to beat that baseline.
+- **Slicing the first wave**: `--last-activity-after=<date|age>` / `--last-activity-before=<date|age>` (by the last
+  result; a date `2026-04-27` = Prague midnight, or an age `28 days` / `3 months` / `1 year` counted back from now),
+  `--max-recipients N` (all frequencies together, most recently active first, the holdout included), `--dry-run` (counts
+  per frequency, the holdout, and per bucket: 28d-3m / 3-9m / older-but-visited).
+- **Wave plan** (proposal, Jan 2026-10-11):
 
 | Tuesday | Slice | ≈ recipients | Command |
 |---|---|---|---|
-| 27 Oct 2026 | 28 days - 6 months | 2,100 | `send-content-digest miss-you --last-activity-after="6 months"` |
-| 3 Nov 2026 | 6-12 months | 1,000 | `send-content-digest miss-you --last-activity-after="12 months" --last-activity-before="6 months"` |
-| 10 Nov 2026 | 1-2 years, **only if bounces < 2 % and complaints ≈ 0 in the earlier waves** | 1,600 | `send-content-digest miss-you --last-activity-before="12 months"` |
-| from 17 Nov | regular weekly (the 28-day crossers) | 175 | `send-content-digest miss-you` |
+| 27 Oct 2026 | last result 28 days - 3 months, **plus** the visitors with an older result | 1,100 | `send-content-digest miss-you --last-activity-after="3 months"` and `send-content-digest miss-you --last-activity-before="9 months"` |
+| 3 Nov 2026 | last result 3-9 months | 1,650 | `send-content-digest miss-you --last-activity-after="9 months" --last-activity-before="3 months"` |
+| from 10 Nov | the weekly cron (the 28-day crossers) | 175 | `send-content-digest miss-you` |
 
-  Until the 1-2 year wave is approved, the weekly cron row must not reach them: run the waves by hand and keep the cron
-  row on `--last-activity-after="12 months"` (or off) until then. Over 2 years: never (code).
+  The cron row goes in from Tue 10 Nov; the first two Tuesdays are run by hand. Dormant accounts: never (code).
 
 ## Holdout
 
@@ -261,9 +262,8 @@ Why it is worth having:
 ```
 
 3. Before Mon 19 Oct: `bin/console myspeedpuzzling:send-content-digest activity --dry-run` on the box (counts per
-   frequency) - and `miss-you --dry-run` before Tue 27 Oct. The first "We miss you" Tuesdays follow the wave plan
-   (§"We miss you") by hand; the cron row stays off - or on `--last-activity-after="12 months"` - until the 1-2 year wave
-   is approved.
+   frequency) - and `miss-you --dry-run` before Tue 27 Oct. The first two "We miss you" Tuesdays follow the wave plan
+   (§"We miss you") by hand; the Tuesday cron row goes in from Tue 10 Nov.
 4. Watch: the breaker's warning in Sentry, `content_digest_run` counters, `email_audit_log` for `content_digest_*`.
 
 ---

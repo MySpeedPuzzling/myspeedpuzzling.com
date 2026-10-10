@@ -83,7 +83,6 @@ final class XpLeaderboardController extends AbstractController
 
         return $this->render('xp_leaderboard.html.twig', [
             'tab' => $tab,
-            'tabs' => ProgressLeaderboardTab::cases(),
             'rows' => $rows,
             'login_required' => $loginRequired,
             'countries' => CountryFilterOptions::fromCodes($this->getXpLeaderboard->countries(), $request->getLocale()),

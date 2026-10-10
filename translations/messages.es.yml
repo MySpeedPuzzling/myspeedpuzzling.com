@@ -253,6 +253,7 @@
   "link_to_hub": "¿Buscas el rompecabezas más resuelto o los jugadores más activos? ¡Lo movimos al&nbsp;<a class=\"text-decoration-underline\" href=\"%link%\">nuevo Centro</a>!"
   "board":
     "msp_rating": "MSP Rating"
+    "times": "Tiempos"
 "filters":
   "button": "Filtros"
   "filter_by": "Filtrar por"

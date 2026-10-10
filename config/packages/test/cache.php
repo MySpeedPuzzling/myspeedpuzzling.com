@@ -17,7 +17,7 @@ namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 // test's rolled-back rows may outlive that test's kernel - so it lives in memory.
 // Same for the hardest / easiest puzzle lists, built from the rated puzzles a
 // test seeds and DAMA rolls back, for the global improvement ratio snapshots, and for
-// the marketplace's events with sellers going (built from rows a test adds).
+// the marketplace's events with sellers going (built from rows a test adds) and the achievement rarity.
 //
 // ParaTest workers (TEST_TOKEN 1..N) run side by side: each keeps its own filesystem
 // pools, so one worker's cached stats never leak into another worker's tests.
@@ -31,6 +31,9 @@ return App::config([
                     'adapters' => ['cache.adapter.array'],
                 ],
                 'difficulty_rankings_cache' => [
+                    'adapters' => ['cache.adapter.array'],
+                ],
+                'achievement_rarity_cache' => [
                     'adapters' => ['cache.adapter.array'],
                 ],
                 'global_improvement_ratio_snapshot_cache' => [

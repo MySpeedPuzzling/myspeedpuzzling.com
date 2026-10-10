@@ -282,24 +282,6 @@ $progression-muted: #5b616d;
     font-size: .875rem;
     text-decoration: none;
 
-    img,
-    .holder-pill-initial {
-        flex-shrink: 0;
-        width: 32px;
-        height: 32px;
-        border-radius: 50%;
-        object-fit: cover;
-    }
-
-    .holder-pill-initial {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        background: #eef0f4;
-        color: #4b5160;
-        font-weight: 600;
-    }
-
     &:hover,
     &:focus-visible {
         border-color: #373f50;

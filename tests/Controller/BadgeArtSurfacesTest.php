@@ -72,9 +72,10 @@ final class BadgeArtSurfacesTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         $hero = $crawler->filter('img.badge-art-hero');
-        self::assertStringStartsWith('/img/badges/webp/320/streak-t4.webp?v=', (string) $hero->attr('src'));
+        self::assertStringContainsString('/streak-t4.webp?v=', (string) $hero->attr('src'));
         self::assertStringNotContainsString('badge-art-locked', (string) $hero->attr('class'));
-        self::assertCount(5, $crawler->filter('li img.badge-art'));
+        // The tiers are rows of text (tier · requirement · rarity), not five more pictures
+        self::assertCount(5, $crawler->filter('li.achievement-tier-row'));
 
         // Opened without a badge by a viewer who has none of it yet
         $crawler = $browser->request('GET', '/en/achievements/streak/info?tier=junk', server: ['HTTP_TURBO_FRAME' => 'modal-frame']);

@@ -50,6 +50,11 @@ return App::config([
                 'difficulty_rankings_cache' => [
                     'adapters' => ['cache.app'],
                 ],
+                // Share of puzzlers holding each achievement tier (AchievementRarityProvider):
+                // one aggregate over the badge table, the same for everybody, 15 minutes.
+                'achievement_rarity_cache' => [
+                    'adapters' => ['cache.app'],
+                ],
                 // Global improvement ratios as they were at the start of a month
                 // (PredictionReconstructor) - recomputing one takes a second or two
                 // over every repeat solve, and the messenger worker resets the

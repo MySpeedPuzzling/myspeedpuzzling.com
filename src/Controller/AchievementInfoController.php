@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller;
 
 use SpeedPuzzling\Web\Query\GetBadgeCatalog;
+use SpeedPuzzling\Web\Services\AchievementRarityProvider;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Services\Xp\XpFeatureGate;
 use SpeedPuzzling\Web\Value\BadgeTier;
@@ -28,6 +29,7 @@ final class AchievementInfoController extends AbstractController
         readonly private GetBadgeCatalog $getBadgeCatalog,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private XpFeatureGate $xpFeatureGate,
+        readonly private AchievementRarityProvider $achievementRarityProvider,
     ) {
     }
 
@@ -67,8 +69,11 @@ final class AchievementInfoController extends AbstractController
 
         // Progress belongs to the viewer, never to the profile being looked at — the modal
         // answers "what is this and where am I with it", the holders page answers "who has it".
+        // Which tiers a player holds is a membership perk: anybody else gets the bare tiers.
+        $memberId = $profile !== null && $profile->activeMembership ? $profile->playerId : null;
+        $isMember = $memberId !== null;
         $group = $badgeType->isTiered()
-            ? $this->getBadgeCatalog->forPlayerAndType($profile?->playerId, $badgeType)
+            ? $this->getBadgeCatalog->forPlayerAndType($memberId, $badgeType)
             : null;
 
         // The badge that was clicked (someone's profile) is the modal's big picture; without one the viewer's own
@@ -81,6 +86,8 @@ final class AchievementInfoController extends AbstractController
             'group' => $group,
             'hero_tier' => $heroTier,
             'logged_in' => $profile !== null,
+            'is_member' => $isMember,
+            'rarity' => $this->achievementRarityProvider->percentages()[$badgeType->value] ?? [],
         ]);
         $response->setVary('Turbo-Frame');
 

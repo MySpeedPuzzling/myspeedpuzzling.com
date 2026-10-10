@@ -65,6 +65,7 @@ $lpr-navy: $gray-900;
   display: inline-flex;
   align-items: center;
   gap: .375rem;
+  min-height: 44px;                      // a tap target, small as it looks
 
   &.is-on {
     color: $headings-color;
@@ -549,4 +550,12 @@ $xpl-indigo: #4e54c8;
     opacity: 0;
     transform: translateY(8px) scale(.94);
   }
+}
+
+// The launch modal's quiet actions ("See everything", "Maybe later") stay small but get a 44 px tap target
+.xpl-modal .btn-sm {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
 }

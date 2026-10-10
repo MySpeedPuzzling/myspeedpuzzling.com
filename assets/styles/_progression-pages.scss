@@ -268,6 +268,37 @@ $progression-muted: #5b616d;
     min-width: 3.5rem;
 }
 
+// On a phone the requirement gets the room: the rarity moves under it, the ✓ stays on the right
+@include media-breakpoint-down(sm) {
+    .achievement-tier-row {
+        display: grid;
+        grid-template-columns: 4.75rem minmax(0, 1fr) auto;
+        column-gap: .5rem;
+        row-gap: .125rem;
+
+        > .achievement-tier-name {
+            grid-row: 1 / span 2;
+            width: auto;
+        }
+
+        > .flex-grow-1 {
+            grid-column: 2;
+        }
+
+        > .achievement-tier-rarity {
+            grid-column: 2;
+            grid-row: 2;
+            min-width: 0;
+            text-align: left;
+        }
+
+        > i {
+            grid-column: 3;
+            grid-row: 1 / span 2;
+        }
+    }
+}
+
 // --- Holders page --------------------------------------------------------------------------------------------------
 
 .holder-pill {

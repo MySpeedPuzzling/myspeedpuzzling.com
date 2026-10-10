@@ -1593,7 +1593,6 @@ xp:
         solve_daily_warmup: "Denní rozcvička"
         difficulty_settlement: "Bonus za obtížnost (doúčtováno)"
         speed_settlement: "Bonus za rychlost (doúčtováno)"
-        achievement: "Získaný úspěch"
         solve_compensation: "Smazané složení"
         difficulty_pending: "Bonus za obtížnost čeká — doúčtuje se, jakmile puzzle získá hodnocení"
         speed_pending: "Bonus za rychlost čeká — potřebuje časy od 3 puzzlerů"
@@ -1662,7 +1661,6 @@ xp:
         to_summary: "Zobrazit vše"
         tap_hint: "Pokračuj klepnutím kamkoli"
         progress: "%current% / %total%"
-        badge_xp: "+%xp% XP"
         summary_title: "Tvoje úspěchy a úroveň"
         counter_title: "Tvoje XP"
     explainer:
@@ -1702,9 +1700,6 @@ xp:
         unrated:
             heading: "Puzzle bez hodnocení"
             body: "Úplně nová puzzle v katalogu ještě nemusí mít stupeň obtížnosti. Základní XP získáš hned a bonus za obtížnost dorazí automaticky („doúčtuje se“), jakmile komunita puzzle ohodnotí. Stejně tak bonus za rychlost, jakmile časy zaznamená dost puzzlerů."
-        achievements:
-            heading: "Úspěchy dávají XP taky"
-            body: "Každý stupeň úspěchu udělí XP jednou, navždy: bronz 5 · stříbro 10 · zlato 25 · platina 50 · diamant 100."
         levels:
             heading: "Úrovně"
             header_level: "Úroveň"
@@ -1759,7 +1754,6 @@ badges:
     free_user_hint: "Úspěchy získáváš i bez členství — v bezpečí na tebe počkají."
     earned_waiting: "Získáno ✓ — čeká 🔒"
     view_holders: "Podívej se, kdo ho získal"
-    how_it_works_hint: "Úspěchy udělují XP a body za úspěchy."
     how_it_works_link: "Jak fungují XP a úrovně"
     detail:
         meta_title: "%name% — držitelé úspěchu"

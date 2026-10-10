@@ -11,7 +11,7 @@ use SpeedPuzzling\Web\Value\BadgeType;
 
 /**
  * Every achievement of a player for the XP launch reveal, in crescendo order: one statement over all earned tier rows,
- * folded per achievement into its highest tier and the XP its tiers brought.
+ * folded per achievement into its highest tier and the Achievement Points its tiers brought.
  */
 readonly final class GetXpLaunchRevealBadges
 {
@@ -39,7 +39,7 @@ SQL;
             ->executeQuery($sql, ['playerId' => $playerId])
             ->fetchAllAssociative();
 
-        /** @var array<string, array{type: BadgeType, tier: null|BadgeTier, xp: int, id: string, revealed: bool}> $achievements */
+        /** @var array<string, array{type: BadgeType, tier: null|BadgeTier, points: int, id: string, revealed: bool}> $achievements */
         $achievements = [];
 
         foreach ($rows as $row) {
@@ -51,7 +51,7 @@ SQL;
                 continue;
             }
 
-            $xp = $tier?->points() ?? BadgeTier::SINGLE_TIER_POINTS;
+            $points = $tier?->points() ?? BadgeTier::SINGLE_TIER_POINTS;
             $current = $achievements[$type->value] ?? null;
 
             if ($current === null || $tier?->value > ($current['tier']->value ?? 0)) {
@@ -59,12 +59,12 @@ SQL;
                 $achievements[$type->value] = [
                     'type' => $type,
                     'tier' => $tier,
-                    'xp' => ($current['xp'] ?? 0) + $xp,
+                    'points' => ($current['points'] ?? 0) + $points,
                     'id' => $row['id'],
                     'revealed' => $row['revealed_at'] !== null,
                 ];
             } else {
-                $current['xp'] += $xp;
+                $current['points'] += $points;
                 $achievements[$type->value] = $current;
             }
         }
@@ -73,7 +73,7 @@ SQL;
             static fn (array $achievement): XpLaunchRevealBadge => new XpLaunchRevealBadge(
                 type: $achievement['type'],
                 tier: $achievement['tier'],
-                xp: $achievement['xp'],
+                points: $achievement['points'],
                 badgeId: $achievement['id'],
                 revealed: $achievement['revealed'],
             ),

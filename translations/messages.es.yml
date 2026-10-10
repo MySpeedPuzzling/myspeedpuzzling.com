@@ -1595,7 +1595,6 @@ xp:
         solve_daily_warmup: "Calentamiento diario"
         difficulty_settlement: "Bonus por dificultad (liquidado)"
         speed_settlement: "Bonus por velocidad (liquidado)"
-        achievement: "Logro conseguido"
         solve_compensation: "Resolución eliminada"
         difficulty_pending: "Bonus por dificultad pendiente — se liquida cuando este puzzle reciba valoración"
         speed_pending: "Bonus por velocidad pendiente — necesita tiempos de 3 puzzleros"
@@ -1664,7 +1663,6 @@ xp:
         to_summary: "Verlo todo"
         tap_hint: "Toca en cualquier lugar para continuar"
         progress: "%current% / %total%"
-        badge_xp: "+%xp% XP"
         summary_title: "Todo lo que has conseguido"
         counter_title: "Tus XP"
     explainer:
@@ -1704,9 +1702,6 @@ xp:
         unrated:
             heading: "Puzzles sin valorar"
             body: "Los puzzles recién llegados al catálogo pueden no tener todavía nivel de dificultad. La base de XP la ganas al momento, y el bonus por dificultad llega automáticamente (se \"liquida\") cuando la comunidad valora el puzzle. Lo mismo con el bonus por velocidad, cuando suficientes puzzleros hayan registrado tiempos."
-        achievements:
-            heading: "Los logros también dan XP"
-            body: "Cada rango de logro otorga XP una sola vez, para siempre: Bronce 5 · Plata 10 · Oro 25 · Platino 50 · Diamante 100."
         levels:
             heading: "Niveles"
             header_level: "Nivel"
@@ -1761,7 +1756,6 @@ badges:
     free_user_hint: "Sigues ganando logros incluso sin membresía — te esperan, sanos y salvos."
     earned_waiting: "Conseguido ✓ — en espera 🔒"
     view_holders: "Ver quién lo consiguió"
-    how_it_works_hint: "Los logros otorgan XP y Puntos de Logro."
     how_it_works_link: "Cómo funcionan los XP y niveles"
     detail:
         meta_title: "%name% — poseedores del logro"

@@ -69,6 +69,7 @@ use SpeedPuzzling\Web\Value\SellSwapListSettings;
  *     leaderboard_chart_view?: null|string,
  *     comparison_view?: null|string,
  *     comparison_line_up?: null|string,
+ *     has_solving_time?: bool,
  *  }
  */
 readonly final class PlayerProfile
@@ -173,6 +174,11 @@ readonly final class PlayerProfile
          */
         public ComparisonView $comparisonView = ComparisonView::Table,
         public ComparisonLineUp $comparisonLineUp = new ComparisonLineUp(),
+        /**
+         * The signed-in player's own profile only: they logged at least one counted (not suspicious) solving time - the
+         * audience of the XP launch announcement modal (XpLaunchRevealRule). One index probe on the viewer's own row.
+         */
+        public bool $hasSolvingTime = false,
     ) {
     }
 
@@ -349,6 +355,7 @@ readonly final class PlayerProfile
                 $hiddenPlayerIds,
                 $revealedPrivatePlayerIds,
             ),
+            hasSolvingTime: $row['has_solving_time'] ?? false,
         );
     }
 

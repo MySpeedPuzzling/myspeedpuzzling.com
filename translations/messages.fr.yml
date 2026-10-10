@@ -1595,7 +1595,6 @@ competition_referees:
     "solve_daily_warmup": "Échauffement du jour"
     "difficulty_settlement": "Bonus de difficulté (régularisé)"
     "speed_settlement": "Bonus de vitesse (régularisé)"
-    "achievement": "Succès obtenu"
     "solve_compensation": "Résolution supprimée"
     "difficulty_pending": "Bonus de difficulté en attente — versé dès que ce puzzle sera noté"
     "speed_pending": "Bonus de vitesse en attente — il faut les temps de 3 puzzleurs"
@@ -1664,7 +1663,6 @@ competition_referees:
     "to_summary": "Tout voir"
     "tap_hint": "Touchez n'importe où pour continuer"
     "progress": "%current% / %total%"
-    "badge_xp": "+%xp% XP"
     "summary_title": "Tout ce que vous avez gagné"
     "counter_title": "Vos XP"
   "explainer":
@@ -1704,9 +1702,6 @@ competition_referees:
     "unrated":
       "heading": "Puzzles non notés"
       "body": "Les puzzles tout juste ajoutés au catalogue n'ont parfois pas encore de niveau de difficulté. Vous gagnez les XP de base immédiatement, et le bonus de difficulté arrive automatiquement (il est « régularisé ») dès que la communauté note le puzzle. Même chose pour le bonus de vitesse dès qu'assez de puzzleurs ont enregistré des temps."
-    "achievements":
-      "heading": "Les succès rapportent aussi des XP"
-      "body": "Chaque palier de succès rapporte des XP une seule fois, pour toujours : Bronze 5 · Argent 10 · Or 25 · Platine 50 · Diamant 100."
     "levels":
       "heading": "Niveaux"
       "header_level": "Niveau"
@@ -1759,7 +1754,6 @@ competition_referees:
   "free_user_hint": "Vous continuez à gagner des succès même sans adhésion — ils vous attendent, bien au chaud."
   "earned_waiting": "Obtenu ✓ — en attente 🔒"
   "view_holders": "Voir qui l'a obtenu"
-  "how_it_works_hint": "Les succès rapportent des XP et des points de succès."
   "how_it_works_link": "Comment fonctionnent les XP et les niveaux"
   "detail":
     "meta_title": "%name% — détenteurs du succès"

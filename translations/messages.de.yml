@@ -1579,7 +1579,6 @@ xp:
         solve_daily_warmup: "Tägliches Warm-up"
         difficulty_settlement: "Schwierigkeitsbonus (nachgereicht)"
         speed_settlement: "Tempobonus (nachgereicht)"
-        achievement: "Erfolg erhalten"
         solve_compensation: "Ergebnis gelöscht"
         difficulty_pending: "Schwierigkeitsbonus ausstehend — wird nachgereicht, sobald dieses Puzzle bewertet ist"
         speed_pending: "Tempobonus ausstehend — braucht Zeiten von 3 Puzzlern"
@@ -1648,7 +1647,6 @@ xp:
         to_summary: "Alles ansehen"
         tap_hint: "Tippe irgendwo, um weiterzumachen"
         progress: "%current% / %total%"
-        badge_xp: "+%xp% XP"
         summary_title: "Alles, was du dir verdient hast"
         counter_title: "Deine XP"
     explainer:
@@ -1688,9 +1686,6 @@ xp:
         unrated:
             heading: "Unbewertete Puzzles"
             body: "Brandneue Katalog-Puzzles haben manchmal noch keine Schwierigkeitsstufe. Die Basis-XP bekommst du sofort, und der Schwierigkeitsbonus kommt automatisch (wird \"nachgereicht\"), sobald die Community das Puzzle bewertet hat. Dasselbe gilt für den Tempobonus, sobald genug Puzzler Zeiten erfasst haben."
-        achievements:
-            heading: "Auch Erfolge bringen XP"
-            body: "Jede Erfolgsstufe bringt einmalig XP, für immer: Bronze 5 · Silber 10 · Gold 25 · Platin 50 · Diamant 100."
         levels:
             heading: "Level"
             header_level: "Level"
@@ -1745,7 +1740,6 @@ badges:
     free_user_hint: "Du verdienst auch ohne Mitgliedschaft weiter Erfolge — sie warten sicher und wohlbehalten auf dich."
     earned_waiting: "Verdient ✓ — wartet 🔒"
     view_holders: "Sieh, wer ihn verdient hat"
-    how_it_works_hint: "Erfolge bringen XP und Erfolgspunkte."
     how_it_works_link: "So funktionieren XP & Level"
     detail:
         meta_title: "%name% — Puzzler mit diesem Erfolg"

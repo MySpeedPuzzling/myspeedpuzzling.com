@@ -88,6 +88,61 @@ SQL;
     }
 
     /**
+     * How many achievement tiers the player earned with this solve - for the post-solve teaser of a free player
+     * ("You earned an achievement with this time. Become a member to find out which."), who must never learn which.
+     * One statement, no hydration.
+     *
+     * "With this solve" = earned since the solve was logged and before the player logged their next one: the badge
+     * evaluation runs asynchronously right after the save (RecalculateBadgesForPlayer), so its tiers carry a later
+     * earned_at than the solve's tracked_at. 0 until the evaluation has run.
+     */
+    public function countTiersEarnedWithSolve(string $playerId, string $solvingTimeId): int
+    {
+        $value = $this->database
+            ->executeQuery(
+                'SELECT COUNT(*) FROM badge b ' . self::EARNED_WITH_SOLVE,
+                ['playerId' => $playerId, 'solvingTimeId' => $solvingTimeId],
+            )
+            ->fetchOne();
+
+        return is_numeric($value) ? (int) $value : 0;
+    }
+
+    /**
+     * The achievements earned with this solve (see countTiersEarnedWithSolve()), the highest new tier per type - for
+     * a member's post-solve reveal.
+     *
+     * @return list<BadgeResult>
+     */
+    public function earnedWithSolve(string $playerId, string $solvingTimeId): array
+    {
+        $sql = 'SELECT DISTINCT ON (b.type) b.id, b.type, b.tier, b.earned_at, b.revealed_at FROM badge b '
+            . self::EARNED_WITH_SOLVE
+            . ' ORDER BY b.type ASC, b.tier DESC NULLS LAST';
+
+        /** @var list<array{id: string, type: string, tier: null|int|string, earned_at: string, revealed_at: null|string}> $rows */
+        $rows = $this->database
+            ->executeQuery($sql, ['playerId' => $playerId, 'solvingTimeId' => $solvingTimeId])
+            ->fetchAllAssociative();
+
+        return $this->hydrate($rows);
+    }
+
+    private const string EARNED_WITH_SOLVE = <<<SQL
+JOIN puzzle_solving_time solve ON solve.id = :solvingTimeId
+WHERE b.player_id = :playerId
+  AND b.earned_at >= solve.tracked_at
+  AND NOT EXISTS (
+    SELECT 1
+    FROM puzzle_solving_time later
+    WHERE later.player_id = :playerId
+      AND later.id != solve.id
+      AND later.tracked_at > solve.tracked_at
+      AND later.tracked_at <= b.earned_at
+  )
+SQL;
+
+    /**
      * @param list<array{id: string, type: string, tier: null|int|string, earned_at: string, revealed_at: null|string}> $rows
      * @return list<BadgeResult>
      */

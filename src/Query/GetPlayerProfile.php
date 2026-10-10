@@ -165,6 +165,7 @@ SELECT
     (membership.id IS NOT NULL) AS has_membership_row,
     membership.trial_ends_at AS free_trial_ends_at,
     (SELECT json_object_agg(impression.modal, impression.displayed_at) FROM player_modal_impression impression WHERE impression.player_id = player.id) AS modal_impressions,
+    EXISTS (SELECT 1 FROM puzzle_solving_time own_time WHERE own_time.player_id = player.id AND own_time.suspicious = false) AS has_solving_time,
     player.leaderboard_chart_view,
     player.comparison_view,
     {$comparisonLineUp} AS comparison_line_up,

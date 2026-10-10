@@ -1673,7 +1673,6 @@ xp:
         solve_daily_warmup: "デイリーウォームアップ"
         difficulty_settlement: "難易度ボーナス（確定）"
         speed_settlement: "スピードボーナス（確定）"
-        achievement: "実績獲得"
         solve_compensation: "記録の削除"
         difficulty_pending: "難易度ボーナスは保留中 — このパズルが評価されると確定します"
         speed_pending: "スピードボーナスは保留中 — 3人のパズラーのタイムが必要です"
@@ -1742,7 +1741,6 @@ xp:
         to_summary: "すべて見る"
         tap_hint: "どこかをタップして次へ"
         progress: "%current% / %total%"
-        badge_xp: "+%xp% XP"
         summary_title: "あなたが手にしたすべて"
         counter_title: "あなたのXP"
     explainer:
@@ -1782,9 +1780,6 @@ xp:
         unrated:
             heading: "未評価のパズル"
             body: "カタログに登場したばかりのパズルには、まだ難易度ティアがないことがあります。基本XPはすぐに獲得でき、コミュニティがパズルを評価すると難易度ボーナスが自動的に加算（「確定」）されます。スピードボーナスも、十分な人数のタイムが集まれば同じように確定します。"
-        achievements:
-            heading: "実績でもXPがもらえます"
-            body: "実績の各ティアは一度きり、永久に有効なXPを付与します：ブロンズ5 · シルバー10 · ゴールド25 · プラチナ50 · ダイヤモンド100。"
         levels:
             heading: "レベル"
             header_level: "レベル"
@@ -1839,7 +1834,6 @@ badges:
     free_user_hint: "メンバーシップがなくても実績は貯まり続けます — 大切に保管されて、あなたを待っています。"
     earned_waiting: "獲得済み ✓ — お披露目待ち 🔒"
     view_holders: "獲得したパズラーを見る"
-    how_it_works_hint: "実績を獲得するとXPと実績ポイントがもらえます。"
     how_it_works_link: "XPとレベルの仕組み"
     detail:
         meta_title: "%name% — 実績保持者"

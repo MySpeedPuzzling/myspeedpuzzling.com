@@ -2106,7 +2106,6 @@ xp:
         solve_daily_warmup: "Daily warm-up"
         difficulty_settlement: "Difficulty bonus (settled)"
         speed_settlement: "Speed bonus (settled)"
-        achievement: "Achievement earned"
         solve_compensation: "Solve deleted"
         difficulty_pending: "Difficulty bonus pending — settles when this puzzle gets rated"
         speed_pending: "Speed bonus pending — needs times from 3 puzzlers"
@@ -2155,6 +2154,14 @@ xp:
         deleted_solve: "deleted solve"
         pagination: "XP history pages"
         note: "Wondering about a line?"
+    launch_modal:
+        title: "Your puzzling journey just turned into XP"
+        text: "Every puzzle you ever logged counts. Here is your level:"
+        button_member: "Reveal your achievements"
+        button_continue: "See everything"
+        later: "Maybe later"
+        member_tease: "{1}You also earned 1 achievement - become a member to find out which.|]1,Inf[You also earned %count% achievements - become a member to find out which."
+        member_tease_zero: "Members also collect achievements and Achievement Points for what they complete."
     reveal:
         meta_title: "Your puzzling journey, revealed"
         title: "Your whole journey just turned into XP ✨"
@@ -2175,7 +2182,7 @@ xp:
         to_summary: "See everything"
         tap_hint: "Tap anywhere to continue"
         progress: "%current% / %total%"
-        badge_xp: "+%xp% XP"
+        badge_points: "+%points% AP"
         summary_title: "Everything you've earned"
         counter_title: "Your XP"
     explainer:
@@ -2216,8 +2223,8 @@ xp:
             heading: "Unrated puzzles"
             body: "Brand-new catalog puzzles may not have a difficulty tier yet. You earn the base XP right away, and the difficulty bonus arrives automatically (\"settles\") once the community rates the puzzle. Same for the speed bonus once enough puzzlers have logged times."
         achievements:
-            heading: "Achievements give XP too"
-            body: "Every achievement tier grants XP once, forever: Bronze 5 · Silver 10 · Gold 25 · Platinum 50 · Diamond 100."
+            heading: "Achievements earn Achievement Points"
+            body: "XP comes from your puzzles alone - achievements give none. Every achievement tier earns Achievement Points (AP) once, forever: Bronze 5 · Silver 10 · Gold 25 · Platinum 50 · Diamond 100. Achievements and AP are part of membership."
         levels:
             heading: "Levels"
             header_level: "Level"
@@ -2272,7 +2279,7 @@ badges:
     free_user_hint: "You keep earning achievements even without membership — they wait for you, safe and sound."
     earned_waiting: "Earned ✓ — waiting 🔒"
     view_holders: "See who earned it"
-    how_it_works_hint: "Achievements grant XP and Achievement Points."
+    how_it_works_hint: "Every achievement tier earns Achievement Points. XP comes from your puzzles alone."
     how_it_works_link: "How XP & Levels work"
     detail:
         meta_title: "%name% — achievement holders"
@@ -6823,6 +6830,9 @@ free_trial:
         where_to_look: "Where to look first"
         membership_link: "Membership options and the state of your trial"
     features:
+        achievements:
+            title: "Your achievements"
+            text: "The achievements you already earned are waiting for their reveal - one little puzzle each."
         insights:
             title: "Insights on your profile"
             text: "Your skill tier, puzzle difficulty and how long a puzzle should take you."

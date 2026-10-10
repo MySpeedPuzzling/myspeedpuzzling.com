@@ -239,25 +239,18 @@ SQL,
      */
     private function levelMismatches(): array
     {
-        /** @var list<array{xp_total: int|string, level: int|string}> $pairs */
-        $pairs = $this->database
-            ->executeQuery('SELECT DISTINCT xp_total, level FROM player')
+        // The level curve lives in PHP (LevelTable) - one pass over every player, ~11k rows
+        /** @var list<array{id: string, xp_total: int|string, level: int|string}> $players */
+        $players = $this->database
+            ->executeQuery('SELECT id, xp_total, level FROM player')
             ->fetchAllAssociative();
 
         $ids = [];
 
-        foreach ($pairs as $pair) {
-            if (LevelTable::levelForXp((int) $pair['xp_total']) === (int) $pair['level']) {
-                continue;
+        foreach ($players as $player) {
+            if (LevelTable::levelForXp((int) $player['xp_total']) !== (int) $player['level']) {
+                $ids[] = $player['id'];
             }
-
-            /** @var list<string> $playerIds */
-            $playerIds = $this->database->fetchFirstColumn(
-                'SELECT id FROM player WHERE xp_total = :xpTotal AND level = :level',
-                ['xpTotal' => (int) $pair['xp_total'], 'level' => (int) $pair['level']],
-            );
-
-            $ids = [...$ids, ...$playerIds];
         }
 
         return $ids;

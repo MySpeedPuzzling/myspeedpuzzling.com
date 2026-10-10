@@ -119,40 +119,49 @@ SQL;
     }
 
     /**
-     * The viewer's own standing for the pinned self-row: [rank, value] within the
-     * unfiltered public board of that discipline, or null when they are not on it.
+     * The viewer's own standing for the pinned self-row, on the same board the list shows - the country and
+     * favorites filters included, ties broken like the list (value, then id) - or null when the viewer is not on
+     * that board (no XP/AP, private, opted out, another country, AP without membership).
      *
-     * @return array{rank: int, value: int}|null
+     * @param null|list<string> $favoritePlayerIds the favorites board (the viewer counts as on it)
+     * @return array{rank: int, value: int, level: int}|null
      */
-    public function selfRank(string $playerId, string $tab): null|array
+    public function selfRank(string $playerId, string $tab, null|string $country = null, null|array $favoritePlayerIds = null): null|array
     {
         $eligibility = $this->eligibility();
+        $mineEligibility = str_replace('p.', 'mine.', self::PUBLIC_ELIGIBILITY);
         $membership = self::ACTIVE_MEMBERSHIP;
+        [$favoritesCondition, $params, $types] = $this->favoritesFilter($favoritePlayerIds);
 
-        $sql = match ($tab) {
-            'achievement-points' => <<<SQL
-SELECT mine.achievement_points AS value,
+        $column = $tab === 'achievement-points' ? 'achievement_points' : 'xp_total';
+        $membersOnly = $tab === 'achievement-points'
+            ? "JOIN membership m ON m.player_id = p.id AND {$membership}"
+            : '';
+        $mineMembersOnly = $tab === 'achievement-points'
+            ? 'JOIN membership mm ON mm.player_id = mine.id AND ' . str_replace('m.', 'mm.', $membership)
+            : '';
+
+        $sql = <<<SQL
+SELECT mine.{$column} AS value,
+       mine.level,
        1 + (
            SELECT COUNT(*) FROM player p
-           JOIN membership m ON m.player_id = p.id AND {$membership}
-           WHERE p.achievement_points > mine.achievement_points AND {$eligibility}
+           {$membersOnly}
+           WHERE (p.{$column} > mine.{$column} OR (p.{$column} = mine.{$column} AND p.id < mine.id))
+             AND {$eligibility}
+             AND (CAST(:country AS TEXT) IS NULL OR p.country = :country)
+             {$favoritesCondition}
        ) AS rank
 FROM player mine
-WHERE mine.id = :playerId AND mine.achievement_points > 0
-SQL,
-            default => <<<SQL
-SELECT mine.xp_total AS value,
-       1 + (
-           SELECT COUNT(*) FROM player p
-           WHERE p.xp_total > mine.xp_total AND {$eligibility}
-       ) AS rank
-FROM player mine
-WHERE mine.id = :playerId AND mine.xp_total > 0
-SQL,
-        };
+{$mineMembersOnly}
+WHERE mine.id = :playerId
+  AND mine.{$column} > 0
+  AND {$mineEligibility}
+  AND (CAST(:country AS TEXT) IS NULL OR mine.country = :country)
+SQL;
 
-        /** @var array{value: int|string, rank: int|string}|false $row */
-        $row = $this->database->executeQuery($sql, ['playerId' => $playerId])->fetchAssociative();
+        /** @var array{value: int|string, level: int|string, rank: int|string}|false $row */
+        $row = $this->database->executeQuery($sql, ['playerId' => $playerId, 'country' => $country] + $params, $types)->fetchAssociative();
 
         if ($row === false) {
             return null;
@@ -161,6 +170,7 @@ SQL,
         return [
             'rank' => is_numeric($row['rank']) ? (int) $row['rank'] : 0,
             'value' => is_numeric($row['value']) ? (int) $row['value'] : 0,
+            'level' => is_numeric($row['level']) ? (int) $row['level'] : 1,
         ];
     }
 

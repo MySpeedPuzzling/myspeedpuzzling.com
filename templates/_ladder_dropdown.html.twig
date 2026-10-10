@@ -1,4 +1,9 @@
+{# The switcher between every leaderboard: the time ladders, then the MSP Rating and the progression boards.
+   Included on /ladder, the per-pieces ladders, the MSP Rating ladder and the XP / AP leaderboard #}
 {% set currentLadder = app.request.attributes.get('_route') %}
+{% set active_country = active_country|default(null) %}
+{% set progress_tabs = enum('SpeedPuzzling\\Web\\Value\\ProgressLeaderboardTab').cases() %}
+{% set progress_tab = currentLadder == 'xp_leaderboard' and tab is defined ? tab : null %}
 
 <div class="dropdown d-inline-block">
     <button type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
@@ -15,6 +20,10 @@
             {{ 'ladder.team'|trans }} - {{ 'pieces_count'|trans({ '%count%': 500 })|raw }}
         {% elseif currentLadder starts with 'ladder_groups_1000_pieces' %}
             {{ 'ladder.team'|trans }} - {{ 'pieces_count'|trans({ '%count%': 1000 })|raw }}
+        {% elseif currentLadder starts with 'msp_rating_ladder' %}
+            {{ 'ladder.board.msp_rating'|trans }}
+        {% elseif progress_tab is not null %}
+            {{ (progress_tab.translationPrefix() ~ '.tab')|trans }}
         {% else %}
             {{ 'ladder.overview'|trans }}
         {% endif %}
@@ -48,16 +57,16 @@
             {{ 'ladder.team'|trans }} - {{ 'pieces_count'|trans({ '%count%': 1000 })|raw }}
         </a>
 
-        {% if xp_system_visible() %}
-            <div class="dropdown-divider"></div>
+        <div class="dropdown-divider"></div>
 
-            <a href="{{ path('xp_leaderboard') }}" class="dropdown-item">
-                {{ 'xp.leaderboard.title'|trans }}
-            </a>
+        <a href="{{ path('msp_rating_ladder') }}" class="dropdown-item {{ currentLadder starts with 'msp_rating_ladder' ? 'active' }}">
+            {{ 'ladder.board.msp_rating'|trans }}
+        </a>
 
-            <a href="{{ path('xp_leaderboard', {tab: 'achievement-points'}) }}" class="dropdown-item">
-                {{ 'xp.leaderboard.ap_title'|trans }}
+        {% for board_tab in xp_system_visible() ? progress_tabs : [] %}
+            <a href="{{ path('xp_leaderboard', {tab: board_tab.value}) }}" class="dropdown-item {{ progress_tab == board_tab ? 'active' }}">
+                {{ (board_tab.translationPrefix() ~ '.tab')|trans }}
             </a>
-        {% endif %}
+        {% endfor %}
     </div>
 </div>

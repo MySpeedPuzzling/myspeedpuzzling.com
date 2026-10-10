@@ -34,6 +34,19 @@ $DC exec -T db psql -U speedpuzzling -d speedpuzzling -P pager=off -c "SELECT qu
 
 Re-running is safe (deterministic recompute + gap-filling evaluator).
 
+### 1b. Karma backfill (same window, before the verification)
+
+Karma launches together with XP behind the same switch (docs/features/karma.md), so `player.karma` must be filled
+before the readiness marker flips:
+
+```bash
+$DC run --rm --no-deps messenger-consumer bin/console myspeedpuzzling:recalculate-karma
+```
+
+One set-based statement, in this process (not queued): ~0.15 s on the dev copy (41k puzzles, 2,952 holders). Idempotent -
+re-running changes nothing; the daily cron row keeps it right afterwards. Check:
+`SELECT COUNT(*) FILTER (WHERE karma > 0), SUM(karma) FROM player;` (dev copy: 2,952 / 23,841).
+
 ## 2. Verify calibration (flag still ACTIVE)
 
 ```bash

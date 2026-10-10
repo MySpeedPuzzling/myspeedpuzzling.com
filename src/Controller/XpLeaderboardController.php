@@ -7,6 +7,9 @@ namespace SpeedPuzzling\Web\Controller;
 use SpeedPuzzling\Web\Query\GetXpLeaderboard;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Services\Xp\XpFeatureGate;
+use SpeedPuzzling\Web\Value\KarmaGroup;
+use SpeedPuzzling\Web\Value\KarmaPeriod;
+use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -14,13 +17,16 @@ use Symfony\Component\Routing\Attribute\Route;
 
 final class XpLeaderboardController extends AbstractController
 {
-    /** Two disciplines, two boards: chase XP, chase Achievement Points, or both. */
-    private const array TABS = ['xp', 'achievement-points'];
+    /** Two disciplines, two boards: chase XP, chase Achievement Points, or both - and karma, who helps the database */
+    private const array TABS = ['xp', 'achievement-points', 'karma'];
+
+    private const int KARMA_LIMIT = 100;
 
     public function __construct(
         readonly private GetXpLeaderboard $getXpLeaderboard,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private XpFeatureGate $xpFeatureGate,
+        readonly private ClockInterface $clock,
     ) {
     }
 
@@ -55,8 +61,23 @@ final class XpLeaderboardController extends AbstractController
         $favoritesOnly = $request->query->getBoolean('favorites') && $profile !== null;
         $favoriteIds = $favoritesOnly ? array_values($profile->favoritePlayers) : null;
 
-        // The AP ladder is for logged-in eyes only (free users may look, §1.7).
-        if ($tab === 'achievement-points' && $profile === null) {
+        // Karma (docs/features/karma.md): everybody, free, filtered by kind and period - the viewer's row comes along
+        $karmaGroup = KarmaGroup::tryFrom($request->query->getString('kind'));
+        $karmaPeriod = KarmaPeriod::tryFrom($request->query->getString('period')) ?? KarmaPeriod::AllTime;
+        $karmaSelfRank = null;
+
+        if ($tab === 'karma') {
+            $rows = [];
+
+            foreach ($this->getXpLeaderboard->karma($karmaGroup, $karmaPeriod->since($this->clock->now()), $country, $favoriteIds, $profile?->playerId, self::KARMA_LIMIT) as $row) {
+                if ($row->rank > self::KARMA_LIMIT) {
+                    $karmaSelfRank = ['rank' => $row->rank, 'value' => $row->value];
+                } else {
+                    $rows[] = $row;
+                }
+            }
+        } elseif ($tab === 'achievement-points' && $profile === null) {
+            // The AP ladder is for logged-in eyes only (free users may look, §1.7).
             $rows = [];
         } else {
             $rows = $tab === 'achievement-points'
@@ -76,7 +97,9 @@ final class XpLeaderboardController extends AbstractController
             }
 
             if ($selfOnBoard === false) {
-                $selfRank = $this->getXpLeaderboard->selfRank($profile->playerId, $tab);
+                $selfRank = $tab === 'karma'
+                    ? $karmaSelfRank
+                    : $this->getXpLeaderboard->selfRank($profile->playerId, $tab);
             }
         }
 
@@ -88,6 +111,8 @@ final class XpLeaderboardController extends AbstractController
             'favorites_only' => $favoritesOnly,
             'self_rank' => $selfRank,
             'self_on_board' => $selfOnBoard,
+            'karma_group' => $karmaGroup,
+            'karma_period' => $karmaPeriod,
             'viewer' => $profile,
         ]);
     }

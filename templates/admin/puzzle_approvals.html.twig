@@ -58,6 +58,9 @@
                                 {% endif %}
                                 {% if puzzle.addedAt %}&bull; {{ puzzle.addedAt|ago }}{% endif %}
                             </div>
+                            {% if puzzle.addedById %}
+                                {{ include('admin/_proposer_track_record.html.twig', {record: track_records[puzzle.addedById|lower] ?? null, first_label: 'First contribution', first_only_without_karma: true}) }}
+                            {% endif %}
                         </div>
                         <i class="bi bi-chevron-right text-muted flex-shrink-0"></i>
                     </a>

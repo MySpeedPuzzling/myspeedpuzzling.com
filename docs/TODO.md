@@ -9,6 +9,19 @@ that would otherwise be forgotten. Newest section on top.
 - [ ] "Earned with this time" is a 10-minute window after `tracked_at` (`GetAchievementsEarnedWithSolve`), because a badge row does not point at the solve that earned it. If a cron run of the badge evaluation lands in that window, its tiers are credited to the time. A `badge.solving_time_id` written by `RecalculateBadgesForPlayer` (dispatched with the time id) would make it exact.
 - [ ] Real-device pass of the recap reveal (88/144 px stages inside the card) and the milestone sheet on iPhone Safari + Android Chrome.
 
+## Karma (`docs/features/karma.md`)
+
+- [ ] **v2: events** - approved events, series and organizations could count once the events catalogue is part of
+  "the database" (Jan, 2026-10-10: not in v1).
+- [ ] **Trusted contributors** - high karma and >= 95 % accepted: small fixes applied at once, still listed for review
+  afterwards. Moderator invitations suggested from karma (appointing stays a human decision).
+- [ ] **Admins: each moderator's accept/decline split** (the guard against rubber-stamping now that decisions have no cap) -
+  in the drafts, not built.
+- [ ] Review queues sorted by the proposer's acceptance (drafts) - only shown, not sorted, in v1.
+- [ ] If the filtered karma list (a kind or the last 12 months, ~110 ms on the dev copy) gets slow on production, store
+  per-kind totals next to `player.karma` instead of deriving them per request.
+- [ ] lily.srv: add the `recalculate-karma` cron row (in `docs/features/karma.md`).
+
 ## High-frequency series (`docs/features/events-page/high-frequency-series.md`, PR #253)
 
 - [ ] **The converted weekly online series (2026-10-09)**: tell its organiser about the change (Jan, by mail - drafts

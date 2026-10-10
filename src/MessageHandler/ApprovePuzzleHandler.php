@@ -25,7 +25,9 @@ use SpeedPuzzling\Web\Value\PuzzleImageChoice;
 use SpeedPuzzling\Web\Value\PuzzleModerationAction;
 use SpeedPuzzling\Web\Value\PuzzleRecordValues;
 use SpeedPuzzling\Web\Services\OutdatedPuzzleRequests;
+use SpeedPuzzling\Web\Message\RecalculateKarma;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
+use Symfony\Component\Messenger\MessageBusInterface;
 
 /**
  * Approves a newly added puzzle from the approval queue, with the reviewer's
@@ -46,6 +48,7 @@ readonly final class ApprovePuzzleHandler
         private PuzzleModerationDecisionRecorder $puzzleModerationDecisionRecorder,
         private ClockInterface $clock,
         private OutdatedPuzzleRequests $outdatedPuzzleRequests,
+        private MessageBusInterface $messageBus,
     ) {
     }
 
@@ -136,6 +139,9 @@ readonly final class ApprovePuzzleHandler
                 'image' => $message->uploadedImage !== null ? PuzzleImageChoice::Upload->value : PuzzleImageChoice::Keep->value,
             ] + $change,
         );
+
+        // Karma (docs/features/karma.md): the adder (a puzzle with an EAN counts once approved) and the moderator
+        $this->messageBus->dispatch(RecalculateKarma::forPlayers($puzzle->addedByUser, $reviewer));
     }
 
     /**

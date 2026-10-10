@@ -18,7 +18,9 @@ use SpeedPuzzling\Web\Value\NotificationType;
 use SpeedPuzzling\Web\Services\ChangeRequestCreatedBrandSettler;
 use SpeedPuzzling\Web\Services\PuzzleModerationDecisionRecorder;
 use SpeedPuzzling\Web\Value\PuzzleModerationAction;
+use SpeedPuzzling\Web\Message\RecalculateKarma;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
+use Symfony\Component\Messenger\MessageBusInterface;
 
 #[AsMessageHandler]
 readonly final class RejectPuzzleChangeRequestHandler
@@ -31,6 +33,7 @@ readonly final class RejectPuzzleChangeRequestHandler
         private Filesystem $filesystem,
         private PuzzleModerationDecisionRecorder $puzzleModerationDecisionRecorder,
         private ChangeRequestCreatedBrandSettler $changeRequestCreatedBrandSettler,
+        private MessageBusInterface $messageBus,
     ) {
     }
 
@@ -71,5 +74,8 @@ readonly final class RejectPuzzleChangeRequestHandler
             targetChangeRequest: $changeRequest,
         );
         $this->entityManager->persist($notification);
+
+        // Karma (docs/features/karma.md): the moderator's decision counts, the declined proposal takes nothing away
+        $this->messageBus->dispatch(RecalculateKarma::forPlayers($changeRequest->reporter, $reviewer));
     }
 }

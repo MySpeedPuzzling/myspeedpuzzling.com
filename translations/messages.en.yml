@@ -3566,6 +3566,7 @@ admin:
         column_change_requests: "Change requests reviewed"
         column_merge_requests: "Merge requests reviewed"
         column_last_review: "Last review"
+        column_karma: "Karma"
         never: "never"
 
 pending_proposals:
@@ -8829,3 +8830,96 @@ series_readers:
     used_at:
         more: "and %count% more|and %count% more"
     series_delete_note: "Results logged at this series or its editions stay on the players' profiles, without the event."
+karma:
+    chip: "%karma% karma"
+    chip_title: "Karma: accepted contributions to the puzzle database"
+    value: "%karma% karma"
+    leaderboard:
+        tab: "Karma"
+        title: "Who helps the database most"
+        subtitle: "1 karma for every accepted contribution to the puzzle database. Free and public for everyone."
+        value: "Karma"
+        empty: "Nobody here yet."
+        kind_label: "What counts"
+        period_label: "Period"
+    kind_filter:
+        all: "All"
+        puzzles: "New puzzles"
+        fixes: "Fixes & merges"
+        moderation: "Moderation"
+    period:
+        all: "All time"
+        12m: "Last 12 months"
+    breakdown:
+        puzzle_added: "%count% new puzzle|%count% new puzzles"
+        change_request: "%count% accepted change|%count% accepted changes"
+        merge_request: "%count% merged duplicate|%count% merged duplicates"
+        decision: "%count% decision|%count% decisions"
+        direct_edit: "%count% edit|%count% edits"
+    item:
+        puzzle_added: "New puzzle with its EAN"
+        change_request: "Your suggested change was accepted"
+        merge_request: "Your duplicate report was merged"
+        direct_edit: "You edited a puzzle"
+        duplicate_puzzle: "Merged into a puzzle added earlier"
+        decision:
+            change_request_approved: "You accepted a suggested change"
+            change_request_rejected: "You declined a suggested change"
+            merge_request_approved: "You merged reported duplicates"
+            merge_request_rejected: "You declined a duplicate report"
+            puzzle_approved: "You approved a new puzzle"
+    history:
+        title: "What did I get my karma for?"
+        total_label: "karma"
+        breakdown_label: "Your karma by kind"
+        empty: "No karma yet. Add a puzzle with its EAN, or suggest a fix to one - each accepted contribution is 1 karma."
+        what_counts: "What counts"
+        undated: "Earlier"
+        not_counted: "not counted"
+        note: "Suggestions count once a moderator accepts them. Declined ones never take karma away."
+        how_it_works: "How karma works"
+        list_link: "Karma list"
+        pagination: "Karma history pages"
+        previous: "Previous page"
+        next: "Next page"
+        admin_note: "Admins have no karma - their work is part of running the site."
+    explainer:
+        title: "How karma works"
+        intro: "Karma thanks the people who keep the puzzle database right. One point for every accepted contribution - a public count of who helps."
+        your_karma: "your karma"
+        history_link: "What did I get it for?"
+        what_counts: "What counts"
+        rules:
+            puzzle:
+                what: "A new puzzle with its EAN"
+                when: "Once it is approved. The barcode makes it findable by scanning."
+                value: "+1"
+            change:
+                what: "A suggested change"
+                when: "Once a moderator accepts it."
+                value: "+1"
+            merge:
+                what: "A reported duplicate"
+                when: "Once the puzzles are merged."
+                value: "+1"
+            decision:
+                what: "A moderator's decision"
+                when: "Accepting or declining a suggestion, a duplicate report or a new puzzle."
+                value: "+1"
+            edit:
+                what: "A moderator's direct edit"
+                when: "Correcting a puzzle without a suggestion."
+                value: "+1"
+            own_proposal:
+                what: "A moderator deciding their own suggestion"
+                when: "The suggestion and the decision count together."
+                value: "+1 in total"
+        no_caps: "No caps and no weights: every accepted contribution counts the same."
+        duplicates_heading: "When a puzzle turns out to be a duplicate"
+        duplicates: "When two puzzles are merged, the person who added the puzzle first keeps the karma for it. The later copy stops counting, and whoever reported the duplicate gets 1. Your karma history shows such a copy as not counted."
+        not_heading: "What karma is not"
+        never_negative: "Declined work never takes karma away. There is no negative karma."
+        no_xp: "Karma is credit, not a currency: it buys nothing and gives no XP."
+        not_counted: "Brands, events and suggestions that something else already took care of do not count."
+        find_puzzle: "Find a puzzle to improve"
+        list_link: "Karma list"

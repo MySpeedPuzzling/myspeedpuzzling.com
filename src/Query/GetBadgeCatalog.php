@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Query;
 use SpeedPuzzling\Web\BadgeConditions\BadgeConditionInterface;
 use SpeedPuzzling\Web\Results\BadgeCatalogEntry;
 use SpeedPuzzling\Web\Results\BadgeCatalogGroup;
+use SpeedPuzzling\Web\Results\BadgeResult;
 use SpeedPuzzling\Web\Results\PlayerStatsSnapshot;
 use SpeedPuzzling\Web\Value\BadgeTier;
 use SpeedPuzzling\Web\Value\BadgeType;
@@ -41,21 +42,25 @@ readonly final class GetBadgeCatalog
     }
 
     /**
+     * @param null|list<BadgeResult> $earnedBadges the player's badge rows when the caller already read them
+     *                                             (GetBadges::allEarnedTiers()) - else they are read here
      * @return list<BadgeCatalogGroup>
      */
-    public function forPlayer(null|string $playerId): array
+    public function forPlayer(null|string $playerId, null|array $earnedBadges = null): array
     {
         $earnedMap = [];
+        $revealedMap = [];
         $snapshot = null;
 
         if ($playerId !== null) {
             $snapshot = $this->getPlayerStatsSnapshot->forPlayer($playerId);
 
-            foreach ($this->getBadges->allEarnedTiers($playerId) as $badge) {
+            foreach ($earnedBadges ?? $this->getBadges->allEarnedTiers($playerId) as $badge) {
                 if ($badge->tier === null) {
                     continue;
                 }
                 $earnedMap[$badge->type->value][$badge->tier->value] = $badge->earnedAt;
+                $revealedMap[$badge->type->value][$badge->tier->value] = $badge->isRevealed();
             }
         }
 
@@ -79,6 +84,7 @@ readonly final class GetBadgeCatalog
                     requirementTranslationKey: 'badges.requirement.' . $type->value . '_' . $tier->value,
                     earned: $earned,
                     earnedAt: $typeEarned[$tier->value] ?? null,
+                    revealed: $revealedMap[$type->value][$tier->value] ?? true,
                 );
             }
 

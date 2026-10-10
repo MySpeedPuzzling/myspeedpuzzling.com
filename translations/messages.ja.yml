@@ -1813,6 +1813,7 @@ xp:
 
 badges:
     title: "実績"
+    player_page_meta_title: "%name% – 実績"
     my_title: "マイ実績"
     browse_all: "すべての実績を見る"
     reveal: "新しい実績をお披露目する"
@@ -6628,6 +6629,7 @@ player_header:
         profile: "プロフィール"
         statistics: "統計"
         calendar: "カレンダー"
+        achievements: "実績"
         library: "ライブラリ"
         favorites: "お気に入り"
     favorite: "お気に入り"

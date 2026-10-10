@@ -32,8 +32,8 @@ final class PlayerHeaderTest extends WebTestCase
         ));
         self::assertSame('Favorite', trim($actions->filter('.player-head-favorite .player-head-favorite-label')->text()));
 
-        // Favorites are personal: not a tab on someone else's pages
-        self::assertSame(['Profile', 'Statistics', 'Calendar', 'Library'], $this->tabLabels($crawler));
+        // Favorites are personal: not a tab on someone else's pages; a member's achievements are public
+        self::assertSame(['Profile', 'Statistics', 'Calendar', 'Achievements', 'Library'], $this->tabLabels($crawler));
         self::assertSame('page', $crawler->filter('.player-head-tabs .player-tab.active')->attr('aria-current'));
         self::assertSame('nofollow', $crawler->filter('.player-head-tabs .player-tab[href*="/en/player-statistics/"]')->attr('rel'));
 
@@ -53,7 +53,7 @@ final class PlayerHeaderTest extends WebTestCase
         self::assertCount(1, $crawler->filter('.player-head .more-menu[data-nosnippet] .dropdown-menu'));
         self::assertCount(1, $crawler->filter('.player-bar .more-menu[data-nosnippet] .dropdown-menu'));
         self::assertNotNull($crawler->filter('.player-bar')->attr('inert'));
-        self::assertCount(4, $crawler->filter('.player-bar .player-tab'));
+        self::assertCount(5, $crawler->filter('.player-bar .player-tab'));
         self::assertCount(1, $crawler->filter('.player-bar .player-tab[href*="/en/player-statistics/"][rel="nofollow"]'));
     }
 
@@ -94,7 +94,7 @@ final class PlayerHeaderTest extends WebTestCase
         self::assertCount(0, $crawler->filter('[href*="/en/add-player-to-favorites/"]'));
         self::assertCount(0, $crawler->filter('[data-bs-target="#blockPlayerModal"]'));
 
-        self::assertSame(['Profile', 'Statistics', 'Calendar', 'Library', 'Favorites'], $this->tabLabels($crawler));
+        self::assertSame(['Profile', 'Statistics', 'Calendar', 'Achievements', 'Library', 'Favorites'], $this->tabLabels($crawler));
 
         $menu = $crawler->filter('.player-head .dropdown-menu');
         self::assertCount(1, $menu->filter('a[href="/en/export-puzzler-data/' . PlayerFixture::PLAYER_WITH_STRIPE . '"]'));

@@ -2239,6 +2239,7 @@ xp:
 
 badges:
     title: "Achievements"
+    player_page_meta_title: "%name% – achievements"
     my_title: "My achievements"
     browse_all: "Browse all achievements"
     reveal: "Reveal your new achievement"
@@ -7191,6 +7192,7 @@ player_header:
         profile: "Profile"
         statistics: "Statistics"
         calendar: "Calendar"
+        achievements: "Achievements"
         library: "Library"
         favorites: "Favorites"
     favorite: "Favorite"

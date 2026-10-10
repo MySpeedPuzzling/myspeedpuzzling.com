@@ -1717,6 +1717,7 @@ xp:
 
 badges:
     title: "Erfolge"
+    player_page_meta_title: "%name% – Erfolge"
     my_title: "Meine Erfolge"
     browse_all: "Alle Erfolge durchstöbern"
     reveal: "Deck deinen neuen Erfolg auf"
@@ -6638,6 +6639,7 @@ player_header:
         profile: "Profil"
         statistics: "Statistiken"
         calendar: "Kalender"
+        achievements: "Erfolge"
         library: "Bibliothek"
         favorites: "Favoriten"
     favorite: "Favorit"

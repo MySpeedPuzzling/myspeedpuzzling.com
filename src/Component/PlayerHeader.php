@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Component;
 use SpeedPuzzling\Web\Query\HasExistingConversation;
 use SpeedPuzzling\Web\Results\PlayerProfile;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
+use SpeedPuzzling\Web\Services\Xp\XpFeatureGate;
 use SpeedPuzzling\Web\Value\ComparisonSubjectRef;
 use SpeedPuzzling\Web\Value\PlayerHeaderTab;
 use Symfony\UX\TwigComponent\Attribute\AsTwigComponent;
@@ -74,6 +75,7 @@ final class PlayerHeader
     public function __construct(
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private HasExistingConversation $hasExistingConversation,
+        readonly private XpFeatureGate $xpFeatureGate,
     ) {
     }
 
@@ -96,9 +98,15 @@ final class PlayerHeader
 
         // A hidden private profile has nothing but its profile page
         if ($this->isHidden === false) {
+            // Achievements: only members have them (a non-member owner gets the tab with the member tease), and only
+            // once progression is live for this viewer (XpFeatureGate)
+            $achievementsTab = $this->xpFeatureGate->isVisibleFor($viewer)
+                && ($player->activeMembership || $this->isOwnProfile);
+
             $this->tabs = array_values(array_filter(
                 PlayerHeaderTab::cases(),
-                fn (PlayerHeaderTab $tab): bool => $tab->isOwnerOnly() === false || $this->isOwnProfile,
+                fn (PlayerHeaderTab $tab): bool => ($tab->isOwnerOnly() === false || $this->isOwnProfile)
+                    && ($tab !== PlayerHeaderTab::Achievements || $achievementsTab),
             ));
         }
 

@@ -77,7 +77,7 @@ final class ProgressionPagesTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         $menu = $crawler->filter('.navbar-tool.dropdown .dropdown-menu');
-        self::assertCount(1, $menu->filter('a[href="/en/achievements"]'));
+        self::assertCount(1, $menu->filter('a[href="/en/player-achievements/' . PlayerFixture::PLAYER_WITH_STRIPE . '"]'));
         self::assertCount(1, $menu->filter('a[href="/en/my/xp-history"]'));
         self::assertCount(1, $menu->filter('a[href="/en/how-progress-works"]'));
     }

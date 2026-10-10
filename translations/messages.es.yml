@@ -1733,6 +1733,7 @@ xp:
 
 badges:
     title: "Logros"
+    player_page_meta_title: "%name% – logros"
     my_title: "Mis logros"
     browse_all: "Explorar todos los logros"
     reveal: "Revela tu nuevo logro"
@@ -6639,6 +6640,7 @@ player_header:
         profile: "Perfil"
         statistics: "Estadísticas"
         calendar: "Calendario"
+        achievements: "Logros"
         library: "Biblioteca"
         favorites: "Favoritos"
     favorite: "Favorito"

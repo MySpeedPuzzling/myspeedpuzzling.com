@@ -50,4 +50,18 @@ readonly final class BadgeCatalogGroup
 
         return $highest;
     }
+
+    /** The highest earned tier waits for its reveal (owner only - the reveal page puts the last piece in) */
+    public function highestEarnedIsUnrevealed(): bool
+    {
+        $highest = $this->highestEarnedTier();
+
+        foreach ($this->tiers as $entry) {
+            if ($entry->tier === $highest && $entry->earned) {
+                return $entry->revealed === false;
+            }
+        }
+
+        return false;
+    }
 }

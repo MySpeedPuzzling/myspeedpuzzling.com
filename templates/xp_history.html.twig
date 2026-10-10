@@ -2,69 +2,104 @@
 
 {% block title %}{{ 'xp.history.meta_title'|trans }}{% endblock %}
 
+{#
+    "Where did my XP come from?" (docs/features/xp-levels/launch-2026-10.md): one block per solve - the puzzle once,
+    every line of its XP, the total - newest change first, so a bonus settled today shows up on top with its solve.
+#}
 {% block content %}
+    <twig:PlayerHeader player="{{ player }}" :compact="true" />
+
     <header class="mb-3">
-        <h1 class="h3 mb-1">
-            <i class="ci-time me-1"></i>
-            {{ 'xp.history.title'|trans }}
-        </h1>
+        <h1 class="h3 mb-1">{{ 'xp.history.title'|trans }}</h1>
         <p class="text-body-secondary fs-sm mb-2">{{ 'xp.history.subtitle'|trans }}</p>
 
         {% if not xp_profile.optedOut %}
-            <div class="d-flex align-items-center gap-2">
+            <div class="d-flex flex-wrap align-items-center gap-2">
                 <span class="xp-level-chip {{ xp_profile.isMaxLevel ? 'xp-level-chip-max' }}">{{ 'xp.level_chip'|trans({'%level%': xp_profile.level}) }}</span>
-                <span class="text-muted fs-sm">{{ 'xp.total'|trans({'%xp%': xp_profile.xpTotal}) }}</span>
+                <span class="text-muted fs-sm">{{ 'xp.total'|trans({'%xp%': xp_profile.xpTotal|format_number}) }}</span>
             </div>
         {% endif %}
     </header>
 
-    {% if entries|length == 0 %}
+    {% if blocks|length == 0 %}
         <div class="xp-teaser">
             <i class="ci-star" aria-hidden="true"></i>
             <span>{{ 'xp.history.empty'|trans }}</span>
         </div>
     {% else %}
-        <div class="custom-table-wrapper">
-            <table class="table table-striped mb-0 fs-sm">
-                <thead>
-                    <tr>
-                        <th scope="col">{{ 'xp.history.when'|trans }}</th>
-                        <th scope="col">{{ 'xp.history.reason'|trans }}</th>
-                        <th scope="col" class="text-end">XP</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for entry in entries %}
-                        <tr>
-                            <td class="text-nowrap text-body-secondary">{{ entry.earnedAt|format_date('short') }}</td>
-                            <td>
-                                {{ ('xp.line.' ~ entry.reason.value)|trans }}
-                                {% if entry.puzzleId is not null %}
-                                    — <a href="{{ path('puzzle_detail', {puzzleId: entry.puzzleId}) }}">{{ entry.puzzleName }}</a>
-                                {% elseif entry.badgeType is not null %}
-                                    — {{ entry.badgeType.translationKey()|trans }}{% if entry.badgeTier is not null %} ({{ entry.badgeTier.translationKey()|trans }}){% endif %}
-                                {% elseif entry.solvingTimeId is not null and entry.reason.value != 'solve_compensation' %}
-                                    — <span class="text-body-secondary">{{ 'xp.history.deleted_solve'|trans }}</span>
+        {% for block in blocks %}
+            {% set total = block.total() %}
+            <section class="xp-history-block">
+                <div class="xp-history-head">
+                    <h2 class="xp-history-subject h6 mb-0">
+                        {% if block.puzzleId is not null %}
+                            <a href="{{ path('puzzle_detail', {puzzleId: block.puzzleId}) }}">{{ block.puzzleName }}</a>
+                        {% elseif block.isDeletedSolve() %}
+                            <span class="text-body-secondary">{{ 'xp.history.deleted_solve_title'|trans }}</span>
+                        {% elseif block.badgeType is not null %}
+                            {{ 'xp.history.achievement_title'|trans({'%achievement%': block.badgeType.translationKey()|trans}) }}{% if block.badgeTier is not null %} ({{ block.badgeTier.translationKey()|trans }}){% endif %}
+                        {% else %}
+                            {{ ('xp.line.' ~ block.lines[0].reason.value)|trans }}
+                        {% endif %}
+                    </h2>
+                    <span class="xp-history-total">{{ total > 0 ? '+' }}{{ 'xp.total'|trans({'%xp%': total}) }}</span>
+                </div>
+
+                <div class="xp-history-meta">
+                    {% if block.solvedAt is not null %}
+                        {{ block.solvedAt|format_date('medium') }}
+                        {% if block.puzzlingType is not null %}
+                            <span aria-hidden="true">·</span>
+                            {{ ('xp.history.type.' ~ block.puzzlingType)|trans }}
+                        {% endif %}
+                        {% if not block.isTimed %}
+                            <span aria-hidden="true">·</span>
+                            {{ 'xp.history.relax'|trans }}
+                        {% endif %}
+                    {% else %}
+                        {{ block.lines[0].earnedAt|format_date('medium') }}
+                    {% endif %}
+                </div>
+
+                <ul class="xp-history-lines">
+                    {% for line in block.lines %}
+                        <li>
+                            <span class="xp-history-line-label">
+                                {{ block.lineLabelKey(line)|trans }}
+                                {% if block.isLaterLine(line) %}
+                                    <span class="text-body-secondary">· {{ line.earnedAt|format_date('medium') }}</span>
                                 {% endif %}
-                            </td>
-                            <td class="text-end fw-semibold {{ entry.amount < 0 ? 'text-danger' : '' }}">
-                                {{ entry.amount > 0 ? '+' }}{{ entry.amount }}
-                            </td>
-                        </tr>
+                            </span>
+                            <span class="xp-history-line-amount {{ line.amount < 0 ? 'text-danger' }}">{{ line.amount > 0 ? '+' }}{{ line.amount }}</span>
+                        </li>
                     {% endfor %}
-                </tbody>
-            </table>
-        </div>
+                </ul>
+            </section>
+        {% endfor %}
 
         {% if last_page > 1 %}
+            {% set window_from = max(1, page - 2) %}
+            {% set window_to = min(last_page, page + 2) %}
             <nav class="mt-3" aria-label="{{ 'xp.history.pagination'|trans }}">
-                <ul class="pagination pagination-sm">
+                <ul class="pagination flex-wrap">
                     {% if page > 1 %}
-                        <li class="page-item"><a class="page-link" href="{{ path('xp_history', {page: page - 1}) }}">‹</a></li>
+                        <li class="page-item"><a class="page-link" href="{{ path('xp_history', {page: page - 1}) }}" aria-label="{{ 'xp.history.previous_page'|trans }}"><i class="bi bi-chevron-left" aria-hidden="true"></i></a></li>
                     {% endif %}
-                    <li class="page-item disabled"><span class="page-link">{{ page }} / {{ last_page }}</span></li>
+                    {% if window_from > 1 %}
+                        <li class="page-item"><a class="page-link" href="{{ path('xp_history', {page: 1}) }}">1</a></li>
+                        {% if window_from > 2 %}<li class="page-item disabled"><span class="page-link">…</span></li>{% endif %}
+                    {% endif %}
+                    {% for p in window_from..window_to %}
+                        <li class="page-item {{ p == page ? 'active' }}">
+                            <a class="page-link" href="{{ path('xp_history', {page: p}) }}" {% if p == page %}aria-current="page"{% endif %}>{{ p }}</a>
+                        </li>
+                    {% endfor %}
+                    {% if window_to < last_page %}
+                        {% if window_to < last_page - 1 %}<li class="page-item disabled"><span class="page-link">…</span></li>{% endif %}
+                        <li class="page-item"><a class="page-link" href="{{ path('xp_history', {page: last_page}) }}">{{ last_page }}</a></li>
+                    {% endif %}
                     {% if page < last_page %}
-                        <li class="page-item"><a class="page-link" href="{{ path('xp_history', {page: page + 1}) }}">›</a></li>
+                        <li class="page-item"><a class="page-link" href="{{ path('xp_history', {page: page + 1}) }}" aria-label="{{ 'xp.history.next_page'|trans }}"><i class="bi bi-chevron-right" aria-hidden="true"></i></a></li>
                     {% endif %}
                 </ul>
             </nav>
@@ -72,8 +107,7 @@
     {% endif %}
 
     <p class="small text-body-secondary mt-3">
-        <i class="bi bi-info-circle me-1"></i>
         {{ 'xp.history.note'|trans }}
-        <a href="{{ path('xp_explainer') }}">{{ 'badges.how_it_works_link'|trans }}</a>
+        <a href="{{ path('xp_explainer') }}">{{ 'xp.explainer.title'|trans }}</a>
     </p>
 {% endblock %}

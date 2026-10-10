@@ -127,23 +127,24 @@ final class PlanContentDigestRunsHandlerTest extends KernelTestCase
         self::assertSame('miss-you-2030-03-12', $queued[0]->periodKey);
     }
 
-    public function testMissYouCanBeSlicedByRecencyAndNeverReachesAccountsQuietForTwoYears(): void
+    public function testMissYouCanBeSlicedByRecencyAndNeverReachesDormantAccounts(): void
     {
         $this->onlyResult(PlayerFixture::PLAYER_REGULAR, '2030-01-20 12:00:00');      // 7 weeks
         $this->onlyResult(PlayerFixture::PLAYER_WITH_STRIPE, '2029-07-01 12:00:00'); // 8 months
-        $this->onlyResult(PlayerFixture::PLAYER_ADMIN, '2028-09-01 12:00:00');       // 18 months
-        $this->onlyResult(PlayerFixture::PLAYER_PRIVATE, '2028-01-01 12:00:00');     // 26 months - never
+        $this->onlyResult(PlayerFixture::PLAYER_ADMIN, '2028-09-01 12:00:00');       // 18 months, visited last month
+        $this->seenOn(PlayerFixture::PLAYER_ADMIN, '2030-02-10');
+        $this->onlyResult(PlayerFixture::PLAYER_PRIVATE, '2028-01-01 12:00:00');     // dormant - never
         $now = new DateTimeImmutable('2030-03-12 07:01', new DateTimeZone('Europe/Prague'));
 
         $all = $this->plan(ContentDigestKind::MissYou, '2030-03-12 07:01', dryRun: true);
-        self::assertSame(['28d-3m' => 1, '3-6m' => 0, '6-12m' => 1, '1-2y' => 1], $all[0]->buckets);
+        self::assertSame(['28d-3m' => 1, '3-9m' => 1, 'older-visited' => 1], $all[0]->buckets);
 
-        $firstSlice = $this->plan(ContentDigestKind::MissYou, '2030-03-12 07:01', dryRun: true, lastActivityAfter: $now->modify('-6 months'));
-        self::assertSame(['28d-3m' => 1, '3-6m' => 0, '6-12m' => 0, '1-2y' => 0], $firstSlice[0]->buckets);
+        $firstSlice = $this->plan(ContentDigestKind::MissYou, '2030-03-12 07:01', dryRun: true, lastActivityAfter: $now->modify('-3 months'));
+        self::assertSame(['28d-3m' => 1, '3-9m' => 0, 'older-visited' => 0], $firstSlice[0]->buckets);
 
-        $secondSlice = $this->plan(ContentDigestKind::MissYou, '2030-03-12 07:01', dryRun: true, lastActivityAfter: $now->modify('-12 months'), lastActivityBefore: $now->modify('-6 months'));
-        self::assertSame(1, $secondSlice[0]->recipients);
-        self::assertSame(['28d-3m' => 0, '3-6m' => 0, '6-12m' => 1, '1-2y' => 0], $secondSlice[0]->buckets);
+        $visitors = $this->plan(ContentDigestKind::MissYou, '2030-03-12 07:01', dryRun: true, lastActivityBefore: $now->modify('-9 months'));
+        self::assertSame(1, $visitors[0]->recipients);
+        self::assertSame(['28d-3m' => 0, '3-9m' => 0, 'older-visited' => 1], $visitors[0]->buckets);
     }
 
     public function testTheHoldoutIsQueuedWithoutTakingAPacingSlot(): void

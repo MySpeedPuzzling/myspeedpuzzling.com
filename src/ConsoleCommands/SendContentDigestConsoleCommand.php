@@ -85,7 +85,7 @@ final class SendContentDigestConsoleCommand extends Command
         $plans = $handledStamp->getResult();
 
         $io->table(
-            ['Frequency', 'Period', 'Outcome', 'Recipients', 'Holdout', 'Spacing', '28d-3m', '3-6m', '6-12m', '1-2y'],
+            ['Frequency', 'Period', 'Outcome', 'Recipients', 'Holdout', 'Spacing', '28d-3m', '3-9m', 'Older, visited'],
             array_map(static fn (ContentDigestRunPlan $plan): array => [
                 $plan->frequency->value,
                 $plan->periodKey,
@@ -94,9 +94,8 @@ final class SendContentDigestConsoleCommand extends Command
                 $plan->heldOut,
                 $plan->spacingMs > 0 ? sprintf('%.1f s', $plan->spacingMs / 1000) : '',
                 $plan->buckets['28d-3m'] ?? '',
-                $plan->buckets['3-6m'] ?? '',
-                $plan->buckets['6-12m'] ?? '',
-                $plan->buckets['1-2y'] ?? '',
+                $plan->buckets['3-9m'] ?? '',
+                $plan->buckets['older-visited'] ?? '',
             ], $plans),
         );
 

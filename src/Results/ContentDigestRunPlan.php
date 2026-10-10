@@ -22,7 +22,7 @@ readonly final class ContentDigestRunPlan
         public string $outcome,
         public int $recipients = 0,
         public int $spacingMs = 0,
-        /** "We miss you": recipients per recency of their last result (28d-3m, 3-6m, 6-12m, 1-2y) */
+        /** "We miss you": recipients per recency of their last result (28d-3m, 3-9m, older-visited) */
         public array $buckets = [],
         /** "We miss you": of the recipients, how many are the holdout (logged, not mailed) */
         public int $heldOut = 0,

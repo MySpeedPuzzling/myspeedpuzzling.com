@@ -162,14 +162,14 @@ readonly final class PlanContentDigestRunsHandler
      */
     private static function recencyBuckets(array $lastLogged, DateTimeImmutable $now): array
     {
-        $buckets = ['28d-3m' => 0, '3-6m' => 0, '6-12m' => 0, '1-2y' => 0];
+        $buckets = ['28d-3m' => 0, '3-9m' => 0, 'older-visited' => 0];
 
         foreach ($lastLogged as $at) {
+            // Older than the dormancy limit and still eligible = visited the site recently
             $bucket = match (true) {
                 $at > $now->modify('-3 months') => '28d-3m',
-                $at > $now->modify('-6 months') => '3-6m',
-                $at > $now->modify('-12 months') => '6-12m',
-                default => '1-2y',
+                $at > $now->modify(sprintf('-%d months', GetContentDigestRecipients::MISS_YOU_DORMANT_AFTER_MONTHS)) => '3-9m',
+                default => 'older-visited',
             };
             $buckets[$bucket]++;
         }

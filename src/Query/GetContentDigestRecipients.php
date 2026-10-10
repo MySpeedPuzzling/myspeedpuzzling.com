@@ -25,8 +25,8 @@ use SpeedPuzzling\Web\Value\DigestPeriod;
  * activitySql()). Nobody without activity gets a digest - no empty or "quiet" variant.
  *
  * "We miss you": the last result the player logged (any, solo or in a pair/team, a back-dated or not yet verified one
- * too) is at least MISS_YOU_AFTER_DAYS old but not older than MISS_YOU_MAX_DORMANCY_MONTHS - players who never logged a
- * result are not missed - and they were not told since: no "We miss you" e-mail (or holdout row) after that last result
+ * too) is at least MISS_YOU_AFTER_DAYS old, the player is not dormant (a result or a visit within
+ * MISS_YOU_DORMANT_AFTER_MONTHS) - players who never logged a result are not missed - and they were not told since: no "We miss you" e-mail (or holdout row) after that last result
  * (once per inactive spell; activity restarts the clock).
  */
 readonly final class GetContentDigestRecipients
@@ -34,10 +34,13 @@ readonly final class GetContentDigestRecipients
     public const int MISS_YOU_AFTER_DAYS = 28;
 
     /**
-     * Never mailed when the last result is older than this: those accounts are left to the newsletter - old addresses
-     * bounce, end in spam traps or complain, and that hurts the deliverability of every other e-mail.
+     * Dormant = no result AND no visit for more than this many months: never mailed, left to the newsletter - old
+     * addresses bounce, end in spam traps or complain, and that hurts the deliverability of every other e-mail. A
+     * visit = a signed-in day on the website (`player_activity_day`, kept 24 months) or a sign-in
+     * (`user_account.last_login_at`: every successful sign-in on the main firewall - password, e-mailed link or code,
+     * social login, and a remember-me cookie starting a new session). The API and PATs do not count.
      */
-    public const int MISS_YOU_MAX_DORMANCY_MONTHS = 24;
+    public const int MISS_YOU_DORMANT_AFTER_MONTHS = 9;
 
     public function __construct(
         private Connection $database,
@@ -201,12 +204,18 @@ SELECT {$columns} FROM (
     FROM player p
     INNER JOIN user_account ua ON ua.user_id = p.user_id
     CROSS JOIN LATERAL (SELECT {$this->lastLoggedSql('p.id')} AS at) last_logged
+    CROSS JOIN LATERAL (
+        SELECT GREATEST(
+            (SELECT CAST(MAX(pad.day) AS TIMESTAMP) FROM player_activity_day pad WHERE pad.player_id = p.id),
+            ua.last_login_at AT TIME ZONE 'UTC'
+        ) AS at
+    ) last_visit
     WHERE TRIM(ua.email) != ''
       {$onePlayerCondition}
       AND p.content_digest_frequency = :frequency
       AND last_logged.at IS NOT NULL
       AND last_logged.at <= CAST(:missedSince AS TIMESTAMP)
-      AND last_logged.at > CAST(:tooOldBefore AS TIMESTAMP)
+      AND (last_logged.at > CAST(:dormantBefore AS TIMESTAMP) OR last_visit.at > CAST(:dormantBefore AS TIMESTAMP))
       AND NOT EXISTS (
         SELECT 1 FROM content_digest_log told
         WHERE told.player_id = p.id
@@ -256,7 +265,7 @@ SQL;
         return [
             'frequency' => $frequency->value,
             'missedSince' => self::utc($now->modify(sprintf('-%d days', self::MISS_YOU_AFTER_DAYS))),
-            'tooOldBefore' => self::utc($now->modify(sprintf('-%d months', self::MISS_YOU_MAX_DORMANCY_MONTHS))),
+            'dormantBefore' => self::utc($now->modify(sprintf('-%d months', self::MISS_YOU_DORMANT_AFTER_MONTHS))),
             'sentStatus' => ContentDigestLog::STATUS_SENT,
             'failedStatus' => ContentDigestLog::STATUS_FAILED_PERMANENT,
             'holdoutStatus' => ContentDigestLog::STATUS_HOLDOUT,

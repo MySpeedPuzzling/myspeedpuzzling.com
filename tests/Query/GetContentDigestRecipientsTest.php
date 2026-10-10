@@ -95,14 +95,45 @@ final class GetContentDigestRecipientsTest extends KernelTestCase
         self::assertEquals($this->utc('2030-02-01 18:00:00'), $this->query->lastLoggedAt($player));
     }
 
-    public function testAccountsQuietForMoreThanTwoYearsAreLeftToTheNewsletter(): void
+    public function testDormantAccountsAreLeftToTheNewsletter(): void
     {
         $player = PlayerFixture::PLAYER_REGULAR;
-        $this->onlyResult($player, '2028-03-01 12:00:00');
+        $this->onlyResult($player, '2029-06-01 12:00:00');
 
+        // No result and no visit for 9 months: dormant from 1 March 2030
         self::assertTrue($this->query->isMissed($player, ContentDigestFrequency::Weekly, $this->utc('2030-02-28 12:00:00')));
-        self::assertFalse($this->query->isMissed($player, ContentDigestFrequency::Weekly, $this->utc('2030-03-01 12:00:00')), 'Exactly 24 months: no more');
-        self::assertNotContains($player, $this->query->missed(ContentDigestFrequency::Weekly, $this->utc('2030-06-01 12:00:00')));
+        self::assertFalse($this->query->isMissed($player, ContentDigestFrequency::Weekly, $this->utc('2030-03-01 12:00:00')), 'Exactly 9 months: dormant');
+    }
+
+    public function testAVisitorWithAnOldResultIsMissed(): void
+    {
+        $now = $this->utc('2030-03-12 06:00:00');
+        $dayVisitor = PlayerFixture::PLAYER_REGULAR;
+        $signInVisitor = PlayerFixture::PLAYER_WITH_STRIPE;
+        $this->onlyResult($dayVisitor, '2028-01-01 12:00:00');
+        $this->onlyResult($signInVisitor, '2028-01-01 12:00:00');
+
+        // A signed-in day on the site 8 months ago keeps the account in; one 9 months and a day ago does not
+        $this->visitedOn($dayVisitor, '2029-07-12');
+        self::assertTrue($this->query->isMissed($dayVisitor, ContentDigestFrequency::Weekly, $now));
+        self::assertFalse($this->query->isMissed($dayVisitor, ContentDigestFrequency::Weekly, $this->utc('2030-04-13 06:00:00')));
+
+        // A sign-in counts the same
+        self::assertFalse($this->query->isMissed($signInVisitor, ContentDigestFrequency::Weekly, $now));
+        $this->database->executeStatement(
+            "UPDATE user_account SET last_login_at = '2029-06-13 08:00:00+00' WHERE user_id = (SELECT user_id FROM player WHERE id = :id)",
+            ['id' => $signInVisitor],
+        );
+        self::assertTrue($this->query->isMissed($signInVisitor, ContentDigestFrequency::Weekly, $now));
+        self::assertFalse($this->query->isMissed($signInVisitor, ContentDigestFrequency::Weekly, $this->utc('2030-03-14 08:00:00')));
+    }
+
+    private function visitedOn(string $playerId, string $day): void
+    {
+        $this->database->executeStatement(
+            'INSERT INTO player_activity_day (id, player_id, day, first_seen_at) VALUES (:id, :playerId, :day, :day) ON CONFLICT DO NOTHING',
+            ['id' => Uuid::uuid7()->toString(), 'playerId' => $playerId, 'day' => $day],
+        );
     }
 
     public function testTheFirstWaveCanBeSlicedByTheLastResult(): void

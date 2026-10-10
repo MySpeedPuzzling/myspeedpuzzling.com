@@ -371,3 +371,65 @@ organization_rejected:
         <p><strong>Razón:</strong> %reason%</p>
         <p>Si tienes preguntas o deseas discutir esto, contáctanos en <a href="mailto:jan@myspeedpuzzling.com">jan@myspeedpuzzling.com</a>.</p>
     button: "Abrir «Organizas»"
+
+activity_digest:
+    puzzler: "puzzlero"
+    subject:
+        week: "Tu semana en MySpeedPuzzling"
+        two_weeks: "Tus dos semanas en MySpeedPuzzling"
+        month: "Tu mes en MySpeedPuzzling"
+    preheader:
+        achievement: "Nuevo logro: %achievement% – y el resto de tu semana."
+        achievement_locked: "Conseguiste un logro – y aquí tienes el resto de tu semana."
+        level: "Llegaste al Nivel %level% – así lo lograste."
+        personal_best: "Nuevo récord personal en %puzzle% – y más de tu semana."
+        rating: "{1}Subiste 1 puesto en el MSP Rating – y más de tu semana.|]1,Inf[Subiste %count% puestos en el MSP Rating – y más de tu semana."
+        numbers: "{1}1 puzzle, %pieces% piezas – tu semana en un correo corto.|]1,Inf[%count% puzzles, %pieces% piezas – tu semana en un correo corto."
+    title:
+        week: "Tu semana, %name%"
+        two_weeks: "Tus dos semanas, %name%"
+        month: "Tu mes, %name%"
+    stat:
+        puzzles: "{1}puzzle|]1,Inf[puzzles|{0}puzzles"
+        pieces: "{1}pieza|]1,Inf[piezas|{0}piezas"
+        streak: "días de racha"
+    level: "Nivel %level%"
+    level_up: "Nivel %from% → %to%"
+    new_achievement: "Nuevo: %achievement%"
+    achievement_teaser: "{1}Conseguiste un logro. Hazte miembro para descubrir cuál.|]1,Inf[Conseguiste %count% logros. Hazte miembro para descubrir cuáles."
+    become_member: "Hazte miembro"
+    rating: "MSP Rating: #%rank% de %total%"
+    rating_up: "{1}subiste 1 puesto|]1,Inf[subiste %count% puestos"
+    rating_down: "{1}bajaste 1 puesto|]1,Inf[bajaste %count% puestos"
+    skill_tier: "Nuevo nivel de habilidad en %pieces% piezas: %tier%"
+    karma: "{1}Gracias: se aceptó 1 de tus contribuciones a la base de datos de puzzles.|]1,Inf[Gracias: se aceptaron %count% de tus contribuciones a la base de datos de puzzles."
+    results_title: "Lo más destacado"
+    mark:
+        personal_best: "récord personal"
+        first_try: "primer intento"
+    button:
+        week: "Ver tu semana"
+        two_weeks: "Ver tus dos semanas"
+        month: "Ver tu mes"
+    favorites_title: "Tus puzzleros favoritos"
+    favorite_solves: "{1}1 puzzle|]1,Inf[%count% puzzles"
+    most_solved: "Lo más armado por la comunidad:"
+    most_solved_count: "{1}(1 puzzlero)|]1,Inf[(%count% puzzleros)"
+    footer:
+        weekly: "Lo recibes cada lunes."
+        every_two_weeks: "Lo recibes un lunes sí y otro no."
+        monthly: "Lo recibes el primer lunes de cada mes."
+        change: "Cambiar los correos"
+        unsubscribe: "Darte de baja"
+    miss_you:
+        subject: "Tus puzzles te echan de menos"
+        preheader: "¿O has estado armando a escondidas? Tus tiempos son bienvenidos cuando quieras."
+        title: "Echamos de menos tus tiempos, %name%"
+        line_secret: "Han pasado unas semanas desde tu último tiempo por aquí. Quizá te tomaste un merecido descanso… ¿o has estado armando a escondidas y los tiempos nunca nos llegaron? 🧩"
+        line_add: "Si es así, todavía puedes añadirlos: elige el día en que lo terminaste y cuentan igual que los demás."
+        button: "Añadir un tiempo"
+        line_back: "Y si buscas una excusa para abrir una caja nueva:"
+        link_picker: "Deja que elijamos tu próximo puzzle"
+        link_hub: "Mira qué está armando la comunidad"
+        link_profile: "Visita tu perfil"
+        footer: "Solo te lo enviamos una vez tras una temporada tranquila. Forma parte de tu correo de actividad."

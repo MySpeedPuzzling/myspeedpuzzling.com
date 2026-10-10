@@ -221,10 +221,10 @@
       "title": "ジグソーパズルデータベースを見る"
       "text": "コミュニティが記録した実際の完成タイム付きで、数千のジグソーパズルを探索できます。<a href=\"%ravensburger_link%\">Ravensburger</a>、<a href=\"%schmidt_link%\">Schmidt</a>、<a href=\"%trefl_link%\">Trefl</a>などのパズルのタイム中央値や最速タイムを比較し、購入前に本当の難易度をチェックして、<a href=\"%puzzles_link%\">パズルデータベース</a>で次の挑戦を見つけましょう。"
 "ladder":
-  "title": "スピードパズルランキング"
+  "title": "リーダーボード"
   "country": "国"
   "meta":
-    "title": "スピードパズルランキング – 最速タイム"
+    "title": "スピードパズルのリーダーボード – 最速タイム"
     "description": "世界のスピードパズルランキング：ピース数別・ソロ・ペア・グループのジグソーパズル最速タイム。あなたは何位？"
     "records":
       "solo":
@@ -251,6 +251,8 @@
   "most_active_puzzlers": "最も熱心なパズラー"
   "puzzle_solved_count": "解いたパズル数"
   "link_to_hub": "最多解決パズルや最もアクティブなプレイヤーをお探しですか？<a class=\"text-decoration-underline\" href=\"%link%\">新しいハブ</a>に移動しました！"
+  "board":
+    "msp_rating": "MSP Rating"
 "filters":
   "button": "フィルター"
   "filter_by": "フィルター条件"
@@ -327,6 +329,10 @@
     "show_more": "さらに%count%件表示"
     "show_all": "すべて表示 (%count%)"
     "hidden_rows": "あと%count%件"
+    "gap_to_fastest": "最速タイムとの差"
+    "gap_to_faster": "ひとつ上のタイムとの差"
+    "result_detail": "結果の詳細：%time%"
+    "attempts": "%count%回完成"
   "chart":
     "noun":
       "solo": "パズラー"
@@ -512,6 +518,7 @@
   "global_search_placeholder": "パズルまたはプレイヤーを検索..."
   "private_profile": "プライベートプロフィール"
   "private_profile_help": "あなたのタイムは「秘密のパズラー」として匿名で表示され、名前が結果と結び付けられることはありません。マーケットプレイスの出品、評価、メッセージ、貸し借り、機能リクエストなど、ご自身で行動する場面では引き続き名前が表示されます。名前と結果を見ることができるプレイヤーを選ぶこともできます。"
+  "clear_ean": "クリア"
 "my_profile":
   "meta":
     "title": "マイプロフィール"
@@ -641,6 +648,9 @@
     "next_payment_info_discounted": "その後は%discount%%割引の料金でサブスクリプションが継続されます。"
     "membership_ends": "メンバーシップ終了"
     "membership_ends_info": "自動でのお支払いはなく、そのまま終了します。"
+  "perks_description": "<ul>\n    <li>プラットフォームの開発を支えてくださることへの心からの感謝</li>\n    <li>あなただけのプレイヤーコード（プロフィールで変更できます）</li>\n    <li>プロフィールのメンバーラベル</li>\n    <li>初挑戦での絞り込み</li>\n    <li>国での絞り込み</li>\n    <li>グラフ</li>\n    <li>バーコードスキャナー</li>\n    <li>詳細な統計</li>\n</ul>\n"
+  "progression_perks": "<h3 class=\"h4\">実績</h3>\n<ul>\n    <li>ブロンズからダイヤモンドまでの実績を集めて、実績ポイント（AP）を獲得</li>\n    <li>実績をプロフィールに飾って、実績ポイントのリーダーボードに参加</li>\n</ul>\n<p class=\"text-muted\">XPとレベルは、メンバーかどうかに関係なく誰でも無料です。</p>\n"
+  "coming_soon_description": "<h3 class=\"h4\">近日公開予定の機能は？</h3>\n<ul>\n    <li>月間・年間レポート <small class=\"ms-1 text-muted\">（近日公開）</small></li>\n    <li>mypuzzler.comの公開プロフィール <small class=\"ms-1 text-muted\">（近日公開）</small></li>\n    <li class=\"mt-2\">メンバー限定の特別チャレンジ</li>\n    <li>メンバー間でのパズルの貸し借りと販売</li>\n    <li>&hellip; ほかにもたくさん。これは準備中の機能のほんの一部です！</li>\n</ul>\n"
 "feedback":
   "title": "フィードバック"
   "message": "メッセージ"
@@ -1203,13 +1213,6 @@ competition_referees:
   "frequency_48_hours": "48時間ごと"
   "frequency_1_week": "週に1回"
   "newsletter_enabled": "ニュースレターを受信する"
-  "content_digest_frequency": "週間ダイジェストメール"
-  "content_digest_help": "あなたの一週間のパズル活動：XP、実績、統計、仲間のアクティビティ。週1回がちょうどいい頻度です。"
-  "content_digest_none": "ダイジェストを受け取らない"
-  "content_digest_daily": "毎日＋毎週"
-  "content_digest_weekly": "毎週"
-  "hide_experience_system": "経験値システム（XPとレベル）を非表示"
-  "hide_experience_system_help": "あなたのレベル、XPの明細、お祝い演出、リーダーボードへの表示がすべて非表示になります。XPは裏側で静かに貯まり続けるので、再びオンにしても何も失われません。"
   "newsletter_help": "プラットフォームの新機能などについてのニュースレターを不定期にお送りします。マーケティングや宣伝は一切ありません。想定頻度：月1回以下。"
   "result_emails_enabled": "記録に関するメール"
   "result_emails_help": "記録が重複しているようなときや、余分なコピーを削除したときにお知らせします。送信は最大で週1回、新しいお知らせがあるときだけです。"
@@ -1558,7 +1561,7 @@ competition_referees:
 "player_profile":
   "meta":
     "title": "%name% – スピードパズラープロフィール"
-    "description": "%name%のスピードパズルプロフィール：ジグソーパズルの最速タイム、ランキング、バッジ、最近の記録をMySpeedPuzzlingで。"
+    "description": "%name%のスピードパズルプロフィール：ジグソーパズルの最速タイム、ランキング、実績、最近の記録をMySpeedPuzzlingで。"
 "flashes":
   "photo_upload_deferred": "データは保存されました！写真は現在アップロードできませんでしたが、ストレージが再び利用可能になり次第、自動的にアップロードされます。"
   "stopwatch_already_saved": "これらのストップウォッチは既に保存されています。"
@@ -1670,9 +1673,36 @@ xp:
         message: "あなたのパズルの旅は登り続けています。お見事です！"
         enter_ap_ladder: "APラダーへ進む"
     estimate:
+        line_first: "このパズルを完成させると約%xp% XP"
+        line_repeat: "このパズルをもう一度完成させると約%xp% XP（リピートは%percent%%）"
+        bonuses_link: "＋ボーナス"
     leaderboard:
         favorites_only: "お気に入りのみ"
         player: "パズラー"
+        board:
+            xp:
+                tab: "レベル（XP）"
+                title: "レベルのリーダーボード"
+                subtitle: "合計XPによるランキング：各パズラーが全期間でどれだけパズルをしたか。"
+                column: "XP"
+                value: "%value% XP"
+                empty: "まだ誰もいません — 記録を追加して、このボードの一番乗りになりましょう！"
+            achievement-points:
+                tab: "実績ポイント"
+                title: "実績ポイントのリーダーボード"
+                subtitle: "全期間の実績ポイントによるメンバーのランキング。"
+                column: "AP"
+                value: "%value% AP"
+                empty: "まだ誰もいません — 記録を追加して、このボードの一番乗りになりましょう！"
+                login_required: "実績ポイントのリーダーボードを見るにはサインインしてください。"
+            karma:
+                tab: "カルマ"
+                title: "データベースに最も貢献している人"
+                subtitle: "パズルデータベースへの承認された貢献1件につき1カルマ。誰でも無料で、公開されています。"
+                column: "カルマ"
+                value: "%value%"
+                empty: "まだ誰もいません。"
+        level: "レベル%level%"
     history:
         meta_title: "マイXP履歴"
         title: "マイXP履歴"
@@ -1680,6 +1710,14 @@ xp:
         empty: "まだXPがありません — 最初の完成がそれを変えます。"
         pagination: "XP履歴のページ"
         note: "気になる行がありますか？"
+        deleted_solve_title: "削除された記録"
+        relax: "リラックス"
+        type:
+            solo: "ソロ"
+            duo: "ペア"
+            team: "チーム"
+        previous_page: "前のページ"
+        next_page: "次のページ"
     reveal:
         meta_title: "あなたのパズルの歩み、お披露目"
         title: "あなたの歩みが、まるごとXPになりました ✨"
@@ -1702,6 +1740,7 @@ xp:
         progress: "%current% / %total%"
         summary_title: "あなたが手にしたすべて"
         counter_title: "あなたのXP"
+        badge_points: "+%points% AP"
     explainer:
         title: "XPとレベルの仕組み"
         intro: "パズルをひとつ完成させるたびに、あなたは前へ進みます。XP（経験値）は、速さではなく、あなたが取り組んだことそのものをたたえるもの。記録を追加してXPを獲得し、レベルが1から50まで育っていくのを見守りましょう。"
@@ -1731,6 +1770,7 @@ xp:
             header_level: "レベル"
             header_xp: "XP"
             summit: "レベル50が頂上です — 合計3,160 XP。その後もXPは貯まり続け、レベル50からは実績ポイントのラダーが次の山になります。"
+            show_all: "全50レベルを表示"
         lose:
             heading: "XPが減ることはありますか？"
             body: "記録を削除または編集したときだけです — その記録で獲得したXPも一緒になくなります。それ以外でXPが減ることはありません。実績は永久にあなたのものです。"
@@ -1743,6 +1783,13 @@ xp:
             friend_question: "同じパズルなのに、友達の方が多くXPをもらえたのはなぜですか？"
             fair_play_question: "公平性はどう保たれていますか？"
             fair_play_answer: "静かに自動で働くいくつかのガードレールが、数字の正直さを守っています — 詳しくは<a href=\"%fair_play_link%\">フェアプレイと信頼</a>のページをご覧ください。"
+            friend_answer_history: "リピート割引、ウィークリーブースト、デイリーウォームアップは人それぞれなので、同じパズルの完成でも獲得XPが同じになることはまれです。<a href=\"%history_link%\">XP履歴</a>で、すべての完成の明細を1行ずつ確認できます。"
+        family:
+            heading: "カウントされるのはパズルだけ"
+            body: "XPとレベルは、あなたがどれだけパズルをしたかを測るもので、誰でも無料です。実績、MSP Rating、スキルティア、カルマはそれぞれ別のもので、どれもXPを加算しません。"
+        separate:
+            heading: "実績とXPは別のもの"
+            body: "実績で獲得するのは実績ポイント（AP）で、XPではありません。レベルが上がるのは、記録したパズルによってだけです。"
     fair_play:
         title: "フェアプレイと信頼"
         intro: "MySpeedPuzzlingは信頼の上に成り立っています。記録が反映される前に誰かが審査することはありません — 私たちはあなたを信じています。それでもコミュニティの数字が意味を持ち続けるのは、静かに自動で働くいくつかのガードレールのおかげです："
@@ -1754,6 +1801,14 @@ xp:
         closing_thresholds: "正確なしきい値はあえて公開していません — 公平さを守るためのものであって、攻略されるためのものではないからです。リーダーボードで何かおかしいと感じたら、ぜひご連絡ください。すべての報告に人間が目を通します。"
         closing_celebrate: "正直にパズルを、盛大にお祝いを。🧩"
         explainer_link: "1ポイントごとの獲得方法が気になりますか？<a href=\"%explainer_link%\">XPとレベルの仕組み</a>をご覧ください。"
+    launch_modal:
+        title: "あなたのパズルの歩みが、XPになりました"
+        text: "これまでに記録したすべてのパズルがカウントされます。あなたのレベルはこちら："
+        button_member: "実績をお披露目する"
+        button_continue: "すべて見る"
+        later: "あとで"
+        member_tease: "{1}さらに実績を1個獲得しています – どの実績かは、メンバーになると確認できます。|]1,Inf[さらに実績を%count%個獲得しています – どの実績かは、メンバーになると確認できます。"
+        member_tease_zero: "メンバーは、達成したことに応じて実績と実績ポイントも集めています。"
 
 badges:
     title: "実績"
@@ -1777,6 +1832,7 @@ badges:
         only_hidden_holders: "{1}1人のパズラーがこのティアを獲得しています — プロフィールは公開されていません。|]1,Inf[%count%人のパズラーがこのティアを獲得しています — プロフィールは公開されていません。"
         nobody_yet: "このティアの獲得者はまだいません。最初の一人が歴史を作ります！"
         listing_note: "保持者リストにはプロフィールを公開しているメンバーが表示されます。人数にはすべてのパズラーが含まれます。"
+        apply_filter: "表示"
     reveals:
         meta_title: "実績をお披露目"
         title: "あなたの実績が届きました 🎉"
@@ -1803,6 +1859,7 @@ badges:
         earned: "獲得済み"
         next_tier: "次: %tier%"
         single_tier_note: "この実績は単一ティアで、手動で付与されます（完成では獲得できません）。"
+        you_hold: "あなたは%tier%を保持しています。"
     tier:
         bronze: "ブロンズ"
         silver: "シルバー"
@@ -1931,6 +1988,26 @@ badges:
         pieces: "ピース"
         days: "日"
         team_solves: "チーム完成"
+    catalogue:
+        summary: "<strong>%total%個中%earned%個</strong>獲得"
+        about: "各実績にはブロンズからダイヤモンドまで5つのティアがあります。ティアに到達するたびに実績ポイント（AP）を獲得できます：5、10、25、50、100。実績はメンバーが集めるもので、XPが加算されることはありません。"
+        tease_free: "メンバーは実績を集め、実績ポイントを獲得して、プロフィールに飾ることができます。メンバーになると、あなたがどの実績を獲得したか確認できます。"
+        tease_guest: "メンバーは実績を集め、実績ポイントを獲得して、プロフィールに飾ることができます。"
+        become_member: "メンバーになる"
+        filter_label: "表示する実績"
+        filter:
+            next: "もうすぐ"
+            earned: "獲得済み"
+            all: "すべて"
+            rarest: "レア順"
+        empty:
+            next: "進行中のものはまだありません。パズルを記録すると、次の目標がここに表示されます。"
+            earned: "まだ実績はありません。最初の実績は思っているより近くにあります。"
+            all: "まだ実績はありません。"
+            rarest: "まだ実績はありません。"
+        progress_label: "%achievement%の%tier%までの進捗"
+        rarity: "パズラーの%percent%"
+        ap_leaderboard_link: "実績ポイントのリーダーボード"
 "scan":
   "meta":
     "title": "バーコードリーダー"
@@ -2192,7 +2269,7 @@ badges:
     <ul>
         <li>アカウント：サインイン用のメールアドレス、パスワード、接続済みのサインイン方法（Google、Microsoft、Apple、Facebook）、サインインのセキュリティログ</li>
         <li>プレイヤープロフィールとそのすべての情報</li>
-        <li>ソロのタイム記録、コレクション、ウィッシュリスト、販売・交換に出しているパズル、バッジ、ストップウォッチ、通知</li>
+        <li>ソロのタイム記録、コレクション、ウィッシュリスト、販売・交換に出しているパズル、実績、ストップウォッチ、通知</li>
         <li>メンバーシップ（有効なサブスクリプションは解約されます）とニュースレターの購読</li>
     </ul>
     <p>ほかのプレイヤーと共有しているものは、その人たちのために残ります。ただし、どのアカウントにも紐づかなくなり、あなたが使っていた名前がリンクなしのテキストとして表示されるだけになります。対象は、ほかの登録プレイヤーと一緒に完成させたペア・チームのタイム、会話やマーケットプレイスでの取引（評価を含む）、機能リクエストとそのコメントです。あなたがカタログに追加したパズルはカタログに残りますが、あなたとの紐づけはなくなります。送信済みメールの記録では、あなたのメールアドレスは一方向のハッシュ値に置き換えられます。</p>
@@ -2730,6 +2807,7 @@ badges:
     "approved": "変更リクエストが承認され、パズルが更新されました。"
     "rejected": "変更リクエストが却下されました。"
     "rejection_reason_required": "却下理由は必須です。"
+    "already_reviewed": "この変更リクエストは、すでにほかの人が審査しています。"
   "puzzle_merge_request":
     "approved": "統合リクエストが承認されました。パズルが統合されました。"
     "rejected": "統合リクエストが却下されました。"
@@ -2756,6 +2834,13 @@ badges:
     "column_merge_requests": "確認した統合リクエスト"
     "column_last_review": "最終確認"
     "never": "なし"
+    "column_karma": "カルマ"
+  "puzzle_edit":
+    "saved": "パズルを保存しました。"
+  "puzzle_approval":
+    "approved": "パズルを承認しました。"
+    "already_approved": "このパズルは、すでにほかの人が承認または統合しています。"
+    "merge_target_invalid": "既存の別のパズルのIDまたはURLを貼り付けてください。"
 "pending_proposals":
   "badge": "保留中の提案"
   "go_to_admin": "管理画面へ"
@@ -3128,8 +3213,8 @@ puzzle_tracker_app:
             title: "大会"
             description: "世界中のパズル大会をフォローし、結果を確認し、競技パフォーマンスを追跡。"
         badges:
-            title: "バッジと実績"
-            description: "初めてのパズル記録、100パズル完成などのマイルストーンでバッジを獲得。"
+            title: "実績"
+            description: "メンバーは、100パズル完成、連続記録、初挑戦などのマイルストーンで実績を獲得できます。"
     community:
         title: "世界最大のパズルトラッキングコミュニティ"
         times_logged: "記録されたタイム"
@@ -3269,9 +3354,9 @@ puzzle_intelligence:
         much_slower: "かなり遅い"
     elo:
         meta:
-            title: "MSP Rating – スピードパズルランキング"
+            title: "MSP Rating – スピードパズルのリーダーボード"
             description: "MSP Ratingラダーは完成タイムとパズルの難易度を組み合わせ、スピードパズラーの実力をランク付け。世界トップのパズラーをチェックしましょう。"
-        title: "MSP Ratingラダー"
+        title: "MSP Ratingのリーダーボード"
         beta_badge: "BETA"
         how_it_works: "計算方法は？"
         player: "プレイヤー"
@@ -3301,6 +3386,8 @@ puzzle_intelligence:
         progress_total_solves: "総完成数"
         qualification_title: "MSP Ratingランキング"
         qualification_desc: "解答速度に基づいて他のプレイヤーと競います。500ピースパズルの十分な完成数が必要です。"
+        heading_500: "MSP Rating · 500ピース"
+        subtitle_portfolio: "過去24か月の500ピースの結果から算出：初挑戦はベストタイムの3倍の重みでカウントされ、難しいパズルほど重みが大きくなります。"
     human:
         about_average: "平均的な難易度"
         easier_than_avg: "平均より%percent%%簡単"
@@ -3474,8 +3561,8 @@ puzzle_intelligence:
         personal_explanation: "このパズルの%count%回の過去の完成に基づく予測。"
         personal_attempt_explanation: "%count%回の過去の完成と上達トレンドに基づく、第%attempt%回目の予測。"
     skill:
-        title: "スキルプロフィール"
-        tier_label: "ティア"
+        title: "スキルティア"
+        tier_label: "スキルティア"
         percentile_label: "上位%percentile%%"
         faster_than_label: "プレイヤーの%percentile%%より速い"
         not_enough_data: "%pieces%pcのデータが不足しています"
@@ -3489,7 +3576,7 @@ puzzle_intelligence:
         improve_by: "約%minutes%分の改善が必要"
         improved_by: "直近%months%ヶ月で%percent%%上達しました！"
         improvement_title: "あなたの上達"
-        progress_title: "スキルティア資格"
+        progress_title: "スキルティアの資格"
         progress_qualifying: "%count%人以上の他のパズラーが完成したパズル"
         ranking_opted_out: "スキル追跡からオプトアウトしています。"
         private_profile_explanation: "スキルティアはプライベートプロフィールでは利用できません。あなたの完成データはパズル難易度の評価に貢献しますが、ランキングには公開プロフィールが必要です。"
@@ -6210,6 +6297,9 @@ free_trial:
         player_code:
             title: "自分だけのプレイヤーコード"
             text: "友だちが覚えやすいコードをプロフィール設定で選べます。"
+        achievements:
+            title: "あなたの実績"
+            text: "すでに獲得した実績が、お披露目を待っています – それぞれ小さなパズルひとつ分です。"
 
 multiscan:
     meta:
@@ -8389,3 +8479,310 @@ series_readers:
     used_at:
         more: "ほか%count%件"
     series_delete_note: "このシリーズやそのエディションで記録された結果は、イベントとの紐付けがなくなりますが、パズラーのプロフィールに残ります。"
+
+pieces_filter:
+    label: "ピース数"
+    from: "最小"
+    to: "最大"
+    from_label: "ピース数（最小）"
+    to_label: "ピース数（最大）"
+
+live_refresh:
+    pause: "自動更新を一時停止"
+    countdown: "1秒後に自動更新|%count%秒後に自動更新"
+    updating: "更新中…"
+    status_paused: "自動更新を一時停止中"
+    status_idle: "離れている間、自動更新を一時停止しました"
+    retrying: "更新に失敗しました。1秒後に再試行します|更新に失敗しました。%count%秒後に再試行します"
+    running: "1分ごとに更新します。クリックで一時停止します。"
+    paused: "更新を一時停止中です。クリックで再開します。"
+    idle: "離れている間、更新を一時停止しました。クリックで再開します。"
+    failed: "更新できませんでした。まもなく再試行します。クリックすると今すぐ再試行します。"
+
+puzzle_result:
+    title: "このパズルの結果"
+    meta_title: "%puzzle%の結果"
+    close: "閉じる"
+    team_page: "チームページ"
+    best_time: "ベストタイム"
+    rank: "%total%人中%rank%位"
+    attempt_number: "%number%回目"
+    chart:
+        fastest: "最速"
+        median: "中央値"
+    personal_best: "自己ベスト"
+    change_to_previous: "前回からの変化"
+    gap_to_best: "自己ベストとの差"
+    finished_photo: "完成したパズルの写真"
+
+recap_progress:
+    title: "あなたの成長"
+    level:
+        title: "レベル%level%"
+        xp_gained: "+%xp% XP"
+        to_next: "レベル%level%まで %current% / %needed% XP"
+        max: "最高レベルです – XPはこれからも貯まり続けます"
+        late: "このタイムのXPはまだ集計中です。まもなくXP履歴に表示されます。"
+        announce: "このタイムで+%xp% XP。"
+        announce_level_up: "このタイムで+%xp% XP。レベル%level%！"
+    receipt:
+        summary: "XPの計算内訳"
+        history_link: "XP履歴"
+    sheet:
+        continue: "続ける"
+        max_message: "レベル50、最高レベルです。ここからもXPは貯まり続けます。"
+    achievement:
+        new: "新しい実績"
+        tap: "パズルをタップしてティアをお披露目"
+        points: "+%points% AP"
+        see: "実績を見る"
+    tease:
+        title: "このタイムで実績を獲得しました。"
+        text: "どの実績かは、メンバーになると確認できます。"
+        button: "メンバーになる"
+    place:
+        title: "このパズルで%total%人中%rank%位"
+        first_solver: "このパズルを最初に完成させたのはあなたです"
+        fastest: "このパズルの最速タイム"
+        faster_than: "パズラーの%percent%%より速いタイム"
+    competition:
+        rating: "MSP Rating %rating% · %total%人中%rank%位"
+        rating_progress: "MSP Rating：初挑戦 %first_needed%回中%first%回、パズル %solves_needed%個中%solves%個"
+        skill: "スキルティア %tier% · 上位%percent%%"
+        skill_progress: "{1}スキルティアまで、対象となるパズルをあと1個|]1,Inf[スキルティアまで、対象となるパズルをあと%count%個"
+        skill_soon: "スキルティアは15分以内に表示されます"
+        locked_title: "スキルティアとMSP Rating"
+        locked_text: "%pieces%ピースのパズラーの中であなたがどの位置にいるか確認できます。メンバー限定です。"
+
+player_progress:
+    ring_label: "レベル%level%、%xp% XP。レベルの仕組み"
+    ring_label_own: "レベル%level%、%xp% XP。XPの内訳"
+    msp_chip: "MSP Rating %rank%位"
+    msp_chip_title: "MSP Ratingランキング（%pieces%ピース）で%rank%位"
+    how_it_works: "仕組み"
+    showcase:
+        earned: "%total%個中%earned%個"
+        teaser: "実績を獲得しています。"
+        teaser_link: "メンバーになると確認できます。"
+        teaser_none: "メンバーはパズルをしながら実績を集めています。"
+        teaser_none_link: "すべての実績を見る"
+
+progression_hub:
+    meta_title: "成長の仕組み：XP、実績、MSP Rating、スキルティア、カルマ"
+    meta_description: "MySpeedPuzzlingのXPとレベル、実績、MSP Rating、スキルティア、カルマがそれぞれ何を測り、どう育つのかをご紹介します。"
+    title: "成長の仕組み"
+    menu_label: "成長の仕組み"
+    intro: "パズルをするほど、5つのものが育っていきます。それぞれが違う問いに答えます。"
+    group:
+        just_you: "あなただけ"
+        against_the_clock: "時間との勝負"
+        for_everyone: "誰でも"
+    level:
+        title: "レベルとXP"
+        text: "パズルを記録するたびにXPが加算されます。大きくて難しいパズルほど多くもらえます。カウントされるのはパズルだけです。"
+    achievements:
+        title: "実績"
+        text: "ブロンズからダイヤモンドまで、%count%の目標に挑戦：ブランド、連続記録、初挑戦、チーム。メンバーは実績を集めて実績ポイント（AP）を獲得します。"
+    rating:
+        title: "MSP Rating"
+        text: "500ピースパズルでのあなたのスピードを、全員と比べたもの。難易度で重み付けしたベストタイムから算出します。"
+    skill_tier:
+        title: "スキルティア"
+        text: "ピース数ごとのあなたの実力。すべてのタイムから、愛好家からレジェンドまでで表します。"
+    karma:
+        title: "カルマ"
+        text: "パズルデータベースへの承認された貢献1件につき1ポイント。誰が手伝ってくれているかを示します。"
+    which:
+        title: "それぞれの違いは？"
+        text: "XPはパズルをすること、実績は幅広さ、MSP Ratingとスキルティアはスピード、カルマは手助けをたたえます。どれもほかのものに変わることはありません。"
+    leaderboards_link: "リーダーボードを見る"
+    fair_play_link: "フェアプレイと信頼"
+    help_label: "成長の仕組み"
+
+karma:
+    chip: "%karma%カルマ"
+    opt_out:
+        label: "カルマを非表示にする"
+        help: "あなたの貢献はこれまでどおりカウントされ、記録も残りますが、カルマはプロフィールに表示されず、カルマ一覧にも載りません。オフにすると、すべて再び表示されます。"
+    chip_title: "カルマ：パズルデータベースへの承認された貢献"
+    leaderboard:
+        kind_label: "カウント対象"
+        period_label: "期間"
+    kind_filter:
+        all: "すべて"
+        puzzles: "新しいパズル"
+        fixes: "修正と統合"
+        moderation: "モデレーション"
+    period:
+        all: "全期間"
+        12m: "過去12か月"
+    breakdown:
+        puzzle_added: "新しいパズル%count%個|新しいパズル%count%個"
+        change_request: "承認された変更%count%件|承認された変更%count%件"
+        merge_request: "統合された重複%count%件|統合された重複%count%件"
+        decision: "判断%count%件|判断%count%件"
+        direct_edit: "編集%count%件|編集%count%件"
+    item:
+        puzzle_added: "EAN付きの新しいパズル"
+        change_request: "あなたの変更の提案が承認されました"
+        merge_request: "あなたの重複の報告が統合されました"
+        direct_edit: "パズルを編集しました"
+        duplicate_puzzle: "先に追加されたパズルに統合"
+        decision:
+            change_request_approved: "変更の提案を承認しました"
+            change_request_rejected: "変更の提案を却下しました"
+            merge_request_approved: "報告された重複を統合しました"
+            merge_request_rejected: "重複の報告を却下しました"
+            puzzle_approved: "新しいパズルを承認しました"
+    history:
+        title: "カルマは何で獲得したの？"
+        total_label: "カルマ"
+        breakdown_label: "種類別のカルマ"
+        empty: "まだカルマはありません。EAN付きのパズルを追加するか、パズルの修正を提案してみましょう – 承認された貢献1件につき1カルマです。"
+        what_counts: "カウントされるもの"
+        undated: "それ以前"
+        not_counted: "カウント対象外"
+        note: "提案はモデレーターが承認した時点でカウントされます。承認されなかった提案でカルマが減ることはありません。"
+        how_it_works: "カルマの仕組み"
+        list_link: "カルマ一覧"
+        pagination: "カルマ履歴のページ"
+        previous: "前のページ"
+        next: "次のページ"
+        admin_note: "管理者にはカルマがありません – 管理者の作業はサイト運営の一部だからです。"
+        hidden_note: "あなたのカルマはほかの人には表示されません。プロフィールに表示されず、カルマ一覧にも載りません。貢献はこれまでどおりカウントされます。"
+        hidden_change: "設定で変更"
+    explainer:
+        title: "カルマの仕組み"
+        intro: "カルマは、パズルデータベースを正確に保つ人たちへの感謝のしるしです。承認された貢献1件につき1ポイント – 誰が手伝ってくれているかを公開で示します。"
+        your_karma: "あなたのカルマ"
+        history_link: "何で獲得したの？"
+        what_counts: "カウントされるもの"
+        rules:
+            puzzle:
+                what: "EAN付きの新しいパズル"
+                when: "承認されたとき。バーコードがあれば、スキャンで見つけられるようになります。"
+                value: "+1"
+            change:
+                what: "変更の提案"
+                when: "モデレーターが承認したとき。"
+                value: "+1"
+            merge:
+                what: "重複の報告"
+                when: "パズルが統合されたとき。"
+                value: "+1"
+            decision:
+                what: "モデレーターの判断"
+                when: "提案、重複の報告、新しいパズルを承認または却下したとき。"
+                value: "+1"
+            edit:
+                what: "モデレーターによる直接編集"
+                when: "提案を経ずにパズルを修正したとき。"
+                value: "+1"
+            own_proposal:
+                what: "モデレーターが自分の提案を判断した場合"
+                when: "提案と判断をあわせて1件としてカウントします。"
+                value: "合計+1"
+        no_caps: "上限も重み付けもありません。承認された貢献はすべて同じようにカウントされます。"
+        duplicates_heading: "パズルが重複だったとわかったとき"
+        duplicates: "2つのパズルが統合された場合、そのパズルを先に追加した人がカルマを保持します。後から追加されたほうはカウントされなくなり、重複を報告した人には1ポイントが入ります。カルマ履歴では、そのようなパズルは「カウント対象外」と表示されます。"
+        not_heading: "カルマではないもの"
+        never_negative: "承認されなかった提案でカルマが減ることはありません。マイナスのカルマはありません。"
+        no_xp: "カルマは感謝のしるしで、通貨ではありません。何かと交換することはできず、XPも加算されません。"
+        not_counted: "ブランド、イベント、そしてほかの対応ですでに片付いていた提案はカウントされません。"
+        find_puzzle: "改善できるパズルを探す"
+        list_link: "カルマ一覧"
+
+activity_digest:
+    frequency:
+        weekly: "毎週（月曜日）"
+        every_two_weeks: "2週間ごと"
+        monthly: "毎月"
+        off: "オフ"
+    settings:
+        label: "アクティビティメール"
+        help: "完成したパズル、あなたの成長、お気に入りのパズラー – パズルをした期間だけお送りします。4週間記録がないときは一度だけごあいさつし、それ以上は送りません。"
+    preferences_title: "あなたのアクティビティ"
+    preferences_description: "完成したパズル、レベル、実績、お気に入りのパズラー – 月曜日に、パズルをした期間だけお送りします。4週間記録がないときは一度だけごあいさつし、それ以上は送りません。"
+    unsubscribe:
+        meta_title: "アクティビティメールの配信停止"
+        confirm_title: "アクティビティメールを停止しますか？"
+        confirm_text: "下のボタンを1回クリックすると、アクティビティメールが停止します。メール設定からいつでも再びオンにできます。"
+        confirm_button: "はい、停止します"
+        fewer_hint: "頻度を減らしたいですか？"
+        fewer_link: "2週間ごと、または毎月を選ぶ"
+        done_title: "配信を停止しました"
+        done_text: "アクティビティメールは今後届きません。また受け取りたくなったら、メール設定からオンにしてください。"
+        back_home: "MySpeedPuzzlingに戻る"
+
+my_activity:
+    title:
+        week: "あなたの1週間"
+        two_weeks: "あなたの2週間"
+        month: "あなたの1か月"
+    so_far: "現時点"
+    navigation: "期間"
+    length_label: "期間の長さ"
+    length:
+        week: "1週間"
+        two_weeks: "2週間"
+        month: "1か月"
+    previous:
+        week: "前週"
+        two_weeks: "前の2週間"
+        month: "前月"
+    next:
+        week: "翌週"
+        two_weeks: "次の2週間"
+        month: "翌月"
+    numbers_label: "数字で見る"
+    stat:
+        puzzles: "{1}パズル|]1,Inf[パズル|{0}パズル"
+        pieces: "{1}ピース|]1,Inf[ピース|{0}ピース"
+        time: "パズル時間"
+        streak: "日連続"
+    empty: "この期間の記録はありません。"
+    empty_in_progress: "まだ記録はありません – 時間はまだあります。"
+    add_time: "タイムを追加"
+    pick_puzzle: "次のパズルを選ぶ"
+    level: "レベル%level%"
+    level_up: "レベル%from% → %to%"
+    level_progress: "次のレベルまでの進捗"
+    xp_history_link: "XPの内訳をすべて見る"
+    achievements_title: "{1}新しい実績1個|]1,Inf[新しい実績%count%個"
+    achievements_teaser: "{1}この期間に実績を1個獲得しました。どの実績かは、メンバーになると確認できます。|]1,Inf[この期間に実績を%count%個獲得しました。どの実績かは、メンバーになると確認できます。"
+    become_member: "メンバーになる"
+    rating: "MSP Rating：%total%人中%rank%位"
+    rating_up: "{1}1つ順位アップ|]1,Inf[%count%つ順位アップ"
+    rating_down: "{1}1つ順位ダウン|]1,Inf[%count%つ順位ダウン"
+    skill_tier: "%pieces%ピースの新しいスキルティア：%tier%"
+    karma: "{1}ありがとうございます！パズルデータベースへのあなたの貢献が1件承認されました。|]1,Inf[ありがとうございます！パズルデータベースへのあなたの貢献が%count%件承認されました。"
+    results_title: "あなたのパズル"
+    pieces: "{1}1ピース|]1,Inf[%count%ピース"
+    place: "%total%人中%rank%位"
+    mark:
+        awaiting_verification: "確認待ち"
+        personal_best: "自己ベスト"
+        first_try: "初挑戦"
+        pair: "ペア"
+        team: "チーム"
+    favorites_title: "お気に入りのパズラー"
+    favorite_solves: "{1}パズル1個|]1,Inf[パズル%count%個"
+    community_title: "コミュニティの様子"
+    most_solved: "{1}最も多く完成されたパズル：%puzzle%（パズラー1人）|]1,Inf[最も多く完成されたパズル：%puzzle%（パズラー%count%人）"
+    next_title: "次はこちら"
+    share: "シェア"
+    share_copied: "リンクをコピーしました"
+    share_title:
+        week: "MySpeedPuzzlingでの私の1週間：パズル%puzzles%個、%pieces%ピース"
+        two_weeks: "MySpeedPuzzlingでの私の2週間：パズル%puzzles%個、%pieces%ピース"
+        month: "MySpeedPuzzlingでの私の1か月：パズル%puzzles%個、%pieces%ピース"
+    digest_on:
+        weekly: "この内容は毎週月曜日にメールでお届けします。"
+        every_two_weeks: "この内容は隔週の月曜日にメールでお届けします。"
+        monthly: "この内容は毎月第1月曜日にメールでお届けします。"
+    digest_off: "アクティビティメールはオフになっています。"
+    digest_settings: "メール設定"
+
+xp_opt_out:
+    label: "XPとレベルを非表示にする"
+    help: "レベルとXPがあなたのページやメールに表示されなくなり、XPと実績ポイントのリーダーボードや、実績の獲得者一覧にも載らなくなります。XPと実績は裏でこれまでどおりカウントされるので、再びオンにしても何も失われません。"

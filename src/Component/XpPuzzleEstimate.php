@@ -10,16 +10,18 @@ use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Services\Xp\XpCalculator;
 use SpeedPuzzling\Web\Services\Xp\XpFeatureGate;
 use SpeedPuzzling\Web\Value\SolveXpContext;
-use SpeedPuzzling\Web\Value\SpeedPercentile;
 use SpeedPuzzling\Web\Value\XpReason;
 use Symfony\UX\TwigComponent\Attribute\AsTwigComponent;
 use Symfony\UX\TwigComponent\Attribute\PostMount;
 
 /**
- * Puzzle-detail XP estimate (§1.9): "Solving this earns ~N XP + up to M bonus",
- * a personalized repeat note when the viewer already solved the puzzle, and the
- * pending note for unrated puzzles. Uses the real calculator so the estimate can
- * never drift from actual awards.
+ * Puzzle-detail XP estimate: one quiet line, "Solving this earns ~N XP, plus bonuses". Uses the real calculator so the
+ * estimate never drifts from actual awards.
+ *
+ * N is the base (with the repeat discount when the viewer solved the puzzle before). The difficulty bonus is part of
+ * it for members only: the difficulty tier is a member feature, and a number that includes it would reveal the tier to
+ * everybody else. No bonus is promised as a number - which of them a solve gets (speed, weekly boost, warm-up,
+ * unboxed) depends on that solve.
  */
 #[AsTwigComponent]
 final class XpPuzzleEstimate
@@ -34,7 +36,8 @@ final class XpPuzzleEstimate
 
     public int $baseXp = 0;
 
-    public int $bonusXp = 0;
+    /** Discount of a repeat solve in percent (50, 25), null for a first solve */
+    public null|int $repeatPercent = null;
 
     public int $viewerSolveCount = 0;
 
@@ -64,36 +67,34 @@ final class XpPuzzleEstimate
             return;
         }
 
-        $awards = $this->xpCalculator->calculate(new SolveXpContext(
-            piecesCount: $this->piecesCount,
-            difficultyTier: $this->difficultyTier,
-            isTimed: true,
-            isTeamOrDuo: false,
-            unboxed: false,
-            occurrenceIndex: 1,
-            isBackfill: false,
-            speedPercentile: SpeedPercentile::Top10,
-            xpEarningSolvesThisWeek: 0,
-            isFirstXpEarningSolveOfDay: true,
-        ));
-
-        foreach ($awards as $award) {
-            if ($award->reason === XpReason::SolveBase || $award->reason === XpReason::SolveDifficultyBonus) {
-                $this->baseXp += $award->amount;
-            } else {
-                $this->bonusXp += $award->amount;
-            }
-        }
+        $isMember = $viewer !== null && $viewer->activeMembership;
 
         if ($viewer !== null) {
             $this->viewerSolveCount = $this->getSolveXpDisplayInfo->countPlayerSolvesOfPuzzle($viewer->playerId, $this->puzzleId);
         }
 
-        $this->visible = true;
-    }
+        $awards = $this->xpCalculator->calculate(new SolveXpContext(
+            piecesCount: $this->piecesCount,
+            difficultyTier: $isMember ? $this->difficultyTier : null,
+            isTimed: true,
+            isTeamOrDuo: false,
+            unboxed: false,
+            occurrenceIndex: $this->viewerSolveCount + 1,
+            isBackfill: false,
+        ));
 
-    public function isUnrated(): bool
-    {
-        return $this->difficultyTier === null;
+        foreach ($awards as $award) {
+            if ($award->reason === XpReason::SolveBase || $award->reason === XpReason::SolveDifficultyBonus) {
+                $this->baseXp += $award->amount;
+            }
+        }
+
+        $this->repeatPercent = match (true) {
+            $this->viewerSolveCount === 0 => null,
+            $this->viewerSolveCount === 1 => 50,
+            default => 25,
+        };
+
+        $this->visible = true;
     }
 }

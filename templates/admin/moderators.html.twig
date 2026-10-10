@@ -30,6 +30,7 @@
                         <th class="text-end">{{ 'admin.moderators.column_change_requests'|trans }}</th>
                         <th class="text-end">{{ 'admin.moderators.column_merge_requests'|trans }}</th>
                         <th>{{ 'admin.moderators.column_last_review'|trans }}</th>
+                        <th class="text-end">{{ 'admin.moderators.column_karma'|trans }}</th>
                         <th></th>
                     </tr>
                 </thead>
@@ -47,6 +48,7 @@
                             <td class="text-end">{{ moderator.reviewedChangeRequests }}</td>
                             <td class="text-end">{{ moderator.reviewedMergeRequests }}</td>
                             <td>{{ moderator.lastReviewAt is not null ? moderator.lastReviewAt|date('d.m.Y H:i') : 'admin.moderators.never'|trans }}</td>
+                            <td class="text-end">{{ moderator.karma|format_number }}</td>
                             <td class="text-end">
                                 <form method="post" action="{{ path('admin_revoke_moderator', {playerId: moderator.playerId}) }}" class="d-inline"
                                       onsubmit="return confirm('{{ 'admin.moderators.revoke_confirm'|trans|e('js') }}')">

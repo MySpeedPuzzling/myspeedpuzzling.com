@@ -37,6 +37,24 @@ readonly final class KarmaBreakdown
         return $this->counts[$kind->value] ?? 0;
     }
 
+    /**
+     * What the total is made of, in KarmaKind order, kinds the player has none of left out
+     *
+     * @return array<string, int> KarmaKind value => count
+     */
+    public function countedByKind(): array
+    {
+        $counted = [];
+
+        foreach (KarmaKind::cases() as $kind) {
+            if ($kind->counts() && $this->of($kind) > 0) {
+                $counted[$kind->value] = $this->of($kind);
+            }
+        }
+
+        return $counted;
+    }
+
     /** Every line of the history, the not-counted copies included - for paging */
     public function items(): int
     {

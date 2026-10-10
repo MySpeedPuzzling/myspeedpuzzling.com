@@ -1,18 +1,19 @@
 {% extends 'base.html.twig' %}
 
 {% set is_ap = tab == 'achievement-points' %}
+{% set is_karma = tab == 'karma' %}
 
-{% block title %}{{ (is_ap ? 'xp.leaderboard.ap_title' : 'xp.leaderboard.meta_title')|trans }}{% endblock %}
+{% block title %}{{ (is_karma ? 'karma.leaderboard.title' : (is_ap ? 'xp.leaderboard.ap_title' : 'xp.leaderboard.meta_title'))|trans }}{% endblock %}
 
 {% block content %}
     <header class="mb-3">
         <h1 class="h3 mb-1">
             <i class="bi bi-trophy me-1"></i>
-            {{ (is_ap ? 'xp.leaderboard.ap_title' : 'xp.leaderboard.title')|trans }}
+            {{ (is_karma ? 'karma.leaderboard.title' : (is_ap ? 'xp.leaderboard.ap_title' : 'xp.leaderboard.title'))|trans }}
         </h1>
         <p class="text-body-secondary fs-sm mb-0">
-            {{ (is_ap ? 'xp.leaderboard.ap_subtitle' : 'xp.leaderboard.subtitle')|trans }}
-            <a href="{{ path('xp_explainer') }}">{{ 'badges.how_it_works_link'|trans }}</a>
+            {{ (is_karma ? 'karma.leaderboard.subtitle' : (is_ap ? 'xp.leaderboard.ap_subtitle' : 'xp.leaderboard.subtitle'))|trans }}
+            <a href="{{ path(is_karma ? 'karma_explainer' : 'xp_explainer') }}">{{ 'badges.how_it_works_link'|trans }}</a>
             <span class="mx-1">·</span>
             <a href="{{ path('ladder') }}">{{ 'xp.leaderboard.all_leaderboards'|trans }}</a>
         </p>
@@ -20,11 +21,11 @@
 
     {# Two disciplines, deliberately separate boards - chase XP, chase AP, or both. #}
     <ul class="nav nav-tabs mb-3">
-        {% for tab_option in ['xp', 'achievement-points'] %}
+        {% for tab_option in ['xp', 'achievement-points', 'karma'] %}
             <li class="nav-item">
                 <a class="nav-link {{ tab == tab_option ? 'active' }}"
                    href="{{ path('xp_leaderboard', {tab: tab_option, country: selected_country, favorites: favorites_only ? 1 : null}) }}">
-                    {{ ('xp.leaderboard.tab.' ~ tab_option)|trans }}
+                    {{ (tab_option == 'karma' ? 'karma.leaderboard.tab' : 'xp.leaderboard.tab.' ~ tab_option)|trans }}
                 </a>
             </li>
         {% endfor %}
@@ -32,6 +33,9 @@
 
     <form method="get" class="d-flex flex-wrap align-items-center gap-3 mb-3" data-turbo="false">
         <input type="hidden" name="tab" value="{{ tab }}">
+        {% if is_karma %}
+            {{ include('karma/_leaderboard_filters.html.twig') }}
+        {% endif %}
 
         <div class="d-flex align-items-center gap-2">
             <label for="board-country" class="form-label fs-sm mb-0 text-nowrap">{{ 'badges.detail.country_filter'|trans }}</label>
@@ -60,7 +64,7 @@
     {% elseif rows|length == 0 %}
         <div class="xp-teaser">
             <i class="ci-star" aria-hidden="true"></i>
-            <span>{{ 'xp.leaderboard.empty'|trans }}</span>
+            <span>{{ (is_karma ? 'karma.leaderboard.empty' : 'xp.leaderboard.empty')|trans }}</span>
         </div>
     {% else %}
         {% if self_rank is not null %}
@@ -69,9 +73,11 @@
                     <strong>#{{ self_rank.rank }}</strong>
                     <span>{{ 'xp.leaderboard.your_position'|trans }}</span>
                     <span class="ms-auto xp-receipt-amount">
-                        {{ is_ap
+                        {{ is_karma
+                            ? 'karma.value'|trans({'%karma%': self_rank.value})
+                            : (is_ap
                             ? 'xp.leaderboard.ap_value'|trans({'%points%': self_rank.value})
-                            : 'xp.leaderboard.xp_value'|trans({'%xp%': self_rank.value}) }}
+                            : 'xp.leaderboard.xp_value'|trans({'%xp%': self_rank.value})) }}
                     </span>
                 </div>
             </div>
@@ -83,7 +89,7 @@
                     <tr class="fs-sm">
                         <th scope="col" style="width: 3.5rem;">#</th>
                         <th scope="col">{{ 'xp.leaderboard.player'|trans }}</th>
-                        <th scope="col" class="text-end">{{ ('xp.leaderboard.value.' ~ tab)|trans }}</th>
+                        <th scope="col" class="text-end">{{ (is_karma ? 'karma.leaderboard.value' : 'xp.leaderboard.value.' ~ tab)|trans }}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -101,13 +107,17 @@
                                     {% if row.countryCode is not null %}
                                         <span class="fi fi-{{ row.countryCode.name }}"></span>
                                     {% endif %}
-                                    <span class="xp-level-chip {{ row.isMaxLevel ? 'xp-level-chip-max' }}">{{ 'xp.level_chip'|trans({'%level%': row.level}) }}</span>
+                                    {% if not is_karma %}
+                                        <span class="xp-level-chip {{ row.isMaxLevel ? 'xp-level-chip-max' }}">{{ 'xp.level_chip'|trans({'%level%': row.level}) }}</span>
+                                    {% endif %}
                                 </a>
                             </td>
                             <td class="text-end fw-semibold">
-                                {{ is_ap
+                                {{ is_karma
+                                    ? row.value|format_number
+                                    : (is_ap
                                     ? 'xp.leaderboard.ap_value'|trans({'%points%': row.value})
-                                    : 'xp.leaderboard.xp_value'|trans({'%xp%': row.value}) }}
+                                    : 'xp.leaderboard.xp_value'|trans({'%xp%': row.value})) }}
                             </td>
                         </tr>
                     {% endfor %}

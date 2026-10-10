@@ -58,7 +58,9 @@
 
                 {% set show_member = player.activeMembership and not this.isHidden %}
                 {% set show_private = this.isOwnProfile and player.isPrivateProfile %}
-                {% if this.tierChip is not null or show_member or show_private %}
+                {# Karma launches with XP: the one launch switch (docs/features/karma.md) #}
+                {% set show_karma = player.karma > 0 and not this.isHidden and xp_system_visible() %}
+                {% if this.tierChip is not null or show_member or show_private or show_karma %}
                     <div class="player-head-chips">
                         {% if this.tierChip == 'tier' %}
                             {% set tier = this.primarySkill.skillTier.name|lower %}
@@ -76,6 +78,10 @@
                                 <svg class="rank-icon" width="16" height="16" style="color: var(--rank-locked)" aria-hidden="true"><use href="/rank-icons-sprite.svg#rank-locked"/></svg>
                                 {{ 'player_header.skill_tier'|trans }}
                             </button>
+                        {% endif %}
+
+                        {% if show_karma %}
+                            {{ include('karma/_karma_chip.html.twig', {karma: player.karma, own: this.isOwnProfile}) }}
                         {% endif %}
 
                         {% if show_member %}

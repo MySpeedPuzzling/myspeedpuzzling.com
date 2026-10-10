@@ -62,6 +62,7 @@ use SpeedPuzzling\Web\Value\SellSwapListSettings;
  *     referral_program_joined_at: null|string,
  *     referral_program_suspended: bool,
  *     moderator_since: null|string,
+ *     karma?: int,
  *     registered_at?: null|string,
  *     has_membership_row?: bool,
  *     free_trial_ends_at?: null|string,
@@ -173,6 +174,8 @@ readonly final class PlayerProfile
          */
         public ComparisonView $comparisonView = ComparisonView::Table,
         public ComparisonLineUp $comparisonLineUp = new ComparisonLineUp(),
+        /** Accepted contributions to the puzzle database (docs/features/karma.md) - public, 0 for admins */
+        public int $karma = 0,
     ) {
     }
 
@@ -349,6 +352,7 @@ readonly final class PlayerProfile
                 $hiddenPlayerIds,
                 $revealedPrivatePlayerIds,
             ),
+            karma: (int) ($row['karma'] ?? 0),
         );
     }
 

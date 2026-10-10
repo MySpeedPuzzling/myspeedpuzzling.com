@@ -7,8 +7,11 @@ namespace SpeedPuzzling\Web\Query;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Results\XpLeaderboardRow;
+use DateTimeImmutable;
 use SpeedPuzzling\Web\Services\HiddenPlayers;
+use SpeedPuzzling\Web\Services\Karma\KarmaDerivation;
 use SpeedPuzzling\Web\Value\CountryCode;
+use SpeedPuzzling\Web\Value\KarmaGroup;
 
 /**
  * Two ladders, two disciplines (§1.9): XP ranks activity and is open to everyone
@@ -116,6 +119,86 @@ LIMIT :limit
 SQL;
 
         return $this->hydrate($sql, ['country' => $country, 'limit' => $limit] + $params, $types);
+    }
+
+    /**
+     * Karma list (docs/features/karma.md) - who helps the database most. Everybody, free; private profiles never (global
+     * rankings stay closed to them), admins never (they have no karma), players the viewer blocks are left out so
+     * positions close up. The default board (every kind, all time) reads the stored player.karma; a kind or the last
+     * 12 months come from the derivation itself (one aggregate statement).
+     *
+     * The viewer's own row comes along even when it is outside the top $limit (rank > $limit) - the pinned self-row,
+     * within the same filters.
+     *
+     * @param list<string> $favoritePlayerIds
+     * @return list<XpLeaderboardRow>
+     */
+    public function karma(
+        null|KarmaGroup $group,
+        null|DateTimeImmutable $since,
+        null|string $country,
+        null|array $favoritePlayerIds,
+        null|string $viewerPlayerId,
+        int $limit = 100,
+    ): array {
+        [$favoritesCondition, $params, $types] = $this->favoritesFilter($favoritePlayerIds);
+        $hidden = $this->hiddenPlayers->sqlExclude('p.id');
+
+        if ($group === null && $since === null) {
+            $board = <<<SQL
+WITH karma_board AS (
+    SELECT p.id AS player_id, p.karma
+    FROM player p
+    WHERE p.karma > 0
+)
+SQL;
+        } else {
+            $items = KarmaDerivation::itemsCte(scoped: false);
+            $board = <<<SQL
+{$items},
+karma_board AS (
+    SELECT i.player_id, COUNT(*) AS karma
+    FROM karma_items i
+    WHERE i.counted
+      AND (CAST(:karmaKinds AS TEXT) IS NULL OR i.kind = ANY(string_to_array(CAST(:karmaKinds AS TEXT), ',')))
+      AND (CAST(:karmaSince AS TIMESTAMP) IS NULL OR i.at >= CAST(:karmaSince AS TIMESTAMP))
+    GROUP BY i.player_id
+)
+SQL;
+            $params['karmaKinds'] = $group !== null ? implode(',', $group->kindValues()) : null;
+            $params['karmaSince'] = $since?->format('Y-m-d H:i:s');
+        }
+
+        $sql = <<<SQL
+{$board}
+SELECT * FROM (
+    SELECT
+        ROW_NUMBER() OVER (ORDER BY b.karma DESC, p.id ASC) AS rank,
+        p.id AS player_id,
+        p.name AS player_name,
+        p.code,
+        p.country,
+        p.avatar,
+        b.karma AS value,
+        p.level,
+        NULL::int AS achievement_points
+    FROM karma_board b
+    JOIN player p ON p.id = b.player_id
+    WHERE p.is_private = false
+      AND p.is_admin = false
+      {$hidden}
+      AND (CAST(:country AS TEXT) IS NULL OR p.country = :country)
+      {$favoritesCondition}
+) board
+WHERE board.rank <= :limit OR board.player_id = CAST(:viewerPlayerId AS UUID)
+ORDER BY board.rank
+SQL;
+
+        return $this->hydrate($sql, [
+            'country' => $country,
+            'limit' => $limit,
+            'viewerPlayerId' => $viewerPlayerId,
+        ] + $params, $types);
     }
 
     /**

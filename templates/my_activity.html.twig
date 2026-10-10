@@ -1,0 +1,295 @@
+{% extends 'base.html.twig' %}
+
+{#
+    "Your week" (MyActivityController, docs/features/content-digest/README.md §"Your week page"): the player's own
+    activity in one period. Every line of the activity digest e-mail lands on a block here (#results, #progress,
+    #achievements, #rating, #favorites, #community, #next). Mobile first: one column, tap targets 44 px.
+#}
+
+{% set length = period.length.value %}
+{% set range_label = length == 'month'
+    ? period.start|events_date('yMMMM')
+    : events_date_range(period.start, period.lastDay(), 'yMMMMd') %}
+
+{% block title %}{{ ('my_activity.title.' ~ length)|trans }} · {{ range_label }}{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+    <div class="my-activity mx-auto">
+        <header class="mb-3">
+            <h1 class="h3 mb-1">
+                {{ ('my_activity.title.' ~ length)|trans }}
+                {% if in_progress %}<span class="badge bg-secondary align-middle fs-xs ms-1">{{ 'my_activity.so_far'|trans }}</span>{% endif %}
+            </h1>
+            <p class="text-body-secondary mb-3" data-testid="my-activity-range">{{ range_label }}</p>
+
+            <nav class="d-flex align-items-center gap-2 flex-wrap" aria-label="{{ 'my_activity.navigation'|trans }}">
+                {% if previous_period %}
+                    <a class="btn btn-outline-secondary my-activity-step" href="{{ path('my_activity', {period: previous_period.key}) }}" rel="prev" data-testid="my-activity-previous">
+                        <i class="ci-arrow-left" aria-hidden="true"></i><span class="visually-hidden">{{ ('my_activity.previous.' ~ length)|trans }}</span>
+                    </a>
+                {% endif %}
+
+                <div class="btn-group flex-grow-1" role="group" aria-label="{{ 'my_activity.length_label'|trans }}">
+                    {% for length_value, length_period in lengths %}
+                        <a class="btn btn-sm {{ length_value == length ? 'btn-primary' : 'btn-outline-primary' }} my-activity-length"
+                           href="{{ path('my_activity', {period: length_period.key}) }}"
+                           {% if length_value == length %}aria-current="page"{% endif %}>
+                            {{ ('my_activity.length.' ~ length_value)|trans }}
+                        </a>
+                    {% endfor %}
+                </div>
+
+                {% if next_period %}
+                    <a class="btn btn-outline-secondary my-activity-step" href="{{ path('my_activity', {period: next_period.key}) }}" rel="next" data-testid="my-activity-next">
+                        <span class="visually-hidden">{{ ('my_activity.next.' ~ length)|trans }}</span><i class="ci-arrow-right" aria-hidden="true"></i>
+                    </a>
+                {% endif %}
+            </nav>
+        </header>
+
+        {# The numbers: the week first #}
+        <section class="my-activity-stats mb-4" aria-label="{{ 'my_activity.numbers_label'|trans }}">
+            <div class="my-activity-stat">
+                <b data-testid="my-activity-puzzles">{{ activity.puzzlesCount|format_number }}</b>
+                <span>{{ 'my_activity.stat.puzzles'|trans({'%count%': activity.puzzlesCount}) }}</span>
+            </div>
+            <div class="my-activity-stat">
+                <b>{{ activity.piecesCount|format_number }}</b>
+                <span>{{ 'my_activity.stat.pieces'|trans({'%count%': activity.piecesCount}) }}</span>
+            </div>
+            {% if activity.minutesSpent > 0 %}
+                <div class="my-activity-stat">
+                    <b>{{ (activity.minutesSpent * 60)|compactTime }}</b>
+                    <span>{{ 'my_activity.stat.time'|trans }}</span>
+                </div>
+            {% endif %}
+            {% if activity.streakDays > 1 %}
+                <div class="my-activity-stat">
+                    <b>{{ activity.streakDays }}</b>
+                    <span>{{ 'my_activity.stat.streak'|trans({'%count%': activity.streakDays}) }}</span>
+                </div>
+            {% endif %}
+        </section>
+
+        {% if activity.results is empty %}
+            <div class="card card-body mb-4 text-center" data-testid="my-activity-empty">
+                <p class="mb-3">{{ (in_progress ? 'my_activity.empty_in_progress' : 'my_activity.empty')|trans }}</p>
+                <div class="d-flex flex-wrap gap-2 justify-content-center">
+                    <a class="btn btn-primary" href="{{ path('puzzle_add') }}">{{ 'my_activity.add_time'|trans }}</a>
+                    <a class="btn btn-outline-primary" href="{{ path('puzzle_picker') }}">{{ 'my_activity.pick_puzzle'|trans }}</a>
+                </div>
+            </div>
+        {% endif %}
+
+        {# Progress: XP and level, achievements, rating, karma #}
+        {% if activity.xpVisible and activity.xpGained > 0 %}
+            <section id="progress" class="card card-body mb-3">
+                <a class="d-flex align-items-center gap-3 text-decoration-none text-reset my-activity-link" href="{{ path('xp_history') }}">
+                    <span class="xp-level-chip">{{ 'xp.level_chip'|trans({'%level%': activity.levelAfter}) }}</span>
+                    <span class="flex-grow-1">
+                        <span class="d-block fw-semibold">
+                            {% if activity.levelledUp() %}
+                                {{ 'my_activity.level_up'|trans({'%from%': activity.levelBefore, '%to%': activity.levelAfter}) }}
+                            {% else %}
+                                {{ 'my_activity.level'|trans({'%level%': activity.levelAfter}) }}
+                            {% endif %}
+                            <span class="text-success ms-1">+{{ activity.xpGained|format_number }} XP</span>
+                        </span>
+                        {% if activity.levelProgress is not null %}
+                            <span class="progress mt-1" style="height: 6px;" role="progressbar"
+                                  aria-label="{{ 'my_activity.level_progress'|trans }}"
+                                  aria-valuenow="{{ (activity.levelProgress * 100)|round }}" aria-valuemin="0" aria-valuemax="100">
+                                <span class="progress-bar" style="width: {{ (activity.levelProgress * 100)|round }}%"></span>
+                            </span>
+                        {% endif %}
+                        <span class="d-block fs-sm text-body-secondary mt-1">{{ 'my_activity.xp_history_link'|trans }}</span>
+                    </span>
+                    <i class="ci-arrow-right text-body-secondary" aria-hidden="true"></i>
+                </a>
+            </section>
+        {% endif %}
+
+        {% if activity.achievementsEarned is not empty %}
+            <section id="achievements" class="card card-body mb-3">
+                {% if activity.isMember %}
+                    <h2 class="h6 mb-2">
+                        {{ 'my_activity.achievements_title'|trans({'%count%': activity.achievementsEarned|length}) }}
+                        <span class="text-success ms-1">+{{ activity.achievementPointsGained }} AP</span>
+                    </h2>
+                    <ul class="list-unstyled mb-0">
+                        {% for badge in activity.achievementsEarned %}
+                            <li>
+                                <a class="d-flex align-items-center gap-3 py-1 text-decoration-none text-reset my-activity-link" href="{{ path('achievement_detail', {type: badge.type.value}) }}">
+                                    {{ badge_art(badge.type, badge.tier, 48) }}
+                                    <span class="flex-grow-1">
+                                        <span class="d-block fw-semibold">{{ badge.type.translationKey()|trans }}</span>
+                                        <span class="fs-sm text-body-secondary">
+                                            {% if badge.tier is not null %}{{ badge.tier.translationKey()|trans }} · {% endif %}+{{ badge.tier ? badge.tier.points() : constant('SpeedPuzzling\\Web\\Value\\BadgeTier::SINGLE_TIER_POINTS') }} AP
+                                        </span>
+                                    </span>
+                                    <i class="ci-arrow-right text-body-secondary" aria-hidden="true"></i>
+                                </a>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="mb-2" data-testid="my-activity-achievement-teaser">
+                        {{ 'my_activity.achievements_teaser'|trans({'%count%': activity.achievementsEarned|length}) }}
+                    </p>
+                    <a class="btn btn-primary btn-sm align-self-start" href="{{ path('membership') }}">{{ 'my_activity.become_member'|trans }}</a>
+                {% endif %}
+            </section>
+        {% endif %}
+
+        {% if activity.rating is not null and (activity.rating.rank is not null or activity.rating.skillTierChanges is not empty) %}
+            <section id="rating" class="card card-body mb-3">
+                {% if activity.rating.rank is not null %}
+                    <a class="d-flex align-items-center gap-2 text-decoration-none text-reset my-activity-link" href="{{ path('msp_rating_ladder') }}">
+                        <span class="flex-grow-1">
+                            <span class="fw-semibold">{{ 'my_activity.rating'|trans({'%rank%': activity.rating.rank, '%total%': activity.rating.rankTotal}) }}</span>
+                            {% if activity.rating.placesGained > 0 %}
+                                <span class="text-success ms-1">{{ 'my_activity.rating_up'|trans({'%count%': activity.rating.placesGained}) }}</span>
+                            {% elseif activity.rating.placesGained < 0 %}
+                                <span class="text-body-secondary ms-1">{{ 'my_activity.rating_down'|trans({'%count%': -activity.rating.placesGained}) }}</span>
+                            {% endif %}
+                        </span>
+                        <i class="ci-arrow-right text-body-secondary" aria-hidden="true"></i>
+                    </a>
+                {% endif %}
+                {% for pieces, change in activity.rating.skillTierChanges %}
+                    <p class="mb-0 mt-2 fs-sm">
+                        {{ 'my_activity.skill_tier'|trans({
+                            '%pieces%': pieces,
+                            '%tier%': ('puzzle_intelligence.skill.tiers.' ~ change.after.toApiValue())|trans,
+                        }) }}
+                    </p>
+                {% endfor %}
+            </section>
+        {% endif %}
+
+        {% if activity.karmaGained is not null and activity.karmaGained > 0 %}
+            <section id="karma" class="card card-body mb-3">
+                <p class="mb-0">{{ 'my_activity.karma'|trans({'%count%': activity.karmaGained}) }}</p>
+            </section>
+        {% endif %}
+
+        {# The times logged #}
+        {% if activity.results is not empty %}
+            <section id="results" class="mb-4">
+                <h2 class="h5 mb-2">{{ 'my_activity.results_title'|trans }}</h2>
+                <ul class="list-unstyled mb-0 my-activity-results">
+                    {% for result in activity.results %}
+                        <li class="d-flex gap-3 py-2 border-bottom" data-testid="my-activity-result">
+                            <a href="{{ path('puzzle_detail', {puzzleId: result.puzzleId}) }}" class="flex-shrink-0 my-activity-thumb" tabindex="-1" aria-hidden="true">
+                                {% if result.puzzleImage %}
+                                    <img src="{{ result.puzzleImage|thumbnail('puzzle_small') }}" alt="" width="56" height="56" loading="lazy" class="rounded-2">
+                                {% else %}
+                                    <span class="d-block rounded-2 bg-secondary-subtle"></span>
+                                {% endif %}
+                            </a>
+                            <div class="flex-grow-1 min-w-0">
+                                <a class="fw-semibold d-block text-truncate" href="{{ path('puzzle_detail', {puzzleId: result.puzzleId}) }}">{{ result.puzzleName }}</a>
+                                <span class="fs-sm text-body-secondary d-block">{{ result.brandName }} · {{ 'my_activity.pieces'|trans({'%count%': result.piecesCount}) }}</span>
+                                <span class="d-flex flex-wrap gap-1 mt-1">
+                                    {% if result.awaitingVerification %}
+                                        <span class="badge bg-warning text-dark">{{ 'my_activity.mark.awaiting_verification'|trans }}</span>
+                                    {% endif %}
+                                    {% if result.personalBest %}
+                                        <span class="badge bg-success">{{ 'my_activity.mark.personal_best'|trans }}</span>
+                                    {% endif %}
+                                    {% if result.firstAttempt %}
+                                        <span class="badge bg-info">{{ 'my_activity.mark.first_try'|trans }}</span>
+                                    {% endif %}
+                                    {% if not result.isSolo() %}
+                                        <span class="badge bg-secondary">{{ ('my_activity.mark.' ~ (result.puzzlersCount == 2 ? 'pair' : 'team'))|trans }}</span>
+                                    {% endif %}
+                                </span>
+                            </div>
+                            <div class="text-end flex-shrink-0">
+                                {% if result.secondsToSolve is not null %}
+                                    <span class="d-block fw-semibold">{{ result.secondsToSolve|puzzlingTime }}</span>
+                                {% endif %}
+                                {% if result.rank is not null %}
+                                    <span class="d-block fs-sm text-body-secondary">{{ 'my_activity.place'|trans({'%rank%': result.rank, '%total%': result.rankTotal}) }}</span>
+                                {% endif %}
+                                {% if activity.xpVisible and result.xp > 0 %}
+                                    <span class="d-block fs-sm text-success">+{{ result.xp }} XP</span>
+                                {% endif %}
+                            </div>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </section>
+        {% endif %}
+
+        {% if activity.favoritesActivity is not empty %}
+            <section id="favorites" class="mb-4">
+                <h2 class="h5 mb-2">{{ 'my_activity.favorites_title'|trans }}</h2>
+                <ul class="list-unstyled mb-0">
+                    {% for favorite in activity.favoritesActivity %}
+                        <li>
+                            <a class="d-flex justify-content-between py-2 border-bottom my-activity-link" href="{{ path('player_profile', {playerId: favorite.playerId}) }}">
+                                <span>{{ favorite.name }}</span>
+                                <span class="text-body-secondary">{{ 'my_activity.favorite_solves'|trans({'%count%': favorite.solves}) }}</span>
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </section>
+        {% endif %}
+
+        {% if activity.mostSolved is not null %}
+            <section id="community" class="mb-4">
+                <h2 class="h5 mb-2">{{ 'my_activity.community_title'|trans }}</h2>
+                <a class="d-block my-activity-link" href="{{ path('puzzle_detail', {puzzleId: activity.mostSolved.puzzleId}) }}">
+                    {{ 'my_activity.most_solved'|trans({'%puzzle%': activity.mostSolved.name, '%count%': activity.mostSolved.solvers}) }}
+                </a>
+            </section>
+        {% endif %}
+
+        {# What next #}
+        <section id="next" class="mb-4">
+            <h2 class="h5 mb-2">{{ 'my_activity.next_title'|trans }}</h2>
+            {% for candidate in activity.nextAchievements %}
+                <a class="d-flex align-items-center gap-3 py-2 border-bottom text-decoration-none text-reset my-activity-link" href="{{ path('achievement_detail', {type: candidate.type.value}) }}">
+                    {{ badge_art(candidate.type, candidate.progress.nextTier, 40) }}
+                    <span class="flex-grow-1">
+                        <span class="d-block fw-semibold">{{ candidate.type.translationKey()|trans }} · {{ candidate.progress.nextTier.translationKey()|trans }}</span>
+                        <span class="progress mt-1" style="height: 6px;" role="progressbar" aria-label="{{ candidate.type.translationKey()|trans }}"
+                              aria-valuenow="{{ candidate.progress.percent }}" aria-valuemin="0" aria-valuemax="100">
+                            <span class="progress-bar" style="width: {{ candidate.progress.percent }}%"></span>
+                        </span>
+                    </span>
+                    <span class="fs-sm text-body-secondary">{{ candidate.progress.percent }} %</span>
+                </a>
+            {% endfor %}
+            <a class="btn btn-outline-primary mt-3" href="{{ path('puzzle_picker') }}">{{ 'my_activity.pick_puzzle'|trans }}</a>
+        </section>
+
+        {% if activity.hadActivity() and not profile.isPrivateProfile %}
+            <div class="mb-4">
+                <button type="button" class="btn btn-outline-secondary"
+                    {{ stimulus_controller('share-link', {
+                        url: url('player_profile', {playerId: profile.playerId}),
+                        title: ('my_activity.share_title.' ~ length)|trans({'%puzzles%': activity.puzzlesCount, '%pieces%': activity.piecesCount|format_number}),
+                        copiedLabel: 'my_activity.share_copied'|trans,
+                    }) }}
+                    {{ stimulus_action('share-link', 'share') }}
+                >
+                    <i class="bi bi-box-arrow-up me-1" aria-hidden="true" {{ stimulus_target('share-link', 'icon') }}></i>
+                    <span aria-live="polite" {{ stimulus_target('share-link', 'label') }}>{{ 'my_activity.share'|trans }}</span>
+                </button>
+            </div>
+        {% endif %}
+
+        <p class="fs-sm text-body-secondary">
+            {% if digest_off %}
+                {{ 'my_activity.digest_off'|trans }}
+            {% else %}
+                {{ ('my_activity.digest_on.' ~ digest_frequency.value)|trans }}
+            {% endif %}
+            <a class="link-underline" href="{{ path('edit_profile') }}">{{ 'my_activity.digest_settings'|trans }}</a>
+        </p>
+    </div>
+{% endblock %}

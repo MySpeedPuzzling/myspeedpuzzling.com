@@ -9,6 +9,8 @@ use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Message\EditEmailPreferences;
 use SpeedPuzzling\Web\Query\GetPlayerProfile;
 use SpeedPuzzling\Web\Services\NewsletterTokenSigner;
+use SpeedPuzzling\Web\Services\Xp\XpFeatureGate;
+use SpeedPuzzling\Web\Value\ContentDigestFrequency;
 use SpeedPuzzling\Web\Value\EmailNotificationFrequency;
 use SpeedPuzzling\Web\Value\NewsletterAudience;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -25,6 +27,7 @@ final class EmailPreferencesSaveController extends AbstractController
         private readonly MessageBusInterface $messageBus,
         private readonly NewsletterTokenSigner $tokenSigner,
         private readonly GetPlayerProfile $getPlayerProfile,
+        private readonly XpFeatureGate $xpFeatureGate,
     ) {
     }
 
@@ -74,6 +77,10 @@ final class EmailPreferencesSaveController extends AbstractController
                 emailNotificationsEnabled: $request->request->getBoolean('email_notifications_enabled'),
                 emailNotificationFrequency: $frequency,
                 resultEmailsEnabled: $request->request->getBoolean('result_emails_enabled'),
+                // Null = not on the page (before the XP launch switch is on), keep the stored value
+                contentDigestFrequency: $this->xpFeatureGate->isVisibleFor($profile)
+                    ? ContentDigestFrequency::tryFrom($request->request->getString('content_digest_frequency')) ?? $profile->contentDigestFrequency
+                    : null,
             ),
         );
 

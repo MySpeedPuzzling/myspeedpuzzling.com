@@ -1568,13 +1568,6 @@ edit_profile:
     frequency_48_hours: "Every 48 hours"
     frequency_1_week: "Once a week"
     newsletter_enabled: "Receive newsletters"
-    content_digest_frequency: "Weekly digest email"
-    content_digest_help: "Your week in puzzling: XP, achievements, stats and friends' activity. Weekly is the sweet spot."
-    content_digest_none: "Don't send me the digest"
-    content_digest_daily: "Daily + weekly"
-    content_digest_weekly: "Weekly"
-    hide_experience_system: "Hide the experience system (XP & levels)"
-    hide_experience_system_help: "Your level, XP receipts, celebrations and leaderboard entries disappear everywhere. XP keeps accruing silently, so nothing is lost if you turn it back on."
     newsletter_help: "We will occasionally send a newsletter about what's new on the platform, usually explaining new features. No marketing, no promotions — just what's new. Expected frequency: no more than 1 per month."
     result_emails_enabled: "E-mails about my results"
     result_emails_help: "We let you know when some of your results seem to show up twice, or when we removed an extra copy. At most once a week, and only when there is something new."
@@ -2247,16 +2240,6 @@ xp:
         closing_thresholds: "We deliberately don't publish the exact thresholds — they exist to keep things fair, not to be gamed. If something looks off on a leaderboard, write to us; a human looks at every report."
         closing_celebrate: "Puzzle honestly, celebrate loudly. 🧩"
         explainer_link: "Curious how every point is earned? See <a href=\"%explainer_link%\">How XP &amp; Levels work</a>."
-
-content_digest:
-    unsubscribe:
-        meta_title: "Unsubscribe from the digest"
-        confirm_title: "Unsubscribe from the weekly digest?"
-        confirm_text: "No hard feelings — one click below and the weekly digest stops. You can re-enable it in your notification settings anytime."
-        confirm_button: "Yes, unsubscribe me"
-        done_title: "You're unsubscribed"
-        done_text: "The weekly digest won't email you anymore. If you miss it, it's waiting in your notification settings."
-        back_home: "Back to MySpeedPuzzling"
 
 badges:
     title: "Achievements"
@@ -8816,3 +8799,98 @@ series_readers:
     used_at:
         more: "and %count% more|and %count% more"
     series_delete_note: "Results logged at this series or its editions stay on the players' profiles, without the event."
+
+activity_digest:
+    frequency:
+        weekly: "Weekly (every Monday)"
+        every_two_weeks: "Every two weeks"
+        monthly: "Monthly"
+        off: "Off"
+    settings:
+        label: "Activity e-mail"
+        help: "What you puzzled, your progress and your favourite puzzlers – sent only when you puzzled. If you did not, you get one short note, never two in a row."
+    preferences_title: "Your activity"
+    preferences_description: "What you puzzled, your level, achievements and favourite puzzlers – sent on Mondays, only when you puzzled. If you did not, one short note, never two in a row."
+    unsubscribe:
+        meta_title: "Unsubscribe from the activity e-mail"
+        confirm_title: "Stop the activity e-mail?"
+        confirm_text: "One click below and the activity e-mail stops. You can switch it back on in your e-mail settings anytime."
+        confirm_button: "Yes, stop it"
+        fewer_hint: "Rather get it less often?"
+        fewer_link: "Choose every two weeks or monthly"
+        done_title: "You are unsubscribed"
+        done_text: "The activity e-mail will not come any more. If you miss it, switch it back on in your e-mail settings."
+        back_home: "Back to MySpeedPuzzling"
+
+my_activity:
+    title:
+        week: "Your week"
+        two_weeks: "Your two weeks"
+        month: "Your month"
+    so_far: "so far"
+    navigation: "Periods"
+    length_label: "Period length"
+    length:
+        week: "Week"
+        two_weeks: "2 weeks"
+        month: "Month"
+    previous:
+        week: "Previous week"
+        two_weeks: "Previous two weeks"
+        month: "Previous month"
+    next:
+        week: "Next week"
+        two_weeks: "Next two weeks"
+        month: "Next month"
+    numbers_label: "In numbers"
+    stat:
+        puzzles: "{1}puzzle|]1,Inf[puzzles|{0}puzzles"
+        pieces: "{1}piece|]1,Inf[pieces|{0}pieces"
+        time: "puzzling time"
+        streak: "day streak"
+    empty: "Nothing logged in this period."
+    empty_in_progress: "Nothing logged yet – there is still time."
+    add_time: "Add a time"
+    pick_puzzle: "Pick my next puzzle"
+    level: "Level %level%"
+    level_up: "Level %from% → %to%"
+    level_progress: "Progress to the next level"
+    xp_history_link: "Where every XP came from"
+    achievements_title: "{1}1 new achievement|]1,Inf[%count% new achievements"
+    achievements_teaser: "{1}You earned an achievement in this period. Become a member to find out which.|]1,Inf[You earned %count% achievements in this period. Become a member to find out which."
+    become_member: "Become a member"
+    rating: "MSP Rating: #%rank% of %total%"
+    rating_up: "{1}up 1 place|]1,Inf[up %count% places"
+    rating_down: "{1}down 1 place|]1,Inf[down %count% places"
+    skill_tier: "New skill tier for %pieces% pieces: %tier%"
+    karma: "{1}Thank you: 1 of your contributions to the puzzle database was accepted.|]1,Inf[Thank you: %count% of your contributions to the puzzle database were accepted."
+    results_title: "Your puzzles"
+    pieces: "{1}1 piece|]1,Inf[%count% pieces"
+    place: "#%rank% of %total%"
+    mark:
+        awaiting_verification: "Awaiting verification"
+        personal_best: "Personal best"
+        first_try: "First try"
+        pair: "Pair"
+        team: "Team"
+    favorites_title: "Your favourite puzzlers"
+    favorite_solves: "{1}1 puzzle|]1,Inf[%count% puzzles"
+    community_title: "Around the community"
+    most_solved: "{1}Most solved: %puzzle% (1 puzzler)|]1,Inf[Most solved: %puzzle% (%count% puzzlers)"
+    next_title: "What next"
+    share: "Share"
+    share_copied: "Link copied"
+    share_title:
+        week: "My week on MySpeedPuzzling: %puzzles% puzzles, %pieces% pieces"
+        two_weeks: "My two weeks on MySpeedPuzzling: %puzzles% puzzles, %pieces% pieces"
+        month: "My month on MySpeedPuzzling: %puzzles% puzzles, %pieces% pieces"
+    digest_on:
+        weekly: "This comes to your inbox every Monday."
+        every_two_weeks: "This comes to your inbox every other Monday."
+        monthly: "This comes to your inbox on the first Monday of the month."
+    digest_off: "The activity e-mail is off."
+    digest_settings: "E-mail settings"
+
+xp_opt_out:
+    label: "Hide XP and levels"
+    help: "Your level and XP disappear from your pages and e-mails, and you are left out of the XP and Achievement Points leaderboards and the lists of who earned an achievement. XP and achievements keep counting quietly, so nothing is lost if you switch this off again."

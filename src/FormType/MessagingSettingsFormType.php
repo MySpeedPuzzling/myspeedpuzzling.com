@@ -58,17 +58,13 @@ final class MessagingSettingsFormType extends AbstractType
             'required' => false,
         ]);
 
-        // Hidden while the xp-system flag is active (the digest itself is suppressed too).
+        // The activity digest e-mail - shown once the XP launch switch is on (XpFeatureGate), admins before
         if ($options['show_content_digest'] === true) {
             $builder->add('contentDigestFrequency', EnumType::class, [
                 'class' => ContentDigestFrequency::class,
-                'label' => 'edit_profile.content_digest_frequency',
-                'help' => 'edit_profile.content_digest_help',
-                'choice_label' => static fn (ContentDigestFrequency $frequency): string => match ($frequency) {
-                    ContentDigestFrequency::None => 'edit_profile.content_digest_none',
-                    ContentDigestFrequency::Daily => 'edit_profile.content_digest_daily',
-                    ContentDigestFrequency::Weekly => 'edit_profile.content_digest_weekly',
-                },
+                'label' => 'activity_digest.settings.label',
+                'help' => 'activity_digest.settings.help',
+                'choice_label' => static fn (ContentDigestFrequency $frequency): string => $frequency->translationKey(),
             ]);
         }
     }

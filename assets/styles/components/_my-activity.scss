@@ -1,0 +1,64 @@
+//
+// "Your week" page (templates/my_activity.html.twig) - mobile first, one column
+// --------------------------------------------------
+
+.my-activity {
+  max-width: 640px;
+}
+
+.my-activity-step {
+  min-width: 44px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.my-activity-length {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.my-activity-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: .5rem;
+}
+
+.my-activity-stat {
+  background: $gray-100;
+  border-radius: $border-radius-lg;
+  padding: .75rem;
+  text-align: center;
+
+  b {
+    display: block;
+    font-size: 1.375rem;
+    line-height: 1.2;
+    color: $headings-color;
+  }
+
+  span {
+    font-size: $font-size-sm;
+    color: $text-muted;
+  }
+}
+
+.my-activity-link {
+  min-height: 44px;
+}
+
+.my-activity-thumb {
+  img,
+  span {
+    width: 56px;
+    height: 56px;
+    object-fit: cover;
+  }
+}
+
+.my-activity-results .min-w-0 {
+  min-width: 0;
+}

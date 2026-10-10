@@ -65,7 +65,7 @@ achievements are live for everybody within a request, and the launch modal start
 time.
 
 - A player that fails is listed and the switch stays off: fix, re-run (the rebuild is deterministic, the achievement
-  evaluation only fills gaps).
+  evaluation brings the tiers to the records - re-running changes nothing).
 - `--no-launch`: recalculate and verify, leave the switch off (a dry run of the launch).
 - `--verify-only`: recalculate nothing, verify and switch on when the check passes (e.g. after fixing the one player
   that failed by `myspeedpuzzling:recalculate-badges --player=<id>` / a single XP rebuild).
@@ -73,6 +73,9 @@ time.
 Duration: measured 2026-10-10 on a scratch copy of the local near-production database (523k solving times,
 7,878 players with solves, `APP_ENV=prod`, Docker on a laptop): **13.4 minutes** for the recalculation, verification
 passed for 7,597 players. Expect the same order on lily; `--no-launch` on a scratch copy of production is the dry run.
+
+Deeper check (read-only, ~5 s on the dev copy): `bin/console myspeedpuzzling:verify-progression` must report no drift
+in any check (README §Anti-farming) - the same command runs nightly with `--repair`.
 
 ## 3. Check as a NON-admin
 

@@ -1,6 +1,24 @@
 # Badges / Achievements System
 
-Fully dynamic, tiered badge system. Once earned, a badge is permanent — the logic can only award new badges, never revoke them.
+Fully dynamic, tiered badge system. **Achievements follow the current records** (anti-farming, 2026-10-11,
+`docs/features/xp-levels/README.md` §Anti-farming): every evaluation brings the tiers held to what the player's
+results, proposals and puzzles qualify for now - new tiers are added, tiers that no longer qualify are removed (results
+deleted, removed as duplicates, marked as needing verification, merged away). Logging fake times, earning a tier and
+deleting the times keeps nothing.
+
+Invariants:
+
+- Silent: nobody is told about a removed tier - no e-mail, no notice, no digest line. The removed row takes its reveal
+  state along; earned again later it is a new, unrevealed tier (the recap / reveal pages / digest treat it as new), and
+  its Achievement Points count once - `player.achievement_points` is re-anchored to the tiers held on every evaluation.
+- Never removed: an achievement no condition decides (Early Adopter, `supporter`, granted by an admin), or a type the
+  code does not know (yet).
+- The showcase, catalogue, holders lists, rarity and the digest read the rows held now, so a removed tier is gone from
+  all of them at once (rarity on its 15-minute cache). The digest's "earned this period" lists only rows held when it
+  is built (and never ones earned before the launch switch).
+- Every write path that removes results queues the evaluation for every registered member (delete, automatic
+  duplicate removal, "keep this copy", a suspicious mark via `RecalculateProgressionOnSuspicionChange`); the daily
+  `recalculate-badges` run is the safety net for the rest (SQL, a puzzle's pieces corrected, merges).
 
 ## Launch badges
 
@@ -57,8 +75,8 @@ User adds/edits/deletes a PuzzleSolvingTime
       → BadgeEvaluator.recalculateForPlayer()
           → GetPlayerStatsSnapshot (4–5 small SQLs)
           → GetBadges (1 SQL)
-          → for each condition: compute qualifiedTiers and persist gaps
-      → if new badges were earned, send ONE TemplatedEmail (highest tier per type)
+          → for each condition: compute qualifiedTiers, persist gaps, remove tiers no longer qualified
+      → re-anchor player.achievement_points (under PlayerProgressionLock)
 ```
 
 #### Backfill / cron
@@ -72,7 +90,8 @@ bin/console myspeedpuzzling:recalculate-badges [--backfill]
 
 - `--player=UUID` — single player, no stagger.
 - `--backfill` — 2-second stagger between players via `DelayStamp` so outbound email volume is spread out smoothly.
-- No flag — immediate dispatch for every player (one async message each, ~7,600 on 2026-10-04); the daily safety-net cron.
+- No flag — immediate dispatch for every player (one async message each, ~7,600 on 2026-10-04); the daily safety-net
+  cron. It is also what removes tiers that no longer qualify after changes no live path sees.
 
 ### Data model
 
@@ -178,7 +197,8 @@ would otherwise say them twice). The weekly digest's earned and "within your rea
 ## Cron
 
 A daily safety net - every add/edit/delete of a time already dispatches the player's recalculation, so the cron only
-heals drift (manually granted badges, paths that are not live-wired). Not every 15 minutes: one run puts one message per
+heals drift (manually granted badges, paths that are not live-wired), in both directions: missing tiers are added,
+tiers the records no longer qualify for are removed. `myspeedpuzzling:verify-progression` checks the points nightly. Not every 15 minutes: one run puts one message per
 player with times on the `async` queue the transactional e-mails share. The production row (lily.srv) is in
 `docs/features/xp-levels/README.md` §Cron.
 

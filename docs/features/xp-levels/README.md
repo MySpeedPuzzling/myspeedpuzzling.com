@@ -25,7 +25,8 @@ XP is never purchasable. Levels gate nothing functional. Level 50 = 3,160 XP
   were dropped at the launch). The solve reference is a **plain uuid column without FK** so
   deleted solves keep their audit history. `Player.xpTotal`/`level` are denormalized and always
   equal `SUM(xp_entry.amount)` / `LevelTable::levelForXp()` — every write goes through
-  `src/Services/Xp/XpLedger.php`.
+  `src/Services/Xp/XpLedger.php`, which writes the entries in bulk and then reads the total back from the ledger
+  (never carried forward), under the per-player lock (§Anti-farming).
 - Idempotency anchor: unique partial index `custom_xp_entry_solve_reason
   (player_id, solving_time_id, reason) WHERE … reason != 'solve_compensation'` (mirrored
   in `tests/bootstrap.php`).
@@ -56,15 +57,22 @@ relax repeats zero. Suspicious solves earn nothing. All of it lives in the pure
 
 `src/Services/Xp/XpChainRecomputer.php` behind async messages:
 
-- add → `AwardXpForSolvingTime` (every registered team participant earns)
-- edit → `RecalculateXpChainForSolve` (semantic delete+re-add of the (player, puzzle) chain)
-- delete → `CompensateXpForDeletedSolve` (per-entry negative mirrors + chain rebuild)
-- 15-min cron → `SettleXpBonuses` (ex-post difficulty/speed settlements, frozen forever)
+- add → `AwardXpForSolvingTime` (every registered team participant earns; also an id that comes back - Undo of a
+  removal, a resent form)
+- edit → `RecalculateXpChainForSolve` (+ the members before the edit)
+- delete → `CompensateXpForDeletedSolve` (per-entry negative mirrors, then the rebuild; + its members)
+- suspicious mark set or cleared (moderator, the player's fix, SQL reconciled by the scan) →
+  `PuzzleSolvingTimeSuspicionChanged` → `RecalculateProgressionOnSuspicionChange` (XP + achievements)
+- 15-min cron → `SettleXpBonuses` (ex-post difficulty/speed settlements)
+
+Each of them rebuilds the **scope** a change can reach, from the one replay (`XpHistoryReplay`) the full rebuild uses
+too: the player's whole chain on the puzzle plus every solve of the ISO weeks the touched solves are in now or were in
+(their old entries' `earned_at`) - the weekly boost and the warm-up go to the first solves of the week / day. Only
+solves whose entries differ from the replay are rewritten, so the XP history of the others keeps its dates.
 
 Full deterministic rebuild: `RecalculateXpForPlayer` / `myspeedpuzzling:recalculate-xp`
-(`src/Services/Xp/XpRecomputer.php`) — wipes solve-derived entries, replays history,
-preserves achievement entries. Proven idempotent by integration test. Use it to repair
-any drift (e.g. after puzzle merges or ownership transfers, which are not live-wired).
+(`src/Services/Xp/XpRecomputer.php`) — wipes the ledger, replays history. Proven idempotent by integration test;
+moves to another puzzle, guest links and the repair of the nightly check use it.
 
 ### Achievements
 
@@ -74,8 +82,8 @@ re-anchors the absolute total on every evaluation (badge writes happen nowhere e
 so the daily recalc cron self-heals any drift (e.g. manually granted badges); the
 AP ladder and every AP display read the column, never aggregate the badge table.
 Metrics live in `GetPlayerStatsSnapshot` (owner counters batched in one FILTER-aggregate
-query), conditions in `src/BadgeConditions/`. `BadgeEvaluator` persists gap-filled tiers
-and grants each new tier its XP once (`BadgeTier::points()`). First-click reveal:
+query), conditions in `src/BadgeConditions/`. `BadgeEvaluator` brings the tiers to what the current records
+qualify for: new tiers gap-filled, tiers that no longer qualify removed (§Anti-farming), AP only. First-click reveal:
 `badge.revealed_at` + `RevealBadge` message (flips lower tiers along).
 
 Adding an achievement: see `docs/features/badges.md` — plus translation keys and (if a
@@ -138,6 +146,42 @@ celebrations, leaderboards, share cards and digests for that player; XP accrues
 silently and everything returns on re-enable. Deliberately NOT a generic
 "gamification" flag.
 
+## Anti-farming: path independence
+
+Jan, 2026-10-11: adding a time, deleting it and adding it again (or any other repeated action) must earn nothing.
+**The invariant:** after ANY sequence of adds, edits, deletions, re-adds, moves to another puzzle, duplicate removals
+and their Undo, guest links, merges and suspicious marks set or cleared, a player's ledger total, level, achievements
+(tiers) and Achievement Points - and karma - equal a fresh recomputation from their current records.
+
+Where it is enforced:
+
+| What | How |
+|---|---|
+| XP ledger | One replay for everything (`XpHistoryReplay`): live wiring rebuilds the reachable scope with it (§Live wiring), the full rebuild all of it. Back-dating a solve into the past never makes a repeat a first solve, nor hands out a 6th weekly boost or a 2nd warm-up of a day: the slots belong to the first XP-earning solves by solve time. An id that comes back after deletion drops its compensated history and earns once. Solves logged before the formula cutoff earn the history formula however they are replayed (cutoff by `tracked_at`). |
+| Suspicious marks | A mark after the award takes the XP and the tiers it was needed for away, clearing gives them back (event `PuzzleSolvingTimeSuspicionChanged`, recorded by every flag change incl. `suspicionChangedOutsideTheApp()`). |
+| Achievements | Follow the current records: `BadgeEvaluator` removes tiers the records no longer qualify for (silently - no e-mail, no notice; the removed row takes its reveal state along, earned again it is new and unrevealed), AP re-anchored. Every write path that removes results queues the evaluation for every registered member (delete, automatic duplicate removal, "keep this copy", suspicion). Never removed: an achievement without a condition (Early Adopter, `supporter`, admin-granted). |
+| Concurrency | `PlayerProgressionLock` (`SELECT … FOR UPDATE` on the player rows, in id order) at the start of every XP / achievement write - award, rebuild, compensation, settlement, full rebuild, evaluation - so two consumers never read the same total or hand out the same slot; the totals are written from the ledger / tiers read under the lock. Karma's recalculation is one set-based `UPDATE … FROM (aggregate)`; two concurrent runs can at worst write the older aggregate, which the daily `recalculate-karma` heals. |
+| Karma | Derived from the records (`docs/features/karma.md`) - path independent by construction, proven by `KarmaPathIndependenceTest`. |
+
+Tests: `ProgressionPathIndependenceTest` (every loop through the real handlers ends equal to a fresh recomputation
+and to the nightly checks), `KarmaPathIndependenceTest`, `ProgressionSafetyNetTest`.
+
+What "equal" cannot mean: difficulty tiers and speed percentiles move with the community. A live award reads them at
+the time, a settlement settles once, and a rebuild reads them as of the rebuild - so XP of an untouched solve may
+differ from a fresh rebuild after the puzzle's tier changed. That is not farming and the nightly check ignores it.
+
+### Nightly safety net
+
+`myspeedpuzzling:verify-progression [--repair]` (`ProgressionSafetyNet`, checks in `GetProgressionDrift`): set-based,
+one statement per check, nothing recomputed for players without drift - totals vs ledger, level, AP vs tiers held,
+deleted solves compensated, no compensation line on a solve that exists, no XP without participation (marked, left the
+group), every base line = the formula's base part from the current records (missing awards included), weekly boosts /
+warm-ups only on the first solves. `--repair` rebuilds only the players found (full XP rebuild / achievement
+evaluation, in the command's process). Anything found is logged as a **warning** with the counts per check (Sentry):
+the live wiring should leave nothing behind, so somebody looks at which write path did. Dev copy (523k results, 588k
+ledger rows): **5.3 s** for all checks. Whether the tiers held still qualify is not set-based - the daily
+`recalculate-badges` run evaluates everybody and removes what no longer qualifies.
+
 ## Cron (production — lily.srv)
 
 Production is `lily.srv` (`/srv/myspeedpuzzling`, spare.srv is decommissioned). App crons live in the
@@ -155,6 +199,9 @@ file's header; free minutes as of 2026-10-04: :01 :06 :12 :16 :21 :27 :31 :36 :4
 # recalculation; a run dispatches one async message per player with times (~7,600 on 2026-10-04), so
 # every 15 min would put ~730k messages a day on the queue the transactional e-mails share
 16 3 * * * root lily-cron-run myspeedpuzzling recalculate-badges -- docker compose --file /srv/myspeedpuzzling/compose.yaml run --rm --no-deps messenger-consumer sentry-cli monitors run --schedule "16 3 * * *" --timezone "Europe/Prague" recalculate-badges -- bin/console myspeedpuzzling:recalculate-badges >> /var/log/lily/myspeedpuzzling-cron.log 2>&1
+# Progression safety net - nightly, after recalculate-badges (3:16) and recalculate-karma (3:41): finds players whose
+# XP / level / AP disagree with their current records and rebuilds only them; drift = a warning in Sentry
+51 3 * * * root lily-cron-run myspeedpuzzling verify-progression -- docker compose --file /srv/myspeedpuzzling/compose.yaml run --rm --no-deps messenger-consumer sentry-cli monitors run --schedule "51 3 * * *" --timezone "Europe/Prague" verify-progression -- bin/console myspeedpuzzling:verify-progression --repair >> /var/log/lily/myspeedpuzzling-cron.log 2>&1
 # Activity digest - Monday 07:01 activity digests, Tuesday 07:01 no-activity e-mails; the rows (and the
 # digest-consumer service they need) are in docs/features/content-digest/README.md §"Production"
 ```
@@ -285,16 +332,12 @@ through `XpFormulaCutoff` (cached per worker process - it never changes). Tests 
   2026-10-10: `xp_total`, `level`, `achievement_points` ride on both `PlayerProfile` rows - `XpRing` and the navbar no
   longer run `GetXpProfile`.)
 - One subscriber on main's result events (`PuzzleSolvingTimeDeleted` / `Modified` / `MovedToOtherPuzzle`) would cover
-  future write paths without per-handler dispatches; plus an XP safety-net cron that rebuilds players with entries on
-  results that are gone, suspicious or no longer theirs (nothing heals XP today).
-- A result id that comes back after deletion (Undo, a resent form, an API idempotency key) has compensated history:
-  the award skips it and a chain rebuild keeps the compensation. Undo uses full rebuilds now; the proper fix drops a
-  net-zero history with a compensation line in `awardForNewSolve()` / `rebuildPair()`.
-- `XpLedger::append()` reads and writes `player.xp_total` without a lock - a recompute next to the consumer can lose
-  an update (`SerializedByLock`).
+  future write paths without per-handler dispatches. (The safety net exists since 2026-10-11 - §Anti-farming; a result
+  id that comes back after deletion and the unlocked `XpLedger::append()` are fixed there.)
 - First-try achievement counts the tracker's rows only; main makes a pair/team first try everybody's (one per person
-  per puzzle). Piece-count achievements read the live pieces count, XP the snapshot. Moderator piece-count fixes and
-  SQL-set `suspicious` flags never touch XP (runbook: `myspeedpuzzling:recalculate-xp --player`).
+  per puzzle). Piece-count achievements read the live pieces count, XP the snapshot. A suspicious flag set by SQL follows once the
+  scan reconciles it (or the nightly check repairs it); runbook for a single player:
+  `myspeedpuzzling:recalculate-xp --player`.
 - API returns badges regardless of membership / opt-out, the web shows them to members only.
 - E-mail polish: Inky buttons for the calls to action, `p.small-print`, the digest's settings link to the token
   preferences page (`EmailPreferencesLinkGenerator`), a hosted hero image instead of the 185 KB inline PNG, no stored

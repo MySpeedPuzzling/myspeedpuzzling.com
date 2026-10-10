@@ -4,6 +4,24 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
+## Anti-farming (`docs/features/xp-levels/README.md` §Anti-farming, workstream G 2026-10-11)
+
+- [ ] lily.srv: add the `verify-progression --repair` cron row (README §Cron) with the deploy; watch its first warnings
+      (drift found = a write path that is not wired - name the check, fix the path).
+- [ ] Karma loops that the rule itself pays for (path independent, but repeatable): a moderator may file trivial
+      proposals and approve them (+1 each, no cap), and two colluding accounts can farm the merge reporter's +1 by
+      adding duplicates of one puzzle and reporting them (the adder loses the copy's credit, the reporter keeps +1 per
+      merge). Candidates: count a self-decided proposal only when another moderator could not have decided it, one
+      reporter credit per (reporter, merged puzzle adder) pair a month - Jan to decide; the admins' accept/decline split
+      above would show both.
+- [ ] Merging a puzzle whose sell/swap listing has a conversation fails ("A new entity was found through the
+      relationship Conversation#sellSwapListItem") - reproduced in the test fixtures (PUZZLE_500_01 into PUZZLE_500_02),
+      not caused by the progression work; check `ApprovePuzzleMergeRequestHandler::migrateRecordsToSurvivor()`.
+- [ ] The nightly check cannot tell a missing weekly boost on a solve whose base part is below 1 XP (the moving
+      difficulty tier decides) - only too many boosts there. Fine for farming; a full rebuild of such a player fixes it.
+- [ ] Two concurrent karma recalculations may write the older aggregate (set-based UPDATE from a snapshot taken
+      before the other commit) - healed by the daily run; a per-player lock would close it if it ever shows.
+
 ## Progression pages (`docs/features/xp-levels/launch-2026-10.md` §3, workstream D)
 
 - [ ] Paging past the top 100 on the XP / AP leaderboard (the MSP Rating ladder pages already)

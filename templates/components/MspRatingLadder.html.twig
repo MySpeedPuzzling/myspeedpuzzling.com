@@ -1,8 +1,8 @@
 <div {{ attributes }}>
     {# Filters #}
     {% set isMember = logged_user.profile is not null and logged_user.profile.activeMembership %}
-    <div class="d-flex align-items-center gap-2 mb-3">
-        <div style="max-width: 200px;">
+    <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+        <div style="flex: 1 1 9rem; max-width: 200px;">
             <input
                 type="text"
                 data-model="debounce(300)|search"
@@ -12,7 +12,7 @@
             >
         </div>
         {% if isMember %}
-            <div class="country-select-wrapper" style="min-width: 180px; max-width: 220px;" data-live-ignore>
+            <div class="country-select-wrapper" style="flex: 1 1 11rem; max-width: 220px;" data-live-ignore>
                 <select
                     data-model="on(change)|country"
                     data-controller="country-select"

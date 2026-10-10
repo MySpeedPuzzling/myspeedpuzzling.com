@@ -2219,7 +2219,7 @@ xp:
             old_solves_question: "Do old solves count?"
             old_solves_answer: "Yes! Your entire history was converted at launch (base formula, no time-based bonuses — those only apply going forward)."
             opt_out_question: "I don't want any of this."
-            opt_out_answer: "Understood — turn it off in your profile settings (\"experience system\"), and your level, XP and celebrations disappear from view."
+            opt_out_answer: "Understood — turn on \"Hide XP and levels\" in your profile settings, and your level, XP and celebrations disappear from view."
             friend_question: "Why did my friend get more XP for the same puzzle?"
             friend_answer_history: "Repeat discounts, weekly boosts and daily warm-ups are personal, so two solves of the same puzzle rarely earn the same. <a href=\"%history_link%\">Your XP history</a> shows every line of every solve."
             fair_play_question: "How is this kept fair?"

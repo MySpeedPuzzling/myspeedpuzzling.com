@@ -9,7 +9,9 @@
     <h1 class="h2 mb-1">{{ 'puzzle_intelligence.methodology.title'|trans }}</h1>
     <p class="text-muted mb-4">
         {{ 'puzzle_intelligence.methodology.subtitle'|trans }}
-        <a href="{{ path('progression_hub') }}" class="text-nowrap">{{ 'progression_hub.title'|trans }}</a>
+        {% if xp_system_visible() %}
+            <a href="{{ path('progression_hub') }}" class="text-nowrap">{{ 'progression_hub.title'|trans }}</a>
+        {% endif %}
     </p>
 
     {# Quick overview cards #}

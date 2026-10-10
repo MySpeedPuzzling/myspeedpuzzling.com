@@ -7,26 +7,28 @@
     "How progress works" (docs/features/xp-levels/launch-2026-10.md, hub draft A): grouped by family, one card per
     concept, each a link to its deep page. Every "?" next to a progression chip or card leads here.
 #}
+{# href null = the deep page is not open yet (xp_system_visible()): the card explains, but leads nowhere #}
 {% macro hub_row(href, icon, family, title, text) %}
-    <a href="{{ href }}" class="progression-hub-row">
+    <{{ href ? 'a' : 'div' }}{% if href %} href="{{ href }}"{% endif %} class="progression-hub-row">
         <span class="progression-hub-icon progression-hub-icon-{{ family }}" aria-hidden="true"><i class="bi {{ icon }}"></i></span>
         <span class="progression-hub-text">
             <span class="progression-hub-title">{{ title }}</span>
             <span class="progression-hub-desc">{{ text }}</span>
         </span>
-        <i class="bi bi-chevron-right progression-hub-chevron" aria-hidden="true"></i>
-    </a>
+        {% if href %}<i class="bi bi-chevron-right progression-hub-chevron" aria-hidden="true"></i>{% endif %}
+    </{{ href ? 'a' : 'div' }}>
 {% endmacro %}
 
 {% block content %}
+    {% set xp_open = xp_system_visible() %}
     <div class="col-lg-8 mx-auto progression-hub">
         <h1 class="h2 mb-1">{{ 'progression_hub.title'|trans }}</h1>
         <p class="text-body-secondary mb-4">{{ 'progression_hub.intro'|trans }}</p>
 
         <h2 class="progression-hub-group">{{ 'progression_hub.group.just_you'|trans }}</h2>
         <div class="progression-hub-card">
-            {{ _self.hub_row(path('xp_explainer'), 'bi-arrow-up-circle', 'level', 'progression_hub.level.title'|trans, 'progression_hub.level.text'|trans) }}
-            {{ _self.hub_row(path('badges_overview') ~ '#how-achievements-work', 'bi-award', 'achievements', 'progression_hub.achievements.title'|trans, 'progression_hub.achievements.text'|trans({'%count%': achievements_count})) }}
+            {{ _self.hub_row(xp_open ? path('xp_explainer') : null, 'bi-arrow-up-circle', 'level', 'progression_hub.level.title'|trans, 'progression_hub.level.text'|trans) }}
+            {{ _self.hub_row(xp_open ? path('badges_overview') ~ '#how-achievements-work' : null, 'bi-award', 'achievements', 'progression_hub.achievements.title'|trans, 'progression_hub.achievements.text'|trans({'%count%': achievements_count})) }}
         </div>
 
         <h2 class="progression-hub-group">{{ 'progression_hub.group.against_the_clock'|trans }}</h2>
@@ -37,7 +39,7 @@
 
         <h2 class="progression-hub-group">{{ 'progression_hub.group.for_everyone'|trans }}</h2>
         <div class="progression-hub-card">
-            {{ _self.hub_row(path('karma_explainer'), 'bi-heart', 'karma', 'progression_hub.karma.title'|trans, 'progression_hub.karma.text'|trans) }}
+            {{ _self.hub_row(xp_open ? path('karma_explainer') : null, 'bi-heart', 'karma', 'progression_hub.karma.title'|trans, 'progression_hub.karma.text'|trans) }}
         </div>
 
         <div class="progression-hub-which">
@@ -47,8 +49,10 @@
 
         <p class="fs-sm text-body-secondary mt-4 mb-0">
             <a href="{{ path('ladder') }}">{{ 'progression_hub.leaderboards_link'|trans }}</a>
-            <span class="mx-1" aria-hidden="true">·</span>
-            <a href="{{ path('xp_fair_play') }}">{{ 'progression_hub.fair_play_link'|trans }}</a>
+            {% if xp_open %}
+                <span class="mx-1" aria-hidden="true">·</span>
+                <a href="{{ path('xp_fair_play') }}">{{ 'progression_hub.fair_play_link'|trans }}</a>
+            {% endif %}
         </p>
     </div>
 {% endblock %}

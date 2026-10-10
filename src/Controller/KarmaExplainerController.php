@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
+use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
+use SpeedPuzzling\Web\Services\Xp\XpFeatureGate;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -14,6 +16,12 @@ use Symfony\Component\Routing\Attribute\Route;
  */
 final class KarmaExplainerController extends AbstractController
 {
+    public function __construct(
+        readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
+        readonly private XpFeatureGate $xpFeatureGate,
+    ) {
+    }
+
     #[Route(
         path: [
             'cs' => '/jak-funguje-karma',
@@ -27,6 +35,10 @@ final class KarmaExplainerController extends AbstractController
     )]
     public function __invoke(): Response
     {
+        if ($this->xpFeatureGate->isVisibleFor($this->retrieveLoggedUserProfile->getProfile()) === false) {
+            throw $this->createNotFoundException();
+        }
+
         return $this->render('karma_explainer.html.twig');
     }
 }

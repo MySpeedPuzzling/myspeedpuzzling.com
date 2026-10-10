@@ -4,6 +4,51 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
+## Progression pages (`docs/features/xp-levels/launch-2026-10.md` §3, workstream D)
+
+- [ ] Paging past the top 100 on the XP / AP leaderboard (the MSP Rating ladder pages already)
+- [ ] XP leaderboard default "people you follow" (draft D6) - not decided, the board still opens on the world
+- [ ] Karma deep page replaces the `karma_explainer` placeholder (workstream F) and the karma board joins `ProgressLeaderboardTab`
+- [ ] Visual check of the hub, catalogue and XP history at 320/375 px on the integrated branch (not done in the workstream)
+## Recap progress card (`docs/features/xp-levels/README.md` §Surfaces, launch 2026-10)
+
+- [ ] "Earned with this time" is a 10-minute window after `tracked_at`, cut at the player's next time
+      (`GetBadges::earnedWithSolve()`), because a badge row does not point at the solve that earned it. If a cron run of the badge evaluation lands in that window, its tiers are credited to the time. A `badge.solving_time_id` written by `RecalculateBadgesForPlayer` (dispatched with the time id) would make it exact.
+- [ ] Real-device pass of the recap reveal (88/144 px stages inside the card) and the milestone sheet on iPhone Safari + Android Chrome.
+
+## Karma (`docs/features/karma.md`)
+
+- [ ] **v2: events** - approved events, series and organizations could count once the events catalogue is part of
+  "the database" (Jan, 2026-10-10: not in v1).
+- [ ] **Trusted contributors** - high karma and >= 95 % accepted: small fixes applied at once, still listed for review
+  afterwards. Moderator invitations suggested from karma (appointing stays a human decision).
+- [ ] **Admins: each moderator's accept/decline split** (the guard against rubber-stamping now that decisions have no cap) -
+  in the drafts, not built.
+- [ ] Review queues sorted by the proposer's acceptance (drafts) - only shown, not sorted, in v1.
+- [ ] If the filtered karma list (a kind or the last 12 months, ~110 ms on the dev copy) gets slow on production, store
+  per-kind totals next to `player.karma` instead of deriving them per request.
+- [ ] lily.srv: add the `recalculate-karma` cron row (in `docs/features/karma.md`).
+## Progression on the profile header and navbar (`docs/features/player-header.md` "Progression", workstream C 2026-10-10)
+
+- [ ] Karma chip in the header's chip row (teal `.player-chip-karma`, only when > 0) - the slot is marked in
+  `templates/components/PlayerHeader.html.twig`, needs `player.karma` on the `byId()` row (workstream F)
+- [ ] Point the tier chip, the ring's visitor link and the cards' "?" links to the "How it works" hub once it exists
+  (today `methodology` / `xp_explainer`)
+- [ ] Pinning achievements in the showcase (today: highest tier first, newest first within a tier)
+- [ ] `PlayerCard::$mspRating` is no longer shown on the player card (Level + tier only) - drop it from
+  `GetPlayerCard` or show it elsewhere
+- [ ] Player profile at 320 px: the page is 5 px too wide - measured on a static render (no JS), the chart card's
+  row, not the header; check on a real device
+## Activity digest + "Your week" (`docs/features/content-digest/README.md`, progression launch WS-E)
+
+- [ ] Karma: workstream F wires karma gained in a period into `GetContentDigestRecipients::activitySql()` (karma = activity) and `PlayerPeriodActivityReader::karmaGained()` (the thanks line, linking F's karma history)
+- [ ] Launch badge backfill vs the first digest: achievements count by `badge.earned_at` = backfill run time - run it before Mon 12 Oct 00:00 Prague, or filter backfilled badges out of the 12-18 Oct period
+- [ ] First no-activity Tuesday (20 Oct) mails every dormant account once - decide (Jan) whether to limit it, e.g. to accounts with a result in the last 12 months; `--dry-run` shows the count
+- [ ] Link the page (`my_activity`) from the app: user menu / own profile / the recap ("See your week") - nothing links it yet besides the e-mail
+- [ ] Visual check of the page and both e-mails at 375 / 320 px and in a long locale (not done in WS-E: no isolated browser run)
+- [ ] Admin line with per-run counts (`content_digest_run`) on the e-mail audit page
+- [ ] Seznam Email Profi daily ceiling (README §17.1) before the audience passes ~10k/day
+
 ## High-frequency series (`docs/features/events-page/high-frequency-series.md`, PR #253)
 
 - [ ] **The converted weekly online series (2026-10-09)**: tell its organiser about the change (Jan, by mail - drafts

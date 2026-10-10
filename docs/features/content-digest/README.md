@@ -1,25 +1,203 @@
-# Content Digest Emails — Daily & Weekly
+# Activity digest e-mail + "Your week" page
 
-Personalized, scheduled digest emails to all opted-in players: a **weekly** "your week in puzzling"
-digest (the centerpiece of the XP/levels launch — this document is the "sending mechanics" deliverable
-referenced in `docs/features/xp-levels/launch-checklist.md`) and a **daily** "only when something
-happened" digest. A monthly same-content newsletter is a future phase (see §15).
+The recurring e-mail of the progression launch (decisions: `docs/features/xp-levels/launch-2026-10.md` §Digest, Jan
+2026-10-10; they win over the July design kept below as history). Internally everything is still named **content
+digest** (`ContentDigestLog`, `SendPlayerContentDigest`, `ContentDigestFrequency`, …) to stay apart from the
+**unread-messages digest** (`emailNotificationsEnabled`, `PrepareDigestEmailForPlayer`, `digest_emails_*`), which is a
+separate e-mail type with its own switch and does **not** gate this one any more.
 
-> **Scope update (2026-07-12, Jan):** v1 ships the **weekly digest only** — the daily digest is deferred
-> completely (its design below stays as the blueprint for when it's picked up; Phase 3 in §16 moves
-> behind a separate go decision). Also decided: weekly digest is **default-on** for existing players,
-> and the unread-messages digest **stays separate**. The Sunday-overlap open question (§17.5) is moot for v1.
+Two e-mails:
 
-This is a separate system from the existing **unread-messages digest**
-(`SendUnreadDigestEmailsCommand` / `PrepareDigestEmailForPlayer` / `DigestEmailLog`), which stays
-untouched. To avoid naming collisions, everything in this feature is named **content digest**
-(`ContentDigestLog`, `SendPlayerContentDigest`, `ContentDigestFrequency`, …). Transactional emails
-are also untouched — they keep their immediate path through the `async` transport.
+- **Activity digest** - Monday, to everybody with activity in their period: the period first, progress second, one
+  button to the "Your week" page, every line a link.
+- **No-activity e-mail** - the day after (Tuesday), to a player without activity: warm, one line of community news, a
+  puzzle idea. **At most once, never again until the player has had activity again.**
 
-_Last updated: 2026-07-11. Verified against Symfony 8.0.4/8.0.5 vendor code and the production
-deployment at `spare.srv:/deployment/speedpuzzling` (decommissioned since - production is lily.srv, see §13)._
+## Frequency and periods
+
+`player.content_digest_frequency` (`ContentDigestFrequency`): `weekly` (default) / `every_two_weeks` / `monthly` /
+`off`. The old `none` / `daily` values are gone ("daily" never existed); the branch migration
+`Version20260713151509` was rewritten in place (never deployed) - **a local database that ran the earlier version:
+`doctrine:migrations:execute --down` then `--up` that version**.
+
+Periods are **Europe/Prague** calendar periods (`DigestPeriod`, the site's home zone and the cron's zone); the
+database stores UTC, queries use `startUtc()` / `endUtc()`:
+
+| Frequency | Period | Key (also the page URL) | Sent (activity digest) |
+|---|---|---|---|
+| weekly | the previous ISO week, Mon 00:00 - Mon 00:00 | `2026-W42` | every Monday |
+| every two weeks | the previous two ISO weeks, in a fixed rhythm: periods start every even number of weeks after Monday 12 Oct 2026 (`FIRST_PERIOD_START`) - counted in days, so 53-week years keep the rhythm | `2026-W42-W43` (`2032-W53-W01` across a year) | every other Monday (26 Oct, 9 Nov, …) |
+| monthly | the previous calendar month | `2026-10` | the first Monday on or after the month's end (the 1st when that is a Monday) |
+
+- `DigestPeriod::latestSentBy(length, now)` = the latest period whose send day has come; a run skips it when it is
+  **before the first period** (`isBeforeFirstPeriod()`) or **stale** (`STALE_AFTER_DAYS` = 3 days after the send day -
+  so on an off-Monday the two-week/monthly period found is stale and nothing is sent). The no-activity e-mail needs
+  `now >= noActivityDay()` (send day + 1).
+- **Launch pause**: nothing about a period starting before Monday 12 Oct 2026 - a guard in code (planner *and*
+  handler), not only a cron date. First activity digest: **Mon 19 Oct 2026 about 12-18 Oct**; first two-week one
+  Mon 26 Oct (12-25 Oct); first monthly one Mon 7 Dec (November - October started before the pause ended).
+- **Launch switch**: on top of that nothing is planned or sent while `XpFeatureGate::isEmailSendingEnabled()` is false
+  (the one XP launch switch; workstream A turns it into "launch ready").
+- Keys are canonical (`fromKey()` re-derives and compares): week 54/00, a two-week key off the rhythm or a month 13 are
+  a 404 on the page and dropped by the handler. Tests: `tests/Value/DigestPeriodTest.php` (DST both ways, year
+  boundaries, 53-week years, every send-day rule).
+
+## Who gets what
+
+`GetContentDigestRecipients` (recipients and the per-player re-check before sending share one SQL). Both kinds need an
+account e-mail, the frequency whose period it is, and no e-mail about the period yet (a `deferred` one may be retried);
+one player per address; **most engaged first** (latest `player_activity_day`, then the oldest account).
+
+- **Activity** = at least one result that counts (not awaiting verification) **solved** in the period
+  (`COALESCE(finished_at, tracked_at)`), solo or as a registered member of the pair/team (`puzzling_team_member`).
+  The solve moment, because XP (`xp_entry.earned_at` of a solve), streaks and the profile calendar use it - the
+  e-mail's puzzles and its XP must agree, and every number must be explainable on the XP history.
+  *Not* activity of their own: achievements and XP (they only come from results, so they would double count -
+  and the launch backfill would make everybody "active"), opening the site (presence is not puzzling).
+  **Karma** (accepted contributions, workstream F) is the one other activity planned: a player who only improves the
+  database is active too - the hook is `GetContentDigestRecipients::activitySql()` (+ `PlayerPeriodActivityReader::karmaGained()`
+  for the e-mail line); until F lands it is results only.
+- **No-activity** = nothing *logged* at all since the period started (`tracked_at`, any result, a back-dated or a not
+  yet verified one too - somebody who logged on Monday morning is never told we missed them), the account existed
+  before the period ended, and **never twice in a row**: no earlier no-activity row (`had_activity = false`, sent or
+  permanently failed) after the last thing the player logged. A newcomer who never logs anything gets exactly one.
+- Opt-outs: the digest has its own switch only. `experience_system_opted_out` no longer stops the e-mail - it leaves
+  out XP and level lines (e-mail and page). `streak_opted_out` hides the streak, `ranking_opted_out` the MSP Rating.
+
+## Sending
+
+```
+cron Mon 07:01 → myspeedpuzzling:send-content-digest activity      (Tue 07:01 → … no-activity; --dry-run counts)
+  → PlanContentDigestRuns (sync handler, one transaction): per frequency due → ContentDigestRun + one
+    SendPlayerContentDigest per recipient with DelayStamp(firstDelay + i × spacing)  → queue content_digest_emails
+      → digest-consumer: SendPlayerContentDigestHandler
+           gate / pause / stale / run stopped / player, e-mail, frequency, isRecipient() re-check → else drop
+           claim content_digest_log (INSERT … ON CONFLICT (player_id, period_key), a deferred row is taken over)
+           read PlayerPeriodActivity, render, TransportInterface::send() (notifications transport, README D1)
+           sent → run.sent++ | 550-553 → failed_permanent, run.failed++ | any other transport error → deferred,
+           run.deferred++, our own retry after 10 / 30 min (MAX_ATTEMPTS 3) | breaker → stop run, one warning
+```
+
+- **One e-mail per player and period**: unique `(player_id, period_key)` on `content_digest_log`, claimed *before*
+  sending inside the handler's transaction - a redelivered message waits for the first delivery and gets nothing, a
+  crash rolls the claim back. Transport failures do not throw (so the outcome commits); anything else (template,
+  database) bubbles to Messenger's retry with nothing left behind.
+- The command only dispatches `PlanContentDigestRuns` and prints a table per frequency: `planned` (+ recipients,
+  spacing), `dry_run`, `not_ready` (launch switch), `paused`, `stale`, `not_yet` (no-activity before the day after).
+  Re-running it the same day queues nobody twice.
+- The XP reveal e-mail (removed by workstream A) used the log as its once-only marker (`period_key = 'xp_reveal'`)
+  until it is deleted.
+
+## Pacing and the circuit breaker
+
+- `DigestPacing`: the run's e-mails spread **evenly over 07:00-19:00 Prague** of the run's day, from the recipient
+  count - ~12,000 recipients = one every ~3.6 s (~1,000/h); a run before 07:00 waits for the window, one inside it
+  uses what is left, one after it (manual re-run) goes at the minimum spacing (1 s). Most engaged first, so early
+  trouble shows on the best addresses. Reused idea of main's `DelayedEmailQueue` (result-review e-mails): a DelayStamp
+  per message; here on the dedicated `content_digest_emails` queue because the e-mail is rendered at send time.
+- **Circuit breaker** (`SendPlayerContentDigestHandler::breakerTrips()`): once a run has **≥ 20 failures** (permanent
+  + deferrals, counted per attempt) **and** they are **≥ 5 %** of its attempts, the run is stopped (`stopped_at`),
+  exactly one `warning` is logged (→ Sentry) and every message of the run still in the queue is dropped without a log
+  row - so after fixing the cause, re-running the command the same day (or the next, until stale) sends to whoever got
+  nothing. Counters live on `content_digest_run` (atomic `UPDATE … + 1`): `sent`, `failed_permanently`, `deferred`.
+
+## Content
+
+`PlayerPeriodActivityReader` → `PlayerPeriodActivity`, shared by the e-mail and the page (same numbers in both). In the
+e-mail, in order (`templates/emails/content_digest_activity.html.twig`):
+
+| Line | Shown when | Links to |
+|---|---|---|
+| "Your week, Name" + the dates (ICU skeleton, e-mail locale) | always | - |
+| puzzles · pieces · day streak | always (streak > 1, not opted out) | - |
+| Level N → M · +X XP | XP visible and gained | XP history (`xp_history`) |
+| New: achievement · tier · +N AP (members) / "You earned an achievement. Become a member to find out which." | earned in the period | the achievement page / membership |
+| MSP Rating: #rank of total · up/down N places | moved (snapshots before vs in the period, 500 pc) | the ladder |
+| New skill tier for N pieces (members) | tier changed | the ladder |
+| Karma thanks | karma gained (workstream F hook) | (F's karma history) |
+| Highlights: up to 3 results, PB / first try first | results | the puzzle |
+| **See your week** (44 px Inky button) | always | `my_activity` with the period key |
+| Favourites: name · N puzzles | favourites solved (own blocks + allow list applied in SQL) | their profiles |
+| Most solved by the community | ≥ 3 puzzlers solved one puzzle | the puzzle |
+| You get this every Monday · Change e-mails · Unsubscribe | always | token preferences page (no sign-in) / one-click unsubscribe |
+
+Preheader = the best thing of the period: a member's new achievement > "you earned an achievement" > a level-up > a
+personal best > MSP Rating places gained > "N puzzles, N pieces". Subjects per period length. Achievements give no XP
+any more (launch decision); AP only, and only members see which.
+
+**Known launch caveat**: achievements count by `badge.earned_at`; the launch badge backfill stamps the run time. If it
+runs on/after Mon 12 Oct 00:00 Prague, the first digest (12-18 Oct) shows every backfilled achievement as new - run
+it before, or tell the orchestrator to filter (see `docs/TODO.md`). XP is safe: backfill lines are `in_weekly_delta = false`.
+
+## "Your week" page
+
+Route `my_activity` - `/en/my/activity/{period}` (cs `/moje/aktivita/…`, all 6 locales), `{period}` = a week, two
+weeks or a month key; without it the current week so far. Owner-only by construction: no player id in the URL, it is
+always the signed-in player's own (another player opening the link sees *their* week); `IS_AUTHENTICATED_REMEMBERED`
+(works from the e-mail with remember-me, otherwise the login redirect carries `?return=`); follows the XP launch switch
+for non-admins; invalid / future / pre-2020 periods are 404; `no-store`.
+
+What it shows (one column, 375 px first, 44 px tap targets): the period and its dates, previous / next (no next
+while the period runs), a Week / 2 weeks / Month switch on the same start date; numbers (puzzles, pieces, puzzling
+time, streak); level + XP → XP history; achievements (members: badge + tier + AP → achievement page; others: the
+teaser + membership); MSP Rating place and movement, skill tier changes (members); karma (hook); **every result** of the
+period - puzzle, brand, pieces, time, the current place on the puzzle ("#3 of 40"), Personal best / First try / Pair /
+Team / Awaiting verification marks, its XP; favourites' activity; the community's most solved; **what next** - the
+member's nearest achievement tiers with progress, and for everybody "Pick my next puzzle" (Puzzle Picker) - and a
+Share button (public profiles: "My week on MySpeedPuzzling: N puzzles, N pieces" + the profile link). Empty period:
+"Add a time" / "Pick my next puzzle".
+
+Cost: **24 statements, constant** whatever the period holds (`MyActivityControllerTest::testThePageCostsTheSameWhateverThePeriodHolds`):
+results with each one's XP and personal-best mark through LATERALs, places from one `GetRanking::allForPlayer()`.
+
+Why it is worth having:
+
+- **For players**: the e-mail stops being a dead end - every line lands somewhere real, and "what did I do this
+  week?" gets one honest answer with every number explained (XP per result → XP history). It is a gentle review ritual
+  (a week, two, a month - the player's rhythm), with a reason to come back (next week, the next tier), a natural
+  share moment, and a place to see what a free player is missing without nagging.
+- **For MSP**: one landing page for every recurring touch (the e-mail now, later the hub, notifications, the
+  recap's "see your week"), return visits on Monday, a membership door that shows instead of tells, and a cheap
+  surface for future period content (events attended, karma) without growing the e-mail.
+- **What it must not become**: another dashboard. No charts, no league tables, no comparison with others (the
+  leaderboards do that), no settings, no pressure ("you missed …", streak alarms). Only things that happened in the
+  period, plus one "what next" block. New sections must earn a line in the e-mail first.
+
+## Settings and unsubscribe
+
+- Edit profile → "Messaging & notifications": **Activity e-mail** select (weekly / every two weeks / monthly / off),
+  shown once the launch switch is on (admins before). The XP opt-out label is now "Hide XP and levels" with a help text
+  that says what it really does (pages, e-mails, XP + AP leaderboards, achievement holder lists).
+- Token preferences page `email_preferences` (no sign-in; linked from every digest as "Change e-mails"): a "Your
+  activity" card with the same select next to the newsletter, the unread-messages digest and "Your results"; saved by
+  `EditEmailPreferences::$contentDigestFrequency` (null = not shown, kept).
+- One-click unsubscribe `content_digest_unsubscribe` - **`/{_locale}/activity-digest/unsubscribe/{playerId}`** (was
+  `weekly-digest`, never deployed), signed, never expires, RFC 8058 POST → 200, button → 303, GET only shows the page,
+  which also offers "Choose every two weeks or monthly" (the token preferences page). Sets the frequency to `off`.
+
+## Production (orchestrator - lily.srv infra repo, not this repo)
+
+1. **Consumer**: `digest-consumer` compose service (copy of `messenger-consumer`, command
+   `messenger:consume content_digest_emails --time-limit 3600 --memory-limit 256M`) + `restart_consumers
+   messenger-consumer digest-consumer` in `deploy.sh` (§13 below). Without it nothing is delivered.
+2. **Cron** (`apps/myspeedpuzzling/cron.d/myspeedpuzzling`, `CRON_TZ=Europe/Prague`), replacing the old Sunday row:
+
+```cron
+# Activity digest (docs/features/content-digest/README.md) - Monday: the activity digests of every frequency due,
+# spaced 07:00-19:00 Prague by the app; Tuesday: the no-activity e-mails (at most once until active again).
+# Paused in code until the period of 12-18 Oct 2026 (first send Mon 19 Oct) and while the XP launch switch is off.
+1 7 * * 1 root lily-cron-run myspeedpuzzling send-content-digest-activity -- docker compose --file /srv/myspeedpuzzling/compose.yaml run --rm --no-deps messenger-consumer sentry-cli monitors run --schedule "1 7 * * 1" --timezone "Europe/Prague" send-content-digest-activity -- bin/console myspeedpuzzling:send-content-digest activity >> /var/log/lily/myspeedpuzzling-cron.log 2>&1
+1 7 * * 2 root lily-cron-run myspeedpuzzling send-content-digest-no-activity -- docker compose --file /srv/myspeedpuzzling/compose.yaml run --rm --no-deps messenger-consumer sentry-cli monitors run --schedule "1 7 * * 2" --timezone "Europe/Prague" send-content-digest-no-activity -- bin/console myspeedpuzzling:send-content-digest no-activity >> /var/log/lily/myspeedpuzzling-cron.log 2>&1
+```
+
+3. Before Mon 19 Oct: `bin/console myspeedpuzzling:send-content-digest activity --dry-run` on the box (counts per
+   frequency) - and the same for `no-activity` on Tue 20 Oct: the **first no-activity Tuesday mails every dormant
+   account once** (all players without a result since 12 Oct). Decide whether that wave is wanted (see `docs/TODO.md`).
+4. Watch: the breaker's warning in Sentry, `content_digest_run` counters, `email_audit_log` for `content_digest_*`.
 
 ---
+
+# History: the July 2026 design (superseded where it disagrees with the part above)
 
 ## 1. Volume & provider limits
 

@@ -19,6 +19,7 @@ readonly final class Moderator
         public int $reviewedChangeRequests,
         public int $reviewedMergeRequests,
         public null|DateTimeImmutable $lastReviewAt,
+        public int $karma = 0,
     ) {
     }
 
@@ -33,6 +34,7 @@ readonly final class Moderator
      *     reviewed_change_requests: int|string,
      *     reviewed_merge_requests: int|string,
      *     last_review_at: null|string,
+     *     karma?: int|string,
      * } $row
      */
     public static function fromDatabaseRow(array $row): self
@@ -47,6 +49,7 @@ readonly final class Moderator
             reviewedChangeRequests: (int) $row['reviewed_change_requests'],
             reviewedMergeRequests: (int) $row['reviewed_merge_requests'],
             lastReviewAt: $row['last_review_at'] !== null ? new DateTimeImmutable($row['last_review_at']) : null,
+            karma: (int) ($row['karma'] ?? 0),
         );
     }
 }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Services\Xp;
 
+use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use Symfony\Contracts\Cache\CacheInterface;
 use Symfony\Contracts\Cache\ItemInterface;
@@ -18,11 +19,12 @@ use Symfony\Contracts\Service\ResetInterface;
  */
 final class CachedXpLaunchReadiness implements XpLaunchReadiness, ResetInterface
 {
-    private const string CACHE_KEY = 'xp_launch_ready';
+    private const string CACHE_KEY = 'xp_launch_ready_at';
     private const int READY_TTL_SECONDS = 300;
     private const int NOT_READY_TTL_SECONDS = 30;
 
-    private null|bool $ready = null;
+    /** The marker as stored, '' while the switch is off; null = not read in this request yet */
+    private null|string $readyAt = null;
 
     public function __construct(
         readonly private Connection $database,
@@ -32,23 +34,35 @@ final class CachedXpLaunchReadiness implements XpLaunchReadiness, ResetInterface
 
     public function isReady(): bool
     {
-        return $this->ready ??= $this->xpLaunchReadinessCache->get(self::CACHE_KEY, function (ItemInterface $item): bool {
-            $value = $this->database->fetchOne('SELECT launch_ready_at FROM xp_settings WHERE id = 1');
-            $ready = is_string($value);
-            $item->expiresAfter($ready ? self::READY_TTL_SECONDS : self::NOT_READY_TTL_SECONDS);
+        return $this->marker() !== '';
+    }
 
-            return $ready;
+    public function readyAt(): null|DateTimeImmutable
+    {
+        $marker = $this->marker();
+
+        return $marker === '' ? null : new DateTimeImmutable($marker);
+    }
+
+    private function marker(): string
+    {
+        return $this->readyAt ??= $this->xpLaunchReadinessCache->get(self::CACHE_KEY, function (ItemInterface $item): string {
+            $value = $this->database->fetchOne('SELECT launch_ready_at FROM xp_settings WHERE id = 1');
+            $marker = is_string($value) ? $value : '';
+            $item->expiresAfter($marker !== '' ? self::READY_TTL_SECONDS : self::NOT_READY_TTL_SECONDS);
+
+            return $marker;
         });
     }
 
     public function forget(): void
     {
         $this->xpLaunchReadinessCache->delete(self::CACHE_KEY);
-        $this->ready = null;
+        $this->readyAt = null;
     }
 
     public function reset(): void
     {
-        $this->ready = null;
+        $this->readyAt = null;
     }
 }

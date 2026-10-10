@@ -9,7 +9,7 @@ use Symfony\Component\HttpFoundation\UriSigner;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 /**
- * The one-click unsubscribe link of the weekly content digest (`List-Unsubscribe`, RFC 8058) - and of the XP reveal
+ * The one-click unsubscribe link of the activity digest e-mail (`List-Unsubscribe`, RFC 8058) - and of the XP reveal
  * e-mail, its one-off sibling: signed, so it works without signing in and nobody can switch off somebody else's
  * e-mails by guessing. Never expires - an unsubscribe link in an old e-mail must keep working. Same pattern as the
  * unread-messages digest (DigestEmailsUnsubscribeUrl).

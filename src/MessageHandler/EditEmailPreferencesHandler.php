@@ -42,6 +42,10 @@ readonly final class EditEmailPreferencesHandler
         $player->changeNewsletterEnabled($message->newsletterEnabled);
         $player->changeResultEmailsEnabled($message->resultEmailsEnabled);
 
+        if ($message->contentDigestFrequency !== null) {
+            $player->changeContentDigestFrequency($message->contentDigestFrequency);
+        }
+
         $playerEmail = $newsletterChanged ? $this->playerAccountEmail->ofPlayer($player) : null;
 
         if ($playerEmail !== null) {

@@ -251,10 +251,6 @@
   "most_active_puzzlers": "最も熱心なパズラー"
   "puzzle_solved_count": "解いたパズル数"
   "link_to_hub": "最多解決パズルや最もアクティブなプレイヤーをお探しですか？<a class=\"text-decoration-underline\" href=\"%link%\">新しいハブ</a>に移動しました！"
-  "msp_elo_banner": "<a class=\"fw-bold text-decoration-underline\" href=\"%link%\">MSP Ratingラダー</a>&nbsp;<span class=\"badge bg-light text-dark\">BETA</span>をリリースしました — スキルベースの新しいランキングシステムです。できたてほやほやなので、微調整を重ねながら改善していきます！"
-  "msp_elo_cta": "MSP Ratingラダー"
-  "xp_ladder_banner": "2つのランキングが登場：どれだけ組んだかのXPと、何を達成したかの実績ポイント。"
-  "xp_ladder_cta": "XPランキング"
 "filters":
   "button": "フィルター"
   "filter_by": "フィルター条件"
@@ -617,7 +613,6 @@
   "manage_subscription_android_info": "Google Play Storeの支払いと定期購入からサブスクリプションを管理できます。"
   "purchase_via_app_store": "お支払いはApple App Store経由で処理されます。"
   "purchase_via_play_store": "お支払いはGoogle Play Store経由で処理されます。"
-  "full_description": "<ul>\n    <li>プラットフォーム開発をサポートしてくださることへの大きな感謝</li>\n    <li>あなた専用のパーソナライズされたプレイヤーコード（プロフィールで変更可能）</li>\n    <li>メンバーシップバッジ</li>\n    <li>初回試行でのフィルタリング</li>\n    <li>国別フィルタリング</li>\n    <li>チャート</li>\n    <li>バーコードスキャナー</li>\n    <li>詳細統計</li>\n</ul>\n\n<h3 class=\"h4\">近日公開予定の機能は？</h3>\n<ul>\n    <li>月次および年次レポート <small class=\"ms-1 text-muted\">（近日公開）</small></li>\n    <li>公開mypuzzler.comプロフィール <small class=\"ms-1 text-muted\">（近日公開）</small></li>\n    <li class=\"mt-2\">メンバー専用の特別チャレンジ</li>\n    <li>メンバー間でのパズルの貸し借りと販売</li>\n    <li>ゲーミフィケーション - 経験値とレベルの獲得</li>\n    <li>様々な達成のためのバッジ</li>\n    <li>&hellip; その他多数、これはあなたのために準備している機能のほんの一部です！</li>\n</ul>\n"
   "members_exclusive_button": "メンバー限定"
   "members_exclusive_short": "メンバー"
   "modal":
@@ -1377,7 +1372,6 @@ competition_referees:
     "millions": "%count%M"
     "activity_label": "月ごとのパズル数"
     "activity_bar": "%month%：%count%個のパズル"
-    "rating": "MSP Rating %rating%"
     "tier_locked": "スキルティア"
     "competes": "イベントに参加"
     "swaps": "パズルを交換"
@@ -1650,15 +1644,9 @@ xp:
     level_chip: "Lv %level%"
     total: "%xp% XP"
     total_tooltip: "合計%xp% XPを獲得"
-    max_level_reached: "山の頂上に到達 — レベル50！"
     progress_label: "レベル%level%まであと%xp% XP"
     receipt:
-        title: "今回の完成で獲得したXP"
         total: "合計"
-        waiting_teaser: "{1}この完成は、お披露目待ちの実績1個にカウントされました 🔒|]1,Inf[この完成は、お披露目待ちの実績%count%個にカウントされました 🔒"
-        max_level_title: "レベル50 — XPはこれからも貯まり、栄光は永遠に"
-        nearest_achievements: "次の実績はもう目前です："
-        max_level_all_done: "制覇できるものはすべて制覇しました。正直、脱帽です。"
         relax_repeat: "おなじみのパズルを、純粋に楽しむために — 今回はXPなし。それがいいんです。"
         counting: "XPを集計中…"
     line:
@@ -1677,48 +1665,19 @@ xp:
         difficulty_pending: "難易度ボーナスは保留中 — このパズルが評価されると確定します"
         speed_pending: "スピードボーナスは保留中 — 3人のパズラーのタイムが必要です"
     levelup:
-        aria: "レベルアップ！レベル%level%に到達しました"
         label: "レベルアップ！"
         max_label: "頂上です！"
         message: "あなたのパズルの旅は登り続けています。お見事です！"
-        max_message: "レベル50。ここが最高峰です。ここから先は、実績ポイントのラダーがあなたの山になります。"
         enter_ap_ladder: "APラダーへ進む"
-        view_ap_ladder: "APラダーを見る"
-        skip_hint: "どこでもタップして続行"
-    achievement_toast:
-        title: "新しい実績！"
     estimate:
-        line: "このパズルを完成させると約%base% XP＋最大%bonus%のボーナスを獲得"
-        repeat_note: "このパズルは以前にも完成しています — 今回は×%multiplier%でカウントされます。"
-        unrated_note: "難易度ボーナスは、このパズルが評価されると自動的に確定します。"
     leaderboard:
-        meta_title: "XPリーダーボード"
-        title: "XPリーダーボード"
-        subtitle: "活動に、拍手を。"
-        all_leaderboards: "すべてのリーダーボード"
         favorites_only: "お気に入りのみ"
         player: "パズラー"
-        value:
-            xp: "合計XP"
-            achievement-points: "AP"
-        tab:
-            xp: "XP"
-            achievement-points: "実績ポイント"
-        ap_title: "実績ポイントランキング"
-        ap_subtitle: "コンプリートを競う。"
-        ap_login_required: "実績ポイントのラダーを見るにはログインしてください。"
-        xp_value: "%xp% XP"
-        ap_value: "%points% AP"
-        your_position: "あなたの順位"
-        empty: "まだ何もありません — 記録を追加して、ボードの幕を開けましょう！"
     history:
         meta_title: "マイXP履歴"
         title: "マイXP履歴"
         subtitle: "1ポイントまで、すべて記帳済み — あなたの完全なXP台帳です。"
-        when: "日時"
-        reason: "理由"
         empty: "まだXPがありません — 最初の完成がそれを変えます。"
-        deleted_solve: "削除された記録"
         pagination: "XP履歴のページ"
         note: "気になる行がありますか？"
     reveal:
@@ -1747,19 +1706,6 @@ xp:
         title: "XPとレベルの仕組み"
         intro: "パズルをひとつ完成させるたびに、あなたは前へ進みます。XP（経験値）は、速さではなく、あなたが取り組んだことそのものをたたえるもの。記録を追加してXPを獲得し、レベルが1から50まで育っていくのを見守りましょう。"
         currencies:
-            heading: "MySpeedPuzzlingの3つの数字"
-            header_what: "項目"
-            header_measures: "測るもの"
-            header_who: "表示対象"
-            xp_name: "XPとレベル"
-            xp_measures: "あなたの活動 — すべての完成がカウント"
-            xp_who: "全員、ずっと無料"
-            ap_name: "実績ポイント（AP）"
-            ap_measures: "獲得した実績のコレクション"
-            ap_who: "メンバー"
-            rating_name: "MSP Rating"
-            rating_measures: "あなたの速さとスキル"
-            rating_who: "メンバー（従来どおり、別枠）"
             never_bought: "XPは決してお金では買えません — ブーストも、倍率も、近道もなし。ずっとです。"
             unlock_nothing: "レベルで機能が解放されることはありません。レベルは、あなたのパズラーとしての個性を映すものです。"
         how:
@@ -1795,7 +1741,6 @@ xp:
             opt_out_question: "こういうのは要りません。"
             opt_out_answer: "わかりました — プロフィール設定（「経験値システム」）でオフにすると、レベル、XP、お祝い演出が表示されなくなります。"
             friend_question: "同じパズルなのに、友達の方が多くXPをもらえたのはなぜですか？"
-            friend_answer: "リピートの減額、ウィークリーブースト、デイリーウォームアップは人それぞれ。2枚の明細がぴったり一致することはめったにありません。明細の行をタップすると、その理由が表示されます。"
             fair_play_question: "公平性はどう保たれていますか？"
             fair_play_answer: "静かに自動で働くいくつかのガードレールが、数字の正直さを守っています — 詳しくは<a href=\"%fair_play_link%\">フェアプレイと信頼</a>のページをご覧ください。"
     fair_play:
@@ -1810,20 +1755,9 @@ xp:
         closing_celebrate: "正直にパズルを、盛大にお祝いを。🧩"
         explainer_link: "1ポイントごとの獲得方法が気になりますか？<a href=\"%explainer_link%\">XPとレベルの仕組み</a>をご覧ください。"
 
-content_digest:
-    unsubscribe:
-        meta_title: "ダイジェストの配信停止"
-        confirm_title: "週間ダイジェストの配信を停止しますか？"
-        confirm_text: "お気になさらず — 下をワンクリックするだけで週間ダイジェストは止まります。通知設定からいつでも再開できます。"
-        confirm_button: "はい、配信を停止します"
-        done_title: "配信を停止しました"
-        done_text: "今後、週間ダイジェストのメールは届きません。恋しくなったら、通知設定でいつでもお待ちしています。"
-        back_home: "MySpeedPuzzlingに戻る"
-
 badges:
     title: "実績"
     my_title: "マイ実績"
-    new: "NEW"
     browse_all: "すべての実績を見る"
     reveal: "新しい実績をお披露目する"
     waiting_teaser: "{1}実績1個があなたを待っています — メンバーになってお披露目しましょう！|]1,Inf[実績%count%個があなたを待っています — メンバーになってお披露目しましょう！"
@@ -1831,17 +1765,13 @@ badges:
     unlock_with_membership: "メンバーシップで解除"
     ap_total: "%points% AP"
     ap_total_tooltip: "あなたの実績ポイント — 獲得したティアはすべて、ずっとカウントされます"
-    free_user_hint: "メンバーシップがなくても実績は貯まり続けます — 大切に保管されて、あなたを待っています。"
-    earned_waiting: "獲得済み ✓ — お披露目待ち 🔒"
     view_holders: "獲得したパズラーを見る"
-    how_it_works_link: "XPとレベルの仕組み"
     detail:
         meta_title: "%name% — 実績保持者"
         country_filter: "国"
         all_countries: "すべての国"
         newest_earners: "最近の獲得者"
         holders_count: "{0}まだいません|{1}1人のパズラー|]1,Inf[%count%人のパズラー"
-        holders_count_tooltip: "この数には全員が含まれます — 下に掲載されていないパズラーも含みます"
         first_to_earn: "最初の獲得者"
         more_puzzlers: "+%count%人のパズラー"
         only_hidden_holders: "{1}1人のパズラーがこのティアを獲得しています — プロフィールは公開されていません。|]1,Inf[%count%人のパズラーがこのティアを獲得しています — プロフィールは公開されていません。"
@@ -1868,9 +1798,6 @@ badges:
     locked: "ロック中"
     earned_on: "%date%に獲得"
     highest_earned: "最高獲得ティア"
-    not_earned_yet: "未獲得"
-    keep_going: "その調子！"
-    login_to_track: "ログインすると、各実績への進捗を確認できます。"
     info:
         open: "%achievement% はどんな実績？"
         earned: "獲得済み"
@@ -2052,12 +1979,6 @@ badges:
     "prediction_unavailable_baseline": "%pieces%ピースパズルの初回ソロ完成をもっと増やすと、タイム予測が利用可能になります。"
     "prediction_unavailable_difficulty": "まだこのパズルの完成者が少なく、予測を生成できません。"
     "prediction_unavailable_opted_out": "プロフィール設定でランキングが無効になっています。"
-  "ranking":
-    "title": "あなたの順位"
-    "position": "%total%人中 #%rank%位"
-    "first_place": "このパズルで最速タイムです！"
-    "first_solver": "このパズルの最初の完成者です！"
-    "top_percent": "上位%percent%%"
   "history":
     "title": "このパズルの履歴"
     "first_time": "このパズルの初完成です！もう一度解いて、上達を追跡しましょう。"
@@ -2069,15 +1990,6 @@ badges:
     "difficulty": "難易度"
     "predicted_range": "予測範囲"
     "need_more_solvers": "このパズルの難易度を計算するには、もっと多くの完成者が必要です。"
-  "progress":
-    "title": "あなたの全体的な進捗（%pieces%ピース）"
-    "skill_tier": "スキルティア"
-    "skill_percentile": "上位%percent%%のプレイヤー"
-    "skill_tier_unavailable": "あと%count%個の%pieces%ピース対象パズルを完成させると、スキルティアが解放されます。"
-    "elo_title": "MSP Ratingレーティング"
-    "elo_first_attempts": "初回挑戦"
-    "elo_total_solves": "総完成数"
-    "elo_unavailable": "MSP Ratingラダーに参加するには、%pieces%ピースパズルをもっと解く必要があります。"
 "added_tracking_recap":
   "meta":
     "title": "パズル記録済み"
@@ -3360,9 +3272,7 @@ puzzle_intelligence:
             title: "MSP Rating – スピードパズルランキング"
             description: "MSP Ratingラダーは完成タイムとパズルの難易度を組み合わせ、スピードパズラーの実力をランク付け。世界トップのパズラーをチェックしましょう。"
         title: "MSP Ratingラダー"
-        subtitle: "直接対決のパフォーマンスに基づく競技ランキング"
         beta_badge: "BETA"
-        fresh_notice: "この機能はリリースしたばかりです — アルゴリズムの微調整中で、ランキングは変更される可能性があります。"
         how_it_works: "計算方法は？"
         player: "プレイヤー"
         rating: "レーティング"
@@ -3549,8 +3459,6 @@ puzzle_intelligence:
         predictability_desc: "このパズルの難易度はどれだけ予測しやすいですか？"
         skill_sensitivity: "スキル感度"
         skill_sensitivity_desc: "スキルがこのパズルで大きな差を生みますか？"
-    player_insights:
-        title: "プレイヤーインサイト"
     prediction:
         title: "あなたの予測"
         estimated_time: "推定タイム"

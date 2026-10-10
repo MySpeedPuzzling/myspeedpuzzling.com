@@ -43,22 +43,22 @@ final class DetailPagesQueryBudgetTest extends WebTestCase
     {
         // The series, its occurrences, the going counts (2026-10-08: 3, the old page 4)
         yield 'series, guest' => [self::HARBOR, null, 3];
-        // + the viewer's going/follow rows, the permissions statement and the signed-in overhead (4), and
-        // the XP ring in the header (GetXpProfile) - every signed-in player since the launch, until the level rides on the viewer's profile row
-        yield 'series, player' => [self::HARBOR, PlayerFixture::PLAYER_REGULAR, 10];
-        yield 'series, organiser' => [self::HARBOR, PlayerFixture::PLAYER_ADMIN, 10];
+        // + the viewer's going/follow rows, the permissions statement and the signed-in overhead (4)
+        yield 'series, player' => [self::HARBOR, PlayerFixture::PLAYER_REGULAR, 9];
+        // The same for an admin: the navbar's XP ring reads the viewer's own profile row (no query of its own)
+        yield 'series, organiser' => [self::HARBOR, PlayerFixture::PLAYER_ADMIN, 9];
         // Nothing coming: no going counts
         yield 'series without editions, guest' => [self::SUMMIT, null, 2];
-        yield 'series without editions, player' => [self::SUMMIT, PlayerFixture::PLAYER_REGULAR, 9];
+        yield 'series without editions, player' => [self::SUMMIT, PlayerFixture::PLAYER_REGULAR, 8];
         // The old edition page + results per round
         yield 'edition, guest' => [self::SEASON_ONE, null, 12];
         // + the signed-in overhead (4), statuses, attendance and the permissions statement
-        yield 'edition, player' => [self::SEASON_ONE, PlayerFixture::PLAYER_REGULAR, 20];
-        yield 'edition, organiser' => [self::SEASON_ONE, PlayerFixture::PLAYER_ADMIN, 20];
+        yield 'edition, player' => [self::SEASON_ONE, PlayerFixture::PLAYER_REGULAR, 19];
+        yield 'edition, organiser' => [self::SEASON_ONE, PlayerFixture::PLAYER_ADMIN, 19];
         // Below the old wjpc-2024 page (16): round puzzles are no longer read a second time; the marketplace card's one
         yield 'event, guest' => [self::HILLTOP, null, 12];
-        yield 'event, player' => [self::HILLTOP, PlayerFixture::PLAYER_REGULAR, 20];
-        yield 'event, organiser' => [self::HILLTOP, PlayerFixture::PLAYER_ADMIN, 20];
+        yield 'event, player' => [self::HILLTOP, PlayerFixture::PLAYER_REGULAR, 19];
+        yield 'event, organiser' => [self::HILLTOP, PlayerFixture::PLAYER_ADMIN, 19];
     }
 
     #[DataProvider('providePages')]
@@ -80,9 +80,9 @@ final class DetailPagesQueryBudgetTest extends WebTestCase
     {
         // A non-admin organiser: maintainer of both series (Season One is edited through its series), creator of the
         // one-time event - the same statements as an admin, the permissions statement answers both
-        yield 'series, maintainer' => [self::HARBOR, 10];
-        yield 'edition, series maintainer' => [self::SEASON_ONE, 20];
-        yield 'event, creator' => [self::HILLTOP, 20];
+        yield 'series, maintainer' => [self::HARBOR, 9];
+        yield 'edition, series maintainer' => [self::SEASON_ONE, 19];
+        yield 'event, creator' => [self::HILLTOP, 19];
     }
 
     #[DataProvider('provideMaintainerPages')]
@@ -159,8 +159,8 @@ final class DetailPagesQueryBudgetTest extends WebTestCase
 
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
 
-        self::assertSame(10, $this->measure($browser, '/en/series/' . $small['slug']), 'player, two editions (+ the XP ring)');
-        self::assertSame(10, $this->measure($browser, '/en/series/' . $large['slug']), 'player, 203 editions (+ the XP ring)');
+        self::assertSame(9, $this->measure($browser, '/en/series/' . $small['slug']), 'player, two editions');
+        self::assertSame(9, $this->measure($browser, '/en/series/' . $large['slug']), 'player, 203 editions');
         self::assertCount(1, $browser->getCrawler()->filter('[data-series-add-time]'));
     }
 

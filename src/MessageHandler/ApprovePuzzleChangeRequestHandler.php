@@ -32,7 +32,9 @@ use SpeedPuzzling\Web\Value\NotificationType;
 use SpeedPuzzling\Web\Value\PuzzleRecordValues;
 use SpeedPuzzling\Web\Value\PuzzleReportStatus;
 use SpeedPuzzling\Web\Services\OutdatedPuzzleRequests;
+use SpeedPuzzling\Web\Message\RecalculateKarma;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
+use Symfony\Component\Messenger\MessageBusInterface;
 
 /**
  * Approves a puzzle change request. The admin review sends the whole puzzle as the reviewer wants it
@@ -57,6 +59,7 @@ readonly final class ApprovePuzzleChangeRequestHandler
         private PuzzleModerationDecisionRecorder $puzzleModerationDecisionRecorder,
         private ChangeRequestCreatedBrandSettler $changeRequestCreatedBrandSettler,
         private OutdatedPuzzleRequests $outdatedPuzzleRequests,
+        private MessageBusInterface $messageBus,
     ) {
     }
 
@@ -146,6 +149,9 @@ readonly final class ApprovePuzzleChangeRequestHandler
             targetChangeRequest: $changeRequest,
         );
         $this->entityManager->persist($notification);
+
+        // Karma (docs/features/karma.md): the proposer, the moderator - and the puzzle's adder, an EAN may have come
+        $this->messageBus->dispatch(RecalculateKarma::forPlayers($changeRequest->reporter, $reviewer, $puzzle->addedByUser));
     }
 
     /**

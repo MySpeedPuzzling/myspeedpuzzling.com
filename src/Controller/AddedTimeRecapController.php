@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
+use Psr\Clock\ClockInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
 use SpeedPuzzling\Web\Exceptions\PuzzleSolvingTimeNotFound;
 use SpeedPuzzling\Web\Query\GetPlayerDuplicateCases;
@@ -17,6 +18,9 @@ use SpeedPuzzling\Web\Query\GetRanking;
 use SpeedPuzzling\Web\Repository\ResultAutoRemovalRepository;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\MspRatingCalculator;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\PlayerSkillCalculator;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\PuzzleIntelligenceRecalculator;
+use SpeedPuzzling\Web\Value\RecapProgress;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -35,10 +39,12 @@ final class AddedTimeRecapController extends AbstractController
         readonly private GetPlayerSkill $getPlayerSkill,
         readonly private GetPlayerRatingRanking $getPlayerRatingRanking,
         readonly private MspRatingCalculator $mspRatingCalculator,
+        readonly private PlayerSkillCalculator $playerSkillCalculator,
         readonly private GetSolvingTimePrediction $getSolvingTimePrediction,
         readonly private GetPlayerDuplicateCases $getPlayerDuplicateCases,
         readonly private ResultAutoRemovalRepository $autoRemovalRepository,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
+        readonly private ClockInterface $clock,
     ) {
     }
 
@@ -73,24 +79,32 @@ final class AddedTimeRecapController extends AbstractController
         }
 
         $player = $this->getPlayerProfile->byId($solvingPuzzle->playerId);
+        $viewer = $this->retrieveLoggedUserProfile->getProfile();
+        $viewerIsMember = $viewer?->activeMembership === true;
 
-        $isSolo = $solvingPuzzle->players === null;
+        $isTimedSolo = $solvingPuzzle->players === null && $solvingPuzzle->time !== null;
         $puzzleDifficulty = $this->getPuzzleDifficulty->byPuzzleId($solvingPuzzle->puzzleId);
 
         $timePrediction = null;
         $ranking = null;
         $puzzleHistory = [];
-        $playerSkill = null;
-        $ratingData = [];
-        $ratingProgress = null;
 
-        if ($isSolo && $solvingPuzzle->time !== null && !$player->timePredictionsOptedOut) {
+        // The progress card's competition line - MSP Rating and skill tier exist for some piece counts only (500 today),
+        // and are members-only; free players get one locked line instead
+        $hasRating = in_array($solvingPuzzle->piecesCount, PuzzleIntelligenceRecalculator::RATING_PIECES_COUNTS, true);
+        $hasSkillTier = in_array($solvingPuzzle->piecesCount, PuzzleIntelligenceRecalculator::SKILL_PIECES_COUNTS, true);
+        $rating = null;
+        $ratingProgress = null;
+        $playerSkill = null;
+        $skillQualifyingCount = null;
+
+        if ($isTimedSolo && !$player->timePredictionsOptedOut) {
             // What was predicted for this solve, stored when it was added - computing it now would see the
             // new time already folded into the baseline and difficulty
             $timePrediction = $this->getSolvingTimePrediction->resultForTime($timeId);
         }
 
-        if ($isSolo && $solvingPuzzle->time !== null && !$player->rankingOptedOut) {
+        if ($isTimedSolo && !$player->rankingOptedOut) {
             $ranking = $this->getRanking->ofPuzzleForPlayer($solvingPuzzle->puzzleId, $solvingPuzzle->playerId);
 
             $puzzleHistory = $this->getPlayerSolvedPuzzles->soloByPlayerIdAndPuzzleId(
@@ -98,38 +112,55 @@ final class AddedTimeRecapController extends AbstractController
                 $solvingPuzzle->puzzleId,
             );
 
-            $playerSkill = $this->getPlayerSkill->byPlayerIdAndPiecesCount(
-                $solvingPuzzle->playerId,
-                $solvingPuzzle->piecesCount,
-            );
-
-            $ratingData = $this->getPlayerRatingRanking->allForPlayer($solvingPuzzle->playerId);
-
-            if (!isset($ratingData[$solvingPuzzle->piecesCount])) {
-                $ratingProgress = $this->mspRatingCalculator->getProgress(
+            if ($viewerIsMember && $hasSkillTier) {
+                $playerSkill = $this->getPlayerSkill->byPlayerIdAndPiecesCount(
                     $solvingPuzzle->playerId,
                     $solvingPuzzle->piecesCount,
                 );
+
+                if ($playerSkill === null) {
+                    $skillQualifyingCount = $this->playerSkillCalculator->qualifyingPuzzlesCount(
+                        $solvingPuzzle->playerId,
+                        $solvingPuzzle->piecesCount,
+                    );
+                }
+            }
+
+            if ($viewerIsMember && $hasRating) {
+                $rating = $this->getPlayerRatingRanking->allForPlayer($solvingPuzzle->playerId)[$solvingPuzzle->piecesCount] ?? null;
+
+                if ($rating === null) {
+                    $ratingProgress = $this->mspRatingCalculator->getProgress(
+                        $solvingPuzzle->playerId,
+                        $solvingPuzzle->piecesCount,
+                    );
+                }
             }
         }
 
         // Saved twice? The detection right after the save already stored it (docs/features/duplicate-results.md)
-        $viewer = $this->retrieveLoggedUserProfile->getProfile();
         $duplicates = $viewer !== null ? $this->getPlayerDuplicateCases->openOfTime($viewer->playerId, $timeId) : [];
 
         return $this->render('added_time_recap.html.twig', [
             'duplicates' => $duplicates,
             'viewer_player_id' => $viewer?->playerId,
+            'viewer_is_member' => $viewerIsMember,
             'solved_puzzle' => $solvingPuzzle,
             'puzzle_difficulty' => $puzzleDifficulty,
             'time_prediction' => $timePrediction,
             'player' => $player,
-            'is_solo' => $isSolo,
+            'is_timed_solo' => $isTimedSolo,
             'ranking' => $ranking,
+            'faster_than_percent' => $ranking !== null ? RecapProgress::fasterThanPercent($ranking->rank, $ranking->totalPlayers) : null,
             'puzzle_history' => $puzzleHistory,
+            'has_rating' => $hasRating,
+            'has_skill_tier' => $hasSkillTier,
             'player_skill' => $playerSkill,
-            'elo_data' => $ratingData,
-            'elo_progress' => $ratingProgress,
+            'skill_qualifying_count' => $skillQualifyingCount,
+            'skill_minimum' => PlayerSkillCalculator::MINIMUM_QUALIFYING_PUZZLES,
+            'rating' => $rating,
+            'rating_progress' => $ratingProgress,
+            'celebrate' => $solvingPuzzle->trackedAt !== null && RecapProgress::isFresh($solvingPuzzle->trackedAt, $this->clock->now()),
         ]);
     }
 }

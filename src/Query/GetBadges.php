@@ -88,13 +88,13 @@ SQL;
     }
 
     /**
-     * How many achievement tiers the player earned with this solve - for the post-solve teaser of a free player
-     * ("You earned an achievement with this time. Become a member to find out which."), who must never learn which.
-     * One statement, no hydration.
+     * How many achievement tiers the player earned with this solve - for a free player's teaser ("You earned an
+     * achievement with this time. Become a member to find out which."), who must never learn which. One statement.
      *
-     * "With this solve" = earned since the solve was logged and before the player logged their next one: the badge
-     * evaluation runs asynchronously right after the save (RecalculateBadgesForPlayer), so its tiers carry a later
-     * earned_at than the solve's tracked_at. 0 until the evaluation has run.
+     * "With this solve": a badge row does not point at the solve that earned it. Saving a time queues
+     * RecalculateBadgesForPlayer for every registered member, so its tiers are stamped right after the save: from the
+     * solve's `tracked_at`, within 10 minutes (a later cron run must not be credited to an old time) and
+     * before the player logged their next time (two quick saves do not share their tiers). 0 until the evaluation ran.
      */
     public function countTiersEarnedWithSolve(string $playerId, string $solvingTimeId): int
     {
@@ -109,8 +109,8 @@ SQL;
     }
 
     /**
-     * The achievements earned with this solve (see countTiersEarnedWithSolve()), the highest new tier per type - for
-     * a member's post-solve reveal.
+     * The achievements earned with this solve (see countTiersEarnedWithSolve()), the highest new tier per type, best
+     * first (a single-tier achievement counts like Gold) - the recap's achievement reveal for members.
      *
      * @return list<BadgeResult>
      */
@@ -125,13 +125,18 @@ SQL;
             ->executeQuery($sql, ['playerId' => $playerId, 'solvingTimeId' => $solvingTimeId])
             ->fetchAllAssociative();
 
-        return $this->hydrate($rows);
+        $badges = $this->hydrate($rows);
+        $rank = static fn (BadgeResult $badge): int => $badge->tier === null ? BadgeTier::Gold->value : $badge->tier->value;
+        usort($badges, static fn (BadgeResult $a, BadgeResult $b): int => $rank($b) <=> $rank($a));
+
+        return $badges;
     }
 
     private const string EARNED_WITH_SOLVE = <<<SQL
 JOIN puzzle_solving_time solve ON solve.id = :solvingTimeId
 WHERE b.player_id = :playerId
   AND b.earned_at >= solve.tracked_at
+  AND b.earned_at < solve.tracked_at + INTERVAL '10 minutes'
   AND NOT EXISTS (
     SELECT 1
     FROM puzzle_solving_time later

@@ -1,0 +1,492 @@
+//
+// The recap after logging a time - one progress card (docs/features/xp-levels/launch-2026-10.md, "After logging a time")
+// --------------------------------------------------
+// templates/added_time_recap.html.twig, added_tracking_recap.html.twig, components/XpRecapCelebration.html.twig and
+// templates/added_time_recap/_*.html.twig. Imported after the last-piece reveal: the achievement stage reuses it.
+// Motion runs once, only when recap_celebration_controller.js adds .is-celebrating; reduced motion = static.
+
+// Phones: card, share image, prediction + history. From md up the share image takes the right column.
+.recap-layout {
+  display: grid;
+  grid-template-areas: "card" "share" "more";
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+
+  @media (min-width: 768px) {
+    grid-template-areas: "card share" "more share";
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+    column-gap: 1.5rem;
+  }
+
+  @media (min-width: 992px) {
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  }
+}
+
+.recap-layout-card {
+  grid-area: card;
+}
+
+.recap-layout-share {
+  grid-area: share;
+}
+
+.recap-layout-more {
+  grid-area: more;
+}
+
+
+// ------------------------------------------------------------------ the card
+
+.recap-card {
+  border: 1px solid $border-color;
+  border-radius: $border-radius-lg;
+  background: $white;
+  box-shadow: $box-shadow-sm;
+  overflow: visible clip;                // the first separator is hidden under the top edge; pieces may fly sideways
+
+  // nothing moved (XP opted out, not a participant, no place): no empty frame
+  &:not(:has(.recap-row, .recap-achievement)) {
+    display: none;
+  }
+
+  > :first-child {
+    margin-top: -1px;
+  }
+}
+
+// One row per thing that moved; each one a link to its home (≥ 44 px)
+.recap-row,
+.recap-level,
+.recap-achievements {
+  border-top: 1px solid $border-color;
+}
+
+.recap-row {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  width: 100%;
+  min-height: 3.5rem;
+  padding: .625rem 1rem;
+  border-right: 0;
+  border-bottom: 0;
+  border-left: 0;
+  background: none;
+  color: $body-color;
+  text-align: left;
+  text-decoration: none;
+
+  &:is(a, button):hover,
+  &:is(a, button):focus-visible {
+    background: $gray-100;
+    color: $body-color;
+  }
+}
+
+.recap-level > .recap-row,
+.recap-achievements > :first-child {
+  border-top: 0;
+}
+
+.recap-row-icon {
+  display: grid;
+  flex: 0 0 2.25rem;
+  place-items: center;
+  height: 2.25rem;
+  border-radius: 50%;
+  font-size: 1.1rem;
+}
+
+.recap-icon-level {
+  background: rgba($xp-indigo, .12);
+  color: $xp-indigo;
+
+  &.is-max {
+    background: linear-gradient(135deg, $xp-gold-deep, $xp-gold);
+    color: #3f2d00;
+  }
+}
+
+.recap-icon-place {
+  background: rgba($xp-gold-deep, .16);
+  color: #9a6a00;
+}
+
+.recap-icon-competition {
+  background: rgba($xp-sky, .18);
+  color: #2b6cb0;
+}
+
+.recap-icon-achievement {
+  background: rgba($xp-coral, .16);
+  color: #c2413d;
+}
+
+.recap-row-body {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: .25rem;
+  min-width: 0;
+}
+
+.recap-row-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .125rem .5rem;
+  color: $headings-color;
+  font-weight: $font-weight-medium;
+  line-height: 1.3;
+}
+
+.recap-row-sub {
+  color: $gray-600;
+  font-size: $font-size-sm;
+  line-height: 1.35;
+}
+
+.recap-row-chevron {
+  flex: none;
+  color: $gray-500;
+  font-size: .875rem;
+}
+
+.recap-row-badge {
+  width: 2.75rem;
+  height: 2.75rem;
+}
+
+.recap-row-pending .placeholder {
+  height: .5rem;
+  border-radius: 999px;
+}
+
+
+// ------------------------------------------------------------------ the level line
+
+.recap-xp-plus {
+  color: $xp-indigo;
+  font-weight: $font-weight-bold;
+}
+
+.recap-levelup-pill {
+  position: relative;
+  padding: .125em .625em;
+  border-radius: 999px;
+  background: $xp-indigo;
+  color: $white;
+  font-size: .75rem;
+  font-weight: $font-weight-bold;
+  white-space: nowrap;
+}
+
+.recap-bar {
+  display: block;
+  height: .5rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba($xp-navy, .1);
+}
+
+.recap-bar-fill {
+  --from: 0;
+  --to: 0;
+
+  display: block;
+  width: calc(var(--to) * 100%);
+  min-width: 2px;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, $xp-sky, $xp-indigo);
+}
+
+.recap-level.is-celebrating {
+  .recap-bar-fill {
+    animation: recap-bar-fill .9s ease-out .15s both;
+  }
+
+  &:not(.is-leveled) .recap-levelup-pill {
+    visibility: hidden;                  // appears when the number ticks over
+  }
+}
+
+.recap-level.is-leveled {
+  .recap-levelup-pill {
+    animation: xp-pop .5s cubic-bezier(.2, 1.6, .4, 1);
+  }
+
+  .recap-icon-level {
+    animation: recap-level-glow 1.2s ease-out;
+  }
+}
+
+@keyframes recap-bar-fill {
+  from {
+    width: calc(var(--from) * 100%);
+  }
+
+  to {
+    width: calc(var(--to) * 100%);
+  }
+}
+
+@keyframes recap-level-glow {
+  0% {
+    box-shadow: 0 0 0 0 rgba($xp-indigo, .45);
+  }
+
+  100% {
+    box-shadow: 0 0 0 .875rem rgba($xp-indigo, 0);
+  }
+}
+
+// The receipt, one tap away
+.recap-receipt {
+  padding: 0 1rem 0 4rem;
+  font-size: $font-size-sm;
+
+  > summary {
+    display: flex;
+    align-items: center;
+    gap: .375rem;
+    min-height: 2.75rem;
+    color: $primary;
+    font-weight: $font-weight-medium;
+    cursor: pointer;
+    list-style: none;
+
+    &::-webkit-details-marker {
+      display: none;
+    }
+
+    &::after {
+      content: "";
+      width: .45rem;
+      height: .45rem;
+      margin-top: -.2rem;
+      border-right: 2px solid currentcolor;
+      border-bottom: 2px solid currentcolor;
+      transform: rotate(45deg);
+    }
+  }
+
+  &[open] > summary::after {
+    margin-top: .2rem;
+    transform: rotate(-135deg);
+  }
+}
+
+.recap-receipt-lines {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  li {
+    display: flex;
+    justify-content: space-between;
+    gap: .75rem;
+    padding: .25rem 0;
+  }
+
+  .is-pending {
+    color: $gray-600;
+    font-style: italic;
+  }
+
+  .is-total {
+    margin-top: .25rem;
+    border-top: 1px solid $border-color;
+    font-weight: $font-weight-bold;
+  }
+}
+
+.recap-receipt-amount {
+  color: $xp-indigo;
+  font-weight: $font-weight-bold;
+  white-space: nowrap;
+}
+
+.recap-receipt-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+}
+
+
+// ------------------------------------------------------------------ a milestone level: the bottom sheet
+
+.recap-sheet {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 1045;                         // above the page and its sticky bars, below Bootstrap modals
+  display: flex;
+  justify-content: center;
+  padding: 0 .75rem calc(.75rem + env(safe-area-inset-bottom));
+  pointer-events: none;
+
+  &[hidden] {
+    display: none;
+  }
+}
+
+.recap-sheet-body {
+  width: 100%;
+  max-width: 26rem;
+  padding: 1.5rem 1.25rem 1.25rem;
+  border-radius: 1.25rem;
+  background: radial-gradient(circle at 50% 0%, $xp-indigo, $xp-navy);
+  box-shadow: 0 -.5rem 2rem rgba($black, .25);
+  color: $white;
+  text-align: center;
+  pointer-events: auto;
+  animation: recap-sheet-in .35s ease-out;
+}
+
+.recap-sheet-kicker {
+  margin: 0;
+  font-size: .8125rem;
+  font-weight: $font-weight-bold;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  opacity: .85;
+}
+
+.recap-sheet-level {
+  margin: .25rem 0 .5rem;
+  font-size: 2.5rem;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.recap-sheet-text {
+  margin: 0 0 1rem;
+  font-size: $font-size-sm;
+  opacity: .9;
+}
+
+.recap-sheet-actions {
+  display: grid;
+  gap: .5rem;
+
+  .btn {
+    min-height: 2.75rem;
+  }
+}
+
+@keyframes recap-sheet-in {
+  from {
+    opacity: 0;
+    transform: translateY(1.5rem);
+  }
+}
+
+
+// ------------------------------------------------------------------ achievements
+
+// The block the owner asked to stand out: a warm band at the top of the card
+.recap-achievements {
+  overflow-x: clip;                      // flying pieces never widen the page
+  background: linear-gradient(180deg, rgba($xp-gold, .16), rgba($xp-gold, .04));
+}
+
+.recap-achievements .recap-achievement {
+  --lpr-size: 5.5rem;
+
+  flex-direction: row;
+  gap: 1rem;
+  width: auto;
+  padding: 1.75rem 1rem 1rem;            // headroom: the icon piece hovers above its stage
+  text-align: left;
+
+  + .recap-achievement {
+    border-top: 1px dashed rgba($xp-gold-deep, .35);
+  }
+
+  &.is-big {
+    --lpr-size: 9rem;
+
+    flex-direction: column;
+    padding-top: 2.25rem;
+    text-align: center;
+  }
+}
+
+.recap-achievement-text {
+  min-width: 0;
+}
+
+.recap-achievement-kicker {
+  margin: 0;
+  color: #8a5a00;
+  font-size: .75rem;
+  font-weight: $font-weight-bold;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.recap-achievement-name {
+  margin: .125rem 0 0;
+  color: $headings-color;
+  font-size: 1.0625rem;
+  font-weight: $font-weight-medium;
+  line-height: 1.3;
+}
+
+.recap-achievement-hint {
+  margin: .25rem 0 0;
+  color: $gray-700;
+  font-size: $font-size-sm;
+}
+
+.lpr-stage.is-revealed ~ .recap-achievement-text .recap-achievement-hint {
+  display: none;
+}
+
+.recap-achievements .recap-achievement-result {
+  min-height: 0;
+  margin: .125rem 0 0;
+  color: $gray-700;
+}
+
+.recap-achievement-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+  margin-left: .25rem;
+  font-weight: $font-weight-medium;
+}
+
+// Free players: one line when this time earned an achievement
+.recap-row-tease {
+  flex-wrap: wrap;
+
+  .recap-row-body {
+    flex: 1 1 11rem;
+  }
+}
+
+.recap-tease-button {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+  margin-left: 3rem;                     // under the text when it wraps on narrow phones
+
+  @media (min-width: 400px) {
+    margin-left: 0;
+  }
+}
+
+
+@media (prefers-reduced-motion: reduce) {
+  .recap-level.is-celebrating .recap-bar-fill,
+  .recap-level.is-leveled .recap-levelup-pill,
+  .recap-level.is-leveled .recap-icon-level,
+  .recap-sheet-body {
+    animation: none;
+  }
+}

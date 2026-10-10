@@ -7,8 +7,11 @@ namespace SpeedPuzzling\Web\Query;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Results\XpLeaderboardRow;
+use DateTimeImmutable;
 use SpeedPuzzling\Web\Services\HiddenPlayers;
+use SpeedPuzzling\Web\Services\Karma\KarmaDerivation;
 use SpeedPuzzling\Web\Value\CountryCode;
+use SpeedPuzzling\Web\Value\KarmaGroup;
 
 /**
  * Two ladders, two disciplines (§1.9): XP ranks activity and is open to everyone
@@ -119,40 +122,129 @@ SQL;
     }
 
     /**
-     * The viewer's own standing for the pinned self-row: [rank, value] within the
-     * unfiltered public board of that discipline, or null when they are not on it.
+     * Karma list (docs/features/karma.md) - who helps the database most. Everybody, free; private profiles never (global
+     * rankings stay closed to them), admins never (they have no karma), players the viewer blocks are left out so
+     * positions close up. The default board (every kind, all time) reads the stored player.karma; a kind or the last
+     * 12 months come from the derivation itself (one aggregate statement).
      *
-     * @return array{rank: int, value: int}|null
+     * The viewer's own row comes along even when it is outside the top $limit (rank > $limit) - the pinned self-row,
+     * within the same filters.
+     *
+     * @param list<string> $favoritePlayerIds
+     * @return list<XpLeaderboardRow>
      */
-    public function selfRank(string $playerId, string $tab): null|array
+    public function karma(
+        null|KarmaGroup $group,
+        null|DateTimeImmutable $since,
+        null|string $country,
+        null|array $favoritePlayerIds,
+        null|string $viewerPlayerId,
+        int $limit = 100,
+    ): array {
+        [$favoritesCondition, $params, $types] = $this->favoritesFilter($favoritePlayerIds);
+        $hidden = $this->hiddenPlayers->sqlExclude('p.id');
+
+        if ($group === null && $since === null) {
+            $board = <<<SQL
+WITH karma_board AS (
+    SELECT p.id AS player_id, p.karma
+    FROM player p
+    WHERE p.karma > 0
+)
+SQL;
+        } else {
+            $items = KarmaDerivation::itemsCte(scoped: false);
+            $board = <<<SQL
+{$items},
+karma_board AS (
+    SELECT i.player_id, COUNT(*) AS karma
+    FROM karma_items i
+    WHERE i.counted
+      AND (CAST(:karmaKinds AS TEXT) IS NULL OR i.kind = ANY(string_to_array(CAST(:karmaKinds AS TEXT), ',')))
+      AND (CAST(:karmaSince AS TIMESTAMP) IS NULL OR i.at >= CAST(:karmaSince AS TIMESTAMP))
+    GROUP BY i.player_id
+)
+SQL;
+            $params['karmaKinds'] = $group !== null ? implode(',', $group->kindValues()) : null;
+            $params['karmaSince'] = $since?->format('Y-m-d H:i:s');
+        }
+
+        $sql = <<<SQL
+{$board}
+SELECT * FROM (
+    SELECT
+        ROW_NUMBER() OVER (ORDER BY b.karma DESC, p.id ASC) AS rank,
+        p.id AS player_id,
+        p.name AS player_name,
+        p.code,
+        p.country,
+        p.avatar,
+        b.karma AS value,
+        p.level,
+        NULL::int AS achievement_points
+    FROM karma_board b
+    JOIN player p ON p.id = b.player_id
+    WHERE p.is_private = false
+      AND p.is_admin = false
+      {$hidden}
+      AND (CAST(:country AS TEXT) IS NULL OR p.country = :country)
+      {$favoritesCondition}
+) board
+WHERE board.rank <= :limit OR board.player_id = CAST(:viewerPlayerId AS UUID)
+ORDER BY board.rank
+SQL;
+
+        return $this->hydrate($sql, [
+            'country' => $country,
+            'limit' => $limit,
+            'viewerPlayerId' => $viewerPlayerId,
+        ] + $params, $types);
+    }
+
+    /**
+     * The viewer's own standing for the pinned self-row, on the same board the list shows - the country and
+     * favorites filters included, ties broken like the list (value, then id) - or null when the viewer is not on
+     * that board (no XP/AP, private, opted out, another country, AP without membership).
+     *
+     * @param null|list<string> $favoritePlayerIds the favorites board (the viewer counts as on it)
+     * @return array{rank: int, value: int, level: int}|null
+     */
+    public function selfRank(string $playerId, string $tab, null|string $country = null, null|array $favoritePlayerIds = null): null|array
     {
         $eligibility = $this->eligibility();
+        $mineEligibility = str_replace('p.', 'mine.', self::PUBLIC_ELIGIBILITY);
         $membership = self::ACTIVE_MEMBERSHIP;
+        [$favoritesCondition, $params, $types] = $this->favoritesFilter($favoritePlayerIds);
 
-        $sql = match ($tab) {
-            'achievement-points' => <<<SQL
-SELECT mine.achievement_points AS value,
+        $column = $tab === 'achievement-points' ? 'achievement_points' : 'xp_total';
+        $membersOnly = $tab === 'achievement-points'
+            ? "JOIN membership m ON m.player_id = p.id AND {$membership}"
+            : '';
+        $mineMembersOnly = $tab === 'achievement-points'
+            ? 'JOIN membership mm ON mm.player_id = mine.id AND ' . str_replace('m.', 'mm.', $membership)
+            : '';
+
+        $sql = <<<SQL
+SELECT mine.{$column} AS value,
+       mine.level,
        1 + (
            SELECT COUNT(*) FROM player p
-           JOIN membership m ON m.player_id = p.id AND {$membership}
-           WHERE p.achievement_points > mine.achievement_points AND {$eligibility}
+           {$membersOnly}
+           WHERE (p.{$column} > mine.{$column} OR (p.{$column} = mine.{$column} AND p.id < mine.id))
+             AND {$eligibility}
+             AND (CAST(:country AS TEXT) IS NULL OR p.country = :country)
+             {$favoritesCondition}
        ) AS rank
 FROM player mine
-WHERE mine.id = :playerId AND mine.achievement_points > 0
-SQL,
-            default => <<<SQL
-SELECT mine.xp_total AS value,
-       1 + (
-           SELECT COUNT(*) FROM player p
-           WHERE p.xp_total > mine.xp_total AND {$eligibility}
-       ) AS rank
-FROM player mine
-WHERE mine.id = :playerId AND mine.xp_total > 0
-SQL,
-        };
+{$mineMembersOnly}
+WHERE mine.id = :playerId
+  AND mine.{$column} > 0
+  AND {$mineEligibility}
+  AND (CAST(:country AS TEXT) IS NULL OR mine.country = :country)
+SQL;
 
-        /** @var array{value: int|string, rank: int|string}|false $row */
-        $row = $this->database->executeQuery($sql, ['playerId' => $playerId])->fetchAssociative();
+        /** @var array{value: int|string, level: int|string, rank: int|string}|false $row */
+        $row = $this->database->executeQuery($sql, ['playerId' => $playerId, 'country' => $country] + $params, $types)->fetchAssociative();
 
         if ($row === false) {
             return null;
@@ -161,6 +253,7 @@ SQL,
         return [
             'rank' => is_numeric($row['rank']) ? (int) $row['rank'] : 0,
             'value' => is_numeric($row['value']) ? (int) $row['value'] : 0,
+            'level' => is_numeric($row['level']) ? (int) $row['level'] : 1,
         ];
     }
 

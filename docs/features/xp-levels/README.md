@@ -84,10 +84,22 @@ picks it up automatically.
 
 ### Surfaces
 
-Recap receipt + celebration (`XpSolveReceipt` inside the `XpRecapCelebration`
-LiveComponent — one poll bridges the async award), profile/header rings (`XpRing`,
-CSS-only milestone styling; the arc is a masked `::before`, so transparent avatars never
-show a filled disc), achievements catalog `/achievements` + holders directory
+Recap after logging a time = **one progress card** (launch-2026-10.md "After logging a time"): the live rows come
+from the `XpRecapCelebration` LiveComponent (achievements this time earned + the level line with the receipt one tap
+away in a `<details>`), the page adds the place on the puzzle and - for piece counts with a rating (500) - MSP Rating /
+skill tier (members; free players one locked line). XP is awarded asynchronously: the component polls with a growing
+delay (`POLL_DELAYS_MS`, ~30 s) and then says the XP is on its way; the render showing the XP is the last one.
+"This time earned an achievement" = badge rows stamped within 10 minutes after the time's
+`tracked_at` and before the player's next time (`GetBadges::earnedWithSolve()` / `countTiersEarnedWithSolve()`;
+badges do not point at a solve; the badge message is queued before the XP one). Members reveal it
+in place with the last-piece puzzle (`reveal_badge`, so a reload shows the badge); free players read "You earned an
+achievement with this time. Become a member to find out which." Level-up: the "Level up!" pill always; the motion
+(bar fill, number tick, burst) and the milestone bottom sheet (10/20/30/40/50) only on a fresh recap
+(`RecapProgress::isFresh`, 60 min) and once per time id, remembered in localStorage by
+`recap_celebration_controller.js` - no server state, closing needs no request, nothing replays on reload or Back.
+Both recap routes are quiet routes (no announcement modal). The level ring around the player header's
+avatar and the navbar avatar (`XpRing`, read from the profile row - no query; the arc is a masked
+`::before` outside the avatar, milestone colours per 10 levels, a gold "Lv 50" tab), achievements catalog `/achievements` + holders directory
 `/achievements/{type}` + explainer modal `/achievements/{type}/info`
 (`AchievementInfoController`, opened from every badge on a profile through the shared
 `modal-frame`; `?tier=` = the clicked badge, shown big at the top - badge art:
@@ -113,9 +125,11 @@ page that 404s before the launch switch is on (wrappers to be removed after the 
 
 ### Weekly digest
 
-See `docs/features/content-digest/README.md` (Phases 1–2 built; daily digest + rating
-block deferred). Default-on, XP/achievements headline, no-activity variant never twice
-in a row, signed one-click unsubscribe, `experienceSystemOptedOut` excluded.
+Reworked 2026-10-10 into the **activity digest** + the "Your week" page - see `docs/features/content-digest/README.md`
+(the part above "History"): own switch with a frequency (weekly default / every two weeks / monthly / off), Monday sends
+about the completed period paced over the day with a circuit breaker, the no-activity e-mail on Tuesday at most once until
+active again, paused until the period of 12-18 Oct 2026 and while the launch switch is off. `experienceSystemOptedOut`
+no longer stops the e-mail; it leaves out the XP and level lines.
 
 ### Opt-out
 
@@ -141,9 +155,8 @@ file's header; free minutes as of 2026-10-04: :01 :06 :12 :16 :21 :27 :31 :36 :4
 # recalculation; a run dispatches one async message per player with times (~7,600 on 2026-10-04), so
 # every 15 min would put ~730k messages a day on the queue the transactional e-mails share
 16 3 * * * root lily-cron-run myspeedpuzzling recalculate-badges -- docker compose --file /srv/myspeedpuzzling/compose.yaml run --rm --no-deps messenger-consumer sentry-cli monitors run --schedule "16 3 * * *" --timezone "Europe/Prague" recalculate-badges -- bin/console myspeedpuzzling:recalculate-badges >> /var/log/lily/myspeedpuzzling-cron.log 2>&1
-# Weekly content digest - Sundays 18:01 Prague (CRON_TZ is supported on lily, so no DST drift any more);
-# needs the digest-consumer service (content-digest README §13) before the first run
-1 18 * * 0 root lily-cron-run myspeedpuzzling send-content-digest-weekly -- docker compose --file /srv/myspeedpuzzling/compose.yaml run --rm --no-deps messenger-consumer sentry-cli monitors run --schedule "1 18 * * 0" --timezone "Europe/Prague" send-content-digest-weekly -- bin/console myspeedpuzzling:send-content-digest weekly >> /var/log/lily/myspeedpuzzling-cron.log 2>&1
+# Activity digest - Monday 07:01 activity digests, Tuesday 07:01 no-activity e-mails; the rows (and the
+# digest-consumer service they need) are in docs/features/content-digest/README.md §"Production"
 ```
 
 ## Launch switch
@@ -177,8 +190,8 @@ The reveal page and `badge_reveals` are quiet routes (no other announcement moda
 
 Achievements are evaluated and stored for everybody, shown to members only. A free player is teased without learning
 which: `GetBadges::countTiersEarnedWithSolve(playerId, solvingTimeId)` = how many tiers were earned with that solve
-(earned since the solve was logged, before the player's next one; 0 until the async evaluation ran) for the
-post-solve teaser; `GetBadges::earnedWithSolve()` is the same set for members (highest new tier per type).
+(earned within 10 minutes after the solve was logged, before the player's next one; 0 until the async evaluation ran) for the
+recap teaser; `GetBadges::earnedWithSolve()` is the same set for members (highest new tier per type, best first) - the recap (`XpRecapCelebration`) uses it.
 
 ## Rebase onto main 2026-10-04 — what changed, what is open
 
@@ -200,7 +213,7 @@ Main gained ~330 commits while this branch waited. Adapted in the rebase (own co
   the reveal POST was silently lost); links in the achievement modal leave the frame, a non-frame visit of the modal
   URL redirects to the achievement page.
 - **E-mails**: `email_document` + preheaders (6 locales); the unsubscribe follows main's contract
-  (`ContentDigestUnsubscribeUrl`, never expires, `/{_locale}/weekly-digest/unsubscribe/{id}`, one-click 200 / button
+  (`ContentDigestUnsubscribeUrl`, never expires, `/{_locale}/activity-digest/unsubscribe/{id}` since 2026-10-10, one-click 200 / button
   303, `no-store`); the reveal mail goes through the `notifications` transport; the queue is `content_digest_emails`
   (main's unread-messages digest owns `digest_emails_*`); routine bounces and the plausibility guard log at `info`.
 
@@ -220,6 +233,8 @@ Main gained ~330 commits while this branch waited. Adapted in the rebase (own co
    digest switch (its unsubscribe link is the digest's).
 3. **Monday, ~12k recipients, the whole Monday.** Puzzlers are busy over weekends, so the digest goes out on Monday
    about the week that just ended.
+   - *(Built 2026-10-10: Monday about the completed period, DigestPeriod::latestSentBy(); pacing 07:00-19:00 Prague;
+     breaker ≥ 20 failures and ≥ 5 % of a run's attempts - content-digest README.)*
    - **Period bug to fix first:** `SendContentDigestConsoleCommand` builds `DigestPeriod::weeklyFor(now)` - the
      *current* ISO week. Run on a Monday it would mail an empty digest for the week that just started. It must use
      the previous, completed week (`weeklyFor(now - 7 days)`); the staleness TTL (week end + 3 days) still fits.
@@ -240,7 +255,8 @@ Main gained ~330 commits while this branch waited. Adapted in the rebase (own co
    compact bar if wanted) and delete the extra block in `player_profile.html.twig`; needs a visual check → feedback
    session.
 5. **Launch fully on day 1 of the deploy** - see "Formula cutoff" below.
-6. **Weekly digest only, never daily.** `ContentDigestFrequency` (none / daily / weekly) was built for a daily digest
+6. *(Superseded 2026-10-10: a frequency weekly / every two weeks / monthly / off instead of a boolean - built, see the
+   content-digest README.)* **Weekly digest only, never daily.** `ContentDigestFrequency` (none / daily / weekly) was built for a daily digest
    that never came (the command refuses `daily`, but the settings form offers it, and "daily" players are treated as
    weekly). → Replace it with a boolean `player.weekly_digest_enabled` (default true) - fits item 1. The column is
    not in production yet, so the branch migration `Version20260713151509` can simply be changed (local databases that
@@ -265,9 +281,9 @@ through `XpFormulaCutoff` (cached per worker process - it never changes). Tests 
 **Open - follow-ups (no decision needed):**
 
 - Production: `content_digest_emails` consumer + `deploy.sh` restart + the cron rows above, in lily.srv, with the merge.
-- Per-page cost after launch: the header ring runs `GetXpProfile` on every signed-in page; the estimate / receipt /
-  celebration re-query the opt-out. Carry `xp_total`, `level`, `experience_system_opted_out` on the viewer's
-  `PlayerProfile` row (main's zero-query pattern).
+- Per-page cost after launch: the estimate / receipt / celebration re-query the opt-out. (Done for the rings,
+  2026-10-10: `xp_total`, `level`, `achievement_points` ride on both `PlayerProfile` rows - `XpRing` and the navbar no
+  longer run `GetXpProfile`.)
 - One subscriber on main's result events (`PuzzleSolvingTimeDeleted` / `Modified` / `MovedToOtherPuzzle`) would cover
   future write paths without per-handler dispatches; plus an XP safety-net cron that rebuilds players with entries on
   results that are gone, suspicious or no longer theirs (nothing heals XP today).

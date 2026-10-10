@@ -18,12 +18,6 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
  */
 final class XpLaunchSwitchTest extends WebTestCase
 {
-    protected function tearDown(): void
-    {
-        FixedXpLaunchReadiness::$ready = true;
-        parent::tearDown();
-    }
-
     public function testBeforeTheLaunchAPlayerSeesNoXpPagesNoRevealAndNoModal(): void
     {
         $browser = self::createClient();

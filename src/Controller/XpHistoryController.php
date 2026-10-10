@@ -15,12 +15,14 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 /**
- * XP audit page — every ledger entry with its reason and link. User-facing
- * auditability is a locked requirement of the XP system.
+ * XP audit page "where did my XP come from?" — one block per solve with every line of it (base, difficulty, unboxed,
+ * speed, weekly boost, warm-up, settlements, the deletion) and its total. User-facing auditability is a locked
+ * requirement of the XP system.
  */
 final class XpHistoryController extends AbstractController
 {
-    private const int PER_PAGE = 50;
+    /** Blocks (one per solve) per page */
+    private const int PER_PAGE = 20;
 
     public function __construct(
         readonly private GetXpHistory $getXpHistory,
@@ -52,12 +54,13 @@ final class XpHistoryController extends AbstractController
         }
 
         $page = max(1, $request->query->getInt('page', 1));
-        $total = $this->getXpHistory->countForPlayer($profile->playerId);
+        $total = $this->getXpHistory->countBlocksForPlayer($profile->playerId);
         $lastPage = max(1, (int) ceil($total / self::PER_PAGE));
         $page = min($page, $lastPage);
 
         return $this->render('xp_history.html.twig', [
-            'entries' => $this->getXpHistory->forPlayer($profile->playerId, self::PER_PAGE, ($page - 1) * self::PER_PAGE),
+            'blocks' => $this->getXpHistory->blocksForPlayer($profile->playerId, self::PER_PAGE, ($page - 1) * self::PER_PAGE),
+            'player' => $profile,
             'xp_profile' => $this->getXpProfile->byPlayerId($profile->playerId),
             'total' => $total,
             'page' => $page,

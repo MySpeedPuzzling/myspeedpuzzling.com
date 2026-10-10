@@ -16,7 +16,9 @@ use SpeedPuzzling\Web\Repository\PuzzleMergeRequestRepository;
 use SpeedPuzzling\Web\Value\NotificationType;
 use SpeedPuzzling\Web\Services\PuzzleModerationDecisionRecorder;
 use SpeedPuzzling\Web\Value\PuzzleModerationAction;
+use SpeedPuzzling\Web\Message\RecalculateKarma;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
+use Symfony\Component\Messenger\MessageBusInterface;
 
 #[AsMessageHandler]
 readonly final class RejectPuzzleMergeRequestHandler
@@ -27,6 +29,7 @@ readonly final class RejectPuzzleMergeRequestHandler
         private EntityManagerInterface $entityManager,
         private ClockInterface $clock,
         private PuzzleModerationDecisionRecorder $puzzleModerationDecisionRecorder,
+        private MessageBusInterface $messageBus,
     ) {
     }
 
@@ -63,5 +66,8 @@ readonly final class RejectPuzzleMergeRequestHandler
             );
             $this->entityManager->persist($notification);
         }
+
+        // Karma (docs/features/karma.md): the moderator's decision counts, the declined report takes nothing away
+        $this->messageBus->dispatch(RecalculateKarma::forPlayers($mergeRequest->reporter, $reviewer));
     }
 }

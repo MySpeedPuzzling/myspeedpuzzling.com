@@ -9,6 +9,7 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
+use SpeedPuzzling\Web\Tests\TestDouble\FixedXpLaunchReadiness;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
@@ -79,5 +80,54 @@ final class XpSurfacesTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         self::assertSelectorExists('#xp-reveal-invite a[href="/en/my/achievement-reveals"]');
+    }
+
+    public function testAfterTheLaunchEveryoneSeesTheRingAndTheLevel(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $browser->request('GET', '/en/player-profile/' . PlayerFixture::PLAYER_WITH_STRIPE);
+
+        self::assertResponseIsSuccessful();
+        $content = (string) $browser->getResponse()->getContent();
+        self::assertStringContainsString('xp-avatar-ring', $content);
+        self::assertStringContainsString('xp-level-tab', $content);
+    }
+
+    public function testBeforeTheLaunchAPlayerSeesNoXpTraces(): void
+    {
+        FixedXpLaunchReadiness::$ready = false;
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $browser->request('GET', '/en/player-profile/' . PlayerFixture::PLAYER_WITH_STRIPE);
+        $content = (string) $browser->getResponse()->getContent();
+        self::assertStringNotContainsString('xp-ring', $content);
+        self::assertStringNotContainsString('xp-level-tab', $content);
+        self::assertStringNotContainsString('achievements-showcase', $content);
+        self::assertStringNotContainsString('xp-teaser', $content);
+
+        $browser->request('GET', '/en/time-added/' . PuzzleSolvingTimeFixture::TIME_06);
+        self::assertStringNotContainsString('xp-solve-receipt', (string) $browser->getResponse()->getContent());
+
+        $browser->request('GET', '/en/puzzle/' . PuzzleFixture::PUZZLE_500_01);
+        self::assertStringNotContainsString('xp-puzzle-estimate', (string) $browser->getResponse()->getContent());
+
+        $crawler = $browser->request('GET', '/en/faq');
+        self::assertStringNotContainsString('xp-ring', (string) $browser->getResponse()->getContent());
+        // The avatar (or initial) itself is not gated - only its ring
+        self::assertCount(1, $crawler->filter('.navbar-avatar-box > .lb-avatar'));
+    }
+
+    public function testBeforeTheLaunchAnAdminSeesTheRing(): void
+    {
+        FixedXpLaunchReadiness::$ready = false;
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+
+        $browser->request('GET', '/en/player-profile/' . PlayerFixture::PLAYER_WITH_STRIPE);
+
+        self::assertStringContainsString('xp-avatar-ring', (string) $browser->getResponse()->getContent());
     }
 }

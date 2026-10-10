@@ -10,7 +10,7 @@ the history is calculated and verified** - the launch switch `xp_settings.launch
 ([`feature_flags.md`](../feature_flags.md) `xp-launch`). The backfill command sets it itself, and only when the check
 passes. Nobody ever sees "Level 1, 1 XP, no achievements" because the backfill was not finished.
 
-Order: **deploy → backfill (verifies, switches on) → newsletter.**
+Order: **deploy → karma backfill → XP backfill (verifies, switches on) → newsletter.**
 
 ## 0. Prerequisites (before launch day)
 
@@ -37,6 +37,18 @@ From now on new solves earn XP and achievements for everybody, silently: non-adm
 ```bash
 $DC exec -T db psql -U speedpuzzling -d speedpuzzling -P pager=off -c "SELECT * FROM xp_settings;"
 ```
+
+### 1b. Karma backfill (before the XP backfill - karma launches behind the same switch)
+
+`player.karma` must be filled before the switch flips (docs/features/karma.md):
+
+```bash
+$DC run --rm --no-deps messenger-consumer bin/console myspeedpuzzling:recalculate-karma
+```
+
+One set-based statement, in this process (not queued): ~0.15 s on the dev copy (41k puzzles, 2,952 holders). Idempotent -
+re-running changes nothing; the daily cron row keeps it right afterwards. Check:
+`SELECT COUNT(*) FILTER (WHERE karma > 0), SUM(karma) FROM player;` (dev copy: 2,952 / 23,841).
 
 ## 2. Backfill - recalculates, verifies, switches on
 
@@ -83,8 +95,16 @@ launch modal up, so the modal never offers a reveal already seen.
 
 ## 5. Digest (from Mon 19 Oct 2026)
 
-Follow content-digest README §14. The digest is not sent while the switch is off; from the launch it is paused by
-date until the week after the newsletter (`launch-2026-10.md`).
+The activity digest (content-digest README, part above "History") is not sent while the switch is off, and nothing
+goes out about a period before 12 Oct 2026 (first send Mon 19 Oct). The Monday cron paces every run over 07:00-19:00
+Prague, most engaged first, with a circuit breaker. Achievements earned before the switch went on (the ones the
+backfill stamped) are never presented as new. Check the counts first:
+
+```bash
+$DC run --rm --no-deps messenger-consumer bin/console myspeedpuzzling:send-content-digest activity --dry-run
+```
+
+(Requires the `digest-consumer` compose service + deploy.sh change from content-digest README §13.)
 
 ## Rollback
 

@@ -16,18 +16,24 @@ use Doctrine\ORM\Mapping\UniqueConstraint;
 use JetBrains\PhpStorm\Immutable;
 use Ramsey\Uuid\Doctrine\UuidType;
 use Ramsey\Uuid\UuidInterface;
+use SpeedPuzzling\Web\Value\ContentDigestFrequency;
 
 /**
- * One row per attempted/sent content digest — the idempotency anchor (one digest per
- * player per period) and the state behind the never-two-no-activity-digests rule.
+ * One activity digest or no-activity e-mail of one player about one period - the "at most one e-mail per player and
+ * period" anchor (unique player + period) and the memory behind "never two no-activity e-mails in a row".
+ *
+ * Claimed with INSERT .. ON CONFLICT before the e-mail is sent (ContentDigestLogRepository::claim()), inside the
+ * handler's transaction: a second delivery of the same message waits for the first and then gets nothing; a crash
+ * rolls the claim back. A `deferred` row (the SMTP server asked us to try later) may be claimed again.
  */
 #[Entity]
-#[UniqueConstraint(columns: ['player_id', 'digest_type', 'period_key'])]
-#[Index(columns: ['player_id'])]
+#[UniqueConstraint(columns: ['player_id', 'period_key'])]
+#[Index(columns: ['player_id', 'had_activity'])]
 class ContentDigestLog
 {
     public const string STATUS_SENT = 'sent';
     public const string STATUS_FAILED_PERMANENT = 'failed_permanent';
+    public const string STATUS_DEFERRED = 'deferred';
 
     public function __construct(
         #[Id]
@@ -39,19 +45,16 @@ class ContentDigestLog
         #[Immutable]
         public Player $player,
         #[Immutable]
-        #[Column]
-        public string $digestType,
+        #[Column(type: Types::STRING, enumType: ContentDigestFrequency::class)]
+        public ContentDigestFrequency $frequency,
         #[Immutable]
         #[Column]
         public string $periodKey,
-        #[Immutable]
         #[Column(type: Types::DATETIMETZ_IMMUTABLE)]
         public DateTimeImmutable $sentAt,
-        /** False = the "we haven't seen a solve" variant went out — drives the never-twice rule. */
-        #[Immutable]
+        /** False = the no-activity e-mail - drives the never-twice rule. */
         #[Column(type: Types::BOOLEAN)]
         public bool $hadActivity,
-        #[Immutable]
         #[Column]
         public string $status,
     ) {

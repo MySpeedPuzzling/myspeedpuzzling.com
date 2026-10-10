@@ -371,31 +371,3 @@ organization_rejected:
         <p><strong>Grund:</strong> %reason%</p>
         <p>Bei Fragen oder wenn Sie dies besprechen möchten, kontaktieren Sie uns unter <a href="mailto:jan@myspeedpuzzling.com">jan@myspeedpuzzling.com</a>.</p>
     button: "„Von Ihnen organisiert“ öffnen"
-
-content_digest:
-    weekly:
-        subject: "Deine Puzzle-Woche 🧩"
-        subject_quiet: "Eine ruhige Puzzle-Woche — wir haben dir einen Platz freigehalten"
-        preheader: "Deine XP, Lösungen und Erfolge der letzten Woche in einer kurzen E-Mail."
-        preheader_quiet: "Eine ruhige Woche – das ist rund um dich auf MySpeedPuzzling passiert."
-        greeting: "Hallo %name%, hier ist deine Puzzle-Woche!"
-        greeting_anonymous: "Hallo Puzzler, hier ist deine Puzzle-Woche!"
-        xp_title: "Deine XP diese Woche"
-        xp_gained: "+%xp% XP verdient"
-        levels_gained: "{1}du bist 1 Level aufgestiegen, jetzt Level %level%!|]1,Inf[du bist %count% Level aufgestiegen, jetzt Level %level%!"
-        achievements_intro: "{1}Du hast 1 neuen Erfolg verdient:|]1,Inf[Du hast %count% neue Erfolge verdient:"
-        achievements_teaser: "{1}1 neuer Erfolg wartet auf dich — werde Mitglied, um ihn aufzudecken!|]1,Inf[%count% neue Erfolge warten auf dich — werde Mitglied, um sie aufzudecken!"
-        numbers_title: "Deine Woche in Zahlen"
-        numbers_line: "{1}1 Ergebnis — %pieces% Teile gelegt.|]1,Inf[%solves% Ergebnisse — %pieces% Teile gelegt."
-        numbers_minutes: "Rund %minutes% Minuten pures Puzzeln."
-        numbers_previous: "Letzte Woche: %solves% Ergebnisse, %pieces% Teile."
-        streak_line: "Deine Serie läuft seit %days% Tagen — wunderbar beständig!"
-        no_activity_line_1: "Diese Woche haben wir kein Ergebnis von dir gesehen — und das ist völlig in Ordnung, das Leben kommt manchmal dazwischen."
-        no_activity_line_2: "Wann immer du bereit bist: Ein Puzzle ist immer eine gute Idee. Dein nächstes Teil wartet schon. 🧩"
-        favorites_title: "Deine Lieblings-Puzzler waren fleißig"
-        favorites_line: "{1}%name% hat 1 Ergebnis erfasst|]1,Inf[%name% hat %count% Ergebnisse erfasst"
-        next_achievements_title: "Zum Greifen nah"
-        community_title: "Aus der Community"
-        most_solved_line: "Meistgelegtes Puzzle der Woche: %puzzle% (%solvers% Puzzler)."
-        footer_settings: "Du bekommst diesen Rückblick wöchentlich. Passe ihn jederzeit in deinen <a href=\"%settingsUrl%\">Benachrichtigungseinstellungen</a> an."
-        footer_unsubscribe: "Ein Klick und Schluss: <a href=\"%unsubscribeUrl%\">Rückblick abbestellen</a>."

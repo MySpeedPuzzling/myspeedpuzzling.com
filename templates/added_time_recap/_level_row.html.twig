@@ -1,0 +1,88 @@
+{#
+    The level line of the recap's progress card (rendered by XpRecapCelebration). Static as rendered; a fresh recap
+    (`celebrate`) hands it to recap_celebration_controller.js, which fills the bar, ticks the level over and - for a
+    milestone level - opens the bottom sheet, once per time id (remembered in the browser, so a reload or Back shows
+    it still). Closing the sheet needs no server.
+#}
+{% set progress = profile.progressToNext ?? 1 %}
+{% set is_max = profile.isMaxLevel %}
+{% set milestone = component.isMilestoneLevelUp %}
+{% set animate = celebrate and mode == 'receipt' and solve_xp > 0 %}
+<div
+    class="recap-level"
+    data-testid="recap-level"
+    {% if animate %}
+        data-controller="recap-celebration"
+        data-recap-celebration-time-id-value="{{ solving_time_id }}"
+        data-recap-celebration-from-value="{{ component.previousLevel }}"
+        data-recap-celebration-to-value="{{ profile.level }}"
+    {% endif %}
+>
+    <a class="recap-row" href="{{ path('xp_history') }}">
+        <span class="recap-row-icon recap-icon-level{{ is_max ? ' is-max' }}" aria-hidden="true"><i class="bi bi-stars"></i></span>
+        <span class="recap-row-body">
+            <span class="recap-row-title">
+                {{- 'recap_progress.level.title'|trans({'%level%': '<span data-recap-celebration-target="number">' ~ profile.level ~ '</span>'})|raw -}}
+                {% if mode == 'receipt' %}
+                    <span class="recap-xp-plus">{{ 'recap_progress.level.xp_gained'|trans({'%xp%': solve_xp}) }}</span>
+                {% endif %}
+                {% if leveled_up %}
+                    <span class="recap-levelup-pill" data-recap-celebration-target="pill" data-testid="recap-level-up">{{ 'xp.levelup.label'|trans }}</span>
+                {% endif %}
+            </span>
+            {% if not is_max %}
+                <span class="recap-bar" aria-hidden="true">
+                    <span class="recap-bar-fill" style="--from: {{ component.previousProgress }}; --to: {{ progress }};"></span>
+                </span>
+            {% endif %}
+            <span class="recap-row-sub">
+                {%- if mode == 'relax_repeat' -%}
+                    {{ 'xp.receipt.relax_repeat'|trans }}
+                {%- elseif mode == 'late' -%}
+                    {{ 'recap_progress.level.late'|trans }}
+                {%- elseif is_max -%}
+                    {{ 'recap_progress.level.max'|trans }}
+                {%- else -%}
+                    {{ 'recap_progress.level.to_next'|trans({'%current%': profile.xpIntoCurrentLevel, '%needed%': component.levelSpan, '%level%': profile.level + 1}) }}
+                {%- endif -%}
+            </span>
+        </span>
+        <i class="ci-arrow-right recap-row-chevron" aria-hidden="true"></i>
+    </a>
+
+    {% if mode == 'receipt' %}
+        <details class="recap-receipt">
+            <summary>{{ 'recap_progress.receipt.summary'|trans }}</summary>
+            <ul class="recap-receipt-lines">
+                {% for line in component.lines %}
+                    <li><span>{{ component.lineLabelKey(line)|trans }}</span><span class="recap-receipt-amount">+{{ line.amount }} XP</span></li>
+                {% endfor %}
+                {% if component.showDifficultyPending %}
+                    <li class="is-pending"><span>{{ 'xp.line.difficulty_pending'|trans }}</span><span class="recap-receipt-amount">…</span></li>
+                {% endif %}
+                {% if component.showSpeedPending %}
+                    <li class="is-pending"><span>{{ 'xp.line.speed_pending'|trans }}</span><span class="recap-receipt-amount">…</span></li>
+                {% endif %}
+                <li class="is-total"><span>{{ 'xp.receipt.total'|trans }}</span><span class="recap-receipt-amount">+{{ solve_xp }} XP</span></li>
+            </ul>
+            <a href="{{ path('xp_history') }}" class="recap-receipt-link">{{ 'recap_progress.receipt.history_link'|trans }}</a>
+        </details>
+    {% endif %}
+
+    {% if animate and milestone %}
+        {# A milestone level: one bottom sheet, opened by the controller (never on a reload), no backdrop, closes in the browser #}
+        <div class="recap-sheet" role="dialog" aria-modal="false" aria-labelledby="recap-sheet-title-{{ solving_time_id }}" data-recap-celebration-target="sheet" data-testid="recap-milestone-sheet" hidden>
+            <div class="recap-sheet-body">
+                <p class="recap-sheet-kicker">{{ (is_max ? 'xp.levelup.max_label' : 'xp.levelup.label')|trans }}</p>
+                <p class="recap-sheet-level" id="recap-sheet-title-{{ solving_time_id }}">{{ 'recap_progress.level.title'|trans({'%level%': profile.level}) }}</p>
+                <p class="recap-sheet-text">{{ (is_max ? 'recap_progress.sheet.max_message' : 'xp.levelup.message')|trans }}</p>
+                <div class="recap-sheet-actions">
+                    {% if is_max and component.viewerIsMember %}
+                        <a href="{{ path('xp_leaderboard', {tab: 'achievement-points'}) }}" class="btn btn-outline-light">{{ 'xp.levelup.enter_ap_ladder'|trans }}</a>
+                    {% endif %}
+                    <button type="button" class="btn btn-light" data-action="recap-celebration#close" data-recap-celebration-target="close">{{ 'recap_progress.sheet.continue'|trans }}</button>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>

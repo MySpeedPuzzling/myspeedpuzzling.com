@@ -20,7 +20,8 @@ return App::config([
             ],
             'routing' => [
                 PrepareDigestEmailForPlayer::class => 'sync',
-                SendPlayerContentDigest::class => 'sync',
+                // Queued (in memory) so tests see the run's delays; the handler is tested directly
+                SendPlayerContentDigest::class => 'content_digest_emails',
             ],
         ],
     ],

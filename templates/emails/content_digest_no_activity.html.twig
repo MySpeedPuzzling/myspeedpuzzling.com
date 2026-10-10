@@ -1,0 +1,40 @@
+{% trans_default_domain 'emails' %}
+{#
+    The no-activity e-mail (docs/features/content-digest/README.md §"Who gets what"): the day after the activity
+    digest, to a player who logged nothing since the period started - at most once until they log something again.
+    Warm, never blaming: one line of community news, the favourites, one button to pick a puzzle.
+#}
+{% set length = period.length.value %}
+{% apply inky_to_html|inline_css(source('@styles/foundation-emails.css'))|email_document %}
+    <wrapper>
+        <container>
+            {{ include('emails/_header.html.twig', {preheader: 'activity_digest.no_activity.preheader'|trans}) }}
+
+            <row>
+                <columns>
+                    <spacer size-sm="24"></spacer>
+                    <h3>{{ ('activity_digest.no_activity.title.' ~ length)|trans({'%name%': playerName ?? 'activity_digest.puzzler'|trans}) }}</h3>
+                    <p>{{ 'activity_digest.no_activity.line_1'|trans }}</p>
+                    <p>{{ 'activity_digest.no_activity.line_2'|trans }}</p>
+                </columns>
+            </row>
+
+            {{ include('emails/content_digest/_community.html.twig') }}
+            {{ include('emails/content_digest/_favorites.html.twig') }}
+
+            <row>
+                <columns>
+                    <spacer size-sm="8"></spacer>
+                    <center>
+                        <button href="{{ url('puzzle_picker', {_locale: locale}) }}">{{ 'activity_digest.no_activity.button'|trans }}</button>
+                    </center>
+                    <spacer size-sm="8"></spacer>
+                </columns>
+            </row>
+
+            {{ include('emails/content_digest/_settings.html.twig') }}
+
+            {{ include('emails/_footer.html.twig') }}
+        </container>
+    </wrapper>
+{% endapply %}

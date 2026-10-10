@@ -46,7 +46,7 @@ final class PrivateProfileQueryCoverageTest extends TestCase
         'Query/GetSuspiciousTimeCaseDetail.php' => self::TIME_VERIFICATION,
         'Query/GetSuspiciousTimeQueue.php' => self::TIME_VERIFICATION,
         'Services/ComparisonSubjectVisibility.php' => 'Write side with an explicit owner id: the owner\'s allow-list row is read in the same statement - handlers never see the ambient viewer.',
-        'Services/Digest/WeeklyDigestDataProvider.php' => 'Background e-mail for one recipient: applies that recipient\'s allow-list rows and blocks in the SQL itself - a consumer has no viewer for the service.',
+        'Services/Digest/PlayerPeriodActivityReader.php' => 'The activity digest (a background e-mail) and the owner\'s "Your week" page for one player: applies that recipient\'s allow-list rows and blocks in the SQL itself - a consumer has no viewer for the service.',
         'Services/PrivateProfileAccess.php' => 'The one place that decides.',
         'Services/PuzzleIntelligence/MspRatingCalculator.php' => self::BACKGROUND,
         'Services/PuzzleIntelligence/PuzzleIntelligenceRecalculator.php' => self::BACKGROUND,

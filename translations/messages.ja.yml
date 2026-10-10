@@ -1757,16 +1757,6 @@ xp:
         closing_celebrate: "正直にパズルを、盛大にお祝いを。🧩"
         explainer_link: "1ポイントごとの獲得方法が気になりますか？<a href=\"%explainer_link%\">XPとレベルの仕組み</a>をご覧ください。"
 
-content_digest:
-    unsubscribe:
-        meta_title: "ダイジェストの配信停止"
-        confirm_title: "週間ダイジェストの配信を停止しますか？"
-        confirm_text: "お気になさらず — 下をワンクリックするだけで週間ダイジェストは止まります。通知設定からいつでも再開できます。"
-        confirm_button: "はい、配信を停止します"
-        done_title: "配信を停止しました"
-        done_text: "今後、週間ダイジェストのメールは届きません。恋しくなったら、通知設定でいつでもお待ちしています。"
-        back_home: "MySpeedPuzzlingに戻る"
-
 badges:
     title: "実績"
     my_title: "マイ実績"

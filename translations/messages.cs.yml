@@ -1678,16 +1678,6 @@ xp:
         closing_celebrate: "Skládej poctivě, slav nahlas. 🧩"
         explainer_link: "Zajímá tě, jak se každý bod získává? Podívej se na <a href=\"%explainer_link%\">Jak fungují XP a úrovně</a>."
 
-content_digest:
-    unsubscribe:
-        meta_title: "Odhlásit odběr souhrnu"
-        confirm_title: "Odhlásit odběr týdenního souhrnu?"
-        confirm_text: "Nic se neděje — jedno kliknutí níže a týdenní souhrn ti přestane chodit. Kdykoli si ho můžeš znovu zapnout v nastavení notifikací."
-        confirm_button: "Ano, odhlásit mě"
-        done_title: "Máš odhlášeno"
-        done_text: "Týdenní souhrn ti už e-mailem chodit nebude. Kdyby ti chyběl, čeká na tebe v nastavení notifikací."
-        back_home: "Zpět na MySpeedPuzzling"
-
 badges:
     title: "Úspěchy"
     my_title: "Moje úspěchy"

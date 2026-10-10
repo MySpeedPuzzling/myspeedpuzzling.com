@@ -68,6 +68,22 @@
                     <p class="fs-sm text-muted mb-0 mt-1">{{ 'email_preferences.result_emails_description'|trans }}</p>
                 </div>
 
+                {% if showContentDigest %}
+                    <div class="card card-body shadow-lg mb-3">
+                        <label class="form-label d-block fw-bold mb-1" for="content-digest-frequency">
+                            📈 {{ 'activity_digest.preferences_title'|trans }}
+                        </label>
+                        <p class="fs-sm text-muted mb-2">{{ 'activity_digest.preferences_description'|trans }}</p>
+                        <select class="form-select" id="content-digest-frequency" name="content_digest_frequency">
+                            {% for frequency in contentDigestFrequencies %}
+                                <option value="{{ frequency.value }}" {{ frequency == contentDigestFrequency ? 'selected' }}>
+                                    {{ frequency.translationKey()|trans }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                {% endif %}
+
                 <button type="submit" class="btn btn-primary">
                     {{ 'email_preferences.save_button'|trans }}
                 </button>

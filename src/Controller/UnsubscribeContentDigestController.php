@@ -7,6 +7,8 @@ namespace SpeedPuzzling\Web\Controller;
 use SpeedPuzzling\Web\Controller\FirstTry\FirstTryConflictsController;
 use SpeedPuzzling\Web\Message\ChangeContentDigestFrequency;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
+use SpeedPuzzling\Web\Services\EmailPreferencesLinkGenerator;
+use SpeedPuzzling\Web\Services\PlayerAccountEmail;
 use SpeedPuzzling\Web\Value\ContentDigestFrequency;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -16,7 +18,7 @@ use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
 
 /**
- * Unsubscribe from the weekly content digest, reached through the signed link of the e-mail - no sign-in needed
+ * Unsubscribe from the activity digest e-mail, reached through the signed link of the e-mail - no sign-in needed
  * (ContentDigestUnsubscribeUrl). Same contract as DigestEmailsUnsubscribeController.
  *
  * POST switches the digest off: the RFC 8058 one-click POST of mail clients (`List-Unsubscribe-Post`, body
@@ -29,11 +31,13 @@ final class UnsubscribeContentDigestController extends AbstractController
         readonly private UriSigner $uriSigner,
         readonly private PlayerRepository $playerRepository,
         readonly private MessageBusInterface $messageBus,
+        readonly private PlayerAccountEmail $playerAccountEmail,
+        readonly private EmailPreferencesLinkGenerator $emailPreferencesLinkGenerator,
     ) {
     }
 
     #[Route(
-        path: '/{_locale}/weekly-digest/unsubscribe/{playerId}',
+        path: '/{_locale}/activity-digest/unsubscribe/{playerId}',
         name: 'content_digest_unsubscribe',
         requirements: ['playerId' => FirstTryConflictsController::ID_REQUIREMENT],
         methods: ['GET', 'POST'],
@@ -48,7 +52,7 @@ final class UnsubscribeContentDigestController extends AbstractController
             // A deleted player answers 404 (PlayerNotFound)
             $this->messageBus->dispatch(new ChangeContentDigestFrequency(
                 playerId: $playerId,
-                frequency: ContentDigestFrequency::None,
+                frequency: ContentDigestFrequency::Off,
             ));
 
             if ($request->request->getString('List-Unsubscribe') === 'One-Click') {
@@ -59,10 +63,13 @@ final class UnsubscribeContentDigestController extends AbstractController
         }
 
         $player = $this->playerRepository->get($playerId);
+        $email = $this->playerAccountEmail->ofPlayer($player);
 
         $response = $this->render('unsubscribe_content_digest.html.twig', [
-            'subscribed' => $player->contentDigestFrequency !== ContentDigestFrequency::None,
+            'subscribed' => $player->contentDigestFrequency !== ContentDigestFrequency::Off,
             'action_url' => $request->getUri(),
+            // "Rather less often?" - the token preferences page, no sign-in needed
+            'preferences_url' => $email === null ? null : $this->emailPreferencesLinkGenerator->forPlayer($playerId, $email, $player->locale),
         ]);
 
         // Personal state behind a capability URL: never in a shared cache

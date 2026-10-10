@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Tests\Controller;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Services\NewsletterTokenSigner;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
+use SpeedPuzzling\Web\Value\ContentDigestFrequency;
 use SpeedPuzzling\Web\Value\EmailNotificationFrequency;
 use SpeedPuzzling\Web\Value\NewsletterAudience;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -136,6 +137,33 @@ final class EmailPreferencesControllerTest extends WebTestCase
         self::assertFalse($player->resultEmailsEnabled);
         self::assertTrue($player->newsletterEnabled);
         self::assertTrue($player->emailNotificationsEnabled);
+    }
+
+    public function testTheActivityEmailHasItsOwnFrequencyOnceTheLaunchSwitchShowsIt(): void
+    {
+        $browser = self::createClient();
+
+        // A player: the switch follows the XP launch switch (off in tests) - not on the page, saving keeps the value
+        $crawler = $browser->request('GET', '/en/email-preferences/' . $this->preferencesToken());
+        self::assertCount(0, $crawler->filter('select[name="content_digest_frequency"]'));
+
+        // An admin sees it before the launch: weekly, every two weeks, monthly, off - no "daily"
+        $adminToken = $this->tokenSigner()->generatePreferencesToken(NewsletterAudience::Player, PlayerFixture::PLAYER_ADMIN, PlayerFixture::PLAYER_ADMIN_EMAIL);
+        $crawler = $browser->request('GET', '/en/email-preferences/' . $adminToken);
+        self::assertSame(
+            ['weekly', 'every_two_weeks', 'monthly', 'off'],
+            $crawler->filter('select[name="content_digest_frequency"] option')->each(static fn ($option): string => (string) $option->attr('value')),
+        );
+
+        $form = $crawler->selectButton('Save my preferences')->form();
+        $frequencyField = $form['content_digest_frequency'];
+        assert($frequencyField instanceof ChoiceFormField);
+        $frequencyField->select('monthly');
+        $browser->submit($form);
+
+        $admin = self::getContainer()->get(PlayerRepository::class)->get(PlayerFixture::PLAYER_ADMIN);
+        self::assertSame(ContentDigestFrequency::Monthly, $admin->contentDigestFrequency);
+        self::assertTrue($admin->emailNotificationsEnabled, 'The unread-messages digest is a separate switch');
     }
 
     public function testSavingWithInvalidTokenIsRejected(): void

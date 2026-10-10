@@ -1,0 +1,172 @@
+{% trans_default_domain 'emails' %}
+{#
+    The activity digest (docs/features/content-digest/README.md §"Content"): the period first (puzzles, pieces,
+    streak), then progress (level + XP, achievements - members see which with "+N AP", everybody else only that they
+    earned one -, MSP Rating, karma), the best results, ONE button to the "Your week" page, favourites, the community.
+    Every line links somewhere: level → XP history, achievement → its page, rating → the ladder, puzzle → the puzzle,
+    favourite → the profile. The preheader names the best thing of the period.
+#}
+{% set length = period.length.value %}
+{% set range_label = length == 'month' ? period.start|events_date('yMMMM') : events_date_range(period.start, period.lastDay(), 'MMMMd') %}
+{% set week_url = url('my_activity', {period: period.key, _locale: locale}) %}
+{% set best_achievement = activity.achievementsEarned|sort((a, b) => (b.tier ? b.tier.points() : 0) <=> (a.tier ? a.tier.points() : 0))|first %}
+{% set personal_bests = activity.personalBests() %}
+
+{% if activity.isMember and best_achievement %}
+    {% set preheader = 'activity_digest.preheader.achievement'|trans({'%achievement%': best_achievement.type.translationKey()|trans({}, 'messages')}) %}
+{% elseif best_achievement %}
+    {% set preheader = 'activity_digest.preheader.achievement_locked'|trans %}
+{% elseif activity.levelledUp() %}
+    {% set preheader = 'activity_digest.preheader.level'|trans({'%level%': activity.levelAfter}) %}
+{% elseif personal_bests is not empty %}
+    {% set preheader = 'activity_digest.preheader.personal_best'|trans({'%puzzle%': (personal_bests|first).puzzleName}) %}
+{% elseif activity.rating is not null and activity.rating.placesGained > 0 %}
+    {% set preheader = 'activity_digest.preheader.rating'|trans({'%count%': activity.rating.placesGained}) %}
+{% else %}
+    {% set preheader = 'activity_digest.preheader.numbers'|trans({'%count%': activity.puzzlesCount, '%pieces%': activity.piecesCount|format_number}) %}
+{% endif %}
+
+{% apply inky_to_html|inline_css(source('@styles/foundation-emails.css'))|email_document %}
+    <wrapper>
+        <container>
+            {{ include('emails/_header.html.twig', {preheader: preheader}) }}
+
+            <row>
+                <columns>
+                    <spacer size-sm="24"></spacer>
+                    <h3 style="margin-bottom: 0;">
+                        {{ ('activity_digest.title.' ~ length)|trans({'%name%': playerName ?? 'activity_digest.puzzler'|trans}) }}
+                    </h3>
+                    <p style="margin: 0; color: #6b7488;">{{ range_label }}</p>
+                    <spacer size-sm="16"></spacer>
+                </columns>
+            </row>
+
+            {# The period in numbers #}
+            <row>
+                <columns>
+                    <table role="presentation" width="100%" style="width: 100%; border-collapse: separate; border-spacing: 6px 0;">
+                        <tr>
+                            <td style="background: #f3f5f9; border-radius: 8px; padding: 10px 6px; text-align: center; width: 33%;">
+                                <strong style="display: block; font-size: 20px; color: #373f50;">{{ activity.puzzlesCount|format_number }}</strong> <span style="font-size: 13px;">{{ 'activity_digest.stat.puzzles'|trans({'%count%': activity.puzzlesCount}) }}</span>
+                            </td>
+                            <td style="background: #f3f5f9; border-radius: 8px; padding: 10px 6px; text-align: center; width: 33%;">
+                                <strong style="display: block; font-size: 20px; color: #373f50;">{{ activity.piecesCount|format_number }}</strong> <span style="font-size: 13px;">{{ 'activity_digest.stat.pieces'|trans({'%count%': activity.piecesCount}) }}</span>
+                            </td>
+                            {% if activity.streakDays > 1 %}
+                                <td style="background: #f3f5f9; border-radius: 8px; padding: 10px 6px; text-align: center; width: 33%;">
+                                    <strong style="display: block; font-size: 20px; color: #373f50;">{{ activity.streakDays }}</strong> <span style="font-size: 13px;">{{ 'activity_digest.stat.streak'|trans({'%count%': activity.streakDays}) }}</span>
+                                </td>
+                            {% endif %}
+                        </tr>
+                    </table>
+                    <spacer size-sm="16"></spacer>
+                </columns>
+            </row>
+
+            {# Progress #}
+            <row>
+                <columns>
+                    {% if activity.xpVisible and activity.xpGained > 0 %}
+                        <p>
+                            <a href="{{ url('xp_history', {_locale: locale}) }}">
+                                {%- if activity.levelledUp() -%}
+                                    {{ 'activity_digest.level_up'|trans({'%from%': activity.levelBefore, '%to%': activity.levelAfter}) }}
+                                {%- else -%}
+                                    {{ 'activity_digest.level'|trans({'%level%': activity.levelAfter}) }}
+                                {%- endif -%}
+                            </a>
+                            · <strong>+{{ activity.xpGained|format_number }} XP</strong>
+                        </p>
+                    {% endif %}
+
+                    {% if activity.achievementsEarned is not empty %}
+                        {% if activity.isMember %}
+                            <table role="presentation" style="border-collapse: collapse;">
+                                {% for badge in activity.achievementsEarned %}
+                                    {% set badge_url = url('achievement_detail', {type: badge.type.value, _locale: locale}) %}
+                                    <tr>
+                                        <td width="48" style="width: 48px; padding: 6px 12px 6px 0; vertical-align: middle;">
+                                            <a href="{{ badge_url }}"><img src="{{ badge_art_url(badge.type, badge.tier, 'png', 96, absolute = true) }}" alt="" width="48" height="48" style="display: block; width: 48px; height: 48px; border: 0;"></a>
+                                        </td>
+                                        <td style="padding: 6px 0; vertical-align: middle;">
+                                            <a href="{{ badge_url }}"><strong>{{ 'activity_digest.new_achievement'|trans({'%achievement%': badge.type.translationKey()|trans({}, 'messages')}) }}</strong></a>
+                                            <br>{% if badge.tier is not null %}{{ badge.tier.translationKey()|trans({}, 'messages') }} · {% endif %}+{{ badge.tier ? badge.tier.points() : constant('SpeedPuzzling\\Web\\Value\\BadgeTier::SINGLE_TIER_POINTS') }} AP
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </table>
+                        {% else %}
+                            <p>
+                                {{ 'activity_digest.achievement_teaser'|trans({'%count%': activity.achievementsEarned|length}) }}
+                                <a href="{{ url('membership', {_locale: locale}) }}">{{ 'activity_digest.become_member'|trans }}</a>
+                            </p>
+                        {% endif %}
+                    {% endif %}
+
+                    {% if activity.rating is not null and activity.rating.rank is not null and activity.rating.placesGained != 0 %}
+                        <p>
+                            <a href="{{ url('msp_rating_ladder', {_locale: locale}) }}">{{ 'activity_digest.rating'|trans({'%rank%': activity.rating.rank, '%total%': activity.rating.rankTotal}) }}</a>
+                            {% if activity.rating.placesGained > 0 %}
+                                · {{ 'activity_digest.rating_up'|trans({'%count%': activity.rating.placesGained}) }}
+                            {% else %}
+                                · {{ 'activity_digest.rating_down'|trans({'%count%': -activity.rating.placesGained}) }}
+                            {% endif %}
+                        </p>
+                    {% endif %}
+
+                    {% if activity.rating is not null %}
+                        {% for pieces, change in activity.rating.skillTierChanges %}
+                            <p>
+                                <a href="{{ url('msp_rating_ladder', {_locale: locale}) }}">{{ 'activity_digest.skill_tier'|trans({
+                                    '%pieces%': pieces,
+                                    '%tier%': ('puzzle_intelligence.skill.tiers.' ~ change.after.toApiValue())|trans({}, 'messages'),
+                                }) }}</a>
+                            </p>
+                        {% endfor %}
+                    {% endif %}
+
+                    {% if activity.karmaGained is not null and activity.karmaGained > 0 %}
+                        <p>{{ 'activity_digest.karma'|trans({'%count%': activity.karmaGained}) }}</p>
+                    {% endif %}
+                </columns>
+            </row>
+
+            {# The best results #}
+            {% set highlighted = activity.highlightedResults(3) %}
+            {% if highlighted is not empty %}
+                <row>
+                    <columns>
+                        <h4>{{ 'activity_digest.results_title'|trans }}</h4>
+                        <ul>
+                            {% for result in highlighted %}
+                                <li>
+                                    <a href="{{ url('puzzle_detail', {puzzleId: result.puzzleId, _locale: locale}) }}">{{ result.puzzleName }}</a>
+                                    {%- if result.secondsToSolve is not null %} · {{ result.secondsToSolve|puzzlingTime }}{% endif %}
+                                    {%- if result.personalBest %} · {{ 'activity_digest.mark.personal_best'|trans }}{% endif %}
+                                    {%- if result.firstAttempt %} · {{ 'activity_digest.mark.first_try'|trans }}{% endif %}
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </columns>
+                </row>
+            {% endif %}
+
+            <row>
+                <columns>
+                    <spacer size-sm="8"></spacer>
+                    <center>
+                        <button href="{{ week_url }}">{{ ('activity_digest.button.' ~ length)|trans }}</button>
+                    </center>
+                    <spacer size-sm="8"></spacer>
+                </columns>
+            </row>
+
+            {{ include('emails/content_digest/_favorites.html.twig') }}
+            {{ include('emails/content_digest/_community.html.twig') }}
+            {{ include('emails/content_digest/_settings.html.twig') }}
+
+            {{ include('emails/_footer.html.twig') }}
+        </container>
+    </wrapper>
+{% endapply %}

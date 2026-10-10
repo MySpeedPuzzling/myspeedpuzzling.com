@@ -121,9 +121,11 @@ page that 404s while the flag is active.
 
 ### Weekly digest
 
-See `docs/features/content-digest/README.md` (Phases 1–2 built; daily digest + rating
-block deferred). Default-on, XP/achievements headline, no-activity variant never twice
-in a row, signed one-click unsubscribe, `experienceSystemOptedOut` excluded.
+Reworked 2026-10-10 into the **activity digest** + the "Your week" page - see `docs/features/content-digest/README.md`
+(the part above "History"): own switch with a frequency (weekly default / every two weeks / monthly / off), Monday sends
+about the completed period paced over the day with a circuit breaker, the no-activity e-mail on Tuesday at most once until
+active again, paused until the period of 12-18 Oct 2026 and while the launch switch is off. `experienceSystemOptedOut`
+no longer stops the e-mail; it leaves out the XP and level lines.
 
 ### Opt-out
 
@@ -149,9 +151,8 @@ file's header; free minutes as of 2026-10-04: :01 :06 :12 :16 :21 :27 :31 :36 :4
 # recalculation; a run dispatches one async message per player with times (~7,600 on 2026-10-04), so
 # every 15 min would put ~730k messages a day on the queue the transactional e-mails share
 16 3 * * * root lily-cron-run myspeedpuzzling recalculate-badges -- docker compose --file /srv/myspeedpuzzling/compose.yaml run --rm --no-deps messenger-consumer sentry-cli monitors run --schedule "16 3 * * *" --timezone "Europe/Prague" recalculate-badges -- bin/console myspeedpuzzling:recalculate-badges >> /var/log/lily/myspeedpuzzling-cron.log 2>&1
-# Weekly content digest - Sundays 18:01 Prague (CRON_TZ is supported on lily, so no DST drift any more);
-# needs the digest-consumer service (content-digest README §13) before the first run
-1 18 * * 0 root lily-cron-run myspeedpuzzling send-content-digest-weekly -- docker compose --file /srv/myspeedpuzzling/compose.yaml run --rm --no-deps messenger-consumer sentry-cli monitors run --schedule "1 18 * * 0" --timezone "Europe/Prague" send-content-digest-weekly -- bin/console myspeedpuzzling:send-content-digest weekly >> /var/log/lily/myspeedpuzzling-cron.log 2>&1
+# Activity digest - Monday 07:01 activity digests, Tuesday 07:01 no-activity e-mails; the rows (and the
+# digest-consumer service they need) are in docs/features/content-digest/README.md §"Production"
 ```
 
 ## Feature flag
@@ -180,7 +181,7 @@ Main gained ~330 commits while this branch waited. Adapted in the rebase (own co
   the reveal POST was silently lost); links in the achievement modal leave the frame, a non-frame visit of the modal
   URL redirects to the achievement page.
 - **E-mails**: `email_document` + preheaders (6 locales); the unsubscribe follows main's contract
-  (`ContentDigestUnsubscribeUrl`, never expires, `/{_locale}/weekly-digest/unsubscribe/{id}`, one-click 200 / button
+  (`ContentDigestUnsubscribeUrl`, never expires, `/{_locale}/activity-digest/unsubscribe/{id}` since 2026-10-10, one-click 200 / button
   303, `no-store`); the reveal mail goes through the `notifications` transport; the queue is `content_digest_emails`
   (main's unread-messages digest owns `digest_emails_*`); routine bounces and the plausibility guard log at `info`.
 
@@ -199,6 +200,8 @@ Main gained ~330 commits while this branch waited. Adapted in the rebase (own co
    digest switch (its unsubscribe link is the digest's).
 3. **Monday, ~12k recipients, the whole Monday.** Puzzlers are busy over weekends, so the digest goes out on Monday
    about the week that just ended.
+   - *(Built 2026-10-10: Monday about the completed period, DigestPeriod::latestSentBy(); pacing 07:00-19:00 Prague;
+     breaker ≥ 20 failures and ≥ 5 % of a run's attempts - content-digest README.)*
    - **Period bug to fix first:** `SendContentDigestConsoleCommand` builds `DigestPeriod::weeklyFor(now)` - the
      *current* ISO week. Run on a Monday it would mail an empty digest for the week that just started. It must use
      the previous, completed week (`weeklyFor(now - 7 days)`); the staleness TTL (week end + 3 days) still fits.
@@ -219,7 +222,8 @@ Main gained ~330 commits while this branch waited. Adapted in the rebase (own co
    compact bar if wanted) and delete the extra block in `player_profile.html.twig`; needs a visual check → feedback
    session.
 5. **Launch fully on day 1 of the deploy** - see "Formula cutoff" below.
-6. **Weekly digest only, never daily.** `ContentDigestFrequency` (none / daily / weekly) was built for a daily digest
+6. *(Superseded 2026-10-10: a frequency weekly / every two weeks / monthly / off instead of a boolean - built, see the
+   content-digest README.)* **Weekly digest only, never daily.** `ContentDigestFrequency` (none / daily / weekly) was built for a daily digest
    that never came (the command refuses `daily`, but the settings form offers it, and "daily" players are treated as
    weekly). → Replace it with a boolean `player.weekly_digest_enabled` (default true) - fits item 1. The column is
    not in production yet, so the branch migration `Version20260713151509` can simply be changed (local databases that

@@ -1,11 +1,11 @@
 {% trans_default_domain 'emails' %}
-{% if data.favoritesActivity|length > 0 %}
+{% if activity.favoritesActivity is not empty %}
     <row>
         <columns>
-            <h4>{{ 'content_digest.weekly.favorites_title'|trans }}</h4>
+            <h4>{{ 'activity_digest.favorites_title'|trans }}</h4>
             <ul>
-                {% for favorite in data.favoritesActivity %}
-                    <li>{{ 'content_digest.weekly.favorites_line'|trans({'%name%': favorite.name, '%count%': favorite.solves}) }}</li>
+                {% for favorite in activity.favoritesActivity %}
+                    <li><a href="{{ url('player_profile', {playerId: favorite.playerId, _locale: locale}) }}">{{ favorite.name }}</a> · {{ 'activity_digest.favorite_solves'|trans({'%count%': favorite.solves}) }}</li>
                 {% endfor %}
             </ul>
         </columns>

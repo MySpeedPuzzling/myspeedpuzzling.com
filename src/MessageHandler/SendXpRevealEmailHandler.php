@@ -6,8 +6,6 @@ namespace SpeedPuzzling\Web\MessageHandler;
 
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
-use Ramsey\Uuid\Uuid;
-use SpeedPuzzling\Web\Entity\ContentDigestLog;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Message\SendXpRevealEmail;
 use SpeedPuzzling\Web\Query\GetBadges;
@@ -19,6 +17,7 @@ use SpeedPuzzling\Web\Services\ContentDigestUnsubscribeUrl;
 use SpeedPuzzling\Web\Services\PlayerAccountEmail;
 use SpeedPuzzling\Web\Services\Xp\XpFeatureGate;
 use Doctrine\DBAL\Connection;
+use SpeedPuzzling\Web\Value\ContentDigestFrequency;
 use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
@@ -38,8 +37,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 #[AsMessageHandler]
 readonly final class SendXpRevealEmailHandler
 {
-    private const string LOG_TYPE = 'xp_reveal';
-    private const string LOG_PERIOD = 'launch';
+    // The marker row's period key - one launch reveal per player (unique player + period_key)
+    private const string LOG_PERIOD = 'xp_reveal';
 
     public function __construct(
         private PlayerRepository $playerRepository,
@@ -120,21 +119,13 @@ readonly final class SendXpRevealEmailHandler
 
         $this->mailer->send($email);
 
-        $this->contentDigestLogRepository->save(new ContentDigestLog(
-            id: Uuid::uuid7(),
-            player: $player,
-            digestType: self::LOG_TYPE,
-            periodKey: self::LOG_PERIOD,
-            sentAt: $this->clock->now(),
-            hadActivity: true,
-            status: ContentDigestLog::STATUS_SENT,
-        ));
+        $this->contentDigestLogRepository->claim($player->id->toString(), ContentDigestFrequency::Weekly, self::LOG_PERIOD, true, $this->clock->now());
     }
 
     private function alreadySent(string $playerId): bool
     {
         $value = $this->database->fetchOne(
-            "SELECT 1 FROM content_digest_log WHERE player_id = :playerId AND digest_type = 'xp_reveal' LIMIT 1",
+            "SELECT 1 FROM content_digest_log WHERE player_id = :playerId AND period_key = 'xp_reveal' LIMIT 1",
             ['playerId' => $playerId],
         );
 

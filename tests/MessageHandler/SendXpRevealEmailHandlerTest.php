@@ -58,7 +58,7 @@ final class SendXpRevealEmailHandlerTest extends KernelTestCase
         self::assertSame(1, $mailer->sentCount());
 
         $logged = $this->database->fetchOne(
-            "SELECT COUNT(*) FROM content_digest_log WHERE player_id = :playerId AND digest_type = 'xp_reveal'",
+            "SELECT COUNT(*) FROM content_digest_log WHERE player_id = :playerId AND period_key = 'xp_reveal'",
             ['playerId' => PlayerFixture::PLAYER_WITH_STRIPE],
         );
         self::assertSame(1, (int) (is_numeric($logged) ? $logged : 0));

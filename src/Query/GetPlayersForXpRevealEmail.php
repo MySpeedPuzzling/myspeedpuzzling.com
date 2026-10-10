@@ -10,7 +10,7 @@ use Doctrine\DBAL\Connection;
  * Launch reveal-email audience: everyone reachable (an account e-mail - user_account.email is the only
  * address a player has) who has not opted out of the
  * experience system and has not received the reveal yet (idempotency anchor =
- * content_digest_log rows with digest_type 'xp_reveal').
+ * content_digest_log rows with period_key 'xp_reveal').
  */
 readonly class GetPlayersForXpRevealEmail
 {
@@ -34,7 +34,7 @@ SELECT id FROM (
       AND p.experience_system_opted_out = false
       AND NOT EXISTS (
         SELECT 1 FROM content_digest_log l
-        WHERE l.player_id = p.id AND l.digest_type = 'xp_reveal'
+        WHERE l.player_id = p.id AND l.period_key = 'xp_reveal'
       )
     ORDER BY LOWER(TRIM(ua.email)), p.registered_at ASC
 ) eligible

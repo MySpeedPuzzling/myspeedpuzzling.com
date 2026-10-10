@@ -1680,16 +1680,6 @@ xp:
         closing_celebrate: "Arma con honestidad, celebra a lo grande. 🧩"
         explainer_link: "¿Quieres saber cómo se gana cada punto? Mira <a href=\"%explainer_link%\">Cómo funcionan los XP y niveles</a>."
 
-content_digest:
-    unsubscribe:
-        meta_title: "Darse de baja del resumen"
-        confirm_title: "¿Darte de baja del resumen semanal?"
-        confirm_text: "Sin rencores — un clic abajo y el resumen semanal se detiene. Puedes volver a activarlo cuando quieras en tu configuración de notificaciones."
-        confirm_button: "Sí, dame de baja"
-        done_title: "Baja completada"
-        done_text: "El resumen semanal ya no te enviará correos. Si lo echas de menos, te espera en tu configuración de notificaciones."
-        back_home: "Volver a MySpeedPuzzling"
-
 badges:
     title: "Logros"
     my_title: "Mis logros"

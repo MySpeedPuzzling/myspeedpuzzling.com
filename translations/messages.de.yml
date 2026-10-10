@@ -1664,16 +1664,6 @@ xp:
         closing_celebrate: "Puzzle ehrlich, feiere laut. 🧩"
         explainer_link: "Neugierig, wie jeder Punkt entsteht? Siehe <a href=\"%explainer_link%\">So funktionieren XP &amp; Level</a>."
 
-content_digest:
-    unsubscribe:
-        meta_title: "Wochenrückblick abbestellen"
-        confirm_title: "Den wöchentlichen Rückblick abbestellen?"
-        confirm_text: "Kein Problem — ein Klick unten und der Wochenrückblick stoppt. In deinen Benachrichtigungseinstellungen kannst du ihn jederzeit wieder aktivieren."
-        confirm_button: "Ja, abbestellen"
-        done_title: "Du bist abgemeldet"
-        done_text: "Der Wochenrückblick landet nicht mehr in deinem Postfach. Falls du ihn vermisst: Er wartet in deinen Benachrichtigungseinstellungen."
-        back_home: "Zurück zu MySpeedPuzzling"
-
 badges:
     title: "Erfolge"
     my_title: "Meine Erfolge"

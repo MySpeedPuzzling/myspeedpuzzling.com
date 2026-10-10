@@ -41,8 +41,8 @@ final class FeaturesOptionsFormType extends AbstractType
         // Hidden while the xp-system flag is active.
         if ($options['show_experience_system'] === true) {
             $builder->add('experienceSystemOptedOut', CheckboxType::class, [
-                'label' => 'edit_profile.hide_experience_system',
-                'help' => 'edit_profile.hide_experience_system_help',
+                'label' => 'xp_opt_out.label',
+                'help' => 'xp_opt_out.help',
                 'required' => false,
             ]);
         }

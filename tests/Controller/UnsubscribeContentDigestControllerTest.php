@@ -12,7 +12,7 @@ use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 /**
- * One-click unsubscribe from the weekly content digest - the same contract as the unread-messages digest
+ * One-click unsubscribe from the activity digest e-mail - the same contract as the unread-messages digest
  * (DigestEmailsUnsubscribeControllerTest): the signed link works without signing in, a POST switches the digest off,
  * a GET (a mail scanner) changes nothing.
  */
@@ -32,7 +32,7 @@ final class UnsubscribeContentDigestControllerTest extends WebTestCase
         self::assertSame('Unsubscribed.', $browser->getResponse()->getContent());
 
         $player = $browser->getContainer()->get(PlayerRepository::class)->get(self::PLAYER);
-        self::assertSame(ContentDigestFrequency::None, $player->contentDigestFrequency);
+        self::assertSame(ContentDigestFrequency::Off, $player->contentDigestFrequency);
         self::assertTrue($player->emailNotificationsEnabled);
         self::assertTrue($player->newsletterEnabled);
 
@@ -63,7 +63,7 @@ final class UnsubscribeContentDigestControllerTest extends WebTestCase
 
         $this->assertResponseRedirects($url, 303);
         self::assertSame(
-            ContentDigestFrequency::None,
+            ContentDigestFrequency::Off,
             $browser->getContainer()->get(PlayerRepository::class)->get(self::PLAYER)->contentDigestFrequency,
         );
     }
@@ -73,7 +73,7 @@ final class UnsubscribeContentDigestControllerTest extends WebTestCase
         $browser = self::createClient();
         $url = $this->signedUrl($browser);
 
-        $browser->request('POST', '/en/weekly-digest/unsubscribe/' . self::PLAYER);
+        $browser->request('POST', '/en/activity-digest/unsubscribe/' . self::PLAYER);
         $this->assertResponseStatusCodeSame(404);
 
         // Somebody else's id with this player's signature
@@ -81,7 +81,7 @@ final class UnsubscribeContentDigestControllerTest extends WebTestCase
         $this->assertResponseStatusCodeSame(404);
 
         // An unread-messages digest signature does not open this page (different path, different signature)
-        $browser->request('POST', str_replace('/weekly-digest/', '/message-emails/', $url));
+        $browser->request('POST', str_replace('/activity-digest/', '/message-emails/', $url));
         $this->assertResponseStatusCodeSame(404);
 
         self::assertSame(

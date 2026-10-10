@@ -79,7 +79,9 @@
                     <div class="flex-grow-1">
                         <h2 class="h6 mb-0">{{ (section.tier.translationKey())|trans }}</h2>
                         <p class="fs-sm text-body-secondary mb-0">{{ ('badges.requirement.' ~ type.value ~ '_' ~ section.tier.value)|trans }}</p>
-                        <p class="fs-sm mb-0">{{ 'badges.detail.holders_count'|trans({'%count%': section.totalCount}) }}</p>
+                        {% if section.totalCount > 0 %}
+                            <p class="fs-sm mb-0">{{ 'badges.detail.holders_count'|trans({'%count%': section.totalCount}) }}</p>
+                        {% endif %}
                     </div>
                 </div>
 

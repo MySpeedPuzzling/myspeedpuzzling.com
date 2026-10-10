@@ -1,6 +1,6 @@
 {#
     The achievements showcase near the top of a profile (src/Component/AchievementsShowcase.php): one row of medallions
-    scrolling sideways, best first, and "11 of 17 · 640 AP ›" to the catalogue. Members only - a non-member owner gets
+    scrolling sideways, best first, and "11 of 16 · 640 AP ›" to the catalogue. Members only - a non-member owner gets
     one quiet line instead (never a lock).
 #}
 {% if this.mode == 'showcase' %}
@@ -8,7 +8,7 @@
         <div class="achievements-showcase-head">
             <h2 class="achievements-showcase-title" id="achievements-showcase-title">{{ 'badges.title'|trans }}</h2>
             <a class="achievements-showcase-summary" href="{{ path('player_achievements', {playerId: player.playerId}) }}">
-                {{ 'player_progress.showcase.earned'|trans({'%earned%': this.badges|length, '%total%': this.totalTypes}) }}
+                {{ 'player_progress.showcase.earned'|trans({'%earned%': this.earnedTypes, '%total%': this.totalTypes}) }}
                 <span class="achievements-showcase-ap">{{ 'badges.ap_total'|trans({'%points%': player.achievementPoints|format_number}) }}</span>
                 <i class="bi bi-chevron-right" aria-hidden="true"></i>
             </a>

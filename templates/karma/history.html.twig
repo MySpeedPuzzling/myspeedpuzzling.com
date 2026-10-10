@@ -48,7 +48,7 @@
             {% for item in items %}
                 <li class="list-group-item px-0 d-flex align-items-start gap-3 {{ item.counts ? '' : 'karma-item-not-counted' }}">
                     <span class="text-body-secondary fs-sm text-nowrap" style="min-width: 5.5rem;">
-                        {% if item.at is not null %}{{ item.at|format_date('short') }}{% else %}{{ 'karma.history.undated'|trans }}{% endif %}
+                        {% if item.at is not null %}{{ item.at|format_date('medium') }}{% else %}{{ 'karma.history.undated'|trans }}{% endif %}
                     </span>
                     <span class="flex-grow-1">
                         {% if item.kind.value == 'decision' and item.action is not null %}

@@ -1684,7 +1684,7 @@ xp:
             old_solves_question: "Zählen alte Ergebnisse?"
             old_solves_answer: "Ja! Deine gesamte Historie wurde zum Start umgewandelt (Basisformel, ohne zeitbasierte Boni — die gelten nur ab jetzt)."
             opt_out_question: "Ich will das alles nicht."
-            opt_out_answer: "Verstanden — schalte es in deinen Profileinstellungen aus (\"Erfahrungssystem\"), und dein Level, deine XP und die Jubelmomente verschwinden aus der Ansicht."
+            opt_out_answer: "Verstanden — aktiviere in deinen Profileinstellungen \"XP und Level ausblenden\", und dein Level, deine XP und die Jubelmomente verschwinden aus der Ansicht."
             friend_question: "Warum hat jemand anderes mehr XP für dasselbe Puzzle bekommen?"
             fair_play_question: "Wie bleibt das fair?"
             fair_play_answer: "Ein paar stille, automatische Leitplanken halten die Zahlen ehrlich — alles darüber liest du auf der Seite <a href=\"%fair_play_link%\">Fair Play &amp; Vertrauen</a>."

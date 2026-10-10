@@ -182,11 +182,7 @@
                     {% for result in activity.results %}
                         <li class="d-flex gap-3 py-2 border-bottom" data-testid="my-activity-result">
                             <a href="{{ path('puzzle_detail', {puzzleId: result.puzzleId}) }}" class="flex-shrink-0 my-activity-thumb" tabindex="-1" aria-hidden="true">
-                                {% if result.puzzleImage %}
-                                    <img src="{{ result.puzzleImage|thumbnail('puzzle_small') }}" alt="" width="56" height="56" loading="lazy" class="rounded-2">
-                                {% else %}
-                                    <span class="d-block rounded-2 bg-secondary-subtle"></span>
-                                {% endif %}
+                                <img src="{{ result.puzzleImage|puzzle_image('puzzle_small') }}" alt="" width="56" height="56" loading="lazy" class="rounded-2">
                             </a>
                             <div class="flex-grow-1 min-w-0">
                                 <a class="fw-semibold d-block text-truncate" href="{{ path('puzzle_detail', {puzzleId: result.puzzleId}) }}">{{ result.puzzleName }}</a>
@@ -261,7 +257,7 @@
                             <span class="progress-bar" style="width: {{ candidate.progress.percent }}%"></span>
                         </span>
                     </span>
-                    <span class="fs-sm text-body-secondary">{{ candidate.progress.percent }} %</span>
+                    <span class="fs-sm text-body-secondary text-nowrap">{{ candidate.progress.percent }} %</span>
                 </a>
             {% endfor %}
             <a class="btn btn-outline-primary mt-3" href="{{ path('puzzle_picker') }}">{{ 'my_activity.pick_puzzle'|trans }}</a>

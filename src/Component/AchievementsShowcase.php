@@ -15,7 +15,7 @@ use Symfony\UX\TwigComponent\Attribute\PostMount;
 
 /**
  * The achievements showcase near the top of a profile (docs/features/xp-levels/launch-2026-10.md, "Profile header",
- * draft A): a member's earned achievements in one sideways-scrolling row, highest tier first, with "11 of 17 · 640 AP"
+ * draft A): a member's earned achievements in one sideways-scrolling row, highest tier first, with "11 of 16 · 640 AP"
  * linking to the catalogue.
  *
  *  - the player is a member → the showcase for everybody who may see the profile; the owner's unrevealed
@@ -86,9 +86,18 @@ final class AchievementsShowcase
         }
     }
 
+    /**
+     * Counted like the catalogue and the hub: tiered achievements only (the old single-tier Supporter badge may still
+     * show in the row, but it is no achievement to collect)
+     */
     public function totalTypes(): int
     {
-        return count(BadgeType::cases());
+        return count(array_filter(BadgeType::cases(), static fn (BadgeType $type): bool => $type->isTiered()));
+    }
+
+    public function earnedTypes(): int
+    {
+        return count(array_filter($this->badges, static fn (BadgeResult $badge): bool => $badge->type->isTiered()));
     }
 
     /**

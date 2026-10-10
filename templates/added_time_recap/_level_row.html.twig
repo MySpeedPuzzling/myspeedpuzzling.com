@@ -22,7 +22,8 @@
         <span class="recap-row-icon recap-icon-level{{ is_max ? ' is-max' }}" aria-hidden="true"><i class="bi bi-stars"></i></span>
         <span class="recap-row-body">
             <span class="recap-row-title">
-                {{- 'recap_progress.level.title'|trans({'%level%': '<span data-recap-celebration-target="number">' ~ profile.level ~ '</span>'})|raw -}}
+                {# One flex item: the title's own words and the number must not be spaced apart by the row's gap #}
+                <span>{{- 'recap_progress.level.title'|trans({'%level%': '<span data-recap-celebration-target="number">' ~ profile.level ~ '</span>'})|raw -}}</span>
                 {% if mode == 'receipt' %}
                     <span class="recap-xp-plus">{{ 'recap_progress.level.xp_gained'|trans({'%xp%': solve_xp}) }}</span>
                 {% endif %}

@@ -22,7 +22,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * A player's achievements - the "Achievements" tab of the player pages (docs/features/player-header.md): the
- * catalogue rows filled with that player's tiers and progress, Earned / Next up / All, AP and "N of 17 earned".
+ * catalogue rows filled with that player's tiers and progress, Earned / Next up / All, AP and "N of 16 earned" (tiered only).
  *
  * Only members have achievements: a member's page is public (private profile and blocklist rules like every player
  * page), a non-member's page exists for its owner only (one line about membership), anybody else is sent to the
@@ -91,7 +91,11 @@ final class PlayerAchievementsController extends AbstractController
             $catalog = $this->getBadgeCatalog->forPlayer($player->playerId, $badges);
             $lists = AchievementCatalogueRows::build($catalog, $this->achievementRarityProvider->percentages(), personal: true, revealFlow: $isOwn);
 
-            $earnedTypes = count(array_unique(array_map(static fn ($badge): string => $badge->type->value, $badges)));
+            // Counted like the catalogue, the hub and the profile showcase: tiered achievements only
+            $earnedTypes = count(array_unique(array_map(
+                static fn ($badge): string => $badge->type->value,
+                array_filter($badges, static fn ($badge): bool => $badge->type->isTiered()),
+            )));
             // Early Adopter has a single tier granted by hand - not a catalogue row, listed with the earned ones
             $hasSupporter = array_filter($badges, static fn ($badge): bool => $badge->type === BadgeType::Supporter) !== [];
         }
@@ -110,7 +114,7 @@ final class PlayerAchievementsController extends AbstractController
             'rows' => $lists[$filter->value] ?? [],
             'filter_counts' => array_map(static fn (array $rows): int => count($rows), $lists),
             'earned_types' => $earnedTypes,
-            'total_types' => count(BadgeType::cases()),
+            'total_types' => count(array_filter(BadgeType::cases(), static fn (BadgeType $type): bool => $type->isTiered())),
             'has_supporter' => $hasSupporter,
         ]);
     }

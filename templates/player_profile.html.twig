@@ -49,29 +49,6 @@
 
     {{ include('review_results/_banner.html.twig', {review_counts: review_counts}) }}
 
-    {% if not is_masked_profile %}
-        <div class="mb-3">
-            <twig:XpRing playerId="{{ player.playerId }}" :showProgress="true">
-                {% if player.avatar is not null %}
-                    <img src="{{ player.avatar|thumbnail('avatar') }}" alt="" width="52" height="52" style="object-fit: cover; width: 52px; height: 52px;">
-                {% else %}
-                    <span class="d-inline-flex align-items-center justify-content-center bg-secondary" style="width: 52px; height: 52px;">
-                        <i class="ci-user fs-4 text-muted" aria-hidden="true"></i>
-                    </span>
-                {% endif %}
-            </twig:XpRing>
-
-            {% if xp_system_visible()
-                and logged_user.profile is not null
-                and logged_user.profile.playerId is same as player.playerId
-                and not logged_user.profile.experienceSystemOptedOut %}
-                <a href="{{ path('xp_history') }}" class="ms-2 fs-sm text-decoration-none text-nowrap">
-                    <i class="ci-time me-1"></i>{{ 'xp.history.title'|trans }}
-                </a>
-            {% endif %}
-        </div>
-    {% endif %}
-
     {% if getting_started is not null %}
         <div class="mb-3">
             {{ include('onboarding/_getting_started_card.html.twig', {progress: getting_started, folded: false}) }}
@@ -80,6 +57,9 @@
         {# "Add your country" while the player has none - a newcomer's checklist asks for it already (docs/features/players-page/README.md) #}
         <twig:Players:CountryNudge class="mb-3" />
     {% endif %}
+
+    {# Near the top: the member's achievements, best first (the owner's free-account line otherwise) #}
+    <twig:AchievementsShowcase :player="player" class="mb-3" />
 
     {% if player.isPrivate and (logged_user.profile is null or logged_user.profile.playerId is not same as player.playerId) %}
         <div class="alert alert-secondary d-flex align-items-start gap-3 p-3 rounded-3 shadow-sm">
@@ -95,6 +75,13 @@
 
         </div>
     {% else %}
+        <div class="my-4">
+            <twig:Chart:PlayerAverageTimeChart playerId="{{ player.playerId }}" />
+        </div>
+
+        {# Skill tier and MSP Rating in detail - below the fold: the header's chips say the essentials, and the owner's
+           qualification bars must not stack up with the getting-started card at the top #}
+        <div class="profile-standing mb-4">
             {# Ranking opted-out player viewing own profile #}
             {% if player.rankingOptedOut and is_own_profile %}
                 <div class="d-flex flex-column flex-md-row align-items-md-stretch gap-2 mb-2 w-100">
@@ -159,25 +146,15 @@
                         :isOwnProfile="is_own_profile"
                     />
                 </div>
+            {# Everybody else: the rating card only - the header's skill-tier chip is the one lock on the page #}
             {% else %}
                 <div class="d-flex flex-column flex-md-row align-items-md-stretch gap-2 mb-2 w-100">
                     <twig:PlayerRatingProfile
                         playerId="{{ player.playerId }}"
                         :isOwnProfile="false"
                     />
-                    <button
-                        class="btn btn-outline-primary btn-sm d-flex align-items-center justify-content-center gap-1 flex-grow-1"
-                        data-bs-toggle="modal"
-                        data-bs-target="#membersExclusiveModal"
-                    >
-                        <svg class="rank-icon" width="16" height="16" style="color: var(--rank-locked)"><use href="/rank-icons-sprite.svg#rank-locked"/></svg>
-                        {{ 'puzzle_intelligence.player_insights.title'|trans }}
-                    </button>
                 </div>
             {% endif %}
-
-        <div class="my-4">
-            <twig:Chart:PlayerAverageTimeChart playerId="{{ player.playerId }}" />
         </div>
 
         <ul class="nav nav-fill nav-tabs mt-2" role="tablist" {{ stimulus_controller('tabs') }}>
@@ -275,12 +252,6 @@
                 </div>
             </div>
         </div>
-
-        <twig:BadgesProfileSection
-            playerId="{{ player.playerId }}"
-            :subjectHasMembership="player.activeMembership"
-            :subjectIsPrivate="player.isPrivate"
-        />
 
         {% if affiliate_supporters is not null %}
             <div class="mt-4">

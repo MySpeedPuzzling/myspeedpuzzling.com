@@ -53,9 +53,9 @@ a:focus-visible > .badge-art {
   box-shadow: 0 1px 4px rgba($black, .2);
 }
 
-// Profile flip (BadgesProfileSection, owner only): before the first click the badge shows a navy disc with a question
-// mark the size of the seal, the picture is on the back. Size = the picture's display size (--badge-art-size).
-.badge-flip .badge-art-mystery {
+// A medallion not revealed yet (the profile's achievements showcase, owner only): a navy disc with a question mark the
+// size of the seal; the reveal page puts the last piece in. Size = the picture's display size (--badge-art-size).
+.badge-art-mystery {
   box-sizing: border-box;
   display: inline-flex;
   align-items: center;
@@ -65,14 +65,12 @@ a:focus-visible > .badge-art {
   padding: 9%;
   border-radius: 50%;
   // The disc is painted inside the padding only, like the plate of a seal inside its scalloped edge
+  background: radial-gradient(circle at 35% 30%, #4d5c7b, #2b3445 75%);
   background-clip: content-box;
+  color: rgba(255, 255, 255, .85);
   font-size: 1.5rem;
   font-weight: 700;
   line-height: 1;
-}
-
-.badge-flip-front .badge-art {
-  display: block;
 }
 
 // Big picture on the explainer modal and the achievement's own page

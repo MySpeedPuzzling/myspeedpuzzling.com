@@ -1243,7 +1243,6 @@ competition_referees:
     "millions": "%count% M"
     "activity_label": "Puzzles por mes"
     "activity_bar": "%month%: %count% puzzle|%month%: %count% puzzles"
-    "rating": "MSP Rating %rating%"
     "tier_locked": "Nivel de habilidad"
     "competes": "Compite en eventos"
     "swaps": "Intercambia puzzles"
@@ -1572,7 +1571,6 @@ xp:
     level_chip: "Nv %level%"
     total: "%xp% XP"
     total_tooltip: "%xp% XP ganados en total"
-    max_level_reached: "La cima de la montaña — ¡nivel 50!"
     progress_label: "%xp% XP para el nivel %level%"
     receipt:
         title: "Tu XP por esta resolución"
@@ -1750,7 +1748,6 @@ content_digest:
 badges:
     title: "Logros"
     my_title: "Mis logros"
-    new: "NUEVO"
     browse_all: "Explorar todos los logros"
     reveal: "Revela tu nuevo logro"
     waiting_teaser: "{1}1 logro te está esperando — ¡hazte miembro para revelarlo!|]1,Inf[%count% logros te están esperando — ¡hazte miembro para revelarlos!"
@@ -3567,8 +3564,6 @@ puzzle_intelligence:
         predictability_desc: "¿Qué tan predecible es la dificultad de este puzzle?"
         skill_sensitivity: "Sensibilidad a la Habilidad"
         skill_sensitivity_desc: "¿La habilidad marca una gran diferencia en este puzzle?"
-    player_insights:
-        title: "Información del Jugador"
     prediction:
         title: "Tu Predicción"
         estimated_time: "Tiempo estimado"

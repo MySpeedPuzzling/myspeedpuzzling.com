@@ -1241,7 +1241,6 @@ competition_referees:
     "millions": "%count% Mio."
     "activity_label": "Puzzles pro Monat"
     "activity_bar": "%month%: %count% Puzzle|%month%: %count% Puzzles"
-    "rating": "MSP Rating %rating%"
     "tier_locked": "Skill-Stufe"
     "competes": "Nimmt an Veranstaltungen teil"
     "swaps": "Tauscht Puzzles"
@@ -1556,7 +1555,6 @@ xp:
     level_chip: "Lv %level%"
     total: "%xp% XP"
     total_tooltip: "%xp% XP insgesamt verdient"
-    max_level_reached: "Gipfel erreicht — Level 50!"
     progress_label: "%xp% XP bis Level %level%"
     receipt:
         title: "Deine XP für dieses Puzzle"
@@ -1734,7 +1732,6 @@ content_digest:
 badges:
     title: "Erfolge"
     my_title: "Meine Erfolge"
-    new: "NEU"
     browse_all: "Alle Erfolge durchstöbern"
     reveal: "Deck deinen neuen Erfolg auf"
     waiting_teaser: "{1}1 Erfolg wartet auf dich — werde Mitglied, um ihn aufzudecken!|]1,Inf[%count% Erfolge warten auf dich — werde Mitglied, um sie aufzudecken!"
@@ -3566,8 +3563,6 @@ puzzle_intelligence:
         predictability_desc: "Wie vorhersagbar ist die Schwierigkeit dieses Puzzles?"
         skill_sensitivity: "Können-Empfindlichkeit"
         skill_sensitivity_desc: "Macht Können einen großen Unterschied bei diesem Puzzle?"
-    player_insights:
-        title: "Spieler-Einblicke"
     prediction:
         title: "Deine Vorhersage"
         estimated_time: "Geschätzte Zeit"

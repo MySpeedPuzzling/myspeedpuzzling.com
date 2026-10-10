@@ -1244,7 +1244,6 @@ competition_referees:
     "millions": "%count% M"
     "activity_label": "Puzzles par mois"
     "activity_bar": "%month% : %count% puzzle|%month% : %count% puzzles"
-    "rating": "MSP Rating %rating%"
     "tier_locked": "Niveau"
     "competes": "Participe à des événements"
     "swaps": "Échange des puzzles"
@@ -1572,7 +1571,6 @@ competition_referees:
   "level_chip": "Niv. %level%"
   "total": "%xp% XP"
   "total_tooltip": "%xp% XP gagnés au total"
-  "max_level_reached": "Le sommet de la montagne — niveau 50 !"
   "progress_label": "%xp% XP avant le niveau %level%"
   "receipt":
     "title": "Vos XP pour cette résolution"
@@ -1748,7 +1746,6 @@ competition_referees:
 "badges":
   "title": "Succès"
   "my_title": "Mes succès"
-  "new": "NOUVEAU"
   "browse_all": "Parcourir tous les succès"
   "reveal": "Révélez votre nouveau succès"
   "waiting_teaser": "{1}1 succès vous attend — devenez membre pour le révéler !|]1,Inf[%count% succès vous attendent — devenez membre pour les révéler !"
@@ -3564,8 +3561,6 @@ puzzle_intelligence:
         predictability_desc: "La difficulté de ce puzzle est-elle prévisible ?"
         skill_sensitivity: "Sensibilité à la compétence"
         skill_sensitivity_desc: "La compétence fait-elle une grande différence sur ce puzzle ?"
-    player_insights:
-        title: "Statistiques du joueur"
     prediction:
         title: "Votre prédiction"
         estimated_time: "Temps estimé"

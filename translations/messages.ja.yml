@@ -1377,7 +1377,6 @@ competition_referees:
     "millions": "%count%M"
     "activity_label": "月ごとのパズル数"
     "activity_bar": "%month%：%count%個のパズル"
-    "rating": "MSP Rating %rating%"
     "tier_locked": "スキルティア"
     "competes": "イベントに参加"
     "swaps": "パズルを交換"
@@ -1650,7 +1649,6 @@ xp:
     level_chip: "Lv %level%"
     total: "%xp% XP"
     total_tooltip: "合計%xp% XPを獲得"
-    max_level_reached: "山の頂上に到達 — レベル50！"
     progress_label: "レベル%level%まであと%xp% XP"
     receipt:
         title: "今回の完成で獲得したXP"
@@ -1828,7 +1826,6 @@ content_digest:
 badges:
     title: "実績"
     my_title: "マイ実績"
-    new: "NEW"
     browse_all: "すべての実績を見る"
     reveal: "新しい実績をお披露目する"
     waiting_teaser: "{1}実績1個があなたを待っています — メンバーになってお披露目しましょう！|]1,Inf[実績%count%個があなたを待っています — メンバーになってお披露目しましょう！"
@@ -3555,8 +3552,6 @@ puzzle_intelligence:
         predictability_desc: "このパズルの難易度はどれだけ予測しやすいですか？"
         skill_sensitivity: "スキル感度"
         skill_sensitivity_desc: "スキルがこのパズルで大きな差を生みますか？"
-    player_insights:
-        title: "プレイヤーインサイト"
     prediction:
         title: "あなたの予測"
         estimated_time: "推定タイム"

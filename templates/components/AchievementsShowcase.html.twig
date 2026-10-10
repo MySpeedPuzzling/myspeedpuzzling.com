@@ -1,0 +1,48 @@
+{#
+    The achievements showcase near the top of a profile (src/Component/AchievementsShowcase.php): one row of medallions
+    scrolling sideways, best first, and "11 of 17 · 640 AP ›" to the catalogue. Members only - a non-member owner gets
+    one quiet line instead (never a lock).
+#}
+{% if this.mode == 'showcase' %}
+    <section {{ attributes.defaults({class: 'achievements-showcase'}) }} aria-labelledby="achievements-showcase-title">
+        <div class="achievements-showcase-head">
+            <h2 class="achievements-showcase-title" id="achievements-showcase-title">{{ 'badges.title'|trans }}</h2>
+            <a class="achievements-showcase-summary" href="{{ path('badges_overview') }}">
+                {{ 'player_progress.showcase.earned'|trans({'%earned%': this.badges|length, '%total%': this.totalTypes}) }}
+                <span class="achievements-showcase-ap">{{ 'badges.ap_total'|trans({'%points%': player.achievementPoints|format_number}) }}</span>
+                <i class="bi bi-chevron-right" aria-hidden="true"></i>
+            </a>
+        </div>
+
+        {% if this.badges is empty %}
+            <p class="achievements-showcase-empty">{{ 'badges.waiting_teaser_zero'|trans }}</p>
+        {% else %}
+            <ul class="achievements-showcase-row">
+                {% for badge in this.badges %}
+                    <li>
+                        {% if this.needsReveal(badge) %}
+                            {# Not revealed yet: a "?" medallion - the reveal page puts the last piece in #}
+                            <a class="achievements-showcase-item is-unrevealed" href="{{ path('badge_reveals') }}" aria-label="{{ 'badges.reveal'|trans }}" title="{{ 'badges.reveal'|trans }}">
+                                <span class="badge-art-mystery" style="--badge-art-size: 56px;" aria-hidden="true">?</span>
+                            </a>
+                        {% else %}
+                            {% set label = (badge.type.translationKey())|trans %}
+                            <a class="achievements-showcase-item" href="{{ path('achievement_info', {type: badge.type.value, tier: badge.tier ? badge.tier.value : null}) }}" data-turbo-frame="modal-frame" title="{{ 'badges.info.open'|trans({'%achievement%': label}) }}">
+                                {{ badge_art(badge.type, badge.tier, 56) }}
+                            </a>
+                        {% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    </section>
+{% elseif this.mode == 'teaser' %}
+    <p {{ attributes.defaults({class: 'achievements-teaser'}) }}>
+        <i class="bi bi-award" aria-hidden="true"></i>
+        {% if this.hasEarned %}
+            <span>{{ 'player_progress.showcase.teaser'|trans }} <a href="{{ path('membership') }}">{{ 'player_progress.showcase.teaser_link'|trans }}</a></span>
+        {% else %}
+            <span>{{ 'player_progress.showcase.teaser_none'|trans }} <a href="{{ path('badges_overview') }}">{{ 'player_progress.showcase.teaser_none_link'|trans }}</a></span>
+        {% endif %}
+    </p>
+{% endif %}

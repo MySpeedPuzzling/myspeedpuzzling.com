@@ -21,6 +21,10 @@ final class XpLeakTest extends WebTestCase
 {
     private const array TRACE_MARKERS = [
         'xp-ring',
+        'xp-level-tab',
+        'achievements-showcase',
+        'achievements-teaser',
+        'players-card-chip-level',
         'xp-level-chip',
         'xp-solve-receipt',
         'xp-receipt-line',

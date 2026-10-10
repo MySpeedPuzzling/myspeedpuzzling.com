@@ -8,9 +8,8 @@ use SpeedPuzzling\Web\Value\ContentDigestFrequency;
 
 /**
  * What a planning did for one frequency: `planned` (queued `recipients` e-mails), `dry_run` (would have), or why
- * nothing - `not_ready` (the XP launch switch, XpFeatureGate, is off), `paused` (the period starts before the first digest period), `stale` (the period's send days are
- * over, e.g. a Monday that is not a send day of this frequency), `not_yet` (the no-activity e-mail goes the day after
- * the send day).
+ * nothing - `not_ready` (the XP launch switch, XpFeatureGate, is off), `paused` (activity: the period starts before the first digest period; "We miss you": before its
+ * first run day), `stale` (the period's send days are over, e.g. a Monday that is not a send day of this frequency).
  */
 readonly final class ContentDigestRunPlan
 {

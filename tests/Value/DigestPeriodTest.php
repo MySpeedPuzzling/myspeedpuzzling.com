@@ -23,7 +23,6 @@ final class DigestPeriodTest extends TestCase
         self::assertSame('2026-10-19 00:00', $period->end->format('Y-m-d H:i'));
         self::assertSame('2026-10-18', $period->lastDay()->format('Y-m-d'));
         self::assertSame('2026-10-19', $period->sendDay()->format('Y-m-d'));
-        self::assertSame('2026-10-20', $period->noActivityDay()->format('Y-m-d'));
     }
 
     public function testSundayNightInUtcIsAlreadyMondayInPrague(): void
@@ -142,7 +141,7 @@ final class DigestPeriodTest extends TestCase
         // length, run moment (Prague), period found, before the first period, stale
         yield 'weekly, the last Monday of the pause' => [DigestPeriodLength::Week, '2026-10-12 07:01', '2026-W41', true, false];
         yield 'weekly, the first send' => [DigestPeriodLength::Week, '2026-10-19 07:01', '2026-W42', false, false];
-        yield 'weekly, the no-activity Tuesday' => [DigestPeriodLength::Week, '2026-10-20 07:01', '2026-W42', false, false];
+        yield 'weekly, a re-run on Tuesday' => [DigestPeriodLength::Week, '2026-10-20 07:01', '2026-W42', false, false];
         yield 'weekly, a re-run on Wednesday' => [DigestPeriodLength::Week, '2026-10-21 23:59', '2026-W42', false, false];
         yield 'weekly, Thursday is too late' => [DigestPeriodLength::Week, '2026-10-22 00:00', '2026-W42', false, true];
         yield 'two weeks, during the pause' => [DigestPeriodLength::TwoWeeks, '2026-10-19 07:01', '2026-W40-W41', true, true];

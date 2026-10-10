@@ -1,0 +1,39 @@
+{% trans_default_domain 'emails' %}
+{#
+    "We miss you" (docs/features/content-digest/README.md §"We miss you"): once per inactive spell, when the last logged
+    result is at least 28 days old. Friendly and light, never blaming, no streak threats: maybe they puzzled and did
+    not log it (the date of a time can be picked - "Add a time"), or a puzzle idea brings them back.
+#}
+{% apply inky_to_html|inline_css(source('@styles/foundation-emails.css'))|email_document %}
+    <wrapper>
+        <container>
+            {{ include('emails/_header.html.twig', {preheader: 'activity_digest.miss_you.preheader'|trans}) }}
+
+            <row>
+                <columns>
+                    <spacer size-sm="24"></spacer>
+                    <h3>{{ 'activity_digest.miss_you.title'|trans({'%name%': playerName ?? 'activity_digest.puzzler'|trans}) }}</h3>
+                    <p>{{ 'activity_digest.miss_you.line_secret'|trans }}</p>
+                    <p>{{ 'activity_digest.miss_you.line_add'|trans }}</p>
+                    <spacer size-sm="8"></spacer>
+                    <center>
+                        <button href="{{ url('puzzle_add', {_locale: locale}) }}">{{ 'activity_digest.miss_you.button'|trans }}</button>
+                    </center>
+                    <spacer size-sm="8"></spacer>
+                    <p>{{ 'activity_digest.miss_you.line_back'|trans }}</p>
+                    <ul>
+                        <li><a href="{{ url('puzzle_picker', {_locale: locale}) }}">{{ 'activity_digest.miss_you.link_picker'|trans }}</a></li>
+                        <li><a href="{{ url('hub', {_locale: locale}) }}">{{ 'activity_digest.miss_you.link_hub'|trans }}</a></li>
+                        <li><a href="{{ url('my_profile', {_locale: locale}) }}">{{ 'activity_digest.miss_you.link_profile'|trans }}</a></li>
+                    </ul>
+                </columns>
+            </row>
+
+            {{ include('emails/content_digest/_community.html.twig') }}
+            {{ include('emails/content_digest/_favorites.html.twig') }}
+            {{ include('emails/content_digest/_settings.html.twig', {footer_key: 'activity_digest.miss_you.footer'}) }}
+
+            {{ include('emails/_footer.html.twig') }}
+        </container>
+    </wrapper>
+{% endapply %}

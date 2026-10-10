@@ -17,15 +17,17 @@ use SpeedPuzzling\Web\Services\Xp\XpFeatureGate;
 use SpeedPuzzling\Web\Value\ContentDigestFrequency;
 use SpeedPuzzling\Web\Value\ContentDigestKind;
 use SpeedPuzzling\Web\Value\DigestPeriod;
+use SpeedPuzzling\Web\Value\MissYouRun;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\DelayStamp;
 
 /**
- * Queues today's activity digests (Monday) or no-activity e-mails (the day after) for every frequency whose period
- * is due (docs/features/content-digest/README.md §"Sending"). Per frequency: the latest period whose send day has
- * come (DigestPeriod::latestSentBy()), skipped while it starts before the first digest period (the launch pause - a
- * guard in code, not only a cron date), once it is stale, or - no-activity - before the day after its send day.
+ * Queues today's activity digests (Monday) for every frequency whose period is due, or today's "We miss you" e-mails
+ * (Tuesday) for every frequency (docs/features/content-digest/README.md §"Sending"). Activity, per frequency: the
+ * latest period whose send day has come (DigestPeriod::latestSentBy()), skipped while it starts before the first digest
+ * period (the launch pause - a guard in code, not only a cron date) or once it is stale. "We miss you": not before
+ * MissYouRun::FIRST_DAY. `maxRecipients` caps the planning across frequencies.
  *
  * Nothing at all while the XP launch is not ready (XpFeatureGate::isEmailSendingEnabled(), the one launch switch).
  *
@@ -54,38 +56,58 @@ readonly final class PlanContentDigestRunsHandler
     {
         $now = $this->clock->now();
         $plans = [];
+        $recipientsLeft = $message->maxRecipients;
 
         foreach (ContentDigestFrequency::sending() as $frequency) {
-            $length = $frequency->periodLength();
-            assert($length !== null);
-            $period = DigestPeriod::latestSentBy($length, $now);
+            if ($message->kind === ContentDigestKind::Activity) {
+                $length = $frequency->periodLength();
+                assert($length !== null);
+                $period = DigestPeriod::latestSentBy($length, $now);
+                $key = $period->key;
 
-            $skipped = match (true) {
-                // The launch switch: nothing is sent before the XP launch is ready (XpFeatureGate)
-                $this->xpFeatureGate->isEmailSendingEnabled() === false => 'not_ready',
-                $period->isBeforeFirstPeriod() => 'paused',
-                $period->isStaleAt($now) => 'stale',
-                $message->kind === ContentDigestKind::NoActivity && $now < $period->noActivityDay() => 'not_yet',
-                default => null,
-            };
+                $skipped = match (true) {
+                    // The launch switch: nothing is sent before the XP launch is ready (XpFeatureGate)
+                    $this->xpFeatureGate->isEmailSendingEnabled() === false => 'not_ready',
+                    $period->isBeforeFirstPeriod() => 'paused',
+                    $period->isStaleAt($now) => 'stale',
+                    default => null,
+                };
+            } else {
+                $period = null;
+                $key = MissYouRun::runKey($now);
+
+                $skipped = match (true) {
+                    $this->xpFeatureGate->isEmailSendingEnabled() === false => 'not_ready',
+                    MissYouRun::isAllowedOn($now) === false => 'paused',
+                    default => null,
+                };
+            }
 
             if ($skipped !== null) {
-                $plans[] = new ContentDigestRunPlan($frequency, $period->key, $skipped);
+                $plans[] = new ContentDigestRunPlan($frequency, $key, $skipped);
 
                 continue;
             }
 
-            $recipients = $this->getContentDigestRecipients->of($message->kind, $frequency, $period);
+            $recipients = $period !== null
+                ? $this->getContentDigestRecipients->withActivity($frequency, $period)
+                : $this->getContentDigestRecipients->missed($frequency, $now);
+
+            if ($recipientsLeft !== null) {
+                $recipients = array_slice($recipients, 0, max(0, $recipientsLeft));
+                $recipientsLeft -= count($recipients);
+            }
+
             $pacing = $this->pacing->plan(count($recipients), $now);
 
             if ($message->dryRun) {
-                $plans[] = new ContentDigestRunPlan($frequency, $period->key, 'dry_run', count($recipients), $pacing['spacingMs']);
+                $plans[] = new ContentDigestRunPlan($frequency, $key, 'dry_run', count($recipients), $pacing['spacingMs']);
 
                 continue;
             }
 
             if ($recipients === []) {
-                $plans[] = new ContentDigestRunPlan($frequency, $period->key, 'planned');
+                $plans[] = new ContentDigestRunPlan($frequency, $key, 'planned');
 
                 continue;
             }
@@ -95,7 +117,7 @@ readonly final class PlanContentDigestRunsHandler
                 id: $runId,
                 kind: $message->kind,
                 frequency: $frequency,
-                periodKey: $period->key,
+                periodKey: $key,
                 recipients: count($recipients),
                 startedAt: $now,
                 spacingSeconds: intdiv($pacing['spacingMs'], 1000),
@@ -103,12 +125,12 @@ readonly final class PlanContentDigestRunsHandler
 
             foreach ($recipients as $index => $playerId) {
                 $this->messageBus->dispatch(
-                    new SendPlayerContentDigest($playerId, $period->key, $message->kind, $runId->toString()),
+                    new SendPlayerContentDigest($playerId, $key, $message->kind, $runId->toString()),
                     [new DelayStamp($pacing['firstDelayMs'] + $index * $pacing['spacingMs'])],
                 );
             }
 
-            $plans[] = new ContentDigestRunPlan($frequency, $period->key, 'planned', count($recipients), $pacing['spacingMs']);
+            $plans[] = new ContentDigestRunPlan($frequency, $key, 'planned', count($recipients), $pacing['spacingMs']);
         }
 
         return $plans;

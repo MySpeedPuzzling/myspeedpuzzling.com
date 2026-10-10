@@ -99,15 +99,27 @@ final class PlanContentDigestRunsHandlerTest extends KernelTestCase
         self::assertSame([], $this->queued());
     }
 
-    public function testTheNoActivityEmailWaitsForTheDayAfter(): void
+    public function testTheFirstMissYouRunIsTuesdayTwentiethOctober(): void
     {
-        $monday = $this->plan(ContentDigestKind::NoActivity, '2030-03-11 07:01', dryRun: true);
-        self::assertSame('not_yet', $monday[0]->outcome);
+        $before = $this->plan(ContentDigestKind::MissYou, '2026-10-19 07:01', dryRun: true);
+        self::assertSame(['weekly' => 'paused', 'every_two_weeks' => 'paused', 'monthly' => 'paused'], $this->outcomes($before));
 
-        $tuesday = $this->plan(ContentDigestKind::NoActivity, '2030-03-12 07:01', dryRun: true);
-        self::assertSame('dry_run', $tuesday[0]->outcome);
-        self::assertSame('2030-W10', $tuesday[0]->periodKey);
-        self::assertGreaterThan(0, $tuesday[0]->recipients);
+        $first = $this->plan(ContentDigestKind::MissYou, '2026-10-20 07:01', dryRun: true);
+        self::assertSame('dry_run', $first[0]->outcome);
+        self::assertSame('miss-you-2026-10-20', $first[0]->periodKey);
+    }
+
+    public function testMissYouIsQueuedMostRecentlyActiveFirstAndCanBeCapped(): void
+    {
+        $plans = $this->plan(ContentDigestKind::MissYou, '2030-03-12 07:01', maxRecipients: 2);
+
+        self::assertSame(2, array_sum(array_map(static fn (ContentDigestRunPlan $plan): int => $plan->recipients, $plans)));
+        $queued = $this->queued();
+        self::assertCount(2, $queued);
+        $first = $queued[0]->getMessage();
+        self::assertInstanceOf(SendPlayerContentDigest::class, $first);
+        self::assertSame(ContentDigestKind::MissYou, $first->kind);
+        self::assertSame('miss-you-2030-03-12', $first->periodKey);
     }
 
     public function testTheFirstMondayOfTheMonthPlansTheMonth(): void
@@ -122,7 +134,7 @@ final class PlanContentDigestRunsHandlerTest extends KernelTestCase
     /**
      * @return list<ContentDigestRunPlan>
      */
-    private function plan(ContentDigestKind $kind, string $praguetime, bool $dryRun = false, bool $launchReady = true): array
+    private function plan(ContentDigestKind $kind, string $praguetime, bool $dryRun = false, bool $launchReady = true, null|int $maxRecipients = null): array
     {
         $container = self::getContainer();
         $handler = new PlanContentDigestRunsHandler(
@@ -134,7 +146,7 @@ final class PlanContentDigestRunsHandlerTest extends KernelTestCase
             xpFeatureGate: new XpFeatureGate(new XpLaunchReadinessStub($launchReady)),
         );
 
-        $plans = $handler(new PlanContentDigestRuns($kind, $dryRun));
+        $plans = $handler(new PlanContentDigestRuns($kind, $dryRun, $maxRecipients));
         $container->get('doctrine.orm.entity_manager')->flush();
 
         return $plans;

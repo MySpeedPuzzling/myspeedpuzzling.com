@@ -10,8 +10,11 @@ Two e-mails:
 
 - **Activity digest** - Monday, to everybody with activity in their period: the period first, progress second, one
   button to the "Your week" page, every line a link.
-- **No-activity e-mail** - the day after (Tuesday), to a player without activity: warm, one line of community news, a
-  puzzle idea. **At most once, never again until the player has had activity again.**
+  **No activity in the period = no digest at all** (no "quiet" variant).
+- **"We miss you"** - Tuesdays (from Tue 20 Oct 2026), to a player whose last logged result is **≥ 28 days** old:
+  friendly, lightly humorous ("have you been puzzling in secret?"), invites them to add the times they forgot and to
+  come back. **Once per inactive spell**, never again until they have had activity again (Jan, 2026-10-11 - replaced
+  the earlier "no-activity mail the day after").
 
 ## Frequency and periods
 
@@ -31,8 +34,7 @@ database stores UTC, queries use `startUtc()` / `endUtc()`:
 
 - `DigestPeriod::latestSentBy(length, now)` = the latest period whose send day has come; a run skips it when it is
   **before the first period** (`isBeforeFirstPeriod()`) or **stale** (`STALE_AFTER_DAYS` = 3 days after the send day -
-  so on an off-Monday the two-week/monthly period found is stale and nothing is sent). The no-activity e-mail needs
-  `now >= noActivityDay()` (send day + 1).
+  so on an off-Monday the two-week/monthly period found is stale and nothing is sent).
 - **Launch pause**: nothing about a period starting before Monday 12 Oct 2026 - a guard in code (planner *and*
   handler), not only a cron date. First activity digest: **Mon 19 Oct 2026 about 12-18 Oct**; first two-week one
   Mon 26 Oct (12-25 Oct); first monthly one Mon 7 Dec (November - October started before the pause ended).
@@ -57,17 +59,38 @@ one player per address; **most engaged first** (latest `player_activity_day`, th
   **Karma** (accepted contributions, workstream F) is the one other activity planned: a player who only improves the
   database is active too - the hook is `GetContentDigestRecipients::activitySql()` (+ `PlayerPeriodActivityReader::karmaGained()`
   for the e-mail line); until F lands it is results only.
-- **No-activity** = nothing *logged* at all since the period started (`tracked_at`, any result, a back-dated or a not
-  yet verified one too - somebody who logged on Monday morning is never told we missed them), the account existed
-  before the period ended, and **never twice in a row**: no earlier no-activity row (`had_activity = false`, sent or
-  permanently failed) after the last thing the player logged. A newcomer who never logs anything gets exactly one.
+- No activity in the period → **no digest** (nothing is sent, nothing is logged).
+
+## We miss you
+
+- **Who**: the activity-digest switch on (any frequency but off - it rides on that preference and its one-click
+  unsubscribe instead of a fourth switch: it is the same relationship, "tell me about my puzzling", and one switch is
+  easier to understand), at least one result ever (players who never logged a time are not "missed"), and the **last
+  logged result ≥ 28 days ago** (`GetContentDigestRecipients::MISS_YOU_AFTER_DAYS`; logged = `tracked_at`, any result,
+  solo or pair/team, a back-dated or not yet verified one too).
+- **Once per inactive spell**: the spell is named by the last logged result - the log row's `period_key` is
+  `miss-you:<last tracked_at>` (`MissYouRun::spellKey()`, `had_activity = false`), so the unique `(player_id,
+  period_key)` claim makes it race-safe and once; the recipients query also skips anybody with a "We miss you" row
+  sent after their last result. A new result restarts the 28-day clock (a new spell, a new key).
+- **When**: weekly on Tuesday, all frequencies, runs keyed `miss-you-YYYY-MM-DD` (`MissYouRun::runKey()`); **not before
+  Tue 20 Oct 2026** (`MissYouRun::FIRST_DAY`, a guard in planner *and* handler), never while the launch switch is off;
+  a queued message older than 2 days after its run day is dropped. Paced over 07:00-19:00, most recently active first,
+  with a **stricter breaker** (≥ 10 failures and ≥ 3 %: these addresses have been quiet, the first run for years).
+- **The first run (Tue 20 Oct)** includes every long-dormant account with a result once. Check `--dry-run`, and if the
+  count is high send the first wave in slices: `--max-recipients N` (all frequencies together, most recently active
+  first; the rest goes the next Tuesday, or a same-day re-run).
+- **Content** (`templates/emails/content_digest_miss_you.html.twig`, keys `activity_digest.miss_you.*`): "Your puzzles
+  miss you" / "We miss your times" - maybe a break, maybe puzzling in secret; times can still be added with the day they
+  were finished ("Add a time" button → `puzzle_add`), then: let us pick your next puzzle (Puzzle Picker), see what the
+  community is puzzling (Hub), your profile; the community's most solved of last week, the favourites. No guilt, no
+  blame, no streak talk. Humour that survives translation (no puns).
 - Opt-outs: the digest has its own switch only. `experience_system_opted_out` no longer stops the e-mail - it leaves
   out XP and level lines (e-mail and page). `streak_opted_out` hides the streak, `ranking_opted_out` the MSP Rating.
 
 ## Sending
 
 ```
-cron Mon 07:01 → myspeedpuzzling:send-content-digest activity      (Tue 07:01 → … no-activity; --dry-run counts)
+cron Mon 07:01 → myspeedpuzzling:send-content-digest activity      (Tue 07:01 → … miss-you; --dry-run, --max-recipients N)
   → PlanContentDigestRuns (sync handler, one transaction): per frequency due → ContentDigestRun + one
     SendPlayerContentDigest per recipient with DelayStamp(firstDelay + i × spacing)  → queue content_digest_emails
       → digest-consumer: SendPlayerContentDigestHandler
@@ -83,7 +106,7 @@ cron Mon 07:01 → myspeedpuzzling:send-content-digest activity      (Tue 07:01 
   crash rolls the claim back. Transport failures do not throw (so the outcome commits); anything else (template,
   database) bubbles to Messenger's retry with nothing left behind.
 - The command only dispatches `PlanContentDigestRuns` and prints a table per frequency: `planned` (+ recipients,
-  spacing), `dry_run`, `not_ready` (launch switch), `paused`, `stale`, `not_yet` (no-activity before the day after).
+  spacing), `dry_run`, `not_ready` (launch switch), `paused` (before the first digest period / before the first "We miss you" day), `stale`.
   Re-running it the same day queues nobody twice.
 - The XP reveal e-mail (removed by workstream A) used the log as its once-only marker (`period_key = 'xp_reveal'`)
   until it is deleted.
@@ -184,15 +207,17 @@ Why it is worth having:
 
 ```cron
 # Activity digest (docs/features/content-digest/README.md) - Monday: the activity digests of every frequency due,
-# spaced 07:00-19:00 Prague by the app; Tuesday: the no-activity e-mails (at most once until active again).
-# Paused in code until the period of 12-18 Oct 2026 (first send Mon 19 Oct) and while the XP launch switch is off.
+# spaced 07:00-19:00 Prague by the app; Tuesday: "We miss you" (last result 28+ days ago, once per quiet spell).
+# Paused in code until the period of 12-18 Oct 2026 (first send Mon 19 Oct; first "We miss you" Tue 20 Oct) and
+# while the XP launch switch is off.
 1 7 * * 1 root lily-cron-run myspeedpuzzling send-content-digest-activity -- docker compose --file /srv/myspeedpuzzling/compose.yaml run --rm --no-deps messenger-consumer sentry-cli monitors run --schedule "1 7 * * 1" --timezone "Europe/Prague" send-content-digest-activity -- bin/console myspeedpuzzling:send-content-digest activity >> /var/log/lily/myspeedpuzzling-cron.log 2>&1
-1 7 * * 2 root lily-cron-run myspeedpuzzling send-content-digest-no-activity -- docker compose --file /srv/myspeedpuzzling/compose.yaml run --rm --no-deps messenger-consumer sentry-cli monitors run --schedule "1 7 * * 2" --timezone "Europe/Prague" send-content-digest-no-activity -- bin/console myspeedpuzzling:send-content-digest no-activity >> /var/log/lily/myspeedpuzzling-cron.log 2>&1
+1 7 * * 2 root lily-cron-run myspeedpuzzling send-content-digest-miss-you -- docker compose --file /srv/myspeedpuzzling/compose.yaml run --rm --no-deps messenger-consumer sentry-cli monitors run --schedule "1 7 * * 2" --timezone "Europe/Prague" send-content-digest-miss-you -- bin/console myspeedpuzzling:send-content-digest miss-you >> /var/log/lily/myspeedpuzzling-cron.log 2>&1
 ```
 
 3. Before Mon 19 Oct: `bin/console myspeedpuzzling:send-content-digest activity --dry-run` on the box (counts per
-   frequency) - and the same for `no-activity` on Tue 20 Oct: the **first no-activity Tuesday mails every dormant
-   account once** (all players without a result since 12 Oct). Decide whether that wave is wanted (see `docs/TODO.md`).
+   frequency) - and `miss-you --dry-run` before Tue 20 Oct: the **first "We miss you" run reaches every dormant
+   account with a result once**. Slice it with `--max-recipients` (run the cron row once by hand with it, or adjust the
+   row for the first weeks); the strict breaker stops a run whose addresses bounce.
 4. Watch: the breaker's warning in Sentry, `content_digest_run` counters, `email_audit_log` for `content_digest_*`.
 
 ---

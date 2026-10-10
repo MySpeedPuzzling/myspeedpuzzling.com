@@ -10,7 +10,6 @@ use SpeedPuzzling\Web\Query\GetContentDigestRecipients;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Value\ContentDigestFrequency;
-use SpeedPuzzling\Web\Value\ContentDigestKind;
 use SpeedPuzzling\Web\Value\DigestPeriod;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
@@ -37,7 +36,7 @@ final class GetContentDigestRecipientsTest extends KernelTestCase
         $teamTimeTracker = PlayerFixture::PLAYER_PRIVATE;
         $this->insertTeamSolve($teamTimeTracker, [PlayerFixture::PLAYER_PRIVATE, PlayerFixture::PLAYER_WITH_FAVORITES], '2030-03-06 12:00:00');
 
-        $recipients = $this->query->of(ContentDigestKind::Activity, ContentDigestFrequency::Weekly, $period);
+        $recipients = $this->query->withActivity(ContentDigestFrequency::Weekly, $period);
 
         self::assertContains(PlayerFixture::PLAYER_REGULAR, $recipients);
         self::assertContains(PlayerFixture::PLAYER_PRIVATE, $recipients);
@@ -54,7 +53,7 @@ final class GetContentDigestRecipientsTest extends KernelTestCase
         // Sunday 23:30 Prague = 22:30 UTC: still the period
         $this->insertSolve(PlayerFixture::PLAYER_ADMIN, '2030-03-10 22:30:00');
 
-        $recipients = $this->query->of(ContentDigestKind::Activity, ContentDigestFrequency::Weekly, $period);
+        $recipients = $this->query->withActivity(ContentDigestFrequency::Weekly, $period);
 
         self::assertNotContains(PlayerFixture::PLAYER_REGULAR, $recipients);
         self::assertNotContains(PlayerFixture::PLAYER_WITH_STRIPE, $recipients);
@@ -71,7 +70,7 @@ final class GetContentDigestRecipientsTest extends KernelTestCase
         $this->insertLog(PlayerFixture::PLAYER_WITH_STRIPE, '2030-W10', hadActivity: true, sentAt: '2030-03-11 07:00:00');
         $this->insertLog(PlayerFixture::PLAYER_ADMIN, '2030-W10', hadActivity: true, sentAt: '2030-03-11 07:00:00', status: 'deferred');
 
-        $recipients = $this->query->of(ContentDigestKind::Activity, ContentDigestFrequency::Weekly, $period);
+        $recipients = $this->query->withActivity(ContentDigestFrequency::Weekly, $period);
 
         self::assertNotContains(PlayerFixture::PLAYER_REGULAR, $recipients);
         self::assertNotContains(PlayerFixture::PLAYER_WITH_STRIPE, $recipients);
@@ -79,48 +78,75 @@ final class GetContentDigestRecipientsTest extends KernelTestCase
 
         self::assertContains(
             PlayerFixture::PLAYER_REGULAR,
-            $this->query->of(ContentDigestKind::Activity, ContentDigestFrequency::Monthly, DigestPeriod::fromKey('2030-03')),
+            $this->query->withActivity(ContentDigestFrequency::Monthly, DigestPeriod::fromKey('2030-03')),
         );
     }
 
-    public function testTheNoActivityEmailGoesOnceAndAgainOnlyAfterTheNextActivity(): void
+    public function testPlayersAreMissedAfterTwentyEightDaysWithoutAnything(): void
     {
         $player = PlayerFixture::PLAYER_REGULAR;
-        $this->database->executeStatement('DELETE FROM puzzle_solving_time WHERE player_id = :id', ['id' => $player]);
-        $week10 = DigestPeriod::fromKey('2030-W10');
-        $week11 = DigestPeriod::fromKey('2030-W11');
-        $week13 = DigestPeriod::fromKey('2030-W13');
+        $this->onlyResult($player, '2030-02-01 18:00:00');
 
-        self::assertTrue($this->query->isRecipient($player, ContentDigestKind::NoActivity, ContentDigestFrequency::Weekly, $week10));
-        self::assertFalse($this->query->isRecipient($player, ContentDigestKind::Activity, ContentDigestFrequency::Weekly, $week10));
-
-        // Told once (Tuesday after week 10): never again while nothing happens
-        $this->insertLog($player, '2030-W10', hadActivity: false, sentAt: '2030-03-12 07:00:00');
-        self::assertFalse($this->query->isRecipient($player, ContentDigestKind::NoActivity, ContentDigestFrequency::Weekly, $week11));
-
-        // A result in week 12, then a quiet week 13: one more no-activity e-mail is fine
-        $this->insertSolve($player, '2030-03-20 12:00:00');
-        self::assertTrue($this->query->isRecipient($player, ContentDigestKind::NoActivity, ContentDigestFrequency::Weekly, $week13));
+        // 27 days 23 hours: not yet
+        self::assertFalse($this->query->isMissed($player, ContentDigestFrequency::Weekly, $this->utc('2030-03-01 17:00:00')));
+        // 28 days to the second: missed
+        self::assertTrue($this->query->isMissed($player, ContentDigestFrequency::Weekly, $this->utc('2030-03-01 18:00:00')));
+        self::assertContains($player, $this->query->missed(ContentDigestFrequency::Weekly, $this->utc('2030-03-05 08:00:00')));
+        self::assertEquals($this->utc('2030-02-01 18:00:00'), $this->query->lastLoggedAt($player));
     }
 
-    public function testNoNoActivityEmailToSomebodyWhoLoggedSinceThePeriodStarted(): void
+    public function testOncePerSpellAndAgainOnlyAfterTheNextActivity(): void
     {
         $player = PlayerFixture::PLAYER_REGULAR;
-        $period = DigestPeriod::fromKey('2030-W10');
-        // Logged on the Monday after the period - a back-dated result counts as being active too
-        $this->insertSolve($player, '2029-12-01 12:00:00', trackedAt: '2030-03-11 06:00:00');
+        $this->onlyResult($player, '2030-02-01 18:00:00');
 
-        self::assertFalse($this->query->isRecipient($player, ContentDigestKind::NoActivity, ContentDigestFrequency::Weekly, $period));
-        self::assertFalse($this->query->isRecipient($player, ContentDigestKind::Activity, ContentDigestFrequency::Weekly, $period));
+        // Told on 5 March: never again while nothing happens
+        $this->insertLog($player, 'miss-you:2030-02-01T18:00:00', hadActivity: false, sentAt: '2030-03-05 07:00:00');
+        self::assertFalse($this->query->isMissed($player, ContentDigestFrequency::Weekly, $this->utc('2030-03-12 08:00:00')));
+        self::assertFalse($this->query->isMissed($player, ContentDigestFrequency::Weekly, $this->utc('2031-01-01 08:00:00')));
+
+        // A result on 10 March restarts the clock: missed again from 7 April
+        $this->insertSolve($player, '2030-03-10 12:00:00');
+        self::assertFalse($this->query->isMissed($player, ContentDigestFrequency::Weekly, $this->utc('2030-04-06 08:00:00')));
+        self::assertTrue($this->query->isMissed($player, ContentDigestFrequency::Weekly, $this->utc('2030-04-07 12:00:00')));
     }
 
-    public function testNoNoActivityEmailAboutAPeriodBeforeTheAccountExisted(): void
+    public function testAPairResultOrABackDatedOneIsActivityToo(): void
     {
-        $player = PlayerFixture::PLAYER_REGULAR;
-        $this->database->executeStatement('DELETE FROM puzzle_solving_time WHERE player_id = :id', ['id' => $player]);
-        $this->database->executeStatement("UPDATE player SET registered_at = '2030-03-11 06:00:00' WHERE id = :id", ['id' => $player]);
+        $player = PlayerFixture::PLAYER_WITH_FAVORITES;
+        $this->onlyResult($player, '2030-01-01 12:00:00');
+        $this->insertTeamSolve(PlayerFixture::PLAYER_PRIVATE, [PlayerFixture::PLAYER_PRIVATE, $player], '2030-02-20 12:00:00');
+        // Logged on 25 February, solved long before
+        $this->insertSolve($player, '2029-06-01 12:00:00', trackedAt: '2030-02-25 12:00:00');
 
-        self::assertFalse($this->query->isRecipient($player, ContentDigestKind::NoActivity, ContentDigestFrequency::Weekly, DigestPeriod::fromKey('2030-W10')));
+        self::assertFalse($this->query->isMissed($player, ContentDigestFrequency::Weekly, $this->utc('2030-03-20 08:00:00')));
+        self::assertTrue($this->query->isMissed($player, ContentDigestFrequency::Weekly, $this->utc('2030-03-26 08:00:00')));
+    }
+
+    public function testNobodyIsMissedWhoNeverLoggedAResultOrSwitchedTheEmailOff(): void
+    {
+        $never = PlayerFixture::PLAYER_REGULAR;
+        $this->database->executeStatement('DELETE FROM puzzle_solving_time WHERE player_id = :id', ['id' => $never]);
+        $this->database->executeStatement('DELETE FROM puzzling_team_member WHERE player_id = :id', ['id' => $never]);
+        $off = PlayerFixture::PLAYER_WITH_STRIPE;
+        $this->setFrequency($off, 'off');
+        $now = $this->utc('2031-01-01 08:00:00');
+
+        self::assertNull($this->query->lastLoggedAt($never));
+        self::assertFalse($this->query->isMissed($never, ContentDigestFrequency::Weekly, $now));
+        self::assertNotContains($off, $this->query->missed(ContentDigestFrequency::Weekly, $now));
+    }
+
+    private function onlyResult(string $playerId, string $at): void
+    {
+        $this->database->executeStatement('DELETE FROM puzzle_solving_time WHERE player_id = :id', ['id' => $playerId]);
+        $this->database->executeStatement('DELETE FROM puzzling_team_member WHERE player_id = :id', ['id' => $playerId]);
+        $this->insertSolve($playerId, $at);
+    }
+
+    private function utc(string $moment): \DateTimeImmutable
+    {
+        return new \DateTimeImmutable($moment, new \DateTimeZone('UTC'));
     }
 
     private function setFrequency(string $playerId, string $frequency): void

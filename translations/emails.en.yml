@@ -428,13 +428,16 @@ activity_digest:
         monthly: "You get this on the first Monday of the month."
         change: "Change e-mails"
         unsubscribe: "Unsubscribe"
-    no_activity:
-        subject: "A quiet stretch – your next puzzle is waiting"
-        preheader: "No pressure – here is what the community solved, and a puzzle idea for you."
-        title:
-            week: "A quiet week, %name%"
-            two_weeks: "Two quiet weeks, %name%"
-            month: "A quiet month, %name%"
-        line_1: "We did not see a solve from you this time – and that is perfectly fine, life happens."
-        line_2: "Whenever you are ready, a puzzle is always a good idea. This note comes once – no reminders after it."
-        button: "Find your next puzzle"
+    miss_you:
+        subject: "Your puzzles miss you"
+        preheader: "Or have you been puzzling in secret? Your times are welcome any time."
+        title: "We miss your times, %name%"
+        line_secret: "It has been a few weeks since your last time here. Maybe you took a well-earned break – or maybe you have been puzzling in secret and the times never made it to us? 🧩"
+        line_add: "If so, you can still add them: pick the day you finished, and they count just like the others."
+        button: "Add a time"
+        line_back: "And if you are looking for a reason to open a new box:"
+        link_picker: "Let us pick your next puzzle"
+        link_hub: "See what the community is puzzling"
+        link_profile: "Visit your profile"
+        footer: "We send this only once after a quiet stretch. It comes with your activity e-mail."
+

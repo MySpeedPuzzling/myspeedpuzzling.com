@@ -4,7 +4,7 @@ menu:
     puzzle_add: "Add"
     stopwatch: "Stopwatch"
     puzzles_overview: "Puzzle"
-    ladder: "Leaderboard"
+    ladder: "Leaderboards"
     players: "Players"
     faq: "FAQ"
     sign_in: "Sign in"
@@ -260,10 +260,12 @@ homepage:
             text: 'Explore thousands of jigsaw puzzles with real solve times recorded by the community. Compare median and fastest times for puzzles by <a href="%ravensburger_link%">Ravensburger</a>, <a href="%schmidt_link%">Schmidt</a> or <a href="%trefl_link%">Trefl</a>, check how difficult a puzzle really is before you buy it, and pick your next challenge in the complete <a href="%puzzles_link%">puzzle database</a>.'
 
 ladder:
-    title: "Speed Puzzling Leaderboard"
+    board:
+        msp_rating: "MSP Rating"
+    title: "Leaderboards"
     country: "Country"
     meta:
-        title: "Speed Puzzling Leaderboard – Fastest Times"
+        title: "Speed Puzzling Leaderboards – Fastest Times"
         description: "Global speed puzzling leaderboard: the fastest jigsaw puzzle solve times ranked by pieces, solo, pairs and groups. Where do you rank?"
         records:
             solo:
@@ -290,10 +292,6 @@ ladder:
     most_active_puzzlers: "Most Enthusiastic Puzzlers"
     puzzle_solved_count: "Puzzles Solved"
     link_to_hub: "Looking for most solved puzzle or most active players? We moved it to&nbsp;<a class=\"text-decoration-underline\" href=\"%link%\">the new Hub</a>!"
-    msp_elo_banner: "We just launched <a class=\"fw-bold text-decoration-underline\" href=\"%link%\">MSP Rating Ladder</a>&nbsp;<span class=\"badge bg-light text-dark\">BETA</span> — a new skill-based ranking system. It's fresh out of the oven, so expect tweaks as we fine-tune it!"
-    msp_elo_cta: "MSP Rating Ladder"
-    xp_ladder_banner: "Two new ladders are live: XP for how much you puzzle, Achievement Points for what you complete."
-    xp_ladder_cta: "XP ladder"
 
 filters:
     button: "Filters"
@@ -1946,7 +1944,7 @@ players_per_country:
 player_profile:
     meta:
         title: "%name% – Speed Puzzler Profile"
-        description: "%name%'s speed puzzling profile: fastest jigsaw puzzle times, rankings, badges and recent solves on MySpeedPuzzling."
+        description: "%name%'s speed puzzling profile: fastest jigsaw puzzle times, rankings, achievements and recent solves on MySpeedPuzzling."
 
 flashes:
     photo_upload_deferred: "Your data is saved! The photo could not be uploaded right now — it will be uploaded automatically as soon as our storage is available again."
@@ -2122,37 +2120,42 @@ xp:
     achievement_toast:
         title: "New achievement!"
     estimate:
-        line: "Solving this earns ~%base% XP + up to %bonus% bonus"
-        repeat_note: "You've solved this one before — this time it counts ×%multiplier%."
-        unrated_note: "Difficulty bonus settles automatically once this puzzle gets rated."
+        line_first: "Solving this earns ~%xp% XP,"
+        line_repeat: "Solving this again earns ~%xp% XP (%percent%% for a repeat),"
+        bonuses_link: "plus bonuses"
     leaderboard:
-        meta_title: "XP Leaderboard"
-        title: "XP Leaderboard"
-        subtitle: "Activity, celebrated."
-        all_leaderboards: "All leaderboards"
+        board:
+            xp:
+                tab: "Level (XP)"
+                title: "Level leaderboard"
+                subtitle: "Ranked by total XP: how much each puzzler has puzzled, all time."
+                column: "XP"
+                value: "%value% XP"
+            achievement-points:
+                tab: "Achievement Points"
+                title: "Achievement Points leaderboard"
+                subtitle: "Members ranked by their Achievement Points, all time."
+                column: "AP"
+                value: "%value% AP"
+                login_required: "Sign in to see the Achievement Points leaderboard."
+        level: "Level %level%"
         favorites_only: "Favorites only"
         player: "Puzzler"
-        value:
-            xp: "Total XP"
-            achievement-points: "AP"
-        tab:
-            xp: "XP"
-            achievement-points: "Achievement Points"
-        ap_title: "Achievement Points Ladder"
-        ap_subtitle: "Completion, ranked."
-        ap_login_required: "Log in to browse the Achievement Points ladder."
-        xp_value: "%xp% XP"
-        ap_value: "%points% AP"
-        your_position: "Your position"
         empty: "Nothing here yet — log a solve and open the board!"
     history:
+        deleted_solve_title: "Deleted solve"
+        achievement_title: "Achievement: %achievement%"
+        relax: "Relax"
+        type:
+            solo: "Solo"
+            duo: "Pair"
+            team: "Team"
+        previous_page: "Previous page"
+        next_page: "Next page"
         meta_title: "My XP history"
         title: "My XP history"
-        subtitle: "Every point, accounted for — your complete XP ledger."
-        when: "When"
-        reason: "Reason"
+        subtitle: "Every point, accounted for: each solve with every line of its XP, newest changes first."
         empty: "No XP yet — your first solve changes that."
-        deleted_solve: "deleted solve"
         pagination: "XP history pages"
         note: "Wondering about a line?"
     reveal:
@@ -2260,18 +2263,34 @@ badges:
     unlock_with_membership: "Unlock with membership"
     ap_total: "%points% AP"
     ap_total_tooltip: "Your Achievement Points — every earned tier counts, forever"
-    free_user_hint: "You keep earning achievements even without membership — they wait for you, safe and sound."
-    earned_waiting: "Earned ✓ — waiting 🔒"
     view_holders: "See who earned it"
-    how_it_works_hint: "Achievements grant XP and Achievement Points."
-    how_it_works_link: "How XP & Levels work"
+    catalogue:
+        summary: "<strong>%earned% of %total%</strong> earned"
+        about: "Each achievement has five tiers, Bronze to Diamond. Every tier you reach earns Achievement Points (AP): 5, 10, 25, 50 and 100. Achievements are collected by members and never add XP."
+        tease_free: "Members collect achievements, earn Achievement Points and show them on their profile. Become a member to find out which ones you have earned."
+        tease_guest: "Members collect achievements, earn Achievement Points and show them on their profile."
+        become_member: "Become a member"
+        filter_label: "Show achievements"
+        filter:
+            next: "Next up"
+            earned: "Earned"
+            all: "All"
+            rarest: "Rarest"
+        empty:
+            next: "Nothing in progress yet. Log a puzzle and your next goals show up here."
+            earned: "No achievements yet. Your first one is closer than you think."
+            all: "No achievements yet."
+            rarest: "No achievements yet."
+        progress_label: "Progress of %achievement% toward %tier%"
+        rarity: "%percent% of puzzlers"
+        ap_leaderboard_link: "Achievement Points leaderboard"
     detail:
         meta_title: "%name% — achievement holders"
         country_filter: "Country"
         all_countries: "All countries"
+        apply_filter: "Show"
         newest_earners: "Newest earners"
         holders_count: "{0}Nobody yet|{1}1 puzzler|]1,Inf[%count% puzzlers"
-        holders_count_tooltip: "Everyone counts here — including puzzlers whose profiles are not listed below"
         first_to_earn: "First to earn"
         more_puzzlers: "+%count% more puzzlers"
         only_hidden_holders: "{1}1 puzzler earned this tier — their profile is not publicly listed.|]1,Inf[%count% puzzlers earned this tier — their profiles are not publicly listed."
@@ -2298,14 +2317,12 @@ badges:
     locked: "Locked"
     earned_on: "Earned %date%"
     highest_earned: "Highest earned"
-    not_earned_yet: "Not earned yet"
-    keep_going: "Keep going!"
-    login_to_track: "Log in to see your progress toward each achievement."
     info:
         open: "What is %achievement% for?"
         earned: "Earned"
         next_tier: "Next: %tier%"
         single_tier_note: "This one has a single tier — it is granted by hand, never earned by solving."
+        you_hold: "You hold %tier%."
     tier:
         bronze: "Bronze"
         silver: "Silver"
@@ -2583,26 +2600,31 @@ membership:
     manage_subscription_android_info: "Manage your subscription in Google Play Store under Payments & subscriptions."
     purchase_via_app_store: "Payment will be processed through Apple App Store."
     purchase_via_play_store: "Payment will be processed through Google Play Store."
-    full_description: |
+    perks_description: |
         <ul>
             <li>A big thank you for supporting the platform's development</li>
             <li>Your own personalized player code (you can change it in your profile)</li>
-            <li>Membership badge</li>
+            <li>Member label on your profile</li>
             <li>Filtering by first attempts</li>
             <li>Filtering by country</li>
             <li>Charts</li>
             <li>Barcode scanner</li>
             <li>Detailed statistics</li>
         </ul>
-        
+    progression_perks: |
+        <h3 class="h4">Achievements</h3>
+        <ul>
+            <li>Collect achievements from Bronze to Diamond and earn Achievement Points (AP)</li>
+            <li>Show your achievements on your profile and join the Achievement Points leaderboard</li>
+        </ul>
+        <p class="text-muted">XP and levels are free for everyone, members or not.</p>
+    coming_soon_description: |
         <h3 class="h4">What can you look forward to soon?</h3>
         <ul>
             <li>Monthly and yearly reports <small class="ms-1 text-muted">(soon)</small></li>
             <li>Public mypuzzler.com profile <small class="ms-1 text-muted">(soon)</small></li>
             <li class="mt-2">Special challenges exclusively for members</li>
             <li>Puzzle borrowing and selling among members</li>
-            <li>Gamification - earning experience and levels</li>
-            <li>Badges for various achievements</li>
             <li>&hellip; and much more, this is just a small preview of what we’re preparing for you!</li>
         </ul>
     have_voucher_code: "Have a voucher code?"
@@ -2878,7 +2900,7 @@ data_deletion:
         <ul>
             <li>your account: the sign-in e-mail address, the password, connected sign-in methods (Google, Microsoft, Apple, Facebook) and the sign-in security log,</li>
             <li>your player profile with all its details,</li>
-            <li>your solo solving times, collections, wishlist, puzzles offered for sale or swap, badges, stopwatches and notifications,</li>
+            <li>your solo solving times, collections, wishlist, puzzles offered for sale or swap, achievements, stopwatches and notifications,</li>
             <li>your membership (an active subscription is cancelled) and your newsletter subscription.</li>
         </ul>
         <p>Some things are shared with other players, so they stay for them – but they are no longer linked to any account and only show the name you used, as plain text: pair and team times solved together with other registered players, conversations and marketplace transactions including ratings, and feature requests with their comments. Puzzles you added to the catalogue stay in it, with no link to you. In our log of sent e-mails, your address is replaced with a one-way hash.</p>
@@ -3850,8 +3872,8 @@ puzzle_tracker_app:
             title: "Competitions"
             description: "Follow puzzle competitions worldwide, see results, and track your competition performance."
         badges:
-            title: "Badges & Achievements"
-            description: "Earn badges for milestones like your first puzzle logged, 100 puzzles completed, and more."
+            title: "Achievements"
+            description: "Members earn achievements for milestones like 100 puzzles completed, streaks, first tries and more."
     platforms:
         title: "Available Everywhere"
         subtitle: "Access MySpeedPuzzling from any device. Your data syncs seamlessly across all platforms."
@@ -4017,13 +4039,13 @@ puzzle_intelligence:
         not_available_generic: "We need more of your solving data for this piece count to predict your time."
         time_predictions_opted_out: "You have opted out of time predictions."
     skill:
-        title: "Skill Profile"
-        tier_label: "Tier"
+        title: "Skill tier"
+        tier_label: "Skill tier"
         percentile_label: "Top %percentile%%"
         faster_than_label: "Faster than %percentile%% of players"
         need_more_puzzles: "%count% more qualifying puzzles needed"
         not_enough_data: "Not enough data for %pieces%pc"
-        progress_title: "Skill Tier Qualification"
+        progress_title: "Skill tier qualification"
         progress_qualifying: "Puzzles solved by at least %count% other puzzlers"
         private_profile_explanation: "Skill tiers are not available for private profiles. Your solving data still helps rate puzzle difficulty, but rankings require a public profile to keep the system fair."
         ranking_opted_out: "You have opted out of skill tracking."
@@ -4046,10 +4068,11 @@ puzzle_intelligence:
             legend: "Legend"
     elo:
         meta:
-            title: "MSP Rating – Speed Puzzling Ladder"
+            title: "MSP Rating – Speed Puzzling Leaderboard"
             description: "The MSP Rating ladder ranks speed puzzlers by skill, combining solve times and puzzle difficulty. See the top-rated jigsaw puzzlers worldwide."
-        title: "MSP Rating Ladder"
-        subtitle: "Competitive ranking based on head-to-head performance"
+        title: "MSP Rating leaderboard"
+        heading_500: "MSP Rating · 500 pieces"
+        subtitle_portfolio: "Built from your 500-piece results of the last 24 months: first tries count three times as much as best times, and harder puzzles count more."
         how_it_works: "How is this calculated?"
         beta_badge: "BETA"
         rank: "Rank"
@@ -4068,7 +4091,6 @@ puzzle_intelligence:
         period_monthly: "This month"
         period_all_time: "All time"
         no_entries: "No players on the ladder yet for this category."
-        fresh_notice: "This feature is brand new — we are still fine-tuning the algorithm and rankings are subject to change."
         profile_title: "MSP Rating"
         rank_of_total: "#%rank% of %total%"
         not_ranked_yet: "Not ranked yet"
@@ -4151,7 +4173,7 @@ puzzle_intelligence:
         section_skill_desc: "Player skill measures how you perform <strong>compared to other solvers on each puzzle</strong>, weighted by puzzle difficulty. Harder puzzles are worth more."
         section_skill_formula: "Score > 1.0 = faster than expected. Score < 1.0 = slower than expected."
         section_skill_minimum: "<strong>Minimum:</strong> 10 qualifying puzzles, each with at least 20 first-attempt solvers."
-        section_skill_tiers_title: "Skill Tiers"
+        section_skill_tiers_title: "Skill tiers"
         section_elo_title: "MSP Rating Ladder"
         section_elo_desc: "A competitive <strong>portfolio-based</strong> rating. Your best puzzle results from the last 24 months are evaluated, combining first-attempt performance (75%) with best-time performance (25%). Harder puzzles are worth more. Recent results carry more weight through gentle time decay."
         section_elo_formula: "K = 60 for first 10 matches (placement), K = 30 after. Starting rating: 1000."

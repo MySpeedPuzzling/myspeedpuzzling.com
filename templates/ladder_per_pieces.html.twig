@@ -13,6 +13,8 @@
 {% block meta_description %}{{ ('ladder.meta.records.' ~ type ~ (active_country ? '.description_country' : '.description'))|trans({'%pieces%': pieces, '%country%': country_label}) }}{% endblock %}
 
 {% block content %}
+    {{ include('_leaderboards_nav.html.twig') }}
+
     <h1 class="mb-4">{{ records_title }} <span class="h3"><span class="ms-2 badge bg-primary rounded-pill badge-shadow">Top 100</span></span></h1>
 
     {{ include('_ladder_dropdown.html.twig') }}

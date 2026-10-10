@@ -25,27 +25,14 @@
 {% endmacro %}
 
 {% block content %}
-    <div class="d-flex flex-wrap align-items-center gap-3 mb-2">
-        <h1 class="mb-0">{{ 'ladder.title'|trans }}</h1>
-        {{ include('_ladder_dropdown.html.twig') }}
-    </div>
+    {{ include('_leaderboards_nav.html.twig') }}
+
+    <h1 class="mb-2">{{ 'ladder.title'|trans }}</h1>
 
     <p class="text-body-secondary fs-sm mb-3">
         {{ (board ~ '.subtitle')|trans }}
         <a href="{{ path(tab.hasKarmaFilters() ? 'karma_explainer' : 'progression_hub') }}" class="text-nowrap">{{ (tab.hasKarmaFilters() ? 'karma.explainer.title' : 'progression_hub.title')|trans }}</a>
     </p>
-
-    <ul class="nav nav-tabs mb-3">
-        {% for tab_option in tabs %}
-            <li class="nav-item">
-                <a class="nav-link {{ tab == tab_option ? 'active' }}"
-                   {% if tab == tab_option %}aria-current="page"{% endif %}
-                   href="{{ path('xp_leaderboard', {tab: tab_option.value, country: selected_country, favorites: favorites_only ? 1 : null}) }}">
-                    {{ (tab_option.translationPrefix() ~ '.tab')|trans }}
-                </a>
-            </li>
-        {% endfor %}
-    </ul>
 
     {% if login_required %}
         <div class="xp-teaser">

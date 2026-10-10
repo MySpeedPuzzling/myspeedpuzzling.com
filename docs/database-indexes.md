@@ -32,7 +32,6 @@ to drop.
 | `custom_badge_unique_tiered` | `UNIQUE badge (player_id, type, tier) WHERE tier IS NOT NULL` | not a speed index - the guarantee that a tiered achievement is earned once per tier; `BadgeEvaluator` gap-fills tiers and relies on it under concurrent recalculations (docs/features/badges.md). Not measured | `Version20260416210601` |
 | `custom_badge_unique_single_tier` | `UNIQUE badge (player_id, type) WHERE tier IS NULL` | same, single-tier badges (Early Adopter / `supporter`) | `Version20260416210601` |
 | `custom_xp_entry_solve_reason` | `UNIQUE xp_entry (player_id, solving_time_id, reason) WHERE solving_time_id IS NOT NULL AND reason != 'solve_compensation'` | XP ledger idempotency: one receipt line per player, solve and reason (every team member earns for the same solve), compensations may repeat (docs/features/xp-levels/README.md). Not measured | `Version20260713131333` |
-| `custom_xp_entry_badge` | `UNIQUE xp_entry (badge_id) WHERE badge_id IS NOT NULL` | one achievement XP entry per badge row, granted once forever | `Version20260713131333` |
 | `custom_xp_entry_weekly_delta` | `xp_entry (earned_at, player_id, amount) WHERE in_weekly_delta = true` | the weekly content digest's ISO-week XP slice - an index-only scan of the week instead of the whole growing ledger. Planned against a local copy, not measured on production (the ledger does not exist there yet) | `Version20260713175512` |
 
 Trigram indexes only help patterns with at least 3 characters; 1–2 character searches still scan.

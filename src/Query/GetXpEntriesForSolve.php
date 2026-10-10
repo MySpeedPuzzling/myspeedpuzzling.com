@@ -24,14 +24,14 @@ readonly class GetXpEntriesForSolve
     public function forPlayerAndSolvingTime(string $playerId, string $solvingTimeId): array
     {
         $sql = <<<SQL
-SELECT reason, amount, earned_at, solving_time_id, badge_id
+SELECT reason, amount, earned_at, solving_time_id
 FROM xp_entry
 WHERE solving_time_id = :solvingTimeId
   AND player_id = :playerId
 ORDER BY created_at, id
 SQL;
 
-        /** @var list<array{reason: string, amount: int, earned_at: string, solving_time_id: null|string, badge_id: null|string}> $rows */
+        /** @var list<array{reason: string, amount: int, earned_at: string, solving_time_id: null|string}> $rows */
         $rows = $this->database
             ->executeQuery($sql, ['solvingTimeId' => $solvingTimeId, 'playerId' => $playerId])
             ->fetchAllAssociative();
@@ -44,7 +44,6 @@ SQL;
                 amount: $row['amount'],
                 earnedAt: new DateTimeImmutable($row['earned_at']),
                 solvingTimeId: $row['solving_time_id'],
-                badgeId: $row['badge_id'],
             );
         }
 

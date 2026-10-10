@@ -8,9 +8,9 @@ use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Services\Badges\BadgeEvaluator;
-use SpeedPuzzling\Web\Services\Xp\XpCalculator;
 use SpeedPuzzling\Web\Services\Xp\XpChainRecomputer;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\XpSettingsFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Value\LevelTable;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -33,7 +33,7 @@ final class XpChainRecomputerTest extends KernelTestCase
 
     public function testAwardCreatesFullReceiptForNewSolve(): void
     {
-        $at = XpCalculator::fullFormulaFrom()->modify('+10 days');
+        $at = XpSettingsFixture::fullFormulaFrom()->modify('+10 days');
         $solveId = $this->insertSolve(PlayerFixture::PLAYER_REGULAR, PuzzleFixture::PUZZLE_500_04, 3600, $at, 500);
 
         $this->award($solveId);
@@ -47,7 +47,7 @@ final class XpChainRecomputerTest extends KernelTestCase
 
     public function testAwardIsIdempotentUnderRedelivery(): void
     {
-        $at = XpCalculator::fullFormulaFrom()->modify('+10 days');
+        $at = XpSettingsFixture::fullFormulaFrom()->modify('+10 days');
         $solveId = $this->insertSolve(PlayerFixture::PLAYER_REGULAR, PuzzleFixture::PUZZLE_500_04, 3600, $at, 500);
 
         $this->award($solveId);
@@ -61,7 +61,7 @@ final class XpChainRecomputerTest extends KernelTestCase
 
     public function testAwardTeamSolveGrantsEveryRegisteredParticipant(): void
     {
-        $at = XpCalculator::fullFormulaFrom()->modify('+10 days');
+        $at = XpSettingsFixture::fullFormulaFrom()->modify('+10 days');
         $solveId = $this->insertSolve(
             PlayerFixture::PLAYER_REGULAR,
             PuzzleFixture::PUZZLE_500_04,
@@ -85,7 +85,7 @@ final class XpChainRecomputerTest extends KernelTestCase
 
     public function testWeeklyBoostStopsAfterFiveSolvesAndResetsNextWeek(): void
     {
-        $base = XpCalculator::fullFormulaFrom()->modify('+28 days');
+        $base = XpSettingsFixture::fullFormulaFrom()->modify('+28 days');
         $monday = $base->setISODate((int) $base->format('o'), (int) $base->format('W'))->setTime(12, 0);
 
         $puzzles = [
@@ -124,7 +124,7 @@ final class XpChainRecomputerTest extends KernelTestCase
 
     public function testEditRebuildsOccurrenceChainInBothDirections(): void
     {
-        $at = XpCalculator::fullFormulaFrom()->modify('+10 days');
+        $at = XpSettingsFixture::fullFormulaFrom()->modify('+10 days');
         $solveA = $this->insertSolve(PlayerFixture::PLAYER_REGULAR, PuzzleFixture::PUZZLE_500_04, 3600, $at->setTime(9, 0), 500);
         $solveB = $this->insertSolve(PlayerFixture::PLAYER_REGULAR, PuzzleFixture::PUZZLE_500_04, 3500, $at->modify('+1 day')->setTime(9, 0), 500);
         $this->award($solveA);
@@ -150,7 +150,7 @@ final class XpChainRecomputerTest extends KernelTestCase
 
     public function testDeleteCompensatesAndPromotesRemainingChain(): void
     {
-        $at = XpCalculator::fullFormulaFrom()->modify('+10 days');
+        $at = XpSettingsFixture::fullFormulaFrom()->modify('+10 days');
         $solveA = $this->insertSolve(PlayerFixture::PLAYER_REGULAR, PuzzleFixture::PUZZLE_500_04, 3600, $at->setTime(9, 0), 500);
         $solveB = $this->insertSolve(PlayerFixture::PLAYER_REGULAR, PuzzleFixture::PUZZLE_500_04, 3500, $at->modify('+1 day')->setTime(9, 0), 500);
         $this->award($solveA);
@@ -181,7 +181,7 @@ final class XpChainRecomputerTest extends KernelTestCase
 
     public function testDeleteIsIdempotentUnderRedelivery(): void
     {
-        $at = XpCalculator::fullFormulaFrom()->modify('+10 days');
+        $at = XpSettingsFixture::fullFormulaFrom()->modify('+10 days');
         $solveA = $this->insertSolve(PlayerFixture::PLAYER_REGULAR, PuzzleFixture::PUZZLE_500_04, 3600, $at, 500);
         $this->award($solveA);
 
@@ -203,7 +203,7 @@ final class XpChainRecomputerTest extends KernelTestCase
 
     public function testDifficultySettlementLandsOnceWhenPuzzleGetsRated(): void
     {
-        $at = XpCalculator::fullFormulaFrom()->modify('+10 days');
+        $at = XpSettingsFixture::fullFormulaFrom()->modify('+10 days');
         $solveId = $this->insertSolve(PlayerFixture::PLAYER_REGULAR, PuzzleFixture::PUZZLE_500_04, 3600, $at, 500);
         $this->award($solveId);
 
@@ -233,7 +233,7 @@ final class XpChainRecomputerTest extends KernelTestCase
 
     public function testSpeedSettlementLandsWhenMedianBecomesReliable(): void
     {
-        $at = XpCalculator::fullFormulaFrom()->modify('+10 days');
+        $at = XpSettingsFixture::fullFormulaFrom()->modify('+10 days');
         $solveId = $this->insertSolve(PlayerFixture::PLAYER_REGULAR, PuzzleFixture::PUZZLE_500_04, 1000, $at, 500);
         $this->award($solveId);
 
@@ -255,63 +255,25 @@ final class XpChainRecomputerTest extends KernelTestCase
         self::assertSame(1, $this->countEntries($solveId, 'speed_settlement'));
     }
 
-    public function testBadgeEvaluatorGrantsAchievementXpOncePerTier(): void
+    public function testBadgeEvaluatorGrantsNoXp(): void
     {
-        $container = self::getContainer();
-        $evaluator = $container->get(BadgeEvaluator::class);
+        $evaluator = self::getContainer()->get(BadgeEvaluator::class);
+        $totalsBefore = $this->playerTotals(PlayerFixture::PLAYER_REGULAR);
+        $entriesBefore = $this->ledgerEntryCount(PlayerFixture::PLAYER_REGULAR);
 
         $newBadges = $evaluator->recalculateForPlayer(PlayerFixture::PLAYER_REGULAR);
         $this->entityManager->flush();
 
-        self::assertNotEmpty($newBadges);
-
-        // P3 expansion proof: the new conditions evaluate and award — the fixture player
-        // has 1 relax solve (Zen Puzzler Bronze) and 15 first-attempt solves (First Try Bronze).
+        // The new conditions evaluate and award - the fixture player has 1 relax solve (Zen Puzzler Bronze) and
+        // 15 first-attempt solves (First Try Bronze)
         $earnedTypes = array_map(static fn ($badge) => $badge->type->value, $newBadges);
         self::assertContains('zen_puzzler', $earnedTypes);
         self::assertContains('first_try', $earnedTypes);
 
-        foreach ($newBadges as $badge) {
-            $amount = $this->database->fetchOne(
-                "SELECT amount FROM xp_entry WHERE badge_id = :badgeId AND reason = 'achievement'",
-                ['badgeId' => $badge->id->toString()],
-            );
-            $expected = match ($badge->tier) {
-                1 => 5,
-                2 => 10,
-                3 => 25,
-                4 => 50,
-                5 => 100,
-                null => 25,
-                default => self::fail('Unexpected tier'),
-            };
-            self::assertSame($expected, is_numeric($amount) ? (int) $amount : null, "Badge {$badge->type->value} tier {$badge->tier}");
-        }
-
+        // Achievement Points only: the ledger and the XP totals stay as they were
+        self::assertSame($entriesBefore, $this->ledgerEntryCount(PlayerFixture::PLAYER_REGULAR));
+        self::assertSame($totalsBefore, $this->playerTotals(PlayerFixture::PLAYER_REGULAR));
         $this->assertTotalsMatchLedger(PlayerFixture::PLAYER_REGULAR);
-
-        // Re-evaluation grants nothing new.
-        $countBefore = $this->achievementEntryCount(PlayerFixture::PLAYER_REGULAR);
-        $evaluator->recalculateForPlayer(PlayerFixture::PLAYER_REGULAR);
-        $this->entityManager->flush();
-        self::assertSame($countBefore, $this->achievementEntryCount(PlayerFixture::PLAYER_REGULAR));
-    }
-
-    public function testBackfilledAchievementXpStaysOutOfWeeklyDelta(): void
-    {
-        $evaluator = self::getContainer()->get(BadgeEvaluator::class);
-
-        $newBadges = $evaluator->recalculateForPlayer(PlayerFixture::PLAYER_PRIVATE, isBackfill: true);
-        $this->entityManager->flush();
-
-        self::assertNotEmpty($newBadges);
-
-        $inDelta = $this->database->fetchOne(
-            "SELECT COUNT(*) FROM xp_entry WHERE player_id = :playerId AND reason = 'achievement' AND in_weekly_delta = true",
-            ['playerId' => PlayerFixture::PLAYER_PRIVATE],
-        );
-
-        self::assertSame(0, is_numeric($inDelta) ? (int) $inDelta : -1);
     }
 
     private function award(string $solvingTimeId): void
@@ -391,10 +353,10 @@ final class XpChainRecomputerTest extends KernelTestCase
         return is_numeric($value) ? (int) $value : -1;
     }
 
-    private function achievementEntryCount(string $playerId): int
+    private function ledgerEntryCount(string $playerId): int
     {
         $value = $this->database->fetchOne(
-            "SELECT COUNT(*) FROM xp_entry WHERE player_id = :playerId AND reason = 'achievement'",
+            'SELECT COUNT(*) FROM xp_entry WHERE player_id = :playerId',
             ['playerId' => $playerId],
         );
 

@@ -41,8 +41,6 @@
                                 {{ ('xp.line.' ~ entry.reason.value)|trans }}
                                 {% if entry.puzzleId is not null %}
                                     — <a href="{{ path('puzzle_detail', {puzzleId: entry.puzzleId}) }}">{{ entry.puzzleName }}</a>
-                                {% elseif entry.badgeType is not null %}
-                                    — {{ entry.badgeType.translationKey()|trans }}{% if entry.badgeTier is not null %} ({{ entry.badgeTier.translationKey()|trans }}){% endif %}
                                 {% elseif entry.solvingTimeId is not null and entry.reason.value != 'solve_compensation' %}
                                     — <span class="text-body-secondary">{{ 'xp.history.deleted_solve'|trans }}</span>
                                 {% endif %}

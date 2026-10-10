@@ -22,8 +22,7 @@ use Symfony\Component\Messenger\Stamp\DelayStamp;
 final class RecalculateBadgesConsoleCommand extends Command
 {
     /**
-     * Stagger between dispatched backfill messages — avoids flooding the mail transport
-     * when many existing players become eligible in the same run.
+     * Stagger between dispatched backfill messages - keeps a full run from monopolizing the worker and the database.
      */
     private const int BACKFILL_DELAY_MS = 2000;
 
@@ -47,7 +46,7 @@ final class RecalculateBadgesConsoleCommand extends Command
                 'backfill',
                 null,
                 InputOption::VALUE_NONE,
-                'Stagger dispatches with DelayStamp to spread out email delivery (initial seed runs).',
+                'Stagger dispatches with DelayStamp (full seed runs).',
             );
     }
 
@@ -83,7 +82,7 @@ final class RecalculateBadgesConsoleCommand extends Command
                 $stamps[] = new DelayStamp($index * self::BACKFILL_DELAY_MS);
             }
 
-            $this->commandBus->dispatch(new RecalculateBadgesForPlayer($playerId, isBackfill: $backfill), $stamps);
+            $this->commandBus->dispatch(new RecalculateBadgesForPlayer($playerId), $stamps);
         }
 
         $count = count($playerIds);

@@ -22,8 +22,7 @@ use SpeedPuzzling\Web\Value\XpReason;
  * (compensated) ledger history behind, so solving_time_id must be allowed to dangle.
  *
  * earned_at semantics (critical for the weekly-delta leaderboard): solve-derived entries
- * carry the SOLVE's timestamp (COALESCE(finished_at, tracked_at)), achievement entries the
- * badge's earned_at, settlement entries the settlement run time (they are excluded from the
+ * carry the SOLVE's timestamp (COALESCE(finished_at, tracked_at)), settlement entries the settlement run time (they are excluded from the
  * weekly delta anyway). Never clock-now for solve-derived entries — backfill would otherwise
  * dump the entire history into the launch week's delta.
  */
@@ -58,9 +57,6 @@ class XpEntry
         #[Immutable]
         #[Column(type: UuidType::NAME, nullable: true)]
         public null|UuidInterface $solvingTimeId = null,
-        #[Immutable]
-        #[Column(type: UuidType::NAME, nullable: true)]
-        public null|UuidInterface $badgeId = null,
     ) {
     }
 }

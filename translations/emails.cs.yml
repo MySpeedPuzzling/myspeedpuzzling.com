@@ -372,15 +372,6 @@ organization_rejected:
         <p>Pokud máte dotazy nebo byste to chtěli probrat, kontaktujte nás na <a href="mailto:jan@myspeedpuzzling.com">jan@myspeedpuzzling.com</a>.</p>
     button: "Otevřít „Pořádáte“"
 
-badges_earned:
-    subject: "Máš nové odznaky na MySpeedPuzzling!"
-    preheader: "Gratulujeme – tvoje nové úspěchy na tebe čekají na profilu."
-    title: "%count%× nový odznak!"
-    intro: "Gratulujeme! Máš za sebou nové milníky na MySpeedPuzzling."
-    cta: |
-        <p><a href="%badgesUrl%" class="link-underline">Podívej se na všechny své odznaky i na postup k těm dalším</a>.</p>
-    outro: "Skládej dál — další úspěchy čekají na odemčení!"
-
 content_digest:
     weekly:
         subject: "Tvůj týden ve skládání 🧩"
@@ -408,18 +399,3 @@ content_digest:
         most_solved_line: "Nejskládanější puzzle týdne: %puzzle% (%solvers% puzzlerů)."
         footer_settings: "Tento souhrn dostáváš každý týden. Kdykoli si ho můžeš upravit v <a href=\"%settingsUrl%\">nastavení notifikací</a>."
         footer_unsubscribe: "Jedno kliknutí a je klid: <a href=\"%unsubscribeUrl%\">odhlásit odběr souhrnu</a>."
-
-xp_reveal:
-    subject: "Celá tvoje puzzle cesta se právě proměnila v XP ✨"
-    preheader: "Každé puzzle, které jsi kdy zapsal(a), se už počítá – mrkni na svou úroveň a XP."
-    greeting: "Ahoj %name%, stalo se něco krásného!"
-    greeting_anonymous: "Ahoj puzzlere, stalo se něco krásného!"
-    intro: "MySpeedPuzzling nově oslavuje tvoji aktivitu pomocí XP a úrovní — a počítají se všechna puzzle, která máš zaznamenaná. Žádné nastavování, žádný háček: tady je, jakou hodnotu má tvoje historie."
-    level_line: "Úroveň %level%"
-    xp_line: "%xp% XP za celou tvoji puzzle historii"
-    achievements_member: "{1}A k tomu už máš na profilu 1 úspěch!|{2,3,4}A k tomu už máš na profilu %count% úspěchy!|[5,Inf[A k tomu už máš na profilu %count% úspěchů!"
-    achievements_teaser: "{1}A 1 úspěch na tebe tiše čeká.|{2,3,4}A %count% úspěchy na tebe tiše čekají.|[5,Inf[A %count% úspěchů na tebe tiše čeká."
-    cta: |
-        <p style="text-align: center;"><a href="%revealUrl%" class="link-underline"><strong>Podívej se na svůj velký moment</strong></a></p>
-    outro: "Úrovně nikdy nic nepodmiňují a XP se nedají koupit — je to prostě tvůj puzzle příběh, který si zaslouží oslavu. Uvidíme se u stolu! 🧩"
-    explainer: 'Zajímají tě detaily? <a href="%explainerUrl%">Jak fungují XP a úrovně</a>.'

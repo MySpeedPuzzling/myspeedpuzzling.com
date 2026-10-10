@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Tests\Services\Xp;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Services\Badges\BadgeEvaluator;
 use SpeedPuzzling\Web\Services\Xp\XpChainRecomputer;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
@@ -57,6 +58,27 @@ final class XpChainRecomputerTest extends KernelTestCase
 
         self::assertSame($firstTotals, $this->playerTotals(PlayerFixture::PLAYER_REGULAR));
         self::assertSame(3, $this->entryCountFor($solveId));
+    }
+
+    public function testTheTotalIsReadBackFromTheLedgerNeverCarriedForward(): void
+    {
+        // The entity is loaded, then another transaction commits a different total (the race XpLedger used to lose)
+        $player = $this->entityManager->find(Player::class, PlayerFixture::PLAYER_REGULAR);
+        self::assertNotNull($player);
+        $this->database->executeStatement(
+            "INSERT INTO xp_entry (id, player_id, amount, reason, in_weekly_delta, earned_at, created_at, solving_time_id)
+             VALUES (:id, :playerId, 1000, 'solve_base', true, NOW(), NOW(), :solveId)",
+            ['id' => Uuid::uuid7()->toString(), 'playerId' => PlayerFixture::PLAYER_REGULAR, 'solveId' => Uuid::uuid7()->toString()],
+        );
+        $this->database->executeStatement('UPDATE player SET xp_total = xp_total + 1000 WHERE id = :id', ['id' => PlayerFixture::PLAYER_REGULAR]);
+
+        $at = XpSettingsFixture::fullFormulaFrom()->modify('+10 days');
+        $solveId = $this->insertSolve(PlayerFixture::PLAYER_REGULAR, PuzzleFixture::PUZZLE_500_04, 3600, $at, 500);
+        $this->chainRecomputer->awardForNewSolve($solveId);
+        $this->entityManager->flush();
+        $this->entityManager->clear();
+
+        $this->assertTotalsMatchLedger(PlayerFixture::PLAYER_REGULAR);
     }
 
     public function testAwardTeamSolveGrantsEveryRegisteredParticipant(): void
@@ -150,7 +172,7 @@ final class XpChainRecomputerTest extends KernelTestCase
 
     public function testDeleteCompensatesAndPromotesRemainingChain(): void
     {
-        $at = XpSettingsFixture::fullFormulaFrom()->modify('+10 days');
+        $at = XpSettingsFixture::fullFormulaFrom()->modify('+3 days'); // a week without fixture solves of the player
         $solveA = $this->insertSolve(PlayerFixture::PLAYER_REGULAR, PuzzleFixture::PUZZLE_500_04, 3600, $at->setTime(9, 0), 500);
         $solveB = $this->insertSolve(PlayerFixture::PLAYER_REGULAR, PuzzleFixture::PUZZLE_500_04, 3500, $at->modify('+1 day')->setTime(9, 0), 500);
         $this->award($solveA);

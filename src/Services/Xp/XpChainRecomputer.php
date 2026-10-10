@@ -15,25 +15,19 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Query\GetPuzzleSpeedPercentiles;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
-use SpeedPuzzling\Web\Value\LevelTable;
+use SpeedPuzzling\Web\Services\Progression\PlayerProgressionLock;
 use SpeedPuzzling\Web\Value\SolveXpContext;
 use SpeedPuzzling\Web\Value\SpeedPercentile;
 use SpeedPuzzling\Web\Value\XpEntryDraft;
 use SpeedPuzzling\Web\Value\XpReason;
 
 /**
- * Live XP wiring for the solve lifecycle:
+ * Live XP wiring for the solve lifecycle - add (award), edit (rebuild), delete (compensate + rebuild), plus the
+ * ex-post settlements. Each one rebuilds what the change can reach (rebuildScope()) from the one replay a full
+ * rebuild uses too (XpHistoryReplay), so after any sequence of adds, edits, deletions and re-adds the ledger equals a
+ * fresh XpRecomputer run on the current records - repeating an action earns nothing (README §Anti-farming).
  *
- *  - award (add):     append entries for one new solve, for every registered participant
- *  - rebuild (edit):  semantically delete+re-add — the (participant, puzzle) chain is wiped
- *                     and replayed for every affected participant, occurrence promotions in
- *                     both directions, removed team members cleaned up
- *  - compensate (delete): the deleted solve's entries stay as audit history and get exact
- *                     negative mirrors; the remaining chain is then rebuilt
- *
- * Weekly/daily counters are read from the ledger in canonical order ((earned_at, solve id)),
- * matching the full XpRecomputer replay; entries whose solve no longer exists never occupy
- * a weekly/daily slot.
+ * A deleted solve's entries stay as audit history with exact negative mirrors (solve_compensation).
  *
  * @phpstan-type SolveRow array{id: string, puzzle_id: string, player_id: string, seconds_to_solve: null|int, puzzling_type: string, unboxed: bool, pieces: int, difficulty_tier: null|int, tracked_at: string, earned_at: string, team: null|string, suspicious: bool}
  */
@@ -87,6 +81,8 @@ SQL;
         private PlayerRepository $playerRepository,
         private XpCalculator $xpCalculator,
         private XpLedger $xpLedger,
+        private XpHistoryReplay $xpHistoryReplay,
+        private PlayerProgressionLock $playerProgressionLock,
         private GetPuzzleSpeedPercentiles $getPuzzleSpeedPercentiles,
         private ClockInterface $clock,
         private LoggerInterface $logger,
@@ -94,53 +90,34 @@ SQL;
     ) {
     }
 
+    /**
+     * A new solve (also one that comes back with an id it had before - Undo of a removal, a resent form): every
+     * registered participant's ledger is brought to what a full replay writes. Idempotent under redelivery.
+     */
     public function awardForNewSolve(string $solvingTimeId): void
     {
         $solve = $this->loadSolve($solvingTimeId);
 
-        if ($solve === null || $solve['suspicious']) {
+        if ($solve === null) {
             return;
         }
 
-        $earnedAt = new DateTimeImmutable($solve['earned_at']);
+        $participants = $this->participantsOf($solve);
+        $this->playerProgressionLock->lock($participants);
 
-        foreach ($this->participantsOf($solve) as $participantId) {
-            // Idempotency under at-least-once delivery: entries already exist → done.
-            if ($this->hasAnyEntry($participantId, $solvingTimeId)) {
-                continue;
-            }
-
-            try {
-                $player = $this->playerRepository->get($participantId);
-            } catch (PlayerNotFound) {
-                continue;
-            }
-
-            $occurrence = $this->occurrenceIndex($participantId, $solve['puzzle_id'], $earnedAt, $solvingTimeId);
-
-            $awards = $this->xpCalculator->calculate($this->contextFor(
-                solve: $solve,
-                participantId: $participantId,
-                occurrence: $occurrence,
-                earnedAt: $earnedAt,
-            ));
-
-            $drafts = [];
-            foreach ($awards as $award) {
-                $drafts[] = new XpEntryDraft(
-                    reason: $award->reason,
-                    amount: $award->amount,
-                    earnedAt: $earnedAt,
-                    inWeeklyDelta: true,
-                    solvingTimeId: Uuid::fromString($solvingTimeId),
-                );
-            }
-
-            $this->xpLedger->append($player, $drafts);
+        foreach ($participants as $participantId) {
+            $this->rebuildScope($participantId, [$solve['puzzle_id']], [$solvingTimeId]);
         }
     }
 
-    public function rebuildChainForEditedSolve(string $solvingTimeId): void
+    /**
+     * An edited solve (time, date, mode, group, the suspicious flag set or cleared, a merge moving it to another
+     * puzzle): the edit is semantically delete + re-add - every participant now, everybody who earned for it before
+     * and $extraPlayerIds (members before the edit, who may have earned nothing for it) is rebuilt.
+     *
+     * @param list<string> $extraPlayerIds
+     */
+    public function rebuildChainForEditedSolve(string $solvingTimeId, array $extraPlayerIds = []): void
     {
         $solve = $this->loadSolve($solvingTimeId);
 
@@ -152,33 +129,45 @@ SQL;
         $participants = array_values(array_unique([
             ...$this->participantsOf($solve),
             ...$this->playersWithEntriesFor($solvingTimeId),
+            ...$extraPlayerIds,
         ]));
+        $this->playerProgressionLock->lock($participants);
 
         foreach ($participants as $participantId) {
-            $this->rebuildPair($participantId, $solve['puzzle_id'], [$solvingTimeId]);
+            $this->rebuildScope($participantId, [$solve['puzzle_id']], [$solvingTimeId]);
         }
     }
 
-    public function compensateAndRebuildAfterDeletion(string $solvingTimeId, string $puzzleId): void
+    /**
+     * A deleted solve: its entries stay as the audit history and get exact negative mirrors, then everything the
+     * deletion reaches is rebuilt (later solves of the puzzle move up, its week's boost and day's warm-up go to the
+     * next solve). $memberPlayerIds = its registered members, who may have earned nothing for it (a relax repeat)
+     * and still have later solves to move up.
+     *
+     * @param list<string> $memberPlayerIds
+     */
+    public function compensateAndRebuildAfterDeletion(string $solvingTimeId, string $puzzleId, array $memberPlayerIds = []): void
     {
-        $affectedPlayers = $this->playersWithEntriesFor($solvingTimeId);
+        $affectedPlayers = array_values(array_unique([
+            ...$this->playersWithEntriesFor($solvingTimeId),
+            ...$memberPlayerIds,
+        ]));
+        $this->playerProgressionLock->lock($affectedPlayers);
 
         foreach ($affectedPlayers as $participantId) {
             $this->compensateEntries($participantId, $solvingTimeId);
-        }
-
-        foreach ($affectedPlayers as $participantId) {
-            $this->rebuildPair($participantId, $puzzleId, []);
+            $this->rebuildScope($participantId, [$puzzleId], [$solvingTimeId]);
         }
     }
 
     /**
      * Ex-post settlements (§1.4): a solve logged on an unrated puzzle earns its difficulty
      * bonus once the puzzle first gets a difficulty tier; a solve on a puzzle without a
-     * reliable median earns its speed bonus once ≥3 distinct solvers exist. Settled once,
-     * frozen forever (anchored by the unique (player, solve, reason) index) — later tier or
-     * median drift never revises anything. Go-forward solves only; settlements never count
-     * toward the weekly delta and carry the settlement run time as earned_at.
+     * reliable median earns its speed bonus once ≥3 distinct solvers exist. Settled once
+     * (anchored by the unique (player, solve, reason) index) — later tier or median drift
+     * revises nothing until a change of the player's results replays the solve. Go-forward
+     * solves only; settlements never count toward the weekly delta and carry the settlement
+     * run time as earned_at.
      *
      * Returns the number of settlement entries created.
      */
@@ -186,6 +175,13 @@ SQL;
     {
         $now = $this->clock->now();
         $created = 0;
+
+        // Lock everybody with something to settle, then read again: a rebuild that committed meanwhile may have
+        // written the bonus itself, and settling it on top would pay it twice
+        $this->playerProgressionLock->lock(array_values(array_unique(array_column(
+            [...$this->loadPendingDifficultySettlements(), ...$this->loadPendingSpeedSettlements()],
+            'player_id',
+        ))));
 
         /** @var array<string, list<XpEntryDraft>> $draftsByPlayer */
         $draftsByPlayer = [];
@@ -393,14 +389,28 @@ SQL;
     }
 
     /**
-     * Wipe and deterministically replay every entry of the (participant, puzzle) pair.
-     * $extraSolveIds covers orphaned entries of solves the participant is no longer part
-     * of (e.g. removed from the team on edit). Compensation lines and entries of deleted
-     * solves are never touched — they are the audit history.
+     * Brings the player's ledger to what a full replay (XpHistoryReplay, the same one XpRecomputer writes) gives for
+     * every solve a change of $puzzleIds / $touchedSolveIds can reach:
      *
-     * @param list<string> $extraSolveIds
+     *  - the player's whole chain on those puzzles (occurrence: first, repeat, relax repeat),
+     *  - every solve in the ISO weeks those solves are in now or were in before (their old entries' earned_at) - the
+     *    weekly boost and the daily warm-up belong to the first XP-earning solves of the week / day, so a solve logged
+     *    into the past, deleted or moved hands them over to the right solves instead of adding more (that is why
+     *    back-dating, or deleting and re-adding, can never create extra slots),
+     *  - the touched solves themselves, also when the player no longer earns for them (suspicious now, left the
+     *    group): their entries go.
+     *
+     * Only solves whose entries differ from the replay are rewritten (a settlement counts as the bonus it settled),
+     * so the XP history of untouched solves keeps its dates. A solve that exists drops all its old entries - also the
+     * compensation of an earlier deletion when its id came back (Undo, a resent form) - and a deleted solve keeps its
+     * entries and their compensation as the audit history.
+     *
+     * The caller holds PlayerProgressionLock for the player.
+     *
+     * @param list<string> $puzzleIds
+     * @param list<string> $touchedSolveIds
      */
-    private function rebuildPair(string $playerId, string $puzzleId, array $extraSolveIds): void
+    private function rebuildScope(string $playerId, array $puzzleIds, array $touchedSolveIds): void
     {
         try {
             $player = $this->playerRepository->get($playerId);
@@ -408,121 +418,206 @@ SQL;
             return;
         }
 
-        $solves = $this->loadPairSolves($playerId, $puzzleId);
+        $history = $this->xpHistoryReplay->loadHistory($playerId);
+        $puzzleSet = array_fill_keys($puzzleIds, true);
 
-        $solveIds = array_values(array_unique([...array_column($solves, 'id'), ...$extraSolveIds]));
+        /** @var array<string, true> $weeks */
+        $weeks = [];
+        /** @var array<string, true> $positionedSolveIds */
+        $positionedSolveIds = array_fill_keys($touchedSolveIds, true);
 
-        $wipedSum = 0;
-
-        if ($solveIds !== []) {
-            $wiped = $this->database->fetchOne(
-                'SELECT COALESCE(SUM(amount), 0) FROM xp_entry
-                 WHERE player_id = :playerId AND solving_time_id IN (:solvingTimeIds) AND reason != :compensation',
-                [
-                    'playerId' => $playerId,
-                    'solvingTimeIds' => $solveIds,
-                    'compensation' => XpReason::SolveCompensation->value,
-                ],
-                ['solvingTimeIds' => ArrayParameterType::STRING],
-            );
-            $wipedSum = is_numeric($wiped) ? (int) $wiped : 0;
-
-            $this->database->executeStatement(
-                'DELETE FROM xp_entry
-                 WHERE player_id = :playerId AND solving_time_id IN (:solvingTimeIds) AND reason != :compensation',
-                [
-                    'playerId' => $playerId,
-                    'solvingTimeIds' => $solveIds,
-                    'compensation' => XpReason::SolveCompensation->value,
-                ],
-                ['solvingTimeIds' => ArrayParameterType::STRING],
-            );
+        foreach ($history as $solve) {
+            if (isset($puzzleSet[$solve['puzzle_id']])) {
+                $positionedSolveIds[$solve['id']] = true;
+                $weeks[XpHistoryReplay::weekKey(new DateTimeImmutable($solve['earned_at']))] = true;
+            }
         }
 
+        foreach ($this->previousPositions($playerId, array_keys($positionedSolveIds)) as $earnedAt) {
+            $weeks[XpHistoryReplay::weekKey(new DateTimeImmutable($earnedAt))] = true;
+        }
+
+        /** @var array<string, true> $scope */
+        $scope = [];
+
+        foreach ($history as $solve) {
+            if (isset($puzzleSet[$solve['puzzle_id']]) || isset($weeks[XpHistoryReplay::weekKey(new DateTimeImmutable($solve['earned_at']))])) {
+                $scope[$solve['id']] = true;
+            }
+        }
+
+        $targets = $this->xpHistoryReplay->replay($playerId, $history, $scope);
+
+        $touchedOutsideScope = array_values(array_filter(
+            $touchedSolveIds,
+            static fn (string $solveId): bool => isset($scope[$solveId]) === false,
+        ));
+        $stillExisting = array_fill_keys($this->existingSolveIds($touchedOutsideScope), true);
+
+        $candidateIds = array_values(array_unique([...array_keys($scope), ...$touchedOutsideScope]));
+        $currentEntries = $this->entriesBySolve($playerId, $candidateIds);
+
+        $entryIdsToRemove = [];
         $drafts = [];
-        $occurrence = 0;
 
-        /** @var array<string, int> $weeklyReplayed */
-        $weeklyReplayed = [];
-        /** @var array<string, true> $dailyReplayed */
-        $dailyReplayed = [];
-
-        foreach ($solves as $solve) {
-            $occurrence++;
-            $earnedAt = new DateTimeImmutable($solve['earned_at']);
-            $weekKey = $earnedAt->format('o-\WW');
-            $dayKey = $earnedAt->format('Y-m-d');
-
-            $awards = $this->xpCalculator->calculate($this->contextFor(
-                solve: $solve,
-                participantId: $playerId,
-                occurrence: $occurrence,
-                earnedAt: $earnedAt,
-                weeklyExtra: $weeklyReplayed[$weekKey] ?? 0,
-                dayAlreadyReplayed: isset($dailyReplayed[$dayKey]),
-            ));
-
-            if ($awards === []) {
+        foreach ($candidateIds as $solveId) {
+            if (isset($scope[$solveId]) === false && isset($stillExisting[$solveId]) === false) {
+                // Deleted - the compensation flow owns its history
                 continue;
             }
 
-            $weeklyReplayed[$weekKey] = ($weeklyReplayed[$weekKey] ?? 0) + 1;
-            $dailyReplayed[$dayKey] = true;
+            $target = $targets[$solveId] ?? [];
+            $current = $currentEntries[$solveId] ?? [];
 
-            foreach ($awards as $award) {
-                $drafts[] = new XpEntryDraft(
-                    reason: $award->reason,
-                    amount: $award->amount,
-                    earnedAt: $earnedAt,
-                    inWeeklyDelta: true,
-                    solvingTimeId: Uuid::fromString($solve['id']),
-                );
+            if (self::matches($current, $target)) {
+                continue;
+            }
+
+            foreach ($current as $entry) {
+                $entryIdsToRemove[] = $entry['id'];
+            }
+
+            foreach ($target as $draft) {
+                $drafts[] = $draft;
             }
         }
 
-        // The wipe above bypassed the ledger, so subtract the wiped sum from the
-        // denormalized totals incrementally — a fresh DB SUM would miss unflushed entries
-        // (e.g. compensations appended moments ago in the deletion flow).
-        $adjustedTotal = $player->xpTotal - $wipedSum;
-        $player->updateExperience($adjustedTotal, LevelTable::levelForXp($adjustedTotal));
+        if ($entryIdsToRemove === [] && $drafts === []) {
+            return;
+        }
 
-        $this->xpLedger->append($player, $drafts);
+        $this->xpLedger->rewrite($player, $entryIdsToRemove, $drafts);
     }
 
     /**
-     * @phpstan-param SolveRow $solve
+     * Where the solves sat when their entries were written (solve-derived lines carry the solve's time; settlements
+     * the settlement run, compensations the deleted solve's lines - neither says more).
+     *
+     * @param list<string> $solveIds
+     * @return list<string> earned_at values
      */
-    private function contextFor(
-        array $solve,
-        string $participantId,
-        int $occurrence,
-        DateTimeImmutable $earnedAt,
-        int $weeklyExtra = 0,
-        bool $dayAlreadyReplayed = false,
-    ): SolveXpContext {
-        $isBackfill = $this->xpFormulaCutoff->isHistory(new DateTimeImmutable($solve['tracked_at']));
-        $isTimed = $solve['seconds_to_solve'] !== null;
-        $isTeamOrDuo = $solve['puzzling_type'] !== 'solo';
-
-        $speedPercentile = SpeedPercentile::None;
-
-        if ($isBackfill === false && $isTeamOrDuo === false && $solve['seconds_to_solve'] !== null) {
-            $speedPercentile = $this->resolveSpeedPercentile($solve, $participantId);
+    private function previousPositions(string $playerId, array $solveIds): array
+    {
+        if ($solveIds === []) {
+            return [];
         }
 
-        return new SolveXpContext(
-            piecesCount: $solve['pieces'],
-            difficultyTier: $solve['difficulty_tier'],
-            isTimed: $isTimed,
-            isTeamOrDuo: $isTeamOrDuo,
-            unboxed: $solve['unboxed'],
-            occurrenceIndex: $occurrence,
-            isBackfill: $isBackfill,
-            speedPercentile: $speedPercentile,
-            xpEarningSolvesThisWeek: $weeklyExtra + $this->countWeekSolvesBefore($participantId, $earnedAt, $solve['id']),
-            isFirstXpEarningSolveOfDay: $dayAlreadyReplayed === false
-                && $this->hasDaySolveBefore($participantId, $earnedAt, $solve['id']) === false,
-        );
+        /** @var list<string> $earnedAt */
+        $earnedAt = $this->database->executeQuery(
+            'SELECT DISTINCT earned_at FROM xp_entry
+             WHERE player_id = :playerId AND solving_time_id IN (:solveIds) AND reason NOT IN (:notPositional)',
+            [
+                'playerId' => $playerId,
+                'solveIds' => $solveIds,
+                'notPositional' => [
+                    XpReason::SolveCompensation->value,
+                    XpReason::DifficultySettlement->value,
+                    XpReason::SpeedSettlement->value,
+                ],
+            ],
+            ['solveIds' => ArrayParameterType::STRING, 'notPositional' => ArrayParameterType::STRING],
+        )->fetchFirstColumn();
+
+        return $earnedAt;
+    }
+
+    /**
+     * @param list<string> $solveIds
+     * @return list<string>
+     */
+    private function existingSolveIds(array $solveIds): array
+    {
+        if ($solveIds === []) {
+            return [];
+        }
+
+        /** @var list<string> $ids */
+        $ids = $this->database->executeQuery(
+            'SELECT id FROM puzzle_solving_time WHERE id IN (:solveIds)',
+            ['solveIds' => $solveIds],
+            ['solveIds' => ArrayParameterType::STRING],
+        )->fetchFirstColumn();
+
+        return $ids;
+    }
+
+    /**
+     * @param list<string> $solveIds
+     * @return array<string, list<array{id: string, reason: string, amount: int, earned_at: string}>>
+     */
+    private function entriesBySolve(string $playerId, array $solveIds): array
+    {
+        if ($solveIds === []) {
+            return [];
+        }
+
+        /** @var list<array{id: string, solving_time_id: string, reason: string, amount: int, earned_at: string}> $rows */
+        $rows = $this->database->executeQuery(
+            'SELECT id, solving_time_id, reason, amount, earned_at FROM xp_entry
+             WHERE player_id = :playerId AND solving_time_id IN (:solveIds)',
+            ['playerId' => $playerId, 'solveIds' => $solveIds],
+            ['solveIds' => ArrayParameterType::STRING],
+        )->fetchAllAssociative();
+
+        $bySolve = [];
+
+        foreach ($rows as $row) {
+            $bySolve[$row['solving_time_id']][] = [
+                'id' => $row['id'],
+                'reason' => $row['reason'],
+                'amount' => $row['amount'],
+                'earned_at' => $row['earned_at'],
+            ];
+        }
+
+        return $bySolve;
+    }
+
+    /**
+     * Whether a solve's entries already say what the replay says: the same amount per receipt line, at the solve's
+     * time. A settlement counts as the bonus it settled (same amount, written later); a compensation line never
+     * belongs to a solve that exists.
+     *
+     * @param list<array{id: string, reason: string, amount: int, earned_at: string}> $current
+     * @param list<XpEntryDraft> $target
+     */
+    private static function matches(array $current, array $target): bool
+    {
+        $wanted = [];
+        $earnedAt = null;
+
+        foreach ($target as $draft) {
+            $wanted[$draft->reason->value] = ($wanted[$draft->reason->value] ?? 0) + $draft->amount;
+            $earnedAt = $draft->earnedAt->format('Y-m-d H:i:s');
+        }
+
+        $have = [];
+
+        foreach ($current as $entry) {
+            $reason = match ($entry['reason']) {
+                XpReason::SolveCompensation->value => null,
+                XpReason::DifficultySettlement->value => XpReason::SolveDifficultyBonus->value,
+                XpReason::SpeedSettlement->value => XpReason::SolveSpeedBonus->value,
+                default => $entry['reason'],
+            };
+
+            if ($reason === null) {
+                return false;
+            }
+
+            $isSettlement = $reason !== $entry['reason'];
+
+            if ($isSettlement === false && $entry['earned_at'] !== $earnedAt) {
+                return false;
+            }
+
+            $have[$reason] = ($have[$reason] ?? 0) + $entry['amount'];
+        }
+
+        ksort($wanted);
+        ksort($have);
+
+        return $wanted === $have;
     }
 
     /**
@@ -565,30 +660,6 @@ SQL;
             ->fetchAssociative();
 
         return $row === false ? null : $row;
-    }
-
-    /**
-     * @phpstan-return list<SolveRow>
-     */
-    private function loadPairSolves(string $playerId, string $puzzleId): array
-    {
-        $sql = self::SOLVE_SELECT . <<<SQL
-
-WHERE pst.suspicious = false
-  AND pst.puzzle_id = :puzzleId
-  AND (
-    pst.player_id = :playerId
-    OR (pst.team::jsonb -> 'puzzlers') @> jsonb_build_array(jsonb_build_object('player_id', CAST(:playerId AS UUID)))
-  )
-ORDER BY COALESCE(pst.finished_at, pst.tracked_at), pst.id
-SQL;
-
-        /** @phpstan-var list<SolveRow> $rows */
-        $rows = $this->database
-            ->executeQuery($sql, ['playerId' => $playerId, 'puzzleId' => $puzzleId])
-            ->fetchAllAssociative();
-
-        return $rows;
     }
 
     /**
@@ -636,16 +707,6 @@ SQL;
         return $ids;
     }
 
-    private function hasAnyEntry(string $playerId, string $solvingTimeId): bool
-    {
-        $value = $this->database->fetchOne(
-            'SELECT 1 FROM xp_entry WHERE player_id = :playerId AND solving_time_id = :solvingTimeId LIMIT 1',
-            ['playerId' => $playerId, 'solvingTimeId' => $solvingTimeId],
-        );
-
-        return $value !== false;
-    }
-
     /**
      * 1-based canonical position of this solve among ALL of the participant's solves
      * of the puzzle (both modes).
@@ -672,66 +733,5 @@ SQL;
         ])->fetchOne();
 
         return (is_numeric($value) ? (int) $value : 0) + 1;
-    }
-
-    /**
-     * XP-earning solves (= solve_base entries of still-existing solves) canonically before
-     * this solve within its ISO week.
-     */
-    private function countWeekSolvesBefore(string $playerId, DateTimeImmutable $earnedAt, string $solvingTimeId): int
-    {
-        $weekStart = $earnedAt
-            ->setISODate((int) $earnedAt->format('o'), (int) $earnedAt->format('W'))
-            ->setTime(0, 0);
-
-        $sql = <<<SQL
-SELECT COUNT(*)
-FROM xp_entry e
-WHERE e.player_id = :playerId
-  AND e.reason = :reason
-  AND e.earned_at >= CAST(:windowStart AS TIMESTAMP)
-  AND e.earned_at < CAST(:windowEnd AS TIMESTAMP)
-  AND (e.earned_at, e.solving_time_id) < (CAST(:earnedAt AS TIMESTAMP), CAST(:solvingTimeId AS UUID))
-  AND EXISTS (SELECT 1 FROM puzzle_solving_time pst WHERE pst.id = e.solving_time_id)
-SQL;
-
-        $value = $this->database->executeQuery($sql, [
-            'playerId' => $playerId,
-            'reason' => XpReason::SolveBase->value,
-            'windowStart' => $weekStart->format('Y-m-d H:i:s'),
-            'windowEnd' => $weekStart->modify('+7 days')->format('Y-m-d H:i:s'),
-            'earnedAt' => $earnedAt->format('Y-m-d H:i:s'),
-            'solvingTimeId' => $solvingTimeId,
-        ])->fetchOne();
-
-        return is_numeric($value) ? (int) $value : 0;
-    }
-
-    private function hasDaySolveBefore(string $playerId, DateTimeImmutable $earnedAt, string $solvingTimeId): bool
-    {
-        $dayStart = $earnedAt->setTime(0, 0);
-
-        $sql = <<<SQL
-SELECT 1
-FROM xp_entry e
-WHERE e.player_id = :playerId
-  AND e.reason = :reason
-  AND e.earned_at >= CAST(:windowStart AS TIMESTAMP)
-  AND e.earned_at < CAST(:windowEnd AS TIMESTAMP)
-  AND (e.earned_at, e.solving_time_id) < (CAST(:earnedAt AS TIMESTAMP), CAST(:solvingTimeId AS UUID))
-  AND EXISTS (SELECT 1 FROM puzzle_solving_time pst WHERE pst.id = e.solving_time_id)
-LIMIT 1
-SQL;
-
-        $value = $this->database->executeQuery($sql, [
-            'playerId' => $playerId,
-            'reason' => XpReason::SolveBase->value,
-            'windowStart' => $dayStart->format('Y-m-d H:i:s'),
-            'windowEnd' => $dayStart->modify('+1 day')->format('Y-m-d H:i:s'),
-            'earnedAt' => $earnedAt->format('Y-m-d H:i:s'),
-            'solvingTimeId' => $solvingTimeId,
-        ])->fetchOne();
-
-        return $value !== false;
     }
 }

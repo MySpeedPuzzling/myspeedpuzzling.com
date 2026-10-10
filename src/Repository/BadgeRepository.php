@@ -21,6 +21,11 @@ readonly class BadgeRepository
         $this->entityManager->persist($badge);
     }
 
+    public function delete(Badge $badge): void
+    {
+        $this->entityManager->remove($badge);
+    }
+
     /**
      * @throws BadgeNotFound
      */

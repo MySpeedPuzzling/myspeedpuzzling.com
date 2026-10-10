@@ -36,27 +36,23 @@ final class GetAchievementPointsTest extends KernelTestCase
 
     public function testEvaluatorAnchorsColumnAndQueriesReadIt(): void
     {
-        // A fresh player with no solves: the evaluator earns nothing new and purely
-        // re-anchors the denormalized total from the existing badge rows.
+        // A fresh player with no solves: tiers their records do not qualify for go (achievements follow the current
+        // records, docs/features/badges.md), the admin-granted Early Adopter stays - the total is re-anchored to it.
         $playerId = $this->insertFreshPlayer(member: true);
 
         self::assertSame(0, $this->columnValue($playerId));
 
-        $expected = 0;
         foreach (BadgeTier::cases() as $tier) {
             $this->insertBadge($playerId, 'puzzles_solved', $tier->value);
-            $expected += $tier->points();
         }
         $this->insertBadge($playerId, 'supporter', null);
-        $expected += BadgeTier::SINGLE_TIER_POINTS;
-
-        // Full ladder (5+10+25+50+100) + Early Adopter (25) = 215 — the §1.6 locked values.
-        self::assertSame(215, $expected);
+        $expected = BadgeTier::SINGLE_TIER_POINTS;
 
         $this->evaluate($playerId);
 
         self::assertSame($expected, self::getContainer()->get(GetAchievementPoints::class)->forPlayer($playerId));
         self::assertSame($expected, $this->columnValue($playerId));
+        self::assertSame(['supporter'], $this->database->fetchFirstColumn('SELECT type FROM badge WHERE player_id = :id', ['id' => $playerId]));
 
         // The AP ladder ranks straight off the column (member + public profile required).
         $mine = $this->apLadderRow($playerId);
@@ -91,7 +87,7 @@ final class GetAchievementPointsTest extends KernelTestCase
     public function testEvaluationSelfHealsManualDrift(): void
     {
         $playerId = $this->insertFreshPlayer(member: false);
-        $this->insertBadge($playerId, 'streak', BadgeTier::Gold->value);
+        $this->insertBadge($playerId, 'supporter', null);
 
         // Simulate drift (e.g. a badge granted via raw SQL without the evaluator).
         $this->database->executeStatement(
@@ -102,7 +98,7 @@ final class GetAchievementPointsTest extends KernelTestCase
         $this->evaluate($playerId);
 
         self::assertSame(
-            BadgeTier::Gold->points(),
+            BadgeTier::SINGLE_TIER_POINTS,
             self::getContainer()->get(GetAchievementPoints::class)->forPlayer($playerId),
         );
     }

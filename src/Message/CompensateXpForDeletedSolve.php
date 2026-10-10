@@ -14,6 +14,13 @@ readonly final class CompensateXpForDeletedSolve
     public function __construct(
         public string $solvingTimeId,
         public string $puzzleId,
+        /**
+         * Its registered members - they may have earned nothing for it (a relax repeat) and still have later solves
+         * of the puzzle that move up now.
+         *
+         * @var list<string>
+         */
+        public array $memberPlayerIds = [],
     ) {
     }
 }

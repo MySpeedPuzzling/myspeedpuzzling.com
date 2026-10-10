@@ -39,16 +39,19 @@ readonly final class DeletePuzzleSolvingTimeHandler
             throw new CanNotModifyOtherPlayersTime();
         }
 
-        $playerId = $currentPlayer->id->toString();
         $puzzleId = $solvingTime->puzzle->id->toString();
         $solvingTimeId = $solvingTime->id->toString();
+        $memberPlayerIds = $solvingTime->memberPlayerIds();
 
         $this->entityManager->remove($solvingTime);
 
-        // Deletions can't revoke an earned badge (permanent), but re-eval covers any edge cases
-        // (e.g. an admin deleted a suspicious time that was counted toward a lower tier snapshot).
-        $this->commandBus->dispatch(new RecalculateBadgesForPlayer($playerId));
-        // The puzzle id travels in the message — it is unrecoverable once the row is gone.
-        $this->commandBus->dispatch(new CompensateXpForDeletedSolve($solvingTimeId, $puzzleId));
+        // Achievements follow the current results (docs/features/badges.md) - a tier this result was needed for goes,
+        // for every registered member of a pair/team result
+        foreach ($memberPlayerIds as $memberPlayerId) {
+            $this->commandBus->dispatch(new RecalculateBadgesForPlayer($memberPlayerId));
+        }
+
+        // The puzzle id and the members travel in the message — they are unrecoverable once the row is gone.
+        $this->commandBus->dispatch(new CompensateXpForDeletedSolve($solvingTimeId, $puzzleId, $memberPlayerIds));
     }
 }

@@ -9,6 +9,7 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Message\AddPuzzleSolvingTime;
 use SpeedPuzzling\Web\Message\AnswerGuestLink;
 use SpeedPuzzling\Web\Message\ApprovePuzzleMergeRequest;
+use SpeedPuzzling\Web\Message\AwardXpForSolvingTime;
 use SpeedPuzzling\Web\Message\CompensateXpForDeletedSolve;
 use SpeedPuzzling\Web\Message\EditPuzzleSolvingTime;
 use SpeedPuzzling\Web\Message\RecalculateBadgesForPlayer;
@@ -52,7 +53,7 @@ final class XpAndBadgesWiringTest extends KernelTestCase
         $this->asyncTransport->reset();
     }
 
-    public function testAnAutomaticallyRemovedCopyIsCompensatedAndUndoRebuildsItsMembers(): void
+    public function testAnAutomaticallyRemovedCopyIsCompensatedAndUndoAwardsItAgain(): void
     {
         self::getContainer()->get(DailyDuplicateDetection::class)->run(DuplicateDetectedBy::Cron);
 
@@ -68,7 +69,11 @@ final class XpAndBadgesWiringTest extends KernelTestCase
         $this->asyncTransport->reset();
         $this->messageBus->dispatch(new UndoAutoRemoval($removalId, DuplicateResultsFixture::PLAYER_TWINS));
 
-        self::assertContains(DuplicateResultsFixture::PLAYER_TWINS, $this->playerIdsOf(RecalculateXpForPlayer::class));
+        // The same id comes back - the award drops its compensated history (ProgressionPathIndependenceTest)
+        self::assertSame(
+            [DuplicateResultsFixture::TIME_CERTAIN_B],
+            array_map(static fn (AwardXpForSolvingTime $message): string => $message->solvingTimeId, $this->sent(AwardXpForSolvingTime::class)),
+        );
         self::assertContains(DuplicateResultsFixture::PLAYER_TWINS, $this->playerIdsOf(RecalculateBadgesForPlayer::class));
     }
 

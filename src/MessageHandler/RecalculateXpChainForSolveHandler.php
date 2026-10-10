@@ -18,6 +18,6 @@ readonly final class RecalculateXpChainForSolveHandler
 
     public function __invoke(RecalculateXpChainForSolve $message): void
     {
-        $this->xpChainRecomputer->rebuildChainForEditedSolve($message->solvingTimeId);
+        $this->xpChainRecomputer->rebuildChainForEditedSolve($message->solvingTimeId, $message->memberPlayerIds);
     }
 }

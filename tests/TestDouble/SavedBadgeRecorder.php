@@ -10,4 +10,7 @@ final class SavedBadgeRecorder
 {
     /** @var list<Badge> */
     public array $saved = [];
+
+    /** @var list<Badge> */
+    public array $deleted = [];
 }

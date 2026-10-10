@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Entity\PuzzleSolvingTime;
 use SpeedPuzzling\Web\Entity\SuspiciousTimeCase;
 use SpeedPuzzling\Web\Entity\SuspiciousTimeNotice;
 use SpeedPuzzling\Web\Events\PuzzleSolvingTimeModified;
+use SpeedPuzzling\Web\Events\PuzzleSolvingTimeSuspicionChanged;
 use SpeedPuzzling\Web\Services\SuspiciousTimes\SuspicionFingerprint;
 use SpeedPuzzling\Web\Tests\DataFixtures\SuspiciousTimesFixture;
 use SpeedPuzzling\Web\Value\SuspicionAssessment;
@@ -145,7 +146,11 @@ final class SuspiciousTimeCaseTest extends KernelTestCase
         $time->markSuspicious();
         $time->markSuspicious();
         self::assertTrue($time->suspicious);
-        self::assertCount(1, $time->popEvents(), 'Marking a marked time changes nothing');
+        // The statistics' event and the progression's (XP, achievements) - once: marking a marked time changes nothing
+        self::assertEquals(
+            [new PuzzleSolvingTimeModified($time->id, $time->puzzle->id), new PuzzleSolvingTimeSuspicionChanged($time->id)],
+            $time->popEvents(),
+        );
 
         $time->clearSuspicion();
         self::assertFalse($time->suspicious);
@@ -153,7 +158,7 @@ final class SuspiciousTimeCaseTest extends KernelTestCase
 
         $time->suspicionChangedOutsideTheApp();
         self::assertFalse($time->suspicious);
-        self::assertCount(1, $time->popEvents());
+        self::assertCount(2, $time->popEvents());
     }
 
     private function case(string $id): SuspiciousTimeCase

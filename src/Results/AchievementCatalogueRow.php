@@ -21,6 +21,8 @@ readonly final class AchievementCatalogueRow
         public null|BadgeProgress $progress,
         /** Share of puzzlers holding the row's tier that matters: the next one, else the highest earned, else Bronze */
         public float $rarityPercent,
+        /** The owner's highest tier waits for its reveal: a "?" medallion leading to the reveal page */
+        public bool $unrevealed = false,
     ) {
     }
 

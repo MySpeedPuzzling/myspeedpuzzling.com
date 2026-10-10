@@ -16,6 +16,8 @@ readonly final class BadgeCatalogEntry
         public string $requirementTranslationKey,
         public bool $earned,
         public null|DateTimeImmutable $earnedAt,
+        /** False for an earned tier the owner has not revealed yet (the last-piece reveal) */
+        public bool $revealed = true,
     ) {
     }
 }

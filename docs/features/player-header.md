@@ -19,7 +19,7 @@ alone: the membership badge, "Send message", and the owner's share-link input. U
 | | Decision |
 |---|---|
 | Layout | **A + B**: the header of variant A, the bar of variant B (it carries the page tabs on phones too) |
-| Tab labels | short: Profile · Statistics · Calendar · Library · Favorites (`player_header.tabs.*`) |
+| Tab labels | short: Profile · Statistics · Calendar · Achievements · Library · Favorites (`player_header.tabs.*`) |
 | Country | the flag on the avatar only - the meta line is just `#CODE` |
 | Tier chip | opted out of rankings = **no chip**; not ranked yet = "No tier yet" (members only); see the rules below |
 | Owner-only pages | a one-line strip instead of the header (reasoning below) |
@@ -27,6 +27,7 @@ alone: the membership badge, "Send message", and the owner's share-link input. U
 | Favorite button | **filled while the player is in your favorites** (a toggle that shows its state), outline otherwise |
 | Repeated page titles | "Puzzle library of X" and "Activity calendar" are visually hidden (kept as the H1 for search engines and screen readers) - the header and its tab say it |
 | Favorites | **personal**: the tab and the page exist only for the owner, and the page also lists who has *you* in favorites (see "Favorites page") |
+| Achievements | `player_achievements` (`/en/player-achievements/{id}`, 2026-10-11): the catalogue rows with this player's tiers, Earned / Next up / All. Only members have achievements: the tab is shown on a member's pages (public) and to a non-member owner (the member tease), never on a non-member's pages for others; behind the launch switch (`XpFeatureGate`); opting out of XP does not hide it. The owner's unrevealed tiers are "?" rows leading to the reveal page. The showcase summary and the user menu's "My achievements" link here; `/achievements` stays the catalogue of all achievements |
 
 **Why the strip on owner-only pages:** the header answers *whose page is this*, *what can I do with this person*, and
 *where else can I go*. On the owner's own forms and histories (edit a collection, sell/swap settings, export …)

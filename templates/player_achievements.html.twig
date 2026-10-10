@@ -1,0 +1,63 @@
+{% extends 'base.html.twig' %}
+
+{% set player_name = player.playerName ?? ('#' ~ player.code|upper) %}
+
+{% block title %}{{ 'badges.player_page_meta_title'|trans({'%name%': player_name}) }}{% endblock %}
+
+{#
+    A player's achievements (PlayerAchievementsController): the catalogue rows (_achievement_row.html.twig) with this
+    player's tiers, Earned / Next up / All. The owner's unrevealed tiers are "?" medallions leading to the reveal page.
+#}
+{% block content %}
+    <twig:PlayerHeader player="{{ player }}" tab="achievements" />
+
+    <div class="d-flex flex-wrap align-items-baseline justify-content-between gap-2 mb-2">
+        <h2 class="h4 mb-0">{{ 'badges.title'|trans }}</h2>
+        <a href="{{ path('badges_overview', {show: 'all'}) }}" class="fs-sm">{{ 'badges.browse_all'|trans }}</a>
+    </div>
+
+    {% if not player.activeMembership %}
+        {# Only the owner gets here: achievements are a membership perk #}
+        <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+            <p class="mb-0 fs-sm flex-grow-1" style="flex-basis: 15rem;">{{ 'badges.catalogue.tease_free'|trans }}</p>
+            <a href="{{ path('membership') }}" class="btn btn-primary btn-sm">{{ 'badges.catalogue.become_member'|trans }}</a>
+        </div>
+    {% else %}
+        <p class="achievements-summary mb-0">
+            {{ 'badges.catalogue.summary'|trans({'%earned%': earned_types, '%total%': total_types})|raw }}
+            <span class="mx-1" aria-hidden="true">·</span>
+            <a href="{{ path('xp_leaderboard', {tab: 'achievement-points'}) }}" class="ap-chip text-decoration-none">{{ 'badges.ap_total'|trans({'%points%': player.achievementPoints|format_number}) }}</a>
+        </p>
+
+        <nav class="achievements-filter" aria-label="{{ 'badges.catalogue.filter_label'|trans }}">
+            {% for option in filters %}
+                <a href="{{ path('player_achievements', {playerId: player.playerId, show: option.value}) }}"
+                   class="{{ option == filter ? 'active' }}"
+                   {% if option == filter %}aria-current="page"{% endif %}>
+                    {{ option.translationKey()|trans }}{% if filter_counts[option.value] is defined %} · {{ filter_counts[option.value] + (option.value != 'next' and has_supporter ? 1 : 0) }}{% endif %}
+                </a>
+            {% endfor %}
+        </nav>
+
+        {% set show_supporter = has_supporter and filter.value != 'next' %}
+        {% if rows|length == 0 and not show_supporter %}
+            <p class="text-body-secondary">{{ ('badges.catalogue.empty.' ~ filter.value)|trans }}</p>
+        {% else %}
+            <div class="achievement-rows">
+                {% if show_supporter %}
+                    <a href="{{ path('achievement_info', {type: 'supporter'}) }}" data-turbo-frame="modal-frame" class="achievement-row">
+                        {{ badge_art('supporter', null, 56) }}
+                        <span class="achievement-row-body">
+                            <span class="achievement-row-title d-block">{{ 'badges.badge.supporter'|trans }}</span>
+                            <span class="achievement-row-meta d-block">{{ 'badges.description.supporter'|trans }}</span>
+                        </span>
+                        <i class="bi bi-chevron-right text-body-secondary flex-shrink-0" aria-hidden="true"></i>
+                    </a>
+                {% endif %}
+                {% for row in rows %}
+                    {{ include('_achievement_row.html.twig', {row: row, personal: true}) }}
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endif %}
+{% endblock %}

@@ -20,6 +20,8 @@
                     <span class="mx-1" aria-hidden="true">·</span>
                     <a href="{{ path('xp_leaderboard', {tab: 'achievement-points'}) }}" class="ap-chip text-decoration-none">{{ 'badges.ap_total'|trans({'%points%': ap_total}) }}</a>
                 {% endif %}
+                <span class="mx-1" aria-hidden="true">·</span>
+                <a href="{{ path('player_achievements', {playerId: logged_user.profile.playerId}) }}">{{ 'badges.my_title'|trans }}</a>
             </p>
         {% else %}
             <p class="text-body-secondary mb-0">{{ 'badges.overview_subtitle'|trans }}</p>
@@ -55,51 +57,7 @@
     {% else %}
         <div class="achievement-rows">
             {% for row in rows %}
-                {% set name = row.type.translationKey()|trans %}
-                {% set focus_tier = row.focusTier() %}
-                <a href="{{ path('achievement_info', {type: row.type.value}) }}" data-turbo-frame="modal-frame" class="achievement-row">
-                    {{ badge_art(row.type, row.displayTier, 56, locked = is_member and row.earnedTier is null) }}
-
-                    <span class="achievement-row-body">
-                        <span class="achievement-row-title d-block">
-                            {{ name }}
-                            {% if row.progress is not null %}
-                                <span class="achievement-row-next">→ {{ row.progress.nextTier.translationKey()|trans }}</span>
-                            {% elseif row.earnedTier is not null %}
-                                <span class="achievement-row-next">· {{ row.earnedTier.translationKey()|trans }}</span>
-                            {% endif %}
-                        </span>
-
-                        {% if row.progress is not null %}
-                            <span class="achievement-progress d-block" role="progressbar"
-                                  aria-label="{{ 'badges.catalogue.progress_label'|trans({'%achievement%': name, '%tier%': row.progress.nextTier.translationKey()|trans}) }}"
-                                  aria-valuenow="{{ row.progress.percent }}" aria-valuemin="0" aria-valuemax="100">
-                                <span style="width: {{ row.progress.percent }}%"></span>
-                            </span>
-                            <span class="achievement-row-meta d-block">
-                                {{ include('_achievement_progress_numbers.html.twig', {progress: row.progress}) }}
-                                <span aria-hidden="true">·</span>
-                                {{ ('badges.requirement.' ~ row.type.value ~ '_' ~ row.progress.nextTier.value)|trans }}
-                                <span aria-hidden="true">·</span>
-                                <span class="text-nowrap">+{{ row.progress.nextTier.points }} AP</span>
-                            </span>
-                        {% elseif row.isComplete %}
-                            <span class="achievement-row-meta d-block">
-                                {{ 'badges.highest_earned'|trans }}
-                                <span aria-hidden="true">·</span>
-                                {{ include('_achievement_rarity.html.twig', {percent: row.rarityPercent}) }}
-                            </span>
-                        {% else %}
-                            <span class="achievement-row-meta d-block">
-                                {{ focus_tier.translationKey()|trans }}: {{ ('badges.requirement.' ~ row.type.value ~ '_' ~ focus_tier.value)|trans }}
-                                <span aria-hidden="true">·</span>
-                                {{ include('_achievement_rarity.html.twig', {percent: row.rarityPercent}) }}
-                            </span>
-                        {% endif %}
-                    </span>
-
-                    <i class="bi bi-chevron-right text-body-secondary flex-shrink-0" aria-hidden="true"></i>
-                </a>
+                {{ include('_achievement_row.html.twig', {row: row, personal: is_member}) }}
             {% endfor %}
         </div>
     {% endif %}

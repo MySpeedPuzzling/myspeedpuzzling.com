@@ -1769,6 +1769,7 @@ xp:
 
 badges:
     title: "Úspěchy"
+    player_page_meta_title: "%name% – úspěchy"
     my_title: "Moje úspěchy"
     browse_all: "Procházet všechny úspěchy"
     reveal: "Odhal svůj nový úspěch"
@@ -6739,6 +6740,7 @@ player_header:
         profile: "Profil"
         statistics: "Statistiky"
         calendar: "Kalendář"
+        achievements: "Úspěchy"
         library: "Knihovna"
         favorites: "Oblíbení"
     favorite: "Oblíbit"

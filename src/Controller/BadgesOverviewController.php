@@ -6,12 +6,11 @@ namespace SpeedPuzzling\Web\Controller;
 
 use SpeedPuzzling\Web\Query\GetAchievementPoints;
 use SpeedPuzzling\Web\Query\GetBadgeCatalog;
-use SpeedPuzzling\Web\Results\AchievementCatalogueRow;
+use SpeedPuzzling\Web\Services\AchievementCatalogueRows;
 use SpeedPuzzling\Web\Services\AchievementRarityProvider;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Services\Xp\XpFeatureGate;
 use SpeedPuzzling\Web\Value\AchievementCatalogueFilter;
-use SpeedPuzzling\Web\Value\BadgeTier;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -57,38 +56,12 @@ final class BadgesOverviewController extends AbstractController
         $isMember = $memberId !== null;
 
         $catalog = $this->getBadgeCatalog->forPlayer($memberId);
-        $rarity = $this->achievementRarityProvider->percentages();
 
-        $rows = [];
-
-        foreach ($catalog as $group) {
-            $earnedTier = $isMember ? $group->highestEarnedTier() : null;
-            $progress = $isMember ? $group->progressToNext : null;
-            $focusTier = $progress !== null ? $progress->nextTier : ($earnedTier ?? BadgeTier::Bronze);
-
-            $rows[] = new AchievementCatalogueRow(
-                type: $group->type,
-                displayTier: $earnedTier ?? BadgeTier::Bronze,
-                earnedTier: $earnedTier,
-                progress: $progress,
-                rarityPercent: $rarity[$group->type->value][$focusTier->value] ?? 0.0,
-            );
-        }
-
-        $nextUp = array_values(array_filter(
-            $rows,
-            static fn (AchievementCatalogueRow $row): bool => $row->progress !== null && $row->progress->percent > 0,
-        ));
-        usort($nextUp, static fn (AchievementCatalogueRow $a, AchievementCatalogueRow $b): int => ($b->progress->percent ?? 0) <=> ($a->progress->percent ?? 0));
-
-        $earned = array_values(array_filter(
-            $rows,
-            static fn (AchievementCatalogueRow $row): bool => $row->earnedTier !== null,
-        ));
-        usort($earned, static fn (AchievementCatalogueRow $a, AchievementCatalogueRow $b): int => ($b->earnedTier->value ?? 0) <=> ($a->earnedTier->value ?? 0));
-
-        $rarest = $rows;
-        usort($rarest, static fn (AchievementCatalogueRow $a, AchievementCatalogueRow $b): int => $a->rarityPercent <=> $b->rarityPercent);
+        $lists = AchievementCatalogueRows::build($catalog, $this->achievementRarityProvider->percentages(), personal: $isMember);
+        $rows = $lists[AchievementCatalogueFilter::All->value];
+        $nextUp = $lists[AchievementCatalogueFilter::NextUp->value];
+        $earned = $lists[AchievementCatalogueFilter::Earned->value];
+        $rarest = $lists[AchievementCatalogueFilter::Rarest->value];
 
         $filter = AchievementCatalogueFilter::tryFrom($request->query->getString('show'));
 

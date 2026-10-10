@@ -1764,6 +1764,7 @@ competition_referees:
     "explainer_link": "Envie de savoir comment chaque point se gagne ? Consultez <a href=\"%explainer_link%\">Comment fonctionnent les XP et les niveaux</a>."
 "badges":
   "title": "Succès"
+  "player_page_meta_title": "%name% – succès"
   "my_title": "Mes succès"
   "browse_all": "Parcourir tous les succès"
   "reveal": "Révélez votre nouveau succès"
@@ -6732,6 +6733,7 @@ player_header:
         profile: "Profil"
         statistics: "Statistiques"
         calendar: "Calendrier"
+        achievements: "Succès"
         library: "Bibliothèque"
         favorites: "Favoris"
     favorite: "Favori"

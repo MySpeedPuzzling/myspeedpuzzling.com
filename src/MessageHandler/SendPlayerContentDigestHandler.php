@@ -17,6 +17,7 @@ use SpeedPuzzling\Web\Repository\ContentDigestRunRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Results\ContentDigestRunCounts;
 use SpeedPuzzling\Web\Services\ContentDigestUnsubscribeUrl;
+use SpeedPuzzling\Web\Services\Digest\MissYouHoldout;
 use SpeedPuzzling\Web\Services\Digest\PlayerPeriodActivityReader;
 use SpeedPuzzling\Web\Services\EmailPreferencesLinkGenerator;
 use SpeedPuzzling\Web\Services\Listmonk\ListmonkNewsletterLists;
@@ -47,6 +48,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  *    launch pause, checked here too), a stale one, another frequency, no activity in the period; "We miss you": a run
  *    before MissYouRun::FIRST_DAY or stale, a player no longer missed - results change in the hours between planning
  *    and sending.
+ *    The "We miss you" holdout (MissYouHoldout) is only logged (`holdout`, once per spell) and never mailed.
  * 2. Claimed (ContentDigestLogRepository::claim()) - one e-mail per player and period / per inactive spell
  *    (MissYouRun::spellKey()), race-safe.
  * 3. Sent. Outcomes, counted on the run: sent; permanent recipient failure (550-553) = row `failed_permanent`, never
@@ -84,6 +86,7 @@ readonly final class SendPlayerContentDigestHandler
         private LoggerInterface $logger,
         private PlayerAccountEmail $playerAccountEmail,
         private XpFeatureGate $xpFeatureGate,
+        private MissYouHoldout $missYouHoldout,
     ) {
     }
 
@@ -148,6 +151,13 @@ readonly final class SendPlayerContentDigestHandler
 
             // Once per inactive spell: the spell is named by its last logged result
             $logKey = MissYouRun::spellKey($lastLoggedAt);
+
+            // The holdout: logged like a send (once per spell), never mailed - the comparison group
+            if ($this->missYouHoldout->isHeldOut($message->playerId)) {
+                $this->logRepository->claim($message->playerId, $frequency, $logKey, false, $now, ContentDigestLog::STATUS_HOLDOUT);
+
+                return;
+            }
             // The community lines of the e-mail are about the week that just ended
             $contentPeriod = DigestPeriod::containing(DigestPeriodLength::Week, $now)->previous();
         }

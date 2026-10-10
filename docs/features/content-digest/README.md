@@ -11,7 +11,8 @@ Two e-mails:
 - **Activity digest** - Monday, to everybody with activity in their period: the period first, progress second, one
   button to the "Your week" page, every line a link.
   **No activity in the period = no digest at all** (no "quiet" variant).
-- **"We miss you"** - Tuesdays (from Tue 20 Oct 2026), to a player whose last logged result is **≥ 28 days** old:
+- **"We miss you"** - Tuesdays (from Tue 27 Oct 2026), to a player whose last logged result is **≥ 28 days** (and
+  < 24 months) old:
   friendly, lightly humorous ("have you been puzzling in secret?"), invites them to add the times they forgot and to
   come back. **Once per inactive spell**, never again until they have had activity again (Jan, 2026-10-11 - replaced
   the earlier "no-activity mail the day after").
@@ -67,18 +68,63 @@ one player per address; **most engaged first** (latest `player_activity_day`, th
   unsubscribe instead of a fourth switch: it is the same relationship, "tell me about my puzzling", and one switch is
   easier to understand), at least one result ever (players who never logged a time are not "missed"), and the **last
   logged result ≥ 28 days ago** (`GetContentDigestRecipients::MISS_YOU_AFTER_DAYS`; logged = `tracked_at`, any result,
-  solo or pair/team, a back-dated or not yet verified one too).
+  solo or pair/team, a back-dated or not yet verified one too) **but not older than 24 months**
+  (`MISS_YOU_MAX_DORMANCY_MONTHS`): those accounts are left to the newsletter - old addresses bounce, hit spam traps or
+  complain, and that hurts the deliverability of every other e-mail.
 - **Once per inactive spell**: the spell is named by the last logged result - the log row's `period_key` is
   `miss-you:<last tracked_at>` (`MissYouRun::spellKey()`, `had_activity = false`), so the unique `(player_id,
   period_key)` claim makes it race-safe and once; the recipients query also skips anybody with a "We miss you" row
   sent after their last result. A new result restarts the 28-day clock (a new spell, a new key).
 - **When**: weekly on Tuesday, all frequencies, runs keyed `miss-you-YYYY-MM-DD` (`MissYouRun::runKey()`); **not before
-  Tue 20 Oct 2026** (`MissYouRun::FIRST_DAY`, a guard in planner *and* handler), never while the launch switch is off;
+  Tue 27 Oct 2026** - two weeks after the launch newsletter (`MissYouRun::FIRST_DAY`, a guard in planner *and* handler), never while the launch switch is off;
   a queued message older than 2 days after its run day is dropped. Paced over 07:00-19:00, most recently active first,
   with a **stricter breaker** (≥ 10 failures and ≥ 3 %: these addresses have been quiet, the first run for years).
-- **The first run (Tue 20 Oct)** includes every long-dormant account with a result once. Check `--dry-run`, and if the
-  count is high send the first wave in slices: `--max-recipients N` (all frequencies together, most recently active
-  first; the rest goes the next Tuesday, or a same-day re-run).
+- **Numbers** (dev copy, measured 2026-10-11): dormant ≥ 28 days with an account ≈ 5,010 - 28 days-3 months 1,050 ·
+  3-6 months 1,072 · 6-12 months 1,010 · 1-2 years 1,613 · over 2 years 265 (never mailed). Newly crossing 28 days ≈ 175
+  a week (111-248). 52 % of 4-week breaks end on their own within 12 weeks, 73 % eventually - hence the holdout: the
+  mail has to beat that baseline to be worth sending.
+- **Slicing the first wave**: `--last-activity-after=<date|age>` / `--last-activity-before=<date|age>` (a date
+  `2026-04-27` = Prague midnight, or an age `28 days` / `6 months` / `1 year` counted back from now), `--max-recipients N`
+  (all frequencies together, most recently active first, the holdout included), `--dry-run` (counts per frequency, the
+  holdout, and per recency bucket 28d-3m / 3-6m / 6-12m / 1-2y).
+- **Wave plan** (Jan):
+
+| Tuesday | Slice | ≈ recipients | Command |
+|---|---|---|---|
+| 27 Oct 2026 | 28 days - 6 months | 2,100 | `send-content-digest miss-you --last-activity-after="6 months"` |
+| 3 Nov 2026 | 6-12 months | 1,000 | `send-content-digest miss-you --last-activity-after="12 months" --last-activity-before="6 months"` |
+| 10 Nov 2026 | 1-2 years, **only if bounces < 2 % and complaints ≈ 0 in the earlier waves** | 1,600 | `send-content-digest miss-you --last-activity-before="12 months"` |
+| from 17 Nov | regular weekly (the 28-day crossers) | 175 | `send-content-digest miss-you` |
+
+  Until the 1-2 year wave is approved, the weekly cron row must not reach them: run the waves by hand and keep the cron
+  row on `--last-activity-after="12 months"` (or off) until then. Over 2 years: never (code).
+
+## Holdout
+
+A deterministic **10 %** (`MissYouHoldout::PERCENT`; sha256 of a fixed salt + the player id) of the eligible players is
+**not mailed** but logged in the same log, status **`holdout`**, once per spell exactly like a send (the recipients query
+treats it as "told"). Holdout messages are queued without delay and take no pacing slot. The comparison - who logged a
+result within 4 / 8 weeks after the spell's mail (or holdout) date:
+
+```sql
+SELECT
+    l.status = 'holdout' AS holdout,
+    COUNT(*) AS players,
+    ROUND(100.0 * COUNT(*) FILTER (WHERE back.at < l.sent_at + INTERVAL '4 weeks') / COUNT(*), 1) AS back_within_4_weeks_pct,
+    ROUND(100.0 * COUNT(*) FILTER (WHERE back.at < l.sent_at + INTERVAL '8 weeks') / COUNT(*), 1) AS back_within_8_weeks_pct
+FROM content_digest_log l
+LEFT JOIN LATERAL (
+    SELECT MIN(pst.tracked_at) AT TIME ZONE 'UTC' AS at
+    FROM puzzle_solving_time pst
+    WHERE (pst.player_id = l.player_id
+        OR pst.puzzling_team_id IN (SELECT ptm.team_id FROM puzzling_team_member ptm WHERE ptm.player_id = l.player_id))
+      AND pst.tracked_at AT TIME ZONE 'UTC' > l.sent_at
+) back ON true
+WHERE l.period_key LIKE 'miss-you:%'
+  AND l.status IN ('sent', 'holdout')
+  AND l.sent_at < NOW() - INTERVAL '8 weeks'   -- only spells whose 8 weeks are over
+GROUP BY 1;
+```
 - **Content** (`templates/emails/content_digest_miss_you.html.twig`, keys `activity_digest.miss_you.*`): "Your puzzles
   miss you" / "We miss your times" - maybe a break, maybe puzzling in secret; times can still be added with the day they
   were finished ("Add a time" button → `puzzle_add`), then: let us pick your next puzzle (Puzzle Picker), see what the
@@ -208,16 +254,16 @@ Why it is worth having:
 ```cron
 # Activity digest (docs/features/content-digest/README.md) - Monday: the activity digests of every frequency due,
 # spaced 07:00-19:00 Prague by the app; Tuesday: "We miss you" (last result 28+ days ago, once per quiet spell).
-# Paused in code until the period of 12-18 Oct 2026 (first send Mon 19 Oct; first "We miss you" Tue 20 Oct) and
+# Paused in code until the period of 12-18 Oct 2026 (first send Mon 19 Oct; first "We miss you" Tue 27 Oct) and
 # while the XP launch switch is off.
 1 7 * * 1 root lily-cron-run myspeedpuzzling send-content-digest-activity -- docker compose --file /srv/myspeedpuzzling/compose.yaml run --rm --no-deps messenger-consumer sentry-cli monitors run --schedule "1 7 * * 1" --timezone "Europe/Prague" send-content-digest-activity -- bin/console myspeedpuzzling:send-content-digest activity >> /var/log/lily/myspeedpuzzling-cron.log 2>&1
 1 7 * * 2 root lily-cron-run myspeedpuzzling send-content-digest-miss-you -- docker compose --file /srv/myspeedpuzzling/compose.yaml run --rm --no-deps messenger-consumer sentry-cli monitors run --schedule "1 7 * * 2" --timezone "Europe/Prague" send-content-digest-miss-you -- bin/console myspeedpuzzling:send-content-digest miss-you >> /var/log/lily/myspeedpuzzling-cron.log 2>&1
 ```
 
 3. Before Mon 19 Oct: `bin/console myspeedpuzzling:send-content-digest activity --dry-run` on the box (counts per
-   frequency) - and `miss-you --dry-run` before Tue 20 Oct: the **first "We miss you" run reaches every dormant
-   account with a result once**. Slice it with `--max-recipients` (run the cron row once by hand with it, or adjust the
-   row for the first weeks); the strict breaker stops a run whose addresses bounce.
+   frequency) - and `miss-you --dry-run` before Tue 27 Oct. The first "We miss you" Tuesdays follow the wave plan
+   (§"We miss you") by hand; the cron row stays off - or on `--last-activity-after="12 months"` - until the 1-2 year wave
+   is approved.
 4. Watch: the breaker's warning in Sentry, `content_digest_run` counters, `email_audit_log` for `content_digest_*`.
 
 ---

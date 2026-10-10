@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Message;
 
+use DateTimeImmutable;
 use SpeedPuzzling\Web\Value\ContentDigestKind;
 
 /**
@@ -17,6 +18,9 @@ readonly final class PlanContentDigestRuns
         public ContentDigestKind $kind,
         public bool $dryRun = false,
         public null|int $maxRecipients = null,
+        /** "We miss you" only: just players whose last result is after / before this moment (first-wave slices) */
+        public null|DateTimeImmutable $lastActivityAfter = null,
+        public null|DateTimeImmutable $lastActivityBefore = null,
     ) {
     }
 }

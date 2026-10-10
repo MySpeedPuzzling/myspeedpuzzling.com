@@ -13,12 +13,19 @@ use SpeedPuzzling\Web\Value\ContentDigestFrequency;
  */
 readonly final class ContentDigestRunPlan
 {
+    /**
+     * @param array<string, int> $buckets
+     */
     public function __construct(
         public ContentDigestFrequency $frequency,
         public string $periodKey,
         public string $outcome,
         public int $recipients = 0,
         public int $spacingMs = 0,
+        /** "We miss you": recipients per recency of their last result (28d-3m, 3-6m, 6-12m, 1-2y) */
+        public array $buckets = [],
+        /** "We miss you": of the recipients, how many are the holdout (logged, not mailed) */
+        public int $heldOut = 0,
     ) {
     }
 }

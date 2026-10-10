@@ -435,6 +435,14 @@ readonly final class EventsPageBuilder
 
         $tags[] = new RowTag(RowTagType::Recurring);
 
+        // "Who can enter" in the order of a single row (EventRowFactory::tags()) - only when every date of the row says
+        // the same (an edition's own, else its series'), so the row never claims one date's rule for the others
+        $eligibilities = array_unique(array_map(static fn (array $item): null|string => $item['occurrence']->eligibility, $items));
+
+        if (count($eligibilities) === 1 && $first->eligibility !== null) {
+            $tags[] = new RowTag(RowTagType::Eligibility, text: $first->eligibility);
+        }
+
         return new AgendaRow(
             indexIds: array_map(static fn (array $item): int => $item['id'], $items),
             isGroup: true,

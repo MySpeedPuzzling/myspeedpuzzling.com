@@ -75,6 +75,30 @@ final class EventsPageBuilderTest extends TestCase
     }
 
     /**
+     * "Who can enter" stays on a month roll-up when every date of it says the same - an edition without its own
+     * inherits its series', so a series' editions usually do; dates that differ leave it to their own pages
+     */
+    public function testAMonthRollUpKeepsWhoCanEnterSharedByEveryDate(): void
+    {
+        $page = $this->build([
+            $this->edition('s1', 'Night 1', '2026-11-01', series: 'Harbor Nights', eligibility: '18+'),
+            $this->edition('s1', 'Night 2', '2026-11-29', series: 'Harbor Nights', eligibility: '18+'),
+            $this->edition('s2', 'Meet 1', '2026-11-02', series: 'Pier Meets', eligibility: '18+'),
+            $this->edition('s2', 'Meet 2', '2026-11-30', series: 'Pier Meets', eligibility: 'Members only'),
+        ], [$this->series('s1', 'Harbor Nights'), $this->series('s2', 'Pier Meets')]);
+
+        self::assertCount(1, $page->months);
+        $rows = $this->rowsByTitle($page);
+
+        self::assertTrue($rows['Harbor Nights']->isGroup);
+        self::assertSame([RowTagType::Recurring, RowTagType::Eligibility], $this->tagTypes($rows['Harbor Nights']));
+        self::assertSame('18+', $rows['Harbor Nights']->tags[1]->text);
+
+        self::assertTrue($rows['Pier Meets']->isGroup);
+        self::assertSame([RowTagType::Recurring], $this->tagTypes($rows['Pier Meets']));
+    }
+
+    /**
      * A month roll-up shows at most MAX_SESSION_CHIPS date chips, then "+N more" to the series page - the row still
      * stands for every session (docs/features/events-page/high-frequency-series.md "Events page agenda")
      */
@@ -887,6 +911,8 @@ final class EventsPageBuilderTest extends TestCase
         // the day of its last round - none: no rounds
         null|string $lastRound = null,
         null|OrganizationRef $organization = null,
+        // its own, else its series' (GetEventOccurrences)
+        null|string $eligibility = null,
     ): EventOccurrence {
         return new EventOccurrence(
             competitionId: $this->nextId(),
@@ -904,6 +930,7 @@ final class EventsPageBuilderTest extends TestCase
             roundCount: $lastRound !== null ? 1 : 0,
             lastRoundDay: self::day($lastRound),
             isPublic: $public,
+            eligibility: $eligibility,
         );
     }
 

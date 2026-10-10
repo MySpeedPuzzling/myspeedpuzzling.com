@@ -139,29 +139,81 @@ final class SendPlayerContentDigestHandlerTest extends KernelTestCase
         self::assertStringContainsString(' AP', $html);
     }
 
-    public function testTheNoActivityEmailGoesToAQuietPlayer(): void
+    public function testNobodyGetsADigestForAPeriodWithoutActivity(): void
     {
+        $transport = new TransportSpy();
+        ($this->handler($transport))(new SendPlayerContentDigest(self::FREE_PLAYER, self::PERIOD, ContentDigestKind::Activity, $this->insertRun()));
+
+        self::assertCount(0, $transport->sent);
+        self::assertNull($this->logRow(self::FREE_PLAYER));
+    }
+
+    public function testWeMissYouGoesOncePerInactiveSpell(): void
+    {
+        $this->onlyResult(self::FREE_PLAYER, '2030-02-01 18:00:00');
         $this->clock = new MockClock(new DateTimeImmutable('2030-03-12 08:00:00', new DateTimeZone('Europe/Prague')));
 
         $transport = new TransportSpy();
-        ($this->handler($transport))(new SendPlayerContentDigest(self::FREE_PLAYER, self::PERIOD, ContentDigestKind::NoActivity, $this->insertRun()));
+        ($this->handler($transport))(new SendPlayerContentDigest(self::FREE_PLAYER, 'miss-you-2030-03-12', ContentDigestKind::MissYou, $this->insertRun()));
 
         self::assertCount(1, $transport->sent);
         $email = $transport->sent[0];
         self::assertInstanceOf(TemplatedEmail::class, $email);
-        self::assertSame('emails/content_digest_no_activity.html.twig', $email->getHtmlTemplate());
-        self::assertSame(['status' => 'sent', 'had_activity' => false], $this->logRow(self::FREE_PLAYER));
+        self::assertSame('emails/content_digest_miss_you.html.twig', $email->getHtmlTemplate());
+        self::assertSame('Your puzzles miss you', $email->getSubject());
+        self::assertNotNull($email->getHeaders()->get('List-Unsubscribe'), 'Rides on the activity e-mail and its unsubscribe');
+        self::assertSame(['status' => 'sent', 'had_activity' => false], $this->logRow(self::FREE_PLAYER, 'miss-you:2030-02-01T18:00:00'));
+
+        $this->render($email);
+        $html = (string) $email->getHtmlBody();
+        self::assertStringContainsString('/en/puzzle-add', $html, 'Log the times they forgot');
+        self::assertStringContainsString('/en/what-to-solve-next', $html);
+        self::assertStringContainsString('/activity-digest/unsubscribe/' . self::FREE_PLAYER, $html);
+        self::assertStringContainsString('/en/email-preferences/', $html);
+
+        // The next Tuesday: still quiet, already told
+        $this->clock = new MockClock(new DateTimeImmutable('2030-03-19 08:00:00', new DateTimeZone('Europe/Prague')));
+        $nextWeek = new TransportSpy();
+        ($this->handler($nextWeek))(new SendPlayerContentDigest(self::FREE_PLAYER, 'miss-you-2030-03-19', ContentDigestKind::MissYou, $this->insertRun()));
+        self::assertCount(0, $nextWeek->sent);
     }
 
-    public function testAPlayerWhoPuzzledAfterPlanningGetsNoNoActivityEmail(): void
+    public function testNobodyActiveInTheLastFourWeeksIsMissed(): void
     {
-        $this->insertSolve(self::FREE_PLAYER, '2030-03-11 18:00:00');
+        $this->onlyResult(self::FREE_PLAYER, '2030-02-20 18:00:00');
+        $this->clock = new MockClock(new DateTimeImmutable('2030-03-12 08:00:00', new DateTimeZone('Europe/Prague')));
 
         $transport = new TransportSpy();
-        ($this->handler($transport))(new SendPlayerContentDigest(self::FREE_PLAYER, self::PERIOD, ContentDigestKind::NoActivity, $this->insertRun()));
+        ($this->handler($transport))(new SendPlayerContentDigest(self::FREE_PLAYER, 'miss-you-2030-03-12', ContentDigestKind::MissYou, $this->insertRun()));
 
         self::assertCount(0, $transport->sent);
-        self::assertNull($this->logRow(self::FREE_PLAYER));
+    }
+
+    public function testWeMissYouNeverRunsBeforeTwentiethOctober(): void
+    {
+        $this->onlyResult(self::FREE_PLAYER, '2026-08-01 18:00:00');
+        $this->clock = new MockClock(new DateTimeImmutable('2026-10-13 08:00:00', new DateTimeZone('Europe/Prague')));
+
+        $transport = new TransportSpy();
+        ($this->handler($transport))(new SendPlayerContentDigest(self::FREE_PLAYER, 'miss-you-2026-10-13', ContentDigestKind::MissYou, $this->insertRun()));
+        self::assertCount(0, $transport->sent);
+
+        // A stale message of a valid run is dropped too
+        $this->clock = new MockClock(new DateTimeImmutable('2026-10-22 08:00:00', new DateTimeZone('Europe/Prague')));
+        ($this->handler($transport))(new SendPlayerContentDigest(self::FREE_PLAYER, 'miss-you-2026-10-20', ContentDigestKind::MissYou, $this->insertRun()));
+        self::assertCount(0, $transport->sent);
+    }
+
+    public function testASwitchedOffPlayerIsNotMissed(): void
+    {
+        $this->onlyResult(self::FREE_PLAYER, '2030-02-01 18:00:00');
+        $this->database->executeStatement("UPDATE player SET content_digest_frequency = 'off' WHERE id = :id", ['id' => self::FREE_PLAYER]);
+        $this->clock = new MockClock(new DateTimeImmutable('2030-03-12 08:00:00', new DateTimeZone('Europe/Prague')));
+
+        $transport = new TransportSpy();
+        ($this->handler($transport))(new SendPlayerContentDigest(self::FREE_PLAYER, 'miss-you-2030-03-12', ContentDigestKind::MissYou, $this->insertRun()));
+
+        self::assertCount(0, $transport->sent);
     }
 
     public function testNothingIsSentWhileTheLaunchSwitchIsOff(): void
@@ -293,6 +345,9 @@ final class SendPlayerContentDigestHandlerTest extends KernelTestCase
         self::assertFalse(SendPlayerContentDigestHandler::breakerTrips(new ContentDigestRunCounts(sent: 0, failedPermanently: 0, deferred: 19)));
         self::assertTrue(SendPlayerContentDigestHandler::breakerTrips(new ContentDigestRunCounts(sent: 300, failedPermanently: 5, deferred: 15)));
         self::assertFalse(SendPlayerContentDigestHandler::breakerTrips(new ContentDigestRunCounts(sent: 1000, failedPermanently: 10, deferred: 15)));
+        // Stricter for "We miss you": 10 failures, 3 %
+        self::assertTrue(SendPlayerContentDigestHandler::breakerTrips(new ContentDigestRunCounts(sent: 300, failedPermanently: 10, deferred: 0), ContentDigestKind::MissYou));
+        self::assertFalse(SendPlayerContentDigestHandler::breakerTrips(new ContentDigestRunCounts(sent: 300, failedPermanently: 9, deferred: 0), ContentDigestKind::MissYou));
     }
 
     /**
@@ -329,12 +384,12 @@ final class SendPlayerContentDigestHandlerTest extends KernelTestCase
     /**
      * @return null|array{status: string, had_activity: bool}
      */
-    private function logRow(string $playerId): null|array
+    private function logRow(string $playerId, string $periodKey = self::PERIOD): null|array
     {
         /** @var false|array{status: string, had_activity: bool} $row */
         $row = $this->database->fetchAssociative(
             'SELECT status, had_activity FROM content_digest_log WHERE player_id = :playerId AND period_key = :periodKey',
-            ['playerId' => $playerId, 'periodKey' => self::PERIOD],
+            ['playerId' => $playerId, 'periodKey' => $periodKey],
         );
 
         return $row === false ? null : $row;
@@ -381,6 +436,13 @@ final class SendPlayerContentDigestHandlerTest extends KernelTestCase
             "INSERT INTO badge (id, player_id, type, tier, earned_at) VALUES (:id, :playerId, 'puzzles_solved', 1, :earnedAt)",
             ['id' => Uuid::uuid7()->toString(), 'playerId' => $playerId, 'earnedAt' => $earnedAtUtc],
         );
+    }
+
+    private function onlyResult(string $playerId, string $atUtc): void
+    {
+        $this->database->executeStatement('DELETE FROM puzzle_solving_time WHERE player_id = :id', ['id' => $playerId]);
+        $this->database->executeStatement('DELETE FROM puzzling_team_member WHERE player_id = :id', ['id' => $playerId]);
+        $this->insertSolve($playerId, $atUtc);
     }
 
     private function insertSolve(string $playerId, string $atUtc): void

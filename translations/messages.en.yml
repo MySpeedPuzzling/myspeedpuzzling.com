@@ -8808,9 +8808,9 @@ activity_digest:
         off: "Off"
     settings:
         label: "Activity e-mail"
-        help: "What you puzzled, your progress and your favourite puzzlers – sent only when you puzzled. If you did not, you get one short note, never two in a row."
+        help: "What you puzzled, your progress and your favourite puzzlers – sent only when you puzzled. After four quiet weeks we say hello once, no more."
     preferences_title: "Your activity"
-    preferences_description: "What you puzzled, your level, achievements and favourite puzzlers – sent on Mondays, only when you puzzled. If you did not, one short note, never two in a row."
+    preferences_description: "What you puzzled, your level, achievements and favourite puzzlers – sent on Mondays, only when you puzzled. After four quiet weeks we say hello once, no more."
     unsubscribe:
         meta_title: "Unsubscribe from the activity e-mail"
         confirm_title: "Stop the activity e-mail?"

@@ -4,7 +4,7 @@
     <columns>
         <spacer size-sm="16"></spacer>
         <p class="small-print">
-            {{ ('activity_digest.footer.' ~ frequency.value)|trans }}
+            {{ (footer_key ?? ('activity_digest.footer.' ~ frequency.value))|trans }}
             <a href="{{ preferencesUrl }}">{{ 'activity_digest.footer.change'|trans }}</a>
             ·
             <a href="{{ unsubscribeUrl }}">{{ 'activity_digest.footer.unsubscribe'|trans }}</a>

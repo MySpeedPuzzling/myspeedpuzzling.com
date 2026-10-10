@@ -19,7 +19,7 @@ use Symfony\Component\Messenger\Stamp\HandledStamp;
 
 #[AsCommand(
     name: 'myspeedpuzzling:send-content-digest',
-    description: 'Queue the activity digests (Monday, kind "activity") or the no-activity e-mails (Tuesday, kind "no-activity") of every frequency whose period is due, spaced over the day',
+    description: 'Queue the activity digests (Monday, kind "activity") of every frequency whose period is due, or the "We miss you" e-mails (Tuesday, kind "miss-you"), spaced over the day',
 )]
 final class SendContentDigestConsoleCommand extends Command
 {
@@ -31,8 +31,9 @@ final class SendContentDigestConsoleCommand extends Command
 
     protected function configure(): void
     {
-        $this->addArgument('kind', InputArgument::REQUIRED, '"activity" (Mondays) or "no-activity" (the day after)');
+        $this->addArgument('kind', InputArgument::REQUIRED, '"activity" (Mondays) or "miss-you" (Tuesdays)');
         $this->addOption('dry-run', null, InputOption::VALUE_NONE, 'Only count the recipients');
+        $this->addOption('max-recipients', null, InputOption::VALUE_REQUIRED, 'Queue at most this many e-mails (all frequencies together, most engaged first) - e.g. for the first wave');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -42,12 +43,24 @@ final class SendContentDigestConsoleCommand extends Command
         $kind = is_string($argument) ? ContentDigestKind::tryFrom(str_replace('-', '_', $argument)) : null;
 
         if ($kind === null) {
-            $io->error('The kind is "activity" or "no-activity".');
+            $io->error('The kind is "activity" or "miss-you".');
 
             return self::INVALID;
         }
 
-        $envelope = $this->messageBus->dispatch(new PlanContentDigestRuns($kind, dryRun: (bool) $input->getOption('dry-run')));
+        $maxRecipients = $input->getOption('max-recipients');
+
+        if ($maxRecipients !== null && (is_string($maxRecipients) === false || ctype_digit($maxRecipients) === false)) {
+            $io->error('--max-recipients is a whole number.');
+
+            return self::INVALID;
+        }
+
+        $envelope = $this->messageBus->dispatch(new PlanContentDigestRuns(
+            kind: $kind,
+            dryRun: (bool) $input->getOption('dry-run'),
+            maxRecipients: $maxRecipients === null ? null : (int) $maxRecipients,
+        ));
 
         /** @var HandledStamp $handledStamp */
         $handledStamp = $envelope->last(HandledStamp::class);

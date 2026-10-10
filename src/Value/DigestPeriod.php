@@ -18,7 +18,7 @@ use SpeedPuzzling\Web\Exceptions\InvalidDigestPeriod;
  *  - a month = a calendar month, key "2026-10".
  *
  * The e-mail about a period goes out on its send day: the Monday it ends on (a week, two weeks), or the first Monday
- * on or after the month's end (a month - the 1st when that is a Monday). The no-activity e-mail goes the day after.
+ * on or after the month's end (a month - the 1st when that is a Monday).
  * Nothing goes out about a period that starts before FIRST_PERIOD_START (the launch pause: the first digest is
  * Monday 19 October 2026 about 12-18 October) and nothing once it is stale (STALE_AFTER_DAYS after the send day).
  */
@@ -122,14 +122,6 @@ final readonly class DigestPeriod
         }
 
         return $this->end->modify('next monday')->setTime(0, 0);
-    }
-
-    /**
-     * The day the no-activity e-mail about this period is sent - the day after the send day.
-     */
-    public function noActivityDay(): DateTimeImmutable
-    {
-        return $this->sendDay()->modify('+1 day');
     }
 
     public function isBeforeFirstPeriod(): bool

@@ -112,8 +112,7 @@ page that 404s while the flag is active.
 
 Reworked 2026-10-10 into the **activity digest** + the "Your week" page - see `docs/features/content-digest/README.md`
 (the part above "History"): own switch with a frequency (weekly default / every two weeks / monthly / off), Monday sends
-about the completed period paced over the day with a circuit breaker, the no-activity e-mail on Tuesday at most once until
-active again, paused until the period of 12-18 Oct 2026 and while the launch switch is off. `experienceSystemOptedOut`
+about the completed period paced over the day with a circuit breaker, no digest without activity, "We miss you" on Tuesdays after 28 quiet days (once per spell), paused until the period of 12-18 Oct 2026 and while the launch switch is off. `experienceSystemOptedOut`
 no longer stops the e-mail; it leaves out the XP and level lines.
 
 ### Opt-out
@@ -140,7 +139,7 @@ file's header; free minutes as of 2026-10-04: :01 :06 :12 :16 :21 :27 :31 :36 :4
 # recalculation; a run dispatches one async message per player with times (~7,600 on 2026-10-04), so
 # every 15 min would put ~730k messages a day on the queue the transactional e-mails share
 16 3 * * * root lily-cron-run myspeedpuzzling recalculate-badges -- docker compose --file /srv/myspeedpuzzling/compose.yaml run --rm --no-deps messenger-consumer sentry-cli monitors run --schedule "16 3 * * *" --timezone "Europe/Prague" recalculate-badges -- bin/console myspeedpuzzling:recalculate-badges >> /var/log/lily/myspeedpuzzling-cron.log 2>&1
-# Activity digest - Monday 07:01 activity digests, Tuesday 07:01 no-activity e-mails; the rows (and the
+# Activity digest - Monday 07:01 activity digests, Tuesday 07:01 "We miss you"; the rows (and the
 # digest-consumer service they need) are in docs/features/content-digest/README.md §"Production"
 ```
 

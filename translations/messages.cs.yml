@@ -1669,19 +1669,6 @@ xp:
         title: "Jak fungují XP a úrovně"
         intro: "Každé dokončené puzzle tě posune dál. XP (zkušenostní body) oslavují tvoji aktivitu — nejde o rychlost, ale o to, že skládáš. Zaznamenej složení, získej XP a sleduj, jak tvoje úroveň roste od 1 až do 50."
         currencies:
-            heading: "Tři čísla na MySpeedPuzzling"
-            header_what: "Co"
-            header_measures: "Měří"
-            header_who: "Kdo je vidí"
-            xp_name: "XP a úrovně"
-            xp_measures: "Tvoji aktivitu — počítá se každé složení"
-            xp_who: "Všichni, navždy zdarma"
-            ap_name: "Body za úspěchy (AP)"
-            ap_measures: "Tvoji sbírku získaných úspěchů"
-            ap_who: "Členové"
-            rating_name: "MSP Rating"
-            rating_measures: "Tvoji rychlost a dovednosti"
-            rating_who: "Členové (beze změny, zvlášť)"
             never_bought: "XP se nedají koupit — žádné boosty, žádné násobiče, žádné zkratky. Nikdy."
             unlock_nothing: "Úrovně neodemykají žádné funkce; jsou tvojí vizuální puzzle identitou."
         how:
@@ -1702,9 +1689,6 @@ xp:
         unrated:
             heading: "Puzzle bez hodnocení"
             body: "Úplně nová puzzle v katalogu ještě nemusí mít stupeň obtížnosti. Základní XP získáš hned a bonus za obtížnost dorazí automaticky („doúčtuje se“), jakmile komunita puzzle ohodnotí. Stejně tak bonus za rychlost, jakmile časy zaznamená dost puzzlerů."
-        achievements:
-            heading: "Úspěchy dávají XP taky"
-            body: "Každý stupeň úspěchu udělí XP jednou, navždy: bronz 5 · stříbro 10 · zlato 25 · platina 50 · diamant 100."
         levels:
             heading: "Úrovně"
             header_level: "Úroveň"
@@ -1720,7 +1704,6 @@ xp:
             opt_out_question: "Nechci nic z toho."
             opt_out_answer: "Rozumíme — vypni si to v nastavení profilu („systém zkušeností“) a tvoje úroveň, XP i oslavy zmizí z dohledu."
             friend_question: "Proč kamarád dostal za stejné puzzle víc XP?"
-            friend_answer: "Slevy za opakování, týdenní boosty a denní rozcvičky jsou osobní; dvě účtenky se shodují jen málokdy. Klepni na kterýkoli řádek účtenky a uvidíš jeho důvod."
             fair_play_question: "Jak je zajištěná férovost?"
             fair_play_answer: "Čísla drží poctivá několik tichých automatických pojistek — vše o nich najdeš na stránce <a href=\"%fair_play_link%\">Fair play a důvěra</a>."
     fair_play:

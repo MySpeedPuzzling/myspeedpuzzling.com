@@ -1671,19 +1671,6 @@ xp:
         title: "Cómo funcionan los XP y niveles"
         intro: "Cada puzzle que terminas te hace avanzar. Los XP (puntos de experiencia) celebran tu actividad — no lo rápido que eres, sino que te sentaste a armar. Registra una resolución, gana XP y mira crecer tu nivel desde el 1 hasta el 50."
         currencies:
-            heading: "Los tres números de MySpeedPuzzling"
-            header_what: "Qué"
-            header_measures: "Mide"
-            header_who: "Quién lo ve"
-            xp_name: "XP y niveles"
-            xp_measures: "Tu actividad — cada resolución cuenta"
-            xp_who: "Todos, gratis para siempre"
-            ap_name: "Puntos de Logro (AP)"
-            ap_measures: "Tu colección de logros conseguidos"
-            ap_who: "Miembros"
-            rating_name: "MSP Rating"
-            rating_measures: "Tu velocidad y habilidad"
-            rating_who: "Miembros (sin cambios, independiente)"
             never_bought: "El XP no se puede comprar jamás — sin potenciadores, sin multiplicadores, sin atajos. Nunca."
             unlock_nothing: "Los niveles no desbloquean nada funcional; son tu identidad puzzlera visual."
         how:
@@ -1704,9 +1691,6 @@ xp:
         unrated:
             heading: "Puzzles sin valorar"
             body: "Los puzzles recién llegados al catálogo pueden no tener todavía nivel de dificultad. La base de XP la ganas al momento, y el bonus por dificultad llega automáticamente (se \"liquida\") cuando la comunidad valora el puzzle. Lo mismo con el bonus por velocidad, cuando suficientes puzzleros hayan registrado tiempos."
-        achievements:
-            heading: "Los logros también dan XP"
-            body: "Cada rango de logro otorga XP una sola vez, para siempre: Bronce 5 · Plata 10 · Oro 25 · Platino 50 · Diamante 100."
         levels:
             heading: "Niveles"
             header_level: "Nivel"
@@ -1722,7 +1706,6 @@ xp:
             opt_out_question: "No quiero nada de esto."
             opt_out_answer: "Entendido — desactívalo en la configuración de tu perfil (\"sistema de experiencia\") y tu nivel, XP y celebraciones desaparecerán de la vista."
             friend_question: "¿Por qué mi amigo ganó más XP por el mismo puzzle?"
-            friend_answer: "Los descuentos por repetición, los impulsos semanales y los calentamientos diarios son personales; dos recibos rara vez coinciden. Toca cualquier línea del recibo para ver su motivo."
             fair_play_question: "¿Cómo se mantiene esto justo?"
             fair_play_answer: "Unas cuantas salvaguardas silenciosas y automáticas mantienen los números honestos — lee todo sobre ellas en la página de <a href=\"%fair_play_link%\">Juego limpio y confianza</a>."
     fair_play:

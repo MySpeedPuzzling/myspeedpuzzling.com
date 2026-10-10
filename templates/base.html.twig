@@ -684,6 +684,24 @@
                                             <i class="bi bi-eye me-1"></i> {{ 'menu.favorite_puzzlers'|trans }}
                                         </a>
                                     </li>
+                                    {# Progression (docs/features/xp-levels/launch-2026-10.md): own achievements, own XP audit, the hub #}
+                                    <li>
+                                        <a class="dropdown-item {% if currentRoute starts with 'badges_overview' %}active{% endif %}" href="{{ path('badges_overview') }}">
+                                            <i class="bi bi-award me-1"></i> {{ 'badges.my_title'|trans }}
+                                        </a>
+                                    </li>
+                                    {% if not logged_user.profile.experienceSystemOptedOut %}
+                                        <li>
+                                            <a class="dropdown-item {% if currentRoute == 'xp_history' %}active{% endif %}" href="{{ path('xp_history') }}">
+                                                <i class="bi bi-receipt me-1"></i> {{ 'xp.history.title'|trans }}
+                                            </a>
+                                        </li>
+                                    {% endif %}
+                                    <li>
+                                        <a class="dropdown-item {% if currentRoute == 'progression_hub' %}active{% endif %}" href="{{ path('progression_hub') }}">
+                                            <i class="bi bi-question-circle me-1"></i> {{ 'progression_hub.menu_label'|trans }}
+                                        </a>
+                                    </li>
                                     <li>
                                         <a class="dropdown-item {% if currentRoute == 'pairs_and_teams' %}active{% endif %}" href="{{ path('pairs_and_teams') }}">
                                             <i class="bi bi-people me-1"></i> {{ 'menu.pairs_and_teams'|trans }}

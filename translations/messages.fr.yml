@@ -1671,19 +1671,6 @@ competition_referees:
     "title": "Comment fonctionnent les XP et les niveaux"
     "intro": "Chaque puzzle terminé vous fait avancer. Les XP (points d'expérience) célèbrent votre activité — pas votre vitesse, simplement le fait d'être là et de puzzler. Enregistrez une résolution, gagnez des XP et regardez votre niveau grimper de 1 jusqu'à 50."
     "currencies":
-      "heading": "Les trois chiffres de MySpeedPuzzling"
-      "header_what": "Quoi"
-      "header_measures": "Mesure"
-      "header_who": "Qui le voit"
-      "xp_name": "XP et niveaux"
-      "xp_measures": "Votre activité — chaque résolution compte"
-      "xp_who": "Tout le monde, gratuit pour toujours"
-      "ap_name": "Points de succès (AP)"
-      "ap_measures": "Votre collection de succès obtenus"
-      "ap_who": "Membres"
-      "rating_name": "MSP Rating"
-      "rating_measures": "Votre vitesse et vos compétences"
-      "rating_who": "Membres (inchangé, séparé)"
       "never_bought": "Les XP ne s'achètent pas — pas de boosts, pas de multiplicateurs, pas de raccourcis. Jamais."
       "unlock_nothing": "Les niveaux ne débloquent rien de fonctionnel ; ils sont votre identité visuelle de puzzleur."
     "how":
@@ -1704,9 +1691,6 @@ competition_referees:
     "unrated":
       "heading": "Puzzles non notés"
       "body": "Les puzzles tout juste ajoutés au catalogue n'ont parfois pas encore de niveau de difficulté. Vous gagnez les XP de base immédiatement, et le bonus de difficulté arrive automatiquement (il est « régularisé ») dès que la communauté note le puzzle. Même chose pour le bonus de vitesse dès qu'assez de puzzleurs ont enregistré des temps."
-    "achievements":
-      "heading": "Les succès rapportent aussi des XP"
-      "body": "Chaque palier de succès rapporte des XP une seule fois, pour toujours : Bronze 5 · Argent 10 · Or 25 · Platine 50 · Diamant 100."
     "levels":
       "heading": "Niveaux"
       "header_level": "Niveau"
@@ -1722,7 +1706,6 @@ competition_referees:
       "opt_out_question": "Je ne veux rien de tout ça."
       "opt_out_answer": "Compris — désactivez-le dans les paramètres de votre profil (« système d'expérience »), et votre niveau, vos XP et les célébrations disparaissent de l'affichage."
       "friend_question": "Pourquoi mon ami a-t-il reçu plus d'XP pour le même puzzle ?"
-      "friend_answer": "Les réductions pour répétition, les boosts hebdomadaires et les échauffements du jour sont personnels ; deux reçus se ressemblent rarement. Touchez une ligne du reçu pour voir sa raison."
       "fair_play_question": "Comment cela reste-t-il équitable ?"
       "fair_play_answer": "Quelques garde-fous discrets et automatiques gardent les chiffres honnêtes — découvrez-les sur la page <a href=\"%fair_play_link%\">Fair-play et confiance</a>."
   "fair_play":

@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
-use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
-use SpeedPuzzling\Web\Services\Xp\XpFeatureGate;
 use SpeedPuzzling\Web\Value\LevelTable;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
@@ -13,12 +11,6 @@ use Symfony\Component\Routing\Attribute\Route;
 
 final class XpExplainerController extends AbstractController
 {
-    public function __construct(
-        readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
-        readonly private XpFeatureGate $xpFeatureGate,
-    ) {
-    }
-
     #[Route(
         path: [
             'cs' => '/jak-funguji-xp',
@@ -32,12 +24,6 @@ final class XpExplainerController extends AbstractController
     )]
     public function __invoke(): Response
     {
-        $profile = $this->retrieveLoggedUserProfile->getProfile();
-
-        if ($this->xpFeatureGate->isVisibleFor($profile) === false) {
-            throw $this->createNotFoundException();
-        }
-
         $curve = [];
 
         for ($level = 1; $level <= LevelTable::MAX_LEVEL; $level++) {

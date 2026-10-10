@@ -1655,19 +1655,6 @@ xp:
         title: "So funktionieren XP & Level"
         intro: "Jedes Puzzle, das du fertigstellst, bringt dich weiter. XP (Erfahrungspunkte) feiern deine Aktivität — nicht, wie schnell du bist, sondern dass du da warst und gepuzzelt hast. Erfasse ein Ergebnis, verdiene XP und sieh zu, wie dein Level von 1 bis ganz hinauf zu 50 wächst."
         currencies:
-            heading: "Die drei Zahlen auf MySpeedPuzzling"
-            header_what: "Was"
-            header_measures: "Misst"
-            header_who: "Wer sieht es"
-            xp_name: "XP & Level"
-            xp_measures: "Deine Aktivität — jedes Puzzle zählt"
-            xp_who: "Alle, für immer kostenlos"
-            ap_name: "Erfolgspunkte (AP)"
-            ap_measures: "Deine Sammlung verdienter Erfolge"
-            ap_who: "Mitglieder"
-            rating_name: "MSP Rating"
-            rating_measures: "Dein Tempo und Können"
-            rating_who: "Mitglieder (unverändert, separat)"
             never_bought: "XP lassen sich nicht kaufen — keine Boosts, keine Multiplikatoren, keine Abkürzungen. Niemals."
             unlock_nothing: "Level schalten nichts Funktionales frei; sie sind deine sichtbare Puzzle-Identität."
         how:
@@ -1688,9 +1675,6 @@ xp:
         unrated:
             heading: "Unbewertete Puzzles"
             body: "Brandneue Katalog-Puzzles haben manchmal noch keine Schwierigkeitsstufe. Die Basis-XP bekommst du sofort, und der Schwierigkeitsbonus kommt automatisch (wird \"nachgereicht\"), sobald die Community das Puzzle bewertet hat. Dasselbe gilt für den Tempobonus, sobald genug Puzzler Zeiten erfasst haben."
-        achievements:
-            heading: "Auch Erfolge bringen XP"
-            body: "Jede Erfolgsstufe bringt einmalig XP, für immer: Bronze 5 · Silber 10 · Gold 25 · Platin 50 · Diamant 100."
         levels:
             heading: "Level"
             header_level: "Level"
@@ -1706,7 +1690,6 @@ xp:
             opt_out_question: "Ich will das alles nicht."
             opt_out_answer: "Verstanden — schalte es in deinen Profileinstellungen aus (\"Erfahrungssystem\"), und dein Level, deine XP und die Jubelmomente verschwinden aus der Ansicht."
             friend_question: "Warum hat jemand anderes mehr XP für dasselbe Puzzle bekommen?"
-            friend_answer: "Wiederholungsabzüge, Wochen-Boosts und tägliche Warm-ups sind persönlich; zwei Quittungen sind selten gleich. Tippe auf eine Zeile der Quittung, um ihren Grund zu sehen."
             fair_play_question: "Wie bleibt das fair?"
             fair_play_answer: "Ein paar stille, automatische Leitplanken halten die Zahlen ehrlich — alles darüber liest du auf der Seite <a href=\"%fair_play_link%\">Fair Play &amp; Vertrauen</a>."
     fair_play:

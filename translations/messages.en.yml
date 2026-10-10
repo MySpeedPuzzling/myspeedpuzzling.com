@@ -2181,20 +2181,13 @@ xp:
     explainer:
         title: "How XP & Levels work"
         intro: "Every puzzle you finish moves you forward. XP (experience points) celebrates your activity — not how fast you are, just that you showed up and puzzled. Log a solve, earn XP, watch your level grow from 1 all the way to 50."
+        family:
+            heading: "Only puzzling counts"
+            body: "XP and levels measure how much you puzzle, free for everyone. Achievements, MSP Rating, skill tier and karma are separate, and none of them adds XP."
+        separate:
+            heading: "Achievements and XP are separate"
+            body: "Achievements earn Achievement Points (AP), never XP. Your level grows only from the puzzles you log."
         currencies:
-            heading: "The three numbers on MySpeedPuzzling"
-            header_what: "What"
-            header_measures: "Measures"
-            header_who: "Who sees it"
-            xp_name: "XP & Levels"
-            xp_measures: "Your activity — every solve counts"
-            xp_who: "Everyone, free forever"
-            ap_name: "Achievement Points (AP)"
-            ap_measures: "Your collection of earned achievements"
-            ap_who: "Members"
-            rating_name: "MSP Rating"
-            rating_measures: "Your speed and skill"
-            rating_who: "Members (unchanged, separate)"
             never_bought: "XP can never be bought — no boosts, no multipliers, no shortcuts. Ever."
             unlock_nothing: "Levels unlock nothing functional; they're your visual puzzling identity."
         how:
@@ -2215,10 +2208,8 @@ xp:
         unrated:
             heading: "Unrated puzzles"
             body: "Brand-new catalog puzzles may not have a difficulty tier yet. You earn the base XP right away, and the difficulty bonus arrives automatically (\"settles\") once the community rates the puzzle. Same for the speed bonus once enough puzzlers have logged times."
-        achievements:
-            heading: "Achievements give XP too"
-            body: "Every achievement tier grants XP once, forever: Bronze 5 · Silver 10 · Gold 25 · Platinum 50 · Diamond 100."
         levels:
+            show_all: "Show all 50 levels"
             heading: "Levels"
             header_level: "Level"
             header_xp: "XP"
@@ -2233,7 +2224,7 @@ xp:
             opt_out_question: "I don't want any of this."
             opt_out_answer: "Understood — turn it off in your profile settings (\"experience system\"), and your level, XP and celebrations disappear from view."
             friend_question: "Why did my friend get more XP for the same puzzle?"
-            friend_answer: "Repeat discounts, weekly boosts and daily warm-ups are personal; two receipts rarely match. Tap any receipt line to see its reason."
+            friend_answer_history: "Repeat discounts, weekly boosts and daily warm-ups are personal, so two solves of the same puzzle rarely earn the same. <a href=\"%history_link%\">Your XP history</a> shows every line of every solve."
             fair_play_question: "How is this kept fair?"
             fair_play_answer: "A few quiet, automatic guardrails keep the numbers honest — read all about them on the <a href=\"%fair_play_link%\">Fair play &amp; trust</a> page."
     fair_play:
@@ -8816,3 +8807,34 @@ series_readers:
     used_at:
         more: "and %count% more|and %count% more"
     series_delete_note: "Results logged at this series or its editions stay on the players' profiles, without the event."
+progression_hub:
+    meta_title: "How progress works: XP, achievements, MSP Rating, skill tier and karma"
+    meta_description: "What XP and levels, achievements, MSP Rating, skill tiers and karma measure on MySpeedPuzzling, and how each of them grows."
+    title: "How progress works"
+    menu_label: "How progress works"
+    intro: "Five things grow as you puzzle. Each answers a different question."
+    group:
+        just_you: "Just you"
+        against_the_clock: "Against the clock"
+        for_everyone: "For everyone"
+    level:
+        title: "Level & XP"
+        text: "Every puzzle you log adds XP. Bigger and harder ones add more. Only puzzling counts."
+    achievements:
+        title: "Achievements"
+        text: "%count% goals to hunt, Bronze to Diamond: brands, streaks, first tries, teams. Members collect them and earn Achievement Points (AP)."
+    rating:
+        title: "MSP Rating"
+        text: "Your speed on 500-piece puzzles against everyone, from your best times weighted by difficulty."
+    skill_tier:
+        title: "Skill tier"
+        text: "Your skill for a piece count, Enthusiast to Legend, from all your times."
+    karma:
+        title: "Karma"
+        text: "One point for every accepted contribution to the puzzle database. Shows who helps."
+    which:
+        title: "Which is which?"
+        text: "XP rewards puzzling. Achievements reward variety. MSP Rating and skill tier reward speed. Karma credits helping. None of them turns into another."
+    leaderboards_link: "See the leaderboards"
+    fair_play_link: "Fair play & trust"
+    help_label: "How progress works"

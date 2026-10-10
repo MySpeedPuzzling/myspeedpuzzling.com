@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+<!-- MSP illustrated icon "unboxed" (Unboxed - eyes off the box picture) - T1 Bronze (copper). Own work (badge lab IK1), free to use. Layers: face (constant), accent (tier tint), outline (navy #2b3445, 4.5/100, round). a big crossed-out eye: the almond in the tier colour, a white iris with a navy pupil, a navy slash with a white keyline in front of it - solved without looking at the picture on the box -->
+<defs><linearGradient id="unboxed-t1-acc" x1="0.12" y1="0.04" x2="0.88" y2="0.96"><stop offset="0" stop-color="#feb78c"/><stop offset="0.52" stop-color="#ec9762"/><stop offset="1" stop-color="#dc8249"/></linearGradient><linearGradient id="unboxed-t1-face" x1="0.12" y1="0.04" x2="0.88" y2="0.96"><stop offset="0" stop-color="#ffffff"/><stop offset="0.55" stop-color="#f1f4fb"/><stop offset="1" stop-color="#e1e8f5"/></linearGradient><clipPath id="unboxed-t1-key"><path clip-rule="evenodd" d="M-10 -10H110V110H-10ZM28.88 22.41L77.59 71.12A4.58 4.58 0 0 1 77.59 77.59L77.59 77.59A4.58 4.58 0 0 1 71.12 77.59L22.41 28.88A4.58 4.58 0 0 1 22.41 22.41L22.41 22.41A4.58 4.58 0 0 1 28.88 22.41Z"/></clipPath></defs>
+<g id="face">
+<path d="M36.32 50A13.68 13.68 0 1 1 63.68 50A13.68 13.68 0 1 1 36.32 50Z" fill="url(#unboxed-t1-face)"/>
+</g>
+<g id="accent">
+<path d="M12.25 50A43.68 43.68 0 0 1 87.75 50A43.68 43.68 0 0 1 12.25 50ZM36.32 50A13.68 13.68 0 1 1 63.68 50A13.68 13.68 0 1 1 36.32 50Z" fill="url(#unboxed-t1-acc)" fill-rule="evenodd"/>
+<path d="M19.15 45.93C19.38 45.67 20.07 44.87 20.55 44.36C21.03 43.84 21.52 43.34 22.03 42.86C22.53 42.37 23.05 41.9 23.58 41.44C24.12 40.98 24.66 40.53 25.21 40.1C25.77 39.67 26.33 39.25 26.91 38.85C27.49 38.45 28.07 38.06 28.67 37.69C29.26 37.32 29.87 36.97 30.49 36.63C31.1 36.29 31.72 35.96 32.36 35.66C32.99 35.35 33.63 35.06 34.27 34.79C34.92 34.51 35.58 34.25 36.24 34.02C36.9 33.78 37.56 33.55 38.23 33.35C38.91 33.14 39.58 32.96 40.26 32.79C40.95 32.62 41.63 32.47 42.32 32.33C43.01 32.2 43.7 32.08 44.4 31.99C45.09 31.89 45.79 31.81 46.49 31.75C47.19 31.69 47.89 31.65 48.6 31.62C49.3 31.6 50 31.59 50.7 31.6C51.4 31.62 52.11 31.65 52.81 31.69C53.51 31.74 54.21 31.81 54.9 31.9C55.6 31.98 56.58 32.14 56.99 32.21C57.39 32.27 57.28 32.26 57.33 32.27" fill="none" stroke="#ffffff" stroke-opacity="0.8" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="60.21" cy="32.79" r="0.99" fill="#ffffff" fill-opacity="0.8"/>
+<path d="M80.4 54.6C80.16 54.86 79.46 55.65 78.97 56.15C78.48 56.66 77.98 57.15 77.46 57.63C76.95 58.1 76.42 58.57 75.88 59.02C75.34 59.47 74.79 59.9 74.23 60.33C73.67 60.75 73.09 61.15 72.51 61.55C71.93 61.94 71.33 62.31 70.73 62.67C70.13 63.03 69.52 63.38 68.9 63.71C68.28 64.04 67.65 64.35 67.01 64.65C66.37 64.94 65.73 65.22 65.08 65.48C64.43 65.74 63.77 65.99 63.1 66.22C62.44 66.45 61.77 66.66 61.09 66.85C60.42 67.04 59.74 67.22 59.05 67.38C58.37 67.53 57.68 67.67 56.99 67.79C56.3 67.92 55.6 68.02 54.9 68.1C54.21 68.19 53.51 68.26 52.81 68.31C52.11 68.35 51.4 68.38 50.7 68.4C50 68.41 49.3 68.4 48.6 68.38C47.89 68.35 47.02 68.29 46.49 68.25C45.97 68.21 45.62 68.16 45.44 68.15" fill="none" stroke="#c9733f" stroke-opacity="0.4" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M28.88 22.41L77.59 71.12A4.58 4.58 0 0 1 77.59 77.59L77.59 77.59A4.58 4.58 0 0 1 71.12 77.59L22.41 28.88A4.58 4.58 0 0 1 22.41 22.41L22.41 22.41A4.58 4.58 0 0 1 28.88 22.41Z" fill="#ffffff" class="asym"/>
+</g>
+<g id="outline" fill="none" stroke="#2b3445" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round">
+<path d="M12.25 50A43.68 43.68 0 0 1 87.75 50A43.68 43.68 0 0 1 12.25 50Z" clip-path="url(#unboxed-t1-key)" class="asym"/>
+<path d="M36.32 50A13.68 13.68 0 1 1 63.68 50A13.68 13.68 0 1 1 36.32 50Z" stroke-width="3.4"/>
+<path d="M43.77 50A6.23 6.23 0 1 1 56.23 50A6.23 6.23 0 1 1 43.77 50Z" fill="#2b3445" stroke="none"/>
+<path d="M25.64 25.64L74.36 74.36" class="asym"/>
+</g>
+</svg>

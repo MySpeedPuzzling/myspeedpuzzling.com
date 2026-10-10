@@ -46,3 +46,9 @@ translations-missing.json
 
 .DS_Store
 /.composer-cache/
+
+###> tools/badge-art (badge art generator, runs on a developer machine only) ###
+/tools/badge-art/.venv/
+/tools/badge-art/work/
+/tools/badge-art/**/__pycache__/
+###< tools/badge-art ###

@@ -92,14 +92,6 @@ $xp-gold-deep: #f0a500;
   box-shadow: 0 0 8px rgba($xp-gold, .65);
 }
 
-// Ambient variant (site header): full quiet ring, no progress, no numbers.
-.xp-ring-ambient {
-  --xp-progress: 1;
-  --xp-ring-width: 2px;
-  opacity: .9;
-}
-
-
 // Level chip
 // Usage: <span class="xp-level-chip">Lv 12</span>
 
@@ -186,74 +178,7 @@ $xp-gold-deep: #f0a500;
 }
 
 
-// First-click badge reveal — 3D medallion flip, front face hidden until revealed.
-
-.badge-flip {
-  border: 0;
-  background: none;
-  padding: 0;
-  cursor: pointer;
-  perspective: 400px;
-  display: inline-block;
-  position: relative;
-}
-
-.badge-flip-inner {
-  display: inline-block;
-  position: relative;
-  transition: transform .6s cubic-bezier(.3, 1.4, .4, 1);
-  transform-style: preserve-3d;
-
-  .is-revealed & {
-    transform: rotateY(180deg);
-  }
-}
-
-.badge-flip-back,
-.badge-flip-front {
-  backface-visibility: hidden;
-}
-
-.badge-flip-back {
-  background: radial-gradient(circle at 35% 30%, lighten($xp-navy, 25%), $xp-navy 75%);
-  color: rgba(255, 255, 255, .85);
-  animation: badge-flip-wiggle 2.4s ease-in-out infinite;
-}
-
-.badge-flip-front {
-  position: absolute;
-  inset: 0;
-  transform: rotateY(180deg);
-}
-
-@keyframes badge-flip-wiggle {
-  0%, 88%, 100% {
-    transform: rotate(0);
-  }
-
-  92% {
-    transform: rotate(-4deg);
-  }
-
-  96% {
-    transform: rotate(4deg);
-  }
-}
-
-// Small localized confetti burst (badge reveal) — same pieces, contained.
-.xp-confetti-burst {
-  position: absolute;
-  inset: -20px;
-  overflow: visible;
-
-  i {
-    animation-duration: 1.6s;
-    animation-iteration-count: 1;
-  }
-}
-
-
-// CSS-only confetti (brand colors) — used by level-up + badge reveal moments.
+// CSS-only confetti (brand colors) — used by the level-up moment.
 
 .xp-confetti {
   position: absolute;
@@ -293,15 +218,10 @@ $xp-gold-deep: #f0a500;
 // Accessibility: celebrations stay, motion goes.
 
 @media (prefers-reduced-motion: reduce) {
-  .xp-progressbar-fill,
-  .badge-flip-back {
+  .xp-progressbar-fill {
     animation: none;
     opacity: 1;
     transform: none;
-  }
-
-  .badge-flip-inner {
-    transition: none;
   }
 
   .xp-confetti {

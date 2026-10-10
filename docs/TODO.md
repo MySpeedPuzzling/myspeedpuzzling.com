@@ -21,6 +21,17 @@ that would otherwise be forgotten. Newest section on top.
 - [ ] If the filtered karma list (a kind or the last 12 months, ~110 ms on the dev copy) gets slow on production, store
   per-kind totals next to `player.karma` instead of deriving them per request.
 - [ ] lily.srv: add the `recalculate-karma` cron row (in `docs/features/karma.md`).
+## Progression on the profile header and navbar (`docs/features/player-header.md` "Progression", workstream C 2026-10-10)
+
+- [ ] Karma chip in the header's chip row (teal `.player-chip-karma`, only when > 0) - the slot is marked in
+  `templates/components/PlayerHeader.html.twig`, needs `player.karma` on the `byId()` row (workstream F)
+- [ ] Point the tier chip, the ring's visitor link and the cards' "?" links to the "How it works" hub once it exists
+  (today `methodology` / `xp_explainer`)
+- [ ] Pinning achievements in the showcase (today: highest tier first, newest first within a tier)
+- [ ] `PlayerCard::$mspRating` is no longer shown on the player card (Level + tier only) - drop it from
+  `GetPlayerCard` or show it elsewhere
+- [ ] Player profile at 320 px: the page is 5 px too wide - measured on a static render (no JS), the chart card's
+  row, not the header; check on a real device
 
 ## High-frequency series (`docs/features/events-page/high-frequency-series.md`, PR #253)
 

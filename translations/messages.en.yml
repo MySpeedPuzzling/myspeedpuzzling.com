@@ -1749,7 +1749,6 @@ players:
         millions: "%count%M"
         activity_label: "Puzzles per month"
         activity_bar: "%month%: %count% puzzle|%month%: %count% puzzles"
-        rating: "MSP Rating %rating%"
         tier_locked: "Skill tier"
         competes: "Competes in events"
         swaps: "Swaps puzzles"
@@ -2083,7 +2082,6 @@ xp:
     level_chip: "Lv %level%"
     total: "%xp% XP"
     total_tooltip: "%xp% XP earned in total"
-    max_level_reached: "Top of the mountain — level 50!"
     progress_label: "%xp% XP to level %level%"
     receipt:
         total: "Total"
@@ -2250,7 +2248,6 @@ content_digest:
 badges:
     title: "Achievements"
     my_title: "My achievements"
-    new: "NEW"
     browse_all: "Browse all achievements"
     reveal: "Reveal your new achievement"
     waiting_teaser: "{1}1 achievement is waiting for you — become a member to reveal it!|]1,Inf[%count% achievements are waiting for you — become a member to reveal them!"
@@ -3988,8 +3985,6 @@ puzzle_intelligence:
     insights:
         title: "Puzzle Insights"
         no_data: "Not enough data yet. Insights will appear as more players solve this puzzle."
-    player_insights:
-        title: "Player Insights"
     difficulty:
         title: "Puzzle Difficulty"
         score_label: "Difficulty Score"
@@ -7200,6 +7195,19 @@ player_header:
     more_actions: "More actions"
     compare: "Add to comparison"
     compare_open: "Open comparison"
+
+player_progress:
+    ring_label: "Level %level%, %xp% XP. How levels work"
+    ring_label_own: "Level %level%, %xp% XP. Where your XP came from"
+    msp_chip: "#%rank% MSP Rating"
+    msp_chip_title: "Place %rank% on the MSP Rating ladder (%pieces% pieces)"
+    how_it_works: "How it works"
+    showcase:
+        earned: "%earned% of %total%"
+        teaser: "You have earned achievements."
+        teaser_link: "Become a member to see them."
+        teaser_none: "Members collect achievements as they puzzle."
+        teaser_none_link: "See them all"
 
 marketplace_events:
     label:

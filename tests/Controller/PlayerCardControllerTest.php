@@ -42,7 +42,7 @@ final class PlayerCardControllerTest extends WebTestCase
         self::assertStringContainsString('#PLAYER1', $crawler->filter('.players-card-meta')->text());
         self::assertStringContainsString('Czechia', $crawler->filter('.players-card-meta')->text());
         self::assertCount(6, $crawler->filter('.players-card-stats dd'));
-        self::assertStringContainsString('Competes in events', $crawler->filter('.players-card-chips')->text());
+        self::assertStringContainsString('Competes in events', $crawler->filter('.players-card-chips')->last()->text());
 
         // Leaving the card leaves the frame
         $profile = $crawler->filter('a.players-card-profile');
@@ -75,7 +75,10 @@ final class PlayerCardControllerTest extends WebTestCase
         self::assertCount(1, $crawler->filter('.players-card-locked button.players-card-unlock[data-bs-target="#membersExclusiveModal"]'));
         self::assertStringContainsString('Members exclusive', $crawler->filter('.players-card-unlock')->text());
 
-        self::assertStringContainsString('MSP Rating 873', $crawler->filter('.players-card-chips')->text(), 'The rating is public');
+        // Progression on the card = the level and the tier only (docs/features/xp-levels/launch-2026-10.md); the level
+        // follows XpFeatureGate (launch ready or admin)
+        self::assertCount(0, $crawler->filter('.players-card-chip-level'));
+        self::assertStringNotContainsString('MSP Rating', (string) $browser->getResponse()->getContent());
         self::assertCount(1, $crawler->filter('button.players-card-chip-locked[data-bs-target="#membersExclusiveModal"]'));
         self::assertCount(0, $crawler->filter('.players-card-chip-tier'));
 
@@ -129,6 +132,21 @@ final class PlayerCardControllerTest extends WebTestCase
         $browser->getCookieJar()->clear();
         $crawler = $this->card($browser, PlayerFixture::PLAYER_REGULAR);
         self::assertCount(0, $crawler->filter('.players-card-chip-locked'));
+    }
+
+    public function testTheLevelFollowsTheExperienceOptOut(): void
+    {
+        $browser = $this->browser(PlayerFixture::PLAYER_ADMIN);
+        $this->database()->executeStatement('UPDATE player SET xp_total = 3160, level = 50 WHERE id = :id', ['id' => PlayerFixture::PLAYER_REGULAR]);
+
+        $crawler = $this->card($browser, PlayerFixture::PLAYER_REGULAR);
+        $level = $crawler->filter('.players-card-chip-level');
+        self::assertSame('Lv 50', trim($level->text()));
+        self::assertStringContainsString('is-max', (string) $level->attr('class'));
+
+        $this->database()->executeStatement('UPDATE player SET experience_system_opted_out = true WHERE id = :id', ['id' => PlayerFixture::PLAYER_REGULAR]);
+        $crawler = $this->card($browser, PlayerFixture::PLAYER_REGULAR);
+        self::assertCount(0, $crawler->filter('.players-card-chip-level'));
     }
 
     public function testAPlayerTheViewerBlockedHasNoCard(): void

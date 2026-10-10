@@ -93,9 +93,9 @@ achievement with this time. Become a member to find out which." Level-up: the "L
 (bar fill, number tick, burst) and the milestone bottom sheet (10/20/30/40/50) only on a fresh recap
 (`RecapProgress::isFresh`, 60 min) and once per time id, remembered in localStorage by
 `recap_celebration_controller.js` - no server state, closing needs no request, nothing replays on reload or Back.
-Both recap routes are quiet routes (no announcement modal). Profile/header rings (`XpRing`,
-CSS-only milestone styling; the arc is a masked `::before`, so transparent avatars never
-show a filled disc), achievements catalog `/achievements` + holders directory
+Both recap routes are quiet routes (no announcement modal). The level ring around the player header's
+avatar and the navbar avatar (`XpRing`, read from the profile row - no query; the arc is a masked
+`::before` outside the avatar, milestone colours per 10 levels, a gold "Lv 50" tab), achievements catalog `/achievements` + holders directory
 `/achievements/{type}` + explainer modal `/achievements/{type}/info`
 (`AchievementInfoController`, opened from every badge on a profile through the shared
 `modal-frame`; `?tier=` = the clicked badge, shown big at the top - badge art:
@@ -248,9 +248,9 @@ reveal mail goes out the same day.
 **Open - follow-ups (no decision needed):**
 
 - Production: `content_digest_emails` consumer + `deploy.sh` restart + the cron rows above, in lily.srv, with the merge.
-- Per-page cost after launch: the header ring runs `GetXpProfile` on every signed-in page; the estimate / receipt /
-  celebration re-query the opt-out. Carry `xp_total`, `level`, `experience_system_opted_out` on the viewer's
-  `PlayerProfile` row (main's zero-query pattern).
+- Per-page cost after launch: the estimate / receipt / celebration re-query the opt-out. (Done for the rings,
+  2026-10-10: `xp_total`, `level`, `achievement_points` ride on both `PlayerProfile` rows - `XpRing` and the navbar no
+  longer run `GetXpProfile`.)
 - One subscriber on main's result events (`PuzzleSolvingTimeDeleted` / `Modified` / `MovedToOtherPuzzle`) would cover
   future write paths without per-handler dispatches; plus an XP safety-net cron that rebuilds players with entries on
   results that are gone, suspicious or no longer theirs (nothing heals XP today).

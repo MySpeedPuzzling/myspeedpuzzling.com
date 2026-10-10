@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller;
 
 use SpeedPuzzling\Web\Query\GetFavoritePlayers;
+use SpeedPuzzling\Web\Query\GetPlayerProfile;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
@@ -19,6 +20,7 @@ final class PlayerFavoritePuzzlersController extends AbstractController
     public function __construct(
         readonly private GetFavoritePlayers $getFavoritePlayers,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
+        readonly private GetPlayerProfile $getPlayerProfile,
     ) {
     }
 
@@ -44,7 +46,8 @@ final class PlayerFavoritePuzzlersController extends AbstractController
         }
 
         return $this->render('player_favorite_puzzlers.html.twig', [
-            'player' => $viewer,
+            // The subject's row (byId()), not the viewer's: the header's tier and MSP Rating chips ride on it
+            'player' => $this->getPlayerProfile->byId($viewer->playerId),
             'favorite_players' => $this->getFavoritePlayers->forPlayerId($viewer->playerId),
             'followers' => $this->getFavoritePlayers->followersOf($viewer->playerId),
         ]);

@@ -1255,7 +1255,6 @@ competition_referees:
     "millions": "%count% mil."
     "activity_label": "Puzzle po měsících"
     "activity_bar": "%month%: %count% puzzle|%month%: %count% puzzle|%month%: %count% puzzlí"
-    "rating": "MSP Rating %rating%"
     "tier_locked": "Úroveň dovedností"
     "competes": "Závodí na eventech"
     "swaps": "Vyměňuje puzzle"
@@ -1570,7 +1569,6 @@ xp:
     level_chip: "Lv %level%"
     total: "%xp% XP"
     total_tooltip: "Celkem získáno %xp% XP"
-    max_level_reached: "Vrchol hory — úroveň 50!"
     progress_label: "%xp% XP do úrovně %level%"
     receipt:
         total: "Celkem"
@@ -1737,7 +1735,6 @@ content_digest:
 badges:
     title: "Úspěchy"
     my_title: "Moje úspěchy"
-    new: "NOVÉ"
     browse_all: "Procházet všechny úspěchy"
     reveal: "Odhal svůj nový úspěch"
     waiting_teaser: "{1}Čeká na tebe 1 úspěch — staň se členem a odhal ho!|{2,3,4}Čekají na tebe %count% úspěchy — staň se členem a odhal je!|[5,Inf[Čeká na tebe %count% úspěchů — staň se členem a odhal je!"
@@ -3468,8 +3465,6 @@ puzzle_intelligence:
         predictability_desc: "Jak předvídatelná je obtížnost tohoto puzzle?"
         skill_sensitivity: "Citlivost na dovednosti"
         skill_sensitivity_desc: "Rozhodují na tomto puzzle hodně dovednosti?"
-    player_insights:
-        title: "Statistiky hráče"
     prediction:
         title: "Vaše predikce"
         estimated_time: "Odhadovaný čas"

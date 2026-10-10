@@ -78,12 +78,12 @@ Refuses to run while the flag is active. One email per player forever (idempoten
 
 ## 5. Digest ramp start
 
-Follow content-digest README §14 ramp plan (~1–2k most-engaged first). The weekly cron
-sends to everyone eligible — for the ramp weeks, either keep the cron off and dispatch
-manually, or accept full volume once deliverability prerequisites are green. First send:
+Superseded 2026-10-10 by the activity digest (content-digest README, part above "History"): the Monday cron
+paces every run over 07:00-19:00 Prague, most engaged first, with a circuit breaker; nothing goes out about a period
+before 12 Oct 2026 (first send Mon 19 Oct). Check the counts first:
 
 ```bash
-$DC run --rm --no-deps messenger-consumer bin/console myspeedpuzzling:send-content-digest weekly
+$DC run --rm --no-deps messenger-consumer bin/console myspeedpuzzling:send-content-digest activity --dry-run
 ```
 
 (Requires the `digest-consumer` compose service + deploy.sh change from content-digest

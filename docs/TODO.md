@@ -4,6 +4,16 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
+## Activity digest + "Your week" (`docs/features/content-digest/README.md`, progression launch WS-E)
+
+- [ ] Karma: workstream F wires karma gained in a period into `GetContentDigestRecipients::activitySql()` (karma = activity) and `PlayerPeriodActivityReader::karmaGained()` (the thanks line, linking F's karma history)
+- [ ] Launch badge backfill vs the first digest: achievements count by `badge.earned_at` = backfill run time - run it before Mon 12 Oct 00:00 Prague, or filter backfilled badges out of the 12-18 Oct period
+- [ ] First no-activity Tuesday (20 Oct) mails every dormant account once - decide (Jan) whether to limit it, e.g. to accounts with a result in the last 12 months; `--dry-run` shows the count
+- [ ] Link the page (`my_activity`) from the app: user menu / own profile / the recap ("See your week") - nothing links it yet besides the e-mail
+- [ ] Visual check of the page and both e-mails at 375 / 320 px and in a long locale (not done in WS-E: no isolated browser run)
+- [ ] Admin line with per-run counts (`content_digest_run`) on the e-mail audit page
+- [ ] Seznam Email Profi daily ceiling (README §17.1) before the audience passes ~10k/day
+
 ## High-frequency series (`docs/features/events-page/high-frequency-series.md`, PR #253)
 
 - [ ] **The converted weekly online series (2026-10-09)**: tell its organiser about the change (Jan, by mail - drafts

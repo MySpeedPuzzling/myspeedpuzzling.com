@@ -4,6 +4,11 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
+## Recap progress card (`docs/features/xp-levels/README.md` §Surfaces, launch 2026-10)
+
+- [ ] "Earned with this time" is a 10-minute window after `tracked_at` (`GetAchievementsEarnedWithSolve`), because a badge row does not point at the solve that earned it. If a cron run of the badge evaluation lands in that window, its tiers are credited to the time. A `badge.solving_time_id` written by `RecalculateBadgesForPlayer` (dispatched with the time id) would make it exact.
+- [ ] Real-device pass of the recap reveal (88/144 px stages inside the card) and the milestone sheet on iPhone Safari + Android Chrome.
+
 ## High-frequency series (`docs/features/events-page/high-frequency-series.md`, PR #253)
 
 - [ ] **The converted weekly online series (2026-10-09)**: tell its organiser about the change (Jan, by mail - drafts

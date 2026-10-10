@@ -14,6 +14,7 @@ use SpeedPuzzling\Web\Entity\PuzzleChangeRequest;
 use SpeedPuzzling\Web\Entity\PuzzleMergeAudit;
 use SpeedPuzzling\Web\Entity\PuzzleMergeRequest;
 use SpeedPuzzling\Web\Entity\PuzzleModerationDecision;
+use SpeedPuzzling\Web\Message\RecalculateKarma;
 use SpeedPuzzling\Web\Query\GetPlayerKarma;
 use SpeedPuzzling\Web\Results\KarmaItem;
 use SpeedPuzzling\Web\Services\Karma\KarmaRecalculator;
@@ -22,6 +23,8 @@ use SpeedPuzzling\Web\Value\KarmaKind;
 use SpeedPuzzling\Web\Value\MergeDecisionSource;
 use SpeedPuzzling\Web\Value\PuzzleModerationAction;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
+use Symfony\Component\Messenger\MessageBusInterface;
+use Symfony\Component\Messenger\Stamp\TransportNamesStamp;
 
 /**
  * The karma rule, one case at a time (docs/features/karma.md). Every test works on players of its own, so the
@@ -256,6 +259,17 @@ final class KarmaDerivationTest extends KernelTestCase
         self::assertSame(1, $this->recalculator->recalculateFor([$this->id($adder), 'not-a-uuid']));
         self::assertSame(2, $this->storedKarma($adder));
         self::assertSame(0, $this->recalculator->recalculateFor([$this->id($adder)]));
+    }
+
+    public function testTheCommandsMessageRecalculatesEverybodyInProcess(): void
+    {
+        $adder = $this->player();
+        $this->puzzle($adder, ean: '4005556123452');
+
+        // What myspeedpuzzling:recalculate-karma dispatches (the message is routed async for the handlers)
+        self::getContainer()->get(MessageBusInterface::class)->dispatch(new RecalculateKarma(null), [new TransportNamesStamp(['sync'])]);
+
+        self::assertSame(1, $this->storedKarma($adder));
     }
 
     public function testTheHistoryIsNewestFirstAndLinksThePuzzle(): void

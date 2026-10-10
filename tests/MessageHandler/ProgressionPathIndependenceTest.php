@@ -25,6 +25,7 @@ use SpeedPuzzling\Web\Message\RequestGuestLink;
 use SpeedPuzzling\Web\Message\SubmitPuzzleMergeRequest;
 use SpeedPuzzling\Web\Message\UndoAutoRemoval;
 use SpeedPuzzling\Web\Message\UnmarkSolvingTimeSuspiciousDirectly;
+use SpeedPuzzling\Web\Query\GetProgressionDrift;
 use SpeedPuzzling\Web\Services\DuplicateResults\DailyDuplicateDetection;
 use SpeedPuzzling\Web\Tests\ClonesSolvingTimes;
 use SpeedPuzzling\Web\Tests\DataFixtures\DuplicateResultsFixture;
@@ -529,6 +530,10 @@ final class ProgressionPathIndependenceTest extends KernelTestCase
             $this->assertTotalsMatchLedger($playerId);
             $live[$playerId] = $this->progressionState($playerId);
         }
+
+        // The nightly safety net's set-based checks agree with the replay
+        $drift = self::getContainer()->get(GetProgressionDrift::class)->find();
+        self::assertSame([], array_values(array_intersect($playerIds, [...$drift->xpPlayerIds(), ...$drift->achievementPlayerIds()])), 'The safety net sees drift: ' . json_encode($drift->counts()));
 
         foreach ($playerIds as $playerId) {
             $this->recompute($playerId);

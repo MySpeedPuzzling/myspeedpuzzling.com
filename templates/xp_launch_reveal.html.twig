@@ -166,7 +166,7 @@
             {{ include('_page_crumbs.html.twig', crumbs) }}
             {% embed 'xp/_level_reveal.html.twig' with {xp_profile: xp_profile, gradient_id: 'xpl-arc-level'} %}
                 {% block intro %}
-                    <p class="xpl-level-eyebrow"><i class="bi bi-stars" aria-hidden="true"></i> {{ 'xp.launch_modal.eyebrow'|trans }}</p>
+                    <p class="xpl-level-eyebrow">{{ 'xp.launch_modal.eyebrow'|trans }}</p>
                     <h1 class="h3 xpl-level-title">{{ 'xp.launch_modal.title'|trans }}</h1>
                     <p class="xpl-level-text">{{ 'xp.launch_modal.text'|trans }}</p>
                 {% endblock %}

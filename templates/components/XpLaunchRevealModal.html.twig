@@ -8,7 +8,7 @@
         {% endblock %}
 
         {% block intro %}
-            <p class="xpl-level-eyebrow"><i class="bi bi-stars" aria-hidden="true"></i> {{ 'xp.launch_modal.eyebrow'|trans }}</p>
+            <p class="xpl-level-eyebrow">{{ 'xp.launch_modal.eyebrow'|trans }}</p>
             <h5 class="modal-title xpl-level-title" id="announcement-modal-title">{{ 'xp.launch_modal.title'|trans }}</h5>
             <p class="xpl-level-text">{{ 'xp.launch_modal.text'|trans }}</p>
         {% endblock %}
@@ -24,7 +24,6 @@
                         <p class="xpl-level-next-text">{{ 'xp.launch_modal.next_member'|trans({'%count%': achievementsCount}) }}</p>
                     {% endif %}
                     <a href="{{ path('xp_launch_reveal') }}" class="btn btn-primary btn-lg">
-                        <i class="bi bi-stars me-1" aria-hidden="true"></i>
                         {{ (achievementsCount > 0 ? 'xp.launch_modal.button_member' : 'xp.launch_modal.button_continue')|trans }}
                     </a>
                 {% else %}

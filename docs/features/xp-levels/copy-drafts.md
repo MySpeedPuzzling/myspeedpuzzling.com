@@ -1,5 +1,9 @@
 # XP Explainer page — EN copy draft (COPY:pending-jan-approval)
 
+> **Historical draft.** The numbers below are formula v4 (+50 % weekly boost, daily warm-up, Level 50 = 3,160). Since
+> 2026-10-11 the formula is v5 (+20 % boost, no warm-up, every qualifying bonus ≥ 1 XP, Level 50 = 5,800) and the live
+> copy is in the `xp.explainer.*` translations - `launch-2026-10.md` §1 "XP balance".
+
 ## Title: How XP & Levels work
 
 ### Intro

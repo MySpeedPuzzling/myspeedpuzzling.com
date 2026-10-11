@@ -10,7 +10,7 @@ use LogicException;
 
 /**
  * When the full XP formula starts: solves logged (`tracked_at`) before this moment earn the history formula (base,
- * difficulty, unboxed), solves logged from it on also the incentives (speed bonus, weekly boost, daily warm-up,
+ * difficulty, unboxed), solves logged from it on also the incentives (speed bonus, weekly boost,
  * settlements). The moment XP reached production, stored once by the migration that created `xp_settings`
  * (docs/features/xp-levels/README.md "Formula cutoff").
  *

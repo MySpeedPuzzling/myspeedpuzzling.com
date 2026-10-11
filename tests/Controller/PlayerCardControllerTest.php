@@ -140,7 +140,7 @@ final class PlayerCardControllerTest extends WebTestCase
     public function testTheLevelFollowsTheExperienceOptOut(): void
     {
         $browser = $this->browser(PlayerFixture::PLAYER_ADMIN);
-        $this->database()->executeStatement('UPDATE player SET xp_total = 3160, level = 50 WHERE id = :id', ['id' => PlayerFixture::PLAYER_REGULAR]);
+        $this->database()->executeStatement('UPDATE player SET xp_total = 5800, level = 50 WHERE id = :id', ['id' => PlayerFixture::PLAYER_REGULAR]);
 
         $crawler = $this->card($browser, PlayerFixture::PLAYER_REGULAR);
         $level = $crawler->filter('.players-card-chip-level');

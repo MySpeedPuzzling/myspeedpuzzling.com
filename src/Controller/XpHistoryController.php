@@ -16,7 +16,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 /**
  * XP audit page "where did my XP come from?" — one block per solve with every line of it (base, difficulty, unboxed,
- * speed, weekly boost, warm-up, settlements, the deletion) and its total. User-facing auditability is a locked
+ * speed, weekly boost, settlements, the deletion) and its total. User-facing auditability is a locked
  * requirement of the XP system.
  */
 final class XpHistoryController extends AbstractController

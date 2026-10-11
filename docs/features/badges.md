@@ -20,19 +20,77 @@ Invariants:
   duplicate removal, "keep this copy", a suspicious mark via `RecalculateProgressionOnSuspicionChange`); the daily
   `recalculate-badges` run is the safety net for the rest (SQL, a puzzle's pieces corrected, merges).
 
-## Launch badges
+## Achievements and their tiers
 
-| Badge | Type value | Tiers (Bronze → Diamond) | Source metric |
+16 tiered achievements (Bronze → Diamond) + the single-tier Early Adopter (`supporter`, admin-granted, no automation).
+The thresholds live in `src/BadgeConditions/*` (one class per type); the texts in `badges.requirement.<type>_<tier>`
+(6 locales). Achievement Points per tier: 5 / 10 / 25 / 50 / 100.
+
+| Achievement | Type value | Tiers (Bronze → Diamond) | Source metric (`GetPlayerStatsSnapshot`) |
 |---|---|---|---|
 | Puzzle Explorer | `puzzles_solved` | 10 / 100 / 500 / 1000 / 2000 | Distinct puzzles solved (counts team participation) |
 | Piece Cruncher | `pieces_solved` | 10k / 100k / 500k / 1M / 2M pieces | Total pieces placed (full credit per team participant) |
-| Speed Demon (500pc) | `speed_500_pieces` | < 5h / 2h / 1h / 45m / 30m | Player's fastest SOLO 500-piece solve |
+| Speed Demon (500pc) | `speed_500_pieces` | < 2h / 1h30 / 1h / 45m / 30m | Player's fastest SOLO 500-piece solve |
+| Speed Demon (1000pc) | `speed_1000_pieces` | < 5h / 3h30 / 2h30 / 1h45 / 1h15 | Player's fastest SOLO 1000-piece solve |
 | On Fire | `streak` | 7 / 30 / 90 / 180 / 365 days | All-time longest consecutive-day solving streak |
-| Team Spirit | `team_player` | 1 / 5 / 25 / 100 / 500 | Count of duo + team solves the player participated in |
-| Supporter (single-tier) | `supporter` | — | Admin-granted, no automation |
+| Team Spirit | `team_player` | 5 / 25 / 100 / 250 / 500 | Duo + team solves the player took part in |
+| Zen Puzzler | `zen_puzzler` | 5 / 15 / 50 / 150 / 365 | Relax solves (no time) |
+| First Try | `first_try` | 5 / 50 / 200 / 500 / 1000 | Solves logged as the first attempt |
+| Unboxed | `unboxed` | 5 / 15 / 30 / 50 / 100 | Solves without looking at the box |
+| Brand Explorer | `brand_explorer` | 5 / 15 / 30 / 50 / 100 | Distinct manufacturers solved |
+| Marathoner | `marathoner` | 5 / 10 / 20 / 40 / 100 | Solves of puzzles with 2000+ pieces |
+| Photographer | `photographer` | 5 / 25 / 100 / 500 / 1000 | Results with a photo of the finished puzzle |
+| Steady Hands | `steady_hands` | 3 / 6 / 9 / 12 / 16 quarters | Longest run of consecutive calendar quarters with a solve |
+| Librarian | `librarian` | 5 / 15 / 30 / 50 / 100 | Accepted catalog change proposals |
+| Weekend Puzzler | `weekend_puzzler` | 10 / 50 / 150 / 300 / 600 | Solves on Saturdays and Sundays |
+| Cataloger | `cataloger` | 5 / 15 / 50 / 150 / 300 | Approved puzzles the player added to the catalog |
 
-The first five; the full lineup (16 tiered achievements + the single-tier Early Adopter, `supporter`) with its
-thresholds is in `docs/features/xp-levels/launch-checklist.md`.
+### Calibration (2026-10-11)
+
+Jan: "1 single will not be enough (for example 1 solving in team, i know it is encouraging but it loses its rarity) …
+instead of 1 make it at least 5 and slightly move further to have the gaps". The rule applied:
+
+- **No tier for a single action.** A count type's Bronze is at least 5 (Team Spirit, Zen Puzzler, Unboxed, Marathoner,
+  Photographer, Librarian and Cataloger were 1, Brand Explorer 3).
+- **Keep the gaps.** Where the new Bronze ran into Silver (Team Spirit, Unboxed, Marathoner, Librarian were 1 → 5 with
+  Silver at 5), the tiers above moved up just enough that every step stays a clear one (roughly 2-5×, like the old
+  ladders); a tier whose rarity already fit stayed (every Diamond kept its threshold, so nothing became unreachable -
+  each still has at least one holder).
+- **The same spirit for time spans and times**, judged on the data:
+  - Speed Demon 500 Bronze was "under 5 hours" - 99.6 % of everybody with a 500-piece solo time had it, 83 % of all
+    puzzlers: a time almost everybody has is no achievement. Bronze/Silver became 2h / 1h30 (Silver was 2h); Gold
+    1h, Platinum 45m and Diamond 30m stay - they are the community's milestones.
+  - Speed Demon 1000 Bronze was "under 8 hours" (96 % of everybody with a 1000-piece time): 5h / 3h30, Gold+ unchanged.
+    Both speed ladders now step by ~1.4× per tier, and the two ladders match (1000-piece = ~2.5× the 500-piece limit).
+  - Steady Hands Bronze was 2 quarters in a row - 61 % of puzzlers, and two solves a day apart (31 March, 1 April)
+    were enough. 3 / 6 / 9 quarters (at least 3 months between the first and the last solve); 12 and 16 stay.
+  - On Fire (7 days), First Try (5), Puzzle Explorer (10), Piece Cruncher (10k pieces), Weekend Puzzler (10) already
+    meet the rule and their ladders fit the data - unchanged.
+
+Holders on the production copy (dev DB, 7,878 puzzlers = players with XP, the rarity denominator), B / S / G / P / D:
+
+| Achievement | Before | After |
+|---|---|---|
+| Speed Demon 500 | 6,549 (83.1 %) / 5,872 (74.5 %) / 2,952 / 1,459 / 334 | 5,872 (74.5 %) / 4,958 (62.9 %) / 2,952 / 1,459 / 334 |
+| Speed Demon 1000 | 2,328 (29.6 %) / 1,659 (21.1 %) / 753 / 221 / 22 | 1,990 (25.3 %) / 1,422 (18.1 %) / 753 / 221 / 22 |
+| Team Spirit | 4,275 (54.3 %) / 2,822 / 1,371 / 358 (4.5 %) / 8 | 2,822 (35.8 %) / 1,371 / 358 / 54 (0.7 %) / 8 |
+| Zen Puzzler | 1,170 (14.9 %) / 288 / 48 / 5 / 2 | 479 (6.1 %) / 208 / 48 / 5 / 2 |
+| Unboxed | 1,320 (16.8 %) / 360 / 41 / 12 / 3 | 360 (4.6 %) / 88 / 27 / 12 / 3 |
+| Brand Explorer | 4,235 (53.8 %) / 1,805 (22.9 %) / 580 / 114 / 9 | 3,064 (38.9 %) / 1,215 (15.4 %) / 388 / 114 / 9 |
+| Marathoner | 468 (5.9 %) / 47 / 9 / 1 / 1 | 47 (0.6 %) / 16 / 3 / 1 / 1 |
+| Photographer | 3,316 (42.1 %) / 447 / 140 / 8 / 1 | 1,366 (17.3 %) / 447 / 140 / 8 / 1 |
+| Steady Hands | 4,808 (61.0 %) / 2,429 (30.8 %) / 858 / 166 / 29 | 3,290 (41.8 %) / 1,512 (19.2 %) / 607 / 166 / 29 |
+| Librarian | 239 (3.0 %) / 58 / 12 / 3 / 1 | 58 (0.7 %) / 15 / 6 / 3 / 1 |
+| Cataloger | 3,627 (46.0 %) / 901 (11.4 %) / 140 / 31 / 5 | 1,523 (19.3 %) / 615 (7.8 %) / 140 / 31 / 5 |
+
+Tier rows held in total: 80,150 → 62,079. Marathoner's Bronze is now rarer than most Golds (0.6 %): five 2000+ piece
+puzzles is a real feat, and Jan's rule is explicit - one marathon is no longer an achievement of its own.
+The earlier calibration (2026-07-12, production figures of that time) is kept in
+`docs/features/xp-levels/launch-checklist.md` §1 as history.
+
+Tiers follow the current records (`BadgeEvaluator` removes what no longer qualifies), so a change of thresholds needs
+no migration: the next evaluation of each player (the daily `recalculate-badges` run, or any result they log) brings
+their tiers and Achievement Points to the new ladder. Nothing is told to anyone when a tier goes.
 
 ## Visibility rules
 

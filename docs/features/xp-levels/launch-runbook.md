@@ -29,7 +29,7 @@ Order: **deploy → karma backfill → XP backfill (verifies, switches on) → n
 
 Merge + deploy as usual. The migrations run on container boot; `Version20261010212501` stores the **formula cutoff**
 (`xp_settings.full_formula_from` = `NOW()` of the migration = the deploy moment: solves logged before it earn the
-history formula, solves logged after it the full one with boosts, warm-up and speed bonus) and creates the launch
+history formula, solves logged after it the full one with the weekly boost and the speed bonus) and creates the launch
 switch, off.
 
 From now on new solves earn XP and achievements for everybody, silently: non-admins see nothing yet.
@@ -83,8 +83,10 @@ in any check (README §Anti-farming) - the same command runs nightly with `--rep
 $DC run --rm --no-deps messenger-consumer bin/console myspeedpuzzling:xp-distribution
 ```
 
-- Achievements no longer add XP. The same scratch copy gave **112 players at Level 50** and a median level of 10
-  (players with XP) - Level 50 stays rare (`launch-2026-10.md`). Note the production numbers.
+- Achievements no longer add XP; formula + curve v5 (2026-10-11, `launch-2026-10.md` §1 "XP balance"). The dev copy of
+  production, rebuilt with v5, gave **18 players at Level 50**, a median level of 10 and p90 Level 32 (7,878 players
+  with XP; zero drift in `myspeedpuzzling:verify-progression`) - Level 50 is about 1,000 logged puzzles. Note the
+  production numbers.
 - Profile ring, catalogue, a receipt after a test solve, the launch modal on the first page view (once), the reveal
   page `/en/my/xp-reveal`.
 

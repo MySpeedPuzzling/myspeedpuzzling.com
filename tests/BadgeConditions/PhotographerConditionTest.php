@@ -19,12 +19,12 @@ final class PhotographerConditionTest extends TestCase
 
     public function testNoQualifyingTiersWhenBelowFirstThreshold(): void
     {
-        self::assertSame([], (new PhotographerCondition())->qualifiedTiers($this->snapshot(0)));
+        self::assertSame([], (new PhotographerCondition())->qualifiedTiers($this->snapshot(4)));
     }
 
     public function testQualifiesForFirstTierAtExactThreshold(): void
     {
-        self::assertSame([BadgeTier::Bronze], (new PhotographerCondition())->qualifiedTiers($this->snapshot(1)));
+        self::assertSame([BadgeTier::Bronze], (new PhotographerCondition())->qualifiedTiers($this->snapshot(5)));
     }
 
     public function testQualifiesForAllLowerTiersWhenSkippingAhead(): void
@@ -63,7 +63,7 @@ final class PhotographerConditionTest extends TestCase
     {
         $condition = new PhotographerCondition();
 
-        self::assertSame(1, $condition->requirementForTier(BadgeTier::Bronze));
+        self::assertSame(5, $condition->requirementForTier(BadgeTier::Bronze));
         self::assertSame(25, $condition->requirementForTier(BadgeTier::Silver));
         self::assertSame(1000, $condition->requirementForTier(BadgeTier::Diamond));
     }

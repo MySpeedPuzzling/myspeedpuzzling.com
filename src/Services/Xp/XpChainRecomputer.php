@@ -140,7 +140,7 @@ SQL;
 
     /**
      * A deleted solve: its entries stay as the audit history and get exact negative mirrors, then everything the
-     * deletion reaches is rebuilt (later solves of the puzzle move up, its week's boost and day's warm-up go to the
+     * deletion reaches is rebuilt (later solves of the puzzle move up, its week's boost goes to the
      * next solve). $memberPlayerIds = its registered members, who may have earned nothing for it (a relax repeat)
      * and still have later solves to move up.
      *
@@ -261,9 +261,8 @@ SQL;
             occurrenceIndex: $occurrence,
             isBackfill: false,
             speedPercentile: $speedPercentile,
-            // Suppress weekly boost and daily warm-up — only the settled line matters.
+            // Suppress the weekly boost — only the settled line matters.
             xpEarningSolvesThisWeek: XpCalculator::WEEKLY_BOOST_SOLVE_LIMIT,
-            isFirstXpEarningSolveOfDay: false,
         ));
 
         foreach ($awards as $award) {
@@ -394,7 +393,7 @@ SQL;
      *
      *  - the player's whole chain on those puzzles (occurrence: first, repeat, relax repeat),
      *  - every solve in the ISO weeks those solves are in now or were in before (their old entries' earned_at) - the
-     *    weekly boost and the daily warm-up belong to the first XP-earning solves of the week / day, so a solve logged
+     *    weekly boost belongs to the first XP-earning solves of the week, so a solve logged
      *    into the past, deleted or moved hands them over to the right solves instead of adding more (that is why
      *    back-dating, or deleting and re-adding, can never create extra slots),
      *  - the touched solves themselves, also when the player no longer earns for them (suspicious now, left the

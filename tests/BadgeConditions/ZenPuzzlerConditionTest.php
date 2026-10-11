@@ -19,12 +19,12 @@ final class ZenPuzzlerConditionTest extends TestCase
 
     public function testNoQualifyingTiersWhenBelowFirstThreshold(): void
     {
-        self::assertSame([], (new ZenPuzzlerCondition())->qualifiedTiers($this->snapshot(0)));
+        self::assertSame([], (new ZenPuzzlerCondition())->qualifiedTiers($this->snapshot(4)));
     }
 
     public function testQualifiesForFirstTierAtExactThreshold(): void
     {
-        self::assertSame([BadgeTier::Bronze], (new ZenPuzzlerCondition())->qualifiedTiers($this->snapshot(1)));
+        self::assertSame([BadgeTier::Bronze], (new ZenPuzzlerCondition())->qualifiedTiers($this->snapshot(5)));
     }
 
     public function testQualifiesForAllLowerTiersWhenSkippingAhead(): void
@@ -45,13 +45,13 @@ final class ZenPuzzlerConditionTest extends TestCase
 
     public function testProgressTowardSilverWithBronzeEarned(): void
     {
-        $progress = (new ZenPuzzlerCondition())->progressToNextTier($this->snapshot(5), BadgeTier::Bronze);
+        $progress = (new ZenPuzzlerCondition())->progressToNextTier($this->snapshot(9), BadgeTier::Bronze);
 
         self::assertNotNull($progress);
         self::assertSame(BadgeTier::Silver, $progress->nextTier);
-        self::assertSame(5, $progress->currentValue);
-        self::assertSame(10, $progress->targetValue);
-        self::assertSame(50, $progress->percent);
+        self::assertSame(9, $progress->currentValue);
+        self::assertSame(15, $progress->targetValue);
+        self::assertSame(60, $progress->percent);
     }
 
     public function testProgressIsNullWhenAllTiersEarned(): void
@@ -63,8 +63,8 @@ final class ZenPuzzlerConditionTest extends TestCase
     {
         $condition = new ZenPuzzlerCondition();
 
-        self::assertSame(1, $condition->requirementForTier(BadgeTier::Bronze));
-        self::assertSame(10, $condition->requirementForTier(BadgeTier::Silver));
+        self::assertSame(5, $condition->requirementForTier(BadgeTier::Bronze));
+        self::assertSame(15, $condition->requirementForTier(BadgeTier::Silver));
         self::assertSame(365, $condition->requirementForTier(BadgeTier::Diamond));
     }
 

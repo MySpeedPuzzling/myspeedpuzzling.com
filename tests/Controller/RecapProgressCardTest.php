@@ -33,7 +33,7 @@ final class RecapProgressCardTest extends WebTestCase
     public function testMemberSeesLevelPlaceAndCompetitionInOneCard(): void
     {
         $browser = self::createClient();
-        $this->giveXp(PlayerFixture::PLAYER_ADMIN, PuzzleSolvingTimeFixture::TIME_03, [3, 2], total: 42);
+        $this->giveXp(PlayerFixture::PLAYER_ADMIN, PuzzleSolvingTimeFixture::TIME_03, [3, 2], total: 44);
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
 
         $crawler = $browser->request('GET', '/en/time-added/' . PuzzleSolvingTimeFixture::TIME_03);
@@ -45,7 +45,7 @@ final class RecapProgressCardTest extends WebTestCase
         $level = $card->filter('[data-testid="recap-level"]');
         self::assertStringContainsString('Level 7', $level->text());
         self::assertStringContainsString('+5 XP', $level->text());
-        self::assertStringContainsString('5 of 8 XP to Level 8', $level->text());
+        self::assertStringContainsString('6 of 9 XP to Level 8', $level->text());
         self::assertCount(1, $level->filter('a.recap-row[href="/en/my/xp-history"]'));
         // The receipt is one tap away, not on the page
         self::assertCount(1, $level->filter('details.recap-receipt li.is-total'));

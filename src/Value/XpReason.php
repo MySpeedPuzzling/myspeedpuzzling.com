@@ -17,7 +17,6 @@ enum XpReason: string
     case SolveUnboxedBonus = 'solve_unboxed_bonus';
     case SolveSpeedBonus = 'solve_speed_bonus';
     case SolveWeeklyBoost = 'solve_weekly_boost';
-    case SolveDailyWarmup = 'solve_daily_warmup';
     case DifficultySettlement = 'difficulty_settlement';
     case SpeedSettlement = 'speed_settlement';
     case SolveCompensation = 'solve_compensation';

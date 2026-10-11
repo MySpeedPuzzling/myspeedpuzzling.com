@@ -129,7 +129,7 @@ final class ProgressionPathIndependenceTest extends KernelTestCase
         self::assertSame($before, $this->xpTotal());
     }
 
-    public function testBackDatingIntoAWeekNeverCreatesMoreThanFiveWeeklyBoostsOrTwoWarmUpsADay(): void
+    public function testBackDatingIntoAWeekNeverCreatesMoreThanFiveWeeklyBoosts(): void
     {
         $monday = new DateTimeImmutable('2026-08-17 00:00:00');
         $puzzles = [
@@ -149,7 +149,6 @@ final class ProgressionPathIndependenceTest extends KernelTestCase
         }
 
         self::assertSame(5, $this->linesInWeek('solve_weekly_boost', $monday));
-        self::assertSame(2, $this->linesInWeek('solve_daily_warmup', $monday), 'One warm-up on Monday, one on Friday');
         $this->assertMatchesFreshRecomputation([self::PLAYER]);
 
         // Deleting the earliest solve and logging it again at the same moment hands nothing out twice
@@ -158,7 +157,6 @@ final class ProgressionPathIndependenceTest extends KernelTestCase
         $this->addTime(PuzzleFixture::PUZZLE_300, '00:50:00', $monday->setTime(7, 0));
 
         self::assertSame(5, $this->linesInWeek('solve_weekly_boost', $monday));
-        self::assertSame(2, $this->linesInWeek('solve_daily_warmup', $monday));
         $this->assertMatchesFreshRecomputation([self::PLAYER]);
     }
 
@@ -334,8 +332,8 @@ final class ProgressionPathIndependenceTest extends KernelTestCase
     public function testAchievementsEarnedWithFakeTimesGoWithTheTimesAndComeBackOnce(): void
     {
         $at = new DateTimeImmutable('2026-08-03 08:00:00');
-        // The fixture player has one 2000+ piece result (Marathoner Bronze); four more make five = Silver
-        self::assertSame([BadgeTier::Bronze->value], $this->tiersOf('marathoner'));
+        // The fixture player has one 2000+ piece result (no Marathoner tier yet); four more make five = Bronze
+        self::assertSame([], $this->tiersOf('marathoner'));
         $marathons = [PuzzleFixture::PUZZLE_3000, PuzzleFixture::PUZZLE_4000, PuzzleFixture::PUZZLE_5000, PuzzleFixture::PUZZLE_6000];
         $pointsBefore = $this->achievementPoints();
 
@@ -344,13 +342,13 @@ final class ProgressionPathIndependenceTest extends KernelTestCase
             $timeIds[] = $this->addTime($puzzleId, '08:00:00', $at->modify("+{$index} hours"));
         }
 
-        self::assertSame([BadgeTier::Bronze->value, BadgeTier::Silver->value], $this->tiersOf('marathoner'));
-        self::assertSame($pointsBefore + BadgeTier::Silver->points(), $this->achievementPoints());
+        self::assertSame([BadgeTier::Bronze->value], $this->tiersOf('marathoner'));
+        self::assertSame($pointsBefore + BadgeTier::Bronze->points(), $this->achievementPoints());
 
         // The fake times go - so does the tier they were needed for, silently, with its points
         foreach ($timeIds as $timeId) {
             $this->deleteTime($timeId);
-            self::assertSame([BadgeTier::Bronze->value], $this->tiersOf('marathoner'));
+            self::assertSame([], $this->tiersOf('marathoner'));
             self::assertSame($pointsBefore, $this->achievementPoints());
         }
 
@@ -363,8 +361,8 @@ final class ProgressionPathIndependenceTest extends KernelTestCase
                 $timeIds[] = $this->addTime($puzzleId, '08:00:00', $at->modify("+{$index} hours"));
             }
 
-            self::assertSame([BadgeTier::Bronze->value, BadgeTier::Silver->value], $this->tiersOf('marathoner'));
-            self::assertSame($pointsBefore + BadgeTier::Silver->points(), $this->achievementPoints());
+            self::assertSame([BadgeTier::Bronze->value], $this->tiersOf('marathoner'));
+            self::assertSame($pointsBefore + BadgeTier::Bronze->points(), $this->achievementPoints());
             $this->assertMatchesFreshRecomputation([self::PLAYER]);
 
             foreach ($timeIds as $timeId) {
@@ -382,7 +380,7 @@ final class ProgressionPathIndependenceTest extends KernelTestCase
             $this->addTime($puzzleId, '08:00:00', $at->modify("+{$index} hours"));
         }
 
-        self::assertSame([BadgeTier::Bronze->value], $this->tiersOf('marathoner'));
+        self::assertSame([], $this->tiersOf('marathoner'));
 
         // The same form sent twice (two requests racing past the save's twin check) - the copy makes it five
         $original = $this->addTime(PuzzleFixture::PUZZLE_6000, '08:00:00', $at->modify('+5 hours'));
@@ -392,13 +390,13 @@ final class ProgressionPathIndependenceTest extends KernelTestCase
         $this->messageBus->dispatch(new AwardXpForSolvingTime($copy));
         $this->messageBus->dispatch(new RecalculateBadgesForPlayer(self::PLAYER));
         $this->drain();
-        self::assertSame([BadgeTier::Bronze->value, BadgeTier::Silver->value], $this->tiersOf('marathoner'));
+        self::assertSame([BadgeTier::Bronze->value], $this->tiersOf('marathoner'));
 
         self::getContainer()->get(DailyDuplicateDetection::class)->run(DuplicateDetectedBy::Cron);
         $this->drain();
 
         self::assertCount(1, $this->solveIdsOf(PuzzleFixture::PUZZLE_6000), 'The copy was removed automatically');
-        self::assertSame([BadgeTier::Bronze->value], $this->tiersOf('marathoner'));
+        self::assertSame([], $this->tiersOf('marathoner'));
         $this->assertMatchesFreshRecomputation([self::PLAYER]);
     }
 

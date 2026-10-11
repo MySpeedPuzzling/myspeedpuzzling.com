@@ -17,21 +17,21 @@ final class SteadyHandsConditionTest extends TestCase
         self::assertSame(BadgeType::SteadyHands, (new SteadyHandsCondition())->badgeType());
     }
 
-    public function testSingleQuarterIsBelowFirstThreshold(): void
+    public function testTwoQuartersAreBelowFirstThreshold(): void
     {
-        self::assertSame([], (new SteadyHandsCondition())->qualifiedTiers($this->snapshot(1)));
+        self::assertSame([], (new SteadyHandsCondition())->qualifiedTiers($this->snapshot(2)));
     }
 
     public function testQualifiesForFirstTierAtExactThreshold(): void
     {
-        self::assertSame([BadgeTier::Bronze], (new SteadyHandsCondition())->qualifiedTiers($this->snapshot(2)));
+        self::assertSame([BadgeTier::Bronze], (new SteadyHandsCondition())->qualifiedTiers($this->snapshot(3)));
     }
 
     public function testQualifiesForAllLowerTiersWhenSkippingAhead(): void
     {
         self::assertSame(
             [BadgeTier::Bronze, BadgeTier::Silver, BadgeTier::Gold],
-            (new SteadyHandsCondition())->qualifiedTiers($this->snapshot(9)),
+            (new SteadyHandsCondition())->qualifiedTiers($this->snapshot(10)),
         );
     }
 
@@ -45,13 +45,13 @@ final class SteadyHandsConditionTest extends TestCase
 
     public function testProgressTowardBronzeWithNoBadges(): void
     {
-        $progress = (new SteadyHandsCondition())->progressToNextTier($this->snapshot(1), null);
+        $progress = (new SteadyHandsCondition())->progressToNextTier($this->snapshot(2), null);
 
         self::assertNotNull($progress);
         self::assertSame(BadgeTier::Bronze, $progress->nextTier);
-        self::assertSame(1, $progress->currentValue);
-        self::assertSame(2, $progress->targetValue);
-        self::assertSame(50, $progress->percent);
+        self::assertSame(2, $progress->currentValue);
+        self::assertSame(3, $progress->targetValue);
+        self::assertSame(66, $progress->percent);
     }
 
     public function testProgressTowardGoldWithSilverEarned(): void
@@ -60,7 +60,7 @@ final class SteadyHandsConditionTest extends TestCase
 
         self::assertNotNull($progress);
         self::assertSame(BadgeTier::Gold, $progress->nextTier);
-        self::assertSame(75, $progress->percent);
+        self::assertSame(66, $progress->percent);
     }
 
     public function testProgressIsNullWhenAllTiersEarned(): void
@@ -72,8 +72,8 @@ final class SteadyHandsConditionTest extends TestCase
     {
         $condition = new SteadyHandsCondition();
 
-        self::assertSame(2, $condition->requirementForTier(BadgeTier::Bronze));
-        self::assertSame(4, $condition->requirementForTier(BadgeTier::Silver));
+        self::assertSame(3, $condition->requirementForTier(BadgeTier::Bronze));
+        self::assertSame(6, $condition->requirementForTier(BadgeTier::Silver));
         self::assertSame(16, $condition->requirementForTier(BadgeTier::Diamond));
     }
 

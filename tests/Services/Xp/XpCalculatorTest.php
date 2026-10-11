@@ -14,8 +14,8 @@ use SpeedPuzzling\Web\Value\SpeedPercentile;
 final class XpCalculatorTest extends TestCase
 {
     /**
-     * Defaults describe the most common solve: solo, timed, first occurrence, full formula,
-     * week limit already exhausted and not first of day — so each test isolates one feature.
+     * Defaults describe the most common solve: solo, timed, first occurrence, full formula and
+     * the week's boost slots already used — so each test isolates one feature.
      */
     private static function context(
         int $pieces = 500,
@@ -27,7 +27,6 @@ final class XpCalculatorTest extends TestCase
         bool $backfill = false,
         SpeedPercentile $percentile = SpeedPercentile::None,
         int $weekCount = XpCalculator::WEEKLY_BOOST_SOLVE_LIMIT,
-        bool $firstOfDay = false,
     ): SolveXpContext {
         return new SolveXpContext(
             piecesCount: $pieces,
@@ -39,7 +38,6 @@ final class XpCalculatorTest extends TestCase
             isBackfill: $backfill,
             speedPercentile: $percentile,
             xpEarningSolvesThisWeek: $weekCount,
-            isFirstXpEarningSolveOfDay: $firstOfDay,
         );
     }
 
@@ -65,7 +63,9 @@ final class XpCalculatorTest extends TestCase
             'tier 5 = 40% bonus' => [self::context(pieces: 1000, tier: 5), ['solve_base' => 10, 'solve_difficulty_bonus' => 4]],
             'tier 6 = 50% bonus' => [self::context(pieces: 1000, tier: 6), ['solve_base' => 10, 'solve_difficulty_bonus' => 5]],
             'unrated puzzle counts as multiplier 1.00' => [self::context(pieces: 1000, tier: null), ['solve_base' => 10]],
-            'difficulty bonus rounding to zero creates no entry' => [self::context(pieces: 100, tier: 3), ['solve_base' => 1]],
+            // A bonus the solve qualifies for is worth at least 1 XP (100pc tier 3: 1 × 0.15 = 0.15)
+            'a qualifying difficulty bonus is worth at least 1 XP' => [self::context(pieces: 100, tier: 3), ['solve_base' => 1, 'solve_difficulty_bonus' => 1]],
+            'a repeat of a hard puzzle keeps its difficulty line' => [self::context(tier: 3, occurrence: 2), ['solve_base' => 3, 'solve_difficulty_bonus' => 1]],
 
             // --- team multiplier ---
             'duo/team solve earns 0.75×' => [self::context(pieces: 1000, team: true), ['solve_base' => 8]],
@@ -77,6 +77,7 @@ final class XpCalculatorTest extends TestCase
                 ['solve_base' => 10, 'solve_difficulty_bonus' => 3, 'solve_unboxed_bonus' => 3],
             ],
             'unboxed alone' => [self::context(unboxed: true), ['solve_base' => 5, 'solve_unboxed_bonus' => 1]],
+            'a qualifying unboxed bonus is worth at least 1 XP (100pc: 0.2)' => [self::context(pieces: 100, unboxed: true), ['solve_base' => 1, 'solve_unboxed_bonus' => 1]],
 
             // --- occurrence ladder (positions count ALL solves of the puzzle, any mode) ---
             'timed 2nd occurrence earns 50%' => [self::context(occurrence: 2), ['solve_base' => 3]],
@@ -92,8 +93,8 @@ final class XpCalculatorTest extends TestCase
             ],
 
             // --- backfill: core only, bonuses ignored even when eligible ---
-            'backfill drops speed, weekly and warm-up' => [
-                self::context(pieces: 2000, tier: 5, unboxed: true, backfill: true, percentile: SpeedPercentile::Top10, weekCount: 0, firstOfDay: true),
+            'backfill drops speed and weekly boost' => [
+                self::context(pieces: 2000, tier: 5, unboxed: true, backfill: true, percentile: SpeedPercentile::Top10, weekCount: 0),
                 ['solve_base' => 20, 'solve_difficulty_bonus' => 8, 'solve_unboxed_bonus' => 6],
             ],
 
@@ -110,8 +111,18 @@ final class XpCalculatorTest extends TestCase
                 self::context(pieces: 1000, percentile: SpeedPercentile::Top10),
                 ['solve_base' => 10, 'solve_speed_bonus' => 2],
             ],
-            'speed bonus rounding to zero creates no entry' => [
+            // The bug report of 2026-10-11: faster than the median on a 500-piece puzzle was 5 % of 5 XP = 0.25,
+            // rounded to nothing - a qualifying bonus is worth at least 1 XP
+            'faster than the median on a 500-piece puzzle is worth 1 XP' => [
                 self::context(pieces: 500, percentile: SpeedPercentile::AboveMedian),
+                ['solve_base' => 5, 'solve_speed_bonus' => 1],
+            ],
+            'a top 10 % 99-piece solve is worth 1 XP' => [
+                self::context(pieces: 99, percentile: SpeedPercentile::Top10),
+                ['solve_base' => 1, 'solve_speed_bonus' => 1],
+            ],
+            'slower than the median earns no speed line' => [
+                self::context(pieces: 500, percentile: SpeedPercentile::None),
                 ['solve_base' => 5],
             ],
             'duo never gets a speed bonus' => [
@@ -124,13 +135,21 @@ final class XpCalculatorTest extends TestCase
             ],
 
             // --- weekly boost: first 5 XP-earning solves per ISO week ---
-            'weekly boost = 50% of core for the first solve of the week' => [
+            'weekly boost = 20% of core for the first solve of the week' => [
+                self::context(pieces: 2000, weekCount: 0),
+                ['solve_base' => 20, 'solve_weekly_boost' => 4],
+            ],
+            'weekly boost on a 500-piece solve (1.0)' => [
                 self::context(weekCount: 0),
-                ['solve_base' => 5, 'solve_weekly_boost' => 3],
+                ['solve_base' => 5, 'solve_weekly_boost' => 1],
             ],
             'weekly boost still applies to the 5th solve of the week' => [
                 self::context(weekCount: 4),
-                ['solve_base' => 5, 'solve_weekly_boost' => 3],
+                ['solve_base' => 5, 'solve_weekly_boost' => 1],
+            ],
+            'a weekly boost is worth at least 1 XP (200pc: 0.4)' => [
+                self::context(pieces: 200, weekCount: 0),
+                ['solve_base' => 2, 'solve_weekly_boost' => 1],
             ],
             'no weekly boost from the 6th solve of the week' => [
                 self::context(weekCount: 5),
@@ -138,29 +157,22 @@ final class XpCalculatorTest extends TestCase
             ],
             'weekly boost computed on full core incl. bonuses' => [
                 self::context(pieces: 1000, tier: 4, unboxed: true, weekCount: 0),
-                ['solve_base' => 10, 'solve_difficulty_bonus' => 3, 'solve_unboxed_bonus' => 3, 'solve_weekly_boost' => 8],
+                ['solve_base' => 10, 'solve_difficulty_bonus' => 3, 'solve_unboxed_bonus' => 3, 'solve_weekly_boost' => 3],
             ],
             'relax first solve gets the weekly boost too' => [
                 self::context(timed: false, weekCount: 0),
                 ['solve_base' => 3, 'solve_weekly_boost' => 1],
             ],
 
-            // --- daily warm-up ---
-            'first XP-earning solve of the day gets flat +2' => [
-                self::context(firstOfDay: true),
-                ['solve_base' => 5, 'solve_daily_warmup' => 2],
-            ],
-
-            // --- everything at once ---
-            'full receipt: base, difficulty, unboxed, speed, weekly, warm-up' => [
-                self::context(pieces: 1000, tier: 4, unboxed: true, percentile: SpeedPercentile::AboveMedian, weekCount: 0, firstOfDay: true),
+            // --- everything at once: the XP explainer's example (20 XP) ---
+            'full receipt: base, difficulty, unboxed, speed, weekly' => [
+                self::context(pieces: 1000, tier: 4, unboxed: true, percentile: SpeedPercentile::AboveMedian, weekCount: 0),
                 [
                     'solve_base' => 10,
                     'solve_difficulty_bonus' => 3,
                     'solve_unboxed_bonus' => 3,
                     'solve_speed_bonus' => 1,
-                    'solve_weekly_boost' => 8,
-                    'solve_daily_warmup' => 2,
+                    'solve_weekly_boost' => 3,
                 ],
             ],
         ];
@@ -185,7 +197,7 @@ final class XpCalculatorTest extends TestCase
 
     public function testRelaxRepeatEarnsNothingAtAll(): void
     {
-        $context = self::context(timed: false, occurrence: 2, weekCount: 0, firstOfDay: true);
+        $context = self::context(timed: false, occurrence: 2, weekCount: 0);
 
         self::assertSame([], (new XpCalculator())->calculate($context));
     }

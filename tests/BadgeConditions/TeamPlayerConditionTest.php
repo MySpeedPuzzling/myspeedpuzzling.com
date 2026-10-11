@@ -17,21 +17,26 @@ final class TeamPlayerConditionTest extends TestCase
         self::assertSame(BadgeType::TeamPlayer, (new TeamPlayerCondition())->badgeType());
     }
 
-    public function testFirstTeamSolveEarnsBronze(): void
+    public function testOneTeamSolveIsNotAnAchievementYet(): void
     {
-        self::assertSame([BadgeTier::Bronze], (new TeamPlayerCondition())->qualifiedTiers($this->snapshot(1)));
+        self::assertSame([], (new TeamPlayerCondition())->qualifiedTiers($this->snapshot(1)));
     }
 
-    public function testFourSolvesStillOnlyBronze(): void
+    public function testFiveTeamSolvesEarnBronze(): void
     {
-        self::assertSame([BadgeTier::Bronze], (new TeamPlayerCondition())->qualifiedTiers($this->snapshot(4)));
+        self::assertSame([BadgeTier::Bronze], (new TeamPlayerCondition())->qualifiedTiers($this->snapshot(5)));
     }
 
-    public function testFiveSolvesEarnBronzeAndSilver(): void
+    public function testTwentyFourSolvesStillOnlyBronze(): void
+    {
+        self::assertSame([BadgeTier::Bronze], (new TeamPlayerCondition())->qualifiedTiers($this->snapshot(24)));
+    }
+
+    public function testTwentyFiveSolvesEarnBronzeAndSilver(): void
     {
         self::assertSame(
             [BadgeTier::Bronze, BadgeTier::Silver],
-            (new TeamPlayerCondition())->qualifiedTiers($this->snapshot(5)),
+            (new TeamPlayerCondition())->qualifiedTiers($this->snapshot(25)),
         );
     }
 
@@ -42,12 +47,12 @@ final class TeamPlayerConditionTest extends TestCase
 
     public function testProgressTowardSilverFromBronze(): void
     {
-        $progress = (new TeamPlayerCondition())->progressToNextTier($this->snapshot(3), BadgeTier::Bronze);
+        $progress = (new TeamPlayerCondition())->progressToNextTier($this->snapshot(15), BadgeTier::Bronze);
 
         self::assertNotNull($progress);
         self::assertSame(BadgeTier::Silver, $progress->nextTier);
-        self::assertSame(3, $progress->currentValue);
-        self::assertSame(5, $progress->targetValue);
+        self::assertSame(15, $progress->currentValue);
+        self::assertSame(25, $progress->targetValue);
         self::assertSame(60, $progress->percent);
     }
 

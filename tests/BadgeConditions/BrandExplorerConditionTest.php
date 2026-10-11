@@ -19,19 +19,19 @@ final class BrandExplorerConditionTest extends TestCase
 
     public function testNoQualifyingTiersWhenBelowFirstThreshold(): void
     {
-        self::assertSame([], (new BrandExplorerCondition())->qualifiedTiers($this->snapshot(2)));
+        self::assertSame([], (new BrandExplorerCondition())->qualifiedTiers($this->snapshot(4)));
     }
 
     public function testQualifiesForFirstTierAtExactThreshold(): void
     {
-        self::assertSame([BadgeTier::Bronze], (new BrandExplorerCondition())->qualifiedTiers($this->snapshot(3)));
+        self::assertSame([BadgeTier::Bronze], (new BrandExplorerCondition())->qualifiedTiers($this->snapshot(5)));
     }
 
     public function testQualifiesForAllLowerTiersWhenSkippingAhead(): void
     {
         self::assertSame(
             [BadgeTier::Bronze, BadgeTier::Silver, BadgeTier::Gold],
-            (new BrandExplorerCondition())->qualifiedTiers($this->snapshot(30)),
+            (new BrandExplorerCondition())->qualifiedTiers($this->snapshot(40)),
         );
     }
 
@@ -45,22 +45,22 @@ final class BrandExplorerConditionTest extends TestCase
 
     public function testProgressTowardBronzeWithNoBadges(): void
     {
-        $progress = (new BrandExplorerCondition())->progressToNextTier($this->snapshot(2), null);
+        $progress = (new BrandExplorerCondition())->progressToNextTier($this->snapshot(4), null);
 
         self::assertNotNull($progress);
         self::assertSame(BadgeTier::Bronze, $progress->nextTier);
-        self::assertSame(2, $progress->currentValue);
-        self::assertSame(3, $progress->targetValue);
-        self::assertSame(66, $progress->percent);
+        self::assertSame(4, $progress->currentValue);
+        self::assertSame(5, $progress->targetValue);
+        self::assertSame(80, $progress->percent);
     }
 
     public function testProgressTowardSilverWithBronzeEarned(): void
     {
-        $progress = (new BrandExplorerCondition())->progressToNextTier($this->snapshot(9), BadgeTier::Bronze);
+        $progress = (new BrandExplorerCondition())->progressToNextTier($this->snapshot(12), BadgeTier::Bronze);
 
         self::assertNotNull($progress);
         self::assertSame(BadgeTier::Silver, $progress->nextTier);
-        self::assertSame(90, $progress->percent);
+        self::assertSame(80, $progress->percent);
     }
 
     public function testProgressIsNullWhenAllTiersEarned(): void
@@ -72,8 +72,8 @@ final class BrandExplorerConditionTest extends TestCase
     {
         $condition = new BrandExplorerCondition();
 
-        self::assertSame(3, $condition->requirementForTier(BadgeTier::Bronze));
-        self::assertSame(10, $condition->requirementForTier(BadgeTier::Silver));
+        self::assertSame(5, $condition->requirementForTier(BadgeTier::Bronze));
+        self::assertSame(15, $condition->requirementForTier(BadgeTier::Silver));
         self::assertSame(100, $condition->requirementForTier(BadgeTier::Diamond));
     }
 

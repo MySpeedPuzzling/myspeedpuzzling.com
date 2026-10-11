@@ -6,8 +6,8 @@ namespace SpeedPuzzling\Web\Value;
 
 /**
  * Everything the pure XpCalculator needs to know about one solve. The wiring layer
- * (award handler / recompute) is responsible for computing occurrence position, week/day
- * counters and the speed percentile — the calculator itself never touches the database.
+ * (award handler / recompute) is responsible for computing occurrence position, the weekly
+ * counter and the speed percentile — the calculator itself never touches the database.
  */
 final readonly class SolveXpContext
 {
@@ -32,8 +32,6 @@ final readonly class SolveXpContext
         public SpeedPercentile $speedPercentile = SpeedPercentile::None,
         /** How many XP-earning solves this player already has in this solve's ISO week (UTC). */
         public int $xpEarningSolvesThisWeek = 0,
-        /** True when the player has no earlier XP-earning solve on this solve's UTC day. */
-        public bool $isFirstXpEarningSolveOfDay = false,
     ) {
     }
 }

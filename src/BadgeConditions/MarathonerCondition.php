@@ -22,9 +22,9 @@ readonly final class MarathonerCondition extends AbstractAscendingThresholdCondi
     protected function thresholds(): array
     {
         return [
-            1 => 1,
-            2 => 5,
-            3 => 15,
+            1 => 5,
+            2 => 10,
+            3 => 20,
             4 => 40,
             5 => 100,
         ];

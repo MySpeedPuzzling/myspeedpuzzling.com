@@ -38,8 +38,8 @@ final class XpRecomputerTest extends KernelTestCase
         // An achievement entry from before achievements stopped granting XP is dropped by the rebuild
         $this->insertLegacyAchievementEntry($playerId, xp: 25);
 
-        // Two solves after the full-formula cutoff exercise weekly boost + daily warm-up - in a week without other
-        // solves of the player: the fixture solves are dated relative to now and would take the warm-up of their day
+        // Two solves after the full-formula cutoff exercise the weekly boost - in a week without other solves of the
+        // player: the fixture solves are dated relative to now and would take the week's first slots
         $afterCutoff = $this->wednesdayOfAWeekWithoutSolves($playerId);
         $solveA = $this->insertSolve($playerId, PuzzleFixture::PUZZLE_500_04, 3600, $afterCutoff->setTime(9, 0), 500);
         $solveB = $this->insertSolve($playerId, PuzzleFixture::PUZZLE_1500_02, 7200, $afterCutoff->setTime(15, 0), 1500);
@@ -59,21 +59,21 @@ final class XpRecomputerTest extends KernelTestCase
         // Relax solve of a puzzle already solved twice = relax repeat: zero entries.
         self::assertSame([], $this->entriesFor(PuzzleSolvingTimeFixture::TIME_46_RELAX_NO_FINISHED_AT));
 
-        // Backfill solves never receive weekly boost or daily warm-up.
+        // Backfill solves never receive the weekly boost.
         self::assertSame(
             ['solve_base' => 5],
             $this->entriesFor($backfillSolve),
         );
 
-        // Post-cutoff solve A: base 5, weekly boost 3 (first of week), warm-up 2 (first of day).
+        // Post-cutoff solve A: base 5, weekly boost 20 % of 5 = 1 (first of week).
         self::assertSame(
-            ['solve_base' => 5, 'solve_daily_warmup' => 2, 'solve_weekly_boost' => 3],
+            ['solve_base' => 5, 'solve_weekly_boost' => 1],
             $this->entriesFor($solveA),
         );
 
-        // Post-cutoff solve B same day: base 15, weekly boost 8 — no second warm-up.
+        // Post-cutoff solve B same day: base 15, weekly boost 20 % of 15 = 3 (second of week).
         self::assertSame(
-            ['solve_base' => 15, 'solve_weekly_boost' => 8],
+            ['solve_base' => 15, 'solve_weekly_boost' => 3],
             $this->entriesFor($solveB),
         );
 

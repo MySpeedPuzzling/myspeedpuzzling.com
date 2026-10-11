@@ -16,8 +16,8 @@ use SpeedPuzzling\Web\Value\XpEntryDraft;
 
 /**
  * The one replay of a player's XP: their whole current solve history (registered participations, suspicious solves
- * left out) in canonical order (COALESCE(finished_at, tracked_at), id), occurrence per puzzle, the weekly boost and
- * the daily warm-up handed to the first XP-earning solves of the ISO week / day.
+ * left out) in canonical order (COALESCE(finished_at, tracked_at), id), occurrence per puzzle, the weekly boost
+ * handed to the first XP-earning solves of the ISO week.
  *
  * XpRecomputer writes the drafts of every solve, XpChainRecomputer only those of the solves a change can reach -
  * both read them from here, so the live wiring and a full rebuild always write the same ledger: whatever the order
@@ -72,7 +72,7 @@ SQL;
 
     /**
      * Replays the whole history; drafts are built only for the solves in $scope (null = every solve). A solve outside
-     * the scope still takes its occurrence and its weekly / daily slot - that is what the solves in the scope depend
+     * the scope still takes its occurrence and its weekly slot - that is what the solves in the scope depend
      * on - but needs no speed percentile, so only the scope's puzzles are asked for one.
      *
      * @phpstan-param list<HistorySolve> $history
@@ -89,8 +89,6 @@ SQL;
         $occurrenceByPuzzle = [];
         /** @var array<string, int> $weeklyCounts */
         $weeklyCounts = [];
-        /** @var array<string, true> $daysWithXp */
-        $daysWithXp = [];
 
         foreach ($history as $solve) {
             $occurrence = ($occurrenceByPuzzle[$solve['puzzle_id']] ?? 0) + 1;
@@ -98,7 +96,6 @@ SQL;
 
             $earnedAt = new DateTimeImmutable($solve['earned_at']);
             $weekKey = self::weekKey($earnedAt);
-            $dayKey = $earnedAt->format('Y-m-d');
             $inScope = $scope === null || isset($scope[$solve['id']]);
 
             $awards = $this->xpCalculator->calculate($this->context(
@@ -107,12 +104,10 @@ SQL;
                 occurrence: $occurrence,
                 percentiles: $inScope ? ($percentilesByPuzzle[$solve['puzzle_id']] ?? PuzzleSpeedPercentiles::empty()) : null,
                 xpEarningSolvesThisWeek: $weeklyCounts[$weekKey] ?? 0,
-                isFirstXpEarningSolveOfDay: isset($daysWithXp[$dayKey]) === false,
             ));
 
             if ($awards !== []) {
                 $weeklyCounts[$weekKey] = ($weeklyCounts[$weekKey] ?? 0) + 1;
-                $daysWithXp[$dayKey] = true;
             }
 
             if ($inScope === false) {
@@ -152,7 +147,6 @@ SQL;
         int $occurrence,
         null|PuzzleSpeedPercentiles $percentiles,
         int $xpEarningSolvesThisWeek,
-        bool $isFirstXpEarningSolveOfDay,
     ): SolveXpContext {
         $isBackfill = $this->xpFormulaCutoff->isHistory(new DateTimeImmutable($solve['tracked_at']));
         $isTeamOrDuo = $solve['puzzling_type'] !== 'solo';
@@ -173,7 +167,6 @@ SQL;
             isBackfill: $isBackfill,
             speedPercentile: $speedPercentile,
             xpEarningSolvesThisWeek: $xpEarningSolvesThisWeek,
-            isFirstXpEarningSolveOfDay: $isFirstXpEarningSolveOfDay,
         );
     }
 

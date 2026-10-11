@@ -22,11 +22,11 @@ final class LevelTableTest extends TestCase
             'exactly level 2' => [5, 2],
             'between levels' => [9, 2],
             'exactly level 3' => [10, 3],
-            'exactly level 10' => [64, 10],
-            'mid curve' => [300, 22],
-            'exactly level 25' => [363, 25],
-            'just below max level' => [3159, 49],
-            'exactly max level' => [3160, 50],
+            'exactly level 10' => [68, 10],
+            'mid curve' => [300, 20],
+            'exactly level 25' => [467, 25],
+            'just below max level' => [5799, 49],
+            'exactly max level' => [5800, 50],
             'far beyond max level' => [99999, 50],
             'negative xp clamps to level 1' => [-10, 1],
         ];
@@ -42,9 +42,9 @@ final class LevelTableTest extends TestCase
     {
         self::assertSame(0, LevelTable::xpForLevel(1));
         self::assertSame(5, LevelTable::xpForLevel(2));
-        self::assertSame(223, LevelTable::xpForLevel(20));
-        self::assertSame(1376, LevelTable::xpForLevel(40));
-        self::assertSame(3160, LevelTable::xpForLevel(50));
+        self::assertSame(268, LevelTable::xpForLevel(20));
+        self::assertSame(2192, LevelTable::xpForLevel(40));
+        self::assertSame(5800, LevelTable::xpForLevel(50));
     }
 
     public function testXpForLevelRejectsLevelZero(): void
@@ -75,7 +75,7 @@ final class LevelTableTest extends TestCase
 
     public function testProgressToNextJustBeforeLevelUp(): void
     {
-        $progress = LevelTable::progressToNext(3159);
+        $progress = LevelTable::progressToNext(5799);
 
         self::assertNotNull($progress);
         self::assertGreaterThan(0.99, $progress);
@@ -84,7 +84,7 @@ final class LevelTableTest extends TestCase
 
     public function testProgressToNextIsNullAtMaxLevel(): void
     {
-        self::assertNull(LevelTable::progressToNext(3160));
+        self::assertNull(LevelTable::progressToNext(5800));
         self::assertNull(LevelTable::progressToNext(99999));
     }
 
@@ -96,6 +96,18 @@ final class LevelTableTest extends TestCase
             $current = LevelTable::xpForLevel($level);
             self::assertGreaterThan($previous, $current, "Level {$level} threshold must exceed level " . ($level - 1));
             $previous = $current;
+        }
+    }
+
+    /**
+     * Curve v5 shape (LevelTable docblock): no level is ever cheaper than the one before it
+     */
+    public function testNoStepIsSmallerThanThePreviousOne(): void
+    {
+        for ($level = 3; $level <= LevelTable::MAX_LEVEL; $level++) {
+            $step = LevelTable::xpForLevel($level) - LevelTable::xpForLevel($level - 1);
+            $previousStep = LevelTable::xpForLevel($level - 1) - LevelTable::xpForLevel($level - 2);
+            self::assertGreaterThanOrEqual($previousStep, $step, "Level {$level}");
         }
     }
 }

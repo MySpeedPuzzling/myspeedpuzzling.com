@@ -24,7 +24,7 @@ final class CatalogerConditionTest extends TestCase
 
     public function testQualifiesForFirstTierAtExactThreshold(): void
     {
-        self::assertSame([BadgeTier::Bronze], (new CatalogerCondition())->qualifiedTiers($this->snapshot(1)));
+        self::assertSame([BadgeTier::Bronze], (new CatalogerCondition())->qualifiedTiers($this->snapshot(5)));
     }
 
     public function testQualifiesForAllLowerTiersWhenSkippingAhead(): void
@@ -45,12 +45,12 @@ final class CatalogerConditionTest extends TestCase
 
     public function testProgressTowardSilverWithBronzeEarned(): void
     {
-        $progress = (new CatalogerCondition())->progressToNextTier($this->snapshot(8), BadgeTier::Bronze);
+        $progress = (new CatalogerCondition())->progressToNextTier($this->snapshot(12), BadgeTier::Bronze);
 
         self::assertNotNull($progress);
         self::assertSame(BadgeTier::Silver, $progress->nextTier);
-        self::assertSame(8, $progress->currentValue);
-        self::assertSame(10, $progress->targetValue);
+        self::assertSame(12, $progress->currentValue);
+        self::assertSame(15, $progress->targetValue);
         self::assertSame(80, $progress->percent);
     }
 
@@ -63,8 +63,8 @@ final class CatalogerConditionTest extends TestCase
     {
         $condition = new CatalogerCondition();
 
-        self::assertSame(1, $condition->requirementForTier(BadgeTier::Bronze));
-        self::assertSame(10, $condition->requirementForTier(BadgeTier::Silver));
+        self::assertSame(5, $condition->requirementForTier(BadgeTier::Bronze));
+        self::assertSame(15, $condition->requirementForTier(BadgeTier::Silver));
         self::assertSame(300, $condition->requirementForTier(BadgeTier::Diamond));
     }
 

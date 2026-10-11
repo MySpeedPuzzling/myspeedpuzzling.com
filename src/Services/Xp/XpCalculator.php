@@ -10,7 +10,7 @@ use SpeedPuzzling\Web\Value\XpAward;
 use SpeedPuzzling\Web\Value\XpReason;
 
 /**
- * Pure XP formula (§1.2 of the implementation plan, locked):
+ * Pure XP formula (§1.2 of the implementation plan, v5 2026-10-11):
  *
  *   core = base × difficulty × team × unboxed × occurrence
  *
@@ -21,12 +21,15 @@ use SpeedPuzzling\Web\Value\XpReason;
  *   unboxed_part    = (base_part + difficulty_part) × 0.20    → SolveUnboxedBonus
  *   core            = base_part + difficulty_part + unboxed_part   (derived, never stored)
  *   speed_part      = core × {0.05|0.10|0.15}                 → SolveSpeedBonus
- *   weekly_part     = core × 0.50 (first 5 solves per week)   → SolveWeeklyBoost
- *   warmup          = flat +2 (first solve of the day)        → SolveDailyWarmup
+ *   weekly_part     = core × 0.20 (first 5 solves per week)   → SolveWeeklyBoost
  *
- * Each part is rounded half-up to int independently; zero-valued parts produce no award;
- * the base part has a floor of 1 whenever core > 0. Backfill solves (tracked before the
- * cutoff, XpFormulaCutoff = the deploy moment) earn only the first three award kinds. Relax repeats earn nothing at all.
+ * Each part is rounded half-up to int independently, and **every part whose condition is met is worth at least
+ * 1 XP** - the base whenever core > 0, a bonus whenever the solve qualifies for it (Jan, 2026-10-11: "faster than the
+ * median" on a 500-piece puzzle was +5 % of 6 XP = 0.3, rounded to nothing, so a promised bonus never showed up).
+ * A bonus the solve does not qualify for produces no award. Backfill solves (tracked before the cutoff,
+ * XpFormulaCutoff = the deploy moment) earn only the first three award kinds. Relax repeats earn nothing at all.
+ * There is no daily warm-up any more and the weekly boost is +20 % instead of +50 %: the incentives made levels come
+ * 1.7× faster than the curve was calibrated for (launch-2026-10.md).
  */
 readonly final class XpCalculator
 {
@@ -47,8 +50,7 @@ readonly final class XpCalculator
     private const float BASE_MAX = 60.0;
     private const float TEAM_MULTIPLIER = 0.75;
     private const float UNBOXED_BONUS_RATE = 0.20;
-    private const float WEEKLY_BOOST_RATE = 0.50;
-    private const int DAILY_WARMUP_XP = 2;
+    private const float WEEKLY_BOOST_RATE = 0.20;
 
     /**
      * §1.8 plausibility guard — callers must resolve SpeedPercentile::None (plus a warning
@@ -88,18 +90,16 @@ readonly final class XpCalculator
         $core = $basePart + $difficultyPart + $unboxedPart;
 
         $awards = [
-            // core > 0 is guaranteed here (base ≥ 1, occurrence > 0) — floor the base line at 1.
-            new XpAward(XpReason::SolveBase, max($this->roundHalfUp($basePart), 1)),
+            // core > 0 is guaranteed here (base ≥ 1, occurrence > 0)
+            new XpAward(XpReason::SolveBase, $this->atLeastOne($basePart)),
         ];
 
-        $difficultyAmount = $this->roundHalfUp($difficultyPart);
-        if ($difficultyAmount > 0) {
-            $awards[] = new XpAward(XpReason::SolveDifficultyBonus, $difficultyAmount);
+        if ($difficultyPart > 0.0) {
+            $awards[] = new XpAward(XpReason::SolveDifficultyBonus, $this->atLeastOne($difficultyPart));
         }
 
-        $unboxedAmount = $this->roundHalfUp($unboxedPart);
-        if ($unboxedAmount > 0) {
-            $awards[] = new XpAward(XpReason::SolveUnboxedBonus, $unboxedAmount);
+        if ($context->unboxed) {
+            $awards[] = new XpAward(XpReason::SolveUnboxedBonus, $this->atLeastOne($unboxedPart));
         }
 
         if ($context->isBackfill) {
@@ -108,24 +108,13 @@ readonly final class XpCalculator
 
         // Speed bonus: solo + timed only — defensive re-check even though the wiring
         // already passes SpeedPercentile::None for ineligible solves.
-        if ($context->isTimed && $context->isTeamOrDuo === false) {
-            $speedAmount = $this->roundHalfUp($core * $context->speedPercentile->bonusRate());
-
-            if ($speedAmount > 0) {
-                $awards[] = new XpAward(XpReason::SolveSpeedBonus, $speedAmount);
-            }
+        $speedRate = $context->speedPercentile->bonusRate();
+        if ($context->isTimed && $context->isTeamOrDuo === false && $speedRate > 0.0) {
+            $awards[] = new XpAward(XpReason::SolveSpeedBonus, $this->atLeastOne($core * $speedRate));
         }
 
         if ($context->xpEarningSolvesThisWeek < self::WEEKLY_BOOST_SOLVE_LIMIT) {
-            $weeklyAmount = $this->roundHalfUp($core * self::WEEKLY_BOOST_RATE);
-
-            if ($weeklyAmount > 0) {
-                $awards[] = new XpAward(XpReason::SolveWeeklyBoost, $weeklyAmount);
-            }
-        }
-
-        if ($context->isFirstXpEarningSolveOfDay) {
-            $awards[] = new XpAward(XpReason::SolveDailyWarmup, self::DAILY_WARMUP_XP);
+            $awards[] = new XpAward(XpReason::SolveWeeklyBoost, $this->atLeastOne($core * self::WEEKLY_BOOST_RATE));
         }
 
         return $awards;
@@ -168,6 +157,14 @@ readonly final class XpCalculator
         }
 
         return $occurrenceIndex === 1 ? 0.5 : 0.0;
+    }
+
+    /**
+     * A part the solve qualifies for: rounded half-up, never below 1 XP (a promised line always shows up)
+     */
+    private function atLeastOne(float $value): int
+    {
+        return max($this->roundHalfUp($value), 1);
     }
 
     private function roundHalfUp(float $value): int

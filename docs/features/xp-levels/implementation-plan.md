@@ -107,6 +107,10 @@ occurrence = timed 1st solve of puzzle: 1.00 · timed 2nd: 0.50 · timed 3rd+: 0
              relax (seconds_to_solve IS NULL) 1st: 0.50 · relax repeat: 0.00
              (NO personal-best exception — deliberately removed)
 
+> **Superseded 2026-10-11 (formula v5, `launch-2026-10.md` §1 "XP balance"):** weekly boost = core × 0.20, NO daily
+> warm-up, and every part the solve qualifies for is worth at least 1 XP (base, difficulty, unboxed, speed, weekly
+> boost - the history formula too). The block below is the v4 history.
+
 FULL formula additions (tracked_at ≥ cutoff only):
 speed bonus   = core × 0.05 / 0.10 / 0.15 for faster-than-median / top-25% / top-10%
                 conditions: solo + timed + puzzle median exists from ≥3 DISTINCT solvers
@@ -137,7 +141,12 @@ Each part rounded half-up to int independently at persist; zero-valued parts cre
 Receipt lines render 1:1 from ledger entries (repeat/relax discount folds into the base line's
 LABEL, never a negative line).
 
-### 1.3 Level curve v4 (locked — Level 50 = 3,160 XP total)
+### 1.3 Level curve v4 (locked — Level 50 = 3,160 XP total) — superseded by v5
+
+> **v5, 2026-10-11 (`src/Value/LevelTable.php`, `launch-2026-10.md` §1 "XP balance"): Level 50 = 5,800 XP**, about
+> 1,000 logged puzzles including the bonuses. Shape = v4 × (1 + 0.835 × ((L − 1) / 49)^1.5): Level 2 = 5, Level 5 = 22,
+> Level 10 = 68, 20 = 268, 30 = 795, 40 = 2,192, 50 = 5,800. The calibration invariant below (~115 instant Level 50)
+> no longer holds: v5 gives ~18 at launch, median Level 10. The v4 table stays as history.
 
 | Lv | Σ | Lv | Σ | Lv | Σ | Lv | Σ | Lv | Σ |
 |---|---|---|---|---|---|---|---|---|---|

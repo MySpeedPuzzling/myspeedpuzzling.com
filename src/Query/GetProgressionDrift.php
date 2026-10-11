@@ -24,9 +24,9 @@ use SpeedPuzzling\Web\Value\XpReason;
  *  - not earning: nobody holds XP for a solve they are not a registered participant of, or that is marked
  *  - base line: every participation's solve_base equals the formula's base part from the current records
  *    (occurrence in the player's chain, relax / timed, pair or team, pieces) - missing awards included
- *  - slots: the weekly boost belongs to the first 5 XP-earning solves of the ISO week only (and to each of them whose
- *    base part reaches 1 XP - below that the moving difficulty decides), the warm-up to exactly the first of the day
- *    (solves logged from the formula cutoff on; history earns neither)
+ *  - slots: the weekly boost belongs to exactly the first 5 XP-earning solves of the ISO week - each of them has one
+ *    (a qualifying bonus is worth at least 1 XP), no later solve has any (solves logged from the formula cutoff on;
+ *    history earns none)
  *
  * Whether the achievements held are still the ones the records qualify for is not set-based (one snapshot per player);
  * the daily myspeedpuzzling:recalculate-badges run re-evaluates everybody and removes what no longer qualifies.
@@ -91,7 +91,6 @@ expected_base AS (
         tracked_at,
         earned_at,
         occurrence_multiplier > 0 AS earns,
-        base_before_occurrence * occurrence_multiplier AS base_part,
         CASE
             WHEN occurrence_multiplier > 0 THEN GREATEST(ROUND(base_before_occurrence * occurrence_multiplier), 1)
             ELSE 0
@@ -104,7 +103,6 @@ ledger AS (
         solving_time_id,
         COALESCE(SUM(amount) FILTER (WHERE reason = :solveBase), 0) AS base,
         COUNT(*) FILTER (WHERE reason = :weeklyBoost) AS boosts,
-        COUNT(*) FILTER (WHERE reason = :dailyWarmup) AS warmups,
         SUM(amount) AS net
     FROM xp_entry
     WHERE solving_time_id IS NOT NULL
@@ -177,9 +175,7 @@ ranked AS (
         player_id,
         id,
         tracked_at,
-        base_part >= 1 AS certainly_boosted,
-        ROW_NUMBER() OVER (PARTITION BY player_id, DATE_TRUNC('week', earned_at) ORDER BY earned_at, id) AS week_rank,
-        ROW_NUMBER() OVER (PARTITION BY player_id, DATE_TRUNC('day', earned_at) ORDER BY earned_at, id) AS day_rank
+        ROW_NUMBER() OVER (PARTITION BY player_id, DATE_TRUNC('week', earned_at) ORDER BY earned_at, id) AS week_rank
     FROM expected_base
     WHERE earns
 )
@@ -188,14 +184,10 @@ FROM ranked
 LEFT JOIN ledger ON ledger.player_id = ranked.player_id AND ledger.solving_time_id = ranked.id
 WHERE CASE
     WHEN ranked.tracked_at >= CAST(:cutoff AS TIMESTAMP) THEN
-        (ranked.week_rank > :weeklyLimit AND COALESCE(ledger.boosts, 0) > 0)
-        -- the boost is half the core rounded: certainly there from a base part of 1, below it the difficulty and
-        -- unboxed parts decide
-        OR (ranked.week_rank <= :weeklyLimit AND ranked.certainly_boosted AND COALESCE(ledger.boosts, 0) = 0)
-        OR (ranked.day_rank = 1) <> (COALESCE(ledger.warmups, 0) = 1)
+        -- a slot's solve has exactly one boost line (worth at least 1 XP), any later solve none
+        (ranked.week_rank <= :weeklyLimit) <> (COALESCE(ledger.boosts, 0) = 1)
         OR COALESCE(ledger.boosts, 0) > 1
-        OR COALESCE(ledger.warmups, 0) > 1
-    ELSE COALESCE(ledger.boosts, 0) > 0 OR COALESCE(ledger.warmups, 0) > 0
+    ELSE COALESCE(ledger.boosts, 0) > 0
 END
 SQL,
             ),
@@ -222,7 +214,6 @@ SQL,
             'compensation' => XpReason::SolveCompensation->value,
             'solveBase' => XpReason::SolveBase->value,
             'weeklyBoost' => XpReason::SolveWeeklyBoost->value,
-            'dailyWarmup' => XpReason::SolveDailyWarmup->value,
             'cutoff' => $this->xpFormulaCutoff->fullFormulaFrom()->format('Y-m-d H:i:s'),
             'weeklyLimit' => XpCalculator::WEEKLY_BOOST_SOLVE_LIMIT,
         ];

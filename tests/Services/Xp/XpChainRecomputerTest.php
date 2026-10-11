@@ -40,7 +40,7 @@ final class XpChainRecomputerTest extends KernelTestCase
         $this->award($solveId);
 
         self::assertSame(
-            ['solve_base' => 5, 'solve_daily_warmup' => 2, 'solve_weekly_boost' => 3],
+            ['solve_base' => 5, 'solve_weekly_boost' => 1],
             $this->entriesFor($solveId, PlayerFixture::PLAYER_REGULAR),
         );
         $this->assertTotalsMatchLedger(PlayerFixture::PLAYER_REGULAR);
@@ -57,7 +57,7 @@ final class XpChainRecomputerTest extends KernelTestCase
         $this->award($solveId);
 
         self::assertSame($firstTotals, $this->playerTotals(PlayerFixture::PLAYER_REGULAR));
-        self::assertSame(3, $this->entryCountFor($solveId));
+        self::assertSame(2, $this->entryCountFor($solveId));
     }
 
     public function testTheTotalIsReadBackFromTheLedgerNeverCarriedForward(): void
@@ -95,11 +95,11 @@ final class XpChainRecomputerTest extends KernelTestCase
 
         $this->award($solveId);
 
-        // 500pc duo: base 5 × 0.75 = 3.75 → 4 for BOTH participants, own weekly/daily each.
+        // 500pc duo: base 5 × 0.75 = 3.75 → 4 for BOTH participants, own weekly boost each (20 % of 3.75 → 1).
         $owner = $this->entriesFor($solveId, PlayerFixture::PLAYER_REGULAR);
         $teammate = $this->entriesFor($solveId, PlayerFixture::PLAYER_PRIVATE);
 
-        self::assertSame(['solve_base' => 4, 'solve_daily_warmup' => 2, 'solve_weekly_boost' => 2], $owner);
+        self::assertSame(['solve_base' => 4, 'solve_weekly_boost' => 1], $owner);
         self::assertSame($owner, $teammate);
         $this->assertTotalsMatchLedger(PlayerFixture::PLAYER_REGULAR);
         $this->assertTotalsMatchLedger(PlayerFixture::PLAYER_PRIVATE);
@@ -131,11 +131,6 @@ final class XpChainRecomputerTest extends KernelTestCase
             self::assertArrayHasKey('solve_weekly_boost', $this->entriesFor($solveIds[$i], PlayerFixture::PLAYER_REGULAR), "Solve {$i} must be boosted");
         }
         self::assertArrayNotHasKey('solve_weekly_boost', $this->entriesFor($solveIds[5], PlayerFixture::PLAYER_REGULAR));
-
-        // Every solve was on its own day — each gets the daily warm-up.
-        foreach ($solveIds as $solveId) {
-            self::assertArrayHasKey('solve_daily_warmup', $this->entriesFor($solveId, PlayerFixture::PLAYER_REGULAR));
-        }
 
         // A solve the following Monday starts a fresh week and is boosted again.
         $nextWeek = $this->insertSolve(PlayerFixture::PLAYER_REGULAR, PuzzleFixture::PUZZLE_6000, 7200, $monday->modify('+7 days'), 6000);
@@ -185,20 +180,20 @@ final class XpChainRecomputerTest extends KernelTestCase
         $this->entityManager->flush();
         $this->entityManager->clear();
 
-        // Solve A: original receipt (5+3+2) preserved plus exact negative mirrors.
+        // Solve A: original receipt (5+1) preserved plus exact negative mirrors.
         $aEntries = $this->allEntriesFor($solveA, PlayerFixture::PLAYER_REGULAR);
         self::assertSame(0, array_sum(array_column($aEntries, 'amount')));
-        self::assertCount(6, $aEntries);
-        self::assertSame(3, $this->countByReason($aEntries, 'solve_compensation'));
+        self::assertCount(4, $aEntries);
+        self::assertSame(2, $this->countByReason($aEntries, 'solve_compensation'));
 
-        // Solve B got promoted to first occurrence and now owns the week/day bonuses.
+        // Solve B got promoted to first occurrence and now owns the week's first boost.
         self::assertSame(
-            ['solve_base' => 5, 'solve_daily_warmup' => 2, 'solve_weekly_boost' => 3],
+            ['solve_base' => 5, 'solve_weekly_boost' => 1],
             $this->entriesFor($solveB, PlayerFixture::PLAYER_REGULAR),
         );
 
         $this->assertTotalsMatchLedger(PlayerFixture::PLAYER_REGULAR);
-        self::assertSame(10, $this->playerTotals(PlayerFixture::PLAYER_REGULAR)['xp_total']);
+        self::assertSame(6, $this->playerTotals(PlayerFixture::PLAYER_REGULAR)['xp_total']);
     }
 
     public function testDeleteIsIdempotentUnderRedelivery(): void
@@ -286,10 +281,8 @@ final class XpChainRecomputerTest extends KernelTestCase
         $newBadges = $evaluator->recalculateForPlayer(PlayerFixture::PLAYER_REGULAR);
         $this->entityManager->flush();
 
-        // The new conditions evaluate and award - the fixture player has 1 relax solve (Zen Puzzler Bronze) and
-        // 15 first-attempt solves (First Try Bronze)
+        // The conditions evaluate and award - the fixture player has 15 first-attempt solves (First Try Bronze)
         $earnedTypes = array_map(static fn ($badge) => $badge->type->value, $newBadges);
-        self::assertContains('zen_puzzler', $earnedTypes);
         self::assertContains('first_try', $earnedTypes);
 
         // Achievement Points only: the ledger and the XP totals stay as they were

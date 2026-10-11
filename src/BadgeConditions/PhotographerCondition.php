@@ -22,7 +22,7 @@ readonly final class PhotographerCondition extends AbstractAscendingThresholdCon
     protected function thresholds(): array
     {
         return [
-            1 => 1,
+            1 => 5,
             2 => 25,
             3 => 100,
             4 => 500,

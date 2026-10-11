@@ -9,7 +9,8 @@ _Last updated: 2026-07-13 — implementation COMPLETE (all phases P0–P8 of imp
 ## Design decisions locked (context)
 
 - Levels are **numeric only (1–50)** — no bracket/level names.
-- Level 50 = 3,160 XP total, curve v4 (levels 2–25 identical to v1; levels 26–50 stretched ~8.5%/step to absorb
+- *(Superseded 2026-10-11: curve v5, Level 50 = 5,800 XP ≈ 1,000 logged puzzles - `launch-2026-10.md` §1 "XP balance".)*
+  Level 50 = 3,160 XP total, curve v4 (levels 2–25 identical to v1; levels 26–50 stretched ~8.5%/step to absorb
   achievement XP — with achievements included, ~112 players instantly max, 1.6%, same share as solve-only v1;
   median-active time-to-max ~2.6–2.9 years).
 - XP = activity (free for everyone) · Achievement Points + badges = members-only · MSP Points/Rating stay separate.
@@ -84,6 +85,7 @@ Team Spirit — plus admin-granted Supporter.
   | Weekend Puzzler | 10/50/150/**300**/**600** weekend solves | 2580/948/251/46/2 |
   | Cataloger | 1/10/50/150/**300** approved catalog adds | 3205/769/117/24/5 |
 
+  *(History: achievements no longer grant XP and the curve is v5 since 2026-10-11.)*
   **Final calibration verified (2026-07-12):** with this full lineup's achievement XP included, curve v4
   (Level 50 = 3,160) yields **exactly 115 instant-max players (1.6%)** — no curve adjustment needed.
 - [x] **Badge images** — done 2026-10-10 as a deterministic SVG pipeline instead of AI generation: F1 seal ladder v2
@@ -129,7 +131,7 @@ Both prompts now carry a strict knob-geometry block + "fewer, larger pieces" rul
 
 - [ ] T-7 teaser + launch posts in Facebook groups (timed to implementation readiness)
 - [ ] Add production cron entries (`README.md` §Cron: settle-xp-bonuses, recalculate-badges, weekly digest) + `digest-consumer` compose service + deploy.sh workers line (content-digest README §13)
-- [ ] Run launch sequence: `myspeedpuzzling:xp-backfill` → `myspeedpuzzling:xp-distribution` (verify ≈115 Lv50 ±10, median L13–14) → remove flag + deploy → `myspeedpuzzling:send-xp-reveal-emails`
+- [ ] Run launch sequence: `myspeedpuzzling:xp-backfill` → `myspeedpuzzling:xp-distribution` (curve v5: expect ≈18 at Lv50, median L10 - `launch-runbook.md` §3) → remove flag + deploy → `myspeedpuzzling:send-xp-reveal-emails`
 - [ ] Ask Seznam support for the Email Profi outbound ceiling (blocks full digest volume, not ramp-up)
 - [ ] Dev environment: run `doctrine:migrations:migrate` locally (7 pending migrations from this branch, incl. pre-existing badge.tier)
 - [x] Content-digest decisions (2026-07-12): weekly digest **default-on** for existing players ·

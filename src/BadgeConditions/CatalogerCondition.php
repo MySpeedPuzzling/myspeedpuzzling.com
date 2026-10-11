@@ -22,8 +22,8 @@ readonly final class CatalogerCondition extends AbstractAscendingThresholdCondit
     protected function thresholds(): array
     {
         return [
-            1 => 1,
-            2 => 10,
+            1 => 5,
+            2 => 15,
             3 => 50,
             4 => 150,
             5 => 300,

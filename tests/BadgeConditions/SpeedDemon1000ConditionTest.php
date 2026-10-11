@@ -22,19 +22,19 @@ final class SpeedDemon1000ConditionTest extends TestCase
         self::assertSame([], (new SpeedDemon1000Condition())->qualifiedTiers($this->snapshot(null)));
     }
 
-    public function testSlowerThan8HoursYieldsNothing(): void
+    public function testSlowerThan5HoursYieldsNothing(): void
     {
-        self::assertSame([], (new SpeedDemon1000Condition())->qualifiedTiers($this->snapshot(28_801)));
+        self::assertSame([], (new SpeedDemon1000Condition())->qualifiedTiers($this->snapshot(18_001)));
     }
 
-    public function testExactlyThreshold8HoursEarnsBronze(): void
+    public function testExactlyThreshold5HoursEarnsBronze(): void
     {
-        self::assertSame([BadgeTier::Bronze], (new SpeedDemon1000Condition())->qualifiedTiers($this->snapshot(28_800)));
+        self::assertSame([BadgeTier::Bronze], (new SpeedDemon1000Condition())->qualifiedTiers($this->snapshot(18_000)));
     }
 
     public function testFasterTimeQualifiesAllLowerTiers(): void
     {
-        // 2 hours: under 8h, 4h and 2.5h limits, but slower than 1h45m.
+        // 2 hours: under the 5h, 3.5h and 2.5h limits, but slower than 1h45m.
         self::assertSame(
             [BadgeTier::Bronze, BadgeTier::Silver, BadgeTier::Gold],
             (new SpeedDemon1000Condition())->qualifiedTiers($this->snapshot(7_200)),
@@ -74,8 +74,8 @@ final class SpeedDemon1000ConditionTest extends TestCase
     {
         $condition = new SpeedDemon1000Condition();
 
-        self::assertSame(28_800, $condition->requirementForTier(BadgeTier::Bronze));
-        self::assertSame(14_400, $condition->requirementForTier(BadgeTier::Silver));
+        self::assertSame(18_000, $condition->requirementForTier(BadgeTier::Bronze));
+        self::assertSame(12_600, $condition->requirementForTier(BadgeTier::Silver));
         self::assertSame(9_000, $condition->requirementForTier(BadgeTier::Gold));
         self::assertSame(6_300, $condition->requirementForTier(BadgeTier::Platinum));
         self::assertSame(4_500, $condition->requirementForTier(BadgeTier::Diamond));

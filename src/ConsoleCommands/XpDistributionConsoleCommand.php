@@ -13,14 +13,14 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
 /**
- * Post-backfill calibration check (§1.3 / P7.T2). The two hard invariants on
- * PRODUCTION data (base ≈ 7,004 players with solves):
+ * Post-backfill calibration check (§1.3 / P7.T2), curve v5 + formula v5 (2026-10-11, launch-2026-10.md §1
+ * "XP balance"). On the production copy (7,878 players with XP) the rebuild gave:
  *
- *   1. ≈115 players at Level 50 (±10, i.e. ~1.6% instant-max)
- *   2. the median player sits around Level 13–14
+ *   1. 18 players at Level 50 (Level 50 = 5,800 XP, about 1,000 logged puzzles with the bonuses)
+ *   2. the median player at Level 10 (p90 Level 32)
  *
- * Additionally the rank-115 XP total should land around 3,190+. Dev fixtures just
- * need to look sane (a handful of low-level players). Read-only — safe anywhere.
+ * Production should land close to that. Dev fixtures just need to look sane (a handful of low-level players).
+ * Read-only — safe anywhere.
  */
 #[AsCommand(
     name: 'myspeedpuzzling:xp-distribution',
@@ -80,8 +80,8 @@ final class XpDistributionConsoleCommand extends Command
 
         $io->section('Calibration invariants (production expectations)');
         $io->listing([
-            sprintf('Players at Level 50: %d — expected ≈115 (±10) on production data', $maxLevelCount),
-            sprintf('Median level: %s — expected around 13–14 on production data', is_numeric($median) ? (string) (int) $median : 'n/a'),
+            sprintf('Players at Level 50: %d — expected ≈18 on production data (curve v5)', $maxLevelCount),
+            sprintf('Median level: %s — expected around 10 on production data', is_numeric($median) ? (string) (int) $median : 'n/a'),
             sprintf('Players with XP: %d', $total),
         ]);
 
@@ -90,7 +90,7 @@ final class XpDistributionConsoleCommand extends Command
             'SELECT name, code, xp_total, level FROM player WHERE xp_total > 0 ORDER BY xp_total DESC LIMIT 20',
         );
 
-        $io->section('Top 20 XP totals (rank-115 total should be ≈3,190+ on production)');
+        $io->section('Top 20 XP totals (rank 18 should be ≈5,800+ on production)');
         $io->table(
             ['#', 'Player', 'XP', 'Level'],
             array_map(

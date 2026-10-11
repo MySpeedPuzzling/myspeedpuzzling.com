@@ -19,19 +19,19 @@ final class UnboxedConditionTest extends TestCase
 
     public function testNoQualifyingTiersWhenBelowFirstThreshold(): void
     {
-        self::assertSame([], (new UnboxedCondition())->qualifiedTiers($this->snapshot(0)));
+        self::assertSame([], (new UnboxedCondition())->qualifiedTiers($this->snapshot(4)));
     }
 
     public function testQualifiesForFirstTierAtExactThreshold(): void
     {
-        self::assertSame([BadgeTier::Bronze], (new UnboxedCondition())->qualifiedTiers($this->snapshot(1)));
+        self::assertSame([BadgeTier::Bronze], (new UnboxedCondition())->qualifiedTiers($this->snapshot(5)));
     }
 
     public function testQualifiesForAllLowerTiersWhenSkippingAhead(): void
     {
         self::assertSame(
             [BadgeTier::Bronze, BadgeTier::Silver, BadgeTier::Gold],
-            (new UnboxedCondition())->qualifiedTiers($this->snapshot(30)),
+            (new UnboxedCondition())->qualifiedTiers($this->snapshot(40)),
         );
     }
 
@@ -45,12 +45,12 @@ final class UnboxedConditionTest extends TestCase
 
     public function testProgressTowardSilverWithBronzeEarned(): void
     {
-        $progress = (new UnboxedCondition())->progressToNextTier($this->snapshot(3), BadgeTier::Bronze);
+        $progress = (new UnboxedCondition())->progressToNextTier($this->snapshot(9), BadgeTier::Bronze);
 
         self::assertNotNull($progress);
         self::assertSame(BadgeTier::Silver, $progress->nextTier);
-        self::assertSame(3, $progress->currentValue);
-        self::assertSame(5, $progress->targetValue);
+        self::assertSame(9, $progress->currentValue);
+        self::assertSame(15, $progress->targetValue);
         self::assertSame(60, $progress->percent);
     }
 
@@ -63,8 +63,8 @@ final class UnboxedConditionTest extends TestCase
     {
         $condition = new UnboxedCondition();
 
-        self::assertSame(1, $condition->requirementForTier(BadgeTier::Bronze));
-        self::assertSame(5, $condition->requirementForTier(BadgeTier::Silver));
+        self::assertSame(5, $condition->requirementForTier(BadgeTier::Bronze));
+        self::assertSame(15, $condition->requirementForTier(BadgeTier::Silver));
         self::assertSame(100, $condition->requirementForTier(BadgeTier::Diamond));
     }
 

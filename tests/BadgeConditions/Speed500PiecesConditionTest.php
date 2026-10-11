@@ -22,14 +22,14 @@ final class Speed500PiecesConditionTest extends TestCase
         self::assertSame([], (new Speed500PiecesCondition())->qualifiedTiers($this->snapshot(null)));
     }
 
-    public function testSlowerThan5HoursYieldsNothing(): void
+    public function testSlowerThan2HoursYieldsNothing(): void
     {
-        self::assertSame([], (new Speed500PiecesCondition())->qualifiedTiers($this->snapshot(18_001)));
+        self::assertSame([], (new Speed500PiecesCondition())->qualifiedTiers($this->snapshot(7_201)));
     }
 
-    public function testExactlyThreshold5HoursEarnsBronze(): void
+    public function testExactlyThreshold2HoursEarnsBronze(): void
     {
-        self::assertSame([BadgeTier::Bronze], (new Speed500PiecesCondition())->qualifiedTiers($this->snapshot(18_000)));
+        self::assertSame([BadgeTier::Bronze], (new Speed500PiecesCondition())->qualifiedTiers($this->snapshot(7_200)));
     }
 
     public function testSub30MinEarnsAllTiers(): void

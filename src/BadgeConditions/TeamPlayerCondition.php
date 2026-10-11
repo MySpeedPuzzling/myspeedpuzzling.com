@@ -22,10 +22,10 @@ readonly final class TeamPlayerCondition extends AbstractAscendingThresholdCondi
     protected function thresholds(): array
     {
         return [
-            1 => 1,
-            2 => 5,
-            3 => 25,
-            4 => 100,
+            1 => 5,
+            2 => 25,
+            3 => 100,
+            4 => 250,
             5 => 500,
         ];
     }

@@ -22,9 +22,9 @@ readonly final class LibrarianCondition extends AbstractAscendingThresholdCondit
     protected function thresholds(): array
     {
         return [
-            1 => 1,
-            2 => 5,
-            3 => 20,
+            1 => 5,
+            2 => 15,
+            3 => 30,
             4 => 50,
             5 => 100,
         ];

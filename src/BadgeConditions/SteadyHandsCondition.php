@@ -22,9 +22,9 @@ readonly final class SteadyHandsCondition extends AbstractAscendingThresholdCond
     protected function thresholds(): array
     {
         return [
-            1 => 2,
-            2 => 4,
-            3 => 8,
+            1 => 3,
+            2 => 6,
+            3 => 9,
             4 => 12,
             5 => 16,
         ];

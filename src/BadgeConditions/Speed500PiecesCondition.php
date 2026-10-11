@@ -12,7 +12,8 @@ use SpeedPuzzling\Web\Value\BadgeType;
 
 /**
  * Tier qualifies when the player's best 500pc SOLO solve is at or below the tier's
- * second-limit. Thresholds descend from 5h (tier I) down to 30min (tier V).
+ * second-limit. Thresholds descend from 2h (tier I) down to 30min (tier V) - Bronze was 5h until 2026-10-11, a time
+ * almost everybody with a 500-piece time had (docs/features/badges.md "Calibration").
  */
 readonly final class Speed500PiecesCondition implements BadgeConditionInterface
 {
@@ -20,8 +21,8 @@ readonly final class Speed500PiecesCondition implements BadgeConditionInterface
      * @var array{1: int, 2: int, 3: int, 4: int, 5: int}
      */
     private const array SECONDS_THRESHOLDS = [
-        1 => 18_000,
-        2 => 7_200,
+        1 => 7_200,
+        2 => 5_400,
         3 => 3_600,
         4 => 2_700,
         5 => 1_800,

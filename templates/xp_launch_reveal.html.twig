@@ -16,6 +16,8 @@
        (README §The launch reveal) #}
     {% set has_deck = is_member and badges|length > 0 %}
     {% set level_in_deck = has_deck and not level_revealed %}
+    {# From the launch modal's button (?start=1): straight to the first card - the tap there was the invitation #}
+    {% set autostart = has_deck and autostart %}
     {% set badges_count = badges|length %}
     {% set crumbs = {levels: [], back: {name: logged_user.profile.playerName ?? ('#' ~ logged_user.profile.code|upper), url: path('player_profile', {playerId: logged_user.profile.playerId})}} %}
 
@@ -25,10 +27,11 @@
             data-controller="xp-launch-reveal"
             data-xp-launch-reveal-last-piece-reveal-outlet="#xpl-deck"
             data-action="last-piece-reveal:revealed->xp-launch-reveal#cardRevealed"
+            {% if autostart %}data-xp-launch-reveal-autostart-value="true"{% endif %}
         {% endif %}
     >
         {% if has_deck %}
-            <section class="xpl-intro" data-xp-launch-reveal-target="intro">
+            <section class="xpl-intro" data-xp-launch-reveal-target="intro" {{ autostart ? 'hidden' }}>
                 {# Back to ?return= or the own profile (design-spec §3) #}
                 {{ include('_page_crumbs.html.twig', crumbs) }}
                 <img
@@ -52,7 +55,6 @@
                 {% endif %}
 
                 <button type="button" class="btn btn-primary btn-lg xpl-start" data-action="xp-launch-reveal#start">
-                    <i class="bi bi-stars me-1" aria-hidden="true"></i>
                     {{ 'xp.reveal.start'|trans }}
                 </button>
             </section>
@@ -64,7 +66,7 @@
             <section
                 id="xpl-deck"
                 class="xpl-deck lpr-page"
-                hidden
+                {{ autostart ? '' : 'hidden' }}
                 data-xp-launch-reveal-target="deck"
                 data-controller="last-piece-reveal"
                 data-last-piece-reveal-skip-label-value="{{ 'badges.reveals.stage_running'|trans }}"
@@ -89,7 +91,7 @@
                             data-xp-launch-reveal-target="card"
                             data-xpl-progress=""
                             data-xpl-next="{{ 'xp.reveal.to_achievements'|trans }}"
-                            hidden
+                            {{ autostart ? '' : 'hidden' }}
                         >
                             <div
                                 class="lpr-stage"
@@ -122,6 +124,7 @@
                             badge: badge,
                             progress_text: 'xp.reveal.progress'|trans({'%current%': loop.index, '%total%': badges_count}),
                             next_label: (loop.last ? 'xp.reveal.to_summary' : 'xp.reveal.next')|trans,
+                            shown: autostart and loop.first and not level_in_deck,
                         }) }}
                     {% endfor %}
                 </div>

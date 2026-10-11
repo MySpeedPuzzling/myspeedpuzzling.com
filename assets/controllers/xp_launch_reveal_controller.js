@@ -10,22 +10,51 @@ import { Controller } from '@hotwired/stimulus';
  * completes it. A summary of everything ends it; "Skip to summary" is there all the time. Each card names what the
  * bar's counter and the big button say while it is shown (data-xpl-progress, data-xpl-next), so the deck can come in
  * any order. Reduced motion: every card is complete at once (the reveal controller decides).
+ * `autostart` (?start=1, the launch modal's "Reveal my achievements"): the page opens on the first card, which plays at
+ * once - the tap in the modal was the invitation, and its sound context carries over (assets/last_piece_reveal/sfx.js).
  */
 export default class extends Controller {
     static targets = ['intro', 'deck', 'card', 'progress', 'next', 'summary', 'summaryHeading'];
 
     static outlets = ['last-piece-reveal'];
 
+    static values = { autostart: Boolean };
+
     connect() {
         this.index = -1;
         this.queued = false;
+
+        // The lazy reveal controller arriving after this one: it says so when its connect() is done (a listener, not
+        // an outlet callback - Stimulus does not call that again when stimulus-bridge swaps its loader for the module)
+        this.onRevealReady = () => {
+            if (this.queued && this.revealController()) {
+                this.queued = false;
+                this.begin();
+            }
+        };
+        this.element.addEventListener('last-piece-reveal:ready', this.onRevealReady);
+
+        if (this.autostartValue) {
+            this.begin();                                  // the server rendered the deck open on its first card
+        }
     }
 
-    lastPieceRevealOutletConnected() {
-        if (this.queued) {
-            this.queued = false;
-            this.show(0);
+    disconnect() {
+        this.element.removeEventListener('last-piece-reveal:ready', this.onRevealReady);
+    }
+
+    /**
+     * The reveal controller, once its lazy module is in - until then the outlet is stimulus-bridge's loader, which has
+     * none of its methods
+     */
+    revealController() {
+        if (!this.hasLastPieceRevealOutlet) {
+            return null;
         }
+
+        const outlet = this.lastPieceRevealOutlet;
+
+        return typeof outlet.start === 'function' ? outlet : null;
     }
 
     /** action: the intro's button */
@@ -33,24 +62,30 @@ export default class extends Controller {
         this.introTarget.hidden = true;
         this.deckTarget.hidden = false;
         this.deckTarget.scrollIntoView({ block: 'start' });
-        this.nextTarget.focus({ preventScroll: true });
+        this.begin();
+    }
 
-        if (!this.hasLastPieceRevealOutlet) {
+    begin() {
+        this.nextTarget.focus({ preventScroll: true });
+        const reveal = this.revealController();
+
+        if (!reveal) {
             this.queued = true;                            // the lazy reveal controller is still on its way
             return;
         }
 
-        this.lastPieceRevealOutlet.unlockSound();          // inside the tap: the only moment audio may start
+        reveal.unlockSound();                              // inside the tap (or the modal's context, still unlocked)
         this.show(0);
     }
 
     /** action: the big button */
     next() {
-        if (this.index < 0 || !this.hasLastPieceRevealOutlet) {
+        const reveal = this.revealController();
+
+        if (this.index < 0 || !reveal) {
             return;
         }
 
-        const reveal = this.lastPieceRevealOutlet;
         const card = this.cardTargets[this.index];
 
         // Before its texts are there, a tap completes the card; once they are, it goes on (a glint or the shimmer
@@ -86,8 +121,9 @@ export default class extends Controller {
 
     /** action: "Skip to summary" - every achievement the summary shows counts as revealed */
     skip() {
-        if (this.hasLastPieceRevealOutlet) {
-            const reveal = this.lastPieceRevealOutlet;
+        const reveal = this.revealController();
+
+        if (reveal) {
             reveal.stopAll();
 
             for (const card of this.cardTargets) {

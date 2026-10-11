@@ -5,8 +5,12 @@
  * on the audio clock, so a busy main thread cannot make it late.
  *
  * Always on, no toggle (the controller sets `on`; every sound answers a tap and lasts about a second). The AudioContext
- * is created on the first tap (browsers allow audio only after a user gesture) and closed on disconnect. It plays as "ambient" audio where the browser supports the Audio Session API (Safari): the silent switch
- * mutes it and it mixes with whatever the visitor is listening to instead of stopping it.
+ * is created on the first tap (browsers allow audio only after a user gesture) and is ONE for the whole visit, shared by
+ * every reveal and kept across Turbo visits: the tap in the XP launch modal unlocks it, so the reveal page its button
+ * opens plays the first card without a tap of its own (Safari plays only in a context a gesture started; a new one
+ * would stay silent). It is suspended while no reveal is on the page and resumed by the next one. It plays as
+ * "ambient" audio where the browser supports the Audio Session API (Safari): the silent switch mutes it and it mixes
+ * with whatever the visitor is listening to instead of stopping it.
  */
 
 function mulberry32(seed) {
@@ -114,6 +118,51 @@ const SYNTH = {
     },
 };
 
+// The visit's one context ({ctx, out}), how many PieceSfx use it right now, and the pending suspend
+let shared = null;
+let users = 0;
+let suspendTimer = null;
+
+// A Turbo visit disconnects the old page's reveal before the new page's (lazy) one connects: the context keeps running
+// that long, so the new page never has to resume it outside a gesture
+const SUSPEND_AFTER_MS = 10000;
+
+function createShared() {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+
+    if (!AudioContextClass) {
+        return null;
+    }
+
+    if (navigator.audioSession) {
+        try {
+            navigator.audioSession.type = 'ambient';
+        } catch (e) {
+            // an older implementation: the default session
+        }
+    }
+
+    let ctx;
+
+    try {
+        ctx = new AudioContextClass();
+    } catch (e) {
+        return null;
+    }
+
+    const compressor = ctx.createDynamicsCompressor();
+    compressor.threshold.value = -16;
+    compressor.ratio.value = 3;
+    compressor.attack.value = 0.003;
+    compressor.release.value = 0.15;
+    const out = ctx.createGain();
+    out.gain.value = 0.85;
+    out.connect(compressor);
+    compressor.connect(ctx.destination);
+
+    return { ctx, out };
+}
+
 export class PieceSfx {
     constructor() {
         this.on = false;
@@ -121,47 +170,29 @@ export class PieceSfx {
         this.out = null;
     }
 
-    /** Call from a user gesture (autoplay rules); creates the context only when the sound is on. */
+    /** Call from a user gesture (autoplay rules); joins the visit's context (creates it) only when the sound is on. */
     unlock() {
         if (!this.on) {
             return;
         }
 
         if (!this.ctx) {
-            const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+            if (!shared || shared.ctx.state === 'closed') {
+                shared = createShared();
+            }
 
-            if (!AudioContextClass) {
+            if (!shared) {
                 return;
             }
 
-            if (navigator.audioSession) {
-                try {
-                    navigator.audioSession.type = 'ambient';
-                } catch (e) {
-                    // an older implementation: the default session
-                }
-            }
-
-            try {
-                this.ctx = new AudioContextClass();
-            } catch (e) {
-                this.ctx = null;
-                return;
-            }
-
-            const compressor = this.ctx.createDynamicsCompressor();
-            compressor.threshold.value = -16;
-            compressor.ratio.value = 3;
-            compressor.attack.value = 0.003;
-            compressor.release.value = 0.15;
-            this.out = this.ctx.createGain();
-            this.out.gain.value = 0.85;
-            this.out.connect(compressor);
-            compressor.connect(this.ctx.destination);
+            this.ctx = shared.ctx;
+            this.out = shared.out;
+            users++;
+            window.clearTimeout(suspendTimer);
         }
 
-        if (this.ctx.state === 'suspended') {
-            this.ctx.resume().catch(() => {});
+        if (this.ctx.state !== 'running' && this.ctx.state !== 'closed') {
+            this.ctx.resume().catch(() => {});             // suspended, or "interrupted" (iOS after a call)
         }
     }
 
@@ -197,9 +228,20 @@ export class PieceSfx {
         }
     }
 
+    /** disconnect: leaves the visit's context - suspended (never closed) once no reveal has used it for a while */
     close() {
-        if (this.ctx && this.ctx.state !== 'closed') {
-            this.ctx.close().catch(() => {});
+        if (this.ctx) {
+            users = Math.max(0, users - 1);
+
+            if (users === 0) {
+                const ctx = this.ctx;
+                window.clearTimeout(suspendTimer);
+                suspendTimer = window.setTimeout(() => {
+                    if (users === 0 && ctx.state === 'running') {
+                        ctx.suspend().catch(() => {});
+                    }
+                }, SUSPEND_AFTER_MS);
+            }
         }
 
         this.ctx = null;

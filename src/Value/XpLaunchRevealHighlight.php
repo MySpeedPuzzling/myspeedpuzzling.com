@@ -34,8 +34,8 @@ enum XpLaunchRevealHighlight: string
     {
         return match ($this) {
             self::Thanks => 'bi-heart-fill',
-            self::TopTier => 'bi-gem',
-            self::Rarest => 'bi-stars',
+            self::TopTier => 'bi-trophy-fill',
+            self::Rarest => 'bi-gem',
             self::WithinReach => 'bi-flag-fill',
         };
     }

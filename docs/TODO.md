@@ -47,10 +47,15 @@ that would otherwise be forgotten. Newest section on top.
       Rating (pair/team · not 500 pieces · fewer than 20 solvers)" + "the ladder updates within 15 minutes"; a "+N"
       estimate needs MspRatingCalculator's puzzle rankings scoped to the player's puzzles. Waiting for Jan
 - [ ] Real-device pass of the reveal sound: always on, no toggle (2026-10-11) - iPhone silent switch (ambient audio
-      session), the first tap after a full page load, Android Chrome
+      session), the first tap after a full page load, Android Chrome; the reveal page's first card opened from the modal's
+      "Reveal my achievements" plays its sound without a tap of its own (the modal's AudioContext carried over the Turbo
+      visit, `assets/last_piece_reveal/sfx.js`)
 - [ ] Profile results after deploy: measure production (dev still spends ~250-300 ms of PHP over the whole history -
       filters/sorts/grouping of every result); the ranking now leaves 0-second solo times out (custom_pst_solo_board
       covers `> 0`; the web form stores 0 as "no time", the API's "00:00" can still store one - none exist)
+- [ ] Rework the art of the launch share card (`XpShareCardController`, variant `launch`) - Jan 2026-10-12: "I do not
+      like it". "Share my level" is hidden on the reveal page meanwhile (`xp/_launch_reveal_actions.html.twig`); the
+      route and the `xp.reveal.share_*` texts stay, the button comes back with the new card
 - [ ] Hub cards don't carry `?return=` (their pages go back to the hub anyway, and it would turn the hub's main links into
       nofollow ones) - only Leaderboards and Fair play do
 

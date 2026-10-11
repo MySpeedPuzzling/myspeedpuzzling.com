@@ -187,7 +187,7 @@ final class AnnouncementModalTest extends WebTestCase
         $crawler = $browser->request('GET', self::ORDINARY_PAGE);
 
         self::assertCount(1, $crawler->filter(self::MODAL . '[data-autoshow-modal-name-value="xp_launch_reveal"]'));
-        self::assertCount(1, $crawler->filter(self::MODAL . ' a[href="/en/my/xp-reveal"].btn-primary'), 'On to the achievement deck');
+        self::assertCount(1, $crawler->filter(self::MODAL . ' a[href="/en/my/xp-reveal?start=1"].btn-primary'), 'Straight to the first achievement card');
         self::assertCount(0, $crawler->filter(self::MODAL . ' a[href="/en/membership"]'));
     }
 

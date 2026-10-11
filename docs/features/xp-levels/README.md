@@ -246,6 +246,12 @@ Two chapters, so no screen repeats another (Jan 2026-10-11: "the same texts, jus
     `xp_launch_level_revealed` (`/-/xp-launch-level-revealed` → `MarkAnnouncementModalSeen`) on its first tap, and the
     modal itself sends no report on opening (a modal closed before the last piece = not revealed). Read by
     `GetAnnouncementModalSeen` (one lookup). A lost report = the level card comes once more, nothing worse.
+  - **From the modal's "Reveal my achievements" the page opens on the first card** (`?start=1`, Jan 2026-10-12): no
+    intro with a second button to the same thing. The server renders the deck open (intro hidden, first card shown),
+    `xp_launch_reveal_controller.js` starts it as soon as the lazy reveal controller says `last-piece-reveal:ready`.
+    The sound plays without a tap of its own: the reveal's AudioContext is one per visit, kept across the Turbo visit
+    (`assets/last_piece_reveal/sfx.js`), so the modal's tap unlocked it. A direct visit (newsletter, bookmark) keeps
+    the intro and its "Start" button.
   - Free players (and members without achievements): before the level is revealed the page is the level's chapter
     (they never had the modal's moment); after, it is "Level N, and counting" - the medallion as it stands, the next
     level, How XP works, the count of waiting achievements (never which) and the membership button.

@@ -13,6 +13,7 @@ use SpeedPuzzling\Web\Services\Xp\XpFeatureGate;
 use SpeedPuzzling\Web\Services\Xp\XpLaunchReadiness;
 use SpeedPuzzling\Web\Value\AnnouncementModal;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
@@ -28,6 +29,9 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
  * when the level is revealed (XpLaunchLevelRevealedController). The XP shown is the player's XP from puzzles -
  * achievements grant none. Free players get their level (to reveal, or as a summary once revealed) and a count of
  * their waiting achievements, never which ones (the achievement detail is a member feature).
+ *
+ * `?start=1` (the launch modal's "Reveal my achievements", a tap that was already the invitation) opens straight on the
+ * first card: no intro with a second button to the same thing (Jan 2026-10-12).
  *
  * One URL for every way in - the launch newsletter, the announcement modal, a bookmark: a guest is sent through the
  * sign-in and back (LoginEntryPoint), and the page stays viewable after it was seen (a replay is harmless, the
@@ -61,7 +65,7 @@ final class XpLaunchRevealController extends AbstractController
         name: 'xp_launch_reveal',
     )]
     #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
-    public function __invoke(): Response
+    public function __invoke(Request $request): Response
     {
         $profile = $this->retrieveLoggedUserProfile->getProfile();
         assert($profile !== null);
@@ -92,6 +96,7 @@ final class XpLaunchRevealController extends AbstractController
             'is_member' => $profile->activeMembership,
             'player_id' => $profile->playerId,
             'level_revealed' => $this->getAnnouncementModalSeen->isSeen($profile->playerId, AnnouncementModal::XpLaunchReveal),
+            'autostart' => $request->query->getBoolean('start'),
         ]);
     }
 }

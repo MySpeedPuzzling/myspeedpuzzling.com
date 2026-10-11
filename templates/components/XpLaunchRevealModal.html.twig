@@ -23,7 +23,8 @@
                     {% if achievementsCount > 0 %}
                         <p class="xpl-level-next-text">{{ 'xp.launch_modal.next_member'|trans({'%count%': achievementsCount}) }}</p>
                     {% endif %}
-                    <a href="{{ path('xp_launch_reveal') }}" class="btn btn-primary btn-lg">
+                    {# With achievements the page opens straight on the first card (?start=1) - this tap was its invitation #}
+                    <a href="{{ path('xp_launch_reveal', achievementsCount > 0 ? {start: 1} : {}) }}" class="btn btn-primary btn-lg">
                         {{ (achievementsCount > 0 ? 'xp.launch_modal.button_member' : 'xp.launch_modal.button_continue')|trans }}
                     </a>
                 {% else %}

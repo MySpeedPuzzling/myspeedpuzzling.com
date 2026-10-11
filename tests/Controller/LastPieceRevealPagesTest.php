@@ -224,6 +224,35 @@ final class LastPieceRevealPagesTest extends WebTestCase
         self::assertCount(1, $crawler->filter('.xpl-summary svg.xpl-medallion'));
     }
 
+    public function testFromTheModalsButtonThePageOpensOnTheFirstCard(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+        $this->setXp(500, 12);
+        $this->earnUpTo('puzzles_solved', 2);
+        $this->earn('streak', 1, revealed: false);
+        $this->levelRevealedInTheModal();
+
+        // a direct visit (the newsletter, a bookmark): the intro and its button first, the deck closed
+        $crawler = $browser->request('GET', '/en/my/xp-reveal');
+        self::assertNull($crawler->filter('.xpl-intro')->attr('hidden'));
+        self::assertNotNull($crawler->filter('#xpl-deck')->attr('hidden'));
+        self::assertNull($crawler->filter('[data-controller="xp-launch-reveal"]')->attr('data-xp-launch-reveal-autostart-value'));
+
+        // the modal's "Reveal my achievements" (?start=1): no second button to the same thing - the first card at once
+        $crawler = $browser->request('GET', '/en/my/xp-reveal?start=1');
+        self::assertResponseIsSuccessful();
+        self::assertNotNull($crawler->filter('.xpl-intro')->attr('hidden'));
+        self::assertNull($crawler->filter('#xpl-deck')->attr('hidden'));
+        self::assertSame('true', $crawler->filter('[data-controller="xp-launch-reveal"]')->attr('data-xp-launch-reveal-autostart-value'));
+        $cards = $crawler->filter('#xpl-deck .xpl-card');
+        self::assertSame(
+            [false, true],
+            $cards->each(static fn (Crawler $card): bool => $card->attr('hidden') !== null),
+            'The first card is open before the script arrives, the rest wait',
+        );
+    }
+
     public function testTheDeckCostsTheSameStatementsWhateverItsSize(): void
     {
         $browser = self::createClient();

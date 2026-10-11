@@ -33,9 +33,11 @@ const SEEDS = { single: 6, level: 7, 'level-max': 8 };
  *   visitor's music keeps playing (PieceSfx.unlock()).
  * - `autoplay`: the first stage plays by itself once it is on screen (the level medallion of the XP launch reveal).
  * - Another controller can drive the stages through an outlet (the XP launch deck, xp_launch_reveal_controller.js):
- *   start(), stateOf(), preloadStage(), postReveal(), stopAll(), unlockSound(); `last-piece-reveal:revealed` tells
- *   it that a picture is complete (detail: stage, instant).
- * - Turbo-safe: disconnect cancels every animation, the confetti, the rAF loop and closes the audio context.
+ *   start(), stateOf(), preloadStage(), postReveal(), stopAll(), unlockSound(); `last-piece-reveal:ready` tells it
+ *   that this (lazy) controller is connected, `last-piece-reveal:revealed` that a picture is complete (detail: stage,
+ *   instant).
+ * - Turbo-safe: disconnect cancels every animation, the confetti and the rAF loop and leaves the visit's audio context
+ *   (sfx.js: one per visit, so the launch modal's tap still plays the reveal page's first card).
  */
 export default class extends Controller {
     static targets = ['stage', 'count', 'after', 'done'];
@@ -71,6 +73,8 @@ export default class extends Controller {
         if (this.autoplayValue) {
             this.scheduleAutoplay();
         }
+
+        this.dispatch('ready');                            // a driving controller may start now (the XP launch deck)
     }
 
     disconnect() {

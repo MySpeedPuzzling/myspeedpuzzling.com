@@ -7,7 +7,8 @@
    - how many puzzlers hold the tier - the rarity word only when it is not common (design-spec §8.3);
    - below Diamond the next tier: its requirement, the bar and the numbers ("312 / 500", speed: "4:31:20 → 4:00:00"),
      as on the shelf and in the sheet; Diamond says nothing is above it; Early Adopter that it can no longer be earned.
-   Parameters: badge (XpLaunchRevealBadge), progress_text ("2 / 5" in the bar), next_label (the big button's label). #}
+   Parameters: badge (XpLaunchRevealBadge), progress_text ("2 / 5" in the bar), next_label (the big button's label),
+   shown (the deck's first card when the page opens on it, ?start=1). #}
 {% set name = (badge.type.translationKey())|trans %}
 {% set tier_name = badge.tier ? (badge.tier.translationKey())|trans : null %}
 {% set progress = badge.progress %}
@@ -18,7 +19,7 @@
     data-xp-launch-reveal-target="card"
     data-xpl-progress="{{ progress_text }}"
     data-xpl-next="{{ next_label }}"
-    hidden
+    {{ (shown ?? false) ? '' : 'hidden' }}
 >
     <div
         class="lpr-stage"

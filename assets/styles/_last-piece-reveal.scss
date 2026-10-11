@@ -250,11 +250,14 @@ $lpr-navy: $gray-900;
   );
 }
 
+// 150 % of the stage, centred on it - `max-width: none` against the reboot's `svg { max-width: 100% }`, which squeezed
+// it to the stage's width and drew the ring smaller and a quarter of the badge to the left
 .lpr-burst {
   position: absolute;
   top: -25%;
   left: -25%;
   width: 150%;
+  max-width: none;
   height: 150%;
   overflow: visible;
   opacity: 0;

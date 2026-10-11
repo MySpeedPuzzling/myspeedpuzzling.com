@@ -200,6 +200,8 @@ final class ProgressionPagesTest extends WebTestCase
         self::assertGreaterThan(0, $crawler->filter('.holder-row')->count());
         $options = $crawler->filter('#holder-country option')->each(static fn ($node): string => $node->text());
         self::assertContains('United Kingdom', $options);
+        // The site's type-to-find country picker, with flags
+        self::assertSelectorExists('select#holder-country[data-controller="country-select"] option[data-icon="fi fi-gb"]');
         self::assertSelectorNotExists('select[onchange]');
         // The hero is the viewer's Silver, not the Diamond
         $hero = (string) $crawler->filter('.achievement-hero img.badge-art')->attr('src');

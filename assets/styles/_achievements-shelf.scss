@@ -683,3 +683,16 @@ $shelf-press: scale(.97);
     display: inline-flex;
     align-items: center;
 }
+
+// The country picker of the holders page and the progression boards (country_select_controller.js): the site's
+// TomSelect with flags, at a 44 px target and a width that fits a long country name
+.country-select-wrapper.progression-country-select {
+    flex: 1 1 12rem;
+    max-width: 260px;
+    min-width: 0;
+
+    .ts-wrapper .ts-control {
+        min-height: 44px;
+        align-items: center;
+    }
+}

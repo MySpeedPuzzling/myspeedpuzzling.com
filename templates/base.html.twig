@@ -708,7 +708,7 @@
                                         </li>
                                     {% endif %}
                                     <li>
-                                        <a class="dropdown-item {% if currentRoute == 'progression_hub' %}active{% endif %}" href="{{ path('progression_hub') }}">
+                                        <a class="dropdown-item {% if currentRoute == 'progression_hub' %}active{% endif %}" href="{{ currentRoute == 'progression_hub' ? path('progression_hub') : path('progression_hub', {return: app.request.requestUri}) }}" rel="nofollow">
                                             <i class="bi bi-question-circle me-1"></i> {{ 'progression_hub.menu_label'|trans }}
                                             <span class="badge bg-primary ms-1">{{ 'menu.new_badge'|trans }}</span>
                                         </a>

@@ -15,7 +15,7 @@
         <div class="card border-0 shadow-sm mb-4">
             <div class="card-body">
                 <h2 class="h5 mb-3"><i class="bi bi-arrow-up-circle me-2 text-primary"></i>{{ 'xp.explainer.family.heading'|trans }}</h2>
-                <p>{{ 'xp.explainer.family.body'|trans }} <a href="{{ path('progression_hub') }}">{{ 'progression_hub.title'|trans }}</a></p>
+                <p>{{ 'xp.explainer.family.body'|trans }} <a href="{{ path('progression_hub', {return: path('xp_explainer'), return_title: 'xp.explainer.title'|trans}) }}" rel="nofollow">{{ 'progression_hub.title'|trans }}</a></p>
                 <p>{{ 'xp.explainer.currencies.never_bought'|trans }}</p>
                 <p class="mb-0">{{ 'xp.explainer.currencies.unlock_nothing'|trans }}</p>
             </div>

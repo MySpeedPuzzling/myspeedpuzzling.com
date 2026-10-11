@@ -189,6 +189,23 @@ final class PageCrumbsPagesTest extends WebTestCase
         self::assertCount(1, $crawler->filter('a.progression-hub-row[href="/en/how-xp-works"]'));
     }
 
+    public function testHubIsTopLevelSoItsBackButtonComesOnlyWithReturn(): void
+    {
+        $browser = self::createClient();
+
+        $crawler = $browser->request('GET', self::HUB);
+        self::assertResponseIsSuccessful();
+        self::assertCount(0, $crawler->filter('.page-crumbs-back'));
+
+        $crawler = $browser->request('GET', self::HUB . '?return=/en/achievements&return_title=Achievements');
+        self::assertSame('/en/achievements', $crawler->filter('.page-crumbs-back')->attr('href'));
+        self::assertSame('Back to Achievements', $crawler->filter('.page-crumbs-back')->attr('aria-label'));
+
+        // The achievements reference sends its link to the hub with the way back
+        $crawler = $browser->request('GET', '/en/achievements');
+        self::assertCount(1, $crawler->filter('a[href^="' . self::HUB . '?return=/en/achievements"][rel="nofollow"]'));
+    }
+
     public function testPlayerHeaderXpRingCarriesReturnToTheProfile(): void
     {
         $browser = $this->signedIn();

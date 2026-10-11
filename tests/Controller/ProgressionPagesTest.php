@@ -79,7 +79,8 @@ final class ProgressionPagesTest extends WebTestCase
         $menu = $crawler->filter('.navbar-tool.dropdown .dropdown-menu');
         self::assertCount(1, $menu->filter('a[href="/en/player-achievements/' . PlayerFixture::PLAYER_WITH_STRIPE . '"]'));
         self::assertCount(1, $menu->filter('a[href="/en/my/xp-history"]'));
-        self::assertCount(1, $menu->filter('a[href="/en/how-progress-works"]'));
+        // The hub is top-level: the menu link carries the page it was opened on, for its back button
+        self::assertCount(1, $menu->filter('a[href="/en/how-progress-works?return=/en/faq"]'));
     }
 
     public function testCatalogueForAGuestIsTheReferenceOfEveryTier(): void

@@ -209,7 +209,25 @@
                     </p>
                 {% endif %}
             {% else %}
-                <p class="fs-sm text-body-secondary text-center mb-0">{{ 'badges.info.single_tier_note'|trans }}</p>
+                {# A single-tier achievement (Early Adopter): the facts line of the tiered sheet - centred under the medal,
+                   chips first, then how many hold it (Jan 2026-10-11: a centred sentence above a left button read as a
+                   layout of its own) #}
+                {% set single_holders = holders[0] ?? 0 %}
+                {% set single_percent = rarity[0] ?? 0 %}
+                <div class="medal-facts">
+                    <span class="medal-facts-chips">
+                        <span class="medal-chip medal-chip-tier">{{ 'badges.medal.no_longer_earnable'|trans }}</span>
+                    </span>
+                    {% if single_holders > 0 %}
+                        <span class="medal-facts-share">
+                            {%- if single_percent < 50 -%}
+                                {% set single_band = bands[0] %}
+                                <span class="medal-chip medal-chip-rarity medal-rarity-{{ single_band.value }}">{{ single_band.translationKey()|trans }}</span>
+                            {% endif -%}
+                            {{ include('_achievement_medal_share.html.twig', {percent: single_percent, holders: single_holders, long: true}) }}
+                        </span>
+                    {% endif %}
+                </div>
             {% endif %}
 
             <div class="medal-actions">

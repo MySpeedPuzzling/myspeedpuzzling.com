@@ -1782,6 +1782,7 @@ badges:
         all_achievements: "Todos los logros"
         showing_player: "Rangos de %name%"
         held_at_launch: "Desde el lanzamiento"
+        no_longer_earnable: "Ya no se puede conseguir"
         serial_of: "N.º %serial% de %total%"
         share: "Lo tiene 1 puzzlero (%percent%)|Lo tienen %count% puzzleros (%percent%)"
         share_below: "Lo tiene 1 puzzlero (< %percent%)|Lo tienen %count% puzzleros (< %percent%)"

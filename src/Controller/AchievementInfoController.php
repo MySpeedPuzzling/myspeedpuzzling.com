@@ -108,6 +108,9 @@ final class AchievementInfoController extends AbstractController
             $bands[$badgeTier->value] = AchievementRarityBand::fromPercent($rarity[$badgeTier->value] ?? 0.0);
         }
 
+        // A single-tier achievement keeps its share under tier 0 (AchievementRarityProvider)
+        $bands[0] = AchievementRarityBand::fromPercent($rarity[0] ?? 0.0);
+
         // The sheet's second button depends on where it was opened (Jan 2026-10-11): from a shelf (the catalogue, a
         // player's achievements page) the full list is the page behind it - no button. Elsewhere (a profile showcase,
         // the recap, your week): the shelf the medal belongs to - that player's, the viewer's own, else the catalogue.

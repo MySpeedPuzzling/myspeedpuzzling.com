@@ -1766,6 +1766,7 @@ badges:
         all_achievements: "Alle Erfolge"
         showing_player: "Stufen von %name%"
         held_at_launch: "Schon zum Start"
+        no_longer_earnable: "Nicht mehr zu verdienen"
         serial_of: "Nr. %serial% von %total%"
         share: "Erreicht von 1 Puzzler (%percent%)|Erreicht von %count% Puzzlern (%percent%)"
         share_below: "Erreicht von 1 Puzzler (< %percent%)|Erreicht von %count% Puzzlern (< %percent%)"

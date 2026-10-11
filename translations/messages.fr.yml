@@ -1853,6 +1853,7 @@ competition_referees:
     "all_achievements": "Tous les succès"
     "showing_player": "Paliers de %name%"
     "held_at_launch": "Dès le lancement"
+    "no_longer_earnable": "Ne peut plus être obtenu"
     "serial_of": "N° %serial% sur %total%"
     "share": "Obtenu par 1 puzzleur (%percent%)|Obtenu par %count% puzzleurs (%percent%)"
     "share_below": "Obtenu par 1 puzzleur (< %percent%)|Obtenu par %count% puzzleurs (< %percent%)"

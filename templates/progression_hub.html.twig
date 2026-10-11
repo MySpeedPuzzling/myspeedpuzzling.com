@@ -22,6 +22,9 @@
 {% block content %}
     {% set xp_open = xp_system_visible() %}
     <div class="col-lg-8 mx-auto progression-hub">
+        {# A top-level page: no trail. The back button appears when the link that brought the reader here says where
+           they came from (?return= - the user menu, the getting started tile, the explainers' links) #}
+        {{ include('_page_crumbs.html.twig', {levels: []}) }}
         <h1 class="h2 mb-1">{{ 'progression_hub.title'|trans }}</h1>
         <p class="text-body-secondary mb-4">{{ 'progression_hub.intro'|trans }}</p>
 

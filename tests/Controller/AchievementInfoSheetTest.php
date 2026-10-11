@@ -235,4 +235,18 @@ final class AchievementInfoSheetTest extends WebTestCase
         $crawler = $browser->request('GET', '/en/achievements/puzzles_solved/info', server: $frame);
         self::assertSame('/en/achievements', $crawler->filter('.medal-actions a.btn-outline-secondary')->attr('href'));
     }
+
+    public function testEarlyAdopterSheetHasTheFactsLineAndAFullWidthButtonLikeTheTieredOnes(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
+
+        $crawler = $browser->request('GET', '/en/achievements/supporter/info', server: ['HTTP_TURBO_FRAME' => 'modal-frame']);
+
+        self::assertResponseIsSuccessful();
+        // No tiers: the chips of the facts line under the medal say it can no longer be earned - no loose sentence
+        self::assertCount(0, $crawler->filter('li.medal-tier'));
+        self::assertSame('Can no longer be earned', trim($crawler->filter('.medal-facts .medal-chip-tier')->text()));
+        self::assertCount(1, $crawler->filter('.medal-actions a.btn'));
+    }
 }

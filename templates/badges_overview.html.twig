@@ -33,7 +33,7 @@
             <p>{{ 'badges.catalogue.about'|trans }}</p>
             <p>{{ 'badges.shelf.explainer.share'|trans }} {{ 'badges.shelf.explainer.step_back'|trans }}</p>
             <div class="achievements-explainer-actions">
-                <a href="{{ path('progression_hub') }}">{{ 'progression_hub.title'|trans }}</a>
+                <a href="{{ path('progression_hub', {return: path('badges_overview'), return_title: 'badges.overview_title'|trans}) }}" rel="nofollow">{{ 'progression_hub.title'|trans }}</a>
                 <a href="{{ path('achievement_points_leaderboard') }}">{{ 'badges.catalogue.ap_leaderboard_link'|trans }}</a>
                 <button type="button" class="btn btn-sm achievements-explainer-hide" {{ stimulus_action('collapsible-hint', 'hide') }}>{{ 'badges.catalogue.explainer_hide'|trans }}</button>
             </div>

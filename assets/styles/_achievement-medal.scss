@@ -721,16 +721,13 @@ $medal-bands-vivid: repeating-linear-gradient(118deg, #f26a70 0%, #f7a457 4.5%, 
     gap: .5rem;
     margin-top: 1rem;
 
+    // The buttons share the sheet's width on every screen - one button alone (Early Adopter) spans it, never sits left
+    // under a centred medal
     > .btn {
         display: inline-flex;
+        flex: 1 1 auto;
         align-items: center;
         justify-content: center;
         min-height: 44px;
-    }
-
-    @include media-breakpoint-down(sm) {
-        > .btn {
-            flex: 1 1 auto;
-        }
     }
 }

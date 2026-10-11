@@ -1862,6 +1862,7 @@ badges:
         all_achievements: "すべての実績"
         showing_player: "%name%のティアを表示中"
         held_at_launch: "リリース時から保持"
+        no_longer_earnable: "現在は獲得できません"
         serial_of: "%total%人中%serial%番目"
         share: "%count%人のパズラーが獲得（%percent%）"
         share_below: "%count%人のパズラーが獲得（%percent%未満）"

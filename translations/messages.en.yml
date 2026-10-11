@@ -2328,6 +2328,7 @@ badges:
         all_achievements: "All achievements"
         showing_player: "Showing %name%'s tiers"
         held_at_launch: "Held at launch"
+        no_longer_earnable: "Can no longer be earned"
         serial_of: "No. %serial% of %total%"
         share: "Held by 1 puzzler (%percent%)|Held by %count% puzzlers (%percent%)"
         share_below: "Held by 1 puzzler (< %percent%)|Held by %count% puzzlers (< %percent%)"

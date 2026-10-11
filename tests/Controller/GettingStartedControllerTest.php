@@ -87,7 +87,8 @@ final class GettingStartedControllerTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         $first = $crawler->filter('#more .guide-tile')->first();
-        self::assertSame('/en/how-progress-works', $first->attr('href'));
+        // ... with the way back here (the hub is top-level: its back button comes with ?return=)
+        self::assertSame('/en/how-progress-works?return=/en/getting-started&return_title=Getting%20started', $first->attr('href'));
         self::assertStringContainsString('How progress works', $first->text());
 
         // Before the launch switch the tile is not there (the hub's deep pages would 404)

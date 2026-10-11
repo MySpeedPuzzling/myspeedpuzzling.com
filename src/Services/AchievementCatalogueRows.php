@@ -85,7 +85,8 @@ final class AchievementCatalogueRows
         ));
         usort($earned, static fn (AchievementCatalogueRow $a, AchievementCatalogueRow $b): int => self::newestFirstKey($a) <=> self::newestFirstKey($b));
 
-        // Rarest first: what the player holds, by how rare their tier is (rarest first, the higher tier first on a tie),
+        // Rarest first: what the player holds, the highest tier first (Diamond, Platinum, ...) and the rarer one first
+        // within a tier - a common Diamond still before a rare Silver (Jan 2026-10-12: "Early Adopter, then Diamond") -
         // then what they do not hold yet, by how rare its Bronze is (Jan 2026-10-11)
         $rarest = $rows;
         usort($rarest, static fn (AchievementCatalogueRow $a, AchievementCatalogueRow $b): int => self::rarestKey($a) <=> self::rarestKey($b));
@@ -119,13 +120,13 @@ final class AchievementCatalogueRows
     }
 
     /**
-     * @return array{int, float, int}
+     * @return array{int, int, float}
      */
     private static function rarestKey(AchievementCatalogueRow $row): array
     {
         return $row->earnedTier !== null
-            ? [0, $row->earnedRarityPercent, -$row->earnedTier->value]
-            : [1, $row->rarityPercent, 0];
+            ? [0, -$row->earnedTier->value, $row->earnedRarityPercent]
+            : [1, 0, $row->rarityPercent];
     }
 
     private static function compareForAll(AchievementCatalogueRow $a, AchievementCatalogueRow $b): int

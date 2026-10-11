@@ -4,10 +4,15 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
+use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
+use SpeedPuzzling\Web\Query\GetAchievementMedal;
 use SpeedPuzzling\Web\Query\GetBadgeCatalog;
+use SpeedPuzzling\Web\Query\GetPlayerProfile;
+use SpeedPuzzling\Web\Results\PlayerProfile;
 use SpeedPuzzling\Web\Services\AchievementRarityProvider;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Services\Xp\XpFeatureGate;
+use SpeedPuzzling\Web\Value\AchievementRarityBand;
 use SpeedPuzzling\Web\Value\BadgeTier;
 use SpeedPuzzling\Web\Value\BadgeType;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -16,17 +21,27 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
 /**
- * "What is this achievement for?" — the explainer behind every badge on a profile:
- * the clicked badge big (`?tier=`), what it rewards, all five tiers with their requirement
- * and AP, which ones the viewer already holds and how far the next one is.
+ * The achievement detail sheet (docs/features/xp-levels/ux-polish/design-spec.md §2): the medal at 200 px that turns
+ * over to its back (No. 0042 of 334, % of puzzlers, the earn date), the facts line, the five tiers as a list (tapping a
+ * row shows that tier on the medal), "See who earned it (N)" and "All achievements". A bottom sheet on phones, the
+ * centred modal on desktop - opted in by the content (achievement_sheet_controller.js), no other modal changes.
  *
- * Rendered into the shared `modal-frame`, so a reader never leaves the profile; opening
- * it in its own tab renders the same content as a normal page.
+ * Whose medal: `?player=` (a player's achievements page and showcase send it) shows that player's tiers, serials and
+ * dates when their achievements are visible to the viewer by the rules of PlayerAchievementsController - a member, not
+ * hidden by privacy (GetPlayerProfile's isPrivate, i.e. PrivateProfileAccess), not blocked either way (byId throws).
+ * Otherwise the parameter is ignored silently and the sheet shows the viewer's own state (members) or the bare tiers.
+ * The subject's medal wins for every viewer allowed to see it; a non-member viewer only loses their own ticks,
+ * progress and AP (§8.3). The medal shown: the tapped tier (`?tier=`), else the highest tier of the player in context,
+ * else Bronze. Tiers held at launch show "Held at launch" instead of a number and a date (§8.1, GetAchievementMedal).
+ *
+ * Rendered into the shared `modal-frame`; opened any other way the achievement's own page answers.
  */
 final class AchievementInfoController extends AbstractController
 {
     public function __construct(
         readonly private GetBadgeCatalog $getBadgeCatalog,
+        readonly private GetAchievementMedal $getAchievementMedal,
+        readonly private GetPlayerProfile $getPlayerProfile,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private XpFeatureGate $xpFeatureGate,
         readonly private AchievementRarityProvider $achievementRarityProvider,
@@ -46,9 +61,9 @@ final class AchievementInfoController extends AbstractController
     )]
     public function __invoke(Request $request, string $type): Response
     {
-        $profile = $this->retrieveLoggedUserProfile->getProfile();
+        $viewer = $this->retrieveLoggedUserProfile->getProfile();
 
-        if ($this->xpFeatureGate->isVisibleFor($profile) === false) {
+        if ($this->xpFeatureGate->isVisibleFor($viewer) === false) {
             throw $this->createNotFoundException();
         }
 
@@ -67,30 +82,74 @@ final class AchievementInfoController extends AbstractController
             return $response;
         }
 
-        // Progress belongs to the viewer, never to the profile being looked at — the modal
-        // answers "what is this and where am I with it", the holders page answers "who has it".
-        // Which tiers a player holds is a membership perk: anybody else gets the bare tiers.
-        $memberId = $profile !== null && $profile->activeMembership ? $profile->playerId : null;
-        $isMember = $memberId !== null;
-        $group = $badgeType->isTiered()
-            ? $this->getBadgeCatalog->forPlayerAndType($memberId, $badgeType)
-            : null;
+        $subject = $this->visibleSubject($request->query->getString('player'), $viewer);
 
-        // The badge that was clicked (someone's profile) is the modal's big picture; without one the viewer's own
-        // highest tier stands for the achievement
+        // Which tiers a player holds is a membership perk: the sheet is personal for a visible member's medal
+        // (?player=) or for a member looking at their own; anybody else gets the bare tiers and a Bronze medal
+        $contextPlayerId = $subject->playerId ?? ($viewer !== null && $viewer->activeMembership ? $viewer->playerId : null);
+        $group = $badgeType->isTiered()
+            ? $this->getBadgeCatalog->forPlayerAndType($contextPlayerId, $badgeType)
+            : null;
+        $medals = $contextPlayerId !== null && $group !== null
+            ? $this->getAchievementMedal->forPlayerAndType($contextPlayerId, $badgeType)
+            : [];
+
         $tier = $request->query->getString('tier');
-        $heroTier = $badgeType->isTiered() && ctype_digit($tier) ? BadgeTier::tryFrom((int) $tier) : null;
+        $tappedTier = $group !== null && ctype_digit($tier) ? BadgeTier::tryFrom((int) $tier) : null;
+        $shownTier = $tappedTier ?? $group?->highestEarnedTier() ?? BadgeTier::Bronze;
+
+        $rarity = $this->achievementRarityProvider->percentages()[$badgeType->value] ?? [];
+        $holders = $this->achievementRarityProvider->holders()[$badgeType->value] ?? [];
+        $bands = [];
+
+        foreach (BadgeTier::cases() as $badgeTier) {
+            $bands[$badgeTier->value] = AchievementRarityBand::fromPercent($rarity[$badgeTier->value] ?? 0.0);
+        }
 
         $response = $this->render('_achievement_info_modal.html.twig', [
             'type' => $badgeType,
             'group' => $group,
-            'hero_tier' => $heroTier,
-            'logged_in' => $profile !== null,
-            'is_member' => $isMember,
-            'rarity' => $this->achievementRarityProvider->percentages()[$badgeType->value] ?? [],
+            'shown_tier' => $shownTier,
+            'personal' => $contextPlayerId !== null,
+            'subject' => $subject,
+            'medals' => $medals,
+            'logged_in' => $viewer !== null,
+            'rarity' => $rarity,
+            'bands' => $bands,
+            'holders' => $holders,
+            // Everybody who earned the achievement holds its Bronze (the evaluator fills the tiers below the one reached)
+            'holders_total' => $holders[BadgeTier::Bronze->value] ?? 0,
+            // A visitor sees no streak numbers of a player who opted out of streaks (design-spec §8.6)
+            'show_record' => $subject === null || $badgeType !== BadgeType::Streak || $subject->streakOptedOut === false,
+            // "Your achievements are kept and come back with membership" (design-spec §8.5)
+            'viewer_lapsed' => $viewer !== null && $viewer->activeMembership === false && $viewer->membershipEndsAt !== null,
         ]);
         $response->setVary('Turbo-Frame');
 
         return $response;
+    }
+
+    /**
+     * The player of `?player=` when their achievements are visible to the viewer - the rules of
+     * PlayerAchievementsController (a member, not private for this viewer, not blocked); the viewer's own id means
+     * their own sheet. Anything else: null, silently.
+     */
+    private function visibleSubject(string $playerId, null|PlayerProfile $viewer): null|PlayerProfile
+    {
+        if ($playerId === '' || $playerId === $viewer?->playerId) {
+            return null;
+        }
+
+        try {
+            $player = $this->getPlayerProfile->byId($playerId);
+        } catch (PlayerNotFound) {
+            return null;
+        }
+
+        if ($player->isPrivate || $player->activeMembership === false) {
+            return null;
+        }
+
+        return $player;
     }
 }

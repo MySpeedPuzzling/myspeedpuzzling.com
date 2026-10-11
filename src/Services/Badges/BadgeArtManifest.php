@@ -20,6 +20,12 @@ use Symfony\Component\DependencyInjection\Attribute\Autowire;
  * starts new containers and with them new workers. It holds nothing about a visitor or a request, so keeping it across
  * the requests of a FrankenPHP worker cannot leak anything (no ResetInterface on purpose). In debug the file is read
  * again when it changes on disk, so a local rebuild of the art shows without restarting the workers.
+ *
+ * `holo` holds the medal data of the achievement detail sheet (tools/badge-art/lib/holo.py): for every tier of every
+ * tiered achievement the back plate, two tones sampled from the art and the back's text field, and for Platinum and
+ * Diamond (the tiers with a foil) the foil and rim masks.
+ *
+ * @phpstan-type BadgeHoloArt array{foil: null|string, rim: null|string, back: string, rimTone: string, edgeTone: string, field: array{float, float, float}}
  */
 final class BadgeArtManifest
 {
@@ -28,7 +34,7 @@ final class BadgeArtManifest
     public const string SINGLE_TIER_VARIANT = 'single';
 
     /**
-     * @var null|array{version: string, files: array<string, true>, sizes: array<string, list<int>>}
+     * @var null|array{version: string, files: array<string, true>, sizes: array<string, list<int>>, holo: array<string, array<string, BadgeHoloArt>>}
      */
     private null|array $manifest = null;
 
@@ -110,7 +116,20 @@ final class BadgeArtManifest
     }
 
     /**
-     * @return array{version: string, files: array<string, true>, sizes: array<string, list<int>>}
+     * The medal data of one tier of a tiered achievement, or null when the build wrote none: paths relative to
+     * public/img/badges/ (foil and rim only for Platinum and Diamond, null below), tones as #rrggbb, field = the back's
+     * text area (centre x, centre y, radius - percent of the picture).
+     *
+     * @return null|BadgeHoloArt
+     * @throws BadgeArtMissing
+     */
+    public function holo(BadgeType $type, BadgeTier $tier): null|array
+    {
+        return $this->load()['holo'][$type->value][self::variant($tier)] ?? null;
+    }
+
+    /**
+     * @return array{version: string, files: array<string, true>, sizes: array<string, list<int>>, holo: array<string, array<string, BadgeHoloArt>>}
      * @throws BadgeArtMissing
      */
     private function load(): array
@@ -137,7 +156,7 @@ final class BadgeArtManifest
     }
 
     /**
-     * @return array{version: string, files: array<string, true>, sizes: array<string, list<int>>}
+     * @return array{version: string, files: array<string, true>, sizes: array<string, list<int>>, holo: array<string, array<string, BadgeHoloArt>>}
      * @throws BadgeArtMissing
      */
     private function parse(string $json): array
@@ -180,6 +199,72 @@ final class BadgeArtManifest
             'version' => $data['version'],
             'files' => $files,
             'sizes' => $sortedSizes,
+            'holo' => self::parseHolo($data['holo'] ?? null, $files),
         ];
+    }
+
+    /**
+     * Entries whose files are not all in the manifest, or that are malformed, are left out: the medal is then shown
+     * without its foil (still the art), never with a broken mask.
+     *
+     * @param array<string, true> $files
+     * @return array<string, array<string, BadgeHoloArt>>
+     */
+    private static function parseHolo(mixed $holo, array $files): array
+    {
+        if (is_array($holo) === false) {
+            return [];
+        }
+
+        $parsed = [];
+
+        foreach ($holo as $type => $tiers) {
+            if (is_array($tiers) === false) {
+                continue;
+            }
+
+            foreach ($tiers as $variant => $entry) {
+                if (is_array($entry) === false) {
+                    continue;
+                }
+
+                $back = $entry['back'] ?? null;
+
+                if (is_string($back) === false || isset($files[$back]) === false) {
+                    continue;
+                }
+
+                // A foil is all or nothing: both masks on disk, else the medal stays still
+                $foil = $entry['foil'] ?? null;
+                $rim = $entry['rim'] ?? null;
+
+                if (is_string($foil) === false || is_string($rim) === false || isset($files[$foil], $files[$rim]) === false) {
+                    $foil = $rim = null;
+                }
+
+                $tones = is_array($entry['tones'] ?? null) ? $entry['tones'] : [];
+                $field = is_array($entry['field'] ?? null) ? array_values($entry['field']) : [];
+
+                if (count($field) !== 3 || is_numeric($field[0]) === false || is_numeric($field[1]) === false || is_numeric($field[2]) === false) {
+                    $field = [50, 50, 30];
+                }
+
+                $parsed[(string) $type][(string) $variant] = [
+                    'foil' => $foil,
+                    'rim' => $rim,
+                    'back' => $back,
+                    'rimTone' => self::tone($tones['rim'] ?? null, '#c8d2e6'),
+                    'edgeTone' => self::tone($tones['edge'] ?? null, '#2b3445'),
+                    'field' => [(float) $field[0], (float) $field[1], (float) $field[2]],
+                ];
+            }
+        }
+
+        return $parsed;
+    }
+
+    private static function tone(mixed $tone, string $fallback): string
+    {
+        return is_string($tone) && preg_match('~^#[0-9a-f]{6}$~i', $tone) === 1 ? strtolower($tone) : $fallback;
     }
 }

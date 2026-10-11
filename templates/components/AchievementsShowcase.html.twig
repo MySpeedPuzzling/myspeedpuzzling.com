@@ -1,7 +1,8 @@
 {#
     The achievements showcase near the top of a profile (src/Component/AchievementsShowcase.php): one row of medallions
     scrolling sideways, best first, and "11 of 16 · 640 AP ›" to the catalogue. Members only - a non-member owner gets
-    one quiet line instead (never a lock).
+    one quiet line instead (never a lock). A seal opens the detail sheet with this player's medal (`player`,
+    docs/features/xp-levels/ux-polish/design-spec.md §2).
 #}
 {% if this.mode == 'showcase' %}
     <section {{ attributes.defaults({class: 'achievements-showcase'}) }} aria-labelledby="achievements-showcase-title">
@@ -27,7 +28,7 @@
                             </a>
                         {% else %}
                             {% set label = (badge.type.translationKey())|trans %}
-                            <a class="achievements-showcase-item" href="{{ path('achievement_info', {type: badge.type.value, tier: badge.tier ? badge.tier.value : null}) }}" data-turbo-frame="modal-frame" title="{{ 'badges.info.open'|trans({'%achievement%': label}) }}">
+                            <a class="achievements-showcase-item" href="{{ path('achievement_info', {type: badge.type.value, tier: badge.tier ? badge.tier.value : null, player: player.playerId}) }}" data-turbo-frame="modal-frame" title="{{ 'badges.info.open'|trans({'%achievement%': label}) }}">
                                 {{ badge_art(badge.type, badge.tier, 56) }}
                             </a>
                         {% endif %}

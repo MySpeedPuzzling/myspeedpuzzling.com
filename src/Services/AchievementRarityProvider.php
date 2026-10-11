@@ -9,8 +9,9 @@ use Symfony\Contracts\Cache\CacheInterface;
 use Symfony\Contracts\Cache\ItemInterface;
 
 /**
- * Share of puzzlers holding each achievement tier, in percent (0-100). The same numbers for every visitor, so they
- * are cached for 15 minutes - badges are evaluated on that rhythm anyway. The cached value is a plain array.
+ * How many puzzlers hold each achievement tier, and their share of all puzzlers in percent (0-100). The same numbers
+ * for every visitor, so one aggregate (GetAchievementRarity) is cached for 15 minutes - badges are evaluated on that
+ * rhythm anyway. The cached value is a plain array.
  */
 readonly final class AchievementRarityProvider
 {
@@ -27,8 +28,24 @@ readonly final class AchievementRarityProvider
      */
     public function percentages(): array
     {
-        /** @var array<string, array<int, float>> $percentages */
-        $percentages = $this->achievementRarityCache->get('achievement_rarity_v1', function (ItemInterface $item): array {
+        return $this->load()['percentages'];
+    }
+
+    /**
+     * @return array<string, array<int, int>> type value → tier value → number of holders
+     */
+    public function holders(): array
+    {
+        return $this->load()['holders'];
+    }
+
+    /**
+     * @return array{percentages: array<string, array<int, float>>, holders: array<string, array<int, int>>}
+     */
+    private function load(): array
+    {
+        /** @var array{percentages: array<string, array<int, float>>, holders: array<string, array<int, int>>} $rarity */
+        $rarity = $this->achievementRarityCache->get('achievement_rarity_v2', function (ItemInterface $item): array {
             $item->expiresAfter(self::CACHE_TTL);
 
             $counts = $this->getAchievementRarity->counts();
@@ -42,9 +59,9 @@ readonly final class AchievementRarityProvider
                 }
             }
 
-            return $percentages;
+            return ['percentages' => $percentages, 'holders' => $counts['holders']];
         });
 
-        return $percentages;
+        return $rarity;
     }
 }

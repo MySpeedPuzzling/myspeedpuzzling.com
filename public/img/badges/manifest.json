@@ -1,5 +1,5 @@
 {
- "version": "24b527a1acb3",
+ "version": "16969b66114b",
  "generator": "tools/badge-art/build.py",
  "frame": "F1 seal ladder v2 (tiers) + F1S-A ribbon seal (one-offs)",
  "bases": {
@@ -230,7 +230,1234 @@
    "accent": "coral"
   }
  },
+ "holo": {
+  "brand_explorer": {
+   "t1": {
+    "foil": null,
+    "rim": null,
+    "back": "holo/back-dce90d8b98.png",
+    "tones": {
+     "rim": "#e4a58a",
+     "edge": "#2b3445"
+    },
+    "field": [
+     49.75,
+     49.75,
+     31.33
+    ]
+   },
+   "t2": {
+    "foil": null,
+    "rim": null,
+    "back": "holo/back-2e5ed93384.png",
+    "tones": {
+     "rim": "#b1c8e3",
+     "edge": "#2b3445"
+    },
+    "field": [
+     49.75,
+     49.75,
+     30.99
+    ]
+   },
+   "t3": {
+    "foil": null,
+    "rim": null,
+    "back": "holo/back-686f71d3f2.png",
+    "tones": {
+     "rim": "#fbd482",
+     "edge": "#2b3445"
+    },
+    "field": [
+     49.75,
+     49.75,
+     32.69
+    ]
+   },
+   "t4": {
+    "foil": "holo/brand_explorer-t4-foil.png",
+    "rim": "holo/brand_explorer-t4-rim.png",
+    "back": "holo/back-53e6db317e.png",
+    "tones": {
+     "rim": "#bcb6ef",
+     "edge": "#2b3445"
+    },
+    "field": [
+     50.0,
+     50.0,
+     30.97
+    ]
+   },
+   "t5": {
+    "foil": "holo/brand_explorer-t5-foil.png",
+    "rim": "holo/brand_explorer-t5-rim.png",
+    "back": "holo/back-167759b58b.png",
+    "tones": {
+     "rim": "#b5afd5",
+     "edge": "#2b3445"
+    },
+    "field": [
+     49.75,
+     50.0,
+     30.85
+    ]
+   }
+  },
+  "cataloger": {
+   "t1": {
+    "foil": null,
+    "rim": null,
+    "back": "holo/back-0fed0f9d27.png",
+    "tones": {
+     "rim": "#e4a489",
+     "edge": "#2b3445"
+    },
+    "field": [
+     49.75,
+     49.75,
+     31.33
+    ]
+   },
+   "t2": {
+    "foil": null,
+    "rim": null,
+    "back": "holo/back-64cc7de684.png",
+    "tones": {
+     "rim": "#b0c7e3",
+     "edge": "#2b3445"
+    },
+    "field": [
+     49.75,
+     49.75,
+     30.99
+    ]
+   },
+   "t3": {
+    "foil": null,
+    "rim": null,
+    "back": "holo/back-686f71d3f2.png",
+    "tones": {
+     "rim": "#fbd482",
+     "edge": "#2b3445"
+    },
+    "field": [
+     49.75,
+     49.75,
+     32.69
+    ]
+   },
+   "t4": {
+    "foil": "holo/cataloger-t4-foil.png",
+    "rim": "holo/cataloger-t4-rim.png",
+    "back": "holo/back-53e6db317e.png",
+    "tones": {
+     "rim": "#bcb6ef",
+     "edge": "#2b3445"
+    },
+    "field": [
+     50.0,
+     50.0,
+     30.97
+    ]
+   },
+   "t5": {
+    "foil": "holo/cataloger-t5-foil.png",
+    "rim": "holo/cataloger-t5-rim.png",
+    "back": "holo/back-267eaca001.png",
+    "tones": {
+     "rim": "#b4aed5",
+     "edge": "#2b3445"
+    },
+    "field": [
+     49.75,
+     50.0,
+     30.85
+    ]
+   }
+  },
+  "first_try": {
+   "t1": {
+    "foil": null,
+    "rim": null,
+    "back": "holo/back-dce90d8b98.png",
+    "tones": {
+     "rim": "#e4a58a",
+     "edge": "#2b3445"
+    },
+    "field": [
+     49.75,
+     49.75,
+     31.33
+    ]
+   },
+   "t2": {
+    "foil": null,
+    "rim": null,
+    "back": "holo/back-2e5ed93384.png",
+    "tones": {
+     "rim": "#b1c8e3",
+     "edge": "#2b3445"
+    },
+    "field": [
+     49.75,
+     49.75,
+     30.99
+    ]
+   },
+   "t3": {
+    "foil": null,
+    "rim": null,
+    "back": "holo/back-686f71d3f2.png",
+    "tones": {
+     "rim": "#fbd482",
+     "edge": "#2b3445"
+    },
+    "field": [
+     49.75,
+     49.75,
+     32.69
+    ]
+   },
+   "t4": {
+    "foil": "holo/first_try-t4-foil.png",
+    "rim": "holo/first_try-t4-rim.png",
+    "back": "holo/back-53e6db317e.png",
+    "tones": {
+     "rim": "#bcb6ef",
+     "edge": "#2b3445"
+    },
+    "field": [
+     50.0,
+     50.0,
+     30.97
+    ]
+   },
+   "t5": {
+    "foil": "holo/first_try-t5-foil.png",
+    "rim": "holo/first_try-t5-rim.png",
+    "back": "holo/back-167759b58b.png",
+    "tones": {
+     "rim": "#b5afd5",
+     "edge": "#2b3445"
+    },
+    "field": [
+     49.75,
+     50.0,
+     30.85
+    ]
+   }
+  },
+  "librarian": {
+   "t1": {
+    "foil": null,
+    "rim": null,
+    "back": "holo/back-dce90d8b98.png",
+    "tones": {
+     "rim": "#e4a58a",
+     "edge": "#2b3445"
+    },
+    "field": [
+     49.75,
+     49.75,
+     31.33
+    ]
+   },
+   "t2": {
+    "foil": null,
+    "rim": null,
+    "back": "holo/back-2e5ed93384.png",
+    "tones": {
+     "rim": "#b1c8e3",
+     "edge": "#2b3445"
+    },
+    "field": [
+     49.75,
+     49.75,
+     30.99
+    ]
+   },
+   "t3": {
+    "foil": null,
+    "rim": null,
+    "back": "holo/back-686f71d3f2.png",
+    "tones": {
+     "rim": "#fbd482",
+     "edge": "#2b3445"
+    },
+    "field": [
+     49.75,
+     49.75,
+     32.69
+    ]
+   },
+   "t4": {
+    "foil": "holo/librarian-t4-foil.png",
+    "rim": "holo/librarian-t4-rim.png",
+    "back": "holo/back-53e6db317e.png",
+    "tones": {
+     "rim": "#bcb6ef",
+     "edge": "#2b3445"
+    },
+    "field": [
+     50.0,
+     50.0,
+     30.97
+    ]
+   },
+   "t5": {
+    "foil": "holo/librarian-t5-foil.png",
+    "rim": "holo/librarian-t5-rim.png",
+    "back": "holo/back-167759b58b.png",
+    "tones": {
+     "rim": "#b5afd5",
+     "edge": "#2b3445"
+    },
+    "field": [
+     49.75,
+     50.0,
+     30.85
+    ]
+   }
+  },
+  "marathoner": {
+   "t1": {
+    "foil": null,
+    "rim": null,
+    "back": "holo/back-dce90d8b98.png",
+    "tones": {
+     "rim": "#e4a58a",
+     "edge": "#2b3445"
+    },
+    "field": [
+     49.75,
+     49.75,
+     31.33
+    ]
+   },
+   "t2": {
+    "foil": null,
+    "rim": null,
+    "back": "holo/back-2e5ed93384.png",
+    "tones": {
+     "rim": "#b1c8e3",
+     "edge": "#2b3445"
+    },
+    "field": [
+     49.75,
+     49.75,
+     30.99
+    ]
+   },
+   "t3": {
+    "foil": null,
+    "rim": null,
+    "back": "holo/back-686f71d3f2.png",
+    "tones": {
+     "rim": "#fbd482",
+     "edge": "#2b3445"
+    },
+    "field": [
+     49.75,
+     49.75,
+     32.69
+    ]
+   },
+   "t4": {
+    "foil": "holo/marathoner-t4-foil.png",
+    "rim": "holo/marathoner-t4-rim.png",
+    "back": "holo/back-53e6db317e.png",
+    "tones": {
+     "rim": "#bcb6ef",
+     "edge": "#2b3445"
+    },
+    "field": [
+     50.0,
+     50.0,
+     30.97
+    ]
+   },
+   "t5": {
+    "foil": "holo/marathoner-t5-foil.png",
+    "rim": "holo/marathoner-t5-rim.png",
+    "back": "holo/back-167759b58b.png",
+    "tones": {
+     "rim": "#b5afd5",
+     "edge": "#2b3445"
+    },
+    "field": [
+     49.75,
+     50.0,
+     30.85
+    ]
+   }
+  },
+  "photographer": {
+   "t1": {
+    "foil": null,
+    "rim": null,
+    "back": "holo/back-dce90d8b98.png",
+    "tones": {
+     "rim": "#e4a58a",
+     "edge": "#2b3445"
+    },
+    "field": [
+     49.75,
+     49.75,
+     31.33
+    ]
+   },
+   "t2": {
+    "foil": null,
+    "rim": null,
+    "back": "holo/back-2e5ed93384.png",
+    "tones": {
+     "rim": "#b1c8e3",
+     "edge": "#2b3445"
+    },
+    "field": [
+     49.75,
+     49.75,
+     30.99
+    ]
+   },
+   "t3": {
+    "foil": null,
+    "rim": null,
+    "back": "holo/back-686f71d3f2.png",
+    "tones": {
+     "rim": "#fbd482",
+     "edge": "#2b3445"
+    },
+    "field": [
+     49.75,
+     49.75,
+     32.69
+    ]
+   },
+   "t4": {
+    "foil": "holo/photographer-t4-foil.png",
+    "rim": "holo/photographer-t4-rim.png",
+    "back": "holo/back-53e6db317e.png",
+    "tones": {
+     "rim": "#bcb6ef",
+     "edge": "#2b3445"
+    },
+    "field": [
+     50.0,
+     50.0,
+     30.97
+    ]
+   },
+   "t5": {
+    "foil": "holo/photographer-t5-foil.png",
+    "rim": "holo/photographer-t5-rim.png",
+    "back": "holo/back-167759b58b.png",
+    "tones": {
+     "rim": "#b5afd5",
+     "edge": "#2b3445"
+    },
+    "field": [
+     49.75,
+     50.0,
+     30.85
+    ]
+   }
+  },
+  "pieces_solved": {
+   "t1": {
+    "foil": null,
+    "rim": null,
+    "back": "holo/back-0fed0f9d27.png",
+    "tones": {
+     "rim": "#e4a489",
+     "edge": "#2b3445"
+    },
+    "field": [
+     49.75,
+     49.75,
+     31.33
+    ]
+   },
+   "t2": {
+    "foil": null,
+    "rim": null,
+    "back": "holo/back-64cc7de684.png",
+    "tones": {
+     "rim": "#b0c7e3",
+     "edge": "#2b3445"
+    },
+    "field": [
+     49.75,
+     49.75,
+     30.99
+    ]
+   },
+   "t3": {
+    "foil": null,
+    "rim": null,
+    "back": "holo/back-686f71d3f2.png",
+    "tones": {
+     "rim": "#fbd482",
+     "edge": "#2b3445"
+    },
+    "field": [
+     49.75,
+     49.75,
+     32.69
+    ]
+   },
+   "t4": {
+    "foil": "holo/pieces_solved-t4-foil.png",
+    "rim": "holo/pieces_solved-t4-rim.png",
+    "back": "holo/back-7241087512.png",
+    "tones": {
+     "rim": "#bcb5ef",
+     "edge": "#2b3445"
+    },
+    "field": [
+     50.0,
+     50.0,
+     30.97
+    ]
+   },
+   "t5": {
+    "foil": "holo/pieces_solved-t5-foil.png",
+    "rim": "holo/pieces_solved-t5-rim.png",
+    "back": "holo/back-267eaca001.png",
+    "tones": {
+     "rim": "#b4aed5",
+     "edge": "#2b3445"
+    },
+    "field": [
+     49.75,
+     50.0,
+     30.85
+    ]
+   }
+  },
+  "puzzles_solved": {
+   "t1": {
+    "foil": null,
+    "rim": null,
+    "back": "holo/back-dce90d8b98.png",
+    "tones": {
+     "rim": "#e4a58a",
+     "edge": "#2b3445"
+    },
+    "field": [
+     49.75,
+     49.75,
+     31.33
+    ]
+   },
+   "t2": {
+    "foil": null,
+    "rim": null,
+    "back": "holo/back-2e5ed93384.png",
+    "tones": {
+     "rim": "#b1c8e3",
+     "edge": "#2b3445"
+    },
+    "field": [
+     49.75,
+     49.75,
+     30.99
+    ]
+   },
+   "t3": {
+    "foil": null,
+    "rim": null,
+    "back": "holo/back-686f71d3f2.png",
+    "tones": {
+     "rim": "#fbd482",
+     "edge": "#2b3445"
+    },
+    "field": [
+     49.75,
+     49.75,
+     32.69
+    ]
+   },
+   "t4": {
+    "foil": "holo/puzzles_solved-t4-foil.png",
+    "rim": "holo/puzzles_solved-t4-rim.png",
+    "back": "holo/back-53e6db317e.png",
+    "tones": {
+     "rim": "#bcb6ef",
+     "edge": "#2b3445"
+    },
+    "field": [
+     50.0,
+     50.0,
+     30.97
+    ]
+   },
+   "t5": {
+    "foil": "holo/puzzles_solved-t5-foil.png",
+    "rim": "holo/puzzles_solved-t5-rim.png",
+    "back": "holo/back-167759b58b.png",
+    "tones": {
+     "rim": "#b5afd5",
+     "edge": "#2b3445"
+    },
+    "field": [
+     49.75,
+     50.0,
+     30.85
+    ]
+   }
+  },
+  "speed_1000_pieces": {
+   "t1": {
+    "foil": null,
+    "rim": null,
+    "back": "holo/back-dce90d8b98.png",
+    "tones": {
+     "rim": "#e4a58a",
+     "edge": "#2b3445"
+    },
+    "field": [
+     49.75,
+     49.75,
+     31.33
+    ]
+   },
+   "t2": {
+    "foil": null,
+    "rim": null,
+    "back": "holo/back-2e5ed93384.png",
+    "tones": {
+     "rim": "#b1c8e3",
+     "edge": "#2b3445"
+    },
+    "field": [
+     49.75,
+     49.75,
+     30.99
+    ]
+   },
+   "t3": {
+    "foil": null,
+    "rim": null,
+    "back": "holo/back-686f71d3f2.png",
+    "tones": {
+     "rim": "#fbd482",
+     "edge": "#2b3445"
+    },
+    "field": [
+     49.75,
+     49.75,
+     32.69
+    ]
+   },
+   "t4": {
+    "foil": "holo/speed_1000_pieces-t4-foil.png",
+    "rim": "holo/speed_1000_pieces-t4-rim.png",
+    "back": "holo/back-53e6db317e.png",
+    "tones": {
+     "rim": "#bcb6ef",
+     "edge": "#2b3445"
+    },
+    "field": [
+     50.0,
+     50.0,
+     30.97
+    ]
+   },
+   "t5": {
+    "foil": "holo/speed_1000_pieces-t5-foil.png",
+    "rim": "holo/speed_1000_pieces-t5-rim.png",
+    "back": "holo/back-167759b58b.png",
+    "tones": {
+     "rim": "#b5afd5",
+     "edge": "#2b3445"
+    },
+    "field": [
+     49.75,
+     50.0,
+     30.85
+    ]
+   }
+  },
+  "speed_500_pieces": {
+   "t1": {
+    "foil": null,
+    "rim": null,
+    "back": "holo/back-dce90d8b98.png",
+    "tones": {
+     "rim": "#e4a58a",
+     "edge": "#2b3445"
+    },
+    "field": [
+     49.75,
+     49.75,
+     31.33
+    ]
+   },
+   "t2": {
+    "foil": null,
+    "rim": null,
+    "back": "holo/back-2e5ed93384.png",
+    "tones": {
+     "rim": "#b1c8e3",
+     "edge": "#2b3445"
+    },
+    "field": [
+     49.75,
+     49.75,
+     30.99
+    ]
+   },
+   "t3": {
+    "foil": null,
+    "rim": null,
+    "back": "holo/back-686f71d3f2.png",
+    "tones": {
+     "rim": "#fbd482",
+     "edge": "#2b3445"
+    },
+    "field": [
+     49.75,
+     49.75,
+     32.69
+    ]
+   },
+   "t4": {
+    "foil": "holo/speed_500_pieces-t4-foil.png",
+    "rim": "holo/speed_500_pieces-t4-rim.png",
+    "back": "holo/back-53e6db317e.png",
+    "tones": {
+     "rim": "#bcb6ef",
+     "edge": "#2b3445"
+    },
+    "field": [
+     50.0,
+     50.0,
+     30.97
+    ]
+   },
+   "t5": {
+    "foil": "holo/speed_500_pieces-t5-foil.png",
+    "rim": "holo/speed_500_pieces-t5-rim.png",
+    "back": "holo/back-167759b58b.png",
+    "tones": {
+     "rim": "#b5afd5",
+     "edge": "#2b3445"
+    },
+    "field": [
+     49.75,
+     50.0,
+     30.85
+    ]
+   }
+  },
+  "steady_hands": {
+   "t1": {
+    "foil": null,
+    "rim": null,
+    "back": "holo/back-dce90d8b98.png",
+    "tones": {
+     "rim": "#e4a58a",
+     "edge": "#2b3445"
+    },
+    "field": [
+     49.75,
+     49.75,
+     31.33
+    ]
+   },
+   "t2": {
+    "foil": null,
+    "rim": null,
+    "back": "holo/back-2e5ed93384.png",
+    "tones": {
+     "rim": "#b1c8e3",
+     "edge": "#2b3445"
+    },
+    "field": [
+     49.75,
+     49.75,
+     30.99
+    ]
+   },
+   "t3": {
+    "foil": null,
+    "rim": null,
+    "back": "holo/back-686f71d3f2.png",
+    "tones": {
+     "rim": "#fbd482",
+     "edge": "#2b3445"
+    },
+    "field": [
+     49.75,
+     49.75,
+     32.69
+    ]
+   },
+   "t4": {
+    "foil": "holo/steady_hands-t4-foil.png",
+    "rim": "holo/steady_hands-t4-rim.png",
+    "back": "holo/back-53e6db317e.png",
+    "tones": {
+     "rim": "#bcb6ef",
+     "edge": "#2b3445"
+    },
+    "field": [
+     50.0,
+     50.0,
+     30.97
+    ]
+   },
+   "t5": {
+    "foil": "holo/steady_hands-t5-foil.png",
+    "rim": "holo/steady_hands-t5-rim.png",
+    "back": "holo/back-167759b58b.png",
+    "tones": {
+     "rim": "#b5afd5",
+     "edge": "#2b3445"
+    },
+    "field": [
+     49.75,
+     50.0,
+     30.85
+    ]
+   }
+  },
+  "streak": {
+   "t1": {
+    "foil": null,
+    "rim": null,
+    "back": "holo/back-dce90d8b98.png",
+    "tones": {
+     "rim": "#e4a58a",
+     "edge": "#2b3445"
+    },
+    "field": [
+     49.75,
+     49.75,
+     31.33
+    ]
+   },
+   "t2": {
+    "foil": null,
+    "rim": null,
+    "back": "holo/back-2e5ed93384.png",
+    "tones": {
+     "rim": "#b1c8e3",
+     "edge": "#2b3445"
+    },
+    "field": [
+     49.75,
+     49.75,
+     30.99
+    ]
+   },
+   "t3": {
+    "foil": null,
+    "rim": null,
+    "back": "holo/back-686f71d3f2.png",
+    "tones": {
+     "rim": "#fbd482",
+     "edge": "#2b3445"
+    },
+    "field": [
+     49.75,
+     49.75,
+     32.69
+    ]
+   },
+   "t4": {
+    "foil": "holo/streak-t4-foil.png",
+    "rim": "holo/streak-t4-rim.png",
+    "back": "holo/back-53e6db317e.png",
+    "tones": {
+     "rim": "#bcb6ef",
+     "edge": "#2b3445"
+    },
+    "field": [
+     50.0,
+     50.0,
+     30.97
+    ]
+   },
+   "t5": {
+    "foil": "holo/streak-t5-foil.png",
+    "rim": "holo/streak-t5-rim.png",
+    "back": "holo/back-167759b58b.png",
+    "tones": {
+     "rim": "#b5afd5",
+     "edge": "#2b3445"
+    },
+    "field": [
+     49.75,
+     50.0,
+     30.85
+    ]
+   }
+  },
+  "team_player": {
+   "t1": {
+    "foil": null,
+    "rim": null,
+    "back": "holo/back-dce90d8b98.png",
+    "tones": {
+     "rim": "#e4a58a",
+     "edge": "#2b3445"
+    },
+    "field": [
+     49.75,
+     49.75,
+     31.33
+    ]
+   },
+   "t2": {
+    "foil": null,
+    "rim": null,
+    "back": "holo/back-2e5ed93384.png",
+    "tones": {
+     "rim": "#b1c8e3",
+     "edge": "#2b3445"
+    },
+    "field": [
+     49.75,
+     49.75,
+     30.99
+    ]
+   },
+   "t3": {
+    "foil": null,
+    "rim": null,
+    "back": "holo/back-686f71d3f2.png",
+    "tones": {
+     "rim": "#fbd482",
+     "edge": "#2b3445"
+    },
+    "field": [
+     49.75,
+     49.75,
+     32.69
+    ]
+   },
+   "t4": {
+    "foil": "holo/team_player-t4-foil.png",
+    "rim": "holo/team_player-t4-rim.png",
+    "back": "holo/back-53e6db317e.png",
+    "tones": {
+     "rim": "#bcb6ef",
+     "edge": "#2b3445"
+    },
+    "field": [
+     50.0,
+     50.0,
+     30.97
+    ]
+   },
+   "t5": {
+    "foil": "holo/team_player-t5-foil.png",
+    "rim": "holo/team_player-t5-rim.png",
+    "back": "holo/back-167759b58b.png",
+    "tones": {
+     "rim": "#b5afd5",
+     "edge": "#2b3445"
+    },
+    "field": [
+     49.75,
+     50.0,
+     30.85
+    ]
+   }
+  },
+  "unboxed": {
+   "t1": {
+    "foil": null,
+    "rim": null,
+    "back": "holo/back-dce90d8b98.png",
+    "tones": {
+     "rim": "#e4a58a",
+     "edge": "#2b3445"
+    },
+    "field": [
+     49.75,
+     49.75,
+     31.33
+    ]
+   },
+   "t2": {
+    "foil": null,
+    "rim": null,
+    "back": "holo/back-2e5ed93384.png",
+    "tones": {
+     "rim": "#b1c8e3",
+     "edge": "#2b3445"
+    },
+    "field": [
+     49.75,
+     49.75,
+     30.99
+    ]
+   },
+   "t3": {
+    "foil": null,
+    "rim": null,
+    "back": "holo/back-686f71d3f2.png",
+    "tones": {
+     "rim": "#fbd482",
+     "edge": "#2b3445"
+    },
+    "field": [
+     49.75,
+     49.75,
+     32.69
+    ]
+   },
+   "t4": {
+    "foil": "holo/unboxed-t4-foil.png",
+    "rim": "holo/unboxed-t4-rim.png",
+    "back": "holo/back-53e6db317e.png",
+    "tones": {
+     "rim": "#bcb6ef",
+     "edge": "#2b3445"
+    },
+    "field": [
+     50.0,
+     50.0,
+     30.97
+    ]
+   },
+   "t5": {
+    "foil": "holo/unboxed-t5-foil.png",
+    "rim": "holo/unboxed-t5-rim.png",
+    "back": "holo/back-167759b58b.png",
+    "tones": {
+     "rim": "#b5afd5",
+     "edge": "#2b3445"
+    },
+    "field": [
+     49.75,
+     50.0,
+     30.85
+    ]
+   }
+  },
+  "weekend_puzzler": {
+   "t1": {
+    "foil": null,
+    "rim": null,
+    "back": "holo/back-dce90d8b98.png",
+    "tones": {
+     "rim": "#e4a58a",
+     "edge": "#2b3445"
+    },
+    "field": [
+     49.75,
+     49.75,
+     31.33
+    ]
+   },
+   "t2": {
+    "foil": null,
+    "rim": null,
+    "back": "holo/back-2e5ed93384.png",
+    "tones": {
+     "rim": "#b1c8e3",
+     "edge": "#2b3445"
+    },
+    "field": [
+     49.75,
+     49.75,
+     30.99
+    ]
+   },
+   "t3": {
+    "foil": null,
+    "rim": null,
+    "back": "holo/back-686f71d3f2.png",
+    "tones": {
+     "rim": "#fbd482",
+     "edge": "#2b3445"
+    },
+    "field": [
+     49.75,
+     49.75,
+     32.69
+    ]
+   },
+   "t4": {
+    "foil": "holo/weekend_puzzler-t4-foil.png",
+    "rim": "holo/weekend_puzzler-t4-rim.png",
+    "back": "holo/back-53e6db317e.png",
+    "tones": {
+     "rim": "#bcb6ef",
+     "edge": "#2b3445"
+    },
+    "field": [
+     50.0,
+     50.0,
+     30.97
+    ]
+   },
+   "t5": {
+    "foil": "holo/weekend_puzzler-t5-foil.png",
+    "rim": "holo/weekend_puzzler-t5-rim.png",
+    "back": "holo/back-167759b58b.png",
+    "tones": {
+     "rim": "#b5afd5",
+     "edge": "#2b3445"
+    },
+    "field": [
+     49.75,
+     50.0,
+     30.85
+    ]
+   }
+  },
+  "zen_puzzler": {
+   "t1": {
+    "foil": null,
+    "rim": null,
+    "back": "holo/back-dce90d8b98.png",
+    "tones": {
+     "rim": "#e4a58a",
+     "edge": "#2b3445"
+    },
+    "field": [
+     49.75,
+     49.75,
+     31.33
+    ]
+   },
+   "t2": {
+    "foil": null,
+    "rim": null,
+    "back": "holo/back-2e5ed93384.png",
+    "tones": {
+     "rim": "#b1c8e3",
+     "edge": "#2b3445"
+    },
+    "field": [
+     49.75,
+     49.75,
+     30.99
+    ]
+   },
+   "t3": {
+    "foil": null,
+    "rim": null,
+    "back": "holo/back-686f71d3f2.png",
+    "tones": {
+     "rim": "#fbd482",
+     "edge": "#2b3445"
+    },
+    "field": [
+     49.75,
+     49.75,
+     32.69
+    ]
+   },
+   "t4": {
+    "foil": "holo/zen_puzzler-t4-foil.png",
+    "rim": "holo/zen_puzzler-t4-rim.png",
+    "back": "holo/back-53e6db317e.png",
+    "tones": {
+     "rim": "#bcb6ef",
+     "edge": "#2b3445"
+    },
+    "field": [
+     50.0,
+     50.0,
+     30.97
+    ]
+   },
+   "t5": {
+    "foil": "holo/zen_puzzler-t5-foil.png",
+    "rim": "holo/zen_puzzler-t5-rim.png",
+    "back": "holo/back-167759b58b.png",
+    "tones": {
+     "rim": "#b5afd5",
+     "edge": "#2b3445"
+    },
+    "field": [
+     49.75,
+     50.0,
+     30.85
+    ]
+   }
+  }
+ },
  "files": {
+  "holo/back-0fed0f9d27.png": "0fed0f9d27081aba12bac614e4357bcf7d0d824e8ea3a0a5939bd56a2391df31",
+  "holo/back-167759b58b.png": "167759b58b060b17e826bba2e9c7e782f15e07c24fc19e84512fd13c31d01a59",
+  "holo/back-267eaca001.png": "267eaca001f8b1973a8c55fc45d6a60fb04ff6eeace5dea5b07a8e68b7470e88",
+  "holo/back-2e5ed93384.png": "2e5ed933841cbafc1308e648e6fb7263d816d4cb0576c6c285070ac56a3f67d5",
+  "holo/back-53e6db317e.png": "53e6db317e9bfd3f76624d7b7d94dd5ce18de09a6654be3c7da6e7c8e2f746db",
+  "holo/back-64cc7de684.png": "64cc7de684291251bffcdfb63f52adf62bcc82a2a7823fb74d0cb5cf04196d61",
+  "holo/back-686f71d3f2.png": "686f71d3f2429a38307e7d94846627070331a8f8235e41a5ae0dcafb69efa918",
+  "holo/back-7241087512.png": "7241087512430fdc394961579f384820c349c16a6cc3ab83dbf66f9d496cdac0",
+  "holo/back-dce90d8b98.png": "dce90d8b98a18c5967cc47919295904f074ba6cef57c5fd2408795621c633b4b",
+  "holo/brand_explorer-t4-foil.png": "816381ea32b94e4ace69a961e8cf9f4513dcef753f336299eaba1fdb3f04bd6d",
+  "holo/brand_explorer-t4-rim.png": "02e873fdb58d6d9af063cc5b25ff69b35d7221a5e61f3ffcc30f470820c3db37",
+  "holo/brand_explorer-t5-foil.png": "2bc1141af5d6305390a47ce9f01d6e5ab7646f6994f54b0fc85c0624a5aa09be",
+  "holo/brand_explorer-t5-rim.png": "85f2569271b941c208cfe8e0561614dc28b99978db13c73164c1290abe0585d4",
+  "holo/cataloger-t4-foil.png": "2fcc094ce9c0f69f4a1aac96d40abee2cb23a59d76452344b50e36ff0bfdb97f",
+  "holo/cataloger-t4-rim.png": "6df480c106857b5df0592e3010f29b9b9c436be2b40fe64b12d711fa607f953d",
+  "holo/cataloger-t5-foil.png": "f9f068e7a550cc92f95dc67114888114d76b0d55fb4cfddf139db867d1531aa5",
+  "holo/cataloger-t5-rim.png": "8dfbe02743f1e9b0bd4d82cbdd14c8376c0d005ef8a5fc3e92f1252585bde7a9",
+  "holo/first_try-t4-foil.png": "430886d76179147fc658349f89c1c22d075f5d56cfa26631986514b14a90b4f5",
+  "holo/first_try-t4-rim.png": "351bf448ca9349cad141a4092b1cd4d9e1b47ed6d9a8e2e7fe57fd72202f5431",
+  "holo/first_try-t5-foil.png": "ff7e4132c3e23d5c0aaf83092069d436eef7a573899c97157965e44bb5346e34",
+  "holo/first_try-t5-rim.png": "bf11212b7f9dbb5f2054c1fcd2eaec07ae7b0e093a7448c974884468033f2068",
+  "holo/librarian-t4-foil.png": "73f7940fb46e2e93dc76cef349d7c91d82580bab38b5f2cfb063cf2d3ab9ec13",
+  "holo/librarian-t4-rim.png": "b58fa1e1b8c86465cea8b6a2236d6bfe77e8ce6dc42aa2347e7440b444eb0623",
+  "holo/librarian-t5-foil.png": "eaaf3d9be73ab527d2c0157d9ed75ac119c0e1e1fac5032d1d419e04c04882d6",
+  "holo/librarian-t5-rim.png": "8c68bbbcf7f4a322a5ef181b5b002f10daeb1b636e7879ccfb3939ab9f29887d",
+  "holo/marathoner-t4-foil.png": "b41e22ed79b08762c0642dd86df8017874cce342afbafc23e519a85599f863f0",
+  "holo/marathoner-t4-rim.png": "598a5840f593a8759dbacb37ab564d26aea4c65f3aa7c32fb5f0eceba2484301",
+  "holo/marathoner-t5-foil.png": "901d58fd6a5088f1b829802aa55d75922ac2d5eadd5f3e213aa554e9e7fb3c0e",
+  "holo/marathoner-t5-rim.png": "2dd708f434d3b017c0b85039f63f5ebc314f87354f07e6764a3e7dc64d34da30",
+  "holo/photographer-t4-foil.png": "314f77cd820e9da66de7ddd4049a0b35936299a68a94fecf42bf7fd78de121f5",
+  "holo/photographer-t4-rim.png": "d5e73bbe1752505a5f00aaf317e3a98d749920fdb361e5b0a2baf594b24cad4f",
+  "holo/photographer-t5-foil.png": "43822a2d5c765d07e51dc0b4cf062790dff9386ca11b52b5559ff3883e60839c",
+  "holo/photographer-t5-rim.png": "948d2c7bf363e9c8c1563375d838f4bcdcd1285cd9127243c85b057e27cd6478",
+  "holo/pieces_solved-t4-foil.png": "20d231aa12ca0d1465bb6408943eab3bfeae080f5debbe9e3b93b8f56920901b",
+  "holo/pieces_solved-t4-rim.png": "814be98b0c54c056291827a201c1cccac64d7390574ffd6112c740055be0be76",
+  "holo/pieces_solved-t5-foil.png": "bd37473cba20ea922a1c3e265a02bd976f816c58621b803cd6b13b6de9f525ac",
+  "holo/pieces_solved-t5-rim.png": "9d52d0a559606feb8c330563392f72d84033360f22254a6d9d73e5097f5d29de",
+  "holo/puzzles_solved-t4-foil.png": "ce39455fd7e8971e4660a69457f5aaf4c9b3feae71124a76a03d26a977125eb3",
+  "holo/puzzles_solved-t4-rim.png": "db7f3b7488e039edfb15343cf18e1ac027d3d248cf0e25ce60ae6236159434b6",
+  "holo/puzzles_solved-t5-foil.png": "f4f11e6a81b03b2af0202cbab0ee4b6a548b69d716e3910bcaa49e5b4a88b91b",
+  "holo/puzzles_solved-t5-rim.png": "0ac651fa6099065dd4105a706377efd5c15a401842d726761846861dee8f88fc",
+  "holo/speed_1000_pieces-t4-foil.png": "649fdc8bc6b502034e087a895fdcd11553ef91db70521c67361fa7fb05d48c58",
+  "holo/speed_1000_pieces-t4-rim.png": "99446132ca66d681ec1421f8918d6f28bdb86b24c5653c9bb5fd970ebb6d3e19",
+  "holo/speed_1000_pieces-t5-foil.png": "4ded152dc72de5b9effad8866e0c217af62861535b9bfc8aabf7c9736d4ccfa9",
+  "holo/speed_1000_pieces-t5-rim.png": "8ca17192df1c68f3cf32c34243aca82208e37cedbd13324d4c349a707b642a1f",
+  "holo/speed_500_pieces-t4-foil.png": "c32a5f3f0670cfc45aaf94496b6224177f4e55aba2909e528876875624e4b9c5",
+  "holo/speed_500_pieces-t4-rim.png": "99446132ca66d681ec1421f8918d6f28bdb86b24c5653c9bb5fd970ebb6d3e19",
+  "holo/speed_500_pieces-t5-foil.png": "1dd21296ed03e17705d698af3dfab5049d25a496c28637ca30c70670becbdd2f",
+  "holo/speed_500_pieces-t5-rim.png": "8ca17192df1c68f3cf32c34243aca82208e37cedbd13324d4c349a707b642a1f",
+  "holo/steady_hands-t4-foil.png": "47c5cbc4ddf279adafb4369f42f779837eec65779833f0ceaa45d53f28e2792a",
+  "holo/steady_hands-t4-rim.png": "7baea8a7de34f1a25d8647dd85758ecf69e59544694659a6898a3f47091ed561",
+  "holo/steady_hands-t5-foil.png": "18d12980018c006a9a9b1c37ed0887eaf6bddaf05962cf7d561dccdea26742cb",
+  "holo/steady_hands-t5-rim.png": "0bf6c5f9d8e45e7e05b0b4e7ad26e96d5a9520a46963a19cef2489c49f72c7a0",
+  "holo/streak-t4-foil.png": "335f0400fb535646d8b73cda5d458a9d7e3a81fb2a9e443555431cb1d77375b3",
+  "holo/streak-t4-rim.png": "8e611af4a50868f696992d5a453f848c48e109955db95adb2ede0f35cc612b97",
+  "holo/streak-t5-foil.png": "d8b1dc497026c724430b3ad6a4cc6a985e9ed14c8baa2bee1e9bffeef06ffa38",
+  "holo/streak-t5-rim.png": "7ebb3a93a28cf4ee2bfcc709b4d4c0f19470e2a0d1a641dcdad2af03fb8d3916",
+  "holo/team_player-t4-foil.png": "fc8510fd853261f2cc027b403efa411bef63d943626fffdfdcbfe6f4b97fcf14",
+  "holo/team_player-t4-rim.png": "9b8fd18f99034a647ed39bdaa4d086c28d0c65ca582c2f3393ae77564180c85c",
+  "holo/team_player-t5-foil.png": "565659137d1b4ed2822f65730358888804a3d364fc79691816914e91e6413b29",
+  "holo/team_player-t5-rim.png": "aaf490312c7a211bd2314e7737924991c8363850edbada879f60dc37e5602274",
+  "holo/unboxed-t4-foil.png": "e7d376b7949796ae6c9c0a830f80fbeb17e8e4aee00a772344bc87b688f27911",
+  "holo/unboxed-t4-rim.png": "db7f3b7488e039edfb15343cf18e1ac027d3d248cf0e25ce60ae6236159434b6",
+  "holo/unboxed-t5-foil.png": "4c399b87351d9ef30a1ff6c68d62c4e8a4032b7b18f4ef8e10c6f4e767d0c725",
+  "holo/unboxed-t5-rim.png": "a86f363146c00da7263ace4390338580dac03460620825841c87933efb49d2df",
+  "holo/weekend_puzzler-t4-foil.png": "e9bded0961aa3d9741077a4b29eb930c13f803192a7a97ff638d3e5a58a6b118",
+  "holo/weekend_puzzler-t4-rim.png": "4705873745521be082a40f950de2a2878bf694048be9d4dc30e5d140fd9cedab",
+  "holo/weekend_puzzler-t5-foil.png": "84b2c639625ef5cf207e3145323596aea7e822767574d8c28e6b066d03f70070",
+  "holo/weekend_puzzler-t5-rim.png": "12785a02fec7e05d1788d0a206cbda42139986edfe027c335ace4485b1746d72",
+  "holo/zen_puzzler-t4-foil.png": "64b34de485272769e015447d7bc96c1e138f5f5ad6cfbb62165759f4cd513f45",
+  "holo/zen_puzzler-t4-rim.png": "f5284ab1a27663dfd22ec6231575372cd240e7eb1dfda6a63d9673516342d2df",
+  "holo/zen_puzzler-t5-foil.png": "66a41aa9c721fd3d07b17bd99006689b0a6bc30ffd1fca46a358571c1316bed1",
+  "holo/zen_puzzler-t5-rim.png": "103c0da55400246aa93f4ddd6314261e866a95f41840d025ed854ea4e3d002e1",
   "png/144/brand_explorer-t1.png": "348aa0ba60c00c84ec36b9695fa8a62eda3672727bcfc8a476e4202ae5a4e34a",
   "png/144/brand_explorer-t2.png": "b1e244369976724b301bdce0e63406c5c7bfeb930b5e837fa49a27d57aa8ef58",
   "png/144/brand_explorer-t3.png": "d7aef5aa344a4550f166bea713872ca22381dac60c2d80d76385b4bab977cc55",

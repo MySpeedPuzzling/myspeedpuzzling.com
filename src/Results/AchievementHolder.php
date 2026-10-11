@@ -18,6 +18,10 @@ readonly final class AchievementHolder
         public null|string $avatar,
         public DateTimeImmutable $earnedAt,
         public null|BadgeTier $tier = null,
+        /** Earned by the launch backfill: its date means nothing - "at launch" (design-spec §8.1) */
+        public bool $heldAtLaunch = false,
+        /** The very first holder of the tier, after launch - the "First to earn" trophy (design-spec §8.2) */
+        public bool $firstToEarn = false,
     ) {
     }
 }

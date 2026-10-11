@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
+use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Query\GetBadgeCatalog;
 use SpeedPuzzling\Web\Query\GetBadges;
@@ -12,6 +13,7 @@ use SpeedPuzzling\Web\Services\AchievementCatalogueRows;
 use SpeedPuzzling\Web\Services\AchievementRarityProvider;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Services\Xp\XpFeatureGate;
+use SpeedPuzzling\Web\Services\Xp\XpLaunchReadiness;
 use SpeedPuzzling\Web\Value\AchievementCatalogueFilter;
 use SpeedPuzzling\Web\Value\BadgeType;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -21,8 +23,10 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
- * A player's achievements - the "Achievements" tab of the player pages (docs/features/player-header.md): the
- * catalogue rows filled with that player's tiers and progress, Earned / Next up / All, AP and "N of 16 earned" (tiered only).
+ * A player's achievements - the "Achievements" tab of the player pages (docs/features/player-header.md): the same
+ * layout as the catalogue (docs/features/xp-levels/ux-polish/design-spec.md §1) filled with that player's tiers and
+ * progress - summary "13 of 16 achievements · 41 of 80 tiers" (tiered only), the closest next steps (the owner only,
+ * design-spec §8.6: a visitor came to see what someone has), All / Earned / Next up / Rarest first and the shelf.
  *
  * Only members have achievements: a member's page is public (private profile and blocklist rules like every player
  * page), a non-member's page exists for its owner only (one line about membership), anybody else is sent to the
@@ -31,12 +35,6 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  */
 final class PlayerAchievementsController extends AbstractController
 {
-    private const array FILTERS = [
-        AchievementCatalogueFilter::Earned,
-        AchievementCatalogueFilter::NextUp,
-        AchievementCatalogueFilter::All,
-    ];
-
     public function __construct(
         readonly private GetPlayerProfile $getPlayerProfile,
         readonly private GetBadges $getBadges,
@@ -45,6 +43,8 @@ final class PlayerAchievementsController extends AbstractController
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private XpFeatureGate $xpFeatureGate,
         readonly private TranslatorInterface $translator,
+        readonly private ClockInterface $clock,
+        readonly private XpLaunchReadiness $xpLaunchReadiness,
     ) {
     }
 
@@ -81,41 +81,49 @@ final class PlayerAchievementsController extends AbstractController
             return $this->redirectToRoute('player_profile', ['playerId' => $player->playerId]);
         }
 
-        $lists = [];
-        $earnedTypes = 0;
+        $lists = null;
         $hasSupporter = false;
 
         if ($player->activeMembership) {
             // One read of the player's badge rows feeds both the catalogue groups and the single-tier ones
             $badges = $this->getBadges->allEarnedTiers($player->playerId);
             $catalog = $this->getBadgeCatalog->forPlayer($player->playerId, $badges);
-            $lists = AchievementCatalogueRows::build($catalog, $this->achievementRarityProvider->percentages(), personal: true, revealFlow: $isOwn);
+            $lists = AchievementCatalogueRows::build(
+                $catalog,
+                $this->achievementRarityProvider->percentages(),
+                personal: true,
+                revealFlow: $isOwn,
+                newSince: $isOwn ? $this->clock->now()->modify('-' . BadgesOverviewController::NEW_FOR_DAYS . ' days') : null,
+                launchAt: $this->xpLaunchReadiness->readyAt(),
+                // An owner who switched streaks off keeps their streak numbers to themselves (design-spec §8.6)
+                hideProgressOf: $isOwn === false && $player->streakOptedOut ? [BadgeType::Streak] : [],
+            );
 
-            // Counted like the catalogue, the hub and the profile showcase: tiered achievements only
-            $earnedTypes = count(array_unique(array_map(
-                static fn ($badge): string => $badge->type->value,
-                array_filter($badges, static fn ($badge): bool => $badge->type->isTiered()),
-            )));
-            // Early Adopter has a single tier granted by hand - not a catalogue row, listed with the earned ones
+            // Early Adopter has a single tier granted by hand - not a catalogue row, shelved with the earned ones
             $hasSupporter = array_filter($badges, static fn ($badge): bool => $badge->type === BadgeType::Supporter) !== [];
         }
 
         $filter = AchievementCatalogueFilter::tryFrom($request->query->getString('show'));
 
-        if ($filter === null || in_array($filter, self::FILTERS, true) === false) {
-            $filter = AchievementCatalogueFilter::Earned;
+        if ($filter === null || in_array($filter, BadgesOverviewController::MEMBER_FILTERS, true) === false) {
+            $filter = AchievementCatalogueFilter::All;
         }
 
         return $this->render('player_achievements.html.twig', [
             'player' => $player,
             'is_own' => $isOwn,
             'filter' => $filter,
-            'filters' => self::FILTERS,
-            'rows' => $lists[$filter->value] ?? [],
-            'filter_counts' => array_map(static fn (array $rows): int => count($rows), $lists),
-            'earned_types' => $earnedTypes,
-            'total_types' => count(array_filter(BadgeType::cases(), static fn (BadgeType $type): bool => $type->isTiered())),
-            'has_supporter' => $hasSupporter,
+            'filters' => BadgesOverviewController::MEMBER_FILTERS,
+            'lists' => $lists,
+            'rows' => $lists?->rows($filter) ?? [],
+            'filter_counts' => [
+                AchievementCatalogueFilter::All->value => ($lists?->count(AchievementCatalogueFilter::All) ?? 0) + ($hasSupporter ? 1 : 0),
+                AchievementCatalogueFilter::Earned->value => ($lists?->count(AchievementCatalogueFilter::Earned) ?? 0) + ($hasSupporter ? 1 : 0),
+                AchievementCatalogueFilter::NextUp->value => $lists?->count(AchievementCatalogueFilter::NextUp) ?? 0,
+                AchievementCatalogueFilter::Rarest->value => $lists?->count(AchievementCatalogueFilter::Rarest) ?? 0,
+            ],
+            // The single-tier Early Adopter sits with the earned ones (All, Earned) - it has no progress nor rarity
+            'show_supporter' => $hasSupporter && in_array($filter, [AchievementCatalogueFilter::All, AchievementCatalogueFilter::Earned], true),
         ]);
     }
 }

@@ -1,83 +1,233 @@
-<turbo-frame id="modal-frame">
-    <div class="modal-header">
-        <h5 class="modal-title">
-            <i class="bi bi-award me-1" aria-hidden="true"></i>
-            {{ (type.translationKey())|trans }}
-        </h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ 'forms.close'|trans }}"></button>
-    </div>
-    <div class="modal-body">
-        {# The big picture: the badge that was clicked (?tier=), else the viewer's highest tier (members), else Bronze #}
-        {% set highest_earned = group is not null and is_member ? group.highestEarnedTier() : null %}
-        <div class="d-flex align-items-center gap-3 mb-3">
-            {% if group is null %}
-                {{ badge_art(type, null, 96, attrs = {class: 'badge-art-hero mx-0 flex-shrink-0', loading: 'eager'}) }}
-            {% elseif hero_tier is not null %}
-                {{ badge_art(type, hero_tier, 96, attrs = {class: 'badge-art-hero mx-0 flex-shrink-0', loading: 'eager'}) }}
-            {% else %}
-                {{ badge_art(type, highest_earned ?? 1, 96, locked = is_member and highest_earned is null, attrs = {class: 'badge-art-hero mx-0 flex-shrink-0', loading: 'eager'}) }}
-            {% endif %}
+{#
+    The achievement detail sheet (AchievementInfoController, docs/features/xp-levels/ux-polish/design-spec.md §2 + §8.3):
+    the medal (200 px, turns over to its back), the facts line, the five tiers as a list, the two actions, a footnote.
+    A bottom sheet on phones (achievement_sheet_controller.js + _achievement-medal.scss), the centred modal on desktop.
+    The medal and the tier rows are driven by holo_medal_controller.js (lazy): a row shows its tier on the medal, the
+    medal turns over, and Platinum/Diamond get their foil (assets/holo_medal/).
 
-            <div>
-                <p class="text-body-secondary mb-1">{{ ('badges.description.' ~ type.value)|trans }}</p>
-                {% if highest_earned is not null %}
-                    <p class="mb-0 fs-sm">{{ 'badges.info.you_hold'|trans({'%tier%': highest_earned.translationKey()|trans}) }}</p>
-                {% endif %}
+    personal = the sheet shows a player's tiers (the viewer's own as a member, or a visible member's through ?player=);
+    otherwise the bare tiers: no ✓, no AP, no back. Everything the back says is also in the facts line (§8.3).
+#}
+{% set achievement_name = type.translationKey()|trans %}
+{% set tiered = group is not null %}
+{% set subject_name = subject is not null ? (subject.playerName ?? ('#' ~ subject.code|upper)) : null %}
+{% set shown_entry = tiered ? (group.tiers|filter(entry => entry.tier == shown_tier)|first) : null %}
+{% set shown_earned = personal and shown_entry and shown_entry.earned %}
+{% set shown_medal = shown_earned ? (medals[shown_tier.value] ?? null) : null %}
+{% set shown_holo = shown_medal is not null ? badge_holo(type, shown_tier) : null %}
+{% set record = personal and tiered and show_record ? group.progressToNext : null %}
+<turbo-frame id="modal-frame">
+    <div class="achievement-sheet" data-modal-size="" data-modal-scrollable data-controller="achievement-sheet">
+        <div class="achievement-sheet-top" data-achievement-sheet-target="handle">
+            <span class="achievement-sheet-grab" aria-hidden="true"></span>
+            <div class="modal-header">
+                <h5 class="modal-title" tabindex="-1" data-achievement-sheet-target="heading">{{ achievement_name }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ 'forms.close'|trans }}"></button>
             </div>
         </div>
 
-        {% if group is null %}
-            <p class="fs-sm text-body-secondary mb-0">{{ 'badges.info.single_tier_note'|trans }}</p>
-        {% else %}
-            {# One row per tier: tier · requirement as text · share of puzzlers holding it · ✓ or the progress #}
-            <ul class="list-unstyled mb-0">
-                {% for entry in group.tiers %}
-                    {% set is_next = is_member and group.progressToNext is not null and group.progressToNext.nextTier == entry.tier %}
-                    <li class="achievement-tier-row">
-                        <span class="achievement-tier-name {{ is_member and entry.earned ? '' : 'text-body-secondary' }}">{{ (entry.tier.translationKey())|trans }}</span>
-                        <span class="flex-grow-1 fs-sm">
-                            {{ (entry.requirementTranslationKey)|trans }}
-                            {% if is_member %}<span class="text-body-secondary text-nowrap">· +{{ entry.tier.points }} AP</span>{% endif %}
-                            {% if is_next %}
-                                {% set progress = group.progressToNext %}
-                                <span class="achievement-progress d-block" role="progressbar"
-                                      aria-label="{{ 'badges.catalogue.progress_label'|trans({'%achievement%': type.translationKey()|trans, '%tier%': entry.tier.translationKey()|trans}) }}"
-                                      aria-valuenow="{{ progress.percent }}" aria-valuemin="0" aria-valuemax="100">
-                                    <span style="width: {{ progress.percent }}%"></span>
+        <div class="modal-body achievement-sheet-body"
+             data-achievement-sheet-target="body"
+                {% if tiered %}
+                    data-controller="holo-medal"
+                    data-holo-medal-tier-value="{{ shown_tier.value }}"
+                    data-holo-medal-turn-label-value="{{ 'badges.medal.turn'|trans }}"
+                    data-holo-medal-front-label-value="{{ 'badges.medal.show_front'|trans }}"
+                {% endif %}>
+            <p class="achievement-sheet-description">{{ ('badges.description.' ~ type.value)|trans }}</p>
+            {% if subject_name is not null %}
+                <p class="achievement-sheet-whose">{{ 'badges.medal.showing_player'|trans({'%name%': subject_name}) }}</p>
+            {% endif %}
+
+            {# The medal: front = the art (+ the foil layers of Platinum/Diamond), back = the plate with the engraving #}
+            <div class="medal{{ shown_medal is not null ? ' has-back' }}"
+                 data-holo-medal-target="medal"
+                 data-finish="{{ shown_holo.finish ?? 'none' }}"
+                    {% if shown_holo is not null %}
+                        {# The same custom properties holo_medal_controller.js writes when another tier is shown #}
+                        style="--medal-back: url('{{ shown_holo.back }}'); --medal-rim-tone: {{ shown_holo.rimTone }}; --medal-edge-tone: {{ shown_holo.edgeTone }}; --medal-field-x: {{ shown_holo.field.x }}%; --medal-field-y: {{ shown_holo.field.y }}%; --medal-field-r: {{ shown_holo.field.r }}%;{% if shown_holo.foil is not null %} --medal-foil: url('{{ shown_holo.finish == 'rim' ? shown_holo.rim : shown_holo.foil }}'); --medal-art: url('{{ badge_art_url(type, shown_tier, 'webp', 480) }}');{% endif %}"
+                    {% endif %}>
+                <span class="medal-shadow" aria-hidden="true"></span>
+                {% if personal and tiered %}
+                    <button type="button" class="medal-card" aria-pressed="false"
+                            data-holo-medal-target="card"
+                            data-action="holo-medal#turn"
+                            {% if shown_medal is not null %}aria-describedby="medal-back-{{ shown_tier.value }}"{% else %}disabled{% endif %}>
+                        <span class="visually-hidden" data-holo-medal-target="cardLabel">{{ 'badges.medal.turn'|trans }}</span>
+                {% else %}
+                    <div class="medal-card">
+                {% endif %}
+                    <span class="medal-tilt">
+                        <span class="medal-flip">
+                            {% if personal and tiered %}
+                                {% for depth in [-0.375, -0.125, 0.125, 0.375] %}
+                                    <span class="medal-edge" style="--k: {{ depth }}" aria-hidden="true"></span>
+                                {% endfor %}
+                            {% endif %}
+                            <span class="medal-face medal-front" aria-hidden="true">
+                                {{ badge_art(type, tiered ? shown_tier : null, 200,
+                                    locked = personal and tiered and not shown_earned,
+                                    attrs = {class: 'badge-art-hero medal-art', loading: 'eager', alt: '', draggable: 'false', 'data-holo-medal-target': 'art'}) }}
+                                <span class="medal-fx medal-foil"></span>
+                                <span class="medal-fx medal-foil-vivid"></span>
+                                <span class="medal-fx medal-glitter"></span>
+                                <span class="medal-fx medal-etch"></span>
+                                <span class="medal-fx medal-glare"></span>
+                                <span class="medal-fx medal-spot"></span>
+                            </span>
+                            {% if personal and tiered %}
+                                <span class="medal-face medal-back" aria-hidden="true">
+                                    <span class="medal-plate"></span>
+                                    <span class="medal-backfoil"></span>
+                                    {% for entry in group.tiers %}
+                                        {% set medal = medals[entry.tier.value] ?? null %}
+                                        {% if medal is not null %}
+                                            {# Real text, engraved; also the medal button's description (what the back says) #}
+                                            <span class="medal-engraving" id="medal-back-{{ entry.tier.value }}" data-tier="{{ entry.tier.value }}" {{ entry.tier != shown_tier ? 'hidden' }}>
+                                                <span class="medal-engraving-name">{{ achievement_name }}</span>
+                                                <span class="medal-engraving-tier">{{ entry.tier.translationKey()|trans }}</span>
+                                                <span class="medal-engraving-rule" aria-hidden="true"></span>
+                                                {% if medal.heldAtLaunch %}
+                                                    <span class="medal-engraving-launch">{{ 'badges.medal.held_at_launch'|trans }}</span>
+                                                {% else %}
+                                                    <span class="medal-engraving-serial"><small>{{ 'badges.medal.no'|trans }}</small> {{ medal.serial|format_number({min_integer_digit: 4, grouping_used: false}) }}</span>
+                                                    <span class="medal-engraving-line">{{ 'badges.medal.of_total'|trans({'%total%': medal.totalOf(holders[entry.tier.value] ?? 0)|format_number}) }}</span>
+                                                {% endif %}
+                                                <span class="medal-engraving-share">{{ include('_achievement_medal_share.html.twig', {percent: rarity[entry.tier.value] ?? 0, holders: holders[entry.tier.value] ?? 0, long: true}) }}</span>
+                                                {% if not medal.heldAtLaunch %}
+                                                    <span class="medal-engraving-date">{{ medal.earnedAt|format_date('medium') }}</span>
+                                                {% endif %}
+                                            </span>
+                                        {% endif %}
+                                    {% endfor %}
                                 </span>
-                                <span class="text-body-secondary">{{ include('_achievement_progress_numbers.html.twig', {progress: progress}) }}</span>
                             {% endif %}
                         </span>
-                        <span class="achievement-tier-rarity">{{ include('_achievement_rarity.html.twig', {percent: rarity[entry.tier.value] ?? 0}) }}</span>
-                        {% if is_member and entry.earned %}
-                            <i class="ci-check-circle text-success flex-shrink-0" role="img" aria-label="{{ 'badges.info.earned'|trans }}"></i>
-                        {% endif %}
-                    </li>
-                {% endfor %}
-            </ul>
-
-            {% if is_member and group.progressToNext is null and group.hasAnyEarned() %}
-                <p class="small text-success mb-0 mt-2">
-                    <i class="ci-check-circle me-1" aria-hidden="true"></i>
-                    {{ 'badges.highest_earned'|trans }}
-                </p>
-            {% elseif not is_member %}
-                <p class="small text-body-secondary mb-0 mt-2">
-                    {{ (logged_in ? 'badges.catalogue.tease_free' : 'badges.catalogue.tease_guest')|trans }}
-                    <a href="{{ path('membership') }}" data-turbo-frame="_top">{{ 'badges.catalogue.become_member'|trans }}</a>
-                </p>
+                    </span>
+                {% if personal and tiered %}
+                    </button>
+                {% else %}
+                    </div>
+                {% endif %}
+            </div>
+            {% if personal and tiered %}
+                <p class="medal-hint text-body-secondary" data-holo-medal-target="hint" {{ shown_medal is null ? 'hidden' }}>{{ 'badges.medal.tap_hint'|trans }}</p>
             {% endif %}
-        {% endif %}
 
-        <div class="mt-3 d-flex flex-wrap gap-2">
-            {% if type.isTiered() %}
-                <a href="{{ path('achievement_detail', {type: type.value}) }}" data-turbo-frame="_top" class="btn btn-outline-primary">
-                    {{ 'badges.view_holders'|trans }}
+            {# Facts line (§8.3): the shown tier · earned date or "Held at launch" · No. · the share (+ how rare: Rare and rarer, under 50 %) · the record #}
+            {% if tiered %}
+                <div class="medal-facts">
+                    {% for entry in group.tiers %}
+                        {% set percent = rarity[entry.tier.value] ?? 0 %}
+                        {% set tier_holders = holders[entry.tier.value] ?? 0 %}
+                        {% set medal = personal ? (medals[entry.tier.value] ?? null) : null %}
+                        <span class="medal-facts-tier" data-holo-medal-target="facts" data-tier="{{ entry.tier.value }}" {{ entry.tier != shown_tier ? 'hidden' }}>
+                            <span class="medal-facts-chips">
+                                <span class="medal-chip medal-chip-tier">{{ entry.tier.translationKey()|trans }}</span>
+                                {% if medal is not null %}
+                                    {% if medal.heldAtLaunch %}
+                                        <span class="medal-chip">{{ 'badges.medal.held_at_launch'|trans }}</span>
+                                    {% else %}
+                                        <span class="medal-chip">{{ 'badges.earned_on'|trans({'%date%': medal.earnedAt|format_date('medium')}) }}</span>
+                                        <span class="medal-chip">{{ 'badges.medal.serial_of'|trans({'%serial%': medal.serial|format_number, '%total%': medal.totalOf(tier_holders)|format_number}) }}</span>
+                                    {% endif %}
+                                {% elseif personal %}
+                                    <span class="medal-chip">{{ 'badges.medal.not_earned_yet'|trans }}</span>
+                                {% endif %}
+                            </span>
+                            <span class="medal-facts-share">
+                                {%- if tier_holders > 0 and percent < 50 -%}
+                                    <span class="medal-chip medal-chip-rarity medal-rarity-{{ bands[entry.tier.value].value }}">{{ bands[entry.tier.value].translationKey()|trans }}</span>
+                                {% endif -%}
+                                {{ include('_achievement_medal_share.html.twig', {percent: percent, holders: tier_holders, long: true}) }}
+                            </span>
+                        </span>
+                    {% endfor %}
+                    {% if record is not null %}
+                        {% set record_value = record.unit.value == 'seconds' ? record.currentValue|puzzlingTime : record.currentValue|format_number %}
+                        <span class="medal-facts-record">
+                            {%- if subject_name is not null -%}
+                                {{ (record.unit.value == 'seconds' ? 'badges.medal.player_best' : 'badges.medal.player_so_far')|trans({'%name%': subject_name, '%value%': record_value}) }}
+                            {%- else -%}
+                                {{ (record.unit.value == 'seconds' ? 'badges.medal.your_record' : 'badges.medal.so_far')|trans({'%value%': record_value}) }}
+                            {%- endif -%}
+                        </span>
+                    {% endif %}
+                </div>
+
+                {# The tiers (2A): seal · name ✓ · requirement and share · +AP, the next one with its progress (own sheet only).
+                   A row is a button (stretched over the row) that shows its tier on the medal. #}
+                <ul class="medal-tiers list-unstyled">
+                    {% for entry in group.tiers %}
+                        {% set earned = personal and entry.earned %}
+                        {% set medal = medals[entry.tier.value] ?? null %}
+                        {% set holo = earned and medal is not null ? badge_holo(type, entry.tier) : null %}
+                        {% set is_next = personal and subject is null and group.progressToNext is not null and group.progressToNext.nextTier == entry.tier %}
+                        <li class="medal-tier{{ entry.tier == shown_tier ? ' is-shown' }}{{ earned ? ' is-earned' }}"
+                            data-holo-medal-target="row"
+                            data-tier="{{ entry.tier.value }}"
+                            data-locked="{{ personal and not entry.earned ? '1' : '0' }}"
+                            data-back="{{ medal is not null ? '1' : '0' }}"
+                            data-art-src="{{ badge_art_url(type, entry.tier, 'webp', 480) }}"
+                            data-art-srcset="{{ badge_art_url(type, entry.tier, 'webp', 320) }} 1x, {{ badge_art_url(type, entry.tier, 'webp', 480) }} 2x"
+                            {% if holo is not null %}data-holo="{{ holo|json_encode|e('html_attr') }}"{% endif %}>
+                            {{ badge_art(type, entry.tier, 40, locked = personal and not entry.earned, attrs = {alt: '', class: 'medal-tier-seal'}) }}
+                            <span class="medal-tier-text">
+                                <button type="button" class="medal-tier-name stretched-link"
+                                        aria-pressed="{{ entry.tier == shown_tier ? 'true' : 'false' }}"
+                                        data-action="holo-medal#show"
+                                        data-holo-medal-tier-param="{{ entry.tier.value }}">
+                                    {{- entry.tier.translationKey()|trans -}}
+                                    {%- if earned %} <i class="ci-check-circle medal-tier-check" role="img" aria-label="{{ 'badges.info.earned'|trans }}"></i>{% endif -%}
+                                </button>
+                                <span class="medal-tier-requirement">
+                                    {{- (entry.requirementTranslationKey)|trans }} · <span class="text-nowrap">{{ include('_achievement_medal_share.html.twig', {percent: rarity[entry.tier.value] ?? 0, holders: holders[entry.tier.value] ?? 0, long: false}) }}</span>
+                                </span>
+                                {% if is_next %}
+                                    {% set progress = group.progressToNext %}
+                                    <span class="achievement-progress medal-tier-progress" role="progressbar"
+                                          aria-label="{{ 'badges.catalogue.progress_label'|trans({'%achievement%': achievement_name, '%tier%': entry.tier.translationKey()|trans}) }}"
+                                          aria-valuenow="{{ progress.percent }}" aria-valuemin="0" aria-valuemax="100">
+                                        <span style="width: {{ progress.percent }}%"></span>
+                                    </span>
+                                    <span class="medal-tier-numbers">{{ include('_achievement_progress_numbers.html.twig', {progress: progress}) }}</span>
+                                {% endif %}
+                            </span>
+                            {% if personal %}
+                                <span class="medal-tier-ap">+{{ entry.tier.points|format_number }} AP</span>
+                            {% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+
+                {% if not personal %}
+                    <p class="small text-body-secondary mb-0 mt-2">
+                        {{ (logged_in ? 'badges.catalogue.tease_free' : 'badges.catalogue.tease_guest')|trans }}
+                        <a href="{{ path('membership') }}" data-turbo-frame="_top">{{ 'badges.catalogue.become_member'|trans }}</a>
+                    </p>
+                {% endif %}
+            {% else %}
+                <p class="fs-sm text-body-secondary text-center mb-0">{{ 'badges.info.single_tier_note'|trans }}</p>
+            {% endif %}
+
+            <div class="medal-actions">
+                {% if tiered %}
+                    <a href="{{ path('achievement_detail', {type: type.value}) }}" data-turbo-frame="_top" class="btn btn-outline-primary">
+                        {{ 'badges.medal.see_holders'|trans({'%count%': holders_total|format_number}) }}
+                    </a>
+                {% endif %}
+                <a href="{{ path('badges_overview') }}" data-turbo-frame="_top" class="btn btn-outline-secondary">
+                    {{ 'badges.medal.all_achievements'|trans }}
                 </a>
+            </div>
+
+            {% if tiered %}
+                <p class="medal-footnote text-body-secondary">
+                    {{ 'badges.medal.explain_share'|trans }}
+                    {{ 'badges.medal.explain_step_back'|trans }}
+                    {% if viewer_lapsed %}{{ 'badges.medal.explain_lapsed'|trans }}{% endif %}
+                </p>
             {% endif %}
-            <a href="{{ path('badges_overview') }}" data-turbo-frame="_top" class="btn btn-outline-secondary">
-                {{ 'badges.browse_all'|trans }}
-            </a>
         </div>
     </div>
 </turbo-frame>

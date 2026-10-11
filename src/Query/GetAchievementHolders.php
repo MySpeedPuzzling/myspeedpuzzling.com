@@ -12,9 +12,10 @@ use SpeedPuzzling\Web\Services\HiddenPlayers;
 use SpeedPuzzling\Web\Value\BadgeTier;
 use SpeedPuzzling\Web\Value\BadgeType;
 use SpeedPuzzling\Web\Value\CountryCode;
+use SpeedPuzzling\Web\Value\HeldAtLaunch;
 
 /**
- * Holders directory (§1.7): holder LISTS show members with public profiles only
+ * Holders directory (§1.7, layout: docs/features/xp-levels/ux-polish/design-spec.md §1): holder LISTS show members with public profiles only
  * (public badge display is a membership perk); private profiles and XP-opted-out
  * players never appear in lists; holder COUNTS include everyone.
  *
@@ -23,7 +24,7 @@ use SpeedPuzzling\Web\Value\CountryCode;
  */
 readonly class GetAchievementHolders
 {
-    private const int LISTED_PER_TIER = 30;
+    public const int LISTED_PER_TIER = 30;
 
     private const string LISTED_ELIGIBILITY = <<<SQL
   p.is_private = false
@@ -44,38 +45,57 @@ SQL;
     }
 
     /**
-     * Tier sections Diamond → Bronze; holders inside a tier ordered by earn date
-     * (the first row is the "first to earn" highlight).
+     * Tier sections Diamond → Bronze (docs/features/xp-levels/ux-polish/design-spec.md §1 "Holders page", §8.2): the
+     * newest LISTED_PER_TIER listed holders of each tier, newest first - the holders at launch carry the backfill's
+     * timestamp, so they come last and the page shows "at launch" instead of their date (§8.1).
      *
+     * Each row knows whether it is the tier's very first holder among ALL holders (the "First to earn" trophy, given
+     * only when that first earn came after launch): the medal serial rule of §2, ROW_NUMBER() OVER (PARTITION BY
+     * type, tier ORDER BY earned_at, id), numbered before anybody is left out of the list.
+     *
+     * Two statements whatever the number of holders: the listed rows, and per tier the counts (every country + the
+     * filtered country).
+     *
+     * @param null|DateTimeImmutable $launchAt XpLaunchReadiness::readyAt() - tiers earned until then are "held at launch"
      * @return list<AchievementTierHolders>
      */
-    public function forType(BadgeType $type, null|string $country): array
+    public function forType(BadgeType $type, null|string $country, null|DateTimeImmutable $launchAt): array
     {
         $listedSql = <<<SQL
-SELECT tier, earned_at, player_id, player_name, code, country, avatar
-FROM (
+WITH numbered AS (
     SELECT
+        b.id,
         b.tier,
         b.earned_at,
+        b.player_id,
+        ROW_NUMBER() OVER (PARTITION BY b.tier ORDER BY b.earned_at ASC, b.id ASC) AS serial
+    FROM badge b
+    WHERE b.type = :type
+      AND b.tier IS NOT NULL
+)
+SELECT tier, earned_at, serial, player_id, player_name, code, country, avatar
+FROM (
+    SELECT
+        n.tier,
+        n.earned_at,
+        n.serial,
         p.id AS player_id,
         p.name AS player_name,
         p.code,
         p.country,
         p.avatar,
-        ROW_NUMBER() OVER (PARTITION BY b.tier ORDER BY b.earned_at ASC, b.id ASC) AS position
-    FROM badge b
-    JOIN player p ON p.id = b.player_id
+        ROW_NUMBER() OVER (PARTITION BY n.tier ORDER BY n.earned_at DESC, n.id DESC) AS position
+    FROM numbered n
+    JOIN player p ON p.id = n.player_id
     LEFT JOIN membership m ON m.player_id = p.id
-    WHERE b.type = :type
-      AND b.tier IS NOT NULL
-      AND (CAST(:country AS TEXT) IS NULL OR p.country = :country)
+    WHERE (CAST(:country AS TEXT) IS NULL OR p.country = :country)
       AND {$this->listedEligibility()}
 ) ranked
 WHERE position <= :limit
 ORDER BY tier DESC, position ASC
 SQL;
 
-        /** @var list<array{tier: int, earned_at: string, player_id: string, player_name: null|string, code: string, country: null|string, avatar: null|string}> $listedRows */
+        /** @var list<array{tier: int|string, earned_at: string, serial: int|string, player_id: string, player_name: null|string, code: string, country: null|string, avatar: null|string}> $listedRows */
         $listedRows = $this->database->executeQuery($listedSql, [
             'type' => $type->value,
             'country' => $country,
@@ -83,16 +103,18 @@ SQL;
         ])->fetchAllAssociative();
 
         $countsSql = <<<SQL
-SELECT b.tier, COUNT(*) AS holders_count
+SELECT
+    b.tier,
+    COUNT(*) AS all_count,
+    COUNT(*) FILTER (WHERE CAST(:country AS TEXT) IS NULL OR p.country = :country) AS holders_count
 FROM badge b
 JOIN player p ON p.id = b.player_id
 WHERE b.type = :type
   AND b.tier IS NOT NULL
-  AND (CAST(:country AS TEXT) IS NULL OR p.country = :country)
 GROUP BY b.tier
 SQL;
 
-        /** @var list<array{tier: int, holders_count: int|string}> $countRows */
+        /** @var list<array{tier: int|string, all_count: int|string, holders_count: int|string}> $countRows */
         $countRows = $this->database->executeQuery($countsSql, [
             'type' => $type->value,
             'country' => $country,
@@ -100,18 +122,23 @@ SQL;
 
         $countsByTier = [];
         foreach ($countRows as $row) {
-            $countsByTier[$row['tier']] = is_numeric($row['holders_count']) ? (int) $row['holders_count'] : 0;
+            $countsByTier[(int) $row['tier']] = ['all' => (int) $row['all_count'], 'filtered' => (int) $row['holders_count']];
         }
 
         $holdersByTier = [];
         foreach ($listedRows as $row) {
-            $holdersByTier[$row['tier']][] = new AchievementHolder(
+            $earnedAt = new DateTimeImmutable($row['earned_at']);
+            $heldAtLaunch = HeldAtLaunch::is($earnedAt, $launchAt);
+
+            $holdersByTier[(int) $row['tier']][] = new AchievementHolder(
                 playerId: $row['player_id'],
                 playerName: $row['player_name'],
                 playerCode: $row['code'],
                 countryCode: CountryCode::fromCode($row['country']),
                 avatar: $row['avatar'],
-                earnedAt: new DateTimeImmutable($row['earned_at']),
+                earnedAt: $earnedAt,
+                heldAtLaunch: $heldAtLaunch,
+                firstToEarn: (int) $row['serial'] === 1 && $heldAtLaunch === false,
             );
         }
 
@@ -121,64 +148,12 @@ SQL;
             $sections[] = new AchievementTierHolders(
                 tier: $tier,
                 holders: $holdersByTier[$tier->value] ?? [],
-                totalCount: $countsByTier[$tier->value] ?? 0,
+                totalCount: $countsByTier[$tier->value]['filtered'] ?? 0,
+                allCount: $countsByTier[$tier->value]['all'] ?? 0,
             );
         }
 
         return $sections;
-    }
-
-    /**
-     * Freshest earns across all tiers, one entry per player.
-     *
-     * @return list<AchievementHolder>
-     */
-    public function newestEarners(BadgeType $type, int $limit = 8): array
-    {
-        $sql = <<<SQL
-SELECT tier, earned_at, player_id, player_name, code, country, avatar
-FROM (
-    SELECT DISTINCT ON (p.id)
-        b.tier,
-        b.earned_at,
-        p.id AS player_id,
-        p.name AS player_name,
-        p.code,
-        p.country,
-        p.avatar
-    FROM badge b
-    JOIN player p ON p.id = b.player_id
-    LEFT JOIN membership m ON m.player_id = p.id
-    WHERE b.type = :type
-      AND b.tier IS NOT NULL
-      AND {$this->listedEligibility()}
-    ORDER BY p.id, b.earned_at DESC
-) newest
-ORDER BY earned_at DESC
-LIMIT :limit
-SQL;
-
-        /** @var list<array{tier: int, earned_at: string, player_id: string, player_name: null|string, code: string, country: null|string, avatar: null|string}> $rows */
-        $rows = $this->database->executeQuery($sql, [
-            'type' => $type->value,
-            'limit' => $limit,
-        ])->fetchAllAssociative();
-
-        $earners = [];
-
-        foreach ($rows as $row) {
-            $earners[] = new AchievementHolder(
-                playerId: $row['player_id'],
-                playerName: $row['player_name'],
-                playerCode: $row['code'],
-                countryCode: CountryCode::fromCode($row['country']),
-                avatar: $row['avatar'],
-                earnedAt: new DateTimeImmutable($row['earned_at']),
-                tier: BadgeTier::from($row['tier']),
-            );
-        }
-
-        return $earners;
     }
 
     /**

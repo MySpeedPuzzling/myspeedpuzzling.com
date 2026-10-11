@@ -5,64 +5,71 @@
 {% block meta_description %}{{ 'badges.overview_subtitle'|trans }}{% endblock %}
 
 {#
-    The achievements catalogue (docs/features/xp-levels/launch-2026-10.md): rows, a segmented filter, requirements as
-    text, rarity per tier. Personal parts (earned tier, progress, AP) for members only - everybody else browses the
-    same catalogue a guest sees, with one line about membership.
+    The achievements catalogue (docs/features/xp-levels/ux-polish/design-spec.md §1): summary line, "Closest next
+    steps", filter chips and the shelf - the same layout as a player's achievements page (_achievements_layout).
+    Personal parts (tiers held, progress, AP) for members only - everybody else browses the shop window: every seal at
+    Bronze in colour with how many puzzlers hold it, the membership tease on top, and nothing personal is even read.
 #}
 {% block content %}
+    {{ include('_page_crumbs.html.twig', {
+        levels: [{name: 'progression_hub.title'|trans, url: path('progression_hub')}],
+        current: 'badges.overview_title'|trans,
+        json_ld: true,
+    }) }}
+
     <header class="mb-3">
         <h1 class="h3 mb-1">{{ 'badges.overview_title'|trans }}</h1>
 
         {% if is_member %}
             <p class="achievements-summary mb-0">
-                {{ 'badges.catalogue.summary'|trans({'%earned%': filter_counts.earned, '%total%': filter_counts.all})|raw }}
+                <span>{{ 'badges.shelf.summary'|trans({
+                    '%earned%': lists.earnedTypes|format_number,
+                    '%total%': lists.totalTypes|format_number,
+                    '%tiers_earned%': lists.earnedTiers|format_number,
+                    '%tiers_total%': lists.totalTiers|format_number,
+                })|raw }}</span>
                 {% if ap_total is not null %}
-                    <span class="mx-1" aria-hidden="true">·</span>
-                    <a href="{{ path('xp_leaderboard', {tab: 'achievement-points'}) }}" class="ap-chip text-decoration-none">{{ 'badges.ap_total'|trans({'%points%': ap_total}) }}</a>
+                    <a href="{{ path('xp_leaderboard', {tab: 'achievement-points'}) }}" class="ap-chip text-decoration-none">{{ 'badges.ap_total'|trans({'%points%': ap_total|format_number}) }}</a>
                 {% endif %}
-                <span class="mx-1" aria-hidden="true">·</span>
-                <a href="{{ path('player_achievements', {playerId: logged_user.profile.playerId}) }}">{{ 'badges.my_title'|trans }}</a>
+                <a href="{{ path('player_achievements', {playerId: logged_user.profile.playerId}) }}" class="achievements-summary-link">{{ 'badges.my_title'|trans }}</a>
             </p>
         {% else %}
             <p class="text-body-secondary mb-0">{{ 'badges.overview_subtitle'|trans }}</p>
         {% endif %}
     </header>
 
-    <div class="achievements-about mb-3" id="how-achievements-work">
-        {{ 'badges.catalogue.about'|trans }}
-        <a href="{{ path('progression_hub') }}" class="text-nowrap">{{ 'progression_hub.title'|trans }}</a>
-    </div>
-
     {% if not is_member %}
-        <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
-            <p class="mb-0 fs-sm flex-grow-1" style="flex-basis: 15rem;">
-                {{ (logged_in ? 'badges.catalogue.tease_free' : 'badges.catalogue.tease_guest')|trans }}
-            </p>
+        <div class="achievements-tease mb-3">
+            <p class="mb-0">{{ (logged_in ? 'badges.catalogue.tease_free' : 'badges.catalogue.tease_guest')|trans }}</p>
             <a href="{{ path('membership') }}" class="btn btn-primary btn-sm">{{ 'badges.catalogue.become_member'|trans }}</a>
         </div>
     {% endif %}
 
-    <nav class="achievements-filter" aria-label="{{ 'badges.catalogue.filter_label'|trans }}">
-        {% for option in filters %}
-            <a href="{{ path('badges_overview', {show: option.value}) }}"
-               class="{{ option == filter ? 'active' }}"
-               {% if option == filter %}aria-current="page"{% endif %}>
-                {{ option.translationKey()|trans }}{% if filter_counts[option.value] is defined %} · {{ filter_counts[option.value] }}{% endif %}
-            </a>
-        {% endfor %}
-    </nav>
+    {{ include('_achievements_layout.html.twig', {
+        lists: is_member ? lists : null,
+        rows: rows,
+        filter: filter,
+        filters: filters,
+        filter_counts: filter_counts,
+        filter_route: 'badges_overview',
+        filter_params: {},
+        personal: is_member,
+        player_id: null,
+        own: is_member,
+    }) }}
 
-    {% if rows|length == 0 %}
-        <p class="text-body-secondary">{{ ('badges.catalogue.empty.' ~ filter.value)|trans }}</p>
-    {% else %}
-        <div class="achievement-rows">
-            {% for row in rows %}
-                {{ include('_achievement_row.html.twig', {row: row, personal: is_member}) }}
-            {% endfor %}
-        </div>
-    {% endif %}
+    <div class="achievements-about mt-4" id="how-achievements-work">
+        {{ 'badges.catalogue.about'|trans }}
+        <a href="{{ path('progression_hub') }}" class="text-nowrap">{{ 'progression_hub.title'|trans }}</a>
+    </div>
 
-    <p class="mt-4 fs-sm text-body-secondary">
-        <a href="{{ path('xp_leaderboard', {tab: 'achievement-points'}) }}">{{ 'badges.catalogue.ap_leaderboard_link'|trans }}</a>
-    </p>
+    {# What the numbers mean (design-spec §8.5) #}
+    <div class="achievements-footnote mt-3 fs-sm text-body-secondary">
+        <p class="mb-1">{{ 'badges.shelf.explainer.share'|trans }}</p>
+        <p class="mb-1">{{ 'badges.shelf.explainer.step_back'|trans }}</p>
+        {% if logged_in and not is_member %}
+            <p class="mb-1">{{ 'badges.shelf.explainer.lapsed'|trans }}</p>
+        {% endif %}
+        <p class="mb-0"><a href="{{ path('xp_leaderboard', {tab: 'achievement-points'}) }}">{{ 'badges.catalogue.ap_leaderboard_link'|trans }}</a></p>
+    </div>
 {% endblock %}

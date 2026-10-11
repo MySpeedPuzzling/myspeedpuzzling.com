@@ -9179,3 +9179,6 @@ badges.shelf.explainer.step_back: "A tier can step back when a time is removed o
 badges.shelf.explainer.lapsed: "Your achievements are kept and come back with membership."
 badges.holders.at_launch: "at launch"
 badges.holders.you_hold_at_launch: "You hold %tier% · held at launch"
+
+modal.load_failed: "This couldn't be loaded. Check your connection and try again."
+modal.try_again: "Try again"

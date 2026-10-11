@@ -22,6 +22,7 @@ enum AchievementCatalogueFilter: string
 
     public function translationKey(): string
     {
-        return 'badges.catalogue.filter.' . $this->value;
+        // "Rarest first": the label says it is an order, not a subset (design-spec §8.6)
+        return $this === self::Rarest ? 'badges.shelf.filter_rarest' : 'badges.catalogue.filter.' . $this->value;
     }
 }

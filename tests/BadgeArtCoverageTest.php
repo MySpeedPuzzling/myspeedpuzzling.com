@@ -80,6 +80,39 @@ final class BadgeArtCoverageTest extends TestCase
         self::assertSame([], $unexpected);
     }
 
+    /**
+     * The detail sheet's medal (tools/badge-art/lib/holo.py): every tier of every tiered achievement turns over to a
+     * back plate, Platinum and Diamond have their foil masks.
+     */
+    public function testEveryTierHasItsMedalBackAndTheTopTiersTheirFoil(): void
+    {
+        $problems = [];
+
+        foreach (BadgeType::cases() as $type) {
+            if ($type->isTiered() === false) {
+                continue;
+            }
+
+            foreach (BadgeTier::cases() as $tier) {
+                $holo = $this->manifest->holo($type, $tier);
+                $label = $type->value . '-' . BadgeArtManifest::variant($tier);
+
+                if ($holo === null) {
+                    $problems[] = $label . ': no medal data';
+                    continue;
+                }
+
+                $hasFoil = $holo['foil'] !== null && $holo['rim'] !== null;
+
+                if ($hasFoil !== ($tier === BadgeTier::Platinum || $tier === BadgeTier::Diamond)) {
+                    $problems[] = $label . ($hasFoil ? ': a foil below Platinum' : ': no foil masks');
+                }
+            }
+        }
+
+        self::assertSame([], $problems);
+    }
+
     public function testEveryFileOfTheManifestExists(): void
     {
         $missing = array_values(array_filter(

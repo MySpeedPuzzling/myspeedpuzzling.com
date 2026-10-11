@@ -89,13 +89,12 @@ final class ProgressionPagesTest extends WebTestCase
         $crawler = $browser->request('GET', '/en/achievements');
 
         self::assertResponseIsSuccessful();
-        self::assertGreaterThanOrEqual(16, $crawler->filter('.achievement-row')->count());
-        // Requirements are text, never a hover title
-        self::assertStringContainsString('Solve 10 distinct puzzles', $crawler->filter('.achievement-rows')->text());
-        self::assertCount(0, $crawler->filter('.achievement-rows [title]'));
+        self::assertGreaterThanOrEqual(16, $crawler->filter('.achievement-cell')->count());
+        // Nothing hides behind a hover title (the requirements are in the detail sheet, as text)
+        self::assertCount(0, $crawler->filter('.achievement-shelf [title]'));
         // Only the public filters, the tease and the membership button
         $filters = $crawler->filter('.achievements-filter a')->each(static fn ($node): string => $node->text());
-        self::assertSame(['All · 16', 'Rarest'], array_map(static fn (string $label): string => trim($label), $filters));
+        self::assertSame(['All · 16', 'Rarest first · 16'], array_map(static fn (string $label): string => trim($label), $filters));
         self::assertSelectorExists('a.btn[href="/en/membership"]');
         self::assertSelectorNotExists('.achievements-summary');
         self::assertSelectorNotExists('.achievement-progress');
@@ -115,7 +114,7 @@ final class ProgressionPagesTest extends WebTestCase
         self::assertSelectorNotExists('.achievements-summary');
         self::assertSelectorNotExists('.badge-art-locked');
         self::assertSelectorNotExists('.achievement-progress');
-        self::assertStringNotContainsString('Highest tier earned', $crawler->filter('.achievement-rows')->text());
+        self::assertStringNotContainsString('Highest tier earned', $crawler->filter('.achievement-shelf')->text());
     }
 
     public function testCatalogueForAMemberHasNextUpEarnedAndTheSummary(): void
@@ -129,16 +128,19 @@ final class ProgressionPagesTest extends WebTestCase
         self::assertResponseIsSuccessful();
         $filters = $crawler->filter('.achievements-filter a')->each(static fn ($node): string => trim($node->text()));
         self::assertCount(4, $filters);
-        self::assertStringStartsWith('Next up', $filters[0]);
+        self::assertStringStartsWith('All', $filters[0]);
         self::assertSame('Earned · 1', $filters[1]);
-        self::assertSelectorTextContains('.achievements-summary', '1 of 16 earned');
+        self::assertStringStartsWith('Next up', $filters[2]);
+        self::assertStringStartsWith('Rarest first', $filters[3]);
+        self::assertSelectorTextContains('.achievements-summary', '1 of 16 achievements');
         self::assertSelectorExists('.achievements-summary .ap-chip');
         self::assertSelectorNotExists('.achievements-summary .xp-level-chip');
 
-        $rows = $crawler->filter('.achievement-row');
+        $rows = $crawler->filter('.achievement-cell');
         self::assertCount(1, $rows);
         self::assertStringContainsString('Puzzle Explorer', $rows->text());
-        self::assertStringContainsString('Silver', $rows->text());
+        // Not revealed yet: the cell is the "?" seal leading to the reveal
+        self::assertStringContainsString('tap to reveal', $rows->text());
     }
 
     public function testCatalogueRunsOneRarityAggregate(): void
@@ -164,10 +166,10 @@ final class ProgressionPagesTest extends WebTestCase
         $crawler = $browser->request('GET', '/en/achievements/puzzles_solved/info', server: ['HTTP_TURBO_FRAME' => 'modal-frame']);
 
         self::assertResponseIsSuccessful();
-        self::assertCount(5, $crawler->filter('.achievement-tier-row'));
-        self::assertCount(5, $crawler->filter('.achievement-tier-rarity'));
-        self::assertSelectorNotExists('.achievement-tier-row .ci-check-circle');
-        self::assertStringNotContainsString('AP', $crawler->filter('.achievement-tier-row')->text());
+        self::assertCount(5, $crawler->filter('li.medal-tier'));
+        self::assertCount(5, $crawler->filter('.medal-tier-requirement'));
+        self::assertSelectorNotExists('.medal-tier-check');
+        self::assertStringNotContainsString('AP', $crawler->filter('li.medal-tier')->text());
         self::assertSelectorExists('.btn-close[aria-label="Close"]');
     }
 
@@ -180,8 +182,8 @@ final class ProgressionPagesTest extends WebTestCase
         $crawler = $browser->request('GET', '/en/achievements/puzzles_solved/info', server: ['HTTP_TURBO_FRAME' => 'modal-frame']);
 
         self::assertResponseIsSuccessful();
-        self::assertCount(1, $crawler->filter('.achievement-tier-row .ci-check-circle'));
-        self::assertStringContainsString('+5 AP', $crawler->filter('.achievement-tier-row')->first()->text());
+        self::assertCount(1, $crawler->filter('.medal-tier-check'));
+        self::assertStringContainsString('+5 AP', $crawler->filter('li.medal-tier')->first()->text());
     }
 
     public function testHoldersPageUsesCountryNamesAndTheViewersTierAsHero(): void
@@ -194,8 +196,8 @@ final class ProgressionPagesTest extends WebTestCase
         $crawler = $browser->request('GET', '/en/achievements/puzzles_solved');
 
         self::assertResponseIsSuccessful();
-        // The member holder is listed, in a pill, with the country's name in the filter
-        self::assertGreaterThan(0, $crawler->filter('.holder-pill')->count());
+        // The member holder is listed, in a row, with the country's name in the filter
+        self::assertGreaterThan(0, $crawler->filter('.holder-row')->count());
         $options = $crawler->filter('#holder-country option')->each(static fn ($node): string => $node->text());
         self::assertContains('United Kingdom', $options);
         self::assertSelectorNotExists('select[onchange]');

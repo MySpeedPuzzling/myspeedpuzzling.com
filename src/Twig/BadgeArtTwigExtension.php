@@ -24,6 +24,10 @@ use Twig\TwigFunction;
  * - `badge_art(type, tier, display_px = 72, locked = false, attrs = {})` - the `<img>`: WebP at twice the display size
  *   (`srcset` adds the 1x file when there is a smaller one), alt = achievement + tier, lazy, `badge-art` class and
  *   `badge-art-locked` for the locked look (greyscale at 45 % - CSS only, no extra files)
+ * - `badge_holo(type, tier)` - the medal of the achievement detail sheet (null for single-tier achievements): the
+ *   `finish` (`none` Bronze-Gold, `rim` Platinum, `masterpiece` Diamond), the `back` plate URL, the `foil` and `rim`
+ *   mask URLs (Platinum and Diamond only, else null), all same origin with `?v=` like the art (CSS masks need
+ *   same-origin files), the sampled `rimTone` / `edgeTone` and the back's text `field` (`x`, `y`, `r` in percent)
  *
  * `type` is a BadgeType or its value, `tier` a BadgeTier, its number, or null/0 for a single-tier achievement. A
  * picture that does not exist (unknown achievement or tier, a tier on a single-tier achievement, a size that is not
@@ -55,6 +59,7 @@ final class BadgeArtTwigExtension extends AbstractExtension
         return [
             new TwigFunction('badge_art_url', $this->badgeArtUrl(...)),
             new TwigFunction('badge_art', $this->badgeArt(...), ['is_safe' => ['html']]),
+            new TwigFunction('badge_holo', $this->badgeHolo(...)),
         ];
     }
 
@@ -72,6 +77,44 @@ final class BadgeArtTwigExtension extends AbstractExtension
 
             return '';
         }
+    }
+
+    /**
+     * @return null|array{finish: 'none'|'rim'|'masterpiece', foil: null|string, rim: null|string, back: string, rimTone: string, edgeTone: string, field: array{x: float, y: float, r: float}}
+     */
+    public function badgeHolo(BadgeType|string $type, null|BadgeTier|int $tier): null|array
+    {
+        try {
+            $badgeTier = $this->resolveTier($tier);
+
+            if ($badgeTier === null) {
+                return null;
+            }
+
+            $holo = $this->manifest->holo($this->resolveType($type), $badgeTier);
+
+            if ($holo === null) {
+                return null;
+            }
+
+            $version = '?v=' . rawurlencode($this->manifest->version());
+        } catch (BadgeArtMissing $exception) {
+            $this->report($exception);
+
+            return null;
+        }
+
+        $hasFoil = $holo['foil'] !== null && $holo['rim'] !== null;
+
+        return [
+            'finish' => $hasFoil === false ? 'none' : ($badgeTier === BadgeTier::Diamond ? 'masterpiece' : 'rim'),
+            'foil' => $holo['foil'] === null ? null : $this->packages->getUrl(self::PUBLIC_DIRECTORY . $holo['foil']) . $version,
+            'rim' => $holo['rim'] === null ? null : $this->packages->getUrl(self::PUBLIC_DIRECTORY . $holo['rim']) . $version,
+            'back' => $this->packages->getUrl(self::PUBLIC_DIRECTORY . $holo['back']) . $version,
+            'rimTone' => $holo['rimTone'],
+            'edgeTone' => $holo['edgeTone'],
+            'field' => ['x' => $holo['field'][0], 'y' => $holo['field'][1], 'r' => $holo['field'][2]],
+        ];
     }
 
     /**

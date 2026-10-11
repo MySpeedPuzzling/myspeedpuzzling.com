@@ -45,8 +45,29 @@ final class BadgeArtTwigExtensionTest extends TestCase
         }
 
         $files += self::filesOf('supporter', 'single');
+        $files += ['holo/back-aaa.png' => 'sha256', 'holo/streak-t4-foil.png' => 'sha256', 'holo/streak-t4-rim.png' => 'sha256', 'holo/streak-t5-foil.png' => 'sha256', 'holo/streak-t5-rim.png' => 'sha256'];
 
-        self::writeManifest($this->manifestPath, ['version' => self::VERSION, 'files' => $files]);
+        $medal = static fn (null|string $foil, null|string $rim): array => [
+            'foil' => $foil,
+            'rim' => $rim,
+            'back' => 'holo/back-aaa.png',
+            'tones' => ['rim' => '#BCB6EF', 'edge' => '#2b3445'],
+            'field' => [50.0, 49.5, 30.9],
+        ];
+
+        self::writeManifest($this->manifestPath, ['version' => self::VERSION, 'files' => $files, 'holo' => [
+            'streak' => [
+                't3' => $medal(null, null),
+                't4' => $medal('holo/streak-t4-foil.png', 'holo/streak-t4-rim.png'),
+                't5' => $medal('holo/streak-t5-foil.png', 'holo/streak-t5-rim.png'),
+            ],
+            // A foil whose mask is not on disk (not in "files"): the medal stays still, never a broken mask
+            'puzzles_solved' => [
+                't5' => $medal('holo/puzzles_solved-t5-foil.png', 'holo/puzzles_solved-t5-rim.png'),
+                // No back at all: no medal data
+                't4' => ['foil' => null, 'rim' => null, 'back' => 'holo/missing.png'],
+            ],
+        ]]);
     }
 
     protected function tearDown(): void
@@ -224,6 +245,56 @@ final class BadgeArtTwigExtensionTest extends TestCase
         self::assertStringContainsString('width="96"', $big);
         self::assertStringContainsString('src="/img/badges/webp/192/streak-t4.webp', $big);
         self::assertSame('https://myspeedpuzzling.test/img/badges/png/96/supporter-single.png?v=' . self::VERSION, $url);
+    }
+
+    public function testThePlatinumMedalHasAFoilRimWithSameOriginVersionedUrls(): void
+    {
+        self::assertSame([
+            'finish' => 'rim',
+            'foil' => '/img/badges/holo/streak-t4-foil.png?v=' . self::VERSION,
+            'rim' => '/img/badges/holo/streak-t4-rim.png?v=' . self::VERSION,
+            'back' => '/img/badges/holo/back-aaa.png?v=' . self::VERSION,
+            'rimTone' => '#bcb6ef',
+            'edgeTone' => '#2b3445',
+            'field' => ['x' => 50.0, 'y' => 49.5, 'r' => 30.9],
+        ], $this->extension()->badgeHolo(BadgeType::Streak, BadgeTier::Platinum));
+    }
+
+    public function testTheDiamondMedalIsTheMasterpieceAndGoldOnlyTurnsOver(): void
+    {
+        self::assertSame('masterpiece', $this->extension()->badgeHolo('streak', 5)['finish'] ?? null);
+
+        $gold = $this->extension()->badgeHolo(BadgeType::Streak, BadgeTier::Gold);
+        self::assertNotNull($gold);
+        self::assertSame('none', $gold['finish']);
+        self::assertNull($gold['foil']);
+        self::assertSame('/img/badges/holo/back-aaa.png?v=' . self::VERSION, $gold['back']);
+    }
+
+    public function testNoMedalDataForASingleTierAchievementOrATierTheBuildDidNotWrite(): void
+    {
+        $extension = $this->extension();
+
+        self::assertNull($extension->badgeHolo(BadgeType::Supporter, null));
+        self::assertNull($extension->badgeHolo(BadgeType::Streak, BadgeTier::Bronze));
+        // The back is not on disk: no medal data at all
+        self::assertNull($extension->badgeHolo(BadgeType::PuzzlesSolved, BadgeTier::Platinum));
+
+        // Masks not on disk: the medal keeps its back but no foil
+        $diamond = $extension->badgeHolo(BadgeType::PuzzlesSolved, BadgeTier::Diamond);
+        self::assertNotNull($diamond);
+        self::assertSame('none', $diamond['finish']);
+        self::assertNull($diamond['foil']);
+    }
+
+    public function testTheMedalHelperInTwig(): void
+    {
+        $twig = new Environment(new ArrayLoader([
+            'medal' => "{% set holo = badge_holo(type, 5) %}{{ holo.finish }} {{ holo.foil }}",
+        ]), ['strict_variables' => true]);
+        $twig->addExtension($this->extension());
+
+        self::assertSame('masterpiece /img/badges/holo/streak-t5-foil.png?v=' . self::VERSION, $twig->render('medal', ['type' => 'streak']));
     }
 
     private function extension(bool $debug = true, null|LoggerInterface $logger = null): BadgeArtTwigExtension

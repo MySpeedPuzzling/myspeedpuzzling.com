@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
+use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Query\GetAchievementPoints;
 use SpeedPuzzling\Web\Query\GetBadgeCatalog;
 use SpeedPuzzling\Web\Services\AchievementCatalogueRows;
 use SpeedPuzzling\Web\Services\AchievementRarityProvider;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Services\Xp\XpFeatureGate;
+use SpeedPuzzling\Web\Services\Xp\XpLaunchReadiness;
 use SpeedPuzzling\Web\Value\AchievementCatalogueFilter;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -17,20 +19,33 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
 /**
- * The achievements catalogue (docs/features/xp-levels/launch-2026-10.md): one row per achievement, a segmented
- * filter (Next up · Earned · All · Rarest), the requirements as text and the rarity of every tier.
+ * The achievements catalogue (docs/features/xp-levels/launch-2026-10.md, layout: ux-polish/design-spec.md §1): the
+ * summary line, "Closest next steps", the filter chips (All · Earned · Next up · Rarest) and the shelf of seals.
  *
  * Types and requirements are public; which ones a player holds is a membership perk - for anybody else the catalogue
  * is the same as for a guest (the catalogue is built without a player, so nothing personal is even read).
  */
 final class BadgesOverviewController extends AbstractController
 {
+    /** Tiers earned this recently get the "New" dot (design-spec §1 "The cell") */
+    public const int NEW_FOR_DAYS = 7;
+
+    /** The order of the chips; "All" is the default (design-spec §1 "Filters") */
+    public const array MEMBER_FILTERS = [
+        AchievementCatalogueFilter::All,
+        AchievementCatalogueFilter::Earned,
+        AchievementCatalogueFilter::NextUp,
+        AchievementCatalogueFilter::Rarest,
+    ];
+
     public function __construct(
         readonly private GetBadgeCatalog $getBadgeCatalog,
         readonly private GetAchievementPoints $getAchievementPoints,
         readonly private AchievementRarityProvider $achievementRarityProvider,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private XpFeatureGate $xpFeatureGate,
+        readonly private ClockInterface $clock,
+        readonly private XpLaunchReadiness $xpLaunchReadiness,
     ) {
     }
 
@@ -57,35 +72,37 @@ final class BadgesOverviewController extends AbstractController
 
         $catalog = $this->getBadgeCatalog->forPlayer($memberId);
 
-        $lists = AchievementCatalogueRows::build($catalog, $this->achievementRarityProvider->percentages(), personal: $isMember);
-        $rows = $lists[AchievementCatalogueFilter::All->value];
-        $nextUp = $lists[AchievementCatalogueFilter::NextUp->value];
-        $earned = $lists[AchievementCatalogueFilter::Earned->value];
-        $rarest = $lists[AchievementCatalogueFilter::Rarest->value];
+        // A member's catalogue is about their own achievements: the unrevealed tiers are "?" seals leading to the
+        // reveal, and tiers earned in the last 7 days (after launch) get the "New" dot - like on their own page
+        $lists = AchievementCatalogueRows::build(
+            $catalog,
+            $this->achievementRarityProvider->percentages(),
+            personal: $isMember,
+            revealFlow: $isMember,
+            newSince: $isMember ? $this->clock->now()->modify('-' . self::NEW_FOR_DAYS . ' days') : null,
+            launchAt: $this->xpLaunchReadiness->readyAt(),
+        );
+
+        $filters = $isMember
+            ? self::MEMBER_FILTERS
+            : [AchievementCatalogueFilter::All, AchievementCatalogueFilter::Rarest];
 
         $filter = AchievementCatalogueFilter::tryFrom($request->query->getString('show'));
 
-        if ($filter === null || ($filter->isPersonal() && $isMember === false)) {
-            $filter = $isMember && $nextUp !== [] ? AchievementCatalogueFilter::NextUp : AchievementCatalogueFilter::All;
+        if ($filter === null || in_array($filter, $filters, true) === false) {
+            $filter = AchievementCatalogueFilter::All;
         }
 
-        $filters = $isMember
-            ? AchievementCatalogueFilter::cases()
-            : [AchievementCatalogueFilter::All, AchievementCatalogueFilter::Rarest];
-
         return $this->render('badges_overview.html.twig', [
-            'rows' => match ($filter) {
-                AchievementCatalogueFilter::NextUp => $nextUp,
-                AchievementCatalogueFilter::Earned => $earned,
-                AchievementCatalogueFilter::All => $rows,
-                AchievementCatalogueFilter::Rarest => $rarest,
-            },
+            'lists' => $lists,
+            'rows' => $lists->rows($filter),
             'filter' => $filter,
             'filters' => $filters,
             'filter_counts' => [
-                AchievementCatalogueFilter::NextUp->value => count($nextUp),
-                AchievementCatalogueFilter::Earned->value => count($earned),
-                AchievementCatalogueFilter::All->value => count($rows),
+                AchievementCatalogueFilter::All->value => $lists->count(AchievementCatalogueFilter::All),
+                AchievementCatalogueFilter::Earned->value => $lists->count(AchievementCatalogueFilter::Earned),
+                AchievementCatalogueFilter::NextUp->value => $lists->count(AchievementCatalogueFilter::NextUp),
+                AchievementCatalogueFilter::Rarest->value => $lists->count(AchievementCatalogueFilter::Rarest),
             ],
             'logged_in' => $profile !== null,
             'is_member' => $isMember,

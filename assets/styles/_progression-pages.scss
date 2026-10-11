@@ -1,5 +1,6 @@
 // Progression pages (docs/features/xp-levels/launch-2026-10.md, workstream D): the "How progress works" hub,
-// the achievements catalogue rows, the AP chip and the grouped XP history.
+// the AP chip, the achievements filter and the grouped XP history (shelf, sheet, holders: _achievements-shelf.scss,
+// _achievement-medal.scss).
 // Each family keeps its own colour: level = indigo, achievements = amber, competition = teal, karma = rose.
 
 $progression-level: $xp-indigo;
@@ -163,59 +164,6 @@ $progression-muted: #5b616d;
     }
 }
 
-.achievement-rows {
-    border: 1px solid #e3e9ef;
-    border-radius: .75rem;
-    background: #fff;
-    overflow: hidden;
-}
-
-.achievement-row {
-    display: flex;
-    align-items: center;
-    gap: .875rem;
-    min-height: 76px;
-    padding: .625rem 1rem;
-    color: inherit;
-    text-decoration: none;
-
-    & + & {
-        border-top: 1px solid #e3e9ef;
-    }
-
-    &:hover,
-    &:focus-visible {
-        background: #f6f9fc;
-        color: inherit;
-    }
-
-    .badge-art {
-        flex-shrink: 0;
-    }
-}
-
-.achievement-row-body {
-    flex-grow: 1;
-    min-width: 0;
-}
-
-.achievement-row-title {
-    font-weight: 600;
-    color: #111;
-    overflow-wrap: break-word;
-}
-
-.achievement-row-next {
-    font-weight: 400;
-    color: $progression-achievements;
-}
-
-.achievement-row-meta {
-    font-size: .8125rem;
-    line-height: 1.35;
-    color: $progression-muted;
-}
-
 .achievement-progress {
     height: 6px;
     margin: .375rem 0 .25rem;
@@ -237,91 +185,6 @@ $progression-muted: #5b616d;
     font-size: .875rem;
     color: #4b3a14;
     scroll-margin-top: calc(var(--header-height, 101px) + .75rem);
-}
-
-// The info modal's tier rows: tier · requirement · rarity · ✓ or progress
-.achievement-tier-row {
-    display: flex;
-    align-items: center;
-    gap: .75rem;
-    min-height: 52px;
-    padding: .5rem 0;
-
-    & + & {
-        border-top: 1px solid #e3e9ef;
-    }
-}
-
-.achievement-tier-name {
-    flex-shrink: 0;
-    width: 5.5rem;
-    font-weight: 600;
-    font-size: .875rem;
-}
-
-.achievement-tier-rarity {
-    flex-shrink: 0;
-    font-variant-numeric: tabular-nums;
-    font-size: .8125rem;
-    color: $progression-muted;
-    text-align: right;
-    min-width: 3.5rem;
-}
-
-// On a phone the requirement gets the room: the rarity moves under it, the ✓ stays on the right
-@include media-breakpoint-down(sm) {
-    .achievement-tier-row {
-        display: grid;
-        grid-template-columns: 4.75rem minmax(0, 1fr) auto;
-        column-gap: .5rem;
-        row-gap: .125rem;
-
-        > .achievement-tier-name {
-            grid-row: 1 / span 2;
-            width: auto;
-        }
-
-        > .flex-grow-1 {
-            grid-column: 2;
-        }
-
-        > .achievement-tier-rarity {
-            grid-column: 2;
-            grid-row: 2;
-            min-width: 0;
-            text-align: left;
-        }
-
-        > i {
-            grid-column: 3;
-            grid-row: 1 / span 2;
-        }
-    }
-}
-
-// --- Holders page --------------------------------------------------------------------------------------------------
-
-.holder-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: .5rem;
-    min-height: 44px;
-    padding: .25rem .875rem .25rem .375rem;
-    border: 1px solid #dae1e7;
-    border-radius: 999px;
-    color: #373f50;
-    font-size: .875rem;
-    text-decoration: none;
-
-    &:hover,
-    &:focus-visible {
-        border-color: #373f50;
-        color: #111;
-    }
-
-    &.holder-pill-first {
-        border-color: #f0a500;
-    }
 }
 
 // --- XP history: one block per solve --------------------------------------------------------------------------------

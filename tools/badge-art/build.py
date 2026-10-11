@@ -10,8 +10,9 @@
 Steps: check the location, the toolchain (warning), registry.py against src/Value/BadgeType.php, the frozen bases
 against bases/bases.json (sha256); draw every registry icon (6 colourways: msp + t1..t5) -> icons/svg; fit each icon
 optically into the slot; compose base(under) + icon + base(over) for every badge; optimise the SVG; rasterise WebP
-(96/144/192/320/480) and PNG (96/144) from that SVG at each size; write only changed files, delete stale managed
-files, write manifest.json (version = short hash of every output). A second run changes nothing.
+(96/144/192/320/480) and PNG (96/144) from that SVG at each size; for tiered badges the medal data of the detail
+sheet (lib/holo.py: back plate + sampled tones, foil and rim masks for t4/t5); write only changed files, delete stale managed files, write manifest.json
+(version = short hash of every output). A second run changes nothing.
 Exit codes: 0 ok, 1 build/strictness error, 2 bad command line.
 """
 import argparse
@@ -32,13 +33,14 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from lib import paths  # noqa: E402
 from lib import compose as CP  # noqa: E402
+from lib import holo  # noqa: E402
 from lib import raster as RS  # noqa: E402
 from lib import svgopt  # noqa: E402
 from lib import toolchain  # noqa: E402
 
 WEBP_PX = (96, 144, 192, 320, 480)       # = 2x of the display sizes 48 / 72 / 96 / 160 / 240 (cwebp, raster.py)
 PNG_PX = (96, 144)                       # e-mails (absolute URLs)
-MANAGED = ("svg", "webp", "png")         # sub-trees of the output directory this build owns
+MANAGED = ("svg", "webp", "png", "holo") # sub-trees of the output directory this build owns
 ICON_COLOURWAYS = ("msp", "t1", "t2", "t3", "t4", "t5")   # always drawn (tint integrity needs all six)
 
 
@@ -169,7 +171,9 @@ def id_prefix(stem):
 
 
 def badge_job(args):
-    """One badge (type x tier): compose -> optimise -> SVG + every raster. Returns {relpath: bytes}."""
+    """One badge (type x tier): compose -> optimise -> SVG + every raster (+ the medal data for tiered badges).
+    Returns (stem, {relpath: bytes}, unoptimised bytes, holo manifest entry or None)."""
+    import numpy as np
     stem, under, over, icon_svg, size, outline_px = args
     master = CP.compose(under, over, CP.icon_group(icon_svg, size, outline_px))
     svg = svgopt.optimise(master, id_prefix(stem)).encode()
@@ -179,7 +183,11 @@ def badge_job(args):
         files[f"webp/{px}/{stem}.webp"] = RS.webp_sharp(renders[px])
     for px in PNG_PX:
         files[f"png/{px}/{stem}.png"] = RS.png_optimized(RS.decode_rgba(renders[px]))
-    return stem, files, len(master)
+    holo_entry = None
+    if stem.rsplit("-", 1)[1] in holo.MEDAL_TIERS:
+        holo_files, holo_entry = holo.files_for(stem, np.asarray(RS.render_rgba(svg, holo.HOLO_PX)))
+        files.update(holo_files)
+    return stem, files, len(master), holo_entry
 
 
 # ----------------------------------------------------------------------------------------------- outputs
@@ -209,7 +217,7 @@ def prune(root, keep, subdirs):
     return removed
 
 
-def manifest_bytes(reg, decl, files, partial):
+def manifest_bytes(reg, decl, files, partial, holo_entries=None):
     hashes = {k: hashlib.sha256(v).hexdigest() for k, v in sorted(files.items())}
     version = hashlib.sha256("".join(f"{k} {h}\n" for k, h in hashes.items()).encode()).hexdigest()[:12]
     used = sorted({b.base_key(t) for b in reg.BADGES for t in b.tiers}, key=lambda t: (t.startswith("single"), t))
@@ -221,8 +229,14 @@ def manifest_bytes(reg, decl, files, partial):
         "formats": {"svg": True, "webp": list(WEBP_PX), "png": list(PNG_PX),
                     "webp_encoder": "cwebp " + " ".join(RS.WEBP_ARGS), "png_encoder": "lossless"},
         "types": {b.type: type_entry(b) for b in reg.BADGES},
+        # The medal of the detail sheet (lib/holo.py): per tiered type and tier the back plate, the sampled tones, the
+        # back's text field (centre x, y and radius in % of the picture), and for t4/t5 the foil and rim masks
+        "holo": {stem.rsplit("-", 1)[0]: {} for stem in sorted(holo_entries or {})},
         "files": hashes,
     }
+    for stem, entry in sorted((holo_entries or {}).items()):
+        btype, tier = stem.rsplit("-", 1)
+        m["holo"][btype][tier] = entry
     if partial:
         m["partial"] = True
     return (json.dumps(m, indent=1) + "\n").encode(), version
@@ -266,10 +280,12 @@ def run(out=paths.OUT, icons_out=paths.ICONS_SVG, only=None, icons_only=False, j
         prefixes = [id_prefix(t[0]) for t in tasks]
         if len(set(prefixes)) != len(prefixes):
             raise BuildError("two badges share an SVG id prefix - change id_prefix()")
-        files, master_bytes = {}, 0
-        for stem, fs, mb in ex.map(badge_job, tasks):
+        files, master_bytes, holo_entries = {}, 0, {}
+        for stem, fs, mb, he in ex.map(badge_job, tasks):
             files.update(fs)
             master_bytes += mb
+            if he is not None:
+                holo_entries[stem] = he
 
     for rel, data in sorted(files.items()):
         if write_if_changed(Path(out) / rel, data):
@@ -277,7 +293,7 @@ def run(out=paths.OUT, icons_out=paths.ICONS_SVG, only=None, icons_only=False, j
     if not only:
         for rel in prune(out, set(files), MANAGED):
             changed.append(f"deleted {paths.rel(Path(out) / rel)}")
-    man, version = manifest_bytes(reg, decl, files, partial=bool(only))
+    man, version = manifest_bytes(reg, decl, files, partial=bool(only), holo_entries=holo_entries)
     if write_if_changed(Path(out) / "manifest.json", man):
         changed.append(paths.rel(Path(out) / "manifest.json"))
     unmanaged = sorted(p.relative_to(out).as_posix() for p in Path(out).iterdir()
@@ -350,8 +366,9 @@ def main(argv):
           f"{len(r['changed'])} changed, version {r['version']}, {r['seconds']:.1f} s (icons {r['t_icons']:.1f} s)")
     print(f"  svg  {s['svg'][0]:4d} files {s['svg'][1] / 1024:8.1f} kB (gzip {s['svg'][2] / 1024:7.1f} kB; "
           f"unoptimised {r['master_bytes'] / 1024:8.1f} kB)")
-    for fmt in ("webp", "png"):
-        print(f"  {fmt:4s} {s[fmt][0]:4d} files {s[fmt][1] / 1024:8.1f} kB")
+    for fmt in ("webp", "png", "holo"):
+        if fmt in s:
+            print(f"  {fmt:4s} {s[fmt][0]:4d} files {s[fmt][1] / 1024:8.1f} kB")
     for c in r["changed"][:20]:
         print(f"  ~ {c}")
     if len(r["changed"]) > 20:

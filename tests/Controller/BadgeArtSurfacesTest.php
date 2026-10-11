@@ -33,7 +33,8 @@ final class BadgeArtSurfacesTest extends WebTestCase
 
         // Highest tier first: Gold streak, then the owner's unrevealed Bronze, then the single-tier one
         $streak = $items->eq(0)->filter('img.badge-art');
-        self::assertSame('/en/achievements/streak/info?tier=3', $items->eq(0)->attr('href'));
+        // The sheet shows this player's medal (?player=), not the viewer's
+        self::assertSame('/en/achievements/streak/info?tier=3&player=' . PlayerFixture::PLAYER_ADMIN, $items->eq(0)->attr('href'));
         self::assertStringStartsWith('/img/badges/webp/144/streak-t3.webp?v=', (string) $streak->attr('src'));
         self::assertSame('56', $streak->attr('width'));
 
@@ -76,9 +77,11 @@ final class BadgeArtSurfacesTest extends WebTestCase
         self::assertResponseIsSuccessful();
         $hero = $crawler->filter('img.badge-art-hero');
         self::assertStringContainsString('/streak-t4.webp?v=', (string) $hero->attr('src'));
-        self::assertStringNotContainsString('badge-art-locked', (string) $hero->attr('class'));
-        // The tiers are rows of text (tier · requirement · rarity), not five more pictures
-        self::assertCount(5, $crawler->filter('li.achievement-tier-row'));
+        // The viewer holds no streak tier: the tapped tier is shown, greyed (design-spec §2, tier list 2A)
+        self::assertStringContainsString('badge-art-locked', (string) $hero->attr('class'));
+        // One row per tier, the requirement as text
+        self::assertCount(5, $crawler->filter('li.medal-tier'));
+        self::assertCount(5, $crawler->filter('.medal-tier-requirement'));
 
         // Opened without a badge by a viewer who has none of it yet
         $crawler = $browser->request('GET', '/en/achievements/streak/info?tier=junk', server: ['HTTP_TURBO_FRAME' => 'modal-frame']);

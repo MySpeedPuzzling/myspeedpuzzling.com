@@ -20,7 +20,9 @@ use SpeedPuzzling\Web\Value\BadgeTier;
 use SpeedPuzzling\Web\Value\BadgeType;
 
 #[Entity]
-#[Index(columns: ['type'])]
+// Leads with type, so it still serves the per-type reads; tier + earned_at + id answer the medal serial ("No. 80 of 82",
+// GetAchievementMedal) and the holders page's newest-first lists as index-only scans
+#[Index(columns: ['type', 'tier', 'earned_at', 'id'])]
 class Badge
 {
     public function __construct(

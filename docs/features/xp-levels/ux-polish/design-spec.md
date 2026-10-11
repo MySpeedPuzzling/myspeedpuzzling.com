@@ -395,7 +395,7 @@ questions, measured contrast and benchmarks with sources, is kept with the deliv
   see it. Being a non-member viewer only removes *the viewer's* ticks, progress and AP. The §2 "Non-members" rule
   applies to the viewer's own medal only.
 - **On someone else's medal** the record line reads "Lucie's best: 29:41", not "Your record".
-- **Rarity chip** only for Rare and rarer (< 15 %). A fresh Bronze is not labelled "Common". The share line
+- **Rarity chip** only for Rare and rarer (< 50 %; Common is never labelled). A fresh Bronze is not labelled "Common". The share line
   always names its denominator: "4.2 % of puzzlers with XP".
 - **The intro light sweep** (T4/T5, ≤ 1.5 s, once per open) stays; none under reduced motion.
 

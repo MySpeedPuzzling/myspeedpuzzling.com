@@ -69,8 +69,20 @@ public/img/badges/
   svg/<type>-<tier>.svg            optimised SVG (inline-safe: ids carry a per-file prefix)
   webp/<px>/<type>-<tier>.webp     px 96 / 144 / 192 / 320 / 480 = 2x of the display sizes 48 / 72 / 96 / 160 / 240
   png/<px>/<type>-<tier>.png       px 96 / 144 (e-mails, absolute URLs)
-  manifest.json                    {"version", "types", "files", ...}
+  holo/<type>-t4|t5-foil|rim.png   the detail sheet's medal: foil + rim masks of Platinum and Diamond (400 px)
+  holo/back-<hash>.png             the medal's back plate, shared by every badge of a frame (named by content)
+  manifest.json                    {"version", "types", "holo", "files", ...}
 ```
+- **`holo/` (lib/holo.py)**: the achievement detail sheet turns the 200 px medal over and gives Platinum a foil rim and
+  Diamond the "Masterpiece" finish (docs/features/xp-levels/ux-polish/design-spec.md §2). Everything the effect needs
+  is worked out here instead of in the browser (P3 measured 60-480 ms per badge there): from the shipped SVG rendered
+  at 400 px, the body (largest shape, holes filled) and its distance transform give the foil mask (light fills; the
+  frame band fully, inside it only light unsaturated areas - ink stays ink), the rim mask (the frame band only) and
+  the back plate (the body opened by 4 % of the canvas, mirrored, a wash of the sampled rim tone, the edge tone as
+  outline, an engraved groove). `manifest.json` `holo.<type>.<tier>` = `foil`/`rim` (t4/t5, else null), `back`,
+  `tones.rim`/`tones.edge`, `field` (centre x, y and radius of the back's text area, % of the picture). Read through
+  `BadgeArtManifest::holo()` / Twig `badge_holo()`. numpy + scipy + Pillow (already pinned), deterministic: the golden
+  check covers it. Adds ~0.15 s per tiered badge to the build.
 - **`<type>`** is the `BadgeType` enum value exactly (`src/Value/BadgeType.php`).
 - **`<tier>`** is `t1` … `t5` (BadgeTier 1–5) for tiered types, and `single` for one-off types.
 - **`manifest.json`** fields:

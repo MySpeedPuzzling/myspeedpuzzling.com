@@ -1,0 +1,22 @@
+{#
+    Share of puzzlers holding an achievement tier, for the detail sheet (docs/features/xp-levels/ux-polish/design-spec.md
+    §8.5): the locale's percent format, one decimal under 10 %, "< 0.1 %" for a tier held by a tiny share (never "0 %"
+    for a held tier), "Nobody yet" when nobody holds it. Long form names its denominator ("4.2 % of puzzlers with XP").
+    Inputs: percent (float 0-100, AchievementRarityProvider), holders (int), long (bool), plain (bool, default false: unescaped
+    text for a translation parameter - the caller's trans output is escaped once; numbers and our own strings only).
+#}
+{%- if holders <= 0 -%}
+    {{ 'badges.medal.nobody_yet'|trans }}
+{%- else -%}
+    {%- set tiny = percent < 0.1 -%}
+    {%- set shown = tiny ? 0.1 : percent -%}
+    {%- set digits = shown < 10 ? 1 : 0 -%}
+    {%- set formatted = (shown / 100)|format_percent_number({min_fraction_digit: digits, max_fraction_digit: digits}) -%}
+    {%- if long -%}
+        {{ (tiny ? 'badges.medal.share_below' : 'badges.medal.share')|trans({'%percent%': formatted}) }}
+    {%- elseif plain|default(false) -%}
+        {{ (tiny ? '< ' ~ formatted : formatted)|raw }}
+    {%- else -%}
+        {{ tiny ? '< ' ~ formatted : formatted }}
+    {%- endif -%}
+{%- endif -%}

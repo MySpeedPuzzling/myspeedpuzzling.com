@@ -145,13 +145,13 @@
                             </span>
                         </span>
                     {% endfor %}
-                    {% if record is not null %}
-                        {% set record_value = record.unit.value == 'seconds' ? record.currentValue|puzzlingTime : record.currentValue|plain_number %}
+                    {# A best time is worth its own line; a count ("So far: 1") is not - it is the "1 / 5" on the next tier's row (Jan 2026-10-11) #}
+                    {% if record is not null and record.unit.value == 'seconds' %}
                         <span class="medal-facts-record">
                             {%- if subject_name is not null -%}
-                                {{ (record.unit.value == 'seconds' ? 'badges.medal.player_best' : 'badges.medal.player_so_far')|trans({'%name%': subject_name, '%value%': record_value}) }}
+                                {{ 'badges.medal.player_best'|trans({'%name%': subject_name, '%value%': record.currentValue|puzzlingTime}) }}
                             {%- else -%}
-                                {{ (record.unit.value == 'seconds' ? 'badges.medal.your_record' : 'badges.medal.so_far')|trans({'%value%': record_value}) }}
+                                {{ 'badges.medal.your_record'|trans({'%value%': record.currentValue|puzzlingTime}) }}
                             {%- endif -%}
                         </span>
                     {% endif %}

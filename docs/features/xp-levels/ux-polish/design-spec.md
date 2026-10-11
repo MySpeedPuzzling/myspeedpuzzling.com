@@ -514,6 +514,9 @@ PHPStan clean). Where the build had to decide something the spec left open, or t
 | Medal back | The short share ("4.2 % of puzzlers"), bigger engraving (≥ 10 px); the facts line under the medal names the denominator | The long form was ~8 px on a 200 px medal |
 | Under reduced motion | The Masterpiece keeps its glitter and jigsaw etch (still pictures); only tilt, sweep and the turn animation go | Reduced motion removes motion, not the look |
 | Times boards' goal | "00:30:50 faster for the top 50" (`leaderboards.times.goal`) | "… to the top 50" read like a time remaining |
+| The catalogue `/en/achievements` | **A public reference, the same for everybody** (Jan 2026-10-11): every achievement with all its tiers, what each takes and how many puzzlers hold each tier (+ Early Adopter with its holders); members get one line on top with their count and "My achievements". No shelf, filters or next steps there - those live on the member's own page | For a member the shelf duplicated their own page; what only this page does is the reference a guest, a free player or a search engine can read, and the way into the holders lists |
+| The sheet's second button | None when opened from a shelf (`from=shelf`); the player's achievements from their showcase; "My achievements" for the viewer's own; the catalogue otherwise | "All achievements" from a shelf led to the same list with another header |
+| "So far: N" in the sheet | Removed; a speed achievement keeps "Your record: 29:41" | A bare count said nothing - it is the "1 / 5" on the next tier's row |
 | One rarity aggregate | `AchievementRarityProvider` caches holders + percentages together | One aggregate on a cache miss instead of two |
 
 Open follow-ups are in `docs/TODO.md` § "Progression UX polish".

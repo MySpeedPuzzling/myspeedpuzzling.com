@@ -82,18 +82,17 @@ final class ProgressionPagesTest extends WebTestCase
         self::assertCount(1, $menu->filter('a[href="/en/how-progress-works"]'));
     }
 
-    public function testCatalogueForAGuestShowsTheAchievementsButNothingPersonal(): void
+    public function testCatalogueForAGuestIsTheReferenceOfEveryTier(): void
     {
         $browser = self::createClient();
 
         $crawler = $browser->request('GET', '/en/achievements');
 
         self::assertResponseIsSuccessful();
-        self::assertGreaterThanOrEqual(16, $crawler->filter('.achievement-cell')->count());
-        // Nothing hides behind a hover title (the requirements are in the detail sheet, as text)
-        self::assertCount(0, $crawler->filter('.achievement-shelf [title]'));
-        // No filter chips; the tease and the membership button
-        self::assertSelectorNotExists('.achievements-filter');
+        self::assertCount(17, $crawler->filter('article.achievement-ref'));
+        // Requirements are text, never a hover title
+        self::assertStringContainsString('Solve 10 distinct puzzles', $crawler->filter('article#puzzles_solved')->text());
+        self::assertCount(0, $crawler->filter('.achievement-refs [title]'));
         self::assertSelectorExists('a.btn[href="/en/membership"]');
         self::assertSelectorNotExists('.achievements-summary');
         self::assertSelectorNotExists('.achievement-progress');
@@ -105,37 +104,29 @@ final class ProgressionPagesTest extends WebTestCase
         $this->insertBadge(PlayerFixture::PLAYER_REGULAR, 'puzzles_solved', 1);
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
 
-        // Asking for a personal filter changes nothing: one list
         $crawler = $browser->request('GET', '/en/achievements?show=earned');
 
         self::assertResponseIsSuccessful();
-        self::assertSelectorNotExists('.achievements-filter');
         self::assertSelectorNotExists('.achievements-summary');
         self::assertSelectorNotExists('.badge-art-locked');
         self::assertSelectorNotExists('.achievement-progress');
-        self::assertStringNotContainsString('Highest tier earned', $crawler->filter('.achievement-shelf')->text());
+        self::assertStringNotContainsString('Highest tier earned', $crawler->filter('.achievement-refs')->text());
     }
 
-    public function testCatalogueForAMemberHasTheSummaryAndTheirOwnTiers(): void
+    public function testCatalogueForAMemberHasTheirLineOnTopAndTheSameReference(): void
     {
         $browser = self::createClient();
         $this->insertBadge(PlayerFixture::PLAYER_WITH_STRIPE, 'puzzles_solved', 1);
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
 
-        $crawler = $browser->request('GET', '/en/achievements?show=earned');
+        $crawler = $browser->request('GET', '/en/achievements');
 
         self::assertResponseIsSuccessful();
-        // The catalogue has no filter chips (the member's own page has them)
-        self::assertSelectorNotExists('.achievements-filter');
         self::assertSelectorTextContains('.achievements-summary', '1 of 16 achievements');
         self::assertSelectorExists('.achievements-summary .ap-chip');
         self::assertSelectorNotExists('.achievements-summary .xp-level-chip');
-
-        // Every achievement in one list; the member's unrevealed tier comes first as the "?" seal leading to the reveal
-        $rows = $crawler->filter('.achievement-cell');
-        self::assertCount(16, $rows);
-        self::assertStringContainsString('Puzzle Explorer', $rows->first()->text());
-        self::assertStringContainsString('tap to reveal', $rows->first()->text());
+        self::assertCount(17, $crawler->filter('article.achievement-ref'));
+        self::assertSelectorNotExists('.achievement-shelf');
     }
 
     public function testCatalogueRunsOneRarityAggregate(): void
@@ -147,7 +138,7 @@ final class ProgressionPagesTest extends WebTestCase
         $browser->request('GET', '/en/achievements?show=all');
 
         self::assertResponseIsSuccessful();
-        $rarity = array_filter($this->executedSql($browser), static fn (string $sql): bool => str_contains($sql, 'GROUP BY b.type, b.tier'));
+        $rarity = array_filter($this->executedSql($browser), static fn (string $sql): bool => str_contains($sql, 'GROUP BY b.type, COALESCE(b.tier, 0)'));
         self::assertCount(1, $rarity, 'the rarity of every tier comes from one aggregate statement');
         $this->assertQueryCountAtMost($browser, 30, 'achievements catalogue (member)');
     }

@@ -22,6 +22,8 @@ readonly class GetAchievementRarity
     }
 
     /**
+     * Single-tier achievements (Early Adopter) are counted under tier 0.
+     *
      * @return array{puzzlers: int, holders: array<string, array<int, int>>}
      */
     public function counts(): array
@@ -29,12 +31,11 @@ readonly class GetAchievementRarity
         $sql = <<<SQL
 SELECT
     b.type,
-    b.tier,
+    COALESCE(b.tier, 0) AS tier,
     COUNT(*) AS holders,
     (SELECT COUNT(*) FROM player WHERE xp_total > 0) AS puzzlers
 FROM badge b
-WHERE b.tier IS NOT NULL
-GROUP BY b.type, b.tier
+GROUP BY b.type, COALESCE(b.tier, 0)
 SQL;
 
         /** @var list<array{type: string, tier: int|string, holders: int|string, puzzlers: int|string}> $rows */

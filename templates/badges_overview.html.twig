@@ -5,10 +5,9 @@
 {% block meta_description %}{{ 'badges.overview_subtitle'|trans }}{% endblock %}
 
 {#
-    The achievements catalogue (docs/features/xp-levels/ux-polish/design-spec.md §1): summary line, "Closest next
-    steps", filter chips and the shelf - the same layout as a player's achievements page (_achievements_layout).
-    Personal parts (tiers held, progress, AP) for members only - everybody else browses the shop window: every seal at
-    Bronze in colour with how many puzzlers hold it, the membership tease on top, and nothing personal is even read.
+    The achievements reference (BadgesOverviewController, Jan 2026-10-11): the same page for everybody - every
+    achievement with all its tiers, what each takes and how many puzzlers hold it. Nothing personal: a member's own
+    achievements live on their player page (the line on top). Each achievement links to who earned it.
 #}
 {% block content %}
     {{ include('_page_crumbs.html.twig', {
@@ -19,46 +18,86 @@
 
     <header class="mb-3">
         <h1 class="h3 mb-1">{{ 'badges.overview_title'|trans }}</h1>
-
-        {% if is_member %}
-            {# A held Early Adopter counts (one achievement, no tiers): it can no longer be earned, so it is in its holders' total only #}
-            <p class="achievements-summary mb-0">
-                <span>{{ 'badges.shelf.summary'|trans({
-                    '%earned%': (lists.earnedTypes + (has_supporter ? 1 : 0))|plain_number,
-                    '%total%': (lists.totalTypes + (has_supporter ? 1 : 0))|plain_number,
-                    '%tiers_earned%': lists.earnedTiers|plain_number,
-                    '%tiers_total%': lists.totalTiers|plain_number,
-                })|raw }}</span>
-                {% if ap_total is not null %}
-                    <a href="{{ path('achievement_points_leaderboard') }}" class="ap-chip text-decoration-none">{{ 'badges.ap_total'|trans({'%points%': ap_total|plain_number}) }}</a>
-                {% endif %}
-                <a href="{{ path('player_achievements', {playerId: logged_user.profile.playerId}) }}" class="achievements-summary-link">{{ 'badges.my_title'|trans }}</a>
-            </p>
-        {% else %}
-            <p class="text-body-secondary mb-0">{{ 'badges.overview_subtitle'|trans }}</p>
-        {% endif %}
+        <p class="text-body-secondary mb-0">{{ 'badges.overview_subtitle'|trans }}</p>
     </header>
 
-    {% if not is_member %}
+    {% if own is not null %}
+        {# The member's own achievements are one tap away - this page stays the same for everybody #}
+        <p class="achievements-summary achievements-own-line mb-3">
+            <span>{{ 'badges.shelf.summary'|trans({
+                '%earned%': own.earned|plain_number,
+                '%total%': own.total|plain_number,
+                '%tiers_earned%': own.tiers|plain_number,
+                '%tiers_total%': own.tiers_total|plain_number,
+            })|raw }}</span>
+            <a href="{{ path('achievement_points_leaderboard') }}" class="ap-chip text-decoration-none">{{ 'badges.ap_total'|trans({'%points%': own.points|plain_number}) }}</a>
+            <a href="{{ path('player_achievements', {playerId: logged_user.profile.playerId}) }}" class="achievements-summary-link">{{ 'badges.my_title'|trans }} <i class="bi bi-arrow-right-short" aria-hidden="true"></i></a>
+        </p>
+    {% elseif not is_member %}
         <div class="achievements-tease mb-3">
-            <p class="mb-0">{{ (logged_in ? 'badges.catalogue.tease_free' : 'badges.catalogue.tease_guest')|trans }}</p>
+            <p class="mb-0">{{ (logged_in ? 'badges.catalogue.tease_free' : 'badges.catalogue.tease_guest')|trans }}{% if logged_in %} {{ 'badges.shelf.explainer.lapsed'|trans }}{% endif %}</p>
             <a href="{{ path('membership') }}" class="btn btn-primary btn-sm">{{ 'badges.catalogue.become_member'|trans }}</a>
         </div>
     {% endif %}
 
-    {{ include('_achievements_layout.html.twig', {
-        lists: is_member ? lists : null,
-        rows: rows,
-        filter: filter,
-        filters: filters,
-        filter_counts: filter_counts,
-        filter_route: 'badges_overview',
-        filter_params: {},
-        personal: is_member,
-        show_supporter: show_supporter,
-        player_id: null,
-        own: is_member,
-    }) }}
+    <div class="achievement-refs">
+        {% for group in groups %}
+            {% set type = group.type %}
+            {% set name = type.translationKey()|trans %}
+            <article class="achievement-ref" id="{{ type.value }}" aria-labelledby="ref-{{ type.value }}-title">
+                <header class="achievement-ref-head">
+                    {{ badge_art(type, 5, 72, attrs = {alt: ''}) }}
+                    <div class="achievement-ref-text">
+                        <h2 class="achievement-ref-title" id="ref-{{ type.value }}-title">
+                            <a href="{{ path('achievement_detail', {type: type.value}) }}">{{ name }}</a>
+                        </h2>
+                        <p class="achievement-ref-description">{{ ('badges.description.' ~ type.value)|trans }}</p>
+                    </div>
+                </header>
+
+                <ol class="achievement-ref-tiers">
+                    {% for entry in group.tiers %}
+                        {% set count = holders[type.value][entry.tier.value] ?? 0 %}
+                        <li class="achievement-ref-tier">
+                            {{ badge_art(type, entry.tier, 32, attrs = {alt: ''}) }}
+                            <span class="achievement-ref-tier-text">
+                                <b>{{ entry.tier.translationKey()|trans }}</b>
+                                <span>{{ entry.requirementTranslationKey|trans }}</span>
+                            </span>
+                            <span class="achievement-ref-tier-holders">
+                                {%- if count > 0 -%}
+                                    {{ 'badges.detail.holders_count'|trans({'%count%': count}) }}
+                                    <small>{{ include('_achievement_medal_share.html.twig', {percent: rarity[type.value][entry.tier.value] ?? 0, holders: count, long: false}) }}</small>
+                                {%- else -%}
+                                    {{ 'badges.medal.nobody_yet'|trans }}
+                                {%- endif -%}
+                            </span>
+                        </li>
+                    {% endfor %}
+                </ol>
+
+                <a href="{{ path('achievement_detail', {type: type.value}) }}" class="achievement-ref-holders-link">
+                    {{ 'badges.medal.see_holders'|trans({'%count%': (holders[type.value][1] ?? 0)|plain_number}) }} <i class="bi bi-arrow-right-short" aria-hidden="true"></i>
+                </a>
+            </article>
+        {% endfor %}
+
+        {# Early Adopter: one tier, can no longer be earned #}
+        {% set supporters = holders['supporter'][0] ?? 0 %}
+        <article class="achievement-ref" id="supporter" aria-labelledby="ref-supporter-title">
+            <header class="achievement-ref-head">
+                {{ badge_art('supporter', null, 72, attrs = {alt: ''}) }}
+                <div class="achievement-ref-text">
+                    <h2 class="achievement-ref-title" id="ref-supporter-title">{{ 'badges.badge.supporter'|trans }}</h2>
+                    <p class="achievement-ref-description">{{ 'badges.description.supporter'|trans }}</p>
+                    <p class="achievement-ref-description mb-0">
+                        {{ 'badges.info.single_tier_note'|trans }}
+                        {% if supporters > 0 %}· {{ 'badges.detail.holders_count'|trans({'%count%': supporters}) }}{% endif %}
+                    </p>
+                </div>
+            </header>
+        </article>
+    </div>
 
     <div class="achievements-about mt-4" id="how-achievements-work">
         {{ 'badges.catalogue.about'|trans }}
@@ -69,9 +108,6 @@
     <div class="achievements-footnote mt-3 fs-sm text-body-secondary">
         <p class="mb-1">{{ 'badges.shelf.explainer.share'|trans }}</p>
         <p class="mb-1">{{ 'badges.shelf.explainer.step_back'|trans }}</p>
-        {% if logged_in and not is_member %}
-            <p class="mb-1">{{ 'badges.shelf.explainer.lapsed'|trans }}</p>
-        {% endif %}
         <p class="mb-0"><a href="{{ path('achievement_points_leaderboard') }}">{{ 'badges.catalogue.ap_leaderboard_link'|trans }}</a></p>
     </div>
 {% endblock %}

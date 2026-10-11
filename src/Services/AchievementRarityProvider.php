@@ -11,7 +11,7 @@ use Symfony\Contracts\Cache\ItemInterface;
 /**
  * How many puzzlers hold each achievement tier, and their share of all puzzlers in percent (0-100). The same numbers
  * for every visitor, so one aggregate (GetAchievementRarity) is cached for 15 minutes - badges are evaluated on that
- * rhythm anyway. The cached value is a plain array.
+ * rhythm anyway. The cached value is a plain array. Single-tier achievements (Early Adopter) sit under tier 0.
  */
 readonly final class AchievementRarityProvider
 {
@@ -45,7 +45,7 @@ readonly final class AchievementRarityProvider
     private function load(): array
     {
         /** @var array{percentages: array<string, array<int, float>>, holders: array<string, array<int, int>>} $rarity */
-        $rarity = $this->achievementRarityCache->get('achievement_rarity_v2', function (ItemInterface $item): array {
+        $rarity = $this->achievementRarityCache->get('achievement_rarity_v3', function (ItemInterface $item): array {
             $item->expiresAfter(self::CACHE_TTL);
 
             $counts = $this->getAchievementRarity->counts();

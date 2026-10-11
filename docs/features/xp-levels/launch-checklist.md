@@ -125,15 +125,15 @@ Both prompts now carry a strict knob-geometry block + "fewer, larger pieces" rul
 
 - [ ] **Jan: review/approve fair-play page** — `templates/xp_fair_play.html.twig` (marked `COPY:pending-jan-approval`; texts in `translations/messages.en.yml` under `xp.fair_play.*`)
 - [ ] **Jan: review/approve XP explainer page** — `templates/xp_explainer.html.twig` (`xp.explainer.*` keys)
-- [ ] **Jan: review launch email + reveal page copy** — `translations/emails.en.yml` `xp_reveal.*` + `templates/xp_launch_reveal.html.twig` (`xp.reveal.*` keys)
+- [ ] **Jan: review the launch modal + reveal page copy** — `templates/components/XpLaunchRevealModal.html.twig` (`xp.launch_modal.*`) + `templates/xp_launch_reveal.html.twig` (`xp.reveal.*`); there is no launch e-mail any more - the launch goes out in the regular newsletter (`launch-runbook.md` §4)
 
 ## 4. Operations (Jan) — step-by-step commands in `launch-runbook.md`
 
 - [ ] T-7 teaser + launch posts in Facebook groups (timed to implementation readiness)
 - [ ] Add production cron entries (`README.md` §Cron: settle-xp-bonuses, recalculate-badges, weekly digest) + `digest-consumer` compose service + deploy.sh workers line (content-digest README §13)
-- [ ] Run launch sequence: `myspeedpuzzling:xp-backfill` → `myspeedpuzzling:xp-distribution` (curve v5: expect ≈18 at Lv50, median L10 - `launch-runbook.md` §3) → remove flag + deploy → `myspeedpuzzling:send-xp-reveal-emails`
+- [ ] Run the launch sequence of `launch-runbook.md`: deploy (no flag) → `myspeedpuzzling:recalculate-karma` → `myspeedpuzzling:xp-backfill` (verifies, then switches on) → `myspeedpuzzling:xp-distribution` (curve v7 on the dev copy: 8 at Lv50, median L5) → newsletter
 - [ ] Ask Seznam support for the Email Profi outbound ceiling (blocks full digest volume, not ramp-up)
-- [ ] Dev environment: run `doctrine:migrations:migrate` locally (7 pending migrations from this branch, incl. pre-existing badge.tier)
+- [x] Dev environment: the branch's migrations are run locally (none pending, 2026-10-12)
 - [x] Content-digest decisions (2026-07-12): weekly digest **default-on** for existing players ·
   **daily digest deferred completely — weekly only for v1** (Sunday-overlap question moot) ·
   unread-messages digest **stays separate**

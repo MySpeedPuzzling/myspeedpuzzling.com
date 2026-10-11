@@ -91,7 +91,7 @@ that would otherwise be forgotten. Newest section on top.
 ## Activity digest + "Your week" (`docs/features/content-digest/README.md`, progression launch WS-E)
 
 - [ ] Karma: workstream F wires karma gained in a period into `GetContentDigestRecipients::activitySql()` (karma = activity) and `PlayerPeriodActivityReader::karmaGained()` (the thanks line, linking F's karma history)
-- [ ] Launch badge backfill vs the first digest: achievements count by `badge.earned_at` = backfill run time - run it before Mon 12 Oct 00:00 Prague, or filter backfilled badges out of the 12-18 Oct period
+- [x] Launch badge backfill vs the first digest: tiers earned before the launch switch went on are never counted (`PlayerPeriodActivityReader::achievementsEarned()` starts at `XpLaunchReadiness::readyAt()`), whenever the backfill runs
 - [ ] "We miss you" waves by hand (README wave plan): Tue 27 Oct 28d-3m + visitors with an older result, Tue 3 Nov 3-9m; Tuesday cron row from 10 Nov
 - [ ] Holdout comparison (README §Holdout SQL) once the first spells are 8 weeks old (late December)
 - [ ] Link the page (`my_activity`) from the app: user menu / own profile / the recap ("See your week") - nothing links it yet besides the e-mail

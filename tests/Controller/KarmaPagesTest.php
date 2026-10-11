@@ -85,7 +85,7 @@ final class KarmaPagesTest extends WebTestCase
 
         // The chip on their own profile opens the history
         $browser->request('GET', '/en/player-profile/' . PlayerFixture::PLAYER_REGULAR);
-        self::assertSelectorExists('a.player-chip-karma[href="/en/my/karma"]');
+        self::assertSelectorExists('a.player-chip-karma[href^="/en/my/karma?return="]');
     }
 
     public function testTheKarmaListLeavesOutPrivateProfilesAndAdmins(): void

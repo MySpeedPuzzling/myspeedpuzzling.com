@@ -1,0 +1,34 @@
+{#-
+    INTERFACE (stable, shared by every leaderboard - docs/features/xp-levels/ux-polish/design-spec.md §4):
+    The button of the gap row and of "Show more". A button, never a link: crawlers do not follow it, so the revealed states
+    never become URLs to index. Two ways to run it:
+      live_action: 'revealGap'                    - inside a Live Component (data-action="live#action")
+      form: {action: url, params: {k: v}, frame}  - a plain page: a GET form with the list's filters + the new window as hidden
+                                                    inputs, aimed at a <turbo-frame id="{frame}"> around the list so the page
+                                                    keeps its scroll position (frame optional)
+    Params: label (text), title (optional), class (button classes).
+-#}
+{%- set button_class = class|default('btn btn-link btn-sm w-100 py-2 text-decoration-none') -%}
+{%- if live_action|default(null) is not null -%}
+    <button
+        type="button"
+        class="{{ button_class }}"
+        data-action="live#action"
+        data-live-action-param="{{ live_action }}"
+        data-loading="addAttribute(disabled)"
+        {% if title|default(null) %}title="{{ title }}"{% endif %}
+    >{{ label }}<span class="spinner-border spinner-border-sm ms-1 d-none" role="status" data-loading="action({{ live_action }})|removeClass(d-none)"></span></button>
+{%- else -%}
+    <form method="get" action="{{ form.action }}" class="lb-reveal-form"{% if form.frame|default(null) %} data-turbo-frame="{{ form.frame }}"{% endif %}>
+        {%- for name, value in form.params|default({}) %}
+            {%- if value is not null and value is not same as('') and value is not same as(false) %}
+                <input type="hidden" name="{{ name }}" value="{{ value is same as(true) ? 1 : value }}">
+            {%- endif %}
+        {%- endfor %}
+        <button
+            type="submit"
+            class="{{ button_class }}"
+            {% if title|default(null) %}title="{{ title }}"{% endif %}
+        >{{ label }}</button>
+    </form>
+{%- endif -%}

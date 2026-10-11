@@ -1,1 +1,163 @@
 // Leaderboards: where am I - gap row, own row with neighbours, position line, board values (docs/features/xp-levels/ux-polish/design-spec.md §4)
+//
+// INTERFACE (stable, shared by every board): templates/leaderboards/_gap_row, _show_more, _position_line, _value.
+// Value colours are the progression families (_progression-pages.scss) - each ≥ 4.5:1 on white and on the own-row
+// tint (.table-active-player, #f0ecfb): indigo 6.1/5.3, amber 5.9/5.1, rose 5.9/5.1, teal 5.9/5.1. Muted text is the
+// leaderboard's own muted token ($lb-secondary #5b616d: 6.4/5.5), never #7d879c (3.6:1, design-spec §8.5).
+
+$lb-window-secondary: $lb-secondary;
+$lb-window-link: #c7393b; // coral ink: 5.2:1 on white
+
+// --- Value cell (option 4A: a coloured bold tabular number + one muted line) ---------------------------------------
+
+.lb-value {
+    display: block;
+    text-align: right;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+.lb-value-number {
+    display: block;
+    font-weight: 600;
+    line-height: 28px;
+    color: #111;
+}
+
+.lb-value-secondary {
+    display: block;
+    margin-top: -2px;
+    font-size: .75rem;
+    line-height: 1.3;
+    color: $lb-window-secondary;
+}
+
+.lb-value-level .lb-value-number { color: $xp-indigo; }
+.lb-value-achievements .lb-value-number { color: $progression-achievements; }
+.lb-value-karma .lb-value-number { color: $progression-karma; }
+.lb-value-competition .lb-value-number { color: $progression-competition; }
+.lb-value-ink .lb-value-number { color: #111; font-weight: 400; }
+
+// --- Gap row ("⋯ N more · Show ranks 26–75 of 1,289") - plain white, no stripes (design-spec §8.4) ------------------
+
+.lb-gap-row > td {
+    border-top: 1px dashed #cfd6e0;
+    background: #fff;
+}
+
+.lb-gap-inner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    column-gap: .75rem;
+    padding: 0 .5rem;
+}
+
+.lb-gap-count {
+    font-size: .875rem;
+    color: $lb-window-secondary;
+    font-variant-numeric: tabular-nums;
+}
+
+.lb-gap-button {
+    min-height: 48px;
+    color: $lb-window-link;
+    font-variant-numeric: tabular-nums;
+
+    &:hover,
+    &:focus-visible {
+        color: #a52f31;
+        text-decoration: underline !important;
+    }
+}
+
+.lb-reveal-form {
+    margin: 0;
+}
+
+// The first row a reveal added gets the focus (leaderboard_window_controller.js)
+.lb-table tr[tabindex="-1"]:focus {
+    outline: 2px solid $xp-indigo;
+    outline-offset: -2px;
+}
+
+// --- "Show N more" under a board --------------------------------------------------------------------------------------
+
+.lb-show-more {
+    display: flex;
+    justify-content: center;
+    margin: .75rem 0 2rem;
+
+    .lb-show-more-button {
+        min-height: 44px;
+        padding-left: 1.25rem;
+        padding-right: 1.25rem;
+    }
+}
+
+// --- Position line ---------------------------------------------------------------------------------------------------
+
+.lb-position {
+    margin: 0 0 .75rem;
+    padding: .625rem .75rem;
+    border: 1px solid #e3e9ef;
+    border-radius: 12px;
+    font-size: .875rem;
+    color: $lb-window-secondary;
+    font-variant-numeric: tabular-nums;
+
+    .lb-position-rank {
+        color: #111;
+        font-weight: 600;
+    }
+
+    .lb-position-jump {
+        display: inline-flex;
+        align-items: center;
+        min-height: 44px;
+        margin: -12px 0; // a 44 px target without making the line taller
+        color: $lb-window-link;
+        text-decoration: none;
+
+        &:hover,
+        &:focus-visible {
+            text-decoration: underline;
+        }
+    }
+}
+
+// "Jump to me" lands below the site header (rows of the progress boards: id="board-row-<player id>")
+tr[id^="board-row-"] {
+    scroll-margin-top: calc(var(--header-height, 101px) + .75rem);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    tr[id^="board-row-"]:target > td:first-child {
+        animation: lb-own-row-flash 1.2s ease-out 1;
+    }
+}
+
+@keyframes lb-own-row-flash {
+    from { box-shadow: inset 4px 0 0 $xp-indigo; }
+    to { box-shadow: inset 0 0 0 transparent; }
+}
+
+// --- Not on this board: one line saying why, with what to do (design-spec §8.4) -------------------------------------
+
+.lb-not-on-board {
+    margin: 0 0 .75rem;
+    padding: .625rem .75rem;
+    border: 1px solid #e3e9ef;
+    border-radius: 12px;
+    font-size: .875rem;
+    color: $lb-window-secondary;
+
+    a {
+        display: inline-flex;
+        align-items: center;
+        min-height: 44px;
+        margin: -12px 0;
+        color: $lb-window-link;
+    }
+}

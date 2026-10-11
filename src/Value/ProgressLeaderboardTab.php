@@ -6,9 +6,8 @@ namespace SpeedPuzzling\Web\Value;
 
 /**
  * The boards of the progression leaderboard page (route xp_leaderboard, ?tab=). The page renders its tabs, titles and
- * values from this list, so a new board is a new case here + its rows in XpLeaderboardController::rows() (+ its column
- * in GetXpLeaderboard::selfRank(), unless its query brings the viewer's row along like karma's) + its
- * `xp.leaderboard.board.<value>.*` translations.
+ * values from this list, so a new board is a new case here + its statement in GetXpLeaderboard::board() + its
+ * `xp.leaderboard.board.<value>.*` and `leaderboards.value.<value>` translations.
  */
 enum ProgressLeaderboardTab: string
 {
@@ -28,16 +27,23 @@ enum ProgressLeaderboardTab: string
         return $this === self::Xp;
     }
 
-    /** Karma's own query brings the viewer's row along (kind and period filters); the others ask selfRank() */
-    public function hasSelfRankQuery(): bool
-    {
-        return $this !== self::Karma;
-    }
-
     /** Karma has its kind and period filters (templates/karma/_leaderboard_filters.html.twig) */
     public function hasKarmaFilters(): bool
     {
         return $this === self::Karma;
+    }
+
+    /**
+     * The value column's colour (templates/leaderboards/_value.html.twig, design-spec §4 "Value column"): each board in
+     * its progression family's colour
+     */
+    public function valueFamily(): string
+    {
+        return match ($this) {
+            self::Xp => 'level',
+            self::AchievementPoints => 'achievements',
+            self::Karma => 'karma',
+        };
     }
 
     public function translationPrefix(): string

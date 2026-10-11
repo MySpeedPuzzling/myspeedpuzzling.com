@@ -6,12 +6,17 @@ namespace SpeedPuzzling\Web\Query;
 
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
-use SpeedPuzzling\Web\Results\XpLeaderboardRow;
 use DateTimeImmutable;
+use SpeedPuzzling\Web\Results\ProgressBoard;
+use SpeedPuzzling\Web\Results\ProgressBoardRow;
+use SpeedPuzzling\Web\Results\XpLeaderboardRow;
 use SpeedPuzzling\Web\Services\HiddenPlayers;
 use SpeedPuzzling\Web\Services\Karma\KarmaDerivation;
 use SpeedPuzzling\Web\Value\CountryCode;
 use SpeedPuzzling\Web\Value\KarmaGroup;
+use SpeedPuzzling\Web\Value\LeaderboardPosition;
+use SpeedPuzzling\Web\Value\LeaderboardWindow;
+use SpeedPuzzling\Web\Value\ProgressLeaderboardTab;
 
 /**
  * Two ladders, two disciplines (§1.9): XP ranks activity and is open to everyone
@@ -50,112 +55,38 @@ SQL;
     }
 
     /**
-     * XP ladder — all-time, everyone, ranked purely by total XP. The level cap does not
-     * end this board: XP keeps accruing past Level 50 and keeps being shown.
+     * One board as one window statement (docs/features/xp-levels/ux-polish/design-spec.md §4): the top rows, the viewer's
+     * own row with its neighbours and the rows "Show more" asked for (LeaderboardWindow::rowsToLoad()), plus the rows at
+     * the milestone positions for the position line. Ranks are shared on equal values (RANK()) and the order is stable
+     * (value, then id); both count within the filtered list - country, favorites, karma kind and period.
      *
-     * @param list<string> $favoritePlayerIds
-     * @return list<XpLeaderboardRow>
+     * Who is on which board is unchanged: XP and AP leave out private profiles and experience-system opt-outs, AP holds
+     * members only; karma leaves out private profiles, admins and "Hide my karma". Players the viewer blocks are left out
+     * of every board, so positions close up.
+     *
+     * @param null|list<string> $favoritePlayerIds the favorites board (the viewer counts as on it)
      */
-    public function xp(null|string $country, null|array $favoritePlayerIds, int $limit = 100): array
-    {
-        [$favoritesCondition, $params, $types] = $this->favoritesFilter($favoritePlayerIds);
-        $eligibility = $this->eligibility();
-
-        $sql = <<<SQL
-SELECT
-    ROW_NUMBER() OVER (ORDER BY p.xp_total DESC, p.id ASC) AS rank,
-    p.id AS player_id,
-    p.name AS player_name,
-    p.code,
-    p.country,
-    p.avatar,
-    p.xp_total AS value,
-    p.level,
-    NULL::int AS achievement_points
-FROM player p
-WHERE p.xp_total > 0
-  AND {$eligibility}
-  AND (CAST(:country AS TEXT) IS NULL OR p.country = :country)
-  {$favoritesCondition}
-ORDER BY p.xp_total DESC, p.id ASC
-LIMIT :limit
-SQL;
-
-        return $this->hydrate($sql, ['country' => $country, 'limit' => $limit] + $params, $types);
-    }
-
-    /**
-     * Achievement Points ladder — members ranked by AP; viewable by every logged-in
-     * user (this is the read-only ladder free players are pointed to).
-     *
-     * @param list<string> $favoritePlayerIds
-     * @return list<XpLeaderboardRow>
-     */
-    public function achievementPoints(null|string $country, null|array $favoritePlayerIds, int $limit = 100): array
-    {
-        [$favoritesCondition, $params, $types] = $this->favoritesFilter($favoritePlayerIds);
-        $eligibility = $this->eligibility();
-        $membership = self::ACTIVE_MEMBERSHIP;
-
-        $sql = <<<SQL
-SELECT
-    ROW_NUMBER() OVER (ORDER BY p.achievement_points DESC, p.id ASC) AS rank,
-    p.id AS player_id,
-    p.name AS player_name,
-    p.code,
-    p.country,
-    p.avatar,
-    p.achievement_points AS value,
-    p.level,
-    p.achievement_points
-FROM player p
-JOIN membership m ON m.player_id = p.id AND {$membership}
-WHERE p.achievement_points > 0
-  AND {$eligibility}
-  AND (CAST(:country AS TEXT) IS NULL OR p.country = :country)
-  {$favoritesCondition}
-ORDER BY p.achievement_points DESC, p.id ASC
-LIMIT :limit
-SQL;
-
-        return $this->hydrate($sql, ['country' => $country, 'limit' => $limit] + $params, $types);
-    }
-
-    /**
-     * Karma list (docs/features/karma.md) - who helps the database most. Everybody, free; private profiles never (global
-     * rankings stay closed to them), admins never (they have no karma), players the viewer blocks are left out so
-     * positions close up. The default board (every kind, all time) reads the stored player.karma; a kind or the last
-     * 12 months come from the derivation itself (one aggregate statement).
-     *
-     * The viewer's own row comes along even when it is outside the top $limit (rank > $limit) - the pinned self-row,
-     * within the same filters.
-     *
-     * @param list<string> $favoritePlayerIds
-     * @return list<XpLeaderboardRow>
-     */
-    public function karma(
-        null|KarmaGroup $group,
-        null|DateTimeImmutable $since,
+    public function board(
+        ProgressLeaderboardTab $tab,
+        LeaderboardWindow $window,
         null|string $country,
         null|array $favoritePlayerIds,
         null|string $viewerPlayerId,
-        int $limit = 100,
-    ): array {
+        null|KarmaGroup $karmaGroup = null,
+        null|DateTimeImmutable $karmaSince = null,
+    ): ProgressBoard {
         [$favoritesCondition, $params, $types] = $this->favoritesFilter($favoritePlayerIds);
-        $hidden = $this->hiddenPlayers->sqlExclude('p.id');
+        $prelude = '';
+        $secondary = 'NULL::int';
 
-        if ($group === null && $since === null) {
-            $board = <<<SQL
-WITH karma_board AS (
-    SELECT p.id AS player_id, p.karma
-    FROM player p
-    WHERE p.karma > 0
-)
-SQL;
-        } else {
-            $items = KarmaDerivation::itemsCte(scoped: false);
-            $board = <<<SQL
-{$items},
+        if ($tab === ProgressLeaderboardTab::Karma) {
+            $hidden = $this->hiddenPlayers->sqlExclude('p.id');
+
+            if ($karmaGroup === null && $karmaSince === null) {
+                $prelude = 'WITH karma_board AS (SELECT p.id AS player_id, p.karma FROM player p WHERE p.karma > 0),';
+            } else {
+                $prelude = KarmaDerivation::itemsCte(scoped: false) . <<<SQL
+,
 karma_board AS (
     SELECT i.player_id, COUNT(*) AS karma
     FROM karma_items i
@@ -163,100 +94,185 @@ karma_board AS (
       AND (CAST(:karmaKinds AS TEXT) IS NULL OR i.kind = ANY(string_to_array(CAST(:karmaKinds AS TEXT), ',')))
       AND (CAST(:karmaSince AS TIMESTAMP) IS NULL OR i.at >= CAST(:karmaSince AS TIMESTAMP))
     GROUP BY i.player_id
-)
+),
 SQL;
-            $params['karmaKinds'] = $group !== null ? implode(',', $group->kindValues()) : null;
-            $params['karmaSince'] = $since?->format('Y-m-d H:i:s');
+                $params['karmaKinds'] = $karmaGroup !== null ? implode(',', $karmaGroup->kindValues()) : null;
+                $params['karmaSince'] = $karmaSince?->format('Y-m-d H:i:s');
+                // A filtered count is ranked - the karma in total is the secondary line
+                $secondary = 'p.karma';
+            }
+
+            $value = 'b.karma';
+            $from = <<<SQL
+FROM karma_board b
+JOIN player p ON p.id = b.player_id
+WHERE p.is_private = false
+  AND p.is_admin = false
+  -- "Hide my karma" (docs/features/karma.md) - every filter
+  AND p.karma_opted_out = false
+  {$hidden}
+SQL;
+        } else {
+            $eligibility = $this->eligibility();
+            $prelude = 'WITH';
+
+            if ($tab === ProgressLeaderboardTab::AchievementPoints) {
+                $membership = self::ACTIVE_MEMBERSHIP;
+                $value = 'p.achievement_points';
+                $from = <<<SQL
+FROM player p
+JOIN membership m ON m.player_id = p.id AND {$membership}
+WHERE p.achievement_points > 0
+  AND {$eligibility}
+SQL;
+            } else {
+                $value = 'p.xp_total';
+                $from = <<<SQL
+FROM player p
+WHERE p.xp_total > 0
+  AND {$eligibility}
+SQL;
+            }
         }
 
+        // Achievements held, read for the returned rows only (a sub-select of this statement, not a query of its own)
+        $achievements = $tab === ProgressLeaderboardTab::AchievementPoints
+            ? '(SELECT COUNT(DISTINCT held.type) FROM badge held WHERE held.player_id = board.player_id)'
+            : 'board.secondary';
+        $milestones = implode(', ', LeaderboardPosition::RANK_MILESTONES);
+        $rows = $window->rowsToLoad();
+
         $sql = <<<SQL
-{$board}
-SELECT * FROM (
+{$prelude}
+board AS (
     SELECT
-        ROW_NUMBER() OVER (ORDER BY b.karma DESC, p.id ASC) AS rank,
+        ROW_NUMBER() OVER (ORDER BY {$value} DESC, p.id ASC) AS position,
+        RANK() OVER (ORDER BY {$value} DESC) AS rank,
+        COUNT(*) OVER () AS total,
         p.id AS player_id,
         p.name AS player_name,
         p.code,
         p.country,
         p.avatar,
-        b.karma AS value,
+        {$value} AS value,
         p.level,
-        NULL::int AS achievement_points
-    FROM karma_board b
-    JOIN player p ON p.id = b.player_id
-    WHERE p.is_private = false
-      AND p.is_admin = false
-      -- "Hide my karma" (docs/features/karma.md) - every filter
-      AND p.karma_opted_out = false
-      {$hidden}
+        {$secondary} AS secondary
+    {$from}
       AND (CAST(:country AS TEXT) IS NULL OR p.country = :country)
       {$favoritesCondition}
-) board
-WHERE board.rank <= :limit OR board.player_id = CAST(:viewerPlayerId AS UUID)
-ORDER BY board.rank
+),
+me AS (
+    SELECT position FROM board WHERE player_id = CAST(:viewerPlayerId AS UUID)
+)
+SELECT
+    board.position,
+    board.rank,
+    board.total,
+    me.position AS own_position,
+    board.player_id,
+    board.player_name,
+    board.code,
+    board.country,
+    board.avatar,
+    board.value,
+    board.level,
+    {$achievements} AS secondary
+FROM board
+LEFT JOIN me ON true
+WHERE board.position <= :limit
+   OR (me.position IS NOT NULL AND board.position BETWEEN me.position - :above AND me.position + :below)
+   OR board.position IN ({$milestones})
+ORDER BY board.position
 SQL;
 
-        return $this->hydrate($sql, [
+        /** @var list<array{position: int|string, rank: int|string, total: int|string, own_position: null|int|string, player_id: string, player_name: null|string, code: string, country: null|string, avatar: null|string, value: int|string, level: int|string, secondary: null|int|string}> $result */
+        $result = $this->database->executeQuery($sql, [
             'country' => $country,
-            'limit' => $limit,
             'viewerPlayerId' => $viewerPlayerId,
-        ] + $params, $types);
+            'limit' => $rows['limit'],
+            'above' => $rows['above'],
+            'below' => $rows['below'],
+        ] + $params, $types)->fetchAllAssociative();
+
+        $boardRows = [];
+        $total = 0;
+        $ownPosition = null;
+
+        foreach ($result as $row) {
+            $position = (int) $row['position'] - 1;
+            $total = (int) $row['total'];
+            $ownPosition = $row['own_position'] !== null ? (int) $row['own_position'] - 1 : null;
+
+            $boardRows[$position] = new ProgressBoardRow(
+                position: $position,
+                rank: (int) $row['rank'],
+                playerId: $row['player_id'],
+                playerName: $row['player_name'],
+                playerCode: $row['code'],
+                countryCode: CountryCode::fromCode($row['country']),
+                avatar: $row['avatar'],
+                value: (int) $row['value'],
+                level: (int) $row['level'],
+                secondaryCount: $row['secondary'] !== null ? (int) $row['secondary'] : null,
+            );
+        }
+
+        return new ProgressBoard($boardRows, $total, $ownPosition);
     }
 
     /**
-     * The viewer's own standing for the pinned self-row, on the same board the list shows - the country and
-     * favorites filters included, ties broken like the list (value, then id) - or null when the viewer is not on
-     * that board (no XP/AP, private, opted out, another country, AP without membership).
+     * XP ladder — all-time, everyone, ranked purely by total XP. The level cap does not
+     * end this board: XP keeps accruing past Level 50 and keeps being shown.
+     * The top $limit rows of board() (shared ranks).
      *
-     * @param null|list<string> $favoritePlayerIds the favorites board (the viewer counts as on it)
-     * @return array{rank: int, value: int, level: int}|null
+     * @param list<string> $favoritePlayerIds
+     * @return list<XpLeaderboardRow>
      */
-    public function selfRank(string $playerId, string $tab, null|string $country = null, null|array $favoritePlayerIds = null): null|array
+    public function xp(null|string $country, null|array $favoritePlayerIds, int $limit = 100): array
     {
-        $eligibility = $this->eligibility();
-        $mineEligibility = str_replace('p.', 'mine.', self::PUBLIC_ELIGIBILITY);
-        $membership = self::ACTIVE_MEMBERSHIP;
-        [$favoritesCondition, $params, $types] = $this->favoritesFilter($favoritePlayerIds);
+        return $this->topRows(ProgressLeaderboardTab::Xp, $country, $favoritePlayerIds, $limit);
+    }
 
-        $column = $tab === 'achievement-points' ? 'achievement_points' : 'xp_total';
-        $membersOnly = $tab === 'achievement-points'
-            ? "JOIN membership m ON m.player_id = p.id AND {$membership}"
-            : '';
-        $mineMembersOnly = $tab === 'achievement-points'
-            ? 'JOIN membership mm ON mm.player_id = mine.id AND ' . str_replace('m.', 'mm.', $membership)
-            : '';
+    /**
+     * Achievement Points ladder — members ranked by AP; viewable by every logged-in
+     * user (this is the read-only ladder free players are pointed to). The top $limit rows of board() (shared ranks).
+     *
+     * @param list<string> $favoritePlayerIds
+     * @return list<XpLeaderboardRow>
+     */
+    public function achievementPoints(null|string $country, null|array $favoritePlayerIds, int $limit = 100): array
+    {
+        return $this->topRows(ProgressLeaderboardTab::AchievementPoints, $country, $favoritePlayerIds, $limit);
+    }
 
-        $sql = <<<SQL
-SELECT mine.{$column} AS value,
-       mine.level,
-       1 + (
-           SELECT COUNT(*) FROM player p
-           {$membersOnly}
-           WHERE (p.{$column} > mine.{$column} OR (p.{$column} = mine.{$column} AND p.id < mine.id))
-             AND {$eligibility}
-             AND (CAST(:country AS TEXT) IS NULL OR p.country = :country)
-             {$favoritesCondition}
-       ) AS rank
-FROM player mine
-{$mineMembersOnly}
-WHERE mine.id = :playerId
-  AND mine.{$column} > 0
-  AND {$mineEligibility}
-  AND (CAST(:country AS TEXT) IS NULL OR mine.country = :country)
-SQL;
+    /**
+     * @param null|list<string> $favoritePlayerIds
+     * @return list<XpLeaderboardRow>
+     */
+    private function topRows(ProgressLeaderboardTab $tab, null|string $country, null|array $favoritePlayerIds, int $limit): array
+    {
+        $board = $this->board($tab, new LeaderboardWindow(0, null, $limit), $country, $favoritePlayerIds, null);
+        $rows = [];
 
-        /** @var array{value: int|string, level: int|string, rank: int|string}|false $row */
-        $row = $this->database->executeQuery($sql, ['playerId' => $playerId, 'country' => $country] + $params, $types)->fetchAssociative();
+        foreach ($board->rows as $position => $row) {
+            if ($position >= $limit) {
+                break;
+            }
 
-        if ($row === false) {
-            return null;
+            $rows[] = new XpLeaderboardRow(
+                rank: $row->rank,
+                playerId: $row->playerId,
+                playerName: $row->playerName,
+                playerCode: $row->playerCode,
+                countryCode: $row->countryCode,
+                avatar: $row->avatar,
+                value: $row->value,
+                level: $row->level,
+                achievementPoints: $tab === ProgressLeaderboardTab::AchievementPoints ? $row->value : null,
+            );
         }
 
-        return [
-            'rank' => is_numeric($row['rank']) ? (int) $row['rank'] : 0,
-            'value' => is_numeric($row['value']) ? (int) $row['value'] : 0,
-            'level' => is_numeric($row['level']) ? (int) $row['level'] : 1,
-        ];
+        return $rows;
     }
 
     /**
@@ -306,34 +322,5 @@ SQL;
             ['favoriteIds' => $favoritePlayerIds],
             ['favoriteIds' => ArrayParameterType::STRING],
         ];
-    }
-
-    /**
-     * @param array<string, mixed> $params
-     * @param array<string, ArrayParameterType> $types
-     * @return list<XpLeaderboardRow>
-     */
-    private function hydrate(string $sql, array $params, array $types): array
-    {
-        /** @var list<array{rank: int|string, player_id: string, player_name: null|string, code: string, country: null|string, avatar: null|string, value: int|string, level: int, achievement_points: null|int|string}> $rows */
-        $rows = $this->database->executeQuery($sql, $params, $types)->fetchAllAssociative();
-
-        $result = [];
-
-        foreach ($rows as $row) {
-            $result[] = new XpLeaderboardRow(
-                rank: is_numeric($row['rank']) ? (int) $row['rank'] : 0,
-                playerId: $row['player_id'],
-                playerName: $row['player_name'],
-                playerCode: $row['code'],
-                countryCode: CountryCode::fromCode($row['country']),
-                avatar: $row['avatar'],
-                value: is_numeric($row['value']) ? (int) $row['value'] : 0,
-                level: $row['level'],
-                achievementPoints: is_numeric($row['achievement_points']) ? (int) $row['achievement_points'] : null,
-            );
-        }
-
-        return $result;
     }
 }

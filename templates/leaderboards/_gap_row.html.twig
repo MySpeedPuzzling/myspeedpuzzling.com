@@ -1,0 +1,33 @@
+{#-
+    INTERFACE (stable, shared by every leaderboard - docs/features/xp-levels/ux-polish/design-spec.md §4 + §8.4):
+    The "⋯ N more" row between the top rows and the viewer's own rows (LeaderboardWindow::gapsBefore()).
+      Boards (§8.4) - the button names the range the next tap reveals (LeaderboardWindow::gapReveal(), at most 50 rows):
+      {{ include('leaderboards/_gap_row.html.twig', {count: hidden, reveal: window.gapReveal(), total: window.totalRows, colspan: 3, live_action: 'revealGap'}) }}
+      {{ include('leaderboards/_gap_row.html.twig', {count: hidden, reveal: …, total: …, form: {action: url, params: {...}, frame: 'progress-board'}}) }}
+      The puzzle page (no reveal): the old "⋯ N more" button revealing every row it counts.
+    colspan = the table's columns (default 3). After the tap, focus the first new row + announce it:
+    templates/leaderboards/_window_announcer.html.twig.
+-#}
+<tr class="leaderboard-gap lb-gap-row">
+    <td colspan="{{ colspan|default(3) }}" class="p-0">
+        {%- if reveal|default(null) is not null %}
+            <div class="lb-gap-inner">
+                <span class="lb-gap-count">{{ 'leaderboards.gap.hidden'|trans({'%count%': count, '%number%': count|format_number}) }}</span>
+                {{- include('leaderboards/_reveal_button.html.twig', {
+                    label: 'leaderboards.gap.reveal'|trans({'%from%': reveal.from|format_number, '%to%': reveal.to|format_number, '%total%': total|format_number}),
+                    class: 'btn btn-link btn-sm lb-gap-button text-decoration-none',
+                    live_action: live_action|default(null),
+                    form: form|default(null),
+                }) -}}
+            </div>
+        {%- else %}
+            {{- include('leaderboards/_reveal_button.html.twig', {
+                label: '⋯ ' ~ 'puzzle_times.leaderboard.hidden_rows'|trans({'%count%': count}),
+                title: 'puzzle_times.leaderboard.show_more'|trans({'%count%': count}),
+                class: 'btn btn-link btn-sm w-100 lb-gap-button text-decoration-none',
+                live_action: live_action|default(null),
+                form: form|default(null),
+            }) -}}
+        {%- endif %}
+    </td>
+</tr>

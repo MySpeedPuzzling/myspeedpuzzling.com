@@ -7,12 +7,16 @@ namespace SpeedPuzzling\Web\Controller;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Query\GetXpLeaderboard;
 use SpeedPuzzling\Web\Results\PlayerProfile;
-use SpeedPuzzling\Web\Results\XpLeaderboardRow;
+use SpeedPuzzling\Web\Results\ProgressBoard;
+use SpeedPuzzling\Web\Results\ProgressBoardRow;
 use SpeedPuzzling\Web\Services\CountryFilterOptions;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Services\Xp\XpFeatureGate;
+use SpeedPuzzling\Web\Value\CountryCode;
 use SpeedPuzzling\Web\Value\KarmaGroup;
 use SpeedPuzzling\Web\Value\KarmaPeriod;
+use SpeedPuzzling\Web\Value\LeaderboardPosition;
+use SpeedPuzzling\Web\Value\LeaderboardWindow;
 use SpeedPuzzling\Web\Value\ProgressLeaderboardTab;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -21,12 +25,18 @@ use Symfony\Component\Routing\Attribute\Route;
 
 /**
  * Progression leaderboards (docs/features/xp-levels/launch-2026-10.md, "Leaderboards"): one page, a tab per board
- * (ProgressLeaderboardTab), the shared leaderboard row, the viewer's own row pinned under the list - on the same
- * board the list shows, filters included.
+ * (ProgressLeaderboardTab), the shared leaderboard row. "Where am I" like the puzzle page
+ * (docs/features/xp-levels/ux-polish/design-spec.md §4): the top rows, a gap row, the viewer's own row with two
+ * neighbours each side, "Show more" after the last row shown (LeaderboardWindow) - one window statement per request.
+ *
+ * A plain page, not a Live Component: the filters already are a GET form, and the gap row / "Show more" are GET forms
+ * too (buttons - crawlers do not submit them) aimed at a Turbo Frame around the list, so the page keeps its scroll
+ * position and the revealed rows live only in the request that asked for them.
  */
 final class XpLeaderboardController extends AbstractController
 {
-    private const int LIMIT = 100;
+    // The most rows a revealed window may ask for - a bound for hand-made URLs, far above what anybody taps to
+    private const int MAX_ROWS = 10_000;
 
     public function __construct(
         readonly private GetXpLeaderboard $getXpLeaderboard,
@@ -57,8 +67,7 @@ final class XpLeaderboardController extends AbstractController
 
         $tab = ProgressLeaderboardTab::tryFrom($request->query->getString('tab', 'xp')) ?? ProgressLeaderboardTab::Xp;
 
-        $country = $request->query->getString('country');
-        $country = $country !== '' ? strtolower($country) : null;
+        $country = CountryCode::fromCode($request->query->getString('country'))?->name;
 
         $favoritesOnly = $request->query->getBoolean('favorites') && $profile !== null;
         // The favorites board is "me and the people I follow" - the viewer is on it too
@@ -68,97 +77,184 @@ final class XpLeaderboardController extends AbstractController
         $karmaGroup = KarmaGroup::tryFrom($request->query->getString('kind'));
         $karmaPeriod = KarmaPeriod::tryFrom($request->query->getString('period')) ?? KarmaPeriod::AllTime;
 
+        /*
+         * The rows revealed by the gap row and "Show more" (design-spec §4). They belong to the list they were revealed
+         * on: the buttons' GET forms carry them with the list's filters, the filter form never does - another filter
+         * starts from the top rows and the viewer's neighbours again.
+         */
+        $revealed = $request->query->has('limit') || $request->query->has('below');
+        $requested = LeaderboardWindow::board(
+            totalRows: 0,
+            ownPosition: null,
+            limitAsked: $request->query->has('limit') ? min(self::MAX_ROWS, $request->query->getInt('limit')) : null,
+            belowOwnRowAsked: $request->query->has('below') ? min(self::MAX_ROWS, $request->query->getInt('below')) : null,
+        );
+
         $loginRequired = $tab->requiresLogin() && $profile === null;
-        [$rows, $selfRow] = $loginRequired
-            ? [[], null]
-            : $this->rows($tab, $country, $favoriteIds, $profile?->playerId, $karmaGroup, $karmaPeriod);
+        $board = $loginRequired ? null : $this->getXpLeaderboard->board(
+            tab: $tab,
+            window: $requested,
+            country: $country,
+            favoritePlayerIds: $favoriteIds,
+            viewerPlayerId: $profile?->playerId,
+            karmaGroup: $tab === ProgressLeaderboardTab::Karma ? $karmaGroup : null,
+            karmaSince: $tab === ProgressLeaderboardTab::Karma ? $karmaPeriod->since($this->clock->now()) : null,
+        );
 
-        if ($selfRow === null && $profile !== null && $loginRequired === false && $tab->hasSelfRankQuery() && $this->isOnRows($rows, $profile->playerId) === false) {
-            $selfRank = $this->getXpLeaderboard->selfRank($profile->playerId, $tab->value, $country, $favoriteIds);
+        $window = LeaderboardWindow::board(
+            totalRows: $board->total ?? 0,
+            ownPosition: $board?->ownPosition,
+            limitAsked: $requested->limit(),
+            belowOwnRowAsked: $requested->belowOwnRow(),
+        );
 
-            if ($selfRank !== null) {
-                $selfRow = $this->selfRow($profile, $selfRank);
-            }
-        }
+        $ownRow = $board?->ownRow();
+        $position = $board !== null && $ownRow !== null
+            ? LeaderboardPosition::describe(
+                rank: $ownRow->rank,
+                total: $board->total,
+                ownValue: $ownRow->value,
+                milestoneValues: $board->milestoneValues(),
+                higherIsBetter: true,
+            )
+            : null;
 
-        return $this->render('xp_leaderboard.html.twig', [
+        // The list's own query parameters - what the gap row and "Show more" carry along with the next window
+        $listParams = [
+            'tab' => $tab->value,
+            'country' => $country,
+            'favorites' => $favoritesOnly ? 1 : null,
+            'kind' => $tab === ProgressLeaderboardTab::Karma ? $karmaGroup?->value : null,
+            'period' => $tab === ProgressLeaderboardTab::Karma && $karmaPeriod !== KarmaPeriod::AllTime ? $karmaPeriod->value : null,
+        ];
+
+        $entries = $board !== null ? $this->entries($board, $window) : [];
+
+        $response = $this->render('xp_leaderboard.html.twig', [
             'tab' => $tab,
-            'rows' => $rows,
+            'entries' => $entries,
+            'revealed_now' => $this->revealedNow($request->query->getString('focus'), $entries, $window),
+            'not_on_board' => $ownRow === null && $loginRequired === false ? $this->notOnBoard($tab, $profile, $country, $karmaGroup !== null || $karmaPeriod !== KarmaPeriod::AllTime) : null,
+            'window' => $window,
+            'position' => $position,
+            'own_row' => $ownRow,
+            'list_params' => $listParams,
+            'gap_window' => $window->revealGap(),
+            'more_window' => $window->showMore(),
             'login_required' => $loginRequired,
             'countries' => CountryFilterOptions::fromCodes($this->getXpLeaderboard->countries(), $request->getLocale()),
             'selected_country' => $country,
             'favorites_only' => $favoritesOnly,
-            'self_row' => $selfRow,
             'karma_group' => $karmaGroup,
             'karma_period' => $karmaPeriod,
+            'karma_filtered' => $tab === ProgressLeaderboardTab::Karma && ($karmaGroup !== null || $karmaPeriod !== KarmaPeriod::AllTime),
             'viewer' => $profile,
         ]);
+
+        if ($revealed) {
+            // Crawlers never submit the buttons' forms - should a revealed state still get out, it is no page of its own
+            $response->headers->set('X-Robots-Tag', 'noindex, follow');
+        }
+
+        return $response;
     }
 
     /**
-     * The board's rows (top LIMIT) and, when its query brings it along, the viewer's own row from below them.
+     * Rows a tap on the gap row or "Show more" just revealed (?focus=26-75, 1-based - the buttons send what they reveal):
+     * the first of them gets the focus and the range is announced (design-spec §8.4)
      *
-     * @param null|list<string> $favoriteIds
-     * @return array{list<XpLeaderboardRow>, null|XpLeaderboardRow}
+     * @param list<array{row: ProgressBoardRow, hidden_before: int}> $entries
+     * @return null|array{focus_id: string, from: int, to: int}
      */
-    private function rows(
-        ProgressLeaderboardTab $tab,
-        null|string $country,
-        null|array $favoriteIds,
-        null|string $viewerId,
-        null|KarmaGroup $karmaGroup,
-        KarmaPeriod $karmaPeriod,
-    ): array {
+    private function revealedNow(string $focus, array $entries, LeaderboardWindow $window): null|array
+    {
+        if (preg_match('/^(\d+)-(\d+)$/', $focus, $matches) !== 1) {
+            return null;
+        }
+
+        $from = (int) $matches[1];
+        $to = min((int) $matches[2], $window->totalRows);
+
+        foreach ($entries as $entry) {
+            if ($entry['row']->position === $from - 1 && $to >= $from) {
+                return ['focus_id' => 'board-row-' . $entry['row']->playerId, 'from' => $from, 'to' => $to];
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Why a signed-in viewer is not on this board, for the one line that says what to do (design-spec §8.4) - checked
+     * in the order the boards leave people out. Null when nothing explains it (a list the viewer just is not on).
+     */
+    private function notOnBoard(ProgressLeaderboardTab $tab, null|PlayerProfile $viewer, null|string $country, bool $karmaFiltered): null|string
+    {
+        if ($viewer === null) {
+            return 'guest';
+        }
+
+        if ($viewer->isPrivateProfile) {
+            return 'private';
+        }
+
         if ($tab === ProgressLeaderboardTab::Karma) {
-            // One statement: the top of the board plus the viewer's own row (rank > LIMIT) within the same filters
-            $rows = [];
-            $selfRow = null;
+            if ($viewer->isAdmin) {
+                return 'admin';
+            }
 
-            foreach ($this->getXpLeaderboard->karma($karmaGroup, $karmaPeriod->since($this->clock->now()), $country, $favoriteIds, $viewerId, self::LIMIT) as $row) {
-                if ($row->rank > self::LIMIT) {
-                    $selfRow = $row;
-                } else {
-                    $rows[] = $row;
+            if ($viewer->karmaOptedOut) {
+                return 'karma_opted_out';
+            }
+        } elseif ($viewer->experienceSystemOptedOut) {
+            return 'experience_opted_out';
+        }
+
+        if ($tab === ProgressLeaderboardTab::AchievementPoints && $viewer->activeMembership === false) {
+            return 'not_member';
+        }
+
+        $value = match ($tab) {
+            ProgressLeaderboardTab::Xp => $viewer->xpTotal,
+            ProgressLeaderboardTab::AchievementPoints => $viewer->achievementPoints,
+            ProgressLeaderboardTab::Karma => $viewer->karma,
+        };
+
+        if ($value < 1) {
+            return $tab->value;
+        }
+
+        if ($country !== null && $viewer->countryCode?->name !== $country) {
+            return 'other_country';
+        }
+
+        return $karmaFiltered ? 'karma_filtered' : null;
+    }
+
+    /**
+     * The rows the window shows, in list order, each with the rows left out right above it (a gap row there)
+     *
+     * @return list<array{row: ProgressBoardRow, hidden_before: int}>
+     */
+    private function entries(ProgressBoard $board, LeaderboardWindow $window): array
+    {
+        $entries = [];
+
+        foreach ($window->blocks() as $block) {
+            $hiddenBefore = $block['hiddenBefore'];
+
+            for ($position = $block['first']; $position <= $block['last']; $position++) {
+                $row = $board->rows[$position] ?? null;
+
+                if ($row === null) {
+                    continue;
                 }
-            }
 
-            return [$rows, $selfRow];
-        }
-
-        return [match ($tab) {
-            ProgressLeaderboardTab::Xp => $this->getXpLeaderboard->xp($country, $favoriteIds, self::LIMIT),
-            ProgressLeaderboardTab::AchievementPoints => $this->getXpLeaderboard->achievementPoints($country, $favoriteIds, self::LIMIT),
-        }, null];
-    }
-
-    /**
-     * @param list<XpLeaderboardRow> $rows
-     */
-    private function isOnRows(array $rows, string $playerId): bool
-    {
-        foreach ($rows as $row) {
-            if ($row->playerId === $playerId) {
-                return true;
+                $entries[] = ['row' => $row, 'hidden_before' => $hiddenBefore];
+                $hiddenBefore = 0;
             }
         }
 
-        return false;
-    }
-
-    /**
-     * @param array{rank: int, value: int, level: int} $selfRank
-     */
-    private function selfRow(PlayerProfile $profile, array $selfRank): XpLeaderboardRow
-    {
-        return new XpLeaderboardRow(
-            rank: $selfRank['rank'],
-            playerId: $profile->playerId,
-            playerName: $profile->playerName,
-            playerCode: $profile->code,
-            countryCode: $profile->countryCode,
-            avatar: $profile->avatar,
-            value: $selfRank['value'],
-            level: $selfRank['level'],
-        );
+        return $entries;
     }
 }

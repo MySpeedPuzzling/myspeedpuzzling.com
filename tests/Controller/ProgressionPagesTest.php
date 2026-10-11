@@ -361,20 +361,23 @@ final class ProgressionPagesTest extends WebTestCase
 
     public function testXpEstimateForAGuestLeavesTheDifficultyOut(): void
     {
-        self::assertStringContainsString('~10 XP', $this->estimateLine(null), 'the base of a 1000-piece puzzle without the difficulty part');
+        $line = $this->estimateLine(null);
+
+        self::assertStringContainsString('A solo solve earns 10 XP', $line, 'the base of a 1000-piece puzzle without the difficulty part');
+        self::assertStringNotContainsString('~', $line, 'a "~" before the number reads as a minus');
     }
 
     public function testXpEstimateForAFreePlayerLeavesTheDifficultyOut(): void
     {
         $line = $this->estimateLine(PlayerFixture::PLAYER_WITH_FAVORITES);
 
-        self::assertStringContainsString('~10 XP', $line);
+        self::assertStringContainsString('A solo solve earns 10 XP', $line);
         self::assertStringNotContainsString('rated', $line);
     }
 
     public function testXpEstimateForAMemberCountsTheDifficultyIn(): void
     {
-        self::assertStringContainsString('~15 XP', $this->estimateLine(PlayerFixture::PLAYER_WITH_STRIPE), 'tier 6 adds 50 %');
+        self::assertStringContainsString('A solo solve earns 15 XP', $this->estimateLine(PlayerFixture::PLAYER_WITH_STRIPE), 'tier 6 adds 50 %');
     }
 
     /**

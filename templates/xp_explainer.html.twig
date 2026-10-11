@@ -21,28 +21,97 @@
             </div>
         </div>
 
+        {% from '_difficulty_icon.html.twig' import icon as difficulty_icon %}
+        {% set tiers = enum('SpeedPuzzling\\Web\\Value\\DifficultyTier') %}
+        {# The difficulty bonus per tier in % of the base, and every number of the worked example: the page's only copy
+           of the formula's numbers, pinned to XpCalculator by XpExplainerControllerTest #}
+        {% set difficulty_bonus = {1: 0, 2: 0, 3: 15, 4: 30, 5: 40, 6: 50} %}
+        {% set example_tier = tiers.Challenging %}
+        {% set example_tier_name = example_tier.translationKey()|trans %}
+        {% set example = [
+            {line: 'base', xp: 10, params: {'%pieces%': 1000|plain_number}},
+            {line: 'difficulty', xp: 3, params: {'%tier%': example_tier_name, '%rate%': 30, '%of%': 10}},
+            {line: 'unboxed', xp: 3, params: {'%rate%': 20, '%of%': 13, '%exact%': 2.6|plain_number(1)}},
+            {line: 'speed', xp: 1, params: {'%rate%': 5, '%of%': 15.6|plain_number(1), '%exact%': 0.78|plain_number(2)}},
+            {line: 'weekly', xp: 3, params: {'%rate%': 20, '%of%': 15.6|plain_number(1), '%exact%': 3.12|plain_number(2)}},
+        ] %}
+
         <div class="card border-0 shadow-sm mb-4">
             <div class="card-body">
                 <h2 class="h5 mb-3"><i class="bi bi-receipt me-2 text-primary"></i>{{ 'xp.explainer.how.heading'|trans }}</h2>
                 <p>{{ 'xp.explainer.how.intro'|trans }}</p>
+
+                <h3 class="h6 mt-4 mb-2">{{ 'xp.explainer.how.puzzle_heading'|trans }}</h3>
                 <ul class="list-unstyled mb-0">
                     <li class="mb-2">{{ 'xp.explainer.how.base'|trans|raw }}</li>
-                    <li class="mb-2">{{ 'xp.explainer.how.difficulty'|trans|raw }}</li>
-                    <li class="mb-2">{{ 'xp.explainer.how.team'|trans|raw }}</li>
-                    <li class="mb-2">{{ 'xp.explainer.how.unboxed'|trans|raw }}</li>
-                    <li class="mb-2">{{ 'xp.explainer.how.repeat'|trans|raw }}</li>
-                    <li class="mb-2">{{ 'xp.explainer.how.speed'|trans|raw }}</li>
-                    <li class="mb-2">{{ 'xp.explainer.how.weekly'|trans|raw }}</li>
-                    <li class="mb-0">{{ 'xp.explainer.how.daily'|trans|raw }}</li>
+                    <li class="mb-2">
+                        {{ 'xp.explainer.how.difficulty'|trans|raw }}
+                        <table class="table table-sm w-auto xp-explainer-difficulty mt-2 mb-0">
+                            <thead>
+                                <tr>
+                                    <th scope="col">{{ 'xp.explainer.how.difficulty_column'|trans }}</th>
+                                    <th scope="col" class="text-end">{{ 'xp.explainer.how.bonus_column'|trans }}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for tier in tiers.cases() %}
+                                    {% set rate = difficulty_bonus[tier.value] %}
+                                    <tr data-difficulty-tier="{{ tier.value }}" data-bonus-percent="{{ rate }}">
+                                        <td><span class="text-nowrap">{{ difficulty_icon(tier, false, 20) }} {{ tier.translationKey()|trans }}</span></td>
+                                        <td class="text-end text-nowrap tabular-nums">{{ rate > 0 ? 'xp.explainer.how.difficulty_rate'|trans({'%rate%': rate}) : 'xp.explainer.how.difficulty_none'|trans }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </li>
+                    <li class="mb-0">{{ 'xp.explainer.how.unboxed'|trans|raw }}</li>
                 </ul>
+
+                <h3 class="h6 mt-4 mb-1">{{ 'xp.explainer.how.moment_heading'|trans }}</h3>
+                <p class="fs-sm text-body-secondary mb-2">{{ 'xp.explainer.how.moment_intro'|trans }}</p>
+                <ul class="list-unstyled mb-0">
+                    <li class="mb-2">{{ 'xp.explainer.how.speed'|trans|raw }}</li>
+                    <li class="mb-0">{{ 'xp.explainer.how.weekly'|trans|raw }}</li>
+                </ul>
+
+                <h3 class="h6 mt-4 mb-2">{{ 'xp.explainer.how.less_heading'|trans }}</h3>
+                <ul class="list-unstyled mb-0">
+                    <li class="mb-2">{{ 'xp.explainer.how.team'|trans|raw }}</li>
+                    <li class="mb-0">{{ 'xp.explainer.how.repeat'|trans|raw }}</li>
+                </ul>
+
+                <p class="fs-sm text-body-secondary mt-3 mb-0">{{ 'xp.explainer.how.bonus_minimum'|trans }}</p>
             </div>
         </div>
 
         <div class="card border-0 shadow-sm mb-4">
             <div class="card-body">
                 <h2 class="h5 mb-3"><i class="bi bi-calculator me-2 text-primary"></i>{{ 'xp.explainer.example.heading'|trans }}</h2>
-                <p>{{ 'xp.explainer.example.body'|trans }}</p>
-                <p class="bg-secondary rounded px-3 py-2 mb-0">{{ 'xp.explainer.example.math'|trans|raw }}</p>
+                <p>{{ 'xp.explainer.example.body'|trans({
+                    '%pieces%': 1000|plain_number,
+                    '%tier%': '<span class="text-nowrap">' ~ difficulty_icon(example_tier, false, 20) ~ ' ' ~ example_tier_name|e ~ '</span>',
+                })|raw }}</p>
+                <table class="table xp-explainer-example mb-2">
+                    <tbody>
+                        {% for row in example %}
+                            <tr data-xp-example-line="{{ row.line }}" data-xp="{{ row.xp }}">
+                                <td>
+                                    <span class="fw-semibold">{{ ('xp.explainer.example.line.' ~ row.line)|trans }}</span>
+                                    <span class="d-block fs-sm text-body-secondary">{{ ('xp.explainer.example.calc.' ~ row.line)|trans(row.params) }}</span>
+                                </td>
+                                <td class="text-end text-nowrap tabular-nums align-middle">{{ (loop.first ? 'xp.explainer.example.amount_base' : 'xp.explainer.example.amount')|trans({'%xp%': row.xp}) }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        {% set example_total = example|reduce((sum, row) => sum + row.xp, 0) %}
+                        <tr>
+                            <th scope="row">{{ 'xp.explainer.example.total'|trans }}</th>
+                            <th class="text-end text-nowrap tabular-nums" data-xp-example-total="{{ example_total }}">{{ 'xp.explainer.example.amount_base'|trans({'%xp%': example_total}) }}</th>
+                        </tr>
+                    </tfoot>
+                </table>
+                <p class="fs-sm text-body-secondary mb-0">{{ 'xp.explainer.example.rounding'|trans({'%base%': 10, '%difficulty%': 3, '%unboxed%': 2.6|plain_number(1), '%sum%': 15.6|plain_number(1)}) }}</p>
             </div>
         </div>
 
@@ -63,7 +132,7 @@
         <div class="card border-0 shadow-sm mb-4">
             <div class="card-body">
                 <h2 class="h5 mb-3"><i class="bi bi-graph-up me-2 text-primary"></i>{{ 'xp.explainer.levels.heading'|trans }}</h2>
-                <p>{{ 'xp.explainer.levels.summit'|trans }}</p>
+                <p>{{ 'xp.explainer.levels.summit'|trans({'%xp%': (levels|last)|plain_number}) }}</p>
                 <details>
                     <summary class="fw-semibold py-2">{{ 'xp.explainer.levels.show_all'|trans }}</summary>
                     <div class="row row-cols-2 row-cols-sm-3 row-cols-md-5 g-3 mb-3">

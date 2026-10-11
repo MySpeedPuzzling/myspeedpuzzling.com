@@ -14,13 +14,14 @@ use Symfony\UX\TwigComponent\Attribute\AsTwigComponent;
 use Symfony\UX\TwigComponent\Attribute\PostMount;
 
 /**
- * Puzzle-detail XP estimate: one quiet line, "Solving this earns ~N XP, plus bonuses". Uses the real calculator so the
- * estimate never drifts from actual awards.
+ * Puzzle-detail XP estimate: one quiet line, "A solo solve earns N XP, plus bonuses". Uses the real calculator so the
+ * estimate never drifts from actual awards. No "~" before the number - it read as a minus (Jan, 2026-10-11); "solo"
+ * makes the number exact instead (a pair/team member earns 75 % of it, docs/features/xp-levels/README.md §Formula).
  *
  * N is the base (with the repeat discount when the viewer solved the puzzle before). The difficulty bonus is part of
  * it for members only: the difficulty tier is a member feature, and a number that includes it would reveal the tier to
- * everybody else. No bonus is promised as a number - which of them a solve gets (speed, weekly boost, warm-up,
- * unboxed) depends on that solve.
+ * everybody else. No bonus is promised as a number - which of them a solve gets (speed, weekly boost, unboxed)
+ * depends on that solve.
  */
 #[AsTwigComponent]
 final class XpPuzzleEstimate

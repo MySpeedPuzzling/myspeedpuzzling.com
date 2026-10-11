@@ -34,7 +34,7 @@ final class ProfileProgressionTest extends WebTestCase
 
         $ring = $crawler->filter('.player-head-avatar a.xp-avatar-ring.xp-avatar-ring-header.xp-ring-milestone-10');
         self::assertCount(1, $ring);
-        self::assertSame('/en/how-xp-works', $ring->attr('href'));
+        self::assertStringStartsWith('/en/how-xp-works?return=', (string) $ring->attr('href'));
         self::assertStringStartsWith('Level 12, ', (string) $ring->attr('aria-label'));
         self::assertMatchesRegularExpression('/^--xp-progress: 0\.\d+$/', (string) $ring->attr('style'));
         self::assertSame('Lv 12', trim($ring->filter('.xp-level-tab')->text()));
@@ -57,7 +57,7 @@ final class ProfileProgressionTest extends WebTestCase
         $crawler = $this->page($browser, PlayerFixture::PLAYER_ADMIN, PlayerFixture::PLAYER_ADMIN);
 
         $ring = $crawler->filter('.player-head-avatar a.xp-avatar-ring');
-        self::assertSame('/en/my/xp-history', $ring->attr('href'));
+        self::assertStringStartsWith('/en/my/xp-history?return=', (string) $ring->attr('href'));
         self::assertStringContainsString('xp-ring-milestone-50', (string) $ring->attr('class'));
         self::assertSame('--xp-progress: 1', $ring->attr('style'));
         self::assertCount(1, $ring->filter('.xp-level-tab.xp-level-tab-max'));
@@ -103,7 +103,7 @@ final class ProfileProgressionTest extends WebTestCase
         $chip = $crawler->filter('.player-head-chips a.player-chip-competition');
         self::assertCount(1, $chip);
         self::assertSame('#2 MSP Rating', trim($chip->text()));
-        self::assertSame('/en/msp-rating', $chip->attr('href'));
+        self::assertStringStartsWith('/en/msp-rating?return=', (string) $chip->attr('href'));
         // A free visitor sees one lock at the top of the profile: the header's skill-tier chip - the rating card below
         // carries no "Player Insights" lock any more
         self::assertCount(1, $crawler->filter('.player-header [data-bs-target="#membersExclusiveModal"]'));

@@ -4,6 +4,11 @@
 
 {% block content %}
     <div class="col-lg-8 mx-auto">
+        {{ include('_page_crumbs.html.twig', {
+            levels: [{name: 'progression_hub.title'|trans, url: path('progression_hub')}],
+            current: 'karma.explainer.title'|trans,
+            json_ld: true,
+        }) }}
         <h1 class="mb-2">{{ 'karma.explainer.title'|trans }}</h1>
         <p class="lead mb-4">{{ 'karma.explainer.intro'|trans }}</p>
 

@@ -3,6 +3,8 @@
 {% block title %}{{ 'badges.reveals.meta_title'|trans }}{% endblock %}
 
 {% block content %}
+    {# Back to ?return= or the own profile (design-spec §3) #}
+    {{ include('_page_crumbs.html.twig', {levels: [], back: {name: logged_user.profile.playerName ?? ('#' ~ logged_user.profile.code|upper), url: path('player_profile', {playerId: logged_user.profile.playerId})}}) }}
     <h1 class="h2">{{ 'badges.reveals.title'|trans }}</h1>
 
     {% if badges|length > 0 %}

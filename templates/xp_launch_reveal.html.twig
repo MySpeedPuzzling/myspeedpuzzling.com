@@ -23,6 +23,8 @@
         {% endif %}
     >
         <section class="xpl-intro" {% if has_deck %}data-xp-launch-reveal-target="intro"{% endif %}>
+            {# Back to ?return= or the own profile (design-spec §3) #}
+            {{ include('_page_crumbs.html.twig', {levels: [], back: {name: logged_user.profile.playerName ?? ('#' ~ logged_user.profile.code|upper), url: path('player_profile', {playerId: logged_user.profile.playerId})}}) }}
             <img
                 src="{{ asset('img/xp/xp-hero-1200.webp') }}"
                 alt=""

@@ -4,15 +4,16 @@
 {% block meta_description %}{{ 'puzzle_intelligence.methodology.meta.description'|trans }}{% endblock %}
 
 {% block content %}
-    {{ include('_return_back_button.html.twig') }}
+    {# Under "How progress works" (design-spec §3) - which, like the subtitle's link, it points at once XP is open #}
+    {{ include('_page_crumbs.html.twig', {
+        levels: xp_system_visible() ? [{name: 'progression_hub.title'|trans, url: path('progression_hub')}] : [],
+        current: 'puzzle_intelligence.methodology.title'|trans,
+        json_ld: true,
+    }) }}
 
     <h1 class="h2 mb-1">{{ 'puzzle_intelligence.methodology.title'|trans }}</h1>
-    <p class="text-muted mb-4">
-        {{ 'puzzle_intelligence.methodology.subtitle'|trans }}
-        {% if xp_system_visible() %}
-            <a href="{{ path('progression_hub') }}" class="text-nowrap">{{ 'progression_hub.title'|trans }}</a>
-        {% endif %}
-    </p>
+    {# The hub link lives in the trail above #}
+    <p class="text-muted mb-4">{{ 'puzzle_intelligence.methodology.subtitle'|trans }}</p>
 
     {# Quick overview cards #}
     <div class="row g-3 mb-4">

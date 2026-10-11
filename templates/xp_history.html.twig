@@ -7,7 +7,10 @@
     every line of its XP, the total - newest change first, so a bonus settled today shows up on top with its solve.
 #}
 {% block content %}
-    <twig:PlayerHeader player="{{ player }}" :compact="true" />
+    {# The compact player strip is the trail; the back button goes to ?return= or the own profile (design-spec §3) #}
+    {% embed '_page_crumbs.html.twig' with {levels: [], back: {name: player.playerName ?? ('#' ~ player.code|upper), url: path('player_profile', {playerId: player.playerId})}} %}
+        {% block trail %}<twig:PlayerHeader player="{{ player }}" :compact="true" />{% endblock %}
+    {% endembed %}
 
     <header class="mb-3">
         <h1 class="h3 mb-1">{{ 'xp.history.title'|trans }}</h1>

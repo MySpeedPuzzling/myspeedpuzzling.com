@@ -47,11 +47,15 @@
             <p class="mb-0">{{ 'progression_hub.which.text'|trans }}</p>
         </div>
 
+        {# These two lead to pages whose back button would not come here on its own (the boards have no trail, fair play
+           sits under How XP works), so they carry ?return= (design-spec §3). The cards above do not: each card's page
+           already goes back to this hub, and its link stays a clean, followed URL. #}
+        {% set hub_return = {return: path('progression_hub'), return_title: 'progression_hub.title'|trans} %}
         <p class="fs-sm text-body-secondary mt-4 mb-0">
-            <a href="{{ path('ladder') }}">{{ 'progression_hub.leaderboards_link'|trans }}</a>
+            <a href="{{ path('ladder', hub_return) }}" rel="nofollow">{{ 'progression_hub.leaderboards_link'|trans }}</a>
             {% if xp_open %}
                 <span class="mx-1" aria-hidden="true">·</span>
-                <a href="{{ path('xp_fair_play') }}">{{ 'progression_hub.fair_play_link'|trans }}</a>
+                <a href="{{ path('xp_fair_play', hub_return) }}" rel="nofollow">{{ 'progression_hub.fair_play_link'|trans }}</a>
             {% endif %}
         </p>
     </div>

@@ -4,12 +4,11 @@
 
 {% block content %}
     <div class="col-lg-8 mx-auto">
-        <nav aria-label="breadcrumb">
-            <ol class="breadcrumb fs-sm mb-2">
-                <li class="breadcrumb-item"><a href="{{ path('progression_hub') }}">{{ 'progression_hub.title'|trans }}</a></li>
-                <li class="breadcrumb-item active" aria-current="page">{{ 'progression_hub.level.title'|trans }}</li>
-            </ol>
-        </nav>
+        {{ include('_page_crumbs.html.twig', {
+            levels: [{name: 'progression_hub.title'|trans, url: path('progression_hub')}],
+            current: 'xp.explainer.title'|trans,
+            json_ld: true,
+        }) }}
         <h1 class="mb-3">{{ 'xp.explainer.title'|trans }}</h1>
         <p class="lead mb-4">{{ 'xp.explainer.intro'|trans }}</p>
 

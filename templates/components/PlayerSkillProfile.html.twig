@@ -14,7 +14,7 @@
                             {{ skill_badge(t_name, 'fs-6') }}
                             <div class="d-flex align-items-center gap-2">
                                 <strong>{{ 'pieces_count'|trans({ '%count%': skill.piecesCount })|raw }}</strong>
-                                <a href="{{ path('methodology', {return: app.request.uri, return_title: 'menu.profile'|trans}) }}#skill-tier" class="progress-help-link" aria-label="{{ 'player_progress.how_it_works'|trans }}" title="{{ 'player_progress.how_it_works'|trans }}"><i class="bi bi-question-circle" aria-hidden="true"></i></a>
+                                <a href="{{ path('methodology', {return: path('player_profile', {playerId: this.playerId}), return_title: 'menu.profile'|trans}) }}#skill-tier" class="progress-help-link" rel="nofollow" aria-label="{{ 'player_progress.how_it_works'|trans }}" title="{{ 'player_progress.how_it_works'|trans }}"><i class="bi bi-question-circle" aria-hidden="true"></i></a>
                             </div>
                         </div>
 
@@ -73,7 +73,7 @@
                     <div class="card-body py-2 px-3">
                         <div class="d-flex align-items-center justify-content-between mb-2">
                             <span class="fw-semibold">{{ 'puzzle_intelligence.skill.progress_title'|trans }}</span>
-                            <a href="{{ path('methodology', {return: app.request.uri, return_title: 'menu.profile'|trans}) }}#skill-tier" class="progress-help-link" aria-label="{{ 'player_progress.how_it_works'|trans }}" title="{{ 'player_progress.how_it_works'|trans }}"><i class="bi bi-question-circle" aria-hidden="true"></i></a>
+                            <a href="{{ path('methodology', {return: path('player_profile', {playerId: this.playerId}), return_title: 'menu.profile'|trans}) }}#skill-tier" class="progress-help-link" rel="nofollow" aria-label="{{ 'player_progress.how_it_works'|trans }}" title="{{ 'player_progress.how_it_works'|trans }}"><i class="bi bi-question-circle" aria-hidden="true"></i></a>
                         </div>
                         {% for pc, data in progress %}
                             <div class="{{ not loop.last ? 'mb-2 pb-2 border-bottom' : '' }}">

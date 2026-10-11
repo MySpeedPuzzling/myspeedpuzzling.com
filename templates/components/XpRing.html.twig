@@ -9,7 +9,9 @@
     {% set ring_class = 'xp-avatar-ring xp-avatar-ring-' ~ variant ~ ' ' ~ this.milestoneClass %}
     {% if variant == 'header' %}
         {% set ring_label = (this.isOwn ? 'player_progress.ring_label_own' : 'player_progress.ring_label')|trans({'%level%': player.level, '%xp%': player.xpTotal|format_number}) %}
-        <a class="{{ ring_class }}" style="--xp-progress: {{ this.progress }}" href="{{ this.isOwn ? path('xp_history') : path('xp_explainer') }}" aria-label="{{ ring_label }}" title="{{ ring_label }}">
+        {# The target's back button comes back to this player's page (design-spec §3) #}
+        {% set ring_return = {return: app.request.requestUri, return_title: player.playerName ?? ('#' ~ player.code|upper)} %}
+        <a class="{{ ring_class }}" style="--xp-progress: {{ this.progress }}" href="{{ this.isOwn ? path('xp_history', ring_return) : path('xp_explainer', ring_return) }}" rel="nofollow" aria-label="{{ ring_label }}" title="{{ ring_label }}">
             {{ inner }}
             <span class="xp-level-tab{{ player.maxLevel ? ' xp-level-tab-max' }}" aria-hidden="true">{{ level_text }}</span>
         </a>

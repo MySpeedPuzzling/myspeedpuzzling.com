@@ -70,6 +70,8 @@
                 {# One row of at most three chips, one per family: skill tier (rank colours), MSP Rating place
                    (competition, coral), karma (community, teal). The XP level is on the avatar ring. #}
                 {% set tier_pieces = constant('SpeedPuzzling\\Web\\Component\\PlayerHeader::TIER_PIECES_COUNT') %}
+                {# The chips lead into the progression pages, whose back button comes back here (design-spec §3) #}
+                {% set chip_return = {return: return_path, return_title: display_name} %}
                 {# Karma launches with XP: the one launch switch (docs/features/karma.md) #}
                 {% set show_karma = player.karma > 0 and not player.karmaOptedOut and not this.isHidden and xp_system_visible() %}
                 {% if this.tierChip is not null or this.mspRatingRank is not null or show_karma %}
@@ -77,14 +79,14 @@
                         {% if this.tierChip == 'tier' %}
                             {% set tier = player.skillTier.name|lower %}
                             <li>
-                                <a class="player-chip player-chip-tier" style="--chip-color: var(--rank-{{ tier }})" href="{{ path('methodology') }}#skill-tier" title="{{ 'player_header.tier_title'|trans({'%pieces%': tier_pieces}) }}">
+                                <a class="player-chip player-chip-tier" style="--chip-color: var(--rank-{{ tier }})" href="{{ path('methodology', chip_return) }}#skill-tier" rel="nofollow" title="{{ 'player_header.tier_title'|trans({'%pieces%': tier_pieces}) }}">
                                     <svg class="rank-icon" width="16" height="16" aria-hidden="true"><use href="/rank-icons-sprite.svg#rank-{{ tier }}"/></svg>
                                     {{ ('puzzle_intelligence.skill.tiers.' ~ tier)|trans }}
                                 </a>
                             </li>
                         {% elseif this.tierChip == 'no_tier_yet' %}
                             <li>
-                                <a class="player-chip" href="{{ path('methodology') }}#skill-tier" title="{{ 'player_header.no_tier_yet_title'|trans({'%pieces%': tier_pieces}) }}">
+                                <a class="player-chip" href="{{ path('methodology', chip_return) }}#skill-tier" rel="nofollow" title="{{ 'player_header.no_tier_yet_title'|trans({'%pieces%': tier_pieces}) }}">
                                     <svg class="rank-icon" width="16" height="16" style="color: var(--rank-unknown)" aria-hidden="true"><use href="/rank-icons-sprite.svg#rank-unknown"/></svg>
                                     {{ 'player_header.no_tier_yet'|trans }}
                                 </a>
@@ -101,14 +103,14 @@
 
                         {% if this.mspRatingRank is not null %}
                             <li>
-                                <a class="player-chip player-chip-competition" href="{{ path('msp_rating_ladder') }}" title="{{ 'player_progress.msp_chip_title'|trans({'%rank%': this.mspRatingRank, '%pieces%': tier_pieces}) }}">
+                                <a class="player-chip player-chip-competition" href="{{ path('msp_rating_ladder', chip_return) }}" rel="nofollow" title="{{ 'player_progress.msp_chip_title'|trans({'%rank%': this.mspRatingRank, '%pieces%': tier_pieces}) }}">
                                     <i class="bi bi-trophy" aria-hidden="true"></i>
                                     {{ 'player_progress.msp_chip'|trans({'%rank%': this.mspRatingRank}) }}
                                 </a>
                             </li>
                         {% endif %}
                         {% if show_karma %}
-                            <li>{{ include('karma/_karma_chip.html.twig', {karma: player.karma, own: this.isOwnProfile}) }}</li>
+                            <li>{{ include('karma/_karma_chip.html.twig', {karma: player.karma, own: this.isOwnProfile, return_query: chip_return}) }}</li>
                         {% endif %}
                     </ul>
                 {% endif %}

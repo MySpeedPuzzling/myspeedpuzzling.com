@@ -110,7 +110,7 @@ final class BadgesOverviewController extends AbstractController
             'logged_in' => $profile !== null,
             'is_member' => $isMember,
             'has_supporter' => $hasSupporter,
-            'show_supporter' => $hasSupporter && in_array($filter, [AchievementCatalogueFilter::All, AchievementCatalogueFilter::Earned], true),
+            'show_supporter' => $hasSupporter,
             'ap_total' => $memberId !== null ? $this->getAchievementPoints->forPlayer($memberId) : null,
         ]);
     }

@@ -1,0 +1,65 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'progression_hub.meta_title'|trans }}{% endblock %}
+{% block meta_description %}{{ 'progression_hub.meta_description'|trans }}{% endblock %}
+
+{#
+    "How progress works" (docs/features/xp-levels/launch-2026-10.md, hub draft A): grouped by family, one card per
+    concept, each a link to its deep page. Every "?" next to a progression chip or card leads here.
+#}
+{# href null = the deep page is not open yet (xp_system_visible()): the card explains, but leads nowhere #}
+{% macro hub_row(href, icon, family, title, text) %}
+    <{{ href ? 'a' : 'div' }}{% if href %} href="{{ href }}"{% endif %} class="progression-hub-row">
+        <span class="progression-hub-icon progression-hub-icon-{{ family }}" aria-hidden="true"><i class="bi {{ icon }}"></i></span>
+        <span class="progression-hub-text">
+            <span class="progression-hub-title">{{ title }}</span>
+            <span class="progression-hub-desc">{{ text }}</span>
+        </span>
+        {% if href %}<i class="bi bi-chevron-right progression-hub-chevron" aria-hidden="true"></i>{% endif %}
+    </{{ href ? 'a' : 'div' }}>
+{% endmacro %}
+
+{% block content %}
+    {% set xp_open = xp_system_visible() %}
+    <div class="col-lg-8 mx-auto progression-hub">
+        {# A top-level page: no trail. The back button appears when the link that brought the reader here says where
+           they came from (?return= - the user menu, the getting started tile, the explainers' links) #}
+        {{ include('_page_crumbs.html.twig', {levels: []}) }}
+        <h1 class="h2 mb-1">{{ 'progression_hub.title'|trans }}</h1>
+        <p class="text-body-secondary mb-4">{{ 'progression_hub.intro'|trans }}</p>
+
+        <h2 class="progression-hub-group">{{ 'progression_hub.group.just_you'|trans }}</h2>
+        <div class="progression-hub-card">
+            {{ _self.hub_row(xp_open ? path('xp_explainer') : null, 'bi-arrow-up-circle', 'level', 'progression_hub.level.title'|trans, 'progression_hub.level.text'|trans) }}
+            {{ _self.hub_row(xp_open ? path('badges_overview') ~ '#how-achievements-work' : null, 'bi-award', 'achievements', 'progression_hub.achievements.title'|trans, 'progression_hub.achievements.text'|trans({'%count%': achievements_count})) }}
+        </div>
+
+        <h2 class="progression-hub-group">{{ 'progression_hub.group.against_the_clock'|trans }}</h2>
+        <div class="progression-hub-card">
+            {{ _self.hub_row(path('methodology') ~ '#msp-rating', 'bi-stopwatch', 'competition', 'progression_hub.rating.title'|trans, 'progression_hub.rating.text'|trans) }}
+            {{ _self.hub_row(path('methodology') ~ '#skill-tier', 'bi-gem', 'competition', 'progression_hub.skill_tier.title'|trans, 'progression_hub.skill_tier.text'|trans) }}
+        </div>
+
+        <h2 class="progression-hub-group">{{ 'progression_hub.group.for_everyone'|trans }}</h2>
+        <div class="progression-hub-card">
+            {{ _self.hub_row(xp_open ? path('karma_explainer') : null, 'bi-heart', 'karma', 'progression_hub.karma.title'|trans, 'progression_hub.karma.text'|trans) }}
+        </div>
+
+        <div class="progression-hub-which">
+            <h2 class="h6 mb-1">{{ 'progression_hub.which.title'|trans }}</h2>
+            <p class="mb-0">{{ 'progression_hub.which.text'|trans }}</p>
+        </div>
+
+        {# These two lead to pages whose back button would not come here on its own (the boards have no trail, fair play
+           sits under How XP works), so they carry ?return= (design-spec §3). The cards above do not: each card's page
+           already goes back to this hub, and its link stays a clean, followed URL. #}
+        {% set hub_return = {return: path('progression_hub'), return_title: 'progression_hub.title'|trans} %}
+        <p class="fs-sm text-body-secondary mt-4 mb-0">
+            <a href="{{ path('ladder', hub_return) }}" rel="nofollow">{{ 'progression_hub.leaderboards_link'|trans }}</a>
+            {% if xp_open %}
+                <span class="mx-1" aria-hidden="true">·</span>
+                <a href="{{ path('xp_fair_play', hub_return) }}" rel="nofollow">{{ 'progression_hub.fair_play_link'|trans }}</a>
+            {% endif %}
+        </p>
+    </div>
+{% endblock %}

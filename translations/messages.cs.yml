@@ -3,7 +3,7 @@
   "puzzle_add": "Přidat"
   "stopwatch": "Stopky"
   "puzzles_overview": "Puzzle"
-  "ladder": "Žebříček"
+  "ladder": "Žebříčky"
   "players": "Hráči"
   "faq": "Časté dotazy"
   "sign_in": "Přihlásit se"
@@ -111,6 +111,14 @@
 "loading": "Načítám"
 "any": "Libovolný"
 "all_pieces": "Vše"
+
+pieces_filter:
+    label: "Dílky"
+    from: "Od"
+    to: "Do"
+    from_label: "Dílků od"
+    to_label: "Dílků do"
+
 "solo_solved": "Skládáno SOLO:"
 "first_attempt": "1. pokus"
 "unboxed": "Naslepo"
@@ -124,6 +132,19 @@
 "secret_puzzler_name": "Utajený Puzzler"
 "right_now": "Právě teď"
 "live_event_strip": "Živě: %event% – přidejte čas a sledujte výsledky"
+
+live_refresh:
+    pause: "Pozastavit automatické aktualizace"
+    countdown: "Automatická aktualizace za 1 sekundu|Automatická aktualizace za %count% sekundy|Automatická aktualizace za %count% sekund"
+    updating: "Aktualizuje se…"
+    status_paused: "Automatická aktualizace pozastavena"
+    status_idle: "Automatická aktualizace pozastavena během tvé nepřítomnosti"
+    retrying: "Aktualizace se nepovedla, nový pokus za 1 sekundu|Aktualizace se nepovedla, nový pokus za %count% sekundy|Aktualizace se nepovedla, nový pokus za %count% sekund"
+    running: "Aktualizuje se každou minutu. Klikni pro pozastavení."
+    paused: "Aktualizace jsou pozastavené. Klikni pro pokračování."
+    idle: "Během tvé nepřítomnosti se aktualizace pozastavily. Klikni pro pokračování."
+    failed: "Aktualizace se nepovedla, za chvilku to zkusíme znovu. Klikni a zkus to hned."
+
 "round_results":
   "meta":
     "title": "%event% – %round% – výsledky"
@@ -220,10 +241,10 @@
       "title": "Prozkoumejte databázi puzzlí"
       "text": "Prozkoumejte tisíce puzzlí se skutečnými časy skládání zaznamenanými komunitou. Porovnejte mediánové a nejrychlejší časy puzzlí značek <a href=\"%ravensburger_link%\">Ravensburger</a>, <a href=\"%schmidt_link%\">Schmidt</a> nebo <a href=\"%trefl_link%\">Trefl</a>, zjistěte, jak je puzzle ve skutečnosti obtížné, ještě než ho koupíte, a vyberte si další výzvu v kompletní <a href=\"%puzzles_link%\">databázi puzzlí</a>."
 "ladder":
-  "title": "Speed puzzling žebříček"
+  "title": "Žebříčky"
   "country": "Země"
   "meta":
-    "title": "Speed puzzling žebříček – Nejrychlejší časy"
+    "title": "Speed puzzling žebříčky – Nejrychlejší časy"
     "description": "Světový speed puzzling žebříček: nejrychlejší časy skládání puzzle podle počtu dílků, sólo, ve dvojicích i týmech. Kde se umístíš ty?"
     "records":
       "solo":
@@ -250,8 +271,9 @@
   "most_active_puzzlers": "Nejzapálenější puzzleři"
   "puzzle_solved_count": "Složených puzzlí"
   "link_to_hub": "Hledáte nejskládanější puzzle nebo nejaktivnější hráče? Přesunuli jsme je&nbsp;<a class=\"text-decoration-underline\" href=\"%link%\">do nového Hubu</a>!"
-  "msp_elo_banner": "Právě jsme spustili <a class=\"fw-bold text-decoration-underline\" href=\"%link%\">MSP Rating žebříček</a>&nbsp;<span class=\"badge bg-light text-dark\">BETA</span> — nový systém hodnocení založený na dovednostech. Je čerstvě z pece, takže očekávejte úpravy, jak ho budeme ladit!"
-  "msp_elo_cta": "MSP Rating žebříček"
+  "board":
+    "msp_rating": "MSP Rating"
+    "times": "Časy"
 "filters":
   "button": "Filtry"
   "filter_by": "Filtrovat podle"
@@ -300,6 +322,23 @@
   "browse":
     "by_brand": "Procházet podle značky"
     "by_size": "Procházet podle počtu dílků"
+
+puzzle_result:
+    title: "Výsledky na tomto puzzle"
+    meta_title: "Výsledky na puzzle %puzzle%"
+    close: "Zavřít"
+    team_page: "Stránka týmu"
+    best_time: "Nejlepší čas"
+    rank: "Pořadí %rank% z %total%"
+    attempt_number: "%number%. pokus"
+    chart:
+        fastest: "Nejrychlejší"
+        median: "Medián"
+    personal_best: "Osobní rekord"
+    change_to_previous: "Změna oproti předchozímu pokusu"
+    gap_to_best: "Ztráta na osobní rekord"
+    finished_photo: "Fotka složeného puzzle"
+
 "puzzle_times":
   "stats":
     "fastest": "Nejrychlejší"
@@ -328,6 +367,10 @@
     "show_more": "Zobrazit další %count%|Zobrazit další %count%|Zobrazit dalších %count%"
     "show_all": "Zobrazit všechny (%count%)"
     "hidden_rows": "další %count%|další %count%|dalších %count%"
+    "gap_to_fastest": "Ztráta na nejrychlejší čas"
+    "gap_to_faster": "Ztráta na další rychlejší čas"
+    "result_detail": "Detail výsledku: %time%"
+    "attempts": "Složeno %count%×"
   "chart":
     "noun":
       "solo": "Puzzleři"
@@ -513,6 +556,7 @@
     "submit": "Přidat do kolekce"
     "puzzle_collection": "Puzzle kolekce (Výchozí)"
     "choose_collection": "- Vyberte kolekci -"
+  "clear_ean": "Vymazat"
 comparison:
     meta:
         title: "Porovnání"
@@ -736,6 +780,7 @@ comparison:
   "delete_button": "Smazat — nikdy se to nestalo!"
   "delete_modal_message": "Jen pro jistotu..."
   "delete_modal_confirm": "Opravdu smazat?"
+  "delete_xp_warning": "Přijdeš o %xp% XP získaných za toto složení."
   "delete_modal_discard_button": "Ne, ponechat"
   "delete_modal_confirm_button": "Ano, smazat"
 "error":
@@ -1029,6 +1074,7 @@ competition_referees:
   "question_shared_computer": "Přihlásil/a jsem se na sdíleném nebo veřejném počítači – co mám udělat?"
   "answer_shared_computer": "<p class=\"mb-0\">Až skončíte, odhlaste se: otevřete nabídku pod svým profilem a zvolte <strong>Odhlásit se</strong>. Jinak na tom počítači zůstanete přihlášeni 30 dní.</p>"
 "profile":
+  "results_shown": "Zobrazeno %shown% z %total%"
   "add_to_favorites": "Přidat do oblíbených"
   "remove_from_favorites": "Odebrat z oblíbených"
   "no_puzzles_solved": "Žádné poskládané puzzle? Tak to jsi teda pěkná bačkora."
@@ -1245,7 +1291,6 @@ competition_referees:
     "millions": "%count% mil."
     "activity_label": "Puzzle po měsících"
     "activity_bar": "%month%: %count% puzzle|%month%: %count% puzzle|%month%: %count% puzzlí"
-    "rating": "MSP Rating %rating%"
     "tier_locked": "Úroveň dovedností"
     "competes": "Závodí na eventech"
     "swaps": "Vyměňuje puzzle"
@@ -1432,7 +1477,7 @@ competition_referees:
 "player_profile":
   "meta":
     "title": "%name% – Profil speed puzzlera"
-    "description": "Speed puzzling profil hráče %name%: nejrychlejší časy skládání puzzle, žebříčky, odznaky a nedávná složení na MySpeedPuzzling."
+    "description": "Speed puzzling profil hráče %name%: nejrychlejší časy skládání puzzle, žebříčky, úspěchy a nedávná složení na MySpeedPuzzling."
 "flashes":
   "photo_upload_deferred": "Vaše data jsou uložena! Fotku se teď nepodařilo nahrát — nahraje se automaticky, jakmile bude naše úložiště opět dostupné."
   "stopwatch_already_saved": "Tyto stopky byly již uloženy."
@@ -1555,11 +1600,465 @@ competition_referees:
   "guest_link":
     "requested": "%player% říká, že jste „%guest%“ ve výsledcích, které jste skládali spolu. Jste to vy?"
     "accepted": "%player% potvrdil(a), že je „%guest%“. Vaše společné výsledky jsou teď i v jeho/její historii."
-"badges":
-  "title": "Odznaky"
-  "my_title": "Mé odznaky"
-  "badge":
-    "supporter": "Podporovatel"
+
+xp:
+    level_chip: "Lv %level%"
+    total: "%xp% XP"
+    total_tooltip: "Celkem získáno %xp% XP"
+    progress_label: "%xp% XP do úrovně %level%"
+    receipt:
+        total: "Celkem"
+        relax_repeat: "Známé puzzle, čistě pro radost — tentokrát bez XP, a přesně tak to má být."
+        counting: "Počítáme tvoje XP…"
+    line:
+        base: "Složení"
+        base_repeat_second: "Opakované složení (podruhé, ×50 %)"
+        base_repeat_later: "Opakované složení (potřetí a dál, ×25 %)"
+        base_relax: "Relax složení (×50 %)"
+        solve_difficulty_bonus: "Bonus za obtížnost"
+        solve_unboxed_bonus: "Bonus za skládání naslepo"
+        solve_speed_bonus: "Bonus za rychlost"
+        solve_weekly_boost: "Týdenní boost"
+        difficulty_settlement: "Bonus za obtížnost (doúčtováno)"
+        speed_settlement: "Bonus za rychlost (doúčtováno)"
+        solve_compensation: "Smazané složení"
+        difficulty_pending: "Bonus za obtížnost čeká — doúčtuje se, jakmile puzzle získá hodnocení"
+        speed_pending: "Bonus za rychlost čeká — potřebuje časy od 3 puzzlerů"
+    levelup:
+        label: "Nová úroveň!"
+        max_label: "Vrchol!"
+        message: "Tvoje puzzle cesta stoupá výš a výš. Krásná práce!"
+        enter_ap_ladder: "Vstoupit na žebříček AP"
+    estimate:
+        line_first: "Sólo složení vynese %xp% XP,"
+        line_repeat: "Další sólo složení vynese %xp% XP (opakování vynáší %percent% % prvního složení),"
+        bonuses_link: "plus bonusy"
+    leaderboard:
+        favorites_only: "Pouze oblíbení"
+        player: "Puzzler"
+        board:
+            xp:
+                tab: "Úroveň (XP)"
+                title: "Žebříček úrovní"
+                subtitle: "Seřazeno podle celkových XP: kolik toho kdo naskládal, za celou dobu."
+                column: "XP"
+                value: "%value% XP"
+                empty: "Zatím tu nic není — zaznamenej složení a otevři žebříček!"
+            achievement-points:
+                tab: "Body za úspěchy"
+                title: "Žebříček bodů za úspěchy"
+                subtitle: "Členové seřazení podle bodů za úspěchy, za celou dobu."
+                column: "AP"
+                value: "%value% AP"
+                empty: "Zatím tu nic není — zaznamenej složení a otevři žebříček!"
+                login_required: "Přihlas se a uvidíš žebříček bodů za úspěchy."
+            karma:
+                tab: "Karma"
+                title: "Kdo nejvíc pomáhá databázi"
+                subtitle: "1 bod karmy za každý přijatý příspěvek do databáze puzzlí. Zdarma a veřejně pro všechny."
+                column: "Karma"
+                value: "%value%"
+                empty: "Zatím tu nikdo není."
+        level: "Úroveň %level%"
+    history:
+        meta_title: "Moje XP historie"
+        title: "Moje XP historie"
+        subtitle: "Každý bod má své místo — kompletní přehled tvých XP."
+        empty: "Zatím žádné XP — tvoje první složení to změní."
+        pagination: "Stránky XP historie"
+        note: "Vrtá ti hlavou některý řádek?"
+        deleted_solve_title: "Smazané složení"
+        relax: "Relax"
+        type:
+            solo: "Sólo"
+            duo: "Dvojice"
+            team: "Tým"
+        previous_page: "Předchozí stránka"
+        next_page: "Další stránka"
+    reveal:
+        meta_title: "Tvoje puzzle cesta odhalena"
+        title: "Celá tvoje cesta se právě proměnila v XP ✨"
+        intro: "Počítá se každé puzzle, které máš zaznamenané. Nejdřív tvoje úroveň, pak tvoje úspěchy, jeden po druhém."
+        level_label: "Úroveň"
+        xp_note: "získáno za celou tvoji puzzle historii"
+        achievements_member: "{1}A 1 úspěch už je tvůj — najdeš ho na svém profilu!|{2,3,4}A %count% úspěchy už jsou tvoje — najdeš je na svém profilu!|[5,Inf[A %count% úspěchů už je tvých — najdeš je na svém profilu!"
+        share_title: "Na MySpeedPuzzling mám úroveň %level%!"
+        share_button: "Sdílet moji úroveň"
+        continue: "Přejít na můj profil"
+        stage_label: "Odhalit tvou úroveň"
+        stage_done: "Úroveň %level%"
+        waiting: "{1}Tvůj úspěch a tvoje úroveň čekají na svou velkou chvíli.|{2,3,4}%count% úspěchy a tvoje úroveň čekají na svou velkou chvíli.|[5,Inf[%count% úspěchů a tvoje úroveň čekají na svou velkou chvíli."
+        start: "Odhalit je"
+        skip: "Přeskočit na shrnutí"
+        next: "Další"
+        to_summary: "Zobrazit vše"
+        tap_hint: "Pokračuj klepnutím kamkoli"
+        progress: "%current% / %total%"
+        summary_title: "Tvoje úspěchy a úroveň"
+        counter_title: "Tvoje XP"
+        badge_points: "+%points% AP"
+        achievements_title: "A teď tvoje úspěchy"
+        achievements_intro: "Úspěchy jsou milníky tvé puzzle historie: kolik puzzlí, dílků a značek, jak rychle, jak často, s kým. Každý má pět stupňů, od bronzu po diamant."
+        achievements_waiting: "{1}1 úspěch čeká na svůj poslední dílek.|[2,4]%count% úspěchy čekají – od prvního stupně až po ten nejlepší.|[5,Inf[%count% úspěchů čeká – od prvního stupně až po ten nejlepší."
+        to_achievements: "Dál na tvoje úspěchy"
+        max_level: "Nejvyšší úroveň. Každé puzzle ti dál přidává XP."
+        level_title: "Úroveň %level% – a jedeme dál"
+        level_intro: "Každé puzzle, které od teď zapíšeš, ti přidá XP. Po každém čase uvidíš, odkud se každý bod vzal."
+        card:
+            top_tier: "Nad diamantem už nic není – tenhle úspěch je kompletní."
+            highlight:
+                thanks: "Poděkování od nás"
+                top_tier: "Nejvyšší stupeň"
+                rarest: "Tvůj nejvzácnější úspěch"
+                within_reach: "%tier% na dosah"
+    explainer:
+        title: "Jak fungují XP a úrovně"
+        intro: "XP (zkušenostní body) odměňují samotné skládání: každé zaznamenané puzzle ti přinese XP a s nimi roste tvoje úroveň od 1 až do 50. XP měří, kolik skládáš — rychlost přidá jen malý bonus."
+        currencies:
+            never_bought: "XP se nedají koupit — žádné placené boosty, žádné zkratky. Nikdy."
+            unlock_nothing: "Úrovně neodemykají žádné funkce; jsou tvojí vizuální puzzle identitou."
+        how:
+            heading: "Jak se složení promění v XP"
+            intro: "Po každém složení uvidíš, odkud se vzalo každé XP, a tvoje XP historie si pamatuje každý řádek. XP za složení se skládají z těchto částí:"
+            base: "<strong>Základ</strong>: 1 XP za každých 100 dílků, zaokrouhleno — 500 dílků vynese 5 XP, 1000 dílků 10 XP. Nejméně 1 XP, nejvíc 60 XP."
+            difficulty: "<strong>Bonus za obtížnost</strong>: navíc část základu podle toho, jak je puzzle obtížné. Obtížnost vychází z časů, které u puzzle zaznamenala komunita; členové ji vidí u každého puzzle."
+            team: "<strong>Dvojice a týmy</strong>: každý registrovaný člen získá 75 % základu a bonusy, které se z něj počítají, se zmenší s ním. Bonus za rychlost je jen pro sólo složení."
+            unboxed: "<strong>Bonus naslepo</strong>: +20 % ze základu a bonusu za obtížnost dohromady, když puzzle složíš bez pohledu na obrázek na krabici."
+            repeat: "<strong>Opakovaná složení</strong>: tvoje 2. složení stejného puzzle vynese 50 % základu, 3. a každé další 25 % — bonusy počítané ze základu se zmenší s ním. Relax složení (bez času) vynese 50 %, když je to tvoje první složení puzzle, a potom už nic."
+            speed: "<strong>Bonus za rychlost</strong> (sólo, s časem): rychleji než polovina sólo časů u puzzle +5 %, v nejrychlejší čtvrtině +10 %, v nejrychlejší desetině +15 %. Puzzle musí mít časy aspoň od 3 puzzlerů."
+            weekly: "<strong>Týdenní boost</strong>: +20 % za každé z tvých prvních 5 složení v týdnu (od pondělí do neděle)."
+            puzzle_heading: "Co vynese samotné puzzle"
+            difficulty_column: "Obtížnost"
+            bonus_column: "Bonus"
+            difficulty_rate: "+%rate% % základu"
+            difficulty_none: "bez bonusu"
+            moment_heading: "Bonusy za toto složení"
+            moment_intro: "Počítají se ze základu, bonusu za obtížnost a bonusu naslepo dohromady:"
+            less_heading: "Kdy složení vynese méně"
+            bonus_minimum: "Každý bonus, na který máš nárok, vynese aspoň 1 XP, i u malého puzzle."
+        example:
+            heading: "Příklad výpočtu"
+            body: "Tvoje první složení puzzle s %pieces% dílky, hodnoceného jako %tier%: sólo, s časem, bez pohledu na obrázek na krabici, rychleji než polovina sólo časů — a zároveň jedno z tvých prvních 5 složení v týdnu."
+            line:
+                base: "Základ"
+                difficulty: "Bonus za obtížnost"
+                unboxed: "Bonus naslepo"
+                speed: "Bonus za rychlost"
+                weekly: "Týdenní boost"
+            calc:
+                base: "%pieces% dílků ÷ 100"
+                difficulty: "%tier%: %rate% % ze základu %of% XP"
+                unboxed: "%rate% % z %of% XP (základ + obtížnost) = %exact%"
+                speed: "rychleji než polovina: %rate% % z %of% XP = %exact%"
+                weekly: "%rate% % z %of% XP = %exact%"
+            amount_base: "%xp% XP"
+            amount: "+%xp% XP"
+            total: "Celkem"
+            rounding: "Každý řádek se zaokrouhlí na celé XP a bonus nikdy nevynese méně než 1 XP. Bonus za rychlost a týdenní boost se počítají ze tří částí před zaokrouhlením: %base% + %difficulty% + %unboxed% = %sum% XP."
+        unrated:
+            heading: "Puzzle zatím bez obtížnosti"
+            body: "Nové puzzle nemá obtížnost, dokud u něj dost puzzlerů nezaznamená časy. Základní XP dostaneš hned a bonus za obtížnost se ti k XP přičte sám, jakmile puzzle obtížnost dostane. Stejně se přičte bonus za rychlost, jakmile má puzzle časy aspoň od 3 puzzlerů."
+        levels:
+            heading: "Úrovně"
+            header_level: "Úroveň"
+            header_xp: "XP celkem"
+            summit: "Úroveň 50 je vrchol — celkem %xp% XP, zhruba 1 300 zaznamenaných puzzlí. Tvoje XP rostou i dál."
+            show_all: "Zobrazit všech 50 úrovní"
+        lose:
+            heading: "Můžu o XP přijít?"
+            body: "Jen když se složení změní: smazání jeho XP odebere, úprava je spočítá znovu a čas čekající na ověření nevynese nic, dokud není potvrzený. Nic jiného ti XP nikdy nevezme."
+        faq:
+            heading: "Časté dotazy"
+            old_solves_question: "Počítají se stará složení?"
+            old_solves_answer: "Ano. Každé puzzle zaznamenané před spuštěním XP vyneslo základ, bonus za obtížnost a bonus naslepo. Bonus za rychlost a týdenní boost platí jen pro složení zaznamenaná od spuštění — odměňují to, co děláš od teď."
+            opt_out_question: "Nechci nic z toho."
+            opt_out_answer: "Rozumíme — zapni si v nastavení profilu „Skrýt XP a úrovně“ a tvoje úroveň, XP i oslavy zmizí z dohledu."
+            friend_question: "Proč kamarád dostal za stejné puzzle víc XP?"
+            fair_play_question: "Jak je zajištěná férovost?"
+            fair_play_answer: "Čísla drží poctivá několik tichých automatických pojistek — vše o nich najdeš na stránce <a href=\"%fair_play_link%\">Fair play a důvěra</a>."
+            friend_answer_history: "Slevy za opakování, týdenní boost i bonusy za rychlost a naslepo závisí na tvém vlastním složení, takže dvě složení stejného puzzle málokdy vynesou stejně. <a href=\"%history_link%\">Tvoje XP historie</a> ukazuje každý řádek každého složení."
+        family:
+            heading: "Počítá se jen skládání"
+            body: "XP a úrovně měří, kolik skládáš – zdarma pro všechny. Úspěchy, MSP Rating, úroveň dovedností a karma jsou samostatné a žádné z nich nepřidává XP."
+        separate:
+            heading: "Úspěchy a XP jsou oddělené"
+            body: "Úspěchy vynášejí body za úspěchy (AP), nikdy XP. Tvoje úroveň roste jen ze zaznamenaných puzzlí."
+    fair_play:
+        title: "Fair play a důvěra"
+        intro: "MySpeedPuzzling stojí na důvěře. Nikdo tvoje složení před započítáním nekontroluje — věříme ti a čísla komunity zůstávají smysluplná díky několika tichým automatickým pojistkám:"
+        principle_no_buying: "XP měří aktivitu, nikdy útratu: XP, boosty ani násobiče se nedají koupit."
+        principle_repeats: "Opakovaná složení stejného puzzle vynášejí pokaždé méně — dokola zaznamenávat jedno puzzle není zkratka."
+        principle_speed: "Bonus za rychlost platí jen tam, kde existuje spolehlivé komunitní srovnání, a nevěrohodně rychlé časy ho prostě nedostanou. Žádné obviňování, žádné drama — bonus se jen nepřičte."
+        principle_deleting: "Smazání složení odebere i XP, které vyneslo, automaticky a transparentně (na stránce XP historie vidíš každý záznam)."
+        principle_caps: "Extrémně velké nebo neobvyklé záznamy mají strop, takže žádné jediné složení nemůže pokřivit žebříček."
+        closing_thresholds: "Přesné limity záměrně nezveřejňujeme — existují proto, aby udržely férovost, ne aby se daly obcházet. Pokud ti na žebříčku něco nesedí, napiš nám; na každé hlášení se dívá člověk."
+        closing_celebrate: "Skládej poctivě, slav nahlas. 🧩"
+        explainer_link: "Zajímá tě, jak se každý bod získává? Podívej se na <a href=\"%explainer_link%\">Jak fungují XP a úrovně</a>."
+    launch_modal:
+        title: "Tvoje skládání má teď úroveň"
+        text: "Každé puzzle, které máš kdy zapsané, jsme proměnili v XP. Vlož poslední dílek a uvidíš, kde stojíš."
+        button_member: "Odhalit mé úspěchy"
+        button_continue: "Zobrazit vše"
+        later: "Možná později"
+        member_tease: "{1}Máš taky 1 úspěch – staň se členem a zjisti, který to je.|[2,4]Máš taky %count% úspěchy – staň se členem a zjisti, které to jsou.|[5,Inf[Máš taky %count% úspěchů – staň se členem a zjisti, které to jsou."
+        member_tease_zero: "Členové za to, co dokončí, sbírají i úspěchy a body za úspěchy."
+        eyebrow: "Novinka: úrovně a XP"
+        reveal: "Odhalit mou úroveň"
+        next_member: "{1}A to není všechno: čeká na tebe 1 úspěch.|[2,4]A to není všechno: čekají na tebe %count% úspěchy.|[5,Inf[A to není všechno: čeká na tebe %count% úspěchů."
+
+badges:
+    title: "Úspěchy"
+    player_page_meta_title: "%name% – úspěchy"
+    my_title: "Moje úspěchy"
+    browse_all: "Procházet všechny úspěchy"
+    reveal: "Odhal svůj nový úspěch"
+    waiting_teaser: "{1}Čeká na tebe 1 úspěch — staň se členem a odhal ho!|{2,3,4}Čekají na tebe %count% úspěchy — staň se členem a odhal je!|[5,Inf[Čeká na tebe %count% úspěchů — staň se členem a odhal je!"
+    waiting_teaser_zero: "Tvůj první úspěch je blíž, než si myslíš — zaznamenej složení a uvidíš, co se stane."
+    unlock_with_membership: "Odemkni členstvím"
+    ap_total: "%points% AP"
+    ap_total_tooltip: "Tvoje body za úspěchy — každý získaný stupeň se počítá, navždy"
+    view_holders: "Podívej se, kdo ho získal"
+    detail:
+        meta_title: "%name% — držitelé úspěchu"
+        country_filter: "Země"
+        all_countries: "Všechny země"
+        holders_count: "{0}Zatím nikdo|{1}1 puzzler|{2,3,4}%count% puzzleři|[5,Inf[%count% puzzlerů"
+        first_to_earn: "První držitel"
+        only_hidden_holders: "{1}Tento stupeň získal 1 puzzler — jeho profil není veřejně viditelný.|{2,3,4}Tento stupeň získali %count% puzzleři — jejich profily nejsou veřejně viditelné.|[5,Inf[Tento stupeň získalo %count% puzzlerů — jejich profily nejsou veřejně viditelné."
+        nobody_yet: "Tento stupeň zatím nikdo nezískal. Kdo bude první, zapíše se do historie!"
+        listing_note: "V seznamech držitelů jsou členové s veřejným profilem; počty zahrnují všechny puzzlery."
+        apply_filter: "Zobrazit"
+    holders:
+        your_tier: "Tvůj stupeň"
+        show_more: "Zobrazit dalších %count%"
+        show_all: "Zobrazit všech %count%"
+        unlisted: "{1}+1 puzzler, jehož profil není veřejný|{2,3,4}+%count% puzzleři, jejichž profily nejsou veřejné|[5,Inf[+%count% puzzlerů, jejichž profily nejsou veřejné"
+        you_hold: "Máš stupeň %tier% · č. %serial% z %total%"
+        ladder_label: "Držitelé jednotlivých stupňů"
+        at_launch: "už při spuštění"
+        you_hold_at_launch: "Máš stupeň %tier% · už při spuštění"
+    medal:
+        player_achievements: "Úspěchy hráče %name%"
+        turn: "Otočit medaili"
+        show_front: "Ukázat přední stranu"
+        tap_hint: "Klepni na medaili a otoč ji"
+        tap_hint_back: "Klepni na medaili a uvidíš přední stranu"
+        no: "č."
+        of_total: "z %total%"
+        rarity:
+            common: "Běžný"
+            rare: "Vzácný"
+            very_rare: "Velmi vzácný"
+            ultra_rare: "Extrémně vzácný"
+        nobody_yet: "Zatím nikdo"
+        not_earned_yet: "Zatím nezískáno"
+        your_record: "Tvůj rekord: %value%"
+        see_holders: "Podívej se, kdo ho získal (%count%)"
+        all_achievements: "Všechny úspěchy"
+        showing_player: "Stupně, které má %name%"
+        held_at_launch: "Už při spuštění"
+        no_longer_earnable: "Už ho nelze získat"
+        serial_of: "Č. %serial% z %total%"
+        share: "Má ho 1 puzzler (%percent%)|Mají ho %count% puzzleři (%percent%)|Má ho %count% puzzlerů (%percent%)"
+        share_below: "Má ho 1 puzzler (< %percent%)|Mají ho %count% puzzleři (< %percent%)|Má ho %count% puzzlerů (< %percent%)"
+        player_best: "%name% – rekord: %value%"
+        explain_share: "Procento se počítá z každého, kdo zapsal aspoň jedno puzzle."
+        explain_step_back: "Stupeň může klesnout, když se čas odebere nebo čeká na ověření, a s ním se zase vrátí."
+        explain_lapsed: "Tvoje úspěchy zůstávají uložené a s členstvím se vrátí."
+    reveals:
+        meta_title: "Odhal své úspěchy"
+        title: "Tvoje úspěchy jsou tady 🎉"
+        intro: "{1}1 úspěch tu na tebe tiše čekal. Klepni na jeho puzzle a vlož poslední dílek!|{2,3,4}%count% úspěchy tu na tebe tiše čekaly. Klepni na každé puzzle a vlož poslední dílek!|[5,Inf[%count% úspěchů tu na tebe tiše čekalo. Klepni na každé puzzle a vlož poslední dílek!"
+        hint: "Nespěchej — každý poslední dílek si zaslouží svou malou chvilku."
+        all_done: "Vše je odhaleno — tvůj profil je teď hrdě nosí."
+        invite: "{1}1 úspěch čeká na své odhalení!|{2,3,4}%count% úspěchy čekají na své odhalení!|[5,Inf[%count% úspěchů čeká na své odhalení!"
+        invite_button: "{1}Odhalit ho|]1,Inf[Odhalit je"
+        back_to_profile: "Zpět na můj profil"
+        stage_label: "Odhalit: %achievement%"
+        stage_done: "%achievement%: %tier%"
+        stage_running: "Odhaluje se — klepnutím přeskočíš"
+    overview_title: "Úspěchy"
+    overview_subtitle: "Získávej úspěchy za dosažené milníky na své puzzle cestě"
+    progress_label: "%current% / %target%"
+    progress_time_label: "%current_time% → cíl %target_time%"
+    locked: "Zamčeno"
+    earned_on: "Získáno %date%"
+    highest_earned: "Nejvyšší získaný"
+    info:
+        open: "Za co je %achievement%?"
+        earned: "Získáno"
+        next_tier: "Další: %tier%"
+        single_tier_note: "Už ho nelze získat – zůstává jako poděkování těm, kdo ho mají."
+        you_hold: "Máš stupeň %tier%."
+    tier:
+        bronze: "Bronz"
+        silver: "Stříbro"
+        gold: "Zlato"
+        platinum: "Platina"
+        diamond: "Diamant"
+    badge:
+        supporter: "Průkopník"
+        puzzles_solved: "Puzzle průzkumník"
+        pieces_solved: "Požírač dílků"
+        speed_500_pieces: "Démon rychlosti (500 dílků)"
+        streak: "V jednom ohni"
+        team_player: "Týmový duch"
+        zen_puzzler: "Zen skládač"
+        first_try: "Na první pokus"
+        unboxed: "Naslepo"
+        brand_explorer: "Objevitel značek"
+        marathoner: "Maratonec"
+        photographer: "Fotograf"
+        steady_hands: "Pevná ruka"
+        librarian: "Knihovník"
+        speed_1000_pieces: "Démon rychlosti (1000 dílků)"
+        weekend_puzzler: "Víkendový skládač"
+        cataloger: "Katalogizátor"
+    description:
+        supporter: "Pro puzzlery, kteří MySpeedPuzzling věřili od začátku a pomohli mu růst."
+        puzzles_solved: "Skládej různá puzzle a šplhej po tomto žebříčku."
+        pieces_solved: "Čím víc dílků, tím líp — počítá se každý dílek, který kdy zapadl na své místo."
+        speed_500_pieces: "Tvůj stupeň určuje tvoje nejrychlejší sólo složení puzzle s 500 dílky."
+        streak: "Skládej puzzle den za dnem bez vynechání."
+        team_player: "Spoj se s dalšími puzzlery a skládejte společně."
+        zen_puzzler: "Skládej čistě pro radost — počítají se relax složení zaznamenaná bez času."
+        first_try: "Dej to napoprvé — počítá se každé složení zaznamenané jako tvůj první pokus u daného puzzle."
+        unboxed: "Skládej puzzle bez koukání na obrázek na krabici — ta nejtajemnější výzva."
+        brand_explorer: "Ochutnej puzzle od různých výrobců a objev své oblíbené značky."
+        marathoner: "Pokoř ty velké — počítá se každé složení puzzle s 2000 a více dílky."
+        photographer: "Přidej k zaznamenanému složení fotku hotového puzzle — počítá se každý snímek."
+        steady_hands: "Skládej v po sobě jdoucích čtvrtletích roku, v každém alespoň jedno složení — bez mezer."
+        librarian: "Pomáhej udržovat katalog puzzlí přesný — počítají se jen tvoje přijaté návrhy na vylepšení katalogu."
+        speed_1000_pieces: "Tvůj stupeň určuje tvoje nejrychlejší sólo složení puzzle s 1000 dílky."
+        weekend_puzzler: "Soboty a neděle patří puzzlím — počítá se každé víkendové složení."
+        cataloger: "Rozšiřuj katalog puzzlí — počítá se každé tvoje schválené přidané puzzle."
+    requirement:
+        puzzles_solved_1: "Slož 10 různých puzzlí"
+        puzzles_solved_2: "Slož 100 různých puzzlí"
+        puzzles_solved_3: "Slož 500 různých puzzlí"
+        puzzles_solved_4: "Slož 1000 různých puzzlí"
+        puzzles_solved_5: "Slož 2000 různých puzzlí"
+        pieces_solved_1: "Nasbírej 10000 dílků"
+        pieces_solved_2: "Nasbírej 100 000 dílků"
+        pieces_solved_3: "Nasbírej 500 000 dílků"
+        pieces_solved_4: "Nasbírej 1 000 000 dílků"
+        pieces_solved_5: "Nasbírej 2 000 000 dílků"
+        speed_500_pieces_1: "Slož puzzle s 500 dílky pod 2 hodiny (sólo)"
+        speed_500_pieces_2: "Slož puzzle s 500 dílky pod 1 hodinu 30 minut (sólo)"
+        speed_500_pieces_3: "Slož puzzle s 500 dílky pod 1 hodinu (sólo)"
+        speed_500_pieces_4: "Slož puzzle s 500 dílky pod 45 minut (sólo)"
+        speed_500_pieces_5: "Slož puzzle s 500 dílky pod 30 minut (sólo)"
+        streak_1: "Skládej puzzle 7 dní v řadě"
+        streak_2: "Skládej puzzle 30 dní v řadě"
+        streak_3: "Skládej puzzle 90 dní v řadě"
+        streak_4: "Skládej puzzle 180 dní v řadě"
+        streak_5: "Skládej puzzle 365 dní v řadě"
+        team_player_1: "Slož 5 puzzlí v týmu nebo ve dvojici"
+        team_player_2: "Slož 25 puzzlí v týmu nebo ve dvojici"
+        team_player_3: "Slož 100 puzzlí v týmu nebo ve dvojici"
+        team_player_4: "Slož 250 puzzlí v týmu nebo ve dvojici"
+        team_player_5: "Slož 500 puzzlí v týmu nebo ve dvojici"
+        zen_puzzler_1: "Zaznamenej 5 relax složení bez času"
+        zen_puzzler_2: "Zaznamenej 15 relax složení bez času"
+        zen_puzzler_3: "Zaznamenej 50 relax složení bez času"
+        zen_puzzler_4: "Zaznamenej 150 relax složení bez času"
+        zen_puzzler_5: "Zaznamenej 365 relax složení bez času"
+        first_try_1: "Zaznamenej 5 složení na první pokus"
+        first_try_2: "Zaznamenej 50 složení na první pokus"
+        first_try_3: "Zaznamenej 200 složení na první pokus"
+        first_try_4: "Zaznamenej 500 složení na první pokus"
+        first_try_5: "Zaznamenej 1000 složení na první pokus"
+        unboxed_1: "Slož 5 puzzlí bez koukání na krabici"
+        unboxed_2: "Slož 15 puzzlí bez koukání na krabici"
+        unboxed_3: "Slož 30 puzzlí bez koukání na krabici"
+        unboxed_4: "Slož 50 puzzlí bez koukání na krabici"
+        unboxed_5: "Slož 100 puzzlí bez koukání na krabici"
+        brand_explorer_1: "Slož puzzle od 5 různých výrobců"
+        brand_explorer_2: "Slož puzzle od 15 různých výrobců"
+        brand_explorer_3: "Slož puzzle od 30 různých výrobců"
+        brand_explorer_4: "Slož puzzle od 50 různých výrobců"
+        brand_explorer_5: "Slož puzzle od 100 různých výrobců"
+        marathoner_1: "Slož 5 puzzlí s 2000+ dílky"
+        marathoner_2: "Slož 10 puzzlí s 2000+ dílky"
+        marathoner_3: "Slož 20 puzzlí s 2000+ dílky"
+        marathoner_4: "Slož 40 puzzlí s 2000+ dílky"
+        marathoner_5: "Slož 100 puzzlí s 2000+ dílky"
+        photographer_1: "Přidej fotky k 5 složeným puzzlím"
+        photographer_2: "Přidej fotky k 25 složeným puzzlím"
+        photographer_3: "Přidej fotky ke 100 složeným puzzlím"
+        photographer_4: "Přidej fotky k 500 složeným puzzlím"
+        photographer_5: "Přidej fotky k 1000 složeným puzzlím"
+        steady_hands_1: "Slož alespoň jedno puzzle ve 3 čtvrtletích roku po sobě"
+        steady_hands_2: "Slož alespoň jedno puzzle v 6 čtvrtletích roku po sobě"
+        steady_hands_3: "Slož alespoň jedno puzzle v 9 čtvrtletích roku po sobě"
+        steady_hands_4: "Slož alespoň jedno puzzle ve 12 čtvrtletích roku po sobě"
+        steady_hands_5: "Slož alespoň jedno puzzle v 16 čtvrtletích roku po sobě"
+        librarian_1: "Prosaď 5 návrhů na vylepšení katalogu"
+        librarian_2: "Prosaď 15 návrhů na vylepšení katalogu"
+        librarian_3: "Prosaď 30 návrhů na vylepšení katalogu"
+        librarian_4: "Prosaď 50 návrhů na vylepšení katalogu"
+        librarian_5: "Prosaď 100 návrhů na vylepšení katalogu"
+        speed_1000_pieces_1: "Slož puzzle s 1000 dílky pod 5 hodin (sólo)"
+        speed_1000_pieces_2: "Slož puzzle s 1000 dílky pod 3,5 hodiny (sólo)"
+        speed_1000_pieces_3: "Slož puzzle s 1000 dílky pod 2,5 hodiny (sólo)"
+        speed_1000_pieces_4: "Slož puzzle s 1000 dílky pod 1 hodinu 45 minut (sólo)"
+        speed_1000_pieces_5: "Slož puzzle s 1000 dílky pod 1 hodinu 15 minut (sólo)"
+        weekend_puzzler_1: "Zvládni 10 víkendových složení"
+        weekend_puzzler_2: "Zvládni 50 víkendových složení"
+        weekend_puzzler_3: "Zvládni 150 víkendových složení"
+        weekend_puzzler_4: "Zvládni 300 víkendových složení"
+        weekend_puzzler_5: "Zvládni 600 víkendových složení"
+        cataloger_1: "Přidej do katalogu 5 schválených puzzlí"
+        cataloger_2: "Přidej do katalogu 15 schválených puzzlí"
+        cataloger_3: "Přidej do katalogu 50 schválených puzzlí"
+        cataloger_4: "Přidej do katalogu 150 schválených puzzlí"
+        cataloger_5: "Přidej do katalogu 300 schválených puzzlí"
+    unit:
+        puzzles: "puzzlí"
+        pieces: "dílků"
+        days: "dní"
+        team_solves: "týmových složení"
+    catalogue:
+        explainer_title: "Jak fungují úspěchy"
+        explainer_hide: "Rozumím, skrýt"
+        about: "Každý úspěch má pět stupňů, od Bronzu po Diamant. Každý dosažený stupeň přináší body za úspěchy (AP): 5, 10, 25, 50 a 100. Úspěchy sbírají členové a nikdy nepřidávají XP."
+        tease_free: "Členové sbírají úspěchy, získávají body za úspěchy a ukazují je na svém profilu. Staň se členem a zjisti, které už máš."
+        tease_guest: "Členové sbírají úspěchy, získávají body za úspěchy a ukazují je na svém profilu."
+        become_member: "Staň se členem"
+        filter_label: "Zobrazit úspěchy"
+        filter:
+            next: "Na řadě"
+            earned: "Získané"
+            all: "Vše"
+        empty:
+            next: "Zatím nic rozpracovaného. Zaznamenej složení a tvoje další cíle se objeví tady."
+            earned: "Zatím žádné úspěchy. Ten první je blíž, než si myslíš."
+            all: "Zatím žádné úspěchy."
+            rarest: "Zatím žádné úspěchy."
+        progress_label: "Postup úspěchu %achievement% ke stupni %tier%"
+        rarity: "%percent% puzzlerů"
+        ap_leaderboard_link: "Žebříček bodů za úspěchy"
+    shelf:
+        summary: "<strong>%earned% z %total%</strong> úspěchů · %tiers_earned% z %tiers_total% stupňů"
+        closest_next: "Máš na dosah"
+        first_close: "Tvůj první úspěch je na dosah"
+        next_goal: "%tier%: %requirement%"
+        unrevealed: "Nový stupeň · klepni a odhal ho"
+        new: "Nový"
+        new_label: "získáno za posledních 7 dní"
+        tiers_held_by: "5 stupňů · Bronz má %percent%"
+        filter_rarest: "Od nejvzácnějších"
+        tiers_nobody: "5 stupňů · Bronz zatím nemá nikdo"
+        a11y:
+            tier_of: "stupeň %number% z 5"
+            not_yet: "zatím nezískáno"
+            progress: "%current% z %target% ke stupni %tier%"
+            progress_time: "nejlepší čas %current%, pro stupeň %tier% je potřeba %target%"
+        explainer:
+            share: "„% puzzlerů“ se počítá z každého, kdo zapsal aspoň jedno puzzle."
+            step_back: "Stupeň může klesnout, když se čas odebere nebo čeká na ověření, a s tímto časem se zase vrátí."
+            lapsed: "Tvoje úspěchy zůstávají uložené a s členstvím se vrátí."
+
 "scan":
   "meta":
     "title": "Čtečka čárových kódů"
@@ -1608,12 +2107,6 @@ competition_referees:
     "prediction_unavailable_baseline": "Složte více prvních pokusů na %pieces%-dílkových puzzlích pro odemknutí predikcí časů."
     "prediction_unavailable_difficulty": "Toto puzzle zatím nesložilo dostatek hráčů pro generování predikcí."
     "prediction_unavailable_opted_out": "Hodnocení je vypnuté v nastavení vašeho profilu."
-  "ranking":
-    "title": "Vaše pořadí"
-    "position": "#%rank% z %total% hráčů"
-    "first_place": "Máte nejrychlejší čas na tomto puzzle!"
-    "first_solver": "Jste první, kdo toto puzzle složil!"
-    "top_percent": "Top %percent%%"
   "history":
     "title": "Vaše historie s tímto puzzle"
     "first_time": "Toto puzzle skládáte poprvé! Složte ho znovu a sledujte své zlepšení."
@@ -1625,15 +2118,6 @@ competition_referees:
     "difficulty": "Obtížnost"
     "predicted_range": "Předpovězené rozmezí"
     "need_more_solvers": "Pro výpočet obtížnosti tohoto puzzle je potřeba více hráčů."
-  "progress":
-    "title": "Váš celkový pokrok (%pieces%-dílkové)"
-    "skill_tier": "Úroveň dovedností"
-    "skill_percentile": "Top %percent%% hráčů"
-    "skill_tier_unavailable": "Složte ještě %count% kvalifikačních %pieces%-dílkových puzzlí pro odemknutí úrovně dovedností."
-    "elo_title": "MSP Rating hodnocení"
-    "elo_first_attempts": "První pokusy"
-    "elo_total_solves": "Celkem složení"
-    "elo_unavailable": "Složte více %pieces%-dílkových puzzlí pro kvalifikaci do MSP Rating žebříčku."
 "added_tracking_recap":
   "meta":
     "title": "Puzzle zaznamenáno"
@@ -1644,6 +2128,46 @@ competition_referees:
   "manufacturer": "Výrobce"
   "pieces": "Dílky"
   "group_puzzlers": "Skládáno s"
+
+recap_progress:
+    title: "Tvůj pokrok"
+    level:
+        title: "Úroveň %level%"
+        xp_gained: "+%xp% XP"
+        to_next: "%current% z %needed% XP do úrovně %level%"
+        max: "Nejvyšší úroveň – tvoje XP se počítají dál"
+        late: "Tvoje XP za tento čas se ještě počítají. Za chvilku se objeví v tvé XP historii."
+        announce: "+%xp% XP za tento čas."
+        announce_level_up: "+%xp% XP za tento čas. Úroveň %level%!"
+    receipt:
+        summary: "Jak se počítaly tvoje XP"
+        history_link: "Tvoje XP historie"
+    sheet:
+        continue: "Pokračovat"
+        max_message: "Úroveň 50, vrchol. Tvoje XP se odsud počítají dál."
+    achievement:
+        new: "Nový úspěch"
+        tap: "Klepni na puzzle a odhal svůj stupeň"
+        points: "+%points% AP"
+        see: "Zobrazit úspěch"
+    tease:
+        title: "Tenhle čas ti vynesl úspěch."
+        text: "Staň se členem a zjisti, který to je."
+        button: "Staň se členem"
+    place:
+        title: "#%rank% z %total% na tomto puzzle"
+        first_solver: "Jsi první, kdo tohle puzzle složil"
+        fastest: "Nejrychlejší čas na tomto puzzle"
+        faster_than: "Rychlejší než %percent% % puzzlerů"
+    competition:
+        rating: "MSP Rating %rating% · #%rank% z %total%"
+        rating_progress: "MSP Rating: %first% z %first_needed% prvních pokusů, %solves% z %solves_needed% puzzlí"
+        skill: "Úroveň dovedností %tier% · top %percent% %"
+        skill_progress: "{1}Ještě 1 kvalifikované puzzle k tvé úrovni dovedností|[2,4]Ještě %count% kvalifikovaná puzzle k tvé úrovni dovedností|[5,Inf[Ještě %count% kvalifikovaných puzzlí k tvé úrovni dovedností"
+        skill_soon: "Tvoje úroveň dovedností se objeví do 15 minut"
+        locked_title: "Úroveň dovedností a MSP Rating"
+        locked_text: "Podívej se, jak si stojíš mezi puzzlery na %pieces% dílků. Pro členy."
+
 "global_search":
   "info": "Přivítejte nové vyhledávání! Vyhledávejte podle názvu puzzle, EAN nebo kódu. Hledejte hráče podle jména nebo kódu. Dejte nám prosím vědět vaši zpětnou vazbu."
   "no_player_found": "Nenalezen žádný hráč :-("
@@ -1701,7 +2225,6 @@ competition_referees:
   "manage_subscription_android_info": "Spravujte své předplatné v Google Play Store pod Platby a předplatná."
   "purchase_via_app_store": "Platba bude zpracována přes Apple App Store."
   "purchase_via_play_store": "Platba bude zpracována přes Google Play Store."
-  "full_description": "<ul>\n    <li>Velký dík za podporu vývoje platformy</li>\n    <li>Vlastní personalizovaný kód hráče (můžete změnit na svém profilu)</li>\n    <li>Odznak člena</li>\n    <li>Filtrování podle prvních pokusů</li>\n    <li>Filtrování podle země</li>\n    <li>Grafy</li>\n    <li>Čtečka čárových kódů</li>\n    <li>Detailní statistiky</li>\n</ul>\n\n<h3 class=\"h4\">Na co se můžete brzy těšit?</h3>\n<ul>\n    <li>Měsíční a roční reporty <small class=\"ms-1 text-muted\">(brzy)</small></li>\n    <li>Veřejný mypuzzler.com profil <small class=\"ms-1 text-muted\">(brzy)</small></li>\n    <li class=\"mt-2\">Speciální výzvy pouze pro členy</li>\n    <li>Půjčování a prodej puzzlí mezi členy</li>\n    <li>Gamifikace - sbírání zkušeností a úrovní</li>\n    <li>Odznaky za různé úspěchy</li>\n    <li>&hellip; a mnoho dalšího, toto je pouze malá ochutnávka toho, co pro vás chystáme!</li>\n</ul>\n"
   "members_exclusive_button": "Exkluzivně pro členy"
   "members_exclusive_short": "Pro členy"
   "modal":
@@ -1730,6 +2253,33 @@ competition_referees:
     "next_payment_info_discounted": "Poté předplatné pokračuje se slevou %discount% %."
     "membership_ends": "Konec členství"
     "membership_ends_info": "Žádná automatická platba – členství prostě skončí."
+  "perks_description": |
+    <ul>
+        <li>Velké poděkování za podporu vývoje platformy</li>
+        <li>Vlastní osobní kód hráče (můžete si ho změnit v profilu)</li>
+        <li>Označení člena na vašem profilu</li>
+        <li>Filtrování podle prvních pokusů</li>
+        <li>Filtrování podle země</li>
+        <li>Grafy</li>
+        <li>Čtečka čárových kódů</li>
+        <li>Podrobné statistiky</li>
+    </ul>
+  "progression_perks": |
+    <h3 class="h4">Úspěchy</h3>
+    <ul>
+        <li>Sbírejte úspěchy od Bronzu po Diamant a získávejte body za úspěchy (AP)</li>
+        <li>Ukažte své úspěchy na profilu a zapojte se do žebříčku bodů za úspěchy</li>
+    </ul>
+    <p class="text-muted">XP a úrovně jsou zdarma pro všechny, členy i nečleny.</p>
+  "coming_soon_description": |
+    <h3 class="h4">Na co se můžete brzy těšit?</h3>
+    <ul>
+        <li>Měsíční a roční přehledy <small class="ms-1 text-muted">(brzy)</small></li>
+        <li>Veřejný profil na mypuzzler.com <small class="ms-1 text-muted">(brzy)</small></li>
+        <li class="mt-2">Speciální výzvy jen pro členy</li>
+        <li>Půjčování a prodej puzzlí mezi členy</li>
+        <li>&hellip; a mnohem víc, tohle je jen malá ochutnávka toho, co pro vás chystáme!</li>
+    </ul>
 "membership_payment_cancelled":
   "meta":
     "title": "Platba byla zrušena"
@@ -1919,7 +2469,7 @@ competition_referees:
     <ul>
         <li>váš účet: přihlašovací e-mail, heslo, propojené způsoby přihlášení (Google, Microsoft, Apple, Facebook) a bezpečnostní záznam přihlášení,</li>
         <li>váš hráčský profil se všemi údaji,</li>
-        <li>vaše sólo časy skládání, sbírky, seznam přání, puzzle nabízená k prodeji či výměně, odznaky, stopky a notifikace,</li>
+        <li>vaše sólo časy skládání, sbírky, seznam přání, puzzle nabízená k prodeji či výměně, úspěchy, stopky a notifikace,</li>
         <li>vaše členství (aktivní předplatné se zruší) a odběr newsletteru.</li>
     </ul>
     <p>Některé věci sdílíte s dalšími hráči, a proto jim zůstanou – už ale nejsou propojené s žádným účtem a zobrazuje se u nich jen jméno, které jste používali, jako prostý text. Jde o časy dvojic a týmů složené společně s dalšími registrovanými hráči, konverzace a obchody na tržišti včetně hodnocení a návrhy funkcí s komentáři. Puzzle, která jste přidali do katalogu, v něm zůstanou, ale bez vazby na vás. V záznamu odeslaných e-mailů se vaše adresa nahradí jednosměrným otiskem (hashem).</p>
@@ -2464,6 +3014,7 @@ competition_referees:
     "approved": "Žádost o změnu byla schválena a puzzle aktualizováno."
     "rejected": "Žádost o změnu byla zamítnuta."
     "rejection_reason_required": "Důvod zamítnutí je povinný."
+    "already_reviewed": "Tuto žádost o změnu už mezitím posoudil někdo jiný."
   "puzzle_merge_request":
     "approved": "Žádost o sloučení byla schválena. Puzzle byla sloučena."
     "rejected": "Žádost o sloučení byla zamítnuta."
@@ -2488,6 +3039,13 @@ competition_referees:
     "column_merge_requests": "Zkontrolované žádosti o sloučení"
     "column_last_review": "Poslední kontrola"
     "never": "nikdy"
+    "column_karma": "Karma"
+  "puzzle_edit":
+    "saved": "Puzzle uloženo."
+  "puzzle_approval":
+    "approved": "Puzzle bylo schváleno."
+    "already_approved": "Toto puzzle už mezitím schválil nebo sloučil někdo jiný."
+    "merge_target_invalid": "Vložte ID nebo adresu jiného existujícího puzzle."
 "pending_proposals":
   "badge": "Čekající návrh"
   "go_to_admin": "Přejít do administrace"
@@ -2860,8 +3418,8 @@ puzzle_tracker_app:
             title: "Soutěže"
             description: "Sledujte puzzle soutěže po celém světě, výsledky a svůj soutěžní výkon."
         badges:
-            title: "Odznaky a úspěchy"
-            description: "Získávejte odznaky za milníky jako první zaznamenané puzzle, 100 složených puzzle a další."
+            title: "Úspěchy"
+            description: "Členové získávají úspěchy za milníky jako 100 složených puzzlí, série dní v řadě, první pokusy a další."
     community:
         title: "Největší puzzle tracking komunita na světě"
         times_logged: "Zaznamenaných časů"
@@ -2934,9 +3492,7 @@ puzzle_intelligence:
             title: "MSP Rating – Speed puzzling žebříček"
             description: "Žebříček MSP Rating řadí speed puzzlery podle dovedností — kombinuje časy skládání a obtížnost puzzle. Podívej se na nejlépe hodnocené puzzlery světa."
         title: "MSP Rating žebříček"
-        subtitle: "Soutěžní hodnocení založené na vzájemném porovnání výkonů"
         beta_badge: "BETA"
-        fresh_notice: "Tato funkce je zcela nová — stále ladíme algoritmus a hodnocení se může měnit."
         how_it_works: "Jak se to počítá?"
         player: "Hráč"
         rating: "Hodnocení"
@@ -2965,6 +3521,8 @@ puzzle_intelligence:
         progress_total_solves: "Celkem složení"
         qualification_title: "MSP Rating hodnocení"
         qualification_desc: "Soutěžte s ostatními hráči na základě rychlosti skládání. Vyžaduje dostatek složení 500-dílkových puzzlí."
+        heading_500: "MSP Rating · 500 dílků"
+        subtitle_portfolio: "Počítá se z výsledků na puzzlích s 500 dílky za posledních 24 měsíců: první pokusy mají trojnásobnou váhu oproti nejlepším časům a těžší puzzle se počítají víc."
     human:
         about_average: "Průměrná obtížnost"
         easier_than_avg: "O %percent%% snazší než průměr"
@@ -3061,9 +3619,9 @@ puzzle_intelligence:
         elo_antigaming_volume: "<strong>Hromadění objemu:</strong> Limit 100. Po 100 puzzlích pomáhají další složení pouze pokud jsou lepší než váš nejslabší záznam."
         elo_antigaming_inactivity: "<strong>Neaktivita:</strong> Časový úbytek postupně snižuje starší výsledky. Zůstaňte aktivní pro udržení hodnocení."
         elo_example_title: "Příklad: Studený řešitel vs. Grinder"
-        elo_example_desc: "Stejné <strong>Těžké</strong> puzzle (obtížnost 1.35, váha 1.175), složené <strong>minulý měsíc</strong> (úbytek = 1.0):"
+        elo_example_desc: "Stejné <strong>Těžké</strong> puzzle (obtížnost 1.35, váha 1175), složené <strong>minulý měsíc</strong> (úbytek = 1.0):"
         elo_example_player_a: "<strong>Hráč A:</strong> Silný první pokus (92. percentil), nikdy neskládá znovu"
-        elo_example_player_a_score: "Skóre: 0.92 × 1.175 × 1.0 = <strong>1.08</strong>"
+        elo_example_player_a_score: "Skóre: 0.92 × 1175 × 1.0 = <strong>1.08</strong>"
         elo_example_player_b: "<strong>Hráč B:</strong> Slabý první pokus (60. percentil), opakovaným skládáním se dostane na 95. percentil"
         elo_example_player_b_score: "Skóre: 0.75 × 0.70 + 0.25 × 1.12 = <strong>0.81</strong>"
         elo_example_conclusion: "Hráč A jasně vítězí — surový talent při skládání napoprvé vede, ale B dostává částečný kredit za zlepšení."
@@ -3123,8 +3681,6 @@ puzzle_intelligence:
         predictability_desc: "Jak předvídatelná je obtížnost tohoto puzzle?"
         skill_sensitivity: "Citlivost na dovednosti"
         skill_sensitivity_desc: "Rozhodují na tomto puzzle hodně dovednosti?"
-    player_insights:
-        title: "Statistiky hráče"
     prediction:
         title: "Vaše predikce"
         estimated_time: "Odhadovaný čas"
@@ -3140,8 +3696,8 @@ puzzle_intelligence:
         personal_explanation: "Na základě vašich %count% předchozích složení tohoto puzzle."
         personal_attempt_explanation: "Predikce pro váš pokus č. %attempt%, na základě vašich %count% předchozích složení a trendu zlepšování."
     skill:
-        title: "Profil dovedností"
-        tier_label: "Úroveň"
+        title: "Úroveň dovedností"
+        tier_label: "Úroveň dovedností"
         percentile_label: "Top %percentile%%"
         faster_than_label: "Rychlejší než %percentile%% hráčů"
         not_enough_data: "Nedostatek dat pro %pieces% dílků"
@@ -4827,6 +5383,39 @@ official_results:
     "hardest_brand": "Nejtěžší puzzle %brand%"
     "easiest_brand": "Nejlehčí puzzle %brand%"
 
+guides:
+    breadcrumb:
+        home: "Domů"
+        guides: "Průvodce"
+    ui:
+        eyebrow: "Průvodce"
+        updated: "Aktualizováno %date%"
+        data_note: "Živá data z komunity"
+        read_next: "Další čtení"
+        cta_title: "Chceš si změřit čas u dalšího puzzle?"
+        cta_stopwatch: "Spustit stopky"
+        cta_puzzles: "Procházet databázi puzzlí"
+        cta_events: "Najít soutěž"
+    index:
+        title: "Průvodce speed puzzlingem"
+        meta_description: "Průvodce speed puzzlingem podložené skutečnými daty o časech skládání: jak dlouho puzzle opravdu trvají, jak fungují soutěže a jak se zrychlit."
+        intro: "Napsáno speed puzzling komunitou, podloženo skutečnými naměřenými časy skládání — žádné odhady."
+        read_guide: "Číst průvodce"
+        footnote: "Všechny statistiky v těchto průvodcích se počítají ze složení zaznamenaných na MySpeedPuzzling a automaticky se obnovují, jak komunita zaznamenává nové časy."
+    what_is:
+        title: "Co je speed puzzling?"
+        meta_description: "Speed puzzling je skládání puzzle na čas. Zjisti, jak fungují soutěže jako WJPC, jaké časy jsou běžné a jak začít."
+        card_description: "Kompletní úvod: formáty, jak fungují soutěže, typické časy a jak se přidat ke komunitě."
+    how_long:
+        title: "Jak dlouho trvá složit puzzle s 1000 dílky?"
+        meta_description: "Změřeno na %count% zaznamenaných sólo složeních: medián u puzzle s 1000 dílky je %median%. Skutečné percentily a nejrychlejší časy podle počtu dílků."
+        meta_description_fallback: "Jediná odpověď na internetu podložená daty: mediány časů, percentily a nejrychlejší zaznamenaná složení podle počtu dílků, ze skutečně naměřených časů."
+        card_description: "Skutečná data, žádné odhady: mediány časů, percentily a nejrychlejší zaznamenané výsledky podle počtu dílků."
+    tips:
+        title: "Tipy na speed puzzling: jak se zrychlit"
+        meta_description: "Deset praktických tipů na speed puzzling od soutěžních skládačů — třídění, okraje, skládání podle barev, příprava a jak měřit skutečný pokrok."
+        card_description: "Deset technik, které opravdu zkrátí tvůj čas skládání, plus komunitní měřítka, se kterými se můžeš porovnat."
+
 "wjpc_hub":
   "meta":
     "title": "Mistrovství světa ve skládání puzzle"
@@ -4835,7 +5424,7 @@ official_results:
   "what_is":
     "heading": "Co je World Jigsaw Puzzle Championship?"
     "p1": "WJPC pořádá World Jigsaw Puzzle Federation a od prvního ročníku v roce 2019 se koná ve španělském Valladolidu. Princip je jednoduchý a férový: každý soutěžící v daném kole dostane stejné puzzle, které zůstává utajené až do startovního signálu. Vyhrává ten, kdo složí nejrychleji — a skládači, kteří nestihnou dokončit v časovém limitu, se řadí podle počtu správně složených dílků."
-    "p2": "Šampionát má tři kategorie. Jednotlivci skládají puzzle s 500 dílky v kvalifikačních kolech i ve finále. Dvojice skládají 500 dílků až do semifinále a 1 000 dílků ve finále. Čtyřčlenné týmy skládají 1 000 dílků v každém kole. Napříč kategoriemi se během několika soutěžních dnů utkají tisíce skládačů z desítek zemí."
+    "p2": "Šampionát má tři kategorie. Jednotlivci skládají puzzle s 500 dílky v kvalifikačních kolech i ve finále. Dvojice skládají 500 dílků až do semifinále a 1000 dílků ve finále. Čtyřčlenné týmy skládají 1000 dílků v každém kole. Napříč kategoriemi se během několika soutěžních dnů utkají tisíce skládačů z desítek zemí."
     "p3": "První mistrovství světa ve skládání puzzle se konalo v roce 2019. Po zrušených ročnících 2020 a 2021 kvůli pandemii covidu-19 se šampionát v roce 2022 vrátil a od té doby každým rokem roste — dnes je vrcholem speed puzzlingového kalendáře a metou, se kterou se poměřuje každý soutěžní skládač."
   "editions":
     "heading": "Ročníky WJPC: termíny a výsledky"
@@ -5845,6 +6434,8 @@ onboarding:
             button: "Najít hráče"
         ready:
             title: "Až budete chtít víc"
+            progress:
+                text: "Úrovně, úspěchy, MSP Rating a karma – jak to funguje."
             picker:
                 text: "Náhodný tip z vaší kolekce nebo ze všech puzzle."
             events:
@@ -5913,6 +6504,9 @@ free_trial:
         player_code:
             title: "Vlastní kód hráče"
             text: "Vyber si kód, který si kamarádi zapamatují - v nastavení profilu."
+        achievements:
+            title: "Tvoje úspěchy"
+            text: "Úspěchy, které už máš, čekají na své odhalení – každý na jedno malé puzzle."
 
 multiscan:
     meta:
@@ -6240,6 +6834,7 @@ player_header:
         profile: "Profil"
         statistics: "Statistiky"
         calendar: "Kalendář"
+        achievements: "Úspěchy"
         library: "Knihovna"
         favorites: "Oblíbení"
     favorite: "Oblíbit"
@@ -6258,6 +6853,21 @@ player_header:
     more_actions: "Další akce"
     compare: "Přidat do porovnání"
     compare_open: "Otevřít porovnání"
+
+player_progress:
+    ring_label: "Úroveň %level%, %xp% XP. Jak fungují úrovně"
+    ring_label_own: "Úroveň %level%, %xp% XP. Odkud se vzaly tvoje XP"
+    msp_chip: "#%rank% MSP Rating"
+    msp_chip_title: "%rank%. místo v žebříčku MSP Rating (%pieces% dílků)"
+    how_it_works: "Jak to funguje"
+    showcase:
+        earned: "%earned% z %total%"
+        teaser: "Máš získané úspěchy."
+        teaser_link: "Staň se členem a uvidíš je."
+        teaser_none: "Členové při skládání sbírají úspěchy."
+        teaser_none_link: "Zobrazit všechny"
+        reveal_title: "{1}1 nový úspěch k odhalení|[2,4]%count% nové úspěchy k odhalení|[5,Inf[%count% nových úspěchů k odhalení"
+        reveal_text: "{1}Už ti patří - odhal ho a uvidíš, co jsi získal(a).|]1,Inf[Už ti patří - odhal je jeden po druhém a uvidíš, co jsi získal(a)."
 
 marketplace_events:
     label:
@@ -8092,3 +8702,284 @@ series_readers:
     used_at:
         more: "a %count% další|a %count% další|a %count% dalších"
     series_delete_note: "Výsledky přidané k této sérii nebo jejím edicím zůstanou na profilech puzzlerů, jen už bez události."
+
+progression_hub:
+    meta_title: "Jak funguje pokrok: XP, úspěchy, MSP Rating, úroveň dovedností a karma"
+    meta_description: "Co na MySpeedPuzzling měří XP a úrovně, úspěchy, MSP Rating, úroveň dovedností a karma – a jak které z nich roste."
+    title: "Jak funguje pokrok"
+    menu_label: "Jak funguje pokrok"
+    intro: "Při skládání ti roste pět věcí. Každá odpovídá na jinou otázku."
+    group:
+        just_you: "Jen pro tebe"
+        against_the_clock: "Proti času"
+        for_everyone: "Pro všechny"
+    level:
+        title: "Úroveň a XP"
+        text: "Každé zaznamenané puzzle přidá XP. Větší a těžší přidají víc. Počítá se jen skládání."
+    achievements:
+        title: "Úspěchy"
+        text: "%count% cílů k ulovení, od Bronzu po Diamant: značky, série dní, první pokusy, týmy. Členové je sbírají a získávají body za úspěchy (AP)."
+    rating:
+        title: "MSP Rating"
+        text: "Tvoje rychlost na puzzlích s 500 dílky ve srovnání se všemi – z tvých nejlepších časů vážených obtížností."
+    skill_tier:
+        title: "Úroveň dovedností"
+        text: "Tvoje dovednost pro daný počet dílků, od Nadšence po Legendu – ze všech tvých časů."
+    karma:
+        title: "Karma"
+        text: "Jeden bod za každý přijatý příspěvek do databáze puzzlí. Ukazuje, kdo pomáhá."
+    which:
+        title: "Co je co?"
+        text: "XP odměňují skládání. Úspěchy odměňují rozmanitost. MSP Rating a úroveň dovedností odměňují rychlost. Karma oceňuje pomoc. Žádné z nich se nemění v jiné."
+    leaderboards_link: "Zobrazit žebříčky"
+    fair_play_link: "Fair play a důvěra"
+    help_label: "Jak funguje pokrok"
+
+karma:
+    chip: "Karma %karma%"
+    opt_out:
+        label: "Skrýt moji karmu"
+        help: "Tvoje příspěvky se dál počítají a zůstávají, ale karma zmizí z tvého profilu a nebudeš v žebříčku karmy. Když tohle vypneš, vše se zase zobrazí."
+    chip_title: "Karma: přijaté příspěvky do databáze puzzlí"
+    leaderboard:
+        kind_label: "Co se počítá"
+        period_label: "Období"
+    kind_filter:
+        all: "Vše"
+        puzzles: "Nová puzzle"
+        fixes: "Opravy a sloučení"
+        moderation: "Moderování"
+    period:
+        all: "Za celou dobu"
+        12m: "Posledních 12 měsíců"
+    breakdown:
+        puzzle_added: "%count% nové puzzle|%count% nová puzzle|%count% nových puzzlí"
+        change_request: "%count% přijatá změna|%count% přijaté změny|%count% přijatých změn"
+        merge_request: "%count% sloučený duplikát|%count% sloučené duplikáty|%count% sloučených duplikátů"
+        decision: "%count% rozhodnutí|%count% rozhodnutí|%count% rozhodnutí"
+        direct_edit: "%count% úprava|%count% úpravy|%count% úprav"
+    item:
+        puzzle_added: "Nové puzzle s EAN kódem"
+        change_request: "Tvoje navržená změna byla přijata"
+        merge_request: "Tvůj nahlášený duplikát byl sloučen"
+        direct_edit: "Úprava puzzle"
+        duplicate_puzzle: "Sloučeno do dříve přidaného puzzle"
+        decision:
+            change_request_approved: "Přijetí navržené změny"
+            change_request_rejected: "Odmítnutí navržené změny"
+            merge_request_approved: "Sloučení nahlášených duplikátů"
+            merge_request_rejected: "Odmítnutí nahlášeného duplikátu"
+            puzzle_approved: "Schválení nového puzzle"
+    history:
+        title: "Za co mám karmu?"
+        total_label: "karma"
+        breakdown_label: "Tvoje karma podle druhu"
+        empty: "Zatím žádná karma. Přidej puzzle s jeho EAN kódem, nebo navrhni opravu – každý přijatý příspěvek je 1 bod karmy."
+        what_counts: "Co se počítá"
+        undated: "Dříve"
+        not_counted: "nezapočítáno"
+        note: "Návrhy se počítají, jakmile je moderátor přijme. Odmítnuté karmu nikdy neberou."
+        how_it_works: "Jak funguje karma"
+        list_link: "Žebříček karmy"
+        pagination: "Stránky historie karmy"
+        previous: "Předchozí stránka"
+        next: "Další stránka"
+        admin_note: "Administrátoři karmu nemají – jejich práce patří k provozu webu."
+        hidden_note: "Tvoje karma je před ostatními skrytá: není na tvém profilu a nejsi v žebříčku karmy. Tvoje příspěvky se ale počítají dál."
+        hidden_change: "Změnit v nastavení"
+    explainer:
+        title: "Jak funguje karma"
+        intro: "Karma je poděkování lidem, kteří udržují databázi puzzlí v pořádku. Jeden bod za každý přijatý příspěvek – veřejný přehled toho, kdo pomáhá."
+        your_karma: "tvoje karma"
+        history_link: "Za co mám karmu?"
+        what_counts: "Co se počítá"
+        rules:
+            puzzle:
+                what: "Nové puzzle s EAN kódem"
+                when: "Jakmile je schválené. Díky čárovému kódu ho půjde najít naskenováním."
+                value: "+1"
+            change:
+                what: "Navržená změna"
+                when: "Jakmile ji moderátor přijme."
+                value: "+1"
+            merge:
+                what: "Nahlášený duplikát"
+                when: "Jakmile se puzzle sloučí."
+                value: "+1"
+            decision:
+                what: "Rozhodnutí moderátora"
+                when: "Přijetí nebo odmítnutí návrhu, nahlášeného duplikátu nebo nového puzzle."
+                value: "+1"
+            edit:
+                what: "Přímá úprava moderátorem"
+                when: "Oprava puzzle bez návrhu."
+                value: "+1"
+            own_proposal:
+                what: "Moderátor rozhoduje o vlastním návrhu"
+                when: "Návrh a rozhodnutí se počítají dohromady."
+                value: "celkem +1"
+        no_caps: "Žádné stropy ani váhy: každý přijatý příspěvek se počítá stejně."
+        duplicates_heading: "Když se ukáže, že puzzle je duplikát"
+        duplicates: "Když se dvě puzzle sloučí, karmu za ně si ponechá ten, kdo puzzle přidal jako první. Pozdější kopie se přestane počítat a kdo duplikát nahlásil, dostane 1 bod. V historii karmy se taková kopie zobrazí jako nezapočítaná."
+        not_heading: "Čím karma není"
+        never_negative: "Odmítnutá práce karmu nikdy nebere. Záporná karma neexistuje."
+        no_xp: "Karma je uznání, ne měna: nic se za ni nekoupí a XP nepřidává."
+        not_counted: "Značky, eventy a návrhy, které už vyřešilo něco jiného, se nepočítají."
+        find_puzzle: "Najít puzzle k vylepšení"
+        list_link: "Žebříček karmy"
+
+activity_digest:
+    frequency:
+        weekly: "Každý týden (v pondělí)"
+        every_two_weeks: "Každé dva týdny"
+        monthly: "Jednou měsíčně"
+        off: "Vypnuto"
+    settings:
+        label: "E-mail o aktivitě"
+        help: "Tvoje složená puzzle, pokrok a oblíbení puzzleři – chodí, jen když máš nové časy. Po čtyřech týdnech bez skládání se jednou ozveme, víc ne."
+    preferences_title: "Tvoje aktivita"
+    preferences_description: "Tvoje složená puzzle, úroveň, úspěchy a oblíbení puzzleři – chodí v pondělí, a jen když máš nové časy. Po čtyřech týdnech bez skládání se jednou ozveme, víc ne."
+    unsubscribe:
+        meta_title: "Odhlášení e-mailu o aktivitě"
+        confirm_title: "Zastavit e-mail o aktivitě?"
+        confirm_text: "Jedno kliknutí níže a e-mail o aktivitě přestane chodit. Kdykoli ho můžeš znovu zapnout v nastavení e-mailů."
+        confirm_button: "Ano, zastavit"
+        fewer_hint: "Chceš ho raději dostávat méně často?"
+        fewer_link: "Vyber si každé dva týdny nebo jednou měsíčně"
+        done_title: "Odběr je zrušený"
+        done_text: "E-mail o aktivitě už ti chodit nebude. Pokud ti bude chybět, zapni ho znovu v nastavení e-mailů."
+        back_home: "Zpět na MySpeedPuzzling"
+
+my_activity:
+    title:
+        week: "Tvůj týden"
+        two_weeks: "Tvoje dva týdny"
+        month: "Tvůj měsíc"
+    so_far: "zatím"
+    navigation: "Období"
+    length_label: "Délka období"
+    length:
+        week: "Týden"
+        two_weeks: "2 týdny"
+        month: "Měsíc"
+    previous:
+        week: "Předchozí týden"
+        two_weeks: "Předchozí dva týdny"
+        month: "Předchozí měsíc"
+    next:
+        week: "Další týden"
+        two_weeks: "Další dva týdny"
+        month: "Další měsíc"
+    numbers_label: "V číslech"
+    stat:
+        puzzles: "{0}puzzlí|{1}puzzle|[2,4]puzzle|[5,Inf[puzzlí"
+        pieces: "{0}dílků|{1}dílek|[2,4]dílky|[5,Inf[dílků"
+        time: "čas skládání"
+        streak: "dní v řadě"
+    empty: "V tomto období nejsou žádné záznamy."
+    empty_in_progress: "Zatím tu nic není – ještě je čas."
+    add_time: "Přidat čas"
+    pick_puzzle: "Vyber mi další puzzle"
+    level: "Úroveň %level%"
+    level_up: "Úroveň %from% → %to%"
+    level_progress: "Postup na další úroveň"
+    xp_history_link: "Odkud se vzalo každé XP"
+    achievements_title: "{1}1 nový úspěch|[2,4]%count% nové úspěchy|[5,Inf[%count% nových úspěchů"
+    achievements_teaser: "{1}V tomto období máš nový úspěch. Staň se členem a zjisti, který to je.|[2,4]V tomto období máš %count% nové úspěchy. Staň se členem a zjisti, které to jsou.|[5,Inf[V tomto období máš %count% nových úspěchů. Staň se členem a zjisti, které to jsou."
+    become_member: "Staň se členem"
+    rating: "MSP Rating: #%rank% z %total%"
+    rating_up: "{1}o 1 místo výš|[2,4]o %count% místa výš|[5,Inf[o %count% míst výš"
+    rating_down: "{1}o 1 místo níž|[2,4]o %count% místa níž|[5,Inf[o %count% míst níž"
+    skill_tier: "Nová úroveň dovedností pro %pieces% dílků: %tier%"
+    karma: "{1}Děkujeme: 1 tvůj příspěvek do databáze puzzlí byl přijat.|[2,4]Děkujeme: %count% tvoje příspěvky do databáze puzzlí byly přijaty.|[5,Inf[Děkujeme: %count% tvých příspěvků do databáze puzzlí bylo přijato."
+    results_title: "Tvoje puzzle"
+    pieces: "{1}1 dílek|[2,4]%count% dílky|[5,Inf[%count% dílků"
+    place: "#%rank% z %total%"
+    mark:
+        awaiting_verification: "Čeká na ověření"
+        personal_best: "Osobní rekord"
+        first_try: "První pokus"
+        pair: "Dvojice"
+        team: "Tým"
+    favorites_title: "Tvoji oblíbení puzzleři"
+    favorite_solves: "{1}1 puzzle|[2,4]%count% puzzle|[5,Inf[%count% puzzlí"
+    community_title: "Co se děje v komunitě"
+    most_solved: "{1}Nejčastěji skládané: %puzzle% (1 puzzler)|[2,4]Nejčastěji skládané: %puzzle% (%count% puzzleři)|[5,Inf[Nejčastěji skládané: %puzzle% (%count% puzzlerů)"
+    next_title: "Co dál"
+    share: "Sdílet"
+    share_copied: "Odkaz zkopírován"
+    share_title:
+        week: "Můj týden na MySpeedPuzzling – puzzle: %puzzles%, dílky: %pieces%"
+        two_weeks: "Moje dva týdny na MySpeedPuzzling – puzzle: %puzzles%, dílky: %pieces%"
+        month: "Můj měsíc na MySpeedPuzzling – puzzle: %puzzles%, dílky: %pieces%"
+    digest_on:
+        weekly: "Tohle ti chodí do schránky každé pondělí."
+        every_two_weeks: "Tohle ti chodí do schránky každé druhé pondělí."
+        monthly: "Tohle ti chodí do schránky první pondělí v měsíci."
+    digest_off: "E-mail o aktivitě je vypnutý."
+    digest_settings: "Nastavení e-mailů"
+
+xp_opt_out:
+    label: "Skrýt XP a úrovně"
+    help: "Tvoje úroveň a XP zmizí z tvých stránek a e-mailů a nebudeš v žebříčcích XP a bodů za úspěchy ani v seznamech držitelů úspěchů. XP a úspěchy se potichu počítají dál, takže když tohle zase vypneš, o nic nepřijdeš."
+
+page_crumbs:
+    label: "Drobečková navigace"
+    back: "Zpět"
+    back_to: "Zpět na %title%"
+
+leaderboards:
+    position:
+        rank_scoped: "%rank%. místo z %total% %scope%"
+        in_country: "v zemi %country%"
+        in_favorites: "mezi tebou a tvými oblíbenými"
+        rank_world: "%rank%. místo z %total% na světě"
+        top_share: "top %percent%"
+        goal: "%gap% do top %rank%"
+        goal_first: "%gap% za %rank%. místem"
+    value:
+        xp: "%value% XP"
+        achievement-points: "%value% AP"
+        karma: "%value% karma"
+    secondary:
+        level: "Lv %level%"
+        achievements: "1 úspěch|%count% úspěchy|%count% úspěchů"
+        karma_total: "celkem %count%"
+    empty_country: "Zatím tu nikdo ze země %country% není. Buď první!"
+    rating:
+        gap: "%value% b. ratingu"
+        private_note: "Tvůj profil je soukromý, proto v žebříčcích nejsi."
+        empty_country: "Zatím nikdo ze země %country% nemá MSP Rating. Tvůj může být první."
+    times:
+        empty: "Zatím žádné časy. Přidej svůj a buď v tomto žebříčku první."
+        empty_country: "Zatím žádné časy ze země %country%. Přidej svůj a buď v tomto žebříčku první ze země %country%."
+        around_you: "Celý žebříček kolem tvého místa"
+        goal: "o %gap% rychleji do top %rank%"
+        private_note: "Tvůj profil je soukromý, proto tvé sólo časy v žebříčcích nejsou."
+        no_time:
+            solo: "Přidej sólo čas u puzzle o %pieces% dílcích a objevíš se v tomto žebříčku."
+            pairs: "Přidej čas dvojice u puzzle o %pieces% dílcích a vaše dvojice se objeví v tomto žebříčku."
+            groups: "Přidej týmový čas u puzzle o %pieces% dílcích a váš tým se objeví v tomto žebříčku."
+    not_on_board:
+        guest: "Podívej se, kde v tomto žebříčku stojíš:"
+        private: "Tvůj profil je soukromý, proto v žebříčcích nejsi."
+        experience_opted_out: "Úrovně a úspěchy máš vypnuté, proto tu nejsi. Znovu je zapneš v nastavení profilu."
+        karma_opted_out: "Karmu máš skrytou, proto tu nejsi. Znovu ji zobrazíš v nastavení profilu."
+        admin: "Administrátoři karmu nemají, proto tu nejsou."
+        xp: "Zapiš své první složené puzzle a dostaneš se do tohoto žebříčku."
+        achievement-points: "Získej svůj první úspěch a dostaneš se do tohoto žebříčku."
+        karma: "Tvůj první přijatý příspěvek do databáze puzzlí tě dostane do tohoto žebříčku."
+        karma_filtered: "V tomto výběru se ti zatím nic nepočítá."
+        not_member: "Body za úspěchy jsou součástí členství: najdeš tu členy."
+        other_country: "Tento seznam ukazuje jen puzzlery ze země %country%."
+        settings: "Nastavení profilu"
+        membership: "Členství"
+        sign_in: "Přihlásit se"
+    gap:
+        hidden: "⋯ další %number%|⋯ další %number%|⋯ dalších %number%"
+        reveal: "Zobrazit místa %from%–%to% z %total%"
+    announce: "Zobrazena místa %from%–%to% z %total%"
+
+modal:
+    load_failed: "Nepodařilo se to načíst. Zkontroluj připojení a zkus to znovu."
+    try_again: "Zkusit znovu"

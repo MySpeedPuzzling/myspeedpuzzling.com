@@ -1,0 +1,82 @@
+{#
+    The pill row on top of every leaderboard (docs/features/xp-levels/launch-2026-10.md, "Leaderboards"):
+    Times (/ladder, its countries and per-pieces ladders) · MSP Rating · the progression boards (ProgressLeaderboardTab:
+    Level/XP, Achievement Points, Karma - behind the xp-system launch switch). Scrolls sideways on phones, the active
+    pill is scrolled into view (leaderboards_nav_controller.js).
+
+    Filters follow you between boards (docs/features/xp-levels/ux-polish/design-spec.md §4): each pill carries the
+    current country, and favorites where the target has that filter - only to viewers allowed to use them there:
+      - Times overview: the country is a path segment (ladder_country), members only (/ladder/country/… is theirs).
+      - MSP Rating: ?country= and ?onlyFavorites=1, members only (MspRatingLadder drops them for everybody else).
+      - Level / Achievement Points / Karma: ?country= for everyone, ?favorites=1 for signed-in players.
+    The current filters come from the page: active_country (Times pages), selected_country + favorites_only (progress
+    boards), the query (MSP Rating - its Live Component keeps them in the URL, so leaderboards_nav_controller.js reads
+    them again at the click, after filtering without a reload).
+#}
+{%- set current_route = app.request.attributes.get('_route') -%}
+{%- set current_board = tab is defined and current_route in ['level_leaderboard', 'achievement_points_leaderboard', 'karma_leaderboard'] ? tab : null -%}
+{%- set is_msp_page = current_route starts with 'msp_rating_ladder' -%}
+{%- set viewer_profile = logged_user.profile ?? null -%}
+{%- set is_member = viewer_profile is not null and viewer_profile.activeMembership -%}
+
+{%- set nav_country = null -%}
+{%- set nav_favorites = false -%}
+{%- if active_country|default(null) -%}
+    {%- set nav_country = active_country.name -%}
+{%- elseif selected_country|default(null) -%}
+    {%- set nav_country = selected_country -%}
+    {%- set nav_favorites = favorites_only|default(false) -%}
+{%- elseif is_msp_page -%}
+    {%- set query_country = app.request.query.get('country', '')|lower -%}
+    {%- set nav_country = query_country matches '/^[a-z]{2}$/' ? query_country : null -%}
+    {%- set nav_favorites = app.request.query.get('onlyFavorites') in ['1', 'true'] -%}
+{%- endif -%}
+
+{%- set pills = [
+    {
+        href: path('ladder' ~ (nav_country and is_member ? '_country' : ''), {countryCode: nav_country and is_member ? nav_country : null}),
+        label: 'ladder.board.times'|trans,
+        active: current_route starts with 'ladder',
+        base: path('ladder'),
+        country_pattern: is_member ? path('ladder_country', {countryCode: '__country__'}) : null,
+    },
+    {
+        href: path('msp_rating_ladder', is_member ? {country: nav_country, onlyFavorites: nav_favorites ? 1 : null} : {}),
+        label: 'ladder.board.msp_rating'|trans,
+        active: is_msp_page,
+        base: path('msp_rating_ladder'),
+        country_param: is_member ? 'country' : null,
+        favorites_param: is_member ? 'onlyFavorites' : null,
+    },
+] -%}
+{%- if xp_system_visible() -%}
+    {%- for board_tab in enum('SpeedPuzzling\\Web\\Value\\ProgressLeaderboardTab').cases() -%}
+        {%- set pills = pills|merge([{
+            href: path(board_tab.routeName(), {country: nav_country, favorites: nav_favorites and viewer_profile is not null ? 1 : null}),
+            label: (board_tab.translationPrefix() ~ '.tab')|trans,
+            active: current_board == board_tab,
+            base: path(board_tab.routeName()),
+            country_param: 'country',
+            favorites_param: viewer_profile is not null ? 'favorites' : null,
+        }]) -%}
+    {%- endfor -%}
+{%- endif -%}
+<nav
+    class="leaderboards-nav"
+    aria-label="{{ 'ladder.title'|trans }}"
+    data-controller="leaderboards-nav"
+    {% if is_msp_page %}data-action="click->leaderboards-nav#carryFilters" data-leaderboards-nav-live-filters-value="true"{% endif %}
+>
+    {%- for pill in pills %}
+        <a
+            href="{{ pill.href }}"
+            class="leaderboards-nav-pill{{ pill.active ? ' active' }}"
+            {%- if pill.active %} aria-current="page" data-leaderboards-nav-target="active"{% endif %}
+            {%- if is_msp_page %} data-base="{{ pill.base }}"
+                {%- if pill.country_pattern|default(null) %} data-country-pattern="{{ pill.country_pattern }}"{% endif %}
+                {%- if pill.country_param|default(null) %} data-country-param="{{ pill.country_param }}"{% endif %}
+                {%- if pill.favorites_param|default(null) %} data-favorites-param="{{ pill.favorites_param }}"{% endif %}
+            {%- endif %}
+        >{{ pill.label }}</a>
+    {%- endfor %}
+</nav>

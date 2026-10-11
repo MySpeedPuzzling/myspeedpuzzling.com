@@ -53,14 +53,14 @@ final class GetPlayerRatingRankingPrivacyTest extends KernelTestCase
     public function testPrivatePlayerHiddenFromGlobalRanking(): void
     {
         // Make a ranked public player private — they must vanish from ranking() and totalCount().
-        $totalBefore = $this->query->totalCount(self::PIECES_COUNT);
+        $totalBefore = $this->query->window(self::PIECES_COUNT, 100)->total;
         self::assertSame(4, $totalBefore);
 
         $player = $this->playerRepository->get(PlayerFixture::PLAYER_REGULAR);
         $player->changeProfileVisibility(isPrivate: true);
         $this->em->flush();
 
-        $totalAfter = $this->query->totalCount(self::PIECES_COUNT);
+        $totalAfter = $this->query->window(self::PIECES_COUNT, 100)->total;
         self::assertSame(3, $totalAfter);
 
         $playerIds = array_map(
@@ -116,7 +116,7 @@ final class GetPlayerRatingRankingPrivacyTest extends KernelTestCase
         );
 
         $ladder = $this->query->ranking(self::PIECES_COUNT);
-        $total = $this->query->totalCount(self::PIECES_COUNT);
+        $total = $this->query->window(self::PIECES_COUNT, 100)->total;
 
         self::assertCount(3, $ladder);
         self::assertSame(3, $total);
@@ -192,8 +192,8 @@ final class GetPlayerRatingRankingPrivacyTest extends KernelTestCase
             array_map(static fn ($entry) => $entry->playerId, $entries),
         );
         self::assertSame([1, 2, 3], array_map(static fn ($entry) => $entry->rank, $entries));
-        self::assertSame(3, $this->query->totalCount(self::PIECES_COUNT));
-        self::assertSame(0, $this->query->totalCount(self::PIECES_COUNT, searchTerm: 'Admin'));
+        self::assertSame(3, $this->query->window(self::PIECES_COUNT, 100)->total);
+        self::assertSame(0, $this->query->window(self::PIECES_COUNT, 100, searchTerm: 'Admin')->total);
         self::assertSame(
             ['elo_rating' => 1200.0, 'rank' => 3, 'total' => 3],
             $this->query->allForPlayer(PlayerFixture::PLAYER_WITH_STRIPE)[self::PIECES_COUNT],
@@ -201,7 +201,7 @@ final class GetPlayerRatingRankingPrivacyTest extends KernelTestCase
 
         TestingViewer::signIn(self::getContainer(), PlayerFixture::PLAYER_WITH_FAVORITES);
 
-        self::assertSame(4, $this->query->totalCount(self::PIECES_COUNT));
+        self::assertSame(4, $this->query->window(self::PIECES_COUNT, 100)->total);
         self::assertSame(4, $this->query->allForPlayer(PlayerFixture::PLAYER_WITH_STRIPE)[self::PIECES_COUNT]['rank']);
         self::assertSame(PlayerFixture::PLAYER_ADMIN, $this->query->ranking(self::PIECES_COUNT)[0]->playerId);
     }

@@ -105,10 +105,14 @@ export default class extends Controller {
     }
 
     render(element, value) {
-        const grouped = this.numberFormatter
-            .formatToParts(value)
-            .map((part) => (part.type === 'group' ? '\u00a0' : part.value))
-            .join('');
+        // The site's number rule (PlainNumber in PHP): digits alone up to 99999, a no-break space between the
+        // thousands from 100000
+        const grouped = Math.abs(value) < 100000
+            ? String(value)
+            : this.numberFormatter
+                .formatToParts(value)
+                .map((part) => (part.type === 'group' ? '\u00a0' : part.value))
+                .join('');
 
         element.textContent = grouped + (element.dataset.countUpSuffix ?? '');
     }

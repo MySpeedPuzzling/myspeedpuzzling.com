@@ -9,11 +9,14 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Notification;
 use SpeedPuzzling\Web\Exceptions\GuestLinkRequestNotFound;
 use SpeedPuzzling\Web\Message\AnswerGuestLink;
+use SpeedPuzzling\Web\Message\RecalculateBadgesForPlayer;
+use SpeedPuzzling\Web\Message\RecalculateXpForPlayer;
 use SpeedPuzzling\Web\Repository\GuestLinkRequestRepository;
 use SpeedPuzzling\Web\Repository\NotificationRepository;
 use SpeedPuzzling\Web\Services\PuzzlingTeamMemberConversion;
 use SpeedPuzzling\Web\Value\NotificationType;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
+use Symfony\Component\Messenger\MessageBusInterface;
 
 #[AsMessageHandler]
 readonly final class AnswerGuestLinkHandler
@@ -23,6 +26,7 @@ readonly final class AnswerGuestLinkHandler
         private NotificationRepository $notificationRepository,
         private PuzzlingTeamMemberConversion $conversion,
         private ClockInterface $clock,
+        private MessageBusInterface $messageBus,
     ) {
     }
 
@@ -44,11 +48,18 @@ readonly final class AnswerGuestLinkHandler
             return;
         }
 
-        $this->conversion->guestToPlayer(
+        $changedTeams = $this->conversion->guestToPlayer(
             $request->requester->id->toString(),
             $request->guestKey,
             $request->target->id->toString(),
         );
+
+        // Those pair/team results are the player's own now: they earn XP and count towards achievements
+        // (docs/features/xp-levels/README.md) - the conversion rewrites the group snapshots by SQL, nothing else sees it
+        if ($changedTeams > 0) {
+            $this->messageBus->dispatch(new RecalculateXpForPlayer($request->target->id->toString()));
+            $this->messageBus->dispatch(new RecalculateBadgesForPlayer($request->target->id->toString()));
+        }
 
         $this->notificationRepository->save(new Notification(
             Uuid::uuid7(),

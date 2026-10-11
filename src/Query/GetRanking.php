@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Query;
 
+use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
@@ -45,57 +46,106 @@ final class GetRanking implements ResetInterface
             throw new PlayerNotFound();
         }
 
-        if (isset($this->allForPlayerCache[$playerId])) {
-            return $this->allForPlayerCache[$playerId];
+        return $this->allForPlayerCache[$playerId] ??= $this->rankings($playerId, null);
+    }
+
+    /**
+     * The same ranks as allForPlayer(), only for these puzzles - the rows a list shows (the profile renders 50 of up to
+     * 2,000+ puzzles): 89 -> a few ms on the heaviest profile. Puzzles without a ranked solo time are absent.
+     *
+     * @param list<string> $puzzleIds
+     * @throws PlayerNotFound
+     * @return array<string, PlayerRanking>
+     */
+    public function forPuzzles(string $playerId, array $puzzleIds): array
+    {
+        if (Uuid::isValid($playerId) === false) {
+            throw new PlayerNotFound();
         }
 
+        if ($puzzleIds === []) {
+            return [];
+        }
+
+        if (isset($this->allForPlayerCache[$playerId])) {
+            return array_intersect_key($this->allForPlayerCache[$playerId], array_flip($puzzleIds));
+        }
+
+        return $this->rankings($playerId, array_values(array_unique($puzzleIds)));
+    }
+
+    /**
+     * @param null|list<string> $puzzleIds null = every puzzle the player solved
+     * @return array<string, PlayerRanking>
+     */
+    private function rankings(string $playerId, null|array $puzzleIds): array
+    {
+        $onlyPuzzles = $puzzleIds === null ? '' : 'AND pst.puzzle_id IN (:puzzleIds)';
         $notHidden = $this->hiddenPlayers->sqlExclude('pl.id');
+        $playerNotHidden = $this->hiddenPlayers->sqlExclude('pst.player_id');
         $isPublic = $this->privateProfileAccess->sqlIsPublic('pl');
 
+        // RANK() without a window over everybody: a rank is 1 + the players whose best time is faster, ties share it.
+        // Every other player's best per puzzle comes from custom_pst_solo_board (index only, docs/database-indexes.md);
+        // that index holds times above 0 s - a 0 s time is no time (the web form stores it as none, the Times boards
+        // leave it out too; only the API could store one, and none exists). Heaviest profile (2,159 puzzles, a third of
+        // all solo results): 200-300 -> 89 ms; a 100-puzzle profile: 60 -> 15 ms.
         $query = <<<SQL
-WITH PlayerPuzzles AS (
-    SELECT DISTINCT
-        puzzle_id
+WITH PlayerBest AS MATERIALIZED (
+    -- The ranked player's own best time per puzzle; a player the viewer hides ranks nowhere
+    SELECT
+        pst.player_id,
+        pst.puzzle_id,
+        MIN(pst.seconds_to_solve) AS best_time
     FROM
-        puzzle_solving_time
+        puzzle_solving_time pst
     WHERE
-        player_id = :playerId AND
-        puzzling_type = 'solo'
+        pst.player_id = :playerId
+        AND pst.puzzling_type = 'solo'
+        AND pst.seconds_to_solve IS NOT NULL
+        AND pst.suspicious = false
+        {$onlyPuzzles}
+        {$playerNotHidden}
+    GROUP BY
+        pst.player_id, pst.puzzle_id
 ),
 BestTimes AS (
+    -- Everybody's best time on those puzzles: the puzzle page's pool
     SELECT
         pst.puzzle_id,
         pst.player_id,
         MIN(pst.seconds_to_solve) AS best_time
     FROM
-        puzzle_solving_time pst
-        INNER JOIN PlayerPuzzles pp ON pst.puzzle_id = pp.puzzle_id
+        PlayerBest pb
+        INNER JOIN puzzle_solving_time pst ON pst.puzzle_id = pb.puzzle_id
         INNER JOIN player pl ON pl.id = pst.player_id
     WHERE
         pst.puzzling_type = 'solo'
-        AND pst.seconds_to_solve IS NOT NULL
+        AND pst.seconds_to_solve > 0
         AND pst.suspicious = false
         AND ({$isPublic} OR pl.id = :playerId)
         {$notHidden}
     GROUP BY
         pst.puzzle_id, pst.player_id
 ),
-RankedTimes AS (
-    -- Compute ranks and total players for each puzzle
+Ranks AS (
     SELECT
-        bt.puzzle_id,
-        bt.player_id,
-        bt.best_time,
-        RANK() OVER (PARTITION BY bt.puzzle_id ORDER BY bt.best_time ASC) AS rank,
-        COUNT(bt.player_id) OVER (PARTITION BY bt.puzzle_id) AS total_players
+        pb.player_id,
+        pb.puzzle_id,
+        pb.best_time,
+        1 + COUNT(*) FILTER (WHERE bt.best_time < pb.best_time) AS rank,
+        COUNT(*) AS total_players
     FROM
-        BestTimes bt
+        PlayerBest pb
+        INNER JOIN BestTimes bt ON bt.puzzle_id = pb.puzzle_id
+    GROUP BY
+        pb.player_id, pb.puzzle_id, pb.best_time
 )
 SELECT
-    rt.player_id,
-    rt.rank,
-    rt.total_players,
-    rt.best_time AS time,
+    r.player_id,
+    r.rank,
+    r.total_players,
+    r.best_time AS time,
     p.id AS puzzle_id,
     p.name AS puzzle_name,
     p.pieces_count,
@@ -103,20 +153,26 @@ SELECT
     CASE WHEN p.hide_image_until IS NOT NULL AND p.hide_image_until > :now::timestamp THEN NULL ELSE p.image_ratio END AS puzzle_image_ratio,
     m.name AS manufacturer_name
 FROM
-    RankedTimes rt
-    INNER JOIN puzzle p ON p.id = rt.puzzle_id
+    Ranks r
+    INNER JOIN puzzle p ON p.id = r.puzzle_id
     INNER JOIN manufacturer m ON m.id = p.manufacturer_id
-WHERE
-    rt.player_id = :playerId
 ORDER BY
-    rt.rank
+    r.rank, p.id
 SQL;
 
+        $parameters = [
+            'now' => $this->clock->now()->format('Y-m-d H:i:s'),
+            'playerId' => $playerId,
+        ];
+        $types = [];
+
+        if ($puzzleIds !== null) {
+            $parameters['puzzleIds'] = $puzzleIds;
+            $types['puzzleIds'] = ArrayParameterType::STRING;
+        }
+
         $data = $this->database
-            ->executeQuery($query, [
-                'now' => $this->clock->now()->format('Y-m-d H:i:s'),
-                'playerId' => $playerId,
-            ])
+            ->executeQuery($query, $parameters, $types)
             ->fetchAllAssociative();
 
         $ranking = [];
@@ -139,8 +195,6 @@ SQL;
 
             $ranking[$row['puzzle_id']] = PlayerRanking::fromDatabaseRow($row);
         }
-
-        $this->allForPlayerCache[$playerId] = $ranking;
 
         return $ranking;
     }

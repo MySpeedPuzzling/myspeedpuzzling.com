@@ -1,0 +1,27 @@
+{# Announcement modal "xp_launch_reveal" (docs/features/announcement-modals.md, docs/features/xp-levels/launch-2026-10.md).
+   Stays in the code for good - XpLaunchRevealRule decides who gets it and ResolveAnnouncementModal that nobody gets it
+   twice. The modal is the reveal's first step, the level's chapter: the player puts the last piece into the level
+   medallion and the XP counts up (XpLaunchRevealModal); members continue into their achievements, free players get the
+   member tease (achievements are a membership feature - how many, never which).
+   No "seen" report on opening (no seen-url): for this modal "seen" = the level was revealed, POSTed by the level's
+   puzzle (xp_launch_level_revealed) - the reveal page leaves the level out of its deck then. #}
+<div
+    class="modal fade"
+    tabindex="-1"
+    role="dialog"
+    id="announcement-modal"
+    aria-labelledby="announcement-modal-title"
+    data-controller="autoshow-modal"
+    data-autoshow-modal-name-value="{{ announcement.value }}"
+>
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-body text-center px-3 px-sm-4 pt-2 pb-4">
+                <twig:XpLaunchRevealModal
+                    playerId="{{ logged_user.profile.playerId }}"
+                    :isMember="logged_user.profile.activeMembership"
+                />
+            </div>
+        </div>
+    </div>
+</div>

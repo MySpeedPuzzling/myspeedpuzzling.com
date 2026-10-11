@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller\Admin;
 
 use Symfony\Component\Security\Core\User\UserInterface;
+use SpeedPuzzling\Web\Query\GetProposerTrackRecords;
 use SpeedPuzzling\Web\Query\GetPuzzleChangeRequests;
 use SpeedPuzzling\Web\Security\PuzzleModerationVoter;
 use SpeedPuzzling\Web\Security\AdminAccessVoter;
@@ -19,6 +20,7 @@ final class PuzzleChangeRequestsController extends AbstractController
 {
     public function __construct(
         private readonly GetPuzzleChangeRequests $getPuzzleChangeRequests,
+        private readonly GetProposerTrackRecords $getProposerTrackRecords,
     ) {
     }
 
@@ -44,6 +46,8 @@ final class PuzzleChangeRequestsController extends AbstractController
 
         return $this->render('admin/puzzle_change_requests.html.twig', [
             'requests' => $requests,
+            // Karma (docs/features/karma.md): one statement for the whole page
+            'track_records' => $this->getProposerTrackRecords->forPlayers(array_map(static fn ($request): string => $request->reporterId, $requests)),
             'active_tab' => $tab,
             'counts' => $this->getPuzzleChangeRequests->countByStatus($isAdmin),
         ]);

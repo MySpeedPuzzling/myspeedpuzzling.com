@@ -45,6 +45,7 @@ final class DetailPagesQueryBudgetTest extends WebTestCase
         yield 'series, guest' => [self::HARBOR, null, 3];
         // + the viewer's going/follow rows, the permissions statement and the signed-in overhead (4)
         yield 'series, player' => [self::HARBOR, PlayerFixture::PLAYER_REGULAR, 9];
+        // The same for an admin: the navbar's XP ring reads the viewer's own profile row (no query of its own)
         yield 'series, organiser' => [self::HARBOR, PlayerFixture::PLAYER_ADMIN, 9];
         // Nothing coming: no going counts
         yield 'series without editions, guest' => [self::SUMMIT, null, 2];

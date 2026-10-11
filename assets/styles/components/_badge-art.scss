@@ -1,0 +1,60 @@
+//
+// Achievement badge art
+// --------------------------------------------------
+// <img class="badge-art"> from badge_art() (src/Twig/BadgeArtTwigExtension.php). The picture carries the achievement
+// and its tier itself (F1 seal ladder, public/img/badges/, built by tools/badge-art/); CSS only adds the locked look,
+// the lift of a badge that opens something and the face of a badge its owner has not revealed yet.
+
+.badge-art {
+  display: inline-block;
+  max-width: 100%;
+  height: auto;
+  vertical-align: middle;
+  transition: transform .2s ease;
+}
+
+a:hover > .badge-art,
+a:focus-visible > .badge-art {
+  transform: translateY(-2px);
+}
+
+// Not earned yet, or earned but shown to a member only: grey and faint - the silhouette still tells the tier.
+.badge-art-locked {
+  filter: grayscale(100%);
+  opacity: .45;
+
+  a:hover > &,
+  a:focus-visible > & {
+    transform: none;
+  }
+}
+
+// A badge waiting for membership (free owner's teaser strip): the locked picture with a small lock on its corner.
+.badge-art-waiting {
+  position: relative;
+  display: inline-block;
+  line-height: 0;
+}
+
+.badge-art-waiting-lock {
+  position: absolute;
+  right: 0;
+  bottom: 2px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: $white;
+  color: $headings-color;
+  font-size: .75rem;
+  line-height: 1;
+  box-shadow: 0 1px 4px rgba($black, .2);
+}
+
+// Big picture on the explainer modal and the achievement's own page
+.badge-art-hero {
+  display: block;
+  margin-inline: auto;
+}

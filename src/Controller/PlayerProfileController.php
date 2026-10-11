@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller;
 
 use SpeedPuzzling\Web\Query\GetAffiliateSupporters;
-use SpeedPuzzling\Web\Query\GetBadges;
 use SpeedPuzzling\Web\Query\GetGettingStartedProgress;
 use SpeedPuzzling\Web\Query\GetPlayerProfile;
 use SpeedPuzzling\Web\Query\GetPlayerReviewCounts;
@@ -20,7 +19,6 @@ final class PlayerProfileController extends AbstractController
 {
     public function __construct(
         readonly private GetPlayerProfile $getPlayerProfile,
-        readonly private GetBadges $getBadges,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private GetAffiliateSupporters $getAffiliateSupporters,
         readonly private GetGettingStartedProgress $getGettingStartedProgress,
@@ -70,7 +68,6 @@ final class PlayerProfileController extends AbstractController
             'getting_started' => $gettingStarted,
             'review_counts' => $reviewCounts,
             'player' => $player,
-            'badges' => $this->getBadges->forPlayer($player->playerId),
             'affiliate_supporters' => $affiliateSupporters,
         ]);
     }

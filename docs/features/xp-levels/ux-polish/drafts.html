@@ -1,0 +1,918 @@
+<title>MSP Progression Drafts</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a working document. Left rail of sections on wide screens, phone-sized drafts of the real site
+   (light only, like the site) sitting on a theme-aware page. One colour + one icon per progression family. */
+:root {
+  --bg: #f4f6fa;
+  --surface: #ffffff;
+  --fg: #2b3445;
+  --muted: #5f6a80;
+  --line: #dde3ec;
+  --accent: #d63c42;          /* MSP coral, text-safe shade */
+  --accent-soft: #fde8e8;
+  --note-bg: #fff8e6;
+  --note-line: #f1d48a;
+  /* family colours: shared by doc and drafts */
+  --f-level: #4e54c8;         /* Progress: indigo (existing XP colour) */
+  --f-ach: #b7791f;           /* Collection: metal / amber */
+  --f-comp: #d63c42;          /* Competition: coral */
+  --f-karma: #13876a;         /* Community: teal */
+  --font: "Rubik", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #151a24; --surface: #1d2431; --fg: #e6eaf2; --muted: #a2acbf; --line: #2f3848;
+    --accent: #ff8a8b; --accent-soft: #3a2328; --note-bg: #2e2818; --note-line: #6b5a2a;
+    --f-level: #9da2ff; --f-ach: #e0a84a; --f-comp: #ff8a8b; --f-karma: #4fd1a8;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #151a24; --surface: #1d2431; --fg: #e6eaf2; --muted: #a2acbf; --line: #2f3848;
+  --accent: #ff8a8b; --accent-soft: #3a2328; --note-bg: #2e2818; --note-line: #6b5a2a;
+  --f-level: #9da2ff; --f-ach: #e0a84a; --f-comp: #ff8a8b; --f-karma: #4fd1a8;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font-family: var(--font); font-size: 16px; line-height: 1.55; }
+a { color: var(--accent); }
+.wrap { max-width: 1180px; margin: 0 auto; padding-inline: 20px; padding-block: 32px 80px; display: grid; grid-template-columns: 210px minmax(0, 1fr); gap: 40px; }
+@media (max-width: 900px) { .wrap { grid-template-columns: minmax(0, 1fr); padding-inline: 16px; gap: 0; } .rail { display: none; } }
+.rail nav { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 24px); display: grid; gap: 2px; font-size: 14px; }
+.rail a { color: var(--muted); text-decoration: none; padding: 6px 10px; border-radius: 8px; }
+.rail a:hover, .rail a:focus-visible { background: var(--surface); color: var(--fg); outline: none; }
+.rail .r-label { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); padding: 14px 10px 4px; }
+main { min-width: 0; }
+header.top { padding-bottom: 28px; border-bottom: 1px solid var(--line); margin-bottom: 8px; }
+.eyebrow { font-size: 12px; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+h1 { font-size: clamp(30px, 4.4vw, 44px); line-height: 1.1; font-weight: 600; margin: 8px 0 14px; text-wrap: balance; letter-spacing: -.01em; }
+h2 { font-size: 26px; line-height: 1.2; font-weight: 600; margin: 0 0 10px; text-wrap: balance; }
+h3 { font-size: 18px; font-weight: 600; margin: 0 0 6px; }
+p { margin: 0 0 12px; max-width: 68ch; }
+.lede { font-size: 18px; color: var(--muted); max-width: 64ch; }
+section.s { padding-block: 44px; border-bottom: 1px solid var(--line); scroll-margin-top: 16px; }
+section.s > .num { font-family: var(--mono); font-size: 13px; color: var(--muted); }
+.cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 24px; align-items: start; }
+.stack { display: grid; gap: 14px; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px; min-width: 0; }
+.note { background: var(--note-bg); border: 1px solid var(--note-line); border-radius: 12px; padding: 12px 16px; font-size: 15px; }
+.note strong { font-weight: 600; }
+ul.tight { margin: 6px 0 12px; padding-left: 20px; } ul.tight li { margin: 3px 0; }
+.rec { display: inline-block; font-size: 12px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--f-karma); border: 1px solid currentColor; border-radius: 999px; padding: 1px 8px; margin-left: 6px; vertical-align: 2px; }
+.bug { color: var(--accent); font-weight: 600; }
+.table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 14.5px; }
+th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-weight: 600; font-size: 12px; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); background: var(--bg); }
+tr:last-child td { border-bottom: 0; }
+td.n { font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+code { font-family: var(--mono); font-size: .88em; background: var(--bg); border: 1px solid var(--line); border-radius: 5px; padding: 0 4px; }
+
+/* family chips used in the doc itself */
+.fam { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; }
+.fam svg { width: 18px; height: 18px; }
+.fam.level { color: var(--f-level); } .fam.ach { color: var(--f-ach); } .fam.comp { color: var(--f-comp); } .fam.karma { color: var(--f-karma); }
+
+/* family map */
+.map { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 18px; }
+@media (max-width: 900px) { .map { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 480px) { .map { grid-template-columns: minmax(0, 1fr); } }
+.fcard { background: var(--surface); border: 1px solid var(--line); border-top: 4px solid var(--c); border-radius: 12px; padding: 14px 16px; display: grid; gap: 6px; align-content: start; }
+.fcard .fq { font-size: 13px; color: var(--muted); }
+.fcard .fname { font-size: 17px; font-weight: 600; color: var(--fg); display: flex; gap: 8px; align-items: center; }
+.fcard .fname svg { width: 20px; height: 20px; color: var(--c); flex: none; }
+.fcard .fitems { font-size: 14px; }
+.fcard .fitems b { font-weight: 600; }
+
+/* option switcher */
+.opts { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 16px; }
+.opts button { font: inherit; font-size: 14px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); border-radius: 999px; padding: 7px 14px; cursor: pointer; min-height: 40px; }
+.opts button[aria-pressed="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+.opts button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* ================= Phone drafts: the real site, light only ================= */
+.drafts { display: flex; flex-wrap: wrap; gap: 28px; align-items: flex-start; }
+.dcol { display: grid; gap: 10px; width: min(360px, 100%); }
+.dcap { font-size: 14px; color: var(--muted); }
+.dcap b { color: var(--fg); font-weight: 600; }
+.phone {
+  --m-bg: #ffffff; --m-soft: #f3f5f9; --m-line: #e3e9ef; --m-text: #4b566b; --m-head: #373f50; --m-muted: #7d879c;
+  --m-coral: #fe696a; --m-coral-text: #d63c42; --m-indigo: #4e54c8; --m-amber: #b7791f; --m-teal: #13876a; --m-sky: #69b3fe;
+  width: 100%; background: var(--m-bg); color: var(--m-text); border: 1px solid var(--line); border-radius: 26px;
+  overflow: hidden; box-shadow: 0 1px 0 var(--line), 0 18px 40px -24px rgba(20, 30, 50, .45); font-size: 14px; line-height: 1.45;
+  color-scheme: light;
+}
+.phone .bar { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-bottom: 1px solid var(--m-line); background: var(--m-bg); }
+.phone .logo { font-weight: 700; color: var(--m-head); font-size: 14px; letter-spacing: -.01em; }
+.phone .logo span { color: var(--m-coral); }
+.phone .bar .me { width: 30px; height: 30px; border-radius: 50%; background: #dfe6f0; border: 2px solid var(--m-indigo); }
+.phone .body { padding: 14px; display: grid; gap: 12px; }
+.phone h4 { margin: 0; color: var(--m-head); font-size: 19px; font-weight: 600; line-height: 1.25; }
+.phone h5 { margin: 0; color: var(--m-head); font-size: 15px; font-weight: 600; }
+.phone .sub { color: var(--m-muted); font-size: 13px; }
+.phone .card { border: 1px solid var(--m-line); border-radius: 14px; background: var(--m-bg); }
+.phone .btn { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 16px; border-radius: 10px; font-weight: 500; font-size: 14px; border: 1px solid var(--m-line); color: var(--m-head); background: var(--m-bg); }
+.phone .btn.primary { background: var(--m-coral); border-color: var(--m-coral); color: #2b1416; }
+.phone .btn.block { width: 100%; }
+.phone .row { display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 8px 14px; border-top: 1px solid var(--m-line); }
+.phone .row:first-child { border-top: 0; }
+.phone .row .grow { flex: 1; min-width: 0; }
+.phone .row .t { color: var(--m-head); font-weight: 500; }
+.phone .row .s { font-size: 12.5px; color: var(--m-muted); }
+.phone .chev { color: #aeb4be; flex: none; }
+.phone .ico { width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; flex: none; }
+.phone .ico svg { width: 20px; height: 20px; }
+.phone .ico.level { background: #ecedfb; color: var(--m-indigo); }
+.phone .ico.ach { background: #fbf1df; color: var(--m-amber); }
+.phone .ico.comp { background: #ffeaea; color: var(--m-coral-text); }
+.phone .ico.karma { background: #e1f3ed; color: var(--m-teal); }
+.phone .pbar { height: 6px; background: var(--m-soft); border-radius: 99px; overflow: hidden; margin-top: 5px; }
+.phone .pbar i { display: block; height: 100%; background: var(--c, var(--m-indigo)); border-radius: inherit; }
+.phone .chip { display: inline-flex; align-items: center; gap: 5px; border-radius: 999px; padding: 3px 10px; font-size: 12.5px; font-weight: 500; white-space: nowrap; border: 1px solid transparent; }
+.phone .chip svg { width: 14px; height: 14px; }
+.phone .chip.level { background: #ecedfb; color: #3a3fa8; }
+.phone .chip.rank { background: #fff1e6; color: #a2501a; }
+.phone .chip.comp { background: #ffeaea; color: #b8323a; }
+.phone .chip.karma { background: #e1f3ed; color: #0f6e56; }
+.phone .chip.ach { background: #fbf1df; color: #8a5a12; }
+.phone .chip.ghost { border-color: var(--m-line); color: var(--m-text); background: var(--m-bg); }
+.phone .chip.lock { background: var(--m-soft); color: var(--m-muted); }
+.phone .num { font-variant-numeric: tabular-nums; }
+.phone .plus { color: var(--m-indigo); font-weight: 600; }
+.phone .muted { color: var(--m-muted); }
+.phone .seg { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
+.phone .seg span { flex: none; min-height: 36px; display: inline-flex; align-items: center; padding: 0 12px; border-radius: 999px; border: 1px solid var(--m-line); font-size: 13px; color: var(--m-text); }
+.phone .seg span.on { background: var(--m-head); color: #fff; border-color: var(--m-head); }
+.phone .badge-img { width: 44px; height: 44px; flex: none; }
+.phone .badge-img.lg { width: 56px; height: 56px; }
+.phone .hint { font-size: 12px; color: var(--m-muted); }
+.phone .sheet { border-top-left-radius: 18px; border-top-right-radius: 18px; box-shadow: 0 -10px 30px -12px rgba(20,30,50,.35); background: var(--m-bg); padding: 10px 16px 16px; display: grid; gap: 10px; }
+.phone .grab { width: 40px; height: 4px; border-radius: 4px; background: #dae1e7; margin: 0 auto 4px; }
+.phone .dim { background: #2b3445; padding-top: 120px; }
+.phone .dim .ghostpage { opacity: .35; padding: 0 14px 10px; color: #fff; font-size: 13px; }
+/* avatar with level ring */
+.phone .av { --p: .62; width: 64px; height: 64px; border-radius: 50%; padding: 4px; flex: none; position: relative;
+  background: conic-gradient(var(--m-indigo) calc(var(--p) * 360deg), #e3e6f6 0); }
+.phone .av > div { width: 100%; height: 100%; border-radius: 50%; background: linear-gradient(140deg, #f6d8c2, #d9a98f); border: 3px solid #fff; }
+.phone .av .lv { position: absolute; left: 50%; bottom: -8px; transform: translateX(-50%); background: var(--m-indigo); color: #fff; font-size: 11px; font-weight: 600; border-radius: 999px; padding: 1px 7px; border: 2px solid #fff; white-space: nowrap; }
+.phone .showcase { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding: 2px 0; }
+.phone .showcase img { width: 52px; height: 52px; flex: none; }
+.phone .ann { outline: 2px dashed #f34770; outline-offset: 2px; border-radius: 8px; position: relative; }
+.phone .ann::after { content: attr(data-n); position: absolute; top: -10px; right: -8px; background: #f34770; color: #fff; font-size: 11px; font-weight: 700; width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; }
+.phone table { font-size: 13px; }
+.phone .lb { display: grid; }
+.phone .lb .r { display: grid; grid-template-columns: 30px 28px minmax(0, 1fr) auto; align-items: center; gap: 10px; min-height: 48px; padding: 0 14px; border-top: 1px solid var(--m-line); }
+.phone .lb .r:first-child { border-top: 0; }
+.phone .lb .pl { font-variant-numeric: tabular-nums; color: var(--m-muted); font-weight: 500; text-align: right; }
+.phone .lb .a { width: 28px; height: 28px; border-radius: 50%; background: #dfe6f0; }
+.phone .lb .nm { color: var(--m-head); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.phone .lb .v { font-variant-numeric: tabular-nums; color: var(--m-head); font-weight: 600; }
+.phone .lb .r.me { background: #fff5f5; position: sticky; bottom: 0; border-top: 2px solid var(--m-coral); }
+.phone .mail { background: #f3f5f9; padding: 14px; }
+.phone .mail .paper { background: #fff; border-radius: 10px; padding: 18px 16px; display: grid; gap: 12px; border: 1px solid var(--m-line); }
+.phone .mail .stat { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; text-align: center; }
+.phone .mail .stat div { background: var(--m-soft); border-radius: 8px; padding: 8px 4px; }
+.phone .mail .stat b { display: block; font-size: 18px; color: var(--m-head); font-variant-numeric: tabular-nums; }
+.phone .mail .stat span { font-size: 11.5px; color: var(--m-muted); }
+.phone .mail .foot { font-size: 11.5px; color: #6b7488; text-align: center; }
+.phone .mail .foot u { color: #6b7488; }
+.phone .x { font-size: 12px; }
+.phone .tiers { display: flex; gap: 4px; }
+.phone .tiers i { width: 18px; height: 6px; border-radius: 3px; background: var(--m-soft); }
+.phone .tiers i.on { background: var(--m-amber); }
+.phone .lockline { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--m-muted); }
+.phone .mod { display: grid; gap: 8px; padding: 12px 14px; }
+.phone .diff { font-family: var(--mono); font-size: 12px; background: var(--m-soft); border-radius: 8px; padding: 8px 10px; color: var(--m-head); }
+.phone .diff del { color: #b8323a; } .phone .diff ins { color: #0f6e56; text-decoration: none; }
+
+/* annotation list under drafts */
+ol.anns { margin: 0; padding-left: 22px; font-size: 14.5px; display: grid; gap: 4px; }
+ol.anns li::marker { color: #f34770; font-weight: 700; }
+
+/* decisions */
+.dec { display: grid; gap: 10px; counter-reset: d; }
+.dec > div { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; display: grid; gap: 6px; }
+.dec h3 { display: flex; gap: 10px; align-items: baseline; }
+.dec h3::before { counter-increment: d; content: "D" counter(d); font-family: var(--mono); font-size: 13px; color: var(--accent); }
+.dec .choice { font-size: 15px; }
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-level" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-dasharray="38 60" stroke-linecap="round" transform="rotate(-90 12 12)"/><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-opacity=".25" stroke-width="2.4"/><path d="M12 8.2v7.6M8.6 11.4 12 8.2l3.4 3.2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-ach" viewBox="0 0 24 24"><path d="M8 2.8h8l-1.6 5.4H9.6z" fill="currentColor" opacity=".45"/><circle cx="12" cy="14.6" r="6.3" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="m12 11.4 1 2 2.2.3-1.6 1.5.4 2.2-2-1-2 1 .4-2.2-1.6-1.5 2.2-.3z" fill="currentColor"/></symbol>
+  <symbol id="i-comp" viewBox="0 0 24 24"><circle cx="12" cy="13.5" r="7.5" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M12 13.5V9.6M10 2.8h4M18.4 6.9l1.3-1.3" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol>
+  <symbol id="i-rank" viewBox="0 0 24 24"><path d="M12 2.8 20 7.4v9.2l-8 4.6-8-4.6V7.4z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><path d="m8.4 13.2 3.6-3.4 3.6 3.4" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-karma" viewBox="0 0 24 24"><path d="M12 20.2s-7.4-4.4-7.4-10a4.1 4.1 0 0 1 7.4-2.4 4.1 4.1 0 0 1 7.4 2.4c0 5.6-7.4 10-7.4 10z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><path d="M9 11.6h6M12 8.6v6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+</svg>
+
+<div class="wrap">
+<aside class="rail" aria-label="Sections">
+  <nav>
+    <div class="r-label">The model</div>
+    <a href="#model">Five concepts, four families</a>
+    <a href="#karma">Karma</a>
+    <a href="#names">Names</a>
+    <div class="r-label">Drafts</div>
+    <a href="#hub">"How it works" hub</a>
+    <a href="#recap">After logging a time</a>
+    <a href="#profile">Profile header</a>
+    <a href="#achievements">Achievements</a>
+    <a href="#leaderboards">Leaderboards</a>
+    <a href="#digest">Weekly e-mail</a>
+    <a href="#moderation">Karma in moderation</a>
+    <div class="r-label">Wrap-up</div>
+    <a href="#fixes">Fix before launch</a>
+    <a href="#rollout">Rollout</a>
+    <a href="#decisions">Decisions for Jan</a>
+  </nav>
+</aside>
+
+<main>
+<header class="top">
+  <div class="eyebrow">MySpeedPuzzling · XP, achievements and karma · drafts for review · 10 Oct 2026</div>
+  <h1>Five ways to make progress, and how to show them without the noise</h1>
+  <p class="lede">The progression system now reaches 74 places on the site, e-mails and API. These drafts show how XP, achievements, karma, the MSP Rating and skill tiers can sit together, one clear home each, on a 375 px phone first.</p>
+  <p class="lede" style="font-size:15px">Built from three studies done today: an inventory of every progression touch point on PR #128, a karma simulation on the dev database (a production copy from 25 Sept), and published research on gamification. Drafts are static mock-ups with made-up names and realistic numbers.</p>
+</header>
+
+<!-- ============================ MODEL ============================ -->
+<section class="s" id="model">
+  <div class="num">01</div>
+  <h2>Five concepts, four families</h2>
+  <p>Players can hold about four ideas at once. The MSP Rating and the skill tier both measure speed (this season, and all time), so they belong to one family. That leaves four questions a player can ask, each with one colour and one icon used everywhere. <b>Each family is fed by one kind of activity only</b>: nothing converts into anything else.</p>
+  <div class="map">
+    <div class="fcard" style="--c: var(--f-level)">
+      <div class="fq">How much have I puzzled?</div>
+      <div class="fname"><svg><use href="#i-level"/></svg>Progress</div>
+      <div class="fitems"><b>XP and Level</b> 1–50. Only from logged puzzles. Never competes. Free.</div>
+    </div>
+    <div class="fcard" style="--c: var(--f-ach)">
+      <div class="fq">What have I done?</div>
+      <div class="fname"><svg><use href="#i-ach"/></svg>Collection</div>
+      <div class="fitems"><b>Achievements</b> Bronze → Diamond and <b>Achievement Points</b>. For hunters. AP shown to members.</div>
+    </div>
+    <div class="fcard" style="--c: var(--f-comp)">
+      <div class="fq">How fast am I?</div>
+      <div class="fname"><svg><use href="#i-comp"/></svg>Competition</div>
+      <div class="fitems"><b>MSP Rating</b> (seasonal, coming separately) and <b>Skill tier</b> Enthusiast → Legend (all-time).</div>
+    </div>
+    <div class="fcard" style="--c: var(--f-karma)">
+      <div class="fq">How have I helped?</div>
+      <div class="fname"><svg><use href="#i-karma"/></svg>Community</div>
+      <div class="fitems"><b>Karma</b>. 1 per accepted contribution to the database. Public, free, gives no XP.</div>
+    </div>
+  </div>
+  <div class="cols" style="margin-top:22px">
+    <div class="panel">
+      <h3>Rules that keep it calm</h3>
+      <ul class="tight">
+        <li>Each concept has <b>one home</b>; everywhere else it is at most a small chip that links home.</li>
+        <li><b>Never all five on one card.</b> Player cards get Level + skill tier; the profile gets the rest.</li>
+        <li>The metal names Bronze → Diamond belong to achievements only.</li>
+        <li>Every chip's "?" opens the matching card of the "How it works" hub.</li>
+      </ul>
+    </div>
+    <div class="panel" style="border-color:var(--f-level)">
+      <h3>No more XP from achievements? <span class="rec">recommended</span></h3>
+      <p style="font-size:15px">Today every achievement tier also pays its AP value in XP (5/10/25/50/100). Dropping that makes the rule "XP = puzzling, AP = achievements, karma = helping" true without exceptions.</p>
+      <ul class="tight" style="font-size:14.5px">
+        <li>Free players earn XP from achievements they cannot see today. That goes away.</li>
+        <li>The launch deck shows "+AP" per badge instead of "+XP"; the counter is puzzle XP from the start.</li>
+        <li>Delete <code>XpReason::Achievement</code> entries (a recompute already exists), drop the grant in <code>BadgeEvaluator</code>.</li>
+        <li><b>Check the level curve</b>: Level 50 = 3,160 XP was tuned with achievement XP in it. Without it veterans reach levels later; re-run the curve on the dev data before deciding the thresholds.</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <h3>What exists in code today</h3>
+      <ul class="tight">
+        <li><span class="fam level"><svg><use href="#i-level"/></svg>XP / Level</span>: built on PR #128, behind the <code>xp-system</code> flag.</li>
+        <li><span class="fam ach"><svg><use href="#i-ach"/></svg>Achievements</span>: 16 tiered + Early Adopter, AP in <code>player.achievement_points</code>.</li>
+        <li><span class="fam comp"><svg><use href="#i-comp"/></svg>Competition</span> = the <b>MSP Rating</b> (500 pc, becomes seasonal in its own project) + the <b>skill tier</b> (stays). Out of scope here except for placement.</li>
+        <li><span class="fam karma"><svg><use href="#i-karma"/></svg>Karma</span>: not built. Librarian and Cataloger achievements already reward the same work.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ KARMA ============================ -->
+<section class="s" id="karma">
+  <div class="num">02</div>
+  <h2>Karma: 1 per accepted contribution</h2>
+  <p>Catalogue work is the one valuable activity that earns nothing today, and the catalogue is what nobody else has. Karma gives credit to the people doing it: a precise, public count of who helped, nothing to spend and no XP.</p>
+  <div class="table-wrap" style="margin:14px 0 18px">
+    <table>
+      <thead><tr><th>Contribution (dev DB, admins excluded)</th><th class="n">Total</th><th class="n">People</th><th>Outcome</th></tr></thead>
+      <tbody>
+        <tr><td>New puzzles added (box photo required)</td><td class="n">41,226</td><td class="n">3,714</td><td>approved, 659 pending, 26 merged away</td></tr>
+        <tr><td>Change proposals</td><td class="n">1,624</td><td class="n">334</td><td>931 approved · 21 rejected · 672 pending</td></tr>
+        <tr><td>Merge proposals</td><td class="n">615</td><td class="n">175</td><td>360 approved · 11 rejected · 244 pending</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="cols">
+    <div class="panel">
+      <h3>What earns 1 karma <span class="rec">decided</span></h3>
+      <div class="table-wrap" style="margin-top:8px">
+        <table>
+          <tbody>
+            <tr><td>A change proposal accepted</td><td class="n">1</td></tr>
+            <tr><td>A duplicate report merged</td><td class="n">1</td></tr>
+            <tr><td>A new puzzle <b>with an EAN</b></td><td class="n">1</td></tr>
+            <tr><td>A moderator decision (accept or decline)</td><td class="n">1</td></tr>
+            <tr><td>A moderator's direct edit</td><td class="n">1</td></tr>
+            <tr><td>A moderator deciding their own proposal</td><td class="n">1 in total</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <ul class="tight" style="margin-top:10px;font-size:14.5px">
+        <li>No caps, no weights. Declined work never takes karma away.</li>
+        <li>No events in v1. No XP, ever.</li>
+        <li>Free and public for everyone, with a public karma list.</li>
+      </ul>
+      <div id="karma-sim"><div style="margin-top:14px"><h3 style="font-size:16px">Your rule on the data</h3>
+        <div class="table-wrap" style="margin-top:6px"><table>
+          <thead><tr><th></th><th class="n">≥ 1</th><th class="n">≥ 10</th><th class="n">≥ 50</th><th class="n">≥ 100</th></tr></thead>
+          <tbody>
+            <tr><td>All time</td><td class="n">2,952</td><td class="n">543</td><td class="n">75</td><td class="n">24</td></tr>
+            <tr><td>Last 12 months</td><td class="n">1,966</td><td class="n">299</td><td class="n">35</td><td class="n">10</td></tr>
+          </tbody></table></div>
+        <p style="font-size:14px;margin-top:8px">36 % of last year's active puzzlers would hold karma; median 3. 59 % of new puzzles carry an EAN, so the EAN rule trims puzzle karma by about 44 % without making it rare.</p>
+        <p class="note" style="font-size:14px;margin:8px 0 0"><strong>95 % of all karma would come from adding puzzles</strong> (22,589 of 23,841). Fixes and merges are ~1,250 points across ~250 people, and would be invisible in one total. The drafts therefore always show karma <b>with its breakdown</b>, and the public list can be filtered by kind (<a href="#leaderboards">draft</a>). Moderator decisions are not in this dev copy (25 Sept).</p></div></div>
+    </div>
+    <div class="panel">
+      <h3>A puzzle that turns out to be a duplicate</h3>
+      <p style="font-size:15px">When two puzzles are merged later, both adders got 1 karma for "the same" puzzle. Proposal: <b>the first one to add it keeps the credit</b>.</p>
+      <ul class="tight" style="font-size:14.5px">
+        <li>Because karma is calculated from the records, this happens by itself on the next recalculation: the later copy stops counting, the earlier one keeps its point, and whoever reported the duplicate gets 1.</li>
+        <li>Who added a merged-away puzzle is known from <code>puzzle_merge_audit</code> (since 16 Sept). Older merges: the surviving puzzle's adder keeps it.</li>
+        <li>No notice and no minus line. The karma history shows "merged into a puzzle added earlier" in grey, so the drop is explained if someone looks.</li>
+        <li>Accepted change proposals on a puzzle that is later merged keep their karma (they move with the merge and were real work).</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <h3>Calculated, not collected</h3>
+      <ul class="tight" style="font-size:14.5px">
+        <li>Derived from change and merge requests, puzzles, the merge audit and the append-only decision log, then stored on <code>player.karma</code> for lists, like AP.</li>
+        <li>A backfill command fills it once; the same command repairs drift. A daily run is a safety net; accepted decisions update the two people involved at once.</li>
+        <li>Proposals filed through the internal API are credited to the admin player today: admins are left out of karma and its list.</li>
+      </ul>
+      <p class="note" style="margin:10px 0 0;font-size:14px"><strong>Karma has a second job:</strong> moderators see the proposer's karma and acceptance rate next to each request (<a href="#moderation">draft</a>). With ~670 suggestions waiting, that is where it saves the most time.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ NAMES ============================ -->
+<section class="s" id="names">
+  <div class="num">03</div>
+  <h2>One word, one meaning</h2>
+  <p>With the MSP Rating and the skill tier keeping their names, most collisions go away. What is left: "badges" next to "Achievements", "Rank" used for a position, and one page called both Ladder and Leaderboard.</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Concept</th><th>Today in the UI</th><th>Use</th></tr></thead>
+      <tbody>
+        <tr><td><span class="fam level"><svg><use href="#i-level"/></svg>Progress</span></td><td>"Lv 12", "Level", "XP Leaderboard", "XP ladder"</td><td><b>XP</b> · <b>Level 12</b>, chip "Lv 12"</td></tr>
+        <tr><td><span class="fam ach"><svg><use href="#i-ach"/></svg>Collection</span></td><td>"Achievements", "badges" (e-mail subject, URLs, membership page), "Achievement Points", "AP"</td><td><b>Achievements</b> · <b>Achievement Points (AP)</b>; "badge" only for the picture, never in copy</td></tr>
+        <tr><td><span class="fam comp"><svg><use href="#i-comp"/></svg>Competition</span></td><td>"MSP Rating", "MSP Rating Ranking", "Skill tier", "Skill Tier", "Tier", "Skill Profile", "Player Insights"</td><td><b>MSP Rating</b> · <b>Skill tier</b> (sentence case, one spelling)</td></tr>
+        <tr><td>Positions</td><td>"Rank 3 of 40", "Your Ranking", "#12 of 340"</td><td><b>#3 of 40</b>, heading "Your place"</td></tr>
+        <tr><td><span class="fam karma"><svg><use href="#i-karma"/></svg>Community</span></td><td>—</td><td><b>Karma</b> <span class="rec">decided</span></td></tr>
+        <tr><td>Boards</td><td>"Leaderboard" (nav) on <code>/ladder</code>, "MSP Rating Ladder", "XP Leaderboard", "Achievement Points Ladder"</td><td><b>Leaderboards</b> everywhere, one page with tabs</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p style="margin-top:12px;font-size:14.5px">The AP chip currently uses the same indigo pill as the level chip, so "120 AP" reads like "Lv 12". Each family keeps its own colour and icon, chips included.</p>
+</section>
+
+<!-- ============================ HUB ============================ -->
+<section class="s" id="hub">
+  <div class="num">04</div>
+  <h2>"How it works" hub</h2>
+  <p>One page, linked from every "?" and from the footer's Learn column, replacing the separate "How XP works" and the progression half of the methodology page. Each card says what it measures in two lines; tapping opens the deep page.</p>
+  <div class="opts" role="group" aria-label="Hub layout" data-for="hub">
+    <button type="button" aria-pressed="true" data-opt="a">A · Grouped list <span class="rec" style="margin-left:2px">pick</span></button>
+    <button type="button" aria-pressed="false" data-opt="b">B · 2 × 2 grid</button>
+  </div>
+  <div class="drafts">
+    <div class="dcol" data-group="hub" data-opt="a">
+      <div class="phone">
+        <div class="bar"><span class="logo">MySpeed<span>Puzzling</span></span><span class="me"></span></div>
+        <div class="body">
+          <div><h4>How progress works</h4><div class="sub">Five things grow as you puzzle. Each answers a different question.</div></div>
+          <div class="card">
+            <div class="row"><span class="ico level"><svg><use href="#i-level"/></svg></span><div class="grow"><div class="t">Level &amp; XP</div><div class="s">Every puzzle you log adds XP. Bigger and harder ones add more. Only puzzling counts.</div></div><svg class="chev" width="18" height="18"><use href="#i-chev"/></svg></div>
+            <div class="row"><span class="ico ach"><svg><use href="#i-ach"/></svg></span><div class="grow"><div class="t">Achievements</div><div class="s">17 goals to hunt, Bronze to Diamond: brands, streaks, first tries, teams. They earn Achievement Points.</div></div><svg class="chev" width="18" height="18"><use href="#i-chev"/></svg></div>
+          </div>
+          <div class="hint" style="margin:-2px 2px -6px;font-weight:500;letter-spacing:.06em;text-transform:uppercase">Against the clock</div>
+          <div class="card">
+            <div class="row"><span class="ico comp"><svg><use href="#i-comp"/></svg></span><div class="grow"><div class="t">MSP Rating</div><div class="s">Your speed on 500-piece puzzles against everyone. Seasons are coming.</div></div><svg class="chev" width="18" height="18"><use href="#i-chev"/></svg></div>
+            <div class="row"><span class="ico comp"><svg><use href="#i-rank"/></svg></span><div class="grow"><div class="t">Skill tier</div><div class="s">Your skill for a piece count, Enthusiast to Legend, from all your times.</div></div><svg class="chev" width="18" height="18"><use href="#i-chev"/></svg></div>
+          </div>
+          <div class="hint" style="margin:-2px 2px -6px;font-weight:500;letter-spacing:.06em;text-transform:uppercase">For everyone</div>
+          <div class="card">
+            <div class="row"><span class="ico karma"><svg><use href="#i-karma"/></svg></span><div class="grow"><div class="t">Karma</div><div class="s">One point for every accepted contribution to the puzzle database. Shows who helps.</div></div><svg class="chev" width="18" height="18"><use href="#i-chev"/></svg></div>
+          </div>
+          <div class="card" style="padding:12px 14px;background:#f6f9fc">
+            <div class="t" style="color:#373f50;font-weight:500">Which is which?</div>
+            <div class="s" style="font-size:13px;color:#4b566b">XP rewards puzzling. Achievements reward variety. MSP Rating and skill tier reward speed. Karma credits helping. None of them turns into another.</div>
+          </div>
+        </div>
+      </div>
+      <div class="dcap"><b>A.</b> Doubles as a table of contents and a glossary. Group labels carry the families; the last card answers "which is which" in one sentence.</div>
+    </div>
+    <div class="dcol" data-group="hub" data-opt="b" hidden>
+      <div class="phone">
+        <div class="bar"><span class="logo">MySpeed<span>Puzzling</span></span><span class="me"></span></div>
+        <div class="body">
+          <div><h4>How progress works</h4><div class="sub">Tap a card to learn more.</div></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div class="card" style="padding:12px;display:grid;gap:6px;border-top:4px solid #4e54c8"><span class="ico level"><svg><use href="#i-level"/></svg></span><div class="t" style="color:#373f50;font-weight:600">Level</div><div class="s" style="font-size:12.5px;color:#7d879c">How much you puzzle</div><div class="chip level" style="justify-self:start">You: Lv 12</div></div>
+            <div class="card" style="padding:12px;display:grid;gap:6px;border-top:4px solid #b7791f"><span class="ico ach"><svg><use href="#i-ach"/></svg></span><div class="t" style="color:#373f50;font-weight:600">Achievements</div><div class="s" style="font-size:12.5px;color:#7d879c">What you have done</div><div class="chip ach" style="justify-self:start">11 of 17</div></div>
+            <div class="card" style="padding:12px;display:grid;gap:6px;border-top:4px solid #d63c42"><span class="ico comp"><svg><use href="#i-comp"/></svg></span><div class="t" style="color:#373f50;font-weight:600">Rating &amp; tier</div><div class="s" style="font-size:12.5px;color:#7d879c">How fast you are</div><div class="chip comp" style="justify-self:start">#14 · Expert</div></div>
+            <div class="card" style="padding:12px;display:grid;gap:6px;border-top:4px solid #13876a"><span class="ico karma"><svg><use href="#i-karma"/></svg></span><div class="t" style="color:#373f50;font-weight:600">Karma</div><div class="s" style="font-size:12.5px;color:#7d879c">How you help</div><div class="chip karma" style="justify-self:start">37</div></div>
+          </div>
+          <div class="hint">Signed in: each card shows your own value. Guests see an example.</div>
+        </div>
+      </div>
+      <div class="dcap"><b>B.</b> Shows the player's own numbers, so it also works as a personal dashboard. Hides the rating / tier split one level deeper.</div>
+    </div>
+    <div class="dcol">
+      <div class="phone">
+        <div class="bar"><span class="logo">MySpeed<span>Puzzling</span></span><span class="me"></span></div>
+        <div class="body">
+          <div class="hint">How progress works ›</div>
+          <div style="display:flex;gap:12px;align-items:center"><span class="ico karma" style="width:48px;height:48px;border-radius:14px"><svg style="width:26px;height:26px"><use href="#i-karma"/></svg></span><div><h4>Karma</h4><div class="sub">Thanks for keeping the database right</div></div></div>
+          <div class="card" style="padding:14px;display:grid;gap:8px">
+            <div style="display:flex;justify-content:space-between;align-items:baseline"><span class="t" style="color:#373f50;font-weight:500">Your karma</span><b class="num" style="font-size:24px;color:#13876a">37</b></div>
+            <div class="s" style="color:#7d879c;font-size:13px">21 new puzzles · 12 accepted changes · 4 merged duplicates · #212 of 3,600</div>
+          </div>
+          <h5>What counts</h5>
+          <div class="card">
+            <div class="row"><div class="grow"><div class="t">A new puzzle with its EAN</div><div class="s">the barcode makes it findable by scanning</div></div><b class="num" style="color:#13876a">+1</b></div>
+            <div class="row"><div class="grow"><div class="t">A suggested change</div><div class="s">once a moderator accepts it</div></div><b class="num" style="color:#13876a">+1</b></div>
+            <div class="row"><div class="grow"><div class="t">A reported duplicate</div><div class="s">once the puzzles are merged</div></div><b class="num" style="color:#13876a">+1</b></div>
+          </div>
+          <div class="s" style="font-size:13px;color:#4b566b">Declined suggestions never take karma away. Karma is credit, not a currency: it buys nothing and gives no XP.</div>
+          <a class="btn block">Find a puzzle to improve</a>
+        </div>
+      </div>
+      <div class="dcap"><b>Deep page</b>, one per card. Same shape for all five: your value, what counts, what it is not, a next step. Moderators also see "Decisions +1".</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ RECAP ============================ -->
+<section class="s" id="recap">
+  <div class="num">05</div>
+  <h2>After logging a time</h2>
+  <p>The most important moment, and today the noisiest. On a phone the XP receipt sits below a 320 px share image, a full-screen level-up covers the page (in week one on almost every solve, again after every reload), the badge toast sits far below the fold, and five progression blocks compete with "Add another time".</p>
+  <div class="opts" role="group" aria-label="Recap layout" data-for="recap">
+    <button type="button" aria-pressed="false" data-opt="now">Today</button>
+    <button type="button" aria-pressed="true" data-opt="a">A · One progress card <span class="rec" style="margin-left:2px">pick</span></button>
+    <button type="button" aria-pressed="false" data-opt="b">B · Strip + sheet</button>
+  </div>
+  <div class="drafts">
+    <div class="dcol" data-group="recap" data-opt="now" hidden>
+      <div class="phone">
+        <div class="dim">
+          <div class="ghostpage">Time added! · Neuschwanstein Castle · 500 pc · 42:17<br>[ Add another ] [ Share ] [ Collections ]</div>
+          <div style="background:linear-gradient(160deg,#4e54c8,#7a6ff0);color:#fff;padding:40px 18px 34px;text-align:center;display:grid;gap:10px;justify-items:center" class="ann" data-n="1">
+            <div style="font-size:13px;letter-spacing:.1em;text-transform:uppercase;opacity:.85">Level up!</div>
+            <div style="font-size:54px;font-weight:700;line-height:1">7</div>
+            <div style="font-size:14px;opacity:.9">Tap anywhere to continue</div>
+          </div>
+          <div class="ghostpage" style="padding-top:14px">[ 320 px share image ]<br>Your XP for this solve ▸ 9 lines, ~400 px<br>New achievement! (static toast)<br>Your Ranking · Your Overall Progress</div>
+        </div>
+      </div>
+      <div class="dcap"><b>Today.</b></div>
+      <ol class="anns"><li>Full-screen overlay on a page marked "quiet" in our own announcement rules; replays on reload/back; closing needs a server round trip. The receipt, toast and two ranking cards sit below the image.</li></ol>
+    </div>
+    <div class="dcol" data-group="recap" data-opt="a">
+      <div class="phone">
+        <div class="bar"><span class="logo">MySpeed<span>Puzzling</span></span><span class="me"></span></div>
+        <div class="body">
+          <div><div class="sub" style="color:#13876a;font-weight:500">✓ Time saved</div><h4>Neuschwanstein Castle</h4><div class="sub">Ravensburger · 500 pc · <b class="num" style="color:#373f50">42:17</b> · first try</div></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><a class="btn primary">Add another</a><a class="btn">Share</a></div>
+          <div class="card">
+            <div class="row" style="min-height:60px">
+              <span class="ico level"><svg><use href="#i-level"/></svg></span>
+              <div class="grow"><div class="t">Level 12 <span class="plus">+11 XP</span></div><div class="pbar"><i style="width:62%"></i></div><div class="s">8 of 13 XP to Level 13 · this week's boost 3 of 5</div></div>
+              <svg class="chev" width="18" height="18"><use href="#i-chev"/></svg>
+            </div>
+            <div class="row">
+              <span class="ico comp"><svg><use href="#i-comp"/></svg></span>
+              <div class="grow"><div class="t">#3 of 40 on this puzzle</div><div class="s">Faster than 95 % · 1:12 to #2</div></div>
+              <svg class="chev" width="18" height="18"><use href="#i-chev"/></svg>
+            </div>
+            <div class="row">
+              <img class="badge-img" src="B:puzzles_solved-t3" alt="">
+              <div class="grow"><div class="t">Puzzle Explorer · Gold</div><div class="s">New achievement · 500 different puzzles</div></div>
+              <svg class="chev" width="18" height="18"><use href="#i-chev"/></svg>
+            </div>
+            <div class="row">
+              <span class="ico comp"><svg><use href="#i-rank"/></svg></span>
+              <div class="grow"><div class="t">MSP Rating #14 in Czechia <span style="color:#13876a">↑3</span></div><div class="s">Skill tier Expert · 6 results to Master</div></div>
+              <svg class="chev" width="18" height="18"><use href="#i-chev"/></svg>
+            </div>
+          </div>
+          <div class="hint">[ share image, prediction and history follow below ]</div>
+        </div>
+      </div>
+      <div class="dcap"><b>A.</b> One card, right under the actions, one line per thing that moved. Lines appear only when they changed; each opens its detail (the XP receipt is one tap away, not on the page).</div>
+    </div>
+    <div class="dcol" data-group="recap" data-opt="b" hidden>
+      <div class="phone">
+        <div class="bar"><span class="logo">MySpeed<span>Puzzling</span></span><span class="me"></span></div>
+        <div class="body" style="padding-bottom:0">
+          <div><div class="sub" style="color:#13876a;font-weight:500">✓ Time saved</div><h4>Neuschwanstein Castle</h4><div class="sub">Ravensburger · 500 pc · <b class="num" style="color:#373f50">42:17</b></div></div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap"><span class="chip level"><svg><use href="#i-level"/></svg>+11 XP</span><span class="chip comp"><svg><use href="#i-comp"/></svg>#3 of 40</span><span class="chip ach"><svg><use href="#i-ach"/></svg>New: Gold</span></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><a class="btn primary">Add another</a><a class="btn">Share</a></div>
+          <div class="hint" style="padding-bottom:6px">[ rest of the recap ]</div>
+        </div>
+        <div class="sheet">
+          <div class="grab"></div>
+          <div style="display:flex;gap:12px;align-items:center"><img class="badge-img lg" src="B:puzzles_solved-t3" alt=""><div><div class="t" style="color:#373f50;font-weight:600">Puzzle Explorer · Gold</div><div class="s" style="color:#7d879c;font-size:13px">500 different puzzles. 6 % of puzzlers have it.</div></div></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><a class="btn">Close</a><a class="btn primary">Reveal it</a></div>
+        </div>
+      </div>
+      <div class="dcap"><b>B.</b> Three chips under the title; a bottom sheet opens only for a milestone. Lighter, but the chips are easy to miss and hard to tap precisely.</div>
+    </div>
+    <div class="dcol">
+      <div class="panel" style="padding:16px 18px">
+        <h3>When to celebrate</h3>
+        <div class="table-wrap" style="margin-top:6px">
+          <table>
+            <thead><tr><th>Event</th><th>Shown as</th></tr></thead>
+            <tbody>
+              <tr><td>Any XP</td><td>line in the card</td></tr>
+              <tr><td>Level up</td><td>the line's bar fills and the number ticks over</td></tr>
+              <tr><td>Level 10, 20 … 50</td><td>bottom sheet, once (stored, not replayed)</td></tr>
+              <tr><td>Bronze / Silver tier</td><td>line with the badge</td></tr>
+              <tr><td>Gold and above</td><td>bottom sheet with the last-piece reveal</td></tr>
+              <tr><td>New skill tier</td><td>bottom sheet, once</td></tr>
+              <tr><td>Karma</td><td>never here (it comes from other pages); thanks in the weekly e-mail</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <ul class="tight" style="margin-top:12px;font-size:14.5px">
+          <li>At most one sheet per page view; the quiet-route rule wins over the free-trial modal.</li>
+          <li>Reduced motion: no animation; changes announced with <code>aria-live</code>.</li>
+          <li>Pair/team times: the same card for every registered member, delivered in the weekly e-mail.</li>
+          <li>Free players: no "N waiting achievements" teaser on every solve. One line when a solve earned a tier they cannot see yet, with a button.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ PROFILE ============================ -->
+<section class="s" id="profile">
+  <div class="num">06</div>
+  <h2>Profile header</h2>
+  <p>Today the profile shows a second avatar under the header (a stray bare one already for every visitor while the flag is on), up to six progress bars and three paywall locks, while achievements, the one visual reward, sit at the very bottom and the AP total appears nowhere.</p>
+  <div class="opts" role="group" aria-label="Profile layout" data-for="profile">
+    <button type="button" aria-pressed="false" data-opt="now">Today</button>
+    <button type="button" aria-pressed="true" data-opt="a">A · Ring + status row <span class="rec" style="margin-left:2px">pick</span></button>
+    <button type="button" aria-pressed="false" data-opt="b">B · Stat tiles</button>
+  </div>
+  <div class="drafts">
+    <div class="dcol" data-group="profile" data-opt="now" hidden>
+      <div class="phone">
+        <div class="bar"><span class="logo">MySpeed<span>Puzzling</span></span><span class="me"></span></div>
+        <div class="body">
+          <div style="display:flex;gap:12px;align-items:center"><div style="width:64px;height:64px;border-radius:50%;background:linear-gradient(140deg,#f6d8c2,#d9a98f)"></div><div><h4>Klara Novotná</h4><div class="sub">#KLARA · <span class="chip rank">◆ Expert</span> <span class="chip ghost">Member</span></div></div></div>
+          <div style="display:flex;gap:10px;align-items:center" class="ann" data-n="1"><div style="width:52px;height:52px;border-radius:50%;border:3px solid #4e54c8;background:linear-gradient(140deg,#f6d8c2,#d9a98f)"></div><div class="grow" style="flex:1"><span class="chip level">Lv 12</span> <span class="muted x">95 XP</span><div class="pbar"><i style="width:62%"></i></div><div class="x muted">5 XP to level 13 · My XP history</div></div></div>
+          <div class="card ann" data-n="2" style="padding:10px 12px"><div class="t">Getting started 3/5</div><div class="pbar"><i style="width:60%;--c:#42d697"></i></div></div>
+          <div class="card ann" data-n="2" style="padding:10px 12px"><div class="t">Skill Tier Qualification</div><div class="pbar"><i style="width:40%"></i></div><div class="t" style="margin-top:6px">MSP Rating 0/20 · 0/50</div><div class="pbar"><i style="width:20%"></i></div></div>
+          <div class="hint">… chart, tabs, recent activity, info …</div>
+          <div class="hint ann" data-n="3" style="padding:6px">Achievements (17) — 6 rows of badges at the very bottom</div>
+        </div>
+      </div>
+      <ol class="anns"><li>Second avatar under the header; visitors see it bare even with XP hidden.</li><li>Up to six progress bars saying "not yet".</li><li>Achievements buried; no score anywhere.</li></ol>
+    </div>
+    <div class="dcol" data-group="profile" data-opt="a">
+      <div class="phone">
+        <div class="bar"><span class="logo">MySpeed<span>Puzzling</span></span><span class="me"></span></div>
+        <div class="body">
+          <div style="display:flex;gap:14px;align-items:center">
+            <div class="av" style="--p:.62"><div></div><span class="lv">Lv 12</span></div>
+            <div style="min-width:0"><h4>Klara Novotná</h4><div class="sub">🇨🇿 #KLARA · Member</div></div>
+          </div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <span class="chip rank"><svg><use href="#i-rank"/></svg>Expert · 500 pc</span>
+            <span class="chip comp"><svg><use href="#i-comp"/></svg>MSP #14 CZ</span>
+            <span class="chip karma"><svg><use href="#i-karma"/></svg>Karma 37</span>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><a class="btn">★ Favorite</a><a class="btn">Message</a></div>
+          <div class="card" style="padding:12px 14px;display:grid;gap:8px">
+            <div style="display:flex;justify-content:space-between;align-items:baseline"><h5>Achievements</h5><span class="x muted"><b style="color:#8a5a12" class="num">11</b> of 17 · <b class="num" style="color:#8a5a12">640 AP</b> ›</span></div>
+            <div class="showcase"><img src="B:first_try-t5" alt="First Try, Diamond"><img src="B:speed_500_pieces-t4" alt="Speed Demon, Platinum"><img src="B:puzzles_solved-t3" alt="Puzzle Explorer, Gold"><img src="B:cataloger-t3" alt="Cataloger, Gold"><img src="B:streak-t2" alt="On Fire, Silver"><img src="B:team_player-t2" alt="Team Spirit, Silver"></div>
+          </div>
+          <div class="seg"><span class="on">Results</span><span>Statistics</span><span>Collections</span><span>Compare</span></div>
+        </div>
+      </div>
+      <div class="dcap"><b>A.</b> The level lives on the avatar ring (progress arc + "Lv" tab), no second avatar. One row of at most three chips: skill tier, MSP Rating place, karma (only above 0). Achievements move up as a scrollable showcase: best six first, owner can pin (members).</div>
+    </div>
+    <div class="dcol" data-group="profile" data-opt="b" hidden>
+      <div class="phone">
+        <div class="bar"><span class="logo">MySpeed<span>Puzzling</span></span><span class="me"></span></div>
+        <div class="body">
+          <div style="display:flex;gap:14px;align-items:center">
+            <div style="width:64px;height:64px;border-radius:50%;background:linear-gradient(140deg,#f6d8c2,#d9a98f);flex:none"></div>
+            <div style="min-width:0"><h4>Klara Novotná</h4><div class="sub">🇨🇿 #KLARA · Member</div></div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;text-align:center">
+            <div class="card" style="padding:8px 2px"><b class="num" style="display:block;color:#3a3fa8;font-size:17px">12</b><span class="x muted">Level</span></div>
+            <div class="card" style="padding:8px 2px"><b class="num" style="display:block;color:#8a5a12;font-size:17px">640</b><span class="x muted">AP</span></div>
+            <div class="card" style="padding:8px 2px"><b class="num" style="display:block;color:#b8323a;font-size:17px">#14</b><span class="x muted">Rating</span></div>
+            <div class="card" style="padding:8px 2px"><b class="num" style="display:block;color:#0f6e56;font-size:17px">37</b><span class="x muted">Karma</span></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><a class="btn">★ Favorite</a><a class="btn">Message</a></div>
+          <div class="seg"><span class="on">Results</span><span>Statistics</span><span>Collections</span></div>
+        </div>
+      </div>
+      <div class="dcap"><b>B.</b> Four tappable tiles, each opening its home. Very scannable, but four numbers side by side invite comparing things that do not compare, and the skill tier (a name, not a number) does not fit a tile.</div>
+    </div>
+    <div class="dcol">
+      <div class="panel" style="padding:16px 18px">
+        <h3>Also on the profile</h3>
+        <ul class="tight" style="font-size:14.5px">
+          <li><b>One "Your progress" card for the owner</b> replaces the getting-started, qualification and rating bars: the nearest next step of each family, at most three lines.</li>
+          <li><b>Free visitors</b> see one lock at most (the skill-tier chip), never three on one screen.</li>
+          <li><b>Player cards</b> (Players page, lists) show Level + skill tier only.</li>
+          <li><b>Compact bar</b> keeps the ring, drops the chips.</li>
+          <li>The header ring in the top bar stays decoration-free: no permanent full circle that carries no information (drop it, or show progress).</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ ACHIEVEMENTS ============================ -->
+<section class="s" id="achievements">
+  <div class="num">07</div>
+  <h2>Achievements catalogue</h2>
+  <p>Today: one 5,000 px column of 17 cards, tier requirements only in hover tooltips (invisible on phones), no link from the menu, footer or Hub. The draft opens on what is next, because goals close to completion are what pull people back.</p>
+  <div class="drafts">
+    <div class="dcol">
+      <div class="phone">
+        <div class="bar"><span class="logo">MySpeed<span>Puzzling</span></span><span class="me"></span></div>
+        <div class="body">
+          <div><h4>Achievements</h4><div class="sub"><b style="color:#8a5a12">11 of 17</b> earned · <b style="color:#8a5a12">640 AP</b> · <span style="color:#d63c42">How it works</span></div></div>
+          <div class="seg"><span class="on">Next up · 4</span><span>Earned · 11</span><span>All · 17</span><span>Rarest</span></div>
+          <div class="card">
+            <div class="row" style="min-height:76px"><img class="badge-img lg" src="B:brand_explorer-t1" alt=""><div class="grow"><div class="t">Brand Explorer → Silver</div><div class="pbar" style="--c:#b7791f"><i style="width:80%;background:#b7791f"></i></div><div class="s">8 of 10 brands · 2 to go</div></div></div>
+            <div class="row" style="min-height:76px"><img class="badge-img lg" src="B:weekend_puzzler-t2" alt=""><div class="grow"><div class="t">Weekend Puzzler → Gold</div><div class="pbar"><i style="width:70%;background:#b7791f"></i></div><div class="s">14 of 20 weekends</div></div></div>
+            <div class="row" style="min-height:76px"><img class="badge-img lg" src="B:photographer-t1" alt=""><div class="grow"><div class="t">Photographer → Silver</div><div class="pbar"><i style="width:45%;background:#b7791f"></i></div><div class="s">9 of 20 results with a photo</div></div></div>
+            <div class="row" style="min-height:76px"><img class="badge-img lg" src="B:librarian-t2" alt=""><div class="grow"><div class="t">Librarian → Gold</div><div class="pbar"><i style="width:30%;background:#b7791f"></i></div><div class="s">6 of 20 accepted suggestions</div></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="dcap"><b>Catalogue.</b> Sorted by closeness to the next tier. Rows, not cards: four per screen instead of one. "Rarest" sorts by how few puzzlers hold the tier. The next tier's AP ("+25 AP") is shown to members.</div>
+    </div>
+    <div class="dcol">
+      <div class="phone">
+        <div class="bar"><span class="logo">MySpeed<span>Puzzling</span></span><span class="me"></span></div>
+        <div class="body">
+          <div style="display:flex;gap:14px;align-items:center"><img src="B:puzzles_solved-t3" alt="" style="width:88px;height:88px"><div><h4>Puzzle Explorer</h4><div class="sub">Solve different puzzles. You: <b style="color:#8a5a12">Gold</b></div></div></div>
+          <div class="card">
+            <div class="row"><span class="chip ach" style="min-width:76px;justify-content:center">Bronze</span><div class="grow"><div class="t">10 puzzles</div></div><span class="x muted num">48 %</span><span style="color:#13876a">✓</span></div>
+            <div class="row"><span class="chip ach" style="min-width:76px;justify-content:center">Silver</span><div class="grow"><div class="t">100 puzzles</div></div><span class="x muted num">21 %</span><span style="color:#13876a">✓</span></div>
+            <div class="row"><span class="chip ach" style="min-width:76px;justify-content:center">Gold</span><div class="grow"><div class="t">500 puzzles</div></div><span class="x muted num">6 %</span><span style="color:#13876a">✓</span></div>
+            <div class="row"><span class="chip lock" style="min-width:76px;justify-content:center">Platinum</span><div class="grow"><div class="t">1,000 puzzles</div><div class="pbar"><i style="width:51%;background:#b7791f"></i></div></div><span class="x muted num">2 %</span></div>
+            <div class="row"><span class="chip lock" style="min-width:76px;justify-content:center">Diamond</span><div class="grow"><div class="t">2,000 puzzles</div></div><span class="x muted num">0.3 %</span></div>
+          </div>
+          <div class="hint">Percentages = share of active puzzlers holding the tier. Requirements are plain text, no tooltips.</div>
+          <a class="btn block">See who earned it</a>
+        </div>
+      </div>
+      <div class="dcap"><b>Detail sheet</b> (the existing modal, reshaped): requirement per tier as text, rarity per tier, your progress on the next one only.</div>
+    </div>
+    <div class="dcol">
+      <div class="panel" style="padding:16px 18px">
+        <h3>Free vs member</h3>
+        <p style="font-size:14.5px">AP stay members-only. One thing worth considering: research finds that gamification does not convert by itself, and that what converts is people seeing what they have already earned (paywalled status drew backlash at Strava in 2020).</p>
+        <ul class="tight" style="font-size:14.5px">
+          <li>Option: free players see <b>their own</b> earned achievements (name and tier, privately), without AP, art reveals or the public showcase.</li>
+          <li>Copy: "You have earned 7 achievements. Members see their badges, Achievement Points and show them on their profile." Never "you will lose them".</li>
+        </ul>
+        <p class="note" style="font-size:14px;margin:8px 0 0"><strong>Open:</strong> see D3.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ LEADERBOARDS ============================ -->
+<section class="s" id="leaderboards">
+  <div class="num">08</div>
+  <h2>Leaderboards</h2>
+  <p>Five ranking systems with three table designs today, and karma adds a sixth. <code>/ladder</code> opens with two promo banners, its switcher lists XP and AP but not the MSP Rating, and the XP board puts a "Lv 50" chip on ~115 identical top rows. One page, one row design, the board as a tab.</p>
+  <div class="drafts">
+    <div class="dcol">
+      <div class="phone">
+        <div class="bar"><span class="logo">MySpeed<span>Puzzling</span></span><span class="me"></span></div>
+        <div class="body" style="padding-bottom:0">
+          <h4>Leaderboards</h4>
+          <div class="seg"><span>Times</span><span>MSP Rating</span><span>Level</span><span>Achievements</span><span class="on">Karma</span></div>
+          <div style="display:flex;gap:6px;align-items:center;justify-content:space-between"><span class="sub">Who helps the database most</span><span class="chip ghost">All time ▾</span></div>
+          <div class="seg"><span class="on">All</span><span>New puzzles</span><span>Fixes &amp; merges</span><span>Moderation</span></div>
+        </div>
+        <div class="lb" style="margin-top:8px">
+          <div class="r"><span class="pl">1</span><span class="a"></span><span class="nm">Tereza Malá <span class="x muted">· moderator</span></span><span class="v" style="color:#0f6e56">1,212</span></div>
+          <div class="r"><span class="pl">2</span><span class="a"></span><span class="nm">Ondřej Pokorný</span><span class="v" style="color:#0f6e56">846</span></div>
+          <div class="r"><span class="pl">3</span><span class="a"></span><span class="nm">Hana Veselá</span><span class="v" style="color:#0f6e56">517</span></div>
+          <div class="r"><span class="pl">4</span><span class="a"></span><span class="nm">Marek Dvořák</span><span class="v" style="color:#0f6e56">390</span></div>
+          <div class="r"><span class="pl">5</span><span class="a"></span><span class="nm">Lucie Krejčí</span><span class="v" style="color:#0f6e56">344</span></div>
+          <div class="r" style="justify-content:center;grid-template-columns:1fr;color:#7d879c;font-size:12.5px;text-align:center">⋯ 206 more ⋯</div>
+          <div class="r me"><span class="pl" style="color:#d63c42">212</span><span class="a" style="outline:2px solid #4e54c8"></span><span class="nm">You <span class="x" style="color:#13876a">+3 this week</span></span><span class="v" style="color:#0f6e56">37</span></div>
+        </div>
+      </div>
+      <div class="dcap"><b>One page, tabs per board</b> (shown: the public karma list). Same row everywhere: place · avatar · name · value. Your row pinned at the bottom, respecting the filters. No promo banners; a new board gets a dot on its tab.</div>
+    </div>
+    <div class="dcol">
+      <div class="panel" style="padding:16px 18px">
+        <h3>Per board</h3>
+        <div class="table-wrap" style="margin-top:6px">
+          <table>
+            <thead><tr><th>Tab</th><th>Default view</th></tr></thead>
+            <tbody>
+              <tr><td>Times</td><td>today's ladders: solo / pair / team × pieces</td></tr>
+              <tr><td>MSP Rating</td><td>as today; seasons arrive with their own project</td></tr>
+              <tr><td>Level</td><td><b>people you follow</b>, not the world</td></tr>
+              <tr><td>Achievements</td><td>by score, members</td></tr>
+              <tr><td>Karma</td><td>all time and last 12 months, everyone free; a row opens the player's karma breakdown</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="note" style="font-size:14px;margin:12px 0 0"><strong>XP board.</strong> Research warns that a public XP race invites farming (Duolingo's leagues needed fixes for exactly this). You already chose two all-time boards. The draft keeps the tab but defaults it to people you follow. See D6.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ DIGEST ============================ -->
+<section class="s" id="digest">
+  <div class="num">09</div>
+  <h2>The weekly e-mail</h2>
+  <p>The one recurring touch point, and today a dead end: nothing to tap except settings (behind a login) and unsubscribe. Draft: the week first, progress second, one clear button, karma thanks when there is some.</p>
+  <div class="drafts">
+    <div class="dcol">
+      <div class="phone">
+        <div class="mail">
+          <div class="paper">
+            <div class="logo" style="text-align:center">MySpeed<span style="color:#fe696a">Puzzling</span></div>
+            <div><h5 style="font-size:17px">Your week, Klara</h5><div class="sub">6–12 October</div></div>
+            <div class="stat"><div><b>4</b><span>puzzles</span></div><div><b>2,500</b><span>pieces</span></div><div><b>5</b><span>day streak</span></div></div>
+            <div style="display:flex;gap:10px;align-items:center"><span class="ico level"><svg><use href="#i-level"/></svg></span><div style="flex:1"><div class="t" style="color:#373f50;font-weight:500">Level 12 → 13 <span class="plus">+38 XP</span></div><div class="pbar"><i style="width:15%"></i></div></div></div>
+            <div style="display:flex;gap:10px;align-items:center"><img class="badge-img" src="B:weekend_puzzler-t2" alt=""><div><div class="t" style="color:#373f50;font-weight:500">New: Weekend Puzzler · Silver</div><div class="s" style="color:#7d879c;font-size:12.5px">Next: First Try Gold, 2 to go</div></div></div>
+            <div style="display:flex;gap:10px;align-items:center"><span class="ico comp"><svg><use href="#i-comp"/></svg></span><div class="t" style="color:#373f50;font-weight:500">MSP Rating: #14 in Czechia <span style="color:#13876a">↑3</span></div></div>
+            <div style="display:flex;gap:10px;align-items:center;background:#e9f6f1;border-radius:10px;padding:8px 10px"><span class="ico karma" style="background:#fff"><svg><use href="#i-karma"/></svg></span><div class="s" style="color:#0f6e56;font-size:13px">Thank you: 3 puzzles you added are now in the database. Karma 37.</div></div>
+            <a class="btn primary block" style="background:#d63c42;border-color:#d63c42;color:#fff">See your week</a>
+            <div class="s" style="font-size:12.5px;color:#4b566b">Most solved this week: Ravensburger "Lighthouse at Dusk" · 41 puzzlers</div>
+            <div class="foot">You get this every Monday. <u>Change e-mails</u> · <u>Unsubscribe</u></div>
+          </div>
+        </div>
+      </div>
+      <div class="dcap"><b>Monday e-mail.</b> Every line links (badge → its page, rating → the board, karma → the karma list, puzzle → the puzzle). Settings link opens the token preferences page, no login needed.</div>
+    </div>
+    <div class="dcol">
+      <div class="panel" style="padding:16px 18px">
+        <h3>Notes</h3>
+        <ul class="tight" style="font-size:14.5px">
+          <li>Quiet week: one line of community news and one puzzle suggestion; never the "we miss you" variant twice in a row (already built).</li>
+          <li>Free players: achievements they earned appear by name with "Members can show this on their profile" and a button, instead of the bare teaser.</li>
+          <li>Karma thanks only when something was accepted that week; personal, never a ranking.</li>
+          <li>One button, 44 px, Inky; preheader names the best thing of the week.</li>
+          <li>Members see AP gained ("+35 AP") next to a new achievement; free players see the achievement name only.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ MODERATION ============================ -->
+<section class="s" id="moderation">
+  <div class="num">10</div>
+  <h2>Karma where it does work: the review queue</h2>
+  <p>Moderators judge a suggestion faster when they know whether the person is usually right. The proposer's karma and acceptance rate sit next to every request. Moderators earn 1 karma per decision too (no cap), and a moderator deciding their own proposal gets 1 in total.</p>
+  <div class="drafts">
+    <div class="dcol">
+      <div class="phone">
+        <div class="bar"><span class="logo">MySpeed<span>Puzzling</span></span><span class="me"></span></div>
+        <div class="body">
+          <div><h4>Suggested changes</h4><div class="sub">672 waiting · sorted by proposer's acceptance</div></div>
+          <div class="card mod">
+            <div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><div class="t" style="color:#373f50;font-weight:500">Starry Night · 1000 pc</div><span class="chip karma"><svg><use href="#i-karma"/></svg>412 · 97 % accepted</span></div>
+            <div class="s" style="color:#7d879c;font-size:12.5px">Petra S. · 2 days ago</div>
+            <div class="diff">EAN <del>4005556151233</del> <ins>4005556151230</ins><br>Brand code <ins>15123</ins></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><a class="btn">Reject</a><a class="btn primary">Approve</a></div>
+          </div>
+          <div class="card mod">
+            <div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><div class="t" style="color:#373f50;font-weight:500">Harbour at Night · 500 pc</div><span class="chip ghost">First suggestion</span></div>
+            <div class="s" style="color:#7d879c;font-size:12.5px">Tomáš B. · 5 days ago</div>
+            <div class="diff">Name <del>Harbor at night</del> <ins>Harbour at Night</ins></div>
+          </div>
+        </div>
+      </div>
+      <div class="dcap"><b>Moderator view.</b> A first-time proposer is labelled kindly ("First suggestion"), never with a low number. Admins see each moderator's accept/decline split, the guard against rubber-stamping now that there is no cap.</div>
+    </div>
+    <div class="dcol">
+      <div class="panel" style="padding:16px 18px">
+        <h3>Later, not in v1</h3>
+        <ul class="tight" style="font-size:14.5px">
+          <li><b>Trusted contributors</b> (high karma, ≥ 95 % accepted): small fixes applied at once, still listed for review afterwards.</li>
+          <li><b>Moderator invitations</b> suggested from karma; appointing stays a human decision.</li>
+          <li><b>Events</b> (v2): approved events and series could count once the events catalogue is part of "the database".</li>
+          <li>Quietly slow down people whose suggestions are mostly declined, instead of showing them a number.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ FIXES ============================ -->
+<section class="s" id="fixes">
+  <div class="num">11</div>
+  <h2>Fix before launch, whatever the design</h2>
+  <p>Bugs and leaks found in the inventory. Each is small on its own; together they would be the first impression.</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Where</th><th>Problem</th></tr></thead>
+      <tbody>
+        <tr><td>Profile</td><td><span class="bug">Live today:</span> visitors see a bare second avatar under the header while the XP flag is on (<code>XpRing</code> renders its inner content when hidden).</td></tr>
+        <tr><td>Puzzle page</td><td>The XP estimate leaks the members-only difficulty tier to guests and free players; "×50" is missing its "%"; the bonus is overpromised.</td></tr>
+        <tr><td>Recap</td><td>Level-up overlay replays on every reload/back; can stack with the free-trial modal on <code>added_tracking_recap</code>; "Counting your XP…" can stay forever after one 2.5 s poll.</td></tr>
+        <tr><td>Recap</td><td>"Counted toward N waiting achievements" counts all badges, not this solve's. Skill-tier countdown uses 20 instead of 10. Rating progress shown for piece counts without a rating. Blurred mock in hard-coded English.</td></tr>
+        <tr><td>Launch reveal</td><td>Reachable only from one e-mail. Use the once-per-player announcement modal. Free variant has no membership button.</td></tr>
+        <tr><td>Joining</td><td>After paying or starting a trial, nothing points to the achievement reveal (only <code>/membership</code> does).</td></tr>
+        <tr><td>Level 50</td><td>"Enter the AP ladder" lands on the XP tab; free players are sent to a board they cannot join.</td></tr>
+        <tr><td>Copy</td><td>Membership page lists XP as a coming member perk (XP is free); e-mail says "badges"; MSP ladder subtitle says "head-to-head"; explainer says the MSP Rating is members-only and promises tappable receipt lines.</td></tr>
+        <tr><td>Settings</td><td>Digest offers "Daily + weekly", which does not exist. The XP opt-out also hides the player from the AP board without saying so.</td></tr>
+        <tr><td>Touch</td><td>Tier requirements only in hover tooltips; holder pills ~28 px; rating qualification card overflows at 320 px; country selects show ISO codes.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ============================ ROLLOUT ============================ -->
+<section class="s" id="rollout">
+  <div class="num">12</div>
+  <h2>Rollout</h2>
+  <p>Gamification is hard to take back: Nike Run Club's App Store rating fell from 4.5 to 1.5 when trophies were removed. Ship what we intend to keep, one family at a time, and introduce each concept when it first means something to the player.</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Step</th><th>Ships</th><th>A player first meets it</th></tr></thead>
+      <tbody>
+        <tr><td class="n">1</td><td>Renames, fixes above, the hub, recap card, profile header, achievements without XP</td><td>—</td></tr>
+        <tr><td class="n">2</td><td><span class="fam level"><svg><use href="#i-level"/></svg>Level</span> + <span class="fam ach"><svg><use href="#i-ach"/></svg>Achievements</span> (PR #128 launch reveal)</td><td>launch reveal, then the first logged time</td></tr>
+        <tr><td class="n">3</td><td><span class="fam karma"><svg><use href="#i-karma"/></svg>Karma</span> + backfill + public list + review-queue context</td><td>the first accepted puzzle or suggestion</td></tr>
+        <tr><td class="n">4</td><td><span class="fam comp"><svg><use href="#i-comp"/></svg>MSP Rating seasons</span> (own project)</td><td>the first ranked result of a season</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p style="margin-top:12px;font-size:14.5px">Measure each step: D7/D30 retention of new players, times logged per active player, free → trial → paid. Published effects of badges are 0–2 %; a holdout tells us more than intuition.</p>
+</section>
+
+<!-- ============================ DECISIONS ============================ -->
+<section class="s" id="decisions" style="border-bottom:0">
+  <div class="num">13</div>
+  <h2>Decisions</h2>
+  <div class="panel" style="margin-bottom:16px">
+    <h3>Decided by Jan, 10 Oct</h3>
+    <ul class="tight" style="font-size:15px">
+      <li>Karma, under that name: 1 per accepted contribution, no caps. New puzzles count when they have an EAN. Moderators earn 1 per decision and per direct edit; a proposal they decide themselves counts once.</li>
+      <li>Karma is free, public (with a list), calculated from existing records with a backfill command, gives no XP. No events in v1.</li>
+      <li>MSP Rating becomes seasonal in its own project; skill tiers stay as they are.</li>
+    </ul>
+  </div>
+  <div class="dec">
+    <div><h3>Achievements stop granting XP?</h3><div class="choice">Recommended: yes, so XP comes from puzzling only. Needs a re-check of the level curve on the dev data first (Level 50 = 3,160 XP was tuned with achievement XP in).</div></div>
+    <div><h3>Duplicates merged later</h3><div class="choice">Recommended: the first one to add the puzzle keeps the credit, computed automatically; no notice, a grey line in the karma history.</div></div>
+    <div><h3>Free players and their own achievements</h3><div class="choice">Keep members-only, or let free players see their own earned achievements by name (no AP, no art, no showcase).</div></div>
+    <div><h3>XP leaderboard default</h3><div class="choice">Recommended: keep the tab, default to people you follow. Alternatives: world (as built), or no public XP board.</div></div>
+    <div><h3>Recap and profile layouts</h3><div class="choice">Recap A (one progress card) and profile A (ring + status row), or the B variants.</div></div>
+    <div><h3>Hub layout</h3><div class="choice">A (grouped list, recommended) or B (2 × 2 grid with your own values).</div></div>
+  </div>
+</section>
+</main>
+</div>
+
+<script>
+(function () {
+  document.querySelectorAll('.opts').forEach(function (group) {
+    var name = group.getAttribute('data-for');
+    group.addEventListener('click', function (e) {
+      var btn = e.target.closest('button[data-opt]');
+      if (!btn) return;
+      var opt = btn.getAttribute('data-opt');
+      group.querySelectorAll('button').forEach(function (b) { b.setAttribute('aria-pressed', b === btn ? 'true' : 'false'); });
+      document.querySelectorAll('.dcol[data-group="' + name + '"]').forEach(function (col) { col.hidden = col.getAttribute('data-opt') !== opt; });
+    });
+  });
+})();
+</script>

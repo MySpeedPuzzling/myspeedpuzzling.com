@@ -15,7 +15,7 @@
     {% set brand_pieces_meta_description = 'brand_pieces_hub.meta.paged_description'|trans({
         '%brand%': brand.brandName,
         '%pieces%': stats.piecesCount,
-        '%count%': pagination.totalItems|format_number,
+        '%count%': pagination.totalItems|plain_number,
         '%page%': pagination.page,
         '%pages%': pagination.totalPages,
     }) %}
@@ -23,15 +23,15 @@
     {% set brand_pieces_meta_description = 'brand_pieces_hub.meta.description'|trans({
         '%brand%': brand.brandName,
         '%pieces%': stats.piecesCount,
-        '%count%': stats.puzzlesCount|format_number,
-        '%solves%': stats.solvesCount|format_number,
+        '%count%': stats.puzzlesCount|plain_number,
+        '%solves%': stats.solvesCount|plain_number,
         '%median%': stats.medianSeconds|compactTime,
     }) %}
 {% else %}
     {% set brand_pieces_meta_description = 'brand_pieces_hub.meta.description_no_median'|trans({
         '%brand%': brand.brandName,
         '%pieces%': stats.piecesCount,
-        '%count%': stats.puzzlesCount|format_number,
+        '%count%': stats.puzzlesCount|plain_number,
     }) %}
 {% endif %}
 
@@ -165,9 +165,9 @@
             <h2 class="h5 mb-1">{{ 'brand_pieces_hub.all_puzzles'|trans({'%brand%': brand.brandName, '%pieces%': stats.piecesCount}) }}</h2>
         {% endif %}
         <p class="text-muted small mb-2">{{ 'catalogue.range'|trans({
-            '%from%': pagination.firstItem|format_number,
-            '%to%': pagination.lastItem|format_number,
-            '%total%': pagination.totalItems|format_number,
+            '%from%': pagination.firstItem|plain_number,
+            '%to%': pagination.lastItem|plain_number,
+            '%total%': pagination.totalItems|plain_number,
         }) }}</p>
         <div class="row g-2 g-md-3">
             {{ include('puzzle/_search_result_items.html.twig', {

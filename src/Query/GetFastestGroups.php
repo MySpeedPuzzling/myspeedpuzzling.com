@@ -6,9 +6,12 @@ namespace SpeedPuzzling\Web\Query;
 
 use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
+use SpeedPuzzling\Web\Results\LeaderboardSlice;
 use SpeedPuzzling\Web\Results\SolvedPuzzle;
 use SpeedPuzzling\Web\Services\HiddenPlayers;
+use SpeedPuzzling\Web\Services\TimesBoardGuestCache;
 use SpeedPuzzling\Web\Services\PrivateProfileAccess;
+use SpeedPuzzling\Web\Services\TimesLeaderboardSql;
 use SpeedPuzzling\Web\Value\CountryCode;
 use SpeedPuzzling\Web\Value\SkillTier;
 
@@ -19,26 +22,51 @@ readonly final class GetFastestGroups
         private PrivateProfileAccess $privateProfileAccess,
         private ClockInterface $clock,
         private HiddenPlayers $hiddenPlayers,
+        private TimesBoardGuestCache $guestCache,
     ) {
     }
 
     /**
-     * @return array<SolvedPuzzle>
+     * The fastest $howManyPlayers teams without a viewer - the rows of window()
+     *
+     * @return list<SolvedPuzzle>
      */
     public function perPiecesCount(int $piecesCount, int $howManyPlayers, null|CountryCode $countryCode): array
     {
+        return $this->window($piecesCount, $countryCode, $howManyPlayers)->rows;
+    }
+
+    /**
+     * One board in one statement: the top $limit teams and the viewer's own row with $above rows above it and $below
+     * rows below it (Value\LeaderboardWindow::rowsToLoad()), each with its shared rank, plus the viewer's position line
+     * (docs/features/xp-levels/ux-polish/design-spec.md §4). The viewer's own row is the best of the teams they are in,
+     * like on the puzzle page; their other teams are highlighted wherever they are shown.
+     *
+     * One row per team - the exact set of people (puzzling_team), whatever order they were entered in - with its best
+     * time: each team's best by a hash aggregate, the teams that have a public member (and one from the country), ranked
+     * by a window over those bests, then one time with that best for the shown teams only. The country narrows the list
+     * before the ranking, so a country sees all of its teams and a rank is the rank in it. Equal bests share the rank
+     * and are ordered by the team id; a team's equal best times show the earliest.
+     *
+     * @return LeaderboardSlice<SolvedPuzzle>
+     */
+    public function window(
+        int $piecesCount,
+        null|CountryCode $countryCode,
+        int $limit,
+        int $above = 0,
+        int $below = 0,
+        null|string $viewerPlayerId = null,
+    ): LeaderboardSlice {
         $notHidden = $this->hiddenPlayers->sqlExcludeTeam('pst.team');
 
         $countryCondition = $countryCode !== null
             ? 'AND EXISTS (SELECT 1 FROM puzzling_team_member ptm INNER JOIN player member_player ON member_player.id = ptm.player_id WHERE ptm.team_id = team_best.team_id AND member_player.country = :countryCode)'
             : '';
 
-        // One row per team - the exact set of people (puzzling_team), whatever order they were entered in -
-        // with its best time. Each team's best by a hash aggregate, the fastest `howManyPlayers` teams that have a public
-        // member (and one from the country), then one time with that best per team. Team and country are decided before the
-        // LIMIT, so a country sees all of its teams, not only those among the world's fastest. 25-65 ms on prod data
-        // (2026-10-06), for the world and for any country. Ties go to the lower team id at the cut-off and to the earliest of
-        // a team's equal best times.
+        $board = TimesLeaderboardSql::board('board.entry_id IN (SELECT viewer_team.team_id FROM puzzling_team_member viewer_team WHERE viewer_team.player_id = CAST(:viewerPlayerId AS UUID))');
+        $select = TimesLeaderboardSql::selectWithOwn('player_data');
+
         $query = <<<SQL
 WITH team_best AS (
     SELECT
@@ -53,8 +81,8 @@ WITH team_best AS (
         {$notHidden}
     GROUP BY pst.puzzling_team_id
 ),
-fastest_teams AS (
-    SELECT team_best.team_id, team_best.best_seconds
+BestTimes AS (
+    SELECT team_best.team_id AS entry_id, team_best.best_seconds
     FROM team_best
     WHERE EXISTS (
             SELECT 1
@@ -64,15 +92,18 @@ fastest_teams AS (
                 AND member_player.is_private = false
         )
         {$countryCondition}
-    ORDER BY team_best.best_seconds ASC, team_best.team_id
-    LIMIT :howManyPlayers
 ),
+{$board},
 candidate_times AS (
     SELECT DISTINCT ON (pst.puzzling_team_id)
-        pst.id
-    FROM fastest_teams
-    INNER JOIN puzzle_solving_time pst ON pst.puzzling_team_id = fastest_teams.team_id
-        AND pst.seconds_to_solve = fastest_teams.best_seconds
+        pst.id,
+        shown.rank,
+        shown.position,
+        shown.total,
+        shown.closest_faster
+    FROM shown
+    INNER JOIN puzzle_solving_time pst ON pst.puzzling_team_id = shown.entry_id
+        AND pst.seconds_to_solve = shown.best_seconds
     INNER JOIN puzzle ON puzzle.id = pst.puzzle_id
     WHERE puzzle.pieces_count = :piecesCount
         AND pst.puzzling_type = 'team'
@@ -112,6 +143,10 @@ player_data AS (
         competition.name AS competition_name,
         ps_main.skill_tier,
         player.ranking_opted_out,
+        ct.rank,
+        ct.position,
+        ct.total,
+        ct.closest_faster,
         JSON_AGG(
             JSON_BUILD_OBJECT(
                 'player_id', player_elem.player ->> 'player_id',
@@ -135,23 +170,30 @@ player_data AS (
     LATERAL json_array_elements(pst.team -> 'puzzlers') WITH ORDINALITY AS player_elem(player, ordinality)
     LEFT JOIN player p ON p.id = (player_elem.player ->> 'player_id')::UUID
     LEFT JOIN player_skill ps_member ON ps_member.player_id = p.id
-    GROUP BY puzzle.id, player.id, manufacturer.id, pst.id, competition.id, cs.id, ps_main.skill_tier
+    GROUP BY puzzle.id, player.id, manufacturer.id, pst.id, competition.id, cs.id, ps_main.skill_tier, ct.rank, ct.position, ct.total, ct.closest_faster
 )
-SELECT *
-FROM player_data
-ORDER BY time ASC, team_id
+{$select}
 SQL;
 
-        $data = $this->database
-            ->executeQuery($query, [
-                'piecesCount' => $piecesCount,
-                'countryCode' => $countryCode?->name,
-                'howManyPlayers' => $howManyPlayers,
-                'now' => $this->clock->now()->format('Y-m-d H:i:s'),
-            ])
-            ->fetchAllAssociative();
+        // A guest (no viewer, nobody blocked) gets the same rows as every other guest - cached for a minute
+        $data = $this->guestCache->rows(
+            $viewerPlayerId === null && $notHidden === '',
+            implode('|', ['groups', $piecesCount, $countryCode->name ?? '', $limit, $above, $below]),
+            fn (): array => $this->database
+                ->executeQuery($query, [
+                    'piecesCount' => $piecesCount,
+                    'countryCode' => $countryCode?->name,
+                    'limit' => max(1, $limit),
+                    'above' => max(0, $above),
+                    'below' => max(0, $below),
+                    'viewerPlayerId' => $viewerPlayerId,
+                    'milestones' => TimesLeaderboardSql::milestones(),
+                    'now' => $this->clock->now()->format('Y-m-d H:i:s'),
+                ])
+                ->fetchAllAssociative(),
+        );
 
-        return array_map(static function (array $row): SolvedPuzzle {
+        return TimesLeaderboardSql::slice($data, static function (array $row): SolvedPuzzle {
             /** @var array{
              *     puzzle_id: string,
              *     puzzle_name: string,
@@ -192,6 +234,6 @@ SQL;
                 : null;
 
             return SolvedPuzzle::fromDatabaseRow($row);
-        }, $data);
+        });
     }
 }

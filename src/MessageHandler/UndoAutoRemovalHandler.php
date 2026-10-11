@@ -12,6 +12,8 @@ use SpeedPuzzling\Web\Exceptions\AutoRemovalNotFound;
 use SpeedPuzzling\Web\Exceptions\CompetitionNotFound;
 use SpeedPuzzling\Web\Exceptions\CompetitionSeriesNotFound;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
+use SpeedPuzzling\Web\Message\RecalculateBadgesForPlayer;
+use SpeedPuzzling\Web\Message\AwardXpForSolvingTime;
 use SpeedPuzzling\Web\Message\UndoAutoRemoval;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Repository\CompetitionSeriesRepository;
@@ -26,6 +28,7 @@ use SpeedPuzzling\Web\Services\RoundResults\SolvingTimeRoundResolver;
 use SpeedPuzzling\Web\Services\SeriesEditions\SeriesEditionResolver;
 use SpeedPuzzling\Web\Value\RemovedResultSnapshot;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
+use Symfony\Component\Messenger\MessageBusInterface;
 
 /**
  * Undo of an automatic removal: the copy comes back with its own id and everything it had, the case becomes
@@ -56,6 +59,7 @@ readonly final class UndoAutoRemovalHandler
         private PlayerRepository $playerRepository,
         private CompetitionSeriesRepository $competitionSeriesRepository,
         private SeriesEditionResolver $seriesEditionResolver,
+        private MessageBusInterface $messageBus,
     ) {
     }
 
@@ -139,5 +143,13 @@ readonly final class UndoAutoRemovalHandler
         }
 
         $this->resultReviewReactions->recordFor($removal->player->id->toString());
+
+        // The same id comes back: the award drops its compensated history and writes it again like a new result
+        // (docs/features/xp-levels/README.md §Anti-farming). Badges follow the restored result too
+        $this->messageBus->dispatch(new AwardXpForSolvingTime($time->id->toString()));
+
+        foreach ($time->memberPlayerIds() as $memberPlayerId) {
+            $this->messageBus->dispatch(new RecalculateBadgesForPlayer($memberPlayerId));
+        }
     }
 }

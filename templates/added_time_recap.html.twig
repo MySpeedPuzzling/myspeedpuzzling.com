@@ -30,24 +30,25 @@
         <twig:AddToCollectionCta puzzleId="{{ solved_puzzle.puzzleId }}" />
     </div>
 
-    <div class="row">
-        <div class="col-md-7 col-lg-8 order-2 order-md-1">
-            {% if is_solo and solved_puzzle.time is not null %}
-                {% if not player.rankingOptedOut %}
-                    {{ include('added_time_recap/_ranking.html.twig') }}
+    {#
+        Mobile first: the progress card right under the actions, then the share image, then prediction and history.
+        From md up the share image sits in the right column next to both (.recap-layout grid areas).
+    #}
+    <div class="recap-layout">
+        {# XP and achievements only while the progression is visible to the viewer (xp-system, launch ready or admin) #}
+        {% set progression_visible = xp_system_visible() %}
+        {% set has_competition_row = is_timed_solo and not player.rankingOptedOut and (has_rating or has_skill_tier) %}
+        {% if progression_visible or ranking is not null or has_competition_row %}
+            <section class="recap-card recap-layout-card" aria-label="{{ 'recap_progress.title'|trans }}">
+                {% if progression_visible %}
+                    <twig:XpRecapCelebration solvingTimeId="{{ solved_puzzle.timeId }}" :celebrate="celebrate" />
                 {% endif %}
+                {{ include('added_time_recap/_place_row.html.twig') }}
+                {{ include('added_time_recap/_competition_row.html.twig') }}
+            </section>
+        {% endif %}
 
-                {{ include('added_time_recap/_performance_summary.html.twig') }}
-
-                {{ include('added_time_recap/_history.html.twig') }}
-
-                {% if not player.rankingOptedOut %}
-                    {{ include('added_time_recap/_overall_progress.html.twig') }}
-                {% endif %}
-            {% endif %}
-        </div>
-
-        <div class="col-md-5 col-lg-4 order-1 order-md-2 mb-3 mb-md-0 text-center">
+        <div class="recap-layout-share text-center">
             <div class="time-result-recap d-inline-block">
                 <div class="button-wrapper">
                     <button
@@ -61,9 +62,18 @@
                     </button>
                 </div>
 
-                <img style="max-width: 320px; width: 100%;" width="800" height="800" src="{{ path('result_image', {'timeId': solved_puzzle.timeId}) }}">
+                <img style="max-width: 320px; width: 100%;" width="800" height="800" src="{{ path('result_image', {'timeId': solved_puzzle.timeId}) }}" alt="">
             </div>
         </div>
-    </div>
 
+        {% if is_timed_solo %}
+            <div class="recap-layout-more">
+                {{ include('added_time_recap/_performance_summary.html.twig') }}
+
+                {% if not player.rankingOptedOut %}
+                    {{ include('added_time_recap/_history.html.twig') }}
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
 {% endblock %}

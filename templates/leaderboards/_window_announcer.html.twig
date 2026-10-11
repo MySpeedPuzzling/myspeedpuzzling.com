@@ -1,0 +1,18 @@
+{#-
+    INTERFACE (stable, shared by every leaderboard - docs/features/xp-levels/ux-polish/design-spec.md §8.4, WCAG 2.4.3 + 4.1.3):
+    After the gap row or "Show more" revealed rows: focus moves to the first new row, and a polite live region says what
+    came. Render it (anywhere in the re-rendered part) only in the response to such a tap:
+      {{ include('leaderboards/_window_announcer.html.twig', {
+          focus_id: 'board-row-…',                    the id of the first new row (a <tr id>)
+          reveal: {from: 26, to: 75}, total: 7878,     what was revealed (LeaderboardWindow::gapReveal() / showMoreReveal() of
+                                                       the window BEFORE the tap), 1-based positions
+      }) }}
+    In a Live Component: keep the reveal of the last action in a prop and render this with it - the values change, so
+    leaderboard_window_controller.js runs again after the morph.
+-#}
+<div
+    hidden
+    data-controller="leaderboard-window"
+    data-leaderboard-window-focus-value="{{ focus_id }}"
+    data-leaderboard-window-announce-value="{{ 'leaderboards.announce'|trans({'%from%': reveal.from|plain_number, '%to%': reveal.to|plain_number, '%total%': total|plain_number}) }}"
+></div>

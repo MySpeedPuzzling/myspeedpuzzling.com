@@ -1,0 +1,15 @@
+{#-
+    INTERFACE (stable, shared by every leaderboard - docs/features/xp-levels/ux-polish/design-spec.md §4):
+    "Show N more" under a board: continues after the last row shown (LeaderboardWindow::showMore()). Render it only while
+    LeaderboardWindow::rowsBelow() > 0.
+      {{ include('leaderboards/_show_more.html.twig', {count: window.showMoreCount(), live_action: 'showMore'}) }}
+      {{ include('leaderboards/_show_more.html.twig', {count: window.showMoreCount(), form: {action: url, params: {...}, frame: 'progress-board'}}) }}
+-#}
+<div class="lb-show-more" data-nosnippet>
+    {{- include('leaderboards/_reveal_button.html.twig', {
+        label: 'puzzle_times.leaderboard.show_more'|trans({'%count%': count}),
+        class: 'btn btn-outline-primary btn-sm lb-show-more-button',
+        live_action: live_action|default(null),
+        form: form|default(null),
+    }) -}}
+</div>

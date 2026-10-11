@@ -13,6 +13,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Contracts\Translation\TranslatorInterface;
+use SpeedPuzzling\Web\Value\PlainNumber;
 
 /**
  * "How long does a {N}-piece puzzle take" for every standard size except 1000,
@@ -63,7 +64,7 @@ final class GuidePuzzleTimeForPiecesController extends AbstractController
             'guide_title' => $this->translator->trans('guides.how_long_pieces.title', ['%pieces%' => $pieces], locale: 'en'),
             'guide_description' => $this->translator->trans('guides.how_long_pieces.meta_description', [
                 '%pieces%' => $pieces,
-                '%count%' => number_format($distribution->solvesCount),
+                '%count%' => PlainNumber::format($distribution->solvesCount),
                 '%median%' => $this->timeFormatter->compactTime($distribution->medianSeconds),
             ], locale: 'en'),
             'guide_published' => self::PUBLISHED,

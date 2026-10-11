@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+<!-- MSP illustrated icon "first-try" (First Try - arrow in the bullseye) - T3 Gold (butter gold). Own work (badge lab IK1), free to use. Layers: face (constant), accent (tier tint), outline (navy #2b3445, 4.5/100, round). a target (accent rings, white ring) with one arrow in the bullseye, coming in from the upper right; its coral fletching rests on the outer ring, so the whole icon stays round and fills the badge's plate like the other round icons -->
+<defs><linearGradient id="first-try-t3-acc" x1="0.12" y1="0.04" x2="0.88" y2="0.96"><stop offset="0" stop-color="#ffe6bc"/><stop offset="0.52" stop-color="#fcc84e"/><stop offset="1" stop-color="#ebb732"/></linearGradient><linearGradient id="first-try-t3-face" x1="0.12" y1="0.04" x2="0.88" y2="0.96"><stop offset="0" stop-color="#ffffff"/><stop offset="0.55" stop-color="#f1f4fb"/><stop offset="1" stop-color="#e1e8f5"/></linearGradient><linearGradient id="first-try-t3-coral" x1="0.12" y1="0.04" x2="0.88" y2="0.96"><stop offset="0" stop-color="#ffa6a3"/><stop offset="0.52" stop-color="#fb8180"/><stop offset="1" stop-color="#f16b6d"/></linearGradient><clipPath id="first-try-t3-vanes"><path clip-rule="evenodd" d="M-10 -10H110V110H-10ZM71.95 28.05L70.89 22.52Q70.61 21.08 71.65 20.04L73.58 18.12Q74.62 17.08 75.04 18.48L76.54 23.46ZM71.95 28.05L77.48 29.11Q78.92 29.39 79.96 28.35L81.88 26.42Q82.92 25.38 81.52 24.96L76.54 23.46Z"/></clipPath></defs>
+<g id="face">
+<path d="M23.78 50A26.22 26.22 0 1 1 76.22 50A26.22 26.22 0 1 1 23.78 50Z" fill="url(#first-try-t3-face)"/>
+</g>
+<g id="accent">
+<path d="M12.25 50A37.75 37.75 0 1 1 87.75 50A37.75 37.75 0 1 1 12.25 50ZM23.78 50A26.22 26.22 0 1 1 76.22 50A26.22 26.22 0 1 1 23.78 50Z" fill="url(#first-try-t3-acc)" fill-rule="evenodd"/>
+<path d="M35.32 50A14.68 14.68 0 1 1 64.68 50A14.68 14.68 0 1 1 35.32 50Z" fill="url(#first-try-t3-acc)"/>
+<path d="M15.97 51.78C15.96 51.34 15.91 50 15.93 49.11C15.96 48.22 16.01 47.32 16.11 46.44C16.2 45.55 16.33 44.67 16.49 43.79C16.65 42.91 16.85 42.04 17.08 41.18C17.31 40.32 17.58 39.46 17.87 38.62C18.17 37.78 18.5 36.95 18.87 36.14C19.23 35.32 19.62 34.52 20.05 33.74C20.48 32.96 20.93 32.19 21.42 31.44C21.9 30.69 22.42 29.96 22.96 29.25C23.51 28.55 24.08 27.86 24.67 27.2C25.27 26.53 25.89 25.89 26.54 25.28C27.19 24.67 27.86 24.08 28.55 23.51C29.25 22.95 29.96 22.42 30.7 21.91C31.43 21.41 32.19 20.93 32.96 20.49C33.73 20.04 34.52 19.62 35.33 19.24C36.13 18.86 36.95 18.5 37.79 18.18C38.62 17.86 39.47 17.58 40.32 17.32C41.18 17.07 42.04 16.85 42.91 16.66C43.79 16.48 44.67 16.33 45.55 16.21C46.44 16.1 47.33 16.01 48.22 15.97C49.11 15.92 50.3 15.93 50.89 15.93C51.49 15.93 51.64 15.96 51.78 15.97" fill="none" stroke="#ffffff" stroke-opacity="0.85" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="55.03" cy="16.09" r="1.10" fill="#ffffff" fill-opacity="0.85"/>
+<path d="M84.08 50C84.06 50.45 84.04 51.79 83.97 52.67C83.9 53.56 83.8 54.45 83.66 55.33C83.52 56.21 83.35 57.09 83.14 57.96C82.93 58.82 82.69 59.68 82.41 60.53C82.14 61.38 81.83 62.22 81.49 63.04C81.14 63.87 80.77 64.68 80.37 65.47C79.96 66.27 79.52 67.05 79.06 67.81C78.59 68.57 78.1 69.31 77.57 70.03C77.05 70.75 76.49 71.46 75.91 72.13C75.34 72.81 74.73 73.47 74.1 74.1C73.47 74.73 72.81 75.34 72.13 75.91C71.46 76.49 70.75 77.05 70.03 77.57C69.31 78.1 68.57 78.59 67.81 79.06C67.05 79.52 66.27 79.96 65.47 80.37C64.68 80.77 63.87 81.14 63.04 81.49C62.22 81.83 61.38 82.14 60.53 82.41C59.68 82.69 58.82 82.93 57.96 83.14C57.09 83.35 56.21 83.52 55.33 83.66C54.45 83.8 53.56 83.9 52.67 83.97C51.79 84.04 50.45 84.06 50 84.08" fill="none" stroke="#e69c2c" stroke-opacity="0.4" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M71.95 28.05L70.89 22.52Q70.61 21.08 71.65 20.04L73.58 18.12Q74.62 17.08 75.04 18.48L76.54 23.46Z" fill="url(#first-try-t3-coral)" class="asym"/>
+<path d="M71.95 28.05L77.48 29.11Q78.92 29.39 79.96 28.35L81.88 26.42Q82.92 25.38 81.52 24.96L76.54 23.46Z" fill="url(#first-try-t3-coral)" class="asym"/>
+</g>
+<g id="outline" fill="none" stroke="#2b3445" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round">
+<path d="M12.25 50A37.75 37.75 0 1 1 87.75 50A37.75 37.75 0 1 1 12.25 50Z" clip-path="url(#first-try-t3-vanes)"/>
+<path d="M23.78 50A26.22 26.22 0 1 1 76.22 50A26.22 26.22 0 1 1 23.78 50Z"/>
+<path d="M35.32 50A14.68 14.68 0 1 1 64.68 50A14.68 14.68 0 1 1 35.32 50Z"/>
+<path d="M71.95 28.05L70.89 22.52Q70.61 21.08 71.65 20.04L73.58 18.12Q74.62 17.08 75.04 18.48L76.54 23.46Z" stroke-width="4" class="asym"/>
+<path d="M71.95 28.05L77.48 29.11Q78.92 29.39 79.96 28.35L81.88 26.42Q82.92 25.38 81.52 24.96L76.54 23.46Z" stroke-width="4" class="asym"/>
+<path d="M51.48 48.52L75.66 24.34" class="asym"/>
+<path d="M46.43 50A3.57 3.57 0 1 1 53.57 50A3.57 3.57 0 1 1 46.43 50Z" fill="#2b3445" stroke="none"/>
+</g>
+</svg>

@@ -1,0 +1,65 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'karma.explainer.title'|trans }}{% endblock %}
+
+{% block content %}
+    <div class="col-lg-8 mx-auto">
+        {{ include('_page_crumbs.html.twig', {
+            levels: [{name: 'progression_hub.title'|trans, url: path('progression_hub')}],
+            current: 'karma.explainer.title'|trans,
+            json_ld: true,
+        }) }}
+        <h1 class="mb-2">{{ 'karma.explainer.title'|trans }}</h1>
+        <p class="lead mb-4">{{ 'karma.explainer.intro'|trans }}</p>
+
+        {# The personal part and the list launch with XP - the one launch switch (docs/features/karma.md) #}
+        {% set karma_live = xp_system_visible() %}
+
+        {% if viewer is not null and karma_live %}
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body d-flex flex-wrap align-items-center gap-3">
+                    <div>
+                        <div class="karma-total">{{ viewer.karma|plain_number }}</div>
+                        <div class="fs-sm text-body-secondary">{{ 'karma.explainer.your_karma'|trans }}</div>
+                    </div>
+                    <a class="btn btn-outline-primary ms-auto" href="{{ path('karma_history') }}">{{ 'karma.explainer.history_link'|trans }}</a>
+                </div>
+            </div>
+        {% endif %}
+
+        <h2 class="h5 mb-3">{{ 'karma.explainer.what_counts'|trans }}</h2>
+        <div class="table-responsive mb-2">
+            <table class="table align-middle">
+                <tbody>
+                    {% for rule in ['puzzle', 'change', 'merge', 'decision', 'edit', 'own_proposal'] %}
+                        <tr>
+                            <td>
+                                <strong>{{ ('karma.explainer.rules.' ~ rule ~ '.what')|trans }}</strong>
+                                <div class="fs-sm text-body-secondary">{{ ('karma.explainer.rules.' ~ rule ~ '.when')|trans }}</div>
+                            </td>
+                            <td class="text-end fw-semibold text-nowrap">{{ ('karma.explainer.rules.' ~ rule ~ '.value')|trans }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <p class="fs-sm text-body-secondary mb-4">{{ 'karma.explainer.no_caps'|trans }}</p>
+
+        <h2 class="h5 mb-2">{{ 'karma.explainer.duplicates_heading'|trans }}</h2>
+        <p class="mb-4">{{ 'karma.explainer.duplicates'|trans }}</p>
+
+        <h2 class="h5 mb-2">{{ 'karma.explainer.not_heading'|trans }}</h2>
+        <ul class="mb-4">
+            <li>{{ 'karma.explainer.never_negative'|trans }}</li>
+            <li>{{ 'karma.explainer.no_xp'|trans }}</li>
+            <li>{{ 'karma.explainer.not_counted'|trans }}</li>
+        </ul>
+
+        <div class="d-flex flex-wrap gap-2 mb-5">
+            <a class="btn btn-primary" href="{{ path('puzzles') }}">{{ 'karma.explainer.find_puzzle'|trans }}</a>
+            {% if karma_live %}
+                <a class="btn btn-outline-primary" href="{{ path('karma_leaderboard') }}">{{ 'karma.explainer.list_link'|trans }}</a>
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}

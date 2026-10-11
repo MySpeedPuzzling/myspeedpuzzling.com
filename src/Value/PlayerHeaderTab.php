@@ -13,6 +13,7 @@ enum PlayerHeaderTab: string
     case Profile = 'profile';
     case Statistics = 'statistics';
     case Calendar = 'calendar';
+    case Achievements = 'achievements';
     case Library = 'library';
     case Favorites = 'favorites';
 
@@ -22,6 +23,7 @@ enum PlayerHeaderTab: string
             self::Profile => 'player_profile',
             self::Statistics => 'player_statistics',
             self::Calendar => 'activity_calendar',
+            self::Achievements => 'player_achievements',
             self::Library => 'puzzle_library',
             self::Favorites => 'player_favorite_puzzlers',
         };

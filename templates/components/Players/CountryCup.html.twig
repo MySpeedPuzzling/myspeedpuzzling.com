@@ -19,11 +19,11 @@
         </td>
         <td class="players-cup-value">
             {%- if row.value is null -%}
-                {{ 'players.cup.below_minimum'|trans({'%active%': row.active|format_number, '%minimum%': minimum}) }}
+                {{ 'players.cup.below_minimum'|trans({'%active%': row.active|plain_number, '%minimum%': minimum}) }}
             {%- elseif per_puzzler -%}
-                {{ row.value|format_number }}<span class="players-cup-detail"> {{ 'players.cup.per_puzzler_detail'|trans({'%active%': row.active|format_number}) }}</span>
+                {{ row.value|plain_number }}<span class="players-cup-detail"> {{ 'players.cup.per_puzzler_detail'|trans({'%active%': row.active|plain_number}) }}</span>
             {%- else -%}
-                {{ row.value|format_number }}<span class="players-cup-detail"> {{ 'players.cup.pieces'|trans }}</span>
+                {{ row.value|plain_number }}<span class="players-cup-detail"> {{ 'players.cup.pieces'|trans }}</span>
             {%- endif -%}
         </td>
     </tr>

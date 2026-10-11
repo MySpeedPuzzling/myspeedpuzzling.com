@@ -30,6 +30,13 @@
         <twig:AddToCollectionCta puzzleId="{{ tracked_puzzle.puzzleId }}" buttonClass="btn btn-outline-accent" />
     </div>
 
+    {# The same order as added_time_recap: actions, then the progress card (xp-system: launch ready or admin) #}
+    {% if xp_system_visible() %}
+        <section class="recap-card mb-4" aria-label="{{ 'recap_progress.title'|trans }}">
+            <twig:XpRecapCelebration solvingTimeId="{{ tracked_puzzle.timeId }}" :celebrate="celebrate" />
+        </section>
+    {% endif %}
+
     <div class="card">
         <div class="card-body">
             <div class="row">

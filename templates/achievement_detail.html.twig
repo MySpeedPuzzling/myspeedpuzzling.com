@@ -1,0 +1,177 @@
+{% extends 'base.html.twig' %}
+
+{% set type_label = (type.translationKey())|trans %}
+
+{% block title %}{{ 'badges.detail.meta_title'|trans({'%name%': type_label}) }}{% endblock %}
+
+{#
+    Who earned an achievement (AchievementDetailController, docs/features/xp-levels/ux-polish/design-spec.md §1
+    "Holders page", amended by §8.1/§8.2): hero (seal, description, the member viewer's tier and medal number or "held
+    at launch"), the 5-seal ladder with holder counts linking to each tier's section, then per tier the newest holders
+    as 48 px rows - avatar with flag, name, earned date ("at launch" for the launch backfill's, listed last). No number
+    column: most holders are not listed, so serials would be mostly gaps.
+#}
+
+{# One holder row: avatar with flag · name · earned date; the tier's first holder (after launch) keeps the trophy #}
+{% macro holder_row(holder) %}
+    {% set name = holder.playerName ?? ('#' ~ holder.playerCode|upper) %}
+    <li class="holder-row">
+        <a href="{{ path('player_profile', {playerId: holder.playerId}) }}" class="holder-row-link">
+            {{ include('_player_avatar.html.twig', {
+                player_id: holder.playerId,
+                name: name,
+                avatar: holder.avatar,
+                country_code: holder.countryCode ? holder.countryCode.name : null,
+                country_name: holder.countryCode ? holder.countryCode.localizedName(app.request.locale) : null,
+                size: 'lg',
+            }) }}
+            <span class="holder-row-name">
+                {{ name }}
+                {% if holder.firstToEarn %}
+                    <span class="visually-hidden">({{ 'badges.detail.first_to_earn'|trans }})</span>
+                    <i class="bi bi-trophy-fill holder-row-trophy" aria-hidden="true"></i>
+                {% endif %}
+            </span>
+            <span class="holder-row-date">
+                {%- if holder.heldAtLaunch -%}
+                    {{ 'badges.holders.at_launch'|trans }}
+                {%- else -%}
+                    <time datetime="{{ holder.earnedAt|date('Y-m-d') }}">{{ holder.earnedAt|format_date('medium') }}</time>
+                {%- endif -%}
+            </span>
+        </a>
+    </li>
+{% endmacro %}
+
+{% block content %}
+    {{ include('_page_crumbs.html.twig', {
+        levels: [
+            {name: 'progression_hub.title'|trans, url: path('progression_hub')},
+            {name: 'badges.overview_title'|trans, url: path('badges_overview')},
+        ],
+        current: type_label,
+        json_ld: true,
+    }) }}
+
+    <header class="achievement-hero">
+        {# The viewer's own tier stands for the achievement (members), else Bronze; each tier's own seal heads its section below #}
+        {{ badge_art(type, hero_tier, 96, attrs = {class: 'flex-shrink-0', loading: 'eager', fetchpriority: 'high'}) }}
+
+        <div>
+            <h1 class="h3 mb-1">{{ type_label }}</h1>
+            <p class="text-body-secondary mb-0">{{ ('badges.description.' ~ type.value)|trans }}</p>
+            {% if viewer_medal is not null %}
+                <p class="achievement-hero-mine">
+                    {%- if viewer_held_at_launch -%}
+                        {{ 'badges.holders.you_hold_at_launch'|trans({'%tier%': viewer_medal.tier.translationKey()|trans}) }}
+                    {%- else -%}
+                        {{ 'badges.holders.you_hold'|trans({
+                            '%tier%': viewer_medal.tier.translationKey()|trans,
+                            '%serial%': viewer_medal.serial|plain_number,
+                            '%total%': viewer_total|plain_number,
+                        }) }}
+                    {%- endif -%}
+                </p>
+            {% endif %}
+        </div>
+    </header>
+
+    <nav class="achievement-ladder" aria-label="{{ 'badges.holders.ladder_label'|trans }}">
+        <ol>
+            {% for section in tier_sections %}
+                {% set tier_name = section.tier.translationKey()|trans %}
+                <li>
+                    <a href="#tier-{{ section.tier.value }}" data-turbo="false" class="achievement-ladder-step{{ viewer_medal is not null and viewer_medal.tier == section.tier ? ' is-mine' }}">
+                        {{ badge_art(type, section.tier, 48, attrs = {alt: ''}) }}
+                        <span class="visually-hidden">{{ tier_name }}:</span>
+                        <span class="achievement-ladder-count">{{ section.totalCount|plain_number }}</span>
+                    </a>
+                </li>
+            {% endfor %}
+        </ol>
+    </nav>
+
+    {% if countries|length > 0 %}
+        <form method="get" class="mb-3 d-flex flex-wrap align-items-center gap-2" data-turbo="false" data-controller="auto-submit" data-action="change->auto-submit#submit">
+            {# A filter change keeps where Back goes (docs/features/return-url.md) #}
+            {% if safe_return_url(app.request.query.get('return')) is not null %}
+                <input type="hidden" name="return" value="{{ app.request.query.get('return') }}">
+                <input type="hidden" name="return_title" value="{{ app.request.query.get('return_title')|default('') }}">
+            {% endif %}
+            <label for="holder-country" class="form-label fs-sm mb-0 text-nowrap">{{ 'badges.detail.country_filter'|trans }}</label>
+            {# Type to find a country - the site's country picker (country_select_controller.js, TomSelect with flags) #}
+            <div class="country-select-wrapper progression-country-select">
+                <select id="holder-country" name="country" class="form-select" data-controller="country-select">
+                    <option value="">{{ 'badges.detail.all_countries'|trans }}</option>
+                    {% for country in countries %}
+                        <option value="{{ country.code }}" data-icon="fi fi-{{ country.code }}" {{ selected_country == country.code ? 'selected' }}>{{ country.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="submit" class="btn btn-outline-secondary" data-auto-submit-target="fallback">{{ 'badges.detail.apply_filter'|trans }}</button>
+        </form>
+    {% endif %}
+
+    {% for section in tier_sections %}
+        {% set is_mine = viewer_medal is not null and viewer_medal.tier == section.tier %}
+        {# A card per tier: the header band in the tier's colour (seal, name, what it takes, how many hold it) stays under
+           the navbar while its list scrolls - with "Show all" a list can be long (Jan 2026-10-11) #}
+        <section class="achievement-tier-section tier-{{ section.tier.value }}{{ is_mine ? ' is-mine' }}" id="tier-{{ section.tier.value }}" aria-labelledby="tier-{{ section.tier.value }}-title">
+            <header class="achievement-tier-section-head">
+                {{ badge_art(type, section.tier, 56, attrs = {alt: ''}) }}
+                <div class="achievement-tier-section-text">
+                    <h2 class="achievement-tier-section-title" id="tier-{{ section.tier.value }}-title">
+                        {{ section.tier.translationKey()|trans }}
+                        {% if is_mine %}<span class="achievement-tier-section-mine">{{ 'badges.holders.your_tier'|trans }}</span>{% endif %}
+                    </h2>
+                    <p class="achievement-tier-section-requirement">{{ ('badges.requirement.' ~ type.value ~ '_' ~ section.tier.value)|trans }}</p>
+                </div>
+                <span class="achievement-tier-section-count">{{ 'badges.detail.holders_count'|trans({'%count%': section.totalCount}) }}</span>
+            </header>
+
+            {# One frame per tier: "Show 100 more" / "Show all" reload only this list, in place (Jan 2026-10-11) #}
+            <turbo-frame id="holders-tier-{{ section.tier.value }}">
+                {% if section.holders|length > 0 %}
+                    <ul class="holder-rows">
+                        {% for holder in section.holders %}
+                            {{ _self.holder_row(holder) }}
+                        {% endfor %}
+                    </ul>
+
+                    {% set more = section.moreListed %}
+                    {% if more > 0 %}
+                        {% set shown = section.holders|length %}
+                        <div class="holder-more d-flex flex-wrap gap-2 mt-2">
+                            {% if more > more_step %}
+                                <a href="{{ path('achievement_detail', {type: type.value, country: selected_country, tier: section.tier.value, shown: shown + more_step}) }}"
+                                   class="btn btn-outline-primary holder-more-button" rel="nofollow" data-turbo-frame="holders-tier-{{ section.tier.value }}">
+                                    {{- 'badges.holders.show_more'|trans({'%count%': more_step|plain_number}) -}}
+                                </a>
+                            {% endif %}
+                            <a href="{{ path('achievement_detail', {type: type.value, country: selected_country, tier: section.tier.value, shown: min(max_shown, section.listedCount)}) }}"
+                               class="btn btn-outline-primary holder-more-button" rel="nofollow" data-turbo-frame="holders-tier-{{ section.tier.value }}">
+                                {{- 'badges.holders.show_all'|trans({'%count%': section.listedCount|plain_number}) -}}
+                            </a>
+                        </div>
+                    {% endif %}
+
+                    {% if section.unlistedCount > 0 %}
+                        <p class="fs-sm text-body-secondary mb-0 mt-2">{{ 'badges.holders.unlisted'|trans({'%count%': section.unlistedCount}) }}</p>
+                    {% endif %}
+                {% elseif section.totalCount > 0 %}
+                    <p class="fs-sm text-body-secondary mb-0 mt-2">
+                        {{ 'badges.detail.only_hidden_holders'|trans({'%count%': section.totalCount}) }}
+                    </p>
+                {% else %}
+                    <p class="fs-sm text-body-secondary mb-0 mt-2">
+                        {{ 'badges.detail.nobody_yet'|trans }}
+                    </p>
+                {% endif %}
+            </turbo-frame>
+        </section>
+    {% endfor %}
+
+    <p class="small text-body-secondary mt-3">
+        {{ 'badges.detail.listing_note'|trans }}
+    </p>
+{% endblock %}

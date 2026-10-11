@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+<!-- MSP illustrated icon "supporter" (Supporter - heart) - MSP coral (default, no tier). Own work (badge lab IK1), free to use. Layers: face (constant), accent (tier tint), outline (navy #2b3445, 4.5/100, round). a big friendly heart in the tier colour with the house light (single-tier badge: use -msp) -->
+<defs><linearGradient id="supporter-msp-acc" x1="0.12" y1="0.04" x2="0.88" y2="0.96"><stop offset="0" stop-color="#ffa6a3"/><stop offset="0.52" stop-color="#fb8180"/><stop offset="1" stop-color="#f16b6d"/></linearGradient></defs>
+<g id="face">
+
+</g>
+<g id="accent">
+<path d="M50 30.64C46.13 20.96 38.38 16.12 30.64 16.12C19.99 16.12 12.25 24.83 12.25 36.45C12.25 54.84 31.61 68.39 50 83.88C68.39 68.39 87.75 54.84 87.75 36.45C87.75 24.83 80.01 16.12 69.36 16.12C61.62 16.12 53.87 20.96 50 30.64Z" fill="url(#supporter-msp-acc)"/>
+<path d="M33.04 19.7C32.64 19.67 31.42 19.51 30.62 19.51C29.81 19.51 28.98 19.57 28.19 19.7C27.4 19.83 26.62 20.03 25.86 20.28C25.11 20.54 24.38 20.86 23.68 21.24C22.99 21.62 22.32 22.07 21.7 22.57C21.07 23.06 20.49 23.62 19.95 24.22C19.41 24.82 18.92 25.47 18.47 26.16C18.03 26.84 17.64 27.57 17.3 28.33C16.96 29.08 16.67 29.87 16.44 30.67C16.2 31.47 16.02 32.31 15.89 33.14C15.76 33.98 15.68 34.84 15.65 35.69C15.62 36.55 15.64 37.42 15.71 38.28C15.78 39.13 15.96 40.2 16.07 40.84C16.17 41.48 16.31 41.9 16.35 42.11" fill="none" stroke="#ffffff" stroke-opacity="0.8" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="36.03" cy="19.93" r="1.02" fill="#ffffff" fill-opacity="0.8"/>
+<path d="M56.23 74.31C56.61 73.99 57.75 73.05 58.51 72.42C59.27 71.79 60.02 71.16 60.77 70.52C61.52 69.89 62.27 69.26 63.01 68.62C63.75 67.98 64.49 67.34 65.21 66.69C65.94 66.05 66.67 65.4 67.38 64.74C68.1 64.09 68.8 63.43 69.5 62.76C70.19 62.1 70.88 61.42 71.56 60.74C72.23 60.06 72.89 59.38 73.54 58.68C74.18 57.98 74.82 57.28 75.43 56.56C76.04 55.85 76.64 55.12 77.21 54.39C77.78 53.65 78.34 52.9 78.86 52.15C79.38 51.39 79.88 50.62 80.34 49.84C80.81 49.06 81.25 48.27 81.64 47.46C82.03 46.66 82.4 45.85 82.71 45.02C83.03 44.2 83.31 43.37 83.54 42.53C83.76 41.69 83.95 40.84 84.08 39.99C84.22 39.14 84.3 37.92 84.34 37.42C84.39 36.92 84.35 37.06 84.36 36.99" fill="none" stroke="#e45f62" stroke-opacity="0.4" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+</g>
+<g id="outline" fill="none" stroke="#2b3445" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round">
+<path d="M50 30.64C46.13 20.96 38.38 16.12 30.64 16.12C19.99 16.12 12.25 24.83 12.25 36.45C12.25 54.84 31.61 68.39 50 83.88C68.39 68.39 87.75 54.84 87.75 36.45C87.75 24.83 80.01 16.12 69.36 16.12C61.62 16.12 53.87 20.96 50 30.64Z"/>
+</g>
+</svg>

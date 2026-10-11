@@ -1,0 +1,13 @@
+{# One quiet line: the base XP of a solve (members: with the difficulty bonus), the repeat discount, a link to how
+   the bonuses work. Never the difficulty tier itself, never a bonus number (XpPuzzleEstimate). #}
+{% if visible %}
+    <p class="fs-sm text-muted mt-1 mb-0" id="xp-puzzle-estimate">
+        <i class="ci-star me-1" aria-hidden="true"></i>
+        {% if repeatPercent is not null %}
+            {{ 'xp.estimate.line_repeat'|trans({'%xp%': baseXp, '%percent%': repeatPercent}) }}
+        {% else %}
+            {{ 'xp.estimate.line_first'|trans({'%xp%': baseXp}) }}
+        {% endif %}
+        <a href="{{ path('xp_explainer') }}" class="text-muted text-nowrap">{{ 'xp.estimate.bonuses_link'|trans }}</a>
+    </p>
+{% endif %}

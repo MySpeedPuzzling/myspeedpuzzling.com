@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+<!-- MSP illustrated icon "librarian" (Librarian - open book) - T2 Silver (polished blue steel). Own work (badge lab IK1), free to use. Layers: face (constant), accent (tier tint), outline (navy #2b3445, 4.5/100, round). an open book: white pages with a few navy lines, the cover in the tier colour around them, a coral bookmark ribbon at the spine -->
+<defs><linearGradient id="librarian-t2-acc" x1="0.12" y1="0.04" x2="0.88" y2="0.96"><stop offset="0" stop-color="#f4f8ff"/><stop offset="0.3" stop-color="#c9d6ee"/><stop offset="0.62" stop-color="#9fb3d9"/><stop offset="1" stop-color="#7d93c2"/></linearGradient><linearGradient id="librarian-t2-face" x1="0.12" y1="0.04" x2="0.88" y2="0.96"><stop offset="0" stop-color="#ffffff"/><stop offset="0.55" stop-color="#f1f4fb"/><stop offset="1" stop-color="#e1e8f5"/></linearGradient><linearGradient id="librarian-t2-coral" x1="0.12" y1="0.04" x2="0.88" y2="0.96"><stop offset="0" stop-color="#ffa6a3"/><stop offset="0.52" stop-color="#fb8180"/><stop offset="1" stop-color="#f16b6d"/></linearGradient><clipPath id="librarian-t2-pages"><path clip-rule="evenodd" d="M-10 -10H110V110H-10ZM50 22.77C41.79 16.62 31.95 15.38 23.74 17.85L23.74 58.88C31.95 56.42 41.79 57.24 50 63.8ZM50 22.77C58.21 16.62 68.05 15.38 76.26 17.85L76.26 58.88C68.05 56.42 58.21 57.24 50 63.8Z"/></clipPath><clipPath id="librarian-t2-cover-pages"><path clip-rule="evenodd" d="M-10 -10H110V110H-10ZM50 22.77C41.79 16.62 31.95 15.38 23.74 17.85L23.74 58.88C31.95 56.42 41.79 57.24 50 63.8ZM50 22.77C58.21 16.62 68.05 15.38 76.26 17.85L76.26 58.88C68.05 56.42 58.21 57.24 50 63.8ZM12.25 30.16Q12.25 26.87 15.48 27.44L50 33.44L84.52 27.44Q87.75 26.87 87.75 30.16L87.75 67.91Q87.75 72.01 83.71 72.71L53.23 78.01Q50 78.58 46.77 78.01L16.29 72.71Q12.25 72.01 12.25 67.91Z"/></clipPath></defs>
+<g id="face">
+<path d="M46.31 71.19L53.69 71.19L53.69 83.5Q53.69 84.32 53.08 83.77L50.31 81.31Q50 81.04 49.69 81.31L46.92 83.77Q46.31 84.32 46.31 83.5Z" fill="url(#librarian-t2-coral)"/>
+<path d="M50 22.77C41.79 16.62 31.95 15.38 23.74 17.85L23.74 58.88C31.95 56.42 41.79 57.24 50 63.8Z" fill="url(#librarian-t2-face)"/>
+<path d="M50 22.77C58.21 16.62 68.05 15.38 76.26 17.85L76.26 58.88C68.05 56.42 58.21 57.24 50 63.8Z" fill="url(#librarian-t2-face)"/>
+</g>
+<g id="accent">
+<path d="M12.25 30.16Q12.25 26.87 15.48 27.44L50 33.44L84.52 27.44Q87.75 26.87 87.75 30.16L87.75 67.91Q87.75 72.01 83.71 72.71L53.23 78.01Q50 78.58 46.77 78.01L16.29 72.71Q12.25 72.01 12.25 67.91Z" fill="url(#librarian-t2-acc)" clip-path="url(#librarian-t2-pages)"/>
+</g>
+<g id="outline" fill="none" stroke="#2b3445" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round">
+<path d="M46.31 71.19L53.69 71.19L53.69 83.5Q53.69 84.32 53.08 83.77L50.31 81.31Q50 81.04 49.69 81.31L46.92 83.77Q46.31 84.32 46.31 83.5Z" stroke-width="3.2" clip-path="url(#librarian-t2-cover-pages)"/>
+<path d="M12.25 30.16Q12.25 26.87 15.48 27.44L50 33.44L84.52 27.44Q87.75 26.87 87.75 30.16L87.75 67.91Q87.75 72.01 83.71 72.71L53.23 78.01Q50 78.58 46.77 78.01L16.29 72.71Q12.25 72.01 12.25 67.91Z" clip-path="url(#librarian-t2-pages)"/>
+<path d="M50 22.77C41.79 16.62 31.95 15.38 23.74 17.85L23.74 58.88C31.95 56.42 41.79 57.24 50 63.8Z"/>
+<path d="M50 22.77C58.21 16.62 68.05 15.38 76.26 17.85L76.26 58.88C68.05 56.42 58.21 57.24 50 63.8Z"/>
+<path d="M43.02 30.32L28.25 28.52" stroke-width="2.6"/>
+<path d="M43.02 38.53L28.25 36.72" stroke-width="2.6"/>
+<path d="M43.02 46.73L33.18 44.93" stroke-width="2.6"/>
+<path d="M56.98 30.32L71.75 28.52" stroke-width="2.6"/>
+<path d="M56.98 38.53L71.75 36.72" stroke-width="2.6"/>
+<path d="M56.98 46.73L66.82 44.93" stroke-width="2.6"/>
+</g>
+</svg>

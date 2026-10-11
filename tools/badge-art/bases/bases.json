@@ -1,0 +1,135 @@
+{
+ "frame": "F1 seal ladder v2 (tiers) + F1S-A ribbon seal (one-offs)",
+ "generator": "tools/badge-art/freeze_bases.py (frames/)",
+ "canvas_px": 1024,
+ "outline_px": 27.0,
+ "icon_slot": {
+  "centre_px": [
+   512.0,
+   512.0
+  ],
+  "bbox_long_side_px": 542.72,
+  "fit_radius_px": 300.0,
+  "plate_radius_px": 308.0,
+  "icon_box_fit": 0.8
+ },
+ "bases": {
+  "t1": {
+   "title": "F1 T1 Bronze: circle seal",
+   "status": "frozen",
+   "frozen_on": "2026-10-10",
+   "files": {
+    "under": "f1-t1-under.svg",
+    "over": "f1-t1-over.svg"
+   },
+   "sha256": {
+    "under": "0a872d0d9709c2c219deb455ce5080d031ec4ae64ba98b0e4eab70a85c0a1e2b",
+    "over": "d4e4f90260c8c88ff2145e9bd14edda7d3c1d2008a7b734b73de343d319f41b1"
+   }
+  },
+  "t2": {
+   "title": "F1 T2 Silver: 6 scallops",
+   "status": "frozen",
+   "frozen_on": "2026-10-10",
+   "files": {
+    "under": "f1-t2-under.svg",
+    "over": "f1-t2-over.svg"
+   },
+   "sha256": {
+    "under": "3adf30ffc7e35a61a843771ffa2af5ed711a344ea53989ba25f973b8de2f1aa1",
+    "over": "7d6144d16d739503100639b421bb59f4b0659ccd6613430b84ed9045526c4092"
+   }
+  },
+  "t3": {
+   "title": "F1 T3 Gold: 12 scallops",
+   "status": "frozen",
+   "frozen_on": "2026-10-10",
+   "files": {
+    "under": "f1-t3-under.svg",
+    "over": "f1-t3-over.svg"
+   },
+   "sha256": {
+    "under": "f812d02433e790f2c68926c74a2431465736db02f8e9e46c2f6e7a1c76ad8649",
+    "over": "d5690e3802907e652badbace2f94e43c60e07155b3c712c37bdcf1ffeb2f6681"
+   }
+  },
+  "t4": {
+   "title": "F1 T4 Platinum: 12 scallops + pleats + ribbon tails",
+   "status": "frozen",
+   "frozen_on": "2026-10-10",
+   "files": {
+    "under": "f1-t4-under.svg",
+    "over": "f1-t4-over.svg"
+   },
+   "sha256": {
+    "under": "ab842e29bc5a61d3fe5da109680fa209fa9f9e93e00f3c6b0b68c4e0914e362f",
+    "over": "1f01c0d1e9379d1f8f87b9727e5f246470a72e1191d742c5506888622fb7cfaa"
+   }
+  },
+  "t5": {
+   "title": "F1 T5 Diamond: 18-ray sunburst + tails + crown, logo prism, no sparkles",
+   "status": "frozen",
+   "frozen_on": "2026-10-10",
+   "files": {
+    "under": "f1-t5-under.svg",
+    "over": "f1-t5-over.svg"
+   },
+   "sha256": {
+    "under": "62561fe3be2c37cf2835b23ab263869bed84fda99d240ebe72a5895eea53cbe8",
+    "over": "f4c5da028665e0e860494f1d6d1e0dad515e1074031f1a5434e0429eb0fa7618"
+   }
+  },
+  "single-coral": {
+   "title": "F1S-A ribbon seal, set colour coral: paper seal + coral ring + coral ribbon banner",
+   "status": "frozen",
+   "frozen_on": "2026-10-10",
+   "files": {
+    "under": "f1s-a-coral-under.svg",
+    "over": "f1s-a-coral-over.svg"
+   },
+   "sha256": {
+    "under": "7c8f71f1e5a8bb402fc123cb7721fd60d72bfd43466f462ae5c9da7918a151b1",
+    "over": "8a9b8ba6484acec8df87fe155ce2a225e90286702083f4f7eba8178e7c61706a"
+   }
+  },
+  "single-sky": {
+   "title": "F1S-A ribbon seal, set colour sky: paper seal + sky ring + sky ribbon banner",
+   "status": "frozen",
+   "frozen_on": "2026-10-10",
+   "files": {
+    "under": "f1s-a-sky-under.svg",
+    "over": "f1s-a-sky-over.svg"
+   },
+   "sha256": {
+    "under": "e5047d77f195621cb003838707f6d21d221a2ac2b4543ef3051b8ca437274237",
+    "over": "ed5b3a4a980279920beeec56778921a9cc45b4362263d4e64e228863e54bebee"
+   }
+  },
+  "single-lavender": {
+   "title": "F1S-A ribbon seal, set colour lavender: paper seal + lavender ring + lavender ribbon banner",
+   "status": "frozen",
+   "frozen_on": "2026-10-10",
+   "files": {
+    "under": "f1s-a-lavender-under.svg",
+    "over": "f1s-a-lavender-over.svg"
+   },
+   "sha256": {
+    "under": "eb2c7c8546d0663c4e9e732e803e4302d718445e9f51cf73160bac126f353506",
+    "over": "96a6d75dbc0d4a2165d0810f231250fbc126b8614c9495ff59b20956ac0e2a04"
+   }
+  },
+  "single-teal": {
+   "title": "F1S-A ribbon seal, set colour teal: paper seal + teal ring + teal ribbon banner",
+   "status": "frozen",
+   "frozen_on": "2026-10-10",
+   "files": {
+    "under": "f1s-a-teal-under.svg",
+    "over": "f1s-a-teal-over.svg"
+   },
+   "sha256": {
+    "under": "333720a95c78829b3214dabb012cbec6f1c43ba7d154680a06ec3383bcdf09fb",
+    "over": "cc10d7781e9ad827fad5d3a221f45c2f1e0a918a9ae23304d16eff4ab34bd7d2"
+   }
+  }
+ }
+}

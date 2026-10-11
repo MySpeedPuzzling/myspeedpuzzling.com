@@ -4,6 +4,101 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
+## Anti-farming (`docs/features/xp-levels/README.md` §Anti-farming, workstream G 2026-10-11)
+
+- [ ] lily.srv: add the `verify-progression --repair` cron row (README §Cron) with the deploy; watch its first warnings
+      (drift found = a write path that is not wired - name the check, fix the path).
+- [ ] Karma loops that the rule itself pays for (path independent, but repeatable): a moderator may file trivial
+      proposals and approve them (+1 each, no cap), and two colluding accounts can farm the merge reporter's +1 by
+      adding duplicates of one puzzle and reporting them (the adder loses the copy's credit, the reporter keeps +1 per
+      merge). Candidates: count a self-decided proposal only when another moderator could not have decided it, one
+      reporter credit per (reporter, merged puzzle adder) pair a month - Jan to decide; the admins' accept/decline split
+      above would show both.
+- [ ] Merging a puzzle whose sell/swap listing has a conversation fails ("A new entity was found through the
+      relationship Conversation#sellSwapListItem") - reproduced in the test fixtures (PUZZLE_500_01 into PUZZLE_500_02),
+      not caused by the progression work; check `ApprovePuzzleMergeRequestHandler::migrateRecordsToSurvivor()`.
+- [ ] The nightly check cannot tell a missing weekly boost on a solve whose base part is below 1 XP (the moving
+      difficulty tier decides) - only too many boosts there. Fine for farming; a full rebuild of such a player fixes it.
+- [ ] Two concurrent karma recalculations may write the older aggregate (set-based UPDATE from a snapshot taken
+      before the other commit) - healed by the daily run; a per-player lock would close it if it ever shows.
+
+## Progression pages (`docs/features/xp-levels/launch-2026-10.md` §3, workstream D)
+
+- [x] Paging past the top 100 on the XP / AP leaderboard - replaced by the "where am I" window on every board (2026-10-11)
+- [ ] XP leaderboard default "people you follow" (draft D6) - not decided, the board still opens on the world
+- [ ] Karma deep page replaces the `karma_explainer` placeholder (workstream F) and the karma board joins `ProgressLeaderboardTab`
+- [ ] Visual check of the hub, catalogue and XP history at 320/375 px on the integrated branch (not done in the workstream)
+## Progression UX polish (`docs/features/xp-levels/ux-polish/design-spec.md`, 2026-10-11)
+
+- [ ] Real first-met dates in the badge backfill: tiers held at launch show "Held at launch" (no number, no date, §8.1) because
+      every launch tier carries the backfill's timestamp; deriving the date each requirement was first met would give them real
+      dates and medal numbers
+- [ ] Real-device pass of the bottom sheet and the holo medal (iPhone Safari, Android Chrome): swipe to close vs the content's
+      scroll, the Android back gesture (`CloseWatcher`), tilt only with a mouse/pen, haptics, the 92dvh cap with the toolbar
+- [ ] /ladder overview: each table now ends with "Full board, around you" next to the old "Top 10" badge and "Show more" link -
+      decide which stays
+- [ ] Sheet skeleton dropped (the spinner only shows after 150 ms and the sheet renders fast); revisit if phones show it often
+- [ ] The P1 badge cabinet stays a possible later "trophy room" view on the same data (decided not now, §1)
+- [ ] Site-wide contrast: the coral `#fe696a` on white is 2.8:1 - the leaderboard table header (white on coral, from #222),
+      plain links and `.btn-outline-primary`. The new progression controls use the coral ink `#c7393b` (5.2:1); the site-wide
+      fix is a brand decision (QA 2026-10-11)
+- [ ] MSP Rating on the recap (asked 2026-10-11): only an estimate is possible (batch every 15 min, no rating history,
+      the place depends on everyone's times) - cheapest honest version first: "This result doesn't count toward MSP
+      Rating (pair/team · not 500 pieces · fewer than 20 solvers)" + "the ladder updates within 15 minutes"; a "+N"
+      estimate needs MspRatingCalculator's puzzle rankings scoped to the player's puzzles. Waiting for Jan
+- [ ] Real-device pass of the reveal sound: always on, no toggle (2026-10-11) - iPhone silent switch (ambient audio
+      session), the first tap after a full page load, Android Chrome; the reveal page's first card opened from the modal's
+      "Reveal my achievements" plays its sound without a tap of its own (the modal's AudioContext carried over the Turbo
+      visit, `assets/last_piece_reveal/sfx.js`)
+- [ ] Profile results after deploy: measure production (dev still spends ~250-300 ms of PHP over the whole history -
+      filters/sorts/grouping of every result); the ranking now leaves 0-second solo times out (custom_pst_solo_board
+      covers `> 0`; the web form stores 0 as "no time", the API's "00:00" can still store one - none exist)
+- [ ] Rework the art of the launch share card (`XpShareCardController`, variant `launch`) - Jan 2026-10-12: "I do not
+      like it". "Share my level" is hidden on the reveal page meanwhile (`xp/_launch_reveal_actions.html.twig`); the
+      route and the `xp.reveal.share_*` texts stay, the button comes back with the new card
+- [ ] Hub cards don't carry `?return=` (their pages go back to the hub anyway, and it would turn the hub's main links into
+      nofollow ones) - only Leaderboards and Fair play do
+
+## Recap progress card (`docs/features/xp-levels/README.md` §Surfaces, launch 2026-10)
+
+- [ ] "Earned with this time" is a 10-minute window after `tracked_at`, cut at the player's next time
+      (`GetBadges::earnedWithSolve()`), because a badge row does not point at the solve that earned it. If a cron run of the badge evaluation lands in that window, its tiers are credited to the time. A `badge.solving_time_id` written by `RecalculateBadgesForPlayer` (dispatched with the time id) would make it exact.
+- [ ] Real-device pass of the recap reveal (88/144 px stages inside the card) and the milestone sheet on iPhone Safari + Android Chrome.
+
+## Karma (`docs/features/karma.md`)
+
+- [ ] **v2: events** - approved events, series and organizations could count once the events catalogue is part of
+  "the database" (Jan, 2026-10-10: not in v1).
+- [ ] **Trusted contributors** - high karma and >= 95 % accepted: small fixes applied at once, still listed for review
+  afterwards. Moderator invitations suggested from karma (appointing stays a human decision).
+- [ ] **Admins: each moderator's accept/decline split** (the guard against rubber-stamping now that decisions have no cap) -
+  in the drafts, not built.
+- [ ] Review queues sorted by the proposer's acceptance (drafts) - only shown, not sorted, in v1.
+- [ ] If the filtered karma list (a kind or the last 12 months, ~110 ms on the dev copy) gets slow on production, store
+  per-kind totals next to `player.karma` instead of deriving them per request.
+- [ ] lily.srv: add the `recalculate-karma` cron row (in `docs/features/karma.md`).
+## Progression on the profile header and navbar (`docs/features/player-header.md` "Progression", workstream C 2026-10-10)
+
+- [ ] Karma chip in the header's chip row (teal `.player-chip-karma`, only when > 0) - the slot is marked in
+  `templates/components/PlayerHeader.html.twig`, needs `player.karma` on the `byId()` row (workstream F)
+- [ ] Point the tier chip, the ring's visitor link and the cards' "?" links to the "How it works" hub once it exists
+  (today `methodology` / `xp_explainer`)
+- [ ] Pinning achievements in the showcase (today: highest tier first, newest first within a tier)
+- [ ] `PlayerCard::$mspRating` is no longer shown on the player card (Level + tier only) - drop it from
+  `GetPlayerCard` or show it elsewhere
+- [ ] Player profile at 320 px: the page is 5 px too wide - measured on a static render (no JS), the chart card's
+  row, not the header; check on a real device
+## Activity digest + "Your week" (`docs/features/content-digest/README.md`, progression launch WS-E)
+
+- [ ] Karma: workstream F wires karma gained in a period into `GetContentDigestRecipients::activitySql()` (karma = activity) and `PlayerPeriodActivityReader::karmaGained()` (the thanks line, linking F's karma history)
+- [x] Launch badge backfill vs the first digest: tiers earned before the launch switch went on are never counted (`PlayerPeriodActivityReader::achievementsEarned()` starts at `XpLaunchReadiness::readyAt()`), whenever the backfill runs
+- [ ] "We miss you" waves by hand (README wave plan): Tue 27 Oct 28d-3m + visitors with an older result, Tue 3 Nov 3-9m; Tuesday cron row from 10 Nov
+- [ ] Holdout comparison (README §Holdout SQL) once the first spells are 8 weeks old (late December)
+- [ ] Link the page (`my_activity`) from the app: user menu / own profile / the recap ("See your week") - nothing links it yet besides the e-mail
+- [ ] Visual check of the page and both e-mails at 375 / 320 px and in a long locale (not done in WS-E: no isolated browser run)
+- [ ] Admin line with per-run counts (`content_digest_run`) on the e-mail audit page
+- [ ] Seznam Email Profi daily ceiling (README §17.1) before the audience passes ~10k/day
+
 ## High-frequency series (`docs/features/events-page/high-frequency-series.md`, PR #253)
 
 - [ ] **The converted weekly online series (2026-10-09)**: tell its organiser about the change (Jan, by mail - drafts
@@ -869,3 +964,28 @@ Mirrored in [#212](https://github.com/MySpeedPuzzling/myspeedpuzzling.com/issues
 
 - [ ] Compare activation (share of registrations with a solving time within 7 days) before vs after 2026-09-20 -
       SQL in the feature doc. If people stall at the fifth checklist step, drop "Add a favorite puzzler"
+
+## Badge UI fine-tuning (`docs/features/badges-ui-handoff.md`, art: `tools/badge-art/README.md`)
+
+- [ ] Real-device pass of the badge reveal page + XP launch reveal (iPhone Safari, Android Chrome): haptics, sound
+      toggle, tap targets, hover space above the stage, locked look on OLED
+- [ ] Holo tilt + medal back in the achievement modal (prototype P3; precompute the bitmap analysis in tools/badge-art;
+      own code, not the GPL pokemon-cards-css); needs rarity + serial numbers
+- [ ] Self-animating T4/T5 SVG shine as an extra tools/badge-art output (prototype P5; loop only in modal/reveal)
+- [ ] Badge cabinet as a jigsaw board on the profile (prototype P1) - decide yearly reset / picture / 40 types on phones
+- [ ] Event passport for one-off event badges (prototype P6), spinning medal for the reveal (prototype P4) - optional
+- [ ] Check the 48 px e-mail PNGs in Gmail/Outlook dark mode
+- [ ] `EligibilityScheduleTest::testTheEventPageAndTheEventsPageRows` fails on origin/main too (2026-10-10): its two
+      events 22 and 50 days out both fall in November and merge into one events-page row - make it date-proof
+
+## XP launch - after the switch is on (`docs/features/xp-levels/launch-2026-10.md`, `feature_flags.md` `xp-launch`)
+
+- [ ] Remove `XpFeatureGate`, the `{% if xp_system_visible() %}` wrappers and the readiness check in `XpLaunchRevealRule`
+      once the launch is settled; `XpLaunchReadiness` + `xp_settings.launch_ready_at` go with them
+- [ ] Add `xp_leaderboard` (both tabs) and `achievement_detail` to `BlocklistCanaryTest` + `PrivateProfileCanaryTest`
+      (needs fixture players with XP / achievements as positive controls)
+- [ ] Query budgets of signed-in pages carry +1 for the header XP ring (`GetXpProfile`) since the gate opened for
+      everybody - gone once the level rides on the viewer's profile row
+- [ ] Re-run `myspeedpuzzling:xp-distribution` after the launch backfill: without achievement XP a local copy gave 112
+      players at Level 50 and median level 10 (the curve was calibrated to a median of 13-14 with achievement XP) -
+      decide whether the curve needs a touch

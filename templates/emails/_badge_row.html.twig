@@ -1,0 +1,13 @@
+{# One achievement in an e-mail: its badge at 48 px (the PNG at 2x, absolute URL - mail apps load nothing relative)
+   and the text, as a row of the caller's table. The picture's alt is empty on purpose: the text beside it names the
+   achievement and tier, and a mail app that blocks images, a screen reader and the plain-text part
+   (EmailHtmlToTextConverter writes every alt) would otherwise say it twice.
+   Params: type (BadgeType), tier (null|BadgeTier), label, detail (null|string) #}
+<tr>
+    <td width="48" style="width: 48px; padding: 6px 12px 6px 0; vertical-align: middle;">
+        <img src="{{ badge_art_url(type, tier, 'png', 96, absolute = true) }}" alt="" width="48" height="48" style="display: block; width: 48px; height: 48px; border: 0;">
+    </td>
+    <td style="padding: 6px 0; vertical-align: middle;">
+        <strong>{{ label }}</strong>{% if detail is not empty %}<br>{{ detail }}{% endif %}
+    </td>
+</tr>

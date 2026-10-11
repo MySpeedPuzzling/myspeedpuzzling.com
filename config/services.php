@@ -97,6 +97,9 @@ return static function (ContainerConfigurator $configurator): void {
     $parameters->set('env(RESULT_REVIEW_EMAILS_PER_DAY)', '1000');
     $parameters->set('env(RESULT_REVIEW_EMAIL_SPACING_SECONDS)', '60');
     $parameters->set('result_review_emails_per_run', '%env(int:RESULT_REVIEW_EMAILS_PER_RUN)%');
+    // The Times boards' guest cache (TimesBoardGuestCache) - on; off in .env.test (a query test reads a board, changes
+    // the times and reads it again within one kernel)
+    $parameters->set('env(TIMES_BOARD_GUEST_CACHE)', '1');
     $parameters->set('result_review_emails_per_day', '%env(int:RESULT_REVIEW_EMAILS_PER_DAY)%');
     $parameters->set('result_review_email_spacing_seconds', '%env(int:RESULT_REVIEW_EMAIL_SPACING_SECONDS)%');
 
@@ -203,7 +206,11 @@ return static function (ContainerConfigurator $configurator): void {
     $services->set(PostgresSessionHandler::class)
         ->arg('$lifetimeSeconds', param('loginLifetimeSeconds'));
 
+    $services->set(\SpeedPuzzling\Web\Services\TimesBoardGuestCache::class)
+        ->arg('$enabled', '%env(bool:TIMES_BOARD_GUEST_CACHE)%');
+
     $services->load('SpeedPuzzling\\Web\\Query\\', __DIR__ . '/../src/Query/**/{*.php}');
+    $services->load('SpeedPuzzling\\Web\\BadgeConditions\\', __DIR__ . '/../src/BadgeConditions/**/{*.php}');
     $services->load('SpeedPuzzling\\Web\\Security\\', __DIR__ . '/../src/Security/**/{*.php}')
         ->exclude([
             __DIR__ . '/../src/Security/OAuth2User.php',

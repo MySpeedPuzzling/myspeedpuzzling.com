@@ -54,21 +54,22 @@ final class PuzzleTrackerAppControllerTest extends WebTestCase
         $numbers = $crawler->filter('#puzzle-database .catalogue-numbers li');
 
         self::assertCount(4, $numbers);
-        self::assertStringContainsString('40,622', $numbers->eq(0)->text());
+        self::assertStringContainsString('40622', $numbers->eq(0)->text());
         self::assertStringContainsString('puzzles', $numbers->eq(0)->text());
-        self::assertStringContainsString('2,060', $numbers->eq(1)->text());
+        self::assertStringContainsString('2060', $numbers->eq(1)->text());
         self::assertStringContainsString('brands', $numbers->eq(1)->text());
-        self::assertStringContainsString('23,554', $numbers->eq(2)->text());
+        self::assertStringContainsString('23554', $numbers->eq(2)->text());
         self::assertStringContainsString('EAN', $numbers->eq(2)->text());
-        self::assertStringContainsString('510,602', $numbers->eq(3)->text());
+        self::assertStringContainsString("510\u{00A0}602", $numbers->eq(3)->text());
         self::assertStringContainsString('solve times', $numbers->eq(3)->text());
 
         $crawler = $browser->request('GET', '/de/puzzle-tracker-app');
-        self::assertStringContainsString('40.622', $crawler->filter('#puzzle-database .catalogue-numbers')->text());
+        // The same number in every language - never a comma or dot between the thousands (PlainNumber)
+        self::assertStringContainsString('40622', $crawler->filter('#puzzle-database .catalogue-numbers')->text());
 
         $crawler = $browser->request('GET', '/sledovani-puzzli-aplikace');
         $czech = $crawler->filter('#puzzle-database .catalogue-numbers li');
-        self::assertStringContainsString("40\u{a0}622", $czech->eq(0)->text());
+        self::assertStringContainsString('40622', $czech->eq(0)->text());
         // Czech plural for large numbers
         self::assertStringContainsString('značek', $czech->eq(1)->text());
     }

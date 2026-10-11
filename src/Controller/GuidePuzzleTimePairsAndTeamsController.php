@@ -14,6 +14,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Contracts\Translation\TranslatorInterface;
+use SpeedPuzzling\Web\Value\PlainNumber;
 
 /**
  * "How long does a 1000-piece puzzle take with 2 people" - solo vs. pair vs. team
@@ -64,7 +65,7 @@ final class GuidePuzzleTimePairsAndTeamsController extends AbstractController
 
         $description = $solo1000 !== null && $duo1000 !== null
             ? $this->translator->trans('guides.how_long_pairs.meta_description', [
-                '%count%' => number_format($duo1000->solvesCount),
+                '%count%' => PlainNumber::format($duo1000->solvesCount),
                 '%median%' => $this->timeFormatter->compactTime($duo1000->medianSeconds),
                 '%solo_median%' => $this->timeFormatter->compactTime($solo1000->medianSeconds),
             ], locale: 'en')

@@ -37,12 +37,31 @@ final class FeaturesOptionsFormType extends AbstractType
             'help' => 'edit_profile.hide_time_predictions_help',
             'required' => false,
         ]);
+
+        // Hidden while the xp-system flag is active.
+        if ($options['show_experience_system'] === true) {
+            $builder->add('experienceSystemOptedOut', CheckboxType::class, [
+                'label' => 'xp_opt_out.label',
+                'help' => 'xp_opt_out.help',
+                'required' => false,
+            ]);
+
+            // Karma launches with XP (docs/features/karma.md) - its own switch, independent of the XP one
+            $builder->add('karmaOptedOut', CheckboxType::class, [
+                'label' => 'karma.opt_out.label',
+                'help' => 'karma.opt_out.help',
+                'required' => false,
+            ]);
+        }
     }
 
     public function configureOptions(OptionsResolver $resolver): void
     {
         $resolver->setDefaults([
             'data_class' => FeaturesOptionsFormData::class,
+            'show_experience_system' => false,
         ]);
+
+        $resolver->setAllowedTypes('show_experience_system', 'bool');
     }
 }

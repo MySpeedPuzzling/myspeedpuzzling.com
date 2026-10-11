@@ -1,0 +1,85 @@
+{#
+    The shared body of the achievements pages (docs/features/xp-levels/ux-polish/design-spec.md §1, amended by §8.6) -
+    the catalogue badges_overview and a player's player_achievements: "Closest next steps" (the viewer's own only; a
+    side column from 992 px), the filter chips (counts = the cells shown, a row scrolling sideways on phones) and the
+    shelf of seals (_achievement_cell.html.twig). The summary line above it is the page's own.
+
+    Inputs:
+      - lists (null|AchievementCatalogueLists): null = nothing personal (the closest next steps are left out)
+      - rows (list<AchievementCatalogueRow>): the shelf in the chosen filter's order
+      - filter (AchievementCatalogueFilter), filters (list), filter_counts (array<string, int>)
+      - filter_route (string), filter_params (array): where a chip links (+ `show`)
+      - personal (bool): the rows carry a member's tiers
+      - player_id (null|string): whose medal the sheet shows - the page's player; null on the catalogue
+      - own (bool): the viewer looks at their own achievements - the closest next steps are shown to them only
+        ("Your first one is close" when they have none yet)
+      - show_supporter (bool, optional): the single-tier Early Adopter is shelved after the earned ones
+      - supporter_first (bool, optional): ... or first (the rarest-first order: it can no longer be earned)
+#}
+{%- set show_supporter = show_supporter|default(false) -%}
+{%- set next_rows = [] -%}
+{%- set next_title = 'badges.shelf.closest_next'|trans -%}
+{%- if personal and own and lists is not null -%}
+    {%- if lists.earnedTypes == 0 and lists.nearestFirst is not null -%}
+        {%- set next_rows = [lists.nearestFirst] -%}
+        {%- set next_title = 'badges.shelf.first_close'|trans -%}
+    {%- else -%}
+        {%- set next_rows = lists.closest -%}
+    {%- endif -%}
+{%- endif -%}
+
+{% macro supporter_cell(player_id) %}
+    <li class="achievement-cell">
+        <a href="{{ path('achievement_info', {type: 'supporter', player: player_id, from: 'shelf'}|merge(sheet_return|default({}))) }}" data-turbo-frame="modal-frame" class="achievement-cell-link">
+            <span class="achievement-cell-seal">{{ badge_art('supporter', null, 92, attrs = {alt: ''}) }}</span>
+            <span class="achievement-cell-name">{{ 'badges.badge.supporter'|trans }}</span>
+            {# What it means to its holder - "one-off" was our own word for it (Jan 2026-10-11) #}
+            <span class="achievement-cell-goal">{{ 'badges.description.supporter'|trans }}</span>
+        </a>
+    </li>
+{% endmacro %}
+
+<div class="achievements-layout{{ next_rows is not empty ? ' has-side' }}" data-controller="progress-fill">
+    {% if next_rows is not empty %}
+        <div class="achievements-layout-side">
+            {{ include('_achievement_next_steps.html.twig', {rows: next_rows, title: next_title, player_id: player_id}) }}
+        </div>
+    {% endif %}
+
+    <div class="achievements-layout-main">
+        {% if filters is not empty %}
+        <nav class="achievements-filter achievements-chips" aria-label="{{ 'badges.catalogue.filter_label'|trans }}">
+            {% for option in filters %}
+                <a href="{{ path(filter_route, filter_params|merge({show: option.value})) }}"
+                   class="{{ option == filter ? 'active' }}"
+                   {% if option == filter %}aria-current="page"{% endif %}>
+                    {{ option.translationKey()|trans }}{% if filter_counts[option.value] is defined %} · {{ filter_counts[option.value]|plain_number }}{% endif %}
+                </a>
+            {% endfor %}
+        </nav>
+        {% endif %}
+
+        {% if rows|length == 0 and not show_supporter %}
+            <p class="text-body-secondary">{{ ('badges.catalogue.empty.' ~ filter.value)|trans }}</p>
+        {% else %}
+            <ul class="achievement-shelf">
+                {%- set supporter_shown = not show_supporter -%}
+                {# Rarest first: the one that can no longer be earned leads #}
+                {% if not supporter_shown and supporter_first|default(false) %}
+                    {{ _self.supporter_cell(player_id) }}
+                    {%- set supporter_shown = true -%}
+                {% endif %}
+                {% for row in rows %}
+                    {% if not supporter_shown and row.earnedTier is null %}
+                        {{ _self.supporter_cell(player_id) }}
+                        {%- set supporter_shown = true -%}
+                    {% endif %}
+                    {{ include('_achievement_cell.html.twig', {row: row, personal: personal, player_id: player_id}) }}
+                {% endfor %}
+                {% if not supporter_shown %}
+                    {{ _self.supporter_cell(player_id) }}
+                {% endif %}
+            </ul>
+        {% endif %}
+    </div>
+</div>

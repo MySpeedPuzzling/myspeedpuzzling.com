@@ -1,0 +1,20 @@
+{#
+    The recap's level icon: the player's own face in their level ring - the same picture as the player header and the
+    navbar (XpRing: the band's colour, the progress toward the next level), not a pictogram (Jan 2026-10-11: no stars).
+    28 px avatar + the nav ring's 4 px = the 36 px of the other rows' icons, so the titles stay aligned.
+#}
+{%- set viewer = logged_user.profile -%}
+{# The band class here too (XpRing::band()): the level-up glow takes the band's colour #}
+{%- set band = viewer is null ? 1 : (viewer.level >= 50 ? 6 : viewer.level // 10 + 1) -%}
+<span class="recap-row-icon recap-icon-level xp-level-band-{{ band }}" aria-hidden="true">
+    {%- if viewer is not null -%}
+        <twig:XpRing :player="viewer" variant="nav">
+            {{- include('_player_avatar.html.twig', {
+                player_id: viewer.playerId,
+                name: viewer.playerName ?? ('#' ~ viewer.code),
+                avatar: viewer.avatar,
+                country_code: null,
+            }) -}}
+        </twig:XpRing>
+    {%- endif -%}
+</span>

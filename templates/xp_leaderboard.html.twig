@@ -1,0 +1,207 @@
+{% extends 'base.html.twig' %}
+
+{% set board = tab.translationPrefix() %}
+
+{% block title %}{{ (board ~ '.title')|trans }}{% endblock %}
+
+{#
+    Progression leaderboards: a tab per board (ProgressLeaderboardTab - tabs, titles and values come from that list),
+    the shared leaderboard row (_leaderboard_player.html.twig, _leaderboard.scss). "Where am I" like the puzzle page
+    (docs/features/xp-levels/ux-polish/design-spec.md §4): position line, the top rows, a "⋯ N more" gap row, the
+    viewer's row with two neighbours each side, "Show more" after the last row shown (LeaderboardWindow). The boards are
+    told apart only by the value column (templates/leaderboards/_value.html.twig).
+#}
+{% macro board_row(row, tab, is_viewer, karma_filtered) %}
+    {%- if tab.showsLevel() -%}
+        {%- set secondary = 'leaderboards.secondary.level'|trans({'%level%': row.level}) -%}
+    {%- elseif row.secondaryCount is null or row.secondaryCount < 1 -%}
+        {%- set secondary = null -%}
+    {%- elseif tab.hasKarmaFilters() -%}
+        {%- set secondary = karma_filtered ? 'leaderboards.secondary.karma_total'|trans({'%count%': row.secondaryCount}) : null -%}
+    {%- else -%}
+        {%- set secondary = 'leaderboards.secondary.achievements'|trans({'%count%': row.secondaryCount}) -%}
+    {%- endif -%}
+    <tr id="board-row-{{ row.playerId }}"{% if is_viewer %} class="table-active-player"{% endif %}>
+        <td class="rank"><span class="lb-rank{{ row.rank <= 3 ? ' lb-rank-podium lb-rank-podium-' ~ row.rank }}">{{ row.rank|plain_number }}</span></td>
+        <td class="lb-solver">
+            {{ include('_leaderboard_player.html.twig', {player: row, show_tier: false}) }}
+        </td>
+        <td class="lb-time">
+            {{ include('leaderboards/_value.html.twig', {
+                value: ('leaderboards.value.' ~ tab.value)|trans({'%value%': row.value|plain_number}),
+                secondary: secondary,
+                family: tab.valueFamily(),
+            }) }}
+        </td>
+    </tr>
+{% endmacro %}
+
+{#
+    Why the viewer is not on this board, with what to do (design-spec §8.4) - one line where the position line would be
+#}
+{% macro not_on_board(reason, tab, country_name) %}
+    <p class="lb-not-on-board" data-testid="lb-not-on-board">
+        {%- if reason == 'guest' -%}
+            {{ 'leaderboards.not_on_board.guest'|trans }}
+            <a href="{{ path('login', {return: app.request.requestUri}) }}" rel="nofollow">{{ 'leaderboards.not_on_board.sign_in'|trans }}</a>
+        {%- elseif reason in ['private', 'experience_opted_out', 'karma_opted_out'] -%}
+            {{ ('leaderboards.not_on_board.' ~ reason)|trans }}
+            <a href="{{ path('edit_profile') }}">{{ 'leaderboards.not_on_board.settings'|trans }}</a>
+        {%- elseif reason == 'not_member' -%}
+            {{ 'leaderboards.not_on_board.not_member'|trans }}
+            <a href="{{ path('membership') }}">{{ 'leaderboards.not_on_board.membership'|trans }}</a>
+        {%- elseif reason == 'other_country' -%}
+            {{ 'leaderboards.not_on_board.other_country'|trans({'%country%': country_name}) }}
+        {%- else -%}
+            {{ ('leaderboards.not_on_board.' ~ reason)|trans }}
+        {%- endif -%}
+    </p>
+{% endmacro %}
+
+{% block content %}
+    {{ include('_page_crumbs.html.twig', {levels: []}) }}
+
+    {{ include('_leaderboards_nav.html.twig') }}
+
+    <h1 class="mb-2">{{ 'ladder.title'|trans }}</h1>
+
+    <p class="text-body-secondary fs-sm mb-3">
+        {{ (board ~ '.subtitle')|trans }}
+        <a
+            href="{{ path(tab.hasKarmaFilters() ? 'karma_explainer' : 'progression_hub', {return: app.request.requestUri, return_title: (board ~ '.title')|trans}) }}"
+            class="text-nowrap"
+            rel="nofollow"
+        >{{ (tab.hasKarmaFilters() ? 'karma.explainer.title' : 'progression_hub.title')|trans }}</a>
+    </p>
+
+    {% if login_required %}
+        <div class="xp-teaser">
+            <i class="ci-user" aria-hidden="true"></i>
+            <span>
+                {{ (board ~ '.login_required')|trans }}
+                <a href="{{ path('login', {return: app.request.requestUri}) }}" rel="nofollow">{{ 'menu.sign_in'|trans }}</a>
+            </span>
+        </div>
+    {% else %}
+        {# The filters: a new filter is a new list, so this form never carries the revealed rows (limit, below) #}
+        <form method="get" class="d-flex flex-wrap align-items-center gap-3 mb-3" data-turbo="false" data-controller="auto-submit" data-action="change->auto-submit#submit">
+            {% if tab.hasKarmaFilters() %}
+                {{ include('karma/_leaderboard_filters.html.twig') }}
+            {% endif %}
+
+            <div class="d-flex align-items-center gap-2">
+                <label for="board-country" class="form-label fs-sm mb-0 text-nowrap">{{ 'badges.detail.country_filter'|trans }}</label>
+                {# Type to find a country - the site's country picker (country_select_controller.js, TomSelect with flags) #}
+                <div class="country-select-wrapper progression-country-select">
+                    <select id="board-country" name="country" class="form-select" data-controller="country-select">
+                        <option value="">{{ 'badges.detail.all_countries'|trans }}</option>
+                        {% for country in countries %}
+                            <option value="{{ country.code }}" data-icon="fi fi-{{ country.code }}" {{ selected_country == country.code ? 'selected' }}>{{ country.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            {% if viewer is not null %}
+                <div class="form-check form-switch fs-sm mb-0 d-flex align-items-center gap-2" style="min-height: 44px;">
+                    <input class="form-check-input mt-0" type="checkbox" id="favorites-only" name="favorites" value="1" {{ favorites_only ? 'checked' }}>
+                    <label class="form-check-label py-2" for="favorites-only">{{ 'xp.leaderboard.favorites_only'|trans }}</label>
+                </div>
+            {% endif %}
+
+            <button type="submit" class="btn btn-outline-secondary" data-auto-submit-target="fallback">{{ 'badges.detail.apply_filter'|trans }}</button>
+        </form>
+
+        {% set selected_country_name = null %}
+        {% for country in countries %}
+            {% if country.code == selected_country %}{% set selected_country_name = country.name %}{% endif %}
+        {% endfor %}
+
+        {% if entries is empty %}
+            {% if not_on_board is not null and not_on_board not in [tab.value, 'other_country', 'karma_filtered'] %}
+                {{ _self.not_on_board(not_on_board, tab, selected_country_name) }}
+            {% endif %}
+            <div class="xp-teaser">
+                <i class="ci-star" aria-hidden="true"></i>
+                <span>
+                    {%- if selected_country_name is not null and not favorites_only -%}
+                        {{ 'leaderboards.empty_country'|trans({'%country%': selected_country_name}) }}
+                    {%- else -%}
+                        {{ (board ~ '.empty')|trans }}
+                    {%- endif -%}
+                </span>
+            </div>
+        {% else %}
+            {# The gap row and "Show more" load the next window into this frame (GET forms, buttons not links - crawlers
+               never follow them); links inside go to the whole page #}
+            {% set frame_id = 'progress-board' %}
+            <turbo-frame id="{{ frame_id }}" target="_top">
+                {% if revealed_now is not null %}
+                    {{ include('leaderboards/_window_announcer.html.twig', {
+                        focus_id: revealed_now.focus_id,
+                        reveal: revealed_now,
+                        total: window.totalRows,
+                    }) }}
+                {% endif %}
+
+                {% if not_on_board is not null %}
+                    {{ _self.not_on_board(not_on_board, tab, selected_country_name) }}
+                {% endif %}
+
+                {% if position is not null %}
+                    {{ include('leaderboards/_position_line.html.twig', {
+                        position: position,
+                        scope: favorites_only
+                            ? 'leaderboards.position.in_favorites'|trans
+                            : (selected_country_name is not null ? 'leaderboards.position.in_country'|trans({'%country%': selected_country_name}) : null),
+                        gap_text: position.targetGap is not null ? ('leaderboards.value.' ~ tab.value)|trans({'%value%': position.targetGap|plain_number}) : null,
+                        jump_href: window.ownRowBelowFirstScreen() and own_row is not null ? '#board-row-' ~ own_row.playerId : null,
+                    }) }}
+                {% endif %}
+
+                <div class="custom-table-wrapper lb-wrapper">
+                    <table class="table custom-table lb-table mb-0">
+                        <thead>
+                            <tr>
+                                <th scope="col" class="lb-rank-head">#</th>
+                                <th scope="col">{{ 'xp.leaderboard.player'|trans }}</th>
+                                <th scope="col" class="text-end">{{ (board ~ '.column')|trans }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for entry in entries %}
+                                {% if entry.hidden_before > 0 %}
+                                    {% set gap_reveal = window.gapReveal() %}
+                                    {{ include('leaderboards/_gap_row.html.twig', {
+                                        count: entry.hidden_before,
+                                        reveal: gap_reveal,
+                                        total: window.totalRows,
+                                        colspan: 3,
+                                        form: {
+                                            action: path(tab.routeName()),
+                                            params: list_params|merge({limit: gap_window.limit(), below: gap_window.belowOwnRow(), focus: gap_reveal.from ~ '-' ~ gap_reveal.to}),
+                                            frame: frame_id,
+                                        },
+                                    }) }}
+                                {% endif %}
+                                {{ _self.board_row(entry.row, tab, viewer is not null and entry.row.playerId == viewer.playerId, karma_filtered) }}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                {% if window.rowsBelow() > 0 %}
+                    {% set more_reveal = window.showMoreReveal() %}
+                    {{ include('leaderboards/_show_more.html.twig', {
+                        count: window.showMoreCount(),
+                        form: {
+                            action: path(tab.routeName()),
+                            params: list_params|merge({limit: more_window.limit(), below: more_window.belowOwnRow(), focus: more_reveal.from ~ '-' ~ more_reveal.to}),
+                            frame: frame_id,
+                        },
+                    }) }}
+                {% endif %}
+            </turbo-frame>
+        {% endif %}
+    {% endif %}
+{% endblock %}

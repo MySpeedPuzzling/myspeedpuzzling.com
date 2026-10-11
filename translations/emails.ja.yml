@@ -371,3 +371,65 @@ organization_rejected:
         <p><strong>理由:</strong> %reason%</p>
         <p>ご質問がある場合やさらに話し合いたい場合は、<a href="mailto:jan@myspeedpuzzling.com">jan@myspeedpuzzling.com</a> までご連絡ください。</p>
     button: "「主催イベント」を開く"
+
+activity_digest:
+    puzzler: "パズラー"
+    subject:
+        week: "MySpeedPuzzlingでのあなたの1週間"
+        two_weeks: "MySpeedPuzzlingでのあなたの2週間"
+        month: "MySpeedPuzzlingでのあなたの1か月"
+    preheader:
+        achievement: "新しい実績：%achievement% – 今週のまとめもどうぞ。"
+        achievement_locked: "実績を獲得しました – 今週のまとめもどうぞ。"
+        level: "レベル%level%に到達しました – その道のりをご覧ください。"
+        personal_best: "%puzzle%で自己ベスト更新 – 今週のほかの記録もどうぞ。"
+        rating: "{1}MSP Ratingで1つ順位アップ – 今週のほかの記録もどうぞ。|]1,Inf[MSP Ratingで%count%つ順位アップ – 今週のほかの記録もどうぞ。"
+        numbers: "{1}パズル1個、%pieces%ピース – あなたの1週間を短いメールで。|]1,Inf[パズル%count%個、%pieces%ピース – あなたの1週間を短いメールで。"
+    title:
+        week: "%name%さんの1週間"
+        two_weeks: "%name%さんの2週間"
+        month: "%name%さんの1か月"
+    stat:
+        puzzles: "{1}パズル|]1,Inf[パズル|{0}パズル"
+        pieces: "{1}ピース|]1,Inf[ピース|{0}ピース"
+        streak: "日連続"
+    level: "レベル%level%"
+    level_up: "レベル%from% → %to%"
+    new_achievement: "NEW：%achievement%"
+    achievement_teaser: "{1}実績を1個獲得しました。どの実績かは、メンバーになると確認できます。|]1,Inf[実績を%count%個獲得しました。どの実績かは、メンバーになると確認できます。"
+    become_member: "メンバーになる"
+    rating: "MSP Rating：%total%人中%rank%位"
+    rating_up: "{1}1つ順位アップ|]1,Inf[%count%つ順位アップ"
+    rating_down: "{1}1つ順位ダウン|]1,Inf[%count%つ順位ダウン"
+    skill_tier: "%pieces%ピースの新しいスキルティア：%tier%"
+    karma: "{1}ありがとうございます！パズルデータベースへのあなたの貢献が1件承認されました。|]1,Inf[ありがとうございます！パズルデータベースへのあなたの貢献が%count%件承認されました。"
+    results_title: "ハイライト"
+    mark:
+        personal_best: "自己ベスト"
+        first_try: "初挑戦"
+    button:
+        week: "今週の記録を見る"
+        two_weeks: "この2週間の記録を見る"
+        month: "今月の記録を見る"
+    favorites_title: "お気に入りのパズラー"
+    favorite_solves: "{1}パズル1個|]1,Inf[パズル%count%個"
+    most_solved: "コミュニティで最も多く完成されたパズル："
+    most_solved_count: "{1}（パズラー1人）|]1,Inf[（パズラー%count%人）"
+    footer:
+        weekly: "このメールは毎週月曜日にお届けしています。"
+        every_two_weeks: "このメールは隔週の月曜日にお届けしています。"
+        monthly: "このメールは毎月第1月曜日にお届けしています。"
+        change: "メール設定を変更"
+        unsubscribe: "配信停止"
+    miss_you:
+        subject: "パズルたちがあなたを待っています"
+        preheader: "それとも、こっそりパズル中？あなたのタイムはいつでも大歓迎です。"
+        title: "%name%さんのタイムが恋しいです"
+        line_secret: "最後の記録から数週間が経ちました。しっかり休憩中でしょうか？それとも、こっそりパズルを楽しんでいて、タイムがまだこちらに届いていないだけでしょうか？🧩"
+        line_add: "もしそうなら、今からでも追加できます。完成した日を選べば、ほかの記録とまったく同じようにカウントされます。"
+        button: "タイムを追加する"
+        line_back: "そして、新しい箱を開けるきっかけを探しているなら："
+        link_picker: "次のパズルを選んでもらう"
+        link_hub: "コミュニティが今どんなパズルをしているか見る"
+        link_profile: "プロフィールを見る"
+        footer: "このメールは、しばらく記録がないときに一度だけお送りしています。アクティビティメールと一緒に届きます。"

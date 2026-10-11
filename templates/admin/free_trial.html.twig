@@ -31,13 +31,13 @@
                     {% for modal in modals %}
                         <tr>
                             <td><code>{{ modal.modal }}</code></td>
-                            <td class="text-end fw-medium">{{ modal.displayed|number_format(0, '.', ' ') }}</td>
+                            <td class="text-end fw-medium">{{ modal.displayed|plain_number }}</td>
                             <td class="text-end">
-                                {{ modal.seen|number_format(0, '.', ' ') }}
+                                {{ modal.seen|plain_number }}
                                 {% if modal.seenPercent is not null %}<small class="text-muted">({{ modal.seenPercent }} %)</small>{% endif %}
                             </td>
-                            <td class="text-end">{{ modal.displayedLast24Hours|number_format(0, '.', ' ') }}</td>
-                            <td class="text-end">{{ modal.displayedLast7Days|number_format(0, '.', ' ') }}</td>
+                            <td class="text-end">{{ modal.displayedLast24Hours|plain_number }}</td>
+                            <td class="text-end">{{ modal.displayedLast7Days|plain_number }}</td>
                             <td>{{ modal.firstDisplayedAt ? modal.firstDisplayedAt|date('d.m.Y H:i') : '-' }}</td>
                             <td>{{ modal.lastDisplayedAt ? modal.lastDisplayedAt|date('d.m.Y H:i') : '-' }}</td>
                         </tr>
@@ -60,7 +60,7 @@
         } %}
             <div class="col-6 col-md-4 col-lg-2">
                 <div class="card card-body shadow-sm h-100 text-center">
-                    <div class="h3 mb-1">{{ value|number_format(0, '.', ' ') }}</div>
+                    <div class="h3 mb-1">{{ value|plain_number }}</div>
                     <div class="fs-sm text-muted">{{ label|trans }}</div>
                 </div>
             </div>
@@ -85,8 +85,8 @@
                     {% for source, started in funnel.startedBySource %}
                         <tr>
                             <td><code>{{ source }}</code></td>
-                            <td class="text-end">{{ started|number_format(0, '.', ' ') }}</td>
-                            <td class="text-end">{{ funnel.subscribedBySource[source]|default(0)|number_format(0, '.', ' ') }}</td>
+                            <td class="text-end">{{ started|plain_number }}</td>
+                            <td class="text-end">{{ funnel.subscribedBySource[source]|default(0)|plain_number }}</td>
                         </tr>
                     {% endfor %}
                 </tbody>

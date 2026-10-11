@@ -1,0 +1,61 @@
+{#
+    The live rows of the recap's progress card: the achievements this time earned and the level line
+    (src/Component/XpRecapCelebration.php). Polls with a growing delay until the XP is counted, then never again.
+#}
+{% set mode = this.mode %}
+{% set poll_delay = this.pollDelay %}
+<div{{ attributes.defaults({class: 'recap-live'}) }}{% if poll_delay is not null %} data-poll="delay({{ poll_delay }})|checkProgress"{% endif %}>
+    {% if mode != 'hidden' %}
+        <div id="xp-solve-receipt">
+        {% set profile = this.profile %}
+        {% set solve_xp = this.solveXp %}
+        {% set leveled_up = this.leveledUp %}
+
+        {# Read out once when the XP arrives after the page loaded (a re-render fills it) #}
+        <p class="visually-hidden" aria-live="polite">
+            {%- if mode == 'receipt' -%}
+                {{ leveled_up
+                    ? 'recap_progress.level.announce_level_up'|trans({'%xp%': solve_xp, '%level%': profile.level})
+                    : 'recap_progress.level.announce'|trans({'%xp%': solve_xp}) }}
+            {%- endif -%}
+        </p>
+
+        {% if mode == 'pending' %}
+            <div class="recap-row recap-row-pending" aria-busy="true">
+                {{ include('added_time_recap/_level_icon.html.twig') }}
+                <span class="recap-row-body">
+                    <span class="recap-row-title">{{ 'xp.receipt.counting'|trans }}</span>
+                    <span class="placeholder-glow d-block"><span class="placeholder col-8"></span></span>
+                </span>
+            </div>
+        {% else %}
+            {% set achievements = this.achievements %}
+
+            {% if achievements is not empty and this.viewerIsMember %}
+                {{ include('added_time_recap/_achievements.html.twig', {achievements: achievements, component: this}, with_context = false) }}
+            {% endif %}
+
+            {{ include('added_time_recap/_level_row.html.twig', {
+                component: this,
+                profile: profile,
+                mode: mode,
+                solve_xp: solve_xp,
+                leveled_up: leveled_up,
+                celebrate: celebrate,
+                solving_time_id: solvingTimeId,
+            }, with_context = false) }}
+
+            {% if achievements is not empty and not this.viewerIsMember %}
+                <div class="recap-row recap-row-tease" data-testid="recap-achievement-tease">
+                    <span class="recap-row-icon recap-icon-achievement" aria-hidden="true"><i class="bi bi-award"></i></span>
+                    <span class="recap-row-body">
+                        <span class="recap-row-title">{{ 'recap_progress.tease.title'|trans }}</span>
+                        <span class="recap-row-sub">{{ 'recap_progress.tease.text'|trans }}</span>
+                    </span>
+                    <a href="{{ path('membership') }}" class="btn btn-sm btn-primary recap-tease-button">{{ 'recap_progress.tease.button'|trans }}</a>
+                </div>
+            {% endif %}
+        {% endif %}
+        </div>
+    {% endif %}
+</div>

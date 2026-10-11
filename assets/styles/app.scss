@@ -62,6 +62,7 @@
 @import 'comparison';
 @import 'compact-bar';
 @import 'player-header';
+@import 'progression-profile';
 @import 'puzzle-result';
 @import 'favorite-puzzlers';
 @import 'comparison-charts';
@@ -127,6 +128,20 @@
 
 // Select several puzzles on a collection page (docs/features/collections/bulk-actions.md)
 @import "collection-selection";
+
+// The last-piece reveal of a new achievement and of the XP launch level (docs/features/xp-levels/)
+@import "last-piece-reveal";
+
+// How progress works, achievements catalogue, holders, XP history (docs/features/xp-levels/launch-2026-10.md)
+@import "progression-pages";
+// Progression UX polish (docs/features/xp-levels/ux-polish/design-spec.md)
+@import "page-crumbs";
+@import "achievements-shelf";
+@import "achievement-medal";
+@import "leaderboard-window";
+@import "leaderboard-window-ladders";
+// The recap after logging a time: one progress card (docs/features/xp-levels/launch-2026-10.md)
+@import "xp-recap";
 
 @import "flag-icons/sass/flag-icons";
 

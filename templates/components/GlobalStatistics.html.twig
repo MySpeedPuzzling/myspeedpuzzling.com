@@ -40,7 +40,7 @@
 
                 {{ 'statistics.puzzle_solved'|trans }} <b>{{ statistics.solvedPuzzlesCount }}</b><br>
 
-                {{ 'statistics.total_pieces'|trans }} <b>{{ statistics.totalPieces|format_number([], 'decimal', 'default', 'cs') }}</b><br><br>
+                {{ 'statistics.total_pieces'|trans }} <b>{{ statistics.totalPieces|plain_number }}</b><br><br>
 
                 {{ 'statistics.time_spent'|trans }}
 

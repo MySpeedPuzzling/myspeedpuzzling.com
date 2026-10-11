@@ -14,6 +14,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Contracts\Translation\TranslatorInterface;
+use SpeedPuzzling\Web\Value\PlainNumber;
 
 /**
  * "Average puzzle time by piece count" - the pillar of the "how long" guides: one
@@ -62,7 +63,7 @@ final class GuideAveragePuzzleTimeController extends AbstractController
 
         $description = $solo500 !== null && $solo1000 !== null
             ? $this->translator->trans('guides.average.meta_description', [
-                '%count%' => number_format($solo->totalSolves()),
+                '%count%' => PlainNumber::format($solo->totalSolves()),
                 '%median_500%' => $this->timeFormatter->compactTime($solo500->medianSeconds),
                 '%median_1000%' => $this->timeFormatter->compactTime($solo1000->medianSeconds),
             ], locale: 'en')

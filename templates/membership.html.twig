@@ -15,6 +15,11 @@
 
                 <div class="card shadow my-4">
                     <div class="card-body">
+                        {# Members with medallions they have not revealed yet - lifetime, free trial and paid alike #}
+                        {% if membership and membership.isActive(now) and logged_user.profile is not null %}
+                            <twig:XpRevealInvite playerId="{{ logged_user.profile.playerId }}" />
+                        {% endif %}
+
                         {% if membership and membership.hasLifetimeGrant %}
                             <p class="text-success fs-5">
                                 <i class="ci-check-circle me-2"></i> {{ 'membership.lifetime_membership_active'|trans }}
@@ -151,7 +156,12 @@
                 {% endif %}
 
                 <h2 class="mt-4">{{ 'membership.description_title'|trans }}</h2>
-                {{ 'membership.full_description'|trans|raw }}
+                {{ 'membership.perks_description'|trans|raw }}
+                {# Achievements are a member perk from the progression launch on - described once they are live #}
+                {% if xp_system_visible() %}
+                    {{ 'membership.progression_perks'|trans|raw }}
+                {% endif %}
+                {{ 'membership.coming_soon_description'|trans|raw }}
 
             </div>
 

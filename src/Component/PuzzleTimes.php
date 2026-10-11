@@ -13,6 +13,8 @@ use SpeedPuzzling\Web\Services\PuzzlesSorter;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\CountryCode;
 use SpeedPuzzling\Web\Value\LeaderboardChartView;
+use SpeedPuzzling\Web\Value\LeaderboardPosition;
+use SpeedPuzzling\Web\Value\LeaderboardWindow;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
 use Symfony\UX\LiveComponent\Attribute\LiveAction;
@@ -32,22 +34,15 @@ final class PuzzleTimes
      * whole leaderboard (up to ~1,700 rows / 8 MB of HTML on popular puzzles); everyone stays
      * reachable through the "show more" / "show all" actions (buttons, not crawlable links).
      */
-    public const int DEFAULT_LIMIT = 100;
+    public const int DEFAULT_LIMIT = LeaderboardWindow::DEFAULT_LIMIT;
 
     /**
      * Rows shown above and below the viewer's own row when it lies beyond the top rows - so they always see
      * where they stand and who is right around them (docs/features/puzzle-leaderboard-chart.md). "Show more" adds further
-     * rows below it ($belowOwnRow), the "⋯ N more" row the rows above it.
+     * rows below it ($belowOwnRow), the "⋯ N more" row the rows above it. Which rows show is LeaderboardWindow's rule,
+     * shared with every leaderboard.
      */
-    public const int NEIGHBOURS = 2;
-
-    /**
-     * The position line names the gap to the nearest of these ranks above the viewer ("… from the top 500")
-     */
-    private const array RANK_MILESTONES = [1, 3, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000];
-
-    // Below this many rows a percentage says little ("faster than 50 %" of three people)
-    private const int PERCENTILE_MIN_ROWS = 10;
+    public const int NEIGHBOURS = LeaderboardWindow::NEIGHBOURS;
 
     #[LiveProp]
     public null|string $puzzleId = null;
@@ -569,26 +564,29 @@ final class PuzzleTimes
         $rowKeys = array_keys($this->times);
         $myPosition = $this->myRowKey !== null ? array_search($this->myRowKey, $rowKeys, true) : false;
 
-        if ($this->revealGapRequested === true && is_int($myPosition)) {
+        $window = new LeaderboardWindow(
+            totalRows: count($rowKeys),
+            ownPosition: is_int($myPosition) ? $myPosition : null,
+            limitAsked: $this->limit,
+            belowOwnRowAsked: $this->belowOwnRow,
+        );
+
+        if ($this->revealGapRequested === true) {
             // The top rows run on to the viewer's own rows
-            $this->limit = max($this->limit, $myPosition - self::NEIGHBOURS);
+            $window = $window->revealGap();
         }
 
         if ($this->showMoreRequested === true) {
             // The viewer's own rows end the table while they lie beyond the top rows - the next rows come after them
-            if (is_int($myPosition) && $myPosition >= $this->limit) {
-                $this->belowOwnRow += self::DEFAULT_LIMIT;
-            } else {
-                $this->limit += self::DEFAULT_LIMIT;
-            }
+            $window = $window->showMore();
         }
 
         if ($this->showAllRequested === true) {
-            $this->limit = count($this->times);
+            $window = $window->showAll();
         }
 
-        $this->limit = max(1, $this->limit);
-        $this->belowOwnRow = max(self::NEIGHBOURS, $this->belowOwnRow);
+        $this->limit = $window->limit();
+        $this->belowOwnRow = $window->belowOwnRow();
         $this->ranks = [];
         $position = 0;
         $rank = 0;
@@ -606,40 +604,22 @@ final class PuzzleTimes
             $previousTime = $time;
         }
 
-        /** @var array<int, true> $visiblePositions */
-        $visiblePositions = [];
-
-        for ($position = 0; $position < min($this->limit, count($rowKeys)); $position++) {
-            $visiblePositions[$position] = true;
-        }
-
-        if (is_int($myPosition)) {
-            $lastBelowOwnRow = min(count($rowKeys) - 1, $myPosition + $this->belowOwnRow);
-
-            for ($position = max(0, $myPosition - self::NEIGHBOURS); $position <= $lastBelowOwnRow; $position++) {
-                $visiblePositions[$position] = true;
-            }
-        }
-
-        ksort($visiblePositions);
-
         $this->visibleTimes = [];
         $this->gapsBefore = [];
-        $previousPosition = -1;
 
-        foreach (array_keys($visiblePositions) as $position) {
-            $rowKey = $rowKeys[$position];
-
-            if ($position > $previousPosition + 1) {
-                $this->gapsBefore[$rowKey] = $position - $previousPosition - 1;
+        foreach ($window->blocks() as $block) {
+            if ($block['hiddenBefore'] > 0) {
+                $this->gapsBefore[$rowKeys[$block['first']]] = $block['hiddenBefore'];
             }
 
-            $this->visibleTimes[$rowKey] = $this->times[$rowKey];
-            $previousPosition = $position;
+            for ($position = $block['first']; $position <= $block['last']; $position++) {
+                $rowKey = $rowKeys[$position];
+                $this->visibleTimes[$rowKey] = $this->times[$rowKey];
+            }
         }
 
-        $this->rowsBelowCount = count($rowKeys) - 1 - $previousPosition;
-        $this->ownRowBeyondLimit = is_int($myPosition) && $myPosition >= $this->limit;
+        $this->rowsBelowCount = $window->rowsBelow();
+        $this->ownRowBeyondLimit = $window->ownRowBeyondLimit();
 
         $this->describeViewerPosition();
     }
@@ -662,34 +642,30 @@ final class PuzzleTimes
         $this->myRank = $this->ranks[$this->myRowKey];
         $this->myTime = $myTime = $this->times[$this->myRowKey][0]->time;
 
-        if ($this->myRank === 1 || $myTime === null) {
-            return;
-        }
-
         $times = [];
 
         foreach ($this->times as $grouped) {
             $times[] = $grouped[0]->time;
         }
 
-        $total = count($times);
+        $milestoneTimes = [];
 
-        if ($total >= self::PERCENTILE_MIN_ROWS) {
-            $slower = count(array_filter($times, static fn (null|int $time): bool => $time !== null && $time > $myTime));
-            $percentile = intdiv(100 * $slower, $total - 1);
-            $this->myPercentile = $percentile > 0 ? $percentile : null;
+        foreach (LeaderboardPosition::RANK_MILESTONES as $milestone) {
+            $milestoneTimes[$milestone] = $times[$milestone - 1] ?? null;
         }
 
-        foreach (array_reverse(self::RANK_MILESTONES) as $milestone) {
-            $milestoneTime = $times[$milestone - 1] ?? null;
+        $position = LeaderboardPosition::describe(
+            rank: $this->myRank,
+            total: count($times),
+            ownValue: $myTime,
+            milestoneValues: $milestoneTimes,
+            higherIsBetter: false,
+            rowsBehind: $myTime === null ? null : count(array_filter($times, static fn (null|int $time): bool => $time !== null && $time > $myTime)),
+        );
 
-            if ($milestone < $this->myRank && $milestoneTime !== null) {
-                $this->myTargetRank = $milestone;
-                $this->myTargetGap = $myTime - $milestoneTime;
-
-                return;
-            }
-        }
+        $this->myPercentile = $position->percentile;
+        $this->myTargetRank = $position->targetRank;
+        $this->myTargetGap = $position->targetGap;
     }
 
     /**

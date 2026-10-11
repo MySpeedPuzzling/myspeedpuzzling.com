@@ -24,6 +24,7 @@ use SpeedPuzzling\Web\Events\PuzzleSolved;
 use SpeedPuzzling\Web\Events\PuzzleSolvingTimeDeleted;
 use SpeedPuzzling\Web\Events\PuzzleSolvingTimeModified;
 use SpeedPuzzling\Web\Events\PuzzleSolvingTimeMovedToOtherPuzzle;
+use SpeedPuzzling\Web\Events\PuzzleSolvingTimeSuspicionChanged;
 use SpeedPuzzling\Web\Value\PuzzlersGroup;
 use SpeedPuzzling\Web\Value\PuzzlingType;
 use SpeedPuzzling\Web\Value\RemovedResultSnapshot;
@@ -101,6 +102,14 @@ class PuzzleSolvingTime implements EntityWithEvents
     #[Column(type: Types::STRING, nullable: true, enumType: SeriesEditionMatchKind::class)]
     public null|SeriesEditionMatchKind $seriesEditionMatch = null;
 
+    /**
+     * Pieces count captured at log time — XP anti-abuse guard: later edits to the puzzle's
+     * pieces count never change XP already earned. NULL only for rows that predate the column
+     * (backfilled from the puzzle in the migration; fallback to the puzzle value when reading).
+     */
+    #[Column(type: Types::INTEGER, nullable: true)]
+    public null|int $piecesCountSnapshot;
+
     public function __construct(
         #[Id]
         #[Immutable]
@@ -168,6 +177,7 @@ class PuzzleSolvingTime implements EntityWithEvents
 
         $this->puzzlersCount = $this->calculatePuzzlersCount();
         $this->puzzlingType = PuzzlingType::fromPuzzlersCount($this->puzzlersCount);
+        $this->piecesCountSnapshot = $puzzle->piecesCount;
 
         $this->recordThat(
             new PuzzleSolved($this->id, $this->puzzle->id),
@@ -397,6 +407,7 @@ class PuzzleSolvingTime implements EntityWithEvents
         $this->recordThat(
             new PuzzleSolvingTimeModified($this->id, $this->puzzle->id),
         );
+        $this->recordThat(new PuzzleSolvingTimeSuspicionChanged($this->id));
     }
 
     /**
@@ -413,6 +424,7 @@ class PuzzleSolvingTime implements EntityWithEvents
         $this->recordThat(
             new PuzzleSolvingTimeModified($this->id, $this->puzzle->id),
         );
+        $this->recordThat(new PuzzleSolvingTimeSuspicionChanged($this->id));
     }
 
     /**
@@ -425,6 +437,7 @@ class PuzzleSolvingTime implements EntityWithEvents
         $this->recordThat(
             new PuzzleSolvingTimeModified($this->id, $this->puzzle->id),
         );
+        $this->recordThat(new PuzzleSolvingTimeSuspicionChanged($this->id));
     }
 
     public function changeCompetitionRound(null|CompetitionRound $competitionRound): void
@@ -577,12 +590,16 @@ class PuzzleSolvingTime implements EntityWithEvents
         );
 
         $this->puzzle = $newPuzzle;
+        // The pieces of the puzzle it really was - XP of the result is priced on them (docs/features/xp-levels/README.md)
+        $this->piecesCountSnapshot = $newPuzzle->piecesCount;
         $this->forgetPrediction();
     }
 
     public function migrateToPuzzle(Puzzle $newPuzzle): void
     {
         $this->puzzle = $newPuzzle;
+        // One merged chain must not mix two piece counts nothing could ever correct
+        $this->piecesCountSnapshot = $newPuzzle->piecesCount;
 
         $this->recordThat(
             new PuzzleSolvingTimeModified($this->id, $newPuzzle->id),

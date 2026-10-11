@@ -33,7 +33,7 @@
                             {%- endif -%}
                         </h2>
                         <p class="players-spotlight-summary">
-                            {{ 'players.spotlight.summary'|trans({'%registered%': statistics.registeredPlayers|format_number, '%active%': statistics.active30d|format_number}) }}
+                            {{ 'players.spotlight.summary'|trans({'%registered%': statistics.registeredPlayers|plain_number, '%active%': statistics.active30d|plain_number}) }}
                         </p>
                     </div>
                 </div>
@@ -41,7 +41,7 @@
                 <dl class="players-spotlight-stats">
                     <div class="players-spotlight-stat">
                         <dt>{{ 'players.spotlight.solves.label'|trans }}</dt>
-                        <dd class="players-spotlight-stat-value">{{ statistics.solves30d|format_number }}</dd>
+                        <dd class="players-spotlight-stat-value">{{ statistics.solves30d|plain_number }}</dd>
                         {% if change is not null %}
                             <dd class="players-spotlight-stat-detail{{ change > 0 ? ' is-up' : (change < 0 ? ' is-down') }}">
                                 {% if change == 0 %}
@@ -57,7 +57,7 @@
 
                     <div class="players-spotlight-stat">
                         <dt>{{ 'players.spotlight.pieces.label'|trans({'%month%': this.month|format_date(pattern: 'LLLL', timezone: false)}) }}</dt>
-                        <dd class="players-spotlight-stat-value" title="{{ statistics.piecesThisMonth|format_number }}">{{ this.compactNumber(statistics.piecesThisMonth) }}</dd>
+                        <dd class="players-spotlight-stat-value" title="{{ statistics.piecesThisMonth|plain_number }}">{{ this.compactNumber(statistics.piecesThisMonth) }}</dd>
                     </div>
 
                     {% if statistics.medianBest500Seconds is not null %}
@@ -66,7 +66,7 @@
                             <dd class="players-spotlight-stat-value">{{ statistics.medianBest500Seconds|puzzlingTime }}</dd>
                             {% if country is null %}
                                 <dd class="players-spotlight-stat-detail">
-                                    {{ 'players.spotlight.median.puzzlers'|trans({'%count%': statistics.puzzlersWith500, '%number%': statistics.puzzlersWith500|format_number}) }}
+                                    {{ 'players.spotlight.median.puzzlers'|trans({'%count%': statistics.puzzlersWith500, '%number%': statistics.puzzlersWith500|plain_number}) }}
                                 </dd>
                             {% else %}
                                 {% set faster = statistics.medianBest500FasterThan(world) %}
@@ -88,7 +88,7 @@
 
                     <div class="players-spotlight-stat">
                         <dt>{{ 'players.spotlight.events.label'|trans({'%count%': upcoming_events}) }}</dt>
-                        <dd class="players-spotlight-stat-value">{{ upcoming_events|format_number }}</dd>
+                        <dd class="players-spotlight-stat-value">{{ upcoming_events|plain_number }}</dd>
                         {% if upcoming_events > 0 %}
                             <dd class="players-spotlight-stat-detail">
                                 <a href="{{ path('events', {timePeriod: 'upcoming', country: scope.queryValue}) }}">{{ 'players.spotlight.events.link'|trans }} <span aria-hidden="true">→</span></a>
@@ -105,7 +105,7 @@
                             {% set bar_label = 'players.spotlight.sparkline.bar'|trans({
                                 '%month%': bar.month|format_date(pattern: 'LLLL yyyy', timezone: false),
                                 '%count%': bar.solves,
-                                '%number%': bar.solves|format_number,
+                                '%number%': bar.solves|plain_number,
                             }) %}
                             <li class="players-spotlight-bar{{ bar.current ? ' is-current' }}" style="height: {{ bar.height }}%" title="{{ bar_label }}">
                                 <span class="visually-hidden">{{ bar_label }}</span>
@@ -199,7 +199,7 @@
                         {% if country is not null %}
                             <p class="players-spotlight-count">{{ 'players.spotlight.new_faces.country_note'|trans }}</p>
                         {% elseif statistics.newFaces14d > 0 %}
-                            <p class="players-spotlight-count">{{ 'players.spotlight.new_faces.world_count'|trans({'%count%': statistics.newFaces14d, '%number%': statistics.newFaces14d|format_number}) }}</p>
+                            <p class="players-spotlight-count">{{ 'players.spotlight.new_faces.world_count'|trans({'%count%': statistics.newFaces14d, '%number%': statistics.newFaces14d|plain_number}) }}</p>
                         {% endif %}
                     {% endif %}
                 </div>

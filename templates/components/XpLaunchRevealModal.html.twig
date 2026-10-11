@@ -1,0 +1,44 @@
+{# The launch announcement modal = the level's chapter of the launch reveal (README §The launch reveal): the player puts
+   the last piece into their level medallion (tap-started, so the sound plays), the XP counts up, then what comes next -
+   members on to their achievements (the reveal page, the achievements' chapter), free players the member tease. #}
+<div{{ attributes.defaults({class: 'xpl-modal'}) }}>
+    {% embed 'xp/_level_reveal.html.twig' with {xp_profile: xpProfile, gradient_id: 'xpl-arc-modal'} %}
+        {% block top_end %}
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ 'forms.close'|trans }}"></button>
+        {% endblock %}
+
+        {% block intro %}
+            <p class="xpl-level-eyebrow">{{ 'xp.launch_modal.eyebrow'|trans }}</p>
+            <h5 class="modal-title xpl-level-title" id="announcement-modal-title">{{ 'xp.launch_modal.title'|trans }}</h5>
+            <p class="xpl-level-text">{{ 'xp.launch_modal.text'|trans }}</p>
+        {% endblock %}
+
+        {% block before_extra %}
+            <button type="button" class="btn btn-link btn-sm text-muted" data-bs-dismiss="modal">{{ 'xp.launch_modal.later'|trans }}</button>
+        {% endblock %}
+
+        {% block after %}
+            <div class="xpl-level-next">
+                {% if isMember %}
+                    {% if achievementsCount > 0 %}
+                        <p class="xpl-level-next-text">{{ 'xp.launch_modal.next_member'|trans({'%count%': achievementsCount}) }}</p>
+                    {% endif %}
+                    {# With achievements the page opens straight on the first card (?start=1) - this tap was its invitation #}
+                    <a href="{{ path('xp_launch_reveal', achievementsCount > 0 ? {start: 1} : {}) }}" class="btn btn-primary btn-lg">
+                        {{ (achievementsCount > 0 ? 'xp.launch_modal.button_member' : 'xp.launch_modal.button_continue')|trans }}
+                    </a>
+                {% else %}
+                    <p class="xpl-level-next-text">
+                        {{ (achievementsCount > 0 ? 'xp.launch_modal.member_tease' : 'xp.launch_modal.member_tease_zero')|trans({'%count%': achievementsCount}) }}
+                    </p>
+                    <a href="{{ path('membership') }}" class="btn btn-primary">
+                        <i class="ci-locked me-1" aria-hidden="true"></i>
+                        {{ 'badges.unlock_with_membership'|trans }}
+                    </a>
+                    <a href="{{ path('xp_launch_reveal') }}" class="btn btn-link btn-sm">{{ 'xp.launch_modal.button_continue'|trans }}</a>
+                {% endif %}
+                <button type="button" class="btn btn-link btn-sm text-muted" data-bs-dismiss="modal">{{ 'forms.close'|trans }}</button>
+            </div>
+        {% endblock %}
+    {% endembed %}
+</div>

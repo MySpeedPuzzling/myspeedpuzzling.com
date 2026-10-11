@@ -9,7 +9,7 @@
 {% endif %}
 
 {% if is_web() %}
-    <div class="d-flex mt-2 text-center justify-content-center">
+    <div class="d-flex flex-wrap mt-2 text-center justify-content-center">
         <p class="my-1 mx-1">
             <a data-turbo-prefetch="false" class="btn btn-outline-primary mt-2 text-center fs-6" href="{{ path('buy_membership') }}">
                 <small><i class="ci-card me-1"></i> {{ 'membership.subscribe_for_monthly'|trans }}</small>
@@ -39,7 +39,7 @@
         <small class="text-muted">{{ 'membership.redirect_to_stripe'|trans }}</small>
     </p>
 {% elseif is_ios() %}
-    <div class="d-flex mt-2 text-center justify-content-center" data-controller="native-billing" data-native-billing-platform-value="ios">
+    <div class="d-flex flex-wrap mt-2 text-center justify-content-center" data-controller="native-billing" data-native-billing-platform-value="ios">
         <p class="my-1 mx-1">
             <button type="button" class="btn btn-outline-primary mt-2 text-center fs-6" data-action="native-billing#purchase" data-native-billing-product-param="com.myspeedpuzzling.premium.monthly">
                 <small><i class="bi bi-apple me-1"></i> {{ 'membership.subscribe_for_monthly'|trans }}</small>
@@ -59,7 +59,7 @@
         <small class="text-muted">{{ 'membership.purchase_via_app_store'|trans }}</small>
     </p>
 {% elseif is_android() %}
-    <div class="d-flex mt-2 text-center justify-content-center" data-controller="native-billing" data-native-billing-platform-value="android">
+    <div class="d-flex flex-wrap mt-2 text-center justify-content-center" data-controller="native-billing" data-native-billing-platform-value="android">
         <p class="my-1 mx-1">
             <button type="button" class="btn btn-outline-primary mt-2 text-center fs-6" data-action="native-billing#purchase" data-native-billing-product-param="premium_monthly">
                 <small><i class="bi bi-google-play me-1"></i> {{ 'membership.subscribe_for_monthly'|trans }}</small>

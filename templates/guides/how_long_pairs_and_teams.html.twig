@@ -12,8 +12,8 @@
         <p class="guide-hero-lead">
             <strong>Two people finish a 1000-piece jigsaw puzzle in a median {{ guide.duration_words(duo.medianSeconds) }}
             — {{ guide.speed_up(duo, solo) }} as fast as one person, who needs {{ guide.duration_words(solo.medianSeconds) }}.</strong>
-            Measured across {{ duo.solvesCount|number_format }} pair solves recorded on MySpeedPuzzling, next to
-            {{ solo.solvesCount|number_format }} solo solves of the same size.
+            Measured across {{ duo.solvesCount|plain_number }} pair solves recorded on MySpeedPuzzling, next to
+            {{ solo.solvesCount|plain_number }} solo solves of the same size.
         </p>
     {% else %}
         <p class="guide-hero-lead">
@@ -58,11 +58,11 @@
                     <span class="guide-stat-label">Fastest recorded</span>
                 </div>
                 <div class="col-6 col-md-2">
-                    <span class="guide-stat-number">{{ s1000.duo.solvesCount|number_format }}</span>
+                    <span class="guide-stat-number">{{ s1000.duo.solvesCount|plain_number }}</span>
                     <span class="guide-stat-label">Recorded pair solves</span>
                 </div>
                 <div class="col-12 col-md-2">
-                    <span class="guide-stat-number">{{ s1000.duo.playersCount|number_format }}</span>
+                    <span class="guide-stat-number">{{ s1000.duo.playersCount|plain_number }}</span>
                     <span class="guide-stat-label">Pairs measured</span>
                 </div>
             </div>
@@ -126,7 +126,7 @@
         {% endif %}
         {% if s1000.four %}
             Teams of four finish a 1000-piece puzzle in a median {{ guide.duration_words(s1000.four.medianSeconds) }}
-            ({{ s1000.four.solvesCount|number_format }} solves){% if s1000.solo %} — {{ guide.speed_up(s1000.four, s1000.solo) }}
+            ({{ s1000.four.solvesCount|plain_number }} solves){% if s1000.solo %} — {{ guide.speed_up(s1000.four, s1000.solo) }}
             as fast as one person{% endif %}.
             {% if s1000.three %}
                 Groups of three need {{ s1000.three.medianSeconds|compactTime }}{% if s1000.four.medianSeconds < s1000.three.medianSeconds %},
@@ -162,7 +162,7 @@
                                     <td>
                                         {% if cell %}
                                             {{ cell.medianSeconds|compactTime }}
-                                            <span class="text-muted fs-sm">({{ cell.solvesCount|number_format }} solves)</span>
+                                            <span class="text-muted fs-sm">({{ cell.solvesCount|plain_number }} solves)</span>
                                         {% else %}
                                             –
                                         {% endif %}

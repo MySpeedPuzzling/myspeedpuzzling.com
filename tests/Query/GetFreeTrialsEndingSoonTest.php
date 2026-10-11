@@ -92,7 +92,11 @@ final class GetFreeTrialsEndingSoonTest extends KernelTestCase
             ['first' => PlayerFixture::PLAYER_REGULAR, 'second' => PlayerFixture::PLAYER_ADMIN, 'now' => $this->now->format('Y-m-d H:i:s')],
         );
 
-        $modals = $statistics->modalImpressions($this->now->modify('+1 hour'));
+        // Without the XP launch modal every fixture player has seen long ago (XpLaunchRevealSeenFixture)
+        $modals = array_values(array_filter(
+            $statistics->modalImpressions($this->now->modify('+1 hour')),
+            static fn ($modal): bool => $modal->modal === 'free_trial_offer',
+        ));
 
         self::assertCount(1, $modals);
         self::assertSame('free_trial_offer', $modals[0]->modal);

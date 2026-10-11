@@ -1,0 +1,3 @@
+{# Share of puzzlers holding an achievement tier ("6 % of puzzlers"), from AchievementRarityProvider.
+   Inputs: percent (float, 0-100). Below 1 % one decimal, so the rare tiers don't all read "0 %". #}
+{{- 'badges.catalogue.rarity'|trans({'%percent%': (percent / 100)|format_percent_number({max_fraction_digit: percent < 1 ? 1 : 0})}) -}}

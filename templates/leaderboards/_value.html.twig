@@ -1,0 +1,13 @@
+{#-
+    INTERFACE (stable, shared by every leaderboard - docs/features/xp-levels/ux-polish/design-spec.md §4, value option 4A):
+    The value cell's content: the board's coloured bold number + one small muted secondary line. Boards are told apart only
+    by this column. Put it inside <td class="lb-time">.
+      {{ include('leaderboards/_value.html.twig', {value: '2,140 XP', secondary: 'Lv 34', family: 'level'}) }}
+    family: level (indigo) · achievements (amber) · karma (rose) · competition (teal) · ink (times, unchanged); secondary optional
+-#}
+<span class="lb-value lb-value-{{ family|default('ink') }}">
+    <span class="lb-value-number">{{ value }}</span>
+    {%- if secondary|default(null) is not null and secondary is not same as('') %}
+        <span class="lb-value-secondary">{{ secondary }}</span>
+    {%- endif %}
+</span>

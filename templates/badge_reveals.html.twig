@@ -1,0 +1,71 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'badges.reveals.meta_title'|trans }}{% endblock %}
+
+{% block content %}
+    {# Back to ?return= or the own profile (design-spec §3) #}
+    {{ include('_page_crumbs.html.twig', {levels: [], back: {name: logged_user.profile.playerName ?? ('#' ~ logged_user.profile.code|upper), url: path('player_profile', {playerId: logged_user.profile.playerId})}}) }}
+    <h1 class="h2">{{ 'badges.reveals.title'|trans }}</h1>
+
+    {% if badges|length > 0 %}
+        {# Every earned-but-unrevealed badge as its own little puzzle: a tap flies the pieces in, the icon piece clicks in
+           last (last_piece_reveal_controller.js). The first tap POSTs reveal_badge, as the flip did. #}
+        <div
+            class="lpr-page"
+            data-controller="last-piece-reveal"
+            data-last-piece-reveal-skip-label-value="{{ 'badges.reveals.stage_running'|trans }}"
+        >
+            {# Sound is always on - it answers each tap and lasts about a second (last_piece_reveal_controller.js) #}
+            <p class="text-muted mb-0">{{ 'badges.reveals.intro'|trans({'%count%': badges|length}) }}</p>
+
+            <div class="lpr-grid">
+                {% for badge in badges %}
+                    {% set tier = badge.tier %}
+                    {% set name = (badge.type.translationKey())|trans %}
+                    {% set tier_name = tier ? (tier.translationKey())|trans : null %}
+
+                    <div class="lpr-card">
+                        <button
+                            type="button"
+                            class="lpr-stage"
+                            data-last-piece-reveal-target="stage"
+                            data-action="last-piece-reveal#play"
+                            data-last-piece-reveal-look-param="{{ tier ? tier.value : 'single' }}"
+                            data-last-piece-reveal-url-param="{{ path('reveal_badge', {badgeId: badge.id}) }}"
+                            data-last-piece-reveal-image-param="{{ badge_art_url(badge.type, tier, 'webp', 320) }}"
+                            data-last-piece-reveal-image-large-param="{{ badge_art_url(badge.type, tier, 'webp', 480) }}"
+                            data-last-piece-reveal-done-label-param="{{ tier_name ? 'badges.reveals.stage_done'|trans({'%achievement%': name, '%tier%': tier_name}) : name }}"
+                            aria-label="{{ 'badges.reveals.stage_label'|trans({'%achievement%': name}) }}"
+                        >
+                            <span class="lpr-tray" aria-hidden="true"></span>
+                        </button>
+
+                        <p class="lpr-name">{{ name }}</p>
+                        <p class="lpr-result" aria-live="polite">
+                            {# What to do, until the last piece is in (the stage's own label says it to screen readers) #}
+                            <span class="lpr-result-hint" aria-hidden="true">{{ 'badges.shelf.unrevealed'|trans }}</span>
+                            {% if tier_name %}
+                                <span class="lpr-result-text" hidden><span class="visually-hidden">{{ name }}: </span>{{ tier_name }}</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                {% endfor %}
+            </div>
+
+            <p class="text-muted fs-sm mt-4 mb-0" role="status" data-last-piece-reveal-target="done" hidden>
+                {{ 'badges.reveals.all_done'|trans }}
+            </p>
+        </div>
+
+        <p class="text-muted fs-sm mt-4">{{ 'badges.reveals.hint'|trans }}</p>
+    {% else %}
+        <div class="xp-teaser mt-3">
+            <i class="bi bi-award" aria-hidden="true"></i>
+            <span>{{ 'badges.reveals.all_done'|trans }}</span>
+        </div>
+    {% endif %}
+
+    <a href="{{ path('my_profile') }}" class="btn btn-sm btn-outline-primary mt-4">
+        {{ 'badges.reveals.back_to_profile'|trans }}
+    </a>
+{% endblock %}

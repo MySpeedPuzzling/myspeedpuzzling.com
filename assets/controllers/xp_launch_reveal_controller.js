@@ -1,0 +1,193 @@
+/* stimulusFetch: 'lazy' */
+import { Controller } from '@hotwired/stimulus';
+
+/**
+ * The XP launch reveal of a member (templates/xp_launch_reveal.html.twig): every achievement, one card at a time in
+ * crescendo order - led by the level card when the level was not revealed in the launch modal yet. Each card assembles
+ * by itself (the last-piece reveal, driven through the outlet), then its facts appear (tier, what it took, how many
+ * hold it, the next tier, the Achievement Points it brought). The XP in the bar stays the player's XP from puzzles -
+ * achievements grant none. A tap anywhere (or the big button) goes on - while a card still assembles, the first tap
+ * completes it. A summary of everything ends it; "Skip to summary" is there all the time. Each card names what the
+ * bar's counter and the big button say while it is shown (data-xpl-progress, data-xpl-next), so the deck can come in
+ * any order. Reduced motion: every card is complete at once (the reveal controller decides).
+ * `autostart` (?start=1, the launch modal's "Reveal my achievements"): the page opens on the first card, which plays at
+ * once - the tap in the modal was the invitation, and its sound context carries over (assets/last_piece_reveal/sfx.js).
+ */
+export default class extends Controller {
+    static targets = ['intro', 'deck', 'card', 'progress', 'next', 'summary', 'summaryHeading'];
+
+    static outlets = ['last-piece-reveal'];
+
+    static values = { autostart: Boolean };
+
+    connect() {
+        this.index = -1;
+        this.queued = false;
+
+        // The lazy reveal controller arriving after this one: it says so when its connect() is done (a listener, not
+        // an outlet callback - Stimulus does not call that again when stimulus-bridge swaps its loader for the module)
+        this.onRevealReady = () => {
+            if (this.queued && this.revealController()) {
+                this.queued = false;
+                this.begin();
+            }
+        };
+        this.element.addEventListener('last-piece-reveal:ready', this.onRevealReady);
+
+        if (this.autostartValue) {
+            this.begin();                                  // the server rendered the deck open on its first card
+        }
+    }
+
+    disconnect() {
+        this.element.removeEventListener('last-piece-reveal:ready', this.onRevealReady);
+    }
+
+    /**
+     * The reveal controller, once its lazy module is in - until then the outlet is stimulus-bridge's loader, which has
+     * none of its methods
+     */
+    revealController() {
+        if (!this.hasLastPieceRevealOutlet) {
+            return null;
+        }
+
+        const outlet = this.lastPieceRevealOutlet;
+
+        return typeof outlet.start === 'function' ? outlet : null;
+    }
+
+    /** action: the intro's button */
+    start() {
+        this.introTarget.hidden = true;
+        this.deckTarget.hidden = false;
+        this.deckTarget.scrollIntoView({ block: 'start' });
+        this.begin();
+    }
+
+    begin() {
+        this.nextTarget.focus({ preventScroll: true });
+        const reveal = this.revealController();
+
+        if (!reveal) {
+            this.queued = true;                            // the lazy reveal controller is still on its way
+            return;
+        }
+
+        reveal.unlockSound();                              // inside the tap (or the modal's context, still unlocked)
+        this.show(0);
+    }
+
+    /** action: the big button */
+    next() {
+        const reveal = this.revealController();
+
+        if (this.index < 0 || !reveal) {
+            return;
+        }
+
+        const card = this.cardTargets[this.index];
+
+        // Before its texts are there, a tap completes the card; once they are, it goes on (a glint or the shimmer
+        // still sweeping ends with the next card's start)
+        if (!card.classList.contains('is-revealed')) {
+            const stage = stageOf(card);
+
+            if (reveal.stateOf(stage) === 'running') {
+                reveal.start(stage);
+            }
+
+            return;
+        }
+
+        reveal.unlockSound();
+
+        if (this.index + 1 < this.cardTargets.length) {
+            this.show(this.index + 1);
+        } else {
+            this.finish();
+        }
+    }
+
+    /** action: a tap anywhere on the card */
+    tap(event) {
+        if (event.target.closest('a, button, input, select, textarea')) {
+            return;
+        }
+
+        this.next();
+        this.holdFocus();
+    }
+
+    /** action: "Skip to summary" - every achievement the summary shows counts as revealed */
+    skip() {
+        const reveal = this.revealController();
+
+        if (reveal) {
+            reveal.stopAll();
+
+            for (const card of this.cardTargets) {
+                reveal.postReveal(stageOf(card));
+            }
+        }
+
+        this.finish();
+    }
+
+    /** action: `last-piece-reveal:revealed` - a picture is complete */
+    cardRevealed(event) {
+        const card = event.detail.stage.closest('.xpl-card');
+
+        if (!card || !this.cardTargets.includes(card) || card.classList.contains('is-revealed')) {
+            return;
+        }
+
+        card.classList.add('is-revealed');
+
+        if (!event.detail.instant && !prefersReducedMotion()) {
+            card.querySelector('.xpl-card-text')?.animate(
+                [{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'none' }],
+                { duration: 300, easing: 'ease-out' },
+            );
+        }
+    }
+
+    show(index) {
+        this.index = index;
+        this.cardTargets.forEach((card, i) => {
+            card.hidden = i !== index;
+        });
+        const card = this.cardTargets[index];
+        this.progressTarget.textContent = card.dataset.xplProgress || '';   // "2 / 5" - empty on the level card
+        this.nextTarget.textContent = card.dataset.xplNext || this.nextTarget.textContent;
+
+        this.holdFocus();
+        const reveal = this.lastPieceRevealOutlet;
+        reveal.start(stageOf(card));
+        reveal.preloadStage(stageOf(this.cardTargets[index + 1]));
+    }
+
+    finish() {
+        this.introTarget.hidden = true;
+        this.deckTarget.hidden = true;
+        this.summaryTarget.hidden = false;
+        this.summaryTarget.classList.add('is-shown');
+        this.summaryTarget.scrollIntoView({ block: 'start' });
+        (this.hasSummaryHeadingTarget ? this.summaryHeadingTarget : this.summaryTarget).focus({ preventScroll: true });
+    }
+
+    /** keyboard flow: a tap on the card takes the focus off the big button - it goes back, Enter keeps working */
+    holdFocus() {
+        if (!this.deckTarget.hidden && !this.deckTarget.contains(document.activeElement)) {
+            this.nextTarget.focus({ preventScroll: true });
+        }
+    }
+}
+
+function stageOf(card) {
+    return card ? card.querySelector('.lpr-stage') : null;
+}
+
+function prefersReducedMotion() {
+    return window.matchMedia !== undefined && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}

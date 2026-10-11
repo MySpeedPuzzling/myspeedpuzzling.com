@@ -35,6 +35,23 @@ services:
             XDEBUG_MODE: debug
             PHP_IDE_CONFIG: "serverName=speedpuzzling"
 
+    # The async queue (XP, achievements, e-mails, Listmonk, ...), consumed like production does (lily.srv compose).
+    # Without it nothing async ever runs locally: the recap after a time waits for XP that never comes. A worker keeps
+    # the code it booted with, so it stops every 2 minutes and restarts with the current code
+    # (or `docker compose restart messenger-consumer`)
+    messenger-consumer:
+        image: ghcr.io/myspeedpuzzling/web-base-php85:main
+        restart: unless-stopped
+        volumes:
+            - .:/app
+        depends_on:
+            - postgres
+            - redis
+        command: "bash -c 'php bin/wait-for-database 60 && exec bin/console messenger:consume async --time-limit 120 --memory-limit 256M'"
+        # The image's check asks the web server, which this container does not run
+        healthcheck:
+            disable: true
+
     postgres:
         image: postgres:16.0
         environment:

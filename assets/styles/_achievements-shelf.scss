@@ -1,0 +1,919 @@
+// Achievements shelf, closest next steps, holders page (docs/features/xp-levels/ux-polish/design-spec.md §1, §5).
+// Imported after _progression-pages.scss: its family tokens ($progression-achievements …), .ap-chip,
+// .achievements-filter and .achievement-progress are reused and extended here.
+// Templates: _achievements_layout, _achievement_cell, _achievement_next_steps, badges_overview, player_achievements,
+// achievement_detail.
+
+$shelf-line: #e3e9ef;
+$shelf-ink: #373f50;
+// The site's primary for progress and "yours" (Jan 2026-10-11: amber only marks Achievement Points, the AP chip);
+// the coral ink where it is text or a border on white (#fe696a is 2.8:1, this is 4.6:1)
+$shelf-progress: $primary;
+$shelf-mine: #d63c42;
+// A small lift for the cards (shelf cells, reference cards, holders tier cards) - the one of the profile showcase
+$shelf-shadow: $progression-card-shadow;
+$shelf-tint: #f6f9fc;
+$shelf-press: scale(.97);
+
+// --- Progress bars: fill once when seen (progress_fill_controller.js - the closest next steps only, §8.6) --------------
+
+.progress-fill-pending {
+    width: 0 !important;
+}
+
+.progress-fill-run {
+    transition: width 1s cubic-bezier(.2, .8, .2, 1);
+}
+
+// --- Summary line + membership tease --------------------------------------------------------------------------------
+
+.achievements-summary {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .375rem .75rem;
+
+    strong {
+        font-size: 1.125rem;
+        font-weight: 600;
+    }
+}
+
+.achievements-summary-link {
+    font-size: .875rem;
+}
+
+.achievements-tease {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .75rem 1rem;
+    padding: .875rem 1rem;
+    border-radius: .75rem;
+    background: #fff7ec;
+    color: #4b3a14;
+    font-size: .875rem;
+
+    > p {
+        flex: 1 1 15rem;
+    }
+}
+
+// --- Layout: closest next steps on top, a side column from 992 px ---------------------------------------------------
+
+.achievements-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1rem;
+    margin-top: 1rem;
+
+    .achievements-filter {
+        margin-top: 0;
+    }
+}
+
+@include media-breakpoint-up(lg) {
+    .achievements-layout.has-side {
+        grid-template-columns: minmax(0, 1fr) 17.5rem;
+        gap: 1.5rem;
+
+        > .achievements-layout-side {
+            position: sticky;
+            top: calc(var(--header-height, 97px) + 1rem);
+            grid-column: 2;
+            grid-row: 1;
+            align-self: start;
+        }
+
+        > .achievements-layout-main {
+            grid-column: 1;
+            grid-row: 1;
+        }
+    }
+}
+
+// Chips: one row scrolling sideways on phones, the next chip peeking at the edge - never cut off (§8.6)
+@include media-breakpoint-down(md) {
+    .achievements-chips {
+        flex-wrap: nowrap;
+        margin-right: -.75rem;
+        padding-right: .75rem;
+        overflow-x: auto;
+        scrollbar-width: none;
+        -webkit-overflow-scrolling: touch;
+
+        &::-webkit-scrollbar {
+            display: none;
+        }
+
+        a {
+            flex-shrink: 0;
+            white-space: nowrap;
+        }
+    }
+}
+
+// --- Closest next steps ----------------------------------------------------------------------------------------------
+
+.achievements-next {
+    padding: .75rem .625rem;
+    border-radius: .75rem;
+    background: $shelf-tint;
+}
+
+.achievements-next-title {
+    margin: 0 .375rem .25rem;
+    font-size: .9375rem;
+    font-weight: 600;
+    color: $shelf-ink;
+}
+
+.achievements-next-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.achievements-next-row {
+    display: grid;
+    grid-template-columns: 40px minmax(0, 1fr);
+    gap: .625rem;
+    align-items: center;
+    min-height: 44px;
+    padding: .5rem .375rem;
+    border-radius: .5rem;
+    color: inherit;
+    text-decoration: none;
+    transition: transform 120ms ease;
+
+    &:hover,
+    &:focus-visible {
+        background: #fff;
+        color: inherit;
+    }
+
+    &:active {
+        transform: $shelf-press;
+    }
+
+    .achievement-progress {
+        flex: 1 1 auto;
+        height: 5px;
+        margin: 0;
+    }
+}
+
+.achievements-next-body {
+    min-width: 0;
+}
+
+.achievements-next-name {
+    display: block;
+    font-size: .875rem;
+    font-weight: 500;
+    line-height: 1.25;
+    color: $shelf-ink;
+}
+
+// On phones the requirement is one tap away (the row opens the sheet at that tier); the side column has room for it
+.achievements-next-requirement {
+    display: none;
+    font-size: .78125rem;
+    line-height: 1.3;
+    color: $progression-muted;
+}
+
+@include media-breakpoint-up(lg) {
+    .achievements-next-requirement {
+        display: block;
+    }
+}
+
+.achievements-next-progress {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    margin-top: .25rem;
+}
+
+.achievements-next-numbers {
+    flex-shrink: 0;
+    text-align: right;
+    font-size: .75rem;
+    font-variant-numeric: tabular-nums;
+    color: $progression-muted;
+}
+
+// --- The shelf: 2 columns on phones (works at 320 px), 5 next to the side column at 1280 ------------------------------
+
+.achievement-shelf {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .625rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+@include media-breakpoint-up(sm) {
+    .achievement-shelf {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+@include media-breakpoint-up(md) {
+    .achievement-shelf {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+}
+
+@include media-breakpoint-up(lg) {
+    .achievements-layout:not(.has-side) .achievement-shelf {
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+    }
+}
+
+@include media-breakpoint-up(xl) {
+    .achievements-layout.has-side .achievement-shelf {
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+    }
+
+    .achievements-layout:not(.has-side) .achievement-shelf {
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+    }
+}
+
+.achievement-cell {
+    display: flex;
+    min-width: 0;
+}
+
+.achievement-cell-link {
+    position: relative;
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    align-items: center;
+    gap: .25rem;
+    min-width: 0;
+    padding: .75rem .5rem .625rem;
+    border: 1px solid $shelf-line;
+    border-radius: .875rem;
+    background: #fff;
+    box-shadow: $shelf-shadow;
+    color: inherit;
+    text-align: center;
+    text-decoration: none;
+    transition: transform 120ms ease, border-color .15s ease, box-shadow .15s ease;
+
+    &:hover,
+    &:focus-visible {
+        border-color: #c4ccd6;
+        box-shadow: 0 2px 4px rgba(43, 52, 69, .08), 0 8px 20px rgba(43, 52, 69, .08);
+        color: inherit;
+    }
+
+    &:active {
+        transform: $shelf-press;
+    }
+}
+
+.achievement-cell-seal {
+    position: relative;
+    display: inline-block;
+    flex-shrink: 0;
+    width: 92px;
+    height: 92px;
+    margin-bottom: .125rem;
+    line-height: 0;
+}
+
+// An unrevealed tier: the empty puzzle of the reveal page (last-piece-reveal-tray.svg), a little smaller than a seal
+.achievement-cell-tray {
+    position: absolute;
+    inset: 8px;
+    border-radius: 10px;
+    background: $white url('../img/last-piece-reveal-tray.svg') center / 100% 100% no-repeat;
+    box-shadow: 0 1px 3px rgba(43, 52, 69, .14);
+    transform: rotate(-4deg);
+}
+
+.achievement-cell-name {
+    max-width: 100%;
+    font-size: .875rem;
+    font-weight: 500;
+    line-height: 1.2;
+    color: $shelf-ink;
+    overflow-wrap: anywhere;
+}
+
+.achievement-cell-tier {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: .25rem .375rem;
+    font-size: .78125rem;
+    color: $progression-muted;
+
+    b {
+        font-weight: 600;
+        color: $shelf-ink;
+    }
+}
+
+.achievement-cell-reveal {
+    font-weight: 500;
+    color: #d63c42;
+}
+
+.achievement-pips {
+    display: inline-flex;
+    gap: 3px;
+
+    i {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: #dfe4ec;
+
+        &.is-held {
+            background: $shelf-ink;
+        }
+    }
+}
+
+// What to do next - on every cell that is not complete: the requirement (with the next tier's name once a tier is held)
+.achievement-cell-goal {
+    font-size: .78125rem;
+    line-height: 1.3;
+    color: $body-color;
+    text-wrap: balance;
+    overflow-wrap: anywhere;
+}
+
+// The bar and its numbers sit at the bottom of the card, so cells in a row line up whatever the goal's length
+.achievement-cell .achievement-progress {
+    flex-shrink: 0;
+    width: 75%;
+    height: 5px;
+    margin: auto 0 0;
+    padding-top: 0;
+}
+
+.achievement-cell .achievement-progress + .achievement-cell-numbers {
+    margin-top: .125rem;
+}
+
+.achievement-cell-meta {
+    font-size: .75rem;
+    line-height: 1.3;
+    color: $progression-muted;
+    font-variant-numeric: tabular-nums;
+    // Balanced lines keep a percentage with its words ("held by / 70 %" left the number alone)
+    text-wrap: balance;
+}
+
+// A tier earned in the last 7 days (the owner's own achievements only)
+.achievement-cell-new {
+    position: absolute;
+    top: .5rem;
+    right: .5rem;
+    padding: 2px 6px;
+    border-radius: 999px;
+    background: #d63c42;
+    color: #fff;
+    font-size: .625rem;
+    font-weight: 600;
+    line-height: 1.3;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+
+// Tiers 4 and 5 shine once on load: a light sweep masked by the seal's own picture (same-origin art, which mask-image
+// needs). Once only, 1.6 s - the looping holo lives in the detail sheet (design-spec §5, WCAG 2.2.2).
+.achievement-shine::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(105deg, transparent 35%, rgba(255, 255, 255, .75) 50%, transparent 65%) no-repeat;
+    background-size: 250% 100%;
+    background-position: 130% 0;
+    -webkit-mask: var(--achievement-shine-mask) center / contain no-repeat;
+    mask: var(--achievement-shine-mask) center / contain no-repeat;
+    animation: achievement-shine-sweep 1.6s .4s ease-out 1 both;
+}
+
+@keyframes achievement-shine-sweep {
+    to {
+        background-position: -30% 0;
+    }
+}
+
+// --- Holders page ----------------------------------------------------------------------------------------------------
+
+.achievement-hero {
+    display: grid;
+    grid-template-columns: 96px minmax(0, 1fr);
+    gap: .75rem 1rem;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.achievement-hero-mine {
+    margin: .375rem 0 0;
+    font-size: .875rem;
+    font-weight: 500;
+    color: $shelf-ink;
+}
+
+// The 5-seal ladder: every tier's holder count in one row, each a link to its section
+.achievement-ladder {
+    margin-bottom: 1rem;
+
+    ol {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: .25rem;
+        max-width: 26rem;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+}
+
+.achievement-ladder-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: .125rem;
+    min-height: 44px;
+    padding: .375rem .125rem;
+    border-radius: .5rem;
+    color: $progression-muted;
+    font-size: .8125rem;
+    font-variant-numeric: tabular-nums;
+    text-decoration: none;
+    transition: transform 120ms ease;
+
+    &:hover,
+    &:focus-visible {
+        background: $shelf-tint;
+        color: $shelf-ink;
+    }
+
+    &:active {
+        transform: $shelf-press;
+    }
+
+    &.is-mine {
+        background: #fff3f3;
+        box-shadow: inset 0 -2px 0 $primary;
+        color: $shelf-ink;
+    }
+}
+
+.achievement-ladder-count {
+    font-weight: 500;
+}
+
+.achievement-tier-section {
+    // The tier's own tint (the seals' metal: bronze, silver, gold, platinum, diamond) for the header band
+    --tier-tint: #f6f9fc;
+    --tier-ink: #{$shelf-ink};
+
+    margin-top: 1.25rem;
+    border: 1px solid $shelf-line;
+    border-radius: .875rem;
+    background: #fff;
+    box-shadow: $shelf-shadow;
+    // The sticky header needs the card's own clipping off; its corners are rounded on the header itself
+    scroll-margin-top: calc(var(--header-height, 101px) + .75rem);
+
+    &.tier-1 { --tier-tint: #fbeee4; --tier-ink: #7a4519; }
+    &.tier-2 { --tier-tint: #edf1f7; --tier-ink: #3d4a5f; }
+    &.tier-3 { --tier-tint: #fdf3d6; --tier-ink: #7a5a0c; }
+    &.tier-4 { --tier-tint: #efecfb; --tier-ink: #4b3f8f; }
+    &.tier-5 { --tier-tint: linear-gradient(100deg, #fde9ee, #efeafd 40%, #e4f3fb 75%, #e8f8ef); --tier-ink: #3a3f6b; }
+
+    &.is-mine {
+        border-color: $shelf-mine;
+        box-shadow: 0 0 0 1px $shelf-mine, $shelf-shadow;
+    }
+
+    > turbo-frame {
+        display: block;
+        padding: 0 .75rem .75rem;
+    }
+}
+
+.achievement-tier-section-head {
+    position: sticky;
+    top: var(--header-height, 97px);
+    z-index: 2;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: .75rem;
+    align-items: center;
+    margin-bottom: .25rem;
+    padding: .75rem;
+    border-radius: calc(.875rem - 1px) calc(.875rem - 1px) 0 0;
+    background: var(--tier-tint);
+
+    .badge-art {
+        flex-shrink: 0;
+    }
+}
+
+.achievement-tier-section-title {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .25rem .5rem;
+    margin: 0;
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--tier-ink);
+}
+
+.achievement-tier-section-mine {
+    padding: .125rem .5rem;
+    border-radius: 999px;
+    background: $shelf-mine;
+    color: #fff;
+    font-size: .6875rem;
+    font-weight: 600;
+    letter-spacing: .02em;
+}
+
+.achievement-tier-section-requirement {
+    margin: .125rem 0 0;
+    font-size: .8125rem;
+    line-height: 1.35;
+    color: $shelf-ink;
+    text-wrap: balance;
+}
+
+// How many hold it: a pill on the right of the band (wraps under the text on narrow phones)
+.achievement-tier-section-count {
+    padding: .25rem .625rem;
+    border-radius: 999px;
+    background: rgb(255 255 255 / .8);
+    color: var(--tier-ink);
+    font-size: .8125rem;
+    font-weight: 600;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 374.98px) {
+    .achievement-tier-section-head {
+        grid-template-columns: auto minmax(0, 1fr);
+
+        .achievement-tier-section-count {
+            grid-column: 2;
+            justify-self: start;
+        }
+    }
+}
+
+.holder-rows {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+
+    > .holder-row:first-child .holder-row-link {
+        border-top: 0;
+    }
+}
+
+.holder-row-link {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: .75rem;
+    align-items: center;
+    min-height: 48px;
+    padding: .25rem .5rem;
+    border-top: 1px solid $shelf-line;
+    color: inherit;
+    font-size: .875rem;
+    text-decoration: none;
+    transition: transform 120ms ease;
+
+    &:hover,
+    &:focus-visible {
+        background: $shelf-tint;
+        color: inherit;
+    }
+
+    &:active {
+        transform: $shelf-press;
+    }
+}
+
+.holder-row-name {
+    min-width: 0;
+    overflow: hidden;
+    color: $shelf-ink;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.holder-row-trophy {
+    margin-left: .25rem;
+    color: #f0a500;
+}
+
+.holder-row-date {
+    font-size: .75rem;
+    white-space: nowrap;
+    color: $progression-muted;
+    font-variant-numeric: tabular-nums;
+}
+
+// --- Reduced motion: nothing moves (design-spec P7) -----------------------------------------------------------------
+
+@media (prefers-reduced-motion: reduce) {
+    .progress-fill-run,
+    .achievements-next-row,
+    .achievement-cell-link,
+    .achievement-ladder-step,
+    .holder-row-link {
+        transition: none;
+    }
+
+    // No press-scale either (§8.6)
+    .achievements-next-row:active,
+    .achievement-cell-link:active,
+    .achievement-ladder-step:active,
+    .holder-row-link:active {
+        transform: none;
+    }
+
+    .achievement-shine::after {
+        display: none;
+        animation: none;
+    }
+}
+
+// The coral ink for the small text links (#fe696a on white is 2.8:1, this is 5.2:1)
+.achievements-summary-link,
+.achievements-browse-link {
+    color: #c7393b;
+
+    &:hover,
+    &:focus-visible {
+        color: #a52d2f;
+    }
+}
+
+// Small inline links keep their look but get a 44 px tall tap target (design-spec §6; QA 2026-10-11)
+.achievements-summary .ap-chip,
+.achievements-summary-link,
+.achievements-browse-link {
+    position: relative;
+
+    &::after {
+        content: '';
+        position: absolute;
+        inset: 50% auto auto 50%;
+        width: max(100%, 44px);
+        height: 44px;
+        transform: translate(-50%, -50%);
+    }
+}
+
+// "Show 100 more" / "Show all N" under a tier's holders (a Turbo Frame per tier): coral ink, 44 px
+.holder-more-button {
+    --cz-btn-color: #c7393b;
+    --cz-btn-border-color: #c7393b;
+    --cz-btn-hover-color: #fff;
+    --cz-btn-hover-bg: #c7393b;
+    --cz-btn-hover-border-color: #c7393b;
+    --cz-btn-active-color: #fff;
+    --cz-btn-active-bg: #c7393b;
+    --cz-btn-active-border-color: #c7393b;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+}
+
+// The country picker of the holders page and the progression boards (country_select_controller.js): the site's
+// TomSelect with flags, at a 44 px target and a width that fits a long country name
+.country-select-wrapper.progression-country-select {
+    flex: 1 1 12rem;
+    max-width: 260px;
+    min-width: 0;
+
+    .ts-wrapper .ts-control {
+        min-height: 44px;
+        align-items: center;
+    }
+}
+
+// --- The achievements reference (badges_overview): every achievement, every tier, the same for everybody -----------
+
+.achievement-refs {
+    display: grid;
+    gap: 1rem;
+
+    @include media-breakpoint-up(lg) {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        align-items: start;
+    }
+}
+
+.achievement-ref {
+    border: 1px solid $shelf-line;
+    border-radius: .875rem;
+    background: #fff;
+    box-shadow: $shelf-shadow;
+    scroll-margin-top: calc(var(--header-height, 101px) + .75rem);
+}
+
+.achievement-ref-head {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: .875rem;
+    align-items: center;
+    padding: .875rem .875rem .5rem;
+}
+
+.achievement-ref-title {
+    margin: 0;
+    font-size: 1.125rem;
+    font-weight: 600;
+
+    a {
+        color: $shelf-ink;
+        text-decoration: none;
+
+        &:hover,
+        &:focus-visible {
+            color: #c7393b;
+        }
+    }
+}
+
+.achievement-ref-description {
+    margin: .125rem 0 0;
+    font-size: .8125rem;
+    line-height: 1.35;
+    color: $progression-muted;
+}
+
+.achievement-ref-tiers {
+    margin: 0;
+    padding: 0 .875rem;
+    list-style: none;
+}
+
+.achievement-ref-tier {
+    display: grid;
+    grid-template-columns: 32px minmax(0, 1fr) auto;
+    gap: .625rem;
+    align-items: center;
+    min-height: 48px;
+    padding: .375rem 0;
+    border-top: 1px solid $shelf-line;
+    font-size: .8125rem;
+}
+
+.achievement-ref-tier-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    line-height: 1.3;
+
+    b {
+        font-weight: 600;
+        color: $shelf-ink;
+    }
+
+    span {
+        color: $body-color;
+        text-wrap: balance;
+    }
+}
+
+.achievement-ref-tier-holders {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    color: $shelf-ink;
+
+    small {
+        color: $progression-muted;
+    }
+}
+
+.achievement-ref-holders-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    border-top: 1px solid $shelf-line;
+    color: #c7393b;
+    font-size: .875rem;
+    font-weight: 500;
+    text-decoration: none;
+
+    &:hover,
+    &:focus-visible {
+        background: $shelf-tint;
+        color: #a52d2f;
+    }
+}
+
+// "How achievements work" on top of the reference: open until hidden, then one line that opens it again
+// (collapsible_hint_controller.js)
+.achievements-explainer {
+    border-radius: .75rem;
+    background: $progression-achievements-bg;
+    color: #4b3a14;
+    font-size: .875rem;
+}
+
+.achievements-explainer-summary {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    min-height: 44px;
+    padding: .5rem 1rem;
+    border-radius: .75rem;
+    font-weight: 600;
+    cursor: pointer;
+    list-style: none;
+
+    &::-webkit-details-marker {
+        display: none;
+    }
+
+    // "Hide" moves the focus here: a ring for keyboard users only, rounded like the card (no square ring in the corner)
+    &:focus {
+        outline: 0;
+    }
+
+    &:focus-visible {
+        outline: 2px solid #d63c42;
+        outline-offset: 2px;
+    }
+
+    .achievements-explainer-chevron {
+        margin-left: auto;
+        transition: transform .15s ease;
+    }
+}
+
+.achievements-explainer[open] .achievements-explainer-chevron {
+    transform: rotate(180deg);
+}
+
+.achievements-explainer-body {
+    padding: 0 1rem .875rem;
+
+    p {
+        margin-bottom: .5rem;
+    }
+}
+
+.achievements-explainer-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .25rem 1rem;
+
+    a {
+        display: inline-flex;
+        align-items: center;
+        min-height: 44px;
+        color: #c7393b;
+    }
+
+    // A real button on the cream card: white, a warm border, darker on hover
+    .achievements-explainer-hide {
+        --cz-btn-color: #4b3a14;
+        --cz-btn-bg: #fff;
+        --cz-btn-border-color: rgba(138, 90, 18, .25);
+        --cz-btn-hover-color: #4b3a14;
+        --cz-btn-hover-bg: #fff8ec;
+        --cz-btn-hover-border-color: rgba(138, 90, 18, .45);
+        --cz-btn-active-color: #4b3a14;
+        --cz-btn-active-bg: #fdf0d8;
+        --cz-btn-active-border-color: rgba(138, 90, 18, .45);
+        min-height: 44px;
+        margin-left: auto;
+        padding-inline: 1rem;
+        box-shadow: 0 1px 2px rgba(75, 58, 20, .08);
+        font-weight: 500;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .achievements-explainer-chevron {
+        transition: none;
+    }
+}

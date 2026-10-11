@@ -11,6 +11,10 @@ readonly final class EditFeaturesOptions
         public bool $streakOptedOut,
         public bool $rankingOptedOut,
         public bool $timePredictionsOptedOut,
+        /** Null = field not shown (feature-flagged), keep the stored preference. */
+        public null|bool $experienceSystemOptedOut = null,
+        /** Null = field not shown (karma launches with XP), keep the stored preference. */
+        public null|bool $karmaOptedOut = null,
     ) {
     }
 }

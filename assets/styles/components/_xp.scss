@@ -1,0 +1,185 @@
+//
+// XP / Levels / Achievements
+// --------------------------------------------------
+// Everything here is CSS-only by design (locked decision): milestone rings and confetti ship zero
+// images and zero JS animation. The recap after logging a time: assets/styles/_xp-recap.scss.
+
+$xp-coral:  #ec726f;
+$xp-sky:    #69b3fe;
+$xp-indigo: #4e54c8;
+$xp-navy:   #2b3445;
+$xp-gold:   #ffd700;
+$xp-gold-deep: #f0a500;
+
+
+// Level colour bands (docs/features/xp-levels/ux-polish/design-spec.md §9, 2026-10-11): one colour per 10 levels, so a
+// level reads at first sight wherever it is drawn - the ring around an avatar (XpRing), its "Lv 12" tab, the reveal's
+// level medallion. Band = level // 10 + 1 for levels 1-49 (1 = 1-9 ... 5 = 40-49), 6 = Level 50 (XpRing::band()).
+// Like belts: lime, aqua, violet, magenta, obsidian, gold at the summit - hues no rank ladder on the site uses (skill
+// tiers are green/blue/indigo/red/navy, achievement tiers the metals, the families coral/indigo/amber/teal/rose), every
+// ring >= 3:1 on white (gold: always a full ring with a glow), white tab text >= 5.1:1, lightness falls band by band so
+// colour-blind eyes tell neighbours apart too. The number stays on the tab - colour is never the only cue.
+//   ring = the arc, ink = the tab behind white text, track = the ring's rest at 32 % (so the band shows at 0 % progress too)
+$xp-level-bands: (
+  1: (ring: #5ea524, ink: #3f7a12),   // lime - a fresh start
+  2: (ring: #0e9cb8, ink: #0b7891),   // aqua
+  3: (ring: #8f55e0, ink: #7a3fcf),   // violet
+  4: (ring: #c22a7e, ink: #ad2370),   // magenta
+  5: (ring: #1f2440, ink: #1f2440),   // obsidian - the black belt
+);
+
+@each $band, $colours in $xp-level-bands {
+  .xp-level-band-#{$band} {
+    --xp-level-ring: #{map-get($colours, ring)};
+    --xp-level-ring-to: #{map-get($colours, ring)};
+    --xp-level-track: #{rgba(map-get($colours, ring), .32)};
+    --xp-level-ink: #{map-get($colours, ink)};
+    --xp-level-ink-text: #fff;
+  }
+}
+
+// Level 50: gold, the one metal of the ladder - the summit, never an achievement tier's place (it is a level ring)
+.xp-level-band-6 {
+  --xp-level-ring: #{$xp-gold-deep};
+  --xp-level-ring-to: #{$xp-gold};
+  --xp-level-track: #{rgba($xp-gold-deep, .3)};
+  --xp-level-ink: linear-gradient(135deg, #{$xp-gold-deep}, #{$xp-gold});
+  --xp-level-ink-text: #3f2d00;
+}
+
+// Level chip
+// Usage: <span class="xp-level-chip">Lv 12</span>
+
+.xp-level-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: .3em;
+  background: $xp-indigo;
+  color: #fff;
+  border-radius: 999px;
+  padding: .2em .65em;
+  font-size: .8rem;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.xp-level-chip-max {
+  background: linear-gradient(135deg, $xp-gold-deep, $xp-gold);
+  color: #3f2d00;
+  box-shadow: 0 1px 6px rgba($xp-gold, .5);
+}
+
+
+// Progress bar toward next level
+
+.xp-progressbar {
+  height: 10px;
+  border-radius: 999px;
+  background: rgba($xp-navy, .1);
+  overflow: hidden;
+}
+
+.xp-progressbar-fill {
+  --xp-progress: 0;
+  height: 100%;
+  width: calc(var(--xp-progress) * 100%);
+  min-width: 2px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, $xp-sky, $xp-indigo);
+  animation: xp-fill .8s ease-out .55s backwards;
+}
+
+@keyframes xp-fill {
+  from {
+    width: 0;
+  }
+}
+
+
+// The XP amount next to a line (XP leaderboard)
+
+.xp-receipt-amount {
+  font-weight: 700;
+  color: $xp-indigo;
+  white-space: nowrap;
+}
+
+// Free-user teaser (the locked badges themselves: .badge-art-waiting in _badge-art.scss)
+
+.xp-teaser {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  background: rgba($xp-sky, .12);
+  border-radius: .5rem;
+  padding: .6rem .8rem;
+  font-size: .875rem;
+}
+
+
+// Pop-in (the recap's "Level up!" pill, assets/styles/_xp-recap.scss)
+
+@keyframes xp-pop {
+  0% {
+    transform: scale(.4);
+    opacity: 0;
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+
+// CSS-only confetti (brand colors) — used by the level-up moment.
+
+.xp-confetti {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+
+  i {
+    position: absolute;
+    top: -20px;
+    width: 8px;
+    height: 14px;
+    border-radius: 2px;
+    opacity: .9;
+    animation: xp-confetti-fall 3s linear infinite;
+  }
+
+  i:nth-child(1) { left: 6%; background: $xp-coral; animation-delay: 0s; }
+  i:nth-child(2) { left: 16%; background: $xp-sky; animation-delay: .5s; animation-duration: 2.4s; }
+  i:nth-child(3) { left: 26%; background: $xp-indigo; animation-delay: .2s; }
+  i:nth-child(4) { left: 36%; background: $xp-gold; animation-delay: .8s; animation-duration: 2.7s; }
+  i:nth-child(5) { left: 46%; background: $xp-coral; animation-delay: 1.1s; }
+  i:nth-child(6) { left: 56%; background: $xp-sky; animation-delay: .4s; animation-duration: 2.2s; }
+  i:nth-child(7) { left: 66%; background: $xp-indigo; animation-delay: .9s; }
+  i:nth-child(8) { left: 76%; background: $xp-gold; animation-delay: .1s; animation-duration: 2.9s; }
+  i:nth-child(9) { left: 86%; background: $xp-coral; animation-delay: .6s; }
+  i:nth-child(10) { left: 94%; background: $xp-sky; animation-delay: 1.3s; animation-duration: 2.5s; }
+}
+
+@keyframes xp-confetti-fall {
+  to {
+    transform: translateY(105vh) rotate(560deg);
+  }
+}
+
+
+// Accessibility: celebrations stay, motion goes.
+
+@media (prefers-reduced-motion: reduce) {
+  .xp-progressbar-fill {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+
+  .xp-confetti {
+    display: none;
+  }
+}

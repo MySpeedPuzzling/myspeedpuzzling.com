@@ -371,3 +371,65 @@ organization_rejected:
         <p><strong>Grund:</strong> %reason%</p>
         <p>Bei Fragen oder wenn Sie dies besprechen möchten, kontaktieren Sie uns unter <a href="mailto:jan@myspeedpuzzling.com">jan@myspeedpuzzling.com</a>.</p>
     button: "„Von Ihnen organisiert“ öffnen"
+
+activity_digest:
+    achievement_teaser: "{1}Du hast einen Erfolg verdient. Werde Mitglied, um herauszufinden, welchen.|]1,Inf[Du hast %count% Erfolge verdient. Werde Mitglied, um herauszufinden, welche."
+    become_member: "Mitglied werden"
+    button:
+        month: "Deinen Monat ansehen"
+        two_weeks: "Deine zwei Wochen ansehen"
+        week: "Deine Woche ansehen"
+    favorite_solves: "{1}1 Puzzle|]1,Inf[%count% Puzzles"
+    favorites_title: "Deine Lieblings-Puzzler"
+    footer:
+        change: "E-Mails ändern"
+        every_two_weeks: "Du bekommst diese E-Mail jeden zweiten Montag."
+        monthly: "Du bekommst diese E-Mail am ersten Montag im Monat."
+        unsubscribe: "Abmelden"
+        weekly: "Du bekommst diese E-Mail jeden Montag."
+    karma: "{1}Danke: 1 deiner Beiträge zur Puzzle-Datenbank wurde angenommen.|]1,Inf[Danke: %count% deiner Beiträge zur Puzzle-Datenbank wurden angenommen."
+    level: "Level %level%"
+    level_up: "Level %from% → %to%"
+    mark:
+        first_try: "erster Versuch"
+        personal_best: "persönliche Bestzeit"
+    miss_you:
+        button: "Zeit hinzufügen"
+        footer: "Diese E-Mail schicken wir nur einmal nach einer ruhigen Phase. Sie kommt zusammen mit deiner Aktivitäts-E-Mail."
+        line_add: "Falls ja, kannst du sie immer noch nachtragen: Wähl einfach den Tag, an dem du fertig geworden bist, und sie zählen genau wie alle anderen."
+        line_back: "Und falls du einen Grund suchst, eine neue Schachtel aufzumachen:"
+        line_secret: "Deine letzte Zeit hier ist schon ein paar Wochen her. Vielleicht hast du dir eine wohlverdiente Pause gegönnt – oder hast du heimlich gepuzzelt, und die Zeiten haben nur nie den Weg zu uns gefunden? 🧩"
+        link_hub: "Schau, was die Community gerade puzzelt"
+        link_picker: "Lass uns dein nächstes Puzzle aussuchen"
+        link_profile: "Zu deinem Profil"
+        preheader: "Oder hast du etwa heimlich gepuzzelt? Deine Zeiten sind jederzeit willkommen."
+        subject: "Deine Puzzles vermissen dich"
+        title: "Wir vermissen deine Zeiten, %name%"
+    most_solved: "Am häufigsten gelegt in der Community:"
+    most_solved_count: "{1}(1 Puzzler)|]1,Inf[(%count% Puzzler)"
+    new_achievement: "Neu: %achievement%"
+    preheader:
+        achievement: "Neuer Erfolg: %achievement% – und der Rest deiner Woche."
+        achievement_locked: "Du hast einen Erfolg verdient – und hier ist der Rest deiner Woche."
+        level: "Du hast Level %level% erreicht – so hast du es geschafft."
+        numbers: "{1}1 Puzzle, %pieces% Teile – deine Woche in einer kurzen E-Mail.|]1,Inf[%count% Puzzles, %pieces% Teile – deine Woche in einer kurzen E-Mail."
+        personal_best: "Eine neue persönliche Bestzeit bei %puzzle% – und mehr aus deiner Woche."
+        rating: "{1}1 Platz höher im MSP Rating – und mehr aus deiner Woche.|]1,Inf[%count% Plätze höher im MSP Rating – und mehr aus deiner Woche."
+    puzzler: "Puzzler"
+    rating: "MSP Rating: #%rank% von %total%"
+    rating_down: "{1}1 Platz tiefer|]1,Inf[%count% Plätze tiefer"
+    rating_up: "{1}1 Platz höher|]1,Inf[%count% Plätze höher"
+    results_title: "Highlights"
+    skill_tier: "Neue Skill-Stufe bei %pieces% Teilen: %tier%"
+    stat:
+        pieces: "{1}Teil|]1,Inf[Teile|{0}Teile"
+        puzzles: "{1}Puzzle|]1,Inf[Puzzles|{0}Puzzles"
+        streak: "Tage in Folge"
+    subject:
+        month: "Dein Monat auf MySpeedPuzzling"
+        two_weeks: "Deine zwei Wochen auf MySpeedPuzzling"
+        week: "Deine Woche auf MySpeedPuzzling"
+    title:
+        month: "Dein Monat, %name%"
+        two_weeks: "Deine zwei Wochen, %name%"
+        week: "Deine Woche, %name%"

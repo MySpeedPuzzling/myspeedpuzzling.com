@@ -349,14 +349,30 @@
         </button>
     </div>
 
-    {# Content based on selected category #}
+    {# Content based on selected category: the first rows of the tab (PlayerSolvedPuzzles::PAGE_SIZE), "Show more" adds
+       the next ones - filters and sorts run over the whole history on the server #}
+    {% set rows_count = this.rowsCount %}
+    {% set shown_rows = this.shownRows %}
     <div class="tab-content mt-3">
-        {% if this.category == 'solo' %}
-            {{ include('_player_solvings.html.twig', {solved_puzzles: this.soloSolvedPuzzles, category: 'solo'}) }}
-        {% elseif this.category == 'duo' %}
-            {{ include('_player_solvings.html.twig', {solved_puzzles: this.duoSolvedPuzzles, category: 'duo'}) }}
-        {% else %}
-            {{ include('_player_solvings.html.twig', {solved_puzzles: this.teamSolvedPuzzles, category: 'team'}) }}
-        {% endif %}
+        {{ include('_player_solvings.html.twig', {solved_puzzles: shown_rows, category: this.category == 'group' ? 'team' : this.category}) }}
     </div>
+
+    {% if rows_count > shown_rows|length %}
+        {# A button, not a link: the further rows are no pages of their own #}
+        <div class="d-flex flex-column align-items-center gap-2 mt-3 mb-4" data-nosnippet>
+            <p class="text-body-secondary fs-sm mb-0" aria-live="polite">
+                {{ 'profile.results_shown'|trans({'%shown%': shown_rows|length|plain_number, '%total%': rows_count|plain_number}) }}
+            </p>
+            <button
+                type="button"
+                class="btn btn-outline-primary btn-sm"
+                data-action="live#action"
+                data-live-action-param="showMore"
+                data-loading="addAttribute(disabled)"
+            >
+                {{ 'puzzle_times.leaderboard.show_more'|trans({'%count%': this.showMoreCount}) }}
+                <span class="spinner-border spinner-border-sm ms-1 d-none" role="status" data-loading="action(showMore)|removeClass(d-none)"></span>
+            </button>
+        </div>
+    {% endif %}
 </div>

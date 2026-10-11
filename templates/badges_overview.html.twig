@@ -1,0 +1,121 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'badges.overview_title'|trans }}{% endblock %}
+
+{% block meta_description %}{{ 'badges.overview_subtitle'|trans }}{% endblock %}
+
+{#
+    The achievements reference (BadgesOverviewController, Jan 2026-10-11): the same page for everybody - every
+    achievement with all its tiers, what each takes and how many puzzlers hold it. Nothing personal: a member's own
+    achievements live on their player page (the line on top). Each achievement links to who earned it.
+#}
+{% block content %}
+    {{ include('_page_crumbs.html.twig', {
+        levels: [{name: 'progression_hub.title'|trans, url: path('progression_hub')}],
+        current: 'badges.overview_title'|trans,
+        json_ld: true,
+    }) }}
+
+    <header class="mb-3">
+        <h1 class="h3 mb-1">{{ 'badges.overview_title'|trans }}</h1>
+        <p class="text-body-secondary mb-0">{{ 'badges.overview_subtitle'|trans }}</p>
+    </header>
+
+    {# How achievements work - on top, open until the reader hides it; the summary line opens it again #}
+    <details class="achievements-explainer mb-3" id="how-achievements-work"{{ explainer_dismissed ? '' : ' open' }}
+             {{ stimulus_controller('collapsible-hint', {url: path('dismiss_hint'), type: 'achievements_explainer', signedIn: logged_in}) }}>
+        <summary class="achievements-explainer-summary">
+            <i class="bi bi-info-circle" aria-hidden="true"></i>
+            <span>{{ 'badges.catalogue.explainer_title'|trans }}</span>
+            <i class="bi bi-chevron-down achievements-explainer-chevron" aria-hidden="true"></i>
+        </summary>
+        <div class="achievements-explainer-body">
+            <p>{{ 'badges.catalogue.about'|trans }}</p>
+            <p>{{ 'badges.shelf.explainer.share'|trans }} {{ 'badges.shelf.explainer.step_back'|trans }}</p>
+            <div class="achievements-explainer-actions">
+                <a href="{{ path('progression_hub', {return: path('badges_overview'), return_title: 'badges.overview_title'|trans}) }}" rel="nofollow">{{ 'progression_hub.title'|trans }}</a>
+                <a href="{{ path('achievement_points_leaderboard') }}">{{ 'badges.catalogue.ap_leaderboard_link'|trans }}</a>
+                <button type="button" class="btn btn-sm achievements-explainer-hide" {{ stimulus_action('collapsible-hint', 'hide') }}>{{ 'badges.catalogue.explainer_hide'|trans }}</button>
+            </div>
+        </div>
+    </details>
+
+    {% if own is not null %}
+        {# The member's own achievements are one tap away - this page stays the same for everybody #}
+        <p class="achievements-summary achievements-own-line mb-3">
+            <span>{{ 'badges.shelf.summary'|trans({
+                '%earned%': own.earned|plain_number,
+                '%total%': own.total|plain_number,
+                '%tiers_earned%': own.tiers|plain_number,
+                '%tiers_total%': own.tiers_total|plain_number,
+            })|raw }}</span>
+            <a href="{{ path('achievement_points_leaderboard') }}" class="ap-chip text-decoration-none">{{ 'badges.ap_total'|trans({'%points%': own.points|plain_number}) }}</a>
+            <a href="{{ path('player_achievements', {playerId: logged_user.profile.playerId}) }}" class="achievements-summary-link">{{ 'badges.my_title'|trans }} <i class="bi bi-arrow-right-short" aria-hidden="true"></i></a>
+        </p>
+    {% elseif not is_member %}
+        <div class="achievements-tease mb-3">
+            <p class="mb-0">{{ (logged_in ? 'badges.catalogue.tease_free' : 'badges.catalogue.tease_guest')|trans }}{% if logged_in %} {{ 'badges.shelf.explainer.lapsed'|trans }}{% endif %}</p>
+            <a href="{{ path('membership') }}" class="btn btn-primary btn-sm">{{ 'badges.catalogue.become_member'|trans }}</a>
+        </div>
+    {% endif %}
+
+    <div class="achievement-refs">
+        {% for group in groups %}
+            {% set type = group.type %}
+            {% set name = type.translationKey()|trans %}
+            <article class="achievement-ref" id="{{ type.value }}" aria-labelledby="ref-{{ type.value }}-title">
+                <header class="achievement-ref-head">
+                    {{ badge_art(type, 5, 72, attrs = {alt: ''}) }}
+                    <div class="achievement-ref-text">
+                        <h2 class="achievement-ref-title" id="ref-{{ type.value }}-title">
+                            <a href="{{ path('achievement_detail', {type: type.value}) }}">{{ name }}</a>
+                        </h2>
+                        <p class="achievement-ref-description">{{ ('badges.description.' ~ type.value)|trans }}</p>
+                    </div>
+                </header>
+
+                <ol class="achievement-ref-tiers">
+                    {% for entry in group.tiers %}
+                        {% set count = holders[type.value][entry.tier.value] ?? 0 %}
+                        <li class="achievement-ref-tier">
+                            {{ badge_art(type, entry.tier, 32, attrs = {alt: ''}) }}
+                            <span class="achievement-ref-tier-text">
+                                <b>{{ entry.tier.translationKey()|trans }}</b>
+                                <span>{{ entry.requirementTranslationKey|trans }}</span>
+                            </span>
+                            <span class="achievement-ref-tier-holders">
+                                {%- if count > 0 -%}
+                                    {{ 'badges.detail.holders_count'|trans({'%count%': count}) }}
+                                    <small>{{ include('_achievement_medal_share.html.twig', {percent: rarity[type.value][entry.tier.value] ?? 0, holders: count, long: false}) }}</small>
+                                {%- else -%}
+                                    {{ 'badges.medal.nobody_yet'|trans }}
+                                {%- endif -%}
+                            </span>
+                        </li>
+                    {% endfor %}
+                </ol>
+
+                <a href="{{ path('achievement_detail', {type: type.value}) }}" class="achievement-ref-holders-link">
+                    {{ 'badges.medal.see_holders'|trans({'%count%': (holders[type.value][1] ?? 0)|plain_number}) }} <i class="bi bi-arrow-right-short" aria-hidden="true"></i>
+                </a>
+            </article>
+        {% endfor %}
+
+        {# Early Adopter: one tier, can no longer be earned #}
+        {% set supporters = holders['supporter'][0] ?? 0 %}
+        <article class="achievement-ref" id="supporter" aria-labelledby="ref-supporter-title">
+            <header class="achievement-ref-head">
+                {{ badge_art('supporter', null, 72, attrs = {alt: ''}) }}
+                <div class="achievement-ref-text">
+                    <h2 class="achievement-ref-title" id="ref-supporter-title">{{ 'badges.badge.supporter'|trans }}</h2>
+                    <p class="achievement-ref-description">{{ 'badges.description.supporter'|trans }}</p>
+                    <p class="achievement-ref-description mb-0">
+                        {{ 'badges.info.single_tier_note'|trans }}
+                        {% if supporters > 0 %}· {{ 'badges.detail.holders_count'|trans({'%count%': supporters}) }}{% endif %}
+                    </p>
+                </div>
+            </header>
+        </article>
+    </div>
+
+{% endblock %}

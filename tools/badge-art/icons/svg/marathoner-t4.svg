@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+<!-- MSP illustrated icon "marathoner" (Marathoner - summit with a flag) - T4 Platinum (lavender pearl). Own work (badge lab IK1), free to use. Layers: face (constant), accent (tier tint), outline (navy #2b3445, 4.5/100, round). a big mountain (accent) with a two-drip snow cap and a coral summit flag, two lower peaks behind (sky, lavender) on a gently rounded ground: conquer the big ones -->
+<defs><linearGradient id="marathoner-t4-acc" x1="0.12" y1="0.04" x2="0.88" y2="0.96"><stop offset="0" stop-color="#f1efff"/><stop offset="0.34" stop-color="#c8c0fa"/><stop offset="0.7" stop-color="#a79cf2"/><stop offset="1" stop-color="#8b7fe6"/></linearGradient><linearGradient id="marathoner-t4-sky" x1="0.12" y1="0.04" x2="0.88" y2="0.96"><stop offset="0" stop-color="#a5ccff"/><stop offset="0.52" stop-color="#75b5fa"/><stop offset="1" stop-color="#54a6f1"/></linearGradient><linearGradient id="marathoner-t4-lavender" x1="0.12" y1="0.04" x2="0.88" y2="0.96"><stop offset="0" stop-color="#b6adfd"/><stop offset="0.52" stop-color="#9a93f4"/><stop offset="1" stop-color="#8782ed"/></linearGradient><linearGradient id="marathoner-t4-coral" x1="0.12" y1="0.04" x2="0.88" y2="0.96"><stop offset="0" stop-color="#ffa6a3"/><stop offset="0.52" stop-color="#fb8180"/><stop offset="1" stop-color="#f16b6d"/></linearGradient><linearGradient id="marathoner-t4-snow" x1="0.12" y1="0.04" x2="0.88" y2="0.96"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#e4ebf7"/></linearGradient></defs>
+<g id="face">
+<path d="M12.9 73.75L23.87 50L32 63.74L34.51 85.57A56.14 56.14 0 0 1 12.9 73.75Z" fill="url(#marathoner-t4-sky)"/>
+<path d="M87.1 73.75L76.13 50L68 63.74L65.49 85.57A56.14 56.14 0 0 0 87.1 73.75Z" fill="url(#marathoner-t4-lavender)"/>
+<path d="M51.39 30.51Q50 27.74 48.61 30.51L38.38 50.97C40.32 52.9 40.8 57.26 43.71 57.26C46.61 57.26 46.13 51.94 50 51.94C53.87 51.94 53.39 57.26 56.29 57.26C59.2 57.26 59.68 52.9 61.62 50.97L51.39 30.51Z" fill="url(#marathoner-t4-snow)"/>
+<path d="M50 12.73L62.06 16.27Q63.55 16.7 62.09 17.22L50 21.54Z" fill="url(#marathoner-t4-coral)" class="asym"/>
+</g>
+<g id="accent">
+<path d="M38.38 50.97L23.36 81.02A56.14 56.14 0 0 0 76.64 81.02L61.62 50.97C59.68 52.9 59.2 57.26 56.29 57.26C53.39 57.26 53.87 51.94 50 51.94C46.13 51.94 46.61 57.26 43.71 57.26C40.8 57.26 40.32 52.9 38.38 50.97Z" fill="url(#marathoner-t4-acc)"/>
+<path d="M37.31 60.7C37.16 60.99 36.72 61.87 36.43 62.46C36.13 63.05 35.84 63.63 35.55 64.22C35.25 64.81 34.96 65.39 34.67 65.98C34.37 66.57 34.08 67.15 33.79 67.74C33.49 68.33 33.2 68.91 32.91 69.5C32.61 70.09 32.32 70.67 32.03 71.26C31.73 71.85 31.44 72.43 31.15 73.02C30.85 73.61 30.56 74.19 30.27 74.78C29.97 75.37 29.56 76.2 29.39 76.54C29.21 76.88 29.26 76.79 29.24 76.83" fill="none" stroke="#ffffff" stroke-opacity="0.9" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="38.65" cy="58.01" r="1.02" fill="#ffffff" fill-opacity="0.9"/>
+<path d="M70.64 76.59C70.49 76.29 70.05 75.41 69.76 74.83C69.46 74.24 69.17 73.65 68.88 73.07C68.58 72.48 68.29 71.89 68 71.31C67.7 70.72 67.41 70.13 67.12 69.55C66.82 68.96 66.53 68.37 66.24 67.79C65.94 67.2 65.65 66.61 65.36 66.02C65.06 65.44 64.77 64.85 64.48 64.26C64.18 63.68 63.89 63.09 63.6 62.5C63.3 61.92 62.86 61.04 62.72 60.74" fill="none" stroke="#7a6ddc" stroke-opacity="0.4" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+</g>
+<g id="outline" fill="none" stroke="#2b3445" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round">
+<path d="M12.9 73.75L23.87 50L32 63.74"/>
+<path d="M87.1 73.75L76.13 50L68 63.74"/>
+<path d="M23.36 81.02L48.61 30.51Q50 27.74 51.39 30.51L76.64 81.02"/>
+<path d="M12.9 73.75A56.14 56.14 0 0 0 87.1 73.75"/>
+<path d="M38.38 50.97C40.32 52.9 40.8 57.26 43.71 57.26C46.61 57.26 46.13 51.94 50 51.94C53.87 51.94 53.39 57.26 56.29 57.26C59.2 57.26 59.68 52.9 61.62 50.97" stroke-width="3.6"/>
+<path d="M50 12.73L62.06 16.27Q63.55 16.7 62.09 17.22L50 21.54Z" stroke-width="3.6" class="asym"/>
+<path d="M50 26.77L50 12.25" class="asym"/>
+</g>
+</svg>

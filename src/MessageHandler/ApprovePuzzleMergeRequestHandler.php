@@ -17,6 +17,7 @@ use SpeedPuzzling\Web\Entity\CompetitionRoundPuzzle;
 use SpeedPuzzling\Web\Entity\Conversation;
 use SpeedPuzzling\Web\Entity\LentPuzzle;
 use SpeedPuzzling\Web\Entity\Notification;
+use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Entity\Puzzle;
 use SpeedPuzzling\Web\Entity\PuzzleMergeAudit;
 use SpeedPuzzling\Web\Entity\PuzzleSolvingTime;
@@ -33,6 +34,8 @@ use SpeedPuzzling\Web\Exceptions\PuzzleIsStillSecret;
 use SpeedPuzzling\Web\Exceptions\PuzzleMergeRequestNotFound;
 use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
 use SpeedPuzzling\Web\Message\ApprovePuzzleMergeRequest;
+use SpeedPuzzling\Web\Message\RecalculateKarma;
+use SpeedPuzzling\Web\Message\RecalculateXpChainForSolve;
 use SpeedPuzzling\Web\Repository\ManufacturerRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleChangeRequestRepository;
@@ -50,6 +53,7 @@ use SpeedPuzzling\Web\Value\PuzzleRecordVersion;
 use SpeedPuzzling\Web\Value\PuzzleReportStatus;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
+use Symfony\Component\Messenger\MessageBusInterface;
 
 #[AsMessageHandler]
 readonly final class ApprovePuzzleMergeRequestHandler
@@ -70,6 +74,7 @@ readonly final class ApprovePuzzleMergeRequestHandler
         private GetCurrentPuzzleIds $getCurrentPuzzleIds,
         private PuzzleChangeRequestRepository $puzzleChangeRequestRepository,
         private OutdatedPuzzleRequests $outdatedPuzzleRequests,
+        private MessageBusInterface $messageBus,
     ) {
     }
 
@@ -240,6 +245,15 @@ readonly final class ApprovePuzzleMergeRequestHandler
         // Round puzzles moved onto the survivor keep what they promised - the survivor's hide follows them
         $this->secretPuzzleHides->resync($survivorPuzzle);
 
+        // Two puzzles became one, so a player who solved both now has one occurrence chain instead of two (the
+        // second "first solve" is a repeat now) - XP rebuilds the survivor's chain of everybody in a moved result
+        // (docs/features/xp-levels/README.md)
+        /** @var list<string> $migratedSolvingTimeIds */
+        $migratedSolvingTimeIds = $migrationInventory['solvingTimes'];
+        foreach ($migratedSolvingTimeIds as $migratedSolvingTimeId) {
+            $this->messageBus->dispatch(new RecalculateXpChainForSolve($migratedSolvingTimeId));
+        }
+
         // Mark merge request as approved (this records PuzzleMergeApproved event for puzzle deletion)
         $mergeRequest->approve(
             reviewedBy: $reviewer,
@@ -314,6 +328,15 @@ readonly final class ApprovePuzzleMergeRequestHandler
                 ),
             ],
         );
+
+        // Karma (docs/features/karma.md): the reporter, the moderator, and every adder of the merged puzzles - of the
+        // copies only the earliest added one keeps its credit
+        $this->messageBus->dispatch(RecalculateKarma::forPlayers(
+            $mergeRequest->reporter,
+            $reviewer,
+            $survivorPuzzle->addedByUser,
+            ...array_map(static fn (Puzzle $puzzle): null|Player => $puzzle->addedByUser, $puzzlesToMerge),
+        ));
 
         // Puzzle deletions are handled by PuzzleMergeApproved event (recorded in approve() method)
         // This ensures migrations are flushed first, then deletions happen in a separate transaction

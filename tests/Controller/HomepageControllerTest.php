@@ -103,10 +103,10 @@ final class HomepageControllerTest extends WebTestCase
 
             $numbers = $section->filter('.catalogue-numbers li');
             self::assertCount(4, $numbers);
-            self::assertSame('40,622 puzzles', $numbers->eq(0)->text());
-            self::assertSame('2,060 brands', $numbers->eq(1)->text());
-            self::assertSame('23,554 puzzles with an EAN barcode', $numbers->eq(2)->text());
-            self::assertSame('510,602 recorded solve times', $numbers->eq(3)->text());
+            self::assertSame('40622 puzzles', $numbers->eq(0)->text());
+            self::assertSame('2060 brands', $numbers->eq(1)->text());
+            self::assertSame('23554 puzzles with an EAN barcode', $numbers->eq(2)->text());
+            self::assertSame("510\u{00A0}602 recorded solve times", $numbers->eq(3)->text());
         } finally {
             $cache->delete(CatalogueNumbersProvider::CACHE_KEY);
         }

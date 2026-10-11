@@ -1,0 +1,92 @@
+{# One achievement card of the XP launch deck (xp_launch_reveal.html.twig). Once the picture is complete it shows the
+   facts the achievements pages show, so every card says something of its own (Jan 2026-10-11: "the same texts, just a
+   different screen", "more info about the achievement as we do in the profile"):
+   - at most one highlight (XpLaunchRevealHighlight: a thank-you, the top tier, the rarest of the deck, next tier within reach);
+   - the name, the tier with its pips and the Achievement Points its tiers brought;
+   - what it took (the held tier's requirement, or why Early Adopter was given);
+   - how many puzzlers hold the tier - the rarity word only when it is not common (design-spec §8.3);
+   - below Diamond the next tier: its requirement, the bar and the numbers ("312 / 500", speed: "4:31:20 → 4:00:00"),
+     as on the shelf and in the sheet; Diamond says nothing is above it; Early Adopter that it can no longer be earned.
+   Parameters: badge (XpLaunchRevealBadge), progress_text ("2 / 5" in the bar), next_label (the big button's label),
+   shown (the deck's first card when the page opens on it, ?start=1). #}
+{% set name = (badge.type.translationKey())|trans %}
+{% set tier_name = badge.tier ? (badge.tier.translationKey())|trans : null %}
+{% set progress = badge.progress %}
+{% set next_tier_name = progress ? (progress.nextTier.translationKey())|trans : null %}
+
+<article
+    class="xpl-card"
+    data-xp-launch-reveal-target="card"
+    data-xpl-progress="{{ progress_text }}"
+    data-xpl-next="{{ next_label }}"
+    {{ (shown ?? false) ? '' : 'hidden' }}
+>
+    <div
+        class="lpr-stage"
+        role="img"
+        data-last-piece-reveal-target="stage"
+        data-last-piece-reveal-look-param="{{ badge.tier ? badge.tier.value : 'single' }}"
+        {% if not badge.revealed %}data-last-piece-reveal-url-param="{{ path('reveal_badge', {badgeId: badge.badgeId}) }}"{% endif %}
+        data-last-piece-reveal-image-param="{{ badge_art_url(badge.type, badge.tier, 'webp', 320) }}"
+        data-last-piece-reveal-image-large-param="{{ badge_art_url(badge.type, badge.tier, 'webp', 480) }}"
+        data-last-piece-reveal-done-label-param="{{ tier_name ? 'badges.reveals.stage_done'|trans({'%achievement%': name, '%tier%': tier_name}) : name }}"
+        aria-label="{{ 'badges.reveals.stage_label'|trans({'%achievement%': name}) }}"
+    >
+        <span class="lpr-tray" aria-hidden="true"></span>
+    </div>
+
+    <div class="xpl-card-text" aria-live="polite">
+        <div class="xpl-card-reveal">
+            {% if badge.highlight %}
+                <p class="xpl-highlight">
+                    <i class="bi {{ badge.highlight.icon }}" aria-hidden="true"></i>
+                    {{ (badge.highlight.translationKey())|trans({'%tier%': next_tier_name ?? ''}) }}
+                </p>
+            {% endif %}
+
+            <h2 class="xpl-name">{{ name }}</h2>
+
+            <p class="xpl-tier">
+                {% if tier_name %}
+                    <b>{{ tier_name }}</b>
+                    <span class="achievement-pips" aria-label="{{ 'badges.shelf.a11y.tier_of'|trans({'%number%': badge.tier.value}) }}">
+                        {%- for value in 1..5 -%}<i{% if value <= badge.tier.value %} class="is-held"{% endif %}></i>{%- endfor -%}
+                    </span>
+                {% endif %}
+                <span class="ap-chip xpl-gain">{{ 'xp.reveal.badge_points'|trans({'%points%': badge.points|plain_number}) }}</span>
+            </p>
+
+            <p class="xpl-why">
+                <i class="bi bi-check2-circle" aria-hidden="true"></i>
+                {{ (badge.requirementTranslationKey())|trans }}
+            </p>
+
+            <p class="xpl-facts">
+                {% if badge.tier is null %}
+                    <span class="medal-chip medal-chip-tier">{{ 'badges.medal.no_longer_earnable'|trans }}</span>
+                {% endif %}
+                {% if badge.holders > 0 %}
+                    {% set band = badge.rarityBand %}
+                    {% if band.value != 'common' %}
+                        <span class="medal-chip medal-chip-rarity medal-rarity-{{ band.value }}">{{ band.translationKey()|trans }}</span>
+                    {% endif %}
+                    <span class="xpl-share">{{ include('_achievement_medal_share.html.twig', {percent: badge.sharePercent, holders: badge.holders, long: true}) }}</span>
+                {% endif %}
+            </p>
+
+            {% if progress %}
+                <div class="xpl-next-tier">
+                    <p class="xpl-next-goal">{{ 'badges.shelf.next_goal'|trans({'%tier%': next_tier_name, '%requirement%': (badge.nextRequirementTranslationKey)|trans}) }}</p>
+                    <span class="achievement-progress" role="progressbar"
+                          aria-label="{{ 'badges.catalogue.progress_label'|trans({'%achievement%': name, '%tier%': next_tier_name}) }}"
+                          aria-valuenow="{{ progress.percent }}" aria-valuemin="0" aria-valuemax="100">
+                        <span style="width: {{ progress.percent }}%"></span>
+                    </span>
+                    <span class="xpl-next-numbers">{{ include('_achievement_progress_numbers.html.twig', {progress: progress}) }}</span>
+                </div>
+            {% elseif badge.isTopTier %}
+                <p class="xpl-next-goal">{{ 'xp.reveal.card.top_tier'|trans }}</p>
+            {% endif %}
+        </div>
+    </div>
+</article>

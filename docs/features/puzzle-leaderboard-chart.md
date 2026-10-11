@@ -329,6 +329,11 @@ the reasoning of 2026-09-30.)*
     ("… behind the fastest" for #2 and #3).
 - Pairs / teams: the viewer's best pair or team row is "theirs" (position line, neighbourhood, chart marker); their other
   pairs stay highlighted wherever they are visible.
+- **Shared with every leaderboard (2026-10-11):** the slicing lives in `Value\LeaderboardWindow` and the position line in
+  `Value\LeaderboardPosition`; `PuzzleTimes` uses them unchanged (top 100, the gap reveals all). The Level / AP / Karma,
+  MSP Rating and Times boards use `LeaderboardWindow::board()` instead: top 25 (10 on the /ladder overview), the gap row and
+  "Show more" reveal at most 50 ranks a tap with focus + a live announcement, ranks shared on ties and counted within the
+  filtered list - `docs/features/xp-levels/ux-polish/design-spec.md` §4 and §8.4.
 
 **HTML weight.** The row markup was ~75 % indentation. Twig's `~` modifier (trims spaces, never newlines) on every tag line of the
 row loop and joining `<br>` with the element after it make the markup identical after whitespace normalisation (checked by

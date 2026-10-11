@@ -1,0 +1,100 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'karma.history.title'|trans }}{% endblock %}
+
+{% block content %}
+    {# The compact player strip is the trail; the back button goes to ?return= or the own profile (design-spec §3) #}
+    {% embed '_page_crumbs.html.twig' with {levels: [], back: {name: player.playerName ?? ('#' ~ player.code|upper), url: path('player_profile', {playerId: player.playerId})}} %}
+        {% block trail %}<twig:PlayerHeader player="{{ player }}" :compact="true" />{% endblock %}
+    {% endembed %}
+
+    <header class="mb-4">
+        <h1 class="h3 mb-3">{{ 'karma.history.title'|trans }}</h1>
+
+        <div class="d-flex flex-wrap align-items-center gap-3">
+            <div>
+                <div class="karma-total">{{ breakdown.total|plain_number }}</div>
+                <div class="fs-sm text-body-secondary">{{ 'karma.history.total_label'|trans }}</div>
+            </div>
+
+            {% if breakdown.total > 0 %}
+                <ul class="karma-breakdown" aria-label="{{ 'karma.history.breakdown_label'|trans }}">
+                    {% for kind, count in breakdown.countedByKind %}
+                        <li>{{ ('karma.breakdown.' ~ kind)|trans({'%count%': count}) }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        </div>
+    </header>
+
+    {% if player.karmaOptedOut %}
+        <div class="alert alert-secondary fs-sm" id="karma-hidden-note">
+            {{ 'karma.history.hidden_note'|trans }}
+            <a href="{{ path('edit_profile') }}">{{ 'karma.history.hidden_change'|trans }}</a>
+        </div>
+    {% endif %}
+
+    {% if player.isAdmin %}
+        <div class="alert alert-info fs-sm">{{ 'karma.history.admin_note'|trans }}</div>
+    {% endif %}
+
+    {% if items is empty %}
+        <div class="xp-teaser">
+            <i class="bi bi-hand-thumbs-up" aria-hidden="true"></i>
+            <span>{{ 'karma.history.empty'|trans }}</span>
+        </div>
+        <p class="mt-3">
+            <a class="btn btn-outline-primary" href="{{ path('karma_explainer') }}">{{ 'karma.history.what_counts'|trans }}</a>
+        </p>
+    {% else %}
+        <ul class="list-group list-group-flush mb-3" id="karma-items">
+            {% for item in items %}
+                <li class="list-group-item px-0 d-flex align-items-start gap-3 {{ item.counts ? '' : 'karma-item-not-counted' }}">
+                    <span class="text-body-secondary fs-sm text-nowrap" style="min-width: 5.5rem;">
+                        {% if item.at is not null %}{{ item.at|format_date('medium') }}{% else %}{{ 'karma.history.undated'|trans }}{% endif %}
+                    </span>
+                    <span class="flex-grow-1">
+                        {% if item.kind.value == 'decision' and item.action is not null %}
+                            {{ ('karma.item.decision.' ~ item.action.value)|trans }}
+                        {% else %}
+                            {{ ('karma.item.' ~ item.kind.value)|trans }}
+                        {% endif %}
+                        {% if item.puzzleName is not null %}
+                            <br>
+                            {% if item.puzzleId is not null %}
+                                <a href="{{ path('puzzle_detail', {puzzleId: item.puzzleId}) }}" class="fs-sm">{{ item.puzzleName }}</a>
+                            {% else %}
+                                <span class="fs-sm text-body-secondary">{{ item.puzzleName }}</span>
+                            {% endif %}
+                        {% endif %}
+                    </span>
+                    <span class="fw-semibold text-nowrap">
+                        {% if item.counts %}+1{% else %}<span class="fs-sm">{{ 'karma.history.not_counted'|trans }}</span>{% endif %}
+                    </span>
+                </li>
+            {% endfor %}
+        </ul>
+
+        {% if last_page > 1 %}
+            <nav aria-label="{{ 'karma.history.pagination'|trans }}">
+                <ul class="pagination pagination-sm">
+                    {% if page > 1 %}
+                        <li class="page-item"><a class="page-link" href="{{ path('karma_history', {page: page - 1}) }}" aria-label="{{ 'karma.history.previous'|trans }}">‹</a></li>
+                    {% endif %}
+                    <li class="page-item disabled"><span class="page-link">{{ page }} / {{ last_page }}</span></li>
+                    {% if page < last_page %}
+                        <li class="page-item"><a class="page-link" href="{{ path('karma_history', {page: page + 1}) }}" aria-label="{{ 'karma.history.next'|trans }}">›</a></li>
+                    {% endif %}
+                </ul>
+            </nav>
+        {% endif %}
+    {% endif %}
+
+    <p class="small text-body-secondary mt-3">
+        <i class="bi bi-info-circle me-1" aria-hidden="true"></i>
+        {{ 'karma.history.note'|trans }}
+        <a href="{{ path('karma_explainer') }}">{{ 'karma.history.how_it_works'|trans }}</a>
+        ·
+        <a href="{{ path('karma_leaderboard') }}">{{ 'karma.history.list_link'|trans }}</a>
+    </p>
+{% endblock %}

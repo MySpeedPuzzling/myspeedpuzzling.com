@@ -24,7 +24,7 @@
     {%- if event_title.saysResults(results_count) -%}
         {%- set past_description_params = {
             '%count%': results_count,
-            '%results%': results_count|format_number,
+            '%results%': results_count|plain_number,
             '%name%': event.name,
             '%date%': event_title.startsAt|format_date('long'),
             '%location%': event.location ?? '',

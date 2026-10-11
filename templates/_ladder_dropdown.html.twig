@@ -1,4 +1,7 @@
+{# The sub-choice inside "Times" (solo / pairs / teams × pieces) on /ladder and the per-pieces ladders - switching
+   between the boards themselves is the pill row of _leaderboards_nav.html.twig #}
 {% set currentLadder = app.request.attributes.get('_route') %}
+{% set active_country = active_country|default(null) %}
 
 <div class="dropdown d-inline-block">
     <button type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">

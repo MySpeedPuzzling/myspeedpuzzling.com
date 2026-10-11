@@ -655,8 +655,17 @@
                         {% else %}
                             <div class="navbar-tool dropdown ms-1 ms-lg-0 me-n1 me-lg-2">
                                 <a class="dropdown-toggle navbar-tool" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="{{ 'menu.my_profile'|trans }}">
-                                    <div class="navbar-tool-icon-box">
-                                        <i class="navbar-tool-icon ci-user" aria-hidden="true"></i>
+                                    {# The player's own face (or initial) with their XP level ring - all from the viewer's profile row, no query #}
+                                    <div class="navbar-tool-icon-box navbar-avatar-box">
+                                        <twig:XpRing :player="logged_user.profile" variant="nav">
+                                            {{- include('_player_avatar.html.twig', {
+                                                player_id: logged_user.profile.playerId,
+                                                name: logged_user.profile.playerName ?? ('#' ~ logged_user.profile.code),
+                                                avatar: logged_user.profile.avatar,
+                                                country_code: null,
+                                                size: 'lg',
+                                            }) -}}
+                                        </twig:XpRing>
                                     </div>
                                     <div class="navbar-tool-text ms-n3 no-caret"><small>{{ 'menu.my_profile'|trans }}</small></div>
                                 </a>
@@ -682,6 +691,29 @@
                                             <i class="bi bi-eye me-1"></i> {{ 'menu.favorite_puzzlers'|trans }}
                                         </a>
                                     </li>
+                                    {# Progression (docs/features/xp-levels/launch-2026-10.md): own achievements, own XP audit, the hub - behind the xp-system gate until launch #}
+                                    {% if xp_system_visible() %}
+                                    <li>
+                                        <a class="dropdown-item {% if currentRoute == 'player_achievements' and routeParams.playerId == logged_user.profile.playerId %}active{% endif %}" href="{{ path('player_achievements', {playerId: logged_user.profile.playerId}) }}">
+                                            <i class="bi bi-award me-1"></i> {{ 'badges.my_title'|trans }}
+                                            <span class="badge bg-primary ms-1">{{ 'menu.new_badge'|trans }}</span>
+                                        </a>
+                                    </li>
+                                    {% if not logged_user.profile.experienceSystemOptedOut %}
+                                        <li>
+                                            <a class="dropdown-item {% if currentRoute == 'xp_history' %}active{% endif %}" href="{{ path('xp_history') }}">
+                                                <i class="bi bi-receipt me-1"></i> {{ 'xp.history.title'|trans }}
+                                                <span class="badge bg-primary ms-1">{{ 'menu.new_badge'|trans }}</span>
+                                            </a>
+                                        </li>
+                                    {% endif %}
+                                    <li>
+                                        <a class="dropdown-item {% if currentRoute == 'progression_hub' %}active{% endif %}" href="{{ currentRoute == 'progression_hub' ? path('progression_hub') : path('progression_hub', {return: app.request.requestUri}) }}" rel="nofollow">
+                                            <i class="bi bi-question-circle me-1"></i> {{ 'progression_hub.menu_label'|trans }}
+                                            <span class="badge bg-primary ms-1">{{ 'menu.new_badge'|trans }}</span>
+                                        </a>
+                                    </li>
+                                    {% endif %}
                                     <li>
                                         <a class="dropdown-item {% if currentRoute == 'pairs_and_teams' %}active{% endif %}" href="{{ path('pairs_and_teams') }}">
                                             <i class="bi bi-people me-1"></i> {{ 'menu.pairs_and_teams'|trans }}
@@ -720,7 +752,6 @@
                                     <li>
                                         <a class="dropdown-item {% if currentRoute == 'getting_started' %}active{% endif %}" href="{{ path('getting_started') }}">
                                             <i class="bi bi-signpost-2 me-1"></i> {{ 'onboarding.guide.link'|trans }}
-                                            <span class="badge bg-primary ms-1">{{ 'menu.new_badge'|trans }}</span>
                                         </a>
                                     </li>
                                     <li>
@@ -954,6 +985,14 @@
                     <div class="dynamic-modal-loading" data-dynamic-modal-target="loading" hidden>
                         <div class="spinner-border text-primary" role="status">
                             <span class="visually-hidden">{{ 'loading'|trans }}</span>
+                        </div>
+                    </div>
+                    {# Shown by dynamic_modal_controller.js when the content could not be loaded (network error) #}
+                    <div class="dynamic-modal-error" data-dynamic-modal-target="error" role="alert" hidden>
+                        <p class="mb-3">{{ 'modal.load_failed'|trans }}</p>
+                        <div class="d-flex flex-wrap justify-content-center gap-2">
+                            <button type="button" class="btn btn-primary" data-action="dynamic-modal#retry">{{ 'modal.try_again'|trans }}</button>
+                            <button type="button" class="btn btn-outline-secondary" data-action="dynamic-modal#dismiss">{{ 'forms.close'|trans }}</button>
                         </div>
                     </div>
                     <turbo-frame id="modal-frame" data-dynamic-modal-target="frame">

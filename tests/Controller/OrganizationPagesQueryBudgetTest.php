@@ -40,6 +40,7 @@ final class OrganizationPagesQueryBudgetTest extends WebTestCase
         yield 'organization page, player' => [self::RIVERBEND, PlayerFixture::PLAYER_REGULAR, 10];
         yield 'organization page, team' => [self::RIVERBEND, PlayerFixture::PLAYER_WITH_STRIPE, 10];
         yield 'organization page, maintainer' => [self::RIVERBEND, PlayerFixture::PLAYER_WITH_FAVORITES, 10];
+        // The navbar's XP ring reads the viewer's own profile row - no query of its own
         yield 'organization page, admin' => [self::RIVERBEND, PlayerFixture::PLAYER_ADMIN, 10];
         yield 'directory, guest' => [self::DIRECTORY, null, 2];
         yield 'directory, player' => [self::DIRECTORY, PlayerFixture::PLAYER_REGULAR, 6];

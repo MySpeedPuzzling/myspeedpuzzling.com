@@ -1,0 +1,89 @@
+{#
+    Breadcrumbs + back button of the pages that live inside something (docs/features/xp-levels/ux-polish/design-spec.md §3):
+    one row - a round ‹ back button, then the trail of PARENTS (the H1 is the current page, as on the event pages).
+
+    Variables:
+      levels    list<{name, label?, url}> the parents, outermost first. name = full text (JSON-LD, accessible names),
+                label = optional shorter visible text. [] = no trail.
+      current   the current page's name - only the last ListItem of the JSON-LD (no `item`, Google's rule).
+      json_ld   (default false) emit the BreadcrumbList JSON-LD. Only on public, indexable pages.
+      back      (optional) {name, url} where the back button goes without `?return=`. Default = the last level.
+                For pages whose trail is something else - the owner pages, where the compact player strip is the
+                trail: `levels: [], back: {name: player name, url: path('player_profile', …)}` plus the strip in
+                the `trail` block (embed). See templates/xp_history.html.twig.
+
+    The back button goes to the real previous place: a valid `?return=` (safe_return_url() - never off-site), labelled
+    with `?return_title=`; otherwise `back`, otherwise the last level. A `?return=` that is the page we just came from
+    is a history.back() (page_back_controller.js, design-spec §8.7) - a plain link without JS. No levels, no `back` and no valid `?return=` =
+    nothing is rendered (also no JSON-LD: a page without parents has no trail to describe).
+
+    Usage:
+      {{ include('_page_crumbs.html.twig', {levels: [{name: 'progression_hub.title'|trans, url: path('progression_hub')}],
+          current: 'xp.explainer.title'|trans, json_ld: true}) }}
+      Back button only (pages without a trail - leaderboards, player pages): {{ include('_page_crumbs.html.twig', {levels: []}) }}
+      Own trail markup next to the button: {% embed '_page_crumbs.html.twig' with {levels: [], back: …} %}{% block trail %}…{% endblock %}{% endembed %}
+
+    Links that bring people here with `?return=` are rel="nofollow"; the canonical URL never carries it (base.html.twig).
+    Styles: assets/styles/_page-crumbs.scss
+#}
+{%- set levels = levels|default([]) -%}
+{%- set last_level = levels is empty ? null : levels|last -%}
+{%- set back_default = back is defined and back is not null ? back : last_level -%}
+{%- set return_url = safe_return_url(app.request.query.get('return')) -%}
+{%- if return_url is not null -%}
+    {%- set back_url = return_url -%}
+    {%- set back_title = app.request.query.get('return_title')|default('')|trim|slice(0, 80) -%}
+{%- elseif back_default is not null -%}
+    {%- set back_url = back_default.url -%}
+    {%- set back_title = back_default.name -%}
+{%- else -%}
+    {%- set back_url = null -%}
+    {%- set back_title = '' -%}
+{%- endif -%}
+{%- set back_label = back_title != '' ? 'page_crumbs.back_to'|trans({'%title%': back_title}) : 'page_crumbs.back'|trans -%}
+
+{%- if back_url is not null or levels is not empty %}
+<div class="page-crumbs{{ levels|length > 2 ? ' page-crumbs-long' }}">
+    {%- if back_url is not null %}
+    <a class="page-crumbs-back" href="{{ back_url }}" aria-label="{{ back_label }}" title="{{ back_label }}"
+        {%- if return_url is not null %} {{ stimulus_controller('page-back') }} {{ stimulus_action('page-back', 'back') }}{% endif %}><i class="bi bi-chevron-left" aria-hidden="true"></i></a>
+    {%- endif %}
+    {%- block trail %}
+    {%- if levels is not empty %}
+    <nav class="page-crumbs-trail" aria-label="{{ 'page_crumbs.label'|trans }}">
+        <ol>
+            {%- for level in levels %}
+            {%- if loop.index == 2 and loop.length > 2 %}
+            <li class="page-crumbs-fold" aria-hidden="true">…</li>
+            {%- endif %}
+            <li{% if not loop.first and not loop.last %} class="page-crumbs-middle"{% endif %}><a href="{{ level.url }}"{% if (level.label ?? level.name) != level.name %} title="{{ level.name }}"{% endif %}>{{ level.label ?? level.name }}</a></li>
+            {%- endfor %}
+        </ol>
+    </nav>
+    {%- endif %}
+    {%- endblock %}
+</div>
+{%- if json_ld|default(false) and levels is not empty %}
+<script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+        {%- for level in levels %}
+        {
+            "@type": "ListItem",
+            "position": {{ loop.index }},
+            "name": {{ level.name|json_ld }},
+            "item": {{ absolute_url(level.url)|json_ld }}
+        },
+        {%- endfor %}
+        {
+            "@type": "ListItem",
+            "position": {{ levels|length + 1 }},
+            "name": {{ current|default('')|json_ld }}
+        }
+    ]
+}
+</script>
+{%- endif %}
+{%- endif %}

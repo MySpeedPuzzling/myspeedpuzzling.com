@@ -103,7 +103,7 @@
                         {% for row in time_rows %}
                             <tr>
                                 <th scope="row">{{ row.label }}</th>
-                                <td>{{ row.count|format_number([], 'decimal', 'default', app.request.locale) }}</td>
+                                <td>{{ row.count|plain_number }}</td>
                                 <td>{{ row.median is not null ? row.median|puzzlingTime : '–' }}</td>
                                 <td>{{ row.fastest|puzzlingTime }}</td>
                             </tr>

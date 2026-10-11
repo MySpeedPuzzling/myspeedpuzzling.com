@@ -3,7 +3,7 @@
   "puzzle_add": "Ajouter"
   "stopwatch": "Chronomètre"
   "puzzles_overview": "Puzzle"
-  "ladder": "Classement"
+  "ladder": "Classements"
   "players": "Joueurs"
   "faq": "FAQ"
   "sign_in": "Se connecter"
@@ -113,6 +113,12 @@
 "loading": "Chargement"
 "any": "Tous"
 "all_pieces": "Toutes"
+"pieces_filter":
+  "label": "Pièces"
+  "from": "De"
+  "to": "À"
+  "from_label": "Pièces à partir de"
+  "to_label": "Pièces jusqu'à"
 "solo_solved": "Résolu SOLO :"
 "first_attempt": "1ère tentative"
 "unboxed": "Sans boîte"
@@ -126,6 +132,17 @@
 "secret_puzzler_name": "Puzzleur masqué"
 "right_now": "En ce moment"
 "live_event_strip": "En direct : %event% – Ajouter & voir les résultats"
+"live_refresh":
+  "pause": "Mettre en pause les mises à jour automatiques"
+  "countdown": "Mise à jour automatique dans %count% seconde|Mise à jour automatique dans %count% secondes"
+  "updating": "Mise à jour…"
+  "status_paused": "Mise à jour automatique en pause"
+  "status_idle": "Mise à jour automatique en pause pendant votre absence"
+  "retrying": "Échec de la mise à jour, nouvel essai dans %count% seconde|Échec de la mise à jour, nouvel essai dans %count% secondes"
+  "running": "Mise à jour chaque minute. Cliquez pour mettre en pause."
+  "paused": "Mises à jour en pause. Cliquez pour reprendre."
+  "idle": "Mises à jour en pause pendant votre absence. Cliquez pour reprendre."
+  "failed": "Mise à jour impossible, nouvel essai dans un instant. Cliquez pour réessayer maintenant."
 "round_results":
   "meta":
     "title": "%event% – Résultats %round%"
@@ -222,10 +239,13 @@
       "title": "Parcourez la base de données de puzzles"
       "text": "Explorez des milliers de puzzles avec de vrais temps d'assemblage enregistrés par la communauté. Comparez les temps médians et records des puzzles <a href=\"%ravensburger_link%\">Ravensburger</a>, <a href=\"%schmidt_link%\">Schmidt</a> ou <a href=\"%trefl_link%\">Trefl</a>, vérifiez la difficulté réelle d'un puzzle avant de l'acheter et choisissez votre prochain défi dans la <a href=\"%puzzles_link%\">base de données de puzzles</a> complète."
 "ladder":
-  "title": "Classement Speed Puzzling"
+  "board":
+    "msp_rating": "MSP Rating"
+    "times": "Temps"
+  "title": "Classements"
   "country": "Pays"
   "meta":
-    "title": "Classement Speed Puzzling – Temps les plus rapides"
+    "title": "Classements Speed Puzzling – Temps les plus rapides"
     "description": "Le classement mondial du speed puzzling : les temps de puzzle les plus rapides par nombre de pièces, en solo, en duo et en équipe. Où vous situez-vous ?"
     "records":
       "solo":
@@ -252,8 +272,6 @@
   "most_active_puzzlers": "Puzzleurs les plus enthousiastes"
   "puzzle_solved_count": "Puzzles résolus"
   "link_to_hub": "Vous cherchez le puzzle le plus résolu ou les joueurs les plus actifs ? Nous l'avons déplacé vers&nbsp;<a class=\"text-decoration-underline\" href=\"%link%\">le nouveau Centre</a> !"
-  "msp_elo_banner": "Nous venons de lancer le <a class=\"fw-bold text-decoration-underline\" href=\"%link%\">Classement MSP Rating</a>&nbsp;<span class=\"badge bg-light text-dark\">BÊTA</span> — un nouveau système de classement basé sur les compétences. C'est tout frais, attendez-vous à des ajustements au fur et à mesure que nous l'affinons !"
-  "msp_elo_cta": "Classement MSP Rating"
 "filters":
   "button": "Filtres"
   "filter_by": "Filtrer par"
@@ -302,6 +320,21 @@
   "browse":
     "by_brand": "Parcourir par marque"
     "by_size": "Parcourir par nombre de pièces"
+"puzzle_result":
+  "title": "Résultats sur ce puzzle"
+  "meta_title": "Résultats sur %puzzle%"
+  "close": "Fermer"
+  "team_page": "Page de l'équipe"
+  "best_time": "Meilleur temps"
+  "rank": "Rang %rank% sur %total%"
+  "attempt_number": "Tentative n° %number%"
+  "chart":
+    "fastest": "Le plus rapide"
+    "median": "Médiane"
+  "personal_best": "Meilleur temps personnel"
+  "change_to_previous": "Écart avec la tentative précédente"
+  "gap_to_best": "Écart avec le meilleur temps personnel"
+  "finished_photo": "Photo du puzzle terminé"
 "puzzle_times":
   "stats":
     "fastest": "Plus rapide"
@@ -330,6 +363,10 @@
     "show_more": "Afficher %count% de plus"
     "show_all": "Tout afficher (%count%)"
     "hidden_rows": "%count% de plus"
+    "gap_to_fastest": "Écart avec le temps le plus rapide"
+    "gap_to_faster": "Écart avec le temps plus rapide suivant"
+    "result_detail": "Détail du résultat : %time%"
+    "attempts": "Résolu %count%×"
   "chart":
     "noun":
       "solo": "Puzzlers"
@@ -485,6 +522,7 @@
   "date_finished": "Date de terminaison"
   "do_not_remember_date": "Je ne me souviens pas de la date"
   "ean": "Code EAN"
+  "clear_ean": "Effacer"
   "puzzle_identification_number": "Code de marque"
   "puzzle_photo": "Photo du puzzle"
   "identification_number": "Code de marque"
@@ -725,6 +763,7 @@
   "delete_button": "Supprimer — jamais arrivé !"
   "delete_modal_message": "Juste pour être sûr..."
   "delete_modal_confirm": "Vraiment supprimer ?"
+  "delete_xp_warning": "Vous perdrez les %xp% XP gagnés avec cette résolution."
   "delete_modal_discard_button": "Non, garder"
   "delete_modal_confirm_button": "Oui, supprimer"
 "error":
@@ -1018,6 +1057,7 @@ competition_referees:
   "question_shared_computer": "Je me suis connecté sur un ordinateur partagé ou public – que faire ?"
   "answer_shared_computer": "<p class=\"mb-0\">Déconnectez-vous une fois terminé : ouvrez le menu de votre profil et choisissez <strong>Se déconnecter</strong>. Sinon, vous restez connecté sur cet ordinateur pendant 30 jours.</p>"
 "profile":
+  "results_shown": "%shown% sur %total% affichés"
   "add_to_favorites": "Ajouter aux favoris"
   "remove_from_favorites": "Retirer des favoris"
   "no_puzzles_solved": "Aucun puzzle résolu ? Lancez-vous et voyez comment vous vous débrouillez ! Nous croyons en vous !"
@@ -1234,7 +1274,6 @@ competition_referees:
     "millions": "%count% M"
     "activity_label": "Puzzles par mois"
     "activity_bar": "%month% : %count% puzzle|%month% : %count% puzzles"
-    "rating": "MSP Rating %rating%"
     "tier_locked": "Niveau"
     "competes": "Participe à des événements"
     "swaps": "Échange des puzzles"
@@ -1421,7 +1460,7 @@ competition_referees:
 "player_profile":
   "meta":
     "title": "%name% – Profil de speed puzzleur"
-    "description": "Profil speed puzzling de %name% : meilleurs temps de puzzle, classements, badges et assemblages récents sur MySpeedPuzzling."
+    "description": "Profil speed puzzling de %name% : meilleurs temps de puzzle, classements, succès et assemblages récents sur MySpeedPuzzling."
 "flashes":
   "photo_upload_deferred": "Vos données sont sauvegardées ! La photo n'a pas pu être téléchargée pour le moment — elle sera téléchargée automatiquement dès que notre espace de stockage sera à nouveau disponible."
   "stopwatch_already_saved": "Ces chronomètres ont déjà été sauvegardés."
@@ -1557,11 +1596,463 @@ competition_referees:
   "guest_link":
     "requested": "%player% dit que vous êtes « %guest% » dans des résultats réalisés ensemble. Est-ce vous ?"
     "accepted": "%player% a confirmé être « %guest% ». Vos résultats communs sont maintenant dans son historique."
+
+"xp":
+  "level_chip": "Niv. %level%"
+  "total": "%xp% XP"
+  "total_tooltip": "%xp% XP gagnés au total"
+  "progress_label": "%xp% XP avant le niveau %level%"
+  "receipt":
+    "total": "Total"
+    "relax_repeat": "Un puzzle familier, juste pour le plaisir — pas d'XP cette fois, et c'est justement l'idée."
+    "counting": "Calcul de vos XP…"
+  "line":
+    "base": "Résolution"
+    "base_repeat_second": "Résolution répétée (2e fois, ×50%)"
+    "base_repeat_later": "Résolution répétée (3e fois et plus, ×25%)"
+    "base_relax": "Résolution relax (×50%)"
+    "solve_difficulty_bonus": "Bonus de difficulté"
+    "solve_unboxed_bonus": "Bonus sans boîte"
+    "solve_speed_bonus": "Bonus de vitesse"
+    "solve_weekly_boost": "Boost hebdomadaire"
+    "difficulty_settlement": "Bonus de difficulté (régularisé)"
+    "speed_settlement": "Bonus de vitesse (régularisé)"
+    "solve_compensation": "Résolution supprimée"
+    "difficulty_pending": "Bonus de difficulté en attente — versé dès que ce puzzle sera noté"
+    "speed_pending": "Bonus de vitesse en attente — il faut les temps de 3 puzzleurs"
+  "levelup":
+    "label": "Niveau supérieur !"
+    "max_label": "Le sommet !"
+    "message": "Votre parcours puzzle continue de grimper. Magnifique !"
+    "enter_ap_ladder": "Entrer dans le classement AP"
+  "estimate":
+    "line_first": "Une résolution en solo rapporte %xp% XP,"
+    "line_repeat": "Une nouvelle résolution en solo rapporte %xp% XP (une répétition rapporte %percent% % d'une première fois),"
+    "bonuses_link": "plus les bonus"
+  "leaderboard":
+    "board":
+      "xp":
+        "tab": "Niveau (XP)"
+        "title": "Classement des niveaux"
+        "subtitle": "Classement par XP total : combien chaque puzzleur a puzzlé, depuis toujours."
+        "column": "XP"
+        "value": "%value% XP"
+        "empty": "Rien ici pour l'instant — enregistrez une résolution et ouvrez le bal !"
+      "achievement-points":
+        "tab": "Points de succès"
+        "title": "Classement des points de succès"
+        "subtitle": "Les membres classés selon leurs points de succès, depuis toujours."
+        "column": "AP"
+        "value": "%value% AP"
+        "empty": "Rien ici pour l'instant — enregistrez une résolution et ouvrez le bal !"
+        "login_required": "Connectez-vous pour voir le classement des points de succès."
+      "karma":
+        "tab": "Karma"
+        "title": "Qui aide le plus la base de données"
+        "subtitle": "1 karma pour chaque contribution acceptée à la base de données de puzzles. Gratuit et public pour tout le monde."
+        "column": "Karma"
+        "value": "%value%"
+        "empty": "Personne ici pour l'instant."
+    "level": "Niveau %level%"
+    "favorites_only": "Favoris uniquement"
+    "player": "Puzzleur"
+  "history":
+    "deleted_solve_title": "Résolution supprimée"
+    "relax": "Relax"
+    "type":
+      "solo": "Solo"
+      "duo": "Duo"
+      "team": "Équipe"
+    "previous_page": "Page précédente"
+    "next_page": "Page suivante"
+    "meta_title": "Mon historique d'XP"
+    "title": "Mon historique d'XP"
+    "subtitle": "Chaque point est comptabilisé — votre registre d'XP complet."
+    "empty": "Pas encore d'XP — votre première résolution va changer ça."
+    "pagination": "Pages de l'historique d'XP"
+    "note": "Une ligne vous intrigue ?"
+  "launch_modal":
+    "title": "Votre parcours puzzle a désormais un niveau"
+    "text": "Nous avons transformé en XP chaque puzzle que vous avez enregistré. Posez la dernière pièce et découvrez où vous en êtes."
+    "button_member": "Révéler mes succès"
+    "button_continue": "Tout voir"
+    "later": "Plus tard"
+    "member_tease": "{1}Vous avez aussi obtenu 1 succès - devenez membre pour découvrir lequel.|]1,Inf[Vous avez aussi obtenu %count% succès - devenez membre pour découvrir lesquels."
+    "member_tease_zero": "Les membres collectionnent aussi des succès et des points de succès pour ce qu'ils accomplissent."
+    "eyebrow": "Nouveau : niveaux et XP"
+    "reveal": "Révéler mon niveau"
+    "next_member": "{1}Et ce n'est pas tout : 1 succès vous attend.|]1,Inf[Et ce n'est pas tout : %count% succès vous attendent."
+  "reveal":
+    "meta_title": "Votre parcours puzzle, révélé"
+    "title": "Tout votre parcours vient de se transformer en XP ✨"
+    "intro": "Chaque puzzle que vous avez enregistré compte. D'abord votre niveau, puis vos succès, un par un."
+    "level_label": "Niveau"
+    "xp_note": "gagnés sur l'ensemble de votre parcours puzzle"
+    "achievements_member": "{1}Et 1 succès est déjà à vous — retrouvez-le sur votre profil !|]1,Inf[Et %count% succès sont déjà à vous — retrouvez-les sur votre profil !"
+    "share_title": "Je suis niveau %level% sur MySpeedPuzzling !"
+    "share_button": "Partager mon niveau"
+    "continue": "Voir mon profil"
+    "stage_label": "Révéler votre niveau"
+    "stage_done": "Niveau %level%"
+    "waiting": "{1}Votre succès et votre niveau attendent leur grand moment.|]1,Inf[%count% succès et votre niveau attendent leur grand moment."
+    "start": "Les révéler"
+    "skip": "Passer au résumé"
+    "next": "Suivant"
+    "to_summary": "Tout voir"
+    "tap_hint": "Touchez n'importe où pour continuer"
+    "progress": "%current% / %total%"
+    "badge_points": "+%points% AP"
+    "summary_title": "Tout ce que vous avez gagné"
+    "counter_title": "Vos XP"
+    "achievements_title": "Et maintenant, vos succès"
+    "achievements_intro": "Ils marquent les étapes de votre parcours : combien de puzzles, de pièces et de marques, à quelle vitesse, à quelle fréquence, avec qui. Chacun compte cinq paliers, du Bronze au Diamant."
+    "achievements_waiting": "{1}1 succès attend sa dernière pièce.|]1,Inf[%count% succès vous attendent, de votre premier palier jusqu'au meilleur."
+    "to_achievements": "Passer à vos succès"
+    "max_level": "Le niveau le plus élevé. Chaque puzzle rapporte toujours des XP."
+    "level_title": "Niveau %level%, et ce n'est qu'un début"
+    "level_intro": "Chaque puzzle que vous enregistrez désormais rapporte des XP, et après chaque temps vous voyez d'où vient chaque point."
+    "card":
+      "top_tier": "Rien au-dessus du Diamant : ce succès est complet."
+      "highlight":
+        "thanks": "Un merci de notre part"
+        "top_tier": "Palier le plus élevé"
+        "rarest": "Votre succès le plus rare"
+        "within_reach": "%tier% à portée de main"
+  "explainer":
+    "title": "Comment fonctionnent les XP et les niveaux"
+    "intro": "Les XP (points d'expérience) récompensent le fait de puzzler : chaque puzzle que vous enregistrez rapporte des XP, et votre niveau grandit avec eux de 1 à 50. Les XP mesurent combien vous puzzlez — la vitesse n'ajoute qu'un petit bonus."
+    "family":
+      "heading": "Seul le puzzle compte"
+      "body": "Les XP et les niveaux mesurent combien vous puzzlez, gratuitement pour tout le monde. Les succès, le MSP Rating, le niveau de compétence et le karma sont distincts, et aucun d'eux n'ajoute d'XP."
+    "separate":
+      "heading": "Succès et XP sont distincts"
+      "body": "Les succès rapportent des points de succès (AP), jamais d'XP. Votre niveau ne progresse qu'avec les puzzles que vous enregistrez."
+    "currencies":
+      "never_bought": "Les XP ne s'achètent pas — pas de boosts payants, pas de raccourcis. Jamais."
+      "unlock_nothing": "Les niveaux ne débloquent rien de fonctionnel ; ils sont votre identité visuelle de puzzleur."
+    "how":
+      "heading": "Comment une résolution se transforme en XP"
+      "intro": "Après chaque résolution, vous voyez d'où vient chaque XP, et votre historique d'XP garde chaque ligne. Les XP d'une résolution se composent de ces parties :"
+      "base": "<strong>Base</strong> : 1 XP par tranche de 100 pièces, arrondi — 500 pièces rapportent 5 XP, 1000 pièces 10 XP. Au moins 1 XP, au plus 60 XP."
+      "difficulty": "<strong>Bonus de difficulté</strong> : une part de la base en plus, selon la difficulté du puzzle. La difficulté découle des temps enregistrés par la communauté sur le puzzle ; les membres la voient sur chaque puzzle."
+      "team": "<strong>Duos et équipes</strong> : chaque membre inscrit gagne 75 % de la base, et les bonus calculés sur elle diminuent d'autant. Le bonus de vitesse est réservé aux résolutions en solo."
+      "unboxed": "<strong>Bonus sans boîte</strong> : +20 % de la base et du bonus de difficulté réunis, si vous avez fait le puzzle sans regarder l'image de la boîte."
+      "repeat": "<strong>Résolutions répétées</strong> : votre 2e résolution du même puzzle rapporte 50 % de la base, la 3e et toutes les suivantes 25 % — les bonus calculés sur la base diminuent d'autant. Une résolution relax (sans temps) rapporte 50 % si c'est votre première résolution du puzzle, et rien ensuite."
+      "speed": "<strong>Bonus de vitesse</strong> (en solo, avec un temps) : plus rapide que la moitié des temps solo du puzzle +5 %, dans le quart le plus rapide +10 %, dans le dixième le plus rapide +15 %. Il faut des temps d'au moins 3 puzzleurs sur le puzzle."
+      "weekly": "<strong>Boost hebdomadaire</strong> : +20 % pour chacune de vos 5 premières résolutions de la semaine (du lundi au dimanche)."
+      "puzzle_heading": "Ce que vaut le puzzle"
+      "difficulty_column": "Difficulté"
+      "bonus_column": "Bonus"
+      "difficulty_rate": "+%rate% % de la base"
+      "difficulty_none": "pas de bonus"
+      "moment_heading": "Les bonus de cette résolution"
+      "moment_intro": "Calculés sur la base, le bonus de difficulté et le bonus sans boîte réunis :"
+      "less_heading": "Quand une résolution rapporte moins"
+      "bonus_minimum": "Chaque bonus auquel vous avez droit vaut au moins 1 XP, même sur un petit puzzle."
+    "example":
+      "heading": "Exemple concret"
+      "body": "Votre première résolution d'un puzzle de %pieces% pièces de difficulté %tier% : en solo, avec un temps, sans l'image de la boîte, plus vite que la moitié des temps solo — et l'une de vos 5 premières résolutions de la semaine."
+      "line":
+        "base": "Base"
+        "difficulty": "Bonus de difficulté"
+        "unboxed": "Bonus sans boîte"
+        "speed": "Bonus de vitesse"
+        "weekly": "Boost hebdomadaire"
+      "calc":
+        "base": "%pieces% pièces ÷ 100"
+        "difficulty": "%tier% : %rate% % de la base de %of% XP"
+        "unboxed": "%rate% % de %of% XP (base + difficulté) = %exact%"
+        "speed": "plus vite que la moitié : %rate% % de %of% XP = %exact%"
+        "weekly": "%rate% % de %of% XP = %exact%"
+      "amount_base": "%xp% XP"
+      "amount": "+%xp% XP"
+      "total": "Total"
+      "rounding": "Chaque ligne est arrondie à l'XP entier, et un bonus ne vaut jamais moins de 1 XP. Le bonus de vitesse et le boost hebdomadaire sont calculés sur les trois parties avant l'arrondi : %base% + %difficulty% + %unboxed% = %sum% XP."
+    "unrated":
+      "heading": "Puzzles sans difficulté pour l'instant"
+      "body": "Un nouveau puzzle n'a pas de difficulté tant qu'assez de puzzleurs n'y ont pas enregistré de temps. Vous gagnez les XP de base tout de suite, et le bonus de difficulté s'ajoute de lui-même à vos XP dès que le puzzle a une difficulté. Le bonus de vitesse s'ajoute de la même façon dès qu'au moins 3 puzzleurs ont un temps sur le puzzle."
+    "levels":
+      "show_all": "Afficher les 50 niveaux"
+      "heading": "Niveaux"
+      "header_level": "Niveau"
+      "header_xp": "XP au total"
+      "summit": "Le niveau 50 est le sommet — %xp% XP au total, environ 1 300 puzzles enregistrés. Vos XP continuent de grandir ensuite."
+    "lose":
+      "heading": "Puis-je perdre des XP ?"
+      "body": "Seulement quand une résolution change : la supprimer retire ses XP, la modifier les recalcule, et un temps en attente de vérification ne rapporte rien tant qu'il n'est pas confirmé. Rien d'autre ne retire jamais d'XP."
+    "faq":
+      "heading": "FAQ"
+      "old_solves_question": "Les anciennes résolutions comptent-elles ?"
+      "old_solves_answer": "Oui. Chaque puzzle enregistré avant le lancement des XP a rapporté sa base, son bonus de difficulté et son bonus sans boîte. Le bonus de vitesse et le boost hebdomadaire ne comptent que pour les résolutions enregistrées depuis — ils récompensent ce que vous faites à partir de maintenant."
+      "opt_out_question": "Je ne veux rien de tout ça."
+      "opt_out_answer": "Compris — activez « Masquer les XP et les niveaux » dans les paramètres de votre profil, et votre niveau, vos XP et les célébrations disparaissent de l'affichage."
+      "friend_question": "Pourquoi mon ami a-t-il reçu plus d'XP pour le même puzzle ?"
+      "friend_answer_history": "Les réductions pour répétition, le boost hebdomadaire et les bonus de vitesse et sans boîte dépendent de votre propre résolution : deux résolutions du même puzzle rapportent donc rarement autant. <a href=\"%history_link%\">Votre historique d'XP</a> montre chaque ligne de chaque résolution."
+      "fair_play_question": "Comment cela reste-t-il équitable ?"
+      "fair_play_answer": "Quelques garde-fous discrets et automatiques gardent les chiffres honnêtes — découvrez-les sur la page <a href=\"%fair_play_link%\">Fair-play et confiance</a>."
+  "fair_play":
+    "title": "Fair-play et confiance"
+    "intro": "MySpeedPuzzling fonctionne sur la confiance. Personne ne vérifie vos résolutions avant qu'elles comptent — nous vous croyons, et les chiffres de la communauté restent fiables grâce à quelques garde-fous discrets et automatiques :"
+    "principle_no_buying": "Les XP mesurent l'activité, jamais les dépenses : il est impossible d'acheter des XP, des boosts ou des multiplicateurs."
+    "principle_repeats": "Les résolutions répétées du même puzzle rapportent moins à chaque fois — enregistrer le même puzzle encore et encore n'est pas un raccourci."
+    "principle_speed": "Le bonus de vitesse ne s'applique que lorsqu'une référence communautaire fiable existe, et les temps invraisemblablement rapides ne le reçoivent tout simplement pas. Pas d'accusation, pas de drame — le bonus ne s'applique pas, c'est tout."
+    "principle_deleting": "Supprimer une résolution retire les XP qu'elle avait rapportés, automatiquement et en toute transparence (votre page d'historique d'XP montre chaque entrée)."
+    "principle_caps": "Les entrées extrêmement grandes ou inhabituelles sont plafonnées pour qu'aucune résolution ne puisse fausser le classement."
+    "closing_thresholds": "Nous ne publions volontairement pas les seuils exacts — ils existent pour que tout reste équitable, pas pour être contournés. Si quelque chose vous semble étrange dans un classement, écrivez-nous ; un humain examine chaque signalement."
+    "closing_celebrate": "Puzzlez honnêtement, célébrez bruyamment. 🧩"
+    "explainer_link": "Envie de savoir comment chaque point se gagne ? Consultez <a href=\"%explainer_link%\">Comment fonctionnent les XP et les niveaux</a>."
 "badges":
-  "title": "Badges"
-  "my_title": "Mes badges"
+  "title": "Succès"
+  "player_page_meta_title": "%name% – succès"
+  "my_title": "Mes succès"
+  "browse_all": "Parcourir tous les succès"
+  "reveal": "Révélez votre nouveau succès"
+  "waiting_teaser": "{1}1 succès vous attend — devenez membre pour le révéler !|]1,Inf[%count% succès vous attendent — devenez membre pour les révéler !"
+  "waiting_teaser_zero": "Votre premier succès est plus proche que vous ne le pensez — enregistrez une résolution et voyez ce qui se passe."
+  "unlock_with_membership": "Débloquer avec l'adhésion"
+  "ap_total": "%points% AP"
+  "ap_total_tooltip": "Vos points de succès — chaque palier obtenu compte, pour toujours"
+  "view_holders": "Voir qui l'a obtenu"
+  "catalogue":
+    "explainer_title": "Comment fonctionnent les succès"
+    "explainer_hide": "Compris, masquer"
+    "about": "Chaque succès compte cinq paliers, du Bronze au Diamant. Chaque palier atteint rapporte des points de succès (AP) : 5, 10, 25, 50 et 100. Les succès sont collectionnés par les membres et ne rapportent jamais d'XP."
+    "tease_free": "Les membres collectionnent des succès, gagnent des points de succès et les affichent sur leur profil. Devenez membre pour découvrir ceux que vous avez déjà obtenus."
+    "tease_guest": "Les membres collectionnent des succès, gagnent des points de succès et les affichent sur leur profil."
+    "become_member": "Devenir membre"
+    "filter_label": "Afficher les succès"
+    "filter":
+      "next": "Prochains"
+      "earned": "Obtenus"
+      "all": "Tous"
+    "empty":
+      "next": "Rien en cours pour l'instant. Enregistrez un puzzle et vos prochains objectifs apparaîtront ici."
+      "earned": "Aucun succès pour l'instant. Votre premier est plus proche que vous ne le pensez."
+      "all": "Aucun succès pour l'instant."
+      "rarest": "Aucun succès pour l'instant."
+    "progress_label": "Progression de %achievement% vers %tier%"
+    "rarity": "%percent% des puzzleurs"
+    "ap_leaderboard_link": "Classement des points de succès"
+  "shelf":
+    "summary": "<strong>%earned% sur %total%</strong> succès · %tiers_earned% sur %tiers_total% paliers"
+    "closest_next": "À portée de main"
+    "first_close": "Votre premier succès est tout proche"
+    "next_goal": "%tier% : %requirement%"
+    "unrevealed": "Nouveau palier · touchez pour le révéler"
+    "new": "Nouveau"
+    "new_label": "obtenu ces 7 derniers jours"
+    "tiers_held_by": "5 paliers · %percent% ont le Bronze"
+    "filter_rarest": "Plus rares d'abord"
+    "tiers_nobody": "5 paliers · personne n'a encore le Bronze"
+    "a11y":
+      "tier_of": "palier %number% sur 5"
+      "not_yet": "pas encore obtenu"
+      "progress": "%current% sur %target% vers le palier %tier%"
+      "progress_time": "meilleur temps %current%, %target% requis pour le palier %tier%"
+    "explainer":
+      "share": "« % des puzzleurs » compte tous ceux qui ont enregistré au moins un puzzle."
+      "step_back": "Un palier peut reculer quand un temps est supprimé ou en attente de vérification, et il revient avec ce temps."
+      "lapsed": "Vos succès sont conservés et reviennent avec l'adhésion."
+  "detail":
+    "meta_title": "%name% — détenteurs du succès"
+    "country_filter": "Pays"
+    "all_countries": "Tous les pays"
+    "apply_filter": "Afficher"
+    "holders_count": "{0}Personne pour l'instant|{1}1 puzzleur|]1,Inf[%count% puzzleurs"
+    "first_to_earn": "Premier à l'avoir obtenu"
+    "only_hidden_holders": "{1}1 puzzleur a obtenu ce palier — son profil n'est pas listé publiquement.|]1,Inf[%count% puzzleurs ont obtenu ce palier — leurs profils ne sont pas listés publiquement."
+    "nobody_yet": "Personne n'a encore obtenu ce palier. Le premier écrira l'histoire !"
+    "listing_note": "Les listes de détenteurs montrent les membres au profil public ; les compteurs incluent tous les puzzleurs."
+  "holders":
+    "your_tier": "Votre palier"
+    "show_more": "Afficher %count% de plus"
+    "show_all": "Afficher les %count%"
+    "unlisted": "{1}+1 puzzleur dont le profil n'est pas public|]1,Inf[+%count% puzzleurs dont le profil n'est pas public"
+    "you_hold": "Vous avez le palier %tier% · n° %serial% sur %total%"
+    "ladder_label": "Détenteurs de chaque palier"
+    "at_launch": "dès le lancement"
+    "you_hold_at_launch": "Vous avez le palier %tier% · dès le lancement"
+  "medal":
+    "player_achievements": "Succès de %name%"
+    "turn": "Retourner la médaille"
+    "show_front": "Afficher le recto"
+    "tap_hint": "Touchez la médaille pour la retourner"
+    "tap_hint_back": "Touchez la médaille pour voir la face avant"
+    "no": "N°"
+    "of_total": "sur %total%"
+    "rarity":
+      "common": "Commun"
+      "rare": "Rare"
+      "very_rare": "Très rare"
+      "ultra_rare": "Ultra rare"
+    "nobody_yet": "Personne pour l'instant"
+    "not_earned_yet": "Pas encore obtenu"
+    "your_record": "Votre record : %value%"
+    "see_holders": "Voir qui l'a obtenu (%count%)"
+    "all_achievements": "Tous les succès"
+    "showing_player": "Paliers de %name%"
+    "held_at_launch": "Dès le lancement"
+    "no_longer_earnable": "Ne peut plus être obtenu"
+    "serial_of": "N° %serial% sur %total%"
+    "share": "Obtenu par 1 puzzleur (%percent%)|Obtenu par %count% puzzleurs (%percent%)"
+    "share_below": "Obtenu par 1 puzzleur (< %percent%)|Obtenu par %count% puzzleurs (< %percent%)"
+    "player_best": "Meilleur temps de %name% : %value%"
+    "explain_share": "Le pourcentage compte tous ceux qui ont enregistré au moins un puzzle."
+    "explain_step_back": "Un palier peut reculer quand un temps est supprimé ou en attente de vérification, et revient avec lui."
+    "explain_lapsed": "Vos succès sont conservés et reviennent avec l'adhésion."
+  "reveals":
+    "meta_title": "Révélez vos succès"
+    "title": "Vos succès sont là 🎉"
+    "intro": "{1}1 succès vous attendait discrètement. Touchez son puzzle pour poser la dernière pièce !|]1,Inf[%count% succès vous attendaient discrètement. Touchez chaque puzzle pour poser la dernière pièce !"
+    "hint": "Prenez votre temps — chaque dernière pièce mérite son petit moment."
+    "all_done": "Tout est révélé — votre profil les porte fièrement désormais."
+    "invite": "{1}1 succès attend son moment de révélation !|]1,Inf[%count% succès attendent leur moment de révélation !"
+    "invite_button": "{1}Le révéler|]1,Inf[Les révéler"
+    "back_to_profile": "Retour à mon profil"
+    "stage_label": "Révéler %achievement%"
+    "stage_done": "%achievement% : %tier%"
+    "stage_running": "Révélation en cours — touchez pour passer"
+  "overview_title": "Succès"
+  "overview_subtitle": "Gagnez des succès en franchissant des étapes dans votre parcours puzzle"
+  "progress_label": "%current% / %target%"
+  "progress_time_label": "%current_time% → objectif %target_time%"
+  "locked": "Verrouillé"
+  "earned_on": "Obtenu le %date%"
+  "highest_earned": "Plus haut palier obtenu"
+  "info":
+    "open": "À quoi sert %achievement% ?"
+    "earned": "Obtenu"
+    "next_tier": "Ensuite : %tier%"
+    "single_tier_note": "Il ne peut plus être obtenu : un remerciement qui reste à ceux qui l'ont."
+    "you_hold": "Vous avez le palier %tier%."
+  "tier":
+    "bronze": "Bronze"
+    "silver": "Argent"
+    "gold": "Or"
+    "platinum": "Platine"
+    "diamond": "Diamant"
   "badge":
-    "supporter": "Supporteur"
+    "supporter": "Pionnier"
+    "puzzles_solved": "Explorateur de puzzles"
+    "pieces_solved": "Croqueur de pièces"
+    "speed_500_pieces": "Démon de vitesse (500 pcs)"
+    "streak": "En feu"
+    "team_player": "Esprit d'équipe"
+    "zen_puzzler": "Puzzleur zen"
+    "first_try": "Du premier coup"
+    "unboxed": "Sans boîte"
+    "brand_explorer": "Explorateur de marques"
+    "marathoner": "Marathonien"
+    "photographer": "Photographe"
+    "steady_hands": "Mains sûres"
+    "librarian": "Bibliothécaire"
+    "speed_1000_pieces": "Démon de vitesse (1000 pcs)"
+    "weekend_puzzler": "Puzzleur du week-end"
+    "cataloger": "Catalogueur"
+  "description":
+    "supporter": "Décerné aux puzzleurs qui ont cru en MySpeedPuzzling dès le début et l'ont aidé à grandir."
+    "puzzles_solved": "Résolvez des puzzles différents pour gravir cette échelle."
+    "pieces_solved": "Plus il y a de pièces, mieux c'est — chaque pièce jamais posée compte."
+    "speed_500_pieces": "Votre résolution solo la plus rapide d'un 500 pièces détermine votre palier."
+    "streak": "Résolvez des puzzles jour après jour, sans en sauter un."
+    "team_player": "Faites équipe avec d'autres puzzleurs et venez à bout des puzzles ensemble."
+    "zen_puzzler": "Puzzlez pour le pur plaisir — les résolutions relax enregistrées sans temps comptent ici."
+    "first_try": "Réussissez du premier coup — chaque résolution enregistrée comme première tentative d'un puzzle compte."
+    "unboxed": "Résolvez des puzzles sans regarder l'image de la boîte — le défi mystère ultime."
+    "brand_explorer": "Goûtez aux puzzles de différents fabricants et découvrez vos favoris."
+    "marathoner": "Venez à bout des géants — chaque résolution d'un puzzle de 2000 pièces ou plus compte."
+    "photographer": "Prenez une photo de votre puzzle terminé en enregistrant une résolution — chaque image compte."
+    "steady_hands": "Continuez à puzzler pendant des trimestres consécutifs avec au moins une résolution dans chacun — sans interruption."
+    "librarian": "Aidez à garder le catalogue de puzzles exact — seules vos propositions d'amélioration acceptées comptent."
+    "speed_1000_pieces": "Votre résolution solo la plus rapide d'un 1000 pièces détermine votre palier."
+    "weekend_puzzler": "Les samedis et dimanches sont faits pour puzzler — chaque résolution du week-end compte."
+    "cataloger": "Faites grandir le catalogue de puzzles — chaque puzzle approuvé que vous ajoutez compte."
+  "requirement":
+    "puzzles_solved_1": "Résolvez 10 puzzles différents"
+    "puzzles_solved_2": "Résolvez 100 puzzles différents"
+    "puzzles_solved_3": "Résolvez 500 puzzles différents"
+    "puzzles_solved_4": "Résolvez 1000 puzzles différents"
+    "puzzles_solved_5": "Résolvez 2000 puzzles différents"
+    "pieces_solved_1": "Accumulez 10000 pièces"
+    "pieces_solved_2": "Accumulez 100 000 pièces"
+    "pieces_solved_3": "Accumulez 500 000 pièces"
+    "pieces_solved_4": "Accumulez 1 000 000 de pièces"
+    "pieces_solved_5": "Accumulez 2 000 000 de pièces"
+    "speed_500_pieces_1": "Résolvez un puzzle de 500 pièces en moins de 2 heures (solo)"
+    "speed_500_pieces_2": "Résolvez un puzzle de 500 pièces en moins d'1 h 30 (solo)"
+    "speed_500_pieces_3": "Résolvez un puzzle de 500 pièces en moins d'1 heure (solo)"
+    "speed_500_pieces_4": "Résolvez un puzzle de 500 pièces en moins de 45 minutes (solo)"
+    "speed_500_pieces_5": "Résolvez un puzzle de 500 pièces en moins de 30 minutes (solo)"
+    "streak_1": "Résolvez des puzzles 7 jours d'affilée"
+    "streak_2": "Résolvez des puzzles 30 jours d'affilée"
+    "streak_3": "Résolvez des puzzles 90 jours d'affilée"
+    "streak_4": "Résolvez des puzzles 180 jours d'affilée"
+    "streak_5": "Résolvez des puzzles 365 jours d'affilée"
+    "team_player_1": "Terminez 5 puzzles en équipe ou en duo"
+    "team_player_2": "Terminez 25 puzzles en équipe ou en duo"
+    "team_player_3": "Terminez 100 puzzles en équipe ou en duo"
+    "team_player_4": "Terminez 250 puzzles en équipe ou en duo"
+    "team_player_5": "Terminez 500 puzzles en équipe ou en duo"
+    "zen_puzzler_1": "Enregistrez 5 résolutions relax sans temps"
+    "zen_puzzler_2": "Enregistrez 15 résolutions relax sans temps"
+    "zen_puzzler_3": "Enregistrez 50 résolutions relax sans temps"
+    "zen_puzzler_4": "Enregistrez 150 résolutions relax sans temps"
+    "zen_puzzler_5": "Enregistrez 365 résolutions relax sans temps"
+    "first_try_1": "Enregistrez 5 résolutions en première tentative"
+    "first_try_2": "Enregistrez 50 résolutions en première tentative"
+    "first_try_3": "Enregistrez 200 résolutions en première tentative"
+    "first_try_4": "Enregistrez 500 résolutions en première tentative"
+    "first_try_5": "Enregistrez 1000 résolutions en première tentative"
+    "unboxed_1": "Résolvez 5 puzzles sans regarder la boîte"
+    "unboxed_2": "Résolvez 15 puzzles sans regarder la boîte"
+    "unboxed_3": "Résolvez 30 puzzles sans regarder la boîte"
+    "unboxed_4": "Résolvez 50 puzzles sans regarder la boîte"
+    "unboxed_5": "Résolvez 100 puzzles sans regarder la boîte"
+    "brand_explorer_1": "Résolvez des puzzles de 5 fabricants différents"
+    "brand_explorer_2": "Résolvez des puzzles de 15 fabricants différents"
+    "brand_explorer_3": "Résolvez des puzzles de 30 fabricants différents"
+    "brand_explorer_4": "Résolvez des puzzles de 50 fabricants différents"
+    "brand_explorer_5": "Résolvez des puzzles de 100 fabricants différents"
+    "marathoner_1": "Terminez 5 puzzles de 2000 pièces ou plus"
+    "marathoner_2": "Terminez 10 puzzles de 2000 pièces ou plus"
+    "marathoner_3": "Terminez 20 puzzles de 2000 pièces ou plus"
+    "marathoner_4": "Terminez 40 puzzles de 2000 pièces ou plus"
+    "marathoner_5": "Terminez 100 puzzles de 2000 pièces ou plus"
+    "photographer_1": "Ajoutez des photos à 5 puzzles terminés"
+    "photographer_2": "Ajoutez des photos à 25 puzzles terminés"
+    "photographer_3": "Ajoutez des photos à 100 puzzles terminés"
+    "photographer_4": "Ajoutez des photos à 500 puzzles terminés"
+    "photographer_5": "Ajoutez des photos à 1000 puzzles terminés"
+    "steady_hands_1": "Résolvez au moins un puzzle sur 3 trimestres de l'année d'affilée"
+    "steady_hands_2": "Résolvez au moins un puzzle sur 6 trimestres de l'année d'affilée"
+    "steady_hands_3": "Résolvez au moins un puzzle sur 9 trimestres de l'année d'affilée"
+    "steady_hands_4": "Résolvez au moins un puzzle sur 12 trimestres de l'année d'affilée"
+    "steady_hands_5": "Résolvez au moins un puzzle sur 16 trimestres de l'année d'affilée"
+    "librarian_1": "Faites accepter 5 propositions d'amélioration du catalogue"
+    "librarian_2": "Faites accepter 15 propositions d'amélioration du catalogue"
+    "librarian_3": "Faites accepter 30 propositions d'amélioration du catalogue"
+    "librarian_4": "Faites accepter 50 propositions d'amélioration du catalogue"
+    "librarian_5": "Faites accepter 100 propositions d'amélioration du catalogue"
+    "speed_1000_pieces_1": "Résolvez un puzzle de 1000 pièces en moins de 5 heures (solo)"
+    "speed_1000_pieces_2": "Résolvez un puzzle de 1000 pièces en moins de 3 h 30 (solo)"
+    "speed_1000_pieces_3": "Résolvez un puzzle de 1000 pièces en moins de 2 h 30 (solo)"
+    "speed_1000_pieces_4": "Résolvez un puzzle de 1000 pièces en moins d'1 h 45 (solo)"
+    "speed_1000_pieces_5": "Résolvez un puzzle de 1000 pièces en moins d'1 h 15 (solo)"
+    "weekend_puzzler_1": "Terminez 10 résolutions le week-end"
+    "weekend_puzzler_2": "Terminez 50 résolutions le week-end"
+    "weekend_puzzler_3": "Terminez 150 résolutions le week-end"
+    "weekend_puzzler_4": "Terminez 300 résolutions le week-end"
+    "weekend_puzzler_5": "Terminez 600 résolutions le week-end"
+    "cataloger_1": "Ajoutez 5 puzzles approuvés au catalogue"
+    "cataloger_2": "Ajoutez 15 puzzles approuvés au catalogue"
+    "cataloger_3": "Ajoutez 50 puzzles approuvés au catalogue"
+    "cataloger_4": "Ajoutez 150 puzzles approuvés au catalogue"
+    "cataloger_5": "Ajoutez 300 puzzles approuvés au catalogue"
+  "unit":
+    "puzzles": "puzzles"
+    "pieces": "pièces"
+    "days": "jours"
+    "team_solves": "résolutions en équipe"
 "scan":
   "meta":
     "title": "Lecteur de code-barres"
@@ -1610,12 +2101,6 @@ competition_referees:
     "prediction_unavailable_baseline": "Complétez davantage de premières tentatives sur des puzzles de %pieces% pièces pour débloquer les prédictions de temps."
     "prediction_unavailable_difficulty": "Pas assez de joueurs ont complété ce puzzle pour générer des prédictions."
     "prediction_unavailable_opted_out": "Le classement est désactivé dans les paramètres de votre profil."
-  "ranking":
-    "title": "Votre classement"
-    "position": "#%rank% sur %total% joueurs"
-    "first_place": "Vous avez le temps le plus rapide sur ce puzzle !"
-    "first_solver": "Vous êtes le premier à résoudre ce puzzle !"
-    "top_percent": "Top %percent%%"
   "history":
     "title": "Votre historique sur ce puzzle"
     "first_time": "C'est la première fois que vous résolvez ce puzzle ! Résolvez-le à nouveau pour suivre votre progression."
@@ -1627,15 +2112,6 @@ competition_referees:
     "difficulty": "Difficulté"
     "predicted_range": "Fourchette prévue"
     "need_more_solvers": "Plus de joueurs sont nécessaires pour calculer la difficulté de ce puzzle."
-  "progress":
-    "title": "Votre progression globale (%pieces% pièces)"
-    "skill_tier": "Niveau de compétence"
-    "skill_percentile": "Top %percent%% des joueurs"
-    "skill_tier_unavailable": "Complétez %count% puzzles de %pieces% pièces qualifiants supplémentaires pour débloquer votre niveau de compétence."
-    "elo_title": "Classement MSP Rating"
-    "elo_first_attempts": "Premières tentatives"
-    "elo_total_solves": "Résolutions totales"
-    "elo_unavailable": "Résolvez plus de puzzles de %pieces% pièces pour accéder au classement MSP Rating."
 "added_tracking_recap":
   "meta":
     "title": "Puzzle suivi"
@@ -1646,6 +2122,44 @@ competition_referees:
   "manufacturer": "Fabricant"
   "pieces": "Pièces"
   "group_puzzlers": "Puzzlé avec"
+"recap_progress":
+  "title": "Votre progression"
+  "level":
+    "title": "Niveau %level%"
+    "xp_gained": "+%xp% XP"
+    "to_next": "%current% XP sur %needed% avant le niveau %level%"
+    "max": "Le niveau maximal - vos XP continuent de s'accumuler"
+    "late": "Vos XP pour ce temps sont encore en cours de calcul. Ils apparaîtront dans votre historique d'XP dans un instant."
+    "announce": "+%xp% XP pour ce temps."
+    "announce_level_up": "+%xp% XP pour ce temps. Niveau %level% !"
+  "receipt":
+    "summary": "Comment vos XP ont été comptés"
+    "history_link": "Votre historique d'XP"
+  "sheet":
+    "continue": "Continuer"
+    "max_message": "Niveau 50, le sommet. Vos XP continuent de s'accumuler à partir d'ici."
+  "achievement":
+    "new": "Nouveau succès"
+    "tap": "Touchez le puzzle pour révéler votre palier"
+    "points": "+%points% AP"
+    "see": "Voir le succès"
+  "tease":
+    "title": "Vous avez obtenu un succès avec ce temps."
+    "text": "Devenez membre pour découvrir lequel."
+    "button": "Devenir membre"
+  "place":
+    "title": "#%rank% sur %total% sur ce puzzle"
+    "first_solver": "Vous êtes le premier à résoudre ce puzzle"
+    "fastest": "Le temps le plus rapide sur ce puzzle"
+    "faster_than": "Plus rapide que %percent% % des puzzleurs"
+  "competition":
+    "rating": "MSP Rating %rating% · #%rank% sur %total%"
+    "rating_progress": "MSP Rating : %first% premières tentatives sur %first_needed%, %solves% puzzles sur %solves_needed%"
+    "skill": "Niveau de compétence %tier% · top %percent% %"
+    "skill_progress": "{1}Encore 1 puzzle qualifiant pour votre niveau de compétence|]1,Inf[Encore %count% puzzles qualifiants pour votre niveau de compétence"
+    "skill_soon": "Votre niveau de compétence s'affichera d'ici 15 minutes"
+    "locked_title": "Niveau de compétence et MSP Rating"
+    "locked_text": "Découvrez votre place parmi les puzzleurs en %pieces% pièces. Réservé aux membres."
 "global_search":
   "info": "Bienvenue nouvelle recherche ! Recherchez par nom de puzzle, ean ou code. Recherchez un joueur par nom ou code. Veuillez nous faire part de vos commentaires."
   "no_player_found": "Aucun joueur trouvé :-("
@@ -1703,8 +2217,33 @@ competition_referees:
   "manage_subscription_android_info": "Gérez votre abonnement dans Google Play Store sous Paiements et abonnements."
   "purchase_via_app_store": "Le paiement sera traité via l'Apple App Store."
   "purchase_via_play_store": "Le paiement sera traité via Google Play Store."
-  "full_description": "<ul>\n    <li>Un grand merci pour soutenir le développement de la plateforme</li>\n    <li>Votre propre code joueur personnalisé (vous pouvez le changer dans votre profil)</li>\n    <li>Badge d'adhésion</li>\n    <li>Filtrage par premières tentatives</li>\n    <li>Filtrage par pays</li>\n    <li>Graphiques</li>\n    <li>Scanner de code-barres</li>\n    <li>Statistiques détaillées</li>\n</ul>\n\n<h3 class=\"h4\">Qu'est-ce qui vous attend bientôt ?</h3>\n<ul>\n    <li>Rapports mensuels et annuels <small class=\"ms-1 text-muted\">(bientôt)</small></li>\n    <li>Profil public mypuzzler.com <small class=\"ms-1 text-muted\">(bientôt)</small></li>\n    <li class=\"mt-2\">Défis spéciaux exclusivement pour les membres</li>\n    <li>Emprunt et vente de puzzles entre membres</li>\n    <li>Gamification - gagner de l'expérience et des niveaux</li>\n    <li>Badges pour diverses réalisations</li>\n    <li>&hellip; et bien plus encore, ce n'est qu'un petit aperçu de ce que nous préparons\
-    \ pour vous !</li>\n</ul>\n"
+  "perks_description": |
+    <ul>
+        <li>Un grand merci pour votre soutien au développement de la plateforme</li>
+        <li>Votre propre code joueur personnalisé (modifiable dans votre profil)</li>
+        <li>Mention membre sur votre profil</li>
+        <li>Filtrage par premières tentatives</li>
+        <li>Filtrage par pays</li>
+        <li>Graphiques</li>
+        <li>Lecteur de code-barres</li>
+        <li>Statistiques détaillées</li>
+    </ul>
+  "progression_perks": |
+    <h3 class="h4">Succès</h3>
+    <ul>
+        <li>Collectionnez des succès du Bronze au Diamant et gagnez des points de succès (AP)</li>
+        <li>Affichez vos succès sur votre profil et entrez dans le classement des points de succès</li>
+    </ul>
+    <p class="text-muted">Les XP et les niveaux sont gratuits pour tout le monde, membre ou non.</p>
+  "coming_soon_description": |
+    <h3 class="h4">Qu'est-ce qui vous attend bientôt ?</h3>
+    <ul>
+        <li>Rapports mensuels et annuels <small class="ms-1 text-muted">(bientôt)</small></li>
+        <li>Profil public mypuzzler.com <small class="ms-1 text-muted">(bientôt)</small></li>
+        <li class="mt-2">Défis spéciaux réservés aux membres</li>
+        <li>Prêt et vente de puzzles entre membres</li>
+        <li>&hellip; et bien plus encore, ce n'est qu'un petit aperçu de ce que nous vous préparons !</li>
+    </ul>
   "members_exclusive_button": "Exclusif aux membres"
   "members_exclusive_short": "Membres"
   "modal":
@@ -1923,7 +2462,7 @@ competition_referees:
     <ul>
         <li>votre compte : l'adresse e-mail de connexion, le mot de passe, les méthodes de connexion associées (Google, Microsoft, Apple, Facebook) et le journal de sécurité des connexions,</li>
         <li>votre profil de joueur avec toutes ses informations,</li>
-        <li>vos temps en solo, vos collections, votre liste de souhaits, les puzzles proposés à la vente ou à l'échange, vos badges, chronomètres et notifications,</li>
+        <li>vos temps en solo, vos collections, votre liste de souhaits, les puzzles proposés à la vente ou à l'échange, vos succès, chronomètres et notifications,</li>
         <li>votre adhésion (un abonnement actif est résilié) et votre inscription à la newsletter.</li>
     </ul>
     <p>Certaines choses sont partagées avec d'autres joueurs et restent donc visibles pour eux – mais elles ne sont plus liées à aucun compte et n'affichent plus que le nom que vous utilisiez, en simple texte : les temps en duo et en équipe réalisés avec d'autres joueurs inscrits, les conversations et les transactions de la place de marché, y compris les évaluations, ainsi que les suggestions et leurs commentaires. Les puzzles que vous avez ajoutés au catalogue y restent, sans aucun lien avec vous. Dans notre journal des e-mails envoyés, votre adresse est remplacée par une empreinte (hash) à sens unique.</p>
@@ -2463,8 +3002,15 @@ competition_referees:
     "source": "Commencé depuis"
   "puzzle_change_request":
     "approved": "La demande de modification a été approuvée et le puzzle mis à jour."
+    "already_reviewed": "Cette demande de modification avait déjà été examinée par quelqu'un d'autre."
     "rejected": "La demande de modification a été rejetée."
     "rejection_reason_required": "Le motif de rejet est requis."
+  "puzzle_edit":
+    "saved": "Puzzle enregistré."
+  "puzzle_approval":
+    "approved": "Le puzzle a été approuvé."
+    "already_approved": "Ce puzzle avait déjà été approuvé ou fusionné par quelqu'un d'autre."
+    "merge_target_invalid": "Collez l'ID ou l'adresse d'un autre puzzle existant."
   "puzzle_merge_request":
     "approved": "La demande de fusion a été approuvée. Les puzzles ont été fusionnés."
     "rejected": "La demande de fusion a été rejetée."
@@ -2490,6 +3036,7 @@ competition_referees:
     "column_change_requests": "Demandes de modification examinées"
     "column_merge_requests": "Demandes de fusion examinées"
     "column_last_review": "Dernier examen"
+    "column_karma": "Karma"
     "never": "jamais"
 "pending_proposals":
   "badge": "Proposition en attente"
@@ -2863,8 +3410,8 @@ puzzle_tracker_app:
             title: "Compétitions"
             description: "Suivez les compétitions de puzzles dans le monde, consultez les résultats et suivez vos performances."
         badges:
-            title: "Badges et succès"
-            description: "Gagnez des badges pour des jalons comme votre premier puzzle enregistré, 100 puzzles complétés et plus."
+            title: "Succès"
+            description: "Les membres obtiennent des succès pour des jalons comme 100 puzzles terminés, les séries, les premières tentatives et plus encore."
     community:
         title: "La plus grande communauté de suivi de puzzles au monde"
         times_logged: "Temps enregistrés"
@@ -3007,9 +3554,9 @@ puzzle_intelligence:
             title: "MSP Rating – Classement Speed Puzzling"
             description: "Le classement MSP Rating classe les speed puzzleurs selon leur niveau, en combinant temps d'assemblage et difficulté des puzzles. Découvrez les meilleurs puzzleurs du monde."
         title: "Classement MSP Rating"
-        subtitle: "Classement compétitif basé sur les performances en face-à-face"
+        heading_500: "MSP Rating · 500 pièces"
+        subtitle_portfolio: "Calculé à partir de vos résultats en 500 pièces des 24 derniers mois : les premières tentatives comptent trois fois plus que les meilleurs temps, et les puzzles plus difficiles comptent davantage."
         beta_badge: "BÊTA"
-        fresh_notice: "Cette fonctionnalité est toute nouvelle — nous affinons encore l'algorithme et les classements sont susceptibles de changer."
         how_it_works: "Comment est-ce calculé ?"
         player: "Joueur"
         rating: "Score"
@@ -3134,9 +3681,9 @@ puzzle_intelligence:
         elo_antigaming_volume: "<strong>Accumulation par volume :</strong> Limite de 100. Au-delà de 100 puzzles, plus de résolutions n'aident que si elles sont meilleures que votre entrée la plus faible."
         elo_antigaming_inactivity: "<strong>Inactivité :</strong> La décroissance temporelle réduit progressivement les anciens résultats. Restez actif pour maintenir votre score."
         elo_example_title: "Exemple : Joueur à froid vs Répétiteur"
-        elo_example_desc: "Même puzzle <strong>Difficile</strong> (difficulté 1.35, poids 1.175), résolu <strong>le mois dernier</strong> (décroissance = 1.0) :"
+        elo_example_desc: "Même puzzle <strong>Difficile</strong> (difficulté 1.35, poids 1175), résolu <strong>le mois dernier</strong> (décroissance = 1.0) :"
         elo_example_player_a: "<strong>Joueur A :</strong> Bonne première tentative (92e percentile), ne refait jamais"
-        elo_example_player_a_score: "Score : 0.92 × 1.175 × 1.0 = <strong>1.08</strong>"
+        elo_example_player_a_score: "Score : 0.92 × 1175 × 1.0 = <strong>1.08</strong>"
         elo_example_player_b: "<strong>Joueur B :</strong> Première tentative faible (60e), s'entraîne jusqu'au 95e percentile"
         elo_example_player_b_score: "Score : 0.75 × 0.70 + 0.25 × 1.12 = <strong>0.81</strong>"
         elo_example_conclusion: "Le Joueur A l'emporte nettement — le talent brut à froid prime, mais B obtient un crédit partiel pour son amélioration."
@@ -3196,8 +3743,6 @@ puzzle_intelligence:
         predictability_desc: "La difficulté de ce puzzle est-elle prévisible ?"
         skill_sensitivity: "Sensibilité à la compétence"
         skill_sensitivity_desc: "La compétence fait-elle une grande différence sur ce puzzle ?"
-    player_insights:
-        title: "Statistiques du joueur"
     prediction:
         title: "Votre prédiction"
         estimated_time: "Temps estimé"
@@ -3213,8 +3758,8 @@ puzzle_intelligence:
         personal_explanation: "Basé sur vos %count% résolutions précédentes de ce puzzle."
         personal_attempt_explanation: "Prédiction pour votre tentative n°%attempt%, basée sur vos %count% résolutions précédentes et votre tendance d'amélioration."
     skill:
-        title: "Profil de compétence"
-        tier_label: "Niveau"
+        title: "Niveau de compétence"
+        tier_label: "Niveau de compétence"
         percentile_label: "Top %percentile%%"
         faster_than_label: "Plus rapide que %percentile%% des joueurs"
         not_enough_data: "Données insuffisantes pour %pieces% pièces"
@@ -4831,6 +5376,39 @@ edition:
     "hardest_brand": "Puzzles %brand% les plus difficiles"
     "easiest_brand": "Puzzles %brand% les plus faciles"
 
+"guides":
+  "breadcrumb":
+    "home": "Accueil"
+    "guides": "Guides"
+  "ui":
+    "eyebrow": "Guide"
+    "updated": "Mis à jour le %date%"
+    "data_note": "Données communautaires en direct"
+    "read_next": "À lire ensuite"
+    "cta_title": "Prêt à chronométrer votre prochain puzzle ?"
+    "cta_stopwatch": "Lancer le chronomètre"
+    "cta_puzzles": "Parcourir la base de puzzles"
+    "cta_events": "Trouver une compétition"
+  "index":
+    "title": "Guides du speed puzzling"
+    "meta_description": "Guides du speed puzzling appuyés sur de vrais temps d'assemblage : combien de temps prend vraiment un puzzle, comment fonctionnent les compétitions et comment devenir plus rapide."
+    "intro": "Écrits par la communauté du speed puzzling, appuyés sur de vrais temps d'assemblage enregistrés — pas des suppositions."
+    "read_guide": "Lire le guide"
+    "footnote": "Toutes les statistiques de ces guides sont calculées à partir des résolutions enregistrées sur MySpeedPuzzling et se mettent à jour automatiquement à mesure que la communauté enregistre de nouveaux temps."
+  "what_is":
+    "title": "Qu'est-ce que le speed puzzling ?"
+    "meta_description": "Le speed puzzling, c'est l'assemblage de puzzles contre la montre. Découvrez comment fonctionnent les compétitions comme le WJPC, les temps typiques et comment vous lancer."
+    "card_description": "L'introduction complète : formats, fonctionnement des compétitions, temps typiques et comment rejoindre la communauté."
+  "how_long":
+    "title": "Combien de temps pour un puzzle de 1000 pièces ?"
+    "meta_description": "Mesuré sur %count% résolutions solo enregistrées : un puzzle de 1000 pièces médian se termine en %median%. Percentiles réels et meilleurs temps, par nombre de pièces."
+    "meta_description_fallback": "La seule réponse en ligne appuyée sur des données : temps médians, percentiles et records enregistrés par nombre de pièces, issus de vraies résolutions suivies."
+    "card_description": "De vraies données, pas des suppositions : temps médians, percentiles et records enregistrés par nombre de pièces."
+  "tips":
+    "title": "Conseils de speed puzzling : comment devenir plus rapide"
+    "meta_description": "Dix conseils pratiques de speed puzzling utilisés par les puzzleurs compétitifs — tri, bords, blocs de couleurs, installation et comment mesurer de vrais progrès."
+    "card_description": "Dix techniques qui réduisent vraiment votre temps d'assemblage, plus des repères communautaires pour vous situer."
+
 "wjpc_hub":
   "meta":
     "title": "Championnat du monde de puzzle (WJPC)"
@@ -4839,7 +5417,7 @@ edition:
   "what_is":
     "heading": "Qu'est-ce que le championnat du monde de puzzle ?"
     "p1": "Le WJPC est organisé par la World Jigsaw Puzzle Federation et se tient à Valladolid, en Espagne, depuis la première édition en 2019. Le principe est simple et équitable : tous les concurrents d'une manche reçoivent le même puzzle, gardé secret jusqu'au signal de départ. Le plus rapide gagne — et les puzzleurs qui ne terminent pas dans le temps imparti sont classés selon le nombre de pièces correctement placées."
-    "p2": "Le championnat comporte trois catégories. Les individuels assemblent des puzzles de 500 pièces en manches qualificatives comme en finale. Les paires assemblent 500 pièces jusqu'en demi-finale et 1 000 pièces en finale. Les équipes de quatre s'attaquent à des puzzles de 1 000 pièces à chaque manche. Toutes catégories confondues, des milliers de puzzleurs venus de dizaines de pays participent sur plusieurs jours de compétition."
+    "p2": "Le championnat comporte trois catégories. Les individuels assemblent des puzzles de 500 pièces en manches qualificatives comme en finale. Les paires assemblent 500 pièces jusqu'en demi-finale et 1000 pièces en finale. Les équipes de quatre s'attaquent à des puzzles de 1000 pièces à chaque manche. Toutes catégories confondues, des milliers de puzzleurs venus de dizaines de pays participent sur plusieurs jours de compétition."
     "p3": "Le premier championnat du monde de puzzle a eu lieu en 2019. Après l'annulation des éditions 2020 et 2021 en raison de la pandémie de COVID-19, le championnat est revenu en 2022 et n'a cessé de grandir depuis — il est aujourd'hui le point culminant du calendrier du puzzle de vitesse et la référence de tout puzzleur compétitif."
   "editions":
     "heading": "Éditions du WJPC : dates et résultats"
@@ -5849,6 +6427,8 @@ favorite_puzzlers:
       "button": "Trouver des joueurs"
     "ready":
       "title": "Quand vous en voudrez plus"
+      "progress":
+        "text": "Niveaux, succès, MSP Rating et karma, expliqués."
       "picker":
         "text": "Un choix au hasard dans votre collection ou parmi tous les puzzles."
       "events":
@@ -5899,6 +6479,9 @@ free_trial:
         where_to_look: "Par où commencer"
         membership_link: "Options d'adhésion et état de votre essai"
     features:
+        achievements:
+            title: "Vos succès"
+            text: "Les succès que vous avez déjà obtenus attendent leur révélation - un petit puzzle chacun."
         insights:
             title: "Analyses sur votre profil"
             text: "Votre niveau, la difficulté des puzzles et le temps qu'un puzzle devrait vous prendre."
@@ -6244,6 +6827,7 @@ player_header:
         profile: "Profil"
         statistics: "Statistiques"
         calendar: "Calendrier"
+        achievements: "Succès"
         library: "Bibliothèque"
         favorites: "Favoris"
     favorite: "Favori"
@@ -6262,6 +6846,21 @@ player_header:
     more_actions: "Plus d’actions"
     compare: "Ajouter à la comparaison"
     compare_open: "Ouvrir la comparaison"
+
+player_progress:
+    ring_label: "Niveau %level%, %xp% XP. Comment fonctionnent les niveaux"
+    ring_label_own: "Niveau %level%, %xp% XP. D'où viennent vos XP"
+    msp_chip: "#%rank% MSP Rating"
+    msp_chip_title: "Rang %rank% au classement MSP Rating (%pieces% pièces)"
+    how_it_works: "Comment ça marche"
+    showcase:
+        earned: "%earned% sur %total%"
+        teaser: "Vous avez obtenu des succès."
+        teaser_link: "Devenez membre pour les voir."
+        teaser_none: "Les membres collectionnent des succès au fil de leurs puzzles."
+        teaser_none_link: "Tous les voir"
+        reveal_title: "{1}1 nouveau succès à révéler|]1,Inf[%count% nouveaux succès à révéler"
+        reveal_text: "{1}Vous l'avez déjà obtenu : révélez-le pour voir ce que vous avez gagné.|]1,Inf[Vous les avez déjà obtenus : révélez-les un par un pour voir ce que vous avez gagné."
 
 marketplace_events:
     label:
@@ -8096,3 +8695,284 @@ series_readers:
     used_at:
         more: "et %count% autre|et %count% autres"
     series_delete_note: "Les résultats enregistrés pour cette série ou ses éditions restent sur les profils des puzzleurs, mais sans l'événement."
+
+progression_hub:
+    meta_title: "Comment fonctionne la progression : XP, succès, MSP Rating, niveau de compétence et karma"
+    meta_description: "Ce que mesurent les XP et les niveaux, les succès, le MSP Rating, les niveaux de compétence et le karma sur MySpeedPuzzling, et comment chacun progresse."
+    title: "Comment fonctionne la progression"
+    menu_label: "Comment fonctionne la progression"
+    intro: "Cinq choses grandissent à mesure que vous puzzlez. Chacune répond à une question différente."
+    group:
+        just_you: "Rien que vous"
+        against_the_clock: "Contre la montre"
+        for_everyone: "Pour tout le monde"
+    level:
+        title: "Niveau et XP"
+        text: "Chaque puzzle enregistré ajoute des XP. Les plus grands et les plus difficiles en ajoutent davantage. Seul le puzzle compte."
+    achievements:
+        title: "Succès"
+        text: "%count% objectifs à décrocher, du Bronze au Diamant : marques, séries, premières tentatives, équipes. Les membres les collectionnent et gagnent des points de succès (AP)."
+    rating:
+        title: "MSP Rating"
+        text: "Votre vitesse sur les puzzles de 500 pièces face à tout le monde, d'après vos meilleurs temps pondérés par la difficulté."
+    skill_tier:
+        title: "Niveau de compétence"
+        text: "Votre niveau pour un nombre de pièces donné, de Passionné à Légende, d'après tous vos temps."
+    karma:
+        title: "Karma"
+        text: "Un point pour chaque contribution acceptée à la base de données de puzzles. Montre qui donne un coup de main."
+    which:
+        title: "Qui mesure quoi ?"
+        text: "Les XP récompensent le fait de puzzler. Les succès récompensent la variété. Le MSP Rating et le niveau de compétence récompensent la vitesse. Le karma salue l'entraide. Aucun ne se convertit en un autre."
+    leaderboards_link: "Voir les classements"
+    fair_play_link: "Fair-play et confiance"
+    help_label: "Comment fonctionne la progression"
+
+karma:
+    chip: "%karma% karma"
+    opt_out:
+        label: "Masquer mon karma"
+        help: "Vos contributions comptent toujours et sont conservées, mais votre karma est masqué sur votre profil et vous n'apparaissez pas dans la liste du karma. Désactiver cette option réaffiche tout."
+    chip_title: "Karma : contributions acceptées à la base de données de puzzles"
+    leaderboard:
+        kind_label: "Ce qui compte"
+        period_label: "Période"
+    kind_filter:
+        all: "Tout"
+        puzzles: "Nouveaux puzzles"
+        fixes: "Corrections et fusions"
+        moderation: "Modération"
+    period:
+        all: "Depuis toujours"
+        12m: "12 derniers mois"
+    breakdown:
+        puzzle_added: "%count% nouveau puzzle|%count% nouveaux puzzles"
+        change_request: "%count% modification acceptée|%count% modifications acceptées"
+        merge_request: "%count% doublon fusionné|%count% doublons fusionnés"
+        decision: "%count% décision|%count% décisions"
+        direct_edit: "%count% correction|%count% corrections"
+    item:
+        puzzle_added: "Nouveau puzzle avec son EAN"
+        change_request: "Votre modification suggérée a été acceptée"
+        merge_request: "Votre signalement de doublon a abouti à une fusion"
+        direct_edit: "Vous avez corrigé un puzzle"
+        duplicate_puzzle: "Fusionné avec un puzzle ajouté plus tôt"
+        decision:
+            change_request_approved: "Vous avez accepté une modification suggérée"
+            change_request_rejected: "Vous avez refusé une modification suggérée"
+            merge_request_approved: "Vous avez fusionné des doublons signalés"
+            merge_request_rejected: "Vous avez refusé un signalement de doublon"
+            puzzle_approved: "Vous avez approuvé un nouveau puzzle"
+    history:
+        title: "D'où vient mon karma ?"
+        total_label: "karma"
+        breakdown_label: "Votre karma par type"
+        empty: "Pas encore de karma. Ajoutez un puzzle avec son EAN, ou suggérez une correction - chaque contribution acceptée vaut 1 karma."
+        what_counts: "Ce qui compte"
+        undated: "Plus ancien"
+        not_counted: "non compté"
+        note: "Les suggestions comptent dès qu'un modérateur les accepte. Celles qui sont refusées ne retirent jamais de karma."
+        how_it_works: "Comment fonctionne le karma"
+        list_link: "Liste du karma"
+        pagination: "Pages de l'historique du karma"
+        previous: "Page précédente"
+        next: "Page suivante"
+        admin_note: "Les administrateurs n'ont pas de karma - leur travail fait partie de la gestion du site."
+        hidden_note: "Votre karma est masqué pour les autres : il n'apparaît pas sur votre profil et vous ne figurez pas dans la liste du karma. Vos contributions comptent toujours."
+        hidden_change: "Modifier dans les paramètres"
+    explainer:
+        title: "Comment fonctionne le karma"
+        intro: "Le karma remercie celles et ceux qui gardent la base de données de puzzles exacte. Un point pour chaque contribution acceptée - un décompte public de qui donne un coup de main."
+        your_karma: "votre karma"
+        history_link: "Pour quoi l'ai-je obtenu ?"
+        what_counts: "Ce qui compte"
+        rules:
+            puzzle:
+                what: "Un nouveau puzzle avec son EAN"
+                when: "Dès qu'il est approuvé. Le code-barres permet de le retrouver en le scannant."
+                value: "+1"
+            change:
+                what: "Une modification suggérée"
+                when: "Dès qu'un modérateur l'accepte."
+                value: "+1"
+            merge:
+                what: "Un doublon signalé"
+                when: "Dès que les puzzles sont fusionnés."
+                value: "+1"
+            decision:
+                what: "La décision d'un modérateur"
+                when: "Accepter ou refuser une suggestion, un signalement de doublon ou un nouveau puzzle."
+                value: "+1"
+            edit:
+                what: "La correction directe d'un modérateur"
+                when: "Corriger un puzzle sans passer par une suggestion."
+                value: "+1"
+            own_proposal:
+                what: "Un modérateur qui tranche sa propre suggestion"
+                when: "La suggestion et la décision comptent ensemble."
+                value: "+1 au total"
+        no_caps: "Ni plafond ni pondération : chaque contribution acceptée compte autant."
+        duplicates_heading: "Quand un puzzle s'avère être un doublon"
+        duplicates: "Quand deux puzzles sont fusionnés, la personne qui a ajouté le puzzle en premier garde le karma correspondant. La copie plus récente cesse de compter, et la personne qui a signalé le doublon reçoit 1 point. Votre historique de karma indique une telle copie comme non comptée."
+        not_heading: "Ce que le karma n'est pas"
+        never_negative: "Un travail refusé ne retire jamais de karma. Le karma négatif n'existe pas."
+        no_xp: "Le karma est une reconnaissance, pas une monnaie : il n'achète rien et ne rapporte pas d'XP."
+        not_counted: "Les marques, les événements et les suggestions déjà réglées d'une autre façon ne comptent pas."
+        find_puzzle: "Trouver un puzzle à améliorer"
+        list_link: "Liste du karma"
+
+activity_digest:
+    frequency:
+        weekly: "Chaque semaine (le lundi)"
+        every_two_weeks: "Toutes les deux semaines"
+        monthly: "Une fois par mois"
+        off: "Désactivé"
+    settings:
+        label: "E-mail d'activité"
+        help: "Ce que vous avez assemblé, votre progression et vos puzzleurs favoris – envoyé uniquement si vous avez puzzlé. Après quatre semaines calmes, nous vous faisons signe une fois, pas plus."
+    preferences_title: "Votre activité"
+    preferences_description: "Ce que vous avez assemblé, votre niveau, vos succès et vos puzzleurs favoris – envoyé le lundi, uniquement si vous avez puzzlé. Après quatre semaines calmes, nous vous faisons signe une fois, pas plus."
+    unsubscribe:
+        meta_title: "Se désabonner de l'e-mail d'activité"
+        confirm_title: "Arrêter l'e-mail d'activité ?"
+        confirm_text: "Un clic ci-dessous et l'e-mail d'activité s'arrête. Vous pouvez le réactiver à tout moment dans vos paramètres d'e-mail."
+        confirm_button: "Oui, l'arrêter"
+        fewer_hint: "Vous préférez le recevoir moins souvent ?"
+        fewer_link: "Choisissez toutes les deux semaines ou une fois par mois"
+        done_title: "Vous êtes désabonné"
+        done_text: "Vous ne recevrez plus l'e-mail d'activité. S'il vous manque, réactivez-le dans vos paramètres d'e-mail."
+        back_home: "Retour à MySpeedPuzzling"
+
+my_activity:
+    title:
+        week: "Votre semaine"
+        two_weeks: "Vos deux semaines"
+        month: "Votre mois"
+    so_far: "pour l'instant"
+    navigation: "Périodes"
+    length_label: "Durée de la période"
+    length:
+        week: "Semaine"
+        two_weeks: "2 semaines"
+        month: "Mois"
+    previous:
+        week: "Semaine précédente"
+        two_weeks: "Deux semaines précédentes"
+        month: "Mois précédent"
+    next:
+        week: "Semaine suivante"
+        two_weeks: "Deux semaines suivantes"
+        month: "Mois suivant"
+    numbers_label: "En chiffres"
+    stat:
+        puzzles: "{1}puzzle|]1,Inf[puzzles|{0}puzzle"
+        pieces: "{1}pièce|]1,Inf[pièces|{0}pièce"
+        time: "temps de puzzle"
+        streak: "jours d'affilée"
+    empty: "Rien d'enregistré sur cette période."
+    empty_in_progress: "Rien d'enregistré pour l'instant – il reste encore du temps."
+    add_time: "Ajouter un temps"
+    pick_puzzle: "Choisir mon prochain puzzle"
+    level: "Niveau %level%"
+    level_up: "Niveau %from% → %to%"
+    level_progress: "Progression vers le niveau suivant"
+    xp_history_link: "D'où vient chaque XP"
+    achievements_title: "{1}1 nouveau succès|]1,Inf[%count% nouveaux succès"
+    achievements_teaser: "{1}Vous avez obtenu un succès sur cette période. Devenez membre pour découvrir lequel.|]1,Inf[Vous avez obtenu %count% succès sur cette période. Devenez membre pour découvrir lesquels."
+    become_member: "Devenir membre"
+    rating: "MSP Rating : #%rank% sur %total%"
+    rating_up: "{1}en hausse d'1 place|]1,Inf[en hausse de %count% places"
+    rating_down: "{1}en baisse d'1 place|]1,Inf[en baisse de %count% places"
+    skill_tier: "Nouveau niveau de compétence en %pieces% pièces : %tier%"
+    karma: "{1}Merci : 1 de vos contributions à la base de données de puzzles a été acceptée.|]1,Inf[Merci : %count% de vos contributions à la base de données de puzzles ont été acceptées."
+    results_title: "Vos puzzles"
+    pieces: "{1}1 pièce|]1,Inf[%count% pièces"
+    place: "#%rank% sur %total%"
+    mark:
+        awaiting_verification: "En attente de vérification"
+        personal_best: "Meilleur temps personnel"
+        first_try: "Première tentative"
+        pair: "Duo"
+        team: "Équipe"
+    favorites_title: "Vos puzzleurs favoris"
+    favorite_solves: "{1}1 puzzle|]1,Inf[%count% puzzles"
+    community_title: "Dans la communauté"
+    most_solved: "{1}Le plus résolu : %puzzle% (1 puzzleur)|]1,Inf[Le plus résolu : %puzzle% (%count% puzzleurs)"
+    next_title: "Et maintenant ?"
+    share: "Partager"
+    share_copied: "Lien copié"
+    share_title:
+        week: "Ma semaine sur MySpeedPuzzling : %puzzles% puzzles, %pieces% pièces"
+        two_weeks: "Mes deux semaines sur MySpeedPuzzling : %puzzles% puzzles, %pieces% pièces"
+        month: "Mon mois sur MySpeedPuzzling : %puzzles% puzzles, %pieces% pièces"
+    digest_on:
+        weekly: "Vous recevez ce récapitulatif par e-mail chaque lundi."
+        every_two_weeks: "Vous recevez ce récapitulatif par e-mail un lundi sur deux."
+        monthly: "Vous recevez ce récapitulatif par e-mail le premier lundi du mois."
+    digest_off: "L'e-mail d'activité est désactivé."
+    digest_settings: "Paramètres d'e-mail"
+
+xp_opt_out:
+    label: "Masquer les XP et les niveaux"
+    help: "Votre niveau et vos XP disparaissent de vos pages et de vos e-mails, et vous n'apparaissez plus dans les classements des XP et des points de succès ni dans les listes de qui a obtenu un succès. Les XP et les succès continuent de s'accumuler discrètement : rien n'est perdu si vous désactivez à nouveau cette option."
+
+page_crumbs:
+    label: "Fil d'Ariane"
+    back: "Retour"
+    back_to: "Retour à %title%"
+
+leaderboards:
+    position:
+        rank_scoped: "Rang %rank% sur %total% %scope%"
+        in_country: "(%country%)"
+        in_favorites: "parmi vous et vos favoris"
+        rank_world: "Rang %rank% sur %total% dans le monde"
+        top_share: "top %percent%"
+        goal: "à %gap% du top %rank%"
+        goal_first: "à %gap% du rang %rank%"
+    value:
+        xp: "%value% XP"
+        achievement-points: "%value% AP"
+        karma: "%value% karma"
+    secondary:
+        level: "Niv. %level%"
+        achievements: "%count% succès"
+        karma_total: "%count% au total"
+    empty_country: "Personne du pays %country% ici pour l'instant. Soyez le premier !"
+    rating:
+        gap: "%value% points de rating"
+        private_note: "Votre profil est privé, vous n'apparaissez donc pas dans les classements."
+        empty_country: "Personne du pays %country% n'a encore de MSP Rating. Le vôtre pourrait être le premier."
+    times:
+        empty: "Pas encore de temps. Ajoutez le vôtre et soyez le premier de ce classement."
+        empty_country: "Pas encore de temps du pays %country%. Ajoutez le vôtre et ouvrez ce classement pour %country%."
+        around_you: "Voir le classement complet autour de vous"
+        goal: "%gap% plus vite pour le top %rank%"
+        private_note: "Votre profil est privé, vos temps en solo n'apparaissent donc pas dans les classements."
+        no_time:
+            solo: "Ajoutez un temps en solo sur un puzzle de %pieces% pièces et vous apparaîtrez dans ce classement."
+            pairs: "Ajoutez un temps en duo sur un puzzle de %pieces% pièces et votre duo apparaîtra dans ce classement."
+            groups: "Ajoutez un temps en équipe sur un puzzle de %pieces% pièces et votre équipe apparaîtra dans ce classement."
+    not_on_board:
+        guest: "Voyez où vous vous situez dans ce classement :"
+        private: "Votre profil est privé, vous n'apparaissez donc pas dans les classements."
+        experience_opted_out: "Vous avez désactivé les niveaux et les succès, vous n'apparaissez donc pas ici. Vous pouvez les réactiver dans les paramètres de votre profil."
+        karma_opted_out: "Vous avez choisi de masquer votre karma, vous n'apparaissez donc pas ici. Vous pouvez l'afficher à nouveau dans les paramètres de votre profil."
+        admin: "Les administrateurs n'ont pas de karma, ils n'apparaissent donc pas ici."
+        xp: "Enregistrez votre premier puzzle terminé pour entrer dans ce classement."
+        achievement-points: "Obtenez votre premier succès pour entrer dans ce classement."
+        karma: "Votre première contribution acceptée à la base de données de puzzles vous fera entrer dans ce classement."
+        karma_filtered: "Rien de votre part ne compte encore dans cette liste."
+        not_member: "Les points de succès font partie de l'adhésion : ce classement affiche les membres."
+        other_country: "Cette liste n'affiche que les puzzleurs du pays %country%."
+        settings: "Paramètres du profil"
+        membership: "Adhésion"
+        sign_in: "Se connecter"
+    gap:
+        hidden: "⋯ %number% de plus"
+        reveal: "Voir les rangs %from%–%to% sur %total%"
+    announce: "Rangs %from%–%to% sur %total% affichés"
+
+modal:
+    load_failed: "Impossible de charger ce contenu. Vérifiez votre connexion et réessayez."
+    try_again: "Réessayer"

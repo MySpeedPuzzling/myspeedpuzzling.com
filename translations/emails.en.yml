@@ -378,3 +378,66 @@ organization_rejected:
         <p><strong>Reason:</strong> %reason%</p>
         <p>If you have questions or would like to discuss this further, please contact us at <a href="mailto:jan@myspeedpuzzling.com">jan@myspeedpuzzling.com</a>.</p>
     button: "Open \"You organize\""
+
+activity_digest:
+    puzzler: "puzzler"
+    subject:
+        week: "Your week on MySpeedPuzzling"
+        two_weeks: "Your two weeks on MySpeedPuzzling"
+        month: "Your month on MySpeedPuzzling"
+    preheader:
+        achievement: "New achievement: %achievement% – and the rest of your week."
+        achievement_locked: "You earned an achievement – and here is the rest of your week."
+        level: "You reached Level %level% – here is how."
+        personal_best: "A new personal best on %puzzle% – and more from your week."
+        rating: "{1}Up 1 place in the MSP Rating – and more from your week.|]1,Inf[Up %count% places in the MSP Rating – and more from your week."
+        numbers: "{1}1 puzzle, %pieces% pieces – your week in one short e-mail.|]1,Inf[%count% puzzles, %pieces% pieces – your week in one short e-mail."
+    title:
+        week: "Your week, %name%"
+        two_weeks: "Your two weeks, %name%"
+        month: "Your month, %name%"
+    stat:
+        puzzles: "{1}puzzle|]1,Inf[puzzles|{0}puzzles"
+        pieces: "{1}piece|]1,Inf[pieces|{0}pieces"
+        streak: "day streak"
+    level: "Level %level%"
+    level_up: "Level %from% → %to%"
+    new_achievement: "New: %achievement%"
+    achievement_teaser: "{1}You earned an achievement. Become a member to find out which.|]1,Inf[You earned %count% achievements. Become a member to find out which."
+    become_member: "Become a member"
+    rating: "MSP Rating: #%rank% of %total%"
+    rating_up: "{1}up 1 place|]1,Inf[up %count% places"
+    rating_down: "{1}down 1 place|]1,Inf[down %count% places"
+    skill_tier: "New skill tier for %pieces% pieces: %tier%"
+    karma: "{1}Thank you: 1 of your contributions to the puzzle database was accepted.|]1,Inf[Thank you: %count% of your contributions to the puzzle database were accepted."
+    results_title: "Highlights"
+    mark:
+        personal_best: "personal best"
+        first_try: "first try"
+    button:
+        week: "See your week"
+        two_weeks: "See your two weeks"
+        month: "See your month"
+    favorites_title: "Your favourite puzzlers"
+    favorite_solves: "{1}1 puzzle|]1,Inf[%count% puzzles"
+    most_solved: "Most solved by the community:"
+    most_solved_count: "{1}(1 puzzler)|]1,Inf[(%count% puzzlers)"
+    footer:
+        weekly: "You get this every Monday."
+        every_two_weeks: "You get this every other Monday."
+        monthly: "You get this on the first Monday of the month."
+        change: "Change e-mails"
+        unsubscribe: "Unsubscribe"
+    miss_you:
+        subject: "Your puzzles miss you"
+        preheader: "Or have you been puzzling in secret? Your times are welcome any time."
+        title: "We miss your times, %name%"
+        line_secret: "It has been a few weeks since your last time here. Maybe you took a well-earned break – or maybe you have been puzzling in secret and the times never made it to us? 🧩"
+        line_add: "If so, you can still add them: pick the day you finished, and they count just like the others."
+        button: "Add a time"
+        line_back: "And if you are looking for a reason to open a new box:"
+        link_picker: "Let us pick your next puzzle"
+        link_hub: "See what the community is puzzling"
+        link_profile: "Visit your profile"
+        footer: "We send this only once after a quiet stretch. It comes with your activity e-mail."
+

@@ -23,6 +23,8 @@ final class BlocklistQueryCoverageTest extends TestCase
     private const array NOT_FILTERED = [
         'FindPlayerByNameAndCountry' => self::BACKGROUND,
         'FindSimilarSpeedPuzzler' => 'Filters on user_block itself, in both directions, for the viewer id it is given - a random suggestion must not depend on a security token.',
+        'GetAchievementPoints' => self::OWN_DATA,
+        'GetAchievementRarity' => self::AGGREGATE,
         'GetAdminCompetitions' => self::ADMIN,
         'GetAdminOrganizations' => self::ADMIN,
         'GetAdminReferralDetail' => self::ADMIN,
@@ -39,6 +41,7 @@ final class BlocklistQueryCoverageTest extends TestCase
         'GetCompetitionReferees' => self::ORGANISER,
         'GetLiveResultsEventPeople' => self::ORGANISER,
         'GetCompetitionSeries' => 'The organiser\'s name is part of a public event, not a player listing.',
+        'GetContentDigestRecipients' => self::BACKGROUND,
         'GetConversationLog' => self::ADMIN,
         'GetConversationPartnersForListing' => self::BILATERAL,
         'GetConversations' => 'Filters on user_block itself (predates HiddenPlayers).',
@@ -55,6 +58,9 @@ final class BlocklistQueryCoverageTest extends TestCase
         'GetFreeTrialsEndingSoon' => self::BACKGROUND,
         'GetFreeTrialStatistics' => self::ADMIN,
         'GetGettingStartedProgress' => self::OWN_DATA,
+        'GetPlayerKarma' => self::OWN_DATA,
+        'GetProgressionDrift' => 'Nightly safety net (cron, no viewer): player ids whose stored progression disagrees with their records - nothing is shown to anybody.',
+        'GetProposerTrackRecords' => 'Review queues: the proposer of a request a moderator is deciding, by id, with no identity - their karma and accepted/declined counts.',
         'GetLendBorrowCounterparties' => self::BILATERAL,
         'GetLendBorrowHistory' => self::BILATERAL,
         'GetLentPuzzleHistory' => self::BILATERAL,
@@ -98,6 +104,8 @@ final class BlocklistQueryCoverageTest extends TestCase
         'GetUserBlocks' => 'The blocklist itself.',
         'GetUserPuzzleStatuses' => self::BILATERAL,
         'GetUserSolvedPuzzles' => self::OWN_DATA,
+        'GetXpLaunchVerification' => self::AGGREGATE,
+        'GetXpProfile' => self::OWN_DATA,
     ];
 
     public function testEveryQueryTouchingPlayersHasDecidedAboutTheBlocklist(): void

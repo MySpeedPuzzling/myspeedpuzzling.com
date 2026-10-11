@@ -56,7 +56,7 @@
                 </div>
 
                 {% if not isLoggedIn %}
-                    <p class="homepage-hero-trust text-muted">{{ 'homepage.hero.trust_line'|trans({'%count%': homepage_statistics.players|number_format(0, '.', ' ') ~ '+'}) }}</p>
+                    <p class="homepage-hero-trust text-muted">{{ 'homepage.hero.trust_line'|trans({'%count%': homepage_statistics.players|plain_number ~ '+'}) }}</p>
                 {% endif %}
             </div>
             </div>
@@ -93,7 +93,7 @@
                       data-count-up-target="number"
                       data-count-up-key="pieces"
                       data-count-up-suffix="+"
-                      data-count-up-value="{{ homepage_statistics.pieces }}">{{ homepage_statistics.pieces|number_format(0, '.', ' ') }}+</span>
+                      data-count-up-value="{{ homepage_statistics.pieces }}">{{ homepage_statistics.pieces|plain_number }}+</span>
                 <span class="homepage-counter-label">{{ 'homepage.counters.pieces'|trans }}</span>
             </div>
 
@@ -103,7 +103,7 @@
                           data-count-up-target="number"
                           data-count-up-key="puzzles"
                           data-count-up-suffix="+"
-                          data-count-up-value="{{ homepage_statistics.puzzles }}">{{ homepage_statistics.puzzles|number_format(0, '.', ' ') }}+</span>
+                          data-count-up-value="{{ homepage_statistics.puzzles }}">{{ homepage_statistics.puzzles|plain_number }}+</span>
                     <span class="homepage-counter-label">{{ 'homepage.counters.puzzles'|trans }}</span>
                 </div>
                 <div class="col-sm-4">
@@ -111,7 +111,7 @@
                           data-count-up-target="number"
                           data-count-up-key="players"
                           data-count-up-suffix="+"
-                          data-count-up-value="{{ homepage_statistics.players }}">{{ homepage_statistics.players|number_format(0, '.', ' ') }}+</span>
+                          data-count-up-value="{{ homepage_statistics.players }}">{{ homepage_statistics.players|plain_number }}+</span>
                     <span class="homepage-counter-label">{{ 'homepage.counters.players'|trans }}</span>
                 </div>
                 <div class="col-sm-4">
@@ -119,7 +119,7 @@
                           data-count-up-target="number"
                           data-count-up-key="hours"
                           data-count-up-suffix="+"
-                          data-count-up-value="{{ homepage_statistics.hours }}">{{ homepage_statistics.hours|number_format(0, '.', ' ') }}+</span>
+                          data-count-up-value="{{ homepage_statistics.hours }}">{{ homepage_statistics.hours|plain_number }}+</span>
                     <span class="homepage-counter-label">{{ 'homepage.counters.hours'|trans }}</span>
                 </div>
             </div>

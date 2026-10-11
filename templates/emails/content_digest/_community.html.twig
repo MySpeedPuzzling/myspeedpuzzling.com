@@ -1,0 +1,12 @@
+{% trans_default_domain 'emails' %}
+{% if activity.mostSolved is not null %}
+    <row>
+        <columns>
+            <p>
+                {{ 'activity_digest.most_solved'|trans }}
+                <a href="{{ url('puzzle_detail', {puzzleId: activity.mostSolved.puzzleId, _locale: locale}) }}">{{ activity.mostSolved.name }}</a>
+                {{ 'activity_digest.most_solved_count'|trans({'%count%': activity.mostSolved.solvers}) }}
+            </p>
+        </columns>
+    </row>
+{% endif %}

@@ -33,7 +33,7 @@
            and the statistics below can be very long #}
         <div class="compact-bar player-bar" {{ stimulus_target('compact-bar', 'bar') }} inert>
             <div class="container player-bar-inner{{ this.tabs is empty ? ' player-bar-no-tabs' }}">
-                {{ include('_player_avatar.html.twig', avatar_args|merge({size: 'lg'})) }}
+                <twig:XpRing :player="player" variant="bar">{{ include('_player_avatar.html.twig', avatar_args|merge({size: 'lg'})) }}</twig:XpRing>
                 <div class="compact-bar-text">
                     <div class="compact-bar-name">{{ display_name }}</div>
                     <div class="compact-bar-meta">#{{ player.code|upper }}</div>
@@ -46,52 +46,73 @@
         </div>
 
         <div class="player-head">
+            {# The XP level ring goes around the avatar - a progress arc and a "Lv 12" tab (docs/features/xp-levels/launch-2026-10.md) #}
             <div class="player-head-avatar">
-                {{ include('_player_avatar.html.twig', avatar_args|merge({size: 'xl'})) }}
+                <twig:XpRing :player="player" variant="header">{{ include('_player_avatar.html.twig', avatar_args|merge({size: 'xl'})) }}</twig:XpRing>
             </div>
 
             <div class="player-head-info">
                 {% set name_tag = heading ? 'h1' : 'div' %}
                 <{{ name_tag }} class="player-head-name">{{ display_name }}</{{ name_tag }}>
-                {# The country is the flag on the avatar #}
-                <div class="player-head-meta">#{{ player.code|upper }}</div>
-
+                {# The country is the flag on the avatar; membership and the own privacy setting are words on this line #}
                 {% set show_member = player.activeMembership and not this.isHidden %}
                 {% set show_private = this.isOwnProfile and player.isPrivateProfile %}
-                {% if this.tierChip is not null or show_member or show_private %}
-                    <div class="player-head-chips">
+                <div class="player-head-meta">
+                    #{{ player.code|upper }}
+                    {%- if show_member %}
+                        <span aria-hidden="true">·</span> <a class="player-head-member" href="{{ path('membership') }}"><i class="ci-heart-filled" aria-hidden="true"></i> {{ 'player_header.member'|trans }}</a>
+                    {%- endif %}
+                    {%- if show_private %}
+                        <span aria-hidden="true">·</span> <a class="player-head-private" href="{{ path('private_profile_viewers') }}" title="{{ 'private_profile_viewers.title'|trans }}"><i class="bi bi-incognito" aria-hidden="true"></i> {{ 'player_header.private_profile'|trans }}</a>
+                    {%- endif %}
+                </div>
+
+                {# One row of at most three chips, one per family: skill tier (rank colours), MSP Rating place
+                   (competition, coral), karma (community, teal). The XP level is on the avatar ring. #}
+                {% set tier_pieces = constant('SpeedPuzzling\\Web\\Component\\PlayerHeader::TIER_PIECES_COUNT') %}
+                {# The chips lead into the progression pages, whose back button comes back here (design-spec §3) #}
+                {% set chip_return = {return: return_path, return_title: display_name} %}
+                {# Karma launches with XP: the one launch switch (docs/features/karma.md) #}
+                {% set show_karma = player.karma > 0 and not player.karmaOptedOut and not this.isHidden and xp_system_visible() %}
+                {% if this.tierChip is not null or this.mspRatingRank is not null or show_karma %}
+                    <ul class="player-head-chips">
                         {% if this.tierChip == 'tier' %}
-                            {% set tier = this.primarySkill.skillTier.name|lower %}
-                            <span class="player-chip player-chip-tier" style="--chip-color: var(--rank-{{ tier }})" title="{{ 'player_header.tier_title'|trans({'%pieces%': constant('SpeedPuzzling\\Web\\Component\\PlayerHeader::TIER_PIECES_COUNT')}) }}">
-                                <svg class="rank-icon" width="16" height="16" aria-hidden="true"><use href="/rank-icons-sprite.svg#rank-{{ tier }}"/></svg>
-                                {{ ('puzzle_intelligence.skill.tiers.' ~ tier)|trans }}
-                            </span>
+                            {% set tier = player.skillTier.name|lower %}
+                            <li>
+                                <a class="player-chip player-chip-tier" style="--chip-color: var(--rank-{{ tier }})" href="{{ path('methodology', chip_return) }}#skill-tier" rel="nofollow" title="{{ 'player_header.tier_title'|trans({'%pieces%': tier_pieces}) }}">
+                                    <svg class="rank-icon" width="16" height="16" aria-hidden="true"><use href="/rank-icons-sprite.svg#rank-{{ tier }}"/></svg>
+                                    {{ ('puzzle_intelligence.skill.tiers.' ~ tier)|trans }}
+                                </a>
+                            </li>
                         {% elseif this.tierChip == 'no_tier_yet' %}
-                            <span class="player-chip" title="{{ 'player_header.no_tier_yet_title'|trans({'%pieces%': constant('SpeedPuzzling\\Web\\Component\\PlayerHeader::TIER_PIECES_COUNT')}) }}">
-                                <svg class="rank-icon" width="16" height="16" style="color: var(--rank-unknown)" aria-hidden="true"><use href="/rank-icons-sprite.svg#rank-unknown"/></svg>
-                                {{ 'player_header.no_tier_yet'|trans }}
-                            </span>
+                            <li>
+                                <a class="player-chip" href="{{ path('methodology', chip_return) }}#skill-tier" rel="nofollow" title="{{ 'player_header.no_tier_yet_title'|trans({'%pieces%': tier_pieces}) }}">
+                                    <svg class="rank-icon" width="16" height="16" style="color: var(--rank-unknown)" aria-hidden="true"><use href="/rank-icons-sprite.svg#rank-unknown"/></svg>
+                                    {{ 'player_header.no_tier_yet'|trans }}
+                                </a>
+                            </li>
                         {% elseif this.tierChip == 'locked' %}
-                            <button type="button" class="player-chip" data-bs-toggle="modal" data-bs-target="#membersExclusiveModal" title="{{ 'player_header.tier_locked_title'|trans }}">
-                                <svg class="rank-icon" width="16" height="16" style="color: var(--rank-locked)" aria-hidden="true"><use href="/rank-icons-sprite.svg#rank-locked"/></svg>
-                                {{ 'player_header.skill_tier'|trans }}
-                            </button>
+                            {# The only lock a free visitor sees on a profile #}
+                            <li>
+                                <button type="button" class="player-chip" data-bs-toggle="modal" data-bs-target="#membersExclusiveModal" title="{{ 'player_header.tier_locked_title'|trans }}">
+                                    <svg class="rank-icon" width="16" height="16" style="color: var(--rank-locked)" aria-hidden="true"><use href="/rank-icons-sprite.svg#rank-locked"/></svg>
+                                    {{ 'player_header.skill_tier'|trans }}
+                                </button>
+                            </li>
                         {% endif %}
 
-                        {% if show_member %}
-                            <a class="player-chip player-chip-member" href="{{ path('membership') }}">
-                                <i class="ci-heart-filled" aria-hidden="true"></i>
-                                {{ 'player_header.member'|trans }}
-                            </a>
+                        {% if this.mspRatingRank is not null %}
+                            <li>
+                                <a class="player-chip player-chip-competition" href="{{ path('msp_rating_ladder', chip_return) }}" rel="nofollow" title="{{ 'player_progress.msp_chip_title'|trans({'%rank%': this.mspRatingRank, '%pieces%': tier_pieces}) }}">
+                                    <i class="bi bi-trophy" aria-hidden="true"></i>
+                                    {{ 'player_progress.msp_chip'|trans({'%rank%': this.mspRatingRank}) }}
+                                </a>
+                            </li>
                         {% endif %}
-
-                        {% if show_private %}
-                            <a class="player-chip" href="{{ path('private_profile_viewers') }}" title="{{ 'private_profile_viewers.title'|trans }}">
-                                <i class="bi bi-incognito" aria-hidden="true"></i>
-                                {{ 'player_header.private_profile'|trans }}
-                            </a>
+                        {% if show_karma %}
+                            <li>{{ include('karma/_karma_chip.html.twig', {karma: player.karma, own: this.isOwnProfile, return_query: chip_return}) }}</li>
                         {% endif %}
-                    </div>
+                    </ul>
                 {% endif %}
             </div>
 

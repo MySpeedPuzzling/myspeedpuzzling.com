@@ -1,0 +1,58 @@
+{% extends 'base.html.twig' %}
+
+{% set player_name = player.playerName ?? ('#' ~ player.code|upper) %}
+{# A ?return= that brought you here (the profile showcase) survives the filter chips, and the sheet's buttons bring you
+   back to this page - with its filter - instead of the catalogue (docs/features/return-url.md) #}
+{% set page_return = safe_return_url(app.request.query.get('return')) is not null ? {return: app.request.query.get('return'), return_title: app.request.query.get('return_title')|default('')} : {} %}
+{% set sheet_return = {return: app.request.requestUri, return_title: is_own ? 'badges.my_title'|trans : 'badges.medal.player_achievements'|trans({'%name%': player_name})} %}
+
+{% block title %}{{ 'badges.player_page_meta_title'|trans({'%name%': player_name}) }}{% endblock %}
+
+{#
+    A player's achievements (PlayerAchievementsController): the catalogue's layout (_achievements_layout.html.twig,
+    docs/features/xp-levels/ux-polish/design-spec.md §1) with this player's tiers - summary, closest next steps (for
+    every visitor too), All / Earned / Next up / Rarest and the shelf. Every seal opens the detail sheet with this
+    player's medal (`player`). The owner's unrevealed tiers are "?" seals leading to the reveal page.
+#}
+{% block content %}
+    <twig:PlayerHeader player="{{ player }}" tab="achievements" />
+
+    <div class="d-flex flex-wrap align-items-baseline justify-content-between gap-2 mb-2">
+        <h2 class="h4 mb-0">{{ 'badges.title'|trans }}</h2>
+        <a href="{{ path('badges_overview', {show: 'all'}) }}" class="fs-sm achievements-browse-link">{{ 'badges.browse_all'|trans }}</a>
+    </div>
+
+    {% if not player.activeMembership or lists is null %}
+        {# Only the owner gets here: achievements are a membership perk #}
+        <div class="achievements-tease mb-3">
+            <p class="mb-0">{{ 'badges.catalogue.tease_free'|trans }} {{ 'badges.shelf.explainer.lapsed'|trans }}</p>
+            <a href="{{ path('membership') }}" class="btn btn-primary btn-sm">{{ 'badges.catalogue.become_member'|trans }}</a>
+        </div>
+    {% else %}
+        {# A held Early Adopter counts (one achievement, no tiers): it can no longer be earned, so it is in its holders' total only #}
+        <p class="achievements-summary mb-0">
+            <span>{{ 'badges.shelf.summary'|trans({
+                '%earned%': (lists.earnedTypes + (has_supporter ? 1 : 0))|plain_number,
+                '%total%': (lists.totalTypes + (has_supporter ? 1 : 0))|plain_number,
+                '%tiers_earned%': lists.earnedTiers|plain_number,
+                '%tiers_total%': lists.totalTiers|plain_number,
+            })|raw }}</span>
+            <a href="{{ path('achievement_points_leaderboard') }}" class="ap-chip text-decoration-none">{{ 'badges.ap_total'|trans({'%points%': player.achievementPoints|plain_number}) }}</a>
+        </p>
+
+        {{ include('_achievements_layout.html.twig', {
+            lists: lists,
+            rows: rows,
+            filter: filter,
+            filters: filters,
+            filter_counts: filter_counts,
+            filter_route: 'player_achievements',
+            filter_params: {playerId: player.playerId}|merge(page_return),
+            personal: true,
+            player_id: player.playerId,
+            own: is_own,
+            show_supporter: show_supporter,
+            supporter_first: supporter_first,
+        }) }}
+    {% endif %}
+{% endblock %}

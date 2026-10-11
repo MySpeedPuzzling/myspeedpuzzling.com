@@ -32,13 +32,13 @@ final class PlayerHeaderTest extends WebTestCase
         ));
         self::assertSame('Favorite', trim($actions->filter('.player-head-favorite .player-head-favorite-label')->text()));
 
-        // Favorites are personal: not a tab on someone else's pages
-        self::assertSame(['Profile', 'Statistics', 'Calendar', 'Library'], $this->tabLabels($crawler));
+        // Favorites are personal: not a tab on someone else's pages; a member's achievements are public
+        self::assertSame(['Profile', 'Statistics', 'Calendar', 'Achievements', 'Library'], $this->tabLabels($crawler));
         self::assertSame('page', $crawler->filter('.player-head-tabs .player-tab.active')->attr('aria-current'));
         self::assertSame('nofollow', $crawler->filter('.player-head-tabs .player-tab[href*="/en/player-statistics/"]')->attr('rel'));
 
-        // The member chip; the tier chip says "not yet" to a member viewer when there is no tier
-        self::assertCount(1, $crawler->filter('.player-head .player-chip-member'));
+        // Membership is a word on the #CODE line; the tier chip says "not yet" to a member viewer when there is no tier
+        self::assertCount(1, $crawler->filter('.player-head-meta a.player-head-member[href="/en/membership"]'));
         self::assertStringContainsString('No tier yet', $crawler->filter('.player-head .player-head-chips')->text());
 
         // The name is the page's one H1
@@ -53,7 +53,7 @@ final class PlayerHeaderTest extends WebTestCase
         self::assertCount(1, $crawler->filter('.player-head .more-menu[data-nosnippet] .dropdown-menu'));
         self::assertCount(1, $crawler->filter('.player-bar .more-menu[data-nosnippet] .dropdown-menu'));
         self::assertNotNull($crawler->filter('.player-bar')->attr('inert'));
-        self::assertCount(4, $crawler->filter('.player-bar .player-tab'));
+        self::assertCount(5, $crawler->filter('.player-bar .player-tab'));
         self::assertCount(1, $crawler->filter('.player-bar .player-tab[href*="/en/player-statistics/"][rel="nofollow"]'));
     }
 
@@ -94,7 +94,7 @@ final class PlayerHeaderTest extends WebTestCase
         self::assertCount(0, $crawler->filter('[href*="/en/add-player-to-favorites/"]'));
         self::assertCount(0, $crawler->filter('[data-bs-target="#blockPlayerModal"]'));
 
-        self::assertSame(['Profile', 'Statistics', 'Calendar', 'Library', 'Favorites'], $this->tabLabels($crawler));
+        self::assertSame(['Profile', 'Statistics', 'Calendar', 'Achievements', 'Library', 'Favorites'], $this->tabLabels($crawler));
 
         $menu = $crawler->filter('.player-head .dropdown-menu');
         self::assertCount(1, $menu->filter('a[href="/en/export-puzzler-data/' . PlayerFixture::PLAYER_WITH_STRIPE . '"]'));
@@ -106,7 +106,7 @@ final class PlayerHeaderTest extends WebTestCase
     {
         $crawler = $this->page(PlayerFixture::PLAYER_PRIVATE, '/en/player-profile/' . PlayerFixture::PLAYER_PRIVATE);
 
-        self::assertCount(1, $crawler->filter('.player-head-chips a.player-chip[href="/en/who-can-see-my-profile"]'));
+        self::assertCount(1, $crawler->filter('.player-head-meta a.player-head-private[href="/en/who-can-see-my-profile"]'));
         self::assertCount(1, $crawler->filter('.player-head .dropdown-menu a[href="/en/who-can-see-my-profile"]'));
         self::assertCount(0, $crawler->filter('.player-chip-tier'));
         self::assertStringNotContainsString('No tier yet', $crawler->filter('.player-head')->text());

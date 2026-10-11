@@ -40,7 +40,7 @@ final class LadderControllerTest extends WebTestCase
 
         $heading = $crawler->filter('h1');
         self::assertCount(1, $heading);
-        self::assertSame('Speed Puzzling Leaderboard', trim($heading->text()));
+        self::assertSame('Leaderboards', trim($heading->text()));
         self::assertCount(0, $heading->filter('.dropdown, a, button'));
 
         // The menu is still there, right after the heading, and names the page it is on

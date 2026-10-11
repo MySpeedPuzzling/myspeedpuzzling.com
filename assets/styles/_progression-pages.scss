@@ -1,0 +1,310 @@
+// Progression pages (docs/features/xp-levels/launch-2026-10.md, workstream D): the "How progress works" hub,
+// the AP chip, the achievements filter and the grouped XP history (shelf, sheet, holders: _achievements-shelf.scss,
+// _achievement-medal.scss).
+// Each family keeps its own colour: level = indigo, achievements = amber, competition = teal, karma = rose.
+
+$progression-level: $xp-indigo;
+$progression-achievements: #8a5a12;
+$progression-achievements-bg: #fdf3e1;
+$progression-competition: #1d6f6b;
+$progression-karma: #b4383a;
+$progression-muted: #5b616d;
+
+// --- Hub ---------------------------------------------------------------------------------------------------------
+
+.progression-hub-group {
+    margin: 1.5rem 2px .5rem;
+    font-size: .75rem;
+    font-weight: 600;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: $progression-muted;
+}
+
+.progression-hub-card {
+    border: 1px solid #e3e9ef;
+    border-radius: .75rem;
+    background: #fff;
+    overflow: hidden;
+}
+
+.progression-hub-row {
+    display: flex;
+    align-items: center;
+    gap: .875rem;
+    min-height: 64px;
+    padding: .75rem 1rem;
+    color: inherit;
+    text-decoration: none;
+
+    & + & {
+        border-top: 1px solid #e3e9ef;
+    }
+
+    &:hover,
+    &:focus-visible {
+        background: #f6f9fc;
+        color: inherit;
+    }
+}
+
+.progression-hub-icon {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    font-size: 1.25rem;
+}
+
+.progression-hub-icon-level { background: rgba($progression-level, .1); color: $progression-level; }
+.progression-hub-icon-achievements { background: $progression-achievements-bg; color: $progression-achievements; }
+.progression-hub-icon-competition { background: #d9f1f0; color: $progression-competition; }
+.progression-hub-icon-karma { background: #fde2e2; color: $progression-karma; }
+
+.progression-hub-text {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    min-width: 0;
+}
+
+.progression-hub-title {
+    font-weight: 600;
+    color: #111;
+}
+
+.progression-hub-desc {
+    font-size: .875rem;
+    line-height: 1.35;
+    color: $progression-muted;
+}
+
+.progression-hub-chevron {
+    flex-shrink: 0;
+    color: $progression-muted;
+}
+
+.progression-hub-which {
+    margin-top: 1.5rem;
+    padding: .875rem 1rem;
+    border-radius: .75rem;
+    background: #f6f9fc;
+    font-size: .875rem;
+    color: #4b566b;
+}
+
+// A "?" next to a progression chip or heading: a 44 px tap target around a small icon
+.progression-help {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    min-height: 44px;
+    margin: -10px -8px;
+    color: $progression-muted;
+    text-decoration: none;
+
+    &:hover,
+    &:focus-visible {
+        color: #111;
+    }
+}
+
+// --- Achievement Points chip: amber, never the indigo level chip -----------------------------------------------------
+
+.ap-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: .3em;
+    padding: .2em .65em;
+    border-radius: 999px;
+    background: $progression-achievements-bg;
+    color: $progression-achievements;
+    font-size: .8rem;
+    font-weight: 600;
+    line-height: 1.2;
+    white-space: nowrap;
+}
+
+// --- Achievements catalogue ----------------------------------------------------------------------------------------
+
+.achievements-summary {
+    color: $progression-muted;
+
+    strong {
+        color: #373f50;
+    }
+}
+
+.achievements-filter {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+    margin: 1rem 0;
+
+    a {
+        display: inline-flex;
+        align-items: center;
+        min-height: 44px;
+        padding: 0 1rem;
+        border: 1px solid #dae1e7;
+        border-radius: 999px;
+        color: #373f50;
+        font-size: .875rem;
+        text-decoration: none;
+
+        &.active {
+            border-color: #373f50;
+            background: #373f50;
+            color: #fff;
+        }
+    }
+}
+
+.achievement-progress {
+    height: 6px;
+    margin: .375rem 0 .25rem;
+    border-radius: 3px;
+    background: #eef0f4;
+
+    > span {
+        display: block;
+        height: 100%;
+        border-radius: 3px;
+        background: $primary; // the site's primary - amber only marks Achievement Points (Jan 2026-10-11)
+    }
+}
+
+.achievements-about {
+    padding: .875rem 1rem;
+    border-radius: .75rem;
+    background: $progression-achievements-bg;
+    font-size: .875rem;
+    color: #4b3a14;
+    scroll-margin-top: calc(var(--header-height, 101px) + .75rem);
+}
+
+// --- XP history: one block per solve --------------------------------------------------------------------------------
+
+.xp-history-block {
+    border: 1px solid #e3e9ef;
+    border-radius: .75rem;
+    background: #fff;
+    padding: .75rem 1rem;
+
+    & + & {
+        margin-top: .75rem;
+    }
+}
+
+.xp-history-head {
+    display: flex;
+    align-items: baseline;
+    gap: .75rem;
+}
+
+.xp-history-subject {
+    flex-grow: 1;
+    min-width: 0;
+    font-weight: 600;
+    overflow-wrap: break-word;
+}
+
+.xp-history-total {
+    flex-shrink: 0;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: $progression-level;
+}
+
+.xp-history-meta {
+    font-size: .8125rem;
+    color: $progression-muted;
+}
+
+.xp-history-lines {
+    margin: .5rem 0 0;
+    padding: .5rem 0 0;
+    border-top: 1px dashed #e3e9ef;
+    list-style: none;
+    font-size: .875rem;
+
+    li {
+        display: flex;
+        gap: .75rem;
+        padding: .125rem 0;
+    }
+
+    .xp-history-line-label {
+        flex-grow: 1;
+        min-width: 0;
+    }
+
+    .xp-history-line-amount {
+        flex-shrink: 0;
+        font-variant-numeric: tabular-nums;
+    }
+}
+
+// Methodology sections the hub links to (#skill-tier, #msp-rating) land below the sticky header
+.methodology-anchor {
+    scroll-margin-top: calc(var(--header-height, 101px) + .75rem);
+}
+
+// --- Leaderboards pill row (templates/_leaderboards_nav.html.twig) -------------------------------------------------
+
+.leaderboards-nav {
+    position: relative;
+    display: flex;
+    gap: .5rem;
+    margin: 0 -15px 1rem;
+    padding: 2px 15px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+
+    &::-webkit-scrollbar {
+        display: none;
+    }
+
+    @include media-breakpoint-up(md) {
+        flex-wrap: wrap;
+        margin-inline: 0;
+        padding-inline: 0;
+    }
+}
+
+.leaderboards-nav-pill {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    min-height: 44px;
+    padding: 0 1.125rem;
+    border: 1px solid #dae1e7;
+    border-radius: 999px;
+    background: #fff;
+    color: #373f50;
+    font-size: .9375rem;
+    font-weight: 500;
+    white-space: nowrap;
+    text-decoration: none;
+
+    &:hover {
+        border-color: #373f50;
+        color: #111;
+    }
+
+    &:focus-visible {
+        outline: 2px solid $primary;
+        outline-offset: 2px;
+    }
+
+    &.active {
+        border-color: #373f50;
+        background: #373f50;
+        color: #fff;
+    }
+}

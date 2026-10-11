@@ -1,0 +1,733 @@
+// Achievement detail sheet: bottom sheet on phones, holo medal, medal back (docs/features/xp-levels/ux-polish/design-spec.md §2)
+//
+// templates/_achievement_info_modal.html.twig, controllers/achievement_sheet_controller.js (the sheet),
+// controllers/holo_medal_controller.js + holo_medal/ (the medal). The medal data (back plate, foil masks, tones) is
+// precomputed by tools/badge-art/lib/holo.py; every moving value is a custom property:
+//   --rx --ry tilt · --lx --ly the light · --bgx --bgy the foil bands · --act how lit the foil is (0 at rest)
+
+$medal-ink: #2b3445;
+// Muted text = Bootstrap's body-secondary colour (design-spec §8.5: never a lighter grey for text)
+$medal-muted: var(--bs-secondary-color);
+// The brand prism as foil bands (coral, peach, butter, mint, teal, sky, lavender, pink); one cycle is 36 % of the
+// gradient line, so several bands show at once
+$medal-bands: repeating-linear-gradient(118deg, #ffc4c6 0%, #ffdcb8 4.5%, #ffefb0 9%, #c9f2da 13.5%, #bfe9f8 18%, #ccd6ff 22.5%, #e2d0ff 27%, #ffcbe9 31.5%, #ffc4c6 36%);
+$medal-bands-vivid: repeating-linear-gradient(118deg, #f26a70 0%, #f7a457 4.5%, #f0cd4f 9%, #46cf98 13.5%, #3fbfd0 18%, #4f97f2 22.5%, #8a72ee 27%, #e06cbd 31.5%, #f26a70 36%);
+
+// ---- The sheet ------------------------------------------------------------------------------------------------------
+
+.achievement-sheet-grab {
+    display: none;
+}
+
+.achievement-sheet-top .modal-header {
+    border-bottom: 0;
+    padding-bottom: .25rem;
+
+    // Focus starts on the heading (tabindex -1, design-spec §8.3): a place to start reading, not a control
+    .modal-title:focus {
+        outline: 0;
+    }
+    // Bootstrap's × is 32×28 px: a 44 px target without changing its look
+    .btn-close {
+        position: relative;
+
+        &::after {
+            content: '';
+            position: absolute;
+            inset: 50% auto auto 50%;
+            width: 44px;
+            height: 44px;
+            transform: translate(-50%, -50%);
+        }
+    }
+}
+
+// The coral outline buttons of the sheet in the coral ink (#fe696a on white is 2.8:1, this is 5.2:1)
+.medal-actions .btn-outline-primary {
+    --cz-btn-color: #c7393b;
+    --cz-btn-border-color: #c7393b;
+    --cz-btn-hover-color: #fff;
+    --cz-btn-active-color: #fff;
+    --cz-btn-hover-bg: #c7393b;
+    --cz-btn-hover-border-color: #c7393b;
+    --cz-btn-active-bg: #c7393b;
+    --cz-btn-active-border-color: #c7393b;
+}
+
+@include media-breakpoint-down(sm) {
+    // Phones: anchored to the bottom, rounded top, the page stays visible above it. The modal itself never scrolls,
+    // the body does (data-modal-scrollable); the sheet is at most 92dvh (design-spec §8.3).
+    #dynamic-modal-container.achievement-sheet-open {
+        overflow: hidden;
+
+        .modal-dialog {
+            position: fixed;
+            right: 0;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            max-width: none;
+            height: auto;
+            min-height: 0;
+            margin: 0;
+            transform: translateY(100%);
+            transition: transform .3s cubic-bezier(.2, .8, .2, 1);
+        }
+
+        &.show .modal-dialog {
+            transform: none;
+        }
+
+        .modal-content {
+            max-height: 92vh;
+            max-height: 92dvh;
+            border: 0;
+            border-radius: 1rem 1rem 0 0;
+        }
+
+        .modal-body {
+            padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+            // The page behind never scrolls along (Bootstrap locks the body; this stops the scroll chaining)
+            overscroll-behavior: contain;
+        }
+    }
+
+    .achievement-sheet-top {
+        flex-shrink: 0;
+        // The finger drags the sheet here (achievement_sheet_controller.js), the page must not scroll instead
+        touch-action: none;
+    }
+
+    .achievement-sheet-grab {
+        display: block;
+        width: 2.25rem;
+        height: .3125rem;
+        margin: .5rem auto 0;
+        border-radius: 1rem;
+        background: #cfd6e0;
+    }
+
+    .achievement-sheet-top .modal-header {
+        padding-top: .5rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #dynamic-modal-container.achievement-sheet-open .modal-dialog {
+        transition: none;
+    }
+}
+
+.achievement-sheet-body {
+    padding-top: .25rem;
+}
+
+.achievement-sheet-description {
+    margin: 0 auto .25rem;
+    max-width: 30rem;
+    text-align: center;
+    color: $medal-muted;
+    font-size: .875rem;
+}
+
+.achievement-sheet-whose {
+    margin: 0 0 .25rem;
+    text-align: center;
+    font-size: .8125rem;
+    font-weight: 500;
+    color: $medal-ink;
+}
+
+// ---- The medal ------------------------------------------------------------------------------------------------------
+
+.medal {
+    --medal-size: 200px;
+    --medal-thick: calc(var(--medal-size) * .045);
+    --rx: 0deg;
+    --ry: 0deg;
+    --lx: 32%;
+    --ly: 24%;
+    --bgx: 50%;
+    --bgy: 50%;
+    --act: 0;
+    --foil-idle: 0;
+    --foil-lit: 0;
+    --medal-rim-tone: #c8d2e6;
+    --medal-edge-tone: #{$medal-ink};
+
+    position: relative;
+    width: var(--medal-size);
+    height: var(--medal-size);
+    margin: .75rem auto 1rem;
+    perspective: calc(var(--medal-size) * 4);
+    container-type: inline-size;
+}
+
+.medal[data-finish="rim"] {
+    --foil-idle: .42;
+    --foil-lit: .9;
+}
+
+.medal[data-finish="masterpiece"] {
+    --foil-idle: .55;
+    --foil-lit: 1;
+}
+
+.medal-card {
+    position: absolute;
+    inset: 0;
+    display: block;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: none;
+    color: inherit;
+    cursor: pointer;
+    // A sideways drag tilts the medal, a vertical one still scrolls the sheet
+    touch-action: pan-y pinch-zoom;
+    transform-style: preserve-3d;
+    -webkit-tap-highlight-color: transparent;
+
+    &:focus-visible {
+        outline: 3px solid $primary;
+        outline-offset: 4px;
+    }
+
+    &:disabled,
+    &:is(div) {
+        cursor: default;
+    }
+}
+
+.medal-tilt,
+.medal-flip {
+    position: absolute;
+    inset: 0;
+    transform-style: preserve-3d;
+}
+
+.medal-tilt {
+    transform: rotateX(var(--rx)) rotateY(var(--ry));
+}
+
+.medal-flip {
+    transition: transform .7s cubic-bezier(.3, 1.35, .55, 1);
+}
+
+.medal.is-turned .medal-flip {
+    transform: rotateY(180deg);
+}
+
+.medal-face {
+    position: absolute;
+    inset: 0;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+}
+
+.medal-front {
+    transform: translateZ(calc(var(--medal-thick) / 2));
+}
+
+.medal-back {
+    transform: rotateY(180deg) translateZ(calc(var(--medal-thick) / 2));
+}
+
+.medal-art {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    user-select: none;
+    -webkit-user-drag: none;
+}
+
+// The coin's edge: the back silhouette (mirrored back to the front's side) at four depths between the faces - seen
+// while the medal turns or tilts. Only a medal with a back has one.
+.medal-edge {
+    position: absolute;
+    inset: 0;
+    display: none;
+    transform: translateZ(calc(var(--k) * var(--medal-thick))) scaleX(-1);
+    background: linear-gradient(180deg, color-mix(in srgb, var(--medal-edge-tone) 70%, var(--medal-rim-tone)), var(--medal-edge-tone));
+    -webkit-mask: var(--medal-back) center / 100% 100% no-repeat;
+    mask: var(--medal-back) center / 100% 100% no-repeat;
+    pointer-events: none;
+}
+
+.medal.has-back .medal-edge {
+    display: block;
+}
+
+// Ground shadow: the site's flat ellipse, no cast shadows
+.medal-shadow {
+    position: absolute;
+    top: 97%;
+    left: 50%;
+    width: 62%;
+    height: 8%;
+    transform: translateX(-50%);
+    background: radial-gradient(closest-side, rgb(182 195 227 / .7), rgb(219 229 244 / .45) 55%, rgb(219 229 244 / 0));
+    pointer-events: none;
+}
+
+.medal-hint {
+    margin: -.25rem 0 .75rem;
+    text-align: center;
+    font-size: .8125rem;
+    color: $medal-muted;
+}
+
+// ---- Front: the foil of Platinum (rim) and Diamond (Masterpiece) ------------------------------------------------------
+
+.medal-fx {
+    position: absolute;
+    inset: 0;
+    display: none;
+    pointer-events: none;
+    -webkit-mask-size: 100% 100%;
+    mask-size: 100% 100%;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+}
+
+.medal:is([data-finish="rim"], [data-finish="masterpiece"]) :is(.medal-foil, .medal-foil-vivid, .medal-glare, .medal-spot),
+.medal.has-textures[data-finish="masterpiece"] :is(.medal-glitter, .medal-etch) {
+    display: block;
+}
+
+// 1. Pastel prism bands, multiplied: they show on the white and pastel fills, the navy ink stays ink
+.medal-foil {
+    background-image: $medal-bands;
+    background-size: 220% 220%;
+    background-position: var(--bgx) var(--bgy);
+    mix-blend-mode: multiply;
+    opacity: calc((var(--foil-idle) + (var(--foil-lit) - var(--foil-idle)) * var(--act)) * .85);
+    -webkit-mask-image: var(--medal-foil);
+    mask-image: var(--medal-foil);
+}
+
+// 2. In the light the bands turn vivid - hue only, the art's values stay readable
+.medal-foil-vivid {
+    background-image: $medal-bands-vivid;
+    background-size: 220% 220%;
+    background-position: calc(var(--bgx) + 2%) var(--bgy);
+    mix-blend-mode: color;
+    opacity: calc((var(--foil-idle) + (var(--foil-lit) - var(--foil-idle)) * var(--act)) * .55);
+    -webkit-mask-image: var(--medal-foil), radial-gradient(farthest-corner circle at var(--lx) var(--ly), #000 0%, rgb(0 0 0 / .45) 28%, rgb(0 0 0 / .3) 70%);
+    mask-image: var(--medal-foil), radial-gradient(farthest-corner circle at var(--lx) var(--ly), #000 0%, rgb(0 0 0 / .45) 28%, rgb(0 0 0 / .3) 70%);
+    -webkit-mask-composite: source-in;
+    mask-composite: intersect;
+}
+
+// 3. Glitter (Diamond): coloured flakes and white sparkles twinkling in a moving band of light
+.medal-glitter {
+    background-image: var(--medal-glitter);
+    background-size: 46% 46%;
+    background-position: calc(50% + (var(--bgx) - 50%) * .15) calc(50% + (var(--bgy) - 50%) * .15);
+    opacity: calc(.3 + .65 * var(--act));
+    -webkit-mask-image: var(--medal-foil), repeating-linear-gradient(64deg, transparent 0%, transparent 2%, #000 6%, #000 8%, transparent 12%, transparent 15%), radial-gradient(farthest-corner circle at var(--lx) var(--ly), #000 0%, rgb(0 0 0 / .3) 70%);
+    mask-image: var(--medal-foil), repeating-linear-gradient(64deg, transparent 0%, transparent 2%, #000 6%, #000 8%, transparent 12%, transparent 15%), radial-gradient(farthest-corner circle at var(--lx) var(--ly), #000 0%, rgb(0 0 0 / .3) 70%);
+    -webkit-mask-size: 100% 100%, 260% 260%, 100% 100%;
+    mask-size: 100% 100%, 260% 260%, 100% 100%;
+    -webkit-mask-position: center, var(--bgy) var(--bgx), center;
+    mask-position: center, var(--bgy) var(--bgx), center;
+    -webkit-mask-composite: source-in, source-in;
+    mask-composite: intersect, intersect;
+}
+
+// 4. The jigsaw etch (Diamond): die-cut lines drawn in vivid bands, only near the light
+.medal-etch {
+    background-image: $medal-bands-vivid;
+    background-size: 220% 220%;
+    background-position: calc(var(--bgx) - 8%) var(--bgy);
+    mix-blend-mode: multiply;
+    opacity: calc(.15 + .45 * var(--act));
+    -webkit-mask-image: var(--medal-etch), var(--medal-foil), radial-gradient(circle at var(--lx) var(--ly), #000 0%, rgb(0 0 0 / .4) 26%, rgb(0 0 0 / 0) 58%);
+    mask-image: var(--medal-etch), var(--medal-foil), radial-gradient(circle at var(--lx) var(--ly), #000 0%, rgb(0 0 0 / .4) 26%, rgb(0 0 0 / 0) 58%);
+    -webkit-mask-size: 50% 50%, 100% 100%, 100% 100%;
+    mask-size: 50% 50%, 100% 100%, 100% 100%;
+    -webkit-mask-repeat: repeat, no-repeat, no-repeat;
+    mask-repeat: repeat, no-repeat, no-repeat;
+    -webkit-mask-position: calc(50% - (var(--bgx) - 50%) * .1) calc(50% - (var(--bgy) - 50%) * .1), center, center;
+    mask-position: calc(50% - (var(--bgx) - 50%) * .1) calc(50% - (var(--bgy) - 50%) * .1), center, center;
+    -webkit-mask-composite: source-in, source-in;
+    mask-composite: intersect, intersect;
+}
+
+// 5. Specular glare over the whole art (a glossy print), the far side a touch cooler
+.medal-glare {
+    background: radial-gradient(farthest-corner circle at var(--lx) var(--ly), rgb(255 255 255 / .95) 0%, rgb(255 255 255 / .35) 20%, rgb(255 255 255 / 0) 45%, rgb(70 80 120 / .28) 100%);
+    mix-blend-mode: soft-light;
+    opacity: calc(.3 + .5 * var(--act));
+    -webkit-mask-image: var(--medal-art);
+    mask-image: var(--medal-art);
+}
+
+// 6. A small white hot spot that still reads on the pastel art
+.medal-spot {
+    background: radial-gradient(circle at var(--lx) var(--ly), rgb(255 255 255 / .6) 0%, rgb(255 255 255 / .2) 11%, rgb(255 255 255 / 0) 28%);
+    mix-blend-mode: screen;
+    opacity: calc(.25 + .6 * var(--act));
+    -webkit-mask-image: var(--medal-art);
+    mask-image: var(--medal-art);
+}
+
+// ---- Back: the plate and the engraving -------------------------------------------------------------------------------
+
+.medal-plate {
+    position: absolute;
+    inset: 0;
+    // Without the precomputed plate (an old manifest): a plain disc in the tier's tone
+    background: radial-gradient(circle, color-mix(in srgb, var(--medal-rim-tone) 35%, #fff) 62%, var(--medal-edge-tone) 64%, transparent 65%);
+}
+
+.medal.has-back .medal-plate {
+    background: var(--medal-back) center / 100% 100% no-repeat;
+}
+
+.medal-backfoil {
+    position: absolute;
+    inset: 0;
+    display: none;
+    background-image: $medal-bands;
+    background-size: 220% 220%;
+    background-position: calc(100% - var(--bgx)) var(--bgy);
+    mix-blend-mode: multiply;
+    opacity: .35;
+    pointer-events: none;
+    -webkit-mask: var(--medal-back) center / 100% 100% no-repeat;
+    mask: var(--medal-back) center / 100% 100% no-repeat;
+}
+
+.medal[data-finish="masterpiece"] .medal-backfoil {
+    display: block;
+}
+
+// Real text, engraved: navy with a 1 px light edge below. Sized in container units of the 200 px medal, lines that
+// could run long in other languages wrap (name) or stay one short line (the numbers).
+.medal-engraving {
+    position: absolute;
+    top: var(--medal-field-y, 50%);
+    left: var(--medal-field-x, 50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: .4cqw;
+    width: calc(var(--medal-field-r, 31%) * 1.8);
+    transform: translate(-50%, -50%);
+    color: $medal-ink;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+    text-align: center;
+    text-shadow: 0 .5cqw 0 rgb(255 255 255 / .7);
+    pointer-events: none;
+
+    &[hidden] {
+        display: none;
+    }
+}
+
+.medal-engraving-name {
+    max-width: 74%;
+    font-size: 5.2cqw;
+    font-weight: 600;
+    letter-spacing: .03em;
+    text-transform: uppercase;
+    text-wrap: balance;
+    overflow-wrap: anywhere;
+}
+
+.medal-engraving-tier {
+    font-size: 4.8cqw;
+    font-weight: 600;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+}
+
+.medal-engraving-rule {
+    width: 44%;
+    height: .6cqw;
+    margin: .4cqw 0;
+    border-radius: 1cqw;
+    background: currentColor;
+    opacity: .35;
+    box-shadow: 0 .5cqw 0 rgb(255 255 255 / .7);
+}
+
+.medal-engraving-serial {
+    font-size: 10cqw;
+    font-weight: 600;
+    line-height: 1;
+    white-space: nowrap;
+
+    small {
+        margin-right: .2em;
+        font-size: .45em;
+        font-weight: 500;
+        vertical-align: .45em;
+    }
+}
+
+.medal-engraving-line {
+    max-width: 100%;
+    font-size: 5cqw;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.medal-engraving-launch {
+    margin: .6cqw 0;
+    font-size: 6cqw;
+    font-weight: 600;
+    letter-spacing: .03em;
+    text-wrap: balance;
+}
+
+// The short share ("4.2 %"): the facts line under the medal names the denominator (QA 2026-10-11: the long form was ~8 px)
+.medal-engraving-share {
+    max-width: 84%;
+    font-size: 5.2cqw;
+    font-weight: 500;
+    text-wrap: balance;
+}
+
+.medal-engraving-date {
+    font-size: 5cqw;
+    letter-spacing: .03em;
+    white-space: nowrap;
+    opacity: .9;
+}
+
+// Reduced motion: no 3D turn, no tilt - the faces cross-fade in 0.2 s
+@media (prefers-reduced-motion: reduce) {
+    .medal-tilt,
+    .medal-flip,
+    .medal.is-turned .medal-flip,
+    .medal-front,
+    .medal-back {
+        transform: none;
+        transition: none;
+    }
+
+    .medal-front,
+    .medal-back {
+        transition: opacity .2s linear;
+    }
+
+    .medal-back {
+        opacity: 0;
+    }
+
+    .medal.is-turned {
+        .medal-front {
+            opacity: 0;
+        }
+
+        .medal-back {
+            opacity: 1;
+        }
+    }
+
+    .medal.has-back .medal-edge {
+        display: none;
+    }
+}
+
+// ---- Facts line ------------------------------------------------------------------------------------------------------
+
+.medal-facts {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: .375rem;
+    margin-bottom: .75rem;
+    text-align: center;
+}
+
+.medal-facts-tier {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: .375rem;
+
+    &[hidden] {
+        display: none;
+    }
+}
+
+.medal-facts-chips {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: .375rem;
+}
+
+.medal-facts-share,
+.medal-facts-record {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: .375rem;
+    font-size: .875rem;
+    color: $medal-ink;
+    font-variant-numeric: tabular-nums;
+}
+
+.medal-facts-record {
+    font-weight: 500;
+}
+
+.medal-footnote {
+    margin: 1rem 0 0;
+    font-size: .75rem;
+    line-height: 1.45;
+}
+
+.medal-chip {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2rem;
+    padding: .25rem .75rem;
+    border-radius: 2rem;
+    background: #f3f5f9;
+    color: $medal-ink;
+    font-size: .8125rem;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+}
+
+.medal-chip-tier {
+    font-weight: 600;
+}
+
+.medal-rarity-rare {
+    background: #e3f0fe;
+}
+
+.medal-rarity-very_rare {
+    background: #ece9fd;
+}
+
+.medal-rarity-ultra_rare {
+    background: linear-gradient(#fff, #fff) padding-box, linear-gradient(110deg, #ff9eb0, #c09aea, #62c8d2, #74aef6) border-box;
+    border: 1px solid transparent;
+}
+
+// ---- The tiers (2A) --------------------------------------------------------------------------------------------------
+
+.medal-tiers {
+    margin: 0;
+}
+
+.medal-tier {
+    position: relative;
+    display: grid;
+    grid-template-columns: 40px minmax(0, 1fr) auto;
+    column-gap: .75rem;
+    align-items: center;
+    min-height: 52px;
+    padding: .375rem .5rem;
+    border-radius: .75rem;
+    transition: background-color .12s ease, transform .12s ease;
+
+    & + & {
+        margin-top: .125rem;
+    }
+
+    &.is-shown {
+        background: #f3f5f9;
+    }
+
+    &:active {
+        transform: scale(.97);
+    }
+}
+
+.medal-tier-seal {
+    width: 40px;
+    height: 40px;
+}
+
+.medal-tier-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.medal-tier-name {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: $medal-ink;
+    font-size: .875rem;
+    font-weight: 600;
+    text-align: left;
+
+    // The whole row is the button's target (Bootstrap's .stretched-link), its focus ring the row's
+    &:focus-visible {
+        outline: 0;
+
+        &::after {
+            border-radius: .75rem;
+            outline: 2px solid $primary;
+            outline-offset: -2px;
+        }
+    }
+}
+
+.medal-tier-check {
+    color: $success;
+    font-size: .875rem;
+}
+
+.medal-tier-requirement,
+.medal-tier-numbers {
+    font-size: .8125rem;
+    line-height: 1.35;
+    color: $medal-muted;    text-wrap: balance;
+}
+
+.medal-tier-progress {
+    margin: .25rem 0 .125rem;
+}
+
+.medal-tier-ap {
+    font-size: .8125rem;
+    font-weight: 600;
+    color: $medal-muted;
+    white-space: nowrap;
+}
+
+.medal-tier.is-earned .medal-tier-ap {
+    color: $progression-achievements; // 5.9:1 (the lighter amber was 3.6:1)
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .medal-tier,
+    .medal-tier:active {
+        transform: none;
+        transition: none;
+    }
+}
+
+// ---- Actions ---------------------------------------------------------------------------------------------------------
+
+.medal-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+    margin-top: 1rem;
+
+    // The buttons share the sheet's width on every screen - one button alone (Early Adopter) spans it, never sits left
+    // under a centred medal
+    > .btn {
+        display: inline-flex;
+        flex: 1 1 auto;
+        align-items: center;
+        justify-content: center;
+        min-height: 44px;
+    }
+}

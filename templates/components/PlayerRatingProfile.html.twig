@@ -9,7 +9,7 @@
                             <i class="bi bi-trophy text-primary flex-shrink-0" style="font-size: 1.2rem;"></i>
                             <small class="fw-medium">{{ 'puzzle_intelligence.elo.qualification_title'|trans }}</small>
                         </div>
-                        <a href="{{ path('methodology', {return: app.request.uri, return_title: 'menu.profile'|trans}) }}" class="btn btn-outline-secondary btn-xs ms-2"><i class="bi bi-question-circle"></i></a>
+                        <a href="{{ path('methodology', {return: path('player_profile', {playerId: this.playerId}), return_title: 'menu.profile'|trans}) }}#msp-rating" class="progress-help-link" rel="nofollow" aria-label="{{ 'player_progress.how_it_works'|trans }}" title="{{ 'player_progress.how_it_works'|trans }}"><i class="bi bi-question-circle" aria-hidden="true"></i></a>
                     </div>
                     <div class="mt-auto">
                     <small class="text-muted" style="font-size: 0.7rem;">{{ 'puzzle_intelligence.elo.ranked_out_of'|trans({'%total%': data.total}) }}</small>
@@ -26,15 +26,15 @@
     {% elseif isOwnProfile and ratingProgress is not null %}
         {# Not yet qualified — qualification banner matching rating ladder style #}
         {% set fa_done = ratingProgress.first_attempts >= minFirstAttempts %}
-        {% set ts_done = ratingProgress.total_solves >= 50 %}
-        <div class="card border-primary shadow-custom flex-shrink-0 h-100" style="background-color: rgba(var(--bs-primary-rgb), 0.1); min-width: 300px;">
+        {% set ts_done = ratingProgress.total_solves >= minTotalSolves %}
+        <div class="card border-primary shadow-custom flex-shrink-0 h-100" style="background-color: rgba(var(--bs-primary-rgb), 0.1); min-width: min(300px, 100%);">
             <div class="card-body py-2 px-3">
                 <div class="d-flex align-items-center justify-content-between mb-1">
                     <div class="d-flex align-items-center gap-2">
                         <i class="bi bi-trophy text-primary flex-shrink-0" style="font-size: 1.2rem;"></i>
                         <small class="fw-medium">{{ 'puzzle_intelligence.elo.qualification_title'|trans }}</small>
                     </div>
-                    <a href="{{ path('methodology', {return: app.request.uri, return_title: 'menu.profile'|trans}) }}" class="btn btn-outline-secondary btn-xs ms-2"><i class="bi bi-question-circle"></i></a>
+                    <a href="{{ path('methodology', {return: path('player_profile', {playerId: this.playerId}), return_title: 'menu.profile'|trans}) }}#msp-rating" class="progress-help-link" rel="nofollow" aria-label="{{ 'player_progress.how_it_works'|trans }}" title="{{ 'player_progress.how_it_works'|trans }}"><i class="bi bi-question-circle" aria-hidden="true"></i></a>
                 </div>
                 <div class="d-flex align-items-center gap-2 mb-1">
                     <small class="text-muted" style="min-width: 100px;">
@@ -53,10 +53,10 @@
                         {{ 'puzzle_intelligence.elo.progress_total_solves'|trans }}
                     </small>
                     <div class="progress flex-grow-1" style="height: 5px; background-color: #fff;">
-                        {% set ts_pct = (ratingProgress.total_solves / 50 * 100) > 100 ? 100 : (ratingProgress.total_solves / 50 * 100) %}
+                        {% set ts_pct = (ratingProgress.total_solves / minTotalSolves * 100) > 100 ? 100 : (ratingProgress.total_solves / minTotalSolves * 100) %}
                         <div class="progress-bar {{ ts_done ? 'bg-success' : 'bg-primary' }}" style="width: {{ ts_pct }}%;"></div>
                     </div>
-                    <small class="text-muted fw-medium">{{ ratingProgress.total_solves }}/50</small>
+                    <small class="text-muted fw-medium">{{ ratingProgress.total_solves }}/{{ minTotalSolves }}</small>
                 </div>
                 <a href="{{ path('msp_rating_ladder') }}" class="text-decoration-none mt-1"><small>{{ 'puzzle_intelligence.elo.view_full_ladder'|trans }} <i class="bi bi-arrow-right"></i></small></a>
             </div>
@@ -69,7 +69,7 @@
                         <i class="bi bi-trophy text-muted flex-shrink-0" style="font-size: 1.2rem;"></i>
                         <small class="fw-medium">{{ 'puzzle_intelligence.elo.qualification_title'|trans }}</small>
                     </div>
-                    <a href="{{ path('methodology', {return: app.request.uri, return_title: 'menu.profile'|trans}) }}" class="btn btn-outline-secondary btn-xs ms-2"><i class="bi bi-question-circle"></i></a>
+                    <a href="{{ path('methodology', {return: path('player_profile', {playerId: this.playerId}), return_title: 'menu.profile'|trans}) }}#msp-rating" class="progress-help-link" rel="nofollow" aria-label="{{ 'player_progress.how_it_works'|trans }}" title="{{ 'player_progress.how_it_works'|trans }}"><i class="bi bi-question-circle" aria-hidden="true"></i></a>
                 </div>
                 <small class="text-muted mt-auto">
                     {{ 'puzzle_intelligence.elo.not_ranked_yet'|trans }}

@@ -19,7 +19,7 @@ alone: the membership badge, "Send message", and the owner's share-link input. U
 | | Decision |
 |---|---|
 | Layout | **A + B**: the header of variant A, the bar of variant B (it carries the page tabs on phones too) |
-| Tab labels | short: Profile · Statistics · Calendar · Library · Favorites (`player_header.tabs.*`) |
+| Tab labels | short: Profile · Statistics · Calendar · Achievements · Library · Favorites (`player_header.tabs.*`) |
 | Country | the flag on the avatar only - the meta line is just `#CODE` |
 | Tier chip | opted out of rankings = **no chip**; not ranked yet = "No tier yet" (members only); see the rules below |
 | Owner-only pages | a one-line strip instead of the header (reasoning below) |
@@ -27,6 +27,7 @@ alone: the membership badge, "Send message", and the owner's share-link input. U
 | Favorite button | **filled while the player is in your favorites** (a toggle that shows its state), outline otherwise |
 | Repeated page titles | "Puzzle library of X" and "Activity calendar" are visually hidden (kept as the H1 for search engines and screen readers) - the header and its tab say it |
 | Favorites | **personal**: the tab and the page exist only for the owner, and the page also lists who has *you* in favorites (see "Favorites page") |
+| Achievements | `player_achievements` (`/en/player-achievements/{id}`, 2026-10-11): the catalogue rows with this player's tiers, Earned / Next up / All. Only members have achievements: the tab is shown on a member's pages (public) and to a non-member owner (the member tease), never on a non-member's pages for others; behind the launch switch (`XpFeatureGate`); opting out of XP does not hide it. The owner's unrevealed tiers are "?" rows leading to the reveal page. The showcase summary and the user menu's "My achievements" link here; `/achievements` stays the catalogue of all achievements |
 
 **Why the strip on owner-only pages:** the header answers *whose page is this*, *what can I do with this person*, and
 *where else can I go*. On the owner's own forms and histories (edit a collection, sell/swap settings, export …)
@@ -39,8 +40,8 @@ bar with it while scrolling a form. Visitors never reach these pages (403/404). 
 
 ```
 ┌ avatar ┐  Name (20 px; H1 where the page has none)
-│ + flag │  #CODE                                   (14 px, $lb-secondary)
-└────────┘  [◆ Expert] [♥ Member] [🕶 Private profile]
+│ + ring │  #CODE · ♥ Member · 🕶 Private profile    (14 px, $lb-secondary)
+└─Lv 12──┘  [◆ Expert] [🏆 #14 MSP Rating] [karma - workstream F]
 [ ★ Favorite ][ ✉ Message ][⋯]          own: [ ⇪ Share ][ ✎ Edit profile ][⋯]
  Profile   Statistics   Calendar   Library   (Favorites - owner only)
 ```
@@ -63,7 +64,7 @@ bar with it while scrolling a form. Visitors never reach these pages (403/404). 
 | Part | Own profile | Someone else's | Hidden private profile | Guest |
 |---|---|---|---|---|
 | Name | real name or `#CODE` | same | "Hidden Puzzler" | same rules |
-| Chips | tier rules · Member · Private profile (if private) | tier rules · Member | none | locked tier · Member |
+| Chips | tier rules · MSP place (Member, Private profile on the #CODE line) | tier rules · MSP place (Member on the #CODE line) | none | locked tier · MSP place |
 | Buttons | Share · Edit profile | Favorite · Message (if `canMessage`) · compare icon | Favorite · Message (if `canMessage`) | Favorite (→ sign-in) · compare icon (→ sign-in) |
 | ⋯ menu | Share profile, Edit profile, Who can see my profile (if private) / Export data, Referral Program | Add to/Remove from favorites, Send message (if `canMessage`) / Add to comparison - or Open comparison + Remove from comparison, Share profile / Block player | no comparison items | Add to favorites, Add to comparison (→ sign-in), Share profile |
 | Tabs | 5 | 4 (no Favorites) | none | 4 |
@@ -82,6 +83,25 @@ header in all 6 locales × {Message + favorite off, Message + favorite on, guest
 queried only when DMs are off). It moved from `PlayerProfileController` into the component, so Message works on every
 page with the header.
 
+### Progression (2026-10-10, docs/features/xp-levels/launch-2026-10.md draft A)
+
+- **Level ring** around the avatar (`<twig:XpRing variant="header">`): a progress arc toward the next level drawn
+  outside the avatar, a "Lv 12" tab on its bottom edge (gold at Level 50), the flag moves to the top corner. The whole
+  avatar links to the owner's XP history (`xp_history`) or, for anybody else, to `xp_explainer`. Not shown while
+  `XpFeatureGate` hides XP from the viewer, for a player who opted out of the experience system, or on a hidden private
+  profile - the avatar then renders exactly as without the ring. The compact bar keeps the arc (`variant="bar"`), no
+  tab, no chips. The profile's old XP block (a second 52 px avatar + bar) is gone.
+- **One chip row, at most three, one per family**: skill tier (rank colours, rules below, links `methodology`), MSP
+  Rating place "#14 MSP Rating" (coral, links `msp_rating_ladder`; only while on the ladder - not private, not opted
+  out of rankings), karma (teal, only above 0 - a marked slot in the template, filled by workstream F). Each pill is
+  28 px with a 44 px hit area (`::after`). Member and Private profile are words on the `#CODE` line.
+- **Zero queries**: `xp_total`, `level`, `achievement_points` ride on both profile rows; `GetPlayerProfile::byId()` also
+  carries the 500-piece skill tier and the MSP Rating place (`GetPlayerRatingRanking::sqlRankOf()`, the profile card's
+  number). The header's own `GetPlayerSkill` call is gone. `PlayerFavoritePuzzlersController` now passes the `byId()`
+  row (the viewer's own row has no tier/place).
+- Free visitors see one lock at most: the skill-tier chip (the profile's "Player Insights" lock button is gone).
+- Styles: `assets/styles/_progression-profile.scss`. Tests: `tests/Controller/ProfileProgressionTest.php`.
+
 ### Tier chip (`PlayerHeader::tierChip()`, 500 pieces)
 
 | Case | Chip |
@@ -91,7 +111,7 @@ page with the header.
 | member viewer, the player has a tier | the tier icon in its colour on a tint of it + the tier's name |
 | member viewer, no tier yet | grey "No tier yet" - not for a private profile |
 
-The skill query runs only for a member viewer (it used to run for guests and non-members too, who only saw a lock).
+The tier rides on the profile row (`GetPlayerProfile::byId()`) - no query (2026-10-10; before it was one query for a member viewer).
 
 ### Pages
 

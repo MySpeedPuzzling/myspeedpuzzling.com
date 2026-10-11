@@ -35,7 +35,7 @@ final class GetPlayerRatingRankingOptOutTest extends KernelTestCase
     public function testOptedOutPlayerExcludedFromRanking(): void
     {
         $entriesBefore = $this->query->ranking(500);
-        $countBefore = $this->query->totalCount(500);
+        $countBefore = $this->query->window(500, 100)->total;
 
         if ($countBefore === 0) {
             self::markTestSkipped('No rating entries in fixtures');
@@ -48,7 +48,7 @@ final class GetPlayerRatingRankingOptOutTest extends KernelTestCase
         self::getContainer()->get('doctrine.orm.entity_manager')->flush();
 
         $entriesAfter = $this->query->ranking(500);
-        $countAfter = $this->query->totalCount(500);
+        $countAfter = $this->query->window(500, 100)->total;
 
         self::assertSame($countBefore - 1, $countAfter);
 

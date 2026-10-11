@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\FormType;
 
 use SpeedPuzzling\Web\FormData\MessagingSettingsFormData;
+use SpeedPuzzling\Web\Value\ContentDigestFrequency;
 use SpeedPuzzling\Web\Value\EmailNotificationFrequency;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
@@ -56,12 +57,25 @@ final class MessagingSettingsFormType extends AbstractType
             'help' => 'edit_profile.result_emails_help',
             'required' => false,
         ]);
+
+        // The activity digest e-mail - shown once the XP launch switch is on (XpFeatureGate), admins before
+        if ($options['show_content_digest'] === true) {
+            $builder->add('contentDigestFrequency', EnumType::class, [
+                'class' => ContentDigestFrequency::class,
+                'label' => 'activity_digest.settings.label',
+                'help' => 'activity_digest.settings.help',
+                'choice_label' => static fn (ContentDigestFrequency $frequency): string => $frequency->translationKey(),
+            ]);
+        }
     }
 
     public function configureOptions(OptionsResolver $resolver): void
     {
         $resolver->setDefaults([
             'data_class' => MessagingSettingsFormData::class,
+            'show_content_digest' => false,
         ]);
+
+        $resolver->setAllowedTypes('show_content_digest', 'bool');
     }
 }

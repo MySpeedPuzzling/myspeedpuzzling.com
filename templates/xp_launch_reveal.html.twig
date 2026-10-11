@@ -1,0 +1,209 @@
+{% extends 'base.html.twig' %}
+
+{# The reveal fills the screen card by card - the floating compare pill would sit on the card's facts #}
+{% set hide_comparison_launcher = true %}
+
+{% block title %}{{ 'xp.reveal.meta_title'|trans }}{% endblock %}
+
+{% block content %}
+    {% import 'xp/_level_medallion.html.twig' as reveal %}
+    {% set level = xp_profile.level %}
+    {% set xp_total = xp_profile.xpTotal|plain_number %}
+    {# A member meets every achievement one by one (the deck); the achievement detail is a member feature, so a free
+       player gets their level and how many achievements wait - never which.
+       The launch modal is the level's chapter: once the level was revealed there (level_revealed), this page is the
+       achievements' chapter and the deck leaves the level out; otherwise the level card leads the deck
+       (README §The launch reveal) #}
+    {% set has_deck = is_member and badges|length > 0 %}
+    {% set level_in_deck = has_deck and not level_revealed %}
+    {# From the launch modal's button (?start=1): straight to the first card - the tap there was the invitation #}
+    {% set autostart = has_deck and autostart %}
+    {% set badges_count = badges|length %}
+    {% set crumbs = {levels: [], back: {name: logged_user.profile.playerName ?? ('#' ~ logged_user.profile.code|upper), url: path('player_profile', {playerId: logged_user.profile.playerId})}} %}
+
+    <div
+        class="xpl mx-auto"
+        {% if has_deck %}
+            data-controller="xp-launch-reveal"
+            data-xp-launch-reveal-last-piece-reveal-outlet="#xpl-deck"
+            data-action="last-piece-reveal:revealed->xp-launch-reveal#cardRevealed"
+            {% if autostart %}data-xp-launch-reveal-autostart-value="true"{% endif %}
+        {% endif %}
+    >
+        {% if has_deck %}
+            <section class="xpl-intro" data-xp-launch-reveal-target="intro" {{ autostart ? 'hidden' }}>
+                {# Back to ?return= or the own profile (design-spec §3) #}
+                {{ include('_page_crumbs.html.twig', crumbs) }}
+                <img
+                    src="{{ asset('img/xp/xp-hero-1200.webp') }}"
+                    alt=""
+                    width="1200"
+                    height="675"
+                    class="xpl-hero rounded-3 mb-3"
+                    fetchpriority="high"
+                >
+
+                {% if level_revealed %}
+                    {# The level was the modal's moment - this is the achievements' chapter #}
+                    <h1 class="h3 mb-2">{{ 'xp.reveal.achievements_title'|trans }}</h1>
+                    <p class="text-body-secondary">{{ 'xp.reveal.achievements_intro'|trans }}</p>
+                    <p class="xpl-waiting">{{ 'xp.reveal.achievements_waiting'|trans({'%count%': badges_count}) }}</p>
+                {% else %}
+                    <h1 class="h3 mb-2">{{ 'xp.reveal.title'|trans }}</h1>
+                    <p class="text-body-secondary">{{ 'xp.reveal.intro'|trans }}</p>
+                    <p class="xpl-waiting">{{ 'xp.reveal.waiting'|trans({'%count%': badges_count}) }}</p>
+                {% endif %}
+
+                <button type="button" class="btn btn-primary btn-lg xpl-start" data-action="xp-launch-reveal#start">
+                    {{ 'xp.reveal.start'|trans }}
+                </button>
+            </section>
+
+            {# One card at a time: the picture assembles by itself (last_piece_reveal_controller.js, driven by
+               xp_launch_reveal_controller.js), its texts follow; a tap anywhere goes on. Each card names what the bar
+               and the big button say while it is shown (data-xpl-progress, data-xpl-next), so the order can be
+               anything. The XP in the bar is the player's XP from puzzles - achievements grant none #}
+            <section
+                id="xpl-deck"
+                class="xpl-deck lpr-page"
+                {{ autostart ? '' : 'hidden' }}
+                data-xp-launch-reveal-target="deck"
+                data-controller="last-piece-reveal"
+                data-last-piece-reveal-skip-label-value="{{ 'badges.reveals.stage_running'|trans }}"
+            >
+                <div class="xpl-bar">
+                    <span class="xpl-counter" title="{{ 'xp.reveal.counter_title'|trans }}">
+                        <i class="bi bi-lightning-charge-fill" aria-hidden="true"></i>
+                        {{ xp_total }} XP
+                    </span>
+                    <span class="xpl-progress" data-xp-launch-reveal-target="progress"></span>
+                    <span class="xpl-bar-end">
+                        <button type="button" class="btn btn-sm btn-link xpl-skip" data-action="xp-launch-reveal#skip">
+                            {{ 'xp.reveal.skip'|trans }}
+                        </button>
+                    </span>
+                </div>
+
+                <div class="xpl-cards" data-action="click->xp-launch-reveal#tap">
+                    {% if level_in_deck %}
+                        <article
+                            class="xpl-card xpl-card-level"
+                            data-xp-launch-reveal-target="card"
+                            data-xpl-progress=""
+                            data-xpl-next="{{ 'xp.reveal.to_achievements'|trans }}"
+                            {{ autostart ? '' : 'hidden' }}
+                        >
+                            <div
+                                class="lpr-stage"
+                                role="img"
+                                data-last-piece-reveal-target="stage"
+                                data-last-piece-reveal-look-param="{{ xp_profile.isMaxLevel ? 'level-max' : 'level' }}"
+                                data-last-piece-reveal-url-param="{{ path('xp_launch_level_revealed') }}"
+                                data-last-piece-reveal-done-label-param="{{ 'xp.reveal.stage_done'|trans({'%level%': level}) }}"
+                                aria-label="{{ 'xp.reveal.stage_label'|trans }}"
+                            >
+                                <span class="lpr-tray" aria-hidden="true"></span>
+                                <svg class="lpr-emblem" viewBox="0 0 300 300" aria-hidden="true" focusable="false">
+                                    {{ reveal.level_medallion(xp_profile, 'xpl-arc-deck') }}
+                                </svg>
+                            </div>
+
+                            <div class="xpl-card-text" aria-live="polite">
+                                <div class="xpl-card-reveal">
+                                    <h2 class="xpl-name">{{ 'xp.reveal.stage_done'|trans({'%level%': level}) }}</h2>
+                                    <p class="xpl-total">{{ xp_total }} XP</p>
+                                    <p class="xpl-why">{{ 'xp.reveal.xp_note'|trans }}</p>
+                                    {{ include('xp/_level_next.html.twig', {xp_profile: xp_profile}) }}
+                                </div>
+                            </div>
+                        </article>
+                    {% endif %}
+
+                    {% for badge in badges %}
+                        {{ include('xp/_launch_reveal_card.html.twig', {
+                            badge: badge,
+                            progress_text: 'xp.reveal.progress'|trans({'%current%': loop.index, '%total%': badges_count}),
+                            next_label: (loop.last ? 'xp.reveal.to_summary' : 'xp.reveal.next')|trans,
+                            shown: autostart and loop.first and not level_in_deck,
+                        }) }}
+                    {% endfor %}
+                </div>
+
+                <button
+                    type="button"
+                    class="btn btn-primary btn-lg w-100 xpl-next"
+                    data-xp-launch-reveal-target="next"
+                    data-action="xp-launch-reveal#next"
+                >{{ 'xp.reveal.next'|trans }}</button>
+                <p class="xpl-hint">{{ 'xp.reveal.tap_hint'|trans }}</p>
+            </section>
+
+            <section class="xpl-summary" hidden data-xp-launch-reveal-target="summary">
+                <h2 class="h4 mb-3" tabindex="-1" data-xp-launch-reveal-target="summaryHeading">{{ 'xp.reveal.summary_title'|trans }}</h2>
+
+                <svg class="xpl-medallion" viewBox="0 0 300 300" role="img" aria-label="{{ 'xp.reveal.stage_done'|trans({'%level%': level}) }}">
+                    {{ reveal.level_medallion(xp_profile, 'xpl-arc-summary') }}
+                </svg>
+                <p class="xpl-total mb-0">{{ xp_total }} XP</p>
+                <p class="text-body-secondary fs-sm mb-0">{{ 'xp.reveal.xp_note'|trans }}</p>
+                {{ include('xp/_level_next.html.twig', {xp_profile: xp_profile}) }}
+
+                <ul class="xpl-grid" aria-label="{{ 'badges.title'|trans }}">
+                    {% for badge in badges %}
+                        <li class="xpl-grid-item" style="--xpl-i: {{ loop.index0 }}">
+                            {{ badge_art(badge.type, badge.tier, 72, attrs = {alt: ''}) }}
+                            <span class="xpl-grid-name">{{ (badge.type.translationKey())|trans }}</span>
+                            {% if badge.tier %}
+                                <span class="xpl-grid-tier">{{ (badge.tier.translationKey())|trans }}</span>
+                            {% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+                <p class="text-body-secondary fs-sm">{{ 'xp.reveal.achievements_member'|trans({'%count%': badges_count}) }}</p>
+
+                {{ include('xp/_launch_reveal_actions.html.twig') }}
+            </section>
+        {% elseif not level_revealed %}
+            {# No deck (a free player, or a member without achievements) and the level not revealed yet: this page is
+               the level's chapter - the same moment as the modal, which this player has not had #}
+            {{ include('_page_crumbs.html.twig', crumbs) }}
+            {% embed 'xp/_level_reveal.html.twig' with {xp_profile: xp_profile, gradient_id: 'xpl-arc-level'} %}
+                {% block intro %}
+                    <p class="xpl-level-eyebrow">{{ 'xp.launch_modal.eyebrow'|trans }}</p>
+                    <h1 class="h3 xpl-level-title">{{ 'xp.launch_modal.title'|trans }}</h1>
+                    <p class="xpl-level-text">{{ 'xp.launch_modal.text'|trans }}</p>
+                {% endblock %}
+
+                {% block after %}
+                    <div class="xpl-level-next">
+                        {{ include('xp/_launch_reveal_tease.html.twig') }}
+                        {{ include('xp/_launch_reveal_actions.html.twig') }}
+                    </div>
+                {% endblock %}
+            {% endembed %}
+        {% else %}
+            {# No deck and the level already revealed (in the modal): not the same moment again - the level as it
+               stands, what makes it grow, and what is next #}
+            <section class="xpl-summary">
+                {{ include('_page_crumbs.html.twig', crumbs) }}
+                <h1 class="h3 mb-2">{{ 'xp.reveal.level_title'|trans({'%level%': level}) }}</h1>
+                <p class="text-body-secondary">{{ 'xp.reveal.level_intro'|trans }}</p>
+
+                <svg class="xpl-medallion xpl-medallion-lg" viewBox="0 0 300 300" role="img" aria-label="{{ 'xp.reveal.stage_done'|trans({'%level%': level}) }}">
+                    {{ reveal.level_medallion(xp_profile, 'xpl-arc-summary') }}
+                </svg>
+                <p class="xpl-total mb-0">{{ xp_total }} XP</p>
+                <p class="text-body-secondary fs-sm mb-0">{{ 'xp.reveal.xp_note'|trans }}</p>
+                {{ include('xp/_level_next.html.twig', {xp_profile: xp_profile}) }}
+                <p class="fs-sm">
+                    <a href="{{ path('xp_explainer', {return: path('xp_launch_reveal'), return_title: 'xp.reveal.meta_title'|trans}) }}" rel="nofollow">{{ 'xp.explainer.title'|trans }}</a>
+                </p>
+
+                {{ include('xp/_launch_reveal_tease.html.twig') }}
+                {{ include('xp/_launch_reveal_actions.html.twig') }}
+            </section>
+        {% endif %}
+    </div>
+    {# Without JavaScript: the end state - the summary, the medallion, the XP #}
+    <noscript><style>.xpl-start{display:none}.xpl-summary[hidden]{display:block!important}.xpl-level .lpr-tray{display:none}.xpl-level .lpr-emblem{opacity:1!important}.xpl-level .lpr-after{visibility:visible!important;display:block!important}.xpl-level-before{display:none}</style></noscript>
+{% endblock %}

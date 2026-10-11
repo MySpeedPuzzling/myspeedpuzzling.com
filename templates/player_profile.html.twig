@@ -58,6 +58,9 @@
         <twig:Players:CountryNudge class="mb-3" />
     {% endif %}
 
+    {# Near the top: the member's achievements, best first (the owner's free-account line otherwise) #}
+    <twig:AchievementsShowcase :player="player" class="mb-3" />
+
     {% if player.isPrivate and (logged_user.profile is null or logged_user.profile.playerId is not same as player.playerId) %}
         <div class="alert alert-secondary d-flex align-items-start gap-3 p-3 rounded-3 shadow-sm">
             <i class="bi bi-incognito fs-2 text-muted flex-shrink-0"></i>
@@ -72,6 +75,13 @@
 
         </div>
     {% else %}
+        <div class="my-4">
+            <twig:Chart:PlayerAverageTimeChart playerId="{{ player.playerId }}" />
+        </div>
+
+        {# Skill tier and MSP Rating in detail - below the fold: the header's chips say the essentials, and the owner's
+           qualification bars must not stack up with the getting-started card at the top #}
+        <div class="profile-standing mb-4">
             {# Ranking opted-out player viewing own profile #}
             {% if player.rankingOptedOut and is_own_profile %}
                 <div class="d-flex flex-column flex-md-row align-items-md-stretch gap-2 mb-2 w-100">
@@ -136,25 +146,15 @@
                         :isOwnProfile="is_own_profile"
                     />
                 </div>
+            {# Everybody else: the rating card only - the header's skill-tier chip is the one lock on the page #}
             {% else %}
                 <div class="d-flex flex-column flex-md-row align-items-md-stretch gap-2 mb-2 w-100">
                     <twig:PlayerRatingProfile
                         playerId="{{ player.playerId }}"
                         :isOwnProfile="false"
                     />
-                    <button
-                        class="btn btn-outline-primary btn-sm d-flex align-items-center justify-content-center gap-1 flex-grow-1"
-                        data-bs-toggle="modal"
-                        data-bs-target="#membersExclusiveModal"
-                    >
-                        <svg class="rank-icon" width="16" height="16" style="color: var(--rank-locked)"><use href="/rank-icons-sprite.svg#rank-locked"/></svg>
-                        {{ 'puzzle_intelligence.player_insights.title'|trans }}
-                    </button>
                 </div>
             {% endif %}
-
-        <div class="my-4">
-            <twig:Chart:PlayerAverageTimeChart playerId="{{ player.playerId }}" />
         </div>
 
         <ul class="nav nav-fill nav-tabs mt-2" role="tablist" {{ stimulus_controller('tabs') }}>
@@ -252,19 +252,6 @@
                 </div>
             </div>
         </div>
-
-        {% if badges is not empty %}
-            <div class="mt-4">
-                <h3>{{ 'badges.title'|trans }}</h3>
-
-                {% for badge in badges %}
-                    <span class="d-inline-block text-center small">
-                    <img alt="{{ ('badges.badge.' ~ badge.value)|trans }}" src="{{ asset('img/badges/' ~ badge.value ~ '.png') }}" style="width: 80px;"><br>
-                    {{ ('badges.badge.' ~ badge.value)|trans }}
-                </span>
-                {% endfor %}
-            </div>
-        {% endif %}
 
         {% if affiliate_supporters is not null %}
             <div class="mt-4">

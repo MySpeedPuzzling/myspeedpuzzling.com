@@ -8,6 +8,7 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping\Column;
 use Doctrine\ORM\Mapping\Entity;
 use Doctrine\ORM\Mapping\Id;
+use Doctrine\ORM\Mapping\Index;
 use Doctrine\ORM\Mapping\JoinColumn;
 use Doctrine\ORM\Mapping\ManyToOne;
 use JetBrains\PhpStorm\Immutable;
@@ -20,6 +21,7 @@ use SpeedPuzzling\Web\Doctrine\SellSwapListSettingsDoctrineType;
 use SpeedPuzzling\Web\Value\CollectionDisplayMode;
 use SpeedPuzzling\Web\Value\CollectionVisibility;
 use SpeedPuzzling\Web\Value\ComparisonView;
+use SpeedPuzzling\Web\Value\ContentDigestFrequency;
 use SpeedPuzzling\Web\Value\CountryCode;
 use SpeedPuzzling\Web\Value\EmailNotificationFrequency;
 use SpeedPuzzling\Web\Value\LeaderboardChartView;
@@ -27,6 +29,9 @@ use SpeedPuzzling\Web\Value\SellSwapListSettings;
 use DateTimeImmutable;
 
 #[Entity]
+#[Index(columns: ['xp_total'])]
+#[Index(columns: ['achievement_points'])]
+#[Index(columns: ['karma'])]
 class Player
 {
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
@@ -161,6 +166,10 @@ class Player
     public bool $resultEmailsEnabled = true;
 
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::STRING, enumType: ContentDigestFrequency::class, options: ['default' => 'weekly'])]
+    public ContentDigestFrequency $contentDigestFrequency = ContentDigestFrequency::Weekly;
+
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(type: Types::BOOLEAN, options: ['default' => false])]
     public bool $streakOptedOut = false;
 
@@ -205,6 +214,43 @@ class Player
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
     public null|DateTimeImmutable $moderatorSince = null;
+
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::INTEGER, options: ['default' => 0])]
+    public int $xpTotal = 0;
+
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::SMALLINT, options: ['default' => 1])]
+    public int $level = 1;
+
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::BOOLEAN, options: ['default' => false])]
+    public bool $experienceSystemOptedOut = false;
+
+    /**
+     * Denormalized Achievement Points — SUM of BadgeTier::points() over every earned
+     * badge row. Maintained (and self-healed on each evaluation) by BadgeEvaluator,
+     * the only badge write path; AP never decreases by design.
+     */
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::INTEGER, options: ['default' => 0])]
+    public int $achievementPoints = 0;
+
+    /**
+     * Denormalized karma (docs/features/karma.md) - a cache of KarmaDerivation, written only by KarmaRecalculator's
+     * set-based UPDATE (never through this entity). Admins stay at 0.
+     */
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::INTEGER, options: ['default' => 0])]
+    public int $karma = 0;
+
+    /**
+     * "Hide my karma" (docs/features/karma.md): no chip, left out of the karma list - the contributions still count
+     * and the total is still kept, so switching it back shows everything again
+     */
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::BOOLEAN, options: ['default' => false])]
+    public bool $karmaOptedOut = false;
 
     public function __construct(
         #[Id]
@@ -277,6 +323,14 @@ class Player
         unset($this->favoritePlayers[$key]);
 
         $this->favoritePlayers = array_values($this->favoritePlayers);
+    }
+
+    /**
+     * @return array<string>
+     */
+    public function favoritePlayerIds(): array
+    {
+        return $this->favoritePlayers;
     }
 
     public function discardFavoritePlayerId(string $playerId): bool
@@ -425,6 +479,11 @@ class Player
         $this->resultEmailsEnabled = $enabled;
     }
 
+    public function changeContentDigestFrequency(ContentDigestFrequency $frequency): void
+    {
+        $this->contentDigestFrequency = $frequency;
+    }
+
     public function changeStreakOptedOut(bool $optedOut): void
     {
         $this->streakOptedOut = $optedOut;
@@ -453,6 +512,35 @@ class Player
     public function changeComparisonView(ComparisonView $view): void
     {
         $this->comparisonView = $view;
+    }
+
+    public function changeExperienceSystemOptedOut(bool $optedOut): void
+    {
+        $this->experienceSystemOptedOut = $optedOut;
+    }
+
+    public function changeKarmaOptedOut(bool $optedOut): void
+    {
+        $this->karmaOptedOut = $optedOut;
+    }
+
+    /**
+     * Called exclusively by the XP ledger — xpTotal must always equal the sum of the
+     * player's xp_entry amounts, and level must match LevelTable::levelForXp(xpTotal).
+     */
+    public function updateExperience(int $xpTotal, int $level): void
+    {
+        $this->xpTotal = $xpTotal;
+        $this->level = $level;
+    }
+
+    /**
+     * Called exclusively by BadgeEvaluator with the absolute recomputed total —
+     * setting (not incrementing) makes every evaluation run self-healing.
+     */
+    public function updateAchievementPoints(int $achievementPoints): void
+    {
+        $this->achievementPoints = $achievementPoints;
     }
 
     public function joinReferralProgram(DateTimeImmutable $now): void

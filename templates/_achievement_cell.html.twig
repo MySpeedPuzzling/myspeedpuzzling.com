@@ -1,0 +1,114 @@
+{#
+    One cell of the achievements shelf (badges_overview, player_achievements - docs/features/xp-levels/ux-polish/design-spec.md
+    §1, amended by §8): the seal at 92 px, the name, the tier name with 5 pips, a thin static bar to the next tier and
+    its numbers. A complete type shows how many puzzlers hold Diamond; a non-member's catalogue shows the Bronze seal in
+    colour and "5 tiers · Bronze held by N %". The owner's unrevealed tier is the "?" seal leading to the reveal page.
+    "New" = earned in the last 7 days and after launch, the owner's own achievements only (§8.1).
+
+    The seal opens the detail sheet for the tier shown; `player` tells the sheet whose medal it is (a player's page) -
+    on the catalogue it is left out and the sheet shows the viewer's own. The link's accessible name says everything
+    the cell shows ("Puzzle Explorer, Gold, tier 3 of 5, 640 of 1,000 toward Platinum", §8.6).
+
+    Inputs: row (AchievementCatalogueRow), personal (bool: the row carries a member's tiers), player_id (null|string)
+#}
+{%- set name = row.type.translationKey()|trans -%}
+{%- set progress = row.progress -%}
+{%- if progress is not null -%}
+    {%- set next_name = progress.nextTier.translationKey()|trans -%}
+    {%- if progress.unit.value == 'seconds' -%}
+        {%- set numbers = progress.currentValue|puzzlingTime ~ ' → ' ~ progress.targetValue|puzzlingTime -%}
+        {%- set progress_label = 'badges.shelf.a11y.progress_time'|trans({'%current%': progress.currentValue|puzzlingTime, '%target%': progress.targetValue|puzzlingTime, '%tier%': next_name}) -%}
+    {%- else -%}
+        {%- set numbers = progress.currentValue|plain_number ~ ' / ' ~ progress.targetValue|plain_number -%}
+        {%- set progress_label = 'badges.shelf.a11y.progress'|trans({'%current%': progress.currentValue|plain_number, '%target%': progress.targetValue|plain_number, '%tier%': next_name}) -%}
+    {%- endif -%}
+{%- endif -%}
+<li class="achievement-cell{{ row.unrevealed ? ' is-unrevealed' }}">
+{% if row.unrevealed %}
+    <a href="{{ path('badge_reveals') }}" class="achievement-cell-link" aria-label="{{ name }}, {{ 'badges.shelf.unrevealed'|trans }}">
+        <span class="achievement-cell-seal">
+            {# The empty puzzle of the reveal page - what waits there, in the site's own look #}
+            <span class="achievement-cell-tray" aria-hidden="true"></span>
+        </span>
+        <span class="achievement-cell-name">{{ name }}</span>
+        <span class="achievement-cell-tier achievement-cell-reveal">{{ 'badges.shelf.unrevealed'|trans }}</span>
+    </a>
+{% else %}
+    {%- set shown_tier = personal and row.earnedTier is not null ? row.earnedTier : null -%}
+
+    {# What the cell says, for the link's accessible name #}
+    {%- set label = [name] -%}
+    {%- if not personal -%}
+        {# The cached shares carry no holder count: 0 % = nobody (a Bronze held by under 0.05 % would read so too) #}
+        {%- set holders_text = row.rarityPercent > 0
+            ? 'badges.shelf.tiers_held_by'|trans({'%percent%': include('_achievement_medal_share.html.twig', {percent: row.rarityPercent, holders: 1, long: false, plain: true})})
+            : 'badges.shelf.tiers_nobody'|trans -%}
+        {%- set label = label|merge([holders_text]) -%}
+    {%- else -%}
+        {%- if row.earnedTier is not null -%}
+            {%- set label = label|merge([row.earnedTier.translationKey()|trans, 'badges.shelf.a11y.tier_of'|trans({'%number%': row.earnedTier.value})]) -%}
+        {%- else -%}
+            {%- set label = label|merge(['badges.shelf.a11y.not_yet'|trans]) -%}
+        {%- endif -%}
+        {%- if row.isComplete -%}
+            {%- set rarity_text = 'badges.catalogue.rarity'|trans({'%percent%': include('_achievement_medal_share.html.twig', {percent: row.rarityPercent, holders: 1, long: false, plain: true})}) -%}
+            {%- set label = label|merge([rarity_text]) -%}
+        {%- else -%}
+            {#- What to do, on every cell that is not complete (Jan 2026-10-11: some cells said what to do, some only
+                "Bronze next"). Nothing held yet: the Bronze requirement alone. A tier held and progress shown (the
+                owner): the next tier's requirement, named. A visitor (no progress): what the held tier took. -#}
+            {%- set requirement = ('badges.requirement.' ~ row.type.value ~ '_' ~ row.focusTier.value)|trans -%}
+            {%- set goal = progress is not null and row.earnedTier is not null
+                ? 'badges.shelf.next_goal'|trans({'%tier%': row.focusTier.translationKey()|trans, '%requirement%': requirement})
+                : requirement -%}
+            {%- set label = label|merge([goal]) -%}
+            {%- if progress is not null -%}
+                {%- set label = label|merge([progress_label]) -%}
+            {%- endif -%}
+        {%- endif -%}
+        {%- if row.newlyEarned -%}
+            {%- set label = label|merge(['badges.shelf.new_label'|trans]) -%}
+        {%- endif -%}
+    {%- endif -%}
+
+    <a href="{{ path('achievement_info', {type: row.type.value, tier: shown_tier ? shown_tier.value : null, player: player_id|default(null), from: 'shelf'}|merge(sheet_return|default({}))) }}"
+       data-turbo-frame="modal-frame" class="achievement-cell-link" aria-label="{{ label|join(', ') }}">
+        {% if personal and row.newlyEarned %}
+            <span class="achievement-cell-new" aria-hidden="true">{{ 'badges.shelf.new'|trans }}</span>
+        {% endif %}
+        {# Tiers 4 and 5 shine once on load: a light sweep masked by the seal's own picture (same file as the 2x src) #}
+        <span class="achievement-cell-seal{{ row.shines ? ' achievement-shine' }}" aria-hidden="true"
+              {%- if row.shines %} style="--achievement-shine-mask: url('{{ badge_art_url(row.type, row.displayTier, 'webp', 192) }}');"{% endif %}>
+            {{ badge_art(row.type, row.displayTier, 92, locked = personal and row.earnedTier is null, attrs = {alt: ''}) }}
+        </span>
+        <span class="achievement-cell-name" aria-hidden="true">{{ name }}</span>
+
+        {% if not personal %}
+            <span class="achievement-cell-meta" aria-hidden="true">{{ holders_text }}</span>
+        {% else %}
+            {% if row.earnedTier is not null %}
+                <span class="achievement-cell-tier" aria-hidden="true">
+                    <b>{{ row.earnedTier.translationKey()|trans }}</b>
+                    <span class="achievement-pips">
+                        {%- for value in 1..5 -%}<i{% if value <= row.earnedTier.value %} class="is-held"{% endif %}></i>{%- endfor -%}
+                    </span>
+                </span>
+            {% endif %}
+
+            {% if row.isComplete %}
+                <span class="achievement-cell-meta" aria-hidden="true">{{ rarity_text }}</span>
+            {% else %}
+                <span class="achievement-cell-goal" aria-hidden="true">{{ goal }}</span>
+                {% if progress is not null %}
+                    {# Static on the shelf: only the closest next steps fill (design-spec §8.6) #}
+                    <span class="achievement-progress" role="progressbar" aria-hidden="true"
+                          aria-valuenow="{{ progress.percent }}" aria-valuemin="0" aria-valuemax="100">
+                        <span style="width: {{ progress.percent }}%"></span>
+                    </span>
+                    <span class="achievement-cell-meta achievement-cell-numbers" aria-hidden="true">{{ numbers }}</span>
+                {% endif %}
+            {% endif %}
+        {% endif %}
+    </a>
+{% endif %}
+</li>

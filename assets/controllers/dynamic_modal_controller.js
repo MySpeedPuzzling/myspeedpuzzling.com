@@ -29,6 +29,10 @@ const TITLE_ID = 'dynamic-modal-title';
  * - Responses that are not modal content (error pages, a redirect to the login page) are shown
  *   as a normal full page visit instead of an empty or "Content missing" modal.
  *
+ * Network error while loading (nothing arrived, the frame is empty): the modal shows "Couldn't load this" with
+ * Try again (the same URL once more) and Close, instead of disappearing - a link followed on a bad connection
+ * otherwise looks like it did nothing. A form submitted from outside the frame cannot be repeated, so that one closes.
+ *
  * Accessibility: the dialog gets focus when shown (the Bootstrap focus trap is off for tom-select),
  * focus goes back to the element that opened it when closed, the dialog is aria-busy while loading
  * and aria-labelledby the content's .modal-title.
@@ -48,12 +52,15 @@ const TITLE_ID = 'dynamic-modal-title';
  * which turns the entry into a normal one of the page.
  */
 export default class extends Controller {
-    static targets = ['frame', 'loading'];
+    static targets = ['frame', 'loading', 'error'];
 
     modal = null;
     observer = null;
     pendingOpen = false;
     loadingTimer = null;
+
+    // The URL the frame is loading - Try again requests it once more
+    requestedUrl = null;
 
     // Element that opened the modal - gets focus back when it closes
     trigger = null;
@@ -149,9 +156,14 @@ export default class extends Controller {
         }
     };
 
-    handleBeforeFetch = () => {
+    handleBeforeFetch = (event) => {
         // Mark that we want to open the modal when content arrives
         this.pendingOpen = true;
+        this.hideError();
+
+        const url = event?.detail?.url;
+        const method = String(event?.detail?.fetchOptions?.method ?? 'GET').toUpperCase();
+        this.requestedUrl = url && method === 'GET' && !this.externalForm ? String(url) : null;
         this.element.setAttribute('aria-busy', 'true');
 
         // Navigation or form submission inside the already open modal - no spinner, keep the trigger
@@ -179,7 +191,7 @@ export default class extends Controller {
         }
 
         this.externalForm = form;
-        this.handleBeforeFetch();
+        this.handleBeforeFetch(null);
     };
 
     handleExternalFormResponse = (event) => {
@@ -206,12 +218,57 @@ export default class extends Controller {
         this.pendingOpen = false;
         this.stopLoading();
 
-        // Keep an open modal with a form in it (the visitor can submit again),
-        // close the one that only shows the spinner
+        // Keep an open modal with a form in it (the visitor can submit again); when nothing arrived, say so and
+        // offer Try again - closing would look like the tap did nothing. Without a URL to repeat: close.
         if (this.frameTarget.innerHTML.trim() === '') {
-            this.close();
+            if (this.requestedUrl && this.hasErrorTarget) {
+                this.showError();
+            } else {
+                this.close();
+            }
         }
     };
+
+    showError() {
+        this.setSize(null);
+        this.setLayout(null);
+        this.element.removeAttribute('aria-labelledby');
+        this.errorTarget.hidden = false;
+
+        if (this.transition === 'hiding') {
+            this.queued = 'open';
+            return;
+        }
+
+        if (this.isOpen()) {
+            this.focusDialog();
+        } else {
+            this.modal.show();
+        }
+    }
+
+    hideError() {
+        if (this.hasErrorTarget) {
+            this.errorTarget.hidden = true;
+        }
+    }
+
+    retry() {
+        if (!this.requestedUrl) {
+            this.close();
+            return;
+        }
+
+        const url = this.requestedUrl;
+        this.hideError();
+        // A changed src makes Turbo fetch again; the same src would be ignored
+        this.frameTarget.removeAttribute('src');
+        this.frameTarget.src = url;
+    }
+
+    dismiss() {
+        this.close();
+    }
 
     handleFrameLoad = () => {
         const wasLoading = this.isLoading();
@@ -309,6 +366,8 @@ export default class extends Controller {
         this.element.removeAttribute('aria-labelledby');
         this.setLayout(null);
         this.stopLoading();
+        this.hideError();
+        this.requestedUrl = null;
 
         // Closed with the close button, Escape, the backdrop or a stream: take the modal's history entry back out
         if (this.historyEntry) {

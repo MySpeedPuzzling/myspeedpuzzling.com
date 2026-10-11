@@ -29,12 +29,13 @@ final class PuzzleDetailQueryBudgetTest extends WebTestCase
         // Measured on the foundation commit 387125b6 (2026-10-09): "Used at" rides on the summary statement, so a puzzle
         // used at three events costs what a puzzle used nowhere costs
         yield 'puzzle used at events, guest' => [PuzzleFixture::PUZZLE_500_01, null, 13];
-        // + the signed-in overhead, the viewer's statuses and collections
-        yield 'puzzle used at events, player' => [PuzzleFixture::PUZZLE_500_01, PlayerFixture::PLAYER_REGULAR, 18];
+        // + the signed-in overhead, the viewer's statuses and collections, and since the XP launch the XP estimate's
+        // count of the viewer's solves of this puzzle (the repeat discount; its opt-out rides on the profile row)
+        yield 'puzzle used at events, player' => [PuzzleFixture::PUZZLE_500_01, PlayerFixture::PLAYER_REGULAR, 19];
         // + the member's insights (difficulty tiers, prediction)
-        yield 'puzzle used at events, member' => [PuzzleFixture::PUZZLE_500_01, PlayerFixture::PLAYER_WITH_STRIPE, 22];
+        yield 'puzzle used at events, member' => [PuzzleFixture::PUZZLE_500_01, PlayerFixture::PLAYER_WITH_STRIPE, 23];
         yield 'puzzle used nowhere, guest' => [PuzzleFixture::PUZZLE_4000, null, 13];
-        yield 'puzzle used nowhere, player' => [PuzzleFixture::PUZZLE_4000, PlayerFixture::PLAYER_REGULAR, 18];
+        yield 'puzzle used nowhere, player' => [PuzzleFixture::PUZZLE_4000, PlayerFixture::PLAYER_REGULAR, 19];
     }
 
     #[DataProvider('providePages')]

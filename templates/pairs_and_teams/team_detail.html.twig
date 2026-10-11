@@ -55,7 +55,7 @@
         <div class="row g-3 fs-sm">
             <div class="col-6 col-md-3"><div class="text-muted">{{ 'puzzling_team.stats_results'|trans }}</div><div class="fs-5 fw-semibold">{{ stats.timed + stats.relaxed }}</div></div>
             <div class="col-6 col-md-3"><div class="text-muted">{{ 'puzzling_team.stats_puzzles'|trans }}</div><div class="fs-5 fw-semibold">{{ stats.puzzles }}</div></div>
-            <div class="col-6 col-md-3"><div class="text-muted">{{ 'puzzling_team.stats_pieces'|trans }}</div><div class="fs-5 fw-semibold">{{ stats.pieces|number_format(0, '.', ' ') }}</div></div>
+            <div class="col-6 col-md-3"><div class="text-muted">{{ 'puzzling_team.stats_pieces'|trans }}</div><div class="fs-5 fw-semibold">{{ stats.pieces|plain_number }}</div></div>
             <div class="col-6 col-md-3"><div class="text-muted">{{ 'puzzling_team.stats_since'|trans }}</div><div class="fs-5 fw-semibold">{{ stats.first ? stats.first|date('m/Y') : '–' }}</div></div>
         </div>
 

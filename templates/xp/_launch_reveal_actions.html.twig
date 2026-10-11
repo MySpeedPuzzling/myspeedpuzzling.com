@@ -1,0 +1,8 @@
+{# The XP launch reveal's last row: on to the profile.
+   "Share my level" (the launch share card, route xp_share_card variant launch) is hidden until the card's art is
+   reworked (Jan 2026-10-12: "I do not like it" - docs/TODO.md § Progression UX polish); its route and texts stay. #}
+<div class="d-flex flex-column flex-sm-row gap-2 justify-content-center">
+    <a href="{{ path('my_profile') }}" class="btn btn-primary">
+        {{ 'xp.reveal.continue'|trans }}
+    </a>
+</div>

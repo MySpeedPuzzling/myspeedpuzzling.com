@@ -1,0 +1,23 @@
+{#
+    The XP level ring around an avatar (src/Component/XpRing.php). The avatar is the content: when the ring is not
+    shown (opted out, hidden private profile) the avatar renders exactly as it would without the ring.
+#}
+{% set inner %}{% block content %}{% endblock %}{% endset %}
+
+{% if this.visible %}
+    {% set level_text = 'xp.level_chip'|trans({'%level%': player.level}) %}
+    {% set ring_class = 'xp-avatar-ring xp-avatar-ring-' ~ variant ~ ' ' ~ this.bandClass %}
+    {% if variant == 'header' %}
+        {% set ring_label = (this.isOwn ? 'player_progress.ring_label_own' : 'player_progress.ring_label')|trans({'%level%': player.level, '%xp%': player.xpTotal|plain_number}) %}
+        {# The target's back button comes back to this player's page (design-spec §3) #}
+        {% set ring_return = {return: app.request.requestUri, return_title: player.playerName ?? ('#' ~ player.code|upper)} %}
+        <a class="{{ ring_class }}" style="--xp-progress: {{ this.progress }}" href="{{ this.isOwn ? path('xp_history', ring_return) : path('xp_explainer', ring_return) }}" rel="nofollow" aria-label="{{ ring_label }}" title="{{ ring_label }}">
+            {{ inner }}
+            <span class="xp-level-tab{{ player.maxLevel ? ' xp-level-tab-max' }}" aria-hidden="true">{{ level_text }}</span>
+        </a>
+    {% else %}
+        <span class="{{ ring_class }}" style="--xp-progress: {{ this.progress }}">{{ inner }}</span>
+    {% endif %}
+{% else %}
+    {{ inner }}
+{% endif %}

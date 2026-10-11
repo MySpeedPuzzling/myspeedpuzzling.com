@@ -1,0 +1,17 @@
+{# The place on this puzzle in the recap's progress card - the player's best time on the puzzle leaderboard #}
+{% if ranking is not null %}
+    <a class="recap-row" href="{{ path('puzzle_detail', {puzzleId: solved_puzzle.puzzleId}) }}" data-testid="recap-place">
+        <span class="recap-row-icon recap-icon-place" aria-hidden="true"><i class="bi bi-trophy"></i></span>
+        <span class="recap-row-body">
+            <span class="recap-row-title">{{ 'recap_progress.place.title'|trans({'%rank%': ranking.rank, '%total%': ranking.totalPlayers}) }}</span>
+            {% if ranking.totalPlayers == 1 %}
+                <span class="recap-row-sub">{{ 'recap_progress.place.first_solver'|trans }}</span>
+            {% elseif ranking.rank == 1 %}
+                <span class="recap-row-sub">{{ 'recap_progress.place.fastest'|trans }}</span>
+            {% elseif faster_than_percent is not null %}
+                <span class="recap-row-sub">{{ 'recap_progress.place.faster_than'|trans({'%percent%': faster_than_percent}) }}</span>
+            {% endif %}
+        </span>
+        <i class="ci-arrow-right recap-row-chevron" aria-hidden="true"></i>
+    </a>
+{% endif %}

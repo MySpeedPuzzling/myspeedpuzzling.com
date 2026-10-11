@@ -8,6 +8,8 @@ use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\ResultAutoRemoval;
 use SpeedPuzzling\Web\Message\AutoRemoveCertainDuplicate;
+use SpeedPuzzling\Web\Message\CompensateXpForDeletedSolve;
+use SpeedPuzzling\Web\Message\RecalculateBadgesForPlayer;
 use SpeedPuzzling\Web\Query\GetDuplicateCandidates;
 use SpeedPuzzling\Web\Repository\PuzzleSolvingTimeRepository;
 use SpeedPuzzling\Web\Repository\ResultAutoRemovalRepository;
@@ -16,6 +18,7 @@ use SpeedPuzzling\Web\Services\DuplicateResults\DuplicateClassifier;
 use SpeedPuzzling\Web\Value\DuplicateTier;
 use SpeedPuzzling\Web\Value\RemovedResultSnapshot;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
+use Symfony\Component\Messenger\MessageBusInterface;
 
 /**
  * Tier A - the same form sent again: the newer copy goes, the older one stays (docs/features/duplicate-results.md,
@@ -36,6 +39,7 @@ readonly final class AutoRemoveCertainDuplicateHandler
         private GetDuplicateCandidates $getDuplicateCandidates,
         private DuplicateClassifier $classifier,
         private ClockInterface $clock,
+        private MessageBusInterface $messageBus,
     ) {
     }
 
@@ -74,7 +78,20 @@ readonly final class AutoRemoveCertainDuplicateHandler
             $pairCase->autoRemoved($now);
         }
 
+        $copyId = $copy->id->toString();
+        $copyPuzzleId = $copy->puzzle->id->toString();
+        $memberPlayerIds = $copy->memberPlayerIds();
+
         $this->puzzleSolvingTimeRepository->delete($copy);
+
+        // The copy earned XP like any result (docs/features/xp-levels/README.md) - its entries are compensated and
+        // the kept copy's chain is rebuilt, the same way as deleting a result by hand
+        $this->messageBus->dispatch(new CompensateXpForDeletedSolve($copyId, $copyPuzzleId, $memberPlayerIds));
+
+        // Achievements follow the current results - a tier only the copy reached goes (docs/features/badges.md)
+        foreach ($memberPlayerIds as $memberPlayerId) {
+            $this->messageBus->dispatch(new RecalculateBadgesForPlayer($memberPlayerId));
+        }
 
         return true;
     }

@@ -13,6 +13,8 @@ Color palette: Coral-salmon pink (#EC726F) is the primary accent — used on 30-
 
 Key details: Outlines are the defining feature — every single element has them, at a consistent weight. Speed lines are short horizontal dashes, also in dark navy. Small decorative dots or circles may appear as accents. The illustration should have a transparent or pure white background with no frame or border. Shapes can slightly overlap to create a sense of layering. The overall composition should feel balanced and compact, not sprawling.
 
+Puzzle piece geometry (CRITICAL): Every jigsaw piece must look like a real die-cut cardboard puzzle piece — a rounded square body with exactly ONE connector per side: either a smooth, perfectly circular knob (a clean half-circle sitting on a short narrow neck) or one matching circular socket. Knobs and sockets are symmetrical, centered on each side, and identical in size across all pieces. NEVER draw lumpy, melted, wavy, or irregular connectors; never two knobs on one side; never knobs of different sizes on the same piece. Prefer FEWER and LARGER puzzle pieces drawn accurately over many small ones.
+
 Background: Clean white or transparent.
 ```
 

@@ -37,23 +37,23 @@
     <dl class="players-card-stats">
         <div class="players-card-stat">
             <dt>{{ 'players.card.solved'|trans }}</dt>
-            <dd>{{ card.solvedTotal|format_number }}</dd>
+            <dd>{{ card.solvedTotal|plain_number }}</dd>
         </div>
         <div class="players-card-stat">
             <dt>{{ 'players.card.pieces'|trans }}</dt>
-            <dd title="{{ card.piecesTotal|format_number }}">
+            <dd title="{{ card.piecesTotal|plain_number }}">
                 {%- if card.piecesTotal >= 999500 -%}
-                    {{ 'players.card.millions'|trans({'%count%': (card.piecesTotal / 1000000)|round(1)|format_number}) }}
+                    {{ 'players.card.millions'|trans({'%count%': (card.piecesTotal / 1000000)|round(1)|plain_number}) }}
                 {%- elseif card.piecesTotal >= 10000 -%}
-                    {{ 'players.card.thousands'|trans({'%count%': (card.piecesTotal / 1000)|round|format_number}) }}
+                    {{ 'players.card.thousands'|trans({'%count%': (card.piecesTotal / 1000)|round|plain_number}) }}
                 {%- else -%}
-                    {{ card.piecesTotal|format_number }}
+                    {{ card.piecesTotal|plain_number }}
                 {%- endif -%}
             </dd>
         </div>
         <div class="players-card-stat">
             <dt>{{ 'players.card.favorites'|trans }}</dt>
-            <dd>{{ card.favoritesCount|format_number }}</dd>
+            <dd>{{ card.favoritesCount|plain_number }}</dd>
         </div>
         <div class="players-card-stat">
             <dt>{{ 'players.card.best500'|trans }}</dt>
@@ -108,7 +108,9 @@
         </div>
     {% endif %}
 
-    {# Chips: the rating is public; the tier is for members, never for a player who opted out of rankings #}
+    {# Progression: the XP level and the skill tier only (docs/features/xp-levels/launch-2026-10.md) - one line at 375 px.
+       The level is public unless the player opted out of the experience system; the tier is for members, never for a
+       player who opted out of rankings. #}
     {% set tier_chip = null %}
     {% if not card.rankingOptedOut %}
         {% if not viewer_is_member %}
@@ -119,10 +121,13 @@
             {% set tier_chip = 'no_tier_yet' %}
         {% endif %}
     {% endif %}
-    {% if card.mspRating is not null or tier_chip is not null or card.competesInEvents or card.swapsPuzzles or card.onInstagram %}
-        <ul class="players-card-chips">
-            {% if card.mspRating is not null %}
-                <li class="players-card-chip">{{ 'players.card.rating'|trans({'%rating%': card.mspRating}) }}</li>
+    {% set show_level = xp_system_visible() and not player.experienceSystemOptedOut %}
+    {% if show_level or tier_chip is not null %}
+        <ul class="players-card-chips players-card-progress">
+            {% if show_level %}
+                <li class="players-card-chip players-card-chip-level{{ player.maxLevel ? ' is-max' }}" title="{{ 'xp.total_tooltip'|trans({'%xp%': player.xpTotal}) }}">
+                    {{ 'xp.level_chip'|trans({'%level%': player.level}) }}
+                </li>
             {% endif %}
             {% if tier_chip == 'tier' %}
                 {% set tier = card.skillTier.name|lower %}
@@ -140,6 +145,12 @@
                     </button>
                 </li>
             {% endif %}
+        </ul>
+    {% endif %}
+
+    {# What the player does besides puzzling against the clock - their own line #}
+    {% if card.competesInEvents or card.swapsPuzzles or card.onInstagram %}
+        <ul class="players-card-chips">
             {% if card.competesInEvents %}
                 <li class="players-card-chip"><i class="bi bi-calendar-event" aria-hidden="true"></i> {{ 'players.card.competes'|trans }}</li>
             {% endif %}

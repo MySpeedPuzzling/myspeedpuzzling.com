@@ -4,11 +4,10 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Component;
 
-use SpeedPuzzling\Web\Query\GetPlayerSkill;
 use SpeedPuzzling\Web\Query\HasExistingConversation;
 use SpeedPuzzling\Web\Results\PlayerProfile;
-use SpeedPuzzling\Web\Results\PlayerSkillResult;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
+use SpeedPuzzling\Web\Services\Xp\XpFeatureGate;
 use SpeedPuzzling\Web\Value\ComparisonSubjectRef;
 use SpeedPuzzling\Web\Value\PlayerHeaderTab;
 use Symfony\UX\TwigComponent\Attribute\AsTwigComponent;
@@ -61,12 +60,22 @@ final class PlayerHeader
     /** 'tier' | 'no_tier_yet' | 'locked' | null - see tierChip() */
     public null|string $tierChip = null;
 
-    public null|PlayerSkillResult $primarySkill = null;
+    /**
+     * The player's place on the MSP Rating ladder, from their profile row (null = not on the ladder, or a hidden
+     * private profile) - the competition chip.
+     */
+    public null|int $mspRatingRank = null;
+
+    /**
+     * The XP level ring around the avatar (docs/features/xp-levels/launch-2026-10.md): not for a player who opted out
+     * of the experience system, nor for a private profile hidden from this viewer.
+     */
+    public bool $showLevelRing = false;
 
     public function __construct(
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
-        readonly private GetPlayerSkill $getPlayerSkill,
         readonly private HasExistingConversation $hasExistingConversation,
+        readonly private XpFeatureGate $xpFeatureGate,
     ) {
     }
 
@@ -81,6 +90,7 @@ final class PlayerHeader
         $this->currentTab = $this->tab !== null ? PlayerHeaderTab::from($this->tab) : null;
         $this->isOwnProfile = $viewer !== null && $viewer->playerId === $player->playerId;
         $this->isHidden = $player->isPrivate && $this->isOwnProfile === false;
+        $this->showLevelRing = $this->isHidden === false && $player->experienceSystemOptedOut === false;
 
         if ($this->compact) {
             return;
@@ -88,9 +98,15 @@ final class PlayerHeader
 
         // A hidden private profile has nothing but its profile page
         if ($this->isHidden === false) {
+            // Achievements: only members have them (a non-member owner gets the tab with the member tease), and only
+            // once progression is live for this viewer (XpFeatureGate)
+            $achievementsTab = $this->xpFeatureGate->isVisibleFor($viewer)
+                && ($player->activeMembership || $this->isOwnProfile);
+
             $this->tabs = array_values(array_filter(
                 PlayerHeaderTab::cases(),
-                fn (PlayerHeaderTab $tab): bool => $tab->isOwnerOnly() === false || $this->isOwnProfile,
+                fn (PlayerHeaderTab $tab): bool => ($tab->isOwnerOnly() === false || $this->isOwnProfile)
+                    && ($tab !== PlayerHeaderTab::Achievements || $achievementsTab),
             ));
         }
 
@@ -113,6 +129,7 @@ final class PlayerHeader
         }
 
         $this->tierChip = $this->tierChip($viewer?->activeMembership === true);
+        $this->mspRatingRank = $this->isHidden || $player->rankingOptedOut ? null : $player->mspRatingRank;
     }
 
     /**
@@ -132,9 +149,8 @@ final class PlayerHeader
             return $player->isPrivateProfile ? null : 'locked';
         }
 
-        $this->primarySkill = $this->getPlayerSkill->byPlayerIdAndPiecesCount($player->playerId, self::TIER_PIECES_COUNT);
-
-        if ($this->primarySkill !== null) {
+        // The tier rides on the player's profile row (GetPlayerProfile::byId()) - no query of its own
+        if ($player->skillTier !== null) {
             return 'tier';
         }
 

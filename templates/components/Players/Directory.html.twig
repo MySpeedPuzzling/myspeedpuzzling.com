@@ -70,8 +70,8 @@
 
     {% if page.total > 0 %}
         <p class="players-directory-count">
-            {{- 'players.directory.count'|trans({'%count%': page.total, '%number%': page.total|format_number}) -}}
-            {%- if page.hasMore %} · {{ 'players.directory.showing'|trans({'%shown%': page.cards|length|format_number}) }}{% endif -%}
+            {{- 'players.directory.count'|trans({'%count%': page.total, '%number%': page.total|plain_number}) -}}
+            {%- if page.hasMore %} · {{ 'players.directory.showing'|trans({'%shown%': page.cards|length|plain_number}) }}{% endif -%}
         </p>
 
         <div class="players-directory-grid">
@@ -101,7 +101,7 @@
                     </span>
                     <span class="players-directory-card-numbers">
                         <span class="players-directory-card-number">
-                            <span class="players-directory-card-value">{{ card.solvesThisMonth|format_number }}</span>
+                            <span class="players-directory-card-value">{{ card.solvesThisMonth|plain_number }}</span>
                             <span class="players-directory-card-label">{{ 'players.directory.card.this_month'|trans }}</span>
                         </span>
                         <span class="players-directory-card-number">
@@ -109,7 +109,7 @@
                             <span class="players-directory-card-label">{{ 'players.directory.card.best500'|trans }}</span>
                         </span>
                         <span class="players-directory-card-number">
-                            <span class="players-directory-card-value">{{ card.favoritesCount|format_number }}</span>
+                            <span class="players-directory-card-value">{{ card.favoritesCount|plain_number }}</span>
                             <span class="players-directory-card-label">{{ 'players.directory.card.favorites'|trans }}</span>
                         </span>
                     </span>
@@ -131,7 +131,7 @@
                 <a class="btn btn-outline-primary" href="{{ show_more_url }}" rel="nofollow">{{ 'players.directory.show_more'|trans }}</a>
             </div>
         {% elseif page.hasMore %}
-            <p class="players-directory-note">{{ 'players.directory.limit_reached'|trans({'%shown%': page.cards|length|format_number}) }}</p>
+            <p class="players-directory-note">{{ 'players.directory.limit_reached'|trans({'%shown%': page.cards|length|plain_number}) }}</p>
         {% endif %}
     {% else %}
         <div class="players-directory-empty">

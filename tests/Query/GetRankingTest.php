@@ -147,6 +147,55 @@ final class GetRankingTest extends KernelTestCase
         self::assertSame(1, $this->query->allForPlayer(PlayerFixture::PLAYER_REGULAR)[PuzzleFixture::PUZZLE_500_01]->rank);
     }
 
+    public function testForPuzzlesIsAllForPlayerNarrowedToThem(): void
+    {
+        $all = $this->query->allForPlayer(PlayerFixture::PLAYER_REGULAR);
+        self::assertGreaterThan(2, count($all));
+        $wanted = array_slice(array_keys($all), 1, 2);
+        $this->query->reset();
+
+        $some = $this->query->forPuzzles(PlayerFixture::PLAYER_REGULAR, [...$wanted, Uuid::uuid7()->toString()]);
+
+        ksort($some);
+        $expected = array_intersect_key($all, array_flip($wanted));
+        ksort($expected);
+        self::assertEquals($expected, $some);
+        self::assertSame([], $this->query->forPuzzles(PlayerFixture::PLAYER_REGULAR, []));
+    }
+
+    public function testEqualBestTimesShareARank(): void
+    {
+        // PUZZLE_500_01, public pool: PLAYER_ADMIN 1200, PLAYER_REGULAR 1750, PLAYER_WITH_STRIPE 2100, PLAYER_WITH_FAVORITES 3000 -> 1750
+        $this->setSoloTime(PlayerFixture::PLAYER_WITH_FAVORITES, PuzzleFixture::PUZZLE_500_01, 1750);
+
+        $regular = $this->query->allForPlayer(PlayerFixture::PLAYER_REGULAR)[PuzzleFixture::PUZZLE_500_01];
+        $favorites = $this->query->allForPlayer(PlayerFixture::PLAYER_WITH_FAVORITES)[PuzzleFixture::PUZZLE_500_01];
+        $stripe = $this->query->allForPlayer(PlayerFixture::PLAYER_WITH_STRIPE)[PuzzleFixture::PUZZLE_500_01];
+
+        self::assertSame([2, 4], [$regular->rank, $regular->totalPlayers]);
+        self::assertSame([2, 4], [$favorites->rank, $favorites->totalPlayers]);
+        self::assertSame(1750, $favorites->time);
+        // Shared ranks skip numbers, like RANK() and the puzzle page
+        self::assertSame([4, 4], [$stripe->rank, $stripe->totalPlayers]);
+    }
+
+    public function testAPlayerTheViewerHidesRanksNowhere(): void
+    {
+        $this->block(PlayerFixture::PLAYER_WITH_STRIPE, PlayerFixture::PLAYER_REGULAR);
+        TestingViewer::signIn(self::getContainer(), PlayerFixture::PLAYER_WITH_STRIPE);
+
+        self::assertSame([], $this->query->allForPlayer(PlayerFixture::PLAYER_REGULAR));
+    }
+
+    public function testAZeroSecondTimeIsNoTimeInThePool(): void
+    {
+        // Only the API could store 00:00 (the web form keeps 0 s as no time); like the Times boards it ranks nobody
+        $this->setSoloTime(PlayerFixture::PLAYER_WITH_STRIPE, PuzzleFixture::PUZZLE_500_01, 0);
+
+        $regular = $this->query->allForPlayer(PlayerFixture::PLAYER_REGULAR)[PuzzleFixture::PUZZLE_500_01];
+        self::assertSame([2, 3], [$regular->rank, $regular->totalPlayers]);
+    }
+
     /**
      * The profile shows the rank the puzzle page shows: every row of the solo leaderboard, with a suspicious time in it
      */
@@ -189,6 +238,14 @@ final class GetRankingTest extends KernelTestCase
         self::getContainer()->get(Connection::class)->executeStatement(
             'UPDATE puzzle_solving_time SET suspicious = true WHERE id = :id',
             ['id' => $timeId],
+        );
+    }
+
+    private function setSoloTime(string $playerId, string $puzzleId, int $seconds): void
+    {
+        self::getContainer()->get(Connection::class)->executeStatement(
+            "UPDATE puzzle_solving_time SET seconds_to_solve = :seconds WHERE player_id = :playerId AND puzzle_id = :puzzleId AND puzzling_type = 'solo'",
+            ['seconds' => $seconds, 'playerId' => $playerId, 'puzzleId' => $puzzleId],
         );
     }
 

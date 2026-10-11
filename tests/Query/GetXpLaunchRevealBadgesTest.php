@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Results\XpLaunchRevealBadge;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Value\BadgeTier;
 use SpeedPuzzling\Web\Value\BadgeType;
+use SpeedPuzzling\Web\Value\XpLaunchRevealHighlight;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 final class GetXpLaunchRevealBadgesTest extends KernelTestCase
@@ -110,6 +111,53 @@ final class GetXpLaunchRevealBadgesTest extends KernelTestCase
     public function testNoAchievementsNoCards(): void
     {
         self::assertSame([], $this->query->forPlayer(PlayerFixture::PLAYER_REGULAR));
+        self::assertSame([], $this->query->withFacts(PlayerFixture::PLAYER_REGULAR));
+    }
+
+    public function testTheDeckCardsCarryTheNextTierAndHowManyHoldTheirTier(): void
+    {
+        $this->earn(BadgeType::PuzzlesSolved, 1);
+        foreach ([1, 2, 3, 4, 5] as $tier) {
+            $this->earn(BadgeType::FirstTry, $tier);
+        }
+        $this->earn(BadgeType::Supporter, null);
+
+        $cards = $this->query->withFacts(PlayerFixture::PLAYER_REGULAR);
+
+        self::assertSame(
+            ['puzzles_solved', 'supporter', 'first_try'],
+            array_map(static fn (XpLaunchRevealBadge $card): string => $card->type->value, $cards),
+            'Crescendo order kept',
+        );
+        self::assertCount(3, $cards);
+        [$bronze, $supporter, $diamond] = $cards;
+
+        self::assertNotNull($bronze->progress, 'Below Diamond: the way to the next tier, from the shelf\'s own rule');
+        self::assertSame(BadgeTier::Silver, $bronze->progress->nextTier);
+        self::assertSame('badges.requirement.puzzles_solved_2', $bronze->nextRequirementTranslationKey());
+        self::assertGreaterThan(0, $bronze->holders, 'This player holds it - the holders count them');
+
+        self::assertNull($diamond->progress, 'Nothing above Diamond');
+        self::assertSame(XpLaunchRevealHighlight::TopTier, $diamond->highlight);
+        self::assertNull($supporter->progress);
+        self::assertSame(XpLaunchRevealHighlight::Thanks, $supporter->highlight);
+    }
+
+    public function testTheRarestTierOfTheDeckIsHighlightedOnceAndNeverACommonOne(): void
+    {
+        $this->earn(BadgeType::PuzzlesSolved, 1);
+        $this->earn(BadgeType::Streak, 1);
+
+        $cards = $this->query->withFacts(PlayerFixture::PLAYER_REGULAR);
+        $rarest = array_filter($cards, static fn (XpLaunchRevealBadge $card): bool => $card->highlight === XpLaunchRevealHighlight::Rarest);
+
+        foreach ($cards as $card) {
+            if ($card->sharePercent >= 50) {
+                self::assertNotSame(XpLaunchRevealHighlight::Rarest, $card->highlight, 'A tier half the puzzlers hold is not "rare"');
+            }
+        }
+
+        self::assertLessThanOrEqual(1, count($rarest));
     }
 
     private function earn(BadgeType $type, null|int $tier, bool $revealed = false): string

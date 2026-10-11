@@ -50,7 +50,12 @@ guarantee, because every lost report would mean a second display.
 ### Counting
 
 `seen_at` is filled by the browser (`autoshow-modal` Stimulus controller → `POST /-/announcement-modal-seen`
-on `shown.bs.modal`). It can only confirm a claimed impression and decides nothing.
+on `shown.bs.modal`). It can only confirm a claimed impression and decides nothing - with one exception:
+**`xp_launch_reveal`** reports no `seen_at` when it opens; its `seen_at` is set when the player revealed the level
+(the level puzzle's first tap, `POST /-/xp-launch-level-revealed`, `XpLaunchLevelRevealedController`), and the reveal
+page reads it (`GetAnnouncementModalSeen`): level already revealed = the achievement deck starts without the level card,
+otherwise the level card comes first (docs/features/xp-levels/README.md §The launch reveal). For that modal "really
+opened" in the admin numbers therefore means "the level was revealed".
 
 - **Admin → "Free trial & modals"** (`/admin/free-trial`): per modal - players it was displayed to, how many
   really opened, last 24 h / 7 days, first / last.

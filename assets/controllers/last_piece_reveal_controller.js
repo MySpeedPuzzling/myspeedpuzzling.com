@@ -6,7 +6,8 @@ import { LastPieceReveal, Ticker } from '../last_piece_reveal/reveal.js';
 import { PieceConfetti } from '../last_piece_reveal/confetti.js';
 import { PieceSfx } from '../last_piece_reveal/sfx.js';
 
-const SOUND_KEY = 'msp-reveal-sound';
+// Where an old on/off choice was kept - the toggle is gone (sound is always on), the stored value is cleared once
+const OLD_SOUND_KEY = 'msp-reveal-sound';
 const DECODE_WAIT_MS = 400;
 const SEEDS = { single: 6, level: 7, 'level-max': 8 };
 
@@ -25,8 +26,9 @@ const SEEDS = { single: 6, level: 7, 'level-max': 8 };
  * - Several stages reveal one after another, never two at once: a tap on another stage finishes the running one
  *   first; when one ends, the next unrevealed one nudges once.
  * - `prefers-reduced-motion`: the badge appears at once, no confetti. A tap while it runs skips to the end.
- * - Sound is on unless the visitor turned it off (sound toggle target, kept in localStorage - Jan 2026-10-11: the
- *   reveal is a moment, and it only ever plays in answer to a tap); it starts only inside a tap (browser autoplay
+ * - Sound is always on, with no toggle (Jan 2026-10-11: "the sound should be always on"): every sound answers a tap
+ *   and lasts about a second, so browsers allow it and WCAG 1.4.2 (audio starting by itself for over 3 s) does not
+ *   apply; the device's silent switch and volume cover a quiet room. It starts only inside a tap (browser autoplay
  *   rules) and, where the browser can say so, as "ambient" audio: the phone's silent switch mutes it and the
  *   visitor's music keeps playing (PieceSfx.unlock()).
  * - `autoplay`: the first stage plays by itself once it is on screen (the level medallion of the XP launch reveal).
@@ -36,7 +38,7 @@ const SEEDS = { single: 6, level: 7, 'level-max': 8 };
  * - Turbo-safe: disconnect cancels every animation, the confetti, the rAF loop and closes the audio context.
  */
 export default class extends Controller {
-    static targets = ['stage', 'soundToggle', 'count', 'after', 'done'];
+    static targets = ['stage', 'count', 'after', 'done'];
 
     static values = {
         autoplay: { type: Boolean, default: false },
@@ -47,7 +49,8 @@ export default class extends Controller {
         this.live = true;
         this.ticker = new Ticker();
         this.sfx = new PieceSfx();
-        this.sfx.on = readSoundPreference();
+        this.sfx.on = true;
+        forgetOldSoundChoice();
         this.confetti = new PieceConfetti(GEOMETRY.confetti, this.ticker);
         this.reveals = new Map();
         this.pictures = new Map();
@@ -55,7 +58,6 @@ export default class extends Controller {
         this.masks = new Map();
         this.pending = new Set();
         this.countStarted = false;
-        this.renderSoundToggle();
 
         // A stage revealed (or already sent to the server) before a reconnect stays revealed
         for (const stage of this.stageTargets) {
@@ -104,25 +106,6 @@ export default class extends Controller {
         event.preventDefault();
         this.sfx.unlock();                                 // inside the user gesture
         this.start(event.currentTarget);
-    }
-
-    /** action: the sound toggle */
-    toggleSound() {
-        this.sfx.on = !this.sfx.on;
-        writeSoundPreference(this.sfx.on);
-        this.renderSoundToggle();
-
-        if (this.sfx.on) {
-            this.sfx.unlock();
-            this.sfx.play([{ t: 0, type: 'tick', arg: 4 }]);  // a small "tk": this is what it sounds like
-        } else {
-            for (const reveal of this.reveals.values()) {
-                if (reveal.bus) {
-                    this.sfx.stop(reveal.bus);
-                    reveal.bus = null;
-                }
-            }
-        }
     }
 
     async start(stage, { silent = false, instant = false } = {}) {
@@ -348,18 +331,6 @@ export default class extends Controller {
         }
     }
 
-    renderSoundToggle() {
-        for (const toggle of this.soundToggleTargets) {
-            toggle.setAttribute('aria-pressed', this.sfx.on ? 'true' : 'false');
-            toggle.classList.toggle('is-on', this.sfx.on);
-            const icon = toggle.querySelector('i');
-
-            if (icon) {
-                icon.className = this.sfx.on ? 'bi bi-volume-up' : 'bi bi-volume-mute';
-            }
-        }
-    }
-
     scheduleAutoplay() {
         const stage = this.stageTargets[0];
 
@@ -509,19 +480,11 @@ function prefersReducedMotion() {
     return window.matchMedia !== undefined && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
-function readSoundPreference() {
+function forgetOldSoundChoice() {
     try {
-        return window.localStorage.getItem(SOUND_KEY) !== '0';
+        window.localStorage.removeItem(OLD_SOUND_KEY);
     } catch (e) {
-        return true;                                       // private mode: on, the default
-    }
-}
-
-function writeSoundPreference(on) {
-    try {
-        window.localStorage.setItem(SOUND_KEY, on ? '1' : '0');
-    } catch (e) {
-        // private mode: kept for this page only
+        // private mode: nothing was kept
     }
 }
 

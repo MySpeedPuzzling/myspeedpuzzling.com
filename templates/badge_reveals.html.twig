@@ -15,21 +15,8 @@
             data-controller="last-piece-reveal"
             data-last-piece-reveal-skip-label-value="{{ 'badges.reveals.stage_running'|trans }}"
         >
-            <div class="d-flex flex-wrap align-items-start justify-content-between gap-2">
-                <p class="text-muted mb-0">{{ 'badges.reveals.intro'|trans({'%count%': badges|length}) }}</p>
-
-                <button
-                    type="button"
-                    class="btn btn-sm btn-link text-muted text-decoration-none lpr-sound"
-                    data-last-piece-reveal-target="soundToggle"
-                    data-action="last-piece-reveal#toggleSound"
-                    aria-pressed="true"
-                    title="{{ 'badges.reveals.sound_title'|trans }}"
-                >
-                    <i class="bi bi-volume-up" aria-hidden="true"></i>
-                    {{ 'badges.reveals.sound'|trans }}
-                </button>
-            </div>
+            {# Sound is always on - it answers each tap and lasts about a second (last_piece_reveal_controller.js) #}
+            <p class="text-muted mb-0">{{ 'badges.reveals.intro'|trans({'%count%': badges|length}) }}</p>
 
             <div class="lpr-grid">
                 {% for badge in badges %}

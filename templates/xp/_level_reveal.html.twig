@@ -1,46 +1,65 @@
-{# The level medallion of the XP launch reveal as a last-piece puzzle that assembles by itself once it is on screen,
-   then the XP counts up (last_piece_reveal_controller.js, autoplay). Used by the reveal page (free players) and the
-   launch announcement modal. Reduced motion: the medallion right away.
+{# The level medallion of the XP launch reveal as a last-piece puzzle the player completes with a tap - the launch
+   announcement modal and the reveal page of a player without the achievement deck (docs/features/xp-levels/README.md
+   §The launch reveal). Tap-started on purpose: browsers play sound only in answer to a gesture, and this is the moment
+   (Jan 2026-10-11: "sound always on, this is very exciting moment") - the big button and the puzzle itself both start
+   it (xp_level_reveal_controller.js clicks the stage inside the tap); the sound is always on, no toggle.
+   Once the last piece is in, the XP counts up and the `after` part appears in place of the button. The first reveal
+   POSTs xp_launch_level_revealed, so the reveal page knows the level was shown. Reduced motion: the medallion at once,
+   the chime still plays.
+
+   Embed it and fill the blocks: `top_end` (the modal's ×), `intro` (title and text above the puzzle), `before_extra`
+   (under the button, e.g. "Maybe later"), `after` (what comes next).
    Parameters: xp_profile (XpProfile), gradient_id (unique per page). #}
 {% import 'xp/_level_medallion.html.twig' as medallion %}
 <div
-    class="lpr-page lpr-level my-4"
-    data-controller="last-piece-reveal"
-    data-last-piece-reveal-autoplay-value="true"
+    class="xpl-level lpr-page"
+    data-controller="last-piece-reveal xp-level-reveal"
     data-last-piece-reveal-skip-label-value="{{ 'badges.reveals.stage_running'|trans }}"
+    data-action="last-piece-reveal:revealed->xp-level-reveal#revealed"
 >
-    <button
-        type="button"
-        class="lpr-stage mx-auto"
-        data-last-piece-reveal-target="stage"
-        data-action="last-piece-reveal#play"
-        data-last-piece-reveal-look-param="{{ xp_profile.isMaxLevel ? 'level-max' : 'level' }}"
-        data-last-piece-reveal-done-label-param="{{ 'xp.reveal.stage_done'|trans({'%level%': xp_profile.level}) }}"
-        aria-label="{{ 'xp.reveal.stage_label'|trans }}"
-    >
-        <span class="lpr-tray" aria-hidden="true"></span>
-        <svg class="lpr-emblem" viewBox="0 0 300 300" aria-hidden="true" focusable="false">
-            {{ medallion.level_medallion(xp_profile, gradient_id) }}
-        </svg>
-    </button>
+    {# The modal's × on its own row; nothing on a page #}
+    {% set top_end %}{% block top_end %}{% endblock %}{% endset %}
+    {% if top_end|trim is not empty %}
+        <div class="xpl-level-top">{{ top_end }}</div>
+    {% endif %}
 
-    <div class="lpr-after" data-last-piece-reveal-target="after">
-        <div class="mt-3 h4 mb-0">
-            <span data-last-piece-reveal-target="count" data-xp-count-amount-value="{{ xp_profile.xpTotal }}">{{ xp_profile.xpTotal|plain_number }}</span>
-            XP
-        </div>
-        <p class="text-body-secondary fs-sm mb-2">{{ 'xp.reveal.xp_note'|trans }}</p>
+    {% block intro %}{% endblock %}
+
+    <div class="xpl-level-stage">
+        <button
+            type="button"
+            class="lpr-stage mx-auto"
+            data-last-piece-reveal-target="stage"
+            data-xp-level-reveal-target="stage"
+            data-action="last-piece-reveal#play"
+            data-last-piece-reveal-look-param="{{ xp_profile.isMaxLevel ? 'level-max' : 'level' }}"
+            data-last-piece-reveal-url-param="{{ path('xp_launch_level_revealed') }}"
+            data-last-piece-reveal-done-label-param="{{ 'xp.reveal.stage_done'|trans({'%level%': xp_profile.level}) }}"
+            aria-label="{{ 'xp.reveal.stage_label'|trans }}"
+        >
+            <span class="lpr-tray" aria-hidden="true"></span>
+            <svg class="lpr-emblem" viewBox="0 0 300 300" aria-hidden="true" focusable="false">
+                {{ medallion.level_medallion(xp_profile, gradient_id) }}
+            </svg>
+        </button>
     </div>
 
-    <button
-        type="button"
-        class="btn btn-sm btn-link text-muted text-decoration-none lpr-sound"
-        data-last-piece-reveal-target="soundToggle"
-        data-action="last-piece-reveal#toggleSound"
-        aria-pressed="true"
-        title="{{ 'badges.reveals.sound_title'|trans }}"
-    >
-        <i class="bi bi-volume-up" aria-hidden="true"></i>
-        {{ 'badges.reveals.sound'|trans }}
-    </button>
+    <div class="xpl-level-before" data-xp-level-reveal-target="before">
+        <button type="button" class="btn btn-primary btn-lg xpl-level-button" data-action="xp-level-reveal#reveal">
+            <i class="bi bi-stars me-1" aria-hidden="true"></i>
+            {{ 'xp.launch_modal.reveal'|trans }}
+        </button>
+        {% block before_extra %}{% endblock %}
+    </div>
+
+    <div class="lpr-after xpl-level-after" data-last-piece-reveal-target="after" data-xp-level-reveal-target="after" tabindex="-1">
+        <p class="xpl-level-xp">
+            <span data-last-piece-reveal-target="count" data-xp-count-amount-value="{{ xp_profile.xpTotal }}">{{ xp_profile.xpTotal|plain_number }}</span>
+            XP
+        </p>
+        <p class="xpl-level-note">{{ 'xp.reveal.xp_note'|trans }}</p>
+        {{ include('xp/_level_next.html.twig', {xp_profile: xp_profile}) }}
+
+        {% block after %}{% endblock %}
+    </div>
 </div>

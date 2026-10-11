@@ -65,16 +65,6 @@ $lpr-navy: $gray-900;
   color: #d63c42;                       // the coral ink for text on white (like the shelf's "tap to reveal")
 }
 
-.lpr-sound {
-  display: inline-flex;
-  align-items: center;
-  gap: .375rem;
-  min-height: 44px;                      // a tap target, small as it looks
-
-  &.is-on {
-    color: $headings-color;
-  }
-}
 
 
 // ------------------------------------------------------------------ the stage
@@ -380,8 +370,9 @@ $xpl-indigo: #4e54c8;
   scroll-margin-top: calc(var(--header-height, 101px) + .75rem);
 }
 
+// The picture gives way on short phones, so a card's facts and the button fit one screen (375 x 667: 167 px)
 .xpl-deck {
-  --lpr-size: min(240px, calc(100vw - 6rem));
+  --lpr-size: clamp(150px, calc(100svh - 500px), min(240px, calc(100vw - 6rem)));
 }
 
 .xpl-bar {
@@ -418,10 +409,6 @@ $xpl-indigo: #4e54c8;
   margin-left: auto;
 }
 
-.xpl-sound {
-  padding-inline: .4rem;
-}
-
 .xpl-skip {
   padding-right: 0;
   white-space: nowrap;
@@ -429,7 +416,7 @@ $xpl-indigo: #4e54c8;
 
 // The whole card is the "continue" button for a thumb (the big button below is the one for keyboards)
 .xpl-cards {
-  padding-top: 2.75rem;                  // headroom: the icon piece hovers above its stage before it clicks in
+  padding-top: 2rem;                     // headroom: the icon piece hovers above its stage before it clicks in
   cursor: pointer;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
@@ -441,10 +428,11 @@ $xpl-indigo: #4e54c8;
   align-items: center;
 }
 
-// Kept in the layout while hidden, so neither the card nor the button jumps when the texts appear
+// Kept in the layout while hidden, so neither the card nor the button jumps when the texts appear; tall enough for
+// a card with a highlight, two lines of requirement and the next tier, so the button stays put from card to card
 .xpl-card-text {
-  min-height: 9.5rem;
-  margin-top: 1rem;
+  min-height: 15.5rem;
+  margin-top: .75rem;
 }
 
 .xpl-card-reveal {
@@ -460,10 +448,33 @@ $xpl-indigo: #4e54c8;
   font-size: 1.375rem;
 }
 
+// What is special about this card (XpLaunchRevealHighlight) - one quiet pill above the name, never on every card
+.xpl-highlight {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  margin: 0 0 .375rem;
+  padding: .2rem .7rem;
+  border-radius: 999px;
+  background: rgba($xpl-indigo, .1);
+  color: $xpl-indigo;
+  font-size: .8125rem;
+  font-weight: 600;
+}
+
+// Tier name + pips + the Achievement Points (the site's AP chip) on one line
 .xpl-tier {
-  margin: .125rem 0 0;
-  color: $gray-600;
-  font-weight: $font-weight-medium;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: .25rem .5rem;
+  margin: .25rem 0 0;
+  color: $headings-color;
+
+  b {
+    font-weight: $font-weight-medium;
+  }
 }
 
 .xpl-why {
@@ -479,13 +490,59 @@ $xpl-indigo: #4e54c8;
 }
 
 .xpl-gain {
-  display: inline-block;
+  font-size: .875rem;
+}
+
+// How many hold it: the rarity word (only when not common) and "Held by 334 puzzlers (4.2 %)"
+.xpl-facts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: .25rem .5rem;
+  margin: .5rem 0 0;
+  color: $gray-700;
+  font-size: $font-size-sm;
+
+  .medal-chip {
+    min-height: 1.75rem;
+    padding-block: .125rem;
+  }
+}
+
+.xpl-share {
+  font-variant-numeric: tabular-nums;
+}
+
+// The next tier: what it takes, the bar and the numbers (as on the shelf and in the sheet)
+.xpl-next-tier {
+  max-width: 20rem;
+  margin: .75rem auto 0;
+
+  // a <span> like on the shelf, where the cell's flex layout makes it a block - here it has to say so
+  .achievement-progress {
+    display: block;
+    margin: .375rem 0 .125rem;
+  }
+}
+
+.xpl-next-goal {
   margin: .75rem 0 0;
-  padding: .2rem .75rem;
-  border-radius: 999px;
-  background: rgba($xpl-indigo, .1);
-  color: $xpl-indigo;
-  font-weight: 700;
+  color: $body-color;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  text-wrap: balance;
+
+  .xpl-next-tier & {
+    margin: 0;
+  }
+}
+
+.xpl-next-numbers {
+  display: block;
+  color: $gray-700;
+  font-size: .8125rem;
+  font-variant-numeric: tabular-nums;
 }
 
 .xpl-total {
@@ -514,6 +571,12 @@ $xpl-indigo: #4e54c8;
   width: 160px;
   height: 160px;
   margin: 0 auto .5rem;
+}
+
+.xpl-medallion-lg {
+  width: 200px;
+  height: 200px;
+  margin-top: 1.25rem;
 }
 
 .xpl-grid {
@@ -556,10 +619,159 @@ $xpl-indigo: #4e54c8;
   }
 }
 
-// The launch modal's quiet actions ("See everything", "Maybe later") stay small but get a 44 px tap target
+// The launch modal's quiet actions ("See everything", "Maybe later", "Close") stay small but get a 44 px tap target
 .xpl-modal .btn-sm {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   min-height: 44px;
+}
+
+
+// ------------------------------------------------------------------ the level's moment (xp/_level_reveal.html.twig)
+// The launch modal and the reveal page without the deck: the player puts the last piece into their level medallion
+// (xp_level_reveal_controller.js). Phone first: title, the puzzle and the button fit the modal at 375 x 667.
+
+.xpl-level {
+  --lpr-size: min(240px, calc(100vw - 7rem));
+
+  position: relative;
+  text-align: center;
+
+  // short phones (375 x 667): the medallion, the XP and the next step's text stay on the first screen
+  @media (max-height: 700px) {
+    --lpr-size: min(200px, calc(100vw - 7rem));
+  }
+}
+
+// The modal's close button, one row above everything
+.xpl-level-top {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-height: 44px;
+  margin: 0 -.5rem .25rem 0;
+
+  .btn-close {
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    background-size: .875rem;
+  }
+}
+
+.xpl-level-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  margin: 0 0 .75rem;
+  padding: .25rem .8rem;
+  border-radius: 999px;
+  background: rgba($xpl-indigo, .1);
+  color: $xpl-indigo;
+  font-size: .8125rem;
+  font-weight: 600;
+}
+
+.xpl-level-title {
+  margin: 0 0 .5rem;
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.25;
+  text-wrap: balance;
+}
+
+.xpl-level-text {
+  max-width: 24rem;
+  margin: 0 auto;
+  color: $gray-700;
+  text-wrap: pretty;
+
+  // "Put in the last piece…" has done its job once the level is in - the room goes to what comes next
+  .is-level-revealed & {
+    display: none;
+  }
+}
+
+// The puzzle on a soft light: brighter once the level is in. Headroom for the icon piece hovering before it clicks in
+.xpl-level-stage {
+  position: relative;
+  padding: 2.25rem 0 1.25rem;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: calc(var(--lpr-size) * 1.45);
+    height: calc(var(--lpr-size) * 1.45);
+    transform: translate(-50%, -46%);
+    border-radius: 50%;
+    background: radial-gradient(closest-side, rgba($xpl-indigo, .16), rgba(#ec726f, .08) 55%, rgba(#fff, 0));
+    opacity: .7;
+    transition: opacity .6s ease;
+    pointer-events: none;
+  }
+
+  .is-level-revealed &::before {
+    opacity: 1;
+  }
+}
+
+.xpl-level-before {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .25rem;
+}
+
+.xpl-level-button {
+  min-width: min(16rem, 100%);
+}
+
+// What the level brings appears in place of the button (the shared .lpr-after only hides it)
+.xpl-level .lpr-after:not(.is-shown) {
+  display: none;
+}
+
+.xpl-level-after:focus {
+  outline: none;
+}
+
+.xpl-level-xp {
+  margin: 0;
+  color: $xpl-indigo;
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+
+.xpl-level-note {
+  margin: 0;
+  color: $gray-700;
+  font-size: $font-size-sm;
+}
+
+.xpl-level-goal {
+  margin: .5rem 0 0;
+  color: $headings-color;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+}
+
+.xpl-level-next {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .375rem;
+  margin-top: 1.25rem;
+}
+
+.xpl-level-next-text {
+  max-width: 24rem;
+  margin: 0 0 .25rem;
+  color: $headings-color;
+  font-weight: $font-weight-medium;
+  text-wrap: balance;
 }

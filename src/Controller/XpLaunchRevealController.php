@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller;
 
 use SpeedPuzzling\Web\Message\ClaimAnnouncementModalImpression;
+use SpeedPuzzling\Web\Query\GetAnnouncementModalSeen;
 use SpeedPuzzling\Web\Query\GetXpLaunchRevealBadges;
 use SpeedPuzzling\Web\Query\GetXpProfile;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
@@ -18,10 +19,14 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 /**
- * The launch reveal (§1.9, docs/features/xp-levels/launch-2026-10.md). A member sees every achievement assemble as its
- * own little puzzle, one by one in crescendo order, with the Achievement Points it brought; the level medallion is the
- * finale, a summary of everything ends it (last_piece_reveal + xp_launch_reveal Stimulus controllers). The XP shown
- * is the player's XP from puzzles - achievements grant none. Free players get the level medallion and a count of
+ * The launch reveal (§1.9, docs/features/xp-levels/launch-2026-10.md, README §The launch reveal). The launch modal is
+ * the level's chapter; this page is the achievements' chapter: a member sees every achievement assemble as its own
+ * little puzzle, one by one in crescendo order, with what it took, how many puzzlers hold it, the next tier and the
+ * Achievement Points it brought; a summary of everything ends it (last_piece_reveal + xp_launch_reveal Stimulus
+ * controllers). The level card leads the deck only when the level was not revealed yet (the modal never opened, or it
+ * was closed before the last piece): `level_revealed` = the launch modal's "seen" report, which for this modal is sent
+ * when the level is revealed (XpLaunchLevelRevealedController). The XP shown is the player's XP from puzzles -
+ * achievements grant none. Free players get their level (to reveal, or as a summary once revealed) and a count of
  * their waiting achievements, never which ones (the achievement detail is a member feature).
  *
  * One URL for every way in - the launch newsletter, the announcement modal, a bookmark: a guest is sent through the
@@ -40,6 +45,7 @@ final class XpLaunchRevealController extends AbstractController
         readonly private MessageBusInterface $messageBus,
         readonly private XpFeatureGate $xpFeatureGate,
         readonly private XpLaunchReadiness $xpLaunchReadiness,
+        readonly private GetAnnouncementModalSeen $getAnnouncementModalSeen,
     ) {
     }
 
@@ -75,13 +81,17 @@ final class XpLaunchRevealController extends AbstractController
             $this->messageBus->dispatch(new ClaimAnnouncementModalImpression($profile->playerId, AnnouncementModal::XpLaunchReveal));
         }
 
-        $badges = $this->getXpLaunchRevealBadges->forPlayer($profile->playerId);
+        // The facts (progress, holders) only for the deck - a free player learns how many, never which
+        $badges = $profile->activeMembership
+            ? $this->getXpLaunchRevealBadges->withFacts($profile->playerId)
+            : $this->getXpLaunchRevealBadges->forPlayer($profile->playerId);
 
         return $this->render('xp_launch_reveal.html.twig', [
             'xp_profile' => $xpProfile,
             'badges' => $badges,
             'is_member' => $profile->activeMembership,
             'player_id' => $profile->playerId,
+            'level_revealed' => $this->getAnnouncementModalSeen->isSeen($profile->playerId, AnnouncementModal::XpLaunchReveal),
         ]);
     }
 }

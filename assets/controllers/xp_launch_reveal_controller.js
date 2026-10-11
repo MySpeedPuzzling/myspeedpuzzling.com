@@ -3,23 +3,18 @@ import { Controller } from '@hotwired/stimulus';
 
 /**
  * The XP launch reveal of a member (templates/xp_launch_reveal.html.twig): every achievement, one card at a time in
- * crescendo order. Each card assembles by itself (the last-piece reveal, driven through the outlet), then its name,
- * tier, the requirement it met and the Achievement Points it brought appear. The XP in the bar stays the player's XP
- * from puzzles - achievements grant none. A tap anywhere (or the big button) goes on - while a card still assembles,
- * the first tap completes it. The level medallion is the finale, a summary of everything ends it; "Skip to summary"
- * is there all the time. Reduced motion: every card is complete at once (the reveal controller decides).
+ * crescendo order - led by the level card when the level was not revealed in the launch modal yet. Each card assembles
+ * by itself (the last-piece reveal, driven through the outlet), then its facts appear (tier, what it took, how many
+ * hold it, the next tier, the Achievement Points it brought). The XP in the bar stays the player's XP from puzzles -
+ * achievements grant none. A tap anywhere (or the big button) goes on - while a card still assembles, the first tap
+ * completes it. A summary of everything ends it; "Skip to summary" is there all the time. Each card names what the
+ * bar's counter and the big button say while it is shown (data-xpl-progress, data-xpl-next), so the deck can come in
+ * any order. Reduced motion: every card is complete at once (the reveal controller decides).
  */
 export default class extends Controller {
     static targets = ['intro', 'deck', 'card', 'progress', 'next', 'summary', 'summaryHeading'];
 
     static outlets = ['last-piece-reveal'];
-
-    static values = {
-        progress: String,                                  // "%current% / %total%"
-        nextLabel: String,
-        levelLabel: String,
-        summaryLabel: String,
-    };
 
     connect() {
         this.index = -1;
@@ -127,14 +122,8 @@ export default class extends Controller {
             card.hidden = i !== index;
         });
         const card = this.cardTargets[index];
-        const badges = this.cardTargets.length - 1;        // the last card is the level
-        const isLevel = card.classList.contains('xpl-card-level');
-        this.progressTarget.textContent = isLevel
-            ? ''
-            : this.progressValue.replace('%current%', String(index + 1)).replace('%total%', String(badges));
-        this.nextTarget.textContent = isLevel
-            ? this.summaryLabelValue
-            : (index + 1 === badges ? this.levelLabelValue : this.nextLabelValue);
+        this.progressTarget.textContent = card.dataset.xplProgress || '';   // "2 / 5" - empty on the level card
+        this.nextTarget.textContent = card.dataset.xplNext || this.nextTarget.textContent;
 
         this.holdFocus();
         const reveal = this.lastPieceRevealOutlet;

@@ -8,6 +8,7 @@ use Doctrine\DBAL\Connection;
 use DOMElement;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
+use SpeedPuzzling\Web\Tests\QueryCountAssertions;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;
@@ -16,12 +17,15 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 /**
  * The server side of the last-piece reveal (assets/controllers/last_piece_reveal_controller.js): every unrevealed
  * badge is a puzzle stage carrying its look, its reveal endpoint and its art; the XP launch reveal deals a member's
- * achievements one card each in crescendo order (xp_launch_reveal_controller.js) with the Achievement Points each
- * brought - never XP, achievements grant none - and ends on the level and a summary.
+ * achievements one card each in crescendo order (xp_launch_reveal_controller.js) with their facts and the Achievement
+ * Points each brought - never XP, achievements grant none - led by the level card unless the level was revealed in
+ * the launch modal, and ends on a summary. Nothing offers a sound switch (the sound is always on).
  * The animation itself is browser-only.
  */
 final class LastPieceRevealPagesTest extends WebTestCase
 {
+    use QueryCountAssertions;
+
     public function testEveryUnrevealedBadgeIsAPuzzleCarryingItsArtAndRevealEndpoint(): void
     {
         $browser = self::createClient();
@@ -84,13 +88,24 @@ final class LastPieceRevealPagesTest extends WebTestCase
         $deck = $crawler->filter('[data-controller="xp-launch-reveal"]');
         self::assertCount(1, $deck);
         self::assertSame('500 XP', trim($crawler->filter('.xpl-counter')->text()), 'The XP from puzzles - achievements add none');
+        self::assertCount(0, $crawler->filter('[data-last-piece-reveal-target="soundToggle"], .lpr-sound'), 'The sound is always on');
 
         $cards = $crawler->filter('#xpl-deck .xpl-card');
-        self::assertCount(4, $cards, 'Every achievement on its own card, then the level');
+        self::assertCount(4, $cards, 'The level was not revealed in the modal: it leads, then every achievement on its own card');
         self::assertSame(
-            ['1', 'single', '3', 'level'],
+            ['level', '1', 'single', '3'],
             $cards->each(static fn (Crawler $card): string => (string) $card->filter('.lpr-stage')->attr('data-last-piece-reveal-look-param')),
-            'Crescendo: Bronze first, Early Adopter right before the top tier, Gold last',
+            'The level first; crescendo: Bronze, Early Adopter right before the top tier, Gold last',
+        );
+        self::assertSame('/-/xp-launch-level-revealed', $cards->eq(0)->filter('.lpr-stage')->attr('data-last-piece-reveal-url-param'));
+        self::assertSame(
+            ['', '1 / 3', '2 / 3', '3 / 3'],
+            $cards->each(static fn (Crawler $card): string => (string) $card->attr('data-xpl-progress')),
+            'The counter counts the achievements only',
+        );
+        self::assertSame(
+            ['On to your achievements', 'Next', 'Next', 'See everything'],
+            $cards->each(static fn (Crawler $card): string => (string) $card->attr('data-xpl-next')),
         );
         self::assertSame(
             ['+5 AP', '+25 AP', '+40 AP'],
@@ -98,17 +113,23 @@ final class LastPieceRevealPagesTest extends WebTestCase
         );
 
         // only what was not revealed before is revealed by the deck
-        self::assertNull($cards->eq(0)->filter('.lpr-stage')->attr('data-last-piece-reveal-url-param'));
-        self::assertSame('/en/badges/' . $supporterId . '/reveal', $cards->eq(1)->filter('.lpr-stage')->attr('data-last-piece-reveal-url-param'));
+        self::assertNull($cards->eq(1)->filter('.lpr-stage')->attr('data-last-piece-reveal-url-param'));
+        self::assertSame('/en/badges/' . $supporterId . '/reveal', $cards->eq(2)->filter('.lpr-stage')->attr('data-last-piece-reveal-url-param'));
 
-        // name, tier, the requirement it met and the Achievement Points it brought
-        $gold = $cards->eq(2);
+        // name, tier, the requirement it met, how many hold it and the Achievement Points it brought
+        $gold = $cards->eq(3);
         $translator = self::getContainer()->get(TranslatorInterface::class);
         self::assertSame('Speed Demon (500pc)', trim($gold->filter('.xpl-name')->text()));
-        self::assertSame('Gold', trim($gold->filter('.xpl-tier')->text()));
+        self::assertSame('Gold', trim($gold->filter('.xpl-tier b')->text()));
+        self::assertCount(3, $gold->filter('.xpl-tier .achievement-pips i.is-held'));
         self::assertStringContainsString($translator->trans('badges.requirement.speed_500_pieces_3'), $gold->filter('.xpl-why')->text());
         self::assertSame('+40 AP', trim($gold->filter('.xpl-gain')->text()));
-        self::assertStringContainsString($translator->trans('badges.description.supporter'), $cards->eq(1)->filter('.xpl-why')->text());
+        self::assertStringContainsString('Held by', $gold->filter('.xpl-facts')->text());
+
+        $supporter = $cards->eq(2);
+        self::assertStringContainsString($translator->trans('badges.description.supporter'), $supporter->filter('.xpl-why')->text());
+        self::assertStringContainsString($translator->trans('badges.medal.no_longer_earnable'), $supporter->filter('.xpl-facts')->text());
+        self::assertStringContainsString($translator->trans('xp.reveal.card.highlight.thanks'), $supporter->filter('.xpl-highlight')->text());
 
         // the summary is the end state - and what a browser without JavaScript shows
         $summary = $crawler->filter('.xpl-summary');
@@ -133,18 +154,40 @@ final class LastPieceRevealPagesTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         self::assertCount(0, $crawler->filter('[data-controller="xp-launch-reveal"]'), 'The achievement detail is a member feature');
-        self::assertCount(0, $crawler->filter('[data-last-piece-reveal-url-param]'), 'Nothing gets revealed for a free player');
+        self::assertCount(0, $crawler->filter('[data-last-piece-reveal-url-param*="/badges/"]'), 'No achievement gets revealed for a free player');
 
-        $level = $crawler->filter('[data-controller="last-piece-reveal"]');
-        self::assertSame('true', $level->attr('data-last-piece-reveal-autoplay-value'));
+        // the level not revealed yet: the level's moment - a tap starts it, so the sound can play
+        $level = $crawler->filter('[data-controller="last-piece-reveal xp-level-reveal"]');
+        self::assertCount(1, $level);
+        self::assertNull($level->attr('data-last-piece-reveal-autoplay-value'), 'Tap-started, never by itself');
+        self::assertSame('/-/xp-launch-level-revealed', $level->filter('button.lpr-stage')->attr('data-last-piece-reveal-url-param'));
+        self::assertCount(1, $level->filter('button[data-action="xp-level-reveal#reveal"]'));
         self::assertSame('23', trim($level->filter('svg.lpr-emblem .lpr-emblem-art text')->last()->text()));
         self::assertSame('312', trim($level->filter('[data-last-piece-reveal-target="count"]')->text()));
         self::assertCount(0, $crawler->filter('.badge-art, img[src*="/img/badges/"]'), 'Which achievements is a member feature');
         self::assertStringContainsString('2 achievements are waiting', $crawler->filter('.xp-teaser')->text());
-        self::assertCount(1, $crawler->filter('.xpl-summary a[href="/en/membership"]'), 'A real way to membership');
+        self::assertCount(1, $crawler->filter('.xpl-level-after a[href="/en/membership"]'), 'A real way to membership');
     }
 
-    public function testWithoutAchievementsTheLevelAssemblesByItself(): void
+    public function testAFreePlayerWhoRevealedTheLevelInTheModalGetsTheLevelAsItStands(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+        $database = self::getContainer()->get(Connection::class);
+        $database->executeStatement('DELETE FROM membership WHERE player_id = :player', ['player' => PlayerFixture::PLAYER_ADMIN]);
+        $this->setXp(40, 7);
+        $this->levelRevealedInTheModal();
+
+        $crawler = $browser->request('GET', '/en/my/xp-reveal');
+
+        self::assertResponseIsSuccessful();
+        self::assertCount(0, $crawler->filter('.lpr-stage'), 'Not the same moment again');
+        self::assertSame('Level 7, and counting', trim($crawler->filter('h1')->text()));
+        self::assertCount(1, $crawler->filter('svg.xpl-medallion'));
+        self::assertCount(1, $crawler->filter('a[href="/en/membership"].btn-outline-primary'));
+    }
+
+    public function testWithoutAchievementsTheLevelIsRevealedWithATap(): void
     {
         $browser = self::createClient();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
@@ -154,9 +197,76 @@ final class LastPieceRevealPagesTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         self::assertCount(0, $crawler->filter('[data-controller="xp-launch-reveal"]'));
-        $level = $crawler->filter('[data-controller="last-piece-reveal"]');
+        $level = $crawler->filter('[data-controller="last-piece-reveal xp-level-reveal"]');
         self::assertSame('level', $level->filter('button.lpr-stage')->attr('data-last-piece-reveal-look-param'));
         self::assertSame('Level 7', $level->filter('button.lpr-stage')->attr('data-last-piece-reveal-done-label-param'));
+    }
+
+    public function testAfterTheModalRevealedTheLevelTheDeckIsTheAchievementsOnly(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+        $this->setXp(500, 12);
+        $this->earnUpTo('puzzles_solved', 2);
+        $this->earn('streak', 1, revealed: false);
+        $this->levelRevealedInTheModal();
+
+        $crawler = $browser->request('GET', '/en/my/xp-reveal');
+
+        self::assertResponseIsSuccessful();
+        $translator = self::getContainer()->get(TranslatorInterface::class);
+        self::assertSame($translator->trans('xp.reveal.achievements_title'), trim($crawler->filter('h1')->text()), 'The achievements\' chapter, not the modal\'s words again');
+        $cards = $crawler->filter('#xpl-deck .xpl-card');
+        self::assertCount(0, $crawler->filter('#xpl-deck .xpl-card-level'), 'The level was the modal\'s moment');
+        self::assertSame(['1 / 2', '2 / 2'], $cards->each(static fn (Crawler $card): string => (string) $card->attr('data-xpl-progress')));
+        self::assertSame(['Next', 'See everything'], $cards->each(static fn (Crawler $card): string => (string) $card->attr('data-xpl-next')));
+        // the summary still holds everything, the level included
+        self::assertCount(1, $crawler->filter('.xpl-summary svg.xpl-medallion'));
+    }
+
+    public function testTheDeckCostsTheSameStatementsWhateverItsSize(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+        $this->setXp(500, 12);
+        $this->earn('streak', 1, revealed: false);
+
+        $browser->request('GET', '/en/my/xp-reveal');  // warms the cached rarity aggregate
+        $this->startCountingQueries($browser);
+        $browser->request('GET', '/en/my/xp-reveal');
+        $small = $this->queryCount($browser);
+
+        $this->earnUpTo('puzzles_solved', 3);
+        $this->earnUpTo('brand_explorer', 5);
+        $this->earnUpTo('speed_500_pieces', 2);
+        $this->earn('supporter', null, revealed: false);
+        $this->startCountingQueries($browser);
+        $browser->request('GET', '/en/my/xp-reveal');
+
+        self::assertSame($small, $this->queryCount($browser), 'One read of the badge rows and one stats snapshot for any number of cards');
+        // 2026-10-11: 18 = the page chrome 5, the XP profile, the badge rows, the shelf's own stats snapshot (9 - the
+        // progress to the next tier), the rarity aggregate (cached 15 minutes outside tests) and the "level revealed"
+        // lookup. Once per player; a free player pays neither the snapshot nor the rarity
+        $this->assertQueryCountAtMost($browser, 18, 'The launch reveal of a member');
+    }
+
+    public function testRevealingTheLevelIsTheLaunchModalsSeenReport(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+        $database = self::getContainer()->get(Connection::class);
+
+        $browser->request('POST', '/-/xp-launch-level-revealed');
+        self::assertResponseStatusCodeSame(204);
+
+        $seen = $database->fetchOne(
+            "SELECT seen_at IS NOT NULL FROM player_modal_impression WHERE player_id = :player AND modal = 'xp_launch_reveal'",
+            ['player' => PlayerFixture::PLAYER_ADMIN],
+        );
+        self::assertTrue((bool) $seen, 'It confirms the claimed impression');
+
+        $browser->request('GET', '/-/xp-launch-level-revealed');
+        self::assertResponseStatusCodeSame(405);
     }
 
     public function testTheRevealStaysViewableAndUsesTheLaunchModalUp(): void
@@ -205,6 +315,17 @@ final class LastPieceRevealPagesTest extends WebTestCase
         $browser->request('GET', '/en/my/xp-reveal');
 
         self::assertResponseRedirects();
+    }
+
+    /**
+     * What the level's puzzle in the launch modal reports once its last piece is in (XpLaunchLevelRevealedController)
+     */
+    private function levelRevealedInTheModal(): void
+    {
+        self::getContainer()->get(Connection::class)->executeStatement(
+            "UPDATE player_modal_impression SET seen_at = NOW() WHERE player_id = :player AND modal = 'xp_launch_reveal'",
+            ['player' => PlayerFixture::PLAYER_ADMIN],
+        );
     }
 
     private function setXp(int $xp, int $level): void

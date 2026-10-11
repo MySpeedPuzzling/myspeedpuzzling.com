@@ -1,0 +1,7 @@
+{# The next reachable goal under a revealed level (design-spec P1): "127 XP to level 24", at Level 50 that every puzzle
+   still adds XP. Parameters: xp_profile (XpProfile). #}
+{% if xp_profile.isMaxLevel %}
+    <p class="xpl-level-goal">{{ 'xp.reveal.max_level'|trans }}</p>
+{% elseif xp_profile.xpToNextLevel is not null %}
+    <p class="xpl-level-goal">{{ 'xp.progress_label'|trans({'%xp%': xp_profile.xpToNextLevel|plain_number, '%level%': xp_profile.level + 1}) }}</p>
+{% endif %}

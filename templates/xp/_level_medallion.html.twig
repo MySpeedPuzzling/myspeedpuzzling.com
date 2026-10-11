@@ -1,25 +1,26 @@
-{# The level medallion, drawn in the 300-unit square of the last-piece reveal: the site's XP ring (arc colours per
-   milestone like _xp.scss .xp-ring-milestone-*, XpRing::milestoneClass) around "LEVEL" and the number. #}
+{# The level medallion, drawn in the 300-unit square of the last-piece reveal: the site's XP ring around "LEVEL" and the
+   number, in the colour of the player's level band - the same colours as the ring around the avatar (XpRing::band(),
+   the tokens of components/_xp.scss .xp-level-band-1..6: lime, aqua, violet, magenta, obsidian, gold at 50), so the
+   modal, the deck's level card, the summary and the ring show one colour for a level. The band is the one rule
+   (xp_level_band() = XpRing::band()); the colours come from the tokens, never a second hex map.
+   The band class sits on the art group: it also holds the gradient, so the copies the reveal makes of the group
+   (<use href> in the puzzle pieces) and the gradient they point at read the same custom properties.
+   Centred by explicit baselines, never dominant-baseline (Safari places it differently): Rubik's caps and figures
+   are 0.7 em tall, so the label (22, caps 15.4) and the number (76, figures 53.2) with a 15-unit gap span
+   106-190, centred 2 units above the circle's centre (150) - the optical centre. The label's letter-spacing also trails its
+   last letter, half of it shifts the label back (dx). The label ink is the body ink, not #7d879c (design-spec §8.5). #}
 {% macro level_medallion(xp_profile, gradient_id) %}
-    {% set milestone = xp_profile.isMaxLevel ? 50 : xp_profile.level // 10 * 10 %}
-    {% set arc = {
-        0: ['#69b3fe', '#69b3fe'],
-        10: ['#69b3fe', '#4e54c8'],
-        20: ['#4e54c8', '#ec726f'],
-        30: ['#ec726f', '#4e54c8'],
-        40: ['#ec726f', '#69b3fe'],
-        50: ['#f0a500', '#ffd700'],
-    }[milestone] %}
+    {% set band = xp_level_band(xp_profile.level) %}
     {% set arc_length = 841.95 %}{# 2 pi x 134 #}
-    <defs>
-        <linearGradient id="{{ gradient_id }}" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0" stop-color="{{ arc[0] }}"/>
-            <stop offset="1" stop-color="{{ arc[1] }}"/>
-        </linearGradient>
-    </defs>
-    <g class="lpr-emblem-art">
+    <g class="lpr-emblem-art xp-level-band-{{ band }}">
+        <defs>
+            <linearGradient id="{{ gradient_id }}" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" style="stop-color: var(--xp-level-ring)"/>
+                <stop offset="1" style="stop-color: var(--xp-level-ring-to)"/>
+            </linearGradient>
+        </defs>
         <circle cx="150" cy="150" r="140" fill="#ffffff"/>
-        <circle cx="150" cy="150" r="134" fill="none" stroke="#2b3445" stroke-opacity=".14" stroke-width="12"/>
+        <circle cx="150" cy="150" r="134" fill="none" style="stroke: var(--xp-level-track)" stroke-width="12"/>
         <circle
             cx="150"
             cy="150"
@@ -30,7 +31,7 @@
             stroke-dasharray="{{ ((xp_profile.progressToNext ?? 1) * arc_length)|round(2) }} {{ arc_length }}"
             transform="rotate(-90 150 150)"
         />
-        <text x="150" y="101" text-anchor="middle" font-family="Rubik, sans-serif" font-size="22" font-weight="500" letter-spacing="2" fill="#7d879c">{{ 'xp.reveal.level_label'|trans|upper }}</text>
-        <text x="150" y="177" text-anchor="middle" font-family="Rubik, sans-serif" font-size="76" font-weight="700" fill="#373f50">{{ xp_profile.level }}</text>
+        <text x="150" y="121.4" dx="1" text-anchor="middle" font-family="Rubik, sans-serif" font-size="22" font-weight="500" letter-spacing="2" fill="#4b566b">{{ 'xp.reveal.level_label'|trans|upper }}</text>
+        <text x="150" y="189.6" text-anchor="middle" font-family="Rubik, sans-serif" font-size="76" font-weight="700" fill="#373f50">{{ xp_profile.level }}</text>
     </g>
 {% endmacro %}

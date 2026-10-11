@@ -1,0 +1,17 @@
+{# The XP launch reveal's last row: share the level (the launch share card), then on to the profile.
+   Context: level, player_id. #}
+<div class="d-flex flex-column flex-sm-row gap-2 justify-content-center">
+    <button
+        data-controller="share-image"
+        data-share-image-title-value="{{ 'xp.reveal.share_title'|trans({'%level%': level}) }}"
+        data-share-image-image-url-value="{{ path('xp_share_card', {playerId: player_id, variant: 'launch'}) }}"
+        data-action="click->share-image#shareImageAsset"
+        class="btn btn-primary"
+    >
+        <i class="ci-share me-1"></i> {{ 'xp.reveal.share_button'|trans }}
+    </button>
+
+    <a href="{{ path('my_profile') }}" class="btn btn-outline-primary">
+        {{ 'xp.reveal.continue'|trans }}
+    </a>
+</div>

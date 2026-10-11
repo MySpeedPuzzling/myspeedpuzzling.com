@@ -160,7 +160,9 @@ final class AnnouncementModalTest extends WebTestCase
         $crawler = $browser->request('GET', self::ORDINARY_PAGE);
         $this->assertResponseIsSuccessful();
         self::assertCount(1, $crawler->filter(self::MODAL . '[data-autoshow-modal-name-value="xp_launch_reveal"]'));
-        self::assertCount(1, $crawler->filter(self::MODAL . ' [data-controller="last-piece-reveal"] .lpr-stage'), 'The level assembles inside the modal');
+        self::assertCount(1, $crawler->filter(self::MODAL . ' [data-controller~="last-piece-reveal"] .lpr-stage'), 'The level assembles inside the modal');
+        self::assertCount(1, $crawler->filter(self::MODAL . ' button[data-action="xp-level-reveal#reveal"]'), 'A tap starts it, so the sound can play');
+        self::assertCount(0, $crawler->filter(self::MODAL . '[data-autoshow-modal-seen-url-value]'), '"Seen" = the level was revealed, not the modal opened');
         self::assertCount(1, $crawler->filter(self::MODAL . ' a[href="/en/membership"]'), 'A free player gets the member tease');
         self::assertCount(1, $crawler->filter(self::MODAL . ' a[href="/en/my/xp-reveal"]'));
 

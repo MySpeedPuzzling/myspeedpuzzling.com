@@ -19,7 +19,7 @@ use Symfony\UX\TwigComponent\Attribute\PostMount;
  * linking to the catalogue.
  *
  *  - the player is a member → the showcase for everybody who may see the profile; the owner's unrevealed
- *    achievements are "?" medallions leading to the reveal page
+ *    achievements are one call-out leading to the reveal page (how many, what they are, one button)
  *  - the player is not a member, viewing their own profile → one quiet line, no lock, no badges
  *  - not a member, anybody else → nothing
  *  - a private profile hidden from the viewer → nothing
@@ -114,6 +114,22 @@ final class AchievementsShowcase
     public function needsReveal(BadgeResult $badge): bool
     {
         return $this->ownProfile && $badge->isRevealed() === false && $badge->id !== null;
+    }
+
+    /**
+     * The medallions in the row: what is revealed. The owner's unrevealed achievements are one call-out above the row
+     * instead (Jan 2026-10-11: a row of "?" said neither what they are nor what to do).
+     *
+     * @return list<BadgeResult>
+     */
+    public function shownBadges(): array
+    {
+        return array_values(array_filter($this->badges, fn (BadgeResult $badge): bool => $this->needsReveal($badge) === false));
+    }
+
+    public function unrevealedCount(): int
+    {
+        return count($this->badges) - count($this->shownBadges());
     }
 
     /**

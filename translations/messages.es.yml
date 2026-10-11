@@ -8636,6 +8636,8 @@ player_progress:
         teaser_link: "Hazte miembro para verlos."
         teaser_none: "Los miembros coleccionan logros mientras arman."
         teaser_none_link: "Verlos todos"
+        reveal_title: "{1}1 logro nuevo por descubrir|]1,Inf[%count% logros nuevos por descubrir"
+        reveal_text: "{1}Ya lo has conseguido: descúbrelo para ver qué te ha tocado.|]1,Inf[Ya los has conseguido: descúbrelos uno a uno para ver qué te ha tocado."
 
 progression_hub:
     meta_title: "Cómo funciona el progreso: XP, logros, MSP Rating, nivel de habilidad y karma"

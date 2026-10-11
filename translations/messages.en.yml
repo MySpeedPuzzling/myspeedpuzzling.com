@@ -7280,6 +7280,8 @@ player_progress:
         teaser_link: "Become a member to see them."
         teaser_none: "Members collect achievements as they puzzle."
         teaser_none_link: "See them all"
+        reveal_title: "{1}1 new achievement to reveal|]1,Inf[%count% new achievements to reveal"
+        reveal_text: "{1}You have already earned it - reveal it to see what you got.|]1,Inf[You have already earned them - reveal each one to see what you got."
 
 marketplace_events:
     label:

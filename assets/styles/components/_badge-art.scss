@@ -53,27 +53,6 @@ a:focus-visible > .badge-art {
   box-shadow: 0 1px 4px rgba($black, .2);
 }
 
-// A medallion not revealed yet (the profile's achievements showcase, owner only): a navy disc with a question mark the
-// size of the seal; the reveal page puts the last piece in. Size = the picture's display size (--badge-art-size).
-.badge-art-mystery {
-  box-sizing: border-box;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: var(--badge-art-size, 72px);
-  height: var(--badge-art-size, 72px);
-  padding: 9%;
-  border-radius: 50%;
-  // A disc inset by the padding, like the plate of a seal inside its scalloped edge. Clipped as a circle: a padded
-  // content-box background on a 50 % radius came out with flat sides
-  background: radial-gradient(circle at 35% 30%, #4d5c7b, #2b3445 75%);
-  clip-path: circle(41%);
-  color: rgba(255, 255, 255, .85);
-  font-size: 1.5rem;
-  font-weight: 700;
-  line-height: 1;
-}
-
 // Big picture on the explainer modal and the achievement's own page
 .badge-art-hero {
   display: block;

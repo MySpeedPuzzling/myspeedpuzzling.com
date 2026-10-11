@@ -8764,6 +8764,8 @@ player_progress:
         teaser_link: "Werde Mitglied, um sie zu sehen."
         teaser_none: "Mitglieder sammeln beim Puzzeln Erfolge."
         teaser_none_link: "Alle ansehen"
+        reveal_title: "{1}1 neuer Erfolg zum Aufdecken|]1,Inf[%count% neue Erfolge zum Aufdecken"
+        reveal_text: "{1}Du hast ihn schon verdient - deck ihn auf und sieh, was du bekommen hast.|]1,Inf[Du hast sie schon verdient - deck sie einzeln auf und sieh, was du bekommen hast."
 
 progression_hub:
     achievements:

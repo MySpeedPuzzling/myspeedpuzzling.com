@@ -4,9 +4,10 @@
  * chime (more notes per tier) and a glitter tail for the shimmer tiers. Every sound of a reveal is scheduled at once
  * on the audio clock, so a busy main thread cannot make it late.
  *
- * Off by default - the visitor turns it on (the choice is kept in localStorage by the controller). The AudioContext is
- * created on the first tap with the sound on (browsers allow audio only after a user gesture) and closed on
- * disconnect.
+ * On by default - the visitor can turn it off (the choice is kept in localStorage by the controller). The AudioContext
+ * is created on the first tap with the sound on (browsers allow audio only after a user gesture) and closed on
+ * disconnect. It plays as "ambient" audio where the browser supports the Audio Session API (Safari): the silent switch
+ * mutes it and it mixes with whatever the visitor is listening to instead of stopping it.
  */
 
 function mulberry32(seed) {
@@ -132,6 +133,14 @@ export class PieceSfx {
 
             if (!AudioContextClass) {
                 return;
+            }
+
+            if (navigator.audioSession) {
+                try {
+                    navigator.audioSession.type = 'ambient';
+                } catch (e) {
+                    // an older implementation: the default session
+                }
             }
 
             try {

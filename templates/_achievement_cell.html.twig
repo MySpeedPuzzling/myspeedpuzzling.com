@@ -27,7 +27,8 @@
 {% if row.unrevealed %}
     <a href="{{ path('badge_reveals') }}" class="achievement-cell-link" aria-label="{{ name }}, {{ 'badges.shelf.unrevealed'|trans }}">
         <span class="achievement-cell-seal">
-            <span class="badge-art-mystery" style="--badge-art-size: 92px;" aria-hidden="true">?</span>
+            {# The empty puzzle of the reveal page - what waits there, in the site's own look #}
+            <span class="achievement-cell-tray" aria-hidden="true"></span>
         </span>
         <span class="achievement-cell-name">{{ name }}</span>
         <span class="achievement-cell-tier achievement-cell-reveal">{{ 'badges.shelf.unrevealed'|trans }}</span>

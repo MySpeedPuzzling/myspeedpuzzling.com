@@ -10,8 +10,8 @@ $shelf-ink: #373f50;
 // the coral ink where it is text or a border on white (#fe696a is 2.8:1, this is 4.6:1)
 $shelf-progress: $primary;
 $shelf-mine: #d63c42;
-// A small lift for the cards (shelf cells, reference cards, holders tier cards)
-$shelf-shadow: 0 1px 2px rgba(43, 52, 69, .06), 0 4px 14px rgba(43, 52, 69, .06);
+// A small lift for the cards (shelf cells, reference cards, holders tier cards) - the one of the profile showcase
+$shelf-shadow: $progression-card-shadow;
 $shelf-tint: #f6f9fc;
 $shelf-press: scale(.97);
 
@@ -286,10 +286,16 @@ $shelf-press: scale(.97);
     height: 92px;
     margin-bottom: .125rem;
     line-height: 0;
+}
 
-    .badge-art-mystery {
-        font-size: 2.25rem;
-    }
+// An unrevealed tier: the empty puzzle of the reveal page (last-piece-reveal-tray.svg), a little smaller than a seal
+.achievement-cell-tray {
+    position: absolute;
+    inset: 8px;
+    border-radius: 10px;
+    background: $white url('../img/last-piece-reveal-tray.svg') center / 100% 100% no-repeat;
+    box-shadow: 0 1px 3px rgba(43, 52, 69, .14);
+    transform: rotate(-4deg);
 }
 
 .achievement-cell-name {

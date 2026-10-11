@@ -61,6 +61,10 @@ $lpr-navy: $gray-900;
   font-weight: $font-weight-medium;
 }
 
+.lpr-result-hint {
+  color: #d63c42;                       // the coral ink for text on white (like the shelf's "tap to reveal")
+}
+
 .lpr-sound {
   display: inline-flex;
   align-items: center;

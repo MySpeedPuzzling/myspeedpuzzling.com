@@ -192,12 +192,104 @@ a.xp-avatar-ring:focus-visible {
     }
 }
 
+// A small lift for the progression cards - the showcase here, the shelf cells and reference cards
+// (_achievements-shelf.scss reuses it as $shelf-shadow)
+$progression-card-shadow: 0 1px 2px rgba(43, 52, 69, .06), 0 4px 14px rgba(43, 52, 69, .06);
+
 // The achievements showcase (components/AchievementsShowcase.html.twig): best first, scrolling sideways on phones
 .achievements-showcase {
     padding: .5rem .875rem .75rem;
     border: 1px solid #e3e9ef;
     border-radius: .875rem;
     background: $white;
+    box-shadow: $progression-card-shadow;
+}
+
+// The owner's unrevealed achievements: one call-out - the empty puzzles of the reveal page (the same tray picture),
+// how many, what they are, one button. The whole call-out is the link, the button is its visible target.
+.achievements-showcase-reveal {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .625rem .875rem;
+    margin: .25rem 0 .5rem;
+    padding: .75rem;
+    border-radius: .75rem;
+    background: rgba($primary, .07);
+    color: inherit;
+    text-decoration: none;
+
+    &:hover,
+    &:focus-visible {
+        background: rgba($primary, .11);
+        color: inherit;
+    }
+
+    &:focus-visible {
+        outline: 2px solid $primary;
+        outline-offset: 2px;
+    }
+
+    &:hover .achievements-showcase-reveal-button {
+        background-color: darken($primary, 7%);
+    }
+}
+
+// Up to three empty puzzles fanned out
+.achievements-showcase-reveal-trays {
+    display: inline-flex;
+    flex-shrink: 0;
+    padding-left: 12px;
+
+    span {
+        width: 44px;
+        height: 44px;
+        margin-left: -12px;
+        border-radius: 8px;
+        background: $white url('../img/last-piece-reveal-tray.svg') center / 100% 100% no-repeat;
+        box-shadow: 0 1px 3px rgba(43, 52, 69, .14);
+        transform: rotate(-6deg);
+
+        &:nth-child(2) {
+            transform: rotate(3deg) translateY(-2px);
+        }
+
+        &:nth-child(3) {
+            transform: rotate(9deg);
+        }
+    }
+}
+
+.achievements-showcase-reveal-text {
+    display: flex;
+    flex: 1 1 10rem;                    // beside the puzzles on a 375 px phone, the button wraps below
+    flex-direction: column;
+    gap: .125rem;
+    min-width: 0;
+    font-size: .875rem;
+    line-height: 1.35;
+
+    strong {
+        color: $headings-color;
+        font-size: .9375rem;
+        font-weight: 600;
+    }
+
+    span {
+        color: #4b566b;
+    }
+}
+
+.achievements-showcase-reveal-button {
+    flex-shrink: 0;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+
+    @include media-breakpoint-down(sm) {
+        flex-grow: 1;
+        justify-content: center;
+    }
 }
 
 .achievements-showcase-head {

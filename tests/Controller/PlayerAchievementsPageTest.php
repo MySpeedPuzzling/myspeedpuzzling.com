@@ -37,11 +37,11 @@ final class PlayerAchievementsPageTest extends WebTestCase
         // Types and tiers, counted from the catalogue the page already loaded
         self::assertSelectorTextContains('.achievements-summary', '2 of 16 achievements · 2 of 80 tiers');
         self::assertSelectorExists('.achievements-summary .ap-chip');
-        // Default = All: every type on the shelf, the unrevealed "?" first (it is an action), then the earned one
+        // Default = All: every type on the shelf, the unrevealed one (an empty puzzle) first (it is an action), then the earned one
         self::assertSelectorTextContains('.achievements-filter a.active', 'All · 16');
         $cells = $crawler->filter('.achievement-shelf > .achievement-cell');
         self::assertCount(16, $cells);
-        self::assertCount(1, $cells->eq(0)->filter('a[href="/en/my/achievement-reveals"] .badge-art-mystery'));
+        self::assertCount(1, $cells->eq(0)->filter('a[href="/en/my/achievement-reveals"] .achievement-cell-tray'));
         self::assertStringContainsString('New tier · tap to reveal', $cells->eq(0)->text());
         self::assertSame(
             '/en/achievements/puzzles_solved/info?tier=1&player=' . PlayerFixture::PLAYER_WITH_STRIPE . '&from=shelf',
@@ -71,7 +71,7 @@ final class PlayerAchievementsPageTest extends WebTestCase
         self::assertSelectorNotExists('.achievements-filter');
         $cells = $crawler->filter('.achievement-cell');
         self::assertCount(16, $cells);
-        self::assertSelectorNotExists('.badge-art-mystery');
+        self::assertSelectorNotExists('.achievement-cell-tray');
         // Not the visitor's own page: no "New" dot; the sheet opens on this player's medal
         self::assertSelectorNotExists('.achievement-cell-new');
         self::assertSame('/en/achievements/streak/info?tier=1&player=' . PlayerFixture::PLAYER_WITH_STRIPE . '&from=shelf', $cells->first()->filter('a')->attr('href'));

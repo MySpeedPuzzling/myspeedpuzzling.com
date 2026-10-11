@@ -6821,6 +6821,8 @@ player_progress:
         teaser_link: "Devenez membre pour les voir."
         teaser_none: "Les membres collectionnent des succès au fil de leurs puzzles."
         teaser_none_link: "Tous les voir"
+        reveal_title: "{1}1 nouveau succès à révéler|]1,Inf[%count% nouveaux succès à révéler"
+        reveal_text: "{1}Vous l'avez déjà obtenu : révélez-le pour voir ce que vous avez gagné.|]1,Inf[Vous les avez déjà obtenus : révélez-les un par un pour voir ce que vous avez gagné."
 
 marketplace_events:
     label:

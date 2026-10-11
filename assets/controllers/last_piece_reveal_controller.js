@@ -25,8 +25,10 @@ const SEEDS = { single: 6, level: 7, 'level-max': 8 };
  * - Several stages reveal one after another, never two at once: a tap on another stage finishes the running one
  *   first; when one ends, the next unrevealed one nudges once.
  * - `prefers-reduced-motion`: the badge appears at once, no confetti. A tap while it runs skips to the end.
- * - Sound is off until the visitor turns it on (sound toggle target, kept in localStorage); it starts only inside a
- *   tap (browser autoplay rules).
+ * - Sound is on unless the visitor turned it off (sound toggle target, kept in localStorage - Jan 2026-10-11: the
+ *   reveal is a moment, and it only ever plays in answer to a tap); it starts only inside a tap (browser autoplay
+ *   rules) and, where the browser can say so, as "ambient" audio: the phone's silent switch mutes it and the
+ *   visitor's music keeps playing (PieceSfx.unlock()).
  * - `autoplay`: the first stage plays by itself once it is on screen (the level medallion of the XP launch reveal).
  * - Another controller can drive the stages through an outlet (the XP launch deck, xp_launch_reveal_controller.js):
  *   start(), stateOf(), preloadStage(), postReveal(), stopAll(), unlockSound(); `last-piece-reveal:revealed` tells
@@ -293,6 +295,11 @@ export default class extends Controller {
 
         const card = stage.closest('.lpr-card');
         const result = card ? card.querySelector('.lpr-result-text') : null;
+        const hint = card ? card.querySelector('.lpr-result-hint') : null;
+
+        if (hint) {
+            hint.hidden = true;                            // "tap to reveal" makes way for the tier
+        }
 
         if (result && result.hidden) {
             result.hidden = false;                         // inside an aria-live region: read out once
@@ -504,9 +511,9 @@ function prefersReducedMotion() {
 
 function readSoundPreference() {
     try {
-        return window.localStorage.getItem(SOUND_KEY) === '1';
+        return window.localStorage.getItem(SOUND_KEY) !== '0';
     } catch (e) {
-        return false;                                      // private mode: off, the default
+        return true;                                       // private mode: on, the default
     }
 }
 

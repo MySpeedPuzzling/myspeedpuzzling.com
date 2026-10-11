@@ -8625,6 +8625,8 @@ player_progress:
         teaser_link: "メンバーになると確認できます。"
         teaser_none: "メンバーはパズルをしながら実績を集めています。"
         teaser_none_link: "すべての実績を見る"
+        reveal_title: "{1}公開待ちの新しい実績が1件あります|]1,Inf[公開待ちの新しい実績が%count%件あります"
+        reveal_text: "すでに獲得済みです。公開して内容を確認しましょう。"
 
 progression_hub:
     meta_title: "成長の仕組み：XP、実績、MSP Rating、スキルティア、カルマ"

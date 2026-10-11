@@ -16,7 +16,7 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
  */
 final class BadgeArtSurfacesTest extends WebTestCase
 {
-    public function testTheProfileShowcaseShowsEachBadgeBestFirstAndAnUnrevealedOneAsAQuestionMark(): void
+    public function testTheProfileShowcaseShowsEachRevealedBadgeBestFirstAndTheUnrevealedOnesAsOneCallOut(): void
     {
         $browser = self::createClient();
         $this->earn('streak', 3, revealed: true);
@@ -29,23 +29,41 @@ final class BadgeArtSurfacesTest extends WebTestCase
         self::assertResponseIsSuccessful();
         $showcase = $crawler->filter('.achievements-showcase');
         $items = $showcase->filter('.achievements-showcase-item');
-        self::assertCount(3, $items);
+        // The row holds what is revealed; the owner's unrevealed one is the call-out above it
+        self::assertCount(2, $items);
         // Two tiered achievements + the held Early Adopter, which counts for its holders (in the total too)
         self::assertStringContainsString('3 of 17', $showcase->text());
 
-        // Highest tier first: Gold streak, then the owner's unrevealed Bronze, then the single-tier one
+        // Highest tier first: Gold streak, then the single-tier one
         $streak = $items->eq(0)->filter('img.badge-art');
         // The sheet shows this player's medal (?player=), not the viewer's
         self::assertSame('/en/achievements/streak/info?tier=3&player=' . PlayerFixture::PLAYER_ADMIN, $items->eq(0)->attr('href'));
         self::assertStringStartsWith('/img/badges/webp/144/streak-t3.webp?v=', (string) $streak->attr('src'));
         self::assertSame('56', $streak->attr('width'));
+        self::assertCount(1, $items->eq(1)->filter('img.badge-art[src^="/img/badges/webp/144/supporter-single.webp"]'));
 
-        // The owner's unrevealed badge: a question mark that leads to the reveal page, its picture is not in the page
-        self::assertSame('/en/my/achievement-reveals', $items->eq(1)->attr('href'));
-        self::assertCount(1, $items->eq(1)->filter('.badge-art-mystery'));
+        // The owner's unrevealed badge: one call-out saying how many and what to do, leading to the reveal page - its
+        // picture is not in the page
+        $reveal = $showcase->filter('a.achievements-showcase-reveal');
+        self::assertCount(1, $reveal);
+        self::assertSame('/en/my/achievement-reveals', $reveal->attr('href'));
+        self::assertStringContainsString('1 new achievement to reveal', $reveal->text());
+        self::assertStringContainsString('Reveal it', $reveal->text());
         self::assertCount(0, $showcase->filter('img[src*="speed_500_pieces"]'));
+    }
 
-        self::assertCount(1, $items->eq(2)->filter('img.badge-art[src^="/img/badges/webp/144/supporter-single.webp"]'));
+    public function testAnotherViewerSeesNoRevealCallOut(): void
+    {
+        $browser = self::createClient();
+        $this->earn('streak', 3, revealed: true);
+        $this->earn('speed_500_pieces', 1, revealed: false);
+
+        $crawler = $browser->request('GET', '/en/player-profile/' . PlayerFixture::PLAYER_ADMIN);
+
+        self::assertResponseIsSuccessful();
+        self::assertCount(0, $crawler->filter('.achievements-showcase-reveal'));
+        // Everyone else sees the finished badges, the unrevealed one too
+        self::assertCount(2, $crawler->filter('.achievements-showcase-item'));
     }
 
     public function testAFreeOwnerGetsOneQuietLineInsteadOfTheirBadges(): void

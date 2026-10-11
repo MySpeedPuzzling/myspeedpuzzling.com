@@ -20,13 +20,13 @@
 
                 <button
                     type="button"
-                    class="btn btn-sm btn-outline-secondary rounded-pill lpr-sound"
+                    class="btn btn-sm btn-link text-muted text-decoration-none lpr-sound"
                     data-last-piece-reveal-target="soundToggle"
                     data-action="last-piece-reveal#toggleSound"
-                    aria-pressed="false"
+                    aria-pressed="true"
                     title="{{ 'badges.reveals.sound_title'|trans }}"
                 >
-                    <i class="bi bi-volume-mute" aria-hidden="true"></i>
+                    <i class="bi bi-volume-up" aria-hidden="true"></i>
                     {{ 'badges.reveals.sound'|trans }}
                 </button>
             </div>
@@ -55,6 +55,8 @@
 
                         <p class="lpr-name">{{ name }}</p>
                         <p class="lpr-result" aria-live="polite">
+                            {# What to do, until the last piece is in (the stage's own label says it to screen readers) #}
+                            <span class="lpr-result-hint" aria-hidden="true">{{ 'badges.shelf.unrevealed'|trans }}</span>
                             {% if tier_name %}
                                 <span class="lpr-result-text" hidden><span class="visually-hidden">{{ name }}: </span>{{ tier_name }}</span>
                             {% endif %}

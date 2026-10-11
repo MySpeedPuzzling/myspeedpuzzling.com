@@ -6828,6 +6828,8 @@ player_progress:
         teaser_link: "Staň se členem a uvidíš je."
         teaser_none: "Členové při skládání sbírají úspěchy."
         teaser_none_link: "Zobrazit všechny"
+        reveal_title: "{1}1 nový úspěch k odhalení|[2,4]%count% nové úspěchy k odhalení|[5,Inf[%count% nových úspěchů k odhalení"
+        reveal_text: "{1}Už ti patří - odhal ho a uvidíš, co jsi získal(a).|]1,Inf[Už ti patří - odhal je jeden po druhém a uvidíš, co jsi získal(a)."
 
 marketplace_events:
     label:

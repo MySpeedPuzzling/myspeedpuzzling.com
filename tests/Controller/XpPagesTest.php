@@ -21,8 +21,8 @@ final class XpPagesTest extends WebTestCase
     public static function providePublicPages(): array
     {
         return [
-            'leaderboard' => ['/en/players/xp-leaderboard'],
-            'leaderboard AP tab' => ['/en/players/xp-leaderboard?tab=achievement-points'],
+            'leaderboard' => ['/en/ladder/level'],
+            'leaderboard AP tab' => ['/en/ladder/achievement-points'],
             'achievement detail' => ['/en/achievements/puzzles_solved'],
             'achievements catalog' => ['/en/achievements'],
             'explainer' => ['/en/how-xp-works'],

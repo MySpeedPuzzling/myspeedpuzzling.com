@@ -65,7 +65,7 @@ final class AchievementHoldersPageTest extends WebTestCase
         self::assertCount(0, $rows->eq(0)->filter('.holder-row-trophy'));
         self::assertCount(1, $rows->eq(1)->filter('.holder-row-trophy'));
         self::assertSame('/en/player-profile/' . PlayerFixture::PLAYER_ADMIN, $rows->eq(1)->filter('a')->attr('href'));
-        self::assertStringContainsString('3 puzzlers', $crawler->filter('#tier-1 h2')->text());
+        self::assertStringContainsString('3 puzzlers', $crawler->filter('#tier-1 .achievement-tier-section-count')->text());
         // Counted but never listed: said as such, not as a list one could open
         self::assertStringContainsString('+1 puzzler whose profile is not listed', $crawler->filter('#tier-1')->text());
         self::assertSelectorNotExists('#tier-1 .holder-more-button');
@@ -117,6 +117,9 @@ final class AchievementHoldersPageTest extends WebTestCase
         // The medal number counts every holder ahead, listed or not
         self::assertSelectorTextContains('.achievement-hero-mine', 'You hold Bronze · No. 2 of 3');
         self::assertSelectorExists('.achievement-ladder-step.is-mine[href="#tier-1"]');
+        // The viewer's tier card is marked in its header
+        self::assertSelectorTextContains('#tier-1.is-mine .achievement-tier-section-head', 'Your tier');
+        self::assertSelectorNotExists('#tier-2.is-mine');
         // No pinned own row: the list is the list
         self::assertCount(2, $crawler->filter('#tier-1 .holder-row'));
     }

@@ -97,7 +97,7 @@ final class ConfirmAccountDeletionControllerTest extends WebTestCase
         self::assertCount(4, $tiles);
         self::assertStringContainsString('3 solving times', $tiles[0]);
         self::assertStringContainsString('pieces solved', $tiles[1]);
-        self::assertStringContainsString('1 500', str_replace("\u{a0}", ' ', $tiles[1]), '3 x 500 pieces, cs-style thousands grouping like the rest of the site');
+        self::assertStringContainsString('1500', $tiles[1], '3 x 500 pieces, no separator between the thousands (PlainNumber)');
         self::assertStringContainsString('01h 45m spent puzzling', $tiles[2]);
         self::assertStringContainsString('2 puzzles in collections', $tiles[3]);
     }

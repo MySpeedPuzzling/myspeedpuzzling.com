@@ -24,13 +24,13 @@
             {# A held Early Adopter counts (one achievement, no tiers): it can no longer be earned, so it is in its holders' total only #}
             <p class="achievements-summary mb-0">
                 <span>{{ 'badges.shelf.summary'|trans({
-                    '%earned%': (lists.earnedTypes + (has_supporter ? 1 : 0))|format_number,
-                    '%total%': (lists.totalTypes + (has_supporter ? 1 : 0))|format_number,
-                    '%tiers_earned%': lists.earnedTiers|format_number,
-                    '%tiers_total%': lists.totalTiers|format_number,
+                    '%earned%': (lists.earnedTypes + (has_supporter ? 1 : 0))|plain_number,
+                    '%total%': (lists.totalTypes + (has_supporter ? 1 : 0))|plain_number,
+                    '%tiers_earned%': lists.earnedTiers|plain_number,
+                    '%tiers_total%': lists.totalTiers|plain_number,
                 })|raw }}</span>
                 {% if ap_total is not null %}
-                    <a href="{{ path('xp_leaderboard', {tab: 'achievement-points'}) }}" class="ap-chip text-decoration-none">{{ 'badges.ap_total'|trans({'%points%': ap_total|format_number}) }}</a>
+                    <a href="{{ path('achievement_points_leaderboard') }}" class="ap-chip text-decoration-none">{{ 'badges.ap_total'|trans({'%points%': ap_total|plain_number}) }}</a>
                 {% endif %}
                 <a href="{{ path('player_achievements', {playerId: logged_user.profile.playerId}) }}" class="achievements-summary-link">{{ 'badges.my_title'|trans }}</a>
             </p>
@@ -72,6 +72,6 @@
         {% if logged_in and not is_member %}
             <p class="mb-1">{{ 'badges.shelf.explainer.lapsed'|trans }}</p>
         {% endif %}
-        <p class="mb-0"><a href="{{ path('xp_leaderboard', {tab: 'achievement-points'}) }}">{{ 'badges.catalogue.ap_leaderboard_link'|trans }}</a></p>
+        <p class="mb-0"><a href="{{ path('achievement_points_leaderboard') }}">{{ 'badges.catalogue.ap_leaderboard_link'|trans }}</a></p>
     </div>
 {% endblock %}

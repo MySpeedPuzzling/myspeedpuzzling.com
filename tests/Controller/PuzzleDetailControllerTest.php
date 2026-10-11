@@ -637,7 +637,7 @@ final class PuzzleDetailControllerTest extends WebTestCase
         $this->assertResponseIsSuccessful();
         self::assertSame([
             ['', 'Složení', 'Medián', 'Nejrychlejší'],
-            ['Sólo', '2 496', '00:40:13', '00:16:30'],
+            ['Sólo', '2496', '00:40:13', '00:16:30'],
         ], array_map(
             static fn (array $row): array => array_map(self::normalizedSpaces(...), $row),
             self::summaryTimes($crawler->filter('section.puzzle-summary')),

@@ -19,7 +19,7 @@
         {% if not xp_profile.optedOut %}
             <div class="d-flex flex-wrap align-items-center gap-2">
                 <span class="xp-level-chip {{ xp_profile.isMaxLevel ? 'xp-level-chip-max' }}">{{ 'xp.level_chip'|trans({'%level%': xp_profile.level}) }}</span>
-                <span class="text-muted fs-sm">{{ 'xp.total'|trans({'%xp%': xp_profile.xpTotal|format_number}) }}</span>
+                <span class="text-muted fs-sm">{{ 'xp.total'|trans({'%xp%': xp_profile.xpTotal|plain_number}) }}</span>
             </div>
         {% endif %}
     </header>

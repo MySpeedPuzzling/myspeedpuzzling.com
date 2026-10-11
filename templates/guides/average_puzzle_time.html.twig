@@ -9,7 +9,7 @@
         <p class="guide-hero-lead">
             <strong>A 500-piece jigsaw puzzle takes a median {{ guide.duration_words(solo500.medianSeconds) }}, a 1000-piece
             puzzle {{ guide.duration_words(solo1000.medianSeconds) }}</strong> — measured across
-            {{ total_solo_solves|number_format }} timed solo solves on MySpeedPuzzling. Here is every standard size from 100
+            {{ total_solo_solves|plain_number }} timed solo solves on MySpeedPuzzling. Here is every standard size from 100
             to 2000 pieces, for one person, a pair and a team.
         </p>
     {% else %}
@@ -48,16 +48,16 @@
                             <tr>
                                 <th scope="row">
                                     {% if guide_paths[row.pieces] is defined %}
-                                        <a href="{{ guide_paths[row.pieces] }}">{{ row.pieces|number_format }} pieces</a>
+                                        <a href="{{ guide_paths[row.pieces] }}">{{ row.pieces|plain_number }} pieces</a>
                                     {% else %}
-                                        {{ row.pieces|number_format }} pieces
+                                        {{ row.pieces|plain_number }} pieces
                                     {% endif %}
                                 </th>
                                 <td>{{ row.solo.medianSeconds|compactTime }}</td>
                                 <td>{{ row.solo.p25Seconds|compactTime }} – {{ row.solo.p75Seconds|compactTime }}</td>
                                 <td>{{ row.duo ? row.duo.medianSeconds|compactTime : '–' }}</td>
                                 <td>{{ row.team ? row.team.medianSeconds|compactTime : '–' }}</td>
-                                <td class="text-end">{{ row.solo.solvesCount|number_format }}</td>
+                                <td class="text-end">{{ row.solo.solvesCount|plain_number }}</td>
                             </tr>
                         {% endfor %}
                     </tbody>
@@ -80,12 +80,12 @@
             <p>
                 {% set piecesRatio = (largest.pieces / smallest.pieces)|round %}
                 {% if largest.solo.medianSecondsPerPiece > smallest.solo.medianSecondsPerPiece %}
-                    Going from {{ smallest.pieces }} to {{ largest.pieces|number_format }} pieces multiplies the pieces by
+                    Going from {{ smallest.pieces }} to {{ largest.pieces|plain_number }} pieces multiplies the pieces by
                     {{ piecesRatio }}, but the median time by {{ (largest.solo.medianSeconds / smallest.solo.medianSeconds)|round }}.
                 {% endif %}
                 At {{ smallest.pieces }} pieces the median solver spends
                 {{ smallest.solo.medianSecondsPerPiece|number_format(1) }} seconds per piece; at
-                {{ largest.pieces|number_format }} pieces it is {{ largest.solo.medianSecondsPerPiece|number_format(1) }}.
+                {{ largest.pieces|plain_number }} pieces it is {{ largest.solo.medianSecondsPerPiece|number_format(1) }}.
                 Every extra piece adds more places to look, sorting takes longer, and on a big puzzle each piece carries a
                 smaller part of the picture, so it gives you less to go on.
                 {% if solo500 and solo1000 %}

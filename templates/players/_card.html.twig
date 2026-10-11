@@ -37,23 +37,23 @@
     <dl class="players-card-stats">
         <div class="players-card-stat">
             <dt>{{ 'players.card.solved'|trans }}</dt>
-            <dd>{{ card.solvedTotal|format_number }}</dd>
+            <dd>{{ card.solvedTotal|plain_number }}</dd>
         </div>
         <div class="players-card-stat">
             <dt>{{ 'players.card.pieces'|trans }}</dt>
-            <dd title="{{ card.piecesTotal|format_number }}">
+            <dd title="{{ card.piecesTotal|plain_number }}">
                 {%- if card.piecesTotal >= 999500 -%}
-                    {{ 'players.card.millions'|trans({'%count%': (card.piecesTotal / 1000000)|round(1)|format_number}) }}
+                    {{ 'players.card.millions'|trans({'%count%': (card.piecesTotal / 1000000)|round(1)|plain_number}) }}
                 {%- elseif card.piecesTotal >= 10000 -%}
-                    {{ 'players.card.thousands'|trans({'%count%': (card.piecesTotal / 1000)|round|format_number}) }}
+                    {{ 'players.card.thousands'|trans({'%count%': (card.piecesTotal / 1000)|round|plain_number}) }}
                 {%- else -%}
-                    {{ card.piecesTotal|format_number }}
+                    {{ card.piecesTotal|plain_number }}
                 {%- endif -%}
             </dd>
         </div>
         <div class="players-card-stat">
             <dt>{{ 'players.card.favorites'|trans }}</dt>
-            <dd>{{ card.favoritesCount|format_number }}</dd>
+            <dd>{{ card.favoritesCount|plain_number }}</dd>
         </div>
         <div class="players-card-stat">
             <dt>{{ 'players.card.best500'|trans }}</dt>

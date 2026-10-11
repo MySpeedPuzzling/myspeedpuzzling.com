@@ -51,7 +51,7 @@
                 <a href="{{ path(filter_route, filter_params|merge({show: option.value})) }}"
                    class="{{ option == filter ? 'active' }}"
                    {% if option == filter %}aria-current="page"{% endif %}>
-                    {{ option.translationKey()|trans }}{% if filter_counts[option.value] is defined %} · {{ filter_counts[option.value]|format_number }}{% endif %}
+                    {{ option.translationKey()|trans }}{% if filter_counts[option.value] is defined %} · {{ filter_counts[option.value]|plain_number }}{% endif %}
                 </a>
             {% endfor %}
         </nav>

@@ -21,8 +21,8 @@
                 {%- set numbers = row.progress.currentValue|puzzlingTime ~ ' → ' ~ row.progress.targetValue|puzzlingTime -%}
                 {%- set progress_label = 'badges.shelf.a11y.progress_time'|trans({'%current%': row.progress.currentValue|puzzlingTime, '%target%': row.progress.targetValue|puzzlingTime, '%tier%': next_name}) -%}
             {%- else -%}
-                {%- set numbers = row.progress.currentValue|format_number ~ ' / ' ~ row.progress.targetValue|format_number -%}
-                {%- set progress_label = 'badges.shelf.a11y.progress'|trans({'%current%': row.progress.currentValue|format_number, '%target%': row.progress.targetValue|format_number, '%tier%': next_name}) -%}
+                {%- set numbers = row.progress.currentValue|plain_number ~ ' / ' ~ row.progress.targetValue|plain_number -%}
+                {%- set progress_label = 'badges.shelf.a11y.progress'|trans({'%current%': row.progress.currentValue|plain_number, '%target%': row.progress.targetValue|plain_number, '%tier%': next_name}) -%}
             {%- endif -%}
             <li>
                 <a href="{{ path('achievement_info', {type: row.type.value, tier: next_tier.value, player: player_id|default(null)}) }}"
@@ -31,7 +31,7 @@
                     {{ badge_art(row.type, next_tier, 40, locked = true, attrs = {alt: ''}) }}
                     <span class="achievements-next-body" aria-hidden="true">
                         <span class="achievements-next-name">{{ name }} → {{ next_name }}</span>
-                        <span class="achievements-next-requirement">{{ ('badges.requirement.' ~ row.type.value ~ '_' ~ next_tier.value)|trans }} · +{{ next_tier.points|format_number }} AP</span>
+                        <span class="achievements-next-requirement">{{ ('badges.requirement.' ~ row.type.value ~ '_' ~ next_tier.value)|trans }} · +{{ next_tier.points|plain_number }} AP</span>
                         <span class="achievements-next-progress">
                             <span class="achievement-progress" role="progressbar" aria-valuenow="{{ row.progress.percent }}" aria-valuemin="0" aria-valuemax="100">
                                 <span style="width: {{ row.progress.percent }}%" data-progress-fill-target="bar"></span>

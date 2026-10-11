@@ -14,5 +14,5 @@
     hidden
     data-controller="leaderboard-window"
     data-leaderboard-window-focus-value="{{ focus_id }}"
-    data-leaderboard-window-announce-value="{{ 'leaderboards.announce'|trans({'%from%': reveal.from|format_number, '%to%': reveal.to|format_number, '%total%': total|format_number}) }}"
+    data-leaderboard-window-announce-value="{{ 'leaderboards.announce'|trans({'%from%': reveal.from|plain_number, '%to%': reveal.to|plain_number, '%total%': total|plain_number}) }}"
 ></div>

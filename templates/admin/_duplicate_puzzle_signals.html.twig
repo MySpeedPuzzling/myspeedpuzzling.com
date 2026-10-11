@@ -8,7 +8,7 @@
 <section id="puzzle-signals" class="dr-section mt-0" aria-labelledby="puzzle-signals-title">
     <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
         <h2 class="h4 mb-0" id="puzzle-signals-title">Possible duplicate puzzles</h2>
-        <span class="badge {{ strong_count > 0 ? 'bg-warning text-dark' : 'bg-success text-dark' }}">{{ strong_count|number_format(0, '.', ' ') }} strong waiting</span>
+        <span class="badge {{ strong_count > 0 ? 'bg-warning text-dark' : 'bg-success text-dark' }}">{{ strong_count|plain_number }} strong waiting</span>
     </div>
     <p class="mb-2">
         The same person saved the same time on the same day on two puzzles with the same piece count. Usually one
@@ -37,18 +37,18 @@
             mostly different puzzles, but a few real duplicates that share only the brand hide there.
         </p>
         <p class="mb-0">
-            Handled so far: {{ puzzle_signal_counts.merge_proposed|number_format(0, '.', ' ') }} merge {{ puzzle_signal_counts.merge_proposed == 1 ? 'proposal' : 'proposals' }},
-            {{ puzzle_signal_counts.dismissed|number_format(0, '.', ' ') }} dismissed. A dismissed pair is never raised again.
+            Handled so far: {{ puzzle_signal_counts.merge_proposed|plain_number }} merge {{ puzzle_signal_counts.merge_proposed == 1 ? 'proposal' : 'proposals' }},
+            {{ puzzle_signal_counts.dismissed|plain_number }} dismissed. A dismissed pair is never raised again.
         </p>
     </details>
 
     <div class="dr-switch mb-2" data-test="signal-strength" role="group" aria-label="Which signals to list">
         {% if weak_signals %}
-            <a class="btn btn-sm btn-outline-secondary" href="{{ path('admin_duplicate_results') }}#puzzle-signals">Strong signals ({{ strong_count|number_format(0, '.', ' ') }})</a>
-            <span class="btn btn-sm btn-secondary active" aria-current="true">Weak signals ({{ weak_count|number_format(0, '.', ' ') }})</span>
+            <a class="btn btn-sm btn-outline-secondary" href="{{ path('admin_duplicate_results') }}#puzzle-signals">Strong signals ({{ strong_count|plain_number }})</a>
+            <span class="btn btn-sm btn-secondary active" aria-current="true">Weak signals ({{ weak_count|plain_number }})</span>
         {% else %}
-            <span class="btn btn-sm btn-secondary active" aria-current="true">Strong signals ({{ strong_count|number_format(0, '.', ' ') }})</span>
-            <a class="btn btn-sm btn-outline-secondary" href="{{ path('admin_duplicate_results', {weak_signals: 1}) }}#puzzle-signals">Weak signals ({{ weak_count|number_format(0, '.', ' ') }})</a>
+            <span class="btn btn-sm btn-secondary active" aria-current="true">Strong signals ({{ strong_count|plain_number }})</span>
+            <a class="btn btn-sm btn-outline-secondary" href="{{ path('admin_duplicate_results', {weak_signals: 1}) }}#puzzle-signals">Weak signals ({{ weak_count|plain_number }})</a>
         {% endif %}
     </div>
     <p class="small mb-3">
@@ -148,7 +148,7 @@
                             </tr>
                             <tr>
                                 <th scope="row">Results</th>
-                                {% for puzzle in puzzles %}<td>{{ puzzle.results|number_format(0, '.', ' ') }}</td>{% endfor %}
+                                {% for puzzle in puzzles %}<td>{{ puzzle.results|plain_number }}</td>{% endfor %}
                             </tr>
                         </tbody>
                     </table>
@@ -200,7 +200,7 @@
                 {% else %}
                     <span></span>
                 {% endif %}
-                <span class="small">Page {{ signals_page }} of {{ signals_pages }} · {{ listed_count|number_format(0, '.', ' ') }} signals</span>
+                <span class="small">Page {{ signals_page }} of {{ signals_pages }} · {{ listed_count|plain_number }} signals</span>
                 {% if signals_page < signals_pages %}
                     <a class="btn btn-sm btn-outline-secondary" href="{{ path('admin_duplicate_results', signals_route_parameters|merge({signals_page: signals_page + 1})) }}#puzzle-signals">
                         Next <i class="bi bi-chevron-right" aria-hidden="true"></i>

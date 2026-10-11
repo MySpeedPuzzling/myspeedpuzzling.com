@@ -1,8 +1,8 @@
 {% extends 'base.html.twig' %}
 
 {% set directory_meta_description = 'brand_directory.meta.description'|trans({
-    '%brands%': brands_count|format_number,
-    '%puzzles%': puzzles_count|format_number,
+    '%brands%': brands_count|plain_number,
+    '%puzzles%': puzzles_count|plain_number,
 }) %}
 
 {% block title %}{{ 'brand_directory.meta.title'|trans }}{% endblock %}
@@ -48,8 +48,8 @@
 
     <h1 class="mb-2">{{ 'brand_directory.title'|trans }}</h1>
     <p class="mb-3">{{ 'brand_directory.intro'|trans({
-        '%brands%': brands_count|format_number,
-        '%puzzles%': puzzles_count|format_number,
+        '%brands%': brands_count|plain_number,
+        '%puzzles%': puzzles_count|plain_number,
     }) }}</p>
 
     {% if most_popular|length > 0 %}
@@ -79,7 +79,7 @@
                     {% for brand in brands %}
                         <li class="col">
                             <a href="{{ path('brand_puzzles', {slug: brand.slug}) }}">{{ brand.brandName }}</a>
-                            <small class="text-muted">({{ 'brand_directory.puzzles_count'|trans({'%count%': brand.puzzlesCount, '%formatted_count%': brand.puzzlesCount|format_number}) }})</small>
+                            <small class="text-muted">({{ 'brand_directory.puzzles_count'|trans({'%count%': brand.puzzlesCount, '%formatted_count%': brand.puzzlesCount|plain_number}) }})</small>
                         </li>
                     {% endfor %}
                 </ul>

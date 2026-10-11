@@ -45,7 +45,7 @@ final class PlayersThisWeekTest extends WebTestCase
         $cards = $crawler->filter('.players-week-card');
         self::assertCount(2, $cards, 'Private players are never listed');
         self::assertStringContainsString(PlayerFixture::PLAYER_WITH_STRIPE_NAME, $cards->eq(0)->text());
-        self::assertSame('9 puzzles this week 4,500 pieces', $cards->eq(0)->filter('.players-week-line')->text());
+        self::assertSame('9 puzzles this week 4500 pieces', $cards->eq(0)->filter('.players-week-line')->text());
         self::assertSame(
             ['New best on 500 pieces', '1M pieces placed'],
             $cards->eq(0)->filter('.players-person-chip')->each(static fn ($chip): string => $chip->text()),

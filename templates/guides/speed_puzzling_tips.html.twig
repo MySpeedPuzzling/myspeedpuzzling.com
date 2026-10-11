@@ -108,14 +108,14 @@
                 {% if d500 %}
                     <li>
                         <strong>500 pieces:</strong> median {{ d500.medianSeconds|compactTime }} across
-                        {{ d500.solvesCount|number_format }} recorded solves — the fastest quarter finish under
+                        {{ d500.solvesCount|plain_number }} recorded solves — the fastest quarter finish under
                         {{ d500.p25Seconds|compactTime }}, the top 10% under {{ d500.p10Seconds|compactTime }}.
                     </li>
                 {% endif %}
                 {% if d1000 %}
                     <li>
                         <strong>1000 pieces:</strong> median {{ d1000.medianSeconds|compactTime }} across
-                        {{ d1000.solvesCount|number_format }} recorded solves — fastest quarter under
+                        {{ d1000.solvesCount|plain_number }} recorded solves — fastest quarter under
                         {{ d1000.p25Seconds|compactTime }}, top 10% under {{ d1000.p10Seconds|compactTime }}.
                     </li>
                 {% endif %}

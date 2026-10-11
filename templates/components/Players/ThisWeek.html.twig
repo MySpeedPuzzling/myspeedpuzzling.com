@@ -28,7 +28,7 @@
                     {%- if chip.type.value == 'personal_best' %}
                         {%- set chips = chips|merge(['players.this_week.chip.personal_best'|trans({'%pieces%': chip.piecesCount})]) %}
                     {%- elseif chip.type.value == 'puzzles_milestone' %}
-                        {%- set chips = chips|merge(['players.this_week.chip.puzzles_milestone'|trans({'%puzzles%': chip.value|format_number})]) %}
+                        {%- set chips = chips|merge(['players.this_week.chip.puzzles_milestone'|trans({'%puzzles%': chip.value|plain_number})]) %}
                     {%- elseif chip.type.value == 'pieces_milestone' %}
                         {%- set chips = chips|merge(['players.this_week.chip.pieces_milestone'|trans({'%pieces%': chip.compactValue})]) %}
                     {%- elseif chip.type.value == 'first_result' %}
@@ -40,7 +40,7 @@
                     {{ include('players/_person.html.twig', {player: person, chips: chips}) }}
                     <p class="players-week-line">
                         {{ 'players.this_week.puzzles'|trans({'%count%': person.puzzles}) }}
-                        <small>{{ 'players.this_week.pieces'|trans({'%pieces%': person.pieces|format_number}) }}</small>
+                        <small>{{ 'players.this_week.pieces'|trans({'%pieces%': person.pieces|plain_number}) }}</small>
                     </p>
                 </li>
             {% endfor %}

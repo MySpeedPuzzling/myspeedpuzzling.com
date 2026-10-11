@@ -32,7 +32,7 @@
         }) }}
     {% elseif not_on_board == 'no_time' %}
         {{ include('_leaderboard_not_on_board.html.twig', {
-            text: ('leaderboards.times.no_time.' ~ this.type)|trans({'%pieces%': this.piecesCount|format_number}),
+            text: ('leaderboards.times.no_time.' ~ this.type)|trans({'%pieces%': this.piecesCount|plain_number}),
         }) }}
     {% endif %}
 
@@ -63,7 +63,7 @@
                         : logged_user.profile.playerId in solving_time.players|map(member => member.playerId)
                 ) %}
                 <tr{% if full_board %} id="{{ this.rowId(loop.index0) }}" tabindex="-1"{% endif %} class="{{ is_own_row ? 'table-active-player' }}" data-controller="row-link" data-action="click->row-link#open">
-                    <td class="rank"><span class="lb-rank">{{ ranks[loop.index0]|format_number }}</span></td>
+                    <td class="rank"><span class="lb-rank">{{ ranks[loop.index0]|plain_number }}</span></td>
 
                     <td class="ps-image">
                         <div class="diff-corner-host">

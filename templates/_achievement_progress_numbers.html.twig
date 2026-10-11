@@ -3,5 +3,5 @@
 {% if progress.unit.value == 'seconds' %}
     {{ progress.currentValue|puzzlingTime }} <span class="mx-1">→</span> {{ progress.targetValue|puzzlingTime }}
 {% else %}
-    {{ progress.currentValue|format_number }} / {{ progress.targetValue|format_number }}
+    {{ progress.currentValue|plain_number }} / {{ progress.targetValue|plain_number }}
 {% endif %}

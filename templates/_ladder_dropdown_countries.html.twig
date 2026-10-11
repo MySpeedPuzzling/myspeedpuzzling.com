@@ -11,7 +11,7 @@
                 data-action="select-navigate#go">
             <option value="{{ path(all_countries_route) }}" data-icon="bi bi-globe2"{% if active_country is null %} selected{% endif %}>{{ 'forms.country_all'|trans }}</option>
             {% for player_country in countries|filter(player_country => player_country.countryCode is not null) %}
-                <option value="{{ path(all_countries_route ~ '_country', {countryCode: player_country.countryCode.name}) }}" data-icon="fi fi-{{ player_country.countryCode.name }}" data-count="{{ player_country.playersCount|format_number }}"{% if active_country == player_country.countryCode %} selected{% endif %}>{{ player_country.countryCode.value }}</option>
+                <option value="{{ path(all_countries_route ~ '_country', {countryCode: player_country.countryCode.name}) }}" data-icon="fi fi-{{ player_country.countryCode.name }}" data-count="{{ player_country.playersCount|plain_number }}"{% if active_country == player_country.countryCode %} selected{% endif %}>{{ player_country.countryCode.value }}</option>
             {% endfor %}
         </select>
     </div>

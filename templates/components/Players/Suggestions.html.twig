@@ -36,7 +36,7 @@
                             <span>{{ 'players.suggestions.reason.similar_time'|trans({'%time%': suggestion.best500Seconds|default(0)|puzzlingTime}) }}</span>
                         {% else %}
                             <i class="bi bi-puzzle" aria-hidden="true"></i>
-                            <span>{{ 'players.suggestions.reason.puzzles_in_common'|trans({'%count%': suggestion.sharedPuzzles|default(0)|format_number}) }}</span>
+                            <span>{{ 'players.suggestions.reason.puzzles_in_common'|trans({'%count%': suggestion.sharedPuzzles|default(0)|plain_number}) }}</span>
                         {% endif %}
                     </p>
 

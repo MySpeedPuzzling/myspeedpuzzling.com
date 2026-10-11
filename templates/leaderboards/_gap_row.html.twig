@@ -12,9 +12,9 @@
     <td colspan="{{ colspan|default(3) }}" class="p-0">
         {%- if reveal|default(null) is not null %}
             <div class="lb-gap-inner">
-                <span class="lb-gap-count">{{ 'leaderboards.gap.hidden'|trans({'%count%': count, '%number%': count|format_number}) }}</span>
+                <span class="lb-gap-count">{{ 'leaderboards.gap.hidden'|trans({'%count%': count, '%number%': count|plain_number}) }}</span>
                 {{- include('leaderboards/_reveal_button.html.twig', {
-                    label: 'leaderboards.gap.reveal'|trans({'%from%': reveal.from|format_number, '%to%': reveal.to|format_number, '%total%': total|format_number}),
+                    label: 'leaderboards.gap.reveal'|trans({'%from%': reveal.from|plain_number, '%to%': reveal.to|plain_number, '%total%': total|plain_number}),
                     class: 'btn btn-link btn-sm lb-gap-button text-decoration-none',
                     live_action: live_action|default(null),
                     form: form|default(null),

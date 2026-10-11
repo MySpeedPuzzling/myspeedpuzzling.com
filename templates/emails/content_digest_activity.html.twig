@@ -23,7 +23,7 @@
 {% elseif activity.rating is not null and activity.rating.placesGained > 0 %}
     {% set preheader = 'activity_digest.preheader.rating'|trans({'%count%': activity.rating.placesGained}) %}
 {% else %}
-    {% set preheader = 'activity_digest.preheader.numbers'|trans({'%count%': activity.puzzlesCount, '%pieces%': activity.piecesCount|format_number}) %}
+    {% set preheader = 'activity_digest.preheader.numbers'|trans({'%count%': activity.puzzlesCount, '%pieces%': activity.piecesCount|plain_number}) %}
 {% endif %}
 
 {% apply inky_to_html|inline_css(source('@styles/foundation-emails.css'))|email_document %}
@@ -48,10 +48,10 @@
                     <table role="presentation" width="100%" style="width: 100%; border-collapse: separate; border-spacing: 6px 0;">
                         <tr>
                             <td style="background: #f3f5f9; border-radius: 8px; padding: 10px 6px; text-align: center; width: 33%;">
-                                <strong style="display: block; font-size: 20px; color: #373f50;">{{ activity.puzzlesCount|format_number }}</strong> <span style="font-size: 13px;">{{ 'activity_digest.stat.puzzles'|trans({'%count%': activity.puzzlesCount}) }}</span>
+                                <strong style="display: block; font-size: 20px; color: #373f50;">{{ activity.puzzlesCount|plain_number }}</strong> <span style="font-size: 13px;">{{ 'activity_digest.stat.puzzles'|trans({'%count%': activity.puzzlesCount}) }}</span>
                             </td>
                             <td style="background: #f3f5f9; border-radius: 8px; padding: 10px 6px; text-align: center; width: 33%;">
-                                <strong style="display: block; font-size: 20px; color: #373f50;">{{ activity.piecesCount|format_number }}</strong> <span style="font-size: 13px;">{{ 'activity_digest.stat.pieces'|trans({'%count%': activity.piecesCount}) }}</span>
+                                <strong style="display: block; font-size: 20px; color: #373f50;">{{ activity.piecesCount|plain_number }}</strong> <span style="font-size: 13px;">{{ 'activity_digest.stat.pieces'|trans({'%count%': activity.piecesCount}) }}</span>
                             </td>
                             {% if activity.streakDays > 1 %}
                                 <td style="background: #f3f5f9; border-radius: 8px; padding: 10px 6px; text-align: center; width: 33%;">
@@ -76,7 +76,7 @@
                                     {{ 'activity_digest.level'|trans({'%level%': activity.levelAfter}) }}
                                 {%- endif -%}
                             </a>
-                            · <strong>+{{ activity.xpGained|format_number }} XP</strong>
+                            · <strong>+{{ activity.xpGained|plain_number }} XP</strong>
                         </p>
                     {% endif %}
 

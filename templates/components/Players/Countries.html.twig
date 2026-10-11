@@ -14,14 +14,14 @@
                 <span class="players-tile-country">{{ country.value }}</span>
             </span>
             {% if order == 'rising' %}
-                <span class="players-tile-value">{{ change > 0 ? '+' }}{{ change|format_number }}%</span>
+                <span class="players-tile-value">{{ change > 0 ? '+' }}{{ change|plain_number }}%</span>
                 <span class="players-tile-label">{{ 'players.countries.rising_label'|trans }}</span>
             {% elseif order == 'most_puzzlers' %}
-                <span class="players-tile-value">{{ statistics.registeredPlayers|format_number }}</span>
-                <span class="players-tile-label">{{ 'players.countries.registered_active'|trans({'%active%': statistics.active30d|format_number}) }}</span>
+                <span class="players-tile-value">{{ statistics.registeredPlayers|plain_number }}</span>
+                <span class="players-tile-label">{{ 'players.countries.registered_active'|trans({'%active%': statistics.active30d|plain_number}) }}</span>
             {% else %}
-                <span class="players-tile-value">{{ statistics.active30d|format_number }}</span>
-                <span class="players-tile-label">{{ 'players.countries.active_of'|trans({'%registered%': statistics.registeredPlayers|format_number}) }}</span>
+                <span class="players-tile-value">{{ statistics.active30d|plain_number }}</span>
+                <span class="players-tile-label">{{ 'players.countries.active_of'|trans({'%registered%': statistics.registeredPlayers|plain_number}) }}</span>
             {% endif %}
             {% if order != 'rising' and change is not null %}
                 <span class="players-tile-trend{{ change > 0 ? ' is-up' : (change < 0 ? ' is-down') }}">
@@ -32,7 +32,7 @@
                     {%- else -%}
                         ±
                     {%- endif -%}
-                    {{ 'players.countries.trend'|trans({'%change%': change|abs|format_number}) }}
+                    {{ 'players.countries.trend'|trans({'%change%': change|abs|plain_number}) }}
                 </span>
             {% endif %}
         </a>
@@ -110,8 +110,8 @@
                                     <span>{{ statistics.country.value }}</span>
                                 </a>
                             </th>
-                            <td class="players-countries-number">{{ statistics.registeredPlayers|format_number }}</td>
-                            <td class="players-countries-number">{{ statistics.active30d|format_number }}</td>
+                            <td class="players-countries-number">{{ statistics.registeredPlayers|plain_number }}</td>
+                            <td class="players-countries-number">{{ statistics.active30d|plain_number }}</td>
                         </tr>
                     {% endfor %}
                 </tbody>

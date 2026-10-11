@@ -97,7 +97,7 @@ final class KarmaPagesTest extends WebTestCase
         $database->executeStatement("UPDATE player SET karma = 9, is_private = true WHERE id = :id", ['id' => PlayerFixture::PLAYER_WITH_FAVORITES]);
         $database->executeStatement("UPDATE player SET karma = 11 WHERE id = :id", ['id' => PlayerFixture::PLAYER_ADMIN]);
 
-        $browser->request('GET', '/en/players/xp-leaderboard?tab=karma');
+        $browser->request('GET', '/en/ladder/karma');
 
         self::assertResponseIsSuccessful();
         $content = (string) $browser->getResponse()->getContent();
@@ -112,7 +112,7 @@ final class KarmaPagesTest extends WebTestCase
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
         $this->startCountingQueries($browser);
 
-        $browser->request('GET', '/en/players/xp-leaderboard?tab=karma&kind=fixes&period=12m');
+        $browser->request('GET', '/en/ladder/karma?kind=fixes&period=12m');
 
         self::assertResponseIsSuccessful();
         self::assertSelectorExists('#karma-kind-fixes:checked');
@@ -192,13 +192,13 @@ final class KarmaPagesTest extends WebTestCase
         $browser->getContainer()->get(KarmaRecalculator::class)->recalculateAll();
         $profileLink = '/en/player-profile/' . PlayerFixture::PLAYER_REGULAR;
 
-        $browser->request('GET', '/en/players/xp-leaderboard?tab=karma&kind=fixes');
+        $browser->request('GET', '/en/ladder/karma?kind=fixes');
         self::assertStringContainsString($profileLink, (string) $browser->getResponse()->getContent());
 
         $database->executeStatement('UPDATE player SET karma_opted_out = true WHERE id = :id', ['id' => PlayerFixture::PLAYER_REGULAR]);
 
-        foreach (['', '&kind=fixes', '&period=12m'] as $filter) {
-            $browser->request('GET', '/en/players/xp-leaderboard?tab=karma' . $filter);
+        foreach (['', '?kind=fixes', '?period=12m'] as $filter) {
+            $browser->request('GET', '/en/ladder/karma' . $filter);
             self::assertResponseIsSuccessful();
             self::assertStringNotContainsString($profileLink, (string) $browser->getResponse()->getContent(), $filter);
         }

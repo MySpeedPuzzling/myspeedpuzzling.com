@@ -19,8 +19,8 @@
         {%- set numbers = progress.currentValue|puzzlingTime ~ ' → ' ~ progress.targetValue|puzzlingTime -%}
         {%- set progress_label = 'badges.shelf.a11y.progress_time'|trans({'%current%': progress.currentValue|puzzlingTime, '%target%': progress.targetValue|puzzlingTime, '%tier%': next_name}) -%}
     {%- else -%}
-        {%- set numbers = progress.currentValue|format_number ~ ' / ' ~ progress.targetValue|format_number -%}
-        {%- set progress_label = 'badges.shelf.a11y.progress'|trans({'%current%': progress.currentValue|format_number, '%target%': progress.targetValue|format_number, '%tier%': next_name}) -%}
+        {%- set numbers = progress.currentValue|plain_number ~ ' / ' ~ progress.targetValue|plain_number -%}
+        {%- set progress_label = 'badges.shelf.a11y.progress'|trans({'%current%': progress.currentValue|plain_number, '%target%': progress.targetValue|plain_number, '%tier%': next_name}) -%}
     {%- endif -%}
 {%- endif -%}
 <li class="achievement-cell{{ row.unrevealed ? ' is-unrevealed' }}">

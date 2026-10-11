@@ -26,7 +26,9 @@ final class SitemapStaticController extends AbstractController
         'xp_explainer',
         'xp_fair_play',
         'badges_overview',
-        'xp_leaderboard',
+        // Each progression board is its own page; the Achievement Points board asks guests to sign in, so it is left out
+        'level_leaderboard',
+        'karma_leaderboard',
     ];
 
     private const array STATIC_ROUTES = [

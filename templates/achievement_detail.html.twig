@@ -67,8 +67,8 @@
                     {%- else -%}
                         {{ 'badges.holders.you_hold'|trans({
                             '%tier%': viewer_medal.tier.translationKey()|trans,
-                            '%serial%': viewer_medal.serial|format_number,
-                            '%total%': viewer_total|format_number,
+                            '%serial%': viewer_medal.serial|plain_number,
+                            '%total%': viewer_total|plain_number,
                         }) }}
                     {%- endif -%}
                 </p>
@@ -84,7 +84,7 @@
                     <a href="#tier-{{ section.tier.value }}" data-turbo="false" class="achievement-ladder-step{{ viewer_medal is not null and viewer_medal.tier == section.tier ? ' is-mine' }}">
                         {{ badge_art(type, section.tier, 48, attrs = {alt: ''}) }}
                         <span class="visually-hidden">{{ tier_name }}:</span>
-                        <span class="achievement-ladder-count">{{ section.totalCount|format_number }}</span>
+                        <span class="achievement-ladder-count">{{ section.totalCount|plain_number }}</span>
                     </a>
                 </li>
             {% endfor %}
@@ -105,19 +105,21 @@
     {% endif %}
 
     {% for section in tier_sections %}
-        <section class="achievement-tier-section" id="tier-{{ section.tier.value }}" aria-labelledby="tier-{{ section.tier.value }}-title">
-            <div class="achievement-tier-section-head">
-                {{ badge_art(type, section.tier, 40, attrs = {alt: ''}) }}
-                <div>
-                    <h2 class="h6 mb-0" id="tier-{{ section.tier.value }}-title">
+        {% set is_mine = viewer_medal is not null and viewer_medal.tier == section.tier %}
+        {# A card per tier: the header band in the tier's colour (seal, name, what it takes, how many hold it) stays under
+           the navbar while its list scrolls - with "Show all" a list can be long (Jan 2026-10-11) #}
+        <section class="achievement-tier-section tier-{{ section.tier.value }}{{ is_mine ? ' is-mine' }}" id="tier-{{ section.tier.value }}" aria-labelledby="tier-{{ section.tier.value }}-title">
+            <header class="achievement-tier-section-head">
+                {{ badge_art(type, section.tier, 56, attrs = {alt: ''}) }}
+                <div class="achievement-tier-section-text">
+                    <h2 class="achievement-tier-section-title" id="tier-{{ section.tier.value }}-title">
                         {{ section.tier.translationKey()|trans }}
-                        {% if section.totalCount > 0 %}
-                            <span class="fw-normal text-body-secondary">· {{ 'badges.detail.holders_count'|trans({'%count%': section.totalCount}) }}</span>
-                        {% endif %}
+                        {% if is_mine %}<span class="achievement-tier-section-mine">{{ 'badges.holders.your_tier'|trans }}</span>{% endif %}
                     </h2>
-                    <p class="fs-sm text-body-secondary mb-0">{{ ('badges.requirement.' ~ type.value ~ '_' ~ section.tier.value)|trans }}</p>
+                    <p class="achievement-tier-section-requirement">{{ ('badges.requirement.' ~ type.value ~ '_' ~ section.tier.value)|trans }}</p>
                 </div>
-            </div>
+                <span class="achievement-tier-section-count">{{ 'badges.detail.holders_count'|trans({'%count%': section.totalCount}) }}</span>
+            </header>
 
             {# One frame per tier: "Show 100 more" / "Show all" reload only this list, in place (Jan 2026-10-11) #}
             <turbo-frame id="holders-tier-{{ section.tier.value }}">
@@ -135,12 +137,12 @@
                             {% if more > more_step %}
                                 <a href="{{ path('achievement_detail', {type: type.value, country: selected_country, tier: section.tier.value, shown: shown + more_step}) }}"
                                    class="btn btn-outline-primary holder-more-button" rel="nofollow" data-turbo-frame="holders-tier-{{ section.tier.value }}">
-                                    {{- 'badges.holders.show_more'|trans({'%count%': more_step|format_number}) -}}
+                                    {{- 'badges.holders.show_more'|trans({'%count%': more_step|plain_number}) -}}
                                 </a>
                             {% endif %}
                             <a href="{{ path('achievement_detail', {type: type.value, country: selected_country, tier: section.tier.value, shown: min(max_shown, section.listedCount)}) }}"
                                class="btn btn-outline-primary holder-more-button" rel="nofollow" data-turbo-frame="holders-tier-{{ section.tier.value }}">
-                                {{- 'badges.holders.show_all'|trans({'%count%': section.listedCount|format_number}) -}}
+                                {{- 'badges.holders.show_all'|trans({'%count%': section.listedCount|plain_number}) -}}
                             </a>
                         </div>
                     {% endif %}

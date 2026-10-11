@@ -10,7 +10,7 @@
     <h1 class="guide-hero-title">How Long Does a {{ pieces }}-Piece Puzzle Take?</h1>
 
     <p class="guide-hero-lead">
-        <strong>Across {{ distribution.solvesCount|number_format }} solo solves recorded on MySpeedPuzzling, the median time
+        <strong>Across {{ distribution.solvesCount|plain_number }} solo solves recorded on MySpeedPuzzling, the median time
         to finish a {{ pieces }}-piece jigsaw puzzle is {{ guide.duration_words(distribution.medianSeconds) }}.</strong>
         Half of all recorded solves land between {{ distribution.p25Seconds|compactTime }} and
         {{ distribution.p75Seconds|compactTime }}, and nine out of ten are done within {{ distribution.p90Seconds|compactTime }}.
@@ -44,11 +44,11 @@
                 <span class="guide-stat-label">Fastest recorded</span>
             </div>
             <div class="col-6 col-md-2">
-                <span class="guide-stat-number">{{ distribution.solvesCount|number_format }}</span>
+                <span class="guide-stat-number">{{ distribution.solvesCount|plain_number }}</span>
                 <span class="guide-stat-label">Recorded solves</span>
             </div>
             <div class="col-12 col-md-2">
-                <span class="guide-stat-number">{{ distribution.playersCount|number_format }}</span>
+                <span class="guide-stat-number">{{ distribution.playersCount|plain_number }}</span>
                 <span class="guide-stat-label">Puzzlers measured</span>
             </div>
         </div>
@@ -74,8 +74,8 @@
 
         <p>
             Puzzlers can mark a solve as their very first time on that puzzle. The
-            {{ distribution.firstAttemptCount|number_format }} {{ pieces }}-piece solves marked that way have a median of
-            {{ firstAttempt|compactTime }}. The other {{ distribution.notFirstAttemptCount|number_format }} — repeat solves,
+            {{ distribution.firstAttemptCount|plain_number }} {{ pieces }}-piece solves marked that way have a median of
+            {{ firstAttempt|compactTime }}. The other {{ distribution.notFirstAttemptCount|plain_number }} — repeat solves,
             plus first attempts nobody marked — have a median of {{ otherAttempts|compactTime }}.
             {% if otherAttempts < firstAttempt * 0.95 %}
                 That is about {{ ((1 - otherAttempts / firstAttempt) * 100)|round }}% faster: once you know the picture,
@@ -163,14 +163,14 @@
                             <tr{% if row.piecesCount == pieces %} class="guide-table-highlight"{% endif %}>
                                 <th scope="row">
                                     {% if row.piecesCount != pieces and guide_paths[row.piecesCount] is defined %}
-                                        <a href="{{ guide_paths[row.piecesCount] }}">{{ row.piecesCount|number_format }}</a>
+                                        <a href="{{ guide_paths[row.piecesCount] }}">{{ row.piecesCount|plain_number }}</a>
                                     {% else %}
-                                        {{ row.piecesCount|number_format }}
+                                        {{ row.piecesCount|plain_number }}
                                     {% endif %}
                                 </th>
                                 <td>{{ row.medianSeconds|compactTime }}</td>
                                 <td>{{ row.medianSecondsPerPiece|number_format(1) }}</td>
-                                <td class="text-end">{{ row.solvesCount|number_format }}</td>
+                                <td class="text-end">{{ row.solvesCount|plain_number }}</td>
                             </tr>
                         {% endfor %}
                     </tbody>

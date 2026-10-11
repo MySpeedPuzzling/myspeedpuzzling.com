@@ -14,7 +14,7 @@
     them again at the click, after filtering without a reload).
 #}
 {%- set current_route = app.request.attributes.get('_route') -%}
-{%- set current_board = current_route == 'xp_leaderboard' and tab is defined ? tab : null -%}
+{%- set current_board = tab is defined and current_route in ['level_leaderboard', 'achievement_points_leaderboard', 'karma_leaderboard'] ? tab : null -%}
 {%- set is_msp_page = current_route starts with 'msp_rating_ladder' -%}
 {%- set viewer_profile = logged_user.profile ?? null -%}
 {%- set is_member = viewer_profile is not null and viewer_profile.activeMembership -%}
@@ -52,10 +52,10 @@
 {%- if xp_system_visible() -%}
     {%- for board_tab in enum('SpeedPuzzling\\Web\\Value\\ProgressLeaderboardTab').cases() -%}
         {%- set pills = pills|merge([{
-            href: path('xp_leaderboard', {tab: board_tab.value, country: nav_country, favorites: nav_favorites and viewer_profile is not null ? 1 : null}),
+            href: path(board_tab.routeName(), {country: nav_country, favorites: nav_favorites and viewer_profile is not null ? 1 : null}),
             label: (board_tab.translationPrefix() ~ '.tab')|trans,
             active: current_board == board_tab,
-            base: path('xp_leaderboard', {tab: board_tab.value}),
+            base: path(board_tab.routeName()),
             country_param: 'country',
             favorites_param: viewer_profile is not null ? 'favorites' : null,
         }]) -%}

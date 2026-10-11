@@ -12,7 +12,7 @@
         {% set medianMinutes = (d1000.medianSeconds % 3600) // 60 %}
 
         <p class="guide-hero-lead">
-            <strong>Across {{ d1000.solvesCount|number_format }} solo solves recorded on MySpeedPuzzling, the median time
+            <strong>Across {{ d1000.solvesCount|plain_number }} solo solves recorded on MySpeedPuzzling, the median time
             to finish a 1000-piece jigsaw puzzle is {{ medianHours }} hour{{ medianHours == 1 ? '' : 's' }} {{ medianMinutes }} minute{{ medianMinutes == 1 ? '' : 's' }}.</strong>
             Half of all recorded solves land between {{ d1000.p25Seconds|compactTime }} and {{ d1000.p75Seconds|compactTime }},
             and nine out of ten are done within {{ d1000.p90Seconds|compactTime }}.
@@ -57,11 +57,11 @@
                     <span class="guide-stat-label">Fastest recorded</span>
                 </div>
                 <div class="col-6 col-md-2">
-                    <span class="guide-stat-number">{{ d1000.solvesCount|number_format }}</span>
+                    <span class="guide-stat-number">{{ d1000.solvesCount|plain_number }}</span>
                     <span class="guide-stat-label">Recorded solves</span>
                 </div>
                 <div class="col-12 col-md-2">
-                    <span class="guide-stat-number">{{ d1000.playersCount|number_format }}</span>
+                    <span class="guide-stat-number">{{ d1000.playersCount|plain_number }}</span>
                     <span class="guide-stat-label">Puzzlers measured</span>
                 </div>
             </div>
@@ -106,15 +106,15 @@
                             <tr{% if distribution.piecesCount == 1000 %} class="guide-table-highlight"{% endif %}>
                                 <th scope="row">
                                     {% if distribution.piecesCount != 1000 and guide_paths[distribution.piecesCount] is defined %}
-                                        <a href="{{ guide_paths[distribution.piecesCount] }}">{{ distribution.piecesCount|number_format }}</a>
+                                        <a href="{{ guide_paths[distribution.piecesCount] }}">{{ distribution.piecesCount|plain_number }}</a>
                                     {% else %}
-                                        {{ distribution.piecesCount|number_format }}
+                                        {{ distribution.piecesCount|plain_number }}
                                     {% endif %}
                                 </th>
                                 <td>{{ distribution.medianSeconds|compactTime }}</td>
                                 <td>{{ distribution.p25Seconds|compactTime }} – {{ distribution.p75Seconds|compactTime }}</td>
                                 <td>{{ distribution.p90Seconds|compactTime }}</td>
-                                <td class="text-end">{{ distribution.solvesCount|number_format }}</td>
+                                <td class="text-end">{{ distribution.solvesCount|plain_number }}</td>
                             </tr>
                         {% endfor %}
                     </tbody>
@@ -146,7 +146,7 @@
             <p>
                 Solving a puzzle you have already done before is measurably faster: you know the image, the tricky areas,
                 and where to start. Looking only at solves marked as a first attempt
-                ({{ d1000.firstAttemptCount|number_format }} of the recorded 1000-piece solves), the median is
+                ({{ d1000.firstAttemptCount|plain_number }} of the recorded 1000-piece solves), the median is
                 {{ d1000.firstAttemptMedianSeconds|compactTime }}, compared to {{ d1000.medianSeconds|compactTime }}
                 across all solves. If you are timing your very first run of a fresh puzzle, expect to sit slightly above
                 the overall numbers — that is normal.
@@ -220,7 +220,7 @@
     </p>
 
     <p class="text-muted">
-        Based on {{ totalSolves|number_format }} recorded solo solves on MySpeedPuzzling across
+        Based on {{ totalSolves|plain_number }} recorded solo solves on MySpeedPuzzling across
         {{ distributions|length }} piece-count categories. The statistics refresh automatically as the community
         tracks new solves.
     </p>

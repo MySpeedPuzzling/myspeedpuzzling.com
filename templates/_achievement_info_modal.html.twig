@@ -93,7 +93,7 @@
                                                     <span class="medal-engraving-launch">{{ 'badges.medal.held_at_launch'|trans }}</span>
                                                 {% else %}
                                                     <span class="medal-engraving-serial"><small>{{ 'badges.medal.no'|trans }}</small> {{ medal.serial|format_number({min_integer_digit: 4, grouping_used: false}) }}</span>
-                                                    <span class="medal-engraving-line">{{ 'badges.medal.of_total'|trans({'%total%': medal.totalOf(holders[entry.tier.value] ?? 0)|format_number}) }}</span>
+                                                    <span class="medal-engraving-line">{{ 'badges.medal.of_total'|trans({'%total%': medal.totalOf(holders[entry.tier.value] ?? 0)|plain_number}) }}</span>
                                                 {% endif %}
                                                 <span class="medal-engraving-share">{{ (holders[entry.tier.value] ?? 0) > 0 ? 'badges.catalogue.rarity'|trans({'%percent%': include('_achievement_medal_share.html.twig', {percent: rarity[entry.tier.value] ?? 0, holders: 1, long: false, plain: true})}) : 'badges.medal.nobody_yet'|trans }}</span>
                                                 {% if not medal.heldAtLaunch %}
@@ -131,7 +131,7 @@
                                         <span class="medal-chip">{{ 'badges.medal.held_at_launch'|trans }}</span>
                                     {% else %}
                                         <span class="medal-chip">{{ 'badges.earned_on'|trans({'%date%': medal.earnedAt|format_date('medium')}) }}</span>
-                                        <span class="medal-chip">{{ 'badges.medal.serial_of'|trans({'%serial%': medal.serial|format_number, '%total%': medal.totalOf(tier_holders)|format_number}) }}</span>
+                                        <span class="medal-chip">{{ 'badges.medal.serial_of'|trans({'%serial%': medal.serial|plain_number, '%total%': medal.totalOf(tier_holders)|plain_number}) }}</span>
                                     {% endif %}
                                 {% elseif personal %}
                                     <span class="medal-chip">{{ 'badges.medal.not_earned_yet'|trans }}</span>
@@ -146,7 +146,7 @@
                         </span>
                     {% endfor %}
                     {% if record is not null %}
-                        {% set record_value = record.unit.value == 'seconds' ? record.currentValue|puzzlingTime : record.currentValue|format_number %}
+                        {% set record_value = record.unit.value == 'seconds' ? record.currentValue|puzzlingTime : record.currentValue|plain_number %}
                         <span class="medal-facts-record">
                             {%- if subject_name is not null -%}
                                 {{ (record.unit.value == 'seconds' ? 'badges.medal.player_best' : 'badges.medal.player_so_far')|trans({'%name%': subject_name, '%value%': record_value}) }}
@@ -196,7 +196,7 @@
                                 {% endif %}
                             </span>
                             {% if personal %}
-                                <span class="medal-tier-ap">+{{ entry.tier.points|format_number }} AP</span>
+                                <span class="medal-tier-ap">+{{ entry.tier.points|plain_number }} AP</span>
                             {% endif %}
                         </li>
                     {% endfor %}
@@ -215,7 +215,7 @@
             <div class="medal-actions">
                 {% if tiered %}
                     <a href="{{ path('achievement_detail', {type: type.value}) }}" data-turbo-frame="_top" class="btn btn-outline-primary">
-                        {{ 'badges.medal.see_holders'|trans({'%count%': holders_total|format_number}) }}
+                        {{ 'badges.medal.see_holders'|trans({'%count%': holders_total|plain_number}) }}
                     </a>
                 {% endif %}
                 <a href="{{ path('badges_overview') }}" data-turbo-frame="_top" class="btn btn-outline-secondary">

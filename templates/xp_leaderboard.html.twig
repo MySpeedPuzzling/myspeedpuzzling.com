@@ -22,13 +22,13 @@
         {%- set secondary = 'leaderboards.secondary.achievements'|trans({'%count%': row.secondaryCount}) -%}
     {%- endif -%}
     <tr id="board-row-{{ row.playerId }}"{% if is_viewer %} class="table-active-player"{% endif %}>
-        <td class="rank"><span class="lb-rank{{ row.rank <= 3 ? ' lb-rank-podium lb-rank-podium-' ~ row.rank }}">{{ row.rank|format_number }}</span></td>
+        <td class="rank"><span class="lb-rank{{ row.rank <= 3 ? ' lb-rank-podium lb-rank-podium-' ~ row.rank }}">{{ row.rank|plain_number }}</span></td>
         <td class="lb-solver">
             {{ include('_leaderboard_player.html.twig', {player: row, show_tier: false}) }}
         </td>
         <td class="lb-time">
             {{ include('leaderboards/_value.html.twig', {
-                value: ('leaderboards.value.' ~ tab.value)|trans({'%value%': row.value|format_number}),
+                value: ('leaderboards.value.' ~ tab.value)|trans({'%value%': row.value|plain_number}),
                 secondary: secondary,
                 family: tab.valueFamily(),
             }) }}
@@ -85,7 +85,6 @@
     {% else %}
         {# The filters: a new filter is a new list, so this form never carries the revealed rows (limit, below) #}
         <form method="get" class="d-flex flex-wrap align-items-center gap-3 mb-3" data-turbo="false" data-controller="auto-submit" data-action="change->auto-submit#submit">
-            <input type="hidden" name="tab" value="{{ tab.value }}">
             {% if tab.hasKarmaFilters() %}
                 {{ include('karma/_leaderboard_filters.html.twig') }}
             {% endif %}
@@ -152,7 +151,7 @@
                         scope: favorites_only
                             ? 'leaderboards.position.in_favorites'|trans
                             : (selected_country_name is not null ? 'leaderboards.position.in_country'|trans({'%country%': selected_country_name}) : null),
-                        gap_text: position.targetGap is not null ? ('leaderboards.value.' ~ tab.value)|trans({'%value%': position.targetGap|format_number}) : null,
+                        gap_text: position.targetGap is not null ? ('leaderboards.value.' ~ tab.value)|trans({'%value%': position.targetGap|plain_number}) : null,
                         jump_href: window.ownRowBelowFirstScreen() and own_row is not null ? '#board-row-' ~ own_row.playerId : null,
                     }) }}
                 {% endif %}
@@ -176,7 +175,7 @@
                                         total: window.totalRows,
                                         colspan: 3,
                                         form: {
-                                            action: path('xp_leaderboard'),
+                                            action: path(tab.routeName()),
                                             params: list_params|merge({limit: gap_window.limit(), below: gap_window.belowOwnRow(), focus: gap_reveal.from ~ '-' ~ gap_reveal.to}),
                                             frame: frame_id,
                                         },
@@ -193,7 +192,7 @@
                     {{ include('leaderboards/_show_more.html.twig', {
                         count: window.showMoreCount(),
                         form: {
-                            action: path('xp_leaderboard'),
+                            action: path(tab.routeName()),
                             params: list_params|merge({limit: more_window.limit(), below: more_window.belowOwnRow(), focus: more_reveal.from ~ '-' ~ more_reveal.to}),
                             frame: frame_id,
                         },

@@ -61,13 +61,13 @@
 
     {% if d500 %}
         <p>
-            Real numbers help here. Across {{ d500.solvesCount|number_format }} recorded solo 500-piece solves on
+            Real numbers help here. Across {{ d500.solvesCount|plain_number }} recorded solo 500-piece solves on
             MySpeedPuzzling, the median time is {{ d500.medianSeconds|compactTime }} — and the fastest quarter of solves
             finish under {{ d500.p25Seconds|compactTime }}. The fastest recorded 500-piece solo solve on the platform
             stands at {{ d500.fastestSeconds|compactTime }}.
             {%- if d1000 %}
             For 1000 pieces the median is {{ d1000.medianSeconds|compactTime }} across
-            {{ d1000.solvesCount|number_format }} solves.
+            {{ d1000.solvesCount|plain_number }} solves.
             {%- endif %}
             If you want the full breakdown by piece count — percentiles, first attempts vs. repeats, what counts as
             fast — see our data guide:

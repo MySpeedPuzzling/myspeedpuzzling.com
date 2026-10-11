@@ -62,7 +62,7 @@
             scope: this.onlyFavorites
                 ? 'leaderboards.position.in_favorites'|trans
                 : (active_country is not null ? 'leaderboards.position.in_country'|trans({'%country%': active_country.name|upper|country_name}) : null),
-            gap_text: viewer_position.targetGap is not null ? 'leaderboards.rating.gap'|trans({'%value%': viewer_position.targetGap|format_number}) : null,
+            gap_text: viewer_position.targetGap is not null ? 'leaderboards.rating.gap'|trans({'%value%': viewer_position.targetGap|plain_number}) : null,
             jump_href: this.ownRowBelowFirstScreen ? '#my-rating-row' : null,
         }) }}
     {% endif %}
@@ -91,7 +91,7 @@
                         {% endif %}
                         {% set is_current_player = logged_user.profile is not null and entry.playerId == logged_user.profile.playerId %}
                         <tr id="{{ this.rowId(entry) }}" class="{{ is_current_player ? 'table-active-player' }}" tabindex="-1">
-                            <td class="rank"><span class="lb-rank">{{ entry.rank|format_number }}</span></td>
+                            <td class="rank"><span class="lb-rank">{{ entry.rank|plain_number }}</span></td>
                             <td class="lb-solver">
                                 {# The Skill tier is the value's second line (members), not an icon as well - one value + one line per row (P6) #}
                                 {{ include('_leaderboard_player.html.twig', {
@@ -103,7 +103,7 @@
                             </td>
                             <td class="lb-time">
                                 {{ include('leaderboards/_value.html.twig', {
-                                    value: entry.displayRating|format_number,
+                                    value: entry.displayRating|plain_number,
                                     secondary: is_member and entry.skillTierName is not null ? ('puzzle_intelligence.skill.tiers.' ~ entry.skillTierName)|trans : null,
                                     family: 'competition',
                                 }) }}

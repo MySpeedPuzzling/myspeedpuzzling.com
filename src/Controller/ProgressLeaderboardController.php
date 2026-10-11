@@ -24,8 +24,10 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
 /**
- * Progression leaderboards (docs/features/xp-levels/launch-2026-10.md, "Leaderboards"): one page, a tab per board
- * (ProgressLeaderboardTab), the shared leaderboard row. "Where am I" like the puzzle page
+ * Progression leaderboards (docs/features/xp-levels/launch-2026-10.md, "Leaderboards"): a page of its own per board
+ * (ProgressLeaderboardTab - Level, Achievement Points, Karma: each its own URL, title and canonical, next to the Times
+ * ladders; the old /players/xp-leaderboard?tab= URLs redirect, LegacyXpLeaderboardRedirectController), the shared
+ * leaderboard row. "Where am I" like the puzzle page
  * (docs/features/xp-levels/ux-polish/design-spec.md §4): the top rows, a gap row, the viewer's own row with two
  * neighbours each side, "Show more" after the last row shown (LeaderboardWindow) - one window statement per request.
  *
@@ -33,7 +35,7 @@ use Symfony\Component\Routing\Attribute\Route;
  * too (buttons - crawlers do not submit them) aimed at a Turbo Frame around the list, so the page keeps its scroll
  * position and the revealed rows live only in the request that asked for them.
  */
-final class XpLeaderboardController extends AbstractController
+final class ProgressLeaderboardController extends AbstractController
 {
     // The most rows a revealed window may ask for - a bound for hand-made URLs, far above what anybody taps to
     private const int MAX_ROWS = 10_000;
@@ -48,14 +50,39 @@ final class XpLeaderboardController extends AbstractController
 
     #[Route(
         path: [
-            'cs' => '/hraci/xp-zebricek',
-            'en' => '/en/players/xp-leaderboard',
-            'es' => '/es/jugadores/xp-clasificacion',
-            'ja' => '/ja/プレイヤー/xpランキング',
-            'fr' => '/fr/joueurs/xp-classement',
-            'de' => '/de/spieler/xp-rangliste',
+            'cs' => '/zebricek/uroven',
+            'en' => '/en/ladder/level',
+            'es' => '/es/escalera/nivel',
+            'ja' => '/ja/リーダーボード/レベル',
+            'fr' => '/fr/classement/niveau',
+            'de' => '/de/rangliste/level',
         ],
-        name: 'xp_leaderboard',
+        name: 'level_leaderboard',
+        defaults: ['tab' => 'xp'],
+    )]
+    #[Route(
+        path: [
+            'cs' => '/zebricek/body-za-uspechy',
+            'en' => '/en/ladder/achievement-points',
+            'es' => '/es/escalera/puntos-de-logro',
+            'ja' => '/ja/リーダーボード/実績ポイント',
+            'fr' => '/fr/classement/points-de-succes',
+            'de' => '/de/rangliste/erfolgspunkte',
+        ],
+        name: 'achievement_points_leaderboard',
+        defaults: ['tab' => 'achievement-points'],
+    )]
+    #[Route(
+        path: [
+            'cs' => '/zebricek/karma',
+            'en' => '/en/ladder/karma',
+            'es' => '/es/escalera/karma',
+            'ja' => '/ja/リーダーボード/カルマ',
+            'fr' => '/fr/classement/karma',
+            'de' => '/de/rangliste/karma',
+        ],
+        name: 'karma_leaderboard',
+        defaults: ['tab' => 'karma'],
     )]
     public function __invoke(Request $request): Response
     {
@@ -65,7 +92,8 @@ final class XpLeaderboardController extends AbstractController
             throw $this->createNotFoundException();
         }
 
-        $tab = ProgressLeaderboardTab::tryFrom($request->query->getString('tab', 'xp')) ?? ProgressLeaderboardTab::Xp;
+        // The board is the route (its own URL), never a query parameter
+        $tab = ProgressLeaderboardTab::from($request->attributes->getString('tab'));
 
         $country = CountryCode::fromCode($request->query->getString('country'))?->name;
 
@@ -121,7 +149,6 @@ final class XpLeaderboardController extends AbstractController
 
         // The list's own query parameters - what the gap row and "Show more" carry along with the next window
         $listParams = [
-            'tab' => $tab->value,
             'country' => $country,
             'favorites' => $favoritesOnly ? 1 : null,
             'kind' => $tab === ProgressLeaderboardTab::Karma ? $karmaGroup?->value : null,

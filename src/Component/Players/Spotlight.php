@@ -16,6 +16,7 @@ use SpeedPuzzling\Web\Results\SpotlightPeople;
 use SpeedPuzzling\Web\Results\SpotlightPerson;
 use SpeedPuzzling\Web\Value\CommunityScope;
 use Symfony\UX\TwigComponent\Attribute\AsTwigComponent;
+use SpeedPuzzling\Web\Value\PlainNumber;
 
 /**
  * The spotlight on the world or one country (docs/features/players-page/README.md, stream S2): the scope's numbers
@@ -127,7 +128,7 @@ final class Spotlight
     {
         $formatted = MessageFormatter::formatMessage(Locale::getDefault(), '{0, number, ::compact-short .#}', [$number]);
 
-        return is_string($formatted) ? $formatted : number_format($number);
+        return is_string($formatted) ? $formatted : PlainNumber::format($number);
     }
 
     public function daysSinceJoined(SpotlightPerson $person): int

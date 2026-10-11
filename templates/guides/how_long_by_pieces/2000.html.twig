@@ -15,8 +15,8 @@
 {% block size_callout %}
     <div class="guide-callout">
         <p>
-            Only a small group of puzzlers times their 2000-piece solves: {{ distribution.solvesCount|number_format }}
-            solves by {{ distribution.playersCount|number_format }} puzzlers so far. The middle half of them lands
+            Only a small group of puzzlers times their 2000-piece solves: {{ distribution.solvesCount|plain_number }}
+            solves by {{ distribution.playersCount|plain_number }} puzzlers so far. The middle half of them lands
             anywhere between {{ distribution.p25Seconds|compactTime }} and {{ distribution.p75Seconds|compactTime }} —
             a range of {{ ((distribution.p75Seconds - distribution.p25Seconds) / 3600)|round }} hours, so treat the median
             as a rough centre rather than a promise.

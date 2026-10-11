@@ -5,7 +5,7 @@
 {% block content %}
     {% import 'xp/_level_medallion.html.twig' as reveal %}
     {% set level = xp_profile.level %}
-    {% set xp_total = xp_profile.xpTotal|number_format(0, '.', ' ') %}
+    {% set xp_total = xp_profile.xpTotal|plain_number %}
     {# A member meets every achievement one by one (the deck); the achievement detail is a member feature, so a free
        player gets the level medallion and how many achievements wait - never which #}
     {% set has_deck = is_member and badges|length > 0 %}

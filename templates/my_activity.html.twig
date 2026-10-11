@@ -53,11 +53,11 @@
         {# The numbers: the week first #}
         <section class="my-activity-stats mb-4" aria-label="{{ 'my_activity.numbers_label'|trans }}">
             <div class="my-activity-stat">
-                <b data-testid="my-activity-puzzles">{{ activity.puzzlesCount|format_number }}</b>
+                <b data-testid="my-activity-puzzles">{{ activity.puzzlesCount|plain_number }}</b>
                 <span>{{ 'my_activity.stat.puzzles'|trans({'%count%': activity.puzzlesCount}) }}</span>
             </div>
             <div class="my-activity-stat">
-                <b>{{ activity.piecesCount|format_number }}</b>
+                <b>{{ activity.piecesCount|plain_number }}</b>
                 <span>{{ 'my_activity.stat.pieces'|trans({'%count%': activity.piecesCount}) }}</span>
             </div>
             {% if activity.minutesSpent > 0 %}
@@ -96,7 +96,7 @@
                             {% else %}
                                 {{ 'my_activity.level'|trans({'%level%': activity.levelAfter}) }}
                             {% endif %}
-                            <span class="text-success ms-1">+{{ activity.xpGained|format_number }} XP</span>
+                            <span class="text-success ms-1">+{{ activity.xpGained|plain_number }} XP</span>
                         </span>
                         {% if activity.levelProgress is not null %}
                             <span class="progress mt-1" style="height: 6px;" role="progressbar"
@@ -270,7 +270,7 @@
                 <button type="button" class="btn btn-outline-secondary"
                     {{ stimulus_controller('share-link', {
                         url: url('player_profile', {playerId: profile.playerId}),
-                        title: ('my_activity.share_title.' ~ length)|trans({'%puzzles%': activity.puzzlesCount, '%pieces%': activity.piecesCount|format_number}),
+                        title: ('my_activity.share_title.' ~ length)|trans({'%puzzles%': activity.puzzlesCount, '%pieces%': activity.piecesCount|plain_number}),
                         copiedLabel: 'my_activity.share_copied'|trans,
                     }) }}
                     {{ stimulus_action('share-link', 'share') }}

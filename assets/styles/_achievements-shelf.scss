@@ -465,18 +465,101 @@ $shelf-press: scale(.97);
 }
 
 .achievement-tier-section {
-    margin-top: 1.5rem;
+    // The tier's own tint (the seals' metal: bronze, silver, gold, platinum, diamond) for the header band
+    --tier-tint: #f6f9fc;
+    --tier-ink: #{$shelf-ink};
+
+    margin-top: 1.25rem;
+    border: 1px solid $shelf-line;
+    border-radius: .875rem;
+    background: #fff;
+    // The sticky header needs the card's own clipping off; its corners are rounded on the header itself
     scroll-margin-top: calc(var(--header-height, 101px) + .75rem);
+
+    &.tier-1 { --tier-tint: #fbeee4; --tier-ink: #7a4519; }
+    &.tier-2 { --tier-tint: #edf1f7; --tier-ink: #3d4a5f; }
+    &.tier-3 { --tier-tint: #fdf3d6; --tier-ink: #7a5a0c; }
+    &.tier-4 { --tier-tint: #efecfb; --tier-ink: #4b3f8f; }
+    &.tier-5 { --tier-tint: linear-gradient(100deg, #fde9ee, #efeafd 40%, #e4f3fb 75%, #e8f8ef); --tier-ink: #3a3f6b; }
+
+    &.is-mine {
+        border-color: $progression-achievements;
+        box-shadow: 0 0 0 1px $progression-achievements;
+    }
+
+    > turbo-frame {
+        display: block;
+        padding: 0 .75rem .75rem;
+    }
 }
 
 .achievement-tier-section-head {
-    display: flex;
+    position: sticky;
+    top: var(--header-height, 97px);
+    z-index: 2;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: .75rem;
     align-items: center;
-    gap: .625rem;
-    margin-bottom: .5rem;
+    margin-bottom: .25rem;
+    padding: .75rem;
+    border-radius: calc(.875rem - 1px) calc(.875rem - 1px) 0 0;
+    background: var(--tier-tint);
 
     .badge-art {
         flex-shrink: 0;
+    }
+}
+
+.achievement-tier-section-title {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .25rem .5rem;
+    margin: 0;
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--tier-ink);
+}
+
+.achievement-tier-section-mine {
+    padding: .125rem .5rem;
+    border-radius: 999px;
+    background: $progression-achievements;
+    color: #fff;
+    font-size: .6875rem;
+    font-weight: 600;
+    letter-spacing: .02em;
+}
+
+.achievement-tier-section-requirement {
+    margin: .125rem 0 0;
+    font-size: .8125rem;
+    line-height: 1.35;
+    color: $shelf-ink;
+    text-wrap: balance;
+}
+
+// How many hold it: a pill on the right of the band (wraps under the text on narrow phones)
+.achievement-tier-section-count {
+    padding: .25rem .625rem;
+    border-radius: 999px;
+    background: rgb(255 255 255 / .8);
+    color: var(--tier-ink);
+    font-size: .8125rem;
+    font-weight: 600;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 374.98px) {
+    .achievement-tier-section-head {
+        grid-template-columns: auto minmax(0, 1fr);
+
+        .achievement-tier-section-count {
+            grid-column: 2;
+            justify-self: start;
+        }
     }
 }
 
@@ -484,7 +567,10 @@ $shelf-press: scale(.97);
     margin: 0;
     padding: 0;
     list-style: none;
-    border-bottom: 1px solid $shelf-line;
+
+    > .holder-row:first-child .holder-row-link {
+        border-top: 0;
+    }
 }
 
 .holder-row-link {

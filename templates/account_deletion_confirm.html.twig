@@ -24,13 +24,13 @@
                 <div class="row g-2 mb-4" id="deletion-summary">
                     <div class="col-6 col-md-3">
                         <div class="card card-body py-2 px-3 text-center h-100">
-                            <div class="h4 mb-0"><i class="bi bi-stopwatch me-1"></i>{{ summary.solvingTimesCount|format_number([], 'decimal', 'default', 'cs') }}</div>
+                            <div class="h4 mb-0"><i class="bi bi-stopwatch me-1"></i>{{ summary.solvingTimesCount|plain_number }}</div>
                             <div class="fs-sm text-muted">{{ 'account_deletion.confirm.summary_solving_times'|trans }}</div>
                         </div>
                     </div>
                     <div class="col-6 col-md-3">
                         <div class="card card-body py-2 px-3 text-center h-100">
-                            <div class="h4 mb-0"><i class="bi bi-puzzle me-1"></i>{{ summary.totalPieces|format_number([], 'decimal', 'default', 'cs') }}</div>
+                            <div class="h4 mb-0"><i class="bi bi-puzzle me-1"></i>{{ summary.totalPieces|plain_number }}</div>
                             <div class="fs-sm text-muted">{{ 'account_deletion.confirm.summary_pieces'|trans }}</div>
                         </div>
                     </div>
@@ -44,7 +44,7 @@
                     </div>
                     <div class="col-6 col-md-3">
                         <div class="card card-body py-2 px-3 text-center h-100">
-                            <div class="h4 mb-0"><i class="bi bi-collection me-1"></i>{{ summary.collectionPuzzlesCount|format_number([], 'decimal', 'default', 'cs') }}</div>
+                            <div class="h4 mb-0"><i class="bi bi-collection me-1"></i>{{ summary.collectionPuzzlesCount|plain_number }}</div>
                             <div class="fs-sm text-muted">{{ 'account_deletion.confirm.summary_collections'|trans }}</div>
                         </div>
                     </div>

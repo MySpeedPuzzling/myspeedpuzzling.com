@@ -10,7 +10,7 @@
             <h2 class="achievements-showcase-title" id="achievements-showcase-title">{{ 'badges.title'|trans }}</h2>
             <a class="achievements-showcase-summary" href="{{ path('player_achievements', {playerId: player.playerId}) }}">
                 {{ 'player_progress.showcase.earned'|trans({'%earned%': this.earnedTypes, '%total%': this.totalTypes}) }}
-                <span class="achievements-showcase-ap">{{ 'badges.ap_total'|trans({'%points%': player.achievementPoints|format_number}) }}</span>
+                <span class="achievements-showcase-ap">{{ 'badges.ap_total'|trans({'%points%': player.achievementPoints|plain_number}) }}</span>
                 <i class="bi bi-chevron-right" aria-hidden="true"></i>
             </a>
         </div>

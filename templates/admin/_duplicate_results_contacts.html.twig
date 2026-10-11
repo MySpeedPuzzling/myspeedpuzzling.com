@@ -2,15 +2,15 @@
    Answers "are players reacting?": the funnel first, then what keeps an e-mail from reaching a player, then the
    tables per type and per wave (the e-mails sent on one Europe/Prague day). #}
 {% macro rate(part, whole) %}
-    {{- part|number_format(0, '.', ' ') }}{% if whole > 0 %} <span class="dr-share">{{ (part / whole * 100)|round }} %</span>{% endif -%}
+    {{- part|plain_number }}{% if whole > 0 %} <span class="dr-share">{{ (part / whole * 100)|round }} %</span>{% endif -%}
 {% endmacro %}
 
 {% macro funnel_cells(row) %}
     {% import _self as contact_helpers %}
-    <td class="text-end">{{ row.sent|number_format(0, '.', ' ') }}</td>
+    <td class="text-end">{{ row.sent|plain_number }}</td>
     <td class="text-end text-nowrap">{{ contact_helpers.rate(row.visited, row.sent) }}</td>
     <td class="text-end text-nowrap">{{ contact_helpers.rate(row.reacted, row.sent) }}</td>
-    <td class="text-end">{{ row.all_resolved|number_format(0, '.', ' ') }}</td>
+    <td class="text-end">{{ row.all_resolved|plain_number }}</td>
     <td class="text-end text-nowrap">{{ row.median_hours_to_react is not null ? row.median_hours_to_react ~ ' h' : '-' }}</td>
 {% endmacro %}
 
@@ -34,11 +34,11 @@
         <div class="col-lg-7">
             <h3 class="dr-label mb-2">From e-mail to resolved</h3>
             {% if sent == 0 %}
-                <p class="dr-empty">Nothing sent yet{% if planned > 0 %} - {{ planned|number_format(0, '.', ' ') }} planned{% endif %}.</p>
+                <p class="dr-empty">Nothing sent yet{% if planned > 0 %} - {{ planned|plain_number }} planned{% endif %}.</p>
             {% else %}
                 <ol class="dr-funnel" aria-label="What players did after the e-mail">
                     {% for step in [
-                        {label: 'Sent', value: sent, note: planned > 0 ? planned|number_format(0, '.', ' ') ~ ' more planned' : null},
+                        {label: 'Sent', value: sent, note: planned > 0 ? planned|plain_number ~ ' more planned' : null},
                         {label: 'Opened the review page', value: visited, note: 'from the link in the e-mail'},
                         {label: 'Reacted', value: reacted, note: 'resolved anything after the e-mail'},
                         {label: 'Nothing left open', value: all_resolved, note: 'no open case left (e-mails that listed cases)'},
@@ -47,7 +47,7 @@
                             <div class="dr-funnel-head">
                                 <span class="dr-funnel-label">{{ step.label }}</span>
                                 <span class="dr-funnel-value">
-                                    {{ step.value|number_format(0, '.', ' ') }}
+                                    {{ step.value|plain_number }}
                                     {% if not loop.first and sent > 0 %}<span class="dr-share">{{ (step.value / sent * 100)|round }} %</span>{% endif %}
                                 </span>
                             </div>
@@ -64,31 +64,31 @@
             <dl class="dr-facts">
                 <div>
                     <dt>Switched the e-mails off</dt>
-                    <dd>{{ contacts.totals.unsubscribed|number_format(0, '.', ' ') }} {{ contacts.totals.unsubscribed == 1 ? 'player' : 'players' }}</dd>
+                    <dd>{{ contacts.totals.unsubscribed|plain_number }} {{ contacts.totals.unsubscribed == 1 ? 'player' : 'players' }}</dd>
                 </div>
                 <div>
                     <dt>No reaction - no more case e-mails</dt>
-                    <dd>{{ contacts.totals.ignoring|number_format(0, '.', ' ') }} {{ contacts.totals.ignoring == 1 ? 'player' : 'players' }}</dd>
+                    <dd>{{ contacts.totals.ignoring|plain_number }} {{ contacts.totals.ignoring == 1 ? 'player' : 'players' }}</dd>
                 </div>
                 <div>
                     <dt>Skipped - switched off by then</dt>
-                    <dd>{{ contacts.totals.skipped_switched_off|number_format(0, '.', ' ') }}</dd>
+                    <dd>{{ contacts.totals.skipped_switched_off|plain_number }}</dd>
                 </div>
                 <div>
                     <dt>Skipped - nothing left to tell</dt>
-                    <dd>{{ contacts.totals.skipped_nothing_left|number_format(0, '.', ' ') }}</dd>
+                    <dd>{{ contacts.totals.skipped_nothing_left|plain_number }}</dd>
                 </div>
                 <div>
                     <dt>Skipped - no e-mail address</dt>
-                    <dd>{{ contacts.totals.skipped_no_email|number_format(0, '.', ' ') }}</dd>
+                    <dd>{{ contacts.totals.skipped_no_email|plain_number }}</dd>
                 </div>
                 <div>
                     <dt>Failed to send</dt>
-                    <dd class="{{ contacts.delivery.failed > 0 ? 'dr-warn' : '' }}">{% if contacts.delivery.failed > 0 %}<i class="bi bi-exclamation-triangle-fill me-1" aria-hidden="true"></i>{% endif %}{{ contacts.delivery.failed|number_format(0, '.', ' ') }}</dd>
+                    <dd class="{{ contacts.delivery.failed > 0 ? 'dr-warn' : '' }}">{% if contacts.delivery.failed > 0 %}<i class="bi bi-exclamation-triangle-fill me-1" aria-hidden="true"></i>{% endif %}{{ contacts.delivery.failed|plain_number }}</dd>
                 </div>
                 <div>
                     <dt>Bounced</dt>
-                    <dd class="{{ contacts.delivery.bounced > 0 ? 'dr-warn' : '' }}">{% if contacts.delivery.bounced > 0 %}<i class="bi bi-exclamation-triangle-fill me-1" aria-hidden="true"></i>{% endif %}{{ contacts.delivery.bounced|number_format(0, '.', ' ') }}</dd>
+                    <dd class="{{ contacts.delivery.bounced > 0 ? 'dr-warn' : '' }}">{% if contacts.delivery.bounced > 0 %}<i class="bi bi-exclamation-triangle-fill me-1" aria-hidden="true"></i>{% endif %}{{ contacts.delivery.bounced|plain_number }}</dd>
                 </div>
             </dl>
             <p class="small mb-0">Failures and bounces come from the mail log, which keeps 90 days.</p>
@@ -134,8 +134,8 @@
                         {% for type, row in contacts.by_type %}
                             <tr>
                                 <th scope="row" class="fw-normal text-nowrap">{{ type_labels[type] ?? type }}</th>
-                                <td class="text-end">{{ row.planned|number_format(0, '.', ' ') }}</td>
-                                <td class="text-end">{{ row.skipped|number_format(0, '.', ' ') }}</td>
+                                <td class="text-end">{{ row.planned|plain_number }}</td>
+                                <td class="text-end">{{ row.skipped|plain_number }}</td>
                                 {{ contact_helpers.funnel_cells(row) }}
                             </tr>
                         {% endfor %}

@@ -17,6 +17,6 @@
     <option value="{{ world_value }}" data-icon="bi bi-globe2"{% if selected is null %} selected{% endif %}>{{ 'players.scope.world'|trans }}</option>
     {% for statistics in countries %}
         {% set country = statistics.country %}
-        <option value="{{ country.name }}" data-icon="fi fi-{{ country.name }}" data-count="{{ statistics.registeredPlayers|format_number }}"{% if selected == country %} selected{% endif %}>{{ country.value }}</option>
+        <option value="{{ country.name }}" data-icon="fi fi-{{ country.name }}" data-count="{{ statistics.registeredPlayers|plain_number }}"{% if selected == country %} selected{% endif %}>{{ country.value }}</option>
     {% endfor %}
 </select>

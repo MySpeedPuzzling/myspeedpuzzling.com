@@ -13,6 +13,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Contracts\Translation\TranslatorInterface;
+use SpeedPuzzling\Web\Value\PlainNumber;
 
 /**
  * "How long does a 1000-piece puzzle take" guide - the answer is computed
@@ -39,7 +40,7 @@ final class GuidePuzzleTimeByPiecesController extends AbstractController
 
         $description = $distribution1000 !== null
             ? $this->translator->trans('guides.how_long.meta_description', [
-                '%count%' => number_format($distribution1000->solvesCount),
+                '%count%' => PlainNumber::format($distribution1000->solvesCount),
                 '%median%' => $this->timeFormatter->compactTime($distribution1000->medianSeconds),
             ], locale: 'en')
             : $this->translator->trans('guides.how_long.meta_description_fallback', locale: 'en');

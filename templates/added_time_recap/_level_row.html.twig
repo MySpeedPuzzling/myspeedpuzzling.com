@@ -79,7 +79,7 @@
                 <p class="recap-sheet-text">{{ (is_max ? 'recap_progress.sheet.max_message' : 'xp.levelup.message')|trans }}</p>
                 <div class="recap-sheet-actions">
                     {% if is_max and component.viewerIsMember %}
-                        <a href="{{ path('xp_leaderboard', {tab: 'achievement-points'}) }}" class="btn btn-outline-light">{{ 'xp.levelup.enter_ap_ladder'|trans }}</a>
+                        <a href="{{ path('achievement_points_leaderboard') }}" class="btn btn-outline-light">{{ 'xp.levelup.enter_ap_ladder'|trans }}</a>
                     {% endif %}
                     <button type="button" class="btn btn-light" data-action="recap-celebration#close" data-recap-celebration-target="close">{{ 'recap_progress.sheet.continue'|trans }}</button>
                 </div>

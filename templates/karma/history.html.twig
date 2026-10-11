@@ -13,7 +13,7 @@
 
         <div class="d-flex flex-wrap align-items-center gap-3">
             <div>
-                <div class="karma-total">{{ breakdown.total|format_number }}</div>
+                <div class="karma-total">{{ breakdown.total|plain_number }}</div>
                 <div class="fs-sm text-body-secondary">{{ 'karma.history.total_label'|trans }}</div>
             </div>
 
@@ -95,6 +95,6 @@
         {{ 'karma.history.note'|trans }}
         <a href="{{ path('karma_explainer') }}">{{ 'karma.history.how_it_works'|trans }}</a>
         ·
-        <a href="{{ path('xp_leaderboard', {tab: 'karma'}) }}">{{ 'karma.history.list_link'|trans }}</a>
+        <a href="{{ path('karma_leaderboard') }}">{{ 'karma.history.list_link'|trans }}</a>
     </p>
 {% endblock %}

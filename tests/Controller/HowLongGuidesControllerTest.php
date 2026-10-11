@@ -12,6 +12,7 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\Routing\Exception\InvalidParameterException;
 use Symfony\Component\Routing\RouterInterface;
+use SpeedPuzzling\Web\Value\PlainNumber;
 
 /**
  * The "How long does a {N}-piece puzzle take?" family: one guide per standard size,
@@ -59,12 +60,12 @@ final class HowLongGuidesControllerTest extends WebTestCase
         [$medianSeconds, $solves] = self::PINNED_DATA['solo'][$pieces];
 
         $description = (string) $crawler->filter('meta[name="description"]')->attr('content');
-        self::assertStringContainsString(number_format($solves), $description);
+        self::assertStringContainsString(PlainNumber::format($solves), $description);
         self::assertStringContainsString($this->formatter->compactTime($medianSeconds), $description);
 
         // The hero answers with the measured median and the solves behind it
         $lead = $crawler->filter('.guide-hero-lead')->text();
-        self::assertStringContainsString(sprintf('Across %s solo solves', number_format($solves)), $lead);
+        self::assertStringContainsString(sprintf('Across %s solo solves', PlainNumber::format($solves)), $lead);
 
         $content = (string) $browser->getResponse()->getContent();
         $article = self::jsonLdOfType($content, 'Article');
@@ -222,7 +223,7 @@ final class HowLongGuidesControllerTest extends WebTestCase
 
         // 5,236 pair solves, median 6342 s = 1h 45min, against 11742 s = 3h 15min solo
         $description = (string) $crawler->filter('meta[name="description"]')->attr('content');
-        self::assertStringContainsString('5,236', $description);
+        self::assertStringContainsString('5236', $description);
         self::assertStringContainsString('1h 45min', $description);
         self::assertStringContainsString('3h 15min', $description);
 
@@ -291,7 +292,7 @@ final class HowLongGuidesControllerTest extends WebTestCase
 
         // 1500 pieces: 42 pair / 80 team solves - no group median
         $row1500 = $table->filter('tbody tr')->eq(5);
-        self::assertStringContainsString('1,500 pieces', $row1500->text());
+        self::assertStringContainsString('1500 pieces', $row1500->text());
         $emptyCells = $row1500->filter('td')->reduce(static fn (Crawler $cell): bool => trim($cell->text()) === '–');
         self::assertCount(2, $emptyCells);
 
@@ -323,7 +324,7 @@ final class HowLongGuidesControllerTest extends WebTestCase
         $article = $crawler->filter('.guide-article')->text();
         self::assertStringContainsString('1000 pieces with a partner or a team', $article);
 
-        $comparison = self::tableWithHeader($crawler, '1,000 pieces');
+        $comparison = self::tableWithHeader($crawler, '1000 pieces');
         self::assertStringContainsString('Pair (2 people)', $comparison);
         self::assertStringContainsString('1h 45min', $comparison);
         self::assertStringContainsString('Team (3 or more)', $comparison);

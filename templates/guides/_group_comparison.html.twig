@@ -7,7 +7,7 @@
         <table class="table table-striped guide-table mb-0">
             <thead>
                 <tr>
-                    <th scope="col">{{ pieces|number_format }} pieces</th>
+                    <th scope="col">{{ pieces|plain_number }} pieces</th>
                     <th scope="col">Median time</th>
                     <th scope="col">Typical range (middle 50%)</th>
                     <th scope="col">vs. solo</th>
@@ -20,7 +20,7 @@
                     <td>{{ solo.medianSeconds|compactTime }}</td>
                     <td>{{ solo.p25Seconds|compactTime }} – {{ solo.p75Seconds|compactTime }}</td>
                     <td>–</td>
-                    <td class="text-end">{{ solo.solvesCount|number_format }}</td>
+                    <td class="text-end">{{ solo.solvesCount|plain_number }}</td>
                 </tr>
                 {% if duo %}
                     <tr>
@@ -28,7 +28,7 @@
                         <td>{{ duo.medianSeconds|compactTime }}</td>
                         <td>{{ duo.p25Seconds|compactTime }} – {{ duo.p75Seconds|compactTime }}</td>
                         <td>{{ guide.speed_up(duo, solo) }} as fast</td>
-                        <td class="text-end">{{ duo.solvesCount|number_format }}</td>
+                        <td class="text-end">{{ duo.solvesCount|plain_number }}</td>
                     </tr>
                 {% endif %}
                 {% if team %}
@@ -37,7 +37,7 @@
                         <td>{{ team.medianSeconds|compactTime }}</td>
                         <td>{{ team.p25Seconds|compactTime }} – {{ team.p75Seconds|compactTime }}</td>
                         <td>{{ guide.speed_up(team, solo) }} as fast</td>
-                        <td class="text-end">{{ team.solvesCount|number_format }}</td>
+                        <td class="text-end">{{ team.solvesCount|plain_number }}</td>
                     </tr>
                 {% endif %}
             </tbody>

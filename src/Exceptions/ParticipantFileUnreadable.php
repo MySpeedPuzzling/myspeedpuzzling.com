@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Exceptions;
 
 use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 use Symfony\Contracts\Translation\TranslatorInterface;
+use SpeedPuzzling\Web\Value\PlainNumber;
 
 /**
  * An uploaded participant list that is not a readable .xlsx workbook or CSV/TSV text, too big, or a sheet it does not
@@ -48,7 +49,7 @@ final class ParticipantFileUnreadable extends UnprocessableEntityHttpException
         return new self(
             sprintf('more than %d rows', $max),
             translationKey: self::TOO_MANY_ROWS,
-            translationParameters: ['%max%' => number_format($max, 0, '.', ',')],
+            translationParameters: ['%max%' => PlainNumber::format($max)],
         );
     }
 

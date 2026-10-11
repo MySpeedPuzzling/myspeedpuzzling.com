@@ -39,9 +39,9 @@
 
     <div class="row g-3 mb-3">
         {% for label, value in {
-            'api_usage.requests': totals.requests|number_format(0, '.', ' '),
-            'api_usage.failed': totals.failed|number_format(0, '.', ' ') ~ (totals.failedPercent is not null ? ' (' ~ totals.failedPercent ~ ' %)' : ''),
-            'api_usage.admin.too_many_requests': totals.tooManyRequests|number_format(0, '.', ' '),
+            'api_usage.requests': totals.requests|plain_number,
+            'api_usage.failed': totals.failed|plain_number ~ (totals.failedPercent is not null ? ' (' ~ totals.failedPercent ~ ' %)' : ''),
+            'api_usage.admin.too_many_requests': totals.tooManyRequests|plain_number,
             'api_usage.average_time': totals.averageMs is not null ? totals.averageMs ~ ' ms' : '-',
             'api_usage.peak_per_minute': totals.peakRequestsPerMinute ?? '-',
             'api_usage.admin.callers': callers|length,
@@ -90,12 +90,12 @@
                                 {% endif %}
                             </td>
                             <td><span class="badge bg-light text-dark">{{ ('api_usage.admin.kind.' ~ row.caller.kind.value)|trans }}</span></td>
-                            <td class="text-end fw-medium">{{ row.requests|number_format(0, '.', ' ') }}</td>
+                            <td class="text-end fw-medium">{{ row.requests|plain_number }}</td>
                             <td class="text-end text-nowrap">
-                                {{ row.failed|number_format(0, '.', ' ') }}
+                                {{ row.failed|plain_number }}
                                 {% if row.failed > 0 %}<small class="text-muted">({{ row.failedPercent }} %)</small>{% endif %}
                             </td>
-                            <td class="text-end">{{ row.tooManyRequests|number_format(0, '.', ' ') }}</td>
+                            <td class="text-end">{{ row.tooManyRequests|plain_number }}</td>
                             <td class="text-end text-nowrap">{{ row.averageMs is not null ? row.averageMs ~ ' ms' : '-' }}</td>
                             <td class="text-end">{{ row.peakRequestsPerMinute ?? '-' }}</td>
                             <td class="text-nowrap">{{ row.lastRequestAt is not null ? row.lastRequestAt|format_datetime('short', 'short') : '-' }}</td>
@@ -123,9 +123,9 @@
                             {% for operation in operations %}
                                 <tr{% if filter.operation == operation.operation %} class="table-active"{% endif %}>
                                     <td><a href="{{ path('admin_api_usage', query|merge({month: month.value, operation: operation.operation})) }}"><code class="text-break">{{ operation.operation }}</code></a></td>
-                                    <td class="text-end fw-medium">{{ operation.requests|number_format(0, '.', ' ') }}</td>
+                                    <td class="text-end fw-medium">{{ operation.requests|plain_number }}</td>
                                     <td class="text-end text-nowrap">
-                                        {{ operation.failed|number_format(0, '.', ' ') }}
+                                        {{ operation.failed|plain_number }}
                                         {% if operation.failed > 0 %}<small class="text-muted">({{ operation.failedPercent }} %)</small>{% endif %}
                                     </td>
                                     <td class="text-end text-nowrap">{{ operation.averageMs is not null ? operation.averageMs ~ ' ms' : '-' }}</td>
@@ -143,7 +143,7 @@
                         {% for statusClass, requests in statuses %}
                             <tr>
                                 <td><code>{{ statusClass }}</code></td>
-                                <td class="text-end fw-medium">{{ requests|number_format(0, '.', ' ') }}</td>
+                                <td class="text-end fw-medium">{{ requests|plain_number }}</td>
                             </tr>
                         {% endfor %}
                     </tbody>

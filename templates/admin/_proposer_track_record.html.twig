@@ -3,7 +3,7 @@
 {% if record is defined and record is not null %}
     <div class="karma-proposer mt-1">
         {% if record.karma > 0 %}
-            <span class="karma-proposer-karma">{{ record.karma|format_number }} karma</span>
+            <span class="karma-proposer-karma">{{ record.karma|plain_number }} karma</span>
         {% endif %}
         {% if record.isFirstSuggestion %}
             {# The approval queue: someone with karma has contributed before, whatever it was #}

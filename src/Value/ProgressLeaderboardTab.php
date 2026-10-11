@@ -5,9 +5,10 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Value;
 
 /**
- * The boards of the progression leaderboard page (route xp_leaderboard, ?tab=). The page renders its tabs, titles and
- * values from this list, so a new board is a new case here + its statement in GetXpLeaderboard::board() + its
- * `xp.leaderboard.board.<value>.*` and `leaderboards.value.<value>` translations.
+ * The progression leaderboards - each a page of its own (routeName(), ProgressLeaderboardController). The pages render
+ * their pills, titles and values from this list, so a new board is a new case here + its route on the controller +
+ * its statement in GetXpLeaderboard::board() + its `xp.leaderboard.board.<value>.*` and `leaderboards.value.<value>`
+ * translations.
  */
 enum ProgressLeaderboardTab: string
 {
@@ -43,6 +44,15 @@ enum ProgressLeaderboardTab: string
             self::Xp => 'level',
             self::AchievementPoints => 'achievements',
             self::Karma => 'karma',
+        };
+    }
+
+    public function routeName(): string
+    {
+        return match ($this) {
+            self::Xp => 'level_leaderboard',
+            self::AchievementPoints => 'achievement_points_leaderboard',
+            self::Karma => 'karma_leaderboard',
         };
     }
 

@@ -219,7 +219,7 @@ final class ProgressionPagesTest extends WebTestCase
         self::assertCount(0, $crawler->filter('.alert-primary'));
         // The boards are the pill row; the dropdown is the sub-choice inside "Times" only
         self::assertCount(0, $crawler->filter('.dropdown-menu a[href="/en/msp-rating"]'));
-        self::assertCount(0, $crawler->filter('.dropdown-menu a[href^="/en/players/xp-leaderboard"]'));
+        self::assertCount(0, $crawler->filter('.dropdown-menu a[href^="/en/ladder/level"]'));
     }
 
     /**
@@ -231,9 +231,9 @@ final class ProgressionPagesTest extends WebTestCase
             'times overview' => ['/en/ladder', 'Times'],
             'times per pieces' => ['/en/ladder/solo/500-pieces', 'Times'],
             'msp rating' => ['/en/msp-rating', 'MSP Rating'],
-            'level' => ['/en/players/xp-leaderboard', 'Level (XP)'],
-            'achievement points' => ['/en/players/xp-leaderboard?tab=achievement-points', 'Achievement Points'],
-            'karma' => ['/en/players/xp-leaderboard?tab=karma', 'Karma'],
+            'level' => ['/en/ladder/level', 'Level (XP)'],
+            'achievement points' => ['/en/ladder/achievement-points', 'Achievement Points'],
+            'karma' => ['/en/ladder/karma', 'Karma'],
         ];
     }
 
@@ -304,7 +304,7 @@ final class ProgressionPagesTest extends WebTestCase
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
 
         $this->startCountingQueries($browser);
-        $crawler = $browser->request('GET', '/en/players/xp-leaderboard?favorites=1');
+        $crawler = $browser->request('GET', '/en/ladder/level?favorites=1');
 
         self::assertResponseIsSuccessful();
         self::assertSelectorExists('table.lb-table');
@@ -324,7 +324,7 @@ final class ProgressionPagesTest extends WebTestCase
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
 
         // A Czech board: the British viewer is not on it, so no pinned row
-        $crawler = $browser->request('GET', '/en/players/xp-leaderboard?country=cz');
+        $crawler = $browser->request('GET', '/en/ladder/level?country=cz');
 
         self::assertResponseIsSuccessful();
         self::assertCount(0, $crawler->filter('table.lb-table tr.table-active-player'));
@@ -336,7 +336,7 @@ final class ProgressionPagesTest extends WebTestCase
     {
         $browser = self::createClient();
 
-        $crawler = $browser->request('GET', '/en/players/xp-leaderboard?tab=achievement-points');
+        $crawler = $browser->request('GET', '/en/ladder/achievement-points');
 
         self::assertResponseIsSuccessful();
         $login = $crawler->filter('.xp-teaser a');

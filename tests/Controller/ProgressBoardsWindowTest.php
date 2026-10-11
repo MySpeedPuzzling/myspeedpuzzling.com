@@ -37,7 +37,7 @@ final class ProgressBoardsWindowTest extends WebTestCase
         TestingLogin::asPlayer($browser, self::VIEWER);
 
         $this->startCountingQueries($browser);
-        $crawler = $browser->request('GET', '/en/players/xp-leaderboard');
+        $crawler = $browser->request('GET', '/en/ladder/level');
 
         self::assertResponseIsSuccessful();
         // The boards show 25 rows before the gap (design-spec §8.4)
@@ -50,7 +50,7 @@ final class ProgressBoardsWindowTest extends WebTestCase
         self::assertStringContainsString('⋯ 104 more', $gap->text());
         self::assertSame('Show ranks 26–75 of 151', trim($gap->filter('button')->text()));
         self::assertSame('table-active-player', $crawler->filter('#board-row-' . self::VIEWER)->attr('class'));
-        self::assertStringContainsString('1,739 XP', $crawler->filter('#board-row-' . self::VIEWER)->text());
+        self::assertStringContainsString('1739 XP', $crawler->filter('#board-row-' . self::VIEWER)->text());
         self::assertStringContainsString('Lv ', $crawler->filter('#board-row-' . self::VIEWER)->text());
 
         $position = $crawler->filter('[data-testid="lb-position"]');
@@ -71,7 +71,7 @@ final class ProgressBoardsWindowTest extends WebTestCase
         $seeded = $this->seedXpBoard($browser);
         TestingLogin::asPlayer($browser, self::VIEWER);
 
-        $crawler = $browser->request('GET', '/en/players/xp-leaderboard');
+        $crawler = $browser->request('GET', '/en/ladder/level');
         // Buttons in GET forms (crawlers never follow them), aimed at the list's Turbo Frame
         $gapForm = $crawler->filter('tr.lb-gap-row form');
         self::assertSame('progress-board', $gapForm->attr('data-turbo-frame'));
@@ -93,7 +93,7 @@ final class ProgressBoardsWindowTest extends WebTestCase
         self::assertCount(0, $revealed->filter('tr.lb-gap-row'));
         self::assertSame([...array_slice($seeded, 0, 131), self::VIEWER, $seeded[131], $seeded[132]], $this->rowIds($revealed));
 
-        $crawler = $browser->request('GET', '/en/players/xp-leaderboard');
+        $crawler = $browser->request('GET', '/en/ladder/level');
         $more = $browser->submit($crawler->filter('.lb-show-more form')->form());
         self::assertResponseIsSuccessful();
         // The gap above the viewer stays; everything after the viewer is shown now
@@ -112,14 +112,15 @@ final class ProgressBoardsWindowTest extends WebTestCase
         $this->seedXpBoard($browser);
         TestingLogin::asPlayer($browser, self::VIEWER);
 
-        $crawler = $browser->request('GET', '/en/players/xp-leaderboard?country=cz&limit=10');
+        $crawler = $browser->request('GET', '/en/ladder/level?country=cz&limit=10');
 
         // The filter form never carries the revealed rows
         $filterForm = $crawler->filter('form[data-controller="auto-submit"]');
         self::assertCount(0, $filterForm->filter('input[name="limit"], input[name="below"]'));
         // The buttons carry the list's filters along with the next window
         $params = $crawler->filter('.lb-show-more form input')->each(static fn (Crawler $input): array => [(string) $input->attr('name'), (string) $input->attr('value')]);
-        self::assertContains(['tab', 'xp'], $params);
+        // The board is the URL itself, never a parameter
+        self::assertNotContains('tab', array_column($params, 0));
         self::assertContains(['country', 'cz'], $params);
         self::assertContains(['limit', '60'], $params);
         self::assertCount(10, $this->rowIds($crawler));
@@ -135,11 +136,11 @@ final class ProgressBoardsWindowTest extends WebTestCase
         $database->executeStatement('UPDATE player SET country = :country WHERE id = :id', ['country' => 'cz', 'id' => self::VIEWER]);
         TestingLogin::asPlayer($browser, self::VIEWER);
 
-        $crawler = $browser->request('GET', '/en/players/xp-leaderboard');
+        $crawler = $browser->request('GET', '/en/ladder/level');
         self::assertSame(['1', '2', '2', '4'], array_slice($this->ranks($crawler), 0, 4));
 
         // Every even seeded puzzler is Czech: within Czechia the viewer (1739 XP) is behind 66 of them (2000 … 1740)
-        $crawler = $browser->request('GET', '/en/players/xp-leaderboard?country=cz');
+        $crawler = $browser->request('GET', '/en/ladder/level?country=cz');
         self::assertResponseIsSuccessful();
         self::assertSame('1', $this->ranks($crawler)[0]);
         self::assertSame('67', trim($crawler->filter('#board-row-' . self::VIEWER . ' td.rank')->text()));
@@ -155,7 +156,7 @@ final class ProgressBoardsWindowTest extends WebTestCase
         $database->executeStatement('UPDATE player SET experience_system_opted_out = true WHERE id = :id', ['id' => $seeded[1]]);
         TestingLogin::asPlayer($browser, self::VIEWER);
 
-        $crawler = $browser->request('GET', '/en/players/xp-leaderboard');
+        $crawler = $browser->request('GET', '/en/ladder/level');
 
         $ids = $this->rowIds($crawler);
         self::assertNotContains($seeded[0], $ids);
@@ -181,7 +182,7 @@ final class ProgressBoardsWindowTest extends WebTestCase
 
         TestingLogin::asPlayer($browser, self::VIEWER);
         $this->startCountingQueries($browser);
-        $crawler = $browser->request('GET', '/en/players/xp-leaderboard?tab=achievement-points');
+        $crawler = $browser->request('GET', '/en/ladder/achievement-points');
 
         self::assertResponseIsSuccessful();
         $row = $crawler->filter('#board-row-' . self::VIEWER);
@@ -202,7 +203,7 @@ final class ProgressBoardsWindowTest extends WebTestCase
         TestingLogin::asPlayer($browser, self::VIEWER);
 
         $this->startCountingQueries($browser);
-        $crawler = $browser->request('GET', '/en/players/xp-leaderboard?tab=karma');
+        $crawler = $browser->request('GET', '/en/ladder/karma');
         self::assertResponseIsSuccessful();
         $row = $crawler->filter('#board-row-' . self::VIEWER);
         self::assertStringContainsString('7 karma', $row->text());
@@ -212,7 +213,7 @@ final class ProgressBoardsWindowTest extends WebTestCase
         self::assertCount(1, $this->boardStatements($browser));
 
         // A kind the viewer has nothing of: not on that list (the stored total does not rank there)
-        $crawler = $browser->request('GET', '/en/players/xp-leaderboard?tab=karma&kind=moderation');
+        $crawler = $browser->request('GET', '/en/ladder/karma?kind=moderation');
         self::assertResponseIsSuccessful();
         self::assertCount(0, $crawler->filter('#board-row-' . self::VIEWER));
     }
@@ -223,7 +224,7 @@ final class ProgressBoardsWindowTest extends WebTestCase
         $this->seedXpBoard($browser);
 
         $this->startCountingQueries($browser);
-        $crawler = $browser->request('GET', '/en/players/xp-leaderboard');
+        $crawler = $browser->request('GET', '/en/ladder/level');
 
         self::assertResponseIsSuccessful();
         self::assertCount(25, $this->rowIds($crawler));
@@ -233,7 +234,7 @@ final class ProgressBoardsWindowTest extends WebTestCase
         $this->assertQueryCountAtMost($browser, 3, 'Level board for a guest');
 
         // The Achievement Points board stays behind a sign-in
-        $crawler = $browser->request('GET', '/en/players/xp-leaderboard?tab=achievement-points');
+        $crawler = $browser->request('GET', '/en/ladder/achievement-points');
         self::assertCount(0, $crawler->filter('table.lb-table'));
         self::assertCount(1, $crawler->filter('.xp-teaser a[href*="return="]'));
     }
@@ -246,12 +247,12 @@ final class ProgressBoardsWindowTest extends WebTestCase
         TestingLogin::asPlayer($browser, self::VIEWER);
 
         // Another country's list
-        $crawler = $browser->request('GET', '/en/players/xp-leaderboard?country=cz');
+        $crawler = $browser->request('GET', '/en/ladder/level?country=cz');
         self::assertStringContainsString('from Czechia only', $crawler->filter('[data-testid="lb-not-on-board"]')->text());
 
         // Opted out of levels and achievements: where to switch it back
         $database->executeStatement('UPDATE player SET experience_system_opted_out = true WHERE id = :id', ['id' => self::VIEWER]);
-        $crawler = $browser->request('GET', '/en/players/xp-leaderboard');
+        $crawler = $browser->request('GET', '/en/ladder/level');
         $line = $crawler->filter('[data-testid="lb-not-on-board"]');
         self::assertStringContainsString('turned off levels and achievements', $line->text());
         self::assertCount(1, $line->filter('a[href="/en/edit-profile"]'));
@@ -259,7 +260,7 @@ final class ProgressBoardsWindowTest extends WebTestCase
 
         // A free player on the Achievement Points board
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
-        $crawler = $browser->request('GET', '/en/players/xp-leaderboard?tab=achievement-points');
+        $crawler = $browser->request('GET', '/en/ladder/achievement-points');
         self::assertCount(1, $crawler->filter('[data-testid="lb-not-on-board"] a[href="/en/membership"]'));
     }
 
@@ -268,7 +269,7 @@ final class ProgressBoardsWindowTest extends WebTestCase
         $browser = self::createClient();
         TestingLogin::asPlayer($browser, self::VIEWER);
 
-        $crawler = $browser->request('GET', '/en/players/xp-leaderboard?tab=karma');
+        $crawler = $browser->request('GET', '/en/ladder/karma');
 
         $link = $crawler->filter('a[href^="/en/how-karma-works"]');
         self::assertCount(1, $link);
@@ -283,24 +284,24 @@ final class ProgressBoardsWindowTest extends WebTestCase
 
         // A member: the country everywhere, favorites where the board has them
         TestingLogin::asPlayer($browser, self::VIEWER);
-        $crawler = $browser->request('GET', '/en/players/xp-leaderboard?tab=xp&country=cz&favorites=1');
+        $crawler = $browser->request('GET', '/en/ladder/level?country=cz&favorites=1');
         $pills = $this->pillHrefs($crawler);
         self::assertSame('/en/ladder/country/cz', $pills['Times']);
         self::assertSame('/en/msp-rating?country=cz&onlyFavorites=1', $pills['MSP Rating']);
-        self::assertSame('/en/players/xp-leaderboard?tab=karma&country=cz&favorites=1', $pills['Karma']);
+        self::assertSame('/en/ladder/karma?country=cz&favorites=1', $pills['Karma']);
 
         // Not a member: the Times countries and the MSP Rating filters are members-only
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
-        $crawler = $browser->request('GET', '/en/players/xp-leaderboard?tab=xp&country=cz');
+        $crawler = $browser->request('GET', '/en/ladder/level?country=cz');
         $pills = $this->pillHrefs($crawler);
         self::assertSame('/en/ladder', $pills['Times']);
         self::assertSame('/en/msp-rating', $pills['MSP Rating']);
-        self::assertSame('/en/players/xp-leaderboard?tab=achievement-points&country=cz', $pills['Achievement Points']);
+        self::assertSame('/en/ladder/achievement-points?country=cz', $pills['Achievement Points']);
 
         // From a Times country page to the progress boards
         TestingLogin::asPlayer($browser, self::VIEWER);
         $crawler = $browser->request('GET', '/en/ladder/solo/500-pieces/country/de');
-        self::assertSame('/en/players/xp-leaderboard?tab=xp&country=de', $this->pillHrefs($crawler)['Level (XP)']);
+        self::assertSame('/en/ladder/level?country=de', $this->pillHrefs($crawler)['Level (XP)']);
     }
 
     /**

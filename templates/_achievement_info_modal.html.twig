@@ -232,12 +232,13 @@
 
             <div class="medal-actions">
                 {% if tiered %}
-                    <a href="{{ path('achievement_detail', {type: type.value}) }}" data-turbo-frame="_top" class="btn btn-outline-primary">
+                    {# Carries where the sheet was opened (return_query), so Back on the holders page goes there #}
+                    <a href="{{ path('achievement_detail', {type: type.value}|merge(return_query)) }}" data-turbo-frame="_top" class="btn btn-outline-primary"{% if return_query is not empty %} rel="nofollow"{% endif %}>
                         {{ 'badges.medal.see_holders'|trans({'%count%': holders_total|plain_number}) }}
                     </a>
                 {% endif %}
                 {% if more_link is not null %}
-                    <a href="{{ more_link.url }}" data-turbo-frame="_top" class="btn btn-outline-secondary">{{ more_link.label }}</a>
+                    <a href="{{ more_link.url }}" data-turbo-frame="_top" class="btn btn-outline-secondary"{% if return_query is not empty %} rel="nofollow"{% endif %}>{{ more_link.label }}</a>
                 {% endif %}
             </div>
 

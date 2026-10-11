@@ -9,7 +9,9 @@
     <section {{ attributes.defaults({class: 'achievements-showcase'}) }} aria-labelledby="achievements-showcase-title">
         <div class="achievements-showcase-head">
             <h2 class="achievements-showcase-title" id="achievements-showcase-title">{{ 'badges.title'|trans }}</h2>
-            <a class="achievements-showcase-summary" href="{{ path('player_achievements', {playerId: player.playerId}) }}">
+            {# Back from the achievements page, the sheet and the holders page comes here (docs/features/return-url.md) #}
+            {% set showcase_return = {return: path('player_profile', {playerId: player.playerId}), return_title: player.playerName ?? ('#' ~ player.code|upper)} %}
+            <a class="achievements-showcase-summary" href="{{ path('player_achievements', {playerId: player.playerId}|merge(showcase_return)) }}" rel="nofollow">
                 {{ 'player_progress.showcase.earned'|trans({'%earned%': this.earnedTypes, '%total%': this.totalTypes}) }}
                 <span class="achievements-showcase-ap">{{ 'badges.ap_total'|trans({'%points%': player.achievementPoints|plain_number}) }}</span>
                 <i class="bi bi-chevron-right" aria-hidden="true"></i>
@@ -40,7 +42,7 @@
                 {% for badge in shown %}
                     {% set label = (badge.type.translationKey())|trans %}
                     <li>
-                        <a class="achievements-showcase-item" href="{{ path('achievement_info', {type: badge.type.value, tier: badge.tier ? badge.tier.value : null, player: player.playerId}) }}" data-turbo-frame="modal-frame" title="{{ 'badges.info.open'|trans({'%achievement%': label}) }}">
+                        <a class="achievements-showcase-item" href="{{ path('achievement_info', {type: badge.type.value, tier: badge.tier ? badge.tier.value : null, player: player.playerId}|merge(showcase_return)) }}" data-turbo-frame="modal-frame" title="{{ 'badges.info.open'|trans({'%achievement%': label}) }}">
                             {{ badge_art(badge.type, badge.tier, 56) }}
                         </a>
                     </li>

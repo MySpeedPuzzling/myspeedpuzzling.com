@@ -236,6 +236,43 @@ final class AchievementInfoSheetTest extends WebTestCase
         self::assertSame('/en/achievements', $crawler->filter('.medal-actions a.btn-outline-secondary')->attr('href'));
     }
 
+    /**
+     * Profile -> a showcase medal -> "See who earned it" -> Back lands on the profile again (Jan 2026-10-11), not on
+     * the catalogue: the opener passes ?return=, the sheet's buttons carry it on, the holders page's Back and its
+     * country filter keep it (docs/features/return-url.md)
+     */
+    public function testTheSheetCarriesWhereItWasOpenedToTheHoldersPageAndBack(): void
+    {
+        $browser = self::createClient();
+        $this->giveMemberGoldAfterLaunch();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
+        $profile = '/en/player-profile/' . PlayerFixture::PLAYER_WITH_STRIPE;
+
+        // The showcase on the own profile opens the sheet with the profile as the way back
+        $crawler = $browser->request('GET', $profile);
+        self::assertResponseIsSuccessful();
+        $medal = $crawler->filter('a.achievements-showcase-item')->first()->attr('href');
+        self::assertNotNull($medal);
+        self::assertStringContainsString('return=' . $profile, $medal);
+
+        $crawler = $browser->request('GET', $medal, server: ['HTTP_TURBO_FRAME' => 'modal-frame']);
+        self::assertResponseIsSuccessful();
+        $holders = $crawler->filter('.medal-actions a.btn-outline-primary');
+        self::assertStringContainsString('return=' . $profile, (string) $holders->attr('href'));
+        self::assertSame('nofollow', $holders->attr('rel'));
+        self::assertStringContainsString('return=' . $profile, (string) $crawler->filter('.medal-actions a.btn-outline-secondary')->attr('href'));
+
+        // The holders page: Back goes to the profile, the country filter keeps it
+        $crawler = $browser->request('GET', (string) $holders->attr('href'));
+        self::assertResponseIsSuccessful();
+        self::assertSame($profile, $crawler->filter('a.page-crumbs-back')->attr('href'));
+        self::assertSame($profile, $crawler->filter('form input[type="hidden"][name="return"]')->attr('value'));
+
+        // An off-site return is never carried on
+        $crawler = $browser->request('GET', '/en/achievements/puzzles_solved/info?return=//evil.example', server: ['HTTP_TURBO_FRAME' => 'modal-frame']);
+        self::assertStringNotContainsString('return=', (string) $crawler->filter('.medal-actions a.btn-outline-primary')->attr('href'));
+    }
+
     public function testEarlyAdopterSheetHasTheFactsLineAndAFullWidthButtonLikeTheTieredOnes(): void
     {
         $browser = self::createClient();

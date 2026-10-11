@@ -44,7 +44,8 @@ final class PlayerAchievementsPageTest extends WebTestCase
         self::assertCount(1, $cells->eq(0)->filter('a[href="/en/my/achievement-reveals"] .achievement-cell-tray'));
         self::assertStringContainsString('New tier · tap to reveal', $cells->eq(0)->text());
         self::assertSame(
-            '/en/achievements/puzzles_solved/info?tier=1&player=' . PlayerFixture::PLAYER_WITH_STRIPE . '&from=shelf',
+            // + where Back goes from the sheet's buttons: this page (docs/features/return-url.md)
+            '/en/achievements/puzzles_solved/info?tier=1&player=' . PlayerFixture::PLAYER_WITH_STRIPE . '&from=shelf&return=' . self::MEMBER_PAGE . '&return_title=My%20achievements',
             $cells->eq(1)->filter('a')->attr('href'),
         );
         // Earned today: the owner's "New" dot; the picture of an unrevealed tier is not in the page
@@ -74,7 +75,7 @@ final class PlayerAchievementsPageTest extends WebTestCase
         self::assertSelectorNotExists('.achievement-cell-tray');
         // Not the visitor's own page: no "New" dot; the sheet opens on this player's medal
         self::assertSelectorNotExists('.achievement-cell-new');
-        self::assertSame('/en/achievements/streak/info?tier=1&player=' . PlayerFixture::PLAYER_WITH_STRIPE . '&from=shelf', $cells->first()->filter('a')->attr('href'));
+        self::assertStringStartsWith('/en/achievements/streak/info?tier=1&player=' . PlayerFixture::PLAYER_WITH_STRIPE . '&from=shelf&return=' . self::MEMBER_PAGE, (string) $cells->first()->filter('a')->attr('href'));
     }
 
     public function testGuestsSeeAMembersAchievements(): void
@@ -246,7 +247,8 @@ final class PlayerAchievementsPageTest extends WebTestCase
         $crawler = $browser->request('GET', '/en/player-profile/' . PlayerFixture::PLAYER_WITH_STRIPE);
 
         self::assertResponseIsSuccessful();
-        self::assertCount(1, $crawler->filter('.achievements-showcase-summary[href="' . self::MEMBER_PAGE . '"]'));
+        // Its Back leads to the profile again (docs/features/return-url.md)
+        self::assertCount(1, $crawler->filter('.achievements-showcase-summary[href^="' . self::MEMBER_PAGE . '?return=/en/player-profile/' . PlayerFixture::PLAYER_WITH_STRIPE . '&"]'));
         self::assertGreaterThanOrEqual(1, $crawler->filter('.dropdown-menu a[href="' . self::MEMBER_PAGE . '"]')->count());
     }
 
@@ -297,7 +299,7 @@ final class PlayerAchievementsPageTest extends WebTestCase
         self::assertSame('Silver: Solve 100 distinct puzzles', trim($held->filter('.achievement-cell-goal')->text()));
         // Nothing held yet: the Bronze requirement alone - never a bare "Bronze next"
         $none = $crawler->filter('.achievement-cell a[href^="/en/achievements/brand_explorer/info"]');
-        self::assertSame('Solve puzzles from 3 different manufacturers', trim($none->filter('.achievement-cell-goal')->text()));
+        self::assertSame('Solve puzzles from 5 different manufacturers', trim($none->filter('.achievement-cell-goal')->text()));
         self::assertCount(0, $none->filter('.achievement-cell-tier'));
         // Every cell that is not complete has its goal
         self::assertCount($crawler->filter('.achievement-shelf .achievement-cell-link')->count(), $crawler->filter('.achievement-shelf .achievement-cell-goal'));

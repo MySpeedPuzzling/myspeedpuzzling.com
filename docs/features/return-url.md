@@ -181,6 +181,15 @@ is easy to state and easy to check (`grep` for `getString('return')`).
 willing to honor), `Auth0RedirectSubscriber` and its test, the `auth0:callback_redirect` branch in
 `LoginFormAuthenticator`, and `TargetPathTrait` from both the form and social authenticators.
 
+## Through a modal (achievement sheet, 2026-10-11)
+
+A modal has no URL of its own in the address bar, so a link inside it cannot know the page behind it. The opener passes
+it instead: every link that opens the achievement sheet (`achievement_info`) adds `return` / `return_title` of its page
+(the profile showcase: the profile; a shelf on a player's achievements page: that page with its filter), the sheet
+validates it (`ReturnUrl::tryFrom()`) and carries it on its buttons (holders page, the achievements page), and the
+holders page keeps it through its country filter (hidden fields). Profile -> medal -> "See who earned it" -> Back = the
+profile again, not the catalogue. Pinned by `AchievementInfoSheetTest::testTheSheetCarriesWhereItWasOpenedToTheHoldersPageAndBack`.
+
 ## Gotcha worth remembering
 
 `AbstractLoginFormAuthenticator::supports()` compares `getLoginUrl()` against the request path to

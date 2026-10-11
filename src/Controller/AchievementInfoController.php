@@ -15,6 +15,7 @@ use SpeedPuzzling\Web\Services\Xp\XpFeatureGate;
 use SpeedPuzzling\Web\Value\AchievementRarityBand;
 use SpeedPuzzling\Web\Value\BadgeTier;
 use SpeedPuzzling\Web\Value\BadgeType;
+use SpeedPuzzling\Web\Value\ReturnUrl;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -117,20 +118,28 @@ final class AchievementInfoController extends AbstractController
         $fromShelf = $request->query->getString('from') === 'shelf';
         $moreLink = null;
 
+        // Where the sheet was opened (docs/features/return-url.md): its buttons carry it on, so Back on the holders
+        // page or on the achievements page goes there - your profile - and not to their logical parent
+        $returnUrl = ReturnUrl::tryFrom($request->query->getString('return'));
+        $returnQuery = $returnUrl === null ? [] : [
+            'return' => $returnUrl->path,
+            'return_title' => mb_substr(trim($request->query->getString('return_title')), 0, 80),
+        ];
+
         if ($fromShelf === false) {
             if ($subject !== null && $subject->playerId !== $viewer?->playerId) {
                 $moreLink = [
-                    'url' => $this->generateUrl('player_achievements', ['playerId' => $subject->playerId]),
+                    'url' => $this->generateUrl('player_achievements', ['playerId' => $subject->playerId] + $returnQuery),
                     'label' => $this->translator->trans('badges.medal.player_achievements', ['%name%' => $subject->playerName ?? ('#' . strtoupper($subject->code))]),
                 ];
             } elseif ($viewer !== null && $viewer->activeMembership) {
                 $moreLink = [
-                    'url' => $this->generateUrl('player_achievements', ['playerId' => $viewer->playerId]),
+                    'url' => $this->generateUrl('player_achievements', ['playerId' => $viewer->playerId] + $returnQuery),
                     'label' => $this->translator->trans('badges.my_title'),
                 ];
             } else {
                 $moreLink = [
-                    'url' => $this->generateUrl('badges_overview'),
+                    'url' => $this->generateUrl('badges_overview', $returnQuery),
                     'label' => $this->translator->trans('badges.medal.all_achievements'),
                 ];
             }
@@ -143,6 +152,7 @@ final class AchievementInfoController extends AbstractController
             'personal' => $contextPlayerId !== null,
             'subject' => $subject,
             'more_link' => $moreLink,
+            'return_query' => $returnQuery,
             'medals' => $medals,
             'logged_in' => $viewer !== null,
             'rarity' => $rarity,

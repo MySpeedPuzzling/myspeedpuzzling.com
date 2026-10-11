@@ -1,6 +1,10 @@
 {% extends 'base.html.twig' %}
 
 {% set player_name = player.playerName ?? ('#' ~ player.code|upper) %}
+{# A ?return= that brought you here (the profile showcase) survives the filter chips, and the sheet's buttons bring you
+   back to this page - with its filter - instead of the catalogue (docs/features/return-url.md) #}
+{% set page_return = safe_return_url(app.request.query.get('return')) is not null ? {return: app.request.query.get('return'), return_title: app.request.query.get('return_title')|default('')} : {} %}
+{% set sheet_return = {return: app.request.requestUri, return_title: is_own ? 'badges.my_title'|trans : 'badges.medal.player_achievements'|trans({'%name%': player_name})} %}
 
 {% block title %}{{ 'badges.player_page_meta_title'|trans({'%name%': player_name}) }}{% endblock %}
 
@@ -43,7 +47,7 @@
             filters: filters,
             filter_counts: filter_counts,
             filter_route: 'player_achievements',
-            filter_params: {playerId: player.playerId},
+            filter_params: {playerId: player.playerId}|merge(page_return),
             personal: true,
             player_id: player.playerId,
             own: is_own,

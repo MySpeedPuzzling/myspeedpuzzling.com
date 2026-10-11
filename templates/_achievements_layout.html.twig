@@ -30,7 +30,7 @@
 
 {% macro supporter_cell(player_id) %}
     <li class="achievement-cell">
-        <a href="{{ path('achievement_info', {type: 'supporter', player: player_id, from: 'shelf'}) }}" data-turbo-frame="modal-frame" class="achievement-cell-link">
+        <a href="{{ path('achievement_info', {type: 'supporter', player: player_id, from: 'shelf'}|merge(sheet_return|default({}))) }}" data-turbo-frame="modal-frame" class="achievement-cell-link">
             <span class="achievement-cell-seal">{{ badge_art('supporter', null, 92, attrs = {alt: ''}) }}</span>
             <span class="achievement-cell-name">{{ 'badges.badge.supporter'|trans }}</span>
             {# What it means to its holder - "one-off" was our own word for it (Jan 2026-10-11) #}

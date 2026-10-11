@@ -93,6 +93,11 @@
 
     {% if countries|length > 0 %}
         <form method="get" class="mb-3 d-flex flex-wrap align-items-center gap-2" data-turbo="false" data-controller="auto-submit" data-action="change->auto-submit#submit">
+            {# A filter change keeps where Back goes (docs/features/return-url.md) #}
+            {% if safe_return_url(app.request.query.get('return')) is not null %}
+                <input type="hidden" name="return" value="{{ app.request.query.get('return') }}">
+                <input type="hidden" name="return_title" value="{{ app.request.query.get('return_title')|default('') }}">
+            {% endif %}
             <label for="holder-country" class="form-label fs-sm mb-0 text-nowrap">{{ 'badges.detail.country_filter'|trans }}</label>
             {# Type to find a country - the site's country picker (country_select_controller.js, TomSelect with flags) #}
             <div class="country-select-wrapper progression-country-select">

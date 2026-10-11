@@ -61,7 +61,7 @@ final class BadgesOverviewControllerTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         self::assertCount(1, $crawler->filter('.achievements-showcase .achievements-showcase-item'));
-        self::assertCount(1, $crawler->filter('.achievements-showcase a.achievements-showcase-summary[href="/en/player-achievements/' . PlayerFixture::PLAYER_WITH_STRIPE . '"]'));
+        self::assertCount(1, $crawler->filter('.achievements-showcase a.achievements-showcase-summary[href^="/en/player-achievements/' . PlayerFixture::PLAYER_WITH_STRIPE . '?return="]'));
     }
 
     public function testAMembersShelfStartsWithTheRevealThenTheBestTiersThenTheProgress(): void
@@ -89,7 +89,7 @@ final class BadgesOverviewControllerTest extends WebTestCase
         // 1. the unrevealed tier - an action; 2. earned, highest tier first, rarer first within a tier
         self::assertCount(1, $cells->eq(0)->filter('a[href="/en/my/achievement-reveals"]'));
         self::assertStringContainsString('Team Spirit', $cells->eq(0)->text());
-        self::assertSame('/en/achievements/puzzles_solved/info?tier=2&player=' . $member . '&from=shelf', $cells->eq(1)->filter('a')->attr('href'));
+        self::assertStringStartsWith('/en/achievements/puzzles_solved/info?tier=2&player=' . $member . '&from=shelf&return=', (string) $cells->eq(1)->filter('a')->attr('href'));
         self::assertStringStartsWith('/en/achievements/first_try/info?tier=1&player=' . $member, (string) $cells->eq(2)->filter('a')->attr('href'));
         self::assertStringStartsWith('/en/achievements/streak/info?tier=1&player=' . $member, (string) $cells->eq(3)->filter('a')->attr('href'));
         // 3. the rest by progress, highest first (cells without anything to measure last)

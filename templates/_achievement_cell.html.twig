@@ -71,7 +71,7 @@
         {%- endif -%}
     {%- endif -%}
 
-    <a href="{{ path('achievement_info', {type: row.type.value, tier: shown_tier ? shown_tier.value : null, player: player_id|default(null), from: 'shelf'}) }}"
+    <a href="{{ path('achievement_info', {type: row.type.value, tier: shown_tier ? shown_tier.value : null, player: player_id|default(null), from: 'shelf'}|merge(sheet_return|default({}))) }}"
        data-turbo-frame="modal-frame" class="achievement-cell-link" aria-label="{{ label|join(', ') }}">
         {% if personal and row.newlyEarned %}
             <span class="achievement-cell-new" aria-hidden="true">{{ 'badges.shelf.new'|trans }}</span>

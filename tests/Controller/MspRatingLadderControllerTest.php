@@ -43,10 +43,11 @@ final class MspRatingLadderControllerTest extends WebTestCase
         $this->assertResponseRedirects('/en/msp-rating', 301);
     }
 
-    public function testLadderCardAndProfileCardShowTheSameRankAndTotal(): void
+    public function testThePositionLineAndTheProfileCardShowTheSameRankAndTotal(): void
     {
         // Reported 2026-10-06: #300 of 1126 on the ladder, #303 of 1136 on the profile at the same moment - the
-        // profile card still counted the players who opted out of rankings
+        // profile card still counted the players who opted out of rankings. The ladder's card became the position line
+        // of the board (design-spec §4), on the unfiltered list it must still say what the profile card says
         $browser = self::createClient();
         $container = self::getContainer();
 
@@ -73,15 +74,46 @@ final class MspRatingLadderControllerTest extends WebTestCase
 
         $ladder = $browser->request('GET', '/en/msp-rating');
         $this->assertResponseIsSuccessful();
-        $ladderCard = $ladder->filter('a[href*="#my-rating-row"]')->text();
+        $positionLine = $ladder->filter('[data-testid="lb-position"]')->text();
 
         $profile = $browser->request('GET', '/en/player-profile/' . PlayerFixture::PLAYER_REGULAR);
         $this->assertResponseIsSuccessful();
         $profileCard = $profile->filter('[data-live-name-value="PlayerRatingProfile"]')->text();
 
-        foreach ([$ladderCard, $profileCard] as $card) {
-            self::assertStringContainsString('Ranked among 3 players', $card);
-            self::assertStringContainsString('#2', $card);
-        }
+        self::assertStringContainsString('Ranked among 3 players', $profileCard);
+        self::assertStringContainsString('#2', $profileCard);
+        self::assertStringContainsString('#2', $positionLine);
+        self::assertStringContainsString('3', $positionLine);
+        self::assertSame('2', trim($ladder->filter('#my-rating-row .lb-rank')->text()));
+    }
+
+    public function testTheBoardHasNoPageNumbersAndAnOldPageLinkLandsOnTheWindow(): void
+    {
+        $browser = self::createClient();
+
+        $crawler = $browser->request('GET', '/en/msp-rating?page=13');
+
+        $this->assertResponseIsSuccessful();
+        self::assertCount(0, $crawler->filter('.pagination'));
+    }
+
+    public function testAGuestIsAskedToSignInToSeeWhereTheyStand(): void
+    {
+        $browser = self::createClient();
+
+        $crawler = $browser->request('GET', '/en/msp-rating');
+
+        self::assertStringContainsString('Sign in to see where you stand', $crawler->filter('[data-testid="lb-not-on-board"]')->text());
+        self::assertStringStartsWith('/login', (string) $crawler->filter('[data-testid="lb-not-on-board"] a')->attr('href'));
+    }
+
+    public function testAPrivateProfileIsToldWhyItIsNotListed(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_PRIVATE);
+
+        $crawler = $browser->request('GET', '/en/msp-rating');
+
+        self::assertStringContainsString('Your profile is private', $crawler->filter('[data-testid="lb-not-on-board"]')->text());
     }
 }

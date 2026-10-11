@@ -52,9 +52,27 @@
         </div>
     </div>
 
-    {# Ladder table #}
+    {# Where am I: the viewer's place in the list on screen (its filters), the next milestone and a jump to their row #}
+    {% set viewer_position = this.viewerPosition %}
+    {% if viewer_position is not null %}
+        {% set active_country = this.activeCountry %}
+        {{ include('leaderboards/_position_line.html.twig', {
+            position: viewer_position,
+            scope: this.onlyFavorites
+                ? 'leaderboards.position.in_favorites'|trans
+                : (active_country is not null ? 'leaderboards.position.in_country'|trans({'%country%': active_country.name|upper|country_name}) : null),
+            gap_text: viewer_position.targetGap is not null ? 'leaderboards.rating.gap'|trans({'%value%': viewer_position.targetGap|format_number}) : null,
+            jump_href: this.ownRowBelowFirstScreen ? '#my-rating-row' : null,
+        }) }}
+    {% endif %}
+
+    {# The top 100, a "⋯ N more" row revealing exactly the rows it counts, the viewer's row with 2 above and 2 below,
+       and "Show more" after the last row shown - no page numbers (design-spec §4). Ranks are the list's own: equal
+       ratings share the place, a search keeps the ranks of the list it searches in. #}
     {% set entries = this.entries %}
     {% if entries|length > 0 %}
+        {% set gaps_before = this.gapsBefore %}
+        {% set is_member = logged_user.profile is not null and logged_user.profile.activeMembership %}
         {# Same row as the puzzle leaderboards (_leaderboard_player.html.twig, _leaderboard.scss): never scrolls sideways #}
         <div class="custom-table-wrapper lb-wrapper">
             <table class="table custom-table table-hover lb-table mb-0">
@@ -67,17 +85,27 @@
                 </thead>
                 <tbody>
                     {% for entry in entries %}
+                        {% if gaps_before[loop.index0] is defined %}
+                            {{ include('leaderboards/_gap_row.html.twig', {count: gaps_before[loop.index0], reveal: this.gapReveal, total: this.totalCount, colspan: 3, live_action: 'revealGap'}) }}
+                        {% endif %}
                         {% set is_current_player = logged_user.profile is not null and entry.playerId == logged_user.profile.playerId %}
-                        <tr id="{{ is_current_player ? 'my-rating-row' }}" class="{{ is_current_player ? 'table-active-player' }}">
-                            <td class="rank"><span class="lb-rank">{{ entry.rank }}</span></td>
+                        <tr id="{{ this.rowId(entry) }}" class="{{ is_current_player ? 'table-active-player' }}" tabindex="-1">
+                            <td class="rank"><span class="lb-rank">{{ entry.rank|format_number }}</span></td>
                             <td class="lb-solver">
+                                {# The Skill tier is the value's second line (members), not an icon as well - one value + one line per row (P6) #}
                                 {{ include('_leaderboard_player.html.twig', {
                                     player: entry,
+                                    show_tier: false,
+                                    highlight_query: this.search|trim,
                                     profile_params: {return: app.request.uri, return_title: 'puzzle_intelligence.elo.title'|trans},
                                 }) }}
                             </td>
                             <td class="lb-time">
-                                <span class="lb-time-value">{{ (entry.eloRating * 1000)|round }}</span>
+                                {{ include('leaderboards/_value.html.twig', {
+                                    value: entry.displayRating|format_number,
+                                    secondary: is_member and entry.skillTierName is not null ? ('puzzle_intelligence.skill.tiers.' ~ entry.skillTierName)|trans : null,
+                                    family: 'competition',
+                                }) }}
                             </td>
                         </tr>
                     {% endfor %}
@@ -85,47 +113,23 @@
             </table>
         </div>
 
-        {# Pagination #}
-        {% set totalPages = this.totalPages %}
-        {% if totalPages > 1 %}
-            <nav>
-                <ul class="pagination flex-wrap justify-content-center mt-3 mb-0">
-                    <li class="page-item {{ this.page <= 1 ? 'disabled' : '' }}">
-                        <button class="page-link"
-                            data-action="live#action"
-                            data-live-action-param="goToPage"
-                            data-live-page-param="{{ this.page - 1 }}"
-                            {{ this.page <= 1 ? 'disabled' }}
-                        >
-                            <i class="bi bi-chevron-left"></i>
-                        </button>
-                    </li>
-                    {% for p in 1..totalPages %}
-                        <li class="page-item {{ p == this.page ? 'active' : '' }}">
-                            <button class="page-link"
-                                data-action="live#action"
-                                data-live-action-param="goToPage"
-                                data-live-page-param="{{ p }}"
-                            >{{ p }}</button>
-                        </li>
-                    {% endfor %}
-                    <li class="page-item {{ this.page >= totalPages ? 'disabled' : '' }}">
-                        <button class="page-link"
-                            data-action="live#action"
-                            data-live-action-param="goToPage"
-                            data-live-page-param="{{ this.page + 1 }}"
-                            {{ this.page >= totalPages ? 'disabled' }}
-                        >
-                            <i class="bi bi-chevron-right"></i>
-                        </button>
-                    </li>
-                </ul>
-            </nav>
+        {% if this.rowsBelowCount > 0 %}
+            {{ include('leaderboards/_show_more.html.twig', {count: this.showMoreCount, live_action: 'showMore'}) }}
+        {% endif %}
+
+        {# Only in the response to a tap on the gap row or "Show more": focus the first new row, announce the rows #}
+        {% set announcement = this.revealAnnouncement %}
+        {% if announcement is not null %}
+            {{ include('leaderboards/_window_announcer.html.twig', announcement) }}
         {% endif %}
     {% else %}
         <div class="text-muted text-center py-4">
             <i class="bi bi-trophy fs-1 d-block mb-2 opacity-25"></i>
-            {% if this.hasActiveFilters %}
+            {% if this.search|trim != '' %}
+                {{ 'puzzle_intelligence.elo.no_results'|trans }}
+            {% elseif this.activeCountry is not null and not this.onlyFavorites %}
+                {{ 'leaderboards.rating.empty_country'|trans({'%country%': this.activeCountry.name|upper|country_name}) }}
+            {% elseif this.hasActiveFilters %}
                 {{ 'puzzle_intelligence.elo.no_results'|trans }}
             {% else %}
                 {{ 'puzzle_intelligence.elo.no_entries'|trans }}

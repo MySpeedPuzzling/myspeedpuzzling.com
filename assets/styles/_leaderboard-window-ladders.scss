@@ -1,1 +1,19 @@
 // Leaderboards where-am-I on the MSP Rating and the Times boards (docs/features/xp-levels/ux-polish/design-spec.md §4)
+
+// The /ladder overview: a quiet "⋯" between the top 10 and the viewer's own row - not a button there, the link under the
+// table opens the full board around them
+.lb-gap-row-quiet > td {
+    padding-top: .125rem;
+    padding-bottom: .125rem;
+    line-height: 1.25rem;
+    letter-spacing: .15em;
+}
+
+// "Not on this board": why, and what to do (design-spec §8.4) - one muted line, the link keeps the site's link colour
+.lb-not-on-board {
+    line-height: 1.4;
+
+    a {
+        white-space: nowrap;
+    }
+}

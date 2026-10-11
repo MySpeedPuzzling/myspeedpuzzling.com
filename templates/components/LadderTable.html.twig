@@ -1,4 +1,40 @@
 <div {{ attributes }}>
+    {% set full_board = this.fullBoard %}
+    {% set items = this.items %}
+    {% set own_row_index = this.ownRowIndex %}
+
+    {# Where am I (full board): the viewer's place in this list, the next milestone, and a jump to their row #}
+    {% if full_board and this.viewerPosition is not null %}
+        {% set viewer_position = this.viewerPosition %}
+        {% set country = this.country %}
+        {{ include('leaderboards/_position_line.html.twig', {
+            position: viewer_position,
+            scope: country is not null ? 'leaderboards.position.in_country'|trans({'%country%': country.name|upper|country_name}) : null,
+            gap_text: viewer_position.targetGap is not null ? viewer_position.targetGap|puzzlingTime : null,
+            jump_href: this.ownRowBelowFirstScreen ? '#' ~ constant('SpeedPuzzling\\Web\\Component\\LadderTable::OWN_ROW_ANCHOR') : null,
+        }) }}
+    {% endif %}
+
+    {# Not on this board: why, and what to do (design-spec §8.4) #}
+    {% set not_on_board = this.notOnBoardReason %}
+    {% if not_on_board == 'guest' %}
+        {{ include('_leaderboard_not_on_board.html.twig', {
+            text: 'leaderboards.not_on_board.guest'|trans,
+            link_href: path('login', {return: app.request.requestUri}),
+            link_label: 'menu.sign_in'|trans,
+        }) }}
+    {% elseif not_on_board == 'private' %}
+        {{ include('_leaderboard_not_on_board.html.twig', {
+            text: 'leaderboards.times.private_note'|trans,
+            link_href: path('edit_profile'),
+            link_label: 'statistics.change_in_settings'|trans,
+        }) }}
+    {% elseif not_on_board == 'no_time' %}
+        {{ include('_leaderboard_not_on_board.html.twig', {
+            text: ('leaderboards.times.no_time.' ~ this.type)|trans({'%pieces%': this.piecesCount|format_number}),
+        }) }}
+    {% endif %}
+
     {# Same row as the player profile results and the puzzle leaderboards (_leaderboard_player, _leaderboard_time_badges,
        _leaderboard.scss): rank · image · whoever solved it with the puzzle · time - never scrolls sideways. A tap on the row
        opens the result detail (docs/features/puzzle-result-detail.md) #}
@@ -7,15 +43,26 @@
             <tbody>
             {# Members see each puzzle's difficulty on the image's corner (null for everyone else) #}
             {% set difficulty_tiers = this.difficultyTiers %}
-            {% for solving_time in this.items %}
+            {% set ranks = this.ranks %}
+            {% set gaps_before = this.gapsBefore %}
+            {% set all_gaps = this.gaps %}
+            {% for solving_time in items %}
+                {# Full board: "⋯ N more" reveals exactly the rows it counts. Overview: a quiet "⋯" before the viewer's own row #}
+                {% if gaps_before[loop.index0] is defined %}
+                    {% if full_board %}
+                        {{ include('leaderboards/_gap_row.html.twig', {count: gaps_before[loop.index0], reveal: this.gapReveal, total: this.totalCount, colspan: 4, live_action: 'revealGap'}) }}
+                    {% else %}
+                        <tr class="lb-gap-row lb-gap-row-quiet" aria-hidden="true"><td colspan="4" class="text-center text-muted">⋯</td></tr>
+                    {% endif %}
+                {% endif %}
                 {# The viewer's own row - solo, or a pair/team they are a member of (not only the one who tracked it) #}
                 {% set is_own_row = logged_user.profile is not null and (
                     solving_time.players is null
                         ? solving_time.playerId is same as logged_user.profile.playerId
                         : logged_user.profile.playerId in solving_time.players|map(member => member.playerId)
                 ) %}
-                <tr class="{{ is_own_row ? 'table-active-player' }}" data-controller="row-link" data-action="click->row-link#open">
-                    <td class="rank"><span class="lb-rank">{{ loop.index }}</span></td>
+                <tr{% if full_board %} id="{{ this.rowId(loop.index0) }}" tabindex="-1"{% endif %} class="{{ is_own_row ? 'table-active-player' }}" data-controller="row-link" data-action="click->row-link#open">
+                    <td class="rank"><span class="lb-rank">{{ ranks[loop.index0]|format_number }}</span></td>
 
                     <td class="ps-image">
                         <div class="diff-corner-host">
@@ -64,7 +111,7 @@
 
                         {# Like the puzzle leaderboard: the date (with 1st try on the same line), then both gaps in two slots #}
                         {{ include('_time_date_line.html.twig', {time: solving_time}) }}
-                        {% set gaps = this.gaps[loop.index0] %}
+                        {% set gaps = all_gaps[loop.index0] %}
                         {% if gaps.leader is not null %}
                             {{ include('_time_gaps.html.twig', {
                                 to_leader: gaps.faster is not null ? gaps.leader : null,
@@ -74,7 +121,37 @@
                     </td>
                 </tr>
             {% endfor %}
+            {% if items is empty and full_board %}
+                <tr>
+                    <td colspan="4" class="text-center text-muted py-4">
+                        {%- if this.country is not null -%}
+                            {{ 'leaderboards.times.empty_country'|trans({'%country%': this.country.name|upper|country_name}) }}
+                        {%- else -%}
+                            {{ 'leaderboards.times.empty'|trans }}
+                        {%- endif -%}
+                    </td>
+                </tr>
+            {% endif %}
             </tbody>
         </table>
     </div>
+
+    {% if full_board and this.rowsBelowCount > 0 %}
+        {{ include('leaderboards/_show_more.html.twig', {count: this.showMoreCount, live_action: 'showMore'}) }}
+    {% endif %}
+
+    {# Only in the response to a tap on the gap row or "Show more": focus the first new row, announce the rows #}
+    {% set announcement = full_board ? this.revealAnnouncement : null %}
+    {% if announcement is not null %}
+        {{ include('leaderboards/_window_announcer.html.twig', announcement) }}
+    {% endif %}
+
+    {# Overview: the viewer stands below the top rows - the full board opens around them #}
+    {% if not full_board and this.ownRowBeyondTop %}
+        <p class="mb-2 fs-sm">
+            <a href="{{ path(this.fullBoardRoute, this.fullBoardRouteParameters) }}#{{ constant('SpeedPuzzling\\Web\\Component\\LadderTable::OWN_ROW_ANCHOR') }}" class="text-primary" data-testid="ladder-around-me">
+                {{- 'leaderboards.times.around_you'|trans }} <i class="bi bi-arrow-right-short" aria-hidden="true"></i>
+            </a>
+        </p>
+    {% endif %}
 </div>

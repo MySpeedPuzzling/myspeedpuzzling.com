@@ -15,11 +15,13 @@
 {% block content %}
     {{ include('_leaderboards_nav.html.twig') }}
 
-    <h1 class="mb-4">{{ records_title }} <span class="h3"><span class="ms-2 badge bg-primary rounded-pill badge-shadow">Top 100</span></span></h1>
+    <h1 class="mb-4">{{ records_title }}</h1>
 
     {{ include('_ladder_dropdown.html.twig') }}
 
     {{ include('_ladder_dropdown_countries.html.twig') }}
 
-    <twig:LadderTable :type="type" :piecesCount="pieces" :limit="100" :countryCode="active_country ? active_country.name : null" />
+    {# The whole board, where am I included: top 25, "⋯ N more", the viewer's row with 2 above and 2 below, "Show more"
+       (design-spec §8.4: 25 rows before the gap on the boards, 10 on the /ladder overview) #}
+    <twig:LadderTable :type="type" :piecesCount="pieces" :limit="constant('SpeedPuzzling\\Web\\Value\\LeaderboardWindow::BOARD_TOP_ROWS')" :fullBoard="true" :countryCode="active_country ? active_country.name : null" />
 {% endblock %}

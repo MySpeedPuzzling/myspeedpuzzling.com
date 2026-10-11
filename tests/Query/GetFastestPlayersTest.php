@@ -10,12 +10,16 @@ use SpeedPuzzling\Web\Query\GetFastestPlayers;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionSeriesFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
+use SpeedPuzzling\Web\Tests\LeaderboardSeeding;
 use SpeedPuzzling\Web\Tests\TestingViewer;
 use SpeedPuzzling\Web\Value\CountryCode;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 final class GetFastestPlayersTest extends KernelTestCase
 {
+    use LeaderboardSeeding;
+
     private GetFastestPlayers $query;
     private Connection $database;
 
@@ -199,6 +203,104 @@ final class GetFastestPlayersTest extends KernelTestCase
 
         TestingViewer::signIn(self::getContainer(), PlayerFixture::PLAYER_WITH_STRIPE);
         self::assertSame($everyone, array_map(static fn ($r) => $r->playerId, $this->query->perPiecesCount(500, 100, null)));
+    }
+
+    public function testTheWindowShowsTheTopAndTheViewerWithTwoRowsAroundThemInOneStatement(): void
+    {
+        // 30 seeded solvers faster than every fixture time: the viewer's best is far below the top 5
+        $this->seedSoloSolvers(PuzzleFixture::PUZZLE_500_05, 30, firstSeconds: 10);
+        $board = $this->query->perPiecesCount(500, 1000, null);
+        $ownIndex = array_search(PlayerFixture::PLAYER_REGULAR, array_map(static fn ($r) => $r->playerId, $board), true);
+        self::assertIsInt($ownIndex);
+        self::assertGreaterThan(30, $ownIndex);
+
+        $slice = $this->query->window(500, null, limit: 5, above: 2, below: 2, viewerPlayerId: PlayerFixture::PLAYER_REGULAR);
+
+        $expectedPositions = [0, 1, 2, 3, 4];
+
+        for ($position = $ownIndex - 2; $position <= min($ownIndex + 2, count($board) - 1); $position++) {
+            $expectedPositions[] = $position;
+        }
+
+        self::assertSame($expectedPositions, $slice->positions);
+        self::assertSame(count($board), $slice->total);
+        self::assertSame($ownIndex, $slice->ownPosition);
+        self::assertSame(
+            array_map(static fn (int $position): string => $board[$position]->timeId, $expectedPositions),
+            array_map(static fn ($r) => $r->timeId, $slice->rows),
+        );
+
+        // The position line: the viewer's rank, of the whole list, and the next milestone above them (#25 here)
+        $line = $slice->viewerPosition;
+        self::assertNotNull($line);
+        $ownRowIndex = array_search($ownIndex, $slice->positions, true);
+        self::assertIsInt($ownRowIndex);
+        self::assertSame($slice->ranks[$ownRowIndex], $line->rank);
+        self::assertSame(count($board), $line->total);
+        self::assertSame(25, $line->targetRank);
+        self::assertSame($board[$ownIndex]->time - $board[24]->time, $line->targetGap);
+
+        // The closest faster time of the viewer's first neighbour is the hidden row right above it
+        $firstOwnBlockIndex = 5;
+        self::assertSame($board[$ownIndex - 3]->time, $slice->closestBetter[$firstOwnBlockIndex]);
+    }
+
+    public function testEqualBestTimesShareTheRankAndKeepAStableOrder(): void
+    {
+        $seeded = $this->seedSoloSolvers(PuzzleFixture::PUZZLE_500_05, 4, firstSeconds: 10, secondsBetween: 0);
+
+        $slice = $this->query->window(500, null, limit: 5);
+
+        self::assertSame([1, 1, 1, 1, 5], $slice->ranks);
+        $sortedIds = $seeded;
+        sort($sortedIds);
+        self::assertSame($sortedIds, array_map(static fn ($r) => $r->playerId, array_slice($slice->rows, 0, 4)));
+        self::assertNull($slice->viewerPosition);
+    }
+
+    public function testACountryBoardRanksWithinTheCountry(): void
+    {
+        $this->seedSoloSolvers(PuzzleFixture::PUZZLE_500_05, 3, firstSeconds: 10);
+
+        $czech = $this->query->window(500, CountryCode::cz, limit: 100, viewerPlayerId: PlayerFixture::PLAYER_REGULAR);
+
+        self::assertNotEmpty($czech->rows);
+        self::assertSame(1, $czech->ranks[0]);
+
+        foreach ($czech->rows as $row) {
+            self::assertSame(CountryCode::cz, $row->playerCountry);
+        }
+
+        // The seeded solvers (no country) are faster than everybody, yet the Czech viewer's rank only counts Czechs
+        self::assertNotNull($czech->viewerPosition);
+        self::assertSame(count($czech->rows), $czech->viewerPosition->total);
+        self::assertLessThanOrEqual(count($czech->rows), $czech->viewerPosition->rank);
+    }
+
+    public function testATimeWaitingForVerificationIsNeitherOnTheBoardNorTheViewersBest(): void
+    {
+        $this->seedSoloTime(PuzzleFixture::PUZZLE_500_05, PlayerFixture::PLAYER_REGULAR, 5);
+        $timed = $this->query->window(500, null, limit: 1, viewerPlayerId: PlayerFixture::PLAYER_REGULAR);
+        self::assertSame(0, $timed->ownPosition);
+        self::assertSame(5, $timed->rows[0]->time);
+
+        $this->database->executeStatement(
+            'UPDATE puzzle_solving_time SET suspicious = true WHERE player_id = :playerId AND seconds_to_solve = 5',
+            ['playerId' => PlayerFixture::PLAYER_REGULAR],
+        );
+
+        $slice = $this->query->window(500, null, limit: 1, viewerPlayerId: PlayerFixture::PLAYER_REGULAR);
+        self::assertNotSame(5, $slice->rows[0]->time);
+        self::assertNotSame(0, $slice->ownPosition);
+    }
+
+    public function testAPrivateViewerIsNotOnTheBoard(): void
+    {
+        $slice = $this->query->window(500, null, limit: 100, viewerPlayerId: PlayerFixture::PLAYER_PRIVATE);
+
+        self::assertNull($slice->ownPosition);
+        self::assertNull($slice->viewerPosition);
+        self::assertNotContains(PlayerFixture::PLAYER_PRIVATE, array_map(static fn ($r) => $r->playerId, $slice->rows));
     }
 
     private function block(string $blockerId, string $blockedId): void

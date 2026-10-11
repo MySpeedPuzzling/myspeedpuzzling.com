@@ -31,18 +31,6 @@
                     </small>
                 </div>
             </div>
-        {% elseif player_position is not null and player_rating is not null %}
-            <a href="{{ path('msp_rating_ladder', {page: my_page}) }}#my-rating-row" class="card shadow-custom flex-shrink-0 text-decoration-none">
-                <div class="card-body py-2 px-3">
-                    <small class="text-muted" style="font-size: 0.7rem;">{{ 'puzzle_intelligence.elo.ranked_out_of'|trans({'%total%': player_total}) }}</small>
-                    <div class="d-flex align-items-center gap-2">
-                        <span class="h5 mb-0 fw-bold" style="font-family: monospace; color: #111;">#{{ player_position }}</span>
-                        <span class="text-muted">&middot;</span>
-                        <span class="fw-bold" style="font-family: monospace; color: #111;">{{ (player_rating * 1000)|round }}</span>
-                        <i class="bi bi-arrow-right text-muted ms-1"></i>
-                    </div>
-                </div>
-            </a>
         {% endif %}
     </div>
 
@@ -52,8 +40,25 @@
         <strong><span data-next-quarter-countdown-target="display">--:--</span></strong>
     </p>
 
+    {# Not on this board: say why and what to do (design-spec §8.4) - opted out is the card above, not rated yet the
+       qualification banner below with what is still missing #}
+    {% if logged_player is null %}
+        {{ include('_leaderboard_not_on_board.html.twig', {
+            text: 'leaderboards.not_on_board.guest'|trans,
+            link_href: path('login', {return: app.request.requestUri}),
+            link_label: 'menu.sign_in'|trans,
+        }) }}
+    {% elseif not ranking_opted_out and logged_player.isPrivateProfile %}
+        {# Global rankings stay closed to private profiles, rated or not #}
+        {{ include('_leaderboard_not_on_board.html.twig', {
+            text: 'leaderboards.rating.private_note'|trans,
+            link_href: path('edit_profile'),
+            link_label: 'statistics.change_in_settings'|trans,
+        }) }}
+    {% endif %}
+
     {# Qualification banner — full width below header #}
-    {% if not ranking_opted_out and player_position is null and logged_player is not null and rating_progress is not null %}
+    {% if not ranking_opted_out and not is_rated and logged_player is not null and not logged_player.isPrivateProfile and rating_progress is not null %}
         {# Not yet qualified — show progress toward qualification #}
         {% set fa_done = rating_progress.first_attempts >= min_first_attempts %}
         {% set ts_done = rating_progress.total_solves >= min_total_solves %}

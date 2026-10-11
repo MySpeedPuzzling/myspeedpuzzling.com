@@ -42,7 +42,7 @@ final class GetPlayerRatingRankingTest extends KernelTestCase
 
     public function testTotalCountReturnsInteger(): void
     {
-        $count = $this->query->totalCount(500);
+        $count = $this->query->window(500, 100)->total;
 
         self::assertGreaterThanOrEqual(0, $count);
     }
@@ -67,48 +67,6 @@ final class GetPlayerRatingRankingTest extends KernelTestCase
         self::assertGreaterThanOrEqual(0, count($ratings));
     }
 
-    public function testRankingWithCountryFilterPreservesGlobalRank(): void
-    {
-        $allEntries = $this->query->ranking(500);
-
-        if (count($allEntries) === 0) {
-            self::markTestSkipped('No rating entries in fixtures');
-        }
-
-        $countryEntry = null;
-
-        foreach ($allEntries as $entry) {
-            if ($entry->playerCountry !== null) {
-                $countryEntry = $entry;
-                break;
-            }
-        }
-
-        if ($countryEntry === null) {
-            self::markTestSkipped('No entries with country in fixtures');
-        }
-
-        $filtered = $this->query->ranking(500, 50, 0, $countryEntry->playerCountry);
-
-        self::assertGreaterThanOrEqual(1, count($filtered));
-
-        foreach ($filtered as $entry) {
-            self::assertSame($countryEntry->playerCountry, $entry->playerCountry);
-        }
-
-        $matchingEntry = null;
-
-        foreach ($filtered as $entry) {
-            if ($entry->playerId === $countryEntry->playerId) {
-                $matchingEntry = $entry;
-                break;
-            }
-        }
-
-        self::assertNotNull($matchingEntry);
-        self::assertSame($countryEntry->rank, $matchingEntry->rank);
-    }
-
     public function testRankingWithSearchFilter(): void
     {
         $allEntries = $this->query->ranking(500);
@@ -120,7 +78,7 @@ final class GetPlayerRatingRankingTest extends KernelTestCase
         $entry = $allEntries[0];
         $searchTerm = $entry->playerName ?? $entry->playerCode;
 
-        $filtered = $this->query->ranking(500, 50, 0, null, $searchTerm);
+        $filtered = $this->query->ranking(500, 50, searchTerm: $searchTerm);
 
         self::assertGreaterThanOrEqual(1, count($filtered));
 
@@ -138,8 +96,8 @@ final class GetPlayerRatingRankingTest extends KernelTestCase
 
     public function testTotalCountWithFilters(): void
     {
-        $totalAll = $this->query->totalCount(500);
-        $totalNonExistentCountry = $this->query->totalCount(500, 'xx');
+        $totalAll = $this->query->window(500, 100)->total;
+        $totalNonExistentCountry = $this->query->window(500, 100, country: 'xx')->total;
 
         self::assertGreaterThanOrEqual(0, $totalAll);
         self::assertSame(0, $totalNonExistentCountry);

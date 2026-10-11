@@ -97,6 +97,25 @@ final class GetFastestPairsTest extends KernelTestCase
         self::assertSame($everyone, array_map(static fn ($r) => $r->timeId, $this->query->perPiecesCount(1000, 10, null)));
     }
 
+    public function testTheViewersOwnRowIsTheirBestPairWhoeverTrackedIt(): void
+    {
+        // TIME_12 was tracked by PLAYER_REGULAR, PLAYER_PRIVATE solved it with them - it is theirs too
+        $board = $this->query->perPiecesCount(1000, 100, null);
+        $pairIndex = array_search(PuzzleSolvingTimeFixture::TIME_12, array_map(static fn ($r) => $r->timeId, $board), true);
+        self::assertIsInt($pairIndex);
+
+        foreach ([PlayerFixture::PLAYER_PRIVATE, PlayerFixture::PLAYER_REGULAR] as $viewer) {
+            $slice = $this->query->window(1000, null, limit: 1, above: 2, below: 2, viewerPlayerId: $viewer);
+
+            self::assertSame($pairIndex, $slice->ownPosition, $viewer);
+            self::assertNotNull($slice->viewerPosition);
+            self::assertSame(count($board), $slice->viewerPosition->total);
+            self::assertContains(PuzzleSolvingTimeFixture::TIME_12, array_map(static fn ($r) => $r->timeId, $slice->rows));
+        }
+
+        self::assertNull($this->query->window(1000, null, limit: 1, viewerPlayerId: PlayerFixture::PLAYER_WITH_STRIPE)->viewerPosition);
+    }
+
     public function testEachPairIsListedOnceWithItsBestTime(): void
     {
         // TIME_12 (3600 s) and TIME_41 (4000 s) are the same two people

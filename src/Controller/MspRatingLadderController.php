@@ -15,7 +15,6 @@ use Symfony\Component\Routing\Attribute\Route;
 final class MspRatingLadderController extends AbstractController
 {
     private const int PIECES_COUNT = PuzzleIntelligenceRecalculator::RATING_PIECES_COUNTS[0];
-    private const int PER_PAGE = 100;
 
     public function __construct(
         readonly private GetPlayerRatingRanking $getPlayerRatingRanking,
@@ -40,40 +39,29 @@ final class MspRatingLadderController extends AbstractController
         $piecesCount = self::PIECES_COUNT;
 
         $loggedPlayer = $this->retrieveLoggedUserProfile->getProfile();
-        $playerPosition = null;
-        $playerRating = null;
-        $playerTotal = null;
         $ratingProgress = null;
-        $myPage = null;
-
+        $isRated = false;
         $rankingOptedOut = false;
 
+        // The viewer's place is the position line of the board itself (MspRatingLadder) - here only what the board
+        // cannot say: the progress towards a first rating, and why a rated private profile is not listed
         if ($loggedPlayer !== null) {
             $rankingOptedOut = $loggedPlayer->rankingOptedOut;
 
             if (!$rankingOptedOut) {
-                $ratingProgress = $this->mspRatingCalculator->getProgress($loggedPlayer->playerId, $piecesCount);
+                $isRated = isset($this->getPlayerRatingRanking->allForPlayer($loggedPlayer->playerId)[$piecesCount]);
 
-                // The same "#rank of total" the profile card shows - never a number of its own
-                $playerRatingData = $this->getPlayerRatingRanking->allForPlayer($loggedPlayer->playerId)[$piecesCount] ?? null;
-
-                if ($playerRatingData !== null) {
-                    $playerRating = $playerRatingData['elo_rating'];
-                    $playerPosition = $playerRatingData['rank'];
-                    $playerTotal = $playerRatingData['total'];
-                    $myPage = (int) ceil($playerPosition / self::PER_PAGE);
+                if ($isRated === false) {
+                    $ratingProgress = $this->mspRatingCalculator->getProgress($loggedPlayer->playerId, $piecesCount);
                 }
             }
         }
 
         return $this->render('msp_rating_ladder/index.html.twig', [
-            'player_total' => $playerTotal,
             'pieces_count' => $piecesCount,
-            'player_position' => $playerPosition,
-            'player_rating' => $playerRating,
             'rating_progress' => $ratingProgress,
             'logged_player' => $loggedPlayer,
-            'my_page' => $myPage,
+            'is_rated' => $isRated,
             'ranking_opted_out' => $rankingOptedOut,
             'min_first_attempts' => MspRatingCalculator::MINIMUM_FIRST_ATTEMPTS,
             'min_total_solves' => MspRatingCalculator::MINIMUM_TOTAL_SOLVES,

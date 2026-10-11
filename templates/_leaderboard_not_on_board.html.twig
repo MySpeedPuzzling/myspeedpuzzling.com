@@ -1,0 +1,10 @@
+{#-
+    One line above a board when the viewer has no row on it: why, and what to do (design-spec §8.4 "Not on this board").
+      {{ include('_leaderboard_not_on_board.html.twig', {text: '…', link_href: url|null, link_label: '…'|null}) }}
+    Encouraging, never loss-framed (P10).
+-#}
+<p class="lb-not-on-board text-body-secondary fs-sm mb-3" data-testid="lb-not-on-board" data-nosnippet>
+    <i class="bi bi-info-circle me-1" aria-hidden="true"></i>
+    {{- text -}}
+    {%- if link_href|default(null) %} <a href="{{ link_href }}">{{ link_label }}</a>{% endif -%}
+</p>

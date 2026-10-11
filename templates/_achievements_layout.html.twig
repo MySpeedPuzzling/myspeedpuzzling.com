@@ -14,6 +14,7 @@
       - own (bool): the viewer looks at their own achievements - the closest next steps are shown to them only
         ("Your first one is close" when they have none yet)
       - show_supporter (bool, optional): the single-tier Early Adopter is shelved after the earned ones
+      - supporter_first (bool, optional): ... or first (the rarest-first order: it can no longer be earned)
 #}
 {%- set show_supporter = show_supporter|default(false) -%}
 {%- set next_rows = [] -%}
@@ -63,6 +64,11 @@
         {% else %}
             <ul class="achievement-shelf">
                 {%- set supporter_shown = not show_supporter -%}
+                {# Rarest first: the one that can no longer be earned leads #}
+                {% if not supporter_shown and supporter_first|default(false) %}
+                    {{ _self.supporter_cell(player_id) }}
+                    {%- set supporter_shown = true -%}
+                {% endif %}
                 {% for row in rows %}
                     {% if not supporter_shown and row.earnedTier is null %}
                         {{ _self.supporter_cell(player_id) }}

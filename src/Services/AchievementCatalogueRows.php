@@ -85,8 +85,10 @@ final class AchievementCatalogueRows
         ));
         usort($earned, static fn (AchievementCatalogueRow $a, AchievementCatalogueRow $b): int => self::newestFirstKey($a) <=> self::newestFirstKey($b));
 
+        // Rarest first: what the player holds, by how rare their tier is (rarest first, the higher tier first on a tie),
+        // then what they do not hold yet, by how rare its Bronze is (Jan 2026-10-11)
         $rarest = $rows;
-        usort($rarest, static fn (AchievementCatalogueRow $a, AchievementCatalogueRow $b): int => $a->rarityPercent <=> $b->rarityPercent);
+        usort($rarest, static fn (AchievementCatalogueRow $a, AchievementCatalogueRow $b): int => self::rarestKey($a) <=> self::rarestKey($b));
 
         // A step whose current tier is still waiting for its reveal would give the surprise away ("→ Platinum")
         $closest = array_slice(array_values(array_filter(
@@ -114,6 +116,16 @@ final class AchievementCatalogueRows
             earnedTiers: array_sum(array_map(static fn (AchievementCatalogueRow $row): int => $row->tiersEarned, $rows)),
             totalTiers: count($rows) * count(BadgeTier::cases()),
         );
+    }
+
+    /**
+     * @return array{int, float, int}
+     */
+    private static function rarestKey(AchievementCatalogueRow $row): array
+    {
+        return $row->earnedTier !== null
+            ? [0, $row->earnedRarityPercent, -$row->earnedTier->value]
+            : [1, $row->rarityPercent, 0];
     }
 
     private static function compareForAll(AchievementCatalogueRow $a, AchievementCatalogueRow $b): int

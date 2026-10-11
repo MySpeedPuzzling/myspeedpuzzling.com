@@ -157,14 +157,14 @@
                     {% endif %}
                 </div>
 
-                {# The tiers (2A): seal · name ✓ · requirement and share · +AP, the next one with its progress (own sheet only).
+                {# The tiers (2A): seal · name ✓ · requirement and share · +AP, the next one with its progress (anybody's sheet - Jan 2026-10-11 - but no streak numbers of a player who switched streaks off).
                    A row is a button (stretched over the row) that shows its tier on the medal. #}
                 <ul class="medal-tiers list-unstyled">
                     {% for entry in group.tiers %}
                         {% set earned = personal and entry.earned %}
                         {% set medal = medals[entry.tier.value] ?? null %}
                         {% set holo = earned and medal is not null ? badge_holo(type, entry.tier) : null %}
-                        {% set is_next = personal and subject is null and group.progressToNext is not null and group.progressToNext.nextTier == entry.tier %}
+                        {% set is_next = personal and show_record and group.progressToNext is not null and group.progressToNext.nextTier == entry.tier %}
                         <li class="medal-tier{{ entry.tier == shown_tier ? ' is-shown' }}{{ earned ? ' is-earned' }}"
                             data-holo-medal-target="row"
                             data-tier="{{ entry.tier.value }}"

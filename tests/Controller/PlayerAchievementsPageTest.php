@@ -67,12 +67,14 @@ final class PlayerAchievementsPageTest extends WebTestCase
         $crawler = $browser->request('GET', self::MEMBER_PAGE . '?show=earned');
 
         self::assertResponseIsSuccessful();
+        // A visitor gets one list, rarest first: what the player holds leads - no filter chips (?show is ignored)
+        self::assertSelectorNotExists('.achievements-filter');
         $cells = $crawler->filter('.achievement-cell');
-        self::assertCount(1, $cells);
+        self::assertCount(16, $cells);
         self::assertSelectorNotExists('.badge-art-mystery');
         // Not the visitor's own page: no "New" dot; the sheet opens on this player's medal
         self::assertSelectorNotExists('.achievement-cell-new');
-        self::assertSame('/en/achievements/streak/info?tier=1&player=' . PlayerFixture::PLAYER_WITH_STRIPE . '&from=shelf', $cells->filter('a')->attr('href'));
+        self::assertSame('/en/achievements/streak/info?tier=1&player=' . PlayerFixture::PLAYER_WITH_STRIPE . '&from=shelf', $cells->first()->filter('a')->attr('href'));
     }
 
     public function testGuestsSeeAMembersAchievements(): void
@@ -83,7 +85,7 @@ final class PlayerAchievementsPageTest extends WebTestCase
         $browser->request('GET', self::MEMBER_PAGE . '?show=all');
 
         self::assertResponseIsSuccessful();
-        self::assertSelectorTextContains('.achievements-filter a.active', 'All');
+        self::assertSelectorNotExists('.achievements-filter');
         self::assertGreaterThanOrEqual(16, $browser->getCrawler()->filter('.achievement-cell')->count());
     }
 
@@ -157,14 +159,14 @@ final class PlayerAchievementsPageTest extends WebTestCase
         $crawler = $browser->request('GET', self::MEMBER_PAGE);
 
         self::assertResponseIsSuccessful();
-        // A visitor: the tier and what it took - not the progress toward the next one (design-spec §8.6)
+        // A visitor sees the progress too (Jan 2026-10-11): the tier, the next goal and how far along
         $label = (string) $crawler->filter('.achievement-cell a[href^="/en/achievements/puzzles_solved/info"]')->attr('aria-label');
-        self::assertSame('Puzzle Explorer, Silver, tier 2 of 5, Solve 100 distinct puzzles', $label);
-        self::assertCount(0, $crawler->filter('.achievement-shelf [role="progressbar"], .achievement-shelf .achievement-cell-numbers'));
-        $filters = $crawler->filter('.achievements-filter a')->each(static fn ($node): string => trim($node->text()));
-        self::assertSame(['All · 16', 'Earned · 1', 'Rarest first · 16'], $filters);
+        self::assertStringStartsWith('Puzzle Explorer, Silver, tier 2 of 5, Gold: Solve 500 distinct puzzles', $label);
+        self::assertStringContainsString(' toward Gold', $label);
+        self::assertGreaterThan(0, $crawler->filter('.achievement-shelf [role="progressbar"]')->count());
+        self::assertSelectorNotExists('.achievements-filter');
 
-        // The owner: the progress toward the next tier too
+        // The owner: the same, with their filter chips
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
         $crawler = $browser->request('GET', self::MEMBER_PAGE);
         $label = (string) $crawler->filter('.achievement-cell a[href^="/en/achievements/puzzles_solved/info"]')->attr('aria-label');
@@ -299,6 +301,27 @@ final class PlayerAchievementsPageTest extends WebTestCase
         self::assertCount(0, $none->filter('.achievement-cell-tier'));
         // Every cell that is not complete has its goal
         self::assertCount($crawler->filter('.achievement-shelf .achievement-cell-link')->count(), $crawler->filter('.achievement-shelf .achievement-cell-goal'));
+    }
+
+    public function testAVisitorSeesEarlyAdopterFirstThenTheRarestTheyHold(): void
+    {
+        $browser = self::createClient();
+        $member = PlayerFixture::PLAYER_WITH_STRIPE;
+        $this->insertBadge($member, 'supporter', null, revealed: true);
+        $this->insertBadge($member, 'streak', 1, revealed: true);
+        $this->insertBadge($member, 'first_try', 1, revealed: true);
+        // Somebody else holds the Bronze streak too: first_try's Bronze is the rarer one
+        $this->insertBadge(PlayerFixture::PLAYER_REGULAR, 'streak', 1, revealed: true);
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+
+        $crawler = $browser->request('GET', self::MEMBER_PAGE);
+
+        self::assertResponseIsSuccessful();
+        $links = $crawler->filter('.achievement-shelf > .achievement-cell a')->each(static fn ($a): string => (string) $a->attr('href'));
+        self::assertStringStartsWith('/en/achievements/supporter/info', $links[0]);
+        self::assertStringStartsWith('/en/achievements/first_try/info', $links[1]);
+        self::assertStringStartsWith('/en/achievements/streak/info', $links[2]);
+        self::assertCount(17, $links);
     }
 
     private function insertBadge(string $playerId, string $type, null|int $tier, bool $revealed): void

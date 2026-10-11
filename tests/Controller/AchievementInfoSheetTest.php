@@ -113,8 +113,8 @@ final class AchievementInfoSheetTest extends WebTestCase
         self::assertSame('medal-back-3', $crawler->filter('.medal button.medal-card')->attr('aria-describedby'));
         self::assertStringContainsString('No. 0001', $crawler->filter('#medal-back-3')->text());
         self::assertCount(3, $crawler->filter('li.medal-tier .medal-tier-check'));
-        // Someone else's unfinished progress is not on show (design-spec §8.6)
-        self::assertCount(0, $crawler->filter('.medal-tier-progress'));
+        // Someone else's progress toward the next tier is on show too (Jan 2026-10-11)
+        self::assertCount(1, $crawler->filter('.medal-tier-progress'));
         self::assertCount(0, $crawler->filter('a[href="/en/membership"]'));
         // + the subject's profile row (GetPlayerProfile::byId: privacy, blocklist, membership)
         $this->assertQueryCountAtMost($browser, 21, 'achievement sheet (another member\'s medal)');

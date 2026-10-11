@@ -34,13 +34,13 @@ final class BadgeArtSurfacesTest extends WebTestCase
         // Two tiered achievements + the held Early Adopter, which counts for its holders (in the total too)
         self::assertStringContainsString('3 of 17', $showcase->text());
 
-        // Highest tier first: Gold streak, then the single-tier one
-        $streak = $items->eq(0)->filter('img.badge-art');
+        // The one-off Early Adopter first, then the highest tier (Jan 2026-10-12): the Gold streak
+        self::assertCount(1, $items->eq(0)->filter('img.badge-art[src^="/img/badges/webp/144/supporter-single.webp"]'));
+        $streak = $items->eq(1)->filter('img.badge-art');
         // The sheet shows this player's medal (?player=), not the viewer's - and its buttons lead back to the profile
-        self::assertSame('/en/achievements/streak/info?tier=3&player=' . PlayerFixture::PLAYER_ADMIN . '&return=/en/player-profile/' . PlayerFixture::PLAYER_ADMIN . '&return_title=Admin%20User', $items->eq(0)->attr('href'));
+        self::assertSame('/en/achievements/streak/info?tier=3&player=' . PlayerFixture::PLAYER_ADMIN . '&return=/en/player-profile/' . PlayerFixture::PLAYER_ADMIN . '&return_title=Admin%20User', $items->eq(1)->attr('href'));
         self::assertStringStartsWith('/img/badges/webp/144/streak-t3.webp?v=', (string) $streak->attr('src'));
         self::assertSame('56', $streak->attr('width'));
-        self::assertCount(1, $items->eq(1)->filter('img.badge-art[src^="/img/badges/webp/144/supporter-single.webp"]'));
 
         // The owner's unrevealed badge: one call-out saying how many and what to do, leading to the reveal page - its
         // picture is not in the page

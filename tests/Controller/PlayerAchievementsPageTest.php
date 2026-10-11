@@ -334,6 +334,26 @@ final class PlayerAchievementsPageTest extends WebTestCase
         self::assertCount(17, $links);
     }
 
+    public function testTheProfileShowcaseHasTheSameOrderEarlyAdopterThenTheHighestTier(): void
+    {
+        $browser = self::createClient();
+        $member = PlayerFixture::PLAYER_WITH_STRIPE;
+        $this->insertBadge($member, 'streak', 1, revealed: true);
+        $this->insertBadge($member, 'supporter', null, revealed: true);
+        foreach ([1, 2, 3, 4, 5] as $tier) {
+            $this->insertBadge($member, 'puzzles_solved', $tier, revealed: true);
+        }
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+
+        $crawler = $browser->request('GET', '/en/player-profile/' . $member);
+
+        self::assertResponseIsSuccessful();
+        $links = $crawler->filter('.achievements-showcase-item')->each(static fn ($a): string => (string) $a->attr('href'));
+        self::assertStringStartsWith('/en/achievements/supporter/info', $links[0] ?? '');
+        self::assertStringStartsWith('/en/achievements/puzzles_solved/info?tier=5', $links[1] ?? '');
+        self::assertStringStartsWith('/en/achievements/streak/info?tier=1', $links[2] ?? '');
+    }
+
     private function insertBadge(string $playerId, string $type, null|int $tier, bool $revealed): void
     {
         self::getContainer()->get(Connection::class)->executeStatement(

@@ -35,7 +35,7 @@
             <div class="achievements-explainer-actions">
                 <a href="{{ path('progression_hub') }}">{{ 'progression_hub.title'|trans }}</a>
                 <a href="{{ path('achievement_points_leaderboard') }}">{{ 'badges.catalogue.ap_leaderboard_link'|trans }}</a>
-                <button type="button" class="btn btn-outline-secondary btn-sm achievements-explainer-hide" {{ stimulus_action('collapsible-hint', 'hide') }}>{{ 'badges.catalogue.explainer_hide'|trans }}</button>
+                <button type="button" class="btn btn-sm achievements-explainer-hide" {{ stimulus_action('collapsible-hint', 'hide') }}>{{ 'badges.catalogue.explainer_hide'|trans }}</button>
             </div>
         </div>
     </details>

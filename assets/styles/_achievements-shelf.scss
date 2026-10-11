@@ -837,12 +837,23 @@ $shelf-press: scale(.97);
     gap: .5rem;
     min-height: 44px;
     padding: .5rem 1rem;
+    border-radius: .75rem;
     font-weight: 600;
     cursor: pointer;
     list-style: none;
 
     &::-webkit-details-marker {
         display: none;
+    }
+
+    // "Hide" moves the focus here: a ring for keyboard users only, rounded like the card (no square ring in the corner)
+    &:focus {
+        outline: 0;
+    }
+
+    &:focus-visible {
+        outline: 2px solid #d63c42;
+        outline-offset: 2px;
     }
 
     .achievements-explainer-chevron {
@@ -876,9 +887,22 @@ $shelf-press: scale(.97);
         color: #c7393b;
     }
 
+    // A real button on the cream card: white, a warm border, darker on hover
     .achievements-explainer-hide {
+        --cz-btn-color: #4b3a14;
+        --cz-btn-bg: #fff;
+        --cz-btn-border-color: rgba(138, 90, 18, .25);
+        --cz-btn-hover-color: #4b3a14;
+        --cz-btn-hover-bg: #fff8ec;
+        --cz-btn-hover-border-color: rgba(138, 90, 18, .45);
+        --cz-btn-active-color: #4b3a14;
+        --cz-btn-active-bg: #fdf0d8;
+        --cz-btn-active-border-color: rgba(138, 90, 18, .45);
         min-height: 44px;
         margin-left: auto;
+        padding-inline: 1rem;
+        box-shadow: 0 1px 2px rgba(75, 58, 20, .08);
+        font-weight: 500;
     }
 }
 

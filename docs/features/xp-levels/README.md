@@ -95,8 +95,14 @@ picks it up automatically.
 Recap after logging a time = **one progress card** (launch-2026-10.md "After logging a time"): the live rows come
 from the `XpRecapCelebration` LiveComponent (achievements this time earned + the level line with the receipt one tap
 away in a `<details>`), the page adds the place on the puzzle and - for piece counts with a rating (500) - MSP Rating /
-skill tier (members; free players one locked line). XP is awarded asynchronously: the component polls with a growing
-delay (`POLL_DELAYS_MS`, ~30 s) and then says the XP is on its way; the render showing the XP is the last one.
+skill tier (members; free players one locked line). **The save settles the saving player's achievements and XP before
+it redirects** (`SavedTimeProgression`, add form + relax, achievements first): measured 2026-10-11 on the production
+copy at 3-9 ms for a typical player and at most 90 ms for the heaviest (2,300 results), so the recap shows both at its
+first render - Jan's rule: under 300 ms it belongs on the result page, at once. The messages the save queued stay the
+safety net (other pair/team members, a failure - both recompute from the records, so a second run changes nothing).
+Only when the XP is still missing does the component poll, with a growing delay (`POLL_DELAYS_MS`, ~30 s), and then
+say the XP is on its way; the render showing the XP is the last one. Dev runs the queue in its own `messenger-consumer`
+service (compose.yml), like production.
 "This time earned an achievement" = badge rows stamped within 10 minutes after the time's
 `tracked_at` and before the player's next time (`GetBadges::earnedWithSolve()` / `countTiersEarnedWithSolve()`;
 badges do not point at a solve; the badge message is queued before the XP one). Members reveal it

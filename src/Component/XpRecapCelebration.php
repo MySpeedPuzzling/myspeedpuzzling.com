@@ -29,9 +29,10 @@ use Symfony\UX\LiveComponent\DefaultActionTrait;
  * the achievements this time earned and the level line. The page renders the card around it, with the rows that are
  * known at render time (place on the puzzle, MSP Rating / skill tier).
  *
- * XP and achievements are awarded asynchronously (AwardXpForSolvingTime, RecalculateBadgesForPlayer - the badge
- * message is queued first), so while the solve has no XP lines yet the component polls with a growing delay
- * (POLL_DELAYS_MS) and then says the XP is still on its way. The render that shows the XP is the last one: nothing
+ * The save settles the saver's achievements and XP before it redirects (SavedTimeProgression), so the first render
+ * normally has them. The queued messages (AwardXpForSolvingTime, RecalculateBadgesForPlayer - the badge message
+ * first) are the fallback - another pair/team member's view, a failed settlement: while the solve has no XP lines yet
+ * the component polls with a growing delay (POLL_DELAYS_MS) and then says the XP is still on its way. The render that shows the XP is the last one: nothing
  * re-renders under the achievement reveal or the level-up celebration afterwards.
  *
  * Every registered member of a pair/team time sees their own lines, level and achievements (the viewer, never the

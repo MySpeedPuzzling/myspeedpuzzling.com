@@ -5,14 +5,20 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\Controller;
 
 use Doctrine\DBAL\Connection;
+use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Message\AwardXpForSolvingTime;
+use SpeedPuzzling\Web\Message\RecalculateBadgesForPlayer;
 use SpeedPuzzling\Web\Services\AnnouncementModals\ResolveAnnouncementModal;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\TestDouble\FixedXpLaunchReadiness;
+use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use SpeedPuzzling\Web\Value\LevelTable;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\Messenger\Envelope;
+use Symfony\Component\Messenger\Transport\InMemory\InMemoryTransport;
 use Symfony\UX\LiveComponent\Test\InteractsWithLiveComponents;
 
 /**
@@ -108,6 +114,52 @@ final class RecapProgressCardTest extends WebTestCase
         $crawler = $component->render()->crawler();
         self::assertCount(0, $crawler->filter('[data-poll]'));
         self::assertStringContainsString('+5 XP', $crawler->text());
+    }
+
+    /**
+     * SavedTimeProgression: the save settles the saving player's achievements and XP before it redirects, so the recap
+     * shows them at its first render - no "Counting your XP", no polling. The queued messages stay the safety net.
+     */
+    public function testASavedTimeLandsOnARecapThatAlreadyShowsItsXp(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+
+        $crawler = $browser->request('GET', '/en/puzzle-add');
+        $token = $crawler->filter('input[name="puzzle_add_form[_token]"]')->attr('value');
+        self::assertNotNull($token);
+        $timeId = Uuid::uuid7()->toString();
+
+        $browser->request('POST', '/en/puzzle-add', [
+            'puzzle_add_form' => [
+                '_token' => $token,
+                'mode' => 'speed_puzzling',
+                'puzzle' => PuzzleFixture::PUZZLE_500_04,
+                'timeHours' => '0',
+                'timeMinutes' => '58',
+                'timeSeconds' => '0',
+                'finishedAt' => self::getContainer()->get(ClockInterface::class)->now()->format('d.m.Y'),
+                'collection' => '__system_collection__',
+            ],
+            'time_id' => $timeId,
+        ]);
+        self::assertResponseRedirects('/en/time-added/' . $timeId);
+
+        $transport = self::getContainer()->get('messenger.transport.async');
+        assert($transport instanceof InMemoryTransport);
+        $sent = array_map(
+            static fn (Envelope $envelope): string => $envelope->getMessage()::class,
+            $transport->getSent(),
+        );
+        self::assertContains(AwardXpForSolvingTime::class, $sent);
+        self::assertContains(RecalculateBadgesForPlayer::class, $sent);
+
+        $crawler = $browser->followRedirect();
+
+        self::assertResponseIsSuccessful();
+        self::assertCount(0, $crawler->filter('[data-poll]'));
+        self::assertStringNotContainsString('Counting your XP', $crawler->filter('section.recap-card')->text());
+        self::assertMatchesRegularExpression('/\+\d+ XP/', $crawler->filter('[data-testid="recap-level"]')->text());
     }
 
     public function testLevelUpIsShownAndCelebratesOnlyRightAfterTheSave(): void

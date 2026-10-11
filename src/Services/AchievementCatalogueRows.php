@@ -29,7 +29,8 @@ final class AchievementCatalogueRows
      * @param bool $revealFlow the owner looks at their own list: unrevealed tiers become "?" seals
      * @param null|DateTimeImmutable $newSince the owner looks at their own list: tiers earned since then get "New" -
      *                                       never one held at launch (design-spec §8.1)
-     * @param null|DateTimeImmutable $launchAt XpLaunchReadiness::readyAt(): tiers earned until then are "held at launch"
+     * @param null|HeldAtLaunch $heldAtLaunch LaunchStampWindow::current() - the tiers still stamped by the launch backfill;
+     *                                       none given = every tier is held at launch (before the launch)
      * @param list<BadgeType> $hideProgressOf types whose progress the visitor may not see (an owner's streak opt-out)
      */
     public static function build(
@@ -38,16 +39,17 @@ final class AchievementCatalogueRows
         bool $personal,
         bool $revealFlow = false,
         null|DateTimeImmutable $newSince = null,
-        null|DateTimeImmutable $launchAt = null,
+        null|HeldAtLaunch $heldAtLaunch = null,
         array $hideProgressOf = [],
     ): AchievementCatalogueLists {
         $rows = [];
+        $heldAtLaunch ??= new HeldAtLaunch(null, null);
 
         foreach ($catalog as $group) {
             $earnedTier = $personal ? $group->highestEarnedTier() : null;
             $progress = $personal && in_array($group->type, $hideProgressOf, true) === false ? $group->progressToNext : null;
             $earnedAt = $earnedTier !== null ? self::earnedAt($group, $earnedTier) : null;
-            $heldAtLaunch = $earnedAt !== null && HeldAtLaunch::is($earnedAt, $launchAt);
+            $held = $earnedAt !== null && $heldAtLaunch->holds($earnedAt);
             $focusTier = $progress !== null ? $progress->nextTier : ($earnedTier ?? BadgeTier::Bronze);
             $unrevealed = $revealFlow && $personal && $group->highestEarnedIsUnrevealed();
 
@@ -59,10 +61,10 @@ final class AchievementCatalogueRows
                 rarityPercent: $rarity[$group->type->value][$focusTier->value] ?? 0.0,
                 unrevealed: $unrevealed,
                 tiersEarned: $personal ? $group->earnedCount() : 0,
-                newlyEarned: $unrevealed === false && $earnedAt !== null && $heldAtLaunch === false && $newSince !== null && $earnedAt >= $newSince,
+                newlyEarned: $unrevealed === false && $earnedAt !== null && $held === false && $newSince !== null && $earnedAt >= $newSince,
                 earnedRarityPercent: $earnedTier !== null ? ($rarity[$group->type->value][$earnedTier->value] ?? 0.0) : 100.0,
                 earnedAt: $earnedAt,
-                heldAtLaunch: $heldAtLaunch,
+                heldAtLaunch: $held,
             );
         }
 

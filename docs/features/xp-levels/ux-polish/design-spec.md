@@ -350,15 +350,17 @@ questions, measured contrast and benchmarks with sources, is kept with the deliv
   - "First to earn" go to whoever was processed first;
   - every date read "10 Oct 2026";
   - every cell carry "NEW" for a week.
-- **Rule:** a tier whose `earned_at` ≤ `xp_settings.launch_ready_at` (or any tier while the marker is null) is **held at
-  launch**.
+- **Rule:** a tier whose `earned_at` lies in the launch backfill's window - from `xp_settings.full_formula_from` (the
+  deploy) to `launch_ready_at` (the switch) - is **held at launch** (`HeldAtLaunch`, built by `LaunchStampWindow`); so is
+  any tier while the marker is null. Since 2026-10-12 the window only holds tiers the history dating could not date
+  (`docs/features/badges.md` "Real dates") - on the dev copy none.
   - **It shows "Held at launch"** instead of a number and a date: on the medal back, in the facts line and on the
     holders page.
   - **It never gets "NEW"**, nor the "First to earn" trophy.
   - **Single-tier Early Adopter** keeps its real grant dates.
   - **Why not invent precision:** a wrong "No. 42" or a wrong date is worse than an honest "held at launch" (P9).
-- **Later work:** deriving the real date each requirement was first met in the backfill would give the old tiers real
-  dates and numbers. It is a bigger change and goes to `docs/TODO.md`.
+- **Done 2026-10-12:** the history dating gave the tiers the backfill stamped the date their requirement was first met
+  (`myspeedpuzzling:date-achievements-from-history`) - real dates, real medal numbers, a real "First to earn".
 - **Serial for tiers earned after launch:**
   - `1 + count(holders of the type and tier with (earned_at, id) < mine)`, counting everyone ahead, including the
     holders at launch. The first new Gold after 79 holders at launch is truly No. 80.

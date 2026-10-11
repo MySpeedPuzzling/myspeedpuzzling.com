@@ -13,7 +13,7 @@ use SpeedPuzzling\Web\Services\AchievementCatalogueRows;
 use SpeedPuzzling\Web\Services\AchievementRarityProvider;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Services\Xp\XpFeatureGate;
-use SpeedPuzzling\Web\Services\Xp\XpLaunchReadiness;
+use SpeedPuzzling\Web\Services\Badges\LaunchStampWindow;
 use SpeedPuzzling\Web\Value\AchievementCatalogueFilter;
 use SpeedPuzzling\Web\Value\BadgeType;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -44,7 +44,7 @@ final class PlayerAchievementsController extends AbstractController
         readonly private XpFeatureGate $xpFeatureGate,
         readonly private TranslatorInterface $translator,
         readonly private ClockInterface $clock,
-        readonly private XpLaunchReadiness $xpLaunchReadiness,
+        readonly private LaunchStampWindow $launchStampWindow,
     ) {
     }
 
@@ -94,7 +94,7 @@ final class PlayerAchievementsController extends AbstractController
                 personal: true,
                 revealFlow: $isOwn,
                 newSince: $isOwn ? $this->clock->now()->modify('-' . BadgesOverviewController::NEW_FOR_DAYS . ' days') : null,
-                launchAt: $this->xpLaunchReadiness->readyAt(),
+                heldAtLaunch: $this->launchStampWindow->current(),
                 // Everybody sees the progress (Jan 2026-10-11, over design-spec §8.6) - except the streak numbers of an
                 // owner who switched streaks off
                 hideProgressOf: $isOwn === false && $player->streakOptedOut ? [BadgeType::Streak] : [],

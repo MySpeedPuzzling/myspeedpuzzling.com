@@ -92,6 +92,20 @@ final class GetAchievementMedalTest extends KernelTestCase
         }
     }
 
+    public function testATierDatedFromHistoryBeforeTheLaunchHasItsDateAndSerial(): void
+    {
+        // Still stamped by the launch backfill (inside deploy 2026-08-01 00:00 .. switch 2026-08-02 00:00)
+        $this->earn(PlayerFixture::PLAYER_REGULAR, 2, '2026-08-01 12:00:00');
+        // Dated from the history: the records met it long before the launch
+        $this->earn(PlayerFixture::PLAYER_ADMIN, 2, '2025-03-14 18:20:00');
+
+        $dated = $this->query->forPlayerAndType(PlayerFixture::PLAYER_ADMIN, self::TYPE)[2];
+        self::assertFalse($dated->heldAtLaunch);
+        self::assertSame(1, $dated->serial, 'First to earn it - the stamped one comes after it');
+        self::assertSame('2025-03-14 18:20:00', $dated->earnedAt->format('Y-m-d H:i:s'));
+        self::assertTrue($this->query->forPlayerAndType(PlayerFixture::PLAYER_REGULAR, self::TYPE)[2]->heldAtLaunch);
+    }
+
     public function testWhileTheLaunchSwitchIsOffEveryTierIsHeldAtLaunch(): void
     {
         FixedXpLaunchReadiness::$ready = false;

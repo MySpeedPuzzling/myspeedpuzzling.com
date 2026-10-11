@@ -30,9 +30,6 @@ that would otherwise be forgotten. Newest section on top.
 - [ ] Visual check of the hub, catalogue and XP history at 320/375 px on the integrated branch (not done in the workstream)
 ## Progression UX polish (`docs/features/xp-levels/ux-polish/design-spec.md`, 2026-10-11)
 
-- [ ] Real first-met dates in the badge backfill: tiers held at launch show "Held at launch" (no number, no date, §8.1) because
-      every launch tier carries the backfill's timestamp; deriving the date each requirement was first met would give them real
-      dates and medal numbers
 - [ ] Real-device pass of the bottom sheet and the holo medal (iPhone Safari, Android Chrome): swipe to close vs the content's
       scroll, the Android back gesture (`CloseWatcher`), tilt only with a mouse/pen, haptics, the 92dvh cap with the toolbar
 - [ ] /ladder overview: each table now ends with "Full board, around you" next to the old "Top 10" badge and "Show more" link -

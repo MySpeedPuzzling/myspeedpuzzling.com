@@ -25,8 +25,8 @@ final class AchievementHoldersPageTest extends WebTestCase
 
     private const string PAGE = '/en/achievements/zen_puzzler';
 
-    /** Before the tests' launch marker (XpSettingsFixture::LAUNCH_READY_AT): stamped by the launch backfill */
-    private const string AT_LAUNCH = '2026-07-15 10:00:00';
+    /** Inside the tests' launch backfill window (XpSettingsFixture: deploy 2026-08-01, switch 2026-08-02): still stamped */
+    private const string AT_LAUNCH = '2026-08-01 10:00:00';
 
     public function testHoldersAreListedNewestFirstAndTheLaunchHoldersLastWithoutADate(): void
     {

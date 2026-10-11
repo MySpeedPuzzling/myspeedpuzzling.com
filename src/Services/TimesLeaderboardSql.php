@@ -27,7 +27,7 @@ final class TimesLeaderboardSql
     public static function board(string $viewerCondition): string
     {
         return <<<SQL
-board AS (
+board AS MATERIALIZED (
     SELECT
         BestTimes.entry_id,
         BestTimes.best_seconds,
@@ -38,7 +38,9 @@ board AS (
         MAX(BestTimes.best_seconds) OVER (ORDER BY BestTimes.best_seconds RANGE BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING) AS closest_faster
     FROM BestTimes
 ),
-own AS (
+-- MATERIALIZED: computed once whatever the number of references - an inlined CTE joined ON TRUE re-scans the whole
+-- board per row (the trap that made the Level board quadratic, 2026-10-11)
+own AS MATERIALIZED (
     SELECT
         board.position AS own_position,
         board.rank AS own_rank,

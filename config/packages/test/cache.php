@@ -46,6 +46,10 @@ return App::config([
                 'xp_launch_readiness_cache' => [
                     'adapters' => ['cache.adapter.array'],
                 ],
+                // Built from the times a test seeds; switched off in tests anyway (config/packages/test/services.php)
+                'times_board_guest_cache' => [
+                    'adapters' => ['cache.adapter.array'],
+                ],
             ],
         ],
     ],

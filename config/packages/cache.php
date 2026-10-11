@@ -79,6 +79,11 @@ return App::config([
                 'xp_launch_readiness_cache' => [
                     'adapters' => ['cache.app'],
                 ],
+                // The Times boards' rows for a guest (TimesBoardGuestCache): the same for every guest, one minute -
+                // the /ladder overview and its lazy tables rebuild every player's best time per statement
+                'times_board_guest_cache' => [
+                    'adapters' => ['cache.app'],
+                ],
             ],
         ],
     ],

@@ -9,6 +9,7 @@ use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Results\LeaderboardSlice;
 use SpeedPuzzling\Web\Results\SolvedPuzzle;
 use SpeedPuzzling\Web\Services\HiddenPlayers;
+use SpeedPuzzling\Web\Services\TimesBoardGuestCache;
 use SpeedPuzzling\Web\Services\TimesLeaderboardSql;
 use SpeedPuzzling\Web\Value\CountryCode;
 use SpeedPuzzling\Web\Value\SkillTier;
@@ -19,6 +20,7 @@ readonly final class GetFastestPlayers
         private Connection $database,
         private ClockInterface $clock,
         private HiddenPlayers $hiddenPlayers,
+        private TimesBoardGuestCache $guestCache,
     ) {
     }
 
@@ -53,27 +55,32 @@ readonly final class GetFastestPlayers
         int $below = 0,
         null|string $viewerPlayerId = null,
     ): LeaderboardSlice {
-        $notHidden = $this->hiddenPlayers->sqlExclude('pst.player_id');
+        $notHidden = $this->hiddenPlayers->sqlExclude('agg.entry_id');
         $countryCondition = $countryCode !== null ? 'AND pl.country = :countryCode' : '';
         $board = TimesLeaderboardSql::board('board.entry_id = CAST(:viewerPlayerId AS UUID)');
         $select = TimesLeaderboardSql::selectWithOwn('Detail');
 
         $query = <<<SQL
 WITH BestTimes AS (
-    SELECT
-        pst.player_id AS entry_id,
-        MIN(pst.seconds_to_solve) AS best_seconds
-    FROM puzzle_solving_time pst
-    INNER JOIN puzzle p ON p.id = pst.puzzle_id
-    INNER JOIN player pl ON pl.id = pst.player_id
-    WHERE pst.puzzling_type = 'solo'
-      AND p.pieces_count = :piecesCount
-      AND pst.seconds_to_solve > 0
-      AND pl.is_private = false
-      AND pst.suspicious = false
+    -- Each player's best first (one hash aggregate over the solo times of the piece count, served by the partial
+    -- index custom_pst_solo_board), the per-player filters only then - on ~6,500 grouped rows, not ~340k times
+    SELECT agg.entry_id, agg.best_seconds
+    FROM (
+        SELECT
+            pst.player_id AS entry_id,
+            MIN(pst.seconds_to_solve) AS best_seconds
+        FROM puzzle_solving_time pst
+        INNER JOIN puzzle p ON p.id = pst.puzzle_id
+        WHERE pst.puzzling_type = 'solo'
+          AND p.pieces_count = :piecesCount
+          AND pst.seconds_to_solve > 0
+          AND pst.suspicious = false
+        GROUP BY pst.player_id
+    ) agg
+    INNER JOIN player pl ON pl.id = agg.entry_id
+    WHERE pl.is_private = false
       {$notHidden}
       {$countryCondition}
-    GROUP BY pst.player_id
 ),
 {$board},
 FastestTimes AS (
@@ -143,18 +150,23 @@ GROUP BY player.id, puzzle.id, manufacturer.id, puzzle_solving_time.id, competit
 {$select}
 SQL;
 
-        $data = $this->database
-            ->executeQuery($query, [
-                'piecesCount' => $piecesCount,
-                'limit' => max(1, $limit),
-                'above' => max(0, $above),
-                'below' => max(0, $below),
-                'viewerPlayerId' => $viewerPlayerId,
-                'milestones' => TimesLeaderboardSql::milestones(),
-                'countryCode' => $countryCode?->name,
-                'now' => $this->clock->now()->format('Y-m-d H:i:s'),
-            ])
-            ->fetchAllAssociative();
+        // A guest (no viewer, nobody blocked) gets the same rows as every other guest - cached for a minute
+        $data = $this->guestCache->rows(
+            $viewerPlayerId === null && $notHidden === '',
+            implode('|', ['solo', $piecesCount, $countryCode->name ?? '', $limit, $above, $below]),
+            fn (): array => $this->database
+                ->executeQuery($query, [
+                    'piecesCount' => $piecesCount,
+                    'limit' => max(1, $limit),
+                    'above' => max(0, $above),
+                    'below' => max(0, $below),
+                    'viewerPlayerId' => $viewerPlayerId,
+                    'milestones' => TimesLeaderboardSql::milestones(),
+                    'countryCode' => $countryCode?->name,
+                    'now' => $this->clock->now()->format('Y-m-d H:i:s'),
+                ])
+                ->fetchAllAssociative(),
+        );
 
         return TimesLeaderboardSql::slice($data, static function (array $row): SolvedPuzzle {
             /** @var array{

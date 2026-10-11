@@ -9,6 +9,7 @@ use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Results\LeaderboardSlice;
 use SpeedPuzzling\Web\Results\SolvedPuzzle;
 use SpeedPuzzling\Web\Services\HiddenPlayers;
+use SpeedPuzzling\Web\Services\TimesBoardGuestCache;
 use SpeedPuzzling\Web\Services\PrivateProfileAccess;
 use SpeedPuzzling\Web\Services\TimesLeaderboardSql;
 use SpeedPuzzling\Web\Value\CountryCode;
@@ -21,6 +22,7 @@ readonly final class GetFastestPairs
         private PrivateProfileAccess $privateProfileAccess,
         private ClockInterface $clock,
         private HiddenPlayers $hiddenPlayers,
+        private TimesBoardGuestCache $guestCache,
     ) {
     }
 
@@ -173,18 +175,23 @@ player_data AS (
 {$select}
 SQL;
 
-        $data = $this->database
-            ->executeQuery($query, [
-                'piecesCount' => $piecesCount,
-                'countryCode' => $countryCode?->name,
-                'limit' => max(1, $limit),
-                'above' => max(0, $above),
-                'below' => max(0, $below),
-                'viewerPlayerId' => $viewerPlayerId,
-                'milestones' => TimesLeaderboardSql::milestones(),
-                'now' => $this->clock->now()->format('Y-m-d H:i:s'),
-            ])
-            ->fetchAllAssociative();
+        // A guest (no viewer, nobody blocked) gets the same rows as every other guest - cached for a minute
+        $data = $this->guestCache->rows(
+            $viewerPlayerId === null && $notHidden === '',
+            implode('|', ['pairs', $piecesCount, $countryCode->name ?? '', $limit, $above, $below]),
+            fn (): array => $this->database
+                ->executeQuery($query, [
+                    'piecesCount' => $piecesCount,
+                    'countryCode' => $countryCode?->name,
+                    'limit' => max(1, $limit),
+                    'above' => max(0, $above),
+                    'below' => max(0, $below),
+                    'viewerPlayerId' => $viewerPlayerId,
+                    'milestones' => TimesLeaderboardSql::milestones(),
+                    'now' => $this->clock->now()->format('Y-m-d H:i:s'),
+                ])
+                ->fetchAllAssociative(),
+        );
 
         return TimesLeaderboardSql::slice($data, static function (array $row): SolvedPuzzle {
             /** @var array{

@@ -266,6 +266,8 @@ function createCustomIndexes(): void
     // Review queue counts in the key menu: hidden and unapproved puzzles (Version20261008100000)
     $pdo->exec('CREATE INDEX IF NOT EXISTS custom_puzzle_hidden ON puzzle (id) WHERE hide_until IS NOT NULL OR hide_image_until IS NOT NULL');
     $pdo->exec('CREATE INDEX IF NOT EXISTS custom_puzzle_unapproved ON puzzle (id) INCLUDE (hide_until, hide_image_until) WHERE approved = false');
+    // The solo Times boards' best-time aggregate (Version20261011130000)
+    $pdo->exec("CREATE INDEX IF NOT EXISTS custom_pst_solo_board ON puzzle_solving_time (puzzle_id) INCLUDE (player_id, seconds_to_solve) WHERE puzzling_type = 'solo' AND suspicious = false AND seconds_to_solve > 0");
     // Badge uniqueness — partial indexes for tiered vs single-tier badges (Version20260416210601)
     $pdo->exec('CREATE UNIQUE INDEX IF NOT EXISTS custom_badge_unique_tiered ON badge (player_id, type, tier) WHERE tier IS NOT NULL');
     $pdo->exec('CREATE UNIQUE INDEX IF NOT EXISTS custom_badge_unique_single_tier ON badge (player_id, type) WHERE tier IS NULL');

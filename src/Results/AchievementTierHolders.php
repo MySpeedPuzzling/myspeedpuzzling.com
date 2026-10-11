@@ -16,15 +16,20 @@ readonly final class AchievementTierHolders
         public int $totalCount,
         /** Every holder anywhere - the "of 82" next to the viewer's medal number */
         public int $allCount = 0,
+        /** Holders that may be listed (members with public profiles, in the chosen country, not blocked) */
+        public int $listedCount = 0,
     ) {
     }
 
-    /**
-     * Everyone counts, but only members with public profiles are listed —
-     * this is the "+N more puzzlers" number.
-     */
-    public function hiddenCount(): int
+    /** Listed holders not shown yet - "Show 100 more" / "Show all N" */
+    public function moreListed(): int
     {
-        return max(0, $this->totalCount - count($this->holders));
+        return max(0, $this->listedCount - count($this->holders));
+    }
+
+    /** Holders that are counted but never listed (private profiles, non-members, opted out) */
+    public function unlistedCount(): int
+    {
+        return max(0, $this->totalCount - $this->listedCount);
     }
 }

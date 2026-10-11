@@ -56,11 +56,19 @@ SQL;
      * Two statements whatever the number of holders: the listed rows, and per tier the counts (every country + the
      * filtered country).
      *
+     * One tier can be expanded (the "Show more" / "Show all" of its section, Jan 2026-10-11): it lists up to
+     * $expandedLimit holders instead of LISTED_PER_TIER - still the same one statement.
+     *
      * @param null|DateTimeImmutable $launchAt XpLaunchReadiness::readyAt() - tiers earned until then are "held at launch"
      * @return list<AchievementTierHolders>
      */
-    public function forType(BadgeType $type, null|string $country, null|DateTimeImmutable $launchAt): array
-    {
+    public function forType(
+        BadgeType $type,
+        null|string $country,
+        null|DateTimeImmutable $launchAt,
+        null|BadgeTier $expandedTier = null,
+        int $expandedLimit = self::LISTED_PER_TIER,
+    ): array {
         $listedSql = <<<SQL
 WITH numbered AS (
     SELECT
@@ -91,7 +99,7 @@ FROM (
     WHERE (CAST(:country AS TEXT) IS NULL OR p.country = :country)
       AND {$this->listedEligibility()}
 ) ranked
-WHERE position <= :limit
+WHERE position <= CASE WHEN tier = CAST(:expandedTier AS INT) THEN CAST(:expandedLimit AS INT) ELSE CAST(:limit AS INT) END
 ORDER BY tier DESC, position ASC
 SQL;
 
@@ -100,21 +108,25 @@ SQL;
             'type' => $type->value,
             'country' => $country,
             'limit' => self::LISTED_PER_TIER,
+            'expandedTier' => $expandedTier->value ?? 0,
+            'expandedLimit' => max(self::LISTED_PER_TIER, $expandedLimit),
         ])->fetchAllAssociative();
 
         $countsSql = <<<SQL
 SELECT
     b.tier,
     COUNT(*) AS all_count,
-    COUNT(*) FILTER (WHERE CAST(:country AS TEXT) IS NULL OR p.country = :country) AS holders_count
+    COUNT(*) FILTER (WHERE CAST(:country AS TEXT) IS NULL OR p.country = :country) AS holders_count,
+    COUNT(*) FILTER (WHERE (CAST(:country AS TEXT) IS NULL OR p.country = :country) AND {$this->listedEligibility()}) AS listed_count
 FROM badge b
 JOIN player p ON p.id = b.player_id
+LEFT JOIN membership m ON m.player_id = p.id
 WHERE b.type = :type
   AND b.tier IS NOT NULL
 GROUP BY b.tier
 SQL;
 
-        /** @var list<array{tier: int|string, all_count: int|string, holders_count: int|string}> $countRows */
+        /** @var list<array{tier: int|string, all_count: int|string, holders_count: int|string, listed_count: int|string}> $countRows */
         $countRows = $this->database->executeQuery($countsSql, [
             'type' => $type->value,
             'country' => $country,
@@ -122,7 +134,7 @@ SQL;
 
         $countsByTier = [];
         foreach ($countRows as $row) {
-            $countsByTier[(int) $row['tier']] = ['all' => (int) $row['all_count'], 'filtered' => (int) $row['holders_count']];
+            $countsByTier[(int) $row['tier']] = ['all' => (int) $row['all_count'], 'filtered' => (int) $row['holders_count'], 'listed' => (int) $row['listed_count']];
         }
 
         $holdersByTier = [];
@@ -150,6 +162,7 @@ SQL;
                 holders: $holdersByTier[$tier->value] ?? [],
                 totalCount: $countsByTier[$tier->value]['filtered'] ?? 0,
                 allCount: $countsByTier[$tier->value]['all'] ?? 0,
+                listedCount: $countsByTier[$tier->value]['listed'] ?? 0,
             );
         }
 

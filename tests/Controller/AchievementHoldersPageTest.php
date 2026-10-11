@@ -66,7 +66,9 @@ final class AchievementHoldersPageTest extends WebTestCase
         self::assertCount(1, $rows->eq(1)->filter('.holder-row-trophy'));
         self::assertSame('/en/player-profile/' . PlayerFixture::PLAYER_ADMIN, $rows->eq(1)->filter('a')->attr('href'));
         self::assertStringContainsString('3 puzzlers', $crawler->filter('#tier-1 h2')->text());
-        self::assertStringContainsString('+1 more puzzlers', $crawler->filter('#tier-1')->text());
+        // Counted but never listed: said as such, not as a list one could open
+        self::assertStringContainsString('+1 puzzler whose profile is not listed', $crawler->filter('#tier-1')->text());
+        self::assertSelectorNotExists('#tier-1 .holder-more-button');
     }
 
     public function testAnUnlistedFirstHolderLeavesNobodyWithTheTrophy(): void
@@ -94,6 +96,8 @@ final class AchievementHoldersPageTest extends WebTestCase
         self::assertResponseIsSuccessful();
         $steps = $crawler->filter('.achievement-ladder a');
         self::assertSame(['#tier-5', '#tier-4', '#tier-3', '#tier-2', '#tier-1'], $steps->each(static fn (Crawler $step): string => (string) $step->attr('href')));
+        // A jump within the page: never a Turbo visit
+        self::assertSame(['false', 'false', 'false', 'false', 'false'], $steps->each(static fn (Crawler $step): string => (string) $step->attr('data-turbo')));
         self::assertSame(['0', '0', '0', '1', '2'], $crawler->filter('.achievement-ladder-count')->each(static fn (Crawler $count): string => trim($count->text())));
         self::assertCount(5, $crawler->filter('section.achievement-tier-section[id^="tier-"]'));
         self::assertStringContainsString('Nobody has earned this tier yet', $crawler->filter('#tier-5')->text());
@@ -180,6 +184,30 @@ final class AchievementHoldersPageTest extends WebTestCase
         self::assertSelectorNotExists('ol.breadcrumb');
         $jsonLd = implode("\n", $crawler->filter('script[type="application/ld+json"]')->each(static fn (Crawler $node): string => $node->text()));
         self::assertStringContainsString('BreadcrumbList', $jsonLd);
+    }
+
+    public function testEveryListedHolderCanBeShownInPlace(): void
+    {
+        $browser = self::createClient();
+        $this->seedListedHolders(45);
+
+        $crawler = $browser->request('GET', self::PAGE);
+
+        self::assertResponseIsSuccessful();
+        self::assertCount(30, $crawler->filter('#tier-1 .holder-row'));
+        // 15 more listed: one "Show all 45" (no "Show 100 more" below 100), loading only this tier's frame
+        $buttons = $crawler->filter('#tier-1 turbo-frame#holders-tier-1 .holder-more-button');
+        self::assertCount(1, $buttons);
+        self::assertSame('Show all 45', trim($buttons->text()));
+        self::assertSame('holders-tier-1', $buttons->attr('data-turbo-frame'));
+        self::assertSame('nofollow', $buttons->attr('rel'));
+
+        $crawler = $browser->request('GET', (string) $buttons->attr('href'), server: ['HTTP_TURBO_FRAME' => 'holders-tier-1']);
+
+        self::assertResponseIsSuccessful();
+        self::assertCount(45, $crawler->filter('#holders-tier-1 .holder-row'));
+        self::assertSelectorNotExists('#holders-tier-1 .holder-more-button');
+        self::assertSame('noindex, follow', $browser->getResponse()->headers->get('X-Robots-Tag'));
     }
 
     public function testThePageCostsTheSameWhateverTheNumberOfHolders(): void

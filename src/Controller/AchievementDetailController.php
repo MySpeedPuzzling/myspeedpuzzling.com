@@ -27,6 +27,12 @@ use Symfony\Component\Routing\Attribute\Route;
  */
 final class AchievementDetailController extends AbstractController
 {
+    /** "Show 100 more" adds this many listed holders to a tier's section */
+    public const int MORE_STEP = 100;
+
+    /** "Show all" lists at most this many (a tier never lists more on one page) */
+    public const int MAX_SHOWN = 5000;
+
     public function __construct(
         readonly private GetAchievementHolders $getAchievementHolders,
         readonly private GetAchievementMedal $getAchievementMedal,
@@ -64,8 +70,14 @@ final class AchievementDetailController extends AbstractController
         $country = $request->query->getString('country');
         $country = $country !== '' ? strtolower($country) : null;
 
+        // "Show 100 more" / "Show all" of one tier's section (a Turbo Frame per tier): which tier, how many listed
+        $expandedTier = BadgeTier::tryFrom($request->query->getInt('tier'));
+        $shown = $expandedTier !== null
+            ? min(self::MAX_SHOWN, max(GetAchievementHolders::LISTED_PER_TIER, $request->query->getInt('shown')))
+            : GetAchievementHolders::LISTED_PER_TIER;
+
         $launchAt = $this->xpLaunchReadiness->readyAt();
-        $sections = $this->getAchievementHolders->forType($badgeType, $country, $launchAt);
+        $sections = $this->getAchievementHolders->forType($badgeType, $country, $launchAt, $expandedTier, $shown);
 
         // The hero is the viewer's own highest tier (members only - which tiers a player holds is a membership perk),
         // else Bronze: the picture says "this is where you are", never a Diamond nobody asked about. Its number is
@@ -86,7 +98,7 @@ final class AchievementDetailController extends AbstractController
             }
         }
 
-        return $this->render('achievement_detail.html.twig', [
+        $response = $this->render('achievement_detail.html.twig', [
             'type' => $badgeType,
             'hero_tier' => $viewerMedal->tier ?? BadgeTier::Bronze,
             'viewer_medal' => $viewerMedal,
@@ -95,6 +107,15 @@ final class AchievementDetailController extends AbstractController
             'tier_sections' => $sections,
             'countries' => CountryFilterOptions::fromCodes($this->getAchievementHolders->countries($badgeType), $request->getLocale()),
             'selected_country' => $country,
+            'more_step' => self::MORE_STEP,
+            'max_shown' => self::MAX_SHOWN,
         ]);
+
+        // An expanded list is a state of the page, not a page of its own
+        if ($expandedTier !== null) {
+            $response->headers->set('X-Robots-Tag', 'noindex, follow');
+        }
+
+        return $response;
     }
 }

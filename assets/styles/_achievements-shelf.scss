@@ -582,3 +582,18 @@ $shelf-press: scale(.97);
         transform: translate(-50%, -50%);
     }
 }
+
+// "Show 100 more" / "Show all N" under a tier's holders (a Turbo Frame per tier): coral ink, 44 px
+.holder-more-button {
+    --cz-btn-color: #c7393b;
+    --cz-btn-border-color: #c7393b;
+    --cz-btn-hover-color: #fff;
+    --cz-btn-hover-bg: #c7393b;
+    --cz-btn-hover-border-color: #c7393b;
+    --cz-btn-active-color: #fff;
+    --cz-btn-active-bg: #c7393b;
+    --cz-btn-active-border-color: #c7393b;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+}

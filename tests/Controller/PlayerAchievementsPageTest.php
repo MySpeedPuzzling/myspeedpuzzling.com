@@ -296,7 +296,7 @@ final class PlayerAchievementsPageTest extends WebTestCase
         self::assertSame('Solve puzzles from 3 different manufacturers', trim($none->filter('.achievement-cell-goal')->text()));
         self::assertCount(0, $none->filter('.achievement-cell-tier'));
         // Every cell that is not complete has its goal
-        self::assertSame($crawler->filter('.achievement-shelf .achievement-cell-link')->count(), $crawler->filter('.achievement-shelf .achievement-cell-goal')->count());
+        self::assertCount($crawler->filter('.achievement-shelf .achievement-cell-link')->count(), $crawler->filter('.achievement-shelf .achievement-cell-goal'));
     }
 
     private function insertBadge(string $playerId, string $type, null|int $tier, bool $revealed): void

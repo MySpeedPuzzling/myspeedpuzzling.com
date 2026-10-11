@@ -519,6 +519,7 @@ PHPStan clean). Where the build had to decide something the spec left open, or t
 | "So far: N" in the sheet | Removed; a speed achievement keeps "Your record: 29:41" | A bare count said nothing - it is the "1 / 5" on the next tier's row |
 | A player's achievements page, visitors | **No filter chips, one list rarest first**: Early Adopter first, then what the player holds by how rare their tier is, then the rest by how rare its Bronze is (Jan 2026-10-11). The owner keeps All · Earned · Next up · Rarest first | A visitor wants to see what is special about this player |
 | Progress on others' achievements | **Shown again** - the bar and "X / Y" on the shelf and in the sheet, for every viewer (Jan 2026-10-11, over §8.6); only the streak numbers of a player who switched streaks off stay hidden. "Closest next steps" stays the owner's | Jan wants to see how far others are, not only what they hold |
+| Colours on the achievements pages | Progress bars, the "17 of 17" count and "your tier" in the site's primary (coral); tier names and pips in the heading ink - **amber only on the Achievement Points chip and values**, where it tells AP apart from XP and the MSP Rating (Jan 2026-10-11). Cards get a small shadow | The family colour on everything read as "bronze", including on a Platinum |
 | One rarity aggregate | `AchievementRarityProvider` caches holders + percentages together | One aggregate on a cache miss instead of two |
 
 Open follow-ups are in `docs/TODO.md` § "Progression UX polish".

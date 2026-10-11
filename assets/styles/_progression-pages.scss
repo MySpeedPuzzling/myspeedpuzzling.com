@@ -135,7 +135,7 @@ $progression-muted: #5b616d;
     color: $progression-muted;
 
     strong {
-        color: $progression-achievements;
+        color: #373f50;
     }
 }
 
@@ -174,7 +174,7 @@ $progression-muted: #5b616d;
         display: block;
         height: 100%;
         border-radius: 3px;
-        background: #b7791f;
+        background: $primary; // the site's primary - amber only marks Achievement Points (Jan 2026-10-11)
     }
 }
 

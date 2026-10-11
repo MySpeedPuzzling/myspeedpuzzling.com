@@ -6,6 +6,12 @@
 
 $shelf-line: #e3e9ef;
 $shelf-ink: #373f50;
+// The site's primary for progress and "yours" (Jan 2026-10-11: amber only marks Achievement Points, the AP chip);
+// the coral ink where it is text or a border on white (#fe696a is 2.8:1, this is 4.6:1)
+$shelf-progress: $primary;
+$shelf-mine: #d63c42;
+// A small lift for the cards (shelf cells, reference cards, holders tier cards)
+$shelf-shadow: 0 1px 2px rgba(43, 52, 69, .06), 0 4px 14px rgba(43, 52, 69, .06);
 $shelf-tint: #f6f9fc;
 $shelf-press: scale(.97);
 
@@ -254,14 +260,16 @@ $shelf-press: scale(.97);
     border: 1px solid $shelf-line;
     border-radius: .875rem;
     background: #fff;
+    box-shadow: $shelf-shadow;
     color: inherit;
     text-align: center;
     text-decoration: none;
-    transition: transform 120ms ease, border-color .15s ease;
+    transition: transform 120ms ease, border-color .15s ease, box-shadow .15s ease;
 
     &:hover,
     &:focus-visible {
         border-color: #c4ccd6;
+        box-shadow: 0 2px 4px rgba(43, 52, 69, .08), 0 8px 20px rgba(43, 52, 69, .08);
         color: inherit;
     }
 
@@ -304,7 +312,7 @@ $shelf-press: scale(.97);
 
     b {
         font-weight: 600;
-        color: $progression-achievements;
+        color: $shelf-ink;
     }
 }
 
@@ -324,7 +332,7 @@ $shelf-press: scale(.97);
         background: #dfe4ec;
 
         &.is-held {
-            background: $progression-achievements;
+            background: $shelf-ink;
         }
     }
 }
@@ -473,6 +481,7 @@ $shelf-press: scale(.97);
     border: 1px solid $shelf-line;
     border-radius: .875rem;
     background: #fff;
+    box-shadow: $shelf-shadow;
     // The sticky header needs the card's own clipping off; its corners are rounded on the header itself
     scroll-margin-top: calc(var(--header-height, 101px) + .75rem);
 
@@ -483,8 +492,8 @@ $shelf-press: scale(.97);
     &.tier-5 { --tier-tint: linear-gradient(100deg, #fde9ee, #efeafd 40%, #e4f3fb 75%, #e8f8ef); --tier-ink: #3a3f6b; }
 
     &.is-mine {
-        border-color: $progression-achievements;
-        box-shadow: 0 0 0 1px $progression-achievements;
+        border-color: $shelf-mine;
+        box-shadow: 0 0 0 1px $shelf-mine, $shelf-shadow;
     }
 
     > turbo-frame {
@@ -525,7 +534,7 @@ $shelf-press: scale(.97);
 .achievement-tier-section-mine {
     padding: .125rem .5rem;
     border-radius: 999px;
-    background: $progression-achievements;
+    background: $shelf-mine;
     color: #fff;
     font-size: .6875rem;
     font-weight: 600;
@@ -713,6 +722,7 @@ $shelf-press: scale(.97);
     border: 1px solid $shelf-line;
     border-radius: .875rem;
     background: #fff;
+    box-shadow: $shelf-shadow;
     scroll-margin-top: calc(var(--header-height, 101px) + .75rem);
 }
 

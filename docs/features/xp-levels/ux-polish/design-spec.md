@@ -334,3 +334,157 @@ The board is told apart **only by the value column**. Rows, ranks and avatars ar
 | M | Bottom sheet, holo medal, medal back, serial, `?player=`, precomputed masks | `_achievement_info_modal`, `AchievementInfoController`, `GetAchievementMedal`, `holo_medal` controller, `tools/badge-art` |
 | L | Window value object, the board statements, the boards' templates, filter carry-over, /ladder own rows | `PuzzleTimes` (refactor only), `GetXpLeaderboard`, `GetPlayerRatingRanking`, `GetFastest*`, the leaderboard templates, `_leaderboards_nav` |
 | T | Five locales, docs, before/after screens | `translations/*`, docs |
+
+---
+
+## 8. Review amendments (2026-10-11): these override §1–§6 where they differ
+
+An independent UX review checked the spec against current practice and against the dev database (a prod copy), and
+found data problems no mockup shows. Every accepted change and its reason is below. The full review, with player
+questions, measured contrast and benchmarks with sources, is kept with the delivery notes.
+
+### 8.1 Launch-time data (must)
+- **Every tiered achievement held at launch carries the backfill's timestamp.** All `badge.earned_at` of tiered
+  types fall within the 17 minutes of the launch backfill. Taken at face value, that would make:
+  - the medal "No." the order in which the backfill processed players;
+  - "First to earn" go to whoever was processed first;
+  - every date read "10 Oct 2026";
+  - every cell carry "NEW" for a week.
+- **Rule:** a tier whose `earned_at` ≤ `xp_settings.launch_ready_at` (or any tier while the marker is null) is **held at
+  launch**.
+  - **It shows "Held at launch"** instead of a number and a date: on the medal back, in the facts line and on the
+    holders page.
+  - **It never gets "NEW"**, nor the "First to earn" trophy.
+  - **Single-tier Early Adopter** keeps its real grant dates.
+  - **Why not invent precision:** a wrong "No. 42" or a wrong date is worse than an honest "held at launch" (P9).
+- **Later work:** deriving the real date each requirement was first met in the backfill would give the old tiers real
+  dates and numbers. It is a bigger change and goes to `docs/TODO.md`.
+- **Serial for tiers earned after launch:**
+  - `1 + count(holders of the type and tier with (earned_at, id) < mine)`, counting everyone ahead, including the
+    holders at launch. The first new Gold after 79 holders at launch is truly No. 80.
+  - **The total is `max(cached holders, serial)`,** so "No. 335 of 334" can't happen.
+- **"NEW" dot:** shown for a tier earned in the last 7 days **and** after launch.
+
+### 8.2 Holders page (must; replaces the "No." column of §1)
+- **Holders are listed newest first, with the date.** Holders at launch show "at launch" and come after the dated
+  rows. The list has **no "No." column.**
+  - **Why:** about 80 % of holders are not listed (private, opted out, non-members), so a serial column would be mostly
+    gaps.
+  - "Newest first" is the only order that means something once launch ties exist.
+- **The viewer's own status** stays in the hero ("You hold Gold · No. 80 of 82" or "You hold Gold · held at launch").
+  There is no pinned own row.
+- **"First to earn"** only when the first holder earned the tier after launch.
+
+### 8.3 Detail sheet (must)
+- **The facts line** shows tier, the earned date or "Held at launch", and No. (when it has one).
+  - **The back repeats these facts; nothing lives only behind the flip.** Xbox and Apple Fitness show the date on the
+    detail itself.
+  - The medal button's accessible name keeps the facts (`aria-describedby`), so screen readers hear them.
+- **Phones:**
+  - **Size and scroll:** the sheet is capped at `92dvh` and scrolls inside, the page behind does not scroll, and the
+    iPhone home bar gets a safe-area bottom padding.
+  - **Swipe down closes** only from the handle or header, or when the content is scrolled to its top.
+  - **Tilt:** **none on touch** (pointer type mouse / pen only, so a drag never fights scrolling).
+  - **The Android back gesture closes the sheet** through `CloseWatcher` where available. It does **not** use
+    `pushState`, because `app.js` turns restoration visits into full reloads.
+  - **Focus** starts on the sheet heading, not the medal (Space would flip it), and returns to the tapped cell on close.
+  - **On a failed load,** the sheet says so, with a "Try again" button.
+- **Tapping a tier row** brings the medal into view (`scrollIntoView({block: 'nearest'})`) before switching the
+  tier. Otherwise the change happens off screen and nothing seems to happen.
+- **Whose medal wins:** with `?player=`, the subject's medal (tier, number, date) is shown to everyone allowed to
+  see it. Being a non-member viewer only removes *the viewer's* ticks, progress and AP. The §2 "Non-members" rule
+  applies to the viewer's own medal only.
+- **On someone else's medal** the record line reads "Lucie's best: 29:41", not "Your record".
+- **Rarity chip** only for Rare and rarer (< 15 %). A fresh Bronze is not labelled "Common". The share line
+  always names its denominator: "4.2 % of puzzlers with XP".
+- **The intro light sweep** (T4/T5, ≤ 1.5 s, once per open) stays; none under reduced motion.
+
+### 8.4 Leaderboards (must)
+- **The gap row reveals at most 50 rows per tap**: the next 50 after the top block, then it shows the remaining
+  count. One tap could otherwise add ~7,800 rows.
+  - **The button names its range:** "Show ranks 26–75 of 1 289".
+  - **After the reveal,** focus moves to the first new row, and a polite live region announces it (WCAG 2.4.3,
+    4.1.3). The same applies to "Show more".
+- **Top block = 25 rows on the boards** (10 on the /ladder overview tables).
+  - **Why not 100 as on the puzzle page:** on a board of 7,800 players the point is your own row. 25 tells who leads
+    and keeps your row within a few screens. "Jump to me" covers the rest.
+  - The puzzle page keeps its 100: its rows are the content that search engines index.
+- **The position line:**
+  - Always says its scope: "#203 worldwide" / "#12 in Czechia" / "#4 among your favorites".
+  - "Top N %" only for the top half of the list.
+  - The goal reads "46 XP to the top 1 250", because shared ranks skip numbers.
+  - The total counts exactly the list on screen.
+- **Not on this board:** a one-line state says why, with what to do:
+  - a guest (sign in);
+  - a private profile;
+  - opted out (where to switch it back);
+  - not qualified yet ("needs 20 first tries");
+  - a non-member on the AP board;
+  - an old `?page=` link, which lands on the window.
+- **No striped background on the gap row:** the coral link on it measured 4.46:1.
+
+### 8.5 Colour, numbers, copy (must)
+- **Colours: the spec's tokens, never the mockup's hex values.**
+  - **Muted text:** Bootstrap's `text-body-secondary` / the site muted token. `#7d879c` measured 3.6:1 and is never
+    used for text.
+  - **Family colours:**
+    - Karma: rose `$progression-karma` (5.9:1)
+    - AP: amber `$progression-achievements` (5.9:1)
+    - MSP Rating: teal `$progression-competition`
+  - **The "NEW" pill:** white on `#d63c42` (4.58:1), not on `#fe696a` (2.8:1).
+- **One number formatter:**
+  - Twig's locale-aware `format_number`, with no-break separators, for every count, XP, AP, rank and total.
+  - Percentages through the locale's percent format, with one decimal under 10 %.
+  - A held tier is never "0 %": "< 0.1 %", or "Nobody yet" when there are no holders.
+- **The rank sign lives inside the translation** (`%rank%`), so each locale places it ("#12", "Nr. 12", "12位").
+- **Explainers** (catalogue footnote + the sheet), three sentences:
+  - what "% of puzzlers" counts;
+  - that a tier can step back when a time is removed or awaits verification;
+  - for lapsed members: "Your achievements are kept and come back with membership".
+
+### 8.6 Achievements pages (should, accepted)
+- **"Closest next steps"** appears only on the owner's own page and on the members' catalogue. It does not appear on
+  other players' pages.
+  - **Why:** Strava keeps unfinished trophies off profiles. A visitor came to see what someone *has*.
+  - On phones it is compact: 40 px seal, "Name → Tier", the bar with the numbers right-aligned. The requirement is one
+    tap away (the row opens the sheet at that tier).
+  - Only its bars animate; the shelf's bars are static.
+- **The Streak achievement** shows no progress numbers to visitors when its owner opted out of streaks. This is a
+  pre-existing gap: the achievement ignored the streak opt-out.
+- **Chip counts equal the cells shown** under that filter. 16 tiered types, plus Early Adopter when held.
+- **"Rarest" becomes "Rarest first".** "Earned" is sorted newest first.
+- **Chip and pill rows scroll sideways with a visible peek** of the next chip, never `overflow: hidden`.
+- **Accessible names on cells and tier rows:** "Puzzle Explorer, Gold, tier 3 of 5, 640 of 1,000 toward Platinum".
+  Progress bars carry their values.
+- **Press-scale feedback** is off under reduced motion.
+- **The "almost there" glow is dropped:** §5 noise, with no evidence of value.
+
+### 8.7 Navigation (should, accepted in part)
+- **The back button stays on every page with a trail,** falling back to the parent. Jan asked explicitly for a back
+  button on these pages.
+  - **Why it is not a duplicate:** it is the large 44 px target, and the trail's text links are small.
+- **When `?return=` equals `document.referrer`** (same origin), the button uses `history.back()`, so the previous
+  page keeps its scroll position and Back never ping-pongs. Otherwise it is a plain link.
+- **On phones at 320 px** the first crumb truncates with an ellipsis before anything wraps.
+- **The crumb label is the hub's title,** "How progress works", everywhere.
+
+### 8.8 Decided where the spec and the mockup disagreed
+| Point | Decision |
+|---|---|
+| Karma / MSP colours | spec: rose / teal |
+| Shine in lists | CSS sweep, once (spec) |
+| "NEW" | 7 days and after launch (8.1) |
+| Crumb label | "How progress works" |
+| Equal values | shared rank, always (the mockup's #1 289 / #1 290 at equal XP was wrong) |
+| "All 17" vs "13 of 16" | chips count the cells shown; the summary counts the 16 tiered types (+ Early Adopter as its own line when held) |
+| Rows before the gap | 25 on the boards, 10 on the /ladder overview, 100 on the puzzle page |
+| Speed-type progress % | as `BadgeProgress` computes it today; the bar is decorative, the numbers ("4:31:20 → 4:00:00") are the information |
+| Intro sweep in the sheet | kept, once, ≤ 1.5 s, T4/T5, none under reduced motion |
+
+### 8.9 Rejected, with reasons
+- **Weekly leagues or seasons:** out of scope. MSP Rating seasons are their own project.
+- **Gyro tilt:** a permission prompt inside a detail sheet.
+- **A Local Legends histogram** instead of the window: wrong for speed boards.
+- **Removing the flip or the numbers:** fine once 8.1 and 8.3 land.
+- **Chips on every row:** P6.
+- **Back only with `?return=`:** Jan's explicit request (8.7).

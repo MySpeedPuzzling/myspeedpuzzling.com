@@ -81,7 +81,8 @@ final class BadgesOverviewControllerTest extends WebTestCase
         $crawler = $browser->request('GET', '/en/achievements');
 
         self::assertResponseIsSuccessful();
-        self::assertSelectorTextContains('.achievements-filter a.active', 'All · 16');
+        // One list, no filter chips on the catalogue
+        self::assertSelectorNotExists('.achievements-filter');
         self::assertSelectorTextContains('.achievements-summary', '4 of 16 achievements · 6 of 80 tiers');
 
         $cells = $crawler->filter('.achievement-shelf > .achievement-cell');
@@ -89,9 +90,9 @@ final class BadgesOverviewControllerTest extends WebTestCase
         // 1. the unrevealed tier - an action; 2. earned, highest tier first, rarer first within a tier
         self::assertCount(1, $cells->eq(0)->filter('a[href="/en/my/achievement-reveals"]'));
         self::assertStringContainsString('Team Spirit', $cells->eq(0)->text());
-        self::assertSame('/en/achievements/puzzles_solved/info?tier=2', $cells->eq(1)->filter('a')->attr('href'));
-        self::assertStringStartsWith('/en/achievements/first_try/info?tier=1', (string) $cells->eq(2)->filter('a')->attr('href'));
-        self::assertStringStartsWith('/en/achievements/streak/info?tier=1', (string) $cells->eq(3)->filter('a')->attr('href'));
+        self::assertSame('/en/achievements/puzzles_solved/info?tier=2&from=shelf', $cells->eq(1)->filter('a')->attr('href'));
+        self::assertStringStartsWith('/en/achievements/first_try/info?tier=1&from=shelf', (string) $cells->eq(2)->filter('a')->attr('href'));
+        self::assertStringStartsWith('/en/achievements/streak/info?tier=1&from=shelf', (string) $cells->eq(3)->filter('a')->attr('href'));
         // 3. the rest by progress, highest first (cells without anything to measure last)
         $progress = [];
         for ($i = 4; $i < 16; $i++) {
@@ -150,9 +151,8 @@ final class BadgesOverviewControllerTest extends WebTestCase
         $crawler = $browser->request('GET', '/en/achievements?show=next');
 
         self::assertResponseIsSuccessful();
-        // All · Rarest only, "next" falls back to All; the tease on top; no summary, no steps, no progress
-        $filters = $crawler->filter('.achievements-filter a')->each(static fn ($node): string => trim($node->text()));
-        self::assertSame(['All · 16', 'Rarest first · 16'], $filters);
+        // No filter chips ("next" is ignored); the tease on top; no summary, no steps, no progress
+        self::assertSelectorNotExists('.achievements-filter');
         self::assertSelectorExists('.achievements-tease a.btn[href="/en/membership"]');
         self::assertSelectorNotExists('.achievements-summary');
         self::assertSelectorNotExists('.achievements-next');
@@ -205,9 +205,7 @@ final class BadgesOverviewControllerTest extends WebTestCase
         self::assertCount(1, $crawler->filter('.achievement-shelf a[href^="/en/achievements/supporter/info"]'));
         // What it means to its holder, not our word for it ("One-off")
         self::assertStringContainsString('believed in MySpeedPuzzling early', $crawler->filter('.achievement-shelf a[href^="/en/achievements/supporter/info"]')->text());
-        $filters = $crawler->filter('.achievements-filter a')->each(static fn ($node): string => trim($node->text()));
-        self::assertSame('All · 17', $filters[0]);
-        self::assertSame('Earned · 2', $filters[1]);
+        self::assertSelectorNotExists('.achievements-filter');
     }
 
     public function testWithoutEarlyAdopterTheTotalIsTheSixteenThatCanBeEarned(): void

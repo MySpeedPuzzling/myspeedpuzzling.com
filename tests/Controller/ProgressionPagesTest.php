@@ -92,9 +92,8 @@ final class ProgressionPagesTest extends WebTestCase
         self::assertGreaterThanOrEqual(16, $crawler->filter('.achievement-cell')->count());
         // Nothing hides behind a hover title (the requirements are in the detail sheet, as text)
         self::assertCount(0, $crawler->filter('.achievement-shelf [title]'));
-        // Only the public filters, the tease and the membership button
-        $filters = $crawler->filter('.achievements-filter a')->each(static fn ($node): string => $node->text());
-        self::assertSame(['All · 16', 'Rarest first · 16'], array_map(static fn (string $label): string => trim($label), $filters));
+        // No filter chips; the tease and the membership button
+        self::assertSelectorNotExists('.achievements-filter');
         self::assertSelectorExists('a.btn[href="/en/membership"]');
         self::assertSelectorNotExists('.achievements-summary');
         self::assertSelectorNotExists('.achievement-progress');
@@ -106,18 +105,18 @@ final class ProgressionPagesTest extends WebTestCase
         $this->insertBadge(PlayerFixture::PLAYER_REGULAR, 'puzzles_solved', 1);
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
 
-        // Asking for the personal filter falls back to "All"
+        // Asking for a personal filter changes nothing: one list
         $crawler = $browser->request('GET', '/en/achievements?show=earned');
 
         self::assertResponseIsSuccessful();
-        self::assertSelectorTextContains('.achievements-filter a.active', 'All');
+        self::assertSelectorNotExists('.achievements-filter');
         self::assertSelectorNotExists('.achievements-summary');
         self::assertSelectorNotExists('.badge-art-locked');
         self::assertSelectorNotExists('.achievement-progress');
         self::assertStringNotContainsString('Highest tier earned', $crawler->filter('.achievement-shelf')->text());
     }
 
-    public function testCatalogueForAMemberHasNextUpEarnedAndTheSummary(): void
+    public function testCatalogueForAMemberHasTheSummaryAndTheirOwnTiers(): void
     {
         $browser = self::createClient();
         $this->insertBadge(PlayerFixture::PLAYER_WITH_STRIPE, 'puzzles_solved', 1);
@@ -126,21 +125,17 @@ final class ProgressionPagesTest extends WebTestCase
         $crawler = $browser->request('GET', '/en/achievements?show=earned');
 
         self::assertResponseIsSuccessful();
-        $filters = $crawler->filter('.achievements-filter a')->each(static fn ($node): string => trim($node->text()));
-        self::assertCount(4, $filters);
-        self::assertStringStartsWith('All', $filters[0]);
-        self::assertSame('Earned · 1', $filters[1]);
-        self::assertStringStartsWith('Next up', $filters[2]);
-        self::assertStringStartsWith('Rarest first', $filters[3]);
+        // The catalogue has no filter chips (the member's own page has them)
+        self::assertSelectorNotExists('.achievements-filter');
         self::assertSelectorTextContains('.achievements-summary', '1 of 16 achievements');
         self::assertSelectorExists('.achievements-summary .ap-chip');
         self::assertSelectorNotExists('.achievements-summary .xp-level-chip');
 
+        // Every achievement in one list; the member's unrevealed tier comes first as the "?" seal leading to the reveal
         $rows = $crawler->filter('.achievement-cell');
-        self::assertCount(1, $rows);
-        self::assertStringContainsString('Puzzle Explorer', $rows->text());
-        // Not revealed yet: the cell is the "?" seal leading to the reveal
-        self::assertStringContainsString('tap to reveal', $rows->text());
+        self::assertCount(16, $rows);
+        self::assertStringContainsString('Puzzle Explorer', $rows->first()->text());
+        self::assertStringContainsString('tap to reveal', $rows->first()->text());
     }
 
     public function testCatalogueRunsOneRarityAggregate(): void

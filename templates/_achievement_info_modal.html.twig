@@ -218,9 +218,9 @@
                         {{ 'badges.medal.see_holders'|trans({'%count%': holders_total|plain_number}) }}
                     </a>
                 {% endif %}
-                <a href="{{ path('badges_overview') }}" data-turbo-frame="_top" class="btn btn-outline-secondary">
-                    {{ 'badges.medal.all_achievements'|trans }}
-                </a>
+                {% if more_link is not null %}
+                    <a href="{{ more_link.url }}" data-turbo-frame="_top" class="btn btn-outline-secondary">{{ more_link.label }}</a>
+                {% endif %}
             </div>
 
             {% if tiered %}

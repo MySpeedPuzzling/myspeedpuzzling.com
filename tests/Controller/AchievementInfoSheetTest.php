@@ -209,4 +209,30 @@ final class AchievementInfoSheetTest extends WebTestCase
     {
         return self::getContainer()->get(Connection::class);
     }
+
+    public function testTheSecondButtonDependsOnWhereTheSheetWasOpened(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
+        $frame = ['HTTP_TURBO_FRAME' => 'modal-frame'];
+
+        // From a shelf (catalogue, a player's achievements page): the full list is the page behind - no second button
+        $crawler = $browser->request('GET', '/en/achievements/puzzles_solved/info?from=shelf', server: $frame);
+        self::assertCount(1, $crawler->filter('.medal-actions a'));
+
+        // Elsewhere, the viewer's own medal: their own achievements
+        $crawler = $browser->request('GET', '/en/achievements/puzzles_solved/info', server: $frame);
+        self::assertSame('/en/player-achievements/' . PlayerFixture::PLAYER_WITH_STRIPE, $crawler->filter('.medal-actions a.btn-outline-secondary')->attr('href'));
+        self::assertSame('My achievements', trim($crawler->filter('.medal-actions a.btn-outline-secondary')->text()));
+
+        // Another member's medal (e.g. from their profile showcase): that member's achievements
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+        $crawler = $browser->request('GET', '/en/achievements/puzzles_solved/info?player=' . PlayerFixture::PLAYER_WITH_STRIPE, server: $frame);
+        self::assertSame('/en/player-achievements/' . PlayerFixture::PLAYER_WITH_STRIPE, $crawler->filter('.medal-actions a.btn-outline-secondary')->attr('href'));
+        self::assertStringEndsWith("'s achievements", trim($crawler->filter('.medal-actions a.btn-outline-secondary')->text()));
+
+        // A non-member on their own: the catalogue
+        $crawler = $browser->request('GET', '/en/achievements/puzzles_solved/info', server: $frame);
+        self::assertSame('/en/achievements', $crawler->filter('.medal-actions a.btn-outline-secondary')->attr('href'));
+    }
 }

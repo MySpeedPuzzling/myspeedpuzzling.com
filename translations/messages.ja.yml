@@ -1843,6 +1843,7 @@ badges:
         at_launch: "リリース時から"
         you_hold_at_launch: "あなたは%tier%を保持 · リリース時から"
     medal:
+        player_achievements: "%name%さんの実績"
         turn: "メダルを裏返す"
         show_front: "表面を表示"
         tap_hint: "メダルをタップすると裏返ります"

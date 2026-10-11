@@ -19,6 +19,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * The achievement detail sheet (docs/features/xp-levels/ux-polish/design-spec.md §2): the medal at 200 px that turns
@@ -39,6 +40,7 @@ use Symfony\Component\Routing\Attribute\Route;
 final class AchievementInfoController extends AbstractController
 {
     public function __construct(
+        readonly private TranslatorInterface $translator,
         readonly private GetBadgeCatalog $getBadgeCatalog,
         readonly private GetAchievementMedal $getAchievementMedal,
         readonly private GetPlayerProfile $getPlayerProfile,
@@ -106,12 +108,38 @@ final class AchievementInfoController extends AbstractController
             $bands[$badgeTier->value] = AchievementRarityBand::fromPercent($rarity[$badgeTier->value] ?? 0.0);
         }
 
+        // The sheet's second button depends on where it was opened (Jan 2026-10-11): from a shelf (the catalogue, a
+        // player's achievements page) the full list is the page behind it - no button. Elsewhere (a profile showcase,
+        // the recap, your week): the shelf the medal belongs to - that player's, the viewer's own, else the catalogue.
+        $fromShelf = $request->query->getString('from') === 'shelf';
+        $moreLink = null;
+
+        if ($fromShelf === false) {
+            if ($subject !== null && $subject->playerId !== $viewer?->playerId) {
+                $moreLink = [
+                    'url' => $this->generateUrl('player_achievements', ['playerId' => $subject->playerId]),
+                    'label' => $this->translator->trans('badges.medal.player_achievements', ['%name%' => $subject->playerName ?? ('#' . strtoupper($subject->code))]),
+                ];
+            } elseif ($viewer !== null && $viewer->activeMembership) {
+                $moreLink = [
+                    'url' => $this->generateUrl('player_achievements', ['playerId' => $viewer->playerId]),
+                    'label' => $this->translator->trans('badges.my_title'),
+                ];
+            } else {
+                $moreLink = [
+                    'url' => $this->generateUrl('badges_overview'),
+                    'label' => $this->translator->trans('badges.medal.all_achievements'),
+                ];
+            }
+        }
+
         $response = $this->render('_achievement_info_modal.html.twig', [
             'type' => $badgeType,
             'group' => $group,
             'shown_tier' => $shownTier,
             'personal' => $contextPlayerId !== null,
             'subject' => $subject,
+            'more_link' => $moreLink,
             'medals' => $medals,
             'logged_in' => $viewer !== null,
             'rarity' => $rarity,

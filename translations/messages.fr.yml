@@ -1832,6 +1832,7 @@ competition_referees:
     "at_launch": "dès le lancement"
     "you_hold_at_launch": "Vous avez le palier %tier% · dès le lancement"
   "medal":
+    "player_achievements": "Succès de %name%"
     "turn": "Retourner la médaille"
     "show_front": "Afficher le recto"
     "tap_hint": "Touchez la médaille pour la retourner"

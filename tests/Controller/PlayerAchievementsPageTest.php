@@ -44,7 +44,7 @@ final class PlayerAchievementsPageTest extends WebTestCase
         self::assertCount(1, $cells->eq(0)->filter('a[href="/en/my/achievement-reveals"] .badge-art-mystery'));
         self::assertStringContainsString('New tier · tap to reveal', $cells->eq(0)->text());
         self::assertSame(
-            '/en/achievements/puzzles_solved/info?tier=1&player=' . PlayerFixture::PLAYER_WITH_STRIPE,
+            '/en/achievements/puzzles_solved/info?tier=1&player=' . PlayerFixture::PLAYER_WITH_STRIPE . '&from=shelf',
             $cells->eq(1)->filter('a')->attr('href'),
         );
         // Earned today: the owner's "New" dot; the picture of an unrevealed tier is not in the page
@@ -72,7 +72,7 @@ final class PlayerAchievementsPageTest extends WebTestCase
         self::assertSelectorNotExists('.badge-art-mystery');
         // Not the visitor's own page: no "New" dot; the sheet opens on this player's medal
         self::assertSelectorNotExists('.achievement-cell-new');
-        self::assertSame('/en/achievements/streak/info?tier=1&player=' . PlayerFixture::PLAYER_WITH_STRIPE, $cells->filter('a')->attr('href'));
+        self::assertSame('/en/achievements/streak/info?tier=1&player=' . PlayerFixture::PLAYER_WITH_STRIPE . '&from=shelf', $cells->filter('a')->attr('href'));
     }
 
     public function testGuestsSeeAMembersAchievements(): void

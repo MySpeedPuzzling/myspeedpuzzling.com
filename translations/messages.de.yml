@@ -1747,6 +1747,7 @@ badges:
         at_launch: "schon zum Start"
         you_hold_at_launch: "Du hast %tier% · schon zum Start"
     medal:
+        player_achievements: "Erfolge von %name%"
         turn: "Medaille umdrehen"
         show_front: "Vorderseite zeigen"
         tap_hint: "Tippe auf die Medaille, um sie umzudrehen"

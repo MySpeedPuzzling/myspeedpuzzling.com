@@ -1799,6 +1799,7 @@ badges:
         at_launch: "už při spuštění"
         you_hold_at_launch: "Máš stupeň %tier% · už při spuštění"
     medal:
+        player_achievements: "Úspěchy hráče %name%"
         turn: "Otočit medaili"
         show_front: "Ukázat přední stranu"
         tap_hint: "Klepni na medaili a otoč ji"

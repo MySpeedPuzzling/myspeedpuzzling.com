@@ -92,21 +92,15 @@ final class BadgesOverviewController extends AbstractController
             launchAt: $this->xpLaunchReadiness->readyAt(),
         );
 
-        $filters = $isMember
-            ? self::MEMBER_FILTERS
-            : [AchievementCatalogueFilter::All, AchievementCatalogueFilter::Rarest];
-
-        $filter = AchievementCatalogueFilter::tryFrom($request->query->getString('show'));
-
-        if ($filter === null || in_array($filter, $filters, true) === false) {
-            $filter = AchievementCatalogueFilter::All;
-        }
+        // One list, one order - no filter chips on the catalogue (Jan 2026-10-11: they added nothing here); the
+        // player's own page keeps them
+        $filter = AchievementCatalogueFilter::All;
 
         return $this->render('badges_overview.html.twig', [
             'lists' => $lists,
             'rows' => $lists->rows($filter),
             'filter' => $filter,
-            'filters' => $filters,
+            'filters' => [],
             'filter_counts' => [
                 AchievementCatalogueFilter::All->value => $lists->count(AchievementCatalogueFilter::All) + ($hasSupporter ? 1 : 0),
                 AchievementCatalogueFilter::Earned->value => $lists->count(AchievementCatalogueFilter::Earned) + ($hasSupporter ? 1 : 0),

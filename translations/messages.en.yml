@@ -2307,6 +2307,7 @@ badges:
         at_launch: "at launch"
         you_hold_at_launch: "You hold %tier% · held at launch"
     medal:
+        player_achievements: "%name%'s achievements"
         turn: "Turn the medal over"
         show_front: "Show the front"
         tap_hint: "Tap the medal to turn it over"

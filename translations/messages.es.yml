@@ -1763,6 +1763,7 @@ badges:
         at_launch: "desde el lanzamiento"
         you_hold_at_launch: "Tienes el rango %tier% · desde el lanzamiento"
     medal:
+        player_achievements: "Logros de %name%"
         turn: "Dar la vuelta a la medalla"
         show_front: "Mostrar el anverso"
         tap_hint: "Toca la medalla para darle la vuelta"

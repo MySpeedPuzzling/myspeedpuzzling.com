@@ -36,8 +36,8 @@ final class BadgeArtSurfacesTest extends WebTestCase
 
         // Highest tier first: Gold streak, then the single-tier one
         $streak = $items->eq(0)->filter('img.badge-art');
-        // The sheet shows this player's medal (?player=), not the viewer's
-        self::assertSame('/en/achievements/streak/info?tier=3&player=' . PlayerFixture::PLAYER_ADMIN, $items->eq(0)->attr('href'));
+        // The sheet shows this player's medal (?player=), not the viewer's - and its buttons lead back to the profile
+        self::assertSame('/en/achievements/streak/info?tier=3&player=' . PlayerFixture::PLAYER_ADMIN . '&return=/en/player-profile/' . PlayerFixture::PLAYER_ADMIN . '&return_title=Admin%20User', $items->eq(0)->attr('href'));
         self::assertStringStartsWith('/img/badges/webp/144/streak-t3.webp?v=', (string) $streak->attr('src'));
         self::assertSame('56', $streak->attr('width'));
         self::assertCount(1, $items->eq(1)->filter('img.badge-art[src^="/img/badges/webp/144/supporter-single.webp"]'));

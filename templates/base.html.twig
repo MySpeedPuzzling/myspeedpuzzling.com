@@ -654,7 +654,7 @@
                             </a>
                         {% else %}
                             <div class="navbar-tool dropdown ms-1 ms-lg-0 me-n1 me-lg-2">
-                                <a class="dropdown-toggle navbar-tool" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="{{ 'menu.my_profile'|trans }}">
+                                <a class="dropdown-toggle navbar-tool navbar-avatar-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="{{ 'menu.my_profile'|trans }}">
                                     {# The player's own face (or initial) with their XP level ring - all from the viewer's profile row, no query #}
                                     <div class="navbar-tool-icon-box navbar-avatar-box">
                                         <twig:XpRing :player="logged_user.profile" variant="nav">

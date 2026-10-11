@@ -132,6 +132,30 @@ a.xp-avatar-ring:focus-visible {
     line-height: 1;
 }
 
+// Phones and tablets (no "My profile" text): the caret is a small white chevron badge on the avatar's bottom-right
+// corner, where the counters sit on the envelope and the bell - the theme's caret (margin -7px, made for the old
+// person icon) lay on the level ring (Jan 2026-10-12). No extra width: the bar is tight at 320 px. Desktop keeps the
+// caret after the text.
+@media (max-width: 991.98px) {
+    .dropdown-toggle.navbar-avatar-toggle {
+        position: relative;
+
+        &::after {
+            position: absolute;
+            right: -1px;
+            bottom: 2px;
+            width: 16px;
+            height: 16px;
+            margin: 0 !important;
+            border: 0;
+            border-radius: 50%;
+            background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%234b566b' stroke-linecap='round' stroke-linejoin='round' stroke-width='2.2' d='M4.5 6.5 8 10l3.5-3.5'/%3E%3C/svg%3E") center / 11px 11px no-repeat;
+            box-shadow: 0 0 0 1px rgba(43, 52, 69, .12), 0 1px 3px rgba(43, 52, 69, .25);
+            content: '';
+        }
+    }
+}
+
 // The header's chips: at most three, one per family, each tappable over 44 px (the hit area reaches past the 28 px pill)
 .player-head-chips {
     margin: .625rem 0 0;

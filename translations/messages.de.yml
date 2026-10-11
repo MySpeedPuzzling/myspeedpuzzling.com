@@ -1747,6 +1747,7 @@ badges:
         turn: "Medaille umdrehen"
         show_front: "Vorderseite zeigen"
         tap_hint: "Tippe auf die Medaille, um sie umzudrehen"
+        tap_hint_back: "Tippe auf die Medaille, um die Vorderseite zu sehen"
         no: "Nr."
         of_total: "von %total%"
         rarity:
@@ -8881,6 +8882,7 @@ leaderboards:
         empty: "Noch keine Zeiten. Trag deine ein und eröffne diese Bestenliste."
         empty_country: "Noch keine Zeiten aus %country%. Trag deine ein und eröffne diese Bestenliste für %country%."
         around_you: "Ganze Bestenliste rund um dich"
+        goal: "%gap% schneller für die Top %rank%"
         private_note: "Dein Profil ist privat, deshalb stehen deine Solo-Zeiten nicht in den Bestenlisten."
         no_time:
             solo: "Trag eine Solo-Zeit für ein %pieces%-Teile-Puzzle ein, dann erscheinst du in dieser Bestenliste."

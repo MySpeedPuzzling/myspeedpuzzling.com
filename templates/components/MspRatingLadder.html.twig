@@ -6,7 +6,7 @@
             <input
                 type="text"
                 data-model="debounce(300)|search"
-                class="form-control form-control-sm"
+                class="form-control"
                 value="{{ this.search }}"
                 placeholder="{{ 'puzzle_intelligence.elo.search_placeholder'|trans }}"
             >
@@ -16,7 +16,7 @@
                 <select
                     data-model="on(change)|country"
                     data-controller="country-select"
-                    class="form-select form-select-sm"
+                    class="form-select"
                 >
                     <option value="">{{ 'puzzle_intelligence.elo.all_countries'|trans }}</option>
                     {% for c in this.countries %}
@@ -26,19 +26,20 @@
                     {% endfor %}
                 </select>
             </div>
-            <div class="form-check mb-0 ms-1">
+            {# The same switch as on the Level / AP / Karma boards (one control, one name on every board) #}
+            <div class="form-check form-switch fs-sm mb-0 d-flex align-items-center gap-2" style="min-height: 44px;">
                 <input
                     type="checkbox"
                     data-model="on(change)|onlyFavorites"
-                    class="form-check-input"
+                    class="form-check-input mt-0"
                     id="rating-only-favorites"
                     {{ this.onlyFavorites ? 'checked' }}
                 >
-                <label class="form-check-label text-nowrap fs-sm" for="rating-only-favorites">{{ 'puzzle_intelligence.elo.only_favorites'|trans }}</label>
+                <label class="form-check-label text-nowrap py-2" for="rating-only-favorites">{{ 'xp.leaderboard.favorites_only'|trans }}</label>
             </div>
         {% else %}
             <button
-                class="btn btn-outline-primary btn-sm position-relative pe-4"
+                class="btn btn-outline-primary position-relative pe-4"
                 data-bs-toggle="modal"
                 data-bs-target="#membersExclusiveModal"
             >

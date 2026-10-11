@@ -17,3 +17,17 @@
         white-space: nowrap;
     }
 }
+
+// "See the full board around you": an inline link with a 44 px tall tap target (design-spec §6)
+.lb-around-you {
+    position: relative;
+
+    &::after {
+        content: '';
+        position: absolute;
+        inset: 50% auto auto 50%;
+        width: max(100%, 44px);
+        height: 44px;
+        transform: translate(-50%, -50%);
+    }
+}

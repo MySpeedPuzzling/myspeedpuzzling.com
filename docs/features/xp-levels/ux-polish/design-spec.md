@@ -509,6 +509,11 @@ PHPStan clean). Where the build had to decide something the spec left open, or t
 | MSP free players | Country / favourites from the URL are dropped on the server | Members-only filters were reachable by URL |
 | Back button `history.back()` | Compared against the URL recorded on `turbo:before-visit`, not only `document.referrer` | Turbo never updates `document.referrer` |
 | Holders hero serial | Uses `GetAchievementMedal` (one rule for the sheet and the page); badge index `(type, tier, earned_at, id)` | 9.3 → 1.7 ms for the serial count (EXPLAIN on the prod copy) |
+| Visitors on a player's achievements page | Tiers and requirements only - no progress bars or numbers, no "Next up" filter (QA found the shelf showed them while the sheet hid them) | §8.6: a visitor came to see what someone has; one rule for the shelf and the sheet |
+| Early Adopter on the catalogue | Not a catalogue cell (the catalogue = what can be earned); it is shelved with the earned ones on the holder's own page | It is granted by hand, nobody can work toward it |
+| Medal back | The short share ("4.2 % of puzzlers"), bigger engraving (≥ 10 px); the facts line under the medal names the denominator | The long form was ~8 px on a 200 px medal |
+| Under reduced motion | The Masterpiece keeps its glitter and jigsaw etch (still pictures); only tilt, sweep and the turn animation go | Reduced motion removes motion, not the look |
+| Times boards' goal | "00:30:50 faster for the top 50" (`leaderboards.times.goal`) | "… to the top 50" read like a time remaining |
 | One rarity aggregate | `AchievementRarityProvider` caches holders + percentages together | One aggregate on a cache miss instead of two |
 
 Open follow-ups are in `docs/TODO.md` § "Progression UX polish".

@@ -1799,6 +1799,7 @@ badges:
         turn: "Otočit medaili"
         show_front: "Ukázat přední stranu"
         tap_hint: "Klepni na medaili a otoč ji"
+        tap_hint_back: "Klepni na medaili a uvidíš přední stranu"
         no: "č."
         of_total: "z %total%"
         rarity:
@@ -8908,6 +8909,7 @@ leaderboards:
         empty: "Zatím žádné časy. Přidej svůj a buď v tomto žebříčku první."
         empty_country: "Zatím žádné časy ze země %country%. Přidej svůj a buď v tomto žebříčku první ze země %country%."
         around_you: "Celý žebříček kolem tvého místa"
+        goal: "o %gap% rychleji do top %rank%"
         private_note: "Tvůj profil je soukromý, proto tvé sólo časy v žebříčcích nejsou."
         no_time:
             solo: "Přidej sólo čas u puzzle o %pieces% dílcích a objevíš se v tomto žebříčku."

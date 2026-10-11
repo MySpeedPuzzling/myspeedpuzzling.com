@@ -33,6 +33,8 @@
                     data-holo-medal-tier-value="{{ shown_tier.value }}"
                     data-holo-medal-turn-label-value="{{ 'badges.medal.turn'|trans }}"
                     data-holo-medal-front-label-value="{{ 'badges.medal.show_front'|trans }}"
+                    data-holo-medal-hint-front-value="{{ 'badges.medal.tap_hint'|trans }}"
+                    data-holo-medal-hint-back-value="{{ 'badges.medal.tap_hint_back'|trans }}"
                 {% endif %}>
             <p class="achievement-sheet-description">{{ ('badges.description.' ~ type.value)|trans }}</p>
             {% if subject_name is not null %}
@@ -93,7 +95,7 @@
                                                     <span class="medal-engraving-serial"><small>{{ 'badges.medal.no'|trans }}</small> {{ medal.serial|format_number({min_integer_digit: 4, grouping_used: false}) }}</span>
                                                     <span class="medal-engraving-line">{{ 'badges.medal.of_total'|trans({'%total%': medal.totalOf(holders[entry.tier.value] ?? 0)|format_number}) }}</span>
                                                 {% endif %}
-                                                <span class="medal-engraving-share">{{ include('_achievement_medal_share.html.twig', {percent: rarity[entry.tier.value] ?? 0, holders: holders[entry.tier.value] ?? 0, long: true}) }}</span>
+                                                <span class="medal-engraving-share">{{ (holders[entry.tier.value] ?? 0) > 0 ? 'badges.catalogue.rarity'|trans({'%percent%': include('_achievement_medal_share.html.twig', {percent: rarity[entry.tier.value] ?? 0, holders: 1, long: false, plain: true})}) : 'badges.medal.nobody_yet'|trans }}</span>
                                                 {% if not medal.heldAtLaunch %}
                                                     <span class="medal-engraving-date">{{ medal.earnedAt|format_date('medium') }}</span>
                                                 {% endif %}

@@ -35,6 +35,12 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  */
 final class PlayerAchievementsController extends AbstractController
 {
+    public const array VISITOR_FILTERS = [
+        AchievementCatalogueFilter::All,
+        AchievementCatalogueFilter::Earned,
+        AchievementCatalogueFilter::Rarest,
+    ];
+
     public function __construct(
         readonly private GetPlayerProfile $getPlayerProfile,
         readonly private GetBadges $getBadges,
@@ -95,17 +101,20 @@ final class PlayerAchievementsController extends AbstractController
                 revealFlow: $isOwn,
                 newSince: $isOwn ? $this->clock->now()->modify('-' . BadgesOverviewController::NEW_FOR_DAYS . ' days') : null,
                 launchAt: $this->xpLaunchReadiness->readyAt(),
-                // An owner who switched streaks off keeps their streak numbers to themselves (design-spec §8.6)
-                hideProgressOf: $isOwn === false && $player->streakOptedOut ? [BadgeType::Streak] : [],
+                // A visitor came to see what the player has, not their unfinished progress (design-spec §8.6, the
+                // sheet does the same) - which also keeps the streak of an owner who switched streaks off private
+                hideProgressOf: $isOwn ? [] : BadgeType::cases(),
             );
 
             // Early Adopter has a single tier granted by hand - not a catalogue row, shelved with the earned ones
             $hasSupporter = array_filter($badges, static fn ($badge): bool => $badge->type === BadgeType::Supporter) !== [];
         }
 
+        // "Next up" is about progress, which only the owner sees
+        $filters = $isOwn ? BadgesOverviewController::MEMBER_FILTERS : self::VISITOR_FILTERS;
         $filter = AchievementCatalogueFilter::tryFrom($request->query->getString('show'));
 
-        if ($filter === null || in_array($filter, BadgesOverviewController::MEMBER_FILTERS, true) === false) {
+        if ($filter === null || in_array($filter, $filters, true) === false) {
             $filter = AchievementCatalogueFilter::All;
         }
 
@@ -113,7 +122,7 @@ final class PlayerAchievementsController extends AbstractController
             'player' => $player,
             'is_own' => $isOwn,
             'filter' => $filter,
-            'filters' => BadgesOverviewController::MEMBER_FILTERS,
+            'filters' => $filters,
             'lists' => $lists,
             'rows' => $lists?->rows($filter) ?? [],
             'filter_counts' => [

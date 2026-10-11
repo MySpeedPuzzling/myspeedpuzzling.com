@@ -1833,6 +1833,7 @@ competition_referees:
     "turn": "Retourner la médaille"
     "show_front": "Afficher le recto"
     "tap_hint": "Touchez la médaille pour la retourner"
+    "tap_hint_back": "Touchez la médaille pour voir la face avant"
     "no": "N°"
     "of_total": "sur %total%"
     "rarity":
@@ -8901,6 +8902,7 @@ leaderboards:
         empty: "Pas encore de temps. Ajoutez le vôtre et soyez le premier de ce classement."
         empty_country: "Pas encore de temps du pays %country%. Ajoutez le vôtre et ouvrez ce classement pour %country%."
         around_you: "Voir le classement complet autour de vous"
+        goal: "%gap% plus vite pour le top %rank%"
         private_note: "Votre profil est privé, vos temps en solo n'apparaissent donc pas dans les classements."
         no_time:
             solo: "Ajoutez un temps en solo sur un puzzle de %pieces% pièces et vous apparaîtrez dans ce classement."

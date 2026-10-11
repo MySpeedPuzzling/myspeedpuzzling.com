@@ -1763,6 +1763,7 @@ badges:
         turn: "Dar la vuelta a la medalla"
         show_front: "Mostrar el anverso"
         tap_hint: "Toca la medalla para darle la vuelta"
+        tap_hint_back: "Toca la medalla para ver el anverso"
         no: "N.º"
         of_total: "de %total%"
         rarity:
@@ -8882,6 +8883,7 @@ leaderboards:
         empty: "Aún no hay tiempos. Añade el tuyo y sé el primero en esta clasificación."
         empty_country: "Aún no hay tiempos de %country%. Añade el tuyo y sé el primero de %country% en esta clasificación."
         around_you: "Ver la clasificación completa en torno a ti"
+        goal: "%gap% más rápido para el top %rank%"
         private_note: "Tu perfil es privado, así que tus tiempos en solitario no aparecen en las clasificaciones."
         no_time:
             solo: "Añade un tiempo en solitario de un puzzle de %pieces% piezas y aparecerás en esta clasificación."

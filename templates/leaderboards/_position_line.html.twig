@@ -7,6 +7,8 @@
                                                 null = the whole list ("worldwide") - the line always says its scope
           gap_text: '46 XP' | null,             targetGap formatted the board's way (XP, AP, karma, rating points, a time)
           jump_href: '#board-row-…' | null,     only when the own row is below the first screen (LeaderboardWindow::ownRowBelowFirstScreen())
+          goal_key: 'leaderboards.times.goal' | null,  the goal's wording when "to the top N" does not fit the value (a time
+                                                must get *faster*); default leaderboards.position.goal
       }) }}
     Every number goes through format_number, the share through the locale's percent format (one decimal under 10 %), the
     rank sign lives in the translations. Parts that do not fit move to the next line whole (.lb-parts).
@@ -25,7 +27,7 @@
             <span>{{ 'leaderboards.position.top_share'|trans({'%percent%': position.topFraction|format_percent_number({fraction_digit: position.topFraction < 0.1 ? 1 : 0})}) }}</span>
         {%- endif %}
         {%- if position.targetRank is not null and gap_text|default(null) %}
-            <span>{{ (position.targetRank == 1 ? 'leaderboards.position.goal_first' : 'leaderboards.position.goal')|trans({'%gap%': gap_text, '%rank%': position.targetRank|format_number}) }}</span>
+            <span>{{ (position.targetRank == 1 ? 'leaderboards.position.goal_first' : goal_key|default('leaderboards.position.goal'))|trans({'%gap%': gap_text, '%rank%': position.targetRank|format_number}) }}</span>
         {%- endif %}
         {%- if jump_href|default(null) %}
             <span><a href="{{ jump_href }}" class="lb-position-jump" data-turbo="false">{{ 'puzzle_times.my_attempts.jump_to_me'|trans }} <i class="bi bi-arrow-down-short" aria-hidden="true"></i></a></span>

@@ -2308,6 +2308,7 @@ badges:
         turn: "Turn the medal over"
         show_front: "Show the front"
         tap_hint: "Tap the medal to turn it over"
+        tap_hint_back: "Tap the medal to see the front"
         no: "No."
         of_total: "of %total%"
         rarity:
@@ -9154,6 +9155,7 @@ leaderboards:
         empty: "No times yet. Add yours and be the first on this board."
         empty_country: "No times from %country% yet. Add yours and be the first from %country% on this board."
         around_you: "See the full board around you"
+        goal: "%gap% faster for the top %rank%"
         private_note: "Your profile is private, so your solo times are not listed on the leaderboards."
         no_time:
             solo: "Add a solo time of a %pieces%-piece puzzle and you will appear on this board."

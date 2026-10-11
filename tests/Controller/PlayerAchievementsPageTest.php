@@ -157,6 +157,16 @@ final class PlayerAchievementsPageTest extends WebTestCase
         $crawler = $browser->request('GET', self::MEMBER_PAGE);
 
         self::assertResponseIsSuccessful();
+        // A visitor: the tier and what it took - not the progress toward the next one (design-spec §8.6)
+        $label = (string) $crawler->filter('.achievement-cell a[href^="/en/achievements/puzzles_solved/info"]')->attr('aria-label');
+        self::assertSame('Puzzle Explorer, Silver, tier 2 of 5, Solve 100 distinct puzzles', $label);
+        self::assertCount(0, $crawler->filter('.achievement-shelf [role="progressbar"], .achievement-shelf .achievement-cell-numbers'));
+        $filters = $crawler->filter('.achievements-filter a')->each(static fn ($node): string => trim($node->text()));
+        self::assertSame(['All · 16', 'Earned · 1', 'Rarest first · 16'], $filters);
+
+        // The owner: the progress toward the next tier too
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
+        $crawler = $browser->request('GET', self::MEMBER_PAGE);
         $label = (string) $crawler->filter('.achievement-cell a[href^="/en/achievements/puzzles_solved/info"]')->attr('aria-label');
         self::assertStringStartsWith('Puzzle Explorer, Silver, tier 2 of 5, ', $label);
         self::assertStringContainsString(' toward Gold', $label);

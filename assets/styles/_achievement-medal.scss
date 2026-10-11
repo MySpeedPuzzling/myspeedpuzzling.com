@@ -27,6 +27,29 @@ $medal-bands-vivid: repeating-linear-gradient(118deg, #f26a70 0%, #f7a457 4.5%, 
     .modal-title:focus {
         outline: 0;
     }
+    // Bootstrap's × is 32×28 px: a 44 px target without changing its look
+    .btn-close {
+        position: relative;
+
+        &::after {
+            content: '';
+            position: absolute;
+            inset: 50% auto auto 50%;
+            width: 44px;
+            height: 44px;
+            transform: translate(-50%, -50%);
+        }
+    }
+}
+
+// The coral outline buttons of the sheet in the coral ink (#fe696a on white is 2.8:1, this is 5.2:1)
+.medal-actions .btn-outline-primary {
+    --bs-btn-color: #c7393b;
+    --bs-btn-border-color: #c7393b;
+    --bs-btn-hover-bg: #c7393b;
+    --bs-btn-hover-border-color: #c7393b;
+    --bs-btn-active-bg: #c7393b;
+    --bs-btn-active-border-color: #c7393b;
 }
 
 @include media-breakpoint-down(sm) {
@@ -406,7 +429,7 @@ $medal-bands-vivid: repeating-linear-gradient(118deg, #f26a70 0%, #f7a457 4.5%, 
 
 .medal-engraving-name {
     max-width: 74%;
-    font-size: 4.6cqw;
+    font-size: 5.2cqw;
     font-weight: 600;
     letter-spacing: .03em;
     text-transform: uppercase;
@@ -415,7 +438,7 @@ $medal-bands-vivid: repeating-linear-gradient(118deg, #f26a70 0%, #f7a457 4.5%, 
 }
 
 .medal-engraving-tier {
-    font-size: 4.4cqw;
+    font-size: 4.8cqw;
     font-weight: 600;
     letter-spacing: .08em;
     text-transform: uppercase;
@@ -447,7 +470,7 @@ $medal-bands-vivid: repeating-linear-gradient(118deg, #f26a70 0%, #f7a457 4.5%, 
 
 .medal-engraving-line {
     max-width: 100%;
-    font-size: 4.4cqw;
+    font-size: 5cqw;
     font-weight: 500;
     white-space: nowrap;
 }
@@ -460,16 +483,16 @@ $medal-bands-vivid: repeating-linear-gradient(118deg, #f26a70 0%, #f7a457 4.5%, 
     text-wrap: balance;
 }
 
-// Names its denominator, so it may take two lines in some languages
+// The short share ("4.2 %"): the facts line under the medal names the denominator (QA 2026-10-11: the long form was ~8 px)
 .medal-engraving-share {
     max-width: 84%;
-    font-size: 4.1cqw;
+    font-size: 5.2cqw;
     font-weight: 500;
     text-wrap: balance;
 }
 
 .medal-engraving-date {
-    font-size: 4.1cqw;
+    font-size: 5cqw;
     letter-spacing: .03em;
     white-space: nowrap;
     opacity: .9;
@@ -662,7 +685,7 @@ $medal-bands-vivid: repeating-linear-gradient(118deg, #f26a70 0%, #f7a457 4.5%, 
 .medal-tier-numbers {
     font-size: .8125rem;
     line-height: 1.35;
-    color: $medal-muted;
+    color: $medal-muted;    text-wrap: balance;
 }
 
 .medal-tier-progress {
@@ -677,7 +700,7 @@ $medal-bands-vivid: repeating-linear-gradient(118deg, #f26a70 0%, #f7a457 4.5%, 
 }
 
 .medal-tier.is-earned .medal-tier-ap {
-    color: #b7791f;
+    color: $progression-achievements; // 5.9:1 (the lighter amber was 3.6:1)
 }
 
 @media (prefers-reduced-motion: reduce) {

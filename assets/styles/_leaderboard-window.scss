@@ -90,6 +90,13 @@ $lb-window-link: #c7393b; // coral ink: 5.2:1 on white
     margin: .75rem 0 2rem;
 
     .lb-show-more-button {
+        // The coral ink like the gap row's button (#fe696a on white is 2.8:1)
+        --bs-btn-color: #{$lb-window-link};
+        --bs-btn-border-color: #{$lb-window-link};
+        --bs-btn-hover-bg: #{$lb-window-link};
+        --bs-btn-hover-border-color: #{$lb-window-link};
+        --bs-btn-active-bg: #{$lb-window-link};
+        --bs-btn-active-border-color: #{$lb-window-link};
         min-height: 44px;
         padding-left: 1.25rem;
         padding-right: 1.25rem;
@@ -99,7 +106,7 @@ $lb-window-link: #c7393b; // coral ink: 5.2:1 on white
 // --- Position line ---------------------------------------------------------------------------------------------------
 
 .lb-position {
-    margin: 0 0 .75rem;
+    margin: .5rem 0 .75rem; // clear of a filter row above it (the Times boards' country select touched it)
     padding: .625rem .75rem;
     border: 1px solid #e3e9ef;
     border-radius: 12px;

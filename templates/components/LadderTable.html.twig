@@ -11,6 +11,7 @@
             position: viewer_position,
             scope: country is not null ? 'leaderboards.position.in_country'|trans({'%country%': country.name|upper|country_name}) : null,
             gap_text: viewer_position.targetGap is not null ? viewer_position.targetGap|puzzlingTime : null,
+            goal_key: 'leaderboards.times.goal',
             jump_href: this.ownRowBelowFirstScreen ? '#' ~ constant('SpeedPuzzling\\Web\\Component\\LadderTable::OWN_ROW_ANCHOR') : null,
         }) }}
     {% endif %}
@@ -149,7 +150,7 @@
     {# Overview: the viewer stands below the top rows - the full board opens around them #}
     {% if not full_board and this.ownRowBeyondTop %}
         <p class="mb-2 fs-sm">
-            <a href="{{ path(this.fullBoardRoute, this.fullBoardRouteParameters) }}#{{ constant('SpeedPuzzling\\Web\\Component\\LadderTable::OWN_ROW_ANCHOR') }}" class="text-primary" data-testid="ladder-around-me">
+            <a href="{{ path(this.fullBoardRoute, this.fullBoardRouteParameters) }}#{{ constant('SpeedPuzzling\\Web\\Component\\LadderTable::OWN_ROW_ANCHOR') }}" class="text-primary lb-around-you" data-testid="ladder-around-me">
                 {{- 'leaderboards.times.around_you'|trans }} <i class="bi bi-arrow-right-short" aria-hidden="true"></i>
             </a>
         </p>

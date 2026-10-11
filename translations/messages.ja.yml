@@ -1843,6 +1843,7 @@ badges:
         turn: "メダルを裏返す"
         show_front: "表面を表示"
         tap_hint: "メダルをタップすると裏返ります"
+        tap_hint_back: "メダルをタップすると表に戻ります"
         no: "No."
         of_total: "全%total%中"
         rarity:
@@ -8871,6 +8872,7 @@ leaderboards:
         empty: "まだタイムがありません。タイムを追加して、このリーダーボードの最初の一人になりましょう。"
         empty_country: "%country%のタイムはまだありません。タイムを追加して、このリーダーボードで%country%の最初の一人になりましょう。"
         around_you: "あなたの周辺の順位を見る"
+        goal: "トップ%rank%まであと%gap%短縮"
         private_note: "プロフィールが非公開のため、あなたのソロタイムはリーダーボードに表示されません。"
         no_time:
             solo: "%pieces%ピースパズルのソロタイムを追加すると、このリーダーボードに表示されます。"

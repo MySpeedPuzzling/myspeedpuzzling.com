@@ -64,9 +64,10 @@ a:focus-visible > .badge-art {
   height: var(--badge-art-size, 72px);
   padding: 9%;
   border-radius: 50%;
-  // The disc is painted inside the padding only, like the plate of a seal inside its scalloped edge
+  // A disc inset by the padding, like the plate of a seal inside its scalloped edge. Clipped as a circle: a padded
+  // content-box background on a 50 % radius came out with flat sides
   background: radial-gradient(circle at 35% 30%, #4d5c7b, #2b3445 75%);
-  background-clip: content-box;
+  clip-path: circle(41%);
   color: rgba(255, 255, 255, .85);
   font-size: 1.5rem;
   font-weight: 700;

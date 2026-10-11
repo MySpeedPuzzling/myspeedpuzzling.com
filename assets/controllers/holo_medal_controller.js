@@ -27,6 +27,8 @@ export default class extends Controller {
         tier: Number,
         turnLabel: String,
         frontLabel: String,
+        hintFront: String,
+        hintBack: String,
     };
 
     connect() {
@@ -116,6 +118,11 @@ export default class extends Controller {
             this.cardLabelTarget.textContent = toBack ? this.frontLabelValue : this.turnLabelValue;
         }
 
+        // The hint under the medal says what the next tap does
+        if (this.hasHintTarget && this.hintFrontValue !== '') {
+            this.hintTarget.textContent = toBack ? this.hintBackValue : this.hintFrontValue;
+        }
+
         if (haptic && !this.reducedMotion.matches && typeof navigator.vibrate === 'function') {
             navigator.vibrate(HAPTIC_MS);
         }
@@ -173,6 +180,11 @@ export default class extends Controller {
 
         if (tilt === 0 || this.reducedMotion.matches) {
             this.engine?.setMaxTilt(0);
+
+            // The Masterpiece's glitter and jigsaw etch are still pictures: they stay without the motion
+            if (finish === 'masterpiece') {
+                this.loadTextures();
+            }
             return;
         }
 
@@ -207,14 +219,30 @@ export default class extends Controller {
         }
 
         if (!this.engine) {
-            const textures = holoTextures();
-            this.medalTarget.style.setProperty('--medal-glitter', textures.glitter);
-            this.medalTarget.style.setProperty('--medal-etch', textures.etch);
-            this.medalTarget.classList.add('has-textures');
+            this.applyTextures(holoTextures);
             this.engine = new HoloMedalEngine(this.medalTarget, this.cardTarget);
         }
 
         return this.engine;
+    }
+
+    async loadTextures() {
+        const { holoTextures } = await import('../holo_medal/textures.js');
+
+        if (this.element.isConnected && this.hasMedalTarget) {
+            this.applyTextures(holoTextures);
+        }
+    }
+
+    applyTextures(holoTextures) {
+        if (this.medalTarget.classList.contains('has-textures')) {
+            return;
+        }
+
+        const textures = holoTextures();
+        this.medalTarget.style.setProperty('--medal-glitter', textures.glitter);
+        this.medalTarget.style.setProperty('--medal-etch', textures.etch);
+        this.medalTarget.classList.add('has-textures');
     }
 
     onMotionPreference = () => {

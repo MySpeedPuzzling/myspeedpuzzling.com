@@ -15,7 +15,7 @@
 
     <div class="d-flex flex-wrap align-items-baseline justify-content-between gap-2 mb-2">
         <h2 class="h4 mb-0">{{ 'badges.title'|trans }}</h2>
-        <a href="{{ path('badges_overview', {show: 'all'}) }}" class="fs-sm">{{ 'badges.browse_all'|trans }}</a>
+        <a href="{{ path('badges_overview', {show: 'all'}) }}" class="fs-sm achievements-browse-link">{{ 'badges.browse_all'|trans }}</a>
     </div>
 
     {% if not player.activeMembership or lists is null %}

@@ -39,6 +39,9 @@ that would otherwise be forgotten. Newest section on top.
       decide which stays
 - [ ] Sheet skeleton dropped (the spinner only shows after 150 ms and the sheet renders fast); revisit if phones show it often
 - [ ] The P1 badge cabinet stays a possible later "trophy room" view on the same data (decided not now, §1)
+- [ ] Site-wide contrast: the coral `#fe696a` on white is 2.8:1 - the leaderboard table header (white on coral, from #222),
+      plain links and `.btn-outline-primary`. The new progression controls use the coral ink `#c7393b` (5.2:1); the site-wide
+      fix is a brand decision (QA 2026-10-11)
 - [ ] Hub cards don't carry `?return=` (their pages go back to the hub anyway, and it would turn the hub's main links into
       nofollow ones) - only Leaderboards and Fair play do
 

@@ -70,14 +70,15 @@ final class PageCrumbsPagesTest extends WebTestCase
         self::assertStringStartsWith($currentStart, $current['name']);
     }
 
-    public function testFairPlayShowsTheShortLabelAndKeepsTheFullNameInJsonLd(): void
+    public function testFairPlayNamesItsParentByThatPagesTitle(): void
     {
         $browser = self::createClient();
         $crawler = $browser->request('GET', '/en/fair-play-xp');
 
         self::assertResponseIsSuccessful();
         $links = $crawler->filter('.page-crumbs-trail a');
-        self::assertSame('Level & XP', trim($links->eq(1)->text()));
+        // The crumb says what the parent page's heading says (QA 2026-10-11: "Level & XP" vs "How XP & Levels work")
+        self::assertSame('How XP & Levels work', trim($links->eq(1)->text()));
         self::assertSame('Back to How XP & Levels work', $crawler->filter('.page-crumbs-back')->attr('aria-label'));
 
         $breadcrumbList = $this->breadcrumbJsonLd($crawler);

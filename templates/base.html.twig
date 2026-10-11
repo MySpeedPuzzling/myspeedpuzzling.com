@@ -985,6 +985,14 @@
                             <span class="visually-hidden">{{ 'loading'|trans }}</span>
                         </div>
                     </div>
+                    {# Shown by dynamic_modal_controller.js when the content could not be loaded (network error) #}
+                    <div class="dynamic-modal-error" data-dynamic-modal-target="error" role="alert" hidden>
+                        <p class="mb-3">{{ 'modal.load_failed'|trans }}</p>
+                        <div class="d-flex flex-wrap justify-content-center gap-2">
+                            <button type="button" class="btn btn-primary" data-action="dynamic-modal#retry">{{ 'modal.try_again'|trans }}</button>
+                            <button type="button" class="btn btn-outline-secondary" data-action="dynamic-modal#dismiss">{{ 'forms.close'|trans }}</button>
+                        </div>
+                    </div>
                     <turbo-frame id="modal-frame" data-dynamic-modal-target="frame">
                     </turbo-frame>
                 </div>

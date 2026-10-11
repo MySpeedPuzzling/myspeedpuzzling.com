@@ -541,6 +541,17 @@ $shelf-press: scale(.97);
     }
 }
 
+// The coral ink for the small text links (#fe696a on white is 2.8:1, this is 5.2:1)
+.achievements-summary-link,
+.achievements-browse-link {
+    color: #c7393b;
+
+    &:hover,
+    &:focus-visible {
+        color: #a52d2f;
+    }
+}
+
 // Small inline links keep their look but get a 44 px tall tap target (design-spec §6; QA 2026-10-11)
 .achievements-summary .ap-chip,
 .achievements-summary-link,

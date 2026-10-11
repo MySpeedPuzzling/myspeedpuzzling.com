@@ -1,7 +1,7 @@
 <div {{ attributes }}>
     {# Filters #}
     {% set isMember = logged_user.profile is not null and logged_user.profile.activeMembership %}
-    <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+    <div class="d-flex flex-wrap align-items-center gap-2 mb-3 lb-rating-filters">
         <div style="flex: 1 1 9rem; max-width: 200px;">
             <input
                 type="text"

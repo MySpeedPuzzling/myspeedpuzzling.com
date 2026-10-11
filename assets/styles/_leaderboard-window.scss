@@ -91,12 +91,14 @@ $lb-window-link: #c7393b; // coral ink: 5.2:1 on white
 
     .lb-show-more-button {
         // The coral ink like the gap row's button (#fe696a on white is 2.8:1)
-        --bs-btn-color: #{$lb-window-link};
-        --bs-btn-border-color: #{$lb-window-link};
-        --bs-btn-hover-bg: #{$lb-window-link};
-        --bs-btn-hover-border-color: #{$lb-window-link};
-        --bs-btn-active-bg: #{$lb-window-link};
-        --bs-btn-active-border-color: #{$lb-window-link};
+        --cz-btn-color: #{$lb-window-link};
+        --cz-btn-border-color: #{$lb-window-link};
+        --cz-btn-hover-color: #fff;
+        --cz-btn-active-color: #fff;
+        --cz-btn-hover-bg: #{$lb-window-link};
+        --cz-btn-hover-border-color: #{$lb-window-link};
+        --cz-btn-active-bg: #{$lb-window-link};
+        --cz-btn-active-border-color: #{$lb-window-link};
         min-height: 44px;
         padding-left: 1.25rem;
         padding-right: 1.25rem;

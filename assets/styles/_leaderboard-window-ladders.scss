@@ -31,3 +31,11 @@
         transform: translate(-50%, -50%);
     }
 }
+
+// MSP Rating filters: the country picker as tall as the search box next to it (44 px targets)
+.lb-rating-filters {
+    .form-select,
+    .ts-wrapper .ts-control {
+        min-height: 44px;
+    }
+}

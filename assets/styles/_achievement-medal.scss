@@ -44,12 +44,14 @@ $medal-bands-vivid: repeating-linear-gradient(118deg, #f26a70 0%, #f7a457 4.5%, 
 
 // The coral outline buttons of the sheet in the coral ink (#fe696a on white is 2.8:1, this is 5.2:1)
 .medal-actions .btn-outline-primary {
-    --bs-btn-color: #c7393b;
-    --bs-btn-border-color: #c7393b;
-    --bs-btn-hover-bg: #c7393b;
-    --bs-btn-hover-border-color: #c7393b;
-    --bs-btn-active-bg: #c7393b;
-    --bs-btn-active-border-color: #c7393b;
+    --cz-btn-color: #c7393b;
+    --cz-btn-border-color: #c7393b;
+    --cz-btn-hover-color: #fff;
+    --cz-btn-active-color: #fff;
+    --cz-btn-hover-bg: #c7393b;
+    --cz-btn-hover-border-color: #c7393b;
+    --cz-btn-active-bg: #c7393b;
+    --cz-btn-active-border-color: #c7393b;
 }
 
 @include media-breakpoint-down(sm) {

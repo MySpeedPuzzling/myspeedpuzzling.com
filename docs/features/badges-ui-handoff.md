@@ -34,6 +34,11 @@ disk), `tests/Controller/BadgeArtSurfacesTest.php`, `tests/Twig/BadgesEarnedEmai
 `tests/Controller/LastPieceRevealPagesTest.php`, `tests/Query/GetXpLaunchRevealBadgesTest.php`.
 
 ## 3. Fine-tuning backlog (verified ideas, in priority order)
+> **Status 2026-10-11** (`docs/features/xp-levels/ux-polish/design-spec.md`): item 2 shipped (the detail sheet: holo for
+> T4/T5 with masks precomputed by `tools/badge-art/lib/holo.py`, the medal back, the serial); item 3 replaced by a one-shot
+> CSS sweep in lists (the SVG variant needs a Safari device check first); item 4 decided "not now" - the achievements pages
+> got the shelf grid instead (reasons in the spec §1). Items 1, 5-7 are still open.
+
 1. **Real-device pass** of both reveals (iPhone Safari + Android Chrome): haptics (`navigator.vibrate` on Android only),
    sound toggle placement, tap targets, the hover space the icon piece needs (~50 px above a 300 px stage), and the
    45 % locked look on OLED. Playwright WebKit passed; no physical device was tested.

@@ -24,10 +24,24 @@ that would otherwise be forgotten. Newest section on top.
 
 ## Progression pages (`docs/features/xp-levels/launch-2026-10.md` §3, workstream D)
 
-- [ ] Paging past the top 100 on the XP / AP leaderboard (the MSP Rating ladder pages already)
+- [x] Paging past the top 100 on the XP / AP leaderboard - replaced by the "where am I" window on every board (2026-10-11)
 - [ ] XP leaderboard default "people you follow" (draft D6) - not decided, the board still opens on the world
 - [ ] Karma deep page replaces the `karma_explainer` placeholder (workstream F) and the karma board joins `ProgressLeaderboardTab`
 - [ ] Visual check of the hub, catalogue and XP history at 320/375 px on the integrated branch (not done in the workstream)
+## Progression UX polish (`docs/features/xp-levels/ux-polish/design-spec.md`, 2026-10-11)
+
+- [ ] Real first-met dates in the badge backfill: tiers held at launch show "Held at launch" (no number, no date, §8.1) because
+      every launch tier carries the backfill's timestamp; deriving the date each requirement was first met would give them real
+      dates and medal numbers
+- [ ] Real-device pass of the bottom sheet and the holo medal (iPhone Safari, Android Chrome): swipe to close vs the content's
+      scroll, the Android back gesture (`CloseWatcher`), tilt only with a mouse/pen, haptics, the 92dvh cap with the toolbar
+- [ ] /ladder overview: each table now ends with "Full board, around you" next to the old "Top 10" badge and "Show more" link -
+      decide which stays
+- [ ] Sheet skeleton dropped (the spinner only shows after 150 ms and the sheet renders fast); revisit if phones show it often
+- [ ] The P1 badge cabinet stays a possible later "trophy room" view on the same data (decided not now, §1)
+- [ ] Hub cards don't carry `?return=` (their pages go back to the hub anyway, and it would turn the hub's main links into
+      nofollow ones) - only Leaderboards and Fair play do
+
 ## Recap progress card (`docs/features/xp-levels/README.md` §Surfaces, launch 2026-10)
 
 - [ ] "Earned with this time" is a 10-minute window after `tracked_at`, cut at the player's next time

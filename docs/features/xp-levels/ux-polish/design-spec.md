@@ -488,3 +488,27 @@ questions, measured contrast and benchmarks with sources, is kept with the deliv
 - **Removing the flip or the numbers:** fine once 8.1 and 8.3 land.
 - **Chips on every row:** P6.
 - **Back only with `?return=`:** Jan's explicit request (8.7).
+
+---
+
+## 9. Delivered (2026-10-11) and where the build departed from the spec
+
+Built in PR #128 by five agents on disjoint files, integrated and gated by the orchestrator (full ParaTest suite green,
+PHPStan clean). Where the build had to decide something the spec left open, or the spec turned out wrong:
+
+| Point | What shipped | Why |
+|---|---|---|
+| Rarity chip threshold | Rare and rarer = under **50 %** (§8.3 said "< 15 %" by mistake) | "Rare and rarer" was the intent: never label a common tier, label everything else |
+| Per-pieces Times boards by country | Stay **public** (the brief asked for the overview's members-only gate) | Those pages carry localised "fastest N-piece times (country)" titles (SEO landing pages, commit 4227c94f); a redirect would drop them |
+| Sheet skeleton (§5) | Dropped; instead a generic "This couldn't be loaded · Try again · Close" state for every modal | The spinner only shows after 150 ms and the sheet renders fast; a network error used to close the modal silently, which looked like the tap did nothing |
+| XP opt-out vs the medal | An XP opt-out does **not** hide a player's achievements in the sheet | The same rule as the achievements page already had (achievements stay on the profile) |
+| "See who earned it (N)" | N = the Bronze holders = everyone who earned the achievement | The holders page lists every tier, and the evaluator fills the lower tiers |
+| Medal backs | Every tier turns over (T1–T3 too); foil/rim masks only for T4/T5 | The facts are personal at any tier; only the finish is the top tiers' reward |
+| Progress boards | Plain page with GET forms aimed at a Turbo Frame (not a Live Component); revealed states answer `X-Robots-Tag: noindex, follow` | The filters already were a GET form; buttons in forms are not crawled, and the page keeps its scroll |
+| MSP search | Finds rows within the current list and keeps that list's ranks | Searching a name is finding someone, not a new list (P9) |
+| MSP free players | Country / favourites from the URL are dropped on the server | Members-only filters were reachable by URL |
+| Back button `history.back()` | Compared against the URL recorded on `turbo:before-visit`, not only `document.referrer` | Turbo never updates `document.referrer` |
+| Holders hero serial | Uses `GetAchievementMedal` (one rule for the sheet and the page); badge index `(type, tier, earned_at, id)` | 9.3 → 1.7 ms for the serial count (EXPLAIN on the prod copy) |
+| One rarity aggregate | `AchievementRarityProvider` caches holders + percentages together | One aggregate on a cache miss instead of two |
+
+Open follow-ups are in `docs/TODO.md` § "Progression UX polish".

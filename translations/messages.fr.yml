@@ -1801,7 +1801,6 @@ competition_referees:
     "new": "Nouveau"
     "new_label": "obtenu ces 7 derniers jours"
     "tiers_held_by": "5 paliers · %percent% ont le Bronze"
-    "one_off": "Unique"
     "filter_rarest": "Plus rares d'abord"
     "tiers_nobody": "5 paliers · personne n'a encore le Bronze"
     "a11y":
@@ -1884,7 +1883,7 @@ competition_referees:
     "open": "À quoi sert %achievement% ?"
     "earned": "Obtenu"
     "next_tier": "Ensuite : %tier%"
-    "single_tier_note": "Ce succès n'a qu'un seul niveau : il est attribué à la main, il ne s'obtient pas en résolvant."
+    "single_tier_note": "Il ne peut plus être obtenu : un remerciement qui reste à ceux qui l'ont."
     "you_hold": "Vous avez le palier %tier%."
   "tier":
     "bronze": "Bronze"

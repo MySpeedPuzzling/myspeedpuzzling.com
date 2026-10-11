@@ -1798,7 +1798,7 @@ badges:
         open: "Wofür gibt es %achievement%?"
         earned: "Erhalten"
         next_tier: "Als Nächstes: %tier%"
-        single_tier_note: "Dieser Erfolg hat nur eine Stufe — er wird von Hand vergeben, nicht erpuzzelt."
+        single_tier_note: "Er kann nicht mehr erreicht werden – ein Dankeschön, das seinen Inhabern bleibt."
         you_hold: "Du hast %tier%."
     tier:
         bronze: "Bronze"
@@ -1955,7 +1955,6 @@ badges:
         new: "Neu"
         new_label: "in den letzten 7 Tagen verdient"
         tiers_held_by: "5 Stufen · %percent% haben Bronze"
-        one_off: "Einmalig"
         filter_rarest: "Seltenste zuerst"
         tiers_nobody: "5 Stufen · Bronze hat noch niemand"
         a11y:

@@ -262,6 +262,8 @@ final class PlayerAchievementsPageTest extends WebTestCase
         self::assertSelectorTextContains('.achievements-summary', '2 of 17 achievements');
         self::assertSelectorTextContains('.achievements-summary', '1 of 80 tiers');
         self::assertCount(1, $crawler->filter('.achievement-shelf a[href^="/en/achievements/supporter/info"]'));
+        // What it means to its holder, not our word for it ("One-off")
+        self::assertStringContainsString('believed in MySpeedPuzzling early', $crawler->filter('.achievement-shelf a[href^="/en/achievements/supporter/info"]')->text());
         $filters = $crawler->filter('.achievements-filter a')->each(static fn ($node): string => trim($node->text()));
         self::assertSame('All · 17', $filters[0]);
         self::assertSame('Earned · 2', $filters[1]);

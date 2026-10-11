@@ -1814,7 +1814,7 @@ badges:
         open: "¿Para qué es %achievement%?"
         earned: "Conseguido"
         next_tier: "Siguiente: %tier%"
-        single_tier_note: "Este logro tiene un solo nivel: se concede a mano, no se consigue resolviendo."
+        single_tier_note: "Ya no se puede conseguir: es un agradecimiento que se queda con quienes lo tienen."
         you_hold: "Tienes el rango %tier%."
     tier:
         bronze: "Bronce"
@@ -1971,7 +1971,6 @@ badges:
         new: "Nuevo"
         new_label: "conseguido en los últimos 7 días"
         tiers_held_by: "5 rangos · %percent% tiene Bronce"
-        one_off: "Único"
         filter_rarest: "Más raros primero"
         tiers_nobody: "5 rangos · nadie tiene Bronce aún"
         a11y:

@@ -1850,7 +1850,7 @@ badges:
         open: "Za co je %achievement%?"
         earned: "Získáno"
         next_tier: "Další: %tier%"
-        single_tier_note: "Tenhle úspěch má jen jednu úroveň — uděluje se ručně, nedá se získat skládáním."
+        single_tier_note: "Už ho nelze získat – zůstává jako poděkování těm, kdo ho mají."
         you_hold: "Máš stupeň %tier%."
     tier:
         bronze: "Bronz"
@@ -2007,7 +2007,6 @@ badges:
         new: "Nový"
         new_label: "získáno za posledních 7 dní"
         tiers_held_by: "5 stupňů · Bronz má %percent%"
-        one_off: "Jednorázový"
         filter_rarest: "Od nejvzácnějších"
         tiers_nobody: "5 stupňů · Bronz zatím nemá nikdo"
         a11y:

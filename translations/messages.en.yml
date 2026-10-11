@@ -2276,7 +2276,6 @@ badges:
         new: "New"
         new_label: "earned in the last 7 days"
         tiers_held_by: "5 tiers · Bronze held by %percent%"
-        one_off: "One-off"
         filter_rarest: "Rarest first"
         tiers_nobody: "5 tiers · nobody holds Bronze yet"
         a11y:
@@ -2359,7 +2358,7 @@ badges:
         open: "What is %achievement% for?"
         earned: "Earned"
         next_tier: "Next: %tier%"
-        single_tier_note: "This one has a single tier — it is granted by hand, never earned by solving."
+        single_tier_note: "It can no longer be earned - a thank-you that stays with its holders."
         you_hold: "You hold %tier%."
     tier:
         bronze: "Bronze"

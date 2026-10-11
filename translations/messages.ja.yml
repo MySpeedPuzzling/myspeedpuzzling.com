@@ -1894,7 +1894,7 @@ badges:
         open: "%achievement% はどんな実績？"
         earned: "獲得済み"
         next_tier: "次: %tier%"
-        single_tier_note: "この実績は単一ティアで、手動で付与されます（完成では獲得できません）。"
+        single_tier_note: "現在は獲得できません。持っている方への感謝のしるしです。"
         you_hold: "あなたは%tier%を保持しています。"
     tier:
         bronze: "ブロンズ"
@@ -2051,7 +2051,6 @@ badges:
         new: "新着"
         new_label: "過去7日間に獲得"
         tiers_held_by: "5ティア · ブロンズ保持率%percent%"
-        one_off: "1回限り"
         filter_rarest: "レア順"
         tiers_nobody: "5ティア · ブロンズ保持者はまだいません"
         a11y:

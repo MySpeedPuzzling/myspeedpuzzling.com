@@ -39,8 +39,33 @@ final class PlayerSolvedPuzzles
     // Members only, like the difficulty filter
     private const array DIFFICULTY_SORTS = ['easiest', 'hardest'];
 
+    /**
+     * Rows rendered at first and added by every "Show more". Filters and sorts still run over the whole history in PHP;
+     * only the rows on screen are rendered - the heaviest profile (2,159 puzzles) rendered 6 MB of HTML in ~1 s
+     * (docs/features/navigation PROF-05b settles on 50 for the coming Results page too)
+     */
+    public const int PAGE_SIZE = 50;
+
     #[LiveProp]
     public null|string $playerId = null;
+
+    /**
+     * The rows shown of the tab's list. Not writable: changed only by showMore(), and back to the start whenever the
+     * list changes ($pagedList)
+     */
+    #[LiveProp]
+    public int $limit = self::PAGE_SIZE;
+
+    /**
+     * The list the shown rows belong to - the tab, every filter and the sort (keepTheShownRowsOfTheSameList()). Another
+     * list starts from its top again, the same list keeps its rows, whatever a request carries.
+     *
+     * Never reset the limit in a filter's onUpdated hook: after every render Live reads each <select data-model> back and
+     * re-sends whatever differs from the prop - the brand select says "" for "All brands" while the prop is null - so such
+     * a hook runs on every request and would undo each "Show more" (PuzzleTimes::$pagedList, the same bug Comparison had)
+     */
+    #[LiveProp]
+    public string $pagedList = '';
 
     #[LiveProp(writable: true)]
     public string $category = 'solo';
@@ -114,7 +139,11 @@ final class PlayerSolvedPuzzles
 
     public int $teamPuzzlesCount = 0;
 
-    /** @var array<PlayerRanking> */
+    /**
+     * The player's rank on the puzzle of every shown solo row, by puzzle id (GetRanking::forPuzzles())
+     *
+     * @var array<string, PlayerRanking>
+     */
     public array $ranking = [];
 
     // The viewer is a member: the tiers are loaded and shown on the thumbnails, the difficulty filter applies
@@ -172,6 +201,13 @@ final class PlayerSolvedPuzzles
         }
     }
 
+    // Buttons, not links: the profile's further rows are no pages of their own
+    #[LiveAction]
+    public function showMore(): void
+    {
+        $this->limit += self::PAGE_SIZE;
+    }
+
     #[LiveAction]
     public function changeSortBy(#[LiveArg] string $sort): void
     {
@@ -204,7 +240,8 @@ final class PlayerSolvedPuzzles
     #[PreReRender]
     public function populate(): void
     {
-        assert($this->playerId !== null);
+        $playerId = $this->playerId;
+        assert($playerId !== null);
 
         if (in_array($this->category, ['solo', 'duo', 'group'], true) === false) {
             $this->category = 'solo';
@@ -228,12 +265,10 @@ final class PlayerSolvedPuzzles
 
         $this->difficulty = DifficultyFilter::normalize($this->difficulty);
 
-        $this->ranking = $this->getRanking->allForPlayer($this->playerId);
-
         // Fetch all puzzles (unfiltered)
-        $this->allSoloPuzzles = $this->getPlayerSolvedPuzzles->soloByPlayerId($this->playerId);
-        $this->allDuoPuzzles = $this->getPlayerSolvedPuzzles->duoByPlayerId($this->playerId);
-        $this->allTeamPuzzles = $this->getPlayerSolvedPuzzles->teamByPlayerId($this->playerId);
+        $this->allSoloPuzzles = $this->getPlayerSolvedPuzzles->soloByPlayerId($playerId);
+        $this->allDuoPuzzles = $this->getPlayerSolvedPuzzles->duoByPlayerId($playerId);
+        $this->allTeamPuzzles = $this->getPlayerSolvedPuzzles->teamByPlayerId($playerId);
 
         // Difficulty is members-only: for everyone else it is not even queried. The whole history, not just the
         // shown rows - the filter needs every tier
@@ -274,6 +309,91 @@ final class PlayerSolvedPuzzles
         $this->teamSolvedPuzzles = $this->puzzlesSorter->groupPuzzlesByTeam($teamSolvedPuzzles, $this->onlyFirstTries, $this->onlyUnboxed);
         $this->duoPuzzlesCount = self::distinctPuzzlesCount($this->duoSolvedPuzzles);
         $this->teamPuzzlesCount = self::distinctPuzzlesCount($this->teamSolvedPuzzles);
+
+        $this->keepTheShownRowsOfTheSameList();
+
+        // Ranks only for the rows on screen - a solo row shows its rank, pair/team rows none (_player_solvings)
+        $shownPuzzleIds = [];
+
+        if ($this->category === 'solo') {
+            foreach ($this->getShownRows() as $group) {
+                foreach ($group as $solvedPuzzle) {
+                    $shownPuzzleIds[] = $solvedPuzzle->puzzleId;
+                    break;
+                }
+            }
+        }
+
+        $this->ranking = $this->getRanking->forPuzzles($playerId, $shownPuzzleIds);
+    }
+
+    /**
+     * Runs after the action of the request (populate() is the PreReRender hook), so a tab switched by
+     * changeResultsCategory() or a sort picked by changeSortBy() counts as another list as well. Every value is taken
+     * the way it filters - "" and null alike, members-only filters only for members - so a select Live re-sends with
+     * the same meaning never counts as another list.
+     */
+    private function keepTheShownRowsOfTheSameList(): void
+    {
+        $isMember = $this->hasMembership();
+        $difficulty = $this->difficulty;
+        sort($difficulty);
+
+        $listKey = implode('|', [
+            $this->category,
+            $this->sortBy,
+            $this->manufacturer ?? '',
+            $this->team ?? '',
+            $this->piecesCountRange ?? '',
+            SearchText::fold($this->searchQuery ?? ''),
+            $this->onlyFirstTries ? 'first-tries' : '',
+            $this->onlyUnboxed ? 'unboxed' : '',
+            $isMember && $this->onlyRelax ? 'relax' : '',
+            $isMember ? ($this->dateFrom ?? '') : '',
+            $isMember ? ($this->dateTo ?? '') : '',
+            $isMember && $this->speedValue !== null ? $this->speedComparison . $this->speedValue . $this->speedUnit : '',
+            $isMember ? implode(',', $difficulty) : '',
+        ]);
+
+        if ($this->pagedList !== '' && $this->pagedList !== $listKey) {
+            $this->limit = self::PAGE_SIZE;
+        }
+
+        $this->pagedList = $listKey;
+    }
+
+    /**
+     * The rows of the shown tab, after the filters and the sort
+     *
+     * @return array<array<SolvedPuzzle>>
+     */
+    private function tabRows(): array
+    {
+        return match ($this->category) {
+            'duo' => $this->duoSolvedPuzzles,
+            'group' => $this->teamSolvedPuzzles,
+            default => $this->soloSolvedPuzzles,
+        };
+    }
+
+    /**
+     * The rows rendered: the first $limit rows of the shown tab
+     *
+     * @return array<array<SolvedPuzzle>>
+     */
+    public function getShownRows(): array
+    {
+        return array_slice($this->tabRows(), 0, $this->limit, preserve_keys: true);
+    }
+
+    public function getRowsCount(): int
+    {
+        return count($this->tabRows());
+    }
+
+    public function getShowMoreCount(): int
+    {
+        return min(self::PAGE_SIZE, max(0, $this->getRowsCount() - $this->limit));
     }
 
     /**

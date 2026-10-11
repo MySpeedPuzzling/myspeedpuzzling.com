@@ -1783,7 +1783,6 @@ badges:
         meta_title: "%name% — držitelé úspěchu"
         country_filter: "Země"
         all_countries: "Všechny země"
-        newest_earners: "Nejnovější držitelé"
         holders_count: "{0}Zatím nikdo|{1}1 puzzler|{2,3,4}%count% puzzleři|[5,Inf[%count% puzzlerů"
         first_to_earn: "První držitel"
         more_puzzlers: "+%count% dalších puzzlerů"
@@ -1791,6 +1790,38 @@ badges:
         nobody_yet: "Tento stupeň zatím nikdo nezískal. Kdo bude první, zapíše se do historie!"
         listing_note: "V seznamech držitelů jsou členové s veřejným profilem; počty zahrnují všechny puzzlery."
         apply_filter: "Zobrazit"
+    holders:
+        you_hold: "Máš stupeň %tier% · č. %serial% z %total%"
+        ladder_label: "Držitelé jednotlivých stupňů"
+        at_launch: "už při spuštění"
+        you_hold_at_launch: "Máš stupeň %tier% · už při spuštění"
+    medal:
+        turn: "Otočit medaili"
+        show_front: "Ukázat přední stranu"
+        tap_hint: "Klepni na medaili a otoč ji"
+        no: "č."
+        of_total: "z %total%"
+        rarity:
+            common: "Běžný"
+            rare: "Vzácný"
+            very_rare: "Velmi vzácný"
+            ultra_rare: "Extrémně vzácný"
+        nobody_yet: "Zatím nikdo"
+        not_earned_yet: "Zatím nezískáno"
+        your_record: "Tvůj rekord: %value%"
+        so_far: "Zatím: %value%"
+        see_holders: "Podívej se, kdo ho získal (%count%)"
+        all_achievements: "Všechny úspěchy"
+        showing_player: "Stupně, které má %name%"
+        held_at_launch: "Už při spuštění"
+        serial_of: "Č. %serial% z %total%"
+        share: "%percent% puzzlerů s XP"
+        share_below: "< %percent% puzzlerů s XP"
+        player_best: "%name% – rekord: %value%"
+        player_so_far: "%name% zatím: %value%"
+        explain_share: "„% puzzlerů s XP“ počítá každého, kdo zapsal aspoň jedno puzzle."
+        explain_step_back: "Stupeň může klesnout, když se čas odebere nebo čeká na ověření, a s ním se zase vrátí."
+        explain_lapsed: "Tvoje úspěchy zůstávají uložené a s členstvím se vrátí."
     reveals:
         meta_title: "Odhal své úspěchy"
         title: "Tvoje úspěchy jsou tady 🎉"
@@ -1947,7 +1978,6 @@ badges:
         days: "dní"
         team_solves: "týmových složení"
     catalogue:
-        summary: "<strong>%earned% z %total%</strong> získáno"
         about: "Každý úspěch má pět stupňů, od Bronzu po Diamant. Každý dosažený stupeň přináší body za úspěchy (AP): 5, 10, 25, 50 a 100. Úspěchy sbírají členové a nikdy nepřidávají XP."
         tease_free: "Členové sbírají úspěchy, získávají body za úspěchy a ukazují je na svém profilu. Staň se členem a zjisti, které už máš."
         tease_guest: "Členové sbírají úspěchy, získávají body za úspěchy a ukazují je na svém profilu."
@@ -1957,7 +1987,6 @@ badges:
             next: "Na řadě"
             earned: "Získané"
             all: "Vše"
-            rarest: "Nejvzácnější"
         empty:
             next: "Zatím nic rozpracovaného. Zaznamenej složení a tvoje další cíle se objeví tady."
             earned: "Zatím žádné úspěchy. Ten první je blíž, než si myslíš."
@@ -1966,6 +1995,27 @@ badges:
         progress_label: "Postup úspěchu %achievement% ke stupni %tier%"
         rarity: "%percent% puzzlerů"
         ap_leaderboard_link: "Žebříček bodů za úspěchy"
+    shelf:
+        summary: "<strong>%earned% z %total%</strong> úspěchů · %tiers_earned% z %tiers_total% stupňů"
+        closest_next: "Máš na dosah"
+        first_close: "Tvůj první úspěch je na dosah"
+        next_tier: "Další: %tier%"
+        unrevealed: "Nový stupeň · klepni a odhal ho"
+        new: "Nový"
+        new_label: "získáno za posledních 7 dní"
+        tiers_held_by: "5 stupňů · Bronz má %percent%"
+        one_off: "Jednorázový"
+        filter_rarest: "Od nejvzácnějších"
+        tiers_nobody: "5 stupňů · Bronz zatím nemá nikdo"
+        a11y:
+            tier_of: "stupeň %number% z 5"
+            not_yet: "zatím nezískáno"
+            progress: "%current% z %target% ke stupni %tier%"
+            progress_time: "nejlepší čas %current%, pro stupeň %tier% je potřeba %target%"
+        explainer:
+            share: "„% puzzlerů“ počítá všechny s XP, tedy každého, kdo zapsal aspoň jedno puzzle."
+            step_back: "Stupeň může klesnout, když se čas odebere nebo čeká na ověření, a s tímto časem se zase vrátí."
+            lapsed: "Tvoje úspěchy zůstávají uložené a s členstvím se vrátí."
 
 "scan":
   "meta":
@@ -8826,3 +8876,63 @@ my_activity:
 xp_opt_out:
     label: "Skrýt XP a úrovně"
     help: "Tvoje úroveň a XP zmizí z tvých stránek a e-mailů a nebudeš v žebříčcích XP a bodů za úspěchy ani v seznamech držitelů úspěchů. XP a úspěchy se potichu počítají dál, takže když tohle zase vypneš, o nic nepřijdeš."
+
+page_crumbs:
+    label: "Drobečková navigace"
+    back: "Zpět"
+    back_to: "Zpět na %title%"
+
+leaderboards:
+    position:
+        rank_scoped: "%rank%. místo z %total% %scope%"
+        in_country: "v zemi %country%"
+        in_favorites: "mezi tebou a tvými oblíbenými"
+        rank_world: "%rank%. místo z %total% na světě"
+        top_share: "top %percent%"
+        goal: "%gap% do top %rank%"
+        goal_first: "%gap% za %rank%. místem"
+    value:
+        xp: "%value% XP"
+        achievement-points: "%value% AP"
+        karma: "%value% karma"
+    secondary:
+        level: "Lv %level%"
+        achievements: "1 úspěch|%count% úspěchy|%count% úspěchů"
+        karma_total: "celkem %count%"
+    empty_country: "Zatím tu nikdo ze země %country% není. Buď první!"
+    rating:
+        gap: "%value% b. ratingu"
+        private_note: "Tvůj profil je soukromý, proto v žebříčcích nejsi."
+        empty_country: "Zatím nikdo ze země %country% nemá MSP Rating. Tvůj může být první."
+    times:
+        empty: "Zatím žádné časy. Přidej svůj a buď v tomto žebříčku první."
+        empty_country: "Zatím žádné časy ze země %country%. Přidej svůj a buď v tomto žebříčku první ze země %country%."
+        around_you: "Celý žebříček kolem tvého místa"
+        private_note: "Tvůj profil je soukromý, proto tvé sólo časy v žebříčcích nejsou."
+        no_time:
+            solo: "Přidej sólo čas u puzzle o %pieces% dílcích a objevíš se v tomto žebříčku."
+            pairs: "Přidej čas dvojice u puzzle o %pieces% dílcích a vaše dvojice se objeví v tomto žebříčku."
+            groups: "Přidej týmový čas u puzzle o %pieces% dílcích a váš tým se objeví v tomto žebříčku."
+    not_on_board:
+        guest: "Podívej se, kde v tomto žebříčku stojíš:"
+        private: "Tvůj profil je soukromý, proto v žebříčcích nejsi."
+        experience_opted_out: "Úrovně a úspěchy máš vypnuté, proto tu nejsi. Znovu je zapneš v nastavení profilu."
+        karma_opted_out: "Karmu máš skrytou, proto tu nejsi. Znovu ji zobrazíš v nastavení profilu."
+        admin: "Administrátoři karmu nemají, proto tu nejsou."
+        xp: "Zapiš své první složené puzzle a dostaneš se do tohoto žebříčku."
+        achievement-points: "Získej svůj první úspěch a dostaneš se do tohoto žebříčku."
+        karma: "Tvůj první přijatý příspěvek do databáze puzzlí tě dostane do tohoto žebříčku."
+        karma_filtered: "V tomto výběru se ti zatím nic nepočítá."
+        not_member: "Body za úspěchy jsou součástí členství: najdeš tu členy."
+        other_country: "Tento seznam ukazuje jen puzzlery ze země %country%."
+        settings: "Nastavení profilu"
+        membership: "Členství"
+        sign_in: "Přihlásit se"
+    gap:
+        hidden: "⋯ další %number%|⋯ další %number%|⋯ dalších %number%"
+        reveal: "Zobrazit místa %from%–%to% z %total%"
+    announce: "Zobrazena místa %from%–%to% z %total%"
+
+modal:
+    load_failed: "Nepodařilo se to načíst. Zkontroluj připojení a zkus to znovu."
+    try_again: "Zkusit znovu"

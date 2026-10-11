@@ -1731,7 +1731,6 @@ badges:
         meta_title: "%name% — Puzzler mit diesem Erfolg"
         country_filter: "Land"
         all_countries: "Alle Länder"
-        newest_earners: "Zuletzt verdient"
         holders_count: "{0}Noch niemand|{1}1 Puzzler|]1,Inf[%count% Puzzler"
         first_to_earn: "Als Erster verdient"
         more_puzzlers: "+%count% weitere Puzzler"
@@ -1739,6 +1738,38 @@ badges:
         nobody_yet: "Diese Stufe hat noch niemand verdient. Wer zuerst kommt, schreibt Geschichte!"
         listing_note: "Die Listen zeigen Mitglieder mit öffentlichem Profil; die Zahlen umfassen alle Puzzler."
         apply_filter: "Anzeigen"
+    holders:
+        you_hold: "Du hast %tier% · Nr. %serial% von %total%"
+        ladder_label: "Inhaber der einzelnen Stufen"
+        at_launch: "schon zum Start"
+        you_hold_at_launch: "Du hast %tier% · schon zum Start"
+    medal:
+        turn: "Medaille umdrehen"
+        show_front: "Vorderseite zeigen"
+        tap_hint: "Tippe auf die Medaille, um sie umzudrehen"
+        no: "Nr."
+        of_total: "von %total%"
+        rarity:
+            common: "Häufig"
+            rare: "Selten"
+            very_rare: "Sehr selten"
+            ultra_rare: "Extrem selten"
+        nobody_yet: "Noch niemand"
+        not_earned_yet: "Noch nicht verdient"
+        your_record: "Dein Rekord: %value%"
+        so_far: "Bisher: %value%"
+        see_holders: "Sieh, wer ihn verdient hat (%count%)"
+        all_achievements: "Alle Erfolge"
+        showing_player: "Stufen von %name%"
+        held_at_launch: "Schon zum Start"
+        serial_of: "Nr. %serial% von %total%"
+        share: "%percent% der Puzzler mit XP"
+        share_below: "< %percent% der Puzzler mit XP"
+        player_best: "Bestzeit von %name%: %value%"
+        player_so_far: "%name% bisher: %value%"
+        explain_share: "„% der Puzzler mit XP“ zählt alle, die mindestens ein Puzzle eingetragen haben."
+        explain_step_back: "Eine Stufe kann zurückgehen, wenn eine Zeit entfernt wird oder auf Überprüfung wartet, und kommt mit ihr zurück."
+        explain_lapsed: "Deine Erfolge bleiben erhalten und kommen mit der Mitgliedschaft zurück."
     reveals:
         meta_title: "Deck deine Erfolge auf"
         title: "Deine Erfolge sind da 🎉"
@@ -1907,13 +1938,32 @@ badges:
             all: "Alle"
             earned: "Verdient"
             next: "Als Nächstes"
-            rarest: "Am seltensten"
         filter_label: "Erfolge anzeigen"
         progress_label: "Fortschritt bei %achievement% bis %tier%"
         rarity: "%percent% der Puzzler"
-        summary: "<strong>%earned% von %total%</strong> verdient"
         tease_free: "Mitglieder sammeln Erfolge, verdienen Erfolgspunkte und zeigen sie auf ihrem Profil. Werde Mitglied, um herauszufinden, welche du schon verdient hast."
         tease_guest: "Mitglieder sammeln Erfolge, verdienen Erfolgspunkte und zeigen sie auf ihrem Profil."
+    shelf:
+        summary: "<strong>%earned% von %total%</strong> Erfolgen · %tiers_earned% von %tiers_total% Stufen"
+        closest_next: "In Reichweite"
+        first_close: "Dein erster Erfolg ist in Reichweite"
+        next_tier: "Nächste: %tier%"
+        unrevealed: "Neue Stufe · zum Aufdecken tippen"
+        new: "Neu"
+        new_label: "in den letzten 7 Tagen verdient"
+        tiers_held_by: "5 Stufen · %percent% haben Bronze"
+        one_off: "Einmalig"
+        filter_rarest: "Seltenste zuerst"
+        tiers_nobody: "5 Stufen · Bronze hat noch niemand"
+        a11y:
+            tier_of: "Stufe %number% von 5"
+            not_yet: "noch nicht verdient"
+            progress: "%current% von %target% bis %tier%"
+            progress_time: "Bestzeit %current%, für %tier% nötig: %target%"
+        explainer:
+            share: "„% der Puzzler“ zählt alle mit XP, also alle, die mindestens ein Puzzle eingetragen haben."
+            step_back: "Eine Stufe kann zurückgehen, wenn eine Zeit entfernt wird oder auf Überprüfung wartet, und sie kommt mit dieser Zeit zurück."
+            lapsed: "Deine Erfolge bleiben erhalten und kommen mit der Mitgliedschaft zurück."
 
 "scan":
   "meta":
@@ -8799,3 +8849,63 @@ recap_progress:
 xp_opt_out:
     help: "Dein Level und deine XP verschwinden von deinen Seiten und aus deinen E-Mails, und du erscheinst nicht in den XP- und Erfolgspunkte-Ranglisten und nicht in den Listen, wer einen Erfolg verdient hat. XP und Erfolge zählen still weiter, es geht also nichts verloren, wenn du das wieder ausschaltest."
     label: "XP und Level ausblenden"
+
+page_crumbs:
+    label: "Navigationspfad"
+    back: "Zurück"
+    back_to: "Zurück zu %title%"
+
+leaderboards:
+    position:
+        rank_scoped: "Platz %rank% von %total% %scope%"
+        in_country: "in %country%"
+        in_favorites: "unter dir und deinen Favoriten"
+        rank_world: "Platz %rank% von %total% weltweit"
+        top_share: "Top %percent%"
+        goal: "%gap% bis zu den Top %rank%"
+        goal_first: "%gap% hinter Platz %rank%"
+    value:
+        xp: "%value% XP"
+        achievement-points: "%value% AP"
+        karma: "%value% Karma"
+    secondary:
+        level: "Lv %level%"
+        achievements: "1 Erfolg|%count% Erfolge"
+        karma_total: "insgesamt %count%"
+    empty_country: "Noch niemand aus %country% hier. Mach den Anfang!"
+    rating:
+        gap: "%value% Rating-Punkte"
+        private_note: "Dein Profil ist privat, deshalb stehst du nicht in den Bestenlisten."
+        empty_country: "Noch niemand aus %country% hat ein MSP Rating. Deins könnte das erste sein."
+    times:
+        empty: "Noch keine Zeiten. Trag deine ein und eröffne diese Bestenliste."
+        empty_country: "Noch keine Zeiten aus %country%. Trag deine ein und eröffne diese Bestenliste für %country%."
+        around_you: "Ganze Bestenliste rund um dich"
+        private_note: "Dein Profil ist privat, deshalb stehen deine Solo-Zeiten nicht in den Bestenlisten."
+        no_time:
+            solo: "Trag eine Solo-Zeit für ein %pieces%-Teile-Puzzle ein, dann erscheinst du in dieser Bestenliste."
+            pairs: "Trag eine Paar-Zeit für ein %pieces%-Teile-Puzzle ein, dann erscheint euer Paar in dieser Bestenliste."
+            groups: "Trag eine Team-Zeit für ein %pieces%-Teile-Puzzle ein, dann erscheint euer Team in dieser Bestenliste."
+    not_on_board:
+        guest: "Sieh nach, wo du in dieser Bestenliste stehst:"
+        private: "Dein Profil ist privat, deshalb stehst du nicht in den Bestenlisten."
+        experience_opted_out: "Du hast Level und Erfolge ausgeschaltet, deshalb stehst du nicht hier. In deinen Profileinstellungen kannst du sie wieder einschalten."
+        karma_opted_out: "Du hast dein Karma ausgeblendet, deshalb stehst du nicht hier. In deinen Profileinstellungen kannst du es wieder einblenden."
+        admin: "Admins haben kein Karma, deshalb stehen sie nicht hier."
+        xp: "Trag dein erstes gelöstes Puzzle ein, um in diese Bestenliste zu kommen."
+        achievement-points: "Verdiene deinen ersten Erfolg, um in diese Bestenliste zu kommen."
+        karma: "Dein erster angenommener Beitrag zur Puzzle-Datenbank bringt dich in diese Bestenliste."
+        karma_filtered: "In dieser Auswahl zählt noch nichts von dir."
+        not_member: "Erfolgspunkte gehören zur Mitgliedschaft: Hier stehen Mitglieder."
+        other_country: "Diese Liste zeigt nur Puzzler aus %country%."
+        settings: "Profileinstellungen"
+        membership: "Mitgliedschaft"
+        sign_in: "Anmelden"
+    gap:
+        hidden: "⋯ %number% weitere"
+        reveal: "Plätze %from%–%to% von %total% zeigen"
+    announce: "Plätze %from%–%to% von %total% angezeigt"
+
+modal:
+    load_failed: "Das konnte nicht geladen werden. Bitte Verbindung prüfen und erneut versuchen."
+    try_again: "Erneut versuchen"

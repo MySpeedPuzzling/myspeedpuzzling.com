@@ -1827,7 +1827,6 @@ badges:
         meta_title: "%name% — 実績保持者"
         country_filter: "国"
         all_countries: "すべての国"
-        newest_earners: "最近の獲得者"
         holders_count: "{0}まだいません|{1}1人のパズラー|]1,Inf[%count%人のパズラー"
         first_to_earn: "最初の獲得者"
         more_puzzlers: "+%count%人のパズラー"
@@ -1835,6 +1834,38 @@ badges:
         nobody_yet: "このティアの獲得者はまだいません。最初の一人が歴史を作ります！"
         listing_note: "保持者リストにはプロフィールを公開しているメンバーが表示されます。人数にはすべてのパズラーが含まれます。"
         apply_filter: "表示"
+    holders:
+        you_hold: "あなたは%tier%を保持 · %total%人中%serial%番目"
+        ladder_label: "ティアごとの保持者"
+        at_launch: "リリース時から"
+        you_hold_at_launch: "あなたは%tier%を保持 · リリース時から"
+    medal:
+        turn: "メダルを裏返す"
+        show_front: "表面を表示"
+        tap_hint: "メダルをタップすると裏返ります"
+        no: "No."
+        of_total: "全%total%中"
+        rarity:
+            common: "コモン"
+            rare: "レア"
+            very_rare: "スーパーレア"
+            ultra_rare: "ウルトラレア"
+        nobody_yet: "まだいません"
+        not_earned_yet: "未獲得"
+        your_record: "自己ベスト: %value%"
+        so_far: "現在: %value%"
+        see_holders: "獲得したパズラーを見る（%count%）"
+        all_achievements: "すべての実績"
+        showing_player: "%name%のティアを表示中"
+        held_at_launch: "リリース時から保持"
+        serial_of: "%total%人中%serial%番目"
+        share: "XPを持つパズラーの%percent%"
+        share_below: "XPを持つパズラーの%percent%未満"
+        player_best: "%name%のベスト: %value%"
+        player_so_far: "%name%の現在: %value%"
+        explain_share: "「XPを持つパズラーの%」は、1つ以上のパズルを記録した全員を数えています。"
+        explain_step_back: "タイムが削除されたり確認待ちになったりすると、ティアが下がることがあります。そのタイムが戻れば、ティアも戻ります。"
+        explain_lapsed: "実績はそのまま保存され、メンバーシップを再開すると戻ってきます。"
     reveals:
         meta_title: "実績をお披露目"
         title: "あなたの実績が届きました 🎉"
@@ -1991,7 +2022,6 @@ badges:
         days: "日"
         team_solves: "チーム完成"
     catalogue:
-        summary: "<strong>%total%個中%earned%個</strong>獲得"
         about: "各実績にはブロンズからダイヤモンドまで5つのティアがあります。ティアに到達するたびに実績ポイント（AP）を獲得できます：5、10、25、50、100。実績はメンバーが集めるもので、XPが加算されることはありません。"
         tease_free: "メンバーは実績を集め、実績ポイントを獲得して、プロフィールに飾ることができます。メンバーになると、あなたがどの実績を獲得したか確認できます。"
         tease_guest: "メンバーは実績を集め、実績ポイントを獲得して、プロフィールに飾ることができます。"
@@ -2001,7 +2031,6 @@ badges:
             next: "もうすぐ"
             earned: "獲得済み"
             all: "すべて"
-            rarest: "レア順"
         empty:
             next: "進行中のものはまだありません。パズルを記録すると、次の目標がここに表示されます。"
             earned: "まだ実績はありません。最初の実績は思っているより近くにあります。"
@@ -2010,6 +2039,27 @@ badges:
         progress_label: "%achievement%の%tier%までの進捗"
         rarity: "パズラーの%percent%"
         ap_leaderboard_link: "実績ポイントのリーダーボード"
+    shelf:
+        summary: "実績 <strong>%total%個中%earned%個</strong> · ティア %tiers_total%中%tiers_earned%"
+        closest_next: "達成まであと少し"
+        first_close: "最初の実績まであと少し"
+        next_tier: "次: %tier%"
+        unrevealed: "新しいティア · タップしてお披露目"
+        new: "新着"
+        new_label: "過去7日間に獲得"
+        tiers_held_by: "5ティア · ブロンズ保持率%percent%"
+        one_off: "1回限り"
+        filter_rarest: "レア順"
+        tiers_nobody: "5ティア · ブロンズ保持者はまだいません"
+        a11y:
+            tier_of: "5つのうち%number%番目のティア"
+            not_yet: "未獲得"
+            progress: "%tier%まで %current%/%target%"
+            progress_time: "ベストタイム%current%、%tier%には%target%が必要"
+        explainer:
+            share: "「パズラーの%」は、XPを持つ全員、つまり1つ以上のパズルを記録した全員を数えています。"
+            step_back: "タイムが削除されたり確認待ちになったりすると、ティアが下がることがあります。そのタイムが戻れば、ティアも戻ります。"
+            lapsed: "実績はそのまま保存され、メンバーシップを再開すると戻ってきます。"
 "scan":
   "meta":
     "title": "バーコードリーダー"
@@ -8789,3 +8839,63 @@ my_activity:
 xp_opt_out:
     label: "XPとレベルを非表示にする"
     help: "レベルとXPがあなたのページやメールに表示されなくなり、XPと実績ポイントのリーダーボードや、実績の獲得者一覧にも載らなくなります。XPと実績は裏でこれまでどおりカウントされるので、再びオンにしても何も失われません。"
+
+page_crumbs:
+    label: "パンくずリスト"
+    back: "戻る"
+    back_to: "%title%に戻る"
+
+leaderboards:
+    position:
+        rank_scoped: "%total%中%rank%位（%scope%）"
+        in_country: "%country%"
+        in_favorites: "あなたとお気に入り"
+        rank_world: "%total%中%rank%位（全世界）"
+        top_share: "上位%percent%"
+        goal: "トップ%rank%まであと%gap%"
+        goal_first: "%rank%位まであと%gap%"
+    value:
+        xp: "%value% XP"
+        achievement-points: "%value% AP"
+        karma: "%value%カルマ"
+    secondary:
+        level: "Lv %level%"
+        achievements: "実績%count%個"
+        karma_total: "合計%count%"
+    empty_country: "%country%のパズラーはまだいません。最初の一人になりましょう！"
+    rating:
+        gap: "%value%ポイント"
+        private_note: "プロフィールが非公開のため、リーダーボードには表示されません。"
+        empty_country: "%country%にはまだMSP Ratingを持つパズラーがいません。あなたが最初の一人になれるかもしれません。"
+    times:
+        empty: "まだタイムがありません。タイムを追加して、このリーダーボードの最初の一人になりましょう。"
+        empty_country: "%country%のタイムはまだありません。タイムを追加して、このリーダーボードで%country%の最初の一人になりましょう。"
+        around_you: "あなたの周辺の順位を見る"
+        private_note: "プロフィールが非公開のため、あなたのソロタイムはリーダーボードに表示されません。"
+        no_time:
+            solo: "%pieces%ピースパズルのソロタイムを追加すると、このリーダーボードに表示されます。"
+            pairs: "%pieces%ピースパズルのペアタイムを追加すると、あなたのペアがこのリーダーボードに表示されます。"
+            groups: "%pieces%ピースパズルのチームタイムを追加すると、あなたのチームがこのリーダーボードに表示されます。"
+    not_on_board:
+        guest: "このリーダーボードでのあなたの順位を確認："
+        private: "プロフィールが非公開のため、リーダーボードには表示されません。"
+        experience_opted_out: "レベルと実績をオフにしているため、ここには表示されません。プロフィール設定でオンに戻せます。"
+        karma_opted_out: "カルマを非表示にしているため、ここには表示されません。プロフィール設定で再び表示できます。"
+        admin: "管理者にはカルマがないため、ここには表示されません。"
+        xp: "最初の完成記録を追加すると、このリーダーボードに載ります。"
+        achievement-points: "最初の実績を獲得すると、このリーダーボードに載ります。"
+        karma: "パズルデータベースへの最初の貢献が承認されると、このリーダーボードに載ります。"
+        karma_filtered: "このリストに数えられるものはまだありません。"
+        not_member: "実績ポイントはメンバーシップの機能です。ここにはメンバーが表示されます。"
+        other_country: "このリストには%country%のパズラーだけが表示されます。"
+        settings: "プロフィール設定"
+        membership: "メンバーシップ"
+        sign_in: "サインイン"
+    gap:
+        hidden: "⋯ あと%number%件"
+        reveal: "%from%〜%to%位を表示（全%total%）"
+    announce: "%from%〜%to%位を表示中（全%total%）"
+
+modal:
+    load_failed: "読み込めませんでした。接続を確認して、もう一度お試しください。"
+    try_again: "再試行"

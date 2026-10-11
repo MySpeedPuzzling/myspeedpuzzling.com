@@ -1747,7 +1747,6 @@ badges:
         meta_title: "%name% — poseedores del logro"
         country_filter: "País"
         all_countries: "Todos los países"
-        newest_earners: "Los más recientes"
         holders_count: "{0}Nadie todavía|{1}1 puzzlero|]1,Inf[%count% puzzleros"
         first_to_earn: "Primeros en conseguirlo"
         more_puzzlers: "+%count% puzzleros más"
@@ -1755,6 +1754,38 @@ badges:
         nobody_yet: "Nadie ha conseguido este rango todavía. ¡El primero escribirá la historia!"
         listing_note: "Las listas de poseedores muestran a los miembros con perfil público; los contadores incluyen a todos los puzzleros."
         apply_filter: "Mostrar"
+    holders:
+        you_hold: "Tienes el rango %tier% · n.º %serial% de %total%"
+        ladder_label: "Poseedores de cada rango"
+        at_launch: "desde el lanzamiento"
+        you_hold_at_launch: "Tienes el rango %tier% · desde el lanzamiento"
+    medal:
+        turn: "Dar la vuelta a la medalla"
+        show_front: "Mostrar el anverso"
+        tap_hint: "Toca la medalla para darle la vuelta"
+        no: "N.º"
+        of_total: "de %total%"
+        rarity:
+            common: "Común"
+            rare: "Raro"
+            very_rare: "Muy raro"
+            ultra_rare: "Ultrarraro"
+        nobody_yet: "Nadie todavía"
+        not_earned_yet: "Aún no conseguido"
+        your_record: "Tu récord: %value%"
+        so_far: "Hasta ahora: %value%"
+        see_holders: "Ver quién lo consiguió (%count%)"
+        all_achievements: "Todos los logros"
+        showing_player: "Rangos de %name%"
+        held_at_launch: "Desde el lanzamiento"
+        serial_of: "N.º %serial% de %total%"
+        share: "%percent% de los puzzleros con XP"
+        share_below: "< %percent% de los puzzleros con XP"
+        player_best: "Mejor tiempo de %name%: %value%"
+        player_so_far: "%name% hasta ahora: %value%"
+        explain_share: "«% de los puzzleros con XP» cuenta a todos los que han registrado al menos un puzzle."
+        explain_step_back: "Un rango puede retroceder cuando se elimina un tiempo o queda pendiente de verificación, y vuelve junto con él."
+        explain_lapsed: "Tus logros se conservan y vuelven con la membresía."
     reveals:
         meta_title: "Revela tus logros"
         title: "Tus logros están aquí 🎉"
@@ -1911,7 +1942,6 @@ badges:
         days: "días"
         team_solves: "resoluciones en equipo"
     catalogue:
-        summary: "<strong>%earned% de %total%</strong> conseguidos"
         about: "Cada logro tiene cinco rangos, de Bronce a Diamante. Cada rango que alcanzas da Puntos de Logro (AP): 5, 10, 25, 50 y 100. Los logros los coleccionan los miembros y nunca suman XP."
         tease_free: "Los miembros coleccionan logros, ganan Puntos de Logro y los muestran en su perfil. Hazte miembro para descubrir cuáles has conseguido."
         tease_guest: "Los miembros coleccionan logros, ganan Puntos de Logro y los muestran en su perfil."
@@ -1921,7 +1951,6 @@ badges:
             next: "Próximos"
             earned: "Conseguidos"
             all: "Todos"
-            rarest: "Los más raros"
         empty:
             next: "Todavía no hay nada en curso. Registra un puzzle y tus próximas metas aparecerán aquí."
             earned: "Aún no tienes logros. El primero está más cerca de lo que crees."
@@ -1930,6 +1959,27 @@ badges:
         progress_label: "Progreso de %achievement% hacia %tier%"
         rarity: "%percent% de los puzzleros"
         ap_leaderboard_link: "Clasificación de Puntos de Logro"
+    shelf:
+        summary: "<strong>%earned% de %total%</strong> logros · %tiers_earned% de %tiers_total% rangos"
+        closest_next: "A tu alcance"
+        first_close: "Tu primer logro está cerca"
+        next_tier: "Siguiente: %tier%"
+        unrevealed: "Nuevo rango · toca para revelarlo"
+        new: "Nuevo"
+        new_label: "conseguido en los últimos 7 días"
+        tiers_held_by: "5 rangos · %percent% tiene Bronce"
+        one_off: "Único"
+        filter_rarest: "Más raros primero"
+        tiers_nobody: "5 rangos · nadie tiene Bronce aún"
+        a11y:
+            tier_of: "rango %number% de 5"
+            not_yet: "aún no conseguido"
+            progress: "%current% de %target% para %tier%"
+            progress_time: "mejor tiempo %current%, se necesita %target% para %tier%"
+        explainer:
+            share: "«% de los puzzleros» cuenta a todos los que tienen XP, es decir, a todos los que han registrado al menos un puzzle."
+            step_back: "Un rango puede retroceder cuando se elimina un tiempo o queda pendiente de verificación, y vuelve junto con ese tiempo."
+            lapsed: "Tus logros se conservan y vuelven con la membresía."
 
 "scan":
   "meta":
@@ -8800,3 +8850,63 @@ my_activity:
 xp_opt_out:
     label: "Ocultar XP y niveles"
     help: "Tu nivel y tus XP desaparecen de tus páginas y correos, y quedas fuera de las clasificaciones de XP y de Puntos de Logro y de las listas de quién consiguió un logro. Los XP y los logros siguen contándose en silencio, así que no pierdes nada si vuelves a desactivar esto."
+
+page_crumbs:
+    label: "Ruta de navegación"
+    back: "Volver"
+    back_to: "Volver a %title%"
+
+leaderboards:
+    position:
+        rank_scoped: "Puesto %rank% de %total% %scope%"
+        in_country: "en %country%"
+        in_favorites: "entre tú y tus favoritos"
+        rank_world: "Puesto %rank% de %total% en el mundo"
+        top_share: "top %percent%"
+        goal: "a %gap% del top %rank%"
+        goal_first: "a %gap% del puesto %rank%"
+    value:
+        xp: "%value% XP"
+        achievement-points: "%value% AP"
+        karma: "%value% de karma"
+    secondary:
+        level: "Nv %level%"
+        achievements: "1 logro|%count% logros"
+        karma_total: "%count% en total"
+    empty_country: "Todavía no hay nadie de %country%. ¡Sé el primero!"
+    rating:
+        gap: "%value% puntos de rating"
+        private_note: "Tu perfil es privado, así que no apareces en las clasificaciones."
+        empty_country: "Todavía nadie de %country% tiene MSP Rating. El tuyo podría ser el primero."
+    times:
+        empty: "Aún no hay tiempos. Añade el tuyo y sé el primero en esta clasificación."
+        empty_country: "Aún no hay tiempos de %country%. Añade el tuyo y sé el primero de %country% en esta clasificación."
+        around_you: "Ver la clasificación completa en torno a ti"
+        private_note: "Tu perfil es privado, así que tus tiempos en solitario no aparecen en las clasificaciones."
+        no_time:
+            solo: "Añade un tiempo en solitario de un puzzle de %pieces% piezas y aparecerás en esta clasificación."
+            pairs: "Añade un tiempo en pareja de un puzzle de %pieces% piezas y tu pareja aparecerá en esta clasificación."
+            groups: "Añade un tiempo en equipo de un puzzle de %pieces% piezas y tu equipo aparecerá en esta clasificación."
+    not_on_board:
+        guest: "Mira dónde estás en esta clasificación:"
+        private: "Tu perfil es privado, así que no apareces en las clasificaciones."
+        experience_opted_out: "Desactivaste los niveles y los logros, así que no apareces aquí. Puedes volver a activarlos en la configuración de tu perfil."
+        karma_opted_out: "Elegiste ocultar tu karma, así que no apareces aquí. Puedes volver a mostrarlo en la configuración de tu perfil."
+        admin: "Los administradores no tienen karma, así que no aparecen aquí."
+        xp: "Registra tu primer puzzle resuelto para entrar en esta clasificación."
+        achievement-points: "Consigue tu primer logro para entrar en esta clasificación."
+        karma: "Tu primera contribución aceptada a la base de datos de puzzles te pondrá en esta clasificación."
+        karma_filtered: "Todavía no tienes nada que cuente en esta lista."
+        not_member: "Los Puntos de Logro son una función de la membresía: aquí aparecen los miembros."
+        other_country: "Esta lista solo muestra puzzleros de %country%."
+        settings: "Configuración del perfil"
+        membership: "Membresía"
+        sign_in: "Iniciar sesión"
+    gap:
+        hidden: "⋯ %number% más"
+        reveal: "Ver puestos %from%–%to% de %total%"
+    announce: "Mostrando puestos %from%–%to% de %total%"
+
+modal:
+    load_failed: "No se ha podido cargar. Comprueba tu conexión e inténtalo de nuevo."
+    try_again: "Reintentar"

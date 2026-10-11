@@ -108,7 +108,7 @@ final class LadderTableWindowTest extends WebTestCase
      */
     public static function provideViewersWithoutARow(): iterable
     {
-        yield 'guest' => [null, '/en/ladder/solo/500-pieces', 'Sign in to see where you stand'];
+        yield 'guest' => [null, '/en/ladder/solo/500-pieces', 'See where you stand on this board'];
         yield 'private profile' => [PlayerFixture::PLAYER_PRIVATE, '/en/ladder/solo/500-pieces', 'Your profile is private'];
         yield 'no team time yet' => [PlayerFixture::PLAYER_REGULAR, '/en/ladder/groups/500-pieces', 'Add a team time of a 500-piece puzzle'];
     }

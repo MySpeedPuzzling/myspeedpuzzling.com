@@ -103,7 +103,7 @@ final class MspRatingLadderControllerTest extends WebTestCase
 
         $crawler = $browser->request('GET', '/en/msp-rating');
 
-        self::assertStringContainsString('Sign in to see where you stand', $crawler->filter('[data-testid="lb-not-on-board"]')->text());
+        self::assertStringContainsString('See where you stand on this board', $crawler->filter('[data-testid="lb-not-on-board"]')->text());
         self::assertStringStartsWith('/login', (string) $crawler->filter('[data-testid="lb-not-on-board"] a')->attr('href'));
     }
 

@@ -111,6 +111,20 @@ $DC run --rm --no-deps messenger-consumer bin/console myspeedpuzzling:send-conte
 
 (Requires the `digest-consumer` compose service + deploy.sh change from content-digest README §13.)
 
+## Launch log (production, 2026-10-12)
+
+| When (Prague) | Step | Result |
+|---|---|---|
+| 00:48 | `pg_dump -Fc` | `/root/msp_pre_xp_launch_20261012.dump`, 439 MB, 39 s |
+| 00:51 → 00:54 | PR #128 merged (`9e651224`), `deploy-fast` | web, api, messenger-consumer and the new digest-consumer on the image; `full_formula_from` = 2026-10-11 22:53:04 UTC |
+| 00:55 | cron rows (lily.srv `647da3f`) | settle-xp-bonuses, recalculate-badges, recalculate-karma, verify-progression, Monday activity digest |
+| 00:56 | `recalculate-karma` | 357 ms; 3,138 players hold karma, 26,586 in total, the most 687 |
+| 00:56 → 01:02 | `xp-backfill` | 8,110 players recalculated, verified 7,813 with solves in 338 s - **switch on** (`launch_ready_at` 2026-10-11 23:02:26 UTC) |
+| 01:03 | `verify-progression` | no drift in any check (10 s) |
+| 01:03 | `xp-distribution` | **9 at Level 50**, 92 at Level 40+, median Level 5, p90 Level 24 (curve v7 projection on the dev copy: 8 / 88 / 5 / 24); 64,926 achievement tiers held by 6,810 players, 458 of them Diamond |
+
+Not done that night: the newsletter (§4) - Jan sends it.
+
 ## Rollback
 
 ```sql

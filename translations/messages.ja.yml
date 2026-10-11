@@ -6282,6 +6282,8 @@ favorite_puzzlers:
       "button": "プレイヤーを探す"
     "ready":
       "title": "慣れてきたら"
+      "progress":
+        "text": "レベル、実績、MSP Rating、カルマのしくみ。"
       "picker":
         "text": "コレクションまたは全パズルからランダムに選びます。"
       "events":

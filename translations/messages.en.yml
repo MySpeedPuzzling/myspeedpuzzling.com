@@ -6845,6 +6845,8 @@ onboarding:
             button: "Find players"
         ready:
             title: "When you are ready"
+            progress:
+                text: "Levels, achievements, MSP Rating and karma, explained."
             picker:
                 text: "A random pick from your shelf or from all puzzles."
             events:

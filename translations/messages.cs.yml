@@ -6393,6 +6393,8 @@ onboarding:
             button: "Najít hráče"
         ready:
             title: "Až budete chtít víc"
+            progress:
+                text: "Úrovně, úspěchy, MSP Rating a karma – jak to funguje."
             picker:
                 text: "Náhodný tip z vaší kolekce nebo ze všech puzzle."
             events:

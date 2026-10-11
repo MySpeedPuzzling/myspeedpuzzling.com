@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Tests\Controller;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
+use SpeedPuzzling\Web\Tests\TestDouble\FixedXpLaunchReadiness;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
@@ -76,6 +77,28 @@ final class GettingStartedControllerTest extends WebTestCase
         $crawler = $browser->request('GET', '/en/getting-started');
         self::assertCount(1, $crawler->filter('#statistics .guide-step-marker.is-done'));
         self::assertCount(1, $crawler->filter('#compare .guide-step-marker.is-done'));
+    }
+
+    public function testHowProgressWorksLeadsTheMoreTilesOnceTheProgressionIsLive(): void
+    {
+        $browser = self::createClient();
+
+        $crawler = $browser->request('GET', '/en/getting-started');
+
+        self::assertResponseIsSuccessful();
+        $first = $crawler->filter('#more .guide-tile')->first();
+        self::assertSame('/en/how-progress-works', $first->attr('href'));
+        self::assertStringContainsString('How progress works', $first->text());
+
+        // Before the launch switch the tile is not there (the hub's deep pages would 404)
+        FixedXpLaunchReadiness::$ready = false;
+
+        try {
+            $crawler = $browser->request('GET', '/en/getting-started');
+            self::assertCount(0, $crawler->filter('#more a.guide-tile[href="/en/how-progress-works"]'));
+        } finally {
+            FixedXpLaunchReadiness::$ready = true;
+        }
     }
 
     public function testFooterLinksToTheGuideFromEveryPage(): void

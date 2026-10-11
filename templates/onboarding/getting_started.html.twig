@@ -123,13 +123,15 @@
             <h2 class="h5 mb-3">{{ 'onboarding.guide.ready.title'|trans }}</h2>
 
             <div class="guide-tiles">
-                {% for tile in [
+                {# How progress works leads while the progression system is new (behind its launch switch) #}
+                {% set progress_tiles = xp_system_visible() ? [{key: 'progress', title: 'progression_hub.title'|trans, icon: 'bi bi-graph-up-arrow', url: path('progression_hub')}] : [] %}
+                {% for tile in progress_tiles|merge([
                     {key: 'picker', title: 'puzzle_picker.title'|trans, icon: 'bi bi-shuffle', url: path('puzzle_picker')},
                     {key: 'events', title: 'menu.events'|trans, icon: 'bi bi-calendar-event', url: path('events')},
                     {key: 'marketplace', title: 'Marketplace', icon: 'bi bi-shop', url: path('marketplace')},
                     {key: 'membership', title: 'menu.membership'|trans, icon: 'bi bi-star', url: path('membership')},
                     {key: 'faq', title: 'menu.faq'|trans, icon: 'bi bi-patch-question', url: path('faq')},
-                ] %}
+                ]) %}
                     <a class="guide-tile" href="{{ tile.url }}">
                         <i class="{{ tile.icon }}" aria-hidden="true"></i>
                         <span>

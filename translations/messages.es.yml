@@ -6293,6 +6293,8 @@ favorite_puzzlers:
       "button": "Buscar jugadores"
     "ready":
       "title": "Cuando quieras más"
+      "progress":
+        "text": "Niveles, logros, MSP Rating y karma, explicados."
       "picker":
         "text": "Una elección al azar de tu colección o de todos los puzzles."
       "events":

@@ -696,18 +696,21 @@
                                     <li>
                                         <a class="dropdown-item {% if currentRoute == 'player_achievements' and routeParams.playerId == logged_user.profile.playerId %}active{% endif %}" href="{{ path('player_achievements', {playerId: logged_user.profile.playerId}) }}">
                                             <i class="bi bi-award me-1"></i> {{ 'badges.my_title'|trans }}
+                                            <span class="badge bg-primary ms-1">{{ 'menu.new_badge'|trans }}</span>
                                         </a>
                                     </li>
                                     {% if not logged_user.profile.experienceSystemOptedOut %}
                                         <li>
                                             <a class="dropdown-item {% if currentRoute == 'xp_history' %}active{% endif %}" href="{{ path('xp_history') }}">
                                                 <i class="bi bi-receipt me-1"></i> {{ 'xp.history.title'|trans }}
+                                                <span class="badge bg-primary ms-1">{{ 'menu.new_badge'|trans }}</span>
                                             </a>
                                         </li>
                                     {% endif %}
                                     <li>
                                         <a class="dropdown-item {% if currentRoute == 'progression_hub' %}active{% endif %}" href="{{ path('progression_hub') }}">
                                             <i class="bi bi-question-circle me-1"></i> {{ 'progression_hub.menu_label'|trans }}
+                                            <span class="badge bg-primary ms-1">{{ 'menu.new_badge'|trans }}</span>
                                         </a>
                                     </li>
                                     {% endif %}
@@ -749,7 +752,6 @@
                                     <li>
                                         <a class="dropdown-item {% if currentRoute == 'getting_started' %}active{% endif %}" href="{{ path('getting_started') }}">
                                             <i class="bi bi-signpost-2 me-1"></i> {{ 'onboarding.guide.link'|trans }}
-                                            <span class="badge bg-primary ms-1">{{ 'menu.new_badge'|trans }}</span>
                                         </a>
                                     </li>
                                     <li>

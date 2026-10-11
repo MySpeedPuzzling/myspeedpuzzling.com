@@ -6386,6 +6386,8 @@ favorite_puzzlers:
       "button": "Trouver des joueurs"
     "ready":
       "title": "Quand vous en voudrez plus"
+      "progress":
+        "text": "Niveaux, succès, MSP Rating et karma, expliqués."
       "picker":
         "text": "Un choix au hasard dans votre collection ou parmi tous les puzzles."
       "events":

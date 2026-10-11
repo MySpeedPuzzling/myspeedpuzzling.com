@@ -6292,6 +6292,8 @@ onboarding:
             button: "Spieler finden"
         ready:
             title: "Wenn Sie so weit sind"
+            progress:
+                text: "Level, Erfolge, MSP Rating und Karma – einfach erklärt."
             picker:
                 text: "Ein Zufallstipp aus Ihrer Sammlung oder aus allen Puzzles."
             events:

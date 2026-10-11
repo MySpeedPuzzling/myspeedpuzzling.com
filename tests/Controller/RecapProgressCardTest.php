@@ -33,7 +33,7 @@ final class RecapProgressCardTest extends WebTestCase
     public function testMemberSeesLevelPlaceAndCompetitionInOneCard(): void
     {
         $browser = self::createClient();
-        $this->giveXp(PlayerFixture::PLAYER_ADMIN, PuzzleSolvingTimeFixture::TIME_03, [3, 2], total: 44);
+        $this->giveXp(PlayerFixture::PLAYER_ADMIN, PuzzleSolvingTimeFixture::TIME_03, [3, 2], total: 50);
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
 
         $crawler = $browser->request('GET', '/en/time-added/' . PuzzleSolvingTimeFixture::TIME_03);
@@ -43,10 +43,10 @@ final class RecapProgressCardTest extends WebTestCase
         self::assertCount(1, $card);
 
         $level = $card->filter('[data-testid="recap-level"]');
-        // Curve v6: 44 XP is Level 4 (33), 39 before this time - no level-up
+        // Curve v7: 50 XP is Level 4 (41), 45 before this time - no level-up
         self::assertStringContainsString('Level 4', $level->text());
         self::assertStringContainsString('+5 XP', $level->text());
-        self::assertStringContainsString('11 of 15 XP to Level 5', $level->text());
+        self::assertStringContainsString('9 of 19 XP to Level 5', $level->text());
         self::assertCount(1, $level->filter('a.recap-row[href="/en/my/xp-history"]'));
         // The receipt is one tap away, not on the page
         self::assertCount(1, $level->filter('details.recap-receipt li.is-total'));
@@ -166,8 +166,8 @@ final class RecapProgressCardTest extends WebTestCase
     public function testLevelUpIsShownAndCelebratesOnlyRightAfterTheSave(): void
     {
         $browser = self::createClient();
-        // 20 XP in total, 17 of them from this time: Level 1 -> Level 3 (curve v6: Level 3 = 19 XP)
-        $this->giveXp(PlayerFixture::PLAYER_ADMIN, PuzzleSolvingTimeFixture::TIME_03, [17], total: 20);
+        // 25 XP in total, 22 of them from this time: Level 1 -> Level 3 (curve v7: Level 3 = 23 XP)
+        $this->giveXp(PlayerFixture::PLAYER_ADMIN, PuzzleSolvingTimeFixture::TIME_03, [22], total: 25);
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
 
         // An old time (back from editing it, a bookmark): the pill, but no celebration

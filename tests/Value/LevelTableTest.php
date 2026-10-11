@@ -20,11 +20,11 @@ final class LevelTableTest extends TestCase
             'zero xp is level 1' => [0, 1],
             'just below level 2' => [4, 1],
             'exactly level 2' => [5, 2],
-            'between levels' => [18, 2],
-            'exactly level 3' => [19, 3],
-            'exactly level 10' => [142, 10],
-            'mid curve' => [600, 20],
-            'exactly level 25' => [999, 25],
+            'between levels' => [22, 2],
+            'exactly level 3' => [23, 3],
+            'exactly level 10' => [173, 10],
+            'mid curve' => [650, 20],
+            'exactly level 25' => [1070, 25],
             'just below max level' => [6999, 49],
             'exactly max level' => [7000, 50],
             'far beyond max level' => [99999, 50],
@@ -42,8 +42,8 @@ final class LevelTableTest extends TestCase
     {
         self::assertSame(0, LevelTable::xpForLevel(1));
         self::assertSame(5, LevelTable::xpForLevel(2));
-        self::assertSame(573, LevelTable::xpForLevel(20));
-        self::assertSame(3648, LevelTable::xpForLevel(40));
+        self::assertSame(635, LevelTable::xpForLevel(20));
+        self::assertSame(3706, LevelTable::xpForLevel(40));
         self::assertSame(7000, LevelTable::xpForLevel(50));
     }
 
@@ -69,8 +69,8 @@ final class LevelTableTest extends TestCase
 
     public function testProgressToNextMidLevel(): void
     {
-        // Level 2 spans 5..19 — 12 XP is half of the way to level 3.
-        self::assertSame(0.5, LevelTable::progressToNext(12));
+        // Level 2 spans 5..23 — 14 XP is half of the way to level 3.
+        self::assertSame(0.5, LevelTable::progressToNext(14));
     }
 
     public function testProgressToNextJustBeforeLevelUp(): void
@@ -100,7 +100,7 @@ final class LevelTableTest extends TestCase
     }
 
     /**
-     * Curve v6 shape (LevelTable docblock): no level is ever cheaper than the one before it
+     * Curve v7 shape (LevelTable docblock): no level is ever cheaper than the one before it
      */
     public function testNoStepIsSmallerThanThePreviousOne(): void
     {

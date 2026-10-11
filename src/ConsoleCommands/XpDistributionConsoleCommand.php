@@ -13,11 +13,11 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
 /**
- * Post-backfill calibration check (§1.3 / P7.T2), curve v6 + formula v5 (2026-10-11, launch-2026-10.md §1
+ * Post-backfill calibration check (§1.3 / P7.T2), curve v7 + formula v5 (2026-10-11, launch-2026-10.md §1
  * "XP balance"). On the production copy (7,878 players with XP) the rebuild gave:
  *
  *   1. 8 players at Level 50 (Level 50 = 7,000 XP, about 1,300 logged puzzles with the bonuses)
- *   2. the median player at Level 6 (p90 Level 25)
+ *   2. the median player at Level 5 (p90 Level 24)
  *
  * Production should land close to that. Dev fixtures just need to look sane (a handful of low-level players).
  * Read-only — safe anywhere.
@@ -80,8 +80,8 @@ final class XpDistributionConsoleCommand extends Command
 
         $io->section('Calibration invariants (production expectations)');
         $io->listing([
-            sprintf('Players at Level 50: %d — expected ≈8 on production data (curve v6)', $maxLevelCount),
-            sprintf('Median level: %s — expected around 6 on production data', is_numeric($median) ? (string) (int) $median : 'n/a'),
+            sprintf('Players at Level 50: %d — expected ≈8 on production data (curve v7)', $maxLevelCount),
+            sprintf('Median level: %s — expected around 5 on production data', is_numeric($median) ? (string) (int) $median : 'n/a'),
             sprintf('Players with XP: %d', $total),
         ]);
 

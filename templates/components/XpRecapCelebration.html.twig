@@ -22,7 +22,7 @@
 
         {% if mode == 'pending' %}
             <div class="recap-row recap-row-pending" aria-busy="true">
-                <span class="recap-row-icon recap-icon-level" aria-hidden="true"><i class="bi bi-stars"></i></span>
+                {{ include('added_time_recap/_level_icon.html.twig') }}
                 <span class="recap-row-body">
                     <span class="recap-row-title">{{ 'xp.receipt.counting'|trans }}</span>
                     <span class="placeholder-glow d-block"><span class="placeholder col-8"></span></span>

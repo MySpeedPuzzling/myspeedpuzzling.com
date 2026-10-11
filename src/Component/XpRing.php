@@ -13,7 +13,8 @@ use Symfony\UX\TwigComponent\Attribute\PostMount;
 
 /**
  * The XP level ring around a player's avatar (docs/features/xp-levels/launch-2026-10.md, "Profile header" and
- * "Navbar"): an arc showing the progress toward the next level, its colours richer every 10 levels and golden at 50.
+ * "Navbar"): an arc showing the progress toward the next level, in the colour of the player's level band - one per 10
+ * levels, gold at 50 (band(), components/_xp.scss .xp-level-band-*, design-spec §9), so a level reads at first sight.
  *
  * Variants:
  *  - header: the player header's avatar - the arc, a "Lv 12" tab under it, the whole avatar a link (own XP history,
@@ -66,18 +67,22 @@ final class XpRing
         $this->visible = $player->isPrivate === false || $this->isOwn;
     }
 
-    public function milestoneClass(): string
+    /**
+     * The level's colour band: 1 = Level 1-9, 2 = 10-19 ... 5 = 40-49, 6 = Level 50. The one rule - templates without
+     * the component (the reveal's level medallion) compute the same `level >= 50 ? 6 : level // 10 + 1`.
+     */
+    public static function band(int $level): int
     {
-        $level = $this->player->level ?? 1;
+        if ($level >= LevelTable::MAX_LEVEL) {
+            return 6;
+        }
 
-        return match (true) {
-            $level >= LevelTable::MAX_LEVEL => 'xp-ring-milestone-50',
-            $level >= 40 => 'xp-ring-milestone-40',
-            $level >= 30 => 'xp-ring-milestone-30',
-            $level >= 20 => 'xp-ring-milestone-20',
-            $level >= 10 => 'xp-ring-milestone-10',
-            default => '',
-        };
+        return intdiv(max($level, 1), 10) + 1;
+    }
+
+    public function bandClass(): string
+    {
+        return 'xp-level-band-' . self::band($this->player->level ?? 1);
     }
 
     /**

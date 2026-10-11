@@ -6,7 +6,7 @@
 
 {% if this.visible %}
     {% set level_text = 'xp.level_chip'|trans({'%level%': player.level}) %}
-    {% set ring_class = 'xp-avatar-ring xp-avatar-ring-' ~ variant ~ ' ' ~ this.milestoneClass %}
+    {% set ring_class = 'xp-avatar-ring xp-avatar-ring-' ~ variant ~ ' ' ~ this.bandClass %}
     {% if variant == 'header' %}
         {% set ring_label = (this.isOwn ? 'player_progress.ring_label_own' : 'player_progress.ring_label')|trans({'%level%': player.level, '%xp%': player.xpTotal|plain_number}) %}
         {# The target's back button comes back to this player's page (design-spec §3) #}

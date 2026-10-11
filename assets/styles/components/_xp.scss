@@ -12,84 +12,39 @@ $xp-gold:   #ffd700;
 $xp-gold-deep: #f0a500;
 
 
-// Avatar / icon XP ring — progress arc via conic-gradient.
-// Usage: <span class="xp-ring xp-ring-milestone-20" style="--xp-progress: .64">…</span>
+// Level colour bands (docs/features/xp-levels/ux-polish/design-spec.md §9, 2026-10-11): one colour per 10 levels, so a
+// level reads at first sight wherever it is drawn - the ring around an avatar (XpRing), its "Lv 12" tab, the reveal's
+// level medallion. Band = level // 10 + 1 for levels 1-49 (1 = 1-9 ... 5 = 40-49), 6 = Level 50 (XpRing::band()).
+// Like belts: lime, aqua, violet, magenta, obsidian, gold at the summit - hues no rank ladder on the site uses (skill
+// tiers are green/blue/indigo/red/navy, achievement tiers the metals, the families coral/indigo/amber/teal/rose), every
+// ring >= 3:1 on white (gold: always a full ring with a glow), white tab text >= 5.1:1, lightness falls band by band so
+// colour-blind eyes tell neighbours apart too. The number stays on the tab - colour is never the only cue.
+//   ring = the arc, ink = the tab behind white text, track = the ring's rest at 32 % (so the band shows at 0 % progress too)
+$xp-level-bands: (
+  1: (ring: #5ea524, ink: #3f7a12),   // lime - a fresh start
+  2: (ring: #0e9cb8, ink: #0b7891),   // aqua
+  3: (ring: #8f55e0, ink: #7a3fcf),   // violet
+  4: (ring: #c22a7e, ink: #ad2370),   // magenta
+  5: (ring: #1f2440, ink: #1f2440),   // obsidian - the black belt
+);
 
-.xp-ring {
-  --xp-progress: 0;
-  --xp-ring-width: 3px;
-  --xp-ring-from: #{$xp-sky};
-  --xp-ring-to: #{$xp-sky};
-  --xp-ring-track: rgba(43, 52, 69, .14);
-
-  position: relative;
-  display: inline-flex;
-  border-radius: 50%;
-  padding: var(--xp-ring-width);
-
-  // The arc lives on a masked pseudo-element, NOT on the box background: the ring wraps
-  // avatars and icons that are often transparent (the header's default user glyph), and a
-  // plain background would show through them as a filled disc instead of a ring.
-  &::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: 50%;
-    background: conic-gradient(
-      from 0deg,
-      var(--xp-ring-from),
-      var(--xp-ring-to) calc(var(--xp-progress) * 360deg),
-      var(--xp-ring-track) calc(var(--xp-progress) * 360deg)
-    );
-    -webkit-mask: radial-gradient(
-      farthest-side,
-      transparent calc(100% - var(--xp-ring-width)),
-      #000 calc(100% - var(--xp-ring-width))
-    );
-    mask: radial-gradient(
-      farthest-side,
-      transparent calc(100% - var(--xp-ring-width)),
-      #000 calc(100% - var(--xp-ring-width))
-    );
-    pointer-events: none;
-  }
-
-  > * {
-    position: relative;
-    border-radius: 50%;
-    display: block;
+@each $band, $colours in $xp-level-bands {
+  .xp-level-band-#{$band} {
+    --xp-level-ring: #{map-get($colours, ring)};
+    --xp-level-ring-to: #{map-get($colours, ring)};
+    --xp-level-track: #{rgba(map-get($colours, ring), .32)};
+    --xp-level-ink: #{map-get($colours, ink)};
+    --xp-level-ink-text: #fff;
   }
 }
 
-// Milestone intensity — the ring's arc gradient grows richer every 10 levels,
-// golden at the summit. Zero image assets, brand palette only.
-.xp-ring-milestone-10 {
-  --xp-ring-from: #{$xp-sky};
-  --xp-ring-to: #{$xp-indigo};
-}
-
-.xp-ring-milestone-20 {
-  --xp-ring-from: #{$xp-indigo};
-  --xp-ring-to: #{$xp-coral};
-}
-
-.xp-ring-milestone-30 {
-  --xp-ring-from: #{$xp-coral};
-  --xp-ring-to: #{$xp-indigo};
-  box-shadow: 0 0 0 1px rgba($xp-indigo, .25);
-}
-
-.xp-ring-milestone-40 {
-  --xp-ring-from: #{$xp-coral};
-  --xp-ring-to: #{$xp-sky};
-  box-shadow: 0 0 6px rgba($xp-indigo, .45);
-}
-
-.xp-ring-milestone-50 {
-  --xp-ring-from: #{$xp-gold-deep};
-  --xp-ring-to: #{$xp-gold};
-  --xp-progress: 1;
-  box-shadow: 0 0 8px rgba($xp-gold, .65);
+// Level 50: gold, the one metal of the ladder - the summit, never an achievement tier's place (it is a level ring)
+.xp-level-band-6 {
+  --xp-level-ring: #{$xp-gold-deep};
+  --xp-level-ring-to: #{$xp-gold};
+  --xp-level-track: #{rgba($xp-gold-deep, .3)};
+  --xp-level-ink: linear-gradient(135deg, #{$xp-gold-deep}, #{$xp-gold});
+  --xp-level-ink-text: #3f2d00;
 }
 
 // Level chip

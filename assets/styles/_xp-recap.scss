@@ -99,14 +99,9 @@
   font-size: 1.1rem;
 }
 
+// The level row's icon is the player's face in their level ring (added_time_recap/_level_icon.html.twig) - no disc
 .recap-icon-level {
-  background: rgba($xp-indigo, .12);
-  color: $xp-indigo;
-
-  &.is-max {
-    background: linear-gradient(135deg, $xp-gold-deep, $xp-gold);
-    color: #3f2d00;
-  }
+  line-height: 0;
 }
 
 .recap-icon-place {
@@ -188,7 +183,7 @@
   height: .5rem;
   overflow: hidden;
   border-radius: 999px;
-  background: rgba($xp-navy, .1);
+  background: var(--xp-level-track, rgba($xp-navy, .1));
 }
 
 .recap-bar-fill {
@@ -200,7 +195,8 @@
   min-width: 2px;
   height: 100%;
   border-radius: 999px;
-  background: linear-gradient(90deg, $xp-sky, $xp-indigo);
+  // The level's colour band (.xp-level-band-N on .recap-bar), like the ring next to it
+  background: linear-gradient(90deg, var(--xp-level-ring, $xp-sky), var(--xp-level-ring-to, $xp-indigo));
 }
 
 .recap-level.is-celebrating {
@@ -233,13 +229,14 @@
   }
 }
 
+// In the level band's colour (the icon carries .xp-level-band-*)
 @keyframes recap-level-glow {
   0% {
-    box-shadow: 0 0 0 0 rgba($xp-indigo, .45);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--xp-level-ring, #{$xp-indigo}) 45%, transparent);
   }
 
   100% {
-    box-shadow: 0 0 0 .875rem rgba($xp-indigo, 0);
+    box-shadow: 0 0 0 .875rem color-mix(in srgb, var(--xp-level-ring, #{$xp-indigo}) 0%, transparent);
   }
 }
 

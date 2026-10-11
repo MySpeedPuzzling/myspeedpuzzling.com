@@ -19,7 +19,7 @@
     {% endif %}
 >
     <a class="recap-row" href="{{ path('xp_history') }}">
-        <span class="recap-row-icon recap-icon-level{{ is_max ? ' is-max' }}" aria-hidden="true"><i class="bi bi-stars"></i></span>
+        {{ include('added_time_recap/_level_icon.html.twig') }}
         <span class="recap-row-body">
             <span class="recap-row-title">
                 {# One flex item: the title's own words and the number must not be spaced apart by the row's gap #}
@@ -32,7 +32,8 @@
                 {% endif %}
             </span>
             {% if not is_max %}
-                <span class="recap-bar" aria-hidden="true">
+                {# In the level's colour band, like the ring next to it (design-spec §9) #}
+                <span class="recap-bar xp-level-band-{{ xp_level_band(profile.level) }}" aria-hidden="true">
                     <span class="recap-bar-fill" style="--from: {{ component.previousProgress }}; --to: {{ progress }};"></span>
                 </span>
             {% endif %}

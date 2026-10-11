@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Twig;
 
+use SpeedPuzzling\Web\Component\XpRing;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Services\Xp\XpFeatureGate;
 use Twig\Extension\AbstractExtension;
 use Twig\TwigFunction;
 
 /**
+ * `xp_level_band(level)`: the level's colour band (XpRing::band()), for anything drawn in the level's colour.
+ *
  * `xp_system_visible()` for templates that only LINK to the gamification pages —
  * navigation, footer, ladder CTAs. Components and controllers gate themselves through
  * XpFeatureGate directly; this exists so a link to a page that 404s for the viewer is
@@ -32,6 +35,8 @@ final class XpTwigExtension extends AbstractExtension
     {
         return [
             new TwigFunction('xp_system_visible', $this->isVisible(...)),
+            // The level colour band (1-6) - the one rule is XpRing::band(); templates take the `xp-level-band-N` class
+            new TwigFunction('xp_level_band', XpRing::band(...)),
         ];
     }
 

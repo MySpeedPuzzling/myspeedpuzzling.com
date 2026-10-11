@@ -32,7 +32,7 @@ final class ProfileProgressionTest extends WebTestCase
 
         $crawler = $this->page($browser, PlayerFixture::PLAYER_ADMIN, PlayerFixture::PLAYER_WITH_STRIPE);
 
-        $ring = $crawler->filter('.player-head-avatar a.xp-avatar-ring.xp-avatar-ring-header.xp-ring-milestone-10');
+        $ring = $crawler->filter('.player-head-avatar a.xp-avatar-ring.xp-avatar-ring-header.xp-level-band-2');
         self::assertCount(1, $ring);
         self::assertStringStartsWith('/en/how-xp-works?return=', (string) $ring->attr('href'));
         self::assertStringStartsWith('Level 12, ', (string) $ring->attr('aria-label'));
@@ -58,7 +58,7 @@ final class ProfileProgressionTest extends WebTestCase
 
         $ring = $crawler->filter('.player-head-avatar a.xp-avatar-ring');
         self::assertStringStartsWith('/en/my/xp-history?return=', (string) $ring->attr('href'));
-        self::assertStringContainsString('xp-ring-milestone-50', (string) $ring->attr('class'));
+        self::assertStringContainsString('xp-level-band-6', (string) $ring->attr('class'));
         self::assertSame('--xp-progress: 1', $ring->attr('style'));
         self::assertCount(1, $ring->filter('.xp-level-tab.xp-level-tab-max'));
     }

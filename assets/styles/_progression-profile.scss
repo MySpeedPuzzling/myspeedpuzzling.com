@@ -17,15 +17,14 @@ $progress-teal-text: #0f6e56;
 $progress-gold-deep: #f0a500;
 $progress-gold: #ffd700;
 
-// The ring: an arc toward the next level on a quiet track, drawn on a masked pseudo-element OUTSIDE the avatar, so the
-// avatar keeps its size and the page its layout. Colours per 10 levels come from _xp.scss's .xp-ring-milestone-*.
+// The ring: an arc toward the next level on the band's own lighter track, drawn on a masked pseudo-element OUTSIDE the
+// avatar, so the avatar keeps its size and the page its layout. The colours are the level band's (components/_xp.scss
+// .xp-level-band-*, set by XpRing on the same element) - read here, never redeclared: this file loads after _xp.scss,
+// and its own defaults used to win over the old milestone classes, so every level drew the same sky-blue arc.
 .xp-avatar-ring {
     --xp-progress: 0;
     --xp-ring-width: 3px;
     --xp-ring-gap: 2px;
-    --xp-ring-from: #{$xp-sky};
-    --xp-ring-to: #{$xp-sky};
-    --xp-ring-track: rgba(43, 52, 69, .14);
 
     position: relative;
     display: inline-block;
@@ -43,9 +42,9 @@ $progress-gold: #ffd700;
         inset: calc(-1 * (var(--xp-ring-width) + var(--xp-ring-gap)));
         border-radius: 50%;
         background: conic-gradient(
-            var(--xp-ring-from),
-            var(--xp-ring-to) calc(var(--xp-progress) * 360deg),
-            var(--xp-ring-track) calc(var(--xp-progress) * 360deg)
+            var(--xp-level-ring, #{$xp-sky}),
+            var(--xp-level-ring-to, #{$xp-sky}) calc(var(--xp-progress) * 360deg),
+            var(--xp-level-track, rgba(43, 52, 69, .14)) calc(var(--xp-progress) * 360deg)
         );
         -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - var(--xp-ring-width)), #000 calc(100% - var(--xp-ring-width)));
         mask: radial-gradient(farthest-side, transparent calc(100% - var(--xp-ring-width)), #000 calc(100% - var(--xp-ring-width)));
@@ -55,6 +54,11 @@ $progress-gold: #ffd700;
     > .lb-avatar {
         display: block;
         margin-right: 0;
+    }
+
+    // Level 50: always the full gold ring, with a soft glow - the summit looks like one
+    &.xp-level-band-6::before {
+        filter: drop-shadow(0 0 3px rgba($progress-gold, .75));
     }
 }
 
@@ -88,8 +92,9 @@ a.xp-avatar-ring:focus-visible {
     padding: 1px 7px;
     border: 2px solid $white;
     border-radius: 999px;
-    background: $progress-indigo;
-    color: $white;
+    // The band's ink (white text >= 5.1:1 on every band; Level 50 = the gold with dark text)
+    background: var(--xp-level-ink, #{$progress-indigo});
+    color: var(--xp-level-ink-text, #{$white});
     font-size: .6875rem;
     font-weight: 600;
     line-height: 1.35;
@@ -102,10 +107,6 @@ a.xp-avatar-ring:focus-visible {
     }
 }
 
-.xp-level-tab-max {
-    background: linear-gradient(135deg, $progress-gold-deep, $progress-gold);
-    color: #3f2d00;
-}
 
 // The compact bar's small avatar and the navbar's: the arc only
 .xp-avatar-ring-bar,

@@ -1860,11 +1860,11 @@ badges:
         showing_player: "%name%のティアを表示中"
         held_at_launch: "リリース時から保持"
         serial_of: "%total%人中%serial%番目"
-        share: "XPを持つパズラーの%percent%"
-        share_below: "XPを持つパズラーの%percent%未満"
+        share: "%count%人のパズラーが獲得（%percent%）"
+        share_below: "%count%人のパズラーが獲得（%percent%未満）"
         player_best: "%name%のベスト: %value%"
         player_so_far: "%name%の現在: %value%"
-        explain_share: "「XPを持つパズラーの%」は、1つ以上のパズルを記録した全員を数えています。"
+        explain_share: "割合は、1つ以上のパズルを記録した全員を基準にしています。"
         explain_step_back: "タイムが削除されたり確認待ちになったりすると、ティアが下がることがあります。そのタイムが戻れば、ティアも戻ります。"
         explain_lapsed: "実績はそのまま保存され、メンバーシップを再開すると戻ってきます。"
     reveals:
@@ -2044,7 +2044,7 @@ badges:
         summary: "実績 <strong>%total%個中%earned%個</strong> · ティア %tiers_total%中%tiers_earned%"
         closest_next: "達成まであと少し"
         first_close: "最初の実績まであと少し"
-        next_tier: "次: %tier%"
+        next_goal: "%tier%：%requirement%"
         unrevealed: "新しいティア · タップしてお披露目"
         new: "新着"
         new_label: "過去7日間に獲得"
@@ -2058,7 +2058,7 @@ badges:
             progress: "%tier%まで %current%/%target%"
             progress_time: "ベストタイム%current%、%tier%には%target%が必要"
         explainer:
-            share: "「パズラーの%」は、XPを持つ全員、つまり1つ以上のパズルを記録した全員を数えています。"
+            share: "「パズラーの%」は、1つ以上のパズルを記録した全員を基準にしています。"
             step_back: "タイムが削除されたり確認待ちになったりすると、ティアが下がることがあります。そのタイムが戻れば、ティアも戻ります。"
             lapsed: "実績はそのまま保存され、メンバーシップを再開すると戻ってきます。"
 "scan":

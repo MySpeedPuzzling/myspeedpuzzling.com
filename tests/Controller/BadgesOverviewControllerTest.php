@@ -185,7 +185,7 @@ final class BadgesOverviewControllerTest extends WebTestCase
         $jsonLd = $crawler->filter('script[type="application/ld+json"]')->each(static fn ($node): string => $node->text());
         self::assertNotEmpty(array_filter($jsonLd, static fn (string $json): bool => str_contains($json, 'BreadcrumbList')));
         // The footnote says what the numbers mean
-        self::assertSelectorTextContains('.achievements-footnote', 'counts everybody with XP');
+        self::assertSelectorTextContains('.achievements-footnote', 'counts everybody who has logged at least one puzzle');
         self::assertSelectorTextContains('.achievements-footnote', 'can step back');
     }
 

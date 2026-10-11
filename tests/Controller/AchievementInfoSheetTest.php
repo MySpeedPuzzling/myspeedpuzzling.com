@@ -59,7 +59,9 @@ final class AchievementInfoSheetTest extends WebTestCase
         $facts = $crawler->filter('.medal-facts-tier[data-tier="3"]');
         self::assertNull($facts->attr('hidden'));
         self::assertStringContainsString('No. 1 of 1', $facts->text());
-        self::assertStringContainsString('of puzzlers with XP', $facts->text());
+        // How many hold it and their share - no XP denominator (Jan 2026-10-11)
+        self::assertMatchesRegularExpression('/Held by \d+ puzzlers? \(/', $facts->text());
+        self::assertStringNotContainsString('XP', $facts->text());
         self::assertStringContainsString('Held at launch', $crawler->filter('.medal-facts-tier[data-tier="1"]')->text());
         self::assertStringContainsString('Nobody yet', $crawler->filter('.medal-facts-tier[data-tier="5"]')->text());
 
@@ -73,7 +75,7 @@ final class AchievementInfoSheetTest extends WebTestCase
 
         self::assertSelectorTextContains('.medal-actions a.btn-outline-primary', 'See who earned it (');
         self::assertCount(2, $crawler->filter('.medal-actions a[data-turbo-frame="_top"]'));
-        self::assertSelectorTextContains('.medal-footnote', 'of puzzlers with XP');
+        self::assertSelectorTextContains('.medal-footnote', 'counts everyone who has logged at least one puzzle');
 
         // One statement for the medal facts of every earned tier, and a pinned budget for the whole sheet. Measured
         // 2026-10-11: sign-in + locale (7), the catalogue's stats snapshot (11), badge rows (1), medal facts (1); the

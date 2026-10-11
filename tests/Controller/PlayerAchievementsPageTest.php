@@ -145,7 +145,7 @@ final class PlayerAchievementsPageTest extends WebTestCase
         self::assertCount(1, $streak);
         self::assertStringContainsString('Bronze', $streak->text());
         self::assertCount(0, $streak->filter('[role="progressbar"], .achievement-cell-numbers'));
-        self::assertSame('On Fire, Bronze, tier 1 of 5', $streak->attr('aria-label'));
+        self::assertSame('On Fire, Bronze, tier 1 of 5, Solve puzzles 7 days in a row', $streak->attr('aria-label'));
     }
 
     public function testCellsHaveAnAccessibleNameWithEverythingTheyShow(): void
@@ -277,6 +277,26 @@ final class PlayerAchievementsPageTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('.achievements-summary', '1 of 16 achievements');
+    }
+
+    public function testEveryCellSaysWhatToDoNext(): void
+    {
+        $browser = self::createClient();
+        $this->insertBadge(PlayerFixture::PLAYER_WITH_STRIPE, 'puzzles_solved', 1, revealed: true);
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
+
+        $crawler = $browser->request('GET', self::MEMBER_PAGE);
+
+        self::assertResponseIsSuccessful();
+        // A tier held: the next tier's requirement, named
+        $held = $crawler->filter('.achievement-cell a[href^="/en/achievements/puzzles_solved/info"]');
+        self::assertSame('Silver: Solve 100 distinct puzzles', trim($held->filter('.achievement-cell-goal')->text()));
+        // Nothing held yet: the Bronze requirement alone - never a bare "Bronze next"
+        $none = $crawler->filter('.achievement-cell a[href^="/en/achievements/brand_explorer/info"]');
+        self::assertSame('Solve puzzles from 3 different manufacturers', trim($none->filter('.achievement-cell-goal')->text()));
+        self::assertCount(0, $none->filter('.achievement-cell-tier'));
+        // Every cell that is not complete has its goal
+        self::assertSame($crawler->filter('.achievement-shelf .achievement-cell-link')->count(), $crawler->filter('.achievement-shelf .achievement-cell-goal')->count());
     }
 
     private function insertBadge(string $playerId, string $type, null|int $tier, bool $revealed): void

@@ -2271,7 +2271,7 @@ badges:
         summary: "<strong>%earned% of %total%</strong> achievements · %tiers_earned% of %tiers_total% tiers"
         closest_next: "Closest next steps"
         first_close: "Your first one is close"
-        next_tier: "%tier% next"
+        next_goal: "%tier%: %requirement%"
         unrevealed: "New tier · tap to reveal"
         new: "New"
         new_label: "earned in the last 7 days"
@@ -2285,7 +2285,7 @@ badges:
             progress: "%current% of %target% toward %tier%"
             progress_time: "best time %current%, %target% needed for %tier%"
         explainer:
-            share: "“% of puzzlers” counts everybody with XP, that is everybody who has logged at least one puzzle."
+            share: "“% of puzzlers” counts everybody who has logged at least one puzzle."
             step_back: "A tier can step back when a time is removed or waits for verification, and it returns with the time."
             lapsed: "Your achievements are kept and come back with membership."
     detail:
@@ -2325,11 +2325,11 @@ badges:
         showing_player: "Showing %name%'s tiers"
         held_at_launch: "Held at launch"
         serial_of: "No. %serial% of %total%"
-        share: "%percent% of puzzlers with XP"
-        share_below: "< %percent% of puzzlers with XP"
+        share: "Held by 1 puzzler (%percent%)|Held by %count% puzzlers (%percent%)"
+        share_below: "Held by 1 puzzler (< %percent%)|Held by %count% puzzlers (< %percent%)"
         player_best: "%name%'s best: %value%"
         player_so_far: "%name% so far: %value%"
-        explain_share: "“% of puzzlers with XP” counts everyone who has logged at least one puzzle."
+        explain_share: "The % counts everyone who has logged at least one puzzle."
         explain_step_back: "A tier can step back when a time is removed or waits for verification, and returns with it."
         explain_lapsed: "Your achievements are kept and come back with membership."
     reveals:

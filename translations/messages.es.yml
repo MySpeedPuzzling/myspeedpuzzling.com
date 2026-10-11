@@ -1780,11 +1780,11 @@ badges:
         showing_player: "Rangos de %name%"
         held_at_launch: "Desde el lanzamiento"
         serial_of: "N.º %serial% de %total%"
-        share: "%percent% de los puzzleros con XP"
-        share_below: "< %percent% de los puzzleros con XP"
+        share: "Lo tiene 1 puzzlero (%percent%)|Lo tienen %count% puzzleros (%percent%)"
+        share_below: "Lo tiene 1 puzzlero (< %percent%)|Lo tienen %count% puzzleros (< %percent%)"
         player_best: "Mejor tiempo de %name%: %value%"
         player_so_far: "%name% hasta ahora: %value%"
-        explain_share: "«% de los puzzleros con XP» cuenta a todos los que han registrado al menos un puzzle."
+        explain_share: "El porcentaje cuenta a todos los que han registrado al menos un puzzle."
         explain_step_back: "Un rango puede retroceder cuando se elimina un tiempo o queda pendiente de verificación, y vuelve junto con él."
         explain_lapsed: "Tus logros se conservan y vuelven con la membresía."
     reveals:
@@ -1964,7 +1964,7 @@ badges:
         summary: "<strong>%earned% de %total%</strong> logros · %tiers_earned% de %tiers_total% rangos"
         closest_next: "A tu alcance"
         first_close: "Tu primer logro está cerca"
-        next_tier: "Siguiente: %tier%"
+        next_goal: "%tier%: %requirement%"
         unrevealed: "Nuevo rango · toca para revelarlo"
         new: "Nuevo"
         new_label: "conseguido en los últimos 7 días"
@@ -1978,7 +1978,7 @@ badges:
             progress: "%current% de %target% para %tier%"
             progress_time: "mejor tiempo %current%, se necesita %target% para %tier%"
         explainer:
-            share: "«% de los puzzleros» cuenta a todos los que tienen XP, es decir, a todos los que han registrado al menos un puzzle."
+            share: "«% de los puzzleros» cuenta a todos los que han registrado al menos un puzzle."
             step_back: "Un rango puede retroceder cuando se elimina un tiempo o queda pendiente de verificación, y vuelve junto con ese tiempo."
             lapsed: "Tus logros se conservan y vuelven con la membresía."
 

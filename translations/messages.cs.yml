@@ -1816,11 +1816,11 @@ badges:
         showing_player: "Stupně, které má %name%"
         held_at_launch: "Už při spuštění"
         serial_of: "Č. %serial% z %total%"
-        share: "%percent% puzzlerů s XP"
-        share_below: "< %percent% puzzlerů s XP"
+        share: "Má ho 1 puzzler (%percent%)|Mají ho %count% puzzleři (%percent%)|Má ho %count% puzzlerů (%percent%)"
+        share_below: "Má ho 1 puzzler (< %percent%)|Mají ho %count% puzzleři (< %percent%)|Má ho %count% puzzlerů (< %percent%)"
         player_best: "%name% – rekord: %value%"
         player_so_far: "%name% zatím: %value%"
-        explain_share: "„% puzzlerů s XP“ počítá každého, kdo zapsal aspoň jedno puzzle."
+        explain_share: "Procento se počítá z každého, kdo zapsal aspoň jedno puzzle."
         explain_step_back: "Stupeň může klesnout, když se čas odebere nebo čeká na ověření, a s ním se zase vrátí."
         explain_lapsed: "Tvoje úspěchy zůstávají uložené a s členstvím se vrátí."
     reveals:
@@ -2000,7 +2000,7 @@ badges:
         summary: "<strong>%earned% z %total%</strong> úspěchů · %tiers_earned% z %tiers_total% stupňů"
         closest_next: "Máš na dosah"
         first_close: "Tvůj první úspěch je na dosah"
-        next_tier: "Další: %tier%"
+        next_goal: "%tier%: %requirement%"
         unrevealed: "Nový stupeň · klepni a odhal ho"
         new: "Nový"
         new_label: "získáno za posledních 7 dní"
@@ -2014,7 +2014,7 @@ badges:
             progress: "%current% z %target% ke stupni %tier%"
             progress_time: "nejlepší čas %current%, pro stupeň %tier% je potřeba %target%"
         explainer:
-            share: "„% puzzlerů“ počítá všechny s XP, tedy každého, kdo zapsal aspoň jedno puzzle."
+            share: "„% puzzlerů“ se počítá z každého, kdo zapsal aspoň jedno puzzle."
             step_back: "Stupeň může klesnout, když se čas odebere nebo čeká na ověření, a s tímto časem se zase vrátí."
             lapsed: "Tvoje úspěchy zůstávají uložené a s členstvím se vrátí."
 

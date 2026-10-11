@@ -329,11 +329,26 @@ $shelf-press: scale(.97);
     }
 }
 
+// What to do next - on every cell that is not complete: the requirement (with the next tier's name once a tier is held)
+.achievement-cell-goal {
+    font-size: .78125rem;
+    line-height: 1.3;
+    color: $body-color;
+    text-wrap: balance;
+    overflow-wrap: anywhere;
+}
+
+// The bar and its numbers sit at the bottom of the card, so cells in a row line up whatever the goal's length
 .achievement-cell .achievement-progress {
     flex-shrink: 0;
     width: 75%;
     height: 5px;
-    margin: .25rem 0 0;
+    margin: auto 0 0;
+    padding-top: 0;
+}
+
+.achievement-cell .achievement-progress + .achievement-cell-numbers {
+    margin-top: .125rem;
 }
 
 .achievement-cell-meta {

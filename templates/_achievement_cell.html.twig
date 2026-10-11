@@ -49,14 +49,21 @@
         {%- else -%}
             {%- set label = label|merge(['badges.shelf.a11y.not_yet'|trans]) -%}
         {%- endif -%}
-        {%- if progress is not null -%}
-            {%- set label = label|merge([progress_label]) -%}
-        {%- elseif row.isComplete -%}
+        {%- if row.isComplete -%}
             {%- set rarity_text = 'badges.catalogue.rarity'|trans({'%percent%': include('_achievement_medal_share.html.twig', {percent: row.rarityPercent, holders: 1, long: false, plain: true})}) -%}
             {%- set label = label|merge([rarity_text]) -%}
-        {%- elseif row.type.value != 'streak' or row.earnedTier is null -%}
+        {%- else -%}
+            {#- What to do, on every cell that is not complete (Jan 2026-10-11: some cells said what to do, some only
+                "Bronze next"). Nothing held yet: the Bronze requirement alone. A tier held and progress shown (the
+                owner): the next tier's requirement, named. A visitor (no progress): what the held tier took. -#}
             {%- set requirement = ('badges.requirement.' ~ row.type.value ~ '_' ~ row.focusTier.value)|trans -%}
-            {%- set label = label|merge([requirement]) -%}
+            {%- set goal = progress is not null and row.earnedTier is not null
+                ? 'badges.shelf.next_goal'|trans({'%tier%': row.focusTier.translationKey()|trans, '%requirement%': requirement})
+                : requirement -%}
+            {%- set label = label|merge([goal]) -%}
+            {%- if progress is not null -%}
+                {%- set label = label|merge([progress_label]) -%}
+            {%- endif -%}
         {%- endif -%}
         {%- if row.newlyEarned -%}
             {%- set label = label|merge(['badges.shelf.new_label'|trans]) -%}
@@ -78,29 +85,27 @@
         {% if not personal %}
             <span class="achievement-cell-meta" aria-hidden="true">{{ holders_text }}</span>
         {% else %}
-            <span class="achievement-cell-tier" aria-hidden="true">
-                {% if row.earnedTier is not null %}
+            {% if row.earnedTier is not null %}
+                <span class="achievement-cell-tier" aria-hidden="true">
                     <b>{{ row.earnedTier.translationKey()|trans }}</b>
                     <span class="achievement-pips">
                         {%- for value in 1..5 -%}<i{% if value <= row.earnedTier.value %} class="is-held"{% endif %}></i>{%- endfor -%}
                     </span>
-                {% else %}
-                    {{ 'badges.shelf.next_tier'|trans({'%tier%': row.focusTier.translationKey()|trans}) }}
-                {% endif %}
-            </span>
-
-            {% if progress is not null %}
-                {# Static on the shelf: only the closest next steps fill (design-spec §8.6) #}
-                <span class="achievement-progress" role="progressbar" aria-hidden="true"
-                      aria-valuenow="{{ progress.percent }}" aria-valuemin="0" aria-valuemax="100">
-                    <span style="width: {{ progress.percent }}%"></span>
                 </span>
-                <span class="achievement-cell-meta achievement-cell-numbers" aria-hidden="true">{{ numbers }}</span>
-            {% elseif row.isComplete %}
+            {% endif %}
+
+            {% if row.isComplete %}
                 <span class="achievement-cell-meta" aria-hidden="true">{{ rarity_text }}</span>
-            {% elseif requirement is defined %}
-                {# No progress to measure yet (a speed achievement without a solo time): the requirement as text #}
-                <span class="achievement-cell-meta" aria-hidden="true">{{ requirement }}</span>
+            {% else %}
+                <span class="achievement-cell-goal" aria-hidden="true">{{ goal }}</span>
+                {% if progress is not null %}
+                    {# Static on the shelf: only the closest next steps fill (design-spec §8.6) #}
+                    <span class="achievement-progress" role="progressbar" aria-hidden="true"
+                          aria-valuenow="{{ progress.percent }}" aria-valuemin="0" aria-valuemax="100">
+                        <span style="width: {{ progress.percent }}%"></span>
+                    </span>
+                    <span class="achievement-cell-meta achievement-cell-numbers" aria-hidden="true">{{ numbers }}</span>
+                {% endif %}
             {% endif %}
         {% endif %}
     </a>

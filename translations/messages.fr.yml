@@ -1796,7 +1796,7 @@ competition_referees:
     "summary": "<strong>%earned% sur %total%</strong> succès · %tiers_earned% sur %tiers_total% paliers"
     "closest_next": "À portée de main"
     "first_close": "Votre premier succès est tout proche"
-    "next_tier": "Ensuite : %tier%"
+    "next_goal": "%tier% : %requirement%"
     "unrevealed": "Nouveau palier · touchez pour le révéler"
     "new": "Nouveau"
     "new_label": "obtenu ces 7 derniers jours"
@@ -1810,7 +1810,7 @@ competition_referees:
       "progress": "%current% sur %target% vers le palier %tier%"
       "progress_time": "meilleur temps %current%, %target% requis pour le palier %tier%"
     "explainer":
-      "share": "« % des puzzleurs » compte tous ceux qui ont de l'XP, c'est-à-dire tous ceux qui ont enregistré au moins un puzzle."
+      "share": "« % des puzzleurs » compte tous ceux qui ont enregistré au moins un puzzle."
       "step_back": "Un palier peut reculer quand un temps est supprimé ou en attente de vérification, et il revient avec ce temps."
       "lapsed": "Vos succès sont conservés et reviennent avec l'adhésion."
   "detail":
@@ -1850,11 +1850,11 @@ competition_referees:
     "showing_player": "Paliers de %name%"
     "held_at_launch": "Dès le lancement"
     "serial_of": "N° %serial% sur %total%"
-    "share": "%percent% des puzzleurs avec de l'XP"
-    "share_below": "< %percent% des puzzleurs avec de l'XP"
+    "share": "Obtenu par 1 puzzleur (%percent%)|Obtenu par %count% puzzleurs (%percent%)"
+    "share_below": "Obtenu par 1 puzzleur (< %percent%)|Obtenu par %count% puzzleurs (< %percent%)"
     "player_best": "Meilleur temps de %name% : %value%"
     "player_so_far": "%name% jusqu'ici : %value%"
-    "explain_share": "« % des puzzleurs avec de l'XP » compte tous ceux qui ont enregistré au moins un puzzle."
+    "explain_share": "Le pourcentage compte tous ceux qui ont enregistré au moins un puzzle."
     "explain_step_back": "Un palier peut reculer quand un temps est supprimé ou en attente de vérification, et revient avec lui."
     "explain_lapsed": "Vos succès sont conservés et reviennent avec l'adhésion."
   "reveals":

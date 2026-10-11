@@ -20,8 +20,14 @@ admins see the karma surfaces; the review queues and admin pages show it always.
 
 Nothing for: pending, rejected or **outdated** requests (outdated = something else did it, nobody accepted it), brands
 (added, approved, merged), events, the application's own closings (`source = automatic`, no decider), internal-API
-decisions. **Admins (`player.is_admin`) have no karma at all** - the internal API files its proposals in the admin
-reviewer's name. Declined work never subtracts; there is no negative karma.
+decisions. **Admins earn karma like everybody** (Jan 2026-10-12, before: none at all) - the proposals the internal API
+files in its reviewer's name (`INTERNAL_API_REVIEWER_PLAYER_ID`) included, by Jan's choice: on production the change
+introduced ~1,100 for the reviewer and ~3,350 (mostly moderation decisions) for the other admin. Declined work never
+subtracts; there is no negative karma.
+
+**Kudos:** the players in `KARMA_INFINITE_PLAYER_IDS` (comma-separated, set in the lily.srv compose file - never in this
+public repository) show "∞ karma", golden and glowing, on the profile chip, the karma list and their own karma pages
+(`InfiniteKarma`, Twig `karma_infinite()`). Display only - their karma is derived and ranked by the real number.
 
 "Has an EAN" = the stored `ean` holds at least 8 digits in a row (`KarmaDerivation::HAS_EAN`) - catalogue numbers and
 placeholders typed into the EAN field do not count.
@@ -42,7 +48,7 @@ merge (`merged_from_puzzle_id`) keep their credit and link to the survivor.
 `Services\Karma\KarmaDerivation::itemsCte(scoped)` is the one place of the rule: a CTE `karma_items` (player_id, kind,
 at, puzzle_id, puzzle_name, action, counted) built by UNION over the source tables. Scoped = only the players in
 `:karmaPlayerIds` (a player's history, the recalculation after a decision); unscoped = everybody. Every reader joins
-`player pl ON KarmaDerivation::ELIGIBLE_PLAYER` (admins out).
+`player pl ON KarmaDerivation::ELIGIBLE_PLAYER` (everybody, admins too).
 
 Traps it handles:
 - **Backfilled scanned-EAN decisions.** The 2026-09-25 decision-log backfill turned every approved change request into a
@@ -99,7 +105,7 @@ pages (moderation context, not public).
 |---|---|
 | `karma_history` (`/en/my/karma`, owner only, `KarmaHistoryController`) | "What did I get my karma for?": total, breakdown by kind, every item newest first (50 per page) linking its puzzle, merged-away copies in grey as not counted. PlayerHeader compact strip. 2 derivation statements (scoped) |
 | `karma_explainer` (`/en/how-karma-works`, public) | The "For everyone" deep page of the "How it works" hub: what counts, duplicates, "declined work never takes karma away", "karma buys nothing and gives no XP"; signed in: own karma (from the profile row, no query) + history link |
-| `xp_leaderboard?tab=karma` | The karma list: everybody free; filter by kind (All / New puzzles / Fixes & merges / Moderation = `KarmaGroup`) and period (all time / last 12 months = `KarmaPeriod`). Default = `player.karma` (~4 ms); a kind or period = one aggregate over the derivation (~110 ms on the dev copy). The viewer's own row comes in the same statement (pinned below, within the filters). Never private profiles (global rankings stay closed to them, allow list included), never admins, `HiddenPlayers` applied so places close up. Opt-outs of XP or rankings do not apply - karma is neither |
+| `xp_leaderboard?tab=karma` | The karma list: everybody free; filter by kind (All / New puzzles / Fixes & merges / Moderation = `KarmaGroup`) and period (all time / last 12 months = `KarmaPeriod`). Default = `player.karma` (~4 ms); a kind or period = one aggregate over the derivation (~110 ms on the dev copy). The viewer's own row comes in the same statement (pinned below, within the filters). Never private profiles (global rankings stay closed to them, allow list included), admins listed like everybody, `HiddenPlayers` applied so places close up. Opt-outs of XP or rankings do not apply - karma is neither |
 | Profile header | Teal chip "N karma" when > 0 (`karma/_karma_chip.html.twig`): own → history, others → the karma list. `karma` rides on the `GetPlayerProfile` row - no query |
 | Review queues (`/admin/puzzle-change-requests`, `/admin/puzzle-merge-requests`, `/admin/puzzle-approvals`) | Next to each request: the proposer's karma and acceptance rate (`admin/_proposer_track_record.html.twig`), one statement per page. Rate = approved / (approved + rejected) change + merge requests, self-decided and outdated left out. Nobody decided yet = "First suggestion" (approval queue: "First contribution", only without karma), never a low number |
 | Admin | Karma on `/admin/moderation/history/{playerId}` and a column on `/admin/moderators` |
@@ -107,7 +113,7 @@ pages (moderation context, not public).
 ## Tests
 
 `tests/Services/Karma/KarmaDerivationTest.php` (every rule: outdated, EAN, earliest copy both ways, decisions and edits,
-nobody's decisions, self-review = 1, scanned EAN + backfill row, admins, idempotence, history order),
+nobody's decisions, self-review = 1, scanned EAN + backfill row, admins earn it like everybody, kudos display, idempotence, history order),
 `tests/MessageHandler/KarmaWiringTest.php`, `tests/Controller/KarmaPagesTest.php` (gate, owner, list privacy, filters,
 statement budgets, queues).
 

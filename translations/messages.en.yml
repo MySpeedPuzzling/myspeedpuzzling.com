@@ -8987,6 +8987,7 @@ karma:
         label: "Hide my karma"
         help: "Your contributions still count and are kept, but your karma is hidden from your profile and you are left out of the karma list. Turning this off shows everything again."
     chip_title: "Karma: accepted contributions to the puzzle database"
+    infinite_title: "Infinite karma - thank you for everything you do for MySpeedPuzzling"
     leaderboard:
         kind_label: "What counts"
         period_label: "Period"
@@ -9030,7 +9031,6 @@ karma:
         pagination: "Karma history pages"
         previous: "Previous page"
         next: "Next page"
-        admin_note: "Admins have no karma - their work is part of running the site."
         hidden_note: "Your karma is hidden from others: it is not on your profile and you are not on the karma list. Your contributions still count."
         hidden_change: "Change in settings"
     explainer:
@@ -9211,7 +9211,6 @@ leaderboards:
         private: "Your profile is private, so you are not listed on the leaderboards."
         experience_opted_out: "You turned off levels and achievements, so you are not listed here. You can turn them back on in your profile settings."
         karma_opted_out: "You chose to hide your karma, so you are not listed here. You can show it again in your profile settings."
-        admin: "Admins have no karma, so they are not listed here."
         xp: "Log your first solve to get on this board."
         achievement-points: "Earn your first achievement to get on this board."
         karma: "Your first accepted contribution to the puzzle database puts you on this board."

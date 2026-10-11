@@ -110,7 +110,7 @@
                             </li>
                         {% endif %}
                         {% if show_karma %}
-                            <li>{{ include('karma/_karma_chip.html.twig', {karma: player.karma, own: this.isOwnProfile, return_query: chip_return}) }}</li>
+                            <li>{{ include('karma/_karma_chip.html.twig', {karma: player.karma, player_id: player.playerId, own: this.isOwnProfile, return_query: chip_return}) }}</li>
                         {% endif %}
                     </ul>
                 {% endif %}

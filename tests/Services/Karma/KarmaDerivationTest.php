@@ -222,7 +222,8 @@ final class KarmaDerivationTest extends KernelTestCase
         self::assertSame(0, $this->getPlayerKarma->breakdown($this->id($scanner))->of(KarmaKind::Decision));
     }
 
-    public function testAdminsHaveNoKarma(): void
+    /** Jan 2026-10-12: admins earn karma by the same rules as everybody */
+    public function testAdminsEarnKarmaLikeEverybody(): void
     {
         $admin = $this->player();
         $this->database->executeStatement('UPDATE player SET is_admin = true WHERE id = :id', ['id' => $this->id($admin)]);
@@ -234,10 +235,11 @@ final class KarmaDerivationTest extends KernelTestCase
         $this->decision($admin, PuzzleModerationAction::ChangeRequestApproved, changeRequest: $other);
         $this->decision($admin, PuzzleModerationAction::PuzzleEdited, puzzle: $puzzle);
 
-        self::assertSame(0, $this->karmaOf($admin));
-        self::assertSame([], $this->getPlayerKarma->items($this->id($admin), 50, 0));
-        self::assertSame(0, $this->getPlayerKarma->breakdown($this->id($admin))->items());
-        // The proposer of the admin's decision still gets theirs
+        // The puzzle they added with an EAN, their own accepted proposal, their decision on another one, their direct edit
+        self::assertSame(4, $this->karmaOf($admin));
+        self::assertSame(4, $this->getPlayerKarma->breakdown($this->id($admin))->total());
+        self::assertCount(4, $this->getPlayerKarma->items($this->id($admin), 50, 0));
+        // The proposer of the admin's decision gets theirs
         self::assertSame(1, $this->karmaOf($proposer));
         self::assertSame('approved', $this->database->fetchOne('SELECT status FROM puzzle_change_request WHERE id = :id', ['id' => $request->id->toString()]));
     }

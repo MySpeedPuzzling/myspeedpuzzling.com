@@ -46,7 +46,7 @@ SET karma = fresh.karma
 FROM (
     SELECT p.id, COALESCE(t.karma, 0) AS karma
     FROM player p
-    LEFT JOIN karma_totals t ON t.player_id = p.id AND p.is_admin = false
+    LEFT JOIN karma_totals t ON t.player_id = p.id
 ) fresh
 WHERE player.id = fresh.id
   AND player.karma IS DISTINCT FROM fresh.karma
@@ -88,7 +88,7 @@ SET karma = fresh.karma
 FROM (
     SELECT p.id, COALESCE(t.karma, 0) AS karma
     FROM player p
-    LEFT JOIN karma_totals t ON t.player_id = p.id AND p.is_admin = false
+    LEFT JOIN karma_totals t ON t.player_id = p.id
     WHERE p.id IN (:karmaPlayerIds)
 ) fresh
 WHERE player.id = fresh.id

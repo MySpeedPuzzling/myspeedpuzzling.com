@@ -27,10 +27,12 @@
             {{ include('_leaderboard_player.html.twig', {player: row, show_tier: false}) }}
         </td>
         <td class="lb-time">
+            {#- kudos: "∞ karma", golden (InfiniteKarma) - ranked by the real number like everybody -#}
+            {%- set infinite = tab.hasKarmaFilters() and karma_infinite(row.playerId) -%}
             {{ include('leaderboards/_value.html.twig', {
-                value: ('leaderboards.value.' ~ tab.value)|trans({'%value%': row.value|plain_number}),
-                secondary: secondary,
-                family: tab.valueFamily(),
+                value: ('leaderboards.value.' ~ tab.value)|trans({'%value%': infinite ? '∞' : row.value|plain_number}),
+                secondary: infinite ? null : secondary,
+                family: infinite ? 'karma-infinite' : tab.valueFamily(),
             }) }}
         </td>
     </tr>

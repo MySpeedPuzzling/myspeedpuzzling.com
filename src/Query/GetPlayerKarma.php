@@ -16,7 +16,7 @@ use SpeedPuzzling\Web\Value\PuzzleModerationAction;
 /**
  * "What did I get my karma for?" (docs/features/karma.md): the player's karma items straight from the derivation, so
  * the history always explains the stored total (player.karma) - copies merged into an earlier puzzle included, as not
- * counted. Admins have no karma: both methods answer nothing for them.
+ * counted.
  */
 readonly final class GetPlayerKarma
 {

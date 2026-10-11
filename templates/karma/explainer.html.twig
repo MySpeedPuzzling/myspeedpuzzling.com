@@ -19,7 +19,7 @@
             <div class="card border-0 shadow-sm mb-4">
                 <div class="card-body d-flex flex-wrap align-items-center gap-3">
                     <div>
-                        <div class="karma-total">{{ viewer.karma|plain_number }}</div>
+                        {% if karma_infinite(viewer.playerId) %}<div class="karma-total karma-total-infinite" title="{{ 'karma.infinite_title'|trans }}">∞</div>{% else %}<div class="karma-total">{{ viewer.karma|plain_number }}</div>{% endif %}
                         <div class="fs-sm text-body-secondary">{{ 'karma.explainer.your_karma'|trans }}</div>
                     </div>
                     <a class="btn btn-outline-primary ms-auto" href="{{ path('karma_history') }}">{{ 'karma.explainer.history_link'|trans }}</a>

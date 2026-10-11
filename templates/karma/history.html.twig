@@ -13,7 +13,7 @@
 
         <div class="d-flex flex-wrap align-items-center gap-3">
             <div>
-                <div class="karma-total">{{ breakdown.total|plain_number }}</div>
+                {% if karma_infinite(player.playerId) %}<div class="karma-total karma-total-infinite" title="{{ 'karma.infinite_title'|trans }}">∞</div>{% else %}<div class="karma-total">{{ breakdown.total|plain_number }}</div>{% endif %}
                 <div class="fs-sm text-body-secondary">{{ 'karma.history.total_label'|trans }}</div>
             </div>
 
@@ -34,9 +34,6 @@
         </div>
     {% endif %}
 
-    {% if player.isAdmin %}
-        <div class="alert alert-info fs-sm">{{ 'karma.history.admin_note'|trans }}</div>
-    {% endif %}
 
     {% if items is empty %}
         <div class="xp-teaser">

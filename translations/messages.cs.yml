@@ -8741,6 +8741,7 @@ karma:
         label: "Skrýt moji karmu"
         help: "Tvoje příspěvky se dál počítají a zůstávají, ale karma zmizí z tvého profilu a nebudeš v žebříčku karmy. Když tohle vypneš, vše se zase zobrazí."
     chip_title: "Karma: přijaté příspěvky do databáze puzzlí"
+    infinite_title: "Nekonečná karma - díky za všechno, co pro MySpeedPuzzling děláš"
     leaderboard:
         kind_label: "Co se počítá"
         period_label: "Období"
@@ -8784,7 +8785,6 @@ karma:
         pagination: "Stránky historie karmy"
         previous: "Předchozí stránka"
         next: "Další stránka"
-        admin_note: "Administrátoři karmu nemají – jejich práce patří k provozu webu."
         hidden_note: "Tvoje karma je před ostatními skrytá: není na tvém profilu a nejsi v žebříčku karmy. Tvoje příspěvky se ale počítají dál."
         hidden_change: "Změnit v nastavení"
     explainer:
@@ -8965,7 +8965,6 @@ leaderboards:
         private: "Tvůj profil je soukromý, proto v žebříčcích nejsi."
         experience_opted_out: "Úrovně a úspěchy máš vypnuté, proto tu nejsi. Znovu je zapneš v nastavení profilu."
         karma_opted_out: "Karmu máš skrytou, proto tu nejsi. Znovu ji zobrazíš v nastavení profilu."
-        admin: "Administrátoři karmu nemají, proto tu nejsou."
         xp: "Zapiš své první složené puzzle a dostaneš se do tohoto žebříčku."
         achievement-points: "Získej svůj první úspěch a dostaneš se do tohoto žebříčku."
         karma: "Tvůj první přijatý příspěvek do databáze puzzlí tě dostane do tohoto žebříčku."

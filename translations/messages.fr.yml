@@ -1775,6 +1775,8 @@ competition_referees:
   "ap_total_tooltip": "Vos points de succès — chaque palier obtenu compte, pour toujours"
   "view_holders": "Voir qui l'a obtenu"
   "catalogue":
+    "explainer_title": "Comment fonctionnent les succès"
+    "explainer_hide": "Compris, masquer"
     "about": "Chaque succès compte cinq paliers, du Bronze au Diamant. Chaque palier atteint rapporte des points de succès (AP) : 5, 10, 25, 50 et 100. Les succès sont collectionnés par les membres et ne rapportent jamais d'XP."
     "tease_free": "Les membres collectionnent des succès, gagnent des points de succès et les affichent sur leur profil. Devenez membre pour découvrir ceux que vous avez déjà obtenus."
     "tease_guest": "Les membres collectionnent des succès, gagnent des points de succès et les affichent sur leur profil."

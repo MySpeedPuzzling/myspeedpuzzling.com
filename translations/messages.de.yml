@@ -1929,6 +1929,8 @@ badges:
         days: "Tage"
         team_solves: "Team-Ergebnisse"
     catalogue:
+        explainer_title: "So funktionieren Erfolge"
+        explainer_hide: "Verstanden, ausblenden"
         about: "Jeder Erfolg hat fünf Stufen, von Bronze bis Diamant. Jede erreichte Stufe bringt Erfolgspunkte (AP): 5, 10, 25, 50 und 100. Erfolge sammeln Mitglieder, und sie bringen nie XP."
         ap_leaderboard_link: "Erfolgspunkte-Rangliste"
         become_member: "Mitglied werden"

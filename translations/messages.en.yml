@@ -2250,6 +2250,8 @@ badges:
     ap_total_tooltip: "Your Achievement Points — every earned tier counts, forever"
     view_holders: "See who earned it"
     catalogue:
+        explainer_title: "How achievements work"
+        explainer_hide: "Got it, hide"
         about: "Each achievement has five tiers, Bronze to Diamond. Every tier you reach earns Achievement Points (AP): 5, 10, 25, 50 and 100. Achievements are collected by members and never add XP."
         tease_free: "Members collect achievements, earn Achievement Points and show them on their profile. Become a member to find out which ones you have earned."
         tease_guest: "Members collect achievements, earn Achievement Points and show them on their profile."

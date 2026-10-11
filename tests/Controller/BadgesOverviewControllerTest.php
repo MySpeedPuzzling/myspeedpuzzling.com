@@ -195,9 +195,9 @@ final class BadgesOverviewControllerTest extends WebTestCase
         self::assertCount(1, $crawler->filter('.page-crumbs-trail a[href="/en/how-progress-works"]'));
         $jsonLd = $crawler->filter('script[type="application/ld+json"]')->each(static fn ($node): string => $node->text());
         self::assertNotEmpty(array_filter($jsonLd, static fn (string $json): bool => str_contains($json, 'BreadcrumbList')));
-        // The footnote says what the numbers mean
-        self::assertSelectorTextContains('.achievements-footnote', 'counts everybody who has logged at least one puzzle');
-        self::assertSelectorTextContains('.achievements-footnote', 'can step back');
+        // "How achievements work" on top says what the numbers mean
+        self::assertSelectorTextContains('.achievements-explainer', 'counts everybody who has logged at least one puzzle');
+        self::assertSelectorTextContains('.achievements-explainer', 'can step back');
     }
 
     public function testAHeldEarlyAdopterCountsAsAnAchievement(): void
@@ -230,6 +230,27 @@ final class BadgesOverviewControllerTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('.achievements-own-line', '1 of 16 achievements');
+    }
+
+    public function testHowAchievementsWorkIsOnTopUntilHiddenAndCanBeOpenedAgain(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
+
+        $crawler = $browser->request('GET', '/en/achievements');
+        $explainer = $crawler->filter('details#how-achievements-work');
+        self::assertCount(1, $explainer);
+        self::assertNotNull($explainer->attr('open'), 'open until the player hides it');
+        self::assertSame('collapsible-hint', $explainer->attr('data-controller'));
+        self::assertSame('How achievements work', trim($explainer->filter('summary')->text()));
+
+        // "Got it, hide" stores the dismissal: from then on it is one line - the summary - that opens it again
+        $browser->request('POST', '/en/dismiss-hint', ['type' => 'achievements_explainer']);
+        self::assertResponseIsSuccessful();
+        $crawler = $browser->request('GET', '/en/achievements');
+        $explainer = $crawler->filter('details#how-achievements-work');
+        self::assertCount(1, $explainer);
+        self::assertNull($explainer->attr('open'));
     }
 
     private function insertBadge(string $playerId, string $type, null|int $tier, bool $revealed): void

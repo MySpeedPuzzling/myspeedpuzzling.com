@@ -811,3 +811,69 @@ $shelf-press: scale(.97);
         color: #a52d2f;
     }
 }
+
+// "How achievements work" on top of the reference: open until hidden, then one line that opens it again
+// (collapsible_hint_controller.js)
+.achievements-explainer {
+    border-radius: .75rem;
+    background: $progression-achievements-bg;
+    color: #4b3a14;
+    font-size: .875rem;
+}
+
+.achievements-explainer-summary {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    min-height: 44px;
+    padding: .5rem 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    list-style: none;
+
+    &::-webkit-details-marker {
+        display: none;
+    }
+
+    .achievements-explainer-chevron {
+        margin-left: auto;
+        transition: transform .15s ease;
+    }
+}
+
+.achievements-explainer[open] .achievements-explainer-chevron {
+    transform: rotate(180deg);
+}
+
+.achievements-explainer-body {
+    padding: 0 1rem .875rem;
+
+    p {
+        margin-bottom: .5rem;
+    }
+}
+
+.achievements-explainer-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .25rem 1rem;
+
+    a {
+        display: inline-flex;
+        align-items: center;
+        min-height: 44px;
+        color: #c7393b;
+    }
+
+    .achievements-explainer-hide {
+        min-height: 44px;
+        margin-left: auto;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .achievements-explainer-chevron {
+        transition: none;
+    }
+}

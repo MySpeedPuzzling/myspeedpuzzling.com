@@ -1945,6 +1945,8 @@ badges:
         days: "días"
         team_solves: "resoluciones en equipo"
     catalogue:
+        explainer_title: "Cómo funcionan los logros"
+        explainer_hide: "Entendido, ocultar"
         about: "Cada logro tiene cinco rangos, de Bronce a Diamante. Cada rango que alcanzas da Puntos de Logro (AP): 5, 10, 25, 50 y 100. Los logros los coleccionan los miembros y nunca suman XP."
         tease_free: "Los miembros coleccionan logros, ganan Puntos de Logro y los muestran en su perfil. Hazte miembro para descubrir cuáles has conseguido."
         tease_guest: "Los miembros coleccionan logros, ganan Puntos de Logro y los muestran en su perfil."

@@ -6,11 +6,13 @@ namespace SpeedPuzzling\Web\Controller;
 
 use SpeedPuzzling\Web\Query\GetBadgeCatalog;
 use SpeedPuzzling\Web\Query\GetBadges;
+use SpeedPuzzling\Web\Query\IsHintDismissed;
 use SpeedPuzzling\Web\Services\AchievementRarityProvider;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Services\Xp\XpFeatureGate;
 use SpeedPuzzling\Web\Value\AchievementCatalogueFilter;
 use SpeedPuzzling\Web\Value\BadgeType;
+use SpeedPuzzling\Web\Value\HintType;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -44,6 +46,7 @@ final class BadgesOverviewController extends AbstractController
         readonly private AchievementRarityProvider $achievementRarityProvider,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private XpFeatureGate $xpFeatureGate,
+        readonly private IsHintDismissed $isHintDismissed,
     ) {
     }
 
@@ -104,6 +107,9 @@ final class BadgesOverviewController extends AbstractController
             'holders' => $this->achievementRarityProvider->holders(),
             'own' => $own,
             'logged_in' => $profile !== null,
+            // "How achievements work" on top: open until the player hides it, then one line to open again (guests: the
+            // browser remembers it, so the guest page stays the same for everybody)
+            'explainer_dismissed' => $profile !== null && ($this->isHintDismissed)($profile->playerId, HintType::AchievementsExplainer),
             'is_member' => $isMember,
         ]);
     }

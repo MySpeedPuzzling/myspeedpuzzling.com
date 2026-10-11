@@ -1981,6 +1981,8 @@ badges:
         days: "dní"
         team_solves: "týmových složení"
     catalogue:
+        explainer_title: "Jak fungují úspěchy"
+        explainer_hide: "Rozumím, skrýt"
         about: "Každý úspěch má pět stupňů, od Bronzu po Diamant. Každý dosažený stupeň přináší body za úspěchy (AP): 5, 10, 25, 50 a 100. Úspěchy sbírají členové a nikdy nepřidávají XP."
         tease_free: "Členové sbírají úspěchy, získávají body za úspěchy a ukazují je na svém profilu. Staň se členem a zjisti, které už máš."
         tease_guest: "Členové sbírají úspěchy, získávají body za úspěchy a ukazují je na svém profilu."

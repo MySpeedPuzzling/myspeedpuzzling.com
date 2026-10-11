@@ -21,6 +21,25 @@
         <p class="text-body-secondary mb-0">{{ 'badges.overview_subtitle'|trans }}</p>
     </header>
 
+    {# How achievements work - on top, open until the reader hides it; the summary line opens it again #}
+    <details class="achievements-explainer mb-3" id="how-achievements-work"{{ explainer_dismissed ? '' : ' open' }}
+             {{ stimulus_controller('collapsible-hint', {url: path('dismiss_hint'), type: 'achievements_explainer', signedIn: logged_in}) }}>
+        <summary class="achievements-explainer-summary">
+            <i class="bi bi-info-circle" aria-hidden="true"></i>
+            <span>{{ 'badges.catalogue.explainer_title'|trans }}</span>
+            <i class="bi bi-chevron-down achievements-explainer-chevron" aria-hidden="true"></i>
+        </summary>
+        <div class="achievements-explainer-body">
+            <p>{{ 'badges.catalogue.about'|trans }}</p>
+            <p>{{ 'badges.shelf.explainer.share'|trans }} {{ 'badges.shelf.explainer.step_back'|trans }}</p>
+            <div class="achievements-explainer-actions">
+                <a href="{{ path('progression_hub') }}">{{ 'progression_hub.title'|trans }}</a>
+                <a href="{{ path('achievement_points_leaderboard') }}">{{ 'badges.catalogue.ap_leaderboard_link'|trans }}</a>
+                <button type="button" class="btn btn-outline-secondary btn-sm achievements-explainer-hide" {{ stimulus_action('collapsible-hint', 'hide') }}>{{ 'badges.catalogue.explainer_hide'|trans }}</button>
+            </div>
+        </div>
+    </details>
+
     {% if own is not null %}
         {# The member's own achievements are one tap away - this page stays the same for everybody #}
         <p class="achievements-summary achievements-own-line mb-3">
@@ -99,15 +118,4 @@
         </article>
     </div>
 
-    <div class="achievements-about mt-4" id="how-achievements-work">
-        {{ 'badges.catalogue.about'|trans }}
-        <a href="{{ path('progression_hub') }}" class="text-nowrap">{{ 'progression_hub.title'|trans }}</a>
-    </div>
-
-    {# What the numbers mean (design-spec §8.5) #}
-    <div class="achievements-footnote mt-3 fs-sm text-body-secondary">
-        <p class="mb-1">{{ 'badges.shelf.explainer.share'|trans }}</p>
-        <p class="mb-1">{{ 'badges.shelf.explainer.step_back'|trans }}</p>
-        <p class="mb-0"><a href="{{ path('achievement_points_leaderboard') }}">{{ 'badges.catalogue.ap_leaderboard_link'|trans }}</a></p>
-    </div>
 {% endblock %}

@@ -56,5 +56,26 @@ Allows logged-in users to permanently dismiss informational banners (hints) show
 | `guide_statistics_seen`, `guide_leaderboard_seen` | Not banners - "opened from the Getting started guide" flags written by the `mark-seen` Stimulus controller | - |
 | `getting_started_checklist` | Hub ("Getting started" card, newcomers only) | Checklist card - also dismissed by `HubController` itself once every step is done, see `getting-started-guide.md` |
 | `players_country_nudge` | Players page + the player's own profile ("Add your country", only while the player has no country; `Players:CountryNudge` component) | Warm banner with a country select - see `players-page/README.md` |
+| `achievements_explainer` | Achievements reference (`badges_overview`, "How achievements work") | Collapsible hint (below) |
 
 Note: `marketplace_settings_checklist` is only dismissable in the marketplace. The same settings checklist on the sell-swap list detail page (`sell-swap/detail.html.twig`) is always shown without a dismiss option.
+
+## Collapsible hints (hide, then open again)
+
+For an explanation people may want to read again (first used for "How achievements work" on the achievements
+reference, 2026-10-11): a `<details>` that is open until the reader hides it, then only its summary line stays - a tap
+opens it again. `assets/controllers/collapsible_hint_controller.js`:
+
+- signed in: "hide" posts to `dismiss_hint` like a normal hint; the page renders the `<details>` without `open` when
+  `IsHintDismissed` says so;
+- guests: the browser remembers it (`localStorage`, key `hint-hidden:<type>`), so the guest page stays the same for
+  everybody and cacheable.
+
+```twig
+<details id="…"{{ dismissed ? '' : ' open' }}
+         {{ stimulus_controller('collapsible-hint', {url: path('dismiss_hint'), type: 'your_hint_type', signedIn: logged_in}) }}>
+    <summary>…</summary>
+    …
+    <button type="button" {{ stimulus_action('collapsible-hint', 'hide') }}>…</button>
+</details>
+```

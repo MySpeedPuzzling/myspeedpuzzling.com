@@ -42,6 +42,17 @@ that would otherwise be forgotten. Newest section on top.
 - [ ] Site-wide contrast: the coral `#fe696a` on white is 2.8:1 - the leaderboard table header (white on coral, from #222),
       plain links and `.btn-outline-primary`. The new progression controls use the coral ink `#c7393b` (5.2:1); the site-wide
       fix is a brand decision (QA 2026-10-11)
+- [ ] MSP Rating on the recap (asked 2026-10-11): only an estimate is possible (batch every 15 min, no rating history,
+      the place depends on everyone's times) - cheapest honest version first: "This result doesn't count toward MSP
+      Rating (pair/team · not 500 pieces · fewer than 20 solvers)" + "the ladder updates within 15 minutes"; a "+N"
+      estimate needs MspRatingCalculator's puzzle rankings scoped to the player's puzzles. Waiting for Jan
+- [ ] Real-device pass of the reveal sound: always on, no toggle (2026-10-11) - iPhone silent switch (ambient audio
+      session), the first tap after a full page load, Android Chrome
+- [ ] Profile results after deploy: measure production (dev still spends ~250-300 ms of PHP over the whole history -
+      filters/sorts/grouping of every result); the ranking now leaves 0-second solo times out (custom_pst_solo_board
+      covers `> 0`; the web form stores 0 as "no time", the API's "00:00" can still store one - none exist)
+- [ ] Achievement thresholds (calibrated 2026-10-11, docs/features/badges.md): Jan is reviewing the table - Speed
+      Demon 500 Bronze is still held by 75 %, Marathoner / Librarian Bronze are rarer than most Golds
 - [ ] Hub cards don't carry `?return=` (their pages go back to the hub anyway, and it would turn the hub's main links into
       nofollow ones) - only Leaderboards and Fair play do
 

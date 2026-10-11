@@ -51,8 +51,6 @@ that would otherwise be forgotten. Newest section on top.
 - [ ] Profile results after deploy: measure production (dev still spends ~250-300 ms of PHP over the whole history -
       filters/sorts/grouping of every result); the ranking now leaves 0-second solo times out (custom_pst_solo_board
       covers `> 0`; the web form stores 0 as "no time", the API's "00:00" can still store one - none exist)
-- [ ] Achievement thresholds (calibrated 2026-10-11, docs/features/badges.md): Jan is reviewing the table - Speed
-      Demon 500 Bronze is still held by 75 %, Marathoner / Librarian Bronze are rarer than most Golds
 - [ ] Hub cards don't carry `?return=` (their pages go back to the hub anyway, and it would turn the hub's main links into
       nofollow ones) - only Leaderboards and Fair play do
 

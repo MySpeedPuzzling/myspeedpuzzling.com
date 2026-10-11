@@ -47,6 +47,8 @@ The thresholds live in `src/BadgeConditions/*` (one class per type); the texts i
 
 ### Calibration (2026-10-11)
 
+Approved by Jan on 2026-10-11 after reviewing the full table with holder counts per tier.
+
 Jan: "1 single will not be enough (for example 1 solving in team, i know it is encouraging but it loses its rarity) …
 instead of 1 make it at least 5 and slightly move further to have the gaps". The rule applied:
 

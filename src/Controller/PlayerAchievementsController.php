@@ -132,6 +132,7 @@ final class PlayerAchievementsController extends AbstractController
                 AchievementCatalogueFilter::Rarest->value => $lists?->count(AchievementCatalogueFilter::Rarest) ?? 0,
             ],
             // The single-tier Early Adopter sits with the earned ones (All, Earned) - it has no progress nor rarity
+            'has_supporter' => $hasSupporter,
             'show_supporter' => $hasSupporter && in_array($filter, [AchievementCatalogueFilter::All, AchievementCatalogueFilter::Earned], true),
         ]);
     }

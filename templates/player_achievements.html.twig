@@ -25,10 +25,11 @@
             <a href="{{ path('membership') }}" class="btn btn-primary btn-sm">{{ 'badges.catalogue.become_member'|trans }}</a>
         </div>
     {% else %}
+        {# A held Early Adopter counts (one achievement, no tiers): it can no longer be earned, so it is in its holders' total only #}
         <p class="achievements-summary mb-0">
             <span>{{ 'badges.shelf.summary'|trans({
-                '%earned%': lists.earnedTypes|format_number,
-                '%total%': lists.totalTypes|format_number,
+                '%earned%': (lists.earnedTypes + (has_supporter ? 1 : 0))|format_number,
+                '%total%': (lists.totalTypes + (has_supporter ? 1 : 0))|format_number,
                 '%tiers_earned%': lists.earnedTiers|format_number,
                 '%tiers_total%': lists.totalTiers|format_number,
             })|raw }}</span>

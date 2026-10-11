@@ -30,6 +30,8 @@ final class BadgeArtSurfacesTest extends WebTestCase
         $showcase = $crawler->filter('.achievements-showcase');
         $items = $showcase->filter('.achievements-showcase-item');
         self::assertCount(3, $items);
+        // Two tiered achievements + the held Early Adopter, which counts for its holders (in the total too)
+        self::assertStringContainsString('3 of 17', $showcase->text());
 
         // Highest tier first: Gold streak, then the owner's unrevealed Bronze, then the single-tier one
         $streak = $items->eq(0)->filter('img.badge-art');

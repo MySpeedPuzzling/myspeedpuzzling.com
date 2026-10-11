@@ -21,10 +21,11 @@
         <h1 class="h3 mb-1">{{ 'badges.overview_title'|trans }}</h1>
 
         {% if is_member %}
+            {# A held Early Adopter counts (one achievement, no tiers): it can no longer be earned, so it is in its holders' total only #}
             <p class="achievements-summary mb-0">
                 <span>{{ 'badges.shelf.summary'|trans({
-                    '%earned%': lists.earnedTypes|format_number,
-                    '%total%': lists.totalTypes|format_number,
+                    '%earned%': (lists.earnedTypes + (has_supporter ? 1 : 0))|format_number,
+                    '%total%': (lists.totalTypes + (has_supporter ? 1 : 0))|format_number,
                     '%tiers_earned%': lists.earnedTiers|format_number,
                     '%tiers_total%': lists.totalTiers|format_number,
                 })|raw }}</span>
@@ -54,6 +55,7 @@
         filter_route: 'badges_overview',
         filter_params: {},
         personal: is_member,
+        show_supporter: show_supporter,
         player_id: null,
         own: is_member,
     }) }}

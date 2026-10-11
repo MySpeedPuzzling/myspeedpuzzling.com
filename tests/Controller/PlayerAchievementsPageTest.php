@@ -248,7 +248,38 @@ final class PlayerAchievementsPageTest extends WebTestCase
         self::assertGreaterThanOrEqual(1, $crawler->filter('.dropdown-menu a[href="' . self::MEMBER_PAGE . '"]')->count());
     }
 
-    private function insertBadge(string $playerId, string $type, int $tier, bool $revealed): void
+    public function testAHeldEarlyAdopterCountsAsAnAchievement(): void
+    {
+        $browser = self::createClient();
+        $this->insertBadge(PlayerFixture::PLAYER_WITH_STRIPE, 'puzzles_solved', 1, revealed: true);
+        $this->insertBadge(PlayerFixture::PLAYER_WITH_STRIPE, 'supporter', null, revealed: true);
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
+
+        $crawler = $browser->request('GET', self::MEMBER_PAGE);
+
+        self::assertResponseIsSuccessful();
+        // Early Adopter can no longer be earned: one more achievement for its holders, in the earned count and the total
+        self::assertSelectorTextContains('.achievements-summary', '2 of 17 achievements');
+        self::assertSelectorTextContains('.achievements-summary', '1 of 80 tiers');
+        self::assertCount(1, $crawler->filter('.achievement-shelf a[href^="/en/achievements/supporter/info"]'));
+        $filters = $crawler->filter('.achievements-filter a')->each(static fn ($node): string => trim($node->text()));
+        self::assertSame('All · 17', $filters[0]);
+        self::assertSame('Earned · 2', $filters[1]);
+    }
+
+    public function testWithoutEarlyAdopterTheTotalIsTheSixteenThatCanBeEarned(): void
+    {
+        $browser = self::createClient();
+        $this->insertBadge(PlayerFixture::PLAYER_WITH_STRIPE, 'puzzles_solved', 1, revealed: true);
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
+
+        $browser->request('GET', self::MEMBER_PAGE);
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('.achievements-summary', '1 of 16 achievements');
+    }
+
+    private function insertBadge(string $playerId, string $type, null|int $tier, bool $revealed): void
     {
         self::getContainer()->get(Connection::class)->executeStatement(
             'INSERT INTO badge (id, player_id, type, earned_at, tier, revealed_at) VALUES (:id, :playerId, :type, NOW(), :tier, :revealedAt)',

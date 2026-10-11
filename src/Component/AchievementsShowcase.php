@@ -87,17 +87,25 @@ final class AchievementsShowcase
     }
 
     /**
-     * Counted like the catalogue and the hub: tiered achievements only (the old single-tier Supporter badge may still
-     * show in the row, but it is no achievement to collect)
+     * Counted like the achievements pages: the 16 that can be earned, plus Early Adopter for its holders (it can no
+     * longer be earned, so it is only in its holders' total)
      */
     public function totalTypes(): int
     {
-        return count(array_filter(BadgeType::cases(), static fn (BadgeType $type): bool => $type->isTiered()));
+        $tiered = count(array_filter(BadgeType::cases(), static fn (BadgeType $type): bool => $type->isTiered()));
+
+        return $tiered + ($this->holdsSupporter() ? 1 : 0);
     }
 
     public function earnedTypes(): int
     {
-        return count(array_filter($this->badges, static fn (BadgeResult $badge): bool => $badge->type->isTiered()));
+        return count(array_filter($this->badges, static fn (BadgeResult $badge): bool => $badge->type->isTiered()))
+            + ($this->holdsSupporter() ? 1 : 0);
+    }
+
+    private function holdsSupporter(): bool
+    {
+        return array_filter($this->badges, static fn (BadgeResult $badge): bool => $badge->type === BadgeType::Supporter) !== [];
     }
 
     /**

@@ -43,9 +43,10 @@ final class RecapProgressCardTest extends WebTestCase
         self::assertCount(1, $card);
 
         $level = $card->filter('[data-testid="recap-level"]');
-        self::assertStringContainsString('Level 7', $level->text());
+        // Curve v6: 44 XP is Level 4 (33), 39 before this time - no level-up
+        self::assertStringContainsString('Level 4', $level->text());
         self::assertStringContainsString('+5 XP', $level->text());
-        self::assertStringContainsString('6 of 9 XP to Level 8', $level->text());
+        self::assertStringContainsString('11 of 15 XP to Level 5', $level->text());
         self::assertCount(1, $level->filter('a.recap-row[href="/en/my/xp-history"]'));
         // The receipt is one tap away, not on the page
         self::assertCount(1, $level->filter('details.recap-receipt li.is-total'));
@@ -165,8 +166,8 @@ final class RecapProgressCardTest extends WebTestCase
     public function testLevelUpIsShownAndCelebratesOnlyRightAfterTheSave(): void
     {
         $browser = self::createClient();
-        // 12 XP in total, 11 of them from this time: Level 1 -> Level 3
-        $this->giveXp(PlayerFixture::PLAYER_ADMIN, PuzzleSolvingTimeFixture::TIME_03, [11], total: 12);
+        // 20 XP in total, 17 of them from this time: Level 1 -> Level 3 (curve v6: Level 3 = 19 XP)
+        $this->giveXp(PlayerFixture::PLAYER_ADMIN, PuzzleSolvingTimeFixture::TIME_03, [17], total: 20);
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
 
         // An old time (back from editing it, a bookmark): the pill, but no celebration

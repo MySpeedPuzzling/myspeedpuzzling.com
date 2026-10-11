@@ -1806,7 +1806,7 @@ xp:
             heading: "レベル"
             header_level: "レベル"
             header_xp: "累計XP"
-            summit: "レベル50が頂上です — 合計%xp% XP、記録したパズルでおよそ1000個分。その後もXPは増え続けます。"
+            summit: "レベル50が頂上です — 合計%xp% XP、記録したパズルでおよそ1300個分。その後もXPは増え続けます。"
             show_all: "全50レベルを表示"
         lose:
             heading: "XPが減ることはありますか？"

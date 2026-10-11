@@ -83,10 +83,10 @@ in any check (README §Anti-farming) - the same command runs nightly with `--rep
 $DC run --rm --no-deps messenger-consumer bin/console myspeedpuzzling:xp-distribution
 ```
 
-- Achievements no longer add XP; formula + curve v5 (2026-10-11, `launch-2026-10.md` §1 "XP balance"). The dev copy of
-  production, rebuilt with v5, gave **18 players at Level 50**, a median level of 10 and p90 Level 32 (7,878 players
-  with XP; zero drift in `myspeedpuzzling:verify-progression`) - Level 50 is about 1,000 logged puzzles. Note the
-  production numbers.
+- Achievements no longer add XP; formula v5 + curve v6 (2026-10-11, `launch-2026-10.md` §1 "XP balance", "Curve v6").
+  The dev copy of production with v6 gives **8 players at Level 50**, 90 at Level 40+, a median level of 6 and p90
+  Level 25 (7,878 players with XP; zero drift in `myspeedpuzzling:verify-progression`) - Level 50 is about 1,300
+  logged puzzles. Note the production numbers.
 - Profile ring, catalogue, a receipt after a test solve, the launch modal on the first page view (once), the reveal
   page `/en/my/xp-reveal`.
 

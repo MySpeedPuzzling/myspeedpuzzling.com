@@ -9,7 +9,7 @@ _Last updated: 2026-07-13 — implementation COMPLETE (all phases P0–P8 of imp
 ## Design decisions locked (context)
 
 - Levels are **numeric only (1–50)** — no bracket/level names.
-- *(Superseded 2026-10-11: curve v5, Level 50 = 5,800 XP ≈ 1,000 logged puzzles - `launch-2026-10.md` §1 "XP balance".)*
+- *(Superseded 2026-10-11: curve v6, Level 50 = 7,000 XP ≈ 1,300 logged puzzles - `launch-2026-10.md` §1 "Curve v6".)*
   Level 50 = 3,160 XP total, curve v4 (levels 2–25 identical to v1; levels 26–50 stretched ~8.5%/step to absorb
   achievement XP — with achievements included, ~112 players instantly max, 1.6%, same share as solve-only v1;
   median-active time-to-max ~2.6–2.9 years).

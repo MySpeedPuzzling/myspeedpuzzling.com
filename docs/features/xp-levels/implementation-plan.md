@@ -141,12 +141,16 @@ Each part rounded half-up to int independently at persist; zero-valued parts cre
 Receipt lines render 1:1 from ledger entries (repeat/relax discount folds into the base line's
 LABEL, never a negative line).
 
-### 1.3 Level curve v4 (locked — Level 50 = 3,160 XP total) — superseded by v5
+### 1.3 Level curve v4 (locked — Level 50 = 3,160 XP total) — superseded by v5, then v6
 
 > **v5, 2026-10-11 (`src/Value/LevelTable.php`, `launch-2026-10.md` §1 "XP balance"): Level 50 = 5,800 XP**, about
 > 1,000 logged puzzles including the bonuses. Shape = v4 × (1 + 0.835 × ((L − 1) / 49)^1.5): Level 2 = 5, Level 5 = 22,
 > Level 10 = 68, 20 = 268, 30 = 795, 40 = 2,192, 50 = 5,800. The calibration invariant below (~115 instant Level 50)
 > no longer holds: v5 gives ~18 at launch, median Level 10. The v4 table stays as history.
+>
+> **v6, 2026-10-11 (same day, current): Level 50 = 7,000 XP**, a slower start: Level 2 = 5, Level 3 = 19, Level 5 = 48,
+> Level 10 = 142, 20 = 573, 30 = 1,624, 40 = 3,648, 50 = 7,000 (`launch-2026-10.md` §1 "Curve v6"); ~8 at Level 50 at
+> launch, median Level 6.
 
 | Lv | Σ | Lv | Σ | Lv | Σ | Lv | Σ | Lv | Σ |
 |---|---|---|---|---|---|---|---|---|---|

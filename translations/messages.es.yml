@@ -1726,7 +1726,7 @@ xp:
             heading: "Niveles"
             header_level: "Nivel"
             header_xp: "XP en total"
-            summit: "El nivel 50 es la cima — %xp% XP en total, unos mil puzzles registrados. Tu XP sigue creciendo después."
+            summit: "El nivel 50 es la cima — %xp% XP en total, unos 1300 puzzles registrados. Tu XP sigue creciendo después."
             show_all: "Mostrar los 50 niveles"
         lose:
             heading: "¿Puedo perder XP?"

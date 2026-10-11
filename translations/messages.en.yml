@@ -2250,7 +2250,7 @@ xp:
             heading: "Levels"
             header_level: "Level"
             header_xp: "XP in total"
-            summit: "Level 50 is the summit — %xp% XP in total, about a thousand logged puzzles. Your XP keeps growing past it."
+            summit: "Level 50 is the summit — %xp% XP in total, about 1,300 logged puzzles. Your XP keeps growing past it."
         lose:
             heading: "Can I lose XP?"
             body: "Only when a solve changes: deleting it takes its XP away, editing it counts its XP again, and a time awaiting verification earns nothing until it is confirmed. Nothing else ever takes XP away."

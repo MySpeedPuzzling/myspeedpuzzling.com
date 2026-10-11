@@ -12,7 +12,7 @@ Points for members, weekly digest as the recurring touchpoint. Business spec aut
 | Achievement Points (Bronze 5 · Silver 10 · Gold 25 · Platinum 50 · Diamond 100; single-tier 25) | Completion | Members-only display |
 | MSP Rating / Points | Skill/speed | Untouched, fully separate |
 
-XP is never purchasable. Levels gate nothing functional. Level 50 = 5,800 XP - about 1,000 logged puzzles including
+XP is never purchasable. Levels gate nothing functional. Level 50 = 7,000 XP (curve v6) - about 1,300 logged puzzles including
 the bonuses (`src/Value/LevelTable.php`, curve v5, Jan 2026-10-11; why and how it was measured: `launch-2026-10.md` §1
 "XP balance").
 

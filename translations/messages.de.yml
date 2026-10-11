@@ -1710,7 +1710,7 @@ xp:
             heading: "Level"
             header_level: "Level"
             header_xp: "XP insgesamt"
-            summit: "Level 50 ist der Gipfel — insgesamt %xp% XP, etwa tausend erfasste Puzzles. Deine XP wachsen auch danach weiter."
+            summit: "Level 50 ist der Gipfel — insgesamt %xp% XP, etwa 1.300 erfasste Puzzles. Deine XP wachsen auch danach weiter."
             show_all: "Alle 50 Level anzeigen"
         lose:
             heading: "Kann ich XP verlieren?"

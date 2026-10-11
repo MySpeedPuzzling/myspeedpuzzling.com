@@ -1762,7 +1762,7 @@ xp:
             heading: "Úrovně"
             header_level: "Úroveň"
             header_xp: "XP celkem"
-            summit: "Úroveň 50 je vrchol — celkem %xp% XP, zhruba tisíc zaznamenaných puzzlí. Tvoje XP rostou i dál."
+            summit: "Úroveň 50 je vrchol — celkem %xp% XP, zhruba 1 300 zaznamenaných puzzlí. Tvoje XP rostou i dál."
             show_all: "Zobrazit všech 50 úrovní"
         lose:
             heading: "Můžu o XP přijít?"

@@ -1776,7 +1776,7 @@ competition_referees:
       "heading": "Niveaux"
       "header_level": "Niveau"
       "header_xp": "XP au total"
-      "summit": "Le niveau 50 est le sommet — %xp% XP au total, environ un millier de puzzles enregistrés. Vos XP continuent de grandir ensuite."
+      "summit": "Le niveau 50 est le sommet — %xp% XP au total, environ 1 300 puzzles enregistrés. Vos XP continuent de grandir ensuite."
     "lose":
       "heading": "Puis-je perdre des XP ?"
       "body": "Seulement quand une résolution change : la supprimer retire ses XP, la modifier les recalcule, et un temps en attente de vérification ne rapporte rien tant qu'il n'est pas confirmé. Rien d'autre ne retire jamais d'XP."

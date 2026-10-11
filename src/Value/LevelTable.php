@@ -7,15 +7,17 @@ namespace SpeedPuzzling\Web\Value;
 use InvalidArgumentException;
 
 /**
- * Level curve v5 (Jan, 2026-10-11): Level 50 = 5,800 XP total - about 1,000 logged puzzles including the bonuses.
- * Levels are numeric only — no names. XP keeps accruing in the ledger past 5,800 but no further levels exist.
+ * Level curve v6 (Jan, 2026-10-11): Level 50 = 7,000 XP total - about 1,300 logged puzzles including the bonuses.
+ * Levels are numeric only — no names. XP keeps accruing in the ledger past 7,000 but no further levels exist.
  *
- * Why: 5,800 is the median XP the 44 players who have logged 1,000 XP-earning solves would hold at their 1,000th under
- * today's formula (5,793 on the production copy; p25 5,098, p75 6,627). Shape = v4 × (1 + 0.835 × ((L − 1) / 49)^1.5):
- * the bottom stays where v4 had it (Level 2 = 5 XP, so a first 500-piece solve still reaches Level 2; Level 5 = 22),
- * the stretch grows towards the top, and no step is ever smaller than the one before. Projection on the production
- * copy: 18 players at Level 50 at launch (v4: 112), median Level 10 (unchanged); a newcomer reaches Level 9 after ~10
- * solves, Level 27 after ~100 and Level 49-50 after ~1,000. docs/features/xp-levels/launch-2026-10.md §1.
+ * Why (after v5, the same day): "early on the levels jump extremely quickly" (v5: Level 4 after 3 solves, Level 9 after
+ * 10) and Level 50 at 7,000 XP. A solve is worth ~6 XP under the formula (median cumulative XP on the production copy:
+ * 7 after 1 solve, 65 after 10, 612 after 100, 5,792 after 1,000, 6,726 after 1,250), so a threshold reads as solves.
+ * Shape: Level 2 = 5 XP - the first solve's welcome level-up (a first 500-piece solve earns 6-7 XP) - then steps that
+ * start at 14 XP and grow evenly (14 + a·(L − 2)², a fitted so Level 50 = 7,000), never smaller than the one before.
+ * A typical newcomer: Level 2 after the first solve, 3 after 3, 4 after 5, 6 after 10, 10 after 25, 15 after 50,
+ * 20 after 100, 29 after 250, 37 after 500, 46 after 1,000, 50 after ~1,300. Launch projection on the production copy:
+ * 8 players at Level 50, 90 at Level 40+, median Level 6 (p90 25). docs/features/xp-levels/launch-2026-10.md §1.
  */
 final class LevelTable
 {
@@ -29,54 +31,54 @@ final class LevelTable
     private const array CUMULATIVE_XP = [
         1 => 0,
         2 => 5,
-        3 => 10,
-        4 => 16,
-        5 => 22,
-        6 => 30,
-        7 => 38,
-        8 => 47,
-        9 => 57,
-        10 => 68,
-        11 => 81,
-        12 => 95,
-        13 => 110,
-        14 => 127,
-        15 => 145,
-        16 => 166,
-        17 => 187,
-        18 => 212,
-        19 => 238,
-        20 => 268,
-        21 => 301,
-        22 => 337,
-        23 => 377,
-        24 => 420,
-        25 => 467,
-        26 => 520,
-        27 => 579,
-        28 => 644,
-        29 => 716,
-        30 => 795,
-        31 => 882,
-        32 => 979,
-        33 => 1085,
-        34 => 1202,
-        35 => 1330,
-        36 => 1471,
-        37 => 1627,
-        38 => 1797,
-        39 => 1985,
-        40 => 2192,
-        41 => 2419,
-        42 => 2669,
-        43 => 2943,
-        44 => 3245,
-        45 => 3577,
-        46 => 3943,
-        47 => 4343,
-        48 => 4783,
-        49 => 5267,
-        50 => 5800,
+        3 => 19,
+        4 => 33,
+        5 => 48,
+        6 => 63,
+        7 => 80,
+        8 => 99,
+        9 => 119,
+        10 => 142,
+        11 => 167,
+        12 => 195,
+        13 => 227,
+        14 => 263,
+        15 => 302,
+        16 => 346,
+        17 => 395,
+        18 => 448,
+        19 => 508,
+        20 => 573,
+        21 => 644,
+        22 => 722,
+        23 => 807,
+        24 => 899,
+        25 => 999,
+        26 => 1106,
+        27 => 1222,
+        28 => 1347,
+        29 => 1481,
+        30 => 1624,
+        31 => 1776,
+        32 => 1939,
+        33 => 2113,
+        34 => 2297,
+        35 => 2492,
+        36 => 2699,
+        37 => 2917,
+        38 => 3148,
+        39 => 3392,
+        40 => 3648,
+        41 => 3918,
+        42 => 4201,
+        43 => 4498,
+        44 => 4810,
+        45 => 5136,
+        46 => 5477,
+        47 => 5834,
+        48 => 6206,
+        49 => 6595,
+        50 => 7000,
     ];
 
     public static function levelForXp(int $xp): int

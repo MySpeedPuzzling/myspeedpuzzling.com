@@ -161,8 +161,11 @@ board AS (
       AND (CAST(:country AS TEXT) IS NULL OR p.country = :country)
       {$favoritesCondition}
 ),
+-- Always one row, and the viewer's position looked up ONCE: a scalar sub-select runs as an InitPlan. A plain
+-- "SELECT position FROM board WHERE player_id = …" joined with LEFT JOIN me ON true got inlined and re-scanned the
+-- whole board for every board row - quadratic: 1.7 s on the 7.9k-player Level board for a signed-in viewer (2026-10-11)
 me AS (
-    SELECT position FROM board WHERE player_id = CAST(:viewerPlayerId AS UUID)
+    SELECT (SELECT board.position FROM board WHERE board.player_id = CAST(:viewerPlayerId AS UUID)) AS position
 )
 SELECT
     board.position,
@@ -178,7 +181,7 @@ SELECT
     board.level,
     {$achievements} AS secondary
 FROM board
-LEFT JOIN me ON true
+CROSS JOIN me
 WHERE board.position <= :limit
    OR (me.position IS NOT NULL AND board.position BETWEEN me.position - :above AND me.position + :below)
    OR board.position IN ({$milestones})

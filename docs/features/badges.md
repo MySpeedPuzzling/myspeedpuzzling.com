@@ -60,6 +60,15 @@ and `/root/achievements-redate-2026-10-12-undo.csv` on lily):
    could lie before a lower one; 4,382 tiers moved earlier (first try 1,604, weekend 1,455, brand explorer 947,
    photographer 211, zen 91, the rest ≤ 14 each - including 55 of other types earned after the launch by results
    finished before they were logged), none later, afterwards no tier dated before the tier below it.
+4. Catch-up, same day (a player saw "Weekend Puzzler → Diamond 600 / 600" and "Marathoner → Bronze 6 / 5" without the
+   tiers): step 1 was dispatched while the deploy was still rolling out (05:20:56-05:22:25 UTC), so the old
+   messenger-consumer took the first messages - the lowest player ids, `018bd93f…` to `018e7045…` - and evaluated them
+   with the old own-results-only counting. 121 tiers of 73 players were missing (weekend 47, first try 31, brand
+   explorer 18, photographer 16, zen 6, marathoner 2, unboxed 1), nobody held a tier too many. `recalculate-badges
+   --player` for those 73, then `--earned-since` that run: all 121 dated, every replay matched (undo CSV
+   `/root/achievements-catchup-2026-10-12-undo.csv` on lily). **Start a recount only after the deploy has finished**
+   (`run-queue: END` in `/var/log/lily/deploy.log`): the consumer is restarted at its end, and a message the old one
+   takes is evaluated by the old rule.
 
 ### Calibration (2026-10-11)
 

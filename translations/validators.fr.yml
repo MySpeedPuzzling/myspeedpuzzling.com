@@ -39,3 +39,6 @@ add_editions:
     starting_missing: "Choisissez le jour à partir duquel les dates commencent."
     count_range: "Choisissez de 1 à %max% dates."
     none_selected: "Cochez au moins une date."
+feedback:
+    message_required: "Veuillez écrire un message."
+    message_too_long: "Votre message ne peut pas dépasser {{ limit }} caractères."

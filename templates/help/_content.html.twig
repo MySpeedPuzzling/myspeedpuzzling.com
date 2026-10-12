@@ -1,8 +1,47 @@
 {#
-    Help & feedback rows (docs/features/navigation README §4.5) - shared by the sheet's frame and the full page; works
-    without JS. Skeleton (HELP-01a): the registry's Help sheet links. The feedback box, the puzzle correction, the
-    language and Reload rows join with HELP-01b/HELP-02. Links leave the sheet for the whole page (_top).
+    Help & feedback (docs/features/navigation README §4.5) - shared by the sheet's frame and the full page; works
+    without JS. The feedback box first for signed-in viewers (HELP-01b), then the registry's Help sheet links. The
+    puzzle correction, the language and Reload rows join with HELP-02. Links leave the sheet for the whole page (_top).
+    - feedback_form: null for guests;
+    - in_frame: the sheet - the form posts into the sheet itself (modal-frame: the errors, then the sent state, in place);
+      on the page it is a plain form (Post/Redirect/Get);
+    - sent: the sheet's sent state - the confirmation, Close and "Send another" (an empty form, shown in place).
 #}
+{% set in_frame = in_frame|default(false) %}
+{% set sent = sent|default(false) and in_frame %}
+{% if feedback_form|default(null) is not null %}
+    <section class="help-feedback mb-3">
+        {% if sent %}
+            <div class="help-feedback-sent text-center py-3" role="status" data-help-sheet-target="sent">
+                <i class="bi bi-check-circle-fill text-success fs-1" aria-hidden="true"></i>
+                <p class="h6 mt-2 mb-1">{{ 'help.feedback.sent_title'|trans }}</p>
+                <p class="mb-3">{{ 'help.feedback.sent_text'|trans }}</p>
+                <div class="d-flex flex-wrap justify-content-center gap-2">
+                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal" data-nav="help/help/sent_close">{{ 'help.close'|trans }}</button>
+                    <button type="button" class="btn btn-outline-primary" data-action="help-sheet#sendAnother" data-nav="help/help/send_another">{{ 'help.feedback.send_another'|trans }}</button>
+                </div>
+            </div>
+        {% endif %}
+        <div class="help-feedback-box"{% if sent %} hidden{% endif %} data-help-sheet-target="box">
+            {{ form_start(feedback_form, {
+                action: path('feedback'),
+                attr: in_frame ? {'data-turbo-frame': 'modal-frame', class: 'help-feedback-form'} : {class: 'help-feedback-form'},
+            }) }}
+                {#- The page the sheet was opened on goes along (the hidden url field): said under the field -#}
+                {{ form_row(feedback_form.message, {
+                    help: context.path is not null ? 'help.feedback.page_attached' : null,
+                    attr: {
+                        rows: 4,
+                        maxlength: constant('SpeedPuzzling\\Web\\FormData\\FeedbackFormData::MESSAGE_MAX_LENGTH'),
+                        placeholder: 'help.feedback.placeholder',
+                        'data-help-sheet-target': 'message',
+                    },
+                }) }}
+                <button type="submit" class="btn btn-primary" data-nav="help/help/send_feedback">{{ 'forms.send_feedback'|trans }}</button>
+            {{ form_end(feedback_form) }}
+        </div>
+    </section>
+{% endif %}
 <ul class="help-rows list-group list-group-flush">
     {% for row in rows %}
         <li class="list-group-item px-0">

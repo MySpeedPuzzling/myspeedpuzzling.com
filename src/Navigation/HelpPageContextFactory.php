@@ -32,11 +32,19 @@ final readonly class HelpPageContextFactory
 
         $pathname = (string) parse_url('http://host' . $path, PHP_URL_PATH);
 
+        // A page is something one GETs: matched as a GET even from the feedback box's POST (HELP-01b) - the router's
+        // context carries the current request's method, and GET-only routes (e.g. `menu`) refuse a POST
+        $routerContext = $this->router->getContext();
+        $method = $routerContext->getMethod();
+        $routerContext->setMethod('GET');
+
         try {
             // match() decodes the path itself (a raw or a percent-encoded ja path match the same route)
             $attributes = $this->router->match($pathname !== '' ? $pathname : '/');
         } catch (RoutingException) {
             return HelpPageContext::empty();
+        } finally {
+            $routerContext->setMethod($method);
         }
 
         $route = $attributes['_canonical_route'] ?? $attributes['_route'] ?? null;

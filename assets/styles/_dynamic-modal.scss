@@ -54,6 +54,45 @@
     height: calc(100vh - var(--bottom-nav-height, 0px));
 }
 
+// The Help sheet's own scrim (dynamic_modal_controller.js, HELP-01b, implementation plan §7): its openers open the
+// dynamic modal without Bootstrap's backdrop, and the controller puts this element next to the container instead -
+// Bootstrap's look (colour, opacity, 150 ms fade), at the backdrop's layer under the .modal (which takes the taps), ending
+// above the phone bottom bar like every backdrop (decision 18). Closed = display: none, never only transparent.
+.dynamic-modal-scrim {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: var(--bottom-nav-height, 0px);
+    left: 0;
+    z-index: $z-modal-backdrop;
+    background-color: $modal-backdrop-bg;
+    opacity: 0;
+    transition: opacity .15s linear;
+
+    &.show {
+        opacity: $modal-backdrop-opacity;
+    }
+
+    &[hidden] {
+        display: none;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .dynamic-modal-scrim {
+        transition: none;
+    }
+}
+
+// The sent Help sheet (release()): still on screen, no longer in the way - taps outside its dialog reach the page
+#dynamic-modal-container.is-released {
+    pointer-events: none;
+
+    .modal-content {
+        pointer-events: auto;
+    }
+}
+
 // data-modal-sheet: on phones a near full screen sheet - a strip of the dimmed page stays visible above it,
 // so it still reads as a layer over the page (iOS "page sheet"), not as a new page
 //

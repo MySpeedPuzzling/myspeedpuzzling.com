@@ -39,3 +39,6 @@ add_editions:
     starting_missing: "Vyberte den, od kterého termíny začínají."
     count_range: "Vyberte 1 až %max% termínů."
     none_selected: "Zaškrtněte alespoň jeden termín."
+feedback:
+    message_required: "Napište prosím zprávu."
+    message_too_long: "Zpráva může mít nejvýše {{ limit }} znaků."

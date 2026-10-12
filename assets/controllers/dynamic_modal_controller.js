@@ -17,6 +17,21 @@ const TRIGGER_CLICK_WINDOW_MS = 1000;
 // Given to a .modal-title without an id, so the dialog can be aria-labelledby it
 const TITLE_ID = 'dynamic-modal-title';
 
+// Bootstrap's instance of the container: the focus trap stays off (tom-select dropdowns render outside the dialog)
+const DEFAULT_CONFIG = { focus: false };
+
+// A trigger with data-modal-scrim="own" (every Help sheet opener, help_opener_attrs()) opens the modal without
+// Bootstrap's backdrop: the controller draws its own scrim (HELP-01b, implementation plan §7)
+const OWN_SCRIM = 'own';
+const OWN_SCRIM_CONFIG = { focus: false, backdrop: false };
+const SCRIM_CLASS = 'dynamic-modal-scrim';
+
+// Bootstrap's backdrop fade (.fade, 150 ms): the own scrim fades the same way
+const SCRIM_FADE_MS = 150;
+
+// The sent Help sheet: on screen, but no longer blocking the page (release())
+const RELEASED_CLASS = 'is-released';
+
 /**
  * Dynamic Modal Controller
  *
@@ -59,6 +74,16 @@ const TITLE_ID = 'dynamic-modal-title';
  * from inside it replaces its entry (the helper marks it), so history never reads [page, page, next page].
  * A modal opened while another layer (the Menu) holds the entry takes that entry over (decision 58 D-1), with or
  * without data-modal-history. Without an entry the modal closes straight through Bootstrap, as before.
+ *
+ * Own scrim (the Help sheet only, HELP-01b, implementation plan §7, review F6/F7): a trigger carrying
+ * data-modal-scrim="own" opens the modal without Bootstrap's backdrop - the instance is re-created through public API
+ * (dispose() + new Modal(…, {backdrop: false})) right before it is shown, never while Bootstrap animates, and the default
+ * instance comes back on hidden.bs.modal. The controller then draws its own scrim (.dynamic-modal-scrim, display: none
+ * while closed, ending above the phone bottom bar) and closes on a tap outside the dialog itself (the .modal covers the
+ * scrim, so the tap lands on the .modal). The content can ask for release() (`modal:release`, the Help sheet's sent
+ * state): the scrim goes, taps reach the page through the .modal, the page scrolls again and the dialog is no longer
+ * aria-modal - while ×, Esc, a swipe and Back still close it. Every other modal-frame partial keeps Bootstrap's backdrop
+ * and outside-tap close.
  */
 export default class extends Controller {
     static targets = ['frame', 'loading', 'error'];
@@ -81,12 +106,19 @@ export default class extends Controller {
     transition = null;
     queued = null;
 
+    // Own scrim: what the current trigger asked for, what the Bootstrap instance is, the scrim element (created on
+    // first use, next to the container), and whether the content released the modal
+    wantOwnScrim = false;
+    ownScrim = false;
+    scrim = null;
+    scrimTimer = null;
+    released = false;
+    downOnModal = false;
+
     connect() {
         // Disable focus trap to allow interaction with tom-select dropdowns
         // that render outside the modal dialog
-        this.modal = Modal.getOrCreateInstance(this.element, {
-            focus: false
-        });
+        this.modal = Modal.getOrCreateInstance(this.element, DEFAULT_CONFIG);
 
         // Track when a fetch starts (we want to open modal when content arrives)
         this.frameTarget.addEventListener('turbo:before-fetch-request', this.handleBeforeFetch);
@@ -128,6 +160,12 @@ export default class extends Controller {
 
         // A sheet's swipe down (bottom_sheet_controller.js, GEST-02) asks the host to close
         this.element.addEventListener('bottom-sheet:dismiss', this.handleClose);
+
+        // Own scrim: a tap outside the dialog (Bootstrap's own outside click is off without its backdrop), and the
+        // content asking to release the modal (help_sheet_controller.js, the sent state)
+        this.element.addEventListener('mousedown', this.handleModalMouseDown);
+        this.element.addEventListener('click', this.handleModalClick);
+        this.element.addEventListener('modal:release', this.handleRelease);
     }
 
     disconnect() {
@@ -149,6 +187,12 @@ export default class extends Controller {
         this.element.removeEventListener('hide.bs.modal', this.handleHide);
         this.element.removeEventListener('hidden.bs.modal', this.handleHidden);
         this.element.removeEventListener('bottom-sheet:dismiss', this.handleClose);
+        this.element.removeEventListener('mousedown', this.handleModalMouseDown);
+        this.element.removeEventListener('click', this.handleModalClick);
+        this.element.removeEventListener('modal:release', this.handleRelease);
+        clearTimeout(this.scrimTimer);
+        this.scrim?.remove();
+        this.scrim = null;
     }
 
     handleDocumentClick = (event) => {
@@ -175,6 +219,8 @@ export default class extends Controller {
         }
 
         this.trigger = this.findTrigger();
+        this.wantOwnScrim = this.trigger !== null && typeof this.trigger.getAttribute === 'function'
+            && this.trigger.getAttribute('data-modal-scrim') === OWN_SCRIM;
 
         clearTimeout(this.loadingTimer);
         this.loadingTimer = setTimeout(this.showLoading, LOADING_DELAY_MS);
@@ -246,7 +292,7 @@ export default class extends Controller {
         if (this.isOpen()) {
             this.focusDialog();
         } else {
-            this.modal.show();
+            this.showModal();
         }
     }
 
@@ -369,6 +415,10 @@ export default class extends Controller {
     handleShow = () => {
         this.transition = 'showing';
 
+        if (this.ownScrim) {
+            this.showScrim();
+        }
+
         // Opened while another layer (the Menu) holds the history entry: take it over before Bootstrap focuses
         // (decision 58 D-1) - the Menu closes and drops its inert
         if (layers.isOpen() && !layers.isOpen(LAYER)) {
@@ -399,11 +449,21 @@ export default class extends Controller {
         }
 
         this.transition = 'hiding';
+
+        if (this.ownScrim) {
+            this.hideScrim(true);
+        }
     };
 
     handleHidden = () => {
         this.transition = null;
         document.body.classList.remove('modal-open');
+
+        // The own-scrim path ends here: scrim gone, the default instance (Bootstrap's backdrop) back for every other
+        // modal - Bootstrap's hide is over, so the instance can be swapped (the next show() picks its trigger's again)
+        this.hideScrim(false);
+        this.unrelease();
+        this.useInstance(false);
 
         // A new link was followed while the modal was closing
         if (this.queued === 'open') {
@@ -425,6 +485,7 @@ export default class extends Controller {
         this.stopLoading();
         this.hideError();
         this.requestedUrl = null;
+        this.wantOwnScrim = false;
 
         // Return focus to whatever opened the modal (unless the page changed meanwhile)
         const trigger = this.trigger;
@@ -457,7 +518,7 @@ export default class extends Controller {
         this.element.removeAttribute('aria-labelledby');
         this.element.setAttribute('aria-busy', 'true');
         this.loadingTarget.hidden = false;
-        this.modal.show();
+        this.showModal();
     };
 
     stopLoading() {
@@ -517,7 +578,7 @@ export default class extends Controller {
             return;
         }
 
-        this.modal.show();
+        this.showModal();
     }
 
     close() {
@@ -546,6 +607,111 @@ export default class extends Controller {
 
     isOpen() {
         return this.element.classList.contains('show');
+    }
+
+    showModal() {
+        this.useInstance(this.wantOwnScrim);
+        this.modal.show();
+    }
+
+    /**
+     * Bootstrap's instance with or without its backdrop, through public API only (no Bootstrap private API, review F7).
+     * Never while Bootstrap animates: its queued callbacks belong to the old instance.
+     */
+    useInstance(ownScrim) {
+        if (this.ownScrim === ownScrim || this.transition !== null) {
+            return;
+        }
+
+        this.modal.dispose();
+        this.modal = new Modal(this.element, ownScrim ? OWN_SCRIM_CONFIG : DEFAULT_CONFIG);
+        this.ownScrim = ownScrim;
+    }
+
+    ensureScrim() {
+        if (this.scrim === null || !this.scrim.isConnected) {
+            this.scrim = document.createElement('div');
+            this.scrim.className = SCRIM_CLASS;
+            this.scrim.hidden = true;
+            this.scrim.setAttribute('aria-hidden', 'true');
+            this.element.before(this.scrim);
+        }
+
+        return this.scrim;
+    }
+
+    showScrim() {
+        const scrim = this.ensureScrim();
+        clearTimeout(this.scrimTimer);
+        scrim.hidden = false;
+        // Laid out once while transparent, so the fade in runs
+        scrim.getBoundingClientRect();
+        scrim.classList.add('show');
+    }
+
+    hideScrim(fade) {
+        clearTimeout(this.scrimTimer);
+
+        if (this.scrim === null) {
+            return;
+        }
+
+        const scrim = this.scrim;
+        scrim.classList.remove('show');
+
+        if (!fade) {
+            scrim.hidden = true;
+            return;
+        }
+
+        this.scrimTimer = setTimeout(() => {
+            if (!scrim.classList.contains('show')) {
+                scrim.hidden = true;
+            }
+        }, SCRIM_FADE_MS);
+    }
+
+    handleModalMouseDown = (event) => {
+        this.downOnModal = event.target === this.element;
+    };
+
+    handleModalClick = (event) => {
+        const outside = this.downOnModal && event.target === this.element;
+        this.downOnModal = false;
+
+        // Only the own-scrim instance: Bootstrap's backdrop instance closes on its own outside click
+        if (outside && this.ownScrim && !this.released && this.isOpen()) {
+            this.close();
+        }
+    };
+
+    handleRelease = () => {
+        this.release();
+    };
+
+    /**
+     * The sent Help sheet (HELP-01b; HELP-05 "the page is usable without reload"): the confirmation stays in the
+     * sheet, the page behind works again - no scrim, taps go through the .modal to the page (its dialog keeps them),
+     * the page scrolls (Bootstrap's body class and inline styles go; it restores its own values on hide), and the
+     * dialog is no longer aria-modal. ×, Esc, a swipe and Back still close it. Own-scrim modals only.
+     */
+    release() {
+        if (!this.ownScrim || this.released || !this.isOpen()) {
+            return;
+        }
+
+        this.released = true;
+        this.hideScrim(true);
+        this.element.classList.add(RELEASED_CLASS);
+        this.element.removeAttribute('aria-modal');
+        document.body.classList.remove('modal-open');
+        document.body.style.removeProperty('overflow');
+        document.body.style.removeProperty('padding-right');
+    }
+
+    unrelease() {
+        this.released = false;
+        this.element.classList.remove(RELEASED_CLASS);
     }
 
     setSize(size) {

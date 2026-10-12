@@ -9007,6 +9007,13 @@ help:
     meta:
         title: "ヘルプとフィードバック"
     close: "閉じる"
+    feedback:
+        label: "ご意見をお聞かせください"
+        placeholder: "アイデア、不具合、気に入った点や気に入らない点など、何でもどうぞ。"
+        page_attached: "ご覧になっていたページへのリンクを添えて送信します。"
+        sent_title: "ありがとうございます！"
+        sent_text: "メッセージを受け取りました。近日中に拝読します。返信が必要な場合はメールでご連絡します。"
+        send_another: "別のメッセージを送る"
 
 where_did_it_go:
     title: "どこに移動しましたか？"

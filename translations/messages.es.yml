@@ -9019,6 +9019,13 @@ help:
     meta:
         title: "Ayuda y comentarios"
     close: "Cerrar"
+    feedback:
+        label: "¿Qué quieres contarnos?"
+        placeholder: "Una idea, un error, algo que te gusta o no te gusta: cualquier cosa."
+        page_attached: "Adjuntaremos un enlace a la página desde la que escribes."
+        sent_title: "¡Gracias!"
+        sent_text: "Hemos recibido tu mensaje y lo leeremos pronto. Si necesita respuesta, te escribiremos por correo electrónico."
+        send_another: "Enviar otro"
 
 where_did_it_go:
     title: "¿Dónde está ahora?"

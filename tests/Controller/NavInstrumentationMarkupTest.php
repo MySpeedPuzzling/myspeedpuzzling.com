@@ -90,8 +90,8 @@ final class NavInstrumentationMarkupTest extends WebTestCase
 
     /**
      * Navigation containers outside the header and footer (implementation plan §3.3): the Community landing (COM-01a)
-     * and the Help sheet (HELP-01a) - its page and its frame - and the Inbox header's tabs on both Inbox pages (INB-01,
-     * signed in). Every link and button there is counted too.
+     * and the Help sheet (HELP-01a; its feedback box HELP-01b) - its page and its frame - and the Inbox header's tabs on
+     * both Inbox pages (INB-01, signed in). Every link and button there is counted too.
      *
      * @return iterable<string, array{0: string, 1: array<string, string>, 2: string, 3: list<string>, 4?: string}>
      */
@@ -100,6 +100,9 @@ final class NavInstrumentationMarkupTest extends WebTestCase
         yield 'community landing' => ['/en/community', [], '.community-landing', ['community/community/leaderboards', 'community/community/puzzlers', 'community/community/events']];
         yield 'help page' => ['/en/help', [], 'main [data-help-sheet]', ['help/help/feature_requests', 'help/help/faq']];
         yield 'help sheet' => ['/en/help', ['HTTP_TURBO_FRAME' => 'modal-frame'], '[data-help-sheet]', ['help/help/close', 'help/help/feature_requests', 'help/help/faq']];
+        // The feedback box of a signed-in player (HELP-01b): its Send button is counted too
+        yield 'help page (player)' => ['/en/help', [], 'main [data-help-sheet]', ['help/help/send_feedback', 'help/help/feature_requests', 'help/help/faq'], PlayerFixture::PLAYER_REGULAR];
+        yield 'help sheet (player)' => ['/en/help', ['HTTP_TURBO_FRAME' => 'modal-frame'], '[data-help-sheet]', ['help/help/close', 'help/help/send_feedback', 'help/help/feature_requests', 'help/help/faq'], PlayerFixture::PLAYER_REGULAR];
         yield 'inbox for you' => ['/en/notifications', [], 'main nav.inbox-tabs', ['inbox/none/for_you', 'inbox/none/messages'], PlayerFixture::PLAYER_REGULAR];
         yield 'inbox messages' => ['/en/messages', [], 'main nav.inbox-tabs', ['inbox/none/for_you', 'inbox/none/messages'], PlayerFixture::PLAYER_REGULAR];
         // The Menu (MENU-01): the page's one #site-menu in the docked-column slot (a guest) and the `menu` page (a player)

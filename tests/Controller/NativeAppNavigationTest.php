@@ -142,6 +142,35 @@ final class NativeAppNavigationTest extends WebTestCase
     }
 
     /**
+     * The Help sheet in the app (HELP-01b, NAV-14 row): its opener is a plain link (layer_frame() = _top) and `help` is the
+     * full page - even with the frame header - whose feedback box posts as a page: Post/Redirect/Get back to the page
+     */
+    #[DataProvider('nativeUserAgents')]
+    public function testTheHelpSheetIsTheHelpPageInTheApp(string $userAgent, string $platform): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, self::MEMBER);
+
+        $crawler = $this->layerPage($browser, '/en/menu', $userAgent, $platform, 'menu');
+        $opener = $crawler->filter('main #site-menu a[data-nav="menu/help/send_feedback"]');
+        self::assertSame('/en/help?url=/en/menu', $opener->attr('href'));
+        self::assertSame('_top', $opener->attr('data-turbo-frame'));
+
+        $crawler = $browser->request('GET', '/en/help?url=/en/menu', server: ['HTTP_USER_AGENT' => $userAgent, 'HTTP_TURBO_FRAME' => 'modal-frame']);
+        self::assertResponseIsSuccessful();
+        self::assertSame($platform, $crawler->filter('html')->attr('data-native-app'));
+        NavChromeAssertions::assertNoWebChrome($crawler, 'help');
+        self::assertNotShared($browser, 'help');
+
+        $form = $crawler->filter('main [data-help-sheet] form[name="feedback_form"]');
+        self::assertSame('/en/feedback', $form->attr('action'));
+        self::assertNull($form->attr('data-turbo-frame'));
+
+        $browser->submit($form->form(), ['feedback_form[message]' => 'Sent from the app.'], ['HTTP_USER_AGENT' => $userAgent, 'HTTP_TURBO_FRAME' => 'modal-frame']);
+        self::assertResponseRedirects('/en/menu');
+    }
+
+    /**
      * The achievement sheet is a modal-frame fragment: opened as a page (the app's links are _top) it answers with
      * the achievement's own page
      */

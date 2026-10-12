@@ -9038,6 +9038,13 @@ help:
     meta:
         title: "Aide et commentaires"
     close: "Fermer"
+    feedback:
+        label: "Que souhaitez-vous nous dire ?"
+        placeholder: "Une idée, un bug, ce qui vous plaît ou non : tout est bienvenu."
+        page_attached: "Nous joindrons un lien vers la page depuis laquelle vous écrivez."
+        sent_title: "Merci !"
+        sent_text: "Nous avons bien reçu votre message et le lirons bientôt. S'il appelle une réponse, nous vous écrirons par e-mail."
+        send_another: "Envoyer un autre message"
 
 where_did_it_go:
     title: "Où est-ce passé ?"

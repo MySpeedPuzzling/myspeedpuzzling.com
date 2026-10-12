@@ -9018,6 +9018,13 @@ help:
     meta:
         title: "Hilfe & Feedback"
     close: "Schließen"
+    feedback:
+        label: "Was möchten Sie uns mitteilen?"
+        placeholder: "Eine Idee, ein Fehler, etwas, das Ihnen gefällt oder nicht gefällt - alles ist willkommen."
+        page_attached: "Wir fügen einen Link zu der Seite bei, von der aus Sie schreiben."
+        sent_title: "Vielen Dank!"
+        sent_text: "Wir haben Ihre Nachricht erhalten und lesen sie bald. Wenn sie eine Antwort braucht, melden wir uns per E-Mail."
+        send_another: "Weitere Nachricht senden"
 
 where_did_it_go:
     title: "Wo ist es jetzt?"

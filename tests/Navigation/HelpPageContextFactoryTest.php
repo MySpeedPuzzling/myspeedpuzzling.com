@@ -9,6 +9,7 @@ use SpeedPuzzling\Web\Navigation\HelpPageContextFactory;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\Routing\RouterInterface;
 
 /**
  * The Help sheet's ?url= is untrusted (implementation plan §7, HELP-01a): only a same-site path, or an absolute URL on
@@ -50,6 +51,22 @@ final class HelpPageContextFactoryTest extends KernelTestCase
         foreach (array_keys($context->routeParams) as $name) {
             self::assertStringStartsNotWith('_', (string) $name);
         }
+    }
+
+    /**
+     * The feedback box posts the page back (HELP-01b): a GET-only route still matches while the request is a POST, and
+     * the router's context keeps the request's method afterwards
+     */
+    public function testAPageIsMatchedAsAGetFromAPost(): void
+    {
+        $router = self::getContainer()->get(RouterInterface::class);
+        $router->getContext()->setMethod('POST');
+
+        $context = $this->factory()->fromUrlParameter('/en/menu', Request::create('http://localhost/en/feedback', 'POST'));
+
+        self::assertSame('menu', $context->routeName);
+        self::assertSame('/en/menu', $context->path);
+        self::assertSame('POST', $router->getContext()->getMethod());
     }
 
     public function testATrailingSlashKeepsOnlyTheRoutesOwnParameters(): void

@@ -53,6 +53,8 @@ final class NavLayoutCssTest extends TestCase
         yield 'events country sheet' => ['assets/styles/_events-page.scss', '.ev-sheet'];
         yield 'XP recap sheet' => ['assets/styles/_xp-recap.scss', '.recap-sheet[hidden]'];
         yield 'selection bar' => ['assets/styles/_collection-selection.scss', '.collection-selection-bar[hidden]'];
+        // HELP-01b: the Help sheet's own scrim (dynamic_modal_controller.js own-scrim path, implementation plan §7)
+        yield 'dynamic modal scrim' => ['assets/styles/_dynamic-modal.scss', '.dynamic-modal-scrim[hidden]'];
     }
 
     #[DataProvider('closedOverlays')]
@@ -123,6 +125,7 @@ final class NavLayoutCssTest extends TestCase
         // Every Bootstrap modal box, the dynamic modal container included (testEveryModalBoxEndsAboveTheBottomBar)
         yield 'every modal incl. the dynamic modal container (decision 18, review F4)' => ['assets/styles/_dynamic-modal.scss', '.modal', ['bottom']];
         yield 'modal backdrop (decision 18)' => ['assets/styles/_dynamic-modal.scss', '.modal-backdrop', ['bottom']];
+        yield 'the Help sheet\'s own scrim (decision 18, HELP-01b)' => ['assets/styles/_dynamic-modal.scss', '.dynamic-modal-scrim', ['bottom']];
         yield 'player card layer' => ['assets/styles/players/_card.scss', '.players-card-layer', ['bottom']];
         yield 'player card sheet' => ['assets/styles/players/_card.scss', '.is-sheet .players-card-dialog', ['bottom']];
         yield 'events ⋯ menu layer' => ['assets/styles/_events-organizer.scss', '.ev-menu-layer', ['bottom']];
@@ -184,6 +187,22 @@ final class NavLayoutCssTest extends TestCase
         }
 
         self::assertSame([], $resized, 'A modal box sized without --bottom-nav-height would cover the bottom bar again');
+    }
+
+    /**
+     * The Help sheet's own scrim (HELP-01b, implementation plan §7, F-03 z-index scale): at the backdrop's layer, under
+     * the .modal that takes the taps outside the dialog; the sent sheet (release()) lets taps through to the page except
+     * on its dialog
+     */
+    public function testTheHelpSheetScrimSitsInTheZIndexScale(): void
+    {
+        $tokens = (string) file_get_contents($this->root() . '/assets/styles/_nav-tokens.scss');
+        self::assertMatchesRegularExpression('~^\$z-modal-backdrop:\s*1050;~m', $tokens);
+        self::assertMatchesRegularExpression('~^\$z-modal:\s*1055;~m', $tokens);
+
+        self::assertMatchesRegularExpression('~(^|[;\s])z-index\s*:\s*\$z-modal-backdrop\s*;~', $this->declarationsOf('assets/styles/_dynamic-modal.scss', '.dynamic-modal-scrim'));
+        self::assertMatchesRegularExpression('~pointer-events\s*:\s*none~', $this->declarationsOf('assets/styles/_dynamic-modal.scss', '#dynamic-modal-container.is-released'));
+        self::assertMatchesRegularExpression('~pointer-events\s*:\s*auto~', $this->declarationsOf('assets/styles/_dynamic-modal.scss', '#dynamic-modal-container.is-released .modal-content'));
     }
 
     public function testSubBarsFollowTheTopBarWithoutAnimatingTop(): void

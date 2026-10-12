@@ -39,3 +39,6 @@ add_editions:
     starting_missing: "Wählen Sie den Tag, ab dem die Termine beginnen."
     count_range: "Wählen Sie 1 bis %max% Termine."
     none_selected: "Markieren Sie mindestens einen Termin."
+feedback:
+    message_required: "Bitte schreiben Sie eine Nachricht."
+    message_too_long: "Ihre Nachricht darf höchstens {{ limit }} Zeichen lang sein."

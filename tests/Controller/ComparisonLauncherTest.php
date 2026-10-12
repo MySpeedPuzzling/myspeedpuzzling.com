@@ -95,7 +95,8 @@ final class ComparisonLauncherTest extends WebTestCase
             '/en/edit-profile',
             '/en/edit-profile/change-password',
             '/en/messages/' . ConversationFixture::CONVERSATION_MARKETPLACE,
-            '/en/feedback',
+            // The feedback box lives in Help & feedback (HELP-01b; GET /en/feedback redirects there)
+            '/en/help',
             '/en/feature-requests/new',
             '/en/create-collection',
         ];

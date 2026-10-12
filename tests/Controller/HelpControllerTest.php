@@ -48,6 +48,14 @@ final class HelpControllerTest extends WebTestCase
         NavChromeAssertions::assertWebHeaderAndFooter($crawler);
         self::assertSame('Help & feedback', trim($crawler->filter('main h1')->text()));
         $this->assertTheRows($crawler->filter('main [data-help-sheet]'));
+        // The feedback box for signed-in players (HELP-01b): a plain form on the page (Post/Redirect/Get)
+        $form = $crawler->filter('main [data-help-sheet] form[name="feedback_form"]');
+        self::assertCount($playerId === null ? 0 : 1, $form);
+
+        if ($playerId !== null) {
+            self::assertSame('/en/feedback', $form->attr('action'));
+            self::assertNull($form->attr('data-turbo-frame'));
+        }
 
         $cacheControl = (string) $browser->getResponse()->headers->get('Cache-Control');
 
@@ -79,10 +87,14 @@ final class HelpControllerTest extends WebTestCase
 
         $sheet = $crawler->filter('turbo-frame#modal-frame > [data-help-sheet]');
         self::assertCount(1, $sheet);
-        // A sheet on phones whose Back closes it (dynamic_modal_controller.js)
+        // A sheet on phones whose Back closes it (dynamic_modal_controller.js) and a swipe down too (GEST-02); the Help
+        // sheet's controller keeps the feedback draft (HELP-01b)
         self::assertSame('', $sheet->attr('data-modal-size'));
         self::assertNotNull($sheet->attr('data-modal-sheet'));
         self::assertNotNull($sheet->attr('data-modal-history'));
+        self::assertSame('bottom-sheet help-sheet', $sheet->attr('data-controller'));
+        // The feedback box, signed in only (posting into the sheet: tests/Controller/FeedbackControllerTest.php)
+        self::assertCount($playerId === null ? 0 : 1, $sheet->filter('form[name="feedback_form"][action="/en/feedback"][data-turbo-frame="modal-frame"]'));
         self::assertSame('Help & feedback', trim($sheet->filter('.modal-title')->text()));
         self::assertSame('Close', $sheet->filter('.btn-close')->attr('aria-label'));
         $this->assertTheRows($sheet);

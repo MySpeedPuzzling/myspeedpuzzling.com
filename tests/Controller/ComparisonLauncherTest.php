@@ -87,6 +87,13 @@ final class ComparisonLauncherTest extends WebTestCase
         );
         self::assertIsString($timeId);
 
+        // The change-password form is for an account with a password - the fixture player signs in without one and would
+        // be sent to set one (ChangeAccountPasswordController, navigation review F4), so it gets one here
+        $browser->getContainer()->get(Connection::class)->executeStatement(
+            "UPDATE user_account SET password = 'not-a-real-hash' WHERE user_id = (SELECT user_id FROM player WHERE id = :id)",
+            ['id' => PlayerFixture::PLAYER_WITH_STRIPE],
+        );
+
         $pages = [
             '/en/puzzle-add',
             '/en/puzzle-add?mode=relax',

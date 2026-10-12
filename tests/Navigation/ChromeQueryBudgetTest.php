@@ -44,6 +44,8 @@ final class ChromeQueryBudgetTest extends WebTestCase
         yield 'player' => [NavigationViewer::PLAYER, self::SIGNED_IN];
         // Membership changes nothing in the chrome
         yield 'member' => [NavigationViewer::MEMBER, self::SIGNED_IN];
+        // The role-pure member (MEMBER is also an event owner); added after P0-02 for the per-role checks
+        yield 'member only' => [NavigationViewer::MEMBER_ONLY, self::SIGNED_IN];
         // Maintaining events changes nothing in the chrome
         yield 'organiser' => [NavigationViewer::ORGANISER, self::SIGNED_IN];
         yield 'moderator' => [NavigationViewer::MODERATOR, self::SIGNED_IN + self::QUEUE_COUNTS];

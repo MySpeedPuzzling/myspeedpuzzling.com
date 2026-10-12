@@ -49,6 +49,8 @@ final class HubQueryBudgetTest extends WebTestCase
         // Following players changes nothing yet: the eager feed is everybody's, the Favorites tab loads lazily
         yield 'player with favorites' => [NavigationViewer::PLAYER_WITH_FAVORITES, self::SIGNED_IN];
         yield 'member' => [NavigationViewer::MEMBER, self::SIGNED_IN + self::MEMBER_TIERS];
+        // The role-pure member (MEMBER is also an event owner); added after P0-02 for the per-role checks
+        yield 'member only' => [NavigationViewer::MEMBER_ONLY, self::SIGNED_IN + self::MEMBER_TIERS];
         yield 'organiser' => [NavigationViewer::ORGANISER, self::SIGNED_IN];
         // A non-member moderator: no tiers, the queue counts
         yield 'moderator' => [NavigationViewer::MODERATOR, self::SIGNED_IN + self::QUEUE_COUNTS];

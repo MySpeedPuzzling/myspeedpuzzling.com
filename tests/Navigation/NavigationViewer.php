@@ -6,6 +6,8 @@ namespace SpeedPuzzling\Web\Tests\Navigation;
 
 use Doctrine\DBAL\Connection;
 use PHPUnit\Framework\Assert;
+use Psr\Clock\ClockInterface;
+use SpeedPuzzling\Web\Message\GrantMembership;
 use SpeedPuzzling\Web\Message\GrantModeratorRole;
 use SpeedPuzzling\Web\Query\GetPlayerProfile;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
@@ -19,7 +21,8 @@ use Symfony\Component\Messenger\MessageBusInterface;
  * what the fixture is in the database, so a budget row means what its name says even after the fixtures change.
  *
  * No fixture player is a moderator: the moderator is PLAYER_WITH_FAVORITES with the role granted in the test (DAMA
- * rolls the grant back), as Admin/ModeratorAccessTest does.
+ * rolls the grant back), as Admin/ModeratorAccessTest does. No fixture member is role-free either: MEMBER_ONLY is
+ * PLAYER_PRIVATE with a membership granted in the test the same way.
  */
 readonly final class NavigationViewer
 {
@@ -28,8 +31,13 @@ readonly final class NavigationViewer
     public const string PLAYER = 'player';
     // A non-member who follows players (their favorites feed the Hub); also maintains and created events
     public const string PLAYER_WITH_FAVORITES = 'player with favorites';
-    // A member without a moderation role; also created organizations
+    // A member without a moderation role - and an event/organization owner: PLAYER_WITH_STRIPE created organizations
+    // and events (added_by_player_id = owner rights in GetCompetitionPermissions and "You organize"), so this row is
+    // member + owner and pays what an owner pays. The P0-02 pins stay on it; per-role checks use MEMBER_ONLY
     public const string MEMBER = 'member';
+    // A member and nothing else: PLAYER_PRIVATE with a membership granted in the test (DAMA rolls it back) - created,
+    // maintains and follows nothing, no roles
+    public const string MEMBER_ONLY = 'member only';
     // A non-member who maintains competitions (the "maintainer" of EventsPageQueryBudgetTest)
     public const string ORGANISER = 'organiser';
     // PLAYER_WITH_FAVORITES with the moderator role granted: the admin key with the puzzle review queues
@@ -40,6 +48,7 @@ readonly final class NavigationViewer
         self::PLAYER => PlayerFixture::PLAYER_PRIVATE,
         self::PLAYER_WITH_FAVORITES => PlayerFixture::PLAYER_WITH_FAVORITES,
         self::MEMBER => PlayerFixture::PLAYER_WITH_STRIPE,
+        self::MEMBER_ONLY => PlayerFixture::PLAYER_PRIVATE,
         self::ORGANISER => PlayerFixture::PLAYER_REGULAR,
         self::MODERATOR => PlayerFixture::PLAYER_WITH_FAVORITES,
         self::ADMIN => PlayerFixture::PLAYER_ADMIN,
@@ -54,6 +63,7 @@ readonly final class NavigationViewer
         self::PLAYER => ['member' => false, 'admin' => false, 'moderator' => false, 'maintains_events' => false, 'created_events' => false, 'follows_players' => false],
         self::PLAYER_WITH_FAVORITES => ['member' => false, 'admin' => false, 'moderator' => false, 'maintains_events' => true, 'created_events' => true, 'follows_players' => true],
         self::MEMBER => ['member' => true, 'admin' => false, 'moderator' => false, 'maintains_events' => false, 'created_events' => true, 'follows_players' => false],
+        self::MEMBER_ONLY => ['member' => true, 'admin' => false, 'moderator' => false, 'maintains_events' => false, 'created_events' => false, 'follows_players' => false],
         self::ORGANISER => ['member' => false, 'admin' => false, 'moderator' => false, 'maintains_events' => true, 'created_events' => true, 'follows_players' => false],
         self::MODERATOR => ['member' => false, 'admin' => false, 'moderator' => true, 'maintains_events' => true, 'created_events' => true, 'follows_players' => true],
         self::ADMIN => ['member' => true, 'admin' => true, 'moderator' => false, 'maintains_events' => true, 'created_events' => true, 'follows_players' => false],
@@ -85,6 +95,13 @@ readonly final class NavigationViewer
             // KernelBrowser::getContainer() is the test container in the test environment
             $bus = $browser->getContainer()->get(MessageBusInterface::class); // @phpstan-ignore symfonyContainer.privateService
             $bus->dispatch(new GrantModeratorRole($playerId));
+        }
+
+        if ($role === self::MEMBER_ONLY) {
+            $container = $browser->getContainer();
+            $now = $container->get(ClockInterface::class)->now(); // @phpstan-ignore symfonyContainer.privateService
+            $bus = $container->get(MessageBusInterface::class); // @phpstan-ignore symfonyContainer.privateService
+            $bus->dispatch(new GrantMembership($playerId, $now->modify('+1 year')));
         }
 
         Assert::assertSame(self::ROLE_FACTS[$role], self::roleFacts($browser, $playerId), sprintf('The "%s" fixture is no longer what the budget row is named after', $role));

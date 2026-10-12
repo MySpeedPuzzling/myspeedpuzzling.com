@@ -20,6 +20,8 @@ Today's chrome, measured before any chrome change: statement budgets (pinned by 
 
 Counted on the **second** request (the first warms the caches and claims an announcement modal; no second request claimed one). Each signed-in row first asserts its role in the database (`NavigationViewer`). Roles: guest = no cookie; player = `PLAYER_PRIVATE` (non-member, no roles); player with favorites = `PLAYER_WITH_FAVORITES`; member = `PLAYER_WITH_STRIPE`; organiser = `PLAYER_REGULAR` (maintains competitions); moderator = `PLAYER_WITH_FAVORITES` + `GrantModeratorRole`; admin = `PLAYER_ADMIN`.
 
+**`member` is member + event/organization owner:** `PLAYER_WITH_STRIPE` created organizations and events, and `added_by_player_id` gives owner rights (`GetCompetitionPermissions`, "You organize"). The P0-02 pins stay on it unchanged. For per-role checks (MENU-01/02, the chrome budget per role), use **member only** = `PLAYER_PRIVATE` + `GrantMembership` in the test (rolled back by DAMA, like the moderator grant; its role facts assert no events, organizations, maintainer rows or favorites). Its rows were added after the baseline and are measured on the same fixtures.
+
 Chrome cost of a signed-in page: user refresh 1 + profile row 1 + toolbar badges 2 (unread conversations, unread notifications) = **4**; moderators and admins + the admin key's queue counts **1**. The guest chrome costs **0**. Every guest row also asserts `Cache-Control: public`.
 
 **`ChromeQueryBudgetTest`** — `/en/faq` (its own statement: the 1000-piece distribution)
@@ -29,6 +31,7 @@ Chrome cost of a signed-in page: user refresh 1 + profile row 1 + toolbar badges
 | guest | 1 |
 | player | 5 |
 | member | 5 |
+| member only | 5 |
 | organiser | 5 |
 | moderator | 6 |
 | admin | 6 |
@@ -43,6 +46,7 @@ The spec names guest, member, moderator and organiser; player and admin were add
 | player | 8 | feed + "Review your results" counts + getting-started progress + the viewer's best times |
 | player with favorites | 8 | same (the Favorites tab is lazy) |
 | member | 9 | + difficulty tiers of the feed |
+| member only | 9 | same as member |
 | organiser | 8 | |
 | moderator | 9 | + queue counts |
 | admin | 10 | + tiers + queue counts |

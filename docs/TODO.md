@@ -233,6 +233,10 @@ What a reply to a player promised to build. Each has an MSP Mailer follow-up: te
       (Android Chromium) - give the chart container a height that fits the legend
       (PlayerStatistics::getManufacturersChart, _player_statistics_category.html.twig). Promised to Fredrik (MSP #216,
       follow-up F77).
+- [ ] Add-time/edit-time event picker: make it clear that picking a series (e.g. Euro Jigsaw Jam) is enough - one entry
+      covers every edition and both LIVE and FLEX runs, and MySpeedPuzzling matches the right edition by puzzle/date
+      automatically, also when the edition is added later (a player saved a FLEX jam time without any event because the
+      edition looked like the LIVE jam only). Promised to Carsten (MSP #257, follow-up F104).
 
 ## Participants spreadsheet (`docs/features/competitions-management/participants-spreadsheet.md` §13)
 

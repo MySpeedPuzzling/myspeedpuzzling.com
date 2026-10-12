@@ -200,7 +200,9 @@ SELECT
     player.xp_total,
     player.level,
     player.achievement_points,
-    {$runningStopwatch} AS running_stopwatch
+    {$runningStopwatch} AS running_stopwatch,
+    -- "New since your last visit" on the Hub's Favorites feed (docs/features/navigation, INB-04a)
+    player.favorites_seen_at
 FROM player
 LEFT JOIN user_account ON user_account.user_id = player.user_id
 LEFT JOIN membership ON membership.player_id = player.id

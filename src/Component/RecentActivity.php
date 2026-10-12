@@ -4,13 +4,19 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Component;
 
+use DateTimeImmutable;
+use Psr\Clock\ClockInterface;
+use SpeedPuzzling\Web\Message\MarkFavoritesSeen;
 use SpeedPuzzling\Web\Query\GetPlayerBestSoloTimes;
 use SpeedPuzzling\Web\Query\GetRecentActivity;
 use SpeedPuzzling\Web\Results\RecentActivityItem;
 use SpeedPuzzling\Web\Services\ResolveDifficultyTiers;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\DifficultyTier;
+use SpeedPuzzling\Web\Value\FavoritesSeen;
+use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
+use Symfony\UX\LiveComponent\Attribute\LiveAction;
 use Symfony\UX\LiveComponent\Attribute\LiveProp;
 use Symfony\UX\LiveComponent\DefaultActionTrait;
 
@@ -41,6 +47,15 @@ final class RecentActivity
     #[LiveProp]
     public bool $autoRefresh = false;
 
+    /**
+     * The Favorites feed only: the viewer's last visit as the profile row had it when the Hub was rendered
+     * (`player.favorites_seen_at`, docs/features/navigation INB-04a). Rows tracked after it are new. Not writable and
+     * never refreshed from the profile, so marking the feed seen (markFavoritesSeen()) and every automatic refresh of
+     * this visit keep the same rows new. Null = no last visit: nothing is new, no count.
+     */
+    #[LiveProp]
+    public null|DateTimeImmutable $newSince = null;
+
     /** @var null|array<RecentActivityItem> */
     private null|array $cachedItems = null;
 
@@ -57,7 +72,52 @@ final class RecentActivity
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private GetPlayerBestSoloTimes $getPlayerBestSoloTimes,
         readonly private ResolveDifficultyTiers $resolveDifficultyTiers,
+        readonly private MessageBusInterface $messageBus,
+        readonly private ClockInterface $clock,
     ) {
+    }
+
+    /**
+     * The Favorites feed was shown in this Hub visit (assets/controllers/favorites_seen_controller.js - once per visit,
+     * never from an automatic refresh): its rows count as seen from now on. Changes nothing on this page - `newSince`
+     * stays what the page was rendered with.
+     */
+    #[LiveAction]
+    public function markFavoritesSeen(): void
+    {
+        if ($this->favoritesOnly === false) {
+            return;
+        }
+
+        $profile = $this->retrieveLoggedUserProfile->getProfile();
+
+        // Marked less than ten minutes ago: the handler would change nothing (it decides, this only saves the trip)
+        if ($profile === null || FavoritesSeen::isDue($profile->favoritesSeenAt, $this->clock->now()) === false) {
+            return;
+        }
+
+        $this->messageBus->dispatch(new MarkFavoritesSeen($profile->playerId));
+    }
+
+    /**
+     * Added after the viewer's last visit of their Favorites feed - false everywhere else.
+     */
+    public function isNew(RecentActivityItem $item): bool
+    {
+        return $this->favoritesOnly && $item->isNewSince($this->newSince);
+    }
+
+    /**
+     * How many of the loaded rows are new since the last visit; null without a last visit (nothing to count from) and
+     * outside the Favorites feed.
+     */
+    public function getNewCount(): null|int
+    {
+        if ($this->favoritesOnly === false || $this->newSince === null) {
+            return null;
+        }
+
+        return count(array_filter($this->getItems(), $this->isNew(...)));
     }
 
     /**

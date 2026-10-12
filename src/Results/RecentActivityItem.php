@@ -49,6 +49,15 @@ readonly final class RecentActivityItem
     ) {
     }
 
+    /**
+     * "New since your last visit" (docs/features/navigation, INB-04a): added to MySpeedPuzzling after the viewer last
+     * looked at their Favorites feed. No last visit (null) = nothing is new - the one rule for the rows and the count.
+     */
+    public function isNewSince(null|DateTimeImmutable $lastVisit): bool
+    {
+        return $lastVisit !== null && $this->trackedAt > $lastVisit;
+    }
+
     public function isRelaxMode(): bool
     {
         return $this->time === null;

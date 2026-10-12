@@ -24,6 +24,7 @@ use SpeedPuzzling\Web\Value\ComparisonView;
 use SpeedPuzzling\Web\Value\ContentDigestFrequency;
 use SpeedPuzzling\Web\Value\CountryCode;
 use SpeedPuzzling\Web\Value\EmailNotificationFrequency;
+use SpeedPuzzling\Web\Value\FavoritesSeen;
 use SpeedPuzzling\Web\Value\LeaderboardChartView;
 use SpeedPuzzling\Web\Value\SellSwapListSettings;
 use DateTimeImmutable;
@@ -260,6 +261,15 @@ class Player
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(type: Types::BOOLEAN, options: ['default' => false])]
     public bool $achievementsOptedOut = false;
+
+    /**
+     * When the player last looked at the Hub's Favorites feed (docs/features/navigation, INB-04a): the feed's rows
+     * tracked after it are "new since your last visit". Null = no visit since the feature exists - nothing counts as
+     * new then. Moved only by markFavoritesSeen(), at most once per FavoritesSeen::MARK_EVERY_SECONDS.
+     */
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    public null|DateTimeImmutable $favoritesSeenAt = null;
 
     public function __construct(
         #[Id]
@@ -521,6 +531,19 @@ class Player
     public function changeComparisonView(ComparisonView $view): void
     {
         $this->comparisonView = $view;
+    }
+
+    /**
+     * The Favorites feed was shown - unless it was already marked less than FavoritesSeen::MARK_EVERY_SECONDS ago,
+     * then nothing changes (no UPDATE): what was new stays new for a quick return to the Hub.
+     */
+    public function markFavoritesSeen(DateTimeImmutable $now): void
+    {
+        if (FavoritesSeen::isDue($this->favoritesSeenAt, $now) === false) {
+            return;
+        }
+
+        $this->favoritesSeenAt = $now;
     }
 
     public function changeExperienceSystemOptedOut(bool $optedOut): void

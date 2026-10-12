@@ -81,6 +81,7 @@ use SpeedPuzzling\Web\Value\SkillTier;
  *     msp_rating_rank?: null|int|string,
  *     skill_tier?: null|int|string,
  *     running_stopwatch?: null|string,
+ *     favorites_seen_at?: null|string,
  *  }
  */
 readonly final class PlayerProfile
@@ -219,6 +220,11 @@ readonly final class PlayerProfile
          * (docs/features/navigation README D7, ADD-03) - null when none runs or the running one is stale.
          */
         public null|RunningStopwatch $runningStopwatch = null,
+        /**
+         * GetPlayerProfile::byUserId() only: when the viewer last looked at the Hub's Favorites feed (docs/features/
+         * navigation, INB-04a) - the feed's rows tracked after it are new. Null = never: nothing is new, no count.
+         */
+        public null|DateTimeImmutable $favoritesSeenAt = null,
     ) {
     }
 
@@ -430,6 +436,7 @@ readonly final class PlayerProfile
             mspRatingRank: isset($row['msp_rating_rank']) ? (int) $row['msp_rating_rank'] : null,
             skillTier: isset($row['skill_tier']) ? SkillTier::tryFrom((int) $row['skill_tier']) : null,
             runningStopwatch: RunningStopwatch::fromJson($row['running_stopwatch'] ?? null, $now),
+            favoritesSeenAt: isset($row['favorites_seen_at']) ? new DateTimeImmutable($row['favorites_seen_at']) : null,
         );
     }
 

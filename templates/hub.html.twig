@@ -55,7 +55,17 @@
                     <twig:RecentActivity limit="20" :showLimit="4" :autoRefresh="true" />
                 </div>
 
-                <div class="tab-pane fade" id="recent-favorites-activity" role="tabpanel">
+                {# "New since your last visit" (docs/features/navigation, INB-04a): the first time this pane is shown in a visit,
+                   the feed is marked seen (favorites_seen_controller.js, never from an automatic refresh); the feed keeps the
+                   last visit it was rendered with as `newSince`, so this visit's new rows stay new #}
+                {% set favorites_seen_at = logged_user.profile is not null ? logged_user.profile.favoritesSeenAt : null %}
+                <div class="tab-pane fade" id="recent-favorites-activity" role="tabpanel"
+                    {%- if logged_user.profile is not null and logged_user.profile.favoritePlayers is not empty %}
+                    data-controller="favorites-seen"
+                    data-favorites-seen-new-since-value="{{ favorites_seen_at is not null ? favorites_seen_at.timestamp : 0 }}"
+                    data-favorites-seen-rendered-value="{{ 'now'|date('U') }}"
+                    data-favorites-seen-interval-value="{{ constant('SpeedPuzzling\\Web\\Value\\FavoritesSeen::MARK_EVERY_SECONDS') }}"
+                    {%- endif %}>
                     {% if logged_user.profile is null %}
                         <div class="alert alert-accent small d-flex mt-3" role="alert">
                             <div class="alert-icon py-0">
@@ -64,7 +74,7 @@
                             <div>{{ 'hub.not_logged'|trans }}</div>
                         </div>
                     {% else %}
-                        <twig:RecentActivity loading="lazy" limit="20" :showLimit="4" :favoritesOnly="true" :autoRefresh="true" />
+                        <twig:RecentActivity loading="lazy" limit="20" :showLimit="4" :favoritesOnly="true" :autoRefresh="true" :newSince="favorites_seen_at" />
                     {% endif %}
                 </div>
             </div>

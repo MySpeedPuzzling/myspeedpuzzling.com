@@ -359,34 +359,4 @@ SQL;
             );
         }, $data);
     }
-
-    public function countUnreadForPlayer(string $playerId): int
-    {
-        $query = <<<SQL
-SELECT COUNT(DISTINCT c.id)
-FROM conversation c
-JOIN chat_message cm ON cm.conversation_id = c.id
-WHERE (c.initiator_id = :playerId OR c.recipient_id = :playerId)
-    AND c.status = :status
-    AND cm.read_at IS NULL
-    AND (
-        (cm.sender_id IS NOT NULL AND cm.sender_id != :playerId)
-        OR cm.sender_id IS NULL
-    )
-    AND NOT EXISTS (
-        SELECT 1 FROM user_block ub
-        WHERE ub.blocker_id = :playerId
-        AND ub.blocked_id = CASE WHEN c.initiator_id = :playerId THEN c.recipient_id ELSE c.initiator_id END
-    )
-SQL;
-
-        $result = $this->database
-            ->executeQuery($query, [
-                'playerId' => $playerId,
-                'status' => ConversationStatus::Accepted->value,
-            ])
-            ->fetchOne();
-
-        return is_numeric($result) ? (int) $result : 0;
-    }
 }

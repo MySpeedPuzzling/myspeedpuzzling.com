@@ -265,13 +265,14 @@ final class OfficialRoundResultsPageTest extends WebTestCase
      * Absolute budget (review round 3, MINOR 1): a round page nobody published official results on runs exactly the
      * statements main runs - measured on origin/main 99684f88 for WJPC 2024's qualification round: 7 for a guest, 11
      * for a signed-in player, 11 for the event's organiser. The organiser's tool links come only with published
-     * results, so nobody's permissions are asked on an untouched page.
+     * results, so nobody's permissions are asked on an untouched page. INB-02: signed in 11 → 10 (the two unread counts
+     * of the header are one Inbox badge statement).
      */
     public function testAnUntouchedRoundPageRunsExactlyMainsStatementsForEveryViewer(): void
     {
         $url = '/en/events/wjpc-2024/results/qualification-round';
 
-        foreach (['guest' => [null, false, 7], 'player' => [PlayerFixture::PLAYER_REGULAR, false, 11], 'organiser' => [PlayerFixture::PLAYER_REGULAR, true, 11]] as $viewer => [$playerId, $organiser, $mainsStatements]) {
+        foreach (['guest' => [null, false, 7], 'player' => [PlayerFixture::PLAYER_REGULAR, false, 10], 'organiser' => [PlayerFixture::PLAYER_REGULAR, true, 10]] as $viewer => [$playerId, $organiser, $mainsStatements]) {
             $browser = self::createClient();
 
             if ($organiser) {

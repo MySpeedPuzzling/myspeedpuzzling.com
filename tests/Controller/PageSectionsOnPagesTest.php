@@ -76,9 +76,10 @@ final class PageSectionsOnPagesTest extends WebTestCase
         yield 'edition' => [self::EDITION_URL, false, 12];
         yield 'online edition' => ['/en/series/euro-jigsaw-jam-series/ejj-68-february-2026', false, 12];
         yield 'series' => [self::SERIES_URL, false, 3];
-        yield 'event, signed in' => [self::EVENT_URL, true, 19];
-        yield 'edition, signed in' => [self::EDITION_URL, true, 19];
-        yield 'series, signed in' => [self::SERIES_URL, true, 9];
+        // INB-02: signed in −1 (19 → 18, 9 → 8) - the header's two unread counts are one Inbox badge statement
+        yield 'event, signed in' => [self::EVENT_URL, true, 18];
+        yield 'edition, signed in' => [self::EDITION_URL, true, 18];
+        yield 'series, signed in' => [self::SERIES_URL, true, 8];
     }
 
     public function testSectionsShowAfterTakingPartForOneMoreStatement(): void

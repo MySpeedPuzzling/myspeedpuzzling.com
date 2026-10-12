@@ -17,16 +17,16 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 /**
  * The events page costs a fixed number of statements (docs/features/events-page/implementation-plan.md, 4):
  * occurrences, series, going counts; signed in + the viewer's own relations + the permissions statement the ⋯ voters
- * share (GetCompetitionPermissions, memoised) + what every signed-in request loads (account, profile, unread
- * conversations and notifications; admins also the review queue counts). The archive is one statement.
+ * share (GetCompetitionPermissions, memoised) + what every signed-in request loads (account, profile, the Inbox badge;
+ * admins also the review queue counts). The archive is one statement.
  */
 final class EventsPageQueryBudgetTest extends WebTestCase
 {
     use QueryCountAssertions;
 
     private const int GUEST = 3;
-    // Account, profile, unread conversations, unread notifications
-    private const int SIGNED_IN_OVERHEAD = 4;
+    // Account, profile, the Inbox badge (INB-02: 4 → 3, the unread conversations and notifications are one statement)
+    private const int SIGNED_IN_OVERHEAD = 3;
     // The viewer statement + the permissions statement (the ⋯ voters, workstream C)
     private const int SIGNED_IN_PAGE = self::GUEST + 2;
 

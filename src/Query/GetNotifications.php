@@ -20,33 +20,6 @@ readonly final class GetNotifications
     ) {
     }
 
-    /**
-     * The bell on every page. custom_notification_unread (player_id WHERE read_at IS NULL) answers it
-     * with an index-only scan - COUNT(*), not COUNT(id): the id is not in that index.
-     */
-    public function countUnreadForPlayer(string $playerId): int
-    {
-        $notHidden = $this->unreadNotHidden();
-
-        $query = <<<SQL
-SELECT
-    COUNT(*)
-FROM notification
-WHERE player_id = :playerId
-    AND read_at IS NULL
-    {$notHidden}
-SQL;
-
-        $count = $this->database
-            ->executeQuery($query, [
-                'playerId' => $playerId,
-            ])
-            ->fetchOne();
-        assert(is_int($count));
-
-        return $count;
-    }
-
     public function getOldestUnreadNotifiedAtForPlayer(string $playerId): null|\DateTimeImmutable
     {
         $notHidden = $this->unreadNotHidden();
@@ -969,26 +942,12 @@ SQL;
     }
 
     /**
-     * The same rule as the solving time and conversation branches of forPlayer(), for the queries
-     * that read the notification table alone - the badge must not count what the list leaves out.
+     * The same rule as the solving time and conversation branches of forPlayer(), for the queries that read the
+     * notification table alone - shared with the Inbox badge (GetInboxBadge), which must not count what the list
+     * leaves out.
      */
     private function unreadNotHidden(): string
     {
-        if ($this->hiddenPlayers->ids() === []) {
-            return '';
-        }
-
-        $solvingTimeNotHidden = $this->hiddenPlayers->sqlExclude('COALESCE(notification.actor_player_id, pst.player_id)')
-            . $this->hiddenPlayers->sqlExcludeTeam('pst.team');
-        $initiatorNotHidden = $this->hiddenPlayers->sqlExclude('conv.initiator_id');
-
-        return <<<SQL
- AND (notification.target_solving_time_id IS NULL OR EXISTS (
-        SELECT 1 FROM puzzle_solving_time pst WHERE pst.id = notification.target_solving_time_id{$solvingTimeNotHidden}
-    ))
-    AND (notification.target_conversation_id IS NULL OR EXISTS (
-        SELECT 1 FROM conversation conv WHERE conv.id = notification.target_conversation_id{$initiatorNotHidden}
-    ))
-SQL;
+        return $this->hiddenPlayers->sqlNotificationNotHidden();
     }
 }

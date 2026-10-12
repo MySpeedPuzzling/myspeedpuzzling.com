@@ -75,7 +75,19 @@ final class HiddenPlayers implements ResetInterface
      */
     public function sqlExclude(string $column): string
     {
-        $ids = $this->ids();
+        return self::sqlExcludeFor($column, $this->ids());
+    }
+
+    /**
+     * sqlExclude() for explicit hidden ids instead of the request's viewer - for code that works for another player
+     * than the signed-in one (a realtime push runs in the sender's request or in an async consumer, docs/features/
+     * navigation INB-02). Ids that are not uuids are dropped: they are inlined into the SQL.
+     *
+     * @param list<string> $hiddenIds
+     */
+    public static function sqlExcludeFor(string $column, array $hiddenIds): string
+    {
+        $ids = self::validIds($hiddenIds);
 
         if ($ids === []) {
             return '';
@@ -95,6 +107,18 @@ final class HiddenPlayers implements ResetInterface
     {
         $ids = $this->ids();
 
+        return self::sqlExcludeTeamFor($teamColumn, $ids, $this->viewerId);
+    }
+
+    /**
+     * sqlExcludeTeam() for explicit hidden ids and the player they are hidden from (see sqlExcludeFor()).
+     *
+     * @param list<string> $hiddenIds
+     */
+    public static function sqlExcludeTeamFor(string $teamColumn, array $hiddenIds, null|string $viewerId): string
+    {
+        $ids = self::validIds($hiddenIds);
+
         if ($ids === []) {
             return '';
         }
@@ -104,12 +128,68 @@ final class HiddenPlayers implements ResetInterface
             $ids,
         ));
 
+        $viewerId = $viewerId !== null && Uuid::isValid($viewerId) ? strtolower($viewerId) : null;
         $puzzlers = "({$teamColumn}::jsonb -> 'puzzlers')";
-        $viewerTookPart = $this->viewerId === null
+        $viewerTookPart = $viewerId === null
             ? ''
-            : " OR {$puzzlers} @> '[{\"player_id\": \"{$this->viewerId}\"}]'::jsonb";
+            : " OR {$puzzlers} @> '[{\"player_id\": \"{$viewerId}\"}]'::jsonb";
 
         return " AND ({$teamColumn} IS NULL OR NOT ({$puzzlers} @> ANY (ARRAY[{$members}])){$viewerTookPart})";
+    }
+
+    /**
+     * sqlNotificationNotHiddenFor() for the request's viewer.
+     */
+    public function sqlNotificationNotHidden(): string
+    {
+        $ids = $this->ids();
+
+        return self::sqlNotificationNotHiddenFor($ids, $this->viewerId);
+    }
+
+    /**
+     * The rule of the solving time and conversation branches of GetNotifications::forPlayer(), for the statements
+     * that read the notification table alone (the unread counts, the Inbox badge's For you part): a badge must not
+     * count what the list leaves out. Empty when nobody is hidden. `$viewerId` = the notifications' owner.
+     *
+     * @param list<string> $hiddenIds
+     */
+    public static function sqlNotificationNotHiddenFor(array $hiddenIds, null|string $viewerId): string
+    {
+        if (self::validIds($hiddenIds) === []) {
+            return '';
+        }
+
+        $solvingTimeNotHidden = self::sqlExcludeFor('COALESCE(notification.actor_player_id, pst.player_id)', $hiddenIds)
+            . self::sqlExcludeTeamFor('pst.team', $hiddenIds, $viewerId);
+        $initiatorNotHidden = self::sqlExcludeFor('conv.initiator_id', $hiddenIds);
+
+        return <<<SQL
+ AND (notification.target_solving_time_id IS NULL OR EXISTS (
+        SELECT 1 FROM puzzle_solving_time pst WHERE pst.id = notification.target_solving_time_id{$solvingTimeNotHidden}
+    ))
+    AND (notification.target_conversation_id IS NULL OR EXISTS (
+        SELECT 1 FROM conversation conv WHERE conv.id = notification.target_conversation_id{$initiatorNotHidden}
+    ))
+SQL;
+    }
+
+    /**
+     * @param list<string> $ids
+     * @return list<string>
+     */
+    private static function validIds(array $ids): array
+    {
+        $valid = [];
+
+        foreach ($ids as $id) {
+            // Inlined into SQL by the fragments above, so nothing but a uuid gets through
+            if (Uuid::isValid($id)) {
+                $valid[] = strtolower($id);
+            }
+        }
+
+        return $valid;
     }
 
     public function reset(): void

@@ -60,21 +60,8 @@ final class GetConversationsTest extends KernelTestCase
         self::assertEmpty($pendingForStripe);
     }
 
-    public function testCountUnreadForPlayerReturnsCorrectCount(): void
-    {
-        // PLAYER_REGULAR has unread MESSAGE_04 from ADMIN in CONVERSATION_ACCEPTED
-        $unreadCount = $this->getConversations->countUnreadForPlayer(PlayerFixture::PLAYER_REGULAR);
-
-        self::assertGreaterThanOrEqual(1, $unreadCount);
-    }
-
-    public function testCountUnreadForPlayerWithNoUnreadReturnsZero(): void
-    {
-        // PLAYER_PRIVATE has no conversations
-        $unreadCount = $this->getConversations->countUnreadForPlayer(PlayerFixture::PLAYER_PRIVATE);
-
-        self::assertSame(0, $unreadCount);
-    }
+    // The unread conversation count moved into the Inbox badge's one statement with its tests: GetInboxBadgeTest
+    // (docs/features/navigation INB-02)
 
     public function testForPlayerIncludesMarketplaceConversation(): void
     {

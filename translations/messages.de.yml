@@ -1551,6 +1551,14 @@ competition_referees:
     "requested": "%player% sagt, du bist „%guest%“ in Ergebnissen, die ihr zusammen gepuzzelt habt. Bist du das?"
     "accepted": "%player% hat bestätigt, „%guest%“ zu sein. Eure gemeinsamen Ergebnisse sind jetzt auch in deren Verlauf."
 
+"inbox":
+  "badge":
+    "name":
+      "none": "Posteingang"
+      "messages": "Posteingang, 1 neue Nachricht|Posteingang, %count% neue Nachrichten"
+      "for_you": "Posteingang, 1 neue Benachrichtigung|Posteingang, %count% neue Benachrichtigungen"
+      "mixed": "Posteingang, 1 neuer Eintrag|Posteingang, %count% neue Einträge"
+
 xp:
     level_chip: "Lv %level%"
     total: "%xp% XP"

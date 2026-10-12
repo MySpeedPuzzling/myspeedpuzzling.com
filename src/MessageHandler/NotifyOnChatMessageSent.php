@@ -7,7 +7,7 @@ namespace SpeedPuzzling\Web\MessageHandler;
 use Psr\Log\LoggerInterface;
 use SpeedPuzzling\Web\Events\ChatMessageSent;
 use SpeedPuzzling\Web\Exceptions\ChatMessageNotFound;
-use SpeedPuzzling\Web\Query\GetConversations;
+use SpeedPuzzling\Web\Navigation\InboxBadge;
 use SpeedPuzzling\Web\Query\GetUserBlocks;
 use SpeedPuzzling\Web\Repository\ChatMessageRepository;
 use SpeedPuzzling\Web\Services\MercureNotifier;
@@ -20,7 +20,7 @@ readonly final class NotifyOnChatMessageSent
     public function __construct(
         private ChatMessageRepository $chatMessageRepository,
         private MercureNotifier $mercureNotifier,
-        private GetConversations $getConversations,
+        private InboxBadge $inboxBadge,
         private GetUserBlocks $getUserBlocks,
         private LoggerInterface $logger,
     ) {
@@ -48,10 +48,14 @@ readonly final class NotifyOnChatMessageSent
             if (!$isBlockedByOther) {
                 $this->mercureNotifier->notifyNewMessage($chatMessage);
 
-                if ($conversation->status === ConversationStatus::Accepted) {
+                // The other side's Inbox badge: an unread conversation, or a message request waiting for them (the
+                // first message of a request is sent by its initiator)
+                if (
+                    $conversation->status === ConversationStatus::Accepted
+                    || ($conversation->status === ConversationStatus::Pending && $isInitiator)
+                ) {
                     $recipientId = $otherParticipant->id->toString();
-                    $unreadCount = $this->getConversations->countUnreadForPlayer($recipientId);
-                    $this->mercureNotifier->notifyUnreadCountChanged($recipientId, $unreadCount);
+                    $this->mercureNotifier->notifyInboxBadgeChanged($recipientId, $this->inboxBadge->forPlayer($recipientId));
                 }
 
                 $this->mercureNotifier->notifyConversationListChanged($otherParticipant->id->toString());

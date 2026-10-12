@@ -20,7 +20,8 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
  * The series, edition and event pages cost a fixed number of statements (docs/features/events-page/detail-pages-plan.md
  * 1.10), measured on the foundation's skeleton and pinned exactly - a higher number is a bug to explain, not a new
  * number. The second request is counted (the first warms the caches). Signed in adds what every signed-in request loads
- * (account, profile, unread conversations, unread notifications) and the permissions statement the voters share.
+ * (account, profile, the Inbox badge - INB-02 merged the unread conversations and notifications into it) and the
+ * permissions statement the voters share.
  *
  * Series: the series (sections flag inside), its occurrences in one statement, the going counts of the coming ones
  * (none without any); signed in + the viewer's going/follow rows + permissions.
@@ -43,22 +44,27 @@ final class DetailPagesQueryBudgetTest extends WebTestCase
     {
         // The series, its occurrences, the going counts (2026-10-08: 3, the old page 4)
         yield 'series, guest' => [self::HARBOR, null, 3];
-        // + the viewer's going/follow rows, the permissions statement and the signed-in overhead (4)
-        yield 'series, player' => [self::HARBOR, PlayerFixture::PLAYER_REGULAR, 9];
-        // The same for an admin: the navbar's XP ring reads the viewer's own profile row (no query of its own)
-        yield 'series, organiser' => [self::HARBOR, PlayerFixture::PLAYER_ADMIN, 9];
+        // + the viewer's going/follow rows, the permissions statement and the signed-in overhead (3; INB-02: 9 → 8, the
+        // two unread counts are one Inbox badge statement)
+        yield 'series, player' => [self::HARBOR, PlayerFixture::PLAYER_REGULAR, 8];
+        // The same for an admin: the navbar's XP ring reads the viewer's own profile row (no query of its own).
+        // INB-02: 9 → 8
+        yield 'series, organiser' => [self::HARBOR, PlayerFixture::PLAYER_ADMIN, 8];
         // Nothing coming: no going counts
         yield 'series without editions, guest' => [self::SUMMIT, null, 2];
-        yield 'series without editions, player' => [self::SUMMIT, PlayerFixture::PLAYER_REGULAR, 8];
+        // INB-02: 8 → 7
+        yield 'series without editions, player' => [self::SUMMIT, PlayerFixture::PLAYER_REGULAR, 7];
         // The old edition page + results per round
         yield 'edition, guest' => [self::SEASON_ONE, null, 12];
-        // + the signed-in overhead (4), statuses, attendance and the permissions statement
-        yield 'edition, player' => [self::SEASON_ONE, PlayerFixture::PLAYER_REGULAR, 19];
-        yield 'edition, organiser' => [self::SEASON_ONE, PlayerFixture::PLAYER_ADMIN, 19];
+        // + the signed-in overhead (3), statuses, attendance and the permissions statement (INB-02: 19 → 18, one Inbox
+        // badge statement instead of two unread counts)
+        yield 'edition, player' => [self::SEASON_ONE, PlayerFixture::PLAYER_REGULAR, 18];
+        yield 'edition, organiser' => [self::SEASON_ONE, PlayerFixture::PLAYER_ADMIN, 18];
         // Below the old wjpc-2024 page (16): round puzzles are no longer read a second time; the marketplace card's one
         yield 'event, guest' => [self::HILLTOP, null, 12];
-        yield 'event, player' => [self::HILLTOP, PlayerFixture::PLAYER_REGULAR, 19];
-        yield 'event, organiser' => [self::HILLTOP, PlayerFixture::PLAYER_ADMIN, 19];
+        // INB-02: 19 → 18 (the Inbox badge)
+        yield 'event, player' => [self::HILLTOP, PlayerFixture::PLAYER_REGULAR, 18];
+        yield 'event, organiser' => [self::HILLTOP, PlayerFixture::PLAYER_ADMIN, 18];
     }
 
     #[DataProvider('providePages')]
@@ -79,10 +85,11 @@ final class DetailPagesQueryBudgetTest extends WebTestCase
     public static function provideMaintainerPages(): iterable
     {
         // A non-admin organiser: maintainer of both series (Season One is edited through its series), creator of the
-        // one-time event - the same statements as an admin, the permissions statement answers both
-        yield 'series, maintainer' => [self::HARBOR, 9];
-        yield 'edition, series maintainer' => [self::SEASON_ONE, 19];
-        yield 'event, creator' => [self::HILLTOP, 19];
+        // one-time event - the same statements as an admin, the permissions statement answers both. INB-02: each −1 (the
+        // Inbox badge is one statement instead of two unread counts)
+        yield 'series, maintainer' => [self::HARBOR, 8];
+        yield 'edition, series maintainer' => [self::SEASON_ONE, 18];
+        yield 'event, creator' => [self::HILLTOP, 18];
     }
 
     #[DataProvider('provideMaintainerPages')]
@@ -159,8 +166,9 @@ final class DetailPagesQueryBudgetTest extends WebTestCase
 
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
 
-        self::assertSame(9, $this->measure($browser, '/en/series/' . $small['slug']), 'player, two editions');
-        self::assertSame(9, $this->measure($browser, '/en/series/' . $large['slug']), 'player, 203 editions');
+        // INB-02: 9 → 8 (the Inbox badge is one statement instead of two unread counts)
+        self::assertSame(8, $this->measure($browser, '/en/series/' . $small['slug']), 'player, two editions');
+        self::assertSame(8, $this->measure($browser, '/en/series/' . $large['slug']), 'player, 203 editions');
         self::assertCount(1, $browser->getCrawler()->filter('[data-series-add-time]'));
     }
 

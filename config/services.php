@@ -15,6 +15,7 @@ use Sentry\Monolog\ExceptionToSentryIssueHandler;
 use Sentry\Monolog\LogToSentryIssueHandler;
 use Sentry\State\HubInterface;
 use SpeedPuzzling\Web\Doctrine\RegexSchemaAssetFilter;
+use SpeedPuzzling\Web\Navigation\InboxBadge;
 use SpeedPuzzling\Web\Navigation\NavigationLaunch;
 use SpeedPuzzling\Web\Services\Api\ApiDtoNormalizer;
 use SpeedPuzzling\Web\Services\ApiUsage\ApiUsageCounter;
@@ -177,6 +178,8 @@ return static function (ContainerConfigurator $configurator): void {
         ->exclude([__DIR__ . '/../src/Navigation/NavigationPlaceMap.php']);
     $services->set(NavigationLaunch::class)
         ->arg('$date', param('navigation.launch_date'));
+    // The Inbox badge's request memo (INB-02)
+    $services->set(InboxBadge::class);
 
     // Repositories
     $services->load('SpeedPuzzling\\Web\\Repository\\', __DIR__ . '/../src/Repository/{*Repository.php}');

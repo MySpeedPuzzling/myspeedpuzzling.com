@@ -1599,6 +1599,14 @@ competition_referees:
     "requested": "%player% dit que vous êtes « %guest% » dans des résultats réalisés ensemble. Est-ce vous ?"
     "accepted": "%player% a confirmé être « %guest% ». Vos résultats communs sont maintenant dans son historique."
 
+"inbox":
+  "badge":
+    "name":
+      "none": "Boîte de réception"
+      "messages": "Boîte de réception, %count% nouveau message|Boîte de réception, %count% nouveaux messages"
+      "for_you": "Boîte de réception, %count% nouvelle notification|Boîte de réception, %count% nouvelles notifications"
+      "mixed": "Boîte de réception, %count% nouveauté|Boîte de réception, %count% nouveautés"
+
 "xp":
   "level_chip": "Niv. %level%"
   "total": "%xp% XP"

@@ -260,6 +260,9 @@ function createCustomIndexes(): void
     // Unread notifications badge (Version20260930163000)
     $pdo->exec('CREATE INDEX IF NOT EXISTS custom_notification_unread ON notification (player_id) WHERE read_at IS NULL');
 
+    // The Inbox badge's For you part (Version20261012150000)
+    $pdo->exec("CREATE INDEX IF NOT EXISTS custom_notification_unread_for_you ON notification (player_id) WHERE read_at IS NULL AND type NOT IN ('SubscribedPlayerAddedTime', 'NewConversationRequest')");
+
     // Player search (Version20260930163100)
     $pdo->exec('CREATE INDEX IF NOT EXISTS custom_player_search_trgm ON player USING GIN (LOWER(name) gin_trgm_ops, LOWER(code) gin_trgm_ops, LOWER(immutable_unaccent(name)) gin_trgm_ops, LOWER(immutable_unaccent(code)) gin_trgm_ops)');
 

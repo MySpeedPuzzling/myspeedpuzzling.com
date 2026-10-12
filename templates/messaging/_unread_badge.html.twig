@@ -1,9 +1,10 @@
-<div id="unread-badge-container">
-    <a class="navbar-tool {% if (app.request.attributes.get('_route') ?? '') starts with 'conversation' %}active{% endif %}" href="{{ path('conversations_list') }}" aria-label="{{ 'messaging.title'|trans }}" data-nav="toolbar/tools/messages">
-        <div class="navbar-tool-icon-box {{ count > 0 ? 'bg-secondary' }}">
-            <span class="navbar-tool-label {{ count == 0 ? 'bg-secondary text-dark' }}">{{ count }}</span>
-            <i class="navbar-tool-icon ci-mail" aria-hidden="true"></i>
-        </div>
-        <div class="navbar-tool-text ms-n3 d-none"><small>{{ 'messaging.title'|trans }}</small></div>
-    </a>
-</div>
+{#- The old header's Messages tool (until NAV-06 removes it). Its count is the Inbox badge's Messages part (unread
+    conversations + message requests, docs/features/navigation INB-02) - an .inbox-badge instance the realtime push
+    updates in place, so the link itself is never re-rendered. -#}
+<a class="navbar-tool {% if (app.request.attributes.get('_route') ?? '') starts with 'conversation' %}active{% endif %}" href="{{ path('conversations_list') }}" aria-label="{{ 'messaging.title'|trans }}" data-nav="toolbar/tools/messages">
+    <div class="navbar-tool-icon-box">
+        {{ include('inbox/_badge.html.twig', {part: 'messages', class: 'navbar-tool-label'}) }}
+        <i class="navbar-tool-icon ci-mail" aria-hidden="true"></i>
+    </div>
+    <div class="navbar-tool-text ms-n3 d-none"><small>{{ 'messaging.title'|trans }}</small></div>
+</a>

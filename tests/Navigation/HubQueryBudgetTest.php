@@ -27,8 +27,9 @@ final class HubQueryBudgetTest extends WebTestCase
     private const int ACCOUNT = 1;
     // The viewer's profile row (RetrieveLoggedUserProfile)
     private const int PROFILE_ROW = 1;
-    // The toolbar badges: unread conversations + unread notifications
-    private const int INBOX = 2;
+    // The Inbox badge: one statement for the unread conversations, message requests and notifications (INB-02: 2 → 1,
+    // it replaced the toolbar's two unread counts)
+    private const int INBOX = 1;
     // The admin key's review queue counts (admin_queue_counts(), moderators and admins only)
     private const int QUEUE_COUNTS = 1;
     // The feed + the "Review your results" counts, the getting-started progress and the viewer's best times of the

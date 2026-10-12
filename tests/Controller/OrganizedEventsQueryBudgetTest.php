@@ -15,7 +15,7 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 /**
  * "You organize" costs a fixed number of statements (docs/features/organizations/implementation-plan.md 4.5): what
- * every signed-in request loads (account, profile, unread conversations and notifications), the viewer statement, one
+ * every signed-in request loads (account, profile, the Inbox badge), the viewer statement, one
  * statement per kind of item it lists (organizations, events and editions, series) and the permissions statement the
  * voters of every item's actions share (GetCompetitionPermissions, memoised). Nothing per item: Unpublish is offered
  * without asking UnpublishBlockers, the badges and counts ride on the item statements.
@@ -24,8 +24,8 @@ final class OrganizedEventsQueryBudgetTest extends WebTestCase
 {
     use QueryCountAssertions;
 
-    // Account, profile, unread conversations, unread notifications
-    private const int SIGNED_IN_OVERHEAD = 4;
+    // Account, profile, the Inbox badge (INB-02: 4 → 3, the unread conversations and notifications are one statement)
+    private const int SIGNED_IN_OVERHEAD = 3;
     // The viewer statement + the permissions statement
     private const int PAGE = 2;
 

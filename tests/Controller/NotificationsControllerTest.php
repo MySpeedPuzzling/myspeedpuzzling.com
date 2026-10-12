@@ -22,7 +22,9 @@ final class NotificationsControllerTest extends WebTestCase
 {
     use QueryCountAssertions;
 
-    private const string BADGE = 'a[href="/en/notifications"] .navbar-tool-label';
+    // The Inbox badge's parts (INB-02): the old bell shows For you, the old Messages tool the Messages part
+    private const string FOR_YOU = '.inbox-badge[data-inbox-part="for_you"]';
+    private const string MESSAGES = '.inbox-badge[data-inbox-part="messages"]';
 
     public function testAnonymousUserIsRedirectedToLogin(): void
     {
@@ -40,53 +42,91 @@ final class NotificationsControllerTest extends WebTestCase
     }
 
     /**
-     * The page marks every notification read, so the layout's bell badge shows 0 there. The
-     * layout used to count the unread notifications again to get that 0 - a second, identical
-     * COUNT query on every visit.
+     * The page marks every notification read, so the Inbox badge's For you part shows 0 there - read by the one badge
+     * statement after the page marked them, never by a count of the page's own. The Messages part stays: unread
+     * messages are not a total of 0 on the notifications page (INB-02, decision 48).
      */
-    public function testBellBadgeReusesTheCountOfThePage(): void
+    public function testTheBadgeShowsForYou0AndTheMessagesPartOnThePage(): void
+    {
+        $browser = self::createClient();
+        // PLAYER_REGULAR: an unread accepted conversation and a pending request (Messages 2)
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        /** @var Connection $connection */
+        $connection = $browser->getContainer()->get(Connection::class);
+        $this->notifyGroupEdit($connection, PlayerFixture::PLAYER_REGULAR);
+        self::assertSame(1, $this->unreadCount($connection, PlayerFixture::PLAYER_REGULAR));
+
+        // Other pages show both parts
+        $crawler = $browser->request('GET', '/en/marketplace');
+        $this->assertResponseIsSuccessful();
+        self::assertSame('1', $crawler->filter(self::FOR_YOU)->text());
+        self::assertNull($crawler->filter(self::FOR_YOU)->attr('hidden'));
+        self::assertSame('2', $crawler->filter(self::MESSAGES)->text());
+
+        // Unread ones get marked read on the page: For you 0 (hidden), Messages still 2
+        $this->startCountingQueries($browser);
+        $crawler = $browser->request('GET', '/en/notifications');
+        $this->assertResponseIsSuccessful();
+        self::assertSame('0', $crawler->filter(self::FOR_YOU)->text());
+        self::assertNotNull($crawler->filter(self::FOR_YOU)->attr('hidden'));
+        self::assertSame('2', $crawler->filter(self::MESSAGES)->text());
+        self::assertNull($crawler->filter(self::MESSAGES)->attr('hidden'));
+        self::assertSame(1, $this->badgeStatements($browser));
+        self::assertSame(0, $this->unreadCount($connection, PlayerFixture::PLAYER_REGULAR));
+
+        // Nothing unread any more: still one badge statement
+        $this->startCountingQueries($browser);
+        $crawler = $browser->request('GET', '/en/notifications');
+        $this->assertResponseIsSuccessful();
+        self::assertSame('0', $crawler->filter(self::FOR_YOU)->text());
+        self::assertSame(1, $this->badgeStatements($browser));
+    }
+
+    /**
+     * The fixture player with notifications: a group edit For you, favorites' times that never count.
+     */
+    public function testFavoritesTimesDoNotCountInTheBadge(): void
     {
         $browser = self::createClient();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_FAVORITES);
 
         /** @var Connection $connection */
         $connection = $browser->getContainer()->get(Connection::class);
-        $unread = (string) $this->unreadCount($connection);
-        self::assertNotSame('0', $unread, 'The player needs unread notifications');
+        // Loading the fixture times told the follower about each of them (NotifyWhenPuzzleSolved) - dozens unread
+        self::assertGreaterThan(1, $this->unreadCount($connection, PlayerFixture::PLAYER_WITH_FAVORITES));
 
-        // Other pages count on their own
         $crawler = $browser->request('GET', '/en/marketplace');
         $this->assertResponseIsSuccessful();
-        self::assertSame($unread, $crawler->filter(self::BADGE)->text());
+        self::assertSame('1', $crawler->filter(self::FOR_YOU)->text());
 
-        // Unread ones get marked read on the page - the bell shows 0, as it always did
-        $this->startCountingQueries($browser);
         $crawler = $browser->request('GET', '/en/notifications');
         $this->assertResponseIsSuccessful();
-        self::assertSame('0', $crawler->filter(self::BADGE)->text());
-        self::assertSame(1, $this->unreadCountQueries($browser));
-        self::assertSame(0, $this->unreadCount($connection));
-
-        // Nothing unread any more: still 0 from a single query
-        $this->startCountingQueries($browser);
-        $crawler = $browser->request('GET', '/en/notifications');
-        $this->assertResponseIsSuccessful();
-        self::assertSame('0', $crawler->filter(self::BADGE)->text());
-        self::assertSame(1, $this->unreadCountQueries($browser));
+        self::assertSame('0', $crawler->filter(self::FOR_YOU)->text());
+        self::assertSame(0, $this->unreadCount($connection, PlayerFixture::PLAYER_WITH_FAVORITES));
     }
 
-    private function unreadCount(Connection $connection): int
+    private function notifyGroupEdit(Connection $connection, string $playerId): void
+    {
+        // A For you row naming PLAYER_ADMIN, whom nobody blocks
+        $connection->executeStatement(
+            "INSERT INTO notification (id, player_id, type, notified_at, target_solving_time_id, actor_player_id) VALUES (:id, :player, 'GroupSolvingTimeEdited', NOW(), :time, :actor)",
+            ['id' => Uuid::uuid7()->toString(), 'player' => $playerId, 'time' => PuzzleSolvingTimeFixture::TIME_03, 'actor' => PlayerFixture::PLAYER_ADMIN],
+        );
+    }
+
+    private function unreadCount(Connection $connection, string $playerId): int
     {
         /** @var int|string $count */
         $count = $connection->fetchOne(
             'SELECT COUNT(*) FROM notification WHERE player_id = :playerId AND read_at IS NULL',
-            ['playerId' => PlayerFixture::PLAYER_WITH_FAVORITES],
+            ['playerId' => $playerId],
         );
 
         return (int) $count;
     }
 
-    private function unreadCountQueries(KernelBrowser $browser): int
+    private function badgeStatements(KernelBrowser $browser): int
     {
         $profile = $browser->getProfile();
         self::assertInstanceOf(Profile::class, $profile);
@@ -96,18 +136,26 @@ final class NotificationsControllerTest extends WebTestCase
 
         /** @var array<string, list<array{sql: string}>> $queriesByConnection */
         $queriesByConnection = $collector->getQueries();
-        $count = 0;
+        $notificationCounts = 0;
+        $badges = 0;
 
         foreach ($queriesByConnection as $queries) {
             foreach ($queries as $query) {
-                // GetNotifications::countUnreadForPlayer() - COUNT(*), answered by an index-only scan
-                if (str_contains($query['sql'], 'FROM notification') && str_contains($query['sql'], 'COUNT(*)')) {
-                    $count++;
+                // GetInboxBadge: For you, unread conversations and pending requests in one statement
+                if (str_contains($query['sql'], 'AS for_you') && str_contains($query['sql'], 'AS pending_requests')) {
+                    $badges++;
+                }
+
+                if (str_contains($query['sql'], 'FROM notification') && str_contains($query['sql'], 'COUNT(')) {
+                    $notificationCounts++;
                 }
             }
         }
 
-        return $count;
+        // No separate count of the page or the layout besides the badge
+        self::assertSame($badges, $notificationCounts, 'A notification count outside the badge statement');
+
+        return $badges;
     }
 
     public function testGroupTimeEditIsShownWithTheEditorsName(): void

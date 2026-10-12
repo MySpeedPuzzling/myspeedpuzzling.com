@@ -81,7 +81,8 @@ final class NavigationLabelHygieneTest extends KernelTestCase
     }
 
     /**
-     * The navigation partials: footer, the header block of base, the messages tool and its stream, templates/navigation.
+     * The navigation partials: footer, the header block of base, the messages tool, templates/inbox (the Inbox link, badge
+     * and stream), templates/navigation.
      *
      * @return array<string, string>
      */
@@ -103,12 +104,18 @@ final class NavigationLabelHygieneTest extends KernelTestCase
             $sources['messaging/' . $file->getFilename()] = $file->getContents();
         }
 
+        // The Inbox link, badge and their realtime stream (INB-02 replaced the messages stream)
+        foreach ((new Finder())->files()->in(self::TEMPLATES . '/inbox')->name('*.twig') as $file) {
+            $sources['inbox/' . $file->getRelativePathname()] = $file->getContents();
+        }
+
         foreach ((new Finder())->files()->in(self::TEMPLATES . '/navigation')->name('*.twig') as $file) {
             $sources['navigation/' . $file->getRelativePathname()] = $file->getContents();
         }
 
         self::assertArrayHasKey('messaging/_unread_badge.html.twig', $sources);
-        self::assertArrayHasKey('messaging/_unread_badge_stream.html.twig', $sources);
+        self::assertArrayHasKey('inbox/_badge_stream.html.twig', $sources);
+        self::assertArrayHasKey('inbox/_link.html.twig', $sources);
 
         return $sources;
     }

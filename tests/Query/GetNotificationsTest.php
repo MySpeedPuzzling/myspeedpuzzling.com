@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Tests\Query;
 
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Query\GetInboxBadge;
 use SpeedPuzzling\Web\Query\GetNotifications;
 use SpeedPuzzling\Web\Results\PlayerNotification;
 use SpeedPuzzling\Web\Tests\DataFixtures\LentPuzzleTransferFixture;
@@ -13,7 +14,6 @@ use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
 use SpeedPuzzling\Web\Tests\TestingViewer;
 use SpeedPuzzling\Web\Value\Puzzler;
-use Symfony\Bridge\Doctrine\Middleware\Debug\DebugDataHolder;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 final class GetNotificationsTest extends KernelTestCase
@@ -81,7 +81,7 @@ final class GetNotificationsTest extends KernelTestCase
 
         $unfiltered = $this->query->forPlayer(PlayerFixture::PLAYER_WITH_FAVORITES, 100);
         self::assertContains(PlayerFixture::PLAYER_REGULAR, $this->targetPlayerIds($unfiltered));
-        self::assertSame(count($unfiltered), $this->query->countUnreadForPlayer(PlayerFixture::PLAYER_WITH_FAVORITES));
+        self::assertSame($this->unreadForYou($unfiltered), $this->badgeForYou([]));
 
         TestingViewer::signIn(self::getContainer(), PlayerFixture::PLAYER_WITH_FAVORITES);
 
@@ -91,7 +91,8 @@ final class GetNotificationsTest extends KernelTestCase
         self::assertNotContains(PlayerFixture::PLAYER_REGULAR, $this->targetPlayerIds($filtered));
         self::assertContains(PlayerFixture::PLAYER_ADMIN, $this->targetPlayerIds($filtered));
 
-        self::assertSame(count($filtered), $this->query->countUnreadForPlayer(PlayerFixture::PLAYER_WITH_FAVORITES));
+        // The Inbox badge (GetInboxBadge, INB-02) leaves out what the list leaves out
+        self::assertSame($this->unreadForYou($filtered), $this->badgeForYou([PlayerFixture::PLAYER_REGULAR]));
         self::assertEquals(
             min(array_map(static fn (PlayerNotification $notification): \DateTimeImmutable => $notification->notifiedAt, $filtered)),
             $this->query->getOldestUnreadNotifiedAtForPlayer(PlayerFixture::PLAYER_WITH_FAVORITES),
@@ -100,17 +101,18 @@ final class GetNotificationsTest extends KernelTestCase
 
     public function testNotificationAboutAGroupTimeWithAHiddenMemberIsLeftOut(): void
     {
-        // TIME_12: tracked by PLAYER_REGULAR (not hidden) together with PLAYER_PRIVATE (hidden)
-        $this->notify(PlayerFixture::PLAYER_WITH_FAVORITES, 'SubscribedPlayerAddedTime', 'target_solving_time_id', PuzzleSolvingTimeFixture::TIME_12);
+        // TIME_12: tracked by PLAYER_REGULAR (not hidden) together with PLAYER_PRIVATE (hidden). A GroupSolvingTimeEdited
+        // row, which the Inbox badge counts (favorites' times no longer do, INB-02)
+        $this->notify(PlayerFixture::PLAYER_WITH_FAVORITES, 'GroupSolvingTimeEdited', 'target_solving_time_id', PuzzleSolvingTimeFixture::TIME_12);
         $this->block(PlayerFixture::PLAYER_WITH_FAVORITES, PlayerFixture::PLAYER_PRIVATE);
 
-        $before = $this->query->countUnreadForPlayer(PlayerFixture::PLAYER_WITH_FAVORITES);
+        $before = count($this->query->forPlayer(PlayerFixture::PLAYER_WITH_FAVORITES, 100));
 
         TestingViewer::signIn(self::getContainer(), PlayerFixture::PLAYER_WITH_FAVORITES);
 
         $filtered = $this->query->forPlayer(PlayerFixture::PLAYER_WITH_FAVORITES, 100);
         self::assertLessThan($before, count($filtered));
-        self::assertSame(count($filtered), $this->query->countUnreadForPlayer(PlayerFixture::PLAYER_WITH_FAVORITES));
+        self::assertSame($this->unreadForYou($filtered), $this->badgeForYou([PlayerFixture::PLAYER_PRIVATE]));
 
         foreach ($filtered as $notification) {
             self::assertNotSame(PlayerFixture::PLAYER_PRIVATE, $notification->conversationInitiatorId);
@@ -134,43 +136,33 @@ final class GetNotificationsTest extends KernelTestCase
         self::assertCount(1, $lending);
         self::assertSame(PlayerFixture::PLAYER_REGULAR, $lending[0]->fromPlayerId);
         self::assertSame(
-            count($this->query->forPlayer(PlayerFixture::PLAYER_WITH_FAVORITES, 100)),
-            $this->query->countUnreadForPlayer(PlayerFixture::PLAYER_WITH_FAVORITES),
+            $this->unreadForYou($this->query->forPlayer(PlayerFixture::PLAYER_WITH_FAVORITES, 100)),
+            $this->badgeForYou([PlayerFixture::PLAYER_REGULAR]),
         );
     }
 
-    public function testUnreadCountLeavesReadNotificationsOut(): void
+    /**
+     * The unread rows of a list the Inbox badge's For you part counts: every type but favorites' times and message
+     * requests (GetInboxBadge::NOT_FOR_YOU). The read-row and index intents of the old bell count are in
+     * GetInboxBadgeTest.
+     *
+     * @param array<PlayerNotification> $notifications
+     */
+    private function unreadForYou(array $notifications): int
     {
-        $before = $this->query->countUnreadForPlayer(PlayerFixture::PLAYER_WITH_FAVORITES);
-
-        $this->notify(PlayerFixture::PLAYER_WITH_FAVORITES, 'SubscribedPlayerAddedTime', 'target_solving_time_id', PuzzleSolvingTimeFixture::TIME_12);
-        $this->notify(PlayerFixture::PLAYER_WITH_FAVORITES, 'SubscribedPlayerAddedTime', 'target_solving_time_id', PuzzleSolvingTimeFixture::TIME_12, read: true);
-
-        self::assertSame($before + 1, $this->query->countUnreadForPlayer(PlayerFixture::PLAYER_WITH_FAVORITES));
-
-        $this->database->executeStatement('UPDATE notification SET read_at = NOW() WHERE player_id = :player', ['player' => PlayerFixture::PLAYER_WITH_FAVORITES]);
-
-        self::assertSame(0, $this->query->countUnreadForPlayer(PlayerFixture::PLAYER_WITH_FAVORITES));
+        return count(array_filter(
+            $notifications,
+            static fn (PlayerNotification $notification): bool => $notification->readAt === null
+                && !in_array($notification->notificationType, GetInboxBadge::NOT_FOR_YOU, true),
+        ));
     }
 
-    public function testUnreadCountCanUseTheUnreadIndex(): void
+    /**
+     * @param list<string> $hiddenIds what the viewer's profile row carries (UserBlockFixture + the test's blocks)
+     */
+    private function badgeForYou(array $hiddenIds): int
     {
-        /** @var DebugDataHolder $debugDataHolder */
-        $debugDataHolder = self::getContainer()->get('doctrine.debug_data_holder');
-        $debugDataHolder->reset();
-
-        $this->query->countUnreadForPlayer(PlayerFixture::PLAYER_WITH_FAVORITES);
-
-        /** @var list<array{sql: string, params: array<mixed>}> $executed */
-        $executed = $debugDataHolder->getData()['default'] ?? [];
-        self::assertCount(1, $executed);
-
-        // The test database is tiny, so the planner would scan it anyway - only prove the index is usable
-        $this->database->executeStatement('SET LOCAL enable_seqscan = off');
-        /** @var list<string> $plan */
-        $plan = $this->database->fetchFirstColumn('EXPLAIN ' . $executed[0]['sql'], array_values($executed[0]['params']));
-
-        self::assertStringContainsString('custom_notification_unread', implode("\n", $plan));
+        return self::getContainer()->get(GetInboxBadge::class)->forPlayer(PlayerFixture::PLAYER_WITH_FAVORITES, $hiddenIds)->forYou;
     }
 
     /**

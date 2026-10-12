@@ -1567,6 +1567,14 @@ competition_referees:
     "requested": "%player% dice que eres «%guest%» en resultados que armasteis juntos. ¿Eres tú?"
     "accepted": "%player% confirmó que es «%guest%». Vuestros resultados juntos ya están en su historial."
 
+"inbox":
+  "badge":
+    "name":
+      "none": "Bandeja de entrada"
+      "messages": "Bandeja de entrada, 1 mensaje nuevo|Bandeja de entrada, %count% mensajes nuevos"
+      "for_you": "Bandeja de entrada, 1 notificación nueva|Bandeja de entrada, %count% notificaciones nuevas"
+      "mixed": "Bandeja de entrada, 1 novedad|Bandeja de entrada, %count% novedades"
+
 xp:
     level_chip: "Nv %level%"
     total: "%xp% XP"

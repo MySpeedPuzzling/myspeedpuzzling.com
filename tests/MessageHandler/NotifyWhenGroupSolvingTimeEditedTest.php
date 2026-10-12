@@ -10,6 +10,7 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Events\GroupSolvingTimeEdited;
 use SpeedPuzzling\Web\MessageHandler\NotifyWhenGroupSolvingTimeEdited;
 use SpeedPuzzling\Web\Query\GetNotifications;
+use SpeedPuzzling\Web\Tests\DataFixtures\NotificationFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
 use SpeedPuzzling\Web\Value\NotificationType;
@@ -139,12 +140,20 @@ final class NotifyWhenGroupSolvingTimeEditedTest extends KernelTestCase
         $this->database->executeStatement('DELETE FROM user_block');
     }
 
+    /**
+     * The group-edit notifications the handler created for the player: NotificationFixture already holds one for
+     * PLAYER_WITH_FAVORITES (the Inbox badge's For you row, INB-02), which does not count here.
+     */
     private function countFor(string $playerId): int
     {
         /** @var int|string $count */
         $count = $this->database->fetchOne(
-            'SELECT COUNT(*) FROM notification WHERE player_id = :playerId AND type = :type',
-            ['playerId' => $playerId, 'type' => NotificationType::GroupSolvingTimeEdited->value],
+            'SELECT COUNT(*) FROM notification WHERE player_id = :playerId AND type = :type AND id != :fixture',
+            [
+                'playerId' => $playerId,
+                'type' => NotificationType::GroupSolvingTimeEdited->value,
+                'fixture' => NotificationFixture::NOTIFICATION_GROUP_TIME_EDITED,
+            ],
         );
 
         return (int) $count;

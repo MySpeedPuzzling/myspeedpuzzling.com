@@ -7,7 +7,7 @@ namespace SpeedPuzzling\Web\MessageHandler;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Exceptions\ConversationNotFound;
 use SpeedPuzzling\Web\Message\MarkMessagesAsRead;
-use SpeedPuzzling\Web\Query\GetConversations;
+use SpeedPuzzling\Web\Navigation\InboxBadge;
 use SpeedPuzzling\Web\Repository\ConversationRepository;
 use SpeedPuzzling\Web\Services\MercureNotifier;
 use Psr\Log\LoggerInterface;
@@ -20,7 +20,7 @@ readonly final class MarkMessagesAsReadHandler
         private ConversationRepository $conversationRepository,
         private Connection $database,
         private MercureNotifier $mercureNotifier,
-        private GetConversations $getConversations,
+        private InboxBadge $inboxBadge,
         private LoggerInterface $logger,
     ) {
     }
@@ -59,8 +59,7 @@ readonly final class MarkMessagesAsReadHandler
         );
 
         try {
-            $unreadCount = $this->getConversations->countUnreadForPlayer($message->playerId);
-            $this->mercureNotifier->notifyUnreadCountChanged($message->playerId, $unreadCount);
+            $this->mercureNotifier->notifyInboxBadgeChanged($message->playerId, $this->inboxBadge->forPlayer($message->playerId));
 
             if ($affectedRows > 0 && $otherPlayerId !== null) {
                 $this->mercureNotifier->notifyMessagesRead($message->conversationId, $otherPlayerId);

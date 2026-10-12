@@ -120,8 +120,9 @@ final class MyActivityControllerTest extends WebTestCase
         self::assertSame($withOne, $withThree, 'One statement for the results, whatever their number');
         // Measured 2026-10-10 for a member: the signed-in overhead + player row, results, places, achievements, rating
         // snapshots + ladder place, streak, favourites, most solved, next achievement tiers. Higher = a bug to explain
-        // (23 since the navbar ring reads the viewer's profile row)
-        self::assertSame(23, $withThree, 'The page budget');
+        // (23 since the navbar ring reads the viewer's profile row; INB-02: 23 → 22, the two unread counts are one Inbox
+        // badge statement)
+        self::assertSame(22, $withThree, 'The page budget');
     }
 
     private function measure(KernelBrowser $browser, string $url): int

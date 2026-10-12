@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Services;
 
+use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Entity\ChatMessage;
 use SpeedPuzzling\Web\Entity\Conversation;
 use SpeedPuzzling\Web\Results\MessageView;
+use SpeedPuzzling\Web\Value\InboxBadgeParts;
 use SpeedPuzzling\Web\Value\SystemMessageType;
 use Symfony\Component\Mercure\HubInterface;
 use Symfony\Component\Mercure\Update;
@@ -18,6 +20,7 @@ final class MercureNotifier implements ResetInterface
     public function __construct(
         private readonly HubInterface $hub,
         private readonly Environment $twig,
+        private readonly ClockInterface $clock,
     ) {
     }
 
@@ -177,10 +180,18 @@ final class MercureNotifier implements ResetInterface
         ));
     }
 
-    public function notifyUnreadCountChanged(string $playerId, int $count): void
+    /**
+     * The player's Inbox badge changed (docs/features/navigation INB-02): one Turbo Stream for every badge instance on
+     * their open pages (`inbox_badge` action, assets/turbo-stream-actions.js). Numbers only - pushes run without a
+     * request (async consumers), so the texts and URLs come from the instances' own attributes in the page's locale.
+     * `at` = when the numbers were read (server clock), so a page restored from a snapshot gets them re-applied only
+     * when they are newer than the page.
+     */
+    public function notifyInboxBadgeChanged(string $playerId, InboxBadgeParts $parts): void
     {
-        $html = $this->twig->render('messaging/_unread_badge_stream.html.twig', [
-            'count' => $count,
+        $html = $this->twig->render('inbox/_badge_stream.html.twig', [
+            'parts' => $parts,
+            'at' => $this->clock->now()->getTimestamp(),
         ]);
 
         $this->hub->publish(new Update(

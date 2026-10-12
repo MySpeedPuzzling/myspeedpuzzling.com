@@ -18,7 +18,7 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
  * The organization page and the organizations directory cost a fixed number of statements
  * (docs/features/organizations/implementation-plan.md 4.5), pinned exactly - a higher number is a bug to explain, not a
  * new number. The second request is counted (the first warms the caches). Signed in adds what every signed-in request
- * loads (account, profile, unread conversations, unread notifications).
+ * loads (account, profile, the Inbox badge - INB-02 merged the unread conversations and notifications into it).
  *
  * Page: the organization, its occurrences in one statement, its series, the going counts of the coming ones; signed in
  * + the viewer's going/follow rows + the permissions statement (the voters share it). Directory: the organizations with
@@ -37,13 +37,14 @@ final class OrganizationPagesQueryBudgetTest extends WebTestCase
     public static function providePages(): iterable
     {
         yield 'organization page, guest' => [self::RIVERBEND, null, 4];
-        yield 'organization page, player' => [self::RIVERBEND, PlayerFixture::PLAYER_REGULAR, 10];
-        yield 'organization page, team' => [self::RIVERBEND, PlayerFixture::PLAYER_WITH_STRIPE, 10];
-        yield 'organization page, maintainer' => [self::RIVERBEND, PlayerFixture::PLAYER_WITH_FAVORITES, 10];
+        // INB-02: every signed-in row −1 (10 → 9, 6 → 5) - the two unread counts are one Inbox badge statement
+        yield 'organization page, player' => [self::RIVERBEND, PlayerFixture::PLAYER_REGULAR, 9];
+        yield 'organization page, team' => [self::RIVERBEND, PlayerFixture::PLAYER_WITH_STRIPE, 9];
+        yield 'organization page, maintainer' => [self::RIVERBEND, PlayerFixture::PLAYER_WITH_FAVORITES, 9];
         // The navbar's XP ring reads the viewer's own profile row - no query of its own
-        yield 'organization page, admin' => [self::RIVERBEND, PlayerFixture::PLAYER_ADMIN, 10];
+        yield 'organization page, admin' => [self::RIVERBEND, PlayerFixture::PLAYER_ADMIN, 9];
         yield 'directory, guest' => [self::DIRECTORY, null, 2];
-        yield 'directory, player' => [self::DIRECTORY, PlayerFixture::PLAYER_REGULAR, 6];
+        yield 'directory, player' => [self::DIRECTORY, PlayerFixture::PLAYER_REGULAR, 5];
     }
 
     #[DataProvider('providePages')]

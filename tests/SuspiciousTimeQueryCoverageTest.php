@@ -68,6 +68,8 @@ final class SuspiciousTimeQueryCoverageTest extends TestCase
         'Query/SearchPuzzle.php' => self::OWN,
         'Repository/PuzzlingTeamRepository.php' => self::WRITE,
         'Services/Drafts/UnpublishBlockers.php' => 'Whether an event can go back to draft - a suspicious time linked to it is still a linked time (docs/features/organizations/README.md "Drafts").',
+        // INB-02: the notification rule of GetNotifications moved here, shared with the Inbox badge (GetInboxBadge)
+        'Services/HiddenPlayers.php' => 'Whether a notification\'s result names a hidden player (sqlNotificationNotHiddenFor()) - no figure.',
         'Services/ParticipantImport/SiteSnapshotReader.php' => self::WRITE,
         'Services/PuzzleIntelligence/PuzzleIntelligenceRecalculator.php' => 'Background: picks the players and puzzles to recompute - the calculators leave suspicious results out.',
         'Services/PuzzlingTeamMemberConversion.php' => self::WRITE,

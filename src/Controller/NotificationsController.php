@@ -45,19 +45,22 @@ final class NotificationsController extends AbstractController
         }
 
         $notifications = $this->getNotifications->forPlayer($player->playerId, 200);
-        $notificationsCount = $this->getNotifications->countUnreadForPlayer($player->playerId);
 
-        if ($notificationsCount > 0) {
-            $this->bus->dispatch(
-                new MarkNotificationsAsRead($player->playerId),
-            );
+        // The loaded rows tell whether anything is unread - no count of its own. Marked read synchronously, before
+        // the layout renders, so the Inbox badge's one statement (InboxBadge) returns For you 0 here and the real
+        // Messages part: unread messages stay visible on this page (docs/features/navigation INB-02, decision 48)
+        foreach ($notifications as $notification) {
+            if ($notification->readAt === null) {
+                $this->bus->dispatch(
+                    new MarkNotificationsAsRead($player->playerId),
+                );
+
+                break;
+            }
         }
 
         return $this->render('notifications.html.twig', [
             'notifications' => $notifications,
-            // Everything unread was just marked read (handled synchronously), so the layout's
-            // bell shows 0 - without counting the player's notifications a second time
-            'notifications_count' => 0,
         ]);
     }
 }

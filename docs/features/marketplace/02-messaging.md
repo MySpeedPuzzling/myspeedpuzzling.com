@@ -179,7 +179,7 @@ class UserBlock
 |-------|--------|---------|
 | `GetConversations` | `forPlayer(playerId, status?)` | List of conversations with last message preview |
 | `GetConversations` | `pendingRequestsForPlayer(playerId)` | Incoming message requests |
-| `GetConversations` | `countUnreadForPlayer(playerId)` | Count of conversations with unread messages |
+| `GetInboxBadge` | `forPlayer(playerId, hiddenIds)` | The Inbox badge in one statement: unread conversations, pending requests and the For you notifications (docs/features/navigation INB-02) |
 | `GetMessages` | `forConversation(conversationId, limit, offset)` | Paginated messages |
 | `GetMessages` | `countUnreadForConversation(conversationId, playerId)` | Unread count in conversation |
 | `GetUserBlocks` | `forPlayer(playerId)` | List of blocked users |

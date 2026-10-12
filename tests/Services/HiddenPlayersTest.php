@@ -72,6 +72,30 @@ final class HiddenPlayersTest extends KernelTestCase
         self::assertStringContainsString('"player_id": "' . PlayerFixture::PLAYER_REGULAR . '"', $teamFragment);
     }
 
+    /**
+     * The builders taking explicit ids (a realtime push works for another player than the viewer, INB-02) are the one
+     * rule: the viewer's fragments are exactly theirs, and nothing but a uuid is inlined.
+     */
+    public function testExplicitIdsBuildTheViewersFragments(): void
+    {
+        TestingViewer::signIn(self::getContainer(), PlayerFixture::PLAYER_REGULAR);
+        $ids = [PlayerFixture::PLAYER_PRIVATE];
+
+        self::assertSame($this->hiddenPlayers->sqlExclude('p.id'), HiddenPlayers::sqlExcludeFor('p.id', $ids));
+        self::assertSame($this->hiddenPlayers->sqlExcludeTeam('pst.team'), HiddenPlayers::sqlExcludeTeamFor('pst.team', $ids, PlayerFixture::PLAYER_REGULAR));
+        self::assertSame($this->hiddenPlayers->sqlNotificationNotHidden(), HiddenPlayers::sqlNotificationNotHiddenFor($ids, PlayerFixture::PLAYER_REGULAR));
+        self::assertStringContainsString("'" . PlayerFixture::PLAYER_PRIVATE . "'::uuid", HiddenPlayers::sqlNotificationNotHiddenFor($ids, PlayerFixture::PLAYER_REGULAR));
+
+        self::assertSame('', HiddenPlayers::sqlExcludeFor('p.id', []));
+        self::assertSame('', HiddenPlayers::sqlExcludeTeamFor('pst.team', [], PlayerFixture::PLAYER_REGULAR));
+        self::assertSame('', HiddenPlayers::sqlNotificationNotHiddenFor([], PlayerFixture::PLAYER_REGULAR));
+        self::assertSame('', HiddenPlayers::sqlExcludeFor('p.id', ["x' OR 1=1 --"]));
+        self::assertSame(
+            HiddenPlayers::sqlExcludeFor('p.id', $ids),
+            HiddenPlayers::sqlExcludeFor('p.id', [strtoupper(PlayerFixture::PLAYER_PRIVATE), 'not-a-uuid']),
+        );
+    }
+
     public function testAdminAreaSeesEveryone(): void
     {
         TestingViewer::signIn(self::getContainer(), PlayerFixture::PLAYER_REGULAR);

@@ -599,6 +599,14 @@ td.rank {
     &.bg-secondary {
         background: #e2e6ea !important;
     }
+
+    // The old header's Inbox badge instances (INB-02, until NAV-06): hidden at 0, "99+" grows the circle into a pill
+    &.inbox-badge {
+        width: auto;
+        min-width: $navbar-tool-label-size;
+        padding: 0 .25rem;
+        border-radius: $navbar-tool-label-size * .5;
+    }
 }
 
 .dropdown-toggle.navbar-tool::after {

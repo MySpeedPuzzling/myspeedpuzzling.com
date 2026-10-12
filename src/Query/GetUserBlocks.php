@@ -57,6 +57,21 @@ SQL;
     }
 
     /**
+     * Everybody the player must not be shown - their own blocks and the admin-imposed ones, the same set the profile
+     * row carries as hidden_player_ids (GetPlayerProfile::byUserId()). For code that works for another player than
+     * the signed-in one: the Inbox badge of a realtime push (InboxBadge::forPlayer()).
+     *
+     * @return list<string>
+     */
+    public function blockedIdsOf(string $playerId): array
+    {
+        /** @var list<string> */
+        return $this->database
+            ->executeQuery('SELECT blocked_id FROM user_block WHERE blocker_id = :playerId', ['playerId' => $playerId])
+            ->fetchFirstColumn();
+    }
+
+    /**
      * Players who block any of the given players. For write-side handlers, which may run with no
      * viewer at all - what a signed-in viewer is shown is HiddenPlayers' job.
      *

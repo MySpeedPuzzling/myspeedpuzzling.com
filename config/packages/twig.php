@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
-use SpeedPuzzling\Web\Query\GetConversations;
-use SpeedPuzzling\Web\Query\GetNotifications;
 use SpeedPuzzling\Web\Services\Email\EmailHtmlToTextConverter;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Services\SocialLogin\SocialLoginSettings;
@@ -19,8 +17,6 @@ return App::config([
         'globals' => [
             'ga_tracking' => '%env(GA_TRACKING)%',
             'logged_user' => '@' . RetrieveLoggedUserProfile::class,
-            'get_notifications' => '@' . GetNotifications::class,
-            'get_conversations' => '@' . GetConversations::class,
             'mercure_public_url' => '%env(MERCURE_PUBLIC_URL)%',
             'images_base_url' => '%env(NGINX_PROXY_BASE_URL)%',
             // Social login (auth hardening PR 2): which provider buttons render.

@@ -10,6 +10,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use SpeedPuzzling\Web\Controller\NavClickController;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\TestingLogin;
+use SpeedPuzzling\Web\Value\InboxBadgeParts;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;
 use Twig\Environment;
@@ -153,16 +154,22 @@ final class NavInstrumentationMarkupTest extends WebTestCase
     }
 
     /**
-     * The toolbar's messages link is re-rendered by a Mercure stream (MercureNotifier) - it keeps its id there.
+     * The toolbar's Inbox links keep their ids through a realtime push: the Mercure stream (MercureNotifier, INB-02)
+     * carries numbers only and never re-renders a link, and the Messages tool it used to replace renders its id.
      */
-    public function testTheStreamedMessagesBadgeKeepsItsNavId(): void
+    public function testTheStreamedBadgeLeavesTheNavIdsInPlace(): void
     {
         self::bootKernel();
         /** @var Environment $twig */
         $twig = self::getContainer()->get('twig');
 
-        $crawler = new Crawler($twig->render('messaging/_unread_badge.html.twig', ['count' => 3]));
+        $stream = $twig->render('inbox/_badge_stream.html.twig', ['parts' => new InboxBadgeParts(1, 2, 3), 'at' => 1760000000]);
+        self::assertStringNotContainsString('<a', $stream);
+        self::assertStringNotContainsString('data-nav', $stream);
+
+        $crawler = new Crawler($twig->render('messaging/_unread_badge.html.twig', ['parts' => new InboxBadgeParts(1, 2, 3)]));
 
         self::assertSame('toolbar/tools/messages', $crawler->filter('a')->attr('data-nav'));
+        self::assertSame('5', $crawler->filter('a .inbox-badge[data-inbox-part="messages"]')->text());
     }
 }

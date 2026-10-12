@@ -1,0 +1,5 @@
+{#- The realtime Inbox badge (MercureNotifier::notifyInboxBadgeChanged(), docs/features/navigation INB-02): one stream for
+    every .inbox-badge on the player's open pages, handled by StreamActions.inbox_badge (assets/turbo-stream-actions.js).
+    Numbers only - rendered without a request (async consumers), so no text, URL or locale; `at` = when they were read
+    (server epoch seconds). -#}
+<turbo-stream action="inbox_badge" targets=".inbox-badge" for-you="{{ parts.forYou }}" conversations="{{ parts.unreadConversations }}" requests="{{ parts.pendingRequests }}" at="{{ at }}"></turbo-stream>

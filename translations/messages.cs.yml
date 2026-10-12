@@ -1603,6 +1603,14 @@ competition_referees:
     "requested": "%player% říká, že jste „%guest%“ ve výsledcích, které jste skládali spolu. Jste to vy?"
     "accepted": "%player% potvrdil(a), že je „%guest%“. Vaše společné výsledky jsou teď i v jeho/její historii."
 
+"inbox":
+  "badge":
+    "name":
+      "none": "Schránka"
+      "messages": "Schránka, 1 nová zpráva|Schránka, %count% nové zprávy|Schránka, %count% nových zpráv"
+      "for_you": "Schránka, 1 nová notifikace|Schránka, %count% nové notifikace|Schránka, %count% nových notifikací"
+      "mixed": "Schránka, %count% nová položka|Schránka, %count% nové položky|Schránka, %count% nových položek"
+
 xp:
     level_chip: "Lv %level%"
     total: "%xp% XP"

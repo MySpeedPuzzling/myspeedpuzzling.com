@@ -174,8 +174,9 @@ final class ProfileProgressionTest extends WebTestCase
         // since the XP launch, the member's achievements showcase (page content, one statement)
         self::assertSame(11, $this->measure($browser, null, PlayerFixture::PLAYER_WITH_STRIPE));
         // A member viewer: + the signed-in overhead, the achievements showcase and the skill / rating cards; the
-        // header's tier and the rings cost nothing
-        self::assertSame(22, $this->measure($browser, PlayerFixture::PLAYER_ADMIN, PlayerFixture::PLAYER_WITH_STRIPE));
+        // header's tier and the rings cost nothing. INB-02: 22 → 21 (the two unread counts are one Inbox badge
+        // statement) - = PlayerProfileQueryBudgetTest's admin → member row
+        self::assertSame(21, $this->measure($browser, PlayerFixture::PLAYER_ADMIN, PlayerFixture::PLAYER_WITH_STRIPE));
     }
 
     private function measure(KernelBrowser $browser, null|string $viewer, string $playerId): int

@@ -11,7 +11,7 @@ use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidInterface;
 use SpeedPuzzling\Web\Entity\ChatMessage;
 use SpeedPuzzling\Web\Entity\SellSwapListItem;
-use SpeedPuzzling\Web\Query\GetConversations;
+use SpeedPuzzling\Web\Navigation\InboxBadge;
 use SpeedPuzzling\Web\Repository\ConversationRepository;
 use SpeedPuzzling\Web\Value\SystemMessageType;
 
@@ -21,7 +21,7 @@ readonly final class SystemMessageSender
         private ConversationRepository $conversationRepository,
         private EntityManagerInterface $entityManager,
         private MercureNotifier $mercureNotifier,
-        private GetConversations $getConversations,
+        private InboxBadge $inboxBadge,
         private LoggerInterface $logger,
     ) {
     }
@@ -67,8 +67,8 @@ readonly final class SystemMessageSender
             $affectedPlayerIds = array_unique($affectedPlayerIds);
 
             foreach ($affectedPlayerIds as $playerId) {
-                $unreadCount = $this->getConversations->countUnreadForPlayer($playerId);
-                $this->mercureNotifier->notifyUnreadCountChanged($playerId, $unreadCount);
+                // Each player's own blocks (InboxBadge::forPlayer()), never the acting player's this runs for
+                $this->mercureNotifier->notifyInboxBadgeChanged($playerId, $this->inboxBadge->forPlayer($playerId));
                 $this->mercureNotifier->notifyConversationListChanged($playerId);
             }
         } catch (\Throwable $e) {

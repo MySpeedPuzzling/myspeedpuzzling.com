@@ -2073,6 +2073,14 @@ notifications:
         requested: "%player% says you are “%guest%” in results you solved together. Is that you?"
         accepted: "%player% confirmed they are “%guest%”. Your results together are in their history now."
 
+inbox:
+    badge:
+        name:
+            none: "Inbox"
+            messages: "Inbox, 1 new message|Inbox, %count% new messages"
+            for_you: "Inbox, 1 new notification|Inbox, %count% new notifications"
+            mixed: "Inbox, %count% new"
+
 xp:
     level_chip: "Lv %level%"
     total: "%xp% XP"

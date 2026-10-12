@@ -19,6 +19,8 @@ final class NotificationFixture extends Fixture implements DependentFixtureInter
     public const string NOTIFICATION_FIRST_ATTEMPT = '018d0009-0000-0000-0000-000000000001';
     public const string NOTIFICATION_UNBOXED = '018d0009-0000-0000-0000-000000000002';
     public const string NOTIFICATION_REGULAR = '018d0009-0000-0000-0000-000000000003';
+    // The Inbox badge's For you part (docs/features/navigation INB-02): favorites' times no longer count there
+    public const string NOTIFICATION_GROUP_TIME_EDITED = '018d0009-0000-0000-0000-000000000004';
 
     public function __construct(
         private readonly ClockInterface $clock,
@@ -58,6 +60,20 @@ final class NotificationFixture extends Fixture implements DependentFixtureInter
             targetSolvingTime: $this->getReference(PuzzleSolvingTimeFixture::TIME_07, PuzzleSolvingTime::class),
         );
         $manager->persist($notification3);
+
+        // Unread "edited your shared result" on TIME_41 (a pair time PLAYER_REGULAR tracked with PLAYER_PRIVATE) by the
+        // tracker: PLAYER_WITH_FAVORITES was in the group before the edit took them out, as
+        // NotifyWhenGroupSolvingTimeEdited tells a removed member. The player's For you row (docs/features/navigation
+        // INB-02). NotifyWhenGroupSolvingTimeEditedTest works on TIME_12, so this never stops one of its notifications;
+        // the editor is named on purpose (docs/features/group-time-editing.md), so it is not the private PLAYER_PRIVATE
+        $manager->persist(new Notification(
+            id: Uuid::fromString(self::NOTIFICATION_GROUP_TIME_EDITED),
+            player: $playerWithFavorites,
+            type: NotificationType::GroupSolvingTimeEdited,
+            notifiedAt: $this->clock->now()->modify('-3 days'),
+            targetSolvingTime: $this->getReference(PuzzleSolvingTimeFixture::TIME_41, PuzzleSolvingTime::class),
+            actorPlayer: $this->getReference(PlayerFixture::PLAYER_REGULAR, Player::class),
+        ));
 
         $manager->flush();
     }

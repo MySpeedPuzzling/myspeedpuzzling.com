@@ -30,12 +30,13 @@ final class PuzzleDetailQueryBudgetTest extends WebTestCase
         // used at three events costs what a puzzle used nowhere costs
         yield 'puzzle used at events, guest' => [PuzzleFixture::PUZZLE_500_01, null, 13];
         // + the signed-in overhead, the viewer's statuses and collections, and since the XP launch the XP estimate's
-        // count of the viewer's solves of this puzzle (the repeat discount; its opt-out rides on the profile row)
-        yield 'puzzle used at events, player' => [PuzzleFixture::PUZZLE_500_01, PlayerFixture::PLAYER_REGULAR, 19];
+        // count of the viewer's solves of this puzzle (the repeat discount; its opt-out rides on the profile row).
+        // INB-02: signed in −1 (19 → 18, 23 → 22) - the header's two unread counts are one Inbox badge statement
+        yield 'puzzle used at events, player' => [PuzzleFixture::PUZZLE_500_01, PlayerFixture::PLAYER_REGULAR, 18];
         // + the member's insights (difficulty tiers, prediction)
-        yield 'puzzle used at events, member' => [PuzzleFixture::PUZZLE_500_01, PlayerFixture::PLAYER_WITH_STRIPE, 23];
+        yield 'puzzle used at events, member' => [PuzzleFixture::PUZZLE_500_01, PlayerFixture::PLAYER_WITH_STRIPE, 22];
         yield 'puzzle used nowhere, guest' => [PuzzleFixture::PUZZLE_4000, null, 13];
-        yield 'puzzle used nowhere, player' => [PuzzleFixture::PUZZLE_4000, PlayerFixture::PLAYER_REGULAR, 19];
+        yield 'puzzle used nowhere, player' => [PuzzleFixture::PUZZLE_4000, PlayerFixture::PLAYER_REGULAR, 18];
     }
 
     #[DataProvider('providePages')]

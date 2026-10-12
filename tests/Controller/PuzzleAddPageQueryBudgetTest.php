@@ -35,17 +35,18 @@ final class PuzzleAddPageQueryBudgetTest extends WebTestCase
      */
     public static function providePages(): iterable
     {
-        // Measured on the foundation commit 387125b6 (2026-10-09) - the picker changed after that, the numbers did not
-        yield 'add time' => ['/en/puzzle-add', 7];
-        yield 'add time of a puzzle' => ['/en/puzzle-add/' . PuzzleFixture::PUZZLE_500_01, 10];
-        yield 'add time, relax' => ['/en/puzzle-add?mode=relax', 7];
-        yield 'add time, collection' => ['/en/puzzle-add?mode=collection', 7];
-        yield 'stopwatch finish' => ['/en/save-stopwatch/' . StopwatchFixture::STOPWATCH_PAUSED, 11];
+        // Measured on the foundation commit 387125b6 (2026-10-09) - the picker changed after that, the numbers did not.
+        // INB-02: every row −1 (the header's two unread counts are one Inbox badge statement)
+        yield 'add time' => ['/en/puzzle-add', 6];
+        yield 'add time of a puzzle' => ['/en/puzzle-add/' . PuzzleFixture::PUZZLE_500_01, 9];
+        yield 'add time, relax' => ['/en/puzzle-add?mode=relax', 6];
+        yield 'add time, collection' => ['/en/puzzle-add?mode=collection', 6];
+        yield 'stopwatch finish' => ['/en/save-stopwatch/' . StopwatchFixture::STOPWATCH_PAUSED, 10];
         // The deep link's one statement (visibility, and whether it is an edition)
-        yield 'add time from a one-time event page' => ['/en/puzzle-add?competition=' . EventDetailFixture::COMPETITION_HILLTOP_WEEKEND, 8];
-        yield 'add time from an edition page' => ['/en/puzzle-add?competition=' . EventsPageFixture::EDITION_SPRINT_SEASON, 8];
+        yield 'add time from a one-time event page' => ['/en/puzzle-add?competition=' . EventDetailFixture::COMPETITION_HILLTOP_WEEKEND, 7];
+        yield 'add time from an edition page' => ['/en/puzzle-add?competition=' . EventsPageFixture::EDITION_SPRINT_SEASON, 7];
         // New with series picks (P27, the series page's "Add my time"): the series' visibility statement, like the above
-        yield 'add time from a series page' => ['/en/puzzle-add?series=' . EventsPageFixture::SERIES_HARBOR_NIGHTS, 8];
+        yield 'add time from a series page' => ['/en/puzzle-add?series=' . EventsPageFixture::SERIES_HARBOR_NIGHTS, 7];
     }
 
     #[DataProvider('providePages')]

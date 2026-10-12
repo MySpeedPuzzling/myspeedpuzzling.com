@@ -1,0 +1,30 @@
+{#- The Inbox link of every surface (docs/features/navigation INB-02/INB-01, README §4.4 / D3): the top bars and the
+    Menu's Inbox row include (or embed) it, never copy it. No inbox route of its own (R13): the href is the tab holding
+    the unread items (InboxBadgeParts::target()), the accessible name says what is new ("Inbox, 2 new messages").
+    A realtime push changes both in the browser (assets/inbox_badge.js) from the data attributes rendered here - the
+    page's own locale; the stream itself carries numbers only.
+    Params: nav = data-nav (required); class = the link's classes; surface = adds inbox-link--<surface>;
+    label = visible label text (none by default); badge_part = total (default) | for_you | messages; badge_class;
+    parts = InboxBadgeParts (default inbox_badge()). Renders nothing for guests.
+    Embed it and override block `content` for a surface's own icon and badge markup (the badge stays an include of
+    inbox/_badge.html.twig with `parts`). -#}
+{%- set parts = parts ?? inbox_badge() -%}
+{%- if parts is not null -%}
+    {%- set inbox_target = parts.target() -%}
+    <a href="{{ path(inbox_target.route, inbox_target.params) }}"
+       class="inbox-link{{ (surface ?? '') is not empty ? ' inbox-link--' ~ surface }}{{ (class ?? '') is not empty ? ' ' ~ class }}"
+       rel="nofollow"
+       data-inbox-link
+       data-nav="{{ nav }}"
+       data-bar-action="{{ bar_action('inbox') }}"
+       data-bar-count="{{ parts.total() }}"
+       aria-label="{{ ('inbox.badge.name.' ~ parts.labelKind())|trans({'%count%': parts.labelCount()}) }}"
+       data-inbox-hrefs="{{ {for_you: path('notifications'), messages: path('conversations_list'), requests: path('conversations_list', {tab: 'requests'})}|json_encode }}"
+       data-inbox-labels="{{ {none: browser_translation('inbox.badge.name.none'), messages: browser_translation('inbox.badge.name.messages'), for_you: browser_translation('inbox.badge.name.for_you'), mixed: browser_translation('inbox.badge.name.mixed')}|json_encode }}">
+        {%- block content -%}
+            <i class="bi bi-inbox" aria-hidden="true"></i>
+            {{ include('inbox/_badge.html.twig', {part: badge_part ?? 'total', parts: parts, class: badge_class ?? ''}) }}
+            {%- if (label ?? '') is not empty %} <span class="inbox-link-label">{{ label }}</span>{% endif -%}
+        {%- endblock -%}
+    </a>
+{%- endif -%}

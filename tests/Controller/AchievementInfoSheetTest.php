@@ -37,9 +37,13 @@ final class AchievementInfoSheetTest extends WebTestCase
         $this->startCountingQueries($browser);
         $crawler = $this->sheet($browser);
 
-        // The bottom sheet is opted in by the content only; Back closes it through the dynamic modal's history entry
+        // The bottom sheet is opted in by the content only - the shared sheet controller (swipe down closes it, GEST-02)
+        // with its handle, body and heading; Back closes it through the dynamic modal's history entry
         // (data-modal-history on the content root, GEST-01 (e) - no CloseWatcher)
-        self::assertCount(1, $crawler->filter('.achievement-sheet[data-controller="achievement-sheet"]'));
+        self::assertCount(1, $crawler->filter('.achievement-sheet[data-controller="bottom-sheet"]'));
+        self::assertCount(1, $crawler->filter('.achievement-sheet > [data-bottom-sheet-target="handle"] .bottom-sheet-handle'));
+        self::assertCount(1, $crawler->filter('.achievement-sheet [data-bottom-sheet-target="heading"].modal-title'));
+        self::assertCount(1, $crawler->filter('.achievement-sheet > .modal-body[data-bottom-sheet-target="body"]'));
         self::assertCount(1, $crawler->filter('[data-modal-history]'));
         self::assertCount(1, $crawler->filter('.achievement-sheet[data-modal-size][data-modal-history]'));
 

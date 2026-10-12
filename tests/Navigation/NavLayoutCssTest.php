@@ -115,7 +115,10 @@ final class NavLayoutCssTest extends TestCase
         yield 'comparison launcher' => ['assets/styles/_comparison-entry.scss', '.comparison-launcher', ['bottom']];
         yield 'multiscan action bar' => ['assets/styles/_multiscan.scss', '.multiscan-action-bar', ['bottom']];
         yield 'multiscan sheet backdrop' => ['assets/styles/_multiscan.scss', '.multiscan-sheet-backdrop', ['bottom']];
-        yield 'achievement medal sheet' => ['assets/styles/_achievement-medal.scss', '#dynamic-modal-container.achievement-sheet-open .modal-dialog', ['bottom']];
+        // GEST-02: every dynamic-modal sheet (the achievement sheet, the result detail, the Help sheet) - was the
+        // achievement sheet's own rule in _achievement-medal.scss
+        yield 'bottom sheet (dynamic modal)' => ['assets/styles/_dynamic-modal.scss', '#dynamic-modal-container.bottom-sheet-open .modal-dialog', ['bottom']];
+        yield 'bottom sheet, near full screen' => ['assets/styles/_dynamic-modal.scss', '#dynamic-modal-container.bottom-sheet-open .modal-dialog.modal-sheet-sm-down', ['bottom']];
         yield 'modal-sheet-sm-down' => ['assets/styles/_dynamic-modal.scss', '#dynamic-modal-container .modal-dialog.modal-sheet-sm-down', ['bottom']];
         // Every Bootstrap modal box, the dynamic modal container included (testEveryModalBoxEndsAboveTheBottomBar)
         yield 'every modal incl. the dynamic modal container (decision 18, review F4)' => ['assets/styles/_dynamic-modal.scss', '.modal', ['bottom']];

@@ -85,3 +85,60 @@
         }
     }
 }
+
+// A bottom sheet (content with data-controller="bottom-sheet": controllers/bottom_sheet_controller.js puts
+// `bottom-sheet-open` on the container while it is in it; tokens and the handle in _bottom-sheet.scss, GEST-02): on
+// phones anchored to the bottom - on the phone bottom bar, which stays usable under it (decision 18) - with a rounded top,
+// rising from below the screen in 300 ms, leaving in 200 ms, none under reduced motion. An auto-height sheet (the
+// achievement sheet) is at most 92dvh; with data-modal-sheet it keeps the near full screen height above. The modal
+// itself never scrolls - the body does. A swipe moves the dialog by an inline transform from where it rests here.
+@media #{$sheet-phone-media} {
+    #dynamic-modal-container.bottom-sheet-open {
+        overflow: hidden;
+
+        .modal-dialog {
+            position: fixed;
+            right: 0;
+            bottom: var(--bottom-nav-height, 0px);
+            left: 0;
+            width: 100%;
+            max-width: none;
+            height: auto;
+            min-height: 0;
+            margin: 0;
+            transform: translateY(calc(100% + var(--bottom-nav-height, 0px)));
+            transition: transform $sheet-in $sheet-ease;
+        }
+
+        &.show .modal-dialog {
+            transform: none;
+        }
+
+        // Out faster than in
+        &:not(.show) .modal-dialog {
+            transition-duration: $sheet-out;
+        }
+
+        .modal-content {
+            max-height: 92vh;
+            max-height: $sheet-max-height;
+            border: 0;
+            border-radius: $sheet-radius $sheet-radius 0 0;
+        }
+
+        .modal-body {
+            padding-bottom: nav-safe-bottom-padding(1rem);
+        }
+    }
+
+    #dynamic-modal-container.bottom-sheet-open .modal-dialog.modal-sheet-sm-down {
+        height: calc(100% - 12px - var(--bottom-nav-height, 0px));
+        height: calc(100dvh - 12px - var(--bottom-nav-height, 0px));
+    }
+}
+
+@media #{$sheet-phone-media} and (prefers-reduced-motion: reduce) {
+    #dynamic-modal-container.bottom-sheet-open .modal-dialog {
+        transition: none;
+    }
+}

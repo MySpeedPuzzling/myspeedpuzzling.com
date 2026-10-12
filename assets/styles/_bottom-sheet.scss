@@ -1,0 +1,77 @@
+// Bottom sheets on phones (docs/features/navigation README §4.13 G2 + §4.12 "sheets", requirement GEST-02)
+//
+// controllers/bottom_sheet_controller.js (+ assets/sheet_drag.js) puts `bottom-sheet-open` on the host while a sheet's
+// content is in it: the dynamic modal #dynamic-modal-container (the achievement sheet, the result detail, the Help
+// sheet - its sheet layout is in _dynamic-modal.scss) and later the player card sheet (CARD-01a). Identical on every
+// platform (README §4.13): handle 36 × 5 px, top radius 16 px, the scrim, × always visible, in 300 ms / out 200 ms,
+// nothing animated under reduced motion. Swipe down closes it; the drag moves the panel by an inline transform.
+//
+// Content markup: [data-controller="bottom-sheet"] > .bottom-sheet-top[data-bottom-sheet-target="handle"]
+// (span.bottom-sheet-handle + the header) + the body [data-bottom-sheet-target="body"].
+//
+// Imported before _dynamic-modal.scss and the card styles, which use the tokens.
+
+$sheet-handle-width: 36px;
+$sheet-handle-height: 5px;
+$sheet-handle-color: #cfd6e0;
+$sheet-radius: 16px;
+$sheet-ease: cubic-bezier(.2, .8, .2, 1);
+$sheet-in: .3s;
+$sheet-out: .2s;
+// An auto-height sheet is at most this tall - the page stays visible above it
+$sheet-max-height: 92dvh;
+// The bottom sheets' breakpoint (Bootstrap's sm, SHEET_PHONE_MEDIA in assets/sheet_drag.js)
+$sheet-phone-media: "(max-width: 575.98px)";
+
+.bottom-sheet-handle {
+    display: none;
+}
+
+// The handle area never shrinks in the modal's flex column (data-modal-scrollable: only the body scrolls)
+.bottom-sheet-top {
+    flex-shrink: 0;
+
+    // Bootstrap's × is 32 × 28 px: a 44 px target without changing its look
+    .btn-close {
+        position: relative;
+
+        &::after {
+            content: '';
+            position: absolute;
+            inset: 50% auto auto 50%;
+            width: 44px;
+            height: 44px;
+            transform: translate(-50%, -50%);
+        }
+    }
+}
+
+// Focus starts on the heading (tabindex -1): a place to start reading, not a control
+[data-bottom-sheet-target="heading"]:focus {
+    outline: 0;
+}
+
+@media #{$sheet-phone-media} {
+    .bottom-sheet-top {
+        // The finger drags the sheet here, the page must not scroll or zoom instead
+        touch-action: none;
+
+        .modal-header {
+            padding-top: .5rem;
+        }
+    }
+
+    .bottom-sheet-handle {
+        display: block;
+        width: $sheet-handle-width;
+        height: $sheet-handle-height;
+        margin: .5rem auto 0;
+        border-radius: $sheet-handle-height;
+        background: $sheet-handle-color;
+    }
+
+    // The sheet's content scrolls on its own; the page behind never scrolls along
+    [data-bottom-sheet-target="body"] {
+        overscroll-behavior: contain;
+    }
+}

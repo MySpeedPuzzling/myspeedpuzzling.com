@@ -26,7 +26,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * The achievement detail sheet (docs/features/xp-levels/ux-polish/design-spec.md §2): the medal at 200 px that turns
  * over to its back (No. 0042 of 334, % of puzzlers, the earn date), the facts line, the five tiers as a list (tapping a
  * row shows that tier on the medal), "See who earned it (N)" and "All achievements". A bottom sheet on phones, the
- * centred modal on desktop - opted in by the content (achievement_sheet_controller.js), no other modal changes.
+ * centred modal on desktop - opted in by the content (bottom_sheet_controller.js, GEST-02), no other modal changes.
  *
  * Whose medal: `?player=` (a player's achievements page and showcase send it) shows that player's tiers, serials and
  * dates when their achievements are visible to the viewer by the rules of PlayerAchievementsController - a member, not

@@ -1,6 +1,6 @@
 // Achievement detail sheet: bottom sheet on phones, holo medal, medal back (docs/features/xp-levels/ux-polish/design-spec.md §2)
 //
-// templates/_achievement_info_modal.html.twig, controllers/achievement_sheet_controller.js (the sheet),
+// templates/_achievement_info_modal.html.twig, controllers/bottom_sheet_controller.js (the sheet, GEST-02),
 // controllers/holo_medal_controller.js + holo_medal/ (the medal). The medal data (back plate, foil masks, tones) is
 // precomputed by tools/badge-art/lib/holo.py; every moving value is a custom property:
 //   --rx --ry tilt · --lx --ly the light · --bgx --bgy the foil bands · --act how lit the foil is (0 at rest)
@@ -15,31 +15,11 @@ $medal-bands-vivid: repeating-linear-gradient(118deg, #f26a70 0%, #f7a457 4.5%, 
 
 // ---- The sheet ------------------------------------------------------------------------------------------------------
 
-.achievement-sheet-grab {
-    display: none;
-}
-
+// A bottom sheet on phones like every sheet: handle, layout, swipe down and timing are shared (_bottom-sheet.scss,
+// _dynamic-modal.scss, controllers/bottom_sheet_controller.js - GEST-02). Only its own look is here.
 .achievement-sheet-top .modal-header {
     border-bottom: 0;
     padding-bottom: .25rem;
-
-    // Focus starts on the heading (tabindex -1, design-spec §8.3): a place to start reading, not a control
-    .modal-title:focus {
-        outline: 0;
-    }
-    // Bootstrap's × is 32×28 px: a 44 px target without changing its look
-    .btn-close {
-        position: relative;
-
-        &::after {
-            content: '';
-            position: absolute;
-            inset: 50% auto auto 50%;
-            width: 44px;
-            height: 44px;
-            transform: translate(-50%, -50%);
-        }
-    }
 }
 
 // The coral outline buttons of the sheet in the coral ink (#fe696a on white is 2.8:1, this is 5.2:1)
@@ -52,71 +32,6 @@ $medal-bands-vivid: repeating-linear-gradient(118deg, #f26a70 0%, #f7a457 4.5%, 
     --cz-btn-hover-border-color: #c7393b;
     --cz-btn-active-bg: #c7393b;
     --cz-btn-active-border-color: #c7393b;
-}
-
-@include media-breakpoint-down(sm) {
-    // Phones: anchored to the bottom, rounded top, the page stays visible above it. The modal itself never scrolls,
-    // the body does (data-modal-scrollable); the sheet is at most 92dvh (design-spec §8.3).
-    #dynamic-modal-container.achievement-sheet-open {
-        overflow: hidden;
-
-        .modal-dialog {
-            position: fixed;
-            right: 0;
-            // On the phone bottom bar, which stays usable under the sheet (decision 18)
-            bottom: var(--bottom-nav-height, 0px);
-            left: 0;
-            width: 100%;
-            max-width: none;
-            height: auto;
-            min-height: 0;
-            margin: 0;
-            transform: translateY(calc(100% + var(--bottom-nav-height, 0px)));
-            transition: transform .3s cubic-bezier(.2, .8, .2, 1);
-        }
-
-        &.show .modal-dialog {
-            transform: none;
-        }
-
-        .modal-content {
-            max-height: 92vh;
-            max-height: 92dvh;
-            border: 0;
-            border-radius: 1rem 1rem 0 0;
-        }
-
-        .modal-body {
-            padding-bottom: nav-safe-bottom-padding(1rem);
-            // The page behind never scrolls along (Bootstrap locks the body; this stops the scroll chaining)
-            overscroll-behavior: contain;
-        }
-    }
-
-    .achievement-sheet-top {
-        flex-shrink: 0;
-        // The finger drags the sheet here (achievement_sheet_controller.js), the page must not scroll instead
-        touch-action: none;
-    }
-
-    .achievement-sheet-grab {
-        display: block;
-        width: 2.25rem;
-        height: .3125rem;
-        margin: .5rem auto 0;
-        border-radius: 1rem;
-        background: #cfd6e0;
-    }
-
-    .achievement-sheet-top .modal-header {
-        padding-top: .5rem;
-    }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    #dynamic-modal-container.achievement-sheet-open .modal-dialog {
-        transition: none;
-    }
 }
 
 .achievement-sheet-body {

@@ -61,11 +61,16 @@ final class PuzzleResultDetailControllerTest extends WebTestCase
         $profileLink = $crawler->filter('a[href="/en/player-profile/' . PlayerFixture::PLAYER_REGULAR . '"]');
         self::assertSame('_top', $profileLink->attr('data-turbo-frame'));
 
-        // Pinned header with the puzzle, the player and the best time; a sheet on phones; back closes it
+        // Pinned header with the puzzle, the player and the best time; a sheet on phones; back closes it, and so does a
+        // swipe down - the shared sheet controller with the header as its handle (GEST-02, decision 58 D-2)
         $root = $crawler->filter('[data-modal-size]');
         foreach (['data-modal-scrollable', 'data-modal-sheet', 'data-modal-history'] as $attribute) {
             self::assertNotNull($root->attr($attribute), $attribute);
         }
+        self::assertSame('bottom-sheet', $root->attr('data-controller'));
+        self::assertCount(1, $crawler->filter('[data-modal-size] > [data-bottom-sheet-target="handle"] .bottom-sheet-handle'));
+        self::assertCount(1, $crawler->filter('[data-bottom-sheet-target="handle"] .modal-header .btn-close'));
+        self::assertCount(1, $crawler->filter('[data-modal-size] > .modal-body[data-bottom-sheet-target="body"]'));
         self::assertCount(1, $crawler->filter('.modal-header .pr-puzzle'));
         self::assertCount(1, $crawler->filter('.modal-header .pr-best-time'));
     }

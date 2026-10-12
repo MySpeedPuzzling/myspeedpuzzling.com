@@ -6,7 +6,7 @@ Newsletters are sent from a self-hosted [Listmonk](https://listmonk.app) (produc
 
 | Who | Where subscription lives | How they subscribe |
 |---|---|---|
-| Registered players | `Player::$newsletterEnabled` (opt-out, default `true`) | Profile → Messaging & notifications |
+| Registered players | `Player::$newsletterEnabled` | Unticked box at registration (since 2026-10-12, answer recorded in `auth_audit_log.metadata`; players registered earlier count as opted in - see [mass-mailing proposal §11](../mass-mailing/proposal-2026-10.md)), later Profile → Messaging & notifications |
 | Guests (no account) | `NewsletterSubscriber` entity (`pending` → `confirmed` → `unsubscribed`) | Footer form on every page, **double opt-in** (confirmation e-mail, 48h token) |
 
 One e-mail = one recipient. When an address belongs to both a player and a guest row, the player wins (`GetNewsletterRecipients`).

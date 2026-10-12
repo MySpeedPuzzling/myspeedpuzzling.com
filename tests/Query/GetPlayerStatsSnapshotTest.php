@@ -10,6 +10,7 @@ use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Query\GetPlayerStatsSnapshot;
 use SpeedPuzzling\Web\Services\ActivityCalendarStreakCalculator;
+use SpeedPuzzling\Web\Services\Badges\AchievementFirstMetDates;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -101,14 +102,14 @@ final class GetPlayerStatsSnapshotTest extends KernelTestCase
         self::assertGreaterThanOrEqual(2, $snapshot->teamSolvesCount);
     }
 
-    public function testOwnerScopedCountersForRegularPlayer(): void
+    public function testSolveCountersForRegularPlayer(): void
     {
         $snapshot = $this->query->forPlayer(PlayerFixture::PLAYER_REGULAR);
 
-        // TIME_46_RELAX_NO_FINISHED_AT is the only owner solve without tracked seconds
+        // TIME_46_RELAX_NO_FINISHED_AT is the only solve without tracked seconds (the pair/team results the player was in all carry a time)
         self::assertSame(1, $snapshot->zenPuzzlerSolves);
 
-        // first_attempt=true owner solves: TIME_01, 06, 09, 12, 13, 19, 21, 25, 28, 29, 36, 41
+        // first_attempt=true solves: TIME_01, 06, 09, 12, 13, 19, 21, 25, 28, 29, 36, 41
         // (TIME_07/08 are repeats, TIME_46 is not a first attempt)
         // + INTEL_TIME_13, 14, 15 from PuzzleIntelligenceFixture (INTEL_TIME_17 is a repeat)
         self::assertSame(15, $snapshot->firstTrySolves);
@@ -116,10 +117,10 @@ final class GetPlayerStatsSnapshotTest extends KernelTestCase
         // TIME_45_UNBOXED belongs to PLAYER_WITH_STRIPE, not PLAYER_REGULAR
         self::assertSame(0, $snapshot->unboxedSolves);
 
-        // Owner-solved puzzles come from Ravensburger and Trefl only
+        // The player's puzzles come from Ravensburger and Trefl only
         self::assertSame(2, $snapshot->brandExplorerManufacturers);
 
-        // TIME_25 on PUZZLE_2000 (2000 pieces) is the only 2000+ piece owner solve
+        // TIME_25 on PUZZLE_2000 (2000 pieces) is the only 2000+ piece solve
         self::assertSame(1, $snapshot->marathonerSolves);
 
         // No fixture solve has a finished puzzle photo
@@ -128,6 +129,46 @@ final class GetPlayerStatsSnapshotTest extends KernelTestCase
         // 1000pc solo timed solves: TIME_19 (4500s) and TIME_29 (3950s);
         // TIME_12/TIME_41 are duo solves and TIME_46 has no time
         self::assertSame(3950, $snapshot->best1000PieceSoloSeconds);
+    }
+
+    public function testAPairResultATeammateLoggedCountsForEveryoneInIt(): void
+    {
+        $before = $this->query->forPlayer(PlayerFixture::PLAYER_WITH_FAVORITES);
+
+        // Logged by PLAYER_ADMIN, PLAYER_WITH_FAVORITES only in the pair: relaxed (no time), first try, unboxed,
+        // with a photo, 2000 pieces, finished on a Saturday
+        $this->database->executeStatement(
+            <<<SQL
+INSERT INTO puzzle_solving_time
+    (id, seconds_to_solve, player_id, puzzle_id, tracked_at, verified, team, finished_at, finished_puzzle_photo,
+     first_attempt, unboxed, puzzlers_count, puzzling_type, suspicious, pieces_count_snapshot)
+VALUES
+    (:id, NULL, :trackerId, :puzzleId, '2026-10-12 12:00:00', true, :team, '2026-10-10 12:00:00', 'finished.jpg',
+     true, true, 2, 'duo', false, 2000)
+SQL,
+            [
+                'id' => Uuid::uuid7()->toString(),
+                'trackerId' => PlayerFixture::PLAYER_ADMIN,
+                'puzzleId' => PuzzleFixture::PUZZLE_2000,
+                'team' => json_encode(['team_id' => null, 'puzzlers' => [
+                    ['player_id' => PlayerFixture::PLAYER_ADMIN, 'player_name' => null],
+                    ['player_id' => PlayerFixture::PLAYER_WITH_FAVORITES, 'player_name' => null],
+                ]], JSON_THROW_ON_ERROR),
+            ],
+        );
+
+        $after = $this->query->forPlayer(PlayerFixture::PLAYER_WITH_FAVORITES);
+
+        self::assertSame($before->zenPuzzlerSolves + 1, $after->zenPuzzlerSolves);
+        self::assertSame($before->firstTrySolves + 1, $after->firstTrySolves);
+        self::assertSame($before->unboxedSolves + 1, $after->unboxedSolves);
+        self::assertSame($before->marathonerSolves + 1, $after->marathonerSolves);
+        self::assertSame($before->photographerSolves + 1, $after->photographerSolves);
+        self::assertSame($before->weekendSolves + 1, $after->weekendSolves);
+        self::assertSame($before->best1000PieceSoloSeconds, $after->best1000PieceSoloSeconds);
+
+        // The history replay counts the same rows: it still ends at the snapshot, so the tiers can be dated
+        self::assertNotNull(self::getContainer()->get(AchievementFirstMetDates::class)->forPlayer(PlayerFixture::PLAYER_WITH_FAVORITES));
     }
 
     public function testUnboxedSolvesCountedForPlayerWithStripe(): void

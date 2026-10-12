@@ -10,9 +10,9 @@ use SpeedPuzzling\Web\Results\PlayerStatsSnapshot;
 
 /**
  * Loads all metrics required for badge condition evaluation in a fixed set of queries.
- * Team-participation queries use the established (`player_id = :id OR team JSON contains :id`)
- * pattern seen elsewhere in the codebase; owner-only counters are batched into a single
- * aggregate query so the number of round-trips stays constant as badges are added.
+ * Every solve metric counts the player's own results and the pair/team results they were in, whoever logged them -
+ * the established (`player_id = :id OR team JSON contains :id`) pattern, like the solved puzzles page. The per-solve
+ * counters are batched into a single aggregate query so the number of round-trips stays constant as badges are added.
  */
 readonly class GetPlayerStatsSnapshot
 {
@@ -24,7 +24,7 @@ readonly class GetPlayerStatsSnapshot
 
     public function forPlayer(string $playerId): PlayerStatsSnapshot
     {
-        $ownerAggregates = $this->ownerSolveAggregates($playerId);
+        $solveAggregates = $this->solveAggregates($playerId);
 
         return new PlayerStatsSnapshot(
             playerId: $playerId,
@@ -33,24 +33,25 @@ readonly class GetPlayerStatsSnapshot
             best500PieceSoloSeconds: $this->best500PieceSoloSeconds($playerId),
             allTimeLongestStreakDays: $this->allTimeLongestStreakDays($playerId),
             teamSolvesCount: $this->teamSolvesCount($playerId),
-            zenPuzzlerSolves: $ownerAggregates['zenPuzzlerSolves'],
-            firstTrySolves: $ownerAggregates['firstTrySolves'],
-            unboxedSolves: $ownerAggregates['unboxedSolves'],
-            brandExplorerManufacturers: $ownerAggregates['brandExplorerManufacturers'],
-            marathonerSolves: $ownerAggregates['marathonerSolves'],
-            photographerSolves: $ownerAggregates['photographerSolves'],
+            zenPuzzlerSolves: $solveAggregates['zenPuzzlerSolves'],
+            firstTrySolves: $solveAggregates['firstTrySolves'],
+            unboxedSolves: $solveAggregates['unboxedSolves'],
+            brandExplorerManufacturers: $solveAggregates['brandExplorerManufacturers'],
+            marathonerSolves: $solveAggregates['marathonerSolves'],
+            photographerSolves: $solveAggregates['photographerSolves'],
             steadyHandsQuarters: $this->steadyHandsQuarters($playerId),
             librarianApprovedRequests: $this->librarianApprovedRequests($playerId),
-            best1000PieceSoloSeconds: $ownerAggregates['best1000PieceSoloSeconds'],
-            weekendSolves: $ownerAggregates['weekendSolves'],
+            best1000PieceSoloSeconds: $solveAggregates['best1000PieceSoloSeconds'],
+            weekendSolves: $solveAggregates['weekendSolves'],
             catalogerApprovedPuzzles: $this->catalogerApprovedPuzzles($playerId),
         );
     }
 
     /**
-     * All owner-scope counters in ONE query — every metric here filters on the same
-     * (`player_id = :playerId AND suspicious = false`) base set, so they share a single
-     * scan with `FILTER` aggregates instead of one query per badge.
+     * All per-solve counters in ONE query — every metric here filters on the same base set (the player's results and
+     * the pair/team results they were in, never a suspicious one), so they share a single scan with `FILTER`
+     * aggregates instead of one query per badge. A pair/team result a teammate logged counts like one the player
+     * logged: it is their relaxed solve, their first try, their weekend solve too.
      *
      * The `>= 2000-01-01` guard on the weekend counter is mandatory: the database
      * contains garbage rows dated year 0024 which would otherwise be counted.
@@ -66,7 +67,7 @@ readonly class GetPlayerStatsSnapshot
      *     best1000PieceSoloSeconds: null|int,
      * }
      */
-    private function ownerSolveAggregates(string $playerId): array
+    private function solveAggregates(string $playerId): array
     {
         $sql = <<<SQL
 SELECT
@@ -87,8 +88,11 @@ SELECT
     ) AS best_1000_solo_seconds
 FROM puzzle_solving_time pst
 JOIN puzzle p ON p.id = pst.puzzle_id
-WHERE pst.player_id = :playerId
-  AND pst.suspicious = false
+WHERE pst.suspicious = false
+  AND (
+    pst.player_id = :playerId
+    OR (pst.team::jsonb -> 'puzzlers') @> jsonb_build_array(jsonb_build_object('player_id', CAST(:playerId AS UUID)))
+  )
 SQL;
 
         /** @var array{

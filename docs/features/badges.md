@@ -45,6 +45,15 @@ The thresholds live in `src/BadgeConditions/*` (one class per type); the texts i
 | Weekend Puzzler | `weekend_puzzler` | 10 / 50 / 150 / 300 / 600 | Solves on Saturdays and Sundays |
 | Cataloger | `cataloger` | 5 / 15 / 50 / 150 / 300 | Approved puzzles the player added to the catalog |
 
+**Every solve metric counts the player's own results and the pair/team results they were in, whoever logged them** -
+like the solved puzzles page (only the two Speed Demons look at the player's own solo times). Until 2026-10-12 seven of
+them (Zen Puzzler, First Try, Unboxed, Brand Explorer, Marathoner, Photographer, Weekend Puzzler) counted only the
+results the player logged themselves - a relaxed pair result a teammate logged was missing (a player saw 63 relax
+solves in the achievements and 184 on the solved puzzles page). Fixed in `GetPlayerStatsSnapshot` and the history
+replay (`AchievementReplayState`) together; the newly met tiers were earned by a recount and dated from history
+(`myspeedpuzzling:recalculate-badges`, then `myspeedpuzzling:date-achievements-from-history --earned-since=<the
+recount's start>`, see "Real dates").
+
 ### Calibration (2026-10-11)
 
 Approved by Jan on 2026-10-11 after reviewing the full table with holder counts per tier.
@@ -194,6 +203,10 @@ no-ops) gives each such tier the moment the player's records first met it:
   - only the tiers still inside the backfill's window (`HeldAtLaunch`: from `xp_settings.full_formula_from` to
   `launch_ready_at`), only ever to an earlier date. Tiers, points and reveal state are untouched; a tier the replay
   cannot date keeps its stamp and stays "held at launch".
+- **After a corrected rule** (`--earned-since="<UTC moment>"`): a recount (`myspeedpuzzling:recalculate-badges`) earns
+  the newly met tiers with its own run time; the option dates the tiers earned from that moment on instead of the
+  launch backfill's, by the same replay and the same rules (a tier a normal solve earned meanwhile is dated too - to
+  the same moment it would get anyway).
 - **Dev copy (2026-10-12):** 62,111 stamped tiers of 6,612 players, all dated, every replay matched, 170 s (dev env).
   The activity digest is unaffected - it counts from the launch switch, and every dated tier is older.
 

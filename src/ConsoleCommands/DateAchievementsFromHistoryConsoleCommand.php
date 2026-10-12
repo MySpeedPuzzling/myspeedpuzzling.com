@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\ConsoleCommands;
 
+use DateTimeImmutable;
 use Doctrine\Persistence\ManagerRegistry;
 use SpeedPuzzling\Web\Message\DateAchievementsFromHistory;
 use SpeedPuzzling\Web\Query\GetPlayersWithLaunchStampedAchievements;
@@ -24,6 +25,8 @@ use Symfony\Component\Messenger\Stamp\TransportNamesStamp;
  * own run time gets the moment the player's records first met it, so "Held at launch" gives way to a real date and the
  * medal numbers follow the real order. In this process, one player after the other. Safe to re-run: a dated tier is
  * out of the backfill's window and never touched again; --dry-run counts and changes nothing.
+ * --earned-since dates the tiers earned from that moment on instead: after a corrected rule, recount everybody
+ * (myspeedpuzzling:recalculate-badges, which earns the newly met tiers with its own run time), then date those.
  */
 #[AsCommand(
     name: 'myspeedpuzzling:date-achievements-from-history',
@@ -45,17 +48,42 @@ final class DateAchievementsFromHistoryConsoleCommand extends Command
     protected function configure(): void
     {
         $this->addOption('dry-run', null, InputOption::VALUE_NONE, 'Count what would be dated, change nothing.');
+        $this->addOption(
+            'earned-since',
+            null,
+            InputOption::VALUE_REQUIRED,
+            'Date the tiers earned from this moment on (UTC, e.g. "2026-10-12 14:00") instead of the launch backfill\'s.',
+        );
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
         $dryRun = $input->getOption('dry-run') === true;
-        $started = microtime(true);
-        $playerIds = $this->getPlayers->playerIds();
-        $stampedBefore = $this->getPlayers->stampedTiers();
+        $earnedSinceOption = $input->getOption('earned-since');
+        $earnedSince = null;
 
-        $io->section(sprintf('%s %d stamped tiers of %d players', $dryRun ? 'Dry run over' : 'Dating', $stampedBefore, count($playerIds)));
+        if (is_string($earnedSinceOption)) {
+            try {
+                $earnedSince = new DateTimeImmutable($earnedSinceOption);
+            } catch (\Exception) {
+                $io->error(sprintf('Invalid --earned-since value "%s".', $earnedSinceOption));
+
+                return self::INVALID;
+            }
+        }
+
+        $started = microtime(true);
+        $playerIds = $this->getPlayers->playerIds($earnedSince);
+        $stampedBefore = $this->getPlayers->stampedTiers($earnedSince);
+
+        $io->section(sprintf(
+            '%s %d %s tiers of %d players',
+            $dryRun ? 'Dry run over' : 'Dating',
+            $stampedBefore,
+            $earnedSince === null ? 'stamped' : 'recently earned',
+            count($playerIds),
+        ));
         $io->progressStart(count($playerIds));
 
         $dated = 0;
@@ -67,7 +95,7 @@ final class DateAchievementsFromHistoryConsoleCommand extends Command
 
         foreach ($playerIds as $index => $playerId) {
             try {
-                $envelope = $this->commandBus->dispatch(new DateAchievementsFromHistory($playerId, $dryRun), [new TransportNamesStamp(['sync'])]);
+                $envelope = $this->commandBus->dispatch(new DateAchievementsFromHistory($playerId, $dryRun, $earnedSince), [new TransportNamesStamp(['sync'])]);
                 $outcome = $envelope->last(HandledStamp::class)?->getResult();
                 assert($outcome instanceof AchievementDatingOutcome);
 
@@ -94,7 +122,7 @@ final class DateAchievementsFromHistoryConsoleCommand extends Command
 
         $io->table(['', 'Tiers'], [
             [$dryRun ? 'Would be dated' : 'Dated', $dated],
-            ['Left "held at launch"', $undated],
+            [$earnedSince === null ? 'Left "held at launch"' : 'Left with the recount\'s date', $undated],
             ['Players whose history did not match their records', count($notMatched)],
             ['Players failed', count($failed)],
         ]);

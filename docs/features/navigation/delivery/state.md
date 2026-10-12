@@ -9,7 +9,7 @@ Evidence = commit hash(es) · test names · command output summary · screenshot
 | Key | Value |
 |---|---|
 | Base | `origin/main` at start: `9347ccdabb0f3d19fd9fc155c0ad12715ff95964` · 2026-10-12T01:07:33+02:00 (synced at every phase gate, see run log) |
-| Last sync with `origin/main` | e6068ac7 (merge 56ef583e, 2026-10-12) |
+| Last sync with `origin/main` | fa43fd6e (merge da693835, 2026-10-12) |
 | Delivery branch / worktree | `feature/navigation-redesign` / `.claude/worktrees/navigation` |
 | Delivery DB clone | `speedpuzzling_nav_test` |
 | Isolated web URL | `http://127.0.0.1:18080` (container `nav-web`, php -S; restart: `var/navigation-delivery/tools/restart-web.sh`) |
@@ -184,6 +184,7 @@ One line per session and per phase: date · what was done · next step.
 | 2026-10-12 06:59 | Owner going offline ~09:15 CEST: planned pause. No new agents after ~08:40; everything committed before the stop; resume point written here |
 | 2026-10-12 08:07 | Provisional resume point (pause ~09:15): the delivery branch is committed and clean at this line. Layers review (`reviews/Layers.md`: F1 major, F2–F9 minor) is being fixed in worktree `.claude/worktrees/navigation-c` (branch `nav/layers-fix`, web `nav-web-c`, test DB `speedpuzzling_navc_test`). **On resume:** read the fix agent's result (or inspect `git -C .claude/worktrees/navigation-c status/log`), verify (LayerHistory/SheetDrag/ConfirmDialog node tests + `navlib.py check GEST-01/02/13` with `SITE=http://nav-web-c:8000`), commit there, cherry-pick into `feature/navigation-redesign`, remove worktree C + its DBs, re-run the Layers gate, mark the Layers phase verified; then sync `origin/main` (main moved: a4f3b387 et al.) and continue with phase ADD-03 + INB (ADD-03 → INB-02 → INB-01 ∥ INB-03 → INB-04a → INB-04b → INB-05) |
 | 2026-10-12 08:44 | **Layers gate verified.** Summary: one history helper for every layer (Back closes it, no reload, no duplicate entries, Turbo pinned 8.0.23), one bottom-sheet controller (swipe down closes), in-page confirmations everywhere outside /admin. **PAUSED at 08:44 for the owner's offline time. Resume at phase ADD-03 + INB: first sync `origin/main` (main moved, e.g. a4f3b387 'Hide my achievements' — merge, re-migrate the clone if new migrations, rebuild assets, re-run tests/Navigation), then ADD-03 → INB-02 → INB-01 ∥ INB-03 → INB-04a → INB-04b → INB-05.** Environment left running: nav-web, nav-delivery-chrome, nav-mailer (worktree C and its DBs removed). The 08:07 provisional line is superseded |
+| 2026-10-12 resume | Resumed. Synced `origin/main` fa43fd6e (6 commits: achievements counting + "Hide my achievements" with migration Version20261012053303 `player.achievements_opted_out`) → merge da693835; one conflict in `templates/base.html.twig` (main's `achievementsOptedOut` condition kept with the branch's `data-nav` + `new_badge` key); 6 YAML files parse without duplicate keys; clone migrated; no asset/lock changes; `tests/Navigation` + `AchievementsOptOutTest` 268 OK. Next: phase ADD-03 + INB |
 
 ## Final report
 (written at the end: what shipped, evidence summary, blocked items with options, owner steps — README §11)

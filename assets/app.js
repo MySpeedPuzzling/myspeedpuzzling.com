@@ -34,14 +34,23 @@ window.bootstrap = { Modal, Dropdown, Collapse, Tab, Toast };
 
 import * as Turbo from '@hotwired/turbo';
 import './turbo-stream-actions.js'
+import { startNavInstrumentation } from './nav_instrumentation.js';
 
 Turbo.config.drive.progressBarDelay = 0;
+
+// Navigation clicks, the viewport once per session and Back/Forward navigations (docs/features/navigation, P0-03).
+// The web chrome only - the app's navigation is native
+const navInstrumentation = window.isNativeApp ? null : startNavInstrumentation({ window, document });
 
 // Force native browser navigation for back/forward (restoration visits)
 // This ensures iOS swipe-back, browser back/forward buttons all work identically to a non-Turbo site
 document.addEventListener('turbo:visit', function(event) {
     if (event.detail.action === 'restore') {
         event.preventDefault();
+        // Counted here: the reload below is a replace navigation, not a traverse, so it is not counted again
+        if (navInstrumentation) {
+            navInstrumentation.turboRestore();
+        }
         window.location.href = event.detail.url;
     }
 });

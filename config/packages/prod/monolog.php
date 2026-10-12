@@ -20,7 +20,9 @@ use Sentry\Monolog\LogToSentryIssueHandler;
 //   The caller reports what the failure means - a spooled upload, a missing result
 //   image, an uncaught exception - so the same problem would land twice, and a
 //   failure the caller handles by design would page as an error
-$sentryExcludedChannels = ['!sentry_sdk', '!messenger', '!php', '!object_storage'];
+// - navigation: click and history counts from the browser (NavClickController) - info lines
+//   written by their own handler below; nothing on this channel is ever a problem to look at
+$sentryExcludedChannels = ['!sentry_sdk', '!messenger', '!php', '!object_storage', '!navigation'];
 
 return App::config([
     'monolog' => [
@@ -31,8 +33,8 @@ return App::config([
                 'handler' => 'nested',
                 'excluded_http_codes' => [404, 405],
                 'buffer_size' => 50,
-                // internal_api_audit and service_worker have their own handlers below
-                'channels' => ['!sentry_sdk', '!internal_api_audit', '!service_worker'],
+                // internal_api_audit, service_worker and navigation have their own handlers below
+                'channels' => ['!sentry_sdk', '!internal_api_audit', '!service_worker', '!navigation'],
             ],
             'nested' => [
                 'type' => 'stream',
@@ -84,6 +86,16 @@ return App::config([
                 'path' => 'php://stderr',
                 'level' => 'info',
                 'channels' => ['service_worker'],
+                'formatter' => 'monolog.formatter.json',
+            ],
+            // Navigation instrumentation (NavClickController, docs/features/navigation P0-03): one info
+            // line per chrome click, per session's viewport and per Back/Forward navigation, written as
+            // they come and counted in Loki. Excluded from main and from both Sentry issue handlers.
+            'navigation' => [
+                'type' => 'stream',
+                'path' => 'php://stderr',
+                'level' => 'info',
+                'channels' => ['navigation'],
                 'formatter' => 'monolog.formatter.json',
             ],
             // SDK send failures land in stderr logs only

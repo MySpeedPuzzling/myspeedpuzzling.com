@@ -490,7 +490,7 @@
                on the event page it links to. #}
             {% set live_event_slug = 'world-jigsaw-puzzle-championship-2026' %}
             {% if date() < date('2026-09-21T00:00:00+02:00') and not (currentRoute == 'event_detail' and currentRouteParams.slug is defined and currentRouteParams.slug == live_event_slug) %}
-                <a class="competition-panel-info" href="{{ path('event_detail', {slug: live_event_slug}) }}">
+                <a class="competition-panel-info" href="{{ path('event_detail', {slug: live_event_slug}) }}" data-nav="topbar/strip/live_event">
                     <span class="live-dot live-dot-light" aria-hidden="true"></span>{{ 'live_event_strip'|trans({'%event%': 'WJPC 2026'}) }}
                 </a>
             {% endif %}
@@ -500,7 +500,7 @@
                         {# Admins see everything; community moderators only the puzzle review queues #}
                         {% if is_granted('PUZZLE_MODERATION_ACCESS') %}
                             <div class="topbar-text dropdown disable-autohide me-2 me-sm-3">
-                                <a class="topbar-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
+                                <a class="topbar-link dropdown-toggle" href="#" data-bs-toggle="dropdown" data-nav="admin_key/toggle/open">
                                     <i class="ci-key"></i>
                                 </a>
 
@@ -508,26 +508,26 @@
                                 {% set queue_counts = admin_queue_counts(is_granted('ADMIN_ACCESS')) %}
                                 <ul class="dropdown-menu">
                                     <li>
-                                        <a class="dropdown-item pb-1 {% if currentRoute == 'admin_puzzle_change_requests' %}active{% endif %}" href="{{ path('admin_puzzle_change_requests') }}">
+                                        <a class="dropdown-item pb-1 {% if currentRoute == 'admin_puzzle_change_requests' %}active{% endif %}" href="{{ path('admin_puzzle_change_requests') }}" data-nav="admin_key/queues/change_requests">
                                             Puzzle Change Requests
                                             {% if queue_counts.changeRequests is not null %}<span class="badge {{ queue_counts.changeRequests > 0 ? 'bg-warning text-dark' : 'bg-success' }} ms-1" data-testid="queue-count-change-requests">{{ queue_counts.changeRequests }}</span>{% endif %}
                                         </a>
                                     </li>
                                     <li>
-                                        <a class="dropdown-item pb-1 {% if currentRoute == 'admin_puzzle_merge_requests' %}active{% endif %}" href="{{ path('admin_puzzle_merge_requests') }}">
+                                        <a class="dropdown-item pb-1 {% if currentRoute == 'admin_puzzle_merge_requests' %}active{% endif %}" href="{{ path('admin_puzzle_merge_requests') }}" data-nav="admin_key/queues/merge_requests">
                                             Puzzle Merge Requests
                                             {% if queue_counts.mergeRequests is not null %}<span class="badge {{ queue_counts.mergeRequests > 0 ? 'bg-warning text-dark' : 'bg-success' }} ms-1" data-testid="queue-count-merge-requests">{{ queue_counts.mergeRequests }}</span>{% endif %}
                                         </a>
                                     </li>
                                     <li>
-                                        <a class="dropdown-item pb-1 {% if currentRoute == 'admin_puzzle_approvals' %}active{% endif %}" href="{{ path('admin_puzzle_approvals') }}">
+                                        <a class="dropdown-item pb-1 {% if currentRoute == 'admin_puzzle_approvals' %}active{% endif %}" href="{{ path('admin_puzzle_approvals') }}" data-nav="admin_key/queues/puzzle_approvals">
                                             Puzzle Approvals
                                             {% if queue_counts.puzzleApprovals is not null %}<span class="badge {{ queue_counts.puzzleApprovals > 0 ? 'bg-warning text-dark' : 'bg-success' }} ms-1" data-testid="queue-count-puzzle-approvals">{{ queue_counts.puzzleApprovals }}</span>{% endif %}
                                         </a>
                                     </li>
                                     {% if is_granted('REVIEW_SUSPICIOUS_TIMES') %}
                                     <li>
-                                        <a class="dropdown-item pb-1 {% if currentRoute starts with 'admin_time_verification' %}active{% endif %}" href="{{ path('admin_time_verification') }}">
+                                        <a class="dropdown-item pb-1 {% if currentRoute starts with 'admin_time_verification' %}active{% endif %}" href="{{ path('admin_time_verification') }}" data-nav="admin_key/queues/time_verification">
                                             Time verification
                                             {% if queue_counts.timeVerification is not null %}<span class="badge {{ queue_counts.timeVerification > 0 ? 'bg-warning text-dark' : 'bg-success' }} ms-1" data-testid="queue-count-time-verification">{{ queue_counts.timeVerification }}</span>{% endif %}
                                         </a>
@@ -535,54 +535,54 @@
                                     {% endif %}
                                     {% if is_granted('ADMIN_ACCESS') %}
                                     <li>
-                                        <a class="dropdown-item pb-1 {% if currentRoute == 'admin_vouchers' %}active{% endif %}" href="{{ path('admin_vouchers') }}">
+                                        <a class="dropdown-item pb-1 {% if currentRoute == 'admin_vouchers' %}active{% endif %}" href="{{ path('admin_vouchers') }}" data-nav="admin_key/queues/vouchers">
                                             Vouchers
                                         </a>
                                     </li>
                                     <li>
-                                        <a class="dropdown-item pb-1 {% if currentRoute == 'admin_referrals' or currentRoute == 'admin_referral_detail' %}active{% endif %}" href="{{ path('admin_referrals') }}">
+                                        <a class="dropdown-item pb-1 {% if currentRoute == 'admin_referrals' or currentRoute == 'admin_referral_detail' %}active{% endif %}" href="{{ path('admin_referrals') }}" data-nav="admin_key/queues/referrals">
                                             Referrals
                                         </a>
                                     </li>
                                     <li>
-                                        <a class="dropdown-item pb-1 {% if currentRoute == 'admin_competition_approvals' %}active{% endif %}" href="{{ path('admin_competition_approvals') }}">
+                                        <a class="dropdown-item pb-1 {% if currentRoute == 'admin_competition_approvals' %}active{% endif %}" href="{{ path('admin_competition_approvals') }}" data-nav="admin_key/queues/competition_approvals">
                                             Competition Approvals
                                             {% if queue_counts.competitionApprovals is not null %}<span class="badge {{ queue_counts.competitionApprovals > 0 ? 'bg-warning text-dark' : 'bg-success' }} ms-1" data-testid="queue-count-competition-approvals">{{ queue_counts.competitionApprovals }}</span>{% endif %}
                                         </a>
                                     </li>
                                     <li>
-                                        <a class="dropdown-item pb-1 {% if currentRoute == 'admin_email_audit_list' or currentRoute == 'admin_email_audit_detail' %}active{% endif %}" href="{{ path('admin_email_audit_list') }}">
+                                        <a class="dropdown-item pb-1 {% if currentRoute == 'admin_email_audit_list' or currentRoute == 'admin_email_audit_detail' %}active{% endif %}" href="{{ path('admin_email_audit_list') }}" data-nav="admin_key/queues/email_audit">
                                             Email Audit
                                         </a>
                                     </li>
                                     <li>
-                                        <a class="dropdown-item pb-1 {% if currentRoute == 'admin_moderation_dashboard' or currentRoute == 'admin_moderation_history' or currentRoute == 'admin_report_detail' %}active{% endif %}" href="{{ path('admin_moderation_dashboard') }}">
+                                        <a class="dropdown-item pb-1 {% if currentRoute == 'admin_moderation_dashboard' or currentRoute == 'admin_moderation_history' or currentRoute == 'admin_report_detail' %}active{% endif %}" href="{{ path('admin_moderation_dashboard') }}" data-nav="admin_key/queues/moderation">
                                             Moderation
                                         </a>
                                     </li>
                                     <li>
-                                        <a class="dropdown-item pb-1 {% if currentRoute == 'admin_oauth2_client_requests' or currentRoute == 'admin_oauth2_client_request_detail' %}active{% endif %}" href="{{ path('admin_oauth2_client_requests') }}">
+                                        <a class="dropdown-item pb-1 {% if currentRoute == 'admin_oauth2_client_requests' or currentRoute == 'admin_oauth2_client_request_detail' %}active{% endif %}" href="{{ path('admin_oauth2_client_requests') }}" data-nav="admin_key/queues/oauth2_requests">
                                             OAuth2 Requests
                                             {% if queue_counts.oauth2Requests is not null %}<span class="badge {{ queue_counts.oauth2Requests > 0 ? 'bg-warning text-dark' : 'bg-success' }} ms-1" data-testid="queue-count-oauth2-requests">{{ queue_counts.oauth2Requests }}</span>{% endif %}
                                         </a>
                                     </li>
                                     <li>
-                                        <a class="dropdown-item pb-1 {% if currentRoute == 'admin_moderators' %}active{% endif %}" href="{{ path('admin_moderators') }}">
+                                        <a class="dropdown-item pb-1 {% if currentRoute == 'admin_moderators' %}active{% endif %}" href="{{ path('admin_moderators') }}" data-nav="admin_key/queues/moderators">
                                             Community Moderators
                                         </a>
                                     </li>
                                     <li>
-                                        <a class="dropdown-item pb-1 {% if currentRoute == 'admin_free_trial' %}active{% endif %}" href="{{ path('admin_free_trial') }}">
+                                        <a class="dropdown-item pb-1 {% if currentRoute == 'admin_free_trial' %}active{% endif %}" href="{{ path('admin_free_trial') }}" data-nav="admin_key/queues/free_trial">
                                             Free trial &amp; modals
                                         </a>
                                     </li>
                                     <li>
-                                        <a class="dropdown-item pb-1 {% if currentRoute == 'admin_api_usage' %}active{% endif %}" href="{{ path('admin_api_usage') }}">
+                                        <a class="dropdown-item pb-1 {% if currentRoute == 'admin_api_usage' %}active{% endif %}" href="{{ path('admin_api_usage') }}" data-nav="admin_key/queues/api_usage">
                                             API usage
                                         </a>
                                     </li>
                                     <li>
-                                        <a class="dropdown-item pb-1 {% if currentRoute == 'admin_duplicate_results' %}active{% endif %}" href="{{ path('admin_duplicate_results') }}">
+                                        <a class="dropdown-item pb-1 {% if currentRoute == 'admin_duplicate_results' %}active{% endif %}" href="{{ path('admin_duplicate_results') }}" data-nav="admin_key/queues/duplicate_results">
                                             Duplicate results
                                             {% if queue_counts.duplicatePuzzleSignals is not null %}<span class="badge {{ queue_counts.duplicatePuzzleSignals > 0 ? 'bg-warning text-dark' : 'bg-success' }} ms-1" data-testid="queue-count-duplicate-puzzle-signals">{{ queue_counts.duplicatePuzzleSignals }}</span>{% endif %}
                                         </a>
@@ -592,30 +592,30 @@
                             </div>
                         {% endif %}
 
-                        <a data-turbo="true" rel="nofollow" class="topbar-link" href="{{ path('feedback', {'url': app.request.uri}) }}" {% if logged_user.profile is not null %}data-turbo-frame="modal-frame"{% endif %}>
+                        <a data-turbo="true" rel="nofollow" class="topbar-link" href="{{ path('feedback', {'url': app.request.uri}) }}" data-nav="topbar/links/feedback" {% if logged_user.profile is not null %}data-turbo-frame="modal-frame"{% endif %}>
                             <i class="ci-mail"></i> <span class="topbar-feedback-label">{{ 'menu.feedback'|trans }}</span>
                         </a>
 
-                        <a class="ms-2 ms-sm-3 topbar-link" href="{{ path('membership') }}">
+                        <a class="ms-2 ms-sm-3 topbar-link" href="{{ path('membership') }}" data-nav="topbar/links/membership">
                             <i class="ci-user-circle"></i> {{ 'menu.membership'|trans }}
                             {% if logged_user.profile is not null and logged_user.profile.freeTrialEndsAt is not null %}
                                 <span class="badge bg-success ms-1">{{ 'free_trial.topbar_badge'|trans }}</span>
                             {% endif %}
                         </a>
 
-                        <a class="ms-2 ms-sm-3 topbar-link d-none d-md-inline" href="{{ path('feature_requests') }}">
+                        <a class="ms-2 ms-sm-3 topbar-link d-none d-md-inline" href="{{ path('feature_requests') }}" data-nav="topbar/links/feature_requests">
                             <i class="ci-idea"></i> {{ 'menu.feature_requests'|trans }}
                         </a>
                     </div>
 
                     <div class="text-nowrap">
                         <div class="topbar-text dropdown disable-autohide">
-                            <a class="topbar-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
+                            <a class="topbar-link dropdown-toggle" href="#" data-bs-toggle="dropdown" data-nav="topbar/language/open">
                                 <span class="fi shadow-custom fi-{{ app.request.locale == 'cs' ? 'cz' : app.request.locale == 'en' ? 'us' : app.request.locale == 'es' ? 'es' : app.request.locale == 'ja' ? 'jp' : app.request.locale == 'fr' ? 'fr' : app.request.locale == 'de' ? 'de' : 'us' }} shadow-custom me-1"></span>
                                 {{ app.request.locale|upper }}
                             </a>
 
-                            {{ include('_language_menu.html.twig') }}
+                            {{ include('_language_menu.html.twig', {nav_surface: 'topbar'}) }}
                         </div>
                     </div>
                 </div>
@@ -623,17 +623,17 @@
 
             <div class="navbar navbar-expand-lg navbar-light">
                 <div class="container">
-                    <a class="navbar-brand d-none d-lg-block order-lg-1" href="{{ path('homepage') }}">
+                    <a class="navbar-brand d-none d-lg-block order-lg-1" href="{{ path('homepage') }}" data-nav="navbar/logo/home">
                         <img width="50" height="44" src="{{ asset('img/speedpuzzling-logo.svg') }}" alt="MySpeedPuzzling.com"/>
                     </a>
 
-                    <a class="navbar-brand d-lg-none me-2" href="{{ path('homepage') }}">
+                    <a class="navbar-brand d-lg-none me-2" href="{{ path('homepage') }}" data-nav="navbar/logo/home">
                         <img width="50" height="44" src="{{ asset('img/speedpuzzling-logo.svg') }}" alt="MySpeedPuzzling.com"/>
                     </a>
 
                     <!-- Toolbar -->
                     <div class="navbar-toolbar d-flex align-items-center order-lg-3 ms-lg-3">
-                        <a class="navbar-tool ms-1 ms-lg-0 me-n1 me-lg-2" data-action="click->global-search#toggleSearchBar" href="#" aria-label="{{ 'menu.search'|trans }}">
+                        <a class="navbar-tool ms-1 ms-lg-0 me-n1 me-lg-2" data-action="click->global-search#toggleSearchBar" href="#" data-nav="toolbar/tools/search" aria-label="{{ 'menu.search'|trans }}">
                             <div class="navbar-tool-icon-box">
                                 <i class="navbar-tool-icon ci-search" aria-hidden="true"></i>
                             </div>
@@ -641,14 +641,14 @@
                         </a>
 
                         {% if logged_user.profile is null %}
-                            <a class="navbar-tool ms-1 ms-lg-0 me-n1 me-lg-2" href="{{ path('register') }}" aria-label="{{ 'menu.register'|trans }}">
+                            <a class="navbar-tool ms-1 ms-lg-0 me-n1 me-lg-2" href="{{ path('register') }}" data-nav="toolbar/tools/register" aria-label="{{ 'menu.register'|trans }}">
                                 <div class="navbar-tool-icon-box">
                                     <i class="navbar-tool-icon ci-add-user" aria-hidden="true"></i>
                                 </div>
                                 <div class="navbar-tool-text ms-n3"><small>{{ 'menu.register'|trans }}</small></div>
                             </a>
 
-                            <a class="navbar-tool ms-1 ms-lg-0 me-n1 me-lg-2" href="{{ path('my_profile') }}" aria-label="{{ 'menu.sign_in'|trans }}">
+                            <a class="navbar-tool ms-1 ms-lg-0 me-n1 me-lg-2" href="{{ path('my_profile') }}" aria-label="{{ 'menu.sign_in'|trans }}" data-nav="toolbar/tools/sign_in">
                                 <div class="navbar-tool-icon-box">
                                     <i class="navbar-tool-icon ci-sign-in" aria-hidden="true"></i>
                                 </div>
@@ -656,7 +656,7 @@
                             </a>
                         {% else %}
                             <div class="navbar-tool dropdown ms-1 ms-lg-0 me-n1 me-lg-2">
-                                <a class="dropdown-toggle navbar-tool navbar-avatar-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="{{ 'menu.my_profile'|trans }}">
+                                <a class="dropdown-toggle navbar-tool navbar-avatar-toggle" href="#" role="button" data-bs-toggle="dropdown" data-nav="account/toggle/open" aria-expanded="false" aria-label="{{ 'menu.my_profile'|trans }}">
                                     {# The player's own face (or initial) with their XP level ring - all from the viewer's profile row, no query #}
                                     <div class="navbar-tool-icon-box navbar-avatar-box">
                                         <twig:XpRing :player="logged_user.profile" variant="nav">
@@ -674,22 +674,22 @@
 
                                 <ul class="dropdown-menu">
                                     <li>
-                                        <a class="dropdown-item {% if currentRoute == 'player_profile' and routeParams.playerId == logged_user.profile.playerId %}active{% endif %}" href="{{ path('my_profile') }}">
+                                        <a class="dropdown-item {% if currentRoute == 'player_profile' and routeParams.playerId == logged_user.profile.playerId %}active{% endif %}" href="{{ path('my_profile') }}" data-nav="account/links/my_profile">
                                             <i class="bi bi-person me-1"></i> {{ 'menu.my_profile'|trans }}
                                         </a>
                                     </li>
                                     <li>
-                                        <a class="dropdown-item {% if currentRoute == 'player_statistics' and routeParams.playerId == logged_user.profile.playerId %}active{% endif %}" rel="nofollow" href="{{ path('player_statistics', {'playerId': logged_user.profile.playerId}) }}">
+                                        <a class="dropdown-item {% if currentRoute == 'player_statistics' and routeParams.playerId == logged_user.profile.playerId %}active{% endif %}" rel="nofollow" href="{{ path('player_statistics', {'playerId': logged_user.profile.playerId}) }}" data-nav="account/links/statistics">
                                             <i class="bi bi-bar-chart-line me-1"></i> {{ 'menu.statistics'|trans }}
                                         </a>
                                     </li>
                                     <li>
-                                        <a class="dropdown-item {% if currentRoute == 'activity_calendar' and routeParams.playerId == logged_user.profile.playerId %}active{% endif %}" href="{{ path('activity_calendar', {'playerId': logged_user.profile.playerId}) }}">
+                                        <a class="dropdown-item {% if currentRoute == 'activity_calendar' and routeParams.playerId == logged_user.profile.playerId %}active{% endif %}" href="{{ path('activity_calendar', {'playerId': logged_user.profile.playerId}) }}" data-nav="account/links/activity_calendar">
                                             <i class="bi bi-calendar-event me-1"></i> {{ 'menu.activity_calendar'|trans }}
                                         </a>
                                     </li>
                                     <li>
-                                        <a class="dropdown-item {% if currentRoute == 'player_favorite_puzzlers' and routeParams.playerId == logged_user.profile.playerId %}active{% endif %}" href="{{ path('player_favorite_puzzlers', {'playerId': logged_user.profile.playerId}) }}">
+                                        <a class="dropdown-item {% if currentRoute == 'player_favorite_puzzlers' and routeParams.playerId == logged_user.profile.playerId %}active{% endif %}" href="{{ path('player_favorite_puzzlers', {'playerId': logged_user.profile.playerId}) }}" data-nav="account/links/favorite_puzzlers">
                                             <i class="bi bi-eye me-1"></i> {{ 'menu.favorite_puzzlers'|trans }}
                                         </a>
                                     </li>
@@ -697,7 +697,7 @@
                                     {% if xp_system_visible() %}
                                     {% if not logged_user.profile.achievementsOptedOut %}
                                         <li>
-                                            <a class="dropdown-item {% if currentRoute == 'player_achievements' and routeParams.playerId == logged_user.profile.playerId %}active{% endif %}" href="{{ path('player_achievements', {playerId: logged_user.profile.playerId}) }}">
+                                            <a class="dropdown-item {% if currentRoute == 'player_achievements' and routeParams.playerId == logged_user.profile.playerId %}active{% endif %}" href="{{ path('player_achievements', {playerId: logged_user.profile.playerId}) }}" data-nav="account/links/achievements">
                                                 <i class="bi bi-award me-1"></i> {{ 'badges.my_title'|trans }}
                                                 <span class="badge bg-primary ms-1">{{ 'menu.new_badge'|trans }}</span>
                                             </a>
@@ -705,21 +705,21 @@
                                     {% endif %}
                                     {% if not logged_user.profile.experienceSystemOptedOut %}
                                         <li>
-                                            <a class="dropdown-item {% if currentRoute == 'xp_history' %}active{% endif %}" href="{{ path('xp_history') }}">
+                                            <a class="dropdown-item {% if currentRoute == 'xp_history' %}active{% endif %}" href="{{ path('xp_history') }}" data-nav="account/links/xp_history">
                                                 <i class="bi bi-receipt me-1"></i> {{ 'xp.history.title'|trans }}
                                                 <span class="badge bg-primary ms-1">{{ 'menu.new_badge'|trans }}</span>
                                             </a>
                                         </li>
                                     {% endif %}
                                     <li>
-                                        <a class="dropdown-item {% if currentRoute == 'progression_hub' %}active{% endif %}" href="{{ currentRoute == 'progression_hub' ? path('progression_hub') : path('progression_hub', {return: app.request.requestUri}) }}" rel="nofollow">
+                                        <a class="dropdown-item {% if currentRoute == 'progression_hub' %}active{% endif %}" href="{{ currentRoute == 'progression_hub' ? path('progression_hub') : path('progression_hub', {return: app.request.requestUri}) }}" rel="nofollow" data-nav="account/links/progression_hub">
                                             <i class="bi bi-question-circle me-1"></i> {{ 'progression_hub.menu_label'|trans }}
                                             <span class="badge bg-primary ms-1">{{ 'menu.new_badge'|trans }}</span>
                                         </a>
                                     </li>
                                     {% endif %}
                                     <li>
-                                        <a class="dropdown-item {% if currentRoute == 'pairs_and_teams' %}active{% endif %}" href="{{ path('pairs_and_teams') }}">
+                                        <a class="dropdown-item {% if currentRoute == 'pairs_and_teams' %}active{% endif %}" href="{{ path('pairs_and_teams') }}" data-nav="account/links/pairs_and_teams">
                                             <i class="bi bi-people me-1"></i> {{ 'menu.pairs_and_teams'|trans }}
                                             <span class="badge bg-primary ms-1">{{ 'menu.new_badge'|trans }}</span>
                                         </a>
@@ -728,38 +728,38 @@
                                     <li><hr class="dropdown-divider"></li>
 
                                     <li>
-                                        <a class="dropdown-item {% if currentRoute == 'puzzle_library' and routeParams.playerId == logged_user.profile.playerId %}active{% endif %}" href="{{ path('puzzle_library', {'playerId': logged_user.profile.playerId}) }}">
+                                        <a class="dropdown-item {% if currentRoute == 'puzzle_library' and routeParams.playerId == logged_user.profile.playerId %}active{% endif %}" href="{{ path('puzzle_library', {'playerId': logged_user.profile.playerId}) }}" data-nav="account/links/puzzle_library">
                                             <i class="bi bi-collection me-1"></i> {{ 'menu.puzzle_library'|trans }}
                                         </a>
                                     </li>
                                     <li>
-                                        <a class="dropdown-item {% if currentRoute == 'puzzle_picker' %}active{% endif %}" href="{{ path('puzzle_picker') }}">
+                                        <a class="dropdown-item {% if currentRoute == 'puzzle_picker' %}active{% endif %}" href="{{ path('puzzle_picker') }}" data-nav="account/links/puzzle_picker">
                                             <i class="bi bi-shuffle me-1"></i> {{ 'puzzle_picker.menu_label'|trans }}
                                             <span class="badge bg-primary ms-1">{{ 'menu.new_badge'|trans }}</span>
                                         </a>
                                     </li>
                                     <li>
-                                        <a class="dropdown-item {% if currentRoute == 'export_puzzler_data' %}active{% endif %}" href="{{ path('export_puzzler_data', {'playerId': logged_user.profile.playerId}) }}">
+                                        <a class="dropdown-item {% if currentRoute == 'export_puzzler_data' %}active{% endif %}" href="{{ path('export_puzzler_data', {'playerId': logged_user.profile.playerId}) }}" data-nav="account/links/export_data">
                                             <i class="bi bi-download me-1"></i> {{ 'menu.export_data'|trans }}
                                         </a>
                                     </li>
                                     <li>
-                                        <a class="dropdown-item {% if currentRoute == 'affiliate_dashboard' %}active{% endif %}" href="{{ path('affiliate_dashboard') }}">
+                                        <a class="dropdown-item {% if currentRoute == 'affiliate_dashboard' %}active{% endif %}" href="{{ path('affiliate_dashboard') }}" data-nav="account/links/referral_program">
                                             <i class="bi bi-megaphone me-1"></i> {{ 'menu.referral_program'|trans }}
                                         </a>
                                     </li>
                                     <li>
-                                        <a class="dropdown-item {% if currentRoute == 'edit_profile' %}active{% endif %}" href="{{ path('edit_profile') }}">
+                                        <a class="dropdown-item {% if currentRoute == 'edit_profile' %}active{% endif %}" href="{{ path('edit_profile') }}" data-nav="account/links/edit_profile">
                                             <i class="bi bi-pencil-square me-1"></i> {{ 'menu.edit_profile'|trans }}
                                         </a>
                                     </li>
                                     <li>
-                                        <a class="dropdown-item {% if currentRoute == 'getting_started' %}active{% endif %}" href="{{ path('getting_started') }}">
+                                        <a class="dropdown-item {% if currentRoute == 'getting_started' %}active{% endif %}" href="{{ path('getting_started') }}" data-nav="account/links/getting_started">
                                             <i class="bi bi-signpost-2 me-1"></i> {{ 'onboarding.guide.link'|trans }}
                                         </a>
                                     </li>
                                     <li>
-                                        <a class="dropdown-item text-danger" href="{{ path('logout') }}">
+                                        <a class="dropdown-item text-danger" href="{{ path('logout') }}" data-nav="account/links/logout">
                                             <i class="bi bi-box-arrow-right me-2"></i>{{ 'my_profile.logout'|trans }}
                                         </a>
                                     </li>
@@ -768,7 +768,7 @@
                         {% endif %}
 
 
-                        <a class="navbar-tool ms-1 ms-lg-0 me-n1 me-lg-2 {% if app.request.pathInfo == path('puzzle_add') %}active{% endif %}" rel="nofollow" href="{{ path('puzzle_add') }}" aria-label="{{ 'menu.puzzle_add'|trans }}">
+                        <a class="navbar-tool ms-1 ms-lg-0 me-n1 me-lg-2 {% if app.request.pathInfo == path('puzzle_add') %}active{% endif %}" rel="nofollow" href="{{ path('puzzle_add') }}" data-nav="toolbar/tools/add_time" aria-label="{{ 'menu.puzzle_add'|trans }}">
                             <div class="navbar-tool-icon-box">
                                 <i class="navbar-tool-icon ci-add" aria-hidden="true"></i>
                             </div>
@@ -785,14 +785,14 @@
                         {# The notifications page passes its count (0 - it has just marked everything read) #}
                         {% set notifications_count = notifications_count is defined ? notifications_count : (logged_user.profile is not null ? get_notifications.countUnreadForPlayer(logged_user.profile.playerId) : 0) %}
 
-                        <a class="navbar-tool ms-1 ms-lg-0 me-1 me-lg-2 {% if app.request.pathInfo == path('notifications') %}active{% endif %}" rel="nofollow" href="{{ path('notifications') }}" data-turbo-prefetch="false" aria-label="{{ 'accessibility.notifications_count'|trans({'%count%': notifications_count}) }}">
+                        <a class="navbar-tool ms-1 ms-lg-0 me-1 me-lg-2 {% if app.request.pathInfo == path('notifications') %}active{% endif %}" rel="nofollow" href="{{ path('notifications') }}" data-turbo-prefetch="false" data-nav="toolbar/tools/notifications" aria-label="{{ 'accessibility.notifications_count'|trans({'%count%': notifications_count}) }}">
                             <div class="navbar-tool-icon-box {{ notifications_count > 0 ? 'bg-secondary' }}">
                                 <span class="navbar-tool-label {{ notifications_count == 0 ? 'bg-secondary text-dark' }}" aria-hidden="true">{{ notifications_count }}</span>
                                 <i class="navbar-tool-icon ci-bell" aria-hidden="true"></i>
                             </div>
                         </a>
 
-                        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-expanded="false" aria-controls="navbarCollapse" aria-label="{{ 'accessibility.toggle_navigation'|trans }}">
+                        <button class="navbar-toggler" type="button" data-nav="hamburger/toggle/open" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-expanded="false" aria-controls="navbarCollapse" aria-label="{{ 'accessibility.toggle_navigation'|trans }}">
                             <span class="toggler-bar"></span>
                             <span class="toggler-bar"></span>
                             <span class="toggler-bar"></span>
@@ -803,35 +803,35 @@
                         <hr class="d-lg-none my-2">
                         <ul class="navbar-nav">
                             <li class="nav-item">
-                                <a class="nav-link text-lg-center d-lg-flex flex-lg-column align-items-lg-center {% if app.request.pathInfo == path('hub') %}active{% endif %}" href="{{ path('hub') }}">
+                                <a class="nav-link text-lg-center d-lg-flex flex-lg-column align-items-lg-center {% if app.request.pathInfo == path('hub') %}active{% endif %}" href="{{ path('hub') }}" data-nav="hamburger/places/hub">
                                     <i class="me-1 me-lg-0 bi bi-house-door"></i>
                                     <small class="d-none d-lg-block">{{ 'menu.hub'|trans }}</small>
                                     <span class="d-lg-none">{{ 'menu.hub'|trans }}</span>
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link text-lg-center d-lg-flex flex-lg-column align-items-lg-center {% if app.request.pathInfo == path('puzzles') %}active{% endif %}" href="{{ path('puzzles') }}">
+                                <a class="nav-link text-lg-center d-lg-flex flex-lg-column align-items-lg-center {% if app.request.pathInfo == path('puzzles') %}active{% endif %}" href="{{ path('puzzles') }}" data-nav="hamburger/places/puzzles">
                                     <i class="me-1 me-lg-0 bi bi-puzzle"></i>
                                     <small class="d-none d-lg-block">{{ 'menu.puzzles_overview'|trans }}</small>
                                     <span class="d-lg-none">{{ 'menu.puzzles_overview'|trans }}</span>
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link text-lg-center d-lg-flex flex-lg-column align-items-lg-center {% if currentRoute == 'marketplace' %}active{% endif %}" href="{{ path('marketplace') }}">
+                                <a class="nav-link text-lg-center d-lg-flex flex-lg-column align-items-lg-center {% if currentRoute == 'marketplace' %}active{% endif %}" href="{{ path('marketplace') }}" data-nav="hamburger/places/marketplace">
                                     <i class="me-1 me-lg-0 bi bi-shop"></i>
                                     <small class="d-none d-lg-block">Marketplace</small>
                                     <span class="d-lg-none">Marketplace</span>
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link text-lg-center d-lg-flex flex-lg-column align-items-lg-center {% if app.request.pathInfo == path('ladder') %}active{% endif %}" href="{{ path('ladder') }}">
+                                <a class="nav-link text-lg-center d-lg-flex flex-lg-column align-items-lg-center {% if app.request.pathInfo == path('ladder') %}active{% endif %}" href="{{ path('ladder') }}" data-nav="hamburger/places/ladder">
                                     <i class="me-1 me-lg-0 bi bi-trophy"></i>
                                     <small class="d-none d-lg-block">{{ 'menu.ladder'|trans }}</small>
                                     <span class="d-lg-none">{{ 'menu.ladder'|trans }}</span>
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link text-lg-center d-lg-flex flex-lg-column align-items-lg-center {% if app.request.pathInfo == path('players') %}active{% endif %}" href="{{ path('players') }}">
+                                <a class="nav-link text-lg-center d-lg-flex flex-lg-column align-items-lg-center {% if app.request.pathInfo == path('players') %}active{% endif %}" href="{{ path('players') }}" data-nav="hamburger/places/players">
                                     <i class="me-1 me-lg-0 bi bi-people position-relative">
                                         <span class="d-none d-lg-inline badge bg-primary position-absolute translate-middle-y fst-normal" style="font-size: .55em; top: 6px; left: 100%;">{{ 'new_badge'|trans }}</span>
                                     </i>
@@ -840,7 +840,7 @@
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link text-lg-center d-lg-flex flex-lg-column align-items-lg-center {% if app.request.pathInfo == path('events') %}active{% endif %}" href="{{ path('events') }}">
+                                <a class="nav-link text-lg-center d-lg-flex flex-lg-column align-items-lg-center {% if app.request.pathInfo == path('events') %}active{% endif %}" href="{{ path('events') }}" data-nav="hamburger/places/events">
                                     <i class="me-1 me-lg-0 ci-calendar position-relative">
                                         <span class="d-none d-lg-inline badge bg-primary position-absolute translate-middle-y fst-normal" style="font-size: .55em; top: 6px; left: 100%;">{{ 'new_badge'|trans }}</span>
                                     </i>
@@ -849,21 +849,21 @@
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a rel="nofollow" class="nav-link text-lg-center d-lg-flex flex-lg-column align-items-lg-center {% if app.request.pathInfo == path('stopwatch') %}active{% endif %}" href="{{ path('stopwatch') }}">
+                                <a rel="nofollow" class="nav-link text-lg-center d-lg-flex flex-lg-column align-items-lg-center {% if app.request.pathInfo == path('stopwatch') %}active{% endif %}" href="{{ path('stopwatch') }}" data-nav="hamburger/places/stopwatch">
                                     <i class="me-1 me-lg-0 ci-time"></i>
                                     <small class="d-none d-lg-block">{{ 'menu.stopwatch'|trans }}</small>
                                     <span class="d-lg-none">{{ 'menu.stopwatch'|trans }}</span>
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link text-lg-center d-lg-flex flex-lg-column align-items-lg-center {% if app.request.pathInfo == path('faq') %}active{% endif %}" href="{{ path('faq') }}">
+                                <a class="nav-link text-lg-center d-lg-flex flex-lg-column align-items-lg-center {% if app.request.pathInfo == path('faq') %}active{% endif %}" href="{{ path('faq') }}" data-nav="hamburger/places/faq">
                                     <i class="me-1 me-lg-0 bi bi-patch-question"></i>
                                     <small class="d-none d-lg-block">{{ 'menu.faq'|trans }}</small>
                                     <span class="d-lg-none">{{ 'menu.faq'|trans }}</span>
                                 </a>
                             </li>
                             <li class="nav-item d-lg-none">
-                                <a class="nav-link text-lg-center d-lg-flex flex-lg-column align-items-lg-center {% if currentRoute == 'feature_requests' %}active{% endif %}" href="{{ path('feature_requests') }}">
+                                <a class="nav-link text-lg-center d-lg-flex flex-lg-column align-items-lg-center {% if currentRoute == 'feature_requests' %}active{% endif %}" href="{{ path('feature_requests') }}" data-nav="hamburger/places/feature_requests">
                                     <i class="me-1 bi bi-lightbulb"></i>
                                     <span class="d-lg-none">{{ 'menu.feature_requests'|trans }}</span>
                                 </a>

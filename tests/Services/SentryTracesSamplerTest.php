@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Services;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Sentry\Tracing\SamplingContext;
 use Sentry\Tracing\TransactionContext;
@@ -81,23 +82,64 @@ final class SentryTracesSamplerTest extends TestCase
         self::assertFalse($session->isStarted());
     }
 
-    private function sample(Request $request, string $secret = self::SECRET): float
+    /**
+     * The /-/ beacons and health checks: never traced - not even with the profiling flag in the session, a sampled
+     * parent or the secret in the query - and the signed-in visitor's session is never started (= read) to decide it.
+     */
+    #[DataProvider('telemetryPaths')]
+    public function testTelemetryAndHealthChecksAreNeverTracedNorTouchTheSession(string $uri): void
+    {
+        [$request, $session] = $this->createRequest($uri, previousSession: true, storedData: ['_sentry_profiler_enabled' => self::SECRET]);
+
+        $transaction = new TransactionContext();
+        $transaction->setParentSampled(true);
+
+        self::assertSame(0.0, $this->sample($request, transaction: $transaction));
+        self::assertFalse($session->isStarted());
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function telemetryPaths(): iterable
+    {
+        yield 'navigation click beacon' => ['/-/nav-click'];
+        yield 'asset load failure beacon' => ['/-/asset-load-failure'];
+        yield 'stale document beacon' => ['/-/stale-document'];
+        yield 'liveness health check' => ['/-/health-check/liveness'];
+        yield 'with the profiling secret' => ['/-/nav-click?_profile=' . self::SECRET];
+    }
+
+    /**
+     * Other pages keep the persisted profiling flag - the check above is no blanket "never read the session".
+     */
+    public function testThePersistedFlagStillWorksOnPages(): void
+    {
+        [$request] = $this->createRequest('/en/-/not-telemetry', previousSession: true, storedData: ['_sentry_profiler_enabled' => self::SECRET]);
+
+        self::assertSame(1.0, $this->sample($request));
+    }
+
+    private function sample(Request $request, string $secret = self::SECRET, null|TransactionContext $transaction = null): float
     {
         $requestStack = new RequestStack();
         $requestStack->push($request);
 
         $sampler = new SentryTracesSampler($secret, self::DEFAULT_RATE, $requestStack);
 
-        return ($sampler->__invoke())(SamplingContext::getDefault(new TransactionContext()));
+        return ($sampler->__invoke())(SamplingContext::getDefault($transaction ?? new TransactionContext()));
     }
 
     /**
+     * @param array<string, mixed> $storedData session attributes already stored - the session is not started
      * @return array{0: Request, 1: Session}
      */
-    private function createRequest(string $uri, bool $previousSession): array
+    private function createRequest(string $uri, bool $previousSession, array $storedData = []): array
     {
         $request = Request::create($uri);
-        $session = new Session(new MockArraySessionStorage());
+        $storage = new MockArraySessionStorage();
+        $storage->setSessionData(['_sf2_attributes' => $storedData]);
+        $session = new Session($storage);
         $request->setSession($session);
 
         if ($previousSession) {

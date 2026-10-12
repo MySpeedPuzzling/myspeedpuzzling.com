@@ -1583,6 +1583,10 @@ competition_referees:
       "messages": "Bandeja de entrada, 1 mensaje nuevo|Bandeja de entrada, %count% mensajes nuevos"
       "for_you": "Bandeja de entrada, 1 notificación nueva|Bandeja de entrada, %count% notificaciones nuevas"
       "mixed": "Bandeja de entrada, 1 novedad|Bandeja de entrada, %count% novedades"
+  "pointer":
+    "favorites_moved": "Los nuevos tiempos de tus favoritos ahora están en Inicio › Favoritos."
+    "open_favorites": "Abrir Favoritos"
+    "dismiss": "Ocultar este aviso"
 
 xp:
     level_chip: "Nv %level%"

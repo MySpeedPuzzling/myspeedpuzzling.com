@@ -13,6 +13,7 @@ use SpeedPuzzling\Web\Value\ContentDigestFrequency;
 use SpeedPuzzling\Web\Value\CountryCode;
 use SpeedPuzzling\Web\Value\EmailNotificationFrequency;
 use SpeedPuzzling\Web\Value\FreeTrial;
+use SpeedPuzzling\Web\Value\HintType;
 use SpeedPuzzling\Web\Value\LeaderboardChartView;
 use SpeedPuzzling\Web\Value\LevelTable;
 use SpeedPuzzling\Web\Value\SellSwapListSettings;
@@ -82,6 +83,7 @@ use SpeedPuzzling\Web\Value\SkillTier;
  *     skill_tier?: null|int|string,
  *     running_stopwatch?: null|string,
  *     favorites_seen_at?: null|string,
+ *     dismissed_navigation_hints?: null|string,
  *  }
  */
 readonly final class PlayerProfile
@@ -225,6 +227,13 @@ readonly final class PlayerProfile
          * navigation, INB-04a) - the feed's rows tracked after it are new. Null = never: nothing is new, no count.
          */
         public null|DateTimeImmutable $favoritesSeenAt = null,
+        /**
+         * GetPlayerProfile::byUserId() only: the navigation pointers the viewer dismissed (docs/features/navigation,
+         * INB-05/LAUNCH-03) - the hint types starting with HintType::NAVIGATION_PREFIX. Read through NavigationPointers.
+         *
+         * @var list<HintType>
+         */
+        public array $dismissedNavigationHints = [],
     ) {
     }
 
@@ -437,7 +446,41 @@ readonly final class PlayerProfile
             skillTier: isset($row['skill_tier']) ? SkillTier::tryFrom((int) $row['skill_tier']) : null,
             runningStopwatch: RunningStopwatch::fromJson($row['running_stopwatch'] ?? null, $now),
             favoritesSeenAt: isset($row['favorites_seen_at']) ? new DateTimeImmutable($row['favorites_seen_at']) : null,
+            dismissedNavigationHints: self::navigationHintsFromJson($row['dismissed_navigation_hints'] ?? null),
         );
+    }
+
+    /**
+     * @return list<HintType>
+     */
+    private static function navigationHintsFromJson(null|string $json): array
+    {
+        if ($json === null) {
+            return [];
+        }
+
+        try {
+            $decoded = Json::decode($json, true);
+        } catch (JsonException) {
+            return [];
+        }
+
+        if (is_array($decoded) === false) {
+            return [];
+        }
+
+        $hints = [];
+
+        foreach ($decoded as $type) {
+            // A type this code no longer knows (a removed pointer) is left out
+            $hint = is_string($type) ? HintType::tryFrom($type) : null;
+
+            if ($hint !== null) {
+                $hints[] = $hint;
+            }
+        }
+
+        return $hints;
     }
 
     /**

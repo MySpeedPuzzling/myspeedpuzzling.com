@@ -5,9 +5,12 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\Navigation;
 
 use PHPUnit\Framework\Attributes\DataProvider;
+use SpeedPuzzling\Web\Message\DismissHint;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\QueryCountAssertions;
+use SpeedPuzzling\Web\Value\HintType;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\Messenger\MessageBusInterface;
 
 /**
  * What a player's profile page (/en/player-profile/{id}) costs in statements, own and other, for a guest, a signed-in
@@ -70,5 +73,25 @@ final class PlayerProfileQueryBudgetTest extends WebTestCase
             // Guest HTML stays shared-cacheable (requirements, Conventions)
             self::assertTrue($browser->getResponse()->headers->hasCacheControlDirective('public'), (string) $browser->getResponse()->headers->get('Cache-Control'));
         }
+    }
+
+    /**
+     * INB-05: a dismissed navigation pointer rides on the viewer's profile row - the member's own profile costs the same.
+     */
+    public function testADismissedNavigationPointerCostsTheProfileNothing(): void
+    {
+        $browser = self::createClient();
+        $playerId = NavigationViewer::signIn($browser, NavigationViewer::MEMBER);
+        self::assertNotNull($playerId);
+        $browser->getContainer()->get(MessageBusInterface::class)->dispatch(new DismissHint($playerId, HintType::NavigationInboxPointer));
+        $url = '/en/player-profile/' . $playerId;
+
+        $browser->request('GET', $url);
+        $this->startCountingQueries($browser);
+        $browser->request('GET', $url);
+        self::assertResponseIsSuccessful();
+
+        // = the 'member → own' row
+        self::assertSame(22, $this->queryCount($browser), $url . " ran:\n" . implode("\n", $this->executedSql($browser)));
     }
 }

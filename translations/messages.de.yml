@@ -1567,6 +1567,10 @@ competition_referees:
       "messages": "Posteingang, 1 neue Nachricht|Posteingang, %count% neue Nachrichten"
       "for_you": "Posteingang, 1 neue Benachrichtigung|Posteingang, %count% neue Benachrichtigungen"
       "mixed": "Posteingang, 1 neuer Eintrag|Posteingang, %count% neue Einträge"
+  "pointer":
+    "favorites_moved": "Die neuen Zeiten Ihrer Favoriten finden Sie jetzt unter Start › Favoriten."
+    "open_favorites": "Favoriten öffnen"
+    "dismiss": "Hinweis ausblenden"
 
 xp:
     level_chip: "Lv %level%"

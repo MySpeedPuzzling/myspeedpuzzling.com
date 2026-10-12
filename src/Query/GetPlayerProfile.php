@@ -13,6 +13,7 @@ use SpeedPuzzling\Web\Results\ComparisonLineUp;
 use SpeedPuzzling\Web\Results\PlayerProfile;
 use SpeedPuzzling\Web\Services\HiddenPlayers;
 use SpeedPuzzling\Web\Services\PrivateProfileAccess;
+use SpeedPuzzling\Web\Value\HintType;
 use SpeedPuzzling\Web\Value\StopwatchStatus;
 
 /**
@@ -137,6 +138,7 @@ SQL;
         $revealedIds = PrivateProfileAccess::sqlRevealedIdsOf('player');
         $comparisonLineUp = self::sqlComparisonLineUpOf('player');
         $runningStopwatch = self::sqlRunningStopwatchOf('player');
+        $dismissedNavigationHints = self::sqlDismissedNavigationHintsOf('player');
 
         $query = <<<SQL
 SELECT
@@ -202,7 +204,9 @@ SELECT
     player.achievement_points,
     {$runningStopwatch} AS running_stopwatch,
     -- "New since your last visit" on the Hub's Favorites feed (docs/features/navigation, INB-04a)
-    player.favorites_seen_at
+    player.favorites_seen_at,
+    -- The navigation pointers the viewer dismissed (docs/features/navigation, INB-05/LAUNCH-03) - no query per pointer
+    {$dismissedNavigationHints} AS dismissed_navigation_hints
 FROM player
 LEFT JOIN user_account ON user_account.user_id = player.user_id
 LEFT JOIN membership ON membership.player_id = player.id
@@ -251,6 +255,21 @@ SQL;
         ORDER BY running.laps->-1->>'start' DESC, running.id DESC
         LIMIT 1
     )
+SQL;
+    }
+
+    /**
+     * The navigation pointers the viewer dismissed (docs/features/navigation, INB-05 and LAUNCH-03, decision 52): one
+     * subselect over the hint types starting with HintType::NAVIGATION_PREFIX, read by NavigationPointers. A player
+     * dismisses a handful of hints at most; the (player_id, type) unique index finds them.
+     */
+    private static function sqlDismissedNavigationHintsOf(string $viewerAlias): string
+    {
+        // The prefix's underscore escaped: LIKE reads a bare _ as "any one character"
+        $prefix = str_replace('_', '\\_', HintType::NAVIGATION_PREFIX);
+
+        return <<<SQL
+(SELECT json_agg(dismissed.type) FROM dismissed_hint dismissed WHERE dismissed.player_id = {$viewerAlias}.id AND dismissed.type LIKE '{$prefix}%')
 SQL;
     }
 

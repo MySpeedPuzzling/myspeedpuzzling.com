@@ -8,11 +8,14 @@ use Doctrine\DBAL\Connection;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Message\DismissHint;
 use SpeedPuzzling\Web\Query\GetPlayerProfile;
 use SpeedPuzzling\Web\Tests\QueryCountAssertions;
+use SpeedPuzzling\Web\Value\HintType;
 use SpeedPuzzling\Web\Value\StopwatchStatus;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\Messenger\MessageBusInterface;
 
 /**
  * What the chrome (header, footer and everything base.html.twig renders around a page) costs in statements, measured
@@ -109,6 +112,31 @@ final class ChromeQueryBudgetTest extends WebTestCase
 
         self::assertCount(self::SIGNED_IN, $without, "without a stopwatch /en/faq ran:\n" . implode("\n", $without));
         self::assertCount(count($without), $with, "with a running stopwatch /en/faq ran:\n" . implode("\n", $with));
+    }
+
+    /**
+     * INB-05 (LAUNCH-03 reuses it): the navigation pointers' dismissals ride on the profile row (a subselect), so a
+     * dismissed pointer costs the chrome nothing.
+     */
+    public function testADismissedNavigationPointerCostsTheChromeNothing(): void
+    {
+        $browser = self::createClient();
+        $playerId = NavigationViewer::signIn($browser, NavigationViewer::MEMBER);
+        self::assertNotNull($playerId);
+
+        $without = $this->faqStatements($browser);
+
+        $container = $browser->getContainer();
+        $container->get(MessageBusInterface::class)->dispatch(new DismissHint($playerId, HintType::NavigationInboxPointer));
+
+        $user = $container->get(GetPlayerProfile::class)->byId($playerId)->userId;
+        self::assertNotNull($user);
+        self::assertSame([HintType::NavigationInboxPointer], $container->get(GetPlayerProfile::class)->byUserId($user)->dismissedNavigationHints);
+
+        $with = $this->faqStatements($browser);
+
+        self::assertCount(self::SIGNED_IN, $without, "without a dismissed pointer /en/faq ran:\n" . implode("\n", $without));
+        self::assertCount(count($without), $with, "with a dismissed pointer /en/faq ran:\n" . implode("\n", $with));
     }
 
     /**

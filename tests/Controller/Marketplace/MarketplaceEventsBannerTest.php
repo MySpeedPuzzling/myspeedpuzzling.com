@@ -23,6 +23,9 @@ final class MarketplaceEventsBannerTest extends WebTestCase
     use QueryCountAssertions;
 
     private const string STATE_SQL = 'AS has_published_listing';
+    // The viewer's profile row carries the navigation pointers' dismissals (docs/features/navigation INB-05) - a
+    // subselect of the chrome's own statement, not a hint query of the page
+    private const string PROFILE_ROW_SQL = 'AS dismissed_navigation_hints';
 
     public function testABuyerGoingWherePuzzlesAreComingIsShownThem(): void
     {
@@ -99,7 +102,7 @@ final class MarketplaceEventsBannerTest extends WebTestCase
         self::assertResponseIsSuccessful();
 
         $sql = $this->executedSql($browser);
-        self::assertCount(1, array_filter($sql, static fn (string $statement): bool => str_contains($statement, 'dismissed_hint')));
+        self::assertCount(1, array_filter($sql, self::isHintQuery(...)));
         self::assertCount(1, array_filter($sql, static fn (string $statement): bool => str_contains($statement, self::STATE_SQL)));
     }
 
@@ -111,7 +114,7 @@ final class MarketplaceEventsBannerTest extends WebTestCase
         $crawler = $browser->request('GET', '/en/marketplace');
 
         self::assertCount(0, $crawler->filter('[data-testid="marketplace-events-banner"]'));
-        self::assertSame([], array_filter($this->executedSql($browser), static fn (string $sql): bool => str_contains($sql, self::STATE_SQL) || str_contains($sql, 'dismissed_hint')));
+        self::assertSame([], array_filter($this->executedSql($browser), static fn (string $sql): bool => str_contains($sql, self::STATE_SQL) || self::isHintQuery($sql)));
     }
 
     public function testOnTheirOwnSellSwapListOnly(): void
@@ -126,7 +129,12 @@ final class MarketplaceEventsBannerTest extends WebTestCase
         $crawler = $browser->request('GET', '/en/sell-swap-list/' . PlayerFixture::PLAYER_ADMIN);
         self::assertResponseIsSuccessful();
         self::assertCount(0, $crawler->filter('[data-testid="marketplace-events-banner"]'));
-        self::assertSame([], array_filter($this->executedSql($browser), static fn (string $sql): bool => str_contains($sql, self::STATE_SQL) || str_contains($sql, 'dismissed_hint')));
+        self::assertSame([], array_filter($this->executedSql($browser), static fn (string $sql): bool => str_contains($sql, self::STATE_SQL) || self::isHintQuery($sql)));
+    }
+
+    private static function isHintQuery(string $sql): bool
+    {
+        return str_contains($sql, 'dismissed_hint') && str_contains($sql, self::PROFILE_ROW_SQL) === false;
     }
 
     private function signedIn(string $playerId): KernelBrowser

@@ -1,0 +1,21 @@
+{#- The Inbox pointer (docs/features/navigation INB-05, README §4.4): favorites' new times left the bell (INB-03) for
+    Home › Favorites - one line saying so under the Inbox header on For you, with a link to the Hub's Favorites pane and
+    a × that dismisses it for good (dismiss-hint, HintType::NavigationInboxPointer).
+    navigation_pointer('inbox') decides (NavigationPointers): the launch date set and at most 30 days old, an account
+    created before it, not dismissed, the viewer follows somebody. Nothing while NavigationLaunch::DATE is null. No query:
+    the dismissal and the favorites ride on the viewer's profile row. -#}
+{%- if navigation_pointer('inbox') %}
+    <div class="inbox-pointer" {{ stimulus_controller('dismiss-hint', {
+        url: path('dismiss_hint'),
+        type: constant('SpeedPuzzling\\Web\\Value\\HintType::NavigationInboxPointer').value,
+    }) }}>
+        <i class="ci-star inbox-pointer-icon" aria-hidden="true"></i>
+        <p class="inbox-pointer-text">
+            {{ 'inbox.pointer.favorites_moved'|trans }}
+            <a href="{{ path('hub') }}#recent-favorites-activity" class="inbox-pointer-link" data-nav="inbox/none/pointer_favorites">{{ 'inbox.pointer.open_favorites'|trans }}</a>
+        </p>
+        <button type="button" class="inbox-pointer-dismiss" aria-label="{{ 'inbox.pointer.dismiss'|trans }}" title="{{ 'inbox.pointer.dismiss'|trans }}" data-nav="inbox/none/pointer_dismiss" {{ stimulus_action('dismiss-hint', 'dismiss') }}>
+            <i class="ci-close" aria-hidden="true"></i>
+        </button>
+    </div>
+{%- endif %}

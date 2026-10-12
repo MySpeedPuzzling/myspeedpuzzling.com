@@ -57,6 +57,7 @@ Allows logged-in users to permanently dismiss informational banners (hints) show
 | `getting_started_checklist` | Hub ("Getting started" card, newcomers only) | Checklist card - also dismissed by `HubController` itself once every step is done, see `getting-started-guide.md` |
 | `players_country_nudge` | Players page + the player's own profile ("Add your country", only while the player has no country; `Players:CountryNudge` component) | Warm banner with a country select - see `players-page/README.md` |
 | `achievements_explainer` | Achievements reference (`badges_overview`, "How achievements work") | Collapsible hint (below) |
+| `navigation_inbox_pointer` | Inbox › For you (`notifications`, "Your favorites' new times are now on Home › Favorites", 30 days after the navigation launch, players who follow somebody) | Pointer line - **not read through `IsHintDismissed`**: every `navigation_*` dismissal rides on the viewer's profile row (`PlayerProfile::$dismissedNavigationHints`), decided by `NavigationPointers` (docs/features/navigation, INB-05) |
 
 Note: `marketplace_settings_checklist` is only dismissable in the marketplace. The same settings checklist on the sell-swap list detail page (`sell-swap/detail.html.twig`) is always shown without a dismiss option.
 

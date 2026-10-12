@@ -78,3 +78,74 @@
         display: none;
     }
 }
+
+// The Inbox pointer (INB-05, templates/inbox/_favorites_pointer.html.twig): one line under the Inbox header on For you
+// during the 30 days after the launch - favorites' new times moved to Home › Favorites. A link to the Hub's Favorites
+// pane and a 44 px × that dismisses it for good. Own class names, not an .alert (the page's tests read its .alert).
+
+.inbox-pointer {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    margin: -.75rem 0 1.5rem;
+    padding: .25rem .25rem .25rem .75rem;
+    border-radius: .5rem;
+    background-color: var(--search-bg, #f3f5f9);
+    color: var(--nav-ink, #4b566b);
+    font-size: $font-size-sm;
+}
+
+.inbox-pointer-icon {
+    flex-shrink: 0;
+    color: var(--nav-active-ink, #c8323a);
+    font-size: 1rem;
+}
+
+.inbox-pointer-text {
+    flex-grow: 1;
+    min-width: 0;
+    margin: 0;
+    padding: .5rem 0;
+    overflow-wrap: anywhere;
+}
+
+.inbox-pointer-link {
+    color: var(--nav-active-ink, #c8323a);
+    font-weight: $font-weight-medium;
+    text-decoration: underline;
+    white-space: nowrap;
+
+    &:focus-visible {
+        border-radius: .125rem;
+        outline: 2px solid var(--nav-focus, #4e54c8);
+        outline-offset: 2px;
+    }
+}
+
+.inbox-pointer-dismiss {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: 0;
+    border-radius: .375rem;
+    background-color: transparent;
+    color: var(--nav-ink, #4b566b);
+    font-size: 1rem;
+
+    &:hover {
+        color: var(--nav-active-ink, #c8323a);
+    }
+
+    &:active {
+        background-color: var(--nav-pressed-pill, rgba(254, 105, 106, .1));
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--nav-focus, #4e54c8);
+        outline-offset: -2px;
+    }
+}

@@ -582,6 +582,10 @@
       "messages": "受信箱、新着メッセージ%count%件"
       "for_you": "受信箱、新着通知%count%件"
       "mixed": "受信箱、新着%count%件"
+  "pointer":
+    "favorites_moved": "お気に入りの新しいタイムは「ホーム › お気に入り」に表示されるようになりました。"
+    "open_favorites": "お気に入りを開く"
+    "dismiss": "このお知らせを閉じる"
 "claim_voucher":
   "title": "バウチャーを利用する"
   "intro": "バウチャーコードを入力して、メンバーシップの特典を受け取りましょう。"

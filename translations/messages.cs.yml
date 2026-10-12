@@ -1619,6 +1619,10 @@ competition_referees:
       "messages": "Schránka, 1 nová zpráva|Schránka, %count% nové zprávy|Schránka, %count% nových zpráv"
       "for_you": "Schránka, 1 nová notifikace|Schránka, %count% nové notifikace|Schránka, %count% nových notifikací"
       "mixed": "Schránka, %count% nová položka|Schránka, %count% nové položky|Schránka, %count% nových položek"
+  "pointer":
+    "favorites_moved": "Nové časy vašich oblíbených puzzlerů teď najdete v Domů › Oblíbení."
+    "open_favorites": "Zobrazit oblíbené"
+    "dismiss": "Skrýt upozornění"
 
 xp:
     level_chip: "Lv %level%"

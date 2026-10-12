@@ -20,4 +20,17 @@ enum HintType: string
     // way so the guide can tick steps that leave no other trace (docs/features/getting-started-guide.md)
     case GuideStatisticsSeen = 'guide_statistics_seen';
     case GuideLeaderboardSeen = 'guide_leaderboard_seen';
+
+    // The navigation redesign's 30-day pointers (docs/features/navigation, INB-05/LAUNCH-03): their dismissals ride on
+    // the viewer's profile row (GetPlayerProfile::byUserId(), every type starting with NAVIGATION_PREFIX), read through
+    // NavigationPointers - never through IsHintDismissed
+    // "Your favorites' new times are now on Home › Favorites" on the Inbox's For you tab (INB-05)
+    case NavigationInboxPointer = 'navigation_inbox_pointer';
+
+    public const string NAVIGATION_PREFIX = 'navigation_';
+
+    public function isNavigationPointer(): bool
+    {
+        return str_starts_with($this->value, self::NAVIGATION_PREFIX);
+    }
 }

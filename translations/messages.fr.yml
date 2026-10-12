@@ -1615,6 +1615,10 @@ competition_referees:
       "messages": "Boîte de réception, %count% nouveau message|Boîte de réception, %count% nouveaux messages"
       "for_you": "Boîte de réception, %count% nouvelle notification|Boîte de réception, %count% nouvelles notifications"
       "mixed": "Boîte de réception, %count% nouveauté|Boîte de réception, %count% nouveautés"
+  "pointer":
+    "favorites_moved": "Les nouveaux temps de vos favoris se trouvent désormais dans Accueil › Favoris."
+    "open_favorites": "Ouvrir les favoris"
+    "dismiss": "Masquer ce message"
 
 "xp":
   "level_chip": "Niv. %level%"

@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Twig;
 use SpeedPuzzling\Web\Navigation\BarAction;
 use SpeedPuzzling\Web\Navigation\NavigationLaunch;
 use SpeedPuzzling\Web\Navigation\NavigationPlaceResolver;
+use SpeedPuzzling\Web\Navigation\NavigationPointers;
 use SpeedPuzzling\Web\Navigation\NavLocation;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Component\HttpFoundation\RequestStack;
@@ -18,7 +19,9 @@ use Twig\TwigFunction;
  * - nav_location(): where the current page sits (place, section, Menu row, start page) - resolved once per request
  *   and kept on the request (attribute _nav_location), so the service holds no state between requests;
  * - bar_action(id): the data-bar-action value of a top-bar tool, checked against BarAction (a typo fails at render);
- * - nav_launched() / nav_new_badges_shown(): the launch date's switches (NavigationLaunch).
+ * - nav_launched() / nav_new_badges_shown(): the launch date's switches (NavigationLaunch);
+ * - navigation_pointer(name): whether the signed-in viewer gets that 30-day pointer (NavigationPointers; 'inbox' =
+ *   INB-05) - read from the profile row, no query.
  */
 final class NavigationTwigExtension extends AbstractExtension
 {
@@ -29,6 +32,7 @@ final class NavigationTwigExtension extends AbstractExtension
         readonly private NavigationPlaceResolver $placeResolver,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private NavigationLaunch $navigationLaunch,
+        readonly private NavigationPointers $navigationPointers,
     ) {
     }
 
@@ -42,6 +46,7 @@ final class NavigationTwigExtension extends AbstractExtension
             new TwigFunction('bar_action', $this->barAction(...)),
             new TwigFunction('nav_launched', $this->navigationLaunch->hasLaunched(...)),
             new TwigFunction('nav_new_badges_shown', $this->navigationLaunch->newBadgesVisible(...)),
+            new TwigFunction('navigation_pointer', $this->navigationPointer(...)),
         ];
     }
 
@@ -74,6 +79,14 @@ final class NavigationTwigExtension extends AbstractExtension
         $request->attributes->set(self::REQUEST_ATTRIBUTE, $location);
 
         return $location;
+    }
+
+    public function navigationPointer(string $name): bool
+    {
+        return $this->navigationPointers->isActive(
+            $this->retrieveLoggedUserProfile->getProfile(),
+            NavigationPointers::byName($name),
+        );
     }
 
     public function barAction(string $id): string

@@ -5,6 +5,7 @@
 
 {% block content %}
     {{ include('inbox/_header.html.twig', {tab: 'for_you'}) }}
+    {{ include('inbox/_favorites_pointer.html.twig') }}
 
     {% if notifications is empty %}
         <div class="alert alert-info d-flex" role="alert">

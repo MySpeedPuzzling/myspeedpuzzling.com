@@ -2089,6 +2089,10 @@ inbox:
             messages: "Inbox, 1 new message|Inbox, %count% new messages"
             for_you: "Inbox, 1 new notification|Inbox, %count% new notifications"
             mixed: "Inbox, %count% new"
+    pointer:
+        favorites_moved: "Your favorites' new times are now on Home › Favorites."
+        open_favorites: "Open Favorites"
+        dismiss: "Hide this note"
 
 xp:
     level_chip: "Lv %level%"

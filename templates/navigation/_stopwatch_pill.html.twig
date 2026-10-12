@@ -1,0 +1,17 @@
+{#- The running-stopwatch pill (docs/features/navigation README D7, ADD-03): ⏱ + the elapsed time, ticking, linking back
+    to the stopwatch. Shown only for a fresh running stopwatch (RunningStopwatch: running, last lap < 24 h, the most
+    recent) - renders nothing otherwise, guests included. Placed by the bars: the phone top bar in the search field's
+    slot (NAV-03), the desktop bar between search and + Add (NAV-04); never in the native app or bar-free contexts -
+    the placement decides that, not this partial.
+    `running_stopwatch` (optional): a RunningStopwatch; default the viewer's own, from the profile row (0 statements).
+    No layout shift while it ticks: the digits' widths, the m:ss format below 360 px and whether the icon shows there are
+    all fixed at render (_stopwatch_elapsed.html.twig, RunningStopwatch::showsCompactIcon()). -#}
+{%- set stopwatch = running_stopwatch ?? logged_user.profile.runningStopwatch ?? null -%}
+{%- if stopwatch is not null -%}
+<a href="{{ path('stopwatch', {stopwatchId: stopwatch.stopwatchId}) }}" class="stopwatch-pill{{ stopwatch.showsCompactIcon ? '' : ' stopwatch-pill--no-compact-icon' }}" data-stopwatch-pill data-nav="topbar/add/stopwatch_pill" aria-label="{{ 'stopwatch.pill.label'|trans }}" title="{{ 'stopwatch.pill.title'|trans }}">
+    <span class="stopwatch-pill-body" aria-hidden="true">
+        <svg class="stopwatch-pill-icon" viewBox="0 0 24 24" width="16" height="16" focusable="false" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13.5" r="7.5"/><path d="M12 10v3.5l2.25 2.25M10 2.75h4M12 2.75V6"/></svg>
+        {{- include('navigation/_stopwatch_elapsed.html.twig', {stopwatch: stopwatch}) -}}
+    </span>
+</a>
+{%- endif -%}

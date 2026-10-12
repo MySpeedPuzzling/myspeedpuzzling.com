@@ -4,8 +4,14 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Navigation;
 
+use Doctrine\DBAL\Connection;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Psr\Clock\ClockInterface;
+use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Query\GetPlayerProfile;
 use SpeedPuzzling\Web\Tests\QueryCountAssertions;
+use SpeedPuzzling\Web\Value\StopwatchStatus;
+use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 /**
@@ -69,5 +75,51 @@ final class ChromeQueryBudgetTest extends WebTestCase
             // Guest HTML stays shared-cacheable (requirements, Conventions)
             self::assertTrue($browser->getResponse()->headers->hasCacheControlDirective('public'), (string) $browser->getResponse()->headers->get('Cache-Control'));
         }
+    }
+
+    /**
+     * ADD-03: the running-stopwatch pill rides on the profile row (a subselect), so a running stopwatch costs the chrome
+     * nothing. The lap start is set here relative to the clock - never the fixture's STOPWATCH_RUNNING, fresh only while
+     * the cached test database is younger than a day (risk 17); the member (PLAYER_WITH_STRIPE) has no stopwatch of its own.
+     */
+    public function testARunningStopwatchCostsTheChromeNothing(): void
+    {
+        $browser = self::createClient();
+        $playerId = NavigationViewer::signIn($browser, NavigationViewer::MEMBER);
+        self::assertNotNull($playerId);
+
+        $without = $this->faqStatements($browser);
+
+        $container = $browser->getContainer();
+        $now = $container->get(ClockInterface::class)->now();
+        $container->get(Connection::class)->insert('stopwatch', [
+            'id' => Uuid::uuid7()->toString(),
+            'player_id' => $playerId,
+            'puzzle_id' => null,
+            'status' => StopwatchStatus::Running->value,
+            'laps' => json_encode([['start' => $now->modify('-10 minutes')->format('Y-m-d H:i:s'), 'end' => null]], JSON_THROW_ON_ERROR),
+        ]);
+
+        $user = $container->get(GetPlayerProfile::class)->byId($playerId)->userId;
+        self::assertNotNull($user);
+        self::assertNotNull($container->get(GetPlayerProfile::class)->byUserId($user)->runningStopwatch, 'The member now has a fresh running stopwatch');
+
+        $with = $this->faqStatements($browser);
+
+        self::assertCount(self::SIGNED_IN, $without, "without a stopwatch /en/faq ran:\n" . implode("\n", $without));
+        self::assertCount(count($without), $with, "with a running stopwatch /en/faq ran:\n" . implode("\n", $with));
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function faqStatements(KernelBrowser $browser): array
+    {
+        $browser->request('GET', '/en/faq');
+        $this->startCountingQueries($browser);
+        $browser->request('GET', '/en/faq');
+        self::assertResponseIsSuccessful();
+
+        return $this->executedSql($browser);
     }
 }

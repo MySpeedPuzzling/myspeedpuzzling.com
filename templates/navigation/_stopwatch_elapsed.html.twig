@@ -1,0 +1,19 @@
+{#- The running stopwatch's elapsed time, ticking (docs/features/navigation README D7, ADD-03): the server renders the
+    digits (no empty flash), assets/controllers/stopwatch_pill_controller.js counts on from the same numbers and writes
+    the digits' text only. Used by the top bar's pill (_stopwatch_pill.html.twig) and the Menu's Stopwatch row (MENU-01),
+    so both tick alike.
+    Two formats: full h:mm:ss, and m:ss that the pill shows below 360 px (CSS picks one, never JS). No layout shift: tabular
+    digits laid over an invisible room fixed at render - the rendered text plus one more digit, all zeros
+    (RunningStopwatch::roomAtRead()), so 9:59 → 10:00 or 99:59 → 100:00 never widens it.
+    `stopwatch`: SpeedPuzzling\Web\Results\RunningStopwatch -#}
+<span class="stopwatch-elapsed"
+      data-controller="stopwatch-pill"
+      data-stopwatch-pill-stopwatch-id-value="{{ stopwatch.stopwatchId }}"
+      data-stopwatch-pill-lap-started-value="{{ stopwatch.lapStartedAt.timestamp }}"
+      data-stopwatch-pill-rendered-value="{{ stopwatch.readAt.timestamp }}"
+      data-stopwatch-pill-closed-seconds-value="{{ stopwatch.closedSeconds }}"
+>
+    {%- for format in ['full', 'compact'] -%}
+        <span class="stopwatch-elapsed-{{ format }}"><span class="stopwatch-elapsed-room">{{ stopwatch.roomAtRead(format == 'compact') }}</span><span class="stopwatch-elapsed-digits" data-stopwatch-pill-target="{{ format }}">{{ stopwatch.textAtRead(format == 'compact') }}</span></span>
+    {%- endfor -%}
+</span>

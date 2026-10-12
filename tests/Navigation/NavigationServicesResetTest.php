@@ -24,6 +24,8 @@ final class NavigationServicesResetTest extends TestCase
     private const array EXTRA_CLASSES = [
         // HELP-01a
         \SpeedPuzzling\Web\Twig\HelpTwigExtension::class,
+        // ADD-03
+        \SpeedPuzzling\Web\Twig\AddEntryTwigExtension::class,
     ];
 
     public function testMutableNavigationServicesResetBetweenRequests(): void

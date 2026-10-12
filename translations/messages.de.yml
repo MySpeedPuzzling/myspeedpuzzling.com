@@ -374,6 +374,9 @@
     "running": "Läuft"
     "paused": "Pausiert"
     "finished": "Puzzle fertiggestellt"
+  "pill":
+    "label": "Stoppuhr läuft"
+    "title": "Zurück zu Ihrer Stoppuhr"
 "puzzle_add":
   "meta":
     "title": "Puzzle hinzufügen"

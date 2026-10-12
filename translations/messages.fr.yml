@@ -409,6 +409,9 @@
     "running": "En cours"
     "paused": "En pause"
     "finished": "Puzzle terminé"
+  "pill":
+    "label": "Chronomètre en cours"
+    "title": "Retour à votre chronomètre"
 "puzzle_add":
   "meta":
     "title": "Ajouter puzzle"

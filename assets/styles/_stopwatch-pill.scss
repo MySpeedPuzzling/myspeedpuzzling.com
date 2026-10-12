@@ -1,0 +1,109 @@
+// The running-stopwatch pill (docs/features/navigation README D7, ADD-03; templates/navigation/_stopwatch_pill.html.twig)
+// and the ticking elapsed time it shares with the Menu's Stopwatch row (_stopwatch_elapsed.html.twig).
+//
+// No layout shift while it ticks (risk 20, F10): tabular digits laid over an invisible room fixed at render (the
+// rendered text plus one more digit, all zeros) in one grid cell, the m:ss format below 360 px and the icon there decided
+// at render - JavaScript writes the digits' text only. Below 360 px the pill is ≤ 70 px wide (measured in Rubik: 1439:59
+// with its room, the widest m:ss of a day, 68 px; the icon next to m:ss up to 99:59, 67 px). The link is a 44 px tall
+// target around the 32 px pill.
+
+.stopwatch-elapsed {
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+// Both items stretch over the cell and centre their text: the digits' box never moves when a digit is added (a centred
+// box would, and Chromium reports that as a layout shift)
+.stopwatch-elapsed-full,
+.stopwatch-elapsed-compact {
+    display: inline-grid;
+    text-align: center;
+}
+
+.stopwatch-elapsed-compact {
+    display: none;
+}
+
+.stopwatch-elapsed-room,
+.stopwatch-elapsed-digits {
+    grid-area: 1 / 1;
+}
+
+.stopwatch-elapsed-room {
+    visibility: hidden;
+}
+
+.stopwatch-pill {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    min-height: 44px;
+    color: var(--nav-active-ink, #c8323a);
+    text-decoration: none;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+
+    &:hover,
+    &:focus,
+    &:active {
+        color: var(--nav-active-ink, #c8323a);
+        text-decoration: none;
+    }
+
+    &:focus-visible {
+        outline: none;
+
+        .stopwatch-pill-body {
+            outline: 2px solid var(--nav-focus, #4e54c8);
+            outline-offset: 2px;
+        }
+    }
+}
+
+.stopwatch-pill-body {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    height: 32px;
+    padding: 0 8px;
+    border-radius: 16px;
+    background: var(--nav-active-pill, #ffe8e8);
+    font-size: .8125rem;
+    font-weight: 600;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.stopwatch-pill-icon {
+    flex: none;
+    width: 16px;
+    height: 16px;
+}
+
+@media (max-width: 359.98px) {
+    .stopwatch-pill-body {
+        gap: 2px;
+        padding: 0 5px;
+        font-size: .75rem;
+    }
+
+    .stopwatch-pill-icon {
+        width: 12px;
+        height: 12px;
+    }
+
+    .stopwatch-pill .stopwatch-elapsed-full {
+        display: none;
+    }
+
+    .stopwatch-pill .stopwatch-elapsed-compact {
+        display: inline-grid;
+    }
+
+    .stopwatch-pill--no-compact-icon .stopwatch-pill-icon {
+        display: none;
+    }
+}

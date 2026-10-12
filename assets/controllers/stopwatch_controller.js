@@ -1,5 +1,6 @@
 import { Controller } from '@hotwired/stimulus';
 import { confirmDialog } from '../confirm_dialog.js';
+import { rememberStopwatchState } from '../stopwatch_elapsed.js';
 
 // Milestone labels are player names: whatever a player typed is escaped before it goes into innerHTML
 const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({
@@ -96,6 +97,8 @@ export default class extends Controller {
 
             this.stopwatchIdValue = data.stopwatchId;
             this.statusValue = 'running';
+            // The top bar's pill (ADD-03) knows from the next page on; noted for this device as well
+            rememberStopwatchState(data.stopwatchId, 'running');
             this._totalPreviousMs = 0;
             this._lastStartTimestamp = Date.now();
 
@@ -116,6 +119,8 @@ export default class extends Controller {
         const elapsedMs = this._getElapsedMs();
         this._stopRaf();
         this.statusValue = 'paused';
+        // Before the request: a pause waiting in the offline queue already hides the pill of a page rendered earlier
+        rememberStopwatchState(this.stopwatchIdValue, 'paused');
         this._totalPreviousMs = elapsedMs;
         this._lastStartTimestamp = null;
         this._updateButtons();
@@ -134,6 +139,7 @@ export default class extends Controller {
 
         this.statusValue = 'running';
         this._lastStartTimestamp = Date.now();
+        rememberStopwatchState(this.stopwatchIdValue, 'running');
         this._updateButtons();
         this._startRaf();
         this._requestWakeLock();
@@ -152,6 +158,7 @@ export default class extends Controller {
         this._releaseWakeLock();
 
         const stopwatchId = this.stopwatchIdValue;
+        rememberStopwatchState(stopwatchId, 'reset');
 
         try {
             await this._apiPost(`/api/stopwatch/${stopwatchId}/reset`);
@@ -173,12 +180,19 @@ export default class extends Controller {
         // In-page dialog (GEST-13): iOS Safari refuses native ones after a Back to a pushState entry
         if (!(await confirmDialog(this.labelDeleteConfirmValue, { danger: true, returnFocusTo: button }))) return;
 
+        rememberStopwatchState(stopwatchId, 'reset');
+
         try {
             await this._apiPost(`/api/stopwatch/${stopwatchId}/reset`);
             if (row) row.remove();
         } catch {
             // Silent fail
         }
+    }
+
+    // The finish link opens the add form: the stopwatch is done for the top bar's pill (ADD-03), the link goes on
+    finish() {
+        rememberStopwatchState(this.stopwatchIdValue, 'finished');
     }
 
     async toggleWakeLock() {

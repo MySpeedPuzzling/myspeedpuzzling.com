@@ -80,6 +80,7 @@ use SpeedPuzzling\Web\Value\SkillTier;
  *     achievement_points?: int|string,
  *     msp_rating_rank?: null|int|string,
  *     skill_tier?: null|int|string,
+ *     running_stopwatch?: null|string,
  *  }
  */
 readonly final class PlayerProfile
@@ -213,6 +214,11 @@ readonly final class PlayerProfile
          * shown through PlayerHeader::tierChip() and the player card's rules, never on its own.
          */
         public null|SkillTier $skillTier = null,
+        /**
+         * GetPlayerProfile::byUserId() only: the viewer's fresh running stopwatch behind the top bar's pill
+         * (docs/features/navigation README D7, ADD-03) - null when none runs or the running one is stale.
+         */
+        public null|RunningStopwatch $runningStopwatch = null,
     ) {
     }
 
@@ -423,6 +429,7 @@ readonly final class PlayerProfile
             achievementPoints: (int) ($row['achievement_points'] ?? 0),
             mspRatingRank: isset($row['msp_rating_rank']) ? (int) $row['msp_rating_rank'] : null,
             skillTier: isset($row['skill_tier']) ? SkillTier::tryFrom((int) $row['skill_tier']) : null,
+            runningStopwatch: RunningStopwatch::fromJson($row['running_stopwatch'] ?? null, $now),
         );
     }
 

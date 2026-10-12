@@ -13,6 +13,7 @@ use SpeedPuzzling\Web\Results\ComparisonLineUp;
 use SpeedPuzzling\Web\Results\PlayerProfile;
 use SpeedPuzzling\Web\Services\HiddenPlayers;
 use SpeedPuzzling\Web\Services\PrivateProfileAccess;
+use SpeedPuzzling\Web\Value\StopwatchStatus;
 
 /**
  * @phpstan-import-type PlayerProfileRow from PlayerProfile
@@ -135,6 +136,7 @@ SQL;
     {
         $revealedIds = PrivateProfileAccess::sqlRevealedIdsOf('player');
         $comparisonLineUp = self::sqlComparisonLineUpOf('player');
+        $runningStopwatch = self::sqlRunningStopwatchOf('player');
 
         $query = <<<SQL
 SELECT
@@ -197,7 +199,8 @@ SELECT
     ) AS membership_ends_at,
     player.xp_total,
     player.level,
-    player.achievement_points
+    player.achievement_points,
+    {$runningStopwatch} AS running_stopwatch
 FROM player
 LEFT JOIN user_account ON user_account.user_id = player.user_id
 LEFT JOIN membership ON membership.player_id = player.id
@@ -218,6 +221,35 @@ SQL;
         }
 
         return PlayerProfile::fromDatabaseRow($row, $this->clock->now());
+    }
+
+    /**
+     * The viewer's running stopwatch for the top bar's pill (docs/features/navigation README D7, ADD-03) - the one whose
+     * last lap started latest, with the seconds of its closed laps. If that one is stale, every other running one is
+     * too, so one row is enough: RunningStopwatch::fromJson() decides the freshness with the clock (no SQL now()).
+     * Laps are stored as 'Y-m-d H:i:s', which sorts chronologically as text - the order itself never casts.
+     */
+    private static function sqlRunningStopwatchOf(string $viewerAlias): string
+    {
+        $running = StopwatchStatus::Running->value;
+
+        return <<<SQL
+(
+        SELECT json_build_object(
+            'id', running.id,
+            'lap_started_at', running.laps->-1->>'start',
+            'closed_seconds', (
+                SELECT COALESCE(SUM(EXTRACT(EPOCH FROM (lap->>'end')::timestamp - (lap->>'start')::timestamp)), 0)
+                FROM json_array_elements(running.laps) lap
+                WHERE lap->>'end' IS NOT NULL
+            )
+        )
+        FROM stopwatch running
+        WHERE running.player_id = {$viewerAlias}.id AND running.status = '{$running}'
+        ORDER BY running.laps->-1->>'start' DESC, running.id DESC
+        LIMIT 1
+    )
+SQL;
     }
 
     /**

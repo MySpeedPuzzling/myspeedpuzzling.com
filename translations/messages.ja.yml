@@ -376,6 +376,9 @@
     "running": "実行中"
     "paused": "一時停止"
     "finished": "パズル完了"
+  "pill":
+    "label": "ストップウォッチ計測中"
+    "title": "ストップウォッチに戻る"
 "puzzle_add":
   "meta":
     "title": "パズル追加"

@@ -105,7 +105,7 @@
                     </button>
 
                     <div class="d-flex justify-content-center gap-2 mt-3 {{ active_stopwatch is null or active_stopwatch.status.value != 'paused' ? 'd-none' : '' }}" data-stopwatch-target="finishBtn">
-                        <a href="{{ active_stopwatch is not null ? path('finish_stopwatch', {stopwatchId: active_stopwatch.stopwatchId}) : '#' }}" class="btn btn-outline-success btn-sm" data-stopwatch-target="finishLink" data-turbo-prefetch="false">
+                        <a href="{{ active_stopwatch is not null ? path('finish_stopwatch', {stopwatchId: active_stopwatch.stopwatchId}) : '#' }}" class="btn btn-outline-success btn-sm" data-stopwatch-target="finishLink" data-action="stopwatch#finish" data-turbo-prefetch="false">
                             <i class="ci-check me-1"></i> {{ 'stopwatch.finish'|trans }}
                         </a>
                         <button type="button"

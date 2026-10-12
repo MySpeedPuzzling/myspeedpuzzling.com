@@ -376,6 +376,9 @@
     "running": "En marcha"
     "paused": "Pausado"
     "finished": "Rompecabezas completado"
+  "pill":
+    "label": "Cronómetro en marcha"
+    "title": "Volver a tu cronómetro"
 "puzzle_add":
   "meta":
     "title": "Agregar puzzle"

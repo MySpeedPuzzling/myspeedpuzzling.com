@@ -435,6 +435,9 @@ stopwatch:
         running: "Running"
         paused: "Paused"
         finished: "Puzzle completed"
+    pill:
+        label: "Stopwatch running"
+        title: "Back to your stopwatch"
 
 puzzle_add:
     meta:

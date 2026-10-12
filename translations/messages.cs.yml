@@ -413,6 +413,9 @@ puzzle_result:
     "running": "Puštěné"
     "paused": "Zastavené"
     "finished": "Složené puzzle"
+  "pill":
+    "label": "Stopky běží"
+    "title": "Zpět ke stopkám"
 "puzzle_add":
   "meta":
     "title": "Přidat puzzle"

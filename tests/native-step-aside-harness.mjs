@@ -9,6 +9,7 @@
 
 import { isNativeApp, nativePlatform, os } from '../assets/platform.js';
 import { closeAction, entryAction } from '../assets/layer_history.js';
+import { reportsSuppressed } from '../assets/confirm_dialog.js';
 
 /** A fake <html>: inside the app on an Android phone, or Chrome on the same phone */
 function root(nativeApp) {
@@ -31,6 +32,15 @@ const ROWS = [
             open: entryAction(isNativeApp(html), null),
             openOverAnotherLayer: entryAction(isNativeApp(html), 'menu'),
             close: closeAction(isNativeApp(html), 'menu', 'menu'),
+        }),
+    },
+    // GEST-13: the confirm watchdog reports a native confirm an iPhone refused at once - never inside the app (the
+    // P0-03 channel is web-only). The device here is an Android phone, so the iPhone is passed explicitly
+    {
+        id: 'assets/confirm_dialog.js',
+        run: (html) => ({
+            refusedOnAnIphone: reportsSuppressed(isNativeApp(html), 'ios', false, 0, false),
+            refusedOnThisDevice: reportsSuppressed(isNativeApp(html), os(html), false, 0, false),
         }),
     },
 ];

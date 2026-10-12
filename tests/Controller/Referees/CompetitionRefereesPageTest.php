@@ -142,7 +142,12 @@ final class CompetitionRefereesPageTest extends WebTestCase
         $crawler = $this->browser->request('GET', self::PAGE);
 
         $form = $crawler->filter('tr[data-referee="' . PlayerFixture::PLAYER_WITH_FAVORITES . '"] form');
-        self::assertStringContainsString('Remove', (string) $form->attr('onsubmit'));
+        // GEST-13: asked in the in-page dialog (Turbo's data-turbo-confirm), never through a native confirm
+        self::assertStringContainsString('Remove', (string) $form->attr('data-turbo-confirm'));
+        self::assertNotNull($form->attr('data-turbo-confirm-danger'));
+        self::assertNull($form->attr('onsubmit'));
+        self::assertSame('Remove', $form->filter('button[type="submit"]')->attr('data-turbo-confirm-action'));
+        self::assertCount(1, $crawler->filter('template#msp-confirm-template'));
         $this->browser->submit($form->form());
 
         self::assertResponseStatusCodeSame(303);

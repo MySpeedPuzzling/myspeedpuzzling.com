@@ -1,6 +1,7 @@
 /* stimulusFetch: 'lazy' */
 import { Controller } from '@hotwired/stimulus';
 import { Modal } from 'bootstrap';
+import { confirmDialog, guardLeave } from '../confirm_dialog.js';
 import { officialResultsRequest, newClientId, isGone } from '../official_results_api.js';
 import { OfficialResultsEvents } from '../official_results_events.js';
 import { formatResultTime, parseResultTime } from '../official_results_time.js';
@@ -1112,10 +1113,12 @@ export default class extends Controller {
     }
 
     async takeOut(event) {
-        const ref = event.currentTarget.dataset.ref;
+        const button = event.currentTarget;
+        const ref = button.dataset.ref;
         const entry = this.entries.get(ref);
 
-        if (entry === undefined || !window.confirm(this.t('take_out_confirm', { name: entry.displayName ?? '' }))) {
+        // In-page dialog (GEST-13): iOS Safari refuses native ones after a Back to a pushState entry
+        if (entry === undefined || !(await confirmDialog(this.t('take_out_confirm', { name: entry.displayName ?? '' }), { danger: true, returnFocusTo: button }))) {
             return;
         }
 
@@ -1376,8 +1379,9 @@ export default class extends Controller {
     }
 
     onBeforeVisit(event) {
-        if (!this.pending.isEmpty() && !window.confirm(this.t('leave_unsaved'))) {
-            event.preventDefault();
+        // In-page dialog (GEST-13): the visit waits for the answer and goes on after a yes
+        if (!this.pending.isEmpty()) {
+            guardLeave(event, this.t('leave_unsaved'));
         }
     }
 

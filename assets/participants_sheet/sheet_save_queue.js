@@ -1164,9 +1164,15 @@ export class SheetSaveQueue {
     /**
      * `beforeunload` + `turbo:before-visit` warnings while hasUnsaved(). Returns the teardown.
      *
-     * @param {{window: Window, document: Document, confirm: function(string): boolean, message: string}} options
+     * The Turbo visit is stopped, `ask` answers asynchronously (the in-page dialog of assets/confirm_dialog.js,
+     * GEST-13 - iOS Safari refuses native dialogs after a Back to a pushState entry) and `visit` goes to the URL again
+     * only on yes; that second visit passes this guard. `beforeunload` stays browser UI (a real unload).
+     *
+     * @param {{window: Window, document: Document, ask: function(string): Promise<boolean>, visit: function(string): void, message: string}} options
      */
-    installLeaveGuards({ window: win, document: doc, confirm, message }) {
+    installLeaveGuards({ window: win, document: doc, ask, visit, message }) {
+        let leaving = false;
+
         const onBeforeUnload = (event) => {
             if (this.hasUnsaved()) {
                 this.flushNow();
@@ -1175,9 +1181,26 @@ export class SheetSaveQueue {
             }
         };
         const onBeforeVisit = (event) => {
-            if (this.hasUnsaved() && !confirm(message)) {
-                event.preventDefault();
+            if (leaving || !this.hasUnsaved()) {
+                return;
             }
+
+            const url = event.detail ? event.detail.url : null;
+            event.preventDefault();
+
+            Promise.resolve(ask(message)).then((yes) => {
+                if (!yes || !url) {
+                    return;
+                }
+
+                leaving = true;
+
+                try {
+                    visit(url);
+                } finally {
+                    leaving = false;
+                }
+            });
         };
 
         win.addEventListener('beforeunload', onBeforeUnload);

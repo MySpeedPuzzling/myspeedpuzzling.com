@@ -8999,3 +8999,10 @@ nav:
     menu:
         title: "Menú"
         page_intro: "Todas las páginas y ajustes de MySpeedPuzzling en un solo lugar."
+
+confirm_dialog:
+    cancel: "Cancelar"
+    confirm: "Confirmar"
+
+barcode_scanner:
+    no_camera: "La cámara no está disponible en este navegador. Intenta recargar la página."

@@ -8988,3 +8988,10 @@ nav:
     menu:
         title: "メニュー"
         page_intro: "MySpeedPuzzlingのすべてのページと設定をひとつの場所に。"
+
+confirm_dialog:
+    cancel: "キャンセル"
+    confirm: "確認"
+
+barcode_scanner:
+    no_camera: "このブラウザではカメラを利用できません。ページを再読み込みしてください。"

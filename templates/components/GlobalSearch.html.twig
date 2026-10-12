@@ -1,5 +1,5 @@
 <div {{ attributes }}>
-    <div data-controller="barcode-scanner">
+    <div data-controller="barcode-scanner" data-barcode-scanner-no-camera-value="{{ 'barcode_scanner.no_camera'|trans }}">
         <div class="input-group position-relative">
             <input type="search" data-model="debounce(150)|query" class="form-control" data-barcode-scanner-target="input" data-global-search-target="searchInput" placeholder="{{ 'forms.global_search_placeholder'|trans }}">
             {% if logged_user.profile is not null and logged_user.profile.activeMembership %}

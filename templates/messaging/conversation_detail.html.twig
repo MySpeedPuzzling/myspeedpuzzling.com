@@ -37,7 +37,7 @@
                 <li>
                     <form action="{{ path('block_user', {playerId: other_player.id}) }}" method="post">
                         <input type="hidden" name="_token" value="{{ csrf_token(constant('SpeedPuzzling\\Web\\Controller\\Messaging\\BlockUserController::CSRF_TOKEN_ID')) }}">
-                        <button type="submit" class="dropdown-item text-danger" onclick="return confirm('{{ 'blocklist.block_confirm'|trans|e('js') }}')">
+                        <button type="submit" class="dropdown-item text-danger" data-turbo-confirm="{{ 'blocklist.block_confirm'|trans }}" data-turbo-confirm-danger data-turbo-confirm-action="{{ 'blocklist.block_player'|trans }}">
                             <i class="bi bi-slash-circle me-1"></i> {{ 'blocklist.block_player'|trans }}
                         </button>
                     </form>
@@ -192,7 +192,7 @@
     <div class="modal fade" id="reportConversationModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
-                <form action="{{ path('report_conversation', {conversationId: conversation.id}) }}" method="post" onsubmit="return confirm('{{ 'messaging.report_confirm'|trans }}')">
+                <form action="{{ path('report_conversation', {conversationId: conversation.id}) }}" method="post" data-turbo-confirm="{{ 'messaging.report_confirm'|trans }}" data-turbo-confirm-danger>
                     <div class="modal-header">
                         <h5 class="modal-title">{{ 'messaging.report_conversation'|trans }}</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ 'forms.close'|trans }}"></button>
@@ -205,7 +205,7 @@
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ 'messaging.cancel'|trans }}</button>
-                        <button type="submit" class="btn btn-danger">{{ 'messaging.report_submit'|trans }}</button>
+                        <button type="submit" class="btn btn-danger" data-turbo-confirm-action="{{ 'messaging.report_submit'|trans }}">{{ 'messaging.report_submit'|trans }}</button>
                     </div>
                 </form>
             </div>

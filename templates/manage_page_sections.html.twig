@@ -104,9 +104,9 @@
                                 </a>
 
                                 <form method="post" action="{{ path('delete_page_section', {sectionId: section.id}) }}" class="d-inline"
-                                      onsubmit="return confirm('{{ 'page_sections.confirm_delete'|trans|e('js') }}');">
+                                      data-turbo-confirm="{{ 'page_sections.confirm_delete'|trans }}" data-turbo-confirm-danger>
                                     <input type="hidden" name="_token" value="{{ token }}">
-                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="{{ 'page_sections.delete'|trans }}" aria-label="{{ 'page_sections.delete'|trans }}">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" data-turbo-confirm-action="{{ 'page_sections.delete'|trans }}" title="{{ 'page_sections.delete'|trans }}" aria-label="{{ 'page_sections.delete'|trans }}">
                                         <i class="bi bi-trash" aria-hidden="true"></i>
                                     </button>
                                 </form>

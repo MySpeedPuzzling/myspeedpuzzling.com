@@ -34,12 +34,25 @@ import './turbo-stream-actions.js'
 // Back closes the top layer: the one owner of history entries next to Turbo, listening on every page (GEST-01)
 import './layer_history.js';
 import { startNavInstrumentation } from './nav_instrumentation.js';
+import { installConfirmDialog } from './confirm_dialog.js';
 
 Turbo.config.drive.progressBarDelay = 0;
 
 // Navigation clicks, the viewport once per session and Back/Forward navigations (docs/features/navigation, P0-03).
 // The web chrome only - the app's navigation is native
 const navInstrumentation = isNativeApp() ? null : startNavInstrumentation({ window, document });
+
+// In-page confirmations (GEST-13): data-turbo-confirm and the controllers ask in MSP's own <dialog>, never through
+// window.confirm (iOS Safari silently refuses native dialogs after a Back to a pushState entry, hotwired/turbo#637);
+// the watchdog reports a native confirm dialog an iPhone still refused on the P0-03 channel
+installConfirmDialog({
+    Turbo,
+    report: (detail) => {
+        if (navInstrumentation) {
+            navInstrumentation.dialogSuppressed(detail);
+        }
+    },
+});
 
 // Force native browser navigation for back/forward (restoration visits)
 // This ensures iOS swipe-back, browser back/forward buttons all work identically to a non-Turbo site

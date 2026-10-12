@@ -1,0 +1,84 @@
+// In-page confirmations (assets/confirm_dialog.js, docs/features/navigation GEST-13): a modal <dialog> opened with
+// showModal() - in the browser's top layer, above the bars, Bootstrap modals and sheets, so it needs no z-index.
+// Never a history layer. Cancel on the left, the action on the right; at least 44 px tall targets; the text wraps.
+
+.msp-confirm {
+    width: calc(100% - 32px);
+    max-width: 26rem;
+    max-height: calc(100% - 32px);
+    padding: 0;
+    border: 0;
+    border-radius: 16px;
+    background: $white;
+    color: $body-color;
+    box-shadow: 0 0.75rem 2.5rem rgba($black, 0.25);
+    overflow: auto;
+    overscroll-behavior: contain;
+
+    &::backdrop {
+        background: rgba($black, 0.5);
+    }
+
+    @media (prefers-reduced-motion: no-preference) {
+        &[open] {
+            animation: msp-confirm-in 160ms cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        &[open]::backdrop {
+            animation: msp-confirm-scrim-in 160ms ease-out;
+        }
+    }
+}
+
+.msp-confirm-box {
+    padding: 1.25rem 1.25rem 1rem;
+}
+
+.msp-confirm-message {
+    margin: 0 0 1.25rem;
+    font-size: 1rem;
+    line-height: 1.5;
+    // A message with line breaks keeps them (as the native dialog did); a long name never pushes the box wider
+    white-space: pre-line;
+    overflow-wrap: anywhere;
+}
+
+.msp-confirm-actions {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+
+    .btn {
+        min-height: 44px;
+        // Both answers the same width on phones; desktop sizes them by their labels
+        flex: 1 1 0;
+        white-space: normal;
+
+        @include nav-desktop {
+            flex: 0 0 auto;
+            min-width: 6.5rem;
+        }
+    }
+}
+
+@keyframes msp-confirm-in {
+    from {
+        opacity: 0;
+        transform: scale(0.96);
+    }
+
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+@keyframes msp-confirm-scrim-in {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}

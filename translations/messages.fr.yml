@@ -9018,3 +9018,10 @@ nav:
     menu:
         title: "Menu"
         page_intro: "Toutes les pages et tous les réglages de MySpeedPuzzling au même endroit."
+
+confirm_dialog:
+    cancel: "Annuler"
+    confirm: "Confirmer"
+
+barcode_scanner:
+    no_camera: "La caméra n'est pas disponible dans ce navigateur. Veuillez recharger la page."

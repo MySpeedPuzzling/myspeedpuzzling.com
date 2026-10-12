@@ -410,6 +410,30 @@ final class NavInstrumentationScriptTest extends TestCase
     }
 
     /**
+     * GEST-13: the confirm watchdog's report goes out on the same channel - what it knew, nothing else.
+     */
+    public function testASuppressedDialogIsOneLine(): void
+    {
+        $did = $this->scenario(['steps' => [
+            ['do' => 'load', 'page' => '/en/live-results/0199c1a8-0000-7000-8000-000000000001'],
+            ['do' => 'dialog suppressed', 'detail' => ['afterLayerBack' => true, 'afterRestore' => false]],
+            ['do' => 'dialog suppressed', 'detail' => ['afterLayerBack' => 'yes', 'afterRestore' => ['kind' => 'snapshot']]],
+            ['do' => 'dialog suppressed', 'detail' => ['afterRestore' => 'snapshot']],
+        ]]);
+
+        $lines = array_map(
+            static fn (array $beacon): array => [$beacon['page'], $beacon['afterLayerBack'], $beacon['afterRestore']],
+            self::beacons($did, 'dialog_suppressed'),
+        );
+
+        self::assertSame([
+            ['/en/live-results/0199c1a8-0000-7000-8000-000000000001', true, false],
+            ['/en/live-results/0199c1a8-0000-7000-8000-000000000001', false, null],
+            ['/en/live-results/0199c1a8-0000-7000-8000-000000000001', false, 'snapshot'],
+        ], $lines);
+    }
+
+    /**
      * app.js counts a restore right before it turns it into a full page load.
      */
     public function testAppJsCountsTheRestoreBeforeReloading(): void

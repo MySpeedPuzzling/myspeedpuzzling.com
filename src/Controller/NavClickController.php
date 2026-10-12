@@ -18,6 +18,9 @@ use Symfony\Component\Routing\Attribute\Route;
  * - click: a link or button of the chrome carrying data-nav="<surface>/<place>/<item>" was clicked
  * - viewport: once per browser session, the innerWidth bucket and the pointer type
  * - history: a Back/Forward navigation (a Turbo restore, a page loaded by a traverse, a back/forward cache restore)
+ * - dialog_suppressed: a native confirm dialog an iPhone answered `false` at once - a dialog Safari refused to show
+ *   (GEST-13 watchdog in assets/confirm_dialog.js, once per page view): after a layer was closed by Back, after a
+ *   Back/Forward restore of the page
  *
  * The page's path and the data-nav value only - no cookies, no session (the `stateless` firewall), no user agent.
  * A path segment that looks like a secret (a password-reset, account-deletion, credential-claim, sign-in, newsletter or
@@ -87,6 +90,7 @@ final class NavClickController extends AbstractController
                     'click' => $this->click($payload, $context),
                     'viewport' => $this->viewport($payload, $context),
                     'history' => $this->history($payload, $context),
+                    'dialog_suppressed' => $this->dialogSuppressed($payload, $context),
                     default => null,
                 };
             }
@@ -157,6 +161,23 @@ final class NavClickController extends AbstractController
             'via' => $via,
             'direction' => in_array($payload['dir'] ?? null, self::HISTORY_DIRECTIONS, true) ? $payload['dir'] : 'unknown',
             'ua_visual_transition' => is_bool($payload['uaTransition'] ?? null) ? $payload['uaTransition'] : null,
+            ...$context,
+        ]);
+    }
+
+    /**
+     * GEST-13: `afterRestore` is a boolean today (the page was loaded by a traverse, decision 102); GEST-15 sends its
+     * restore kind instead - anything this endpoint does not know yet is logged as null, the line stays.
+     *
+     * @param array<string, mixed> $payload
+     * @param array<string, mixed> $context
+     */
+    private function dialogSuppressed(array $payload, array $context): void
+    {
+        $this->logger->info('Navigation dialog suppressed', [
+            'kind' => 'dialog_suppressed',
+            'after_layer_back' => ($payload['afterLayerBack'] ?? null) === true,
+            'after_restore' => is_bool($payload['afterRestore'] ?? null) ? $payload['afterRestore'] : null,
             ...$context,
         ]);
     }

@@ -48,6 +48,7 @@
 
     {# Scanning the other box's barcode picks its brand and puzzle below #}
     <div data-controller="barcode-scanner"
+         data-barcode-scanner-no-camera-value="{{ 'barcode_scanner.no_camera'|trans }}"
          data-action="barcode-scanner:scanned->report-duplicate-form#scanned hide.bs.tab@document->barcode-scanner#stopScanning">
         <button type="button" class="btn btn-outline-primary btn-sm w-100 mb-3"
                 data-barcode-scanner-target="toggleButton"

@@ -9025,3 +9025,10 @@ nav:
     menu:
         title: "Menu"
         page_intro: "Všechny stránky a nastavení MySpeedPuzzling na jednom místě."
+
+confirm_dialog:
+    cancel: "Zrušit"
+    confirm: "Potvrdit"
+
+barcode_scanner:
+    no_camera: "Kamera není v tomto prohlížeči dostupná. Zkuste stránku načíst znovu."

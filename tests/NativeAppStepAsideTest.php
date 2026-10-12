@@ -14,7 +14,8 @@ use Symfony\Component\Process\Process;
  * one row per native-aware module, its pure decision run with the native flag on and off
  * (tests/native-step-aside-harness.mjs). Each bar, layer and gesture item adds its row (implementation plan §3.5
  * item 4): GEST-01 no history entry, GEST-06 the pull never arms, GEST-10 no vibration, GEST-12/17 the view-transition
- * gate stays `none`, GEST-15 the restore decision is `leave`, CARD-01a / MENU-02b the listeners let the link navigate.
+ * gate stays `none`, GEST-15 the restore decision is `leave`, CARD-01a / MENU-02b the listeners let the link navigate,
+ * GEST-13 the confirm watchdog reports nothing.
  *
  * @phpstan-type Answer array{value?: mixed, threw?: string}
  * @phpstan-type Row array{id: string, app: Answer, web: Answer}
@@ -34,6 +35,11 @@ final class NativeAppStepAsideTest extends TestCase
         'assets/layer_history.js' => [
             ['open' => 'none', 'openOverAnotherLayer' => 'none', 'close' => 'direct'],
             ['open' => 'push', 'openOverAnotherLayer' => 'swap', 'close' => 'back'],
+        ],
+        // GEST-13: the confirm watchdog reports nothing inside the app; on the web only an iPhone's refusal
+        'assets/confirm_dialog.js' => [
+            ['refusedOnAnIphone' => false, 'refusedOnThisDevice' => false],
+            ['refusedOnAnIphone' => true, 'refusedOnThisDevice' => false],
         ],
     ];
 

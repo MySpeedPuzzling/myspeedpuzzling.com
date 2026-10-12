@@ -11,7 +11,8 @@
  *
  * Once per browser session it also sends the innerWidth bucket and the pointer type, and one line per Back/Forward
  * navigation: a Turbo restore (app.js calls turboRestore() before it reloads the page - that reload is a replace, so
- * it is not counted again), a page loaded by a traverse, or a page shown from the back/forward cache.
+ * it is not counted again), a page loaded by a traverse, or a page shown from the back/forward cache. The GEST-13
+ * watchdog (assets/confirm_dialog.js) reports a native dialog an iPhone refused through dialogSuppressed().
  *
  * Every beacon carries the page's path, never its query string: loggablePage() replaces a path segment that looks like a
  * secret (a password-reset or account-deletion link, a credential claim, a newsletter or e-mail preferences token...)
@@ -306,6 +307,21 @@ export function createNavInstrumentation(env) {
 
             lastIndex = index;
             traverse = null;
+        },
+
+        /**
+         * assets/confirm_dialog.js (GEST-13 watchdog): a native confirm dialog answered `false` at once on an iPhone - a
+         * dialog the browser refused to show. Once per page view (the watchdog counts); whether a layer was closed by
+         * Back before and whether the page was restored by a Back/Forward (true/false today, GEST-15's restore kind).
+         */
+        dialogSuppressed(detail = {}) {
+            const afterRestore = detail.afterRestore;
+
+            send({
+                k: 'dialog_suppressed',
+                afterLayerBack: detail.afterLayerBack === true,
+                afterRestore: typeof afterRestore === 'boolean' || typeof afterRestore === 'string' ? afterRestore : null,
+            });
         },
 
         start() {

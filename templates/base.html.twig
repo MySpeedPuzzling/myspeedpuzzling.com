@@ -1007,6 +1007,20 @@
             </div>
         </div>
 
+        {# In-page confirmations (GEST-13): assets/confirm_dialog.js clones this <dialog> for every question -
+           data-turbo-confirm forms and the controllers' confirmDialog() - and opens it with showModal(). Web and app. #}
+        <template id="msp-confirm-template">
+            <dialog class="msp-confirm" role="alertdialog">
+                <div class="msp-confirm-box">
+                    <p class="msp-confirm-message" data-msp-confirm-message></p>
+                    <div class="msp-confirm-actions">
+                        <button type="button" class="btn btn-outline-secondary" data-msp-confirm-cancel>{{ 'confirm_dialog.cancel'|trans }}</button>
+                        <button type="button" class="btn btn-primary" data-msp-confirm-action>{{ 'confirm_dialog.confirm'|trans }}</button>
+                    </div>
+                </div>
+            </dialog>
+        </template>
+
         {% if logged_user.profile is not null %}
             <div data-controller="mercure-hub"
                  data-mercure-hub-mercure-url-value="{{ mercure_public_url }}"

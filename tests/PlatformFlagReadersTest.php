@@ -29,6 +29,8 @@ final class PlatformFlagReadersTest extends TestCase
         'assets/controllers/barcode_scanner_controller.js',
         // GEST-01 (f): no history entry inside the app
         'assets/layer_history.js',
+        // GEST-13: the confirm watchdog reports nothing inside the app
+        'assets/confirm_dialog.js',
     ];
 
     private const string PLATFORM_MODULE = 'assets/platform.js';

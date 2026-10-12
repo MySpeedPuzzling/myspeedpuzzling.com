@@ -57,16 +57,16 @@
                     {% endif %}
 
                     {% if round.stopwatchStatus == 'running' %}
-                        <form method="post" action="{{ path('stop_round_stopwatch', {'roundId': round.id}) }}" onsubmit="return confirm('{{ 'competition.stopwatch.confirm_stop'|trans }}')">
-                            <button type="submit" class="btn btn-warning">
+                        <form method="post" action="{{ path('stop_round_stopwatch', {'roundId': round.id}) }}" data-turbo-confirm="{{ 'competition.stopwatch.confirm_stop'|trans }}" data-turbo-confirm-danger>
+                            <button type="submit" class="btn btn-warning" data-turbo-confirm-action="{{ 'competition.stopwatch.stop'|trans }}">
                                 <i class="bi bi-stop-fill me-1"></i>{{ 'competition.stopwatch.stop'|trans }}
                             </button>
                         </form>
                     {% endif %}
 
                     {% if round.stopwatchStatus is not null %}
-                        <form method="post" action="{{ path('reset_round_stopwatch', {'roundId': round.id}) }}" onsubmit="return confirm('{{ 'competition.stopwatch.confirm_reset'|trans }}')">
-                            <button type="submit" class="btn btn-outline-danger">
+                        <form method="post" action="{{ path('reset_round_stopwatch', {'roundId': round.id}) }}" data-turbo-confirm="{{ 'competition.stopwatch.confirm_reset'|trans }}" data-turbo-confirm-danger>
+                            <button type="submit" class="btn btn-outline-danger" data-turbo-confirm-action="{{ 'competition.stopwatch.reset'|trans }}">
                                 <i class="bi bi-arrow-counterclockwise me-1"></i>{{ 'competition.stopwatch.reset'|trans }}
                             </button>
                         </form>

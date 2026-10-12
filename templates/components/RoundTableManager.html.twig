@@ -20,12 +20,16 @@
                         >
                             <i class="bi bi-plus-lg me-1"></i>{{ 'competition.tables.add_table'|trans }}
                         </button>
+                        {# In-page confirmation first (GEST-13): confirm-action stops the click until the answer is yes #}
                         <button
                             class="btn btn-sm btn-outline-danger"
-                            data-action="live#action"
+                            data-controller="confirm-action"
+                            data-action="confirm-action#ask live#action"
+                            data-confirm-action-message-param="{{ 'competition.tables.confirm_delete_row'|trans }}"
+                            data-confirm-action-danger-param="true"
+                            data-confirm-action-label-param="{{ 'forms.delete'|trans }}"
                             data-live-action-param="deleteRow"
                             data-live-row-id-param="{{ row.id }}"
-                            onclick="return confirm('{{ 'competition.tables.confirm_delete_row'|trans }}')"
                         >
                             <i class="bi bi-trash"></i>
                         </button>
@@ -39,10 +43,13 @@
                                     <strong class="small">{{ table.label }}</strong>
                                     <button
                                         class="btn btn-sm btn-outline-danger py-0 px-1"
-                                        data-action="live#action"
+                                        data-controller="confirm-action"
+                                        data-action="confirm-action#ask live#action"
+                                        data-confirm-action-message-param="{{ 'competition.tables.confirm_delete_table'|trans }}"
+                                        data-confirm-action-danger-param="true"
+                                        data-confirm-action-label-param="{{ 'forms.delete'|trans }}"
                                         data-live-action-param="deleteTable"
                                         data-live-table-id-param="{{ table.id }}"
-                                        onclick="return confirm('{{ 'competition.tables.confirm_delete_table'|trans }}')"
                                     >
                                         <i class="bi bi-trash"></i>
                                     </button>

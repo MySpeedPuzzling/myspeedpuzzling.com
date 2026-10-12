@@ -110,9 +110,9 @@
                                 </td>
                                 <td class="text-end">
                                     <form method="post" action="{{ path('competition_referee_remove', {competitionId: competition.id, playerId: referee.playerId}) }}" class="d-inline"
-                                          onsubmit="return confirm('{{ 'competition_referees.remove.confirm'|trans({'%name%': referee.playerName ?? ('#' ~ referee.playerCode|upper)})|e('js') }}')">
+                                          data-turbo-confirm="{{ 'competition_referees.remove.confirm'|trans({'%name%': referee.playerName ?? ('#' ~ referee.playerCode|upper)}) }}" data-turbo-confirm-danger>
                                         <input type="hidden" name="_token" value="{{ csrf_token(constant('SpeedPuzzling\\Web\\Services\\CompetitionRefereesPage::CSRF_TOKEN_ID')) }}">
-                                        <button type="submit" class="btn btn-sm btn-outline-danger">{{ 'competition_referees.remove.button'|trans }}</button>
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" data-turbo-confirm-action="{{ 'competition_referees.remove.button'|trans }}">{{ 'competition_referees.remove.button'|trans }}</button>
                                     </form>
                                 </td>
                             </tr>

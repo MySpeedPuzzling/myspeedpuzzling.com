@@ -17,7 +17,7 @@
             </div>
             <form action="{{ path('unblock_user', {playerId: user.blocked_id}) }}" method="post" class="flex-shrink-0">
                 <input type="hidden" name="_token" value="{{ csrf_token(constant('SpeedPuzzling\\Web\\Controller\\Messaging\\UnblockUserController::CSRF_TOKEN_ID')) }}">
-                <button type="submit" class="btn btn-sm btn-outline-secondary" onclick="return confirm('{{ 'blocklist.unblock_confirm'|trans|e('js') }}')">
+                <button type="submit" class="btn btn-sm btn-outline-secondary" data-turbo-confirm="{{ 'blocklist.unblock_confirm'|trans }}" data-turbo-confirm-action="{{ 'blocklist.unblock'|trans }}">
                     {{ 'blocklist.unblock'|trans }}
                 </button>
             </form>

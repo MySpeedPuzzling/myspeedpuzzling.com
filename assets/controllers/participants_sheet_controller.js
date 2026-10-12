@@ -1,6 +1,7 @@
 /* stimulusFetch: 'lazy' */
 import { Controller } from '@hotwired/stimulus';
 import { chooseTranslation } from '../translation_choice.js';
+import { confirmDialog, leaveTo } from '../confirm_dialog.js';
 import { SheetModel } from '../participants_sheet/sheet_model.js';
 import { changeTarget, isEmpty, refusalDetails } from '../participants_sheet/sheet_changes.js';
 import { SheetSaveQueue } from '../participants_sheet/sheet_save_queue.js';
@@ -154,10 +155,12 @@ export default class extends Controller {
         // Before the leave guards (listeners run in order): an open edit is saved first, so the guard sees it
         this.listen(window, 'beforeunload', () => this.commitOpenEdits());
         this.listen(document, 'turbo:before-visit', () => this.commitOpenEdits());
+        // In-page dialog (GEST-13): the visit waits for the answer and goes on after a yes
         this.cleanups.push(this.queue.installLeaveGuards({
             window,
             document,
-            confirm: (message) => window.confirm(message),
+            ask: (message) => confirmDialog(message, { danger: true }),
+            visit: (url) => leaveTo(url),
             message: this.texts.core.t('leave_unsaved'),
         }));
 

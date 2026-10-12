@@ -29,6 +29,7 @@
 
     {# The scan button next to the first EAN input: a scanned code is added to the list (ean_scan_fill_controller.js) #}
     <div data-controller="barcode-scanner ean-scan-fill"
+         data-barcode-scanner-no-camera-value="{{ 'barcode_scanner.no_camera'|trans }}"
          data-action="barcode-scanner:scanned->ean-scan-fill#fill hide.bs.tab@document->barcode-scanner#stopScanning">
         {% set first_ean = propose_form.eans.children|first %}
         {% set first_ean_input %}

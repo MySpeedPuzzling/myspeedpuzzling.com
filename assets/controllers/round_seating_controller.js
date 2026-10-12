@@ -3,6 +3,7 @@ import { Controller } from '@hotwired/stimulus';
 import { officialResultsRequest, newClientId, isGone } from '../official_results_api.js';
 import { OfficialResultsEvents } from '../official_results_events.js';
 import { chooseTranslation } from '../translation_choice.js';
+import { confirmDialog, guardLeave } from '../confirm_dialog.js';
 import {
     clearAssignments,
     highestTable,
@@ -322,8 +323,9 @@ export default class extends Controller {
     }
 
     beforeVisit(event) {
-        if (this.orderDirty && !window.confirm(this.t('leaveUnsaved'))) {
-            event.preventDefault();
+        // In-page dialog (GEST-13): the visit waits for the answer and goes on after a yes
+        if (this.orderDirty) {
+            guardLeave(event, this.t('leaveUnsaved'));
         }
     }
 
@@ -730,10 +732,10 @@ export default class extends Controller {
         await this.assign(seatRestAssignments(this.unseated, this.byRef), this.t('toastSeatedRest'));
     }
 
-    async clearAll() {
+    async clearAll(event) {
         const count = [...this.byRef.values()].filter((entry) => entry.tableNumber !== null).length;
 
-        if (count === 0 || !window.confirm(this.t('clearAllConfirm', { '%count%': count }))) {
+        if (count === 0 || !(await confirmDialog(this.t('clearAllConfirm', { '%count%': count }), { danger: true, returnFocusTo: event?.currentTarget }))) {
             return;
         }
 

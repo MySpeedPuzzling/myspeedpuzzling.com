@@ -371,24 +371,58 @@ export default function (test) {
         assert.deepEqual(model.team('t-flat').result, { seconds: 4000 }, 'the newer live result stays');
     });
 
-    test('leaving with unsaved changes asks first (beforeunload + turbo:before-visit)', async () => {
+    test('leaving with unsaved changes asks first (beforeunload + turbo:before-visit, the in-page dialog - GEST-13)', async () => {
         const { queue, act, model } = setup();
         const listeners = { window: new Map(), document: new Map() };
         const target = (map) => ({ addEventListener: (type, fn) => map.set(type, fn), removeEventListener: (type) => map.delete(type) });
-        let asked = 0;
-        const teardown = queue.installLeaveGuards({ window: target(listeners.window), document: target(listeners.document), confirm: () => { asked++; return false; }, message: 'Leave?' });
+        const asked = [];
+        const answers = [false, true];
+        const visits = [];
+        const visitEvent = (url) => ({ detail: { url }, prevented: false, preventDefault() { this.prevented = true; } });
+        const teardown = queue.installLeaveGuards({
+            window: target(listeners.window),
+            document: target(listeners.document),
+            // Asynchronous, as the in-page dialog of assets/confirm_dialog.js
+            ask: (message) => { asked.push(message); return Promise.resolve(answers.shift()); },
+            // As Turbo.visit: the guard sees this second visit synchronously and lets it through
+            visit: (url) => {
+                const again = visitEvent(url);
+                listeners.document.get('turbo:before-visit')(again);
+                visits.push({ url, prevented: again.prevented });
+            },
+            message: 'Leave?',
+        });
 
         const unload = { prevented: false, preventDefault() { this.prevented = true; } };
         listeners.window.get('beforeunload')(unload);
         assert.equal(unload.prevented, false, 'nothing unsaved - no question');
+        const clean = visitEvent('/en/events');
+        listeners.document.get('turbo:before-visit')(clean);
+        assert.equal(clean.prevented, false, 'nothing unsaved - the visit goes on');
+        assert.deepEqual(asked, []);
 
         act(setField(model, 'p-ana', 'name', 'Ana One'));
         listeners.window.get('beforeunload')(unload);
         assert.equal(unload.prevented, true);
-        const visit = { prevented: false, preventDefault() { this.prevented = true; } };
-        listeners.document.get('turbo:before-visit')(visit);
-        assert.equal(asked, 1);
-        assert.equal(visit.prevented, true);
+
+        // "Cancel": the visit stays stopped, nothing visits
+        const first = visitEvent('/en/events');
+        listeners.document.get('turbo:before-visit')(first);
+        assert.equal(first.prevented, true, 'stopped while the dialog asks');
+        await Promise.resolve();
+        await Promise.resolve();
+        assert.deepEqual(asked, ['Leave?']);
+        assert.deepEqual(visits, [], 'no visit on Cancel');
+
+        // "Leave": exactly one visit to the same URL, not stopped again
+        const second = visitEvent('/en/hub');
+        listeners.document.get('turbo:before-visit')(second);
+        assert.equal(second.prevented, true);
+        await Promise.resolve();
+        await Promise.resolve();
+        assert.deepEqual(asked, ['Leave?', 'Leave?']);
+        assert.deepEqual(visits, [{ url: '/en/hub', prevented: false }]);
+
         teardown();
         assert.equal(listeners.window.size + listeners.document.size, 0);
     });

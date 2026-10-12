@@ -145,6 +145,10 @@ function run(scenario) {
             case 'turbo restore':
                 page.instrumentation.turboRestore();
                 break;
+            case 'dialog suppressed':
+                // The GEST-13 watchdog of assets/confirm_dialog.js
+                page.instrumentation.dialogSuppressed(step.detail);
+                break;
             case 'pageshow':
                 // A back/forward cache restore: the module does not run again, the browser updates the activation
                 if (step.activation && page.navigationApi) page.navigationApi.activation = step.activation;

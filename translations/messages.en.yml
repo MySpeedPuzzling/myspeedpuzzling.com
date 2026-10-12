@@ -9271,3 +9271,10 @@ nav:
     menu:
         title: "Menu"
         page_intro: "Every page and setting of MySpeedPuzzling in one place."
+
+confirm_dialog:
+    cancel: "Cancel"
+    confirm: "Confirm"
+
+barcode_scanner:
+    no_camera: "The camera is not available in this browser. Please try reloading the page."

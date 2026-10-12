@@ -70,16 +70,16 @@
                                         {% set reveal_now_question = puzzle.status.heldByAnotherRound and puzzle.status.heldLonger
                                             ? 'competition.reveal.confirm_reveal_now_held'
                                             : 'competition.reveal.confirm_reveal_now' %}
-                                        <form method="post" action="{{ path('reveal_round_puzzle_now', {roundPuzzleId: puzzle.roundPuzzleId}) }}" class="d-inline" onsubmit="return confirm('{{ reveal_now_question|trans|e('js') }}')">
+                                        <form method="post" action="{{ path('reveal_round_puzzle_now', {roundPuzzleId: puzzle.roundPuzzleId}) }}" class="d-inline" data-turbo-confirm="{{ reveal_now_question|trans }}">
                                             <input type="hidden" name="_token" value="{{ csrf_token('reveal_round_puzzle_' ~ puzzle.roundPuzzleId) }}">
-                                            <button type="submit" class="btn btn-sm btn-outline-primary">
+                                            <button type="submit" class="btn btn-sm btn-outline-primary" data-turbo-confirm-action="{{ 'competition.reveal.reveal_now'|trans }}">
                                                 <i class="bi bi-eye me-1"></i>{{ 'competition.reveal.reveal_now'|trans }}
                                             </button>
                                         </form>
                                     {% endif %}
-                                    <form method="post" action="{{ path('remove_puzzle_from_round', {'roundPuzzleId': puzzle.roundPuzzleId}) }}" class="d-inline" onsubmit="return confirm('{{ 'competition.confirm_remove_puzzle'|trans|e('js') }}')">
+                                    <form method="post" action="{{ path('remove_puzzle_from_round', {'roundPuzzleId': puzzle.roundPuzzleId}) }}" class="d-inline" data-turbo-confirm="{{ 'competition.confirm_remove_puzzle'|trans }}" data-turbo-confirm-danger>
                                         <input type="hidden" name="_token" value="{{ csrf_token('remove_puzzle_' ~ puzzle.roundPuzzleId) }}">
-                                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" data-turbo-confirm-action="{{ 'competition.remove'|trans }}">
                                             <i class="bi bi-trash me-1"></i>{{ 'competition.remove'|trans }}
                                         </button>
                                     </form>

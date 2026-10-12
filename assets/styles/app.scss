@@ -89,6 +89,9 @@
 // Seating of a round (docs/features/competitions-management/seating.md)
 @import 'seating';
 
+// In-page confirmations (docs/features/navigation GEST-13, assets/confirm_dialog.js)
+@import 'confirm-dialog';
+
 // Native app platform styles
 @import 'native';
 

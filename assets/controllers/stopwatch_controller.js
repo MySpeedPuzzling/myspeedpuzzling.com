@@ -1,4 +1,5 @@
 import { Controller } from '@hotwired/stimulus';
+import { confirmDialog } from '../confirm_dialog.js';
 
 // Milestone labels are player names: whatever a player typed is escaped before it goes into innerHTML
 const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({
@@ -165,9 +166,12 @@ export default class extends Controller {
         const stopwatchId = event.params.stopwatchId;
         if (!stopwatchId) return;
 
-        if (!confirm(this.labelDeleteConfirmValue)) return;
+        // Read before the question: the event is over once it is answered
+        const button = event.currentTarget;
+        const row = button.closest('.list-group-item');
 
-        const row = event.currentTarget.closest('.list-group-item');
+        // In-page dialog (GEST-13): iOS Safari refuses native ones after a Back to a pushState entry
+        if (!(await confirmDialog(this.labelDeleteConfirmValue, { danger: true, returnFocusTo: button }))) return;
 
         try {
             await this._apiPost(`/api/stopwatch/${stopwatchId}/reset`);

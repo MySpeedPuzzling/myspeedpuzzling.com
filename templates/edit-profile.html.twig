@@ -331,9 +331,9 @@
                                         <a href="{{ path('api_usage', {show: 'pat-' ~ token.id}) }}">{{ 'api_usage.requests_last_30_days'|trans({'%count%': api_usage.personalAccessToken(token.id)}) }}</a>
                                     </div>
                                 </div>
-                                <form method="post" action="{{ path('revoke_personal_access_token', {tokenId: token.id}) }}" onsubmit="return confirm('{{ 'edit_profile.pat_revoke_confirm'|trans }}')">
+                                <form method="post" action="{{ path('revoke_personal_access_token', {tokenId: token.id}) }}" data-turbo-confirm="{{ 'edit_profile.pat_revoke_confirm'|trans }}" data-turbo-confirm-danger>
                                     <input type="hidden" name="_token" value="{{ csrf_token('revoke_pat_' ~ token.id) }}">
-                                    <button type="submit" class="btn btn-outline-danger btn-sm">{{ 'edit_profile.revoke_access'|trans }}</button>
+                                    <button type="submit" class="btn btn-outline-danger btn-sm" data-turbo-confirm-action="{{ 'edit_profile.revoke_access'|trans }}">{{ 'edit_profile.revoke_access'|trans }}</button>
                                 </form>
                             </div>
                         </div>
@@ -377,9 +377,9 @@
                                     {% endfor %}
                                 </div>
                             </div>
-                            <form method="post" action="{{ path('revoke_oauth2_consent', {consentId: consent.id}) }}" onsubmit="return confirm('{{ 'edit_profile.revoke_confirm'|trans }}')">
+                            <form method="post" action="{{ path('revoke_oauth2_consent', {consentId: consent.id}) }}" data-turbo-confirm="{{ 'edit_profile.revoke_confirm'|trans }}" data-turbo-confirm-danger>
                                 <input type="hidden" name="_token" value="{{ csrf_token('revoke_oauth2_consent_' ~ consent.id) }}">
-                                <button type="submit" class="btn btn-outline-danger btn-sm">{{ 'edit_profile.revoke_access'|trans }}</button>
+                                <button type="submit" class="btn btn-outline-danger btn-sm" data-turbo-confirm-action="{{ 'edit_profile.revoke_access'|trans }}">{{ 'edit_profile.revoke_access'|trans }}</button>
                             </form>
                         </div>
                     {% endfor %}

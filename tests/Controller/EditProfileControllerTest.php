@@ -9,7 +9,9 @@ use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Entity\UserAccount;
+use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
+use SpeedPuzzling\Web\Tests\AssertsInPageConfirmations;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
@@ -23,6 +25,8 @@ use Symfony\Component\HttpFoundation\File\UploadedFile;
  */
 final class EditProfileControllerTest extends WebTestCase
 {
+    use AssertsInPageConfirmations;
+
     public function testAccountGetsTheCredentialCards(): void
     {
         $browser = self::createClient();
@@ -141,6 +145,46 @@ final class EditProfileControllerTest extends WebTestCase
         // It is neither the newsletter nor the chat digest
         self::assertTrue($player->newsletterEnabled);
         self::assertTrue($player->emailNotificationsEnabled);
+    }
+
+    /**
+     * GEST-13: revoking a token and unblocking a player ask in the in-page dialog, not through a native confirm.
+     */
+    public function testRevokeAndUnblockAskInThePage(): void
+    {
+        $browser = self::createClient();
+        $tokenId = Uuid::uuid7()->toString();
+
+        /** @var Connection $connection */
+        $connection = $browser->getContainer()->get(Connection::class);
+        $connection->update('player', ['fair_use_policy_accepted_at' => '2026-09-01 00:00:00'], ['id' => PlayerFixture::PLAYER_REGULAR]);
+        $connection->insert('personal_access_token', [
+            'id' => $tokenId,
+            'player_id' => PlayerFixture::PLAYER_REGULAR,
+            'name' => 'Confirm dialog test',
+            'token_hash' => hash('sha256', $tokenId),
+            'token_prefix' => 'msp_pat_abcd',
+            'fair_use_policy_accepted_at' => '2026-09-01 00:00:00',
+            'created_at' => '2026-09-01 00:00:00',
+        ]);
+
+        // PLAYER_REGULAR blocks PLAYER_PRIVATE (UserBlockFixture)
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+        $crawler = $browser->request('GET', '/en/edit-profile');
+
+        self::assertResponseIsSuccessful();
+        self::assertAsksInThePage($crawler, 2);
+
+        $revoke = $crawler->filter('form[action*="' . $tokenId . '"]');
+        self::assertCount(1, $revoke);
+        self::assertSame('Are you sure you want to revoke this token? It will stop working immediately.', $revoke->attr('data-turbo-confirm'));
+        self::assertSame('Revoke', $revoke->filter('button[type="submit"]')->attr('data-turbo-confirm-action'));
+        self::assertNotNull($revoke->attr('data-turbo-confirm-danger'));
+
+        $unblock = $crawler->filter('form[action*="' . PlayerFixture::PLAYER_PRIVATE . '"] button[type="submit"][data-turbo-confirm]');
+        self::assertCount(1, $unblock);
+        // Unblocking is no destructive action: the plain style
+        self::assertNull($unblock->attr('data-turbo-confirm-danger'));
     }
 
     private function seedNativeAccount(KernelBrowser $browser): UserAccount

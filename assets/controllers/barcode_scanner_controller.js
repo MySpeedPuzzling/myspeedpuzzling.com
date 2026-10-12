@@ -24,6 +24,8 @@ export default class extends Controller {
         continuous: { type: Boolean, default: false },
         autostart: { type: Boolean, default: false },
         cooldownMs: { type: Number, default: 2500 },
+        // "The camera is not available in this browser…" (barcode_scanner.no_camera) - shown in the page's toast
+        noCamera: { type: String, default: '' },
     };
 
     connect() {
@@ -83,6 +85,16 @@ export default class extends Controller {
         }
     }
 
+    // No camera API: an in-page notice (decision 96) - never a native alert, iOS Safari refuses those after a Back to
+    // a pushState entry (GEST-13)
+    _noCameraNotice() {
+        if (this.noCameraValue === '') {
+            return;
+        }
+
+        document.dispatchEvent(new CustomEvent('toast:show', { detail: { message: this.noCameraValue, type: 'error' } }));
+    }
+
     // A page can hold several scanners (global search, a form in a modal): the native result goes to the one opened last
     _claimNativeCallbacks() {
         window.onNativeScanResult = this._nativeScanResult;
@@ -108,7 +120,7 @@ export default class extends Controller {
 
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
             console.error('Camera API not available');
-            alert('Camera is not available in this browser. Please try reloading the page.');
+            this._noCameraNotice();
             return;
         }
 
@@ -650,7 +662,7 @@ export default class extends Controller {
     initWebScanner() {
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
             console.error('Camera API not available');
-            alert('Camera is not available in this browser. Please try reloading the page.');
+            this._noCameraNotice();
             return;
         }
 

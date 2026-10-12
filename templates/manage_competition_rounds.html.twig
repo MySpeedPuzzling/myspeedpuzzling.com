@@ -54,9 +54,9 @@
                                         <a href="{{ path('edit_competition_round', {'roundId': round.id, return: roundsReturnUrl, return_title: roundsReturnTitle}) }}" class="btn btn-sm btn-outline-primary">
                                             <i class="bi bi-pencil"></i>
                                         </a>
-                                        <form method="post" action="{{ path('delete_competition_round', {'roundId': round.id}) }}" class="d-inline" onsubmit="return confirm('{{ 'competition.confirm_delete_round'|trans }}')">
+                                        <form method="post" action="{{ path('delete_competition_round', {'roundId': round.id}) }}" class="d-inline" data-turbo-confirm="{{ 'competition.confirm_delete_round'|trans }}" data-turbo-confirm-danger>
                                             <input type="hidden" name="_token" value="{{ csrf_token('delete_round_' ~ round.id) }}">
-                                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger" data-turbo-confirm-action="{{ 'forms.delete'|trans }}">
                                                 <i class="bi bi-trash"></i>
                                             </button>
                                         </form>

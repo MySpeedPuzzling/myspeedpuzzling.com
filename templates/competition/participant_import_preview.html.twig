@@ -42,9 +42,9 @@
                             <strong>{{ stashed.fileName }}</strong>
                             <span class="text-muted small ms-1">{{ (prefix ~ 'uploaded_at')|trans({'%date%': stashed.storedAt|format_datetime('medium', 'short')}) }}</span>
                         </div>
-                        <form method="post" action="{{ path('participant_import_discard', {competitionId: competition.id, token: stashed.token}) }}" data-turbo-frame="_top" onsubmit="return confirm('{{ (prefix ~ 'start_over_confirm')|trans|e('js') }}')">
+                        <form method="post" action="{{ path('participant_import_discard', {competitionId: competition.id, token: stashed.token}) }}" data-turbo-frame="_top" data-turbo-confirm="{{ (prefix ~ 'start_over_confirm')|trans }}" data-turbo-confirm-danger>
                             <input type="hidden" name="_token" value="{{ csrf }}">
-                            <button type="submit" class="btn btn-outline-secondary btn-sm">
+                            <button type="submit" class="btn btn-outline-secondary btn-sm" data-turbo-confirm-action="{{ (prefix ~ 'start_over')|trans }}">
                                 <i class="bi bi-arrow-counterclockwise me-1"></i>{{ (prefix ~ 'start_over')|trans }}
                             </button>
                         </form>

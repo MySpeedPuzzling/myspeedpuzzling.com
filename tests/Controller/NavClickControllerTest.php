@@ -100,6 +100,41 @@ final class NavClickControllerTest extends WebTestCase
     }
 
     /**
+     * GEST-13: the watchdog of assets/confirm_dialog.js - a native confirm() an iPhone answered `false` at once.
+     */
+    public function testASuppressedDialogIsLogged(): void
+    {
+        [$browser, $log] = self::clientWithNavigationLog();
+
+        self::beacon($browser, ['k' => 'dialog_suppressed', 'afterLayerBack' => true, 'afterRestore' => false]);
+        // GEST-15 sends its restore kind: not known here yet, logged as null - the line stays
+        self::beacon($browser, ['k' => 'dialog_suppressed', 'afterLayerBack' => 'yes', 'afterRestore' => 'snapshot', 'wd' => true]);
+
+        self::assertResponseStatusCodeSame(204);
+        self::assertNull($browser->getResponse()->headers->get('Set-Cookie'));
+        self::assertSame('Navigation dialog suppressed', $log->getRecords()[0]->message);
+        self::assertSame('INFO', $log->getRecords()[0]->level->getName());
+        self::assertSame([
+            [
+                'kind' => 'dialog_suppressed',
+                'after_layer_back' => true,
+                'after_restore' => false,
+                'page' => '/en/faq',
+                'layout' => 'phone',
+                'webdriver' => false,
+            ],
+            [
+                'kind' => 'dialog_suppressed',
+                'after_layer_back' => false,
+                'after_restore' => null,
+                'page' => '/en/faq',
+                'layout' => 'phone',
+                'webdriver' => true,
+            ],
+        ], self::contexts($log));
+    }
+
+    /**
      * Optional fields the script could not fill are logged as unknown, the line stays.
      */
     public function testUnknownOptionalValuesAreNotTrusted(): void
@@ -170,6 +205,7 @@ final class NavClickControllerTest extends WebTestCase
         yield 'page too long' => [['page' => str_repeat('/faq', 76)] + $click];
         yield 'unknown viewport bucket' => [['v' => 1, 'k' => 'viewport', 'bucket' => '360', 'pointer' => 'coarse', 'page' => '/en/faq']];
         yield 'unknown history kind' => [['v' => 1, 'k' => 'history', 'via' => 'swipe', 'dir' => 'back', 'page' => '/en/faq']];
+        yield 'suppressed dialog with a whole URL' => [['v' => 1, 'k' => 'dialog_suppressed', 'afterLayerBack' => true, 'afterRestore' => false, 'page' => 'https://evil.example/en/faq']];
         yield 'over 1 KB' => [['padding' => str_repeat('x', 1024)] + $click];
     }
 

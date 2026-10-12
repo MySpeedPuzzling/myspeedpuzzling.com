@@ -1,6 +1,7 @@
 /* stimulusFetch: 'lazy' */
 import { Controller } from '@hotwired/stimulus';
 import { formatResultTime, parseResultTime } from '../official_results_time.js';
+import { confirmDialog, guardLeave } from '../confirm_dialog.js';
 import { isGone, newClientId, officialResultsRequest } from '../official_results_api.js';
 import { createIndexedDbStorage, createMemoryStorage, createTabLock, Outbox, STUCK_AFTER_ATTEMPTS } from '../official_results_outbox.js';
 import { OfficialResultsEvents } from '../official_results_events.js';
@@ -166,9 +167,10 @@ export default class extends Controller {
             const liveResults = new URL(this.liveUrl(UUID_PLACEHOLDER).replace(UUID_PLACEHOLDER, ''), window.location.href).pathname;
 
             // Another live entry page sends this device's changes too - only leaving the tool asks
-            // (leaving from a view over the find view replaces its history entry: assets/layer_history.js)
-            if (this.outbox.hasUnsent() && !target.startsWith(liveResults) && !window.confirm(this.t('leaveUnsent'))) {
-                event.preventDefault();
+            // (leaving from a view over the find view replaces its history entry: assets/layer_history.js). In-page
+            // dialog (GEST-13): the visit waits for the answer and goes on after a yes
+            if (this.outbox.hasUnsent() && !target.startsWith(liveResults)) {
+                guardLeave(event, this.t('leaveUnsent'));
             }
         };
         this.onLayerClose = ({ reason }) => {
@@ -1533,19 +1535,23 @@ export default class extends Controller {
         });
     }
 
-    discard(event) {
+    async discard(event) {
+        // Read before the question: the event is over once it is answered
+        const button = event.currentTarget;
+        const id = button.dataset.id;
+
         // Never sent anywhere: a change set apart for missing rights, or of another event, goes only when confirmed
-        if (event.currentTarget.dataset.confirm === '1' && !window.confirm(this.t('discardConfirm'))) {
+        if (button.dataset.confirm === '1' && !(await confirmDialog(this.t('discardConfirm'), { danger: true, returnFocusTo: button }))) {
             return;
         }
 
-        this.outbox.remove(event.currentTarget.dataset.id).finally(() => this.broadcast());
+        this.outbox.remove(id).finally(() => this.broadcast());
     }
 
-    discardForbidden() {
+    async discardForbidden(event) {
         const count = this.outbox.status().forbidden;
 
-        if (count === 0 || !window.confirm(this.plural('discardAllConfirm', count))) {
+        if (count === 0 || !(await confirmDialog(this.plural('discardAllConfirm', count), { danger: true, returnFocusTo: event?.currentTarget }))) {
             return;
         }
 

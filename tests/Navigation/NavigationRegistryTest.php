@@ -160,11 +160,12 @@ final class NavigationRegistryTest extends WebTestCase
         foreach ($this->registry()->all() as $entry) {
             if ($entry->englishOnly) {
                 self::assertTrue($entry->visibility->isRole(), sprintf('Entry "%s": englishOnly is only for moderator and admin rows', $entry->id));
-                self::assertNotSame('', trim($entry->label), $entry->id);
+                // A nav_admin.* key holding the English label in every locale (MENU-01; the pages are English-only)
+                self::assertSame('nav_admin.' . $entry->id, $entry->label, $entry->id);
+                self::assertTrue($catalogue->has($entry->label), sprintf('Entry "%s": label key "%s" is not in the en catalogue', $entry->id, $entry->label));
 
-                if (!$catalogue->has($entry->label)) {
-                    // Today's admin key menu hard-codes English labels; until nav_admin.* keys exist the label is the text
-                    self::assertDoesNotMatchRegularExpression('/^[a-z0-9_]+(\.[a-z0-9_]+)+$/', $entry->label, sprintf('Entry "%s": "%s" looks like a missing key', $entry->id, $entry->label));
+                foreach (self::LOCALES as $locale) {
+                    self::assertSame($translator->trans($entry->label, [], null, 'en'), $translator->trans($entry->label, [], null, $locale), $entry->id . ' ' . $locale);
                 }
             } else {
                 self::assertTrue($catalogue->has($entry->label), sprintf('Entry "%s": label key "%s" is not in the en catalogue', $entry->id, $entry->label));
@@ -231,11 +232,12 @@ final class NavigationRegistryTest extends WebTestCase
         }
 
         // The audiences that need a signed-in viewer besides the XP gate say so themselves
-        foreach ([NavVisibility::XpPlayer, NavVisibility::XpParticipant, NavVisibility::KarmaHolder] as $visibility) {
+        foreach ([NavVisibility::XpPlayer, NavVisibility::XpParticipant, NavVisibility::AchievementsShown, NavVisibility::KarmaHolder] as $visibility) {
             self::assertFalse($visibility->includesGuests(), $visibility->value);
         }
 
-        self::assertSame(NavVisibility::XpPlayer, $registry->byId('achievements')?->visibility);
+        // MENU-01: your Achievements row is gone too when you hid your achievements (AchievementsOptOutTest)
+        self::assertSame(NavVisibility::AchievementsShown, $registry->byId('achievements')?->visibility);
         self::assertSame(NavVisibility::XpPlayer, $registry->byId('your_week')?->visibility);
     }
 
@@ -243,12 +245,13 @@ final class NavigationRegistryTest extends WebTestCase
     {
         $registry = $this->registry();
 
-        // Group headings fall back to their English names until MENU-01 adds the nav.group.* keys
-        self::assertSame('☰ › Account › Export data', $registry->menuPath('your_data', 'en'));
-        self::assertSame('☰ › Account › Edit profile › Password', $registry->menuPath('change_password', 'en'));
-        self::assertSame('☰ › Notifications', $registry->menuPath('inbox', 'en'));
+        // Group headings and rows read their nav.group.* / nav.row.* keys (MENU-01); role rows stay English everywhere
+        self::assertSame('☰ › Account › Your data', $registry->menuPath('your_data', 'en'));
+        self::assertSame('☰ › Účet › Tvoje data', $registry->menuPath('your_data', 'cs'));
+        self::assertSame('☰ › Account › Settings › Password', $registry->menuPath('change_password', 'en'));
+        self::assertSame('☰ › Inbox', $registry->menuPath('inbox', 'en'));
         self::assertSame('☰ › Home', $registry->menuPath('home', 'en'));
-        self::assertSame('☰ › Your roles › Time verification', $registry->menuPath('mod_time_verification', 'cs'));
+        self::assertSame('☰ › Tvoje role › Time verification', $registry->menuPath('mod_time_verification', 'cs'));
         self::assertNull($registry->menuPath('puzzle_page', 'en'));
         self::assertNull($registry->menuPath('no_such_entry', 'en'));
     }

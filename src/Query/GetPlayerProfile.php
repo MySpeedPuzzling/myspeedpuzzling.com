@@ -139,6 +139,7 @@ SQL;
         $comparisonLineUp = self::sqlComparisonLineUpOf('player');
         $runningStopwatch = self::sqlRunningStopwatchOf('player');
         $dismissedNavigationHints = self::sqlDismissedNavigationHintsOf('player');
+        $organizesEvents = OrganizerSql::organizesAnything('player.id');
 
         $query = <<<SQL
 SELECT
@@ -206,7 +207,9 @@ SELECT
     -- "New since your last visit" on the Hub's Favorites feed (docs/features/navigation, INB-04a)
     player.favorites_seen_at,
     -- The navigation pointers the viewer dismissed (docs/features/navigation, INB-05/LAUNCH-03) - no query per pointer
-    {$dismissedNavigationHints} AS dismissed_navigation_hints
+    {$dismissedNavigationHints} AS dismissed_navigation_hints,
+    -- Whether the Menu shows "Events you organize" (docs/features/navigation README §4.12, MENU-01) - no query per page
+    {$organizesEvents} AS organizes_events
 FROM player
 LEFT JOIN user_account ON user_account.user_id = player.user_id
 LEFT JOIN membership ON membership.player_id = player.id

@@ -2,16 +2,18 @@
 
 {#
     The Menu as a page (docs/features/navigation README §4.12, MENU-02a): the no-JS / new tab / deep link fallback of
-    the Menu panel, and the native app's Menu screen. Skeleton: heading and intro. MENU-01 renders the Menu partial
-    below them as the page's content (id site-menu, phone order, every row) and sets nav_menu_slot_off.
+    the Menu panel, and the native app's Menu screen. The Menu partial (MENU-01) is the page's content: the page's one
+    #site-menu, phone rows in phone order (surface 'page') - so the slot copy is not rendered here (nav_menu_slot_off).
 #}
+{% set nav_menu_slot_off = true %}
 
 {% block title %}{{ 'nav.menu.title'|trans }}{% endblock %}
 {% block robots %}<meta name="robots" content="noindex, follow">{% endblock %}
 
 {% block content %}
-    <div class="menu-page mx-auto" style="max-width: 40rem;">
+    <div class="menu-page mx-auto">
         <h1 class="mb-2">{{ 'nav.menu.title'|trans }}</h1>
-        <p class="mb-0">{{ 'nav.menu.page_intro'|trans }}</p>
+        <p class="mb-3">{{ 'nav.menu.page_intro'|trans }}</p>
+        {{ include('navigation/_menu.html.twig', {surface: 'page'}, with_context = false) }}
     </div>
 {% endblock %}

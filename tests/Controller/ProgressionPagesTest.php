@@ -76,7 +76,8 @@ final class ProgressionPagesTest extends WebTestCase
         $crawler = $browser->request('GET', '/en/faq');
 
         self::assertResponseIsSuccessful();
-        $menu = $crawler->filter('.navbar-tool.dropdown .dropdown-menu');
+        // The Menu's Your puzzling and Help & learn rows (MENU-01)
+        $menu = $crawler->filter('#site-menu');
         self::assertCount(1, $menu->filter('a[href="/en/player-achievements/' . PlayerFixture::PLAYER_WITH_STRIPE . '"]'));
         self::assertCount(1, $menu->filter('a[href="/en/my/xp-history"]'));
         // The hub is top-level: the menu link carries the page it was opened on, for its back button

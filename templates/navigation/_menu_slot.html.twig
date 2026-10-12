@@ -1,0 +1,7 @@
+{#- The docked-column slot (README §4.3, §4.12): where the page's one #site-menu lives server-side. Hidden by critical CSS
+    wherever there is no column (everywhere until NAV-13 docks it); the phone panel (MENU-02b) and the desktop overlay
+    (NAV-13) move the same element into their shell and back - never a second copy. The `menu` page renders the Menu as
+    its content and sets nav_menu_slot_off, so the page still holds exactly one. Inside nav_chrome: web only. -#}
+{%- if not (nav_menu_slot_off ?? false) -%}
+<div class="menu-slot" id="menu-slot">{{ include('navigation/_menu.html.twig', {surface: 'slot'}, with_context = false) }}</div>
+{%- endif -%}

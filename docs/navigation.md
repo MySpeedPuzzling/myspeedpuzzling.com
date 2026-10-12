@@ -19,13 +19,13 @@ Every destination linked by a navigation surface (bars, rail, the Menu, the acco
 
 | Pos | Entry | Label | Target | Audience | Kind | Count | Place | Rule | Since | Reason |
 |---|---|---|---|---|---|---|---|---|---|---|
-| 10 | `inbox` | Notifications | `notifications`; also active on conversations_list, conversation_detail | signed_in | link | inbox_badge | none | Q5 | 2026-10-12 | Inbox = notifications and messages with one badge (D3). Also: top bar Inbox tool |
+| 10 | `inbox` | Inbox | `notifications`; also active on conversations_list, conversation_detail | signed_in | link | inbox_badge | none | Q5 | 2026-10-12 | Inbox = notifications and messages with one badge (D3). Also: top bar Inbox tool |
 
 ### Your roles
 
 | Pos | Entry | Label | Target | Audience | Kind | Count | Place | Rule | Since | Reason |
 |---|---|---|---|---|---|---|---|---|---|---|
-| 10 | `organized_events` | You organize | `organized_events` | organiser | link | lazy_organised | community/events | Q3 | 2026-10-12 | Events you organize, for organisers only; also the "You organize" button on the events page. Also: events page "You organize" button |
+| 10 | `organized_events` | Events you organize | `organized_events` | organiser | link | lazy_organised | community/events | Q3 | 2026-10-12 | Events you organize, for organisers only; also the "You organize" button on the events page. Also: events page "You organize" button |
 | 20 | `mod_change_requests` | Puzzle Change Requests (English) | `admin_puzzle_change_requests`; also active on admin_puzzle_change_request_detail | moderator | link | queue_change_requests | none | Q3 | 2026-10-12 | Review queue or admin page: holders only, moved from the admin key menu |
 | 30 | `mod_merge_requests` | Puzzle Merge Requests (English) | `admin_puzzle_merge_requests`; also active on admin_puzzle_merge_request_detail | moderator | link | queue_merge_requests | none | Q3 | 2026-10-12 | Review queue or admin page: holders only, moved from the admin key menu |
 | 40 | `mod_puzzle_approvals` | Puzzle Approvals (English) | `admin_puzzle_approvals`; also active on admin_puzzle_approval_detail, admin_edit_puzzle, admin_puzzle_history | moderator | link | queue_puzzle_approvals | none | Q3 | 2026-10-12 | Review queue or admin page: holders only, moved from the admin key menu |
@@ -45,14 +45,14 @@ Every destination linked by a navigation surface (bars, rail, the Menu, the acco
 
 | Pos | Entry | Label | Target | Audience | Kind | Count | Place | Rule | Since | Reason |
 |---|---|---|---|---|---|---|---|---|---|---|
-| 10 | `results` | Solved puzzles | `player_results` {playerId: viewer} | signed_in | link |  | profile | Q8 | 2026-10-12 | About one player, others may see it: player tab; your own also a Menu row (README §4.7). Also: player header tab Results; Overview "All N results" |
+| 10 | `results` | Results | `player_results` {playerId: viewer} | signed_in | link |  | profile | Q8 | 2026-10-12 | About one player, others may see it: player tab; your own also a Menu row (README §4.7). Also: player header tab Results; Overview "All N results" |
 | 20 | `favorites` | Favorites | `player_favorite_puzzlers` {playerId: viewer} | signed_in | link |  | profile | Q8 | 2026-10-12 | Owner-only view of your own data: player tab and Menu row. Also: player header tab Favorites |
 | 30 | `statistics` | Statistics | `player_statistics` {playerId: viewer} | signed_in | link |  | profile | Q8 | 2026-10-12 | About one player, others may see it: player tab; your own also a Menu row. Also: player header tab Statistics |
 | 40 | `compare` | Compare | `comparison`; also active on compare_players | signed_in | link | line_up | community/puzzlers | Q8 | 2026-10-12 | Your line-ups (Community › Puzzlers is its home, README §7). Also: player header compare button; Players page |
 | 50 | `review_results` | Review your results | `review_results`; also active on first_try_conflicts | signed_in | link | lazy_review | profile | Q8 | 2026-10-12 | Owner manages own results (duplicates, first tries, verification). Also: Hub banner; own profile banner |
 | 60 | `pairs_and_teams` | Pairs & teams | `pairs_and_teams`; also active on pairs_and_teams_guest_link | signed_in | link |  | profile | Q8 | 2026-10-12 | Owner manages own pairs, teams and guests |
 | 70 | `calendar` | Calendar | `activity_calendar` {playerId: viewer} | signed_in | link |  | profile | Q8 | 2026-10-12 | About one player: player tab; your own also a Menu row. Also: player header tab Calendar |
-| 80 | `achievements` | Achievements | `player_achievements` {playerId: viewer}; also active on badge_reveals | xp_player | link |  | profile | Q8 | 2026-10-12 | About one player: player tab; your own also a Menu row (XP gate). Also: player header tab Achievements |
+| 80 | `achievements` | Achievements | `player_achievements` {playerId: viewer}; also active on badge_reveals | achievements_shown | link |  | profile | Q8 | 2026-10-12 | About one player: player tab; your own also a Menu row (XP gate, achievements not hidden). Also: player header tab Achievements |
 | 90 | `level_xp` | Level & XP | `xp_history`; also active on xp_launch_reveal | xp_participant | link | level | profile | Q8 | 2026-10-12 | Owner-only view of your own XP (XP gate, not opted out) |
 | 100 | `karma` | Karma | `karma_history` | karma_holder | link | karma | profile | Q8 | 2026-10-12 | Owner-only view of your own karma (holders who did not hide it) |
 | 110 | `your_week` | Your week | `my_activity` | xp_player | link |  | profile | Q8 | 2026-10-12 | Owner-only view of your own week (XP gate) |
@@ -67,7 +67,7 @@ Every destination linked by a navigation surface (bars, rail, the Menu, the acco
 | 40 | `unsolved` | Unsolved | `unsolved_puzzles_detail` {playerId: viewer}; also active on edit_unsolved_puzzles | signed_in | link |  | puzzles/library | Q8 | 2026-10-12 | Owner manages own puzzles: a list of the library |
 | 50 | `sell_swap` | Sell / swap | `sell_swap_list_detail` {playerId: viewer}; also active on edit_sell_swap_list_settings | signed_in | link |  | puzzles/library | Q8 | 2026-10-12 | Owner manages own puzzles: a list of the library |
 | 60 | `solved` | Solved | `solved_puzzles_detail` {playerId: viewer}; also active on edit_solved_puzzles | signed_in | link |  | puzzles/library | Q8 | 2026-10-12 | Owner manages own puzzles: a list of the library |
-| 70 | `lent_borrowed` | Lend & Borrow | `lend_borrow_list_detail` {playerId: viewer}; also active on edit_lend_borrow_list_settings | signed_in | link |  | puzzles/library | Q8 | 2026-10-12 | Owner manages own puzzles: a list of the library |
+| 70 | `lent_borrowed` | Lent & borrowed | `lend_borrow_list_detail` {playerId: viewer}; also active on edit_lend_borrow_list_settings | signed_in | link |  | puzzles/library | Q8 | 2026-10-12 | Owner manages own puzzles: a list of the library |
 | 80 | `wishlist` | Wishlist | `wish_list_detail` {playerId: viewer}; also active on edit_wish_list | signed_in | link |  | puzzles/library | Q8 | 2026-10-12 | Owner manages own puzzles: a list of the library |
 
 ### Community
@@ -76,18 +76,18 @@ Every destination linked by a navigation surface (bars, rail, the Menu, the acco
 |---|---|---|---|---|---|---|---|---|---|---|
 | 10 | `leaderboards` | Leaderboards | `ladder`; also active on ladder_country, ladder_solo_500_pieces, ladder_solo_500_pieces_country, ladder_solo_1000_pieces, ladder_solo_1000_pieces_country, ladder_pairs_500_pieces, ladder_pairs_500_pieces_country, ladder_pairs_1000_pieces, ladder_pairs_1000_pieces_country, ladder_groups_500_pieces, ladder_groups_500_pieces_country, ladder_groups_1000_pieces, ladder_groups_1000_pieces_country | everyone | link |  | community/leaderboards | Q9 | 2026-10-12 | Rankings are community content (Community › Leaderboards). Also: Community landing; section chips |
 | 20 | `msp_rating` | MSP Rating | `msp_rating_ladder`; also active on legacy_msp_elo_ladder | everyone | link |  | community/leaderboards | Q9 | 2026-10-12 | A ranking: Community › Leaderboards |
-| 30 | `level_boards` | Level leaderboard | `level_leaderboard`; also active on achievement_points_leaderboard, karma_leaderboard, legacy_xp_leaderboard | xp_visible | link |  | community/leaderboards | Q9 | 2026-10-12 | Level, achievement and karma boards: Community › Leaderboards (XP gate) |
-| 40 | `puzzlers` | Players | `players`; also active on players_per_country | everyone | link |  | community/puzzlers | Q9 | 2026-10-12 | People: Community › Puzzlers. Also: Community landing; section chips |
+| 30 | `level_boards` | Level & achievement boards | `level_leaderboard`; also active on achievement_points_leaderboard, karma_leaderboard, legacy_xp_leaderboard | xp_visible | link |  | community/leaderboards | Q9 | 2026-10-12 | Level, achievement and karma boards: Community › Leaderboards (XP gate) |
+| 40 | `puzzlers` | Puzzlers | `players`; also active on players_per_country | everyone | link |  | community/puzzlers | Q9 | 2026-10-12 | People: Community › Puzzlers. Also: Community landing; section chips |
 | 50 | `all_puzzlers` | All puzzlers | `players_directory` | everyone | link |  | community/puzzlers | Q9 | 2026-10-12 | People: Community › Puzzlers |
 | 60 | `events` | Events | `events`; also active on events_archive, event_detail, event_round_results, competition_series_detail, edition_detail, edition_detail_legacy, edition_round_results | everyone | link |  | community/events | Q9 | 2026-10-12 | Events: Community › Events. Also: Community landing; section chips |
 | 70 | `organizations` | Organizations | `organizations`; also active on organization_detail | everyone | link |  | community/events | Q9 | 2026-10-12 | Events: Community › Events |
-| 80 | `latest_times` | Latest Puzzle Times | `recent_activity` | everyone | link |  | home | Q9 | 2026-10-12 | Everyone's latest times (its page belongs to Home, README §3). Also: Hub feed |
+| 80 | `latest_times` | Latest times | `recent_activity` | everyone | link |  | home | Q9 | 2026-10-12 | Everyone's latest times (its page belongs to Home, README §3). Also: Hub feed |
 
 ### Puzzles
 
 | Pos | Entry | Label | Target | Audience | Kind | Count | Place | Rule | Since | Reason |
 |---|---|---|---|---|---|---|---|---|---|---|
-| 10 | `all_puzzles` | Puzzle database | `puzzles`; also active on puzzles_plural_redirect | everyone | link |  | puzzles/all | Q9 | 2026-10-12 | The catalogue: Puzzles › All puzzles. Also: Puzzles › All puzzles chip |
+| 10 | `all_puzzles` | All puzzles | `puzzles`; also active on puzzles_plural_redirect | everyone | link |  | puzzles/all | Q9 | 2026-10-12 | The catalogue: Puzzles › All puzzles. Also: Puzzles › All puzzles chip |
 | 20 | `brands` | Brands | `puzzle_brands`; also active on brand_puzzles, brand_puzzles_page, brand_pieces_puzzles, brand_pieces_puzzles_page, brand_easiest_puzzles, brand_hardest_puzzles, pieces_puzzles, pieces_puzzles_page, pieces_easiest_puzzles, pieces_hardest_puzzles | everyone | link |  | puzzles | Q9 | 2026-10-12 | The catalogue by brand and piece count |
 | 30 | `marketplace` | Marketplace | `marketplace`; also active on marketplace_puzzle | everyone | link |  | puzzles/marketplace | Q9 | 2026-10-12 | Offers of puzzles: Puzzles › Marketplace. Also: Puzzles › Marketplace chip |
 
@@ -97,7 +97,7 @@ Every destination linked by a navigation surface (bars, rail, the Menu, the acco
 |---|---|---|---|---|---|---|---|---|---|---|
 | 10 | `add` | Add | `puzzle_add` (guests: `add_intro`); also active on legacy_add_time, edit_time, added_time_recap, added_tracking_recap | everyone | link |  | add | Q4 | 2026-10-12 | Records a time or a puzzle: the Add page (D7); also the Add tab and the + Add button. Also: Add tab; desktop + Add button |
 | 20 | `stopwatch` | Stopwatch | `stopwatch`; also active on stopwatch_puzzle, finish_stopwatch | signed_in | link | stopwatch | add | Q4 | 2026-10-12 | Records a time: Add › Speed puzzling › Use the stopwatch. Also: Add page; running stopwatch pill |
-| 30 | `multiscan` | Scanning | `multiscan` | signed_in | link |  | add | Q4 | 2026-10-12 | Records puzzles: Add › Collection › Scan several boxes. Also: Add page |
+| 30 | `multiscan` | Scan several boxes | `multiscan` | signed_in | link |  | add | Q4 | 2026-10-12 | Records puzzles: Add › Collection › Scan several boxes. Also: Add page |
 | 40 | `add_event` | Add Event | `add_competition` | signed_in | link |  | community/events | Q4 | 2026-10-12 | Creates an event; also the button on the events page. Also: events page button |
 
 ### Account
@@ -105,9 +105,9 @@ Every destination linked by a navigation surface (bars, rail, the Menu, the acco
 | Pos | Entry | Label | Target | Audience | Kind | Count | Place | Rule | Since | Reason |
 |---|---|---|---|---|---|---|---|---|---|---|
 | 10 | `membership` | Membership | `membership`; also active on buy_membership, free_trial_started, stripe_checkout_success | signed_in | link | membership_status | profile | Q6 | 2026-10-12 | Your membership and its status; guests reach it from the footer. Also: You card status line; avatar ▾ menu |
-| 20 | `settings` | Edit profile | `edit_profile`; also active on edit_player_code | signed_in | link |  | profile | Q6 | 2026-10-12 | Configures your account (name, photo, country, sign-in, privacy, e-mails). Also: You card ⚙; profile header Edit profile |
+| 20 | `settings` | Settings | `edit_profile`; also active on edit_player_code | signed_in | link |  | profile | Q6 | 2026-10-12 | Configures your account (name, photo, country, sign-in, privacy, e-mails). Also: You card ⚙; profile header Edit profile |
 | 30 | `referral` | Referral Program | `affiliate_dashboard` | member_or_referral | link |  | profile | Q6 | 2026-10-12 | Members or players in the programme only |
-| 40 | `your_data` | Export data | `export_puzzler_data` {playerId: viewer} | signed_in | link |  | profile | Q6 | 2026-10-12 | Export results and library, delete the account |
+| 40 | `your_data` | Your data | `export_puzzler_data` {playerId: viewer} | signed_in | link |  | profile | Q6 | 2026-10-12 | Export results and library, delete the account |
 | 50 | `blocked_players` | Blocked players | `blocked_users` | signed_in | link |  | profile | Q6 | 2026-10-12 | Configures who you see |
 | 60 | `profile_viewers` | Who can see my profile | `private_profile_viewers` | private_member | link |  | profile | Q6 | 2026-10-12 | Configures who sees your private profile (members with a private profile) |
 
@@ -116,8 +116,8 @@ Every destination linked by a navigation surface (bars, rail, the Menu, the acco
 | Pos | Entry | Label | Target | Audience | Kind | Count | Place | Rule | Since | Reason |
 |---|---|---|---|---|---|---|---|---|---|---|
 | 10 | `send_feedback` | Send feedback | `help` | signed_in | help_sheet |  | none | Q7 | 2026-10-12 | Collects feedback: opens the Help sheet (D17); guests get "Sign in to send feedback" there. Also: top bar ? / Feedback; end-of-page line |
-| 20 | `methodology` | Difficulty & Rating Methodology | `methodology` | everyone | link |  | none | Q7 | 2026-10-12 | Explains or helps: Help & learn (and the Help sheet) |
-| 30 | `feature_requests` | Feature Requests | `feature_requests`; also active on feature_request_detail, feature_request_edit | everyone | link |  | none | Q7 | 2026-10-12 | Explains or helps: Help & learn (and the Help sheet) |
+| 20 | `methodology` | Difficulty & ratings | `methodology` | everyone | link |  | none | Q7 | 2026-10-12 | Explains or helps: Help & learn (and the Help sheet) |
+| 30 | `feature_requests` | Ideas & feature requests | `feature_requests`; also active on feature_request_detail, feature_request_edit | everyone | link |  | none | Q7 | 2026-10-12 | Explains or helps: Help & learn (and the Help sheet) |
 | 40 | `getting_started` | Getting started | `getting_started` | everyone | link |  | none | Q7 | 2026-10-12 | Explains or helps: Help & learn (and the Help sheet) |
 | 50 | `faq` | FAQ | `faq` | everyone | link |  | none | Q7 | 2026-10-12 | Explains or helps: Help & learn (and the Help sheet) |
 | 60 | `guides` | Speed Puzzling Guides | `guides`; also active on guide_average_puzzle_time, guide_puzzle_time_by_pieces, guide_puzzle_time_for_pieces, guide_puzzle_time_pairs_and_teams, guide_speed_puzzling_tips, guide_what_is_speed_puzzling | everyone | link |  | none | Q7 | 2026-10-12 | Explains or helps: Help & learn (and the Help sheet) |
@@ -130,11 +130,11 @@ Every destination linked by a navigation surface (bars, rail, the Menu, the acco
 | Pos | Entry | Label | Target | Audience | Kind | Count | Place | Rule | Since | Reason |
 |---|---|---|---|---|---|---|---|---|---|---|
 | 10 | `tracker_app` | Puzzle Tracker App | `puzzle_tracker_app` | everyone | link |  | none | Q7 | 2026-10-12 | About MySpeedPuzzling: footer and Menu › About |
-| 20 | `wjpc` | World Jigsaw Puzzle Championship | `wjpc_hub` | everyone | link |  | community/events | Q7 | 2026-10-12 | About MySpeedPuzzling: footer and Menu › About |
+| 20 | `wjpc` | World championship | `wjpc_hub` | everyone | link |  | community/events | Q7 | 2026-10-12 | About MySpeedPuzzling: footer and Menu › About |
 | 30 | `developers` | For Developers | `for_developers` | everyone | link |  | none | Q7 | 2026-10-12 | About MySpeedPuzzling: footer and Menu › About |
 | 40 | `organizers` | For Organizers | `for_organizers` | everyone | link |  | none | Q7 | 2026-10-12 | About MySpeedPuzzling: footer and Menu › About |
-| 50 | `legal_terms` | Terms of service | `terms_of_service` | everyone | legal |  | none | Q7 | 2026-10-12 | Legal: footer and Menu › About (one row of three links) |
-| 50 | `legal_privacy` | Privacy policy | `privacy_policy` | everyone | legal |  | none | Q7 | 2026-10-12 | Legal: footer and Menu › About (one row of three links) |
+| 50 | `legal_terms` | Terms | `terms_of_service` | everyone | legal |  | none | Q7 | 2026-10-12 | Legal: footer and Menu › About (one row of three links) |
+| 50 | `legal_privacy` | Privacy | `privacy_policy` | everyone | legal |  | none | Q7 | 2026-10-12 | Legal: footer and Menu › About (one row of three links) |
 | 50 | `legal_data_deletion` | Data deletion | `data_deletion` | everyone | legal |  | none | Q7 | 2026-10-12 | Legal: footer and Menu › About (one row of three links) |
 
 ### Log out
@@ -155,8 +155,8 @@ Every destination linked by a navigation surface (bars, rail, the Menu, the acco
 
 | Pos | Entry | Label | Target | Audience | Kind | Count | Place | Rule | Since | Reason |
 |---|---|---|---|---|---|---|---|---|---|---|
-| 0 | `puzzles_place` | Puzzle | `puzzles` | everyone | place |  | puzzles | Q10 | 2026-10-12 | Place Puzzles; the tab opens the last used section (D1, D6) |
-| 10 | `all_puzzles` | Puzzle database | `puzzles`; also active on puzzles_plural_redirect | everyone | link |  | puzzles/all | Q9 | 2026-10-12 | The catalogue: Puzzles › All puzzles. Also: Puzzles › All puzzles chip |
+| 0 | `puzzles_place` | Puzzles | `puzzles` | everyone | place |  | puzzles | Q10 | 2026-10-12 | Place Puzzles; the tab opens the last used section (D1, D6) |
+| 10 | `all_puzzles` | All puzzles | `puzzles`; also active on puzzles_plural_redirect | everyone | link |  | puzzles/all | Q9 | 2026-10-12 | The catalogue: Puzzles › All puzzles. Also: Puzzles › All puzzles chip |
 | 20 | `brands` | Brands | `puzzle_brands`; also active on brand_puzzles, brand_puzzles_page, brand_pieces_puzzles, brand_pieces_puzzles_page, brand_easiest_puzzles, brand_hardest_puzzles, pieces_puzzles, pieces_puzzles_page, pieces_easiest_puzzles, pieces_hardest_puzzles | everyone | link |  | puzzles | Q9 | 2026-10-12 | The catalogue by brand and piece count |
 | 30 | `marketplace` | Marketplace | `marketplace`; also active on marketplace_puzzle | everyone | link |  | puzzles/marketplace | Q9 | 2026-10-12 | Offers of puzzles: Puzzles › Marketplace. Also: Puzzles › Marketplace chip |
 
@@ -167,12 +167,12 @@ Every destination linked by a navigation surface (bars, rail, the Menu, the acco
 | 0 | `community_place` | Community | `community` | everyone | place |  | community | Q10 | 2026-10-12 | Place Community = its landing: Leaderboards · Puzzlers · Events (D1, README §4.9) |
 | 10 | `leaderboards` | Leaderboards | `ladder`; also active on ladder_country, ladder_solo_500_pieces, ladder_solo_500_pieces_country, ladder_solo_1000_pieces, ladder_solo_1000_pieces_country, ladder_pairs_500_pieces, ladder_pairs_500_pieces_country, ladder_pairs_1000_pieces, ladder_pairs_1000_pieces_country, ladder_groups_500_pieces, ladder_groups_500_pieces_country, ladder_groups_1000_pieces, ladder_groups_1000_pieces_country | everyone | link |  | community/leaderboards | Q9 | 2026-10-12 | Rankings are community content (Community › Leaderboards). Also: Community landing; section chips |
 | 20 | `msp_rating` | MSP Rating | `msp_rating_ladder`; also active on legacy_msp_elo_ladder | everyone | link |  | community/leaderboards | Q9 | 2026-10-12 | A ranking: Community › Leaderboards |
-| 30 | `level_boards` | Level leaderboard | `level_leaderboard`; also active on achievement_points_leaderboard, karma_leaderboard, legacy_xp_leaderboard | xp_visible | link |  | community/leaderboards | Q9 | 2026-10-12 | Level, achievement and karma boards: Community › Leaderboards (XP gate) |
-| 40 | `puzzlers` | Players | `players`; also active on players_per_country | everyone | link |  | community/puzzlers | Q9 | 2026-10-12 | People: Community › Puzzlers. Also: Community landing; section chips |
+| 30 | `level_boards` | Level & achievement boards | `level_leaderboard`; also active on achievement_points_leaderboard, karma_leaderboard, legacy_xp_leaderboard | xp_visible | link |  | community/leaderboards | Q9 | 2026-10-12 | Level, achievement and karma boards: Community › Leaderboards (XP gate) |
+| 40 | `puzzlers` | Puzzlers | `players`; also active on players_per_country | everyone | link |  | community/puzzlers | Q9 | 2026-10-12 | People: Community › Puzzlers. Also: Community landing; section chips |
 | 50 | `all_puzzlers` | All puzzlers | `players_directory` | everyone | link |  | community/puzzlers | Q9 | 2026-10-12 | People: Community › Puzzlers |
 | 60 | `events` | Events | `events`; also active on events_archive, event_detail, event_round_results, competition_series_detail, edition_detail, edition_detail_legacy, edition_round_results | everyone | link |  | community/events | Q9 | 2026-10-12 | Events: Community › Events. Also: Community landing; section chips |
 | 70 | `organizations` | Organizations | `organizations`; also active on organization_detail | everyone | link |  | community/events | Q9 | 2026-10-12 | Events: Community › Events |
-| 80 | `latest_times` | Latest Puzzle Times | `recent_activity` | everyone | link |  | home | Q9 | 2026-10-12 | Everyone's latest times (its page belongs to Home, README §3). Also: Hub feed |
+| 80 | `latest_times` | Latest times | `recent_activity` | everyone | link |  | home | Q9 | 2026-10-12 | Everyone's latest times (its page belongs to Home, README §3). Also: Hub feed |
 
 ### You
 
@@ -184,7 +184,7 @@ Every destination linked by a navigation surface (bars, rail, the Menu, the acco
 
 | Pos | Entry | Label | Target | Audience | Kind | Count | Place | Rule | Since | Reason |
 |---|---|---|---|---|---|---|---|---|---|---|
-| 10 | `organized_events` | You organize | `organized_events` | organiser | link | lazy_organised | community/events | Q3 | 2026-10-12 | Events you organize, for organisers only; also the "You organize" button on the events page. Also: events page "You organize" button |
+| 10 | `organized_events` | Events you organize | `organized_events` | organiser | link | lazy_organised | community/events | Q3 | 2026-10-12 | Events you organize, for organisers only; also the "You organize" button on the events page. Also: events page "You organize" button |
 | 20 | `mod_change_requests` | Puzzle Change Requests (English) | `admin_puzzle_change_requests`; also active on admin_puzzle_change_request_detail | moderator | link | queue_change_requests | none | Q3 | 2026-10-12 | Review queue or admin page: holders only, moved from the admin key menu |
 | 30 | `mod_merge_requests` | Puzzle Merge Requests (English) | `admin_puzzle_merge_requests`; also active on admin_puzzle_merge_request_detail | moderator | link | queue_merge_requests | none | Q3 | 2026-10-12 | Review queue or admin page: holders only, moved from the admin key menu |
 | 40 | `mod_puzzle_approvals` | Puzzle Approvals (English) | `admin_puzzle_approvals`; also active on admin_puzzle_approval_detail, admin_edit_puzzle, admin_puzzle_history | moderator | link | queue_puzzle_approvals | none | Q3 | 2026-10-12 | Review queue or admin page: holders only, moved from the admin key menu |
@@ -205,14 +205,14 @@ Every destination linked by a navigation surface (bars, rail, the Menu, the acco
 | Pos | Entry | Label | Target | Audience | Kind | Count | Place | Rule | Since | Reason |
 |---|---|---|---|---|---|---|---|---|---|---|
 | 0 | `profile` | Profile | `player_profile` {playerId: viewer}; also active on my_profile | signed_in | place |  | profile | Q10 | 2026-10-12 | Place Profile = your own profile page, content first (D1, D9); heads Your puzzling in the column |
-| 10 | `results` | Solved puzzles | `player_results` {playerId: viewer} | signed_in | link |  | profile | Q8 | 2026-10-12 | About one player, others may see it: player tab; your own also a Menu row (README §4.7). Also: player header tab Results; Overview "All N results" |
+| 10 | `results` | Results | `player_results` {playerId: viewer} | signed_in | link |  | profile | Q8 | 2026-10-12 | About one player, others may see it: player tab; your own also a Menu row (README §4.7). Also: player header tab Results; Overview "All N results" |
 | 20 | `favorites` | Favorites | `player_favorite_puzzlers` {playerId: viewer} | signed_in | link |  | profile | Q8 | 2026-10-12 | Owner-only view of your own data: player tab and Menu row. Also: player header tab Favorites |
 | 30 | `statistics` | Statistics | `player_statistics` {playerId: viewer} | signed_in | link |  | profile | Q8 | 2026-10-12 | About one player, others may see it: player tab; your own also a Menu row. Also: player header tab Statistics |
 | 40 | `compare` | Compare | `comparison`; also active on compare_players | signed_in | link | line_up | community/puzzlers | Q8 | 2026-10-12 | Your line-ups (Community › Puzzlers is its home, README §7). Also: player header compare button; Players page |
 | 50 | `review_results` | Review your results | `review_results`; also active on first_try_conflicts | signed_in | link | lazy_review | profile | Q8 | 2026-10-12 | Owner manages own results (duplicates, first tries, verification). Also: Hub banner; own profile banner |
 | 60 | `pairs_and_teams` | Pairs & teams | `pairs_and_teams`; also active on pairs_and_teams_guest_link | signed_in | link |  | profile | Q8 | 2026-10-12 | Owner manages own pairs, teams and guests |
 | 70 | `calendar` | Calendar | `activity_calendar` {playerId: viewer} | signed_in | link |  | profile | Q8 | 2026-10-12 | About one player: player tab; your own also a Menu row. Also: player header tab Calendar |
-| 80 | `achievements` | Achievements | `player_achievements` {playerId: viewer}; also active on badge_reveals | xp_player | link |  | profile | Q8 | 2026-10-12 | About one player: player tab; your own also a Menu row (XP gate). Also: player header tab Achievements |
+| 80 | `achievements` | Achievements | `player_achievements` {playerId: viewer}; also active on badge_reveals | achievements_shown | link |  | profile | Q8 | 2026-10-12 | About one player: player tab; your own also a Menu row (XP gate, achievements not hidden). Also: player header tab Achievements |
 | 90 | `level_xp` | Level & XP | `xp_history`; also active on xp_launch_reveal | xp_participant | link | level | profile | Q8 | 2026-10-12 | Owner-only view of your own XP (XP gate, not opted out) |
 | 100 | `karma` | Karma | `karma_history` | karma_holder | link | karma | profile | Q8 | 2026-10-12 | Owner-only view of your own karma (holders who did not hide it) |
 | 110 | `your_week` | Your week | `my_activity` | xp_player | link |  | profile | Q8 | 2026-10-12 | Owner-only view of your own week (XP gate) |
@@ -227,7 +227,7 @@ Every destination linked by a navigation surface (bars, rail, the Menu, the acco
 | 40 | `unsolved` | Unsolved | `unsolved_puzzles_detail` {playerId: viewer}; also active on edit_unsolved_puzzles | signed_in | link |  | puzzles/library | Q8 | 2026-10-12 | Owner manages own puzzles: a list of the library |
 | 50 | `sell_swap` | Sell / swap | `sell_swap_list_detail` {playerId: viewer}; also active on edit_sell_swap_list_settings | signed_in | link |  | puzzles/library | Q8 | 2026-10-12 | Owner manages own puzzles: a list of the library |
 | 60 | `solved` | Solved | `solved_puzzles_detail` {playerId: viewer}; also active on edit_solved_puzzles | signed_in | link |  | puzzles/library | Q8 | 2026-10-12 | Owner manages own puzzles: a list of the library |
-| 70 | `lent_borrowed` | Lend & Borrow | `lend_borrow_list_detail` {playerId: viewer}; also active on edit_lend_borrow_list_settings | signed_in | link |  | puzzles/library | Q8 | 2026-10-12 | Owner manages own puzzles: a list of the library |
+| 70 | `lent_borrowed` | Lent & borrowed | `lend_borrow_list_detail` {playerId: viewer}; also active on edit_lend_borrow_list_settings | signed_in | link |  | puzzles/library | Q8 | 2026-10-12 | Owner manages own puzzles: a list of the library |
 | 80 | `wishlist` | Wishlist | `wish_list_detail` {playerId: viewer}; also active on edit_wish_list | signed_in | link |  | puzzles/library | Q8 | 2026-10-12 | Owner manages own puzzles: a list of the library |
 
 ### Add & track
@@ -236,7 +236,7 @@ Every destination linked by a navigation surface (bars, rail, the Menu, the acco
 |---|---|---|---|---|---|---|---|---|---|---|
 | 10 | `add` | Add | `puzzle_add` (guests: `add_intro`); also active on legacy_add_time, edit_time, added_time_recap, added_tracking_recap | everyone | link |  | add | Q4 | 2026-10-12 | Records a time or a puzzle: the Add page (D7); also the Add tab and the + Add button. Also: Add tab; desktop + Add button |
 | 20 | `stopwatch` | Stopwatch | `stopwatch`; also active on stopwatch_puzzle, finish_stopwatch | signed_in | link | stopwatch | add | Q4 | 2026-10-12 | Records a time: Add › Speed puzzling › Use the stopwatch. Also: Add page; running stopwatch pill |
-| 30 | `multiscan` | Scanning | `multiscan` | signed_in | link |  | add | Q4 | 2026-10-12 | Records puzzles: Add › Collection › Scan several boxes. Also: Add page |
+| 30 | `multiscan` | Scan several boxes | `multiscan` | signed_in | link |  | add | Q4 | 2026-10-12 | Records puzzles: Add › Collection › Scan several boxes. Also: Add page |
 | 40 | `add_event` | Add Event | `add_competition` | signed_in | link |  | community/events | Q4 | 2026-10-12 | Creates an event; also the button on the events page. Also: events page button |
 
 ### Account
@@ -244,9 +244,9 @@ Every destination linked by a navigation surface (bars, rail, the Menu, the acco
 | Pos | Entry | Label | Target | Audience | Kind | Count | Place | Rule | Since | Reason |
 |---|---|---|---|---|---|---|---|---|---|---|
 | 10 | `membership` | Membership | `membership`; also active on buy_membership, free_trial_started, stripe_checkout_success | signed_in | link | membership_status | profile | Q6 | 2026-10-12 | Your membership and its status; guests reach it from the footer. Also: You card status line; avatar ▾ menu |
-| 20 | `settings` | Edit profile | `edit_profile`; also active on edit_player_code | signed_in | link |  | profile | Q6 | 2026-10-12 | Configures your account (name, photo, country, sign-in, privacy, e-mails). Also: You card ⚙; profile header Edit profile |
+| 20 | `settings` | Settings | `edit_profile`; also active on edit_player_code | signed_in | link |  | profile | Q6 | 2026-10-12 | Configures your account (name, photo, country, sign-in, privacy, e-mails). Also: You card ⚙; profile header Edit profile |
 | 30 | `referral` | Referral Program | `affiliate_dashboard` | member_or_referral | link |  | profile | Q6 | 2026-10-12 | Members or players in the programme only |
-| 40 | `your_data` | Export data | `export_puzzler_data` {playerId: viewer} | signed_in | link |  | profile | Q6 | 2026-10-12 | Export results and library, delete the account |
+| 40 | `your_data` | Your data | `export_puzzler_data` {playerId: viewer} | signed_in | link |  | profile | Q6 | 2026-10-12 | Export results and library, delete the account |
 | 50 | `blocked_players` | Blocked players | `blocked_users` | signed_in | link |  | profile | Q6 | 2026-10-12 | Configures who you see |
 | 60 | `profile_viewers` | Who can see my profile | `private_profile_viewers` | private_member | link |  | profile | Q6 | 2026-10-12 | Configures who sees your private profile (members with a private profile) |
 
@@ -255,8 +255,8 @@ Every destination linked by a navigation surface (bars, rail, the Menu, the acco
 | Pos | Entry | Label | Target | Audience | Kind | Count | Place | Rule | Since | Reason |
 |---|---|---|---|---|---|---|---|---|---|---|
 | 10 | `send_feedback` | Send feedback | `help` | signed_in | help_sheet |  | none | Q7 | 2026-10-12 | Collects feedback: opens the Help sheet (D17); guests get "Sign in to send feedback" there. Also: top bar ? / Feedback; end-of-page line |
-| 20 | `methodology` | Difficulty & Rating Methodology | `methodology` | everyone | link |  | none | Q7 | 2026-10-12 | Explains or helps: Help & learn (and the Help sheet) |
-| 30 | `feature_requests` | Feature Requests | `feature_requests`; also active on feature_request_detail, feature_request_edit | everyone | link |  | none | Q7 | 2026-10-12 | Explains or helps: Help & learn (and the Help sheet) |
+| 20 | `methodology` | Difficulty & ratings | `methodology` | everyone | link |  | none | Q7 | 2026-10-12 | Explains or helps: Help & learn (and the Help sheet) |
+| 30 | `feature_requests` | Ideas & feature requests | `feature_requests`; also active on feature_request_detail, feature_request_edit | everyone | link |  | none | Q7 | 2026-10-12 | Explains or helps: Help & learn (and the Help sheet) |
 | 40 | `getting_started` | Getting started | `getting_started` | everyone | link |  | none | Q7 | 2026-10-12 | Explains or helps: Help & learn (and the Help sheet) |
 | 50 | `faq` | FAQ | `faq` | everyone | link |  | none | Q7 | 2026-10-12 | Explains or helps: Help & learn (and the Help sheet) |
 | 60 | `guides` | Speed Puzzling Guides | `guides`; also active on guide_average_puzzle_time, guide_puzzle_time_by_pieces, guide_puzzle_time_for_pieces, guide_puzzle_time_pairs_and_teams, guide_speed_puzzling_tips, guide_what_is_speed_puzzling | everyone | link |  | none | Q7 | 2026-10-12 | Explains or helps: Help & learn (and the Help sheet) |
@@ -269,11 +269,11 @@ Every destination linked by a navigation surface (bars, rail, the Menu, the acco
 | Pos | Entry | Label | Target | Audience | Kind | Count | Place | Rule | Since | Reason |
 |---|---|---|---|---|---|---|---|---|---|---|
 | 10 | `tracker_app` | Puzzle Tracker App | `puzzle_tracker_app` | everyone | link |  | none | Q7 | 2026-10-12 | About MySpeedPuzzling: footer and Menu › About |
-| 20 | `wjpc` | World Jigsaw Puzzle Championship | `wjpc_hub` | everyone | link |  | community/events | Q7 | 2026-10-12 | About MySpeedPuzzling: footer and Menu › About |
+| 20 | `wjpc` | World championship | `wjpc_hub` | everyone | link |  | community/events | Q7 | 2026-10-12 | About MySpeedPuzzling: footer and Menu › About |
 | 30 | `developers` | For Developers | `for_developers` | everyone | link |  | none | Q7 | 2026-10-12 | About MySpeedPuzzling: footer and Menu › About |
 | 40 | `organizers` | For Organizers | `for_organizers` | everyone | link |  | none | Q7 | 2026-10-12 | About MySpeedPuzzling: footer and Menu › About |
-| 50 | `legal_terms` | Terms of service | `terms_of_service` | everyone | legal |  | none | Q7 | 2026-10-12 | Legal: footer and Menu › About (one row of three links) |
-| 50 | `legal_privacy` | Privacy policy | `privacy_policy` | everyone | legal |  | none | Q7 | 2026-10-12 | Legal: footer and Menu › About (one row of three links) |
+| 50 | `legal_terms` | Terms | `terms_of_service` | everyone | legal |  | none | Q7 | 2026-10-12 | Legal: footer and Menu › About (one row of three links) |
+| 50 | `legal_privacy` | Privacy | `privacy_policy` | everyone | legal |  | none | Q7 | 2026-10-12 | Legal: footer and Menu › About (one row of three links) |
 | 50 | `legal_data_deletion` | Data deletion | `data_deletion` | everyone | legal |  | none | Q7 | 2026-10-12 | Legal: footer and Menu › About (one row of three links) |
 
 ## Search-only entries
@@ -357,24 +357,25 @@ Linked by a navigation surface, but not a Menu destination - each with why.
 
 ## Audiences
 
-One value per entry; a value that needs several conditions names all of them. Personal rows never include guests.
+One value per entry; a value that needs several conditions names all of them. Personal rows never include guests. "On the page": the viewer's audiences are exposed as `<body data-viewer-audience>` (nav_viewer_audience(), MENU-01; every guest gets `everyone guest`, plus `xp_visible` once XP is launched) - never the role ones, whose entries are rendered for those viewers only.
 
-| Audience | Who | Guests |
-|---|---|---|
-| everyone | guests and players | yes |
-| guest | guests only | yes |
-| signed_in | signed-in players | no |
-| member | signed-in members | no |
-| member_or_referral | signed-in members or referral programme partners | no |
-| private_member | signed-in members with a private profile | no |
-| xp_visible | whoever sees the XP system (guests too, once launched): public XP pages | yes |
-| xp_player | signed-in players who see the XP system | no |
-| xp_participant | signed-in players who see the XP system and did not opt out | no |
-| karma_holder | signed-in players who see the XP system, have karma and did not hide it | no |
-| organiser | signed-in organisers of an event, series or organization | no |
-| moderator | moderators and admins | no |
-| time_verifier | time verifiers | no |
-| admin | admins | no |
+| Audience | Who | Guests | On the page |
+|---|---|---|---|
+| everyone | guests and players | yes | yes |
+| guest | guests only | yes | yes |
+| signed_in | signed-in players | no | yes |
+| member | signed-in members | no | yes |
+| member_or_referral | signed-in members or referral programme partners | no | yes |
+| private_member | signed-in members with a private profile | no | yes |
+| xp_visible | whoever sees the XP system (guests too, once launched): public XP pages | yes | yes |
+| xp_player | signed-in players who see the XP system | no | yes |
+| xp_participant | signed-in players who see the XP system and did not opt out | no | yes |
+| achievements_shown | signed-in players who see the XP system and did not hide their achievements | no | yes |
+| karma_holder | signed-in players who see the XP system, have karma and did not hide it | no | yes |
+| organiser | signed-in organisers of an event, series or organization | no | yes |
+| moderator | moderators and admins | no | no |
+| time_verifier | time verifiers | no | no |
+| admin | admins | no | no |
 
 ## Rulebook
 

@@ -1,0 +1,14 @@
+{#- The membership status line (README §4.12): "Free trial · 3 days left", "Member until 12 Nov 2026" or "See what members
+    get" - from the viewer's profile row. The Menu's You card and Membership row; NAV-05's account menu reuses it.
+    `viewer`: NavigationViewer (default nav_viewer()), or `profile`: PlayerProfile -#}
+{%- set viewer = viewer ?? nav_viewer() -%}
+{%- set profile = profile ?? viewer.profile -%}
+{%- if profile is null or not profile.activeMembership -%}
+    {{- 'nav.menu.see_members'|trans -}}
+{%- elseif profile.freeTrialEndsAt is not null -%}
+    {{- 'nav.menu.trial_days_left'|trans({'%count%': viewer.trialDaysLeft ?? 1}) -}}
+{%- elseif profile.membershipEndsAt is not null -%}
+    {{- 'nav.menu.member_until'|trans({'%date%': profile.membershipEndsAt|format_date('medium')}) -}}
+{%- else -%}
+    {{- 'nav.menu.member'|trans -}}
+{%- endif -%}

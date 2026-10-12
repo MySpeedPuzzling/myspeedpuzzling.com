@@ -72,7 +72,8 @@ final class TimeVerificationControllerTest extends WebTestCase
         $crawler = $browser->request('GET', '/admin/time-verification');
 
         self::assertResponseIsSuccessful();
-        $link = $crawler->filter('a.dropdown-item[href="/admin/time-verification"]');
+        // The Menu's Your roles row with its waiting count (MENU-01; the old key menu keeps the link without it)
+        $link = $crawler->filter('#site-menu a[href="/admin/time-verification"]');
         self::assertCount(1, $link);
         // Two pending cases in the fixtures
         self::assertStringContainsString('Time verification 2', preg_replace('/\s+/', ' ', $link->text()) ?? '');

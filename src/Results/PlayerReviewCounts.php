@@ -29,6 +29,15 @@ readonly final class PlayerReviewCounts
 
     public function isEmpty(): bool
     {
-        return $this->duplicates === 0 && $this->autoRemoved === 0 && $this->firstTryConflicts === 0 && $this->suspiciousTimes === 0;
+        return $this->total() === 0;
+    }
+
+    /**
+     * Everything waiting on "Review your results" - the number of the Menu's row (docs/features/navigation README
+     * §4.12, MENU-01: menu_counts), what the banner counts.
+     */
+    public function total(): int
+    {
+        return $this->duplicates + $this->autoRemoved + $this->firstTryConflicts + $this->suspiciousTimes;
     }
 }

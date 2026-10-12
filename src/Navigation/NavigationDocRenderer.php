@@ -93,13 +93,13 @@ final readonly class NavigationDocRenderer
         $lines[] = '';
         $lines[] = '## Audiences';
         $lines[] = '';
-        $lines[] = 'One value per entry; a value that needs several conditions names all of them. Personal rows never include guests.';
+        $lines[] = 'One value per entry; a value that needs several conditions names all of them. Personal rows never include guests. "On the page": the viewer\'s audiences are exposed as `<body data-viewer-audience>` (nav_viewer_audience(), MENU-01; every guest gets `everyone guest`, plus `xp_visible` once XP is launched) - never the role ones, whose entries are rendered for those viewers only.';
         $lines[] = '';
-        $lines[] = '| Audience | Who | Guests |';
-        $lines[] = '|---|---|---|';
+        $lines[] = '| Audience | Who | Guests | On the page |';
+        $lines[] = '|---|---|---|---|';
 
         foreach (NavVisibility::cases() as $visibility) {
-            $lines[] = $this->row([$visibility->value, $visibility->docDescription(), $visibility->includesGuests() ? 'yes' : 'no']);
+            $lines[] = $this->row([$visibility->value, $visibility->docDescription(), $visibility->includesGuests() ? 'yes' : 'no', $visibility->isPageFlag() ? 'yes' : 'no']);
         }
 
         $lines[] = '';

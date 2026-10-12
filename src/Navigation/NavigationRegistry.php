@@ -303,7 +303,7 @@ final readonly class NavigationRegistry
             new NavEntry(
                 id: 'puzzles_place',
                 target: RouteTarget::route('puzzles'),
-                label: 'menu.puzzles_overview',
+                label: 'nav.row.puzzles_place',
                 icon: 'bi-puzzle',
                 place: NavPlace::Puzzles,
                 phone: MenuPlacement::notInMenu(self::BAR_TAB),
@@ -398,7 +398,7 @@ final readonly class NavigationRegistry
             new NavEntry(
                 id: 'inbox',
                 target: RouteTarget::route('notifications'),
-                label: 'notifications.title',
+                label: 'inbox.title',
                 icon: 'bi-inbox',
                 place: NavPlace::None,
                 phone: MenuPlacement::row(MenuGroup::Inbox, 10),
@@ -416,7 +416,8 @@ final readonly class NavigationRegistry
     }
 
     /**
-     * Your roles (holders only). Moderator and admin rows keep today's English labels (README §4.12).
+     * Your roles (holders only). Moderator and admin rows keep today's English labels (README §4.12): nav_admin.<id>
+     * keys, English in every locale (one allow-listed prefix).
      *
      * @return list<NavEntry>
      */
@@ -428,7 +429,7 @@ final readonly class NavigationRegistry
             new NavEntry(
                 id: 'organized_events',
                 target: RouteTarget::route('organized_events'),
-                label: 'events_organizer.organize.title',
+                label: 'nav.row.organized_events',
                 icon: 'bi-clipboard-check',
                 place: NavPlace::Community,
                 phone: $row(10),
@@ -438,23 +439,24 @@ final readonly class NavigationRegistry
                 reason: 'Events you organize, for organisers only; also the "You organize" button on the events page',
                 since: self::SINCE,
                 section: 'events',
+                legacyLabels: ['events_organizer.organize.title'],
                 count: CountSource::LazyOrganised,
                 secondary: ['events page "You organize" button'],
             ),
-            $this->roleRow('mod_change_requests', 'admin_puzzle_change_requests', 'Puzzle Change Requests', 'bi-pencil-square', 20, NavVisibility::Moderator, CountSource::QueueChangeRequests, ['admin_puzzle_change_request_detail']),
-            $this->roleRow('mod_merge_requests', 'admin_puzzle_merge_requests', 'Puzzle Merge Requests', 'bi-intersect', 30, NavVisibility::Moderator, CountSource::QueueMergeRequests, ['admin_puzzle_merge_request_detail']),
-            $this->roleRow('mod_puzzle_approvals', 'admin_puzzle_approvals', 'Puzzle Approvals', 'bi-patch-check', 40, NavVisibility::Moderator, CountSource::QueuePuzzleApprovals, ['admin_puzzle_approval_detail', 'admin_edit_puzzle', 'admin_puzzle_history']),
-            $this->roleRow('mod_time_verification', 'admin_time_verification', 'Time verification', 'bi-stopwatch-fill', 50, NavVisibility::TimeVerifier, CountSource::QueueTimeVerification),
-            $this->roleRow('admin_competition_approvals', 'admin_competition_approvals', 'Competition Approvals', 'bi-calendar-check', 60, NavVisibility::Admin, CountSource::QueueCompetitionApprovals),
-            $this->roleRow('admin_duplicate_results', 'admin_duplicate_results', 'Duplicate results', 'bi-files', 70, NavVisibility::Admin, CountSource::QueueDuplicateSignals),
-            $this->roleRow('admin_oauth2_requests', 'admin_oauth2_client_requests', 'OAuth2 Requests', 'bi-braces', 80, NavVisibility::Admin, CountSource::QueueOauth2Requests, ['admin_oauth2_client_request_detail']),
-            $this->roleRow('admin_moderation', 'admin_moderation_dashboard', 'Moderation', 'bi-shield-exclamation', 90, NavVisibility::Admin, null, ['admin_moderation_history', 'admin_report_detail', 'admin_conversation_log']),
-            $this->roleRow('admin_vouchers', 'admin_vouchers', 'Vouchers', 'bi-ticket-perforated', 100, NavVisibility::Admin),
-            $this->roleRow('admin_referrals', 'admin_referrals', 'Referrals', 'bi-people', 110, NavVisibility::Admin, null, ['admin_referral_detail']),
-            $this->roleRow('admin_email_audit', 'admin_email_audit_list', 'Email Audit', 'bi-envelope-check', 120, NavVisibility::Admin, null, ['admin_email_audit_detail']),
-            $this->roleRow('admin_moderators', 'admin_moderators', 'Community Moderators', 'bi-person-badge', 130, NavVisibility::Admin),
-            $this->roleRow('admin_free_trial', 'admin_free_trial', 'Free trial & modals', 'bi-gift', 140, NavVisibility::Admin),
-            $this->roleRow('admin_api_usage', 'admin_api_usage', 'API usage', 'bi-graph-up', 150, NavVisibility::Admin),
+            $this->roleRow('mod_change_requests', 'admin_puzzle_change_requests', 'bi-pencil-square', 20, NavVisibility::Moderator, CountSource::QueueChangeRequests, ['admin_puzzle_change_request_detail']),
+            $this->roleRow('mod_merge_requests', 'admin_puzzle_merge_requests', 'bi-intersect', 30, NavVisibility::Moderator, CountSource::QueueMergeRequests, ['admin_puzzle_merge_request_detail']),
+            $this->roleRow('mod_puzzle_approvals', 'admin_puzzle_approvals', 'bi-patch-check', 40, NavVisibility::Moderator, CountSource::QueuePuzzleApprovals, ['admin_puzzle_approval_detail', 'admin_edit_puzzle', 'admin_puzzle_history']),
+            $this->roleRow('mod_time_verification', 'admin_time_verification', 'bi-stopwatch-fill', 50, NavVisibility::TimeVerifier, CountSource::QueueTimeVerification),
+            $this->roleRow('admin_competition_approvals', 'admin_competition_approvals', 'bi-calendar-check', 60, NavVisibility::Admin, CountSource::QueueCompetitionApprovals),
+            $this->roleRow('admin_duplicate_results', 'admin_duplicate_results', 'bi-files', 70, NavVisibility::Admin, CountSource::QueueDuplicateSignals),
+            $this->roleRow('admin_oauth2_requests', 'admin_oauth2_client_requests', 'bi-braces', 80, NavVisibility::Admin, CountSource::QueueOauth2Requests, ['admin_oauth2_client_request_detail']),
+            $this->roleRow('admin_moderation', 'admin_moderation_dashboard', 'bi-shield-exclamation', 90, NavVisibility::Admin, null, ['admin_moderation_history', 'admin_report_detail', 'admin_conversation_log']),
+            $this->roleRow('admin_vouchers', 'admin_vouchers', 'bi-ticket-perforated', 100, NavVisibility::Admin),
+            $this->roleRow('admin_referrals', 'admin_referrals', 'bi-people', 110, NavVisibility::Admin, null, ['admin_referral_detail']),
+            $this->roleRow('admin_email_audit', 'admin_email_audit_list', 'bi-envelope-check', 120, NavVisibility::Admin, null, ['admin_email_audit_detail']),
+            $this->roleRow('admin_moderators', 'admin_moderators', 'bi-person-badge', 130, NavVisibility::Admin),
+            $this->roleRow('admin_free_trial', 'admin_free_trial', 'bi-gift', 140, NavVisibility::Admin),
+            $this->roleRow('admin_api_usage', 'admin_api_usage', 'bi-graph-up', 150, NavVisibility::Admin),
         ];
     }
 
@@ -464,7 +466,6 @@ final readonly class NavigationRegistry
     private function roleRow(
         string $id,
         string $route,
-        string $englishLabel,
         string $icon,
         int $position,
         NavVisibility $visibility,
@@ -474,7 +475,8 @@ final readonly class NavigationRegistry
         return new NavEntry(
             id: $id,
             target: RouteTarget::route($route),
-            label: $englishLabel,
+            // nav_admin.<id> holds this English label in every locale (MENU-01)
+            label: 'nav_admin.' . $id,
             icon: $icon,
             place: NavPlace::None,
             phone: MenuPlacement::row(MenuGroup::Roles, $position),
@@ -499,11 +501,10 @@ final readonly class NavigationRegistry
         $row = static fn (int $position): MenuPlacement => MenuPlacement::row(MenuGroup::Puzzling, $position);
 
         return [
-            // Labelled like today's list heading until MENU-01 gives the rows their nav.row.* keys
             new NavEntry(
                 id: 'results',
                 target: RouteTarget::viewer('player_results'),
-                label: 'profile.solved_puzzles',
+                label: 'nav.row.results',
                 icon: 'bi-list-ol',
                 place: NavPlace::Profile,
                 phone: $row(10),
@@ -573,6 +574,7 @@ final readonly class NavigationRegistry
                 rule: RulebookQuestion::Q8,
                 reason: 'Owner manages own results (duplicates, first tries, verification)',
                 since: self::SINCE,
+                description: 'nav.desc.review_results',
                 count: CountSource::LazyReview,
                 activeOn: ['first_try_conflicts'],
                 secondary: ['Hub banner', 'own profile banner'],
@@ -615,9 +617,10 @@ final readonly class NavigationRegistry
                 place: NavPlace::Profile,
                 phone: $row(80),
                 dock: $row(80),
-                visibility: NavVisibility::XpPlayer,
+                // Not for a viewer who hid their achievements (no link to them anywhere, owner included)
+                visibility: NavVisibility::AchievementsShown,
                 rule: RulebookQuestion::Q8,
-                reason: 'About one player: player tab; your own also a Menu row (XP gate)',
+                reason: 'About one player: player tab; your own also a Menu row (XP gate, achievements not hidden)',
                 since: self::SINCE,
                 legacyLabels: ['badges.my_title'],
                 activeOn: ['badge_reveals'],
@@ -651,6 +654,7 @@ final readonly class NavigationRegistry
                 rule: RulebookQuestion::Q8,
                 reason: 'Owner-only view of your own karma (holders who did not hide it)',
                 since: self::SINCE,
+                description: 'nav.desc.karma',
                 legacyLabels: ['karma.history.title'],
                 count: CountSource::Karma,
             ),
@@ -711,13 +715,14 @@ final readonly class NavigationRegistry
                 reason: 'Picks from your own library; also Puzzles › What next?',
                 since: self::SINCE,
                 section: 'next',
+                description: 'nav.desc.what_next',
                 legacyLabels: ['puzzle_picker.menu_label'],
                 secondary: ['Puzzles › What next? chip'],
             ),
             $this->listRow('unsolved', 'unsolved_puzzles_detail', 'puzzle_search.list.unsolved', 'bi-hourglass-split', 40, 'unsolved_puzzles.title', ['edit_unsolved_puzzles']),
             $this->listRow('sell_swap', 'sell_swap_list_detail', 'puzzle_search.list.sell_swap', 'bi-arrow-left-right', 50, 'sell_swap_list.title', ['edit_sell_swap_list_settings']),
             $this->listRow('solved', 'solved_puzzles_detail', 'status.solved', 'bi-check2-circle', 60, 'solved_puzzles.title', ['edit_solved_puzzles']),
-            $this->listRow('lent_borrowed', 'lend_borrow_list_detail', 'lend_borrow.title', 'bi-arrow-repeat', 70, null, ['edit_lend_borrow_list_settings']),
+            $this->listRow('lent_borrowed', 'lend_borrow_list_detail', 'nav.row.lent_borrowed', 'bi-arrow-repeat', 70, 'lend_borrow.title', ['edit_lend_borrow_list_settings']),
             $this->listRow('wishlist', 'wish_list_detail', 'puzzle_search.list.wishlist', 'bi-gift', 80, 'wish_list.title', ['edit_wish_list']),
         ];
     }
@@ -776,7 +781,7 @@ final readonly class NavigationRegistry
             new NavEntry(
                 id: 'level_boards',
                 target: RouteTarget::route('level_leaderboard'),
-                label: 'xp.leaderboard.board.xp.title',
+                label: 'nav.row.level_boards',
                 icon: 'bi-bar-chart-steps',
                 place: NavPlace::Community,
                 phone: $row(30),
@@ -785,13 +790,14 @@ final readonly class NavigationRegistry
                 rule: RulebookQuestion::Q9,
                 reason: 'Level, achievement and karma boards: Community › Leaderboards (XP gate)',
                 since: self::SINCE,
+                legacyLabels: ['xp.leaderboard.board.xp.title'],
                 section: 'leaderboards',
                 activeOn: ['achievement_points_leaderboard', 'karma_leaderboard', 'legacy_xp_leaderboard'],
             ),
             new NavEntry(
                 id: 'puzzlers',
                 target: RouteTarget::route('players'),
-                label: 'menu.players',
+                label: 'nav.row.puzzlers',
                 // Not bi-people: that is the Community place's (tab) icon (Skeletons review F5)
                 icon: 'bi-person-hearts',
                 place: NavPlace::Community,
@@ -855,7 +861,7 @@ final readonly class NavigationRegistry
             new NavEntry(
                 id: 'latest_times',
                 target: RouteTarget::route('recent_activity'),
-                label: 'footer.latest_puzzle_times',
+                label: 'nav.row.latest_times',
                 icon: 'bi-clock-history',
                 place: NavPlace::Home,
                 phone: $row(80),
@@ -883,7 +889,7 @@ final readonly class NavigationRegistry
             new NavEntry(
                 id: 'all_puzzles',
                 target: RouteTarget::route('puzzles'),
-                label: 'footer.puzzle_database',
+                label: 'nav.row.all_puzzles',
                 icon: 'bi-grid-3x3-gap',
                 place: NavPlace::Puzzles,
                 phone: $row(10),
@@ -988,7 +994,7 @@ final readonly class NavigationRegistry
             new NavEntry(
                 id: 'multiscan',
                 target: RouteTarget::route('multiscan'),
-                label: 'multiscan.title',
+                label: 'nav.row.multiscan',
                 icon: 'bi-upc-scan',
                 place: NavPlace::Add,
                 phone: $row(30),
@@ -1048,7 +1054,7 @@ final readonly class NavigationRegistry
             new NavEntry(
                 id: 'settings',
                 target: RouteTarget::route('edit_profile'),
-                label: 'menu.edit_profile',
+                label: 'nav.row.settings',
                 icon: 'bi-gear',
                 place: NavPlace::Profile,
                 phone: $row(20),
@@ -1057,6 +1063,7 @@ final readonly class NavigationRegistry
                 rule: RulebookQuestion::Q6,
                 reason: 'Configures your account (name, photo, country, sign-in, privacy, e-mails)',
                 since: self::SINCE,
+                description: 'nav.desc.settings',
                 legacyLabels: ['menu.edit_profile'],
                 activeOn: ['edit_player_code'],
                 secondary: ['You card ⚙', 'profile header Edit profile'],
@@ -1078,7 +1085,7 @@ final readonly class NavigationRegistry
             new NavEntry(
                 id: 'your_data',
                 target: RouteTarget::viewer('export_puzzler_data'),
-                label: 'menu.export_data',
+                label: 'nav.row.your_data',
                 icon: 'bi-download',
                 place: NavPlace::Profile,
                 phone: $row(40),
@@ -1087,6 +1094,7 @@ final readonly class NavigationRegistry
                 rule: RulebookQuestion::Q6,
                 reason: 'Export results and library, delete the account',
                 since: self::SINCE,
+                description: 'nav.desc.your_data',
                 legacyLabels: ['menu.export_data'],
             ),
             new NavEntry(
@@ -1147,9 +1155,9 @@ final readonly class NavigationRegistry
                 legacyLabels: ['menu.feedback'],
                 secondary: ['top bar ? / Feedback', 'end-of-page line'],
             ),
-            $this->helpRow('methodology', 'methodology', 'footer.methodology', 'bi-rulers', 20),
+            $this->helpRow('methodology', 'methodology', 'nav.row.methodology', 'bi-rulers', 20, legacyLabel: 'footer.methodology'),
             // Help sheet positions: the skeleton's two links (HELP-01a); HELP-02 orders the rest (README §4.5)
-            $this->helpRow('feature_requests', 'feature_requests', 'menu.feature_requests', 'bi-lightbulb', 30, ['feature_request_detail', 'feature_request_edit'], helpSheet: 30),
+            $this->helpRow('feature_requests', 'feature_requests', 'nav.row.feature_requests', 'bi-lightbulb', 30, ['feature_request_detail', 'feature_request_edit'], helpSheet: 30, legacyLabel: 'menu.feature_requests'),
             $this->helpRow('getting_started', 'getting_started', 'onboarding.guide.link', 'bi-signpost-2', 40),
             $this->helpRow('faq', 'faq', 'menu.faq', 'bi-patch-question', 50, helpSheet: 40),
             $this->helpRow('guides', 'guides', 'footer.guides', 'bi-book', 60, $guides),
@@ -1167,6 +1175,7 @@ final readonly class NavigationRegistry
                 rule: RulebookQuestion::Q7,
                 reason: 'Explains the new navigation: every old menu item and where it is now (README §8)',
                 since: self::SINCE,
+                description: 'nav.desc.where_did_it_go',
             ),
             new NavEntry(
                 id: 'language',
@@ -1195,11 +1204,11 @@ final readonly class NavigationRegistry
     {
         return [
             $this->aboutRow('tracker_app', 'puzzle_tracker_app', 'footer.puzzle_tracker_app', 'bi-phone', 10),
-            $this->aboutRow('wjpc', 'wjpc_hub', 'footer.wjpc', 'bi-globe2', 20, RowKind::Link, NavPlace::Community, 'events'),
+            $this->aboutRow('wjpc', 'wjpc_hub', 'nav.row.wjpc', 'bi-globe2', 20, RowKind::Link, NavPlace::Community, 'events', 'footer.wjpc'),
             $this->aboutRow('developers', 'for_developers', 'menu.for_developers', 'bi-code-slash', 30),
             $this->aboutRow('organizers', 'for_organizers', 'menu.for_organizers', 'bi-easel', 40),
-            $this->aboutRow('legal_terms', 'terms_of_service', 'menu.terms_of_service', 'bi-file-text', 50, RowKind::Legal),
-            $this->aboutRow('legal_privacy', 'privacy_policy', 'menu.privacy_policy', 'bi-shield-lock', 50, RowKind::Legal),
+            $this->aboutRow('legal_terms', 'terms_of_service', 'nav.row.legal_terms', 'bi-file-text', 50, RowKind::Legal, legacyLabel: 'menu.terms_of_service'),
+            $this->aboutRow('legal_privacy', 'privacy_policy', 'nav.row.legal_privacy', 'bi-shield-lock', 50, RowKind::Legal, legacyLabel: 'menu.privacy_policy'),
             $this->aboutRow('legal_data_deletion', 'data_deletion', 'menu.data_deletion', 'bi-trash', 50, RowKind::Legal),
             new NavEntry(
                 id: 'logout',
@@ -1326,7 +1335,7 @@ final readonly class NavigationRegistry
     /**
      * @param list<string> $activeOn
      */
-    private function helpRow(string $id, string $route, string $label, string $icon, int $position, array $activeOn = [], NavVisibility $visibility = NavVisibility::Everyone, null|int $helpSheet = null): NavEntry
+    private function helpRow(string $id, string $route, string $label, string $icon, int $position, array $activeOn = [], NavVisibility $visibility = NavVisibility::Everyone, null|int $helpSheet = null, null|string $legacyLabel = null): NavEntry
     {
         return new NavEntry(
             id: $id,
@@ -1340,13 +1349,13 @@ final readonly class NavigationRegistry
             rule: RulebookQuestion::Q7,
             reason: 'Explains or helps: Help & learn (and the Help sheet)',
             since: self::SINCE,
-            legacyLabels: [$label],
+            legacyLabels: [$legacyLabel ?? $label],
             helpSheet: $helpSheet,
             activeOn: $activeOn,
         );
     }
 
-    private function aboutRow(string $id, string $route, string $label, string $icon, int $position, RowKind $kind = RowKind::Link, NavPlace $place = NavPlace::None, null|string $section = null): NavEntry
+    private function aboutRow(string $id, string $route, string $label, string $icon, int $position, RowKind $kind = RowKind::Link, NavPlace $place = NavPlace::None, null|string $section = null, null|string $legacyLabel = null): NavEntry
     {
         return new NavEntry(
             id: $id,
@@ -1362,7 +1371,7 @@ final readonly class NavigationRegistry
             since: self::SINCE,
             kind: $kind,
             section: $section,
-            legacyLabels: [$label],
+            legacyLabels: [$legacyLabel ?? $label],
         );
     }
 

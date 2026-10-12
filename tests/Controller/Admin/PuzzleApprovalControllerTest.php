@@ -39,9 +39,10 @@ final class PuzzleApprovalControllerTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('body', 'not necessarily duplicates');
         // The fixture's other 1000-piece "Puzzle N"s are all from other brands
-        self::assertSelectorExists('details summary');
-        self::assertSelectorTextContains('details summary', 'most likely different puzzles');
-        self::assertSelectorExists('details form[action$="/merge"] input[name="target_puzzle"]');
+        // The page's own details (the Menu's Language row is a <details> too, MENU-01)
+        self::assertSelectorExists('main details summary');
+        self::assertSelectorTextContains('main details summary', 'most likely different puzzles');
+        self::assertSelectorExists('main details form[action$="/merge"] input[name="target_puzzle"]');
     }
 
     public function testApprovingSavesTheCorrectionsTheNewPhotoAndTheNote(): void

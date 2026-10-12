@@ -249,7 +249,8 @@ final class PlayerAchievementsPageTest extends WebTestCase
         self::assertResponseIsSuccessful();
         // Its Back leads to the profile again (docs/features/return-url.md)
         self::assertCount(1, $crawler->filter('.achievements-showcase-summary[href^="' . self::MEMBER_PAGE . '?return=/en/player-profile/' . PlayerFixture::PLAYER_WITH_STRIPE . '&"]'));
-        self::assertGreaterThanOrEqual(1, $crawler->filter('.dropdown-menu a[href="' . self::MEMBER_PAGE . '"]')->count());
+        // The Menu's Achievements row (MENU-01)
+        self::assertCount(1, $crawler->filter('#site-menu a[href="' . self::MEMBER_PAGE . '"]'));
     }
 
     public function testAHeldEarlyAdopterCountsAsAnAchievement(): void

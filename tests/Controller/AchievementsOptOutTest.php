@@ -102,9 +102,10 @@ final class AchievementsOptOutTest extends WebTestCase
 
         $this->hideAchievements($browser);
 
-        $browser->request('GET', '/en/ladder/achievement-points');
+        $crawler = $browser->request('GET', '/en/ladder/achievement-points');
         self::assertResponseIsSuccessful();
-        self::assertStringNotContainsString(self::MEMBER_PROFILE, (string) $browser->getResponse()->getContent());
+        // Not on the board (the page content); the Menu's You card links the viewer's own profile on every page (MENU-01)
+        self::assertStringNotContainsString(self::MEMBER_PROFILE, $crawler->filter('main')->html());
         self::assertSelectorTextContains('[data-testid="lb-not-on-board"]', 'You chose to hide your achievements');
     }
 

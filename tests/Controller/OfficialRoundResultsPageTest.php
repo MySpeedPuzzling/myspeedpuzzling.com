@@ -294,9 +294,12 @@ final class OfficialRoundResultsPageTest extends WebTestCase
             $this->assertResponseIsSuccessful();
             $this->assertSelectorNotExists('[data-organiser-round-links]');
             self::assertSame($mainsStatements, $this->queryCount($browser), sprintf('The untouched round page as %s: %s', $viewer, implode("\n", $this->executedSql($browser))));
+            // The viewer's own profile row names competition_maintainer in its organiser EXISTS (the Menu's "Events you
+            // organize", MENU-01, OrganizerSql) on every page - not a permission question of this page
             self::assertSame([], array_values(array_filter(
                 $this->executedSql($browser),
-                static fn (string $sql): bool => str_contains($sql, 'competition_maintainer') || str_contains($sql, 'competition_referee'),
+                static fn (string $sql): bool => (str_contains($sql, 'competition_maintainer') || str_contains($sql, 'competition_referee'))
+                    && !str_contains($sql, 'WHERE player.user_id = ?'),
             )), 'Nobody\'s permissions are asked on an untouched round page.');
 
             self::ensureKernelShutdown();

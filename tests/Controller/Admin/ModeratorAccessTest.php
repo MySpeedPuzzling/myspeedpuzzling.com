@@ -131,9 +131,16 @@ final class ModeratorAccessTest extends WebTestCase
 
         $crawler = $browser->request('GET', '/admin/puzzle-change-requests');
 
-        self::assertCount(1, $crawler->filter('a[href="/admin/puzzle-merge-requests"]'));
-        self::assertCount(1, $crawler->filter('a[href="/admin/puzzle-approvals"]'));
-        self::assertCount(1, $crawler->filter('a[href="/admin/time-verification"]'));
+        // The Menu's Your roles (MENU-01) - scoped to it while the old key menu still renders the same links; page-wide
+        // again once NAV-06 removed the old header
+        $menu = $crawler->filter('#site-menu');
+        self::assertCount(1, $menu);
+        self::assertCount(1, $menu->filter('a[href="/admin/puzzle-merge-requests"]'));
+        self::assertCount(1, $menu->filter('a[href="/admin/puzzle-approvals"]'));
+        self::assertCount(1, $menu->filter('a[href="/admin/time-verification"]'));
+        self::assertCount(0, $menu->filter('a[href="/admin/moderators"]'));
+        self::assertCount(0, $menu->filter('a[href="/admin/vouchers"]'));
+        // No admin link anywhere on the page
         self::assertCount(0, $crawler->filter('a[href="/admin/moderators"]'));
         self::assertCount(0, $crawler->filter('a[href="/admin/vouchers"]'));
     }

@@ -13,8 +13,8 @@ final readonly class NavEntry
 {
     /**
      * @param string $id stable: data-nav item, menu_row events, nav_go, menu-row-<id> anchors
-     * @param string $label translation key (messages domain); on englishOnly role rows the English label itself until
-     *                      those rows get nav_admin.* keys (MENU-01) - today's admin key menu hard-codes them
+     * @param string $label translation key (messages domain); on englishOnly role rows a nav_admin.* key holding the
+     *                      English label in every locale (MENU-01)
      * @param string $icon Bootstrap Icons name (bi-*)
      * @param null|string $description translation key of the one-line description (umbrella/ambiguous rows only)
      * @param null|string $synonyms translation key of the search synonyms (MENU-03)

@@ -229,12 +229,13 @@ final class PuzzlePickerControllerTest extends WebTestCase
         $this->assertResponseIsSuccessful();
         self::assertCount(1, $crawler->filter('a.puzzle-picker-entry[href="/en/what-to-solve-next"]'), 'Library header button on the own library');
         self::assertCount(1, $crawler->filter('.dropdown-menu a[href="/en/what-to-solve-next"]:contains("What next?")'), 'Profile dropdown item');
-        self::assertCount(3, $crawler->filter('a[href="/en/what-to-solve-next"]'), 'Header button + dropdown item + footer link');
+        self::assertCount(1, $crawler->filter('#site-menu a[href="/en/what-to-solve-next"]:contains("What next?")'), 'The Menu\'s Your puzzles row (MENU-01)');
+        self::assertCount(4, $crawler->filter('a[href="/en/what-to-solve-next"]'), 'Header button + dropdown item + Menu row + footer link');
 
         $crawler = $browser->request('GET', '/en/puzzle-library/' . PlayerFixture::PLAYER_WITH_STRIPE);
         $this->assertResponseIsSuccessful();
         self::assertCount(0, $crawler->filter('a.puzzle-picker-entry'), 'No header button on somebody else\'s library');
-        self::assertCount(2, $crawler->filter('a[href="/en/what-to-solve-next"]'), 'Only the dropdown item and the footer link');
+        self::assertCount(3, $crawler->filter('a[href="/en/what-to-solve-next"]'), 'Only the dropdown item, the Menu row and the footer link');
     }
 
     public function testStaticSitemapContainsThePickerInEveryLocale(): void

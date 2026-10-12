@@ -1,0 +1,12 @@
+{#- The inline language switch of Help & learn (README §4.12): the current page in the other five languages
+    (language_switch_urls(), the switch's one rule, decision 36), remembered by locale-preference like the footer's.
+    Anchor #nav-language (the page search's Language entry, MENU-03). `row`: MenuRowView, `only`: the surface class -#}
+{%- set names = {en: 'English', de: 'Deutsch', cs: 'Čeština', fr: 'Français', es: 'Español', ja: '日本語'} -%}
+<li id="{{ row.anchorId }}"{{ only ? (' class="' ~ only ~ '"')|raw }}><details id="nav-language" class="menu-language">
+    {#- -#}<summary class="mr"><i class="bi {{ row.entry.icon }}" aria-hidden="true"></i><span class="mr-l">{{ row.entry.label|trans }}<small class="mr-d" lang="{{ app.request.locale }}">{{ names[app.request.locale] ?? app.request.locale|upper }}</small></span></summary>
+    {#- -#}<ul class="menu-language-list" data-controller="locale-preference">
+    {%- for locale, url in language_switch_urls() -%}
+        <li><a href="{{ url }}" lang="{{ locale }}" hreflang="{{ locale }}" data-action="click->locale-preference#save" data-locale-preference-locale-param="{{ locale }}" data-nav="menu/{{ row.group.value }}/language_{{ locale }}">{{ names[locale] }}</a></li>
+    {%- endfor -%}
+    </ul>
+{#- -#}</details></li>

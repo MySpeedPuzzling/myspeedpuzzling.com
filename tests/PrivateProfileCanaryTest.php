@@ -526,4 +526,34 @@ final class PrivateProfileCanaryTest extends WebTestCase
 
         return (string) $browser->getResponse()->getContent();
     }
+
+    /**
+     * The Menu (docs/features/navigation MENU-01) and its lazy numbers (menu_counts) are the viewer's own: neither names
+     * a private player - for a stranger or for the friend she allowed.
+     */
+    public function testTheMenuAndItsNumbersNameNobody(): void
+    {
+        $browser = self::createClient();
+
+        foreach ([...array_values(self::STRANGERS), self::FRIEND] as $viewer) {
+            TestingLogin::asPlayer($browser, $viewer);
+
+            $browser->request('GET', '/en/menu-counts.json');
+            self::assertResponseIsSuccessful();
+            $content = (string) $browser->getResponse()->getContent();
+            $data = json_decode($content, true, flags: JSON_THROW_ON_ERROR);
+            self::assertIsArray($data);
+            self::assertSame(['organised', 'review'], array_keys($data));
+            self::assertTrue($data['organised'] === null || is_int($data['organised']));
+            self::assertIsInt($data['review']);
+            self::assertStringNotContainsString(self::OWNER, $content, $viewer);
+            self::assertStringNotContainsString(self::OWNER_NAME, $content, $viewer);
+
+            $crawler = $browser->request('GET', '/en/menu');
+            self::assertResponseIsSuccessful();
+            $menu = $crawler->filter('main #site-menu')->html();
+            self::assertStringNotContainsString(self::OWNER, $menu, $viewer);
+            self::assertStringNotContainsString(self::OWNER_NAME, $menu, $viewer);
+        }
+    }
 }

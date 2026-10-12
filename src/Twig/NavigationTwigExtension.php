@@ -5,13 +5,19 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Twig;
 
 use SpeedPuzzling\Web\Navigation\BarAction;
+use SpeedPuzzling\Web\Navigation\LegacyChromeSwitch;
+use SpeedPuzzling\Web\Navigation\MenuBuilder;
+use SpeedPuzzling\Web\Navigation\MenuView;
 use SpeedPuzzling\Web\Navigation\NavigationLaunch;
 use SpeedPuzzling\Web\Navigation\NavigationPlaceResolver;
 use SpeedPuzzling\Web\Navigation\NavigationPointers;
+use SpeedPuzzling\Web\Navigation\NavigationViewerFactory;
 use SpeedPuzzling\Web\Navigation\NavLocation;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Twig\Extension\AbstractExtension;
+use Twig\Extension\GlobalsInterface;
 use Twig\TwigFunction;
 
 /**
@@ -21,11 +27,20 @@ use Twig\TwigFunction;
  * - bar_action(id): the data-bar-action value of a top-bar tool, checked against BarAction (a typo fails at render);
  * - nav_launched() / nav_new_badges_shown(): the launch date's switches (NavigationLaunch);
  * - navigation_pointer(name): whether the signed-in viewer gets that 30-day pointer (NavigationPointers; 'inbox' =
- *   INB-05) - read from the profile row, no query.
+ *   INB-05) - read from the profile row, no query;
+ * - nav_menu(surface): the Menu for the viewer ('slot' = the page's one #site-menu, 'page' = the `menu` page; MENU-01);
+ * - nav_viewer_audience(): the viewer's audiences for `<body data-viewer-audience>` (page search, MENU-03);
+ * - nav_viewer(): the current viewer as the navigation sees it (NavigationViewer: audiences, trial days left);
+ * - language_switch_urls(): the current page in the other five languages (decision 36) - the Menu's Language row, the
+ *   top bar's and the footer's language menus;
+ * - global nav_omit_legacy_chrome: the weight probe's test-only switch (LegacyChromeSwitch, decision 34).
  */
-final class NavigationTwigExtension extends AbstractExtension
+final class NavigationTwigExtension extends AbstractExtension implements GlobalsInterface
 {
     public const string REQUEST_ATTRIBUTE = '_nav_location';
+
+    // The switch's order of the other languages (as _language_menu.html.twig always listed them)
+    private const array LOCALES = ['en', 'de', 'cs', 'fr', 'es', 'ja'];
 
     public function __construct(
         readonly private RequestStack $requestStack,
@@ -33,7 +48,21 @@ final class NavigationTwigExtension extends AbstractExtension
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private NavigationLaunch $navigationLaunch,
         readonly private NavigationPointers $navigationPointers,
+        readonly private MenuBuilder $menuBuilder,
+        readonly private NavigationViewerFactory $viewerFactory,
+        readonly private UrlGeneratorInterface $urlGenerator,
+        readonly private LegacyChromeSwitch $legacyChromeSwitch,
     ) {
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function getGlobals(): array
+    {
+        return [
+            'nav_omit_legacy_chrome' => $this->legacyChromeSwitch->omitsLegacyChrome(),
+        ];
     }
 
     /**
@@ -47,7 +76,64 @@ final class NavigationTwigExtension extends AbstractExtension
             new TwigFunction('nav_launched', $this->navigationLaunch->hasLaunched(...)),
             new TwigFunction('nav_new_badges_shown', $this->navigationLaunch->newBadgesVisible(...)),
             new TwigFunction('navigation_pointer', $this->navigationPointer(...)),
+            new TwigFunction('nav_menu', $this->menu(...)),
+            new TwigFunction('nav_viewer_audience', $this->viewerAudience(...)),
+            new TwigFunction('nav_viewer', $this->viewerFactory->current(...)),
+            new TwigFunction('language_switch_urls', $this->languageSwitchUrls(...)),
         ];
+    }
+
+    public function menu(string $surface = MenuView::SURFACE_SLOT): MenuView
+    {
+        return $this->menuBuilder->build($surface, $this->navLocation()->menuRowId);
+    }
+
+    /**
+     * Space-separated: "everyone guest" (+ "xp_visible" once XP is launched) for every guest - guest HTML stays
+     * shared-cacheable; a player's own audiences without the role ones (NavigationViewer::pageAudience())
+     */
+    public function viewerAudience(): string
+    {
+        return implode(' ', $this->viewerFactory->current()->pageAudience());
+    }
+
+    /**
+     * The current page in each other language, locale => URL, by the language switch's rules: the route with its
+     * parameters and query string (filters survive a switch; ?return=, ?return_url= and ?return_title= are dropped,
+     * except on the locale-less auth pages, which keep their destination across the switch - `_auth_page`); the
+     * homepage of that language when the page has no route.
+     *
+     * @return array<string, string>
+     */
+    public function languageSwitchUrls(): array
+    {
+        $request = $this->requestStack->getMainRequest();
+
+        if ($request === null) {
+            return [];
+        }
+
+        $route = $request->attributes->get('_route');
+        $routeParams = $request->attributes->get('_route_params');
+        $query = $request->query->all();
+
+        if ($request->attributes->get('_auth_page') !== true) {
+            unset($query['return'], $query['return_url'], $query['return_title']);
+        }
+
+        $urls = [];
+
+        foreach (self::LOCALES as $locale) {
+            if ($locale === $request->getLocale()) {
+                continue;
+            }
+
+            $urls[$locale] = is_string($route) && $route !== ''
+                ? $this->urlGenerator->generate($route, [...(is_array($routeParams) ? $routeParams : []), ...$query, '_locale' => $locale])
+                : $this->urlGenerator->generate('homepage', ['_locale' => $locale]);
+        }
+
+        return $urls;
     }
 
     public function navLocation(): NavLocation

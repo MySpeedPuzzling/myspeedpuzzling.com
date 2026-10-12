@@ -1,0 +1,14 @@
+{#- The You card at the top of the phone panel (README §4.12): the viewer's avatar with the XP level ring (as the avatar
+    menu's trigger; behind the XP gate - XpRing decides), name, View your profile, ⚙ Settings and the membership status
+    line - all from the viewer's profile row. Desktop has the avatar ▾ account menu instead (the row is phone-only).
+    `row`: MenuRowView, `profile`: PlayerProfile, `only`: the surface class -#}
+<li id="{{ row.anchorId }}" class="menu-you{{ only ? ' ' ~ only }}">
+    {#- -#}<a class="menu-you-main" href="{{ row.href }}" data-nav="menu/you/profile" data-press{{ row.current ? ' aria-current="page"' }}>
+        {#- -#}<span class="menu-you-avatar"><twig:XpRing :player="profile" variant="nav">
+            {{- include('_player_avatar.html.twig', {player_id: profile.playerId, name: profile.playerName ?? ('#' ~ profile.code), avatar: profile.avatar, country_code: null, size: 'lg'}, with_context = false) -}}
+        </twig:XpRing></span>
+        {#- -#}<span class="menu-you-text"><span class="menu-you-name">{{ profile.playerName ?? ('#' ~ profile.code|upper) }}</span><span class="menu-you-link">{{ 'nav.menu.view_profile'|trans }}</span></span>
+    {#- -#}</a>
+    {#- -#}<a class="menu-you-settings" href="{{ path('edit_profile') }}" data-nav="menu/you/settings" data-press aria-label="{{ 'nav.row.settings'|trans }}" title="{{ 'nav.row.settings'|trans }}"><i class="bi bi-gear" aria-hidden="true"></i></a>
+    {#- -#}<a class="menu-you-status" href="{{ path('membership') }}" data-nav="menu/you/membership">{{ include('navigation/_membership_status.html.twig', {profile: profile}, with_context = false) }}</a>
+{#- -#}</li>

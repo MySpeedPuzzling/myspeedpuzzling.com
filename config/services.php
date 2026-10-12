@@ -17,6 +17,7 @@ use Sentry\State\HubInterface;
 use SpeedPuzzling\Web\Doctrine\RegexSchemaAssetFilter;
 use SpeedPuzzling\Web\Navigation\FavoritesFeed;
 use SpeedPuzzling\Web\Navigation\InboxBadge;
+use SpeedPuzzling\Web\Navigation\LegacyChromeSwitch;
 use SpeedPuzzling\Web\Navigation\NavigationLaunch;
 use SpeedPuzzling\Web\Services\Api\ApiDtoNormalizer;
 use SpeedPuzzling\Web\Services\ApiUsage\ApiUsageCounter;
@@ -176,13 +177,16 @@ return static function (ContainerConfigurator $configurator): void {
     // Navigation services (registry, place resolver, launch date, the Help sheet's context factory and rows); the value
     // objects and enums beside them are not services
     $services->load('SpeedPuzzling\\Web\\Navigation\\', __DIR__ . '/../src/Navigation/{Navigation*.php,*Factory.php,*Builder.php}')
-        ->exclude([__DIR__ . '/../src/Navigation/NavigationPlaceMap.php']);
+        ->exclude([__DIR__ . '/../src/Navigation/NavigationPlaceMap.php', __DIR__ . '/../src/Navigation/NavigationViewer.php']);
     $services->set(NavigationLaunch::class)
         ->arg('$date', param('navigation.launch_date'));
     // The Inbox badge's request memo (INB-02)
     $services->set(InboxBadge::class);
     // The Hub's Favorites feed rows, read by its tab's count and by the feed (INB-04b)
     $services->set(FavoritesFeed::class);
+    // Test-only switch of the MENU-01 weight probe (decision 34): off everywhere, deleted by NAV-06. Public (never
+    // inlined) so the probe's kernel can replace it before the first render
+    $services->set(LegacyChromeSwitch::class)->public();
 
     // Repositories
     $services->load('SpeedPuzzling\\Web\\Repository\\', __DIR__ . '/../src/Repository/{*Repository.php}');

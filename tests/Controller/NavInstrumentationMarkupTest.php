@@ -102,6 +102,37 @@ final class NavInstrumentationMarkupTest extends WebTestCase
         yield 'help sheet' => ['/en/help', ['HTTP_TURBO_FRAME' => 'modal-frame'], '[data-help-sheet]', ['help/help/close', 'help/help/feature_requests', 'help/help/faq']];
         yield 'inbox for you' => ['/en/notifications', [], 'main nav.inbox-tabs', ['inbox/none/for_you', 'inbox/none/messages'], PlayerFixture::PLAYER_REGULAR];
         yield 'inbox messages' => ['/en/messages', [], 'main nav.inbox-tabs', ['inbox/none/for_you', 'inbox/none/messages'], PlayerFixture::PLAYER_REGULAR];
+        // The Menu (MENU-01): the page's one #site-menu in the docked-column slot (a guest) and the `menu` page (a player)
+        yield 'menu slot (guest)' => ['/en/faq', [], '#site-menu', [
+            'menu/home/home', 'menu/puzzles/puzzles_place', 'menu/puzzles/all_puzzles', 'menu/puzzles/brands', 'menu/puzzles/marketplace',
+            'menu/community/community_place', 'menu/community/leaderboards', 'menu/community/msp_rating', 'menu/community/level_boards',
+            'menu/community/puzzlers', 'menu/community/all_puzzlers', 'menu/community/events', 'menu/community/organizations', 'menu/community/latest_times',
+            'menu/you/sign_in', 'menu/you/join',
+            'menu/add/disclosure', 'menu/add/add',
+            'menu/help/disclosure', 'menu/help/methodology', 'menu/help/feature_requests', 'menu/help/getting_started', 'menu/help/faq', 'menu/help/guides', 'menu/help/progression',
+            'menu/help/language_de', 'menu/help/language_cs', 'menu/help/language_fr', 'menu/help/language_es', 'menu/help/language_ja',
+            'menu/about/disclosure', 'menu/about/tracker_app', 'menu/about/wjpc', 'menu/about/developers', 'menu/about/organizers',
+            'menu/about/legal_terms', 'menu/about/legal_privacy', 'menu/about/legal_data_deletion',
+        ]];
+        yield 'menu page (player)' => ['/en/menu', [], 'main #site-menu', [
+            'menu/you/profile', 'menu/you/settings', 'menu/you/membership',
+            'menu/inbox/inbox',
+            'menu/puzzling/results', 'menu/puzzling/favorites', 'menu/puzzling/statistics', 'menu/puzzling/compare', 'menu/puzzling/review_results',
+            'menu/puzzling/pairs_and_teams', 'menu/puzzling/calendar', 'menu/puzzling/achievements', 'menu/puzzling/level_xp', 'menu/puzzling/your_week',
+            'menu/library/library', 'menu/library/collection', 'menu/library/what_next', 'menu/library/unsolved', 'menu/library/sell_swap',
+            'menu/library/solved', 'menu/library/lent_borrowed', 'menu/library/wishlist',
+            'menu/community/leaderboards', 'menu/community/msp_rating', 'menu/community/level_boards', 'menu/community/puzzlers',
+            'menu/community/all_puzzlers', 'menu/community/events', 'menu/community/organizations', 'menu/community/latest_times',
+            'menu/puzzles/all_puzzles', 'menu/puzzles/brands', 'menu/puzzles/marketplace',
+            'menu/add/add', 'menu/add/stopwatch', 'menu/add/multiscan', 'menu/add/add_event',
+            'menu/account/membership', 'menu/account/settings', 'menu/account/your_data', 'menu/account/blocked_players',
+            'menu/help/send_feedback', 'menu/help/methodology', 'menu/help/feature_requests', 'menu/help/getting_started', 'menu/help/faq',
+            'menu/help/guides', 'menu/help/progression', 'menu/help/where_did_it_go',
+            'menu/help/language_de', 'menu/help/language_cs', 'menu/help/language_fr', 'menu/help/language_es', 'menu/help/language_ja',
+            'menu/about/tracker_app', 'menu/about/wjpc', 'menu/about/developers', 'menu/about/organizers',
+            'menu/about/legal_terms', 'menu/about/legal_privacy', 'menu/about/legal_data_deletion',
+            'menu/logout/logout',
+        ], PlayerFixture::PLAYER_PRIVATE];
     }
 
     /**

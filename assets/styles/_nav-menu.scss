@@ -1,0 +1,414 @@
+// The Menu (docs/features/navigation README §4.12 / D21, MENU-01; templates/navigation/_menu*.html.twig): the page's
+// one #site-menu. Rows: icon · label (+ a one-line description) · count or status · chevron, ≥ 48 px on phones; labels
+// wrap, never truncate (README §4.12, checked at 320 px in 6 locales). Colours from the README §5 tokens.
+//
+// Surfaces: the slot (`.menu-slot`, hidden by critical CSS wherever there is no docked column - everywhere until
+// NAV-13), the `menu` page (phone rows only) and, from MENU-02b, the phone panel. Phone-only parts carry
+// `.menu-only-phone`, dock-only parts `.menu-only-dock`: everywhere but the docked column and the overlay (NAV-13
+// flips these there) the dock-only parts and the disclosure buttons stay hidden.
+// Chrome markup rules (implementation plan §3.2): own prefixes only (`site-menu`, `menu-*`, `mr*`).
+
+.menu-slot {
+    display: none;
+}
+
+.menu-page {
+    max-width: 40rem;
+}
+
+.site-menu {
+    color: var(--nav-ink, #4b566b);
+
+    .menu-only-dock,
+    .menu-disclosure {
+        display: none;
+    }
+}
+
+.menu-group {
+    margin: 0 0 .5rem;
+}
+
+.menu-group-title {
+    margin: 1rem 0 .25rem;
+    padding: 0 .5rem;
+    font-size: .75rem;
+    font-weight: 600;
+    line-height: 1.25rem;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: var(--nav-label, #5f6b80);
+}
+
+.menu-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+// A row: the whole width is the target
+.mr {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    min-height: 48px;
+    padding: .375rem .5rem;
+    border-radius: .5rem;
+    color: var(--nav-ink, #4b566b);
+    font-weight: 400;
+    text-decoration: none;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+
+    > .bi {
+        flex: 0 0 1.5rem;
+        font-size: 1.25rem;
+        line-height: 1;
+        text-align: center;
+        color: var(--nav-label, #5f6b80);
+    }
+
+    // The chevron, drawn (no glyph to load)
+    &::after {
+        content: "";
+        flex: 0 0 auto;
+        width: .4375rem;
+        height: .4375rem;
+        margin: 0 .25rem 0 .125rem;
+        border-top: 2px solid currentColor;
+        border-right: 2px solid currentColor;
+        opacity: .45;
+        transform: rotate(45deg);
+    }
+
+    &:hover,
+    &:focus {
+        color: var(--nav-ink, #4b566b);
+        text-decoration: none;
+        background: var(--nav-pressed-pill, rgba(254, 105, 106, .1));
+    }
+
+    &:active {
+        background: var(--nav-pressed-pill, rgba(254, 105, 106, .1));
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--nav-focus, #4e54c8);
+        outline-offset: -2px;
+    }
+
+    &[aria-current="page"] {
+        color: var(--nav-active-ink, #c8323a);
+        font-weight: 500;
+        background: var(--nav-active-pill, #ffe8e8);
+
+        > .bi {
+            color: inherit;
+        }
+    }
+}
+
+// The label takes the room and wraps - never truncated
+.mr-l {
+    flex: 1 1 auto;
+    min-width: 0;
+    line-height: 1.3;
+    overflow-wrap: break-word;
+}
+
+// One line under ambiguous labels (and the membership / running stopwatch status)
+.mr-d {
+    display: block;
+    margin-top: .0625rem;
+    font-size: .8125rem;
+    font-weight: 400;
+    line-height: 1.25;
+    color: var(--nav-label, #5f6b80);
+}
+
+.mr-running {
+    color: var(--nav-active-ink, #c8323a);
+    font-variant-numeric: tabular-nums;
+}
+
+// The count or status at the end of a row; lazy slots (menu_counts) are reserved and stay empty until filled
+.mr-c {
+    flex: 0 0 auto;
+    display: inline-flex;
+    justify-content: flex-end;
+    min-width: 1.5rem;
+    font-size: .75rem;
+    font-weight: 500;
+    line-height: 1;
+
+    &[data-menu-count]:not(:empty),
+    .mr-n {
+        padding: .1875rem .4375rem;
+        border-radius: 1rem;
+        color: var(--nav-ink, #4b566b);
+        background: var(--search-bg, #f3f5f9);
+    }
+
+    &[data-menu-count="review"]:not(:empty),
+    .mr-badge {
+        color: var(--nav-badge-ink, #fff);
+        background: var(--nav-badge-bg, #d63c42);
+    }
+
+    .badge {
+        font-size: .75rem;
+    }
+
+    .mr-badge {
+        padding: .1875rem .4375rem;
+        border-radius: 1rem;
+
+        &[hidden] {
+            display: none;
+        }
+    }
+}
+
+// The You card (phone panel top)
+.menu-you {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: .25rem .5rem;
+    padding: .5rem 0 .75rem;
+    border-bottom: 1px solid var(--nav-hairline, rgba(43, 52, 69, .1));
+}
+
+.menu-you-main {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    min-width: 0;
+    min-height: 48px;
+    padding: .25rem .5rem;
+    border-radius: .5rem;
+    color: var(--nav-ink, #4b566b);
+    text-decoration: none;
+
+    &:hover,
+    &:focus {
+        color: var(--nav-ink, #4b566b);
+        background: var(--nav-pressed-pill, rgba(254, 105, 106, .1));
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--nav-focus, #4e54c8);
+        outline-offset: -2px;
+    }
+}
+
+.menu-you-avatar {
+    flex: 0 0 auto;
+    display: inline-flex;
+}
+
+.menu-you-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    line-height: 1.3;
+}
+
+.menu-you-name {
+    font-weight: 600;
+    color: var(--nav-ink, #373f50);
+    overflow-wrap: anywhere;
+}
+
+.menu-you-link {
+    font-size: .8125rem;
+    color: var(--nav-active-ink, #c8323a);
+}
+
+.menu-you-settings {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    font-size: 1.25rem;
+    color: var(--nav-label, #5f6b80);
+
+    &:hover,
+    &:focus {
+        color: var(--nav-ink, #4b566b);
+        background: var(--nav-pressed-pill, rgba(254, 105, 106, .1));
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--nav-focus, #4e54c8);
+        outline-offset: -2px;
+    }
+}
+
+.menu-you-status {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 0 .5rem;
+    font-size: .875rem;
+    color: var(--nav-label, #5f6b80);
+    text-decoration: none;
+
+    &:hover,
+    &:focus {
+        color: var(--nav-active-ink, #c8323a);
+    }
+}
+
+// The guests' Sign in · Join free card
+.menu-guest {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+    padding: .5rem 0 .75rem;
+    border-bottom: 1px solid var(--nav-hairline, rgba(43, 52, 69, .1));
+}
+
+.menu-guest-line {
+    flex: 1 0 100%;
+    margin: 0 0 .25rem;
+    padding: 0 .5rem;
+    font-size: .875rem;
+    color: var(--nav-label, #5f6b80);
+}
+
+.menu-guest-btn {
+    flex: 1 1 8rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    padding: .5rem 1rem;
+    border: 1px solid var(--nav-hairline, rgba(43, 52, 69, .1));
+    border-radius: .5rem;
+    color: var(--nav-ink, #4b566b);
+    font-weight: 500;
+    text-align: center;
+    text-decoration: none;
+
+    &:hover,
+    &:focus {
+        color: var(--nav-ink, #4b566b);
+        background: var(--nav-pressed-pill, rgba(254, 105, 106, .1));
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--nav-focus, #4e54c8);
+        outline-offset: 2px;
+    }
+}
+
+.menu-guest-btn--primary {
+    border-color: var(--nav-add-bg, #ec4f52);
+    color: var(--nav-add-ink, #fff);
+    background: var(--nav-add-bg, #ec4f52);
+
+    &:hover,
+    &:focus {
+        color: var(--nav-add-ink, #fff);
+        background: var(--nav-active-ink, #c8323a);
+    }
+}
+
+// The inline language switch: a <details> whose summary is a row
+.menu-language {
+    > summary {
+        list-style: none;
+
+        &::-webkit-details-marker {
+            display: none;
+        }
+    }
+
+    &[open] > summary::after {
+        transform: rotate(135deg);
+    }
+}
+
+.menu-language-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .25rem;
+    margin: 0;
+    padding: 0 .5rem .5rem 2.75rem;
+    list-style: none;
+
+    a {
+        display: inline-flex;
+        align-items: center;
+        min-height: 44px;
+        padding: 0 .75rem;
+        border-radius: .5rem;
+        color: var(--nav-ink, #4b566b);
+        text-decoration: none;
+
+        &:hover,
+        &:focus {
+            background: var(--nav-pressed-pill, rgba(254, 105, 106, .1));
+        }
+    }
+}
+
+// Terms · Privacy · Data deletion: one row of three links
+.mr-legal {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    min-height: 48px;
+    padding: .375rem .5rem;
+
+    > .bi {
+        flex: 0 0 1.5rem;
+        font-size: 1.25rem;
+        line-height: 1;
+        text-align: center;
+        color: var(--nav-label, #5f6b80);
+    }
+}
+
+.mr-links {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    min-width: 0;
+
+    a {
+        display: inline-flex;
+        align-items: center;
+        min-height: 44px;
+        color: var(--nav-ink, #4b566b);
+        text-decoration: none;
+
+        &:hover,
+        &:focus {
+            color: var(--nav-active-ink, #c8323a);
+        }
+
+        &[aria-current="page"] {
+            color: var(--nav-active-ink, #c8323a);
+            font-weight: 500;
+        }
+    }
+
+    a + a::before {
+        content: "·";
+        padding: 0 .5rem;
+        color: var(--nav-label, #5f6b80);
+    }
+}
+
+// Log out last, visually separated
+.menu-logout {
+    margin-top: .5rem;
+    padding-top: .5rem;
+    border-top: 1px solid var(--nav-hairline, rgba(43, 52, 69, .1));
+}

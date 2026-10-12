@@ -318,6 +318,7 @@ final class NavigationPlaceMap
         'first_try_late_keep' => 'none',
         'first_try_late_remove' => 'none',
         'my_co_puzzlers' => 'none',
+        'menu_counts' => 'none',
         'my_co_puzzlers_archive' => 'none',
         'photo_stash_preview' => 'none',
         'competition_picker_editions' => 'none',

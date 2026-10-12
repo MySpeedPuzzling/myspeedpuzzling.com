@@ -51,6 +51,9 @@ final class DraftVisibilityCoverageTest extends TestCase
         'Query/GetParticipantsSheetVersion.php' => self::ORGANISER,
         'Query/GetPlayerDuplicateCases.php' => self::VIA_SOLVING_TIMES,
         'Query/GetPlayerSolvedPuzzles.php' => self::VIA_SOLVING_TIMES,
+        // MENU-01 (F23): whether the viewer organises anything - their own drafts count on purpose. GetPlayerProfile embeds
+        // this fragment for its organizes_events column and holds no event SQL of its own, so it is not listed
+        'Query/OrganizerSql.php' => self::OWN,
         'Query/GetPublishedRoundResults.php' => 'Round results pages answer 404 for an event that is not public (RoundResultsPageBuilder), the sitemap and the counts embed IsCompetitionPubliclyVisible.',
         'Query/GetPuzzleResultDetail.php' => self::VIA_SOLVING_TIMES,
         'Query/GetPuzzleSolvers.php' => self::VIA_SOLVING_TIMES,

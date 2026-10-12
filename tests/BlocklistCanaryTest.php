@@ -312,4 +312,38 @@ final class BlocklistCanaryTest extends WebTestCase
         self::assertStringNotContainsString(self::BLOCKED_NAME, $content, 'The blocker is shown a player they blocked.');
         self::assertCount(0, $crawler->filter('.hub-feed-new, .ra-new'), 'The times of a blocked player are counted as new.');
     }
+
+    /**
+     * The Menu (docs/features/navigation MENU-01) and its lazy numbers (menu_counts) are the viewer's own and name nobody
+     * else. The blocker's "Events you organize" counts an organization the blocked player created (OrganizationFixture:
+     * Riverbend, the blocker on its team) - only ever as a number.
+     */
+    public function testTheMenuAndItsNumbersNameNobody(): void
+    {
+        $browser = self::createClient();
+
+        self::getContainer()->get(Connection::class)->executeStatement(
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, NOW(), 'self')",
+            ['id' => Uuid::uuid7()->toString(), 'blocker' => self::BLOCKER, 'blocked' => self::BLOCKED],
+        );
+
+        TestingLogin::asPlayer($browser, self::BLOCKER);
+        $browser->request('GET', '/en/menu-counts.json');
+        self::assertResponseIsSuccessful();
+        $content = (string) $browser->getResponse()->getContent();
+        $data = json_decode($content, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($data);
+        self::assertSame(['organised', 'review'], array_keys($data));
+        self::assertIsInt($data['organised']);
+        self::assertGreaterThan(0, $data['organised'], 'No canary: the blocker organises nothing');
+        self::assertIsInt($data['review']);
+        self::assertStringNotContainsString(self::BLOCKED, $content);
+        self::assertStringNotContainsString(self::BLOCKED_NAME, $content);
+
+        $crawler = $browser->request('GET', '/en/menu');
+        self::assertResponseIsSuccessful();
+        $menu = $crawler->filter('main #site-menu')->html();
+        self::assertStringNotContainsString(self::BLOCKED, $menu, 'The Menu names a player the viewer blocked.');
+        self::assertStringNotContainsString(self::BLOCKED_NAME, $menu, 'The Menu names a player the viewer blocked.');
+    }
 }

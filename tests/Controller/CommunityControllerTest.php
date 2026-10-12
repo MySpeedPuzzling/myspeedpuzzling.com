@@ -120,8 +120,8 @@ final class CommunityControllerTest extends WebTestCase
 
         self::assertSame($expected, $found);
 
-        // The titles are the registry's labels (one name per destination)
-        self::assertSame(['Leaderboards', 'Players', 'Events'], $crawler->filter('.community-entry-title')->each(
+        // The titles are the registry's labels (one name per destination; MENU-01 named the people section Puzzlers)
+        self::assertSame(['Leaderboards', 'Puzzlers', 'Events'], $crawler->filter('.community-entry-title')->each(
             static fn (Crawler $title): string => trim($title->text()),
         ));
     }

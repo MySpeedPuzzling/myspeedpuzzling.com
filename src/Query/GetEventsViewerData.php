@@ -29,10 +29,8 @@ readonly final class GetEventsViewerData
         }
 
         $going = CompetitionParticipantGoing::sql('cp');
-        $teamOrganizations = <<<SQL
-(SELECT team_o.id FROM organization team_o WHERE team_o.added_by_player_id = :playerId
-    UNION SELECT team_om.organization_id FROM organization_maintainer team_om WHERE team_om.player_id = :playerId)
-SQL;
+        // The rule the Menu's "Events you organize" reads from the profile row too (OrganizerSql, MENU-01)
+        $teamOrganizations = OrganizerSql::teamOrganizationIds(':playerId');
 
         $query = <<<SQL
 SELECT 'going' AS kind, cp.competition_id::text AS id, NULL::text AS series_id, NULL::text AS organization_id

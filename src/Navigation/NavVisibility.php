@@ -33,6 +33,9 @@ enum NavVisibility: string
     case XpPlayer = 'xp_player';
     // Signed in, the XP system is visible and the viewer did not opt out of it
     case XpParticipant = 'xp_participant';
+    // Signed in, the XP system is visible and the viewer did not hide their achievements ("Hide my achievements": no
+    // achievements anywhere for anybody, owner included - docs/features/opt-out.md)
+    case AchievementsShown = 'achievements_shown';
     // Signed in, the XP system is visible (karma launches with XP behind XpFeatureGate), the viewer has karma and did
     // not hide it
     case KarmaHolder = 'karma_holder';
@@ -53,7 +56,7 @@ enum NavVisibility: string
         return match ($this) {
             self::Everyone, self::GuestOnly, self::XpVisible => true,
             self::SignedIn, self::Member, self::MemberOrReferral, self::PrivateMember, self::XpPlayer, self::XpParticipant,
-            self::KarmaHolder, self::Organiser, self::Moderator, self::TimeVerifier, self::Admin => false,
+            self::AchievementsShown, self::KarmaHolder, self::Organiser, self::Moderator, self::TimeVerifier, self::Admin => false,
         };
     }
 
@@ -63,6 +66,16 @@ enum NavVisibility: string
     public function isRole(): bool
     {
         return in_array($this, [self::Moderator, self::TimeVerifier, self::Admin], true);
+    }
+
+    /**
+     * Exposed on the page as one of the viewer's audiences (`<body data-viewer-audience>`, nav_viewer_audience(),
+     * MENU-01) - every audience but the role ones: the page search never filters moderator or admin entries in the
+     * browser, they are rendered for those viewers only (README §4.12 "Search").
+     */
+    public function isPageFlag(): bool
+    {
+        return !$this->isRole();
     }
 
     /**
@@ -80,6 +93,7 @@ enum NavVisibility: string
             self::XpVisible => 'whoever sees the XP system (guests too, once launched): public XP pages',
             self::XpPlayer => 'signed-in players who see the XP system',
             self::XpParticipant => 'signed-in players who see the XP system and did not opt out',
+            self::AchievementsShown => 'signed-in players who see the XP system and did not hide their achievements',
             self::KarmaHolder => 'signed-in players who see the XP system, have karma and did not hide it',
             self::Organiser => 'signed-in organisers of an event, series or organization',
             self::Moderator => 'moderators and admins',

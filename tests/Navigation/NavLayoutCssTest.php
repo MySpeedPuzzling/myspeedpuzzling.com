@@ -322,9 +322,10 @@ final class NavLayoutCssTest extends TestCase
     {
         $base = (string) file_get_contents($this->root() . '/templates/base.html.twig');
 
-        $chrome = strpos($base, '{% block nav_chrome %}{% if is_web() %}{% endif %}{% endblock %}');
+        // The chrome block holds includes only, all inside is_web() (MENU-01 put the Menu slot there)
+        self::assertSame(1, preg_match('~\{% block nav_chrome %\}\{% if is_web\(\) %\}((?:\{\{ include\(\'[a-z_/]+\.html\.twig\'\) \}\})*)\{% endif %\}\{% endblock %\}~', $base, $match, PREG_OFFSET_CAPTURE), 'nav_chrome block (web only, includes only) missing');
+        $chrome = $match[0][1];
         $layers = strpos($base, '{% block nav_layers %}{% if is_web() %}{% endif %}{% endblock %}');
-        self::assertIsInt($chrome, 'nav_chrome block (web only) missing');
         self::assertIsInt($layers, 'nav_layers block (web only) missing');
 
         // nav_chrome right after the header block and before <main>; nav_layers last in <body>, after every GlobalSearch

@@ -84,6 +84,7 @@ use SpeedPuzzling\Web\Value\SkillTier;
  *     running_stopwatch?: null|string,
  *     favorites_seen_at?: null|string,
  *     dismissed_navigation_hints?: null|string,
+ *     organizes_events?: bool,
  *  }
  */
 readonly final class PlayerProfile
@@ -234,6 +235,12 @@ readonly final class PlayerProfile
          * @var list<HintType>
          */
         public array $dismissedNavigationHints = [],
+        /**
+         * GetPlayerProfile::byUserId() only: the viewer created or maintains an event, a series or an organization
+         * (OrganizerSql::organizesAnything(), drafts included) - the Menu's "Events you organize" row (docs/features/
+         * navigation README §4.12, MENU-01). Its number is loaded later (menu_counts).
+         */
+        public bool $organizesEvents = false,
     ) {
     }
 
@@ -447,6 +454,7 @@ readonly final class PlayerProfile
             runningStopwatch: RunningStopwatch::fromJson($row['running_stopwatch'] ?? null, $now),
             favoritesSeenAt: isset($row['favorites_seen_at']) ? new DateTimeImmutable($row['favorites_seen_at']) : null,
             dismissedNavigationHints: self::navigationHintsFromJson($row['dismissed_navigation_hints'] ?? null),
+            organizesEvents: (bool) ($row['organizes_events'] ?? false),
         );
     }
 

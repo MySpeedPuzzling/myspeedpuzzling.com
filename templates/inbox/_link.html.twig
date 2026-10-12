@@ -5,7 +5,8 @@
     page's own locale; the stream itself carries numbers only.
     Params: nav = data-nav (required); class = the link's classes; surface = adds inbox-link--<surface>;
     label = visible label text (none by default); badge_part = total (default) | for_you | messages; badge_class;
-    parts = InboxBadgeParts (default inbox_badge()). Renders nothing for guests.
+    parts = InboxBadgeParts (default inbox_badge()); current = true marks the current page's link (aria-current, the
+    Menu's Inbox row - MENU-01). Renders nothing for guests.
     Embed it and override block `content` for a surface's own icon and badge markup (the badge stays an include of
     inbox/_badge.html.twig with `parts`). -#}
 {%- set parts = parts ?? inbox_badge() -%}
@@ -16,6 +17,7 @@
        rel="nofollow"
        data-inbox-link
        data-nav="{{ nav }}"
+       {%- if current ?? false %} aria-current="page"{% endif %}
        data-bar-action="{{ bar_action('inbox') }}"
        data-bar-count="{{ parts.total() }}"
        aria-label="{{ ('inbox.badge.name.' ~ parts.labelKind())|trans({'%count%': parts.labelCount()}) }}"

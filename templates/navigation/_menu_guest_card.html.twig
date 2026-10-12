@@ -1,0 +1,9 @@
+{#- The guests' card where players get the You card (README §4.12): Sign in - back to this page afterwards (?return=,
+    the same for every guest at this URL, so guest HTML stays shared-cacheable; nofollow: no per-page crawl variants) -
+    and Join free, with one line about what they get. Phone panel top, docked column after the places (decision 31).
+    `row`: MenuRowView, `only`: the surface class -#}
+<li id="{{ row.anchorId }}" class="menu-guest{{ only ? ' ' ~ only }}">
+    {#- -#}<p class="menu-guest-line">{{ 'nav.menu.guest_line'|trans }}</p>
+    {#- -#}<a class="menu-guest-btn menu-guest-btn--primary" href="{{ row.href }}" rel="nofollow" data-nav="menu/you/sign_in" data-press>{{ 'nav.menu.sign_in'|trans }}</a>
+    {#- -#}<a class="menu-guest-btn" href="{{ path('register') }}" data-nav="menu/you/join" data-press>{{ 'nav.menu.join_free'|trans }}</a>
+{#- -#}</li>

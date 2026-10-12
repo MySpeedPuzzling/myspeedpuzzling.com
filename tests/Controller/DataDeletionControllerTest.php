@@ -57,8 +57,9 @@ final class DataDeletionControllerTest extends WebTestCase
         $crawler = $browser->request('GET', $router->generate('privacy_policy', ['_locale' => $locale]));
 
         self::assertResponseIsSuccessful();
-        // Once from the policy text, once from the footer
-        self::assertGreaterThanOrEqual(2, $crawler->filter(sprintf('a[href="%s"]', $path))->count());
+        // Once from the policy text, once from the footer, once from the Menu's About row (MENU-01)
+        self::assertGreaterThanOrEqual(3, $crawler->filter(sprintf('a[href="%s"]', $path))->count());
+        self::assertCount(1, $crawler->filter(sprintf('#site-menu a[href="%s"]', $path)));
         self::assertStringNotContainsString('%data_deletion_link%', (string) $browser->getResponse()->getContent());
     }
 

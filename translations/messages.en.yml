@@ -2337,9 +2337,10 @@ badges:
         first_to_earn: "First to earn"
         only_hidden_holders: "{1}1 puzzler earned this tier — their profile is not publicly listed.|]1,Inf[%count% puzzlers earned this tier — their profiles are not publicly listed."
         nobody_yet: "Nobody has earned this tier yet. First one writes history!"
-        listing_note: "Holder lists show members with public profiles; the counts include every puzzler."
+        listing_note: "Each puzzler is listed once, under the highest tier they reached. Holder lists show members with public profiles; the counts include every puzzler."
     holders:
         your_tier: "Your tier"
+        all_went_further: "Everyone who earned this tier has gone further."
         show_more: "Show %count% more"
         show_all: "Show all %count%"
         unlisted: "{1}+1 puzzler whose profile is not listed|]1,Inf[+%count% puzzlers whose profiles are not listed"

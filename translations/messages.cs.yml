@@ -1826,10 +1826,11 @@ badges:
         first_to_earn: "První držitel"
         only_hidden_holders: "{1}Tento stupeň získal 1 puzzler — jeho profil není veřejně viditelný.|{2,3,4}Tento stupeň získali %count% puzzleři — jejich profily nejsou veřejně viditelné.|[5,Inf[Tento stupeň získalo %count% puzzlerů — jejich profily nejsou veřejně viditelné."
         nobody_yet: "Tento stupeň zatím nikdo nezískal. Kdo bude první, zapíše se do historie!"
-        listing_note: "V seznamech držitelů jsou členové s veřejným profilem; počty zahrnují všechny puzzlery."
+        listing_note: "Každý puzzler je uvedený jednou, u nejvyššího stupně, kterého dosáhl. V seznamech držitelů jsou členové s veřejným profilem; počty zahrnují všechny puzzlery."
         apply_filter: "Zobrazit"
     holders:
         your_tier: "Tvůj stupeň"
+        all_went_further: "Všichni, kdo tento stupeň získali, už jsou dál."
         show_more: "Zobrazit dalších %count%"
         show_all: "Zobrazit všech %count%"
         unlisted: "{1}+1 puzzler, jehož profil není veřejný|{2,3,4}+%count% puzzleři, jejichž profily nejsou veřejné|[5,Inf[+%count% puzzlerů, jejichž profily nejsou veřejné"

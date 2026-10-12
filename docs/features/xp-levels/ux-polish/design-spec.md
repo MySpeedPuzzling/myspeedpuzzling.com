@@ -376,6 +376,16 @@ questions, measured contrast and benchmarks with sources, is kept with the deliv
 - **The viewer's own status** stays in the hero ("You hold Gold · No. 80 of 82" or "You hold Gold · held at launch").
   There is no pinned own row.
 - **"First to earn"** only when the first holder earned the tier after launch.
+- **Each player is listed once, under the highest tier they hold** (Jan 2026-10-12: "when I have Diamond I am listed
+  at all lower tiers"). The row's date is that tier's. A section's counts ("N puzzlers", "Show all N", "+N not
+  listed") and the ladder's seal count the players at that tier, so the ladder adds up to "See who earned it (N)".
+  - **Why:** earning a tier fills in the lower ones, so a Diamond holder stood in all five lists and the lower lists
+    were mostly people who had long moved on.
+  - The medal number keeps counting every holder of the tier ("You hold Silver · No. 2 of 2" with the other Silver
+    holder now at Gold): it is the number on the medal back (P9). A trophy belongs to a tier, so a first holder
+    who went further shows only their highest tier's trophy, if any.
+  - A tier everybody went past says "Everyone who earned this tier has gone further." instead of "Nobody yet".
+  - The catalogue, the sheet's "Held by N" and the rarity still count every holder of a tier: that is how rare it is.
 
 ### 8.3 Detail sheet (must)
 - **The facts line** shows tier, the earned date or "Held at launch", and No. (when it has one).
@@ -504,7 +514,7 @@ PHPStan clean). Where the build had to decide something the spec left open, or t
 | Per-pieces Times boards by country | Stay **public** (the brief asked for the overview's members-only gate) | Those pages carry localised "fastest N-piece times (country)" titles (SEO landing pages, commit 4227c94f); a redirect would drop them |
 | Sheet skeleton (§5) | Dropped; instead a generic "This couldn't be loaded · Try again · Close" state for every modal | The spinner only shows after 150 ms and the sheet renders fast; a network error used to close the modal silently, which looked like the tap did nothing |
 | XP opt-out vs the medal | An XP opt-out does **not** hide a player's achievements in the sheet | The same rule as the achievements page already had (achievements stay on the profile) |
-| "See who earned it (N)" | N = the Bronze holders = everyone who earned the achievement | The holders page lists every tier, and the evaluator fills the lower tiers |
+| "See who earned it (N)" | N = the Bronze holders = everyone who earned the achievement | The evaluator fills the lower tiers, so every holder holds Bronze; the holders page lists each of them once, at their highest tier (§8.2) - its ladder adds up to N |
 | Medal backs | Every tier turns over (T1–T3 too); foil/rim masks only for T4/T5 | The facts are personal at any tier; only the finish is the top tiers' reward |
 | Progress boards | Plain page with GET forms aimed at a Turbo Frame (not a Live Component); revealed states answer `X-Robots-Tag: noindex, follow` | The filters already were a GET form; buttons in forms are not crawled, and the page keeps its scroll |
 | MSP search | Finds rows within the current list and keeps that list's ranks | Searching a name is finding someone, not a new list (P9) |

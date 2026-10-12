@@ -1790,10 +1790,11 @@ badges:
         first_to_earn: "Primeros en conseguirlo"
         only_hidden_holders: "{1}1 puzzlero consiguió este rango — su perfil no aparece públicamente.|]1,Inf[%count% puzzleros consiguieron este rango — sus perfiles no aparecen públicamente."
         nobody_yet: "Nadie ha conseguido este rango todavía. ¡El primero escribirá la historia!"
-        listing_note: "Las listas de poseedores muestran a los miembros con perfil público; los contadores incluyen a todos los puzzleros."
+        listing_note: "Cada puzzlero aparece una sola vez, en el rango más alto que ha alcanzado. Las listas de poseedores muestran a los miembros con perfil público; los contadores incluyen a todos los puzzleros."
         apply_filter: "Mostrar"
     holders:
         your_tier: "Tu rango"
+        all_went_further: "Todos los que consiguieron este rango ya han llegado más lejos."
         show_more: "Mostrar %count% más"
         show_all: "Mostrar los %count%"
         unlisted: "{1}+1 puzzlero con perfil no público|]1,Inf[+%count% puzzleros con perfil no público"

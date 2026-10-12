@@ -50,9 +50,16 @@ like the solved puzzles page (only the two Speed Demons look at the player's own
 them (Zen Puzzler, First Try, Unboxed, Brand Explorer, Marathoner, Photographer, Weekend Puzzler) counted only the
 results the player logged themselves - a relaxed pair result a teammate logged was missing (a player saw 63 relax
 solves in the achievements and 184 on the solved puzzles page). Fixed in `GetPlayerStatsSnapshot` and the history
-replay (`AchievementReplayState`) together; the newly met tiers were earned by a recount and dated from history
-(`myspeedpuzzling:recalculate-badges`, then `myspeedpuzzling:date-achievements-from-history --earned-since=<the
-recount's start>`, see "Real dates").
+replay (`AchievementReplayState`) together. Production, 2026-10-12 (undo CSVs `/root/achievements-recount-2026-10-12-undo.csv`
+and `/root/achievements-redate-2026-10-12-undo.csv` on lily):
+
+1. `myspeedpuzzling:recalculate-badges` (8,114 messages, drained in ~2.5 min): 2,126 new tiers for 1,108 players.
+2. `myspeedpuzzling:date-achievements-from-history --earned-since="2026-10-12 05:18"` (the deploy): all 2,126 dated,
+   every replay matched.
+3. `--earned-since="2000-01-01"`: the tiers already held had been dated by the old rule, so a newly earned higher tier
+   could lie before a lower one; 4,382 tiers moved earlier (first try 1,604, weekend 1,455, brand explorer 947,
+   photographer 211, zen 91, the rest ≤ 14 each - including 55 of other types earned after the launch by results
+   finished before they were logged), none later, afterwards no tier dated before the tier below it.
 
 ### Calibration (2026-10-11)
 

@@ -122,7 +122,7 @@ final class DateAchievementsFromHistoryConsoleCommand extends Command
 
         $io->table(['', 'Tiers'], [
             [$dryRun ? 'Would be dated' : 'Dated', $dated],
-            [$earnedSince === null ? 'Left "held at launch"' : 'Left with the recount\'s date', $undated],
+            [$earnedSince === null ? 'Left "held at launch"' : 'Left as they were', $undated],
             ['Players whose history did not match their records', count($notMatched)],
             ['Players failed', count($failed)],
         ]);

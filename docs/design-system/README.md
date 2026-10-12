@@ -112,10 +112,11 @@ A closed overlay (global search and its scrim, the player card layer, the Menu s
 
 | z-index | Layer |
 |---|---|
-| < 100 | anything inside the page content (sticky table heads, the multiscan action bar 9, the old global search 10/20) |
+| < 100 | anything inside the page content (sticky table heads, the multiscan action bar 9) |
 | 990 | comparison launcher pill (under dropdowns) |
 | 1000 | Bootstrap dropdowns |
 | 1010 | page sub-bars under the top bar: compact bar, events toolbar (`$z-sub-bar`) |
+| 1014 / 1015 | the global search's overlay / its box (`$zindex-sticky - 6` / `- 5`: over the compact bar, under the top bar and its menus) |
 | 1020 | content `.sticky-top` (`$z-content-sticky`) |
 | 1029 | homepage language banner (just under the bar) |
 | 1030 | top bar, phone bottom bar, desktop rail / docked column (`$z-site-header`, `$z-bottom-nav`, `$z-nav-column`) |

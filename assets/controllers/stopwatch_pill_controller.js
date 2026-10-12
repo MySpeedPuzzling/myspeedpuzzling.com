@@ -54,7 +54,7 @@ export default class extends Controller {
 
     static values = {
         stopwatchId: String,
-        // Unix seconds: when the running lap started, and when the server rendered these digits
+        // Unix seconds with milliseconds: when the running lap started, and when the server rendered these digits
         lapStarted: Number,
         rendered: Number,
         closedSeconds: Number,
@@ -136,7 +136,7 @@ export default class extends Controller {
         this.write(this.fullTargets, format(seconds, false));
         this.write(this.compactTargets, format(seconds, true));
 
-        return nextChangeAt(this.lapStarted, serverNow) * 1000 - this.offset;
+        return nextChangeAt(this.lapStarted, serverNow, this.closedSeconds) * 1000 - this.offset;
     }
 
     write(targets, text) {

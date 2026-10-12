@@ -51,7 +51,7 @@ final class GetPlayerProfileRunningStopwatchTest extends KernelTestCase
         self::assertNotNull($stopwatch);
         self::assertSame($id, $stopwatch->stopwatchId);
         self::assertSame($this->at('-10 minutes'), $stopwatch->lapStartedAt->format('Y-m-d H:i:s'));
-        self::assertSame(0, $stopwatch->closedSeconds);
+        self::assertSame(0, $stopwatch->closedMilliseconds);
         self::assertEqualsWithDelta(600, $stopwatch->elapsedSeconds($stopwatch->readAt), 5);
     }
 
@@ -117,9 +117,38 @@ final class GetPlayerProfileRunningStopwatchTest extends KernelTestCase
 
         self::assertNotNull($stopwatch);
         // 10 + 5 closed minutes
-        self::assertSame(900, $stopwatch->closedSeconds);
+        self::assertSame(900_000, $stopwatch->closedMilliseconds);
         self::assertSame($this->at('-10 minutes'), $stopwatch->lapStartedAt->format('Y-m-d H:i:s'));
         self::assertEqualsWithDelta(1500, $stopwatch->elapsedSeconds($stopwatch->readAt), 5);
+    }
+
+    /**
+     * Laps are stored to the millisecond since 2026-10-12, whole seconds before - a stopwatch running across that deploy
+     * holds both: the closed laps keep their milliseconds, the running lap is read to the millisecond
+     */
+    public function testMillisecondAndWholeSecondLapsMixed(): void
+    {
+        $this->insert(StopwatchStatus::Running, [
+            ['-2 hours', '-1 hour -50 minutes'],
+            ['-1 hour|.250', '-55 minutes|.750'],
+            ['-10 minutes|.100', null],
+        ]);
+
+        $stopwatch = $this->runningStopwatch();
+
+        self::assertNotNull($stopwatch);
+        // 10 minutes + 5 minutes 0.5 s
+        self::assertSame(900_500, $stopwatch->closedMilliseconds);
+        self::assertSame($this->at('-10 minutes|.100'), $stopwatch->lapStartedAt->format('Y-m-d H:i:s.v'));
+        self::assertEqualsWithDelta(1500, $stopwatch->elapsedSeconds($stopwatch->readAt), 5);
+    }
+
+    public function testALapStartWithMillisecondsSortsAfterTheSameWholeSecond(): void
+    {
+        $this->insert(StopwatchStatus::Running, [['-5 minutes', null]]);
+        $later = $this->insert(StopwatchStatus::Running, [['-5 minutes|.500', null]]);
+
+        self::assertSame($later, $this->runningStopwatch()?->stopwatchId);
     }
 
     public function testAnotherPlayersStopwatchIsNotTheViewers(): void
@@ -164,8 +193,14 @@ final class GetPlayerProfileRunningStopwatchTest extends KernelTestCase
         return $id;
     }
 
+    /**
+     * A lap moment as LapsArrayDoctrineType writes it: `-10 minutes` in whole seconds (laps before 2026-10-12),
+     * `-10 minutes|.250` with milliseconds
+     */
     private function at(string $modifier): string
     {
-        return $this->now->modify($modifier)->format('Y-m-d H:i:s');
+        [$relative, $milliseconds] = explode('|', $modifier . '|');
+
+        return $this->now->modify($relative)->format('Y-m-d H:i:s') . $milliseconds;
     }
 }

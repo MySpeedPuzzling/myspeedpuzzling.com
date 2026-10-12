@@ -236,7 +236,8 @@ SQL;
      * The viewer's running stopwatch for the top bar's pill (docs/features/navigation README D7, ADD-03) - the one whose
      * last lap started latest, with the seconds of its closed laps. If that one is stale, every other running one is
      * too, so one row is enough: RunningStopwatch::fromJson() decides the freshness with the clock (no SQL now()).
-     * Laps are stored as 'Y-m-d H:i:s', which sorts chronologically as text - the order itself never casts.
+     * Laps are stored as 'Y-m-d H:i:s.v' (whole seconds 'Y-m-d H:i:s' before 2026-10-12), which sorts chronologically as
+     * text, both formats mixed (a moment without milliseconds is a prefix) - the order itself never casts.
      */
     private static function sqlRunningStopwatchOf(string $viewerAlias): string
     {

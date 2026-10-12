@@ -83,6 +83,28 @@ final class StopwatchElapsedFormatTest extends TestCase
     }
 
     /**
+     * Laps to the millisecond (since 2026-10-12): the total is cut to whole seconds once, never per lap - 899.9 closed
+     * + 600.2 running is 1500 s, as the stopwatch page shows it (cut per lap it was 899 + 600 = 1499)
+     */
+    public function testMillisecondLapsAreCutOnceAtTheEnd(): void
+    {
+        $lapStarted = 1_760_000_000.25;
+
+        self::assertSame([
+            ['seconds' => 1499, 'nextChangeAt' => 1_760_000_600.35],
+            ['seconds' => 1500, 'nextChangeAt' => 1_760_000_601.35],
+            ['seconds' => 1500, 'nextChangeAt' => 1_760_000_601.35],
+            // Before the lap starts: the closed laps only, the next change when the lap has run up to the next second
+            ['seconds' => 899, 'nextChangeAt' => 1_760_000_000.35],
+        ], $this->runInNode([
+            ['kind' => 'elapsed', 'lapStarted' => $lapStarted, 'closedSeconds' => 899.9, 'serverNow' => $lapStarted + 600.0],
+            ['kind' => 'elapsed', 'lapStarted' => $lapStarted, 'closedSeconds' => 899.9, 'serverNow' => $lapStarted + 600.1],
+            ['kind' => 'elapsed', 'lapStarted' => $lapStarted, 'closedSeconds' => 899.9, 'serverNow' => $lapStarted + 600.2],
+            ['kind' => 'elapsed', 'lapStarted' => $lapStarted, 'closedSeconds' => 899.9, 'serverNow' => $lapStarted - 5],
+        ]));
+    }
+
+    /**
      * The single record of the first release (`{id, status, at}`) - still read, so a value written before the map works.
      */
     public function testThePillHidesOnlyWhenThisDeviceStoppedItsStopwatchAfterTheRender(): void

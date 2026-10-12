@@ -66,8 +66,10 @@ final class StopwatchPillRenderTest extends KernelTestCase
         $elapsed = $pill->filter('[data-controller="stopwatch-pill"]');
         self::assertCount(1, $elapsed);
         self::assertSame($stopwatchId, $elapsed->attr('data-stopwatch-pill-stopwatch-id-value'));
-        self::assertSame((string) $this->now->modify('-10 minutes')->getTimestamp(), $elapsed->attr('data-stopwatch-pill-lap-started-value'));
-        self::assertSame('900', $elapsed->attr('data-stopwatch-pill-closed-seconds-value'));
+        // Unix seconds with milliseconds (laps are stored to the millisecond; these are whole-second laps)
+        self::assertSame($this->now->modify('-10 minutes')->getTimestamp() . '.000', $elapsed->attr('data-stopwatch-pill-lap-started-value'));
+        self::assertSame('900.000', $elapsed->attr('data-stopwatch-pill-closed-seconds-value'));
+        self::assertMatchesRegularExpression('~^\d+\.\d{3}$~', (string) $elapsed->attr('data-stopwatch-pill-rendered-value'));
         $rendered = (int) $elapsed->attr('data-stopwatch-pill-rendered-value');
         self::assertEqualsWithDelta($this->now->getTimestamp(), $rendered, 5);
 

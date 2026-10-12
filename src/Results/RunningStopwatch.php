@@ -17,7 +17,9 @@ use Ramsey\Uuid\Uuid;
  * shows nothing. Paused, finished and stale stopwatches show nothing.
  *
  * The pill's digits are rendered by the server from `readAt` (when the row was read) and tick on in the browser from the
- * same numbers (assets/stopwatch_elapsed.js, format() is the twin of self::format()).
+ * same numbers (assets/stopwatch_elapsed.js, format() is the twin of self::format()). Laps are stored to the millisecond
+ * since 2026-10-12 (LapsArrayDoctrineType, whole seconds before): the elapsed time is counted in milliseconds and cut to
+ * whole seconds once, at the end - the digits the stopwatch page shows (stopwatch_controller.js) - never per lap.
  */
 readonly final class RunningStopwatch
 {
@@ -27,20 +29,21 @@ readonly final class RunningStopwatch
     // (under 100 minutes), decided once at render so the pill never changes its width while it ticks
     public const int COMPACT_ICON_MAX_CHARACTERS = 5;
 
-    private const string LAP_FORMAT = '!Y-m-d H:i:s';
+    // As LapsArrayDoctrineType writes a lap: to the millisecond, or in whole seconds before 2026-10-12
+    private const array LAP_FORMATS = ['Y-m-d H:i:s.v', 'Y-m-d H:i:s'];
 
     public function __construct(
         public string $stopwatchId,
         public DateTimeImmutable $lapStartedAt,
-        // The laps before the running one, in whole seconds
-        public int $closedSeconds,
+        // The laps before the running one
+        public int $closedMilliseconds,
         // When the profile row was read: the render epoch the browser counts on from
         public DateTimeImmutable $readAt,
     ) {
     }
 
     /**
-     * @param null|string $json `{"id", "lap_started_at" ('Y-m-d H:i:s' as Stopwatch::$laps stores it), "closed_seconds"}`
+     * @param null|string $json `{"id", "lap_started_at" (as Stopwatch::$laps stores it), "closed_seconds" (fractions allowed)}`
      */
     public static function fromJson(null|string $json, DateTimeImmutable $now): null|self
     {
@@ -70,10 +73,9 @@ readonly final class RunningStopwatch
             return null;
         }
 
-        // The zone the laps were written in (LapsArrayDoctrineType reads them the same way)
-        $lapStartedAt = DateTimeImmutable::createFromFormat(self::LAP_FORMAT, $lapStart);
+        $lapStartedAt = self::parseLapMoment($lapStart);
 
-        if ($lapStartedAt === false || $lapStartedAt->format('Y-m-d H:i:s') !== $lapStart) {
+        if ($lapStartedAt === null) {
             return null;
         }
 
@@ -81,12 +83,34 @@ readonly final class RunningStopwatch
             return null;
         }
 
-        return new self($stopwatchId, $lapStartedAt, max(0, (int) round($closedSeconds)), $now);
+        return new self($stopwatchId, $lapStartedAt, max(0, (int) round($closedSeconds * 1000)), $now);
     }
 
+    /**
+     * Whole seconds: the closed laps and the running one in milliseconds, cut once
+     */
     public function elapsedSeconds(DateTimeImmutable $now): int
     {
-        return $this->closedSeconds + max(0, $now->getTimestamp() - $this->lapStartedAt->getTimestamp());
+        return intdiv($this->closedMilliseconds + max(0, self::epochMilliseconds($now) - self::epochMilliseconds($this->lapStartedAt)), 1000);
+    }
+
+    /**
+     * The numbers the browser counts on from (templates/navigation/_stopwatch_elapsed.html.twig): unix seconds with
+     * milliseconds - when the running lap started and when the row was read - and the closed laps' seconds
+     */
+    public function lapStartedEpoch(): string
+    {
+        return $this->lapStartedAt->format('U.v');
+    }
+
+    public function readEpoch(): string
+    {
+        return $this->readAt->format('U.v');
+    }
+
+    public function closedSecondsText(): string
+    {
+        return sprintf('%d.%03d', intdiv($this->closedMilliseconds, 1000), $this->closedMilliseconds % 1000);
     }
 
     /**
@@ -128,5 +152,27 @@ readonly final class RunningStopwatch
         }
 
         return sprintf('%d:%02d:%02d', intdiv($seconds, 3600), intdiv($seconds % 3600, 60), $seconds % 60);
+    }
+
+    /**
+     * A lap moment as LapsArrayDoctrineType wrote it, in the zone it was written in (the type reads it the same way);
+     * null for anything else
+     */
+    private static function parseLapMoment(string $value): null|DateTimeImmutable
+    {
+        foreach (self::LAP_FORMATS as $format) {
+            $moment = DateTimeImmutable::createFromFormat('!' . $format, $value);
+
+            if ($moment !== false && $moment->format($format) === $value) {
+                return $moment;
+            }
+        }
+
+        return null;
+    }
+
+    private static function epochMilliseconds(DateTimeImmutable $moment): int
+    {
+        return (int) $moment->format('Uv');
     }
 }

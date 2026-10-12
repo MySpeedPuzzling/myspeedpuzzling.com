@@ -23,14 +23,18 @@ const RECEIPT_AFTER_RENDER_SECONDS = 5;
 
 const pad = (number) => (number < 10 ? '0' : '') + number;
 
+// Laps are stored to the millisecond (whole seconds before 2026-10-12): every number is counted in whole milliseconds
+// and the total cut to whole seconds once, at the end - the digits the stopwatch page shows, never cut per lap
+const ms = (seconds) => Math.round(seconds * 1000);
+
 /**
- * @param {number} lapStartedEpoch unix seconds when the running lap started
- * @param {number} closedSeconds the laps before it
+ * @param {number} lapStartedEpoch unix seconds when the running lap started (fractions allowed)
+ * @param {number} closedSeconds the laps before it (fractions allowed)
  * @param {number} serverNowEpoch unix seconds, the server's clock (fractions allowed)
  * @returns {number} whole seconds, never negative
  */
 export function elapsedSeconds(lapStartedEpoch, closedSeconds, serverNowEpoch) {
-    return Math.max(0, Math.floor(closedSeconds)) + Math.max(0, Math.floor(serverNowEpoch - lapStartedEpoch));
+    return Math.floor((Math.max(0, ms(closedSeconds)) + Math.max(0, ms(serverNowEpoch) - ms(lapStartedEpoch))) / 1000);
 }
 
 /**
@@ -55,14 +59,15 @@ export function format(seconds, compact) {
  *
  * @param {number} lapStartedEpoch
  * @param {number} serverNowEpoch
+ * @param {number} closedSeconds the laps before the running one (fractions allowed)
  * @returns {number}
  */
-export function nextChangeAt(lapStartedEpoch, serverNowEpoch) {
-    if (serverNowEpoch < lapStartedEpoch) {
-        return lapStartedEpoch + 1;
-    }
+export function nextChangeAt(lapStartedEpoch, serverNowEpoch, closedSeconds = 0) {
+    const closedMs = Math.max(0, ms(closedSeconds));
+    const totalMs = closedMs + Math.max(0, ms(serverNowEpoch) - ms(lapStartedEpoch));
 
-    return lapStartedEpoch + Math.floor(serverNowEpoch - lapStartedEpoch) + 1;
+    // The running lap reaches the next whole second of the total (before the lap starts: counted from its start)
+    return (ms(lapStartedEpoch) + (Math.floor(totalMs / 1000) + 1) * 1000 - closedMs) / 1000;
 }
 
 function validState(value) {

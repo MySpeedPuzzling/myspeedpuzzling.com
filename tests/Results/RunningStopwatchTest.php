@@ -27,13 +27,44 @@ final class RunningStopwatchTest extends TestCase
         self::assertNotNull($stopwatch);
         self::assertSame(self::ID, $stopwatch->stopwatchId);
         self::assertSame('2026-10-12 11:50:00', $stopwatch->lapStartedAt->format('Y-m-d H:i:s'));
-        self::assertSame(900, $stopwatch->closedSeconds);
+        self::assertSame(900_000, $stopwatch->closedMilliseconds);
         self::assertSame($now, $stopwatch->readAt);
         // 15 closed minutes + 10 running
         self::assertSame(1500, $stopwatch->elapsedSeconds($now));
         self::assertSame(1560, $stopwatch->elapsedSeconds($now->modify('+1 minute')));
         self::assertSame('0:25:00', $stopwatch->textAtRead(false));
         self::assertSame('25:00', $stopwatch->textAtRead(true));
+    }
+
+    /**
+     * Laps are stored to the millisecond since 2026-10-12 (LapsArrayDoctrineType): read to the millisecond, the closed
+     * laps' fractions kept, and the total cut to whole seconds once - 899.9 closed + 600.2 running = 1500, as the
+     * stopwatch page shows it (cut per lap: 1499)
+     */
+    public function testMillisecondLaps(): void
+    {
+        $now = new DateTimeImmutable('2026-10-12 12:00:00.450');
+        $stopwatch = RunningStopwatch::fromJson(self::json('2026-10-12 11:50:00.250', 899.9), $now);
+
+        self::assertNotNull($stopwatch);
+        self::assertSame('2026-10-12 11:50:00.250', $stopwatch->lapStartedAt->format('Y-m-d H:i:s.v'));
+        self::assertSame(899_900, $stopwatch->closedMilliseconds);
+        self::assertSame(1500, $stopwatch->elapsedSeconds($now));
+        self::assertSame(1499, $stopwatch->elapsedSeconds(new DateTimeImmutable('2026-10-12 12:00:00.349')));
+        self::assertSame('0:25:00', $stopwatch->textAtRead(false));
+        // The browser's numbers, to the millisecond
+        self::assertSame($stopwatch->lapStartedAt->format('U') . '.250', $stopwatch->lapStartedEpoch());
+        self::assertSame($now->format('U') . '.450', $stopwatch->readEpoch());
+        self::assertSame('899.900', $stopwatch->closedSecondsText());
+    }
+
+    public function testWholeSecondLapsStillRead(): void
+    {
+        $stopwatch = RunningStopwatch::fromJson(self::json('2026-10-12 11:50:00', 900), new DateTimeImmutable(self::NOW));
+
+        self::assertNotNull($stopwatch);
+        self::assertSame($stopwatch->lapStartedAt->format('U') . '.000', $stopwatch->lapStartedEpoch());
+        self::assertSame('900.000', $stopwatch->closedSecondsText());
     }
 
     /**
@@ -82,6 +113,8 @@ final class RunningStopwatchTest extends TestCase
         yield 'another date format' => ['{"id": "' . self::ID . '", "lap_started_at": "2026-10-12T11:50:00+00:00", "closed_seconds": 0}'];
         yield 'an impossible date' => ['{"id": "' . self::ID . '", "lap_started_at": "2026-10-12 25:61:00", "closed_seconds": 0}'];
         yield 'closed seconds as text' => ['{"id": "' . self::ID . '", "lap_started_at": "2026-10-12 11:50:00", "closed_seconds": "900"}'];
+        yield 'milliseconds not as the laps store them' => ['{"id": "' . self::ID . '", "lap_started_at": "2026-10-12 11:50:00.25", "closed_seconds": 0}'];
+        yield 'microseconds' => ['{"id": "' . self::ID . '", "lap_started_at": "2026-10-12 11:50:00.250000", "closed_seconds": 0}'];
     }
 
     #[DataProvider('provideInvalidRows')]
@@ -97,7 +130,7 @@ final class RunningStopwatchTest extends TestCase
         $stopwatch = RunningStopwatch::fromJson($json, new DateTimeImmutable(self::NOW));
 
         self::assertNotNull($stopwatch);
-        self::assertSame(1800, $stopwatch->closedSeconds);
+        self::assertSame(1_800_000, $stopwatch->closedMilliseconds);
     }
 
     /**
@@ -159,7 +192,7 @@ final class RunningStopwatchTest extends TestCase
         self::assertSame('000:00:00', $long->roomAtRead(false));
     }
 
-    private static function json(string $lapStartedAt, int $closedSeconds): string
+    private static function json(string $lapStartedAt, int|float $closedSeconds): string
     {
         return (string) json_encode(['id' => self::ID, 'lap_started_at' => $lapStartedAt, 'closed_seconds' => $closedSeconds]);
     }

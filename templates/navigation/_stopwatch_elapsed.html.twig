@@ -9,9 +9,9 @@
 <span class="stopwatch-elapsed"
       data-controller="stopwatch-pill"
       data-stopwatch-pill-stopwatch-id-value="{{ stopwatch.stopwatchId }}"
-      data-stopwatch-pill-lap-started-value="{{ stopwatch.lapStartedAt.timestamp }}"
-      data-stopwatch-pill-rendered-value="{{ stopwatch.readAt.timestamp }}"
-      data-stopwatch-pill-closed-seconds-value="{{ stopwatch.closedSeconds }}"
+      data-stopwatch-pill-lap-started-value="{{ stopwatch.lapStartedEpoch }}"
+      data-stopwatch-pill-rendered-value="{{ stopwatch.readEpoch }}"
+      data-stopwatch-pill-closed-seconds-value="{{ stopwatch.closedSecondsText }}"
 >
     {%- for format in ['full', 'compact'] -%}
         <span class="stopwatch-elapsed-{{ format }}"><span class="stopwatch-elapsed-room">{{ stopwatch.roomAtRead(format == 'compact') }}</span><span class="stopwatch-elapsed-digits" data-stopwatch-pill-target="{{ format }}">{{ stopwatch.textAtRead(format == 'compact') }}</span></span>

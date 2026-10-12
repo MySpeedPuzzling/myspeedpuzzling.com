@@ -23,7 +23,7 @@ process.stdout.write(JSON.stringify(cases.map((testCase) => {
         case 'elapsed':
             return {
                 seconds: elapsedSeconds(testCase.lapStarted, testCase.closedSeconds, testCase.serverNow),
-                nextChangeAt: nextChangeAt(testCase.lapStarted, testCase.serverNow),
+                nextChangeAt: nextChangeAt(testCase.lapStarted, testCase.serverNow, testCase.closedSeconds),
             };
         case 'stopped':
             return {

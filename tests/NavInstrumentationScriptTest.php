@@ -460,6 +460,33 @@ final class NavInstrumentationScriptTest extends TestCase
     }
 
     /**
+     * MENU-03: a page search without any result is one line - which field and the query (as the search sends it,
+     * folded), cut to 40 characters. An unknown field or an empty query sends nothing.
+     */
+    public function testEachSearchWithoutResultsIsOneLine(): void
+    {
+        $did = $this->scenario(['steps' => [
+            ['do' => 'load', 'page' => '/en/faq'],
+            ['do' => 'search zero', 'detail' => ['surface' => 'menu', 'q' => 'xyzzy']],
+            ['do' => 'search zero', 'detail' => ['surface' => 'topbar', 'q' => '  ' . str_repeat('ab', 30) . '  ']],
+            ['do' => 'search zero', 'detail' => ['surface' => 'drawer', 'q' => 'xyzzy']],
+            ['do' => 'search zero', 'detail' => ['surface' => 'menu', 'q' => '   ']],
+            ['do' => 'search zero', 'detail' => ['surface' => 'menu', 'q' => 42]],
+            ['do' => 'search zero', 'detail' => null],
+        ]]);
+
+        $lines = array_map(
+            static fn (array $beacon): array => [$beacon['page'], $beacon['surface'], $beacon['q']],
+            self::beacons($did, 'search_zero'),
+        );
+
+        self::assertSame([
+            ['/en/faq', 'menu', 'xyzzy'],
+            ['/en/faq', 'topbar', str_repeat('ab', 20)],
+        ], $lines);
+    }
+
+    /**
      * The script and the server know the same places (NavPlace)
      */
     public function testTheScriptAndTheServerKnowTheSamePlaces(): void

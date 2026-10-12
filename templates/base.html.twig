@@ -473,7 +473,7 @@
     {# The viewer's audiences for the page search (MENU-01/MENU-03): "everyone guest" for every guest (shared-cacheable) #}
     <body class="lang-{{ app.request.locale }}{{ comparison_launcher ? ' has-comparison-launcher' }}"
           data-viewer-audience="{{ nav_viewer_audience() }}"
-          data-controller="pwa-lifecycle gallery file-drop-area datepicker global-search toast{% if ga_tracking is not empty %} analytics{% endif %}"
+          data-controller="pwa-lifecycle gallery file-drop-area datepicker toast{% if ga_tracking is not empty %} analytics{% endif %}"
           {% if ga_tracking is not empty %}data-analytics-tracking-id-value="{{ ga_tracking }}"{% endif %}>
         <a href="#main-content" class="visually-hidden-focusable">{{ 'forms.skip_to_content'|trans }}</a>
         {% block header %}
@@ -621,7 +621,7 @@
 
                     <!-- Toolbar -->
                     <div class="navbar-toolbar d-flex align-items-center order-lg-3 ms-lg-3">
-                        <a class="navbar-tool ms-1 ms-lg-0 me-n1 me-lg-2" data-action="click->global-search#toggleSearchBar" href="#" data-nav="toolbar/tools/search" aria-label="{{ 'menu.search'|trans }}">
+                        <a class="navbar-tool ms-1 ms-lg-0 me-n1 me-lg-2" data-global-search-toggle href="#" data-nav="toolbar/tools/search" aria-label="{{ 'menu.search'|trans }}">
                             <div class="navbar-tool-icon-box">
                                 <i class="navbar-tool-icon ci-search" aria-hidden="true"></i>
                             </div>
@@ -877,7 +877,9 @@
         {% block nav_chrome %}{% if is_web() %}{{ include('navigation/_menu_slot.html.twig') }}{% endif %}{% endblock %}
 
         <main id="main-content">
-            <div data-global-search-target="searchBar" class="global-search">
+            {# The page search (surface bar): the first GlobalSearch in the DOM; its controllers sit on the component's root
+               (MENU-03, R3) and open it from any [data-global-search-toggle] - the header's search tool today #}
+            <div class="global-search">
                 <twig:GlobalSearch />
             </div>
 
@@ -971,7 +973,7 @@
             </div>
         </div>
 
-        <div class="global-search-overlay" data-global-search-target="overlay"></div>
+        <div class="global-search-overlay"></div>
 
         <!-- Toast Container -->
         <div id="toast-container" class="toast-container position-fixed p-3" data-toast-target="container" style="z-index: 1060;"></div>

@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Navigation\MenuView;
 use SpeedPuzzling\Web\Navigation\NavigationLaunch;
 use SpeedPuzzling\Web\Navigation\NavigationPlaceResolver;
 use SpeedPuzzling\Web\Navigation\NavigationPointers;
+use SpeedPuzzling\Web\Navigation\NavigationSearchIndex;
 use SpeedPuzzling\Web\Navigation\NavigationViewerFactory;
 use SpeedPuzzling\Web\Navigation\NavLocation;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
@@ -33,11 +34,16 @@ use Twig\TwigFunction;
  * - nav_viewer(): the current viewer as the navigation sees it (NavigationViewer: audiences, trial days left);
  * - language_switch_urls(): the current page in the other five languages (decision 36) - the Menu's Language row, the
  *   top bar's and the footer's language menus;
+ * - nav_search_url(): the page search's "Pages & settings" list, nav-search.json with its version (MENU-03) - one per
+ *   request (kept on the request);
+ * - nav_search_private(): the moderator / admin entries of that list for those viewers only (JSON, null for everybody
+ *   else) - rendered into the Menu as #nav-search-private;
  * - global nav_omit_legacy_chrome: the weight probe's test-only switch (LegacyChromeSwitch, decision 34).
  */
 final class NavigationTwigExtension extends AbstractExtension implements GlobalsInterface
 {
     public const string REQUEST_ATTRIBUTE = '_nav_location';
+    private const string SEARCH_URL_ATTRIBUTE = '_nav_search_url';
 
     // The switch's order of the other languages (as _language_menu.html.twig always listed them)
     private const array LOCALES = ['en', 'de', 'cs', 'fr', 'es', 'ja'];
@@ -52,6 +58,7 @@ final class NavigationTwigExtension extends AbstractExtension implements Globals
         readonly private NavigationViewerFactory $viewerFactory,
         readonly private UrlGeneratorInterface $urlGenerator,
         readonly private LegacyChromeSwitch $legacyChromeSwitch,
+        readonly private NavigationSearchIndex $navigationSearchIndex,
     ) {
     }
 
@@ -80,6 +87,8 @@ final class NavigationTwigExtension extends AbstractExtension implements Globals
             new TwigFunction('nav_viewer_audience', $this->viewerAudience(...)),
             new TwigFunction('nav_viewer', $this->viewerFactory->current(...)),
             new TwigFunction('language_switch_urls', $this->languageSwitchUrls(...)),
+            new TwigFunction('nav_search_url', $this->searchUrl(...)),
+            new TwigFunction('nav_search_private', $this->searchPrivate(...)),
         ];
     }
 
@@ -173,6 +182,36 @@ final class NavigationTwigExtension extends AbstractExtension implements Globals
             $this->retrieveLoggedUserProfile->getProfile(),
             NavigationPointers::byName($name),
         );
+    }
+
+    /**
+     * nav-search.json of the page's locale with `?v=<version>` (a new version = a new URL, so the day-long cache never
+     * serves an old list) - the same for every visitor
+     */
+    public function searchUrl(): string
+    {
+        $request = $this->requestStack->getMainRequest();
+        $memo = $request?->attributes->get(self::SEARCH_URL_ATTRIBUTE);
+
+        if (is_string($memo)) {
+            return $memo;
+        }
+
+        $locale = $request?->getLocale() ?? 'en';
+        $url = $this->urlGenerator->generate('nav_search_index', ['_locale' => $locale, 'v' => $this->navigationSearchIndex->version($locale)]);
+        $request?->attributes->set(self::SEARCH_URL_ATTRIBUTE, $url);
+
+        return $url;
+    }
+
+    /**
+     * The moderator / admin entries of the page search this viewer may open, as JSON (null for everybody else)
+     */
+    public function searchPrivate(): null|string
+    {
+        $locale = $this->requestStack->getMainRequest()?->getLocale() ?? 'en';
+
+        return $this->navigationSearchIndex->privateJson($locale, $this->viewerFactory->current());
     }
 
     public function barAction(string $id): string

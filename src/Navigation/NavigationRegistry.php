@@ -24,6 +24,7 @@ final readonly class NavigationRegistry
 {
     private const string BAR_TAB = 'Phones: a tab of the bottom bar (D1)';
     private const string SINCE = '2026-10-12';
+    public const string SYNONYMS_PREFIX = 'nav.syn.';
 
     /**
      * Built once per service instance: plain request-independent data (no translator, no viewer), so the readonly
@@ -55,7 +56,12 @@ final readonly class NavigationRegistry
     public function __construct(
         private TranslatorInterface $translator,
     ) {
-        $entries = $this->build();
+        // Every entry the page search lists finds its synonyms under nav.syn.<id> (MENU-03; all 6 locales -
+        // NavigationSearchIndexTest), the way role rows find their English labels under nav_admin.<id>
+        $entries = array_map(
+            static fn (NavEntry $entry): NavEntry => $entry->isInPageSearch() ? $entry->withSynonyms(self::SYNONYMS_PREFIX . $entry->id) : $entry,
+            $this->build(),
+        );
         $byId = [];
         $byRoute = [];
         $byTargetRoute = [];
@@ -218,7 +224,7 @@ final readonly class NavigationRegistry
      * Where an entry lives in the phone Menu, e.g. "☰ › Account › Your data" (page search, "Where did it go?").
      * A dock-only row is described in the docked column, a search-only entry under its parent; null = not in the Menu.
      */
-    public function menuPath(string $id, string $locale): null|string
+    public function menuPath(string $id, string $locale, string $separator = ' › '): null|string
     {
         $entry = $this->byId($id);
 
@@ -230,9 +236,9 @@ final readonly class NavigationRegistry
 
         if ($entry->isSearchOnly()) {
             $parent = $entry->phone->parent;
-            $parentPath = $parent !== null && $parent !== $id ? $this->menuPath($parent, $locale) : null;
+            $parentPath = $parent !== null && $parent !== $id ? $this->menuPath($parent, $locale, $separator) : null;
 
-            return $parentPath === null ? null : $parentPath . ' › ' . $label;
+            return $parentPath === null ? null : $parentPath . $separator . $label;
         }
 
         $placement = $entry->phone->isRow() ? $entry->phone : $entry->dock;
@@ -243,10 +249,10 @@ final readonly class NavigationRegistry
         }
 
         if (!$group->hasHeading() || $entry->kind === RowKind::Place) {
-            return '☰ › ' . $label;
+            return '☰' . $separator . $label;
         }
 
-        return '☰ › ' . $this->groupTitle($group, $locale) . ' › ' . $label;
+        return '☰' . $separator . $this->groupTitle($group, $locale) . $separator . $label;
     }
 
     /**
@@ -1238,9 +1244,11 @@ final readonly class NavigationRegistry
         $settings = 'A setting on Settings: found by search (README §7 Q6)';
         $ladders = [];
 
-        foreach (['solo' => 'ladder.solo', 'pairs' => 'ladder.duo', 'groups' => 'ladder.team'] as $category => $label) {
+        foreach (['solo', 'pairs', 'groups'] as $category) {
             foreach (['500', '1000'] as $pieces) {
-                $ladders[] = $this->searchEntry('ladder_' . $category . '_' . $pieces, RouteTarget::route('ladder_' . $category . '_' . $pieces . '_pieces'), $label, 'bi-trophy', 'leaderboards', NavPlace::Community, RulebookQuestion::Q9, 'A ranking per category and piece count: Leaderboards', NavVisibility::Everyone, 'leaderboards');
+                $id = 'ladder_' . $category . '_' . $pieces;
+                // Its own label: found by search only, it must say which ranking it is (MENU-03)
+                $ladders[] = $this->searchEntry($id, RouteTarget::route($id . '_pieces'), 'nav.row.' . $id, 'bi-trophy', 'leaderboards', NavPlace::Community, RulebookQuestion::Q9, 'A ranking per category and piece count: Leaderboards', NavVisibility::Everyone, 'leaderboards');
             }
         }
 
@@ -1261,12 +1269,12 @@ final readonly class NavigationRegistry
             $this->searchEntry('sold_swapped_history', RouteTarget::viewer('sold_swapped_history'), 'sell_swap_list.history.title', 'bi-archive', 'sell_swap', NavPlace::Puzzles, RulebookQuestion::Q8, 'History of your sell/swap list: a button there and search', NavVisibility::SignedIn, 'library'),
             $this->searchEntry('lending_history', RouteTarget::viewer('lend_borrow_history'), 'lend_borrow.history.title', 'bi-archive', 'lent_borrowed', NavPlace::Puzzles, RulebookQuestion::Q8, 'History of your lending: a button there and search', NavVisibility::SignedIn, 'library'),
             $this->searchEntry('marketplace_how', RouteTarget::route('marketplace_how_it_works'), 'marketplace.how_it_works.title', 'bi-question-circle', 'marketplace', NavPlace::Puzzles, RulebookQuestion::Q7, 'Explains the Marketplace: linked there and found by search', NavVisibility::Everyone),
-            $this->searchEntry('past_events', RouteTarget::route('events_archive', dynamic: ['year' => RouteParam::CurrentYear]), 'events_page.archive.title', 'bi-archive', 'events', NavPlace::Community, RulebookQuestion::Q9, 'The events archive: linked from the events page and found by search', NavVisibility::Everyone, 'events'),
+            $this->searchEntry('past_events', RouteTarget::route('events_archive', dynamic: ['year' => RouteParam::CurrentYear]), 'nav.row.past_events', 'bi-archive', 'events', NavPlace::Community, RulebookQuestion::Q9, 'The events archive: linked from the events page and found by search', NavVisibility::Everyone, 'events'),
             $this->searchEntry('add_organization', RouteTarget::route('add_organization'), 'organization_page.directory.add', 'bi-building-add', 'organizations', NavPlace::Community, RulebookQuestion::Q4, 'Creates an organization: a button on Organizations and search', NavVisibility::SignedIn, 'events'),
             $this->searchEntry('suggest_feature', RouteTarget::route('feature_request_create'), 'feature_requests.create_title', 'bi-lightbulb', 'feature_requests', NavPlace::None, RulebookQuestion::Q1, 'Action on Ideas & feature requests (members): a button there and search', NavVisibility::Member),
             ...$ladders,
-            $this->searchEntry('country_ranking', RouteTarget::route('ladder_country', dynamic: ['countryCode' => RouteParam::ViewerCountryCode]), 'ladder.country', 'bi-flag', 'leaderboards', NavPlace::Community, RulebookQuestion::Q9, "Your country's ranking (members): a filter of Leaderboards and search", NavVisibility::Member, 'leaderboards'),
-            $this->searchEntry('achievements_list', RouteTarget::route('badges_overview'), 'badges.overview_title', 'bi-award', 'achievements', NavPlace::Community, RulebookQuestion::Q9, 'Every achievement: footer, achievements pages and search (XP gate)', NavVisibility::XpVisible, 'leaderboards'),
+            $this->searchEntry('country_ranking', RouteTarget::route('ladder_country', dynamic: ['countryCode' => RouteParam::ViewerCountryCode]), 'nav.row.country_ranking', 'bi-flag', 'leaderboards', NavPlace::Community, RulebookQuestion::Q9, "Your country's ranking (members): a filter of Leaderboards and search", NavVisibility::Member, 'leaderboards'),
+            $this->searchEntry('achievements_list', RouteTarget::route('badges_overview'), 'nav.row.achievements_list', 'bi-award', 'achievements', NavPlace::Community, RulebookQuestion::Q9, 'Every achievement: footer, achievements pages and search (XP gate)', NavVisibility::XpVisible, 'leaderboards'),
             $this->searchEntry('xp_explainer', RouteTarget::route('xp_explainer'), 'xp.explainer.title', 'bi-question-circle', 'progression', NavPlace::None, RulebookQuestion::Q7, 'Explains XP: How progress works and search (XP gate)', NavVisibility::XpVisible),
             $this->searchEntry('fair_play_xp', RouteTarget::route('xp_fair_play'), 'xp.fair_play.title', 'bi-shield-check', 'progression', NavPlace::None, RulebookQuestion::Q7, 'Explains fair play: How progress works and search (XP gate)', NavVisibility::XpVisible),
             $this->searchEntry('karma_explainer', RouteTarget::route('karma_explainer'), 'karma.explainer.title', 'bi-question-circle', 'progression', NavPlace::None, RulebookQuestion::Q7, 'Explains karma: How progress works and search (XP gate)', NavVisibility::XpVisible),

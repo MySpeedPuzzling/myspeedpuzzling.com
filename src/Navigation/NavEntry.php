@@ -17,7 +17,8 @@ final readonly class NavEntry
      *                      English label in every locale (MENU-01)
      * @param string $icon Bootstrap Icons name (bi-*)
      * @param null|string $description translation key of the one-line description (umbrella/ambiguous rows only)
-     * @param null|string $synonyms translation key of the search synonyms (MENU-03)
+     * @param null|string $synonyms translation key of the search synonyms, `|`-separated (MENU-03: nav.syn.<id> on every
+     *                            entry the page search lists, set by NavigationRegistry)
      * @param list<string> $legacyLabels today's chrome keys (menu.*, footer.*, …): extra synonyms and "old name"
      * @param list<string> $activeOn other routes on which this row is the current one (aria-current)
      * @param list<string> $secondary the other entry points besides its home (≤ 2; the Menu, the footer and search are
@@ -51,6 +52,38 @@ final readonly class NavEntry
     ) {
     }
 
+    /**
+     * The same entry with its search synonyms key (NavigationRegistry gives every entry the page search lists its
+     * nav.syn.<id> key - MENU-03).
+     */
+    public function withSynonyms(string $synonyms): self
+    {
+        return new self(
+            id: $this->id,
+            target: $this->target,
+            label: $this->label,
+            icon: $this->icon,
+            place: $this->place,
+            phone: $this->phone,
+            dock: $this->dock,
+            visibility: $this->visibility,
+            rule: $this->rule,
+            reason: $this->reason,
+            since: $this->since,
+            kind: $this->kind,
+            section: $this->section,
+            description: $this->description,
+            synonyms: $synonyms,
+            legacyLabels: $this->legacyLabels,
+            footer: $this->footer,
+            helpSheet: $this->helpSheet,
+            count: $this->count,
+            activeOn: $this->activeOn,
+            secondary: $this->secondary,
+            englishOnly: $this->englishOnly,
+        );
+    }
+
     public function placement(MenuSurface $surface): MenuPlacement
     {
         return $surface === MenuSurface::Phone ? $this->phone : $this->dock;
@@ -70,6 +103,26 @@ final readonly class NavEntry
     public function isSearchOnly(): bool
     {
         return $this->phone->isSearchOnly() && $this->dock->isSearchOnly();
+    }
+
+    /**
+     * Listed by the page search for everybody it is meant for (nav-search.json, MENU-03): every Menu row and search-only
+     * entry but the role rows (moderator, time verifier, admin - rendered into the page for those viewers only,
+     * README §4.12 "Search") and the You card (the Profile row is the same destination).
+     */
+    public function isInPageSearch(): bool
+    {
+        return ($this->isMenuRow() || $this->isSearchOnly())
+            && !$this->visibility->isRole()
+            && $this->kind !== RowKind::YouCard;
+    }
+
+    /**
+     * A role row (moderator, time verifier, admin): found by the page search only on the pages of those viewers.
+     */
+    public function isInPrivatePageSearch(): bool
+    {
+        return ($this->isMenuRow() || $this->isSearchOnly()) && $this->visibility->isRole();
     }
 
     /**

@@ -109,11 +109,46 @@ final class MenuLayerTest extends WebTestCase
         self::assertSame('menu-layer-title', $shell->attr('aria-labelledby'));
         self::assertNull($shell->attr('open'));
         self::assertNull($shell->attr('aria-modal'));
-        self::assertCount(1, $shell->filter('.menu-layer-body[data-menu-layer-target="body"] > [data-menu-layer-results][hidden]'));
-        self::assertCount(1, $shell->filter('[data-menu-layer-search]'));
+        // MENU-03: the search field at the top of the panel body - a second GlobalSearch whose results ("Pages &
+        // settings" in its data-live-ignore container, then the server's) render inside the panel, where #site-menu is
+        // moved in after it
+        self::assertCount(1, $shell->filter('.menu-layer-body[data-menu-layer-target="body"] > [data-menu-layer-search] > [data-live-name-value="GlobalSearch"][data-global-search-mode-value="menu"]'));
+        self::assertCount(1, $shell->filter('[data-menu-layer-search] [data-nav-search-results][data-live-ignore][hidden]'));
+        self::assertCount(1, $shell->filter('[data-menu-layer-search] input[type="search"]'));
 
         $last = $crawler->filter('body > *')->last();
         self::assertSame('menu-layer', $last->attr('id'));
+    }
+
+    /**
+     * Two GlobalSearch instances (MENU-03, R3): the page's (bar) stays the first in the DOM - tests and the old header's
+     * search tool read it - and the Menu's (menu) lives in the shell at the end of <body> (decision 87). Each carries its
+     * own controllers and the same versioned nav-search.json URL; nothing of the list is inlined.
+     */
+    public function testThePageSearchComesFirstAndTheMenuSearchLivesInTheShell(): void
+    {
+        $browser = self::createClient();
+        $crawler = $browser->request('GET', '/en/faq');
+        self::assertResponseIsSuccessful();
+
+        $instances = $crawler->filter('[data-live-name-value="GlobalSearch"]');
+        self::assertCount(2, $instances);
+        self::assertSame('bar', $instances->eq(0)->attr('data-global-search-mode-value'));
+        self::assertCount(1, $crawler->filter('main .global-search > [data-live-name-value="GlobalSearch"]'));
+        self::assertSame('menu', $instances->eq(1)->attr('data-global-search-mode-value'));
+        self::assertCount(1, $crawler->filter('#menu-layer [data-live-name-value="GlobalSearch"]'));
+
+        foreach ([0, 1] as $index) {
+            $controllers = explode(' ', (string) $instances->eq($index)->attr('data-controller'));
+            self::assertContains('global-search', $controllers);
+            self::assertContains('nav-search', $controllers);
+            self::assertMatchesRegularExpression('~^/en/nav-search\.json\?v=[0-9a-f]{12}$~', (string) $instances->eq($index)->attr('data-nav-search-url-value'));
+        }
+
+        self::assertSame('3', $instances->eq(0)->attr('data-nav-search-limit-value'));
+        self::assertSame('8', $instances->eq(1)->attr('data-nav-search-limit-value'));
+        self::assertStringNotContainsString('global-search', (string) $crawler->filter('body')->attr('data-controller'), 'The controller sits on each instance, never on <body>');
+        self::assertCount(0, $crawler->filter('#nav-search-private'), 'Guests get no private entries');
     }
 
     public function testTheNativeAppGetsNoShell(): void

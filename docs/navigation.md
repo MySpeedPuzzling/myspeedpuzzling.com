@@ -298,17 +298,17 @@ Found by the Menu search ("Pages & settings"), opened under their parent row.
 | `sold_swapped_history` | Sold/Swapped History | `sold_swapped_history` {playerId: viewer} | `sell_swap` | signed_in | Q8 | History of your sell/swap list: a button there and search |
 | `lending_history` | Lend & Borrow History | `lend_borrow_history` {playerId: viewer} | `lent_borrowed` | signed_in | Q8 | History of your lending: a button there and search |
 | `marketplace_how` | How the Marketplace Works | `marketplace_how_it_works` | `marketplace` | everyone | Q7 | Explains the Marketplace: linked there and found by search |
-| `past_events` | Archive | `events_archive` {year: current year} | `events` | everyone | Q9 | The events archive: linked from the events page and found by search |
+| `past_events` | Past events | `events_archive` {year: current year} | `events` | everyone | Q9 | The events archive: linked from the events page and found by search |
 | `add_organization` | Add organization | `add_organization` | `organizations` | signed_in | Q4 | Creates an organization: a button on Organizations and search |
 | `suggest_feature` | Suggest a Feature | `feature_request_create` | `feature_requests` | member | Q1 | Action on Ideas & feature requests (members): a button there and search |
-| `ladder_solo_500` | Solo | `ladder_solo_500_pieces` | `leaderboards` | everyone | Q9 | A ranking per category and piece count: Leaderboards |
-| `ladder_solo_1000` | Solo | `ladder_solo_1000_pieces` | `leaderboards` | everyone | Q9 | A ranking per category and piece count: Leaderboards |
-| `ladder_pairs_500` | Pair | `ladder_pairs_500_pieces` | `leaderboards` | everyone | Q9 | A ranking per category and piece count: Leaderboards |
-| `ladder_pairs_1000` | Pair | `ladder_pairs_1000_pieces` | `leaderboards` | everyone | Q9 | A ranking per category and piece count: Leaderboards |
-| `ladder_groups_500` | Team | `ladder_groups_500_pieces` | `leaderboards` | everyone | Q9 | A ranking per category and piece count: Leaderboards |
-| `ladder_groups_1000` | Team | `ladder_groups_1000_pieces` | `leaderboards` | everyone | Q9 | A ranking per category and piece count: Leaderboards |
-| `country_ranking` | Country | `ladder_country` {countryCode: viewer's country} | `leaderboards` | member | Q9 | Your country's ranking (members): a filter of Leaderboards and search |
-| `achievements_list` | Achievements | `badges_overview` | `achievements` | xp_visible | Q9 | Every achievement: footer, achievements pages and search (XP gate) |
+| `ladder_solo_500` | Solo leaderboard · 500 pieces | `ladder_solo_500_pieces` | `leaderboards` | everyone | Q9 | A ranking per category and piece count: Leaderboards |
+| `ladder_solo_1000` | Solo leaderboard · 1000 pieces | `ladder_solo_1000_pieces` | `leaderboards` | everyone | Q9 | A ranking per category and piece count: Leaderboards |
+| `ladder_pairs_500` | Pairs leaderboard · 500 pieces | `ladder_pairs_500_pieces` | `leaderboards` | everyone | Q9 | A ranking per category and piece count: Leaderboards |
+| `ladder_pairs_1000` | Pairs leaderboard · 1000 pieces | `ladder_pairs_1000_pieces` | `leaderboards` | everyone | Q9 | A ranking per category and piece count: Leaderboards |
+| `ladder_groups_500` | Teams leaderboard · 500 pieces | `ladder_groups_500_pieces` | `leaderboards` | everyone | Q9 | A ranking per category and piece count: Leaderboards |
+| `ladder_groups_1000` | Teams leaderboard · 1000 pieces | `ladder_groups_1000_pieces` | `leaderboards` | everyone | Q9 | A ranking per category and piece count: Leaderboards |
+| `country_ranking` | Your country's leaderboard | `ladder_country` {countryCode: viewer's country} | `leaderboards` | member | Q9 | Your country's ranking (members): a filter of Leaderboards and search |
+| `achievements_list` | All achievements | `badges_overview` | `achievements` | xp_visible | Q9 | Every achievement: footer, achievements pages and search (XP gate) |
 | `xp_explainer` | How XP & Levels work | `xp_explainer` | `progression` | xp_visible | Q7 | Explains XP: How progress works and search (XP gate) |
 | `fair_play_xp` | Fair play & trust | `xp_fair_play` | `progression` | xp_visible | Q7 | Explains fair play: How progress works and search (XP gate) |
 | `karma_explainer` | How karma works | `karma_explainer` | `progression` | xp_visible | Q7 | Explains karma: How progress works and search (XP gate) |

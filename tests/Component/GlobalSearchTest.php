@@ -79,9 +79,39 @@ final class GlobalSearchTest extends WebTestCase
         }
     }
 
-    private function globalSearch(KernelBrowser $client, string $query): TestLiveComponent
+    /**
+     * Navigation MENU-03: "Pages & settings" costs no statement - the list is static JSON and matched in the browser -
+     * so a query that finds only pages runs exactly the statements any query runs (players, puzzles), on either
+     * instance, and an empty query none.
+     */
+    public function testAPagesOnlyQueryCostsWhatEveryQueryCosts(): void
     {
-        $component = $this->createLiveComponent('GlobalSearch', ['query' => $query], $client);
+        $client = self::createClient();
+
+        foreach (['bar', 'menu'] as $surface) {
+            $component = $this->globalSearch($client, 'password', $surface);
+            $component->render();
+
+            $this->startCountingQueries($client);
+            $crawler = new Crawler($component->refresh()->render()->toString());
+
+            // Nothing on the server's side: no player, no puzzle - the page group is the browser's
+            self::assertCount(0, $crawler->filter('.global-search-results a[href]'), $surface);
+            self::assertCount(1, $crawler->filter('[data-nav-search-results][data-live-ignore]'), $surface);
+            // The players' and the puzzles' search, as before MENU-03
+            self::assertSame(2, $this->queryCount($client), $surface . ":\n" . implode("\n", $this->executedSql($client)));
+
+            $empty = $this->globalSearch($client, '', $surface);
+            $empty->render();
+            $this->startCountingQueries($client);
+            $empty->refresh()->render();
+            self::assertSame(0, $this->queryCount($client), $surface . ': an empty query');
+        }
+    }
+
+    private function globalSearch(KernelBrowser $client, string $query, string $surface = GlobalSearch::SURFACE_BAR): TestLiveComponent
+    {
+        $component = $this->createLiveComponent('GlobalSearch', ['query' => $query, 'surface' => $surface], $client);
         $component->setRouteLocale('en');
 
         return $component;

@@ -7,13 +7,15 @@ namespace SpeedPuzzling\Web\Tests;
 use IntlChar;
 use Normalizer;
 use PHPUnit\Framework\Attributes\DataProvider;
-use PHPUnit\Framework\TestCase;
+use SpeedPuzzling\Web\Navigation\NavigationRegistry;
 use SpeedPuzzling\Web\Value\PuzzleName;
 use SpeedPuzzling\Web\Value\PuzzleNames;
 use SpeedPuzzling\Web\Value\PuzzleSearchKeys;
 use SpeedPuzzling\Web\Value\SearchText;
+use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Process\ExecutableFinder;
 use Symfony\Component\Process\Process;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * The puzzle lists filter in the browser (collection_filter_controller.js): PHP renders every puzzle's stored search
@@ -24,8 +26,12 @@ use Symfony\Component\Process\Process;
  * a browser string holds lone surrogates as they are - neither comes out of a text field), and letters newer than the
  * Unicode version of PHP's ICU, which a newer browser may already fold (PHP's ICU 72 = Unicode 15.0, the base image's
  * node ICU 78 = Unicode 17.0).
+ *
+ * The page search's "Pages & settings" (navigation MENU-03) leans on the same pair: nav-search.json carries every
+ * label, synonym and legacy label folded by PHP, the browser folds what is typed - so the whole navigation vocabulary
+ * of every locale is folded both ways too.
  */
-final class SearchFoldParityTest extends TestCase
+final class SearchFoldParityTest extends KernelTestCase
 {
     private const string CORPUS = __DIR__ . '/search-fold-corpus.txt';
 
@@ -57,6 +63,35 @@ final class SearchFoldParityTest extends TestCase
                 $texts[] = $character;
             }
         }
+
+        self::assertGreaterThan(1500, count($texts));
+        self::assertSame(self::folded($texts), $this->runInNode($texts, [])['folded']);
+    }
+
+    /**
+     * Every label, description, synonym and legacy label of the navigation registry in all 6 locales (MENU-03), plus
+     * the letters other languages type - ß, Ł, æ, ø, ğ -, full-width digits and half-width kana.
+     */
+    public function testTheBrowserFoldsTheNavigationVocabularyLikePhp(): void
+    {
+        $translator = self::getContainer()->get(TranslatorInterface::class);
+        $texts = ['Straße', 'STRASSE', 'Łódź', 'łódź', 'Æbleskiver', 'æble', 'Ørsted', 'smørrebrød', 'Ğ ğ İstanbul', 'Doğa', '０１２３４５６７８９', 'Ｐｕｚｚｌｅ　１０００', 'ﾊﾟｽﾜｰﾄﾞ', 'ｶﾞｲﾄﾞ', 'ﾗﾝｷﾝｸﾞ'];
+
+        foreach (self::getContainer()->get(NavigationRegistry::class)->all() as $entry) {
+            $keys = array_filter([$entry->label, $entry->description, ...$entry->legacyLabels]);
+
+            foreach (['en', 'cs', 'de', 'es', 'fr', 'ja'] as $locale) {
+                foreach ($keys as $key) {
+                    $texts[] = $translator->trans($key, [], null, $locale);
+                }
+
+                if ($entry->synonyms !== null) {
+                    array_push($texts, ...explode('|', $translator->trans($entry->synonyms, [], null, $locale)));
+                }
+            }
+        }
+
+        $texts = array_values(array_unique($texts));
 
         self::assertGreaterThan(1500, count($texts));
         self::assertSame(self::folded($texts), $this->runInNode($texts, [])['folded']);

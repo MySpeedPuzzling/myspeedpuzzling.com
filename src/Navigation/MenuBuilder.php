@@ -68,6 +68,17 @@ final class MenuBuilder implements ResetInterface
         $this->memo = [];
     }
 
+    /**
+     * An entry's link for the viewer, as its Menu row has it (guests' route, the viewer's own parameters, the fragment) -
+     * null when it cannot be built for them. The page search's nav_go resolves its entries with it (MENU-03, R14).
+     */
+    public function urlFor(NavEntry $entry, NavigationViewer $viewer): null|string
+    {
+        $href = $this->href($entry, $viewer);
+
+        return $href === false ? null : $href;
+    }
+
     private function assemble(string $surface, null|string $currentRowId): MenuView
     {
         $viewer = $this->viewerFactory->current();

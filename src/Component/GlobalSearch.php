@@ -27,6 +27,11 @@ final class GlobalSearch
      */
     public const int PUZZLES_LIMIT = 15;
 
+    public const string SURFACE_BAR = 'bar';
+    public const string SURFACE_MENU = 'menu';
+    public const int PAGES_LIMIT_BAR = 3;
+    public const int PAGES_LIMIT_MENU = 8;
+
     public function __construct(
         readonly private SearchPuzzle $searchPuzzle,
         readonly private SearchPlayers $searchPlayers,
@@ -37,11 +42,29 @@ final class GlobalSearch
     public string $query = '';
 
     /**
+     * Where this instance lives (navigation MENU-03, R3): `bar` - the page's search, opened from the header (the top
+     * bar's from NAV-03) - or `menu` - the Menu panel's field, whose results show inside the panel
+     */
+    #[LiveProp]
+    public string $surface = self::SURFACE_BAR;
+
+    /**
+     * How many "Pages & settings" rows show before "Show N more" (decision 38: 3 in the top bar, 8 in the Menu panel)
+     */
+    #[LiveProp]
+    public int $limit = self::PAGES_LIMIT_BAR;
+
+    /**
      * @var null|list<PuzzleOverview>
      */
     private null|array $puzzle = null;
 
     private null|int $puzzleCount = null;
+
+    public function isMenu(): bool
+    {
+        return $this->surface === self::SURFACE_MENU;
+    }
 
     /**
      * @return list<PlayerIdentification>

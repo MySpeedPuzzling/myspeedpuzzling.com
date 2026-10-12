@@ -156,6 +156,29 @@ final class NavClickControllerTest extends WebTestCase
     }
 
     /**
+     * MENU-03: a page search without any result - which field and the query, as the script sends it (folded, ≤ 40
+     * characters); control and format characters never reach the log.
+     */
+    public function testASearchWithoutResultsIsLogged(): void
+    {
+        [$browser, $log] = self::clientWithNavigationLog();
+
+        self::beacon($browser, ['k' => 'search_zero', 'surface' => 'menu', 'q' => 'xyzzy']);
+        self::beacon($browser, ['k' => 'search_zero', 'surface' => 'topbar', 'q' => "pa\u{200B}ssw\u{0007}ord ", 'layout' => 'desktop']);
+        self::beacon($browser, ['k' => 'search_zero', 'surface' => 'menu', 'q' => str_repeat('ř', 40)]);
+
+        self::assertResponseStatusCodeSame(204);
+        self::assertNull($browser->getResponse()->headers->get('Set-Cookie'));
+        self::assertSame('Navigation search without results', $log->getRecords()[0]->message);
+        self::assertSame('INFO', $log->getRecords()[0]->level->getName());
+        self::assertSame([
+            ['kind' => 'search_zero', 'surface' => 'menu', 'query' => 'xyzzy', 'page' => '/en/faq', 'layout' => 'phone', 'webdriver' => false],
+            ['kind' => 'search_zero', 'surface' => 'topbar', 'query' => 'password', 'page' => '/en/faq', 'layout' => 'desktop', 'webdriver' => false],
+            ['kind' => 'search_zero', 'surface' => 'menu', 'query' => str_repeat('ř', 40), 'page' => '/en/faq', 'layout' => 'phone', 'webdriver' => false],
+        ], self::contexts($log));
+    }
+
+    /**
      * Optional fields the script could not fill are logged as unknown, the line stays.
      */
     public function testUnknownOptionalValuesAreNotTrusted(): void
@@ -228,6 +251,11 @@ final class NavClickControllerTest extends WebTestCase
         yield 'unknown history kind' => [['v' => 1, 'k' => 'history', 'via' => 'swipe', 'dir' => 'back', 'page' => '/en/faq']];
         yield 'menu open on an unknown surface' => [['v' => 1, 'k' => 'menu_open', 'surface' => 'drawer', 'place' => 'home', 'page' => '/en/faq']];
         yield 'menu open without a surface' => [['v' => 1, 'k' => 'menu_open', 'place' => 'home', 'page' => '/en/faq']];
+        yield 'search zero on an unknown field' => [['v' => 1, 'k' => 'search_zero', 'surface' => 'footer', 'q' => 'xyzzy', 'page' => '/en/faq']];
+        yield 'search zero without a query' => [['v' => 1, 'k' => 'search_zero', 'surface' => 'menu', 'page' => '/en/faq']];
+        yield 'search zero with an empty query' => [['v' => 1, 'k' => 'search_zero', 'surface' => 'menu', 'q' => " \u{200B} ", 'page' => '/en/faq']];
+        yield 'search zero with a long query' => [['v' => 1, 'k' => 'search_zero', 'surface' => 'menu', 'q' => str_repeat('x', 41), 'page' => '/en/faq']];
+        yield 'search zero with a query that is not text' => [['v' => 1, 'k' => 'search_zero', 'surface' => 'menu', 'q' => ['xyzzy'], 'page' => '/en/faq']];
         yield 'suppressed dialog with a whole URL' => [['v' => 1, 'k' => 'dialog_suppressed', 'afterLayerBack' => true, 'afterRestore' => false, 'page' => 'https://evil.example/en/faq']];
         yield 'over 1 KB' => [['padding' => str_repeat('x', 1024)] + $click];
     }

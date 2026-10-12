@@ -343,6 +343,8 @@ final class NavigationPlaceMap
         'stale_document' => 'none',
         'navigation_fetch_failure' => 'none',
         'nav_click' => 'none',
+        'nav_search_index' => 'none',
+        'nav_go' => 'none',
         'homepage_stats' => 'none',
         'microsoft_identity_association' => 'none',
         'apple_sign_in_notification' => 'none',

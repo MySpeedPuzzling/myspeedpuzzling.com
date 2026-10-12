@@ -7,7 +7,8 @@
     (assets/navigation/menu_links.js). data-menu-layer-place-value: the page's place (a tap on its tab only closes).
     Shared-cacheable for guests: nothing in here depends on the visitor but the logo's target (Home: hub / homepage).
     The `menu` page renders the Menu as its content (nav_menu_slot_off): no shell there.
-    Chrome markup rules (implementation plan §3.2): no heading element, no form; data-nav on every link and button. -#}
+    Chrome markup rules (implementation plan §3.2): no heading element, no form; data-nav on every link and button.
+    The search field at the top of the body (MENU-03) is the page search's second instance. -#}
 {%- if not (nav_menu_slot_off ?? false) -%}
 {%- set menu_paths = ['cs', 'en', 'de', 'es', 'fr', 'ja']|map(locale => path('menu', {_locale: locale})) -%}
 <dialog id="menu-layer" class="menu-layer" aria-labelledby="menu-layer-title" data-controller="menu-layer"
@@ -17,12 +18,13 @@
         {#- -#}<button type="button" class="menu-layer-close" data-menu-layer-target="close" data-action="menu-layer#close" data-nav="menu/none/close" aria-label="{{ 'nav.menu.close'|trans }}"><i class="bi bi-x-lg" aria-hidden="true"></i></button>
         {#- -#}<span class="menu-layer-title" id="menu-layer-title">{{ 'nav.menu.title'|trans }}</span>
         {#- -#}<a class="menu-layer-logo" href="{{ logged_user.profile is not null ? path('hub') : path('homepage') }}" data-nav="menu/none/logo"><img width="36" height="32" src="{{ asset('img/speedpuzzling-logo.svg') }}" alt="MySpeedPuzzling"></a>
-        {#- The page and settings search (MENU-03) -#}
-        <div class="menu-layer-search" data-menu-layer-search></div>
     </div>
     <div class="menu-layer-body" data-menu-layer-target="body">
-        {#- Results of a search typed in the panel (MENU-03); #site-menu is moved in after it -#}
-        <div class="menu-layer-results" data-menu-layer-results hidden></div>
+        {#- The Menu's search field (MENU-03, R3): the second GlobalSearch, sticky under the header - the first in the DOM is
+            the page's (decision 87). Typed in here, its results ("Pages & settings" first, then puzzlers and puzzles)
+            show here: the shell gets .is-searching and #site-menu, moved in after it when the panel opens, steps aside -
+            same layer, same history entry. -#}
+        <div class="menu-layer-search" data-menu-layer-search><twig:GlobalSearch key="menu" surface="menu" :limit="8" /></div>
     </div>
 </dialog>
 {%- endif -%}

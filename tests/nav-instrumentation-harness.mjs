@@ -6,7 +6,7 @@
 // otherwise, the history position).
 
 import { readFileSync } from 'node:fs';
-import { BEACON_URL, createNavInstrumentation, loggablePage, MENU_OPEN_EVENT, parseNav, viewportBucket } from '../assets/nav_instrumentation.js';
+import { BEACON_URL, createNavInstrumentation, loggablePage, MENU_OPEN_EVENT, parseNav, SEARCH_ZERO_EVENT, viewportBucket } from '../assets/nav_instrumentation.js';
 
 const input = JSON.parse(readFileSync(0, 'utf8'));
 
@@ -148,6 +148,10 @@ function run(scenario) {
             case 'menu open':
                 // MENU-02b: menu_layer_controller.js dispatches it on the document when the panel opens
                 page.document.fire(MENU_OPEN_EVENT, { type: MENU_OPEN_EVENT, detail: step.detail });
+                break;
+            case 'search zero':
+                // MENU-03: nav_search_controller.js dispatches it on the document when a search found nothing
+                page.document.fire(SEARCH_ZERO_EVENT, { type: SEARCH_ZERO_EVENT, detail: step.detail });
                 break;
             case 'dialog suppressed':
                 // The GEST-13 watchdog of assets/confirm_dialog.js

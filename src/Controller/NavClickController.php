@@ -23,6 +23,8 @@ use Symfony\Component\Routing\Attribute\Route;
  *   Back/Forward restore of the page
  * - menu_open: the Menu was opened - on which surface (the phone panel MENU-02b, the desktop overlay NAV-13) and on
  *   which place's page (README §4.12 "Measurement")
+ * - search_zero: a page search found nothing at all - no page, no player, no puzzle (MENU-03, decision 39): which field
+ *   (the Menu panel's, the page's / top bar's) and the query, folded and cut to 40 characters by the script
  *
  * The page's path and the data-nav value only - no cookies, no session (the `stateless` firewall), no user agent.
  * A path segment that looks like a secret (a password-reset, account-deletion, credential-claim, sign-in, newsletter or
@@ -67,6 +69,10 @@ final class NavClickController extends AbstractController
     private const array HISTORY_VIA = ['turbo_restore', 'load', 'bfcache'];
     private const array HISTORY_DIRECTIONS = ['back', 'forward', 'unknown'];
     private const array MENU_SURFACES = ['panel', 'overlay'];
+    private const array SEARCH_SURFACES = ['menu', 'topbar'];
+
+    /** The longest search_zero query (SEARCH_QUERY_MAX in assets/nav_instrumentation.js) - anything longer drops the line */
+    public const int MAX_QUERY_LENGTH = 40;
 
     /** NavPlace values - the script sends the same list (PLACES in assets/nav_instrumentation.js) */
     public const array PLACES = ['home', 'puzzles', 'add', 'community', 'profile', 'none'];
@@ -98,6 +104,7 @@ final class NavClickController extends AbstractController
                     'history' => $this->history($payload, $context),
                     'dialog_suppressed' => $this->dialogSuppressed($payload, $context),
                     'menu_open' => $this->menuOpen($payload, $context),
+                    'search_zero' => $this->searchZero($payload, $context),
                     default => null,
                 };
             }
@@ -208,6 +215,36 @@ final class NavClickController extends AbstractController
             'kind' => 'menu_open',
             'surface' => $surface,
             'place' => in_array($payload['place'] ?? null, self::PLACES, true) ? $payload['place'] : null,
+            ...$context,
+        ]);
+    }
+
+    /**
+     * MENU-03 / SRCH-01: one line per page search without any result. An unknown field, an empty query or one longer
+     * than the script sends drops the line; control and format characters are dropped from the query.
+     *
+     * @param array<string, mixed> $payload
+     * @param array<string, mixed> $context
+     */
+    private function searchZero(array $payload, array $context): void
+    {
+        $surface = $payload['surface'] ?? null;
+        $query = $payload['q'] ?? null;
+
+        if (!in_array($surface, self::SEARCH_SURFACES, true) || !is_string($query) || mb_check_encoding($query, 'UTF-8') === false) {
+            return;
+        }
+
+        $query = trim((string) preg_replace('/[\p{Cc}\p{Cf}]+/u', '', $query));
+
+        if ($query === '' || mb_strlen($query) > self::MAX_QUERY_LENGTH) {
+            return;
+        }
+
+        $this->logger->info('Navigation search without results', [
+            'kind' => 'search_zero',
+            'surface' => $surface,
+            'query' => $query,
             ...$context,
         ]);
     }

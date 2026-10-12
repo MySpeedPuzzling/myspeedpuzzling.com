@@ -14,7 +14,9 @@
  * it is not counted again), a page loaded by a traverse, or a page shown from the back/forward cache. The GEST-13
  * watchdog (assets/confirm_dialog.js) reports a native dialog an iPhone refused through dialogSuppressed(). Each open of
  * the Menu (MENU-02b: the phone panel; NAV-13: the desktop overlay) is one `menu_open` line: the Menu's controller
- * dispatches `msp:menu-open` {surface, place} on the document (MENU_OPEN_EVENT), this module sends it.
+ * dispatches `msp:menu-open` {surface, place} on the document (MENU_OPEN_EVENT), this module sends it. A page search
+ * that found nothing at all (MENU-03: no page, no player, no puzzle) is one `search_zero` line: the search dispatches
+ * `msp:search-zero` {surface, q} (SEARCH_ZERO_EVENT) with the folded query, cut to 40 characters.
  *
  * Every beacon carries the page's path, never its query string: loggablePage() replaces a path segment that looks like a
  * secret (a password-reset or account-deletion link, a credential claim, a newsletter or e-mail preferences token...)
@@ -46,6 +48,15 @@ export const MENU_OPEN_EVENT = 'msp:menu-open';
 
 /** Where the Menu was opened: the phone panel (MENU-02b) or the desktop overlay (NAV-13) */
 export const MENU_SURFACES = ['panel', 'overlay'];
+
+/** The document event of a page search without any result (nav_search_controller.js), detail {surface, q} */
+export const SEARCH_ZERO_EVENT = 'msp:search-zero';
+
+/** Which search found nothing: the Menu panel's field or the page's / top bar's (MENU-03, SRCH-01) */
+export const SEARCH_SURFACES = ['menu', 'topbar'];
+
+/** The longest query a search_zero line carries (decision 39) - NavClickController::MAX_QUERY_LENGTH */
+export const SEARCH_QUERY_MAX = 40;
 
 /** The page's place (NavPlace) - the same list as NavClickController::PLACES */
 export const PLACES = ['home', 'puzzles', 'add', 'community', 'profile', 'none'];
@@ -308,6 +319,10 @@ export function createNavInstrumentation(env) {
         api.menuOpen(event && event.detail ? event.detail : {});
     }
 
+    function onSearchZero(event) {
+        api.searchZero(event && event.detail ? event.detail : {});
+    }
+
     const api = {
         /** app.js: a Turbo restore visit, right before it turns it into a full page load */
         turboRestore() {
@@ -351,9 +366,28 @@ export function createNavInstrumentation(env) {
             send({ k: 'menu_open', surface: detail.surface, place: PLACES.includes(detail.place) ? detail.place : 'none' });
         },
 
+        /**
+         * MENU-03 / SRCH-01: a page search found nothing - which field, and the query (cut to 40 characters; the search
+         * sends it folded). An unknown field or an empty query sends nothing.
+         */
+        searchZero(detail = {}) {
+            if (!SEARCH_SURFACES.includes(detail.surface) || typeof detail.q !== 'string') {
+                return;
+            }
+
+            const q = Array.from(detail.q.trim()).slice(0, SEARCH_QUERY_MAX).join('');
+
+            if (q === '') {
+                return;
+            }
+
+            send({ k: 'search_zero', surface: detail.surface, q });
+        },
+
         start() {
             document.addEventListener('click', onClick, { capture: true, passive: true });
             document.addEventListener(MENU_OPEN_EVENT, onMenuOpen);
+            document.addEventListener(SEARCH_ZERO_EVENT, onSearchZero);
             // Capture: at the window, capture listeners run before Turbo's popstate listener starts the restore
             window.addEventListener('popstate', rememberTraverse, { capture: true });
             window.addEventListener('pageshow', onPageShow);

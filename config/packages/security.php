@@ -68,11 +68,13 @@ return App::config([
                 // clients - beacons carry no cookies-worth of context and must never start a session.
                 // /-/nav-click: sendBeacon navigation instrumentation (NavClickController) - sent by
                 // guests too, must never start a session or set a cookie.
+                // /{locale}/nav-search.json: the page search's "Pages & settings" list (MENU-03) - the same public JSON
+                // for everybody, a signed-in request included; must never start a session or set a cookie.
                 // /api/v0/wjpf-pairing: server-to-server call from worldjigsawpuzzle.org,
                 // authenticated by its own static token in the request - no user, no session.
                 // /webhook/apple-sign-in: Sign in with Apple server-to-server notifications,
                 // authenticated by Apple's signature on the posted token.
-                'pattern' => '^(/-/health-check|/-/asset-load-failure$|/-/stale-document$|/-/nav-click$|/media/cache|/sitemap|/homepage-stats$|/api/v0/wjpf-pairing$|/webhook/apple-sign-in$)',
+                'pattern' => '^(/-/health-check|/-/asset-load-failure$|/-/stale-document$|/-/nav-click$|/(cs|de|en|es|fr|ja)/nav-search\.json$|/media/cache|/sitemap|/homepage-stats$|/api/v0/wjpf-pairing$|/webhook/apple-sign-in$)',
                 'stateless' => true,
                 'security' => false,
             ],

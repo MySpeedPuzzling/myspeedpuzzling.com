@@ -467,7 +467,7 @@
     overflow: hidden;
 }
 
-// Sticky header: × · "Menu" · logo · the search field (MENU-03)
+// Sticky header: × · "Menu" · logo; the search field sticks right under it at the top of the body (MENU-03)
 .menu-layer-header {
     flex: 0 0 auto;
     display: flex;
@@ -535,8 +535,46 @@
     }
 }
 
-.menu-layer-search:empty {
-    display: none;
+// ---- The Menu's search (MENU-03; templates/components/GlobalSearch.html.twig, surface menu) ----------------------------
+// The field stays at the top of the panel's scroller while the Menu scrolls under it. Typed in, the shell is
+// .is-searching: the Menu steps aside and the results ("Pages & settings", puzzlers, puzzles) take the panel - the
+// field row stays on top of them. Same layer, same history entry.
+
+.menu-layer-search {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    margin: 0 -.75rem;
+    padding: .5rem .75rem;
+    background: var(--nav-bg, #fff);
+}
+
+.menu-layer.is-searching {
+    #site-menu {
+        display: none;
+    }
+
+    .menu-layer-search {
+        position: static;
+    }
+
+    .global-search-field {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        margin: -.5rem -.75rem 0;
+        padding: .5rem .75rem;
+        background: var(--nav-bg, #fff);
+    }
+
+    // Puzzlers and puzzles flow in the panel's own scroller - no card of their own
+    .global-search-results {
+        max-height: none;
+        margin: .25rem 0 0;
+        padding: 0 .25rem;
+        overflow: visible;
+        box-shadow: none;
+    }
 }
 
 // The panel's own scroller: the page under it never scrolls along, a pull at its top arms nothing
@@ -591,4 +629,66 @@
     to {
         opacity: 0;
     }
+}
+
+// ---- "Pages & settings" in the page search (MENU-03; assets/controllers/nav_search_controller.js) -------------------
+// Rendered in the browser above the server results of either search: rows like the Menu's (icon · label · where it is
+// in the Menu), "Show N more" under them. In the page's dropdown it is a card like the results below it.
+
+.nav-search-results[hidden] {
+    display: none;
+}
+
+.nav-search-title {
+    margin: .5rem 0 .25rem;
+    padding: 0 .5rem;
+    font-size: .75rem;
+    font-weight: 600;
+    line-height: 1.25rem;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: var(--nav-label, #5f6b80);
+}
+
+.nav-search-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.nav-search-more {
+    display: block;
+    min-height: 44px;
+    margin: .25rem 0 0;
+    padding: .5rem;
+    border: 0;
+    border-radius: .5rem;
+    font-size: .875rem;
+    font-weight: 500;
+    color: var(--nav-active-ink, #c8323a);
+    background: transparent;
+    touch-action: manipulation;
+
+    &:hover,
+    &:active {
+        background: var(--nav-pressed-pill, rgba(254, 105, 106, .1));
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--nav-focus, #4e54c8);
+        outline-offset: -2px;
+    }
+}
+
+.global-search .nav-search-results {
+    margin: 15px 0 0;
+    padding: 8px;
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, .4);
+}
+
+// The dropdown keeps fitting the screen: with "Pages & settings" above them the puzzle results get less height
+.global-search:has(.nav-search-results:not([hidden])) .global-search-results {
+    max-height: max(12rem, calc(100vh - 210px - 15rem));
 }

@@ -5,11 +5,16 @@
     phone-only parts `menu-only-phone`, dock-only parts `menu-only-dock`; the phone panel (MENU-02b) moves the group
     nodes into phone order by data-order-phone (never CSS order, decision 29). 'page' = the `menu` page: phone rows only,
     in phone order.
+    Moderators and admins get their entries of the page search as `<script type="application/json"
+    id="nav-search-private">`, the nav's first child (MENU-03; assets/navigation/nav_search.js reads it).
     Chrome markup rules (implementation plan §3.2): no h1, no form, no .alert/.card-body/.nav-*; group headings are
     `p[role=heading][aria-level=2]`; every link and button carries data-nav="menu/<group>/<id>". -#}
 {%- set menu = nav_menu(surface ?? 'slot') -%}
 <nav id="site-menu" aria-label="{{ 'nav.menu.title'|trans }}" class="site-menu" data-surface="{{ menu.surface }}"
     {%- if not menu.viewer.isGuest() %} data-controller="menu-counts" data-menu-counts-url-value="{{ path('menu_counts') }}" data-menu-counts-player-value="{{ menu.viewer.playerId() }}"{% endif %}>
+    {#- The page search's moderator / admin entries, for those viewers only - never in the public nav-search.json (MENU-03) -#}
+    {%- set search_private = nav_search_private() -%}
+    {%- if search_private is not null -%}<script type="application/json" id="nav-search-private">{{ search_private|raw }}</script>{%- endif -%}
     {%- for group in menu.groups -%}
         {{- include('navigation/_menu_group.html.twig', {group: group, viewer: menu.viewer, surface: menu.surface}, with_context = false) -}}
     {%- endfor -%}

@@ -1,17 +1,40 @@
-<div {{ attributes }}>
+{#- The page search (docs/features/navigation MENU-03, R3). Two instances, each with its own controllers on its root:
+    - surface `bar`: the page's search, opened from the header's search tool (the top bar's from NAV-03) - the first
+      instance in the DOM (tests read the first one);
+    - surface `menu` (key="menu"): the Menu panel's field (templates/navigation/_menu_layer.html.twig); its results show
+      inside the panel - same layer, same history entry. No × (the panel has one; Esc clears the field first), the scan
+      button only for members (rows a viewer cannot use are hidden, never locked - D13); its buttons carry data-nav
+      (chrome, P0-03).
+    global-search: opening/closing (bar), Esc and the panel's searching state (menu); nav-search: "Pages & settings" -
+    the registry's list (nav-search.json, fetched on the first focus) filtered and ranked in the browser
+    (assets/navigation/nav_search.js) into the data-live-ignore container above the server results, which the Live
+    re-renders never touch. An empty query renders no results and costs no statement. -#}
+{%- set menu = this.menu -%}
+{%- set member = logged_user.profile is not null and logged_user.profile.activeMembership -%}
+<div {{ attributes.defaults({
+    class: 'global-search-' ~ this.surface,
+    'data-controller': 'global-search nav-search',
+    'data-global-search-mode-value': this.surface,
+    'data-nav-search-url-value': nav_search_url(),
+    'data-nav-search-surface-value': this.surface,
+    'data-nav-search-limit-value': this.limit,
+    'data-nav-search-title-value': 'nav.search.pages_settings'|trans,
+    'data-nav-search-more-value': 'nav.search.more'|trans,
+}) }}>
     <div data-controller="barcode-scanner" data-barcode-scanner-no-camera-value="{{ 'barcode_scanner.no_camera'|trans }}">
-        <div class="input-group position-relative">
-            <input type="search" data-model="debounce(150)|query" class="form-control" data-barcode-scanner-target="input" data-global-search-target="searchInput" placeholder="{{ 'forms.global_search_placeholder'|trans }}">
-            {% if logged_user.profile is not null and logged_user.profile.activeMembership %}
+        <div class="input-group {{ menu ? 'global-search-field' : 'position-relative' }}">
+            <input type="search" data-model="debounce(150)|query" class="form-control" autocomplete="off" aria-label="{{ 'menu.search'|trans }}" data-barcode-scanner-target="input" data-global-search-target="searchInput" data-nav-search-target="input" placeholder="{{ 'forms.global_search_placeholder'|trans }}">
+            {% if member %}
                 <button
                     class="btn btn-secondary border-0 px-3 fs-6"
                     data-action="click->barcode-scanner#toggle"
                     data-barcode-scanner-target="toggleButton"
                     aria-label="{{ 'accessibility.barcode_scanner'|trans }}"
+                    {%- if menu %} data-nav="menu/search/scan"{% endif %}
                 >
                     <i class="bi-upc-scan" aria-hidden="true"></i>
                 </button>
-            {% else %}
+            {% elseif not menu %}
                 <button
                     class="btn btn-secondary border-0 px-3 fs-6 position-relative"
                     data-bs-toggle="modal"
@@ -23,13 +46,18 @@
                 </button>
             {% endif %}
 
-            <button type="button"
-                    class="close btn btn-primary fw-bold px-3 fs-6"
-                    aria-label="{{ 'forms.close'|trans }}"
-                    data-action="click->global-search#closeSearchBar">
-                <span aria-hidden="true">&times;</span>
-            </button>
+            {% if not menu %}
+                <button type="button"
+                        class="close btn btn-primary fw-bold px-3 fs-6"
+                        aria-label="{{ 'forms.close'|trans }}"
+                        data-action="click->global-search#closeSearchBar">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            {% endif %}
         </div>
+
+        {#- "Pages & settings" (MENU-03): filled in the browser, kept by every Live re-render -#}
+        <div class="nav-search-results" data-nav-search-results data-nav-search-target="results" data-live-ignore hidden></div>
 
         {% if this.query %}
             <div class="global-search-results" data-skip-morph data-barcode-scanner-target="results">
@@ -136,6 +164,7 @@
             </div>
         {% endif %}
 
+        {% if member or not menu %}
         <div data-barcode-scanner-target="wrapper" class="global-search-barcode-scan position-relative d-none">
             <div class="spinner spinner-border text-primary" role="status">
                 <span class="visually-hidden">Loading...</span>
@@ -149,12 +178,15 @@
                 <button type="button"
                         data-action="click->barcode-scanner#zoomOut"
                         data-barcode-scanner-target="zoomOut"
+                        {%- if menu %} data-nav="menu/search/zoom_out"{% endif %}
                         class="btn btn-sm btn-outline-primary ms-2 me-1">–</button>
                 <button type="button"
                         data-action="click->barcode-scanner#zoomIn"
                         data-barcode-scanner-target="zoomIn"
+                        {%- if menu %} data-nav="menu/search/zoom_in"{% endif %}
                         class="btn btn-sm btn-outline-primary">+</button>
             </div>
         </div>
+        {% endif %}
     </div>
 </div>

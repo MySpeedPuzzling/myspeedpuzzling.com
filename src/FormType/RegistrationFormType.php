@@ -7,17 +7,24 @@ namespace SpeedPuzzling\Web\FormType;
 use SpeedPuzzling\Web\FormData\RegistrationFormData;
 use SpeedPuzzling\Web\Validator\StrongPassword;
 use Symfony\Component\Form\AbstractType;
+use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\EmailType;
 use Symfony\Component\Form\Extension\Core\Type\PasswordType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 /**
  * @extends AbstractType<RegistrationFormData>
  */
 final class RegistrationFormType extends AbstractType
 {
+    public function __construct(
+        private readonly UrlGeneratorInterface $urlGenerator,
+    ) {
+    }
+
     /**
      * @param mixed[] $options
      */
@@ -28,6 +35,8 @@ final class RegistrationFormType extends AbstractType
         // it as the username (auth UX redesign §4.2)
         $builder
             ->add('email', EmailType::class, [
+                // An empty field must reach the validator as '' (the form has novalidate), never null into a string property
+                'empty_data' => '',
                 'label' => 'auth.register.email',
                 'attr' => [
                     'autocomplete' => 'username',
@@ -38,6 +47,7 @@ final class RegistrationFormType extends AbstractType
                 ],
             ])
             ->add('plainPassword', PasswordType::class, [
+                'empty_data' => '',
                 'label' => 'auth.register.password',
                 'help' => 'auth.register.password_hint',
                 'help_translation_parameters' => [
@@ -60,6 +70,19 @@ final class RegistrationFormType extends AbstractType
                     'autocomplete' => 'nickname',
                     'enterkeyhint' => 'done',
                 ],
+            ])
+            // Required; the links open in a new tab so the filled-in form stays put
+            ->add('termsAccepted', CheckboxType::class, [
+                'label' => 'auth.register.terms',
+                'label_html' => true,
+                'label_translation_parameters' => [
+                    '%terms_url%' => $this->urlGenerator->generate('terms_of_service'),
+                    '%privacy_url%' => $this->urlGenerator->generate('privacy_policy'),
+                ],
+            ])
+            ->add('newsletter', CheckboxType::class, [
+                'label' => 'auth.register.newsletter',
+                'required' => false,
             ]);
     }
 

@@ -28,7 +28,7 @@ Redesigned on 2026-10-02. Before, it was one wrap of 26 links on the same pale g
 
 ### Newsletter states
 
-- **Players** are subscribed by default (opt-out, `Player::$newsletterEnabled`). A subscribed player sees no newsletter element at all.
+- **Players** are subscribed when they ticked the newsletter box at registration (`Player::$newsletterEnabled`; players registered before 2026-10-12 count as subscribed). A subscribed player sees no newsletter element at all.
 - **A player who switched it off** did so on purpose. They get one quiet line in the bottom bar and never a banner. "Turn it on" posts `TurnOnNewsletter`, which sets the flag and pushes to Listmonk (an explicit user action, so it may re-confirm a Listmonk unsubscribe). The page redirects back with a flash message.
 - **Auth pages** empty `footer_newsletter`: a sign-in page must hold no other text input, or iOS Password AutoFill misfires.
 

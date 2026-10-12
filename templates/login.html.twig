@@ -30,7 +30,7 @@
            fails - wrong password, unknown address - so it never signals whether
            an account exists #}
         {{ include('_login_failure_helper.html.twig', {throttled: failure_kind == 'throttled', return_params: return_params}) }}
-    {% elseif error %}
+    {% elseif error and failure_kind != 'incomplete' %}
         <div class="alert alert-danger" role="alert">
             {{ error.messageKey|trans(error.messageData, 'security') }}
         </div>
@@ -38,7 +38,9 @@
 
     {{ include('_in_app_browser_notice.html.twig') }}
 
-    <form action="{{ path('login') }}" method="post" id="login-form" data-last-sign-in-method="password" data-action="submit->last-sign-in#remember">
+    {# novalidate: an empty field is answered by the server, translated, under the field
+       (LoginFormIncomplete) - not by the browser's own bubble #}
+    <form action="{{ path('login') }}" method="post" id="login-form" novalidate data-last-sign-in-method="password" data-action="submit->last-sign-in#remember">
         <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
         {# Where the visitor was headed before being asked to sign in. Put here
            by LoginEntryPoint as ?return=; echoed back so the destination survives
@@ -55,7 +57,7 @@
             {# No autofocus: on arrival it would pop the keyboard over the page
                and start screen readers mid-form #}
             <input
-                class="form-control"
+                class="form-control{{ email_missing ? ' is-invalid' : '' }}"
                 type="email"
                 id="login-email"
                 name="email"
@@ -66,7 +68,11 @@
                 spellcheck="false"
                 enterkeyhint="next"
                 required
+                {% if email_missing %}aria-invalid="true" aria-describedby="login-email-error" autofocus{% endif %}
             >
+            {% if email_missing %}
+                <div class="invalid-feedback d-block" id="login-email-error">{{ 'auth.login.email_required'|trans }}</div>
+            {% endif %}
         </div>
 
         <div class="mb-3">
@@ -78,7 +84,7 @@
             </div>
             <div class="password-field">
                 <input
-                    class="form-control"
+                    class="form-control{{ password_missing ? ' is-invalid' : '' }}"
                     type="password"
                     id="login-password"
                     name="password"
@@ -87,10 +93,14 @@
                     required
                     {# After a failed attempt the address is still there - the
                        password is what needs retyping #}
-                    {% if failure_kind == 'credentials' %}autofocus{% endif %}
+                    {% if failure_kind == 'credentials' or (password_missing and not email_missing) %}autofocus{% endif %}
+                    {% if password_missing %}aria-invalid="true" aria-describedby="login-password-error"{% endif %}
                 >
                 {{ include('_password_toggle.html.twig', {input_id: 'login-password'}) }}
             </div>
+            {% if password_missing %}
+                <div class="invalid-feedback d-block" id="login-password-error">{{ 'auth.login.password_required'|trans }}</div>
+            {% endif %}
         </div>
 
         <button type="submit" class="btn btn-primary w-100" data-turbo-submits-with="{{ 'auth.login.submitting'|trans }}">

@@ -124,9 +124,44 @@ final class RegisterUserHandlerTest extends KernelTestCase
         self::assertNull($player->name);
     }
 
-    private function register(string $email, string $plainPassword, null|string $locale, null|string $name = null): string
+    public function testNewsletterStaysOffUnlessTheBoxWasTicked(): void
     {
-        $envelope = $this->messageBus->dispatch(new RegisterUser($email, $plainPassword, $locale, $name));
+        $userId = $this->register('register.seven@example.com', 'a-strong-passphrase-7', 'en');
+
+        $player = $this->playerRepository->findByUserId($userId);
+        self::assertNotNull($player);
+        self::assertFalse($player->newsletterEnabled);
+        self::assertSame(['terms' => false, 'newsletter' => false], $this->registrationAuditMetadata('register.seven@example.com', 'registration'));
+    }
+
+    public function testTickedNewsletterBoxSubscribesAndIsRecorded(): void
+    {
+        $userId = $this->register('register.eight@example.com', 'a-strong-passphrase-8', 'en', newsletter: true, termsAccepted: true);
+
+        $player = $this->playerRepository->findByUserId($userId);
+        self::assertNotNull($player);
+        self::assertTrue($player->newsletterEnabled);
+        // The consent record: when (the audit row's time) and what was ticked
+        self::assertSame(['terms' => true, 'newsletter' => true], $this->registrationAuditMetadata('register.eight@example.com', 'registration'));
+    }
+
+    /**
+     * @return mixed
+     */
+    private function registrationAuditMetadata(string $email, string $eventType): mixed
+    {
+        $metadata = $this->entityManager->getConnection()->fetchOne(
+            'SELECT metadata FROM auth_audit_log WHERE event_type = :type AND email = :email',
+            ['type' => $eventType, 'email' => $email],
+        );
+        self::assertIsString($metadata);
+
+        return json_decode($metadata, true);
+    }
+
+    private function register(string $email, string $plainPassword, null|string $locale, null|string $name = null, bool $newsletter = false, bool $termsAccepted = false): string
+    {
+        $envelope = $this->messageBus->dispatch(new RegisterUser($email, $plainPassword, $locale, $name, $newsletter, $termsAccepted));
 
         $handledStamp = $envelope->last(HandledStamp::class);
         self::assertNotNull($handledStamp);

@@ -157,6 +157,45 @@ final class LoginControllerTest extends WebTestCase
     }
 
     /**
+     * The form has novalidate: an empty field is answered by the server under that field, translated -
+     * not by the browser's bubble, and not by the wrong-password helper (nothing was checked)
+     */
+    public function testEmptyFieldsAreAnsweredUnderTheFields(): void
+    {
+        $browser = self::createClient();
+
+        $crawler = $browser->request('GET', '/login');
+        self::assertCount(1, $crawler->filter('form#login-form[novalidate]'));
+
+        $browser->request('POST', '/login', [
+            'email' => '',
+            'password' => '',
+            '_csrf_token' => 'csrf-token',
+        ], [], ['HTTP_ORIGIN' => 'http://localhost']);
+        $crawler = $browser->followRedirect();
+
+        self::assertSame('Enter your email address.', $crawler->filter('#login-email-error')->text());
+        self::assertSame('Enter your password.', $crawler->filter('#login-password-error')->text());
+        self::assertSame('true', $crawler->filter('#login-email')->attr('aria-invalid'));
+        self::assertNotNull($crawler->filter('#login-email')->attr('autofocus'));
+        self::assertCount(0, $crawler->filter('.alert[role="alert"]'));
+
+        $email = sprintf('login.empty+%s@example.com', bin2hex(random_bytes(4)));
+        $browser->request('POST', '/login', [
+            'email' => $email,
+            'password' => '',
+            '_csrf_token' => 'csrf-token',
+        ], [], ['HTTP_ORIGIN' => 'http://localhost']);
+        $crawler = $browser->followRedirect();
+
+        self::assertCount(0, $crawler->filter('#login-email-error'));
+        self::assertSame($email, $crawler->filter('#login-email')->attr('value'));
+        self::assertSame('Enter your password.', $crawler->filter('#login-password-error')->text());
+        self::assertNotNull($crawler->filter('#login-password')->attr('autofocus'));
+        self::assertCount(0, $crawler->filter('.alert[role="alert"]'));
+    }
+
+    /**
      * Wrong password and unknown address must look the same (D8)
      */
     public function testUnknownAddressFailsExactlyLikeAWrongPassword(): void

@@ -9,9 +9,9 @@ use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\UserAccount;
 use SpeedPuzzling\Web\Security\LoginFormAuthenticator;
+use SpeedPuzzling\Web\Security\LoginFormIncomplete;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\Security\Core\Exception\BadCredentialsException;
 use Symfony\Component\Security\Core\Exception\UserNotFoundException;
 use Symfony\Component\Security\Http\Authenticator\Passport\Badge\CsrfTokenBadge;
 use Symfony\Component\Security\Http\Authenticator\Passport\Badge\PasswordUpgradeBadge;
@@ -85,9 +85,19 @@ final class LoginFormAuthenticatorTest extends KernelTestCase
     {
         $authenticator = $this->authenticator();
 
-        $this->expectException(BadCredentialsException::class);
+        try {
+            $authenticator->authenticate($this->loginRequest('', 'whatever'));
+            self::fail('An empty address must not authenticate');
+        } catch (LoginFormIncomplete $exception) {
+            self::assertTrue($exception->emailMissing);
+            self::assertFalse($exception->passwordMissing);
+        }
 
-        $authenticator->authenticate($this->loginRequest('', 'whatever'));
+        // Survives the trip through the session to /login
+        $restored = unserialize(serialize(new LoginFormIncomplete(emailMissing: false, passwordMissing: true)));
+        self::assertInstanceOf(LoginFormIncomplete::class, $restored);
+        self::assertFalse($restored->emailMissing);
+        self::assertTrue($restored->passwordMissing);
     }
 
     public function testUnknownEmailSurfacesAsUserNotFoundOnUserAccess(): void

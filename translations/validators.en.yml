@@ -40,3 +40,10 @@ add_editions:
 feedback:
     message_required: "Please write a message."
     message_too_long: "Your message can be at most {{ limit }} characters long."
+registration_terms_required: "To create an account, please agree to the Terms of service and the Privacy policy."
+auth:
+    email_required: "Enter your email address."
+    email_invalid: "Enter a valid email address, like name@example.com."
+    password_required: "Enter a password."
+    password_too_short: "Use at least {{ limit }} characters."
+    current_password_required: "Enter your current password."

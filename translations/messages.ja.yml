@@ -805,6 +805,7 @@
   "table_section_players": "他のプレイヤーの公開データ"
   "table_section_puzzles": "パズルカタログ"
   "table_section_library": "パズルライブラリ (collections:read)"
+  "table_section_events": "イベント (大会とシリーズ)"
   "summary_pat": "<i class=\"bi bi-key me-1 text-primary\"></i><strong>PAT</strong> — 自分のデータのみ。スコープ不要、すべての<code>/me</code>エンドポイントにフルアクセス。"
   "summary_auth_code": "<i class=\"bi bi-person-badge me-1 text-primary\"></i><strong>Auth Code</strong> — すべてのエンドポイント。アクセスは付与されたスコープに依存。書き込みスコープも利用可能。"
   "summary_client_cred": "<i class=\"bi bi-hdd-network me-1 text-primary\"></i><strong>Client Credentials</strong> — 任意の公開プレイヤーへの読み取り専用アクセス。<code>/me</code>エンドポイントは利用不可。"
@@ -1892,10 +1893,11 @@ badges:
         first_to_earn: "最初の獲得者"
         only_hidden_holders: "{1}1人のパズラーがこのティアを獲得しています — プロフィールは公開されていません。|]1,Inf[%count%人のパズラーがこのティアを獲得しています — プロフィールは公開されていません。"
         nobody_yet: "このティアの獲得者はまだいません。最初の一人が歴史を作ります！"
-        listing_note: "保持者リストにはプロフィールを公開しているメンバーが表示されます。人数にはすべてのパズラーが含まれます。"
+        listing_note: "各パズラーは到達した最も高いティアに1回だけ表示されます。保持者リストにはプロフィールを公開しているメンバーが表示されます。人数にはすべてのパズラーが含まれます。"
         apply_filter: "表示"
     holders:
         your_tier: "あなたのティア"
+        all_went_further: "このティアを獲得した全員が、すでに上のティアに進んでいます。"
         show_more: "さらに%count%件表示"
         show_all: "%count%件すべて表示"
         unlisted: "非公開プロフィールのパズラー +%count%人"
@@ -5376,6 +5378,8 @@ guides:
 
 "auth":
   "login":
+    "email_required": "メールアドレスを入力してください。"
+    "password_required": "パスワードを入力してください。"
     "title": "サインイン"
     "email": "メールアドレス"
     "password": "パスワード"
@@ -5425,6 +5429,8 @@ guides:
     "submitting": "アカウントを作成中…"
     "email_taken": "このメールアドレスのアカウントはすでにあります。<a href=\"%sign_in_url%\">サインイン</a>するか、<a href=\"%link_url%\">サインインコードを受け取って</a>ください。"
     "continue_with_email": "メールアドレスで続ける"
+    "terms": "<a href=\"%terms_url%\" target=\"_blank\" rel=\"noopener\">利用規約</a>と<a href=\"%privacy_url%\" target=\"_blank\" rel=\"noopener\">プライバシーポリシー</a>に同意します。"
+    "newsletter": "最新情報を受け取る：MySpeedPuzzlingの新機能を月1回メールでお知らせします。マーケティングや宣伝は一切ありません。いつでも配信停止できます。"
   "welcome":
     "title": "MySpeedPuzzlingへようこそ！"
     "verification_sent": "%email%に確認リンクをお送りしました。リンクを開いて、このアドレスがあなたのものであることをご確認ください。"

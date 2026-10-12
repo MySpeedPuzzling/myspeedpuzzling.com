@@ -16,11 +16,20 @@ final class RegistrationFormData
     #[Assert\Length(max: 100)]
     public null|string $name = null;
 
-    #[Assert\NotBlank]
-    #[Assert\Email]
+    #[Assert\NotBlank(message: 'auth.email_required')]
+    #[Assert\Email(message: 'auth.email_invalid')]
     #[Assert\Length(max: 180)]
     public string $email = '';
 
     #[StrongPassword]
     public string $plainPassword = '';
+
+    #[Assert\IsTrue(message: 'registration_terms_required')]
+    public bool $termsAccepted = false;
+
+    /**
+     * The newsletter's legal basis is consent (privacy policy §10), so the box starts unticked:
+     * a pre-ticked box is not consent (GDPR recital 32, CJEU C-673/17 Planet49)
+     */
+    public bool $newsletter = false;
 }

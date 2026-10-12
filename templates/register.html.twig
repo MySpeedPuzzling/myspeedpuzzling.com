@@ -11,7 +11,11 @@
 
    The form is rendered open whenever hiding it would hide something: a
    submitted form (422 with errors, the "email taken" answer), ?method=email,
-   or no provider configured at all (nothing to choose between). #}
+   or no provider configured at all (nothing to choose between).
+
+   novalidate on every sign-in/sign-up form: the browser's own bubbles
+   ("Fill out this field") are in the browser's language and look different on
+   every platform - the server's errors show under the field, translated. #}
 
 {% set return_path = safe_return_url(app.request.query.get('return')) %}
 {% set return_params = return_path is null ? {} : {'return': return_path} %}
@@ -43,7 +47,7 @@
         {% endif %}
 
         <div id="register-email" class="auth-disclosure-panel" data-auth-disclosure-target="panel" {% if not email_open %}hidden{% endif %}>
-            {{ form_start(form, {'action': path('register')}) }}
+            {{ form_start(form, {'action': path('register'), 'attr': {'novalidate': 'novalidate'}}) }}
                 <div class="mb-3">
                     {{ form_label(form.email) }}
                     {{ form_widget(form.email) }}
@@ -69,6 +73,10 @@
                 </div>
 
                 {{ form_row(form.name) }}
+
+                {{ form_row(form.termsAccepted) }}
+
+                {{ form_row(form.newsletter) }}
 
                 <button type="submit" class="btn btn-primary w-100" data-auth-disclosure-target="submit" data-turbo-submits-with="{{ 'auth.register.submitting'|trans }}">
                     {{ 'auth.register.submit'|trans }}

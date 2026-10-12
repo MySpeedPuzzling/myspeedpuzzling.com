@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Results;
 use DateTimeImmutable;
 use SpeedPuzzling\Web\Services\EventsPage\EventsPageBuilder;
 use SpeedPuzzling\Web\Value\CountryCode;
+use SpeedPuzzling\Web\Value\EditionName;
 use SpeedPuzzling\Web\Value\EventOccurrenceStatus;
 use SpeedPuzzling\Web\Value\OccurrenceDates;
 use SpeedPuzzling\Web\Value\OccurrenceRound;
@@ -133,16 +134,16 @@ readonly final class EventOccurrence
     }
 
     /**
-     * The edition's own name - null for a one-time event and when it equals the series name (case-insensitive, as
-     * CompetitionReference::displayName()).
+     * The edition's own name, without the series name it may start with ("#168" of "Euro Jigsaw Jam #168" - the lines
+     * put the series in front) - null for a one-time event and when it equals the series name (EditionName).
      */
     public function editionName(): null|string
     {
-        if ($this->seriesName === null || mb_strtolower($this->seriesName) === mb_strtolower($this->name)) {
+        if ($this->seriesName === null) {
             return null;
         }
 
-        return $this->name;
+        return EditionName::withoutSeries($this->name, $this->seriesName);
     }
 
     /**

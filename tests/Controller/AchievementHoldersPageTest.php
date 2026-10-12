@@ -98,9 +98,53 @@ final class AchievementHoldersPageTest extends WebTestCase
         self::assertSame(['#tier-5', '#tier-4', '#tier-3', '#tier-2', '#tier-1'], $steps->each(static fn (Crawler $step): string => (string) $step->attr('href')));
         // A jump within the page: never a Turbo visit
         self::assertSame(['false', 'false', 'false', 'false', 'false'], $steps->each(static fn (Crawler $step): string => (string) $step->attr('data-turbo')));
-        self::assertSame(['0', '0', '0', '1', '2'], $crawler->filter('.achievement-ladder-count')->each(static fn (Crawler $count): string => trim($count->text())));
+        // Each holder counts once, at their highest tier: the ladder adds up to everybody who earned it
+        self::assertSame(['0', '0', '0', '1', '1'], $crawler->filter('.achievement-ladder-count')->each(static fn (Crawler $count): string => trim($count->text())));
         self::assertCount(5, $crawler->filter('section.achievement-tier-section[id^="tier-"]'));
         self::assertStringContainsString('Nobody has earned this tier yet', $crawler->filter('#tier-5')->text());
+    }
+
+    public function testAHolderIsListedOnceUnderTheirHighestTier(): void
+    {
+        $browser = self::createClient();
+        // Earning Silver and Gold filled in the tiers below - three rows, one person
+        $this->earn(PlayerFixture::PLAYER_ADMIN, '2026-09-01 10:00:00', tier: 1);
+        $this->earn(PlayerFixture::PLAYER_ADMIN, '2026-09-01 10:00:00', tier: 2);
+        $this->earn(PlayerFixture::PLAYER_ADMIN, '2026-09-04 10:00:00', tier: 3);
+        $this->earn(PlayerFixture::PLAYER_WITH_STRIPE, '2026-09-02 10:00:00', tier: 1);
+        $this->earn(PlayerFixture::PLAYER_WITH_STRIPE, '2026-09-03 10:00:00', tier: 2);
+        $this->earn(PlayerFixture::PLAYER_REGULAR, '2026-09-05 10:00:00', tier: 1); // not a member: counted, not listed
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
+
+        $crawler = $browser->request('GET', self::PAGE);
+
+        self::assertResponseIsSuccessful();
+        self::assertSame(['Admin User (First to earn)'], $this->names($crawler->filter('#tier-3 .holder-row')));
+        self::assertSame('2026-09-04', $crawler->filter('#tier-3 .holder-row time')->attr('datetime'));
+        // Admin was first to Silver, but stands under Gold - nobody listed under Silver carries its trophy
+        self::assertSame(['Sarah Williams'], $this->names($crawler->filter('#tier-2 .holder-row')));
+        // Bronze: only the one who stopped there, and they are not listed
+        self::assertCount(0, $crawler->filter('#tier-1 .holder-row'));
+        self::assertStringContainsString('1 puzzler earned this tier', $crawler->filter('#tier-1')->text());
+        self::assertStringContainsString('1 puzzler', $crawler->filter('#tier-2 .achievement-tier-section-count')->text());
+        // The medal number still counts every Silver holder, the ones further up too
+        self::assertSelectorTextContains('.achievement-hero-mine', 'You hold Silver · No. 2 of 2');
+        self::assertStringContainsString('Each puzzler is listed once, under the highest tier they reached', $crawler->text());
+    }
+
+    public function testATierEverybodyWentPastSaysSo(): void
+    {
+        $browser = self::createClient();
+        $this->earn(PlayerFixture::PLAYER_ADMIN, '2026-09-01 10:00:00', tier: 1);
+        $this->earn(PlayerFixture::PLAYER_ADMIN, '2026-09-02 10:00:00', tier: 2);
+
+        $crawler = $browser->request('GET', self::PAGE);
+
+        self::assertResponseIsSuccessful();
+        self::assertSame('0', trim($crawler->filter('.achievement-ladder-count')->last()->text()));
+        self::assertStringContainsString('Everyone who earned this tier has gone further.', $crawler->filter('#tier-1')->text());
+        self::assertStringNotContainsString('Nobody has earned this tier yet', $crawler->filter('#tier-1')->text());
+        self::assertStringContainsString('Nobody has earned this tier yet', $crawler->filter('#tier-3')->text());
     }
 
     public function testAMemberSeesTheirTierAndMedalNumberInTheHero(): void

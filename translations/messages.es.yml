@@ -1046,6 +1046,7 @@
   "table_section_players": "Datos públicos de otros jugadores"
   "table_section_puzzles": "Catálogo de puzzles"
   "table_section_library": "Biblioteca de puzzles (collections:read)"
+  "table_section_events": "Eventos (competiciones y series)"
   "summary_pat": "<i class=\"bi bi-key me-1 text-primary\"></i><strong>PAT</strong> — solo tus datos. No se necesitan scopes, acceso completo a todos los endpoints <code>/me</code>."
   "summary_auth_code": "<i class=\"bi bi-person-badge me-1 text-primary\"></i><strong>Auth Code</strong> — todos los endpoints. El acceso depende de los scopes otorgados. Scopes de escritura disponibles."
   "summary_client_cred": "<i class=\"bi bi-hdd-network me-1 text-primary\"></i><strong>Client Credentials</strong> — acceso de solo lectura a cualquier jugador público. Sin endpoints <code>/me</code>."
@@ -1813,10 +1814,11 @@ badges:
         first_to_earn: "Primeros en conseguirlo"
         only_hidden_holders: "{1}1 puzzlero consiguió este rango — su perfil no aparece públicamente.|]1,Inf[%count% puzzleros consiguieron este rango — sus perfiles no aparecen públicamente."
         nobody_yet: "Nadie ha conseguido este rango todavía. ¡El primero escribirá la historia!"
-        listing_note: "Las listas de poseedores muestran a los miembros con perfil público; los contadores incluyen a todos los puzzleros."
+        listing_note: "Cada puzzlero aparece una sola vez, en el rango más alto que ha alcanzado. Las listas de poseedores muestran a los miembros con perfil público; los contadores incluyen a todos los puzzleros."
         apply_filter: "Mostrar"
     holders:
         your_tier: "Tu rango"
+        all_went_further: "Todos los que consiguieron este rango ya han llegado más lejos."
         show_more: "Mostrar %count% más"
         show_all: "Mostrar los %count%"
         unlisted: "{1}+1 puzzlero con perfil no público|]1,Inf[+%count% puzzleros con perfil no público"
@@ -5388,6 +5390,8 @@ guides:
 
 "auth":
   "login":
+    "email_required": "Introduce tu dirección de correo electrónico."
+    "password_required": "Introduce tu contraseña."
     "title": "Iniciar sesión"
     "email": "Correo electrónico"
     "password": "Contraseña"
@@ -5437,6 +5441,8 @@ guides:
     "submitting": "Creando tu cuenta…"
     "email_taken": "Este correo ya tiene una cuenta. <a href=\"%sign_in_url%\">Inicia sesión</a> o <a href=\"%link_url%\">pide un código de acceso</a>."
     "continue_with_email": "Continuar con correo electrónico"
+    "terms": "Acepto los <a href=\"%terms_url%\" target=\"_blank\" rel=\"noopener\">Términos de servicio</a> y la <a href=\"%privacy_url%\" target=\"_blank\" rel=\"noopener\">Política de privacidad</a>."
+    "newsletter": "Quiero estar al día: un correo al mes con las novedades de MySpeedPuzzling. Solo nuevas funciones: nada de marketing ni promociones. Puedes darte de baja cuando quieras."
   "welcome":
     "title": "¡Bienvenido a MySpeedPuzzling!"
     "verification_sent": "Hemos enviado un enlace de confirmación a %email%. Ábrelo para confirmar que la dirección es tuya."

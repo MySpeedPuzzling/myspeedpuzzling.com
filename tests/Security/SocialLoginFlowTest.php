@@ -234,7 +234,7 @@ final class SocialLoginFlowTest extends WebTestCase
         $token = $query['token'];
         self::assertIsString($token);
 
-        $browser->request('POST', '/register/social', ['token' => $token]);
+        $browser->request('POST', '/register/social', ['token' => $token, 'terms' => '1']);
         self::assertResponseRedirects();
         // Same first screen as a native registration (docs/features/getting-started-guide.md)
         self::assertStringContainsString('/welcome', (string) $browser->getResponse()->headers->get('Location'));
@@ -480,7 +480,7 @@ final class SocialLoginFlowTest extends WebTestCase
         $token = $query['token'];
         self::assertIsString($token);
 
-        $browser->request('POST', '/register/social', ['token' => $token]);
+        $browser->request('POST', '/register/social', ['token' => $token, 'terms' => '1']);
         self::assertResponseRedirects();
         $this->assertLoggedIn($browser);
 
@@ -600,7 +600,7 @@ final class SocialLoginFlowTest extends WebTestCase
 
         $token = $this->registrationTokenFromLocation($browser);
 
-        $browser->request('POST', '/register/social', ['token' => $token]);
+        $browser->request('POST', '/register/social', ['token' => $token, 'terms' => '1']);
         self::assertResponseRedirects();
 
         $messages = self::getMailerMessages();
@@ -630,11 +630,53 @@ final class SocialLoginFlowTest extends WebTestCase
         $this->queueGoogleExchange("g-rule4v-{$suffix}", "rule4verified+{$suffix}@example.com", emailVerified: true);
         $browser->request('GET', "/login/social/google/callback?state={$state}&code=fake-code");
 
-        $browser->request('POST', '/register/social', ['token' => $this->registrationTokenFromLocation($browser)]);
+        $browser->request('POST', '/register/social', ['token' => $this->registrationTokenFromLocation($browser), 'terms' => '1']);
         self::assertResponseRedirects();
 
         self::assertCount(0, self::getMailerMessages());
         $this->assertRememberMeCookieIssued($browser);
+    }
+
+    public function testRule4WithoutAgreeingToTheTermsCreatesNothingAndKeepsTheConfirmation(): void
+    {
+        $this->enableSocialLoginProvider(OauthProvider::Google);
+        $browser = self::createClient();
+
+        $suffix = bin2hex(random_bytes(4));
+        $email = "rule4terms+{$suffix}@example.com";
+
+        $state = $this->startFlow($browser, 'google', 'accounts.google.com');
+
+        $this->queueGoogleExchange("g-rule4t-{$suffix}", $email, emailVerified: true);
+        $browser->request('GET', "/login/social/google/callback?state={$state}&code=fake-code");
+        $token = $this->registrationTokenFromLocation($browser);
+
+        $crawler = $browser->request('GET', '/register/social?token=' . $token);
+        self::assertCount(1, $crawler->filter('input[name="terms"][required]'));
+        self::assertCount(1, $crawler->filter('a[href="/en/terms-of-service"][target="_blank"]'));
+        self::assertCount(1, $crawler->filter('a[href="/en/privacy-policy"][target="_blank"]'));
+        self::assertCount(0, $crawler->filter('input[name="newsletter"][checked]'), 'The newsletter starts unticked');
+
+        self::assertCount(1, $crawler->filter('form[action="/register/social"][novalidate]'));
+
+        $crawler = $browser->request('POST', '/register/social', ['token' => $token, 'newsletter' => '1']);
+
+        // The same confirmation again (the parked profile is not used up): the error under the box,
+        // the newsletter tick kept, nothing created
+        self::assertResponseStatusCodeSame(422);
+        self::assertStringContainsString('please agree to the Terms of service', $crawler->filter('#social-register-terms-error')->text());
+        self::assertCount(1, $crawler->filter('input[name="terms"].is-invalid'));
+        self::assertCount(1, $crawler->filter('input[name="newsletter"][checked]'));
+        self::assertSame($token, $crawler->filter('form[action="/register/social"] input[name="token"]')->attr('value'));
+        $connection = $browser->getContainer()->get(Connection::class);
+        self::assertFalse($connection->fetchOne('SELECT 1 FROM user_account WHERE email = :email', ['email' => $email]));
+
+        $browser->request('POST', '/register/social', ['token' => $token, 'terms' => '1', 'newsletter' => '1']);
+        self::assertResponseRedirects();
+        self::assertTrue($connection->fetchOne(
+            'SELECT p.newsletter_enabled FROM player p JOIN user_account ua ON ua.user_id = p.user_id WHERE ua.email = :email',
+            ['email' => $email],
+        ));
     }
 
     /**

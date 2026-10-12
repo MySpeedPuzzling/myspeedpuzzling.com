@@ -139,6 +139,38 @@ final class RegisterWithOauthIdentityHandlerTest extends KernelTestCase
         }
     }
 
+    public function testNewsletterFollowsTheBoxAndIsRecorded(): void
+    {
+        $unticked = $this->register(new RegisterWithOauthIdentity(
+            provider: OauthProvider::Google,
+            providerUserId: 'google-reg-newsletter-off',
+            email: 'social.newsletter.off@example.com',
+            emailVerified: true,
+            name: null,
+            locale: 'en',
+        ));
+        $ticked = $this->register(new RegisterWithOauthIdentity(
+            provider: OauthProvider::Google,
+            providerUserId: 'google-reg-newsletter-on',
+            email: 'social.newsletter.on@example.com',
+            emailVerified: true,
+            name: null,
+            locale: 'en',
+            newsletter: true,
+            termsAccepted: true,
+        ));
+
+        self::assertFalse($this->playerRepository->findByUserId($unticked)?->newsletterEnabled);
+        self::assertTrue($this->playerRepository->findByUserId($ticked)?->newsletterEnabled);
+
+        $metadata = $this->entityManager->getConnection()->fetchOne(
+            "SELECT metadata FROM auth_audit_log WHERE event_type = 'oauth_registration' AND email = :email",
+            ['email' => 'social.newsletter.on@example.com'],
+        );
+        self::assertIsString($metadata);
+        self::assertSame(['terms' => true, 'newsletter' => true], json_decode($metadata, true));
+    }
+
     private function register(RegisterWithOauthIdentity $message): string
     {
         $envelope = $this->messageBus->dispatch($message);

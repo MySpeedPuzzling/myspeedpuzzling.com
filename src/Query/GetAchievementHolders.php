@@ -50,6 +50,11 @@ SQL;
      * newest LISTED_PER_TIER listed holders of each tier, newest first - the holders at launch carry the backfill's
      * timestamp, so they come last and the page shows "at launch" instead of their date (§8.1).
      *
+     * A player is listed once, under the highest tier they hold (§8.2, Jan 2026-10-12): earning a tier fills in the
+     * lower ones, so a Diamond holder used to stand in all five lists. A section's counts are the players at that
+     * tier too, so its "Show all N" and "+N not listed" add up; allCount and earnedCount keep everybody who earned the
+     * tier (the medal's "of 82", and telling "everyone went further" from "nobody yet").
+     *
      * Each row knows whether it is the tier's very first holder among ALL holders (the "First to earn" trophy, given
      * only when that first earn came after launch): the medal serial rule of §2, ROW_NUMBER() OVER (PARTITION BY
      * type, tier ORDER BY earned_at, id), numbered before anybody is left out of the list.
@@ -77,7 +82,8 @@ WITH numbered AS (
         b.tier,
         b.earned_at,
         b.player_id,
-        ROW_NUMBER() OVER (PARTITION BY b.tier ORDER BY b.earned_at ASC, b.id ASC) AS serial
+        ROW_NUMBER() OVER (PARTITION BY b.tier ORDER BY b.earned_at ASC, b.id ASC) AS serial,
+        MAX(b.tier) OVER (PARTITION BY b.player_id) AS highest_tier
     FROM badge b
     WHERE b.type = :type
       AND b.tier IS NOT NULL
@@ -97,7 +103,8 @@ FROM (
     FROM numbered n
     JOIN player p ON p.id = n.player_id
     LEFT JOIN membership m ON m.player_id = p.id
-    WHERE (CAST(:country AS TEXT) IS NULL OR p.country = :country)
+    WHERE n.tier = n.highest_tier
+      AND (CAST(:country AS TEXT) IS NULL OR p.country = :country)
       AND {$this->listedEligibility()}
 ) ranked
 WHERE position <= CASE WHEN tier = CAST(:expandedTier AS INT) THEN CAST(:expandedLimit AS INT) ELSE CAST(:limit AS INT) END
@@ -117,17 +124,21 @@ SQL;
 SELECT
     b.tier,
     COUNT(*) AS all_count,
-    COUNT(*) FILTER (WHERE CAST(:country AS TEXT) IS NULL OR p.country = :country) AS holders_count,
-    COUNT(*) FILTER (WHERE (CAST(:country AS TEXT) IS NULL OR p.country = :country) AND {$this->listedEligibility()}) AS listed_count
-FROM badge b
+    COUNT(*) FILTER (WHERE CAST(:country AS TEXT) IS NULL OR p.country = :country) AS earned_count,
+    COUNT(*) FILTER (WHERE b.tier = b.highest_tier AND (CAST(:country AS TEXT) IS NULL OR p.country = :country)) AS holders_count,
+    COUNT(*) FILTER (WHERE b.tier = b.highest_tier AND (CAST(:country AS TEXT) IS NULL OR p.country = :country) AND {$this->listedEligibility()}) AS listed_count
+FROM (
+    SELECT tier, player_id, MAX(tier) OVER (PARTITION BY player_id) AS highest_tier
+    FROM badge
+    WHERE type = :type
+      AND tier IS NOT NULL
+) b
 JOIN player p ON p.id = b.player_id
 LEFT JOIN membership m ON m.player_id = p.id
-WHERE b.type = :type
-  AND b.tier IS NOT NULL
 GROUP BY b.tier
 SQL;
 
-        /** @var list<array{tier: int|string, all_count: int|string, holders_count: int|string, listed_count: int|string}> $countRows */
+        /** @var list<array{tier: int|string, all_count: int|string, earned_count: int|string, holders_count: int|string, listed_count: int|string}> $countRows */
         $countRows = $this->database->executeQuery($countsSql, [
             'type' => $type->value,
             'country' => $country,
@@ -135,7 +146,12 @@ SQL;
 
         $countsByTier = [];
         foreach ($countRows as $row) {
-            $countsByTier[(int) $row['tier']] = ['all' => (int) $row['all_count'], 'filtered' => (int) $row['holders_count'], 'listed' => (int) $row['listed_count']];
+            $countsByTier[(int) $row['tier']] = [
+                'all' => (int) $row['all_count'],
+                'earned' => (int) $row['earned_count'],
+                'filtered' => (int) $row['holders_count'],
+                'listed' => (int) $row['listed_count'],
+            ];
         }
 
         $holdersByTier = [];
@@ -164,6 +180,7 @@ SQL;
                 totalCount: $countsByTier[$tier->value]['filtered'] ?? 0,
                 allCount: $countsByTier[$tier->value]['all'] ?? 0,
                 listedCount: $countsByTier[$tier->value]['listed'] ?? 0,
+                earnedCount: $countsByTier[$tier->value]['earned'] ?? 0,
             );
         }
 

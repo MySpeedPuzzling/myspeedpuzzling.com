@@ -1234,6 +1234,7 @@ for_developers:
     table_section_players: "Other players' public data"
     table_section_puzzles: "Puzzle catalog"
     table_section_library: "Puzzle library (collections:read)"
+    table_section_events: "Events (competitions and series)"
     summary_pat: "<i class=\"bi bi-key me-1 text-primary\"></i><strong>PAT</strong> — your own data only. No scopes needed, full access to all <code>/me</code> endpoints."
     summary_auth_code: "<i class=\"bi bi-person-badge me-1 text-primary\"></i><strong>Auth Code</strong> — all endpoints. Access depends on granted scopes. Write scopes available."
     summary_client_cred: "<i class=\"bi bi-hdd-network me-1 text-primary\"></i><strong>Client Credentials</strong> — read-only access to any public player. No <code>/me</code> endpoints."
@@ -2360,9 +2361,10 @@ badges:
         first_to_earn: "First to earn"
         only_hidden_holders: "{1}1 puzzler earned this tier — their profile is not publicly listed.|]1,Inf[%count% puzzlers earned this tier — their profiles are not publicly listed."
         nobody_yet: "Nobody has earned this tier yet. First one writes history!"
-        listing_note: "Holder lists show members with public profiles; the counts include every puzzler."
+        listing_note: "Each puzzler is listed once, under the highest tier they reached. Holder lists show members with public profiles; the counts include every puzzler."
     holders:
         your_tier: "Your tier"
+        all_went_further: "Everyone who earned this tier has gone further."
         show_more: "Show %count% more"
         show_all: "Show all %count%"
         unlisted: "{1}+1 puzzler whose profile is not listed|]1,Inf[+%count% puzzlers whose profiles are not listed"
@@ -5939,6 +5941,8 @@ wjpc_hub:
 
 auth:
     login:
+        email_required: "Enter your email address."
+        password_required: "Enter your password."
         title: "Sign in"
         email: "Email"
         password: "Password"
@@ -5988,6 +5992,8 @@ auth:
         submitting: "Creating your account…"
         email_taken: "This email already has an account. <a href=\"%sign_in_url%\">Sign in</a> or <a href=\"%link_url%\">get a sign-in code</a>."
         continue_with_email: "Continue with email"
+        terms: "I agree to the <a href=\"%terms_url%\" target=\"_blank\" rel=\"noopener\">Terms of service</a> and the <a href=\"%privacy_url%\" target=\"_blank\" rel=\"noopener\">Privacy policy</a>."
+        newsletter: "Keep me in the loop: one e-mail a month about what's new on MySpeedPuzzling. Strictly feature updates – no marketing, no promotions. Unsubscribe anytime."
     welcome:
         title: "Welcome to MySpeedPuzzling!"
         verification_sent: "We sent a confirmation link to %email%. Open it to confirm the address is yours."

@@ -22,6 +22,8 @@ final class SetPasswordFormType extends AbstractType
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $builder->add('plainPassword', PasswordType::class, [
+            // An empty field must reach the validator as '' (the form has novalidate), never null into a string property
+            'empty_data' => '',
             'label' => 'auth.set_password.new_password',
             'help' => 'auth.set_password.password_hint',
             'help_translation_parameters' => [

@@ -22,6 +22,8 @@ final class ResetPasswordFormType extends AbstractType
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $builder->add('plainPassword', PasswordType::class, [
+            // An empty field must reach the validator as '' (the form has novalidate), never null into a string property
+            'empty_data' => '',
             'label' => 'auth.password_reset.new_password',
             'help' => 'auth.password_reset.password_hint',
             'help_translation_parameters' => [

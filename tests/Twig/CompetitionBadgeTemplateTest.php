@@ -101,7 +101,22 @@ final class CompetitionBadgeTemplateTest extends KernelTestCase
             'competitionSeriesSlug' => 'euro-jigsaw-jam-series',
         ]);
 
-        self::assertStringContainsString('<i class="bi bi-trophy-fill"></i> EJJ · EJJ #68 — February 2026</span>', $html);
+        // The edition's name starts with the shortcut - said once
+        self::assertStringContainsString('<i class="bi bi-trophy-fill"></i> EJJ · #68 — February 2026</span>', $html);
+        self::assertStringNotContainsString('Euro Jigsaw Jam', $html);
+    }
+
+    public function testEditionNameStartingWithTheSeriesNameDoesNotRepeatIt(): void
+    {
+        $html = $this->render([
+            'competitionName' => 'Euro Jigsaw Jam #168',
+            'competitionSlug' => 'jam-168',
+            'competitionSeriesName' => 'Euro Jigsaw Jam',
+            'competitionSeriesShortcut' => 'EJJ',
+            'competitionSeriesSlug' => 'euro-jigsaw-jam',
+        ]);
+
+        self::assertStringContainsString('<i class="bi bi-trophy-fill"></i> EJJ · #168</span>', $html);
         self::assertStringNotContainsString('Euro Jigsaw Jam', $html);
     }
 

@@ -897,6 +897,7 @@
   "table_section_players": "Données publiques des autres joueurs"
   "table_section_puzzles": "Catalogue de puzzles"
   "table_section_library": "Bibliothèque de puzzles (collections:read)"
+  "table_section_events": "Événements (compétitions et séries)"
   "summary_pat": "<i class=\"bi bi-key me-1 text-primary\"></i><strong>PAT</strong> — vos données uniquement. Aucun scope nécessaire, accès complet à tous les endpoints <code>/me</code>."
   "summary_auth_code": "<i class=\"bi bi-person-badge me-1 text-primary\"></i><strong>Auth Code</strong> — tous les endpoints. L'accès dépend des scopes accordés. Scopes d'écriture disponibles."
   "summary_client_cred": "<i class=\"bi bi-hdd-network me-1 text-primary\"></i><strong>Client Credentials</strong> — accès en lecture seule à tout joueur public. Pas d'endpoints <code>/me</code>."
@@ -1885,9 +1886,10 @@ competition_referees:
     "first_to_earn": "Premier à l'avoir obtenu"
     "only_hidden_holders": "{1}1 puzzleur a obtenu ce palier — son profil n'est pas listé publiquement.|]1,Inf[%count% puzzleurs ont obtenu ce palier — leurs profils ne sont pas listés publiquement."
     "nobody_yet": "Personne n'a encore obtenu ce palier. Le premier écrira l'histoire !"
-    "listing_note": "Les listes de détenteurs montrent les membres au profil public ; les compteurs incluent tous les puzzleurs."
+    "listing_note": "Chaque puzzleur apparaît une seule fois, au palier le plus élevé qu'il a atteint. Les listes de détenteurs montrent les membres au profil public ; les compteurs incluent tous les puzzleurs."
   "holders":
     "your_tier": "Votre palier"
+    "all_went_further": "Tous ceux qui ont obtenu ce palier sont déjà allés plus loin."
     "show_more": "Afficher %count% de plus"
     "show_all": "Afficher les %count%"
     "unlisted": "{1}+1 puzzleur dont le profil n'est pas public|]1,Inf[+%count% puzzleurs dont le profil n'est pas public"
@@ -5481,6 +5483,8 @@ edition:
 
 "auth":
   "login":
+    "email_required": "Saisissez votre adresse e-mail."
+    "password_required": "Saisissez votre mot de passe."
     "title": "Se connecter"
     "email": "E-mail"
     "password": "Mot de passe"
@@ -5530,6 +5534,8 @@ edition:
     "submitting": "Création du compte…"
     "email_taken": "Cet e-mail a déjà un compte. <a href=\"%sign_in_url%\">Connectez-vous</a> ou <a href=\"%link_url%\">recevez un code de connexion</a>."
     "continue_with_email": "Continuer avec l'e-mail"
+    "terms": "J'accepte les <a href=\"%terms_url%\" target=\"_blank\" rel=\"noopener\">Conditions d'utilisation</a> et la <a href=\"%privacy_url%\" target=\"_blank\" rel=\"noopener\">Politique de confidentialité</a>."
+    "newsletter": "Tenez-moi au courant : un e-mail par mois sur les nouveautés de MySpeedPuzzling. Uniquement les nouvelles fonctionnalités – ni marketing, ni promotions. Désinscription à tout moment."
   "welcome":
     "title": "Bienvenue sur MySpeedPuzzling !"
     "verification_sent": "Nous avons envoyé un lien de confirmation à %email%. Ouvrez-le pour confirmer que cette adresse est bien la vôtre."

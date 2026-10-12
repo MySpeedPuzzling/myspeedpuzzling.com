@@ -9,7 +9,8 @@
     "Holders page", amended by §8.1/§8.2): hero (seal, description, the member viewer's tier and medal number or "held
     at launch"), the 5-seal ladder with holder counts linking to each tier's section, then per tier the newest holders
     as 48 px rows - avatar with flag, name, earned date ("at launch" for the launch backfill's, listed last). No number
-    column: most holders are not listed, so serials would be mostly gaps.
+    column: most holders are not listed, so serials would be mostly gaps. A player is listed (and counted) once, under
+    the highest tier they hold - the ladder adds up to everybody who earned the achievement.
 #}
 
 {# One holder row: avatar with flag · name · earned date; the tier's first holder (after launch) keeps the trophy #}
@@ -163,6 +164,11 @@
                 {% elseif section.totalCount > 0 %}
                     <p class="fs-sm text-body-secondary mb-0 mt-2">
                         {{ 'badges.detail.only_hidden_holders'|trans({'%count%': section.totalCount}) }}
+                    </p>
+                {% elseif section.earnedCount > 0 %}
+                    {# Earned, but everybody who did is listed under a higher tier #}
+                    <p class="fs-sm text-body-secondary mb-0 mt-2">
+                        {{ 'badges.holders.all_went_further'|trans }}
                     </p>
                 {% else %}
                     <p class="fs-sm text-body-secondary mb-0 mt-2">

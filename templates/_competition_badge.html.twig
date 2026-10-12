@@ -6,8 +6,9 @@
     (SolvedPuzzle, PuzzleSolver, PuzzleSolversGroup, RecentActivityItem, PuzzleResultAttempt).
 
     - Standalone competition: label = shortcut ?? name, links to event_detail.
-    - Series edition: label = "<series shortcut ?? series name> · <edition name>" (series label only when the
-      edition is named like its series, e.g. competitions converted to a series), links to edition_detail —
+    - Series edition: label = "<series shortcut ?? series name> · <edition name>", the edition name without the series
+      name or shortcut it starts with ("EJJ · #168", edition_name()) - the series label only when the edition is named
+      like its series, e.g. competitions converted to a series; links to edition_detail —
       never to event_detail, an edition slug is only unique within its series. An edition MySpeedPuzzling found for a
       series pick looks the same (docs/features/events-page/high-frequency-series.md).
     - Series-level time (the player picked a series, no edition identified - a normal, permanent result of the series):
@@ -22,11 +23,8 @@
         {% set href = time.competitionSeriesSlug ? path('competition_series_detail', {slug: time.competitionSeriesSlug}) : null %}
     {% elseif time.competitionSeriesName %}
         {% set series_label = time.competitionSeriesShortcut ?? time.competitionSeriesName %}
-        {% if time.competitionName|lower == time.competitionSeriesName|lower %}
-            {% set label = series_label %}
-        {% else %}
-            {% set label = series_label ~ ' · ' ~ time.competitionName %}
-        {% endif %}
+        {% set edition_label = edition_name(time.competitionName, time.competitionSeriesName, time.competitionSeriesShortcut) %}
+        {% set label = edition_label is null ? series_label : series_label ~ ' · ' ~ edition_label %}
         {% set href = (time.competitionSeriesSlug and time.competitionSlug)
             ? path('edition_detail', {seriesSlug: time.competitionSeriesSlug, editionSlug: time.competitionSlug})
             : null %}

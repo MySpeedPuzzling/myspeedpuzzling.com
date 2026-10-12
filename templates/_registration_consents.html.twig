@@ -1,0 +1,16 @@
+{# The two boxes of every sign-up (the e-mail form renders the same ones through RegistrationFormType):
+   the terms are required (checked by the controller - the forms have novalidate, so the error shows
+   under the box, translated), the newsletter starts unticked - its legal basis is consent (privacy
+   policy §10). The links open in a new tab so the page stays put. #}
+{% set terms_missing = terms_missing|default(false) %}
+<div class="form-check mb-2">
+    <input class="form-check-input{{ terms_missing ? ' is-invalid' : '' }}" type="checkbox" name="terms" value="1" id="{{ id_prefix }}-terms" required{% if terms_missing %} aria-invalid="true" aria-describedby="{{ id_prefix }}-terms-error"{% endif %}>
+    <label class="form-check-label" for="{{ id_prefix }}-terms">{{ 'auth.register.terms'|trans({'%terms_url%': path('terms_of_service'), '%privacy_url%': path('privacy_policy')})|raw }}</label>
+    {% if terms_missing %}
+        <div class="invalid-feedback d-block" id="{{ id_prefix }}-terms-error">{{ 'registration_terms_required'|trans(domain: 'validators') }}</div>
+    {% endif %}
+</div>
+<div class="form-check mb-3">
+    <input class="form-check-input" type="checkbox" name="newsletter" value="1" id="{{ id_prefix }}-newsletter"{% if newsletter_checked|default(false) %} checked{% endif %}>
+    <label class="form-check-label" for="{{ id_prefix }}-newsletter">{{ 'auth.register.newsletter'|trans }}</label>
+</div>

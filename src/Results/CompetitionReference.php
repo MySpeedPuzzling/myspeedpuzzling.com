@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Results;
 
+use SpeedPuzzling\Web\Value\EditionName;
+
 /**
  * A competition a page links to: a standalone event, an edition of a series, or a whole series (a tag moves
  * to the series when its competition is converted into one). Puzzle pages link the publicly visible ones;
@@ -26,15 +28,18 @@ readonly final class CompetitionReference
 
     /**
      * Full names, never shortcuts: this is prose ("Used at World Jigsaw Puzzle Championship 2024"), the words
-     * people search for. An edition carries its series name, unless it is named like the series.
+     * people search for. An edition carries its series name once: not when it is named like the series, and an
+     * edition name starting with it loses that start ("Euro Jigsaw Jam · #168", EditionName).
      */
     public function displayName(): string
     {
-        if ($this->seriesName === null || mb_strtolower($this->seriesName) === mb_strtolower($this->name)) {
+        if ($this->seriesName === null) {
             return $this->name;
         }
 
-        return $this->seriesName . ' · ' . $this->name;
+        $editionName = EditionName::withoutSeries($this->name, $this->seriesName);
+
+        return $editionName === null ? $this->name : $this->seriesName . ' · ' . $editionName;
     }
 
     public function routeName(): null|string

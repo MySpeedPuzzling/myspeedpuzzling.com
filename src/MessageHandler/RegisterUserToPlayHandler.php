@@ -33,6 +33,8 @@ readonly final class RegisterUserToPlayHandler
             $message->name,
             new \DateTimeImmutable(),
         );
+        // Nobody was asked about the newsletter on this path, so no consent
+        $player->changeNewsletterEnabled(false);
 
         $this->entityManager->persist($player);
     }

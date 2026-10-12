@@ -126,6 +126,14 @@ that would otherwise be forgotten. Newest section on top.
   `convert-to-series` with `keepAsEdition: false` + an edition backfill (survey production first).
 - [ ] Post-launch (~2026-11-09): how often players use S1 (typing an edition), the open short list and "change";
   how many new series-level times stay unmatched per series.
+- [ ] **"Date finished" is prefilled with the server's (UTC) day, not the player's**: `PuzzleAddFormData` and
+  `EditPuzzleSolvingTimeFormData` set `finishedAt = new DateTimeImmutable()` and PHP runs in UTC, so a solve logged in
+  the Americas in the evening (after ~19:00-20:00 local = midnight UTC) is saved as the next day unless the player
+  changes the date. Found on Canadian Speed Puzzlers (2026-10-13, MSP #270): their evening events' results land a day
+  late (`finished_at` = next day, `tracked_at` 00-05 UTC), so the ±1-day date rule picks the wrong edition or none when
+  editions are on consecutive days (BYOP Tue/Wed), and calendars, streaks and "today" stats shift too. Fix: prefill
+  from the browser's local date (or the player's time zone), never the server day - check every entry point (add form,
+  stopwatch finish, multiscan quick-add, API v1 default); dates already saved stay as they are.
 
 ## Organizations and drafts (`docs/features/organizations/README.md`, PR #252)
 
@@ -233,6 +241,27 @@ What a reply to a player promised to build. Each has an MSP Mailer follow-up: te
       (Android Chromium) - give the chart container a height that fits the legend
       (PlayerStatistics::getManufacturersChart, _player_statistics_category.html.twig). Promised to Fredrik (MSP #216,
       follow-up F77).
+- [ ] Add-time/edit-time event picker: make it clear that picking a series (e.g. Euro Jigsaw Jam) is enough - one entry
+      covers every edition and both LIVE and FLEX runs, and MySpeedPuzzling matches the right edition by puzzle/date
+      automatically, also when the edition is added later (a player saved a FLEX jam time without any event because the
+      edition looked like the LIVE jam only). Promised to Carsten (MSP #257, follow-up F104).
+- [ ] Public API v1: endpoints to create and edit competitions/events (POST/PATCH, today /api/v1/competitions is GET
+      only), so an organiser like Puzzle Rush can sync events from their own site instead of setting them up twice in
+      MSP. Promised to Rob (MSP #261, follow-up F107).
+- [ ] Image search: find a puzzle from a photo of its box (titles on the box often differ from the listed/translated
+      names, and some brands print no barcode) - possibly building on the image work of Puzzle Cousins
+      (jacobpilawa.github.io/puzzlecousins). Promised to Jessica (MSP #267, follow-up F112).
+- [ ] MSP Rating progress on the own profile (PlayerRatingProfile): 'Total solves' really counts different 500-piece
+      puzzles solved solo with a time in the last 2 years (MspRatingCalculator::getProgress) - rename it (e.g.
+      'Different puzzles') and explain what counts (repeats, other piece counts and pair/team results don't), all 6
+      locales. Promised to Destanie (MSP #268, follow-up F113).
+- [ ] Canadian Speed Puzzlers follow-ups: (1) MoveEditionToSeries must carry the edition's automatic results along
+      (times with a series pick on the old series linked to the moved edition get the new series as their pick - today
+      the reconciler drops them to series-level of the old series); (2) after editing an edition, redirect back to its
+      series page instead of the events page (faster to rename a list of dates added with Add several dates); (3) event
+      picker while typing: keep the server's date order (live, recent past, upcoming) instead of TomSelect's text score,
+      and fix the option row that breaks when the highlighted name wraps. Promised to Allison (MSP #270, follow-up
+      F115).
 
 ## Participants spreadsheet (`docs/features/competitions-management/participants-spreadsheet.md` §13)
 

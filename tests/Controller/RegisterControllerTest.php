@@ -14,6 +14,7 @@ use SpeedPuzzling\Web\Repository\UserAccountRepository;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;
+use Symfony\Component\DomCrawler\Field\ChoiceFormField;
 use Symfony\Component\Mime\Email;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 
@@ -51,6 +52,7 @@ final class RegisterControllerTest extends WebTestCase
 
         $player = $browser->getContainer()->get(PlayerRepository::class)->findByUserId($userId);
         self::assertNotNull($player);
+        self::assertFalse($player->newsletterEnabled, 'No newsletter without the ticked box');
 
         // The verification mail goes out - and carries nothing but the verification link
         $messages = self::getMailerMessages();
@@ -60,6 +62,33 @@ final class RegisterControllerTest extends WebTestCase
         $body = (string) $messages[0]->getHtmlBody();
         self::assertStringContainsString('/verify-email?token=', $body);
         self::assertStringNotContainsString('/login-link', $body);
+    }
+
+    public function testRegistrationWithoutAgreeingToTheTermsIsRefused(): void
+    {
+        $browser = self::createClient();
+        $email = $this->randomEmail('register.noterms');
+
+        $crawler = $this->submitRegistration($browser, $email, 'a-properly-long-passphrase', terms: false);
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertStringContainsString('please agree to the Terms of service', $crawler->filter('form')->text());
+        self::assertNull($browser->getContainer()->get(UserAccountRepository::class)->findByEmail($email));
+    }
+
+    public function testTickedNewsletterBoxSubscribesTheNewPlayer(): void
+    {
+        $browser = self::createClient();
+
+        $this->submitRegistration($browser, $this->randomEmail('register.newsletter'), 'a-properly-long-passphrase', newsletter: true);
+
+        self::assertResponseRedirects('/welcome');
+
+        $token = $browser->getContainer()->get(TokenStorageInterface::class)->getToken();
+        self::assertNotNull($token);
+        $player = $browser->getContainer()->get(PlayerRepository::class)->findByUserId($token->getUserIdentifier());
+        self::assertNotNull($player);
+        self::assertTrue($player->newsletterEnabled);
     }
 
     /**
@@ -171,7 +200,15 @@ final class RegisterControllerTest extends WebTestCase
         $fields = $crawler->filter('form[name="registration_form"] input:not([type="hidden"])')->each(
             static fn (Crawler $input): string => (string) $input->attr('name'),
         );
-        self::assertSame(['registration_form[email]', 'registration_form[plainPassword]', 'registration_form[name]'], $fields);
+        self::assertSame(['registration_form[email]', 'registration_form[plainPassword]', 'registration_form[name]', 'registration_form[termsAccepted]', 'registration_form[newsletter]'], $fields);
+
+        // The terms are required and linked (new tab, so the filled-in form stays); the newsletter's legal
+        // basis is consent - a pre-ticked box would not be one
+        self::assertSame('required', $crawler->filter('#registration_form_termsAccepted')->attr('required'));
+        $termsLabel = $crawler->filter('label[for="registration_form_termsAccepted"]');
+        self::assertCount(1, $termsLabel->filter('a[href="/en/terms-of-service"][target="_blank"]'));
+        self::assertCount(1, $termsLabel->filter('a[href="/en/privacy-policy"][target="_blank"]'));
+        self::assertNull($crawler->filter('#registration_form_newsletter')->attr('checked'));
 
         self::assertSame('Your name (optional)', trim($crawler->filter('label[for="registration_form_name"]')->text()));
         self::assertStringContainsString('At least 8 characters.', $crawler->filter('#registration_form_plainPassword_help')->text());
@@ -255,7 +292,32 @@ final class RegisterControllerTest extends WebTestCase
         self::assertSame('de', $crawler->filter('html')->attr('lang'));
     }
 
-    private function submitRegistration(KernelBrowser $browser, string $email, string $password, string $name = ''): Crawler
+    /**
+     * The form has novalidate: the browser's own "Fill out this field" bubble is in the browser's
+     * language and looks different everywhere - the server answers, translated, under each field
+     */
+    public function testEmptySubmitIsAnsweredUnderEachFieldByTheServer(): void
+    {
+        $browser = self::createClient();
+
+        $crawler = $browser->request('GET', '/register?method=email');
+        self::assertCount(1, $crawler->filter('form[name="registration_form"][novalidate]'));
+
+        $crawler = $this->submitRegistration($browser, '', '', terms: false);
+
+        self::assertResponseStatusCodeSame(422);
+        $form = $crawler->filter('form[name="registration_form"]')->text();
+        self::assertStringContainsString('Enter your email address.', $form);
+        self::assertStringContainsString('Enter a password.', $form);
+        self::assertStringContainsString('please agree to the Terms of service', $form);
+
+        $this->submitRegistration($browser, 'not-an-address', 'short');
+        $form = $browser->getCrawler()->filter('form[name="registration_form"]')->text();
+        self::assertStringContainsString('Enter a valid email address, like name@example.com.', $form);
+        self::assertStringContainsString('Use at least 8 characters.', $form);
+    }
+
+    private function submitRegistration(KernelBrowser $browser, string $email, string $password, string $name = '', bool $newsletter = false, bool $terms = true): Crawler
     {
         // A fresh client IP per submit: registration is throttled per IP and the
         // limiter's cache is not rolled back between tests or runs (DAMA only wraps
@@ -264,6 +326,15 @@ final class RegisterControllerTest extends WebTestCase
 
         $crawler = $browser->request('GET', '/register');
         $form = $crawler->selectButton('Create account')->form();
+
+        foreach (['newsletter' => $newsletter, 'termsAccepted' => $terms] as $field => $ticked) {
+            $checkbox = $form[$form->getName() . '[' . $field . ']'];
+            self::assertInstanceOf(ChoiceFormField::class, $checkbox);
+
+            if ($ticked) {
+                $checkbox->tick();
+            }
+        }
 
         return $browser->submit($form, [
             $form->getName() . '[name]' => $name,

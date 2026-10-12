@@ -28,8 +28,8 @@ final class StrongPassword extends Compound
     protected function getConstraints(array $options): array
     {
         return [
-            new Assert\NotBlank(),
-            new Assert\Length(min: self::MINIMUM_LENGTH),
+            new Assert\NotBlank(message: 'auth.password_required'),
+            new Assert\Length(min: self::MINIMUM_LENGTH, minMessage: 'auth.password_too_short'),
         ];
     }
 }

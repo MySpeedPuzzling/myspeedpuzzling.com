@@ -23,12 +23,15 @@ final class ChangeEmailFormType extends AbstractType
     {
         $builder
             ->add('newEmail', EmailType::class, [
+                // An empty field must reach the validator as '' (the form has novalidate), never null into a string property
+                'empty_data' => '',
                 'label' => 'edit_profile.change_email_new',
                 'attr' => [
                     'autocomplete' => 'email',
                 ],
             ])
             ->add('currentPassword', PasswordType::class, [
+                'empty_data' => '',
                 'label' => 'edit_profile.change_email_current_password',
                 'attr' => [
                     'autocomplete' => 'current-password',

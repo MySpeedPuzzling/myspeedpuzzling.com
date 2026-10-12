@@ -18,6 +18,7 @@ use SpeedPuzzling\Web\Security\MicrosoftLoginAuthenticator;
 use SpeedPuzzling\Web\Security\UserAccountProvider;
 use SpeedPuzzling\Web\Services\SocialLogin\SocialLoginStateStore;
 use SpeedPuzzling\Web\Value\OauthProvider;
+use SpeedPuzzling\Web\Value\ParkedSocialRegistration;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpFoundation\Request;
@@ -76,18 +77,30 @@ final class SocialRegisterConfirmController extends AbstractController
             return $this->redirectToRoute('login');
         }
 
-        return $this->render('social_register_confirm.html.twig', [
-            'token' => self::tokenFrom($request),
-            'email' => $parked->profile->email,
-            'provider_name' => $parked->profile->provider->displayName(),
-            // Apple "Hide My Email": the address can never match an existing
-            // account, so the page leads with "I already have an account"
-            'is_private_relay' => $parked->profile->usesPrivateRelay(),
-        ]);
+        return $this->renderPage(self::tokenFrom($request), $parked);
     }
 
     private function confirm(Request $request): Response
     {
+        // Checked before the parked profile is consumed, so the page is shown again - error under the box,
+        // the newsletter answer kept - with the token still valid
+        if ($request->request->getBoolean('terms') === false) {
+            $parked = $this->stateStore->peekRegistration(self::tokenFrom($request));
+
+            if ($parked === null) {
+                $this->addFlash('warning', $this->translator->trans('auth.social.confirm.expired'));
+
+                return $this->redirectToRoute('login');
+            }
+
+            return $this->renderPage(
+                self::tokenFrom($request),
+                $parked,
+                termsMissing: true,
+                newsletter: $request->request->getBoolean('newsletter'),
+            );
+        }
+
         $parked = $this->stateStore->consumeRegistration(self::tokenFrom($request));
 
         if ($parked === null) {
@@ -107,6 +120,8 @@ final class SocialRegisterConfirmController extends AbstractController
                 emailVerified: $parked->profile->emailVerified,
                 name: $parked->profile->name,
                 locale: $parked->locale,
+                newsletter: $request->request->getBoolean('newsletter'),
+                termsAccepted: true,
             ));
         } catch (HandlerFailedException $exception) {
             $reason = $exception->getPrevious();
@@ -170,6 +185,25 @@ final class SocialRegisterConfirmController extends AbstractController
         $this->addFlash('success', $this->translator->trans('auth.social.confirm.created'));
 
         return $this->redirectToRoute('registration_welcome');
+    }
+
+    private function renderPage(
+        null|string $token,
+        ParkedSocialRegistration $parked,
+        bool $termsMissing = false,
+        bool $newsletter = false,
+    ): Response {
+        return $this->render('social_register_confirm.html.twig', [
+            'token' => $token,
+            'email' => $parked->profile->email,
+            'provider_name' => $parked->profile->provider->displayName(),
+            // Apple "Hide My Email": the address can never match an existing
+            // account, so the page leads with "I already have an account"
+            'is_private_relay' => $parked->profile->usesPrivateRelay(),
+            'terms_missing' => $termsMissing,
+            'newsletter_checked' => $newsletter,
+            // A form POST answered 200 is dropped by Turbo Drive
+        ], new Response(status: $termsMissing ? Response::HTTP_UNPROCESSABLE_ENTITY : Response::HTTP_OK));
     }
 
     private static function tokenFrom(Request $request): null|string

@@ -42,3 +42,10 @@ add_editions:
 feedback:
     message_required: "メッセージを入力してください。"
     message_too_long: "メッセージは{{ limit }}文字以内で入力してください。"
+registration_terms_required: "アカウントを作成するには、利用規約とプライバシーポリシーに同意してください。"
+auth:
+    email_required: "メールアドレスを入力してください。"
+    email_invalid: "有効なメールアドレスを入力してください（例：name@example.com）。"
+    password_required: "パスワードを入力してください。"
+    password_too_short: "{{ limit }}文字以上にしてください。"
+    current_password_required: "現在のパスワードを入力してください。"

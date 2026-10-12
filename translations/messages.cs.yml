@@ -914,6 +914,7 @@ comparison:
   "table_section_players": "Veřejná data ostatních hráčů"
   "table_section_puzzles": "Katalog puzzlí"
   "table_section_library": "Knihovna puzzlí (collections:read)"
+  "table_section_events": "Akce (soutěže a série)"
   "summary_pat": "<i class=\"bi bi-key me-1 text-primary\"></i><strong>PAT</strong> — pouze vaše data. Žádné scope nejsou potřeba, plný přístup ke všem endpointům <code>/me</code>."
   "summary_auth_code": "<i class=\"bi bi-person-badge me-1 text-primary\"></i><strong>Auth Code</strong> — všechny endpointy. Přístup závisí na udělených scope. K dispozici jsou i scope pro zápis."
   "summary_client_cred": "<i class=\"bi bi-hdd-network me-1 text-primary\"></i><strong>Client Credentials</strong> — přístup pouze pro čtení k datům libovolného veřejného hráče. Žádné endpointy <code>/me</code>."
@@ -1849,10 +1850,11 @@ badges:
         first_to_earn: "První držitel"
         only_hidden_holders: "{1}Tento stupeň získal 1 puzzler — jeho profil není veřejně viditelný.|{2,3,4}Tento stupeň získali %count% puzzleři — jejich profily nejsou veřejně viditelné.|[5,Inf[Tento stupeň získalo %count% puzzlerů — jejich profily nejsou veřejně viditelné."
         nobody_yet: "Tento stupeň zatím nikdo nezískal. Kdo bude první, zapíše se do historie!"
-        listing_note: "V seznamech držitelů jsou členové s veřejným profilem; počty zahrnují všechny puzzlery."
+        listing_note: "Každý puzzler je uvedený jednou, u nejvyššího stupně, kterého dosáhl. V seznamech držitelů jsou členové s veřejným profilem; počty zahrnují všechny puzzlery."
         apply_filter: "Zobrazit"
     holders:
         your_tier: "Tvůj stupeň"
+        all_went_further: "Všichni, kdo tento stupeň získali, už jsou dál."
         show_more: "Zobrazit dalších %count%"
         show_all: "Zobrazit všech %count%"
         unlisted: "{1}+1 puzzler, jehož profil není veřejný|{2,3,4}+%count% puzzleři, jejichž profily nejsou veřejné|[5,Inf[+%count% puzzlerů, jejichž profily nejsou veřejné"
@@ -5488,6 +5490,8 @@ guides:
 
 auth:
     login:
+        email_required: "Zadejte svou e-mailovou adresu."
+        password_required: "Zadejte své heslo."
         title: "Přihlásit se"
         email: "E-mail"
         password: "Heslo"
@@ -5537,6 +5541,8 @@ auth:
         submitting: "Zakládáme účet…"
         email_taken: "Tento e-mail už má účet. <a href=\"%sign_in_url%\">Přihlaste se</a> nebo si <a href=\"%link_url%\">nechte poslat přihlašovací kód</a>."
         continue_with_email: "Pokračovat přes e-mail"
+        terms: "Souhlasím s <a href=\"%terms_url%\" target=\"_blank\" rel=\"noopener\">obchodními podmínkami</a> a <a href=\"%privacy_url%\" target=\"_blank\" rel=\"noopener\">zásadami ochrany osobních údajů</a>."
+        newsletter: "Chci vědět, co je nového: jeden e-mail měsíčně o novinkách na MySpeedPuzzling. Jen nové funkce – žádný marketing, žádné reklamy. Odhlásit se můžete kdykoli."
     welcome:
         title: "Vítejte na MySpeedPuzzling!"
         verification_sent: "Na adresu %email% jsme poslali potvrzovací odkaz. Otevřete ho a potvrďte, že je adresa vaše."

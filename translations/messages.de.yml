@@ -862,6 +862,7 @@
   "table_section_players": "Öffentliche Daten anderer Spieler"
   "table_section_puzzles": "Puzzle-Katalog"
   "table_section_library": "Puzzle-Bibliothek (collections:read)"
+  "table_section_events": "Events (Wettbewerbe und Serien)"
   "summary_pat": "<i class=\"bi bi-key me-1 text-primary\"></i><strong>PAT</strong> — nur Ihre eigenen Daten. Keine Scopes erforderlich, voller Zugriff auf alle <code>/me</code>-Endpoints."
   "summary_auth_code": "<i class=\"bi bi-person-badge me-1 text-primary\"></i><strong>Auth Code</strong> — alle Endpoints. Zugriff abhängig von gewährten Scopes. Schreib-Scopes verfügbar."
   "summary_client_cred": "<i class=\"bi bi-hdd-network me-1 text-primary\"></i><strong>Client Credentials</strong> — Lesezugriff auf jeden öffentlichen Spieler. Keine <code>/me</code>-Endpoints."
@@ -1797,10 +1798,11 @@ badges:
         first_to_earn: "Als Erster verdient"
         only_hidden_holders: "{1}1 Puzzler hat diese Stufe verdient — das Profil ist nicht öffentlich gelistet.|]1,Inf[%count% Puzzler haben diese Stufe verdient — ihre Profile sind nicht öffentlich gelistet."
         nobody_yet: "Diese Stufe hat noch niemand verdient. Wer zuerst kommt, schreibt Geschichte!"
-        listing_note: "Die Listen zeigen Mitglieder mit öffentlichem Profil; die Zahlen umfassen alle Puzzler."
+        listing_note: "Jeder Puzzler steht einmal in der Liste, unter der höchsten Stufe, die er erreicht hat. Die Listen zeigen Mitglieder mit öffentlichem Profil; die Zahlen umfassen alle Puzzler."
         apply_filter: "Anzeigen"
     holders:
         your_tier: "Deine Stufe"
+        all_went_further: "Alle, die diese Stufe verdient haben, sind schon weiter."
         show_more: "%count% weitere anzeigen"
         show_all: "Alle %count% anzeigen"
         unlisted: "{1}+1 Puzzler mit nicht öffentlichem Profil|]1,Inf[+%count% Puzzler mit nicht öffentlichem Profil"
@@ -5387,6 +5389,8 @@ guides:
 
 auth:
     login:
+        email_required: "Geben Sie Ihre E-Mail-Adresse ein."
+        password_required: "Geben Sie Ihr Passwort ein."
         title: "Anmelden"
         email: "E-Mail"
         password: "Passwort"
@@ -5436,6 +5440,8 @@ auth:
         submitting: "Konto wird erstellt…"
         email_taken: "Für diese E-Mail gibt es schon ein Konto. <a href=\"%sign_in_url%\">Anmelden</a> oder <a href=\"%link_url%\">Anmeldecode anfordern</a>."
         continue_with_email: "Weiter mit E-Mail"
+        terms: "Ich stimme den <a href=\"%terms_url%\" target=\"_blank\" rel=\"noopener\">Nutzungsbedingungen</a> und der <a href=\"%privacy_url%\" target=\"_blank\" rel=\"noopener\">Datenschutzerklärung</a> zu."
+        newsletter: "Halten Sie mich auf dem Laufenden: eine E-Mail im Monat über Neues auf MySpeedPuzzling. Nur neue Funktionen – kein Marketing, keine Werbung. Jederzeit abbestellbar."
     welcome:
         title: "Willkommen bei MySpeedPuzzling!"
         verification_sent: "Wir haben einen Bestätigungslink an %email% geschickt. Öffnen Sie ihn, um zu bestätigen, dass die Adresse Ihnen gehört."

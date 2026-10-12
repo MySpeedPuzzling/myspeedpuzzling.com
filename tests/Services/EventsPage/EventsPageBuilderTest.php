@@ -616,7 +616,7 @@ final class EventsPageBuilderTest extends TestCase
         $row = $page->months[0]->rows[0];
 
         self::assertSame(['2026-10-09', '2026-10-11'], [$row->from, $row->to]);
-        self::assertSame('Meadow Open 2026', $row->editionName, 'no session label');
+        self::assertSame('2026', $row->editionName, 'no session label, the series name not repeated under itself');
         self::assertSame('/series/meadow-open/meadow-open-2026', $row->url, 'no fragment');
         self::assertSame(WhenLabel::THIS_WEEKEND, $row->when?->type);
 

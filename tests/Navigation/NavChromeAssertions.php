@@ -23,6 +23,8 @@ final class NavChromeAssertions
         'body > header',
         'footer.site-footer',
         '#site-menu:not(main #site-menu)',
+        // The Menu shell of the phone panel (MENU-02b, block nav_layers)
+        '#menu-layer',
     ];
 
     public static function assertNoWebChrome(Crawler $crawler, string $message = ''): void

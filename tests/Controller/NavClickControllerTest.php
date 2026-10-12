@@ -135,6 +135,27 @@ final class NavClickControllerTest extends WebTestCase
     }
 
     /**
+     * MENU-02b / NAV-13: an open of the Menu - its surface and the page's place.
+     */
+    public function testAMenuOpenIsLogged(): void
+    {
+        [$browser, $log] = self::clientWithNavigationLog();
+
+        self::beacon($browser, ['k' => 'menu_open', 'surface' => 'panel', 'place' => 'puzzles']);
+        // A place the script cannot send is logged as unknown, the line stays
+        self::beacon($browser, ['k' => 'menu_open', 'surface' => 'overlay', 'place' => 'kitchen', 'layout' => 'desktop']);
+
+        self::assertResponseStatusCodeSame(204);
+        self::assertNull($browser->getResponse()->headers->get('Set-Cookie'));
+        self::assertSame('Navigation menu open', $log->getRecords()[0]->message);
+        self::assertSame('INFO', $log->getRecords()[0]->level->getName());
+        self::assertSame([
+            ['kind' => 'menu_open', 'surface' => 'panel', 'place' => 'puzzles', 'page' => '/en/faq', 'layout' => 'phone', 'webdriver' => false],
+            ['kind' => 'menu_open', 'surface' => 'overlay', 'place' => null, 'page' => '/en/faq', 'layout' => 'desktop', 'webdriver' => false],
+        ], self::contexts($log));
+    }
+
+    /**
      * Optional fields the script could not fill are logged as unknown, the line stays.
      */
     public function testUnknownOptionalValuesAreNotTrusted(): void
@@ -205,6 +226,8 @@ final class NavClickControllerTest extends WebTestCase
         yield 'page too long' => [['page' => str_repeat('/faq', 76)] + $click];
         yield 'unknown viewport bucket' => [['v' => 1, 'k' => 'viewport', 'bucket' => '360', 'pointer' => 'coarse', 'page' => '/en/faq']];
         yield 'unknown history kind' => [['v' => 1, 'k' => 'history', 'via' => 'swipe', 'dir' => 'back', 'page' => '/en/faq']];
+        yield 'menu open on an unknown surface' => [['v' => 1, 'k' => 'menu_open', 'surface' => 'drawer', 'place' => 'home', 'page' => '/en/faq']];
+        yield 'menu open without a surface' => [['v' => 1, 'k' => 'menu_open', 'place' => 'home', 'page' => '/en/faq']];
         yield 'suppressed dialog with a whole URL' => [['v' => 1, 'k' => 'dialog_suppressed', 'afterLayerBack' => true, 'afterRestore' => false, 'page' => 'https://evil.example/en/faq']];
         yield 'over 1 KB' => [['padding' => str_repeat('x', 1024)] + $click];
     }

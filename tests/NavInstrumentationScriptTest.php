@@ -8,6 +8,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Controller\NavClickController;
+use SpeedPuzzling\Web\Navigation\NavPlace;
 use SpeedPuzzling\Web\Services\NewsletterTokenSigner;
 use SpeedPuzzling\Web\Value\AccountDeletionToken;
 use SpeedPuzzling\Web\Value\NewsletterAudience;
@@ -431,6 +432,48 @@ final class NavInstrumentationScriptTest extends TestCase
             ['/en/live-results/0199c1a8-0000-7000-8000-000000000001', false, null],
             ['/en/live-results/0199c1a8-0000-7000-8000-000000000001', false, 'snapshot'],
         ], $lines);
+    }
+
+    /**
+     * MENU-02b: every open of the Menu is one line - where it was opened and on which place's page. An unknown surface
+     * sends nothing, an unknown place is sent as none.
+     */
+    public function testEachMenuOpenIsOneLine(): void
+    {
+        $did = $this->scenario(['steps' => [
+            ['do' => 'load', 'page' => '/en/puzzle'],
+            ['do' => 'menu open', 'detail' => ['surface' => 'panel', 'place' => 'puzzles']],
+            ['do' => 'menu open', 'detail' => ['surface' => 'overlay', 'place' => 'secret']],
+            ['do' => 'menu open', 'detail' => ['surface' => 'drawer', 'place' => 'home']],
+            ['do' => 'menu open', 'detail' => null],
+        ]]);
+
+        $lines = array_map(
+            static fn (array $beacon): array => [$beacon['page'], $beacon['surface'], $beacon['place'], $beacon['layout']],
+            self::beacons($did, 'menu_open'),
+        );
+
+        self::assertSame([
+            ['/en/puzzle', 'panel', 'puzzles', 'phone'],
+            ['/en/puzzle', 'overlay', 'none', 'phone'],
+        ], $lines);
+    }
+
+    /**
+     * The script and the server know the same places (NavPlace)
+     */
+    public function testTheScriptAndTheServerKnowTheSamePlaces(): void
+    {
+        $script = (string) file_get_contents(__DIR__ . '/../assets/nav_instrumentation.js');
+        self::assertSame(1, preg_match("~export const PLACES = \[([^\]]*)\];~", $script, $match));
+
+        $places = array_map(static fn (string $place): string => trim($place, " '"), explode(',', $match[1]));
+        self::assertSame(NavClickController::PLACES, $places);
+
+        // ... and they are the places of the navigation (NavPlace)
+        foreach (NavPlace::cases() as $place) {
+            self::assertContains($place->value, $places);
+        }
     }
 
     /**

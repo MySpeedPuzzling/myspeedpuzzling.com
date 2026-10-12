@@ -10,6 +10,7 @@
 import { isNativeApp, nativePlatform, os } from '../assets/platform.js';
 import { closeAction, entryAction } from '../assets/layer_history.js';
 import { reportsSuppressed } from '../assets/confirm_dialog.js';
+import { menuLinkAction } from '../assets/navigation/menu_links.js';
 
 /** A fake <html>: inside the app on an Android phone, or Chrome on the same phone */
 function root(nativeApp) {
@@ -41,6 +42,15 @@ const ROWS = [
         run: (html) => ({
             refusedOnAnIphone: reportsSuppressed(isNativeApp(html), 'ios', false, 0, false),
             refusedOnThisDevice: reportsSuppressed(isNativeApp(html), os(html), false, 0, false),
+        }),
+    },
+    // MENU-02b: a plain click on a link to `menu` - the app's own Menu screen inside the app, the phone panel on the web
+    // (desktop goes to the page until NAV-13)
+    {
+        id: 'assets/navigation/menu_links.js',
+        run: (html) => ({
+            phone: menuLinkAction(isNativeApp(html), true, {}),
+            desktop: menuLinkAction(isNativeApp(html), false, {}),
         }),
     },
 ];

@@ -41,6 +41,12 @@ final class NativeAppStepAsideTest extends TestCase
             ['refusedOnAnIphone' => false, 'refusedOnThisDevice' => false],
             ['refusedOnAnIphone' => true, 'refusedOnThisDevice' => false],
         ],
+        // MENU-02b: a link to `menu` (or the ☰) goes to the page inside the app (the app's Menu screen), opens the phone
+        // panel on the web
+        'assets/navigation/menu_links.js' => [
+            ['phone' => 'page', 'desktop' => 'page'],
+            ['phone' => 'panel', 'desktop' => 'page'],
+        ],
     ];
 
     /** @var null|array<string, Row> */

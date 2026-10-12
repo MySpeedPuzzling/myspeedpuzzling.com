@@ -412,3 +412,183 @@
     padding-top: .5rem;
     border-top: 1px solid var(--nav-hairline, rgba(43, 52, 69, .1));
 }
+
+// ---- The phone panel (MENU-02b; templates/navigation/_menu_layer.html.twig, menu_layer_controller.js) ----------------
+// The shell <dialog id="menu-layer">, opened with show() (non-modal: the bottom bar stays usable under it). It covers the
+// page from the top - above the top bar, $z-menu-layer on the F-03 scale - down to the bottom bar and scrolls itself;
+// the page does not scroll while it is open. Closed it is display: none (never only transparent, README §4.2).
+// In: rises 24 px with a fade, 250 ms (emphasized decelerate); out: 200 ms; a fade only under reduced motion.
+
+.menu-layer:not([open]) {
+    display: none;
+}
+
+.menu-layer {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: var(--bottom-nav-height, 0px);
+    left: 0;
+    z-index: $z-menu-layer;
+    flex-direction: column;
+    width: auto;
+    max-width: none;
+    height: auto;
+    max-height: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    color: var(--nav-ink, #4b566b);
+    background: var(--nav-bg, #fff);
+
+    &[open] {
+        display: flex;
+        animation: menu-layer-in 250ms cubic-bezier(.05, .7, .1, 1) both;
+    }
+
+    &[open].is-closing {
+        animation: menu-layer-out 200ms cubic-bezier(.3, 0, .8, .15) both;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        &[open] {
+            animation-name: menu-layer-fade-in;
+        }
+
+        &[open].is-closing {
+            animation-name: menu-layer-fade-out;
+        }
+    }
+}
+
+// The page under the open panel does not scroll (a property of the open shell: whatever closes or replaces it - Back,
+// a visit, a Turbo render - gives the page its scrolling back)
+:root:has(> body > .menu-layer[open]) {
+    overflow: hidden;
+}
+
+// Sticky header: × · "Menu" · logo · the search field (MENU-03)
+.menu-layer-header {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: .25rem;
+    min-height: 56px;
+    padding: 4px 8px 4px 4px;
+    padding-top: calc(4px + env(safe-area-inset-top, 0px));
+    border-bottom: 1px solid var(--nav-hairline, rgba(43, 52, 69, .1));
+    background: var(--nav-bg, #fff);
+}
+
+.menu-layer-close {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    font-size: 1.25rem;
+    color: var(--nav-ink, #4b566b);
+    background: transparent;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+
+    &:hover,
+    &:active {
+        background: var(--nav-pressed-pill, rgba(254, 105, 106, .1));
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--nav-focus, #4e54c8);
+        outline-offset: -2px;
+    }
+}
+
+.menu-layer-title {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-size: 1.0625rem;
+    font-weight: 600;
+    color: var(--nav-ink, #373f50);
+}
+
+.menu-layer-logo {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    min-height: 44px;
+
+    img {
+        width: 36px;
+        height: auto;
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--nav-focus, #4e54c8);
+        outline-offset: 2px;
+        border-radius: .5rem;
+    }
+}
+
+.menu-layer-search:empty {
+    display: none;
+}
+
+// The panel's own scroller: the page under it never scrolls along, a pull at its top arms nothing
+.menu-layer-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    padding: 0 .75rem 1.5rem;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+@keyframes menu-layer-in {
+    from {
+        opacity: 0;
+        transform: translateY(24px);
+    }
+
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+@keyframes menu-layer-out {
+    from {
+        opacity: 1;
+        transform: none;
+    }
+
+    to {
+        opacity: 0;
+        transform: translateY(24px);
+    }
+}
+
+@keyframes menu-layer-fade-in {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes menu-layer-fade-out {
+    from {
+        opacity: 1;
+    }
+
+    to {
+        opacity: 0;
+    }
+}

@@ -21,7 +21,7 @@ use SplFileInfo;
  *   (nav-follow-topbar), never by transitioning or animating `top`; scroll margins read the live --topbar-h;
  * - base.html.twig keeps the head order (§3.11) and the web-only nav_chrome / nav_layers blocks, which every bar-free
  *   page empties together with header and footer.
- * Later items append rows to the providers (the NAV-03 search view, MENU-02b #menu-layer, HELP-01b, CARD-01a, ...).
+ * Later items append rows to the providers (the NAV-03 search view, HELP-01b, CARD-01a, ...; MENU-02b added #menu-layer).
  */
 final class NavLayoutCssTest extends TestCase
 {
@@ -55,6 +55,8 @@ final class NavLayoutCssTest extends TestCase
         yield 'selection bar' => ['assets/styles/_collection-selection.scss', '.collection-selection-bar[hidden]'];
         // HELP-01b: the Help sheet's own scrim (dynamic_modal_controller.js own-scrim path, implementation plan §7)
         yield 'dynamic modal scrim' => ['assets/styles/_dynamic-modal.scss', '.dynamic-modal-scrim[hidden]'];
+        // MENU-02b: the Menu shell (a <dialog>: display: none while not [open], also while the stylesheet loads)
+        yield 'Menu shell #menu-layer' => ['assets/styles/_nav-menu.scss', '.menu-layer:not([open])'];
     }
 
     #[DataProvider('closedOverlays')]
@@ -131,6 +133,8 @@ final class NavLayoutCssTest extends TestCase
         yield 'events ⋯ menu layer' => ['assets/styles/_events-organizer.scss', '.ev-menu-layer', ['bottom']];
         yield 'events ⋯ menu sheet' => ['assets/styles/_events-organizer.scss', '.is-sheet .ev-menu-dialog', ['bottom']];
         yield 'events country sheet' => ['assets/styles/_events-page.scss', '.ev-sheet', ['bottom']];
+        // MENU-02b: the phone panel ends above the bottom bar (README §4.12) - the bar stays usable under it
+        yield 'Menu shell #menu-layer' => ['assets/styles/_nav-menu.scss', '.menu-layer', ['bottom']];
         yield 'toasts' => ['assets/styles/app.scss', '.toast-container', ['bottom']];
         yield 'last-piece-reveal confetti' => ['assets/styles/_last-piece-reveal.scss', '.lpr-confetti', ['bottom']];
         yield 'scroll to top' => ['assets/styles/components/_buttons.scss', '.btn-scroll-top', ['bottom']];
@@ -344,8 +348,11 @@ final class NavLayoutCssTest extends TestCase
         // The chrome block holds includes only, all inside is_web() (MENU-01 put the Menu slot there)
         self::assertSame(1, preg_match('~\{% block nav_chrome %\}\{% if is_web\(\) %\}((?:\{\{ include\(\'[a-z_/]+\.html\.twig\'\) \}\})*)\{% endif %\}\{% endblock %\}~', $base, $match, PREG_OFFSET_CAPTURE), 'nav_chrome block (web only, includes only) missing');
         $chrome = $match[0][1];
-        $layers = strpos($base, '{% block nav_layers %}{% if is_web() %}{% endif %}{% endblock %}');
-        self::assertIsInt($layers, 'nav_layers block (web only) missing');
+        // The layers block too (MENU-02b put the Menu shell there)
+        self::assertSame(1, preg_match('~\{% block nav_layers %\}\{% if is_web\(\) %\}((?:\{\{ include\(\'[a-z_/]+\.html\.twig\'\) \}\})*)\{% endif %\}\{% endblock %\}~', $base, $layersMatch, PREG_OFFSET_CAPTURE), 'nav_layers block (web only, includes only) missing');
+        $layers = $layersMatch[0][1];
+        $layersBlock = $layersMatch[0][0];
+        self::assertStringContainsString("{{ include('navigation/_menu_layer.html.twig') }}", $layersBlock);
 
         // nav_chrome right after the header block and before <main>; nav_layers last in <body>, after every GlobalSearch
         $headerEnd = strpos($base, '{% endblock %}', (int) strpos($base, '{% block header %}'));
@@ -354,7 +361,7 @@ final class NavLayoutCssTest extends TestCase
         self::assertGreaterThan(strrpos($base, 'GlobalSearch'), $layers);
         self::assertGreaterThan(strpos($base, 'id="dynamic-modal-container"'), $layers);
         self::assertLessThan(strpos($base, '</body>'), $layers);
-        self::assertSame('', trim(substr($base, $layers + strlen('{% block nav_layers %}{% if is_web() %}{% endif %}{% endblock %}'), (int) strpos($base, '</body>') - $layers - strlen('{% block nav_layers %}{% if is_web() %}{% endif %}{% endblock %}'))));
+        self::assertSame('', trim(substr($base, $layers + strlen($layersBlock), (int) strpos($base, '</body>') - $layers - strlen($layersBlock))));
 
         // A page without the bars (it empties header and footer) empties the navigation blocks too (decision 19, 87)
         $barFree = [];

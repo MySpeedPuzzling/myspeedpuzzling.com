@@ -12,7 +12,9 @@
  * Once per browser session it also sends the innerWidth bucket and the pointer type, and one line per Back/Forward
  * navigation: a Turbo restore (app.js calls turboRestore() before it reloads the page - that reload is a replace, so
  * it is not counted again), a page loaded by a traverse, or a page shown from the back/forward cache. The GEST-13
- * watchdog (assets/confirm_dialog.js) reports a native dialog an iPhone refused through dialogSuppressed().
+ * watchdog (assets/confirm_dialog.js) reports a native dialog an iPhone refused through dialogSuppressed(). Each open of
+ * the Menu (MENU-02b: the phone panel; NAV-13: the desktop overlay) is one `menu_open` line: the Menu's controller
+ * dispatches `msp:menu-open` {surface, place} on the document (MENU_OPEN_EVENT), this module sends it.
  *
  * Every beacon carries the page's path, never its query string: loggablePage() replaces a path segment that looks like a
  * secret (a password-reset or account-deletion link, a credential claim, a newsletter or e-mail preferences token...)
@@ -38,6 +40,15 @@ const SLUG_SEGMENT = /^[a-z0-9]+(?:-[a-z0-9]+)+(?:\.[a-z0-9]+)?$/;
 
 const MAX_NAV_LENGTH = 100;
 const MAX_PAGE_LENGTH = 300;
+
+/** The document event the Menu dispatches when it opens (menu_layer_controller.js), detail {surface, place} */
+export const MENU_OPEN_EVENT = 'msp:menu-open';
+
+/** Where the Menu was opened: the phone panel (MENU-02b) or the desktop overlay (NAV-13) */
+export const MENU_SURFACES = ['panel', 'overlay'];
+
+/** The page's place (NavPlace) - the same list as NavClickController::PLACES */
+export const PLACES = ['home', 'puzzles', 'add', 'community', 'profile', 'none'];
 
 // requirements, Conventions: "desktop" in Media Queries Level 3 syntax; everything else is a phone
 export const DESKTOP_QUERY = '(min-width: 768px) and (min-height: 501px), (min-width: 768px) and (pointer: fine)';
@@ -293,6 +304,10 @@ export function createNavInstrumentation(env) {
         traverse = null;
     }
 
+    function onMenuOpen(event) {
+        api.menuOpen(event && event.detail ? event.detail : {});
+    }
+
     const api = {
         /** app.js: a Turbo restore visit, right before it turns it into a full page load */
         turboRestore() {
@@ -324,8 +339,21 @@ export function createNavInstrumentation(env) {
             });
         },
 
+        /**
+         * MENU-02b / NAV-13: the Menu was opened - where (panel | overlay) and on which place's page. Anything outside
+         * those lists sends nothing.
+         */
+        menuOpen(detail = {}) {
+            if (!MENU_SURFACES.includes(detail.surface)) {
+                return;
+            }
+
+            send({ k: 'menu_open', surface: detail.surface, place: PLACES.includes(detail.place) ? detail.place : 'none' });
+        },
+
         start() {
             document.addEventListener('click', onClick, { capture: true, passive: true });
+            document.addEventListener(MENU_OPEN_EVENT, onMenuOpen);
             // Capture: at the window, capture listeners run before Turbo's popstate listener starts the restore
             window.addEventListener('popstate', rememberTraverse, { capture: true });
             window.addEventListener('pageshow', onPageShow);

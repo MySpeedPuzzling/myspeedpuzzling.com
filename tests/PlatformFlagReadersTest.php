@@ -31,6 +31,8 @@ final class PlatformFlagReadersTest extends TestCase
         'assets/layer_history.js',
         // GEST-13: the confirm watchdog reports nothing inside the app
         'assets/confirm_dialog.js',
+        // MENU-02b: links to `menu` open the phone panel on the web only
+        'assets/navigation/menu_links.js',
     ];
 
     private const string PLATFORM_MODULE = 'assets/platform.js';

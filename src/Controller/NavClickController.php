@@ -21,6 +21,8 @@ use Symfony\Component\Routing\Attribute\Route;
  * - dialog_suppressed: a native confirm dialog an iPhone answered `false` at once - a dialog Safari refused to show
  *   (GEST-13 watchdog in assets/confirm_dialog.js, once per page view): after a layer was closed by Back, after a
  *   Back/Forward restore of the page
+ * - menu_open: the Menu was opened - on which surface (the phone panel MENU-02b, the desktop overlay NAV-13) and on
+ *   which place's page (README §4.12 "Measurement")
  *
  * The page's path and the data-nav value only - no cookies, no session (the `stateless` firewall), no user agent.
  * A path segment that looks like a secret (a password-reset, account-deletion, credential-claim, sign-in, newsletter or
@@ -64,6 +66,10 @@ final class NavClickController extends AbstractController
     private const array POINTERS = ['coarse', 'fine', 'none'];
     private const array HISTORY_VIA = ['turbo_restore', 'load', 'bfcache'];
     private const array HISTORY_DIRECTIONS = ['back', 'forward', 'unknown'];
+    private const array MENU_SURFACES = ['panel', 'overlay'];
+
+    /** NavPlace values - the script sends the same list (PLACES in assets/nav_instrumentation.js) */
+    public const array PLACES = ['home', 'puzzles', 'add', 'community', 'profile', 'none'];
 
     public function __construct(
         #[Autowire(service: 'monolog.logger.navigation')]
@@ -91,6 +97,7 @@ final class NavClickController extends AbstractController
                     'viewport' => $this->viewport($payload, $context),
                     'history' => $this->history($payload, $context),
                     'dialog_suppressed' => $this->dialogSuppressed($payload, $context),
+                    'menu_open' => $this->menuOpen($payload, $context),
                     default => null,
                 };
             }
@@ -178,6 +185,29 @@ final class NavClickController extends AbstractController
             'kind' => 'dialog_suppressed',
             'after_layer_back' => ($payload['afterLayerBack'] ?? null) === true,
             'after_restore' => is_bool($payload['afterRestore'] ?? null) ? $payload['afterRestore'] : null,
+            ...$context,
+        ]);
+    }
+
+    /**
+     * MENU-02b / NAV-13: one line per open of the Menu. An unknown surface drops the line, an unknown place is logged as
+     * null.
+     *
+     * @param array<string, mixed> $payload
+     * @param array<string, mixed> $context
+     */
+    private function menuOpen(array $payload, array $context): void
+    {
+        $surface = $payload['surface'] ?? null;
+
+        if (!in_array($surface, self::MENU_SURFACES, true)) {
+            return;
+        }
+
+        $this->logger->info('Navigation menu open', [
+            'kind' => 'menu_open',
+            'surface' => $surface,
+            'place' => in_array($payload['place'] ?? null, self::PLACES, true) ? $payload['place'] : null,
             ...$context,
         ]);
     }

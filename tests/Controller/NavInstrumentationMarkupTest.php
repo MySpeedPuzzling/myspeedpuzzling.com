@@ -90,8 +90,9 @@ final class NavInstrumentationMarkupTest extends WebTestCase
 
     /**
      * Navigation containers outside the header and footer (implementation plan §3.3): the Community landing (COM-01a)
-     * and the Help sheet (HELP-01a; its feedback box HELP-01b) - its page and its frame - and the Inbox header's tabs on
-     * both Inbox pages (INB-01, signed in). Every link and button there is counted too.
+     * and the Help sheet (HELP-01a; its feedback box HELP-01b) - its page and its frame - the Inbox header's tabs on both
+     * Inbox pages (INB-01, signed in), the Menu (MENU-01) and its phone panel's shell (MENU-02b). Every link and button
+     * there is counted too.
      *
      * @return iterable<string, array{0: string, 1: array<string, string>, 2: string, 3: list<string>, 4?: string}>
      */
@@ -136,6 +137,9 @@ final class NavInstrumentationMarkupTest extends WebTestCase
             'menu/about/legal_terms', 'menu/about/legal_privacy', 'menu/about/legal_data_deletion',
             'menu/logout/logout',
         ], PlayerFixture::PLAYER_PRIVATE];
+        // The Menu shell of the phone panel (MENU-02b): its header - the Menu itself is moved in when it opens
+        yield 'menu shell (guest)' => ['/en/faq', [], '#menu-layer', ['menu/none/close', 'menu/none/logo']];
+        yield 'menu shell (player)' => ['/en/hub', [], '#menu-layer', ['menu/none/close', 'menu/none/logo'], PlayerFixture::PLAYER_REGULAR];
     }
 
     /**

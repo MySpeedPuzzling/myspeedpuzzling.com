@@ -1028,6 +1028,6 @@
 
         {# Navigation layers at the end of <body> (the Menu shell #menu-layer, decision 87): after every page
            GlobalSearch, web only. Bar-free pages empty it together with nav_chrome. #}
-        {% block nav_layers %}{% if is_web() %}{% endif %}{% endblock %}
+        {% block nav_layers %}{% if is_web() %}{{ include('navigation/_menu_layer.html.twig') }}{% endif %}{% endblock %}
     </body>
 </html>

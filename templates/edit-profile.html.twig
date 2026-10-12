@@ -45,7 +45,7 @@
                 {{ form_end(features_options_form) }}
             </div>
 
-            <div class="card card-body shadow-lg my-3">
+            <div class="card card-body shadow-lg my-3" id="emails">
                 <h3 class="h5">{{ 'edit_profile.messaging_notifications'|trans }}</h3>
 
                 {{ form_start(messaging_settings_form) }}
@@ -70,7 +70,7 @@
                 {{ form_end(messaging_settings_form) }}
             </div>
 
-            <div class="card card-body shadow-lg my-3">
+            <div class="card card-body shadow-lg my-3" id="player-code">
                 <h3 class="h5">{{ 'edit_profile.player_code_change'|trans }}</h3>
 
                 {% if not player.activeMembership %}
@@ -181,7 +181,8 @@
                 </p>
             </div>
 
-            <div class="card card-body shadow-lg my-3">
+            {# Sign-in methods start here: the password, then the connected social accounts (Menu search anchor) #}
+            <div class="card card-body shadow-lg my-3" id="sign-in-methods">
                 <h3 class="h5">{{ 'edit_profile.change_password'|trans }}</h3>
 
                 {% if account_has_password %}

@@ -16,6 +16,14 @@ The free trial (`docs/features/free-trial/README.md`) shipped dark behind it for
 
 Meta App Review approved + app published (2026-09-30), so Facebook lost its flag and follows the credentials rule like Google, Microsoft and Apple: available and shown iff `FACEBOOK_APP_ID` + `FACEBOOK_APP_SECRET` are configured (`SocialLoginSettings::isAvailable()`; templates ask `social_login.isProviderAvailable('facebook')`). `isShown()` / `isProviderShown()` / `isAnyShown()` collapsed into `isAvailable()` / `isProviderAvailable()` / `isAnyAvailable()`. The review preview (`?facebook_preview=1`, the `msp_fb_preview` cookie set by `NativeAuthPageSubscriber`, `FacebookReviewPreviewTest`) is gone too - a leftover cookie in a browser is harmless, nothing reads it; so is a box `.env` / Infisical that still sets the flag. Kill switch = empty the credentials.
 
+## Navigation launch date (`NavigationLaunch::DATE`)
+
+- **Feature:** the navigation redesign's launch safeguards (`docs/features/navigation/README.md` §8, requirement LAUNCH-00): the "What moved" announcement modal, the 30-day pointers (Hub banner, Inbox note, the line at the top of the Menu) and the expiry of the footer/Menu "New" badges
+- **Flag:** the constant `SpeedPuzzling\Web\Navigation\NavigationLaunch::DATE` (`'Y-m-d'`, a day in Europe/Prague) → container parameter `navigation.launch_date` (`config/services.php`) → the `NavigationLaunch` service: `hasLaunched()`, `pointersActiveFor(PlayerProfile)`, `accountPredatesLaunch()`, `newBadgesVisible()`; Twig `nav_launched()`, `nav_new_badges_shown()`. Consumers never read the constant; tests replace the service with a `MockClock` and a date
+- **Default:** `null` until the owner sets it at release - no "What moved" modal, no pointers, "New" badges shown. The merge may deploy the new chrome before the date is set. Setting it = one line (`public const null|string DATE = '2026-…';`), deployed like any change
+- **Gated files:** `src/Navigation/NavigationLaunch.php` (the decision), `src/Twig/NavigationTwigExtension.php` (Twig functions); consumers added later list themselves here - LAUNCH-01 (What moved rule), LAUNCH-03 (pointers), INB-05 (Inbox pointer), FOOT-01/MENU-01 ("New" badges)
+- **Remove when:** the pointers have expired (`DATE` + 30 days) - then delete the pointers, the "What moved" rule's launch check and the "New" badges of the launch, and the constant with them
+
 ## Pairs & teams picker rollout (`PAIRS_TEAMS_PICKER_PUBLIC`)
 
 - **Feature:** the Solo / Pair / Team picker of the add/edit time form (`docs/features/pairs-and-teams/README.md`)

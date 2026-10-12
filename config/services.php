@@ -15,6 +15,7 @@ use Sentry\Monolog\ExceptionToSentryIssueHandler;
 use Sentry\Monolog\LogToSentryIssueHandler;
 use Sentry\State\HubInterface;
 use SpeedPuzzling\Web\Doctrine\RegexSchemaAssetFilter;
+use SpeedPuzzling\Web\Navigation\NavigationLaunch;
 use SpeedPuzzling\Web\Services\Api\ApiDtoNormalizer;
 use SpeedPuzzling\Web\Services\ApiUsage\ApiUsageCounter;
 use SpeedPuzzling\Web\Services\ApiUsage\RedisApiUsageCounter;
@@ -106,6 +107,10 @@ return static function (ContainerConfigurator $configurator): void {
     // Pairs & teams picker rollout (docs/features/feature_flags.md): admins only until flipped to 1.
     $parameters->set('pairsTeamsPickerPublic', '%env(bool:PAIRS_TEAMS_PICKER_PUBLIC)%');
 
+    // The navigation launch day (docs/features/feature_flags.md, LAUNCH-00): null until the owner sets
+    // NavigationLaunch::DATE at release - read through the NavigationLaunch service, never the constant
+    $parameters->set('navigation.launch_date', NavigationLaunch::DATE);
+
     $services = $configurator->services();
 
     $services->defaults()
@@ -165,6 +170,12 @@ return static function (ContainerConfigurator $configurator): void {
 
     // Twig extensions
     $services->load('SpeedPuzzling\\Web\\Twig\\', __DIR__ . '/../src/Twig/{*TwigExtension.php}');
+
+    // Navigation services (registry, place resolver, launch date); the value objects and enums beside them are not services
+    $services->load('SpeedPuzzling\\Web\\Navigation\\', __DIR__ . '/../src/Navigation/{Navigation*.php}')
+        ->exclude([__DIR__ . '/../src/Navigation/NavigationPlaceMap.php']);
+    $services->set(NavigationLaunch::class)
+        ->arg('$date', param('navigation.launch_date'));
 
     // Repositories
     $services->load('SpeedPuzzling\\Web\\Repository\\', __DIR__ . '/../src/Repository/{*Repository.php}');

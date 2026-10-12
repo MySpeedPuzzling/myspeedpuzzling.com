@@ -84,7 +84,8 @@ final class NotificationsControllerTest extends WebTestCase
     }
 
     /**
-     * The fixture player with notifications: a group edit For you, favorites' times that never count.
+     * The fixture player with notifications: a group edit For you, and favorites' times from before INB-03 that are
+     * neither counted nor listed (docs/features/navigation INB-03) - they only get marked read with the rest.
      */
     public function testFavoritesTimesDoNotCountInTheBadge(): void
     {
@@ -93,8 +94,8 @@ final class NotificationsControllerTest extends WebTestCase
 
         /** @var Connection $connection */
         $connection = $browser->getContainer()->get(Connection::class);
-        // Loading the fixture times told the follower about each of them (NotifyWhenPuzzleSolved) - dozens unread
-        self::assertGreaterThan(1, $this->unreadCount($connection, PlayerFixture::PLAYER_WITH_FAVORITES));
+        // NotificationFixture: three unread favorites' times + the unread group edit
+        self::assertSame(4, $this->unreadCount($connection, PlayerFixture::PLAYER_WITH_FAVORITES));
 
         $crawler = $browser->request('GET', '/en/marketplace');
         $this->assertResponseIsSuccessful();
@@ -104,6 +105,10 @@ final class NotificationsControllerTest extends WebTestCase
         $this->assertResponseIsSuccessful();
         self::assertSame('0', $crawler->filter(self::FOR_YOU)->text());
         self::assertSame(0, $this->unreadCount($connection, PlayerFixture::PLAYER_WITH_FAVORITES));
+        // Only the group edit is listed: "edited your shared result", no favorite's "solved puzzle" row
+        self::assertCount(1, $crawler->filter('main table tbody tr'));
+        self::assertStringContainsString('edited your shared result for', $crawler->filter('main table tbody')->text());
+        self::assertStringNotContainsString('solved puzzle', $crawler->filter('main table tbody')->text());
     }
 
     private function notifyGroupEdit(Connection $connection, string $playerId): void

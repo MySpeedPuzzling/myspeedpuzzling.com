@@ -9,6 +9,7 @@ use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Results\PlayerNotification;
 use SpeedPuzzling\Web\Services\HiddenPlayers;
 use SpeedPuzzling\Web\Services\PrivateProfileAccess;
+use SpeedPuzzling\Web\Value\NotificationType;
 
 readonly final class GetNotifications
 {
@@ -23,12 +24,14 @@ readonly final class GetNotifications
     public function getOldestUnreadNotifiedAtForPlayer(string $playerId): null|\DateTimeImmutable
     {
         $notHidden = $this->unreadNotHidden();
+        $listed = self::sqlListed();
 
         $query = <<<SQL
 SELECT MIN(notified_at)
 FROM notification
 WHERE player_id = :playerId
     AND read_at IS NULL
+    {$listed}
     {$notHidden}
 SQL;
 
@@ -58,6 +61,7 @@ SQL;
             . $this->hiddenPlayers->sqlExcludeTeam('puzzle_solving_time.team');
         $initiatorNotHidden = $this->hiddenPlayers->sqlExclude('initiator.id');
         $actorNotHidden = $this->hiddenPlayers->sqlExclude('actor.id');
+        $listed = self::sqlListed();
 
         $query = <<<SQL
 SELECT * FROM (
@@ -156,6 +160,7 @@ SELECT * FROM (
     LEFT JOIN player p ON p.id = (player_elem.player ->> 'player_id')::UUID
     WHERE notification.player_id = :playerId
         AND notification.target_solving_time_id IS NOT NULL
+        {$listed}
         {$solvingTimeNotHidden}
     GROUP BY notification.id, puzzle_solving_time.id, puzzle.id, manufacturer.id, player.id
 
@@ -939,6 +944,17 @@ SQL;
         return array_map(static function (array $row): PlayerNotification {
             return PlayerNotification::fromDatabaseRow($row);
         }, $data);
+    }
+
+    /**
+     * Favorites' times are not notifications any more (docs/features/navigation INB-03, README D4): nothing creates a
+     * SubscribedPlayerAddedTime row and the rows that exist are neither listed nor counted (GetInboxBadge::NOT_FOR_YOU)
+     * until the D4 cleanup deletes them. Their content is Home › Favorites. The type is inlined as a literal from the
+     * enum, never bound. NewConversationRequest rows stay listed here - the badge counts them under Messages.
+     */
+    private static function sqlListed(): string
+    {
+        return sprintf("AND notification.type <> '%s'", NotificationType::SubscribedPlayerAddedTime->value);
     }
 
     /**

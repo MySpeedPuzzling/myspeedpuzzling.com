@@ -9,10 +9,12 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Query\GetInboxBadge;
 use SpeedPuzzling\Web\Query\GetNotifications;
 use SpeedPuzzling\Web\Results\PlayerNotification;
+use SpeedPuzzling\Web\Tests\DataFixtures\ConversationFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\LentPuzzleTransferFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
 use SpeedPuzzling\Web\Tests\TestingViewer;
+use SpeedPuzzling\Web\Value\NotificationType;
 use SpeedPuzzling\Web\Value\Puzzler;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
@@ -29,54 +31,102 @@ final class GetNotificationsTest extends KernelTestCase
         $this->database = $container->get(Connection::class);
     }
 
+    /**
+     * A notification about a solving time carries the time's flags. Since favorites' times left the list (INB-03) that
+     * is a group edit; the flags come from the same branch of the query.
+     */
     public function testPuzzleSolvingNotificationContainsFirstAttemptFlag(): void
     {
-        $notifications = $this->query->forPlayer(PlayerFixture::PLAYER_WITH_FAVORITES, 50);
+        // TIME_01: firstAttempt=true, unboxed=false
+        $notification = $this->groupEditOf(PuzzleSolvingTimeFixture::TIME_01);
 
-        $found = false;
-        foreach ($notifications as $notification) {
-            if ($notification->isPuzzleSolvingNotification() && $notification->firstAttempt === true && $notification->unboxed === false) {
-                $found = true;
-                break;
-            }
-        }
-
-        self::assertTrue($found, 'Should find a notification with firstAttempt=true and unboxed=false');
+        self::assertTrue($notification->isPuzzleSolvingNotification());
+        self::assertTrue($notification->firstAttempt);
+        self::assertFalse($notification->unboxed);
     }
 
     public function testPuzzleSolvingNotificationContainsUnboxedFlag(): void
     {
-        $notifications = $this->query->forPlayer(PlayerFixture::PLAYER_WITH_FAVORITES, 50);
+        $notification = $this->groupEditOf(PuzzleSolvingTimeFixture::TIME_45_UNBOXED);
 
-        $found = false;
-        foreach ($notifications as $notification) {
-            if ($notification->isPuzzleSolvingNotification() && $notification->unboxed === true) {
-                $found = true;
-                break;
-            }
-        }
-
-        self::assertTrue($found, 'Should find a notification with unboxed=true');
+        self::assertTrue($notification->isPuzzleSolvingNotification());
+        self::assertTrue($notification->unboxed);
     }
 
     public function testPuzzleSolvingNotificationWithoutFirstAttempt(): void
     {
-        $notifications = $this->query->forPlayer(PlayerFixture::PLAYER_WITH_FAVORITES, 50);
+        // TIME_07: firstAttempt=false
+        $notification = $this->groupEditOf(PuzzleSolvingTimeFixture::TIME_07);
 
-        $found = false;
-        foreach ($notifications as $notification) {
-            if ($notification->isPuzzleSolvingNotification() && $notification->firstAttempt === false) {
-                $found = true;
-                break;
-            }
-        }
+        self::assertTrue($notification->isPuzzleSolvingNotification());
+        self::assertFalse($notification->firstAttempt);
+    }
 
-        self::assertTrue($found, 'Should find a notification with firstAttempt=false');
+    /**
+     * Favorites' times left the bell (docs/features/navigation INB-03, README D4): the SubscribedPlayerAddedTime rows
+     * that exist - NotificationFixture keeps three unread ones from before - are neither listed nor counted, a new one
+     * changes nothing, and the oldest unread notification is one the list shows.
+     */
+    public function testFavoritesTimesAreNeitherListedNorCounted(): void
+    {
+        self::assertSame(3, $this->unreadOfType(PlayerFixture::PLAYER_WITH_FAVORITES, NotificationType::SubscribedPlayerAddedTime));
+
+        $listed = $this->query->forPlayer(PlayerFixture::PLAYER_WITH_FAVORITES, 100);
+        self::assertNotEmpty($listed);
+        self::assertSame([], array_values(array_filter(
+            $listed,
+            static fn (PlayerNotification $notification): bool => $notification->notificationType === NotificationType::SubscribedPlayerAddedTime,
+        )));
+        $badge = $this->badgeForYou([]);
+        self::assertSame($this->unreadForYou($listed), $badge);
+        $oldest = $this->query->getOldestUnreadNotifiedAtForPlayer(PlayerFixture::PLAYER_WITH_FAVORITES);
+        $unreadListed = array_map(
+            static fn (PlayerNotification $notification): \DateTimeImmutable => $notification->notifiedAt,
+            array_filter($listed, static fn (PlayerNotification $notification): bool => $notification->readAt === null),
+        );
+        self::assertNotEmpty($unreadListed);
+        self::assertEquals(min($unreadListed), $oldest);
+
+        // A favorite's time noted a month ago and unread: still nothing
+        $this->database->executeStatement(
+            "INSERT INTO notification (id, player_id, type, notified_at, target_solving_time_id) VALUES (:id, :player, 'SubscribedPlayerAddedTime', NOW() - INTERVAL '30 days', :time)",
+            ['id' => Uuid::uuid7()->toString(), 'player' => PlayerFixture::PLAYER_WITH_FAVORITES, 'time' => PuzzleSolvingTimeFixture::TIME_03],
+        );
+
+        self::assertEquals($listed, $this->query->forPlayer(PlayerFixture::PLAYER_WITH_FAVORITES, 100));
+        self::assertSame($badge, $this->badgeForYou([]));
+        self::assertEquals($oldest, $this->query->getOldestUnreadNotifiedAtForPlayer(PlayerFixture::PLAYER_WITH_FAVORITES));
+    }
+
+    /**
+     * A message request stays listed in For you (decision 49) but counts once, under Messages: the badge's For you part
+     * leaves its NewConversationRequest row out, the Messages part holds the pending request.
+     */
+    public function testAMessageRequestIsListedButCountedOnlyUnderMessages(): void
+    {
+        // CONVERSATION_PENDING: PLAYER_WITH_STRIPE asks PLAYER_REGULAR
+        $badge = self::getContainer()->get(GetInboxBadge::class);
+        $before = $badge->forPlayer(PlayerFixture::PLAYER_REGULAR, []);
+        $this->notify(PlayerFixture::PLAYER_REGULAR, 'NewConversationRequest', 'target_conversation_id', ConversationFixture::CONVERSATION_PENDING);
+
+        $requests = array_values(array_filter(
+            $this->query->forPlayer(PlayerFixture::PLAYER_REGULAR, 100),
+            static fn (PlayerNotification $notification): bool => $notification->isConversationRequestNotification(),
+        ));
+        self::assertCount(1, $requests);
+        self::assertSame(ConversationFixture::CONVERSATION_PENDING, $requests[0]->conversationId);
+
+        $after = $badge->forPlayer(PlayerFixture::PLAYER_REGULAR, []);
+        self::assertEquals($before, $after);
+        self::assertSame(0, $after->forYou);
+        self::assertSame(1, $after->pendingRequests);
     }
 
     public function testNotificationsAboutAHiddenPlayerAreLeftOutAndTheBadgeAgrees(): void
     {
-        // PLAYER_WITH_FAVORITES holds notifications about times of PLAYER_REGULAR and PLAYER_ADMIN
+        // PLAYER_WITH_FAVORITES holds notifications about times of PLAYER_REGULAR (NotificationFixture's group edit by
+        // the regular player) and PLAYER_ADMIN (a group edit by the admin on their TIME_03)
+        $this->notify(PlayerFixture::PLAYER_WITH_FAVORITES, 'GroupSolvingTimeEdited', 'target_solving_time_id', PuzzleSolvingTimeFixture::TIME_03, actorId: PlayerFixture::PLAYER_ADMIN);
         $this->block(PlayerFixture::PLAYER_WITH_FAVORITES, PlayerFixture::PLAYER_REGULAR);
 
         $unfiltered = $this->query->forPlayer(PlayerFixture::PLAYER_WITH_FAVORITES, 100);
@@ -177,14 +227,42 @@ final class GetNotificationsTest extends KernelTestCase
         ));
     }
 
-    private function notify(string $playerId, string $type, string $targetColumn, string $targetId, bool $read = false): void
+    private function notify(string $playerId, string $type, string $targetColumn, string $targetId, bool $read = false, null|string $actorId = null): void
     {
         $readAt = $read ? 'NOW()' : 'NULL';
 
         $this->database->executeStatement(
-            "INSERT INTO notification (id, player_id, type, notified_at, read_at, {$targetColumn}) VALUES (:id, :player, :type, NOW(), {$readAt}, :target)",
-            ['id' => Uuid::uuid7()->toString(), 'player' => $playerId, 'type' => $type, 'target' => $targetId],
+            "INSERT INTO notification (id, player_id, type, notified_at, read_at, {$targetColumn}, actor_player_id) VALUES (:id, :player, :type, NOW(), {$readAt}, :target, :actor)",
+            ['id' => Uuid::uuid7()->toString(), 'player' => $playerId, 'type' => $type, 'target' => $targetId, 'actor' => $actorId],
         );
+    }
+
+    /**
+     * PLAYER_WITH_FAVORITES is told that the admin edited a shared time, newest of all their notifications.
+     */
+    private function groupEditOf(string $timeId): PlayerNotification
+    {
+        $this->database->executeStatement(
+            "INSERT INTO notification (id, player_id, type, notified_at, target_solving_time_id, actor_player_id) VALUES (:id, :player, 'GroupSolvingTimeEdited', NOW() + INTERVAL '1 day', :time, :actor)",
+            ['id' => Uuid::uuid7()->toString(), 'player' => PlayerFixture::PLAYER_WITH_FAVORITES, 'time' => $timeId, 'actor' => PlayerFixture::PLAYER_ADMIN],
+        );
+
+        $notifications = $this->query->forPlayer(PlayerFixture::PLAYER_WITH_FAVORITES, 1);
+        self::assertCount(1, $notifications);
+        self::assertSame(NotificationType::GroupSolvingTimeEdited, $notifications[0]->notificationType);
+
+        return $notifications[0];
+    }
+
+    private function unreadOfType(string $playerId, NotificationType $type): int
+    {
+        /** @var int|string $count */
+        $count = $this->database->fetchOne(
+            'SELECT COUNT(*) FROM notification WHERE player_id = :player AND type = :type AND read_at IS NULL',
+            ['player' => $playerId, 'type' => $type->value],
+        );
+
+        return (int) $count;
     }
 
     private function block(string $blockerId, string $blockedId): void

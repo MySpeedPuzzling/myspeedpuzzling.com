@@ -413,13 +413,14 @@ final class PrivateProfileCanaryTest extends WebTestCase
 
     /**
      * The Inbox tabs (docs/features/navigation INB-01) are the viewer's own, so every viewer gets the same rows about her.
-     * For you: a solved-puzzle row of hers (SubscribedPlayerAddedTime) names her to the friend only. Messages: a
-     * conversation names her to whoever is in it - bilateral, by design (docs/features/private-profile-allow-list.md,
-     * "Left as is") - and the tab lists the viewer's own conversations only: the friend talks with her, the strangers
-     * do not.
+     * For you: a favorite's time of hers (SubscribedPlayerAddedTime, from before INB-03) names her to nobody - the type
+     * is not listed any more, so the friend, who is allowed and holds the same unread row, is not shown her there either
+     * (her times are on Home › Favorites: PrivateProfileViewersControllerTest). Messages: a conversation names her to
+     * whoever is in it - bilateral, by design (docs/features/private-profile-allow-list.md, "Left as is") - and the tab
+     * lists the viewer's own conversations only: the friend talks with her, the strangers do not.
      */
     #[DataProvider('provideInboxTabs')]
-    public function testOnlyTheFriendSeesHerOnTheirInboxTab(string $url): void
+    public function testOnlyTheFriendSeesHerOnTheirInboxTab(string $url, bool $friendSeesHer): void
     {
         $browser = self::createClient();
         $database = self::getContainer()->get(Connection::class);
@@ -448,17 +449,25 @@ final class PrivateProfileCanaryTest extends WebTestCase
         }
 
         TestingLogin::asPlayer($browser, self::FRIEND);
-        self::assertStringContainsString(self::OWNER_NAME, $this->get($browser, $url), 'The allowed friend does not see her here - the tab is no canary.');
+        $content = $this->get($browser, $url);
+
+        if ($friendSeesHer) {
+            self::assertStringContainsString(self::OWNER_NAME, $content, 'The allowed friend does not see her here - the tab is no canary.');
+        } else {
+            self::assertStringNotContainsString(self::OWNER_NAME, $content, 'A favorite\'s time is listed again (INB-03).');
+        }
+
         self::assertStringNotContainsString('public', (string) $browser->getResponse()->headers->get('Cache-Control'), 'A page naming a private player must never be shared-cacheable.');
     }
 
     /**
-     * @return iterable<string, array{string}>
+     * @return iterable<string, array{string, bool}>
      */
     public static function provideInboxTabs(): iterable
     {
-        yield 'inbox for you' => ['/en/notifications'];
-        yield 'inbox messages' => ['/en/messages'];
+        // [the tab, whether the friend is shown her there]
+        yield 'inbox for you' => ['/en/notifications', false];
+        yield 'inbox messages' => ['/en/messages', true];
     }
 
     /**

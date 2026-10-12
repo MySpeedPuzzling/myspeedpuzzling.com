@@ -97,7 +97,7 @@ Most lent puzzles are **owned by `PLAYER_WITH_STRIPE`**:
 
 ### Notifications (`NotificationFixture`, ids `018d0009-…`) and the Inbox badge
 All four belong to `PLAYER_WITH_FAVORITES` and are unread:
-- `NOTIFICATION_FIRST_ATTEMPT` (TIME_01), `NOTIFICATION_UNBOXED` (TIME_45_UNBOXED), `NOTIFICATION_REGULAR` (TIME_07) - `SubscribedPlayerAddedTime` (a favorite's new time): listed, but never counted in the Inbox badge (docs/features/navigation INB-02). Loading the solving times adds 35 more of them (`NotifyWhenPuzzleSolved` runs for every fixture time of a followed player): 38 in all
+- `NOTIFICATION_FIRST_ATTEMPT` (TIME_01), `NOTIFICATION_UNBOXED` (TIME_45_UNBOXED), `NOTIFICATION_REGULAR` (TIME_07) - `SubscribedPlayerAddedTime` (a favorite's new time), unread: rows from before docs/features/navigation INB-03, neither listed nor counted in the Inbox badge (they stay in the table until the D4 cleanup). Nothing creates such rows any more - `NotifyWhenPuzzleSolved` is gone, so loading the solving times adds no notification (it used to add 35 more); a favorite's new time is on Home › Favorites. A notification about a solving time is now a `GroupSolvingTimeEdited` row
 - `NOTIFICATION_GROUP_TIME_EDITED` - `GroupSolvingTimeEdited` on TIME_41 by the tracker PLAYER_REGULAR (the player was taken out of the pair): the badge's For you part = 1. Blocking PLAYER_REGULAR (the actor) or PLAYER_PRIVATE (in the pair) hides it
 - Messages part: PLAYER_REGULAR has 1 unread accepted conversation (CONVERSATION_ACCEPTED) + 1 pending request (CONVERSATION_PENDING from PLAYER_WITH_STRIPE); no NewConversationRequest notification row exists in the fixtures
 

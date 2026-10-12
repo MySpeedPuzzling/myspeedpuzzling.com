@@ -7,9 +7,10 @@ namespace SpeedPuzzling\Web\Tests\Controller;
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
-use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
 use SpeedPuzzling\Web\Tests\TestingLogin;
+use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\UX\LiveComponent\Test\InteractsWithLiveComponents;
 
 /**
  * The private profile's allow list, end to end through HTTP
@@ -17,6 +18,8 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
  */
 final class PrivateProfileViewersControllerTest extends WebTestCase
 {
+    use InteractsWithLiveComponents;
+
     private const string URL = '/en/who-can-see-my-profile';
 
     public function testGuestIsSentToLogin(): void
@@ -98,40 +101,49 @@ final class PrivateProfileViewersControllerTest extends WebTestCase
         self::assertResponseRedirects('/en/edit-profile');
     }
 
-    public function testASolvedPuzzleNotificationNamesThePrivatePlayerForTheFriendOnlyWhileTheyAreAllowed(): void
+    /**
+     * Her new times reach the followers she allowed on Home › Favorites: favorites' times are no notifications any more
+     * (docs/features/navigation INB-03). The friend sees her there while allowed; a follower she never allowed learns
+     * nothing (her solo times are not in their feed, she is masked in her pair's); taken off the list, the friend loses
+     * her too.
+     */
+    public function testHerTimesOnHubFavoritesNameThePrivatePlayerForTheFriendOnlyWhileTheyAreAllowed(): void
     {
         $browser = self::createClient();
         $database = $browser->getContainer()->get(Connection::class);
 
-        // TIME_44: a solo time of the private player
-        foreach ([PlayerFixture::PLAYER_WITH_FAVORITES, PlayerFixture::PLAYER_WITH_STRIPE] as $recipient) {
-            $database->executeStatement(
-                "INSERT INTO notification (id, player_id, type, notified_at, target_solving_time_id) VALUES (:id, :player, 'subscribed_player_added_time', NOW(), :time)",
-                ['id' => Uuid::uuid7()->toString(), 'player' => $recipient, 'time' => PuzzleSolvingTimeFixture::TIME_44],
-            );
-        }
+        // Both follow her (and only her): her solo times and the pair times she is in fill the feed
+        $database->executeStatement(
+            'UPDATE player SET favorite_players = CAST(:favorites AS json) WHERE id IN (:friend, :stranger)',
+            ['favorites' => json_encode([PlayerFixture::PLAYER_PRIVATE]), 'friend' => PlayerFixture::PLAYER_WITH_FAVORITES, 'stranger' => PlayerFixture::PLAYER_WITH_STRIPE],
+        );
 
-        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_FAVORITES);
-        $browser->request('GET', '/en/notifications');
-        self::assertResponseIsSuccessful();
-        self::assertStringContainsString('Jane Smith', (string) $browser->getResponse()->getContent());
+        self::assertStringContainsString('Jane Smith', $this->favoritesFeedAs($browser, PlayerFixture::PLAYER_WITH_FAVORITES));
 
-        // Somebody who should never have got the row still learns nothing from it
-        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
-        $browser->request('GET', '/en/notifications');
-        self::assertResponseIsSuccessful();
-        $content = (string) $browser->getResponse()->getContent();
+        // Somebody she never allowed learns nothing from following her
+        $content = $this->favoritesFeedAs($browser, PlayerFixture::PLAYER_WITH_STRIPE);
         self::assertStringNotContainsString('Jane Smith', $content);
         self::assertStringContainsString('Hidden Puzzler', $content);
 
-        // Taken off the list, the friend's old notification is masked again
+        // Taken off the list, the friend does not see her any more
         $database->executeStatement('DELETE FROM private_profile_viewer');
-        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_FAVORITES);
-        $browser->request('GET', '/en/notifications');
-        self::assertStringNotContainsString('Jane Smith', (string) $browser->getResponse()->getContent());
+        self::assertStringNotContainsString('Jane Smith', $this->favoritesFeedAs($browser, PlayerFixture::PLAYER_WITH_FAVORITES));
     }
 
-    private function profileAs(\Symfony\Bundle\FrameworkBundle\KernelBrowser $browser, string $viewerId): string
+    /**
+     * Home › Favorites: the Hub's Favorites pane (loaded lazily on the page, so rendered here as its Live component)
+     */
+    private function favoritesFeedAs(KernelBrowser $browser, string $viewerId): string
+    {
+        TestingLogin::asPlayer($browser, $viewerId);
+
+        $component = $this->createLiveComponent('RecentActivity', ['limit' => 20, 'favoritesOnly' => true], $browser);
+        $component->setRouteLocale('en');
+
+        return $component->render()->toString();
+    }
+
+    private function profileAs(KernelBrowser $browser, string $viewerId): string
     {
         TestingLogin::asPlayer($browser, $viewerId);
         $browser->request('GET', '/en/player-profile/' . PlayerFixture::PLAYER_PRIVATE);

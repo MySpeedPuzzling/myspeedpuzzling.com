@@ -16,6 +16,9 @@ use SpeedPuzzling\Web\Value\NotificationType;
 
 final class NotificationFixture extends Fixture implements DependentFixtureInterface
 {
+    // Favorites' times (SubscribedPlayerAddedTime) from before docs/features/navigation INB-03: nothing creates them any
+    // more - a solve tells no follower, NotifyWhenPuzzleSolved is gone - and the rows that exist are neither listed nor
+    // counted until the D4 cleanup deletes them. Unread, as most of them are on production
     public const string NOTIFICATION_FIRST_ATTEMPT = '018d0009-0000-0000-0000-000000000001';
     public const string NOTIFICATION_UNBOXED = '018d0009-0000-0000-0000-000000000002';
     public const string NOTIFICATION_REGULAR = '018d0009-0000-0000-0000-000000000003';

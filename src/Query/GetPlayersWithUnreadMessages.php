@@ -122,6 +122,8 @@ JOIN user_account ua ON ua.user_id = p.user_id
 JOIN conversation c ON c.recipient_id = p.id
 WHERE p.email_notifications_enabled = true
   AND c.status = 'pending'
+  -- A request from a deleted account (anonymised: initiator NULL) is listed nowhere - nothing to tell
+  AND c.initiator_id IS NOT NULL
   AND c.created_at < :now::timestamp - {$frequencyInterval}
   AND NOT EXISTS (
       SELECT 1 FROM user_block ub

@@ -21,6 +21,9 @@ use SpeedPuzzling\Web\Value\NotificationType;
  * - unread_conversations: accepted conversations with an unread message not sent by the player (system messages
  *   count), unless the player blocks the other side.
  * - pending_requests: message requests waiting for the player, unless the player blocks the initiator.
+ * - Both count only what the Messages lists show (GetConversations::forPlayer() / pendingRequestsForPlayer() join both
+ *   players): a deleted player's side is NULL (DeletePlayerHandler::anonymizeConversations()), and a request or a
+ *   conversation nobody can open any more must not be counted forever (INB-02 review F2).
  *
  * The hidden players are passed explicitly instead of read from the request's viewer (HiddenPlayers): a realtime push
  * runs in the sender's request or in an async consumer, where the viewer is somebody else or nobody.
@@ -64,6 +67,8 @@ SELECT
         JOIN chat_message cm ON cm.conversation_id = c.id
         WHERE (c.initiator_id = :playerId OR c.recipient_id = :playerId)
             AND c.status = :accepted
+            AND c.initiator_id IS NOT NULL
+            AND c.recipient_id IS NOT NULL
             AND cm.read_at IS NULL
             AND (
                 (cm.sender_id IS NOT NULL AND cm.sender_id != :playerId)
@@ -80,6 +85,7 @@ SELECT
         FROM conversation c
         WHERE c.recipient_id = :playerId
             AND c.status = :pending
+            AND c.initiator_id IS NOT NULL
             AND NOT EXISTS (
                 SELECT 1 FROM user_block ub
                 WHERE ub.blocker_id = :playerId

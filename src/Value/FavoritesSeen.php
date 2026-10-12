@@ -8,10 +8,13 @@ use DateTimeImmutable;
 
 /**
  * "New since your last visit" on the Hub's Favorites feed (docs/features/navigation, INB-04a): when the player last
- * looked at the feed is `player.favorites_seen_at`, and it moves at most once per MARK_EVERY_SECONDS - so coming back
- * a minute later still shows what was new a minute ago. The same rule runs in the entity (authoritative), in the
- * Live action (to skip a pointless dispatch) and in assets/controllers/favorites_seen_controller.js (to skip the POST),
- * which reads the number from the page.
+ * looked at the feed is `player.favorites_seen_at`. The first visit after a pause marks it at once (the Live action
+ * fires when the pane is shown), so the next render - a return within a minute included - starts from that visit and
+ * highlights nothing that was already seen. MARK_EVERY_SECONDS only spares writes: while the last mark is younger,
+ * showing the feed again changes nothing. The same rule runs in the entity (authoritative), in the Live action (to
+ * skip a pointless dispatch) and in assets/controllers/favorites_seen_controller.js (to skip the POST), which reads
+ * the number from the page. Keeping the highlights on Back is GEST-15's instant Back (the page restored from its
+ * snapshot), not this rule's job.
  */
 final readonly class FavoritesSeen
 {

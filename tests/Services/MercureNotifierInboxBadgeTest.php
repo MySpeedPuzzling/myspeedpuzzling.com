@@ -6,8 +6,13 @@ namespace SpeedPuzzling\Web\Tests\Services;
 
 use Doctrine\DBAL\Connection;
 use Ramsey\Uuid\Uuid;
+use PHPUnit\Framework\Attributes\DataProvider;
 use SpeedPuzzling\Web\Events\ChatMessageSent;
+use SpeedPuzzling\Web\Message\AcceptConversation;
+use SpeedPuzzling\Web\Message\BlockUser;
+use SpeedPuzzling\Web\Message\IgnoreConversation;
 use SpeedPuzzling\Web\Message\MarkMessagesAsRead;
+use SpeedPuzzling\Web\Message\UnblockUser;
 use SpeedPuzzling\Web\MessageHandler\NotifyOnChatMessageSent;
 use SpeedPuzzling\Web\Navigation\InboxBadge;
 use SpeedPuzzling\Web\Services\MercureNotifier;
@@ -109,6 +114,44 @@ final class MercureNotifierInboxBadgeTest extends KernelTestCase
         $badge = $this->onlyBadgePushTo(PlayerFixture::PLAYER_REGULAR);
         self::assertSame(0, $badge['conversations']);
         self::assertSame(1, $badge['requests']);
+    }
+
+    /**
+     * @return iterable<string, array{object, int, int, list<string>}>
+     */
+    public static function provideAnswersAndBlocks(): iterable
+    {
+        // [the message, the acting player's unread conversations and requests afterwards, who must get no push]
+        // CONVERSATION_PENDING (PLAYER_WITH_STRIPE asks PLAYER_REGULAR) holds an unread first message; CONVERSATION_ACCEPTED
+        // (with PLAYER_ADMIN) an unread one
+        yield 'a request accepted' => [new AcceptConversation(ConversationFixture::CONVERSATION_PENDING, PlayerFixture::PLAYER_REGULAR), 2, 0, [PlayerFixture::PLAYER_WITH_STRIPE]];
+        yield 'a request ignored' => [new IgnoreConversation(ConversationFixture::CONVERSATION_PENDING, PlayerFixture::PLAYER_REGULAR), 1, 0, [PlayerFixture::PLAYER_WITH_STRIPE]];
+        yield 'the conversation partner blocked' => [new BlockUser(PlayerFixture::PLAYER_REGULAR, PlayerFixture::PLAYER_ADMIN), 0, 1, [PlayerFixture::PLAYER_ADMIN]];
+        // UserBlockFixture: PLAYER_REGULAR blocks PLAYER_PRIVATE
+        yield 'a block lifted' => [new UnblockUser(PlayerFixture::PLAYER_REGULAR, PlayerFixture::PLAYER_PRIVATE), 1, 1, [PlayerFixture::PLAYER_PRIVATE]];
+    }
+
+    /**
+     * Answering a message request, blocking and unblocking change the acting player's badge (INB-02 review Q2): their
+     * other open tabs get one push with the numbers read after the change committed (PushInboxBadge after the bus) -
+     * never the other side, whom a block must not reach.
+     *
+     * @param list<string> $notPushedTo
+     */
+    #[DataProvider('provideAnswersAndBlocks')]
+    public function testTheActingPlayersOtherTabsGetTheNewBadge(object $message, int $conversations, int $requests, array $notPushedTo): void
+    {
+        self::getContainer()->get(MessageBusInterface::class)->dispatch($message);
+
+        $badge = $this->onlyBadgePushTo(PlayerFixture::PLAYER_REGULAR);
+        $expected = self::getContainer()->get(InboxBadge::class)->forPlayer(PlayerFixture::PLAYER_REGULAR);
+
+        self::assertSame([$conversations, $requests], [$badge['conversations'], $badge['requests']]);
+        self::assertSame([$expected->forYou, $expected->unreadConversations, $expected->pendingRequests], [$badge['forYou'], $badge['conversations'], $badge['requests']]);
+
+        foreach ($notPushedTo as $playerId) {
+            self::assertSame([], $this->badgePushesTo($playerId));
+        }
     }
 
     public function testTheStreamCarriesNumbersOnly(): void

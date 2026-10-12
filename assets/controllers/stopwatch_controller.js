@@ -98,7 +98,7 @@ export default class extends Controller {
             this.stopwatchIdValue = data.stopwatchId;
             this.statusValue = 'running';
             // The top bar's pill (ADD-03) knows from the next page on; noted for this device as well
-            rememberStopwatchState(data.stopwatchId, 'running');
+            rememberStopwatchState(data.stopwatchId, 'running', 0);
             this._totalPreviousMs = 0;
             this._lastStartTimestamp = Date.now();
 
@@ -120,7 +120,7 @@ export default class extends Controller {
         this._stopRaf();
         this.statusValue = 'paused';
         // Before the request: a pause waiting in the offline queue already hides the pill of a page rendered earlier
-        rememberStopwatchState(this.stopwatchIdValue, 'paused');
+        rememberStopwatchState(this.stopwatchIdValue, 'paused', elapsedMs);
         this._totalPreviousMs = elapsedMs;
         this._lastStartTimestamp = null;
         this._updateButtons();
@@ -139,7 +139,8 @@ export default class extends Controller {
 
         this.statusValue = 'running';
         this._lastStartTimestamp = Date.now();
-        rememberStopwatchState(this.stopwatchIdValue, 'running');
+        // With the time so far: a pill hidden by the pause shows again counting from here, the pause left out
+        rememberStopwatchState(this.stopwatchIdValue, 'running', this._totalPreviousMs);
         this._updateButtons();
         this._startRaf();
         this._requestWakeLock();

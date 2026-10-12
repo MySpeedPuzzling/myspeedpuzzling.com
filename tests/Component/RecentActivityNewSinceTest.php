@@ -168,6 +168,39 @@ final class RecentActivityNewSinceTest extends WebTestCase
         ));
     }
 
+    /**
+     * The feed's 20 rows are 20 rows the viewer is shown (INB-04b review F4): a followed private player's own times are
+     * left out before the LIMIT, not after it - so "20+ new" can be reached, and "N new" counts exactly the rendered rows.
+     */
+    public function testTheWindowHoldsOnlyRowsTheViewerIsShown(): void
+    {
+        $browser = self::createClient();
+        $database = self::getContainer()->get(EntityManagerInterface::class)->getConnection();
+
+        // PLAYER_ADMIN follows PLAYER_PRIVATE (not on her allow list) and two public players with 31 times between them;
+        // her 13 solo times are the newest of all - the old window lost them after the LIMIT and showed 7 rows
+        $database->executeStatement(
+            "UPDATE player SET favorite_players = :favorites, favorites_seen_at = '2000-01-01 00:00:00' WHERE id = :id",
+            ['favorites' => json_encode([PlayerFixture::PLAYER_PRIVATE, PlayerFixture::PLAYER_REGULAR, PlayerFixture::PLAYER_WITH_STRIPE]), 'id' => PlayerFixture::PLAYER_ADMIN],
+        );
+        $database->executeStatement(
+            "UPDATE puzzle_solving_time SET tracked_at = NOW() + INTERVAL '1 hour' WHERE player_id = :private AND team IS NULL",
+            ['private' => PlayerFixture::PLAYER_PRIVATE],
+        );
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+        $crawler = $browser->request('GET', '/en/hub');
+        self::assertResponseIsSuccessful();
+
+        $pane = $crawler->filter(self::FAVORITES_PANE);
+        self::assertStringNotContainsString('Jane Smith', $pane->html());
+        self::assertCount(20, $pane->filter('tr[id^="activity-favorites-"]'));
+        self::assertCount(20, $pane->filter('tr.ra-new[id^="activity-favorites-"]'));
+
+        $pill = $crawler->filter('.nav-tabs a[href="#recent-favorites-activity"] .hub-feed-new');
+        self::assertSame('20+', $pill->filter('.hub-feed-new-short')->text());
+    }
+
     private function storeLastVisit(DateTimeImmutable $lastVisit): void
     {
         $container = self::getContainer();

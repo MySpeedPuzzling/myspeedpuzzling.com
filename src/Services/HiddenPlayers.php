@@ -148,9 +148,14 @@ final class HiddenPlayers implements ResetInterface
     }
 
     /**
-     * The rule of the solving time and conversation branches of GetNotifications::forPlayer(), for the statements
-     * that read the notification table alone (the unread counts, the Inbox badge's For you part): a badge must not
-     * count what the list leaves out. Empty when nobody is hidden. `$viewerId` = the notifications' owner.
+     * The rule of the hiding branches of GetNotifications::forPlayer(), for the statements that read the notification
+     * table alone (the unread counts, the Inbox badge's For you part): a badge must not count what the list leaves out.
+     * Empty when nobody is hidden. `$viewerId` = the notifications' owner.
+     *
+     * - the actor (`actor_player_id`) of any row: the list's actor branches (pair/team renamed, guest links) and its
+     *   solving time branch (the group edit's editor) leave out a row whose actor is hidden - also when the block came
+     *   after the row was created (docs/features/navigation INB-02 review F1);
+     * - a solving time row by its tracker and its pair/team members, a conversation request by its initiator.
      *
      * @param list<string> $hiddenIds
      */
@@ -160,12 +165,14 @@ final class HiddenPlayers implements ResetInterface
             return '';
         }
 
+        $actorNotHidden = self::sqlExcludeFor('notification.actor_player_id', $hiddenIds);
         $solvingTimeNotHidden = self::sqlExcludeFor('COALESCE(notification.actor_player_id, pst.player_id)', $hiddenIds)
             . self::sqlExcludeTeamFor('pst.team', $hiddenIds, $viewerId);
         $initiatorNotHidden = self::sqlExcludeFor('conv.initiator_id', $hiddenIds);
 
         return <<<SQL
- AND (notification.target_solving_time_id IS NULL OR EXISTS (
+{$actorNotHidden}
+    AND (notification.target_solving_time_id IS NULL OR EXISTS (
         SELECT 1 FROM puzzle_solving_time pst WHERE pst.id = notification.target_solving_time_id{$solvingTimeNotHidden}
     ))
     AND (notification.target_conversation_id IS NULL OR EXISTS (

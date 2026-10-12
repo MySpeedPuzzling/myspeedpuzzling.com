@@ -49,6 +49,10 @@ SQL;
     }
 
     /**
+     * Every row the Inbox badge's For you part counts is listed by one branch here - a branch never inner-joins
+     * something that can go away while the notification stays (a merged-away puzzle, an anonymised player, a brand)
+     * and hides exactly what HiddenPlayers::sqlNotificationNotHiddenFor() hides (GetInboxBadgeTest pins the parity).
+     *
      * @return array<PlayerNotification>
      */
     public function forPlayer(string $playerId, int $limit, int $offset = 0): array
@@ -155,7 +159,8 @@ SELECT * FROM (
     -- The "target player" is who the notification is about: the group member who edited the time
     -- when there is an actor, otherwise whoever tracked it
     INNER JOIN player ON player.id = COALESCE(notification.actor_player_id, puzzle_solving_time.player_id)
-    INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
+    -- LEFT: a puzzle may have no brand (puzzle.manufacturer_id is nullable) - the row is counted, so it is listed
+    LEFT JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
     LEFT JOIN LATERAL json_array_elements(puzzle_solving_time.team -> 'puzzlers') WITH ORDINALITY AS player_elem(player, ordinality) ON true
     LEFT JOIN player p ON p.id = (player_elem.player ->> 'player_id')::UUID
     WHERE notification.player_id = :playerId
@@ -387,9 +392,10 @@ SELECT * FROM (
         NULL::varchar AS change_request_puzzle_image,
         NULL::varchar AS change_request_rejection_reason,
         pmr.id AS merge_request_id,
-        source_puzzle.id AS merge_request_puzzle_id,
-        source_puzzle.name AS merge_request_puzzle_name,
-        CASE WHEN source_puzzle.hide_image_until IS NOT NULL AND source_puzzle.hide_image_until > :now::timestamp THEN NULL ELSE source_puzzle.image END AS merge_request_puzzle_image,
+        -- The reported puzzle, or - once it was merged away - the puzzle it became (an approved merge's survivor)
+        merge_puzzle.id AS merge_request_puzzle_id,
+        CASE WHEN pmr.source_puzzle_id IS NOT NULL THEN merge_puzzle.name ELSE COALESCE(pmr.source_puzzle_name, merge_puzzle.name) END AS merge_request_puzzle_name,
+        CASE WHEN merge_puzzle.hide_image_until IS NOT NULL AND merge_puzzle.hide_image_until > :now::timestamp THEN NULL ELSE merge_puzzle.image END AS merge_request_puzzle_image,
         pmr.rejection_reason AS merge_request_rejection_reason,
         -- Rating notification fields (NULL for merge request notifications)
         NULL::uuid AS sold_swapped_item_id,
@@ -414,7 +420,10 @@ SELECT * FROM (
         NULL::varchar AS round_series_slug
     FROM notification
     INNER JOIN puzzle_merge_request pmr ON notification.target_merge_request_id = pmr.id
-    INNER JOIN puzzle source_puzzle ON pmr.source_puzzle_id = source_puzzle.id
+    -- LEFT: an approved merge often deletes the reported puzzle (source_puzzle_id is set NULL) - the reporter is told
+    -- all the same, by the name the request kept, with a link to the survivor (docs/features/navigation INB-02 review
+    -- F1: the badge counts the row)
+    LEFT JOIN puzzle merge_puzzle ON merge_puzzle.id = COALESCE(pmr.source_puzzle_id, pmr.survivor_puzzle_id)
     WHERE notification.player_id = :playerId
         AND notification.target_merge_request_id IS NOT NULL
 
@@ -479,8 +488,8 @@ SELECT * FROM (
         puzzle.name AS rating_puzzle_name,
         CASE WHEN puzzle.hide_image_until IS NOT NULL AND puzzle.hide_image_until > :now::timestamp THEN NULL ELSE puzzle.image END AS rating_puzzle_image,
         CASE
-            WHEN ssi.seller_id = notification.player_id THEN COALESCE(buyer.name, buyer.code)
-            ELSE COALESCE(seller.name, seller.code)
+            WHEN ssi.seller_id = notification.player_id THEN COALESCE(buyer.name, buyer.code, ssi.buyer_name)
+            ELSE COALESCE(seller.name, seller.code, ssi.seller_name)
         END AS rating_other_player_name,
         CASE
             WHEN ssi.seller_id = notification.player_id THEN buyer.id
@@ -504,7 +513,8 @@ SELECT * FROM (
     FROM notification
     INNER JOIN sold_swapped_item ssi ON notification.target_sold_swapped_item_id = ssi.id
     INNER JOIN puzzle ON ssi.puzzle_id = puzzle.id
-    INNER JOIN player seller ON ssi.seller_id = seller.id
+    -- LEFT: a deleted seller is anonymised (seller_id NULL, seller_name kept) - the buyer is still asked to rate
+    LEFT JOIN player seller ON ssi.seller_id = seller.id
     LEFT JOIN player buyer ON ssi.buyer_player_id = buyer.id
     WHERE notification.player_id = :playerId
         AND notification.target_sold_swapped_item_id IS NOT NULL
@@ -958,9 +968,9 @@ SQL;
     }
 
     /**
-     * The same rule as the solving time and conversation branches of forPlayer(), for the queries that read the
-     * notification table alone - shared with the Inbox badge (GetInboxBadge), which must not count what the list
-     * leaves out.
+     * The same rule as the hiding branches of forPlayer() (actor, solving time, conversation), for the queries that
+     * read the notification table alone - shared with the Inbox badge (GetInboxBadge), which must not count what the
+     * list leaves out (HiddenPlayers::sqlNotificationNotHiddenFor()).
      */
     private function unreadNotHidden(): string
     {

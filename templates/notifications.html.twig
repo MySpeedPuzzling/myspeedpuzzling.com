@@ -66,11 +66,16 @@
                                         {% endif %}
                                     {% endif %}
                                     -
-                                    <a class="text-decoration-underline" href="{{ path('puzzle_detail', {'puzzleId': notification.mergeRequestPuzzleId}) }}">{{ notification.mergeRequestPuzzleName }}</a>
+                                    {# The reported puzzle, or the puzzle it was merged into; no link when neither exists any more #}
+                                    {% if notification.mergeRequestPuzzleId is not null %}
+                                        <a class="text-decoration-underline" href="{{ path('puzzle_detail', {'puzzleId': notification.mergeRequestPuzzleId}) }}">{{ notification.mergeRequestPuzzleName }}</a>
+                                    {% else %}
+                                        {{ notification.mergeRequestPuzzleName }}
+                                    {% endif %}
                                 </td>
 
                                 <td class="" style="width: 80px;">
-                                    {% if notification.mergeRequestPuzzleImage is not null %}
+                                    {% if notification.mergeRequestPuzzleImage is not null and notification.mergeRequestPuzzleId is not null %}
                                         <a href="{{ path('puzzle_detail', {puzzleId: notification.mergeRequestPuzzleId}) }}">
                                             {{ include('_puzzle_row_image.html.twig', {image: notification.mergeRequestPuzzleImage, alt: notification.mergeRequestPuzzleName, position: loop.index, ratio: null}) }}
                                         </a>
@@ -85,7 +90,11 @@
                                 <td class="align-middle fs-sm text-muted">
                                     <b style="color: #000;">{{ notification.notifiedAt|ago }}</b><br>
                                     <span>Rate your transaction with
-                                        <a class="text-decoration-underline" href="{{ path('player_profile', {playerId: notification.ratingOtherPlayerId}) }}">{{ notification.ratingOtherPlayerName }}</a>
+                                        {% if notification.ratingOtherPlayerId is not null %}
+                                            <a class="text-decoration-underline" href="{{ path('player_profile', {playerId: notification.ratingOtherPlayerId}) }}">{{ notification.ratingOtherPlayerName }}</a>
+                                        {% else %}
+                                            {{ notification.ratingOtherPlayerName }}
+                                        {% endif %}
                                         for <strong>{{ notification.ratingPuzzleName }}</strong>
                                     </span>
                                 </td>

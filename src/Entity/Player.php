@@ -535,7 +535,8 @@ class Player
 
     /**
      * The Favorites feed was shown - unless it was already marked less than FavoritesSeen::MARK_EVERY_SECONDS ago,
-     * then nothing changes (no UPDATE): what was new stays new for a quick return to the Hub.
+     * then nothing changes (no UPDATE): the interval only spares writes. The page that marked keeps its highlights;
+     * any later render, a quick return included, reads the new value and starts from it (FavoritesSeen).
      */
     public function markFavoritesSeen(DateTimeImmutable $now): void
     {

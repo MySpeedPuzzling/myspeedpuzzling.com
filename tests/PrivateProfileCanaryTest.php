@@ -418,6 +418,9 @@ final class PrivateProfileCanaryTest extends WebTestCase
      * (her times are on Home › Favorites: PrivateProfileViewersControllerTest). Messages: a conversation names her to
      * whoever is in it - bilateral, by design (docs/features/private-profile-allow-list.md, "Left as is") - and the tab
      * lists the viewer's own conversations only: the friend talks with her, the strangers do not.
+     * The For you row has no positive control since INB-03: no listed For you type masks a private player any more
+     * (group edits name the editor on purpose, the other types are bilateral) - it only guards that the old rows stay
+     * unlisted.
      */
     #[DataProvider('provideInboxTabs')]
     public function testOnlyTheFriendSeesHerOnTheirInboxTab(string $url, bool $friendSeesHer): void

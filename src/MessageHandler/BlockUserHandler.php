@@ -9,10 +9,13 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\UserBlock;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Message\BlockUser;
+use SpeedPuzzling\Web\Message\PushInboxBadge;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PrivateProfileViewerRepository;
 use SpeedPuzzling\Web\Repository\UserBlockRepository;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
+use Symfony\Component\Messenger\MessageBusInterface;
+use Symfony\Component\Messenger\Stamp\DispatchAfterCurrentBusStamp;
 
 #[AsMessageHandler]
 readonly final class BlockUserHandler
@@ -22,6 +25,7 @@ readonly final class BlockUserHandler
         private UserBlockRepository $userBlockRepository,
         private PrivateProfileViewerRepository $privateProfileViewerRepository,
         private ClockInterface $clock,
+        private MessageBusInterface $messageBus,
     ) {
     }
 
@@ -60,5 +64,9 @@ readonly final class BlockUserHandler
         );
 
         $this->userBlockRepository->save($userBlock);
+
+        // What the blocked player said no longer counts in the blocker's badge - their other open tabs get the new one
+        // (INB-02 review Q2). Never pushed to the blocked player: their badge does not change, and nothing tells them
+        $this->messageBus->dispatch(new PushInboxBadge($blocker->id->toString()), [new DispatchAfterCurrentBusStamp()]);
     }
 }

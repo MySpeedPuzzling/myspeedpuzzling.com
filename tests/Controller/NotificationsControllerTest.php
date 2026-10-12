@@ -9,14 +9,19 @@ use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Events\GroupSolvingTimeEdited;
+use SpeedPuzzling\Web\Message\ApprovePuzzleMergeRequest;
+use SpeedPuzzling\Web\Message\SubmitPuzzleMergeRequest;
 use SpeedPuzzling\Web\MessageHandler\NotifyWhenGroupSolvingTimeEdited;
+use SpeedPuzzling\Web\Tests\DataFixtures\ManufacturerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
 use SpeedPuzzling\Web\Tests\QueryCountAssertions;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\HttpKernel\Profiler\Profile;
+use Symfony\Component\Messenger\MessageBusInterface;
 
 final class NotificationsControllerTest extends WebTestCase
 {
@@ -25,6 +30,10 @@ final class NotificationsControllerTest extends WebTestCase
     // The Inbox badge's parts (INB-02): the old bell shows For you, the old Messages tool the Messages part
     private const string FOR_YOU = '.inbox-badge[data-inbox-part="for_you"]';
     private const string MESSAGES = '.inbox-badge[data-inbox-part="messages"]';
+
+    // A page that marks: the session's user refresh, the viewer's profile row, the Inbox badge, the notifications, the
+    // mark's UPDATE in its transaction - the same as before the badge moved ahead of the list (INB-02 review F1)
+    private const int MARKING_PAGE_STATEMENTS = 7;
 
     public function testAnonymousUserIsRedirectedToLogin(): void
     {
@@ -109,6 +118,95 @@ final class NotificationsControllerTest extends WebTestCase
         self::assertCount(1, $crawler->filter('main table tbody tr'));
         self::assertStringContainsString('edited your shared result for', $crawler->filter('main table tbody')->text());
         self::assertStringNotContainsString('solved puzzle', $crawler->filter('main table tbody')->text());
+    }
+
+    /**
+     * The review's reproduction (INB-02 review F1): a moderator approves the player's merge report keeping the other
+     * puzzle, so the reported one is deleted. The approval is counted For you - and now listed too, by the name the
+     * request kept - and opening the page clears it: 0 on the next page.
+     */
+    public function testAnApprovedMergeOfAReportedPuzzleThatWasMergedAwayIsShownAndCleared(): void
+    {
+        $browser = self::createClient();
+        $container = self::getContainer();
+        /** @var Connection $connection */
+        $connection = $container->get(Connection::class);
+        $reportedName = $connection->fetchOne('SELECT name FROM puzzle WHERE id = :id', ['id' => PuzzleFixture::PUZZLE_500_05]);
+        self::assertIsString($reportedName);
+
+        // PLAYER_REGULAR reports PUZZLE_500_05 as a duplicate of PUZZLE_500_04; the admin keeps PUZZLE_500_04
+        $mergeRequestId = Uuid::uuid7()->toString();
+        $bus = $container->get(MessageBusInterface::class);
+        $bus->dispatch(new SubmitPuzzleMergeRequest(
+            mergeRequestId: $mergeRequestId,
+            sourcePuzzleId: PuzzleFixture::PUZZLE_500_05,
+            reporterId: PlayerFixture::PLAYER_REGULAR,
+            duplicatePuzzleIds: [PuzzleFixture::PUZZLE_500_04],
+        ));
+        $bus->dispatch(new ApprovePuzzleMergeRequest(
+            mergeRequestId: $mergeRequestId,
+            reviewerId: PlayerFixture::PLAYER_ADMIN,
+            survivorPuzzleId: PuzzleFixture::PUZZLE_500_04,
+            mergedName: 'The Kept Puzzle',
+            mergedEans: null,
+            mergedBrandCodes: null,
+            mergedPiecesCount: 500,
+            mergedManufacturerId: ManufacturerFixture::MANUFACTURER_RAVENSBURGER,
+            selectedImagePuzzleId: null,
+        ));
+        self::assertFalse($connection->fetchOne('SELECT 1 FROM puzzle WHERE id = :id', ['id' => PuzzleFixture::PUZZLE_500_05]), 'The reported puzzle was merged away');
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+        $crawler = $browser->request('GET', '/en/faq');
+        $this->assertResponseIsSuccessful();
+        self::assertSame('1', $crawler->filter(self::FOR_YOU)->text());
+
+        $crawler = $browser->request('GET', '/en/notifications');
+        $this->assertResponseIsSuccessful();
+        $row = $crawler->filter('main table tbody tr.table-active-player');
+        self::assertCount(1, $row);
+        self::assertStringContainsString($reportedName, $row->text());
+        // Linked to the puzzle it became
+        self::assertCount(1, $row->filter('a[href="/en/puzzle/' . PuzzleFixture::PUZZLE_500_04 . '"]'));
+
+        $crawler = $browser->request('GET', '/en/faq');
+        self::assertSame('0', $crawler->filter(self::FOR_YOU)->text());
+        self::assertSame(0, $this->unreadCount($connection, PlayerFixture::PLAYER_REGULAR));
+    }
+
+    /**
+     * The page clears whatever the badge counts, listed or not (INB-02 review F1): a lending notification whose transfer
+     * is gone (`target_transfer_id` is SET NULL - no code path deletes a transfer today) is counted and can never be
+     * listed. The page reads the badge statement first, marks everything read and tells the layout - the same statements
+     * as before: the badge, the list, the mark's UPDATE.
+     */
+    public function testOpeningThePageClearsACountNothingOnItExplains(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        /** @var Connection $connection */
+        $connection = $browser->getContainer()->get(Connection::class);
+        $connection->executeStatement(
+            "INSERT INTO notification (id, player_id, type, notified_at) VALUES (:id, :player, 'PuzzleLentToYou', NOW())",
+            ['id' => Uuid::uuid7()->toString(), 'player' => PlayerFixture::PLAYER_REGULAR],
+        );
+
+        $crawler = $browser->request('GET', '/en/faq');
+        self::assertSame('1', $crawler->filter(self::FOR_YOU)->text());
+
+        $this->startCountingQueries($browser);
+        $crawler = $browser->request('GET', '/en/notifications');
+        $this->assertResponseIsSuccessful();
+        self::assertCount(0, $crawler->filter('main table tbody tr'), 'Nothing on the page explains the count');
+        self::assertSame('0', $crawler->filter(self::FOR_YOU)->text());
+        self::assertSame('2', $crawler->filter(self::MESSAGES)->text());
+        self::assertSame(1, $this->badgeStatements($browser));
+        self::assertSame(self::MARKING_PAGE_STATEMENTS, $this->queryCount($browser), "/en/notifications ran:\n" . implode("\n", $this->executedSql($browser)));
+
+        $crawler = $browser->request('GET', '/en/faq');
+        self::assertSame('0', $crawler->filter(self::FOR_YOU)->text());
+        self::assertSame(0, $this->unreadCount($connection, PlayerFixture::PLAYER_REGULAR));
     }
 
     private function notifyGroupEdit(Connection $connection, string $playerId): void

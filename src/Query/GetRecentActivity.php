@@ -325,8 +325,12 @@ WITH filtered_puzzle_solving_time AS (
         pst.id
     FROM
         puzzle_solving_time pst
+    -- The tracker's privacy before LIMIT: the window holds rows the viewer is shown, so "20+ new" can be reached
+    -- (docs/features/navigation INB-04b review F4)
+    INNER JOIN player ON player.id = pst.player_id
     WHERE
         pst.suspicious = false
+        AND {$this->privateProfileAccess->sqlIsPublic('player')}
         AND (
             pst.player_id IN (:favoritePlayerIds){$notHidden}
             OR (pst.team IS NOT NULL AND (pst.team::jsonb -> 'puzzlers') @> ANY(ARRAY[:favoritePuzzlers]::jsonb[]){$notHidden})
@@ -390,7 +394,6 @@ INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
 LEFT JOIN competition ON competition.id = pst.competition_id
 LEFT JOIN competition_series cs ON cs.id = COALESCE(competition.series_id, pst.competition_series_id)
 LEFT JOIN player_skill ps ON ps.player_id = player.id
-WHERE {$this->privateProfileAccess->sqlIsPublic('player')}
 ORDER BY pst.tracked_at DESC
 SQL;
 

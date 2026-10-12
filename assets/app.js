@@ -35,6 +35,10 @@ import './turbo-stream-actions.js'
 import './layer_history.js';
 import { startNavInstrumentation } from './nav_instrumentation.js';
 import { installConfirmDialog } from './confirm_dialog.js';
+import { installDocumentReceipts } from './document_receipt.js';
+
+// When each page's HTML arrived, before any lazy controller loads - the stopwatch pill's clock (ADD-03 review F5)
+installDocumentReceipts({ window, document });
 
 Turbo.config.drive.progressBarDelay = 0;
 

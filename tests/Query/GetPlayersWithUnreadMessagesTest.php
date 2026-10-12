@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Tests\Query;
 
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Query\GetPlayersWithUnreadMessages;
+use SpeedPuzzling\Web\Tests\DataFixtures\ConversationFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
@@ -139,6 +140,24 @@ final class GetPlayersWithUnreadMessagesTest extends KernelTestCase
 
         // Pending requests are ~2 days old, which is less than 1 week
         $playerIds = array_map(static fn ($p) => $p->playerId, $players);
+        self::assertNotContains(PlayerFixture::PLAYER_REGULAR, $playerIds);
+    }
+
+    /**
+     * A request from an account deleted since (initiator anonymised to NULL, still pending) is listed nowhere - no
+     * e-mail about it either (docs/features/navigation INB-02 review F2).
+     */
+    public function testARequestFromADeletedAccountIsNotMailedAbout(): void
+    {
+        $playerIds = array_map(static fn ($p) => $p->playerId, $this->query->findPlayersWithPendingRequestsToNotify(50));
+        self::assertContains(PlayerFixture::PLAYER_REGULAR, $playerIds);
+
+        $this->connection->executeStatement(
+            "UPDATE conversation SET initiator_id = NULL, initiator_name = 'Deleted Account' WHERE id = :id",
+            ['id' => ConversationFixture::CONVERSATION_PENDING],
+        );
+
+        $playerIds = array_map(static fn ($p) => $p->playerId, $this->query->findPlayersWithPendingRequestsToNotify(50));
         self::assertNotContains(PlayerFixture::PLAYER_REGULAR, $playerIds);
     }
 

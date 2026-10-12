@@ -5,14 +5,21 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\Query;
 
 use Doctrine\DBAL\Connection;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Query\GetConversations;
 use SpeedPuzzling\Web\Query\GetInboxBadge;
 use SpeedPuzzling\Web\Query\GetNotifications;
+use SpeedPuzzling\Web\Results\ConversationOverview;
 use SpeedPuzzling\Web\Results\PlayerNotification;
+use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionRoundFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\ConversationFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\LentPuzzleTransferFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleReportFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\SoldSwappedItemFixture;
 use SpeedPuzzling\Web\Tests\TestingViewer;
 use SpeedPuzzling\Web\Value\NotificationType;
 use Symfony\Bridge\Doctrine\Middleware\Debug\DebugDataHolder;
@@ -191,14 +198,182 @@ final class GetInboxBadgeTest extends KernelTestCase
         self::assertMatchesRegularExpression('/Index Only Scan using custom_notification_unread_for_you on notification/', implode("\n", $plan));
     }
 
-    private function notify(string $playerId, string $type, string $targetColumn, string $targetId, bool $read = false, null|string $actorId = null): void
+    /**
+     * Every notification type the For you list can show, unread, for PLAYER_WITH_FAVORITES - and the rows a list used to
+     * drop while the badge counted them (INB-02 review F1): (a) an approved merge whose reported puzzle was merged away,
+     * (b) a pair/team renamed by an actor the player blocked afterwards, (c) guest-link requested/accepted by a blocked
+     * actor, (d) a transaction to rate whose seller deleted their account. The badge (explicit ids, as the profile row
+     * carries them) and the list (forPlayer() of the signed-in viewer) agree with nobody hidden and with the actors
+     * blocked; and every row is listed - none is left out of both.
+     */
+    public function testForYouCountsExactlyTheUnreadRowsTheListShowsForEveryType(): void
+    {
+        $viewer = PlayerFixture::PLAYER_WITH_FAVORITES;
+        $survivorId = PuzzleFixture::PUZZLE_500_02;
+
+        // (a) the reported puzzle was merged away: the request keeps its name and the survivor
+        $mergedAwayId = Uuid::uuid7()->toString();
+        $this->database->executeStatement(
+            "INSERT INTO puzzle_merge_request (id, status, source_puzzle_id, source_puzzle_name, survivor_puzzle_id, reporter_id, submitted_at, reviewed_at, reported_duplicate_puzzle_ids, merged_puzzle_ids) VALUES (:id, 'approved', NULL, 'Reported And Merged Away', :survivor, :reporter, NOW(), NOW(), '[]', '[]')",
+            ['id' => $mergedAwayId, 'survivor' => $survivorId, 'reporter' => $viewer],
+        );
+        $rejectedMergeId = Uuid::uuid7()->toString();
+        $this->database->executeStatement(
+            "INSERT INTO puzzle_merge_request (id, status, source_puzzle_id, source_puzzle_name, reporter_id, submitted_at, reviewed_at, rejection_reason, reported_duplicate_puzzle_ids, merged_puzzle_ids) VALUES (:id, 'rejected', :source, 'Kept', :reporter, NOW(), NOW(), 'Not a duplicate', '[]', '[]')",
+            ['id' => $rejectedMergeId, 'source' => PuzzleFixture::PUZZLE_500_03, 'reporter' => $viewer],
+        );
+
+        // (d) SOLD_01's seller (PLAYER_ADMIN) deleted the account: anonymised as DeletePlayerHandler does
+        $this->database->executeStatement(
+            "UPDATE sold_swapped_item SET seller_id = NULL, seller_name = 'Former Seller' WHERE id = :id",
+            ['id' => SoldSwappedItemFixture::SOLD_01],
+        );
+
+        // (c) PLAYER_WITH_STRIPE asked whether a guest of theirs is the viewer, and agreed to another one
+        $guestLinkIds = [];
+        foreach (['Guest Asked', 'Guest Agreed'] as $guestName) {
+            $guestLinkIds[] = $guestLinkId = Uuid::uuid7()->toString();
+            $this->database->executeStatement(
+                'INSERT INTO guest_link_request (id, guest_key, guest_name, requested_at, requester_id, target_id) VALUES (:id, :key, :name, NOW(), :requester, :target)',
+                ['id' => $guestLinkId, 'key' => strtolower($guestName), 'name' => $guestName, 'requester' => PlayerFixture::PLAYER_WITH_STRIPE, 'target' => $viewer],
+            );
+        }
+
+        // (b) the pair of TIME_12 renamed by PLAYER_REGULAR
+        $teamId = $this->database->fetchOne('SELECT puzzling_team_id FROM puzzle_solving_time WHERE id = :id', ['id' => PuzzleSolvingTimeFixture::TIME_12]);
+        self::assertIsString($teamId);
+
+        $this->notify($viewer, 'GroupSolvingTimeEdited', 'target_solving_time_id', PuzzleSolvingTimeFixture::TIME_03, actorId: PlayerFixture::PLAYER_ADMIN);
+        $this->notify($viewer, 'PuzzlePassedToYou', 'target_transfer_id', LentPuzzleTransferFixture::TRANSFER_06);
+        $this->notify($viewer, 'PuzzleChangeRequestApproved', 'target_change_request_id', PuzzleReportFixture::CHANGE_REQUEST_APPROVED);
+        $this->notify($viewer, 'PuzzleChangeRequestRejected', 'target_change_request_id', PuzzleReportFixture::CHANGE_REQUEST_REJECTED);
+        $this->notify($viewer, 'PuzzleMergeRequestApproved', 'target_merge_request_id', $mergedAwayId);
+        $this->notify($viewer, 'PuzzleMergeRequestRejected', 'target_merge_request_id', $rejectedMergeId);
+        $this->notify($viewer, 'RateYourTransaction', 'target_sold_swapped_item_id', SoldSwappedItemFixture::SOLD_01);
+        $this->notify($viewer, 'RateYourTransaction', 'target_sold_swapped_item_id', SoldSwappedItemFixture::SOLD_02);
+        $this->notify($viewer, 'ModeratorRoleGranted', null, null);
+        $this->notify($viewer, 'OfficialResultPublished', 'target_competition_round_id', CompetitionRoundFixture::ROUND_WJPC_FINAL);
+        $this->notify($viewer, 'PuzzlingTeamRenamed', 'target_puzzling_team_id', $teamId, actorId: PlayerFixture::PLAYER_REGULAR);
+        $this->notify($viewer, 'GuestLinkRequested', 'target_guest_link_request_id', $guestLinkIds[0], actorId: PlayerFixture::PLAYER_WITH_STRIPE);
+        $this->notify($viewer, 'GuestLinkAccepted', 'target_guest_link_request_id', $guestLinkIds[1], actorId: PlayerFixture::PLAYER_WITH_STRIPE);
+        // Listed, counted under Messages
+        $this->notify($viewer, 'NewConversationRequest', 'target_conversation_id', ConversationFixture::CONVERSATION_PENDING);
+        // Neither listed nor counted (INB-03)
+        $this->notify($viewer, 'SubscribedPlayerAddedTime', 'target_solving_time_id', PuzzleSolvingTimeFixture::TIME_12);
+
+        /** @var GetNotifications $notifications */
+        $notifications = self::getContainer()->get(GetNotifications::class);
+        $hiddenActors = [PlayerFixture::PLAYER_REGULAR, PlayerFixture::PLAYER_WITH_STRIPE];
+
+        // [hidden, For you: the fixture's group edit (actor PLAYER_REGULAR) + the 13 rows above]
+        foreach ([[[], 14], [$hiddenActors, 10]] as [$hidden, $expected]) {
+            if ($hidden === []) {
+                TestingViewer::signOut(self::getContainer());
+            } else {
+                // The blocks came after the rows were created (an admin block after a report included)
+                foreach ($hidden as $blockedId) {
+                    $this->block($viewer, $blockedId);
+                }
+
+                TestingViewer::signIn(self::getContainer(), $viewer);
+            }
+
+            $unreadForYou = array_values(array_filter(
+                $notifications->forPlayer($viewer, 200),
+                static fn (PlayerNotification $notification): bool => $notification->readAt === null
+                    && !in_array($notification->notificationType, GetInboxBadge::NOT_FOR_YOU, true),
+            ));
+
+            self::assertCount($expected, $unreadForYou, 'Every unread For you row is listed');
+            self::assertSame(count($unreadForYou), $this->query->forPlayer($viewer, $hidden)->forYou, 'The badge counts exactly the listed rows');
+        }
+
+        // (a) listed by the name the request kept, linking the survivor; (d) the seller by the name the sale kept
+        TestingViewer::signOut(self::getContainer());
+        $rows = $notifications->forPlayer($viewer, 200);
+        $mergedAway = array_values(array_filter($rows, static fn (PlayerNotification $row): bool => $row->mergeRequestId === $mergedAwayId));
+        self::assertCount(1, $mergedAway);
+        self::assertSame('Reported And Merged Away', $mergedAway[0]->mergeRequestPuzzleName);
+        self::assertSame($survivorId, $mergedAway[0]->mergeRequestPuzzleId);
+        $rating = array_values(array_filter($rows, static fn (PlayerNotification $row): bool => $row->soldSwappedItemId === SoldSwappedItemFixture::SOLD_01));
+        self::assertCount(1, $rating);
+        self::assertSame('Former Seller', $rating[0]->ratingOtherPlayerName);
+        self::assertNull($rating[0]->ratingOtherPlayerId);
+    }
+
+    /**
+     * A message request from an account deleted since (DeletePlayerHandler::anonymizeConversations(): initiator NULL,
+     * still pending) is listed nowhere, so it is not counted - it could never be accepted or ignored (review F2).
+     */
+    public function testARequestFromADeletedAccountIsNotCounted(): void
+    {
+        self::assertSame(1, $this->query->forPlayer(PlayerFixture::PLAYER_REGULAR, [])->pendingRequests);
+
+        $this->database->executeStatement(
+            "UPDATE conversation SET initiator_id = NULL, initiator_name = 'Deleted Account' WHERE id = :id",
+            ['id' => ConversationFixture::CONVERSATION_PENDING],
+        );
+
+        $parts = $this->query->forPlayer(PlayerFixture::PLAYER_REGULAR, []);
+        self::assertSame(0, $parts->pendingRequests);
+        self::assertSame([], self::getContainer()->get(GetConversations::class)->pendingRequestsForPlayer(PlayerFixture::PLAYER_REGULAR));
+        self::assertSame(['route' => 'conversations_list', 'params' => []], $parts->target(), 'The Inbox link no longer opens an empty Requests tab');
+    }
+
+    /**
+     * @return iterable<string, array{string, string}>
+     */
+    public static function provideDeletedPartners(): iterable
+    {
+        // CONVERSATION_ACCEPTED: PLAYER_REGULAR (initiator) with PLAYER_ADMIN (recipient) - [the viewer, the deleted side]
+        yield 'the recipient deleted' => [PlayerFixture::PLAYER_REGULAR, PlayerFixture::PLAYER_ADMIN];
+        yield 'the initiator deleted' => [PlayerFixture::PLAYER_ADMIN, PlayerFixture::PLAYER_REGULAR];
+    }
+
+    /**
+     * An accepted conversation whose other side deleted the account is in no list (GetConversations::forPlayer() joins
+     * both players), so its unread messages are not counted (review F2).
+     */
+    #[DataProvider('provideDeletedPartners')]
+    public function testAConversationWithADeletedPartnerIsNotCounted(string $viewerId, string $deletedId): void
+    {
+        // An unread message from the side that is deleted next
+        $this->database->executeStatement(
+            "INSERT INTO chat_message (id, conversation_id, sender_id, content, sent_at) VALUES (:id, :conversation, :sender, 'Hello', NOW())",
+            ['id' => Uuid::uuid7()->toString(), 'conversation' => ConversationFixture::CONVERSATION_ACCEPTED, 'sender' => $deletedId],
+        );
+        $before = $this->query->forPlayer($viewerId, [])->unreadConversations;
+        self::assertGreaterThanOrEqual(1, $before);
+
+        // Anonymised as DeletePlayerHandler::anonymizeConversations() does
+        $this->database->executeStatement(
+            "UPDATE conversation SET initiator_id = CASE WHEN initiator_id = :deleted THEN NULL ELSE initiator_id END, recipient_id = CASE WHEN recipient_id = :deleted THEN NULL ELSE recipient_id END WHERE id = :id",
+            ['id' => ConversationFixture::CONVERSATION_ACCEPTED, 'deleted' => $deletedId],
+        );
+
+        self::assertSame($before - 1, $this->query->forPlayer($viewerId, [])->unreadConversations);
+        $listed = array_filter(
+            self::getContainer()->get(GetConversations::class)->forPlayer($viewerId),
+            static fn (ConversationOverview $conversation): bool => $conversation->conversationId === ConversationFixture::CONVERSATION_ACCEPTED,
+        );
+        self::assertSame([], $listed);
+    }
+
+    private function notify(string $playerId, string $type, null|string $targetColumn, null|string $targetId, bool $read = false, null|string $actorId = null): void
     {
         self::assertNotNull(NotificationType::tryFrom($type));
         $readAt = $read ? 'NOW()' : 'NULL';
+        $columns = $targetColumn === null ? '' : ", {$targetColumn}";
+        $values = $targetColumn === null ? '' : ', :target';
+        $params = ['id' => Uuid::uuid7()->toString(), 'player' => $playerId, 'type' => $type, 'actor' => $actorId];
+
+        if ($targetColumn !== null) {
+            $params['target'] = $targetId;
+        }
 
         $this->database->executeStatement(
-            "INSERT INTO notification (id, player_id, type, notified_at, read_at, actor_player_id, {$targetColumn}) VALUES (:id, :player, :type, NOW(), {$readAt}, :actor, :target)",
-            ['id' => Uuid::uuid7()->toString(), 'player' => $playerId, 'type' => $type, 'actor' => $actorId, 'target' => $targetId],
+            "INSERT INTO notification (id, player_id, type, notified_at, read_at, actor_player_id{$columns}) VALUES (:id, :player, :type, NOW(), {$readAt}, :actor{$values})",
+            $params,
         );
     }
 

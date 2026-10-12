@@ -1,5 +1,5 @@
 import { Controller } from '@hotwired/stimulus';
-import { canStart, OUT_MS, SHEET_EASING, SHEET_PHONE_MEDIA, SheetDrag, SPRING_MS } from '../sheet_drag.js';
+import { canStart, OUT_MS, pointerReleased, SHEET_EASING, SHEET_PHONE_MEDIA, SheetDrag, SPRING_MS } from '../sheet_drag.js';
 
 // On the host (the dynamic modal #dynamic-modal-container, or a sheet dialog) while this content is in it: the phone
 // layout of assets/styles/_bottom-sheet.scss (anchored to the bottom, handle, rises from the bottom)
@@ -147,6 +147,13 @@ export default class extends Controller {
 
     onPointerMove = (event) => {
         if (event.pointerId !== this.pointerId) {
+            return;
+        }
+
+        if (pointerReleased(event)) {
+            this.releasePointer();
+            this.finish(this.drag.cancel());
+
             return;
         }
 

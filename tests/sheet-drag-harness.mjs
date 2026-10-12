@@ -3,10 +3,11 @@
 //
 // A case: {path?, zone?, moves: [[x, y, t], …], release?: t, height?: px, cancel?: bool}
 // - path: the touched element first, its ancestors after it; the last one is the zone's root (the handle or the body)
-// - moves: finger positions after the finger went down at (0, 0) at t = 0
+// - moves: finger positions after the finger went down at (0, 0) at t = 0; a 4th item {pointerType, buttons} makes it a
+//   pointermove the controller first checks with pointerReleased() (a mouse with no button held ends the gesture)
 
 import { readFileSync } from 'node:fs';
-import { canStart, SheetDrag } from '../assets/sheet_drag.js';
+import { canStart, pointerReleased, SheetDrag } from '../assets/sheet_drag.js';
 
 const cases = JSON.parse(readFileSync(0, 'utf8'));
 
@@ -46,11 +47,23 @@ process.stdout.write(JSON.stringify(cases.map((testCase) => {
     const drag = new SheetDrag();
     drag.start(0, 0, 0, allowed);
 
-    const steps = (testCase.moves ?? []).map(([x, y, t]) => drag.move(x, y, t));
-    const lastT = steps.length > 0 ? testCase.moves[testCase.moves.length - 1][2] : 0;
+    // bottom_sheet_controller#onPointerMove: a released mouse cancels before the move is fed
+    let ended = null;
+    const steps = [];
+
+    for (const [x, y, t, pointer] of testCase.moves ?? []) {
+        if (pointer && pointerReleased(pointer)) {
+            ended = drag.cancel();
+            break;
+        }
+
+        steps.push(drag.move(x, y, t));
+    }
+
+    const lastT = steps.length > 0 ? testCase.moves[steps.length - 1][2] : 0;
     const offset = drag.offset;
     const velocity = drag.dragging ? drag.velocity(testCase.release ?? lastT) : 0;
-    const decision = testCase.cancel === true ? drag.cancel() : drag.release(testCase.height ?? 600, testCase.release ?? lastT);
+    const decision = ended ?? (testCase.cancel === true ? drag.cancel() : drag.release(testCase.height ?? 600, testCase.release ?? lastT));
 
     return {
         allowed,

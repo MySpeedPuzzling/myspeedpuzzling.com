@@ -1,5 +1,5 @@
 import { isNativeApp, os } from './platform.js';
-import layers from './layer_history.js';
+import layers, { LAYER_CLOSED_EVENT } from './layer_history.js';
 
 /**
  * In-page confirmations (docs/features/navigation README §4.13 G13, requirement GEST-13, implementation plan decision 60).
@@ -14,8 +14,9 @@ import layers from './layer_history.js';
  *   and a tap on the scrim answer false; focus goes into the dialog and back to the trigger explicitly (iOS does not
  *   focus tapped buttons, so the dialog's own focus restore would land on <body>). While a Bootstrap modal is open the
  *   dialog is appended inside it (its focus trap would pull focus out of a dialog placed elsewhere). It is **not** a
- *   history layer (a pushed entry would recreate #637): a popstate, turbo:before-visit, turbo:before-cache or the
- *   Bootstrap modal around it hiding answers an open one false and removes it. Esc is taken in a window capture
+ *   history layer (a pushed entry would recreate #637): a popstate, a layer closing (msp:layer-closed - a layer's
+ *   Back never reaches the popstate listener), turbo:before-visit, turbo:before-cache or the Bootstrap modal around it
+ *   hiding answers an open one false and removes it. Esc is taken in a window capture
  *   listener, so neither the layer helper's Escape (assets/layer_history.js), a Bootstrap modal nor a page's own
  *   Escape handling sees it.
  * - install({Turbo, report}) sets Turbo.config.forms.confirm: every `data-turbo-confirm` form (or submitter) asks here,
@@ -400,6 +401,9 @@ export function createConfirmDialog(env) {
             window.addEventListener('popstate', cancelOpen, true);
             window.addEventListener('turbo:before-visit', cancelOpen, true);
             window.addEventListener('turbo:before-cache', cancelOpen, true);
+            // A Back that closes a layer never reaches the popstate listener above (layer_history stops it at the
+            // window first): the layer's close is announced instead (review F2)
+            document.addEventListener(LAYER_CLOSED_EVENT, cancelOpen);
             // The Bootstrap modal holding the dialog goes away (its own × / Back closing the layer)
             document.addEventListener('hide.bs.modal', (event) => {
                 if (open && open.host === event.target) {

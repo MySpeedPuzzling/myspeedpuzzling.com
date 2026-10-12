@@ -51,7 +51,28 @@ export const OPEN_WAIT_MS = 300;
 /** A history.back() whose popstate never came: the layer closes anyway */
 export const CLOSE_FALLBACK_MS = 400;
 
+/**
+ * Dispatched on the document whenever a layer closes ({id, reason}): a popstate that closes a layer is stopped at the
+ * window, so whoever reacts to Back must listen here too (the in-page confirm answers false, review F2)
+ */
+export const LAYER_CLOSED_EVENT = 'msp:layer-closed';
+
 const MARKER = 'data-turbo-action';
+
+// Turbo 8.0.23's config.drive.unvisitableExtensions (read from window.Turbo when present): a same-origin link to one of
+// these is no Turbo visit - the browser navigates (or downloads) by itself
+const UNVISITABLE_EXTENSIONS = ['.7z', '.aac', '.apk', '.avi', '.bmp', '.bz2', '.css', '.csv', '.deb', '.dmg', '.doc', '.docx', '.exe',
+    '.gif', '.gz', '.heic', '.heif', '.ico', '.iso', '.jpeg', '.jpg', '.js', '.json', '.m4a', '.mkv', '.mov', '.mp3', '.mp4', '.mpeg',
+    '.mpg', '.msi', '.ogg', '.ogv', '.pdf', '.pkg', '.png', '.ppt', '.pptx', '.rar', '.rtf', '.svg', '.tar', '.tif', '.tiff', '.txt',
+    '.wav', '.webm', '.webp', '.wma', '.wmv', '.xls', '.xlsx', '.xml', '.zip'];
+
+/** Turbo's locationIsVisitable() extension rule: the extension of the URL's last path segment */
+export function unvisitableExtension(url, extensions = UNVISITABLE_EXTENSIONS) {
+    const last = String(url.pathname || '').split('/').pop() || '';
+    const match = last.match(/\.[^.]*$/);
+
+    return Boolean(match) && (typeof extensions.has === 'function' ? extensions.has(match[0]) : extensions.includes(match[0]));
+}
 
 /**
  * What open() does with the history (native-aware decision, tests/native-step-aside-harness.mjs):
@@ -202,6 +223,18 @@ export function createLayerHistory(env) {
     let leaving = [];
     let lastBackAt = null;
     let installed = false;
+    // A pop the helper already accounted for, onto the page entry of this URL (review F4: the late back() of a close
+    // settled without it; F5: the Back from a dead layer entry): {href, until}; Turbo must not read it as a page change
+    let quietPop = null;
+    // The layer a non-Turbo navigation leaves from: released when the page really goes (pagehide) - a download never
+    // commits, so its layer stays open with its entry (review F6)
+    let leavingByBrowser = null;
+    // The Turbo identity of the entry the last layer entry was pushed on ({id, index}): the layer's entry is one above
+    // it - a page owner may have pushed entries since Turbo was first paused (review F9)
+    let layerBase = null;
+
+    /** The late popstate after a fallback close may still come within this window (ms) */
+    const LATE_POP_MS = 2000;
 
     function state() {
         try {
@@ -223,8 +256,27 @@ export function createLayerHistory(env) {
         }
     }
 
+    function announce(layer, reason) {
+        try {
+            const view = document && document.defaultView ? document.defaultView : window;
+            const Custom = view && typeof view.CustomEvent === 'function' ? view.CustomEvent : null;
+
+            if (Custom && document && typeof document.dispatchEvent === 'function') {
+                document.dispatchEvent(new Custom(LAYER_CLOSED_EVENT, { detail: { id: layer.id, reason } }));
+            }
+        } catch (e) {
+            // a listener failing never keeps the layer open
+        }
+    }
+
     function callOnClose(layer, reason) {
-        if (!layer || typeof layer.onClose !== 'function') {
+        if (!layer) {
+            return;
+        }
+
+        announce(layer, reason);
+
+        if (typeof layer.onClose !== 'function') {
             return;
         }
 
@@ -278,6 +330,11 @@ export function createLayerHistory(env) {
             return { id: entry.restorationIdentifier, index: entry.restorationIndex };
         }
 
+        if (current && current[LAYER_STATE] && layerBase) {
+            // On a layer's entry (a visit leaves from it, or its back() never landed): one above the entry it was opened on
+            return { id: layerBase.id, index: layerBase.index + 1 };
+        }
+
         if (noted && noted.restorationIdentifier && withoutHash(noted.href) === withoutHash(href())) {
             // Still on a layer's entry (a visit leaves from it, or its back() never landed): one above the page's
             const above = current && current[LAYER_STATE] ? 1 : 0;
@@ -293,6 +350,7 @@ export function createLayerHistory(env) {
         const turboHistory = session && session.history;
         const keep = identity();
         noted = null;
+        layerBase = null;
 
         if (!turboHistory || typeof turboHistory.start !== 'function') {
             return;
@@ -353,8 +411,19 @@ export function createLayerHistory(env) {
     function restoreVisit(current) {
         const session = turbo();
         const restorationIdentifier = current && current.turbo ? current.turbo.restorationIdentifier : undefined;
+        const navigator = session && session.navigator;
+
+        // The traversal already happened: start the restore the way Turbo's own popstate does (Navigator#startVisit), no
+        // turbo:before-visit - a page's leave guard would keep its DOM under the new URL and its "Leave" would push a
+        // duplicate entry (review F3)
+        if (navigator && typeof navigator.startVisit === 'function') {
+            navigator.startVisit(href(), restorationIdentifier, { action: 'restore', historyChanged: true });
+
+            return;
+        }
 
         if (session && typeof session.visit === 'function') {
+            warnOnce('startVisit', 'Turbo navigator.startVisit missing: a restore after a layer pop is proposed like a new visit');
             session.visit(href(), { action: 'restore', historyChanged: true, restorationIdentifier });
 
             return;
@@ -419,6 +488,8 @@ export function createLayerHistory(env) {
 
         if (top && top.id === closing) {
             finish('back');
+            // Its popstate may still come: onto the same page, it is no page change (review F4)
+            quietPop = { href: withoutHash(href()), until: now() + LATE_POP_MS };
         }
 
         flushQueued();
@@ -475,6 +546,13 @@ export function createLayerHistory(env) {
             return;
         }
 
+        // An entry-less layer under it (its pushState failed) is replaced, never dropped silently (review F1)
+        const previous = top;
+        quietPop = null;
+        const base = state() && state().turbo;
+        layerBase = base && base.restorationIdentifier && typeof base.restorationIndex === 'number'
+            ? { id: base.restorationIdentifier, index: base.restorationIndex }
+            : null;
         pause(LAYER_OWNER);
 
         try {
@@ -485,6 +563,7 @@ export function createLayerHistory(env) {
         }
 
         top = layer;
+        callOnClose(previous, 'swap');
     }
 
     function requestClose(id) {
@@ -518,8 +597,53 @@ export function createLayerHistory(env) {
         history().back();
     }
 
+    function stop(event) {
+        if (typeof event.stopImmediatePropagation === 'function') {
+            event.stopImmediatePropagation();
+        }
+    }
+
+    /** Turbo's index follows a pop it does not see (its own listener would have set it) */
+    function syncTurboIndex(current) {
+        const session = turbo();
+        const turboHistory = session && session.history;
+        const entry = current && current.turbo;
+
+        if (!turboHistory || !entry || typeof entry.restorationIndex !== 'number' || typeof turboHistory.currentIndex !== 'number') {
+            return;
+        }
+
+        turboHistory.currentIndex = entry.restorationIndex;
+
+        if (entry.restorationIdentifier) {
+            turboHistory.restorationIdentifier = entry.restorationIdentifier;
+        }
+    }
+
+    function swallowQuietPop(event, current) {
+        const quiet = quietPop;
+        quietPop = null;
+
+        if (!quiet || holdsEntry() || owners.size > 0 || now() > quiet.until) {
+            return false;
+        }
+
+        if ((current && current[LAYER_STATE]) || withoutHash(href()) !== quiet.href) {
+            return false;
+        }
+
+        stop(event);
+        syncTurboIndex(current);
+
+        return true;
+    }
+
     function onPopState(event) {
         const current = event.state;
+
+        if (swallowQuietPop(event, current)) {
+            return;
+        }
 
         if (top && top.entry) {
             if (current && current[LAYER_STATE] === top.id) {
@@ -551,10 +675,13 @@ export function createLayerHistory(env) {
         }
 
         if (current && current[LAYER_STATE]) {
-            // Forward onto a closed layer's entry: never reopened (decision 58 D-4). While a page owner pauses Turbo,
-            // nobody else may read it as a page change.
-            if (owners.size > 0 && typeof event.stopImmediatePropagation === 'function') {
-                event.stopImmediatePropagation();
+            // Forward onto a closed layer's entry: never reopened (decision 58 D-4), and nobody else may read it as a
+            // page change - Turbo would turn it into a page entry of its own, and the next Back would restore (reload)
+            // the page (review F5). The Back from it onto this page's entry is swallowed the same way.
+            stop(event);
+
+            if (owners.size === 0) {
+                quietPop = { href: withoutHash(href()), until: Infinity };
             }
 
             return;
@@ -599,6 +726,29 @@ export function createLayerHistory(env) {
 
     function holdsEntry() {
         return Boolean(top && top.entry);
+    }
+
+    /**
+     * The page is left (or re-rendered) under the top layer: it is released whether it holds an entry or not - inside
+     * the native app no layer does, and a top kept across the visit would answer isOpen() and take the next ×/Esc/swipe
+     * (review F1). Turbo resumes only for a layer that paused it.
+     */
+    function releaseTop(reason) {
+        const layer = top;
+        top = null;
+        clearPending();
+
+        if (!layer) {
+            return null;
+        }
+
+        if (layer.entry) {
+            resume(LAYER_OWNER);
+        }
+
+        callOnClose(layer, reason);
+
+        return layer;
     }
 
     function onTurboClick(event) {
@@ -674,6 +824,7 @@ export function createLayerHistory(env) {
 
     function onTurboVisit(event) {
         restoreMarkers();
+        quietPop = null;
         const detail = event.detail || {};
 
         if (holdsEntry()) {
@@ -690,13 +841,13 @@ export function createLayerHistory(env) {
                 }
             }
 
-            const layer = top;
-            top = null;
-            clearPending();
-            leaving.push(layer);
-            resume(LAYER_OWNER);
-            callOnClose(layer, 'leave');
         }
+
+        if (top) {
+            leaving.push(top);
+        }
+
+        releaseTop('leave');
 
         // A page owner whose page is being left (a refresh of the same page keeps it)
         const target = detail.url ? pathnameOf(detail.url) : null;
@@ -713,8 +864,15 @@ export function createLayerHistory(env) {
         leaving = [];
     }
 
+    /** A page render nobody announced with turbo:visit (a full-page form answered 422/500) took the layer's element */
+    function onTurboRender() {
+        if (top && top.element && top.element.isConnected === false) {
+            releaseTop('leave');
+        }
+    }
+
     function onDocumentClick(event) {
-        if (!holdsEntry() || event.defaultPrevented || event.button > 0 || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) {
+        if (!top || event.defaultPrevented || event.button > 0 || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) {
             return;
         }
 
@@ -747,17 +905,87 @@ export function createLayerHistory(env) {
         const turboOff = Boolean(container) && container.getAttribute('data-turbo') === 'false';
         const external = url.origin !== new URL(href()).origin;
 
+        let unvisitable = false;
+
         if (!turboOff && !external) {
+            const turboConfig = window.Turbo && window.Turbo.config && window.Turbo.config.drive;
+            unvisitable = unvisitableExtension(url, turboConfig && turboConfig.unvisitableExtensions ? turboConfig.unvisitableExtensions : UNVISITABLE_EXTENSIONS);
+        }
+
+        if (!turboOff && !external && !unvisitable) {
+            return;
+        }
+
+        // The layer goes with the page (pagehide), not before: a link answering a download leaves the page where it is
+        leavingByBrowser = top;
+
+        if (!top.entry) {
+            // Nothing to replace (the native app): the browser (or the app) navigates
             return;
         }
 
         event.preventDefault();
-        const layer = top;
-        top = null;
-        clearPending();
-        resume(LAYER_OWNER);
-        callOnClose(layer, 'leave');
         location().replace(url.href);
+    }
+
+    /**
+     * A `data-turbo="false"` GET form submitted from a layer holding the entry: the browser would push [A, A', B] - the
+     * search URL replaces the layer's entry instead (review F6). A POST form keeps the browser's own push (open: it
+     * needs the entry given back first; none sits in a history layer).
+     */
+    function onSubmit(event) {
+        if (!holdsEntry() || event.defaultPrevented) {
+            return;
+        }
+
+        const form = event.target;
+
+        if (!form || typeof form.closest !== 'function' || String(form.tagName).toUpperCase() !== 'FORM') {
+            return;
+        }
+
+        const submitter = event.submitter || null;
+        const attribute = (name) => (submitter && submitter.hasAttribute && submitter.hasAttribute('form' + name) ? submitter.getAttribute('form' + name) : form.getAttribute(name));
+        const container = (submitter && typeof submitter.closest === 'function' ? submitter.closest('[data-turbo]') : null) || form.closest('[data-turbo]');
+        const turboOff = Boolean(container) && container.getAttribute('data-turbo') === 'false';
+        const method = String(attribute('method') || 'get').toLowerCase();
+        const target = attribute('target');
+
+        if (!turboOff || method !== 'get' || (target && target !== '_self')) {
+            return;
+        }
+
+        let url;
+
+        try {
+            url = new URL(attribute('action') || href(), href());
+            const view = document.defaultView || window;
+            const data = new view.FormData(form);
+
+            if (submitter && submitter.name) {
+                data.append(submitter.name, submitter.value || '');
+            }
+
+            url.search = new view.URLSearchParams(data).toString();
+        } catch (e) {
+            return;
+        }
+
+        if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+            return;
+        }
+
+        event.preventDefault();
+        leavingByBrowser = top;
+        location().replace(url.href);
+    }
+
+    function onPageHide() {
+        if (leavingByBrowser !== null && top === leavingByBrowser) {
+            releaseTop('leave');
+        }
+
+        leavingByBrowser = null;
     }
 
     // ---- Esc ------------------------------------------------------------------------------------------------------
@@ -906,8 +1134,11 @@ export function createLayerHistory(env) {
             document.addEventListener('turbo:submit-start', onSubmitStart);
             document.addEventListener('turbo:visit', onTurboVisit);
             document.addEventListener('turbo:load', onTurboLoad);
+            document.addEventListener('turbo:render', onTurboRender);
             document.addEventListener('click', onDocumentClick);
             document.addEventListener('keydown', onKeydown);
+            window.addEventListener('pagehide', onPageHide);
+            document.addEventListener('submit', onSubmit);
 
             return api;
         },

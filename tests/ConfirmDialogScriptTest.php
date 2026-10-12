@@ -107,6 +107,9 @@ final class ConfirmDialogScriptTest extends TestCase
             'turbo:before-visit' => ['answer' => false, 'left' => 0],
             'turbo:before-cache' => ['answer' => false, 'left' => 0],
         ], $this->case('leaving the page resolves false'));
+
+        // Review F2: a layer's Back never reaches the popstate listener - its close (msp:layer-closed) answers false
+        self::assertSame(['answer' => false, 'left' => 0, 'closes' => ['back'], 'layerOpen' => false], $this->case('a layer closed by Back resolves false'));
     }
 
     public function testTurboAsksThroughTheDialog(): void

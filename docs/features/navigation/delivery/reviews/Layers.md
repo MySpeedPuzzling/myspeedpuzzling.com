@@ -16,7 +16,7 @@
 
 ## Findings
 
-### F1 · major · `assets/layer_history.js:675-699` (`onTurboVisit`), `:716-761` (`onDocumentClick`), `:451-458` (native branch of `open`) · open
+### F1 · major · `assets/layer_history.js:675-699` (`onTurboVisit`), `:716-761` (`onDocumentClick`), `:451-458` (native branch of `open`) · resolved — `releaseTop()`: a visit, a non-Turbo link (at `pagehide`) and a page render that took the layer's element (`turbo:render`) release the top layer with or without an entry; the web push path tells an entry-less previous layer (`swap`)
 **Problem.** Inside the native app, a layer that is left by a page visit stays registered as the top layer.
 - In the app, `open()` takes the `'none'` path, so `top = layer` with `entry: false`.
 - `onTurboVisit` and `onDocumentClick` only release `top` when `holdsEntry()`. In the app `holdsEntry()` is always false, so leaving a page while a dynamic-modal layer is open never clears `top`.
@@ -45,7 +45,7 @@ This is a regression for the existing app (README §4.14: "a layer closes withou
 - On `turbo:render`, release a `top` whose `element` is no longer connected.
 - Add harness cases "native: leave from a layer → `isOpen()` false, next open/close works" and "native: swipe close", and add the GEST-02 native row (plan §NAV-14: "GEST-02 closes via GEST-01").
 
-### F2 · minor · `assets/confirm_dialog.js:400` vs `assets/layer_history.js:536-538` · open
+### F2 · minor · `assets/confirm_dialog.js:400` vs `assets/layer_history.js:536-538` · resolved — `layer_history` dispatches `msp:layer-closed` (`LAYER_CLOSED_EVENT`) on every close; the confirm answers false on it
 **Problem.** The comment in `confirm_dialog.js` says "a popstate … answers an open one false". That listener never runs when a layer close takes the pop:
 - Both listeners are window-capture listeners.
 - `layer_history` registers first (imported at `app.js:35`; the confirm dialog is installed at `app.js:48`).
@@ -59,7 +59,7 @@ Inside a Bootstrap modal the `hide.bs.modal` listener covers this. For a confirm
 
 Add a node case "confirm open + layer Back → resolved false".
 
-### F3 · minor · `assets/layer_history.js:353-364` (`restoreVisit`) with the guards at `live_results_controller.js:173`, `results_desk_controller.js:1384`, `round_seating_controller.js:328`, `participants_sheet/sheet_save_queue.js:1183` · open
+### F3 · minor · `assets/layer_history.js:353-364` (`restoreVisit`) with the guards at `live_results_controller.js:173`, `results_desk_controller.js:1384`, `round_seating_controller.js:328`, `participants_sheet/sheet_save_queue.js:1183` · resolved — `restoreVisit` starts the restore through `navigator.startVisit` (no `turbo:before-visit`, like Turbo's own popstate restore; falls back to `session.visit` with one warning); pinned in `TurboContractScriptTest`
 **Problem.** `restoreVisit` (a layer pop to another URL, or decision 93) calls `session.visit(…, {action:'restore'})`. That goes through `Navigator#proposeVisit` and fires `turbo:before-visit`. A Turbo popstate restore does not.
 
 On the live results page with a view open and unsent results, a long-press Back to an earlier page goes wrong:
@@ -75,7 +75,7 @@ Before GEST-01 this case was a Turbo restore. `app.js` turned it into a reload, 
 
 Add a harness case.
 
-### F4 · minor · `assets/layer_history.js:508-518`, `:410-425` · open
+### F4 · minor · `assets/layer_history.js:508-518`, `:410-425` · resolved — after a fallback settle the next popstate onto the same page within 2 s is swallowed and Turbo's index synced
 **Problem.** If the `history.back()` of a close lands after `CLOSE_FALLBACK_MS` (400 ms; this can happen on a loaded phone, since Chrome's traversal is a browser-process round trip):
 1. `settleClose` finishes the layer and restarts Turbo.
 2. The late popstate then reaches Turbo's own listener (`top` is null and `owners` is empty).
@@ -85,7 +85,7 @@ The probe then fails: `timeOrigin` changes. This is rare, but it is a reload nob
 
 **Fix.** After a fallback settle, remember `{href, until: now + 2 s}`. Swallow (`stopImmediatePropagation`) the next popstate onto that same-URL page entry within the window, keeping Turbo's `currentIndex` in step. Add a harness case for a "late pop".
 
-### F5 · minor · `assets/layer_history.js:553-561` · open
+### F5 · minor · `assets/layer_history.js:553-561` · resolved — a pop onto a dead layer entry is always stopped, and the Back from it onto the same page's entry is swallowed (Turbo's index synced)
 **Problem.** The sequence open a layer → Back (closes) → Forward → Back causes a full page reload. Here is why:
 - On the Forward, `owners` is empty, so the pop onto the dead `{mspLayer}` entry falls through to Turbo.
 - Turbo's `historyPoppedWithEmptyState` rewrites that entry into a fresh `{turbo}` entry (`currentIndex++`).
@@ -99,7 +99,7 @@ D-4 (not reopened) holds, but the probe after Forward + Back does not: the page 
 
 Add a "Forward then Back" harness case and a WebDriver line (the GEST-01 check already does Forward).
 
-### F6 · minor · `assets/layer_history.js:716-761` · open
+### F6 · minor · `assets/layer_history.js:716-761` · resolved for links and GET forms — same-origin links Turbo does not visit (its `unvisitableExtensions`) and `data-turbo="false"` GET forms are replaced like `data-turbo="false"` links, and the layer is released only at `pagehide` (a download leaves it open with its entry); `data-turbo="false"` **POST** forms: open — not reached (time box; none sits in a history layer today)
 **Problem.** Rule (d) covers Turbo visits and `data-turbo="false"` / external **links**. Other non-Turbo navigations from inside a layer still leave `[A, A′, B]`:
 - **`data-turbo="false"` forms.** This is already noted in state.md.
 - **Same-origin links Turbo does not visit**, because `locationIsVisitable` rejects non-HTML extensions (`.pdf`, `.csv`). They return early at `:750`, and the browser pushes.
@@ -113,7 +113,7 @@ None of the three history layers contain these today, so this is latent until th
 - Release the layer only once the navigation is actually committed (`pagehide`).
 - Or record these cases as accepted exceptions in the plan, with the layer items asserting none exist.
 
-### F7 · minor · `assets/controllers/bottom_sheet_controller.js:139-163` · open
+### F7 · minor · `assets/controllers/bottom_sheet_controller.js:139-163` · resolved — `pointerReleased()` (sheet_drag.js): a mouse `pointermove` with no button held cancels the gesture
 **Problem.** For a mouse on a narrow window (< 576 px; `active()` checks width only):
 1. Press on the handle and release outside it before the 8 px slop. There is no implicit capture for a mouse, so no `pointerup` arrives.
 2. The controller is left in `pending` with `pointerId` = 1. Further `pointerdown`s are ignored (`:140`).
@@ -123,7 +123,7 @@ None of the three history layers contain these today, so this is latent until th
 - In `onPointerMove`, cancel when `event.pointerType === 'mouse' && event.buttons === 0`.
 - Or call `setPointerCapture` on `pointerdown`. That is harmless now that the handle's controls are excluded by `canStart`.
 
-### F8 · minor · `assets/sheet_drag.js:218-220` with `:135-148` · open
+### F8 · minor · `assets/sheet_drag.js:218-220` with `:135-148` · resolved — the release thresholds measure the finger's travel (`SheetDrag#travel`): a 100 px pull closes, a flick needs > 24 px of travel
 **Problem.** README G2 says "closes when pulled > 96 px … flicked … after > 24 px", but the decision is taken on `offset`, which is the finger's travel minus the 8 px slop. So:
 - A 100 px pull springs back.
 - A flick needs more than 32 px of finger travel.
@@ -134,7 +134,7 @@ The Verify's 120/60/40 px cases still pass. The threshold differs from the READM
 - Compare the finger's travel (`y - startY`) in `releaseDecision` while the sheet still trails it by the slop.
 - Or state in README G2 and the plan that the thresholds apply to the sheet's offset.
 
-### F9 · minor · `assets/layer_history.js:273-289` (`identity`), `:281-285` · open (latent until PROF-05c)
+### F9 · minor · `assets/layer_history.js:273-289` (`identity`), `:281-285` · resolved — `open()` records the Turbo identity of the entry a layer entry is pushed on; `identity()` restarts one above it when on a layer's entry
 **Problem.** `noted` is taken at the **first** pause. When a page owner (Results) has already pushed entries and then a layer opens and is left by a visit:
 - `identity()` compares `noted.href` (Results' URL at its first pause) with the current URL. After a sort change they differ, so it returns `null`.
 - `turboHistory.start()` then reads `history.state.turbo` from the `{mspLayer}` entry, which has none, so `currentIndex = 0`.
@@ -232,3 +232,23 @@ The three history contents (achievement, result detail, Help):
 - The controllers clean up on disconnect.
 
 The only state that outlives a visit is F1's `top` inside the app.
+
+## Fixes (branch `nav/layers-fix`, 2026-10-12)
+
+Every finding has a node-harness case that fails on `a9046ac9` and passes after the fix (the old modules run against the new harness):
+
+| Finding | Harness case (test) | Before → after |
+|---|---|---|
+| F1 | `native leave`, `render took the layer`, `entry-less layer replaced` (`LayerHistoryScriptTest`) | after a visit `isOpen` true → false; render left the layer + Turbo paused → released, Turbo restarted; previous entry-less layer dropped silently → told `swap` |
+| F2 | `a layer closed by Back resolves false` (`ConfirmDialogScriptTest`, real `createLayerHistory` in jsdom) | answer pending, dialog left → false, removed |
+| F3 | `restore after a layer pop skips the leave guard` (`LayerHistoryScriptTest`); `startVisit` fact (`TurboContractScriptTest`, real Turbo 8.0.23) | guard asked, no visit → no guard, one restore visit |
+| F4 | `late pop` | a restore visit of the same page (app.js reload) → none, Turbo's index synced |
+| F5 | `forward then back`; `dead entry ignored` now expects `emptyPops: 0` | restore of the same page + rewritten entry → none |
+| F6 | `non-Turbo links` (`unvisitable extension`, release at `pagehide`), `non-Turbo forms` | `.pdf` link left to the browser (push) → replace; GET form pushed → replace |
+| F7 | `testAMouseMovingWithNoButtonHeldEndsTheGesture` (`SheetDragGestureTest`) | — (no rule) → `pointerReleased()` cancels |
+| F8 | `a 100 px pull`, `just over 96 px`, `96 px exactly`, `a flick of 30 px`, `a flick that ends at 24 px` | 100 px / 97 px / 30 px flick sprang back → close |
+| F9 | `layer over page owner left by a link` | Turbo index 0 → owner's index + 1 |
+
+Browser: GEST-02 got a native-app part (`run_native`: the test sheet page rendered for the Hotwire Native UA - in the app the achievement and result sheets are native screens through `layer_frame()`; no history entry on open, swipe closes, and after a Turbo visit started while a sheet was open the next sheet closes on the first swipe and on the first tap on ×). GEST-01 and GEST-13 now also write their test pages into the worktree that `SITE` serves (as GEST-02 did).
+
+Re-run on the fixed build (nav-web-c): GEST-01 52/52, GEST-02 52/52 (incl. the 6 native-app rows), GEST-13 49/49. The native-app rows fail on the `a9046ac9` build (the next sheet after a visit from an open sheet does not close on the first swipe), so they guard F1 in the browser too.

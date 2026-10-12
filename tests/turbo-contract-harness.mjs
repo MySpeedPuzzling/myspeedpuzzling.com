@@ -237,6 +237,24 @@ facts.history = {
     facts.restoreVisit = atVisit;
 }
 
+// ---- a restore started through the navigator (layer_history restoreVisit, review F3): no turbo:before-visit ---------
+{
+    let proposals = 0;
+    let atVisit = null;
+    const onProposal = () => {
+        proposals++;
+    };
+    document.addEventListener('turbo:before-visit', onProposal);
+    document.addEventListener('turbo:visit', (event) => {
+        atVisit = { action: event.detail.action, restorationIdentifier: session.navigator.currentVisit ? session.navigator.currentVisit.restorationIdentifier : null };
+    }, { once: true });
+    const loaded = settle('turbo:load');
+    session.navigator.startVisit(window.location.href, 'restore-direct', { action: 'restore', historyChanged: true });
+    await loaded;
+    document.removeEventListener('turbo:before-visit', onProposal);
+    facts.startVisit = { type: typeof session.navigator.startVisit, proposals, ...atVisit };
+}
+
 // ---- the view-transition decision reads the live head meta (GEST-12/17) -------------------------------------------------
 {
     const prefers = () => session.view.snapshot.prefersViewTransitions;

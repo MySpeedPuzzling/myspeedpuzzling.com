@@ -9,6 +9,7 @@
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { createConfirmDialog, loadedByTraverse, reportsSuppressed, SUPPRESSED_WITHIN_MS, TEMPLATE_ID } from '../assets/confirm_dialog.js';
+import { createLayerHistory } from '../assets/layer_history.js';
 
 const require = createRequire(import.meta.url);
 const { JSDOM, VirtualConsole } = require('jsdom');
@@ -244,6 +245,22 @@ const cases = {
 
         // Not installed: nothing listens (the browser instance is always installed by app.js)
         return facts;
+    },
+
+    // Review F2: a Back that closes a layer is stopped at the window by layer_history (installed first, as app.js does),
+    // so the confirm's popstate listener never runs - the layer's close is announced instead and answers false
+    'a layer closed by Back resolves false': async () => {
+        const p = page();
+        const layerHistory = createLayerHistory({ window: p.window, document: p.document, turbo: () => null }).install();
+        p.instance.install({});
+        const closes = [];
+        layerHistory.open('overlay', { onClose: ({ reason }) => closes.push(reason) });
+        const state = await ask(p, 'Discard the results you have not sent?');
+        p.window.history.back();
+        await new Promise((resolve) => setTimeout(resolve, 50));
+        await settle();
+
+        return { answer: state.value, left: p.document.querySelectorAll('dialog.msp-confirm').length, closes, layerOpen: layerHistory.isOpen() };
     },
 
     'Turbo confirm method': async () => {

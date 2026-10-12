@@ -16,9 +16,11 @@
  *   behind it, never above its resting place. The pull is measured from where the finger went down: browsers hold back
  *   the touchmoves inside their own touch slop (Chrome's first one comes at ~15 px), so the first move seen may be
  *   past the slop - the sheet catches up with the finger instead of losing that distance.
- * - How it ends (SheetDrag#release / releaseDecision): 'close' when pulled more than CLOSE_DISTANCE px, past half the
- *   sheet's height, or flicked faster than FLICK_VELOCITY px/ms (over the last VELOCITY_WINDOW_MS) after more than
- *   FLICK_MIN px; otherwise 'spring' (back in SPRING_MS). A gesture that never became a drag ends with 'none'.
+ * - How it ends (SheetDrag#release / releaseDecision): 'close' when the finger travelled more than CLOSE_DISTANCE px,
+ *   past half the sheet's height, or flicked faster than FLICK_VELOCITY px/ms (over the last VELOCITY_WINDOW_MS) after
+ *   more than FLICK_MIN px; otherwise 'spring' (back in SPRING_MS). A gesture that never became a drag ends with 'none'.
+ *   The thresholds are the finger's travel from where it went down (README G2: a 100 px pull closes), not the sheet's
+ *   offset, which trails the finger by the slop (Layers review F8).
  */
 
 /** The sheets are bottom sheets only on phones (the same breakpoint as Bootstrap's sm) */
@@ -127,21 +129,35 @@ export function canStart(target, env) {
 }
 
 /**
+ * A mouse that moves with no button held: its pointerup happened outside the handle before the drag captured it (a
+ * mouse has no implicit capture), so the gesture is over - never drag the sheet on a hover (Layers review F7).
+ *
+ * @param {{pointerType?: string, buttons?: number}} event a pointermove
+ */
+export function pointerReleased(event) {
+    return event?.pointerType === 'mouse' && event.buttons === 0;
+}
+
+/**
  * The end of a drag: 'close' or 'spring'.
  *
- * @param {{offset: number, velocity: number, sheetHeight?: number}} drag offset = how far the sheet was pulled (px),
- *        velocity = px/ms downwards over the last VELOCITY_WINDOW_MS, sheetHeight = the sheet's height (px)
+ * @param {{travel?: number, offset?: number, velocity: number, sheetHeight?: number}} drag travel = how far the finger
+ *        went down from where it started (px; the thresholds of README G2), offset = how far the sheet was pulled
+ *        (it trails the finger by DRAG_SLOP; used only when no travel is given), velocity = px/ms downwards over the
+ *        last VELOCITY_WINDOW_MS, sheetHeight = the sheet's height (px)
  */
-export function releaseDecision({ offset, velocity, sheetHeight = 0 }) {
-    if (offset > CLOSE_DISTANCE) {
+export function releaseDecision({ travel, offset = 0, velocity, sheetHeight = 0 }) {
+    const pulled = typeof travel === 'number' ? travel : offset + DRAG_SLOP;
+
+    if (pulled > CLOSE_DISTANCE) {
         return 'close';
     }
 
-    if (sheetHeight > 0 && offset > sheetHeight / 2) {
+    if (sheetHeight > 0 && pulled > sheetHeight / 2) {
         return 'close';
     }
 
-    if (velocity > FLICK_VELOCITY && offset > FLICK_MIN) {
+    if (velocity > FLICK_VELOCITY && pulled > FLICK_MIN) {
         return 'close';
     }
 
@@ -162,6 +178,7 @@ export class SheetDrag {
         this.startX = 0;
         this.startY = 0;
         this.offset = 0;
+        this.travel = 0;
         this.samples = [];
     }
 
@@ -197,6 +214,7 @@ export class SheetDrag {
             }
 
             this.state = 'dragging';
+            this.travel = Math.max(0, y - this.startY);
             this.offset = this.pull(y);
             this.samples = [{ y, t }];
 
@@ -207,6 +225,7 @@ export class SheetDrag {
             return { dragging: false, started: false, offset: 0, prevent: false };
         }
 
+        this.travel = Math.max(0, y - this.startY);
         this.offset = this.pull(y);
         this.samples.push({ y, t });
         this.prune(t);
@@ -249,7 +268,7 @@ export class SheetDrag {
         }
 
         const now = t ?? (this.samples.length > 0 ? this.samples[this.samples.length - 1].t : 0);
-        const decision = releaseDecision({ offset: this.offset, velocity: this.velocity(now), sheetHeight });
+        const decision = releaseDecision({ travel: this.travel, velocity: this.velocity(now), sheetHeight });
         this.reset();
 
         return decision;

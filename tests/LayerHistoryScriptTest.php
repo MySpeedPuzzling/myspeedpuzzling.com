@@ -180,16 +180,25 @@ final class LayerHistoryScriptTest extends TestCase
     {
         $facts = $this->case('non-Turbo links');
 
-        foreach (['data-turbo=false' => 'https://msp.test/logout', 'external' => 'https://example.org/x'] as $name => $url) {
-            self::assertSame(['prevented' => true, 'location' => [['replace', $url]], 'closes' => ['menu:leave'], 'isOpen' => false], $facts[$name], $name);
+        // Review F6: a same-origin link Turbo does not visit (Turbo's unvisitable extensions) is replaced the same way, and
+        // the layer is released only when the page goes (pagehide) - a response that is a download leaves it open
+        foreach (['data-turbo=false' => 'https://msp.test/logout', 'external' => 'https://example.org/x', 'unvisitable extension' => 'https://msp.test/en/rules.pdf'] as $name => $url) {
+            self::assertSame(['prevented' => true, 'location' => [['replace', $url]], 'atClick' => ['closes' => [], 'isOpen' => true], 'closes' => ['menu:leave'], 'isOpen' => false], $facts[$name], $name);
         }
 
         // A download does not navigate; a modified click opens elsewhere: both left to the browser
         foreach (['download', 'ctrl click external'] as $name) {
-            self::assertSame(['prevented' => false, 'location' => [], 'closes' => [], 'isOpen' => true], $facts[$name], $name);
+            self::assertSame(['prevented' => false, 'location' => [], 'atClick' => ['closes' => [], 'isOpen' => true], 'closes' => [], 'isOpen' => true], $facts[$name], $name);
         }
 
         self::assertSame(['prevented' => false, 'location' => []], $facts['no layer']);
+
+        // Review F6: a data-turbo="false" GET form replaces the layer's entry the same way; POST stays the browser's (open)
+        self::assertSame([
+            'get' => ['prevented' => true, 'location' => [['replace', 'https://msp.test/en/search?q=ravensburger']], 'atSubmit' => true, 'closes' => ['menu:leave'], 'isOpen' => false],
+            'post' => ['prevented' => false, 'location' => [], 'isOpen' => true],
+            'noLayer' => ['prevented' => false, 'location' => []],
+        ], $this->case('non-Turbo forms'));
     }
 
     public function testResumeKeepsTheRestorationIdentifierAndIndex(): void
@@ -211,6 +220,14 @@ final class LayerHistoryScriptTest extends TestCase
             // P0-03: one history line for the traversal
             'historyBeacons' => ['turbo_restore'],
         ], $this->case('pop to another URL'));
+
+        // Review F3: started like Turbo's own popstate restore (Navigator#startVisit) - a leave guard is never asked
+        self::assertSame([
+            'closes' => ['menu:back'],
+            'guardAsked' => 0,
+            'url' => '/en/puzzle',
+            'visits' => [['/en/puzzle', 'restore', 'page-1']],
+        ], $this->case('restore after a layer pop skips the leave guard'));
     }
 
     public function testALayerCloseIsNeverCountedAsABackNavigation(): void
@@ -220,7 +237,30 @@ final class LayerHistoryScriptTest extends TestCase
 
     public function testForwardOntoAClosedLayersEntryDoesNotReopenIt(): void
     {
-        self::assertSame(['closes' => ['menu:back'], 'isOpen' => false, 'visits' => 0, 'emptyPops' => 1, 'url' => '/en/faq'], $this->case('dead entry ignored'));
+        // Not reopened, and Turbo never sees it (review F5: it would rewrite the entry into a page entry of its own)
+        self::assertSame(['closes' => ['menu:back'], 'isOpen' => false, 'visits' => 0, 'emptyPops' => 0, 'url' => '/en/faq'], $this->case('dead entry ignored'));
+
+        // ... so the Back from it stays on the page (no restore = no reload by app.js); the next Back is a real one
+        self::assertSame([
+            'closes' => ['menu:back'],
+            'onDeadEntry' => ['index' => 2, 'state' => ['mspLayer' => 'menu']],
+            'afterBack' => ['index' => 1, 'turboIndex' => 1, 'url' => '/en/faq'],
+            'emptyPops' => 0,
+            'entries' => 3,
+            'visits' => [['/en/hub', 'restore']],
+            'isOpen' => false,
+        ], $this->case('forward then back'));
+    }
+
+    /** Review F4: the close's back() landing after the 400 ms fallback never reaches Turbo as a page change */
+    public function testALatePopAfterTheFallbackCloseIsSwallowed(): void
+    {
+        self::assertSame([
+            'settled' => ['closes' => ['menu:back'], 'isOpen' => false, 'turboStarted' => true],
+            'afterLatePop' => ['index' => 1, 'turboIndex' => 1, 'url' => '/en/faq'],
+            'visits' => [['/en/hub', 'restore']],
+            'warnedFallback' => 1,
+        ], $this->case('late pop'));
     }
 
     public function testInsideTheNativeAppNothingIsPushedAndCloseNeedsNoBack(): void
@@ -232,6 +272,27 @@ final class LayerHistoryScriptTest extends TestCase
             'current' => 'modal',
             'linkAction' => 'advance',
         ], $this->case('native app'));
+    }
+
+    /** Review F1: a layer the page leaves is released with or without an entry (the app shares one WebView) */
+    public function testALayerLeftByAVisitIsReleasedInsideTheNativeAppToo(): void
+    {
+        self::assertSame([
+            'afterVisit' => ['isOpen' => false, 'current' => null],
+            'reopened' => true,
+            'afterClose' => false,
+            'closes' => ['modal:leave', 'modal:close', 'sheet:leave'],
+            'externalLink' => ['prevented' => false, 'isOpenAtClick' => true, 'isOpen' => false, 'location' => []],
+            'backs' => 0,
+        ], $this->case('native leave'));
+
+        self::assertSame([
+            'afterRender' => ['isOpen' => false, 'turboStarted' => true, 'state' => ['turbo' => ['restorationIdentifier' => 'page-0', 'restorationIndex' => 1]]],
+            'closes' => ['modal:leave'],
+            'keptOpen' => true,
+        ], $this->case('render took the layer'));
+
+        self::assertSame(['closes' => ['menu:swap'], 'current' => 'modal', 'state' => ['mspLayer' => 'modal']], $this->case('entry-less layer replaced'));
     }
 
     public function testEscapeClosesTheTopLayerUnlessTakenOrAForeignModalDialogIsOpen(): void
@@ -289,6 +350,18 @@ final class LayerHistoryScriptTest extends TestCase
         ], $facts['longPress']);
 
         self::assertSame(['sameOwnPage' => false, 'otherPage' => true], $this->case('page owner leaves'));
+    }
+
+    /** Review F9: Turbo restarts one above the owner's entry the layer was opened on, not on its first-paused page */
+    public function testALayerOverAPageOwnersPushedEntryLeftByALinkKeepsTurbosIndex(): void
+    {
+        self::assertSame([
+            'ownerIndex' => 3,
+            'atVisit' => ['turboIndex' => 4, 'started' => true],
+            'afterRender' => ['turboIndex' => 4, 'state' => 4],
+            'urls' => ['/en/hub', '/en/puzzlers/abc/results', '/en/puzzlers/abc/results', '/en/puzzlers/abc/results', '/en/puzzle'],
+            'closes' => ['menu:leave'],
+        ], $this->case('layer over page owner left by a link'));
     }
 
     public function testMissingTurboInternalsFallBackWithOneWarningEach(): void

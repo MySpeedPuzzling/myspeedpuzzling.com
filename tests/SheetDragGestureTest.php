@@ -50,11 +50,14 @@ final class SheetDragGestureTest extends TestCase
         yield 'flicked 40 px, the first move seen at 16 px' => [[[0, 16, 20], [0, 24, 30], [0, 32, 40], [0, 40, 50]], 600, 'close'];
         yield '300 px sheet released at 160 px' => [self::moves(168, 2000), 300, 'close'];
         // Each rule on its own
-        yield 'past half of a 150 px sheet, slowly (80 px)' => [self::moves(88, 2000), 150, 'close'];
-        yield 'the same 80 px on a 300 px sheet' => [self::moves(88, 2000), 300, 'spring'];
-        yield 'just over 96 px, slowly' => [self::moves(105, 3000), 600, 'close'];
-        yield 'just under 96 px, slowly' => [self::moves(103, 3000), 600, 'spring'];
-        yield 'a flick that ends before 24 px' => [self::moves(30, 20), 600, 'spring'];
+        yield 'past half of a 150 px sheet, slowly (80 px)' => [self::moves(80, 2000), 150, 'close'];
+        yield 'the same 80 px on a 300 px sheet' => [self::moves(80, 2000), 300, 'spring'];
+        // The thresholds are the finger's travel, not the sheet's offset (Layers review F8: a 100 px pull closes)
+        yield 'a 100 px pull, slowly' => [self::moves(100, 3000), 600, 'close'];
+        yield 'just over 96 px, slowly' => [self::moves(97, 3000), 600, 'close'];
+        yield '96 px exactly, slowly' => [self::moves(96, 3000), 600, 'spring'];
+        yield 'a flick of 30 px' => [self::moves(30, 20), 600, 'close'];
+        yield 'a flick that ends at 24 px' => [self::moves(24, 15), 600, 'spring'];
         // The speed of the last ~100 ms only: a fast pull that rested before the finger left
         yield 'fast 60 px, then 150 ms still' => [self::moves(60, 40), 600, 'spring', 190];
     }
@@ -75,6 +78,23 @@ final class SheetDragGestureTest extends TestCase
 
         self::assertSame([2, 42, 0], $result['offsets']);
         self::assertSame('spring', $result['decision']);
+    }
+
+    /** Layers review F7: a mouse released off the handle inside the slop never drags the sheet on a later hover */
+    public function testAMouseMovingWithNoButtonHeldEndsTheGesture(): void
+    {
+        $mouse = ['pointerType' => 'mouse', 'buttons' => 1];
+        $hover = ['pointerType' => 'mouse', 'buttons' => 0];
+        $result = $this->gesture([['moves' => [[0, 3, 10, $mouse], [0, 4, 20, $hover], [0, 40, 40, $hover], [0, 140, 80, $hover]]]])[0];
+
+        self::assertSame([false], $result['prevented']);
+        self::assertSame('none', $result['decision']);
+        self::assertSame('idle', $result['state']);
+
+        // A finger (touch / pen report buttons 0 or 1 on their own) is never taken for a released mouse
+        $touch = ['pointerType' => 'touch', 'buttons' => 0];
+        $dragged = $this->gesture([['moves' => [[0, 10, 10, $touch], [0, 60, 40, $touch], [0, 130, 80, $touch]]]])[0];
+        self::assertSame('close', $dragged['decision']);
     }
 
     public function testACancelledDragSpringsBack(): void

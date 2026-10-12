@@ -115,6 +115,8 @@ final class TurboContractScriptTest extends TestCase
     public function testARestoreVisitTakesTheRestorationIdentifierGiven(): void
     {
         self::assertSame(['action' => 'restore', 'restorationIdentifier' => 'restore-me'], $this->facts()['restoreVisit']);
+        // layer_history restoreVisit (review F3): Navigator#startVisit restores without proposing (no turbo:before-visit)
+        self::assertSame(['type' => 'function', 'proposals' => 0, 'action' => 'restore', 'restorationIdentifier' => 'restore-direct'], $this->facts()['startVisit']);
     }
 
     public function testTheViewTransitionDecisionReadsTheLiveHeadMeta(): void

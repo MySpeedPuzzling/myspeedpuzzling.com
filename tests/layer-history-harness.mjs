@@ -172,7 +172,7 @@ class FakeHistory {
 
             this.index = to;
             this.env.window.dispatch('popstate', { state: clone(this.entries[to].state) });
-        }, 1);
+        }, this.delay || 1);
     }
 
     /** A full page load of `url` at the current position (app.js's restore → location.href) */
@@ -265,7 +265,8 @@ function fakeTurbo(env, { noIdentity = false, noNavigator = false } = {}) {
 
             if (turbo) {
                 history.restorationIdentifier = turbo.restorationIdentifier;
-                session.visit(env.location.href, { action: 'restore', historyChanged: true, restorationIdentifier: turbo.restorationIdentifier, fromTurboPop: true });
+                // Session#historyPoppedToLocationWithRestorationIdentifierAndDirection → navigator.startVisit (no proposal)
+                startVisit(env.location.href, { action: 'restore', historyChanged: true, restorationIdentifier: turbo.restorationIdentifier, fromTurboPop: true });
                 history.currentIndex = turbo.restorationIndex;
             } else {
                 history.currentIndex++;
@@ -285,7 +286,9 @@ function fakeTurbo(env, { noIdentity = false, noNavigator = false } = {}) {
     }
 
     session.history = history;
-    session.visit = (url, options = {}) => {
+    session.proposals = [];
+    /** Navigator#startVisit: the visit starts, no turbo:before-visit (Turbo's own popstate restore goes this way) */
+    const startVisit = (url, options = {}) => {
         const visit = { url: new URL(String(url), env.location.href).href, action: options.action || 'advance', options, referrer: env.location.href };
         session.visits.push(visit);
 
@@ -297,6 +300,18 @@ function fakeTurbo(env, { noIdentity = false, noNavigator = false } = {}) {
 
         return visit;
     };
+    /** Session#visit → Navigator#proposeVisit: turbo:before-visit first, a page guard may prevent it */
+    session.visit = (url, options = {}) => {
+        const proposal = new env.dom.window.CustomEvent('turbo:before-visit', { bubbles: true, cancelable: true, detail: { url: new URL(String(url), env.location.href).href } });
+        env.document.dispatchEvent(proposal);
+        session.proposals.push(new URL(String(url), env.location.href).pathname);
+
+        return proposal.defaultPrevented ? null : startVisit(url, options);
+    };
+
+    if (!noNavigator) {
+        session.navigator.startVisit = (url, restorationIdentifier, options = {}) => startVisit(url, { ...options, restorationIdentifier });
+    }
     /** The visit's response rendered: Visit#changeHistory, then turbo:load */
     session.render = (visit) => {
         if (!visit.options.historyChanged) {
@@ -319,6 +334,7 @@ const BODY = `
   <a id="external" href="https://example.org/x">External</a>
   <a id="no-turbo" href="/logout" data-turbo="false">Log out</a>
   <a id="download" href="/export.csv" download>Export</a>
+  <a id="pdf" href="/en/rules.pdf">Rules (PDF)</a>
   <a id="opens-modal" href="/en/help" data-turbo-frame="modal-frame">Help</a>
   <turbo-frame id="results-frame"><a id="in-frame" href="/en/results?page=2">More</a><a id="top-in-frame" href="/en/puzzle/1" data-turbo-frame="_top">Puzzle</a></turbo-frame>
   <turbo-frame id="escape-frame" target="_top"><a id="in-top-frame" href="/en/faq">FAQ</a></turbo-frame>
@@ -329,7 +345,10 @@ const BODY = `
   <form id="modal-frame-form" method="post" action="/en/feedback"></form>
   <form id="modal-top-form" method="post" action="/en/compare/add" data-turbo-frame="_top"></form>
 </turbo-frame></div>
-<dialog id="menu-layer"><a id="menu-row" href="/en/hub">Hub</a></dialog>
+<dialog id="menu-layer"><a id="menu-row" href="/en/hub">Hub</a>
+  <form id="search-off" method="get" action="/en/search" data-turbo="false"><input name="q" value="ravensburger"></form>
+  <form id="post-off" method="post" action="/en/logout" data-turbo="false"></form>
+</dialog>
 <nav id="bottom-bar"><a id="tab" href="/en/community">Community</a></nav>
 <dialog id="confirm"></dialog>
 `;
@@ -638,17 +657,49 @@ const cases = {
     'non-Turbo links': () => {
         const result = {};
 
-        for (const [name, id, init] of [['data-turbo=false', 'no-turbo', {}], ['external', 'external', {}], ['download', 'download', {}], ['ctrl click external', 'external', { ctrlKey: true }]]) {
+        for (const [name, id, init] of [['data-turbo=false', 'no-turbo', {}], ['external', 'external', {}], ['unvisitable extension', 'pdf', {}], ['download', 'download', {}], ['ctrl click external', 'external', { ctrlKey: true }]]) {
             const env = page();
             env.layer('menu');
             const prevented = click(env, env.$(id), init);
-            result[name] = { prevented, location: env.location.calls, closes: env.closes, isOpen: env.layers.isOpen() };
+            const atClick = { closes: [...env.closes], isOpen: env.layers.isOpen() };
+            // the page really goes (a response that is a download never gets here)
+            env.window.dispatch('pagehide', { persisted: false });
+            result[name] = { prevented, location: env.location.calls, atClick, closes: env.closes, isOpen: env.layers.isOpen() };
         }
 
         const env = page();
         result['no layer'] = { prevented: click(env, env.$('no-turbo')), location: env.location.calls };
 
         return result;
+    },
+
+    // review F6: a data-turbo="false" GET form from a layer replaces the layer's entry (released at pagehide); a POST
+    // one is left to the browser (open); without a layer nothing is touched
+    'non-Turbo forms': () => {
+        const submit = (env, id) => {
+            const event = new env.dom.window.Event('submit', { bubbles: true, cancelable: true });
+            env.$(id).dispatchEvent(event);
+
+            return event.defaultPrevented;
+        };
+        const get = page();
+        get.layer('menu', get.$('menu-layer'));
+        const prevented = submit(get, 'search-off');
+        const atSubmit = get.layers.isOpen();
+        get.window.dispatch('pagehide', { persisted: false });
+
+        const post = page();
+        post.layer('menu', post.$('menu-layer'));
+        const postPrevented = submit(post, 'post-off');
+
+        const none = page();
+        const nonePrevented = submit(none, 'search-off');
+
+        return {
+            get: { prevented, location: get.location.calls, atSubmit, closes: get.closes, isOpen: get.layers.isOpen() },
+            post: { prevented: postPrevented, location: post.location.calls, isOpen: post.layers.isOpen() },
+            noLayer: { prevented: nonePrevented, location: none.location.calls },
+        };
     },
 
     // resume keeps Turbo's restoration identifier and index (Turbo's start() alone would mint a new one)
@@ -682,6 +733,28 @@ const cases = {
         };
     },
 
+    // review F3: a layer's pop to another page is a traversal that already happened - its restore starts like Turbo's own
+    // (Navigator#startVisit), so a page's leave guard (turbo:before-visit) can neither strand the page under the new URL
+    // nor turn the Leave into an advance visit
+    'restore after a layer pop skips the leave guard': () => {
+        const env = page('/en/faq', { entries: ['/en/hub', '/en/puzzle'] });
+        let guardAsked = 0;
+        env.document.addEventListener('turbo:before-visit', (event) => {
+            guardAsked++;
+            event.preventDefault();
+        });
+        env.layer('menu');
+        env.history.go(-2);
+        env.clock.advance(5);
+
+        return {
+            closes: env.closes,
+            guardAsked,
+            url: new URL(env.location.href).pathname,
+            visits: env.session.visits.map((visit) => [new URL(visit.url).pathname, visit.action, visit.options.restorationIdentifier]),
+        };
+    },
+
     // P0-03: a layer close by Back is never counted; a real Back still is, exactly once
     'back logging': () => {
         const env = page('/en/faq', { entries: ['/en/hub'], instrument: true });
@@ -707,6 +780,58 @@ const cases = {
         return { closes: env.closes, isOpen: env.layers.isOpen(), visits: env.session.visits.length, emptyPops: env.session.emptyPops, url: new URL(env.location.href).pathname };
     },
 
+    // review F5: open → Back (closes) → Forward → Back stays on the page - no Turbo restore (app.js would reload), no
+    // rewritten entry, Turbo's index back on the page's
+    'forward then back': () => {
+        const env = page('/en/faq', { entries: ['/en/hub'] });
+        env.layer('menu');
+        env.history.back();
+        env.clock.advance(5);
+        env.history.forward();
+        env.clock.advance(5);
+        const onDeadEntry = { index: env.history.index, state: stateOf(env) };
+        env.history.back();
+        env.clock.advance(5);
+        const afterBack = { index: env.history.index, turboIndex: env.session.history.currentIndex, url: new URL(env.location.href).pathname };
+        // one more Back is a real Back to the previous page (Turbo's own restore)
+        env.history.back();
+        env.clock.advance(5);
+
+        return {
+            closes: env.closes,
+            onDeadEntry,
+            afterBack,
+            emptyPops: env.session.emptyPops,
+            entries: env.history.entries.length,
+            visits: env.session.visits.map((visit) => [new URL(visit.url).pathname, visit.action]),
+            isOpen: env.layers.isOpen(),
+        };
+    },
+
+    // review F4: the close's back() lands after the 400 ms fallback - its late popstate onto the same page is swallowed
+    // (Turbo would start a restore visit, app.js a reload)
+    'late pop': () => {
+        const env = page('/en/faq', { entries: ['/en/hub'] });
+        env.layer('menu');
+        env.history.delay = 600;
+        env.layers.requestClose('menu');
+        env.clock.advance(450);
+        const settled = { closes: [...env.closes], isOpen: env.layers.isOpen(), turboStarted: env.session.history.started };
+        env.clock.advance(300);
+        const afterLatePop = { index: env.history.index, turboIndex: env.session.history.currentIndex, url: new URL(env.location.href).pathname };
+        env.history.delay = 1;
+        // the next Back is the page's own again
+        env.history.back();
+        env.clock.advance(5);
+
+        return {
+            settled,
+            afterLatePop,
+            visits: env.session.visits.map((visit) => [new URL(visit.url).pathname, visit.action]),
+            warnedFallback: env.warnings.filter((warning) => warning.includes('did not arrive')).length,
+        };
+    },
+
     // (f) the native app: no entry, no pause, a close without back()
     'native app': () => {
         const env = page('/en/faq', { native: true });
@@ -718,6 +843,67 @@ const cases = {
         const { action } = turboClick(env, env.$('page-link'));
 
         return { opened, calls: env.history.calls, closes: env.closes, current: env.layers.current(), linkAction: action };
+    },
+
+    // (f) review F1: the app shares one WebView across visits - a layer left by a visit is released although it holds
+    // no entry, so the next screen's layer opens, closes (× / swipe = requestClose) and answers isOpen() correctly
+    'native leave': () => {
+        const env = page('/en/faq', { native: true });
+        env.layer('modal');
+        const visit = env.session.visit('/en/puzzle/1');
+        const afterVisit = { isOpen: env.layers.isOpen(), current: env.layers.current() };
+        env.session.render(visit);
+        env.layer('modal');
+        const reopened = env.layers.isOpen('modal');
+        // the bottom sheet's swipe (bottom-sheet:dismiss) and × both end in requestClose
+        env.layers.requestClose('modal');
+        const afterClose = env.layers.isOpen();
+        // a non-Turbo / external link from an entry-less layer: the app navigates (no replace); released when the page goes
+        env.layer('sheet');
+        const prevented = click(env, env.$('external'));
+        const isOpenAtClick = env.layers.isOpen();
+        env.window.dispatch('pagehide', { persisted: false });
+
+        return {
+            afterVisit,
+            reopened,
+            afterClose,
+            closes: env.closes,
+            externalLink: { prevented, isOpenAtClick, isOpen: env.layers.isOpen(), location: env.location.calls },
+            backs: env.history.calls.filter((call) => call === 'back').length,
+        };
+    },
+
+    // review F1 (web, latent): a page render without turbo:visit (a full-page form answered 422) took the layer's
+    // element - the layer is released and Turbo resumes, so the next Back is a page Back again
+    'render took the layer': () => {
+        const env = page();
+        const modal = env.$('dynamic-modal-container');
+        env.layer('modal', modal);
+        modal.remove();
+        env.document.dispatchEvent(new env.dom.window.CustomEvent('turbo:render', { bubbles: true }));
+        const afterRender = { isOpen: env.layers.isOpen(), turboStarted: env.session.history.started, state: stateOf(env) };
+
+        // a render that keeps the element (frame streams, permanent elements) leaves the layer alone
+        const kept = page();
+        kept.layer('menu', kept.$('menu-layer'));
+        kept.document.dispatchEvent(new kept.dom.window.CustomEvent('turbo:render', { bubbles: true }));
+
+        return { afterRender, closes: env.closes, keptOpen: kept.layers.isOpen('menu') };
+    },
+
+    // review F1: on the web an entry-less layer (its pushState threw) is told when the next layer replaces it
+    'entry-less layer replaced': () => {
+        const env = page();
+        const pushState = env.history.pushState.bind(env.history);
+        env.history.pushState = () => {
+            throw new Error('SecurityError');
+        };
+        env.layer('menu');
+        env.history.pushState = pushState;
+        env.layer('modal');
+
+        return { closes: env.closes, current: env.layers.current(), state: stateOf(env) };
     },
 
     // Esc closes the top layer through Back, unless something already took it or a foreign modal dialog is open
@@ -827,6 +1013,30 @@ const cases = {
         env.clock.advance(5);
 
         return { closeOnly, longPress: { ownPops, closes: env.closes, turboStarted: env.session.history.started, visits: env.session.visits.length, url: env.location.href } };
+    },
+
+    // review F9: a layer over a page owner that already pushed entries, left by a link - Turbo restarts on the layer's
+    // entry one above the owner's entry it was opened on (not on the owner's first-paused page, not at 0)
+    'layer over page owner left by a link': () => {
+        const env = page('/en/puzzlers/abc/results', { entries: ['/en/hub'] });
+        env.layers.pauseTurboHistory('results');
+        env.layers.replacePageState('results', '/en/puzzlers/abc/results');
+        env.layers.pushPageState('results', '/en/puzzlers/abc/results?sort=fastest');
+        env.layers.pushPageState('results', '/en/puzzlers/abc/results?sort=name');
+        const ownerIndex = stateOf(env).turbo.restorationIndex;
+        env.layer('menu');
+        const { action } = turboClick(env, env.$('page-link'));
+        const visit = env.session.visit(env.$('page-link').href, { action });
+        const atVisit = { turboIndex: env.session.history.currentIndex, started: env.session.history.started };
+        env.session.render(visit);
+
+        return {
+            ownerIndex,
+            atVisit,
+            afterRender: { turboIndex: env.session.history.currentIndex, state: stateOf(env).turbo.restorationIndex },
+            urls: historyUrls(env),
+            closes: env.closes,
+        };
     },
 
     // the page owner leaving its page by a Turbo visit gives Turbo its history back

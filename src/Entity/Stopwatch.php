@@ -25,6 +25,8 @@ use SpeedPuzzling\Web\Value\StopwatchStatus;
 #[Entity]
 class Stopwatch
 {
+    public const int SHOWN_TIME_TOLERANCE_MILLISECONDS = 10_000;
+
     /**
      * @var array<Lap>
      */
@@ -75,11 +77,22 @@ class Stopwatch
             throw new StopwatchCouldNotBeResumed();
         }
 
+        // A lap never starts before the previous one ended (a resume tapped "ago" by the phone cannot overlap it)
+        $previousEnd = $this->getLastLap()?->end;
+        if ($previousEnd !== null && $now < $previousEnd) {
+            $now = $previousEnd;
+        }
+
         $this->laps[] = Lap::start($now);
         $this->status = StopwatchStatus::Running;
     }
 
-    public function pause(DateTimeImmutable $now): void
+    /**
+     * The phone counts the time the player sees, from tap to tap; the server only learns about a tap when its request
+     * arrives (later, or much later from the offline queue). So the shown total decides where the lap ends - the saved
+     * time is then exactly what the stopwatch showed. Without it (an older page) the lap ends now.
+     */
+    public function pause(DateTimeImmutable $now, null|int $shownTotalMilliseconds = null): void
     {
         $lap = $this->getLastLap();
         $lastKey = array_key_last($this->laps);
@@ -88,7 +101,24 @@ class Stopwatch
             throw new StopwatchCouldNotBePaused();
         }
 
-        $this->laps[$lastKey] = $lap->finish($now);
+        $end = $now;
+
+        if ($shownTotalMilliseconds !== null) {
+            $lapMilliseconds = max(0, $shownTotalMilliseconds - $this->finishedLapsMilliseconds());
+            $end = $lap->start->modify(sprintf('+%d milliseconds', $lapMilliseconds));
+
+            // The phone may run a little ahead of the server (request delays), never more
+            $latestEnd = $now->modify(sprintf('+%d milliseconds', self::SHOWN_TIME_TOLERANCE_MILLISECONDS));
+            if ($end > $latestEnd) {
+                $end = $latestEnd;
+            }
+        }
+
+        if ($end < $lap->start) {
+            $end = $lap->start;
+        }
+
+        $this->laps[$lastKey] = $lap->finish($end);
         $this->status = StopwatchStatus::Paused;
     }
 
@@ -113,6 +143,17 @@ class Stopwatch
     public function rename(null|string $name): void
     {
         $this->name = $name;
+    }
+
+    private function finishedLapsMilliseconds(): int
+    {
+        $milliseconds = 0;
+
+        foreach ($this->laps as $lap) {
+            $milliseconds += $lap->durationMilliseconds() ?? 0;
+        }
+
+        return $milliseconds;
     }
 
     private function getLastLap(): null|Lap

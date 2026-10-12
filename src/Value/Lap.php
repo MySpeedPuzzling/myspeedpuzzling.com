@@ -23,4 +23,13 @@ readonly final class Lap
     {
         return new self($this->start, $now);
     }
+
+    public function durationMilliseconds(): null|int
+    {
+        if ($this->end === null) {
+            return null;
+        }
+
+        return (int) round(((float) $this->end->format('U.u') - (float) $this->start->format('U.u')) * 1000);
+    }
 }

@@ -233,9 +233,6 @@ What a reply to a player promised to build. Each has an MSP Mailer follow-up: te
       (Android Chromium) - give the chart container a height that fits the legend
       (PlayerStatistics::getManufacturersChart, _player_statistics_category.html.twig). Promised to Fredrik (MSP #216,
       follow-up F77).
-- [ ] Stopwatch: the saved time must equal what the stopwatch screen showed at Stop (today server-side whole-second lap
-      timestamps + request latency add up to ~1 s): store laps in milliseconds, let start/pause/resume (and the offline
-      queue) send how long ago the tap happened, floor the total. Promised to Vroni (MSP #254, follow-up F103).
 
 ## Participants spreadsheet (`docs/features/competitions-management/participants-spreadsheet.md` §13)
 

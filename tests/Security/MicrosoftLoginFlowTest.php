@@ -191,7 +191,7 @@ final class MicrosoftLoginFlowTest extends WebTestCase
         self::assertStringContainsString('Microsoft', $crawler->text());
 
         parse_str((string) parse_url($location, PHP_URL_QUERY), $query);
-        $browser->request('POST', '/register/social', ['token' => $query['token'] ?? '']);
+        $browser->request('POST', '/register/social', ['token' => $query['token'] ?? '', 'terms' => '1']);
         self::assertResponseRedirects();
         self::assertStringContainsString('/welcome', (string) $browser->getResponse()->headers->get('Location'));
 
@@ -229,7 +229,7 @@ final class MicrosoftLoginFlowTest extends WebTestCase
         self::assertStringContainsString('/register/social?token=', $location);
         parse_str((string) parse_url($location, PHP_URL_QUERY), $query);
 
-        $browser->request('POST', '/register/social', ['token' => $query['token'] ?? '']);
+        $browser->request('POST', '/register/social', ['token' => $query['token'] ?? '', 'terms' => '1']);
         self::assertResponseRedirects();
 
         self::assertCount(0, self::getMailerMessages(), 'A Microsoft account e-mail needs no confirmation');

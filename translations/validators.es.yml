@@ -39,3 +39,4 @@ add_editions:
     starting_missing: "Elige el día a partir del cual empiezan las fechas."
     count_range: "Elige de 1 a %max% fechas."
     none_selected: "Marca al menos una fecha."
+registration_terms_required: "Para crear una cuenta, acepta los Términos de servicio y la Política de privacidad."

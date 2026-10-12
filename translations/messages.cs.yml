@@ -5514,6 +5514,8 @@ auth:
         submitting: "Zakládáme účet…"
         email_taken: "Tento e-mail už má účet. <a href=\"%sign_in_url%\">Přihlaste se</a> nebo si <a href=\"%link_url%\">nechte poslat přihlašovací kód</a>."
         continue_with_email: "Pokračovat přes e-mail"
+        terms: "Souhlasím s <a href=\"%terms_url%\" target=\"_blank\" rel=\"noopener\">obchodními podmínkami</a> a <a href=\"%privacy_url%\" target=\"_blank\" rel=\"noopener\">zásadami ochrany osobních údajů</a>."
+        newsletter: "Chci vědět, co je nového: jeden e-mail měsíčně o novinkách na MySpeedPuzzling. Jen nové funkce – žádný marketing, žádné reklamy. Odhlásit se můžete kdykoli."
     welcome:
         title: "Vítejte na MySpeedPuzzling!"
         verification_sent: "Na adresu %email% jsme poslali potvrzovací odkaz. Otevřete ho a potvrďte, že je adresa vaše."

@@ -23,4 +23,13 @@ final class RegistrationFormData
 
     #[StrongPassword]
     public string $plainPassword = '';
+
+    #[Assert\IsTrue(message: 'registration_terms_required')]
+    public bool $termsAccepted = false;
+
+    /**
+     * The newsletter's legal basis is consent (privacy policy §10), so the box starts unticked:
+     * a pre-ticked box is not consent (GDPR recital 32, CJEU C-673/17 Planet49)
+     */
+    public bool $newsletter = false;
 }

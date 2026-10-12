@@ -90,6 +90,8 @@ final readonly class RegisterWithOauthIdentityHandler
             $player->changeLocale($message->locale);
         }
 
+        $player->changeNewsletterEnabled($message->newsletter);
+
         $this->playerRepository->save($player);
 
         $this->oauthIdentityRepository->save(new OauthIdentity(
@@ -109,6 +111,8 @@ final readonly class RegisterWithOauthIdentityHandler
             userId: $userId,
             email: $email,
             authenticator: $message->provider->authenticatorLabel(),
+            // The record of what was agreed to at registration (its time is the row's)
+            metadata: ['terms' => $message->termsAccepted, 'newsletter' => $message->newsletter],
         ));
 
         return $userId;

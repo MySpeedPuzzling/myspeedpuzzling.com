@@ -5507,6 +5507,8 @@ edition:
     "submitting": "Création du compte…"
     "email_taken": "Cet e-mail a déjà un compte. <a href=\"%sign_in_url%\">Connectez-vous</a> ou <a href=\"%link_url%\">recevez un code de connexion</a>."
     "continue_with_email": "Continuer avec l'e-mail"
+    "terms": "J'accepte les <a href=\"%terms_url%\" target=\"_blank\" rel=\"noopener\">Conditions d'utilisation</a> et la <a href=\"%privacy_url%\" target=\"_blank\" rel=\"noopener\">Politique de confidentialité</a>."
+    "newsletter": "Tenez-moi au courant : un e-mail par mois sur les nouveautés de MySpeedPuzzling. Uniquement les nouvelles fonctionnalités – ni marketing, ni promotions. Désinscription à tout moment."
   "welcome":
     "title": "Bienvenue sur MySpeedPuzzling !"
     "verification_sent": "Nous avons envoyé un lien de confirmation à %email%. Ouvrez-le pour confirmer que cette adresse est bien la vôtre."

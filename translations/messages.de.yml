@@ -5413,6 +5413,8 @@ auth:
         submitting: "Konto wird erstellt…"
         email_taken: "Für diese E-Mail gibt es schon ein Konto. <a href=\"%sign_in_url%\">Anmelden</a> oder <a href=\"%link_url%\">Anmeldecode anfordern</a>."
         continue_with_email: "Weiter mit E-Mail"
+        terms: "Ich stimme den <a href=\"%terms_url%\" target=\"_blank\" rel=\"noopener\">Nutzungsbedingungen</a> und der <a href=\"%privacy_url%\" target=\"_blank\" rel=\"noopener\">Datenschutzerklärung</a> zu."
+        newsletter: "Halten Sie mich auf dem Laufenden: eine E-Mail im Monat über Neues auf MySpeedPuzzling. Nur neue Funktionen – kein Marketing, keine Werbung. Jederzeit abbestellbar."
     welcome:
         title: "Willkommen bei MySpeedPuzzling!"
         verification_sent: "Wir haben einen Bestätigungslink an %email% geschickt. Öffnen Sie ihn, um zu bestätigen, dass die Adresse Ihnen gehört."

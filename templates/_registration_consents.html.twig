@@ -1,0 +1,11 @@
+{# The two boxes of every sign-up (the e-mail form renders the same ones through RegistrationFormType):
+   the terms are required (checked again by the controller), the newsletter starts unticked - its legal
+   basis is consent (privacy policy §10). The links open in a new tab so the page stays put. #}
+<div class="form-check mb-2">
+    <input class="form-check-input" type="checkbox" name="terms" value="1" id="{{ id_prefix }}-terms" required>
+    <label class="form-check-label" for="{{ id_prefix }}-terms">{{ 'auth.register.terms'|trans({'%terms_url%': path('terms_of_service'), '%privacy_url%': path('privacy_policy')})|raw }}</label>
+</div>
+<div class="form-check mb-3">
+    <input class="form-check-input" type="checkbox" name="newsletter" value="1" id="{{ id_prefix }}-newsletter">
+    <label class="form-check-label" for="{{ id_prefix }}-newsletter">{{ 'auth.register.newsletter'|trans }}</label>
+</div>

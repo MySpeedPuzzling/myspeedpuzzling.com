@@ -88,6 +88,14 @@ final class SocialRegisterConfirmController extends AbstractController
 
     private function confirm(Request $request): Response
     {
+        // Checked before the parked profile is consumed, so the page can be shown again with the token
+        // still valid (the browser's `required` normally stops it earlier)
+        if ($request->request->getBoolean('terms') === false) {
+            $this->addFlash('warning', $this->translator->trans('registration_terms_required', domain: 'validators'));
+
+            return $this->redirectToRoute('social_register_confirm', ['token' => self::tokenFrom($request)]);
+        }
+
         $parked = $this->stateStore->consumeRegistration(self::tokenFrom($request));
 
         if ($parked === null) {
@@ -107,6 +115,8 @@ final class SocialRegisterConfirmController extends AbstractController
                 emailVerified: $parked->profile->emailVerified,
                 name: $parked->profile->name,
                 locale: $parked->locale,
+                newsletter: $request->request->getBoolean('newsletter'),
+                termsAccepted: true,
             ));
         } catch (HandlerFailedException $exception) {
             $reason = $exception->getPrevious();

@@ -5414,6 +5414,8 @@ guides:
     "submitting": "Creando tu cuenta…"
     "email_taken": "Este correo ya tiene una cuenta. <a href=\"%sign_in_url%\">Inicia sesión</a> o <a href=\"%link_url%\">pide un código de acceso</a>."
     "continue_with_email": "Continuar con correo electrónico"
+    "terms": "Acepto los <a href=\"%terms_url%\" target=\"_blank\" rel=\"noopener\">Términos de servicio</a> y la <a href=\"%privacy_url%\" target=\"_blank\" rel=\"noopener\">Política de privacidad</a>."
+    "newsletter": "Quiero estar al día: un correo al mes con las novedades de MySpeedPuzzling. Solo nuevas funciones: nada de marketing ni promociones. Puedes darte de baja cuando quieras."
   "welcome":
     "title": "¡Bienvenido a MySpeedPuzzling!"
     "verification_sent": "Hemos enviado un enlace de confirmación a %email%. Ábrelo para confirmar que la dirección es tuya."

@@ -19,6 +19,8 @@
     <form class="mt-4" action="{{ path('social_register_confirm') }}" method="post">
         <input type="hidden" name="token" value="{{ token }}">
 
+        {{ include('_registration_consents.html.twig', {id_prefix: 'social-relay'}) }}
+
         <button type="submit" class="btn btn-outline-secondary w-100">
             {{ 'auth.social.relay.create'|trans }}
         </button>

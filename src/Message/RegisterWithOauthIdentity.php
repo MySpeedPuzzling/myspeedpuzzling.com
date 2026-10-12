@@ -22,6 +22,10 @@ final readonly class RegisterWithOauthIdentity
         public bool $emailVerified,
         public null|string $name,
         public null|string $locale,
+        // Ticked "send me the newsletter" box - off unless the person asked for it
+        public bool $newsletter = false,
+        // Ticked "I agree to the Terms of service and the Privacy policy" (required by the forms)
+        public bool $termsAccepted = false,
     ) {
     }
 }

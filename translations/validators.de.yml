@@ -39,3 +39,4 @@ add_editions:
     starting_missing: "Wählen Sie den Tag, ab dem die Termine beginnen."
     count_range: "Wählen Sie 1 bis %max% Termine."
     none_selected: "Markieren Sie mindestens einen Termin."
+registration_terms_required: "Um ein Konto zu erstellen, stimmen Sie bitte den Nutzungsbedingungen und der Datenschutzerklärung zu."

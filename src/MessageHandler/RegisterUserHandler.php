@@ -83,6 +83,8 @@ final readonly class RegisterUserHandler
             $player->changeLocale($message->locale);
         }
 
+        $player->changeNewsletterEnabled($message->newsletter);
+
         $this->playerRepository->save($player);
 
         $this->authAuditRecorder->record(new RecordAuthAuditEvent(
@@ -90,6 +92,8 @@ final readonly class RegisterUserHandler
             userAccountId: $userAccount->id->toString(),
             userId: $userId,
             email: $email,
+            // The record of what was agreed to at registration (its time is the row's)
+            metadata: ['terms' => $message->termsAccepted, 'newsletter' => $message->newsletter],
         ));
 
         return $userId;

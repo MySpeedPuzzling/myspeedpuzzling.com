@@ -16,6 +16,8 @@
             {# The single-use parked token doubles as the CSRF guard #}
             <input type="hidden" name="token" value="{{ token }}">
 
+            {{ include('_registration_consents.html.twig', {id_prefix: 'social-register'}) }}
+
             <button type="submit" class="btn btn-primary w-100">
                 {{ 'auth.social.confirm.create'|trans }}
             </button>

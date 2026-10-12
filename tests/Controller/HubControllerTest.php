@@ -117,6 +117,7 @@ final class HubControllerTest extends WebTestCase
         $browser->submit($form, [
             $form->getName() . '[email]' => sprintf('hub.newcomer+%s@example.com', bin2hex(random_bytes(4))),
             $form->getName() . '[plainPassword]' => 'a-properly-long-passphrase',
+            $form->getName() . '[termsAccepted]' => '1',
         ]);
 
         // Every visit, not just the first one

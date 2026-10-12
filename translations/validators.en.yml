@@ -37,3 +37,4 @@ add_editions:
     starting_missing: "Choose the day the dates start from."
     count_range: "Choose 1 to %max% dates."
     none_selected: "Check at least one date."
+registration_terms_required: "To create an account, please agree to the Terms of service and the Privacy policy."

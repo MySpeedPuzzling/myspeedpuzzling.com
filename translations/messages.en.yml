@@ -5965,6 +5965,8 @@ auth:
         submitting: "Creating your account…"
         email_taken: "This email already has an account. <a href=\"%sign_in_url%\">Sign in</a> or <a href=\"%link_url%\">get a sign-in code</a>."
         continue_with_email: "Continue with email"
+        terms: "I agree to the <a href=\"%terms_url%\" target=\"_blank\" rel=\"noopener\">Terms of service</a> and the <a href=\"%privacy_url%\" target=\"_blank\" rel=\"noopener\">Privacy policy</a>."
+        newsletter: "Keep me in the loop: one e-mail a month about what's new on MySpeedPuzzling. Strictly feature updates – no marketing, no promotions. Unsubscribe anytime."
     welcome:
         title: "Welcome to MySpeedPuzzling!"
         verification_sent: "We sent a confirmation link to %email%. Open it to confirm the address is yours."

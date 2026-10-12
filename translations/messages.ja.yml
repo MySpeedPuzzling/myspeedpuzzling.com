@@ -5403,6 +5403,8 @@ guides:
     "submitting": "アカウントを作成中…"
     "email_taken": "このメールアドレスのアカウントはすでにあります。<a href=\"%sign_in_url%\">サインイン</a>するか、<a href=\"%link_url%\">サインインコードを受け取って</a>ください。"
     "continue_with_email": "メールアドレスで続ける"
+    "terms": "<a href=\"%terms_url%\" target=\"_blank\" rel=\"noopener\">利用規約</a>と<a href=\"%privacy_url%\" target=\"_blank\" rel=\"noopener\">プライバシーポリシー</a>に同意します。"
+    "newsletter": "最新情報を受け取る：MySpeedPuzzlingの新機能を月1回メールでお知らせします。マーケティングや宣伝は一切ありません。いつでも配信停止できます。"
   "welcome":
     "title": "MySpeedPuzzlingへようこそ！"
     "verification_sent": "%email%に確認リンクをお送りしました。リンクを開いて、このアドレスがあなたのものであることをご確認ください。"

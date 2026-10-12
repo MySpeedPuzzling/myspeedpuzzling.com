@@ -237,6 +237,9 @@ What a reply to a player promised to build. Each has an MSP Mailer follow-up: te
       covers every edition and both LIVE and FLEX runs, and MySpeedPuzzling matches the right edition by puzzle/date
       automatically, also when the edition is added later (a player saved a FLEX jam time without any event because the
       edition looked like the LIVE jam only). Promised to Carsten (MSP #257, follow-up F104).
+- [ ] Public API v1: endpoints to create and edit competitions/events (POST/PATCH, today /api/v1/competitions is GET
+      only), so an organiser like Puzzle Rush can sync events from their own site instead of setting them up twice in
+      MSP. Promised to Rob (MSP #261, follow-up F107).
 
 ## Participants spreadsheet (`docs/features/competitions-management/participants-spreadsheet.md` §13)
 

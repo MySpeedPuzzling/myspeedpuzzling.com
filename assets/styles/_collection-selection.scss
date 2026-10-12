@@ -66,6 +66,11 @@ body:has(.collection-selecting) .comparison-launcher {
         display: none;
     }
 
+    // The global search takes the whole screen - no bar over its results (the selection stays, the bar comes back)
+    body.global-search-shown & {
+        display: none;
+    }
+
     .collection-selection-bar-inner {
         display: flex;
         align-items: center;

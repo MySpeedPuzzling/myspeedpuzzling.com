@@ -9054,6 +9054,15 @@ nav:
         menu: "Menü"
         back: "Zurück"
         home_logo: "MySpeedPuzzling – Start"
+        feedback: "Feedback"
+        sign_in: "Anmelden"
+    account:
+        trigger_label: "Kontomenü"
+        view_profile: "Profil ansehen"
+        settings: "Einstellungen"
+        membership: "Mitgliedschaft"
+        language: "Sprache"
+        logout: "Abmelden"
     menu:
         title: "Menü"
         page_intro: "Alle Seiten und Einstellungen von MySpeedPuzzling an einem Ort."

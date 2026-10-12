@@ -32,8 +32,9 @@ final class NavInstrumentationMarkupTest extends WebTestCase
     public static function viewers(): iterable
     {
         // Guests: register / sign in, the newsletter form, popular searches; the top bar's tools (NAV-03)
-        yield 'guest' => [null, false, ['topbar/home/logo', 'topbar/none/search', 'topbar/none/help', 'topbar/none/menu', 'toolbar/tools/sign_in', 'toolbar/tools/register', 'footer/newsletter/subscribe', 'footer/newsletter/privacy', 'footer/popular_brands/cobble_hill', 'footer/popular_world_championship/wjpc_2026', 'footer/credits/jan']];
-        yield 'member' => [PlayerFixture::PLAYER_WITH_STRIPE, false, ['topbar/none/inbox', 'topbar/none/scan', 'account/toggle/open', 'account/links/logout', 'toolbar/tools/messages', 'toolbar/tools/notifications', 'hamburger/places/hub', 'footer/language/de']];
+        yield 'guest' => [null, false, ['topbar/home/logo', 'topbar/none/search', 'topbar/none/help', 'topbar/none/menu', 'topbar/places/home', 'topbar/add/add', 'topbar/profile/sign_in', 'toolbar/tools/sign_in', 'toolbar/tools/register', 'footer/newsletter/subscribe', 'footer/newsletter/privacy', 'footer/popular_brands/cobble_hill', 'footer/popular_world_championship/wjpc_2026', 'footer/credits/jan']];
+        // NAV-05: the account menu (avatar ▾) - its trigger is the top bar's, its items account/links/*
+        yield 'member' => [PlayerFixture::PLAYER_WITH_STRIPE, false, ['topbar/none/inbox', 'topbar/none/scan', 'topbar/profile/account', 'account/links/view_profile', 'account/links/settings', 'account/links/membership', 'account/language/de', 'account/toggle/open', 'account/links/logout', 'toolbar/tools/messages', 'toolbar/tools/notifications', 'hamburger/places/hub', 'footer/language/de']];
         // The admin key with every queue
         yield 'admin' => [PlayerFixture::PLAYER_ADMIN, false, ['admin_key/toggle/open', 'admin_key/queues/change_requests', 'admin_key/queues/duplicate_results', 'topbar/language/de']];
         // A player who switched the newsletter off gets the "Turn it on" button
@@ -156,10 +157,13 @@ final class NavInstrumentationMarkupTest extends WebTestCase
         $places = ['tabbar/places/home', 'tabbar/places/puzzles', 'tabbar/places/add', 'tabbar/places/community', 'tabbar/places/profile'];
         yield 'bottom bar (guest)' => ['/en/faq', [], '#bottom-nav', $places];
         yield 'bottom bar (player)' => ['/en/hub', [], '#bottom-nav', $places, PlayerFixture::PLAYER_REGULAR];
-        // The top bar (NAV-03): back (installed app, not on a root page) · logo · the search field's scan and × · 🔍 · ? ·
-        // Inbox (signed in) · ☰; a guest gets the locked scan inside the opened search only
-        yield 'top bar (guest)' => ['/en/faq', [], 'body > header.site-header', ['topbar/none/back', 'topbar/home/logo', 'topbar/none/scan_locked', 'topbar/none/close_search', 'topbar/none/search', 'topbar/none/help', 'topbar/none/menu']];
-        yield 'top bar (player, a root page)' => ['/en/hub', [], 'body > header.site-header', ['topbar/home/logo', 'topbar/none/scan_locked', 'topbar/none/close_search', 'topbar/none/search', 'topbar/none/help', 'topbar/none/inbox', 'topbar/none/menu'], PlayerFixture::PLAYER_PRIVATE];
+        // The top bar (NAV-03, NAV-04, NAV-05): ☰ (desktop) · back (installed app, not on a root page) · logo · the
+        // 768-1023 px places · the search field's scan and × · 🔍 · + Add · ? / Feedback · Inbox (signed in) · the account
+        // menu (signed in) / Sign in (guests) · ☰ (phones); a guest gets the locked scan inside the opened search only
+        $compactPlaces = ['topbar/places/home', 'topbar/places/puzzles', 'topbar/places/community'];
+        $account = ['topbar/profile/account', 'account/links/view_profile', 'account/links/settings', 'account/links/membership', 'account/language/de', 'account/language/cs', 'account/language/fr', 'account/language/es', 'account/language/ja', 'account/links/logout'];
+        yield 'top bar (guest)' => ['/en/faq', [], 'body > header.site-header', ['topbar/none/menu', 'topbar/none/back', 'topbar/home/logo', ...$compactPlaces, 'topbar/none/scan_locked', 'topbar/none/close_search', 'topbar/none/search', 'topbar/add/add', 'topbar/none/help', 'topbar/profile/sign_in', 'topbar/none/menu']];
+        yield 'top bar (player, a root page)' => ['/en/hub', [], 'body > header.site-header', ['topbar/none/menu', 'topbar/home/logo', ...$compactPlaces, 'topbar/none/scan_locked', 'topbar/none/close_search', 'topbar/none/search', 'topbar/add/add', 'topbar/none/help', 'topbar/none/inbox', ...$account, 'topbar/none/menu'], PlayerFixture::PLAYER_PRIVATE];
     }
 
     /**

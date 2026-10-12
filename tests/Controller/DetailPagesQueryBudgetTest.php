@@ -47,7 +47,7 @@ final class DetailPagesQueryBudgetTest extends WebTestCase
         // + the viewer's going/follow rows, the permissions statement and the signed-in overhead (3; INB-02: 9 → 8, the
         // two unread counts are one Inbox badge statement)
         yield 'series, player' => [self::HARBOR, PlayerFixture::PLAYER_REGULAR, 8];
-        // The same for an admin: the navbar's XP ring reads the viewer's own profile row (no query of its own).
+        // The same for an admin: the account menu's XP ring (NAV-05) reads the viewer's own profile row (no query of its own).
         // INB-02: 9 → 8
         yield 'series, organiser' => [self::HARBOR, PlayerFixture::PLAYER_ADMIN, 8];
         // Nothing coming: no going counts

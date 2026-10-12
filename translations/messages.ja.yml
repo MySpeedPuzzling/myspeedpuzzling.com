@@ -9043,6 +9043,15 @@ nav:
         menu: "メニュー"
         back: "戻る"
         home_logo: "MySpeedPuzzling – ホーム"
+        feedback: "フィードバック"
+        sign_in: "サインイン"
+    account:
+        trigger_label: "アカウントメニュー"
+        view_profile: "プロフィールを見る"
+        settings: "設定"
+        membership: "メンバーシップ"
+        language: "言語"
+        logout: "ログアウト"
     menu:
         title: "メニュー"
         page_intro: "MySpeedPuzzlingのすべてのページと設定をひとつの場所に。"

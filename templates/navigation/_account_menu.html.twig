@@ -1,0 +1,43 @@
+{#- The desktop account menu - the avatar ▾ of the top bar (docs/features/navigation README §4.3; implementation plan
+    NAV-05, decision 24): a short Bootstrap dropdown, signed-in players only, desktop only (CSS - the phones have the
+    Menu panel's You card and Log out row).
+    - Trigger .nav-account-trigger: the player's avatar inside <twig:XpRing variant="nav"> (the level ring behind the XP
+      gate - XpRing decides; without it the avatar is the trigger's direct child) and a chevron.
+    - Items, all static links from the viewer's profile row (no lazy frame, no statement): name + #code · View profile ·
+      Settings · Membership with its status line (_membership_status.html.twig, as the You card) · Language as a
+      <details> listing the current page in the other languages (_language_menu.html.twig, the switch the footer and
+      the old topbar share - language_switch_urls(), data-nav account/language/<locale>) · Log out (outside Turbo - the
+      session ends, the page must load anew).
+    - No role links: Your roles and their queue counts live in the Menu (MENU-01).
+    data-bs-auto-close="outside": opening the Language <details> keeps the menu open; data-bs-display="static": placed by
+    CSS under the trigger, right-aligned (no Popper). Never .more-menu (PuzzleDetailControllerTest counts those).
+    Chrome markup rules (implementation plan §3.2): no heading, no form, own prefixes; data-nav on every link and button. -#}
+{%- set profile = logged_user.profile -%}
+{%- set route = app.request.attributes.get('_route') -%}
+{%- set own_profile_href = path('player_profile', {playerId: profile.playerId}) -%}
+{%- set names = {en: 'English', de: 'Deutsch', cs: 'Čeština', fr: 'Français', es: 'Español', ja: '日本語'} -%}
+<div class="site-header-account dropdown">
+    {#- -#}<button type="button" class="nav-account-trigger" data-bs-toggle="dropdown" data-bs-auto-close="outside" data-bs-display="static" aria-expanded="false" data-nav="topbar/profile/account" aria-label="{{ 'nav.account.trigger_label'|trans }}">
+        {#- -#}<twig:XpRing :player="profile" variant="nav">
+            {{- include('_player_avatar.html.twig', {player_id: profile.playerId, name: profile.playerName ?? ('#' ~ profile.code), avatar: profile.avatar, country_code: null, size: 'lg'}, with_context = false) -}}
+        </twig:XpRing>
+        {#- -#}<svg class="nav-i nav-account-caret" aria-hidden="true" focusable="false"><use href="#nav-i-chevron-down"></use></svg>
+    {#- -#}</button>
+    {#- -#}<div class="dropdown-menu dropdown-menu-end nav-account-menu">
+        {#- -#}<p class="nav-account-head">
+            {%- if profile.playerName is not null -%}<span class="nav-account-name">{{ profile.playerName }}</span>{%- endif -%}
+            <span class="nav-account-code">#{{ profile.code|upper }}</span>
+        {#- -#}</p>
+        {#- -#}<ul class="nav-account-list">
+            <li><a class="dropdown-item" href="{{ own_profile_href }}" data-nav="account/links/view_profile"{% if route == 'player_profile' and app.request.attributes.get('playerId') == profile.playerId %} aria-current="page"{% endif %}><i class="bi bi-person" aria-hidden="true"></i>{{ 'nav.account.view_profile'|trans }}</a></li>
+            <li><a class="dropdown-item" href="{{ path('edit_profile') }}" data-nav="account/links/settings"{% if route == 'edit_profile' %} aria-current="page"{% endif %}><i class="bi bi-gear" aria-hidden="true"></i>{{ 'nav.account.settings'|trans }}</a></li>
+            <li><a class="dropdown-item nav-account-membership" href="{{ path('membership') }}" data-nav="account/links/membership"{% if route == 'membership' %} aria-current="page"{% endif %}><i class="bi bi-gem" aria-hidden="true"></i><span class="nav-account-item-text">{{ 'nav.account.membership'|trans }}<span class="nav-account-status">{{ include('navigation/_membership_status.html.twig', {profile: profile}, with_context = false) }}</span></span></a></li>
+            <li><details class="nav-account-language">
+                {#- -#}<summary class="dropdown-item"><i class="bi bi-translate" aria-hidden="true"></i><span class="nav-account-item-text">{{ 'nav.account.language'|trans }}<span class="nav-account-status" lang="{{ app.request.locale }}">{{ names[app.request.locale] ?? app.request.locale|upper }}</span></span></summary>
+                {{- include('_language_menu.html.twig', {nav_surface: 'account', list_class: 'nav-account-languages'}, with_context = false) -}}
+            {#- -#}</details></li>
+            <li class="nav-account-divider" role="separator"></li>
+            <li><a class="dropdown-item nav-account-logout" href="{{ path('logout') }}" data-turbo="false" data-nav="account/links/logout"><i class="bi bi-box-arrow-right" aria-hidden="true"></i>{{ 'nav.account.logout'|trans }}</a></li>
+        {#- -#}</ul>
+    {#- -#}</div>
+{#- -#}</div>

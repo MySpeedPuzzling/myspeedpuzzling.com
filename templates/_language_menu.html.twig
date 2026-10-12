@@ -1,10 +1,12 @@
-{# The other five languages - the topbar switcher and the footer one share it.
+{# The other five languages - the topbar switcher, the footer one and the account menu's Language (NAV-05) share it.
    The links are language_switch_urls() - the one rule of the switch (decision 36, MENU-01), also behind the Menu's
-   Language row; nav_surface (topbar / footer) is the data-nav surface of its links #}
+   Language row; nav_surface (topbar / footer / account) is the data-nav surface of its links. list_class: the list's
+   classes - a Bootstrap dropdown of its own by default; the account menu opens it inside its <details> (decision 24) #}
 {% set nav_surface = nav_surface|default('topbar') %}
+{% set list_class = list_class|default('dropdown-menu dropdown-menu-end') %}
 {% set language_urls = language_switch_urls() %}
 {% set language_names = {en: ['us', 'English'], de: ['de', 'Deutsch'], cs: ['cz', 'Čeština'], fr: ['fr', 'Français'], es: ['es', 'Español'], ja: ['jp', '日本語']} %}
-<ul class="dropdown-menu dropdown-menu-end" data-controller="locale-preference">
+<ul class="{{ list_class }}" data-controller="locale-preference">
     {% for locale, url in language_urls %}
         <li>
             <a class="dropdown-item pb-1" href="{{ url }}" data-action="click->locale-preference#save" data-locale-preference-locale-param="{{ locale }}" data-nav="{{ nav_surface }}/language/{{ locale }}">

@@ -1,4 +1,5 @@
 import { Controller } from '@hotwired/stimulus';
+import { getComponent } from '@symfony/ux-live-component';
 import layers, { LAYER_CLOSED_EVENT } from '../layer_history.js';
 import { isNativeApp } from '../platform.js';
 import { TOPBAR_REVEAL_EVENT } from '../topbar_scroll.js';
@@ -21,6 +22,15 @@ const OPEN_CLASS = 'global-search-shown';
 
 /** Phones in Media Queries Level 3 syntax (requirements, Conventions; $nav-phone-media in _nav-tokens.scss) */
 const PHONE_QUERY = '(max-width: 767.98px), (max-height: 500.98px) and (pointer: coarse)';
+
+/** Desktop - everything else ($nav-desktop-media) */
+const DESKTOP_QUERY = '(min-width: 768px) and (min-height: 501px), (min-width: 768px) and (pointer: fine)';
+
+// Ctrl/Cmd+K never reaches behind an open modal, dialog (the Menu panel, the desktop overlay) or the Help sheet
+const BLOCKING_LAYER = '.modal.show, dialog[open]';
+
+// Typing in another field keeps its own Ctrl/Cmd+K (a link shortcut of an editor, say)
+const OTHER_FIELD = 'input, textarea, select, [contenteditable=""], [contenteditable="true"]';
 
 // The Menu panel asks the page's search to close when it opens (menu_layer_controller.js, review F11)
 const CLOSE_EVENT = 'global-search:close';
@@ -47,6 +57,12 @@ const SCANNER = 'barcode-scanner';
  * Both close the barcode scanner when the field gets focus. Opening the Menu panel closes the bar's search: the phone
  * search view through the layer swap (the Menu's layer replaces its entry), the desktop dropdown on
  * `global-search:close` (review F11). "Pages & settings" is nav_search_controller.js's.
+ *
+ * Desktop (NAV-04, README §4.3): Ctrl/Cmd+K focuses the bar's field - in the 768-1023 px bar, where search is the 🔍,
+ * it opens the field first; never a single-key shortcut, never behind an open modal or dialog, never while typing in
+ * another field. The field's placeholder is the one-word one on phones and the long one ("Search puzzles, puzzlers,
+ * pages & settings") on desktop whenever it fits the field (canvas measureText in the input's font) - decided again
+ * when the field changes size and after every Live re-render, which puts the server's one-word placeholder back.
  */
 export default class extends Controller {
     static targets = ['searchInput', 'panel'];
@@ -66,12 +82,15 @@ export default class extends Controller {
             this.syncSearching();
         } else {
             document.addEventListener('click', this.handleToggleClick);
+            document.addEventListener('keydown', this.handleShortcut);
             document.addEventListener(CLOSE_EVENT, this.handleCloseRequest);
             document.addEventListener('turbo:before-cache', this.handleBeforeCache);
 
             if (this.hasPanelTarget) {
                 this.panelTarget.addEventListener('click', this.handlePanelClick);
             }
+
+            this.watchPlaceholder();
         }
     }
 
@@ -81,6 +100,7 @@ export default class extends Controller {
         this.searchInputTarget.removeEventListener('input', this.handleInput);
         document.removeEventListener(LAYER_CLOSED_EVENT, this.handleLayerClosed);
         document.removeEventListener('click', this.handleToggleClick);
+        document.removeEventListener('keydown', this.handleShortcut);
         document.removeEventListener(CLOSE_EVENT, this.handleCloseRequest);
         document.removeEventListener('click', this.handleOutsideClick);
         document.removeEventListener('turbo:before-cache', this.handleBeforeCache);
@@ -88,6 +108,8 @@ export default class extends Controller {
         if (this.hasPanelTarget) {
             this.panelTarget.removeEventListener('click', this.handlePanelClick);
         }
+
+        this.unwatchPlaceholder();
 
         // The page went away with the search open (a result was opened from it): <html> outlives the body
         if (this.shown) {
@@ -194,6 +216,137 @@ export default class extends Controller {
     }
 
     // ---- bar ---------------------------------------------------------------------------------------------------
+
+    /**
+     * Ctrl/Cmd+K (NAV-04): the field takes the focus - opened first where search is an icon (the 768-1023 px bar, a
+     * phone next to a running stopwatch). Left to the browser behind an open modal or dialog and in another field.
+     */
+    handleShortcut = (event) => {
+        if (event.defaultPrevented || event.altKey || event.shiftKey || !(event.ctrlKey || event.metaKey)
+            || typeof event.key !== 'string' || event.key.toLowerCase() !== 'k' || !this.element.isConnected) {
+            return;
+        }
+
+        const target = event.target;
+        const input = this.searchInputTarget;
+
+        if (document.querySelector(BLOCKING_LAYER)
+            || (target !== input && target instanceof Element && target.closest(OTHER_FIELD))) {
+            return;
+        }
+
+        event.preventDefault();
+
+        if (!this.shown) {
+            this.openView();
+        }
+
+        // Synchronously: html[data-search-open] shows the field where it was the icon, then it can take the focus
+        input.focus();
+        input.select();
+    };
+
+    /** The placeholder: decided now, whenever the field changes size and after every Live re-render */
+    watchPlaceholder() {
+        this.placeholderFrame = null;
+        this.desktopQuery = typeof window.matchMedia === 'function' ? window.matchMedia(DESKTOP_QUERY) : null;
+
+        if (typeof window.ResizeObserver === 'function') {
+            this.placeholderObserver = new window.ResizeObserver(this.schedulePlaceholder);
+            this.placeholderObserver.observe(this.searchInputTarget);
+        } else {
+            window.addEventListener('resize', this.schedulePlaceholder);
+        }
+
+        if (this.desktopQuery && typeof this.desktopQuery.addEventListener === 'function') {
+            this.desktopQuery.addEventListener('change', this.schedulePlaceholder);
+        }
+
+        // The web font may arrive after the first measure (font-display: optional - within 100 ms or never)
+        if (document.fonts && document.fonts.ready) {
+            document.fonts.ready.then(this.schedulePlaceholder, () => {});
+        }
+
+        getComponent(this.element).then((component) => {
+            if (!this.element.isConnected) {
+                return;
+            }
+
+            this.liveComponent = component;
+            component.on('render:finished', this.schedulePlaceholder);
+        }, () => {});
+
+        this.fitPlaceholder();
+    }
+
+    unwatchPlaceholder() {
+        if (this.placeholderObserver) {
+            this.placeholderObserver.disconnect();
+            this.placeholderObserver = null;
+        }
+
+        window.removeEventListener('resize', this.schedulePlaceholder);
+
+        if (this.desktopQuery && typeof this.desktopQuery.removeEventListener === 'function') {
+            this.desktopQuery.removeEventListener('change', this.schedulePlaceholder);
+        }
+
+        if (this.liveComponent && typeof this.liveComponent.off === 'function') {
+            this.liveComponent.off('render:finished', this.schedulePlaceholder);
+        }
+
+        this.liveComponent = null;
+
+        if (this.placeholderFrame) {
+            window.cancelAnimationFrame(this.placeholderFrame);
+            this.placeholderFrame = null;
+        }
+    }
+
+    schedulePlaceholder = () => {
+        if (this.placeholderFrame || !this.element.isConnected) {
+            return;
+        }
+
+        this.placeholderFrame = window.requestAnimationFrame(() => {
+            this.placeholderFrame = null;
+            this.fitPlaceholder();
+        });
+    };
+
+    /** The long placeholder on desktop when it fits the input's content box, else the one-word one */
+    fitPlaceholder() {
+        const input = this.searchInputTarget;
+        const short = input.dataset.placeholderShort || input.getAttribute('placeholder') || '';
+        const long = input.dataset.placeholderLong || '';
+        let wanted = short;
+
+        if (long !== '' && this.desktopQuery && this.desktopQuery.matches && input.clientWidth > 0) {
+            const style = window.getComputedStyle(input);
+            const room = input.clientWidth - (parseFloat(style.paddingLeft) || 0) - (parseFloat(style.paddingRight) || 0);
+
+            if (room > 0 && this.textWidth(long, style) <= room) {
+                wanted = long;
+            }
+        }
+
+        if (input.getAttribute('placeholder') !== wanted) {
+            input.setAttribute('placeholder', wanted);
+        }
+    }
+
+    textWidth(text, style) {
+        this.measureCanvas = this.measureCanvas || document.createElement('canvas');
+        const context = this.measureCanvas.getContext('2d');
+
+        if (!context) {
+            return Number.POSITIVE_INFINITY;
+        }
+
+        context.font = style.font || `${style.fontStyle} ${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+
+        return context.measureText(text).width;
+    }
 
     /**
      * The Menu panel opens (review F11): the desktop dropdown closes here. A phone search view is left alone - the Menu's

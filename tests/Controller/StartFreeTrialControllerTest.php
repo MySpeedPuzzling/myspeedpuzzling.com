@@ -44,9 +44,11 @@ final class StartFreeTrialControllerTest extends WebTestCase
         self::assertCount(0, $crawler->filter('.free-trial-offer'));
         self::assertStringContainsString('Your free trial is running', $crawler->filter('.card-body')->first()->text());
         self::assertGreaterThan(0, $crawler->filter('a[href*="/buy-membership"], a[href*="buy"]')->count());
-        // The trial status line of the Menu's You card (MENU-01; NAV-05's account menu shows the same line)
+        // The trial status line of the Menu's You card (MENU-01) and of the account menu's Membership row (NAV-05)
         self::assertCount(1, $crawler->filter('#site-menu .menu-you-status'));
         self::assertMatchesRegularExpression('/^Free trial · \d+ days left$/', trim($crawler->filter('#site-menu .menu-you-status')->text()));
+        self::assertCount(1, $crawler->filter('.site-header .nav-account-membership .nav-account-status'));
+        self::assertMatchesRegularExpression('/^Free trial · \d+ days left$/', trim($crawler->filter('.site-header .nav-account-membership .nav-account-status')->text()));
     }
 
     public function testFromAModalThePlayerComesBackToThePageTheyWereOn(): void

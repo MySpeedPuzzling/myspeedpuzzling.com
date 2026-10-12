@@ -3,8 +3,10 @@
       the DOM (tests read the first one). On phones a tap on it opens the search view (html[data-search-open], a
       GEST-01 layer: Back closes it): the field widens, × and - at 320-359 px - the scan button appear, the results
       panel (.site-search-panel) lies under the bar down to the bottom bar. On desktop the panel drops down under the
-      field, no history entry (decision 22). The barcode scan sits in the field for members (from 360 px in the closed
-      bar); everybody else gets the locked one only in the opened search (decision 21, never a teaser in the closed bar);
+      field, no history entry (decision 22) - in the 768-1023 px bar the 🔍 (or Ctrl/Cmd+K) opens the field in the bar
+      first; Ctrl/Cmd+K focuses it everywhere (NAV-04). The barcode scan sits in the field for members (from 360 px in
+      the closed bar); everybody else gets the locked one only in the opened search (decision 21, never a teaser in the
+      closed bar);
     - surface `menu` (key="menu"): the Menu panel's field (templates/navigation/_menu_layer.html.twig); its results show
       inside the panel - same layer, same history entry. No × (the panel has one; Esc clears the field first), the scan
       button only for members (rows a viewer cannot use are hidden, never locked - D13).
@@ -43,14 +45,15 @@
             {% endif %}
         </div>
         {% else %}
-        {#- The top bar's field: magnifier · the input (16 px, the one-word placeholder; desktop shows the long one from
-            data-placeholder-long through CSS - a Live re-render would undo a script's) · scan; × closes the opened search
-            (phones). -#}
+        {#- The top bar's field: magnifier · the input (16 px, the one-word placeholder; on desktop
+            global_search_controller.js puts the long one in whenever it fits the field - measured, again after a resize
+            and after every Live re-render) · scan; × closes the opened search (phones and the 768-1023 px bar). -#}
         <div class="site-search-row">
-            <div class="site-search-field" data-placeholder-long="{{ 'nav.bar.search_placeholder_long'|trans }}">
+            <div class="site-search-field">
                 <svg class="site-search-glass" aria-hidden="true" focusable="false"><use href="#nav-i-search"></use></svg>
                 <input type="search" data-model="debounce(150)|query" class="site-search-input" autocomplete="off" enterkeyhint="search"
                        aria-label="{{ 'nav.bar.search_label'|trans }}" placeholder="{{ 'nav.bar.search_placeholder'|trans }}"
+                       data-placeholder-short="{{ 'nav.bar.search_placeholder'|trans }}" data-placeholder-long="{{ 'nav.bar.search_placeholder_long'|trans }}"
                        data-barcode-scanner-target="input" data-global-search-target="searchInput" data-nav-search-target="input">
                 {% if member %}
                     <button type="button" class="site-search-scan"

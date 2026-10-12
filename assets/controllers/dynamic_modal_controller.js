@@ -42,8 +42,13 @@ const RELEASED_CLASS = 'is-released';
 // The Menu panel hands its opener over when this modal takes its history entry (menu_layer_controller.js)
 const MENU_HANDOVER_EVENT = 'menu-layer:handover';
 
-// Focus goes back here when the element that opened the modal is no longer shown (the ☰, NAV-03)
+// Focus goes back here when the element that opened the modal is no longer shown (the ☰, NAV-03). The top bar renders
+// two (NAV-04: desktop first, phones last) and shows one - the shown one takes the focus
 const MENU_BUTTON = '[data-bar-action="menu"]';
+
+function shownMenuButton() {
+    return Array.from(document.querySelectorAll(MENU_BUTTON)).find((element) => element.getClientRects().length > 0) || null;
+}
 
 /**
  * Dynamic Modal Controller
@@ -624,7 +629,7 @@ export default class extends Controller {
         this.trigger = null;
 
         if (trigger && trigger.isConnected && typeof trigger.getClientRects === 'function' && trigger.getClientRects().length === 0) {
-            trigger = document.querySelector(MENU_BUTTON);
+            trigger = shownMenuButton();
         }
 
         if (trigger && trigger.isConnected && typeof trigger.focus === 'function') {

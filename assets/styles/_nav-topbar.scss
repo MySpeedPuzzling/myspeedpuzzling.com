@@ -1,10 +1,12 @@
-// The top bar (docs/features/navigation README §4.1, §5, D2; implementation plan NAV-03, decisions 20-22;
-// templates/navigation/_topbar.html.twig, assets/controllers/topbar_controller.js, global_search_controller.js).
+// The top bar (docs/features/navigation README §4.1, §4.3, §5, D2, D16; implementation plan NAV-03, NAV-04, NAV-05,
+// decisions 20-24; templates/navigation/_topbar.html.twig, _account_menu.html.twig,
+// assets/controllers/topbar_controller.js, global_search_controller.js).
 //
 // Its box, the tools' 44 × 44 targets 4 px apart, the search field's size and every variant that changes the layout
-// (the pill taking the field's place, the installed app's back button, the open search) are in critical CSS
-// (templates/navigation/_critical_css.html.twig) - here is the rest: colours, pressed and focus states, the hide on
-// scroll, the badge and the dot, the search view and its panel.
+// (the pill taking the field's place, the installed app's back button, the open search; on desktop the tiers 768-1023 /
+// 1024 / 1200 px) are in critical CSS (templates/navigation/_critical_css.html.twig) - here is the rest: colours,
+// pressed and focus states, the hide on scroll, the badge and the dot, the search view and its panel, the desktop
+// tools (+ Add, Feedback, Inbox, Sign in), the compact places and the account menu.
 //
 // Never a backdrop-filter, never a transform while shown (decision 20): the search panel inside the bar is
 // position: fixed, and either would make the bar its containing block.
@@ -224,30 +226,301 @@ $nav-topbar-desktop-h: 64px;
     }
 }
 
-// Desktop (NAV-04 refines it): the one-word placeholder stays for screen readers, the long one shows over the empty
-// field - from the server's data-placeholder-long, a Live re-render never undoes it
+// ---- Desktop (NAV-04, README §4.3 / D16): one 64 px row, never hidden ---------------------------------------------------
+// The tiers (Media Queries Level 3, like $nav-desktop-media): 768-1023 px the compact bar, from 1024 px the field, from
+// 1200 px Feedback's and Inbox's labels
+
+$nav-compact-media: "(min-width: 768px) and (max-width: 1023.98px) and (min-height: 501px), (min-width: 768px) and (max-width: 1023.98px) and (pointer: fine)";
+$nav-labels-media: "(min-width: 1200px) and (min-height: 501px), (min-width: 1200px) and (pointer: fine)";
+
 @include nav-desktop {
-    .site-search-field[data-placeholder-long]:has(> .site-search-input:placeholder-shown) {
-        > .site-search-input::placeholder {
-            color: transparent;
+    // The pill-shaped tools: ☰ with its label, Feedback and Inbox with theirs
+    .site-header-menu--desk,
+    .site-header-help,
+    .inbox-link--topbar {
+        border-radius: 22px;
+    }
+
+    // The ☰ dot sits on the icon's corner, wherever the label puts the right edge
+    .site-header-menu--desk .nav-menu-dot {
+        right: auto;
+        left: 26px;
+    }
+
+    .site-header-menu-label,
+    .site-header-label {
+        color: var(--nav-ink, #4b566b);
+    }
+
+    .site-header-brand {
+        color: #373f50;
+        letter-spacing: -.01em;
+    }
+
+    .site-header-logo:hover .site-header-brand {
+        color: var(--nav-active-ink, #c8323a);
+    }
+
+    // + Add: the coral action, never "selected". It carries text, so the darker coral of the badges and the e-mail
+    // buttons (white on #d63c42: 4.58:1) - the tab bar's #ec4f52 tile (3.62:1) is fine for its icon only
+    .site-header-add {
+        background: var(--nav-badge-bg, #d63c42);
+        color: var(--nav-add-ink, #fff);
+        text-decoration: none;
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
+
+        &:hover,
+        &:focus {
+            background: var(--nav-active-ink, #c8323a);
+            color: var(--nav-add-ink, #fff);
+            text-decoration: none;
         }
 
-        &::after {
-            content: attr(data-placeholder-long);
-            position: absolute;
-            top: 50%;
-            left: 32px;
-            right: 48px;
-            overflow: hidden;
-            color: var(--search-placeholder, #5f6b80);
-            font-size: 1rem;
-            line-height: 1.25rem;
-            white-space: nowrap;
-            text-overflow: ellipsis;
-            transform: translateY(-50%);
-            pointer-events: none;
+        &:active {
+            background: #b02a31;
+        }
+
+        &:focus-visible {
+            outline: 2px solid var(--nav-focus, #4e54c8);
+            outline-offset: 2px;
         }
     }
+
+    // Guests: Sign in in the avatar's place (decision 23)
+    // (44 px tall with a 2 px transparent border: the 40 px button drawn inside the 44 px target)
+    .site-header-signin {
+        background: var(--nav-bg, #fff);
+        box-shadow: inset 0 0 0 1px rgba(43, 52, 69, .2);
+        color: var(--nav-ink, #4b566b);
+        text-decoration: none;
+
+        &:hover,
+        &:focus {
+            box-shadow: inset 0 0 0 1px var(--nav-active-ink, #c8323a);
+            color: var(--nav-active-ink, #c8323a);
+            text-decoration: none;
+        }
+
+        &:active {
+            background: var(--nav-pressed-pill, rgba(254, 105, 106, .1));
+        }
+
+        &:focus-visible {
+            outline: 2px solid var(--nav-focus, #4e54c8);
+            outline-offset: 2px;
+        }
+    }
+}
+
+// 768-1023 px: the places as in the tab bar (icon over label, the current one on its pill - _nav-bars.scss's .nav-tab)
+@media #{$nav-compact-media} {
+    .nav-places--compact {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+
+        .nav-tab {
+            flex: 0 0 auto;
+            border-radius: .75rem;
+        }
+
+        .nav-tab:hover .nav-tab-icon {
+            background: var(--nav-pressed-pill, rgba(254, 105, 106, .1));
+        }
+
+        .nav-tab-label {
+            max-width: none;
+            overflow: visible;
+        }
+    }
+
+    // The opened field fills the bar: the dropdown under it as wide as the field
+    :root[data-search-open] .site-header .site-search-panel {
+        min-width: 0;
+    }
+}
+
+// From 1200 px Inbox carries its label: the count keeps to the icon's corner
+@media #{$nav-labels-media} {
+    .site-header .inbox-link--topbar .inbox-badge {
+        right: auto;
+        left: 22px;
+    }
+}
+
+// ---- The account menu (NAV-05, README §4.3): the avatar ▾ ------------------------------------------------------------
+
+.nav-account-trigger {
+    position: relative;
+    border-radius: 22px;
+    color: var(--nav-ink, #4b566b);
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+
+    .lb-avatar {
+        margin: 0;
+    }
+
+    &:hover,
+    &[aria-expanded="true"] {
+        background: var(--nav-pressed-pill, rgba(254, 105, 106, .1));
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--nav-focus, #4e54c8);
+        outline-offset: -2px;
+    }
+}
+
+.nav-account-caret {
+    fill: currentColor;
+    transition: transform .15s ease;
+
+    [aria-expanded="true"] > & {
+        transform: rotate(180deg);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        transition: none;
+    }
+}
+
+.nav-account-menu {
+    min-width: 16rem;
+    max-width: min(20rem, calc(100vw - 1.5rem));
+    margin-top: 2px;
+    padding: .375rem 0;
+    border: 1px solid var(--nav-hairline, rgba(43, 52, 69, .1));
+    border-radius: .75rem;
+    box-shadow: 0 8px 24px rgba(43, 52, 69, .16);
+
+    .dropdown-item {
+        display: flex;
+        align-items: flex-start;
+        gap: .625rem;
+        padding: .5rem 1rem;
+        color: var(--nav-ink, #4b566b);
+        white-space: normal;
+
+        > .bi {
+            flex: 0 0 auto;
+            width: 1.125rem;
+            margin-top: .125rem;
+            text-align: center;
+        }
+
+        &:hover,
+        &:focus {
+            background: var(--nav-pressed-pill, rgba(254, 105, 106, .1));
+            color: var(--nav-ink, #4b566b);
+        }
+
+        &[aria-current] {
+            color: var(--nav-active-ink, #c8323a);
+            font-weight: 500;
+        }
+
+        &:focus-visible {
+            outline: 2px solid var(--nav-focus, #4e54c8);
+            outline-offset: -2px;
+        }
+    }
+}
+
+.nav-account-head {
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    padding: .375rem 1rem .625rem;
+    border-bottom: 1px solid var(--nav-hairline, rgba(43, 52, 69, .1));
+    line-height: 1.3;
+}
+
+.nav-account-name {
+    color: #373f50;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.nav-account-code {
+    color: var(--nav-label, #5f6b80);
+    font-size: .8125rem;
+}
+
+.nav-account-list {
+    margin: .25rem 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.nav-account-item-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+// The membership status and the current language under their row's label
+.nav-account-status {
+    color: var(--nav-label, #5f6b80);
+    font-size: .8125rem;
+}
+
+.nav-account-language {
+    > summary {
+        position: relative;
+        padding-right: 2.25rem;
+        cursor: pointer;
+        list-style: none;
+
+        &::-webkit-details-marker {
+            display: none;
+        }
+
+        // A chevron: it opens in place
+        &::after {
+            content: "";
+            position: absolute;
+            top: 1rem;
+            right: 1.125rem;
+            width: .4375rem;
+            height: .4375rem;
+            border-right: 1.5px solid currentColor;
+            border-bottom: 1.5px solid currentColor;
+            transform: rotate(45deg);
+        }
+    }
+
+    &[open] > summary::after {
+        top: 1.125rem;
+        transform: rotate(-135deg);
+    }
+}
+
+.nav-account-languages {
+    margin: 0 0 .25rem;
+    padding: 0;
+    list-style: none;
+
+    // The shared language list (_language_menu.html.twig: flag + name, .pb-1) indented under its row
+    .dropdown-item {
+        align-items: center;
+        padding-top: .25rem;
+        padding-left: 2.75rem;
+    }
+}
+
+.nav-account-divider {
+    height: 0;
+    margin: .375rem 0;
+    border-top: 1px solid var(--nav-hairline, rgba(43, 52, 69, .1));
+}
+
+.nav-account-menu .nav-account-logout,
+.nav-account-menu .nav-account-logout:hover,
+.nav-account-menu .nav-account-logout:focus {
+    color: var(--nav-active-ink, #c8323a);
 }
 
 // ---- The results panel ------------------------------------------------------------------------------------------------

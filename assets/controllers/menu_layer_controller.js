@@ -313,8 +313,13 @@ export default class extends Controller {
         }
     }
 
+    /**
+     * Focus back to what opened the Menu - while it is still shown; else to the shown ☰ (the top bar renders one for
+     * desktop and one for phones, NAV-04 - CSS shows one of them)
+     */
     focusOpener(opener) {
-        const target = opener && opener.isConnected ? opener : document.querySelector('[data-bar-action="menu"]');
+        const shown = (element) => element && element.isConnected && element.getClientRects().length > 0;
+        const target = shown(opener) ? opener : Array.from(document.querySelectorAll('[data-bar-action="menu"]')).find(shown);
 
         if (target && typeof target.focus === 'function') {
             target.focus({ preventScroll: true });

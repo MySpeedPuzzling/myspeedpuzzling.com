@@ -24,13 +24,17 @@ use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\Routing\RouterInterface;
 
 /**
- * The top bar (docs/features/navigation README §4.1 / D2, D5; implementation plan NAV-03, NAV-10, NAV-14): one
- * <header class="site-header"> on every web page, a direct child of <body> - phones: (back) · logo · search field ·
- * (⏱ pill) · 🔍 · ? · Inbox · ☰. Built from the request and the profile row only (ChromeQueryBudgetTest pins that it
- * costs no statement): the logo is Home (the Hub signed in, the homepage for guests), Inbox for signed-in players only,
- * ☰ last with a dot only while one of a moderator's or admin's review queues holds items, the installed app's back
- * button (shown by CSS under html.is-standalone) on every page but the places' own start pages. The four tools carry the
- * BarAction ids. The page's GlobalSearch is the field - the first instance in the DOM. Guest HTML stays shared.
+ * The top bar (docs/features/navigation README §4.1 / D2, §4.3 / D16, D5; implementation plan NAV-03, NAV-04, NAV-10,
+ * NAV-14): one <header class="site-header"> on every web page, a direct child of <body>, for phones and desktop (R8) -
+ * DOM order ☰ (desktop) · (back) · logo · places (768-1023 px) · search field · (⏱ pill) · 🔍 · + Add (desktop) · ? /
+ * Feedback · Inbox · avatar ▾ / Sign in (desktop) · ☰ (phones); CSS shows each surface its own (critical CSS, checked in
+ * the browser by checks/NAV-03.py and NAV-04.py). Built from the request and the profile row only (ChromeQueryBudgetTest
+ * pins that it costs no statement): the logo is Home (the Hub signed in, the homepage for guests), Inbox and the avatar ▾
+ * for signed-in players only - guests get Sign in in its place (decision 23), ☰ with a dot only while one of a
+ * moderator's or admin's review queues holds items, the installed app's back button (shown by CSS under
+ * html.is-standalone) on every page but the places' own start pages. Each surface's tools carry the BarAction ids. The
+ * page's GlobalSearch is the field - the first instance in the DOM. No Puzzles ▾ / Community ▾ dropdowns. Guest HTML
+ * stays shared.
  */
 final class TopBarTest extends WebTestCase
 {
@@ -52,23 +56,36 @@ final class TopBarTest extends WebTestCase
         self::assertNotNull($header->attr('data-viewer-signed-in'));
         self::assertSame('topbar', $header->attr('data-controller'));
 
-        // The FAQ is no place's start page: the installed app's back button comes first (CSS shows it there only)
-        self::assertSame(['back', 'logo', 'search', 'search_icon', 'help', 'inbox', 'menu'], $this->tools($crawler));
+        // The FAQ is no place's start page: the installed app's back button comes before the logo (CSS shows it there
+        // only); the desktop ☰ comes first, the phones' last
+        self::assertSame(['menu_desk', 'back', 'logo', 'places', 'search', 'search_icon', 'add', 'help', 'inbox', 'account', 'menu'], $this->tools($crawler));
 
         self::assertSame($router->generate('hub'), $header->filter('a.site-header-logo')->attr('href'));
         self::assertSame($router->generate('help', ['url' => '/en/faq']), $header->filter('[data-bar-action="help"]')->attr('href'));
         self::assertSame($router->generate('puzzles'), $header->filter('[data-bar-action="search"]')->attr('href'));
-        self::assertSame($router->generate('menu'), $header->filter('[data-bar-action="menu"]')->attr('href'));
+        self::assertSame([$router->generate('menu'), $router->generate('menu')], $header->filter('[data-bar-action="menu"]')->each(static fn (Crawler $menu): string => (string) $menu->attr('href')));
 
-        // ☰: last, named "Menu", a dialog opener; no dot for a player without review queues
-        $menu = $header->filter('.site-header-inner > *')->last();
-        self::assertSame('menu', $menu->attr('data-bar-action'));
-        self::assertSame('Menu', $menu->attr('aria-label'));
-        self::assertSame('dialog', $menu->attr('aria-haspopup'));
-        self::assertSame('false', $menu->attr('aria-expanded'));
+        // ☰ twice (R8): the desktop one first, the phones' last - both named "Menu", dialog openers, the same nav id; no
+        // dot for a player without review queues. The focus fallbacks of the Menu panel and the dynamic modal take the
+        // one CSS shows (review F7, NAV-04)
+        $menus = $header->filter('[data-bar-action="menu"]');
+        self::assertCount(2, $menus);
+        self::assertSame($menus->first()->getNode(0), $header->filter('.site-header-inner > *')->first()->getNode(0));
+        self::assertSame($menus->last()->getNode(0), $header->filter('.site-header-inner > *')->last()->getNode(0));
+        self::assertStringContainsString('site-header-menu--desk', (string) $menus->first()->attr('class'));
+        self::assertStringContainsString('site-header-menu--phone', (string) $menus->last()->attr('class'));
+
+        foreach ($menus as $menu) {
+            assert($menu instanceof DOMElement);
+            self::assertSame('Menu', $menu->getAttribute('aria-label'));
+            self::assertSame('dialog', $menu->getAttribute('aria-haspopup'));
+            self::assertSame('false', $menu->getAttribute('aria-expanded'));
+            self::assertSame('topbar/none/menu', $menu->getAttribute('data-nav'));
+        }
+
         self::assertCount(0, $header->filter('.nav-menu-dot'));
-        // The Menu panel's focus fallback reads the first [data-bar-action="menu"] of the page: the ☰ (review F7)
-        self::assertSame('topbar/none/menu', $crawler->filter('[data-bar-action="menu"]')->first()->attr('data-nav'));
+        // The desktop ☰ shows its name at 768-1023 px (CSS)
+        self::assertSame('Menu', trim($menus->first()->filter('.site-header-menu-label')->text()));
 
         // The search field is the page's GlobalSearch - the first instance in the DOM
         $search = $header->filter('[data-live-name-value="GlobalSearch"]');
@@ -82,8 +99,11 @@ final class TopBarTest extends WebTestCase
         // No scan teaser in the closed bar (decision 21): a non-member's scan button is the locked one, shown only open
         self::assertCount(1, $search->filter('button.site-search-scan.site-search-scan--locked'));
 
-        // Chrome markup rules (implementation plan §3.2): no heading, no form, own class names (never one starting topbar)
-        self::assertCount(0, $header->filter('h1, h2, form, .alert, .card-body, .nav-tabs, .nav-pills, .nav-link, [class^="topbar"], [class*=" topbar"]'));
+        // Chrome markup rules (implementation plan §3.2): no heading, no form, own class names (never one starting topbar);
+        // .dropdown-menu only in the avatar ▾, never a .more-menu
+        self::assertCount(0, $header->filter('h1, h2, h3, h4, h5, h6, form, .alert, .card-body, .nav-tabs, .nav-pills, .nav-link, .more-menu, [class^="topbar"], [class*=" topbar"]'));
+        self::assertCount(1, $header->filter('.dropdown-menu'));
+        self::assertCount(1, $header->filter('.site-header-account > .dropdown-menu'));
 
         foreach ($header->filter('a, button') as $element) {
             assert($element instanceof DOMElement);
@@ -99,10 +119,16 @@ final class TopBarTest extends WebTestCase
         $crawler = $browser->request('GET', '/en/faq');
         $header = $crawler->filter('body > header.site-header');
 
-        $actions = $header->filter('[data-bar-action]')->each(static fn (Crawler $tool): string => (string) $tool->attr('data-bar-action'));
         $cases = array_map(static fn (BarAction $action): string => $action->value, BarAction::cases());
 
-        self::assertSame($cases, $actions);
+        // Each surface carries every tool once (R8): phones search · help · inbox · menu (☰ last); desktop the same
+        // with its ☰ first
+        $phone = $header->filter('[data-bar-action]:not(.site-header-menu--desk)')->each(static fn (Crawler $tool): string => (string) $tool->attr('data-bar-action'));
+        $desktop = $header->filter('[data-bar-action]:not(.site-header-menu--phone)')->each(static fn (Crawler $tool): string => (string) $tool->attr('data-bar-action'));
+
+        self::assertSame($cases, $phone);
+        self::assertSame(['menu', 'search', 'help', 'inbox'], $desktop);
+        self::assertEqualsCanonicalizing($cases, $desktop);
 
         foreach ($header->filter('[data-bar-action]') as $tool) {
             assert($tool instanceof DOMElement);
@@ -128,12 +154,13 @@ final class TopBarTest extends WebTestCase
         self::assertResponseIsSuccessful();
 
         $header = $crawler->filter('body > header.site-header');
-        self::assertSame(['back', 'logo', 'search', 'search_icon', 'help', 'menu'], $this->tools($crawler));
+        self::assertSame(['menu_desk', 'back', 'logo', 'places', 'search', 'search_icon', 'add', 'help', 'sign_in', 'menu'], $this->tools($crawler));
         self::assertCount(0, $header->filter('[data-bar-action="inbox"], a[data-inbox-link]'), 'Inbox is for signed-in players');
+        self::assertCount(0, $header->filter('.site-header-account, .nav-account-trigger, .dropdown-menu'), 'The account menu is for signed-in players');
         self::assertNull($header->attr('data-viewer-signed-in'));
         // D5: guests' Home is the homepage
         self::assertSame($router->generate('homepage'), $header->filter('a.site-header-logo')->attr('href'));
-        self::assertSame(['search', 'help', 'menu'], $header->filter('[data-bar-action]')->each(static fn (Crawler $tool): string => (string) $tool->attr('data-bar-action')));
+        self::assertSame(['menu', 'search', 'help', 'menu'], $header->filter('[data-bar-action]')->each(static fn (Crawler $tool): string => (string) $tool->attr('data-bar-action')));
 
         $response = $browser->getResponse();
         self::assertTrue($response->headers->hasCacheControlDirective('public'), (string) $response->headers->get('Cache-Control'));
@@ -176,7 +203,7 @@ final class TopBarTest extends WebTestCase
         self::assertSame('Back', $back->attr('aria-label'));
         self::assertSame('topbar#back', $back->attr('data-action'));
         self::assertSame($router->generate('puzzle_library', ['playerId' => self::PLAYER]), $back->attr('href'));
-        self::assertSame(['back', 'logo'], array_slice($this->tools($crawler), 0, 2), 'The back button comes before the logo');
+        self::assertSame(['menu_desk', 'back', 'logo'], array_slice($this->tools($crawler), 0, 3), 'The back button comes right before the logo');
 
         // Somebody else's profile belongs to Community: back to its landing
         $crawler = $browser->request('GET', $router->generate('player_profile', ['playerId' => PlayerFixture::PLAYER_REGULAR]));
@@ -207,9 +234,12 @@ final class TopBarTest extends WebTestCase
         $crawler = $browser->request('GET', '/en/faq');
         self::assertResponseIsSuccessful();
 
-        $dot = $crawler->filter('.site-header [data-bar-action="menu"] .nav-menu-dot');
-        self::assertCount(1, $dot);
-        self::assertSame('true', $dot->attr('aria-hidden'));
+        // On both ☰ (desktop and phones)
+        $dots = $crawler->filter('.site-header [data-bar-action="menu"] .nav-menu-dot');
+        self::assertCount(2, $dots);
+        self::assertCount(1, $crawler->filter('.site-header .site-header-menu--desk .nav-menu-dot'));
+        self::assertCount(1, $crawler->filter('.site-header .site-header-menu--phone .nav-menu-dot'));
+        self::assertSame(['true', 'true'], $dots->each(static fn (Crawler $dot): string => (string) $dot->attr('aria-hidden')));
     }
 
     public function testNoMenuDotForAMemberOrAnOrganiser(): void
@@ -239,15 +269,128 @@ final class TopBarTest extends WebTestCase
         $id = $this->insertStopwatch($database, $now, StopwatchStatus::Running);
         $crawler = $browser->request('GET', '/en/faq');
 
-        self::assertSame(['back', 'logo', 'search', 'pill', 'search_icon', 'help', 'inbox', 'menu'], $this->tools($crawler));
+        self::assertSame(['menu_desk', 'back', 'logo', 'places', 'search', 'pill', 'search_icon', 'add', 'help', 'inbox', 'account', 'menu'], $this->tools($crawler));
         self::assertStringContainsString('site-header--stopwatch', (string) $crawler->filter('.site-header')->attr('class'));
         self::assertSame('/en/stopwatch/' . $id, $crawler->filter('.site-header > .site-header-inner > a[data-stopwatch-pill]')->attr('href'));
 
         $database->executeStatement('UPDATE stopwatch SET status = :status WHERE id = :id', ['status' => StopwatchStatus::Paused->value, 'id' => $id]);
         $crawler = $browser->request('GET', '/en/faq');
 
-        self::assertSame(['back', 'logo', 'search', 'search_icon', 'help', 'inbox', 'menu'], $this->tools($crawler));
+        self::assertSame(['menu_desk', 'back', 'logo', 'places', 'search', 'search_icon', 'add', 'help', 'inbox', 'account', 'menu'], $this->tools($crawler));
         self::assertStringNotContainsString('site-header--stopwatch', (string) $crawler->filter('.site-header')->attr('class'));
+    }
+
+    /**
+     * NAV-04 (README §4.3 / D16): the desktop tools of a player - + Add (add_entry_url(): a puzzle page's Add carries its
+     * puzzle), the 768-1023 px places Home · Puzzles · Community as the top bar's own links (aria-current from the place
+     * resolver), the avatar ▾ the only dropdown: no Puzzles ▾ / Community ▾ dropdowns
+     */
+    public function testTheDesktopToolsOfAPlayer(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, self::PLAYER);
+        $router = self::getContainer()->get(RouterInterface::class);
+
+        $crawler = $browser->request('GET', $router->generate('hub'));
+        self::assertResponseIsSuccessful();
+        $header = $crawler->filter('body > header.site-header');
+
+        $add = $header->filter('a.site-header-add');
+        self::assertCount(1, $add);
+        self::assertSame($router->generate('puzzle_add'), $add->attr('href'));
+        self::assertSame('topbar/add/add', $add->attr('data-nav'));
+        self::assertSame('Add', trim($add->text()));
+        self::assertNull($add->attr('aria-current'), '+ Add is an action, never the current place');
+
+        $nav = $header->filter('nav.site-header-places');
+        self::assertCount(1, $nav);
+        self::assertSame('Main sections', $nav->attr('aria-label'));
+        $places = $nav->filter('a[data-nav-place]');
+        self::assertSame(['home', 'puzzles', 'community'], $places->each(static fn (Crawler $place): string => (string) $place->attr('data-nav-place')));
+        self::assertSame(
+            [$router->generate('hub'), $router->generate('puzzle_library', ['playerId' => self::PLAYER]), $router->generate('community')],
+            $places->each(static fn (Crawler $place): string => (string) $place->attr('href')),
+        );
+        self::assertSame(['topbar/places/home', 'topbar/places/puzzles', 'topbar/places/community'], $places->each(static fn (Crawler $place): string => (string) $place->attr('data-nav')));
+        self::assertSame(['Home', 'Puzzles', 'Community'], $places->each(static fn (Crawler $place): string => trim($place->text())));
+        self::assertSame('page', $places->first()->attr('aria-current'));
+        // The same places as the tab bar's, from the same builder
+        self::assertSame(
+            $crawler->filter('#bottom-nav a[data-nav-place="community"]')->attr('href'),
+            $places->last()->attr('href'),
+        );
+
+        // No Puzzles ▾ / Community ▾: no place is a dropdown toggle; the one toggle of the bar is the avatar ▾ (NAV-05)
+        self::assertCount(0, $header->filter('.dropdown-toggle, [data-nav-place][data-bs-toggle]'));
+        self::assertSame(['topbar/profile/account'], $header->filter('[data-bs-toggle="dropdown"]')->each(static fn (Crawler $toggle): string => (string) $toggle->attr('data-nav')));
+
+        // On a puzzle page + Add carries the puzzle (as the Add tab)
+        $crawler = $browser->request('GET', $router->generate('puzzle_detail', ['puzzleId' => PuzzleFixture::PUZZLE_500_01]));
+        self::assertResponseIsSuccessful();
+        self::assertSame($router->generate('puzzle_add', ['puzzleId' => PuzzleFixture::PUZZLE_500_01]), $crawler->filter('.site-header a.site-header-add')->attr('href'));
+        self::assertSame($crawler->filter('#bottom-nav a[data-nav-place="add"]')->attr('href'), $crawler->filter('.site-header a.site-header-add')->attr('href'));
+    }
+
+    /**
+     * Feedback and Inbox show their label from 1200 px (CSS): in every locale it is part of the tool's accessible name
+     * (WCAG 2.5.3), and the desktop ☰'s label is its name
+     */
+    public function testTheDesktopLabelsArePartOfTheToolsNames(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, self::PLAYER);
+        $router = self::getContainer()->get(RouterInterface::class);
+
+        foreach (['en', 'cs', 'de', 'es', 'fr', 'ja'] as $locale) {
+            $crawler = $browser->request('GET', $router->generate('faq', ['_locale' => $locale]));
+            self::assertResponseIsSuccessful($locale);
+            $header = $crawler->filter('body > header.site-header');
+
+            foreach (['help', 'inbox'] as $action) {
+                $tool = $header->filter(sprintf('[data-bar-action="%s"]', $action));
+                $label = trim($tool->filter('.site-header-label')->text());
+                self::assertNotSame('', $label, $locale . ' ' . $action);
+                self::assertStringContainsString(mb_strtolower($label), mb_strtolower((string) $tool->attr('aria-label')), $locale . ' ' . $action);
+            }
+
+            $menu = $header->filter('.site-header-menu--desk');
+            self::assertSame((string) $menu->attr('aria-label'), trim($menu->filter('.site-header-menu-label')->text()), $locale);
+            self::assertNotSame('', trim($header->filter('.site-header-add-label')->text()), $locale);
+        }
+    }
+
+    /**
+     * Decision 23: a guest's desktop bar has Sign in in the avatar's place - back to this page afterwards, the same link
+     * as the Profile tab (SignInLink: the URL only, never the visitor, so guest HTML stays shared); + Add leads to the Add
+     * explainer, the places to the homepage, the puzzle database and the Community landing
+     */
+    public function testAGuestsDesktopBarSignsInBackToThePage(): void
+    {
+        $browser = self::createClient();
+        $router = self::getContainer()->get(RouterInterface::class);
+
+        $crawler = $browser->request('GET', '/en/faq');
+        self::assertResponseIsSuccessful();
+        $header = $crawler->filter('body > header.site-header');
+
+        $signIn = $header->filter('a.site-header-signin');
+        self::assertCount(1, $signIn);
+        self::assertSame($router->generate('login', ['return' => '/en/faq']), $signIn->attr('href'));
+        self::assertSame($crawler->filter('#bottom-nav a[data-nav-place="profile"]')->attr('href'), $signIn->attr('href'));
+        self::assertSame('nofollow', $signIn->attr('rel'));
+        self::assertSame('topbar/profile/sign_in', $signIn->attr('data-nav'));
+        self::assertSame('Sign in', trim($signIn->text()));
+
+        self::assertSame($router->generate('add_intro'), $header->filter('a.site-header-add')->attr('href'));
+        self::assertSame(
+            [$router->generate('homepage'), $router->generate('puzzles'), $router->generate('community')],
+            $header->filter('nav.site-header-places a[data-nav-place]')->each(static fn (Crawler $place): string => (string) $place->attr('href')),
+        );
+        self::assertCount(0, $header->filter('[data-bs-toggle="dropdown"], .dropdown-toggle'));
+
+        $response = $browser->getResponse();
+        self::assertTrue($response->headers->hasCacheControlDirective('public'), (string) $response->headers->get('Cache-Control'));
+        self::assertSame([], $response->headers->getCookies());
     }
 
     public function testTheNativeAppGetsNoTopBar(): void
@@ -276,7 +419,12 @@ final class TopBarTest extends WebTestCase
             $class = ' ' . $tool->attr('class') . ' ';
 
             return match (true) {
+                str_contains($class, ' site-header-menu--desk ') => 'menu_desk',
                 str_contains($class, ' site-header-back ') => 'back',
+                str_contains($class, ' site-header-places ') => 'places',
+                str_contains($class, ' site-header-add ') => 'add',
+                str_contains($class, ' site-header-account ') => 'account',
+                str_contains($class, ' site-header-signin ') => 'sign_in',
                 str_contains($class, ' site-header-logo ') => 'logo',
                 str_contains($class, ' site-search ') => 'search',
                 str_contains($class, ' stopwatch-pill ') => 'pill',

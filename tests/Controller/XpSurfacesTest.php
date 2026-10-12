@@ -116,8 +116,8 @@ final class XpSurfacesTest extends WebTestCase
 
         $crawler = $browser->request('GET', '/en/faq');
         self::assertStringNotContainsString('xp-ring', (string) $browser->getResponse()->getContent());
-        // The avatar (or initial) itself is not gated - only its ring
-        self::assertCount(1, $crawler->filter('.navbar-avatar-box > .lb-avatar'));
+        // The avatar (or initial) itself is not gated - only its ring (the account menu's trigger, NAV-05)
+        self::assertCount(1, $crawler->filter('.nav-account-trigger > .lb-avatar'));
     }
 
     public function testBeforeTheLaunchAnAdminSeesTheRing(): void

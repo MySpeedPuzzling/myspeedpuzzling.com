@@ -9327,6 +9327,15 @@ nav:
         menu: "Menu"
         back: "Back"
         home_logo: "MySpeedPuzzling – Home"
+        feedback: "Feedback"
+        sign_in: "Sign in"
+    account:
+        trigger_label: "Account menu"
+        view_profile: "View profile"
+        settings: "Settings"
+        membership: "Membership"
+        language: "Language"
+        logout: "Log out"
     menu:
         title: "Menu"
         page_intro: "Every page and setting of MySpeedPuzzling in one place."

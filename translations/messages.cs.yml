@@ -9081,6 +9081,15 @@ nav:
         menu: "Menu"
         back: "Zpět"
         home_logo: "MySpeedPuzzling – domů"
+        feedback: "Zpětná vazba"
+        sign_in: "Přihlásit se"
+    account:
+        trigger_label: "Nabídka účtu"
+        view_profile: "Zobrazit profil"
+        settings: "Nastavení"
+        membership: "Členství"
+        language: "Jazyk"
+        logout: "Odhlásit se"
     menu:
         title: "Menu"
         page_intro: "Všechny stránky a nastavení MySpeedPuzzling na jednom místě."

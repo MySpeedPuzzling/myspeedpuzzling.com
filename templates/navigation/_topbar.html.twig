@@ -1,40 +1,59 @@
-{#- The top bar (docs/features/navigation README §4.1 / D2, D5, D7; implementation plan NAV-03, R8): one <header> for
-    phones and desktop, a direct child of <body> (block header, web only). Phones, left to right:
-    back (installed app, non-root pages) · logo · search field · ⏱ pill · 🔍 · ? · Inbox · ☰ - all 44 × 44, 4 px apart.
+{#- The top bar (docs/features/navigation README §4.1 / D2, §4.3 / D16, D5, D7; implementation plan NAV-03, NAV-04,
+    NAV-05, R8): one <header> for phones and desktop, a direct child of <body> (block header, web only). DOM order:
+    ☰ (desktop) · back (installed app, non-root pages) · logo · places (768-1023 px) · search field · ⏱ pill · 🔍 ·
+    + Add (desktop) · ? / Feedback · Inbox · avatar ▾ / Sign in (desktop) · ☰ (phones). What shows where is CSS from the
+    markup (critical CSS + _nav-topbar.scss); every tool is ≥ 44 × 44.
+    Phones (52 px, hides on scroll): back · logo · search field · ⏱ pill · 🔍 · ? · Inbox · ☰ - 4 px apart.
     - Logo: Home - the Hub for signed-in players, the homepage for guests (D5, NAV-10); always visible (36 px, 28 px
-      below 320 px).
+      below 320 px); from 1024 px with the name.
     - Search: the page's GlobalSearch (surface bar - the first instance in the DOM) is the field; on phones a tap opens
-      the search view (html[data-search-open], a GEST-01 layer). A running stopwatch's pill takes the field's place and
-      search becomes the 🔍 icon; the installed app's back button turns it into the icon below 390 px; back button and
-      pill together below 393 px leave no search icon (search stays in the Menu panel) - CSS decides from the markup
-      (_nav-topbar.scss), the logo never gives way. The icon is a link to the puzzle database (no JS, the native app).
+      the search view (html[data-search-open], a GEST-01 layer: Back closes it). A running stopwatch's pill takes the
+      field's place and search becomes the 🔍 icon; the installed app's back button turns it into the icon below 390 px;
+      back button and pill together below 393 px leave no search icon (search stays in the Menu panel) - the logo never
+      gives way. The icon is a link to the puzzle database (no JS, the native app).
     - ? = the Help sheet (help_opener_attrs(), HELP-01b); Inbox for signed-in players (inbox/_link.html.twig, INB-01/02);
       ☰ = the Menu: a link to the `menu` page that opens the phone panel (MENU-02b), last at the right edge, a dot
       while one of a moderator's or admin's review queues holds items (the memoised admin_queue_counts() statement the
       Menu's Your roles rows read - no statement of its own).
-    - The four tools carry data-bar-action (BarAction, NAV-14); Inbox also data-bar-count.
-    Phones hide it on scroll down and bring it back on scroll up (assets/controllers/topbar_controller.js, sticky, a
+    Desktop (64 px, never hides; README §4.3, D16):
+    - 768-1023 px, the compact bar: ☰ Menu (label shown) · logo · Home · Puzzles · Community (_places `compact`) · 🔍 (the
+      field opens in the bar on a tap or Ctrl/Cmd+K) · ⏱ · + Add · ? · Inbox · avatar ▾;
+    - from 1024 px: ☰ · logo + name · the search field (up to 560 px, the long placeholder when it fits, scan inside,
+      Ctrl/Cmd+K) · ⏱ · + Add · Feedback · Inbox · avatar ▾ - Feedback and Inbox icon-only below 1200 px, with their
+      label from 1200 px (inside their accessible names).
+    - + Add = add_entry_url() (a puzzle page's Add carries its puzzle; guests: the Add explainer); the avatar ▾ = the
+      account menu (navigation/_account_menu.html.twig, NAV-05); guests get a Sign in button in its place (decision
+      23 - back to this page afterwards, like the Profile tab). No Puzzles ▾ / Community ▾ dropdowns.
+    - ☰ is rendered twice (R8): first for desktop (above the docked column, NAV-13; Tab order skip link → ☰ → logo …),
+      last for phones; CSS shows one. Until NAV-13 a click on the desktop one opens the `menu` page.
+    The tools carry data-bar-action (BarAction, NAV-14) - search, help, inbox and menu on each surface; Inbox also
+    data-bar-count. Phones hide the bar on scroll down and bring it back on scroll up (topbar_controller.js, sticky, a
     transform only while hidden - never a backdrop-filter: the search panel inside is position: fixed).
-    The desktop parts (☰ first, compact places, + Add, avatar ▾ / Sign in) are NAV-04's: until then desktop shows these
-    phone tools at 64 px, the old chrome (.legacy-chrome) below until NAV-06 (R10).
-    Guest HTML stays shared-cacheable: nothing depends on the visitor but the URL (help_path(), the back link).
-    Chrome markup rules (implementation plan §3.2): no heading, no form, own class prefixes; data-nav on every link and
-    button. -#}
+    Guest HTML stays shared-cacheable: nothing depends on the visitor but the URL (help_path(), the back link, Sign in).
+    Chrome markup rules (implementation plan §3.2): no heading, no form, own class prefixes, .dropdown-menu only in the
+    avatar ▾; data-nav on every link and button. -#}
 {%- set profile = logged_user.profile -%}
 {%- set location = nav_location() -%}
 {%- set home_href = profile is not null ? path('hub') : path('homepage') -%}
 {%- set stopwatch_running = profile is not null and profile.runningStopwatch is not null -%}
 {%- set back = not location.rootPage -%}
-{#- The back button's link without JS: the start page of the place this page belongs to (the bars' own link to it) -#}
+{%- set menu_dot = profile is not null and nav_menu().hasQueueBacklog() -%}
+{#- The back button's link without JS: the start page of the place this page belongs to (the bars' own link to it); a
+    guest's Sign in: the Profile tab's link (sign in, back to this page afterwards - SignInLink) -#}
 {%- set back_href = home_href -%}
-{%- if back -%}
-    {%- for place in nav_places(location, 'bar') -%}
-        {%- if place.place == location.place -%}{%- set back_href = place.href -%}{%- endif -%}
-    {%- endfor -%}
-{%- endif -%}
+{%- set sign_in_href = path('login') -%}
+{%- for place in nav_places(location, 'bar') -%}
+    {%- if back and place.place == location.place -%}{%- set back_href = place.href -%}{%- endif -%}
+    {%- if profile is null and place.place.value == 'profile' -%}{%- set sign_in_href = place.href -%}{%- endif -%}
+{%- endfor -%}
 <header class="site-header{{ back ? ' site-header--back' }}{{ stopwatch_running ? ' site-header--stopwatch' }}" data-controller="topbar"
     {%- if profile is not null %} data-viewer-signed-in{% endif %}>
     <div class="site-header-inner">
+        <a class="site-header-tool site-header-menu site-header-menu--desk" href="{{ path('menu') }}" data-bar-action="{{ bar_action('menu') }}" data-nav="topbar/none/menu" aria-label="{{ 'nav.bar.menu'|trans }}" aria-haspopup="dialog" aria-expanded="false">
+            <svg class="nav-i" aria-hidden="true" focusable="false"><use href="#nav-i-list"></use></svg>
+            <span class="site-header-menu-label" aria-hidden="true">{{ 'nav.bar.menu'|trans }}</span>
+            {%- if menu_dot %}<span class="nav-menu-dot" aria-hidden="true"></span>{% endif -%}
+        </a>
         {%- if back -%}
             <a class="site-header-tool site-header-back standalone-only" href="{{ back_href }}" data-action="topbar#back" data-nav="topbar/none/back" aria-label="{{ 'nav.bar.back'|trans }}">
                 <svg class="nav-i" aria-hidden="true" focusable="false"><use href="#nav-i-arrow-left"></use></svg>
@@ -42,26 +61,42 @@
         {%- endif -%}
         <a class="site-header-logo" href="{{ home_href }}" data-nav="topbar/home/logo" aria-label="{{ 'nav.bar.home_logo'|trans }}">
             <img src="{{ asset('img/speedpuzzling-logo.svg') }}" width="36" height="32" alt="">
+            <span class="site-header-brand" aria-hidden="true">MySpeedPuzzling</span>
         </a>
+        <nav class="site-header-places" aria-label="{{ 'nav.bar.places'|trans }}">
+            {{- include('navigation/_places.html.twig', {variant: 'compact'}) -}}
+        </nav>
         <twig:GlobalSearch />
         {{- include('navigation/_stopwatch_pill.html.twig') -}}
         <a class="site-header-tool site-search-icon" href="{{ path('puzzles') }}" data-global-search-toggle data-bar-action="{{ bar_action('search') }}" data-nav="topbar/none/search" aria-label="{{ 'nav.bar.search_label'|trans }}">
             <svg class="nav-i" aria-hidden="true" focusable="false"><use href="#nav-i-search"></use></svg>
         </a>
+        <a class="site-header-add" href="{{ add_entry_url() }}" data-nav="topbar/add/add" data-press="fixed">
+            <svg class="nav-i" aria-hidden="true" focusable="false"><use href="#nav-i-plus-lg"></use></svg>
+            <span class="site-header-add-label">{{ 'nav.bar.add'|trans }}</span>
+        </a>
+        {#- One help opener: ? on phones and in the compact bar, Feedback from 1024 px (its label from 1200 px - part of the
+            accessible name "Help & feedback") -#}
         <a class="site-header-tool site-header-help" href="{{ help_path() }}" {{ help_opener_attrs() }} data-bar-action="{{ bar_action('help') }}" data-nav="topbar/none/help" aria-label="{{ 'nav.bar.help'|trans }}">
-            <svg class="nav-i" aria-hidden="true" focusable="false"><use href="#nav-i-question-circle"></use></svg>
+            <svg class="nav-i site-header-help-q" aria-hidden="true" focusable="false"><use href="#nav-i-question-circle"></use></svg>
+            <svg class="nav-i site-header-help-fb" aria-hidden="true" focusable="false"><use href="#nav-i-chat-square-text"></use></svg>
+            <span class="site-header-label" aria-hidden="true">{{ 'nav.bar.feedback'|trans }}</span>
         </a>
         {%- if profile is not null -%}
             {% embed 'inbox/_link.html.twig' with {nav: 'topbar/none/inbox', class: 'site-header-tool', surface: 'topbar'} only %}
                 {% block content %}
                     <svg class="nav-i" aria-hidden="true" focusable="false"><use href="#nav-i-inbox"></use></svg>
                     {{- include('inbox/_badge.html.twig', {part: 'total', parts: parts, class: ''}) -}}
+                    <span class="site-header-label" aria-hidden="true">{{ 'inbox.title'|trans }}</span>
                 {% endblock %}
             {% endembed %}
+            {{- include('navigation/_account_menu.html.twig') -}}
+        {%- else -%}
+            <a class="site-header-signin" href="{{ sign_in_href }}" rel="nofollow" data-nav="topbar/profile/sign_in">{{ 'nav.bar.sign_in'|trans }}</a>
         {%- endif -%}
-        <a class="site-header-tool site-header-menu" href="{{ path('menu') }}" data-bar-action="{{ bar_action('menu') }}" data-nav="topbar/none/menu" aria-label="{{ 'nav.bar.menu'|trans }}" aria-haspopup="dialog" aria-expanded="false">
+        <a class="site-header-tool site-header-menu site-header-menu--phone" href="{{ path('menu') }}" data-bar-action="{{ bar_action('menu') }}" data-nav="topbar/none/menu" aria-label="{{ 'nav.bar.menu'|trans }}" aria-haspopup="dialog" aria-expanded="false">
             <svg class="nav-i" aria-hidden="true" focusable="false"><use href="#nav-i-list"></use></svg>
-            {%- if profile is not null and nav_menu().hasQueueBacklog() %}<span class="nav-menu-dot" aria-hidden="true"></span>{% endif -%}
+            {%- if menu_dot %}<span class="nav-menu-dot" aria-hidden="true"></span>{% endif -%}
         </a>
     </div>
 </header>

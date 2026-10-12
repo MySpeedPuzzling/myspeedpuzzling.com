@@ -117,7 +117,11 @@ final class ProfileProgressionTest extends WebTestCase
         self::assertCount(0, $crawler->filter('.player-chip-competition'));
     }
 
-    public function testTheNavbarShowsTheViewersAvatarWithTheirRingAndRunsNoXpQuery(): void
+    /**
+     * NAV-05: the account menu's trigger (the top bar's avatar ▾) shows the viewer's avatar with their level ring - as the
+     * old navbar did - and the level costs no statement of its own
+     */
+    public function testTheAccountMenuShowsTheViewersAvatarWithTheirRingAndRunsNoXpQuery(): void
     {
         $browser = self::createClient();
         $this->setXp(PlayerFixture::PLAYER_ADMIN, LevelTable::xpForLevel(3) + 1);
@@ -128,14 +132,14 @@ final class ProfileProgressionTest extends WebTestCase
         $crawler = $browser->request('GET', '/en/faq');
         self::assertResponseIsSuccessful();
 
-        $box = $crawler->filter('.navbar-tool.dropdown .navbar-avatar-box');
+        $box = $crawler->filter('body > header.site-header .nav-account-trigger');
         self::assertCount(1, $box);
         $ring = $box->filter('.xp-avatar-ring.xp-avatar-ring-nav');
         self::assertCount(1, $ring);
         self::assertNotSame('--xp-progress: 1', $ring->attr('style'), 'The ring shows progress, not an always-full circle');
         // No photo: the initial on the player's tint, like in the leaderboard rows
         self::assertSame('A', trim($ring->filter('.lb-avatar-initial')->text()));
-        self::assertCount(0, $crawler->filter('.navbar-tool .ci-user'));
+        self::assertCount(0, $box->filter('.ci-user, .bi-person'), 'The face, never a generic person icon');
 
         // The level rides on the viewer's own profile row: the only statement reading xp_total is that row
         $xpReads = array_filter($this->executedSql($browser), static fn (string $sql): bool => str_contains($sql, 'xp_total'));
@@ -161,9 +165,9 @@ final class ProfileProgressionTest extends WebTestCase
             self::assertCount(0, $crawler->filter('.achievements-showcase, .achievements-teaser'), $who);
         }
 
-        // The navbar keeps the avatar (or initial), only without the ring
+        // The account menu's trigger keeps the avatar (or initial), only without the ring (NAV-05)
         $crawler = $this->page($browser, PlayerFixture::PLAYER_REGULAR, PlayerFixture::PLAYER_WITH_STRIPE);
-        self::assertCount(1, $crawler->filter('.navbar-avatar-box > .lb-avatar'));
+        self::assertCount(1, $crawler->filter('.nav-account-trigger > .lb-avatar'));
     }
 
     public function testTheProfilePageCost(): void

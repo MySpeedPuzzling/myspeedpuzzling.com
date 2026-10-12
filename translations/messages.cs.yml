@@ -9052,6 +9052,14 @@ help:
         sent_title: "Děkujeme!"
         sent_text: "Tvou zprávu jsme dostali a brzy si ji přečteme. Pokud bude potřeba odpovědět, ozveme se ti e-mailem."
         send_another: "Poslat další"
+    suggest_correction: "Navrhnout opravu tohoto puzzle"
+    suggest_correction_desc: "Špatný název, značka, počet dílků, kód nebo fotka? Nebo duplikát?"
+    language: "Jazyk"
+    reload: "Načíst stránku znovu"
+    sign_in_to_send: "Přihlásit se a poslat zpětnou vazbu"
+    page_line:
+        question: "Je na této stránce něco špatně?"
+        link: "Napiš nám"
 
 where_did_it_go:
     title: "Kam se to přesunulo?"

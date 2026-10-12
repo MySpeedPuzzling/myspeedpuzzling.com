@@ -14,6 +14,7 @@ use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;
+use Symfony\Component\Routing\RouterInterface;
 
 /**
  * Help & feedback (docs/features/navigation README §4.5, implementation plan §7, HELP-01a): one public URL, two bodies -
@@ -47,7 +48,7 @@ final class HelpControllerTest extends WebTestCase
         self::assertVaryTurboFrame($browser);
         NavChromeAssertions::assertWebHeaderAndFooter($crawler);
         self::assertSame('Help & feedback', trim($crawler->filter('main h1')->text()));
-        $this->assertTheRows($crawler->filter('main [data-help-sheet]'));
+        $this->assertTheRows($crawler->filter('main [data-help-sheet]'), $playerId !== null);
         // The feedback box for signed-in players (HELP-01b): a plain form on the page (Post/Redirect/Get)
         $form = $crawler->filter('main [data-help-sheet] form[name="feedback_form"]');
         self::assertCount($playerId === null ? 0 : 1, $form);
@@ -97,7 +98,7 @@ final class HelpControllerTest extends WebTestCase
         self::assertCount($playerId === null ? 0 : 1, $sheet->filter('form[name="feedback_form"][action="/en/feedback"][data-turbo-frame="modal-frame"]'));
         self::assertSame('Help & feedback', trim($sheet->filter('.modal-title')->text()));
         self::assertSame('Close', $sheet->filter('.btn-close')->attr('aria-label'));
-        $this->assertTheRows($sheet);
+        $this->assertTheRows($sheet, $playerId !== null);
 
         // Never shared-cached: the frame shares its URL with the page
         $cacheControl = (string) $browser->getResponse()->headers->get('Cache-Control');
@@ -145,7 +146,14 @@ final class HelpControllerTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         self::assertSame($title, trim($crawler->filter('main h1')->text()));
-        self::assertCount(2, $crawler->filter('main [data-help-sheet] a[data-nav^="help/help/"]'));
+        // The guests' sheet (HELP-02, HELP-03): no page attached - Language is the help page itself in the other languages
+        self::assertSame(
+            ['feedback_sign_in', 'feature_requests', 'faq', 'getting_started', 'progression', 'language', 'reload'],
+            $crawler->filter('main [data-help-sheet] [data-help-item]')->each(static fn (Crawler $item): string => (string) $item->attr('data-help-item')),
+        );
+        $languages = $crawler->filter('main [data-help-sheet] [data-help-item="language"] a');
+        self::assertCount(5, $languages);
+        self::assertNotContains($path, $languages->each(static fn (Crawler $link): string => rawurldecode((string) $link->attr('href'))));
     }
 
     /**
@@ -216,15 +224,29 @@ final class HelpControllerTest extends WebTestCase
     }
 
     /**
-     * The skeleton's rows: the registry's Help sheet links, leaving the sheet for the whole page
+     * The sheet in its order (HELP-02) - the page here is not a puzzle page, so no correction - and the registry's Help
+     * sheet links, leaving the sheet for the whole page
      */
-    private function assertTheRows(Crawler $sheet): void
+    private function assertTheRows(Crawler $sheet, bool $signedIn): void
     {
-        $rows = $sheet->filter('a[data-nav^="help/help/"]');
+        self::assertSame(
+            $signedIn
+                ? ['feedback', 'feature_requests', 'faq', 'getting_started', 'progression', 'where_did_it_go', 'language', 'reload']
+                : ['feedback_sign_in', 'feature_requests', 'faq', 'getting_started', 'progression', 'language', 'reload'],
+            $sheet->filter('[data-help-item]')->each(static fn (Crawler $item): string => (string) $item->attr('data-help-item')),
+        );
 
-        self::assertSame(['help/help/feature_requests', 'help/help/faq'], $rows->each(static fn (Crawler $row): string => (string) $row->attr('data-nav')));
-        self::assertSame(['/en/feature-requests', '/en/faq'], $rows->each(static fn (Crawler $row): string => (string) $row->attr('href')));
-        self::assertSame(['_top', '_top'], $rows->each(static fn (Crawler $row): string => (string) $row->attr('data-turbo-frame')));
+        $ids = $signedIn ? ['feature_requests', 'faq', 'getting_started', 'progression', 'where_did_it_go'] : ['feature_requests', 'faq', 'getting_started', 'progression'];
+        $routes = ['feature_requests' => 'feature_requests', 'faq' => 'faq', 'getting_started' => 'getting_started', 'progression' => 'progression_hub', 'where_did_it_go' => 'where_did_it_go'];
+        $router = self::getContainer()->get(RouterInterface::class);
+
+        foreach ($ids as $id) {
+            $row = $sheet->filter(sprintf('[data-help-item="%s"] a', $id));
+            self::assertCount(1, $row, $id);
+            self::assertSame('help/help/' . $id, $row->attr('data-nav'));
+            self::assertSame($router->generate($routes[$id], ['_locale' => 'en']), $row->attr('href'));
+            self::assertSame('_top', $row->attr('data-turbo-frame'), $id);
+        }
     }
 
     private static function assertVaryTurboFrame(KernelBrowser $browser): void

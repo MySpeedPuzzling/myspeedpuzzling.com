@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Twig;
 
 use SpeedPuzzling\Web\Navigation\BarAction;
+use SpeedPuzzling\Web\Navigation\HelpPageContext;
 use SpeedPuzzling\Web\Navigation\LegacyChromeSwitch;
 use SpeedPuzzling\Web\Navigation\MenuBuilder;
 use SpeedPuzzling\Web\Navigation\MenuView;
@@ -33,7 +34,8 @@ use Twig\TwigFunction;
  * - nav_viewer_audience(): the viewer's audiences for `<body data-viewer-audience>` (page search, MENU-03);
  * - nav_viewer(): the current viewer as the navigation sees it (NavigationViewer: audiences, trial days left);
  * - language_switch_urls(): the current page in the other five languages (decision 36) - the Menu's Language row, the
- *   top bar's and the footer's language menus;
+ *   top bar's and the footer's language menus; language_switch_urls(context) the page the Help sheet was opened on
+ *   (HelpPageContext, HELP-02);
  * - nav_search_url(): the page search's "Pages & settings" list, nav-search.json with its version (MENU-03) - one per
  *   request (kept on the request);
  * - nav_search_private(): the moderator / admin entries of that list for those viewers only (JSON, null for everybody
@@ -112,9 +114,12 @@ final class NavigationTwigExtension extends AbstractExtension implements Globals
      * except on the locale-less auth pages, which keep their destination across the switch - `_auth_page`); the
      * homepage of that language when the page has no route.
      *
+     * With $page: that page instead of the current request (the Help sheet's Language row, HELP-02) - its matched route,
+     * parameters and query by the same rules; the empty context (no page matched) gives the homepages.
+     *
      * @return array<string, string>
      */
-    public function languageSwitchUrls(): array
+    public function languageSwitchUrls(null|HelpPageContext $page = null): array
     {
         $request = $this->requestStack->getMainRequest();
 
@@ -122,11 +127,18 @@ final class NavigationTwigExtension extends AbstractExtension implements Globals
             return [];
         }
 
-        $route = $request->attributes->get('_route');
-        $routeParams = $request->attributes->get('_route_params');
-        $query = $request->query->all();
+        if ($page !== null) {
+            $route = $page->routeName;
+            $routeParams = $page->routeParams;
+            $query = [];
+            parse_str((string) parse_url('http://host' . ($page->path ?? '/'), PHP_URL_QUERY), $query);
+        } else {
+            $route = $request->attributes->get('_route');
+            $routeParams = $request->attributes->get('_route_params');
+            $query = $request->query->all();
+        }
 
-        if ($request->attributes->get('_auth_page') !== true) {
+        if ($page !== null || $request->attributes->get('_auth_page') !== true) {
             unset($query['return'], $query['return_url'], $query['return_title']);
         }
 

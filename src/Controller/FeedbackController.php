@@ -36,6 +36,9 @@ final class FeedbackController extends AbstractController
     /** An unmatched ?url= still tells the team something (a typo'd address, a removed page), marked as such */
     private const int UNVERIFIED_URL_MAX_LENGTH = 300;
 
+    /** Sent from the sheet without a page (the bare help page): the e-mail says so (HELP-02) */
+    public const string NO_PAGE = 'no page';
+
     public function __construct(
         readonly private MessageBusInterface $messageBus,
         readonly private TranslatorInterface $translator,
@@ -104,7 +107,7 @@ final class FeedbackController extends AbstractController
         $sentUrl = trim($sentUrl);
 
         if ($sentUrl === '') {
-            return '';
+            return self::NO_PAGE;
         }
 
         return 'unverified: ' . mb_substr($sentUrl, 0, self::UNVERIFIED_URL_MAX_LENGTH);

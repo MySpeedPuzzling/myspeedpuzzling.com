@@ -5,9 +5,12 @@
     feedback draft per player (data-help-sheet-player-value: never handed to the next player of a shared tab), focuses
     the field and releases the modal in the sent state (data-help-sheet-sent, after a send from here:
     FeedbackController answers into this frame).
+    data-modal-fallback-url (signed in, HELP-05 (d)): where the dynamic modal goes when a send is answered by something
+    else than this sheet - the session ended meanwhile and the firewall sent the POST to sign in -: the help page with
+    the same page attached, as a full visit, instead of closing the sheet with the message silently lost.
 #}
 <turbo-frame id="modal-frame">
-    <div data-modal-size="" data-modal-sheet data-modal-scrollable data-modal-history data-controller="bottom-sheet help-sheet" data-help-sheet{% if logged_user.profile is not null %} data-help-sheet-player-value="{{ logged_user.profile.playerId }}"{% endif %}{% if sent|default(false) %} data-help-sheet-sent{% endif %}>
+    <div data-modal-size="" data-modal-sheet data-modal-scrollable data-modal-history data-controller="bottom-sheet help-sheet" data-help-sheet{% if logged_user.profile is not null %} data-help-sheet-player-value="{{ logged_user.profile.playerId }}" data-modal-fallback-url="{{ path('help', context.path is not null ? {url: context.path} : {}) }}"{% endif %}{% if sent|default(false) %} data-help-sheet-sent{% endif %}>
         <div class="bottom-sheet-top" data-bottom-sheet-target="handle">
             <span class="bottom-sheet-handle" aria-hidden="true"></span>
             <div class="modal-header">

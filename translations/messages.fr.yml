@@ -9045,6 +9045,14 @@ help:
         sent_title: "Merci !"
         sent_text: "Nous avons bien reçu votre message et le lirons bientôt. S'il appelle une réponse, nous vous écrirons par e-mail."
         send_another: "Envoyer un autre message"
+    suggest_correction: "Suggérer une correction pour ce puzzle"
+    suggest_correction_desc: "Nom, marque, nombre de pièces, code ou photo incorrects ? Ou un doublon ?"
+    language: "Langue"
+    reload: "Recharger la page"
+    sign_in_to_send: "Connectez-vous pour envoyer un commentaire"
+    page_line:
+        question: "Un problème sur cette page ?"
+        link: "Dites-le-nous"
 
 where_did_it_go:
     title: "Où est-ce passé ?"

@@ -18,7 +18,7 @@ use Symfony\Component\Routing\RouterInterface;
  * `help` that opens the sheet in modal-frame with its own scrim (data-modal-scrim="own" - the only modal without
  * Bootstrap's backdrop, released after a send) and that crawlers never follow. A link to `help` without it would open
  * the sheet on Bootstrap's backdrop, which the sent state cannot release (HELP-05). Language switch links on the help
- * page itself are not openers (they load the page in another language). A link to `feedback` that opens in modal-frame
+ * page itself are not openers (they load the page in another language), nor is its "Reload page" (a plain visit). A link to `feedback` that opens in modal-frame
  * answers the Help sheet too (GET feedback with the frame header), so it counts as an opener as well (review F6: the old
  * top-bar and footer Feedback links); a guest's plain link to the `feedback` page is not one.
  */
@@ -29,8 +29,10 @@ final class HelpOpenerLinksTest extends WebTestCase
      */
     public static function pages(): iterable
     {
-        yield 'guest faq' => [null, '/en/faq', 0];
-        yield 'guest menu page' => [null, '/en/menu', 0];
+        // The end-of-page line (HELP-04) - guests too
+        yield 'guest faq' => [null, '/en/faq', 1];
+        yield 'guest menu page' => [null, '/en/menu', 1];
+        yield 'guest puzzle page' => [null, '/en/puzzle/' . PuzzleFixture::PUZZLE_500_01, 1];
         // The Menu's Send feedback row (MENU-01): in the docked-column slot and on the menu page
         yield 'player faq' => [PlayerFixture::PLAYER_REGULAR, '/en/faq', 1];
         yield 'player menu page' => [PlayerFixture::PLAYER_REGULAR, '/en/menu', 1];
@@ -39,8 +41,8 @@ final class HelpOpenerLinksTest extends WebTestCase
         yield 'player help page' => [PlayerFixture::PLAYER_REGULAR, '/en/help', 1];
         yield 'admin faq' => [PlayerFixture::PLAYER_ADMIN, '/en/faq', 1];
         yield 'player, Czech' => [PlayerFixture::PLAYER_REGULAR, '/napoveda', 1];
-        // The old top bar's and the footer's Feedback links (review F6) next to the Menu's row
-        yield 'player faq, every opener' => [PlayerFixture::PLAYER_REGULAR, '/en/faq', 3];
+        // The old top bar's and the footer's Feedback links (review F6) next to the Menu's row and the end-of-page line
+        yield 'player faq, every opener' => [PlayerFixture::PLAYER_REGULAR, '/en/faq', 4];
     }
 
     #[DataProvider('pages')]
@@ -67,8 +69,9 @@ final class HelpOpenerLinksTest extends WebTestCase
             // GET feedback in modal-frame answers the Help sheet
             $toFeedbackSheet = in_array($path, $feedbackPaths, true) && $link->getAttribute('data-turbo-frame') === 'modal-frame';
 
-            // A language switch link (locale-preference) loads the page in another language - not an opener
-            if ((!$toHelp && !$toFeedbackSheet) || $link->hasAttribute('data-locale-preference-locale-param')) {
+            // A language switch link (locale-preference) loads the page in another language, a data-turbo="false" link is a
+            // plain page visit (the help page's own "Reload page", HELP-02) - neither opens the sheet
+            if ((!$toHelp && !$toFeedbackSheet) || $link->hasAttribute('data-locale-preference-locale-param') || $link->getAttribute('data-turbo') === 'false') {
                 continue;
             }
 

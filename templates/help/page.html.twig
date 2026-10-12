@@ -11,6 +11,9 @@
 {% block title %}{{ 'help.meta.title'|trans }}{% endblock %}
 {% block robots %}<meta name="robots" content="noindex, follow">{% endblock %}
 
+{# It is the help page: no end-of-page line opening it again (HELP-04) #}
+{% block page_help_line %}{% endblock %}
+
 {% block content %}
     <div class="help-page mx-auto" style="max-width: 40rem;" data-help-sheet>
         <h1 class="mb-3">{{ 'help.title'|trans }}</h1>

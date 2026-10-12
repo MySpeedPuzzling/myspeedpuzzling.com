@@ -108,6 +108,12 @@ final readonly class HelpPageContextFactory
             return null;
         }
 
+        // A browser always percent-encodes these in a request URI (help_path() hands the page's own): raw, the value was
+        // typed or forged - and the path goes into the sheet's links (the language row, Reload; HELP-02)
+        if (preg_match('/[ "<>`]/', $url) === 1) {
+            return null;
+        }
+
         if (!str_starts_with($url, '/')) {
             $parts = parse_url($url);
 

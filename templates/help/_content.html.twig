@@ -1,54 +1,128 @@
 {#
     Help & feedback (docs/features/navigation README §4.5) - shared by the sheet's frame and the full page; works
-    without JS. The feedback box first for signed-in viewers (HELP-01b), then the registry's Help sheet links. The
-    puzzle correction, the language and Reload rows join with HELP-02. Links leave the sheet for the whole page (_top).
-    - feedback_form: null for guests;
-    - in_frame: the sheet - the form posts into the sheet itself (modal-frame: the errors, then the sent state, in place);
-      on the page it is a plain form (Post/Redirect/Get);
-    - sent: the sheet's sent state - the confirmation, Close and "Send another" (an empty form, shown in place).
+    without JS. The items in their order come from HelpSheetBuilder::items() (HELP-02), each carrying its data-help-item:
+    - feedback: the feedback box (signed in, HELP-01b) - the page it is written from goes along and is shown by its path
+      (no guessed title); no page, no line;
+    - feedback_sign_in: guests - "Sign in to send feedback", coming back to the help page with the same page attached
+      (HELP-03, decision 56); no form, no CSRF token, nothing per visitor (guest HTML stays shared-cacheable);
+    - suggest_correction: puzzle pages, first - the puzzle's "Suggest a change" opens inside the sheet (same layer, same
+      history entry); guests are led through sign-in to it;
+    - the registry's links (Ideas & feature requests, FAQ, …): they leave the sheet for the whole page (_top);
+    - language: the page the sheet was opened on, in the other five languages (on the full page: the help page itself,
+      with the validated page attached - the raw ?url= never reaches a link);
+    - reload: the installed app only (standalone-only, README §4.1) - in the sheet help-sheet#reload closes the sheet
+      through Back first, then reloads the page; without JS (and on the full page) a full visit.
+    Variables: items (list<HelpSheetItem>), context (HelpPageContext), feedback_form (null for guests), in_frame (the sheet;
+    the form posts into it), sent (the sheet's sent state - the confirmation, Close and "Send another").
 #}
 {% set in_frame = in_frame|default(false) %}
 {% set sent = sent|default(false) and in_frame %}
-{% if feedback_form|default(null) is not null %}
-    <section class="help-feedback mb-3">
-        {% if sent %}
-            <div class="help-feedback-sent text-center py-3" role="status" data-help-sheet-target="sent">
-                <i class="bi bi-check-circle-fill text-success fs-1" aria-hidden="true"></i>
-                <p class="h6 mt-2 mb-1">{{ 'help.feedback.sent_title'|trans }}</p>
-                <p class="mb-3">{{ 'help.feedback.sent_text'|trans }}</p>
-                <div class="d-flex flex-wrap justify-content-center gap-2">
-                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal" data-nav="help/help/sent_close">{{ 'help.close'|trans }}</button>
-                    <button type="button" class="btn btn-outline-primary" data-action="help-sheet#sendAnother" data-nav="help/help/send_another">{{ 'help.feedback.send_another'|trans }}</button>
+{% set signed_in = logged_user.profile is not null %}
+{% set help_query = context.path is not null ? {url: context.path} : {} %}
+{% set help_page = path('help', help_query) %}
+{% set language_names = {en: 'English', de: 'Deutsch', cs: 'Čeština', fr: 'Français', es: 'Español', ja: '日本語'} %}
+{% for item in items|filter(item => item.kind.value in ['feedback', 'sign_in']) %}
+    {% if item.kind.value == 'feedback' and feedback_form|default(null) is not null %}
+        <section class="help-feedback mb-3" data-help-item="{{ item.id }}">
+            {% if sent %}
+                <div class="help-feedback-sent text-center py-3" role="status" data-help-sheet-target="sent">
+                    <i class="bi bi-check-circle-fill text-success fs-1" aria-hidden="true"></i>
+                    <p class="h6 mt-2 mb-1">{{ 'help.feedback.sent_title'|trans }}</p>
+                    <p class="mb-3">{{ 'help.feedback.sent_text'|trans }}</p>
+                    <div class="d-flex flex-wrap justify-content-center gap-2">
+                        <button type="button" class="btn btn-primary" data-bs-dismiss="modal" data-nav="help/help/sent_close">{{ 'help.close'|trans }}</button>
+                        <button type="button" class="btn btn-outline-primary" data-action="help-sheet#sendAnother" data-nav="help/help/send_another">{{ 'help.feedback.send_another'|trans }}</button>
+                    </div>
                 </div>
-            </div>
-        {% endif %}
-        <div class="help-feedback-box"{% if sent %} hidden{% endif %} data-help-sheet-target="box">
-            {{ form_start(feedback_form, {
-                action: path('feedback'),
-                attr: in_frame ? {'data-turbo-frame': 'modal-frame', class: 'help-feedback-form'} : {class: 'help-feedback-form'},
-            }) }}
-                {#- The page the sheet was opened on goes along (the hidden url field): said under the field -#}
-                {{ form_row(feedback_form.message, {
-                    help: context.path is not null ? 'help.feedback.page_attached' : null,
-                    attr: {
-                        rows: 4,
-                        maxlength: constant('SpeedPuzzling\\Web\\FormData\\FeedbackFormData::MESSAGE_MAX_LENGTH'),
-                        placeholder: 'help.feedback.placeholder',
-                        'data-help-sheet-target': 'message',
-                    },
+            {% endif %}
+            <div class="help-feedback-box"{% if sent %} hidden{% endif %} data-help-sheet-target="box">
+                {{ form_start(feedback_form, {
+                    action: path('feedback'),
+                    attr: in_frame ? {'data-turbo-frame': 'modal-frame', class: 'help-feedback-form'} : {class: 'help-feedback-form'},
                 }) }}
-                <button type="submit" class="btn btn-primary" data-nav="help/help/send_feedback">{{ 'forms.send_feedback'|trans }}</button>
-            {{ form_end(feedback_form) }}
-        </div>
-    </section>
-{% endif %}
-<ul class="help-rows list-group list-group-flush">
-    {% for row in rows %}
-        <li class="list-group-item px-0">
-            <a class="help-row d-flex align-items-center gap-3 text-body" href="{{ path(row.target.route, row.target.params) }}" data-turbo-frame="_top" data-nav="help/help/{{ row.id }}">
-                <i class="bi {{ row.icon }} fs-5 text-primary" aria-hidden="true"></i>
-                <span>{{ row.label|trans }}</span>
+                    {#- The page the sheet was opened on goes along (the hidden url field): said under the field, by its path -#}
+                    {{ form_row(feedback_form.message, {
+                        help: context.path is not null ? 'help.feedback.page_attached' : null,
+                        attr: {
+                            rows: 4,
+                            maxlength: constant('SpeedPuzzling\\Web\\FormData\\FeedbackFormData::MESSAGE_MAX_LENGTH'),
+                            placeholder: 'help.feedback.placeholder',
+                            'data-help-sheet-target': 'message',
+                        },
+                    }) }}
+                    {% if context.path is not null %}
+                        <p class="help-feedback-page form-text text-break mt-n2 mb-3"><i class="bi bi-link-45deg me-1" aria-hidden="true"></i><span>{{ context.path }}</span></p>
+                    {% endif %}
+                    <button type="submit" class="btn btn-primary" data-nav="help/help/send_feedback">{{ 'forms.send_feedback'|trans }}</button>
+                {{ form_end(feedback_form) }}
+            </div>
+        </section>
+    {% elseif item.kind.value == 'sign_in' %}
+        <section class="help-sign-in mb-3" data-help-item="{{ item.id }}">
+            <a class="btn btn-primary" href="{{ path('login', {return: help_page}) }}" data-turbo-frame="_top" data-nav="help/help/sign_in">
+                <i class="bi bi-box-arrow-in-right me-1" aria-hidden="true"></i>{{ 'help.sign_in_to_send'|trans }}
             </a>
-        </li>
+        </section>
+    {% endif %}
+{% endfor %}
+<ul class="help-rows list-group list-group-flush">
+    {% for item in items|filter(item => item.kind.value not in ['feedback', 'sign_in']) %}
+        {% set kind = item.kind.value %}
+        {% if kind == 'language' %}
+            <li class="list-group-item px-0 help-language" data-help-item="{{ item.id }}">
+                <div class="d-flex align-items-start gap-3">
+                    <i class="bi {{ item.entry.icon ?? 'bi-translate' }} fs-5 text-primary" aria-hidden="true"></i>
+                    <div class="flex-grow-1">
+                        <span class="d-block" id="help-language-label">{{ 'help.language'|trans }}</span>
+                        <ul class="help-language-list list-inline mb-0 mt-1" aria-labelledby="help-language-label" data-controller="locale-preference">
+                            {#- The full page: the help page itself, with the validated page - never the raw ?url= #}
+                            {%- for locale, switch_url in (in_frame ? language_switch_urls(context) : language_switch_urls()) %}
+                                {%- set url = in_frame ? switch_url : path('help', help_query|merge({_locale: locale})) %}
+                                <li class="list-inline-item"><a href="{{ url }}" lang="{{ locale }}" hreflang="{{ locale }}" data-turbo-frame="_top" data-action="click->locale-preference#save" data-locale-preference-locale-param="{{ locale }}" data-nav="help/help/language_{{ locale }}">{{ language_names[locale] }}</a></li>
+                            {%- endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </li>
+        {% else %}
+            {% if kind == 'correction' %}
+                {% set correction_path = path('puzzle_suggest_change', {puzzleId: context.puzzleId}) %}
+                {% set link = {
+                    href: signed_in ? correction_path : path('login', {return: correction_path}),
+                    frame: signed_in and in_frame ? layer_frame('modal-frame') : '_top',
+                    icon: item.entry.icon,
+                    label: item.entry.label,
+                    description: item.entry.description,
+                } %}
+            {% elseif kind == 'reload' %}
+                {% set link = {
+                    href: in_frame ? (context.path ?? path('help')) : help_page,
+                    frame: null,
+                    icon: 'bi-arrow-clockwise',
+                    label: 'help.reload',
+                    description: null,
+                } %}
+            {% else %}
+                {% set link = {
+                    href: path(item.entry.target.route, item.entry.target.params),
+                    frame: '_top',
+                    icon: item.entry.icon,
+                    label: item.entry.label,
+                    description: item.entry.description,
+                } %}
+            {% endif %}
+            <li class="list-group-item px-0{% if kind == 'reload' %} standalone-only{% endif %}" data-help-item="{{ item.id }}">
+                <a class="help-row d-flex align-items-center gap-3 text-body" href="{{ link.href }}"
+                    {%- if link.frame is not null %} data-turbo-frame="{{ link.frame }}"{% endif %}
+                    {%- if kind == 'reload' %} data-turbo="false"{% if in_frame %} data-action="help-sheet#reload"{% endif %}{% endif %}
+                    data-nav="help/help/{{ item.id }}">
+                    <i class="bi {{ link.icon }} fs-5 text-primary" aria-hidden="true"></i>
+                    <span>
+                        <span class="d-block">{{ link.label|trans }}</span>
+                        {%- if link.description is not null %}<small class="d-block text-muted">{{ link.description|trans }}</small>{% endif %}
+                    </span>
+                </a>
+            </li>
+        {% endif %}
     {% endfor %}
 </ul>

@@ -8,6 +8,13 @@ const LAYER = 'modal';
 // Turbo's own test of an HTML response (FetchResponse#isHTML)
 const HTML_CONTENT_TYPE = /^(?:text\/([^\s;,]+\b)?html|application\/xhtml\+xml)\b/;
 
+// A Turbo Stream answer (StreamMessage.contentType) - it also passes the HTML test above
+const STREAM_CONTENT_TYPE = /^text\/vnd\.turbo-stream\.html\b/;
+
+// Content that names a page to go to when a form submitted from it is answered by something else than modal content -
+// the session ended meanwhile and the firewall sent the POST to sign in (the Help sheet, HELP-05 (d))
+const FALLBACK_URL_ATTRIBUTE = 'data-modal-fallback-url';
+
 // A response faster than this opens the modal straight with its content; a slower one shows a spinner first
 const LOADING_DELAY_MS = 150;
 
@@ -94,6 +101,14 @@ const MENU_BUTTON = '[data-bar-action="menu"]';
  *
  * Focus on close: back to the trigger; a trigger no longer shown (the Menu row of a Menu → Help swap, back in the hidden
  * slot) gives way to what opened the Menu (handed over by menu_layer_controller.js), else the ☰ (review F7).
+ *
+ * Never a grey page without a modal (HELP-05, var/navigation-delivery/HELP-05/repro.md): the modal counts as open from
+ * show.bs.modal on - Bootstrap locks the page and draws its backdrop at once but sets .show only after the 150 ms fade -
+ * so an emptied frame, Esc, ×, a dismiss button or a tap outside during the opening animation queue a close (Bootstrap
+ * itself ignores hide() then); a modal shown empty closes; a Turbo Stream answer ends the request (no endless spinner)
+ * and closes the modal when it left it empty; and once no modal is shown, an orphan .modal-backdrop and Bootstrap's body
+ * lock are swept away. Content may name a page for a form answered by something else than modal content
+ * (data-modal-fallback-url, the Help sheet): a full visit there instead of an emptied, closed modal.
  */
 export default class extends Controller {
     static targets = ['frame', 'loading', 'error'];
@@ -127,6 +142,16 @@ export default class extends Controller {
 
     // claimLayer() is taking the history entry over from another layer
     claiming = false;
+
+    // The modal stays on screen until a page visit from it renders (visitFrameUrl, the fallback): never closed meanwhile
+    leaving = false;
+
+    // A form of the content was submitted from content naming a fallback page (data-modal-fallback-url)
+    submissionFallbackUrl = null;
+
+    // A Turbo Stream answered the modal's request: once it rendered, an emptied modal closes
+    streamPending = false;
+    streamTimer = null;
 
     connect() {
         // Disable focus trap to allow interaction with tom-select dropdowns
@@ -180,6 +205,12 @@ export default class extends Controller {
         this.element.addEventListener('click', this.handleModalClick);
         this.element.addEventListener('modal:release', this.handleRelease);
 
+        // ×, a dismiss button or a tap outside while the modal opens: queued instead of lost (HELP-05)
+        this.element.addEventListener('click', this.handleTransitionClick, true);
+
+        // A Turbo Stream that answered the modal's request has rendered (HELP-05)
+        document.addEventListener('turbo:before-stream-render', this.handleBeforeStreamRender);
+
         document.addEventListener(MENU_HANDOVER_EVENT, this.handleMenuHandover);
     }
 
@@ -205,8 +236,11 @@ export default class extends Controller {
         this.element.removeEventListener('mousedown', this.handleModalMouseDown);
         this.element.removeEventListener('click', this.handleModalClick);
         this.element.removeEventListener('modal:release', this.handleRelease);
+        this.element.removeEventListener('click', this.handleTransitionClick, true);
+        document.removeEventListener('turbo:before-stream-render', this.handleBeforeStreamRender);
         document.removeEventListener(MENU_HANDOVER_EVENT, this.handleMenuHandover);
         clearTimeout(this.scrimTimer);
+        clearTimeout(this.streamTimer);
         this.scrim?.remove();
         this.scrim = null;
     }
@@ -222,7 +256,14 @@ export default class extends Controller {
     handleBeforeFetch = (event) => {
         // Mark that we want to open the modal when content arrives
         this.pendingOpen = true;
+        this.leaving = false;
+        this.streamPending = false;
         this.hideError();
+
+        // A form of the content submitted: the page its content names for an answer that is no modal content (HELP-05 (d))
+        const form = event?.target instanceof HTMLFormElement && this.frameTarget.contains(event.target) ? event.target : null;
+        const fallbackRoot = form !== null ? form.closest(`[${FALLBACK_URL_ATTRIBUTE}]`) : null;
+        this.submissionFallbackUrl = fallbackRoot !== null ? fallbackRoot.getAttribute(FALLBACK_URL_ATTRIBUTE) : null;
 
         const url = event?.detail?.url;
         const method = String(event?.detail?.fetchOptions?.method ?? 'GET').toUpperCase();
@@ -273,7 +314,7 @@ export default class extends Controller {
     handleExternalFormResponse = (event) => {
         if (event.target === this.externalForm) {
             this.externalForm = null;
-            this.handleBeforeFetchResponse();
+            this.handleBeforeFetchResponse(event);
         }
     };
 
@@ -284,9 +325,60 @@ export default class extends Controller {
         }
     };
 
-    handleBeforeFetchResponse = () => {
+    handleBeforeFetchResponse = (event) => {
         // Turbo Stream responses never fire turbo:frame-load, so the busy state ends here
         this.element.removeAttribute('aria-busy');
+
+        const response = event?.detail?.fetchResponse ?? null;
+        const stream = response !== null && STREAM_CONTENT_TYPE.test(String(response.contentType || ''));
+        const fallbackUrl = this.submissionFallbackUrl;
+        this.submissionFallbackUrl = null;
+
+        if (stream) {
+            // The request ends here: no spinner left running, nothing left to open (repro step 3) - and a modal the stream
+            // leaves empty closes once it rendered (handleBeforeStreamRender)
+            this.pendingOpen = false;
+            this.stopLoading();
+            this.streamPending = true;
+            clearTimeout(this.streamTimer);
+            this.streamTimer = setTimeout(() => { this.streamPending = false; }, 3000);
+
+            return;
+        }
+
+        // A send from content naming a fallback page, answered by a redirect - the session ended and the firewall sent
+        // the POST to sign in, whose page would empty the frame and close the modal with the message lost (HELP-05 (d)):
+        // a full visit to that page instead (the help page with the same page attached, "Sign in to send feedback")
+        if (fallbackUrl !== null && response !== null && response.redirected) {
+            event.preventDefault();
+            this.leaveFor(fallbackUrl);
+        }
+    };
+
+    /**
+     * After a Turbo Stream that answered the modal's request has rendered (Turbo renders streams on the next repaint, all
+     * of one answer together): a modal left empty - no content, no spinner, no error - closes (HELP-05)
+     */
+    handleBeforeStreamRender = (event) => {
+        const render = event?.detail?.render;
+
+        if (!this.streamPending || typeof render !== 'function') {
+            return;
+        }
+
+        event.detail.render = async (streamElement) => {
+            await render(streamElement);
+            clearTimeout(this.streamTimer);
+            this.streamTimer = setTimeout(this.settleAfterStream, 0);
+        };
+    };
+
+    settleAfterStream = () => {
+        this.streamPending = false;
+
+        if (this.isOpen() && this.isEmptyAndIdle()) {
+            this.close();
+        }
     };
 
     handleFetchError = () => {
@@ -392,6 +484,7 @@ export default class extends Controller {
             this.closeUi();
         }
 
+        this.leaving = layers.isOpen(LAYER);
         this.visitResponseFromLayer(event.detail.response);
     };
 
@@ -422,8 +515,8 @@ export default class extends Controller {
     }
 
     handleMutation = () => {
-        // Close modal if frame content is empty (cleared by Turbo Stream)
-        if (this.frameTarget.innerHTML.trim() === '' && this.isOpen() && !this.isLoading()) {
+        // Close modal if frame content is empty (cleared by Turbo Stream) - also while it is still opening (HELP-05)
+        if (this.frameTarget.innerHTML.trim() === '' && this.isOpen() && !this.isLoading() && !this.leaving) {
             this.close();
         }
     };
@@ -462,6 +555,13 @@ export default class extends Controller {
             return;
         }
 
+        // Never leave an empty modal open (HELP-05): its content went while it was opening - nothing to show, nothing to
+        // wait for (a grey page with an empty dialog otherwise)
+        if (this.isEmptyAndIdle()) {
+            this.close();
+            return;
+        }
+
         this.focusDialog();
     };
 
@@ -484,7 +584,11 @@ export default class extends Controller {
 
     handleHidden = () => {
         this.transition = null;
+        this.leaving = false;
         document.body.classList.remove('modal-open');
+
+        // Nothing may keep the page grey or locked once no modal is shown (HELP-05 (c))
+        this.sweepOrphans();
 
         // The own-scrim path ends here: scrim gone, the default instance (Bootstrap's backdrop) back for every other
         // modal - Bootstrap's hide is over, so the instance can be swapped (the next show() picks its trigger's again)
@@ -585,6 +689,32 @@ export default class extends Controller {
         return this.hasLoadingTarget && !this.loadingTarget.hidden;
     }
 
+    isErrorShown() {
+        return this.hasErrorTarget && !this.errorTarget.hidden;
+    }
+
+    /**
+     * Nothing to show and nothing coming: no content, no spinner, no error - and not staying for a page visit
+     */
+    isEmptyAndIdle() {
+        return this.frameTarget.innerHTML.trim() === '' && !this.isLoading() && !this.isErrorShown() && !this.leaving;
+    }
+
+    /**
+     * The defensive sweep (HELP-05 (c)): once no modal is shown, an orphan .modal-backdrop and Bootstrap's body lock
+     * (modal-open, the inline overflow / padding-right) go - whatever left them behind
+     */
+    sweepOrphans() {
+        if (document.querySelector('.modal.show') !== null) {
+            return;
+        }
+
+        document.querySelectorAll('.modal-backdrop').forEach((backdrop) => backdrop.remove());
+        document.body.classList.remove('modal-open');
+        document.body.style.removeProperty('overflow');
+        document.body.style.removeProperty('padding-right');
+    }
+
     open() {
         // Don't open modal if frame is empty (safety check for edge cases)
         if (this.frameTarget.innerHTML.trim() === '') {
@@ -656,7 +786,9 @@ export default class extends Controller {
     }
 
     isOpen() {
-        return this.element.classList.contains('show');
+        // From show.bs.modal on (HELP-05): Bootstrap locks the page and draws the backdrop at once, .show comes only after
+        // the backdrop's fade - a request, an emptied frame or Esc in that window belongs to this modal
+        return this.transition === 'showing' || this.element.classList.contains('show');
     }
 
     showModal() {
@@ -723,6 +855,30 @@ export default class extends Controller {
 
     handleModalMouseDown = (event) => {
         this.downOnModal = event.target === this.element;
+    };
+
+    /**
+     * ×, a dismiss button or a tap outside the dialog while the modal is still opening (HELP-05): Bootstrap ignores hide()
+     * during its transition and fires no hide.bs.modal, so the tap would be lost - close() queues it like Esc. Capture
+     * phase: Bootstrap's own handlers never see it. The own scrim's outside tap is handleModalClick's.
+     */
+    handleTransitionClick = (event) => {
+        if (this.transition !== 'showing') {
+            return;
+        }
+
+        const target = event.target instanceof Element ? event.target : null;
+        const dismiss = target !== null ? target.closest('[data-bs-dismiss="modal"]') : null;
+        const outside = target === this.element && this.downOnModal && !this.ownScrim;
+
+        if ((dismiss === null || !this.element.contains(dismiss)) && !outside) {
+            return;
+        }
+
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        this.downOnModal = false;
+        this.close();
     };
 
     handleModalClick = (event) => {
@@ -845,6 +1001,23 @@ export default class extends Controller {
             return;
         }
 
+        this.leaving = layers.isOpen(LAYER);
+        layers.visitFromLayer(url);
+    }
+
+    /**
+     * A full visit to the page the content named (data-modal-fallback-url, HELP-05 (d)), like visitFrameUrl()
+     */
+    leaveFor(url) {
+        this.pendingOpen = false;
+        this.stopLoading();
+        this.trigger = null;
+
+        if (!layers.isOpen(LAYER)) {
+            this.close();
+        }
+
+        this.leaving = layers.isOpen(LAYER);
         layers.visitFromLayer(url);
     }
 }

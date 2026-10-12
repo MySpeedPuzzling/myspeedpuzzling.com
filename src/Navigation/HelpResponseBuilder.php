@@ -23,7 +23,9 @@ use Twig\Environment;
  *   shared-cacheable for guests (no explicit cache-control, AnonymousCacheHeadersSubscriber decides). Both carry
  *   `Vary: Turbo-Frame`.
  * - Signed-in viewers get the feedback box: the posted form (its errors) or a fresh one carrying the page's validated path.
- *   `sent` is the sheet's sent state (HELP-01b): confirmation in place, an empty form behind "Send another".
+ *   `sent` is the sheet's sent state (HELP-01b): confirmation in place, an empty form behind "Send another". Guests get
+ *   "Sign in to send feedback" instead - no form, no CSRF token, no session (HELP-03).
+ * - The items in their order come from HelpSheetBuilder::items() (HELP-02).
  * No state, no statement of its own (the viewer's profile row is RetrieveLoggedUserProfile's memo). A *Builder, so the
  * Navigation services' glob registers it (config/services.php).
  */
@@ -67,7 +69,9 @@ final readonly class HelpResponseBuilder
 
         $parameters = [
             'context' => $context,
-            'rows' => $this->helpSheetBuilder->rows($viewer),
+            // The sheet in its order (HELP-02): the feedback box or "Sign in to send feedback", the puzzle correction, the
+            // registry links, Language, Reload
+            'items' => $this->helpSheetBuilder->items($viewer, $context),
             'feedback_form' => $viewer !== null ? $feedbackForm?->createView() : null,
             'sent' => $sent,
         ];

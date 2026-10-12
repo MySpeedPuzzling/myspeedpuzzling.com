@@ -9025,6 +9025,14 @@ help:
         sent_title: "Vielen Dank!"
         sent_text: "Wir haben Ihre Nachricht erhalten und lesen sie bald. Wenn sie eine Antwort braucht, melden wir uns per E-Mail."
         send_another: "Weitere Nachricht senden"
+    suggest_correction: "Korrektur zu diesem Puzzle vorschlagen"
+    suggest_correction_desc: "Falscher Name, Marke, Teilezahl, Code oder Foto? Oder ein Duplikat?"
+    language: "Sprache"
+    reload: "Seite neu laden"
+    sign_in_to_send: "Anmelden, um Feedback zu senden"
+    page_line:
+        question: "Stimmt auf dieser Seite etwas nicht?"
+        link: "Sagen Sie es uns"
 
 where_did_it_go:
     title: "Wo ist es jetzt?"

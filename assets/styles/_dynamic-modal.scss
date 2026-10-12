@@ -84,6 +84,17 @@
     }
 }
 
+// The Help sheet's "Reload page" row (HELP-02): the installed app only (README §4.1). html.is-standalone comes from the
+// standalone head script (assets/head/standalone.js, NAV-03), whose critical CSS hides every .standalone-only the same way
+html:not(.is-standalone) [data-help-sheet] .standalone-only {
+    display: none;
+}
+
+// The Help sheet's Language row (HELP-02): the five other languages as one wrapping line of links
+.help-language-list .list-inline-item:not(:last-child) {
+    margin-right: .75rem;
+}
+
 // The sent Help sheet (release()): still on screen, no longer in the way - taps outside its dialog reach the page
 #dynamic-modal-container.is-released {
     pointer-events: none;

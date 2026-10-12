@@ -1162,12 +1162,14 @@ final readonly class NavigationRegistry
                 secondary: ['top bar ? / Feedback', 'end-of-page line'],
             ),
             $this->helpRow('methodology', 'methodology', 'nav.row.methodology', 'bi-rulers', 20, legacyLabel: 'footer.methodology'),
-            // Help sheet positions: the skeleton's two links (HELP-01a); HELP-02 orders the rest (README §4.5)
+            // Help sheet positions (README §4.5, HELP-02): Ideas & feature requests · FAQ · Getting started · How progress
+            // works · Where did it go? - after the feedback box and the puzzle correction, before Language and Reload
+            // (HelpSheetBuilder::items())
             $this->helpRow('feature_requests', 'feature_requests', 'nav.row.feature_requests', 'bi-lightbulb', 30, ['feature_request_detail', 'feature_request_edit'], helpSheet: 30, legacyLabel: 'menu.feature_requests'),
-            $this->helpRow('getting_started', 'getting_started', 'onboarding.guide.link', 'bi-signpost-2', 40),
+            $this->helpRow('getting_started', 'getting_started', 'onboarding.guide.link', 'bi-signpost-2', 40, helpSheet: 50),
             $this->helpRow('faq', 'faq', 'menu.faq', 'bi-patch-question', 50, helpSheet: 40),
             $this->helpRow('guides', 'guides', 'footer.guides', 'bi-book', 60, $guides),
-            $this->helpRow('progression', 'progression_hub', 'progression_hub.menu_label', 'bi-question-circle', 70, [], NavVisibility::XpVisible),
+            $this->helpRow('progression', 'progression_hub', 'progression_hub.menu_label', 'bi-question-circle', 70, [], NavVisibility::XpVisible, helpSheet: 60),
             // A public page, linked for signed-in players only: guests never had the old menus (R2, README §4.12)
             new NavEntry(
                 id: 'where_did_it_go',
@@ -1182,6 +1184,7 @@ final readonly class NavigationRegistry
                 reason: 'Explains the new navigation: every old menu item and where it is now (README §8)',
                 since: self::SINCE,
                 description: 'nav.desc.where_did_it_go',
+                helpSheet: 70,
             ),
             new NavEntry(
                 id: 'language',
@@ -1300,6 +1303,22 @@ final readonly class NavigationRegistry
             $this->notInMenuEntry('menu', RouteTarget::route('menu'), 'nav.menu.title', 'bi-list', NavPlace::None, RulebookQuestion::Q5, 'Is the Menu: the page behind ☰ and the footer\'s All pages (no JS, a new tab, the native app)'),
             $this->notInMenuEntry('help', RouteTarget::route('help'), 'help.title', 'bi-question-circle', NavPlace::None, RulebookQuestion::Q5, 'The ? / Feedback tool of the top bar; its Menu row is send_feedback'),
             $this->notInMenuEntry('feedback', RouteTarget::route('feedback'), 'menu.feedback', 'bi-chat-heart', NavPlace::None, RulebookQuestion::Q1, 'Help sheet form endpoint: the feedback box posts here (decision 76)', NavVisibility::SignedIn),
+            // The Help sheet's first row on a puzzle page (HELP-02): the puzzle page's own "Suggest a change", opened in the
+            // sheet (same layer and history entry); guests are led through sign-in (HELP-03)
+            new NavEntry(
+                id: 'suggest_correction',
+                target: RouteTarget::route('puzzle_suggest_change'),
+                label: 'help.suggest_correction',
+                icon: 'bi-pencil-square',
+                place: NavPlace::Puzzles,
+                phone: MenuPlacement::notInMenu('Action on a puzzle page; the Help sheet offers it first there'),
+                dock: MenuPlacement::notInMenu('Action on a puzzle page; the Help sheet offers it first there'),
+                visibility: NavVisibility::Everyone,
+                rule: RulebookQuestion::Q1,
+                reason: 'Action on a puzzle page; the Help sheet offers it first there',
+                since: self::SINCE,
+                description: 'help.suggest_correction_desc',
+            ),
             $this->notInMenuEntry('my_profile', RouteTarget::route('my_profile'), 'menu.my_profile', 'bi-person', NavPlace::Profile, RulebookQuestion::Q8, 'Legacy redirect (your profile, or sign in for guests); the Profile tab and the You card link player_profile directly (D9)'),
             $this->notInMenuEntry('player_page', RouteTarget::route('player_profile'), 'menu.profile', 'bi-person', NavPlace::Community, RulebookQuestion::Q2, "Object page: others' profiles are reached from lists, search and the player card"),
             $this->notInMenuEntry('player_card', RouteTarget::route('player_card'), 'menu.profile', 'bi-person-vcard', NavPlace::Community, RulebookQuestion::Q2, 'Layer of a player name (D12); its page is the no-JS fallback'),

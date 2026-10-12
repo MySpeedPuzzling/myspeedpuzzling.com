@@ -106,6 +106,10 @@ final class HelpPageContextFactoryTest extends KernelTestCase
         yield 'control character' => ["/en/faq\r\nX-Header: 1"];
         yield 'no route' => ['/en/no-such-page-anywhere'];
         yield 'ftp on our host' => ['ftp://localhost/en/faq'];
+        // A browser percent-encodes these in a request URI: raw, the value was forged - and the path feeds the sheet's
+        // links (the language row and Reload, HELP-02)
+        yield 'markup in a matching path' => ['/en/puzzle/' . self::PUZZLE . '"><script>alert(1)</script>'];
+        yield 'a space in a matching path' => ['/en/puzzle/' . self::PUZZLE . ' x'];
     }
 
     #[DataProvider('provideRefusedUrls')]

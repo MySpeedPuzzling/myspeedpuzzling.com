@@ -15,6 +15,9 @@
    one-time code (sign_in_link_sent.html.twig) #}
 {% block footer_newsletter %}{% endblock %}
 
+{# No "Something wrong on this page? Tell us" line on the sign-in / sign-up pages (HELP-04) #}
+{% block page_help_line %}{% endblock %}
+
 {% block content %}
     <div class="row pb-2 auth-frame" data-controller="auth-email-handoff last-sign-in">
         <div class="col-md-7 col-lg-6">

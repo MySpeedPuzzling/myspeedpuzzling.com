@@ -9,6 +9,7 @@ use DOMElement;
 use PHPUnit\Framework\Attributes\DataProvider;
 use SpeedPuzzling\Web\Controller\NavClickController;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use SpeedPuzzling\Web\Value\InboxBadgeParts;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -90,7 +91,8 @@ final class NavInstrumentationMarkupTest extends WebTestCase
 
     /**
      * Navigation containers outside the header and footer (implementation plan §3.3): the Community landing (COM-01a)
-     * and the Help sheet (HELP-01a; its feedback box HELP-01b) - its page and its frame - the Inbox header's tabs on both
+     * and the Help sheet (HELP-01a; its feedback box HELP-01b, its order HELP-02) - its page and its frame - the end-of-page
+     * line (HELP-04), the Inbox header's tabs on both
      * Inbox pages (INB-01, signed in), the Menu (MENU-01), its phone panel's shell (MENU-02b) and the phone bottom bar
      * (NAV-01). Every link and button there is counted too.
      *
@@ -99,11 +101,20 @@ final class NavInstrumentationMarkupTest extends WebTestCase
     public static function navigationContainers(): iterable
     {
         yield 'community landing' => ['/en/community', [], '.community-landing', ['community/community/leaderboards', 'community/community/puzzlers', 'community/community/events']];
-        yield 'help page' => ['/en/help', [], 'main [data-help-sheet]', ['help/help/feature_requests', 'help/help/faq']];
-        yield 'help sheet' => ['/en/help', ['HTTP_TURBO_FRAME' => 'modal-frame'], '[data-help-sheet]', ['help/help/close', 'help/help/feature_requests', 'help/help/faq']];
+        // The sheet in its order (HELP-02): guests' "Sign in to send feedback" (HELP-03), the registry links, the language
+        // row (the help page itself on the page, the homepages without a page attached) and Reload (installed app only)
+        $helpLinks = ['help/help/feature_requests', 'help/help/faq', 'help/help/getting_started', 'help/help/progression'];
+        $languages = ['help/help/language_de', 'help/help/language_cs', 'help/help/language_fr', 'help/help/language_es', 'help/help/language_ja'];
+        yield 'help page' => ['/en/help', [], 'main [data-help-sheet]', ['help/help/sign_in', ...$helpLinks, ...$languages, 'help/help/reload']];
+        yield 'help sheet' => ['/en/help', ['HTTP_TURBO_FRAME' => 'modal-frame'], '[data-help-sheet]', ['help/help/close', 'help/help/sign_in', ...$helpLinks, ...$languages, 'help/help/reload']];
         // The feedback box of a signed-in player (HELP-01b): its Send button is counted too
-        yield 'help page (player)' => ['/en/help', [], 'main [data-help-sheet]', ['help/help/send_feedback', 'help/help/feature_requests', 'help/help/faq'], PlayerFixture::PLAYER_REGULAR];
-        yield 'help sheet (player)' => ['/en/help', ['HTTP_TURBO_FRAME' => 'modal-frame'], '[data-help-sheet]', ['help/help/close', 'help/help/send_feedback', 'help/help/feature_requests', 'help/help/faq'], PlayerFixture::PLAYER_REGULAR];
+        yield 'help page (player)' => ['/en/help', [], 'main [data-help-sheet]', ['help/help/send_feedback', ...$helpLinks, 'help/help/where_did_it_go', ...$languages, 'help/help/reload'], PlayerFixture::PLAYER_REGULAR];
+        yield 'help sheet (player)' => ['/en/help', ['HTTP_TURBO_FRAME' => 'modal-frame'], '[data-help-sheet]', ['help/help/close', 'help/help/send_feedback', ...$helpLinks, 'help/help/where_did_it_go', ...$languages, 'help/help/reload'], PlayerFixture::PLAYER_REGULAR];
+        // On a puzzle page the correction comes first (HELP-02)
+        yield 'help sheet on a puzzle page (player)' => ['/en/help?url=' . rawurlencode('/en/puzzle/' . PuzzleFixture::PUZZLE_500_01), ['HTTP_TURBO_FRAME' => 'modal-frame'], '[data-help-sheet]', ['help/help/close', 'help/help/send_feedback', 'help/help/suggest_correction', ...$helpLinks, 'help/help/where_did_it_go', ...$languages, 'help/help/reload'], PlayerFixture::PLAYER_REGULAR];
+        // The end-of-page line (HELP-04, surface page): its place is the page's
+        yield 'end-of-page line (guest)' => ['/en/faq', [], 'main > .page-help-line', ['page/none/help_line']];
+        yield 'end-of-page line (player, a puzzle page)' => ['/en/puzzle/' . PuzzleFixture::PUZZLE_500_01, [], 'main > .page-help-line', ['page/puzzles/help_line'], PlayerFixture::PLAYER_REGULAR];
         yield 'inbox for you' => ['/en/notifications', [], 'main nav.inbox-tabs', ['inbox/none/for_you', 'inbox/none/messages'], PlayerFixture::PLAYER_REGULAR];
         yield 'inbox messages' => ['/en/messages', [], 'main nav.inbox-tabs', ['inbox/none/for_you', 'inbox/none/messages'], PlayerFixture::PLAYER_REGULAR];
         // The Menu (MENU-01): the page's one #site-menu in the docked-column slot (a guest) and the `menu` page (a player)

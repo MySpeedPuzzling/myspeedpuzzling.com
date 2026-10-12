@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\FormType;
 
 use SpeedPuzzling\Web\FormData\FeedbackFormData;
 use Symfony\Component\Form\AbstractType;
+use Symfony\Component\Form\CallbackTransformer;
 use Symfony\Component\Form\Extension\Core\Type\HiddenType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\FormBuilderInterface;
@@ -33,6 +34,13 @@ final class FeedbackFormType extends AbstractType
         $builder->add('url', HiddenType::class, [
             'empty_data' => '',
         ]);
+
+        // A string property: the empty hidden field (the sheet opened without a page) stays '' - a form without view
+        // transformers hands '' to the model as null (Form::viewToNorm()), which a string property refuses (a 500)
+        $builder->get('url')->addViewTransformer(new CallbackTransformer(
+            static fn (mixed $value): string => is_string($value) ? $value : '',
+            static fn (mixed $value): string => is_string($value) ? $value : '',
+        ));
     }
 
     public function configureOptions(OptionsResolver $resolver): void

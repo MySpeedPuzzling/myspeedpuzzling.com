@@ -8,12 +8,12 @@ use SpeedPuzzling\Web\Results\PlayerProfile;
 use SpeedPuzzling\Web\Services\Xp\XpFeatureGate;
 
 /**
- * The link rows of the Help sheet and the `help` page (docs/features/navigation README §4.5): the registry entries with
- * a helpSheet position, in that order, that the viewer may use. Labels, icons and targets are the entries' own (one
- * name per destination). Decided from the viewer's profile row and the XP gate - no statement; no state.
- *
- * The feedback box and the per-page rows (the puzzle correction, the language row, Reload) are not registry links:
- * HELP-01b and HELP-02 render them around these rows.
+ * The Help sheet and the `help` page in their order (docs/features/navigation README §4.5, HELP-02 / HELP-03):
+ * the feedback box (signed in; guests: "Sign in to send feedback") · "Suggest a correction to this puzzle" (puzzle pages
+ * only) · the registry's Help sheet links (rows(): Ideas & feature requests · FAQ · Getting started · How progress works
+ * · Where did it go?) · Language · Reload page (installed app only). No "What's new" / "Thanks & resources" until their
+ * pages exist. Labels, icons and descriptions are the registry entries' own (one name per destination). Decided from the
+ * viewer's profile row, the page context and the XP gate - no statement; no state.
  */
 final readonly class HelpSheetBuilder
 {
@@ -27,6 +27,10 @@ final readonly class HelpSheetBuilder
         NavVisibility::XpVisible,
     ];
 
+    // The registry entries of the per-page rows (labels and icons)
+    public const string CORRECTION_ENTRY = 'suggest_correction';
+    public const string LANGUAGE_ENTRY = 'language';
+
     public function __construct(
         private NavigationRegistry $registry,
         private XpFeatureGate $xpFeatureGate,
@@ -34,6 +38,37 @@ final readonly class HelpSheetBuilder
     }
 
     /**
+     * Every item of the sheet for this viewer on this page, in order; its id is the item's data-help-item
+     *
+     * @return list<HelpSheetItem>
+     */
+    public function items(null|PlayerProfile $viewer, HelpPageContext $context): array
+    {
+        $items = [
+            $viewer !== null
+                ? new HelpSheetItem('feedback', HelpSheetItemKind::Feedback)
+                : new HelpSheetItem('feedback_sign_in', HelpSheetItemKind::SignInToSend),
+        ];
+
+        $correction = $this->registry->byId(self::CORRECTION_ENTRY);
+
+        if ($context->puzzleId !== null && $correction !== null) {
+            $items[] = new HelpSheetItem($correction->id, HelpSheetItemKind::Correction, $correction);
+        }
+
+        foreach ($this->rows($viewer) as $entry) {
+            $items[] = new HelpSheetItem($entry->id, HelpSheetItemKind::Link, $entry);
+        }
+
+        $items[] = new HelpSheetItem('language', HelpSheetItemKind::Language, $this->registry->byId(self::LANGUAGE_ENTRY));
+        $items[] = new HelpSheetItem('reload', HelpSheetItemKind::Reload);
+
+        return $items;
+    }
+
+    /**
+     * The registry's Help sheet links the viewer may use, in their helpSheet order
+     *
      * @return list<NavEntry>
      */
     public function rows(null|PlayerProfile $viewer): array

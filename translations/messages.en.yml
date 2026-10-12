@@ -9298,6 +9298,14 @@ help:
         sent_title: "Thank you!"
         sent_text: "We have received your message and will read it soon. If it needs an answer, we will reply by e-mail."
         send_another: "Send another"
+    suggest_correction: "Suggest a correction to this puzzle"
+    suggest_correction_desc: "Wrong name, brand, piece count, code or photo? Or a duplicate?"
+    language: "Language"
+    reload: "Reload page"
+    sign_in_to_send: "Sign in to send feedback"
+    page_line:
+        question: "Something wrong on this page?"
+        link: "Tell us"
 
 where_did_it_go:
     title: "Where did it go?"

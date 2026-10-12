@@ -42,6 +42,9 @@ final class FeedbackControllerTest extends WebTestCase
         self::assertNotNull($root->attr('data-modal-history'));
         self::assertSame('bottom-sheet help-sheet', $root->attr('data-controller'));
         self::assertNull($root->attr('data-help-sheet-sent'));
+        // A send answered by something else than this sheet (the session ended: the firewall sends the POST to sign in)
+        // leads to the help page with the same page attached, as a full visit (dynamic_modal_controller.js, HELP-05 (d))
+        self::assertSame('/en/help?url=/en/faq', $root->attr('data-modal-fallback-url'));
         self::assertCount(1, $root->filter('[data-bottom-sheet-target="handle"] .bottom-sheet-handle'));
         self::assertCount(1, $root->filter('.modal-body[data-bottom-sheet-target="body"]'));
         self::assertCount(1, $root->filter('.modal-title[data-bottom-sheet-target="heading"]'));
@@ -60,6 +63,8 @@ final class FeedbackControllerTest extends WebTestCase
         self::assertSame('An idea, a bug, something you like or don\'t like - anything goes.', $message->attr('placeholder'));
         self::assertSame('What would you like to tell us?', trim($form->filter('label[for="feedback_form_message"]')->text()));
         self::assertStringContainsString('We\'ll attach a link to the page you are writing from.', $form->text());
+        // The attached page is shown by its path, no guessed title (HELP-02)
+        self::assertSame('/en/faq', trim($form->filter('.help-feedback-page')->text()));
         self::assertSame('Send', trim($form->filter('button[type="submit"]')->text()));
         self::assertSame('help/help/send_feedback', $form->filter('button[type="submit"]')->attr('data-nav'));
     }
@@ -73,6 +78,21 @@ final class FeedbackControllerTest extends WebTestCase
         $form = $crawler->filter('form[name="feedback_form"]');
         self::assertSame('', (string) $form->filter('input[name="feedback_form[url]"]')->attr('value'));
         self::assertStringNotContainsString('We\'ll attach a link', $form->text());
+        self::assertCount(0, $form->filter('.help-feedback-page'));
+    }
+
+    /**
+     * No page attached (the bare help page): the e-mail says so (HELP-02)
+     */
+    public function testWithoutAPageTheMailSaysNoPage(): void
+    {
+        $browser = $this->signedIn();
+        $form = $this->sheetForm($browser, '');
+
+        $browser->submit($form, ['feedback_form[message]' => 'Sent from nowhere in particular.'], self::FRAME);
+
+        self::assertResponseStatusCodeSame(200);
+        self::assertStringContainsString('<b>URL:</b> no page<br>', (string) $this->onlyFeedbackMail()->getHtmlBody());
     }
 
     public function testASendFromTheSheetAnswersTheSentStateInPlace(): void
@@ -112,8 +132,11 @@ final class FeedbackControllerTest extends WebTestCase
         self::assertSame('', $box->filter('textarea[name="feedback_form[message]"]')->text());
         self::assertSame($page, $box->filter('input[name="feedback_form[url]"]')->attr('value'));
 
-        // The other rows are unchanged
-        self::assertSame(['help/help/feature_requests', 'help/help/faq'], $root->filter('a[data-nav^="help/help/"]')->each(static fn (Crawler $row): string => (string) $row->attr('data-nav')));
+        // The other items are unchanged (HELP-02: a puzzle page puts its correction first)
+        self::assertSame(
+            ['feedback', 'suggest_correction', 'feature_requests', 'faq', 'getting_started', 'progression', 'where_did_it_go', 'language', 'reload'],
+            $root->filter('[data-help-item]')->each(static fn (Crawler $item): string => (string) $item->attr('data-help-item')),
+        );
 
         // The e-mail names the page by its absolute URL
         $email = $this->onlyFeedbackMail();
@@ -271,7 +294,7 @@ final class FeedbackControllerTest extends WebTestCase
      */
     private function sheetForm(KernelBrowser $browser, string $page): Form
     {
-        $crawler = $browser->request('GET', '/en/help?url=' . rawurlencode($page), server: self::FRAME);
+        $crawler = $browser->request('GET', $page === '' ? '/en/help' : '/en/help?url=' . rawurlencode($page), server: self::FRAME);
         self::assertResponseIsSuccessful();
 
         return $crawler->filter('form[name="feedback_form"]')->form();

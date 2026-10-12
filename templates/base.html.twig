@@ -910,6 +910,15 @@
                     {% block content %}{% endblock %}
                 </section>
             {% endblock %}
+
+            {# The end-of-page line (HELP-04, README §4.5): "Something wrong on this page? Tell us" opens the Help sheet with
+               this page attached - for guests too (the link depends on the URL only). Emptied by the auth layout, the
+               bar-free pages (those that empty nav_chrome) and the help page itself. #}
+            {% block page_help_line %}
+                <p class="page-help-line container px-3 mt-2 mb-4 text-center text-muted small">
+                    {{- 'help.page_line.question'|trans }} <a class="fw-semibold text-nowrap" href="{{ help_path() }}" {{ help_opener_attrs() }} data-nav="page/{{ nav_location().place.value }}/help_line">{{ 'help.page_line.link'|trans }}</a>
+                </p>
+            {% endblock %}
         </main>
 
         {% block footer %}

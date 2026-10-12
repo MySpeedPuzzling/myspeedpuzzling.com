@@ -8991,7 +8991,7 @@ community_page:
         description: "Nejrychlejší puzzleři podle počtu dílků, MSP Rating a další žebříčky."
         cta: "Všechny žebříčky"
     puzzlers:
-        description: "Najdi puzzlery, které chceš sledovat, porovnej své časy a podívej se, komu se zrovna daří."
+        description: "Najdi puzzlery, které chceš sledovat, porovnej své časy a podívej se, kdo je zrovna v ráži."
         cta: "Najít puzzlery"
     events:
         description: "Soutěže a puzzle akce – osobně ve tvém okolí i online."
@@ -9007,7 +9007,7 @@ add_intro:
     point_library: "Tvoje knihovna: sbírka, seznam přání i půjčená puzzle na jednom místě."
     join: "Zaregistrovat se zdarma"
     sign_in: "Přihlásit se"
-    tracker_app: "Stáhnout aplikaci Puzzle tracker"
+    tracker_app: "O aplikaci Puzzle tracker"
 
 help:
     title: "Nápověda a zpětná vazba"

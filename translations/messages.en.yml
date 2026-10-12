@@ -9253,7 +9253,7 @@ add_intro:
     point_library: "Your library: your collection, wishlist and lent puzzles in one place."
     join: "Join free"
     sign_in: "Sign in"
-    tracker_app: "Get the Puzzle Tracker app"
+    tracker_app: "About the Puzzle Tracker app"
 
 help:
     title: "Help & feedback"

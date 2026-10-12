@@ -52,6 +52,22 @@ final class HelpPageContextFactoryTest extends KernelTestCase
         }
     }
 
+    public function testATrailingSlashKeepsOnlyTheRoutesOwnParameters(): void
+    {
+        // Matched through Symfony's RedirectController, whose path/permanent/scheme/ports attributes are no route parameters
+        $context = $this->factory()->fromUrlParameter('/en/faq/', Request::create('http://localhost/en/help'));
+
+        self::assertSame('faq', $context->routeName);
+        self::assertSame([], $context->routeParams);
+
+        $puzzle = $this->factory()->fromUrlParameter('/en/puzzle/' . self::PUZZLE . '/', Request::create('http://localhost/en/help'));
+
+        if (!$puzzle->isEmpty()) {
+            self::assertSame(['puzzleId' => self::PUZZLE], array_intersect_key($puzzle->routeParams, ['puzzleId' => true]));
+            self::assertSame([], array_diff(array_keys($puzzle->routeParams), ['puzzleId', '_locale']));
+        }
+    }
+
     /**
      * @return iterable<string, array{null|string}>
      */

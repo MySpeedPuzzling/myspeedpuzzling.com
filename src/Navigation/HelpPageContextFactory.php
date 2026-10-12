@@ -45,11 +45,13 @@ final readonly class HelpPageContextFactory
             return HelpPageContext::empty();
         }
 
+        // Only the route's own path variables: a path differing by its trailing slash or scheme matches through
+        // Symfony's RedirectController, whose attributes (path, permanent, scheme, ports) are not route parameters
         $params = [];
 
-        foreach ($attributes as $name => $value) {
-            if (!str_starts_with((string) $name, '_')) {
-                $params[(string) $name] = $value;
+        foreach ($this->pathVariables($attributes) as $name) {
+            if (array_key_exists($name, $attributes) && !str_starts_with($name, '_')) {
+                $params[$name] = $attributes[$name];
             }
         }
 
@@ -61,6 +63,32 @@ final readonly class HelpPageContextFactory
             routeParams: $params,
             puzzleId: $route === 'puzzle_detail' && is_string($puzzleId) && Uuid::isValid($puzzleId) ? $puzzleId : null,
         );
+    }
+
+    /**
+     * The matched route's own path variables. match() names a localized route by its canonical name, while the
+     * collection holds one route per locale (name.en, …), so both names are looked up.
+     *
+     * @param array<array-key, mixed> $attributes
+     * @return list<string>
+     */
+    private function pathVariables(array $attributes): array
+    {
+        $name = $attributes['_route'] ?? null;
+        $locale = $attributes['_locale'] ?? null;
+
+        if (!is_string($name)) {
+            return [];
+        }
+
+        $routes = $this->router->getRouteCollection();
+        $route = $routes->get($name) ?? (is_string($locale) ? $routes->get($name . '.' . $locale) : null);
+
+        if ($route === null) {
+            return [];
+        }
+
+        return array_values(array_filter($route->compile()->getPathVariables(), is_string(...)));
     }
 
     /**

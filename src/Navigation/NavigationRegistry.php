@@ -792,7 +792,8 @@ final readonly class NavigationRegistry
                 id: 'puzzlers',
                 target: RouteTarget::route('players'),
                 label: 'menu.players',
-                icon: 'bi-people',
+                // Not bi-people: that is the Community place's (tab) icon (Skeletons review F5)
+                icon: 'bi-person-hearts',
                 place: NavPlace::Community,
                 phone: $row(40),
                 dock: $row(40),

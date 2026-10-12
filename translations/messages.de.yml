@@ -8964,7 +8964,7 @@ community_page:
         description: "Die schnellsten Puzzler nach Teilezahl, das MSP Rating und weitere Ranglisten."
         cta: "Alle Bestenlisten"
     puzzlers:
-        description: "Finden Sie Puzzler, denen Sie folgen möchten, vergleichen Sie Ihre Zeiten und sehen Sie, wer gerade einen Lauf hat."
+        description: "Finden Sie Puzzler, denen Sie folgen möchten, vergleichen Sie Ihre Zeiten und sehen Sie, wer gerade in Fahrt ist."
         cta: "Puzzler finden"
     events:
         description: "Wettbewerbe und Puzzle-Veranstaltungen – vor Ort in Ihrer Nähe und online."
@@ -8980,7 +8980,7 @@ add_intro:
     point_library: "Ihre Bibliothek: Sammlung, Wunschliste und verliehene Puzzles an einem Ort."
     join: "Kostenlos registrieren"
     sign_in: "Anmelden"
-    tracker_app: "Die Puzzle Tracker App holen"
+    tracker_app: "Mehr zur Puzzle Tracker App"
 
 help:
     title: "Hilfe & Feedback"

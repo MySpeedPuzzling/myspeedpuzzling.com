@@ -8954,7 +8954,7 @@ community_page:
         description: "ピース数別の最速パズラー、MSP Ratingなどのランキング。"
         cta: "すべてのリーダーボード"
     puzzlers:
-        description: "フォローしたいパズラーを見つけ、タイムを比べて、今好調な人をチェックしましょう。"
+        description: "フォローしたいパズラーを見つけ、タイムを比べて、絶好調の人をチェックしましょう。"
         cta: "パズラーを探す"
     events:
         description: "大会やパズルイベント。近くの会場でも、オンラインでも。"
@@ -8970,7 +8970,7 @@ add_intro:
     point_library: "ライブラリ：コレクション、ウィッシュリスト、貸し出したパズルをひとまとめに管理できます。"
     join: "無料で登録"
     sign_in: "サインイン"
-    tracker_app: "パズルトラッカーアプリを入手"
+    tracker_app: "パズルトラッカーアプリについて"
 
 help:
     title: "ヘルプとフィードバック"

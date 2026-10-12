@@ -13,7 +13,7 @@ use Symfony\Component\Routing\Attribute\Route;
 /**
  * A player's results (docs/features/navigation README §4.7, PROF-00): today's results list of the profile under the
  * player header, so the Menu's Results row and the player tabs never link to a missing page. PROF-05a… replace its
- * content. A player hidden from the viewer (blocked either way, unknown id) is a 404; a private profile the viewer may
+ * content. A player the viewer blocked (as on the profile: GetPlayerProfile::byId()) or an unknown id is a 404; a private profile the viewer may
  * not see goes to the profile, which explains it (implementation plan decision 69).
  */
 final class PlayerResultsController extends AbstractController

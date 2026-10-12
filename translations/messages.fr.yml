@@ -8984,7 +8984,7 @@ community_page:
         description: "Les puzzleurs les plus rapides par nombre de pièces, le MSP Rating et d'autres classements."
         cta: "Tous les classements"
     puzzlers:
-        description: "Trouvez des puzzleurs à suivre, comparez vos temps et voyez qui est en pleine forme."
+        description: "Trouvez des puzzleurs à suivre, comparez vos temps et voyez qui est sur sa lancée."
         cta: "Trouver des puzzleurs"
     events:
         description: "Compétitions et événements de puzzle, en personne près de chez vous et en ligne."
@@ -9000,7 +9000,7 @@ add_intro:
     point_library: "Votre bibliothèque : collection, liste de souhaits et puzzles prêtés au même endroit."
     join: "Inscription gratuite"
     sign_in: "Se connecter"
-    tracker_app: "Télécharger l'application Puzzle Tracker"
+    tracker_app: "Découvrir l'application Puzzle Tracker"
 
 help:
     title: "Aide et commentaires"

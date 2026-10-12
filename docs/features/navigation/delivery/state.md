@@ -13,9 +13,10 @@ Evidence = commit hash(es) · test names · command output summary · screenshot
 | Delivery branch / worktree | `feature/navigation-redesign` / `.claude/worktrees/navigation` |
 | Delivery DB clone | `speedpuzzling_nav_test` |
 | Isolated web URL | `http://127.0.0.1:18080` (container `nav-web`, php -S; restart: `var/navigation-delivery/tools/restart-web.sh`) |
+| Mailer | `nav-mailer` (axllent/mailpit, `--rm`, UI `127.0.0.1:18025`); `restart-web.sh` points nav-web's `MAILER_*_DSN` at it (without it every feedback POST 500s) |
 | Selenium | `nav-delivery-chrome` on `127.0.0.1:14444` (selenium/standalone-chromium:latest); helper `var/navigation-delivery/tools/wd.py` |
 | Gate scripts | `var/navigation-delivery/tools/{phpunit,paratest,phpstan,cs,console,encore,restart-web}.sh` (one-off containers; test DB `speedpuzzling_navsuite_test`) |
-| Deps | composer.lock + package-lock.json identical to main checkout at start → main `vendor`/`node_modules` mounted read-only |
+| Deps | composer.lock identical to main → main `vendor` mounted read-only. `node_modules`: own copy in the worktree from the Layers phase on (GEST-01 pins Turbo exactly → lock differs); tools no longer mount main's |
 | P0-03 commit to deploy separately | `62c99662` (cherry-picks cleanly onto origin/main e6068ac7: every touched file equals origin/main at its parent). Not `b49d3c8d` (superseded, logged secret token paths) |
 
 ## Status
@@ -30,8 +31,8 @@ Evidence = commit hash(es) · test names · command output summary · screenshot
 | F-03 | Layout variables, fixed elements, overlays | implemented (verify-after: NAV-01, NAV-13) | 6c50dca4 · NavLayoutCssTest OK (40/155: closed states display:none, no JS sets --nav-left/--topbar-h, listed selectors use --bottom-nav-height/--nav-left, nothing at var(--header-height) animates top; mutation-checked) · tests/Navigation OK (198/6490, budgets unchanged; F-01 rendered check green after F-03) · `checks/F-03.py` skips cleanly (no .bottom-nav / column yet); simulated bar (F03_SIMULATE=1): 0 overlaps on 6 phone pages, compact bar at 256/88 in first frame · before/after screenshots identical at 360 (`var/navigation-delivery/F-03/`) | **NAV-03 must decide**: translating a sticky sub-bar also moves it while not stuck (needs a stuck-only condition); `.ev-month-header` already had `transition: top` (allow-listed, NAV-03/NAV-07 decide); `--bottom-nav-height` without `:has()` → 0 (NAV-01 decides fallback); `--topbar-h` = `var(--header-height)` until NAV-03 sets 52/64 px |
 | F-04 | Meta fixes | implemented (verify-after: PROF-05a, MENU-03) | d4d406a7 · HeadMetaTest OK (3/30: no maximum-scale, theme-color #ffffff, manifest JSON) · manifest grep `theme_color: #ffffff` · `navlib.py check F-04` PASS: head; catalogue filters (6), marketplace filters (11), add form (7), edit profile (10) all ≥ 16 px at 360 touch; no console errors; Results + Menu search rows skip until built · screenshots `var/navigation-delivery/screens/F-04/` (looked: filter row grows, placeholders fit) | selector specificity (0,2,1) skips controls already > 16 px; desktop unchanged |
 | F-05 | Translation hygiene | verified | d4d406a7 · NavigationLabelHygieneTest OK (4/4412) · grep: no literal Marketplace/Messages in `_footer`, base header, `_unread_badge` → none; cs `menu.events` = "Události" (parsed); `menu.new_badge` referenced 0× and removed from 6 catalogues; only `new_badge` used · parse-compare: only those keys differ per locale | Mercure badge translates in the triggering request's locale until INB-02 (numbers-only stream) |
-| COM-01a | Community route skeleton | in-progress | | |
-| LAUNCH-02a | "Where did it go?" skeleton | in-progress | | |
+| COM-01a | Community route skeleton | verified | 885ab657 · CommunityControllerTest OK (8/31): guest + member 200, three entries, guest `Cache-Control: public`, index/follow, canonical + 6 hreflang · curl /en/community, /de/community, /komunita 200 public · screenshots `var/navigation-delivery/skeletons/community*.png` (looked) | sitemap-static + crawlable robots row come with COM-01 |
+| LAUNCH-02a | "Where did it go?" skeleton | verified | 885ab657 · WhereDidItGoControllerTest OK (7/21): 200 guest + member, noindex · curl /en/where-did-it-go, /es/donde-esta-ahora 200 public noindex | content in LAUNCH-02 |
 | NAV-01 | Phone bottom bar | todo | | |
 | NAV-02 | Label fallback | todo | | |
 | NAV-03 | Phone top bar | todo | | |
@@ -47,7 +48,7 @@ Evidence = commit hash(es) · test names · command output summary · screenshot
 | NAV-13 | Desktop docked menu, rail and overlay | todo | | |
 | NAV-14 | Native-ready navigation | implemented (verify-after: NAV-01, NAV-03, NAV-04, NAV-13, MENU-02b, HELP-01b, CARD-01a, GEST-01, GEST-02, GEST-06, GEST-10, GEST-12, GEST-15) | 89de282a foundation · PlatformDetectorTest OK (21/123, old + new markers), NativeAppNavigationTest OK (12/187: /en/faq, puzzle page, member Hub × iOS/Android native UA → data-native-app, no web chrome, guest not public; web UA → no attribute, header, guest public; notifications, conversations_list, player_card, achievement_detail plain routes 200 no chrome), AnonymousCacheHeadersSubscriberTest OK (13/79), PlatformModuleTest OK (12/66), PlatformFlagReadersTest OK, NativeAppStepAsideTest OK · waits: data-bar-action (Stream B BarAction), menu/help rows, haptics grep (5 navigator.vibrate today → GEST-10), layer/gesture node rows | verify-after: NAV-01, NAV-03, NAV-04, NAV-13, MENU-02b, HELP-01b, CARD-01a, GEST-01, GEST-02, GEST-06, GEST-10, GEST-12, GEST-15 |
 | MENU-01 | Menu partial and rows | todo | | from F review F3: `nav_viewer_audience()` must emit `xp_player` (signed in + XP visible) for such viewers, never for guests; admin/mod rows move to `nav_admin.*` keys; registry audiences table in docs/navigation.md |
-| MENU-02a | Menu fallback route | in-progress | | |
+| MENU-02a | Menu fallback route | implemented (verify-after: MENU-01) | 885ab657 · MenuPageControllerTest OK (7/19): guest/member 200, noindex/follow, guest public · NativeAppNavigationTest menu row · curl /en/menu, /ja/メニュー 200 | panel-row parity per role after MENU-01 |
 | MENU-02b | Phone panel | todo | | |
 | MENU-03 | One search for pages and settings | todo | | |
 | MENU-04 | Menu completeness guard | todo | | |
@@ -57,21 +58,21 @@ Evidence = commit hash(es) · test names · command output summary · screenshot
 | INB-04a | "New since your last visit" storage | todo | | |
 | INB-04b | Favorites default and highlight | todo | | |
 | INB-05 | Inbox pointer | todo | | |
-| HELP-01a | Help route | in-progress | | |
+| HELP-01a | Help route | verified | 885ab657 · HelpControllerTest OK (12/1165): guest/member full page 200, noindex/follow, guest public, Vary Turbo-Frame; frame → only frame (no <header>, no #site-menu), `private, no-store`, Vary; hostile ?url= ignored; native UA → full page; member frame = exactly 2 statements (empty signed-in endpoint) · RobotsTxtTest OK (help?url= disallowed ×6, bare allowed) · NativeAppNavigationTest help row · curl /en/help, /napoveda 200 public; frame header private no-store | `send_feedback` now targets `help` |
 | HELP-01b | Help sheet | todo | | |
 | HELP-02 | Order and context | todo | | |
 | HELP-03 | Guests | todo | | |
 | HELP-04 | End-of-page line | todo | | |
-| HELP-05 | Phone grey-screen bug | todo | | |
+| HELP-05 | Phone grey-screen bug | todo | step (a) done: `var/navigation-delivery/HELP-05/repro.md` — normal send/close paths clean on Pixel + iOS; grey screen only via a race (send on slow connection, × while pending, reopen; late success stream lands within the 150 ms backdrop fade) because `dynamic_modal_controller.js:482-484` `isOpen()` ignores Bootstrap's showing state; (d) expired session reproduces as silent loss (login page's empty frame closes the modal) | fix in the general close path after GEST-01 (6 steps in repro.md) |
 | ADD-01 | Modes and last mode | todo | | |
 | ADD-02 | Tools under their intent | todo | | |
 | ADD-03 | Running stopwatch pill | todo | | |
 | ADD-04 | Stopwatch page | todo | | |
-| ADD-05 | Guest Add explainer | in-progress | | |
+| ADD-05 | Guest Add explainer | verified | 885ab657 · AddIntroControllerTest OK (8/78): 6 locale paths 200, noindex/follow, public, Join → register, Sign in → login?return=/<locale>/puzzle-add, tracker app link, member → 302 puzzle_add, guest statements ≤ /en/faq pin · curl /en/add, /fr/ajouter 200 public noindex | |
 | PUZ-01 | Puzzles sub-navigation | todo | | |
 | COM-01 | Community landing previews | todo | | |
 | COM-02 | Section chips | todo | | |
-| PROF-00 | Results route skeleton | in-progress | | |
+| PROF-00 | Results route skeleton | verified | 885ab657 · PlayerResultsControllerTest OK (12/48): public player 200 guest + member, 404 blocked + unknown, 302 private hidden · PlayerProfileQueryBudgetTest unchanged (tests/Navigation OK 262/11349) · Blocklist/PrivateProfile canaries + rows OK | |
 | PROF-01 | Own profile, content first | todo | | |
 | PROF-02 | Player header tabs | todo | | |
 | PROF-03 | Overview content | todo | | |
@@ -94,7 +95,7 @@ Evidence = commit hash(es) · test names · command output summary · screenshot
 | CARD-06 | Budget | todo | | |
 | CARD-07 | Measurement | todo | | |
 | TEASE-01 | Teaser scope for this release | todo | | |
-| GEST-01 | Back closes the top layer | todo | | |
+| GEST-01 | Back closes the top layer | in-progress | | |
 | GEST-02 | Swipe down closes bottom sheets | todo | | |
 | GEST-03 | Tap the active tab | todo | | |
 | GEST-04 | Pressed states within 100 ms | todo | | |
@@ -138,7 +139,7 @@ Order per requirements.md "Phase order" (the plan may refine it). A gate passes 
 |---|---|---|---|
 | P0 | P0-01…03 | verified | HEAD f46505d7 (+ state): phpstan [OK] No errors · cs-fix no diff · schema in sync (scratch `speedpuzzling_navschema_test` from committed migrations) · cache:warmup OK · ParaTest Project Test Suite 9798 tests OK (27 notices, 5 skipped — pre-existing) · review `delivery/reviews/P0.md` F1 blocker + F2–F5 minor all resolved (62c99662, f6dfd77c) · plan review F1–F28 resolved |
 | F | F-01…05 (F-03 verify-after NAV-01, NAV-13; F-04 verify-after PROF-05a, MENU-03), LAUNCH-00, NAV-14 foundation (verify-after, see its row), GEST-09 | verified | HEAD 40f208d4: phpstan [OK] · cs-fix no diff · schema in sync · cache:warmup OK · ParaTest 10097 OK (27 notices, 5 skipped pre-existing; first run 1 failure = RoundRevealMomentComputedOnlyHereTest false positive on NavigationLaunch → allow-listed fc0f8960) · review `delivery/reviews/F.md` F1–F3 major + F4–F6 minor resolved (40f208d4) · origin/main unchanged since e6068ac7 · open verify-after rows: F-03 (NAV-01, NAV-13), F-04 (PROF-05a, MENU-03), NAV-14 (list) |
-| Skeletons | COM-01a, ADD-05, HELP-01a, LAUNCH-02a, MENU-02a, PROF-00 | todo | |
+| Skeletons | COM-01a, ADD-05, HELP-01a, LAUNCH-02a, MENU-02a, PROF-00 | verified | gate at 885ab657: phpstan [OK] · cs no diff · schema in sync · ParaTest 10203 OK · review `delivery/reviews/Skeletons.md` F1–F5 minor resolved in cc3dfe6a (targeted re-runs: HelpPageContextFactoryTest 26/126, AddIntro + Community controller tests, tests/Navigation 263/11354; phpstan on the factory OK). Full-suite re-run of cc3dfe6a folded into the Layers gate (GEST-01 was mid-edit in the worktree). Open verify-after: MENU-02a (MENU-01) |
 | Layers | GEST-01, GEST-02 (verified on the achievement sheet and a test page), GEST-13 | todo | |
 | ADD-03 + INB | ADD-03 (verify-after NAV-03, NAV-04), INB-02, INB-01, INB-03, INB-04a, INB-04b, INB-05 | todo | |
 | MENU + Help sheet | MENU-01, MENU-02b, MENU-03, HELP-01b | todo | |
@@ -178,6 +179,7 @@ One line per session and per phase: date · what was done · next step.
 | 2026-10-12 | P0-02 verified (524a3305). origin/main moved 9347ccda→e6068ac7 (7 commits, XP/karma/achievements; no migrations, no lock changes): merged as 56ef583e before committing P0-03 so P0-03 cherry-picks cleanly; one conflict (account toggle class vs data-nav) resolved keeping both. P0-03 verified (b49d3c8d). Plan drafts moved to git-ignored `var/navigation-delivery/plan-drafts/` (they hold production figures). Next: plan review findings → commit P0-01 → P0 gate |
 | 2026-10-12 | **P0 gate verified.** P0 summary: plan (f46505d7) from 12 area drafts + adversarial review (28 findings resolved); baseline pins + measurements (524a3305, f6dfd77c); click instrumentation (62c99662, deploy separately; the P0 review caught secret reset/claim tokens in logged paths → masked as {token} before commit was final). Next: phase F — Stream A (delivery worktree: GEST-09 + NAV-14 foundation → F-03 → F-04 + F-05) ∥ Stream B (worktree `navigation-b`, branch `nav/stream-b-f`: F-01 → F-02 → LAUNCH-00) |
 | 2026-10-12 | **Phase F gate verified.** Two parallel streams: A in the delivery worktree (GEST-09 data-os head script + NAV-14 native foundation 89de282a, F-03 layout variables/base split 6c50dca4 with no visual change, F-04/F-05 meta + translation hygiene d4d406a7), B in worktree `navigation-b` (registry 126 entries + place resolver + launch service, cherry-picked a31db772; worktree + DBs removed). Review fixes 40f208d4 (touch rule never shrinks, others' collections → Community, XpPlayer audience, modals above the bar, form targets guarded). Next: skeletons (COM-01a, ADD-05, HELP-01a, LAUNCH-02a, MENU-02a, PROF-00) in one sequential agent (all touch translations, registry, place map) |
+| 2026-10-12 | **Skeletons gate verified** (see phase row). HELP-05 (a) repro done (normal paths clean; race in the dynamic modal's isOpen(); expired session = silent loss). Delivery mailer `nav-mailer` added (feedback POSTs need it). Worktree got its own node_modules (Turbo pin). Next: Layers — GEST-01 (in progress) → GEST-02 ∥ GEST-13 |
 
 ## Final report
 (written at the end: what shipped, evidence summary, blocked items with options, owner steps — README §11)

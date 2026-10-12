@@ -13,6 +13,26 @@
 // The movement that decides what a gesture is
 export const DIRECTION_LOCK_DISTANCE = 8;
 
+// Layers with their own scrolling over the page: while one is open, a finger moving down scrolls it, never the page. A
+// released modal (the sent Help sheet, HELP-05: the page behind it is usable again) is not one - pull-to-refresh is
+// armed again on the page, only a touch on the sheet itself stays the sheet's (review Q1)
+export const OVERLAY_SELECTOR = '.modal.show:not(.is-released), .offcanvas.show, .offcanvas.showing, dialog[open]';
+export const RELEASED_OVERLAY_SELECTOR = '.modal.show.is-released';
+
+/**
+ * Is a layer open over the page for a touch starting on `target`?
+ *
+ * @param {Element|null} target where the finger landed
+ * @param {{hasBodyClass: (name: string) => boolean, matches: (selector: string) => boolean}} page
+ */
+export function overlayOpen(target, page) {
+    if (page.hasBodyClass('modal-open') || page.hasBodyClass('global-search-shown') || page.matches(OVERLAY_SELECTOR)) {
+        return true;
+    }
+
+    return Boolean(target && typeof target.closest === 'function' && target.closest(RELEASED_OVERLAY_SELECTOR) !== null);
+}
+
 // Vertical enough to be a pull: no more sideways than half of the way down (about 27° off vertical)
 const MAX_SIDEWAYS_RATIO = 0.5;
 

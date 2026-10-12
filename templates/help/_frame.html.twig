@@ -2,11 +2,12 @@
     The Help sheet (docs/features/navigation README §4.5, implementation plan §7, HELP-01b): the dynamic modal's content
     for a `Turbo-Frame: modal-frame` request - no layout, no Menu. A near full screen sheet on phones (data-modal-sheet)
     that a swipe down closes (bottom-sheet, GEST-02), Back closes it (data-modal-history, GEST-01); help-sheet keeps the
-    feedback draft, focuses the field and releases the modal in the sent state (data-help-sheet-sent, after a send from
-    here: FeedbackController answers into this frame).
+    feedback draft per player (data-help-sheet-player-value: never handed to the next player of a shared tab), focuses
+    the field and releases the modal in the sent state (data-help-sheet-sent, after a send from here:
+    FeedbackController answers into this frame).
 #}
 <turbo-frame id="modal-frame">
-    <div data-modal-size="" data-modal-sheet data-modal-scrollable data-modal-history data-controller="bottom-sheet help-sheet" data-help-sheet{% if sent|default(false) %} data-help-sheet-sent{% endif %}>
+    <div data-modal-size="" data-modal-sheet data-modal-scrollable data-modal-history data-controller="bottom-sheet help-sheet" data-help-sheet{% if logged_user.profile is not null %} data-help-sheet-player-value="{{ logged_user.profile.playerId }}"{% endif %}{% if sent|default(false) %} data-help-sheet-sent{% endif %}>
         <div class="bottom-sheet-top" data-bottom-sheet-target="handle">
             <span class="bottom-sheet-handle" aria-hidden="true"></span>
             <div class="modal-header">

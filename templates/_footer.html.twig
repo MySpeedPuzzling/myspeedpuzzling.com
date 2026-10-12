@@ -49,7 +49,8 @@
                 <li><a href="{{ path('puzzle_tracker_app') }}" data-nav="footer/myspeedpuzzling/puzzle_tracker_app">{{ 'footer.puzzle_tracker_app'|trans }}</a></li>
                 <li><a rel="nofollow" href="{{ path('membership') }}" data-nav="footer/myspeedpuzzling/membership">{{ 'menu.membership'|trans }}</a></li>
                 <li><a href="{{ path('feature_requests') }}" data-nav="footer/myspeedpuzzling/feature_requests">{{ 'menu.feature_requests'|trans }}</a></li>
-                <li><a rel="nofollow" href="{{ path('feedback', {'url': app.request.uri}) }}" data-nav="footer/myspeedpuzzling/feedback" {% if logged_user.profile is not null %}data-turbo-frame="modal-frame"{% endif %}>{{ 'menu.feedback'|trans }}</a></li>
+                {#- Signed in: a Help sheet opener (help_opener_attrs(), its own scrim - released after a send, review F6) -#}
+                <li><a data-nav="footer/myspeedpuzzling/feedback" {% if logged_user.profile is not null %}href="{{ help_path() }}" {{ help_opener_attrs() }}{% else %}rel="nofollow" href="{{ path('feedback', {'url': app.request.uri}) }}"{% endif %}>{{ 'menu.feedback'|trans }}</a></li>
                 <li><a href="{{ path('for_organizers') }}" data-nav="footer/myspeedpuzzling/for_organizers">{{ 'menu.for_organizers'|trans }}</a></li>
                 <li><a href="{{ path('for_developers') }}" data-nav="footer/myspeedpuzzling/for_developers">{{ 'menu.for_developers'|trans }}</a></li>
             </ul>

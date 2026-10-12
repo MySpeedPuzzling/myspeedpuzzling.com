@@ -18,7 +18,9 @@ use Symfony\Component\Routing\RouterInterface;
  * `help` that opens the sheet in modal-frame with its own scrim (data-modal-scrim="own" - the only modal without
  * Bootstrap's backdrop, released after a send) and that crawlers never follow. A link to `help` without it would open
  * the sheet on Bootstrap's backdrop, which the sent state cannot release (HELP-05). Language switch links on the help
- * page itself are not openers (they load the page in another language).
+ * page itself are not openers (they load the page in another language). A link to `feedback` that opens in modal-frame
+ * answers the Help sheet too (GET feedback with the frame header), so it counts as an opener as well (review F6: the old
+ * top-bar and footer Feedback links); a guest's plain link to the `feedback` page is not one.
  */
 final class HelpOpenerLinksTest extends WebTestCase
 {
@@ -37,6 +39,8 @@ final class HelpOpenerLinksTest extends WebTestCase
         yield 'player help page' => [PlayerFixture::PLAYER_REGULAR, '/en/help', 1];
         yield 'admin faq' => [PlayerFixture::PLAYER_ADMIN, '/en/faq', 1];
         yield 'player, Czech' => [PlayerFixture::PLAYER_REGULAR, '/napoveda', 1];
+        // The old top bar's and the footer's Feedback links (review F6) next to the Menu's row
+        yield 'player faq, every opener' => [PlayerFixture::PLAYER_REGULAR, '/en/faq', 3];
     }
 
     #[DataProvider('pages')]
@@ -51,16 +55,20 @@ final class HelpOpenerLinksTest extends WebTestCase
         $crawler = $browser->request('GET', $url);
         self::assertResponseIsSuccessful();
 
-        $helpPaths = $this->helpPaths();
+        $helpPaths = $this->pathsOf('help');
+        $feedbackPaths = $this->pathsOf('feedback');
         $openers = 0;
         $wrong = [];
 
         foreach ($crawler->filter('a[href]') as $link) {
             assert($link instanceof DOMElement);
             $path = rawurldecode((string) parse_url($link->getAttribute('href'), PHP_URL_PATH));
+            $toHelp = in_array($path, $helpPaths, true);
+            // GET feedback in modal-frame answers the Help sheet
+            $toFeedbackSheet = in_array($path, $feedbackPaths, true) && $link->getAttribute('data-turbo-frame') === 'modal-frame';
 
             // A language switch link (locale-preference) loads the page in another language - not an opener
-            if (!in_array($path, $helpPaths, true) || $link->hasAttribute('data-locale-preference-locale-param')) {
+            if ((!$toHelp && !$toFeedbackSheet) || $link->hasAttribute('data-locale-preference-locale-param')) {
                 continue;
             }
 
@@ -76,24 +84,24 @@ final class HelpOpenerLinksTest extends WebTestCase
             }
         }
 
-        self::assertSame([], $wrong, 'Links to `help` without help_opener_attrs()');
+        self::assertSame([], $wrong, 'Links opening the Help sheet without help_opener_attrs()');
         self::assertGreaterThanOrEqual($atLeast, $openers);
     }
 
     /**
-     * @return list<string> the paths of `help` in every locale
+     * @return list<string> the paths of the route in every locale
      */
-    private function helpPaths(): array
+    private function pathsOf(string $routeName): array
     {
         $paths = [];
 
         foreach (self::getContainer()->get(RouterInterface::class)->getRouteCollection() as $name => $route) {
-            if ($name === 'help' || str_starts_with($name, 'help.')) {
+            if ($name === $routeName || str_starts_with($name, $routeName . '.')) {
                 $paths[] = $route->getPath();
             }
         }
 
-        self::assertCount(6, $paths);
+        self::assertCount(6, $paths, $routeName);
 
         return $paths;
     }

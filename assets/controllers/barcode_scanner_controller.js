@@ -137,8 +137,16 @@ export default class extends Controller {
             this.resultsTarget.classList.add('d-none');
         }
 
+        // A stop while the camera is still being asked for (a closed Menu panel, review F3) makes this answer stale
+        const request = this.cameraRequest = (this.cameraRequest || 0) + 1;
+
         navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } } })
             .then(stream => {
+                if (request !== this.cameraRequest) {
+                    stream.getTracks().forEach(track => track.stop());
+                    return;
+                }
+
                 this.videoTarget.srcObject = stream;
                 this.videoTarget.play().catch(err => console.error('Video play failed:', err));
                 this.scanning = true;
@@ -375,6 +383,8 @@ export default class extends Controller {
     }
 
     stopScanning() {
+        this.cameraRequest = (this.cameraRequest || 0) + 1;
+
         if (this.hasResultsTarget) {
             this.resultsTarget.classList.remove('d-none');
         }
@@ -670,8 +680,16 @@ export default class extends Controller {
         this.scanBuffer = [];
         this.lastPushTime = 0;
 
+        // A stop while the camera is still being asked for (a closed Menu panel, review F3) makes this answer stale
+        const request = this.cameraRequest = (this.cameraRequest || 0) + 1;
+
         navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } } })
             .then(stream => {
+                if (request !== this.cameraRequest) {
+                    stream.getTracks().forEach(track => track.stop());
+                    return;
+                }
+
                 this.videoTarget.srcObject = stream;
                 this.videoTarget.play().catch(err => console.error('Video play failed:', err));
                 this.scanning = true;

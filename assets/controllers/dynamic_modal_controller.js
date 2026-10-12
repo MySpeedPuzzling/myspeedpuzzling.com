@@ -32,6 +32,12 @@ const SCRIM_FADE_MS = 150;
 // The sent Help sheet: on screen, but no longer blocking the page (release())
 const RELEASED_CLASS = 'is-released';
 
+// The Menu panel hands its opener over when this modal takes its history entry (menu_layer_controller.js)
+const MENU_HANDOVER_EVENT = 'menu-layer:handover';
+
+// Focus goes back here when the element that opened the modal is no longer shown (the ☰, NAV-03)
+const MENU_BUTTON = '[data-bar-action="menu"]';
+
 /**
  * Dynamic Modal Controller
  *
@@ -82,8 +88,12 @@ const RELEASED_CLASS = 'is-released';
  * while closed, ending above the phone bottom bar) and closes on a tap outside the dialog itself (the .modal covers the
  * scrim, so the tap lands on the .modal). The content can ask for release() (`modal:release`, the Help sheet's sent
  * state): the scrim goes, taps reach the page through the .modal, the page scrolls again and the dialog is no longer
- * aria-modal - while ×, Esc, a swipe and Back still close it. Every other modal-frame partial keeps Bootstrap's backdrop
- * and outside-tap close.
+ * aria-modal - while ×, Esc, a swipe and Back still close it. A modal-frame link on the page behind it loads a new modal
+ * that blocks the page again (reclaim(), review F5). Every other modal-frame partial keeps Bootstrap's backdrop and
+ * outside-tap close.
+ *
+ * Focus on close: back to the trigger; a trigger no longer shown (the Menu row of a Menu → Help swap, back in the hidden
+ * slot) gives way to what opened the Menu (handed over by menu_layer_controller.js), else the ☰ (review F7).
  */
 export default class extends Controller {
     static targets = ['frame', 'loading', 'error'];
@@ -114,6 +124,9 @@ export default class extends Controller {
     scrimTimer = null;
     released = false;
     downOnModal = false;
+
+    // claimLayer() is taking the history entry over from another layer
+    claiming = false;
 
     connect() {
         // Disable focus trap to allow interaction with tom-select dropdowns
@@ -166,6 +179,8 @@ export default class extends Controller {
         this.element.addEventListener('mousedown', this.handleModalMouseDown);
         this.element.addEventListener('click', this.handleModalClick);
         this.element.addEventListener('modal:release', this.handleRelease);
+
+        document.addEventListener(MENU_HANDOVER_EVENT, this.handleMenuHandover);
     }
 
     disconnect() {
@@ -190,6 +205,7 @@ export default class extends Controller {
         this.element.removeEventListener('mousedown', this.handleModalMouseDown);
         this.element.removeEventListener('click', this.handleModalClick);
         this.element.removeEventListener('modal:release', this.handleRelease);
+        document.removeEventListener(MENU_HANDOVER_EVENT, this.handleMenuHandover);
         clearTimeout(this.scrimTimer);
         this.scrim?.remove();
         this.scrim = null;
@@ -215,6 +231,17 @@ export default class extends Controller {
 
         // Navigation or form submission inside the already open modal - no spinner, keep the trigger
         if (this.isOpen()) {
+            // A modal-frame link on the page behind a released sheet (review F5): a new modal over the page - it blocks
+            // the page again (scrim, aria-modal, outside tap closes) and gives focus back to that link
+            if (this.released) {
+                const trigger = this.findTrigger();
+
+                if (trigger !== null && !this.element.contains(trigger)) {
+                    this.trigger = trigger;
+                    this.reclaim();
+                }
+            }
+
             return;
         }
 
@@ -487,11 +514,34 @@ export default class extends Controller {
         this.requestedUrl = null;
         this.wantOwnScrim = false;
 
-        // Return focus to whatever opened the modal (unless the page changed meanwhile)
-        const trigger = this.trigger;
+        // Return focus to whatever opened the modal (unless the page changed meanwhile). A trigger still in the page but
+        // not shown - the Menu row the panel took back into its hidden slot (review F7) - gives way to the ☰
+        let trigger = this.trigger;
         this.trigger = null;
+
+        if (trigger && trigger.isConnected && typeof trigger.getClientRects === 'function' && trigger.getClientRects().length === 0) {
+            trigger = document.querySelector(MENU_BUTTON);
+        }
+
         if (trigger && trigger.isConnected && typeof trigger.focus === 'function') {
             trigger.focus({ preventScroll: true });
+        }
+    };
+
+    /**
+     * The Menu panel closed because this modal took its history entry (Send feedback → the Help sheet): the row that
+     * opened the modal is going back into the hidden slot - focus returns to what opened the Menu instead (review F7)
+     */
+    handleMenuHandover = (event) => {
+        const opener = event?.detail?.opener ?? null;
+        const panel = event.target instanceof Element ? event.target : null;
+
+        if (!this.claiming || !opener || !opener.isConnected) {
+            return;
+        }
+
+        if (this.trigger === null || (panel !== null && panel.contains(this.trigger))) {
+            this.trigger = opener;
         }
     };
 
@@ -714,6 +764,22 @@ export default class extends Controller {
         this.element.classList.remove(RELEASED_CLASS);
     }
 
+    /**
+     * The released sheet blocks the page again (review F5: a modal-frame link on the page behind it loads new content
+     * into it): the scrim, aria-modal, body.modal-open and the scroll lock come back, an outside tap closes it again
+     */
+    reclaim() {
+        if (!this.released) {
+            return;
+        }
+
+        this.unrelease();
+        this.element.setAttribute('aria-modal', 'true');
+        document.body.classList.add('modal-open');
+        document.body.style.overflow = 'hidden';
+        this.showScrim();
+    }
+
     setSize(size) {
         const dialog = this.element.querySelector('.modal-dialog');
         dialog.classList.remove('modal-sm', 'modal-lg', 'modal-xl');
@@ -729,7 +795,14 @@ export default class extends Controller {
     }
 
     claimLayer() {
-        layers.open(LAYER, { element: this.element, onClose: this.onLayerClose });
+        // While taking the entry over, the layer it swaps (the Menu panel) may hand its opener over (handleMenuHandover)
+        this.claiming = true;
+
+        try {
+            layers.open(LAYER, { element: this.element, onClose: this.onLayerClose });
+        } finally {
+            this.claiming = false;
+        }
     }
 
     onLayerClose = ({ reason }) => {

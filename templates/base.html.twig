@@ -580,7 +580,8 @@
                             </div>
                         {% endif %}
 
-                        <a data-turbo="true" rel="nofollow" class="topbar-link" href="{{ path('feedback', {'url': app.request.uri}) }}" data-nav="topbar/links/feedback" {% if logged_user.profile is not null %}data-turbo-frame="modal-frame"{% endif %}>
+                        {#- Signed in: a Help sheet opener (help_opener_attrs(), its own scrim - released after a send, review F6) -#}
+                        <a data-turbo="true" class="topbar-link" data-nav="topbar/links/feedback" {% if logged_user.profile is not null %}href="{{ help_path() }}" {{ help_opener_attrs() }}{% else %}rel="nofollow" href="{{ path('feedback', {'url': app.request.uri}) }}"{% endif %}>
                             <i class="ci-mail"></i> <span class="topbar-feedback-label">{{ 'menu.feedback'|trans }}</span>
                         </a>
 

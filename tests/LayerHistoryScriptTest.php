@@ -186,6 +186,17 @@ final class LayerHistoryScriptTest extends TestCase
             self::assertSame(['prevented' => true, 'location' => [['replace', $url]], 'atClick' => ['closes' => [], 'isOpen' => true], 'closes' => ['menu:leave'], 'isOpen' => false], $facts[$name], $name);
         }
 
+        // Review Q4 (MENU + Help): restored from the back/forward cache, the page's released layer closes ('cache') -
+        // no history call, its entry was replaced; nothing on a pageshow that is not a restore or without a layer
+        self::assertSame([
+            'location' => [['replace', 'https://msp.test/logout']],
+            'afterHide' => ['menu:leave'],
+            'restored' => ['closes' => ['menu:leave', 'menu:cache'], 'isOpen' => false, 'historyCalls' => []],
+            'again' => ['menu:leave', 'menu:cache'],
+            'notRestored' => ['menu:leave'],
+            'noLayer' => [],
+        ], $this->case('bfcache restore after a non-Turbo exit'));
+
         // A download does not navigate; a modified click opens elsewhere: both left to the browser
         foreach (['download', 'ctrl click external'] as $name) {
             self::assertSame(['prevented' => false, 'location' => [], 'atClick' => ['closes' => [], 'isOpen' => true], 'closes' => [], 'isOpen' => true], $facts[$name], $name);

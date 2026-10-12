@@ -10,9 +10,13 @@ import {
     zeroResultQuery,
 } from '../navigation/nav_search.js';
 import { SEARCH_ZERO_EVENT } from '../nav_instrumentation.js';
+import { createNavSearchLists, listForQuery } from '../navigation/nav_search_lists.js';
+import { menuFragmentOf, menuPaths, revealInMenu } from '../navigation/menu_links.js';
 
-// One list per URL for the whole tab (both search fields, every Turbo visit): fetched on the first focus of a field
-const lists = new Map();
+// One list per URL for the whole tab (both search fields, every Turbo visit): fetched on the first focus of a field;
+// a failed load is asked for again by the next focus or keystroke, a list of another deploy is kept a minute only
+// (assets/navigation/nav_search_lists.js)
+const lists = createNavSearchLists({ fetchImpl: (url, options) => window.fetch(url, options) });
 
 // Zero-result reports of this page view (decision 39): reset by every page load
 let reported = new Set();
@@ -24,29 +28,8 @@ document.addEventListener('turbo:load', () => {
 const SETTLE_RETRY_MS = 300;
 const SETTLE_RETRIES = 20;
 
-function load(url) {
-    if (!lists.has(url)) {
-        const entry = { data: null, promise: null };
-
-        // No cookies: the list is the same public JSON for everybody (stateless firewall)
-        entry.promise = fetch(url, { credentials: 'omit', headers: { Accept: 'application/json' } })
-            .then((response) => (response.ok ? response.json() : null))
-            .then((data) => {
-                entry.data = data;
-
-                return data;
-            })
-            .catch(() => {
-                // Try again on the next focus
-                lists.delete(url);
-
-                return null;
-            });
-        lists.set(url, entry);
-    }
-
-    return lists.get(url).promise;
-}
+// The `nav_go` redirect (/{_locale}/go/{entryId}, R14): a page of the viewer's own the public list cannot name
+const NAV_GO = /\/go\/([a-z0-9_]+)$/;
 
 function privateEntries() {
     const element = document.getElementById('nav-search-private');
@@ -118,7 +101,14 @@ export default class extends Controller {
             return;
         }
 
-        load(this.urlValue).then(() => this.update());
+        // Only a list that arrived re-renders (review F2: a failed load waits for the next focus or keystroke)
+        lists.want(this.urlValue, this.handleListReady);
+    };
+
+    handleListReady = () => {
+        if (this.element.isConnected) {
+            this.update();
+        }
     };
 
     // `change` also fires when the field loses focus - a tap on a result: the rows must stay the same elements, or the
@@ -134,19 +124,15 @@ export default class extends Controller {
 
     update() {
         const query = this.inputTarget.value;
-        const entry = lists.get(this.urlValue);
+        const data = listForQuery(lists, this.urlValue, query, this.handleListReady);
 
-        if (!entry || !entry.data) {
-            if (query.trim() !== '') {
-                this.handleFocus();
-            }
-
+        if (!data) {
             this.render([], query);
 
             return;
         }
 
-        const index = prepareIndex(entry.data, privateEntries());
+        const index = prepareIndex(data, privateEntries());
         const results = search(index, query, { audiences: audiencesOf(document.body.dataset.viewerAudience) });
 
         this.render(results, query);
@@ -199,7 +185,7 @@ export default class extends Controller {
         const item = document.createElement('li');
         const link = document.createElement('a');
         link.className = 'mr nav-search-row';
-        link.href = entry.u;
+        link.href = this.hrefOf(entry);
         link.setAttribute('data-nav', `${this.navSurface}/search/${entry.id}`);
         link.setAttribute('data-nav-search-id', entry.id);
         link.setAttribute('data-press', '');
@@ -235,6 +221,25 @@ export default class extends Controller {
         return item;
     }
 
+    /**
+     * Where a result links to. A page of the viewer's own (`nav_go`, the list cannot name the viewer) links where the
+     * page's own Menu row does - already resolved for this viewer - so leaving the open panel for the page it was opened
+     * on is the same-page case of assets/layer_history.js, never [A, A] (review F13).
+     */
+    hrefOf(entry) {
+        const go = NAV_GO.exec(String(entry.u).split(/[?#]/)[0]);
+
+        if (go && go[1] === entry.id) {
+            const row = document.querySelector(`#site-menu #menu-row-${entry.id} > a[href]`);
+
+            if (row) {
+                return row.getAttribute('href');
+            }
+        }
+
+        return entry.u;
+    }
+
     /** Send feedback opens the Help sheet with the current page attached - exactly as the Menu's row does */
     helpLink(link) {
         const row = document.querySelector('#site-menu [data-nav$="/send_feedback"]');
@@ -264,29 +269,31 @@ export default class extends Controller {
 
         if (target.closest('[data-nav-search-more]')) {
             event.preventDefault();
+            const before = this.resultsTarget.querySelectorAll('a.nav-search-row').length;
             this.expanded = true;
             this.update();
+            // The button is gone with the re-render: focus the first row it brought (review F12)
+            const first = this.resultsTarget.querySelectorAll('a.nav-search-row')[before];
+
+            if (first) {
+                first.focus();
+            }
 
             return;
         }
 
-        const language = target.closest('[data-nav-search-language]');
-        const switcher = document.getElementById('nav-language');
+        // A link to a place inside the Menu (`menu#nav-language`): in the panel it is right there - open it instead of
+        // leaving. From the page's (bar) search, assets/navigation/menu_links.js opens the panel at it (review F11).
+        const link = target.closest('a[href]');
+        const nav = document.getElementById('site-menu');
+        const shell = document.getElementById('menu-layer');
+        const id = link && shell ? menuFragmentOf(link.getAttribute('href'), menuPaths(shell.getAttribute('data-menu-paths')), window.location.href) : null;
 
-        // In the Menu panel the language switch is right there: open it instead of leaving
-        if (language && switcher && this.surfaceValue === 'menu' && switcher.closest('.menu-layer')) {
+        if (id && nav && this.surfaceValue === 'menu' && nav.closest('.menu-layer') && revealInMenu(nav, id, { dryRun: true })) {
             event.preventDefault();
             this.inputTarget.value = '';
             this.inputTarget.dispatchEvent(new Event('input', { bubbles: true }));
-            switcher.open = true;
-
-            const summary = switcher.querySelector('summary');
-
-            if (summary) {
-                summary.focus({ preventScroll: true });
-            }
-
-            switcher.scrollIntoView({ block: 'center', behavior: 'instant' });
+            revealInMenu(nav, id);
         }
     };
 

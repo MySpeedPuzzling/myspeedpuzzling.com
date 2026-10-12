@@ -31,6 +31,9 @@ final class NavigationSearchScriptTest extends WebTestCase
     /** @var null|array{cases: array<string, array{ids: list<string>, tiers: list<int>, signIn: list<string>}>, rules: array<string, mixed>} */
     private static null|array $results = null;
 
+    /** @var list<string> the admin page's own <body data-viewer-audience> */
+    private static array $adminAudiences = [];
+
     /**
      * locale => [query, the expected first entry]; at least 8 per locale (MENU-03 Verify), signed in as a member who
      * organises events
@@ -54,6 +57,9 @@ final class NavigationSearchScriptTest extends WebTestCase
                 // An apostrophe never matters: "country’s" = "country's" = "countrys"
                 'country’s' => 'country_ranking',
                 'find players' => 'puzzlers',
+                // One Password result for everybody (review F4): its synonyms say "add" and "set"
+                'add a password' => 'change_password',
+                'set a password' => 'change_password',
             ],
             'cs' => [
                 'export' => 'your_data',
@@ -66,6 +72,7 @@ final class NavigationSearchScriptTest extends WebTestCase
                 'upravit profil' => 'settings',
                 'přání' => 'wishlist',
                 'stopky' => 'stopwatch',
+                'přidat heslo' => 'change_password',
             ],
             'de' => [
                 'export' => 'your_data',
@@ -79,6 +86,7 @@ final class NavigationSearchScriptTest extends WebTestCase
                 // Wunschliste before "Ideen & Feature-Vorschläge", whose synonyms say Wünsche
                 'Wunsch' => 'wishlist',
                 'stoppuhr' => 'stopwatch',
+                'passwort hinzufügen' => 'change_password',
             ],
             'es' => [
                 'exportar' => 'your_data',
@@ -91,6 +99,7 @@ final class NavigationSearchScriptTest extends WebTestCase
                 'editar perfil' => 'settings',
                 'deseos' => 'wishlist',
                 'cronómetro' => 'stopwatch',
+                'añadir una contraseña' => 'change_password',
             ],
             'fr' => [
                 'exporter' => 'your_data',
@@ -104,6 +113,7 @@ final class NavigationSearchScriptTest extends WebTestCase
                 'souhaits' => 'wishlist',
                 // An apostrophe never matters: "d’activité" finds "Calendrier d'activité"
                 'd’activité' => 'calendar',
+                'ajouter un mot de passe' => 'change_password',
             ],
             'ja' => [
                 'エクスポート' => 'your_data',
@@ -118,6 +128,7 @@ final class NavigationSearchScriptTest extends WebTestCase
                 // Katakana typed as hiragana or in half-width forms
                 'ぱすわーど' => 'change_password',
                 'ﾊﾟｽﾜｰﾄﾞ' => 'change_password',
+                'パスワードを追加' => 'change_password',
             ],
         ];
     }
@@ -198,8 +209,11 @@ final class NavigationSearchScriptTest extends WebTestCase
         // The guests' Hub link stays findable (R11), signed-in players have it as Home
         self::assertSame('hub_guest', $this->case('guest hub')['ids'][0]);
         self::assertNotContains('hub_guest', $this->case('member hub')['ids']);
-        // Top bar for guests (SRCH-01): a signed-in page offered as "Sign in to …"
-        self::assertSame(['change_password', 'set_password'], array_slice($this->case('guest password, sign in')['signIn'], 0, 2));
+        // Top bar for guests (SRCH-01): a signed-in page offered as "Sign in to …" - one Password result (review F4: no
+        // separate "Add a password" row, its words are change_password's synonyms)
+        $signIn = $this->case('guest password, sign in')['signIn'];
+        self::assertSame('change_password', $signIn[0] ?? null);
+        self::assertNotContains('set_password', $signIn);
     }
 
     public function testThePublicListHoldsNoModeratorOrAdminEntry(): void
@@ -217,14 +231,15 @@ final class NavigationSearchScriptTest extends WebTestCase
     }
 
     /**
-     * Moderator and admin entries reach only their pages (#nav-search-private) - and are found from there
+     * Moderator and admin entries reach only their pages (#nav-search-private) - and are found from there, with the
+     * audiences that page really renders (<body data-viewer-audience> holds no role audience - review F1)
      */
     public function testAnAdminFindsTheAdminEntriesOfTheirPage(): void
     {
         $results = $this->results();
 
-        self::assertSame('admin_vouchers', $results['cases']['admin vouchers']['ids'][0]);
-        self::assertSame('mod_time_verification', $results['cases']['admin time verification']['ids'][0]);
+        self::assertSame('admin_vouchers', $results['cases']['admin vouchers']['ids'][0] ?? null);
+        self::assertSame('mod_time_verification', $results['cases']['admin time verification']['ids'][0] ?? null);
         self::assertNotContains('admin_vouchers', $results['cases']['member vouchers']['ids']);
     }
 
@@ -270,6 +285,52 @@ final class NavigationSearchScriptTest extends WebTestCase
     }
 
     /**
+     * Review F2: nav-search.json that cannot be loaded (a 503 during a deploy, offline, a captive portal's HTML page) with
+     * a query typed before and after the answer: one fetch per focus or keystroke after a failure - never by itself -
+     * and update() runs once per keystroke (the old code looped forever on a non-2xx answer, and refetched in a loop
+     * after a network error)
+     */
+    public function testAListThatCannotBeLoadedNeverLoops(): void
+    {
+        $lists = $this->results()['rules']['lists'];
+        self::assertIsArray($lists);
+
+        foreach (['status503', 'networkError', 'notJson'] as $failure) {
+            self::assertSame([
+                'beforeAnswer' => ['fetches' => 1, 'updates' => 2],
+                'typed' => ['fetches' => 2, 'updates' => 4],
+                'idle' => ['fetches' => 2, 'updates' => 4],
+                'searched' => 0,
+                'kept' => false,
+            ], $lists[$failure], $failure);
+        }
+
+        // A list that arrives: fetched once, the field re-renders with it once, then searches it on every keystroke
+        self::assertSame(['fetches' => 1, 'updates' => 4, 'searched' => 3], $lists['loaded']);
+    }
+
+    /**
+     * Review F10: during a blue-green rollout the old deploy may answer the new deploy's ?v= with its own list - it is
+     * used, but kept only as long as its max-age (60 s), then the right list is asked for again; this deploy's own list
+     * stays for the whole tab
+     */
+    public function testAListOfAnotherDeployIsKeptBriefly(): void
+    {
+        $lists = $this->results()['rules']['lists'];
+        self::assertIsArray($lists);
+
+        self::assertSame([
+            'used' => true,
+            'beforeExpiry' => true,
+            'atExpiry' => false,
+            'fetches' => 2,
+            'refetchedVersion' => 'new',
+            'thisDeployKept' => true,
+        ], $lists['otherVersion']);
+        self::assertSame(['abc123', null, 'z'], $lists['askedVersion']);
+    }
+
+    /**
      * @return array{ids: list<string>, tiers: list<int>, signIn: list<string>}
      */
     private function case(string $name): array
@@ -303,6 +364,11 @@ final class NavigationSearchScriptTest extends WebTestCase
         $private = $crawler->filter('#site-menu > script#nav-search-private');
         self::assertCount(1, $private);
         $privateEntries = json_decode($private->text(), true, flags: JSON_THROW_ON_ERROR);
+        // The audiences the admin's page really renders: the browser filters by these, never by role audiences
+        $adminAudiences = preg_split('/\s+/', trim((string) $crawler->filter('body')->attr('data-viewer-audience')), flags: PREG_SPLIT_NO_EMPTY);
+        self::assertIsArray($adminAudiences);
+        self::assertContains('signed_in', $adminAudiences);
+        self::$adminAudiences = $adminAudiences;
 
         $lists = [];
         $cases = [];
@@ -330,8 +396,8 @@ final class NavigationSearchScriptTest extends WebTestCase
         $cases[] = ['name' => 'player player code', 'locale' => 'en', 'query' => 'player code', 'audiences' => self::PLAYER];
         $cases[] = ['name' => 'guest hub', 'locale' => 'en', 'query' => 'hub', 'audiences' => self::GUEST];
         $cases[] = ['name' => 'member hub', 'locale' => 'en', 'query' => 'hub', 'audiences' => self::MEMBER_ORGANISER];
-        $cases[] = ['name' => 'admin vouchers', 'locale' => 'en', 'query' => 'vouchers', 'audiences' => [...self::MEMBER_ORGANISER, 'moderator', 'time_verifier', 'admin'], 'withPrivate' => true];
-        $cases[] = ['name' => 'admin time verification', 'locale' => 'en', 'query' => 'time verification', 'audiences' => [...self::MEMBER_ORGANISER, 'moderator', 'time_verifier', 'admin'], 'withPrivate' => true];
+        $cases[] = ['name' => 'admin vouchers', 'locale' => 'en', 'query' => 'vouchers', 'audiences' => self::$adminAudiences, 'withPrivate' => true];
+        $cases[] = ['name' => 'admin time verification', 'locale' => 'en', 'query' => 'time verification', 'audiences' => self::$adminAudiences, 'withPrivate' => true];
         $cases[] = ['name' => 'member vouchers', 'locale' => 'en', 'query' => 'vouchers', 'audiences' => self::MEMBER_ORGANISER];
 
         $node = new ExecutableFinder()->find('node');

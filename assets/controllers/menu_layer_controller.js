@@ -1,7 +1,7 @@
 import { Controller } from '@hotwired/stimulus';
 import layers from '../layer_history.js';
 import { applyMenuOrder, DOCK, PHONE } from '../navigation/menu_order.js';
-import { listenForMenuLinks, menuPaths } from '../navigation/menu_links.js';
+import { listenForMenuLinks, menuFragmentOf, menuPaths, revealInMenu } from '../navigation/menu_links.js';
 import { MENU_OPEN_EVENT } from '../nav_instrumentation.js';
 
 // The layer's id in assets/layer_history.js
@@ -9,6 +9,13 @@ const LAYER = 'menu';
 
 // The way out: 200 ms (README §4.12); the timer closes it even when no animationend comes (reduced motion, hidden tab)
 const OUT_MS = 200;
+
+// Asks the page's (bar) search to close (global_search_controller.js): the panel is the one search surface while open
+const CLOSE_BAR_SEARCH_EVENT = 'global-search:close';
+
+// The panel hands its opener over when a modal takes its history entry (dynamic_modal_controller.js: focus goes back to
+// whatever opened the Menu when that modal closes - review F7)
+const MENU_HANDOVER_EVENT = 'menu-layer:handover';
 
 // Direct children of <body> that stay usable while the panel is open: the bottom bar (README §4.12), the toasts (a
 // live region) and the dynamic modal, which takes the layer over (decision 58 D-1) and is display: none until then
@@ -45,10 +52,11 @@ export default class extends Controller {
         this.inerted = [];
         this.closingTimer = null;
 
+        this.paths = menuPaths(this.element.getAttribute('data-menu-paths'));
         this.unlisten = listenForMenuLinks({
             document,
             window,
-            paths: menuPaths(this.element.getAttribute('data-menu-paths')),
+            paths: this.paths,
             open: (opener) => this.toggle(opener),
         });
 
@@ -106,6 +114,11 @@ export default class extends Controller {
         this.opener = opener;
         this.released = false;
 
+        // One search surface at a time: the page's search dropdown closes under the panel (review F11)
+        if (document.body.classList.contains('global-search-shown')) {
+            document.dispatchEvent(new CustomEvent(CLOSE_BAR_SEARCH_EVENT));
+        }
+
         layers.open(LAYER, { element: this.element, onClose: this.onLayerClose });
 
         this.bodyTarget.appendChild(nav);
@@ -118,6 +131,13 @@ export default class extends Controller {
         this.setInert(true);
         this.setExpanded(true);
         this.focusFirst();
+
+        // A link to a place inside the Menu (`menu#nav-language`, the Language result of a search): open it there
+        const fragment = opener && typeof opener.getAttribute === 'function' ? menuFragmentOf(opener.getAttribute('href'), this.paths, window.location.href) : null;
+
+        if (fragment) {
+            revealInMenu(nav, fragment);
+        }
 
         // The lazy counts, fresh on every open (assets/navigation/menu_counts.js, MENU-01)
         nav.dispatchEvent(new CustomEvent('menu-counts:refresh', { detail: { maxAge: 0 } }));
@@ -167,6 +187,12 @@ export default class extends Controller {
 
         this.setInert(false);
         this.setExpanded(false);
+
+        // A modal took the entry over (Send feedback → the Help sheet): when it closes, focus goes back to whatever
+        // opened the Menu - the row it was opened from is back in the hidden slot by then (review F7)
+        if (reason === 'swap') {
+            this.element.dispatchEvent(new CustomEvent(MENU_HANDOVER_EVENT, { bubbles: true, detail: { opener: opener && opener.isConnected ? opener : null } }));
+        }
 
         if (reason === 'back' || reason === 'close') {
             this.focusOpener(opener);

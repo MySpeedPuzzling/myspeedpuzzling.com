@@ -202,7 +202,9 @@ export function resumedAfterRender(states, stopwatchId, renderedEpoch, offsetMs)
  * @returns {number}
  */
 export function clockOffsetMs(renderedEpoch, receipt, connectedAtMs) {
-    const sincePageRender = receipt === null ? NaN : receipt.renderedAt - renderedEpoch;
+    // The page's msp-rendered-at is whole seconds, the read has milliseconds: the window compares whole seconds
+    // (review F9 - a read in the meta's last milliseconds stays this page's); the offset keeps the fraction
+    const sincePageRender = receipt === null ? NaN : receipt.renderedAt - Math.floor(renderedEpoch);
     const ofThisPage = sincePageRender >= -1 && sincePageRender <= RECEIPT_AFTER_RENDER_SECONDS;
 
     return renderedEpoch * 1000 - (ofThisPage ? receipt.at : connectedAtMs);

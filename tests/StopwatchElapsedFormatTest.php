@@ -246,6 +246,31 @@ final class StopwatchElapsedFormatTest extends TestCase
         self::assertSame(1600, $results[0]['offsetMs']);
     }
 
+    /**
+     * Review F9: the read has milliseconds (`U.v`), msp-rendered-at whole seconds - a read in the next second, 50 ms
+     * after the meta's second ended, is still this page's: the receipt is used (the window compares whole seconds), and
+     * the offset keeps the read's fraction
+     */
+    public function testAFractionalReadStaysInTheReceiptWindow(): void
+    {
+        $rendered = 1_760_000_001.05;
+        $renderedAt = 1_760_000_000;
+        // This device's clock runs 2 s behind the server; the HTML arrived 400 ms after the read
+        $arrived = 1_760_000_001_050 - 2000 + 400;
+        $connected = $arrived + 3000;
+
+        $results = $this->runInNode([
+            ['kind' => 'offset', 'rendered' => $rendered, 'receipt' => ['renderedAt' => $renderedAt, 'at' => $arrived], 'connectedAt' => $connected, 'lapStarted' => 1_760_000_001.05 - 600, 'closedSeconds' => 60],
+            // Two whole seconds before the read: another page's receipt - measured at connect, as before
+            ['kind' => 'offset', 'rendered' => $rendered, 'receipt' => ['renderedAt' => $renderedAt - 1, 'at' => $arrived], 'connectedAt' => $connected, 'lapStarted' => 1_760_000_001.05 - 600, 'closedSeconds' => 60],
+        ]);
+
+        self::assertSame(1600, $results[0]['offsetMs']);
+        self::assertSame(663, $results[0]['secondsAtConnect']);
+        self::assertSame(-1400, $results[1]['offsetMs']);
+        self::assertSame(660, $results[1]['secondsAtConnect']);
+    }
+
     public function testAFullPageLoadsReceiptIsItsFirstByte(): void
     {
         $origin = 1_760_000_000_000;

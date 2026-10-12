@@ -50,6 +50,26 @@ final class ChangeAccountCredentialsControllerTest extends WebTestCase
         self::assertResponseStatusCodeSame(302);
     }
 
+    /**
+     * A social-only account (no password) has no current password to type: the change form could never succeed, so it
+     * is sent to set one instead - on GET and on POST (navigation review F4: the page search's "Password" result)
+     */
+    public function testASocialOnlyAccountIsSentToSetAPassword(): void
+    {
+        $browser = self::createClient();
+        $this->seedSignedInAccount($browser, withPassword: false);
+
+        $browser->request('GET', '/en/edit-profile/change-password');
+        self::assertResponseRedirects('/account/set-password');
+
+        $browser->request('POST', '/en/edit-profile/change-password', ['change_password_form' => ['currentPassword' => 'anything', 'newPassword' => 'a-brand-new-passphrase']]);
+        self::assertResponseRedirects('/account/set-password');
+
+        // The set-password door opens for it (and only sends accounts WITH a password back here)
+        $browser->request('GET', '/account/set-password');
+        self::assertResponseIsSuccessful();
+    }
+
     public function testCorrectCurrentPasswordChangesThePassword(): void
     {
         $browser = self::createClient();
@@ -158,13 +178,17 @@ final class ChangeAccountCredentialsControllerTest extends WebTestCase
         self::assertCount(0, self::getMailerMessages());
     }
 
-    private function seedSignedInAccount(KernelBrowser $browser): UserAccount
+    private function seedSignedInAccount(KernelBrowser $browser, bool $withPassword = true): UserAccount
     {
         $email = sprintf('credentials+%s@example.com', bin2hex(random_bytes(4)));
         $userId = 'msp|' . bin2hex(random_bytes(4));
 
         $userAccount = new UserAccount(Uuid::uuid7(), $userId, $email, new DateTimeImmutable());
-        $userAccount->changePassword(password_hash(self::CURRENT_PASSWORD, PASSWORD_ARGON2ID));
+
+        if ($withPassword) {
+            $userAccount->changePassword(password_hash(self::CURRENT_PASSWORD, PASSWORD_ARGON2ID));
+        }
+
         $userAccount->markEmailVerified(new DateTimeImmutable());
 
         $entityManager = $browser->getContainer()->get(EntityManagerInterface::class);

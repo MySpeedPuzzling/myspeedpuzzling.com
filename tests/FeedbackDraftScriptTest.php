@@ -10,8 +10,9 @@ use Symfony\Component\Process\Process;
 
 /**
  * The Help sheet's feedback draft (docs/features/navigation README §4.5, HELP-01b): assets/feedback_draft.js run under
- * node (tests/feedback-draft-harness.mjs). Typed text is kept in sessionStorage `msp:feedback-draft`, comes back into an
- * empty field only, an empty field keeps nothing, the sent state clears it, and blocked storage never throws.
+ * node (tests/feedback-draft-harness.mjs). Typed text is kept in sessionStorage `msp:feedback-draft` as {player, text},
+ * comes back into an empty field only and only for the same player, an empty field keeps nothing, the sent state clears
+ * it, and blocked storage never throws.
  */
 final class FeedbackDraftScriptTest extends TestCase
 {
@@ -23,7 +24,29 @@ final class FeedbackDraftScriptTest extends TestCase
         $results = self::results();
 
         self::assertSame('msp:feedback-draft', $results['key']);
-        self::assertSame(['stored' => 'The chart is upside down', 'read' => 'The chart is upside down'], $results['saved']);
+        self::assertSame([
+            'stored' => ['player' => '018d0000-0000-0000-0000-0000000000a1', 'text' => 'The chart is upside down'],
+            'read' => 'The chart is upside down',
+        ], $results['saved']);
+    }
+
+    /**
+     * Review F8: logging out keeps the tab and its sessionStorage - on a shared device the next player who signs in and
+     * opens Help never gets the previous player's unsent text
+     */
+    public function testTheDraftComesBackOnlyForTheSamePlayer(): void
+    {
+        self::assertSame([
+            'restoredForB' => false,
+            'valueForB' => '',
+            'restoredForA' => true,
+            'valueForA' => 'Unsent words of A',
+            'readByNobody' => '',
+            'guestKept' => false,
+            'legacy' => '',
+            'broken' => '',
+            'afterB' => ['a' => '', 'b' => 'Words of B'],
+        ], self::results()['perPlayer']);
     }
 
     public function testAnEmptyFieldKeepsNothing(): void

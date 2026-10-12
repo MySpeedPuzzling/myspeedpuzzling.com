@@ -8,9 +8,10 @@ const RELEASE_EVENT = 'modal:release';
 /**
  * The Help sheet (docs/features/navigation README §4.5, implementation plan §7, HELP-01b) - on the content root of
  * help/_frame.html.twig, next to bottom-sheet (the swipe):
- * - The feedback draft: kept in sessionStorage (assets/feedback_draft.js) while it is typed, put back into the empty
- *   field when the sheet opens again - also after a swipe that started in the field - and dropped when the sent state
- *   connects (`data-help-sheet-sent`: FeedbackController answered the send into this frame).
+ * - The feedback draft: kept in sessionStorage (assets/feedback_draft.js) while it is typed - per player
+ *   (`data-help-sheet-player-value`, review F8) -, put back into the empty field when the sheet opens again for the
+ *   same player - also after a swipe that started in the field - and dropped when the sent state connects
+ *   (`data-help-sheet-sent`: FeedbackController answered the send into this frame).
  * - The sent state releases the modal (`modal:release`): the confirmation stays in the sheet while the page behind is
  *   usable again (no scrim, no scroll lock - HELP-05). "Send another" brings the empty form back in place.
  * - Focus goes to the field when the sheet is shown to a signed-in player (iOS may still want a second tap: a field
@@ -19,6 +20,7 @@ const RELEASE_EVENT = 'modal:release';
  */
 export default class extends Controller {
     static targets = ['message', 'sent', 'box'];
+    static values = { player: String };
 
     connect() {
         this.host = this.element.closest('.modal');
@@ -29,7 +31,7 @@ export default class extends Controller {
             clearDraft(this.storage);
             this.element.dispatchEvent(new CustomEvent(RELEASE_EVENT, { bubbles: true }));
         } else if (this.hasMessageTarget) {
-            restoreDraft(this.messageTarget, this.storage);
+            restoreDraft(this.messageTarget, this.storage, this.playerValue);
         }
 
         this.element.addEventListener('input', this.onInput);
@@ -48,7 +50,7 @@ export default class extends Controller {
 
     onInput = (event) => {
         if (this.hasMessageTarget && event.target === this.messageTarget) {
-            saveDraft(this.storage, this.messageTarget.value);
+            saveDraft(this.storage, this.messageTarget.value, this.playerValue);
         }
     };
 

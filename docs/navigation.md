@@ -4,7 +4,7 @@
 
 Every destination linked by a navigation surface (bars, rail, the Menu, the account menu, the Help sheet, the footer, the community landing, the chips) is a Menu row, a search-only entry or "not in Menu" with a reason - the placement rulebook of the navigation README (§7). Labels are the English ones; moderator and admin rows stay English in every locale.
 
-132 entries: 75 phone-panel rows, 76 docked-column rows, 32 search-only, 21 not in the Menu.
+131 entries: 75 phone-panel rows, 76 docked-column rows, 31 search-only, 21 not in the Menu.
 
 ## Phone panel (☰ Menu)
 
@@ -284,7 +284,6 @@ Found by the Menu search ("Pages & settings"), opened under their parent row.
 |---|---|---|---|---|---|---|
 | `change_password` | Password | `change_account_password` | `settings` | signed_in | Q6 | A setting on Settings: found by search (README §7 Q6) |
 | `change_email` | Email address | `change_account_email` | `settings` | signed_in | Q6 | A setting on Settings: found by search (README §7 Q6) |
-| `set_password` | Add a password | `account_set_password` | `settings` | signed_in | Q6 | A setting on Settings: found by search (README §7 Q6) |
 | `sign_in_methods` | Connected sign-in methods | `edit_profile#sign-in-methods` | `settings` | signed_in | Q6 | A setting on Settings: found by search (README §7 Q6) |
 | `recent_sign_ins` | Recent account activity | `account_recent_activity` | `settings` | signed_in | Q6 | A setting on Settings: found by search (README §7 Q6) |
 | `email_settings` | Messaging & Notifications | `edit_profile#emails` | `settings` | signed_in | Q6 | A setting on Settings: found by search (README §7 Q6) |

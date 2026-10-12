@@ -23,7 +23,8 @@ import { isNativeApp } from './platform.js';
  *     (data-turbo-action="replace" set in turbo:click / turbo:submit-start, put back at turbo:visit / turbo:load / the
  *     next submit - never at turbo:submit-end, Turbo 8.0.23 reads a form's action after it); data-turbo="false" and
  *     other-origin links navigate with location.replace(). The layer is released at turbo:visit (onClose
- *     {reason: 'leave'}; its UI may stay until the new page renders). History reads [A, B], never [A, A', B].
+ *     {reason: 'leave'}; its UI may stay until the new page renders). History reads [A, B], never [A, A', B]. A page
+ *     left that way and restored from the back/forward cache closes the released layer at pageshow ({reason: 'cache'}).
  * (f) Inside the Hotwire Native app no entry is pushed and a layer closes without history.back().
  *
  * Page owners (Results, PROF-05c): pushPageState / replacePageState write Turbo-shaped entries {turbo, mspPage: owner}.
@@ -229,6 +230,9 @@ export function createLayerHistory(env) {
     // The layer a non-Turbo navigation leaves from: released when the page really goes (pagehide) - a download never
     // commits, so its layer stays open with its entry (review F6)
     let leavingByBrowser = null;
+    // Layers released that way whose UI went into the back/forward cache with the page: closed when it comes back
+    // (pageshow persisted, MENU+Help review Q4)
+    let leftByBrowser = [];
     // The Turbo identity of the entry the last layer entry was pushed on ({id, index}): the layer's entry is one above
     // it - a page owner may have pushed entries since Turbo was first paused (review F9)
     let layerBase = null;
@@ -982,10 +986,28 @@ export function createLayerHistory(env) {
 
     function onPageHide() {
         if (leavingByBrowser !== null && top === leavingByBrowser) {
+            leftByBrowser.push(leavingByBrowser);
             releaseTop('leave');
         }
 
         leavingByBrowser = null;
+    }
+
+    /**
+     * Back to a page restored from the back/forward cache after a non-Turbo exit from a layer (Log out, an external
+     * link: location.replace() took its entry): the layer's UI is still on that document, released - it closes now
+     * ('cache'), with no history call, as its entry is gone (review Q4)
+     */
+    function onPageShow(event) {
+        const left = leftByBrowser;
+        leftByBrowser = [];
+
+        if (!event || event.persisted !== true) {
+            return;
+        }
+
+        restoreMarkers();
+        left.forEach((layer) => callOnClose(layer, 'cache'));
     }
 
     // ---- Esc ------------------------------------------------------------------------------------------------------
@@ -1138,6 +1160,7 @@ export function createLayerHistory(env) {
             document.addEventListener('click', onDocumentClick);
             document.addEventListener('keydown', onKeydown);
             window.addEventListener('pagehide', onPageHide);
+            window.addEventListener('pageshow', onPageShow);
             document.addEventListener('submit', onSubmit);
 
             return api;

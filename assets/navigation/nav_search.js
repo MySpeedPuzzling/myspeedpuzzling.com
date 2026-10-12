@@ -61,11 +61,13 @@ export function audiencesOf(attribute) {
 
 /**
  * The list ready to search: the public entries plus the page's private ones (#nav-search-private, moderators and
- * admins), each with its keys split into lines (the label first) and words, in the Menu's order.
+ * admins), each with its keys split into lines (the label first) and words, in the Menu's order. The private entries
+ * are marked `own`: the server rendered them for this viewer only, so the audience filter never drops them (their
+ * role audiences are not page audiences, NavigationViewer::pageAudience() - review F1).
  */
 export function prepareIndex(data, privateEntries = []) {
-    const list = data && Array.isArray(data.entries) ? data.entries : [];
-    const extra = Array.isArray(privateEntries) ? privateEntries : [];
+    const list = data && Array.isArray(data.entries) ? data.entries.map((entry) => (entry ? { ...entry, own: false } : entry)) : [];
+    const extra = Array.isArray(privateEntries) ? privateEntries.map((entry) => (entry ? { ...entry, own: true } : entry)) : [];
     const entries = [...list, ...extra]
         .filter((entry) => entry && typeof entry.id === 'string' && typeof entry.u === 'string')
         .map((entry, index) => {
@@ -128,6 +130,11 @@ export function tierOf(entry, folded, queryWords) {
     return null;
 }
 
+/** May this viewer open the entry? An entry of the page's own (#nav-search-private) always; else by its audience */
+export function isVisibleTo(entry, audiences) {
+    return entry.own === true || audiences.has(entry.a);
+}
+
 /**
  * The entries matching the query that the viewer may open, best first: [{entry, tier, signIn}]. With `guestSignIn`
  * (the top bar, SRCH-01) a guest also gets the pages of any signed-in player, marked signIn ("Sign in to …").
@@ -144,7 +151,7 @@ export function search(index, query, { audiences = new Set(GUEST_AUDIENCES), gue
     const results = [];
 
     for (const entry of index.entries) {
-        const visible = audiences.has(entry.a);
+        const visible = isVisibleTo(entry, audiences);
         const signIn = !visible && signInAllowed && entry.a === SIGN_IN_AUDIENCE;
 
         if (!visible && !signIn) {

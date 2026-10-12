@@ -673,6 +673,33 @@ const cases = {
         return result;
     },
 
+    // review Q4 (MENU + Help): a page left from a layer by a non-Turbo link and restored from the back/forward cache
+    // closes that released layer ('cache') without any history call; a pageshow that is not a restore, a second one,
+    // or a page left without a layer does nothing
+    'bfcache restore after a non-Turbo exit': () => {
+        const env = page();
+        env.layer('menu');
+        click(env, env.$('no-turbo'));
+        env.window.dispatch('pagehide', { persisted: true });
+        const afterHide = [...env.closes];
+        const historyCalls = env.history.calls.length;
+        env.window.dispatch('pageshow', { persisted: true });
+        const restored = { closes: [...env.closes], isOpen: env.layers.isOpen(), historyCalls: env.history.calls.slice(historyCalls) };
+        env.window.dispatch('pageshow', { persisted: true });
+
+        const fresh = page();
+        fresh.layer('menu');
+        click(fresh, fresh.$('no-turbo'));
+        fresh.window.dispatch('pagehide', { persisted: false });
+        fresh.window.dispatch('pageshow', { persisted: false });
+
+        const none = page();
+        none.window.dispatch('pagehide', { persisted: true });
+        none.window.dispatch('pageshow', { persisted: true });
+
+        return { location: env.location.calls, afterHide, restored, again: env.closes, notRestored: fresh.closes, noLayer: none.closes };
+    },
+
     // review F6: a data-turbo="false" GET form from a layer replaces the layer's entry (released at pagehide); a POST
     // one is left to the browser (open); without a layer nothing is touched
     'non-Turbo forms': () => {

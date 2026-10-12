@@ -2,9 +2,26 @@
 // hands over on stdin, and prints the results as JSON. Elements are plain objects with just what the module reads.
 
 import { readFileSync } from 'node:fs';
-import { canStartPull, PullGesture } from '../assets/pull_to_refresh.js';
+import { createRequire } from 'node:module';
+import { canStartPull, overlayOpen, PullGesture } from '../assets/pull_to_refresh.js';
 
 const cases = JSON.parse(readFileSync(0, 'utf8'));
+
+// {overlay: [{body: 'class names', html, target: 'selector'}]}: overlayOpen() on a real DOM (jsdom, real selectors)
+if (!Array.isArray(cases)) {
+    const require = createRequire(import.meta.url);
+    const { JSDOM } = require('jsdom');
+
+    process.stdout.write(JSON.stringify((cases.overlay || []).map((testCase) => {
+        const { document } = new JSDOM(`<!doctype html><html><body class="${testCase.body || ''}">${testCase.html}</body></html>`).window;
+
+        return overlayOpen(document.querySelector(testCase.target), {
+            hasBodyClass: (name) => document.body.classList.contains(name),
+            matches: (selector) => document.querySelector(selector) !== null,
+        });
+    })));
+    process.exit(0);
+}
 
 /** The touched element first, its ancestors after it, <body> and <html> appended */
 function elementChain(path) {

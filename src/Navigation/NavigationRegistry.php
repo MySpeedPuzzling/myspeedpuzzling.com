@@ -1253,9 +1253,10 @@ final readonly class NavigationRegistry
         }
 
         return [
+            // One result for everybody: an account without a password is sent on to account_set_password, and "Add a
+            // password" / "Set a password" are this entry's synonyms (review F4)
             $this->searchEntry('change_password', RouteTarget::route('change_account_password'), 'edit_profile.change_password', 'bi-key', 'settings', NavPlace::Profile, RulebookQuestion::Q6, $settings),
             $this->searchEntry('change_email', RouteTarget::route('change_account_email'), 'edit_profile.change_email', 'bi-envelope-at', 'settings', NavPlace::Profile, RulebookQuestion::Q6, $settings),
-            $this->searchEntry('set_password', RouteTarget::route('account_set_password'), 'edit_profile.social.set_password_button', 'bi-key', 'settings', NavPlace::Profile, RulebookQuestion::Q6, $settings),
             $this->searchEntry('sign_in_methods', RouteTarget::anchor('edit_profile', 'sign-in-methods'), 'edit_profile.social.title', 'bi-shield-check', 'settings', NavPlace::Profile, RulebookQuestion::Q6, $settings),
             $this->searchEntry('recent_sign_ins', RouteTarget::route('account_recent_activity'), 'account_activity.title', 'bi-clock-history', 'settings', NavPlace::Profile, RulebookQuestion::Q6, $settings),
             $this->searchEntry('email_settings', RouteTarget::anchor('edit_profile', 'emails'), 'edit_profile.messaging_notifications', 'bi-envelope', 'settings', NavPlace::Profile, RulebookQuestion::Q6, $settings),

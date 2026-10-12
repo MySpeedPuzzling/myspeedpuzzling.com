@@ -63,6 +63,63 @@ export function isMenuHref(href, paths, base) {
     return paths.includes(decoded(url.pathname));
 }
 
+/**
+ * The id a link to the Menu names with its fragment (`/en/menu#nav-language`: "nav-language"), or null - for a link to
+ * any other page, or one without a fragment
+ */
+export function menuFragmentOf(href, paths, base) {
+    if (!isMenuHref(href, paths, base)) {
+        return null;
+    }
+
+    let id;
+
+    try {
+        id = decodeURIComponent(new URL(href, base).hash.slice(1));
+    } catch (e) {
+        return null;
+    }
+
+    return id !== '' ? id : null;
+}
+
+/**
+ * Shows the place `id` names inside the Menu `nav` (review F11): opens the <details> it is or sits in (the language
+ * switch), focuses its summary (or its link) and scrolls it into view. False - nothing done - when the id is not an
+ * element of the Menu; `dryRun` only answers that.
+ */
+export function revealInMenu(nav, id, { dryRun = false } = {}) {
+    if (!nav || !id || typeof nav.querySelector !== 'function') {
+        return false;
+    }
+
+    const element = nav.ownerDocument ? nav.ownerDocument.getElementById(id) : null;
+
+    if (!element || element === nav || !nav.contains(element)) {
+        return false;
+    }
+
+    if (dryRun) {
+        return true;
+    }
+
+    const details = element.tagName === 'DETAILS' ? element : element.closest('details');
+
+    if (details && nav.contains(details)) {
+        details.open = true;
+    }
+
+    const focusable = details && nav.contains(details) ? details.querySelector('summary') : element.querySelector('a[href], button, summary');
+
+    if (focusable) {
+        focusable.focus({ preventScroll: true });
+    }
+
+    (details && nav.contains(details) ? details : element).scrollIntoView({ block: 'center', behavior: 'instant' });
+
+    return true;
+}
+
 /** The element a click opens the Menu from (a link to `menu` or the ☰), or null */
 export function menuOpenerOf(target, paths, base) {
     const element = target && typeof target.closest === 'function' ? target.closest(OPENER_SELECTOR) : null;

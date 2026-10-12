@@ -1,12 +1,10 @@
 import { Controller } from '@hotwired/stimulus';
-import { canStartPull, PullGesture } from '../pull_to_refresh.js';
+import { canStartPull, overlayOpen, PullGesture } from '../pull_to_refresh.js';
 
 const STALE_THRESHOLD_MS = 15 * 60 * 1000; // 15 minutes
 const PULL_THRESHOLD = 70; // px to trigger refresh
 const PULL_RESISTANCE = 2.8; // damping factor — increases resistance as you pull further
 const INDICATOR_SIZE = 36; // px — diameter of the circular indicator
-// Layers with their own scrolling over the page: while one is open, a finger moving down scrolls it, never the page
-const OVERLAY_SELECTOR = '.modal.show, .offcanvas.show, .offcanvas.showing, dialog[open]';
 
 export default class extends Controller {
     connect() {
@@ -195,17 +193,17 @@ export default class extends Controller {
 
         this._gesture.start(touch.clientX, touch.clientY, canStartPull(event.target, {
             scrollY: window.scrollY,
-            overlayOpen: this._overlayOpen(),
+            overlayOpen: this._overlayOpen(event.target),
             styleOf: (element) => window.getComputedStyle(element),
         }), event.touches.length);
     }
 
-    _overlayOpen() {
-        const body = document.body;
-
-        return body.classList.contains('modal-open')
-            || body.classList.contains('global-search-shown')
-            || document.querySelector(OVERLAY_SELECTOR) !== null;
+    // A modal, sheet, the Menu panel or the site search over the page (pull_to_refresh.js overlayOpen())
+    _overlayOpen(target) {
+        return overlayOpen(target, {
+            hasBodyClass: (name) => document.body.classList.contains(name),
+            matches: (selector) => document.querySelector(selector) !== null,
+        });
     }
 
     _handleTouchMove(event) {

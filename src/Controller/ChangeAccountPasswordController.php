@@ -24,7 +24,10 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * Change password (issue #147) - the successor to the #161 card, which asked
- * Auth0 to email a reset link.
+ * Auth0 to email a reset link. A social-only account (no password yet) has no
+ * current password to prove: it is sent to the set-password door instead - the
+ * mirror of AccountSetPasswordController's own guard, so the page search's one
+ * "Password" result leads every viewer to the right form (navigation review F4).
  */
 #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
 final class ChangeAccountPasswordController extends AbstractController
@@ -50,6 +53,10 @@ final class ChangeAccountPasswordController extends AbstractController
     )]
     public function __invoke(Request $request, #[CurrentUser] UserAccount $user): Response
     {
+        if ($user->password === null) {
+            return $this->redirectToRoute('account_set_password');
+        }
+
         $data = new ChangePasswordFormData();
         $form = $this->createForm(ChangePasswordFormType::class, $data);
         $form->handleRequest($request);

@@ -43,6 +43,42 @@ final class PullToRefreshGestureTest extends TestCase
         yield 'inside a scroll box still at its top' => [['path' => [['tag' => 'LI'], ['scrollTop' => 0, 'overflowX' => 'hidden']]], true];
     }
 
+    /**
+     * What counts as a layer over the page (pull_to_refresh.js overlayOpen(), on a real DOM): a shown modal, the Menu
+     * panel, the site search - but not the released Help sheet (review Q1, HELP-05: the page behind it is usable again,
+     * so the page's pull-to-refresh is armed), except for a touch on the sheet itself
+     */
+    public function testAReleasedSheetLeavesThePageArmed(): void
+    {
+        $page = '<main><p id="page">Page</p></main>';
+        $sheet = static fn (string $classes): string => '<div class="' . $classes . '"><div class="modal-dialog"><p id="sheet">Thanks</p></div></div>';
+        $cases = [
+            'plain page' => [['html' => $page, 'target' => '#page'], false],
+            'a shown modal' => [['html' => $sheet('modal show') . $page, 'target' => '#page'], true],
+            'a modal still on body.modal-open' => [['body' => 'modal-open', 'html' => $page, 'target' => '#page'], true],
+            'the released sheet, a touch on the page' => [['html' => $sheet('modal show is-released') . $page, 'target' => '#page'], false],
+            'the released sheet, a touch on the sheet' => [['html' => $sheet('modal show is-released') . $page, 'target' => '#sheet'], true],
+            'the Menu panel (dialog[open])' => [['html' => '<dialog open><p>Menu</p></dialog>' . $page, 'target' => '#page'], true],
+            'the site search' => [['body' => 'global-search-shown', 'html' => $page, 'target' => '#page'], true],
+            'a closed modal' => [['html' => $sheet('modal') . $page, 'target' => '#page'], false],
+        ];
+
+        $node = new ExecutableFinder()->find('node');
+        self::assertIsString($node, 'node is required to execute the script - it is part of the base image');
+
+        $process = new Process([$node, __DIR__ . '/pull-to-refresh-harness.mjs']);
+        $process->setInput(json_encode(['overlay' => array_column($cases, 0)], JSON_THROW_ON_ERROR));
+        $process->mustRun();
+
+        $results = json_decode($process->getOutput(), true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($results);
+
+        self::assertSame(
+            array_combine(array_keys($cases), array_column($cases, 1)),
+            array_combine(array_keys($cases), $results),
+        );
+    }
+
     public function testAClearlyDownwardMoveIsAPull(): void
     {
         $result = $this->gesture(['moves' => [[0, 3], [1, 9], [2, 40], [2, 120]]]);

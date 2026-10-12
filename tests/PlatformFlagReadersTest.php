@@ -27,6 +27,8 @@ final class PlatformFlagReadersTest extends TestCase
     public const array NATIVE_AWARE_MODULES = [
         'assets/app.js',
         'assets/controllers/barcode_scanner_controller.js',
+        // GEST-01 (f): no history entry inside the app
+        'assets/layer_history.js',
     ];
 
     private const string PLATFORM_MODULE = 'assets/platform.js';

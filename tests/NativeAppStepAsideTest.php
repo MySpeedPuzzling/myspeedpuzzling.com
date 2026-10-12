@@ -30,6 +30,11 @@ final class NativeAppStepAsideTest extends TestCase
             ['isNativeApp' => true, 'nativePlatform' => 'android', 'os' => 'android'],
             ['isNativeApp' => false, 'nativePlatform' => null, 'os' => 'android'],
         ],
+        // GEST-01 (f): inside the app no entry is pushed and a layer closes without history.back()
+        'assets/layer_history.js' => [
+            ['open' => 'none', 'openOverAnotherLayer' => 'none', 'close' => 'direct'],
+            ['open' => 'push', 'openOverAnotherLayer' => 'swap', 'close' => 'back'],
+        ],
     ];
 
     /** @var null|array<string, Row> */

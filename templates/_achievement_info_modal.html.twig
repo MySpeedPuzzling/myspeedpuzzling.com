@@ -1,7 +1,8 @@
 {#
     The achievement detail sheet (AchievementInfoController, docs/features/xp-levels/ux-polish/design-spec.md §2 + §8.3):
     the medal (200 px, turns over to its back), the facts line, the five tiers as a list, the two actions, a footnote.
-    A bottom sheet on phones (achievement_sheet_controller.js + _achievement-medal.scss), the centred modal on desktop.
+    A bottom sheet on phones (achievement_sheet_controller.js + _achievement-medal.scss), the centred modal on desktop;
+    Back closes it (data-modal-history: the dynamic modal's history entry through assets/layer_history.js, GEST-01 (e)).
     The medal and the tier rows are driven by holo_medal_controller.js (lazy): a row shows its tier on the medal, the
     medal turns over, and Platinum/Diamond get their foil (assets/holo_medal/).
 
@@ -17,7 +18,7 @@
 {% set shown_holo = shown_medal is not null ? badge_holo(type, shown_tier) : null %}
 {% set record = personal and tiered and show_record ? group.progressToNext : null %}
 <turbo-frame id="modal-frame">
-    <div class="achievement-sheet" data-modal-size="" data-modal-scrollable data-controller="achievement-sheet">
+    <div class="achievement-sheet" data-modal-size="" data-modal-scrollable data-modal-history data-controller="achievement-sheet">
         <div class="achievement-sheet-top" data-achievement-sheet-target="handle">
             <span class="achievement-sheet-grab" aria-hidden="true"></span>
             <div class="modal-header">

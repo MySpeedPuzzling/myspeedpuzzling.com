@@ -1,5 +1,12 @@
 import { Controller } from '@hotwired/stimulus';
 import { Modal } from 'bootstrap';
+import layers from '../layer_history.js';
+
+// The modal's id in assets/layer_history.js
+const LAYER = 'modal';
+
+// Turbo's own test of an HTML response (FetchResponse#isHTML)
+const HTML_CONTENT_TYPE = /^(?:text\/([^\s;,]+\b)?html|application\/xhtml\+xml)\b/;
 
 // A response faster than this opens the modal straight with its content; a slower one shows a spinner first
 const LOADING_DELAY_MS = 150;
@@ -45,11 +52,13 @@ const TITLE_ID = 'dynamic-modal-title';
  * - data-modal-scrollable: header (and footer) stay pinned, only the body scrolls (modal-dialog-scrollable)
  * - data-modal-sheet: on phones a near full screen sheet (a strip of the page stays visible above it)
  *
- * Back button / back gesture (data-modal-history on the same element): the open modal gets a history entry
- * of its own, so "back" closes it instead of leaving the page. Turbo's history is paused meanwhile - Turbo
- * answers every pop with a restoration visit, which app.js turns into a full page load. Closing the modal
- * otherwise takes the entry back out; a Turbo visit from inside the modal resumes Turbo's history first,
- * which turns the entry into a normal one of the page.
+ * Back button / back gesture (data-modal-history on the same element): the open modal is a layer of
+ * assets/layer_history.js (GEST-01) - one history entry of its own, taken when the content arrives, so Back closes it
+ * instead of leaving the page. ×, Escape, the backdrop, a `modal:close`, a `bottom-sheet:dismiss` from the content
+ * and an emptied frame then close it through history.back() (the modal hides in the helper's popstate); a page visit
+ * from inside it replaces its entry (the helper marks it), so history never reads [page, page, next page].
+ * A modal opened while another layer (the Menu) holds the entry takes that entry over (decision 58 D-1), with or
+ * without data-modal-history. Without an entry the modal closes straight through Bootstrap, as before.
  */
 export default class extends Controller {
     static targets = ['frame', 'loading', 'error'];
@@ -71,10 +80,6 @@ export default class extends Controller {
     // so a request made meanwhile is queued and replayed when the transition ends
     transition = null;
     queued = null;
-
-    // The history entry of the open modal (data-modal-history)
-    historyEntry = false;
-    leavingHistoryEntry = false;
 
     connect() {
         // Disable focus trap to allow interaction with tom-select dropdowns
@@ -121,8 +126,8 @@ export default class extends Controller {
         // Clear frame content only after close animation finishes
         this.element.addEventListener('hidden.bs.modal', this.handleHidden);
 
-        window.addEventListener('popstate', this.handlePopState);
-        document.addEventListener('turbo:before-visit', this.handleBeforeVisit);
+        // A sheet's swipe down (bottom_sheet_controller.js, GEST-02) asks the host to close
+        this.element.addEventListener('bottom-sheet:dismiss', this.handleClose);
     }
 
     disconnect() {
@@ -143,9 +148,7 @@ export default class extends Controller {
         this.element.removeEventListener('shown.bs.modal', this.handleShown);
         this.element.removeEventListener('hide.bs.modal', this.handleHide);
         this.element.removeEventListener('hidden.bs.modal', this.handleHidden);
-        window.removeEventListener('popstate', this.handlePopState);
-        document.removeEventListener('turbo:before-visit', this.handleBeforeVisit);
-        this.releaseHistory();
+        this.element.removeEventListener('bottom-sheet:dismiss', this.handleClose);
     }
 
     handleDocumentClick = (event) => {
@@ -302,9 +305,48 @@ export default class extends Controller {
         this.pendingOpen = false;
         this.stopLoading();
         this.trigger = null;
-        this.close();
-        event.detail.visit(event.detail.response);
+
+        if (!layers.isOpen()) {
+            this.closeUi();
+            event.detail.visit(event.detail.response);
+
+            return;
+        }
+
+        // A layer holds a history entry: the visit replaces it. Holding it itself, the modal stays until the page
+        // renders; under another layer (the Menu) it never showed
+        if (!layers.isOpen(LAYER)) {
+            this.closeUi();
+        }
+
+        this.visitResponseFromLayer(event.detail.response);
     };
+
+    async visitResponseFromLayer(response) {
+        // Turbo's own frame-missing visit (FrameController#visitResponse) as a replace visit, through the layer helper
+        const location = response?.url || this.frameTarget.src;
+        let responseHTML;
+
+        try {
+            if (HTML_CONTENT_TYPE.test(response.headers.get('Content-Type') || '')) {
+                responseHTML = await response.clone().text();
+            }
+        } catch (e) {
+            responseHTML = undefined;
+        }
+
+        if (!location) {
+            return;
+        }
+
+        if (responseHTML === undefined) {
+            layers.visitFromLayer(location);
+
+            return;
+        }
+
+        layers.visitFromLayer(location, { response: { redirected: response.redirected, statusCode: response.status, responseHTML } });
+    }
 
     handleMutation = () => {
         // Close modal if frame content is empty (cleared by Turbo Stream)
@@ -314,7 +356,8 @@ export default class extends Controller {
     };
 
     handleKeydown = (event) => {
-        if (event.key === 'Escape' && this.isOpen()) {
+        // A modal with a history entry: Escape is the layer helper's (one history.back())
+        if (event.key === 'Escape' && this.isOpen() && !layers.isOpen(LAYER)) {
             this.close();
         }
     };
@@ -325,6 +368,12 @@ export default class extends Controller {
 
     handleShow = () => {
         this.transition = 'showing';
+
+        // Opened while another layer (the Menu) holds the history entry: take it over before Bootstrap focuses
+        // (decision 58 D-1) - the Menu closes and drops its inert
+        if (layers.isOpen() && !layers.isOpen(LAYER)) {
+            this.claimLayer();
+        }
     };
 
     handleShown = () => {
@@ -336,11 +385,19 @@ export default class extends Controller {
             return;
         }
 
-        this.claimHistory();
         this.focusDialog();
     };
 
-    handleHide = () => {
+    handleHide = (event) => {
+        // ×, the backdrop or Bootstrap's Escape while the modal holds its entry: close through Back instead
+        // (the helper's popstate hides it, no longer holding)
+        if (layers.isOpen(LAYER)) {
+            event.preventDefault();
+            this.close();
+
+            return;
+        }
+
         this.transition = 'hiding';
     };
 
@@ -368,13 +425,6 @@ export default class extends Controller {
         this.stopLoading();
         this.hideError();
         this.requestedUrl = null;
-
-        // Closed with the close button, Escape, the backdrop or a stream: take the modal's history entry back out
-        if (this.historyEntry) {
-            this.historyEntry = false;
-            this.leavingHistoryEntry = true;
-            history.back();
-        }
 
         // Return focus to whatever opened the modal (unless the page changed meanwhile)
         const trigger = this.trigger;
@@ -446,6 +496,11 @@ export default class extends Controller {
             this.element.removeAttribute('aria-labelledby');
         }
 
+        // Content asking for Back (data-modal-history): the entry is taken when it arrives
+        if (sizeEl !== null && sizeEl.hasAttribute('data-modal-history') && !layers.isOpen(LAYER)) {
+            this.claimLayer();
+        }
+
         if (this.transition === 'hiding') {
             this.queued = 'open';
             return;
@@ -469,6 +524,16 @@ export default class extends Controller {
         this.pendingOpen = false;
         this.stopLoading();
 
+        // Holding a history entry: Back closes it (the helper calls onLayerClose in its popstate)
+        if (layers.isOpen(LAYER)) {
+            layers.requestClose(LAYER);
+            return;
+        }
+
+        this.closeUi();
+    }
+
+    closeUi() {
         if (this.transition === 'showing') {
             this.queued = 'close';
             return;
@@ -497,61 +562,20 @@ export default class extends Controller {
         dialog.classList.toggle('modal-sheet-sm-down', contentRoot !== null && contentRoot.hasAttribute('data-modal-sheet'));
     }
 
-    handlePopState = () => {
-        // Our own history.back() after the modal was closed - Turbo listens again from here on
-        if (this.leavingHistoryEntry) {
-            this.leavingHistoryEntry = false;
-            this.resumeTurboHistory();
+    claimLayer() {
+        layers.open(LAYER, { element: this.element, onClose: this.onLayerClose });
+    }
+
+    onLayerClose = ({ reason }) => {
+        // Leaving the page from inside the modal: it stays visible until the new page renders
+        if (reason === 'leave') {
             return;
         }
 
-        // Back button / back gesture while the modal is open: the entry is gone already, just close
-        if (this.historyEntry) {
-            this.historyEntry = false;
-            this.resumeTurboHistory();
-            this.close();
-        }
+        this.pendingOpen = false;
+        this.stopLoading();
+        this.closeUi();
     };
-
-    handleBeforeVisit = () => {
-        // A link from inside the modal leaves the page: Turbo needs its history back for the new page,
-        // and starting it again replaces the modal's entry with a normal entry of this page
-        if (this.historyEntry) {
-            this.historyEntry = false;
-            this.resumeTurboHistory();
-        }
-    };
-
-    claimHistory() {
-        const contentRoot = this.frameTarget.querySelector('[data-modal-size]');
-
-        if (this.historyEntry || contentRoot === null || !contentRoot.hasAttribute('data-modal-history')) {
-            return;
-        }
-
-        const turboHistory = window.Turbo?.session?.history;
-        if (!turboHistory || typeof turboHistory.stop !== 'function') {
-            return;
-        }
-
-        turboHistory.stop();
-        history.pushState({ dynamicModal: true }, '', window.location.href);
-        this.historyEntry = true;
-    }
-
-    releaseHistory() {
-        if (this.historyEntry) {
-            this.historyEntry = false;
-            this.resumeTurboHistory();
-        }
-    }
-
-    resumeTurboHistory() {
-        const turboHistory = window.Turbo?.session?.history;
-        if (turboHistory && typeof turboHistory.start === 'function') {
-            turboHistory.start();
-        }
-    }
 
     focusDialog() {
         // The dialog itself (tabindex="-1", labelled by the title) - screen readers announce it,
@@ -572,16 +596,16 @@ export default class extends Controller {
         // Turbo sets src to the requested URL (or the redirect target)
         const url = this.frameTarget.src;
         this.trigger = null;
-        this.close();
+
+        // Holding a history entry, the modal stays until the page renders: the visit replaces the entry
+        if (!url || !layers.isOpen(LAYER)) {
+            this.close();
+        }
 
         if (!url) {
             return;
         }
 
-        if (window.Turbo) {
-            window.Turbo.visit(url);
-        } else {
-            window.location.assign(url);
-        }
+        layers.visitFromLayer(url);
     }
 }

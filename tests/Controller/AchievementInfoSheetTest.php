@@ -37,9 +37,11 @@ final class AchievementInfoSheetTest extends WebTestCase
         $this->startCountingQueries($browser);
         $crawler = $this->sheet($browser);
 
-        // The bottom sheet is opted in by the content only; no history entry (design-spec §8.3)
+        // The bottom sheet is opted in by the content only; Back closes it through the dynamic modal's history entry
+        // (data-modal-history on the content root, GEST-01 (e) - no CloseWatcher)
         self::assertCount(1, $crawler->filter('.achievement-sheet[data-controller="achievement-sheet"]'));
-        self::assertCount(0, $crawler->filter('[data-modal-history]'));
+        self::assertCount(1, $crawler->filter('[data-modal-history]'));
+        self::assertCount(1, $crawler->filter('.achievement-sheet[data-modal-size][data-modal-history]'));
 
         // The medal is the viewer's highest tier, a button that turns over to the back of Gold
         $card = $crawler->filter('.medal button.medal-card');

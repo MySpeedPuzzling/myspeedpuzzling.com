@@ -8,6 +8,7 @@
 // and the expected answers in NativeAppStepAsideTest::ROWS.
 
 import { isNativeApp, nativePlatform, os } from '../assets/platform.js';
+import { closeAction, entryAction } from '../assets/layer_history.js';
 
 /** A fake <html>: inside the app on an Android phone, or Chrome on the same phone */
 function root(nativeApp) {
@@ -22,6 +23,16 @@ function root(nativeApp) {
 const ROWS = [
     // F (NAV-14 foundation): the flags themselves - the app is native, the device OS stays the device OS
     { id: 'assets/platform.js', run: (html) => ({ isNativeApp: isNativeApp(html), nativePlatform: nativePlatform(html), os: os(html) }) },
+    // GEST-01 (f): no history entry for a layer inside the app (none pushed, none swapped), and so no history.back()
+    // to close it
+    {
+        id: 'assets/layer_history.js',
+        run: (html) => ({
+            open: entryAction(isNativeApp(html), null),
+            openOverAnotherLayer: entryAction(isNativeApp(html), 'menu'),
+            close: closeAction(isNativeApp(html), 'menu', 'menu'),
+        }),
+    },
 ];
 
 const results = ROWS.map((row) => {

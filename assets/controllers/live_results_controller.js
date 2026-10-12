@@ -19,6 +19,10 @@ import {
 } from '../official_results_live.js';
 import { parseNameTagUrl, startQrScan } from '../official_results_scan.js';
 import { chooseTranslation } from '../translation_choice.js';
+import layers from '../layer_history.js';
+
+// The find view's overlays and views in assets/layer_history.js
+const LAYER = 'live-results';
 
 /**
  * Live result entry on a referee's phone (templates/live_results/live_results.html.twig,
@@ -127,8 +131,6 @@ export default class extends Controller {
         this.pendingValue = null;
         this.pendingFinishedNow = false;
         this.query = '';
-        this.historyEntry = false;
-        this.leavingHistoryEntry = false;
         this.toastItem = null;
         this.toastTimer = null;
         this.renderQueued = false;
@@ -164,19 +166,17 @@ export default class extends Controller {
             const liveResults = new URL(this.liveUrl(UUID_PLACEHOLDER).replace(UUID_PLACEHOLDER, ''), window.location.href).pathname;
 
             // Another live entry page sends this device's changes too - only leaving the tool asks
+            // (leaving from a view over the find view replaces its history entry: assets/layer_history.js)
             if (this.outbox.hasUnsent() && !target.startsWith(liveResults) && !window.confirm(this.t('leaveUnsent'))) {
                 event.preventDefault();
-
-                return;
-            }
-
-            // Leaving from a view over the find view: Turbo's history takes over again for the next page
-            if (this.historyEntry) {
-                this.historyEntry = false;
-                this.resumeTurboHistory();
             }
         };
-        this.onPopState = () => this.handlePopState();
+        this.onLayerClose = ({ reason }) => {
+            // Back (button or gesture) over a view or overlay returns to finding; a visit leaving the page keeps the UI
+            if (reason !== 'leave' && (this.view !== 'find' || !this.sheetTarget.hidden || !this.scannerTarget.hidden)) {
+                this.showFind({ focus: false });
+            }
+        };
         this.onKeydown = (event) => {
             if (event.key === 'Escape' && (this.view !== 'find' || !this.sheetTarget.hidden || !this.scannerTarget.hidden)) {
                 event.preventDefault();
@@ -187,10 +187,11 @@ export default class extends Controller {
         window.addEventListener('online', this.onOnline);
         window.addEventListener('focus', this.onFocus);
         window.addEventListener('beforeunload', this.onBeforeUnload);
-        window.addEventListener('popstate', this.onPopState);
         document.addEventListener('visibilitychange', this.onVisibility);
         document.addEventListener('turbo:before-visit', this.onBeforeVisit);
-        document.addEventListener('keydown', this.onKeydown);
+        // Capture: Escape steps back one level (sheet → confirm → entry → find) before the layer helper's Escape
+        // (bubble) would close the whole view in one go
+        document.addEventListener('keydown', this.onKeydown, { capture: true });
 
         if (typeof BroadcastChannel !== 'undefined') {
             this.channel = new BroadcastChannel(CHANNEL);
@@ -246,15 +247,9 @@ export default class extends Controller {
         window.removeEventListener('online', this.onOnline);
         window.removeEventListener('focus', this.onFocus);
         window.removeEventListener('beforeunload', this.onBeforeUnload);
-        window.removeEventListener('popstate', this.onPopState);
         document.removeEventListener('visibilitychange', this.onVisibility);
         document.removeEventListener('turbo:before-visit', this.onBeforeVisit);
-        document.removeEventListener('keydown', this.onKeydown);
-
-        if (this.historyEntry) {
-            this.historyEntry = false;
-            this.resumeTurboHistory();
-        }
+        document.removeEventListener('keydown', this.onKeydown, { capture: true });
     }
 
     // ---- Texts ----
@@ -1144,7 +1139,7 @@ export default class extends Controller {
         }
 
         storageSet(ROUND_KEY + this.competitionIdValue, JSON.stringify({ roundId, at: Date.now() }));
-        window.Turbo ? window.Turbo.visit(this.liveUrl(roundId)) : window.location.assign(this.liveUrl(roundId));
+        layers.visitFromLayer(this.liveUrl(roundId));
     }
 
     readRememberedRound() {
@@ -1269,52 +1264,17 @@ export default class extends Controller {
         this.backToFind();
     }
 
-    // History: a view or overlay over the find view gets an entry of its own, so the phone's back button/gesture
-    // returns to finding instead of leaving the page (Turbo's history waits meanwhile - dynamic_modal_controller.js)
+    // History: a view or overlay over the find view is a layer of assets/layer_history.js (GEST-01) - one entry of its
+    // own, so the phone's back button/gesture returns to finding instead of leaving the page
     claimHistory() {
-        if (this.historyEntry) {
-            return;
+        if (!layers.isOpen(LAYER)) {
+            layers.open(LAYER, { element: this.element, onClose: this.onLayerClose });
         }
-
-        const turboHistory = window.Turbo?.session?.history;
-
-        if (!turboHistory || typeof turboHistory.stop !== 'function') {
-            return;
-        }
-
-        turboHistory.stop();
-        window.history.pushState({ liveResults: true }, '', window.location.href);
-        this.historyEntry = true;
     }
 
     releaseHistory() {
-        if (this.historyEntry) {
-            this.historyEntry = false;
-            this.leavingHistoryEntry = true;
-            window.history.back();
-        }
-    }
-
-    resumeTurboHistory() {
-        const turboHistory = window.Turbo?.session?.history;
-
-        if (turboHistory && typeof turboHistory.start === 'function') {
-            turboHistory.start();
-        }
-    }
-
-    handlePopState() {
-        if (this.leavingHistoryEntry) {
-            this.leavingHistoryEntry = false;
-            this.resumeTurboHistory();
-
-            return;
-        }
-
-        if (this.historyEntry) {
-            this.historyEntry = false;
-            this.resumeTurboHistory();
-            this.showFind({ focus: false });
+        if (layers.isOpen(LAYER)) {
+            layers.requestClose(LAYER);
         }
     }
 

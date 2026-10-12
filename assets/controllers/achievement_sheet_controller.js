@@ -19,8 +19,8 @@ const BODY_SLOP = 8;
  * - Swipe down closes it: from the handle / title area (pointer events), or from the content while it is scrolled to
  *   its top (touch events - the content's own scroll keeps working otherwise). A short pull springs back (instantly
  *   under reduced motion). The × and Escape stay. Closing goes through the dynamic modal (`modal:close`).
- * - The Android back gesture closes it through CloseWatcher where the browser has one - no history entry (app.js turns
- *   restoration visits into full page loads).
+ * - Back (button, Android back gesture, iOS edge swipe) closes it: the content root carries data-modal-history, so the
+ *   dynamic modal holds a history entry through assets/layer_history.js (GEST-01 (e)).
  * - Focus starts on the heading (not on the medal, where Space would turn it); the dynamic modal returns it to the
  *   tapped cell on close.
  */
@@ -34,7 +34,6 @@ export default class extends Controller {
         this.reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
         this.drag = null;
         this.touch = null;
-        this.closeWatcher = null;
 
         this.container?.classList.add(SHEET_CLASS);
         this.container?.addEventListener('shown.bs.modal', this.onShown);
@@ -50,8 +49,6 @@ export default class extends Controller {
             this.bodyTarget.addEventListener('touchend', this.onTouchEnd);
             this.bodyTarget.addEventListener('touchcancel', this.onTouchCancel);
         }
-
-        this.watchClose();
 
         // Content swapped into an already open modal: no shown event comes
         if (this.container?.classList.contains('show')) {
@@ -76,7 +73,6 @@ export default class extends Controller {
             this.bodyTarget.removeEventListener('touchcancel', this.onTouchCancel);
         }
 
-        this.unwatchClose();
         this.resetDialog();
         this.container?.classList.remove(SHEET_CLASS);
     }
@@ -87,7 +83,6 @@ export default class extends Controller {
 
     onHidden = () => {
         this.endDrag();
-        this.unwatchClose();
         this.resetDialog();
         this.container?.classList.remove(SHEET_CLASS);
     };
@@ -96,28 +91,6 @@ export default class extends Controller {
         if (this.hasHeadingTarget) {
             this.headingTarget.focus({ preventScroll: true });
         }
-    }
-
-    watchClose() {
-        if (typeof window.CloseWatcher !== 'function' || this.closeWatcher !== null) {
-            return;
-        }
-
-        try {
-            this.closeWatcher = new window.CloseWatcher();
-            this.closeWatcher.onclose = () => {
-                this.closeWatcher = null;
-                this.close();
-            };
-        } catch {
-            this.closeWatcher = null;
-        }
-    }
-
-    unwatchClose() {
-        const watcher = this.closeWatcher;
-        this.closeWatcher = null;
-        watcher?.destroy();
     }
 
     close() {

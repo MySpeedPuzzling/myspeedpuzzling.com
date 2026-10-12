@@ -240,6 +240,9 @@ What a reply to a player promised to build. Each has an MSP Mailer follow-up: te
 - [ ] Public API v1: endpoints to create and edit competitions/events (POST/PATCH, today /api/v1/competitions is GET
       only), so an organiser like Puzzle Rush can sync events from their own site instead of setting them up twice in
       MSP. Promised to Rob (MSP #261, follow-up F107).
+- [ ] Image search: find a puzzle from a photo of its box (titles on the box often differ from the listed/translated
+      names, and some brands print no barcode) - possibly building on the image work of Puzzle Cousins
+      (jacobpilawa.github.io/puzzlecousins). Promised to Jessica (MSP #267, follow-up F112).
 
 ## Participants spreadsheet (`docs/features/competitions-management/participants-spreadsheet.md` §13)
 

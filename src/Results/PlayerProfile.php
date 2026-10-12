@@ -66,6 +66,7 @@ use SpeedPuzzling\Web\Value\SkillTier;
  *     moderator_since: null|string,
  *     karma?: int,
  *     karma_opted_out?: bool,
+ *     achievements_opted_out?: bool,
  *     registered_at?: null|string,
  *     has_membership_row?: bool,
  *     free_trial_ends_at?: null|string,
@@ -192,6 +193,8 @@ readonly final class PlayerProfile
         public int $karma = 0,
         /** "Hide my karma": no chip for anybody, not on the karma list (the owner's history still shows it) */
         public bool $karmaOptedOut = false,
+        /** "Hide my achievements": no achievements anywhere for anybody, owner included (docs/features/opt-out.md) */
+        public bool $achievementsOptedOut = false,
         /**
          * Progression on the row itself (docs/features/xp-levels/launch-2026-10.md): the header ring, the navbar avatar
          * ring and the achievements showcase read them - no query of their own. Denormalised player columns.
@@ -414,6 +417,7 @@ readonly final class PlayerProfile
             hasSolvingTime: $row['has_solving_time'] ?? false,
             karma: (int) ($row['karma'] ?? 0),
             karmaOptedOut: (bool) ($row['karma_opted_out'] ?? false),
+            achievementsOptedOut: (bool) ($row['achievements_opted_out'] ?? false),
             xpTotal: (int) ($row['xp_total'] ?? 0),
             level: (int) ($row['level'] ?? 1),
             achievementPoints: (int) ($row['achievement_points'] ?? 0),

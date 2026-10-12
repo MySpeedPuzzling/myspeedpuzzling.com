@@ -8895,7 +8895,13 @@ my_activity:
 
 xp_opt_out:
     label: "Ocultar XP y niveles"
-    help: "Tu nivel y tus XP desaparecen de tus páginas y correos, y quedas fuera de las clasificaciones de XP y de Puntos de Logro y de las listas de quién consiguió un logro. Los XP y los logros siguen contándose en silencio, así que no pierdes nada si vuelves a desactivar esto."
+    help: "Tu nivel y tus XP desaparecen de tus páginas y correos, y quedas fuera de las clasificaciones de XP y de Puntos de Logro y de las listas de quién consiguió un logro. Los XP y los logros siguen contándose en silencio, así que no pierdes nada si vuelves a desactivar esto. Tus logros tienen su propio interruptor."
+
+achievements_opt_out:
+    label: "Ocultar mis logros"
+    help: "Tus logros desaparecen de tu perfil, de tus resultados y de tus correos, para ti y para todos los demás, y quedas fuera de la clasificación de Puntos de Logro y de las listas de quién consiguió un logro. Siguen contándose en silencio, así que no pierdes nada si vuelves a desactivar esto."
+    hidden_note: "Ocultaste tus logros: nadie los ve, tampoco tú, y no apareces en la clasificación de Puntos de Logro. Siguen contándose en silencio."
+    hidden_change: "Cambiar en la configuración"
 
 page_crumbs:
     label: "Ruta de navegación"
@@ -8939,6 +8945,7 @@ leaderboards:
         private: "Tu perfil es privado, así que no apareces en las clasificaciones."
         experience_opted_out: "Desactivaste los niveles y los logros, así que no apareces aquí. Puedes volver a activarlos en la configuración de tu perfil."
         karma_opted_out: "Elegiste ocultar tu karma, así que no apareces aquí. Puedes volver a mostrarlo en la configuración de tu perfil."
+        achievements_opted_out: "Elegiste ocultar tus logros, así que no apareces aquí. Puedes volver a mostrarlos en la configuración de tu perfil."
         xp: "Registra tu primer puzzle resuelto para entrar en esta clasificación."
         achievement-points: "Consigue tu primer logro para entrar en esta clasificación."
         karma: "Tu primera contribución aceptada a la base de datos de puzzles te pondrá en esta clasificación."

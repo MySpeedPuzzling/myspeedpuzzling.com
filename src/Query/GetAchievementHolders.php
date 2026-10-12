@@ -16,8 +16,8 @@ use SpeedPuzzling\Web\Value\HeldAtLaunch;
 
 /**
  * Holders directory (§1.7, layout: docs/features/xp-levels/ux-polish/design-spec.md §1): holder LISTS show members with public profiles only
- * (public badge display is a membership perk); private profiles and XP-opted-out
- * players never appear in lists; holder COUNTS include everyone.
+ * (public badge display is a membership perk); private profiles, XP-opted-out players and players hiding their
+ * achievements never appear in lists; holder COUNTS include everyone.
  *
  * The lists are global rankings, so a private profile stays out of them for everybody - also for viewers on its
  * allow list (docs/features/private-profile-allow-list.md); players the viewer blocks are left out too.
@@ -29,6 +29,7 @@ readonly class GetAchievementHolders
     private const string LISTED_ELIGIBILITY = <<<SQL
   p.is_private = false
   AND p.experience_system_opted_out = false
+  AND p.achievements_opted_out = false
   AND (
     (m.ends_at IS NULL AND m.billing_period_ends_at IS NOT NULL)
     OR GREATEST(

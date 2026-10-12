@@ -83,7 +83,7 @@ final class AchievementDetailController extends AbstractController
         // the medal's (GetAchievementMedal - the one serial rule of design-spec §2, §8.1)
         $viewerMedal = null;
 
-        if ($profile !== null && $profile->activeMembership) {
+        if ($profile !== null && $profile->activeMembership && $profile->achievementsOptedOut === false) {
             $medals = $this->getAchievementMedal->forPlayerAndType($profile->playerId, $badgeType);
             $viewerMedal = $medals === [] ? null : $medals[max(array_keys($medals))];
         }

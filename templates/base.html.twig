@@ -693,12 +693,14 @@
                                     </li>
                                     {# Progression (docs/features/xp-levels/launch-2026-10.md): own achievements, own XP audit, the hub - behind the xp-system gate until launch #}
                                     {% if xp_system_visible() %}
-                                    <li>
-                                        <a class="dropdown-item {% if currentRoute == 'player_achievements' and routeParams.playerId == logged_user.profile.playerId %}active{% endif %}" href="{{ path('player_achievements', {playerId: logged_user.profile.playerId}) }}">
-                                            <i class="bi bi-award me-1"></i> {{ 'badges.my_title'|trans }}
-                                            <span class="badge bg-primary ms-1">{{ 'menu.new_badge'|trans }}</span>
-                                        </a>
-                                    </li>
+                                    {% if not logged_user.profile.achievementsOptedOut %}
+                                        <li>
+                                            <a class="dropdown-item {% if currentRoute == 'player_achievements' and routeParams.playerId == logged_user.profile.playerId %}active{% endif %}" href="{{ path('player_achievements', {playerId: logged_user.profile.playerId}) }}">
+                                                <i class="bi bi-award me-1"></i> {{ 'badges.my_title'|trans }}
+                                                <span class="badge bg-primary ms-1">{{ 'menu.new_badge'|trans }}</span>
+                                            </a>
+                                        </li>
+                                    {% endif %}
                                     {% if not logged_user.profile.experienceSystemOptedOut %}
                                         <li>
                                             <a class="dropdown-item {% if currentRoute == 'xp_history' %}active{% endif %}" href="{{ path('xp_history') }}">

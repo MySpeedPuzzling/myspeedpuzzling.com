@@ -121,4 +121,31 @@ final class EditFeaturesOptionsHandlerTest extends KernelTestCase
         self::assertFalse($player->rankingOptedOut);
         self::assertFalse($player->timePredictionsOptedOut);
     }
+
+    public function testOptOutOfAchievementsAndNullKeepsIt(): void
+    {
+        $this->messageBus->dispatch(
+            new EditFeaturesOptions(
+                playerId: PlayerFixture::PLAYER_REGULAR,
+                streakOptedOut: false,
+                rankingOptedOut: false,
+                timePredictionsOptedOut: false,
+                achievementsOptedOut: true,
+            ),
+        );
+
+        self::assertTrue($this->playerRepository->get(PlayerFixture::PLAYER_REGULAR)->achievementsOptedOut);
+
+        // The switch not shown (before the launch) - the stored choice stays
+        $this->messageBus->dispatch(
+            new EditFeaturesOptions(
+                playerId: PlayerFixture::PLAYER_REGULAR,
+                streakOptedOut: false,
+                rankingOptedOut: false,
+                timePredictionsOptedOut: false,
+            ),
+        );
+
+        self::assertTrue($this->playerRepository->get(PlayerFixture::PLAYER_REGULAR)->achievementsOptedOut);
+    }
 }

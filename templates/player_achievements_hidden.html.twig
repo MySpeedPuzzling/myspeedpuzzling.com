@@ -1,0 +1,17 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'badges.my_title'|trans }}{% endblock %}
+
+{#
+    The owner's achievements page while they hide their achievements ("Hide my achievements",
+    docs/features/opt-out.md): one line saying where to show them again - nothing else. Anybody else is sent to the
+    profile (PlayerAchievementsController).
+#}
+{% block content %}
+    <twig:PlayerHeader player="{{ player }}" />
+
+    <div class="alert alert-secondary fs-sm" id="achievements-hidden-note">
+        {{ 'achievements_opt_out.hidden_note'|trans }}
+        <a href="{{ path('edit_profile') }}">{{ 'achievements_opt_out.hidden_change'|trans }}</a>
+    </div>
+{% endblock %}

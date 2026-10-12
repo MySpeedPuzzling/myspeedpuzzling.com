@@ -13,6 +13,7 @@ final class FeaturesOptionsFormData
     public bool $timePredictionsOptedOut = false;
     public bool $experienceSystemOptedOut = false;
     public bool $karmaOptedOut = false;
+    public bool $achievementsOptedOut = false;
 
     public static function fromPlayerProfile(PlayerProfile $playerProfile): self
     {
@@ -22,6 +23,7 @@ final class FeaturesOptionsFormData
         $data->timePredictionsOptedOut = $playerProfile->timePredictionsOptedOut;
         $data->experienceSystemOptedOut = $playerProfile->experienceSystemOptedOut;
         $data->karmaOptedOut = $playerProfile->karmaOptedOut;
+        $data->achievementsOptedOut = $playerProfile->achievementsOptedOut;
 
         return $data;
     }

@@ -77,7 +77,9 @@ readonly final class PlayerPeriodActivityReader
         $counted = array_filter($results, static fn (PeriodResult $result): bool => $result->awaitingVerification === false);
         $xpVisible = $player['experience_system_opted_out'] === false;
         $xpAtEnd = max(0, $player['xp_total'] - $player['xp_after']);
-        $achievements = $this->achievementsEarned($playerId, $period);
+        // "Hide my achievements" (docs/features/opt-out.md): no achievement lines in the e-mail nor on the page
+        $achievementsVisible = $player['achievements_opted_out'] === false;
+        $achievements = $achievementsVisible ? $this->achievementsEarned($playerId, $period) : [];
 
         return new PlayerPeriodActivity(
             period: $period,
@@ -100,14 +102,14 @@ readonly final class PlayerPeriodActivityReader
             streakDays: $player['streak_opted_out'] ? 0 : $this->currentStreak($playerId),
             favoritesActivity: $this->favoritesActivity($playerId, $player['favorite_players'], $period),
             mostSolved: $this->mostSolved($period),
-            nextAchievements: $isMember ? $this->nextAchievements($playerId) : [],
+            nextAchievements: $isMember && $achievementsVisible ? $this->nextAchievements($playerId) : [],
             karmaGained: $this->karmaGained(),
         );
     }
 
     /**
      * @throws PlayerNotFound
-     * @return array{xp_total: int, xp_gained: int, xp_after: int, experience_system_opted_out: bool, ranking_opted_out: bool, streak_opted_out: bool, favorite_players: list<string>}
+     * @return array{xp_total: int, xp_gained: int, xp_after: int, experience_system_opted_out: bool, achievements_opted_out: bool, ranking_opted_out: bool, streak_opted_out: bool, favorite_players: list<string>}
      */
     private function player(string $playerId, DigestPeriod $period): array
     {
@@ -118,6 +120,7 @@ readonly final class PlayerPeriodActivityReader
 SELECT
     p.xp_total,
     p.experience_system_opted_out,
+    p.achievements_opted_out,
     p.ranking_opted_out,
     p.streak_opted_out,
     p.favorite_players,
@@ -134,7 +137,7 @@ FROM player p
 WHERE p.id = :playerId
 SQL;
 
-        /** @var false|array{xp_total: int|string, experience_system_opted_out: bool, ranking_opted_out: bool, streak_opted_out: bool, favorite_players: null|string, xp_gained: int|string, xp_after: int|string} $row */
+        /** @var false|array{xp_total: int|string, experience_system_opted_out: bool, achievements_opted_out: bool, ranking_opted_out: bool, streak_opted_out: bool, favorite_players: null|string, xp_gained: int|string, xp_after: int|string} $row */
         $row = $this->database->executeQuery($sql, [
             'playerId' => $playerId,
             'periodStart' => $period->startUtc(),
@@ -152,6 +155,7 @@ SQL;
             'xp_gained' => (int) $row['xp_gained'],
             'xp_after' => (int) $row['xp_after'],
             'experience_system_opted_out' => (bool) $row['experience_system_opted_out'],
+            'achievements_opted_out' => (bool) $row['achievements_opted_out'],
             'ranking_opted_out' => (bool) $row['ranking_opted_out'],
             'streak_opted_out' => (bool) $row['streak_opted_out'],
             'favorite_players' => is_array($favorites) ? array_values(array_filter($favorites, 'is_string')) : [],

@@ -34,6 +34,9 @@
                 {% if features_options_form.experienceSystemOptedOut is defined %}
                     {{ form_row(features_options_form.experienceSystemOptedOut) }}
                 {% endif %}
+                {% if features_options_form.achievementsOptedOut is defined %}
+                    {{ form_row(features_options_form.achievementsOptedOut) }}
+                {% endif %}
                 {% if features_options_form.karmaOptedOut is defined %}
                     {{ form_row(features_options_form.karmaOptedOut) }}
                 {% endif %}

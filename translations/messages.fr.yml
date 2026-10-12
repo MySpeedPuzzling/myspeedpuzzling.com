@@ -8914,7 +8914,13 @@ my_activity:
 
 xp_opt_out:
     label: "Masquer les XP et les niveaux"
-    help: "Votre niveau et vos XP disparaissent de vos pages et de vos e-mails, et vous n'apparaissez plus dans les classements des XP et des points de succès ni dans les listes de qui a obtenu un succès. Les XP et les succès continuent de s'accumuler discrètement : rien n'est perdu si vous désactivez à nouveau cette option."
+    help: "Votre niveau et vos XP disparaissent de vos pages et de vos e-mails, et vous n'apparaissez plus dans les classements des XP et des points de succès ni dans les listes de qui a obtenu un succès. Les XP et les succès continuent de s'accumuler discrètement : rien n'est perdu si vous désactivez à nouveau cette option. Vos succès ont leur propre option."
+
+achievements_opt_out:
+    label: "Masquer mes succès"
+    help: "Vos succès disparaissent de votre profil, de vos résultats et de vos e-mails, pour vous comme pour tout le monde, et vous n'apparaissez plus dans le classement des points de succès ni dans les listes de qui a obtenu un succès. Ils continuent de s'accumuler discrètement : rien n'est perdu si vous désactivez à nouveau cette option."
+    hidden_note: "Vous avez masqué vos succès : personne ne les voit, vous non plus, et vous n'apparaissez pas dans le classement des points de succès. Ils continuent de s'accumuler discrètement."
+    hidden_change: "Modifier dans les paramètres"
 
 page_crumbs:
     label: "Fil d'Ariane"
@@ -8958,6 +8964,7 @@ leaderboards:
         private: "Votre profil est privé, vous n'apparaissez donc pas dans les classements."
         experience_opted_out: "Vous avez désactivé les niveaux et les succès, vous n'apparaissez donc pas ici. Vous pouvez les réactiver dans les paramètres de votre profil."
         karma_opted_out: "Vous avez choisi de masquer votre karma, vous n'apparaissez donc pas ici. Vous pouvez l'afficher à nouveau dans les paramètres de votre profil."
+        achievements_opted_out: "Vous avez choisi de masquer vos succès, vous n'apparaissez donc pas ici. Vous pouvez les afficher à nouveau dans les paramètres de votre profil."
         xp: "Enregistrez votre premier puzzle terminé pour entrer dans ce classement."
         achievement-points: "Obtenez votre premier succès pour entrer dans ce classement."
         karma: "Votre première contribution acceptée à la base de données de puzzles vous fera entrer dans ce classement."

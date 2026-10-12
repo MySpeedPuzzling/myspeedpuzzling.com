@@ -231,6 +231,8 @@ final class ProgressLeaderboardController extends AbstractController
             }
         } elseif ($viewer->experienceSystemOptedOut) {
             return 'experience_opted_out';
+        } elseif ($tab === ProgressLeaderboardTab::AchievementPoints && $viewer->achievementsOptedOut) {
+            return 'achievements_opted_out';
         }
 
         if ($tab === ProgressLeaderboardTab::AchievementPoints && $viewer->activeMembership === false) {

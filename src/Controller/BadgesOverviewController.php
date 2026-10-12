@@ -71,10 +71,11 @@ final class BadgesOverviewController extends AbstractController
 
         $isMember = $profile !== null && $profile->activeMembership;
 
-        // The member's line on top: how many they hold (Early Adopter counts for its holders) - one read of their rows
+        // The member's line on top: how many they hold (Early Adopter counts for its holders) - one read of their rows;
+        // none for a member who hides their achievements
         $own = null;
 
-        if ($isMember) {
+        if ($isMember && $profile->achievementsOptedOut === false) {
             $badges = $this->getBadges->allEarnedTiers($profile->playerId);
             $types = [];
             $tiers = 0;

@@ -9167,7 +9167,13 @@ my_activity:
 
 xp_opt_out:
     label: "Hide XP and levels"
-    help: "Your level and XP disappear from your pages and e-mails, and you are left out of the XP and Achievement Points leaderboards and the lists of who earned an achievement. XP and achievements keep counting quietly, so nothing is lost if you switch this off again."
+    help: "Your level and XP disappear from your pages and e-mails, and you are left out of the XP and Achievement Points leaderboards and the lists of who earned an achievement. XP and achievements keep counting quietly, so nothing is lost if you switch this off again. Your achievements have their own switch."
+
+achievements_opt_out:
+    label: "Hide my achievements"
+    help: "Your achievements disappear from your profile, your results and your e-mails for you and for everybody else, and you are left out of the Achievement Points leaderboard and the lists of who earned an achievement. They keep counting quietly, so nothing is lost if you switch this off again."
+    hidden_note: "You hid your achievements: nobody sees them, you included, and you are not on the Achievement Points leaderboard. They keep counting quietly."
+    hidden_change: "Change in settings"
 
 page_crumbs:
     label: "Breadcrumb"
@@ -9211,6 +9217,7 @@ leaderboards:
         private: "Your profile is private, so you are not listed on the leaderboards."
         experience_opted_out: "You turned off levels and achievements, so you are not listed here. You can turn them back on in your profile settings."
         karma_opted_out: "You chose to hide your karma, so you are not listed here. You can show it again in your profile settings."
+        achievements_opted_out: "You chose to hide your achievements, so you are not listed here. You can show them again in your profile settings."
         xp: "Log your first solve to get on this board."
         achievement-points: "Earn your first achievement to get on this board."
         karma: "Your first accepted contribution to the puzzle database puts you on this board."

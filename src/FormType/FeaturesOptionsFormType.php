@@ -46,6 +46,13 @@ final class FeaturesOptionsFormType extends AbstractType
                 'required' => false,
             ]);
 
+            // Achievements are not XP (the XP switch leaves them on the profile) - their own switch
+            $builder->add('achievementsOptedOut', CheckboxType::class, [
+                'label' => 'achievements_opt_out.label',
+                'help' => 'achievements_opt_out.help',
+                'required' => false,
+            ]);
+
             // Karma launches with XP (docs/features/karma.md) - its own switch, independent of the XP one
             $builder->add('karmaOptedOut', CheckboxType::class, [
                 'label' => 'karma.opt_out.label',

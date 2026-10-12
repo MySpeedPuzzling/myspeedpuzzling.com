@@ -243,6 +243,10 @@ What a reply to a player promised to build. Each has an MSP Mailer follow-up: te
 - [ ] Image search: find a puzzle from a photo of its box (titles on the box often differ from the listed/translated
       names, and some brands print no barcode) - possibly building on the image work of Puzzle Cousins
       (jacobpilawa.github.io/puzzlecousins). Promised to Jessica (MSP #267, follow-up F112).
+- [ ] MSP Rating progress on the own profile (PlayerRatingProfile): 'Total solves' really counts different 500-piece
+      puzzles solved solo with a time in the last 2 years (MspRatingCalculator::getProgress) - rename it (e.g.
+      'Different puzzles') and explain what counts (repeats, other piece counts and pair/team results don't), all 6
+      locales. Promised to Destanie (MSP #268, follow-up F113).
 
 ## Participants spreadsheet (`docs/features/competitions-management/participants-spreadsheet.md` §13)
 

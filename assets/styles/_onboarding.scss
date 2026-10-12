@@ -175,7 +175,7 @@
 .guide-step {
     padding-bottom: 3.25rem;
     // Anchored from the Hub card and empty states: keep the title clear of the fixed header
-    scroll-margin-top: calc(var(--header-height, 100px) + 1rem);
+    scroll-margin-top: calc(var(--topbar-h, 0px) + 1rem);
 
     @include media-breakpoint-up(sm) {
         .d-grid {

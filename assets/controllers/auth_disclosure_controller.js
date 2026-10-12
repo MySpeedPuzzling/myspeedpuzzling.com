@@ -47,8 +47,8 @@ export default class extends Controller {
     }
 
     reveal() {
-        const header = document.querySelector('header.sticky-top');
-        const headerBottom = header ? Math.max(0, header.getBoundingClientRect().bottom) : 0;
+        // The top bar's live height, 0 while hidden or absent (--topbar-h, templates/navigation/_critical_css.html.twig)
+        const headerBottom = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--topbar-h')) || 0;
         const panelTop = this.panelTarget.getBoundingClientRect().top;
         const submitBottom = this.hasSubmitTarget ? this.submitTarget.getBoundingClientRect().bottom : panelTop;
         const overflow = submitBottom + 16 - window.innerHeight;

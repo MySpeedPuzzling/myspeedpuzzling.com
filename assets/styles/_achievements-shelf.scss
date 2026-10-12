@@ -83,6 +83,7 @@ $shelf-press: scale(.97);
             grid-column: 2;
             grid-row: 1;
             align-self: start;
+            @include nav-follow-topbar;
         }
 
         > .achievements-layout-main {
@@ -489,7 +490,7 @@ $shelf-press: scale(.97);
     background: #fff;
     box-shadow: $shelf-shadow;
     // The sticky header needs the card's own clipping off; its corners are rounded on the header itself
-    scroll-margin-top: calc(var(--header-height, 101px) + .75rem);
+    scroll-margin-top: calc(var(--topbar-h, 0px) + .75rem);
 
     &.tier-1 { --tier-tint: #fbeee4; --tier-ink: #7a4519; }
     &.tier-2 { --tier-tint: #edf1f7; --tier-ink: #3d4a5f; }
@@ -512,6 +513,7 @@ $shelf-press: scale(.97);
     position: sticky;
     top: var(--header-height, 97px);
     z-index: 2;
+    @include nav-follow-topbar;
     display: grid;
     grid-template-columns: auto minmax(0, 1fr) auto;
     gap: .75rem;
@@ -729,7 +731,7 @@ $shelf-press: scale(.97);
     border-radius: .875rem;
     background: #fff;
     box-shadow: $shelf-shadow;
-    scroll-margin-top: calc(var(--header-height, 101px) + .75rem);
+    scroll-margin-top: calc(var(--topbar-h, 0px) + .75rem);
 }
 
 .achievement-ref-head {

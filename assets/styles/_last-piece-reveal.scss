@@ -290,12 +290,13 @@ $lpr-navy: $gray-900;
   }
 }
 
+// Exists only while it animates (last_piece_reveal/confetti.js adds and removes it); ends at the phone bottom bar (F-03)
 .lpr-confetti {
   position: fixed;
   inset: 0;
   z-index: 1;
   width: 100%;
-  height: 100%;
+  height: calc(100% - var(--bottom-nav-height, 0px));
   pointer-events: none;
 }
 
@@ -370,7 +371,7 @@ $xpl-indigo: #4e54c8;
 
 .xpl-deck,
 .xpl-summary {
-  scroll-margin-top: calc(var(--header-height, 101px) + .75rem);
+  scroll-margin-top: calc(var(--topbar-h, 0px) + .75rem);
 }
 
 // The picture gives way on short phones, so a card's facts and the button fit one screen (375 x 667: 167 px)

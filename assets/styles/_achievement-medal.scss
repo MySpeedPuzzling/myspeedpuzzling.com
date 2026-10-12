@@ -63,14 +63,15 @@ $medal-bands-vivid: repeating-linear-gradient(118deg, #f26a70 0%, #f7a457 4.5%, 
         .modal-dialog {
             position: fixed;
             right: 0;
-            bottom: 0;
+            // On the phone bottom bar, which stays usable under the sheet (decision 18)
+            bottom: var(--bottom-nav-height, 0px);
             left: 0;
             width: 100%;
             max-width: none;
             height: auto;
             min-height: 0;
             margin: 0;
-            transform: translateY(100%);
+            transform: translateY(calc(100% + var(--bottom-nav-height, 0px)));
             transition: transform .3s cubic-bezier(.2, .8, .2, 1);
         }
 
@@ -86,7 +87,7 @@ $medal-bands-vivid: repeating-linear-gradient(118deg, #f26a70 0%, #f7a457 4.5%, 
         }
 
         .modal-body {
-            padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+            padding-bottom: nav-safe-bottom-padding(1rem);
             // The page behind never scrolls along (Bootstrap locks the body; this stops the scroll chaining)
             overscroll-behavior: contain;
         }

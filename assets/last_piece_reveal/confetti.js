@@ -51,9 +51,11 @@ export class PieceConfetti {
         canvas.className = 'lpr-confetti';
         canvas.setAttribute('aria-hidden', 'true');
         this.dpr = Math.min(window.devicePixelRatio || 1, 2);
-        canvas.width = Math.round(window.innerWidth * this.dpr);
-        canvas.height = Math.round(window.innerHeight * this.dpr);
         document.body.appendChild(canvas);
+        // Its box ends at the phone bottom bar (.lpr-confetti): the pixels follow the box, so viewport px stay 1:1
+        const box = canvas.getBoundingClientRect();
+        canvas.width = Math.round((box.width || window.innerWidth) * this.dpr);
+        canvas.height = Math.round((box.height || window.innerHeight) * this.dpr);
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d');
     }

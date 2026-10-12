@@ -5,7 +5,7 @@
     flex-direction: column;
     gap: 1rem;
     // Filters and "Show more" land here (#players-directory, #players-directory-card-N) below the fixed header
-    scroll-margin-top: calc(var(--header-height, 101px) + 1rem);
+    scroll-margin-top: calc(var(--topbar-h, 0px) + 1rem);
 }
 
 // Filter bar: Where + Sort, then the filter chips
@@ -162,7 +162,7 @@
     background: $white;
     color: $gray-700;
     text-decoration: none;
-    scroll-margin-top: calc(var(--header-height, 101px) + 1rem);
+    scroll-margin-top: calc(var(--topbar-h, 0px) + 1rem);
     transition: border-color .15s ease-in-out;
 
     &:hover {

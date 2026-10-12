@@ -108,10 +108,13 @@
     position: fixed;
     left: 0;
     right: 0;
-    bottom: 0;
-    z-index: 9; // below the sticky header (10) and the global search overlay (20)
+    // On the phone bottom bar (F-03); the home indicator's room only where the bar does not cover it
+    bottom: var(--bottom-nav-height, 0px);
+    // In-page layer (< 100): below the global search overlay (10) and its search box (20), and far below the
+    // site header (1030) and the bottom bar (1030) - docs/design-system/README.md "Layers"
+    z-index: 9;
     border-radius: 12px 12px 0 0;
-    padding-bottom: env(safe-area-inset-bottom);
+    padding-bottom: nav-safe-bottom-padding();
 
     @media (min-width: 992px) {
         position: sticky;
@@ -129,16 +132,18 @@
 .multiscan-sheet-backdrop {
     position: fixed;
     inset: 0;
+    // The phone bottom bar stays visible and usable under the sheet (decision 18)
+    bottom: var(--bottom-nav-height, 0px);
     background: rgba(0, 0, 0, 0.45);
-    z-index: 1040;
+    z-index: $z-menu-layer;
 }
 
 .multiscan-sheet {
     position: fixed;
     left: 0;
     right: 0;
-    bottom: 0;
-    z-index: 1045;
+    bottom: var(--bottom-nav-height, 0px);
+    z-index: $z-sheet;
     max-height: 88vh;
     display: flex;
     flex-direction: column;
@@ -150,7 +155,8 @@
     }
 
     @media (min-width: 768px) {
-        left: 50%;
+        // Centred right of the desktop column/rail (F-03)
+        @include nav-center-x;
         right: auto;
         bottom: 24px;
         width: 560px;

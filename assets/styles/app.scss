@@ -45,6 +45,9 @@
 @import 'bootstrap/scss/helpers';
 @import 'bootstrap/scss/utilities/api';
 
+// Navigation layout tokens: --bottom-nav-height / --nav-left / top-bar mixins and the $z-* scale (F-03)
+@import 'nav-tokens';
+
 // Layout & components
 @import 'reboot';
 @import 'components';
@@ -185,6 +188,7 @@ body {
 // Only viewport-fixed overlays need it - the page flow gets its spacing from the
 // header itself, which is `position: sticky` and therefore occupies real space.
 // The fallback matches a plain header with no announcement strip.
+// The live height (--topbar-h) and the other navigation layout variables: templates/navigation/_critical_css.html.twig
 :root {
     --header-height: 101px;
 
@@ -622,6 +626,7 @@ td.rank {
     margin: 0 -15px;
     background: #fff;
     z-index: 3;
+    @include nav-follow-topbar;
 
     input {
         max-width: 200px;
@@ -1400,7 +1405,10 @@ canvas {
     overflow-wrap: break-word;
 }
 
+// Closed: display none, never only transparent - Safari 26 samples transparent fixed layers for its toolbar tint
+// (README §4.2, F-03). Opening still slides/fades in where @starting-style is supported; closing is instant.
 .global-search-overlay {
+    display: none;
     position: fixed;
     top: 0;
     left: 0;
@@ -1408,8 +1416,6 @@ canvas {
     height: 100%;
     background-color: rgba(0, 0, 0, 0.6);
     z-index: 10;
-    opacity: 0;
-    pointer-events: none;
     transition: opacity 0.3s ease-in-out;
 }
 
@@ -1417,18 +1423,28 @@ canvas {
     overflow: hidden;
 
     .global-search-overlay {
+        display: block;
         opacity: 1;
-        pointer-events: all;
+
+        @starting-style {
+            opacity: 0;
+        }
     }
 
     .global-search {
+        display: block;
         opacity: 1;
         transform: translateX(-50%) translateY(0);
-        pointer-events: all;
+
+        @starting-style {
+            opacity: 0;
+            transform: translateX(-50%) translateY(-20px);
+        }
     }
 }
 
 .global-search {
+    display: none;
     z-index: 20;
     max-width: 450px;
     width: 100%;
@@ -1437,10 +1453,9 @@ canvas {
     top: calc(var(--header-height) + 13px);
     left: 50%;
     transform: translateX(-50%) translateY(-20px); /* Start slightly above */
-    opacity: 0;
     margin: 0 auto;
     transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
-    pointer-events: none;
+    @include nav-follow-topbar((transform 0.3s ease-in-out, opacity 0.3s ease-in-out));
 
     .input-group {
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4);
@@ -1894,9 +1909,14 @@ $live-dot-red: #e0262d;
     top: calc(var(--header-height) + 3px);
     right: 0;
 
+    // Under the top bar on desktop - phones have it at the bottom, above the bottom bar (F-03)
+    @media (min-width: 768px) {
+        @include nav-follow-topbar;
+    }
+
     @media (max-width: 767px) {
         top: auto;
-        bottom: 15px;
+        @include nav-bottom(15px, $safe-area: false);
         left: 50%;
         right: auto;
         transform: translateX(-50%);

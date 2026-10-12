@@ -1223,8 +1223,9 @@ export default class extends Controller {
         return paragraph;
     }
 
+    // The top bar's live height, 0 while it is hidden (--topbar-h, templates/navigation/_critical_css.html.twig)
     headerHeight() {
-        return parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--header-height')) || 0;
+        return parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--topbar-h')) || 0;
     }
 
     announce(text) {

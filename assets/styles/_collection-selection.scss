@@ -50,10 +50,11 @@ body:has(.collection-selecting) .comparison-launcher {
 
 .collection-selection-bar {
     position: fixed;
-    left: 50%;
-    bottom: calc(12px + env(safe-area-inset-bottom));
+    // Above the phone bottom bar and the home indicator, centred right of the desktop column/rail (F-03)
+    @include nav-center-x;
+    @include nav-bottom(12px);
     transform: translateX(-50%);
-    z-index: 1035; // above the comparison launcher and sticky header, below modals (1050) and toasts (1060)
+    z-index: $z-selection-bar; // above the comparison launcher, sticky header and bottom bar, below modals (1050) and toasts (1060)
     width: max-content;
     max-width: calc(100% - 24px);
     padding: 0.5rem 0.75rem;

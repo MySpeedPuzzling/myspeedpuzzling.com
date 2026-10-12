@@ -300,7 +300,7 @@ $sheet-cell-height: 2.25rem;
         position: fixed;
         top: auto;
         right: .5rem;
-        bottom: calc(env(safe-area-inset-bottom, 0px) + .75rem);
+        @include nav-bottom(.75rem);
         left: .5rem;
         flex-direction: column-reverse;
         align-items: stretch;

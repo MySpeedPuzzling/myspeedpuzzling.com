@@ -1,0 +1,24 @@
+{#- Navigation layout variables (docs/features/navigation README §4.2, §4.3, §5; implementation plan F-03, decisions
+    17, 18). Included at the end of base.html.twig's critical <style>: one rule per line, plain CSS, no Twig output.
+    The only place these lengths are set - JavaScript never writes them (NavLayoutCssTest); the browser decides from
+    media queries and <html> attributes before first paint. SCSS reads them through assets/styles/_nav-tokens.scss.
+
+    --header-height  static height of the bar the sticky/fixed sub-bars sit under (their layout anchor). Until NAV-03
+                     the old header's header_height_controller.js measures it (fallback 101/97 px above).
+    --topbar-h       live height of the top bar (0 while hidden): scroll margins. Until NAV-03 = the old header,
+                     which never hides; NAV-03 sets 52/64 px and 0 on phones < 480 px tall.
+    --topbar-shift   how far the hidden top bar moved up: sub-bars follow it with `translate` (mixin nav-follow-topbar).
+    --bottom-nav-height  phone bottom bar + safe area, 0 while no visible .bottom-nav, with a running stopwatch and in
+                     the app. Every fixed bottom element sits above it (mixin nav-bottom).
+    --nav-left       width of the desktop menu column/rail: 0 until NAV-13 adds the tier values here (88/256 px).
+    Under html[data-native-app] every reserved chrome size is 0 (plan §3.5 item 7). -#}
+@property --topbar-h{syntax:'<length>';inherits:true;initial-value:0px}
+@property --bottom-nav-height{syntax:'<length>';inherits:true;initial-value:0px}
+@property --nav-left{syntax:'<length>';inherits:true;initial-value:0px}
+:root{--nav-bg:#fff;--nav-hairline:rgba(43,52,69,.1);--nav-shadow-top:0 2px 8px rgba(43,52,69,.06);--nav-shadow-bottom:0 -4px 16px rgba(43,52,69,.06);--nav-ink:#4b566b;--nav-label:#5f6b80;--nav-active-ink:#c8323a;--nav-active-pill:#ffe8e8;--nav-pressed-pill:rgba(254,105,106,.1);--nav-add-bg:#ec4f52;--nav-add-ink:#fff;--nav-badge-bg:#d63c42;--nav-badge-ink:#fff;--nav-focus:#4e54c8;--search-bg:#f3f5f9;--search-placeholder:#5f6b80}
+:root{--tabbar-h:56px;--tab-icon:24px;--tab-label:500 .6875rem/.875rem Rubik;--desk-topbar-h:64px;--nav-col-w:256px;--nav-rail-w:88px;--nav-ease:cubic-bezier(.2,0,0,1);--nav-hide-dur:200ms;--nav-show-dur:280ms}
+:root{--safe-bottom-max:env(safe-area-max-inset-bottom,env(safe-area-inset-bottom,0px));--topbar-h:var(--header-height);--topbar-shift:0px;--bottom-nav-height:0px;--nav-left:0px}
+:root[data-topbar=hidden]{--topbar-h:0px;--topbar-shift:var(--header-height)}
+@media (max-width:767.98px),(max-height:500.98px) and (pointer:coarse){:root:not([data-stopwatch-running]):not([data-native-app]):has(> body > .bottom-nav:not([hidden])){--bottom-nav-height:calc(var(--tabbar-h) + var(--safe-bottom-max))}}
+:root[data-native-app]{--header-height:0px;--topbar-h:0px;--topbar-shift:0px;--bottom-nav-height:0px;--nav-left:0px}
+.global-search,.global-search-overlay{display:none}

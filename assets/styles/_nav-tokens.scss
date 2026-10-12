@@ -1,0 +1,85 @@
+// Navigation layout tokens (docs/features/navigation README §4.2, §4.3, §5; implementation plan F-03, decisions 17, 18)
+//
+// The lengths themselves - --header-height, --topbar-h, --topbar-shift, --bottom-nav-height, --safe-bottom-max,
+// --nav-left - and the README §5 colours are custom properties set in critical CSS only
+// (templates/navigation/_critical_css.html.twig), never from JavaScript (tests/Navigation/NavLayoutCssTest.php).
+// Feature styles read them through the mixins below, so a later bar, rail or column moves every fixed element at once.
+
+// The phone / desktop switch in Media Queries Level 3 syntax (Safari < 16.4 drops a whole rule with `not (…)`):
+// "phone" = < 768 px or a landscape phone, "desktop" = everything else (requirements, Conventions)
+$nav-desktop-media: "(min-width: 768px) and (min-height: 501px), (min-width: 768px) and (pointer: fine)";
+$nav-phone-media: "(max-width: 767.98px), (max-height: 500.98px) and (pointer: coarse)";
+
+@mixin nav-desktop {
+    @media #{$nav-desktop-media} {
+        @content;
+    }
+}
+
+@mixin nav-phone {
+    @media #{$nav-phone-media} {
+        @content;
+    }
+}
+
+// z-index scale (docs/design-system/README.md "Layers"). Lower layers first; a `showModal()` dialog (the desktop Menu
+// overlay, the in-page confirmation) sits in the browser's top layer above all of them.
+$z-in-page-max: 99;          // anything inside the page content stays below 100
+$z-sub-bar: 1010;            // page sub-bars under the top bar: compact bar, events toolbar
+$z-content-sticky: 1020;     // Bootstrap .sticky-top content
+$z-site-header: 1030;        // the top bar
+$z-bottom-nav: 1030;         // the phone bottom bar
+$z-nav-column: 1030;         // the desktop rail / docked Menu column
+$z-selection-bar: 1035;      // the floating selection bar of the puzzle lists
+$z-menu-layer: 1040;         // the Menu shell #menu-layer (non-modal, above the bars); sheet scrims
+$z-sheet: 1045;              // sheets and layers: player card, events ⋯ menu, XP recap sheet, multiscan sheet
+$z-modal-backdrop: 1050;     // Bootstrap $zindex-modal-backdrop
+$z-modal: 1055;              // Bootstrap $zindex-modal
+$z-toast: 1060;              // the site's toast container
+$z-tooltip: 1080;            // Bootstrap $zindex-tooltip
+
+// A fixed element at the bottom of the screen: $gap above the phone bottom bar (0 while there is none).
+// $safe-area: true for elements that already keep clear of the home indicator - the bar's height includes the safe
+// area, so it is max(bar, safe area); false keeps an element that ignores the safe area today exactly where it is.
+@mixin nav-bottom($gap: 0px, $safe-area: true) {
+    @if $safe-area {
+        bottom: calc(#{$gap} + max(var(--bottom-nav-height, 0px), env(safe-area-inset-bottom, 0px)));
+    } @else {
+        bottom: calc(#{$gap} + var(--bottom-nav-height, 0px));
+    }
+}
+
+// The bottom padding of a sheet's last content against the home indicator: only what the bottom bar does not cover
+@function nav-safe-bottom-padding($gap: 0px) {
+    @return calc(#{$gap} + max(0px, env(safe-area-inset-bottom, 0px) - var(--bottom-nav-height, 0px)));
+}
+
+// Centred in the content area right of the desktop column/rail (keep the element's translateX(-50%))
+@mixin nav-center-x {
+    left: calc(50% + var(--nav-left, 0px) / 2);
+}
+
+// A sticky/fixed sub-bar anchored at the static `var(--header-height)` follows the live top bar (decision 17, F9):
+// `translate` by --topbar-shift - compositor only, composes with the element's own transform - never an animated `top`
+// (Chromium reports that as a layout shift on every scroll reversal). The bar's timing: 200 ms away, 280 ms back, none
+// with reduced motion. Applies only while the new top bar manages html[data-topbar] (NAV-03); nothing changes before.
+// $own: the element's own transitions, kept in the list.
+@mixin nav-follow-topbar($own: null) {
+    $show: translate var(--nav-show-dur, 280ms) var(--nav-ease, ease);
+    $hide: translate var(--nav-hide-dur, 200ms) var(--nav-ease, ease);
+
+    :root[data-topbar] & {
+        translate: 0 calc(-1 * var(--topbar-shift, 0px));
+        @if $own { transition: #{$own}, #{$show}; } @else { transition: $show; }
+    }
+
+    :root[data-topbar="hidden"] & {
+        @if $own { transition: #{$own}, #{$hide}; } @else { transition: $hide; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        :root[data-topbar] & {
+            @if $own { transition: $own; } @else { transition: none; }
+        }
+    }
+}

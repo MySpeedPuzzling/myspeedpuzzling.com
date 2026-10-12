@@ -8,7 +8,10 @@ use Facebook\WebDriver\WebDriverDimension;
 
 /**
  * The site header is `position: sticky` and every viewport-fixed overlay follows
- * the measured `--header-height` (header_height_controller.js). It used to be
+ * the measured `--header-height` (header_height_controller.js); the live top-bar
+ * height `--topbar-h` (templates/navigation/_critical_css.html.twig, F-03) equals
+ * it while the old header is the bar - NAV-03 moves these checks to the new
+ * top bar's selectors. It used to be
  * `position: fixed` with `main` reserving a hardcoded 97/101px for it, so any
  * header taller than the guess - the Spanish navbar wraps, the sign-in migration
  * strip once sat above the topbar - simply covered the page heading.
@@ -40,6 +43,7 @@ final class StickyHeaderTest extends AbstractPantherTestCase
                         headerTop: Math.round(headerRect.top),
                         headingClear: Math.round(heading.getBoundingClientRect().top - headerRect.bottom),
                         cssVariable: parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--header-height')),
+                        liveVariable: parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--topbar-h')),
                         searchTop: parseFloat(getComputedStyle(document.querySelector('.global-search')).top)
                     };
                 JS);
@@ -57,6 +61,8 @@ final class StickyHeaderTest extends AbstractPantherTestCase
 
                 // Overlays that cannot be in the flow track the measured height
                 self::assertEqualsWithDelta($geometry['headerHeight'], $geometry['cssVariable'], 1.0, $message);
+                // Scroll margins read the live height (F-03): the old header never hides, so it is the same
+                self::assertEqualsWithDelta($geometry['headerHeight'], $geometry['liveVariable'], 1.0, $message);
                 self::assertGreaterThanOrEqual($geometry['headerHeight'], $geometry['searchTop'], $message);
             }
         }

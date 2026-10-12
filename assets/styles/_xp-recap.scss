@@ -318,12 +318,13 @@
 .recap-sheet {
   position: fixed;
   right: 0;
-  bottom: 0;
-  left: 0;
-  z-index: 1045;                         // above the page and its sticky bars, below Bootstrap modals
+  // .75rem above the phone bottom bar and the home indicator, centred right of the desktop column/rail (F-03)
+  @include nav-bottom(.75rem);
+  left: var(--nav-left, 0px);
+  z-index: $z-sheet;                     // above the page and its sticky bars, below Bootstrap modals
   display: flex;
   justify-content: center;
-  padding: 0 .75rem calc(.75rem + env(safe-area-inset-bottom));
+  padding: 0 .75rem;
   pointer-events: none;
 
   &[hidden] {

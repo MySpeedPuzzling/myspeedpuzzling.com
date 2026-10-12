@@ -107,6 +107,7 @@
     position: sticky;
     top: calc(var(--header-height, 97px) + .5rem);
     z-index: 5;
+    @include nav-follow-topbar;
 }
 
 .seating-first-input {
@@ -126,8 +127,9 @@
 
 .seating-toast-region {
     position: fixed;
-    left: 50%;
-    bottom: 1rem;
+    // Above the phone bottom bar, centred right of the desktop column/rail (F-03)
+    @include nav-center-x;
+    @include nav-bottom(1rem, $safe-area: false);
     transform: translateX(-50%);
     z-index: 1080;
     width: max-content;

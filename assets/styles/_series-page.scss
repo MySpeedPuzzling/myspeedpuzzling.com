@@ -329,7 +329,7 @@ a.ev-next-title {
 
 // Where the month select scrolls to - clear of the sticky site header
 .ev-detail-series [data-series-jump] {
-    scroll-margin-top: calc(var(--header-height, 101px) + 1rem);
+    scroll-margin-top: calc(var(--topbar-h, 0px) + 1rem);
 }
 
 // One month of a past year: a native <details>, the newest month of each year open

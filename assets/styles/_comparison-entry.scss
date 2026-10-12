@@ -10,7 +10,8 @@ $comparison-launcher-count-bg: #d63c42;
 .comparison-launcher {
     position: fixed;
     right: $comparison-launcher-offset;
-    bottom: calc(#{$comparison-launcher-offset} + env(safe-area-inset-bottom));
+    // Above the phone bottom bar and the home indicator (F-03)
+    @include nav-bottom($comparison-launcher-offset);
     // Over the page, under the dropdowns (1000), the site header (1020+), modals and toasts
     z-index: $zindex-dropdown - 10;
     display: inline-flex;

@@ -166,7 +166,7 @@
   display: block;
   position: fixed;
   right: -($btn-scroll-top-size * 1.5);
-  bottom: $spacer * 1.25;
+  @include nav-bottom($spacer * 1.25, $safe-area: false);
   width: $btn-scroll-top-size;
   height: $btn-scroll-top-size;
   transition: $btn-scroll-top-transition;

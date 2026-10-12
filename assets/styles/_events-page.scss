@@ -77,13 +77,14 @@
     position: sticky;
     top: var(--header-height, 101px);
     // Under the site header (.sticky-top) and its menus, over the page
-    z-index: $zindex-sticky - 10;
+    z-index: $z-sub-bar;
     margin: 0 -1rem;
     padding: .5rem 1rem .625rem;
     background: rgba($white, .94);
     backdrop-filter: blur(6px);
     border-bottom: 1px solid transparent;
     transition: transform .2s ease, opacity .2s ease, border-color .2s ease;
+    @include nav-follow-topbar((transform .2s ease, opacity .2s ease, border-color .2s ease));
 
     &.is-stuck {
         border-bottom-color: $ev-line;
@@ -322,6 +323,7 @@
         display: block;
         position: sticky;
         top: calc(#{$ev-sticky-top} + .75rem);
+        @include nav-follow-topbar;
         // Countries + mini calendar can be taller than a laptop screen: the column scrolls on its own instead of
         // keeping the mini calendar out of reach below the fold
         max-height: calc(100vh - #{$ev-sticky-top} - 1.5rem);
@@ -725,6 +727,8 @@ html.ev-sheet-open {
 .ev-sheet {
     position: fixed;
     inset: 0;
+    // The phone bottom bar stays usable under the sheet and its scrim (F-03, decision 18)
+    bottom: var(--bottom-nav-height, 0px);
     z-index: $zindex-modal + 5;
     display: none;
     align-items: flex-end;
@@ -748,7 +752,7 @@ html.ev-sheet-open {
     width: 100%;
     max-height: 85vh;
     max-height: 85dvh;
-    padding-bottom: env(safe-area-inset-bottom);
+    padding-bottom: nav-safe-bottom-padding();
     border-radius: 18px 18px 0 0;
     background: $white;
     box-shadow: 0 8px 24px rgba($black, .2);

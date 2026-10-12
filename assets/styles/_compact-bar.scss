@@ -16,11 +16,12 @@
 // The bar that takes the header's place once its buttons scroll away (compact_bar_controller.js)
 .compact-bar {
     position: fixed;
+    // Under the top bar (static height, the hide follows through nav-follow-topbar), right of the desktop column/rail
     top: var(--header-height, 97px);
-    left: 0;
+    left: var(--nav-left, 0px);
     right: 0;
     // Under the site header (.sticky-top, $zindex-sticky 1020) and its dropdowns, over the page's content
-    z-index: $zindex-sticky - 10;
+    z-index: $z-sub-bar;
     background: #fff;
     border-bottom: 1px solid #eceef2;
     box-shadow: 0 4px 12px rgba(0, 0, 0, .05);
@@ -28,12 +29,14 @@
     opacity: 0;
     visibility: hidden;
     transition: transform .2s ease, opacity .2s ease, visibility 0s linear .2s;
+    @include nav-follow-topbar((transform .2s ease, opacity .2s ease, visibility 0s linear .2s));
 
     &.is-visible {
         transform: none;
         opacity: 1;
         visibility: visible;
         transition: transform .2s ease, opacity .2s ease;
+        @include nav-follow-topbar((transform .2s ease, opacity .2s ease));
     }
 
     @media (prefers-reduced-motion: reduce) {

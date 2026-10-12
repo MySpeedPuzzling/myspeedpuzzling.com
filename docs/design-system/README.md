@@ -89,6 +89,44 @@ font-display: optional; // No FOUT - invisible text until font loads, falls back
 | xl | 1280px |
 | xxl | 1400px |
 
+The navigation switches between phone and desktop chrome on its own condition, not on a breakpoint: desktop = `(min-width: 768px) and (min-height: 501px), (min-width: 768px) and (pointer: fine)`, phone = everything else (a landscape phone stays a phone). SCSS: `@include nav-desktop` / `@include nav-phone` (`assets/styles/_nav-tokens.scss`).
+
+### Layout variables (navigation chrome)
+
+Set in critical CSS only (`templates/navigation/_critical_css.html.twig`), never from JavaScript - the browser decides from media queries and `<html>` attributes before the first paint (guarded by `tests/Navigation/NavLayoutCssTest.php`):
+
+| Variable | Meaning | Used by |
+|---|---|---|
+| `--header-height` | Static height of the top bar - the anchor of sticky/fixed sub-bars (`top: var(--header-height)`) | sub-bars under the bar |
+| `--topbar-h` | Live height of the top bar, 0 while it is hidden | `scroll-margin-top`, scroll offsets in JS |
+| `--topbar-shift` | How far the hidden top bar moved up | `@include nav-follow-topbar` (a `translate`, never an animated `top`) |
+| `--bottom-nav-height` | Phone bottom bar + safe area; 0 without a visible bar, with a running stopwatch and in the app | `@include nav-bottom($gap)` on every fixed bottom element |
+| `--nav-left` | Width of the desktop rail / docked Menu column (0, 88 or 256 px) | page-wide fixed bars: `left: var(--nav-left)` or `@include nav-center-x` |
+| `--nav-*`, `--tabbar-h`, `--desk-topbar-h`, … | The bars' colours and sizes (navigation README §5) | the bars |
+
+A closed overlay (global search and its scrim, the player card layer, the Menu shell, sheets) is `display: none`, never only transparent - Safari 26 samples transparent fixed layers for its toolbar tint.
+
+### Layers (z-index scale)
+
+`$z-*` in `assets/styles/_nav-tokens.scss`; Bootstrap's own values where they match. A dialog opened with `showModal()` (desktop Menu overlay, in-page confirmations) sits in the browser's top layer above all of these.
+
+| z-index | Layer |
+|---|---|
+| < 100 | anything inside the page content (sticky table heads, the multiscan action bar 9, the old global search 10/20) |
+| 990 | comparison launcher pill (under dropdowns) |
+| 1000 | Bootstrap dropdowns |
+| 1010 | page sub-bars under the top bar: compact bar, events toolbar (`$z-sub-bar`) |
+| 1020 | content `.sticky-top` (`$z-content-sticky`) |
+| 1029 | homepage language banner (just under the bar) |
+| 1030 | top bar, phone bottom bar, desktop rail / docked column (`$z-site-header`, `$z-bottom-nav`, `$z-nav-column`) |
+| 1035 | floating selection bar of the puzzle lists (`$z-selection-bar`) |
+| 1040 | the Menu shell `#menu-layer` (non-modal); sheet scrims (`$z-menu-layer`) |
+| 1045 | sheets and layers: player card, events ⋯ menu, XP recap sheet, multiscan sheet (`$z-sheet`) |
+| 1050 / 1055 | Bootstrap modal backdrop / modal (`$z-modal-backdrop`, `$z-modal`) |
+| 1060 | toasts (`#toast-container`, `$z-toast`); events country sheet |
+| 1080 | tooltips (`$z-tooltip`); seating toasts |
+| top layer | `showModal()` dialogs |
+
 ## Components
 
 ### Navbar

@@ -186,7 +186,10 @@ $ev-sticky-top: calc(var(--header-height, 101px) + var(--ev-toolbar-height, 0px)
     font-weight: 600;
     letter-spacing: .07em;
     text-transform: uppercase;
+    // Slides up under the events toolbar as --ev-toolbar-height changes (events_page_controller.js) - not with the top
+    // bar, which it follows through the translate (NavLayoutCssTest lists this `top` transition as the one exception)
     transition: top .2s ease;
+    @include nav-follow-topbar((top .2s ease));
 
     > span:first-child {
         min-width: 0;

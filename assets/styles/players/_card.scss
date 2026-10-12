@@ -6,7 +6,9 @@
 .players-card-layer {
     position: fixed;
     inset: 0;
-    z-index: 1045;
+    // The phone bottom bar stays usable under the card and its scrim (F-03, decision 18)
+    bottom: var(--bottom-nav-height, 0px);
+    z-index: $z-sheet;
     pointer-events: none;
 
     &[hidden] {
@@ -50,13 +52,13 @@
     .is-sheet & {
         top: auto;
         right: 0;
-        bottom: 0;
+        bottom: var(--bottom-nav-height, 0px);
         left: 0;
         width: auto;
         max-width: none;
         max-height: 85vh;
         border-radius: 1rem 1rem 0 0;
-        padding-bottom: env(safe-area-inset-bottom);
+        padding-bottom: nav-safe-bottom-padding();
 
         &::before {
             content: "";

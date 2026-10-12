@@ -366,7 +366,7 @@ $people-panel-width: 24rem;
 
 .sheet-bulk-bar {
     position: fixed;
-    bottom: 1rem;
+    @include nav-bottom(1rem, $safe-area: false);
     left: 50%;
     z-index: $zindex-sticky + 1;
     display: flex;

@@ -40,6 +40,17 @@
     }
 }
 
+// The phone bottom bar stays visible and usable under the dynamic modal and every Bootstrap backdrop: both end at
+// --bottom-nav-height (0 while there is no bar, on desktop and in the app; decision 18). A `showModal()` dialog is in
+// the top layer and still covers it.
+#dynamic-modal-container {
+    height: calc(100% - var(--bottom-nav-height, 0px));
+}
+
+.modal-backdrop {
+    height: calc(100vh - var(--bottom-nav-height, 0px));
+}
+
 // data-modal-sheet: on phones a near full screen sheet - a strip of the dimmed page stays visible above it,
 // so it still reads as a layer over the page (iOS "page sheet"), not as a new page
 //
@@ -49,8 +60,8 @@
 // scrolls - only the sheet's body does.
 @media (max-width: 575.98px) {
     #dynamic-modal-container:has(.modal-sheet-sm-down) {
-        height: 100%;
-        height: 100dvh;
+        height: calc(100% - var(--bottom-nav-height, 0px));
+        height: calc(100dvh - var(--bottom-nav-height, 0px));
         overflow: hidden;
     }
 
@@ -58,7 +69,7 @@
         width: 100%;
         max-width: none;
         height: calc(100% - 12px);
-        height: calc(100dvh - 12px);
+        height: calc(100dvh - 12px - var(--bottom-nav-height, 0px));
         min-height: 0;
         margin: 12px 0 0;
         align-items: stretch;

@@ -295,7 +295,9 @@
 .homepage-locale-banner {
     position: fixed;
     top: calc(var(--header-height) + 7px);
-    left: 50%;
+    // Centred right of the desktop column/rail, follows the top bar's hide (F-03)
+    @include nav-center-x;
+    @include nav-follow-topbar;
     z-index: 1029; // just below the fixed header (1030)
     display: flex;
     align-items: center;

@@ -95,8 +95,8 @@ Evidence = commit hash(es) · test names · command output summary · screenshot
 | CARD-06 | Budget | todo | | |
 | CARD-07 | Measurement | todo | | |
 | TEASE-01 | Teaser scope for this release | todo | | |
-| GEST-01 | Back closes the top layer | in-progress | | |
-| GEST-02 | Swipe down closes bottom sheets | todo | | |
+| GEST-01 | Back closes the top layer | verified | 34a1361d · LayerHistoryScriptTest (node) OK (25/211: owner set — first resume doesn't restart Turbo, swap = replaceState no back(), popstate closes, replace marking incl. forms, data-turbo=false → location.replace, native → no push, identity restore) · TurboHistoryOwnershipTest OK (no direct pushState / Turbo history callers left) · TurboContractScriptTest OK (Turbo 8.0.23 internals) · AchievementInfoSheetTest OK, LiveResultsScriptsTest OK, NativeAppStepAsideTest OK, NavInstrumentationScriptTest OK (Back line unchanged, layer closes not counted) · grep CloseWatcher → none · `navlib.py check GEST-01` 52/52 PASS (Pixel + iOS UA, test page + achievement sheet: back()/×/Esc/scrim close with probe holding, one more back leaves, link inside = replace → opener page at pre-open index, Forward doesn't reopen, no console errors) + GEST-01-live-results 5/5 | layer re-runs: MENU-02b, HELP-01b, CARD-01a, NAV-03 search view, NAV-13 overlay, PROF-05c. PROF-05c must call replacePageState on its first entry. `data-turbo=false` *forms* in a layer still add an entry (plan covers links). Docs to fix in DOC-01: xp-levels design-spec.md:390, hotwire guide ~260/~1072 |
+| GEST-02 | Swipe down closes bottom sheets | in-progress (worktree navigation-c, branch nav/gest-02, web nav-web-c :18082) | | |
 | GEST-03 | Tap the active tab | todo | | |
 | GEST-04 | Pressed states within 100 ms | todo | | |
 | GEST-05 | No accidental zoom | todo | | |
@@ -107,7 +107,7 @@ Evidence = commit hash(es) · test names · command output summary · screenshot
 | GEST-10 | Haptics + real iOS switches | todo | | |
 | GEST-11 | Pressed feedback per platform | todo | | |
 | GEST-12 | Place switches per platform | todo | | |
-| GEST-13 | In-page confirmations | todo | | |
+| GEST-13 | In-page confirmations | in-progress | | |
 | GEST-14 | Instant Back step 1: keep bfcache restores | todo | | |
 | GEST-15 | Instant Back step 2: Turbo restores browse pages | todo | | iOS only if GEST-13 is verified (`INSTANT_BACK_IOS`) |
 | GEST-16 | Swipe between Home's feeds | todo | | |

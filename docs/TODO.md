@@ -126,6 +126,14 @@ that would otherwise be forgotten. Newest section on top.
   `convert-to-series` with `keepAsEdition: false` + an edition backfill (survey production first).
 - [ ] Post-launch (~2026-11-09): how often players use S1 (typing an edition), the open short list and "change";
   how many new series-level times stay unmatched per series.
+- [ ] **"Date finished" is prefilled with the server's (UTC) day, not the player's**: `PuzzleAddFormData` and
+  `EditPuzzleSolvingTimeFormData` set `finishedAt = new DateTimeImmutable()` and PHP runs in UTC, so a solve logged in
+  the Americas in the evening (after ~19:00-20:00 local = midnight UTC) is saved as the next day unless the player
+  changes the date. Found on Canadian Speed Puzzlers (2026-10-13, MSP #270): their evening events' results land a day
+  late (`finished_at` = next day, `tracked_at` 00-05 UTC), so the ±1-day date rule picks the wrong edition or none when
+  editions are on consecutive days (BYOP Tue/Wed), and calendars, streaks and "today" stats shift too. Fix: prefill
+  from the browser's local date (or the player's time zone), never the server day - check every entry point (add form,
+  stopwatch finish, multiscan quick-add, API v1 default); dates already saved stay as they are.
 
 ## Organizations and drafts (`docs/features/organizations/README.md`, PR #252)
 

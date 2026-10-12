@@ -8954,3 +8954,47 @@ leaderboards:
 modal:
     load_failed: "Das konnte nicht geladen werden. Bitte Verbindung prüfen und erneut versuchen."
     try_again: "Erneut versuchen"
+
+community_page:
+    meta_title: "Speedpuzzle-Community: Bestenlisten, Puzzler und Veranstaltungen"
+    meta_description: "Entdecken Sie die Speedpuzzle-Community: Bestenlisten nach Teilezahl, Puzzler aus aller Welt zum Folgen und Vergleichen sowie Puzzle-Veranstaltungen in Ihrer Nähe und online."
+    title: "Community"
+    intro: "Bestenlisten, Menschen und Veranstaltungen aus der Welt des Speedpuzzelns."
+    leaderboards:
+        description: "Die schnellsten Puzzler nach Teilezahl, das MSP Rating und weitere Ranglisten."
+        cta: "Alle Bestenlisten"
+    puzzlers:
+        description: "Finden Sie Puzzler, denen Sie folgen möchten, vergleichen Sie Ihre Zeiten und sehen Sie, wer gerade einen Lauf hat."
+        cta: "Puzzler finden"
+    events:
+        description: "Wettbewerbe und Puzzle-Veranstaltungen – vor Ort in Ihrer Nähe und online."
+        cta: "Alle Veranstaltungen"
+
+add_intro:
+    meta:
+        title: "Puzzles kostenlos erfassen"
+    title: "Erfassen Sie Ihre Puzzles kostenlos"
+    lead: "Halten Sie jedes fertige Puzzle auf MySpeedPuzzling fest – mit Zeit oder ohne. Sie brauchen nur ein kostenloses Konto."
+    point_speed: "Speed Puzzling: Erfassen Sie Ihre Zeiten, sehen Sie Ihren Rang bei jedem Puzzle und klettern Sie in den Bestenlisten nach oben."
+    point_relax: "Relax: Sie puzzeln nur zum Vergnügen? Erfassen Sie fertige Puzzles ganz ohne Zeit."
+    point_library: "Ihre Bibliothek: Sammlung, Wunschliste und verliehene Puzzles an einem Ort."
+    join: "Kostenlos registrieren"
+    sign_in: "Anmelden"
+    tracker_app: "Die Puzzle Tracker App holen"
+
+help:
+    title: "Hilfe & Feedback"
+    meta:
+        title: "Hilfe & Feedback"
+    close: "Schließen"
+
+where_did_it_go:
+    title: "Wo ist es jetzt?"
+    meta_description: "Wo Sie jeden Eintrag der bisherigen Menüs, der oberen Leiste und der Fußzeile von MySpeedPuzzling jetzt finden."
+    intro: "Wir haben die Navigation neu geordnet. Hier sehen Sie, wo jeder Eintrag der bisherigen Menüs, der oberen Leiste und der Fußzeile jetzt zu finden ist."
+    placeholder: "Hier erscheint bald die vollständige Liste der bisherigen Einträge und ihrer neuen Orte."
+
+nav:
+    menu:
+        title: "Menü"
+        page_intro: "Alle Seiten und Einstellungen von MySpeedPuzzling an einem Ort."

@@ -8974,3 +8974,47 @@ leaderboards:
 modal:
     load_failed: "Impossible de charger ce contenu. Vérifiez votre connexion et réessayez."
     try_again: "Réessayer"
+
+community_page:
+    meta_title: "Communauté du speed puzzling : classements, puzzleurs et événements"
+    meta_description: "Découvrez la communauté du speed puzzling : classements par nombre de pièces, puzzleurs du monde entier à suivre et à comparer, et événements de puzzle près de chez vous et en ligne."
+    title: "Communauté"
+    intro: "Classements, personnes et événements du monde du speed puzzling."
+    leaderboards:
+        description: "Les puzzleurs les plus rapides par nombre de pièces, le MSP Rating et d'autres classements."
+        cta: "Tous les classements"
+    puzzlers:
+        description: "Trouvez des puzzleurs à suivre, comparez vos temps et voyez qui est en pleine forme."
+        cta: "Trouver des puzzleurs"
+    events:
+        description: "Compétitions et événements de puzzle, en personne près de chez vous et en ligne."
+        cta: "Tous les événements"
+
+add_intro:
+    meta:
+        title: "Suivez vos puzzles gratuitement"
+    title: "Suivez vos puzzles gratuitement"
+    lead: "Gardez sur MySpeedPuzzling chaque puzzle que vous terminez, avec ou sans temps. Un compte gratuit suffit."
+    point_speed: "Speed puzzling : enregistrez vos temps, voyez votre rang sur chaque puzzle et grimpez dans les classements."
+    point_relax: "Relax : vous faites des puzzles pour le plaisir ? Enregistrez ceux que vous terminez, sans chronomètre."
+    point_library: "Votre bibliothèque : collection, liste de souhaits et puzzles prêtés au même endroit."
+    join: "Inscription gratuite"
+    sign_in: "Se connecter"
+    tracker_app: "Télécharger l'application Puzzle Tracker"
+
+help:
+    title: "Aide et commentaires"
+    meta:
+        title: "Aide et commentaires"
+    close: "Fermer"
+
+where_did_it_go:
+    title: "Où est-ce passé ?"
+    meta_description: "Où trouver désormais chaque élément des anciens menus, de la barre du haut et du pied de page de MySpeedPuzzling."
+    intro: "Nous avons réorganisé la navigation. Vous voyez ici où se trouve désormais chaque élément des anciens menus, de la barre du haut et du pied de page."
+    placeholder: "La liste complète des anciens éléments et de leur nouvel emplacement apparaîtra bientôt ici."
+
+nav:
+    menu:
+        title: "Menu"
+        page_intro: "Toutes les pages et tous les réglages de MySpeedPuzzling au même endroit."

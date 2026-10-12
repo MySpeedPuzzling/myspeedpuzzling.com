@@ -4,7 +4,7 @@
 
 Every destination linked by a navigation surface (bars, rail, the Menu, the account menu, the Help sheet, the footer, the community landing, the chips) is a Menu row, a search-only entry or "not in Menu" with a reason - the placement rulebook of the navigation README (§7). Labels are the English ones; moderator and admin rows stay English in every locale.
 
-126 entries: 73 phone-panel rows, 73 docked-column rows, 32 search-only, 18 not in the Menu.
+132 entries: 75 phone-panel rows, 76 docked-column rows, 32 search-only, 21 not in the Menu.
 
 ## Phone panel (☰ Menu)
 
@@ -45,6 +45,7 @@ Every destination linked by a navigation surface (bars, rail, the Menu, the acco
 
 | Pos | Entry | Label | Target | Audience | Kind | Count | Place | Rule | Since | Reason |
 |---|---|---|---|---|---|---|---|---|---|---|
+| 10 | `results` | Solved puzzles | `player_results` {playerId: viewer} | signed_in | link |  | profile | Q8 | 2026-10-12 | About one player, others may see it: player tab; your own also a Menu row (README §4.7). Also: player header tab Results; Overview "All N results" |
 | 20 | `favorites` | Favorites | `player_favorite_puzzlers` {playerId: viewer} | signed_in | link |  | profile | Q8 | 2026-10-12 | Owner-only view of your own data: player tab and Menu row. Also: player header tab Favorites |
 | 30 | `statistics` | Statistics | `player_statistics` {playerId: viewer} | signed_in | link |  | profile | Q8 | 2026-10-12 | About one player, others may see it: player tab; your own also a Menu row. Also: player header tab Statistics |
 | 40 | `compare` | Compare | `comparison`; also active on compare_players | signed_in | link | line_up | community/puzzlers | Q8 | 2026-10-12 | Your line-ups (Community › Puzzlers is its home, README §7). Also: player header compare button; Players page |
@@ -94,7 +95,7 @@ Every destination linked by a navigation surface (bars, rail, the Menu, the acco
 
 | Pos | Entry | Label | Target | Audience | Kind | Count | Place | Rule | Since | Reason |
 |---|---|---|---|---|---|---|---|---|---|---|
-| 10 | `add` | Add | `puzzle_add`; also active on legacy_add_time, edit_time, added_time_recap, added_tracking_recap | everyone | link |  | add | Q4 | 2026-10-12 | Records a time or a puzzle: the Add page (D7); also the Add tab and the + Add button. Also: Add tab; desktop + Add button |
+| 10 | `add` | Add | `puzzle_add` (guests: `add_intro`); also active on legacy_add_time, edit_time, added_time_recap, added_tracking_recap | everyone | link |  | add | Q4 | 2026-10-12 | Records a time or a puzzle: the Add page (D7); also the Add tab and the + Add button. Also: Add tab; desktop + Add button |
 | 20 | `stopwatch` | Stopwatch | `stopwatch`; also active on stopwatch_puzzle, finish_stopwatch | signed_in | link | stopwatch | add | Q4 | 2026-10-12 | Records a time: Add › Speed puzzling › Use the stopwatch. Also: Add page; running stopwatch pill |
 | 30 | `multiscan` | Scanning | `multiscan` | signed_in | link |  | add | Q4 | 2026-10-12 | Records puzzles: Add › Collection › Scan several boxes. Also: Add page |
 | 40 | `add_event` | Add Event | `add_competition` | signed_in | link |  | community/events | Q4 | 2026-10-12 | Creates an event; also the button on the events page. Also: events page button |
@@ -114,13 +115,14 @@ Every destination linked by a navigation surface (bars, rail, the Menu, the acco
 
 | Pos | Entry | Label | Target | Audience | Kind | Count | Place | Rule | Since | Reason |
 |---|---|---|---|---|---|---|---|---|---|---|
-| 10 | `send_feedback` | Send feedback | `feedback` | signed_in | help_sheet |  | none | Q7 | 2026-10-12 | Collects feedback: opens the Help sheet (D17); guests get "Sign in to send feedback" there. Also: top bar ? / Feedback; end-of-page line |
+| 10 | `send_feedback` | Send feedback | `help` | signed_in | help_sheet |  | none | Q7 | 2026-10-12 | Collects feedback: opens the Help sheet (D17); guests get "Sign in to send feedback" there. Also: top bar ? / Feedback; end-of-page line |
 | 20 | `methodology` | Difficulty & Rating Methodology | `methodology` | everyone | link |  | none | Q7 | 2026-10-12 | Explains or helps: Help & learn (and the Help sheet) |
 | 30 | `feature_requests` | Feature Requests | `feature_requests`; also active on feature_request_detail, feature_request_edit | everyone | link |  | none | Q7 | 2026-10-12 | Explains or helps: Help & learn (and the Help sheet) |
 | 40 | `getting_started` | Getting started | `getting_started` | everyone | link |  | none | Q7 | 2026-10-12 | Explains or helps: Help & learn (and the Help sheet) |
 | 50 | `faq` | FAQ | `faq` | everyone | link |  | none | Q7 | 2026-10-12 | Explains or helps: Help & learn (and the Help sheet) |
 | 60 | `guides` | Speed Puzzling Guides | `guides`; also active on guide_average_puzzle_time, guide_puzzle_time_by_pieces, guide_puzzle_time_for_pieces, guide_puzzle_time_pairs_and_teams, guide_speed_puzzling_tips, guide_what_is_speed_puzzling | everyone | link |  | none | Q7 | 2026-10-12 | Explains or helps: Help & learn (and the Help sheet) |
 | 70 | `progression` | How progress works | `progression_hub` | xp_visible | link |  | none | Q7 | 2026-10-12 | Explains or helps: Help & learn (and the Help sheet) |
+| 80 | `where_did_it_go` | Where did it go? | `where_did_it_go` | signed_in | link |  | none | Q7 | 2026-10-12 | Explains the new navigation: every old menu item and where it is now (README §8) |
 | 90 | `language` | Language | the current page in another language | everyone | language |  | none | Q7 | 2026-10-12 | Inline language switch: the current page in the other locales. Also: footer language menu; Help sheet |
 
 ### About
@@ -162,6 +164,7 @@ Every destination linked by a navigation surface (bars, rail, the Menu, the acco
 
 | Pos | Entry | Label | Target | Audience | Kind | Count | Place | Rule | Since | Reason |
 |---|---|---|---|---|---|---|---|---|---|---|
+| 0 | `community_place` | Community | `community` | everyone | place |  | community | Q10 | 2026-10-12 | Place Community = its landing: Leaderboards · Puzzlers · Events (D1, README §4.9) |
 | 10 | `leaderboards` | Leaderboards | `ladder`; also active on ladder_country, ladder_solo_500_pieces, ladder_solo_500_pieces_country, ladder_solo_1000_pieces, ladder_solo_1000_pieces_country, ladder_pairs_500_pieces, ladder_pairs_500_pieces_country, ladder_pairs_1000_pieces, ladder_pairs_1000_pieces_country, ladder_groups_500_pieces, ladder_groups_500_pieces_country, ladder_groups_1000_pieces, ladder_groups_1000_pieces_country | everyone | link |  | community/leaderboards | Q9 | 2026-10-12 | Rankings are community content (Community › Leaderboards). Also: Community landing; section chips |
 | 20 | `msp_rating` | MSP Rating | `msp_rating_ladder`; also active on legacy_msp_elo_ladder | everyone | link |  | community/leaderboards | Q9 | 2026-10-12 | A ranking: Community › Leaderboards |
 | 30 | `level_boards` | Level leaderboard | `level_leaderboard`; also active on achievement_points_leaderboard, karma_leaderboard, legacy_xp_leaderboard | xp_visible | link |  | community/leaderboards | Q9 | 2026-10-12 | Level, achievement and karma boards: Community › Leaderboards (XP gate) |
@@ -202,6 +205,7 @@ Every destination linked by a navigation surface (bars, rail, the Menu, the acco
 | Pos | Entry | Label | Target | Audience | Kind | Count | Place | Rule | Since | Reason |
 |---|---|---|---|---|---|---|---|---|---|---|
 | 0 | `profile` | Profile | `player_profile` {playerId: viewer}; also active on my_profile | signed_in | place |  | profile | Q10 | 2026-10-12 | Place Profile = your own profile page, content first (D1, D9); heads Your puzzling in the column |
+| 10 | `results` | Solved puzzles | `player_results` {playerId: viewer} | signed_in | link |  | profile | Q8 | 2026-10-12 | About one player, others may see it: player tab; your own also a Menu row (README §4.7). Also: player header tab Results; Overview "All N results" |
 | 20 | `favorites` | Favorites | `player_favorite_puzzlers` {playerId: viewer} | signed_in | link |  | profile | Q8 | 2026-10-12 | Owner-only view of your own data: player tab and Menu row. Also: player header tab Favorites |
 | 30 | `statistics` | Statistics | `player_statistics` {playerId: viewer} | signed_in | link |  | profile | Q8 | 2026-10-12 | About one player, others may see it: player tab; your own also a Menu row. Also: player header tab Statistics |
 | 40 | `compare` | Compare | `comparison`; also active on compare_players | signed_in | link | line_up | community/puzzlers | Q8 | 2026-10-12 | Your line-ups (Community › Puzzlers is its home, README §7). Also: player header compare button; Players page |
@@ -230,7 +234,7 @@ Every destination linked by a navigation surface (bars, rail, the Menu, the acco
 
 | Pos | Entry | Label | Target | Audience | Kind | Count | Place | Rule | Since | Reason |
 |---|---|---|---|---|---|---|---|---|---|---|
-| 10 | `add` | Add | `puzzle_add`; also active on legacy_add_time, edit_time, added_time_recap, added_tracking_recap | everyone | link |  | add | Q4 | 2026-10-12 | Records a time or a puzzle: the Add page (D7); also the Add tab and the + Add button. Also: Add tab; desktop + Add button |
+| 10 | `add` | Add | `puzzle_add` (guests: `add_intro`); also active on legacy_add_time, edit_time, added_time_recap, added_tracking_recap | everyone | link |  | add | Q4 | 2026-10-12 | Records a time or a puzzle: the Add page (D7); also the Add tab and the + Add button. Also: Add tab; desktop + Add button |
 | 20 | `stopwatch` | Stopwatch | `stopwatch`; also active on stopwatch_puzzle, finish_stopwatch | signed_in | link | stopwatch | add | Q4 | 2026-10-12 | Records a time: Add › Speed puzzling › Use the stopwatch. Also: Add page; running stopwatch pill |
 | 30 | `multiscan` | Scanning | `multiscan` | signed_in | link |  | add | Q4 | 2026-10-12 | Records puzzles: Add › Collection › Scan several boxes. Also: Add page |
 | 40 | `add_event` | Add Event | `add_competition` | signed_in | link |  | community/events | Q4 | 2026-10-12 | Creates an event; also the button on the events page. Also: events page button |
@@ -250,13 +254,14 @@ Every destination linked by a navigation surface (bars, rail, the Menu, the acco
 
 | Pos | Entry | Label | Target | Audience | Kind | Count | Place | Rule | Since | Reason |
 |---|---|---|---|---|---|---|---|---|---|---|
-| 10 | `send_feedback` | Send feedback | `feedback` | signed_in | help_sheet |  | none | Q7 | 2026-10-12 | Collects feedback: opens the Help sheet (D17); guests get "Sign in to send feedback" there. Also: top bar ? / Feedback; end-of-page line |
+| 10 | `send_feedback` | Send feedback | `help` | signed_in | help_sheet |  | none | Q7 | 2026-10-12 | Collects feedback: opens the Help sheet (D17); guests get "Sign in to send feedback" there. Also: top bar ? / Feedback; end-of-page line |
 | 20 | `methodology` | Difficulty & Rating Methodology | `methodology` | everyone | link |  | none | Q7 | 2026-10-12 | Explains or helps: Help & learn (and the Help sheet) |
 | 30 | `feature_requests` | Feature Requests | `feature_requests`; also active on feature_request_detail, feature_request_edit | everyone | link |  | none | Q7 | 2026-10-12 | Explains or helps: Help & learn (and the Help sheet) |
 | 40 | `getting_started` | Getting started | `getting_started` | everyone | link |  | none | Q7 | 2026-10-12 | Explains or helps: Help & learn (and the Help sheet) |
 | 50 | `faq` | FAQ | `faq` | everyone | link |  | none | Q7 | 2026-10-12 | Explains or helps: Help & learn (and the Help sheet) |
 | 60 | `guides` | Speed Puzzling Guides | `guides`; also active on guide_average_puzzle_time, guide_puzzle_time_by_pieces, guide_puzzle_time_for_pieces, guide_puzzle_time_pairs_and_teams, guide_speed_puzzling_tips, guide_what_is_speed_puzzling | everyone | link |  | none | Q7 | 2026-10-12 | Explains or helps: Help & learn (and the Help sheet) |
 | 70 | `progression` | How progress works | `progression_hub` | xp_visible | link |  | none | Q7 | 2026-10-12 | Explains or helps: Help & learn (and the Help sheet) |
+| 80 | `where_did_it_go` | Where did it go? | `where_did_it_go` | signed_in | link |  | none | Q7 | 2026-10-12 | Explains the new navigation: every old menu item and where it is now (README §8) |
 | 90 | `language` | Language | the current page in another language | everyone | language |  | none | Q7 | 2026-10-12 | Inline language switch: the current page in the other locales. Also: footer language menu; Help sheet |
 
 ### About
@@ -319,6 +324,9 @@ Linked by a navigation surface, but not a Menu destination - each with why.
 | `notifications` | Notifications | `notifications` | everyone | Q5 | Inbox tab For you, behind the Inbox row and the top-bar Inbox tool; guests have no Inbox (today's guest bell leads to sign in) |
 | `messages` | Messages | `conversations_list` | signed_in | Q5 | Inbox tab Messages (D3) |
 | `register` | Register | `register` | guest | Q5 | The guest card's Join free link |
+| `menu` | Menu | `menu` | everyone | Q5 | Is the Menu: the page behind ☰ and the footer's All pages (no JS, a new tab, the native app) |
+| `help` | Help & feedback | `help` | everyone | Q5 | The ? / Feedback tool of the top bar; its Menu row is send_feedback |
+| `feedback` | Send feedback | `feedback` | signed_in | Q1 | Help sheet form endpoint: the feedback box posts here (decision 76) |
 | `my_profile` | My profile | `my_profile` | everyone | Q8 | Legacy redirect (your profile, or sign in for guests); the Profile tab and the You card link player_profile directly (D9) |
 | `player_page` | Profile | `player_profile` | everyone | Q2 | Object page: others' profiles are reached from lists, search and the player card |
 | `player_card` | Profile | `player_card` | everyone | Q2 | Layer of a player name (D12); its page is the no-JS fallback |
@@ -341,6 +349,7 @@ Linked by a navigation surface, but not a Menu destination - each with why.
 |---|---|---|
 | `home` | not in Menu: Phones: a tab of the bottom bar (D1) | Home / 10 |
 | `puzzles_place` | not in Menu: Phones: a tab of the bottom bar (D1) | Puzzles / 0 |
+| `community_place` | not in Menu: Phones: a tab of the bottom bar (D1) | Community / 0 |
 | `profile` | not in Menu: Phones: a tab of the bottom bar (D1) | Your puzzling / 0 |
 | `you_card` | You / 10 | not in Menu: Desktop: the avatar ▾ account menu (README §4.3) |
 | `inbox` | Inbox / 10 | not in Menu: Desktop: the Inbox tool of the top bar (D3, D16) |

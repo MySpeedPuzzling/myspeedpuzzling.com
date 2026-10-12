@@ -8981,3 +8981,47 @@ leaderboards:
 modal:
     load_failed: "Nepodařilo se to načíst. Zkontroluj připojení a zkus to znovu."
     try_again: "Zkusit znovu"
+
+community_page:
+    meta_title: "Komunita speed puzzlingu: žebříčky, puzzleři a události"
+    meta_description: "Poznej komunitu speed puzzlingu: žebříčky podle počtu dílků, puzzleři z celého světa, které můžeš sledovat a porovnávat, a puzzle akce ve tvém okolí i online."
+    title: "Komunita"
+    intro: "Žebříčky, lidé a události ze světa speed puzzlingu."
+    leaderboards:
+        description: "Nejrychlejší puzzleři podle počtu dílků, MSP Rating a další žebříčky."
+        cta: "Všechny žebříčky"
+    puzzlers:
+        description: "Najdi puzzlery, které chceš sledovat, porovnej své časy a podívej se, komu se zrovna daří."
+        cta: "Najít puzzlery"
+    events:
+        description: "Soutěže a puzzle akce – osobně ve tvém okolí i online."
+        cta: "Všechny události"
+
+add_intro:
+    meta:
+        title: "Zaznamenávej svá puzzle zdarma"
+    title: "Zaznamenávej svá puzzle zdarma"
+    lead: "Ukládej si na MySpeedPuzzling každé puzzle, které dokončíš – s časem i bez něj. Stačí ti účet zdarma."
+    point_speed: "Speed puzzling: zapisuj své časy, sleduj své umístění u každého puzzle a šplhej po žebříčcích."
+    point_relax: "Relax: skládáš jen pro radost? Zapiš si dokončená puzzle, čas není potřeba."
+    point_library: "Tvoje knihovna: sbírka, seznam přání i půjčená puzzle na jednom místě."
+    join: "Zaregistrovat se zdarma"
+    sign_in: "Přihlásit se"
+    tracker_app: "Stáhnout aplikaci Puzzle tracker"
+
+help:
+    title: "Nápověda a zpětná vazba"
+    meta:
+        title: "Nápověda a zpětná vazba"
+    close: "Zavřít"
+
+where_did_it_go:
+    title: "Kam se to přesunulo?"
+    meta_description: "Kde teď najdeš každou položku původních menu, horní lišty a patičky MySpeedPuzzling."
+    intro: "Přestavěli jsme navigaci. Tady uvidíš, kam se přesunula každá položka původních menu, horní lišty a patičky."
+    placeholder: "Brzy tu bude celý seznam původních položek a jejich nových míst."
+
+nav:
+    menu:
+        title: "Menu"
+        page_intro: "Všechny stránky a nastavení MySpeedPuzzling na jednom místě."

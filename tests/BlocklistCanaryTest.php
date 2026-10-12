@@ -82,6 +82,30 @@ final class BlocklistCanaryTest extends WebTestCase
     }
 
     /**
+     * A player's results (navigation PROF-00, `player_results`) list one player's results - for the blocker that player
+     * does not exist, like their profile.
+     */
+    public function testResultsPageOfABlockedPlayerDoesNotExistForTheBlocker(): void
+    {
+        $browser = self::createClient();
+        $url = '/en/player-results/' . self::BLOCKED;
+
+        self::getContainer()->get(Connection::class)->executeStatement(
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, NOW(), 'self')",
+            ['id' => Uuid::uuid7()->toString(), 'blocker' => self::BLOCKER, 'blocked' => self::BLOCKED],
+        );
+
+        TestingLogin::asPlayer($browser, self::BYSTANDER);
+        $browser->request('GET', $url);
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString(self::BLOCKED_NAME, (string) $browser->getResponse()->getContent());
+
+        TestingLogin::asPlayer($browser, self::BLOCKER);
+        $browser->request('GET', $url);
+        self::assertResponseStatusCodeSame(404);
+    }
+
+    /**
      * The favorite puzzlers page is the owner's alone, so there is no bystander to compare with: the blocker sees the
      * follower until the block, and never after it.
      */

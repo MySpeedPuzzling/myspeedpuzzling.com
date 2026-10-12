@@ -88,6 +88,43 @@ final class NavInstrumentationMarkupTest extends WebTestCase
     }
 
     /**
+     * Navigation containers outside the header and footer (implementation plan §3.3): the Community landing (COM-01a)
+     * and the Help sheet (HELP-01a) - its page and its frame. Every link and button there is counted too.
+     *
+     * @return iterable<string, array{string, array<string, string>, string, list<string>}>
+     */
+    public static function navigationContainers(): iterable
+    {
+        yield 'community landing' => ['/en/community', [], '.community-landing', ['community/community/leaderboards', 'community/community/puzzlers', 'community/community/events']];
+        yield 'help page' => ['/en/help', [], 'main [data-help-sheet]', ['help/help/feature_requests', 'help/help/faq']];
+        yield 'help sheet' => ['/en/help', ['HTTP_TURBO_FRAME' => 'modal-frame'], '[data-help-sheet]', ['help/help/close', 'help/help/feature_requests', 'help/help/faq']];
+    }
+
+    /**
+     * @param array<string, string> $server
+     * @param list<string> $expected
+     */
+    #[DataProvider('navigationContainers')]
+    public function testNavigationContainersCarryWellFormedNavIds(string $url, array $server, string $container, array $expected): void
+    {
+        $browser = self::createClient();
+
+        $crawler = $browser->request('GET', $url, server: $server);
+        self::assertResponseIsSuccessful();
+
+        $navIds = [];
+
+        foreach ($crawler->filter($container)->filter('a, button') as $element) {
+            assert($element instanceof DOMElement);
+            $value = $element->getAttribute('data-nav');
+            self::assertMatchesRegularExpression(NavClickController::NAV_PATTERN, $value, sprintf('<%s> "%s" in %s', $element->tagName, trim($element->textContent), $container));
+            $navIds[] = $value;
+        }
+
+        self::assertSame($expected, $navIds);
+    }
+
+    /**
      * One id per destination: two elements share an id only when they are the same destination (the phone and the
      * desktop logo) - the beacon's layout field tells the tiers apart.
      */

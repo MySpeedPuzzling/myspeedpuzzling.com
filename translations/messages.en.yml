@@ -9227,3 +9227,47 @@ leaderboards:
 modal:
     load_failed: "This couldn't be loaded. Check your connection and try again."
     try_again: "Try again"
+
+community_page:
+    meta_title: "Speed puzzling community: leaderboards, puzzlers and events"
+    meta_description: "Meet the speed puzzling community: leaderboards by piece count, puzzlers from around the world to follow and compare, and puzzle events near you and online."
+    title: "Community"
+    intro: "Leaderboards, people and events of the speed puzzling world."
+    leaderboards:
+        description: "The fastest puzzlers by piece count, the MSP Rating and more rankings."
+        cta: "All leaderboards"
+    puzzlers:
+        description: "Find puzzlers to follow, compare your times and see who is on a roll."
+        cta: "Find puzzlers"
+    events:
+        description: "Competitions and puzzle events, in person near you and online."
+        cta: "All events"
+
+add_intro:
+    meta:
+        title: "Track your puzzles for free"
+    title: "Track your puzzles for free"
+    lead: "Keep every puzzle you finish on MySpeedPuzzling - with a time or without. All you need is a free account."
+    point_speed: "Speed puzzling: log your times, see your rank on every puzzle and climb the leaderboards."
+    point_relax: "Relax: puzzling just for fun? Log the puzzles you finish, no time needed."
+    point_library: "Your library: your collection, wishlist and lent puzzles in one place."
+    join: "Join free"
+    sign_in: "Sign in"
+    tracker_app: "Get the Puzzle Tracker app"
+
+help:
+    title: "Help & feedback"
+    meta:
+        title: "Help & feedback"
+    close: "Close"
+
+where_did_it_go:
+    title: "Where did it go?"
+    meta_description: "Where every item of the old MySpeedPuzzling menus, top bar and footer is now."
+    intro: "We rearranged the navigation. Here you can see where every item of the old menus, top bar and footer is now."
+    placeholder: "The full list of the old items and their new places will appear here."
+
+nav:
+    menu:
+        title: "Menu"
+        page_intro: "Every page and setting of MySpeedPuzzling in one place."

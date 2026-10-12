@@ -153,6 +153,56 @@ final class PrivateProfileCanaryTest extends WebTestCase
     }
 
     /**
+     * Her results page (navigation PROF-00, `player_results`) is about her alone: for anybody she did not allow it is
+     * her profile, which explains the privacy (implementation plan decision 69); the friend gets the list.
+     */
+    public function testHerResultsPageOpensForTheFriendOnly(): void
+    {
+        $browser = self::createClient();
+        $url = '/en/player-results/' . self::OWNER;
+
+        $browser->request('GET', $url);
+        self::assertResponseRedirects('/en/player-profile/' . self::OWNER, 302);
+
+        foreach (self::STRANGERS as $strangerId) {
+            TestingLogin::asPlayer($browser, $strangerId);
+            $browser->request('GET', $url);
+            self::assertResponseRedirects('/en/player-profile/' . self::OWNER, 302);
+        }
+
+        TestingLogin::asPlayer($browser, self::FRIEND);
+        self::assertStringContainsString(self::OWNER_NAME, $this->get($browser, $url));
+        self::assertStringContainsString('no-store', (string) $browser->getResponse()->headers->get('Cache-Control'));
+    }
+
+    /**
+     * The results page of a public player narrowed to their pair with her (?team=&category=duo, as a team page links
+     * it): everybody may open it, only the friend sees her name.
+     */
+    public function testResultsOfAPairWithHerNameHerForTheFriendOnly(): void
+    {
+        $browser = self::createClient();
+        $pairId = self::getContainer()->get(Connection::class)->fetchOne(
+            'SELECT puzzling_team_id FROM puzzle_solving_time WHERE id = :id',
+            ['id' => PuzzleSolvingTimeFixture::TIME_12],
+        );
+        self::assertIsString($pairId);
+        $url = '/en/player-results/' . PlayerFixture::PLAYER_REGULAR . '?team=' . $pairId . '&category=duo';
+
+        self::assertStringNotContainsString(self::OWNER_NAME, $this->get($browser, $url), 'A guest is shown a private player.');
+        self::assertStringContainsString('public', (string) $browser->getResponse()->headers->get('Cache-Control'), 'Guest pages stay shared-cacheable.');
+
+        foreach (self::STRANGERS as $who => $strangerId) {
+            TestingLogin::asPlayer($browser, $strangerId);
+            self::assertStringNotContainsString(self::OWNER_NAME, $this->get($browser, $url), "A signed-in stranger ({$who}) is shown a private player.");
+        }
+
+        TestingLogin::asPlayer($browser, self::FRIEND);
+        self::assertStringContainsString(self::OWNER_NAME, $this->get($browser, $url), 'The allowed friend does not see the private player here - the page is no canary.');
+        self::assertStringContainsString('no-store', (string) $browser->getResponse()->headers->get('Cache-Control'));
+    }
+
+    /**
      * Rankings that leave private players OUT leave them out for everybody, the friend included -
      * nobody is ranked differently for different viewers. (Boards that list them as a Hidden Puzzler
      * - pairs, groups, most active - keep every row and position and only name her for the friend.)

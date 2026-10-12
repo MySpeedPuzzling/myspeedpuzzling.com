@@ -1,0 +1,17 @@
+{% extends 'base.html.twig' %}
+
+{#
+    The Menu as a page (docs/features/navigation README §4.12, MENU-02a): the no-JS / new tab / deep link fallback of
+    the Menu panel, and the native app's Menu screen. Skeleton: heading and intro. MENU-01 renders the Menu partial
+    below them as the page's content (id site-menu, phone order, every row) and sets nav_menu_slot_off.
+#}
+
+{% block title %}{{ 'nav.menu.title'|trans }}{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, follow">{% endblock %}
+
+{% block content %}
+    <div class="menu-page mx-auto" style="max-width: 40rem;">
+        <h1 class="mb-2">{{ 'nav.menu.title'|trans }}</h1>
+        <p class="mb-0">{{ 'nav.menu.page_intro'|trans }}</p>
+    </div>
+{% endblock %}

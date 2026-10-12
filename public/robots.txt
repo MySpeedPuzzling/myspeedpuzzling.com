@@ -195,6 +195,15 @@ Disallow: /ja/プレイヤー統計
 Disallow: /fr/statistiques-joueur
 Disallow: /de/spieler-statistiken
 
+# Help & feedback (noindex, follow): every page links help?url=<itself>, one
+# URL per page. The bare page stays crawlable so its noindex is seen.
+Disallow: /napoveda?url=
+Disallow: /en/help?url=
+Disallow: /es/ayuda?url=
+Disallow: /ja/ヘルプ?url=
+Disallow: /fr/aide?url=
+Disallow: /de/hilfe?url=
+
 # Sign-in (noindex, nofollow): every protected URL a crawler follows redirects
 # to its own /login?return=... Also covers /login-link and /login/social.
 Disallow: /login

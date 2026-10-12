@@ -1,0 +1,37 @@
+{% extends 'base.html.twig' %}
+
+{#
+    A player's results (docs/features/navigation README §4.7, PROF-00): the profile's results list - the same
+    PlayerSolvedPuzzles with the same ?team=&category= reading - under the player header. PROF-05a replaces the content,
+    PROF-02 adds the Results tab, PROF-07 decides the indexing (until then noindex).
+#}
+
+{% set is_own_profile = logged_user.profile is not null and logged_user.profile.playerId is same as player.playerId %}
+{# Head metadata follows the player's OWN setting, never the viewer: an allowed friend sees the name on the page, but
+   their browser must not emit an identity for a private profile (as on the profile page) #}
+{% set is_private_in_head = player.isPrivateProfile and not is_own_profile %}
+{% set player_head_name = is_private_in_head
+    ? ('secret_puzzler_name'|trans ~ ' #' ~ player.code|upper)
+    : (player.playerName ?? ('#' ~ player.code|upper))
+%}
+
+{% block title %}{{ 'player_profile.meta.title'|trans({'%name%': player_head_name}) }}{% endblock %}
+{% block robots %}<meta name="robots" content="{{ is_private_in_head ? 'noindex, nofollow' : 'noindex, follow' }}">{% endblock %}
+
+{% block content %}
+    {{ include('_return_back_button.html.twig') }}
+    {# The header's player name is the page's H1 #}
+    <twig:PlayerHeader player="{{ player }}" :heading="true" />
+
+    <div>
+        <h2 class="h4 mt-3">{{ 'profile.solved_puzzles'|trans }}</h2>
+
+        {# ?team=<id>&category=duo|group opens the list narrowed to one pair/team - as on the profile #}
+        {% set team_filter = app.request.query.get('team') %}
+        <twig:PlayerSolvedPuzzles
+            playerId="{{ player.playerId }}"
+            team="{{ team_filter }}"
+            category="{{ team_filter ? (app.request.query.get('category') == 'group' ? 'group' : 'duo') : 'solo' }}"
+        />
+    </div>
+{% endblock %}

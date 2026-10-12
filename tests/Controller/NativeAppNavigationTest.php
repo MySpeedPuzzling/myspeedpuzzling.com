@@ -18,8 +18,8 @@ use Symfony\Component\DomCrawler\Crawler;
  * Native-ready navigation (docs/features/navigation NAV-14, README §4.14): inside the Hotwire Native app the page says
  * so on <html data-native-app>, renders no web chrome and is never shared-cacheable; a browser gets none of that.
  * Every layer is also a plain route answering a full page in the app; layer openers inside content are plain links
- * there (layer_frame() = _top). Rows added later: `menu` (MENU-02a/b), `help` (HELP-01a/b), the bars' roots (NAV-01,
- * NAV-03, NAV-04, NAV-13) through NavChromeAssertions::WEB_CHROME_SELECTORS, `data-bar-action` (NAV-03/04).
+ * there (layer_frame() = _top). Rows added later: `menu` rows (MENU-01/02b), the help sheet (HELP-01b), the bars' roots
+ * (NAV-01, NAV-03, NAV-04, NAV-13) through NavChromeAssertions::WEB_CHROME_SELECTORS, `data-bar-action` (NAV-03/04).
  */
 final class NativeAppNavigationTest extends WebTestCase
 {
@@ -104,8 +104,8 @@ final class NativeAppNavigationTest extends WebTestCase
     }
 
     /**
-     * Layers (README §4.14 (a)) as plain routes in the app: a full page with their content, no web chrome.
-     * `menu` and `help` join with MENU-02a and HELP-01a.
+     * Layers (README §4.14 (a)) as plain routes in the app: a full page with their content, no web chrome. `help`
+     * (HELP-01a) and the `menu` page (MENU-02a; its positive `main #site-menu` row comes with MENU-01) included.
      */
     #[DataProvider('nativeUserAgents')]
     public function testEveryLayerIsAPlainRouteInTheApp(string $userAgent, string $platform): void
@@ -116,6 +116,10 @@ final class NativeAppNavigationTest extends WebTestCase
         $layers = [
             'player_card' => ['/en/puzzler-card/' . PlayerFixture::PLAYER_REGULAR, 'h1.players-card-page-title', '#players-card-name'],
             'achievement_detail' => ['/en/achievements/puzzles_solved', 'main h1', '#tier-1'],
+            // The Help sheet's page: its rows in <main>
+            'help' => ['/en/help', 'main h1', 'main [data-help-sheet]'],
+            // The Menu's page (skeleton: heading and intro)
+            'menu' => ['/en/menu', 'main h1', 'main .menu-page'],
         ];
 
         foreach ($layers as $route => [$url, $title, $content]) {

@@ -1,0 +1,15 @@
+{#
+    Help & feedback rows (docs/features/navigation README §4.5) - shared by the sheet's frame and the full page; works
+    without JS. Skeleton (HELP-01a): the registry's Help sheet links. The feedback box, the puzzle correction, the
+    language and Reload rows join with HELP-01b/HELP-02. Links leave the sheet for the whole page (_top).
+#}
+<ul class="help-rows list-group list-group-flush">
+    {% for row in rows %}
+        <li class="list-group-item px-0">
+            <a class="help-row d-flex align-items-center gap-3 text-body" href="{{ path(row.target.route, row.target.params) }}" data-turbo-frame="_top" data-nav="help/help/{{ row.id }}">
+                <i class="bi {{ row.icon }} fs-5 text-primary" aria-hidden="true"></i>
+                <span>{{ row.label|trans }}</span>
+            </a>
+        </li>
+    {% endfor %}
+</ul>

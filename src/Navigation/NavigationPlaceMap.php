@@ -96,6 +96,8 @@ final class NavigationPlaceMap
         'edit_sell_swap_list_item' => 'puzzles/library',
         // Add: the add form and its recap, the stopwatch, multiscan (decision 40: edit_time too)
         'puzzle_add' => 'add*',
+        // The guests' Add tab (ADD-05): their start page of Add
+        'add_intro' => 'add*',
         'legacy_add_time' => 'add',
         'edit_time' => 'add',
         'delete_time' => 'add',
@@ -109,6 +111,8 @@ final class NavigationPlaceMap
         'resume_stopwatch' => 'add',
         'stop_stopwatch' => 'add',
         'multiscan' => 'add',
+        // Community: the landing is the place's start page, without a section (decision 75)
+        'community' => 'community*',
         // Community › Leaderboards
         'ladder' => 'community/leaderboards*',
         'msp_rating_ladder' => 'community/leaderboards',
@@ -198,6 +202,7 @@ final class NavigationPlaceMap
         'puzzling_team_detail' => 'community',
         'player_profile' => 'profile*|community',
         'player_statistics' => 'profile|community',
+        'player_results' => 'profile|community',
         'activity_calendar' => 'profile|community',
         'player_achievements' => 'profile|community',
         'player_favorite_puzzlers' => 'profile|community',
@@ -250,7 +255,10 @@ final class NavigationPlaceMap
         'typing_indicator' => 'none',
         'start_conversation' => 'none',
         'start_marketplace_conversation' => 'none',
-        // None: help, learn and about pages
+        // None: help, learn and about pages; the Menu page; "Where did it go?" (README §3)
+        'help' => 'none',
+        'menu' => 'none',
+        'where_did_it_go' => 'none',
         'feedback' => 'none',
         'faq' => 'none',
         'getting_started' => 'none',

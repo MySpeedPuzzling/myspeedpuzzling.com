@@ -17,7 +17,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * navigation.md is generated from it (myspeedpuzzling:navigation:dump-doc) and never read back.
  *
  * Only routes that exist are registered: each later item adds the entries of its own routes in its own commit
- * (community_place, results, help, where_did_it_go, menu, add_intro, …) - NavigationRegistryTest refuses unknown routes.
+ * (the skeletons: community_place, results, help, where_did_it_go, menu, add_intro as the guests' Add) -
+ * NavigationRegistryTest refuses unknown routes.
  */
 final readonly class NavigationRegistry
 {
@@ -315,6 +316,20 @@ final readonly class NavigationRegistry
                 legacyLabels: ['menu.puzzles_overview'],
             ),
             new NavEntry(
+                id: 'community_place',
+                target: RouteTarget::route('community'),
+                label: 'community_page.title',
+                icon: 'bi-people',
+                place: NavPlace::Community,
+                phone: MenuPlacement::notInMenu(self::BAR_TAB),
+                dock: MenuPlacement::row(MenuGroup::Community, 0),
+                visibility: NavVisibility::Everyone,
+                rule: RulebookQuestion::Q10,
+                reason: 'Place Community = its landing: Leaderboards · Puzzlers · Events (D1, README §4.9)',
+                since: self::SINCE,
+                kind: RowKind::Place,
+            ),
+            new NavEntry(
                 id: 'profile',
                 target: RouteTarget::viewer('player_profile'),
                 label: 'menu.profile',
@@ -484,6 +499,21 @@ final readonly class NavigationRegistry
         $row = static fn (int $position): MenuPlacement => MenuPlacement::row(MenuGroup::Puzzling, $position);
 
         return [
+            // Labelled like today's list heading until MENU-01 gives the rows their nav.row.* keys
+            new NavEntry(
+                id: 'results',
+                target: RouteTarget::viewer('player_results'),
+                label: 'profile.solved_puzzles',
+                icon: 'bi-list-ol',
+                place: NavPlace::Profile,
+                phone: $row(10),
+                dock: $row(10),
+                visibility: NavVisibility::SignedIn,
+                rule: RulebookQuestion::Q8,
+                reason: 'About one player, others may see it: player tab; your own also a Menu row (README §4.7)',
+                since: self::SINCE,
+                secondary: ['player header tab Results', 'Overview "All N results"'],
+            ),
             new NavEntry(
                 id: 'favorites',
                 target: RouteTarget::viewer('player_favorite_puzzlers'),
@@ -693,8 +723,8 @@ final readonly class NavigationRegistry
     }
 
     /**
-     * Community and its sections (Leaderboards · Puzzlers · Events). The Community place row arrives with its landing
-     * page (COM-01a).
+     * Community and its sections (Leaderboards · Puzzlers · Events); the Community place row (its landing page,
+     * COM-01a) is with the places.
      *
      * @return list<NavEntry>
      */
@@ -922,7 +952,8 @@ final readonly class NavigationRegistry
         return [
             new NavEntry(
                 id: 'add',
-                target: RouteTarget::route('puzzle_add'),
+                // Guests: the explainer with Join and Sign in (ADD-05, README §4.6)
+                target: RouteTarget::route('puzzle_add', guestRoute: 'add_intro'),
                 label: 'menu.puzzle_add',
                 icon: 'bi-plus-lg',
                 place: NavPlace::Add,
@@ -1097,11 +1128,11 @@ final readonly class NavigationRegistry
         $guides = ['guide_average_puzzle_time', 'guide_puzzle_time_by_pieces', 'guide_puzzle_time_for_pieces', 'guide_puzzle_time_pairs_and_teams', 'guide_speed_puzzling_tips', 'guide_what_is_speed_puzzling'];
 
         return [
-            // Opens the feedback sheet (today the feedback page in modal-frame); its target becomes the Help sheet
-            // route with HELP-01a, and feedback stays the sheet's form endpoint (decision 76)
+            // Opens the Help sheet (`help` in modal-frame, the page without JS - HELP-01a); feedback stays the sheet's
+            // form endpoint (decision 76)
             new NavEntry(
                 id: 'send_feedback',
-                target: RouteTarget::route('feedback'),
+                target: RouteTarget::route('help'),
                 label: 'menu.feedback',
                 icon: 'bi-chat-heart',
                 place: NavPlace::None,
@@ -1116,11 +1147,26 @@ final readonly class NavigationRegistry
                 secondary: ['top bar ? / Feedback', 'end-of-page line'],
             ),
             $this->helpRow('methodology', 'methodology', 'footer.methodology', 'bi-rulers', 20),
-            $this->helpRow('feature_requests', 'feature_requests', 'menu.feature_requests', 'bi-lightbulb', 30, ['feature_request_detail', 'feature_request_edit']),
+            // Help sheet positions: the skeleton's two links (HELP-01a); HELP-02 orders the rest (README §4.5)
+            $this->helpRow('feature_requests', 'feature_requests', 'menu.feature_requests', 'bi-lightbulb', 30, ['feature_request_detail', 'feature_request_edit'], helpSheet: 30),
             $this->helpRow('getting_started', 'getting_started', 'onboarding.guide.link', 'bi-signpost-2', 40),
-            $this->helpRow('faq', 'faq', 'menu.faq', 'bi-patch-question', 50),
+            $this->helpRow('faq', 'faq', 'menu.faq', 'bi-patch-question', 50, helpSheet: 40),
             $this->helpRow('guides', 'guides', 'footer.guides', 'bi-book', 60, $guides),
             $this->helpRow('progression', 'progression_hub', 'progression_hub.menu_label', 'bi-question-circle', 70, [], NavVisibility::XpVisible),
+            // A public page, linked for signed-in players only: guests never had the old menus (R2, README §4.12)
+            new NavEntry(
+                id: 'where_did_it_go',
+                target: RouteTarget::route('where_did_it_go'),
+                label: 'where_did_it_go.title',
+                icon: 'bi-signpost-split',
+                place: NavPlace::None,
+                phone: $row(80),
+                dock: $row(80),
+                visibility: NavVisibility::SignedIn,
+                rule: RulebookQuestion::Q7,
+                reason: 'Explains the new navigation: every old menu item and where it is now (README §8)',
+                since: self::SINCE,
+            ),
             new NavEntry(
                 id: 'language',
                 target: RouteTarget::currentPage(),
@@ -1232,6 +1278,9 @@ final readonly class NavigationRegistry
             $this->notInMenuEntry('notifications', RouteTarget::route('notifications'), 'notifications.title', 'bi-bell', NavPlace::None, RulebookQuestion::Q5, "Inbox tab For you, behind the Inbox row and the top-bar Inbox tool; guests have no Inbox (today's guest bell leads to sign in)"),
             $this->notInMenuEntry('messages', RouteTarget::route('conversations_list'), 'messaging.title', 'bi-chat-dots', NavPlace::None, RulebookQuestion::Q5, 'Inbox tab Messages (D3)', NavVisibility::SignedIn),
             $this->notInMenuEntry('register', RouteTarget::route('register'), 'menu.register', 'bi-person-plus', NavPlace::None, RulebookQuestion::Q5, "The guest card's Join free link", NavVisibility::GuestOnly),
+            $this->notInMenuEntry('menu', RouteTarget::route('menu'), 'nav.menu.title', 'bi-list', NavPlace::None, RulebookQuestion::Q5, 'Is the Menu: the page behind ☰ and the footer\'s All pages (no JS, a new tab, the native app)'),
+            $this->notInMenuEntry('help', RouteTarget::route('help'), 'help.title', 'bi-question-circle', NavPlace::None, RulebookQuestion::Q5, 'The ? / Feedback tool of the top bar; its Menu row is send_feedback'),
+            $this->notInMenuEntry('feedback', RouteTarget::route('feedback'), 'menu.feedback', 'bi-chat-heart', NavPlace::None, RulebookQuestion::Q1, 'Help sheet form endpoint: the feedback box posts here (decision 76)', NavVisibility::SignedIn),
             $this->notInMenuEntry('my_profile', RouteTarget::route('my_profile'), 'menu.my_profile', 'bi-person', NavPlace::Profile, RulebookQuestion::Q8, 'Legacy redirect (your profile, or sign in for guests); the Profile tab and the You card link player_profile directly (D9)'),
             $this->notInMenuEntry('player_page', RouteTarget::route('player_profile'), 'menu.profile', 'bi-person', NavPlace::Community, RulebookQuestion::Q2, "Object page: others' profiles are reached from lists, search and the player card"),
             $this->notInMenuEntry('player_card', RouteTarget::route('player_card'), 'menu.profile', 'bi-person-vcard', NavPlace::Community, RulebookQuestion::Q2, 'Layer of a player name (D12); its page is the no-JS fallback'),
@@ -1276,7 +1325,7 @@ final readonly class NavigationRegistry
     /**
      * @param list<string> $activeOn
      */
-    private function helpRow(string $id, string $route, string $label, string $icon, int $position, array $activeOn = [], NavVisibility $visibility = NavVisibility::Everyone): NavEntry
+    private function helpRow(string $id, string $route, string $label, string $icon, int $position, array $activeOn = [], NavVisibility $visibility = NavVisibility::Everyone, null|int $helpSheet = null): NavEntry
     {
         return new NavEntry(
             id: $id,
@@ -1291,6 +1340,7 @@ final readonly class NavigationRegistry
             reason: 'Explains or helps: Help & learn (and the Help sheet)',
             since: self::SINCE,
             legacyLabels: [$label],
+            helpSheet: $helpSheet,
             activeOn: $activeOn,
         );
     }

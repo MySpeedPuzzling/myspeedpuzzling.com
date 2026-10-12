@@ -1,0 +1,97 @@
+// The Community landing (docs/features/navigation README §4.9, COM-01a): three cards - Leaderboards, Puzzlers,
+// Events. One column on phones, three from 768 px. Each card's only link is stretched over it (stretched-link), so
+// the whole card is the target; COM-01's previews will carry links of their own.
+
+.community-landing-title {
+    margin-bottom: .5rem;
+}
+
+.community-landing-intro {
+    max-width: 40rem;
+    margin-bottom: 1.5rem;
+    color: $gray-700;
+}
+
+.community-entries {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1rem;
+
+    @include media-breakpoint-up(md) {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 1.5rem;
+    }
+}
+
+.community-entry {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    padding: 1.25rem;
+    background: $white;
+    border-radius: 1rem;
+    box-shadow: 0 .25rem 1rem rgba($gray-900, .07);
+    transition: transform .2s ease, box-shadow .2s ease;
+
+    &:hover,
+    &:focus-within {
+        transform: translateY(-.25rem);
+        box-shadow: 0 .625rem 1.75rem -.375rem rgba($gray-900, .18);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        transition: none;
+
+        &:hover,
+        &:focus-within {
+            transform: none;
+        }
+    }
+}
+
+.community-entry-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 3rem;
+    height: 3rem;
+    margin-bottom: .75rem;
+    font-size: 1.375rem;
+    color: $primary;
+    background: rgba($primary, .08);
+    border-radius: .875rem;
+}
+
+.community-entry-title {
+    margin-bottom: .375rem;
+    font-size: 1.125rem;
+    font-weight: 600;
+    line-height: 1.35;
+}
+
+.community-entry-text {
+    margin-bottom: 1rem;
+    font-size: .9375rem;
+    color: $gray-600;
+}
+
+.community-entry-link {
+    display: inline-flex;
+    gap: .375rem;
+    align-items: center;
+    margin-top: auto;
+    font-weight: 500;
+    color: $primary;
+
+    i {
+        transition: transform .2s ease;
+    }
+}
+
+.community-entry:hover .community-entry-link i {
+    transform: translateX(.25rem);
+
+    @media (prefers-reduced-motion: reduce) {
+        transform: none;
+    }
+}

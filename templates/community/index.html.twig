@@ -1,0 +1,30 @@
+{% extends 'base.html.twig' %}
+
+{#
+    The Community landing (docs/features/navigation README §4.9, COM-01a): the place's start page with its three
+    sections. A card's title and icon are its registry entry's (one name per destination, README §4.12); each card has
+    one link - the call to action, stretched over the card - so COM-01 can add the previews with links of their own.
+#}
+
+{% block title %}{{ 'community_page.meta_title'|trans }}{% endblock %}
+{% block meta_description %}{{ 'community_page.meta_description'|trans }}{% endblock %}
+
+{% block content %}
+    <div class="community-landing">
+        <h1 class="community-landing-title">{{ 'community_page.title'|trans }}</h1>
+        <p class="community-landing-intro">{{ 'community_page.intro'|trans }}</p>
+
+        <div class="community-entries">
+            {% for item, entry in sections %}
+                <section class="community-entry" aria-labelledby="community-entry-{{ item }}">
+                    <div class="community-entry-icon" aria-hidden="true"><i class="bi {{ entry.icon }}"></i></div>
+                    <h2 class="community-entry-title" id="community-entry-{{ item }}">{{ entry.label|trans }}</h2>
+                    <p class="community-entry-text">{{ ('community_page.' ~ item ~ '.description')|trans }}</p>
+                    <a class="community-entry-link stretched-link" href="{{ path(entry.target.route, entry.target.params) }}" data-nav="community/community/{{ item }}">
+                        {{ ('community_page.' ~ item ~ '.cta')|trans }} <i class="bi bi-arrow-right" aria-hidden="true"></i>
+                    </a>
+                </section>
+            {% endfor %}
+        </div>
+    </div>
+{% endblock %}

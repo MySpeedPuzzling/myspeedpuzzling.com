@@ -1,0 +1,21 @@
+{% extends 'base.html.twig' %}
+
+{#
+    "Where did it go?" (docs/features/navigation README §8): every item of the old navigation and where it is now.
+    Skeleton (LAUNCH-02a): the mapping table arrives with LAUNCH-02. Public, not for the index, in no sitemap.
+#}
+
+{% block title %}{{ 'where_did_it_go.title'|trans }}{% endblock %}
+{% block meta_description %}{{ 'where_did_it_go.meta_description'|trans }}{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, follow">{% endblock %}
+
+{% block content %}
+    <div class="where-did-it-go mx-auto" style="max-width: 48rem;">
+        <h1 class="mb-2">{{ 'where_did_it_go.title'|trans }}</h1>
+        <p class="lead mb-4">{{ 'where_did_it_go.intro'|trans }}</p>
+
+        <div class="where-did-it-go-mapping" data-where-did-it-go-mapping>
+            <p class="text-muted mb-0">{{ 'where_did_it_go.placeholder'|trans }}</p>
+        </div>
+    </div>
+{% endblock %}

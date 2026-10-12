@@ -171,8 +171,9 @@ return static function (ContainerConfigurator $configurator): void {
     // Twig extensions
     $services->load('SpeedPuzzling\\Web\\Twig\\', __DIR__ . '/../src/Twig/{*TwigExtension.php}');
 
-    // Navigation services (registry, place resolver, launch date); the value objects and enums beside them are not services
-    $services->load('SpeedPuzzling\\Web\\Navigation\\', __DIR__ . '/../src/Navigation/{Navigation*.php}')
+    // Navigation services (registry, place resolver, launch date, the Help sheet's context factory and rows); the value
+    // objects and enums beside them are not services
+    $services->load('SpeedPuzzling\\Web\\Navigation\\', __DIR__ . '/../src/Navigation/{Navigation*.php,*Factory.php,*Builder.php}')
         ->exclude([__DIR__ . '/../src/Navigation/NavigationPlaceMap.php']);
     $services->set(NavigationLaunch::class)
         ->arg('$date', param('navigation.launch_date'));

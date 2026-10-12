@@ -161,6 +161,15 @@ final class NavigationPlaceResolverTest extends WebTestCase
         yield 'review results' => ['review_results', [], self::VIEWER, NavPlace::Profile, null];
         yield 'nav click beacon' => ['nav_click', [], null, NavPlace::None, null];
         yield 'faq' => ['faq', [], null, NavPlace::None, null];
+        // The skeleton routes (COM-01a, ADD-05, HELP-01a, LAUNCH-02a, MENU-02a, PROF-00)
+        yield 'community landing (no section, decision 75)' => ['community', [], null, NavPlace::Community, null];
+        yield 'guest add explainer' => ['add_intro', [], null, NavPlace::Add, null];
+        yield 'help' => ['help', [], self::VIEWER, NavPlace::None, null];
+        yield 'menu page' => ['menu', [], null, NavPlace::None, null];
+        yield 'where did it go' => ['where_did_it_go', [], self::VIEWER, NavPlace::None, null];
+        yield 'own results' => ['player_results', $own, self::VIEWER, NavPlace::Profile, null];
+        yield "somebody else's results" => ['player_results', $other, self::VIEWER, NavPlace::Community, null];
+        yield 'results seen by a guest' => ['player_results', $own, null, NavPlace::Community, null];
     }
 
     /**
@@ -206,6 +215,14 @@ final class NavigationPlaceResolverTest extends WebTestCase
         yield "somebody else's old collections page highlights nothing" => ['legacy_player_collections', $other, self::VIEWER, null, false];
         // An activeOn page without an owner (always your own) keeps its row
         yield 'badge reveals = your Achievements row' => ['badge_reveals', [], self::VIEWER, 'achievements', false];
+        // The skeleton routes
+        yield 'community landing = the Community place row, a start page' => ['community', [], null, 'community_place', true];
+        yield "guests' add = the Add row, a start page" => ['add_intro', [], null, 'add', true];
+        yield 'own results = your Results row' => ['player_results', $own, self::VIEWER, 'results', false];
+        yield "somebody else's results highlight nothing" => ['player_results', $other, self::VIEWER, null, false];
+        yield 'help = the Send feedback row' => ['help', [], self::VIEWER, 'send_feedback', false];
+        yield 'where did it go' => ['where_did_it_go', [], self::VIEWER, 'where_did_it_go', false];
+        yield 'the Menu page highlights nothing' => ['menu', [], null, null, false];
     }
 
     /**

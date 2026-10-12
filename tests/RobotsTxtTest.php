@@ -124,6 +124,22 @@ final class RobotsTxtTest extends KernelTestCase
     }
 
     /**
+     * Help & feedback (docs/features/navigation README §4.5, HELP-01a): every page opens help?url=<itself> - one
+     * noindex URL per page of the site. The variants are disallowed; the bare page stays crawlable so its noindex is
+     * read.
+     */
+    public function testHelpWithAPageIsDisallowedAndTheBarePageAllowed(): void
+    {
+        foreach ($this->pathInEveryLocale('help', []) as $locale => $path) {
+            self::assertTrue($this->isAllowed($path), sprintf('robots.txt must not disallow %s (%s)', rawurldecode($path), $locale));
+
+            $router = $this->router();
+            $withPage = $router->generate('help', ['_locale' => $locale, 'url' => '/en/puzzle/' . self::SAMPLE_ID]);
+            self::assertFalse($this->isAllowed($withPage), sprintf('robots.txt must disallow %s (%s)', rawurldecode($withPage), $locale));
+        }
+    }
+
+    /**
      * The rules above are "*" patterns and bare prefixes right next to the pages that matter most;
      * none of them may catch a page we want crawled.
      *

@@ -1,0 +1,43 @@
+{% extends 'base.html.twig' %}
+
+{#
+    The Add tab for guests (docs/features/navigation README §4.6, ADD-05): what tracking gives you, Join free, Sign in
+    back to the add page, the tracker app. Same HTML for every guest - no form, no CSRF token, no flash - so it stays
+    shared-cacheable. Not in a sitemap (noindex); a signed-in player never sees it (302 to the add page).
+#}
+
+{% block title %}{{ 'add_intro.meta.title'|trans }}{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, follow">{% endblock %}
+
+{% block content %}
+    <div class="add-intro mx-auto" style="max-width: 40rem;">
+        <h1 class="mb-2">{{ 'add_intro.title'|trans }}</h1>
+        <p class="lead mb-4">{{ 'add_intro.lead'|trans }}</p>
+
+        <ul class="list-unstyled mb-4">
+            <li class="d-flex align-items-start gap-3 mb-3">
+                <i class="bi bi-stopwatch fs-4 text-primary" aria-hidden="true"></i>
+                <span>{{ 'add_intro.point_speed'|trans }}</span>
+            </li>
+            <li class="d-flex align-items-start gap-3 mb-3">
+                <i class="bi bi-cup-hot fs-4 text-primary" aria-hidden="true"></i>
+                <span>{{ 'add_intro.point_relax'|trans }}</span>
+            </li>
+            <li class="d-flex align-items-start gap-3 mb-3">
+                <i class="bi bi-collection fs-4 text-primary" aria-hidden="true"></i>
+                <span>{{ 'add_intro.point_library'|trans }}</span>
+            </li>
+        </ul>
+
+        <div class="d-flex flex-wrap gap-2 mb-4">
+            <a class="btn btn-primary" href="{{ path('register') }}" data-add-intro="join">{{ 'add_intro.join'|trans }}</a>
+            <a class="btn btn-outline-primary" href="{{ path('login', {return: path('puzzle_add')}) }}" rel="nofollow" data-add-intro="sign_in">{{ 'add_intro.sign_in'|trans }}</a>
+        </div>
+
+        <p class="mb-0">
+            <a href="{{ path('puzzle_tracker_app') }}" data-add-intro="tracker_app">
+                <i class="bi bi-phone me-1" aria-hidden="true"></i>{{ 'add_intro.tracker_app'|trans }}
+            </a>
+        </p>
+    </div>
+{% endblock %}

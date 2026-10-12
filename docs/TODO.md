@@ -247,6 +247,13 @@ What a reply to a player promised to build. Each has an MSP Mailer follow-up: te
       puzzles solved solo with a time in the last 2 years (MspRatingCalculator::getProgress) - rename it (e.g.
       'Different puzzles') and explain what counts (repeats, other piece counts and pair/team results don't), all 6
       locales. Promised to Destanie (MSP #268, follow-up F113).
+- [ ] Canadian Speed Puzzlers follow-ups: (1) MoveEditionToSeries must carry the edition's automatic results along
+      (times with a series pick on the old series linked to the moved edition get the new series as their pick - today
+      the reconciler drops them to series-level of the old series); (2) after editing an edition, redirect back to its
+      series page instead of the events page (faster to rename a list of dates added with Add several dates); (3) event
+      picker while typing: keep the server's date order (live, recent past, upcoming) instead of TomSelect's text score,
+      and fix the option row that breaks when the highlighted name wraps. Promised to Allison (MSP #270, follow-up
+      F115).
 
 ## Participants spreadsheet (`docs/features/competitions-management/participants-spreadsheet.md` §13)
 

@@ -83,3 +83,29 @@ $z-tooltip: 1080;            // Bootstrap $zindex-tooltip
         }
     }
 }
+
+// F-04: on touch screens no text-entry control is below 16 px. The viewport meta no longer carries maximum-scale=1
+// (pinch-zoom everywhere, G5), so iOS Safari would zoom the page in on focus of any smaller field. Under
+// `(pointer: coarse)` only - the -sm controls of the filter rows grow there on purpose, desktop keeps them small.
+// Specificity (0,2,1) beats every smaller size of the site: Bootstrap's -sm sizes and `.input-group-sm > *`, the
+// theme's 15 px, page rules such as `.filters .form-control`, and tom-select's `.ts-control input { font-size: inherit }`
+// (imported later). Controls sized above 16 px by their own rule are left out so nothing shrinks: -lg (live results,
+// check-in, `.input-group-lg > *`) and the sign-in code field.
+$nav-text-entry: "input:not([type=checkbox], [type=radio], [type=range], [type=file], [type=color], [type=button], [type=submit], [type=reset], [type=image], [type=hidden]), select, textarea, .ts-control input";
+
+@media (pointer: coarse) {
+    :is(#{$nav-text-entry}):not(.form-control-lg, .form-select-lg, .input-group-lg > *, .auth-code-input) {
+        font-size: max(1rem, 16px);
+    }
+
+    // Controls taking their size from the text around them keep a bigger one (1em = the parent's size): tom-select's
+    // input in a -lg wrapper, flatpickr's month and year. `:root` makes it (0,2,1) too - later in the file, so it wins
+    :root :is(.ts-control, .flatpickr-current-month) :is(input, select) {
+        font-size: max(1rem, 16px, 1em);
+    }
+
+    // A placeholder that no longer fits a narrow filter ("Competition / event" at 360) ends in "…", not mid-letter
+    .ts-control > input {
+        text-overflow: ellipsis;
+    }
+}

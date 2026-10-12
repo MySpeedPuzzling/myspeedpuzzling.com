@@ -319,3 +319,16 @@ input[type="search"]::-webkit-search-results-decoration {
   height: $form-option-size;
   padding-inline: .5rem;
 }
+
+// Touch screens: 16 px text (F-04, _nav-tokens.scss) - wider, so "100000" still fits, still as tall as the chips
+// (the -sm min-height grows with the text), and in the catalogue's .filters row without the 25 px right padding
+// `.filters .form-control` keeps for a select arrow (a clipped "From")
+@media (pointer: coarse) {
+  .pieces-filter-bound.form-control,
+  .filters .pieces-filter-bound.form-control {
+    width: 4.5rem;
+    min-height: $form-option-size;
+    padding-block: 0;
+    padding-inline: .5rem;
+  }
+}

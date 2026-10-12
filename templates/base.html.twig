@@ -5,7 +5,7 @@
         {# A page whose title says it all drops the site name (puzzle pages - Google shows the site name on its own) #}
         <title>{%- block title -%}{%- endblock -%}{%- block title_suffix %} – MySpeedPuzzling{% endblock -%}</title>
 
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
         {{ include('_head_flags.html.twig') }}
 
         {% set currentRoute = app.request.attributes.get('_route') %}
@@ -377,13 +377,13 @@
         <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('apple-touch-icon.png') }}?v=2">
         <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('favicon-32x32.png') }}?v=2">
         <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('favicon-16x16.png') }}?v=2">
-        <link rel="manifest" href="{{ asset('site.webmanifest') }}?v=2">
+        <link rel="manifest" href="{{ asset('site.webmanifest') }}?v=3">
         <link rel="mask-icon" href="{{ asset('safari-pinned-tab.svg') }}?v=2" color="#2d89ef">
         <link rel="shortcut icon" href="{{ asset('favicon.ico') }}?v=2">
         <meta name="apple-mobile-web-app-capable" content="yes">
         <meta name="apple-mobile-web-app-status-bar-style" content="default">
         <meta name="msapplication-TileColor" content="#2d89ef">
-        <meta name="theme-color" content="#fe696a">
+        <meta name="theme-color" content="#ffffff">
 
         <link type="text/plain" rel="author" href="{{ asset('humans.txt') }}">
 
@@ -698,28 +698,28 @@
                                     <li>
                                         <a class="dropdown-item {% if currentRoute == 'player_achievements' and routeParams.playerId == logged_user.profile.playerId %}active{% endif %}" href="{{ path('player_achievements', {playerId: logged_user.profile.playerId}) }}" data-nav="account/links/achievements">
                                             <i class="bi bi-award me-1"></i> {{ 'badges.my_title'|trans }}
-                                            <span class="badge bg-primary ms-1">{{ 'menu.new_badge'|trans }}</span>
+                                            <span class="badge bg-primary ms-1">{{ 'new_badge'|trans }}</span>
                                         </a>
                                     </li>
                                     {% if not logged_user.profile.experienceSystemOptedOut %}
                                         <li>
                                             <a class="dropdown-item {% if currentRoute == 'xp_history' %}active{% endif %}" href="{{ path('xp_history') }}" data-nav="account/links/xp_history">
                                                 <i class="bi bi-receipt me-1"></i> {{ 'xp.history.title'|trans }}
-                                                <span class="badge bg-primary ms-1">{{ 'menu.new_badge'|trans }}</span>
+                                                <span class="badge bg-primary ms-1">{{ 'new_badge'|trans }}</span>
                                             </a>
                                         </li>
                                     {% endif %}
                                     <li>
                                         <a class="dropdown-item {% if currentRoute == 'progression_hub' %}active{% endif %}" href="{{ currentRoute == 'progression_hub' ? path('progression_hub') : path('progression_hub', {return: app.request.requestUri}) }}" rel="nofollow" data-nav="account/links/progression_hub">
                                             <i class="bi bi-question-circle me-1"></i> {{ 'progression_hub.menu_label'|trans }}
-                                            <span class="badge bg-primary ms-1">{{ 'menu.new_badge'|trans }}</span>
+                                            <span class="badge bg-primary ms-1">{{ 'new_badge'|trans }}</span>
                                         </a>
                                     </li>
                                     {% endif %}
                                     <li>
                                         <a class="dropdown-item {% if currentRoute == 'pairs_and_teams' %}active{% endif %}" href="{{ path('pairs_and_teams') }}" data-nav="account/links/pairs_and_teams">
                                             <i class="bi bi-people me-1"></i> {{ 'menu.pairs_and_teams'|trans }}
-                                            <span class="badge bg-primary ms-1">{{ 'menu.new_badge'|trans }}</span>
+                                            <span class="badge bg-primary ms-1">{{ 'new_badge'|trans }}</span>
                                         </a>
                                     </li>
 
@@ -733,7 +733,7 @@
                                     <li>
                                         <a class="dropdown-item {% if currentRoute == 'puzzle_picker' %}active{% endif %}" href="{{ path('puzzle_picker') }}" data-nav="account/links/puzzle_picker">
                                             <i class="bi bi-shuffle me-1"></i> {{ 'puzzle_picker.menu_label'|trans }}
-                                            <span class="badge bg-primary ms-1">{{ 'menu.new_badge'|trans }}</span>
+                                            <span class="badge bg-primary ms-1">{{ 'new_badge'|trans }}</span>
                                         </a>
                                     </li>
                                     <li>
@@ -817,8 +817,8 @@
                             <li class="nav-item">
                                 <a class="nav-link text-lg-center d-lg-flex flex-lg-column align-items-lg-center {% if currentRoute == 'marketplace' %}active{% endif %}" href="{{ path('marketplace') }}" data-nav="hamburger/places/marketplace">
                                     <i class="me-1 me-lg-0 bi bi-shop"></i>
-                                    <small class="d-none d-lg-block">Marketplace</small>
-                                    <span class="d-lg-none">Marketplace</span>
+                                    <small class="d-none d-lg-block">{{ 'marketplace.title'|trans }}</small>
+                                    <span class="d-lg-none">{{ 'marketplace.title'|trans }}</span>
                                 </a>
                             </li>
                             <li class="nav-item">

@@ -230,6 +230,11 @@ final class XpRecapCelebration
             return $this->loadedAchievements = [];
         }
 
+        // "Hide my achievements" (docs/features/opt-out.md) - the XP lines stay
+        if ($this->retrieveLoggedUserProfile->getProfile()?->achievementsOptedOut === true) {
+            return $this->loadedAchievements = [];
+        }
+
         return $this->loadedAchievements = $this->getBadges->earnedWithSolve($profile->playerId, $this->solvingTimeId);
     }
 

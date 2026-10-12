@@ -51,6 +51,11 @@ final class BadgeRevealsController extends AbstractController
             return $this->redirectToRoute('membership');
         }
 
+        // "Hide my achievements" (docs/features/opt-out.md) - their page says where to show them again
+        if ($profile->achievementsOptedOut) {
+            return $this->redirectToRoute('player_achievements', ['playerId' => $profile->playerId]);
+        }
+
         return $this->render('badge_reveals.html.twig', [
             'badges' => $this->getBadges->unrevealedForPlayer($profile->playerId),
         ]);

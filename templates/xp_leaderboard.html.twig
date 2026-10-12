@@ -46,7 +46,7 @@
         {%- if reason == 'guest' -%}
             {{ 'leaderboards.not_on_board.guest'|trans }}
             <a href="{{ path('login', {return: app.request.requestUri}) }}" rel="nofollow">{{ 'leaderboards.not_on_board.sign_in'|trans }}</a>
-        {%- elseif reason in ['private', 'experience_opted_out', 'karma_opted_out'] -%}
+        {%- elseif reason in ['private', 'experience_opted_out', 'karma_opted_out', 'achievements_opted_out'] -%}
             {{ ('leaderboards.not_on_board.' ~ reason)|trans }}
             <a href="{{ path('edit_profile') }}">{{ 'leaderboards.not_on_board.settings'|trans }}</a>
         {%- elseif reason == 'not_member' -%}

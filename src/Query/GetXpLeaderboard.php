@@ -26,7 +26,7 @@ use SpeedPuzzling\Web\Value\ProgressLeaderboardTab;
  *
  * Both read the denormalized player columns (`xp_total`, `achievement_points`), so
  * neither aggregates anything at scale. Private profiles and experience-system
- * opt-outs never appear on either - global rankings stay closed to private players
+ * opt-outs never appear on either (and "Hide my achievements" never on the AP one) - global rankings stay closed to private players
  * for everybody, the allow list included (docs/features/private-profile-allow-list.md).
  * Players the viewer blocks are left out of the ranking itself, so positions close up
  * (docs/features/player-blocklist.md).
@@ -61,7 +61,7 @@ SQL;
      * (value, then id); both count within the filtered list - country, favorites, karma kind and period.
      *
      * Who is on which board is unchanged: XP and AP leave out private profiles and experience-system opt-outs, AP holds
-     * members only; karma leaves out private profiles, admins and "Hide my karma". Players the viewer blocks are left out
+     * members only and leaves out "Hide my achievements"; karma leaves out private profiles, admins and "Hide my karma". Players the viewer blocks are left out
      * of every board, so positions close up.
      *
      * @param null|list<string> $favoritePlayerIds the favorites board (the viewer counts as on it)
@@ -122,6 +122,7 @@ SQL;
 FROM player p
 JOIN membership m ON m.player_id = p.id AND {$membership}
 WHERE p.achievement_points > 0
+  AND p.achievements_opted_out = false
   AND {$eligibility}
 SQL;
             } else {

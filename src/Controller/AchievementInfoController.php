@@ -88,8 +88,10 @@ final class AchievementInfoController extends AbstractController
         $subject = $this->visibleSubject($request->query->getString('player'), $viewer);
 
         // Which tiers a player holds is a membership perk: the sheet is personal for a visible member's medal
-        // (?player=) or for a member looking at their own; anybody else gets the bare tiers and a Bronze medal
-        $contextPlayerId = $subject->playerId ?? ($viewer !== null && $viewer->activeMembership ? $viewer->playerId : null);
+        // (?player=) or for a member looking at their own (unless they hide their achievements); anybody else gets the
+        // bare tiers and a Bronze medal
+        $viewerHasAchievements = $viewer !== null && $viewer->activeMembership && $viewer->achievementsOptedOut === false;
+        $contextPlayerId = $subject->playerId ?? ($viewerHasAchievements ? $viewer->playerId : null);
         $group = $badgeType->isTiered()
             ? $this->getBadgeCatalog->forPlayerAndType($contextPlayerId, $badgeType)
             : null;
@@ -132,7 +134,7 @@ final class AchievementInfoController extends AbstractController
                     'url' => $this->generateUrl('player_achievements', ['playerId' => $subject->playerId] + $returnQuery),
                     'label' => $this->translator->trans('badges.medal.player_achievements', ['%name%' => $subject->playerName ?? ('#' . strtoupper($subject->code))]),
                 ];
-            } elseif ($viewer !== null && $viewer->activeMembership) {
+            } elseif ($viewerHasAchievements) {
                 $moreLink = [
                     'url' => $this->generateUrl('player_achievements', ['playerId' => $viewer->playerId] + $returnQuery),
                     'label' => $this->translator->trans('badges.my_title'),
@@ -172,7 +174,8 @@ final class AchievementInfoController extends AbstractController
 
     /**
      * The player of `?player=` when their achievements are visible to the viewer - the rules of
-     * PlayerAchievementsController (a member, not private for this viewer, not blocked); the viewer's own id means
+     * PlayerAchievementsController (a member, not private for this viewer, not blocked, not hiding their achievements);
+     * the viewer's own id means
      * their own sheet. Anything else: null, silently.
      */
     private function visibleSubject(string $playerId, null|PlayerProfile $viewer): null|PlayerProfile
@@ -187,7 +190,7 @@ final class AchievementInfoController extends AbstractController
             return null;
         }
 
-        if ($player->isPrivate || $player->activeMembership === false) {
+        if ($player->isPrivate || $player->activeMembership === false || $player->achievementsOptedOut) {
             return null;
         }
 

@@ -99,8 +99,9 @@ final class PlayerHeader
         // A hidden private profile has nothing but its profile page
         if ($this->isHidden === false) {
             // Achievements: only members have them (a non-member owner gets the tab with the member tease), and only
-            // once progression is live for this viewer (XpFeatureGate)
+            // once progression is live for this viewer (XpFeatureGate); none for a player who hid them, owner included
             $achievementsTab = $this->xpFeatureGate->isVisibleFor($viewer)
+                && $player->achievementsOptedOut === false
                 && ($player->activeMembership || $this->isOwnProfile);
 
             $this->tabs = array_values(array_filter(

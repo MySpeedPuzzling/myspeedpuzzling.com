@@ -252,6 +252,15 @@ class Player
     #[Column(type: Types::BOOLEAN, options: ['default' => false])]
     public bool $karmaOptedOut = false;
 
+    /**
+     * "Hide my achievements" (docs/features/opt-out.md): no achievements anywhere for anybody, owner included - not on
+     * the Achievement Points list nor the lists of who earned one. The tiers still count and are kept, so switching it
+     * back shows everything again
+     */
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::BOOLEAN, options: ['default' => false])]
+    public bool $achievementsOptedOut = false;
+
     public function __construct(
         #[Id]
         #[Immutable]
@@ -522,6 +531,11 @@ class Player
     public function changeKarmaOptedOut(bool $optedOut): void
     {
         $this->karmaOptedOut = $optedOut;
+    }
+
+    public function changeAchievementsOptedOut(bool $optedOut): void
+    {
+        $this->achievementsOptedOut = $optedOut;
     }
 
     /**

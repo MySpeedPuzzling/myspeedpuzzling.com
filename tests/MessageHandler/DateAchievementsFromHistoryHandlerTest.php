@@ -81,9 +81,26 @@ final class DateAchievementsFromHistoryHandlerTest extends KernelTestCase
         self::assertSame('2026-08-01 12:00:00', $this->earnedAt($stamped));
     }
 
-    private function date(bool $dryRun): AchievementDatingOutcome
+    public function testEarnedSinceDatesTheTiersARecountEarnedInsteadOfTheLaunchStamps(): void
     {
-        $envelope = $this->bus->dispatch(new DateAchievementsFromHistory($this->playerId, $dryRun), [new TransportNamesStamp(['sync'])]);
+        // Earned by a recount after a corrected rule, with its own run time
+        $recounted = $this->badge('puzzles_solved', 1, '2026-10-12 14:05:00');
+        // Earned before the recount: left alone, the launch stamp too
+        $earlier = $this->badge('pieces_solved', 1, '2026-09-10 08:00:00');
+        $launchStamped = $this->badge('steady_hands', 1, '2026-08-01 12:00:00');
+
+        $outcome = $this->date(dryRun: false, earnedSince: new DateTimeImmutable('2026-10-12 14:00:00'));
+
+        self::assertSame(1, $outcome->dated);
+        self::assertSame(0, $outcome->undated);
+        self::assertSame(sprintf('2024-01-%02d 10:00:00', $this->bronzePuzzles), $this->earnedAt($recounted));
+        self::assertSame('2026-09-10 08:00:00', $this->earnedAt($earlier));
+        self::assertSame('2026-08-01 12:00:00', $this->earnedAt($launchStamped));
+    }
+
+    private function date(bool $dryRun, null|DateTimeImmutable $earnedSince = null): AchievementDatingOutcome
+    {
+        $envelope = $this->bus->dispatch(new DateAchievementsFromHistory($this->playerId, $dryRun, $earnedSince), [new TransportNamesStamp(['sync'])]);
         $outcome = $envelope->last(HandledStamp::class)?->getResult();
         self::assertInstanceOf(AchievementDatingOutcome::class, $outcome);
 

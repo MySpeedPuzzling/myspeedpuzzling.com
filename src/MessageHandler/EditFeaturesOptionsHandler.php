@@ -35,5 +35,9 @@ readonly final class EditFeaturesOptionsHandler
         if ($message->karmaOptedOut !== null) {
             $player->changeKarmaOptedOut($message->karmaOptedOut);
         }
+
+        if ($message->achievementsOptedOut !== null) {
+            $player->changeAchievementsOptedOut($message->achievementsOptedOut);
+        }
     }
 }

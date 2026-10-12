@@ -8892,8 +8892,14 @@ recap_progress:
     title: "Dein Fortschritt"
 
 xp_opt_out:
-    help: "Dein Level und deine XP verschwinden von deinen Seiten und aus deinen E-Mails, und du erscheinst nicht in den XP- und Erfolgspunkte-Ranglisten und nicht in den Listen, wer einen Erfolg verdient hat. XP und Erfolge zählen still weiter, es geht also nichts verloren, wenn du das wieder ausschaltest."
+    help: "Dein Level und deine XP verschwinden von deinen Seiten und aus deinen E-Mails, und du erscheinst nicht in den XP- und Erfolgspunkte-Ranglisten und nicht in den Listen, wer einen Erfolg verdient hat. XP und Erfolge zählen still weiter, es geht also nichts verloren, wenn du das wieder ausschaltest. Deine Erfolge haben einen eigenen Schalter."
     label: "XP und Level ausblenden"
+
+achievements_opt_out:
+    label: "Meine Erfolge ausblenden"
+    help: "Deine Erfolge verschwinden von deinem Profil, aus deinen Ergebnissen und aus deinen E-Mails, für dich und für alle anderen, und du erscheinst nicht in der Erfolgspunkte-Rangliste und nicht in den Listen, wer einen Erfolg verdient hat. Sie zählen still weiter, es geht also nichts verloren, wenn du das wieder ausschaltest."
+    hidden_note: "Du hast deine Erfolge ausgeblendet: Niemand sieht sie, auch du nicht, und du stehst nicht in der Erfolgspunkte-Rangliste. Sie zählen still weiter."
+    hidden_change: "In den Einstellungen ändern"
 
 page_crumbs:
     label: "Navigationspfad"
@@ -8937,6 +8943,7 @@ leaderboards:
         private: "Dein Profil ist privat, deshalb stehst du nicht in den Bestenlisten."
         experience_opted_out: "Du hast Level und Erfolge ausgeschaltet, deshalb stehst du nicht hier. In deinen Profileinstellungen kannst du sie wieder einschalten."
         karma_opted_out: "Du hast dein Karma ausgeblendet, deshalb stehst du nicht hier. In deinen Profileinstellungen kannst du es wieder einblenden."
+        achievements_opted_out: "Du hast deine Erfolge ausgeblendet, deshalb stehst du nicht hier. In deinen Profileinstellungen kannst du sie wieder einblenden."
         xp: "Trag dein erstes gelöstes Puzzle ein, um in diese Bestenliste zu kommen."
         achievement-points: "Verdiene deinen ersten Erfolg, um in diese Bestenliste zu kommen."
         karma: "Dein erster angenommener Beitrag zur Puzzle-Datenbank bringt dich in diese Bestenliste."

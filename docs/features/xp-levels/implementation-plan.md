@@ -205,16 +205,16 @@ owner OR team JSON member, the `GetPlayerStatsSnapshot` pattern; always `suspici
 
 | # | BadgeType case | Metric | Tiers B/S/G/P/D |
 |---|---|---|---|
-| 6 | `ZenPuzzler = 'zen_puzzler'` | owner solves with `seconds_to_solve IS NULL` | 1/10/50/150/365 |
-| 7 | `FirstTry = 'first_try'` | owner solves with `first_attempt = true` | 5/50/200/500/1000 |
-| 8 | `Unboxed = 'unboxed'` | owner solves with `unboxed = true` | 1/5/25/50/100 |
-| 9 | `BrandExplorer = 'brand_explorer'` | owner distinct `puzzle.manufacturer_id` | 3/10/25/50/100 |
-| 10 | `Marathoner = 'marathoner'` | owner solves of puzzles `pieces_count >= 2000` | 1/5/15/40/100 |
-| 11 | `Photographer = 'photographer'` | owner solves with `finished_puzzle_photo IS NOT NULL` | 1/25/100/500/1000 |
+| 6 | `ZenPuzzler = 'zen_puzzler'` | solves with `seconds_to_solve IS NULL` (own + pair/team results the player was in, since 2026-10-12) | 1/10/50/150/365 |
+| 7 | `FirstTry = 'first_try'` | solves (own + pair/team, since 2026-10-12) with `first_attempt = true` | 5/50/200/500/1000 |
+| 8 | `Unboxed = 'unboxed'` | solves (own + pair/team, since 2026-10-12) with `unboxed = true` | 1/5/25/50/100 |
+| 9 | `BrandExplorer = 'brand_explorer'` | distinct (own + pair/team, since 2026-10-12) `puzzle.manufacturer_id` | 3/10/25/50/100 |
+| 10 | `Marathoner = 'marathoner'` | solves (own + pair/team, since 2026-10-12) of puzzles `pieces_count >= 2000` | 1/5/15/40/100 |
+| 11 | `Photographer = 'photographer'` | solves (own + pair/team, since 2026-10-12) with `finished_puzzle_photo IS NOT NULL` | 1/25/100/500/1000 |
 | 12 | `SteadyHands = 'steady_hands'` | participant longest run of consecutive quarters with ≥1 solve (dates ≥ 2000-01-01) | 2/4/8/12/16 quarters |
 | 13 | `Librarian = 'librarian'` | approved `puzzle_change_request` + `puzzle_merge_request` rows by `reporter_id` (`status = 'approved'`) | 1/5/20/50/100 |
 | 14 | `SpeedDemon1000 = 'speed_1000_pieces'` | owner fastest SOLO timed 1000pc (like Speed Demon 500) | <8h/4h/2.5h/1h45m/1h15m |
-| 15 | `WeekendPuzzler = 'weekend_puzzler'` | owner solves with ISODOW of `COALESCE(finished_at, tracked_at)` IN (6,7) | 10/50/150/300/600 |
+| 15 | `WeekendPuzzler = 'weekend_puzzler'` | solves (own + pair/team, since 2026-10-12) with ISODOW of `COALESCE(finished_at, tracked_at)` IN (6,7) | 10/50/150/300/600 |
 | 16 | `Cataloger = 'cataloger'` | `puzzle` rows with `approved = true AND added_by_user_id = player` | 1/10/50/150/300 |
 
 Deferred (do NOT implement; GitHub issues in P8): Competitor, Night Owl (timezone problem), quest

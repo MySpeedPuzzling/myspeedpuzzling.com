@@ -25,7 +25,8 @@
             <p class="mb-1">{{ rating.reviewText }}</p>
         {% endif %}
         <div class="text-muted small">
-            <a href="{{ path('puzzle_detail', {puzzleId: rating.puzzleId}) }}" class="text-muted text-decoration-underline">
+            {# _top: the card is also shown in the ratings modal, where a link without it closes the modal instead of opening the puzzle #}
+            <a href="{{ path('puzzle_detail', {puzzleId: rating.puzzleId}) }}" class="text-muted text-decoration-underline" data-turbo-frame="_top">
                 {{ rating.puzzleName }}{% if rating.puzzlePiecesCount %} ({{ rating.puzzlePiecesCount }} {{ 'marketplace.pcs'|trans }}){% endif %}
             </a>
             &middot;

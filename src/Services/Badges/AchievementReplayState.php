@@ -172,11 +172,6 @@ final class AchievementReplayState
             $this->addQuarter($event['quarter']);
         }
 
-        if ($event['own'] === false) {
-            return;
-        }
-
-        // The player's own results (player_id = them, solo or a group they tracked)
         if ($seconds === null) {
             $this->zen++;
         }
@@ -205,7 +200,8 @@ final class AchievementReplayState
             $this->weekend++;
         }
 
-        if ($type === 'solo' && $seconds !== null) {
+        // Best solo times: the player's own solo results only
+        if ($event['own'] && $type === 'solo' && $seconds !== null) {
             if ($pieces === 500) {
                 $this->best500 = $this->best500 === null ? $seconds : min($this->best500, $seconds);
             }

@@ -45,6 +45,31 @@ The thresholds live in `src/BadgeConditions/*` (one class per type); the texts i
 | Weekend Puzzler | `weekend_puzzler` | 10 / 50 / 150 / 300 / 600 | Solves on Saturdays and Sundays |
 | Cataloger | `cataloger` | 5 / 15 / 50 / 150 / 300 | Approved puzzles the player added to the catalog |
 
+**Every solve metric counts the player's own results and the pair/team results they were in, whoever logged them** -
+like the solved puzzles page (only the two Speed Demons look at the player's own solo times). Until 2026-10-12 seven of
+them (Zen Puzzler, First Try, Unboxed, Brand Explorer, Marathoner, Photographer, Weekend Puzzler) counted only the
+results the player logged themselves - a relaxed pair result a teammate logged was missing (a player saw 63 relax
+solves in the achievements and 184 on the solved puzzles page). Fixed in `GetPlayerStatsSnapshot` and the history
+replay (`AchievementReplayState`) together. Production, 2026-10-12 (undo CSVs `/root/achievements-recount-2026-10-12-undo.csv`
+and `/root/achievements-redate-2026-10-12-undo.csv` on lily):
+
+1. `myspeedpuzzling:recalculate-badges` (8,114 messages, drained in ~2.5 min): 2,126 new tiers for 1,108 players.
+2. `myspeedpuzzling:date-achievements-from-history --earned-since="2026-10-12 05:18"` (the deploy): all 2,126 dated,
+   every replay matched.
+3. `--earned-since="2000-01-01"`: the tiers already held had been dated by the old rule, so a newly earned higher tier
+   could lie before a lower one; 4,382 tiers moved earlier (first try 1,604, weekend 1,455, brand explorer 947,
+   photographer 211, zen 91, the rest ≤ 14 each - including 55 of other types earned after the launch by results
+   finished before they were logged), none later, afterwards no tier dated before the tier below it.
+4. Catch-up, same day (a player saw "Weekend Puzzler → Diamond 600 / 600" and "Marathoner → Bronze 6 / 5" without the
+   tiers): step 1 was dispatched while the deploy was still rolling out (05:20:56-05:22:25 UTC), so the old
+   messenger-consumer took the first messages - the lowest player ids, `018bd93f…` to `018e7045…` - and evaluated them
+   with the old own-results-only counting. 121 tiers of 73 players were missing (weekend 47, first try 31, brand
+   explorer 18, photographer 16, zen 6, marathoner 2, unboxed 1), nobody held a tier too many. `recalculate-badges
+   --player` for those 73, then `--earned-since` that run: all 121 dated, every replay matched (undo CSV
+   `/root/achievements-catchup-2026-10-12-undo.csv` on lily). **Start a recount only after the deploy has finished**
+   (`run-queue: END` in `/var/log/lily/deploy.log`): the consumer is restarted at its end, and a message the old one
+   takes is evaluated by the old rule.
+
 ### Calibration (2026-10-11)
 
 Approved by Jan on 2026-10-11 after reviewing the full table with holder counts per tier.
@@ -194,6 +219,10 @@ no-ops) gives each such tier the moment the player's records first met it:
   - only the tiers still inside the backfill's window (`HeldAtLaunch`: from `xp_settings.full_formula_from` to
   `launch_ready_at`), only ever to an earlier date. Tiers, points and reveal state are untouched; a tier the replay
   cannot date keeps its stamp and stays "held at launch".
+- **After a corrected rule** (`--earned-since="<UTC moment>"`): a recount (`myspeedpuzzling:recalculate-badges`) earns
+  the newly met tiers with its own run time; the option dates the tiers earned from that moment on instead of the
+  launch backfill's, by the same replay and the same rules (a tier a normal solve earned meanwhile is dated too - to
+  the same moment it would get anyway).
 - **Dev copy (2026-10-12):** 62,111 stamped tiers of 6,612 players, all dated, every replay matched, 170 s (dev env).
   The activity digest is unaffected - it counts from the launch switch, and every dated tier is older.
 

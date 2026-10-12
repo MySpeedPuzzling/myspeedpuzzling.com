@@ -31,7 +31,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * Only members have achievements: a member's page is public (private profile and blocklist rules like every player
  * page), a non-member's page exists for its owner only (one line about membership), anybody else is sent to the
  * profile. Behind the launch switch (XpFeatureGate). Opting out of XP does not hide achievements - they are not XP
- * (the showcase on the profile follows the same rule).
+ * (the showcase on the profile follows the same rule). "Hide my achievements" does (docs/features/opt-out.md): anybody
+ * else is sent to the profile, the owner gets one line saying where to show them again.
  */
 final class PlayerAchievementsController extends AbstractController
 {
@@ -79,6 +80,16 @@ final class PlayerAchievementsController extends AbstractController
 
         if (($player->isPrivate && $isOwn === false) || ($player->activeMembership === false && $isOwn === false)) {
             return $this->redirectToRoute('player_profile', ['playerId' => $player->playerId]);
+        }
+
+        if ($player->achievementsOptedOut) {
+            if ($isOwn === false) {
+                return $this->redirectToRoute('player_profile', ['playerId' => $player->playerId]);
+            }
+
+            return $this->render('player_achievements_hidden.html.twig', [
+                'player' => $player,
+            ]);
         }
 
         $lists = null;

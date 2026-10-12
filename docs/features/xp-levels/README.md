@@ -156,6 +156,8 @@ no longer stops the e-mail; it leaves out the XP and level lines.
 celebrations, leaderboards, share cards and digests for that player; XP accrues
 silently and everything returns on re-enable. Deliberately NOT a generic
 "gamification" flag.
+Achievements are not XP and stay on with it: they have their own switch,
+`Player.achievementsOptedOut` ("Hide my achievements", docs/features/opt-out.md).
 
 ## Anti-farming: path independence
 

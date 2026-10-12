@@ -63,7 +63,8 @@ final readonly class PlayerProfileResponseProvider implements ProviderInterface
             hasActiveMembership: $profile->activeMembership,
             rating: $showsRanking ? $this->profileInsights->rating($profile->playerId) : null,
             skill: $showsRanking && $this->tokenOwner->isMember() ? $this->profileInsights->skill($profile->playerId) : null,
-            badges: $this->profileInsights->badges($profile->playerId),
+            // "Hide my achievements" (docs/features/opt-out.md) - /me still lists the caller's own
+            badges: $profile->achievementsOptedOut ? [] : $this->profileInsights->badges($profile->playerId),
         );
     }
 }

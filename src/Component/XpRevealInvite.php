@@ -41,7 +41,7 @@ final class XpRevealInvite
             return;
         }
 
-        if ($viewer === null || $viewer->playerId !== $this->playerId) {
+        if ($viewer === null || $viewer->playerId !== $this->playerId || $viewer->achievementsOptedOut) {
             return;
         }
 

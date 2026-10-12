@@ -75,6 +75,7 @@ Columns on `player` table:
 - `streak_opted_out BOOLEAN DEFAULT false NOT NULL` (added in `Version20260330182405`)
 - `ranking_opted_out BOOLEAN DEFAULT false NOT NULL` (added in `Version20260330182405`)
 - `time_predictions_opted_out BOOLEAN DEFAULT false NOT NULL` (added in `Version20260415180106`)
+- `achievements_opted_out BOOLEAN DEFAULT false NOT NULL` (added in `Version20261012053303`)
 
 ## Comparison
 
@@ -100,3 +101,27 @@ opt-outs.
 - **Form** - `FeaturesOptionsFormType::karmaOptedOut`, shown together with the XP switch (karma launches with XP);
   `EditFeaturesOptions::$karmaOptedOut` null = keep the stored value
 
+
+### Achievements Opt-Out (`achievements_opted_out`)
+
+"Hide my achievements" - hides the player's achievements everywhere, **for the player too** (added 2026-10-12 after a
+player asked for it: the XP switch deliberately leaves achievements on, since they are not XP). Independent of the XP and
+karma opt-outs.
+
+- **Data keeps counting** - `BadgeEvaluator` still evaluates and stores the tiers and Achievement Points; switching it
+  back shows everything again, nothing is re-revealed
+- **Query-level filtering** - `GetXpLeaderboard::board()` leaves the player off the Achievement Points board,
+  `GetAchievementHolders` out of the holder lists (counts still include everyone). Both still also leave out XP opt-outs,
+  as before
+- **Player pages** - no achievements showcase on the profile (`AchievementsShowcase`) and no Achievements tab
+  (`PlayerHeader`) for anybody; `PlayerAchievementsController` sends others to the profile and shows the owner one line
+  with a "Change in settings" link (`player_achievements_hidden.html.twig`); the detail sheet ignores `?player=` of such a
+  player (`AchievementInfoController::visibleSubject()`)
+- **The player's own surfaces** - no achievements on the recap (`XpRecapCelebration::achievements()`; the XP lines stay),
+  in the activity digest and on "Your week" (`PlayerPeriodActivityReader`), no reveal invite / reveal page
+  (`XpRevealInvite`, `BadgeRevealsController` → their achievements page), no XP launch reveal modal
+  (`XpLaunchRevealRule`), and the catalogue / detail pages show no personal line or medal (`BadgesOverviewController`,
+  `AchievementDetailController`, `AchievementInfoController`) - they stay browsable as the public catalogue
+- **API** - `GET /api/v1/players/{id}` returns `badges: []`; `/me` still lists the caller's own
+- **Form** - `FeaturesOptionsFormType::achievementsOptedOut`, shown together with the XP switch (achievements launch with
+  XP); `EditFeaturesOptions::$achievementsOptedOut` null = keep the stored value

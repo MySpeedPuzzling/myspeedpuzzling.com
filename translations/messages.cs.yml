@@ -8920,7 +8920,13 @@ my_activity:
 
 xp_opt_out:
     label: "Skrýt XP a úrovně"
-    help: "Tvoje úroveň a XP zmizí z tvých stránek a e-mailů a nebudeš v žebříčcích XP a bodů za úspěchy ani v seznamech držitelů úspěchů. XP a úspěchy se potichu počítají dál, takže když tohle zase vypneš, o nic nepřijdeš."
+    help: "Tvoje úroveň a XP zmizí z tvých stránek a e-mailů a nebudeš v žebříčcích XP a bodů za úspěchy ani v seznamech držitelů úspěchů. XP a úspěchy se potichu počítají dál, takže když tohle zase vypneš, o nic nepřijdeš. Úspěchy mají vlastní přepínač."
+
+achievements_opt_out:
+    label: "Skrýt moje úspěchy"
+    help: "Tvoje úspěchy zmizí z tvého profilu, z tvých výsledků i z e-mailů, pro tebe i pro všechny ostatní, a nebudeš v žebříčku bodů za úspěchy ani v seznamech držitelů úspěchů. Dál se potichu počítají, takže když tohle zase vypneš, o nic nepřijdeš."
+    hidden_note: "Svoje úspěchy máš skryté: nevidí je nikdo, ani ty, a nejsi v žebříčku bodů za úspěchy. Dál se potichu počítají."
+    hidden_change: "Změnit v nastavení"
 
 page_crumbs:
     label: "Drobečková navigace"
@@ -8964,6 +8970,7 @@ leaderboards:
         private: "Tvůj profil je soukromý, proto v žebříčcích nejsi."
         experience_opted_out: "Úrovně a úspěchy máš vypnuté, proto tu nejsi. Znovu je zapneš v nastavení profilu."
         karma_opted_out: "Karmu máš skrytou, proto tu nejsi. Znovu ji zobrazíš v nastavení profilu."
+        achievements_opted_out: "Svoje úspěchy máš skryté, proto tu nejsi. Znovu je zobrazíš v nastavení profilu."
         xp: "Zapiš své první složené puzzle a dostaneš se do tohoto žebříčku."
         achievement-points: "Získej svůj první úspěch a dostaneš se do tohoto žebříčku."
         karma: "Tvůj první přijatý příspěvek do databáze puzzlí tě dostane do tohoto žebříčku."

@@ -38,7 +38,9 @@ readonly final class XpLaunchRevealRule implements AnnouncementModalRule
 
     public function isEligible(PlayerProfile $viewer, DateTimeImmutable $now): bool
     {
+        // The reveal is achievements and the level - nothing to reveal to a player who hides either
         return $viewer->experienceSystemOptedOut === false
+            && $viewer->achievementsOptedOut === false
             && $viewer->hasSolvingTime
             && $this->xpLaunchReadiness->isReady();
     }

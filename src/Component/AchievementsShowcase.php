@@ -23,6 +23,7 @@ use Symfony\UX\TwigComponent\Attribute\PostMount;
  *  - the player is not a member, viewing their own profile → one quiet line, no lock, no badges
  *  - not a member, anybody else → nothing
  *  - a private profile hidden from the viewer → nothing
+ *  - the player hid their achievements ("Hide my achievements", docs/features/opt-out.md) → nothing, owner included
  *  - nothing at all while achievements are not visible to this viewer (XpFeatureGate: launch ready or admin)
  */
 #[AsTwigComponent]
@@ -62,7 +63,7 @@ final class AchievementsShowcase
 
         $viewer = $this->retrieveLoggedUserProfile->getProfile();
 
-        if ($this->xpFeatureGate->isVisibleFor($viewer) === false) {
+        if ($this->xpFeatureGate->isVisibleFor($viewer) === false || $player->achievementsOptedOut) {
             return;
         }
 

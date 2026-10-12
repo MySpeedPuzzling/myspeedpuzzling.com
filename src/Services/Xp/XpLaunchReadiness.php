@@ -22,6 +22,13 @@ interface XpLaunchReadiness
     public function readyAt(): null|DateTimeImmutable;
 
     /**
+     * Where the launch backfill's window starts (null while off): the deploy, `xp_settings.full_formula_from` - the
+     * backfill ran after it and switched the launch on at its end, so a tier earned between the two still carries the
+     * backfill's own stamp ("held at launch", HeldAtLaunch).
+     */
+    public function stampedFrom(): null|DateTimeImmutable;
+
+    /**
      * After the marker changed: every worker reads it again on its next request.
      */
     public function forget(): void;

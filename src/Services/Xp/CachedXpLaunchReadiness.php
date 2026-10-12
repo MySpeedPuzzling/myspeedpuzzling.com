@@ -11,7 +11,8 @@ use Symfony\Contracts\Cache\ItemInterface;
 use Symfony\Contracts\Service\ResetInterface;
 
 /**
- * XpLaunchReadiness read from `xp_settings.launch_ready_at`.
+ * XpLaunchReadiness read from `xp_settings.launch_ready_at` (+ `full_formula_from`, where the launch backfill's window
+ * starts).
  *
  * No query per page view: the answer sits in the shared cache pool `xp_launch_readiness_cache` (Redis - every worker
  * and container sees the same entry) and is kept for the request. MarkXpLaunchReady's caller drops the entry
@@ -19,12 +20,13 @@ use Symfony\Contracts\Service\ResetInterface;
  */
 final class CachedXpLaunchReadiness implements XpLaunchReadiness, ResetInterface
 {
-    private const string CACHE_KEY = 'xp_launch_ready_at';
+    // 'xp_launch_ready_at' held the marker alone - a new key, so an entry of the previous build is never misread
+    private const string CACHE_KEY = 'xp_launch_window';
     private const int READY_TTL_SECONDS = 300;
     private const int NOT_READY_TTL_SECONDS = 30;
 
-    /** The marker as stored, '' while the switch is off; null = not read in this request yet */
-    private null|string $readyAt = null;
+    /** "launch_ready_at|full_formula_from" as stored, '' while the switch is off; null = not read in this request yet */
+    private null|string $window = null;
 
     public function __construct(
         readonly private Connection $database,
@@ -41,14 +43,23 @@ final class CachedXpLaunchReadiness implements XpLaunchReadiness, ResetInterface
     {
         $marker = $this->marker();
 
-        return $marker === '' ? null : new DateTimeImmutable($marker);
+        return $marker === '' ? null : new DateTimeImmutable(explode('|', $marker)[0]);
+    }
+
+    public function stampedFrom(): null|DateTimeImmutable
+    {
+        $from = explode('|', $this->marker())[1] ?? '';
+
+        return $from === '' ? null : new DateTimeImmutable($from);
     }
 
     private function marker(): string
     {
-        return $this->readyAt ??= $this->xpLaunchReadinessCache->get(self::CACHE_KEY, function (ItemInterface $item): string {
-            $value = $this->database->fetchOne('SELECT launch_ready_at FROM xp_settings WHERE id = 1');
-            $marker = is_string($value) ? $value : '';
+        return $this->window ??= $this->xpLaunchReadinessCache->get(self::CACHE_KEY, function (ItemInterface $item): string {
+            $row = $this->database->fetchAssociative('SELECT launch_ready_at, full_formula_from FROM xp_settings WHERE id = 1');
+            $readyAt = $row !== false && is_string($row['launch_ready_at']) ? $row['launch_ready_at'] : '';
+            $from = $row !== false && is_string($row['full_formula_from']) ? $row['full_formula_from'] : '';
+            $marker = $readyAt !== '' ? $readyAt . '|' . $from : '';
             $item->expiresAfter($marker !== '' ? self::READY_TTL_SECONDS : self::NOT_READY_TTL_SECONDS);
 
             return $marker;
@@ -58,11 +69,11 @@ final class CachedXpLaunchReadiness implements XpLaunchReadiness, ResetInterface
     public function forget(): void
     {
         $this->xpLaunchReadinessCache->delete(self::CACHE_KEY);
-        $this->readyAt = null;
+        $this->window = null;
     }
 
     public function reset(): void
     {
-        $this->readyAt = null;
+        $this->window = null;
     }
 }

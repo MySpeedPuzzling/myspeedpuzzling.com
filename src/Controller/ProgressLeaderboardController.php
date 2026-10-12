@@ -226,10 +226,6 @@ final class ProgressLeaderboardController extends AbstractController
         }
 
         if ($tab === ProgressLeaderboardTab::Karma) {
-            if ($viewer->isAdmin) {
-                return 'admin';
-            }
-
             if ($viewer->karmaOptedOut) {
                 return 'karma_opted_out';
             }

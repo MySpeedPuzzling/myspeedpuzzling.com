@@ -28,6 +28,11 @@ final readonly class XpLaunchReadinessStub implements XpLaunchReadiness
         return $this->ready ? ($this->readyAt ?? new DateTimeImmutable('2026-08-02 00:00:00')) : null;
     }
 
+    public function stampedFrom(): null|DateTimeImmutable
+    {
+        return $this->ready ? new DateTimeImmutable('2026-08-01 00:00:00') : null;
+    }
+
     public function forget(): void
     {
     }

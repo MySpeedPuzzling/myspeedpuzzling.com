@@ -16,7 +16,7 @@ use Symfony\Component\DomCrawler\Crawler;
 /**
  * The achievement detail sheet (AchievementInfoController, docs/features/xp-levels/ux-polish/design-spec.md §2 + §8):
  * the medal that turns over, the facts line, the tier list, whose medal (?player=) and its query budget.
- * The fixtures' launch marker is 2026-08-02 (XpSettingsFixture): earlier tiers are "held at launch".
+ * The fixtures' launch backfill window is 2026-08-01 .. 2026-08-02 (XpSettingsFixture): tiers inside it are "held at launch".
  */
 final class AchievementInfoSheetTest extends WebTestCase
 {

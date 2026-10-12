@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\Controller;
 
 use Doctrine\DBAL\Connection;
+use SpeedPuzzling\Web\Services\Karma\InfiniteKarma;
 use SpeedPuzzling\Web\Services\Karma\KarmaRecalculator;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\TestDouble\FixedXpLaunchReadiness;
@@ -53,7 +54,7 @@ final class KarmaPagesTest extends WebTestCase
         self::assertResponseStatusCodeSame(404);
     }
 
-    public function testAnAdminSeesTheyHaveNoKarma(): void
+    public function testAnAdminHasTheirKarmaHistoryLikeEverybody(): void
     {
         $browser = self::createClient();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
@@ -62,7 +63,7 @@ final class KarmaPagesTest extends WebTestCase
         $browser->request('GET', '/en/my/karma');
 
         self::assertResponseIsSuccessful();
-        self::assertSelectorExists('.alert-info');
+        self::assertSelectorNotExists('.alert-info', 'No "admins have no karma" note any more (Jan 2026-10-12)');
         self::assertLessThanOrEqual(2, $this->derivationRuns($browser), 'The history page derives karma at most twice (breakdown + one page of items)');
     }
 
@@ -88,7 +89,7 @@ final class KarmaPagesTest extends WebTestCase
         self::assertSelectorExists('a.player-chip-karma[href^="/en/my/karma?return="]');
     }
 
-    public function testTheKarmaListLeavesOutPrivateProfilesAndAdmins(): void
+    public function testTheKarmaListLeavesOutPrivateProfilesButListsAdmins(): void
     {
         $browser = self::createClient();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
@@ -103,7 +104,38 @@ final class KarmaPagesTest extends WebTestCase
         $content = (string) $browser->getResponse()->getContent();
         self::assertStringContainsString('/en/player-profile/' . PlayerFixture::PLAYER_WITH_STRIPE, $content);
         self::assertStringNotContainsString('/en/player-profile/' . PlayerFixture::PLAYER_WITH_FAVORITES, $content);
-        self::assertStringNotContainsString('<a href="/en/player-profile/' . PlayerFixture::PLAYER_ADMIN, $content);
+        self::assertStringContainsString('/en/player-profile/' . PlayerFixture::PLAYER_ADMIN, $content, 'Admins earn karma too (Jan 2026-10-12)');
+    }
+
+    public function testAPlayerWithKudosShowsInfiniteGoldenKarmaRankedByTheRealNumber(): void
+    {
+        $browser = self::createClient();
+        $browser->disableReboot();
+        // KARMA_INFINITE_PLAYER_IDS is set on production only (the ids never go into the repository)
+        self::getContainer()->set(InfiniteKarma::class, new InfiniteKarma(' ' . strtoupper(PlayerFixture::PLAYER_WITH_STRIPE) . ', '));
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+        $database = $browser->getContainer()->get(Connection::class);
+        $database->executeStatement("UPDATE player SET karma = 7 WHERE id = :id", ['id' => PlayerFixture::PLAYER_WITH_STRIPE]);
+        $database->executeStatement("UPDATE player SET karma = 9 WHERE id = :id", ['id' => PlayerFixture::PLAYER_REGULAR]);
+
+        $crawler = $browser->request('GET', '/en/ladder/karma');
+
+        self::assertResponseIsSuccessful();
+        $golden = $crawler->filter('#board-row-' . PlayerFixture::PLAYER_WITH_STRIPE . ' .lb-value-karma-infinite');
+        self::assertCount(1, $golden);
+        self::assertSame('∞ karma', trim($golden->filter('.lb-value-number')->text()));
+        self::assertCount(0, $crawler->filter('#board-row-' . PlayerFixture::PLAYER_REGULAR . ' .lb-value-karma-infinite'));
+        // Display only: ranked by the real number (9 before 7)
+        $rows = $crawler->filter('tr[id^="board-row-"]')->each(static fn ($row): string => (string) $row->attr('id'));
+        self::assertLessThan(
+            array_search('board-row-' . PlayerFixture::PLAYER_WITH_STRIPE, $rows, true),
+            array_search('board-row-' . PlayerFixture::PLAYER_REGULAR, $rows, true),
+        );
+
+        $crawler = $browser->request('GET', '/en/player-profile/' . PlayerFixture::PLAYER_WITH_STRIPE);
+        $chip = $crawler->filter('a.player-chip-karma-infinite');
+        self::assertCount(1, $chip);
+        self::assertSame('∞ karma', trim($chip->text()));
     }
 
     public function testTheKarmaListFiltersByKindAndPeriod(): void

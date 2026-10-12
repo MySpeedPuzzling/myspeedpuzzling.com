@@ -20,8 +20,9 @@ namespace SpeedPuzzling\Web\Services\Karma;
  * - a moderator's decision on a change request, a merge request or a new puzzle, and a direct edit → the moderator,
  *   made by a person in the admin UI. A decision on one's own proposal or puzzle counts once in total: the proposal
  *   when it counts (approved), the decision otherwise
- * - outdated requests, brands, events: nothing. Admins: nothing (the internal API files its proposals in an admin's
- *   name), applied by the readers through ELIGIBLE_PLAYER
+ * - outdated requests, brands, events: nothing. Admins count like everybody (Jan 2026-10-12 - including the proposals
+ *   the internal API files in its reviewer's name, INTERNAL_API_REVIEWER_PLAYER_ID); the readers join the player
+ *   through ELIGIBLE_PLAYER
  *
  * Columns of `karma_items`: player_id, kind (KarmaKind), at, puzzle_id (null = the puzzle is gone), puzzle_name,
  * action (PuzzleModerationAction of a decision), counted.
@@ -31,8 +32,8 @@ final class KarmaDerivation
     /** "Has an EAN": at least 8 digits in a row - placeholders and catalogue numbers in the EAN field do not count */
     public const string HAS_EAN = "p.ean ~ '[0-9]{8,}'";
 
-    /** Join condition for the player a karma item belongs to - admins are left out of karma altogether */
-    public const string ELIGIBLE_PLAYER = 'pl.id = i.player_id AND pl.is_admin = false';
+    /** Join condition for the player a karma item belongs to - everybody, admins too (Jan 2026-10-12) */
+    public const string ELIGIBLE_PLAYER = 'pl.id = i.player_id';
 
     /**
      * @param bool $scoped Only the items of the players in the `:karmaPlayerIds` array parameter (fast: a player's

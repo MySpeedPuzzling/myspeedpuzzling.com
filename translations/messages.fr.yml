@@ -8734,6 +8734,7 @@ karma:
         label: "Masquer mon karma"
         help: "Vos contributions comptent toujours et sont conservées, mais votre karma est masqué sur votre profil et vous n'apparaissez pas dans la liste du karma. Désactiver cette option réaffiche tout."
     chip_title: "Karma : contributions acceptées à la base de données de puzzles"
+    infinite_title: "Karma infini - merci pour tout ce que tu fais pour MySpeedPuzzling"
     leaderboard:
         kind_label: "Ce qui compte"
         period_label: "Période"
@@ -8777,7 +8778,6 @@ karma:
         pagination: "Pages de l'historique du karma"
         previous: "Page précédente"
         next: "Page suivante"
-        admin_note: "Les administrateurs n'ont pas de karma - leur travail fait partie de la gestion du site."
         hidden_note: "Votre karma est masqué pour les autres : il n'apparaît pas sur votre profil et vous ne figurez pas dans la liste du karma. Vos contributions comptent toujours."
         hidden_change: "Modifier dans les paramètres"
     explainer:
@@ -8958,7 +8958,6 @@ leaderboards:
         private: "Votre profil est privé, vous n'apparaissez donc pas dans les classements."
         experience_opted_out: "Vous avez désactivé les niveaux et les succès, vous n'apparaissez donc pas ici. Vous pouvez les réactiver dans les paramètres de votre profil."
         karma_opted_out: "Vous avez choisi de masquer votre karma, vous n'apparaissez donc pas ici. Vous pouvez l'afficher à nouveau dans les paramètres de votre profil."
-        admin: "Les administrateurs n'ont pas de karma, ils n'apparaissent donc pas ici."
         xp: "Enregistrez votre premier puzzle terminé pour entrer dans ce classement."
         achievement-points: "Obtenez votre premier succès pour entrer dans ce classement."
         karma: "Votre première contribution acceptée à la base de données de puzzles vous fera entrer dans ce classement."

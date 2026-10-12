@@ -41,6 +41,24 @@ readonly class BadgeRepository
     }
 
     /**
+     * @return list<Badge> every tier of the player's tiered achievements
+     */
+    public function tieredOf(string $playerId): array
+    {
+        /** @var list<Badge> $badges */
+        $badges = $this->entityManager->createQueryBuilder()
+            ->select('b')
+            ->from(Badge::class, 'b')
+            ->where('b.player = :playerId')
+            ->andWhere('b.tier IS NOT NULL')
+            ->setParameter('playerId', $playerId)
+            ->getQuery()
+            ->getResult();
+
+        return $badges;
+    }
+
+    /**
      * @return list<Badge>
      */
     public function findByPlayerAndType(string $playerId, BadgeType $type): array

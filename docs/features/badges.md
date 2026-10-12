@@ -176,6 +176,27 @@ Both indexes are mirrored in `tests/bootstrap.php`.
 
 When a player first qualifies for, say, tier 3 of a badge without having earned tiers 1 or 2 previously (typical for backfill), the evaluator persists all three rows with the same `earnedAt` timestamp. The email, however, mentions only the highest tier per badge type in that recalc pass.
 
+### Real dates (history dating, 2026-10-12)
+
+The launch backfill earned every tier of the history at once, so each carried the backfill's own run time ("Held at
+launch", design-spec §8.1). `myspeedpuzzling:date-achievements-from-history` (one-off, `--dry-run` first; re-runs are
+no-ops) gives each such tier the moment the player's records first met it:
+
+- **How:** `AchievementFirstMetDates` replays the player's history in date order through the badge conditions
+  themselves - their results (their own and the pair/team results they were in, never a suspicious one), accepted
+  proposals, approved puzzles - with the predicates of `GetPlayerStatsSnapshot` (`AchievementReplayState`). Every metric
+  only grows (a best time only falls), so the first moment a tier qualifies is its date. A result counts from
+  `finished_at`, or from `tracked_at` when it has none, when it is later than the logging (a typo) or before 2000; a
+  proposal from its review; a puzzle from `approved_at`, else `added_at`.
+- **Trusted only when the replay ends at the player's current snapshot** (`==`); otherwise nothing of theirs is dated.
+  `AchievementFirstMetDatesTest` pins that parity for every fixture player.
+- **Writes:** `DateAchievementsFromHistory` (sync, per player, under `PlayerProgressionLock`) → `Badge::datedFromHistory()`
+  - only the tiers still inside the backfill's window (`HeldAtLaunch`: from `xp_settings.full_formula_from` to
+  `launch_ready_at`), only ever to an earlier date. Tiers, points and reveal state are untouched; a tier the replay
+  cannot date keeps its stamp and stays "held at launch".
+- **Dev copy (2026-10-12):** 62,111 stamped tiers of 6,612 players, all dated, every replay matched, 170 s (dev env).
+  The activity digest is unaffected - it counts from the launch switch, and every dated tier is older.
+
 ### Performance
 
 - Per-player recalc runs a fixed 4–5 SQLs regardless of history size.

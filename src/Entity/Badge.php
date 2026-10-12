@@ -37,6 +37,7 @@ class Badge
         #[Column]
         #[Immutable]
         public BadgeType $type,
+        #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
         #[Column(type: Types::DATETIME_IMMUTABLE)]
         public DateTimeImmutable $earnedAt,
         #[Column(type: Types::SMALLINT, nullable: true)]
@@ -56,6 +57,17 @@ class Badge
     {
         if ($this->revealedAt === null) {
             $this->revealedAt = $now;
+        }
+    }
+
+    /**
+     * The launch backfill stamped its own run time on every tier the history already held; the history says when the
+     * records first met it (DateAchievementsFromHistory). Only ever earlier - a date is never moved forward.
+     */
+    public function datedFromHistory(DateTimeImmutable $firstMetAt): void
+    {
+        if ($firstMetAt < $this->earnedAt) {
+            $this->earnedAt = $firstMetAt;
         }
     }
 

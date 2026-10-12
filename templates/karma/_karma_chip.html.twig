@@ -1,10 +1,12 @@
 {# Karma on the player header (docs/features/karma.md): the owner opens "What did I get my karma for?", anybody else
-   the karma list. return_query (optional) = {return, return_title} for the target's back button (design-spec §3). #}
+   the karma list. return_query (optional) = {return, return_title} for the target's back button (design-spec §3).
+   player_id (optional): a player with kudos (karma_infinite, InfiniteKarma) gets "∞ karma", golden. #}
 {% set return_query = return_query|default({}) %}
-<a class="player-chip player-chip-karma"
+{% set infinite = karma_infinite(player_id|default(null)) %}
+<a class="player-chip player-chip-karma{{ infinite ? ' player-chip-karma-infinite' }}"
    href="{{ own ? path('karma_history', return_query) : path('karma_leaderboard', return_query) }}"
    {%- if return_query is not empty %} rel="nofollow"{% endif %}
-   title="{{ 'karma.chip_title'|trans }}">
-    <i class="bi bi-hand-thumbs-up" aria-hidden="true"></i>
-    {{ 'karma.chip'|trans({'%karma%': karma|plain_number}) }}
+   title="{{ (infinite ? 'karma.infinite_title' : 'karma.chip_title')|trans }}">
+    <i class="bi {{ infinite ? 'bi-stars' : 'bi-hand-thumbs-up' }}" aria-hidden="true"></i>
+    {{ 'karma.chip'|trans({'%karma%': infinite ? '∞' : karma|plain_number}) }}
 </a>

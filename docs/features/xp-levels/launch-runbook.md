@@ -123,6 +123,9 @@ $DC run --rm --no-deps messenger-consumer bin/console myspeedpuzzling:send-conte
 | 01:03 | `verify-progression` | no drift in any check (10 s) |
 | 01:03 | `xp-distribution` | **9 at Level 50**, 92 at Level 40+, median Level 5, p90 Level 24 (curve v7 projection on the dev copy: 8 / 88 / 5 / 24); 64,926 achievement tiers held by 6,810 players, 458 of them Diamond |
 
+| 01:40 | karma for admins (`cb075dc8`) + `recalculate-karma` | admins earn karma like everybody: Simonka 3,350 (shown "∞", kudos), Jan 1,102 |
+| 02:23 | `date-achievements-from-history` (`645702ef`; dry run first) | all **64,594** stamped tiers of 6,799 players got the date their requirement was first met, every replay matched, 130 s; none left "held at launch"; `verify-progression` no drift. Undo: `/root/msp_badge_earned_at_before_dating_20261012.csv` (id, earned_at of every tiered badge before) |
+
 The newsletter (§4) went out the same night (sent from another session). First hour after the switch: 10 launch modals
 claimed, 6 levels revealed, 106 achievements revealed, queue empty, no Sentry issue.
 

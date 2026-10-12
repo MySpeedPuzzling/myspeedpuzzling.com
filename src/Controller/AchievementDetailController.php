@@ -9,10 +9,9 @@ use SpeedPuzzling\Web\Query\GetAchievementMedal;
 use SpeedPuzzling\Web\Services\CountryFilterOptions;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Services\Xp\XpFeatureGate;
-use SpeedPuzzling\Web\Services\Xp\XpLaunchReadiness;
+use SpeedPuzzling\Web\Services\Badges\LaunchStampWindow;
 use SpeedPuzzling\Web\Value\BadgeTier;
 use SpeedPuzzling\Web\Value\BadgeType;
-use SpeedPuzzling\Web\Value\HeldAtLaunch;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -36,7 +35,7 @@ final class AchievementDetailController extends AbstractController
     public function __construct(
         readonly private GetAchievementHolders $getAchievementHolders,
         readonly private GetAchievementMedal $getAchievementMedal,
-        readonly private XpLaunchReadiness $xpLaunchReadiness,
+        readonly private LaunchStampWindow $launchStampWindow,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private XpFeatureGate $xpFeatureGate,
     ) {
@@ -76,8 +75,8 @@ final class AchievementDetailController extends AbstractController
             ? min(self::MAX_SHOWN, max(GetAchievementHolders::LISTED_PER_TIER, $request->query->getInt('shown')))
             : GetAchievementHolders::LISTED_PER_TIER;
 
-        $launchAt = $this->xpLaunchReadiness->readyAt();
-        $sections = $this->getAchievementHolders->forType($badgeType, $country, $launchAt, $expandedTier, $shown);
+        $heldAtLaunch = $this->launchStampWindow->current();
+        $sections = $this->getAchievementHolders->forType($badgeType, $country, $heldAtLaunch, $expandedTier, $shown);
 
         // The hero is the viewer's own highest tier (members only - which tiers a player holds is a membership perk),
         // else Bronze: the picture says "this is where you are", never a Diamond nobody asked about. Its number is
@@ -102,7 +101,7 @@ final class AchievementDetailController extends AbstractController
             'type' => $badgeType,
             'hero_tier' => $viewerMedal->tier ?? BadgeTier::Bronze,
             'viewer_medal' => $viewerMedal,
-            'viewer_held_at_launch' => $viewerMedal !== null && HeldAtLaunch::is($viewerMedal->earnedAt, $launchAt),
+            'viewer_held_at_launch' => $viewerMedal !== null && $heldAtLaunch->holds($viewerMedal->earnedAt),
             'viewer_total' => $viewerTotal,
             'tier_sections' => $sections,
             'countries' => CountryFilterOptions::fromCodes($this->getAchievementHolders->countries($badgeType), $request->getLocale()),

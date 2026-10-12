@@ -8618,6 +8618,7 @@ karma:
         puzzle_added: "%count% neues Puzzle|%count% neue Puzzles"
     chip: "%karma% Karma"
     chip_title: "Karma: angenommene Beiträge zur Puzzle-Datenbank"
+    infinite_title: "Unendliches Karma - danke für alles, was du für MySpeedPuzzling tust"
     explainer:
         duplicates: "Werden zwei Puzzles zusammengeführt, behält die Person, die das Puzzle zuerst hinzugefügt hat, das Karma dafür. Die spätere Kopie zählt nicht mehr, und wer das Duplikat gemeldet hat, bekommt 1. In deinem Karma-Verlauf steht so eine Kopie als nicht gezählt."
         duplicates_heading: "Wenn sich ein Puzzle als Duplikat herausstellt"
@@ -8659,7 +8660,6 @@ karma:
         what_counts: "Was zählt"
         your_karma: "dein Karma"
     history:
-        admin_note: "Admins haben kein Karma - ihre Arbeit gehört zum Betrieb der Seite."
         breakdown_label: "Dein Karma nach Art"
         empty: "Noch kein Karma. Füge ein Puzzle mit seiner EAN hinzu oder schlag eine Korrektur vor - jeder angenommene Beitrag ist 1 Karma."
         hidden_change: "In den Einstellungen ändern"
@@ -8938,7 +8938,6 @@ leaderboards:
         private: "Dein Profil ist privat, deshalb stehst du nicht in den Bestenlisten."
         experience_opted_out: "Du hast Level und Erfolge ausgeschaltet, deshalb stehst du nicht hier. In deinen Profileinstellungen kannst du sie wieder einschalten."
         karma_opted_out: "Du hast dein Karma ausgeblendet, deshalb stehst du nicht hier. In deinen Profileinstellungen kannst du es wieder einblenden."
-        admin: "Admins haben kein Karma, deshalb stehen sie nicht hier."
         xp: "Trag dein erstes gelöstes Puzzle ein, um in diese Bestenliste zu kommen."
         achievement-points: "Verdiene deinen ersten Erfolg, um in diese Bestenliste zu kommen."
         karma: "Dein erster angenommener Beitrag zur Puzzle-Datenbank bringt dich in diese Bestenliste."

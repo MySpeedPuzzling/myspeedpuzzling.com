@@ -15,8 +15,8 @@ use Symfony\UX\TwigComponent\Attribute\PostMount;
 
 /**
  * The achievements showcase near the top of a profile (docs/features/xp-levels/launch-2026-10.md, "Profile header",
- * draft A): a member's earned achievements in one sideways-scrolling row, highest tier first, with "11 of 16 · 640 AP"
- * linking to the catalogue.
+ * draft A): a member's earned achievements in one sideways-scrolling row, Early Adopter then the highest tier first,
+ * with "11 of 16 · 640 AP" linking to the catalogue.
  *
  *  - the player is a member → the showcase for everybody who may see the profile; the owner's unrevealed
  *    achievements are one call-out leading to the reveal page (how many, what they are, one button)
@@ -133,15 +133,16 @@ final class AchievementsShowcase
     }
 
     /**
-     * Highest tier first (single-tier achievements after Bronze), newest first within a tier - pinning is a later
-     * feature.
+     * The one-off Early Adopter first, then the highest tier first - Diamond, Platinum, ... - newest first within a tier
+     * (Jan 2026-10-12: the same order as the achievements page; pinning is a later feature).
      *
      * @param list<BadgeResult> $badges
      * @return list<BadgeResult>
      */
     private static function bestFirst(array $badges): array
     {
-        usort($badges, static fn (BadgeResult $a, BadgeResult $b): int => [$b->tier->value ?? 0, $b->earnedAt] <=> [$a->tier->value ?? 0, $a->earnedAt]);
+        $rank = static fn (BadgeResult $badge): int => $badge->tier === null ? PHP_INT_MAX : $badge->tier->value;
+        usort($badges, static fn (BadgeResult $a, BadgeResult $b): int => [$rank($b), $b->earnedAt] <=> [$rank($a), $a->earnedAt]);
 
         return $badges;
     }

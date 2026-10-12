@@ -14,6 +14,7 @@ use SpeedPuzzling\Web\Services\Badges\BadgeEvaluator;
 use SpeedPuzzling\Web\Services\Xp\CachedXpLaunchReadiness;
 use SpeedPuzzling\Web\Services\Xp\XpRecomputer;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\XpSettingsFixture;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 /**
@@ -41,10 +42,12 @@ final class MarkXpLaunchReadyHandlerTest extends KernelTestCase
         self::assertGreaterThan(0, $verification->playersWithSolves);
         self::assertNotNull($this->launchReadyAt());
 
-        // The production switch reads the marker
+        // The production switch reads the marker - and where the launch backfill's window starts (the deploy)
         $readiness = self::getContainer()->get(CachedXpLaunchReadiness::class);
         $readiness->forget();
         self::assertTrue($readiness->isReady());
+        self::assertSame($this->launchReadyAt(), $readiness->readyAt()?->format('Y-m-d H:i:s'));
+        self::assertSame(XpSettingsFixture::FULL_FORMULA_FROM, $readiness->stampedFrom()?->format('Y-m-d H:i:s'));
     }
 
     public function testAPlayerWithoutXpKeepsTheSwitchOff(): void
@@ -87,6 +90,7 @@ final class MarkXpLaunchReadyHandlerTest extends KernelTestCase
         $readiness = self::getContainer()->get(CachedXpLaunchReadiness::class);
         $readiness->forget();
         self::assertFalse($readiness->isReady());
+        self::assertNull($readiness->stampedFrom(), 'No window while the switch is off');
     }
 
     private function backfillEverybody(): void

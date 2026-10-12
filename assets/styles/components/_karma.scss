@@ -72,3 +72,53 @@ $karma-tint: #e3f4f1;
         font-weight: 600;
     }
 }
+
+// Kudos (InfiniteKarma, Jan 2026-10-12): "∞ karma" in gold with a slow glow - a thank-you, not a number. Two classes
+// for the chip: _progression-profile.scss sets .player-chip-karma's colours after this file. Ink #6b4400 on the
+// lightest-to-darkest gold of the chip: 5.4:1 at the darkest end; the list's number #8a5a00 on white: 5.8:1.
+$karma-gold-ink: #6b4400;
+$karma-gold-glow: rgba(255, 200, 61, .85);
+
+@keyframes karma-infinite-glow {
+    0%,
+    100% {
+        box-shadow: 0 0 4px 1px rgba(255, 200, 61, .45);
+    }
+
+    50% {
+        box-shadow: 0 0 14px 4px $karma-gold-glow;
+    }
+}
+
+.player-chip.player-chip-karma-infinite {
+    background: linear-gradient(135deg, #fff6d5 0%, #ffe07a 50%, #ffc83d 100%);
+    color: $karma-gold-ink;
+    font-weight: 700;
+    animation: karma-infinite-glow 2.8s ease-in-out infinite;
+
+    &:hover {
+        color: #4a2f00 !important;
+    }
+
+    .bi {
+        color: #b07800;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        animation: none;
+        box-shadow: 0 0 10px 3px rgba(255, 200, 61, .6);
+    }
+}
+
+.karma-total-infinite {
+    color: #8a5a00;
+    font-size: 2.75rem;
+    text-shadow: 0 0 12px $karma-gold-glow, 0 0 2px rgba(255, 200, 61, .9);
+}
+
+.lb-value-karma-infinite .lb-value-number {
+    color: #8a5a00;
+    font-size: 1.35em;
+    line-height: 1;
+    text-shadow: 0 0 10px $karma-gold-glow;
+}

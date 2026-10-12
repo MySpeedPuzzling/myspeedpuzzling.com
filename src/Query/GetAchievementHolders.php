@@ -59,13 +59,13 @@ SQL;
      * One tier can be expanded (the "Show more" / "Show all" of its section, Jan 2026-10-11): it lists up to
      * $expandedLimit holders instead of LISTED_PER_TIER - still the same one statement.
      *
-     * @param null|DateTimeImmutable $launchAt XpLaunchReadiness::readyAt() - tiers earned until then are "held at launch"
+     * @param HeldAtLaunch $heldAtLaunch LaunchStampWindow::current() - the tiers still stamped by the launch backfill
      * @return list<AchievementTierHolders>
      */
     public function forType(
         BadgeType $type,
         null|string $country,
-        null|DateTimeImmutable $launchAt,
+        HeldAtLaunch $heldAtLaunch,
         null|BadgeTier $expandedTier = null,
         int $expandedLimit = self::LISTED_PER_TIER,
     ): array {
@@ -140,7 +140,7 @@ SQL;
         $holdersByTier = [];
         foreach ($listedRows as $row) {
             $earnedAt = new DateTimeImmutable($row['earned_at']);
-            $heldAtLaunch = HeldAtLaunch::is($earnedAt, $launchAt);
+            $held = $heldAtLaunch->holds($earnedAt);
 
             $holdersByTier[(int) $row['tier']][] = new AchievementHolder(
                 playerId: $row['player_id'],
@@ -149,8 +149,8 @@ SQL;
                 countryCode: CountryCode::fromCode($row['country']),
                 avatar: $row['avatar'],
                 earnedAt: $earnedAt,
-                heldAtLaunch: $heldAtLaunch,
-                firstToEarn: (int) $row['serial'] === 1 && $heldAtLaunch === false,
+                heldAtLaunch: $held,
+                firstToEarn: (int) $row['serial'] === 1 && $held === false,
             );
         }
 

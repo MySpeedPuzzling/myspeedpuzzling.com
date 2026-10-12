@@ -33,6 +33,11 @@ final class FixedXpLaunchReadiness implements XpLaunchReadiness
         return self::$ready ? (self::$readyAt ?? new DateTimeImmutable(XpSettingsFixture::LAUNCH_READY_AT)) : null;
     }
 
+    public function stampedFrom(): null|DateTimeImmutable
+    {
+        return self::$ready ? new DateTimeImmutable(XpSettingsFixture::FULL_FORMULA_FROM) : null;
+    }
+
     public function forget(): void
     {
     }

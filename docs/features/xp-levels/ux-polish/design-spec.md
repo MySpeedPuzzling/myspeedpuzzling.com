@@ -350,15 +350,17 @@ questions, measured contrast and benchmarks with sources, is kept with the deliv
   - "First to earn" go to whoever was processed first;
   - every date read "10 Oct 2026";
   - every cell carry "NEW" for a week.
-- **Rule:** a tier whose `earned_at` ≤ `xp_settings.launch_ready_at` (or any tier while the marker is null) is **held at
-  launch**.
+- **Rule:** a tier whose `earned_at` lies in the launch backfill's window - from `xp_settings.full_formula_from` (the
+  deploy) to `launch_ready_at` (the switch) - is **held at launch** (`HeldAtLaunch`, built by `LaunchStampWindow`); so is
+  any tier while the marker is null. Since 2026-10-12 the window only holds tiers the history dating could not date
+  (`docs/features/badges.md` "Real dates") - on the dev copy none.
   - **It shows "Held at launch"** instead of a number and a date: on the medal back, in the facts line and on the
     holders page.
   - **It never gets "NEW"**, nor the "First to earn" trophy.
   - **Single-tier Early Adopter** keeps its real grant dates.
   - **Why not invent precision:** a wrong "No. 42" or a wrong date is worse than an honest "held at launch" (P9).
-- **Later work:** deriving the real date each requirement was first met in the backfill would give the old tiers real
-  dates and numbers. It is a bigger change and goes to `docs/TODO.md`.
+- **Done 2026-10-12:** the history dating gave the tiers the backfill stamped the date their requirement was first met
+  (`myspeedpuzzling:date-achievements-from-history`) - real dates, real medal numbers, a real "First to earn".
 - **Serial for tiers earned after launch:**
   - `1 + count(holders of the type and tier with (earned_at, id) < mine)`, counting everyone ahead, including the
     holders at launch. The first new Gold after 79 holders at launch is truly No. 80.
@@ -517,7 +519,7 @@ PHPStan clean). Where the build had to decide something the spec left open, or t
 | The catalogue `/en/achievements` | **A public reference, the same for everybody** (Jan 2026-10-11): every achievement with all its tiers, what each takes and how many puzzlers hold each tier (+ Early Adopter with its holders); members get one line on top with their count and "My achievements". No shelf, filters or next steps there - those live on the member's own page | For a member the shelf duplicated their own page; what only this page does is the reference a guest, a free player or a search engine can read, and the way into the holders lists |
 | The sheet's second button | None when opened from a shelf (`from=shelf`); the player's achievements from their showcase; "My achievements" for the viewer's own; the catalogue otherwise | "All achievements" from a shelf led to the same list with another header |
 | "So far: N" in the sheet | Removed; a speed achievement keeps "Your record: 29:41" | A bare count said nothing - it is the "1 / 5" on the next tier's row |
-| A player's achievements page, visitors | **No filter chips, one list rarest first**: Early Adopter first, then what the player holds by how rare their tier is, then the rest by how rare its Bronze is (Jan 2026-10-11). The owner keeps All · Earned · Next up · Rarest first | A visitor wants to see what is special about this player |
+| A player's achievements page, visitors | **No filter chips, one list rarest first**: Early Adopter first, then what the player holds **by tier - every Diamond, then Platinum, ... - the rarer first within a tier**, then the rest by how rare its Bronze is (Jan 2026-10-11; tier first 2026-10-12: "Early Adopter, then Diamond" - by holders alone a rare Silver came before a common Diamond). The owner keeps All · Earned · Next up · Rarest first (same order) | A visitor wants to see what is special about this player |
 | Progress on others' achievements | **Shown again** - the bar and "X / Y" on the shelf and in the sheet, for every viewer (Jan 2026-10-11, over §8.6); only the streak numbers of a player who switched streaks off stay hidden. "Closest next steps" stays the owner's | Jan wants to see how far others are, not only what they hold |
 | Colours on the achievements pages | Progress bars, the "17 of 17" count and "your tier" in the site's primary (coral); tier names and pips in the heading ink - **amber only on the Achievement Points chip and values**, where it tells AP apart from XP and the MSP Rating (Jan 2026-10-11). Cards get a small shadow | The family colour on everything read as "bronze", including on a Platinum |
 | One rarity aggregate | `AchievementRarityProvider` caches holders + percentages together | One aggregate on a cache miss instead of two |

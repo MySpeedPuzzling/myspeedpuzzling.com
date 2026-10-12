@@ -15,6 +15,7 @@ use SpeedPuzzling\Web\Services\AchievementCatalogueRows;
 use SpeedPuzzling\Web\Value\AchievementCatalogueFilter;
 use SpeedPuzzling\Web\Value\BadgeTier;
 use SpeedPuzzling\Web\Value\BadgeType;
+use SpeedPuzzling\Web\Value\HeldAtLaunch;
 
 /**
  * The orders, closest next steps and summary numbers of the achievements shelf
@@ -101,10 +102,11 @@ final class AchievementCatalogueRowsTest extends TestCase
             self::group(BadgeType::Unboxed, earnedUpTo: BadgeTier::Bronze, progress: 10, earnedAt: '2026-10-05 09:00:00'),
         ];
         $newSince = new DateTimeImmutable('2026-10-04 12:00:00');
-        $launchAt = new DateTimeImmutable('2026-10-05 09:17:00');
+        // The launch backfill ran from the deploy (08:50) to the switch (09:17)
+        $heldAtLaunch = new HeldAtLaunch(new DateTimeImmutable('2026-10-05 08:50:00'), new DateTimeImmutable('2026-10-05 09:17:00'));
 
-        $owner = AchievementCatalogueRows::build($catalog, [], personal: true, revealFlow: true, newSince: $newSince, launchAt: $launchAt);
-        $visitor = AchievementCatalogueRows::build($catalog, [], personal: true, launchAt: $launchAt);
+        $owner = AchievementCatalogueRows::build($catalog, [], personal: true, revealFlow: true, newSince: $newSince, heldAtLaunch: $heldAtLaunch);
+        $visitor = AchievementCatalogueRows::build($catalog, [], personal: true, heldAtLaunch: $heldAtLaunch);
         $beforeLaunch = AchievementCatalogueRows::build($catalog, [], personal: true, revealFlow: true, newSince: $newSince);
 
         self::assertSame([BadgeType::Streak], self::newOnes($owner));
@@ -121,7 +123,7 @@ final class AchievementCatalogueRowsTest extends TestCase
             self::group(BadgeType::Marathoner, earnedUpTo: BadgeTier::Gold, progress: 10, earnedAt: '2026-08-01 09:00:00'),
         ];
 
-        $lists = AchievementCatalogueRows::build($catalog, [], personal: true, launchAt: new DateTimeImmutable('2026-08-01 09:17:00'));
+        $lists = AchievementCatalogueRows::build($catalog, [], personal: true, heldAtLaunch: new HeldAtLaunch(new DateTimeImmutable('2026-08-01 08:50:00'), new DateTimeImmutable('2026-08-01 09:17:00')));
 
         self::assertSame(
             [BadgeType::FirstTry, BadgeType::Unboxed, BadgeType::Streak, BadgeType::Marathoner],

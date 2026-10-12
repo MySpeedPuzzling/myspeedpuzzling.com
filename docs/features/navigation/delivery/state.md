@@ -12,15 +12,18 @@ Evidence = commit hash(es) · test names · command output summary · screenshot
 | Last sync with `origin/main` | 9347ccda (start, 2026-10-12) |
 | Delivery branch / worktree | `feature/navigation-redesign` / `.claude/worktrees/navigation` |
 | Delivery DB clone | `speedpuzzling_nav_test` |
-| Isolated web URL | `http://127.0.0.1:18080` (container `nav-web`) |
+| Isolated web URL | `http://127.0.0.1:18080` (container `nav-web`, php -S; restart: `var/navigation-delivery/tools/restart-web.sh`) |
+| Selenium | `nav-delivery-chrome` on `127.0.0.1:14444` (selenium/standalone-chromium:latest); helper `var/navigation-delivery/tools/wd.py` |
+| Gate scripts | `var/navigation-delivery/tools/{phpunit,paratest,phpstan,cs,console,encore,restart-web}.sh` (one-off containers; test DB `speedpuzzling_navsuite_test`) |
+| Deps | composer.lock + package-lock.json identical to main checkout at start → main `vendor`/`node_modules` mounted read-only |
 | P0-03 commit to deploy separately | |
 
 ## Status
 
 | ID | Item | Status | Evidence | Notes |
 |---|---|---|---|---|
-| P0-01 | Implementation plan | todo | | |
-| P0-02 | Baseline and budget pins | todo | | |
+| P0-01 | Implementation plan | in-progress | | |
+| P0-02 | Baseline and budget pins | verified | (commit below) · orchestrator re-ran `phpunit.sh -- tests/Navigation/` → OK (20 tests, 172 assertions); agent's full ParaTest 9685 tests exit 0; phpstan OK, phpcs clean · `baseline.md` + `baseline-chrome-routes.json` exist; JSON surface×role: guest topbar 3/toolbar 5/hamburger 9/footer 37; player·member·organiser 3/15 dropdown/4/9/29; moderator +admin_key 4; admin +admin_key 14; absent pairs with reasons (admin_key non-mods, dropdown guests, live strip expired) · screenshots `var/navigation-delivery/baseline/screens/` (27) · no ids/names in committed files (grep) | pins: chrome guest 1 / signed-in 5 / mod+admin 6; Hub guest 1, player 8, member 9, admin 10; profile 11–24. Note: profile results already page 50 + Show more on main (biggest guest profile 366.6 KB). Lighthouse via frankenphp php-server prod build (QA-03 must reuse `scripts/lighthouse-web.sh`) |
 | P0-03 | Navigation click instrumentation (current navigation first) | todo | | |
 | F-01 | Navigation registry + guard test | todo | | |
 | F-02 | Place resolver | todo | | |
@@ -158,13 +161,18 @@ Decisions taken during delivery where the spec was silent (date · ID · decisio
 
 | Date | ID | Decision | Reason |
 |---|---|---|---|
+| 2026-10-12 | env | Inside the delivery worktree every phpunit/paratest run uses DB `speedpuzzling_navsuite_test`; parallel agents in their own worktrees use their own `speedpuzzling_<name>_test` | `tests/.database.cache` is per worktree, not per DB: a second DB name in the same worktree is skipped as "current" and never created |
+| 2026-10-12 | P0-01 | R1 footer/Menu "New" badges expire 14 days after `NavigationLaunch::DATE` (shown while null) | README §7 rulebook "gone after first visit or 14 days"; drafts disagreed (14 vs 30) |
+| 2026-10-12 | P0-01 | R2 "Where did it go?" link follows its registry audience (signed-in) on every surface; the page stays public | README §4.12 hides it for guests; consistency between Menu, Help sheet and footer |
+| 2026-10-12 | P0-01 | R3 top bar and Menu panel each hold their own `<twig:GlobalSearch>`; `global_search_controller.js` scoped to its element | README §4.12 allows a second instance (empty query = no statement); avoids moving one Live component between DOM slots |
+| 2026-10-12 | P0-01 | R5 `NavigationLaunch` is a service: `DATE` constant (null) + overridable date for tests; consumers never read the constant | a null constant cannot be tested "with a set date" |
 
 ## Run log
 One line per session and per phase: date · what was done · next step.
 
 | Date | Note |
 |---|---|
-| 2026-10-12 | Session 1 start: worktree created from origin/main 9347ccda; spec committed; environment setup; next P0-01 |
+| 2026-10-12 | Session 1 start: worktree created from origin/main 9347ccda; spec committed (a76cd36b); clone `speedpuzzling_nav_test` restored + migrated (at Version20261011130000); assets built; nav-web + Selenium up; next P0-01 (12 exploration drafts in parallel) |
 
 ## Final report
 (written at the end: what shipped, evidence summary, blocked items with options, owner steps — README §11)

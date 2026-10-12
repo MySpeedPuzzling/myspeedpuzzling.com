@@ -1,0 +1,589 @@
+{
+    "schema": 1,
+    "baseCommit": "a76cd36b",
+    "generatedAt": "2026-10-12",
+    "generatedBy": "var/navigation-delivery/scripts/BaselineChromeRoutesProbe.php (fixture DB, APP_ENV=test)",
+    "pages": [
+        "/en/faq",
+        "/en/hub",
+        "/en/puzzle/{PUZZLE_500_01}",
+        "/en/player-profile/{own} (signed-in roles)"
+    ],
+    "roles": {
+        "guest": {
+            "fixture": null,
+            "setup": "cookie jar cleared"
+        },
+        "player": {
+            "fixture": "PLAYER_PRIVATE",
+            "setup": null
+        },
+        "member": {
+            "fixture": "PLAYER_WITH_STRIPE",
+            "setup": null
+        },
+        "organiser": {
+            "fixture": "PLAYER_REGULAR",
+            "setup": null
+        },
+        "moderator": {
+            "fixture": "PLAYER_WITH_FAVORITES",
+            "setup": "GrantModeratorRole dispatched before login"
+        },
+        "admin": {
+            "fixture": "PLAYER_ADMIN",
+            "setup": null
+        }
+    },
+    "surfaces": {
+        "topbar": {
+            "selector": ".topbar, minus /admin links and the language menu (language switch flagged)"
+        },
+        "admin_key": {
+            "selector": ".topbar a[href^=\"/admin\"] (the key dropdown)"
+        },
+        "account_dropdown": {
+            "selector": ".navbar-tool.dropdown .dropdown-menu"
+        },
+        "toolbar": {
+            "selector": "a.navbar-tool / .navbar-tool a outside the dropdown menu, plus a.navbar-brand"
+        },
+        "hamburger": {
+            "selector": "#navbarCollapse"
+        },
+        "footer": {
+            "selector": "footer.site-footer (incl. newsletter band, popular searches, footer bar; language menu flagged)"
+        },
+        "live_event_strip": {
+            "selector": ".competition-panel-info",
+            "absent": "expired 2026-09-21"
+        }
+    },
+    "routes": {
+        "guest": {
+            "topbar": [
+                "feature_requests",
+                "feedback",
+                "membership"
+            ],
+            "toolbar": [
+                "homepage",
+                "my_profile",
+                "notifications",
+                "puzzle_add",
+                "register"
+            ],
+            "hamburger": [
+                "events",
+                "faq",
+                "feature_requests",
+                "hub",
+                "ladder",
+                "marketplace",
+                "players",
+                "puzzles",
+                "stopwatch"
+            ],
+            "footer": [
+                "badges_overview",
+                "brand_pieces_puzzles",
+                "brand_puzzles",
+                "comparison",
+                "data_deletion",
+                "event_detail",
+                "events",
+                "faq",
+                "feature_requests",
+                "feedback",
+                "for_developers",
+                "for_organizers",
+                "getting_started",
+                "guide_average_puzzle_time",
+                "guide_puzzle_time_by_pieces",
+                "guides",
+                "homepage",
+                "ladder",
+                "marketplace",
+                "membership",
+                "methodology",
+                "multiscan",
+                "pairs_and_teams",
+                "pieces_hardest_puzzles",
+                "pieces_puzzles",
+                "players",
+                "privacy_policy",
+                "progression_hub",
+                "puzzle_add",
+                "puzzle_brands",
+                "puzzle_picker",
+                "puzzle_tracker_app",
+                "puzzles",
+                "recent_activity",
+                "stopwatch",
+                "terms_of_service",
+                "wjpc_hub"
+            ]
+        },
+        "player": {
+            "topbar": [
+                "feature_requests",
+                "feedback",
+                "membership"
+            ],
+            "account_dropdown": [
+                "activity_calendar",
+                "affiliate_dashboard",
+                "edit_profile",
+                "export_puzzler_data",
+                "getting_started",
+                "logout",
+                "my_profile",
+                "pairs_and_teams",
+                "player_achievements",
+                "player_favorite_puzzlers",
+                "player_statistics",
+                "progression_hub",
+                "puzzle_library",
+                "puzzle_picker",
+                "xp_history"
+            ],
+            "toolbar": [
+                "conversations_list",
+                "homepage",
+                "notifications",
+                "puzzle_add"
+            ],
+            "hamburger": [
+                "events",
+                "faq",
+                "feature_requests",
+                "hub",
+                "ladder",
+                "marketplace",
+                "players",
+                "puzzles",
+                "stopwatch"
+            ],
+            "footer": [
+                "badges_overview",
+                "comparison",
+                "data_deletion",
+                "events",
+                "faq",
+                "feature_requests",
+                "feedback",
+                "for_developers",
+                "for_organizers",
+                "getting_started",
+                "guides",
+                "homepage",
+                "ladder",
+                "marketplace",
+                "membership",
+                "methodology",
+                "multiscan",
+                "pairs_and_teams",
+                "players",
+                "privacy_policy",
+                "progression_hub",
+                "puzzle_add",
+                "puzzle_picker",
+                "puzzle_tracker_app",
+                "puzzles",
+                "recent_activity",
+                "stopwatch",
+                "terms_of_service",
+                "wjpc_hub"
+            ]
+        },
+        "member": {
+            "topbar": [
+                "feature_requests",
+                "feedback",
+                "membership"
+            ],
+            "account_dropdown": [
+                "activity_calendar",
+                "affiliate_dashboard",
+                "edit_profile",
+                "export_puzzler_data",
+                "getting_started",
+                "logout",
+                "my_profile",
+                "pairs_and_teams",
+                "player_achievements",
+                "player_favorite_puzzlers",
+                "player_statistics",
+                "progression_hub",
+                "puzzle_library",
+                "puzzle_picker",
+                "xp_history"
+            ],
+            "toolbar": [
+                "conversations_list",
+                "homepage",
+                "notifications",
+                "puzzle_add"
+            ],
+            "hamburger": [
+                "events",
+                "faq",
+                "feature_requests",
+                "hub",
+                "ladder",
+                "marketplace",
+                "players",
+                "puzzles",
+                "stopwatch"
+            ],
+            "footer": [
+                "badges_overview",
+                "comparison",
+                "data_deletion",
+                "events",
+                "faq",
+                "feature_requests",
+                "feedback",
+                "for_developers",
+                "for_organizers",
+                "getting_started",
+                "guides",
+                "homepage",
+                "ladder",
+                "marketplace",
+                "membership",
+                "methodology",
+                "multiscan",
+                "pairs_and_teams",
+                "players",
+                "privacy_policy",
+                "progression_hub",
+                "puzzle_add",
+                "puzzle_picker",
+                "puzzle_tracker_app",
+                "puzzles",
+                "recent_activity",
+                "stopwatch",
+                "terms_of_service",
+                "wjpc_hub"
+            ]
+        },
+        "organiser": {
+            "topbar": [
+                "feature_requests",
+                "feedback",
+                "membership"
+            ],
+            "account_dropdown": [
+                "activity_calendar",
+                "affiliate_dashboard",
+                "edit_profile",
+                "export_puzzler_data",
+                "getting_started",
+                "logout",
+                "my_profile",
+                "pairs_and_teams",
+                "player_achievements",
+                "player_favorite_puzzlers",
+                "player_statistics",
+                "progression_hub",
+                "puzzle_library",
+                "puzzle_picker",
+                "xp_history"
+            ],
+            "toolbar": [
+                "conversations_list",
+                "homepage",
+                "notifications",
+                "puzzle_add"
+            ],
+            "hamburger": [
+                "events",
+                "faq",
+                "feature_requests",
+                "hub",
+                "ladder",
+                "marketplace",
+                "players",
+                "puzzles",
+                "stopwatch"
+            ],
+            "footer": [
+                "badges_overview",
+                "comparison",
+                "data_deletion",
+                "events",
+                "faq",
+                "feature_requests",
+                "feedback",
+                "for_developers",
+                "for_organizers",
+                "getting_started",
+                "guides",
+                "homepage",
+                "ladder",
+                "marketplace",
+                "membership",
+                "methodology",
+                "multiscan",
+                "pairs_and_teams",
+                "players",
+                "privacy_policy",
+                "progression_hub",
+                "puzzle_add",
+                "puzzle_picker",
+                "puzzle_tracker_app",
+                "puzzles",
+                "recent_activity",
+                "stopwatch",
+                "terms_of_service",
+                "wjpc_hub"
+            ]
+        },
+        "moderator": {
+            "topbar": [
+                "feature_requests",
+                "feedback",
+                "membership"
+            ],
+            "admin_key": [
+                "admin_puzzle_approvals",
+                "admin_puzzle_change_requests",
+                "admin_puzzle_merge_requests",
+                "admin_time_verification"
+            ],
+            "account_dropdown": [
+                "activity_calendar",
+                "affiliate_dashboard",
+                "edit_profile",
+                "export_puzzler_data",
+                "getting_started",
+                "logout",
+                "my_profile",
+                "pairs_and_teams",
+                "player_achievements",
+                "player_favorite_puzzlers",
+                "player_statistics",
+                "progression_hub",
+                "puzzle_library",
+                "puzzle_picker",
+                "xp_history"
+            ],
+            "toolbar": [
+                "conversations_list",
+                "homepage",
+                "notifications",
+                "puzzle_add"
+            ],
+            "hamburger": [
+                "events",
+                "faq",
+                "feature_requests",
+                "hub",
+                "ladder",
+                "marketplace",
+                "players",
+                "puzzles",
+                "stopwatch"
+            ],
+            "footer": [
+                "badges_overview",
+                "comparison",
+                "data_deletion",
+                "events",
+                "faq",
+                "feature_requests",
+                "feedback",
+                "for_developers",
+                "for_organizers",
+                "getting_started",
+                "guides",
+                "homepage",
+                "ladder",
+                "marketplace",
+                "membership",
+                "methodology",
+                "multiscan",
+                "pairs_and_teams",
+                "players",
+                "privacy_policy",
+                "progression_hub",
+                "puzzle_add",
+                "puzzle_picker",
+                "puzzle_tracker_app",
+                "puzzles",
+                "recent_activity",
+                "stopwatch",
+                "terms_of_service",
+                "wjpc_hub"
+            ]
+        },
+        "admin": {
+            "topbar": [
+                "feature_requests",
+                "feedback",
+                "membership"
+            ],
+            "admin_key": [
+                "admin_api_usage",
+                "admin_competition_approvals",
+                "admin_duplicate_results",
+                "admin_email_audit_list",
+                "admin_free_trial",
+                "admin_moderation_dashboard",
+                "admin_moderators",
+                "admin_oauth2_client_requests",
+                "admin_puzzle_approvals",
+                "admin_puzzle_change_requests",
+                "admin_puzzle_merge_requests",
+                "admin_referrals",
+                "admin_time_verification",
+                "admin_vouchers"
+            ],
+            "account_dropdown": [
+                "activity_calendar",
+                "affiliate_dashboard",
+                "edit_profile",
+                "export_puzzler_data",
+                "getting_started",
+                "logout",
+                "my_profile",
+                "pairs_and_teams",
+                "player_achievements",
+                "player_favorite_puzzlers",
+                "player_statistics",
+                "progression_hub",
+                "puzzle_library",
+                "puzzle_picker",
+                "xp_history"
+            ],
+            "toolbar": [
+                "conversations_list",
+                "homepage",
+                "notifications",
+                "puzzle_add"
+            ],
+            "hamburger": [
+                "events",
+                "faq",
+                "feature_requests",
+                "hub",
+                "ladder",
+                "marketplace",
+                "players",
+                "puzzles",
+                "stopwatch"
+            ],
+            "footer": [
+                "badges_overview",
+                "comparison",
+                "data_deletion",
+                "events",
+                "faq",
+                "feature_requests",
+                "feedback",
+                "for_developers",
+                "for_organizers",
+                "getting_started",
+                "guides",
+                "homepage",
+                "ladder",
+                "marketplace",
+                "membership",
+                "methodology",
+                "multiscan",
+                "pairs_and_teams",
+                "players",
+                "privacy_policy",
+                "progression_hub",
+                "puzzle_add",
+                "puzzle_picker",
+                "puzzle_tracker_app",
+                "puzzles",
+                "recent_activity",
+                "stopwatch",
+                "terms_of_service",
+                "wjpc_hub"
+            ]
+        }
+    },
+    "absent": {
+        "guest": {
+            "account_dropdown": "guests get Register / Sign in toolbar links instead",
+            "admin_key": "rendered only for PUZZLE_MODERATION_ACCESS (moderators and admins)",
+            "live_event_strip": "expired 2026-09-21 (WJPC 2026 strip, base.html.twig); not rendered at the baseline"
+        },
+        "player": {
+            "admin_key": "rendered only for PUZZLE_MODERATION_ACCESS (moderators and admins)",
+            "live_event_strip": "expired 2026-09-21 (WJPC 2026 strip, base.html.twig); not rendered at the baseline"
+        },
+        "member": {
+            "admin_key": "rendered only for PUZZLE_MODERATION_ACCESS (moderators and admins)",
+            "live_event_strip": "expired 2026-09-21 (WJPC 2026 strip, base.html.twig); not rendered at the baseline"
+        },
+        "organiser": {
+            "admin_key": "rendered only for PUZZLE_MODERATION_ACCESS (moderators and admins)",
+            "live_event_strip": "expired 2026-09-21 (WJPC 2026 strip, base.html.twig); not rendered at the baseline"
+        },
+        "moderator": {
+            "live_event_strip": "expired 2026-09-21 (WJPC 2026 strip, base.html.twig); not rendered at the baseline"
+        },
+        "admin": {
+            "live_event_strip": "expired 2026-09-21 (WJPC 2026 strip, base.html.twig); not rendered at the baseline"
+        }
+    },
+    "languageSwitch": {
+        "guest": [
+            "footer",
+            "topbar"
+        ],
+        "player": [
+            "footer",
+            "topbar"
+        ],
+        "member": [
+            "footer",
+            "topbar"
+        ],
+        "organiser": [
+            "footer",
+            "topbar"
+        ],
+        "moderator": [
+            "footer",
+            "topbar"
+        ],
+        "admin": [
+            "footer",
+            "topbar"
+        ]
+    },
+    "params": {
+        "activity_calendar": {
+            "playerId": "own"
+        },
+        "export_puzzler_data": {
+            "playerId": "own"
+        },
+        "player_achievements": {
+            "playerId": "own"
+        },
+        "player_favorite_puzzlers": {
+            "playerId": "own"
+        },
+        "player_statistics": {
+            "playerId": "own"
+        },
+        "puzzle_library": {
+            "playerId": "own"
+        }
+    },
+    "query": {
+        "feedback": [
+            "url"
+        ],
+        "progression_hub": [
+            "return"
+        ]
+    }
+}

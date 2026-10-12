@@ -5366,6 +5366,8 @@ guides:
 
 auth:
     login:
+        email_required: "Geben Sie Ihre E-Mail-Adresse ein."
+        password_required: "Geben Sie Ihr Passwort ein."
         title: "Anmelden"
         email: "E-Mail"
         password: "Passwort"

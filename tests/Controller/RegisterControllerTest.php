@@ -292,6 +292,31 @@ final class RegisterControllerTest extends WebTestCase
         self::assertSame('de', $crawler->filter('html')->attr('lang'));
     }
 
+    /**
+     * The form has novalidate: the browser's own "Fill out this field" bubble is in the browser's
+     * language and looks different everywhere - the server answers, translated, under each field
+     */
+    public function testEmptySubmitIsAnsweredUnderEachFieldByTheServer(): void
+    {
+        $browser = self::createClient();
+
+        $crawler = $browser->request('GET', '/register?method=email');
+        self::assertCount(1, $crawler->filter('form[name="registration_form"][novalidate]'));
+
+        $crawler = $this->submitRegistration($browser, '', '', terms: false);
+
+        self::assertResponseStatusCodeSame(422);
+        $form = $crawler->filter('form[name="registration_form"]')->text();
+        self::assertStringContainsString('Enter your email address.', $form);
+        self::assertStringContainsString('Enter a password.', $form);
+        self::assertStringContainsString('please agree to the Terms of service', $form);
+
+        $this->submitRegistration($browser, 'not-an-address', 'short');
+        $form = $browser->getCrawler()->filter('form[name="registration_form"]')->text();
+        self::assertStringContainsString('Enter a valid email address, like name@example.com.', $form);
+        self::assertStringContainsString('Use at least 8 characters.', $form);
+    }
+
     private function submitRegistration(KernelBrowser $browser, string $email, string $password, string $name = '', bool $newsletter = false, bool $terms = true): Crawler
     {
         // A fresh client IP per submit: registration is throttled per IP and the

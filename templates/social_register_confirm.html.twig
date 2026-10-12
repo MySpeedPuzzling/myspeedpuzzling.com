@@ -12,7 +12,7 @@
     {% else %}
         <p>{{ 'auth.social.confirm.question'|trans({'%provider%': provider_name, '%email%': email}) }}</p>
 
-        <form action="{{ path('social_register_confirm') }}" method="post">
+        <form action="{{ path('social_register_confirm') }}" method="post" novalidate>
             {# The single-use parked token doubles as the CSRF guard #}
             <input type="hidden" name="token" value="{{ token }}">
 

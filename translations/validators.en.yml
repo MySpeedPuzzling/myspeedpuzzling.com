@@ -38,3 +38,9 @@ add_editions:
     count_range: "Choose 1 to %max% dates."
     none_selected: "Check at least one date."
 registration_terms_required: "To create an account, please agree to the Terms of service and the Privacy policy."
+auth:
+    email_required: "Enter your email address."
+    email_invalid: "Enter a valid email address, like name@example.com."
+    password_required: "Enter a password."
+    password_too_short: "Use at least {{ limit }} characters."
+    current_password_required: "Enter your current password."

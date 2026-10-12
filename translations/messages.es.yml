@@ -5367,6 +5367,8 @@ guides:
 
 "auth":
   "login":
+    "email_required": "Introduce tu dirección de correo electrónico."
+    "password_required": "Introduce tu contraseña."
     "title": "Iniciar sesión"
     "email": "Correo electrónico"
     "password": "Contraseña"

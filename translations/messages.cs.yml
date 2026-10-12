@@ -5467,6 +5467,8 @@ guides:
 
 auth:
     login:
+        email_required: "Zadejte svou e-mailovou adresu."
+        password_required: "Zadejte své heslo."
         title: "Přihlásit se"
         email: "E-mail"
         password: "Heslo"

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
+use SpeedPuzzling\Web\Security\LoginFormIncomplete;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Security\Core\Exception\BadCredentialsException;
@@ -37,6 +38,9 @@ final class LoginController extends AbstractController
         $error = $authenticationUtils->getLastAuthenticationError();
 
         return $this->render('login.html.twig', [
+            // An empty field gets its own message under it (the form has novalidate)
+            'email_missing' => $error instanceof LoginFormIncomplete && $error->emailMissing,
+            'password_missing' => $error instanceof LoginFormIncomplete && $error->passwordMissing,
             'last_email' => $authenticationUtils->getLastUsername(),
             'error' => $error,
             // Wrong password and unknown address are both BadCredentials (the
@@ -45,6 +49,7 @@ final class LoginController extends AbstractController
             // an expired CSRF token - keeps its own translated message.
             'failure_kind' => match (true) {
                 $error === null => null,
+                $error instanceof LoginFormIncomplete => 'incomplete',
                 $error instanceof TooManyLoginAttemptsAuthenticationException => 'throttled',
                 $error instanceof BadCredentialsException => 'credentials',
                 default => 'other',

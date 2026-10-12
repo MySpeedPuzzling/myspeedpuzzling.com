@@ -8,11 +8,11 @@ use Symfony\Component\Validator\Constraints as Assert;
 
 final class ChangeEmailFormData
 {
-    #[Assert\NotBlank]
-    #[Assert\Email]
+    #[Assert\NotBlank(message: 'auth.email_required')]
+    #[Assert\Email(message: 'auth.email_invalid')]
     #[Assert\Length(max: 180)]
     public string $newEmail = '';
 
-    #[Assert\NotBlank]
+    #[Assert\NotBlank(message: 'auth.current_password_required')]
     public string $currentPassword = '';
 }

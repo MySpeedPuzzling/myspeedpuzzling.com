@@ -14,7 +14,6 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\RateLimiter\RateLimiterFactoryInterface;
 use Symfony\Component\Security\Core\Exception\AuthenticationException;
-use Symfony\Component\Security\Core\Exception\BadCredentialsException;
 use Symfony\Component\Security\Core\Exception\TooManyLoginAttemptsAuthenticationException;
 use Symfony\Component\Security\Http\Authenticator\AbstractLoginFormAuthenticator;
 use Symfony\Component\Security\Http\Authenticator\Passport\Badge\CsrfTokenBadge;
@@ -52,7 +51,7 @@ final class LoginFormAuthenticator extends AbstractLoginFormAuthenticator
         }
 
         if ($email === '' || $password === '') {
-            throw new BadCredentialsException('Empty email or password.');
+            throw new LoginFormIncomplete(emailMissing: $email === '', passwordMissing: $password === '');
         }
 
         $this->throttle($email, $request->getClientIp());

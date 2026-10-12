@@ -657,10 +657,17 @@ final class SocialLoginFlowTest extends WebTestCase
         self::assertCount(1, $crawler->filter('a[href="/en/privacy-policy"][target="_blank"]'));
         self::assertCount(0, $crawler->filter('input[name="newsletter"][checked]'), 'The newsletter starts unticked');
 
-        $browser->request('POST', '/register/social', ['token' => $token, 'newsletter' => '1']);
+        self::assertCount(1, $crawler->filter('form[action="/register/social"][novalidate]'));
 
-        // Back to the same confirmation (the parked profile is not used up), nothing created
-        self::assertResponseRedirects('/register/social?token=' . rawurlencode($token));
+        $crawler = $browser->request('POST', '/register/social', ['token' => $token, 'newsletter' => '1']);
+
+        // The same confirmation again (the parked profile is not used up): the error under the box,
+        // the newsletter tick kept, nothing created
+        self::assertResponseStatusCodeSame(422);
+        self::assertStringContainsString('please agree to the Terms of service', $crawler->filter('#social-register-terms-error')->text());
+        self::assertCount(1, $crawler->filter('input[name="terms"].is-invalid'));
+        self::assertCount(1, $crawler->filter('input[name="newsletter"][checked]'));
+        self::assertSame($token, $crawler->filter('form[action="/register/social"] input[name="token"]')->attr('value'));
         $connection = $browser->getContainer()->get(Connection::class);
         self::assertFalse($connection->fetchOne('SELECT 1 FROM user_account WHERE email = :email', ['email' => $email]));
 

@@ -16,8 +16,8 @@ final class RegistrationFormData
     #[Assert\Length(max: 100)]
     public null|string $name = null;
 
-    #[Assert\NotBlank]
-    #[Assert\Email]
+    #[Assert\NotBlank(message: 'auth.email_required')]
+    #[Assert\Email(message: 'auth.email_invalid')]
     #[Assert\Length(max: 180)]
     public string $email = '';
 

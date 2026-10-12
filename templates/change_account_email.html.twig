@@ -14,7 +14,7 @@
 
             <div class="card shadow my-3">
                 <div class="card-body">
-                    {{ form_start(form, {'action': path('change_account_email')}) }}
+                    {{ form_start(form, {'action': path('change_account_email'), 'attr': {'novalidate': 'novalidate'}}) }}
                         {{ form_row(form.newEmail) }}
                         {{ form_row(form.currentPassword) }}
 

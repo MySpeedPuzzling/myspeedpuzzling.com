@@ -40,3 +40,9 @@ add_editions:
     count_range: "Wählen Sie 1 bis %max% Termine."
     none_selected: "Markieren Sie mindestens einen Termin."
 registration_terms_required: "Um ein Konto zu erstellen, stimmen Sie bitte den Nutzungsbedingungen und der Datenschutzerklärung zu."
+auth:
+    email_required: "Geben Sie Ihre E-Mail-Adresse ein."
+    email_invalid: "Geben Sie eine gültige E-Mail-Adresse ein, z. B. name@example.com."
+    password_required: "Geben Sie ein Passwort ein."
+    password_too_short: "Verwenden Sie mindestens {{ limit }} Zeichen."
+    current_password_required: "Geben Sie Ihr aktuelles Passwort ein."

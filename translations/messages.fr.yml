@@ -5460,6 +5460,8 @@ edition:
 
 "auth":
   "login":
+    "email_required": "Saisissez votre adresse e-mail."
+    "password_required": "Saisissez votre mot de passe."
     "title": "Se connecter"
     "email": "E-mail"
     "password": "Mot de passe"

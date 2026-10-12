@@ -5918,6 +5918,8 @@ wjpc_hub:
 
 auth:
     login:
+        email_required: "Enter your email address."
+        password_required: "Enter your password."
         title: "Sign in"
         email: "Email"
         password: "Password"

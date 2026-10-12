@@ -9,7 +9,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 
 final class ChangePasswordFormData
 {
-    #[Assert\NotBlank]
+    #[Assert\NotBlank(message: 'auth.current_password_required')]
     public string $currentPassword = '';
 
     #[StrongPassword]

@@ -5356,6 +5356,8 @@ guides:
 
 "auth":
   "login":
+    "email_required": "メールアドレスを入力してください。"
+    "password_required": "パスワードを入力してください。"
     "title": "サインイン"
     "email": "メールアドレス"
     "password": "パスワード"

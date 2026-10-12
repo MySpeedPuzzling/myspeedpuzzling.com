@@ -40,3 +40,9 @@ add_editions:
     count_range: "Vyberte 1 až %max% termínů."
     none_selected: "Zaškrtněte alespoň jeden termín."
 registration_terms_required: "Pro vytvoření účtu prosím souhlaste s obchodními podmínkami a zásadami ochrany osobních údajů."
+auth:
+    email_required: "Zadejte svou e-mailovou adresu."
+    email_invalid: "Zadejte platnou e-mailovou adresu, např. jmeno@example.com."
+    password_required: "Zadejte heslo."
+    password_too_short: "Použijte alespoň {{ limit }} znaků."
+    current_password_required: "Zadejte své současné heslo."

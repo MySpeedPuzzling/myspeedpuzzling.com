@@ -35,6 +35,8 @@ final class RegistrationFormType extends AbstractType
         // it as the username (auth UX redesign §4.2)
         $builder
             ->add('email', EmailType::class, [
+                // An empty field must reach the validator as '' (the form has novalidate), never null into a string property
+                'empty_data' => '',
                 'label' => 'auth.register.email',
                 'attr' => [
                     'autocomplete' => 'username',
@@ -45,6 +47,7 @@ final class RegistrationFormType extends AbstractType
                 ],
             ])
             ->add('plainPassword', PasswordType::class, [
+                'empty_data' => '',
                 'label' => 'auth.register.password',
                 'help' => 'auth.register.password_hint',
                 'help_translation_parameters' => [

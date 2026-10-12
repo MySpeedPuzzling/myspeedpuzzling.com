@@ -23,12 +23,15 @@ final class ChangePasswordFormType extends AbstractType
     {
         $builder
             ->add('currentPassword', PasswordType::class, [
+                // An empty field must reach the validator as '' (the form has novalidate), never null into a string property
+                'empty_data' => '',
                 'label' => 'edit_profile.change_password_current',
                 'attr' => [
                     'autocomplete' => 'current-password',
                 ],
             ])
             ->add('newPassword', PasswordType::class, [
+                'empty_data' => '',
                 'label' => 'edit_profile.change_password_new',
                 'help' => 'auth.set_password.password_hint',
                 'help_translation_parameters' => [

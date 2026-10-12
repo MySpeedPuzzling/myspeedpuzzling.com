@@ -117,7 +117,8 @@ final class NavLayoutCssTest extends TestCase
         yield 'multiscan sheet backdrop' => ['assets/styles/_multiscan.scss', '.multiscan-sheet-backdrop', ['bottom']];
         yield 'achievement medal sheet' => ['assets/styles/_achievement-medal.scss', '#dynamic-modal-container.achievement-sheet-open .modal-dialog', ['bottom']];
         yield 'modal-sheet-sm-down' => ['assets/styles/_dynamic-modal.scss', '#dynamic-modal-container .modal-dialog.modal-sheet-sm-down', ['bottom']];
-        yield 'dynamic modal container (decision 18)' => ['assets/styles/_dynamic-modal.scss', '#dynamic-modal-container', ['bottom']];
+        // Every Bootstrap modal box, the dynamic modal container included (testEveryModalBoxEndsAboveTheBottomBar)
+        yield 'every modal incl. the dynamic modal container (decision 18, review F4)' => ['assets/styles/_dynamic-modal.scss', '.modal', ['bottom']];
         yield 'modal backdrop (decision 18)' => ['assets/styles/_dynamic-modal.scss', '.modal-backdrop', ['bottom']];
         yield 'player card layer' => ['assets/styles/players/_card.scss', '.players-card-layer', ['bottom']];
         yield 'player card sheet' => ['assets/styles/players/_card.scss', '.is-sheet .players-card-dialog', ['bottom']];
@@ -146,6 +147,40 @@ final class NavLayoutCssTest extends TestCase
         if (in_array('left', $offsets, true)) {
             self::assertMatchesRegularExpression('~--nav-left|@include\s+nav-center-x\b~', $declarations, $file . ' ' . $selector . ' ignores the desktop column/rail');
         }
+    }
+
+    /**
+     * Decision 18 for every modal, not only the dynamic one (phase F review F4): the `.modal` rule ends every Bootstrap
+     * modal box at --bottom-nav-height - the dynamic modal container is one (class "modal"), and no stylesheet sizes a
+     * modal box again without the bar. A full-height transparent .modal over the bar would take the bar's taps.
+     */
+    public function testEveryModalBoxEndsAboveTheBottomBar(): void
+    {
+        $base = (string) file_get_contents($this->root() . '/templates/base.html.twig');
+        self::assertSame(1, preg_match('~<div\b[^>]*\bid="dynamic-modal-container"[^>]*>~s', $base, $container));
+        self::assertMatchesRegularExpression('~\bclass="([^"]*\s)?modal(\s[^"]*)?"~', $container[0], 'The dynamic modal container is a .modal - the rule reaches it');
+
+        $resized = [];
+
+        foreach ($this->files('assets/styles', ['scss']) as $path => $code) {
+            foreach ($this->rules($code) as $selector => $declarations) {
+                $parts = preg_split('/\s*[\s>+~]\s*(?![^(]*\))/', trim($selector));
+                $last = is_array($parts) ? (string) end($parts) : $selector;
+
+                if (preg_match('~(\.modal(?![\w-])|#dynamic-modal-container)~', $last) !== 1) {
+                    continue;
+                }
+
+                if (
+                    preg_match('~(?<![\w-])(height|max-height|bottom|inset)\s*:~', $declarations) === 1
+                    && preg_match('~--bottom-nav-height|@include\s+nav-bottom\b~', $declarations) !== 1
+                ) {
+                    $resized[] = $path . ' ' . $selector;
+                }
+            }
+        }
+
+        self::assertSame([], $resized, 'A modal box sized without --bottom-nav-height would cover the bottom bar again');
     }
 
     public function testSubBarsFollowTheTopBarWithoutAnimatingTop(): void
@@ -350,179 +385,16 @@ final class NavLayoutCssTest extends TestCase
     }
 
     /**
-     * A small SCSS reader: full selector => own declarations (incl. `@include …;` lines), the rules of one selector
-     * concatenated. @media, @supports, @include … { } and @if/@else blocks are looked through; @mixin, @function and
-     * @keyframes bodies are skipped.
-     *
-     * @return array<string, string>
+     * @return array<string, string> full selector => own declarations (ScssReader::rules())
      */
     private function rules(string $code): array
     {
-        $code = $this->withoutComments($code);
-        $rules = [];
-        // One entry per open block: its selectors (null = not a style context), own declarations, whether it is a
-        // style rule (or a transparent at-rule inside one)
-        /** @var list<list<string>|null> $selectors */
-        $selectors = [['']];
-        /** @var list<string> $texts */
-        $texts = [''];
-        /** @var list<bool> $styles */
-        $styles = [false];
-        $buffer = '';
-        $length = strlen($code);
-
-        for ($i = 0; $i < $length; $i++) {
-            $char = $code[$i];
-
-            if (($char === '#' && ($code[$i + 1] ?? '') === '{') || $char === '"' || $char === "'") {
-                $end = strpos($code, $char === '#' ? '}' : $char, $i + 1);
-                $end = $end === false ? $length - 1 : $end;
-                $buffer .= substr($code, $i, $end - $i + 1);
-                $i = $end;
-                continue;
-            }
-
-            $top = count($texts) - 1;
-
-            if ($char === '{') {
-                $prelude = trim($buffer);
-                $buffer = '';
-                $outer = $selectors[$top] ?? null;
-
-                if (str_starts_with($prelude, '@')) {
-                    $transparent = preg_match('~^@(media|supports|include|if|else|starting-style|container|layer)\b~', $prelude) === 1;
-                    $selectors[] = $transparent ? $outer : null;
-                    $texts[] = '';
-                    $styles[] = $transparent && ($styles[$top] ?? false);
-                    continue;
-                }
-
-                if ($outer === null) {
-                    $selectors[] = null;
-                    $texts[] = '';
-                    $styles[] = false;
-                    continue;
-                }
-
-                $resolved = [];
-                foreach ($this->splitSelectors($prelude) as $part) {
-                    foreach ($outer as $parent) {
-                        $full = str_contains($part, '&') ? str_replace('&', $parent, $part) : $parent . ' ' . $part;
-                        $resolved[] = (string) preg_replace('~\s+~', ' ', trim($full));
-                    }
-                }
-
-                $selectors[] = $resolved;
-                $texts[] = '';
-                $styles[] = true;
-                continue;
-            }
-
-            if ($char === ';') {
-                $texts[$top] .= trim($buffer) . ';';
-                $buffer = '';
-                continue;
-            }
-
-            if ($char === '}') {
-                $own = $texts[$top] . (trim($buffer) === '' ? '' : trim($buffer) . ';');
-                $buffer = '';
-                $blockSelectors = $selectors[$top] ?? null;
-                $isStyle = $styles[$top] ?? false;
-                array_pop($selectors);
-                array_pop($texts);
-                array_pop($styles);
-
-                if ($isStyle && $blockSelectors !== null) {
-                    foreach ($blockSelectors as $selector) {
-                        $rules[$selector] = ($rules[$selector] ?? '') . $own;
-                    }
-                }
-
-                if ($texts === []) {
-                    $selectors = [['']];
-                    $texts = [''];
-                    $styles = [false];
-                }
-
-                continue;
-            }
-
-            $buffer .= $char;
-        }
-
-        return $rules;
-    }
-
-    /**
-     * @return list<string>
-     */
-    private function splitSelectors(string $prelude): array
-    {
-        $parts = [];
-        $depth = 0;
-        $current = '';
-
-        foreach (str_split($prelude) as $char) {
-            if ($char === '(') {
-                $depth++;
-            } elseif ($char === ')') {
-                $depth--;
-            }
-
-            if ($char === ',' && $depth === 0) {
-                $parts[] = trim($current);
-                $current = '';
-                continue;
-            }
-
-            $current .= $char;
-        }
-
-        $parts[] = trim($current);
-
-        return array_values(array_filter($parts, static fn (string $part): bool => $part !== ''));
+        return ScssReader::rules($code);
     }
 
     private function withoutComments(string $code): string
     {
-        $out = '';
-        $length = strlen($code);
-
-        for ($i = 0; $i < $length; $i++) {
-            $char = $code[$i];
-
-            if ($char === '"' || $char === "'") {
-                $end = strpos($code, $char, $i + 1);
-                $out .= substr($code, $i, ($end === false ? $length : $end + 1) - $i);
-                $i = $end === false ? $length : $end;
-                continue;
-            }
-
-            // An unquoted url(…) may hold `//` (scheme, base64)
-            if ($char === 'u' && substr($code, $i, 4) === 'url(' && !in_array($code[$i + 4] ?? '', ['"', "'"], true)) {
-                $end = strpos($code, ')', $i);
-                $out .= substr($code, $i, ($end === false ? $length : $end + 1) - $i);
-                $i = $end === false ? $length : $end;
-                continue;
-            }
-
-            if ($char === '/' && ($code[$i + 1] ?? '') === '*') {
-                $end = strpos($code, '*/', $i + 2);
-                $i = $end === false ? $length : $end + 1;
-                continue;
-            }
-
-            if ($char === '/' && ($code[$i + 1] ?? '') === '/') {
-                $end = strpos($code, "\n", $i);
-                $i = $end === false ? $length : $end - 1;
-                continue;
-            }
-
-            $out .= $char;
-        }
-
-        return $out;
+        return ScssReader::withoutComments($code);
     }
 
     /**

@@ -12,6 +12,12 @@ namespace SpeedPuzzling\Web\Navigation;
  */
 final readonly class NavigationPlaceResolver
 {
+    /**
+     * Request attribute: the player whose page this is, set by a controller whose URL carries no playerId (e.g.
+     * collection_detail) - so somebody else's page goes to Community, never to your own Puzzles › My library.
+     */
+    public const string PAGE_OWNER_ATTRIBUTE = '_nav_page_owner_player_id';
+
     public function __construct(
         private NavigationRegistry $registry,
     ) {
@@ -19,8 +25,9 @@ final readonly class NavigationPlaceResolver
 
     /**
      * @param array<mixed> $params the route parameters
+     * @param null|string $pageOwnerPlayerId whose page it is when the URL has no playerId (PAGE_OWNER_ATTRIBUTE)
      */
-    public function resolve(null|string $route, array $params, null|string $viewerPlayerId): NavLocation
+    public function resolve(null|string $route, array $params, null|string $viewerPlayerId, null|string $pageOwnerPlayerId = null): NavLocation
     {
         if ($route === null) {
             return NavLocation::none();
@@ -32,25 +39,25 @@ final readonly class NavigationPlaceResolver
             return NavLocation::none();
         }
 
-        $isOwner = self::isViewersPage($params, $viewerPlayerId);
-        $rule = $rule->forOwner($isOwner);
+        $isViewersPage = self::isViewersPage(self::owner($params, $pageOwnerPlayerId), $viewerPlayerId);
+        $placeRule = $rule->forOwner($isViewersPage);
 
         return new NavLocation(
-            place: $rule->place,
-            section: $rule->section,
-            menuRowId: $this->menuRowId($route, $params, $viewerPlayerId),
-            isStartPage: $rule->isStartPage,
+            place: $placeRule->place,
+            section: $placeRule->section,
+            menuRowId: $this->menuRowId($route, $rule->isOwnOrOther(), $isViewersPage),
+            isStartPage: $placeRule->isStartPage,
         );
     }
 
     /**
-     * The Menu row that is the current one: an entry targeting the route (a page of the viewer's own only when the
-     * URL's player is the viewer) or listing it in activeOn. Link rows win over place rows, place rows over cards;
-     * search-only and not-in-Menu entries are never highlighted.
-     *
-     * @param array<mixed> $params
+     * The Menu row that is the current one: an entry targeting the route or listing it in activeOn. A row of the
+     * viewer's own (its target needs the viewer) is current only on the viewer's page - on its own target route, and
+     * on an activeOn route whose place depends on the owner (somebody else's collection is not "your" Collection
+     * row). Link rows win over place rows, place rows over cards; search-only and not-in-Menu entries are never
+     * highlighted.
      */
-    private function menuRowId(string $route, array $params, null|string $viewerPlayerId): null|string
+    private function menuRowId(string $route, bool $ownerDecides, bool $isViewersPage): null|string
     {
         $best = null;
         $bestRank = PHP_INT_MAX;
@@ -60,7 +67,7 @@ final readonly class NavigationPlaceResolver
                 continue;
             }
 
-            if ($entry->target->route === $route && $entry->target->needsViewer() && !self::isViewersPage($params, $viewerPlayerId)) {
+            if ($entry->target->needsViewer() && !$isViewersPage && ($entry->target->route === $route || $ownerDecides)) {
                 continue;
             }
 
@@ -80,14 +87,21 @@ final readonly class NavigationPlaceResolver
     }
 
     /**
+     * The page's player: the URL's playerId, else the one its controller named.
+     *
      * @param array<mixed> $params
      */
-    private static function isViewersPage(array $params, null|string $viewerPlayerId): bool
+    private static function owner(array $params, null|string $pageOwnerPlayerId): null|string
     {
         $playerId = $params['playerId'] ?? null;
 
+        return is_string($playerId) && $playerId !== '' ? $playerId : $pageOwnerPlayerId;
+    }
+
+    private static function isViewersPage(null|string $ownerPlayerId, null|string $viewerPlayerId): bool
+    {
         return $viewerPlayerId !== null
-            && is_string($playerId)
-            && strtolower($playerId) === strtolower($viewerPlayerId);
+            && $ownerPlayerId !== null
+            && strtolower($ownerPlayerId) === strtolower($viewerPlayerId);
     }
 }

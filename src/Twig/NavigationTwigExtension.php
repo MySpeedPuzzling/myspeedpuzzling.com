@@ -61,11 +61,14 @@ final class NavigationTwigExtension extends AbstractExtension
 
         $route = $request->attributes->get('_canonical_route') ?? $request->attributes->get('_route');
         $params = $request->attributes->get('_route_params');
+        // Pages whose URL has no playerId name their player themselves (e.g. somebody else's collection)
+        $pageOwner = $request->attributes->get(NavigationPlaceResolver::PAGE_OWNER_ATTRIBUTE);
 
         $location = $this->placeResolver->resolve(
             is_string($route) ? $route : null,
             is_array($params) ? $params : [],
             $this->retrieveLoggedUserProfile->getProfile()?->playerId,
+            is_string($pageOwner) ? $pageOwner : null,
         );
 
         $request->attributes->set(self::REQUEST_ATTRIBUTE, $location);

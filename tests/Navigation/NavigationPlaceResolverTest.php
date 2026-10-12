@@ -10,9 +10,11 @@ use SpeedPuzzling\Web\Navigation\NavigationPlaceResolver;
 use SpeedPuzzling\Web\Navigation\NavLocation;
 use SpeedPuzzling\Web\Navigation\NavPlace;
 use SpeedPuzzling\Web\Navigation\PlaceRule;
+use SpeedPuzzling\Web\Tests\DataFixtures\CollectionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
+use SpeedPuzzling\Web\Tests\TestingLogin;
 use SpeedPuzzling\Web\Twig\NavigationTwigExtension;
-use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
+use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Routing\RouterInterface;
@@ -21,10 +23,13 @@ use Symfony\Component\Routing\RouterInterface;
  * The place resolver (F-02): every route has a place or an explicit "none", and a player's pages belong to Profile
  * (your own lists to Puzzles) when they are the viewer's, to Community when they are somebody else's (README §3).
  */
-final class NavigationPlaceResolverTest extends KernelTestCase
+final class NavigationPlaceResolverTest extends WebTestCase
 {
     private const string VIEWER = PlayerFixture::PLAYER_REGULAR;
     private const string OTHER = PlayerFixture::PLAYER_WITH_STRIPE;
+
+    // A custom collection's URL has no playerId: its controller names the owner (review F2)
+    private const array COLLECTION = ['collectionId' => '018d0008-0000-0000-0000-000000000099'];
 
     // Admin pages, the APIs, framework and sitemap routes have no chrome of the redesign (requirement F-02)
     private const string EXCLUDED = '/^(admin_|api_|internal_api_|_|sitemap)/';
@@ -84,7 +89,7 @@ final class NavigationPlaceResolverTest extends KernelTestCase
     }
 
     /**
-     * @return iterable<string, array{string, array<string, string>, null|string, NavPlace, null|string}>
+     * @return iterable<string, array{0: string, 1: array<string, string>, 2: null|string, 3: NavPlace, 4: null|string, 5?: null|string}>
      */
     public static function provideOwnAndOtherPages(): iterable
     {
@@ -107,6 +112,13 @@ final class NavigationPlaceResolverTest extends KernelTestCase
             yield "somebody else's " . $list => [$list, $other, self::VIEWER, NavPlace::Community, null];
             yield $list . ' seen by a guest' => [$list, $own, null, NavPlace::Community, null];
         }
+
+        // Owner named by the controller (NavigationPlaceResolver::PAGE_OWNER_ATTRIBUTE), not by the URL
+        yield 'own custom collection' => ['collection_detail', self::COLLECTION, self::VIEWER, NavPlace::Puzzles, 'library', self::VIEWER];
+        yield "somebody else's custom collection" => ['collection_detail', self::COLLECTION, self::VIEWER, NavPlace::Community, null, self::OTHER];
+        yield 'a custom collection seen by a guest' => ['collection_detail', self::COLLECTION, null, NavPlace::Community, null, self::OTHER];
+        yield 'a custom collection without a known owner' => ['collection_detail', self::COLLECTION, self::VIEWER, NavPlace::Community, null, null];
+        yield "the URL's player wins over the attribute" => ['wish_list_detail', $other, self::VIEWER, NavPlace::Community, null, self::VIEWER];
 
         yield 'team page' => ['puzzling_team_detail', ['teamId' => '018d0000-0000-0000-0000-000000000001'], self::VIEWER, NavPlace::Community, null];
         yield 'team page seen by a guest' => ['puzzling_team_detail', ['teamId' => '018d0000-0000-0000-0000-000000000001'], null, NavPlace::Community, null];
@@ -155,16 +167,16 @@ final class NavigationPlaceResolverTest extends KernelTestCase
      * @param array<string, string> $params
      */
     #[DataProvider('provideOwnAndOtherPages')]
-    public function testPlaceOfOwnAndOtherPages(string $route, array $params, null|string $viewer, NavPlace $place, null|string $section): void
+    public function testPlaceOfOwnAndOtherPages(string $route, array $params, null|string $viewer, NavPlace $place, null|string $section, null|string $pageOwner = null): void
     {
-        $location = $this->resolver()->resolve($route, $params, $viewer);
+        $location = $this->resolver()->resolve($route, $params, $viewer, $pageOwner);
 
         self::assertSame($place, $location->place);
         self::assertSame($section, $location->section);
     }
 
     /**
-     * @return iterable<string, array{string, array<string, string>, null|string, null|string, bool}>
+     * @return iterable<string, array{0: string, 1: array<string, string>, 2: null|string, 3: null|string, 4: bool, 5?: null|string}>
      */
     public static function provideMenuRows(): iterable
     {
@@ -185,18 +197,89 @@ final class NavigationPlaceResolverTest extends KernelTestCase
         yield 'event detail' => ['event_detail', ['slug' => 'some-event'], null, 'events', false];
         yield 'puzzle page has no row' => ['puzzle_detail', ['puzzleId' => '018d0000-0000-0000-0000-000000000002'], null, null, false];
         yield 'add page' => ['puzzle_add', [], self::VIEWER, 'add', true];
+        // activeOn rows of your own are current only on your own page (review F2)
+        yield 'own custom collection = your Collection row' => ['collection_detail', self::COLLECTION, self::VIEWER, 'collection', false, self::VIEWER];
+        yield "somebody else's custom collection highlights nothing" => ['collection_detail', self::COLLECTION, self::VIEWER, null, false, self::OTHER];
+        yield 'a custom collection seen by a guest highlights nothing' => ['collection_detail', self::COLLECTION, null, null, false, self::OTHER];
+        yield 'own collection settings' => ['edit_system_collection', $own, self::VIEWER, 'collection', false];
+        yield "somebody else's collection settings highlight nothing" => ['edit_system_collection', $other, self::VIEWER, null, false];
+        yield "somebody else's old collections page highlights nothing" => ['legacy_player_collections', $other, self::VIEWER, null, false];
+        // An activeOn page without an owner (always your own) keeps its row
+        yield 'badge reveals = your Achievements row' => ['badge_reveals', [], self::VIEWER, 'achievements', false];
     }
 
     /**
      * @param array<string, string> $params
      */
     #[DataProvider('provideMenuRows')]
-    public function testMenuRowAndStartPage(string $route, array $params, null|string $viewer, null|string $menuRowId, bool $isStartPage): void
+    public function testMenuRowAndStartPage(string $route, array $params, null|string $viewer, null|string $menuRowId, bool $isStartPage, null|string $pageOwner = null): void
     {
-        $location = $this->resolver()->resolve($route, $params, $viewer);
+        $location = $this->resolver()->resolve($route, $params, $viewer, $pageOwner);
 
         self::assertSame($menuRowId, $location->menuRowId);
         self::assertSame($isStartPage, $location->isStartPage);
+    }
+
+    /**
+     * Own|other pages must know their player: {playerId} in the path, or a controller that names it (review F2).
+     */
+    public function testEveryOwnOrOtherRouteKnowsItsOwner(): void
+    {
+        $collection = self::getContainer()->get(RouterInterface::class)->getRouteCollection();
+        $unknown = [];
+
+        foreach (NavigationPlaceMap::ROUTES as $route => $notation) {
+            if (!PlaceRule::parse($notation)->isOwnOrOther()) {
+                continue;
+            }
+
+            $definition = $collection->get($route . '.en') ?? $collection->get($route);
+            self::assertNotNull($definition, $route);
+            $hasPlayerId = in_array('playerId', $definition->compile()->getPathVariables(), true);
+
+            if ($hasPlayerId === array_key_exists($route, NavigationPlaceMap::OWNER_FROM_CONTROLLER)) {
+                $unknown[] = $route . ($hasPlayerId ? ' (has {playerId}: drop it from OWNER_FROM_CONTROLLER)' : ' (no {playerId}: its controller must set PAGE_OWNER_ATTRIBUTE, listed in OWNER_FROM_CONTROLLER)');
+            }
+        }
+
+        self::assertSame([], $unknown);
+
+        foreach (NavigationPlaceMap::OWNER_FROM_CONTROLLER as $route => $controller) {
+            $definition = $collection->get($route . '.en') ?? $collection->get($route);
+            self::assertSame($controller, $definition?->getDefault('_controller'), $route);
+        }
+    }
+
+    /**
+     * The real page: CollectionDetailController names the owner and the Twig function reads it - your own collection is
+     * Puzzles › My library with the Collection row, somebody else's public one is Community without a row (review F2).
+     */
+    public function testCustomCollectionPageResolvesByItsOwner(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, self::VIEWER);
+
+        foreach ([[CollectionFixture::COLLECTION_FAVORITES, self::VIEWER, NavPlace::Puzzles, 'library', 'collection'], [CollectionFixture::COLLECTION_PUBLIC, self::OTHER, NavPlace::Community, null, null]] as [$collectionId, $owner, $place, $section, $row]) {
+            $browser->request('GET', '/en/collection/' . $collectionId);
+            self::assertResponseIsSuccessful();
+
+            $request = $browser->getRequest();
+            self::assertSame($owner, $request->attributes->get(NavigationPlaceResolver::PAGE_OWNER_ATTRIBUTE));
+            $request->attributes->remove(NavigationTwigExtension::REQUEST_ATTRIBUTE);
+
+            $requestStack = self::getContainer()->get(RequestStack::class);
+            $requestStack->push($request);
+
+            try {
+                $location = self::getContainer()->get(NavigationTwigExtension::class)->navLocation();
+            } finally {
+                $requestStack->pop();
+            }
+
+            self::assertSame($place, $location->place, $collectionId);
+            self::assertSame($section, $location->section, $collectionId);
+            self::assertSame($row, $location->menuRowId, $collectionId);
+        }
     }
 
     public function testUnknownRouteHasNoPlace(): void

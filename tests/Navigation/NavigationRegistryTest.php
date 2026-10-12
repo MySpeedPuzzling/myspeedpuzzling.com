@@ -50,6 +50,23 @@ final class NavigationRegistryTest extends WebTestCase
         '//*[@data-help-sheet]',
     ];
 
+    // README §4.12: hidden for guests - the You card (guests get their own card), Inbox, Your roles, Your puzzling,
+    // Your puzzles, Account and Log out
+    private const array PERSONAL_GROUPS = [
+        MenuGroup::You,
+        MenuGroup::Inbox,
+        MenuGroup::Roles,
+        MenuGroup::Puzzling,
+        MenuGroup::Library,
+        MenuGroup::Account,
+        MenuGroup::LogOut,
+    ];
+
+    // Search-only entries found under a personal row that open a public page (id => why)
+    private const array PUBLIC_UNDER_PERSONAL_PARENT = [
+        'achievements_list' => 'Every achievement (badges_overview) is a public page of the XP system, found under your Achievements',
+    ];
+
     public function testEntryIdsAreUniqueAndStable(): void
     {
         $ids = array_map(static fn (NavEntry $entry): string => $entry->id, $this->registry()->all());
@@ -178,6 +195,50 @@ final class NavigationRegistryTest extends WebTestCase
         self::assertSame(NavPlace::Home, $hubGuest->place);
     }
 
+    /**
+     * Personal entries - a page of the viewer's own, a row of the You, Inbox, Your roles, Your puzzling, Your puzzles,
+     * Account or Log out groups, a search-only entry found under such a row - never include guests (README §4.12
+     * "Hidden for guests"; phase F review F3). Their audience must imply a signed-in viewer, so no consumer (the Menu,
+     * the page search's audience tags, the mirror) can show them to a guest.
+     */
+    public function testPersonalEntriesNeverIncludeGuests(): void
+    {
+        $registry = $this->registry();
+        $offenders = [];
+        $personal = 0;
+
+        foreach ($registry->all() as $entry) {
+            $because = $this->personalBecause($entry, $registry);
+
+            if ($because === null || $entry->kind === RowKind::GuestCard) {
+                continue;
+            }
+
+            $personal++;
+
+            if ($entry->visibility->includesGuests()) {
+                $offenders[] = sprintf('%s (%s): audience "%s" includes guests', $entry->id, $because, $entry->visibility->value);
+            }
+        }
+
+        self::assertSame([], $offenders, 'Personal entries need an audience that implies a signed-in viewer (NavVisibility::includesGuests())');
+        self::assertGreaterThan(40, $personal, 'The personal groups lost their rows - is personalBecause() still right?');
+
+        foreach (array_keys(self::PUBLIC_UNDER_PERSONAL_PARENT) as $id) {
+            $entry = $registry->byId($id);
+            self::assertNotNull($entry, 'Stale exception: ' . $id);
+            self::assertTrue($entry->isSearchOnly(), 'Exception for search-only entries only: ' . $id);
+        }
+
+        // The audiences that need a signed-in viewer besides the XP gate say so themselves
+        foreach ([NavVisibility::XpPlayer, NavVisibility::XpParticipant, NavVisibility::KarmaHolder] as $visibility) {
+            self::assertFalse($visibility->includesGuests(), $visibility->value);
+        }
+
+        self::assertSame(NavVisibility::XpPlayer, $registry->byId('achievements')?->visibility);
+        self::assertSame(NavVisibility::XpPlayer, $registry->byId('your_week')?->visibility);
+    }
+
     public function testMenuPathDescribesWhereAnEntryLives(): void
     {
         $registry = $this->registry();
@@ -250,11 +311,16 @@ final class NavigationRegistryTest extends WebTestCase
         $links = $this->chromeLinks($crawler);
         $pageRoute = $this->canonicalRoute($this->router()->match($page));
 
+        if ($role === NavigationViewer::GUEST) {
+            // Guests get the footer's newsletter form on every page: proof that chrome forms are collected (F5)
+            self::assertNotSame([], array_filter($links, static fn (array $link): bool => $link[1] === 'POST'), 'No chrome form found for a guest - did the form collection break?');
+        }
+
         // The Help sheet frame, once its route exists (HELP-01a)
         if ($this->routeExists('help')) {
             $helpCrawler = $browser->request('GET', $this->router()->generate('help', ['_locale' => 'en', 'url' => $page]), server: ['HTTP_TURBO_FRAME' => 'modal-frame']);
             self::assertResponseIsSuccessful();
-            $links = [...$links, ...$this->hrefs($helpCrawler)];
+            $links = [...$links, ...$this->targets($helpCrawler)];
         }
 
         self::assertNotSame([], $links, 'No chrome link found - did the chrome containers change? Update CHROME_XPATHS');
@@ -262,8 +328,8 @@ final class NavigationRegistryTest extends WebTestCase
         $registry = $this->registry();
         $missing = [];
 
-        foreach ($links as $href) {
-            $route = $this->routeOfHref($href, $browser);
+        foreach ($links as [$href, $method]) {
+            $route = $this->routeOfHref($href, $browser, $method);
 
             if ($route === null) {
                 continue;
@@ -277,7 +343,7 @@ final class NavigationRegistryTest extends WebTestCase
             }
 
             if ($registry->byTargetRoute($name) === []) {
-                $missing[$name] = sprintf('%s (href %s)', $name, $href);
+                $missing[$name] = sprintf('%s (%s %s)', $name, $method, $href);
             }
         }
 
@@ -324,6 +390,38 @@ final class NavigationRegistryTest extends WebTestCase
         self::assertSame(MenuGroup::LogOut->value, $phoneGroups[array_key_last($phoneGroups)]);
     }
 
+    /**
+     * Why an entry is personal (null = it is not): see testPersonalEntriesNeverIncludeGuests().
+     */
+    private function personalBecause(NavEntry $entry, NavigationRegistry $registry, int $depth = 0): null|string
+    {
+        if ($entry->target->needsViewer()) {
+            return 'a page of the viewer\'s own';
+        }
+
+        if ($entry->visibility->isRole()) {
+            return 'a role row';
+        }
+
+        foreach (MenuSurface::cases() as $surface) {
+            $group = $entry->placement($surface)->group;
+
+            if ($group !== null && in_array($group, self::PERSONAL_GROUPS, true)) {
+                return 'row of ' . $group->docTitle() . ' (' . $surface->value . ')';
+            }
+        }
+
+        $parent = $entry->isSearchOnly() ? $registry->byId((string) $entry->phone->parent) : null;
+
+        if ($parent !== null && $depth < 5 && !array_key_exists($entry->id, self::PUBLIC_UNDER_PERSONAL_PARENT)) {
+            $parentBecause = $this->personalBecause($parent, $registry, $depth + 1);
+
+            return $parentBecause === null ? null : 'found under ' . $parent->id;
+        }
+
+        return null;
+    }
+
     private function registry(): NavigationRegistry
     {
         return self::getContainer()->get(NavigationRegistry::class);
@@ -342,33 +440,75 @@ final class NavigationRegistryTest extends WebTestCase
     }
 
     /**
-     * @return list<string>
+     * @return list<array{string, string}> url, HTTP method
      */
     private function chromeLinks(Crawler $crawler): array
     {
         $links = [];
 
         foreach (self::CHROME_XPATHS as $xpath) {
-            $links = [...$links, ...$this->hrefs($crawler->filterXPath($xpath))];
+            $links = [...$links, ...$this->targets($crawler->filterXPath($xpath))];
         }
 
         return $links;
     }
 
     /**
-     * @return list<string>
+     * Every destination inside the containers: link hrefs, form actions and button/input formactions (review F5) - a
+     * chrome form posting to an unregistered route fails like a link. A form without an action posts to the page
+     * itself, which is no destination.
+     *
+     * @return list<array{string, string}> url, HTTP method
      */
-    private function hrefs(Crawler $containers): array
+    private function targets(Crawler $containers): array
     {
-        $hrefs = [];
+        $targets = [];
 
         foreach ($containers->filterXPath('descendant-or-self::a[@href]') as $node) {
             if ($node instanceof \DOMElement) {
-                $hrefs[] = $node->getAttribute('href');
+                $targets[] = [$node->getAttribute('href'), 'GET'];
             }
         }
 
-        return $hrefs;
+        foreach ($containers->filterXPath('descendant-or-self::form[@action]') as $node) {
+            if ($node instanceof \DOMElement) {
+                $targets[] = [$node->getAttribute('action'), $this->formMethod($node->getAttribute('method'))];
+            }
+        }
+
+        foreach ($containers->filterXPath('descendant-or-self::*[@formaction]') as $node) {
+            if ($node instanceof \DOMElement) {
+                $method = $node->getAttribute('formmethod');
+
+                if ($method === '') {
+                    $form = $node->getAttribute('form') !== ''
+                        ? $node->ownerDocument?->getElementById($node->getAttribute('form'))
+                        : null;
+
+                    for ($parent = $node->parentNode; $form === null && $parent !== null; $parent = $parent->parentNode) {
+                        $form = $parent instanceof \DOMElement && $parent->tagName === 'form' ? $parent : null;
+                    }
+
+                    $method = $form?->getAttribute('method') ?? '';
+                }
+
+                $targets[] = [$node->getAttribute('formaction'), $this->formMethod($method)];
+            }
+        }
+
+        return $targets;
+    }
+
+    private function formMethod(string $method): string
+    {
+        $method = strtoupper(trim($method));
+
+        // "dialog" closes a <dialog> - no request at all
+        return match ($method) {
+            '' => 'GET',
+            'DIALOG' => 'DIALOG',
+            default => $method,
+        };
     }
 
     /**
@@ -377,11 +517,11 @@ final class NavigationRegistryTest extends WebTestCase
      *
      * @return null|array{string, string}
      */
-    private function routeOfHref(string $href, KernelBrowser $browser): null|array
+    private function routeOfHref(string $href, KernelBrowser $browser, string $method = 'GET'): null|array
     {
         $href = trim($href);
 
-        if ($href === '' || str_starts_with($href, '#') || preg_match('/^(mailto|tel|javascript):/i', $href) === 1) {
+        if ($method === 'DIALOG' || $href === '' || str_starts_with($href, '#') || preg_match('/^(mailto|tel|javascript):/i', $href) === 1) {
             return null;
         }
 
@@ -394,10 +534,17 @@ final class NavigationRegistryTest extends WebTestCase
 
         $path = rawurldecode($parts['path'] ?? '/');
 
+        // A form's target is matched with its own method (POST-only routes do not match a GET)
+        $context = $this->router()->getContext();
+        $previousMethod = $context->getMethod();
+        $context->setMethod($method);
+
         try {
             $match = $this->router()->match($path);
         } catch (RoutingException $e) {
-            self::fail(sprintf('The chrome links %s, which matches no route: %s', $href, $e->getMessage()));
+            self::fail(sprintf('The chrome links %s (%s), which matches no route: %s', $href, $method, $e->getMessage()));
+        } finally {
+            $context->setMethod($previousMethod);
         }
 
         $locale = $match['_locale'] ?? 'en';

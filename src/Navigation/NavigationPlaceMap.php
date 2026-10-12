@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Navigation;
 
+use SpeedPuzzling\Web\Controller\CollectionDetailController;
+
 /**
  * Which place every route belongs to (navigation README §3 "Place mapping"), in PlaceRule notation:
  * "place[/section][*]", own|other split on "|" for routes whose playerId may be the viewer's, "none" for no place.
@@ -59,8 +61,10 @@ final class NavigationPlaceMap
         'edit_wish_list' => 'puzzles/library|community',
         'edit_lend_borrow_list_settings' => 'puzzles/library|community',
         'edit_sell_swap_list_settings' => 'puzzles/library|community',
+        // A custom collection: its URL has no playerId - CollectionDetailController names the owner
+        // (NavigationPlaceResolver::PAGE_OWNER_ATTRIBUTE, OWNER_FROM_CONTROLLER)
+        'collection_detail' => 'puzzles/library|community',
         // Puzzles: library modals and actions (the URL carries no owner; they act on your own library)
-        'collection_detail' => 'puzzles/library',
         'create_collection' => 'puzzles/library',
         'edit_collection' => 'puzzles/library',
         'delete_collection' => 'puzzles/library',
@@ -350,6 +354,17 @@ final class NavigationPlaceMap
         'player_sell_swap' => 'none',
         'player_unsolved_puzzles' => 'none',
         'player_wishlist' => 'none',
+    ];
+
+    /**
+     * Own|other routes whose URL carries no playerId: their controller sets NavigationPlaceResolver::PAGE_OWNER_ATTRIBUTE
+     * to the page's player (route => controller). Every other own|other route has {playerId} in its path
+     * (NavigationPlaceResolverTest).
+     *
+     * @var array<string, class-string>
+     */
+    public const array OWNER_FROM_CONTROLLER = [
+        'collection_detail' => CollectionDetailController::class,
     ];
 
     /**

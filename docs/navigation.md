@@ -51,10 +51,10 @@ Every destination linked by a navigation surface (bars, rail, the Menu, the acco
 | 50 | `review_results` | Review your results | `review_results`; also active on first_try_conflicts | signed_in | link | lazy_review | profile | Q8 | 2026-10-12 | Owner manages own results (duplicates, first tries, verification). Also: Hub banner; own profile banner |
 | 60 | `pairs_and_teams` | Pairs & teams | `pairs_and_teams`; also active on pairs_and_teams_guest_link | signed_in | link |  | profile | Q8 | 2026-10-12 | Owner manages own pairs, teams and guests |
 | 70 | `calendar` | Calendar | `activity_calendar` {playerId: viewer} | signed_in | link |  | profile | Q8 | 2026-10-12 | About one player: player tab; your own also a Menu row. Also: player header tab Calendar |
-| 80 | `achievements` | Achievements | `player_achievements` {playerId: viewer}; also active on badge_reveals | xp_visible | link |  | profile | Q8 | 2026-10-12 | About one player: player tab; your own also a Menu row (XP gate). Also: player header tab Achievements |
+| 80 | `achievements` | Achievements | `player_achievements` {playerId: viewer}; also active on badge_reveals | xp_player | link |  | profile | Q8 | 2026-10-12 | About one player: player tab; your own also a Menu row (XP gate). Also: player header tab Achievements |
 | 90 | `level_xp` | Level & XP | `xp_history`; also active on xp_launch_reveal | xp_participant | link | level | profile | Q8 | 2026-10-12 | Owner-only view of your own XP (XP gate, not opted out) |
 | 100 | `karma` | Karma | `karma_history` | karma_holder | link | karma | profile | Q8 | 2026-10-12 | Owner-only view of your own karma (holders who did not hide it) |
-| 110 | `your_week` | Your week | `my_activity` | xp_visible | link |  | profile | Q8 | 2026-10-12 | Owner-only view of your own week (XP gate) |
+| 110 | `your_week` | Your week | `my_activity` | xp_player | link |  | profile | Q8 | 2026-10-12 | Owner-only view of your own week (XP gate) |
 
 ### Your puzzles
 
@@ -208,10 +208,10 @@ Every destination linked by a navigation surface (bars, rail, the Menu, the acco
 | 50 | `review_results` | Review your results | `review_results`; also active on first_try_conflicts | signed_in | link | lazy_review | profile | Q8 | 2026-10-12 | Owner manages own results (duplicates, first tries, verification). Also: Hub banner; own profile banner |
 | 60 | `pairs_and_teams` | Pairs & teams | `pairs_and_teams`; also active on pairs_and_teams_guest_link | signed_in | link |  | profile | Q8 | 2026-10-12 | Owner manages own pairs, teams and guests |
 | 70 | `calendar` | Calendar | `activity_calendar` {playerId: viewer} | signed_in | link |  | profile | Q8 | 2026-10-12 | About one player: player tab; your own also a Menu row. Also: player header tab Calendar |
-| 80 | `achievements` | Achievements | `player_achievements` {playerId: viewer}; also active on badge_reveals | xp_visible | link |  | profile | Q8 | 2026-10-12 | About one player: player tab; your own also a Menu row (XP gate). Also: player header tab Achievements |
+| 80 | `achievements` | Achievements | `player_achievements` {playerId: viewer}; also active on badge_reveals | xp_player | link |  | profile | Q8 | 2026-10-12 | About one player: player tab; your own also a Menu row (XP gate). Also: player header tab Achievements |
 | 90 | `level_xp` | Level & XP | `xp_history`; also active on xp_launch_reveal | xp_participant | link | level | profile | Q8 | 2026-10-12 | Owner-only view of your own XP (XP gate, not opted out) |
 | 100 | `karma` | Karma | `karma_history` | karma_holder | link | karma | profile | Q8 | 2026-10-12 | Owner-only view of your own karma (holders who did not hide it) |
-| 110 | `your_week` | Your week | `my_activity` | xp_visible | link |  | profile | Q8 | 2026-10-12 | Owner-only view of your own week (XP gate) |
+| 110 | `your_week` | Your week | `my_activity` | xp_player | link |  | profile | Q8 | 2026-10-12 | Owner-only view of your own week (XP gate) |
 
 ### Your puzzles
 
@@ -345,6 +345,27 @@ Linked by a navigation surface, but not a Menu destination - each with why.
 | `you_card` | You / 10 | not in Menu: Desktop: the avatar ▾ account menu (README §4.3) |
 | `inbox` | Inbox / 10 | not in Menu: Desktop: the Inbox tool of the top bar (D3, D16) |
 | `logout` | Log out / 10 | not in Menu: Desktop: Log out in the avatar ▾ account menu (README §4.3) |
+
+## Audiences
+
+One value per entry; a value that needs several conditions names all of them. Personal rows never include guests.
+
+| Audience | Who | Guests |
+|---|---|---|
+| everyone | guests and players | yes |
+| guest | guests only | yes |
+| signed_in | signed-in players | no |
+| member | signed-in members | no |
+| member_or_referral | signed-in members or referral programme partners | no |
+| private_member | signed-in members with a private profile | no |
+| xp_visible | whoever sees the XP system (guests too, once launched): public XP pages | yes |
+| xp_player | signed-in players who see the XP system | no |
+| xp_participant | signed-in players who see the XP system and did not opt out | no |
+| karma_holder | signed-in players who see the XP system, have karma and did not hide it | no |
+| organiser | signed-in organisers of an event, series or organization | no |
+| moderator | moderators and admins | no |
+| time_verifier | time verifiers | no |
+| admin | admins | no |
 
 ## Rulebook
 

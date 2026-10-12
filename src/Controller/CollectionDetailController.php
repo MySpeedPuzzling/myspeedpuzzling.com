@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Controller;
 
 use SpeedPuzzling\Web\Entity\Collection;
 use SpeedPuzzling\Web\Exceptions\CollectionNotFound;
+use SpeedPuzzling\Web\Navigation\NavigationPlaceResolver;
 use SpeedPuzzling\Web\Query\GetCollectionItems;
 use SpeedPuzzling\Web\Query\GetPlayerProfile;
 use SpeedPuzzling\Web\Query\GetUserPuzzleStatuses;
@@ -17,6 +18,7 @@ use SpeedPuzzling\Web\Services\ResolvePuzzleListInsights;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\CollectionVisibility;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Core\User\UserInterface;
@@ -51,7 +53,7 @@ final class CollectionDetailController extends AbstractController
         ],
         name: 'collection_detail',
     )]
-    public function __invoke(string $collectionId, #[CurrentUser] null|UserInterface $user): Response
+    public function __invoke(Request $request, string $collectionId, #[CurrentUser] null|UserInterface $user): Response
     {
         try {
             $collection = $this->collectionRepository->get($collectionId);
@@ -59,6 +61,10 @@ final class CollectionDetailController extends AbstractController
             $this->addFlash('primary', $this->translator->trans('flashes.collection_not_found'));
             return $this->redirectToRoute('ladder');
         }
+
+        // The URL names no player: the navigation needs the owner - your collection is Puzzles › My library,
+        // somebody else's is Community (NavigationPlaceMap::OWNER_FROM_CONTROLLER)
+        $request->attributes->set(NavigationPlaceResolver::PAGE_OWNER_ATTRIBUTE, $collection->player->id->toString());
 
         $player = $this->getPlayerProfile->byId($collection->player->id->toString());
         $loggedPlayerProfile = $this->retrieveLoggedUserProfile->getProfile();

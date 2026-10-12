@@ -91,6 +91,18 @@ final readonly class NavigationDocRenderer
         }
 
         $lines[] = '';
+        $lines[] = '## Audiences';
+        $lines[] = '';
+        $lines[] = 'One value per entry; a value that needs several conditions names all of them. Personal rows never include guests.';
+        $lines[] = '';
+        $lines[] = '| Audience | Who | Guests |';
+        $lines[] = '|---|---|---|';
+
+        foreach (NavVisibility::cases() as $visibility) {
+            $lines[] = $this->row([$visibility->value, $visibility->docDescription(), $visibility->includesGuests() ? 'yes' : 'no']);
+        }
+
+        $lines[] = '';
         $lines[] = '## Rulebook';
         $lines[] = '';
 

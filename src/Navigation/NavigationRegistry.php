@@ -24,15 +24,72 @@ final readonly class NavigationRegistry
     private const string BAR_TAB = 'Phones: a tab of the bottom bar (D1)';
     private const string SINCE = '2026-10-12';
 
+    /**
+     * Built once per service instance: plain request-independent data (no translator, no viewer), so the readonly
+     * service keeps no per-request state (FrankenPHP worker mode) and lookups never rebuild the entries.
+     *
+     * @var list<NavEntry>
+     */
+    private array $entries;
+
+    /**
+     * @var array<string, NavEntry>
+     */
+    private array $entriesById;
+
+    /**
+     * Route => the entries whose row is the current one on it (target, guests' target or activeOn), in registry order.
+     *
+     * @var array<string, list<NavEntry>>
+     */
+    private array $entriesByRoute;
+
+    /**
+     * Route => the entries that link it (target or guests' target), in registry order.
+     *
+     * @var array<string, list<NavEntry>>
+     */
+    private array $entriesByTargetRoute;
+
     public function __construct(
         private TranslatorInterface $translator,
     ) {
+        $entries = $this->build();
+        $byId = [];
+        $byRoute = [];
+        $byTargetRoute = [];
+
+        foreach ($entries as $entry) {
+            // The first entry of an id wins; duplicates are refused by NavigationRegistryTest
+            $byId[$entry->id] ??= $entry;
+
+            foreach ($entry->target->routes() as $route) {
+                $byTargetRoute[$route][] = $entry;
+            }
+
+            foreach (array_unique([...$entry->target->routes(), ...$entry->activeOn]) as $route) {
+                $byRoute[$route][] = $entry;
+            }
+        }
+
+        $this->entries = $entries;
+        $this->entriesById = $byId;
+        $this->entriesByRoute = $byRoute;
+        $this->entriesByTargetRoute = $byTargetRoute;
     }
 
     /**
      * @return list<NavEntry>
      */
     public function all(): array
+    {
+        return $this->entries;
+    }
+
+    /**
+     * @return list<NavEntry>
+     */
+    private function build(): array
     {
         return [
             ...$this->places(),
@@ -54,13 +111,7 @@ final readonly class NavigationRegistry
 
     public function byId(string $id): null|NavEntry
     {
-        foreach ($this->all() as $entry) {
-            if ($entry->id === $id) {
-                return $entry;
-            }
-        }
-
-        return null;
+        return $this->entriesById[$id] ?? null;
     }
 
     /**
@@ -70,10 +121,7 @@ final readonly class NavigationRegistry
      */
     public function byRoute(string $route): array
     {
-        return array_values(array_filter(
-            $this->all(),
-            static fn (NavEntry $entry): bool => $entry->targets($route) || in_array($route, $entry->activeOn, true),
-        ));
+        return $this->entriesByRoute[$route] ?? [];
     }
 
     /**
@@ -83,10 +131,7 @@ final readonly class NavigationRegistry
      */
     public function byTargetRoute(string $route): array
     {
-        return array_values(array_filter(
-            $this->all(),
-            static fn (NavEntry $entry): bool => $entry->targets($route),
-        ));
+        return $this->entriesByTargetRoute[$route] ?? [];
     }
 
     /**
@@ -540,7 +585,7 @@ final readonly class NavigationRegistry
                 place: NavPlace::Profile,
                 phone: $row(80),
                 dock: $row(80),
-                visibility: NavVisibility::XpVisible,
+                visibility: NavVisibility::XpPlayer,
                 rule: RulebookQuestion::Q8,
                 reason: 'About one player: player tab; your own also a Menu row (XP gate)',
                 since: self::SINCE,
@@ -587,7 +632,7 @@ final readonly class NavigationRegistry
                 place: NavPlace::Profile,
                 phone: $row(110),
                 dock: $row(110),
-                visibility: NavVisibility::XpVisible,
+                visibility: NavVisibility::XpPlayer,
                 rule: RulebookQuestion::Q8,
                 reason: 'Owner-only view of your own week (XP gate)',
                 since: self::SINCE,

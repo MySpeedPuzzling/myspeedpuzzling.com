@@ -40,10 +40,13 @@
     }
 }
 
-// The phone bottom bar stays visible and usable under the dynamic modal and every Bootstrap backdrop: both end at
-// --bottom-nav-height (0 while there is no bar, on desktop and in the app; decision 18). A `showModal()` dialog is in
-// the top layer and still covers it.
-#dynamic-modal-container {
+// The phone bottom bar stays visible and usable under every Bootstrap modal and every backdrop: both end at
+// --bottom-nav-height (0 while there is no bar, on desktop and in the app; decision 18). That is every `.modal` - the
+// dynamic modal #dynamic-modal-container and the page's own (#membersExclusiveModal, the announcement modals,
+// ConfirmModal, the delete modals, #puzzlePickerFilters, #comparison-add-sheet, …): a transparent full-height .modal
+// over the bar would take every tap meant for it (phase F review F4). Its dialogs - centred, scrollable, fullscreen -
+// size by the .modal, so they end above the bar too. A `showModal()` dialog is in the top layer and still covers it.
+.modal {
     height: calc(100% - var(--bottom-nav-height, 0px));
 }
 

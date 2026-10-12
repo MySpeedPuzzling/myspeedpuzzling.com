@@ -9,22 +9,22 @@ Evidence = commit hash(es) · test names · command output summary · screenshot
 | Key | Value |
 |---|---|
 | Base | `origin/main` at start: `9347ccdabb0f3d19fd9fc155c0ad12715ff95964` · 2026-10-12T01:07:33+02:00 (synced at every phase gate, see run log) |
-| Last sync with `origin/main` | 9347ccda (start, 2026-10-12) |
+| Last sync with `origin/main` | e6068ac7 (merge 56ef583e, 2026-10-12) |
 | Delivery branch / worktree | `feature/navigation-redesign` / `.claude/worktrees/navigation` |
 | Delivery DB clone | `speedpuzzling_nav_test` |
 | Isolated web URL | `http://127.0.0.1:18080` (container `nav-web`, php -S; restart: `var/navigation-delivery/tools/restart-web.sh`) |
 | Selenium | `nav-delivery-chrome` on `127.0.0.1:14444` (selenium/standalone-chromium:latest); helper `var/navigation-delivery/tools/wd.py` |
 | Gate scripts | `var/navigation-delivery/tools/{phpunit,paratest,phpstan,cs,console,encore,restart-web}.sh` (one-off containers; test DB `speedpuzzling_navsuite_test`) |
 | Deps | composer.lock + package-lock.json identical to main checkout at start → main `vendor`/`node_modules` mounted read-only |
-| P0-03 commit to deploy separately | |
+| P0-03 commit to deploy separately | `62c99662` (cherry-picks cleanly onto origin/main e6068ac7: every touched file equals origin/main at its parent). Not `b49d3c8d` (superseded, logged secret token paths) |
 
 ## Status
 
 | ID | Item | Status | Evidence | Notes |
 |---|---|---|---|---|
-| P0-01 | Implementation plan | in-progress | | |
-| P0-02 | Baseline and budget pins | verified | (commit below) · orchestrator re-ran `phpunit.sh -- tests/Navigation/` → OK (20 tests, 172 assertions); agent's full ParaTest 9685 tests exit 0; phpstan OK, phpcs clean · `baseline.md` + `baseline-chrome-routes.json` exist; JSON surface×role: guest topbar 3/toolbar 5/hamburger 9/footer 37; player·member·organiser 3/15 dropdown/4/9/29; moderator +admin_key 4; admin +admin_key 14; absent pairs with reasons (admin_key non-mods, dropdown guests, live strip expired) · screenshots `var/navigation-delivery/baseline/screens/` (27) · no ids/names in committed files (grep) | pins: chrome guest 1 / signed-in 5 / mod+admin 6; Hub guest 1, player 8, member 9, admin 10; profile 11–24. Note: profile results already page 50 + Show more on main (biggest guest profile 366.6 KB). Lighthouse via frankenphp php-server prod build (QA-03 must reuse `scripts/lighthouse-web.sh`) |
-| P0-03 | Navigation click instrumentation (current navigation first) | todo | | |
+| P0-01 | Implementation plan | verified | (this commit) · 12 area drafts (git-ignored `var/navigation-delivery/plan-drafts/`, they hold production figures) merged into `implementation-plan.md` (1031 lines: phases, cross-cutting rules, per-ID sections, ownership table, tests-to-change table, Help sheet transport §7, decisions 1–104, risk register) · fresh adversarial review `delivery/plan-review.md`: 28 findings (1 blocker, 9 major, 18 minor) → all resolved, 0 won't-fix · coverage script: `comm -23 <(requirement IDs) <(IDs in plan)` → 0 of 107 missing | |
+| P0-02 | Baseline and budget pins | verified | 524a3305 + f6dfd77c (review F5: role-pure `MEMBER_ONLY` rows, chrome 5 / Hub 9; no pin moved) · orchestrator re-ran `phpunit.sh -- tests/Navigation/` → OK (20 tests, 172 assertions); agent's full ParaTest 9685 tests exit 0; phpstan OK, phpcs clean · `baseline.md` + `baseline-chrome-routes.json` exist; JSON surface×role: guest topbar 3/toolbar 5/hamburger 9/footer 37; player·member·organiser 3/15 dropdown/4/9/29; moderator +admin_key 4; admin +admin_key 14; absent pairs with reasons (admin_key non-mods, dropdown guests, live strip expired) · screenshots `var/navigation-delivery/baseline/screens/` (27) · no ids/names in committed files (grep) | pins: chrome guest 1 / signed-in 5 / mod+admin 6; Hub guest 1, player 8, member 9, admin 10; profile 11–24. Note: profile results already page 50 + Show more on main (biggest guest profile 366.6 KB). Lighthouse via frankenphp php-server prod build (QA-03 must reuse `scripts/lighthouse-web.sh`) |
+| P0-03 | Navigation click instrumentation (current navigation first) | verified | 62c99662 (amended from b49d3c8d after P0 review F1–F4: secret path segments masked as {token} in browser + server, strict data-nav/page validation, Sentry sampler skips /-/ beacons, signed-in session test) · re-run after the fix: NavClickControllerTest OK (60/220), NavInstrumentationScriptTest OK (31/188), markup OK (6/134), SentryTracesSamplerTest OK (12/21), SentryMonologHandlersTest OK (8/157), tests/Navigation OK (22/190); `navlib.py check P0-03` 9/9 PASS; live beacon with a 64-hex reset token logged as `/password-reset/{token}` · original evidence: · orchestrator re-ran: NavClickControllerTest OK (25/94), NavInstrumentationMarkupTest OK (6/134; guest, member, admin, newsletter-off player: every header/footer a/button has a valid data-nav), NavInstrumentationScriptTest (node) OK (27/138), SentryMonologHandlersTest OK (8/157), tests/Navigation OK (20/172, budgets unchanged, guest public) · `navlib.py check P0-03` 9/9 PASS (viewport once/session 1280→1280_1439; non-nav click → nothing; button + link → msp:nav + beacon; Turbo visit + later full load → no 2nd viewport; history.back() → exactly one turbo_restore/back line; no console errors; server log 1 viewport + 2 click + 1 history on `navigation`) · agent's full ParaTest 9744 OK, phpstan OK, phpcs clean | **Deploy separately**: parent = origin/main e6068ac7 for every touched file → `git cherry-pick b49d3c8d` onto origin/main applies cleanly |
 | F-01 | Navigation registry + guard test | todo | | |
 | F-02 | Place resolver | todo | | |
 | F-03 | Layout variables, fixed elements, overlays | todo | | |
@@ -39,10 +39,10 @@ Evidence = commit hash(es) · test names · command output summary · screenshot
 | NAV-05 | Desktop account menu | todo | | |
 | NAV-06 | Remove old chrome | todo | | |
 | NAV-07 | Turbo behaviour without layout shift | todo | | |
-| NAV-08 | Bar-free contexts and keyboard | todo | | |
+| NAV-08 | Bar-free contexts and keyboard | todo | | verify-after: ADD-04 (plan decision 101) |
 | NAV-09 | Guests | todo | | |
 | NAV-10 | Home = Hub for signed-in players | todo | | |
-| NAV-11 | Accessibility | todo | | |
+| NAV-11 | Accessibility | todo | | verify-after: NAV-06, PROF-05a, CARD-01a (plan decision 101) |
 | NAV-12 | No orphaned pages | todo | | |
 | NAV-13 | Desktop docked menu, rail and overlay | todo | | |
 | NAV-14 | Native-ready navigation | todo | | verify-after: NAV-01, NAV-03, NAV-04, NAV-13, MENU-02b, HELP-01b, CARD-01a, GEST-01, GEST-02, GEST-06, GEST-10, GEST-12, GEST-15 |
@@ -52,7 +52,7 @@ Evidence = commit hash(es) · test names · command output summary · screenshot
 | MENU-03 | One search for pages and settings | todo | | |
 | MENU-04 | Menu completeness guard | todo | | |
 | INB-01 | Inbox page | todo | | |
-| INB-02 | Badge | todo | | |
+| INB-02 | Badge | todo | | verify-after: NAV-03, NAV-04, MENU-01, NAV-13 (plan decision 101) |
 | INB-03 | Favorites' times out of the bell | todo | | |
 | INB-04a | "New since your last visit" storage | todo | | |
 | INB-04b | Favorites default and highlight | todo | | |
@@ -166,6 +166,7 @@ Decisions taken during delivery where the spec was silent (date · ID · decisio
 | 2026-10-12 | P0-01 | R2 "Where did it go?" link follows its registry audience (signed-in) on every surface; the page stays public | README §4.12 hides it for guests; consistency between Menu, Help sheet and footer |
 | 2026-10-12 | P0-01 | R3 top bar and Menu panel each hold their own `<twig:GlobalSearch>`; `global_search_controller.js` scoped to its element | README §4.12 allows a second instance (empty query = no statement); avoids moving one Live component between DOM slots |
 | 2026-10-12 | P0-01 | R5 `NavigationLaunch` is a service: `DATE` constant (null) + overridable date for tests; consumers never read the constant | a null constant cannot be tested "with a set date" |
+| 2026-10-12 | P0-01 | Decisions 1–104 of `implementation-plan.md` §8 adopted as delivery decisions (incl. R1–R14 orchestrator resolutions, the plan-review fixes 92–104: Turbo pinned 8.0.23 + contract test, Help-only own scrim, GEST-15 guard scope + `post_action`, test-DB rule) | recorded once in the committed plan instead of duplicated here; later deviations are logged below |
 
 ## Run log
 One line per session and per phase: date · what was done · next step.
@@ -173,6 +174,7 @@ One line per session and per phase: date · what was done · next step.
 | Date | Note |
 |---|---|
 | 2026-10-12 | Session 1 start: worktree created from origin/main 9347ccda; spec committed (a76cd36b); clone `speedpuzzling_nav_test` restored + migrated (at Version20261011130000); assets built; nav-web + Selenium up; next P0-01 (12 exploration drafts in parallel) |
+| 2026-10-12 | P0-02 verified (524a3305). origin/main moved 9347ccda→e6068ac7 (7 commits, XP/karma/achievements; no migrations, no lock changes): merged as 56ef583e before committing P0-03 so P0-03 cherry-picks cleanly; one conflict (account toggle class vs data-nav) resolved keeping both. P0-03 verified (b49d3c8d). Plan drafts moved to git-ignored `var/navigation-delivery/plan-drafts/` (they hold production figures). Next: plan review findings → commit P0-01 → P0 gate |
 
 ## Final report
 (written at the end: what shipped, evidence summary, blocked items with options, owner steps — README §11)

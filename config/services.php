@@ -15,6 +15,7 @@ use Sentry\Monolog\ExceptionToSentryIssueHandler;
 use Sentry\Monolog\LogToSentryIssueHandler;
 use Sentry\State\HubInterface;
 use SpeedPuzzling\Web\Doctrine\RegexSchemaAssetFilter;
+use SpeedPuzzling\Web\Navigation\FavoritesFeed;
 use SpeedPuzzling\Web\Navigation\InboxBadge;
 use SpeedPuzzling\Web\Navigation\NavigationLaunch;
 use SpeedPuzzling\Web\Services\Api\ApiDtoNormalizer;
@@ -180,6 +181,8 @@ return static function (ContainerConfigurator $configurator): void {
         ->arg('$date', param('navigation.launch_date'));
     // The Inbox badge's request memo (INB-02)
     $services->set(InboxBadge::class);
+    // The Hub's Favorites feed rows, read by its tab's count and by the feed (INB-04b)
+    $services->set(FavoritesFeed::class);
 
     // Repositories
     $services->load('SpeedPuzzling\\Web\\Repository\\', __DIR__ . '/../src/Repository/{*Repository.php}');

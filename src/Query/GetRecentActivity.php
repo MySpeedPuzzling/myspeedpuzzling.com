@@ -286,17 +286,27 @@ SQL;
      * favorites without 20 recent times (~390 ms, and an EXISTS over jsonb_array_elements() that no
      * index can answer).
      *
+     * `$favoritePlayerIds`: the favorites when the caller has them already - the signed-in viewer's profile row
+     * carries them (PlayerProfile::$favoritePlayers; the Hub's FavoritesFeed, docs/features/navigation INB-04b), which
+     * saves the statement that reads them.
+     *
+     * @param null|array<string> $favoritePlayerIds
      * @return array<RecentActivityItem>
      */
-    public function ofPlayerFavorites(int $limit, string $playerId): array
+    public function ofPlayerFavorites(int $limit, string $playerId, null|array $favoritePlayerIds = null): array
     {
-        /** @var list<string> $favoritePlayerIds */
-        $favoritePlayerIds = $this->database
-            ->executeQuery(
-                'SELECT favorite_player_id::UUID FROM player CROSS JOIN LATERAL json_array_elements_text(favorite_players) AS favorite_player_id WHERE id = :playerId',
-                ['playerId' => $playerId],
-            )
-            ->fetchFirstColumn();
+        if ($favoritePlayerIds === null) {
+            /** @var list<string> $favoritePlayerIds */
+            $favoritePlayerIds = $this->database
+                ->executeQuery(
+                    'SELECT favorite_player_id::UUID FROM player CROSS JOIN LATERAL json_array_elements_text(favorite_players) AS favorite_player_id WHERE id = :playerId',
+                    ['playerId' => $playerId],
+                )
+                ->fetchFirstColumn();
+        }
+
+        // As the cast above gives them: valid, lower case (the team containment documents compare text), each once
+        $favoritePlayerIds = array_values(array_unique(array_map(strtolower(...), array_filter($favoritePlayerIds, Uuid::isValid(...)))));
 
         if ($favoritePlayerIds === []) {
             return [];

@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Component;
 use DateTimeImmutable;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Message\MarkFavoritesSeen;
+use SpeedPuzzling\Web\Navigation\FavoritesFeed;
 use SpeedPuzzling\Web\Query\GetPlayerBestSoloTimes;
 use SpeedPuzzling\Web\Query\GetRecentActivity;
 use SpeedPuzzling\Web\Results\RecentActivityItem;
@@ -74,6 +75,7 @@ final class RecentActivity
         readonly private ResolveDifficultyTiers $resolveDifficultyTiers,
         readonly private MessageBusInterface $messageBus,
         readonly private ClockInterface $clock,
+        readonly private FavoritesFeed $favoritesFeed,
     ) {
     }
 
@@ -182,13 +184,8 @@ final class RecentActivity
         }
 
         if ($this->favoritesOnly) {
-            $profile = $this->retrieveLoggedUserProfile->getProfile();
-
-            if ($profile === null) {
-                return [];
-            }
-
-            return $this->getRecentActivity->ofPlayerFavorites($this->limit, $profile->playerId);
+            // The same rows the Hub's Favorites tab counts its "N new" from - loaded once per request
+            return $this->favoritesFeed->items($this->limit);
         }
 
         return $this->getRecentActivity->latest($this->limit);

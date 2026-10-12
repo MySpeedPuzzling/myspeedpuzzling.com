@@ -13,6 +13,7 @@ use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\DomCrawler\Crawler;
 
 /**
  * A private player is shown to the players on their allow list and to NOBODY else
@@ -458,6 +459,52 @@ final class PrivateProfileCanaryTest extends WebTestCase
     {
         yield 'inbox for you' => ['/en/notifications'];
         yield 'inbox messages' => ['/en/messages'];
+    }
+
+    /**
+     * The Hub's Favorites feed renders with the page for a player who follows somebody, with "N new" on its tab
+     * (docs/features/navigation INB-04b). Everybody here follows her: the strangers never get her name - her own times
+     * are left out, a pair of hers tracked by a public player shows her as a Hidden Puzzler - and "N new" counts exactly
+     * the rows they are shown; the friend gets her name.
+     */
+    public function testOnlyTheFriendSeesHerInTheirHubFavorites(): void
+    {
+        $browser = self::createClient();
+        $database = self::getContainer()->get(Connection::class);
+
+        foreach ([...array_values(self::STRANGERS), self::FRIEND] as $viewerId) {
+            $database->executeStatement(
+                "UPDATE player SET favorite_players = :favorites, favorites_seen_at = '2000-01-01 00:00:00' WHERE id = :id",
+                ['favorites' => json_encode([self::OWNER]), 'id' => $viewerId],
+            );
+        }
+
+        foreach (self::STRANGERS as $who => $strangerId) {
+            TestingLogin::asPlayer($browser, $strangerId);
+            $content = $this->get($browser, '/en/hub');
+            self::assertStringNotContainsString(self::OWNER_NAME, $content, "A signed-in stranger ({$who}) is shown a private player.");
+            self::assertSame(self::shownNewRows($content), self::newCount($content), "A signed-in stranger ({$who}) gets rows counted that the feed does not show.");
+        }
+
+        TestingLogin::asPlayer($browser, self::FRIEND);
+        $content = $this->get($browser, '/en/hub');
+        self::assertStringContainsString(self::OWNER_NAME, (new Crawler($content))->filter('#recent-favorites-activity')->html(), 'The allowed friend does not see her here - the feed is no canary.');
+        self::assertGreaterThan(0, self::newCount($content), 'The allowed friend does not get her times counted as new.');
+        self::assertSame(self::shownNewRows($content), self::newCount($content));
+        self::assertStringNotContainsString('public', (string) $browser->getResponse()->headers->get('Cache-Control'), 'A page naming a private player must never be shared-cacheable.');
+    }
+
+    private static function newCount(string $content): int
+    {
+        // The number the pill shows on narrow phones ("3", "20+")
+        $badge = (new Crawler($content))->filter('.hub-feed-new .hub-feed-new-short');
+
+        return $badge->count() === 0 ? 0 : (int) $badge->text();
+    }
+
+    private static function shownNewRows(string $content): int
+    {
+        return (new Crawler($content))->filter('#recent-favorites-activity tr.ra-new')->count();
     }
 
     private function get(KernelBrowser $browser, string $url): string

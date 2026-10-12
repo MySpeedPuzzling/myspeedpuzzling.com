@@ -268,6 +268,28 @@ SQL,
     }
 
     /**
+     * docs/features/navigation INB-04b: the Hub passes the favorites from the profile row - the same rows, without the
+     * statement that reads them; no favorites, no rows; ids as they are stored (any case, repeated, junk) like the cast.
+     */
+    public function testFavoritesFeedTakesTheFavoritesFromTheCaller(): void
+    {
+        $fromTheDatabase = $this->ids($this->query->ofPlayerFavorites(20, PlayerFixture::PLAYER_WITH_FAVORITES));
+        self::assertNotEmpty($fromTheDatabase);
+
+        self::assertSame($fromTheDatabase, $this->ids($this->query->ofPlayerFavorites(20, PlayerFixture::PLAYER_WITH_FAVORITES, [
+            PlayerFixture::PLAYER_REGULAR,
+            PlayerFixture::PLAYER_ADMIN,
+        ])));
+        self::assertSame($fromTheDatabase, $this->ids($this->query->ofPlayerFavorites(20, PlayerFixture::PLAYER_WITH_FAVORITES, [
+            strtoupper(PlayerFixture::PLAYER_ADMIN),
+            PlayerFixture::PLAYER_REGULAR,
+            PlayerFixture::PLAYER_REGULAR,
+            'not-a-uuid',
+        ])));
+        self::assertSame([], $this->query->ofPlayerFavorites(20, PlayerFixture::PLAYER_WITH_FAVORITES, []));
+    }
+
+    /**
      * @param array<RecentActivityItem> $items
      * @return list<string>
      */

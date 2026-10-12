@@ -1,0 +1,67 @@
+// The Hub's two feeds, Favorites | Everyone (docs/features/navigation INB-04b; GEST-16 adds the phone scroller here).
+//
+// "N new" on the Favorites tab: the active-pill colours of the bars (README §5, 4.5:1). The two tabs are always one row of
+// two, in every locale and from 320 px: below $hub-feed-compact-below the pill shows the number alone ("2", "20+") - the
+// words move into a visually hidden span, so the tab's accessible name still says "20+ new" - and the tabs' side padding
+// shrinks from 1.25rem to .75rem. Measured in Chrome with Rubik (checks/INB-04b.py), tab row widths for "20+":
+// - with the words, French "Favoris 20+ nouveaux" | "Tout le monde" is the widest: 362.5 px of row = a 394.5 px viewport
+//   (the row is the viewport minus 2 × 16 px), so the words come back from 400 px on (ja 317.3, en 308.6 px next);
+// - with the number alone the French row is 303 px - more than the 288 px a 320 px phone has, so the narrower padding
+//   (-32 px, 271 px) belongs to the same breakpoint. One breakpoint for every locale, CSS alone: no shift at load, and the
+//   pill's line box is never taller than the title's.
+$hub-feed-compact-below: 400px;
+
+.hub-feed-new {
+    position: relative;
+    display: inline-block;
+    margin-left: .375rem;
+    padding: 0 .5rem;
+    border-radius: 1rem;
+    background: var(--nav-active-pill, #ffe8e8);
+    color: var(--nav-active-ink, #c8323a);
+    font-size: .75rem;
+    font-weight: $font-weight-medium;
+    line-height: 1.25rem;
+    white-space: nowrap;
+    vertical-align: .125rem;
+}
+
+.hub-feed-new-short {
+    display: none;
+}
+
+@media (max-width: #{$hub-feed-compact-below - .02px}) {
+    .nav-tabs.hub-feed-tabs .nav-link {
+        padding-right: .75rem;
+        padding-left: .75rem;
+    }
+
+    .hub-feed-new-full {
+        @include visually-hidden;
+    }
+
+    .hub-feed-new-short {
+        display: inline;
+    }
+}
+
+// Rows added since the last visit (INB-04b): a faint tint and a bar on the image side - never a size change, so a
+// re-render that keeps them moves nothing. Screen readers hear the row's visually hidden "New" instead.
+.ps-table > tbody > tr.ra-new:not(.table-active-player) > * {
+    background-color: #fff7f7;
+}
+
+.ps-table > tbody > tr.ra-new > td:first-child {
+    position: relative;
+
+    &::before {
+        content: "";
+        position: absolute;
+        top: .5rem;
+        bottom: .5rem;
+        left: 0;
+        width: 3px;
+        border-radius: 3px;
+        background: var(--nav-badge-bg, #d63c42);
+    }
+}

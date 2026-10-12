@@ -624,8 +624,21 @@ a.lb-name,
 }
 
 // The puzzle image of a table row (_puzzle_row_image.html.twig): 80 px everywhere, 72 px on small phones. The lazy image
-// sets its box inline, hence !important.
+// sets its box inline, hence !important. The feed's loading placeholder (RecentActivity) keeps the same box, so rows
+// replacing it move nothing (docs/features/navigation INB-04b).
+.ra-placeholder-image {
+    width: 80px;
+    height: 80px;
+    background: #e9ecef;
+    vertical-align: middle;
+}
+
 @media (max-width: 379.98px) {
+    .ra-placeholder-image {
+        width: 72px;
+        height: 72px;
+    }
+
     .lazy-img-wrapper.puzzle-row-image {
         width: 72px !important;
         height: 72px !important;

@@ -1526,6 +1526,11 @@ competition_referees:
   "welcome_back": "Vítej zpět"
   "recent_activity": "Poslední aktivita"
   "recent_favorites_activity": "Oblíbení"
+  "feed":
+    "everyone": "Všichni"
+    "new_count": "1 nový|%count% nové|%count% nových"
+    "new_capped": "%count%+ nových"
+    "new_row": "Nový"
   "this_month": "Tento<br>měsíc"
   "last_month": "Minulý<br>měsíc"
   "all_time": "Za celou<br>dobu"

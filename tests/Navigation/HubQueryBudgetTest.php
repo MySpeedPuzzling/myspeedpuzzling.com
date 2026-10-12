@@ -47,7 +47,8 @@ final class HubQueryBudgetTest extends WebTestCase
     {
         yield 'guest' => [NavigationViewer::GUEST, self::GUEST_PAGE];
         yield 'player' => [NavigationViewer::PLAYER, self::SIGNED_IN];
-        // Following players changes nothing yet: the eager feed is everybody's, the Favorites tab loads lazily
+        // INB-04b: the eager feed is the Favorites one (Everyone loads lazily) - one statement like everybody's feed, as the
+        // favorites come from the profile row; its "N new" on the tab counts the same rows (FavoritesFeed)
         yield 'player with favorites' => [NavigationViewer::PLAYER_WITH_FAVORITES, self::SIGNED_IN];
         yield 'member' => [NavigationViewer::MEMBER, self::SIGNED_IN + self::MEMBER_TIERS];
         // The role-pure member (MEMBER is also an event owner); added after P0-02 for the per-role checks

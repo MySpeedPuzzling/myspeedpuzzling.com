@@ -30,8 +30,11 @@
                                     ? item.playerId is same as logged_user.profile.playerId
                                     : logged_user.profile.playerId in item.players|map(member => member.playerId)
                             ) %}
+                            {# New since the viewer's last visit of their Favorites feed (docs/features/navigation INB-04b): kept
+                               through every refresh of this page - `newSince` is the last visit the page was rendered with #}
+                            {% set is_new = this.isNew(item) %}
                             {# The id lets the morph insert a new row at the top instead of rewriting every row below it #}
-                            <tr id="activity-{{ row_id_prefix }}-{{ item.id }}" class="{{ is_own_row ? 'table-active-player' }} {{ this.showLimit > 0 and loop.index > this.showLimit ? 'ra-extra' }}" data-controller="row-link" data-action="click->row-link#open">
+                            <tr id="activity-{{ row_id_prefix }}-{{ item.id }}" class="{{ is_own_row ? 'table-active-player' }} {{ this.showLimit > 0 and loop.index > this.showLimit ? 'ra-extra' }}{{ is_new ? ' ra-new' }}" data-controller="row-link" data-action="click->row-link#open">
                                 <td class="ps-image">
                                     <div class="position-relative diff-corner-host">
                                         <a href="{{ path('puzzle_detail', {puzzleId: item.puzzleId}) }}">
@@ -53,6 +56,10 @@
                                 </td>
 
                                 <td class="ps-info">
+                                    {% if is_new %}
+                                        {# The highlight is only seen - screen readers hear "New" first #}
+                                        <span class="visually-hidden">{{ 'hub.feed.new_row'|trans }}</span>
+                                    {% endif %}
                                     {# The player leads, like on the ladders; on the player's own profile a solo time needs no
                                        name (it is theirs), so the puzzle leads there #}
                                     {% if this.isOnProfile and item.players is null %}
@@ -145,11 +152,15 @@
                 {% for i in 1..rowCount %}
                     <tr>
                         <td class="ps-image">
-                            <span class="rounded-2 d-inline-block" style="width: 60px; height: 60px; background: #e9ecef;"></span>
+                            <span class="rounded-2 d-inline-block ra-placeholder-image"></span>
                         </td>
                         <td class="ps-info">
+                            {# Three lines and the image's size like a row (player · puzzle · pieces and brand): the Hub's second feed
+                               loads when its tab is first shown, and a shorter placeholder moved everything below it
+                               (docs/features/navigation INB-04b) #}
                             <div class="ps-members ps-members-lead"><span class="placeholder" style="width: 110px;"></span></div>
                             <div class="ps-puzzle-line"><span class="placeholder placeholder-sm" style="width: 150px;"></span></div>
+                            <div class="ps-puzzle-sub"><span class="placeholder placeholder-sm" style="width: 90px;"></span></div>
                         </td>
                         <td class="ps-time">
                             <span class="placeholder" style="width: 64px;"></span>
@@ -163,8 +174,11 @@
     </div>
 
     {% if props.showLimit > 0 %}
-        <button class="mt-3 btn btn-outline-primary btn-sm disabled" style="width: 100px;">
-            <span class="spinner-border spinner-border-sm"></span>
-        </button>
+        {# As tall as the "Show more" row: a line of text sets the height, the spinner sits over it #}
+        <div class="ra-footer mt-3">
+            <button class="btn btn-outline-primary btn-sm disabled position-relative" style="width: 100px;">
+                &nbsp;<span class="spinner-border spinner-border-sm position-absolute top-50 start-50 translate-middle"></span>
+            </button>
+        </div>
     {% endif %}
 {% endmacro %}

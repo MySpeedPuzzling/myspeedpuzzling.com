@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
+use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -41,11 +42,13 @@ final class HubControllerTest extends WebTestCase
         // docs/features/live-activity-feed.md: the library's blind setInterval polled from tabs nobody looked at
         self::assertCount(0, $crawler->filter('[data-poll]'));
 
-        // The greeting is for screen readers only; both tabs fit on one line (no <br>)
+        // The greeting is for screen readers only; both tabs fit on one line (no <br>). Favorites | Everyone for everybody
+        // (docs/features/navigation INB-04b) - a guest starts on Everyone
         self::assertCount(1, $crawler->filter('h1.visually-hidden'));
         $feedTabs = $crawler->filter('.nav-tabs')->first();
-        self::assertSame(['Recent activity', 'Favorites'], $feedTabs->filter('.media-tab-title')->each(static fn ($tab): string => $tab->text()));
+        self::assertSame(['Favorites', 'Everyone'], $feedTabs->filter('.media-tab-title')->each(static fn ($tab): string => $tab->text()));
         self::assertCount(0, $feedTabs->filter('.media-tab-title br'));
+        self::assertSame('#recent-activity', $feedTabs->filter('.nav-link.active')->attr('href'));
 
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
         $crawler = $browser->request('GET', '/en/hub');
@@ -54,6 +57,102 @@ final class HubControllerTest extends WebTestCase
         self::assertCount(2, $crawler->filter('.tab-content [data-controller~="live"]'));
         self::assertCount(1, $crawler->filter('[data-controller~="live-refresh"]'));
         self::assertCount(0, $crawler->filter('[data-poll]'));
+    }
+
+    /**
+     * docs/features/navigation INB-04b: a player who follows somebody starts on Favorites - rendered with the page, its
+     * "N new" on the tab - and Everyone loads when first shown; everybody else starts on Everyone as before.
+     */
+    public function testPlayerWithFavoritesStartsOnFavoritesAndEveryoneLoadsLater(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_FAVORITES);
+
+        $crawler = $browser->request('GET', '/en/hub');
+        self::assertResponseIsSuccessful();
+
+        $feedTabs = $crawler->filter('.nav-tabs')->first();
+        self::assertSame(['Favorites', 'Everyone'], $feedTabs->filter('.media-tab-title')->each(static fn ($tab): string => $tab->text()));
+        self::assertSame('#recent-favorites-activity', $feedTabs->filter('.nav-link.active')->attr('href'));
+        self::assertSame('true', $feedTabs->filter('a[href="#recent-favorites-activity"]')->attr('aria-selected'));
+        self::assertSame('false', $feedTabs->filter('a[href="#recent-activity"]')->attr('aria-selected'));
+
+        // Favorites: shown and rendered with the page (a lazy placeholder has no live-refresh yet); Everyone: lazy
+        $favorites = $crawler->filter('#recent-favorites-activity');
+        self::assertStringContainsString('show active', (string) $favorites->attr('class'));
+        self::assertCount(1, $favorites->filter('[data-controller~="live"][data-controller~="live-refresh"]'));
+        self::assertCount(0, $favorites->filter('[data-live-name-value][loading="lazy"]'));
+        self::assertGreaterThan(0, $favorites->filter('tr[id^="activity-favorites-"]')->count());
+
+        $everyone = $crawler->filter('#recent-activity');
+        self::assertStringNotContainsString('active', (string) $everyone->attr('class'));
+        self::assertCount(1, $everyone->filter('[data-live-name-value="RecentActivity"][loading="lazy"]'));
+        self::assertCount(0, $everyone->filter('[data-controller~="live-refresh"]'));
+
+        // No last visit yet (INB-04a, decision 50): nothing is new, no count
+        self::assertCount(0, $feedTabs->filter('.hub-feed-new'));
+        self::assertCount(0, $favorites->filter('tr.ra-new'));
+    }
+
+    public function testTheFavoritesTabCountsTheNewRowsUpToTwentyPlus(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_FAVORITES);
+        // Long ago: every loaded row is new - the fixture favorites have more than 20 times
+        self::getContainer()->get(Connection::class)->executeStatement(
+            "UPDATE player SET favorites_seen_at = '2000-01-01 00:00:00' WHERE id = :id",
+            ['id' => PlayerFixture::PLAYER_WITH_FAVORITES],
+        );
+
+        $crawler = $browser->request('GET', '/en/hub');
+        self::assertResponseIsSuccessful();
+
+        // The words, and the number alone that narrow phones show instead - hidden from screen readers, which keep the
+        // words (checks/INB-04b.py measures the switch)
+        $pill = $crawler->filter('.nav-tabs a[href="#recent-favorites-activity"] .hub-feed-new');
+        self::assertSame('20+ new', $pill->filter('.hub-feed-new-full')->text());
+        self::assertSame('20+', $pill->filter('.hub-feed-new-short[aria-hidden="true"]')->text());
+        $rows = $crawler->filter('#recent-favorites-activity tr[id^="activity-favorites-"]');
+        self::assertCount(20, $rows);
+        self::assertCount(20, $rows->filter('.ra-new'));
+        self::assertSame(array_fill(0, 20, 'New'), $rows->filter('.ps-info > .visually-hidden')->each(static fn ($label): string => $label->text()));
+        // Everyone never marks anything new
+        self::assertCount(0, $crawler->filter('#recent-activity .ra-new'));
+    }
+
+    public function testPlayerWithoutFavoritesStartsOnEveryoneWithoutACount(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $crawler = $browser->request('GET', '/en/hub');
+        self::assertResponseIsSuccessful();
+
+        $feedTabs = $crawler->filter('.nav-tabs')->first();
+        self::assertSame('#recent-activity', $feedTabs->filter('.nav-link.active')->attr('href'));
+        self::assertCount(0, $feedTabs->filter('.hub-feed-new'));
+        self::assertStringContainsString('show active', (string) $crawler->filter('#recent-activity')->attr('class'));
+        self::assertCount(1, $crawler->filter('#recent-activity [data-controller~="live-refresh"]'));
+        self::assertCount(1, $crawler->filter('#recent-favorites-activity [data-live-name-value="RecentActivity"][loading="lazy"]'));
+        // Nobody to see: the Favorites pane marks nothing (INB-04a)
+        self::assertNull($crawler->filter('#recent-favorites-activity')->attr('data-controller'));
+    }
+
+    public function testGuestHubStaysTheSameForEverybody(): void
+    {
+        $browser = self::createClient();
+
+        $crawler = $browser->request('GET', '/en/hub');
+        self::assertResponseIsSuccessful();
+        self::assertTrue($browser->getResponse()->headers->hasCacheControlDirective('public'));
+
+        self::assertSame('#recent-activity', $crawler->filter('.nav-tabs .nav-link.active')->attr('href'));
+        self::assertCount(0, $crawler->filter('.hub-feed-new, .ra-new'));
+        // The Favorites pane asks to sign in, nothing per visitor
+        $favorites = $crawler->filter('#recent-favorites-activity');
+        self::assertCount(1, $favorites->filter('.alert'));
+        self::assertNull($favorites->attr('data-controller'));
+        self::assertCount(0, $favorites->filter('[data-live-name-value]'));
     }
 
     public function testLoggedInUserCanAccessPage(): void

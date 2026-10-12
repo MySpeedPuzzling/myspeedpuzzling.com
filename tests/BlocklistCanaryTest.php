@@ -278,4 +278,38 @@ final class BlocklistCanaryTest extends WebTestCase
         yield 'inbox for you' => ['/en/notifications'];
         yield 'inbox messages' => ['/en/messages'];
     }
+
+    /**
+     * The Hub's Favorites feed renders with the page for a player who follows somebody, with "N new" on its tab
+     * (docs/features/navigation INB-04b). It is the viewer's own: the blocker follows the player, sees their times and
+     * counts them as new until the block - never after it, neither the rows nor in the count.
+     */
+    public function testBlockedFavoriteIsNowhereOnTheBlockersHub(): void
+    {
+        $browser = self::createClient();
+        $database = self::getContainer()->get(Connection::class);
+
+        $database->executeStatement(
+            "UPDATE player SET favorite_players = :favorites, favorites_seen_at = '2000-01-01 00:00:00' WHERE id = :id",
+            ['favorites' => json_encode([self::BLOCKED]), 'id' => self::BLOCKER],
+        );
+
+        TestingLogin::asPlayer($browser, self::BLOCKER);
+        $crawler = $browser->request('GET', '/en/hub');
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString(self::BLOCKED_NAME, $crawler->filter('#recent-favorites-activity')->html(), 'No canary: the Favorites feed does not show the player before the block.');
+        self::assertCount(1, $crawler->filter('.hub-feed-new'), 'No canary: their times are not counted as new before the block.');
+
+        $database->executeStatement(
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, NOW(), 'self')",
+            ['id' => Uuid::uuid7()->toString(), 'blocker' => self::BLOCKER, 'blocked' => self::BLOCKED],
+        );
+
+        $crawler = $browser->request('GET', '/en/hub');
+        self::assertResponseIsSuccessful();
+        $content = (string) $browser->getResponse()->getContent();
+        self::assertStringNotContainsString(self::BLOCKED, $content, 'The blocker is shown a player they blocked.');
+        self::assertStringNotContainsString(self::BLOCKED_NAME, $content, 'The blocker is shown a player they blocked.');
+        self::assertCount(0, $crawler->filter('.hub-feed-new, .ra-new'), 'The times of a blocked player are counted as new.');
+    }
 }

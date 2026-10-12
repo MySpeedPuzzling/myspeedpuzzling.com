@@ -1509,6 +1509,11 @@ competition_referees:
   "welcome_back": "Bon retour"
   "recent_activity": "Activité récente"
   "recent_favorites_activity": "Favoris"
+  "feed":
+    "everyone": "Tout le monde"
+    "new_count": "%count% nouveau|%count% nouveaux"
+    "new_capped": "%count%+ nouveaux"
+    "new_row": "Nouveau"
   "this_month": "Ce<br>mois-ci"
   "last_month": "Mois<br>dernier"
   "all_time": "Depuis<br>toujours"

@@ -29,44 +29,59 @@
     {% endif %}
 
     <div class="row">
-        {# Both feeds refresh every minute while shown and somebody is here; the line on the "Show more" row counts down
-           and pauses (docs/features/live-activity-feed.md) #}
+        {# Favorites | Everyone (docs/features/navigation README §3, INB-04b). Players who follow somebody start on Favorites,
+           everybody else - guests included - on Everyone; the pane shown first renders with the page, the other one when it is
+           first shown (loading="lazy"). Pane ids are the deep links (#recent-favorites-activity, #recent-activity). #}
+        {% set profile = logged_user.profile %}
+        {% set favorites_first = profile is not null and profile.favoritePlayers is not empty %}
+        {% set favorites_seen_at = profile is not null ? profile.favoritesSeenAt : null %}
+        {# "N new" since the last visit, counted from the rows the Favorites feed renders (FavoritesFeed: no statement of its own) #}
+        {% set new_count = favorites_first ? favorites_new_count() : null %}
+        {% set feed_limit = constant('SpeedPuzzling\\Web\\Navigation\\FavoritesFeed::LIMIT') %}
         <div class="col-lg-6 pt-lg-4">
-            <ul class="nav nav-fill nav-tabs mt-0" role="tablist" data-controller="tabs">
+            <ul class="nav nav-fill nav-tabs hub-feed-tabs mt-0" role="tablist" data-controller="tabs">
                 <li class="nav-item">
-                    <a class="nav-link active" href="#recent-activity" data-bs-toggle="tab" role="tab" data-action="tabs#showTab">
+                    <a class="nav-link{{ favorites_first ? ' active' }}" href="#recent-favorites-activity" data-bs-toggle="tab" role="tab" aria-controls="recent-favorites-activity" aria-selected="{{ favorites_first ? 'true' : 'false' }}" data-action="tabs#showTab">
                         <div class="text-center">
-                            <span class="media-tab-title h6 text-nowrap pt-2 mb-0">{{ 'hub.recent_activity'|trans }}</span>
+                            <span class="media-tab-title h6 text-nowrap pt-2 mb-0">{{ 'hub.recent_favorites_activity'|trans }}</span>
+                            {%- if new_count is not null and new_count > 0 %}
+                                {#- The full words, or on narrow phones the number alone - the words stay in the tab's accessible
+                                    name there (visually hidden), so the two tabs keep one row in every locale (_hub-feeds.scss) #}
+                                <span class="hub-feed-new">
+                                    {%- if new_count >= feed_limit -%}
+                                        <span class="hub-feed-new-full">{{ 'hub.feed.new_capped'|trans({'%count%': feed_limit}) }}</span><span class="hub-feed-new-short" aria-hidden="true">{{ feed_limit }}+</span>
+                                    {%- else -%}
+                                        <span class="hub-feed-new-full">{{ 'hub.feed.new_count'|trans({'%count%': new_count}) }}</span><span class="hub-feed-new-short" aria-hidden="true">{{ new_count }}</span>
+                                    {%- endif -%}
+                                </span>
+                            {%- endif %}
                         </div>
                     </a>
                 </li>
 
                 <li class="nav-item">
-                    <a class="nav-link" href="#recent-favorites-activity" data-bs-toggle="tab" role="tab" data-action="tabs#showTab">
+                    <a class="nav-link{{ favorites_first ? '' : ' active' }}" href="#recent-activity" data-bs-toggle="tab" role="tab" aria-controls="recent-activity" aria-selected="{{ favorites_first ? 'false' : 'true' }}" data-action="tabs#showTab">
                         <div class="text-center">
-                            <span class="media-tab-title h6 text-nowrap pt-2 mb-0">{{ 'hub.recent_favorites_activity'|trans }}</span>
+                            <span class="media-tab-title h6 text-nowrap pt-2 mb-0">{{ 'hub.feed.everyone'|trans }}</span>
                         </div>
                     </a>
                 </li>
             </ul>
 
             <div class="tab-content">
-                <div class="tab-pane fade show active" id="recent-activity" role="tabpanel">
-                    <twig:RecentActivity limit="20" :showLimit="4" :autoRefresh="true" />
-                </div>
-
-                {# "New since your last visit" (docs/features/navigation, INB-04a): the first time this pane is shown in a visit,
-                   the feed is marked seen (favorites_seen_controller.js, never from an automatic refresh); the feed keeps the
-                   last visit it was rendered with as `newSince`, so this visit's new rows stay new #}
-                {% set favorites_seen_at = logged_user.profile is not null ? logged_user.profile.favoritesSeenAt : null %}
-                <div class="tab-pane fade" id="recent-favorites-activity" role="tabpanel"
-                    {%- if logged_user.profile is not null and logged_user.profile.favoritePlayers is not empty %}
+                {# Both feeds refresh every minute while shown and somebody is here; the line on the "Show more" row counts down
+                   and pauses (docs/features/live-activity-feed.md).
+                   "New since your last visit" (INB-04a): the first time this pane is shown in a visit - at once when it is the
+                   first pane - the feed is marked seen (favorites_seen_controller.js, never from an automatic refresh); the
+                   feed keeps the last visit it was rendered with as `newSince`, so this visit's new rows stay new #}
+                <div class="tab-pane fade{{ favorites_first ? ' show active' }}" id="recent-favorites-activity" role="tabpanel"
+                    {%- if favorites_first %}
                     data-controller="favorites-seen"
                     data-favorites-seen-new-since-value="{{ favorites_seen_at is not null ? favorites_seen_at.timestamp : 0 }}"
                     data-favorites-seen-rendered-value="{{ 'now'|date('U') }}"
                     data-favorites-seen-interval-value="{{ constant('SpeedPuzzling\\Web\\Value\\FavoritesSeen::MARK_EVERY_SECONDS') }}"
                     {%- endif %}>
-                    {% if logged_user.profile is null %}
+                    {% if profile is null %}
                         <div class="alert alert-accent small d-flex mt-3" role="alert">
                             <div class="alert-icon py-0">
                                 <i class="ci-announcement"></i>
@@ -74,8 +89,12 @@
                             <div>{{ 'hub.not_logged'|trans }}</div>
                         </div>
                     {% else %}
-                        <twig:RecentActivity loading="lazy" limit="20" :showLimit="4" :favoritesOnly="true" :autoRefresh="true" :newSince="favorites_seen_at" />
+                        <twig:RecentActivity :loading="favorites_first ? null : 'lazy'" :limit="feed_limit" :showLimit="4" :favoritesOnly="true" :autoRefresh="true" :newSince="favorites_seen_at" />
                     {% endif %}
+                </div>
+
+                <div class="tab-pane fade{{ favorites_first ? '' : ' show active' }}" id="recent-activity" role="tabpanel">
+                    <twig:RecentActivity :loading="favorites_first ? 'lazy' : null" limit="20" :showLimit="4" :autoRefresh="true" />
                 </div>
             </div>
         </div>

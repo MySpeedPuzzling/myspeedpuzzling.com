@@ -1623,6 +1623,11 @@ competition_referees:
   "welcome_back": "おかえりなさい"
   "recent_activity": "最近のアクティビティ"
   "recent_favorites_activity": "お気に入り"
+  "feed":
+    "everyone": "みんな"
+    "new_count": "新着%count%件"
+    "new_capped": "新着%count%件以上"
+    "new_row": "新着"
   "this_month": "今月"
   "last_month": "先月"
   "all_time": "全期間"

@@ -28,6 +28,8 @@ final class NavigationServicesResetTest extends TestCase
         \SpeedPuzzling\Web\Twig\AddEntryTwigExtension::class,
         // INB-02 (the memo itself is src/Navigation/InboxBadge.php)
         \SpeedPuzzling\Web\Twig\InboxTwigExtension::class,
+        // INB-04b (the memo itself is src/Navigation/FavoritesFeed.php)
+        \SpeedPuzzling\Web\Twig\FavoritesFeedTwigExtension::class,
     ];
 
     public function testMutableNavigationServicesResetBetweenRequests(): void

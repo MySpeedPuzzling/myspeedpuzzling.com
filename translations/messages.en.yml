@@ -1989,6 +1989,11 @@ hub:
     welcome_back: "Welcome back"
     recent_activity: "Recent activity"
     recent_favorites_activity: "Favorites"
+    feed:
+        everyone: "Everyone"
+        new_count: "1 new|%count% new"
+        new_capped: "%count%+ new"
+        new_row: "New"
     this_month: "This<br>month"
     last_month: "Last<br>month"
     all_time: "All<br>time"

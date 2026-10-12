@@ -11,7 +11,8 @@ const ACTION = 'markFavoritesSeen';
  *
  * - "shown" = Bootstrap's `shown.bs.tab` for the pane's tab, `feed-swipe:shown` for the pane settling in the phone
  *   scroller (GEST-16 dispatches it on the pane, bubbling; a `detail.pane` is honoured too), or the pane already shown
- *   when this connects (a #recent-favorites-activity link, Favorites as the default tab)
+ *   when this connects (Favorites as the default pane, INB-04b; a #recent-favorites-activity link) - not when the
+ *   address names the other pane, which the tabs controller shows instead
  * - one Live action on the pane's RecentActivity component - never from live_refresh: its re-renders happen inside
  *   the component and never reconnect this controller, which sits on the pane around it
  * - skipped while the last visit is younger than `interval` seconds - the server would change nothing (reloading the
@@ -39,7 +40,9 @@ export default class extends Controller {
         document.addEventListener('shown.bs.tab', this.onShown);
         document.addEventListener('feed-swipe:shown', this.onShown);
 
-        if (isShown(this.element)) {
+        // Shown at connect - Favorites as the default pane (INB-04b) - unless the address asks for another pane: the tabs
+        // controller switches to it a moment later (/en/hub#recent-activity), and nobody saw this one
+        if (isShown(this.element) && !hashNamesAnotherPane(this.element)) {
             this.shown();
         }
     }
@@ -127,6 +130,22 @@ function paneOf(event) {
     const selector = event.target.getAttribute?.('data-bs-target') ?? event.target.getAttribute?.('href');
 
     return selector?.startsWith('#') ? document.getElementById(selector.slice(1)) : null;
+}
+
+function hashNamesAnotherPane(element) {
+    let id;
+
+    try {
+        id = decodeURIComponent(window.location.hash.slice(1));
+    } catch {
+        return false;
+    }
+
+    if (id === '' || id === element.id) {
+        return false;
+    }
+
+    return document.getElementById(id)?.classList.contains('tab-pane') === true;
 }
 
 function isShown(element) {

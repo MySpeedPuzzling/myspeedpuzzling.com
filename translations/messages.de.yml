@@ -1474,6 +1474,11 @@ competition_referees:
   "welcome_back": "Willkommen zurück"
   "recent_activity": "Neueste Aktivität"
   "recent_favorites_activity": "Favoriten"
+  "feed":
+    "everyone": "Alle"
+    "new_count": "1 neu|%count% neu"
+    "new_capped": "%count%+ neu"
+    "new_row": "Neu"
   "this_month": "Dieser<br>Monat"
   "last_month": "Letzter<br>Monat"
   "all_time": "Alle<br>Zeit"

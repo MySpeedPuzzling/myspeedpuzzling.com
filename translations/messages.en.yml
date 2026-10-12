@@ -9306,6 +9306,11 @@ where_did_it_go:
     placeholder: "The full list of the old items and their new places will appear here."
 
 nav:
+    bar:
+        places: "Main sections"
+        home: "Home"
+        add: "Add"
+        profile: "Profile"
     menu:
         title: "Menu"
         page_intro: "Every page and setting of MySpeedPuzzling in one place."

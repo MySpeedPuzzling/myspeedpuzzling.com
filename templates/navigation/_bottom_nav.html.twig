@@ -1,0 +1,16 @@
+{#- The phone bottom bar (docs/features/navigation README §4.2, D1, D14; implementation plan NAV-01, NAV-02): the five
+    places, fixed at the bottom of phones and landscape phones, 56 px + the safe area, never hidden on scroll - display:
+    none on desktop (NAV-13 turns the places into the rail there). A direct child of <body> in nav_chrome (web only),
+    before <main>: critical CSS reserves its height as --bottom-nav-height only while a visible .bottom-nav is a child
+    of <body> - a page that sets `hide_bottom_bar` (outside its blocks) renders it hidden, and the height is 0 there.
+    Not data-turbo-permanent: re-rendered on every visit (NAV-07).
+    - bottom-nav (assets/controllers/bottom_nav_controller.js, NAV-02): corrects the label step upward where the
+      container queries of assets/styles/_nav-label-steps.scss guessed too low (a wider fallback font);
+    - tab-gestures: the pending pill, tap the active tab and long-press labels (GEST-03/04/18) - Stimulus ignores the
+      identifier until its controller exists;
+    - data-ptr-ignore: a pull that starts on the bar never refreshes the page (pull_to_refresh.js).
+    Shared-cacheable for guests: nothing depends on the visitor but the URL. -#}
+<nav id="bottom-nav" class="bottom-nav" aria-label="{{ 'nav.bar.places'|trans }}" data-ptr-ignore data-controller="bottom-nav tab-gestures"
+    {%- if hide_bottom_bar ?? false %} hidden{% endif %}>
+    {{- include('navigation/_places.html.twig', {variant: 'bar'}) -}}
+</nav>

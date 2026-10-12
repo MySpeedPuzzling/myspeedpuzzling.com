@@ -13,7 +13,11 @@
     --nav-left       width of the desktop menu column/rail: 0 until NAV-13 adds the tier values here (88/256 px).
     Under html[data-native-app] every reserved chrome size is 0 (plan §3.5 item 7).
     .menu-slot       the docked-column slot of the page's one #site-menu (MENU-01): hidden wherever there is no column -
-                     everywhere until NAV-13 docks it - before the stylesheet arrives, so the Menu never flashes. -#}
+                     everywhere until NAV-13 docks it - before the stylesheet arrives, so the Menu never flashes.
+    .bottom-nav      the phone bottom bar's box (NAV-01, README §4.2): fixed, 56 px + the safe area (Chrome 135+ fast
+                     path: bottom = inset - max inset, padding = max inset), none on desktop; <body> keeps its height
+                     free at the end of the page. Its look and the label steps live in _nav-bars.scss.
+    .nav-sprite      the icon sprite (_icons.html.twig) never takes room. -#}
 @property --topbar-h{syntax:'<length>';inherits:true;initial-value:0px}
 @property --bottom-nav-height{syntax:'<length>';inherits:true;initial-value:0px}
 @property --nav-left{syntax:'<length>';inherits:true;initial-value:0px}
@@ -25,3 +29,8 @@
 :root[data-native-app]{--header-height:0px;--topbar-h:0px;--topbar-shift:0px;--bottom-nav-height:0px;--nav-left:0px}
 .global-search,.global-search-overlay{display:none}
 .menu-slot{display:none}
+.bottom-nav{position:fixed;right:0;bottom:calc(env(safe-area-inset-bottom,0px) - var(--safe-bottom-max));left:0;z-index:1030;display:flex;height:calc(var(--tabbar-h) + var(--safe-bottom-max));padding:0 env(safe-area-inset-right,0px) var(--safe-bottom-max) env(safe-area-inset-left,0px);background:var(--nav-bg);border-top:1px solid var(--nav-hairline)}
+.bottom-nav[hidden]{display:none}
+@media (min-width:768px) and (min-height:501px),(min-width:768px) and (pointer:fine){.bottom-nav{display:none}}
+body{padding-bottom:var(--bottom-nav-height)}
+.nav-sprite{display:none}

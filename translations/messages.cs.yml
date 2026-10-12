@@ -9060,6 +9060,11 @@ where_did_it_go:
     placeholder: "Brzy tu bude celý seznam původních položek a jejich nových míst."
 
 nav:
+    bar:
+        places: "Hlavní sekce"
+        home: "Domů"
+        add: "Přidat"
+        profile: "Profil"
     menu:
         title: "Menu"
         page_intro: "Všechny stránky a nastavení MySpeedPuzzling na jednom místě."

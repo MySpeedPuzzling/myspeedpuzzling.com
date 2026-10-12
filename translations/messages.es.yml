@@ -9034,6 +9034,11 @@ where_did_it_go:
     placeholder: "Pronto aparecerá aquí la lista completa de los elementos antiguos y sus nuevos lugares."
 
 nav:
+    bar:
+        places: "Secciones principales"
+        home: "Inicio"
+        add: "Añadir"
+        profile: "Perfil"
     menu:
         title: "Menú"
         page_intro: "Todas las páginas y ajustes de MySpeedPuzzling en un solo lugar."

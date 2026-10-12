@@ -293,7 +293,7 @@ final readonly class NavigationRegistry
             new NavEntry(
                 id: 'home',
                 target: RouteTarget::route('hub', guestRoute: 'homepage'),
-                label: 'navigation.home',
+                label: 'nav.bar.home',
                 icon: 'bi-house-door',
                 place: NavPlace::Home,
                 phone: MenuPlacement::notInMenu(self::BAR_TAB),
@@ -338,7 +338,7 @@ final readonly class NavigationRegistry
             new NavEntry(
                 id: 'profile',
                 target: RouteTarget::viewer('player_profile'),
-                label: 'menu.profile',
+                label: 'nav.bar.profile',
                 icon: 'bi-person',
                 place: NavPlace::Profile,
                 phone: MenuPlacement::notInMenu(self::BAR_TAB),
@@ -967,7 +967,7 @@ final readonly class NavigationRegistry
                 id: 'add',
                 // Guests: the explainer with Join and Sign in (ADD-05, README §4.6)
                 target: RouteTarget::route('puzzle_add', guestRoute: 'add_intro'),
-                label: 'menu.puzzle_add',
+                label: 'nav.bar.add',
                 icon: 'bi-plus-lg',
                 place: NavPlace::Add,
                 phone: $row(10),

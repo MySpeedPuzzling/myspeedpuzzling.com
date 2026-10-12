@@ -25,6 +25,9 @@ final class NavChromeAssertions
         '#site-menu:not(main #site-menu)',
         // The Menu shell of the phone panel (MENU-02b, block nav_layers)
         '#menu-layer',
+        // The phone bottom bar and the icon sprite it shares with the other bars (NAV-01, block nav_chrome)
+        '#bottom-nav',
+        '.nav-sprite',
     ];
 
     public static function assertNoWebChrome(Crawler $crawler, string $message = ''): void
@@ -41,6 +44,7 @@ final class NavChromeAssertions
     {
         Assert::assertSame(1, self::count($crawler, 'body > header'), trim($message . ' No site header'));
         Assert::assertSame(1, self::count($crawler, 'footer.site-footer'), trim($message . ' No site footer'));
+        Assert::assertSame(1, self::count($crawler, 'body > #bottom-nav'), trim($message . ' No bottom bar'));
     }
 
     public static function count(Crawler $crawler, string $selector): int

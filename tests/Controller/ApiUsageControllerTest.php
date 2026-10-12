@@ -28,7 +28,7 @@ final class ApiUsageControllerTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('h1', 'API usage');
-        self::assertStringContainsString('Spreadsheet', $crawler->filter('a[aria-current="true"]')->text());
+        self::assertStringContainsString('Spreadsheet', $crawler->filter('main a[aria-current="true"]')->text());
         self::assertStringContainsString('GET /api/v1/me', $crawler->filter('table')->text());
         self::assertSame('42', trim($crawler->filter('.card .h4')->first()->text()));
     }

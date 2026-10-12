@@ -9022,6 +9022,11 @@ where_did_it_go:
     placeholder: "以前の項目と新しい場所の一覧がここに表示されます。"
 
 nav:
+    bar:
+        places: "主なセクション"
+        home: "ホーム"
+        add: "追加"
+        profile: "マイページ"
     menu:
         title: "メニュー"
         page_intro: "MySpeedPuzzlingのすべてのページと設定をひとつの場所に。"

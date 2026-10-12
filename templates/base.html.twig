@@ -873,9 +873,10 @@
         {% endif %}
         {% endblock %}
 
-        {# The navigation chrome (docs/features/navigation, decision 19): bars, rail and column land here, web only.
-           Bar-free pages empty it together with header and footer. Chrome markup rules: implementation plan §3.2. #}
-        {% block nav_chrome %}{% if is_web() %}{{ include('navigation/_menu_slot.html.twig') }}{% endif %}{% endblock %}
+        {# The navigation chrome (docs/features/navigation, decision 19): bars, rail and column land here, web only -
+           the icon sprite, the phone bottom bar (NAV-01) and the Menu's slot. Bar-free pages empty it together with
+           header and footer. Chrome markup rules: implementation plan §3.2. #}
+        {% block nav_chrome %}{% if is_web() %}{{ include('navigation/_icons.html.twig') }}{{ include('navigation/_bottom_nav.html.twig') }}{{ include('navigation/_menu_slot.html.twig') }}{% endif %}{% endblock %}
 
         <main id="main-content">
             {# The page search (surface bar): the first GlobalSearch in the DOM; its controllers sit on the component's root

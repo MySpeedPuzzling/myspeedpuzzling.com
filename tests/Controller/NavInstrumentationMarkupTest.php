@@ -91,8 +91,8 @@ final class NavInstrumentationMarkupTest extends WebTestCase
     /**
      * Navigation containers outside the header and footer (implementation plan §3.3): the Community landing (COM-01a)
      * and the Help sheet (HELP-01a; its feedback box HELP-01b) - its page and its frame - the Inbox header's tabs on both
-     * Inbox pages (INB-01, signed in), the Menu (MENU-01) and its phone panel's shell (MENU-02b). Every link and button
-     * there is counted too.
+     * Inbox pages (INB-01, signed in), the Menu (MENU-01), its phone panel's shell (MENU-02b) and the phone bottom bar
+     * (NAV-01). Every link and button there is counted too.
      *
      * @return iterable<string, array{0: string, 1: array<string, string>, 2: string, 3: list<string>, 4?: string}>
      */
@@ -140,6 +140,10 @@ final class NavInstrumentationMarkupTest extends WebTestCase
         // The Menu shell of the phone panel (MENU-02b): its header - the Menu itself is moved in when it opens
         yield 'menu shell (guest)' => ['/en/faq', [], '#menu-layer', ['menu/none/close', 'menu/none/logo']];
         yield 'menu shell (player)' => ['/en/hub', [], '#menu-layer', ['menu/none/close', 'menu/none/logo'], PlayerFixture::PLAYER_REGULAR];
+        // The phone bottom bar (NAV-01): the five places, for guests and players alike
+        $places = ['tabbar/places/home', 'tabbar/places/puzzles', 'tabbar/places/add', 'tabbar/places/community', 'tabbar/places/profile'];
+        yield 'bottom bar (guest)' => ['/en/faq', [], '#bottom-nav', $places];
+        yield 'bottom bar (player)' => ['/en/hub', [], '#bottom-nav', $places, PlayerFixture::PLAYER_REGULAR];
     }
 
     /**

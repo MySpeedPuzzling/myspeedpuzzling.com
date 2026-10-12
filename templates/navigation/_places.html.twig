@@ -1,0 +1,30 @@
+{#- The five places (docs/features/navigation README §4.2, D1; implementation plan NAV-01): Home · Puzzles · Add ·
+    Community · Profile, from nav_places() (PlacesBuilder - the request and the profile row, no statement). Label key
+    and icon from the registry's place entries; aria-current "page" on the page a place links to, "true" deeper inside it
+    (decision 27). Add is the coral tile, never styled selected; Profile shows the player's avatar (a ring while
+    current), guests a person icon. Each icon is rendered in outline and filled (the sprite of _icons.html.twig): CSS
+    shows the filled one on the current tab - and on .is-pending, the tab GEST-04 marks on tap before Turbo answers.
+    Labels (.nav-tab-label) never truncate: NAV-02 picks 11 px, 10 px or "current label only" (data-label-step).
+    `variant`: bar (the phone tab bar, default), rail (NAV-13), compact (NAV-04).
+    Chrome markup rules (implementation plan §3.2): own prefixes (nav-*), no heading, no form; data-nav on every link. -#}
+{%- set variant = variant|default('bar') -%}
+<ul class="nav-places nav-places--{{ variant }}">
+{%- for place in nav_places(nav_location(), variant) -%}
+    {%- set id = place.place.value -%}
+    <li class="nav-place nav-place--{{ id }}">
+        {#- -#}<a class="nav-tab nav-tab--{{ id }}" href="{{ place.href }}" data-nav-place="{{ id }}" data-nav="tabbar/places/{{ id }}" data-press="fixed"
+        {%- if place.current %} aria-current="{{ place.current }}"{% endif %}
+        {%- if place.nofollow %} rel="nofollow"{% endif %}>
+        {#- -#}<span class="nav-tab-icon" aria-hidden="true">
+        {%- if place.avatar is not null -%}
+            {{- include('_player_avatar.html.twig', {player_id: place.avatar.playerId, name: place.avatar.playerName ?? ('#' ~ place.avatar.code), avatar: place.avatar.avatar, country_code: null}, with_context = false) -}}
+        {%- else -%}
+            <svg class="nav-i"><use href="#{{ place.symbol }}"></use></svg>
+            {%- if place.filledSymbol is not null -%}<svg class="nav-i nav-i--fill"><use href="#{{ place.filledSymbol }}"></use></svg>{%- endif -%}
+        {%- endif -%}
+        </span>
+        {#- -#}<span class="nav-tab-label">{{ place.label|trans }}</span>
+        {#- -#}</a>
+    </li>
+{%- endfor -%}
+</ul>

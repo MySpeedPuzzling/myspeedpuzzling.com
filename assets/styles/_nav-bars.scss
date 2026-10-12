@@ -1,0 +1,212 @@
+// The navigation bars (docs/features/navigation README §4.2, §5, D1, D14; implementation plan NAV-01, NAV-02).
+//
+// The phone bottom bar #bottom-nav (templates/navigation/_bottom_nav.html.twig + _places.html.twig): five places, a
+// 24 px icon over an 11 px label (Rubik 500, rem); the current place = filled icon on a 56 × 32 pill `--nav-active-pill`
+// in `--nav-active-ink`; Add = the coral tile, never styled selected; Profile = the avatar with a ring while current.
+// Its box - fixed, 56 px + the safe area, none on desktop, <body>'s room for it - is in critical CSS
+// (templates/navigation/_critical_css.html.twig); it never hides on scroll. Chrome markup rules (plan §3.2): own prefixes.
+//
+// Current = aria-current (server, decision 27) or `.is-pending`: GEST-04 marks the tapped tab before Turbo answers and the
+// current one `.is-leaving` - the same look, so the pill moves on tap.
+//
+// Labels never truncate (D14, NAV-02), in three steps numbered as the requirement (decision 95):
+//   1 = 11 px · 2 = 10 px · 3 = only the current tab's label (the others visually hidden: every tab keeps its name).
+// The bar is a size container; assets/styles/_nav-label-steps.scss picks the step per locale and bar width from measured
+// label widths before first paint. assets/controllers/bottom_nav_controller.js only raises it (data-label-step-override)
+// when a label still does not fit - a wider fallback font - and publishes the step it ends on (data-label-step,
+// `nav:labels-fitted`; GEST-18 reads them).
+
+// A tab's side padding: a label may use the tab's width minus twice this
+$nav-tab-pad-x: 1px;
+// Rounding room: a label fits when its width plus this is at most the room (scrollWidth/clientWidth are whole pixels)
+$nav-label-safety: .5px;
+
+.bottom-nav {
+    color: var(--nav-ink, #4b566b);
+    box-shadow: var(--nav-shadow-bottom);
+    container: bottom-nav / inline-size;
+    touch-action: manipulation;
+}
+
+.nav-places--bar {
+    // The step the container queries chose (bottom_nav_controller.js reads it)
+    --nav-label-step: 1;
+
+    display: flex;
+    flex: 1 1 auto;
+    align-items: stretch;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+
+    > .nav-place {
+        display: flex;
+        flex: 1 1 0;
+        min-width: 0;
+    }
+}
+
+// Pill and label stacked from the top - an icon stays where it is when its label is hidden (step 3): 32 + 4 + 14 px
+// centred in the bar's 55 px (56 minus the hairline)
+.nav-tab {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 4px;
+    min-width: 0;
+    padding: 2.5px $nav-tab-pad-x 0;
+    color: var(--nav-ink, #4b566b);
+    text-decoration: none;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+
+    &:hover,
+    &:focus {
+        color: var(--nav-ink, #4b566b);
+        text-decoration: none;
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--nav-focus, #4e54c8);
+        outline-offset: -2px;
+        border-radius: .5rem;
+    }
+}
+
+// The pill (M3 active indicator, 56 × 32) - the icon sits in it; only the current tab paints it
+.nav-tab-icon {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: 56px;
+    max-width: 100%;
+    height: 32px;
+    border-radius: 16px;
+}
+
+.nav-i {
+    flex-shrink: 0;
+    width: var(--tab-icon, 24px);
+    height: var(--tab-icon, 24px);
+    fill: currentColor;
+}
+
+.nav-i--fill {
+    display: none;
+}
+
+.nav-tab-label {
+    display: block;
+    max-width: 100%;
+    overflow: hidden;
+    color: var(--nav-label, #5f6b80);
+    font-size: .6875rem;
+    font-weight: 500;
+    line-height: .875rem;
+    white-space: nowrap;
+}
+
+// The current place (Add excepted: an action, never selected - README §4.2)
+.nav-tab:is([aria-current]:not(.is-leaving), .is-pending):not(.nav-tab--add) {
+    color: var(--nav-active-ink, #c8323a);
+
+    .nav-tab-icon {
+        background: var(--nav-active-pill, #ffe8e8);
+    }
+
+    .nav-i:not(.nav-i--fill) {
+        display: none;
+    }
+
+    .nav-i--fill {
+        display: block;
+    }
+
+    .nav-tab-label {
+        color: var(--nav-active-ink, #c8323a);
+    }
+
+    // The avatar's ring
+    .lb-avatar-img {
+        box-shadow: 0 0 0 1.5px var(--nav-active-pill, #ffe8e8), 0 0 0 3px var(--nav-active-ink, #c8323a);
+    }
+}
+
+// Add: a coral tile with a white plus (white on #ec4f52: 3.62:1)
+.nav-tab--add .nav-tab-icon {
+    width: 48px;
+    border-radius: 12px;
+    background: var(--nav-add-bg, #ec4f52);
+    color: var(--nav-add-ink, #fff);
+}
+
+// Profile: the player's avatar in the icon's place
+.nav-tab .lb-avatar {
+    width: var(--tab-icon, 24px);
+    height: var(--tab-icon, 24px);
+    margin: 0;
+
+    .lb-avatar-img {
+        font-size: .75rem;
+    }
+}
+
+// Windows high contrast: the pill's background is gone - the current tab is marked by the system's highlight
+@media (forced-colors: active) {
+    .nav-tab:is([aria-current]:not(.is-leaving), .is-pending):not(.nav-tab--add) {
+        color: Highlight;
+
+        .nav-tab-label {
+            color: Highlight;
+        }
+
+        .nav-tab-icon {
+            outline: 2px solid Highlight;
+        }
+    }
+}
+
+// ---- Label steps (NAV-02) -------------------------------------------------------------------------------------------
+
+@mixin nav-label-step($step) {
+    @if $step >= 2 {
+        .nav-tab-label {
+            font-size: .625rem;
+        }
+    }
+
+    @if $step >= 3 {
+        // Only the current tab keeps its label on screen - wider than its tab if it must: the neighbours show icons only
+        .nav-tab:not(:is([aria-current]:not(.is-leaving), .is-pending)) .nav-tab-label {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            margin: -1px;
+            padding: 0;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+
+        .nav-tab:is([aria-current]:not(.is-leaving), .is-pending) .nav-tab-label {
+            max-width: none;
+        }
+    }
+}
+
+// The JS correction: only ever above the step the container queries chose
+.bottom-nav[data-label-step-override="2"] .nav-places--bar {
+    @include nav-label-step(2);
+}
+
+.bottom-nav[data-label-step-override="3"] .nav-places--bar {
+    @include nav-label-step(3);
+}
+
+// The per-locale thresholds, generated from measured label widths
+@import 'nav-label-steps';

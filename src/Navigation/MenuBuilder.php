@@ -372,17 +372,10 @@ final class MenuBuilder implements ResetInterface
 
     /**
      * Sign in, coming back to the page it was opened on (README §4.12; the page is the same for every guest at that
-     * URL, so guest HTML stays shared-cacheable)
+     * URL, so guest HTML stays shared-cacheable) - one rule with the guests' Profile tab (NAV-01)
      */
     private function signInHref(null|Request $request): string
     {
-        $return = $request !== null ? ReturnUrl::tryFrom($request->getRequestUri()) : null;
-
-        // Pointing back at the sign-in page itself would loop (LoginEntryPoint's rule)
-        if ($return === null || str_contains($return->path, '/login')) {
-            return $this->urlGenerator->generate('login');
-        }
-
-        return $this->urlGenerator->generate('login', ['return' => $return->path]);
+        return SignInLink::href($this->urlGenerator, $request);
     }
 }

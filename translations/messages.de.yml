@@ -9033,6 +9033,11 @@ where_did_it_go:
     placeholder: "Hier erscheint bald die vollständige Liste der bisherigen Einträge und ihrer neuen Orte."
 
 nav:
+    bar:
+        places: "Hauptbereiche"
+        home: "Start"
+        add: "Eintragen"
+        profile: "Profil"
     menu:
         title: "Menü"
         page_intro: "Alle Seiten und Einstellungen von MySpeedPuzzling an einem Ort."

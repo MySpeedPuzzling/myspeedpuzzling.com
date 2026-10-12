@@ -15,9 +15,9 @@
                 <input type="email" class="form-control" name="email" required autocomplete="email"
                        placeholder="{{ 'newsletter.footer.email_placeholder'|trans }}"
                        aria-label="{{ 'newsletter.footer.email_placeholder'|trans }}">
-                <button class="btn btn-primary" type="submit">{{ 'newsletter.footer.subscribe_button'|trans }}</button>
+                <button class="btn btn-primary" type="submit" data-nav="footer/newsletter/subscribe">{{ 'newsletter.footer.subscribe_button'|trans }}</button>
             </div>
-            <p class="footer-newsletter-consent">{{ 'newsletter.footer.consent'|trans({'%privacyUrl%': path('privacy_policy')})|raw }}</p>
+            <p class="footer-newsletter-consent">{{ 'newsletter.footer.consent'|trans({'%privacyUrl%': path('privacy_policy')})|replace({'<a ': '<a data-nav="footer/newsletter/privacy" '})|raw }}</p>
         </form>
     </div>
 </section>

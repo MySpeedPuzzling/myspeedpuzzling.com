@@ -28,6 +28,13 @@ readonly final class SentryTracesSampler
                 return $this->defaultTracesSampleRate;
             }
 
+            // The /-/ telemetry beacons (/-/nav-click: one per chrome click) and health checks are never traced, and
+            // decided before anything below reads the session: a signed-in visitor's beacon carries the session cookie
+            // (sendBeacon cannot leave it out), and reading the session would start it - a sessions read per click
+            if (str_starts_with($request->getPathInfo(), '/-/')) {
+                return 0.0;
+            }
+
             // Check query param for activation
             $queryValue = $request->query->get('_profile');
 

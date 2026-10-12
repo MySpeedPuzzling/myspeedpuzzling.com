@@ -14,6 +14,8 @@ return App::config([
         // (InternalApiAuditSubscriber) - kept apart so production writes it on its own
         // service_worker: navigations the service worker had to ask for twice
         // (NavigationFetchFailureController) - info lines meant to be counted
-        'channels' => ['sentry_sdk', 'object_storage', 'internal_api_audit', 'service_worker'],
+        // navigation: clicks on the chrome's data-nav links, the viewport once per session and Back/Forward
+        // navigations (NavClickController) - info lines meant to be counted, never a Sentry issue
+        'channels' => ['sentry_sdk', 'object_storage', 'internal_api_audit', 'service_worker', 'navigation'],
     ],
 ]);

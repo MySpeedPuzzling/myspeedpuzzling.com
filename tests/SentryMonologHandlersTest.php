@@ -85,6 +85,9 @@ final class SentryMonologHandlersTest extends KernelTestCase
                 self::assertContains($excludedChannel, $channels, "{$handlerClass} must not capture {$excludedChannel}");
             }
 
+            // Navigation clicks and history counts (NavClickController) are counted in Loki, never a Sentry issue
+            self::assertContains('!navigation', $channels, "{$handlerClass} must not capture the navigation instrumentation");
+
             $productionHandler = self::getContainer()->get($handlerClass);
             self::assertInstanceOf(AbstractHandler::class, $productionHandler);
 
@@ -162,6 +165,20 @@ final class SentryMonologHandlersTest extends KernelTestCase
         self::assertCount(0, $this->sentEvents);
     }
 
+    /**
+     * The navigation instrumentation (NavClickController) writes one info line per click: its own stderr handler
+     * writes every one of them - the fingers_crossed main handler would drop a lone info, and must not buffer them.
+     */
+    public function testNavigationInstrumentationHasItsOwnHandler(): void
+    {
+        $handlers = self::productionLoggingConfig()['monolog']['handlers'];
+
+        self::assertContains('!navigation', $handlers['main']['channels'] ?? []);
+        self::assertSame(['navigation'], $handlers['navigation']['channels'] ?? null);
+        self::assertSame('info', $handlers['navigation']['level'] ?? null);
+        self::assertSame('stream', $handlers['navigation']['type']);
+    }
+
     private function theOnlySentEvent(): Event
     {
         self::assertCount(1, $this->sentEvents);
@@ -194,17 +211,9 @@ final class SentryMonologHandlersTest extends KernelTestCase
      */
     private static function productionSentryIssueHandlers(): array
     {
-        // What Symfony's PhpFileLoader does before loading a config file
-        if (class_exists(self::CONFIG_APP_CLASS) === false) {
-            class_alias(AppReference::class, self::CONFIG_APP_CLASS);
-        }
-
-        /** @var array{monolog: array{handlers: array<string, array{type: string, id?: string, channels?: list<string>}>}} $config */
-        $config = require __DIR__ . '/../config/packages/prod/monolog.php';
-
         $handlers = [];
 
-        foreach ($config['monolog']['handlers'] as $handler) {
+        foreach (self::productionLoggingConfig()['monolog']['handlers'] as $handler) {
             $serviceId = $handler['id'] ?? '';
 
             if ($handler['type'] === 'service' && str_starts_with($serviceId, 'Sentry\\Monolog\\') && $serviceId !== BreadcrumbHandler::class) {
@@ -216,5 +225,21 @@ final class SentryMonologHandlersTest extends KernelTestCase
         self::assertNotSame([], $handlers, 'Production logging has no Sentry issue handler');
 
         return $handlers;
+    }
+
+    /**
+     * @return array{monolog: array{handlers: array<string, array{type: string, id?: string, level?: string, channels?: list<string>}>}}
+     */
+    private static function productionLoggingConfig(): array
+    {
+        // What Symfony's PhpFileLoader does before loading a config file
+        if (class_exists(self::CONFIG_APP_CLASS) === false) {
+            class_alias(AppReference::class, self::CONFIG_APP_CLASS);
+        }
+
+        /** @var array{monolog: array{handlers: array<string, array{type: string, id?: string, level?: string, channels?: list<string>}>}} $config */
+        $config = require __DIR__ . '/../config/packages/prod/monolog.php';
+
+        return $config;
     }
 }

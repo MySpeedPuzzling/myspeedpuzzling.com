@@ -1,0 +1,39 @@
+// Every native-aware module's decision, run once inside the Hotwire Native app and once on the web
+// (docs/features/navigation NAV-14 (b), implementation plan §3.5 item 4): inside the app each one must give the
+// web-neutral answer (no history entry, no pull, no vibration, no view transition, no snapshot restore - "leave"),
+// on the web its usual one. tests/NativeAppStepAsideTest.php holds the expected answers and prints them per row.
+//
+// Adding a module: import its pure decision function here, add a row { id, run(root) } that calls it with the
+// platform flags of `root` (a fake <html>), list the file in NATIVE_AWARE_MODULES (tests/PlatformFlagReadersTest.php)
+// and the expected answers in NativeAppStepAsideTest::ROWS.
+
+import { isNativeApp, nativePlatform, os } from '../assets/platform.js';
+
+/** A fake <html>: inside the app on an Android phone, or Chrome on the same phone */
+function root(nativeApp) {
+    const attributes = nativeApp ? { 'data-native-app': 'android', 'data-os': 'android' } : { 'data-os': 'android' };
+
+    return {
+        getAttribute: (name) => (name in attributes ? attributes[name] : null),
+        classList: { contains: () => false },
+    };
+}
+
+const ROWS = [
+    // F (NAV-14 foundation): the flags themselves - the app is native, the device OS stays the device OS
+    { id: 'assets/platform.js', run: (html) => ({ isNativeApp: isNativeApp(html), nativePlatform: nativePlatform(html), os: os(html) }) },
+];
+
+const results = ROWS.map((row) => {
+    const answer = (nativeApp) => {
+        try {
+            return { value: row.run(root(nativeApp)) };
+        } catch (error) {
+            return { threw: String(error) };
+        }
+    };
+
+    return { id: row.id, app: answer(true), web: answer(false) };
+});
+
+process.stdout.write(JSON.stringify(results));

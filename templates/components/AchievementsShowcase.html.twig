@@ -42,7 +42,7 @@
                 {% for badge in shown %}
                     {% set label = (badge.type.translationKey())|trans %}
                     <li>
-                        <a class="achievements-showcase-item" href="{{ path('achievement_info', {type: badge.type.value, tier: badge.tier ? badge.tier.value : null, player: player.playerId}|merge(showcase_return)) }}" data-turbo-frame="modal-frame" title="{{ 'badges.info.open'|trans({'%achievement%': label}) }}">
+                        <a class="achievements-showcase-item" href="{{ path('achievement_info', {type: badge.type.value, tier: badge.tier ? badge.tier.value : null, player: player.playerId}|merge(showcase_return)) }}" data-turbo-frame="{{ layer_frame('modal-frame') }}" title="{{ 'badges.info.open'|trans({'%achievement%': label}) }}">
                             {{ badge_art(badge.type, badge.tier, 56) }}
                         </a>
                     </li>

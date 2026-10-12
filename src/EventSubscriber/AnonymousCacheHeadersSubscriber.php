@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\EventSubscriber;
 
+use SpeedPuzzling\Web\Services\PlatformDetector;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpKernel\Event\ResponseEvent;
 use Symfony\Component\HttpKernel\EventListener\AbstractSessionListener;
@@ -17,7 +18,8 @@ use Symfony\Component\HttpKernel\KernelEvents;
  *
  * A response qualifies only when nothing about it can be visitor-specific:
  * the request carried no session cookie, no session was started while
- * handling it, and no cookie is being sent back.
+ * handling it, and no cookie is being sent back. Responses to the native app
+ * never qualify: its HTML differs from the web page at the same URL.
  */
 final class AnonymousCacheHeadersSubscriber implements EventSubscriberInterface
 {
@@ -55,6 +57,11 @@ final class AnonymousCacheHeadersSubscriber implements EventSubscriberInterface
             // Turbo Frame fragments share the URL with the full page - caching
             // either under that URL would serve the wrong variant to the other.
             || $request->headers->has('Turbo-Frame')
+            // The native app gets other HTML at the same URL (no web chrome,
+            // data-native-app) - deliberately no `Vary: User-Agent`, which would
+            // split every web page per device; an edge rule bypasses app requests
+            // instead (docs/features/seo/cloudflare.md, navigation NAV-14).
+            || PlatformDetector::forUserAgent($request->headers->get('User-Agent'))->isNativeApp()
         ) {
             return;
         }

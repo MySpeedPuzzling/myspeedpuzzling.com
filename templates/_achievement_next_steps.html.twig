@@ -26,7 +26,7 @@
             {%- endif -%}
             <li>
                 <a href="{{ path('achievement_info', {type: row.type.value, tier: next_tier.value, player: player_id|default(null), from: 'shelf'}|merge(sheet_return|default({}))) }}"
-                   data-turbo-frame="modal-frame" class="achievements-next-row"
+                   data-turbo-frame="{{ layer_frame('modal-frame') }}" class="achievements-next-row"
                    aria-label="{{ name }} → {{ next_name }}, {{ progress_label }}">
                     {{ badge_art(row.type, next_tier, 40, locked = true, attrs = {alt: ''}) }}
                     <span class="achievements-next-body" aria-hidden="true">

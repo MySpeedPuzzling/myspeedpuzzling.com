@@ -1,4 +1,5 @@
 import { Controller } from '@hotwired/stimulus';
+import { isNativeApp, nativePlatform } from '../platform.js';
 
 export default class extends Controller {
     static targets = [
@@ -63,6 +64,11 @@ export default class extends Controller {
     }
 
     disconnect() {
+        // connect() set nothing up without the toggle button (and stopScanning() needs it)
+        if (!this.hasToggleButtonTarget) {
+            return;
+        }
+
         this.stopScanning();
         window.removeEventListener('barcode-scan:close', this._boundStopScanning);
         window.removeEventListener('barcode-scan:pause', this._boundPause);
@@ -95,7 +101,7 @@ export default class extends Controller {
 
     initCamera() {
         // Check if we're in a native app - use native scanner instead
-        if (window.isNativeApp) {
+        if (isNativeApp()) {
             this.openNativeScanner();
             return;
         }
@@ -429,7 +435,7 @@ export default class extends Controller {
     resume() {
         this.paused = false;
 
-        if (window.isNativeApp && this.continuousValue && this.nativeAwaitingResume) {
+        if (isNativeApp() && this.continuousValue && this.nativeAwaitingResume) {
             // The native scanner is single-shot: open it again for the next box
             this.nativeAwaitingResume = false;
             this.openNativeScanner();
@@ -617,7 +623,7 @@ export default class extends Controller {
             this.resultsTarget.classList.add('d-none');
         }
 
-        if (window.nativePlatform === 'ios') {
+        if (nativePlatform() === 'ios') {
             // iOS: Use WKScriptMessageHandler bridge
             if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.scanner) {
                 window.webkit.messageHandlers.scanner.postMessage({ action: 'open' });
@@ -626,7 +632,7 @@ export default class extends Controller {
                 // Fallback to web scanner if bridge not available
                 this.initWebScanner();
             }
-        } else if (window.nativePlatform === 'android') {
+        } else if (nativePlatform() === 'android') {
             // Android: Use JavascriptInterface bridge
             if (window.AndroidScanner && typeof window.AndroidScanner.openScanner === 'function') {
                 window.AndroidScanner.openScanner();

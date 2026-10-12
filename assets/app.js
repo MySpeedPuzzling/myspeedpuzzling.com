@@ -1,20 +1,17 @@
-// Platform detection for native apps (must run before anything else)
+import { isNativeApp, nativePlatform } from './platform.js';
+
+// Inside the Hotwire Native app? Derived from the server-rendered app flag on <html> through assets/platform.js, the
+// only reader of the platform flags (docs/features/navigation/README.md §4.14). The globals and classes stay for older
+// code and the CSS and agree with the flag by construction; new code calls isNativeApp() / nativePlatform() instead.
 (function() {
-    const userAgent = navigator.userAgent || '';
+    const platform = nativePlatform() ?? 'web';
 
-    if (userAgent.includes('Turbo Native iOS') || userAgent.includes('MySpeedPuzzling iOS')) {
-        window.nativePlatform = 'ios';
-    } else if (userAgent.includes('Turbo Native Android') || userAgent.includes('MySpeedPuzzling Android')) {
-        window.nativePlatform = 'android';
-    } else {
-        window.nativePlatform = 'web';
-    }
-
-    window.isNativeApp = window.nativePlatform !== 'web';
+    window.nativePlatform = platform;
+    window.isNativeApp = platform !== 'web';
 
     // Add classes to document root for CSS targeting
-    document.documentElement.classList.add('platform-' + window.nativePlatform);
-    if (window.isNativeApp) {
+    document.documentElement.classList.add('platform-' + platform);
+    if (platform !== 'web') {
         document.documentElement.classList.add('native-app');
     }
 })();
@@ -40,11 +37,17 @@ Turbo.config.drive.progressBarDelay = 0;
 
 // Navigation clicks, the viewport once per session and Back/Forward navigations (docs/features/navigation, P0-03).
 // The web chrome only - the app's navigation is native
-const navInstrumentation = window.isNativeApp ? null : startNavInstrumentation({ window, document });
+const navInstrumentation = isNativeApp() ? null : startNavInstrumentation({ window, document });
 
 // Force native browser navigation for back/forward (restoration visits)
 // This ensures iOS swipe-back, browser back/forward buttons all work identically to a non-Turbo site
+// Inside the app the native adapter owns Back: its restore visits are left alone (a reload would turn the native Back
+// into a full WebView load)
 document.addEventListener('turbo:visit', function(event) {
+    if (isNativeApp()) {
+        return;
+    }
+
     if (event.detail.action === 'restore') {
         event.preventDefault();
         // Counted here: the reload below is a replace navigation, not a traverse, so it is not counted again
@@ -77,7 +80,7 @@ document.addEventListener('chartjs:init', function (event) {
 });
 
 // Service Worker registration (skip in native apps)
-if (!window.isNativeApp && 'serviceWorker' in navigator) {
+if (!isNativeApp() && 'serviceWorker' in navigator) {
     window.addEventListener('load', function () {
         navigator.serviceWorker.register('/service-worker.js')
             .then(function (registration) {

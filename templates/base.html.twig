@@ -1,11 +1,12 @@
 <!DOCTYPE html>
-<html lang="{{ app.request.locale }}">
+<html lang="{{ app.request.locale }}"{{ native_app_attribute() }}>
     <head>
         <meta charset="UTF-8">
         {# A page whose title says it all drops the site name (puzzle pages - Google shows the site name on its own) #}
         <title>{%- block title -%}{%- endblock -%}{%- block title_suffix %} – MySpeedPuzzling{% endblock -%}</title>
 
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+        {{ include('_head_flags.html.twig') }}
 
         {% set currentRoute = app.request.attributes.get('_route') %}
         {% set currentRouteParams = app.request.attributes.get('_route_params')|default({}) %}

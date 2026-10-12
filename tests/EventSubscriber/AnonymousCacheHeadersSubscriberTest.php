@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\EventSubscriber;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
+use SpeedPuzzling\Web\Tests\Navigation\NativeUserAgents;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
@@ -99,5 +101,52 @@ final class AnonymousCacheHeadersSubscriberTest extends WebTestCase
 
         self::assertStringContainsString('max-age=30', $cacheControl);
         self::assertStringNotContainsString('s-maxage=60', $cacheControl);
+    }
+
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function nativeAppUserAgents(): array
+    {
+        return array_map(static fn (array $row): array => [$row[0]], NativeUserAgents::allNative());
+    }
+
+    /**
+     * The native app gets other HTML at the same URL (no web chrome, data-native-app): never shared-cacheable, with
+     * the new Hotwire Native markers and the older ones alike (docs/features/navigation NAV-14). No `Vary: User-Agent`
+     * either - an edge rule bypasses app requests (docs/features/seo/cloudflare.md).
+     */
+    #[DataProvider('nativeAppUserAgents')]
+    public function testNativeAppResponseIsNotSharedCacheable(string $userAgent): void
+    {
+        $browser = self::createClient();
+
+        foreach (['/', '/en/puzzle'] as $url) {
+            $browser->request('GET', $url, server: ['HTTP_USER_AGENT' => $userAgent]);
+
+            $this->assertResponseIsSuccessful();
+
+            $response = $browser->getResponse();
+            $cacheControl = (string) $response->headers->get('Cache-Control');
+
+            self::assertStringNotContainsString('public', $cacheControl, $url);
+            self::assertStringNotContainsString('s-maxage', $cacheControl, $url);
+            self::assertStringNotContainsString('User-Agent', (string) $response->headers->get('Vary'), $url);
+        }
+    }
+
+    public function testBrowsersOnPhonesStayCacheable(): void
+    {
+        $browser = self::createClient();
+
+        foreach (NativeUserAgents::web() as $name => [$userAgent]) {
+            $browser->request('GET', '/', server: ['HTTP_USER_AGENT' => $userAgent]);
+
+            $this->assertResponseIsSuccessful();
+
+            $response = $browser->getResponse();
+            self::assertStringContainsString('s-maxage=60', (string) $response->headers->get('Cache-Control'), $name);
+            self::assertStringNotContainsString('User-Agent', (string) $response->headers->get('Vary'), $name);
+        }
     }
 }

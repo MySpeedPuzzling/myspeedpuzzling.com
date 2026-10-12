@@ -1,9 +1,10 @@
 <!DOCTYPE html>
-<html lang="en" data-turbo="false">
+<html lang="en" data-turbo="false"{{ native_app_attribute() }}>
     <head>
         <meta charset="UTF-8">
         <title>Authorize {{ client.name }} | MySpeedPuzzling</title>
         <meta name="viewport" content="width=device-width, initial-scale=1">
+        {{ include('_head_flags.html.twig') }}
         <meta name="robots" content="noindex, nofollow">
         {{ encore_entry_link_tags('app') }}
         {{ encore_entry_script_tags('app') }}

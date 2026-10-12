@@ -1,36 +1,42 @@
-// Native app platform-specific styles
-// These classes are applied via JavaScript in app.js
+// Native app platform-specific styles ("inside the Hotwire Native app", never the device OS - that is [data-os]).
+// The classes are applied by app.js after the bundle loads; html[data-native-app] is rendered by the server
+// (native_app_attribute(), docs/features/navigation/README.md §4.14), so each rule also matches it and holds
+// before first paint.
 
 // Hide elements in native apps
-.native-app {
+.native-app,
+html[data-native-app] {
     .web-only {
         display: none !important;
     }
 }
 
 // Hide elements on web
-html:not(.native-app) {
+html:not(.native-app):not([data-native-app]) {
     .native-only {
         display: none !important;
     }
 }
 
 // Platform-specific visibility classes
-.platform-web {
+.platform-web,
+html:not([data-native-app]) {
     .ios-only,
     .android-only {
         display: none !important;
     }
 }
 
-.platform-ios {
+.platform-ios,
+html[data-native-app="ios"] {
     .web-only,
     .android-only {
         display: none !important;
     }
 }
 
-.platform-android {
+.platform-android,
+html[data-native-app="android"] {
     .web-only,
     .ios-only {
         display: none !important;
@@ -39,7 +45,8 @@ html:not(.native-app) {
 
 // Native app layout adjustments
 // Remove extra padding from main since native apps have their own navigation
-.native-app {
+.native-app,
+html[data-native-app] {
     main {
         padding-top: 15px;
     }

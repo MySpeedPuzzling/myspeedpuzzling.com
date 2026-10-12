@@ -129,8 +129,10 @@
                 <span class="achievement-tier-section-count">{{ 'badges.detail.holders_count'|trans({'%count%': section.totalCount}) }}</span>
             </header>
 
-            {# One frame per tier: "Show 100 more" / "Show all" reload only this list, in place (Jan 2026-10-11) #}
-            <turbo-frame id="holders-tier-{{ section.tier.value }}">
+            {# One frame per tier: "Show 100 more" / "Show all" reload only this list, in place (Jan 2026-10-11).
+               target="_top": a holder's name opens their profile as a page - without it Turbo looked for this frame
+               in the profile and showed "Content missing"; the two buttons aim at the frame themselves #}
+            <turbo-frame id="holders-tier-{{ section.tier.value }}" target="_top">
                 {% if section.holders|length > 0 %}
                     <ul class="holder-rows">
                         {% for holder in section.holders %}

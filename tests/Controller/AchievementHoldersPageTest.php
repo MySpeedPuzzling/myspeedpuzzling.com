@@ -198,6 +198,8 @@ final class AchievementHoldersPageTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         self::assertCount(30, $crawler->filter('#tier-1 .holder-row'));
+        // A holder's name opens the profile as a page, not inside the frame ("Content missing")
+        self::assertSame('_top', $crawler->filter('turbo-frame#holders-tier-1')->attr('target'));
         // 15 more listed: one "Show all 45" (no "Show 100 more" below 100), loading only this tier's frame
         $buttons = $crawler->filter('#tier-1 turbo-frame#holders-tier-1 .holder-more-button');
         self::assertCount(1, $buttons);

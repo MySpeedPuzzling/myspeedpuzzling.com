@@ -36,11 +36,15 @@ final class HomepageController extends AbstractController
     )]
     public function __invoke(Request $request, #[CurrentUser] null|UserInterface $user): Response
     {
-        // Logged-in visitors hitting the domain root continue straight to their
-        // hub (in their profile language); every other visitor gets the
-        // marketing homepage - the domain root must be a real 200 page for
-        // Google's site-name system and anchors the hreflang x-default cluster.
-        if ($request->getPathInfo() === '/' && $user !== null) {
+        // Signed-in players' Home is the Hub (docs/features/navigation README D5, NAV-10): the domain root continues to
+        // the Hub in their profile language, /cs /de /es /fr /ja to that language's Hub. Every other visitor gets the
+        // marketing homepage (shared-cacheable) - the domain root must be a real 200 page for Google's site-name system
+        // and anchors the hreflang x-default cluster.
+        if ($user !== null) {
+            if ($request->getPathInfo() !== '/') {
+                return $this->redirectToRoute('hub', ['_locale' => $request->getLocale()]);
+            }
+
             $playerProfile = $this->retrieveLoggedUserProfile->getProfile();
             $locale = $request->getPreferredLanguage(['en', 'cs', 'es', 'ja', 'fr', 'de']) ?? 'en';
 

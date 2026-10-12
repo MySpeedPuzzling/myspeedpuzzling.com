@@ -121,8 +121,9 @@ final class MenuLayerTest extends WebTestCase
     }
 
     /**
-     * Two GlobalSearch instances (MENU-03, R3): the page's (bar) stays the first in the DOM - tests and the old header's
-     * search tool read it - and the Menu's (menu) lives in the shell at the end of <body> (decision 87). Each carries its
+     * Two GlobalSearch instances (MENU-03, R3): the page's (bar) stays the first in the DOM - tests and the search
+     * toggles read it; it is the top bar's field since NAV-03 - and the Menu's (menu) lives in the shell at the end of
+     * <body> (decision 87). Each carries its
      * own controllers and the same versioned nav-search.json URL; nothing of the list is inlined.
      */
     public function testThePageSearchComesFirstAndTheMenuSearchLivesInTheShell(): void
@@ -134,7 +135,8 @@ final class MenuLayerTest extends WebTestCase
         $instances = $crawler->filter('[data-live-name-value="GlobalSearch"]');
         self::assertCount(2, $instances);
         self::assertSame('bar', $instances->eq(0)->attr('data-global-search-mode-value'));
-        self::assertCount(1, $crawler->filter('main .global-search > [data-live-name-value="GlobalSearch"]'));
+        self::assertCount(1, $crawler->filter('body > header.site-header > .site-header-inner > [data-live-name-value="GlobalSearch"]'));
+        self::assertCount(0, $crawler->filter('main [data-live-name-value="GlobalSearch"]'));
         self::assertSame('menu', $instances->eq(1)->attr('data-global-search-mode-value'));
         self::assertCount(1, $crawler->filter('#menu-layer [data-live-name-value="GlobalSearch"]'));
 

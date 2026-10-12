@@ -33,7 +33,9 @@ final class InboxTest extends WebTestCase
     private const string PLAYER = PlayerFixture::PLAYER_REGULAR;
     private const string TABS = 'main nav.inbox-tabs a.inbox-tab';
     // Today's Inbox link: the old header's bell (INB-02, until NAV-03/MENU-01 add the top-bar tool and the Menu row)
-    private const string INBOX_LINK = 'header a[data-inbox-link]';
+    // The top bar's Inbox tool (NAV-03) and the old header's bell - static under it until NAV-06
+    private const string INBOX_LINK = '.site-header a[data-inbox-link]';
+    private const string LEGACY_INBOX_LINK = '.legacy-chrome a[data-inbox-link]';
 
     /**
      * @return iterable<string, array{string, string, non-empty-string}>
@@ -177,8 +179,9 @@ final class InboxTest extends WebTestCase
     }
 
     /**
-     * The Inbox link's target as one function of the badge parts, on the rendered link (today the old header's bell;
-     * NAV-03/MENU-01 add the same cases for the top-bar tool and the Menu row), and the tab the link then opens.
+     * The Inbox link's target as one function of the badge parts, on the rendered links - the top bar's Inbox tool
+     * (NAV-03; its badge = both parts) and the old header's bell until NAV-06 (MENU-01 adds the Menu row) - and the tab
+     * the link then opens.
      *
      * @param list<string> $setup
      * @param array{for_you: string, messages: string} $parts
@@ -213,11 +216,18 @@ final class InboxTest extends WebTestCase
         $crawler = $browser->request('GET', '/en/faq');
         self::assertResponseIsSuccessful();
 
-        $link = $crawler->filter(self::INBOX_LINK);
-        self::assertCount(1, $link);
-        self::assertSame($href, $link->attr('href'));
-        self::assertSame($parts['for_you'], $crawler->filter('header .inbox-badge[data-inbox-part="for_you"]')->text());
-        self::assertSame($parts['messages'], $crawler->filter('header .inbox-badge[data-inbox-part="messages"]')->text());
+        foreach ([self::INBOX_LINK, self::LEGACY_INBOX_LINK] as $selector) {
+            $link = $crawler->filter($selector);
+            self::assertCount(1, $link, $selector);
+            self::assertSame($href, $link->attr('href'), $selector);
+            self::assertSame('inbox', $link->attr('data-bar-action'), $selector);
+        }
+
+        $total = (string) ((int) $parts['for_you'] + (int) $parts['messages']);
+        self::assertSame($total, $crawler->filter(self::INBOX_LINK . ' .inbox-badge[data-inbox-part="total"]')->text());
+        self::assertSame($total, $crawler->filter(self::INBOX_LINK)->attr('data-bar-count'));
+        self::assertSame($parts['for_you'], $crawler->filter('.legacy-chrome .inbox-badge[data-inbox-part="for_you"]')->text());
+        self::assertSame($parts['messages'], $crawler->filter('.legacy-chrome .inbox-badge[data-inbox-part="messages"]')->text());
 
         // The link opens the Inbox on that tab
         $crawler = $browser->request('GET', $href);

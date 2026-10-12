@@ -33,6 +33,10 @@ final class PlatformFlagReadersTest extends TestCase
         'assets/confirm_dialog.js',
         // MENU-02b: links to `menu` open the phone panel on the web only
         'assets/navigation/menu_links.js',
+        // NAV-03: the top bar's hide on scroll and the search view's history entry step aside inside the app
+        'assets/topbar_scroll.js',
+        'assets/controllers/topbar_controller.js',
+        'assets/controllers/global_search_controller.js',
     ];
 
     private const string PLATFORM_MODULE = 'assets/platform.js';

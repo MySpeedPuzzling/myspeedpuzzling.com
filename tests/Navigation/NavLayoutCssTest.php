@@ -33,20 +33,28 @@ final class NavLayoutCssTest extends TestCase
      * @var array<string, string>
      */
     private const array TOP_TRANSITION_EXCEPTIONS = [
-        'assets/styles/_event-parts.scss .ev-month-header' => 'pre-existing: slides up under the events toolbar when --ev-toolbar-height changes (events_page_controller.js); follows the top bar through the translate - decision for NAV-03/NAV-07 (layout shift on /en/events phones)',
+        // NAV-03 decision: kept - the slide follows the events toolbar (--ev-toolbar-height, events_page_controller.js), not
+        // the top bar, which it follows through the translate while stuck ($sticky); a layout shift of the page's own
+        // content on /en/events phones, never of the chrome (NAV-07 counts the chrome)
+        'assets/styles/_event-parts.scss .ev-month-header' => 'pre-existing: slides up under the events toolbar when --ev-toolbar-height changes (events_page_controller.js); follows the top bar through the translate while stuck',
     ];
 
-    /** The lengths only critical CSS may set (--header-height is still measured by header_height_controller.js until NAV-03) */
-    private const array CSS_ONLY_LENGTHS = ['--nav-left', '--topbar-h', '--topbar-shift', '--bottom-nav-height'];
+    /** The lengths only critical CSS may set (NAV-03: --header-height too - the top bar's static height, nothing measures it) */
+    private const array CSS_ONLY_LENGTHS = ['--header-height', '--nav-left', '--topbar-h', '--topbar-shift', '--bottom-nav-height'];
+
+    /** The top bar's script: which sticky sub-bars it marks stuck (NAV-03) */
+    private const string TOPBAR_SCROLL = 'assets/topbar_scroll.js';
 
     /**
      * @return iterable<string, array{string, string}> file => full selector of a closed overlay
      */
     public static function closedOverlays(): iterable
     {
-        yield 'global search, critical' => [self::CRITICAL, '.global-search'];
+        // NAV-03: the top bar's search - its panel, its × and the 🔍 that stands in for the field - and the scrim behind it
+        yield 'search panel, critical' => [self::CRITICAL, '.site-search-panel'];
+        yield 'close search, critical' => [self::CRITICAL, '.site-search-close'];
+        yield 'search icon, critical' => [self::CRITICAL, '.site-header .site-search-icon'];
         yield 'global search overlay, critical' => [self::CRITICAL, '.global-search-overlay'];
-        yield 'global search' => ['assets/styles/app.scss', '.global-search'];
         yield 'global search overlay' => ['assets/styles/app.scss', '.global-search-overlay'];
         yield 'player card layer' => ['assets/styles/players/_card.scss', '.players-card-layer[hidden]'];
         yield 'events ⋯ menu layer' => ['assets/styles/_events-organizer.scss', '.ev-menu-layer[hidden]'];
@@ -71,8 +79,10 @@ final class NavLayoutCssTest extends TestCase
 
     public function testOpenGlobalSearchIsShownByDisplay(): void
     {
-        self::assertMatchesRegularExpression('~display\s*:\s*block~', $this->declarationsOf('assets/styles/app.scss', '.global-search-shown .global-search'));
-        self::assertMatchesRegularExpression('~display\s*:\s*block~', $this->declarationsOf('assets/styles/app.scss', '.global-search-shown .global-search-overlay'));
+        // NAV-03: <html data-search-open> opens the top bar's search
+        self::assertMatchesRegularExpression('~display\s*:\s*block~', $this->declarationsOf(self::CRITICAL, 'html[data-search-open] .site-search-panel'));
+        self::assertMatchesRegularExpression('~display\s*:\s*block~', $this->declarationsOf(self::CRITICAL, 'html[data-search-open] .global-search-overlay'));
+        self::assertMatchesRegularExpression('~display\s*:\s*block~', $this->declarationsOf('assets/styles/app.scss', 'html[data-search-open] .global-search-overlay'));
     }
 
     public function testNoScriptOrTemplateWritesTheLayoutLengths(): void
@@ -135,6 +145,8 @@ final class NavLayoutCssTest extends TestCase
         yield 'events country sheet' => ['assets/styles/_events-page.scss', '.ev-sheet', ['bottom']];
         // MENU-02b: the phone panel ends above the bottom bar (README §4.12) - the bar stays usable under it
         yield 'Menu shell #menu-layer' => ['assets/styles/_nav-menu.scss', '.menu-layer', ['bottom']];
+        // NAV-03: the phone search view's results panel lies under the top bar down to the bottom bar
+        yield 'top bar search panel' => ['assets/styles/_nav-topbar.scss', '.site-search-panel', ['bottom']];
         yield 'toasts' => ['assets/styles/app.scss', '.toast-container', ['bottom']];
         yield 'last-piece-reveal confetti' => ['assets/styles/_last-piece-reveal.scss', '.lpr-confetti', ['bottom']];
         yield 'scroll to top' => ['assets/styles/components/_buttons.scss', '.btn-scroll-top', ['bottom']];
@@ -241,8 +253,9 @@ final class NavLayoutCssTest extends TestCase
             }
         }
 
-        // The list of the plan (§4 F-03) - a new sub-bar under the top bar joins it by itself
-        self::assertGreaterThanOrEqual(14, count($anchored), implode("\n", $anchored));
+        // The list of the plan (§4 F-03) - a new sub-bar under the top bar joins it by itself. 13 since NAV-03: the page
+        // search's old dropdown (.global-search, fixed under the header) became the top bar's own field
+        self::assertGreaterThanOrEqual(13, count($anchored), implode("\n", $anchored));
         self::assertSame([], $problems);
 
         foreach (array_keys(self::TOP_TRANSITION_EXCEPTIONS) as $exception) {
@@ -257,6 +270,84 @@ final class NavLayoutCssTest extends TestCase
         self::assertStringContainsString('translate: 0 calc(-1 * var(--topbar-shift', $mixin);
         self::assertDoesNotMatchRegularExpression('~(?<![\w-])top\s*:~', $mixin);
         self::assertStringContainsString('prefers-reduced-motion', $mixin);
+        // NAV-03: a sticky sub-bar translates only while the top bar's script marks it stuck
+        self::assertStringContainsString('&[data-topbar-stuck]', $mixin);
+    }
+
+    /**
+     * NAV-03 (F-03 open point): translating a sticky sub-bar would also move it while it sits further down the page, not
+     * stuck. Every sticky follower uses the mixin's `$sticky: true` (it translates only while [data-topbar-stuck]), every
+     * fixed one the plain mixin, and the script marking them (STICKY_FOLLOWERS) lists exactly the sticky ones.
+     */
+    public function testStickySubBarsFollowTheTopBarOnlyWhileStuck(): void
+    {
+        $sticky = [];
+        $problems = [];
+
+        foreach ($this->files('assets/styles', ['scss']) as $path => $code) {
+            foreach ($this->rules($code) as $selector => $declarations) {
+                if (preg_match('~@include\s+nav-follow-topbar\b~', $declarations) !== 1) {
+                    continue;
+                }
+
+                $isSticky = preg_match('~(?<![\w-])position\s*:\s*sticky\b~', $declarations) === 1;
+                $usesSticky = preg_match('~@include\s+nav-follow-topbar\b[^;]*\$sticky\s*:\s*true~', $declarations) === 1;
+
+                if ($isSticky !== $usesSticky) {
+                    $problems[] = $path . ' ' . $selector . ($isSticky ? ': sticky without $sticky: true' : ': $sticky: true on a non-sticky element');
+                }
+
+                if ($usesSticky) {
+                    $parts = preg_split('/\s*[\s>+~]\s*/', trim($selector));
+                    $last = is_array($parts) ? (string) end($parts) : $selector;
+                    self::assertSame(1, preg_match('~^\.[\w-]+~', $last, $class), $selector);
+                    $sticky[$class[0]] = true;
+                }
+            }
+        }
+
+        self::assertSame([], $problems);
+
+        $script = (string) file_get_contents($this->root() . '/' . self::TOPBAR_SCROLL);
+        self::assertSame(1, preg_match('~export const STICKY_FOLLOWERS = \[(.*?)\];~s', $script, $list), 'STICKY_FOLLOWERS missing');
+        preg_match_all("~'([^']+)'~", $list[1], $listed);
+
+        $expected = array_keys($sticky);
+        sort($expected);
+        $actual = $listed[1];
+        sort($actual);
+
+        self::assertGreaterThanOrEqual(10, count($expected));
+        self::assertSame($expected, $actual, 'assets/topbar_scroll.js STICKY_FOLLOWERS must list every sticky sub-bar that follows the top bar');
+    }
+
+    /**
+     * Decision 20: the top bar is sticky, transformed only while hidden and never gets a backdrop-filter - its search
+     * panel is position: fixed and either would trap it
+     */
+    public function testTheTopBarIsNeverTheContainingBlockOfItsSearchPanel(): void
+    {
+        $offenders = [];
+        $sources = ['critical' => $this->criticalRules()] + $this->files('assets/styles', ['scss']);
+
+        foreach ($sources as $path => $code) {
+            foreach ($this->rules($code) as $selector => $declarations) {
+                if (preg_match('~(^|[\s,>])(header|\.site-header)(\s|$|:|\[)~', $selector) !== 1 || str_contains($selector, '.site-header-')) {
+                    continue;
+                }
+
+                if (preg_match('~backdrop-filter\s*:(?!\s*none)~', $declarations) === 1 || preg_match('~(?<![\w-])(filter|will-change|contain|perspective)\s*:(?!\s*none)~', $declarations) === 1) {
+                    $offenders[] = $path . ' ' . $selector . ' {' . $declarations . '}';
+                }
+
+                if (preg_match('~(?<![\w-])transform\s*:(?!\s*none)~', $declarations) === 1 && !str_contains($selector, '[data-topbar="hidden"]') && !str_contains($selector, '[data-topbar=hidden]')) {
+                    $offenders[] = $path . ' ' . $selector . ': transformed while shown';
+                }
+            }
+        }
+
+        self::assertSame([], $offenders);
+        self::assertStringContainsString('.site-header{position:sticky;top:0;', $this->criticalRules());
     }
 
     public function testScrollMarginsReadTheLiveTopBarHeight(): void
@@ -288,6 +379,12 @@ final class NavLayoutCssTest extends TestCase
         // 0 until NAV-13 adds the tier values (decision 17)
         self::assertMatchesRegularExpression('~:root\{[^}]*--nav-left:0px~', $css);
         self::assertMatchesRegularExpression('~:root\[data-topbar=hidden\]\{--topbar-h:0px;--topbar-shift:var\(--header-height\)\}~', $css);
+        // NAV-03: the top bar's static height - 52 px phones, 64 px desktop, 0 on phones under 480 px tall (it scrolls with
+        // the page there) - and the live one follows it
+        self::assertStringContainsString(':root{--header-height:52px}', $css);
+        self::assertStringContainsString('@media (min-width:768px) and (min-height:501px),(min-width:768px) and (pointer:fine){:root{--header-height:64px}}', $css);
+        self::assertStringContainsString('@media (max-width:767.98px) and (max-height:479.98px),(max-height:479.98px) and (pointer:coarse){:root{--header-height:0px}}', $css);
+        self::assertMatchesRegularExpression('~:root\{[^}]*--topbar-h:var\(--header-height\)~', $css);
         // The bar's height only while a visible .bottom-nav exists, never with a running stopwatch or in the app
         self::assertMatchesRegularExpression('~:not\(\[data-stopwatch-running\]\):not\(\[data-native-app\]\):has\(> body > \.bottom-nav:not\(\[hidden\]\)\)\{--bottom-nav-height:calc\(var\(--tabbar-h\) \+ var\(--safe-bottom-max\)\)\}~', $css);
 

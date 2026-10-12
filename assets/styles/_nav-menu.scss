@@ -633,7 +633,7 @@
 
 // ---- "Pages & settings" in the page search (MENU-03; assets/controllers/nav_search_controller.js) -------------------
 // Rendered in the browser above the server results of either search: rows like the Menu's (icon · label · where it is
-// in the Menu), "Show N more" under them. In the page's dropdown it is a card like the results below it.
+// in the Menu), "Show N more" under them. In the top bar's search panel it is a card like the results below it.
 
 .nav-search-results[hidden] {
     display: none;
@@ -680,15 +680,4 @@
     }
 }
 
-.global-search .nav-search-results {
-    margin: 15px 0 0;
-    padding: 8px;
-    border-radius: 8px;
-    background: #fff;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, .4);
-}
-
-// The dropdown keeps fitting the screen: with "Pages & settings" above them the puzzle results get less height
-.global-search:has(.nav-search-results:not([hidden])) .global-search-results {
-    max-height: max(12rem, calc(100vh - 210px - 15rem));
-}
+// In the top bar's search panel (NAV-03): its results are cards in _nav-topbar.scss

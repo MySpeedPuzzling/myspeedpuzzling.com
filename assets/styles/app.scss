@@ -87,6 +87,8 @@
 @import 'nav-menu';
 // The bars: the phone bottom bar and its label steps (docs/features/navigation NAV-01, NAV-02)
 @import 'nav-bars';
+// The top bar: logo, search (and its view), ?, Inbox, ☰; hide on scroll (docs/features/navigation NAV-03)
+@import 'nav-topbar';
 
 // Marketplace at events (docs/features/marketplace/11-events.md)
 @import 'marketplace-events-card';
@@ -201,18 +203,8 @@ body {
     }
 }
 
-// Real height of the sticky header, published by header_height_controller.js.
-// Only viewport-fixed overlays need it - the page flow gets its spacing from the
-// header itself, which is `position: sticky` and therefore occupies real space.
-// The fallback matches a plain header with no announcement strip.
-// The live height (--topbar-h) and the other navigation layout variables: templates/navigation/_critical_css.html.twig
-:root {
-    --header-height: 101px;
-
-    @media (min-width: 992px) {
-        --header-height: 97px;
-    }
-}
+// The top bar's static height (--header-height), its live height (--topbar-h) and the other navigation layout
+// variables are set in templates/navigation/_critical_css.html.twig only (NAV-03, decision 17)
 
 main {
     flex-grow: 1;
@@ -651,7 +643,7 @@ td.rank {
     margin: 0 -15px;
     background: #fff;
     z-index: 3;
-    @include nav-follow-topbar;
+    @include nav-follow-topbar($sticky: true);
 
     input {
         max-width: 200px;
@@ -1430,8 +1422,11 @@ canvas {
     overflow-wrap: break-word;
 }
 
+// The scrim behind the open search (the top bar's, NAV-03 - global_search_controller.js; <html data-search-open>).
 // Closed: display none, never only transparent - Safari 26 samples transparent fixed layers for its toolbar tint
-// (README §4.2, F-03). Opening still slides/fades in where @starting-style is supported; closing is instant.
+// (README §4.2, F-03; the critical CSS hides it before the stylesheet). Over everything fixed on the page - the compact
+// bar ($zindex-sticky - 10) included - under the top bar and the bottom bar ($zindex-sticky), which stay usable while
+// searching. A tap on it closes the search.
 .global-search-overlay {
     display: none;
     position: fixed;
@@ -1440,54 +1435,24 @@ canvas {
     width: 100%;
     height: 100%;
     background-color: rgba(0, 0, 0, 0.6);
-    // Over everything fixed on the page - the compact bar ($zindex-sticky - 10) included - under the site header
-    // (.sticky-top, $zindex-sticky) and its menus, which stay usable while searching
     z-index: $zindex-sticky - 6;
-    transition: opacity 0.3s ease-in-out;
 }
 
-.global-search-shown {
+html[data-search-open] {
     overflow: hidden;
 
     .global-search-overlay {
         display: block;
         opacity: 1;
+        transition: opacity .2s ease-in-out;
 
         @starting-style {
             opacity: 0;
         }
-    }
 
-    .global-search {
-        display: block;
-        opacity: 1;
-        transform: translateX(-50%) translateY(0);
-
-        @starting-style {
-            opacity: 0;
-            transform: translateX(-50%) translateY(-20px);
+        @media (prefers-reduced-motion: reduce) {
+            transition: none;
         }
-    }
-}
-
-.global-search {
-    display: none;
-    // Over its overlay; the compact bar sits exactly where the search drops down, so it must stay under it
-    z-index: $zindex-sticky - 5;
-    max-width: 450px;
-    width: 100%;
-    padding: 0 15px 15px 15px;
-    position: fixed;
-    top: calc(var(--header-height) + 13px);
-    left: 50%;
-    transform: translateX(-50%) translateY(-20px); /* Start slightly above */
-    margin: 0 auto;
-    transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
-    @include nav-follow-topbar((transform 0.3s ease-in-out, opacity 0.3s ease-in-out));
-
-    .input-group {
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4);
-        border-radius: 5px;
     }
 }
 
@@ -1834,13 +1799,10 @@ div[data-countdown-target] {
     background-size: contain;
 }
 
-header {
-    -webkit-backdrop-filter: blur(10px);
-    backdrop-filter: blur(10px);
-}
-
+// The old header's rows (.legacy-chrome, static under the top bar until NAV-06). The top bar itself never gets a
+// backdrop-filter: it would trap the search panel, which is position: fixed inside it (decision 20)
 @media (max-width: 380px) {
-    header .container {
+    .legacy-chrome .container {
         padding: 0 5px !important;
     }
 

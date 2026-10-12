@@ -83,7 +83,7 @@ $shelf-press: scale(.97);
             grid-column: 2;
             grid-row: 1;
             align-self: start;
-            @include nav-follow-topbar;
+            @include nav-follow-topbar($sticky: true);
         }
 
         > .achievements-layout-main {
@@ -513,7 +513,7 @@ $shelf-press: scale(.97);
     position: sticky;
     top: var(--header-height, 97px);
     z-index: 2;
-    @include nav-follow-topbar;
+    @include nav-follow-topbar($sticky: true);
     display: grid;
     grid-template-columns: auto minmax(0, 1fr) auto;
     gap: .75rem;

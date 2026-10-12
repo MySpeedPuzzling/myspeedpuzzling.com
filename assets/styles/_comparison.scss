@@ -449,7 +449,7 @@ $cmp-bleed: 1rem;
     .cmp-aside {
         position: sticky;
         top: calc(var(--header-height, 97px) + 1rem);
-        @include nav-follow-topbar;
+        @include nav-follow-topbar($sticky: true);
     }
 }
 
@@ -1170,7 +1170,7 @@ $cmp-bleed: 1rem;
     z-index: 3;
     height: 0;
     margin: 0 (-$cmp-bleed);
-    @include nav-follow-topbar;
+    @include nav-follow-topbar($sticky: true);
 
     @include media-breakpoint-up(sm) {
         margin: 0;

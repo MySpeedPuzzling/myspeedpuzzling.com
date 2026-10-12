@@ -7,11 +7,10 @@ namespace SpeedPuzzling\Web\Tests\Panther;
 use Facebook\WebDriver\WebDriverDimension;
 
 /**
- * The site header is `position: sticky` and every viewport-fixed overlay follows
- * the measured `--header-height` (header_height_controller.js); the live top-bar
- * height `--topbar-h` (templates/navigation/_critical_css.html.twig, F-03) equals
- * it while the old header is the bar - NAV-03 moves these checks to the new
- * top bar's selectors. It used to be
+ * The top bar (header.site-header, NAV-03) is `position: sticky` and every viewport-fixed overlay follows its static
+ * height `--header-height` (52 px phones, 64 px desktop - templates/navigation/_critical_css.html.twig); the live
+ * height `--topbar-h` equals it while the bar is shown and is 0 while the phone bar is hidden (scrolled down). The old
+ * header's rows sit static under it until NAV-06. The header used to be
  * `position: fixed` with `main` reserving a hardcoded 97/101px for it, so any
  * header taller than the guess - the Spanish navbar wraps, the sign-in migration
  * strip once sat above the topbar - simply covered the page heading.
@@ -34,7 +33,7 @@ final class StickyHeaderTest extends AbstractPantherTestCase
                 $client->request('GET', $path);
 
                 $geometry = $client->executeScript(<<<'JS'
-                    var header = document.querySelector('header');
+                    var header = document.querySelector('body > header.site-header');
                     var heading = document.querySelector('main h1');
                     var headerRect = header.getBoundingClientRect();
                     return {
@@ -44,7 +43,12 @@ final class StickyHeaderTest extends AbstractPantherTestCase
                         headingClear: Math.round(heading.getBoundingClientRect().top - headerRect.bottom),
                         cssVariable: parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--header-height')),
                         liveVariable: parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--topbar-h')),
-                        searchTop: parseFloat(getComputedStyle(document.querySelector('.global-search')).top)
+                        searchTop: (function () {
+                            document.documentElement.setAttribute('data-search-open', '');
+                            var top = document.querySelector('.site-search-panel').getBoundingClientRect().top;
+                            document.documentElement.removeAttribute('data-search-open');
+                            return Math.round(top);
+                        })()
                     };
                 JS);
 
@@ -59,13 +63,42 @@ final class StickyHeaderTest extends AbstractPantherTestCase
                 // Nothing of the page hides underneath the header
                 self::assertGreaterThanOrEqual(0, $geometry['headingClear'], $message);
 
-                // Overlays that cannot be in the flow track the measured height
+                // Overlays that cannot be in the flow track the bar's static height
+                self::assertSame($width < 768 ? 52 : 64, $geometry['headerHeight'], $message);
                 self::assertEqualsWithDelta($geometry['headerHeight'], $geometry['cssVariable'], 1.0, $message);
-                // Scroll margins read the live height (F-03): the old header never hides, so it is the same
+                // Scroll margins read the live height (F-03): the shown bar's
                 self::assertEqualsWithDelta($geometry['headerHeight'], $geometry['liveVariable'], 1.0, $message);
+                // The open search's results lie under the bar
                 self::assertGreaterThanOrEqual($geometry['headerHeight'], $geometry['searchTop'], $message);
             }
         }
+    }
+
+    public function testThePhoneBarHidesOnScrollAndTheLiveHeightFollows(): void
+    {
+        $client = self::createBrowserClient();
+        $client->manage()->window()->setSize(new WebDriverDimension(390, 844));
+        $client->request('GET', '/en/guides/what-is-speed-puzzling');
+
+        $client->executeScript("window.scrollTo({top: 400, behavior: 'instant'})");
+        usleep(500000);
+        $hidden = $client->executeScript(<<<'JS'
+            return {
+                state: document.documentElement.getAttribute('data-topbar'),
+                live: parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--topbar-h')),
+                bottom: Math.round(document.querySelector('body > header.site-header').getBoundingClientRect().bottom)
+            };
+        JS);
+
+        self::assertIsArray($hidden);
+        self::assertSame('hidden', $hidden['state'], json_encode($hidden));
+        self::assertSame(0.0, (float) $hidden['live'], json_encode($hidden));
+        self::assertLessThanOrEqual(0, $hidden['bottom'], json_encode($hidden));
+
+        $client->executeScript("window.scrollTo({top: 380, behavior: 'instant'})");
+        usleep(500000);
+        $shown = $client->executeScript("return parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--topbar-h'))");
+        self::assertEqualsWithDelta(52.0, (float) $shown, 1.0);
     }
 
     public function testHeaderStaysStuckAllTheWayDownAndTheFooterStaysAtTheBottom(): void
@@ -79,7 +112,7 @@ final class StickyHeaderTest extends AbstractPantherTestCase
         $client->request('GET', '/en/guides/what-is-speed-puzzling');
 
         $longPage = $client->executeScript(<<<'JS'
-            var header = document.querySelector('header');
+            var header = document.querySelector('body > header.site-header');
             var maxScroll = document.documentElement.scrollHeight - window.innerHeight;
             var tops = [];
             [0.25, 0.5, 0.75, 1].forEach(function (fraction) {

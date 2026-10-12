@@ -11,6 +11,7 @@ import { isNativeApp, nativePlatform, os } from '../assets/platform.js';
 import { closeAction, entryAction } from '../assets/layer_history.js';
 import { reportsSuppressed } from '../assets/confirm_dialog.js';
 import { menuLinkAction } from '../assets/navigation/menu_links.js';
+import { topbarMayHide } from '../assets/topbar_scroll.js';
 
 /** A fake <html>: inside the app on an Android phone, or Chrome on the same phone */
 function root(nativeApp) {
@@ -51,6 +52,13 @@ const ROWS = [
         run: (html) => ({
             phone: menuLinkAction(isNativeApp(html), true, {}),
             desktop: menuLinkAction(isNativeApp(html), false, {}),
+        }),
+    },
+    // NAV-03: the phone top bar hides on scroll on the web; the app has no web top bar - nothing to hide there
+    {
+        id: 'assets/topbar_scroll.js',
+        run: (html) => ({
+            scrolledDownOnAPhone: topbarMayHide(isNativeApp(html), { phone: true, viewportHeight: 800 }),
         }),
     },
 ];

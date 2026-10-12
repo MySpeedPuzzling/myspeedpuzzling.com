@@ -23,16 +23,17 @@ use Twig\Environment;
  */
 final class NavInstrumentationMarkupTest extends WebTestCase
 {
-    private const string CHROME = 'body > header a, body > header button, body > footer a, body > footer button';
+    // The top bar (NAV-03) and the old header's rows under it until NAV-06 (.legacy-chrome), the footer
+    private const string CHROME = 'body > header a, body > header button, body > .legacy-chrome a, body > .legacy-chrome button, body > footer a, body > footer button';
 
     /**
      * @return iterable<string, array{null|string, bool, list<string>}>
      */
     public static function viewers(): iterable
     {
-        // Guests: register / sign in, the newsletter form, popular searches
-        yield 'guest' => [null, false, ['toolbar/tools/sign_in', 'toolbar/tools/register', 'footer/newsletter/subscribe', 'footer/newsletter/privacy', 'footer/popular_brands/cobble_hill', 'footer/popular_world_championship/wjpc_2026', 'footer/credits/jan']];
-        yield 'member' => [PlayerFixture::PLAYER_WITH_STRIPE, false, ['account/toggle/open', 'account/links/logout', 'toolbar/tools/messages', 'toolbar/tools/notifications', 'hamburger/places/hub', 'footer/language/de']];
+        // Guests: register / sign in, the newsletter form, popular searches; the top bar's tools (NAV-03)
+        yield 'guest' => [null, false, ['topbar/home/logo', 'topbar/none/search', 'topbar/none/help', 'topbar/none/menu', 'toolbar/tools/sign_in', 'toolbar/tools/register', 'footer/newsletter/subscribe', 'footer/newsletter/privacy', 'footer/popular_brands/cobble_hill', 'footer/popular_world_championship/wjpc_2026', 'footer/credits/jan']];
+        yield 'member' => [PlayerFixture::PLAYER_WITH_STRIPE, false, ['topbar/none/inbox', 'topbar/none/scan', 'account/toggle/open', 'account/links/logout', 'toolbar/tools/messages', 'toolbar/tools/notifications', 'hamburger/places/hub', 'footer/language/de']];
         // The admin key with every queue
         yield 'admin' => [PlayerFixture::PLAYER_ADMIN, false, ['admin_key/toggle/open', 'admin_key/queues/change_requests', 'admin_key/queues/duplicate_results', 'topbar/language/de']];
         // A player who switched the newsletter off gets the "Turn it on" button
@@ -155,6 +156,10 @@ final class NavInstrumentationMarkupTest extends WebTestCase
         $places = ['tabbar/places/home', 'tabbar/places/puzzles', 'tabbar/places/add', 'tabbar/places/community', 'tabbar/places/profile'];
         yield 'bottom bar (guest)' => ['/en/faq', [], '#bottom-nav', $places];
         yield 'bottom bar (player)' => ['/en/hub', [], '#bottom-nav', $places, PlayerFixture::PLAYER_REGULAR];
+        // The top bar (NAV-03): back (installed app, not on a root page) · logo · the search field's scan and × · 🔍 · ? ·
+        // Inbox (signed in) · ☰; a guest gets the locked scan inside the opened search only
+        yield 'top bar (guest)' => ['/en/faq', [], 'body > header.site-header', ['topbar/none/back', 'topbar/home/logo', 'topbar/none/scan_locked', 'topbar/none/close_search', 'topbar/none/search', 'topbar/none/help', 'topbar/none/menu']];
+        yield 'top bar (player, a root page)' => ['/en/hub', [], 'body > header.site-header', ['topbar/home/logo', 'topbar/none/scan_locked', 'topbar/none/close_search', 'topbar/none/search', 'topbar/none/help', 'topbar/none/inbox', 'topbar/none/menu'], PlayerFixture::PLAYER_PRIVATE];
     }
 
     /**

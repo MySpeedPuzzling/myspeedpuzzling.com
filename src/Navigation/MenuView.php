@@ -43,4 +43,22 @@ final readonly class MenuView
 
         return $ids;
     }
+
+    /**
+     * One of the viewer's review queues holds items: a Your roles row shows a queue count above 0 - the ☰ dot of the
+     * top bar (NAV-03, README §4.12 "Menu data"). Only moderators and admins have such rows; the count comes from the
+     * memoised admin_queue_counts() statement the rows already read (no statement of its own).
+     */
+    public function hasQueueBacklog(): bool
+    {
+        foreach ($this->groups as $group) {
+            foreach ($group->rows as $row) {
+                if ($row->countTestId !== null && ($row->count ?? 0) > 0) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
 }

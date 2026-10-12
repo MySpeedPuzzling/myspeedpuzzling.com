@@ -97,14 +97,16 @@ Set in critical CSS only (`templates/navigation/_critical_css.html.twig`), never
 
 | Variable | Meaning | Used by |
 |---|---|---|
-| `--header-height` | Static height of the top bar - the anchor of sticky/fixed sub-bars (`top: var(--header-height)`) | sub-bars under the bar |
+| `--header-height` | Static height of the top bar - the anchor of sticky/fixed sub-bars (`top: var(--header-height)`): 52 px phones, 64 px desktop, 0 on phones under 480 px tall (the bar scrolls with the page there) | sub-bars under the bar |
 | `--topbar-h` | Live height of the top bar, 0 while it is hidden | `scroll-margin-top`, scroll offsets in JS |
-| `--topbar-shift` | How far the hidden top bar moved up | `@include nav-follow-topbar` (a `translate`, never an animated `top`) |
+| `--topbar-shift` | How far the hidden top bar moved up | `@include nav-follow-topbar` (a `translate`, never an animated `top`; `$sticky: true` for sticky sub-bars - they follow only while stuck, marked `data-topbar-stuck` by `topbar_controller.js`) |
 | `--bottom-nav-height` | Phone bottom bar + safe area; 0 without a visible bar, with a running stopwatch and in the app | `@include nav-bottom($gap)` on every fixed bottom element |
 | `--nav-left` | Width of the desktop rail / docked Menu column (0, 88 or 256 px) | page-wide fixed bars: `left: var(--nav-left)` or `@include nav-center-x` |
 | `--nav-*`, `--tabbar-h`, `--desk-topbar-h`, … | The bars' colours and sizes (navigation README §5) | the bars |
 
-A closed overlay (global search and its scrim, the player card layer, the Menu shell, sheets) is `display: none`, never only transparent - Safari 26 samples transparent fixed layers for its toolbar tint.
+A closed overlay (the top bar's search panel and its scrim, the player card layer, the Menu shell, sheets) is `display: none`, never only transparent - Safari 26 samples transparent fixed layers for its toolbar tint.
+
+The top bar (`header.site-header`) is `position: sticky`, transformed only while hidden (phones, scrolled down) and never gets a `backdrop-filter`: its search panel is `position: fixed` inside it, and either would trap it (NAV-03, decision 20).
 
 ### Layers (z-index scale)
 
@@ -116,10 +118,10 @@ A closed overlay (global search and its scrim, the player card layer, the Menu s
 | 990 | comparison launcher pill (under dropdowns) |
 | 1000 | Bootstrap dropdowns |
 | 1010 | page sub-bars under the top bar: compact bar, events toolbar (`$z-sub-bar`) |
-| 1014 / 1015 | the global search's overlay / its box (`$zindex-sticky - 6` / `- 5`: over the compact bar, under the top bar and its menus) |
+| 1014 | the scrim behind the open search (`.global-search-overlay`, `$zindex-sticky - 6`: over the compact bar, under the top bar and the bottom bar) |
 | 1020 | content `.sticky-top` (`$z-content-sticky`) |
 | 1029 | homepage language banner (just under the bar) |
-| 1030 | top bar, phone bottom bar, desktop rail / docked column (`$z-site-header`, `$z-bottom-nav`, `$z-nav-column`) |
+| 1030 | top bar - its search panel lies inside it - phone bottom bar, desktop rail / docked column (`$z-site-header`, `$z-bottom-nav`, `$z-nav-column`) |
 | 1035 | floating selection bar of the puzzle lists (`$z-selection-bar`) |
 | 1040 | the Menu shell `#menu-layer` (non-modal); sheet scrims (`$z-menu-layer`) |
 | 1045 | sheets and layers: player card, events ⋯ menu, XP recap sheet, multiscan sheet (`$z-sheet`) |

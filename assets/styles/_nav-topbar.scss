@@ -1,0 +1,308 @@
+// The top bar (docs/features/navigation README §4.1, §5, D2; implementation plan NAV-03, decisions 20-22;
+// templates/navigation/_topbar.html.twig, assets/controllers/topbar_controller.js, global_search_controller.js).
+//
+// Its box, the tools' 44 × 44 targets 4 px apart, the search field's size and every variant that changes the layout
+// (the pill taking the field's place, the installed app's back button, the open search) are in critical CSS
+// (templates/navigation/_critical_css.html.twig) - here is the rest: colours, pressed and focus states, the hide on
+// scroll, the badge and the dot, the search view and its panel.
+//
+// Never a backdrop-filter, never a transform while shown (decision 20): the search panel inside the bar is
+// position: fixed, and either would make the bar its containing block.
+
+// The phone bar's height: the search panel lies right under it - also on phones under 480 px tall, where
+// --header-height is 0 (the bar scrolls with the page; open, the search keeps it on top)
+$nav-topbar-phone-h: 52px;
+$nav-topbar-desktop-h: 64px;
+
+.site-header {
+    color: var(--nav-ink, #4b566b);
+}
+
+// The shadow once the page is scrolled (set by topbar_controller.js)
+:root[data-topbar-scrolled] .site-header {
+    box-shadow: var(--nav-shadow-top);
+}
+
+// ---- Hide on scroll (phones): away in 200 ms, back in 280 ms; under reduced motion it only fades ---------------------
+
+@include nav-phone {
+    .site-header {
+        transition: transform var(--nav-show-dur, 280ms) var(--nav-ease, ease), box-shadow .2s ease;
+    }
+
+    :root[data-topbar="hidden"] .site-header {
+        transform: translateY(-100%);
+        transition: transform var(--nav-hide-dur, 200ms) var(--nav-ease, ease), box-shadow .2s ease;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .site-header {
+            transition: opacity var(--nav-show-dur, 280ms) linear;
+        }
+
+        // Fades out, then steps away without moving (the transform has no duration)
+        :root[data-topbar="hidden"] .site-header {
+            opacity: 0;
+            transition: opacity var(--nav-hide-dur, 200ms) linear, transform 0s linear var(--nav-hide-dur, 200ms);
+        }
+    }
+}
+
+// The open search keeps the bar on screen and untransformed
+:root[data-search-open][data-topbar] .site-header {
+    transform: none;
+    opacity: 1;
+    transition: none;
+}
+
+// ---- Tools ------------------------------------------------------------------------------------------------------------
+
+.site-header-tool,
+.site-header-logo {
+    border-radius: 50%;
+    text-decoration: none;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+
+    &:hover,
+    &:focus {
+        color: var(--nav-ink, #4b566b);
+        text-decoration: none;
+    }
+
+    &:active {
+        background: var(--nav-pressed-pill, rgba(254, 105, 106, .1));
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--nav-focus, #4e54c8);
+        outline-offset: -2px;
+    }
+}
+
+.site-header-logo {
+    border-radius: .75rem;
+
+    &:active {
+        background: transparent;
+    }
+}
+
+// The Inbox count on the icon's corner (the badge colours of the bars, README §5); hidden at 0, "99+" grows it
+.inbox-link--topbar .inbox-badge {
+    position: absolute;
+    top: 4px;
+    right: 1px;
+    min-width: 1.125rem;
+    height: 1.125rem;
+    padding: 0 .25rem;
+    border: 2px solid var(--nav-bg, #fff);
+    border-radius: .5625rem;
+    background: var(--nav-badge-bg, #d63c42);
+    color: var(--nav-badge-ink, #fff);
+    font-size: .625rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    line-height: calc(1.125rem - 4px);
+    text-align: center;
+    box-sizing: border-box;
+
+    &[hidden] {
+        display: none;
+    }
+}
+
+// The ☰ dot: one of a moderator's or admin's review queues holds items (README §4.12 "Menu data")
+.nav-menu-dot {
+    position: absolute;
+    top: 9px;
+    right: 8px;
+    width: 9px;
+    height: 9px;
+    border: 2px solid var(--nav-bg, #fff);
+    border-radius: 50%;
+    background: var(--nav-badge-bg, #d63c42);
+    box-sizing: content-box;
+}
+
+// The pill keeps its own look (_stopwatch-pill.scss); in the bar it never shrinks
+.site-header .stopwatch-pill {
+    flex: 0 0 auto;
+}
+
+// ---- The search field -------------------------------------------------------------------------------------------------
+
+.site-search-field {
+    position: relative;
+    color: var(--nav-ink, #4b566b);
+
+    &:focus-within {
+        outline: 2px solid var(--nav-focus, #4e54c8);
+        outline-offset: -2px;
+    }
+}
+
+.site-search-input {
+    appearance: none;
+    outline: 0;
+
+    &::placeholder {
+        color: var(--search-placeholder, #5f6b80);
+        opacity: 1;
+    }
+
+    // The browser's own clear button: × closes (and empties) the search
+    &::-webkit-search-cancel-button,
+    &::-webkit-search-decoration {
+        appearance: none;
+        display: none;
+    }
+}
+
+.site-search-scan {
+    position: relative;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--nav-ink, #4b566b);
+    touch-action: manipulation;
+
+    .nav-i {
+        width: 20px;
+        height: 20px;
+    }
+
+    &:active,
+    &.active {
+        background: var(--nav-pressed-pill, rgba(254, 105, 106, .1));
+        color: var(--nav-active-ink, #c8323a);
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--nav-focus, #4e54c8);
+        outline-offset: -2px;
+    }
+}
+
+.site-search-scan--locked {
+    color: var(--search-placeholder, #5f6b80);
+}
+
+.site-search-lock {
+    position: absolute;
+    right: 6px;
+    bottom: 8px;
+    font-size: .625rem;
+}
+
+.site-search-close {
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--nav-ink, #4b566b);
+    touch-action: manipulation;
+
+    &:active {
+        background: var(--nav-pressed-pill, rgba(254, 105, 106, .1));
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--nav-focus, #4e54c8);
+        outline-offset: -2px;
+    }
+}
+
+// Desktop (NAV-04 refines it): the one-word placeholder stays for screen readers, the long one shows over the empty
+// field - from the server's data-placeholder-long, a Live re-render never undoes it
+@include nav-desktop {
+    .site-search-field[data-placeholder-long]:has(> .site-search-input:placeholder-shown) {
+        > .site-search-input::placeholder {
+            color: transparent;
+        }
+
+        &::after {
+            content: attr(data-placeholder-long);
+            position: absolute;
+            top: 50%;
+            left: 32px;
+            right: 48px;
+            overflow: hidden;
+            color: var(--search-placeholder, #5f6b80);
+            font-size: 1rem;
+            line-height: 1.25rem;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+            transform: translateY(-50%);
+            pointer-events: none;
+        }
+    }
+}
+
+// ---- The results panel ------------------------------------------------------------------------------------------------
+// Phones: fixed under the bar down to the bottom bar, scrolling itself; its empty part lets the scrim show through (a tap
+// there closes). Desktop: a dropdown under the field. Its results are cards; "Pages & settings" first.
+
+.site-search-panel {
+    color: var(--nav-ink, #4b566b);
+
+    .nav-search-results,
+    .global-search-results,
+    .global-search-barcode-scan {
+        margin: 0 0 .5rem;
+        padding: .5rem;
+        border-radius: .75rem;
+        background: var(--nav-bg, #fff);
+        box-shadow: 0 4px 16px rgba(43, 52, 69, .18);
+    }
+
+    .global-search-results {
+        max-height: none;
+        padding: .75rem;
+        overflow: visible;
+    }
+}
+
+@include nav-phone {
+    .site-search-panel {
+        position: fixed;
+        top: $nav-topbar-phone-h;
+        right: 0;
+        bottom: var(--bottom-nav-height, 0px);
+        left: 0;
+        padding: .5rem max(.5rem, env(safe-area-inset-right, 0px)) 1rem max(.5rem, env(safe-area-inset-left, 0px));
+        overflow-x: hidden;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+    }
+}
+
+@include nav-desktop {
+    .site-search-box {
+        position: relative;
+    }
+
+    .site-search-panel {
+        position: absolute;
+        // Right under the 64 px bar: the 44 px field sits 10 px above its bottom edge
+        top: calc(100% + 10px);
+        right: 0;
+        left: 0;
+        min-width: 22rem;
+        max-height: calc(100vh - #{$nav-topbar-desktop-h} - 1.5rem);
+        overflow-x: hidden;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+    }
+}

@@ -1,0 +1,67 @@
+{#- The top bar (docs/features/navigation README §4.1 / D2, D5, D7; implementation plan NAV-03, R8): one <header> for
+    phones and desktop, a direct child of <body> (block header, web only). Phones, left to right:
+    back (installed app, non-root pages) · logo · search field · ⏱ pill · 🔍 · ? · Inbox · ☰ - all 44 × 44, 4 px apart.
+    - Logo: Home - the Hub for signed-in players, the homepage for guests (D5, NAV-10); always visible (36 px, 28 px
+      below 320 px).
+    - Search: the page's GlobalSearch (surface bar - the first instance in the DOM) is the field; on phones a tap opens
+      the search view (html[data-search-open], a GEST-01 layer). A running stopwatch's pill takes the field's place and
+      search becomes the 🔍 icon; the installed app's back button turns it into the icon below 390 px; back button and
+      pill together below 393 px leave no search icon (search stays in the Menu panel) - CSS decides from the markup
+      (_nav-topbar.scss), the logo never gives way. The icon is a link to the puzzle database (no JS, the native app).
+    - ? = the Help sheet (help_opener_attrs(), HELP-01b); Inbox for signed-in players (inbox/_link.html.twig, INB-01/02);
+      ☰ = the Menu: a link to the `menu` page that opens the phone panel (MENU-02b), last at the right edge, a dot
+      while one of a moderator's or admin's review queues holds items (the memoised admin_queue_counts() statement the
+      Menu's Your roles rows read - no statement of its own).
+    - The four tools carry data-bar-action (BarAction, NAV-14); Inbox also data-bar-count.
+    Phones hide it on scroll down and bring it back on scroll up (assets/controllers/topbar_controller.js, sticky, a
+    transform only while hidden - never a backdrop-filter: the search panel inside is position: fixed).
+    The desktop parts (☰ first, compact places, + Add, avatar ▾ / Sign in) are NAV-04's: until then desktop shows these
+    phone tools at 64 px, the old chrome (.legacy-chrome) below until NAV-06 (R10).
+    Guest HTML stays shared-cacheable: nothing depends on the visitor but the URL (help_path(), the back link).
+    Chrome markup rules (implementation plan §3.2): no heading, no form, own class prefixes; data-nav on every link and
+    button. -#}
+{%- set profile = logged_user.profile -%}
+{%- set location = nav_location() -%}
+{%- set home_href = profile is not null ? path('hub') : path('homepage') -%}
+{%- set stopwatch_running = profile is not null and profile.runningStopwatch is not null -%}
+{%- set back = not location.rootPage -%}
+{#- The back button's link without JS: the start page of the place this page belongs to (the bars' own link to it) -#}
+{%- set back_href = home_href -%}
+{%- if back -%}
+    {%- for place in nav_places(location, 'bar') -%}
+        {%- if place.place == location.place -%}{%- set back_href = place.href -%}{%- endif -%}
+    {%- endfor -%}
+{%- endif -%}
+<header class="site-header{{ back ? ' site-header--back' }}{{ stopwatch_running ? ' site-header--stopwatch' }}" data-controller="topbar"
+    {%- if profile is not null %} data-viewer-signed-in{% endif %}>
+    <div class="site-header-inner">
+        {%- if back -%}
+            <a class="site-header-tool site-header-back standalone-only" href="{{ back_href }}" data-action="topbar#back" data-nav="topbar/none/back" aria-label="{{ 'nav.bar.back'|trans }}">
+                <svg class="nav-i" aria-hidden="true" focusable="false"><use href="#nav-i-arrow-left"></use></svg>
+            </a>
+        {%- endif -%}
+        <a class="site-header-logo" href="{{ home_href }}" data-nav="topbar/home/logo" aria-label="{{ 'nav.bar.home_logo'|trans }}">
+            <img src="{{ asset('img/speedpuzzling-logo.svg') }}" width="36" height="32" alt="">
+        </a>
+        <twig:GlobalSearch />
+        {{- include('navigation/_stopwatch_pill.html.twig') -}}
+        <a class="site-header-tool site-search-icon" href="{{ path('puzzles') }}" data-global-search-toggle data-bar-action="{{ bar_action('search') }}" data-nav="topbar/none/search" aria-label="{{ 'nav.bar.search_label'|trans }}">
+            <svg class="nav-i" aria-hidden="true" focusable="false"><use href="#nav-i-search"></use></svg>
+        </a>
+        <a class="site-header-tool site-header-help" href="{{ help_path() }}" {{ help_opener_attrs() }} data-bar-action="{{ bar_action('help') }}" data-nav="topbar/none/help" aria-label="{{ 'nav.bar.help'|trans }}">
+            <svg class="nav-i" aria-hidden="true" focusable="false"><use href="#nav-i-question-circle"></use></svg>
+        </a>
+        {%- if profile is not null -%}
+            {% embed 'inbox/_link.html.twig' with {nav: 'topbar/none/inbox', class: 'site-header-tool', surface: 'topbar'} only %}
+                {% block content %}
+                    <svg class="nav-i" aria-hidden="true" focusable="false"><use href="#nav-i-inbox"></use></svg>
+                    {{- include('inbox/_badge.html.twig', {part: 'total', parts: parts, class: ''}) -}}
+                {% endblock %}
+            {% endembed %}
+        {%- endif -%}
+        <a class="site-header-tool site-header-menu" href="{{ path('menu') }}" data-bar-action="{{ bar_action('menu') }}" data-nav="topbar/none/menu" aria-label="{{ 'nav.bar.menu'|trans }}" aria-haspopup="dialog" aria-expanded="false">
+            <svg class="nav-i" aria-hidden="true" focusable="false"><use href="#nav-i-list"></use></svg>
+            {%- if profile is not null and nav_menu().hasQueueBacklog() %}<span class="nav-menu-dot" aria-hidden="true"></span>{% endif -%}
+        </a>
+    </div>
+</header>

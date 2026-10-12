@@ -3,10 +3,10 @@
     The only place these lengths are set - JavaScript never writes them (NavLayoutCssTest); the browser decides from
     media queries and <html> attributes before first paint. SCSS reads them through assets/styles/_nav-tokens.scss.
 
-    --header-height  static height of the bar the sticky/fixed sub-bars sit under (their layout anchor). Until NAV-03
-                     the old header's header_height_controller.js measures it (fallback 101/97 px above).
-    --topbar-h       live height of the top bar (0 while hidden): scroll margins. Until NAV-03 = the old header,
-                     which never hides; NAV-03 sets 52/64 px and 0 on phones < 480 px tall.
+    --header-height  static height of the top bar the sticky/fixed sub-bars sit under (their layout anchor): 52 px on
+                     phones, 64 px on desktop (NAV-03), 0 on phones under 480 px tall - the bar scrolls with the page
+                     there (no sticky sub-bar would sit under it).
+    --topbar-h       live height of the top bar (0 while hidden): scroll margins.
     --topbar-shift   how far the hidden top bar moved up: sub-bars follow it with `translate` (mixin nav-follow-topbar).
     --bottom-nav-height  phone bottom bar + safe area, 0 while no visible .bottom-nav, with a running stopwatch and in
                      the app. Every fixed bottom element sits above it (mixin nav-bottom).
@@ -17,20 +17,59 @@
     .bottom-nav      the phone bottom bar's box (NAV-01, README §4.2): fixed, 56 px + the safe area (Chrome 135+ fast
                      path: bottom = inset - max inset, padding = max inset), none on desktop; <body> keeps its height
                      free at the end of the page. Its look and the label steps live in _nav-bars.scss.
-    .nav-sprite      the icon sprite (_icons.html.twig) never takes room. -#}
+    .nav-sprite      the icon sprite (_icons.html.twig) never takes room.
+    .site-header     the top bar (NAV-03, README §4.1): sticky (decision 20), 52 px phones / 64 px desktop, static on
+                     phones under 480 px tall; its tools 44 × 44 and 4 px apart; the search field fills the room.
+                     Variants decided from the markup, before the stylesheet: a running stopwatch's pill takes the
+                     field's place (search becomes the icon); the installed app's back button (.standalone-only, shown
+                     under html.is-standalone) turns the field into the icon below 390 px, and leaves no search icon next
+                     to a pill below 393 px. html[data-search-open] = the open search (global_search_controller.js):
+                     the field fills the bar next to the logo and ×, the other tools step aside, the panel and the scrim
+                     show. Closed, the panel, × and the scrim are display: none. The rest of its look: _nav-topbar.scss.
+    Browsers without :has() reserve the bottom bar's height on phones anyway (no visible-bar test there). -#}
 @property --topbar-h{syntax:'<length>';inherits:true;initial-value:0px}
 @property --bottom-nav-height{syntax:'<length>';inherits:true;initial-value:0px}
 @property --nav-left{syntax:'<length>';inherits:true;initial-value:0px}
 :root{--nav-bg:#fff;--nav-hairline:rgba(43,52,69,.1);--nav-shadow-top:0 2px 8px rgba(43,52,69,.06);--nav-shadow-bottom:0 -4px 16px rgba(43,52,69,.06);--nav-ink:#4b566b;--nav-label:#5f6b80;--nav-active-ink:#c8323a;--nav-active-pill:#ffe8e8;--nav-pressed-pill:rgba(254,105,106,.1);--nav-add-bg:#ec4f52;--nav-add-ink:#fff;--nav-badge-bg:#d63c42;--nav-badge-ink:#fff;--nav-focus:#4e54c8;--search-bg:#f3f5f9;--search-placeholder:#5f6b80}
 :root{--tabbar-h:56px;--tab-icon:24px;--tab-label:500 .6875rem/.875rem Rubik;--desk-topbar-h:64px;--nav-col-w:256px;--nav-rail-w:88px;--nav-ease:cubic-bezier(.2,0,0,1);--nav-hide-dur:200ms;--nav-show-dur:280ms}
+:root{--header-height:52px}
+@media (min-width:768px) and (min-height:501px),(min-width:768px) and (pointer:fine){:root{--header-height:64px}}
+@media (max-width:767.98px) and (max-height:479.98px),(max-height:479.98px) and (pointer:coarse){:root{--header-height:0px}}
 :root{--safe-bottom-max:env(safe-area-max-inset-bottom,env(safe-area-inset-bottom,0px));--topbar-h:var(--header-height);--topbar-shift:0px;--bottom-nav-height:0px;--nav-left:0px}
 :root[data-topbar=hidden]{--topbar-h:0px;--topbar-shift:var(--header-height)}
 @media (max-width:767.98px),(max-height:500.98px) and (pointer:coarse){:root:not([data-stopwatch-running]):not([data-native-app]):has(> body > .bottom-nav:not([hidden])){--bottom-nav-height:calc(var(--tabbar-h) + var(--safe-bottom-max))}}
+@supports not selector(:has(a)){@media (max-width:767.98px),(max-height:500.98px) and (pointer:coarse){:root:not([data-stopwatch-running]):not([data-native-app]){--bottom-nav-height:calc(var(--tabbar-h) + var(--safe-bottom-max))}}}
 :root[data-native-app]{--header-height:0px;--topbar-h:0px;--topbar-shift:0px;--bottom-nav-height:0px;--nav-left:0px}
-.global-search,.global-search-overlay{display:none}
+.global-search-overlay,.site-search-panel,.site-search-close,.site-search-scan{display:none}
 .menu-slot{display:none}
 .bottom-nav{position:fixed;right:0;bottom:calc(env(safe-area-inset-bottom,0px) - var(--safe-bottom-max));left:0;z-index:1030;display:flex;height:calc(var(--tabbar-h) + var(--safe-bottom-max));padding:0 env(safe-area-inset-right,0px) var(--safe-bottom-max) env(safe-area-inset-left,0px);background:var(--nav-bg);border-top:1px solid var(--nav-hairline)}
 .bottom-nav[hidden]{display:none}
 @media (min-width:768px) and (min-height:501px),(min-width:768px) and (pointer:fine){.bottom-nav{display:none}}
 body{padding-bottom:var(--bottom-nav-height)}
 .nav-sprite{display:none}
+.site-header{position:sticky;top:0;z-index:1030;height:52px;background:var(--nav-bg);border-bottom:1px solid var(--nav-hairline)}
+@media (min-width:768px) and (min-height:501px),(min-width:768px) and (pointer:fine){.site-header{height:64px}}
+@media (max-width:767.98px) and (max-height:479.98px),(max-height:479.98px) and (pointer:coarse){.site-header{position:relative}}
+.site-header-inner{display:flex;align-items:center;gap:4px;height:100%;padding:0 max(4px,env(safe-area-inset-right,0px)) 0 max(4px,env(safe-area-inset-left,0px))}
+.site-header-tool,.site-header-logo{position:relative;display:inline-flex;flex:0 0 auto;align-items:center;justify-content:center;width:44px;height:44px;color:var(--nav-ink)}
+.site-header .site-search-icon{display:none}
+@media (max-width:767.98px),(max-height:500.98px) and (pointer:coarse){.site-header-logo{margin-inline-end:auto}}
+.site-header-logo img{width:36px;height:auto}
+@media (max-width:319.98px){.site-header-logo img{width:28px}}
+.site-header .nav-i{width:24px;height:24px;fill:currentColor}
+html:not(.is-standalone) .standalone-only{display:none}
+.site-search{flex:1 1 auto;min-width:0}
+.site-search-row{display:flex;align-items:center;gap:4px}
+.site-search-field{display:flex;flex:1 1 auto;align-items:center;min-width:0;height:44px;border-radius:22px;background:var(--search-bg)}
+.site-search-glass{flex:0 0 auto;width:16px;height:16px;margin:0 6px 0 10px;fill:var(--search-placeholder)}
+.site-search-input{flex:1 1 auto;width:100%;min-width:0;height:44px;margin:0;padding:0 4px 0 0;border:0;background:transparent;color:var(--nav-ink);font:inherit;font-size:16px;line-height:normal}
+@media (min-width:360px){.site-search-scan:not(.site-search-scan--locked){display:inline-flex}}
+@media (min-width:768px) and (min-height:501px),(min-width:768px) and (pointer:fine){.site-search{flex:0 1 560px;margin-inline-end:auto}}
+@media (max-width:767.98px),(max-height:500.98px) and (pointer:coarse){html:not([data-search-open]) .site-header:has(.stopwatch-pill:not([hidden])) .site-search{display:none}html:not([data-search-open]) .site-header:has(.stopwatch-pill:not([hidden])) .site-search-icon{display:inline-flex}}
+@media (max-width:389.98px){html.is-standalone:not([data-search-open]) .site-header--back .site-search{display:none}html.is-standalone:not([data-search-open]) .site-header--back .site-search-icon{display:inline-flex}}
+@media (max-width:392.98px){html.is-standalone:not([data-search-open]) .site-header--back:has(.stopwatch-pill:not([hidden])) .site-search-icon{display:none}}
+@supports not selector(:has(a)){@media (max-width:767.98px),(max-height:500.98px) and (pointer:coarse){html:not([data-search-open]) .site-header--stopwatch .site-search{display:none}html:not([data-search-open]) .site-header--stopwatch .site-search-icon{display:inline-flex}}}
+html[data-search-open] .site-header{transform:none;opacity:1}
+html[data-search-open] .site-search-panel,html[data-search-open] .global-search-overlay{display:block}
+html[data-search-open] .site-search-scan{display:inline-flex}
+@media (max-width:767.98px),(max-height:500.98px) and (pointer:coarse){html[data-search-open] .site-header{position:sticky}html[data-search-open] .site-search-close{display:inline-flex}html[data-search-open] .site-header-inner > :not(.site-header-logo):not(.site-search){display:none}}

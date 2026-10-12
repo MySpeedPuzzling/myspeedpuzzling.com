@@ -258,12 +258,42 @@ final class HubControllerTest extends WebTestCase
         self::assertSame('noindex, follow', $crawler->filter('meta[name="robots"]')->attr('content'));
     }
 
-    public function testHubStaysInTheNavigation(): void
+    /**
+     * Home is the Hub for signed-in players (README D5, NAV-10): the top bar's logo and the bottom bar's Home tab link it
+     */
+    public function testHubIsHomeForSignedInPlayers(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $crawler = $browser->request('GET', '/en/ladder');
+
+        self::assertCount(1, $crawler->filter('body > header.site-header a.site-header-logo[href="/en/hub"]'));
+        self::assertCount(1, $crawler->filter('#bottom-nav a[data-nav-place="home"][href="/en/hub"]'));
+    }
+
+    /**
+     * Guests' Home is the marketing homepage (D5, the change of NAV-10 logged in the delivery state) - the Hub stays
+     * reachable for them: the page search finds it (the search-only entry hub_guest, R11)
+     */
+    public function testHubStaysFindableForGuests(): void
     {
         $browser = self::createClient();
 
         $crawler = $browser->request('GET', '/en/ladder');
 
-        self::assertCount(1, $crawler->filter('.navbar-nav a[href="/en/hub"]'));
+        self::assertCount(1, $crawler->filter('body > header.site-header a.site-header-logo[href="/"]'));
+        self::assertCount(1, $crawler->filter('#bottom-nav a[data-nav-place="home"][href="/"]'));
+
+        $browser->request('GET', '/en/nav-search.json');
+        self::assertResponseIsSuccessful();
+
+        /** @var array{entries: list<array{id: string, u: string, a: string}>} $index */
+        $index = json_decode((string) $browser->getResponse()->getContent(), true, flags: JSON_THROW_ON_ERROR);
+        $hub = array_values(array_filter($index['entries'], static fn (array $entry): bool => $entry['id'] === 'hub_guest'));
+
+        self::assertCount(1, $hub);
+        self::assertSame('/en/hub', $hub[0]['u']);
+        self::assertSame('guest', $hub[0]['a']);
     }
 }

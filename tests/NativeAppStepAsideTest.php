@@ -47,6 +47,11 @@ final class NativeAppStepAsideTest extends TestCase
             ['phone' => 'page', 'desktop' => 'page'],
             ['phone' => 'panel', 'desktop' => 'page'],
         ],
+        // NAV-03: the top bar may hide on a phone on the web, never inside the app
+        'assets/topbar_scroll.js' => [
+            ['scrolledDownOnAPhone' => false],
+            ['scrolledDownOnAPhone' => true],
+        ],
     ];
 
     /** @var null|array<string, Row> */

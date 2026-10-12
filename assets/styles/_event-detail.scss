@@ -231,7 +231,7 @@
         display: block;
         position: sticky;
         top: calc(var(--header-height, 101px) + 1rem);
-        @include nav-follow-topbar;
+        @include nav-follow-topbar($sticky: true);
     }
 }
 

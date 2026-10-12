@@ -10,6 +10,7 @@ use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;
+use Symfony\Component\Routing\RouterInterface;
 use Symfony\Contracts\Cache\CacheInterface;
 
 final class HomepageControllerTest extends WebTestCase
@@ -64,15 +65,48 @@ final class HomepageControllerTest extends WebTestCase
         $this->assertSelectorTextContains('h1', 'Speed Puzzling');
     }
 
-    public function testLoggedInUserCanAccessLocalizedHomepage(): void
+    /**
+     * Home is the Hub for signed-in players (README D5, NAV-10, decision 28): a localized homepage sends them to that
+     * locale's Hub - not their profile locale, the URL names the language
+     */
+    public function testLoggedInUserIsRedirectedFromLocalizedHomepageToThatLocalesHub(): void
     {
         $browser = self::createClient();
 
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
 
-        $browser->request('GET', '/cs');
+        $router = self::getContainer()->get(RouterInterface::class);
 
+        // The decision's examples, then every other locale through the router
+        $expected = ['/cs' => '/hub', '/de' => '/de/zentrale'];
+
+        foreach (['es', 'fr', 'ja'] as $locale) {
+            $expected['/' . $locale] = $router->generate('hub', ['_locale' => $locale]);
+        }
+
+        foreach ($expected as $homepage => $hub) {
+            $browser->request('GET', $homepage);
+            $this->assertResponseRedirects($hub, 302, $homepage);
+        }
+
+        $browser->followRedirect();
         $this->assertResponseIsSuccessful();
+    }
+
+    /**
+     * Guests keep the localized marketing homepages - shared-cacheable (NAV-10: caching unchanged)
+     */
+    public function testGuestsGetTheLocalizedHomepagesShared(): void
+    {
+        $browser = self::createClient();
+
+        foreach (['/', '/cs', '/de', '/es', '/fr', '/ja'] as $homepage) {
+            $browser->request('GET', $homepage);
+
+            $this->assertResponseIsSuccessful($homepage);
+            self::assertTrue($browser->getResponse()->headers->hasCacheControlDirective('public'), $homepage . ': ' . $browser->getResponse()->headers->get('Cache-Control'));
+            self::assertSame([], $browser->getResponse()->headers->getCookies(), $homepage);
+        }
     }
 
     public function testDatabaseSectionQuotesTheCatalogueNumbers(): void

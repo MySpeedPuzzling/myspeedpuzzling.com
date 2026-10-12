@@ -62,15 +62,27 @@ $z-tooltip: 1080;            // Bootstrap $zindex-tooltip
 // A sticky/fixed sub-bar anchored at the static `var(--header-height)` follows the live top bar (decision 17, F9):
 // `translate` by --topbar-shift - compositor only, composes with the element's own transform - never an animated `top`
 // (Chromium reports that as a layout shift on every scroll reversal). The bar's timing: 200 ms away, 280 ms back, none
-// with reduced motion. Applies only while the new top bar manages html[data-topbar] (NAV-03); nothing changes before.
+// with reduced motion. Applies only while the top bar manages html[data-topbar] (NAV-03).
 // $own: the element's own transitions, kept in the list.
-@mixin nav-follow-topbar($own: null) {
+// $sticky: true for `position: sticky` elements - they follow only while stuck under the bar, marked
+// [data-topbar-stuck] by assets/controllers/topbar_controller.js (one further down the page must not move; NAV-03
+// decision). Their selectors are listed in STICKY_FOLLOWERS (assets/topbar_scroll.js, NavLayoutCssTest keeps both equal).
+@mixin nav-follow-topbar($own: null, $sticky: false) {
     $show: translate var(--nav-show-dur, 280ms) var(--nav-ease, ease);
     $hide: translate var(--nav-hide-dur, 200ms) var(--nav-ease, ease);
 
     :root[data-topbar] & {
-        translate: 0 calc(-1 * var(--topbar-shift, 0px));
         @if $own { transition: #{$own}, #{$show}; } @else { transition: $show; }
+    }
+
+    @if $sticky {
+        :root[data-topbar] &[data-topbar-stuck] {
+            translate: 0 calc(-1 * var(--topbar-shift, 0px));
+        }
+    } @else {
+        :root[data-topbar] & {
+            translate: 0 calc(-1 * var(--topbar-shift, 0px));
+        }
     }
 
     :root[data-topbar="hidden"] & {

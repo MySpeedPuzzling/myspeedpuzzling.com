@@ -84,7 +84,7 @@
     backdrop-filter: blur(6px);
     border-bottom: 1px solid transparent;
     transition: transform .2s ease, opacity .2s ease, border-color .2s ease;
-    @include nav-follow-topbar((transform .2s ease, opacity .2s ease, border-color .2s ease));
+    @include nav-follow-topbar((transform .2s ease, opacity .2s ease, border-color .2s ease), $sticky: true);
 
     &.is-stuck {
         border-bottom-color: $ev-line;
@@ -323,7 +323,7 @@
         display: block;
         position: sticky;
         top: calc(#{$ev-sticky-top} + .75rem);
-        @include nav-follow-topbar;
+        @include nav-follow-topbar($sticky: true);
         // Countries + mini calendar can be taller than a laptop screen: the column scrolls on its own instead of
         // keeping the mini calendar out of reach below the fold
         max-height: calc(100vh - #{$ev-sticky-top} - 1.5rem);

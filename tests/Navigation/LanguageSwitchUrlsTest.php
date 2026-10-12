@@ -34,7 +34,7 @@ final class LanguageSwitchUrlsTest extends WebTestCase
         }
 
         self::assertSame($expected, $this->links($crawler, '#site-menu #nav-language'));
-        self::assertSame($expected, $this->links($crawler, 'header .topbar .dropdown-menu[data-controller="locale-preference"]'));
+        self::assertSame($expected, $this->links($crawler, '.legacy-chrome .topbar .dropdown-menu[data-controller="locale-preference"]'));
         self::assertSame($expected, $this->links($crawler, 'footer.site-footer .dropdown-menu[data-controller="locale-preference"]'));
         self::assertStringContainsString('pieces=500', $expected['cs']);
     }

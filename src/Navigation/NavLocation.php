@@ -22,4 +22,15 @@ final readonly class NavLocation
     {
         return new self(NavPlace::None);
     }
+
+    /**
+     * A place's own start page (README §4.1 "root pages"): Home (the Hub / the homepage), the Puzzles sections - the
+     * Puzzles tab opens the last used one (D6, PUZ-01) - Add, the Community landing and your own profile. The installed
+     * app's top bar shows no back button there (NAV-03). Community's sections (leaderboards, puzzlers, events) start
+     * their chips, not the place: reached from the landing, they keep the back button.
+     */
+    public function isRootPage(): bool
+    {
+        return $this->isStartPage && ($this->section === null || $this->place === NavPlace::Puzzles);
+    }
 }

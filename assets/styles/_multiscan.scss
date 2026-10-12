@@ -110,8 +110,8 @@
     right: 0;
     // On the phone bottom bar (F-03); the home indicator's room only where the bar does not cover it
     bottom: var(--bottom-nav-height, 0px);
-    // In-page layer (< 100): below the global search overlay (10) and its search box (20), and far below the
-    // site header (1030) and the bottom bar (1030) - docs/design-system/README.md "Layers"
+    // In-page layer (< 100): below the global search and its overlay ($zindex-sticky - 5 / - 6), the site header (1030)
+    // and the bottom bar (1030) - docs/design-system/README.md "Layers"
     z-index: 9;
     border-radius: 12px 12px 0 0;
     padding-bottom: nav-safe-bottom-padding();

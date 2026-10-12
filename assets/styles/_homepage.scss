@@ -310,6 +310,10 @@
     box-shadow: 0 .5rem 1.5rem rgba(#373f50, .18);
     transform: translateX(-50%);
 
+    // It sits where the global search drops down - no banner over the search
+    body.global-search-shown & {
+        display: none;
+    }
 }
 
 .homepage-locale-banner-link {

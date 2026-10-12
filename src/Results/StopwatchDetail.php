@@ -21,6 +21,8 @@ readonly final class StopwatchDetail
         public null|string $puzzleId,
         public null|string $puzzleName,
         public null|string $name,
+        // Finished laps to the millisecond, so the stopwatch page goes on from exactly what it showed
+        public int $totalMilliseconds = 0,
     ) {
         $interval = $totalSeconds;
 
@@ -47,30 +49,31 @@ readonly final class StopwatchDetail
     {
         $lastStart = new DateTimeImmutable();
         if ($row['last_start_time'] !== null) {
-            $lastStart = DateTimeImmutable::createFromFormat('Y-m-d H:i:s', $row['last_start_time']);
-            assert($lastStart instanceof DateTimeImmutable);
+            // Postgres prints the milliseconds of a lap (stored since 2026-10-12) only when there are some
+            $lastStart = new DateTimeImmutable($row['last_start_time']);
         }
 
         $lastEnd = null;
         if ($row['last_end_time'] !== null) {
-            $lastEnd = DateTimeImmutable::createFromFormat('Y-m-d H:i:s', $row['last_end_time']);
-            assert($lastEnd instanceof DateTimeImmutable);
+            $lastEnd = new DateTimeImmutable($row['last_end_time']);
         }
 
-        $totalSeconds = 0;
+        $totalMilliseconds = 0;
         if ($row['total_seconds'] !== null) {
-            $totalSeconds = (int) $row['total_seconds'];
+            $totalMilliseconds = (int) round((float) $row['total_seconds'] * 1000);
         }
 
         return new self(
             stopwatchId: $row['stopwatch_id'],
-            totalSeconds: $totalSeconds,
+            // Whole seconds cut off, never rounded up - the stopwatch shows them that way
+            totalSeconds: intdiv($totalMilliseconds, 1000),
             lastStart: $lastStart,
             lastEnd: $lastEnd,
             status: StopwatchStatus::from($row['status']),
             puzzleId: $row['puzzle_id'],
             puzzleName: $row['puzzle_name'],
             name: $row['stopwatch_name'],
+            totalMilliseconds: $totalMilliseconds,
         );
     }
 }

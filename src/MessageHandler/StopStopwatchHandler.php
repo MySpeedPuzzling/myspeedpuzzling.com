@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\MessageHandler;
 
+use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Exceptions\StopwatchCouldNotBePaused;
 use SpeedPuzzling\Web\Exceptions\StopwatchNotFound;
 use SpeedPuzzling\Web\Message\StopStopwatch;
@@ -15,6 +16,7 @@ readonly final class StopStopwatchHandler
 {
     public function __construct(
         private StopwatchRepository $stopwatchRepository,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -26,6 +28,6 @@ readonly final class StopStopwatchHandler
     {
         $stopwatch = $this->stopwatchRepository->get($message->stopwatchId->toString());
 
-        $stopwatch->pause(new \DateTimeImmutable());
+        $stopwatch->pause($this->clock->now(), $message->shownTotalMilliseconds);
     }
 }

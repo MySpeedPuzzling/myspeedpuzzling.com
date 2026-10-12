@@ -10,6 +10,7 @@ use SpeedPuzzling\Web\Message\StopStopwatch;
 use SpeedPuzzling\Web\Query\GetStopwatch;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Messenger\Exception\HandlerFailedException;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
@@ -31,13 +32,20 @@ final class ApiPauseController extends AbstractController
         name: 'api_stopwatch_pause',
         methods: ['POST'],
     )]
-    public function __invoke(#[CurrentUser] UserInterface $user, string $stopwatchId): JsonResponse
+    public function __invoke(#[CurrentUser] UserInterface $user, string $stopwatchId, Request $request): JsonResponse
     {
+        /** @var mixed $data */
+        $data = json_decode($request->getContent(), true);
+        $shownTotalMilliseconds = is_array($data) && is_int($data['shownTotalMs'] ?? null) && $data['shownTotalMs'] >= 0
+            ? $data['shownTotalMs']
+            : null;
+
         try {
             $this->messageBus->dispatch(
                 new StopStopwatch(
                     Uuid::fromString($stopwatchId),
                     $user->getUserIdentifier(),
+                    $shownTotalMilliseconds,
                 ),
             );
         } catch (HandlerFailedException $handlerFailedException) {

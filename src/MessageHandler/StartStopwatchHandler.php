@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\MessageHandler;
 
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Entity\Stopwatch;
 use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
 use SpeedPuzzling\Web\Message\StartStopwatch;
@@ -21,6 +22,7 @@ readonly final class StartStopwatchHandler
         private PlayerRepository $playerRepository,
         private PuzzleRepository $puzzleRepository,
         private SecretPuzzleAccess $secretPuzzleAccess,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -44,7 +46,7 @@ readonly final class StartStopwatchHandler
             $puzzle,
         );
 
-        $stopwatch->start(new \DateTimeImmutable());
+        $stopwatch->start($this->clock->now());
 
         $this->entityManager->persist($stopwatch);
     }

@@ -21,7 +21,7 @@ export default class extends Controller {
     static values = {
         status: String,
         stopwatchId: String,
-        totalSeconds: Number,
+        totalMilliseconds: Number,
         lastStart: String,
         serverNow: String,
         startUrl: String,
@@ -37,8 +37,9 @@ export default class extends Controller {
 
     connect() {
         this._serverOffset = this._calculateServerOffset();
-        this._totalPreviousMs = this.totalSecondsValue * 1000;
-        this._lastStartTimestamp = this.lastStartValue ? new Date(this.lastStartValue).getTime() : null;
+        this._totalPreviousMs = this.totalMillisecondsValue;
+        // The server's moment on this phone's clock, so a reloaded running stopwatch goes on from where it was
+        this._lastStartTimestamp = this.lastStartValue ? new Date(this.lastStartValue).getTime() + this._serverOffset : null;
         this._rafId = null;
         this._wakeLock = null;
         this._currentMilestoneIndex = 0;
@@ -84,6 +85,8 @@ export default class extends Controller {
     async start() {
         if (!navigator.onLine) return;
 
+        // Counting starts at the tap, not when the server answers
+        const tappedAt = Date.now();
         this._setButtonsLoading();
 
         try {
@@ -100,7 +103,7 @@ export default class extends Controller {
             // The top bar's pill (ADD-03) knows from the next page on; noted for this device as well
             rememberStopwatchState(data.stopwatchId, 'running', 0);
             this._totalPreviousMs = 0;
-            this._lastStartTimestamp = Date.now();
+            this._lastStartTimestamp = tappedAt;
 
             this._updateFinishLink();
             this._updateButtons();
@@ -127,18 +130,22 @@ export default class extends Controller {
         this._renderTime(elapsedMs);
         this._releaseWakeLock();
 
+        // The time saved is what the stopwatch shows, not when this request happens to reach the server
+        const shownTotalMs = Math.floor(elapsedMs);
+
         try {
-            await this._apiPost(`/api/stopwatch/${this.stopwatchIdValue}/pause`);
+            await this._apiPost(`/api/stopwatch/${this.stopwatchIdValue}/pause`, { shownTotalMs });
         } catch {
-            this._enqueueAction('pause', this.stopwatchIdValue);
+            this._enqueueAction('pause', this.stopwatchIdValue, { shownTotalMs });
         }
     }
 
     async resume() {
         if (!this.stopwatchIdValue) return;
 
+        const tappedAt = Date.now();
         this.statusValue = 'running';
-        this._lastStartTimestamp = Date.now();
+        this._lastStartTimestamp = tappedAt;
         // With the time so far: a pill hidden by the pause shows again counting from here, the pause left out
         rememberStopwatchState(this.stopwatchIdValue, 'running', this._totalPreviousMs);
         this._updateButtons();
@@ -146,9 +153,9 @@ export default class extends Controller {
         this._requestWakeLock();
 
         try {
-            await this._apiPost(`/api/stopwatch/${this.stopwatchIdValue}/resume`);
+            await this._apiPost(`/api/stopwatch/${this.stopwatchIdValue}/resume`, { tappedMsAgo: Date.now() - tappedAt });
         } catch {
-            this._enqueueAction('resume', this.stopwatchIdValue);
+            this._enqueueAction('resume', this.stopwatchIdValue, {}, tappedAt);
         }
     }
 
@@ -467,8 +474,8 @@ export default class extends Controller {
 
     // --- Offline Queue ---
 
-    _enqueueAction(action, stopwatchId) {
-        this._actionQueue.push({ action, stopwatchId, timestamp: Date.now() });
+    _enqueueAction(action, stopwatchId, body = {}, timestamp = Date.now()) {
+        this._actionQueue.push({ action, stopwatchId, body, timestamp });
         localStorage.setItem('stopwatch-queue', JSON.stringify(this._actionQueue));
     }
 
@@ -480,12 +487,21 @@ export default class extends Controller {
 
         for (const item of queue) {
             try {
-                await this._apiPost(`/api/stopwatch/${item.stopwatchId}/${item.action}`);
+                await this._apiPost(`/api/stopwatch/${item.stopwatchId}/${item.action}`, this._queuedBody(item));
             } catch {
-                this._enqueueAction(item.action, item.stopwatchId);
+                this._enqueueAction(item.action, item.stopwatchId, item.body ?? {}, item.timestamp);
                 break;
             }
         }
+    }
+
+    // A queued Continue tells the server when it was tapped; a queued Stop carries what the stopwatch showed
+    _queuedBody(item) {
+        if (item.action === 'resume') {
+            return { tappedMsAgo: Math.max(0, Date.now() - item.timestamp) };
+        }
+
+        return item.body ?? {};
     }
 
     async _apiPost(url, body = null) {

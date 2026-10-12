@@ -14,6 +14,11 @@ final class LapsArrayDoctrineType extends JsonType
 {
     public const string NAME = 'laps[]';
 
+    // Milliseconds since 2026-10-12: whole seconds at both ends of a lap made a saved time up to a second longer
+    private const string FORMAT = 'Y-m-d H:i:s.v';
+
+    private const string LEGACY_FORMAT = 'Y-m-d H:i:s';
+
     /**
      * @return null|array<Lap>
      *
@@ -33,13 +38,10 @@ final class LapsArrayDoctrineType extends JsonType
         foreach ($jsonData as $lapData) {
             /** @var array{start: string, end: null|string} $lapData */
 
-            $start = DateTimeImmutable::createFromFormat('Y-m-d H:i:s', $lapData['start']);
-            assert($start instanceof DateTimeImmutable);
-
-            $end = $lapData['end'] === null ? null : DateTimeImmutable::createFromFormat('Y-m-d H:i:s', $lapData['end']);
-            assert($end === null || $end instanceof DateTimeImmutable);
-
-            $laps[] = new Lap($start, $end);
+            $laps[] = new Lap(
+                self::parse($lapData['start']),
+                $lapData['end'] === null ? null : self::parse($lapData['end']),
+            );
         }
 
         return $laps;
@@ -59,11 +61,20 @@ final class LapsArrayDoctrineType extends JsonType
 
         foreach ($value as $lap) {
             $data[] = [
-                'start' => $lap->start->format('Y-m-d H:i:s'),
-                'end' => $lap->end?->format('Y-m-d H:i:s'),
+                'start' => $lap->start->format(self::FORMAT),
+                'end' => $lap->end?->format(self::FORMAT),
             ];
         }
 
         return parent::convertToDatabaseValue($data, $platform);
+    }
+
+    private static function parse(string $value): DateTimeImmutable
+    {
+        $date = DateTimeImmutable::createFromFormat('!' . self::FORMAT, $value)
+            ?: DateTimeImmutable::createFromFormat('!' . self::LEGACY_FORMAT, $value);
+        assert($date instanceof DateTimeImmutable);
+
+        return $date;
     }
 }

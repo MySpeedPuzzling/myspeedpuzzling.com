@@ -88,6 +88,62 @@ final class StopwatchTest extends TestCase
         self::assertNotNull($stopwatch->laps[0]->end);
     }
 
+    public function testPauseEndsTheLapWhereTheShownTimeSays(): void
+    {
+        $stopwatch = $this->createStopwatch();
+        $stopwatch->start(new DateTimeImmutable('2024-01-01 10:00:00.950'));
+
+        // Stopped at 5.987 s on the phone, the request reached the server later
+        $stopwatch->pause(new DateTimeImmutable('2024-01-01 10:00:07.300'), 5_987);
+
+        self::assertSame('2024-01-01 10:00:06.937', $stopwatch->laps[0]->end?->format('Y-m-d H:i:s.v'));
+        self::assertSame(5_987, $stopwatch->laps[0]->durationMilliseconds());
+    }
+
+    public function testShownTimeCountsTheFinishedLapsToo(): void
+    {
+        $stopwatch = $this->createStopwatch();
+        $stopwatch->start(new DateTimeImmutable('2024-01-01 10:00:00.000'));
+        $stopwatch->pause(new DateTimeImmutable('2024-01-01 10:00:10.000'), 3_500);
+        $stopwatch->resume(new DateTimeImmutable('2024-01-01 10:01:00.000'));
+
+        $stopwatch->pause(new DateTimeImmutable('2024-01-01 10:01:05.000'), 7_250);
+
+        self::assertSame(3_500, $stopwatch->laps[0]->durationMilliseconds());
+        self::assertSame(3_750, $stopwatch->laps[1]->durationMilliseconds());
+    }
+
+    public function testShownTimeCannotRunFarAheadOfTheServer(): void
+    {
+        $stopwatch = $this->createStopwatch();
+        $stopwatch->start(new DateTimeImmutable('2024-01-01 10:00:00'));
+
+        $stopwatch->pause(new DateTimeImmutable('2024-01-01 10:00:30'), 3_600_000);
+
+        self::assertSame(30_000 + Stopwatch::SHOWN_TIME_TOLERANCE_MILLISECONDS, $stopwatch->laps[0]->durationMilliseconds());
+    }
+
+    public function testWithoutShownTimeTheLapEndsNow(): void
+    {
+        $stopwatch = $this->createStopwatch();
+        $stopwatch->start(new DateTimeImmutable('2024-01-01 10:00:00'));
+
+        $stopwatch->pause(new DateTimeImmutable('2024-01-01 10:00:30.250'));
+
+        self::assertSame(30_250, $stopwatch->laps[0]->durationMilliseconds());
+    }
+
+    public function testResumeNeverStartsBeforeThePreviousLapEnded(): void
+    {
+        $stopwatch = $this->createStopwatch();
+        $stopwatch->start(new DateTimeImmutable('2024-01-01 10:00:00'));
+        $stopwatch->pause(new DateTimeImmutable('2024-01-01 10:00:30'));
+
+        $stopwatch->resume(new DateTimeImmutable('2024-01-01 10:00:20'));
+
+        self::assertSame('2024-01-01 10:00:30', $stopwatch->laps[1]->start->format('Y-m-d H:i:s'));
+    }
+
     private function createStopwatch(): Stopwatch
     {
         $player = new Player(

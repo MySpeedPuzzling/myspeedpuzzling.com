@@ -60,6 +60,22 @@ final class ApiStopwatchControllersTest extends WebTestCase
         self::assertTrue($data['ok']);
     }
 
+    public function testPauseSavesTheTimeTheStopwatchShowed(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        // The fixture stopwatch runs for 10 minutes; the phone showed 2:03.987 at Stop
+        $browser->request('POST', '/api/stopwatch/' . StopwatchFixture::STOPWATCH_RUNNING . '/pause', server: ['CONTENT_TYPE' => 'application/json'], content: (string) json_encode([
+            'shownTotalMs' => 123_987,
+        ]));
+        self::assertResponseIsSuccessful();
+
+        /** @var array{totalSeconds: int} $data */
+        $data = json_decode((string) $browser->getResponse()->getContent(), true);
+        self::assertSame(123, $data['totalSeconds']);
+    }
+
     public function testResumeStopwatch(): void
     {
         $browser = self::createClient();

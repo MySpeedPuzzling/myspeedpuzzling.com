@@ -40,15 +40,15 @@ class LapsArrayDoctrineTypeTest extends TestCase
             [
                 new Lap(new DateTimeImmutable('@1699400000'), null),
             ],
-            '[{"start":"2023-11-07 23:33:20","end":null}]',
+            '[{"start":"2023-11-07 23:33:20.000","end":null}]',
         ];
 
         yield [
             [
-                new Lap(new DateTimeImmutable('@1699400000'), new DateTimeImmutable('@1699400010')),
+                new Lap(new DateTimeImmutable('@1699400000'), new DateTimeImmutable('@1699400010.987')),
                 new Lap(new DateTimeImmutable('@1699400020'), null),
             ],
-            '[{"start":"2023-11-07 23:33:20","end":"2023-11-07 23:33:30"},{"start":"2023-11-07 23:33:40","end":null}]',
+            '[{"start":"2023-11-07 23:33:20.000","end":"2023-11-07 23:33:30.987"},{"start":"2023-11-07 23:33:40.000","end":null}]',
         ];
     }
 
@@ -89,6 +89,14 @@ class LapsArrayDoctrineTypeTest extends TestCase
             [
                 new Lap(new DateTimeImmutable('@1699400000'), new DateTimeImmutable('@1699400010')),
                 new Lap(new DateTimeImmutable('@1699400020'), null),
+            ],
+        ];
+
+        // Milliseconds, stored since 2026-10-12
+        yield [
+            '[{"start":"2023-11-07 23:33:20.950","end":"2023-11-07 23:33:26.937"}]',
+            [
+                new Lap(new DateTimeImmutable('@1699400000.950'), new DateTimeImmutable('@1699400006.937')),
             ],
         ];
     }

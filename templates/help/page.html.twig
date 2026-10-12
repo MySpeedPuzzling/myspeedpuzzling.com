@@ -3,7 +3,11 @@
 {#
     Help & feedback as a page (docs/features/navigation README §4.5): the fallback of the Help sheet - no JS, a new tab,
     the native app. Not for the index (noindex, follow); its ?url= variants are kept out of crawling by robots.txt.
-    Signed-in players get the feedback box as a plain form (FeedbackController: Post/Redirect/Get, HELP-01b).
+    Signed-in players get the feedback box as a plain form (FeedbackController: Post/Redirect/Get, HELP-01b), with the
+    sheet's draft (help-sheet, per player - HELP review F3): a draft typed into the sheet comes back here (a send whose
+    session ended leads here, HELP-05 (d)) and a send from here clears it. Guests get no controller (shared-cacheable).
+    data-help-page: a Help sheet opener on this page leads to this box instead of opening the sheet over it
+    (assets/help_openers.js, review F5).
 #}
 
 {% set hide_comparison_launcher = true %}
@@ -15,7 +19,8 @@
 {% block page_help_line %}{% endblock %}
 
 {% block content %}
-    <div class="help-page mx-auto" style="max-width: 40rem;" data-help-sheet>
+    <div class="help-page mx-auto" style="max-width: 40rem;" data-help-sheet data-help-page
+        {%- if logged_user.profile is not null %} data-controller="help-sheet" data-help-sheet-player-value="{{ logged_user.profile.playerId }}" data-help-sheet-sign-in-path-value="{{ path('login') }}"{% endif %}>
         <h1 class="mb-3">{{ 'help.title'|trans }}</h1>
 
         {{ include('help/_content.html.twig') }}

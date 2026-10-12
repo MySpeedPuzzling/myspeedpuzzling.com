@@ -9025,6 +9025,7 @@ help:
         sent_title: "Vielen Dank!"
         sent_text: "Wir haben Ihre Nachricht erhalten und lesen sie bald. Wenn sie eine Antwort braucht, melden wir uns per E-Mail."
         send_another: "Weitere Nachricht senden"
+        send_failed: "Ihre Nachricht konnte nicht gesendet werden. Sie ist noch da - bitte versuchen Sie es gleich noch einmal."
     suggest_correction: "Korrektur zu diesem Puzzle vorschlagen"
     suggest_correction_desc: "Falscher Name, Marke, Teilezahl, Code oder Foto? Oder ein Duplikat?"
     language: "Sprache"

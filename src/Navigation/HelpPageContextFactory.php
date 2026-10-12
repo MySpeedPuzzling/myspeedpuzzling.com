@@ -8,15 +8,56 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Value\ReturnUrl;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Exception\ExceptionInterface as RoutingException;
+use Symfony\Component\Routing\Route;
 use Symfony\Component\Routing\RouterInterface;
 
 /**
  * Reads the Help sheet's ?url= (implementation plan §7, HELP-01a). The parameter is untrusted: only a same-site
  * relative path (ReturnUrl) or an absolute URL on the request's own host (old feedback links carried app.request.uri)
  * is accepted, and only when the router matches it - anything else is the empty context. Plain value logic, no state.
+ *
+ * Private links (HELP review Q2): a page whose URL holds a private token is never attached by its URL - not by the
+ * openers (help_path()), not in the box, not in the e-mail. Its token-free path stands in for it ("/delete-account/{token}":
+ * the route's path, every variable left as its placeholder, the query dropped), recognised again when it comes back.
  */
 final readonly class HelpPageContextFactory
 {
+    /**
+     * Every route whose URL carries a private token - a token in the path, a signed query (UriSigner) or a secret query
+     * parameter. Canonical names (a localized route's every locale). HelpPrivateLinkRoutesTest fails for a token route
+     * missing here.
+     */
+    public const array PRIVATE_LINK_ROUTES = [
+        // A token in the path
+        'claim_oauth2_credentials',
+        'confirm_account_deletion',
+        'email_preferences',
+        'email_preferences_save',
+        'newsletter_confirm',
+        'newsletter_unsubscribe',
+        'newsletter_unsubscribe_confirm',
+        'newsletter_unsubscribed',
+        'participant_import_confirm',
+        'participant_import_discard',
+        'participant_import_preview',
+        'password_reset',
+        'photo_stash_preview',
+        'social_link_finish',
+        // A signed query (UriSigner): whoever has the link acts for the player
+        'content_digest_unsubscribe',
+        'digest_emails_unsubscribe',
+        'result_emails_unsubscribe',
+        // A secret in the query
+        'claim_voucher',
+        'sign_in_link_check',
+        'social_login_callback',
+        'social_register_confirm',
+        'verify_email',
+    ];
+
+    /** A localized route has one route per locale (name.en, …) */
+    private const array LOCALES = ['cs', 'en', 'es', 'ja', 'fr', 'de'];
+
     public function __construct(
         private RouterInterface $router,
     ) {
@@ -31,6 +72,13 @@ final readonly class HelpPageContextFactory
         }
 
         $pathname = (string) parse_url('http://host' . $path, PHP_URL_PATH);
+
+        // A private link (its URL, or its token-free path coming back from an opener): never kept by its URL
+        $privateLinkPath = $this->tokenFreePathOf($pathname);
+
+        if ($privateLinkPath !== null) {
+            return HelpPageContext::privateLink($privateLinkPath);
+        }
 
         // A page is something one GETs: matched as a GET even from the feedback box's POST (HELP-01b) - the router's
         // context carries the current request's method, and GET-only routes (e.g. `menu`) refuse a POST
@@ -71,6 +119,106 @@ final readonly class HelpPageContextFactory
             routeParams: $params,
             puzzleId: $route === 'puzzle_detail' && is_string($puzzleId) && Uuid::isValid($puzzleId) ? $puzzleId : null,
         );
+    }
+
+    /**
+     * help_path() on a private link page (HELP review Q2): the token-free path the opener attaches instead of the URL,
+     * null on any other page
+     */
+    public function privateLinkPathOfRequest(Request $request): null|string
+    {
+        $canonical = $request->attributes->get('_canonical_route') ?? $request->attributes->get('_route');
+        $name = $request->attributes->get('_route');
+
+        if (!in_array($canonical, self::PRIVATE_LINK_ROUTES, true) || !is_string($name)) {
+            return null;
+        }
+
+        // The matched name of a localized route is its canonical one, the collection holds name.<locale>
+        $routes = $this->router->getRouteCollection();
+        $route = $routes->get($name) ?? $routes->get($name . '.' . $request->getLocale());
+
+        return $route !== null ? self::tokenFreePath($route, $request->getLocale()) : null;
+    }
+
+    /**
+     * The token-free path of a private link page, given its URL's path (any method: a form page re-rendered at its
+     * POST URL counts too) or its token-free path itself; null for any other path
+     */
+    private function tokenFreePathOf(string $pathname): null|string
+    {
+        $decoded = rawurldecode($pathname);
+        $routes = $this->router->getRouteCollection();
+
+        foreach (self::PRIVATE_LINK_ROUTES as $name) {
+            foreach ($this->variantsOf($name) as $variant) {
+                $route = $routes->get($variant);
+
+                if ($route === null) {
+                    continue;
+                }
+
+                if (preg_match($route->compile()->getRegex(), $decoded, $matches) === 1) {
+                    $locale = $matches['_locale'] ?? $route->getDefault('_locale');
+
+                    return self::tokenFreePath($route, is_string($locale) ? $locale : '');
+                }
+
+                foreach (self::localesOf($route) as $locale) {
+                    if ($decoded === self::tokenFreePath($route, $locale)) {
+                        return $decoded;
+                    }
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * The route itself, or a localized route's one route per locale (name.en, …)
+     *
+     * @return list<string>
+     */
+    private function variantsOf(string $name): array
+    {
+        $routes = $this->router->getRouteCollection();
+
+        if ($routes->get($name) !== null) {
+            return [$name];
+        }
+
+        $variants = [];
+
+        foreach (self::LOCALES as $locale) {
+            $variants[] = $name . '.' . $locale;
+        }
+
+        return $variants;
+    }
+
+    /**
+     * The locales a {_locale} in the route's path stands for (none without one)
+     *
+     * @return list<string>
+     */
+    private static function localesOf(Route $route): array
+    {
+        if (!str_contains($route->getPath(), '{_locale}')) {
+            return [''];
+        }
+
+        $requirement = $route->getRequirement('_locale');
+
+        return $requirement !== null ? explode('|', $requirement) : self::LOCALES;
+    }
+
+    /**
+     * The route's path with its locale filled in and every other variable left as its {placeholder}
+     */
+    private static function tokenFreePath(Route $route, string $locale): string
+    {
+        return $locale !== '' ? str_replace('{_locale}', $locale, $route->getPath()) : $route->getPath();
     }
 
     /**

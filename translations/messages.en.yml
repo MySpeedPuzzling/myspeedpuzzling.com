@@ -9298,6 +9298,7 @@ help:
         sent_title: "Thank you!"
         sent_text: "We have received your message and will read it soon. If it needs an answer, we will reply by e-mail."
         send_another: "Send another"
+        send_failed: "Your message could not be sent. It is still here - please try again in a moment."
     suggest_correction: "Suggest a correction to this puzzle"
     suggest_correction_desc: "Wrong name, brand, piece count, code or photo? Or a duplicate?"
     language: "Language"

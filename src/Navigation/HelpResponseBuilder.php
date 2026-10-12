@@ -96,7 +96,8 @@ final readonly class HelpResponseBuilder
     public function feedbackForm(HelpPageContext $context): FormInterface
     {
         $data = new FeedbackFormData();
-        $data->url = $context->path ?? '';
+        // A private link page goes along by its token-free path (HELP review Q2)
+        $data->url = $context->attachedPath() ?? '';
 
         return $this->formFactory->create(FeedbackFormType::class, $data, [
             'action' => $this->urlGenerator->generate('feedback'),

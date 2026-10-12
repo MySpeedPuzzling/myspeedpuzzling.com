@@ -32,13 +32,18 @@ window.bootstrap = { Modal, Dropdown, Collapse, Tab, Toast };
 import * as Turbo from '@hotwired/turbo';
 import './turbo-stream-actions.js'
 // Back closes the top layer: the one owner of history entries next to Turbo, listening on every page (GEST-01)
-import './layer_history.js';
+import layers from './layer_history.js';
 import { startNavInstrumentation } from './nav_instrumentation.js';
 import { installConfirmDialog } from './confirm_dialog.js';
 import { installDocumentReceipts } from './document_receipt.js';
+import { installHelpOpeners } from './help_openers.js';
 
 // When each page's HTML arrived, before any lazy controller loads - the stopwatch pill's clock (ADD-03 review F5)
 installDocumentReceipts({ window, document });
+
+// The Help sheet's openers: the ?url= of the page as it is at the tap, the help page's own box on the help page
+// (HELP review F4, F5)
+installHelpOpeners({ window, document, layers });
 
 Turbo.config.drive.progressBarDelay = 0;
 

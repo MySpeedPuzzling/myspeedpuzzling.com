@@ -34,6 +34,10 @@ final class HelpSheetGuestTest extends WebTestCase
         );
         self::assertCount(0, $crawler->filter('form[name="feedback_form"]'));
         self::assertCount(0, $sheet->filter('form, [name="_token"], [name$="[_token]"], textarea'));
+        // The page's own box (data-help-page, HELP review F5) without the draft controller: nothing per visitor (F3)
+        self::assertNotNull($sheet->attr('data-help-page'));
+        self::assertNull($sheet->attr('data-controller'));
+        self::assertNull($sheet->attr('data-help-sheet-player-value'));
 
         $this->assertSignInLeadsBackToTheHelpPage($sheet);
     }

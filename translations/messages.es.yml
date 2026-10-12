@@ -9026,6 +9026,7 @@ help:
         sent_title: "¡Gracias!"
         sent_text: "Hemos recibido tu mensaje y lo leeremos pronto. Si necesita respuesta, te escribiremos por correo electrónico."
         send_another: "Enviar otro"
+        send_failed: "No se ha podido enviar tu mensaje. Sigue aquí: inténtalo de nuevo en un momento."
     suggest_correction: "Sugerir una corrección de este rompecabezas"
     suggest_correction_desc: "¿Nombre, marca, número de piezas, código o foto incorrectos? ¿O un duplicado?"
     language: "Idioma"

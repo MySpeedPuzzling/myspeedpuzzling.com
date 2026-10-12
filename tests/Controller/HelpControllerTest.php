@@ -56,7 +56,18 @@ final class HelpControllerTest extends WebTestCase
         if ($playerId !== null) {
             self::assertSame('/en/feedback', $form->attr('action'));
             self::assertNull($form->attr('data-turbo-frame'));
+            // A page send is a full page: a failure is a page of its own, no in-sheet error line (HELP review F2)
+            self::assertCount(0, $form->filter('[data-modal-submit-error]'));
         }
+
+        // The page's own box (HELP review F3, F5): data-help-page - an opener on this page leads here instead of opening
+        // the sheet over it -, and for signed-in players the sheet's draft per player (restored here, cleared by a send
+        // that was not answered by the sign-in page); guests get no controller (nothing per visitor in shared HTML)
+        $root = $crawler->filter('main [data-help-sheet]');
+        self::assertNotNull($root->attr('data-help-page'));
+        self::assertSame($playerId !== null ? 'help-sheet' : null, $root->attr('data-controller'));
+        self::assertSame($playerId, $root->attr('data-help-sheet-player-value'));
+        self::assertSame($playerId !== null ? '/login' : null, $root->attr('data-help-sheet-sign-in-path-value'));
 
         $cacheControl = (string) $browser->getResponse()->headers->get('Cache-Control');
 

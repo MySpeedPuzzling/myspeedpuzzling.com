@@ -14,11 +14,16 @@
       through Back first, then reloads the page; without JS (and on the full page) a full visit.
     Variables: items (list<HelpSheetItem>), context (HelpPageContext), feedback_form (null for guests), in_frame (the sheet;
     the form posts into it), sent (the sheet's sent state - the confirmation, Close and "Send another").
+    The attached page is the context's path - or, for a page whose URL holds a private token, its token-free path
+    (HELP review Q2): shown and sent on, never linked.
+    In the sheet a send answered by a server error or lost on the way keeps the sheet and the typed text and shows
+    data-modal-submit-error (dynamic_modal_controller.js, HELP review F2).
 #}
 {% set in_frame = in_frame|default(false) %}
 {% set sent = sent|default(false) and in_frame %}
 {% set signed_in = logged_user.profile is not null %}
-{% set help_query = context.path is not null ? {url: context.path} : {} %}
+{% set attached = context.attachedPath %}
+{% set help_query = attached is not null ? {url: attached} : {} %}
 {% set help_page = path('help', help_query) %}
 {% set language_names = {en: 'English', de: 'Deutsch', cs: 'Čeština', fr: 'Français', es: 'Español', ja: '日本語'} %}
 {% for item in items|filter(item => item.kind.value in ['feedback', 'sign_in']) %}
@@ -42,7 +47,7 @@
                 }) }}
                     {#- The page the sheet was opened on goes along (the hidden url field): said under the field, by its path -#}
                     {{ form_row(feedback_form.message, {
-                        help: context.path is not null ? 'help.feedback.page_attached' : null,
+                        help: attached is not null ? 'help.feedback.page_attached' : null,
                         attr: {
                             rows: 4,
                             maxlength: constant('SpeedPuzzling\\Web\\FormData\\FeedbackFormData::MESSAGE_MAX_LENGTH'),
@@ -50,8 +55,11 @@
                             'data-help-sheet-target': 'message',
                         },
                     }) }}
-                    {% if context.path is not null %}
-                        <p class="help-feedback-page form-text text-break mt-n2 mb-3"><i class="bi bi-link-45deg me-1" aria-hidden="true"></i><span>{{ context.path }}</span></p>
+                    {% if attached is not null %}
+                        <p class="help-feedback-page form-text text-break mt-n2 mb-3"><i class="bi bi-link-45deg me-1" aria-hidden="true"></i><span>{{ attached }}</span></p>
+                    {% endif %}
+                    {% if in_frame %}
+                        <p class="help-feedback-error alert alert-danger small py-2 px-3 mb-3" role="alert" hidden data-modal-submit-error>{{ 'help.feedback.send_failed'|trans }}</p>
                     {% endif %}
                     <button type="submit" class="btn btn-primary" data-nav="help/help/send_feedback">{{ 'forms.send_feedback'|trans }}</button>
                 {{ form_end(feedback_form) }}

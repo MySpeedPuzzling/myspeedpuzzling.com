@@ -13,7 +13,8 @@ use Symfony\Component\Routing\RouterInterface;
 
 /**
  * The Help sheet's ?url= is untrusted (implementation plan §7, HELP-01a): only a same-site path, or an absolute URL on
- * the request's own host, that the router matches becomes the page context - anything else is the empty context.
+ * the request's own host, that the router matches becomes the page context - anything else is the empty context. A
+ * page whose URL holds a private token is known by its token-free path only (HELP review Q2).
  */
 final class HelpPageContextFactoryTest extends KernelTestCase
 {
@@ -122,6 +123,50 @@ final class HelpPageContextFactoryTest extends KernelTestCase
         self::assertNull($context->routeName);
         self::assertSame([], $context->routeParams);
         self::assertNull($context->puzzleId);
+        self::assertNull($context->privateLinkPath);
+        self::assertNull($context->attachedPath());
+    }
+
+    /**
+     * HELP review Q2: a page whose URL holds a private token is known by its token-free path only - from its URL (any
+     * method, absolute or relative, the query dropped) and from that path coming back from an opener (help_path()).
+     * No page path, no route: nothing links to it (the sheet's language row, Reload, the redirect after a send) and the
+     * e-mail never gets the token.
+     *
+     * @return iterable<string, array{string, string}>
+     */
+    public static function providePrivateLinks(): iterable
+    {
+        yield 'delete account' => ['/delete-account/S3cretT0kenValue', '/delete-account/{token}'];
+        yield 'delete account, its token-free path coming back' => ['/delete-account/{token}', '/delete-account/{token}'];
+        yield 'e-mail preferences' => ['/en/email-preferences/S3cretT0kenValue', '/en/email-preferences/{token}'];
+        yield 'e-mail preferences, German' => ['/de/e-mail-einstellungen/S3cretT0kenValue', '/de/e-mail-einstellungen/{token}'];
+        yield 'e-mail preferences, its token-free path coming back' => ['/en/email-preferences/{token}', '/en/email-preferences/{token}'];
+        // A POST-only route: the page re-rendered at its POST URL (a form with errors)
+        yield 'e-mail preferences save' => ['/en/email-preferences/S3cretT0kenValue/save', '/en/email-preferences/{token}/save'];
+        yield 'newsletter confirm, absolute' => ['http://localhost/en/newsletter/confirm/S3cretT0kenValue', '/en/newsletter/confirm/{token}'];
+        yield 'newsletter unsubscribed' => ['/en/newsletter/unsubscribe/S3cretT0kenValue/done', '/en/newsletter/unsubscribe/{token}/done'];
+        yield 'a signed unsubscribe link' => ['/en/result-emails/unsubscribe/018d0000-0000-0000-0000-000000000001?_hash=S3cretT0kenValue&expires=1', '/en/result-emails/unsubscribe/{playerId}'];
+        yield 'a signed digest link' => ['/cs/activity-digest/unsubscribe/018d0000-0000-0000-0000-000000000001?_hash=S3cretT0kenValue', '/cs/activity-digest/unsubscribe/{playerId}'];
+        yield 'a photo stash preview' => ['/en/photo-stash/' . str_repeat('ab', 16), '/en/photo-stash/{token}'];
+        yield 'OAuth2 credentials, ja percent-encoded' => ['/ja/' . rawurlencode('OAuth2認証情報取得') . '/S3cretT0kenValue', '/ja/OAuth2認証情報取得/{claimToken}'];
+        yield 'a voucher code in the query' => ['/en/claim-voucher?code=S3cretT0kenValue', '/en/claim-voucher'];
+        yield 'a sign-in link' => ['/login-link/check?user=a&expires=1&hash=S3cretT0kenValue', '/login-link/check'];
+    }
+
+    #[DataProvider('providePrivateLinks')]
+    public function testAPrivateLinkIsKnownByItsTokenFreePathOnly(string $url, string $tokenFreePath): void
+    {
+        $context = $this->factory()->fromUrlParameter($url, Request::create('http://localhost/en/help'));
+
+        self::assertSame($tokenFreePath, $context->privateLinkPath);
+        self::assertSame($tokenFreePath, $context->attachedPath());
+        self::assertTrue($context->isEmpty());
+        self::assertNull($context->path);
+        self::assertNull($context->routeName);
+        self::assertSame([], $context->routeParams);
+        self::assertNull($context->puzzleId);
+        self::assertStringNotContainsString('S3cretT0kenValue', serialize($context));
     }
 
     private function factory(): HelpPageContextFactory

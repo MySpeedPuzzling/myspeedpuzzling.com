@@ -28,7 +28,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  *   about (else `help`); errors re-render the page with 422.
  * - GET: the Help sheet's frame for a frame request (today's top bar / footer Feedback links), else 302 to `help` with
  *   the same page.
- * The page URL in the e-mail is rebuilt from the validated context (absolute, on this host), never taken as sent.
+ * The page URL in the e-mail is rebuilt from the validated context (absolute, on this host), never taken as sent; a page
+ * whose URL holds a private token is named by its token-free path only (HELP review Q2).
  */
 #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
 final class FeedbackController extends AbstractController
@@ -38,6 +39,9 @@ final class FeedbackController extends AbstractController
 
     /** Sent from the sheet without a page (the bare help page): the e-mail says so (HELP-02) */
     public const string NO_PAGE = 'no page';
+
+    /** After a private link page's token-free path in the e-mail (HELP review Q2) */
+    public const string PRIVATE_LINK_NOTE = '(a private link - its token is not sent)';
 
     public function __construct(
         readonly private MessageBusInterface $messageBus,
@@ -68,7 +72,9 @@ final class FeedbackController extends AbstractController
                 return $this->helpResponseBuilder->response($request, $context);
             }
 
-            return $this->redirectToRoute('help', $context->path !== null ? ['url' => $context->path] : []);
+            $attached = $context->attachedPath();
+
+            return $this->redirectToRoute('help', $attached !== null ? ['url' => $attached] : []);
         }
 
         $data = new FeedbackFormData();
@@ -102,6 +108,10 @@ final class FeedbackController extends AbstractController
     {
         if ($context->path !== null) {
             return $request->getSchemeAndHttpHost() . $context->path;
+        }
+
+        if ($context->privateLinkPath !== null) {
+            return $request->getSchemeAndHttpHost() . $context->privateLinkPath . ' ' . self::PRIVATE_LINK_NOTE;
         }
 
         $sentUrl = trim($sentUrl);

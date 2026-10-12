@@ -67,6 +67,44 @@ final class FeedbackControllerTest extends WebTestCase
         self::assertSame('/en/faq', trim($form->filter('.help-feedback-page')->text()));
         self::assertSame('Send', trim($form->filter('button[type="submit"]')->text()));
         self::assertSame('help/help/send_feedback', $form->filter('button[type="submit"]')->attr('data-nav'));
+
+        // A send answered by a server error or lost on the way keeps the sheet and the typed text and shows this line
+        // instead (dynamic_modal_controller.js, HELP review F2) - hidden until then, announced when shown
+        $error = $form->filter('[data-modal-submit-error]');
+        self::assertCount(1, $error);
+        self::assertNotNull($error->attr('hidden'));
+        self::assertSame('alert', $error->attr('role'));
+        self::assertSame('Your message could not be sent. It is still here - please try again in a moment.', trim($error->text()));
+    }
+
+    /**
+     * HELP review Q2: a page whose URL holds a private token is attached by its token-free path - in the box, the form,
+     * the fallback page and the e-mail - and its token goes nowhere
+     */
+    public function testAPrivateLinkPageIsSentWithoutItsToken(): void
+    {
+        $browser = $this->signedIn();
+        $crawler = $browser->request('GET', '/en/help?url=' . rawurlencode('/en/newsletter/confirm/S3cretT0kenValue'), server: self::FRAME);
+
+        self::assertResponseIsSuccessful();
+        self::assertStringNotContainsString('S3cretT0kenValue', (string) $browser->getResponse()->getContent());
+        $root = $crawler->filter('turbo-frame#modal-frame > [data-help-sheet]');
+        self::assertSame('/en/help?url=/en/newsletter/confirm/%7Btoken%7D', $root->attr('data-modal-fallback-url'));
+        self::assertSame('/en/newsletter/confirm/{token}', trim($root->filter('.help-feedback-page')->text()));
+
+        $form = $root->filter('form[name="feedback_form"]');
+        self::assertSame('/en/newsletter/confirm/{token}', $form->filter('input[name="feedback_form[url]"]')->attr('value'));
+
+        // Even a form posting the token itself (an old link) never mails it
+        $browser->submit($form->form(), [
+            'feedback_form[message]' => 'The confirmation did not work.',
+            'feedback_form[url]' => 'http://localhost/en/newsletter/confirm/S3cretT0kenValue',
+        ], self::FRAME);
+
+        self::assertResponseStatusCodeSame(200);
+        $html = (string) $this->onlyFeedbackMail()->getHtmlBody();
+        self::assertStringContainsString('<b>URL:</b> http://localhost/en/newsletter/confirm/{token} (a private link - its token is not sent)<br>', $html);
+        self::assertStringNotContainsString('S3cretT0kenValue', $html);
     }
 
     public function testWithoutAPageNothingIsSaidToBeAttached(): void

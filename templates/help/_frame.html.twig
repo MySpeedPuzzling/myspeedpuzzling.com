@@ -10,7 +10,7 @@
     the same page attached, as a full visit, instead of closing the sheet with the message silently lost.
 #}
 <turbo-frame id="modal-frame">
-    <div data-modal-size="" data-modal-sheet data-modal-scrollable data-modal-history data-controller="bottom-sheet help-sheet" data-help-sheet{% if logged_user.profile is not null %} data-help-sheet-player-value="{{ logged_user.profile.playerId }}" data-modal-fallback-url="{{ path('help', context.path is not null ? {url: context.path} : {}) }}"{% endif %}{% if sent|default(false) %} data-help-sheet-sent{% endif %}>
+    <div data-modal-size="" data-modal-sheet data-modal-scrollable data-modal-history data-controller="bottom-sheet help-sheet" data-help-sheet{% if logged_user.profile is not null %} data-help-sheet-player-value="{{ logged_user.profile.playerId }}" data-modal-fallback-url="{{ path('help', context.attachedPath is not null ? {url: context.attachedPath} : {}) }}"{% endif %}{% if sent|default(false) %} data-help-sheet-sent{% endif %}>
         <div class="bottom-sheet-top" data-bottom-sheet-target="handle">
             <span class="bottom-sheet-handle" aria-hidden="true"></span>
             <div class="modal-header">

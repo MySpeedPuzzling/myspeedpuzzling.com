@@ -17,10 +17,14 @@ const RELEASE_EVENT = 'modal:release';
  * - Focus goes to the field when the sheet is shown to a signed-in player (iOS may still want a second tap: a field
  *   focused outside the tap's own handler opens no keyboard there - QA-06), and when a form with an error came back.
  * - reload(): the "Reload page" row (HELP-02) closes the sheet first (Back, layer_history closeThen), then reloads.
+ * - The help page (help/page.html.twig, no .modal around it - HELP review F3): the same draft comes back into its box (a
+ *   send whose session ended leads there, HELP-05 (d)), and a send from it that went through clears the draft - Turbo
+ *   Drive's turbo:submit-end succeeded and was not answered by the sign-in page (`data-help-sheet-sign-in-path-value`:
+ *   the session ended, the firewall sent the POST to sign in, nothing was sent). A 422 comes back with the typed text.
  */
 export default class extends Controller {
     static targets = ['message', 'sent', 'box'];
-    static values = { player: String };
+    static values = { player: String, signInPath: String };
 
     connect() {
         this.host = this.element.closest('.modal');
@@ -37,6 +41,10 @@ export default class extends Controller {
         this.element.addEventListener('input', this.onInput);
         this.host?.addEventListener('shown.bs.modal', this.onShown);
 
+        if (this.host === null) {
+            this.element.addEventListener('turbo:submit-end', this.onPageSubmitEnd);
+        }
+
         // Content swapped into the open sheet (the form came back with an error): no shown event comes
         if (!sent && this.host?.classList.contains('show')) {
             this.focusMessage();
@@ -46,6 +54,7 @@ export default class extends Controller {
     disconnect() {
         this.element.removeEventListener('input', this.onInput);
         this.host?.removeEventListener('shown.bs.modal', this.onShown);
+        this.element.removeEventListener('turbo:submit-end', this.onPageSubmitEnd);
     }
 
     onInput = (event) => {
@@ -56,6 +65,24 @@ export default class extends Controller {
 
     onShown = () => {
         this.focusMessage();
+    };
+
+    /** The help page's own send (HELP review F3): the message went - nothing to bring back */
+    onPageSubmitEnd = (event) => {
+        const detail = event.detail || {};
+        const form = this.hasMessageTarget ? this.messageTarget.form : null;
+
+        if (!detail.success || form === null || event.target !== form) {
+            return;
+        }
+
+        const location = detail.fetchResponse ? detail.fetchResponse.location : null;
+
+        if (this.signInPathValue !== '' && location && location.pathname === this.signInPathValue) {
+            return;
+        }
+
+        clearDraft(this.storage);
     };
 
     sendAnother() {

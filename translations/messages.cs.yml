@@ -9052,6 +9052,7 @@ help:
         sent_title: "Děkujeme!"
         sent_text: "Tvou zprávu jsme dostali a brzy si ji přečteme. Pokud bude potřeba odpovědět, ozveme se ti e-mailem."
         send_another: "Poslat další"
+        send_failed: "Zprávu se nepodařilo odeslat. Pořád ji tu máš - zkus to prosím za chvíli znovu."
     suggest_correction: "Navrhnout opravu tohoto puzzle"
     suggest_correction_desc: "Špatný název, značka, počet dílků, kód nebo fotka? Nebo duplikát?"
     language: "Jazyk"

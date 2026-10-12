@@ -15,6 +15,13 @@ const STREAM_CONTENT_TYPE = /^text\/vnd\.turbo-stream\.html\b/;
 // the session ended meanwhile and the firewall sent the POST to sign in (the Help sheet, HELP-05 (d))
 const FALLBACK_URL_ATTRIBUTE = 'data-modal-fallback-url';
 
+// Inside a form of the content: shown when its send is answered by a server error or lost on the way - the modal and
+// what was typed stay (the Help sheet's feedback box, HELP review F2)
+const SUBMIT_ERROR = '[data-modal-submit-error]';
+
+// A Turbo Stream answer that never rendered (no <turbo-stream> in it): the modal it left empty closes after this
+const STREAM_SETTLE_MS = 3000;
+
 // A response faster than this opens the modal straight with its content; a slower one shows a spinner first
 const LOADING_DELAY_MS = 150;
 
@@ -100,9 +107,10 @@ function shownMenuButton() {
  * while closed, ending above the phone bottom bar) and closes on a tap outside the dialog itself (the .modal covers the
  * scrim, so the tap lands on the .modal). The content can ask for release() (`modal:release`, the Help sheet's sent
  * state): the scrim goes, taps reach the page through the .modal, the page scrolls again and the dialog is no longer
- * aria-modal - while ×, Esc, a swipe and Back still close it. A modal-frame link on the page behind it loads a new modal
- * that blocks the page again (reclaim(), review F5). Every other modal-frame partial keeps Bootstrap's backdrop and
- * outside-tap close.
+ * aria-modal - while ×, Esc, a swipe and Back still close it. New content that does not ask for the release again blocks
+ * the page again (reclaim()): a modal-frame link on the page behind it (review F5), a link inside it (the puzzle's
+ * "Suggest a correction" row of the sent sheet, HELP review F1), a form answered by anything but the sent state. Every
+ * other modal-frame partial keeps Bootstrap's backdrop and outside-tap close.
  *
  * Focus on close: back to the trigger; a trigger no longer shown (the Menu row of a Menu → Help swap, back in the hidden
  * slot) gives way to what opened the Menu (handed over by menu_layer_controller.js), else the ☰ (review F7).
@@ -113,7 +121,11 @@ function shownMenuButton() {
  * itself ignores hide() then); a modal shown empty closes; a Turbo Stream answer ends the request (no endless spinner)
  * and closes the modal when it left it empty; and once no modal is shown, an orphan .modal-backdrop and Bootstrap's body
  * lock are swept away. Content may name a page for a form answered by something else than modal content
- * (data-modal-fallback-url, the Help sheet): a full visit there instead of an emptied, closed modal.
+ * (data-modal-fallback-url, the Help sheet): a full visit there instead of an emptied, closed modal. A form holding a
+ * [data-modal-submit-error] answered by a server error (5xx) or a network error keeps the modal with what was typed and
+ * shows that error instead (HELP review F2). A Turbo Stream answer that renders nothing closes the empty modal after
+ * STREAM_SETTLE_MS (review Q3). A dismiss button that also opens another Bootstrap modal (the "members only" buttons),
+ * tapped while this one opens, opens that modal once this one has closed (review Q4).
  */
 export default class extends Controller {
     static targets = ['frame', 'loading', 'error'];
@@ -157,6 +169,15 @@ export default class extends Controller {
     // A Turbo Stream answered the modal's request: once it rendered, an emptied modal closes
     streamPending = false;
     streamTimer = null;
+
+    // The submitted form's [data-modal-submit-error] (HELP review F2)
+    submissionError = null;
+
+    // The content asked for the release since the last request (HELP review F1): new content that did not stays blocking
+    releaseRenewed = false;
+
+    // A modal to open once this one has closed: the target of a dismiss-and-toggle button tapped while it opened (Q4)
+    afterHidden = null;
 
     connect() {
         // Disable focus trap to allow interaction with tom-select dropdowns
@@ -210,8 +231,10 @@ export default class extends Controller {
         this.element.addEventListener('click', this.handleModalClick);
         this.element.addEventListener('modal:release', this.handleRelease);
 
-        // ×, a dismiss button or a tap outside while the modal opens: queued instead of lost (HELP-05)
+        // ×, a dismiss button or a tap outside while the modal opens: queued instead of lost (HELP-05); a dismiss that
+        // also opens another modal: before Bootstrap's delegated toggle (review Q4)
         this.element.addEventListener('click', this.handleTransitionClick, true);
+        window.addEventListener('click', this.handleTransitionToggleClick, true);
 
         // A Turbo Stream that answered the modal's request has rendered (HELP-05)
         document.addEventListener('turbo:before-stream-render', this.handleBeforeStreamRender);
@@ -242,6 +265,7 @@ export default class extends Controller {
         this.element.removeEventListener('click', this.handleModalClick);
         this.element.removeEventListener('modal:release', this.handleRelease);
         this.element.removeEventListener('click', this.handleTransitionClick, true);
+        window.removeEventListener('click', this.handleTransitionToggleClick, true);
         document.removeEventListener('turbo:before-stream-render', this.handleBeforeStreamRender);
         document.removeEventListener(MENU_HANDOVER_EVENT, this.handleMenuHandover);
         clearTimeout(this.scrimTimer);
@@ -263,12 +287,21 @@ export default class extends Controller {
         this.pendingOpen = true;
         this.leaving = false;
         this.streamPending = false;
+        clearTimeout(this.streamTimer);
+        this.releaseRenewed = false;
         this.hideError();
 
         // A form of the content submitted: the page its content names for an answer that is no modal content (HELP-05 (d))
         const form = event?.target instanceof HTMLFormElement && this.frameTarget.contains(event.target) ? event.target : null;
         const fallbackRoot = form !== null ? form.closest(`[${FALLBACK_URL_ATTRIBUTE}]`) : null;
         this.submissionFallbackUrl = fallbackRoot !== null ? fallbackRoot.getAttribute(FALLBACK_URL_ATTRIBUTE) : null;
+
+        // Its error line for a failed send (HELP review F2): hidden again for the new try
+        this.submissionError = form !== null ? form.querySelector(SUBMIT_ERROR) : null;
+
+        if (this.submissionError !== null) {
+            this.submissionError.hidden = true;
+        }
 
         const url = event?.detail?.url;
         const method = String(event?.detail?.fetchOptions?.method ?? 'GET').toUpperCase();
@@ -277,13 +310,19 @@ export default class extends Controller {
 
         // Navigation or form submission inside the already open modal - no spinner, keep the trigger
         if (this.isOpen()) {
-            // A modal-frame link on the page behind a released sheet (review F5): a new modal over the page - it blocks
-            // the page again (scrim, aria-modal, outside tap closes) and gives focus back to that link
+            // New content for a released sheet blocks the page again at once (scrim, aria-modal, outside tap closes): a
+            // modal-frame link on the page behind it (review F5) - focus goes back to that link - or a link inside it (the
+            // "Suggest a correction" row of the sent sheet, HELP review F1) - focus keeps the sheet's opener. A form of the
+            // sheet ("Send another") waits for its answer: the sent state stays released, anything else reclaims on load
             if (this.released) {
                 const trigger = this.findTrigger();
+                const outside = trigger !== null && !this.element.contains(trigger);
 
-                if (trigger !== null && !this.element.contains(trigger)) {
-                    this.trigger = trigger;
+                if (outside || (method === 'GET' && form === null)) {
+                    if (outside) {
+                        this.trigger = trigger;
+                    }
+
                     this.reclaim();
                 }
             }
@@ -338,15 +377,29 @@ export default class extends Controller {
         const stream = response !== null && STREAM_CONTENT_TYPE.test(String(response.contentType || ''));
         const fallbackUrl = this.submissionFallbackUrl;
         this.submissionFallbackUrl = null;
+        const submitError = this.submissionError;
+        this.submissionError = null;
 
         if (stream) {
             // The request ends here: no spinner left running, nothing left to open (repro step 3) - and a modal the stream
-            // leaves empty closes once it rendered (handleBeforeStreamRender)
+            // leaves empty closes once it rendered (handleBeforeStreamRender); a stream that renders nothing (no
+            // <turbo-stream> in it) never gets there: the same check after STREAM_SETTLE_MS (review Q3)
             this.pendingOpen = false;
             this.stopLoading();
             this.streamPending = true;
             clearTimeout(this.streamTimer);
-            this.streamTimer = setTimeout(() => { this.streamPending = false; }, 3000);
+            this.streamTimer = setTimeout(this.settleAfterStream, STREAM_SETTLE_MS);
+
+            return;
+        }
+
+        // A send answered by a server error (HELP review F2): its error page would replace the form - or, extending the
+        // base layout, empty the frame and close the modal with the message silently lost. The modal stays with what
+        // was typed and says the send failed; the next send tries again
+        if (submitError !== null && response !== null && response.serverError) {
+            event.preventDefault();
+            this.pendingOpen = false;
+            this.showSubmitError(submitError);
 
             return;
         }
@@ -390,6 +443,14 @@ export default class extends Controller {
         // Network error: nothing will arrive
         this.pendingOpen = false;
         this.stopLoading();
+        const submitError = this.submissionError;
+        this.submissionError = null;
+        this.submissionFallbackUrl = null;
+
+        // A send lost on the way (HELP review F2): the form and what was typed stay - say that it did not go
+        if (submitError !== null && submitError.isConnected) {
+            this.showSubmitError(submitError);
+        }
 
         // Keep an open modal with a form in it (the visitor can submit again); when nothing arrived, say so and
         // offer Try again - closing would look like the tap did nothing. Without a URL to repeat: close.
@@ -423,6 +484,17 @@ export default class extends Controller {
     hideError() {
         if (this.hasErrorTarget) {
             this.errorTarget.hidden = true;
+        }
+    }
+
+    /**
+     * The send did not go (HELP review F2): its error line (role="alert", announced) - the form and its text stay
+     */
+    showSubmitError(element) {
+        element.hidden = false;
+
+        if (typeof element.scrollIntoView === 'function') {
+            element.scrollIntoView({ block: 'nearest' });
         }
     }
 
@@ -466,6 +538,13 @@ export default class extends Controller {
         }
 
         this.open();
+
+        // New content in a released sheet that did not ask for the release again - a form back with an error, a page
+        // loaded from inside it (HELP review F1): it blocks the page again like any modal. The sent state asks again
+        // (help_sheet_controller.js connects before this event; if it ever connected later, its release() still wins)
+        if (this.released && !this.releaseRenewed) {
+            this.reclaim();
+        }
     };
 
     handleFrameMissing = (event) => {
@@ -590,6 +669,8 @@ export default class extends Controller {
     handleHidden = () => {
         this.transition = null;
         this.leaving = false;
+        const afterHidden = this.afterHidden;
+        this.afterHidden = null;
         document.body.classList.remove('modal-open');
 
         // Nothing may keep the page grey or locked once no modal is shown (HELP-05 (c))
@@ -635,7 +716,26 @@ export default class extends Controller {
         if (trigger && trigger.isConnected && typeof trigger.focus === 'function') {
             trigger.focus({ preventScroll: true });
         }
+
+        // The modal a dismiss-and-toggle button asked for while this one opened (review Q4)
+        if (afterHidden !== null) {
+            this.showOtherModal(afterHidden);
+        }
     };
+
+    showOtherModal(selector) {
+        let element = null;
+
+        try {
+            element = document.querySelector(selector);
+        } catch (e) {
+            element = null;
+        }
+
+        if (element !== null && element !== this.element && element.classList.contains('modal')) {
+            Modal.getOrCreateInstance(element).show();
+        }
+    }
 
     /**
      * The Menu panel closed because this modal took its history entry (Send feedback → the Help sheet): the row that
@@ -886,6 +986,31 @@ export default class extends Controller {
         this.close();
     };
 
+    /**
+     * A dismiss button that also opens another modal (data-bs-toggle="modal": the "members only" buttons of the
+     * collection and sell/swap modals), tapped while this modal still opens (review Q4): Bootstrap's delegated toggle
+     * (a capture listener on document, before handleTransitionClick) would show that modal over this one still opening,
+     * and this one's hide later drops the page lock under it. Window capture runs first: this modal closes (queued like
+     * any dismiss) and the other one opens once it is hidden (handleHidden).
+     */
+    handleTransitionToggleClick = (event) => {
+        if (this.transition !== 'showing') {
+            return;
+        }
+
+        const target = event.target instanceof Element ? event.target : null;
+        const button = target !== null ? target.closest('[data-bs-dismiss="modal"][data-bs-toggle="modal"]') : null;
+
+        if (button === null || !this.element.contains(button)) {
+            return;
+        }
+
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        this.afterHidden = button.getAttribute('data-bs-target') || null;
+        this.close();
+    };
+
     handleModalClick = (event) => {
         const outside = this.downOnModal && event.target === this.element;
         this.downOnModal = false;
@@ -897,6 +1022,7 @@ export default class extends Controller {
     };
 
     handleRelease = () => {
+        this.releaseRenewed = true;
         this.release();
     };
 

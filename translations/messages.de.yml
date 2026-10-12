@@ -1552,6 +1552,10 @@ competition_referees:
     "accepted": "%player% hat bestätigt, „%guest%“ zu sein. Eure gemeinsamen Ergebnisse sind jetzt auch in deren Verlauf."
 
 "inbox":
+  "title": "Posteingang"
+  "tab":
+    "for_you": "Für Sie"
+    "messages": "Nachrichten"
   "badge":
     "name":
       "none": "Posteingang"

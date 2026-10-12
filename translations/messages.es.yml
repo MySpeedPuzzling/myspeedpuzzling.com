@@ -1568,6 +1568,10 @@ competition_referees:
     "accepted": "%player% confirmó que es «%guest%». Vuestros resultados juntos ya están en su historial."
 
 "inbox":
+  "title": "Bandeja de entrada"
+  "tab":
+    "for_you": "Para ti"
+    "messages": "Mensajes"
   "badge":
     "name":
       "none": "Bandeja de entrada"

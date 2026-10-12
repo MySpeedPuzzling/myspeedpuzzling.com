@@ -1604,6 +1604,10 @@ competition_referees:
     "accepted": "%player% potvrdil(a), že je „%guest%“. Vaše společné výsledky jsou teď i v jeho/její historii."
 
 "inbox":
+  "title": "Schránka"
+  "tab":
+    "for_you": "Pro vás"
+    "messages": "Zprávy"
   "badge":
     "name":
       "none": "Schránka"

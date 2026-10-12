@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Tests;
 
 use Doctrine\DBAL\Connection;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Tests\DataFixtures\OfficialResultsFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
@@ -407,6 +408,56 @@ final class PrivateProfileCanaryTest extends WebTestCase
         TestingLogin::asPlayer($browser, self::FRIEND);
         self::assertStringContainsString($profileLink, $this->get($browser, $url), 'The allowed friend does not see her profile here - the page is no canary.');
         self::assertStringContainsString('no-store', (string) $browser->getResponse()->headers->get('Cache-Control'));
+    }
+
+    /**
+     * The Inbox tabs (docs/features/navigation INB-01) are the viewer's own, so every viewer gets the same rows about her.
+     * For you: a solved-puzzle row of hers (SubscribedPlayerAddedTime) names her to the friend only. Messages: a
+     * conversation names her to whoever is in it - bilateral, by design (docs/features/private-profile-allow-list.md,
+     * "Left as is") - and the tab lists the viewer's own conversations only: the friend talks with her, the strangers
+     * do not.
+     */
+    #[DataProvider('provideInboxTabs')]
+    public function testOnlyTheFriendSeesHerOnTheirInboxTab(string $url): void
+    {
+        $browser = self::createClient();
+        $database = self::getContainer()->get(Connection::class);
+
+        foreach ([...array_values(self::STRANGERS), self::FRIEND] as $viewerId) {
+            // TIME_02: her solo time
+            $database->executeStatement(
+                "INSERT INTO notification (id, player_id, type, notified_at, target_solving_time_id) VALUES (:id, :player, 'SubscribedPlayerAddedTime', NOW(), :time)",
+                ['id' => Uuid::uuid7()->toString(), 'player' => $viewerId, 'time' => PuzzleSolvingTimeFixture::TIME_02],
+            );
+        }
+
+        $conversationId = Uuid::uuid7()->toString();
+        $database->executeStatement(
+            "INSERT INTO conversation (id, initiator_id, recipient_id, status, created_at, responded_at, last_message_at) VALUES (:id, :owner, :friend, 'accepted', NOW(), NOW(), NOW())",
+            ['id' => $conversationId, 'owner' => self::OWNER, 'friend' => self::FRIEND],
+        );
+        $database->executeStatement(
+            'INSERT INTO chat_message (id, conversation_id, sender_id, content, sent_at) VALUES (:id, :conversation, :owner, :content, NOW())',
+            ['id' => Uuid::uuid7()->toString(), 'conversation' => $conversationId, 'owner' => self::OWNER, 'content' => 'Hello'],
+        );
+
+        foreach (self::STRANGERS as $who => $strangerId) {
+            TestingLogin::asPlayer($browser, $strangerId);
+            self::assertStringNotContainsString(self::OWNER_NAME, $this->get($browser, $url), "A signed-in stranger ({$who}) is shown a private player.");
+        }
+
+        TestingLogin::asPlayer($browser, self::FRIEND);
+        self::assertStringContainsString(self::OWNER_NAME, $this->get($browser, $url), 'The allowed friend does not see her here - the tab is no canary.');
+        self::assertStringNotContainsString('public', (string) $browser->getResponse()->headers->get('Cache-Control'), 'A page naming a private player must never be shared-cacheable.');
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function provideInboxTabs(): iterable
+    {
+        yield 'inbox for you' => ['/en/notifications'];
+        yield 'inbox messages' => ['/en/messages'];
     }
 
     private function get(KernelBrowser $browser, string $url): string

@@ -235,4 +235,47 @@ final class BlocklistCanaryTest extends WebTestCase
         // The marketplace card's seller faces (docs/features/marketplace/11-events.md) and the participants below it
         yield 'event page with the marketplace card' => ['/en/events/' . MarketplaceEventFixture::COMPETITION_SWAP_FAIR_SLUG];
     }
+
+    /**
+     * The Inbox tabs (docs/features/navigation INB-01) are the viewer's own, so there is no bystander to compare with:
+     * the blocker sees the player there until the block, and never after it. For you: the player edited a shared result
+     * of theirs (the editor is named - a row INB-03 keeps); Messages: their marketplace conversations
+     * (ConversationFixture).
+     */
+    #[DataProvider('provideInboxTabs')]
+    public function testBlockedPlayerIsNowhereOnTheBlockersInboxTab(string $url): void
+    {
+        $browser = self::createClient();
+        $database = self::getContainer()->get(Connection::class);
+
+        $database->executeStatement(
+            "INSERT INTO notification (id, player_id, type, notified_at, target_solving_time_id, actor_player_id) VALUES (:id, :player, 'GroupSolvingTimeEdited', NOW(), :time, :actor)",
+            ['id' => Uuid::uuid7()->toString(), 'player' => self::BLOCKER, 'time' => PuzzleSolvingTimeFixture::TIME_03, 'actor' => self::BLOCKED],
+        );
+
+        TestingLogin::asPlayer($browser, self::BLOCKER);
+        $browser->request('GET', $url);
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString(self::BLOCKED_NAME, (string) $browser->getResponse()->getContent(), 'No canary: the tab does not show the player before the block.');
+
+        $database->executeStatement(
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, NOW(), 'self')",
+            ['id' => Uuid::uuid7()->toString(), 'blocker' => self::BLOCKER, 'blocked' => self::BLOCKED],
+        );
+
+        $browser->request('GET', $url);
+        self::assertResponseIsSuccessful();
+        $content = (string) $browser->getResponse()->getContent();
+        self::assertStringNotContainsString(self::BLOCKED, $content, 'The blocker is shown a player they blocked.');
+        self::assertStringNotContainsString(self::BLOCKED_NAME, $content, 'The blocker is shown a player they blocked.');
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function provideInboxTabs(): iterable
+    {
+        yield 'inbox for you' => ['/en/notifications'];
+        yield 'inbox messages' => ['/en/messages'];
+    }
 }

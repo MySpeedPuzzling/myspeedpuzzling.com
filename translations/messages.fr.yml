@@ -1600,6 +1600,10 @@ competition_referees:
     "accepted": "%player% a confirmé être « %guest% ». Vos résultats communs sont maintenant dans son historique."
 
 "inbox":
+  "title": "Boîte de réception"
+  "tab":
+    "for_you": "Pour vous"
+    "messages": "Messagerie"
   "badge":
     "name":
       "none": "Boîte de réception"

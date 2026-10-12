@@ -2,9 +2,11 @@
     class inbox-badge: a realtime push (MercureNotifier::notifyInboxBadgeChanged()) is one `inbox_badge` Turbo Stream
     updating all of them (assets/turbo-stream-actions.js) - never put one inside data-turbo-permanent.
     Params: part = total (default) | for_you | messages; parts = InboxBadgeParts (default inbox_badge(), the viewer's -
-    one statement per page); class = extra classes. Renders nothing for guests. Hidden at 0, "99+" above 99. -#}
+    one statement per page); class = extra classes; announce = true leaves the number to assistive technology (an
+    Inbox tab, INB-01: "For you 3" - the tab's own name says what it counts), otherwise the number is aria-hidden and the
+    enclosing link's accessible name says it. Renders nothing for guests. Hidden at 0, "99+" above 99. -#}
 {%- set parts = parts ?? inbox_badge() -%}
 {%- if parts is not null -%}
     {%- set part = part ?? 'total' -%}
-    <span class="inbox-badge{{ (class ?? '') is not empty ? ' ' ~ class }}" data-inbox-part="{{ part }}" aria-hidden="true"{{ parts.part(part) == 0 ? ' hidden' }}>{{ parts.display(part) }}</span>
+    <span class="inbox-badge{{ (class ?? '') is not empty ? ' ' ~ class }}" data-inbox-part="{{ part }}"{% if not (announce ?? false) %} aria-hidden="true"{% endif %}{{ parts.part(part) == 0 ? ' hidden' }}>{{ parts.display(part) }}</span>
 {%- endif -%}

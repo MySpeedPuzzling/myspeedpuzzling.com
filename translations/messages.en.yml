@@ -2074,6 +2074,10 @@ notifications:
         accepted: "%player% confirmed they are “%guest%”. Your results together are in their history now."
 
 inbox:
+    title: "Inbox"
+    tab:
+        for_you: "For you"
+        messages: "Messages"
     badge:
         name:
             none: "Inbox"

@@ -131,11 +131,14 @@ final class NativeAppNavigationTest extends WebTestCase
         // The Inbox tabs: a member's
         TestingLogin::asPlayer($browser, self::MEMBER);
 
+        // One Inbox header on both (INB-01): the H1 "Inbox", the open tab marked
         $crawler = $this->layerPage($browser, '/en/notifications', $userAgent, $platform, 'notifications');
-        self::assertSame('Notifications', trim($crawler->filter('main h1')->text()));
+        self::assertSame('Inbox', trim($crawler->filter('main h1')->text()));
+        self::assertSame('inbox/none/for_you', $crawler->filter('main .inbox-tab[aria-current="page"]')->attr('data-nav'));
 
         $crawler = $this->layerPage($browser, '/en/messages', $userAgent, $platform, 'conversations_list');
-        self::assertStringContainsString('Messages', $crawler->filter('main h1')->text());
+        self::assertSame('Inbox', trim($crawler->filter('main h1')->text()));
+        self::assertSame('inbox/none/messages', $crawler->filter('main .inbox-tab[aria-current="page"]')->attr('data-nav'));
     }
 
     /**

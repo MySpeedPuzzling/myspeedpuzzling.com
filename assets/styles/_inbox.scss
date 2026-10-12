@@ -1,0 +1,80 @@
+// The Inbox header (docs/features/navigation INB-01, README §4.4 / D3; templates/inbox/_header.html.twig): the H1
+// "Inbox" above its two tabs For you | Messages, each with its own count - an .inbox-badge instance the realtime push
+// updates in place. Own class names: the Messages page's sub-tabs below keep Bootstrap's .nav-tabs to themselves.
+// Tabs are 44 px targets with the navigation's colours (README §5): active ink + an underline on the open tab, the
+// badge colours of the bars, a visible focus ring and a pressed state.
+
+.inbox-header {
+    margin-bottom: 1.5rem;
+}
+
+.inbox-header-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .5rem;
+    margin-bottom: .5rem;
+}
+
+.inbox-header-title {
+    margin-bottom: 0;
+    font-size: $h3-font-size;
+}
+
+.inbox-tabs {
+    display: flex;
+    gap: .25rem;
+    border-bottom: 1px solid var(--nav-hairline, rgba(43, 52, 69, .1));
+}
+
+.inbox-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: .5rem;
+    min-height: 44px;
+    padding: .5rem .75rem;
+    margin-bottom: -1px;
+    border-bottom: 2px solid transparent;
+    color: var(--nav-ink, #4b566b);
+    font-weight: $font-weight-medium;
+    text-decoration: none;
+    white-space: nowrap;
+
+    &:hover {
+        color: var(--nav-active-ink, #c8323a);
+    }
+
+    &:active {
+        background-color: var(--nav-pressed-pill, rgba(254, 105, 106, .1));
+    }
+
+    &:focus-visible {
+        border-radius: .25rem;
+        outline: 2px solid var(--nav-focus, #4e54c8);
+        outline-offset: -2px;
+    }
+
+    &[aria-current="page"] {
+        border-bottom-color: currentColor;
+        color: var(--nav-active-ink, #c8323a);
+    }
+}
+
+.inbox-tab-badge {
+    display: inline-block;
+    min-width: 1.25rem;
+    padding: 0 .375rem;
+    border-radius: .625rem;
+    background-color: var(--nav-badge-bg, #d63c42);
+    color: var(--nav-badge-ink, #fff);
+    font-size: .75rem;
+    font-variant-numeric: tabular-nums;
+    font-weight: $font-weight-medium;
+    line-height: 1.25rem;
+    text-align: center;
+
+    // display above would otherwise win over the hidden attribute (0 = no badge)
+    &[hidden] {
+        display: none;
+    }
+}

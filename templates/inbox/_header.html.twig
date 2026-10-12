@@ -1,0 +1,29 @@
+{#- The Inbox header (docs/features/navigation INB-01, README §4.4 / D3): the H1 "Inbox" and its two tabs - For you
+    (route notifications) and Messages (route conversations_list, whose own sub-tabs stay below) - each with its own
+    unread count. No inbox route of its own (R13): the tabs are the two pages and link each other.
+    The counts are inbox-badge instances of the one badge statement every signed-in page runs anyway (inbox_badge(),
+    0 statements of its own), so a realtime push updates them in place. Not a[data-inbox-link]: a push never moves a
+    tab's href, only the Inbox link's.
+    Included at the top of both pages, replacing their H1; embed it and fill block `actions` for a page's own buttons on
+    the heading's line (Messages: Blocked players).
+    Params: tab = for_you | messages - the open tab (aria-current="page"). -#}
+{%- set parts = inbox_badge() -%}
+{%- set inbox_tabs = [
+    {id: 'for_you', route: 'notifications', label: 'inbox.tab.for_you'|trans},
+    {id: 'messages', route: 'conversations_list', label: 'inbox.tab.messages'|trans},
+] -%}
+<div class="inbox-header">
+    <div class="inbox-header-heading">
+        <h1 class="inbox-header-title">{{ 'inbox.title'|trans }}</h1>
+        {%- block actions %}{% endblock -%}
+    </div>
+    <nav class="inbox-tabs" aria-label="{{ 'inbox.title'|trans }}">
+        {%- for inbox_tab in inbox_tabs %}
+            <a href="{{ path(inbox_tab.route) }}" class="inbox-tab" data-nav="inbox/none/{{ inbox_tab.id }}"{% if inbox_tab.id == tab %} aria-current="page"{% endif %}>
+                <span class="inbox-tab-label">{{ inbox_tab.label }}</span>
+                {# a space before the number: the tab's accessible name reads "For you 3" #}
+                {{ include('inbox/_badge.html.twig', {part: inbox_tab.id, parts: parts, class: 'inbox-tab-badge', announce: true}) }}
+            </a>
+        {%- endfor %}
+    </nav>
+</div>

@@ -572,6 +572,10 @@
     "requested": "%player% さんが、一緒に解いた結果の「%guest%」はあなただと言っています。あなたですか？"
     "accepted": "%player% さんが「%guest%」であることを承認しました。一緒に解いた結果が相手の履歴にも加わりました。"
 "inbox":
+  "title": "受信箱"
+  "tab":
+    "for_you": "あなた宛て"
+    "messages": "メッセージ"
   "badge":
     "name":
       "none": "受信箱"

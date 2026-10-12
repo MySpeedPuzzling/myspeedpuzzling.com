@@ -1,9 +1,10 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}{{ 'notifications.title'|trans }}{% endblock %}
+{# The Inbox's For you tab (docs/features/navigation INB-01) #}
+{% block title %}{{ 'inbox.tab.for_you'|trans }} · {{ 'inbox.title'|trans }}{% endblock %}
 
 {% block content %}
-    <h1>{{ 'notifications.title'|trans }}</h1>
+    {{ include('inbox/_header.html.twig', {tab: 'for_you'}) }}
 
     {% if notifications is empty %}
         <div class="alert alert-info d-flex" role="alert">

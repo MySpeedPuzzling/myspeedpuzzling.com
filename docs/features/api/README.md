@@ -70,6 +70,8 @@ hand-typed `SOLVING_TIMES` variant silently matched nothing until 2026-08 (PR #1
 
 ## Endpoints
 
+**Adding or removing an endpoint also changes the public endpoints table** on the "For developers" page (`templates/for-developers.html.twig`, `/en/for-developers`): one row per method + path in its `endpoint_sections` list, in the section whose PAT / authorization code / client credentials columns match the route's `access_control`. `ForDevelopersEndpointsTableTest` compares the list with every `/api/v1` route (parameter names ignored) and fails on any difference. A new section heading needs its `for_developers.table_section_*` key in all 6 locales.
+
 ### "Me" Endpoints (PAT + OAuth2 with user context)
 
 | Method | Endpoint | Required |

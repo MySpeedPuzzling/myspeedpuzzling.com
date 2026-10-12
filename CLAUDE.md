@@ -248,6 +248,7 @@ Active feature flags are documented in `docs/features/feature_flags.md`. **Alway
 - **Audit:** `last_used_at` tracked for both PAT and OAuth2 tokens
 - **`ApiUser` interface:** Shared by `PatUser` and `OAuth2User`, used by all providers
 - **Fair Use Policy:** Required acceptance for PAT generation and OAuth2 client registration
+- **Adding/removing an endpoint:** also update the endpoints table on the "For developers" page (`templates/for-developers.html.twig`, `endpoint_sections`, one row per method + path) - `ForDevelopersEndpointsTableTest` fails until every `/api/v1` route is listed there
 - **Full docs:** `docs/features/api/README.md`
 
 ### Internal Admin API

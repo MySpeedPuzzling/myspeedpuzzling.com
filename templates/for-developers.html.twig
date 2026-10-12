@@ -276,155 +276,81 @@ HTTP/1.1 200 OK
                             <th class="text-center"><i class="bi bi-hdd-network me-1"></i>Client Credentials</th>
                         </tr>
                     </thead>
+                    {#
+                        Every /api/v1 route, one row per method + path - ForDevelopersEndpointsTableTest
+                        fails when a route is added or removed without this list. Columns: PAT,
+                        authorization code, client credentials.
+                    #}
+                    {% set me = [true, true, false] %}
+                    {% set others = [false, true, true] %}
+                    {% set everyone = [true, true, true] %}
+                    {% set endpoint_sections = [
+                        {title: 'for_developers.table_section_me', access: me, endpoints: [
+                            'GET /api/v1/me',
+                            'GET /api/v1/me/results',
+                            'GET /api/v1/me/statistics',
+                            'GET /api/v1/me/favorites',
+                            'GET /api/v1/me/followers',
+                            'POST /api/v1/me/solving-times',
+                            'PUT /api/v1/me/solving-times/{id}',
+                            'GET /api/v1/me/puzzles/{id}/predicted-time',
+                            'GET /api/v1/me/collections',
+                            'POST /api/v1/me/collections',
+                            'PUT /api/v1/me/collections/{collectionId}',
+                            'DELETE /api/v1/me/collections/{collectionId}',
+                            'GET /api/v1/me/collections/{collectionId}/items',
+                            'POST /api/v1/me/collections/{collectionId}/items',
+                            'DELETE /api/v1/me/collections/{collectionId}/items/{itemId}',
+                        ]},
+                        {title: 'for_developers.table_section_players', access: others, endpoints: [
+                            'GET /api/v1/players/{id}',
+                            'GET /api/v1/players/{id}/results',
+                            'GET /api/v1/players/{id}/statistics',
+                            'GET /api/v1/players/{id}/collections',
+                            'GET /api/v1/players/{id}/collections/{collectionId}/items',
+                        ]},
+                        {title: 'for_developers.table_section_library', access: me, endpoints: [
+                            'GET /api/v1/me/library',
+                            'GET /api/v1/me/wishlist',
+                            'GET /api/v1/me/unsolved-puzzles',
+                            'GET /api/v1/me/lend-borrow',
+                            'GET /api/v1/me/sell-swap',
+                        ]},
+                        {title: null, access: others, endpoints: [
+                            'GET /api/v1/players/{id}/library',
+                            'GET /api/v1/players/{id}/wishlist',
+                            'GET /api/v1/players/{id}/unsolved-puzzles',
+                            'GET /api/v1/players/{id}/lend-borrow',
+                            'GET /api/v1/players/{id}/sell-swap',
+                        ]},
+                        {title: 'for_developers.table_section_puzzles', access: everyone, endpoints: [
+                            'GET /api/v1/puzzles',
+                            'GET /api/v1/puzzles/{id}',
+                        ]},
+                        {title: 'for_developers.table_section_events', access: everyone, endpoints: [
+                            'GET /api/v1/competitions',
+                            'GET /api/v1/competitions/{id}',
+                            'GET /api/v1/series',
+                        ]},
+                    ] %}
                     <tbody>
-                        <tr><td colspan="4" class="ps-3 fw-bold bg-light text-muted fs-sm pt-2 pb-1">{{ 'for_developers.table_section_me'|trans }}</td></tr>
-                        <tr>
-                            <td class="ps-3"><code class="fs-sm">GET /api/v1/me</code></td>
-                            <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
-                            <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
-                            <td class="text-center text-muted">&mdash;</td>
-                        </tr>
-                        <tr>
-                            <td class="ps-3"><code class="fs-sm">GET /api/v1/me/results</code></td>
-                            <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
-                            <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
-                            <td class="text-center text-muted">&mdash;</td>
-                        </tr>
-                        <tr>
-                            <td class="ps-3"><code class="fs-sm">GET /api/v1/me/statistics</code></td>
-                            <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
-                            <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
-                            <td class="text-center text-muted">&mdash;</td>
-                        </tr>
-                        <tr>
-                            <td class="ps-3"><code class="fs-sm">GET /api/v1/me/collections</code></td>
-                            <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
-                            <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
-                            <td class="text-center text-muted">&mdash;</td>
-                        </tr>
-                        <tr>
-                            <td class="ps-3"><code class="fs-sm">POST /api/v1/me/solving-times</code></td>
-                            <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
-                            <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
-                            <td class="text-center text-muted">&mdash;</td>
-                        </tr>
-                        <tr>
-                            <td class="ps-3"><code class="fs-sm">PUT /api/v1/me/solving-times/{id}</code></td>
-                            <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
-                            <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
-                            <td class="text-center text-muted">&mdash;</td>
-                        </tr>
-                        <tr>
-                            <td class="ps-3"><code class="fs-sm">POST/PUT/DELETE /api/v1/me/collections/*</code></td>
-                            <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
-                            <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
-                            <td class="text-center text-muted">&mdash;</td>
-                        </tr>
-                        <tr>
-                            <td class="ps-3"><code class="fs-sm">GET /api/v1/me/puzzles/{id}/predicted-time</code></td>
-                            <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
-                            <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
-                            <td class="text-center text-muted">&mdash;</td>
-                        </tr>
-                        <tr><td colspan="4" class="ps-3 fw-bold bg-light text-muted fs-sm pt-2 pb-1">{{ 'for_developers.table_section_players'|trans }}</td></tr>
-                        <tr>
-                            <td class="ps-3"><code class="fs-sm">GET /api/v1/players/{id}</code></td>
-                            <td class="text-center text-muted">&mdash;</td>
-                            <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
-                            <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
-                        </tr>
-                        <tr>
-                            <td class="ps-3"><code class="fs-sm">GET /api/v1/players/{id}/results</code></td>
-                            <td class="text-center text-muted">&mdash;</td>
-                            <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
-                            <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
-                        </tr>
-                        <tr>
-                            <td class="ps-3"><code class="fs-sm">GET /api/v1/players/{id}/statistics</code></td>
-                            <td class="text-center text-muted">&mdash;</td>
-                            <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
-                            <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
-                        </tr>
-                        <tr>
-                            <td class="ps-3"><code class="fs-sm">GET /api/v1/players/{id}/collections</code></td>
-                            <td class="text-center text-muted">&mdash;</td>
-                            <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
-                            <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
-                        </tr>
-                        <tr><td colspan="4" class="ps-3 fw-bold bg-light text-muted fs-sm pt-2 pb-1">{{ 'for_developers.table_section_library'|trans }}</td></tr>
-                        <tr>
-                            <td class="ps-3"><code class="fs-sm">GET /api/v1/me/library</code></td>
-                            <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
-                            <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
-                            <td class="text-center text-muted">&mdash;</td>
-                        </tr>
-                        <tr>
-                            <td class="ps-3"><code class="fs-sm">GET /api/v1/me/wishlist</code></td>
-                            <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
-                            <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
-                            <td class="text-center text-muted">&mdash;</td>
-                        </tr>
-                        <tr>
-                            <td class="ps-3"><code class="fs-sm">GET /api/v1/me/unsolved-puzzles</code></td>
-                            <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
-                            <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
-                            <td class="text-center text-muted">&mdash;</td>
-                        </tr>
-                        <tr>
-                            <td class="ps-3"><code class="fs-sm">GET /api/v1/me/lend-borrow</code></td>
-                            <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
-                            <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
-                            <td class="text-center text-muted">&mdash;</td>
-                        </tr>
-                        <tr>
-                            <td class="ps-3"><code class="fs-sm">GET /api/v1/me/sell-swap</code></td>
-                            <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
-                            <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
-                            <td class="text-center text-muted">&mdash;</td>
-                        </tr>
-                        <tr>
-                            <td class="ps-3"><code class="fs-sm">GET /api/v1/players/{id}/library</code></td>
-                            <td class="text-center text-muted">&mdash;</td>
-                            <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
-                            <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
-                        </tr>
-                        <tr>
-                            <td class="ps-3"><code class="fs-sm">GET /api/v1/players/{id}/wishlist</code></td>
-                            <td class="text-center text-muted">&mdash;</td>
-                            <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
-                            <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
-                        </tr>
-                        <tr>
-                            <td class="ps-3"><code class="fs-sm">GET /api/v1/players/{id}/unsolved-puzzles</code></td>
-                            <td class="text-center text-muted">&mdash;</td>
-                            <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
-                            <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
-                        </tr>
-                        <tr>
-                            <td class="ps-3"><code class="fs-sm">GET /api/v1/players/{id}/lend-borrow</code></td>
-                            <td class="text-center text-muted">&mdash;</td>
-                            <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
-                            <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
-                        </tr>
-                        <tr>
-                            <td class="ps-3"><code class="fs-sm">GET /api/v1/players/{id}/sell-swap</code></td>
-                            <td class="text-center text-muted">&mdash;</td>
-                            <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
-                            <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
-                        </tr>
-                        <tr><td colspan="4" class="ps-3 fw-bold bg-light text-muted fs-sm pt-2 pb-1">{{ 'for_developers.table_section_puzzles'|trans }}</td></tr>
-                        <tr>
-                            <td class="ps-3"><code class="fs-sm">GET /api/v1/puzzles</code></td>
-                            <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
-                            <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
-                            <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
-                        </tr>
-                        <tr>
-                            <td class="ps-3"><code class="fs-sm">GET /api/v1/puzzles/{id}</code></td>
-                            <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
-                            <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
-                            <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
-                        </tr>
+                        {% for section in endpoint_sections %}
+                            {% if section.title is not null %}
+                                <tr><td colspan="4" class="ps-3 fw-bold bg-light text-muted fs-sm pt-2 pb-1">{{ section.title|trans }}</td></tr>
+                            {% endif %}
+                            {% for endpoint in section.endpoints %}
+                                <tr>
+                                    <td class="ps-3"><code class="fs-sm" data-api-endpoint>{{ endpoint }}</code></td>
+                                    {% for allowed in section.access %}
+                                        {% if allowed %}
+                                            <td class="text-center text-success"><i class="bi bi-check-lg"></i></td>
+                                        {% else %}
+                                            <td class="text-center text-muted">&mdash;</td>
+                                        {% endif %}
+                                    {% endfor %}
+                                </tr>
+                            {% endfor %}
+                        {% endfor %}
                     </tbody>
                 </table>
             </div>

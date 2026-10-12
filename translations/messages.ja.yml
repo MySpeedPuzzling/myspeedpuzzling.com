@@ -788,6 +788,7 @@
   "table_section_players": "他のプレイヤーの公開データ"
   "table_section_puzzles": "パズルカタログ"
   "table_section_library": "パズルライブラリ (collections:read)"
+  "table_section_events": "イベント (大会とシリーズ)"
   "summary_pat": "<i class=\"bi bi-key me-1 text-primary\"></i><strong>PAT</strong> — 自分のデータのみ。スコープ不要、すべての<code>/me</code>エンドポイントにフルアクセス。"
   "summary_auth_code": "<i class=\"bi bi-person-badge me-1 text-primary\"></i><strong>Auth Code</strong> — すべてのエンドポイント。アクセスは付与されたスコープに依存。書き込みスコープも利用可能。"
   "summary_client_cred": "<i class=\"bi bi-hdd-network me-1 text-primary\"></i><strong>Client Credentials</strong> — 任意の公開プレイヤーへの読み取り専用アクセス。<code>/me</code>エンドポイントは利用不可。"

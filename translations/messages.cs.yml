@@ -912,6 +912,7 @@ comparison:
   "table_section_players": "Veřejná data ostatních hráčů"
   "table_section_puzzles": "Katalog puzzlí"
   "table_section_library": "Knihovna puzzlí (collections:read)"
+  "table_section_events": "Akce (soutěže a série)"
   "summary_pat": "<i class=\"bi bi-key me-1 text-primary\"></i><strong>PAT</strong> — pouze vaše data. Žádné scope nejsou potřeba, plný přístup ke všem endpointům <code>/me</code>."
   "summary_auth_code": "<i class=\"bi bi-person-badge me-1 text-primary\"></i><strong>Auth Code</strong> — všechny endpointy. Přístup závisí na udělených scope. K dispozici jsou i scope pro zápis."
   "summary_client_cred": "<i class=\"bi bi-hdd-network me-1 text-primary\"></i><strong>Client Credentials</strong> — přístup pouze pro čtení k datům libovolného veřejného hráče. Žádné endpointy <code>/me</code>."

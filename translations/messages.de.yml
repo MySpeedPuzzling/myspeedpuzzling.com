@@ -860,6 +860,7 @@
   "table_section_players": "Öffentliche Daten anderer Spieler"
   "table_section_puzzles": "Puzzle-Katalog"
   "table_section_library": "Puzzle-Bibliothek (collections:read)"
+  "table_section_events": "Events (Wettbewerbe und Serien)"
   "summary_pat": "<i class=\"bi bi-key me-1 text-primary\"></i><strong>PAT</strong> — nur Ihre eigenen Daten. Keine Scopes erforderlich, voller Zugriff auf alle <code>/me</code>-Endpoints."
   "summary_auth_code": "<i class=\"bi bi-person-badge me-1 text-primary\"></i><strong>Auth Code</strong> — alle Endpoints. Zugriff abhängig von gewährten Scopes. Schreib-Scopes verfügbar."
   "summary_client_cred": "<i class=\"bi bi-hdd-network me-1 text-primary\"></i><strong>Client Credentials</strong> — Lesezugriff auf jeden öffentlichen Spieler. Keine <code>/me</code>-Endpoints."

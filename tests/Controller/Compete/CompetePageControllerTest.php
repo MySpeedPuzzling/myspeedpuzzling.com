@@ -39,6 +39,20 @@ final class CompetePageControllerTest extends WebTestCase
         }
     }
 
+    public function testARemovedParticipantsLinkOpensNothing(): void
+    {
+        $browser = self::createClient();
+        self::getContainer()->get(Connection::class)->update('competition_participant', [
+            'deleted_at' => '2026-10-13 10:00:00',
+        ], ['id' => OnlineRoundsFixture::PARTICIPANT_ANONYMOUS]);
+
+        $browser->request('GET', self::PAGE . OnlineRoundsFixture::TOKEN_ANONYMOUS);
+
+        self::assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND);
+        self::assertSelectorTextContains('h1', 'This link does not open a competition');
+        self::assertPrivatePage($browser);
+    }
+
     public function testAnAnonymousVisitRendersThePageWithoutStartingASession(): void
     {
         $browser = self::createClient();
@@ -112,7 +126,9 @@ final class CompetePageControllerTest extends WebTestCase
         $links->each(static function (Crawler $link): void {
             self::assertSame('false', $link->attr('data-turbo'), 'every link: ' . $link->attr('href'));
         });
+        self::assertGreaterThan(0, $root->filter('form')->count());
         $root->filter('form')->each(static function (Crawler $form): void {
+            self::assertSame('false', $form->attr('data-turbo'), 'every form');
             self::assertNotNull($form->attr('data-action'), 'every form is handled by the page');
         });
     }

@@ -53,7 +53,7 @@
     <h1 class="compete-timeup-title" id="compete-timeup-title"><i class="bi bi-alarm me-2" aria-hidden="true"></i>{{ 'compete.timeup.title'|trans }}</h1>
     <p class="compete-timeup-stop">{{ 'compete.timeup.stop'|trans }}</p>
 
-    <form class="compete-pieces" data-action="submit->compete#sendPieces" novalidate>
+    <form class="compete-pieces" data-turbo="false" data-action="submit->compete#sendPieces" novalidate>
         <label class="form-label fw-medium" for="compete-pieces" data-compete-field="piecesQuestion">{{ 'compete.timeup.question_left'|trans }}</label>
         <div class="compete-pieces-row">
             <input class="form-control form-control-lg" id="compete-pieces" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" enterkeyhint="send" data-compete-target="piecesInput" aria-describedby="compete-pieces-error">

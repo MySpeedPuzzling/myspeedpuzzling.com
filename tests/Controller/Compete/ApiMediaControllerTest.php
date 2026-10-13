@@ -240,6 +240,20 @@ final class ApiMediaControllerTest extends WebTestCase
         self::assertSame((string) OnlineEntryQuota::PENDING_MEDIA_RETRY_AFTER_SECONDS, $this->browser->getResponse()->headers->get('Retry-After'));
     }
 
+    /**
+     * Uploads the phone reported done count no more, verified or not - an async check that lags behind during an event
+     * never holds a phone up
+     */
+    public function testUploadsWaitingForTheirCheckNeverHoldThePhoneUp(): void
+    {
+        $this->insertMedia(OnlineEntryQuota::MAX_PENDING_MEDIA_PER_ENTRY + 20, 35_000, verified: false, uploaded: true);
+
+        self::postJson($this->browser, self::api(OnlineRoundsFixture::TOKEN_CONNECTED, 'media'), self::photo());
+
+        self::assertResponseIsSuccessful();
+        self::assertIsString(self::json($this->browser)['url'] ?? null);
+    }
+
     public function testALinkAskingForTooManyUploadsIsTold(): void
     {
         $token = OnlineToken::generate();
@@ -272,13 +286,22 @@ final class ApiMediaControllerTest extends WebTestCase
         ];
     }
 
-    private function insertMedia(int $count, int $bytes, bool $verified): void
+    /**
+     * @param bool $uploaded the phone reported it done (`media.uploaded`) - verified ones are uploaded too
+     */
+    private function insertMedia(int $count, int $bytes, bool $verified, bool $uploaded = false): void
     {
         $this->connection()->executeStatement(
-            "INSERT INTO online_entry_media (id, online_entry_id, kind, taken_ms, store, object_key, content_type, declared_bytes, verified_bytes, created_at)
-             SELECT gen_random_uuid(), :onlineEntry, 'periodic', 1792000000000, 'primary', 'online/quota/' || n || '.jpg', 'image/jpeg', :bytes, :verified, NOW()
+            "INSERT INTO online_entry_media (id, online_entry_id, kind, taken_ms, store, object_key, content_type, declared_bytes, uploaded_at_ms, verified_bytes, created_at)
+             SELECT gen_random_uuid(), :onlineEntry, 'periodic', 1792000000000, 'primary', 'online/quota/' || n || '.jpg', 'image/jpeg', :bytes, :uploadedAt, :verified, NOW()
              FROM generate_series(1, :count) AS n",
-            ['onlineEntry' => OnlineRoundsFixture::ONLINE_ENTRY_CONNECTED, 'bytes' => $bytes, 'verified' => $verified ? $bytes : null, 'count' => $count],
+            [
+                'onlineEntry' => OnlineRoundsFixture::ONLINE_ENTRY_CONNECTED,
+                'bytes' => $bytes,
+                'uploadedAt' => $uploaded || $verified ? 1_792_000_001_000 : null,
+                'verified' => $verified ? $bytes : null,
+                'count' => $count,
+            ],
         );
     }
 

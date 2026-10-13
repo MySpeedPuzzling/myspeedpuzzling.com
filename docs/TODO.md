@@ -27,6 +27,11 @@ that would otherwise be forgotten. Newest section on top.
 - [ ] Spike S5 (`spikes.md`): does Hetzner Object Storage enforce a signed `Content-Length` / `Content-Type` in a
       presigned PUT (MinIO does: another length or type is 403 SignatureDoesNotMatch)? If not, VerifyOnlineMedia's
       size/type check is the only guard - it deletes what was not declared.
+- [ ] Ops note for the test cups: `VerifyOnlineMedia` (a HEAD per uploaded object) runs on the shared `async` transport
+      with e-mails, XP and badges. It no longer holds a phone up - the pending-upload cap counts only what the phone has
+      not uploaded (stream P1F) - but a backlog delays the review's checked sizes and the deletion of objects that are
+      not as declared. Expect ~3.3 checks/s per 100 participants (a periodic photo every 30 s), ~10/s in the 3 minutes
+      before GO; watch the `async` queue depth during the cup and add a consumer (or a transport of its own) if it lags.
 - [ ] Traefik's access log (lily.srv) writes the full path, so the personal links' tokens of `/api/compete/<token>`
       and `/<locale>/compete/<token>` (`/soutezit/<token>`) land there - redact them in the access log config (the app
       redacts its own logs and Sentry: OnlineTokenRedactor).

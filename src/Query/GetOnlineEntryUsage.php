@@ -10,7 +10,9 @@ use Ramsey\Uuid\Uuid;
 
 /**
  * How much one online entry holds already - the per-entry caps of a personal link (OnlineEntryQuota): its events, its
- * media rows, the bytes they declared and the uploads presigned lately but not verified yet.
+ * media rows, the bytes they declared and the uploads presigned lately that the phone has not reported done yet. An
+ * upload the phone reported (`media.uploaded`) no longer counts as pending while the async VerifyOnlineMedia has not
+ * checked it - a slow verifier never holds a phone up.
  */
 readonly final class GetOnlineEntryUsage
 {
@@ -31,7 +33,7 @@ readonly final class GetOnlineEntryUsage
     }
 
     /**
-     * @return array{media: int, bytes: int, pending: int} pending = not verified, made after $pendingSince
+     * @return array{media: int, bytes: int, pending: int} pending = not reported uploaded, made after $pendingSince
      */
     public function media(string $onlineEntryId, DateTimeImmutable $pendingSince): array
     {
@@ -42,7 +44,7 @@ readonly final class GetOnlineEntryUsage
         $row = $this->database->fetchAssociative(
             'SELECT COUNT(*) AS media,
                     COALESCE(SUM(declared_bytes), 0) AS bytes,
-                    COUNT(*) FILTER (WHERE verified_bytes IS NULL AND created_at > :since) AS pending
+                    COUNT(*) FILTER (WHERE uploaded_at_ms IS NULL AND created_at > :since) AS pending
              FROM online_entry_media
              WHERE online_entry_id = :id',
             ['id' => $onlineEntryId, 'since' => $pendingSince->format('Y-m-d H:i:s')],

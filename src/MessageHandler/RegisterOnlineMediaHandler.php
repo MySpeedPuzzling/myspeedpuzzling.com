@@ -32,7 +32,7 @@ use Symfony\Component\Messenger\Attribute\AsMessageHandler;
  *
  * Refused (the link is a possibly hostile client): an entry whose result the review confirmed (its evidence is
  * closed), an entry at its cap of objects or bytes (OnlineEntryQuota), and - for a while - an entry with too many
- * uploads presigned lately but never verified.
+ * uploads presigned lately that the phone never reported done (uploads waiting for the async check do not count).
  */
 #[AsMessageHandler]
 readonly final class RegisterOnlineMediaHandler

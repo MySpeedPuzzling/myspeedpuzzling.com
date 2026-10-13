@@ -34,8 +34,11 @@ final class PlayersPageCanaryTest extends WebTestCase
     // PrivateProfileViewerFixture: PLAYER_PRIVATE allows PLAYER_WITH_FAVORITES only
     private const string FRIEND = PlayerFixture::PLAYER_WITH_FAVORITES;
 
-    /** The sections that list people (the viewer's own favorites and the search are personal and covered elsewhere) */
-    private const array PEOPLE_SECTIONS = ['.players-spotlight', '.players-week', '.players-suggestions', '.players-directory'];
+    /**
+     * The sections that list people (the viewer's own favorites and the search are personal and covered elsewhere) -
+     * and the Community landing's Puzzlers preview (navigation COM-01: the spotlight's most active, its first rows)
+     */
+    private const array PEOPLE_SECTIONS = ['.players-spotlight', '.players-week', '.players-suggestions', '.players-directory', '.community-puzzlers'];
 
     #[DataProvider('provideBlockUrls')]
     public function testTheBlockedPlayerIsNowhereForTheBlocker(string $url): void
@@ -66,6 +69,8 @@ final class PlayersPageCanaryTest extends WebTestCase
         yield 'directory, world' => ['/en/puzzlers/all'];
         yield 'directory, most followed' => ['/en/puzzlers/all?scope=gb&sort=followed'];
         yield 'country page' => ['/en/players-from-country/gb'];
+        // The Community landing's previews (navigation COM-01): most active puzzlers, solo 500-piece leaders
+        yield 'community landing' => ['/en/community'];
     }
 
     public function testThePlayerCardOfABlockedPlayerDoesNotExistForTheBlocker(): void
@@ -119,6 +124,8 @@ final class PlayersPageCanaryTest extends WebTestCase
         yield 'directory, world' => ['/en/puzzlers/all'];
         yield 'directory, most followed' => ['/en/puzzlers/all?scope=us&sort=followed'];
         yield 'country page' => ['/en/players-from-country/us'];
+        // The Community landing's Puzzlers preview (navigation COM-01)
+        yield 'community landing' => ['/en/community'];
     }
 
     public function testOnlyTheFriendOpensTheCardOfAPrivatePlayer(): void

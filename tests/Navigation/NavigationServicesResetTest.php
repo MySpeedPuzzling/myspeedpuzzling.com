@@ -32,6 +32,8 @@ final class NavigationServicesResetTest extends TestCase
         \SpeedPuzzling\Web\Twig\FavoritesFeedTwigExtension::class,
         // MENU-01: the per-page queue counts memo shared by the Menu's Your roles and the ☰ dot
         \SpeedPuzzling\Web\Twig\AdminQueueCountsTwigExtension::class,
+        // COM-01: the Community landing's previews (stateless - kept that way)
+        \SpeedPuzzling\Web\Services\Community\CommunityPreview::class,
     ];
 
     public function testMutableNavigationServicesResetBetweenRequests(): void

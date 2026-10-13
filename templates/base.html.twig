@@ -188,7 +188,13 @@
            header and footer. Chrome markup rules: implementation plan §3.2. #}
         {% block nav_chrome %}{% if is_web() %}{{ include('navigation/_icons.html.twig') }}{{ include('navigation/_bottom_nav.html.twig') }}{{ include('navigation/_menu_slot.html.twig') }}{% endif %}{% endblock %}
 
-        <main id="main-content">
+        {# data-puzzles-section (PUZ-01): the Puzzles section this page records for the Puzzles place - its four start
+           pages and your own library's lists; assets/puzzles_section.js keeps it, the place's links open it next time #}
+        {% set puzzles_section = nav_puzzles_section() %}
+        <main id="main-content"{% if puzzles_section is not null %} data-puzzles-section="{{ puzzles_section }}"{% endif %}>
+            {# The place's section chips (COM-02, PUZ-01, decision 75): rendered here for every page of a section, so a page
+               overriding full_content gets them too; never on the bar-free pages (nav_chrome_off) #}
+            {% block section_chips %}{% if not (nav_chrome_off ?? false) %}{{ include('navigation/_section_chips.html.twig') }}{% endif %}{% endblock %}
             {# hasPreviousSession guard: reading app.flashes starts a session, which stamps
                Set-Cookie + Cache-Control: private on every anonymous/crawler response #}
             {% set comparison_added_flash = constant('SpeedPuzzling\\Web\\Controller\\AddComparisonSubjectController::ADDED_FLASH') %}

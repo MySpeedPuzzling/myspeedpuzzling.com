@@ -9028,12 +9028,19 @@ community_page:
     leaderboards:
         description: "Les puzzleurs les plus rapides par nombre de pièces, le MSP Rating et d'autres classements."
         cta: "Tous les classements"
+        preview: "Les plus rapides en solo · %pieces% pièces"
+        empty: "Aucun temps dans ce classement pour l'instant."
     puzzlers:
         description: "Trouvez des puzzleurs à suivre, comparez vos temps et voyez qui est sur sa lancée."
         cta: "Trouver des puzzleurs"
+        preview: "Les puzzleurs les plus actifs"
+        this_month: "{1}1 puzzle ce mois-ci|]1,Inf[%count% puzzles ce mois-ci"
+        empty: "Personne n'a encore enregistré de puzzle ce mois-ci."
     events:
         description: "Compétitions et événements de puzzle, en personne près de chez vous et en ligne."
         cta: "Tous les événements"
+        preview: "À venir"
+        empty: "Aucun événement à venir pour le moment."
 
 add_intro:
     meta:
@@ -9092,6 +9099,10 @@ nav:
         home_logo: "MySpeedPuzzling – accueil"
         feedback: "Commentaires"
         sign_in: "Se connecter"
+    chips:
+        community: "Rubriques de la communauté"
+        puzzles: "Rubriques des puzzles"
+        my_library: "Ma bibliothèque"
     layout:
         fold: "Replier le menu"
         dock: "Déplier le menu"

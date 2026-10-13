@@ -2,8 +2,11 @@
 
 {#
     The Community landing (docs/features/navigation README §4.9, COM-01a): the place's start page with its three
-    sections. A card's title and icon are its registry entry's (one name per destination, README §4.12); each card has
-    one link - the call to action, stretched over the card - so COM-01 can add the previews with links of their own.
+    sections. A card's title and icon are its registry entry's (one name per destination, README §4.12).
+    COM-01: each card previews its section - the top of the solo 500-piece leaderboard, the most active puzzlers this
+    month, the next events - and ends in the call to action (+ Compare under Puzzlers, D8). Every link carries its
+    data-nav (community/community/<item>). The previews are the same for every viewer but the players they hide
+    (CommunityPreview): nothing here depends on the viewer, so the guests' page stays shared-cacheable.
 #}
 
 {% block title %}{{ 'community_page.meta_title'|trans }}{% endblock %}
@@ -16,13 +19,93 @@
 
         <div class="community-entries">
             {% for item, entry in sections %}
-                <section class="community-entry" aria-labelledby="community-entry-{{ item }}">
-                    <div class="community-entry-icon" aria-hidden="true"><i class="bi {{ entry.icon }}"></i></div>
-                    <h2 class="community-entry-title" id="community-entry-{{ item }}">{{ entry.label|trans }}</h2>
+                <section class="community-entry community-{{ item }}" aria-labelledby="community-entry-{{ item }}">
+                    <div class="community-entry-head">
+                        <div class="community-entry-icon" aria-hidden="true"><i class="bi {{ entry.icon }}"></i></div>
+                        <h2 class="community-entry-title" id="community-entry-{{ item }}">{{ entry.label|trans }}</h2>
+                    </div>
                     <p class="community-entry-text">{{ ('community_page.' ~ item ~ '.description')|trans }}</p>
-                    <a class="community-entry-link stretched-link" href="{{ path(entry.target.route, entry.target.params) }}" data-nav="community/community/{{ item }}">
-                        {{ ('community_page.' ~ item ~ '.cta')|trans }} <i class="bi bi-arrow-right" aria-hidden="true"></i>
-                    </a>
+
+                    <div class="community-preview"{{ item == 'events' ? ' data-community-events' }}>
+                        <h3 class="community-preview-title">
+                            {%- if item == 'leaderboards' -%}
+                                {{ 'community_page.leaderboards.preview'|trans({'%pieces%': landing.leaderboardPieces|plain_number}) }}
+                            {%- else -%}
+                                {{ ('community_page.' ~ item ~ '.preview')|trans }}
+                            {%- endif -%}
+                        </h3>
+
+                        {% if item == 'leaderboards' %}
+                            {% if landing.leaders is empty %}
+                                <p class="community-preview-empty">{{ 'community_page.leaderboards.empty'|trans }}</p>
+                            {% else %}
+                                <ol class="community-preview-list" role="list">
+                                    {% for leader in landing.leaders %}
+                                        <li class="community-preview-row">
+                                            <span class="community-preview-rank">{{ landing.leaderRanks[loop.index0] ?? loop.index }}</span>
+                                            {{ include('_leaderboard_player.html.twig', {player: leader, show_tier: false, name_nav: 'community/community/leader'}) }}
+                                            <span class="community-preview-value">{{ leader.time|puzzlingTime }}</span>
+                                        </li>
+                                    {% endfor %}
+                                </ol>
+                            {% endif %}
+                        {% elseif item == 'puzzlers' %}
+                            {% if landing.puzzlers is empty %}
+                                <p class="community-preview-empty">{{ 'community_page.puzzlers.empty'|trans }}</p>
+                            {% else %}
+                                <ol class="community-preview-list" role="list">
+                                    {% for person in landing.puzzlers %}
+                                        <li class="community-preview-row">
+                                            <span class="community-preview-rank">{{ person.rank }}</span>
+                                            {{ include('_leaderboard_player.html.twig', {player: person, show_tier: false, name_nav: 'community/community/puzzler'}) }}
+                                            <span class="community-preview-value">{{ 'community_page.puzzlers.this_month'|trans({'%count%': person.solvesThisMonth}) }}</span>
+                                        </li>
+                                    {% endfor %}
+                                </ol>
+                            {% endif %}
+                        {% else %}
+                            {% if landing.events is empty %}
+                                <p class="community-preview-empty">{{ 'community_page.events.empty'|trans }}</p>
+                            {% else %}
+                                <ul class="community-preview-list community-events-list" role="list">
+                                    {% for row in landing.events %}
+                                        <li class="community-preview-row community-event">
+                                            {{ include('event_parts/_date_leaf.html.twig', {leaf: row.leaf}) }}
+                                            <span class="community-event-body">
+                                                {%- if row.leaf.from -%}
+                                                    <span class="visually-hidden">
+                                                        {{- row.leaf.from|events_date('yMMMMEEEEd') -}}
+                                                        {%- if row.leaf.to %} – {{ row.leaf.to|events_date('yMMMMEEEEd') }}{% endif -%}
+                                                    : </span>
+                                                {%- endif -%}
+                                                {%- if row.url -%}
+                                                    <a class="community-event-name" href="{{ row.url }}" data-nav="community/community/event">{{ row.title }}</a>
+                                                {%- else -%}
+                                                    <span class="community-event-name">{{ row.title }}</span>
+                                                {%- endif -%}
+                                                {%- if row.editionName %}<span class="community-event-edition">{{ row.editionName }}</span>{% endif -%}
+                                                <span class="community-event-meta">
+                                                    {{- include('event_parts/_place.html.twig', {place: row.place}) -}}
+                                                    {%- if row.when %}{{ include('event_parts/_when.html.twig', {when: row.when}) }}{% endif -%}
+                                                </span>
+                                            </span>
+                                        </li>
+                                    {% endfor %}
+                                </ul>
+                            {% endif %}
+                        {% endif %}
+                    </div>
+
+                    <div class="community-entry-links">
+                        <a class="community-entry-link" href="{{ path(entry.target.route, entry.target.params) }}" data-nav="community/community/{{ item }}">
+                            {{ ('community_page.' ~ item ~ '.cta')|trans }} <i class="bi bi-arrow-right" aria-hidden="true"></i>
+                        </a>
+                        {% if item == 'puzzlers' %}
+                            <a class="community-entry-link community-entry-link--secondary" href="{{ path(compare.target.route, compare.target.params) }}" data-nav="community/community/compare">
+                                <i class="bi {{ compare.icon }}" aria-hidden="true"></i> {{ compare.label|trans }}
+                            </a>
+                        {% endif %}
+                    </div>
                 </section>
             {% endfor %}
         </div>

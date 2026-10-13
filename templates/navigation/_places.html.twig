@@ -5,6 +5,8 @@
     current), guests a person icon. Each icon is rendered in outline and filled (the sprite of _icons.html.twig): CSS
     shows the filled one on the current tab - and on .is-pending, the tab GEST-04 marks on tap before Turbo answers.
     Labels (.nav-tab-label) never truncate: NAV-02 picks 11 px, 10 px or "current label only" (data-label-step).
+    Puzzles carries its sections' links (data-puzzles-sections, PUZ-01): assets/puzzles_section.js points it at the
+    section used last (default: My library for players, All puzzles for guests - its server-rendered href).
     `variant`: bar (the phone tab bar, default - from 1024 px also the desktop rail, NAV-13: the same #bottom-nav restyled,
     Add hidden, a guest's Profile (.has-rail-label) shows its second label .nav-rail-label "Sign in" there and CSS hides
     the tab word - display: none, so the link's name is the label shown), rail (the four places alone), compact (NAV-04: Home ·
@@ -18,7 +20,8 @@
     <li class="nav-place nav-place--{{ id }}">
         {#- -#}<a class="nav-tab nav-tab--{{ id }}{{ place.railLabel is not null ? ' has-rail-label' }}" href="{{ place.href }}" data-nav-place="{{ id }}" data-nav="{{ nav_surface }}/places/{{ id }}" data-press="fixed"
         {%- if place.current %} aria-current="{{ place.current }}"{% endif %}
-        {%- if place.nofollow %} rel="nofollow"{% endif %}>
+        {%- if place.nofollow %} rel="nofollow"{% endif %}
+        {%- if id == 'puzzles' %} data-puzzles-sections="{{ nav_puzzles_sections()|json_encode(constant('JSON_UNESCAPED_SLASHES') b-or constant('JSON_UNESCAPED_UNICODE')) }}"{% endif %}>
         {#- -#}<span class="nav-tab-icon" aria-hidden="true">
         {%- if place.avatar is not null -%}
             {{- include('_player_avatar.html.twig', {player_id: place.avatar.playerId, name: place.avatar.playerName ?? ('#' ~ place.avatar.code), avatar: place.avatar.avatar, country_code: null}, with_context = false) -}}

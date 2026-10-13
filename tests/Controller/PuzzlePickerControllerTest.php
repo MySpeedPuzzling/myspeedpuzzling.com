@@ -230,11 +230,13 @@ final class PuzzlePickerControllerTest extends WebTestCase
         self::assertCount(1, $crawler->filter('a.puzzle-picker-entry[href="/en/what-to-solve-next"]'), 'Library header button on the own library');
         // The old profile dropdown's item went with NAV-06: the Menu's row is the account-wide entry point
         self::assertCount(1, $crawler->filter('#site-menu a[href="/en/what-to-solve-next"]:contains("What next?")'), 'The Menu\'s Your puzzles row (MENU-01)');
-        self::assertCount(3, $crawler->filter('a[href="/en/what-to-solve-next"]'), 'Header button + Menu row + footer link');
+        self::assertCount(1, $crawler->filter('main > nav.section-chips a[href="/en/what-to-solve-next"]:contains("What next?")'), 'The Puzzles chip on the own library (PUZ-01)');
+        self::assertCount(4, $crawler->filter('a[href="/en/what-to-solve-next"]'), 'Header button + Menu row + footer link + the Puzzles chip (PUZ-01)');
 
         $crawler = $browser->request('GET', '/en/puzzle-library/' . PlayerFixture::PLAYER_WITH_STRIPE);
         $this->assertResponseIsSuccessful();
         self::assertCount(0, $crawler->filter('a.puzzle-picker-entry'), 'No header button on somebody else\'s library');
+        // Somebody else's library is a Community page: no Puzzles chips there (PUZ-01, decision 75)
         self::assertCount(2, $crawler->filter('a[href="/en/what-to-solve-next"]'), 'Only the Menu row and the footer link');
     }
 

@@ -9035,12 +9035,19 @@ community_page:
     leaderboards:
         description: "Nejrychlejší puzzleři podle počtu dílků, MSP Rating a další žebříčky."
         cta: "Všechny žebříčky"
+        preview: "Nejrychlejší sólo · %pieces% dílků"
+        empty: "V tomto žebříčku zatím nejsou žádné časy."
     puzzlers:
         description: "Najdi puzzlery, které chceš sledovat, porovnej své časy a podívej se, kdo je zrovna v ráži."
         cta: "Najít puzzlery"
+        preview: "Nejaktivnější puzzleři"
+        this_month: "{1}1 puzzle tento měsíc|[2,4]%count% puzzle tento měsíc|[5,Inf[%count% puzzlí tento měsíc"
+        empty: "Tento měsíc zatím nikdo nezaznamenal žádné puzzle."
     events:
         description: "Soutěže a puzzle akce – osobně ve tvém okolí i online."
         cta: "Všechny události"
+        preview: "Nadcházející"
+        empty: "Momentálně nejsou naplánované žádné události."
 
 add_intro:
     meta:
@@ -9099,6 +9106,10 @@ nav:
         home_logo: "MySpeedPuzzling – domů"
         feedback: "Zpětná vazba"
         sign_in: "Přihlásit se"
+    chips:
+        community: "Sekce komunity"
+        puzzles: "Sekce puzzle"
+        my_library: "Moje knihovna"
     layout:
         fold: "Sbalit menu"
         dock: "Rozbalit menu"

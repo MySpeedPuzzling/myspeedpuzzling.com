@@ -97,12 +97,15 @@ final class CommunityControllerTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         self::assertSame($title, trim($crawler->filter('main h1')->text()));
-        self::assertCount(3, $crawler->filter('.community-landing [data-nav^="community/community/"]'));
+        // The three calls to action and Compare (COM-01 added the previews' own links)
+        self::assertCount(4, $crawler->filter('.community-entry-links a[data-nav^="community/community/"]'));
     }
 
     private function assertTheSections(Crawler $crawler): void
     {
-        $links = $crawler->filter('.community-landing a');
+        // Each card ends in its call to action (COM-01: the previews above it carry links of their own); Compare is the
+        // Puzzlers card's second link (D8), named as its registry entry
+        $links = $crawler->filter('.community-entry-links a.community-entry-link:not(.community-entry-link--secondary)');
         self::assertCount(3, $links);
 
         $found = [];
@@ -119,6 +122,10 @@ final class CommunityControllerTest extends WebTestCase
         }
 
         self::assertSame($expected, $found);
+        self::assertSame(['/en/compare'], $crawler->filter('.community-puzzlers a[data-nav="community/community/compare"]')->each(
+            static fn (Crawler $link): string => (string) $link->attr('href'),
+        ));
+        self::assertSame('Compare', trim($crawler->filter('a[data-nav="community/community/compare"]')->text()));
 
         // The titles are the registry's labels (one name per destination; MENU-01 named the people section Puzzlers)
         self::assertSame(['Leaderboards', 'Puzzlers', 'Events'], $crawler->filter('.community-entry-title')->each(

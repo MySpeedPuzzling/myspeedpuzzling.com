@@ -41,6 +41,7 @@ import { startNavInstrumentation } from './nav_instrumentation.js';
 import { installConfirmDialog } from './confirm_dialog.js';
 import { installDocumentReceipts } from './document_receipt.js';
 import { installHelpOpeners } from './help_openers.js';
+import { installPuzzlesSection } from './puzzles_section.js';
 
 // When each page's HTML arrived, before any lazy controller loads - the stopwatch pill's clock (ADD-03 review F5)
 installDocumentReceipts({ window, document });
@@ -48,6 +49,10 @@ installDocumentReceipts({ window, document });
 // The Help sheet's openers: the ?url= of the page as it is at the tap, the help page's own box on the help page
 // (HELP review F4, F5)
 installHelpOpeners({ window, document, layers });
+
+// The Puzzles place opens the section used last: each Puzzles section page records itself, the place's links follow
+// (PUZ-01, on every turbo:load)
+installPuzzlesSection({ window, document });
 
 Turbo.config.drive.progressBarDelay = 0;
 

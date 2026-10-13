@@ -48,6 +48,13 @@ final class DraftCanaryTest extends WebTestCase
     private const string SITEMAP = '/sitemap-events.xml';
     // Replaced by last year (the clock's) - the past draft is dated in it
     private const string ARCHIVE = '/en/events/archive/{lastYear}';
+    private const string COMMUNITY = '/en/community';
+    // The Community landing previews the next three events (navigation COM-01): the draft night moved to tomorrow, so
+    // published it is one of them
+    private const array DRAFT_NIGHT_TOMORROW = [
+        "UPDATE competition SET date_from = CURRENT_DATE + 1, date_to = CURRENT_DATE + 1 WHERE id = '" . OrganizationFixture::COMPETITION_DRAFT_NIGHT . "'",
+        "UPDATE competition_round SET starts_at = CURRENT_DATE + 1 + TIME '17:00' WHERE id = '" . OrganizationFixture::ROUND_DRAFT_NIGHT . "'",
+    ];
     private const string QUIET_PINES_UNDER_RIVERBEND = "UPDATE competition_series SET organization_id = :riverbend WHERE id = '" . OrganizationFixture::SERIES_QUIET_PINES_DRAFT . "'";
 
     /**
@@ -121,6 +128,11 @@ final class DraftCanaryTest extends WebTestCase
 
             // The events page's search index finds a series by its organization's name - never by a draft's
             yield "events page ({$who}) - search index: draft organization's name" => [...$harborClub, self::EVENTS, $viewer, mb_strtolower(OrganizationFixture::ORGANIZATION_HARBOR_CLUB_DRAFT_NAME), 'script[data-events-index]'];
+        }
+
+        // The Community landing's events preview (navigation COM-01)
+        foreach (['guest' => null, 'player' => PlayerFixture::PLAYER_REGULAR] as $who => $viewer) {
+            yield "community landing ({$who}) - draft one-time event" => [...$draftNight, self::COMMUNITY, $viewer, OrganizationFixture::COMPETITION_DRAFT_NIGHT_NAME, '[data-community-events]', self::DRAFT_NIGHT_TOMORROW];
         }
 
         // The puzzle of the draft event's round: "used at" (GetPuzzleSummary) - in the guests' part of the page

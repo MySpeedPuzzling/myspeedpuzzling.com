@@ -96,7 +96,8 @@ final class NavInstrumentationMarkupTest extends WebTestCase
     }
 
     /**
-     * Navigation containers outside the header and footer (implementation plan §3.3): the Community landing (COM-01a)
+     * Navigation containers outside the header and footer (implementation plan §3.3): the Community landing (COM-01a,
+     * its previews COM-01), the section chips (COM-02, PUZ-01)
      * and the Help sheet (HELP-01a; its feedback box HELP-01b, its order HELP-02) - its page and its frame - the end-of-page
      * line (HELP-04), the Inbox header's tabs on both
      * Inbox pages (INB-01, signed in), the Menu (MENU-01), its phone panel's shell (MENU-02b), the phone bottom bar
@@ -107,7 +108,19 @@ final class NavInstrumentationMarkupTest extends WebTestCase
      */
     public static function navigationContainers(): iterable
     {
-        yield 'community landing' => ['/en/community', [], '.community-landing', ['community/community/leaderboards', 'community/community/puzzlers', 'community/community/events']];
+        // The Community landing (COM-01a) with its previews (COM-01): the solo 500-piece leaders, the most active puzzlers
+        // (none in the fixtures: the community stats are not computed), the next events - each card's call to action last,
+        // Compare beside Find puzzlers
+        yield 'community landing' => ['/en/community', [], '.community-landing', [
+            'community/community/leader', 'community/community/leader', 'community/community/leader', 'community/community/leaderboards',
+            'community/community/puzzlers', 'community/community/compare',
+            'community/community/event', 'community/community/event', 'community/community/event', 'community/community/events',
+        ]];
+        // The section chips (COM-02, PUZ-01): Community's three on every page of a section, Puzzles' four (My library for
+        // players) on its start pages
+        yield 'section chips (community)' => ['/en/ladder/solo/500-pieces', [], 'main > nav.section-chips', ['chips/community/leaderboards', 'chips/community/puzzlers', 'chips/community/events']];
+        yield 'section chips (puzzles, guest)' => ['/en/marketplace', [], 'main > nav.section-chips', ['chips/puzzles/all', 'chips/puzzles/marketplace', 'chips/puzzles/next']];
+        yield 'section chips (puzzles, player)' => ['/en/puzzle', [], 'main > nav.section-chips', ['chips/puzzles/library', 'chips/puzzles/all', 'chips/puzzles/marketplace', 'chips/puzzles/next'], PlayerFixture::PLAYER_REGULAR];
         // The sheet in its order (HELP-02): guests' "Sign in to send feedback" (HELP-03), the registry links, the language
         // row (the help page itself on the page, the homepages without a page attached) and Reload (installed app only)
         $helpLinks = ['help/help/feature_requests', 'help/help/faq', 'help/help/getting_started', 'help/help/progression'];

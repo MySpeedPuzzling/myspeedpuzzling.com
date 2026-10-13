@@ -1,10 +1,12 @@
 import { Controller } from '@hotwired/stimulus';
+import { scrollActiveIntoRow } from '../navigation/scroll_active_into_row.js';
 
 /* stimulusFetch: 'lazy' */
 
 /**
  * The leaderboards pill row (templates/_leaderboards_nav.html.twig) scrolls sideways on phones: the active pill is
- * brought into view on load - horizontally only, the page itself never moves.
+ * brought into view on load - horizontally only, the page itself never moves (scrollActiveIntoRow, shared with the
+ * section chips' row, docs/features/navigation COM-02).
  *
  * On the MSP Rating page (liveFilters) the filters change without a reload (its Live Component keeps them in the URL),
  * so the pills built by the server may be stale: at the click, each pill takes the country and favorites from the
@@ -16,15 +18,8 @@ export default class extends Controller {
     static values = { liveFilters: Boolean };
 
     connect() {
-        if (!this.hasActiveTarget) {
-            return;
-        }
-
-        const pill = this.activeTarget;
-        const overflow = pill.offsetLeft + pill.offsetWidth - this.element.clientWidth;
-
-        if (overflow > 0) {
-            this.element.scrollLeft = pill.offsetLeft - (this.element.clientWidth - pill.offsetWidth) / 2;
+        if (this.hasActiveTarget) {
+            scrollActiveIntoRow(this.element, this.activeTarget);
         }
     }
 

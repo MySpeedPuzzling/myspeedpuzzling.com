@@ -8997,12 +8997,19 @@ community_page:
     leaderboards:
         description: "ピース数別の最速パズラー、MSP Ratingなどのランキング。"
         cta: "すべてのリーダーボード"
+        preview: "ソロ最速 · %pieces%ピース"
+        empty: "このリーダーボードにはまだタイムがありません。"
     puzzlers:
         description: "フォローしたいパズラーを見つけ、タイムを比べて、絶好調の人をチェックしましょう。"
         cta: "パズラーを探す"
+        preview: "最もアクティブなパズラー"
+        this_month: "今月%count%個"
+        empty: "今月はまだ誰もパズルを記録していません。"
     events:
         description: "大会やパズルイベント。近くの会場でも、オンラインでも。"
         cta: "すべてのイベント"
+        preview: "今後の予定"
+        empty: "現在、予定されているイベントはありません。"
 
 add_intro:
     meta:
@@ -9061,6 +9068,10 @@ nav:
         home_logo: "MySpeedPuzzling – ホーム"
         feedback: "フィードバック"
         sign_in: "サインイン"
+    chips:
+        community: "コミュニティのセクション"
+        puzzles: "パズルのセクション"
+        my_library: "マイライブラリ"
     layout:
         fold: "メニューを折りたたむ"
         dock: "メニューを展開する"

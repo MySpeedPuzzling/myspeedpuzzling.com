@@ -11,6 +11,8 @@
       - profile_params (map, optional): extra query parameters of the profile link (e.g. ?return=)
       - show_tier (bool, optional, default true): the skill tier icon - off where the data has no tier
       - highlight_query (string, optional): marks the searched text in the name (search results)
+      - name_nav (string, optional): data-nav of the profile link where the row sits in a navigation container (the
+                Community landing's previews, docs/features/navigation COM-01)
 
     The name truncates with an ellipsis instead of widening the table - the row must never scroll sideways.
 #}
@@ -39,7 +41,7 @@
         {%- else -%}
             {{ skill_icon('locked', 16) }}
         {%- endif -%}
-        <a class="lb-name" href="{{ path('player_profile', {playerId: player.playerId}|merge(profile_params|default({}))) }}"{% if links_turbo_frame is defined %} data-turbo-frame="{{ links_turbo_frame }}"{% endif %}>
+        <a class="lb-name" href="{{ path('player_profile', {playerId: player.playerId}|merge(profile_params|default({}))) }}"{% if links_turbo_frame is defined %} data-turbo-frame="{{ links_turbo_frame }}"{% endif %}{% if name_nav is defined %} data-nav="{{ name_nav }}"{% endif %}>
             {%- if logged_user.profile is not null and player.playerId in logged_user.profile.favoritePlayers -%}
                 <i class="ci-star-filled text-warning me-1"></i>
             {%- endif -%}

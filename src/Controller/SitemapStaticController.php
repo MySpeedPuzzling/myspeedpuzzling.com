@@ -60,6 +60,8 @@ final class SitemapStaticController extends AbstractController
         'wjpc_hub',
         'puzzle_picker',
         'getting_started',
+        // The Community landing (docs/features/navigation README §4.9, COM-01): indexable, in every locale
+        'community',
     ];
 
     public function __construct(

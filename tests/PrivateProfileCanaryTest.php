@@ -233,6 +233,8 @@ final class PrivateProfileCanaryTest extends WebTestCase
         yield 'MSP rating' => ['/en/msp-rating'];
         yield 'players of a country' => ['/en/players-from-country/us'];
         yield 'puzzlers (most favourited)' => ['/en/puzzlers'];
+        // The Community landing's previews (navigation COM-01): solo 500-piece leaders, most active puzzlers
+        yield 'community landing' => ['/en/community'];
     }
 
     public function testPlayerPickerFindsThePrivatePlayerByNameForTheFriendOnly(): void

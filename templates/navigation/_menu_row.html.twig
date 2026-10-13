@@ -1,7 +1,8 @@
 {#- One row of the Menu (README §4.12): icon · label (a one-line description under it only where the label is ambiguous)
     · count or status · chevron (CSS). Same translation key and icon as the destination has on every surface (the
     registry). Anchor id menu-row-<id> on the <li>, aria-current="page" on the current page's row (nav_location()
-    .menuRowId). Kept lean - it repeats ~55 times on every page (chrome weight, MENU-01).
+    .menuRowId). Kept lean - it repeats ~55 times on every page (chrome weight, MENU-01). The docked column's Puzzles
+    place row carries its sections' links like the tab (data-nav-place, data-puzzles-sections - PUZ-01).
     `row`: MenuRowView, `viewer`: NavigationViewer -#}
 {%- set entry = row.entry -%}
 {%- set kind = row.kind.value -%}
@@ -34,7 +35,8 @@
         {%- if row.current %} aria-current="page"{% endif %}
         {%- if row.nofollow %} rel="nofollow"{% endif %}
         {%- if kind == 'help_sheet' %} {{ help_opener_attrs() }}{% endif %}
-        {%- if kind == 'logout' %} data-turbo="false"{% endif %}>
+        {%- if kind == 'logout' %} data-turbo="false"{% endif %}
+        {%- if entry.id == 'puzzles_place' %} data-nav-place="puzzles" data-puzzles-sections="{{ nav_puzzles_sections()|json_encode(constant('JSON_UNESCAPED_SLASHES') b-or constant('JSON_UNESCAPED_UNICODE')) }}"{% endif %}>
         {#- -#}<i class="bi {{ entry.icon }}" aria-hidden="true"></i><span class="mr-l">{{ entry.label|trans }}
         {%- if stopwatch is not null -%}
             <small class="mr-d mr-running">{{ 'nav.menu.running'|trans }} · {{ include('navigation/_stopwatch_elapsed.html.twig', {stopwatch: stopwatch}, with_context = false) }}</small>

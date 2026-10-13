@@ -24,6 +24,8 @@ use Symfony\Component\DomCrawler\Crawler;
  */
 final class BlocklistCanaryTest extends WebTestCase
 {
+    use ClonesSolvingTimes;
+
     private const string BLOCKER = PlayerFixture::PLAYER_WITH_FAVORITES;
     private const string BLOCKED = PlayerFixture::PLAYER_WITH_STRIPE;
     private const string BLOCKED_NAME = PlayerFixture::PLAYER_WITH_STRIPE_NAME;
@@ -234,6 +236,36 @@ final class BlocklistCanaryTest extends WebTestCase
         yield 'feature requests' => ['/en/feature-requests'];
         // The marketplace card's seller faces (docs/features/marketplace/11-events.md) and the participants below it
         yield 'event page with the marketplace card' => ['/en/events/' . MarketplaceEventFixture::COMPETITION_SWAP_FAIR_SLUG];
+    }
+
+    /**
+     * The Community landing (docs/features/navigation COM-01) previews the top of the solo 500-piece leaderboard - the
+     * blocked player is not there in the fixtures, so a one-minute solo time of theirs puts them first: a bystander sees
+     * them, the blocker nowhere on the page (and nobody moves up in their place but the next leader).
+     */
+    public function testBlockedLeaderIsNowhereOnTheCommunityLanding(): void
+    {
+        $browser = self::createClient();
+        // PLAYER_WITH_STRIPE's solo time on PUZZLE_500_02, as the fastest 500-piece time of all
+        $this->cloneSolvingTime(PuzzleSolvingTimeFixture::TIME_45_UNBOXED, ['seconds_to_solve' => 60]);
+
+        self::getContainer()->get(Connection::class)->executeStatement(
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, NOW(), 'self')",
+            ['id' => Uuid::uuid7()->toString(), 'blocker' => self::BLOCKER, 'blocked' => self::BLOCKED],
+        );
+
+        TestingLogin::asPlayer($browser, self::BYSTANDER);
+        $crawler = $browser->request('GET', '/en/community');
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString(self::BLOCKED_NAME, $crawler->filter('.community-leaderboards .community-preview-row')->first()->text(), 'No canary: the blocked player does not lead the preview for a bystander.');
+
+        TestingLogin::asPlayer($browser, self::BLOCKER);
+        $crawler = $browser->request('GET', '/en/community');
+        self::assertResponseIsSuccessful();
+        $content = (string) $browser->getResponse()->getContent();
+        self::assertStringNotContainsString(self::BLOCKED, $content, 'The blocker is shown a player they blocked.');
+        self::assertStringNotContainsString(self::BLOCKED_NAME, $content, 'The blocker is shown a player they blocked.');
+        self::assertCount(3, $crawler->filter('.community-leaderboards .community-preview-row'), 'The next leader takes the place');
     }
 
     /**

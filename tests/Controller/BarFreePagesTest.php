@@ -64,6 +64,8 @@ final class BarFreePagesTest extends WebTestCase
         self::assertCount(0, $crawler->filter('footer.site-footer'), $url);
         // HELP-04: no "Something wrong on this page?" line either
         self::assertCount(0, $crawler->filter('.page-help-line'), $url);
+        // COM-02: no section chips, though each of them belongs to Community › Events
+        self::assertCount(0, $crawler->filter('.section-chips'), $url);
         self::assertStringContainsString('no-nav-chrome', (string) $crawler->filter('body')->attr('class'), $url);
     }
 

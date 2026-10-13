@@ -1,6 +1,8 @@
-// The Community landing (docs/features/navigation README §4.9, COM-01a): three cards - Leaderboards, Puzzlers,
-// Events. One column on phones, three from 768 px. Each card's only link is stretched over it (stretched-link), so
-// the whole card is the target; COM-01's previews will carry links of their own.
+// The Community landing (docs/features/navigation README §4.9, COM-01a, COM-01): three cards - Leaderboards,
+// Puzzlers, Events - each with a small preview of its section and its call to action at the bottom. One column on
+// phones, three from 992 px (a preview row needs ~280 px: avatar, name, value). The cards are not links themselves:
+// their rows and the calls to action are (COM-01a's card-wide link gave way to the previews' own links). A preview row
+// is one 44 px target on phones: its one link is stretched over the row.
 
 .community-landing-title {
     margin-bottom: .5rem;
@@ -18,52 +20,48 @@
     gap: 1rem;
 
     @include media-breakpoint-up(md) {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 1.25rem;
+    }
+
+    @include media-breakpoint-up(lg) {
         grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 1.5rem;
     }
 }
 
 .community-entry {
-    position: relative;
     display: flex;
     flex-direction: column;
+    min-width: 0;
     padding: 1.25rem;
     background: $white;
     border-radius: 1rem;
     box-shadow: 0 .25rem 1rem rgba($gray-900, .07);
-    transition: transform .2s ease, box-shadow .2s ease;
+}
 
-    &:hover,
-    &:focus-within {
-        transform: translateY(-.25rem);
-        box-shadow: 0 .625rem 1.75rem -.375rem rgba($gray-900, .18);
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-        transition: none;
-
-        &:hover,
-        &:focus-within {
-            transform: none;
-        }
-    }
+.community-entry-head {
+    display: flex;
+    gap: .75rem;
+    align-items: center;
+    margin-bottom: .5rem;
 }
 
 .community-entry-icon {
     display: flex;
+    flex-shrink: 0;
     align-items: center;
     justify-content: center;
-    width: 3rem;
-    height: 3rem;
-    margin-bottom: .75rem;
-    font-size: 1.375rem;
+    width: 2.75rem;
+    height: 2.75rem;
+    font-size: 1.25rem;
     color: $primary;
     background: rgba($primary, .08);
     border-radius: .875rem;
 }
 
 .community-entry-title {
-    margin-bottom: .375rem;
+    margin-bottom: 0;
     font-size: 1.125rem;
     font-weight: 600;
     line-height: 1.35;
@@ -75,23 +73,176 @@
     color: $gray-600;
 }
 
+// The preview: a small caption, three rows (or the empty line)
+.community-preview {
+    margin-bottom: 1rem;
+}
+
+.community-preview-title {
+    margin-bottom: .25rem;
+    font-size: .75rem;
+    font-weight: 600;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: $gray-600;
+}
+
+.community-preview-empty {
+    margin-bottom: 0;
+    padding: .75rem 0;
+    font-size: .875rem;
+    color: $gray-600;
+}
+
+.community-preview-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.community-preview-row {
+    position: relative;
+    display: flex;
+    gap: .5rem;
+    align-items: center;
+    min-height: 44px;
+    border-bottom: 1px solid $gray-200;
+
+    &:last-child {
+        border-bottom: 0;
+    }
+
+    // The row's one link covers the row (44 px tall on phones)
+    a.lb-name::after,
+    .community-event-name::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+    }
+
+    &:hover a.lb-name,
+    &:hover a.community-event-name {
+        text-decoration: underline;
+    }
+
+    // The whole row is the link: its focus ring is the row's
+    a.lb-name:focus-visible,
+    a.community-event-name:focus-visible {
+        outline: 0;
+
+        &::after {
+            border-radius: .5rem;
+            outline: 2px solid var(--nav-focus, #4e54c8);
+            outline-offset: -2px;
+        }
+    }
+
+    .lb-player {
+        flex: 1 1 auto;
+    }
+}
+
+.community-preview-rank {
+    flex: 0 0 1.5rem;
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    text-align: center;
+    color: $gray-700;
+}
+
+.community-preview-value {
+    flex-shrink: 0;
+    margin-left: auto;
+    font-size: .875rem;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    color: $gray-700;
+}
+
+// Events: the events page's date leaf (56 px - "Sa.–So." and "10–11" fit), then the name, place and when
+.community-event {
+    gap: .75rem;
+    padding: .5rem 0;
+
+    .ev-leaf {
+        flex-shrink: 0;
+        width: 56px;
+    }
+}
+
+.community-event-body {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.community-event-name {
+    overflow: hidden;
+    font-weight: 500;
+    line-height: 1.35;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: #111;
+    text-decoration: none;
+}
+
+.community-event-edition,
+.community-event-meta {
+    overflow: hidden;
+    font-size: .8125rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: $gray-600;
+}
+
+.community-event-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 .5rem;
+    align-items: center;
+}
+
+// The calls to action: the section, and Compare beside Find puzzlers
+.community-entry-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .25rem 1.25rem;
+    align-items: center;
+    margin-top: auto;
+}
+
 .community-entry-link {
     display: inline-flex;
     gap: .375rem;
     align-items: center;
-    margin-top: auto;
+    min-height: 44px;
     font-weight: 500;
     color: $primary;
+    text-decoration: none;
 
     i {
         transition: transform .2s ease;
     }
-}
 
-.community-entry:hover .community-entry-link i {
-    transform: translateX(.25rem);
+    &:hover i.bi-arrow-right {
+        transform: translateX(.25rem);
+    }
 
     @media (prefers-reduced-motion: reduce) {
-        transform: none;
+        i {
+            transition: none;
+        }
+
+        &:hover i.bi-arrow-right {
+            transform: none;
+        }
+    }
+}
+
+.community-entry-link--secondary {
+    color: $gray-700;
+
+    &:hover {
+        color: $gray-900;
     }
 }

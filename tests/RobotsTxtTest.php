@@ -162,6 +162,9 @@ final class RobotsTxtTest extends KernelTestCase
             // docs/features/organizations/README.md - both indexable while public
             'organization' => ['organization_detail', ['slug' => 'riverbend-jigsaw-association']],
             'organizations directory' => ['organizations', []],
+            // The navigation's landing and its "Where did it go?" page (docs/features/navigation COM-01, LAUNCH-02a)
+            'community landing' => ['community', []],
+            'where did it go' => ['where_did_it_go', []],
         ];
     }
 

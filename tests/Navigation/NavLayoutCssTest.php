@@ -713,7 +713,8 @@ final class NavLayoutCssTest extends TestCase
         // nav_chrome right after the header block and before <main>; nav_layers last in <body>, after every GlobalSearch
         $headerEnd = strpos($base, '{% endblock %}', (int) strpos($base, '{% block header %}'));
         self::assertGreaterThan($headerEnd, $chrome);
-        self::assertLessThan(strpos($base, '<main id="main-content">'), $chrome);
+        // <main> may carry data-puzzles-section (PUZ-01)
+        self::assertLessThan(strpos($base, '<main id="main-content"'), $chrome);
         self::assertGreaterThan(strrpos($base, 'GlobalSearch'), $layers);
         self::assertGreaterThan(strpos($base, 'id="dynamic-modal-container"'), $layers);
         self::assertLessThan(strpos($base, '</body>'), $layers);

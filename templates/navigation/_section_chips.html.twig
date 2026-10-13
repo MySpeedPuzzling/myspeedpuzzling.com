@@ -1,0 +1,21 @@
+{#- A place's section chips (docs/features/navigation README §4.9, D6, D8; COM-02, PUZ-01; decision 75): rendered by
+    base.html.twig's section_chips block at the top of <main> on every page nav_section_chips() gives a row for -
+    Community: Leaderboards · Puzzlers · Events on every page of those sections (the leaderboards' own pill row stays
+    under it: two levels); Puzzles: My library (signed-in) · All puzzles · Marketplace · What next? on its four start
+    pages. Labels from the registry (SectionChipsBuilder), aria-current "page" on the page a chip links to, "true"
+    deeper inside its section. One row, never wrapped or cut: it scrolls sideways on phones and the current chip is
+    brought into view (section_chips_controller.js - the row only, never the page). data-ptr-ignore: a pull that starts
+    on the row never refreshes the page. Guests' HTML: the URL decides everything, nothing per visitor.
+    Not chrome (it sits in <main> and stays in the app); no heading, no form; data-nav on every link. -#}
+{%- set section_chips = nav_section_chips() -%}
+{%- if section_chips is not null -%}
+<nav class="section-chips container px-3" aria-label="{{ section_chips.label|trans }}" data-ptr-ignore data-controller="section-chips">
+    <div class="section-chips-row" data-section-chips-target="row">
+    {%- for chip in section_chips.chips -%}
+        <a class="section-chip" href="{{ chip.href }}" data-press data-nav="chips/{{ section_chips.place.value }}/{{ chip.section }}"
+        {%- if chip.current %} aria-current="{{ chip.current }}" data-section-chips-target="active"{% endif %}
+        {%- if chip.section == 'library' %} rel="nofollow"{% endif %}>{{ chip.label|trans }}</a>
+    {%- endfor -%}
+    </div>
+</nav>
+{%- endif -%}

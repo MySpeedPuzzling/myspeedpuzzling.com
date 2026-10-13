@@ -39,6 +39,27 @@ final class SitemapStaticControllerTest extends WebTestCase
         }
     }
 
+    /**
+     * The Community landing is listed (docs/features/navigation README §4.9, COM-01); the navigation's own `noindex`
+     * pages are not: "Where did it go?", the Menu and Help pages and the guests' Add explainer
+     */
+    public function testTheCommunityLandingIsListedAndTheNavigationPagesAreNot(): void
+    {
+        $content = $this->fetchStaticSitemap();
+
+        foreach (self::LOCALES as $locale) {
+            self::assertStringContainsString(sprintf('<loc>%s</loc>', $this->absoluteUrl('community', $locale)), $content, 'community (' . $locale . ')');
+
+            foreach (['where_did_it_go', 'menu', 'help', 'add_intro'] as $route) {
+                self::assertStringNotContainsString(
+                    sprintf('<loc>%s</loc>', $this->absoluteUrl($route, $locale)),
+                    $content,
+                    sprintf('%s (%s) must not be submitted', $route, $locale),
+                );
+            }
+        }
+    }
+
     private function fetchStaticSitemap(): string
     {
         $browser = self::createClient();

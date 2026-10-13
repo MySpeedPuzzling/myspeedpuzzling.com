@@ -1,0 +1,79 @@
+// A place's section chips (templates/navigation/_section_chips.html.twig; docs/features/navigation README §4.9, D6;
+// COM-02, PUZ-01): one row at the top of <main>, above the page's own sub-navigation (the leaderboards' dark pill row
+// under it is the second level). The current chip wears the bars' active pill (README §5: --nav-active-pill /
+// --nav-active-ink, 4.5:1), the others are outlined. Labels never truncate or wrap: the row scrolls sideways on phones,
+// bleeding to the screen's edges, and section_chips_controller.js brings the current chip into view (the row only).
+// Targets 44 px on phones, 36 px drawn on desktop; touch-action: manipulation - no double-tap zoom on a chip (G5).
+
+.section-chips {
+    padding-top: .75rem;
+}
+
+.section-chips-row {
+    position: relative;
+    display: flex;
+    gap: .5rem;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+
+    &::-webkit-scrollbar {
+        display: none;
+    }
+
+    @include nav-phone {
+        // Bleeds to the screen's edges, the first chip still lines up with the content (the container's 1rem)
+        margin-inline: -1rem;
+        padding: 2px 1rem;
+    }
+
+    @include nav-desktop {
+        flex-wrap: wrap;
+        padding: 2px 0;
+    }
+}
+
+.section-chip {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    min-height: 36px;
+    padding: 0 1rem;
+    border: 1px solid var(--nav-hairline, rgba(43, 52, 69, .1));
+    border-radius: 999px;
+    background: $white;
+    color: var(--nav-ink, #4b566b);
+    font-size: .9375rem;
+    font-weight: $font-weight-medium;
+    line-height: 1.2;
+    white-space: nowrap;
+    text-decoration: none;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+
+    @include nav-phone {
+        min-height: 44px;
+    }
+
+    &:hover {
+        border-color: rgba(43, 52, 69, .25);
+        color: $gray-900;
+        text-decoration: none;
+    }
+
+    &:active {
+        background: var(--nav-pressed-pill, rgba(254, 105, 106, .1));
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--nav-focus, #4e54c8);
+        outline-offset: 2px;
+    }
+
+    &[aria-current] {
+        border-color: transparent;
+        background: var(--nav-active-pill, #ffe8e8);
+        color: var(--nav-active-ink, #c8323a);
+        font-weight: $font-weight-semibold;
+    }
+}

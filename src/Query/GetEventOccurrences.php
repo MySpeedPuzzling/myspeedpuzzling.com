@@ -105,6 +105,26 @@ readonly final class GetEventOccurrences
     }
 
     /**
+     * The public occurrences not over yet - the Community landing's next events (docs/features/navigation COM-01,
+     * decision 74): competitions whose latest date - a round's start, `date_to` or `date_from` - is today − 1 day or
+     * later (UTC; the occurrence's own zone decides live/coming afterwards, EventOccurrence::status()). Undated ones never
+     * match. The rounds aggregate runs only over those competitions, so the landing does not grow with the archive.
+     *
+     * @return list<EventOccurrence>
+     */
+    public function upcoming(): array
+    {
+        $visible = IsCompetitionPubliclyVisible::SQL_CONDITION;
+        $since = $this->clock->now()->setTimezone(new DateTimeZone('UTC'))->modify('-1 day')->format('Y-m-d 00:00:00');
+
+        return $this->fetch(
+            "{$visible} AND (c.date_from >= CAST(:notOverSince AS TIMESTAMP) OR c.date_to >= CAST(:notOverSince AS TIMESTAMP) OR EXISTS (SELECT 1 FROM competition_round u_r WHERE u_r.competition_id = c.id AND u_r.starts_at >= CAST(:notOverSince AS TIMESTAMP)))",
+            ['notOverSince' => $since],
+            'WHERE cr_j.competition_id IN (SELECT u_c.id FROM competition u_c WHERE u_c.date_from >= CAST(:notOverSince AS TIMESTAMP) OR u_c.date_to >= CAST(:notOverSince AS TIMESTAMP) UNION SELECT u_cr.competition_id FROM competition_round u_cr WHERE u_cr.starts_at >= CAST(:notOverSince AS TIMESTAMP))',
+        );
+    }
+
+    /**
      * The public occurrences of several organizations at once (the organizations directory's next dates).
      *
      * @param list<string> $organizationIds

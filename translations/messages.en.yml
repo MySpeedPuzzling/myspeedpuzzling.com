@@ -9281,12 +9281,19 @@ community_page:
     leaderboards:
         description: "The fastest puzzlers by piece count, the MSP Rating and more rankings."
         cta: "All leaderboards"
+        preview: "Fastest solo · %pieces% pieces"
+        empty: "No times on this leaderboard yet."
     puzzlers:
         description: "Find puzzlers to follow, compare your times and see who is on a roll."
         cta: "Find puzzlers"
+        preview: "Most active puzzlers"
+        this_month: "{1}1 puzzle this month|]1,Inf[%count% puzzles this month"
+        empty: "Nobody has logged a puzzle this month yet."
     events:
         description: "Competitions and puzzle events, in person near you and online."
         cta: "All events"
+        preview: "Coming up"
+        empty: "No events coming up right now."
 
 add_intro:
     meta:
@@ -9345,6 +9352,10 @@ nav:
         home_logo: "MySpeedPuzzling – Home"
         feedback: "Feedback"
         sign_in: "Sign in"
+    chips:
+        community: "Community sections"
+        puzzles: "Puzzles sections"
+        my_library: "My library"
     layout:
         fold: "Collapse the menu"
         dock: "Expand the menu"

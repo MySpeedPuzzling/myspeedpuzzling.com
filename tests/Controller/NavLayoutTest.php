@@ -104,8 +104,11 @@ final class NavLayoutTest extends WebTestCase
         $html = (string) $browser->request('GET', '/en/faq')->html();
         $head = substr($html, 0, (int) strpos($html, '</head>'));
 
-        self::assertStringContainsString("var layout = s.getItem('msp:nav-layout');", $head);
-        self::assertLessThan(strpos($head, '<style>'), strpos($head, "s.getItem('msp:nav-layout')"), 'before the critical CSS (implementation plan §3.11)');
+        // The build of assets/head/nav_layout.js (templates/_inline_scripts, InlineScriptsBuildTest) - it reads the choice
+        $script = '<script>' . file_get_contents(__DIR__ . '/../../templates/_inline_scripts/nav_layout.js') . '</script>';
+        self::assertStringContainsString("getItem('msp:nav-layout')", $script);
+        self::assertStringContainsString($script, $head);
+        self::assertLessThan(strpos($head, '<style>'), strpos($head, $script), 'before the critical CSS (implementation plan §3.11)');
     }
 
     /**

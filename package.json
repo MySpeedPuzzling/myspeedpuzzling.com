@@ -13,6 +13,7 @@
         "regenerator-runtime": "^0.14.0",
         "sass": "^1.57.1",
         "sass-loader": "^14.0",
+        "terser": "5.31.0",
         "tom-select": "^2.2.2",
         "webpack": "^5.75.0",
         "webpack-cli": "^5.0.1",
@@ -24,7 +25,8 @@
         "dev-server": "encore dev-server",
         "dev": "encore dev",
         "watch": "encore dev --watch",
-        "build": "encore production --progress"
+        "build": "encore production --progress",
+        "inline-scripts": "node tools/build-inline-scripts.mjs"
     },
     "dependencies": {
         "@hotwired/stimulus": "^3.0.0",

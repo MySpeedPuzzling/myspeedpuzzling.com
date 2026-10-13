@@ -31,9 +31,6 @@ return App::config([
         'paths' => [
             '%kernel.project_dir%/public/img' => 'images',
             '%kernel.project_dir%/public/css' => 'styles',
-            // Inline head scripts (templates/_head_flags.html.twig, docs/features/navigation GEST-09): kept as plain
-            // ES5 files so node can test them, inlined with source()
-            '%kernel.project_dir%/assets/head' => 'head_scripts',
         ],
         // The plain-text part of e-mails keeps links and paragraphs (Symfony's default strip_tags() drops every URL)
         'mailer' => [

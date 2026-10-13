@@ -25,320 +25,16 @@
 
         {% block robots %}<meta name="robots" content="index, follow">{% endblock %}
 
-        {# Asset-failure beacon + self-heal. A corrupt cached bundle is refused by
-           SRI on every page load and Sentry never hears about it (its browser SDK
-           lives inside the dead bundle), so this must stay inline, dependency-free
-           and ES5: it runs exactly when the bundles do not.
+        {# Asset-failure beacon + self-heal: assets/inline/asset_failure.js (why and how there), inlined as its build
+           (templates/_inline_scripts, npm run inline-scripts). Inline, dependency-free and ES5: it runs exactly when
+           the bundles do not. #}
+        <script>{{ source('_inline_scripts/asset_failure.js')|replace({'__ASSET_LOAD_FAILURE_URL__': path('asset_load_failure')})|raw }}</script>
 
-           Two ways in, because an `error` event is not guaranteed: the listener
-           below catches outright load failures, and a load-time sweep of
-           document.styleSheets catches a stylesheet that is missing or empty
-           without ever firing one (wrong MIME type, empty 200, silent SRI drop).
-           Both can see the same file, so each URL counts once per page load.
-
-           Recovery purges CacheStorage AND refetches each asset with
-           cache:'reload'. That refetch is the whole point: /build is served
-           immutable for a year, so a poisoned entry in the browser's *HTTP*
-           cache survives both a CacheStorage purge and a reload, and only a
-           forced revalidation can overwrite it. Purging alone left users stuck
-           until the entry expired. The refetch also hashes what it received
-           against the element's SRI hash, and the report carries the verdict:
-           "corrupt" means we deliver bad bytes, "intact" plus a page that still
-           fails means something inside the browser blocks the load (the headless
-           scrapers that block stylesheets look exactly like that).
-
-           Reports are bounded per session: every heal reports once (the server
-           logs those at info - the outcome is still open), and when the heals
-           run out one final report says the page is still broken. After that the
-           session stays silent, instead of reporting every page view.
-
-           Fail open everywhere: a false positive would reload-loop, which is far
-           worse than the bug. Anything unexpected (no caches, sessionStorage
-           unavailable, cssRules not readable) does nothing at all, and attempts
-           are hard-capped. The cap lives in sessionStorage, but one Chrome
-           reloaded 95 times in 22 s because its sessionStorage did not survive
-           the reload - so every reload of ours also marks the history entry, and
-           a page that finds that mark with no attempt on record never reloads. #}
-        <script>
-        (function () {
-            var MAX_HEALS = 2;
-            var MAX_REPORTS = 3;
-
-            function read(key) {
-                try { return window.sessionStorage.getItem(key); } catch (e) { return undefined; }
-            }
-
-            function write(key, value) {
-                try { window.sessionStorage.setItem(key, value); return true; } catch (e) { return false; }
-            }
-
-            {# Read once, before this page load changes anything - a second broken
-               file on the same page must not look like a retry of the first. #}
-            var storedHeals = read('msp-asset-heal');
-            var heals = storedHeals === undefined ? null : (parseInt(storedHeals || '0', 10) || 0);
-            var reportedBefore = read('msp-asset-reported') === '1';
-            var reloadedByUs = false;
-            try { reloadedByUs = !!(window.history.state && window.history.state.mspAssetHeal); } catch (e) {}
-
-            var mayHeal = heals !== null && heals < MAX_HEALS && !!window.caches && !!window.fetch
-                && !(reloadedByUs && heals === 0);
-
-            var failures = [];
-            var seen = {};
-            var sent = 0;
-            var healing = false;
-
-            function verdicts() {
-                try { return JSON.parse(read('msp-asset-refetch') || '{}') || {}; } catch (e) { return {}; }
-            }
-
-            function send(failure, isHealing, verdict) {
-                if (failure.sent || sent >= MAX_REPORTS || !navigator.sendBeacon) return;
-                failure.sent = true;
-                sent++;
-
-                var meta = document.querySelector('meta[name="msp-rendered-at"]');
-                try {
-                    navigator.sendBeacon('{{ path('asset_load_failure') }}', JSON.stringify({
-                        v: 2,
-                        url: failure.url,
-                        page: window.location.pathname,
-                        controlled: !!(navigator.serviceWorker && navigator.serviceWorker.controller),
-                        retry: heals !== null && heals > 0,
-                        healing: isHealing,
-                        refetch: verdict || '',
-                        rendered: meta ? parseInt(meta.getAttribute('content'), 10) || 0 : 0,
-                        webdriver: navigator.webdriver === true
-                    }));
-                } catch (e) {}
-            }
-
-            {# What the network delivers for this URL right now: 'intact' or
-               'corrupt' against the SRI hash, 'fetched' when it cannot be checked,
-               'http-<status>', 'unreachable', or 'timeout' - a stalled mobile
-               connection must not hold the report and the reload back for minutes. #}
-            function refetch(failure) {
-                return Promise.race([download(failure), new Promise(function (resolve) {
-                    window.setTimeout(function () { resolve('timeout'); }, 10000);
-                })]);
-            }
-
-            function download(failure) {
-                return window.fetch(failure.url, { cache: 'reload', credentials: 'same-origin' }).then(function (response) {
-                    var subtle = window.crypto && window.crypto.subtle;
-                    if (!response.ok) return 'http-' + response.status;
-                    if (!subtle || !window.btoa || !window.Uint8Array || failure.integrity.indexOf('sha384-') !== 0) return 'fetched';
-
-                    return response.arrayBuffer().then(function (body) {
-                        return subtle.digest('SHA-384', body);
-                    }).then(function (digest) {
-                        var bytes = new Uint8Array(digest);
-                        var binary = '';
-                        for (var i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
-                        return failure.integrity.split(/\s+/).indexOf('sha384-' + window.btoa(binary)) === -1 ? 'corrupt' : 'intact';
-                    });
-                }, function () {
-                    return 'unreachable';
-                }).then(null, function () {
-                    return 'fetched';
-                });
-            }
-
-            function reload() {
-                {# The loop guard that does not depend on sessionStorage. Turbo
-                   keeps its own data in history.state, so merge rather than replace. #}
-                try {
-                    var state = window.history.state;
-                    var marked = {};
-                    if (state && typeof state === 'object') {
-                        for (var key in state) {
-                            if (Object.prototype.hasOwnProperty.call(state, key)) marked[key] = state[key];
-                        }
-                    }
-                    marked.mspAssetHeal = heals + 1;
-                    window.history.replaceState(marked, '');
-                } catch (e) {
-                    return;
-                }
-                window.location.reload();
-            }
-
-            {# One heal per page load: every failing asset fires its own error event
-               and the sweep can fire as well, but one purge covers every /build
-               entry. Failures that arrive while it runs join the same report. #}
-            function heal() {
-                if (healing) return;
-                healing = true;
-
-                if (!write('msp-asset-heal', String(heals + 1))) {
-                    mayHeal = false;
-                    for (var i = 0; i < failures.length; i++) send(failures[i], false, '');
-                    return;
-                }
-
-                window.caches.keys().then(function (cacheNames) {
-                    return Promise.all(cacheNames.map(function (cacheName) {
-                        return window.caches.open(cacheName).then(function (cache) {
-                            return cache.keys().then(function (requests) {
-                                return Promise.all(requests.filter(function (cachedRequest) {
-                                    return cachedRequest.url.indexOf('/build/') !== -1;
-                                }).map(function (cachedRequest) {
-                                    return cache.delete(cachedRequest);
-                                }));
-                            });
-                        });
-                    }));
-                }).then(null, function () {}).then(function () {
-                    var batch = failures.slice(0, MAX_REPORTS);
-
-                    return Promise.all(batch.map(refetch)).then(function (results) {
-                        var stored = verdicts();
-                        for (var i = 0; i < batch.length; i++) {
-                            stored[batch[i].url] = results[i];
-                            send(batch[i], true, results[i]);
-                        }
-                        write('msp-asset-refetch', JSON.stringify(stored));
-                    });
-                }).then(null, function () {}).then(function () {
-                    for (var i = 0; i < failures.length; i++) send(failures[i], true, '');
-                    reload();
-                });
-            }
-
-            function fail(assetUrl, integrity) {
-                if (!assetUrl || assetUrl.indexOf('/build/') === -1 || seen[assetUrl]) return;
-                seen[assetUrl] = true;
-
-                var failure = { url: assetUrl, integrity: integrity || '', sent: false };
-                failures.push(failure);
-
-                if (mayHeal) {
-                    heal();
-                } else if (!reportedBefore) {
-                    {# Out of heals: say once that the page stays broken, with what
-                       the last refetch of this file found, then go quiet. #}
-                    send(failure, false, verdicts()[assetUrl]);
-                    write('msp-asset-reported', '1');
-                }
-            }
-
-            window.addEventListener('error', function (event) {
-                var element = event.target;
-                if (!element || !element.tagName) return;
-                if (element.tagName !== 'SCRIPT' && element.tagName !== 'LINK') return;
-                fail(element.src || element.href || '', element.getAttribute('integrity'));
-            }, true);
-
-            {# link.sheet is null when a stylesheet was never applied - failed to
-               load, or silently rejected by SRI. A sheet that loaded but is
-               unusable (wrong MIME type, empty 200) applies with zero rules.
-               Read straight off the elements rather than asking Encore which
-               files it emitted: encore_entry_css_files() marks them as returned
-               and encore_entry_link_tags() would then render nothing at all.
-               On load, not DOMContentLoaded: whether the latter waits for a
-               pending stylesheet depends on script-blocking rules, and a sweep
-               that runs too early would call a healthy page broken and reload it.
-               Healing a few hundred ms later costs a visitor who is already
-               looking at a broken page nothing. #}
-            window.addEventListener('load', function () {
-                var links = document.querySelectorAll('link[rel="stylesheet"]');
-
-                for (var i = 0; i < links.length; i++) {
-                    var href = links[i].href || '';
-                    if (href.indexOf('/build/') === -1) continue;
-
-                    var sheet;
-                    try { sheet = links[i].sheet; } catch (e) { continue; }
-                    if (sheet === null || sheet === undefined) { fail(href, links[i].getAttribute('integrity')); continue; }
-
-                    {# Unreadable rules mean opaque, not broken - leave it alone. #}
-                    try { if (sheet.cssRules.length === 0) fail(href, links[i].getAttribute('integrity')); } catch (e) {}
-                }
-            });
-        })();
-        </script>
-
-        {# Stale-document beacon + self-heal. Pages are never meant to be answered
-           from a cache, and when one is, the server cannot see it: the v6 service
-           worker replayed cached HTML to every Chromium navigation for months
-           (people had to refresh twice to see a time they had just added) and
-           the only signal was users writing in.
-
-           The timestamp lives in a <meta>, never inside the script: Turbo
-           re-evaluates a head script whose text changed, and this one must run
-           once per real page load, not on every Turbo visit.
-
-           Only a page under a service worker is checked - that is the one thing
-           of ours able to cache a document, and it keeps crawlers out (they
-           render HTML fetched days earlier, with no worker). back_forward
-           navigations are skipped because browsers reuse stale HTML for those on
-           purpose. The visitor's clock only raises suspicion; the verdict comes
-           from the server's own Date header, so a phone running minutes fast
-           reports nothing. The HEAD probe is a static file, is not GET (the
-           worker ignores it) and only happens for a document that looks old.
-
-           Fail open, like the asset script above: anything unexpected does
-           nothing, and healing is capped at once per session. #}
+        {# Stale-document beacon + self-heal: assets/inline/stale_document.js (why and how there), inlined as its build.
+           The timestamp lives in the <meta>, never inside the script: Turbo re-evaluates a head script whose text
+           changed, and this one must run once per real page load - the script directly follows its <meta>. #}
         <meta name="msp-rendered-at" content="{{ 'now'|date('U') }}">
-        <script>
-        (function () {
-            var STALE_AFTER_SECONDS = 300;
-
-            try {
-                if (!navigator.serviceWorker || !navigator.serviceWorker.controller) return;
-                if (!window.fetch || !window.performance || !performance.getEntriesByType) return;
-
-                var meta = document.querySelector('meta[name="msp-rendered-at"]');
-                var renderedAt = meta ? parseInt(meta.getAttribute('content'), 10) : 0;
-                if (!renderedAt) return;
-
-                var navigation = performance.getEntriesByType('navigation')[0];
-                if (!navigation || (navigation.type !== 'navigate' && navigation.type !== 'reload')) return;
-
-                if (Date.now() / 1000 - renderedAt < STALE_AFTER_SECONDS) return;
-
-                fetch('/service-worker.js', { method: 'HEAD', cache: 'no-store' }).then(function (response) {
-                    var serverNow = Date.parse(response.headers.get('Date') || '') / 1000;
-                    var age = Math.round(serverNow - renderedAt);
-                    if (!(age >= STALE_AFTER_SECONDS)) return;
-
-                    var healed;
-                    try { healed = window.sessionStorage.getItem('msp-stale-heal') === '1'; }
-                    catch (e) { return; }
-
-                    if (navigator.sendBeacon) {
-                        navigator.sendBeacon('{{ path('stale_document') }}', JSON.stringify({
-                            page: window.location.pathname,
-                            age: age,
-                            type: navigation.type,
-                            delivery: navigation.deliveryType || '',
-                            transferSize: navigation.transferSize,
-                            throughWorker: navigation.workerStart > 0,
-                            discarded: document.wasDiscarded === true,
-                            retry: healed
-                        }));
-                    }
-
-                    if (healed || !window.caches) return;
-                    try { window.sessionStorage.setItem('msp-stale-heal', '1'); } catch (e) { return; }
-
-                    // Drop this URL from every cache first, or a worker that
-                    // answers from one would hand the same copy straight back.
-                    window.caches.keys().then(function (cacheNames) {
-                        return Promise.all(cacheNames.map(function (cacheName) {
-                            return window.caches.open(cacheName).then(function (cache) {
-                                return cache.delete(window.location.href);
-                            });
-                        }));
-                    }).then(function () {
-                        window.location.reload();
-                    }, function () {
-                        window.location.reload();
-                    });
-                }, function () {});
-            } catch (e) {}
-        })();
-        </script>
+        <script>{{ source('_inline_scripts/stale_document.js')|replace({'__STALE_DOCUMENT_URL__': path('stale_document')})|raw }}</script>
 
         <meta property="og:title" content="{% block og_title %}{{ block('title') }}{{ block('title_suffix') }}{% endblock %}">
         <meta property="og:description" content="{{ block('meta_description') is not empty ? block('meta_description') : 'homepage.meta.description'|trans }}">
@@ -390,7 +86,7 @@
            the navigation bars' boxes and reserved sizes (the old header's rules left with the old header, NAV-06) #}
         {# Icon fonts are NOT preloaded on purpose: both are font-display:swap and the
            full files (195KB) at High priority were stealing bandwidth from CSS/LCP. #}
-        <style>@font-face{font-family:Rubik;font-style:normal;font-weight:300 700;font-display:optional;src:url({{ asset('fonts/rubik/rubik-latin-ext.woff2') }}) format("woff2");unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}@font-face{font-family:Rubik;font-style:normal;font-weight:300 700;font-display:optional;src:url({{ asset('fonts/rubik/rubik-latin.woff2') }}) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-display:swap;font-family:cartzilla-icons;font-style:normal;font-weight:400;src:url({{ asset('build/fonts/cartzilla-icons.woff?ufvuz0') }}) format("woff")}@font-face{font-display:swap;font-family:bootstrap-icons;src:url({{ asset('build/fonts/bootstrap-icons.woff2?') }}) format("woff2"),url({{ asset('build/fonts/bootstrap-icons.woff?') }}) format("woff")}[class^=ci-],[class*=" ci-"]{font-family:cartzilla-icons!important;speak:never;font-style:normal;font-weight:400;font-variant:normal;text-transform:none;line-height:1;-webkit-font-smoothing:antialiased}.bi{font-family:bootstrap-icons!important;speak:never;font-style:normal;font-weight:400;font-variant:normal;text-transform:none;line-height:1;-webkit-font-smoothing:antialiased}*,::after,::before{box-sizing:border-box}html{font-size:100%}@media(min-width:768px){html{font-size:106.25%}}@media(min-width:1200px){html{font-size:112.5%}}body{margin:0;font-family:Rubik,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;font-size:.9375rem;line-height:1.5;color:#4b566b;background:#fff;display:flex;flex-direction:column;min-height:100vh}a{color:#fe696a;text-decoration:none}img{max-width:100%;height:auto}small{font-size:.875rem}main{flex-grow:1}.row{display:flex;flex-wrap:wrap}.col-lg-6{width:100%}@media(min-width:992px){.col-lg-6{flex:0 0 auto;width:50%}}.mt-4{margin-top:1.5rem!important}.mt-5{margin-top:3rem!important}.pt-2{padding-top:.5rem!important}.mb-0{margin-bottom:0!important}.h3{font-size:1.375rem;font-weight:500}.h4{font-size:1.1875rem;font-weight:500}.table{width:100%;margin-bottom:1rem;vertical-align:top;border-color:#dee2e6}.table>:not(caption)>*>*{padding:.5rem}.table-striped>tbody>tr:nth-of-type(odd)>*{background-color:#fdfdfd}.nav-tabs{border-bottom:1px solid #dee2e6;display:flex}.nav-fill>.nav-item{flex:1 1 auto;text-align:center}.nav-link{display:block;padding:.5rem 1rem;color:#4b566b}.nav-tabs .nav-link.active{color:#495057;background-color:#fff;border-color:#dee2e6 #dee2e6 #fff}.placeholder-glow .placeholder{animation:placeholder-glow 2s ease-in-out infinite}.placeholder{display:inline-block;min-height:1em;vertical-align:middle;cursor:wait;background-color:currentcolor;opacity:.5;border-radius:.25rem}@keyframes placeholder-glow{50%{opacity:.2}}.tab-content>.tab-pane{display:none}.tab-content>.active{display:block}.fade:not(.show){opacity:0}.custom-table-wrapper{border-radius:8px 8px 0 0;box-shadow:rgba(0,0,0,.25) 0 0 10px 0}.text-center{text-align:center!important}.text-end{text-align:right!important}.d-sm-none{display:none!important}@media(max-width:575.98px){.d-sm-none{display:block!important}.d-none.d-sm-table-cell{display:none!important}}.table-responsive{overflow-x:auto}.fixed-top{position:fixed;top:0;right:0;left:0;z-index:1030}.sticky-top{position:sticky;top:0;z-index:1030}.shadow-sm{box-shadow:0 .125rem .25rem rgba(0,0,0,.075)}.container{width:100%;padding-right:.9375rem;padding-left:.9375rem;margin-right:auto;margin-left:auto}@media(min-width:1280px){.container{max-width:1260px}}.d-flex{display:flex!important}.d-none{display:none!important}.align-items-center{align-items:center!important}.text-nowrap{white-space:nowrap!important}.ms-1{margin-left:.25rem!important}.ms-2{margin-left:.5rem!important}.me-1{margin-right:.25rem!important}.me-2{margin-right:.5rem!important}.me-n1{margin-right:-.25rem!important}.me-auto{margin-right:auto!important}.ms-n3{margin-left:-1rem!important}.position-relative{position:relative!important}@media(min-width:576px){.ms-sm-3{margin-left:1rem!important}.me-sm-3{margin-right:1rem!important}}@media(min-width:992px){.d-lg-block{display:block!important}.d-lg-none{display:none!important}.d-lg-flex{display:flex!important}.d-lg-inline{display:inline!important}.flex-lg-column{flex-direction:column!important}.align-items-lg-center{align-items:center!important}.text-lg-center{text-align:center!important}.order-lg-1{order:1!important}.order-lg-2{order:2!important}.order-lg-3{order:3!important}.ms-lg-0{margin-left:0!important}.ms-lg-3{margin-left:1rem!important}.me-lg-2{margin-right:.5rem!important}.me-lg-3{margin-right:1rem!important}}.visually-hidden-focusable:not(:focus):not(:focus-within){position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}ul,ol{margin:0;padding:0;list-style:none}.text-dark{color:#373f50!important}.dropdown{position:relative}.dropdown-toggle::after{display:inline-block;margin-left:.255em;vertical-align:.255em;content:"";border-top:.3em solid;border-right:.3em solid transparent;border-left:.3em solid transparent}.nav-link{display:block;padding:.5rem 1rem;color:#4b566b;font-weight:500;text-decoration:none}.bg-secondary{background-color:#f3f5f9!important}.fi{display:inline-block;width:1.333em;height:1em;line-height:1em}.modal{display:none}.fade:not(.show){opacity:0}.dropdown-menu{display:none;position:absolute}.badge{display:inline-block;padding:.35em .65em;font-size:.75em;font-weight:500;line-height:1;text-align:center;white-space:nowrap;vertical-align:baseline;border-radius:.25rem}.bg-primary{background-color:#fe696a!important;color:#fff}
+        <style>@font-face{font-family:Rubik;font-style:normal;font-weight:300 700;font-display:optional;src:url({{ asset('fonts/rubik/rubik-latin-ext.woff2') }}) format("woff2");unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}@font-face{font-family:Rubik;font-style:normal;font-weight:300 700;font-display:optional;src:url({{ asset('fonts/rubik/rubik-latin.woff2') }}) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-display:swap;font-family:cartzilla-icons;font-style:normal;font-weight:400;src:url({{ asset('build/fonts/cartzilla-icons.woff?ufvuz0') }}) format("woff")}@font-face{font-display:swap;font-family:bootstrap-icons;src:url({{ asset('build/fonts/bootstrap-icons.woff2?') }}) format("woff2"),url({{ asset('build/fonts/bootstrap-icons.woff?') }}) format("woff")}[class^=ci-],[class*=" ci-"]{font-family:cartzilla-icons!important;speak:never;font-style:normal;font-weight:400;font-variant:normal;text-transform:none;line-height:1;-webkit-font-smoothing:antialiased}.bi{font-family:bootstrap-icons!important;speak:never;font-style:normal;font-weight:400;font-variant:normal;text-transform:none;line-height:1;-webkit-font-smoothing:antialiased}*,::after,::before{box-sizing:border-box}html{font-size:100%}@media(min-width:768px){html{font-size:106.25%}}@media(min-width:1200px){html{font-size:112.5%}}body{margin:0;font-family:Rubik,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;font-size:.9375rem;line-height:1.5;color:#4b566b;background:#fff;display:flex;flex-direction:column;min-height:100vh}a{color:#fe696a;text-decoration:none}img{max-width:100%;height:auto}small{font-size:.875rem}main{flex-grow:1}.row{display:flex;flex-wrap:wrap}.col-lg-6{width:100%}@media(min-width:992px){.col-lg-6{flex:0 0 auto;width:50%}}.mt-4{margin-top:1.5rem!important}.mt-5{margin-top:3rem!important}.pt-2{padding-top:.5rem!important}.mb-0{margin-bottom:0!important}.h3{font-size:1.375rem;font-weight:500}.h4{font-size:1.1875rem;font-weight:500}.table{width:100%;margin-bottom:1rem;vertical-align:top;border-color:#dee2e6}.table>:not(caption)>*>*{padding:.5rem}.table-striped>tbody>tr:nth-of-type(odd)>*{background-color:#fdfdfd}.nav-tabs{border-bottom:1px solid #dee2e6;display:flex}.nav-fill>.nav-item{flex:1 1 auto;text-align:center}.nav-tabs .nav-link.active{color:#495057;background-color:#fff;border-color:#dee2e6 #dee2e6 #fff}.placeholder-glow .placeholder{animation:placeholder-glow 2s ease-in-out infinite}.placeholder{display:inline-block;min-height:1em;vertical-align:middle;cursor:wait;background-color:currentcolor;opacity:.5;border-radius:.25rem}@keyframes placeholder-glow{50%{opacity:.2}}.tab-content>.tab-pane{display:none}.tab-content>.active{display:block}.fade:not(.show){opacity:0}.custom-table-wrapper{border-radius:8px 8px 0 0;box-shadow:rgba(0,0,0,.25) 0 0 10px 0}.text-center{text-align:center!important}.text-end{text-align:right!important}.d-sm-none{display:none!important}@media(max-width:575.98px){.d-sm-none{display:block!important}.d-none.d-sm-table-cell{display:none!important}}.table-responsive{overflow-x:auto}.shadow-sm{box-shadow:0 .125rem .25rem rgba(0,0,0,.075)}.container{width:100%;padding-right:.9375rem;padding-left:.9375rem;margin-right:auto;margin-left:auto}@media(min-width:1280px){.container{max-width:1260px}}.d-flex{display:flex!important}.d-none{display:none!important}.align-items-center{align-items:center!important}.text-nowrap{white-space:nowrap!important}.ms-1{margin-left:.25rem!important}.ms-2{margin-left:.5rem!important}.me-1{margin-right:.25rem!important}.me-2{margin-right:.5rem!important}.me-auto{margin-right:auto!important}.position-relative{position:relative!important}@media(min-width:576px){.me-sm-3{margin-right:1rem!important}}@media(min-width:992px){.d-lg-block{display:block!important}.order-lg-1{order:1!important}.order-lg-2{order:2!important}}.visually-hidden-focusable:not(:focus):not(:focus-within){position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}ul,ol{margin:0;padding:0;list-style:none}.text-dark{color:#373f50!important}.dropdown{position:relative}.dropdown-toggle::after{display:inline-block;margin-left:.255em;vertical-align:.255em;content:"";border-top:.3em solid;border-right:.3em solid transparent;border-left:.3em solid transparent}.nav-link{display:block;padding:.5rem 1rem;color:#4b566b;font-weight:500;text-decoration:none}.bg-secondary{background-color:#f3f5f9!important}.fi{display:inline-block;width:1.333em;height:1em;line-height:1em}.modal{display:none}.dropdown-menu{display:none;position:absolute}.badge{display:inline-block;padding:.35em .65em;font-size:.75em;font-weight:500;line-height:1;text-align:center;white-space:nowrap;vertical-align:baseline;border-radius:.25rem}.bg-primary{background-color:#fe696a!important;color:#fff}
 {{ include('navigation/_critical_css.html.twig') }}</style>
         {{ encore_entry_link_tags('app') }}
 
@@ -416,7 +112,7 @@
 
         {{ encore_entry_script_tags('app') }}
 
-        <!-- JSON-LD Structured Data -->
+        {# JSON-LD Structured Data #}
         {% block json_ld %}
         <script type="application/ld+json">
         {
@@ -594,10 +290,10 @@
 
         <div class="global-search-overlay"></div>
 
-        <!-- Toast Container -->
+        {# Toast Container #}
         <div id="toast-container" class="toast-container position-fixed p-3" data-toast-target="container" style="z-index: 1060;"></div>
 
-        <!-- Dynamic Modal (Turbo-powered) -->
+        {# Dynamic Modal (Turbo-powered) #}
         <div id="dynamic-modal-container"
              class="modal fade"
              tabindex="-1"

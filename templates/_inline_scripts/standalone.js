@@ -1,0 +1,1 @@
+!function(a){try{var t=a.document.documentElement;if(t.hasAttribute('data-native-app'))return;var e=a.matchMedia&&a.matchMedia('(display-mode: standalone)').matches||!0===a.navigator.standalone;if(!e&&!0===a.navigator.webdriver)try{e='1'===a.localStorage.getItem('msp:test-standalone')}catch(a){}e&&t.classList.add('is-standalone')}catch(a){}}(window);

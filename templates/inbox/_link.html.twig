@@ -2,7 +2,8 @@
     Menu's Inbox row include (or embed) it, never copy it. No inbox route of its own (R13): the href is the tab holding
     the unread items (InboxBadgeParts::target()), the accessible name says what is new ("Inbox, 2 new messages").
     A realtime push changes both in the browser (assets/inbox_badge.js) from the data attributes rendered here - the
-    page's own locale; the stream itself carries numbers only.
+    page's own locale; the stream itself carries numbers only. Those strings ride on the page's first Inbox link only
+    (inbox_link_strings(): the top bar's; the Menu's row reads them there - the chrome's weight, README §4.12).
     Params: nav = data-nav (required); class = the link's classes; surface = adds inbox-link--<surface>;
     label = visible label text (none by default); badge_part = total (default) | for_you | messages; badge_class;
     parts = InboxBadgeParts (default inbox_badge()); current = true marks the current page's link (aria-current, the
@@ -21,8 +22,10 @@
        data-bar-action="{{ bar_action('inbox') }}"
        data-bar-count="{{ parts.total() }}"
        aria-label="{{ ('inbox.badge.name.' ~ parts.labelKind())|trans({'%count%': parts.labelCount()}) }}"
+       {%- if inbox_link_strings() %}
        data-inbox-hrefs="{{ {for_you: path('notifications'), messages: path('conversations_list'), requests: path('conversations_list', {tab: 'requests'})}|json_encode }}"
-       data-inbox-labels="{{ {none: browser_translation('inbox.badge.name.none'), messages: browser_translation('inbox.badge.name.messages'), for_you: browser_translation('inbox.badge.name.for_you'), mixed: browser_translation('inbox.badge.name.mixed')}|json_encode }}">
+       data-inbox-labels="{{ {none: browser_translation('inbox.badge.name.none'), messages: browser_translation('inbox.badge.name.messages'), for_you: browser_translation('inbox.badge.name.for_you'), mixed: browser_translation('inbox.badge.name.mixed')}|json_encode }}"
+       {%- endif %}>
         {%- block content -%}
             <i class="bi bi-inbox" aria-hidden="true"></i>
             {{ include('inbox/_badge.html.twig', {part: badge_part ?? 'total', parts: parts, class: badge_class ?? ''}) }}

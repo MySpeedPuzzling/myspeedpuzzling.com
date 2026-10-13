@@ -1,10 +1,12 @@
 {#- Head flags (docs/features/navigation, implementation plan §3.5 / §3.11): inline ES5 scripts that set attributes on
     <html> before first paint. Included right after the viewport meta - before the asset-failure script, the
     msp-rendered-at meta and its script, the critical <style> and the stylesheet link (an inline script after a
-    stylesheet link waits for the CSS). One file per flag in assets/head/ (Twig namespace @head_scripts), appended
-    here: text that never depends on the page (Turbo runs a head script again only when its text changes), never
-    `</script` or `<!--`. Every one but platform_os.js returns early under data-native-app.
+    stylesheet link waits for the CSS). One readable ES5 file per flag in assets/head/, inlined as its minified build
+    templates/_inline_scripts/<file> (npm run inline-scripts, tools/build-inline-scripts.mjs - the chrome's weight;
+    InlineScriptsBuildTest fails on a source changed without a new build): text that never depends on the page (Turbo
+    runs a head script again only when its text changes), never `</script` or `<!--`. Every one but platform_os.js
+    returns early under data-native-app.
     Every layout with its own <html> includes this file (HeadFlagsCoverageTest). -#}
-<script>{{ source('@head_scripts/platform_os.js')|raw }}</script>
-<script>{{ source('@head_scripts/standalone.js')|raw }}</script>
-<script>{{ source('@head_scripts/nav_layout.js')|raw }}</script>
+<script>{{ source('_inline_scripts/platform_os.js')|raw }}</script>
+<script>{{ source('_inline_scripts/standalone.js')|raw }}</script>
+<script>{{ source('_inline_scripts/nav_layout.js')|raw }}</script>

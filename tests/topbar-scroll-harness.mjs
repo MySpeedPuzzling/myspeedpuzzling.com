@@ -45,7 +45,7 @@ function reset(attributes, options) {
 const phone = { phone: true, viewportHeight: 800, searchOpen: false, menuOpen: false, popupOpen: false, focusInside: false };
 
 /** Runs the head script on a fake window; returns the classes it put on <html> (null when it threw) */
-function standalone({ displayMode = false, iosStandalone = false, webdriver = false, flag = null, nativeApp = false, matchMediaThrows = false, storageThrows = false } = {}) {
+function standalone({ displayMode = false, iosStandalone = false, webdriver = false, flag = null, nativeApp = false, matchMediaThrows = false, storageThrows = false } = {}, file = '../assets/head/standalone.js') {
     const classes = [];
     const window = {
         matchMedia: (query) => {
@@ -74,7 +74,7 @@ function standalone({ displayMode = false, iosStandalone = false, webdriver = fa
     };
 
     try {
-        vm.runInNewContext(readFileSync(new URL('../assets/head/standalone.js', import.meta.url), 'utf8'), { window });
+        vm.runInNewContext(readFileSync(new URL(file, import.meta.url), 'utf8'), { window });
     } catch (e) {
         return null;
     }
@@ -107,6 +107,20 @@ const afterFocus = (target) => {
 
     return [during[0], focusReturnedWithWindow(), during[1]];
 };
+
+function standaloneCases(file) {
+    return {
+        'display-mode standalone': standalone({ displayMode: true }, file),
+        'iOS home screen': standalone({ iosStandalone: true }, file),
+        'a browser tab': standalone({}, file),
+        'the test flag under WebDriver': standalone({ webdriver: true, flag: '1' }, file),
+        'the test flag without WebDriver': standalone({ flag: '1' }, file),
+        'WebDriver without the flag': standalone({ webdriver: true }, file),
+        'inside the app': standalone({ displayMode: true, nativeApp: true }, file),
+        'matchMedia throws': standalone({ matchMediaThrows: true }, file),
+        'storage blocked under WebDriver': standalone({ webdriver: true, storageThrows: true }, file),
+    };
+}
 
 const results = {
     // NAV review F3: a page of 600 px scroll range; iOS's rubber band reports 640, 620 while a fling bounces at the end
@@ -187,17 +201,9 @@ const results = {
     },
     followers: STICKY_FOLLOWERS,
 
-    standalone: {
-        'display-mode standalone': standalone({ displayMode: true }),
-        'iOS home screen': standalone({ iosStandalone: true }),
-        'a browser tab': standalone(),
-        'the test flag under WebDriver': standalone({ webdriver: true, flag: '1' }),
-        'the test flag without WebDriver': standalone({ flag: '1' }),
-        'WebDriver without the flag': standalone({ webdriver: true }),
-        'inside the app': standalone({ displayMode: true, nativeApp: true }),
-        'matchMedia throws': standalone({ matchMediaThrows: true }),
-        'storage blocked under WebDriver': standalone({ webdriver: true, storageThrows: true }),
-    },
+    standalone: standaloneCases('../assets/head/standalone.js'),
+    // What the page inlines: its minified build (tools/build-inline-scripts.mjs) - the same answers
+    standaloneBuild: standaloneCases('../templates/_inline_scripts/standalone.js'),
 };
 
 process.stdout.write(JSON.stringify(results));

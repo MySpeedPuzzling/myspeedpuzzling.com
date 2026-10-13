@@ -57,9 +57,12 @@ final class NavLayoutScriptTest extends TestCase
             'text' => ['hasScriptEnd' => false, 'hasCommentOpen' => false, 'setsDataNav' => false],
         ], self::results()['head script']);
 
+        // The page inlines its build (templates/_inline_scripts/nav_layout.js, InlineScriptsBuildTest): the same answers
+        self::assertSame(self::results()['head script'], self::results()['head script build']);
+
         // Inlined by the head flags, after the other two (implementation plan §3.11); never a length
         $flags = (string) file_get_contents(__DIR__ . '/../templates/_head_flags.html.twig');
-        self::assertStringContainsString("<script>{{ source('@head_scripts/nav_layout.js')|raw }}</script>", $flags);
+        self::assertStringContainsString("<script>{{ source('_inline_scripts/nav_layout.js')|raw }}</script>", $flags);
         self::assertGreaterThan((int) strpos($flags, 'standalone.js'), (int) strpos($flags, 'nav_layout.js'));
         self::assertStringNotContainsString('--nav-left', (string) file_get_contents(__DIR__ . '/../assets/head/nav_layout.js'));
     }

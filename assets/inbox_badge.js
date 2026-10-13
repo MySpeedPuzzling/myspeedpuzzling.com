@@ -1,7 +1,8 @@
 // The Inbox badge in the browser (docs/features/navigation INB-02, README §4.4 / D3): a realtime push is the
 // `inbox_badge` Turbo Stream (templates/inbox/_badge_stream.html.twig) with the numbers only - for-you,
 // conversations, requests, at. This applies them to every .inbox-badge instance and its enclosing Inbox link
-// (templates/inbox/_link.html.twig: the target tab's href, the accessible name in the page's locale, data-bar-count).
+// (templates/inbox/_link.html.twig: the target tab's href, the accessible name in the page's locale, data-bar-count -
+// the strings from the page's first Inbox link, linkStrings()).
 // inboxBadgeState() is the twin of SpeedPuzzling\Web\Value\InboxBadgeParts (total, target, labelKind, labelCount) -
 // pinned by tests/Value/InboxBadgeScriptTest.php.
 
@@ -106,9 +107,18 @@ export function reapplyAfterRestore() {
     }
 }
 
+// The hrefs and accessible names ride on the page's first Inbox link only (inbox_link_strings() in
+// templates/inbox/_link.html.twig - the chrome's weight): a link without them reads that one's.
+export function linkStrings(link) {
+    const source = link.dataset.inboxLabels !== undefined
+        ? link
+        : link.ownerDocument.querySelector('a[data-inbox-link][data-inbox-labels]');
+
+    return { hrefs: readJson(source?.dataset.inboxHrefs), labels: readJson(source?.dataset.inboxLabels) };
+}
+
 function applyToLink(link, state) {
-    const hrefs = readJson(link.dataset.inboxHrefs);
-    const labels = readJson(link.dataset.inboxLabels);
+    const { hrefs, labels } = linkStrings(link);
     const href = hrefs?.[state.target];
 
     if (typeof href === 'string') {

@@ -1,0 +1,1 @@
+!function(t){try{var a=t.document.documentElement;if(a.hasAttribute('data-native-app'))return;var e=t.localStorage,n=e.getItem('msp:nav-layout');'docked'!==n&&'rail'!==n||a.setAttribute('data-nav-layout',n);var o=e.getItem('msp:nav-collapsed');'string'==typeof o&&/^[a-z_ ]{0,80}$/.test(o)&&/[a-z_]/.test(o)&&a.setAttribute('data-nav-collapsed',o)}catch(t){}}(window);

@@ -18,12 +18,16 @@ use Symfony\Component\Process\Process;
  * /en/faq renders it in a fake browser per device (tests/platform-os-harness.js), in the order of README §4.13 -
  * the app's markers (read from PlatformDetector, so PHP and JS cannot drift), UA-CH platform when non-empty, Android
  * in the user agent, iOS by user agent or iPadOS desktop UA with touch points, -webkit-touch-callout, else other.
- * The inline text is the file itself and the same on every page (Turbo runs a head script again only when its text
- * changes), and it is the first script of the head (plan §3.11).
+ * The inline text is the file's minified build (templates/_inline_scripts/platform_os.js, InlineScriptsBuildTest pins
+ * it to the file - the chrome's weight, README §4.12), the same on every page (Turbo runs a head script again only when
+ * its text changes), and it is the first script of the head (plan §3.11). The harness runs that rendered build.
  */
 final class PlatformOsScriptTest extends WebTestCase
 {
     private const string FILE = __DIR__ . '/../assets/head/platform_os.js';
+
+    /** What the page inlines: the build of FILE (tools/build-inline-scripts.mjs) */
+    private const string BUILT = __DIR__ . '/../templates/_inline_scripts/platform_os.js';
 
     private const string MAC_SAFARI = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15';
     private const string LINUX_CHROME = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36';
@@ -112,18 +116,22 @@ final class PlatformOsScriptTest extends WebTestCase
 
     public function testTheMarkerListsAreThoseOfThePhpDetector(): void
     {
+        $source = (string) file_get_contents(self::FILE);
         $script = $this->renderedScript();
 
         foreach (['IOS_MARKERS' => PlatformDetector::IOS_MARKERS, 'ANDROID_MARKERS' => PlatformDetector::ANDROID_MARKERS] as $name => $markers) {
-            self::assertSame(1, preg_match('~var ' . $name . ' = \[([^\]]*)\]~', $script, $matches), $name);
+            self::assertSame(1, preg_match('~var ' . $name . ' = \[([^\]]*)\]~', $source, $matches), $name);
             preg_match_all("~'([^']*)'~", $matches[1], $listed);
             self::assertSame($markers, $listed[1], $name . ' in assets/head/platform_os.js must equal PlatformDetector::' . $name);
+
+            // ... and the page carries them (its build keeps the list as one array literal)
+            self::assertStringContainsString("['" . implode("','", $markers) . "']", $script, $name . ' in the inlined build');
         }
     }
 
     public function testTheInlineScriptIsTheFileOnEveryPage(): void
     {
-        $file = trim((string) file_get_contents(self::FILE));
+        $file = trim((string) file_get_contents(self::BUILT));
         self::assertSame($file, $this->renderedScript());
 
         // The same text on a Czech page and on a member's Hub: never a per-page value in it
@@ -146,7 +154,7 @@ final class PlatformOsScriptTest extends WebTestCase
 
         $positions = [
             'viewport meta' => strpos($html, '<meta name="viewport"'),
-            'data-os script' => strpos($html, '<script>' . trim((string) file_get_contents(self::FILE))),
+            'data-os script' => strpos($html, '<script>' . trim((string) file_get_contents(self::BUILT))),
             'asset-failure script' => strpos($html, '/-/asset-load-failure'),
             'msp-rendered-at meta' => strpos($html, '<meta name="msp-rendered-at"'),
             'critical style' => strpos($html, '<style>'),
@@ -171,13 +179,17 @@ final class PlatformOsScriptTest extends WebTestCase
 
     public function testTheFileIsSafeToInline(): void
     {
-        $file = (string) file_get_contents(self::FILE);
+        foreach ([self::FILE, self::BUILT] as $path) {
+            $file = (string) file_get_contents($path);
 
-        self::assertStringNotContainsStringIgnoringCase('</script', $file);
-        self::assertStringNotContainsString('<!--', $file);
-        // ES5: no arrow functions, let/const, template literals, includes()
-        self::assertDoesNotMatchRegularExpression('~=>|\b(let|const)\s|`|\.includes\(~', $file);
-        self::assertLessThan(1300, strlen($file), 'Inlined into every page');
+            self::assertStringNotContainsStringIgnoringCase('</script', $file);
+            self::assertStringNotContainsString('<!--', $file);
+            // ES5: no arrow functions, let/const, template literals, includes()
+            self::assertDoesNotMatchRegularExpression('~=>|\b(let|const)\s|`|\.includes\(~', $file);
+            self::assertLessThan(1300, strlen($file), 'Inlined into every page');
+        }
+
+        self::assertLessThan(800, strlen((string) file_get_contents(self::BUILT)), 'The build, inlined into every page');
     }
 
     private function browser(): KernelBrowser

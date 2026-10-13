@@ -89,6 +89,8 @@ final class TopbarScrollScriptTest extends TestCase
             'matchMedia throws' => [],
             'storage blocked under WebDriver' => [],
         ], self::results()['standalone']);
+        // The page inlines its build (templates/_inline_scripts/standalone.js, InlineScriptsBuildTest): the same answers
+        self::assertSame(self::results()['standalone'], self::results()['standaloneBuild']);
 
         $script = (string) file_get_contents(__DIR__ . '/../assets/head/standalone.js');
         self::assertStringNotContainsStringIgnoringCase('</script', $script);

@@ -5,7 +5,7 @@
     assets/navigation/nav_layout.js) and its rows. data-order-phone / data-order-dock: the group's place on each surface (MENU-02b sorts by them).
     `group`: MenuGroupView, `viewer`: NavigationViewer, `surface`: slot | page (the page never docks: no disclosure) -#}
 {%- set id = group.id -%}
-<section class="menu-group menu-group--{{ id }}{{ group.only ? ' menu-only-' ~ group.only.value }}{{ group.headingOnPhoneOnly ? ' menu-group--by-place' }}" data-menu-group="{{ id }}" data-order-phone="{{ group.orderPhone }}" data-order-dock="{{ group.orderDock }}"
+<section class="menu-group{{ group.only ? ' menu-only-' ~ group.only.value }}{{ group.headingOnPhoneOnly ? ' menu-group--by-place' }}" data-menu-group="{{ id }}" data-order-phone="{{ group.orderPhone }}" data-order-dock="{{ group.orderDock }}"
     {%- if group.hasHeading %} aria-labelledby="menu-g-{{ id }}"{% endif %}>
     {%- if group.hasHeading -%}
         <p class="menu-group-title{{ group.headingOnPhoneOnly ? ' menu-only-phone' }}" role="heading" aria-level="2" id="menu-g-{{ id }}">{{ group.group.titleKey|trans }}</p>

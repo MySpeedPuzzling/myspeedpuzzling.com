@@ -146,7 +146,8 @@ final class PlatformFlagReadersTest extends TestCase
 
         ksort($found);
         self::assertSame(
-            [self::HEAD_SCRIPTS . 'platform_os.js', 'src/Services/PlatformDetector.php'],
+            // The head script's minified build is what the page inlines (InlineScriptsBuildTest pins it to the script)
+            [self::HEAD_SCRIPTS . 'platform_os.js', 'src/Services/PlatformDetector.php', 'templates/_inline_scripts/platform_os.js'],
             array_keys($found),
             'The user-agent markers of the app: PlatformDetector::IOS_MARKERS / ANDROID_MARKERS and their copy in the data-os head script',
         );

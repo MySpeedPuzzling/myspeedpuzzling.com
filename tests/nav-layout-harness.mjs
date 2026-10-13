@@ -50,9 +50,11 @@ function run(name, fn) {
 // ---- assets/head/nav_layout.js ------------------------------------------------------------------------------------
 
 const HEAD = readFileSync(new URL('../assets/head/nav_layout.js', import.meta.url), 'utf8');
+// What the page inlines: its minified build (tools/build-inline-scripts.mjs) - the same cases must give the same answers
+const HEAD_BUILT = readFileSync(new URL('../templates/_inline_scripts/nav_layout.js', import.meta.url), 'utf8');
 
 /** Runs the head script on a fake window; returns the attributes it set on <html> (null when it threw) */
-function head({ layout = null, collapsed = null, nativeApp = false, storageThrows = false } = {}) {
+function head({ layout = null, collapsed = null, nativeApp = false, storageThrows = false } = {}, code = HEAD) {
     const attributes = {};
     const window = {
         localStorage: {
@@ -75,7 +77,7 @@ function head({ layout = null, collapsed = null, nativeApp = false, storageThrow
     };
 
     try {
-        vm.runInNewContext(HEAD, { window });
+        vm.runInNewContext(code, { window });
     } catch (e) {
         return null;
     }
@@ -85,23 +87,26 @@ function head({ layout = null, collapsed = null, nativeApp = false, storageThrow
 
 const cases = [];
 
-cases.push(run('head script', () => ({
-    nothing: head(),
-    docked: head({ layout: 'docked' }),
-    rail: head({ layout: 'rail' }),
-    junkLayout: head({ layout: 'floating' }),
-    upperCase: head({ layout: 'Docked' }),
-    folded: head({ collapsed: 'roles help' }),
-    foldedAndRail: head({ layout: 'rail', collapsed: 'about' }),
-    onlySpaces: head({ collapsed: '   ' }),
-    empty: head({ collapsed: '' }),
-    injected: head({ collapsed: 'roles"] *{display:none' }),
-    tooLong: head({ collapsed: 'a'.repeat(81) }),
-    longest: head({ collapsed: 'a'.repeat(80) }),
-    insideTheApp: head({ layout: 'docked', collapsed: 'roles', nativeApp: true }),
-    storageBlocked: head({ layout: 'docked', storageThrows: true }),
-    text: { hasScriptEnd: /<\/script/i.test(HEAD), hasCommentOpen: HEAD.includes('<!--'), setsDataNav: /setAttribute\(\s*'data-nav'/.test(HEAD) },
-})));
+const headCases = (code) => ({
+    nothing: head({}, code),
+    docked: head({ layout: 'docked' }, code),
+    rail: head({ layout: 'rail' }, code),
+    junkLayout: head({ layout: 'floating' }, code),
+    upperCase: head({ layout: 'Docked' }, code),
+    folded: head({ collapsed: 'roles help' }, code),
+    foldedAndRail: head({ layout: 'rail', collapsed: 'about' }, code),
+    onlySpaces: head({ collapsed: '   ' }, code),
+    empty: head({ collapsed: '' }, code),
+    injected: head({ collapsed: 'roles"] *{display:none' }, code),
+    tooLong: head({ collapsed: 'a'.repeat(81) }, code),
+    longest: head({ collapsed: 'a'.repeat(80) }, code),
+    insideTheApp: head({ layout: 'docked', collapsed: 'roles', nativeApp: true }, code),
+    storageBlocked: head({ layout: 'docked', storageThrows: true }, code),
+    text: { hasScriptEnd: /<\/script/i.test(code), hasCommentOpen: code.includes('<!--'), setsDataNav: /setAttribute\(\s*'data-nav'/.test(code) },
+});
+
+cases.push(run('head script', () => headCases(HEAD)));
+cases.push(run('head script build', () => headCases(HEAD_BUILT)));
 
 // ---- assets/navigation/nav_layout.js (pure) -------------------------------------------------------------------------
 

@@ -17,8 +17,8 @@
                      switch of D16's fold rule ($nav-dock-default-from in _nav-layout.scss). <body> overrides it: a page
                      without the bars (body.no-nav-chrome: bar-free templates, the app) keeps 0, the `menu` page
                      (body.no-nav-column: the Menu is its content) keeps the rail; print 0. main, the footer and the old
-                     header rows (until NAV-06) start right of it - the footer sits right of the column. A page that
-                     hides the bar (hide_bottom_bar) has no rail but keeps the 88 px (NAV-08 decides). The old header
+                     header rows (until NAV-06) start right of it - the footer sits right of the column. hide_bottom_bar
+                     hides the phone tab bar only: the rail stays on desktop (NAV-08). The old header
                      rows (.legacy-chrome, until NAV-06) are clipped at the content's right edge: in de/es/fr their tools
                      no longer fit next to the column and would scroll the page sideways.
     Under html[data-native-app] every reserved chrome size is 0 (plan §3.5 item 7).

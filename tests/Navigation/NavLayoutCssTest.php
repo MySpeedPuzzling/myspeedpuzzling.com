@@ -427,8 +427,8 @@ final class NavLayoutCssTest extends TestCase
         $css = $this->criticalRules();
         $desktop = static fn (int $from): string => sprintf('@media (min-width:%1$dpx) and (min-height:501px),(min-width:%1$dpx) and (pointer:fine){', $from);
 
-        // The rail from 1024 px - fixed under the top bar, 88 px, one under the bar on the z-scale; a hidden bar
-        // (hide_bottom_bar) is no rail
+        // The rail from 1024 px - fixed under the top bar, 88 px, one under the bar on the z-scale; hide_bottom_bar hides
+        // the phone tab bar only, the rail stays (NAV-08)
         self::assertStringContainsString($desktop(1024) . ':root{--nav-left:var(--nav-rail-w)}body:not(.no-nav-chrome)>.bottom-nav:not([hidden]){display:flex;flex-direction:column;top:var(--desk-topbar-h);right:auto;bottom:0;z-index:1029;width:var(--nav-rail-w);', $css);
 
         // The docked column: the player's choice from 1280 px, the default from $nav-dock-default-from (D16's one switch);

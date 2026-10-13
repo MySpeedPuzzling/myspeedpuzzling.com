@@ -1,0 +1,175 @@
+{% extends 'base.html.twig' %}
+
+{#
+    The personal links of an online event (docs/features/online-competitions/README.md §5.4, stream C1, route
+    online_links): the event's rounds with their online timing, then one row per participant who is going - name, linked
+    profile (withheld like on the participants sheet), the link to copy, its QR code (the QR sheet of just that card -
+    none drawn here, the page stays light for hundreds of rows), "New link" - with the CSV and the printable QR sheet. The
+    links are secrets (the page is never cached).
+    Variables: competition, event_is_online (EventIsOnline), rounds (list of {round, online, availability}),
+    uses_online_timing, links (list of {row: OnlineLinkRow, url}), waitlisted_count, csrf_token_id
+#}
+
+{% set hide_comparison_launcher = true %}
+
+{% block title %}{{ 'online_rounds.links.title'|trans }} - {{ competition.name }}{% endblock %}
+
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block page_stylesheets %}{{ encore_entry_link_tags('online_rounds') }}{% endblock %}
+
+{% block content %}
+    {{ include('_breadcrumb.html.twig', {items: [
+        {label: 'events.title'|trans, url: path('events')},
+        {label: competition.name, url: path('edit_competition', {competitionId: competition.id})},
+        {label: 'online_rounds.links.title'|trans},
+    ]}) }}
+    {{ include('_return_back_button.html.twig', {fallbackUrl: path('manage_competition_rounds', {competitionId: competition.id}), fallbackTitle: 'competition.manage_rounds'|trans}) }}
+
+    <div class="online-rounds-page pb-4" data-online-links-page>
+        <h1 class="h2">{{ 'online_rounds.links.title'|trans }}</h1>
+        <p class="h5 text-muted">{{ competition.name }}</p>
+
+        <section class="card shadow-sm my-4" data-online-rounds aria-labelledby="online-rounds-title">
+            <div class="card-body">
+                <h2 class="h5" id="online-rounds-title">{{ 'online_rounds.links.rounds.title'|trans }}</h2>
+
+                {% if not event_is_online %}
+                    <p class="mb-0" data-online-rounds-in-person>{{ 'online_rounds.links.rounds.in_person'|trans }}</p>
+                {% elseif rounds is empty %}
+                    <p class="mb-2">{{ 'online_rounds.links.rounds.none'|trans }}</p>
+                    <a href="{{ path('manage_competition_rounds', {competitionId: competition.id}) }}" class="btn btn-sm btn-outline-primary">{{ 'competition.manage_rounds'|trans }}</a>
+                {% else %}
+                    {% if not uses_online_timing %}
+                        <p class="online-rounds-prose">{{ 'online_rounds.links.rounds.none_online'|trans }}</p>
+                    {% endif %}
+                    <ul class="list-unstyled mb-0 online-rounds-list">
+                        {% for item in rounds %}
+                            <li class="online-rounds-list-item" data-online-round="{{ item.round.id }}" data-online="{{ item.online ? 'on' : 'off' }}">
+                                <span class="online-rounds-list-name">
+                                    <strong>{{ item.round.name }}</strong>
+                                    <span class="small text-muted d-block">{{ zoned_datetime(item.round.startsAt, item.round.displayTimezone, item.round.timezoneAssumed) }}</span>
+                                </span>
+                                {% if item.online %}
+                                    <span class="badge text-bg-success">{{ 'online_rounds.links.rounds.on'|trans }}</span>
+                                {% elseif item.availability.isAvailable %}
+                                    <span class="badge text-bg-light border">{{ 'online_rounds.links.rounds.off'|trans }}</span>
+                                {% else %}
+                                    <span class="badge text-bg-light border">{{ ('online_rounds.links.rounds.' ~ item.availability.value)|trans }}</span>
+                                {% endif %}
+                                {% if item.availability.isAvailable or item.online %}
+                                    <a href="{{ path('online_round_settings', {roundId: item.round.id, return: app.request.requestUri, return_title: 'online_rounds.links.title'|trans}) }}" class="btn btn-sm btn-outline-primary ms-sm-auto" data-online-round-settings-link>
+                                        {{ (item.online ? 'online_rounds.links.rounds.settings' : 'online_rounds.links.rounds.set_up')|trans }}
+                                    </a>
+                                {% endif %}
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            </div>
+        </section>
+
+        {% if uses_online_timing %}
+            <section data-online-links aria-labelledby="online-links-title">
+                <h2 class="h4" id="online-links-title">{{ 'online_rounds.links.list_title'|trans }}</h2>
+                <p class="online-rounds-prose text-muted">{{ 'online_rounds.links.intro'|trans }}</p>
+
+                {% if links is empty %}
+                    <p class="mb-2" data-online-links-empty>{{ 'online_rounds.links.empty'|trans }}</p>
+                    <a href="{{ path('participants_sheet', {competitionId: competition.id}) }}" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-people me-1" aria-hidden="true"></i>{{ 'online_rounds.links.open_sheet'|trans }}
+                    </a>
+                {% else %}
+                    <div class="d-flex flex-wrap gap-2 mb-3" data-online-links-tools>
+                        <a href="{{ path('online_links_csv', {competitionId: competition.id}) }}" class="btn btn-sm btn-outline-primary" data-turbo="false" data-online-links-csv>
+                            <i class="bi bi-filetype-csv me-1" aria-hidden="true"></i>{{ 'online_rounds.links.download_csv'|trans }}
+                        </a>
+                        <a href="{{ path('online_links_qr_sheet', {competitionId: competition.id}) }}" class="btn btn-sm btn-outline-primary" data-turbo="false" data-online-links-qr-sheet>
+                            <i class="bi bi-qr-code me-1" aria-hidden="true"></i>{{ 'online_rounds.links.print_qr'|trans }}
+                        </a>
+                    </div>
+
+                    {# position-relative: the visually hidden texts in the table stay inside the scroller at 375 px #}
+                    <div class="table-responsive position-relative">
+                        <table class="table align-middle online-links-table">
+                            <thead>
+                                <tr>
+                                    <th scope="col">{{ 'online_rounds.links.col.participant'|trans }}</th>
+                                    <th scope="col">{{ 'online_rounds.links.col.profile'|trans }}</th>
+                                    <th scope="col">{{ 'online_rounds.links.col.link'|trans }}</th>
+                                    <th scope="col"><span class="visually-hidden">{{ 'online_rounds.links.col.actions'|trans }}</span></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in links %}
+                                    {% set row = item.row %}
+                                    <tr id="participant-{{ row.participantId }}" data-online-link="{{ row.participantId }}">
+                                        <th scope="row" class="fw-normal">
+                                            {% if row.country is not null %}
+                                                <span class="shadow-custom fi fi-{{ row.country }} me-1" aria-hidden="true"></span>
+                                            {% endif %}
+                                            <span data-online-link-name>{{ row.name }}</span>
+                                        </th>
+                                        <td class="small" data-online-link-profile>
+                                            {% if row.player is null %}
+                                                <span class="text-muted">—</span>
+                                            {% elseif not row.player.visible %}
+                                                <span class="text-muted">{{ 'participants_sheet_core.people.profile_hidden'|trans }}</span>
+                                            {% else %}
+                                                <a href="{{ row.player.profileUrl }}">{{ row.player.name ?? ('#' ~ row.player.code|upper) }}</a>
+                                                {% if row.player.code %}<span class="text-muted">#{{ row.player.code|upper }}</span>{% endif %}
+                                            {% endif %}
+                                        </td>
+                                        <td class="online-links-link">
+                                            {% if item.url is not null %}
+                                                <div data-controller="clipboard" class="input-group input-group-sm">
+                                                    <input {{ stimulus_target('clipboard', 'input') }}
+                                                           value="{{ item.url }}"
+                                                           class="form-control font-monospace"
+                                                           type="text"
+                                                           readonly
+                                                           aria-label="{{ 'online_rounds.links.link_label'|trans({'%name%': row.name}) }}"
+                                                           data-action="click->clipboard#selectInputContent focus->clipboard#selectInputContent"
+                                                           data-online-link-url>
+                                                    <button {{ stimulus_action('clipboard', 'copyToClipboard', 'click') }} class="btn btn-outline-primary" type="button"
+                                                            aria-label="{{ 'online_rounds.links.copy_label'|trans({'%name%': row.name}) }}" data-online-link-copy>
+                                                        <i {{ stimulus_target('clipboard', 'buttonIcon') }} class="ci-share" aria-hidden="true"></i>
+                                                        {{ 'online_rounds.links.copy'|trans }}
+                                                    </button>
+                                                </div>
+                                            {% else %}
+                                                <span class="text-muted" data-online-link-missing>{{ 'online_rounds.links.no_link'|trans }}</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-end">
+                                            <div class="d-inline-flex flex-wrap justify-content-end gap-1">
+                                                {% if item.url is not null %}
+                                                    <a href="{{ path('online_links_qr_sheet', {competitionId: competition.id, participant: row.participantId}) }}" class="btn btn-sm btn-outline-secondary text-nowrap" data-turbo="false"
+                                                       aria-label="{{ 'online_rounds.links.qr_label'|trans({'%name%': row.name}) }}" data-online-link-qr>
+                                                        <i class="bi bi-qr-code me-1" aria-hidden="true"></i>{{ 'online_rounds.links.qr'|trans }}
+                                                    </a>
+                                                {% endif %}
+                                                <form method="post" action="{{ path('online_link_regenerate', {competitionId: competition.id, participantId: row.participantId}) }}" class="d-inline"
+                                                      {% if item.url is not null %}onsubmit="return confirm('{{ 'online_rounds.links.regenerate_confirm'|trans({'%name%': row.name})|e('js') }}')"{% endif %}>
+                                                    <input type="hidden" name="_token" value="{{ csrf_token(csrf_token_id) }}">
+                                                    <button type="submit" class="btn btn-sm btn-outline-secondary text-nowrap" data-online-link-regenerate
+                                                            aria-label="{{ (item.url is not null ? 'online_rounds.links.regenerate_label' : 'online_rounds.links.create_label')|trans({'%name%': row.name}) }}">
+                                                        <i class="bi bi-arrow-repeat me-1" aria-hidden="true"></i>{{ (item.url is not null ? 'online_rounds.links.regenerate' : 'online_rounds.links.create')|trans }}
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% endif %}
+
+                {% if waitlisted_count > 0 %}
+                    <p class="small text-muted" data-online-links-waitlisted>{{ 'online_rounds.links.waitlisted'|trans({'%count%': waitlisted_count}) }}</p>
+                {% endif %}
+            </section>
+        {% endif %}
+    </div>
+{% endblock %}

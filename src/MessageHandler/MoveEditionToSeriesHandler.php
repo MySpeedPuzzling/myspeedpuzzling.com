@@ -9,7 +9,9 @@ use SpeedPuzzling\Web\Exceptions\EditionAlreadyInSeries;
 use SpeedPuzzling\Web\Exceptions\EditionNotMovableIntoDraft;
 use SpeedPuzzling\Web\Exceptions\InvalidCompetitionSlug;
 use SpeedPuzzling\Web\Exceptions\NotAnEdition;
+use SpeedPuzzling\Web\Exceptions\OnlineTimingInUse;
 use SpeedPuzzling\Web\Message\MoveEditionToSeries;
+use SpeedPuzzling\Web\Query\GetRoundsUsingOnlineTiming;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Repository\CompetitionSeriesRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
@@ -36,6 +38,7 @@ readonly final class MoveEditionToSeriesHandler
         private CompetitionSlugGenerator $slugGenerator,
         private EventUrlRedirects $eventUrlRedirects,
         private UnpublishBlockers $unpublishBlockers,
+        private GetRoundsUsingOnlineTiming $getRoundsUsingOnlineTiming,
     ) {
     }
 
@@ -45,6 +48,7 @@ readonly final class MoveEditionToSeriesHandler
      * @throws InvalidCompetitionSlug
      * @throws CompetitionSlugTaken
      * @throws EditionNotMovableIntoDraft
+     * @throws OnlineTimingInUse an edition with a round using online timing moved into a series that is not online
      */
     public function __invoke(MoveEditionToSeries $message): void
     {
@@ -61,6 +65,16 @@ readonly final class MoveEditionToSeriesHandler
 
         if ($target->id->equals($oldSeries->id)) {
             throw new EditionAlreadyInSeries();
+        }
+
+        // An edition is online by its series (EventIsOnline) and online timing works only at an online event
+        // (docs/features/online-competitions/) - an edition with a round using it moves only into an online series
+        if ($target->isOnline === false) {
+            $roundsUsingOnlineTiming = $this->getRoundsUsingOnlineTiming->ofCompetition($edition->id->toString());
+
+            if ($roundsUsingOnlineTiming !== []) {
+                throw new OnlineTimingInUse(OnlineTimingInUse::EDITION_MOVE, $roundsUsingOnlineTiming);
+            }
         }
 
         if ($message->newSlug !== null && CompetitionSlugGenerator::isValid($message->newSlug) === false) {

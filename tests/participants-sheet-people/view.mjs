@@ -591,4 +591,41 @@ export default function (test) {
         assert.equal(shown.at(-1).text, 'name_too_long');
         assert.equal(shown.at(-1).anchor, input);
     });
+
+    test('online timing: a read-only "Personal link" column while the people come with their links - a link opening a new tab, Ctrl+C copies the whole address', async () => {
+        const plain = await setup();
+        assert.ok(!plain.view.columns.some((column) => column.key === 'onlineLink'), 'no online timing - no column');
+        assert.ok(!plain.view.columnsMenu.querySelector('[data-column="onlineLink"]'));
+
+        // The server sends every person's `online` record while a round uses online timing
+        const withLinks = (state) => {
+            state.people = state.people.map((row) => ({ ...row, online: { link: row.id === 'p-ana' ? 'https://example.test/en/compete/AnaPersonalLinkToken12' : null } }));
+
+            return state;
+        };
+        const { view, model, queue } = await setup({ state: withLinks(smallState()) });
+        const column = view.columns.find((candidate) => candidate.key === 'onlineLink');
+        assert.ok(column, 'the column');
+        assert.equal(column.kind, 'readonly');
+        assert.equal(column.label, 'col_onlineLink');
+        assert.ok(view.columnsMenu.querySelector('[data-column="onlineLink"]'), 'in the Columns menu');
+
+        const ana = view.cell('p-ana', 'onlineLink');
+        assert.equal(ana.copy, 'https://example.test/en/compete/AnaPersonalLinkToken12');
+        assert.ok(ana.html.includes('href="https://example.test/en/compete/AnaPersonalLinkToken12"'), ana.html);
+        assert.ok(ana.html.includes('target="_blank"') && ana.html.includes('tabindex="-1"'), ana.html);
+        assert.ok(ana.html.includes('>example.test/en/compete/AnaPersonalLinkToken12</a>'), ana.html);
+        assert.equal(view.grid.cellElement('p-ana', 'onlineLink').getAttribute('aria-readonly'), 'true');
+        // Going without a link yet / removed: nothing to open
+        assert.ok(view.cell('p-jo', 'onlineLink').html.includes('online_link_none'));
+        assert.equal(view.cell('p-ola', 'onlineLink').text, '');
+
+        // A state without online timing takes the column away
+        const without = smallState({ version: 'v2' });
+        model.replaceState(without);
+        queue.emit({ type: 'state', state: without, kind: 'ok' });
+        await tick();
+        assert.ok(!view.columns.some((candidate) => candidate.key === 'onlineLink'));
+        assert.ok(!view.columnsMenu.querySelector('[data-column="onlineLink"]'));
+    });
 }

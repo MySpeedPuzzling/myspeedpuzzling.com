@@ -16,7 +16,7 @@ final class StartRoundStopwatchControllerTest extends WebTestCase
         $browser = self::createClient();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
 
-        $browser->request('POST', '/en/start-round-stopwatch/' . CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION);
+        $browser->request('POST', '/en/start-round-stopwatch/' . CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION, ['_token' => 'csrf-token'], [], ['HTTP_ORIGIN' => 'http://localhost']);
 
         $this->assertResponseRedirects();
     }

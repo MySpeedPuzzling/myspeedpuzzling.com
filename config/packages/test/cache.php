@@ -50,6 +50,11 @@ return App::config([
                 'times_board_guest_cache' => [
                     'adapters' => ['cache.adapter.array'],
                 ],
+                // Rate limits must survive the kernel reboots between BrowserKit requests, like the login limiter's
+                // (see above) - on disk like cache.app, never on a Redis CI does not have
+                'online_participant_rate_limits' => [
+                    'adapters' => ['cache.app'],
+                ],
             ],
         ],
     ],

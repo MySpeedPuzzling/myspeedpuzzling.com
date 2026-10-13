@@ -2,9 +2,15 @@
 import { Controller } from '@hotwired/stimulus';
 import { officialResultsRequest, isGone } from '../official_results_api.js';
 import { OfficialResultsEvents } from '../official_results_events.js';
+import { startedAtMs } from '../round_stopwatch_clock.js';
 
 const REFRESH_EVERY_MS = 60000;
 const HIDDEN_LONG_MS = 10000;
+// A countdown's moment: the page asks the server this long after it - and again, ever later, while this device's clock
+// runs ahead of the server's (the regular refresh caps it)
+const START_CHECK_AFTER_MS = 2000;
+// setTimeout() takes 32-bit milliseconds - a start further ahead is looked at again on the way
+const MAX_TIMEOUT_MS = 2 ** 31 - 1;
 
 /**
  * The results overview's counters follow the rounds' private Mercure topics (docs/features/competitions-management/
@@ -26,6 +32,10 @@ export default class extends Controller {
         this.hiddenSince = null;
         this.refreshing = null;
         this.gone = false;
+        // A round counting down to a scheduled start: the server is asked once its moment has come (startTimers), as
+        // often as it still says "scheduled" then (startChecks - a device clock ahead of the server's)
+        this.startTimers = new Map();
+        this.startChecks = new Map();
         this.onVisibility = this.onVisibility.bind(this);
         document.addEventListener('visibilitychange', this.onVisibility);
 
@@ -46,6 +56,9 @@ export default class extends Controller {
     disconnect() {
         this.events.close();
         clearInterval(this.refreshTimer);
+        this.startTimers.forEach((timer) => clearTimeout(timer));
+        this.startTimers.clear();
+        this.startChecks.clear();
         document.removeEventListener('visibilitychange', this.onVisibility);
     }
 
@@ -147,9 +160,44 @@ export default class extends Controller {
             element.hidden = (element.dataset.overviewPublished === 'true') !== (round.resultsPublished === true);
         });
 
+        this.updateStopwatch(row, round);
+    }
+
+    /**
+     * The stopwatch badge as the server read it. A countdown turns into "running" at its moment - or was cancelled,
+     * which this page never hears (it follows the results topics, not the stopwatch's): once the moment has come by
+     * this device's clock, the page asks the server instead of deciding itself.
+     */
+    updateStopwatch(row, round) {
+        const status = round.stopwatch?.status ?? 'none';
+
         row.querySelectorAll('[data-overview-stopwatch]').forEach((element) => {
-            element.hidden = element.dataset.overviewStopwatch !== (round.stopwatch?.status ?? 'none');
+            element.hidden = element.dataset.overviewStopwatch !== status;
         });
+
+        clearTimeout(this.startTimers.get(round.id));
+        this.startTimers.delete(round.id);
+
+        const start = status === 'scheduled' ? startedAtMs(round.stopwatch) : null;
+
+        if (start === null || !this.element.isConnected) {
+            this.startChecks.delete(round.id);
+
+            return;
+        }
+
+        const untilStart = start - Date.now();
+        // The moment has come here and the server still counted down: ask again, later each time (2 s, 4 s … 60 s)
+        const lateChecks = untilStart > 0 ? 0 : (this.startChecks.get(round.id) ?? 0) + 1;
+        this.startChecks.set(round.id, lateChecks);
+        const delay = lateChecks === 0
+            ? Math.min(untilStart + START_CHECK_AFTER_MS, MAX_TIMEOUT_MS)
+            : Math.min(START_CHECK_AFTER_MS * 2 ** Math.min(lateChecks - 1, 5), REFRESH_EVERY_MS);
+
+        this.startTimers.set(round.id, setTimeout(() => {
+            this.startTimers.delete(round.id);
+            this.refresh();
+        }, delay));
     }
 
     onVisibility() {

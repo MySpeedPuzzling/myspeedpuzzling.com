@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Exceptions\CompetitionRoundNotFound;
 use SpeedPuzzling\Web\Results\RoundResultsOverview;
 use SpeedPuzzling\Web\Services\SeatingReadiness;
 use SpeedPuzzling\Web\Value\RegistrationStatus;
+use SpeedPuzzling\Web\Value\RoundStopwatchStatus;
 
 /**
  * The rounds of an event with their official results progress - entries, table numbers, results, qualified marks
@@ -102,8 +103,9 @@ SQL;
             self::select() . "\nWHERE cr.competition_id = :competitionId\nORDER BY cr.starts_at, cr.name, cr.id",
             ['competitionId' => $competitionId],
         );
+        $now = $this->clock->now();
 
-        return array_map($this->hydrate(...), $rows);
+        return array_map(fn (array $row): RoundResultsOverview => $this->hydrate($row, $now), $rows);
     }
 
     /**
@@ -117,7 +119,7 @@ SQL;
             throw new CompetitionRoundNotFound();
         }
 
-        return $this->hydrate($row);
+        return $this->hydrate($row, $this->clock->now());
     }
 
     private static function select(): string
@@ -129,13 +131,18 @@ SQL;
     }
 
     /**
+     * The stopwatch's status is the one at $now (RoundStopwatchStatus): a scheduled start whose moment has passed is
+     * running, one still ahead is `scheduled` - not started.
+     *
      * @param array<string, mixed> $row
      */
-    private function hydrate(array $row): RoundResultsOverview
+    private function hydrate(array $row, DateTimeImmutable $now): RoundResultsOverview
     {
         /** @var array{id: string, name: string, category: string, starts_at: string, minutes_limit: int, slug: null|string, stopwatch_status: null|string, stopwatch_started_at: null|string, stopwatch_stopped_at: null|string, results_published_at: null|string, results_first_published_at: null|string, table_numbers_off: bool, is_online: bool, puzzles_count: int, pieces_count: null|int, total: int, with_table_number: int, with_result: int, qualified: int, on_waitlist: int} $row */
         $date = static fn (null|string $value): null|DateTimeImmutable => $value !== null ? new DateTimeImmutable($value) : null;
         $startsAt = new DateTimeImmutable($row['starts_at']);
+        $stopwatchStartedAt = $date($row['stopwatch_started_at']);
+        $stopwatchStatus = RoundStopwatchStatus::at($row['stopwatch_status'], $stopwatchStartedAt, $now);
 
         return new RoundResultsOverview(
             roundId: $row['id'],
@@ -144,8 +151,8 @@ SQL;
             startsAt: $startsAt,
             minutesLimit: $row['minutes_limit'],
             slug: $row['slug'],
-            stopwatchStatus: $row['stopwatch_status'],
-            stopwatchStartedAt: $date($row['stopwatch_started_at']),
+            stopwatchStatus: $stopwatchStatus,
+            stopwatchStartedAt: $stopwatchStartedAt,
             stopwatchStoppedAt: $date($row['stopwatch_stopped_at']),
             resultsPublishedAt: $date($row['results_published_at']),
             resultsFirstPublishedAt: $date($row['results_first_published_at']),
@@ -162,9 +169,9 @@ SQL;
                 $row['is_online'],
                 $row['table_numbers_off'],
                 $row['total'],
-                $row['stopwatch_status'],
+                $stopwatchStatus,
                 $startsAt,
-                $this->clock->now(),
+                $now,
             ),
         );
     }

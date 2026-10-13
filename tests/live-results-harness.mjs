@@ -812,6 +812,16 @@ const scenarios = {
         assert.equal(preferredRound('a', { roundId: 'c', at: now - 60000 }, rounds, now), 'a', 'that round is over');
         assert.equal(preferredRound('a', { roundId: 'gone', at: now }, rounds, now), 'a');
     },
+
+    async 'the event link keeps a round this device picked while it counts down to a scheduled start'() {
+        const now = 1_800_000_000_000;
+        const rounds = [
+            { id: 'a', stopwatch: { status: 'running' } },
+            { id: 'b', stopwatch: { status: 'scheduled', startedAt: new Date(now + 60000).toISOString() } },
+        ];
+
+        assert.equal(preferredRound('a', { roundId: 'b', at: now - 60000 }, rounds, now), 'b', 'not started yet - not over either');
+    },
 };
 
 function entry(ref, name, tableNumber, extra = {}) {

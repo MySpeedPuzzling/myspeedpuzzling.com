@@ -15,6 +15,7 @@ use SpeedPuzzling\Web\Services\OfficialResultsApi;
 use SpeedPuzzling\Web\Services\OfficialResultsLiveUpdates;
 use SpeedPuzzling\Web\Services\OfficialResultsSubscription;
 use SpeedPuzzling\Web\Services\RefereeEntriesView;
+use SpeedPuzzling\Web\Value\RoundClock;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -67,8 +68,13 @@ final class RoundResultsStateController extends AbstractController
             }
         }
 
+        // As late as possible - the clock offset of the live entry's "Finished now" (milliseconds: the ATOM form has
+        // whole seconds only)
+        $serverNow = $this->clock->now();
+
         return OfficialResultsApi::json([
-            'serverNow' => $this->clock->now()->format(\DateTimeInterface::ATOM),
+            'serverNow' => $serverNow->format(\DateTimeInterface::ATOM),
+            'serverNowMs' => RoundClock::milliseconds($serverNow),
             'topic' => OfficialResultsLiveUpdates::topic($round->id->toString()),
             'competition' => [
                 'id' => $competition->id->toString(),

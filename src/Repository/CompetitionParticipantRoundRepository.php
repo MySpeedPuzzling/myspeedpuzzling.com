@@ -48,6 +48,21 @@ readonly final class CompetitionParticipantRoundRepository
     }
 
     /**
+     * The participant's entry in the round - null when they are not entered in it.
+     */
+    public function findOfParticipantInRound(string $participantId, string $roundId): null|CompetitionParticipantRound
+    {
+        if (!Uuid::isValid($participantId) || !Uuid::isValid($roundId)) {
+            return null;
+        }
+
+        return $this->entityManager->getRepository(CompetitionParticipantRound::class)->findOneBy([
+            'participant' => $participantId,
+            'round' => $roundId,
+        ]);
+    }
+
+    /**
      * Every entry of the round - also those of removed (soft-deleted) participants; callers skip what they hide.
      *
      * @return list<CompetitionParticipantRound>

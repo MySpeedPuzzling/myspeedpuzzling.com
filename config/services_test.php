@@ -53,6 +53,11 @@ return static function (ContainerConfigurator $configurator): void {
     $services->set(\SpeedPuzzling\Web\Tests\TestDouble\InMemoryApiUsageCounter::class);
     $services->alias(\SpeedPuzzling\Web\Services\ApiUsage\ApiUsageCounter::class, \SpeedPuzzling\Web\Tests\TestDouble\InMemoryApiUsageCounter::class);
 
+    // Online competitions: presence and evidence storage without Redis and object storage - their doubles keep what a
+    // test wrote for the next request of the same kernel (docs/features/online-competitions/)
+    $services->alias(\SpeedPuzzling\Web\Services\OnlineRounds\OnlinePresence::class, \SpeedPuzzling\Web\Services\OnlineRounds\InMemoryOnlinePresence::class);
+    $services->alias(\SpeedPuzzling\Web\Services\OnlineRounds\OnlineMediaStorage::class, \SpeedPuzzling\Web\Services\OnlineRounds\FakeOnlineMediaStorage::class);
+
     // The XP launch switch without a statement per page (production: Redis) - see FixedXpLaunchReadiness
     $services->set(\SpeedPuzzling\Web\Tests\TestDouble\FixedXpLaunchReadiness::class);
     $services->alias(\SpeedPuzzling\Web\Services\Xp\XpLaunchReadiness::class, \SpeedPuzzling\Web\Tests\TestDouble\FixedXpLaunchReadiness::class);

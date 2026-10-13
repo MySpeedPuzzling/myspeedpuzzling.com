@@ -7,21 +7,25 @@ namespace SpeedPuzzling\Web\MessageHandler;
 use SpeedPuzzling\Web\Entity\Competition;
 use SpeedPuzzling\Web\Entity\CompetitionRound;
 use SpeedPuzzling\Web\Entity\CompetitionRoundPuzzle;
+use SpeedPuzzling\Web\Exceptions\OnlineTimingInUse;
 use SpeedPuzzling\Web\Exceptions\PuzzleInTwoRoundsOfCategory;
 use SpeedPuzzling\Web\Exceptions\RoundMovedMeanwhile;
 use SpeedPuzzling\Web\Exceptions\RoundNotMovable;
 use SpeedPuzzling\Web\Message\MoveRoundToCompetition;
+use SpeedPuzzling\Web\Query\EventIsOnline;
 use SpeedPuzzling\Web\Query\GetCompetitionRounds;
 use SpeedPuzzling\Web\Repository\CompetitionParticipantRoundRepository;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use SpeedPuzzling\Web\Repository\CompetitionTeamRepository;
+use SpeedPuzzling\Web\Repository\OnlineRoundRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleSolvingTimeRepository;
 use SpeedPuzzling\Web\Services\CompetitionSlugGenerator;
 use SpeedPuzzling\Web\Services\Restructuring\EventUrlRedirects;
 use SpeedPuzzling\Web\Value\EventUrlPath;
 use SpeedPuzzling\Web\Value\RoundNotMovableReason;
+use SpeedPuzzling\Web\Value\RoundStopwatchStatus;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 /**
@@ -47,6 +51,7 @@ readonly final class MoveRoundToCompetitionHandler
         private GetCompetitionRounds $getCompetitionRounds,
         private CompetitionSlugGenerator $slugGenerator,
         private EventUrlRedirects $eventUrlRedirects,
+        private OnlineRoundRepository $onlineRoundRepository,
     ) {
     }
 
@@ -54,6 +59,7 @@ readonly final class MoveRoundToCompetitionHandler
      * @throws RoundMovedMeanwhile
      * @throws RoundNotMovable
      * @throws PuzzleInTwoRoundsOfCategory
+     * @throws OnlineTimingInUse a round using online timing moved to an event that is not online
      */
     public function __invoke(MoveRoundToCompetition $message): void
     {
@@ -72,6 +78,12 @@ readonly final class MoveRoundToCompetitionHandler
             throw new RoundNotMovable(RoundNotMovableReason::SameCompetition);
         }
 
+        // Online timing works only at an online event (docs/features/online-competitions/) - a round using it moves only
+        // to one (EventIsOnline)
+        if (EventIsOnline::of($target) === false && $this->onlineRoundRepository->ofRound($round->id->toString()) !== null) {
+            throw new OnlineTimingInUse(OnlineTimingInUse::ROUND_MOVE, [$round->name]);
+        }
+
         if (
             $this->participantRoundRepository->findByRound($round) !== []
             || $this->competitionTeamRepository->findByRound($round) !== []
@@ -79,7 +91,8 @@ readonly final class MoveRoundToCompetitionHandler
             throw new RoundNotMovable(RoundNotMovableReason::HasEntries);
         }
 
-        if ($round->stopwatchStatus === 'running') {
+        // Running, or counting down to a scheduled start - organisers are timing it (or about to)
+        if (in_array($round->stopwatchStatus, [RoundStopwatchStatus::RUNNING, RoundStopwatchStatus::SCHEDULED], true)) {
             throw new RoundNotMovable(RoundNotMovableReason::StopwatchRunning);
         }
 

@@ -1,0 +1,138 @@
+{% extends 'base.html.twig' %}
+
+{#
+    A round's online timing (docs/features/online-competitions/, stream C1, route online_round_settings): on or off,
+    the button turning it on, its settings, and whether the event's participants are entered in the round.
+    Variables: competition, round (CompetitionRound), online_round (null = off), availability (OnlineTimingAvailability),
+    setup (OnlineRoundSetup), form (null while off), enable_error (a translation key or null), page_url, csrf_token_id,
+    enable_field
+#}
+
+{% set hide_comparison_launcher = true %}
+
+{% block title %}{{ 'online_rounds.settings.title'|trans }} - {{ round.name }}{% endblock %}
+
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block page_stylesheets %}{{ encore_entry_link_tags('online_rounds') }}{% endblock %}
+
+{% block content %}
+    {{ include('_breadcrumb.html.twig', {items: [
+        {label: 'events.title'|trans, url: path('events')},
+        {label: competition.name, url: path('edit_competition', {competitionId: competition.id})},
+        {label: 'competition.manage_rounds'|trans, url: path('manage_competition_rounds', {competitionId: competition.id})},
+        {label: 'online_rounds.settings.title'|trans},
+    ]}) }}
+    {{ include('_return_back_button.html.twig', {fallbackUrl: path('manage_competition_rounds', {competitionId: competition.id}), fallbackTitle: 'competition.manage_rounds'|trans}) }}
+
+    <div class="online-rounds-page pb-4" data-online-round-settings>
+        <h1 class="h2">{{ 'online_rounds.settings.title'|trans }}</h1>
+        <p class="h5 text-muted mb-1">{{ competition.name }} — {{ round.name }}</p>
+        <p class="small text-muted">
+            <i class="bi bi-calendar-event me-1" aria-hidden="true"></i>{{ zoned_datetime(round.startsAt, round.displayTimezone, round.timezoneAssumed) }}
+            <span class="mx-1">&middot;</span>
+            <i class="bi bi-stopwatch me-1" aria-hidden="true"></i>{{ 'event_rounds.minutes'|trans({'%count%': round.minutesLimit}) }}
+        </p>
+
+        {% if not availability.isAvailable %}
+            <div class="alert alert-secondary" role="note" data-online-timing-unavailable="{{ availability.value }}">
+                {{ ('online_rounds.settings.unavailable.' ~ availability.value)|trans }}
+                {% if availability.value == 'in_person_event' %}
+                    <a href="{{ path('edit_competition', {competitionId: competition.id}) }}" class="alert-link">{{ 'online_rounds.settings.unavailable.edit_event'|trans }}</a>
+                {% endif %}
+            </div>
+        {% elseif online_round is null %}
+            <section class="card shadow-sm mb-4" data-online-timing-off aria-labelledby="online-timing-off-title">
+                <div class="card-body">
+                    <h2 class="h5" id="online-timing-off-title">{{ 'online_rounds.settings.off.title'|trans }}</h2>
+                    <p class="online-rounds-prose">{{ 'online_rounds.settings.off.intro'|trans }}</p>
+
+                    {% if enable_error is not null %}
+                        <div class="alert alert-danger" role="alert" data-enable-error>{{ enable_error|trans }}</div>
+                    {% endif %}
+
+                    <form method="post" action="{{ page_url }}">
+                        <input type="hidden" name="_token" value="{{ csrf_token(csrf_token_id) }}">
+                        <button type="submit" name="{{ enable_field }}" value="1" class="btn btn-primary">
+                            <i class="bi bi-broadcast me-1" aria-hidden="true"></i>{{ 'online_rounds.settings.off.enable'|trans }}
+                        </button>
+                    </form>
+                    <p class="small text-muted mt-2 mb-0">{{ 'online_rounds.settings.off.links_note'|trans }}</p>
+                </div>
+            </section>
+        {% else %}
+            <section class="card shadow-sm mb-4" data-online-timing-on aria-labelledby="online-timing-on-title">
+                <div class="card-body">
+                    <h2 class="h5" id="online-timing-on-title">
+                        <span class="badge text-bg-success me-1">{{ 'online_rounds.settings.on.badge'|trans }}</span>
+                        {{ 'online_rounds.settings.on.title'|trans }}
+                    </h2>
+                    <p class="small text-muted" data-online-timing-since>
+                        {% set enabled_at = zoned_datetime(online_round.enabledAt, round.displayTimezone, round.timezoneAssumed) %}
+                        {% if online_round.enabledBy is not null %}
+                            {{ 'online_rounds.settings.on.since_by'|trans({'%date%': enabled_at, '%name%': online_round.enabledBy.name ?? ('#' ~ online_round.enabledBy.code|upper)}) }}
+                        {% else %}
+                            {{ 'online_rounds.settings.on.since'|trans({'%date%': enabled_at}) }}
+                        {% endif %}
+                    </p>
+
+                    <div class="d-flex flex-wrap gap-2 mb-4" data-online-tools>
+                        <a href="{{ path('online_links', {competitionId: competition.id}) }}" class="btn btn-sm btn-outline-primary" data-online-tool="links">
+                            <i class="bi bi-link-45deg me-1" aria-hidden="true"></i>{{ 'online_rounds.menu.personal_links'|trans }}
+                        </a>
+                        <a href="{{ path('manage_round_stopwatch', {roundId: round.id}) }}" class="btn btn-sm btn-outline-primary" data-online-tool="stopwatch">
+                            <i class="bi bi-stopwatch me-1" aria-hidden="true"></i>{{ 'competition.stopwatch.title'|trans }}
+                        </a>
+                        <a href="{{ path('online_control_room', {roundId: round.id}) }}" class="btn btn-sm btn-outline-primary" data-online-tool="control">
+                            <i class="bi bi-broadcast-pin me-1" aria-hidden="true"></i>{{ 'online_rounds.control.title'|trans }}
+                        </a>
+                        <a href="{{ path('online_review', {roundId: round.id}) }}" class="btn btn-sm btn-outline-primary" data-online-tool="review">
+                            <i class="bi bi-check2-square me-1" aria-hidden="true"></i>{{ 'online_rounds.review.title'|trans }}
+                        </a>
+                    </div>
+
+                    {{ form_start(form, {action: page_url}) }}
+                        <div class="online-rounds-settings">
+                            {{ form_row(form.detectionMode) }}
+                            {{ form_row(form.unfinishedMeasure) }}
+                            {{ form_row(form.missingPieceRule) }}
+                        </div>
+                        <button type="submit" class="btn btn-primary">{{ 'online_rounds.settings.save'|trans }}</button>
+                    {{ form_end(form) }}
+                </div>
+            </section>
+        {% endif %}
+
+        {% if availability.isAvailable %}
+            <section class="card shadow-sm mb-4" data-online-participants aria-labelledby="online-participants-title">
+                <div class="card-body">
+                    <h2 class="h5" id="online-participants-title">{{ 'online_rounds.settings.participants.title'|trans }}</h2>
+
+                    {% if setup.going == 0 %}
+                        <p class="mb-2">{{ 'online_rounds.settings.participants.none'|trans }}</p>
+                        <a href="{{ path('participants_sheet', {competitionId: competition.id}) }}" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-people me-1" aria-hidden="true"></i>{{ 'online_rounds.settings.participants.open_sheet'|trans }}
+                        </a>
+                    {% else %}
+                        <p class="mb-2" data-online-entered>{{ 'online_rounds.settings.participants.entered'|trans({'%entered%': setup.entered, '%going%': setup.going}) }}</p>
+                        {% if online_round is not null %}
+                            <p class="small text-muted mb-2" data-online-with-link>{{ 'online_rounds.settings.participants.with_link'|trans({'%with_link%': setup.withLink, '%going%': setup.going}) }}</p>
+                            {# Later registrants (docs/features/online-competitions/README.md §5.4) #}
+                            <p class="small text-muted mb-2" data-online-later-links>{{ 'online_rounds.settings.participants.later_links'|trans }}</p>
+                        {% endif %}
+
+                        {% if setup.notEntered > 0 %}
+                            {# The sheet's People tab, filtered to whoever is not in this round: tick them all, "Solo: in" #}
+                            <div class="alert alert-warning mb-0" role="note" data-online-not-entered="{{ setup.notEntered }}">
+                                <p class="mb-2">{{ 'online_rounds.settings.participants.not_entered'|trans({'%count%': setup.notEntered}) }}</p>
+                                <a href="{{ path('participants_sheet', {competitionId: competition.id, tab: 'people', filter: 'out:' ~ round.id}) }}" class="btn btn-sm btn-warning" data-enter-participants>
+                                    <i class="bi bi-person-check me-1" aria-hidden="true"></i>{{ 'online_rounds.settings.participants.enter'|trans }}
+                                </a>
+                            </div>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            </section>
+        {% endif %}
+    </div>
+{% endblock %}

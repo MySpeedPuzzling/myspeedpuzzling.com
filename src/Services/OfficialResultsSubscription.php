@@ -80,6 +80,18 @@ final readonly class OfficialResultsSubscription
     }
 
     /**
+     * A participant's page of an online round (docs/features/online-competitions/README.md §5.3): the round's public
+     * stopwatch topic only - start, countdown, cancel and end - never a results topic. Issue it only after the personal
+     * link was checked (OnlineAccess); the page has no account and no cookie.
+     *
+     * @return null|array{url: string, topics: list<string>, token: string, expiresAt: string, expiresIn: int}
+     */
+    public function forOnlineParticipant(string $roundId): null|array
+    {
+        return $this->forTopics([self::stopwatchTopic($roundId)]);
+    }
+
+    /**
      * @param list<string> $topics
      * @return null|array{url: string, topics: list<string>, token: string, expiresAt: string, expiresIn: int}
      */

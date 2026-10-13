@@ -1,0 +1,935 @@
+// The participant page of an online competition (docs/features/online-competitions/, stream B2).
+// Its own Encore style entry 'compete', linked only on that page through the base layout's
+// page_stylesheets block - never imported into app.scss, so the site-wide CSS stays as it is.
+//
+// Mobile first: the phone stands on a table a metre away - the stopwatch is read from there, the Finished button is
+// hit without looking. Portrait and landscape (the set-up asks for landscape); light by default, dark where the phone
+// asks for it. Colours are tokens on .compete; every text pair passes WCAG AA.
+
+.compete {
+    --compete-bg: #f6f9fc;
+    --compete-surface: #fff;
+    --compete-text: #2b3445;
+    --compete-muted: #4b566b;
+    --compete-border: #dae1e7;
+    --compete-accent: #d63c42;
+    --compete-finish-bg: #d63c42;
+    --compete-finish-shadow: rgba(214, 60, 66, 0.35);
+    --compete-go: #0f7a55;
+    --compete-ok: #0f7a55;
+    --compete-ok-bg: #e3f6ee;
+    --compete-warn: #8a5300;
+    --compete-warn-bg: #fff4e5;
+    --compete-bad: #b42318;
+    --compete-bad-bg: #fdecea;
+    --compete-info: #1d5fa8;
+    --compete-info-bg: #eaf3ff;
+    --compete-focus: #4e54c8;
+    --compete-preview: #4e54c8;
+
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    background: var(--compete-bg);
+    color: var(--compete-text);
+    -webkit-tap-highlight-color: transparent;
+}
+
+// The brand's #fe696a carries white text below 3:1 - the page's buttons take the darker red (4.6:1)
+.compete .btn-primary {
+    --bs-btn-bg: #d63c42;
+    --bs-btn-border-color: #d63c42;
+    --bs-btn-hover-bg: #b8323a;
+    --bs-btn-hover-border-color: #b8323a;
+    --bs-btn-active-bg: #a12c33;
+    --bs-btn-active-border-color: #a12c33;
+    --bs-btn-disabled-bg: #d63c42;
+    --bs-btn-disabled-border-color: #d63c42;
+    background-color: var(--bs-btn-bg);
+    border-color: var(--bs-btn-border-color);
+    color: #fff;
+}
+
+.compete .btn-outline-primary {
+    --bs-btn-color: #c0353b;
+    --bs-btn-border-color: #c0353b;
+    --bs-btn-hover-bg: #c0353b;
+    --bs-btn-hover-border-color: #c0353b;
+    --bs-btn-active-bg: #a12c33;
+    --bs-btn-active-border-color: #a12c33;
+    color: var(--bs-btn-color);
+    border-color: var(--bs-btn-border-color);
+}
+
+// The theme's danger pink is too light for text on the page's background
+.compete .btn-outline-danger {
+    border-color: #b42318;
+    color: #b42318;
+
+    &:hover,
+    &:focus-visible {
+        border-color: #b42318;
+        background-color: #b42318;
+        color: #fff;
+    }
+}
+
+.compete .btn-primary:hover,
+.compete .btn-primary:focus-visible {
+    background-color: var(--bs-btn-hover-bg);
+    border-color: var(--bs-btn-hover-border-color);
+    color: #fff;
+}
+
+.compete .btn-outline-primary:hover,
+.compete .btn-outline-primary:focus-visible {
+    background-color: var(--bs-btn-hover-bg);
+    border-color: var(--bs-btn-hover-border-color);
+    color: #fff;
+}
+
+// Links read as links, darker than the brand pink (4.9:1)
+.compete a:not(.btn) {
+    color: #c0353b;
+    text-decoration: underline;
+    text-underline-offset: 0.15em;
+}
+
+// The page behind it (overscroll) in the same colour
+html:has(.compete),
+html:has(.compete) body {
+    background: #f6f9fc;
+}
+
+@media (prefers-color-scheme: dark) {
+    html:has(.compete),
+    html:has(.compete) body {
+        background: #11151d;
+    }
+
+    .compete {
+        --compete-bg: #11151d;
+        --compete-surface: #1b2130;
+        --compete-text: #eef1f6;
+        --compete-muted: #b4bccb;
+        --compete-border: #2f3849;
+        --compete-accent: #ff7a7b;
+        --compete-finish-bg: #c9353b;
+        --compete-finish-shadow: rgba(0, 0, 0, 0.5);
+        --compete-go: #4ade9b;
+        --compete-ok: #4ade9b;
+        --compete-ok-bg: #12301f;
+        --compete-warn: #ffc06b;
+        --compete-warn-bg: #33250f;
+        --compete-bad: #ff8c80;
+        --compete-bad-bg: #3a1714;
+        --compete-info: #8cc4ff;
+        --compete-info-bg: #13253d;
+        --compete-focus: #a5a9ff;
+        --compete-preview: #4e54c8;
+
+        a:not(.btn) {
+            color: #ff8a8b;
+        }
+
+        .card {
+            background: var(--compete-surface);
+            border-color: var(--compete-border);
+            color: var(--compete-text);
+        }
+
+        .text-muted {
+            color: var(--compete-muted) !important;
+        }
+
+        .form-control {
+            background: #0d1118;
+            border-color: var(--compete-border);
+            color: var(--compete-text);
+        }
+
+        .form-check-input:not(:checked) {
+            background-color: #0d1118;
+            border-color: #6b7488;
+        }
+
+        .btn-outline-secondary,
+        .btn-link {
+            color: var(--compete-text);
+        }
+
+        .btn-outline-secondary {
+            border-color: #6b7488;
+        }
+
+        .btn-outline-primary {
+            color: #ff8a8b;
+            border-color: #ff8a8b;
+        }
+
+        .btn-outline-danger {
+            color: #ff8c80;
+            border-color: #ff8c80;
+        }
+
+        .alert-warning {
+            background: var(--compete-warn-bg);
+            border-color: transparent;
+            color: var(--compete-text);
+        }
+    }
+}
+
+.compete :focus-visible {
+    outline: 3px solid var(--compete-focus);
+    outline-offset: 2px;
+}
+
+.compete-noscript {
+    margin: 1rem;
+    padding: 1rem;
+    border-radius: 0.75rem;
+    background: var(--compete-warn-bg);
+    color: var(--compete-warn);
+}
+
+.compete-mono {
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', Menlo, Consolas, monospace;
+    font-variant-numeric: tabular-nums;
+}
+
+// ---- the top bar: event, round, person - and the round's health while it runs
+
+.compete-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.5rem 1rem;
+    border-bottom: 1px solid var(--compete-border);
+    background: var(--compete-surface);
+    font-size: 0.875rem;
+    line-height: 1.3;
+}
+
+.compete-bar-names,
+.compete-bar-side {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.compete-bar-side {
+    align-items: flex-end;
+    text-align: end;
+}
+
+.compete-bar-competition,
+.compete-bar-person {
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+}
+
+.compete-bar-round {
+    color: var(--compete-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.compete-status {
+    display: none;
+    gap: 0.5rem;
+    color: var(--compete-muted);
+    font-size: 0.75rem;
+}
+
+.compete:is([data-screen='waiting'], [data-screen='countdown'], [data-screen='running'], [data-screen='finished'], [data-screen='timeup']) .compete-status {
+    display: inline-flex;
+}
+
+.compete-status-item:empty {
+    display: none;
+}
+
+.compete:not([data-camera='live']) .compete-status-camera,
+.compete[data-connection='offline'] .compete-status-connection {
+    color: var(--compete-bad);
+    font-weight: 600;
+}
+
+// ---- banners: the organiser's preview, offline, the camera stopped, notices
+
+.compete-banner {
+    display: block;
+    width: 100%;
+    padding: 0.6rem 1rem;
+    border: 0;
+    text-align: center;
+    font-weight: 500;
+}
+
+.compete-banner--preview {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    background: var(--compete-preview);
+    color: #fff;
+}
+
+.compete-banner--offline {
+    background: var(--compete-warn-bg);
+    color: var(--compete-warn);
+}
+
+// Loud on purpose (README §5.5: a full-screen state when the camera stops) - the whole page turns with it
+.compete-banner--camera {
+    padding: 1rem;
+    background: #b42318;
+    color: #fff;
+    font-size: 1.125rem;
+    font-weight: 700;
+    animation: compete-pulse 1.4s ease-in-out infinite;
+}
+
+.compete:has(.compete-banner--camera:not([hidden])) {
+    box-shadow: inset 0 0 0 6px #b42318;
+}
+
+.compete-banner--notice {
+    background: var(--compete-info-bg);
+    color: var(--compete-info);
+
+    &[data-level='warning'] {
+        background: var(--compete-warn-bg);
+        color: var(--compete-warn);
+    }
+
+    &[data-level='success'] {
+        background: var(--compete-ok-bg);
+        color: var(--compete-ok);
+    }
+}
+
+@keyframes compete-pulse {
+    50% {
+        opacity: 0.8;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .compete-banner--camera {
+        animation: none;
+    }
+}
+
+// ---- the stage: the camera preview and the screens - stacked in portrait, side by side in landscape
+
+.compete-stage {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+}
+
+.compete-camera {
+    position: relative;
+    width: 100%;
+    max-height: 28vh;
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
+    background: #000;
+}
+
+.compete[data-screen='checklist'] .compete-camera {
+    max-height: 45vh;
+}
+
+.compete-video {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+// The front camera mirrored on screen (the photos stay as the camera saw it)
+.compete[data-facing='user'] .compete-video {
+    transform: scaleX(-1);
+}
+
+.compete-frame-guide {
+    position: absolute;
+    inset: 7%;
+    display: none;
+    align-items: flex-end;
+    justify-content: center;
+    border: 2px dashed rgba(255, 255, 255, 0.75);
+    border-radius: 0.5rem;
+    pointer-events: none;
+
+    span {
+        margin-bottom: 0.4rem;
+        padding: 0.15rem 0.5rem;
+        border-radius: 0.25rem;
+        background: rgba(0, 0, 0, 0.6);
+        color: #fff;
+        font-size: 0.75rem;
+    }
+}
+
+.compete[data-screen='checklist'][data-camera='live'] .compete-frame-guide {
+    display: flex;
+}
+
+.compete-screens {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+}
+
+.compete-screen {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+    max-width: 40rem;
+    margin: 0 auto;
+    padding: 1.25rem 1rem 2rem;
+    text-align: center;
+}
+
+.compete-screen--welcome,
+.compete-screen--checklist,
+.compete-screen--message,
+.compete-screen--after {
+    align-items: stretch;
+    text-align: start;
+}
+
+.compete-title {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.compete-subtitle,
+.compete-intro {
+    margin: 0;
+    color: var(--compete-muted);
+}
+
+.compete-you {
+    padding: 0.75rem 1rem;
+    border-radius: 0.75rem;
+    background: var(--compete-surface);
+    border: 1px solid var(--compete-border);
+    font-weight: 600;
+}
+
+.compete-not-you {
+    font-weight: 400;
+
+    summary {
+        color: var(--compete-muted);
+        cursor: pointer;
+    }
+
+    p {
+        margin-top: 0.5rem;
+        color: var(--compete-muted);
+    }
+}
+
+.compete-connect,
+.compete-sign-in {
+    margin: 0;
+}
+
+.compete-connect {
+    color: var(--compete-muted);
+}
+
+// The site's reset takes lists' bullets away - these are lists to read
+.compete-consent ul,
+.compete-setup ul {
+    padding-inline-start: 1.25rem;
+    list-style: disc;
+}
+
+// On a computer only: the phone is the camera - its way there
+.compete-desktop {
+    display: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .compete-desktop {
+        display: block;
+    }
+}
+
+.compete-qr svg {
+    display: block;
+    width: 9rem;
+    height: 9rem;
+    border-radius: 0.5rem;
+    background: #fff;
+}
+
+.compete-desktop-text {
+    flex: 1 1 14rem;
+}
+
+.compete-practice-entry {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.35rem;
+    margin-top: 0.5rem;
+    text-align: center;
+}
+
+.compete-languages {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.75rem;
+    margin-top: 0.5rem;
+    font-size: 0.875rem;
+
+    [aria-current] {
+        font-weight: 700;
+    }
+}
+
+.compete-alert {
+    margin: 0;
+    padding: 0.65rem 0.85rem;
+    border-radius: 0.75rem;
+    background: var(--compete-info-bg);
+    color: var(--compete-info);
+}
+
+.compete-alert--live {
+    background: var(--compete-warn-bg);
+    color: var(--compete-warn);
+    font-weight: 600;
+}
+
+// ---- the checklist
+
+.compete-checks {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.compete-check {
+    --level: var(--compete-muted);
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.65rem 0.75rem;
+    border: 1px solid var(--compete-border);
+    border-inline-start: 6px solid var(--level);
+    border-radius: 0.75rem;
+    background: var(--compete-surface);
+
+    &[data-level='ok'] {
+        --level: var(--compete-ok);
+    }
+
+    &[data-level='warn'] {
+        --level: var(--compete-warn);
+    }
+
+    &[data-level='bad'] {
+        --level: var(--compete-bad);
+        background: var(--compete-bad-bg);
+    }
+
+    &[data-level='info'] {
+        --level: var(--compete-info);
+    }
+}
+
+.compete-check-icon {
+    flex: 0 0 auto;
+    color: var(--level);
+    font-size: 1.25rem;
+    line-height: 1.3;
+}
+
+.compete-check-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    min-width: 0;
+}
+
+.compete-check-label {
+    font-weight: 600;
+}
+
+// Not by colour alone: a mark next to the row's name
+.compete-check[data-level='ok'] .compete-check-label::after {
+    content: ' ✓';
+    color: var(--compete-ok);
+}
+
+.compete-check[data-level='bad'] .compete-check-label::after {
+    content: ' ✕';
+    color: var(--compete-bad);
+}
+
+.compete-check-detail,
+.compete-check-hint {
+    color: var(--compete-muted);
+    font-size: 0.875rem;
+}
+
+.compete-check-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.35rem;
+}
+
+.compete-setup {
+    padding: 0.65rem 0.85rem;
+    border-radius: 0.75rem;
+    background: var(--compete-surface);
+    border: 1px solid var(--compete-border);
+
+    summary {
+        font-weight: 600;
+        cursor: pointer;
+    }
+
+    ul {
+        margin-top: 0.5rem;
+        padding-inline-start: 1.25rem;
+    }
+}
+
+.compete-ready {
+    width: 100%;
+    min-height: 3.5rem;
+    border-color: #0f7a55;
+    background: #0f7a55;
+    color: #fff;
+    font-size: 1.25rem;
+    font-weight: 700;
+
+    &:hover,
+    &:focus {
+        border-color: #0b5e41;
+        background: #0b5e41;
+        color: #fff;
+    }
+
+    &:disabled {
+        border-color: var(--compete-border);
+        background: var(--compete-border);
+        color: var(--compete-muted);
+        opacity: 1;
+    }
+}
+
+.compete-ready-hint {
+    margin: 0;
+    text-align: center;
+}
+
+// ---- the clock: read from a metre away - five digits (MM:SS) can be twice as big as eight
+
+.compete-clock {
+    margin: 0;
+    color: var(--compete-text);
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', Menlo, Consolas, monospace;
+    font-size: min(16vw, 22vh);
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+.compete[data-clock='short'] .compete-clock {
+    font-size: min(27vw, 26vh);
+}
+
+.compete-clock--result {
+    color: var(--compete-go);
+}
+
+.compete-clock--small,
+.compete[data-clock='short'] .compete-clock--small {
+    font-size: min(12vw, 10vh);
+}
+
+.compete-clock-caption {
+    margin: 0;
+    color: var(--compete-muted);
+    font-size: 1.125rem;
+}
+
+.compete-limit,
+.compete-keep-open {
+    margin: 0;
+    color: var(--compete-muted);
+}
+
+.compete-countdown {
+    margin: auto 0;
+    color: var(--compete-accent);
+    font-size: min(60vw, 52vh);
+    font-variant-numeric: tabular-nums;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.compete[data-go='1'] .compete-countdown {
+    color: var(--compete-go);
+    font-size: min(34vw, 40vh);
+}
+
+// ---- the Finished button: big, hit without looking; the moment is the touch itself
+
+.compete-finish {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+    width: 100%;
+    max-width: 34rem;
+    min-height: max(9rem, 26vh);
+    margin-top: 0.5rem;
+    border: 0;
+    border-radius: 1.25rem;
+    background: var(--compete-finish-bg);
+    box-shadow: 0 0.5rem 1.5rem var(--compete-finish-shadow);
+    color: #fff;
+    cursor: pointer;
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-user-select: none;
+
+    &:active {
+        transform: scale(0.98);
+        filter: brightness(0.95);
+    }
+
+    &:focus-visible {
+        outline: 4px solid var(--compete-focus);
+        outline-offset: 3px;
+    }
+}
+
+.compete-finish-label {
+    font-size: clamp(2rem, 10vw, 3.75rem);
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.compete-finish-hint {
+    font-size: 0.875rem;
+    font-weight: 500;
+    opacity: 0.95;
+}
+
+.compete-finished-title {
+    margin: 0;
+    color: var(--compete-go);
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.compete-undo {
+    width: 100%;
+    max-width: 24rem;
+}
+
+.compete-keep-puzzling {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.compete-round-clock {
+    margin: auto 0 0;
+    color: var(--compete-muted);
+}
+
+// ---- time's up and after
+
+.compete-timeup-title {
+    margin: 0;
+    color: var(--compete-bad);
+    font-size: clamp(2rem, 11vw, 4rem);
+    font-weight: 800;
+}
+
+.compete-timeup-stop {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+.compete-pieces {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    width: 100%;
+    max-width: 24rem;
+    text-align: start;
+}
+
+.compete-pieces-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+
+    input {
+        max-width: 10rem;
+        font-size: 1.75rem;
+        font-variant-numeric: tabular-nums;
+        text-align: center;
+    }
+}
+
+.compete-pieces-of {
+    color: var(--compete-muted);
+    font-size: 1.125rem;
+}
+
+.compete-pieces-error {
+    margin: 0;
+    color: var(--compete-bad);
+    font-weight: 600;
+}
+
+.compete-reported {
+    margin: 0;
+    font-size: 1.125rem;
+    font-weight: 600;
+}
+
+// ---- practice
+
+.compete-practice-badge {
+    margin: 0;
+    padding: 0.35rem 0.75rem;
+    border-radius: 2rem;
+    background: var(--compete-info-bg);
+    color: var(--compete-info);
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.compete-screen--practice > div:not(.compete-practice-actions) {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+}
+
+.compete-practice-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: auto;
+}
+
+// ---- landscape phones (the set-up asks for landscape): camera and screen side by side
+
+@media (orientation: landscape) and (max-height: 34rem) {
+    .compete-bar {
+        padding-block: 0.3rem;
+    }
+
+    .compete-stage {
+        flex-direction: row;
+    }
+
+    .compete-camera,
+    .compete[data-screen='checklist'] .compete-camera {
+        width: 40%;
+        max-height: none;
+        aspect-ratio: auto;
+    }
+
+    .compete-screens {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .compete-screen {
+        gap: 0.5rem;
+        padding: 0.75rem 1rem 1rem;
+    }
+
+    .compete-clock {
+        font-size: min(9.5vw, 24vh);
+    }
+
+    .compete[data-clock='short'] .compete-clock {
+        font-size: min(15vw, 30vh);
+    }
+
+    .compete-countdown {
+        font-size: min(40vw, 62vh);
+    }
+
+    .compete[data-go='1'] .compete-countdown {
+        font-size: min(22vw, 44vh);
+    }
+
+    .compete-finish {
+        min-height: max(6rem, 32vh);
+    }
+}
+
+// ---- wide screens (a laptop, a tablet): side by side as well
+
+@media (min-width: 62rem) {
+    .compete-stage {
+        flex-direction: row;
+    }
+
+    .compete-camera,
+    .compete[data-screen='checklist'] .compete-camera {
+        width: 50%;
+        max-height: none;
+        aspect-ratio: auto;
+        align-self: stretch;
+    }
+
+    .compete-screens {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .compete-clock {
+        font-size: min(7vw, 20vh);
+    }
+
+    .compete[data-clock='short'] .compete-clock {
+        font-size: min(11vw, 24vh);
+    }
+}

@@ -55,6 +55,20 @@ final class OfficialResultsSubscriptionTest extends TestCase
         self::assertSame(['publish' => [], 'subscribe' => $subscription['topics']], self::verified($subscription['token'])->claims()->get('mercure'));
     }
 
+    /**
+     * A participant's page of an online round (docs/features/online-competitions/README.md §5.3) follows the round's
+     * public stopwatch topic - never a results topic
+     */
+    public function testAnOnlineParticipantFollowsTheRoundsStopwatchOnly(): void
+    {
+        $subscription = $this->subscription(new LcobucciFactory(self::SECRET))->forOnlineParticipant(self::ROUND);
+
+        self::assertNotNull($subscription);
+        self::assertSame(['/round-stopwatch/' . strtolower(self::ROUND)], $subscription['topics']);
+        self::assertSame(['publish' => [], 'subscribe' => $subscription['topics']], self::verified($subscription['token'])->claims()->get('mercure'));
+        self::assertSame(3600, $subscription['expiresIn']);
+    }
+
     public function testNoRoundsNoSubscription(): void
     {
         self::assertNull($this->subscription(new LcobucciFactory(self::SECRET))->forRounds([]));

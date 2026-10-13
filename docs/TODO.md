@@ -19,6 +19,39 @@ that would otherwise be forgotten. Newest section on top.
       `PuzzleTimes`' pair/team pools - exact compositions, guests, blocked and private members - so it needs its own
       design and a parity test like `tests/Controller/PlayerResultsRankParityTest.php`.
 
+## Online competitions (`docs/features/online-competitions/`, round clock - stream D)
+
+- [ ] Open the scheduled start ("Start in 10 s", "Start at a set time", "Cancel the start") to every organiser once
+      the test cups are done: drop `can_schedule` in `manage_round_stopwatch.html.twig` and the `requiredAttribute`
+      of `ScheduleRoundStartController` / `CancelRoundStartController` (feature_flags.md `ONLINE_ROUNDS_FOR_ORGANISERS`).
+- [ ] The acting player of a scheduled start and of a cancel is carried by the messages but not stored anywhere yet
+      (no column) - add it when the control room or the review needs to say who started a round.
+- [ ] A stopwatch page left open across the deploy that added the CSRF token fails its first action (Start, Stop,
+      Reset: "the page was open too long") - a reload fixes it. Fine, but never deploy during a live event.
+
+## Online competitions - participant API and evidence storage (`docs/features/online-competitions/`, stream A)
+
+- [x] lily.srv: a daily cron row for `myspeedpuzzling:prune-online-media` (periodic photos after 30 days, the rest - added 2026-10-13 (lily.srv a1f9fb6), the command verified on production
+      after 365, then the orphan sweep of `online/`) - the orchestrator adds it with the deploy.
+- [ ] Before Test Cup #1, with Jan's OK: `myspeedpuzzling:online-media:cors --apply` on production (the bucket CORS
+      rule for the phones' PUT + the review's GET from the site's origin; keeps the bucket's other rules - run it
+      without `--apply` first to see the rule).
+- [ ] The images proxy (`img.*/original/<key>` through imgproxy) can fetch ANY key of the bucket, `online/…` evidence
+      included. The keys are unguessable (UUIDv7 in the path), but before any public use deny the `online/` prefix in
+      the images nginx (lily.srv) - or move the evidence to a bucket of its own.
+- [ ] Spike S5 (`spikes.md`): does Hetzner Object Storage enforce a signed `Content-Length` / `Content-Type` in a
+      presigned PUT (MinIO does: another length or type is 403 SignatureDoesNotMatch)? If not, VerifyOnlineMedia's
+      size/type check is the only guard - it deletes what was not declared.
+- [ ] Traefik's access log (lily.srv) writes the full path, so the personal links' tokens of `/api/compete/<token>`
+      and `/<locale>/compete/<token>` (`/soutezit/<token>`) land there - redact them in the access log config (the app
+      redacts its own logs and Sentry: OnlineTokenRedactor).
+
+## Online competitions - control room and review (`docs/features/online-competitions/`, stream C2)
+
+- [ ] Referees can't review online rounds yet (evidence photos stay with organisers: the review needs
+      ONLINE_ROUNDS_MANAGE besides COMPETITION_RESULTS_ENTRY) - decide before public use; letting them in is one
+      condition in `OnlineOrganiserApi` and the review pages' voters.
+
 ## Anti-farming (`docs/features/xp-levels/README.md` §Anti-farming, workstream G 2026-10-11)
 
 - [ ] lily.srv: add the `verify-progression --repair` cron row (README §Cron) with the deploy; watch its first warnings

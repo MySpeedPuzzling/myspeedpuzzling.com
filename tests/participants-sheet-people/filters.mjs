@@ -11,11 +11,13 @@ import {
     matchesRoundFilter,
     matchesSearch,
     offeredFor,
+    onlineLinksOffered,
     parseRoundFilter,
     readColumnPrefs,
     readCountry,
     readSortPref,
     registrationSummaryHtml,
+    shownOnlineLink,
     sortPeople,
     teamLabelText,
     typedNumber,
@@ -221,5 +223,17 @@ export default function (test) {
 
         const full = registrationSummaryHtml(m, { ...m.competition, capacity: 12 }, say, (key, count, params) => say(key, { count, ...params }));
         assert.ok(!full.includes('data-promote'));
+    });
+
+    test('online timing: the "Personal link" column is offered only while the people come with their links', () => {
+        assert.ok(!offeredFor(COLUMN_OPTIONS, { isOnline: true }).some((column) => column.key === 'onlineLink'));
+        assert.deepEqual(
+            offeredFor(COLUMN_OPTIONS, { registrationManaged: false, isOnline: true }, [], { onlineLinks: true }).map((column) => column.key),
+            ['name', 'country', 'player', 'rounds', 'onlineLink', 'externalId', 'source', 'joined', 'note'],
+        );
+        assert.equal(onlineLinksOffered([person('a', 'A'), person('b', 'B', { online: null })]), false);
+        assert.equal(onlineLinksOffered([person('a', 'A'), person('b', 'B', { online: { link: null } })]), true);
+        assert.equal(shownOnlineLink('https://myspeedpuzzling.com/en/compete/2ConnectedTestCupToken'), 'myspeedpuzzling.com/en/compete/2ConnectedTestCupToken');
+        assert.equal(shownOnlineLink(null), '');
     });
 }

@@ -13,28 +13,36 @@
 {% block page_help_line %}{% endblock %}
 
 {% block full_content %}
+    {# The phase as the server sees it now - round_stopwatch_controller.js follows the clock from here (a scheduled start
+       turns into running by itself) #}
+    {% set phase = stopwatch.status == 'scheduled' ? 'scheduled' : (stopwatch.status == 'running' ? 'running' : (stopwatch.status == 'stopped' ? 'stopped' : 'idle')) %}
     <style>main{padding-top:0!important}</style>
     <div class="d-flex flex-column align-items-center justify-content-center py-5"
          data-controller="round-stopwatch"
-         data-round-stopwatch-status-value="{{ round.stopwatchStatus ?? '' }}"
-         data-round-stopwatch-started-at-value="{{ round.stopwatchStartedAt ? round.stopwatchStartedAt.format('c') : '' }}"
-         data-round-stopwatch-stopped-at-value="{{ round.stopwatchStoppedAt ? round.stopwatchStoppedAt.format('c') : '' }}"
-         data-round-stopwatch-minutes-limit-value="{{ round.minutesLimit }}"
-         data-round-stopwatch-server-now-value="{{ serverNow }}"
+         data-round-stopwatch-state-value="{{ stopwatch|json_encode|e('html_attr') }}"
+         data-round-stopwatch-server-now-ms-value="{{ serverNowMs }}"
          data-round-stopwatch-mercure-url-value="{{ mercure_public_url }}"
          data-round-stopwatch-topic-value="/round-stopwatch/{{ round.id }}"
          data-round-stopwatch-state-url-value="{{ stateUrl }}"
+         data-label-starts-in="{{ 'competition.stopwatch.starts_in'|trans({'%time%': '%time%'}) }}"
+         data-stopwatch-phase="{{ phase }}"
     >
         <h1 class="h4 text-center mb-1">{{ competition.name }}</h1>
         <h2 class="h5 text-muted text-center mb-4">{{ round.name }}</h2>
 
-        <div class="d-flex align-items-center justify-content-center mb-3" style="font-size: 6rem; font-family: monospace; font-weight: bold; line-height: 1;">
-            <span data-round-stopwatch-target="hours">00</span>
-            <span class="mx-2">:</span>
-            <span data-round-stopwatch-target="minutes">00</span>
-            <span class="mx-2">:</span>
-            <span data-round-stopwatch-target="seconds">00</span>
+        {# A plain wrapper takes `hidden` - Bootstrap's d-flex would win over it #}
+        <div data-round-stopwatch-target="clock">
+            <div class="d-flex align-items-center justify-content-center mb-3" style="font-size: 6rem; font-family: monospace; font-weight: bold; line-height: 1;">
+                <span data-round-stopwatch-target="hours">00</span>
+                <span class="mx-2">:</span>
+                <span data-round-stopwatch-target="minutes">00</span>
+                <span class="mx-2">:</span>
+                <span data-round-stopwatch-target="seconds">00</span>
+            </div>
         </div>
+
+        {# The last ten seconds of a countdown, big - the clock steps aside for them #}
+        <div class="text-primary text-center mb-3" style="font-size: 12rem; font-family: monospace; font-weight: bold; line-height: 1;" data-round-stopwatch-target="bigCountdown" aria-live="off" hidden></div>
 
         <div class="fs-4 mb-4"
              data-round-stopwatch-target="status"
@@ -43,22 +51,25 @@
              data-label-stopped="{{ 'competition.stopwatch.stopped'|trans }}"
              data-label-times-up="{{ 'competition.stopwatch.times_up'|trans }}"
         >
-            {% if round.stopwatchStatus == 'stopped' %}
+            {% if phase == 'stopped' %}
                 <span class="text-warning">{{ 'competition.stopwatch.stopped'|trans }}</span>
-            {% elseif round.stopwatchStatus != 'running' %}
+            {% elseif phase == 'scheduled' %}
+                <span class="text-primary">{{ 'competition.stopwatch.scheduled'|trans }}</span>
+            {% elseif phase == 'idle' %}
                 <span class="text-muted">{{ 'competition.stopwatch.not_started'|trans }}</span>
             {% endif %}
         </div>
 
-        {% if canManage and round.stopwatchStatus != 'running' %}
-            <form method="post" action="{{ path('start_round_stopwatch', {'roundId': round.id}) }}" class="mb-3">
-                <button type="submit" class="btn btn-success btn-lg">
-                    <i class="bi bi-play-fill me-1"></i>{{ 'competition.stopwatch.start'|trans }}
-                </button>
-            </form>
-        {% endif %}
-
         {% if canManage %}
+            <div class="mb-3" data-stopwatch-when="idle stopped" {{ phase not in ['idle', 'stopped'] ? 'hidden' }}>
+                <form method="post" action="{{ path('start_round_stopwatch', {'roundId': round.id}) }}">
+                    <input type="hidden" name="_token" value="{{ csrf_token(constant('SpeedPuzzling\\Web\\Controller\\AbstractRoundStopwatchController::CSRF_TOKEN_ID')) }}">
+                    <button type="submit" class="btn btn-success btn-lg">
+                        <i class="bi bi-play-fill me-1"></i>{{ 'competition.stopwatch.start'|trans }}
+                    </button>
+                </form>
+            </div>
+
             <a href="{{ path('manage_round_stopwatch', {'roundId': round.id}) }}" class="btn btn-outline-secondary">
                 <i class="bi bi-gear me-1"></i>{{ 'competition.stopwatch.manage'|trans }}
             </a>

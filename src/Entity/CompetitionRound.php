@@ -20,8 +20,11 @@ use Ramsey\Uuid\Doctrine\UuidType;
 use Ramsey\Uuid\UuidInterface;
 use SpeedPuzzling\Web\Events\CompetitionRoundsChanged;
 use SpeedPuzzling\Web\Events\OfficialRoundResultsPublished;
+use SpeedPuzzling\Web\Exceptions\RoundStopwatchRefused;
 use SpeedPuzzling\Web\Value\RoundCategory;
 use SpeedPuzzling\Web\Value\RoundPuzzleReveal;
+use SpeedPuzzling\Web\Value\RoundStopwatchRefusal;
+use SpeedPuzzling\Web\Value\RoundStopwatchStatus;
 use SpeedPuzzling\Web\Value\RoundTimezone;
 
 #[Entity]
@@ -58,10 +61,16 @@ class CompetitionRound implements EntityWithEvents
         public null|string $badgeTextColor = null,
         #[Column(enumType: RoundCategory::class, options: ['default' => 'solo'])]
         public RoundCategory $category = RoundCategory::Solo,
+        // The round stopwatch - changed only through its methods below; read its status through stopwatchStatusAt()
+        // (RoundStopwatchStatus): a scheduled start counts as running once its moment has passed. Whole seconds.
+        #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
         #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
         public null|DateTimeImmutable $stopwatchStartedAt = null,
+        // null | scheduled | running | stopped (RoundStopwatchStatus)
+        #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
         #[Column(nullable: true)]
         public null|string $stopwatchStatus = null,
+        #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
         #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
         public null|DateTimeImmutable $stopwatchStoppedAt = null,
         // Unique per competition, generated once on create and kept on rename, so shared result links survive
@@ -297,10 +306,38 @@ class CompetitionRound implements EntityWithEvents
         $this->resultsLink = $resultsLink;
     }
 
+    /**
+     * What the stopwatch is doing at $now - a scheduled start counts as running once its moment has passed
+     * (RoundStopwatchStatus, the one rule every reader follows).
+     */
+    public function stopwatchStatusAt(DateTimeImmutable $now): null|string
+    {
+        return RoundStopwatchStatus::at($this->stopwatchStatus, $this->stopwatchStartedAt, $now);
+    }
+
+    /**
+     * "Start" - now, or resume a stopped stopwatch (in-person rounds: stopped = paused, startedAt moves forward by the
+     * pause). A running stopwatch - a scheduled start whose moment passed included - is left as it is: a second "Start"
+     * from another device or a stale page never restarts the clock. While a start is scheduled it is refused: starting
+     * now would move the moment every device counts down to - the countdown is cancelled first.
+     *
+     * @throws RoundStopwatchRefused
+     */
     public function startStopwatch(DateTimeImmutable $startedAt): void
     {
+        $startedAt = self::wholeSecond($startedAt);
+        $status = $this->stopwatchStatusAt($startedAt);
+
+        if ($status === RoundStopwatchStatus::RUNNING) {
+            return;
+        }
+
+        if ($status === RoundStopwatchStatus::SCHEDULED) {
+            throw new RoundStopwatchRefused(RoundStopwatchRefusal::StartScheduled);
+        }
+
         if (
-            $this->stopwatchStatus === 'stopped'
+            $this->stopwatchStatus === RoundStopwatchStatus::STOPPED
             && $this->stopwatchStartedAt !== null
             && $this->stopwatchStoppedAt !== null
         ) {
@@ -313,13 +350,82 @@ class CompetitionRound implements EntityWithEvents
         } else {
             $this->stopwatchStartedAt = $startedAt;
         }
-        $this->stopwatchStatus = 'running';
+        $this->stopwatchStatus = RoundStopwatchStatus::RUNNING;
         $this->stopwatchStoppedAt = null;
     }
 
+    /**
+     * A start at a moment ahead (online rounds: "Start in 10 s", "Start at 19:00:00") - a start in the future IS the
+     * countdown: every device shows `startsAt - now` and runs from that moment, nothing is written then. On a whole
+     * second, like the TIMESTAMP(0) column keeps it (callers align: ScheduleRoundStart). Only for a clock that never
+     * ran, or to move a countdown - a running or stopped one is reset first.
+     *
+     * @throws RoundStopwatchRefused
+     */
+    public function scheduleStopwatchStart(DateTimeImmutable $startsAt, DateTimeImmutable $now): void
+    {
+        if ((int) $startsAt->format('u') !== 0) {
+            throw new \InvalidArgumentException('A scheduled start is on a whole second.');
+        }
+
+        // Stored as its UTC moment - Doctrine writes an object's own wall time, whatever zone it carries
+        $startsAt = $startsAt->setTimezone(new \DateTimeZone('UTC'));
+
+        if ($startsAt < $now) {
+            throw new RoundStopwatchRefused(RoundStopwatchRefusal::StartInThePast);
+        }
+
+        $status = $this->stopwatchStatusAt($now);
+
+        if ($status !== null && $status !== RoundStopwatchStatus::SCHEDULED) {
+            throw new RoundStopwatchRefused(RoundStopwatchRefusal::AlreadyStarted);
+        }
+
+        $this->stopwatchStartedAt = $startsAt;
+        $this->stopwatchStatus = RoundStopwatchStatus::SCHEDULED;
+        $this->stopwatchStoppedAt = null;
+    }
+
+    /**
+     * Calls a countdown off - only before its moment: once the start has passed the round runs (stop or reset it then).
+     * Nothing scheduled = nothing to do (a second tap, a stale page).
+     *
+     * @throws RoundStopwatchRefused
+     */
+    public function cancelScheduledStart(DateTimeImmutable $now): void
+    {
+        if ($this->stopwatchStatus === null) {
+            return;
+        }
+
+        if ($this->stopwatchStatusAt($now) !== RoundStopwatchStatus::SCHEDULED) {
+            throw new RoundStopwatchRefused(RoundStopwatchRefusal::TooLateToCancel);
+        }
+
+        $this->resetStopwatch();
+    }
+
+    /**
+     * "Stop" - ends the round for online rounds, pauses it in person (Start resumes). A stopwatch that is not running
+     * stays as it is: a second "Stop" never moves the end, a clock that never ran gets no end. A countdown stopped before
+     * its moment never ran - it is called off.
+     */
     public function stopStopwatch(DateTimeImmutable $stoppedAt): void
     {
-        $this->stopwatchStatus = 'stopped';
+        $stoppedAt = self::wholeSecond($stoppedAt);
+        $status = $this->stopwatchStatusAt($stoppedAt);
+
+        if ($status === RoundStopwatchStatus::SCHEDULED) {
+            $this->resetStopwatch();
+
+            return;
+        }
+
+        if ($status !== RoundStopwatchStatus::RUNNING) {
+            return;
+        }
+
+        $this->stopwatchStatus = RoundStopwatchStatus::STOPPED;
         $this->stopwatchStoppedAt = $stoppedAt;
     }
 
@@ -328,5 +434,14 @@ class CompetitionRound implements EntityWithEvents
         $this->stopwatchStartedAt = null;
         $this->stopwatchStatus = null;
         $this->stopwatchStoppedAt = null;
+    }
+
+    /**
+     * The stopwatch columns are TIMESTAMP(0): the moment as stored, so the entity reads the same before and after a
+     * flush (the live updates and the state endpoint read it back from the database).
+     */
+    private static function wholeSecond(DateTimeImmutable $moment): DateTimeImmutable
+    {
+        return $moment->setTimestamp($moment->getTimestamp());
     }
 }

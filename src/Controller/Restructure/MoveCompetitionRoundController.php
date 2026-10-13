@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Controller\Restructure;
 
 use SpeedPuzzling\Web\Controller\FirstTry\FirstTryConflictsController;
 use SpeedPuzzling\Web\Entity\CompetitionRoundPuzzle;
+use SpeedPuzzling\Web\Exceptions\OnlineTimingInUse;
 use SpeedPuzzling\Web\Exceptions\PuzzleInTwoRoundsOfCategory;
 use SpeedPuzzling\Web\Exceptions\RoundMovedMeanwhile;
 use SpeedPuzzling\Web\Exceptions\RoundNotMovable;
@@ -140,6 +141,9 @@ final class MoveCompetitionRoundController extends AbstractController
                     $field->addError(new FormError($this->translator->trans('restructure.move_round.refused.category_generic')));
                 } catch (RoundMovedMeanwhile) {
                     $field->addError(new FormError($this->translator->trans('restructure.move_round.refused.moved_meanwhile')));
+                } catch (OnlineTimingInUse $inUse) {
+                    // A round using online timing moves only to an online event (docs/features/online-competitions/)
+                    $field->addError(new FormError($this->translator->trans($inUse->translationKey(), $inUse->translationParameters())));
                 }
             }
         }

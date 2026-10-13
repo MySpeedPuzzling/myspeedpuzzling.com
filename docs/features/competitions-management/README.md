@@ -502,28 +502,43 @@ A real-time countdown/count-up timer for running competition rounds live.
 
 ### Server State
 
-Each round tracks `stopwatchStartedAt` (UTC timestamp) and `stopwatchStatus` (`null` / `running` / `stopped`):
+Each round tracks `stopwatchStartedAt` / `stopwatchStoppedAt` (UTC, whole seconds - `TIMESTAMP(0)`) and `stopwatchStatus` (`null` / `scheduled` / `running` / `stopped`), changed only through the `CompetitionRound` stopwatch methods:
 
-- **Not started** (`null`): only "Start" available
-- **Running**: only "Stop" available
-- **Stopped**: "Start" (resume) and "Reset" available
+- **Not started** (`null`): "Start" (now), "Start in 10 s" and "Start at …" (a scheduled start - built for online timing, `docs/features/online-competitions/`, a countdown on the projector in person too)
+- **Scheduled** (`scheduled`): a start in the future - **that is the countdown**. Every device shows `startedAt - now` and runs from that moment by itself: **nothing is written when the moment comes**, so a scheduled start whose moment has passed *is* running (and a start ahead counts down whatever was stored). The one rule is `RoundStopwatchStatus::at()`, in whole seconds like the columns (browser twin: `stopwatchStatusAt()` in `assets/round_stopwatch_clock.js`); every reader asks it instead of comparing the column, and a reader that does not sees `scheduled` = "not running", never a negative time. Before its moment the countdown can be cancelled (= back to not started); "Start" now is refused while it counts down (it would move the moment every phone counts down to - cancel first)
+- **Running**: "Stop" and "Reset". A second "Start" never restarts a running clock
+- **Stopped**: "Start" (resume - `startedAt` moves forward by the pause, in-person rounds) and "Reset". A second "Stop" never moves the end; stopping a countdown calls it off
+
+Refusals are `RoundStopwatchRefused` (409, a `RoundStopwatchRefusal` reason) - a flash on the control page.
 
 ### Real-Time Sync via Mercure
 
-Every state change (start, stop, reset) publishes an SSE event on topic `/round-stopwatch/{roundId}`. All connected browsers receive the update instantly.
+Every state change publishes the whole state on the public topic `/round-stopwatch/{roundId}` (`RoundStopwatchLiveUpdates::topic()`) - **after the commit**: the handlers publish nothing, the controllers call `RoundStopwatchLiveUpdates::stopwatchChanged()` once `dispatch()` returned (a start announced from inside the transaction would start every phone even when the commit then fails). The state is read back from the database (`GetRoundStopwatchState`); a Mercure failure is logged, never thrown - the pages catch up on their next state fetch.
+
+**Payload** (`RoundStopwatchState`, also `GET /round-stopwatch-state/{roundId}`): `roundId`, `status` (as of `asOfMs` - a passed scheduled start is `running`), `startedAt` / `stoppedAt` (ATOM, for pages loaded before the milliseconds), `minutesLimit`, `startedAtMs` / `stoppedAtMs` (epoch ms), `asOfMs` (when the row was read - a client keeps the state with the newest `asOfMs`, so a slow fetch never overwrites a newer push), `stateHash` (short, of the stored state only). The state endpoint adds `serverNow` (ATOM) and `serverNowMs`. Never a `type` field: the live entry tells stopwatch updates from official results ones by its absence.
+
+### Actions
+
+`AbstractRoundStopwatchController` - start, stop, reset, and the scheduled start: `schedule_round_start` (`POST /en/round-stopwatch/{roundId}/schedule`, `ScheduleRoundStart`) with `countdown=10` ("Start in 10 s": the next whole second at least that far ahead) or `at=<ISO>` (a moment with its offset, or a wall time of the round's zone as the control page's datetime-local input sends it; a time a daylight-saving change skips or repeats is refused) - `ScheduledRoundStart` - and `cancel_round_start` (`POST …/cancel`, `CancelRoundStart`). The scheduled start (schedule and cancel, its three buttons) also needs `ONLINE_ROUNDS_MANAGE` until the test cups are done - admins, organisers while `ONLINE_ROUNDS_FOR_ORGANISERS` is on (`docs/features/feature_flags.md`). All of them: `COMPETITION_EDIT`, the stateless CSRF token `round_stopwatch` on every form (the pages stay open for hours, the projector page is public), a redirect with a flash for a refusal; asked with `Accept: application/json` (the online control room) they answer `{"stopwatch": RoundStopwatchState}` or `{"error": "<code>"}` (`invalid_csrf` 403, a `RoundStopwatchRefusal` value 409).
+
+`RoundClock` (the online rounds' reading: waiting / scheduled / running / ended at a stop or the time limit) takes "counting down or running" from `RoundStopwatchStatus` too - one rule - and its `stateHash()` is the hash in every stopwatch payload.
 
 ### Client-Side Timer
 
-A Stimulus controller handles the display:
-- Computes server/client clock offset on page load for accurate timing
-- Uses `requestAnimationFrame` for smooth `HH:MM:SS` rendering
-- When elapsed time reaches the round's `minutesLimit`, the display shows "Time's up" (client-side only, no server event)
-- Subscribes to Mercure SSE for real-time start/stop/reset events
+`round_stopwatch_controller.js` (lazy) over the plain module `assets/round_stopwatch_clock.js` (node harness `tests/round-stopwatch-harness.mjs`):
+- the server's clock = the offset of the state fetch with the shortest round trip (a sliding window; the page's own `serverNowMs` is the first guess)
+- `requestAnimationFrame` while counting down or running; `HH:MM:SS` since the start, never negative
+- before a scheduled start: "Starts in 0:00:09", the last ten seconds big on the projector; the state is fetched again 2 s before and 1 s after the moment (a lost cancel, a fresh offset)
+- when elapsed time reaches the round's `minutesLimit`, the display shows "Time's up" (client-side only, no server event)
+- Mercure for every change, polling every 3 s while it is down, a fetch when the tab comes back
+- `data-stopwatch-when="idle scheduled running times_up stopped"` shows an element only in those phases (the control page's badges and buttons, the projector's Start)
+
+The live entry (`live_results_controller.js`: "Starts in …", no "Finished now" before the start; its clock offset from the state answer with the shortest round trip, `serverNowMs`), the results overview (a "Start scheduled" badge; at the moment it asks the server again - running, or a cancel it never hears) and the participants sheet (`started` - a countdown has not started the round) follow the same rule; `SeatingReadiness` still recommends seating during a countdown, `LiveResultsCurrentRound` counts a passed scheduled start as running, and a countdown blocks moving the round like a running stopwatch.
 
 ### Two Views
 
 - **Public view** (`/en/round-stopwatch/{roundId}`): large timer display, accessible to everyone — useful for projecting at events
-- **Management view** (`/en/manage-round-stopwatch/{roundId}`): shows status + control buttons, requires edit permission
+- **Management view** (`/en/manage-round-stopwatch/{roundId}`): the clock as every device shows it, the status and the buttons the clock allows now (kept current while open), requires edit permission
 
 ## Participant Management
 

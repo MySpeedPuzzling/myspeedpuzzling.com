@@ -1,0 +1,33 @@
+{#
+    The practice round (README §5.5 "Practice mode"): a 10-second countdown with the beeps, a minute on the stopwatch,
+    the Finished button, time's up - on the phone alone, nothing sent or saved.
+#}
+<section class="compete-screen compete-screen--practice" data-compete-screen="practice" aria-labelledby="compete-practice-title" hidden>
+    <p class="compete-practice-badge" id="compete-practice-title"><i class="bi bi-stopwatch me-1" aria-hidden="true"></i>{{ 'compete.page.practice_title'|trans }} · {{ 'compete.page.practice_note'|trans }}</p>
+
+    <div data-compete-show="practiceCountdown" hidden>
+        <div class="compete-countdown" role="timer" data-compete-field="practiceCountdown">10</div>
+    </div>
+
+    <div data-compete-show="practiceRunning" hidden>
+        <div class="compete-clock compete-clock--running" role="timer" data-compete-field="practiceElapsed">00:00:00</div>
+        <p class="compete-clock-caption" data-compete-field="practiceRemaining"></p>
+        <button type="button" class="compete-finish" data-action="pointerdown->compete#finish click->compete#finish">
+            <span class="compete-finish-label">{{ 'compete.finish.button'|trans }}</span>
+        </button>
+    </div>
+
+    <div data-compete-show="practiceResult" hidden>
+        <p class="compete-clock-caption mb-1">{{ 'compete.page.practice_result'|trans }}</p>
+        <div class="compete-clock compete-clock--result" data-compete-field="practiceResult"></div>
+    </div>
+
+    <div data-compete-show="practiceTimeUp" hidden>
+        <p class="compete-timeup-title"><i class="bi bi-alarm me-2" aria-hidden="true"></i>{{ 'compete.timeup.title'|trans }}</p>
+    </div>
+
+    <div class="compete-practice-actions">
+        <button type="button" class="btn btn-outline-primary" data-action="compete#startPractice">{{ 'compete.page.practice_again'|trans }}</button>
+        <button type="button" class="btn btn-link" data-action="compete#endPractice">{{ 'compete.page.practice_end'|trans }}</button>
+    </div>
+</section>

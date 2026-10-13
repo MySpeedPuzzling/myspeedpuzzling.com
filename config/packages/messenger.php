@@ -19,6 +19,7 @@ use SpeedPuzzling\Web\Message\RecalculateXpForPlayer;
 use SpeedPuzzling\Web\Message\RemoveNewsletterSubscriberFromListmonk;
 use SpeedPuzzling\Web\Message\SendPlayerContentDigest;
 use SpeedPuzzling\Web\Message\SettleXpBonuses;
+use SpeedPuzzling\Web\Message\VerifyOnlineMedia;
 use Symfony\Component\Mailer\Messenger\SendEmailMessage;
 
 return App::config([
@@ -91,6 +92,9 @@ return App::config([
                 RecalculateXpChainForSolve::class => 'async',
                 CompensateXpForDeletedSolve::class => 'async',
                 SettleXpBonuses::class => 'async',
+                // A HEAD request to object storage after a phone reported an evidence upload - never in the phone's
+                // request; a missing object is tried again by the transport (docs/features/online-competitions/)
+                VerifyOnlineMedia::class => 'async',
                 SendPlayerContentDigest::class => 'content_digest_emails',
                 // Events that must run synchronously for immediate UI updates (Turbo Streams)
                 'SpeedPuzzling\Web\Events\PuzzleBorrowed' => 'sync',

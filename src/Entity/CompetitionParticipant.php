@@ -63,6 +63,30 @@ class CompetitionParticipant
     #[Column(length: self::ORGANIZER_NOTE_MAX_LENGTH, nullable: true)]
     public null|string $organizerNote = null;
 
+    /**
+     * The personal link of an online competition (OnlineToken, docs/features/online-competitions/README.md §5.4): who
+     * holds it competes as this participant - the token is the access right. Null until the organiser turns online
+     * timing on; assignOnlineToken() again = a new link, the old one stops working.
+     */
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(length: 32, unique: true, nullable: true)]
+    public null|string $onlineToken = null;
+
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    public null|DateTimeImmutable $onlineTokenCreatedAt = null;
+
+    /**
+     * The connected player showed that the personal link is theirs (docs/features/online-competitions/README.md §5.4):
+     * they opened it signed in (ConfirmOnlineLink, from compete_connect) or made the row themselves ("I'm going",
+     * JoinCompetitionHandler). Only then does the event page hand them the link ("Open my competition page") - a row
+     * claimed from the organiser's list is no proof of holding its link. Every new connection clears it (connect(),
+     * disconnect()); hasConfirmedOnlineLink() also checks it is not older than the connection.
+     */
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    public null|DateTimeImmutable $onlineLinkConfirmedAt = null;
+
     public function __construct(
         #[Id]
         #[Immutable]
@@ -86,12 +110,15 @@ class CompetitionParticipant
     {
         $this->player = $player;
         $this->connectedAt = $connectedAt;
+        // Whoever is connected now has not shown they hold the personal link yet
+        $this->onlineLinkConfirmedAt = null;
     }
 
     public function disconnect(): void
     {
         $this->player = null;
         $this->connectedAt = null;
+        $this->onlineLinkConfirmedAt = null;
     }
 
     public function updateRemoteId(string $remoteId): void
@@ -211,5 +238,34 @@ class CompetitionParticipant
     public function updateOrganizerNote(null|string $organizerNote): void
     {
         $this->organizerNote = $organizerNote;
+    }
+
+    /**
+     * A personal link for an online competition - also a new one in place of the old (GenerateOnlineTokens,
+     * RegenerateOnlineToken). The caller makes the token (OnlineToken::generate()).
+     */
+    public function assignOnlineToken(string $token, DateTimeImmutable $at): void
+    {
+        $this->onlineToken = $token;
+        $this->onlineTokenCreatedAt = $at;
+    }
+
+    /**
+     * The connected player showed the personal link is theirs (see $onlineLinkConfirmedAt) - call it after connect()
+     */
+    public function confirmOnlineLink(DateTimeImmutable $at): void
+    {
+        $this->onlineLinkConfirmedAt = $at;
+    }
+
+    /**
+     * The player connected now confirmed the personal link for this very connection - never one confirmed before it
+     */
+    public function hasConfirmedOnlineLink(): bool
+    {
+        return $this->player !== null
+            && $this->connectedAt !== null
+            && $this->onlineLinkConfirmedAt !== null
+            && $this->onlineLinkConfirmedAt >= $this->connectedAt;
     }
 }

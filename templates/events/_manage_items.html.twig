@@ -105,6 +105,11 @@
         {%- if item.roundCount > 0 -%}
             {%- set links = links|merge([{label: 'events_organizer.menu.results', url: path('competition_results_overview', {competitionId: item.id}|merge(back))}]) -%}
         {%- endif -%}
+        {#- Online timing of an online event (docs/features/online-competitions/): its rounds and personal links - for whom
+            the feature is on (ONLINE_ROUNDS_MANAGE; no statement - the permissions above answer it) -#}
+        {%- if item.isOnline and is_granted('ONLINE_ROUNDS_MANAGE', item.id) -%}
+            {%- set links = links|merge([{label: 'online_rounds.menu.online_timing', url: path('online_links', {competitionId: item.id}|merge(back))}]) -%}
+        {%- endif -%}
         {%- set links = links|merge([{label: 'events_organizer.menu.page_content', url: path('manage_competition_page', {competitionId: item.id}|merge(back))}]) -%}
         {#- Moving an edition is for its series' team: the target is another series they manage -#}
         {%- if item.isEdition and item.seriesId and is_granted('COMPETITION_SERIES_EDIT', item.seriesId) -%}

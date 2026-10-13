@@ -5,23 +5,17 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller;
 
 use SpeedPuzzling\Web\Message\ResetRoundStopwatch;
-use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
-use SpeedPuzzling\Web\Security\CompetitionEditVoter;
-use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
+/**
+ * "Reset" - the stopwatch back to not started (AbstractRoundStopwatchController).
+ */
 #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
-final class ResetRoundStopwatchController extends AbstractController
+final class ResetRoundStopwatchController extends AbstractRoundStopwatchController
 {
-    public function __construct(
-        private readonly MessageBusInterface $messageBus,
-        private readonly CompetitionRoundRepository $competitionRoundRepository,
-    ) {
-    }
-
     #[Route(
         path: [
             'cs' => '/resetovat-stopky-kola/{roundId}',
@@ -34,13 +28,13 @@ final class ResetRoundStopwatchController extends AbstractController
         name: 'reset_round_stopwatch',
         methods: ['POST'],
     )]
-    public function __invoke(string $roundId): Response
+    public function __invoke(Request $request, string $roundId): Response
     {
-        $round = $this->competitionRoundRepository->get($roundId);
-        $this->denyAccessUnlessGranted(CompetitionEditVoter::COMPETITION_EDIT, $round->competition->id->toString());
-
-        $this->messageBus->dispatch(new ResetRoundStopwatch(roundId: $roundId));
-
-        return $this->redirectToRoute('manage_round_stopwatch', ['roundId' => $roundId]);
+        return $this->act(
+            $request,
+            $roundId,
+            static fn (): ResetRoundStopwatch => new ResetRoundStopwatch(roundId: $roundId),
+            'manage_round_stopwatch',
+        );
     }
 }

@@ -88,6 +88,7 @@
     stopwatchStopped: 'live_results.stopwatch.stopped'|trans,
     stopwatchNotStarted: 'live_results.stopwatch.not_started'|trans,
     stopwatchTimesUp: 'live_results.stopwatch.times_up'|trans,
+    stopwatchStartsIn: 'competition.stopwatch.starts_in'|trans({'%time%': '%time%'}),
     tables: 'live_results.tables.count'|trans,
     addNameMissing: 'live_results.add.name_missing'|trans,
     addTeamMissing: 'live_results.add.team_missing'|trans,
@@ -137,6 +138,7 @@
         @media (prefers-reduced-motion: reduce) { .lr-pill[data-sending="1"] .lr-pill-dot { animation: none; } }
         .lr-status { display: flex; justify-content: space-between; gap: .5rem; min-height: 1.5rem; margin-top: .25rem; font-size: .875rem; color: var(--bs-secondary-color, #6c757d); font-variant-numeric: tabular-nums; }
         .lr-status [data-state="running"] { color: #146c43; font-weight: 500; }
+        .lr-status [data-state="scheduled"] { color: #0a58ca; font-weight: 500; }
         .lr-section { padding: .75rem; }
         .lr-find { display: flex; gap: .5rem; }
         .lr-find-input { flex: 1 1 auto; min-width: 0; height: 3.5rem; font-size: 1.375rem; }

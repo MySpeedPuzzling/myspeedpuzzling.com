@@ -22,6 +22,8 @@ readonly final class RoundResultsOverview implements \JsonSerializable
         public DateTimeImmutable $startsAt,
         public int $minutesLimit,
         public null|string $slug,
+        // The stopwatch at the moment the overview was read (RoundStopwatchStatus::at()): null | scheduled | running |
+        // stopped - a scheduled start that has passed is running already
         public null|string $stopwatchStatus,
         public null|DateTimeImmutable $stopwatchStartedAt,
         public null|DateTimeImmutable $stopwatchStoppedAt,

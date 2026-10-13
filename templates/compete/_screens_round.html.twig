@@ -1,0 +1,85 @@
+{#
+    The round's screens (README §5.5, §5.10): the clock is the server's, counted on the phone (compete_controller.js
+    fills every [data-compete-field]). The stopwatch is readable from a metre away; the Finished button records the
+    moment of the touch itself.
+#}
+<section class="compete-screen compete-screen--waiting" data-compete-screen="waiting" aria-labelledby="compete-waiting-line" hidden>
+    <div class="compete-clock" role="timer" data-compete-field="elapsed">00:00:00</div>
+    <p class="compete-clock-caption" id="compete-waiting-line" data-compete-field="waitingLine">{{ 'compete.screen.waiting'|trans }}</p>
+    {% if round is not null %}
+        <p class="compete-limit" data-compete-field="timeLimit">{{ 'compete.page.time_limit'|trans({'%count%': minutes_limit}) }}</p>
+    {% endif %}
+    <p class="compete-keep-open small">{{ 'compete.screen.keep_open'|trans }}</p>
+    {{ include('compete/_practice_button.html.twig') }}
+</section>
+
+<section class="compete-screen compete-screen--countdown" data-compete-screen="countdown" aria-label="{{ 'compete.screen.get_ready'|trans }}" hidden>
+    <div class="compete-countdown" role="timer" data-compete-field="countdown">10</div>
+    <p class="compete-clock-caption">{{ 'compete.screen.get_ready'|trans }}</p>
+</section>
+
+<section class="compete-screen compete-screen--running" data-compete-screen="running" aria-labelledby="compete-running-clock" hidden>
+    <div class="compete-clock compete-clock--running" id="compete-running-clock" role="timer" data-compete-field="elapsed">00:00:00</div>
+    <p class="compete-clock-caption" data-compete-field="remaining"></p>
+    <button type="button" class="compete-finish" data-action="pointerdown->compete#finish click->compete#finish">
+        <span class="compete-finish-label">{{ 'compete.finish.button'|trans }}</span>
+        <span class="compete-finish-hint">{{ 'compete.finish.button_hint'|trans }}</span>
+    </button>
+    <p class="compete-keep-open small" data-compete-show="keepOpen" hidden>{{ 'compete.screen.keep_open'|trans }}</p>
+</section>
+
+<section class="compete-screen compete-screen--finished" data-compete-screen="finished" aria-labelledby="compete-finished-title" hidden>
+    <p class="compete-finished-title" id="compete-finished-title"><i class="bi bi-check-circle-fill me-2" aria-hidden="true"></i>{{ 'compete.finish.recorded'|trans }}</p>
+    <div class="compete-clock compete-clock--result" data-compete-field="finishTime"></div>
+    <p class="compete-clock-caption">{{ 'compete.finish.verifying'|trans }}</p>
+
+    <button type="button" class="btn btn-outline-danger btn-lg compete-undo" data-compete-show="undo" data-action="compete#undoFinish" hidden>
+        <i class="bi bi-arrow-counterclockwise me-1" aria-hidden="true"></i><span data-compete-field="undoLabel"></span>
+    </button>
+
+    <div class="compete-keep-puzzling" data-compete-show="keepPuzzling" hidden>
+        <button type="button" class="btn btn-outline-secondary" data-action="compete#keepPuzzling">{{ 'compete.finish.keep_puzzling'|trans }}</button>
+        <p class="small text-muted mb-0">{{ 'compete.finish.keep_puzzling_hint'|trans }}</p>
+    </div>
+
+    <p class="compete-round-clock">
+        {{ 'compete.finish.round_clock'|trans }}
+        <span class="compete-mono" data-compete-field="elapsed">00:00:00</span>
+        · <span data-compete-field="remaining"></span>
+    </p>
+</section>
+
+<section class="compete-screen compete-screen--timeup" data-compete-screen="timeup" aria-labelledby="compete-timeup-title" hidden>
+    <h1 class="compete-timeup-title" id="compete-timeup-title"><i class="bi bi-alarm me-2" aria-hidden="true"></i>{{ 'compete.timeup.title'|trans }}</h1>
+    <p class="compete-timeup-stop">{{ 'compete.timeup.stop'|trans }}</p>
+
+    <form class="compete-pieces" data-turbo="false" data-action="submit->compete#sendPieces" novalidate>
+        <label class="form-label fw-medium" for="compete-pieces" data-compete-field="piecesQuestion">{{ 'compete.timeup.question_left'|trans }}</label>
+        <div class="compete-pieces-row">
+            <input class="form-control form-control-lg" id="compete-pieces" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" enterkeyhint="send" data-compete-target="piecesInput" aria-describedby="compete-pieces-error">
+            <span class="compete-pieces-of" data-compete-field="piecesOf"></span>
+        </div>
+        <p class="compete-pieces-error" id="compete-pieces-error" data-compete-target="piecesError" role="alert" hidden></p>
+        <button type="submit" class="btn btn-primary btn-lg w-100">{{ 'compete.timeup.send'|trans }}</button>
+    </form>
+</section>
+
+<section class="compete-screen compete-screen--after" data-compete-screen="after" aria-labelledby="compete-after-title" hidden>
+    <h1 class="compete-title" id="compete-after-title">{{ 'compete.timeup.after_title'|trans }}</h1>
+
+    <div data-compete-show="afterTime" hidden>
+        <p class="compete-clock-caption mb-1">{{ 'compete.timeup.your_time'|trans }}</p>
+        <div class="compete-clock compete-clock--result" data-compete-field="finishTime"></div>
+    </div>
+    <p class="compete-reported" data-compete-show="afterPieces" data-compete-field="piecesReported" hidden></p>
+
+    <p>{{ 'compete.timeup.after_text'|trans }}</p>
+    <p class="compete-alert" data-compete-show="afterPending" role="status" hidden>{{ 'compete.timeup.keep_open'|trans }}</p>
+
+    {% if results_url is not null %}
+        <p><a class="btn btn-outline-primary" href="{{ results_url }}" data-turbo="false"><i class="bi bi-trophy me-1" aria-hidden="true"></i>{{ 'compete.timeup.results_link'|trans }}</a></p>
+    {% endif %}
+
+    {{ include('compete/_connect.html.twig') }}
+    {{ include('compete/_practice_button.html.twig') }}
+</section>

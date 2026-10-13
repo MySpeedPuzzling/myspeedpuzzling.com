@@ -8,6 +8,8 @@ use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\CompetitionParticipant;
 use SpeedPuzzling\Web\Exceptions\CompetitionParticipantNotFound;
+use SpeedPuzzling\Web\Exceptions\OnlineLinkNotFound;
+use SpeedPuzzling\Web\Value\OnlineToken;
 use SpeedPuzzling\Web\Value\RegistrationStatus;
 
 readonly final class CompetitionParticipantRepository
@@ -66,6 +68,33 @@ readonly final class CompetitionParticipantRepository
     }
 
     /**
+     * The participant a personal link belongs to (docs/features/online-competitions/README.md §5.4), with its competition
+     * and connected player - removed ones included, the caller decides (OnlineAccess refuses them). A malformed token
+     * never reaches the database.
+     *
+     * @throws OnlineLinkNotFound
+     */
+    public function getByOnlineToken(string $token): CompetitionParticipant
+    {
+        if (OnlineToken::looksValid($token) === false) {
+            throw new OnlineLinkNotFound();
+        }
+
+        /** @var null|CompetitionParticipant $participant */
+        $participant = $this->entityManager->createQueryBuilder()
+            ->select('participant', 'competition', 'player')
+            ->from(CompetitionParticipant::class, 'participant')
+            ->innerJoin('participant.competition', 'competition')
+            ->leftJoin('participant.player', 'player')
+            ->where('participant.onlineToken = :token')
+            ->setParameter('token', $token)
+            ->getQuery()
+            ->getOneOrNullResult();
+
+        return $participant ?? throw new OnlineLinkNotFound();
+    }
+
+    /**
      * The event's waitlist, first in line first. With $includeDeleted also the rows of people who left the waitlist -
      * they keep the status on the removed row, and a removed row can come back (joining again, the organiser's restore).
      *
@@ -91,6 +120,45 @@ readonly final class CompetitionParticipantRepository
         $participants = $queryBuilder->getQuery()->getResult();
 
         return $participants;
+    }
+
+    /**
+     * The event's participants who are going (CompetitionParticipant::isGoing() - not removed, not on the waitlist) and
+     * have no personal link of an online competition yet (docs/features/online-competitions/README.md §5.4), by name.
+     *
+     * @return list<CompetitionParticipant>
+     */
+    public function goingWithoutOnlineToken(string $competitionId): array
+    {
+        if (!Uuid::isValid($competitionId)) {
+            return [];
+        }
+
+        /** @var list<CompetitionParticipant> $participants */
+        $participants = $this->entityManager->createQueryBuilder()
+            ->select('participant')
+            ->from(CompetitionParticipant::class, 'participant')
+            ->where('participant.competition = :competitionId')
+            ->andWhere('participant.deletedAt IS NULL')
+            ->andWhere('(participant.registrationStatus IS NULL OR participant.registrationStatus <> :waitlisted)')
+            ->andWhere('participant.onlineToken IS NULL')
+            ->setParameter('competitionId', $competitionId)
+            ->setParameter('waitlisted', RegistrationStatus::Waitlisted)
+            ->orderBy('participant.name', 'ASC')
+            ->addOrderBy('participant.id', 'ASC')
+            ->getQuery()
+            ->getResult();
+
+        return $participants;
+    }
+
+    /**
+     * Reads the row again - for a handler under the event's participants lock that must act on the row as it is now, not
+     * as an earlier read of the same request left it in the identity map (a stale personal link token, a connection).
+     */
+    public function refresh(CompetitionParticipant $participant): void
+    {
+        $this->entityManager->refresh($participant);
     }
 
     /**

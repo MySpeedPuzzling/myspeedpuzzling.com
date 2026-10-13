@@ -19,6 +19,7 @@ import {
     shownValue,
 } from '../official_results_live.js';
 import { parseNameTagUrl, startQrScan } from '../official_results_scan.js';
+import { createServerClock, formatCountdown, startedAtMs, stopwatchStatusAt } from '../round_stopwatch_clock.js';
 import { chooseTranslation } from '../translation_choice.js';
 import layers from '../layer_history.js';
 
@@ -48,6 +49,14 @@ const ROUND_KEY = 'msp.liveResults.round.';
 
 function escapeHtml(value) {
     return String(value ?? '').replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character]);
+}
+
+/**
+ * The server's time of a state answer in milliseconds - `serverNowMs`, or the whole seconds of `serverNow` (an answer
+ * from before the milliseconds came).
+ */
+function serverTimeOf(state) {
+    return typeof state?.serverNowMs === 'number' ? state.serverNowMs : Date.parse(state?.serverNow ?? '');
 }
 
 function storageGet(key) {
@@ -98,8 +107,10 @@ export default class extends Controller {
 
     connect() {
         const state = JSON.parse(this.initialStateTarget.textContent);
-        // Server clock minus ours - refined (round trip compensated) by every state fetch
-        this.clockOffset = Date.now() - Date.parse(state.serverNow);
+        // The server's clock: the state fetch with the shortest round trip (round_stopwatch_clock.js) - "Finished now"
+        // and the countdown agree with the projector; the page's own server time until the first fetch answers
+        this.serverClock = createServerClock();
+        this.serverClock.hint(serverTimeOf(state) - Date.now());
         this.stopwatchKnownAt = Date.now();
         // The event's people who are no entry of this round - quick add offers them before typing a name in again
         this.eventPeople = this.hasEventPeopleTarget ? JSON.parse(this.eventPeopleTarget.textContent || '[]') : [];
@@ -457,7 +468,7 @@ export default class extends Controller {
 
             if (answer.kind === 'ok') {
                 this.stateBlocked = null;
-                this.clockOffset = (sentAt + answeredAt) / 2 - Date.parse(answer.data.serverNow);
+                this.serverClock.observe({ sentAtMs: sentAt, receivedAtMs: answeredAt, serverNowMs: serverTimeOf(answer.data) });
                 this.stopwatchKnownAt = answeredAt;
                 this.applyState(answer.data);
                 this.scheduleRender();
@@ -514,9 +525,15 @@ export default class extends Controller {
             return;
         }
 
-        // The round's stopwatch (public topic, RoundStopwatchStateController's shape)
+        // The round's stopwatch (public topic, RoundStopwatchState - RoundStopwatchStateController's shape)
         if (data && 'status' in data) {
-            this.stopwatch = { status: data.status ?? null, startedAt: data.startedAt ?? null, stoppedAt: data.stoppedAt ?? null };
+            this.stopwatch = {
+                status: data.status ?? null,
+                startedAt: data.startedAt ?? null,
+                stoppedAt: data.stoppedAt ?? null,
+                startedAtMs: data.startedAtMs ?? null,
+                stoppedAtMs: data.stoppedAtMs ?? null,
+            };
             this.stopwatchKnownAt = Date.now();
 
             if (typeof data.minutesLimit === 'number' && this.round) {
@@ -1029,25 +1046,36 @@ export default class extends Controller {
     // ---- Stopwatch ----
 
     serverNow() {
-        return Date.now() - this.clockOffset;
+        return this.serverClock.serverNow();
     }
 
+    /**
+     * Seconds since the start at `at` (server time) - null while the stopwatch is not running: before a scheduled start
+     * there is nothing to finish yet, and a time is never negative (round_stopwatch_clock.js).
+     */
     elapsedSeconds(at = this.serverNow()) {
-        if (this.stopwatch?.status !== 'running' || !this.stopwatch.startedAt) {
+        const start = startedAtMs(this.stopwatch);
+
+        if (stopwatchStatusAt(this.stopwatch, at) !== 'running' || start === null) {
             return null;
         }
 
-        return Math.max(0, Math.floor((at - Date.parse(this.stopwatch.startedAt)) / 1000));
+        return Math.max(0, Math.floor((at - start) / 1000));
     }
 
     tickClock(force = false) {
-        const status = this.stopwatch?.status ?? null;
-        const elapsed = this.elapsedSeconds();
+        const now = this.serverNow();
+        // A scheduled start runs from its moment on - this page follows its own clock, nothing tells it then
+        const status = stopwatchStatusAt(this.stopwatch, now);
+        const elapsed = this.elapsedSeconds(now);
+        const start = startedAtMs(this.stopwatch);
         const limit = (this.round?.minutesLimit ?? 0) * 60;
         let text;
         let state = status ?? 'none';
 
-        if (status === 'running' && elapsed !== null) {
+        if (status === 'scheduled' && start !== null) {
+            text = this.t('stopwatchStartsIn', { '%time%': formatCountdown(start - now) });
+        } else if (status === 'running' && elapsed !== null) {
             text = `${this.t('stopwatchRunning')} ${formatResultTime(elapsed)}`;
 
             if (limit > 0 && elapsed >= limit) {

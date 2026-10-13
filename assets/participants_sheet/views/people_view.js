@@ -18,9 +18,10 @@
  *   default; external id, source, joined (MSP), the registration columns of a managed event, the private note hidden;
  * - name, country, MSP profile (O9: "Linked to a MySpeedPuzzling profile" when the viewer may not see it), a checkbox
  *   per solo round, a read-only pair/team label per pair/team round (Enter or a double click opens that round's tab at the
- *   person), external id, note (`field: note`, private to the organisers), the registration (Enter/Space opens the
- *   actions its state allows - registration_actions.js), registered, paid, checked in, the row actions (Edit, Remove /
- *   Restore);
+ *   person), the personal link of an online event (read only - a link opening a new tab, Ctrl+C copies the address;
+ *   only while a round uses online timing, docs/features/online-competitions/), external id, note (`field: note`,
+ *   private to the organisers), the registration (Enter/Space opens the actions its state allows -
+ *   registration_actions.js), registered, paid, checked in, the row actions (Edit, Remove / Restore);
  * - markers in text: "Joined by themselves", "On the waitlist", same names, "No round yet", removed rows struck through;
  * - the new-person row at the bottom (type a name, Enter, the next name) and **adding people by paste** (people_paste.js:
  *   a block pasted onto the new row - or reaching past the end of the list - is read as `name ⇥ country ⇥ external id`
@@ -125,13 +126,15 @@ export const HIDDEN_WHEN_EMPTY = ['joined', 'multi_solo', 'duplicates', 'removed
 
 /**
  * The columns of the Columns menu (D10): `rounds` = every round column; `name` is always shown. Registration columns
- * only for a managed event (check-in only in person).
+ * only for a managed event (check-in only in person); the personal link only on an event with a round using online
+ * timing (docs/features/online-competitions/ - the server then sends every person's `online` record).
  */
 export const COLUMN_OPTIONS = [
     { key: 'name', fixed: true },
     { key: 'country', on: true },
     { key: 'player', on: true },
     { key: 'rounds', on: true },
+    { key: 'onlineLink', on: true, onlineLinks: true },
     { key: 'externalId', on: false },
     { key: 'source', on: false },
     { key: 'joined', on: false },
@@ -145,14 +148,31 @@ export const COLUMN_OPTIONS = [
 /** The columns a header click sorts by (BR4). */
 export const SORTABLE = ['name', 'country', 'externalId', 'registered', 'joined'];
 
-/** The filters and columns an event offers (`rounds` = the event's rounds, for the solo-round filters). */
-export function offeredFor(list, competition, rounds = []) {
+/**
+ * The filters and columns an event offers (`rounds` = the event's rounds, for the solo-round filters; `onlineLinks` =
+ * the people come with their personal links - onlineLinksOffered()).
+ */
+export function offeredFor(list, competition, rounds = [], { onlineLinks = false } = {}) {
     const solo = rounds.filter((round) => round.category === 'solo').length;
     const other = rounds.length - solo;
 
     return list.filter((item) => (!item.managed || competition?.registrationManaged === true)
         && (!item.inPerson || competition?.isOnline !== true)
+        && (!item.onlineLinks || onlineLinks)
         && (!item.soloRounds || (solo >= item.soloRounds && (!item.mixed || other > 0))));
+}
+
+/**
+ * The people come with their personal links (GetParticipantsSheetState: an `online` record on everybody while a round of
+ * the event uses online timing) - the read-only "Personal link" column is offered.
+ */
+export function onlineLinksOffered(people) {
+    return people.some((person) => person.online !== undefined && person.online !== null);
+}
+
+/** A personal link as the cell shows it: without its scheme (the copy is the whole address). */
+export function shownOnlineLink(link) {
+    return String(link ?? '').replace(/^https?:\/\//, '');
 }
 
 const searchTexts = new WeakMap();
@@ -499,7 +519,12 @@ export class PeopleView {
     competitionSignature() {
         const competition = this.competition;
 
-        return `${competition.registrationManaged === true}|${competition.isOnline === true}|${competition.capacity ?? ''}`;
+        return `${competition.registrationManaged === true}|${competition.isOnline === true}|${competition.capacity ?? ''}|${this.onlineLinksOffered()}`;
+    }
+
+    /** The "Personal link" column is offered (a round of the event uses online timing) - see onlineLinksOffered(). */
+    onlineLinksOffered() {
+        return onlineLinksOffered(this.model.people({ includeRemoved: true }));
     }
 
     /** Shown or refused - see notify(). */
@@ -577,9 +602,9 @@ export class PeopleView {
             return false;
         }
 
-        const [managedBefore, onlineBefore] = this.competitionKey.split('|');
+        const [managedBefore, onlineBefore, , linksBefore] = this.competitionKey.split('|');
         this.competitionKey = key;
-        const [managed, online] = key.split('|');
+        const [managed, online, , links] = key.split('|');
         this.columnsMenu.innerHTML = this.columnsMenuHtml();
         this.registrationElement.hidden = !this.managed;
 
@@ -593,10 +618,10 @@ export class PeopleView {
             this.held = new Set(this.panelPersonId ? [this.panelPersonId] : []);
         }
 
-        const rebuild = managed !== managedBefore || online !== onlineBefore;
+        const rebuild = managed !== managedBefore || online !== onlineBefore || links !== linksBefore;
 
         if (rebuild) {
-            // Registration columns came or went
+            // Registration columns (or the personal links) came or went
             this.rebuildGrid();
         }
 
@@ -795,7 +820,7 @@ export class PeopleView {
     // ---------------------------------------------------------------- chrome: toolbar, counters, bulk bar
 
     columnsMenuHtml() {
-        return offeredFor(COLUMN_OPTIONS, this.competition).map((option) => {
+        return offeredFor(COLUMN_OPTIONS, this.competition, [], { onlineLinks: this.onlineLinksOffered() }).map((option) => {
             const checked = option.fixed || this.columnOn(option.key);
 
             return `<li role="none"><button type="button" class="dropdown-item sheet-columns-item" role="menuitemcheckbox" aria-checked="${checked ? 'true' : 'false'}" data-column="${escapeHtml(option.key)}"${option.fixed ? ' disabled' : ''}><i class="bi bi-check-lg" aria-hidden="true"></i> ${escapeHtml(this.say(`column_${option.key}`))}</button></li>`;
@@ -1086,7 +1111,7 @@ export class PeopleView {
             return true;
         }
 
-        if (!offeredFor([option], this.competition).length) {
+        if (!offeredFor([option], this.competition, [], { onlineLinks: this.onlineLinksOffered() }).length) {
             return false;
         }
 
@@ -1138,6 +1163,8 @@ export class PeopleView {
         }
 
         const optional = [
+            // Read only: links are made and replaced on the personal links page
+            ['onlineLink', { kind: 'readonly', width: 240 }],
             ['externalId', { kind: 'text', width: 150 }],
             ['source', { kind: 'readonly', width: 170 }],
             ['joined', { kind: 'readonly', width: 170 }],
@@ -1343,9 +1370,38 @@ export class PeopleView {
                 return this.paidCell(person);
             case 'checkedIn':
                 return { text: person.registration?.checkedInAt ? formatDate(person.registration.checkedInAt, this.context.locale, true) : (person.registration ? '-' : '') };
+            case 'onlineLink':
+                return this.onlineLinkCell(person);
             default:
                 return this.roundCell(person, col);
         }
+    }
+
+    /**
+     * The personal link of an online event (docs/features/online-competitions/): opens in a new tab, Ctrl+C copies the
+     * whole address. Somebody going without one yet (added since, the personal links page makes it) reads "No link yet";
+     * a removed or waitlisted person has none to show.
+     */
+    onlineLinkCell(person) {
+        const link = person.online?.link ?? null;
+
+        if (link === null) {
+            if (person.online === undefined || person.online === null || person.removedAt !== null || this.model.isWaitlisted(person.id)) {
+                return { text: '', copy: '' };
+            }
+
+            const text = this.say('online_link_none');
+
+            return { text, html: `<span class="sheet-muted">${escapeHtml(text)}</span>`, copy: '' };
+        }
+
+        const label = this.say('online_link_open', { name: person.name });
+
+        return {
+            text: link,
+            html: `<a class="sheet-online-link" href="${escapeHtml(link)}" target="_blank" rel="noopener" tabindex="-1" aria-label="${escapeHtml(label)}" title="${escapeHtml(link)}">${escapeHtml(shownOnlineLink(link))}</a>`,
+            copy: link,
+        };
     }
 
     roundCell(person, col) {

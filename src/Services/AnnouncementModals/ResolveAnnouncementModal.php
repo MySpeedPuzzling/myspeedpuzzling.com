@@ -50,6 +50,12 @@ final class ResolveAnnouncementModal implements ResetInterface
         'stopwatch', 'stopwatch_puzzle', 'finish_stopwatch', 'round_stopwatch', 'manage_round_stopwatch',
         'participants_sheet', 'results_desk', 'round_seating', 'live_results', 'competition_results_overview',
         'competition_check_in', 'competition_name_tags',
+        // Online competitions: the organiser's set-up (docs/features/online-competitions/)
+        'online_round_settings', 'online_links',
+        // Online competitions: the participant's page - a camera and a running clock
+        'compete_page',
+        // Online competitions: the organiser's control room, the review and its accuracy report
+        'online_control_room', 'online_review', 'online_accuracy',
     ];
 
     private bool $resolved = false;

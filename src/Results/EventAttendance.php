@@ -18,6 +18,11 @@ readonly final class EventAttendance
         public null|EventRegistration $registration = null,
         // The viewer follows the event, or the series of an edition - the header's labelled star
         public bool $isFollowing = false,
+        // An online competition with a round using online timing (docs/features/online-competitions/): the participant
+        // the viewer is connected to and is going as, and their personal link's token - "Open my competition page".
+        // Null otherwise (and never read for an in-person event)
+        public null|string $onlineParticipantId = null,
+        public null|string $onlineToken = null,
     ) {
     }
 

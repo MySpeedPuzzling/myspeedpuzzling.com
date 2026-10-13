@@ -7,11 +7,18 @@ namespace SpeedPuzzling\Web\Controller;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Exceptions\DraftNotVisible;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
+use SpeedPuzzling\Web\Results\RoundStopwatchState;
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
+use SpeedPuzzling\Web\Value\RoundClock;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
+/**
+ * The round's stopwatch for a big screen (docs/features/competitions-management/README.md "Round Stopwatch"): public,
+ * the clock every device of the round shows - a countdown before a scheduled start ("Starts in 0:00:09", the last ten
+ * seconds big), then the time since the start until the round's time limit.
+ */
 final class RoundStopwatchController extends AbstractController
 {
     public function __construct(
@@ -42,11 +49,14 @@ final class RoundStopwatchController extends AbstractController
             throw new DraftNotVisible();
         }
 
+        $now = $this->clock->now();
+
         return $this->render('round_stopwatch.html.twig', [
             'round' => $round,
             'competition' => $round->competition,
             'canManage' => $canManage,
-            'serverNow' => $this->clock->now()->format(\DateTimeInterface::ATOM),
+            'stopwatch' => RoundStopwatchState::ofRound($round, $now),
+            'serverNowMs' => RoundClock::milliseconds($now),
             'stateUrl' => $this->generateUrl('round_stopwatch_state', ['roundId' => $round->id->toString()]),
         ]);
     }

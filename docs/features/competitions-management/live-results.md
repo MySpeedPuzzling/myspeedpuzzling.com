@@ -20,8 +20,8 @@ the round list links `live_results` (results desk stream). The name tags sheet s
 of two 90 mm columns would widen the page).
 
 **Current round** (`LiveResultsCurrentRound`): the round whose stopwatch runs (the latest started if several run -
-parallel halls), else the one started last within 12 hours (a stopwatch start, or the schedule once it passed), else
-the next one, else the last one. The QR route applies it to the person's own rounds first. On the event link the
+parallel halls; a scheduled start counts from its moment, a countdown does not run yet), else the one started last
+within 12 hours (a stopwatch start, or the schedule once it passed), else the next one, else the last one. The QR route applies it to the person's own rounds first. On the event link the
 device's own pick wins while it is fresh (12 hours) and that round is not stopped (`preferredRound()`, localStorage
 `msp.liveResults.round.<competitionId>`, written when the referee switches rounds).
 
@@ -43,7 +43,8 @@ live updates token included), then fetches that state once (clock sync).
    shows while not everybody is seated and the round's seating step holds (`tablesReadiness`, the one rule of
    [seating.md](seating.md#the-seating-step-one-rule) - a round under way or over never nags), with the seating link.
 2. **Entry card** - table, name, members/#code, "Saved: 1:23:45 · Eva · 10:42" (or "Not sent yet: …"), problems of
-   this entry (conflict, refused, failing) with their actions. While the round's stopwatch runs **Finished now** comes
+   this entry (conflict, refused, failing) with their actions. While the round's stopwatch counts down to a scheduled
+   start the status line says "Starts in 0:00:09" and there is no Finished now. While it runs **Finished now** comes
    first and gets the focus (no keyboard over it): elapsed = server-synced now − `startedAt`, frozen at the tap. The
    page trusts the stopwatch it knows only while live updates flow or within 10 s of a state fetch; otherwise the tap
    fetches the state first (a stop or pause meanwhile never over-counts - a stopped stopwatch says "type the time";

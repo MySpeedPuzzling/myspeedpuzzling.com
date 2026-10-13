@@ -1,0 +1,92 @@
+{% extends 'base.html.twig' %}
+
+{#
+    A participant's page of an online round (docs/features/online-competitions/README.md §5.5) - CompetePageController,
+    assets/controllers/compete_controller.js. One document for the whole session, from the first tap to the last photo:
+    iOS mutes the camera on history changes, so nothing here navigates with Turbo - every link and form carries
+    data-turbo="false" (the root too), the controller turns Turbo Drive off, and turbo-visit-control makes Turbo load
+    this page in full when a link elsewhere leads here.
+    The screens are all rendered; the controller shows one (welcome → checklist → waiting → countdown → running →
+    finished → timeup → after, plus no_round / not_entered / taken_over / dead_link and the practice).
+#}
+
+{% set hide_comparison_launcher = true %}
+{% set connect_data = connect|merge({
+    csrfToken: connect.status != 'anonymous' ? csrf_token(constant('SpeedPuzzling\\Web\\Controller\\Compete\\CompetePageController::CONNECT_CSRF_TOKEN_ID')) : null,
+}) %}
+{% set minutes_limit = round is not null ? round.minutesLimit : null %}
+
+{% block title %}{{ participant.name }} - {{ competition.name }}{% endblock %}
+{% block meta_description %}{{ 'compete.page.meta_description'|trans }}{% endblock %}
+{% block robots %}
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="turbo-visit-control" content="reload">
+{% endblock %}
+{% block og_title %}{{ competition.name }}{% endblock %}
+{% block canonical %}{% endblock %}
+{% block hreflang %}{% endblock %}
+{% block json_ld %}{% endblock %}
+{% block page_stylesheets %}{{ encore_entry_link_tags('compete') }}{% endblock %}
+{% block header %}{% endblock %}
+{% block footer %}{% endblock %}
+
+{% block full_content %}
+    <div class="compete"
+         data-controller="compete"
+         data-turbo="false"
+         data-ptr-ignore
+         data-screen="{{ initial_screen }}"
+         data-camera="idle"
+         data-connection="online"
+         data-compete-participant-id-value="{{ participant.id }}"
+         data-compete-urls-value="{{ urls|json_encode|e('html_attr') }}"
+         data-compete-connect-value="{{ connect_data|json_encode|e('html_attr') }}"
+         data-compete-texts-value="{{ include('compete/_texts.html.twig')|e('html_attr') }}"
+         data-compete-in-app-value="{{ in_app is not null ? 'true' : 'false' }}">
+        <script type="application/json" data-compete-target="initialState">{{ state|json_encode(constant('JSON_HEX_TAG') b-or constant('JSON_HEX_AMP') b-or constant('JSON_HEX_APOS') b-or constant('JSON_HEX_QUOT'))|raw }}</script>
+
+        <noscript><p class="compete-noscript">{{ 'compete.page.no_script'|trans }}</p></noscript>
+
+        <header class="compete-bar">
+            <div class="compete-bar-names">
+                <span class="compete-bar-competition">{{ competition.name }}</span>
+                {% if round is not null %}<span class="compete-bar-round">{{ round.name }}</span>{% endif %}
+            </div>
+            <div class="compete-bar-side">
+                <span class="compete-bar-person">{{ participant.name }}</span>
+                <span class="compete-status" aria-live="off">
+                    <span class="compete-status-item compete-status-camera" data-compete-field="statusCamera"></span>
+                    <span class="compete-status-item compete-status-connection" data-compete-field="statusConnection"></span>
+                    <span class="compete-status-item compete-status-pending" data-compete-field="statusPending"></span>
+                </span>
+            </div>
+        </header>
+
+        <div class="compete-banners">
+            <div class="compete-banner compete-banner--preview" data-compete-show="preview" hidden>
+                <span>{{ 'compete.connect.organiser_preview'|trans }}</span>
+                <button type="button" class="btn btn-sm btn-light" data-compete-show="thisIsMe" data-action="compete#confirmConnect" hidden>{{ 'compete.connect.this_is_me'|trans }}</button>
+            </div>
+            <div class="compete-banner compete-banner--offline" data-compete-show="offline" role="status" hidden>{{ 'compete.page.offline_banner'|trans }}</div>
+            <button type="button" class="compete-banner compete-banner--camera" data-compete-show="cameraAlert" data-action="compete#restartCamera" hidden>
+                <i class="bi bi-camera-video-off me-2" aria-hidden="true"></i>{{ 'compete.screen.camera_alert'|trans }}
+            </button>
+            <div class="compete-banner compete-banner--notice" data-compete-target="notice" role="status" aria-live="polite" hidden></div>
+        </div>
+
+        <div class="compete-stage">
+            <div class="compete-camera" data-compete-target="cameraBox" hidden>
+                <video class="compete-video" data-compete-target="video" playsinline muted autoplay disablepictureinpicture></video>
+                <div class="compete-frame-guide" aria-hidden="true"><span>{{ 'compete.checklist.frame_guide'|trans }}</span></div>
+            </div>
+
+            <div class="compete-screens">
+                {{ include('compete/_screen_welcome.html.twig') }}
+                {{ include('compete/_screen_checklist.html.twig') }}
+                {{ include('compete/_screens_round.html.twig') }}
+                {{ include('compete/_screens_other.html.twig') }}
+                {{ include('compete/_screen_practice.html.twig') }}
+            </div>
+        </div>
+    </div>
+{% endblock %}

@@ -22,6 +22,13 @@ use SpeedPuzzling\Web\Services\Api\ApiDtoNormalizer;
 use SpeedPuzzling\Web\Services\ApiUsage\ApiUsageCounter;
 use SpeedPuzzling\Web\Services\ApiUsage\RedisApiUsageCounter;
 use SpeedPuzzling\Web\Services\Doctrine\FixDoctrineMigrationTableSchema;
+use SpeedPuzzling\Web\Services\OnlineRounds\OnlineMediaStorage;
+use SpeedPuzzling\Web\Services\OnlineRounds\OnlineMediaStores;
+use SpeedPuzzling\Web\Services\OnlineRounds\OnlinePresence;
+use SpeedPuzzling\Web\Services\OnlineRounds\OnlineStoreBreaker;
+use SpeedPuzzling\Web\Services\OnlineRounds\RedisOnlinePresence;
+use SpeedPuzzling\Web\Services\OnlineRounds\S3OnlineMediaStorage;
+use SpeedPuzzling\Web\Services\Sentry\OnlineTokenSentryScrubber;
 use SpeedPuzzling\Web\Services\SentryTracesSampler;
 use SpeedPuzzling\Web\Services\Session\PostgresSessionHandler;
 use SpeedPuzzling\Web\Services\Storage\FailoverS3Adapter;
@@ -113,6 +120,12 @@ return static function (ContainerConfigurator $configurator): void {
     // NavigationLaunch::DATE at release - read through the NavigationLaunch service, never the constant
     $parameters->set('navigation.launch_date', NavigationLaunch::DATE);
 
+    // Online competitions (docs/features/feature_flags.md): organisers may set up online timing only while 1, admins always.
+    $parameters->set('onlineRoundsForOrganisers', '%env(bool:ONLINE_ROUNDS_FOR_ORGANISERS)%');
+
+    // Online competitions' evidence uploads: an empty ONLINE_MEDIA_PUBLIC_ENDPOINT falls back to this (OnlineMediaStores)
+    $parameters->set('online_media_s3_endpoint', '%env(S3_ENDPOINT)%');
+
     $services = $configurator->services();
 
     $services->defaults()
@@ -131,6 +144,7 @@ return static function (ContainerConfigurator $configurator): void {
         ->bind('$signInLinkReuseGraceSeconds', '%signInLinkReuseGraceSeconds%')
         ->bind('$kernelSecret', '%kernel.secret%')
         ->bind('$pairsTeamsPickerPublic', '%pairsTeamsPickerPublic%')
+        ->bind('$onlineRoundsForOrganisers', '%onlineRoundsForOrganisers%')
         ->bind('$resultReviewEmailsPerRun', '%result_review_emails_per_run%')
         ->bind('$resultReviewEmailsPerDay', '%result_review_emails_per_day%')
         ->bind('$resultReviewEmailSpacingSeconds', '%result_review_email_spacing_seconds%')
@@ -406,6 +420,38 @@ return static function (ContainerConfigurator $configurator): void {
 
     $services->alias(ApiUsageCounter::class, RedisApiUsageCounter::class);
 
+    // Online competitions (docs/features/online-competitions/): presence in redis-state (the API usage counters'
+    // connection), evidence in object storage - config/services_test.php keeps the in-process doubles
+    $services->set(RedisOnlinePresence::class)
+        ->arg('$redis', service('api_usage.redis'));
+    $services->alias(OnlinePresence::class, RedisOnlinePresence::class);
+
+    // The circuit breaker's failure counters (OnlineStoreBreaker) - asked only while a second store is configured
+    $services->set(OnlineStoreBreaker::class)
+        ->arg('$redis', service('api_usage.redis'));
+
+    // The primary store is the site's bucket: the server reaches it through the site's S3Client, a browser through
+    // ONLINE_MEDIA_PUBLIC_ENDPOINT (empty = S3_ENDPOINT, production's public Hetzner endpoint). The second store is
+    // optional (empty endpoint = none).
+    $services->set(OnlineMediaStores::class)
+        ->args([
+            '$primaryClient' => service(S3Client::class),
+            '$primaryRegion' => env('S3_REGION'),
+            '$primaryBucket' => env('S3_BUCKET'),
+            '$primaryAccessKey' => env('S3_ACCESS_KEY'),
+            '$primarySecretKey' => env('S3_SECRET_KEY'),
+            '$primaryPublicEndpoint' => env('ONLINE_MEDIA_PUBLIC_ENDPOINT')->default('online_media_s3_endpoint'),
+            '$secondaryEndpoint' => env('ONLINE_MEDIA_SECONDARY_ENDPOINT'),
+            '$secondaryRegion' => env('ONLINE_MEDIA_SECONDARY_REGION'),
+            '$secondaryBucket' => env('ONLINE_MEDIA_SECONDARY_BUCKET'),
+            '$secondaryAccessKey' => env('ONLINE_MEDIA_SECONDARY_ACCESS_KEY'),
+            '$secondarySecretKey' => env('ONLINE_MEDIA_SECONDARY_SECRET_KEY'),
+            '$secondaryPathStyle' => env('ONLINE_MEDIA_SECONDARY_PATH_STYLE')->bool(),
+            '$httpClient' => service('app.storage.s3_http_client'),
+            '$logger' => service('monolog.logger.object_storage'),
+        ]);
+    $services->alias(OnlineMediaStorage::class, S3OnlineMediaStorage::class);
+
     // Sentry Traces Sampler with profiling trigger support
     $services->set(SentryTracesSampler::class)
         ->arg('$profilingSecret', env('PROFILING_TRIGGER_SECRET'))
@@ -413,4 +459,10 @@ return static function (ContainerConfigurator $configurator): void {
 
     $services->set('sentry.traces_sampler', \Closure::class)
         ->factory([service(SentryTracesSampler::class), '__invoke']);
+
+    // No personal link's token of an online competition reaches Sentry (config/packages/sentry.php)
+    $services->set('sentry.before_send', \Closure::class)
+        ->factory([service(OnlineTokenSentryScrubber::class), 'beforeSend']);
+    $services->set('sentry.before_breadcrumb', \Closure::class)
+        ->factory([service(OnlineTokenSentryScrubber::class), 'beforeBreadcrumb']);
 };

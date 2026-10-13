@@ -32,11 +32,13 @@ use SpeedPuzzling\Web\Message\BackfillCompetitionRoundSlugs;
 use SpeedPuzzling\Web\Message\BackfillRoundPuzzleReveals;
 use SpeedPuzzling\Web\Message\BackfillRoundTimezones;
 use SpeedPuzzling\Web\Message\CancelMembershipSubscription;
+use SpeedPuzzling\Web\Message\CancelRoundStart;
 use SpeedPuzzling\Web\Message\ChangeCompetitionRegistrationSettings;
 use SpeedPuzzling\Web\Message\ChangeRoundPuzzleReveal;
 use SpeedPuzzling\Web\Message\ChangeRoundTableNumbersUsage;
 use SpeedPuzzling\Web\Message\CheckInParticipant;
 use SpeedPuzzling\Web\Message\ClearComparisonLineUp;
+use SpeedPuzzling\Web\Message\ConfirmOnlineResult;
 use SpeedPuzzling\Web\Message\ConvertCompetitionToSeries;
 use SpeedPuzzling\Web\Message\CreateOrganizationFromSeries;
 use SpeedPuzzling\Web\Message\DeleteCompetitionRound;
@@ -57,9 +59,12 @@ use SpeedPuzzling\Web\Message\MoveRoundToCompetition;
 use SpeedPuzzling\Web\Message\PromoteParticipantFromWaitlist;
 use SpeedPuzzling\Web\Message\PublishRoundResults;
 use SpeedPuzzling\Web\Message\ReconcileRoundResults;
+use SpeedPuzzling\Web\Message\RecordOnlineEntryEvents;
+use SpeedPuzzling\Web\Message\RegisterOnlineMedia;
 use SpeedPuzzling\Web\Message\RemovePuzzleFromCompetitionRound;
 use SpeedPuzzling\Web\Message\ResetRoundStopwatch;
 use SpeedPuzzling\Web\Message\RevealRoundPuzzleNow;
+use SpeedPuzzling\Web\Message\ScheduleRoundStart;
 use SpeedPuzzling\Web\Message\SetCompetitionRoundPuzzles;
 use SpeedPuzzling\Web\Message\StartRoundStopwatch;
 use SpeedPuzzling\Web\Message\StopRoundStopwatch;
@@ -75,9 +80,11 @@ use SpeedPuzzling\Web\Value\BrandCodeList;
 use SpeedPuzzling\Web\Value\ComparisonKind;
 use SpeedPuzzling\Web\Value\CompetitionParticipantsLock;
 use SpeedPuzzling\Web\Value\EanList;
+use SpeedPuzzling\Web\Value\OnlineConfirmedSource;
 use SpeedPuzzling\Web\Value\ParticipantImportRows;
 use SpeedPuzzling\Web\Value\PuzzleNames;
 use SpeedPuzzling\Web\Value\PuzzleRecordValues;
+use SpeedPuzzling\Web\Value\RoundEntryResult;
 use SplFileInfo;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 
@@ -160,6 +167,8 @@ final class SerializedByLockMessagesTest extends TestCase
         self::assertSame($key, (new UndoParticipantCheckIn($competitionId, $participantId))->lockKey());
         self::assertSame($key, (new ChangeCompetitionRegistrationSettings($competitionId, true, 10, null, null, 'Europe/Prague', null, null))->lockKey());
         self::assertSame($key, (new ApplyParticipantSheetChanges($competitionId, 'player', null, [], dryRun: true))->lockKey());
+        // The online review's confirmation records the official result - the same lock as every other official result
+        self::assertSame($key, (new ConfirmOnlineResult($competitionId, 'round', $participantId, null, OnlineConfirmedSource::Reviewer, 1200, 'player', RoundEntryResult::none()))->lockKey());
         // Back to draft only while nobody joined - a join waits for the check (docs/features/organizations/README.md)
         self::assertSame($key, (new UnpublishCompetition($competitionId))->lockKey());
     }
@@ -235,6 +244,7 @@ final class SerializedByLockMessagesTest extends TestCase
         GenerateTableLayout::class => 'the table layout (rows and spots), not round entries',
         BackfillCompetitionRoundSlugs::class => 'console backfill of round slugs - no entry, no result',
         BackfillRoundTimezones::class => 'console backfill of round time zones - no entry, no result',
+        CancelRoundStart::class => 'the round\'s stopwatch only - calls a countdown off',
         ChangeRoundTableNumbersUsage::class => 'a display switch of the round - the table numbers stay on the entries as they are',
         CreateOrganizationFromSeries::class => 'turns a series into an organization: writes the organization, follows and redirect rows for the old addresses of every edition and round (EventUrlRedirects reads their slugs) - several events in one message, and no spot, entry or result changes',
         DeleteCompetitionSeries::class => 'deletes whole editions with everything they hold - several events in one message (one lock key per message), and nothing of theirs is meant to stay',
@@ -242,7 +252,10 @@ final class SerializedByLockMessagesTest extends TestCase
         OfficialRoundResultsPublished::class => 'the notification after a publish - reads only',
         PublishRoundResults::class => 'shows the recorded results on the public page - writes only the round\'s published state, nothing recorded changes',
         UnpublishRoundResults::class => 'takes the results off the public page - writes only the round\'s published state, nothing recorded changes',
+        RecordOnlineEntryEvents::class => 'a participant\'s phone\'s events on their own online entry (online_entry*) - reads the round entry, never writes entries, teams or official results',
+        RegisterOnlineMedia::class => 'an evidence row on the participant\'s own online entry (online_entry*) - reads the round entry, never writes entries, teams or official results',
         ResetRoundStopwatch::class => 'the round\'s stopwatch only',
+        ScheduleRoundStart::class => 'the round\'s stopwatch only - a start ahead (the countdown)',
         StartRoundStopwatch::class => 'the round\'s stopwatch only',
         StopRoundStopwatch::class => 'the round\'s stopwatch only',
         SetCompetitionRoundPuzzles::class => 'the round\'s puzzles - entries and results are not touched',

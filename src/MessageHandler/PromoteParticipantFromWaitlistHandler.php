@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\MessageHandler;
 
+use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Exceptions\CompetitionParticipantNotFound;
 use SpeedPuzzling\Web\Exceptions\RegistrationNotManaged;
 use SpeedPuzzling\Web\Message\PromoteParticipantFromWaitlist;
 use SpeedPuzzling\Web\Repository\CompetitionParticipantRepository;
 use SpeedPuzzling\Web\Services\CompetitionRegistrationMailer;
+use SpeedPuzzling\Web\Services\OnlineRounds\OnlinePersonalLinks;
 use SpeedPuzzling\Web\Value\RegistrationEmail;
 use SpeedPuzzling\Web\Value\RegistrationStatus;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
@@ -23,6 +25,8 @@ readonly final class PromoteParticipantFromWaitlistHandler
     public function __construct(
         private CompetitionParticipantRepository $participantRepository,
         private CompetitionRegistrationMailer $registrationMailer,
+        private OnlinePersonalLinks $onlinePersonalLinks,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -44,6 +48,10 @@ readonly final class PromoteParticipantFromWaitlistHandler
         }
 
         $participant->promoteFromWaitlist();
+
+        // A player who joined by themselves gets their personal link with the spot - on the event page
+        // (docs/features/online-competitions/README.md §5.4); an organiser's row gets it on the personal links page
+        $this->onlinePersonalLinks->giveOwnLink($participant, $this->clock->now());
 
         $this->registrationMailer->send($participant, RegistrationEmail::Promoted);
     }

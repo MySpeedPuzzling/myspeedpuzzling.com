@@ -5,7 +5,10 @@
    button_class ('btn-sm btn-outline-primary'), return_url + return_title (passed on as ?return=), with_stopwatch (false -
    also the round's stopwatch control page, for the results overview), competition_id (also "Participants": the round's
    tab of the participants sheet - organisers only, and every page including this partial is one: COMPETITION_EDIT. The
-   live entry, the one tool referees open, does not include it; the round list has its own link) #}
+   live entry, the one tool referees open, does not include it; the round list has its own link). A round that uses
+   online timing also gets Online timing (online_round_settings), Personal links (online_links), Control room
+   (online_control_room) and Review (online_review) - for a viewer who may set it up (ONLINE_ROUNDS_MANAGE,
+   online_round_tools()) #}
 {%- set tool_query = return_url|default(null) is not null ? {return: return_url, return_title: return_title|default('')} : {} -%}
 {%- set tool_button = button_class|default('btn-sm btn-outline-primary') -%}
 {%- if current|default(null) != 'live' -%}
@@ -33,4 +36,24 @@
     <a href="{{ path('manage_round_stopwatch', {roundId: round_id}) }}" class="btn {{ tool_button }}" data-round-tool="stopwatch">
         <i class="bi bi-stopwatch me-1" aria-hidden="true"></i>{{ 'competition.stopwatch.title'|trans }}
     </a>
+{%- endif -%}
+{#- A round that uses online timing (docs/features/online-competitions/): its settings and the event's personal links -
+    only to a viewer who may set it up; asked only for online events, nothing for any other round (online_round_tools) -#}
+{%- if is_online -%}
+    {%- set online_tools = online_round_tools(round_id) -%}
+    {%- if online_tools is not null -%}
+        <a href="{{ path('online_round_settings', {roundId: round_id}|merge(tool_query)) }}" class="btn {{ tool_button }}" data-round-tool="online">
+            <i class="bi bi-broadcast me-1" aria-hidden="true"></i>{{ 'online_rounds.menu.online_timing'|trans }}
+        </a>
+        <a href="{{ path('online_links', {competitionId: online_tools.competitionId}|merge(tool_query)) }}" class="btn {{ tool_button }}" data-round-tool="online-links">
+            <i class="bi bi-link-45deg me-1" aria-hidden="true"></i>{{ 'online_rounds.menu.personal_links'|trans }}
+        </a>
+        {#- The round's control room and its review (stream C2) -#}
+        <a href="{{ path('online_control_room', {roundId: round_id}|merge(tool_query)) }}" class="btn {{ tool_button }}" data-round-tool="online-control">
+            <i class="bi bi-broadcast-pin me-1" aria-hidden="true"></i>{{ 'online_rounds.control.title'|trans }}
+        </a>
+        <a href="{{ path('online_review', {roundId: round_id}|merge(tool_query)) }}" class="btn {{ tool_button }}" data-round-tool="online-review">
+            <i class="bi bi-check2-square me-1" aria-hidden="true"></i>{{ 'online_rounds.review.title'|trans }}
+        </a>
+    {%- endif -%}
 {%- endif -%}

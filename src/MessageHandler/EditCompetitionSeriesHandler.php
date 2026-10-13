@@ -8,7 +8,9 @@ use League\Flysystem\Filesystem;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Exceptions\CompetitionSlugTaken;
 use SpeedPuzzling\Web\Exceptions\InvalidCompetitionSlug;
+use SpeedPuzzling\Web\Exceptions\OnlineTimingInUse;
 use SpeedPuzzling\Web\Message\EditCompetitionSeries;
+use SpeedPuzzling\Web\Query\GetRoundsUsingOnlineTiming;
 use SpeedPuzzling\Web\Repository\CompetitionSeriesRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Services\CompetitionSlugGenerator;
@@ -25,16 +27,28 @@ readonly final class EditCompetitionSeriesHandler
         private ClockInterface $clock,
         private ImageOptimizer $imageOptimizer,
         private CompetitionSlugGenerator $slugGenerator,
+        private GetRoundsUsingOnlineTiming $getRoundsUsingOnlineTiming,
     ) {
     }
 
     /**
      * @throws CompetitionSlugTaken
      * @throws InvalidCompetitionSlug
+     * @throws OnlineTimingInUse a series an edition of which has a round using online timing changed to in person
      */
     public function __invoke(EditCompetitionSeries $message): void
     {
         $series = $this->seriesRepository->get($message->seriesId);
+
+        // Its editions are online by the series (EventIsOnline) and online timing works only at an online event
+        // (docs/features/online-competitions/): a series with an edition's round using it stays online
+        if ($series->isOnline && $message->isOnline === false) {
+            $roundsUsingOnlineTiming = $this->getRoundsUsingOnlineTiming->ofSeries($series->id->toString());
+
+            if ($roundsUsingOnlineTiming !== []) {
+                throw new OnlineTimingInUse(OnlineTimingInUse::SERIES_IN_PERSON, $roundsUsingOnlineTiming);
+            }
+        }
 
         // A rename keeps the slug (published links know the series by it) - only an explicitly chosen one changes it
         $slug = $series->slug;

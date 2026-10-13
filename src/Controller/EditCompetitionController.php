@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller;
 
 use SpeedPuzzling\Web\Exceptions\CompetitionSlugTaken;
+use SpeedPuzzling\Web\Exceptions\OnlineTimingInUse;
 use SpeedPuzzling\Web\Exceptions\OrganizationNotManaged;
 use SpeedPuzzling\Web\FormData\CompetitionFormData;
 use SpeedPuzzling\Web\FormType\CompetitionFormType;
@@ -158,6 +159,10 @@ final class EditCompetitionController extends AbstractController
                 } catch (CompetitionSlugTaken) {
                     // Taken by another save since the check above
                     $this->urlField->markTaken($form->get('slug'));
+                } catch (OnlineTimingInUse $inUse) {
+                    // A round uses online timing - the event stays online (docs/features/online-competitions/)
+                    $field = $form->has('isOnline') ? $form->get('isOnline') : $form;
+                    $field->addError(new FormError($this->translator->trans($inUse->translationKey(), $inUse->translationParameters())));
                 } catch (OrganizationNotManaged) {
                     // Left the organization's team in the very moment of the save - the other changes are saved
                     $form->get('organizationId')->addError(new FormError($this->translator->trans('organizer_tools.form.organization_not_managed')));

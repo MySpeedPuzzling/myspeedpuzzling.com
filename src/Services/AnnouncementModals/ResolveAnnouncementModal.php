@@ -56,6 +56,8 @@ final class ResolveAnnouncementModal implements ResetInterface
         'compete_page',
         // Online competitions: the organiser's control room, the review and its accuracy report
         'online_control_room', 'online_review', 'online_accuracy',
+        // Online competitions: the host's studio - on air
+        'online_studio',
     ];
 
     private bool $resolved = false;

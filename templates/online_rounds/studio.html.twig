@@ -1,0 +1,131 @@
+{% extends 'base.html.twig' %}
+
+{#
+    The host's studio of an online round (docs/features/online-competitions/README.md §5.12 "The studio flow", stream
+    VM, route online_studio): the host's own camera and microphone on air, the guests the control room invited, the
+    co-hosts and any screen shared on the stage; "Thank you" ends a guest; the side lists say who is on air, who was
+    invited and has not answered yet, and who was on before; "Live" and the number watching at the top. Everything
+    moving is drawn by assets/controllers/online_studio_controller.js. Without live video the page says why, nothing more.
+    Variables: competition, round (CompetitionRound), online_round, video_missing (null | 'unavailable' | 'off'),
+    invite_placeholder
+#}
+
+{% set hide_comparison_launcher = true %}
+{% set round_id = round.id.toString %}
+
+{% block title %}{{ 'online_rounds.studio.title'|trans }} - {{ round.name }}{% endblock %}
+
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block page_stylesheets %}{{ encore_entry_link_tags('online_rounds') }}{% endblock %}
+
+{% block content %}
+    {{ include('_breadcrumb.html.twig', {items: [
+        {label: 'events.title'|trans, url: path('events')},
+        {label: competition.name, url: path('edit_competition', {competitionId: competition.id})},
+        {label: 'competition.manage_rounds'|trans, url: path('manage_competition_rounds', {competitionId: competition.id})},
+        {label: 'online_rounds.control.title'|trans, url: path('online_control_room', {roundId: round_id})},
+        {label: 'online_rounds.studio.title'|trans},
+    ]}) }}
+
+    {% if video_missing is null %}
+        <div class="online-rounds-page online-studio pb-5"
+             data-controller="online-studio"
+             data-online-studio-urls-value="{{ {
+                 token: path('online_video_token', {roundId: round_id}),
+                 studio: path('online_studio', {roundId: round_id}),
+                 end: path('online_studio_end', {roundId: round_id, inviteId: invite_placeholder}),
+             }|json_encode|e('html_attr') }}"
+             data-online-studio-placeholder-value="{{ invite_placeholder }}"
+             data-online-studio-csrf-token-value="{{ csrf_token('official_results') }}"
+             data-online-studio-texts-value="{{ include('online_rounds/studio_texts.html.twig')|e('html_attr') }}">
+            <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
+                <div>
+                    <h1 class="h2 mb-1">{{ 'online_rounds.studio.title'|trans }}</h1>
+                    <p class="h5 text-muted mb-1">{{ competition.name }} — {{ round.name }}</p>
+                </div>
+                <div class="online-studio-live" role="status" aria-live="polite">
+                    <span class="online-studio-live-badge" data-online-studio-target="liveBadge">{{ 'online_rounds.studio.not_live'|trans }}</span>
+                    <span class="small text-body-secondary" data-online-studio-target="audience"></span>
+                </div>
+            </div>
+            <p class="online-rounds-prose small">{{ 'online_rounds.studio.intro'|trans }}</p>
+
+            <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+                <a href="{{ path('online_control_room', {roundId: round_id}) }}" class="btn btn-sm btn-outline-primary" data-online-tool="control">
+                    <i class="bi bi-broadcast-pin me-1" aria-hidden="true"></i>{{ 'online_rounds.studio.control_room'|trans }}
+                </a>
+                <span class="badge text-bg-secondary" data-online-studio-target="connection" role="status">{{ 'online_rounds.console.connection.connecting'|trans }}</span>
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-online-studio-target="reconnect" data-action="online-studio#reconnect" hidden>
+                    <i class="bi bi-arrow-repeat me-1" aria-hidden="true"></i>{{ 'online_rounds.studio.reconnect'|trans }}
+                </button>
+            </div>
+
+            <div class="online-studio-layout">
+                <section class="online-studio-main" aria-labelledby="online-studio-stage-title">
+                    <h2 class="visually-hidden" id="online-studio-stage-title">{{ 'online_rounds.studio.stage.title'|trans }}</h2>
+                    <div class="online-studio-stage" data-online-studio-target="stage">
+                        <article class="online-studio-tile online-studio-tile--self" data-online-studio-target="selfTile">
+                            <video class="online-studio-video" data-online-studio-target="selfVideo" muted playsinline autoplay aria-hidden="true"></video>
+                            <span class="online-studio-tile-name">{{ 'online_rounds.studio.stage.you'|trans }}</span>
+                            <span class="online-studio-tile-state" data-online-studio-target="selfState">{{ 'online_rounds.studio.stage.camera_off'|trans }}</span>
+                        </article>
+                    </div>
+                    <p class="text-body-secondary small mt-2 mb-0" data-online-studio-target="stageEmpty">{{ 'online_rounds.studio.stage.empty'|trans }}</p>
+
+                    <div class="online-studio-controls" role="group" aria-label="{{ 'online_rounds.studio.controls.label'|trans }}">
+                        <button type="button" class="btn btn-danger" data-online-studio-target="goLive" data-action="online-studio#goOnAir">
+                            <i class="bi bi-camera-video-fill me-1" aria-hidden="true"></i><span>{{ 'online_rounds.studio.controls.go_on_air'|trans }}</span>
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary" data-online-studio-target="micToggle" data-action="online-studio#toggleMicrophone" aria-pressed="false" hidden>
+                            <i class="bi bi-mic-mute me-1" aria-hidden="true"></i><span>{{ 'online_rounds.studio.controls.mute'|trans }}</span>
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary" data-online-studio-target="cameraToggle" data-action="online-studio#toggleCamera" hidden>
+                            <i class="bi bi-camera-video-off me-1" aria-hidden="true"></i><span>{{ 'online_rounds.studio.controls.camera_off'|trans }}</span>
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary" data-online-studio-target="shareToggle" data-action="online-studio#toggleScreen" hidden>
+                            <i class="bi bi-display me-1" aria-hidden="true"></i><span>{{ 'online_rounds.studio.controls.share'|trans }}</span>
+                        </button>
+                        <button type="button" class="btn btn-outline-danger" data-online-studio-target="offAir" data-action="online-studio#goOffAir" hidden>
+                            <i class="bi bi-stop-circle me-1" aria-hidden="true"></i>{{ 'online_rounds.studio.controls.off_air'|trans }}
+                        </button>
+                        <button type="button" class="btn btn-outline-primary" data-online-studio-target="sound" data-action="online-studio#startSound" hidden>
+                            <i class="bi bi-volume-up me-1" aria-hidden="true"></i>{{ 'online_rounds.studio.controls.sound'|trans }}
+                        </button>
+                    </div>
+                    <p class="form-text mb-0">{{ 'online_rounds.studio.controls.help'|trans }}</p>
+                    <p class="small text-danger mb-0 mt-1" role="alert" data-online-studio-target="error" hidden></p>
+                </section>
+
+                <aside class="online-studio-side">
+                    <section class="online-studio-list" aria-labelledby="online-studio-on-air-title">
+                        <h2 class="h6" id="online-studio-on-air-title">{{ 'online_rounds.studio.lists.on_air'|trans }}</h2>
+                        <ul class="list-unstyled mb-0" data-online-studio-target="onAirList"></ul>
+                    </section>
+                    <section class="online-studio-list" aria-labelledby="online-studio-waiting-title">
+                        <h2 class="h6" id="online-studio-waiting-title">{{ 'online_rounds.studio.lists.waiting'|trans }}</h2>
+                        <ul class="list-unstyled mb-0" data-online-studio-target="waitingList"></ul>
+                    </section>
+                    <section class="online-studio-list" aria-labelledby="online-studio-earlier-title">
+                        <h2 class="h6" id="online-studio-earlier-title">{{ 'online_rounds.studio.lists.earlier'|trans }}</h2>
+                        <ul class="list-unstyled mb-0" data-online-studio-target="earlierList"></ul>
+                    </section>
+                </aside>
+            </div>
+        </div>
+    {% else %}
+        <div class="online-rounds-page online-studio pb-5">
+            <h1 class="h2 mb-1">{{ 'online_rounds.studio.title'|trans }}</h1>
+            <p class="h5 text-muted mb-3">{{ competition.name }} — {{ round.name }}</p>
+            <div class="alert alert-info online-rounds-prose" role="status" data-online-studio-missing="{{ video_missing }}">
+                <p class="mb-2">{{ ('online_rounds.studio.missing.' ~ video_missing)|trans }}</p>
+                <a href="{{ path('online_round_settings', {roundId: round_id}) }}" class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-broadcast me-1" aria-hidden="true"></i>{{ 'online_rounds.menu.online_timing'|trans }}
+                </a>
+                <a href="{{ path('online_control_room', {roundId: round_id}) }}" class="btn btn-sm btn-outline-primary ms-1">
+                    <i class="bi bi-broadcast-pin me-1" aria-hidden="true"></i>{{ 'online_rounds.studio.control_room'|trans }}
+                </a>
+            </div>
+        </div>
+    {% endif %}
+{% endblock %}

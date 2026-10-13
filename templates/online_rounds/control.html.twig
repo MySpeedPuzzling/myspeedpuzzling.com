@@ -121,10 +121,10 @@
 
         <fieldset class="mb-3">
             <legend class="visually-hidden">{{ 'online_rounds.control.filter.label'|trans }}</legend>
-            <div class="btn-group btn-group-sm flex-wrap" role="group" aria-label="{{ 'online_rounds.control.filter.label'|trans }}">
+            <div class="online-rounds-filters" role="group" aria-label="{{ 'online_rounds.control.filter.label'|trans }}">
                 {% for filter in ['all', 'not_ready', 'offline', 'finished'] %}
                     <input type="radio" class="btn-check" name="online-control-filter" id="online-control-filter-{{ filter }}" value="{{ filter }}" autocomplete="off" data-action="online-control#changeFilter" {{ filter == 'all' ? 'checked' }}>
-                    <label class="btn btn-outline-secondary" for="online-control-filter-{{ filter }}">{{ ('online_rounds.control.filter.' ~ filter)|trans }}</label>
+                    <label class="btn btn-sm btn-outline-secondary" for="online-control-filter-{{ filter }}">{{ ('online_rounds.control.filter.' ~ filter)|trans }}</label>
                 {% endfor %}
             </div>
         </fieldset>

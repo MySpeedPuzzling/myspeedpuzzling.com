@@ -105,6 +105,13 @@
     max-width: 16rem;
 }
 
+// The filters of the grid and of the review list: separate buttons that wrap evenly on a narrow screen
+.online-rounds-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+}
+
 .online-control-counts {
     display: flex;
     flex-wrap: wrap;
@@ -258,9 +265,7 @@
 .online-review-row-name {
     grid-area: name;
     min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    overflow-wrap: anywhere;
 }
 
 .online-review-row-time {

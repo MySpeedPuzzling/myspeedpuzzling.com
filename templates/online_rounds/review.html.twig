@@ -74,10 +74,10 @@
                 <h2 class="h6 mb-2" id="online-review-list-title">{{ 'online_rounds.review.list.title'|trans }}</h2>
                 <fieldset class="mb-2">
                     <legend class="visually-hidden">{{ 'online_rounds.review.filter.label'|trans }}</legend>
-                    <div class="btn-group btn-group-sm flex-wrap" role="group" aria-label="{{ 'online_rounds.review.filter.label'|trans }}">
+                    <div class="online-rounds-filters" role="group" aria-label="{{ 'online_rounds.review.filter.label'|trans }}">
                         {% for filter in ['all', 'needs_look', 'unfinished', 'no_finish', 'confirmed'] %}
                             <input type="radio" class="btn-check" name="online-review-filter" id="online-review-filter-{{ filter }}" value="{{ filter }}" autocomplete="off" data-action="online-review#changeFilter" {{ filter == 'all' ? 'checked' }}>
-                            <label class="btn btn-outline-secondary" for="online-review-filter-{{ filter }}">{{ ('online_rounds.review.filter.' ~ filter)|trans }}</label>
+                            <label class="btn btn-sm btn-outline-secondary" for="online-review-filter-{{ filter }}">{{ ('online_rounds.review.filter.' ~ filter)|trans }}</label>
                         {% endfor %}
                     </div>
                 </fieldset>

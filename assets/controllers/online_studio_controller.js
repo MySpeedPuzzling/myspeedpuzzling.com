@@ -428,6 +428,7 @@ export default class extends Controller {
 
         if (answer.kind !== 'ok') {
             this.errors.set(participantId, { key: studioRefusal(answer), until: Date.now() + ERROR_MS });
+            window.setTimeout(() => this.render(), ERROR_MS + 50);
         }
 
         if (answer.data?.invite) {

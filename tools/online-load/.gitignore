@@ -1,0 +1,6 @@
+# The load tools are code only: personal links (tokens are access rights), photos, reports and the built k6 binary
+# never enter the public repository
+/.bin/
+/.go/
+/input/
+/out/

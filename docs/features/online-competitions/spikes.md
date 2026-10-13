@@ -90,13 +90,130 @@ The participant page in practice mode (Phase 1, stream B):
 
 ## S5 - load + storage
 
-Tooling: `tools/online-load/` - a k6 script (heartbeats, events, presigning) + Mercure's Gatling scenario through Traefik at a quiet hour.
+Tooling: [`tools/online-load/`](../../../tools/online-load/README.md) - a k6 script (k6 v2.3.0 + xk6-sse, built with
+`grafana/xk6`) where every simulated phone goes through a round end to end on the participant API with the page's own
+cadences (page, clock sync, heartbeats, events through an outbox, presign → PUT straight to the store →
+`media.uploaded`, start burst, Finished + photo + ±5 s burst, time's up) and holds its live stream through Mercure -
+the streams replace the Gatling scenario. Profiles `steady`, `start_burst`, `finish_wave`; a markdown report per run.
+The production run waits for Jan's OK (the plan: the tool's README).
 
 Also checked here:
-- presigned PUT + CORS on Hetzner Object Storage and on a Garage test instance;
-- a failover drill.
+- presigned PUT + CORS on Hetzner Object Storage and on a Garage test instance - Garage done, Hetzner pending;
+- a failover drill - done locally.
 
-*Results: pending.*
+### Local run (LT), 2026-10-13
+
+Throwaway stack on the dev Docker network (`local-stack.sh`): the working tree at `main` e3ee4f14 (with P1F's Lua
+limiter) in FrankenPHP **worker mode as production runs it** (APP_ENV=prod, OPcache without timestamp checks, 32
+workers, `max_requests 500`), the messenger consumer, its own Redis, production's Mercure image (same digest), MinIO as
+the primary store, Garage v2.4.1 as the second; the database a copy of the test database with 1,200 imported "Load
+Tester" participants of the Online Test Cup round (links from `GenerateOnlineTokens`, the links page's CSV format).
+Every run got its own participants; the organiser's start was scheduled 2.5 min ahead (45 s for the burst / wave
+runs), "End now" a minute before the end. Each phone sent its own `X-Forwarded-For` (the per-IP limit). Photos ~150 KB
+(the pessimistic size), bursts 1.8 MB. The machine: Docker Desktop's VM (8 CPUs, 11.7 GB) on a 14-core Mac shared with
+other agents and projects - the numbers are **an upper bound on the cost, not lily's capacity**, and a local MinIO's PUT
+times say nothing about Hetzner's.
+
+| Run (6 min unless noted) | Requests | p95, slowest endpoint | ±3 s around GO | Web CPU mean / max, memory | Postgres (load DB) commits/s mean / max | Redis cmd/s mean / max | Mercure | Load average (mean) |
+|---|---|---|---|---|---|---|---|---|
+| 25 phones | 3,187 = 8.9 req/s | events 40 ms | 372 req, p95 42 ms | 0.04 / 0.42 cores, 457 MiB | 30 / 73 | 76 / 266 | 25 streams | 7.8-18.2 (10.9) |
+| 50 phones | 6,368 = 17.7 req/s | events 66 ms | 758 req, p95 68 ms | 0.09 / 0.93, 460 MiB | 56 / 182 | 150 / 530 | 50 | 2.4-8.8 (3.8) |
+| 100 phones | 12,748 = 35.4 req/s | events 129 ms (state 107) | 1,514 req, p95 140 ms | 0.12 / 0.54, 466 MiB | 109 / 340 | 301 / 822 | 100 | 3.2-13.9 (8.4) |
+| `start_burst`, 100, 2.5 min | 6,781 = 45.2 req/s | events 234 ms | 1,579 req, p95 194 ms | 0.15 / 1.06, 467 MiB | 120 / 463 | 314 / 1,115 | 100 | 7.1-15.1 (11.0) |
+| `finish_wave`, 100, 4 min | 8,729 = 36.4 req/s | events 137 ms | 1,569 req, p95 114 ms | 0.11 / 0.29, 468 MiB | 99 / 416 | 277 / 980 | 100 | 3.3-6.7 (5.0) |
+
+- **No error anywhere:** every answer 2xx, no API error code, no refused event, nothing left on a phone at the end.
+- **The start:** every phone showed GO, p95 4 ms after the start on its synced clock (in two runs one phone of 100 at
+  1.6 s - its loop was in a request); the state fetches, clock samples, `start.seen` and start photos of 100 phones
+  (~1,500 requests, most of them within 3 s) are served at p95 140-194 ms.
+- **The finish wave** (30 % of 100 within a minute, each photo + 1.8 MB burst): tap → both uploaded and acknowledged
+  p95 95 ms locally; the wave's other requests p95 15 ms.
+- **Live stream:** up to 100 streams, connect p95 ≤ 5 ms, an update from the moment the server read the state to its
+  arrival p95 20-41 ms (the publisher was a separate PHP process; production's worker is warm).
+- **A phone's rate** (from the cadences, the runs agree): 8 requests a minute while running (heartbeat 4, a photo's
+  presign + `media.uploaded` 2 + 2), 16 in the 3 minutes before GO (photos every 10 s), ~14 within 3 s at GO; the PUTs
+  go to the store, not to lily. A real 60-minute round of 100 phones is ~13 req/s, ~27 before GO. The web container's
+  CPU says ~0.1 core on average for 100 phones and a ~1 core peak for the start burst - nothing for lily (2 × 32
+  workers, 16 threads); the same runs on the code before P1F's limiter gave the same picture.
+- **Cost per upload in Postgres:** `VerifyOnlineMedia` goes through the Doctrine transport - 3 more writes per upload
+  (the message row in, delivered, out) next to the media row; fine at 100 phones (~1 upload/s), worth a Redis
+  transport at 1,000.
+- The k6 generator itself: ~1 GB of memory and < 0.5 core per 100 phones (every phone VU holds a photo and a burst).
+
+### Storage failover drill (LT), 2026-10-13
+
+Same stack, 50 phones running a round (start at ~1.5 min), the primary (MinIO) stopped at 2.5 min for 2 minutes
+(`local-stack.sh block-primary` / `unblock-primary`), then the run's end; the breaker's counters sampled every 2 s.
+
+**Before the fix the second store never took a single upload.** 844 PUTs failed, the breaker never opened (its
+counter stayed at 1 source - the server's own `VerifyOnlineMedia` HEAD failing; 3 are needed), Garage stayed empty;
+the phones kept everything and uploaded it to the primary once it was back (nothing lost - layer 1 of README §5.11
+worked, layer 2 never engaged). Cause: a phone reported only a store's readable 408 / 429 / 5xx (`previousFailure`);
+a PUT that gets no answer counted as "the phone is offline". In a browser a store that is down is exactly that - a
+stopped or unreachable store refuses the connection, and its error pages (an LB's 503) carry no CORS headers, so the
+preflight fails and `fetch()` rejects without a status. **Fix** (`media_outbox.js` `unreachable()`,
+`OnlineStoreBreaker::countsAsStoreFailure()`): while `navigator.onLine` is not false, no answer at all is reported as
+`previousFailure.status = 0` and counted by the breaker; the item gets a fresh URL from its second failure on (same as
+a 5xx); the pause stays the offline one (1 s, 2 s …). A phone its browser knows to be offline blames no store and keeps
+its URL. Pinned by two new scenarios in `tests/online-outbox-harness.mjs` and `OnlineStoreBreakerTest`.
+
+After the fix:
+
+| | Fast failure (the store refuses / its name is gone) | Black hole (connections hang) |
+|---|---|---|
+| How | `docker stop`, k6 resolving every request (`K6_DNS=ttl=0`) | `docker stop`, k6 dialing the dead address it had cached: 30 s `i/o timeout`, then 14 s / 3 s `no route to host` |
+| Primary down → first failed PUT | 0.8 s | 0.8 s |
+| → breaker open (3 sources) → first upload on Garage | **3.3 s** | 41 s |
+| PUTs failed during the 2 minutes (each tried again by the phone, none lost) | 52 | 156 |
+| Uploads on Garage / still on the primary before and after | 279 (71 MB) / 645 | 331 (80 MB) / 591 |
+| Flap while still down: closed 60 s after the last report, a wave of uploads failed, reopened after | 12 s | 6 s |
+| Primary back → new uploads on the primary again | ~25 s (the last reports aged out) | ~50 s |
+
+- **The phones' uploads landed on the second store** through the same presigned URLs: Garage enforces the signed
+  `Content-Length` and `Content-Type`.
+- **Nothing on the web container's disk:** `docker diff` of the web container identical before and after (Caddy's own
+  start-up files only), the upload spool directory never created; the web container received 36 MB (JSON and the
+  database's answers) while 172 MB went to the two stores.
+- **`VerifyOnlineMedia` verified every upload on its own store** (591 / 591 primary, 331 / 331 secondary; 645 / 645,
+  279 / 279), verified bytes = declared; HEADs failing during the outage were tried again by the transport (30 s,
+  2 min) and passed once the primary was back.
+- **The review read every object from the store its row names:** a participant with photos on both stores
+  (`OnlineReview::detail()`): 18 presigned GETs, MinIO for the primary rows, Garage for the secondary ones, bytes as
+  declared. 2 rows "pending" - URLs dropped after a failure, never uploaded; the item went up under a new id.
+- **The prune handles both stores:** `myspeedpuzzling:prune-online-media 30` run with the clock 31 days ahead
+  (Symfony's global clock in a throwaway process, the command unchanged): 12,932 periodic photos deleted - 12,400 rows
+  and objects on MinIO, 532 on Garage - in 12 s, 0 failed; the orphan sweep listed both stores (2,688 / 79 objects) and
+  deleted the one orphan planted in each.
+
+**Presigned PUT + CORS on Garage v2.4.1** (path-style, bucket + key made with the `garage` CLI): a PUT of 1,001 bytes on
+a URL signed for 1,000 → 403, `image/png` on one signed for `image/jpeg` → 403, exactly as signed → 200, a presigned
+GET reads it; the app's `myspeedpuzzling:online-media:cors --store secondary --apply` writes the bucket rule, the
+preflight from the allowed origin → 200 with `Access-Control-Allow-Origin`, another origin → 403. MinIO: the same for
+the URLs, but no bucket CORS (`PutBucketCors` → 501, its CORS is server-wide). **Hetzner's bucket: still to check** -
+the CORS rule needs Jan's OK.
+
+**Recommended breaker settings:** keep 3 distinct sources within 60 s. A fast failure moves uploads in ~3 s; the
+breaker closes 60 s after the last failure report, so during a long outage it flaps once a minute at the cost of one
+wave of failed uploads, retried within seconds - and returns to the primary within a minute of its recovery. Since a
+phone with a network blip in the middle of a PUT now reports a failure too, at 1,000+ phones consider
+max(3, 1 % of the round's phones) sources. Follow-ups (`docs/TODO.md` material):
+- a timeout on the phone's PUT (`putToStore` has none - a black-holed store holds each phone's upload for the
+  browser's connect timeout, up to minutes, and the failover waits for it): e.g. 30 s + 1 s per 50 KB;
+- a presign carrying `previousFailure.mediaId` could mark that never-uploaded row superseded, so the review shows no
+  "pending" twin;
+- before closing, a server-side probe of the primary (a HEAD of a canary object) would spare the flap's failed wave.
+
+**For lily** (the production run's plan is in the tool's README - Jan's OK, a quiet hour, the edge prepared):
+- 2 × 32 FrankenPHP workers are plenty for 100 phones (~0.1 core, a ~1 core start burst); the participant API limits
+  (300 per link, 60 event batches, 60 presigns a minute) are 10-20× a phone's needs; 1,200 a minute per IP is ~75
+  phones before GO on one IP (a venue or a carrier NAT).
+- **The edge is the real limit:** `/api/compete/*` and `/-/time` run on the web router - CrowdSec with captcha
+  decisions (unsolvable for a JSON API) and the **bot-blocker's 90 requests a minute per IP + User-Agent**: six phones
+  of the same model and iOS on one Wi-Fi (a club meeting) are blocked in the 3 minutes before GO. Route both like
+  `/api/v` (`myspeedpuzzling-api-edge`: no bot-blocker, no captcha) before the first event - a lily.srv change, Jan's
+  "yes".
+- One load generator counts as one client everywhere (app 1,200/min, Traefik 100/s burst 200, bot-blocker, CrowdSec):
+  ~30 phones per generator address keeps the start burst inside Traefik's bucket - 100 phones = 3-4 small VMs.
 
 ## S6 - video
 

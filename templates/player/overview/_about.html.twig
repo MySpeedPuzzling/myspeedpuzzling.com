@@ -115,7 +115,8 @@
                     <div class="d-flex flex-wrap gap-2">
                         {% for supporter in affiliate_supporters.public_supporters %}
                             <a href="{{ path('player_profile', {playerId: supporter.player_id}) }}"
-                               class="d-flex align-items-center gap-2 text-decoration-none bg-light rounded-pill px-3 py-1">
+                               class="d-flex align-items-center gap-2 text-decoration-none bg-light rounded-pill px-3 py-1"
+                               data-player-card aria-haspopup="dialog">
                                 {% if supporter.player_avatar %}
                                     <img src="{{ supporter.player_avatar|thumbnail('avatar') }}"
                                          class="rounded-circle"

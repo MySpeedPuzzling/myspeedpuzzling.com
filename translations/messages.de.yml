@@ -1256,6 +1256,27 @@ competition_referees:
     "unavailable": "Die Karte dieses Puzzlers ist nicht verfügbar."
     "recent_title": "Zuletzt gelegte Puzzles"
     "view_profile": "Profil ansehen"
+    "edit_result": "Dieses Ergebnis bearbeiten"
+    "own_results_on_puzzle": "Ihre Ergebnisse bei diesem Puzzle"
+    "context":
+        "puzzle_title": "Bei diesem Puzzle"
+        "puzzle_rank": "Platz %rank% von %total% · Bestzeit %time% · %count% Versuch|Platz %rank% von %total% · Bestzeit %time% · %count% Versuche"
+        "puzzle_group_only": "Hier als Paar oder Team gelöst: %count%×"
+        "puzzle_you_gap":
+            "faster": "Sie: %time% · %gap% schneller"
+            "slower": "Sie: %time% · %gap% langsamer"
+            "equal": "Sie: %time% · dieselbe Zeit"
+        "puzzle_you_unsolved": "Sie: hier noch keine Solo-Zeit"
+        "result_title": "Dieses Ergebnis"
+        "result_line": "%time% · Platz %rank% von %total% bei diesem Puzzle"
+        "result_best": "%time% · Bestzeit hier %best%, Platz %rank% von %total%"
+        "result_relax": "Relax, ohne Zeit"
+        "round_official": "Offizielles Ergebnis: Platz %rank% · %result%"
+        "round_unofficial": "%result% · vom Puzzler eingetragen, nicht offiziell"
+        "board":
+            "times": "Schnellste Solo-Zeiten · %pieces% Teile"
+            "msp": "MSP Rating · %pieces% Teile"
+        "board_you": "Sie: Platz %rank%"
   "spotlight":
     "title_world": "Speed Puzzler weltweit"
     "title_country": "Puzzler aus %country%"

@@ -19,7 +19,8 @@
             <table class="table table-striped custom-table table-hover mb-0">
                 <tbody>
                     {% for notification in notifications %}
-                        <tr class="{{ notification.readAt is null ? 'table-active-player' }}">
+                        {# The names open the player card; a row about a result gives it the result as context (CARD-01b) #}
+                        <tr class="{{ notification.readAt is null ? 'table-active-player' }}"{% if notification.targetTimeId is not null %} data-player-card-context="notification:{{ notification.targetTimeId }}"{% endif %}>
                             {% if notification.isChangeRequestNotification %}
                                 {# Puzzle change request notification #}
                                 <td class="text-center" style="width: 60px;">
@@ -91,7 +92,7 @@
                                     <b style="color: #000;">{{ notification.notifiedAt|ago }}</b><br>
                                     <span>Rate your transaction with
                                         {% if notification.ratingOtherPlayerId is not null %}
-                                            <a class="text-decoration-underline" href="{{ path('player_profile', {playerId: notification.ratingOtherPlayerId}) }}">{{ notification.ratingOtherPlayerName }}</a>
+                                            <a class="text-decoration-underline" href="{{ path('player_profile', {playerId: notification.ratingOtherPlayerId}) }}" data-player-card aria-haspopup="dialog">{{ notification.ratingOtherPlayerName }}</a>
                                         {% else %}
                                             {{ notification.ratingOtherPlayerName }}
                                         {% endif %}
@@ -262,7 +263,7 @@
                             {% elseif notification.isGroupSolvingTimeEditedNotification %}
                                 {# A pair/team time the player is part of was edited - the target player is the editor #}
                                 <td class="text-center" style="width: 60px;">
-                                    <a href="{{ path('player_profile', {'playerId': notification.targetPlayerId}) }}">
+                                    <a href="{{ path('player_profile', {'playerId': notification.targetPlayerId}) }}" data-player-card aria-haspopup="dialog">
                                         {% if notification.targetPlayerAvatar is not null %}
                                             <img class="rounded-circle" style="max-width: 50px;max-height: 50px;" alt="Avatar" src="{{ notification.targetPlayerAvatar|thumbnail('puzzle_small') }}">
                                         {% else %}
@@ -274,7 +275,7 @@
                                 <td class="align-middle fs-sm text-muted">
                                     <b style="color: #000;">{{ notification.notifiedAt|ago }}</b><br>
 
-                                    <a class="text-decoration-underline" href="{{ path('player_profile', {playerId: notification.targetPlayerId}) }}">
+                                    <a class="text-decoration-underline" href="{{ path('player_profile', {playerId: notification.targetPlayerId}) }}" data-player-card aria-haspopup="dialog">
                                         {{ notification.targetPlayerName }}
                                     </a>
                                     {{ 'notifications.group_time_edited'|trans }}
@@ -297,7 +298,7 @@
                                     {% if notification.targetPlayerIsPrivate %}
                                         <span class="avatar-name rounded-circle"><i class="bi bi-incognito"></i></span>
                                     {% else %}
-                                        <a href="{{ path('player_profile', {'playerId': notification.targetPlayerId}) }}">
+                                        <a href="{{ path('player_profile', {'playerId': notification.targetPlayerId}) }}" data-player-card aria-haspopup="dialog">
                                             {% if notification.targetPlayerAvatar is not null %}
                                                 <img class="rounded-circle" style="max-width: 50px;max-height: 50px;" alt="Avatar" src="{{ notification.targetPlayerAvatar|thumbnail('puzzle_small') }}">
                                             {% else %}
@@ -314,7 +315,7 @@
                                         <span class="player-name-item small text-muted">{{ 'secret_puzzler_name'|trans }}</span>
                                         <i class="bi bi-incognito text-muted"></i>
                                     {% elseif notification.players is null %}
-                                        <a class="text-decoration-underline" href="{{ path('player_profile', {playerId: notification.targetPlayerId}) }}">
+                                        <a class="text-decoration-underline" href="{{ path('player_profile', {playerId: notification.targetPlayerId}) }}" data-player-card aria-haspopup="dialog">
                                             {{ notification.targetPlayerName }}
                                         </a>
                                         {% if notification.targetPlayerCountry is not null %}
@@ -327,7 +328,7 @@
                                                     <span class="player-name-item small text-muted">{{ 'secret_puzzler_name'|trans }}</span>
                                                     <i class="bi bi-incognito text-muted"></i>
                                                 {% elseif puzzle_solver.playerId is not null %}
-                                                    <a class="text-decoration-underline" href="{{ path('player_profile', {playerId: puzzle_solver.playerId}) }}">
+                                                    <a class="text-decoration-underline" href="{{ path('player_profile', {playerId: puzzle_solver.playerId}) }}" data-player-card aria-haspopup="dialog">
                                                         {{ puzzle_solver.playerName ?? ('#' ~ puzzle_solver.playerCode) }}
                                                     </a>
                                                     {% if puzzle_solver.playerCountry is not null %}

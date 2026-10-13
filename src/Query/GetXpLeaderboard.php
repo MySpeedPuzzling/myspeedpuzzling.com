@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Query;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use DateTimeImmutable;
+use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Results\ProgressBoard;
 use SpeedPuzzling\Web\Results\ProgressBoardRow;
 use SpeedPuzzling\Web\Results\XpLeaderboardRow;
@@ -75,65 +76,7 @@ SQL;
         null|KarmaGroup $karmaGroup = null,
         null|DateTimeImmutable $karmaSince = null,
     ): ProgressBoard {
-        [$favoritesCondition, $params, $types] = $this->favoritesFilter($favoritePlayerIds);
-        $prelude = '';
-        $secondary = 'NULL::int';
-
-        if ($tab === ProgressLeaderboardTab::Karma) {
-            $hidden = $this->hiddenPlayers->sqlExclude('p.id');
-
-            if ($karmaGroup === null && $karmaSince === null) {
-                $prelude = 'WITH karma_board AS (SELECT p.id AS player_id, p.karma FROM player p WHERE p.karma > 0),';
-            } else {
-                $prelude = KarmaDerivation::itemsCte(scoped: false) . <<<SQL
-,
-karma_board AS (
-    SELECT i.player_id, COUNT(*) AS karma
-    FROM karma_items i
-    WHERE i.counted
-      AND (CAST(:karmaKinds AS TEXT) IS NULL OR i.kind = ANY(string_to_array(CAST(:karmaKinds AS TEXT), ',')))
-      AND (CAST(:karmaSince AS TIMESTAMP) IS NULL OR i.at >= CAST(:karmaSince AS TIMESTAMP))
-    GROUP BY i.player_id
-),
-SQL;
-                $params['karmaKinds'] = $karmaGroup !== null ? implode(',', $karmaGroup->kindValues()) : null;
-                $params['karmaSince'] = $karmaSince?->format('Y-m-d H:i:s');
-                // A filtered count is ranked - the karma in total is the secondary line
-                $secondary = 'p.karma';
-            }
-
-            $value = 'b.karma';
-            $from = <<<SQL
-FROM karma_board b
-JOIN player p ON p.id = b.player_id
-WHERE p.is_private = false
-  -- "Hide my karma" (docs/features/karma.md) - every filter
-  AND p.karma_opted_out = false
-  {$hidden}
-SQL;
-        } else {
-            $eligibility = $this->eligibility();
-            $prelude = 'WITH';
-
-            if ($tab === ProgressLeaderboardTab::AchievementPoints) {
-                $membership = self::ACTIVE_MEMBERSHIP;
-                $value = 'p.achievement_points';
-                $from = <<<SQL
-FROM player p
-JOIN membership m ON m.player_id = p.id AND {$membership}
-WHERE p.achievement_points > 0
-  AND p.achievements_opted_out = false
-  AND {$eligibility}
-SQL;
-            } else {
-                $value = 'p.xp_total';
-                $from = <<<SQL
-FROM player p
-WHERE p.xp_total > 0
-  AND {$eligibility}
-SQL;
-            }
-        }
+        [$boardCte, $params, $types] = $this->boardCte($tab, $favoritePlayerIds, $karmaGroup, $karmaSince);
 
         // Achievements held, read for the returned rows only (a sub-select of this statement, not a query of its own)
         $achievements = $tab === ProgressLeaderboardTab::AchievementPoints
@@ -143,24 +86,7 @@ SQL;
         $rows = $window->rowsToLoad();
 
         $sql = <<<SQL
-{$prelude}
-board AS (
-    SELECT
-        ROW_NUMBER() OVER (ORDER BY {$value} DESC, p.id ASC) AS position,
-        RANK() OVER (ORDER BY {$value} DESC) AS rank,
-        COUNT(*) OVER () AS total,
-        p.id AS player_id,
-        p.name AS player_name,
-        p.code,
-        p.country,
-        p.avatar,
-        {$value} AS value,
-        p.level,
-        {$secondary} AS secondary
-    {$from}
-      AND (CAST(:country AS TEXT) IS NULL OR p.country = :country)
-      {$favoritesCondition}
-),
+{$boardCte},
 -- Always one row, and the viewer's position looked up ONCE: a scalar sub-select runs as an InitPlan. A plain
 -- "SELECT position FROM board WHERE player_id = …" joined with LEFT JOIN me ON true got inlined and re-scanned the
 -- whole board for every board row - quadratic: 1.7 s on the 7.9k-player Level board for a signed-in viewer (2026-10-11)
@@ -221,6 +147,46 @@ SQL;
         }
 
         return new ProgressBoard($boardRows, $total, $ownPosition);
+    }
+
+    /**
+     * Where some players stand on one board (no favorites filter, karma without its kind and period filters, narrowed by
+     * the country) - their shared rank and value - and how many players the board holds, from board()'s own CTE
+     * (boardCte()), so a place here is the place in the board's rows. The player card's leaderboard context
+     * (docs/features/navigation CARD-02, GetPlayerCardContext). One statement; a player who is not on the board
+     * (private, opted out, hidden from the viewer, another country, no AP membership…) is simply missing.
+     *
+     * @param list<string> $playerIds
+     * @return array{total: int, positions: array<string, array{rank: int, value: int}>}
+     */
+    public function positionsOf(ProgressLeaderboardTab $tab, null|string $country, array $playerIds): array
+    {
+        [$boardCte, $params, $types] = $this->boardCte($tab, null, null, null);
+
+        $sql = <<<SQL
+{$boardCte}
+SELECT (SELECT COUNT(*) FROM board) AS total, board.player_id, board.rank, board.value
+FROM (SELECT 1) AS anchor
+LEFT JOIN board ON board.player_id IN (:playerIds)
+SQL;
+
+        /** @var list<array{total: int|string, player_id: null|string, rank: null|int|string, value: null|int|string}> $rows */
+        $rows = $this->database->executeQuery($sql, [
+            'country' => $country,
+            'playerIds' => $playerIds === [] ? [Uuid::NIL] : $playerIds,
+        ] + $params, [
+            'playerIds' => ArrayParameterType::STRING,
+        ] + $types)->fetchAllAssociative();
+
+        $positions = [];
+
+        foreach ($rows as $row) {
+            if ($row['player_id'] !== null && $row['rank'] !== null && $row['value'] !== null) {
+                $positions[strtolower($row['player_id'])] = ['rank' => (int) $row['rank'], 'value' => (int) $row['value']];
+            }
+        }
+
+        return ['total' => (int) ($rows[0]['total'] ?? 0), 'positions' => $positions];
     }
 
     /**
@@ -298,6 +264,104 @@ SQL;
         $countries = $this->database->executeQuery($sql)->fetchFirstColumn();
 
         return $countries;
+    }
+
+    /**
+     * The board of a tab as SQL ending in the CTE `board` (position, rank, total, player columns, value, level,
+     * secondary) - the one definition board() and positionsOf() read: who is on it, the value it ranks by, RANK() for
+     * the shared places and the stable order (value, then id), narrowed by the country (:country) and the favorites.
+     *
+     * @param null|list<string> $favoritePlayerIds
+     * @return array{string, array<string, mixed>, array<string, ArrayParameterType>}
+     */
+    private function boardCte(
+        ProgressLeaderboardTab $tab,
+        null|array $favoritePlayerIds,
+        null|KarmaGroup $karmaGroup,
+        null|DateTimeImmutable $karmaSince,
+    ): array {
+        [$favoritesCondition, $params, $types] = $this->favoritesFilter($favoritePlayerIds);
+        $prelude = '';
+        $secondary = 'NULL::int';
+
+        if ($tab === ProgressLeaderboardTab::Karma) {
+            $hidden = $this->hiddenPlayers->sqlExclude('p.id');
+
+            if ($karmaGroup === null && $karmaSince === null) {
+                $prelude = 'WITH karma_board AS (SELECT p.id AS player_id, p.karma FROM player p WHERE p.karma > 0),';
+            } else {
+                $prelude = KarmaDerivation::itemsCte(scoped: false) . <<<SQL
+,
+karma_board AS (
+    SELECT i.player_id, COUNT(*) AS karma
+    FROM karma_items i
+    WHERE i.counted
+      AND (CAST(:karmaKinds AS TEXT) IS NULL OR i.kind = ANY(string_to_array(CAST(:karmaKinds AS TEXT), ',')))
+      AND (CAST(:karmaSince AS TIMESTAMP) IS NULL OR i.at >= CAST(:karmaSince AS TIMESTAMP))
+    GROUP BY i.player_id
+),
+SQL;
+                $params['karmaKinds'] = $karmaGroup !== null ? implode(',', $karmaGroup->kindValues()) : null;
+                $params['karmaSince'] = $karmaSince?->format('Y-m-d H:i:s');
+                // A filtered count is ranked - the karma in total is the secondary line
+                $secondary = 'p.karma';
+            }
+
+            $value = 'b.karma';
+            $from = <<<SQL
+FROM karma_board b
+JOIN player p ON p.id = b.player_id
+WHERE p.is_private = false
+  -- "Hide my karma" (docs/features/karma.md) - every filter
+  AND p.karma_opted_out = false
+  {$hidden}
+SQL;
+        } else {
+            $eligibility = $this->eligibility();
+            $prelude = 'WITH';
+
+            if ($tab === ProgressLeaderboardTab::AchievementPoints) {
+                $membership = self::ACTIVE_MEMBERSHIP;
+                $value = 'p.achievement_points';
+                $from = <<<SQL
+FROM player p
+JOIN membership m ON m.player_id = p.id AND {$membership}
+WHERE p.achievement_points > 0
+  AND p.achievements_opted_out = false
+  AND {$eligibility}
+SQL;
+            } else {
+                $value = 'p.xp_total';
+                $from = <<<SQL
+FROM player p
+WHERE p.xp_total > 0
+  AND {$eligibility}
+SQL;
+            }
+        }
+
+        $sql = <<<SQL
+{$prelude}
+board AS (
+    SELECT
+        ROW_NUMBER() OVER (ORDER BY {$value} DESC, p.id ASC) AS position,
+        RANK() OVER (ORDER BY {$value} DESC) AS rank,
+        COUNT(*) OVER () AS total,
+        p.id AS player_id,
+        p.name AS player_name,
+        p.code,
+        p.country,
+        p.avatar,
+        {$value} AS value,
+        p.level,
+        {$secondary} AS secondary
+    {$from}
+      AND (CAST(:country AS TEXT) IS NULL OR p.country = :country)
+      {$favoritesCondition}
+)
+SQL;
+
+        return [$sql, $params, $types];
     }
 
     private function eligibility(): string

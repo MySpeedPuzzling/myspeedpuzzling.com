@@ -1258,6 +1258,27 @@ competition_referees:
     "unavailable": "La ficha de este puzzlero no está disponible."
     "recent_title": "Últimos puzzles"
     "view_profile": "Ver perfil"
+    "edit_result": "Editar este resultado"
+    "own_results_on_puzzle": "Tus resultados en este puzzle"
+    "context":
+        "puzzle_title": "En este puzzle"
+        "puzzle_rank": "Puesto %rank% de %total% · mejor %time% · %count% intento|Puesto %rank% de %total% · mejor %time% · %count% intentos"
+        "puzzle_group_only": "Resuelto aquí en pareja o equipo %count%×"
+        "puzzle_you_gap":
+            "faster": "Tú: %time% · %gap% más rápido"
+            "slower": "Tú: %time% · %gap% más lento"
+            "equal": "Tú: %time% · el mismo tiempo"
+        "puzzle_you_unsolved": "Tú: aún sin tiempo individual aquí"
+        "result_title": "Este resultado"
+        "result_line": "%time% · puesto %rank% de %total% en este puzzle"
+        "result_best": "%time% · mejor aquí %best%, puesto %rank% de %total%"
+        "result_relax": "Relax, sin tiempo"
+        "round_official": "Resultado oficial: puesto %rank% · %result%"
+        "round_unofficial": "%result% · añadido por el puzzler, no oficial"
+        "board":
+            "times": "Tiempos individuales más rápidos · %pieces% piezas"
+            "msp": "MSP Rating · %pieces% piezas"
+        "board_you": "Tú: puesto %rank%"
   "spotlight":
     "title_world": "Speed puzzleros de todo el mundo"
     "title_country": "Puzzleros de %country%"

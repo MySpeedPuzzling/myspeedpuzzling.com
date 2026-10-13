@@ -409,6 +409,34 @@ $card-link: var(--nav-active-ink, #c8323a);
     color: #a32646;
 }
 
+// The context block (CARD-02): what the player did on the page the card was opened from, the viewer's own line below
+.players-card-context {
+    padding: .5rem .75rem;
+    border-radius: .5rem;
+    background: $gray-100;
+
+    .players-card-section-title {
+        margin-bottom: .125rem;
+    }
+}
+
+.players-card-context-line,
+.players-card-context-you {
+    margin: 0;
+    font-size: .875rem;
+    line-height: 1.35;
+    font-variant-numeric: tabular-nums;
+}
+
+.players-card-context-line {
+    color: $gray-900;
+    font-weight: 500;
+}
+
+.players-card-context-you {
+    color: $card-label;
+}
+
 // The 3 latest puzzles: their boxes, links to the puzzle pages
 .players-card-section-title {
     margin: 0 0 .375rem;
@@ -470,6 +498,12 @@ $card-link: var(--nav-active-ink, #c8323a);
 
     > .players-card-more {
         flex: 0 0 auto;
+    }
+
+    // The own card (CARD-04): the action about the result or puzzle the card was opened on takes a row of its own,
+    // Edit profile · View profile · ⋯ stay one row below it
+    > .players-card-own-context {
+        flex-basis: 100%;
     }
 
     // Favorite · Compare · Message · ⋯ in 308 px (the popover; 328 px on a 360 phone): each icon over its label

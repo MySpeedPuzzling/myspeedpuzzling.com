@@ -152,7 +152,9 @@ SELECT * FROM (
         NULL::varchar AS round_slug,
         NULL::varchar AS round_competition_name,
         NULL::varchar AS round_competition_slug,
-        NULL::varchar AS round_series_slug
+        NULL::varchar AS round_series_slug,
+        -- The player card's context of the row (docs/features/navigation CARD-01b)
+        puzzle_solving_time.id AS target_time_id
     FROM notification
     LEFT JOIN puzzle_solving_time ON notification.target_solving_time_id = puzzle_solving_time.id
     INNER JOIN puzzle ON puzzle.id = puzzle_solving_time.puzzle_id
@@ -245,7 +247,8 @@ SELECT * FROM (
         NULL::varchar AS round_slug,
         NULL::varchar AS round_competition_name,
         NULL::varchar AS round_competition_slug,
-        NULL::varchar AS round_series_slug
+        NULL::varchar AS round_series_slug,
+        NULL::uuid AS target_time_id
     FROM notification
     INNER JOIN lent_puzzle_transfer lpt ON notification.target_transfer_id = lpt.id
     LEFT JOIN lent_puzzle lp ON lpt.lent_puzzle_id = lp.id
@@ -333,7 +336,8 @@ SELECT * FROM (
         NULL::varchar AS round_slug,
         NULL::varchar AS round_competition_name,
         NULL::varchar AS round_competition_slug,
-        NULL::varchar AS round_series_slug
+        NULL::varchar AS round_series_slug,
+        NULL::uuid AS target_time_id
     FROM notification
     INNER JOIN puzzle_change_request pcr ON notification.target_change_request_id = pcr.id
     INNER JOIN puzzle ON pcr.puzzle_id = puzzle.id
@@ -417,7 +421,8 @@ SELECT * FROM (
         NULL::varchar AS round_slug,
         NULL::varchar AS round_competition_name,
         NULL::varchar AS round_competition_slug,
-        NULL::varchar AS round_series_slug
+        NULL::varchar AS round_series_slug,
+        NULL::uuid AS target_time_id
     FROM notification
     INNER JOIN puzzle_merge_request pmr ON notification.target_merge_request_id = pmr.id
     -- LEFT: an approved merge often deletes the reported puzzle (source_puzzle_id is set NULL) - the reporter is told
@@ -509,7 +514,8 @@ SELECT * FROM (
         NULL::varchar AS round_slug,
         NULL::varchar AS round_competition_name,
         NULL::varchar AS round_competition_slug,
-        NULL::varchar AS round_series_slug
+        NULL::varchar AS round_series_slug,
+        NULL::uuid AS target_time_id
     FROM notification
     INNER JOIN sold_swapped_item ssi ON notification.target_sold_swapped_item_id = ssi.id
     INNER JOIN puzzle ON ssi.puzzle_id = puzzle.id
@@ -595,7 +601,8 @@ SELECT * FROM (
         NULL::varchar AS round_slug,
         NULL::varchar AS round_competition_name,
         NULL::varchar AS round_competition_slug,
-        NULL::varchar AS round_series_slug
+        NULL::varchar AS round_series_slug,
+        NULL::uuid AS target_time_id
     FROM notification
     INNER JOIN conversation conv ON notification.target_conversation_id = conv.id
     INNER JOIN player initiator ON conv.initiator_id = initiator.id
@@ -680,7 +687,8 @@ SELECT * FROM (
         NULL::varchar AS round_slug,
         NULL::varchar AS round_competition_name,
         NULL::varchar AS round_competition_slug,
-        NULL::varchar AS round_series_slug
+        NULL::varchar AS round_series_slug,
+        NULL::uuid AS target_time_id
     FROM notification
     WHERE notification.player_id = :playerId
         AND notification.type IN ('ModeratorRoleGranted', 'ModeratorRoleRevoked')
@@ -761,7 +769,8 @@ SELECT * FROM (
         competition_round.slug AS round_slug,
         competition.name AS round_competition_name,
         competition.slug AS round_competition_slug,
-        competition_series.slug AS round_series_slug
+        competition_series.slug AS round_series_slug,
+        NULL::uuid AS target_time_id
     FROM notification
     INNER JOIN competition_round ON competition_round.id = notification.target_competition_round_id
     INNER JOIN competition ON competition.id = competition_round.competition_id
@@ -845,7 +854,8 @@ SELECT * FROM (
         NULL::varchar AS round_slug,
         NULL::varchar AS round_competition_name,
         NULL::varchar AS round_competition_slug,
-        NULL::varchar AS round_series_slug
+        NULL::varchar AS round_series_slug,
+        NULL::uuid AS target_time_id
     FROM notification
     INNER JOIN puzzling_team ON puzzling_team.id = notification.target_puzzling_team_id
     INNER JOIN player actor ON actor.id = notification.actor_player_id
@@ -929,7 +939,8 @@ SELECT * FROM (
         NULL::varchar AS round_slug,
         NULL::varchar AS round_competition_name,
         NULL::varchar AS round_competition_slug,
-        NULL::varchar AS round_series_slug
+        NULL::varchar AS round_series_slug,
+        NULL::uuid AS target_time_id
     FROM notification
     INNER JOIN guest_link_request ON guest_link_request.id = notification.target_guest_link_request_id
     INNER JOIN player actor ON actor.id = notification.actor_player_id

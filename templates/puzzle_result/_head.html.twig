@@ -2,17 +2,22 @@
     Whose results (player or pair/team members) with their rank on the left, the best time with its gaps on the right.
     In the modal it is part of the pinned header, on the full page it stands above the body.
 
+    The names open the player card on the full page, with this puzzle as its context (docs/features/navigation CARD-01b);
+    inside the modal they stay plain profile links - no triggers inside modals (README §4.8, decision 73).
+
     Inputs:
       - result: PuzzleResultDetail
+      - in_modal (bool, optional): rendered in the global modal (puzzle_result/_modal.html.twig)
 #}
 {%- set best = result.bestAttempt -%}
 {%- set standing = result.standing -%}
 {%- set links_turbo_frame = '_top' -%}
-<div class="pr-head">
+{%- set player_card = not (in_modal ?? false) -%}
+<div class="pr-head"{% if player_card %} data-player-card-context="puzzle:{{ result.puzzleId }}"{% endif %}>
     <div class="pr-subject">
         {% if result.isGroup %}
             {% for member in result.players %}
-                {{ include('_leaderboard_player.html.twig', {player: member, small: true}) }}
+                {{ include('_leaderboard_player.html.twig', {player: member, small: true, player_card: player_card}) }}
             {% endfor %}
             {% if result.teamId %}
                 <a class="pr-team-link" data-turbo-frame="_top" href="{{ path('puzzling_team_detail', {teamId: result.teamId}) }}">
@@ -20,7 +25,7 @@
                 </a>
             {% endif %}
         {% else %}
-            {{ include('_leaderboard_player.html.twig', {player: result.player}) }}
+            {{ include('_leaderboard_player.html.twig', {player: result.player, player_card: player_card}) }}
         {% endif %}
 
         {% if standing is not null %}

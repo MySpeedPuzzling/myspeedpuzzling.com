@@ -1,0 +1,100 @@
+{#
+    The player card's context block (docs/features/navigation README §4.8, CARD-02): what the player did on the page the
+    card was opened from - from GetPlayerCardContext, one statement per kind, ranks read from the surface's own SQL.
+    "You" lines only for a signed-in viewer on somebody else's card (a guest's card stays the same for every guest).
+
+    Inputs: context (PlayerCardContext), block (PlayerCardPuzzleContext | PlayerCardResultContext |
+    PlayerCardRoundContext | PlayerCardBoardContext), actions (PlayerActions)
+#}
+{%- set kind = context.kind.value -%}
+{%- set you = not actions.isOwn -%}
+{%- macro gap(viewer_time, gap) -%}
+    {%- if gap < 0 -%}
+        {{ 'players.card.context.puzzle_you_gap.faster'|trans({'%time%': viewer_time|puzzlingTime, '%gap%': gap|gapTime|trim('+', 'left')}) }}
+    {%- elseif gap > 0 -%}
+        {{ 'players.card.context.puzzle_you_gap.slower'|trans({'%time%': viewer_time|puzzlingTime, '%gap%': gap|gapTime|trim('+', 'left')}) }}
+    {%- else -%}
+        {{ 'players.card.context.puzzle_you_gap.equal'|trans({'%time%': viewer_time|puzzlingTime}) }}
+    {%- endif -%}
+{%- endmacro -%}
+<section class="players-card-context" aria-labelledby="players-card-context-title" data-card-context="{{ kind }}">
+    {% if kind == 'puzzle' %}
+        <h3 class="players-card-section-title" id="players-card-context-title">{{ 'players.card.context.puzzle_title'|trans }}</h3>
+        {% if block.rank is not null %}
+            <p class="players-card-context-line">{{ 'players.card.context.puzzle_rank'|trans({'%rank%': block.rank, '%total%': block.total, '%time%': block.bestTime|puzzlingTime, '%count%': block.attempts}) }}</p>
+            {% if you and block.viewerSignedIn %}
+                <p class="players-card-context-you">
+                    {%- if block.viewerTime is null -%}
+                        {{ 'players.card.context.puzzle_you_unsolved'|trans }}
+                    {%- else -%}
+                        {{ _self.gap(block.viewerTime, block.viewerGap) }}
+                    {%- endif -%}
+                </p>
+            {% endif %}
+        {% elseif block.groupAttempts > 0 %}
+            <p class="players-card-context-line">{{ 'players.card.context.puzzle_group_only'|trans({'%count%': block.groupAttempts}) }}</p>
+        {% endif %}
+    {% elseif kind == 'feed' or kind == 'notification' %}
+        <h3 class="players-card-section-title" id="players-card-context-title">{{ 'players.card.context.result_title'|trans }}</h3>
+        <p class="players-card-context-line">
+            {%- if block.time is null -%}
+                {{ 'players.card.context.result_relax'|trans }}
+            {%- elseif block.rank is null -%}
+                {{ block.time|puzzlingTime }}
+            {%- elseif block.isBest -%}
+                {{ 'players.card.context.result_line'|trans({'%time%': block.time|puzzlingTime, '%rank%': block.rank, '%total%': block.total}) }}
+            {%- else -%}
+                {{ 'players.card.context.result_best'|trans({'%time%': block.time|puzzlingTime, '%best%': block.subjectBestTime|puzzlingTime, '%rank%': block.rank, '%total%': block.total}) }}
+            {%- endif -%}
+        </p>
+        {% if you and block.viewerSignedIn and block.isSolo and block.time is not null %}
+            <p class="players-card-context-you">
+                {%- if block.viewerTime is null -%}
+                    {{ 'players.card.context.puzzle_you_unsolved'|trans }}
+                {%- else -%}
+                    {{ _self.gap(block.viewerTime, block.viewerGap) }}
+                {%- endif -%}
+            </p>
+        {% endif %}
+    {% elseif kind == 'round' %}
+        <h3 class="players-card-section-title" id="players-card-context-title">{{ block.roundName }} · {{ block.competitionName }}</h3>
+        {% set result_text %}{{ include('official_results/_result.html.twig', {result: block.result, pieces_count: block.piecesCount}) }}{% endset %}
+        <p class="players-card-context-line">
+            {%- if block.official -%}
+                {{ 'players.card.context.round_official'|trans({'%rank%': block.rank, '%result%': result_text|trim}) }}
+                {%- if block.qualified %} · {{ 'official_results.qualified'|trans }}{% endif -%}
+            {%- else -%}
+                {{ 'players.card.context.round_unofficial'|trans({'%result%': result_text|trim}) }}
+            {%- endif -%}
+        </p>
+    {% elseif kind == 'leaderboard' %}
+        {%- set board = block.board -%}
+        {%- set tab = board.progressTab -%}
+        <h3 class="players-card-section-title" id="players-card-context-title">
+            {%- if tab is not null -%}
+                {{ ('xp.leaderboard.board.' ~ tab.value ~ '.tab')|trans }}
+            {%- else -%}
+                {{ ('players.card.context.board.' ~ board.kind)|trans({'%pieces%': board.piecesCount}) }}
+            {%- endif -%}
+        </h3>
+        {%- set value -%}
+            {%- if board.kind == 'times' -%}
+                {{ block.value|puzzlingTime }}
+            {%- elseif board.kind == 'msp' -%}
+                {{ block.value|plain_number }}
+            {%- else -%}
+                {{ ('leaderboards.value.' ~ tab.value)|trans({'%value%': block.value|plain_number}) }}
+            {%- endif -%}
+        {%- endset -%}
+        <p class="players-card-context-line">
+            {%- if board.country is not null -%}
+                {{ 'leaderboards.position.rank_scoped'|trans({'%rank%': block.rank, '%total%': block.total, '%scope%': 'leaderboards.position.in_country'|trans({'%country%': board.country.value})}) }}
+            {%- else -%}
+                {{ 'leaderboards.position.rank_world'|trans({'%rank%': block.rank, '%total%': block.total}) }}
+            {%- endif %} · {{ value -}}
+        </p>
+        {% if you and block.viewerRank is not null %}
+            <p class="players-card-context-you">{{ 'players.card.context.board_you'|trans({'%rank%': block.viewerRank}) }}</p>
+        {% endif %}
+    {% endif %}
+</section>

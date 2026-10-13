@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Controller;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Query\GetPlayerCard;
+use SpeedPuzzling\Web\Query\GetPlayerCardContext;
 use SpeedPuzzling\Web\Query\GetPlayerProfile;
 use SpeedPuzzling\Web\Services\PlayerActionsResolver;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
@@ -20,8 +21,9 @@ use Symfony\Component\Routing\Attribute\Route;
  * The player card (docs/features/navigation README §4.8, CARD-*; first built for the Players page,
  * docs/features/players-page/README.md): fetched into <turbo-frame id="player-card"> when a player name is tapped
  * (assets/player_card.js → assets/player_card_layer.js), a minimal noindex page otherwise. Two statements: the profile
- * (GetPlayerProfile::byId() 404s hidden players) and the card incl. its latest puzzles - plus one only when the player
- * switched direct messages off (PlayerActionsResolver, the decisions shared with the player header).
+ * (GetPlayerProfile::byId() 404s hidden players) and the card incl. its latest puzzles - plus one for the context block
+ * of the page it was opened from (`?context=`, GetPlayerCardContext, CARD-02) and one only when the player switched direct
+ * messages off (PlayerActionsResolver, the decisions shared with the player header).
  *
  * A card never shows a private player - only to themselves and their allow list. Favorite and Compare stay inside the
  * frame: both come back here through their `return` (the card's URL with its `context`), so the card shows the new
@@ -37,6 +39,7 @@ final class PlayerCardController extends AbstractController
         readonly private GetPlayerCard $getPlayerCard,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private PlayerActionsResolver $playerActionsResolver,
+        readonly private GetPlayerCardContext $getPlayerCardContext,
         readonly private ClockInterface $clock,
     ) {
     }
@@ -79,11 +82,16 @@ final class PlayerCardController extends AbstractController
             return $response;
         }
 
+        // The context block (CARD-02) - only after the gate above, and never a status of its own: a context that does
+        // not apply is no block
+        $context = PlayerCardContext::tryFrom($request->query->get('context'));
+
         $response = $this->render($inFrame ? 'players/_card_frame.html.twig' : 'players/card.html.twig', [
             'player' => $player,
             'card' => $card,
             'actions' => $this->playerActionsResolver->resolve($player, $viewer),
-            'context' => PlayerCardContext::tryFrom($request->query->get('context')),
+            'context' => $context,
+            'context_block' => $context !== null ? $this->getPlayerCardContext->forCard($context, $player, $viewer) : null,
             'viewer_is_member' => $viewerIsMember,
             'activity' => $viewerIsMember ? $card->activity($this->clock->now()) : [],
         ]);

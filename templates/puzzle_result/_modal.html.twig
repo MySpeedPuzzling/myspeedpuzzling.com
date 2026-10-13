@@ -13,7 +13,8 @@
                     {{ include('puzzle_result/_puzzle.html.twig', {result: result, heading: 'h5', difficulty_tiers: difficulty_tiers}) }}
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ 'puzzle_result.close'|trans }}"></button>
                 </div>
-                {{ include('puzzle_result/_head.html.twig', {result: result}) }}
+                {# No player card triggers inside the modal (docs/features/navigation README §4.8): the names link to the profile #}
+                {{ include('puzzle_result/_head.html.twig', {result: result, in_modal: true}) }}
             </div>
         </div>
         <div class="modal-body pr-modal-body" data-bottom-sheet-target="body">

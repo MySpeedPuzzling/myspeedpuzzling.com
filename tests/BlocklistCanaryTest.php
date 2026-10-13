@@ -255,6 +255,85 @@ final class BlocklistCanaryTest extends WebTestCase
     }
 
     /**
+     * The player card's context blocks (navigation CARD-02, CARD-05): whatever the context, the blocked player's card is
+     * the blocker's neutral 404 - the same bytes as without a context (a context never changes the answer, nor tells
+     * what it pointed at)
+     */
+    #[DataProvider('provideCardContexts')]
+    public function testTheCardOfABlockedPlayerIsTheSameNeutral404WithAnyContext(string $context): void
+    {
+        $browser = self::createClient();
+        $url = '/en/puzzler-card/' . self::BLOCKED;
+        $frame = ['HTTP_TURBO_FRAME' => 'player-card'];
+
+        self::getContainer()->get(Connection::class)->executeStatement(
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, NOW(), 'self')",
+            ['id' => Uuid::uuid7()->toString(), 'blocker' => self::BLOCKER, 'blocked' => self::BLOCKED],
+        );
+
+        TestingLogin::asPlayer($browser, self::BYSTANDER);
+        $browser->request('GET', $url . '?context=' . rawurlencode($context), server: $frame);
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString(self::BLOCKED_NAME, (string) $browser->getResponse()->getContent(), 'No canary: the card does not name the player to a bystander.');
+
+        TestingLogin::asPlayer($browser, self::BLOCKER);
+        $browser->request('GET', $url, server: $frame);
+        self::assertResponseStatusCodeSame(404);
+        $withoutContext = (string) $browser->getResponse()->getContent();
+
+        $browser->request('GET', $url . '?context=' . rawurlencode($context), server: $frame);
+        self::assertResponseStatusCodeSame(404);
+        self::assertSame($withoutContext, (string) $browser->getResponse()->getContent());
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function provideCardContexts(): iterable
+    {
+        yield 'puzzle' => ['puzzle:' . PuzzleFixture::PUZZLE_500_02];
+        yield 'feed result' => ['feed:' . PuzzleSolvingTimeFixture::TIME_05];
+        yield 'notification result' => ['notification:' . PuzzleSolvingTimeFixture::TIME_05];
+        yield 'event round' => ['round:' . OfficialResultsFixture::ROUND_GROUP_A];
+        yield 'times board' => ['leaderboard:times-500'];
+        yield 'MSP Rating board' => ['leaderboard:msp-500'];
+    }
+
+    /**
+     * A third player's card (CARD-02): the blocked player's result is not on the puzzle's leaderboard nor on the board
+     * for the blocker - their place closes up on the card exactly like on the page (PLAYER_WITH_STRIPE's 33:20 on
+     * PUZZLE_500_02 is faster than PLAYER_ADMIN's 35:00; on the 500-piece board they are one player of the board). The
+     * same viewer before and after the block, so only the block makes the difference.
+     */
+    public function testABlockedPlayersResultCountsOnAnotherCardForTheBlockerNever(): void
+    {
+        $browser = self::createClient();
+        $puzzleCard = '/en/puzzler-card/' . PlayerFixture::PLAYER_ADMIN . '?context=' . rawurlencode('puzzle:' . PuzzleFixture::PUZZLE_500_02);
+        $boardCard = '/en/puzzler-card/' . PlayerFixture::PLAYER_ADMIN . '?context=' . rawurlencode('leaderboard:times-500');
+        $frame = ['HTTP_TURBO_FRAME' => 'player-card'];
+        $place = static function (Crawler $crawler): array {
+            self::assertSame(1, preg_match('~^#(\d+) of (\d+)~', trim($crawler->filter('.players-card-context-line')->text()), $match));
+
+            return [(int) $match[1], (int) $match[2]];
+        };
+
+        TestingLogin::asPlayer($browser, self::BLOCKER);
+        $puzzleBefore = $place($browser->request('GET', $puzzleCard, server: $frame));
+        $boardBefore = $place($browser->request('GET', $boardCard, server: $frame));
+
+        self::getContainer()->get(Connection::class)->executeStatement(
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, NOW(), 'self')",
+            ['id' => Uuid::uuid7()->toString(), 'blocker' => self::BLOCKER, 'blocked' => self::BLOCKED],
+        );
+
+        $puzzleAfter = $place($browser->request('GET', $puzzleCard, server: $frame));
+        $boardAfter = $place($browser->request('GET', $boardCard, server: $frame));
+
+        self::assertSame([$puzzleBefore[0] - 1, $puzzleBefore[1] - 1], $puzzleAfter, 'The blocked player\'s faster result still counts for the blocker.');
+        self::assertSame($boardBefore[1] - 1, $boardAfter[1], 'The blocked player is still on the board for the blocker.');
+    }
+
+    /**
      * The favorite puzzlers page is the owner's alone, so there is no bystander to compare with: the blocker sees the
      * follower until the block, and never after it.
      */

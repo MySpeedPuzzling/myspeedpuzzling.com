@@ -41,7 +41,9 @@ final class CommunityLandingPreviewsTest extends WebTestCase
             array_map(static fn (SolvedPuzzle $leader): string => '/en/player-profile/' . $leader->playerId, $top),
             $rows->filter('a.lb-name')->each(static fn (Crawler $link): string => (string) $link->attr('href')),
         );
-        self::assertCount(CommunityPreview::LEADERS, $rows->filter('a[data-nav="community/community/leader"]'));
+        // One name per leader; its avatar is a second link to the same profile, with the same id (CARD-01b, decision 73)
+        self::assertCount(CommunityPreview::LEADERS, $rows->filter('a.lb-name[data-nav="community/community/leader"]'));
+        self::assertCount(CommunityPreview::LEADERS, $rows->filter('a.lb-avatar-link[data-nav="community/community/leader"]'));
         self::assertStringContainsString('Fastest solo · 500 pieces', $crawler->filter('.community-leaderboards .community-preview-title')->text());
     }
 

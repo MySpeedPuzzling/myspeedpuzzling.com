@@ -78,6 +78,9 @@ final class ComparisonSimilarSpeedTest extends WebTestCase
         self::assertCount(1, $crawler->filter('[data-testid="comparison-similar-add"]'));
         self::assertCount(1, $crawler->filter('[data-testid="comparison-similar-roll-again"]'));
         self::assertStringContainsString($this->candidate, (string) $crawler->filter('a.cmp-similar-profile')->attr('href'));
+        // The profile link opens the player card (docs/features/navigation CARD-01b)
+        self::assertNotNull($crawler->filter('a.cmp-similar-profile')->attr('data-player-card'));
+        self::assertSame('dialog', $crawler->filter('a.cmp-similar-profile')->attr('aria-haspopup'));
         self::assertStringContainsString('Picked from players with public profiles who take part in rankings.', $crawler->text());
     }
 

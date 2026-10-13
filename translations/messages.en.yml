@@ -1759,6 +1759,27 @@ players:
         unavailable: "This puzzler's card isn't available."
         recent_title: "Latest puzzles"
         view_profile: "View profile"
+        edit_result: "Edit this result"
+        own_results_on_puzzle: "Your results on this puzzle"
+        context:
+            puzzle_title: "On this puzzle"
+            puzzle_rank: "#%rank% of %total% · best %time% · %count% attempt|#%rank% of %total% · best %time% · %count% attempts"
+            puzzle_group_only: "Solved here in a pair or team %count%×"
+            puzzle_you_gap:
+                faster: "You: %time% · %gap% faster"
+                slower: "You: %time% · %gap% slower"
+                equal: "You: %time% · the same time"
+            puzzle_you_unsolved: "You: no solo time here yet"
+            result_title: "This result"
+            result_line: "%time% · #%rank% of %total% on this puzzle"
+            result_best: "%time% · best here %best%, #%rank% of %total%"
+            result_relax: "Relax, no time"
+            round_official: "Official result: #%rank% · %result%"
+            round_unofficial: "%result% · added by the puzzler, not official"
+            board:
+                times: "Fastest solo times · %pieces% pieces"
+                msp: "MSP Rating · %pieces% pieces"
+            board_you: "You: #%rank%"
 
     spotlight:
         title_world: "Speed puzzlers worldwide"

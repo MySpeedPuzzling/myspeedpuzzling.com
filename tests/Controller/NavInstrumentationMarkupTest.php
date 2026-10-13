@@ -111,13 +111,14 @@ final class NavInstrumentationMarkupTest extends WebTestCase
         // The Community landing (COM-01a) with its previews (COM-01): the solo 500-piece leaders, the most active puzzlers
         // (none in the fixtures: the community stats are not computed), the next events - each card's call to action last,
         // Compare beside Find puzzlers for signed-in viewers only (its registry audience, review PUZ+COM Q1)
+        // Each leader twice: the avatar is a second link to the same profile (CARD-01b, decision 73)
         yield 'community landing' => ['/en/community', [], '.community-landing', [
-            'community/community/leader', 'community/community/leader', 'community/community/leader', 'community/community/leaderboards',
+            'community/community/leader', 'community/community/leader', 'community/community/leader', 'community/community/leader', 'community/community/leader', 'community/community/leader', 'community/community/leaderboards',
             'community/community/puzzlers',
             'community/community/event', 'community/community/event', 'community/community/event', 'community/community/events',
         ]];
         yield 'community landing (player)' => ['/en/community', [], '.community-landing', [
-            'community/community/leader', 'community/community/leader', 'community/community/leader', 'community/community/leaderboards',
+            'community/community/leader', 'community/community/leader', 'community/community/leader', 'community/community/leader', 'community/community/leader', 'community/community/leader', 'community/community/leaderboards',
             'community/community/puzzlers', 'community/community/compare',
             'community/community/event', 'community/community/event', 'community/community/event', 'community/community/events',
         ], PlayerFixture::PLAYER_REGULAR];

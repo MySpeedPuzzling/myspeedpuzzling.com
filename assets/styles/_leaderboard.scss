@@ -145,6 +145,15 @@ $lb-tints: (
     }
 }
 
+// The avatar is a second link to the profile when the row opens the player card (CARD-01b, decision 73): a bigger tap
+// target, out of the tab order - the name is the one keyboard stop
+.lb-avatar-link {
+    display: flex;
+    flex-shrink: 0;
+    color: inherit;
+    text-decoration: none;
+}
+
 .lb-avatar {
     position: relative;
     flex-shrink: 0;

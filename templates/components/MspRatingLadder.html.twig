@@ -76,7 +76,8 @@
         {% set is_member = logged_user.profile is not null and logged_user.profile.activeMembership %}
         {# Same row as the puzzle leaderboards (_leaderboard_player.html.twig, _leaderboard.scss): never scrolls sideways #}
         <div class="custom-table-wrapper lb-wrapper">
-            <table class="table custom-table table-hover lb-table mb-0">
+            {# The names open the player card with this list as its context (docs/features/navigation CARD-01b) #}
+            <table class="table custom-table table-hover lb-table mb-0"{% if this.playerCardContext %} data-player-card-context="{{ this.playerCardContext }}"{% endif %}>
                 <thead>
                     <tr>
                         <th scope="col" class="lb-rank-head">#</th>

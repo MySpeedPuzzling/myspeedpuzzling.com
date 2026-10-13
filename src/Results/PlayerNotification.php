@@ -89,6 +89,8 @@ readonly final class PlayerNotification
         public null|string $roundCompetitionName = null,
         public null|string $roundCompetitionSlug = null,
         public null|string $roundSeriesSlug = null,
+        // The result a solving-time notification is about - the player card's context (docs/features/navigation CARD-01b)
+        public null|string $targetTimeId = null,
     ) {
     }
 
@@ -211,6 +213,7 @@ readonly final class PlayerNotification
             roundCompetitionName: is_string($row['round_competition_name'] ?? null) ? $row['round_competition_name'] : null,
             roundCompetitionSlug: is_string($row['round_competition_slug'] ?? null) ? $row['round_competition_slug'] : null,
             roundSeriesSlug: is_string($row['round_series_slug'] ?? null) ? $row['round_series_slug'] : null,
+            targetTimeId: is_string($row['target_time_id'] ?? null) ? $row['target_time_id'] : null,
         );
     }
 

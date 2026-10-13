@@ -123,7 +123,7 @@
                         </td>
 
                         <td class="fs-sm">
-                            {% if participant.playerCountry %}<small class="shadow-custom me-1 fi fi-{{ participant.playerCountry.name }}"></small> {% endif %}<a href="{{ path('player_profile', {'playerId': participant.playerId}) }}" class="text-decoration-underline wjpc-participant-name">{{ participant.playerName }}</a><br>
+                            {% if participant.playerCountry %}<small class="shadow-custom me-1 fi fi-{{ participant.playerCountry.name }}"></small> {% endif %}<a href="{{ path('player_profile', {'playerId': participant.playerId}) }}" class="text-decoration-underline wjpc-participant-name" data-player-card aria-haspopup="dialog">{{ participant.playerName }}</a><br>
                             {{ participant.participantName }}<br>
                         </td>
 

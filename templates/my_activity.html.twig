@@ -227,7 +227,7 @@
                 <ul class="list-unstyled mb-0">
                     {% for favorite in activity.favoritesActivity %}
                         <li>
-                            <a class="d-flex justify-content-between py-2 border-bottom my-activity-link" href="{{ path('player_profile', {playerId: favorite.playerId}) }}">
+                            <a class="d-flex justify-content-between py-2 border-bottom my-activity-link" href="{{ path('player_profile', {playerId: favorite.playerId}) }}" data-player-card aria-haspopup="dialog">
                                 <span>{{ favorite.name }}</span>
                                 <span class="text-body-secondary">{{ 'my_activity.favorite_solves'|trans({'%count%': favorite.solves}) }}</span>
                             </a>

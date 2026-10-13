@@ -4,6 +4,13 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
+## Navigation redesign - player card (`docs/features/navigation/`, CARD-02)
+
+- [ ] The card's Times-board context (`GetFastestPlayers::positionsOf()`) costs what the board's own window costs (the
+      same `BestTimes` aggregate) on every open - and a desktop hover prefetches it. If it shows in Tempo, cache the
+      ranked board for viewers who hide nobody like `TimesBoardGuestCache` does for guests (keep CARD-06's statement
+      pins in mind).
+
 ## Navigation redesign - player Results (`docs/features/navigation/`, PROF-05a, PROF-06)
 
 - [ ] One release after the profile stops rendering it (PROF-03): delete `PlayerSolvedPuzzles` (`src/Component/`,
@@ -710,8 +717,8 @@ player lost the form. Shipped: limit 128M (`web-base-php85/php.ini`), photos up 
       player, chart for members, like the puzzle page).
 - [ ] Hub rework (Jan, 2026-10-03: catch-up + trending + recent activity of all sorts, digests of other sections,
       likes/comments later): "See all" from Hub people widgets into Players, `player_moment` rows as feed items.
-- [ ] Player card on leaderboards, the feed and puzzle pages (avatar/name taps; a puzzle leaderboard row tap stays the
-      result detail).
+- [x] Player card on leaderboards, the feed and puzzle pages (avatar/name taps; a puzzle leaderboard row tap stays the
+      result detail) - docs/features/navigation CARD-01b, 2026-10-13.
 - [ ] Measure after a few weeks: Players visitors per day against the 53 baseline (Tempo), Favorite/Compare started
       from the card, the share of new sign-ups with a country.
 - [ ] Remove the "New" badges from the menu and footer Players links once the page is not new any more.

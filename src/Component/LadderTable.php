@@ -15,6 +15,7 @@ use SpeedPuzzling\Web\Value\CountryCode;
 use SpeedPuzzling\Web\Value\DifficultyTier;
 use SpeedPuzzling\Web\Value\LeaderboardPosition;
 use SpeedPuzzling\Web\Value\LeaderboardWindow;
+use SpeedPuzzling\Web\Value\PlayerCardBoard;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
 use Symfony\UX\LiveComponent\Attribute\LiveAction;
 use Symfony\UX\LiveComponent\Attribute\LiveProp;
@@ -297,6 +298,15 @@ final class LadderTable
         $country = $this->getCountry();
 
         return $country !== null ? ['countryCode' => $country->name] : [];
+    }
+
+    /**
+     * The player card's context of this board (docs/features/navigation CARD-02): the solo Times board of the piece count
+     * and country - the pair and team boards rank pairs/teams, not the person on the card (decision 73)
+     */
+    public function getPlayerCardContext(): null|string
+    {
+        return $this->type === 'solo' ? PlayerCardBoard::contextOf(PlayerCardBoard::TIMES, $this->piecesCount, $this->getCountry()?->name) : null;
     }
 
     public function getCountry(): null|CountryCode

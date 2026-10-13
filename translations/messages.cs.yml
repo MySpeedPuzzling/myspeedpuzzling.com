@@ -1308,6 +1308,27 @@ competition_referees:
     "unavailable": "Karta tohoto puzzlera není k dispozici."
     "recent_title": "Poslední puzzle"
     "view_profile": "Zobrazit profil"
+    "edit_result": "Upravit tento výsledek"
+    "own_results_on_puzzle": "Tvoje výsledky na tomto puzzle"
+    "context":
+        "puzzle_title": "Na tomto puzzle"
+        "puzzle_rank": "%rank%. z %total% · nejlepší %time% · %count% pokus|%rank%. z %total% · nejlepší %time% · %count% pokusy|%rank%. z %total% · nejlepší %time% · %count% pokusů"
+        "puzzle_group_only": "Složeno tady ve dvojici nebo týmu %count%×"
+        "puzzle_you_gap":
+            "faster": "Ty: %time% · o %gap% rychleji"
+            "slower": "Ty: %time% · o %gap% pomaleji"
+            "equal": "Ty: %time% · stejný čas"
+        "puzzle_you_unsolved": "Ty: tady zatím bez sólo času"
+        "result_title": "Tento výsledek"
+        "result_line": "%time% · %rank%. z %total% na tomto puzzle"
+        "result_best": "%time% · nejlepší tady %best%, %rank%. z %total%"
+        "result_relax": "Relax, bez času"
+        "round_official": "Oficiální výsledek: %rank%. místo · %result%"
+        "round_unofficial": "%result% · čas od puzzlera, není oficiální"
+        "board":
+            "times": "Nejrychlejší sólo časy · %pieces% dílků"
+            "msp": "MSP Rating · %pieces% dílků"
+        "board_you": "Ty: %rank%. místo"
   "spotlight":
     "title_world": "Speed puzzleři z celého světa"
     "title_country": "Puzzleři ze země %country%"

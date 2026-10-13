@@ -11,7 +11,8 @@
     {{ include('round_results/_puzzle_card.html.twig') }}
 {% endfor %}
 
-<section class="mt-4 mb-3" aria-labelledby="official-results-heading" data-official-results>
+{# The names open the player card with this round as its context (docs/features/navigation CARD-01b) #}
+<section class="mt-4 mb-3" aria-labelledby="official-results-heading" data-official-results data-player-card-context="round:{{ round.id }}">
     <h2 class="h5 mb-1" id="official-results-heading"><i class="bi bi-trophy me-1" aria-hidden="true"></i>{{ 'round_results.official.heading'|trans }}</h2>
     <p class="small text-muted mb-2">{{ 'round_results.official.source'|trans }}</p>
 

@@ -45,6 +45,24 @@ final class GetNotificationsTest extends KernelTestCase
         self::assertFalse($notification->unboxed);
     }
 
+    /**
+     * The result a solving-time notification is about rides along in the same statement - the player card's context of
+     * the row (docs/features/navigation CARD-01b); every other kind has none
+     */
+    public function testASolvingTimeNotificationCarriesItsTimeForThePlayerCard(): void
+    {
+        $notification = $this->groupEditOf(PuzzleSolvingTimeFixture::TIME_01);
+        self::assertSame(PuzzleSolvingTimeFixture::TIME_01, $notification->targetTimeId);
+
+        $this->notify(PlayerFixture::PLAYER_WITH_FAVORITES, 'PuzzlePassedToYou', 'target_transfer_id', LentPuzzleTransferFixture::TRANSFER_06);
+        $lending = array_values(array_filter(
+            $this->query->forPlayer(PlayerFixture::PLAYER_WITH_FAVORITES, 100),
+            static fn (PlayerNotification $notification): bool => $notification->isLendingNotification(),
+        ));
+        self::assertCount(1, $lending);
+        self::assertNull($lending[0]->targetTimeId);
+    }
+
     public function testPuzzleSolvingNotificationContainsUnboxedFlag(): void
     {
         $notification = $this->groupEditOf(PuzzleSolvingTimeFixture::TIME_45_UNBOXED);

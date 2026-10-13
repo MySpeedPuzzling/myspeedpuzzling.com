@@ -31,6 +31,8 @@ final class SeriesPickQueryCoverageTest extends TestCase
         'Query/GetCompetitionSlugsForSitemap.php' => self::ROUND_LEVEL,
         'Query/GetNotifications.php' => self::NOT_A_TIMES_EVENT,
         'Query/GetParticipantsSheetState.php' => self::ROUND_LEVEL,
+        // The player card's round context (docs/features/navigation CARD-02) reads a round's linked times by round
+        'Query/GetPlayerCardContext.php' => self::ROUND_LEVEL,
         'Query/GetPublishedRoundResults.php' => self::ROUND_LEVEL,
         'Query/GetSuggestedPlayers.php' => self::PARTICIPANTS,
         'Query/OccurrenceRounds.php' => self::ROUND_LEVEL,

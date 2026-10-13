@@ -17,7 +17,7 @@
 {% macro holder_row(holder) %}
     {% set name = holder.playerName ?? ('#' ~ holder.playerCode|upper) %}
     <li class="holder-row">
-        <a href="{{ path('player_profile', {playerId: holder.playerId}) }}" class="holder-row-link">
+        <a href="{{ path('player_profile', {playerId: holder.playerId}) }}" class="holder-row-link" data-player-card aria-haspopup="dialog">
             {{ include('_player_avatar.html.twig', {
                 player_id: holder.playerId,
                 name: name,

@@ -303,21 +303,8 @@ SQL;
     public function standing(string $puzzleId, string $puzzlingType, string $subjectId, null|string $viewerPlayerId): null|PuzzleResultStanding
     {
         if ($puzzlingType === 'solo') {
-            $notHidden = $this->hiddenPlayers->sqlExclude('player.id');
-
             $query = <<<SQL
-WITH best AS (
-    SELECT pst.player_id AS subject_id, MIN(pst.seconds_to_solve) AS best_time
-    FROM puzzle_solving_time pst
-        INNER JOIN player ON player.id = pst.player_id
-    WHERE pst.puzzle_id = :puzzleId
-        AND pst.puzzling_type = 'solo'
-        AND pst.seconds_to_solve IS NOT NULL
-        AND pst.suspicious = false
-        AND ({$this->privateProfileAccess->sqlIsPrivate('player')} = false OR player.id = :viewerId)
-        {$notHidden}
-    GROUP BY pst.player_id
-),
+WITH {$this->soloBestCte()},
 subject AS (
     SELECT best_time FROM best WHERE subject_id = :subjectId
 )
@@ -332,35 +319,8 @@ SELECT
 FROM best
 SQL;
         } else {
-            $notHidden = $this->hiddenPlayers->sqlExcludeTeam('pst.team');
-
             $query = <<<SQL
-WITH best AS (
-    SELECT pst.puzzling_team_id AS subject_id, MIN(pst.seconds_to_solve) AS best_time
-    FROM puzzle_solving_time pst
-    WHERE pst.puzzle_id = :puzzleId
-        AND pst.puzzling_type = :puzzlingType
-        AND pst.seconds_to_solve IS NOT NULL
-        AND pst.suspicious = false
-        AND pst.puzzling_team_id IS NOT NULL
-        {$notHidden}
-    GROUP BY pst.puzzling_team_id
-),
-visible AS (
-    SELECT best.subject_id, best.best_time
-    FROM best
-    WHERE EXISTS (
-        SELECT 1
-        FROM puzzling_team_member member
-            LEFT JOIN player mp ON mp.id = member.player_id
-        WHERE member.team_id = best.subject_id
-            AND (
-                mp.id IS NULL
-                OR {$this->privateProfileAccess->sqlIsPrivate('mp')} = false
-                OR mp.id = :viewerId
-            )
-    )
-),
+WITH {$this->groupBestCte('visible')},
 subject AS (
     SELECT best_time FROM visible WHERE subject_id = :subjectId
 )
@@ -407,6 +367,74 @@ SQL;
             closestFasterTime: $row['closest_faster_time'] !== null ? (int) $row['closest_faster_time'] : null,
             medianTime: (int) $row['median_time'],
         );
+    }
+
+    /**
+     * The solo board of one puzzle as a CTE `{$name} (subject_id, best_time)`: each player's best non-suspicious timed
+     * solo result, private players left out unless they are the viewer (or revealed to them), players hidden from the
+     * viewer left out - the board standing() ranks on, and the player card's puzzle and result contexts too
+     * (GetPlayerCardContext, docs/features/navigation CARD-02), so a rank on the card is the rank here and on the
+     * puzzle's leaderboard. Parameters: the puzzle ($puzzleId - a parameter or an SQL expression) and :viewerId.
+     */
+    public function soloBestCte(string $name = 'best', string $puzzleId = ':puzzleId'): string
+    {
+        $notHidden = $this->hiddenPlayers->sqlExclude('player.id');
+
+        return <<<SQL
+{$name} AS (
+    SELECT pst.player_id AS subject_id, MIN(pst.seconds_to_solve) AS best_time
+    FROM puzzle_solving_time pst
+        INNER JOIN player ON player.id = pst.player_id
+    WHERE pst.puzzle_id = {$puzzleId}
+        AND pst.puzzling_type = 'solo'
+        AND pst.seconds_to_solve IS NOT NULL
+        AND pst.suspicious = false
+        AND ({$this->privateProfileAccess->sqlIsPrivate('player')} = false OR player.id = :viewerId)
+        {$notHidden}
+    GROUP BY pst.player_id
+)
+SQL;
+    }
+
+    /**
+     * The pair or team board of one puzzle as CTEs ending in `{$name} (subject_id, best_time)` - one row per exact
+     * pair/team (puzzling_team): its best non-suspicious timed result, times with a member hidden from the viewer left
+     * out, a pair/team left out when no member is visible to the viewer (a guest counts as visible) and the viewer is
+     * not one of them. Shared like soloBestCte(). Parameters: the puzzle and the category ($puzzleId, $puzzlingType -
+     * parameters or SQL expressions) and :viewerId.
+     */
+    public function groupBestCte(string $name = 'visible', string $puzzleId = ':puzzleId', string $puzzlingType = ':puzzlingType'): string
+    {
+        $notHidden = $this->hiddenPlayers->sqlExcludeTeam('pst.team');
+
+        return <<<SQL
+{$name}_by_team AS (
+    SELECT pst.puzzling_team_id AS subject_id, MIN(pst.seconds_to_solve) AS best_time
+    FROM puzzle_solving_time pst
+    WHERE pst.puzzle_id = {$puzzleId}
+        AND pst.puzzling_type = {$puzzlingType}
+        AND pst.seconds_to_solve IS NOT NULL
+        AND pst.suspicious = false
+        AND pst.puzzling_team_id IS NOT NULL
+        {$notHidden}
+    GROUP BY pst.puzzling_team_id
+),
+{$name} AS (
+    SELECT {$name}_by_team.subject_id, {$name}_by_team.best_time
+    FROM {$name}_by_team
+    WHERE EXISTS (
+        SELECT 1
+        FROM puzzling_team_member member
+            LEFT JOIN player mp ON mp.id = member.player_id
+        WHERE member.team_id = {$name}_by_team.subject_id
+            AND (
+                mp.id IS NULL
+                OR {$this->privateProfileAccess->sqlIsPrivate('mp')} = false
+                OR mp.id = :viewerId
+            )
+    )
+)
+SQL;
     }
 
     /**

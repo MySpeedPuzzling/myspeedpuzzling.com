@@ -13,6 +13,7 @@ use SpeedPuzzling\Web\Query\GetAdminQueueCounts;
 use SpeedPuzzling\Web\Query\GetMarketplaceEvents;
 use SpeedPuzzling\Web\Query\GetUpcomingEventsCount;
 use SpeedPuzzling\Web\Tests\DataFixtures\OAuth2ClientFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\EventsPageFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\OrganizationFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
@@ -146,6 +147,12 @@ final class DraftCanaryTest extends WebTestCase
         yield 'sitemap - draft series and its editions' => [...$quietPines, self::SITEMAP, null, OrganizationFixture::SERIES_QUIET_PINES_DRAFT_SLUG];
         yield 'sitemap - draft organization' => [...$harborClub, self::SITEMAP, null, OrganizationFixture::ORGANIZATION_HARBOR_CLUB_DRAFT_SLUG];
         yield 'sitemap - past draft event' => [...$draftPast, self::SITEMAP, null, 'old-harbor-draft-classic'];
+
+        // The player card's round context (navigation CARD-02): a round of a draft is no block - its team and admins included
+        foreach (['guest' => null, 'player in it' => PlayerFixture::PLAYER_REGULAR, 'admin' => PlayerFixture::PLAYER_ADMIN] as $who => $viewer) {
+            yield "player card ({$who}) - round of a draft edition" => [self::COMPETITION, EventsPageFixture::EDITION_SPRINT_SEASON, '/en/puzzler-card/' . PlayerFixture::PLAYER_REGULAR . '?context=round:' . EventsPageFixture::ROUND_SPRINT_1, $viewer, EventsPageFixture::EDITION_SPRINT_SEASON_NAME];
+        }
+        yield 'player card (guest) - round of an edition of a draft series' => [self::SERIES, EventsPageFixture::SERIES_SPRINT_LEAGUE, '/en/puzzler-card/' . PlayerFixture::PLAYER_REGULAR . '?context=round:' . EventsPageFixture::ROUND_SPRINT_1, null, EventsPageFixture::EDITION_SPRINT_SEASON_NAME];
 
         // The add-time form's "Competition / event" picker (docs/features/events-page/high-frequency-series.md "The form"):
         // one-time events and series in the page, editions only by typing (S1) or in a series' preview list - and a

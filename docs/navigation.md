@@ -329,7 +329,7 @@ Linked by a navigation surface, but not a Menu destination - each with why.
 | `suggest_correction` | Suggest a correction to this puzzle | `puzzle_suggest_change` | everyone | Q1 | Action on a puzzle page; the Help sheet offers it first there |
 | `my_profile` | My profile | `my_profile` | everyone | Q8 | Legacy redirect (your profile, or sign in for guests); the Profile tab and the You card link player_profile directly (D9) |
 | `player_page` | Profile | `player_profile` | everyone | Q2 | Object page: others' profiles are reached from lists, search and the player card |
-| `player_card` | Profile | `player_card` | everyone | Q2 | Layer of a player name (D12); its page is the no-JS fallback |
+| `player_card` | Profile | `player_card` | everyone | Q2 | Layer of a player name (D12); its page is the no-JS fallback. Not a trigger (CARD-01b): own surfaces (header, account menu, crumbs, own history pages), names inside layers and modals (search, ratings, Message, the result detail modal), the conversation page, bilateral and owner pages (lending and sell/swap history, affiliate, referees, profile viewers, guest link), links that are not the profile, decorative faces, comparison chips, e-mails |
 | `puzzle_page` | Puzzle | `puzzle_detail` | everyone | Q2 | Object page: reached from lists, search and scans |
 | `event_page` | Events | `event_detail` | everyone | Q2 | Object page: reached from Events (the footer lists WJPC editions) |
 | `team_page` | Pairs & teams | `puzzling_team_detail` | everyone | Q2 | Object page: reached from results and Pairs & teams |

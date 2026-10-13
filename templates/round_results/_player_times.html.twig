@@ -2,10 +2,11 @@
     The times puzzlers added for one puzzle of the round (GetRoundResults) - unofficial, no positions. Part of
     round_results.html.twig and, below a round's published official results, of round_results/_official.html.twig.
     Included right after the indentation of its line, so its lines keep the page's indentation and it ends without a
-    newline: a round page renders byte for byte as before. Expects the page context plus puzzle and puzzle_results.
+    newline. Expects the page context plus puzzle and puzzle_results. The names open the player card with the round as
+    its context (docs/features/navigation CARD-01b).
 #}
 {% from 'puzzle_intelligence/_macros.html.twig' import skill_icon %}
-<div class="table-responsive custom-table-wrapper mb-4">
+<div class="table-responsive custom-table-wrapper mb-4" data-player-card-context="round:{{ round.id }}">
                 <table class="table custom-table table-striped table-hover mb-0">
                     <thead>
                     <tr>
@@ -37,7 +38,7 @@
                                         {% else %}
                                             {{ skill_icon('locked', 16) }}
                                         {% endif %}
-                                        <a class="player-name-item" href="{{ path('player_profile', {playerId: player.playerId}) }}">{{ player.playerName ?? ('#' ~ player.playerCode) }}</a>
+                                        <a class="player-name-item" href="{{ path('player_profile', {playerId: player.playerId}) }}" data-player-card aria-haspopup="dialog">{{ player.playerName ?? ('#' ~ player.playerCode) }}</a>
                                         {% if player.playerCountry is not null %}
                                             <small class="shadow-custom fi fi-{{ player.playerCountry.name }}"></small>
                                         {% endif %}

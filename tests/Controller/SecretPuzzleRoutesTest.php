@@ -20,6 +20,8 @@ use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionRoundFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\ManufacturerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
+use SpeedPuzzling\Web\Tests\ClonesSolvingTimes;
 use SpeedPuzzling\Web\Tests\ReadsRoundAutomaticReveal;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use SpeedPuzzling\Web\Value\BrandCodeList;
@@ -35,6 +37,7 @@ use Symfony\UX\LiveComponent\Test\InteractsWithLiveComponents;
  */
 final class SecretPuzzleRoutesTest extends WebTestCase
 {
+    use ClonesSolvingTimes;
     use InteractsWithLiveComponents;
     use ReadsRoundAutomaticReveal;
 
@@ -247,6 +250,33 @@ final class SecretPuzzleRoutesTest extends WebTestCase
         $browser->request('GET', '/en/puzzle-by-ean-search/' . self::SECRET_EAN);
         self::assertResponseIsSuccessful();
         self::assertStringNotContainsString(self::SECRET_NAME, (string) $browser->getResponse()->getContent());
+    }
+
+    /**
+     * The player card (navigation CARD-02, CARD-03): a player with a result on a secret puzzle - its puzzle context, the
+     * result's feed context and the latest puzzles name nothing, show no picture and give no block, whoever looks
+     */
+    public function testThePlayerCardSaysNothingAboutASecretPuzzle(): void
+    {
+        $browser = self::createClient();
+        $puzzleId = $this->secretPuzzle();
+        $timeId = $this->cloneSolvingTime(PuzzleSolvingTimeFixture::TIME_08, ['puzzle_id' => $puzzleId, 'days_ago' => 0]);
+
+        foreach ([null, PlayerFixture::PLAYER_PRIVATE, PlayerFixture::PLAYER_WITH_FAVORITES, PlayerFixture::PLAYER_REGULAR] as $viewerId) {
+            if ($viewerId !== null) {
+                TestingLogin::asPlayer($browser, $viewerId);
+            }
+
+            foreach (['puzzle:' . $puzzleId, 'feed:' . $timeId, 'notification:' . $timeId] as $context) {
+                $crawler = $browser->request('GET', '/en/puzzler-card/' . PlayerFixture::PLAYER_REGULAR . '?context=' . rawurlencode($context), server: ['HTTP_TURBO_FRAME' => 'player-card']);
+
+                self::assertResponseIsSuccessful();
+                self::assertCount(0, $crawler->filter('.players-card-context'), $context);
+                $content = (string) $browser->getResponse()->getContent();
+                self::assertStringNotContainsString(self::SECRET_NAME, $content);
+                self::assertStringNotContainsString('/en/puzzle/' . $puzzleId, $content);
+            }
+        }
     }
 
     private function secretPuzzle(PuzzleHideMode $hideMode = PuzzleHideMode::Entirely): string

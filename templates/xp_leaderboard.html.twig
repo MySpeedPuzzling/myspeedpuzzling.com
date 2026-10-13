@@ -162,7 +162,8 @@
                 {% endif %}
 
                 <div class="custom-table-wrapper lb-wrapper">
-                    <table class="table custom-table lb-table mb-0">
+                    {# The names open the player card with this board as its context (CARD-01b) - none on a filtered list #}
+                    <table class="table custom-table lb-table mb-0"{% if card_context %} data-player-card-context="{{ card_context }}"{% endif %}>
                         <thead>
                             <tr>
                                 <th scope="col" class="lb-rank-head">#</th>

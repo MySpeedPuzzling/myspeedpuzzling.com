@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Query;
 
+use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
+use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Results\LeaderboardSlice;
 use SpeedPuzzling\Web\Results\PlayerRatingEntry;
 use SpeedPuzzling\Web\Services\HiddenPlayers;
@@ -68,28 +70,9 @@ readonly final class GetPlayerRatingRanking
             $params['searchPattern'] = '%' . str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $searchTerm) . '%';
         }
 
-        $onLadder = $this->sqlOnLadder('p');
-
         // The anchor row keeps the viewer's line when no row of the list is shown (a search without a match)
         $query = <<<SQL
-WITH board AS (
-    SELECT
-        pe.player_id,
-        p.name AS player_name,
-        p.code AS player_code,
-        p.country AS player_country,
-        p.avatar AS player_avatar,
-        pe.elo_rating,
-        ps.skill_tier,
-        RANK() OVER (ORDER BY pe.elo_rating DESC) AS rank,
-        ROW_NUMBER() OVER (ORDER BY pe.elo_rating DESC, pe.player_id) AS board_position
-    FROM player_elo pe
-    INNER JOIN player p ON p.id = pe.player_id
-    LEFT JOIN player_skill ps ON ps.player_id = pe.player_id AND ps.pieces_count = pe.pieces_count
-    WHERE pe.pieces_count = :piecesCount
-        AND {$onLadder}
-        {$listFilter}
-),
+WITH {$this->boardCte($listFilter)},
 listed AS (
     SELECT
         board.*,
@@ -169,6 +152,52 @@ SQL;
         }
 
         return new LeaderboardSlice($entries, $ranks, $positions, $total, $ownPosition, $viewerPosition);
+    }
+
+    /**
+     * Where some players stand on the list of one piece count (narrowed by the country) - their shared rank and rating
+     * (× 1000, rounded, as shown) - and how many players the list holds, from window()'s own board CTE (boardCte()), so
+     * a place here is the place on the ladder: "#12" in Czechia is the 12th Czech. The player card's leaderboard
+     * context (docs/features/navigation CARD-02, GetPlayerCardContext). One statement; a player not on the ladder
+     * (private, opted out of rankings, hidden from the viewer, another country, not rated) is simply missing.
+     *
+     * @param list<string> $playerIds
+     * @return array{total: int, positions: array<string, array{rank: int, value: int}>}
+     */
+    public function positionsOf(int $piecesCount, null|string $country, array $playerIds): array
+    {
+        $params = [
+            'piecesCount' => $piecesCount,
+            'playerIds' => $playerIds === [] ? [Uuid::NIL] : $playerIds,
+        ];
+        $listFilter = '';
+
+        if ($country !== null) {
+            $listFilter = ' AND p.country = :country';
+            $params['country'] = $country;
+        }
+
+        $query = <<<SQL
+WITH {$this->boardCte($listFilter)}
+SELECT (SELECT COUNT(*) FROM board) AS total, board.player_id, board.rank, ROUND(board.elo_rating * 1000)::int AS value
+FROM (SELECT 1) AS anchor
+LEFT JOIN board ON board.player_id IN (:playerIds)
+SQL;
+
+        /** @var list<array{total: int|string, player_id: null|string, rank: null|int|string, value: null|int|string}> $rows */
+        $rows = $this->database
+            ->executeQuery($query, $params, ['playerIds' => ArrayParameterType::STRING])
+            ->fetchAllAssociative();
+
+        $positions = [];
+
+        foreach ($rows as $row) {
+            if ($row['player_id'] !== null && $row['rank'] !== null && $row['value'] !== null) {
+                $positions[strtolower($row['player_id'])] = ['rank' => (int) $row['rank'], 'value' => (int) $row['value']];
+            }
+        }
+
+        return ['total' => (int) ($rows[0]['total'] ?? 0), 'positions' => $positions];
     }
 
     /**
@@ -255,6 +284,37 @@ SQL;
         $rankPool = $this->sqlOnLadder('rank_p');
 
         return "(1 + (SELECT COUNT(*) FROM player_elo rank_pe INNER JOIN player rank_p ON rank_p.id = rank_pe.player_id WHERE rank_pe.pieces_count = {$eloAlias}.pieces_count AND rank_pe.elo_rating > {$eloAlias}.elo_rating AND {$rankPool}))";
+    }
+
+    /**
+     * The ladder of one piece count as a CTE `board` - every player on it (sqlOnLadder()) narrowed by $listFilter
+     * (country, favorites), ranked by rating (RANK(): equal ratings share the place) with a stable order by the player
+     * id. Parameter: :piecesCount (+ the filter's).
+     */
+    private function boardCte(string $listFilter): string
+    {
+        $onLadder = $this->sqlOnLadder('p');
+
+        return <<<SQL
+board AS (
+    SELECT
+        pe.player_id,
+        p.name AS player_name,
+        p.code AS player_code,
+        p.country AS player_country,
+        p.avatar AS player_avatar,
+        pe.elo_rating,
+        ps.skill_tier,
+        RANK() OVER (ORDER BY pe.elo_rating DESC) AS rank,
+        ROW_NUMBER() OVER (ORDER BY pe.elo_rating DESC, pe.player_id) AS board_position
+    FROM player_elo pe
+    INNER JOIN player p ON p.id = pe.player_id
+    LEFT JOIN player_skill ps ON ps.player_id = pe.player_id AND ps.pieces_count = pe.pieces_count
+    WHERE pe.pieces_count = :piecesCount
+        AND {$onLadder}
+        {$listFilter}
+)
+SQL;
     }
 
     /**

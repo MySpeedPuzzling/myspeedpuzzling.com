@@ -13,6 +13,12 @@
       - highlight_query (string, optional): marks the searched text in the name (search results)
       - name_nav (string, optional): data-nav of the profile link where the row sits in a navigation container (the
                 Community landing's previews, docs/features/navigation COM-01)
+      - player_card (bool, optional, default true): the name and the avatar open the player card
+                (docs/features/navigation README §4.8, CARD-01b): both link to the profile and carry data-player-card +
+                aria-haspopup="dialog" (server-rendered only - Live Components re-apply attributes JavaScript changed);
+                the avatar is a second link to the same profile, out of the tab order and hidden from screen readers
+                (decision 73). False inside a modal: no triggers there, the names link to the profile (README §4.8).
+                The card's context comes from the closest data-player-card-context around the row.
 
     The name truncates with an ellipsis instead of widening the table - the row must never scroll sideways.
 #}
@@ -22,7 +28,10 @@
 {%- set country_code = player.playerCountry is null ? null : (player.playerCountry.name ?? player.playerCountry) -%}
 {%- set country_name = player.playerCountry is null ? null : (player.playerCountry.value ?? null) -%}
 {%- set name = player.playerName ?? ('#' ~ player.playerCode) -%}
-<span class="lb-player{{ small|default(false) ? ' lb-player-sm' }}">
+{%- set linked = not hidden and player.playerId is not null -%}
+{%- set card = linked and (player_card is defined ? player_card : true) -%}
+{%- set profile_href = linked ? path('player_profile', {playerId: player.playerId}|merge(profile_params|default({}))) : null -%}
+{%- set avatar -%}
     {{- include('_player_avatar.html.twig', {
         player_id: player.playerId,
         name: name,
@@ -31,6 +40,13 @@
         country_name: country_name,
         hidden: hidden,
     }) -}}
+{%- endset -%}
+<span class="lb-player{{ small|default(false) ? ' lb-player-sm' }}">
+    {%- if card -%}
+        <a class="lb-avatar-link" href="{{ profile_href }}" tabindex="-1" aria-hidden="true" data-player-card aria-haspopup="dialog"{% if links_turbo_frame is defined %} data-turbo-frame="{{ links_turbo_frame }}"{% endif %}{% if name_nav is defined %} data-nav="{{ name_nav }}"{% endif %}>{{ avatar }}</a>
+    {%- else -%}
+        {{- avatar -}}
+    {%- endif -%}
 
     {%- if hidden -%}
         <span class="lb-name text-muted">{{ 'secret_puzzler_name'|trans }}</span>
@@ -41,7 +57,7 @@
         {%- else -%}
             {{ skill_icon('locked', 16) }}
         {%- endif -%}
-        <a class="lb-name" href="{{ path('player_profile', {playerId: player.playerId}|merge(profile_params|default({}))) }}"{% if links_turbo_frame is defined %} data-turbo-frame="{{ links_turbo_frame }}"{% endif %}{% if name_nav is defined %} data-nav="{{ name_nav }}"{% endif %}>
+        <a class="lb-name" href="{{ profile_href }}"{% if card %} data-player-card aria-haspopup="dialog"{% endif %}{% if links_turbo_frame is defined %} data-turbo-frame="{{ links_turbo_frame }}"{% endif %}{% if name_nav is defined %} data-nav="{{ name_nav }}"{% endif %}>
             {%- if logged_user.profile is not null and player.playerId in logged_user.profile.favoritePlayers -%}
                 <i class="ci-star-filled text-warning me-1"></i>
             {%- endif -%}

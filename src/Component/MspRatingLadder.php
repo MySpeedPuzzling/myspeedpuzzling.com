@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\CountryCode;
 use SpeedPuzzling\Web\Value\LeaderboardPosition;
 use SpeedPuzzling\Web\Value\LeaderboardWindow;
+use SpeedPuzzling\Web\Value\PlayerCardBoard;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
 use Symfony\UX\LiveComponent\Attribute\LiveAction;
 use Symfony\UX\LiveComponent\Attribute\LiveProp;
@@ -254,6 +255,15 @@ final class MspRatingLadder
     public function isOwnRowBelowFirstScreen(): bool
     {
         return $this->getWindow()->ownRowBelowFirstScreen();
+    }
+
+    /**
+     * The player card's context of the list on screen (docs/features/navigation CARD-02): the ladder in the country -
+     * not the favorites list, whose ranks are the list's own; a search keeps the list's ranks
+     */
+    public function getPlayerCardContext(): null|string
+    {
+        return $this->onlyFavorites ? null : PlayerCardBoard::contextOf(PlayerCardBoard::MSP, self::PIECES_COUNT, $this->getActiveCountry()?->name);
     }
 
     // The country the list is narrowed to, for "in Czechia" - null on the world list

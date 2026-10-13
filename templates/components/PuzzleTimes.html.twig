@@ -357,7 +357,9 @@
            A row opens the result detail (date, PPM, every attempt, chart) in the modal, loaded on demand
            (docs/features/puzzle-leaderboard-chart.md, docs/features/puzzle-result-detail.md) #}
         <div class="custom-table-wrapper lb-wrapper mt-2 {{ rowsBelowCount > 0 ? 'mb-3' : 'mb-5' }}">
-            <table class="table custom-table table-hover lb-table mb-0">
+            {# The names open the player card with this puzzle as its context - the person's solo standing on it, whichever
+               tab is shown (docs/features/navigation CARD-01b, decision 73) #}
+            <table class="table custom-table table-hover lb-table mb-0" data-player-card-context="puzzle:{{ this.puzzleId }}">
                 <thead>
                 <tr>
                     <th class="lb-rank-head">#</th>

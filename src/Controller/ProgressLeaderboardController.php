@@ -17,6 +17,7 @@ use SpeedPuzzling\Web\Value\KarmaGroup;
 use SpeedPuzzling\Web\Value\KarmaPeriod;
 use SpeedPuzzling\Web\Value\LeaderboardPosition;
 use SpeedPuzzling\Web\Value\LeaderboardWindow;
+use SpeedPuzzling\Web\Value\PlayerCardBoard;
 use SpeedPuzzling\Web\Value\ProgressLeaderboardTab;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -176,6 +177,11 @@ final class ProgressLeaderboardController extends AbstractController
             'karma_period' => $karmaPeriod,
             'karma_filtered' => $tab === ProgressLeaderboardTab::Karma && ($karmaGroup !== null || $karmaPeriod !== KarmaPeriod::AllTime),
             'viewer' => $profile,
+            // The player card's context (docs/features/navigation CARD-02): the board in the country - not a favorites
+            // or a karma kind/period list, whose ranks are that list's own
+            'card_context' => $favoritesOnly || ($tab === ProgressLeaderboardTab::Karma && ($karmaGroup !== null || $karmaPeriod !== KarmaPeriod::AllTime))
+                ? null
+                : PlayerCardBoard::contextOfProgressTab($tab, $country),
         ]);
 
         if ($revealed) {

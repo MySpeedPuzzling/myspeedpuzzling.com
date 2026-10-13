@@ -12,8 +12,13 @@
     at the page the card was opened on (the response stays the same for every guest). Every link and button carries
     data-nav="card/<context kind | none>/<item>" (P0-03).
 
+    The context block (CARD-02, players/_card_context.html.twig) sits under the chips. On the player's own card (CARD-04)
+    the actions are the owner's: "Edit this result" (a feed / notification result they may edit), "Your results on this
+    puzzle" (the result detail, opened over the card), Edit profile, View profile - never Favorite, Compare or Message.
+
     Inputs (PlayerCardController): player (PlayerProfile), card (PlayerCard), actions (PlayerActions), context
-    (null|PlayerCardContext), viewer_is_member (bool), activity (list of {month, solved} - members only)
+    (null|PlayerCardContext), context_block (null|PlayerCard*Context - GetPlayerCardContext), viewer_is_member (bool),
+    activity (list of {month, solved} - members only)
 #}
 {%- set name = player.playerName ?? ('#' ~ player.code|upper) -%}
 {%- set profile_path = path('player_profile', {playerId: player.playerId}) -%}
@@ -74,6 +79,11 @@
                     </li>
                 {% endif %}
             </ul>
+        {% endif %}
+
+        {% set context_block = context_block|default(null) %}
+        {% if context is not null and context_block is not null and (context.kind.value != 'puzzle' or context_block.hasLine) %}
+            {{ include('players/_card_context.html.twig', {context: context, block: context_block, actions: actions}) }}
         {% endif %}
 
         <dl class="players-card-stats">
@@ -246,6 +256,27 @@
             {% if actions.canMessage %}
                 <a class="btn btn-sm btn-outline-secondary players-card-action players-card-message" href="{{ path('start_conversation', {recipientId: player.playerId}) }}" data-turbo-frame="modal-frame" rel="nofollow" data-nav="{{ nav }}message">
                     <i class="bi bi-envelope" aria-hidden="true"></i> {{ 'player_header.message'|trans }}
+                </a>
+            {% endif %}
+
+            {# The owner's own card (CARD-04): what they can do about the result or puzzle the card was opened on, their
+               profile - the ⋯ keeps Share #}
+            {% if actions.isOwn %}
+                {% set kind = context ? context.kind.value : null %}
+                {% if (kind == 'feed' or kind == 'notification') and context_block is not null and context_block.isEditableBy(player.playerId) %}
+                    <a class="btn btn-sm btn-outline-secondary players-card-action players-card-own players-card-own-context" href="{{ path('edit_time', {timeId: context_block.timeId}) }}" data-turbo-frame="_top" rel="nofollow" data-nav="{{ nav }}edit_result">
+                        <i class="bi bi-pencil" aria-hidden="true"></i> {{ 'players.card.edit_result'|trans }}
+                    </a>
+                {% elseif kind == 'puzzle' and context_block is not null and context_block.ownTimeId is not null %}
+                    <a class="btn btn-sm btn-outline-secondary players-card-action players-card-own players-card-own-context" href="{{ path('puzzle_result_detail', {timeId: context_block.ownTimeId}) }}" data-turbo-frame="modal-frame" rel="nofollow" data-nav="{{ nav }}own_results">
+                        <i class="bi bi-list-ol" aria-hidden="true"></i> {{ 'players.card.own_results_on_puzzle'|trans }}
+                    </a>
+                {% endif %}
+                <a class="btn btn-sm btn-outline-secondary players-card-action players-card-own" href="{{ path('edit_profile') }}" data-turbo-frame="_top" data-nav="{{ nav }}edit_profile">
+                    <i class="bi bi-pencil-square" aria-hidden="true"></i> {{ 'menu.edit_profile'|trans }}
+                </a>
+                <a class="btn btn-sm btn-outline-secondary players-card-action players-card-own" href="{{ profile_path }}" data-turbo-frame="_top" data-nav="{{ nav }}view_profile">
+                    <i class="bi bi-person" aria-hidden="true"></i> {{ 'players.card.view_profile'|trans }}
                 </a>
             {% endif %}
 

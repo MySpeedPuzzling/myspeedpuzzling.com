@@ -1409,6 +1409,27 @@ competition_referees:
     "unavailable": "このパズラーのカードは表示できません。"
     "recent_title": "最近のパズル"
     "view_profile": "プロフィールを見る"
+    "edit_result": "この結果を編集"
+    "own_results_on_puzzle": "このパズルでのあなたの結果"
+    "context":
+        "puzzle_title": "このパズルでは"
+        "puzzle_rank": "%total%中%rank%位 · ベスト %time% · 挑戦%count%回"
+        "puzzle_group_only": "ここではペアまたはチームで%count%回完成"
+        "puzzle_you_gap":
+            "faster": "あなた: %time% · %gap% 速い"
+            "slower": "あなた: %time% · %gap% 遅い"
+            "equal": "あなた: %time% · 同タイム"
+        "puzzle_you_unsolved": "あなた: ここでのソロ記録はまだありません"
+        "result_title": "この結果"
+        "result_line": "%time% · このパズルで%total%中%rank%位"
+        "result_best": "%time% · ここでのベスト %best%（%total%中%rank%位）"
+        "result_relax": "リラックス（タイムなし）"
+        "round_official": "公式結果: %rank%位 · %result%"
+        "round_unofficial": "%result% · パズラーが追加した非公式の記録"
+        "board":
+            "times": "ソロ最速タイム · %pieces%ピース"
+            "msp": "MSP Rating · %pieces%ピース"
+        "board_you": "あなた: %rank%位"
   "spotlight":
     "title_world": "世界のスピードパズラー"
     "title_country": "%country%のパズラー"

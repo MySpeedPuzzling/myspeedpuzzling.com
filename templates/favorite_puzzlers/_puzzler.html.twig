@@ -11,7 +11,8 @@
 {%- set name = hidden ? 'secret_puzzler_name'|trans : (player.playerName ?? code) -%}
 {%- set in_favorites = favorite_star|default(false) and logged_user.profile is not null and player.playerId in logged_user.profile.favoritePlayers -%}
 <li class="fp-item">
-    <a class="fp-link" href="{{ path('player_profile', {playerId: player.playerId}) }}">
+    {# Opens the player card (docs/features/navigation CARD-01b) - not for a private player hidden from the viewer #}
+    <a class="fp-link" href="{{ path('player_profile', {playerId: player.playerId}) }}"{% if not hidden %} data-player-card aria-haspopup="dialog"{% endif %}>
         {{- include('_player_avatar.html.twig', {
             player_id: player.playerId,
             name: name,

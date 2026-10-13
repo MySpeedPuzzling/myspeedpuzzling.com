@@ -34,7 +34,8 @@
                                through every refresh of this page - `newSince` is the last visit the page was rendered with #}
                             {% set is_new = this.isNew(item) %}
                             {# The id lets the morph insert a new row at the top instead of rewriting every row below it #}
-                            <tr id="activity-{{ row_id_prefix }}-{{ item.id }}" class="{{ is_own_row ? 'table-active-player' }} {{ this.showLimit > 0 and loop.index > this.showLimit ? 'ra-extra' }}{{ is_new ? ' ra-new' }}" data-controller="row-link" data-action="click->row-link#open">
+                            {# The names open the player card with this result as its context (docs/features/navigation CARD-01b) #}
+                            <tr id="activity-{{ row_id_prefix }}-{{ item.id }}" class="{{ is_own_row ? 'table-active-player' }} {{ this.showLimit > 0 and loop.index > this.showLimit ? 'ra-extra' }}{{ is_new ? ' ra-new' }}" data-controller="row-link" data-action="click->row-link#open" data-player-card-context="feed:{{ item.id }}">
                                 <td class="ps-image">
                                     <div class="position-relative diff-corner-host">
                                         <a href="{{ path('puzzle_detail', {puzzleId: item.puzzleId}) }}">

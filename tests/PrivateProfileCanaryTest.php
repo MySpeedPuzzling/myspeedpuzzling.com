@@ -287,6 +287,59 @@ final class PrivateProfileCanaryTest extends WebTestCase
     }
 
     /**
+     * The player card's puzzle context (navigation CARD-02) ranks like the puzzle's leaderboard for each viewer: her
+     * faster time (27:30 on PUZZLE_500_02) counts for the friend, for nobody else - and the card's rank is the rank the
+     * puzzle page shows that viewer
+     */
+    public function testHerTimeCountsInAnotherCardsPuzzleContextForTheFriendOnly(): void
+    {
+        $browser = self::createClient();
+        $card = '/en/puzzler-card/' . PlayerFixture::PLAYER_REGULAR . '?context=' . rawurlencode('puzzle:' . PuzzleFixture::PUZZLE_500_02);
+        $ranks = [];
+
+        foreach ([PlayerFixture::PLAYER_ADMIN, self::FRIEND] as $viewerId) {
+            TestingLogin::asPlayer($browser, $viewerId);
+            $line = trim($browser->request('GET', $card, server: ['HTTP_TURBO_FRAME' => 'player-card'])->filter('.players-card-context-line')->text());
+            self::assertSame(1, preg_match('~^#(\d+) of (\d+)~', $line, $match), $line);
+
+            $page = $browser->request('GET', '/en/puzzle/' . PuzzleFixture::PUZZLE_500_02);
+            $row = $page->filter('tr.lb-row')->reduce(
+                static fn (Crawler $row): bool => $row->filter('a.lb-name[href="/en/player-profile/' . PlayerFixture::PLAYER_REGULAR . '"]')->count() > 0,
+            );
+            self::assertSame((int) $match[1], (int) trim($row->filter('.lb-rank')->text()), 'The card ranks unlike the puzzle page.');
+            $ranks[$viewerId] = [(int) $match[1], (int) $match[2]];
+        }
+
+        self::assertSame([$ranks[PlayerFixture::PLAYER_ADMIN][0] + 1, $ranks[PlayerFixture::PLAYER_ADMIN][1] + 1], $ranks[self::FRIEND], 'Her time counts for the friend only.');
+    }
+
+    /**
+     * Global boards stay closed to her for everybody - the card's leaderboard context too: no "You" line for her, the
+     * friend's view of another card counts nobody more
+     */
+    public function testHerCardsAndTheBoardContextKeepGlobalBoardsClosed(): void
+    {
+        $browser = self::createClient();
+        $card = '/en/puzzler-card/' . PlayerFixture::PLAYER_REGULAR . '?context=' . rawurlencode('leaderboard:times-500');
+        $frame = ['HTTP_TURBO_FRAME' => 'player-card'];
+
+        $guestLine = trim($browser->request('GET', $card, server: $frame)->filter('.players-card-context-line')->text());
+
+        TestingLogin::asPlayer($browser, self::FRIEND);
+        self::assertSame($guestLine, trim($browser->request('GET', $card, server: $frame)->filter('.players-card-context-line')->text()));
+
+        TestingLogin::asPlayer($browser, self::OWNER);
+        $crawler = $browser->request('GET', $card, server: $frame);
+        self::assertSame($guestLine, trim($crawler->filter('.players-card-context-line')->text()));
+        self::assertCount(0, $crawler->filter('.players-card-context-you'), 'A private player is on a global board after all.');
+
+        // Her own card on a global board: no place at all
+        $crawler = $browser->request('GET', '/en/puzzler-card/' . self::OWNER . '?context=' . rawurlencode('leaderboard:times-500'), server: $frame);
+        self::assertResponseIsSuccessful();
+        self::assertCount(0, $crawler->filter('.players-card-context'));
+    }
+
+    /**
      * Rankings that leave private players OUT leave them out for everybody, the friend included -
      * nobody is ranked differently for different viewers. (Boards that list them as a Hidden Puzzler
      * - pairs, groups, most active - keep every row and position and only name her for the friend.)

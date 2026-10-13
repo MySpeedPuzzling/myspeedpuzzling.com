@@ -40,7 +40,8 @@
        _leaderboard.scss): rank · image · whoever solved it with the puzzle · time - never scrolls sideways. A tap on the row
        opens the result detail (docs/features/puzzle-result-detail.md) #}
     <div class="custom-table-wrapper ps-wrapper mt-3 mb-3">
-        <table class="table table-hover ps-table mb-0">
+        {# The names open the player card with this board as its context (docs/features/navigation CARD-01b) #}
+        <table class="table table-hover ps-table mb-0"{% if this.playerCardContext %} data-player-card-context="{{ this.playerCardContext }}"{% endif %}>
             <tbody>
             {# Members see each puzzle's difficulty on the image's corner (null for everyone else) #}
             {% set difficulty_tiers = this.difficultyTiers %}

@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Query;
 
+use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
+use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Results\LeaderboardSlice;
 use SpeedPuzzling\Web\Results\SolvedPuzzle;
 use SpeedPuzzling\Web\Services\HiddenPlayers;
@@ -56,32 +58,11 @@ readonly final class GetFastestPlayers
         null|string $viewerPlayerId = null,
     ): LeaderboardSlice {
         $notHidden = $this->hiddenPlayers->sqlExclude('agg.entry_id');
-        $countryCondition = $countryCode !== null ? 'AND pl.country = :countryCode' : '';
         $board = TimesLeaderboardSql::board('board.entry_id = CAST(:viewerPlayerId AS UUID)');
         $select = TimesLeaderboardSql::selectWithOwn('Detail');
 
         $query = <<<SQL
-WITH BestTimes AS (
-    -- Each player's best first (one hash aggregate over the solo times of the piece count, served by the partial
-    -- index custom_pst_solo_board), the per-player filters only then - on ~6,500 grouped rows, not ~340k times
-    SELECT agg.entry_id, agg.best_seconds
-    FROM (
-        SELECT
-            pst.player_id AS entry_id,
-            MIN(pst.seconds_to_solve) AS best_seconds
-        FROM puzzle_solving_time pst
-        INNER JOIN puzzle p ON p.id = pst.puzzle_id
-        WHERE pst.puzzling_type = 'solo'
-          AND p.pieces_count = :piecesCount
-          AND pst.seconds_to_solve > 0
-          AND pst.suspicious = false
-        GROUP BY pst.player_id
-    ) agg
-    INNER JOIN player pl ON pl.id = agg.entry_id
-    WHERE pl.is_private = false
-      {$notHidden}
-      {$countryCondition}
-),
+WITH {$this->bestTimesCte($countryCode)},
 {$board},
 FastestTimes AS (
     SELECT DISTINCT ON (pst.player_id)
@@ -212,5 +193,86 @@ SQL;
 
             return SolvedPuzzle::fromDatabaseRow($row);
         });
+    }
+
+    /**
+     * Where some players stand on one board - their shared rank and best time - and how many players the board holds,
+     * from the board's own CTE (bestTimesCte()) ranked like window() ranks it (RANK(): equal times share the place), so
+     * a place here is the place in the board's rows. The player card's leaderboard context
+     * (docs/features/navigation CARD-02, GetPlayerCardContext). One statement; a player who is not on the board (private,
+     * hidden from the viewer, another country, no solo time of the piece count) is simply missing.
+     *
+     * @param list<string> $playerIds
+     * @return array{total: int, positions: array<string, array{rank: int, value: int}>}
+     */
+    public function positionsOf(int $piecesCount, null|CountryCode $countryCode, array $playerIds): array
+    {
+        $query = <<<SQL
+WITH {$this->bestTimesCte($countryCode)},
+ranked AS (
+    SELECT BestTimes.entry_id, BestTimes.best_seconds, RANK() OVER (ORDER BY BestTimes.best_seconds) AS rank
+    FROM BestTimes
+)
+SELECT (SELECT COUNT(*) FROM BestTimes) AS total, ranked.entry_id, ranked.rank, ranked.best_seconds
+FROM (SELECT 1) AS anchor
+LEFT JOIN ranked ON ranked.entry_id IN (:playerIds)
+SQL;
+
+        /** @var list<array{total: int|string, entry_id: null|string, rank: null|int|string, best_seconds: null|int|string}> $rows */
+        $rows = $this->database
+            ->executeQuery($query, [
+                'piecesCount' => $piecesCount,
+                'countryCode' => $countryCode?->name,
+                'playerIds' => $playerIds === [] ? [Uuid::NIL] : $playerIds,
+            ], [
+                'playerIds' => ArrayParameterType::STRING,
+            ])
+            ->fetchAllAssociative();
+
+        $positions = [];
+
+        foreach ($rows as $row) {
+            if ($row['entry_id'] !== null && $row['rank'] !== null && $row['best_seconds'] !== null) {
+                $positions[strtolower($row['entry_id'])] = ['rank' => (int) $row['rank'], 'value' => (int) $row['best_seconds']];
+            }
+        }
+
+        return ['total' => (int) ($rows[0]['total'] ?? 0), 'positions' => $positions];
+    }
+
+    /**
+     * The board as a CTE `BestTimes (entry_id, best_seconds)` - one row per player: their best solo time of the piece
+     * count, never one awaiting verification, private players left out for everybody (global rankings stay closed to
+     * them), players hidden from the viewer left out (positions close up), narrowed by the country. Parameters:
+     * :piecesCount, :countryCode (with a country).
+     */
+    private function bestTimesCte(null|CountryCode $countryCode): string
+    {
+        $notHidden = $this->hiddenPlayers->sqlExclude('agg.entry_id');
+        $countryCondition = $countryCode !== null ? 'AND pl.country = :countryCode' : '';
+
+        return <<<SQL
+BestTimes AS (
+    -- Each player's best first (one hash aggregate over the solo times of the piece count, served by the partial
+    -- index custom_pst_solo_board), the per-player filters only then - on ~6,500 grouped rows, not ~340k times
+    SELECT agg.entry_id, agg.best_seconds
+    FROM (
+        SELECT
+            pst.player_id AS entry_id,
+            MIN(pst.seconds_to_solve) AS best_seconds
+        FROM puzzle_solving_time pst
+        INNER JOIN puzzle p ON p.id = pst.puzzle_id
+        WHERE pst.puzzling_type = 'solo'
+          AND p.pieces_count = :piecesCount
+          AND pst.seconds_to_solve > 0
+          AND pst.suspicious = false
+        GROUP BY pst.player_id
+    ) agg
+    INNER JOIN player pl ON pl.id = agg.entry_id
+    WHERE pl.is_private = false
+      {$notHidden}
+      {$countryCondition}
+)
+SQL;
     }
 }

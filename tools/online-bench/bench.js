@@ -84,7 +84,7 @@ const state = {
     score: null,
     analysis: null,
     rules: { ...DEFAULT_RULES },
-    detector: { worker: null, status: 'none', view: null, loadMs: null, ready: null, loading: null, pending: new Map(), nextFrameId: 1, errors: [] },
+    detector: { worker: null, workerType: null, status: 'none', view: null, loadMs: null, ready: null, loading: null, pending: new Map(), nextFrameId: 1, errors: [] },
     analysing: false,
     stopRequested: false,
 };
@@ -197,8 +197,9 @@ function onWorkerMessage(event) {
         detector.status = 'ready';
         detector.view = message.view;
         detector.loadMs = message.loadMs;
+        detector.workerType = message.worker ?? null;
         detector.ready?.resolve(message);
-        setStatus(`Detector ready: ${message.models.join(' + ')} in ${message.loadMs} ms (tasks-vision ${TASKS_VISION_VERSION}, CPU)`);
+        setStatus(`Detector ready: ${message.models.join(' + ')} in ${message.loadMs} ms (tasks-vision ${TASKS_VISION_VERSION}, CPU, ${message.worker} worker)`);
     } else if (message?.type === 'error') {
         detector.errors.push(message);
 
@@ -545,6 +546,7 @@ function signalsJson() {
             ...assets(),
             tasksVisionVersion: TASKS_VISION_VERSION,
             delegate: 'CPU',
+            worker: state.detector.workerType ?? null,
             loadMs: state.detector.loadMs,
             userAgent: navigator.userAgent,
             hardwareConcurrency: navigator.hardwareConcurrency ?? null,

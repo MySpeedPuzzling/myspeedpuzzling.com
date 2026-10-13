@@ -9246,3 +9246,35 @@ leaderboards:
 modal:
     load_failed: "This couldn't be loaded. Check your connection and try again."
     try_again: "Try again"
+
+# Online competitions: the participant page (docs/features/online-competitions/)
+compete:
+    page:
+        title: "Online competition"
+    checklist:
+        title: "Get ready"
+    screen:
+        waiting: "Waiting for the organiser"
+    finish:
+        button: "Finished"
+    timeup:
+        title: "Time's up"
+    connect:
+        connected: "Connected to your profile"
+    api:
+        unknown_link: "This link does not open any competition."
+
+# Online competitions: the organiser's pages (docs/features/online-competitions/)
+online_rounds:
+    settings:
+        title: "Online timing"
+    links:
+        title: "Personal links"
+    menu:
+        online_timing: "Online timing"
+    control:
+        title: "Control room"
+    review:
+        title: "Review"
+    accuracy:
+        title: "Detection accuracy"

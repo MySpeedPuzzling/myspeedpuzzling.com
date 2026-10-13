@@ -143,6 +143,10 @@
 // The recap after logging a time: one progress card (docs/features/xp-levels/launch-2026-10.md)
 @import "xp-recap";
 
+// Online competitions (docs/features/online-competitions/): the participant page and the organiser's pages
+@import "compete";
+@import "online_rounds";
+
 @import "flag-icons/sass/flag-icons";
 
 // Text grows one step on tablets and one more on desktops - there is the room, and people sit further from the screen

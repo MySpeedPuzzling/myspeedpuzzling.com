@@ -32,6 +32,7 @@ use SpeedPuzzling\Web\Message\BackfillCompetitionRoundSlugs;
 use SpeedPuzzling\Web\Message\BackfillRoundPuzzleReveals;
 use SpeedPuzzling\Web\Message\BackfillRoundTimezones;
 use SpeedPuzzling\Web\Message\CancelMembershipSubscription;
+use SpeedPuzzling\Web\Message\CancelRoundStart;
 use SpeedPuzzling\Web\Message\ChangeCompetitionRegistrationSettings;
 use SpeedPuzzling\Web\Message\ChangeRoundPuzzleReveal;
 use SpeedPuzzling\Web\Message\ChangeRoundTableNumbersUsage;
@@ -60,6 +61,7 @@ use SpeedPuzzling\Web\Message\ReconcileRoundResults;
 use SpeedPuzzling\Web\Message\RemovePuzzleFromCompetitionRound;
 use SpeedPuzzling\Web\Message\ResetRoundStopwatch;
 use SpeedPuzzling\Web\Message\RevealRoundPuzzleNow;
+use SpeedPuzzling\Web\Message\ScheduleRoundStart;
 use SpeedPuzzling\Web\Message\SetCompetitionRoundPuzzles;
 use SpeedPuzzling\Web\Message\StartRoundStopwatch;
 use SpeedPuzzling\Web\Message\StopRoundStopwatch;
@@ -235,6 +237,7 @@ final class SerializedByLockMessagesTest extends TestCase
         GenerateTableLayout::class => 'the table layout (rows and spots), not round entries',
         BackfillCompetitionRoundSlugs::class => 'console backfill of round slugs - no entry, no result',
         BackfillRoundTimezones::class => 'console backfill of round time zones - no entry, no result',
+        CancelRoundStart::class => 'the round\'s stopwatch only - calls a countdown off',
         ChangeRoundTableNumbersUsage::class => 'a display switch of the round - the table numbers stay on the entries as they are',
         CreateOrganizationFromSeries::class => 'turns a series into an organization: writes the organization, follows and redirect rows for the old addresses of every edition and round (EventUrlRedirects reads their slugs) - several events in one message, and no spot, entry or result changes',
         DeleteCompetitionSeries::class => 'deletes whole editions with everything they hold - several events in one message (one lock key per message), and nothing of theirs is meant to stay',
@@ -243,6 +246,7 @@ final class SerializedByLockMessagesTest extends TestCase
         PublishRoundResults::class => 'shows the recorded results on the public page - writes only the round\'s published state, nothing recorded changes',
         UnpublishRoundResults::class => 'takes the results off the public page - writes only the round\'s published state, nothing recorded changes',
         ResetRoundStopwatch::class => 'the round\'s stopwatch only',
+        ScheduleRoundStart::class => 'the round\'s stopwatch only - a start ahead (the countdown)',
         StartRoundStopwatch::class => 'the round\'s stopwatch only',
         StopRoundStopwatch::class => 'the round\'s stopwatch only',
         SetCompetitionRoundPuzzles::class => 'the round\'s puzzles - entries and results are not touched',

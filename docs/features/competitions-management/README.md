@@ -504,8 +504,8 @@ A real-time countdown/count-up timer for running competition rounds live.
 
 Each round tracks `stopwatchStartedAt` / `stopwatchStoppedAt` (UTC, whole seconds - `TIMESTAMP(0)`) and `stopwatchStatus` (`null` / `scheduled` / `running` / `stopped`), changed only through the `CompetitionRound` stopwatch methods:
 
-- **Not started** (`null`): "Start" (now), and a scheduled start (online timing, `docs/features/online-competitions/`)
-- **Scheduled** (`scheduled`): a start in the future - **that is the countdown**. Every device shows `startedAt - now` and runs from that moment by itself: **nothing is written when the moment comes**, so a scheduled start whose moment has passed *is* running. The one rule is `RoundStopwatchStatus::at()` (browser twin: `stopwatchStatusAt()` in `assets/round_stopwatch_clock.js`); every reader asks it instead of comparing the column, and a reader that does not sees `scheduled` = "not running", never a negative time. Before its moment the countdown can be cancelled (= back to not started); "Start" now is refused while it counts down (it would move the moment every phone counts down to - cancel first)
+- **Not started** (`null`): "Start" (now), "Start in 10 s" and "Start at …" (a scheduled start - built for online timing, `docs/features/online-competitions/`, a countdown on the projector in person too)
+- **Scheduled** (`scheduled`): a start in the future - **that is the countdown**. Every device shows `startedAt - now` and runs from that moment by itself: **nothing is written when the moment comes**, so a scheduled start whose moment has passed *is* running (and a start ahead counts down whatever was stored). The one rule is `RoundStopwatchStatus::at()`, in whole seconds like the columns (browser twin: `stopwatchStatusAt()` in `assets/round_stopwatch_clock.js`); every reader asks it instead of comparing the column, and a reader that does not sees `scheduled` = "not running", never a negative time. Before its moment the countdown can be cancelled (= back to not started); "Start" now is refused while it counts down (it would move the moment every phone counts down to - cancel first)
 - **Running**: "Stop" and "Reset". A second "Start" never restarts a running clock
 - **Stopped**: "Start" (resume - `startedAt` moves forward by the pause, in-person rounds) and "Reset". A second "Stop" never moves the end; stopping a countdown calls it off
 
@@ -519,7 +519,9 @@ Every state change publishes the whole state on the public topic `/round-stopwat
 
 ### Actions
 
-`AbstractRoundStopwatchController` (start, stop, reset - plus schedule / cancel for online timing): `COMPETITION_EDIT`, the stateless CSRF token `round_stopwatch` on every form (the pages stay open for hours, the projector page is public), a redirect with a flash for a refusal; asked with `Accept: application/json` they answer `{"stopwatch": RoundStopwatchState}` or `{"error": "<code>"}` (`invalid_csrf` 403, a refusal reason 409).
+`AbstractRoundStopwatchController` - start, stop, reset, and the scheduled start: `schedule_round_start` (`POST /en/round-stopwatch/{roundId}/schedule`, `ScheduleRoundStart`) with `countdown=10` ("Start in 10 s": the next whole second at least that far ahead) or `at=<ISO>` (a moment with its offset, or a wall time of the round's zone as the control page's datetime-local input sends it; a time a daylight-saving change skips or repeats is refused) - `ScheduledRoundStart` - and `cancel_round_start` (`POST …/cancel`, `CancelRoundStart`). All of them: `COMPETITION_EDIT`, the stateless CSRF token `round_stopwatch` on every form (the pages stay open for hours, the projector page is public), a redirect with a flash for a refusal; asked with `Accept: application/json` (the online control room) they answer `{"stopwatch": RoundStopwatchState}` or `{"error": "<code>"}` (`invalid_csrf` 403, a `RoundStopwatchRefusal` value 409).
+
+`RoundClock` (the online rounds' reading: waiting / scheduled / running / ended at a stop or the time limit) takes "counting down or running" from `RoundStopwatchStatus` too - one rule - and its `stateHash()` is the hash in every stopwatch payload.
 
 ### Client-Side Timer
 

@@ -10,6 +10,7 @@ use SpeedPuzzling\Web\Query\GetRoundResultsOverview;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use SpeedPuzzling\Web\Results\RoundStopwatchState;
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
+use SpeedPuzzling\Web\Value\RoundClock;
 use SpeedPuzzling\Web\Value\RoundTimezone;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
@@ -59,7 +60,7 @@ final class ManageRoundStopwatchController extends AbstractController
             'competition' => $round->competition,
             'round_overview' => $roundOverview,
             'stopwatch' => RoundStopwatchState::ofRound($round, $now),
-            'server_now_ms' => RoundStopwatchState::milliseconds($now),
+            'server_now_ms' => RoundClock::milliseconds($now),
             'state_url' => $this->generateUrl('round_stopwatch_state', ['roundId' => $round->id->toString()]),
             'timezone' => $timezone,
             // "Start at": the round's planned start while it lies ahead, else the next whole minute but one - in the

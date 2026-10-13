@@ -368,6 +368,9 @@ class CompetitionRound implements EntityWithEvents
             throw new \InvalidArgumentException('A scheduled start is on a whole second.');
         }
 
+        // Stored as its UTC moment - Doctrine writes an object's own wall time, whatever zone it carries
+        $startsAt = $startsAt->setTimezone(new \DateTimeZone('UTC'));
+
         if ($startsAt < $now) {
             throw new RoundStopwatchRefused(RoundStopwatchRefusal::StartInThePast);
         }

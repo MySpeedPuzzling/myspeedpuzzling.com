@@ -15,10 +15,12 @@ use SpeedPuzzling\Web\Entity\CompetitionRound;
  * - running: started, not stopped, before the time limit
  * - ended: stopped (an online round has no resume - "End now" ends it), or the time limit has passed
  *
- * Only the online code reads it: for an in-person round `stopped` means paused, and the existing stopwatch readers keep
- * their own logic. Moments are epoch milliseconds; the columns hold whole seconds, so a moment is exact once stored.
- * The phones never trust `status` alone - they derive the screen from the moments and their synced clock. The state
- * hash is made of the stored values only (stateHash()).
+ * "Counting down or running" is not decided here: RoundStopwatchStatus::at() is the one rule, which every stopwatch
+ * reader follows too - this adds the online meaning of the end (stopped, or the time limit reached; for an in-person
+ * round `stopped` means paused). Moments are epoch milliseconds; the columns hold whole seconds, so a moment is exact
+ * once stored. The phones never trust `status` alone - they derive the screen from the moments and their synced clock.
+ * The state hash is made of the stored values only (stateHash()) - the one hash of a round's stopwatch state, also in
+ * every stopwatch payload (RoundStopwatchState).
  */
 final readonly class RoundClock
 {
@@ -44,18 +46,41 @@ final readonly class RoundClock
 
     public static function fromRound(CompetitionRound $round, DateTimeImmutable $now): self
     {
+        return self::fromStopwatch(
+            $round->stopwatchStatus,
+            $round->stopwatchStartedAt,
+            $round->stopwatchStoppedAt,
+            $round->minutesLimit,
+            $now,
+        );
+    }
+
+    /**
+     * The same from the stopwatch columns as stored - for a reader that has the row, not the entity
+     * (GetRoundStopwatchState).
+     */
+    public static function fromStopwatch(
+        null|string $stopwatchStatus,
+        null|DateTimeImmutable $startedAt,
+        null|DateTimeImmutable $stoppedAt,
+        int $minutesLimit,
+        DateTimeImmutable $now,
+    ): self {
         $nowMs = self::milliseconds($now);
-        $startedAtMs = $round->stopwatchStartedAt === null ? null : $round->stopwatchStartedAt->getTimestamp() * 1000;
-        $stoppedAtMs = $round->stopwatchStoppedAt === null ? null : $round->stopwatchStoppedAt->getTimestamp() * 1000;
-        $limitEndsAtMs = $startedAtMs === null ? null : $startedAtMs + $round->minutesLimit * 60_000;
-        $stopped = $round->stopwatchStatus === 'stopped';
+        $startedAtMs = $startedAt === null ? null : $startedAt->getTimestamp() * 1000;
+        $stoppedAtMs = $stoppedAt === null ? null : $stoppedAt->getTimestamp() * 1000;
+        $limitEndsAtMs = $startedAtMs === null ? null : $startedAtMs + $minutesLimit * 60_000;
+        $stopped = $stopwatchStatus === RoundStopwatchStatus::STOPPED;
 
         $status = match (true) {
             $startedAtMs === null || $limitEndsAtMs === null => self::WAITING,
             $stopped => self::ENDED,
-            $startedAtMs > $nowMs => self::SCHEDULED,
-            $nowMs >= $limitEndsAtMs => self::ENDED,
-            default => self::RUNNING,
+            default => match (RoundStopwatchStatus::at($stopwatchStatus, $startedAt, $now)) {
+                RoundStopwatchStatus::SCHEDULED => self::SCHEDULED,
+                RoundStopwatchStatus::RUNNING => $nowMs >= $limitEndsAtMs ? self::ENDED : self::RUNNING,
+                // A start without a status - never written by the app: no start to count from
+                default => self::WAITING,
+            },
         };
 
         $endsAtMs = $limitEndsAtMs;
@@ -66,11 +91,11 @@ final readonly class RoundClock
 
         return new self(
             status: $status,
-            stopwatchStatus: $round->stopwatchStatus,
+            stopwatchStatus: $stopwatchStatus,
             startedAtMs: $startedAtMs,
             stoppedAtMs: $stoppedAtMs,
             endsAtMs: $endsAtMs,
-            minutesLimit: $round->minutesLimit,
+            minutesLimit: $minutesLimit,
         );
     }
 
@@ -101,7 +126,8 @@ final readonly class RoundClock
      * Heartbeat answers carry it - a phone whose own state has another hash fetches the state again (README §5.3). It
      * changes only with a write: the organiser starts, schedules, cancels or ends the round, or changes its time limit.
      *
-     * The formula - the one hash of a round's stopwatch state, keep it in step with every place that publishes one:
+     * The formula - the one hash of a round's stopwatch state; every place that publishes one calls this (the stopwatch
+     * payload RoundStopwatchState too):
      *     substr(sha1(json_encode([stored status, startedAtMs, stoppedAtMs, minutesLimit])), 0, 12)
      * from the stored values only: the column's status (null, 'scheduled', 'running', 'stopped') and the moments in
      * epoch ms (null when not set). Never the derived `status`: that changes at the start moment and at the time limit

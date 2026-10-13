@@ -77,9 +77,11 @@
                     <span data-round-stopwatch-target="hours">00</span>:<span data-round-stopwatch-target="minutes">00</span>:<span data-round-stopwatch-target="seconds">00</span>
                 </div>
 
-                {# Not started: start now - a resumed start for a stopped clock #}
-                <div data-stopwatch-when="idle stopped" {{ phase not in ['idle', 'stopped'] ? 'hidden' }}>
-                    <div class="d-flex flex-wrap gap-2 mb-3">
+                {# The actions the clock allows now - each in a plain wrapper that takes `hidden` (Bootstrap's d-flex would win
+                   over it); round_stopwatch_controller.js switches them when the phase changes #}
+                <div class="d-flex flex-wrap gap-2">
+                    {# Start now - a resumed start for a stopped clock (in person: stopped = paused) #}
+                    <div data-stopwatch-when="idle stopped" {{ phase not in ['idle', 'stopped'] ? 'hidden' }}>
                         <form method="post" action="{{ path('start_round_stopwatch', {'roundId': round.id}) }}">
                             <input type="hidden" name="_token" value="{{ csrf }}">
                             <button type="submit" class="btn btn-success">
@@ -87,10 +89,28 @@
                             </button>
                         </form>
                     </div>
-                </div>
 
-                <div data-stopwatch-when="running times_up" {{ phase != 'running' ? 'hidden' }}>
-                    <div class="d-flex flex-wrap gap-2">
+                    {# A countdown every device shows by itself - only for a clock that never ran #}
+                    <div data-stopwatch-when="idle" {{ phase != 'idle' ? 'hidden' }}>
+                        <form method="post" action="{{ path('schedule_round_start', {'roundId': round.id}) }}">
+                            <input type="hidden" name="_token" value="{{ csrf }}">
+                            <input type="hidden" name="countdown" value="10">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-hourglass-split me-1"></i>{{ 'competition.stopwatch.start_in_10'|trans }}
+                            </button>
+                        </form>
+                    </div>
+
+                    <div data-stopwatch-when="scheduled" {{ phase != 'scheduled' ? 'hidden' }}>
+                        <form method="post" action="{{ path('cancel_round_start', {'roundId': round.id}) }}">
+                            <input type="hidden" name="_token" value="{{ csrf }}">
+                            <button type="submit" class="btn btn-outline-danger">
+                                <i class="bi bi-x-circle me-1"></i>{{ 'competition.stopwatch.cancel_start'|trans }}
+                            </button>
+                        </form>
+                    </div>
+
+                    <div data-stopwatch-when="running times_up" {{ phase != 'running' ? 'hidden' }}>
                         <form method="post" action="{{ path('stop_round_stopwatch', {'roundId': round.id}) }}" onsubmit="return confirm('{{ 'competition.stopwatch.confirm_stop'|trans|e('js') }}')">
                             <input type="hidden" name="_token" value="{{ csrf }}">
                             <button type="submit" class="btn btn-warning">
@@ -98,11 +118,9 @@
                             </button>
                         </form>
                     </div>
-                </div>
 
-                {# Reset - back to not started, from anything that ran #}
-                <div data-stopwatch-when="running times_up stopped" {{ phase not in ['running', 'stopped'] ? 'hidden' }}>
-                    <div class="d-flex flex-wrap gap-2 mt-2">
+                    {# Reset - back to not started, from anything that ran #}
+                    <div data-stopwatch-when="running times_up stopped" {{ phase not in ['running', 'stopped'] ? 'hidden' }}>
                         <form method="post" action="{{ path('reset_round_stopwatch', {'roundId': round.id}) }}" onsubmit="return confirm('{{ 'competition.stopwatch.confirm_reset'|trans|e('js') }}')">
                             <input type="hidden" name="_token" value="{{ csrf }}">
                             <button type="submit" class="btn btn-outline-danger">
@@ -111,6 +129,21 @@
                         </form>
                     </div>
                 </div>
+
+                {# A start at a chosen moment - a wall time of the round's zone; the server says what is wrong with it #}
+                <form method="post" action="{{ path('schedule_round_start', {'roundId': round.id}) }}" class="mt-4" novalidate data-stopwatch-when="idle" {{ phase != 'idle' ? 'hidden' }}>
+                    <input type="hidden" name="_token" value="{{ csrf }}">
+                    <label for="round-stopwatch-start-at" class="form-label fw-semibold">{{ 'competition.stopwatch.start_at'|trans }}</label>
+                    <div class="d-flex flex-wrap gap-2">
+                        <input type="datetime-local" id="round-stopwatch-start-at" name="at" class="form-control" style="max-width: 16rem;" step="1" value="{{ start_at_value }}" min="{{ start_at_min }}" aria-describedby="round-stopwatch-start-at-help">
+                        <button type="submit" class="btn btn-outline-primary">
+                            <i class="bi bi-alarm me-1"></i>{{ 'competition.stopwatch.schedule'|trans }}
+                        </button>
+                    </div>
+                    <div class="form-text" id="round-stopwatch-start-at-help">
+                        {{ 'competition.stopwatch.start_at_help'|trans({'%zone%': timezone_name(timezone, round.timezoneAssumed)}) }}
+                    </div>
+                </form>
             </div>
         </div>
     </div>

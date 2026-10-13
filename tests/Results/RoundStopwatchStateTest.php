@@ -6,11 +6,15 @@ namespace SpeedPuzzling\Web\Tests\Results;
 
 use DateTimeImmutable;
 use PHPUnit\Framework\TestCase;
+use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Entity\Competition;
+use SpeedPuzzling\Web\Entity\CompetitionRound;
 use SpeedPuzzling\Web\Results\RoundStopwatchState;
+use SpeedPuzzling\Web\Value\RoundClock;
 
 /**
  * The stopwatch payload (RoundStopwatchState): the status at the moment the row was read, the moments in milliseconds,
- * and a hash of the stored state only.
+ * and RoundClock's hash of the stored state - one hash for the stopwatch pages and the online participants' heartbeats.
  */
 final class RoundStopwatchStateTest extends TestCase
 {
@@ -19,15 +23,12 @@ final class RoundStopwatchStateTest extends TestCase
     public function testAScheduledStartIsScheduledUntilItsMomentAndTheHashStaysTheSame(): void
     {
         $startsAt = new DateTimeImmutable('2026-11-10 18:00:10');
-        $before = self::state('scheduled', $startsAt, new DateTimeImmutable('2026-11-10 18:00:00.250'));
+        $before = self::state('scheduled', $startsAt, new DateTimeImmutable('2026-11-10 18:00:09.999'));
         $after = self::state('scheduled', $startsAt, new DateTimeImmutable('2026-11-10 18:00:10.000'));
 
         self::assertSame('scheduled', $before->jsonSerialize()['status']);
-        self::assertTrue($before->isCountingDown());
         self::assertSame('running', $after->jsonSerialize()['status']);
-        self::assertFalse($after->isCountingDown());
-
-        self::assertSame($before->stateHash(), $after->stateHash(), 'nothing stored changed when the moment passed');
+        self::assertSame($before->jsonSerialize()['stateHash'], $after->jsonSerialize()['stateHash'], 'nothing stored changed when the moment passed');
     }
 
     public function testTheMomentsInMilliseconds(): void
@@ -50,19 +51,34 @@ final class RoundStopwatchStateTest extends TestCase
         self::assertSame('stopped', $json['status']);
     }
 
+    /**
+     * One formula: the stopwatch payload's hash is the online clock's, for the same stored state
+     */
+    public function testTheHashIsTheRoundClocksHash(): void
+    {
+        $asOf = new DateTimeImmutable('2026-11-10 18:10:00');
+        $round = self::round('running', new DateTimeImmutable('2026-11-10 18:00:00'));
+
+        $state = RoundStopwatchState::ofRound($round, $asOf);
+
+        self::assertSame(RoundClock::fromRound($round, $asOf)->stateHash(), $state->jsonSerialize()['stateHash']);
+        self::assertSame(substr(sha1('["running",1794333600000,null,60]'), 0, 12), $state->jsonSerialize()['stateHash']);
+        self::assertSame(substr(sha1('[null,null,null,60]'), 0, 12), self::state(null, null, $asOf)->jsonSerialize()['stateHash']);
+    }
+
     public function testEveryStoredChangeChangesTheHash(): void
     {
         $at = new DateTimeImmutable('2026-11-10 18:00:00');
         $hashes = [
-            self::state(null, null, $at)->stateHash(),
-            self::state('scheduled', $at->modify('+10 seconds'), $at)->stateHash(),
-            self::state('scheduled', $at->modify('+11 seconds'), $at)->stateHash(),
-            self::state('running', $at->modify('+10 seconds'), $at)->stateHash(),
-            self::state('running', $at->modify('+10 seconds'), $at, minutesLimit: 90)->stateHash(),
+            self::state(null, null, $at)->jsonSerialize()['stateHash'],
+            self::state('scheduled', $at->modify('+10 seconds'), $at)->jsonSerialize()['stateHash'],
+            self::state('scheduled', $at->modify('+11 seconds'), $at)->jsonSerialize()['stateHash'],
+            self::state('running', $at->modify('+10 seconds'), $at)->jsonSerialize()['stateHash'],
+            self::state('running', $at->modify('+10 seconds'), $at, minutesLimit: 90)->jsonSerialize()['stateHash'],
         ];
 
         self::assertSame($hashes, array_values(array_unique($hashes)));
-        self::assertSame(16, strlen($hashes[0]));
+        self::assertMatchesRegularExpression('/^[0-9a-f]{12}$/', $hashes[0]);
     }
 
     private static function state(null|string $status, null|DateTimeImmutable $startedAt, DateTimeImmutable $asOf, int $minutesLimit = 60): RoundStopwatchState
@@ -74,6 +90,36 @@ final class RoundStopwatchStateTest extends TestCase
             stoppedAt: null,
             minutesLimit: $minutesLimit,
             asOf: $asOf,
+        );
+    }
+
+    private static function round(null|string $status, null|DateTimeImmutable $startedAt): CompetitionRound
+    {
+        $competition = new Competition(
+            id: Uuid::uuid7(),
+            name: 'Online Test Cup',
+            slug: null,
+            shortcut: null,
+            logo: null,
+            description: null,
+            link: null,
+            registrationLink: null,
+            resultsLink: null,
+            location: null,
+            locationCountryCode: null,
+            dateFrom: null,
+            dateTo: null,
+            tag: null,
+        );
+
+        return new CompetitionRound(
+            id: Uuid::fromString(self::ROUND),
+            competition: $competition,
+            name: 'Final',
+            minutesLimit: 60,
+            startsAt: new DateTimeImmutable('2026-11-10 18:00:00'),
+            stopwatchStartedAt: $startedAt,
+            stopwatchStatus: $status,
         );
     }
 }

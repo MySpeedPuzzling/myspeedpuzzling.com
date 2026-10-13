@@ -41,6 +41,11 @@ export function stoppedAtMs(stopwatch) {
 
 /**
  * The status at `nowMs` (server time): a scheduled start whose moment has come is running.
+ *
+ * RoundStopwatchStatus::at() in PHP, with one difference on purpose: a `running` start this device's clock still sees
+ * ahead stays running (at 0:00:00) instead of counting down. The server never stores `running` ahead of time ("Start"
+ * writes now) - only this device's clock error can show it, and a countdown flashing for a moment right after "Start"
+ * would be wrong on the big screen.
  */
 export function stopwatchStatusAt(stopwatch, nowMs) {
     const status = stopwatch?.status ?? null;

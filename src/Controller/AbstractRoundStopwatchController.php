@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
+use DateTimeImmutable;
+use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Entity\CompetitionRound;
 use SpeedPuzzling\Web\Exceptions\RoundStopwatchRefused;
 use SpeedPuzzling\Web\Query\GetRoundStopwatchState;
@@ -42,6 +44,7 @@ abstract class AbstractRoundStopwatchController extends AbstractController
         readonly private GetRoundStopwatchState $getRoundStopwatchState,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         readonly private TranslatorInterface $translator,
+        readonly private ClockInterface $clock,
     ) {
     }
 
@@ -87,6 +90,11 @@ abstract class AbstractRoundStopwatchController extends AbstractController
         }
 
         return $this->redirectToRoute($successRoute, ['roundId' => $roundId], Response::HTTP_SEE_OTHER);
+    }
+
+    protected function now(): DateTimeImmutable
+    {
+        return $this->clock->now();
     }
 
     protected function actingPlayerId(): string

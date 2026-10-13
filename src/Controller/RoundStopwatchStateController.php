@@ -6,7 +6,7 @@ namespace SpeedPuzzling\Web\Controller;
 
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Query\GetRoundStopwatchState;
-use SpeedPuzzling\Web\Results\RoundStopwatchState;
+use SpeedPuzzling\Web\Value\RoundClock;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Attribute\Route;
@@ -37,7 +37,7 @@ final class RoundStopwatchStateController extends AbstractController
         $response = new JsonResponse([
             ...$state->jsonSerialize(),
             'serverNow' => $serverNow->format(\DateTimeInterface::ATOM),
-            'serverNowMs' => RoundStopwatchState::milliseconds($serverNow),
+            'serverNowMs' => RoundClock::milliseconds($serverNow),
         ]);
         $response->headers->addCacheControlDirective('no-store');
 

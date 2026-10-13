@@ -9,6 +9,7 @@ use SpeedPuzzling\Web\Exceptions\DraftNotVisible;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use SpeedPuzzling\Web\Results\RoundStopwatchState;
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
+use SpeedPuzzling\Web\Value\RoundClock;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -55,7 +56,7 @@ final class RoundStopwatchController extends AbstractController
             'competition' => $round->competition,
             'canManage' => $canManage,
             'stopwatch' => RoundStopwatchState::ofRound($round, $now),
-            'serverNowMs' => RoundStopwatchState::milliseconds($now),
+            'serverNowMs' => RoundClock::milliseconds($now),
             'stateUrl' => $this->generateUrl('round_stopwatch_state', ['roundId' => $round->id->toString()]),
         ]);
     }

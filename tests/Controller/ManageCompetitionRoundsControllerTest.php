@@ -87,7 +87,7 @@ final class ManageCompetitionRoundsControllerTest extends WebTestCase
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
         self::startsIn(OfficialResultsFixture::ROUND_GROUP_A, '+3 hours');
         self::getContainer()->get(Connection::class)->executeStatement(
-            "UPDATE competition_round SET stopwatch_status = 'running', stopwatch_started_at = NOW() WHERE id = :id",
+            "UPDATE competition_round SET stopwatch_status = 'running', stopwatch_started_at = date_trunc('second', NOW()) WHERE id = :id",
             ['id' => OfficialResultsFixture::ROUND_GROUP_A],
         );
 

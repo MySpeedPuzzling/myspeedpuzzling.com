@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Results;
 
 use DateTimeImmutable;
 use SpeedPuzzling\Web\Entity\CompetitionRound;
+use SpeedPuzzling\Web\Value\RoundClock;
 use SpeedPuzzling\Web\Value\RoundStopwatchStatus;
 
 /**
@@ -16,15 +17,19 @@ use SpeedPuzzling\Web\Value\RoundStopwatchStatus;
  * - `status`: null | scheduled | running | stopped AT `asOfMs` (RoundStopwatchStatus::at() - a scheduled start that has
  *   passed is running). A client turns `scheduled` into `running` itself once `startedAtMs` comes.
  * - `startedAt` / `stoppedAt` / `minutesLimit`: the original fields (ATOM), kept for the pages loaded before this shape.
- * - `startedAtMs` / `stoppedAtMs`: the same moments in epoch milliseconds (whole seconds - TIMESTAMP(0) columns).
+ * - `startedAtMs` / `stoppedAtMs`: the same moments in epoch milliseconds, whole seconds (RoundClock).
  * - `asOfMs`: when the row was read - a client keeps the state with the newest `asOfMs`, so a slow fetch never
  *   overwrites a newer push.
- * - `stateHash`: short, the same for the same stored state - "has anything changed since?" without the whole state.
+ * - `stateHash`: RoundClock::stateHash() - the one hash of the stored state, the same one the online participants'
+ *   heartbeat answers carry.
  *
  * Never a `type` field: the live entry tells stopwatch updates from official results ones by its absence.
  */
 readonly final class RoundStopwatchState implements \JsonSerializable
 {
+    // The online reading of the same columns - its milliseconds and its state hash are this payload's
+    public RoundClock $clock;
+
     public function __construct(
         public string $roundId,
         // As stored: null | scheduled | running | stopped
@@ -35,6 +40,7 @@ readonly final class RoundStopwatchState implements \JsonSerializable
         // When the row was read
         public DateTimeImmutable $asOf,
     ) {
+        $this->clock = RoundClock::fromStopwatch($storedStatus, $startedAt, $stoppedAt, $minutesLimit, $asOf);
     }
 
     public static function ofRound(CompetitionRound $round, DateTimeImmutable $asOf): self
@@ -57,37 +63,9 @@ readonly final class RoundStopwatchState implements \JsonSerializable
         return RoundStopwatchStatus::at($this->storedStatus, $this->startedAt, $this->asOf);
     }
 
-    public function isCountingDown(): bool
-    {
-        return $this->status() === RoundStopwatchStatus::SCHEDULED;
-    }
-
-    public function startedAtMs(): null|int
-    {
-        return $this->startedAt !== null ? self::milliseconds($this->startedAt) : null;
-    }
-
-    public function stoppedAtMs(): null|int
-    {
-        return $this->stoppedAt !== null ? self::milliseconds($this->stoppedAt) : null;
-    }
-
     public function asOfMs(): int
     {
-        return self::milliseconds($this->asOf);
-    }
-
-    /**
-     * Of the stored state only - the moment a scheduled start passes changes nothing stored, so nothing here.
-     */
-    public function stateHash(): string
-    {
-        return substr(hash('xxh128', implode('|', [
-            $this->storedStatus ?? '',
-            (string) $this->startedAtMs(),
-            (string) $this->stoppedAtMs(),
-            (string) $this->minutesLimit,
-        ])), 0, 16);
+        return RoundClock::milliseconds($this->asOf);
     }
 
     /**
@@ -101,15 +79,10 @@ readonly final class RoundStopwatchState implements \JsonSerializable
             'startedAt' => $this->startedAt?->format(\DateTimeInterface::ATOM),
             'stoppedAt' => $this->stoppedAt?->format(\DateTimeInterface::ATOM),
             'minutesLimit' => $this->minutesLimit,
-            'startedAtMs' => $this->startedAtMs(),
-            'stoppedAtMs' => $this->stoppedAtMs(),
+            'startedAtMs' => $this->clock->startedAtMs,
+            'stoppedAtMs' => $this->clock->stoppedAtMs,
             'asOfMs' => $this->asOfMs(),
-            'stateHash' => $this->stateHash(),
+            'stateHash' => $this->clock->stateHash(),
         ];
-    }
-
-    public static function milliseconds(DateTimeImmutable $moment): int
-    {
-        return (int) $moment->format('Uv');
     }
 }

@@ -20,7 +20,8 @@ use SplFileInfo;
  *   template attribute, no feature stylesheet writes them;
  * - every page-wide fixed bar and every fixed bottom element offsets by --nav-left / --bottom-nav-height;
  * - sub-bars anchored at the static `var(--header-height)` follow the live top bar through `translate`
- *   (nav-follow-topbar), never by transitioning or animating `top`; scroll margins read the live --topbar-h;
+ *   (nav-follow-topbar), never by transitioning or animating `top`; <html>'s scroll padding reserves the bars, so
+ *   scroll margins add only their own gap;
  * - base.html.twig keeps the head order (§3.11) and the web-only nav_chrome / nav_layers blocks, which every bar-free
  *   page empties together with header and footer.
  * Later items append rows to the providers (the NAV-03 search view, HELP-01b, CARD-01a, ...; MENU-02b added #menu-layer).
@@ -382,25 +383,103 @@ final class NavLayoutCssTest extends TestCase
     }
 
     /**
-     * Anchors land below the live top bar (decision 17): since NAV-11 through <html>'s scroll-padding-top =
-     * var(--topbar-h) (critical CSS; scroll-padding-bottom = the phone bottom bar) - every scroll into view, the focus
-     * moving with Tab included. A scroll margin that added the bar's height again would count it twice.
+     * Anchors land below the top bar (decision 17): since NAV-11 through <html>'s scroll-padding-top (critical CSS;
+     * scroll-padding-bottom = the phone bottom bar) - every scroll into view, the focus moving with Tab included. A scroll
+     * margin that added the bar's height again would count it twice - read from the bar's variables or hard-coded as the
+     * old header plus a gap (`6rem` on the auth fields, the auth disclosure panel and every FAQ question: a 6rem band
+     * between the bar and the target - follow-up review F1). Margins live in the stylesheets, never inline in a template.
+     * The padding is the bar's static height (follow-up review Q3: with the live one, 0 while the phone bar is hidden, a
+     * jump upwards ends under the returning bar), and 0 on pages without bars (Q2) - the auth pages keep it for their
+     * sticky header.
      */
-    public function testScrollMarginsReadTheLiveTopBarHeight(): void
+    public function testScrollMarginsAddOnlyTheirOwnGap(): void
     {
-        self::assertStringContainsString("\nhtml{scroll-padding-top:var(--topbar-h);scroll-padding-bottom:var(--bottom-nav-height)}\n", $this->criticalRules());
+        self::assertStringContainsString("\nhtml{scroll-padding-top:var(--header-height);scroll-padding-bottom:var(--bottom-nav-height)}\n", $this->criticalRules());
+        self::assertStringContainsString("\n:root:has(> body.no-nav-chrome):not(:has(> body > .site-header)){scroll-padding-top:0}\n", $this->criticalRules());
+        self::assertStringNotContainsString('scroll-padding-top:var(--topbar-h)', $this->criticalRules());
 
         $violations = [];
 
         foreach ($this->files('assets/styles', ['scss']) as $path => $code) {
-            if (preg_match_all('~scroll-margin-top\s*:[^;]*--(header-height|topbar-h)[^;]*;~', $code, $matches) > 0) {
-                foreach ($matches[0] as $match) {
-                    $violations[] = $path . ': ' . $match;
+            if (preg_match_all('~scroll-margin(?:-top|-block|-block-start)?\s*:([^;{}]*)~', $code, $matches) === 0) {
+                continue;
+            }
+
+            foreach ($matches[1] as $index => $value) {
+                // The bar's own tools take the bar's height away (Q1, below), never add it
+                if (str_starts_with(trim($value), 'calc(-1 * (var(--header-height')) {
+                    continue;
+                }
+
+                if (preg_match('~--(header-height|topbar-h|desk-topbar-h)\b~', $value) === 1 || self::isHeaderSized($value)) {
+                    $violations[] = $path . ': ' . trim($matches[0][$index]);
                 }
             }
         }
 
-        self::assertSame([], $violations, 'html\'s scroll-padding-top reserves the live top bar; scroll margins add only their own gap');
+        foreach ($this->files('templates', ['twig']) as $path => $code) {
+            if (preg_match_all('~scroll-margin[^;"\'}]*~', (string) preg_replace('~\{#.*?#\}~s', '', $code), $matches) > 0) {
+                foreach ($matches[0] as $match) {
+                    $violations[] = $path . ': ' . $match . ' (a scroll margin belongs in the stylesheets)';
+                }
+            }
+        }
+
+        self::assertSame([], $violations, 'html\'s scroll-padding-top reserves the top bar; scroll margins add only their own gap');
+
+        // Follow-up review Q1: the padding makes everything inside the sticky bar look covered - the bar's own tools move
+        // their scroll box below it (by the hidden phone bar's shift too), or Tab / focus() onto them scrolled the page
+        // up by hundreds of pixels; never what hangs from the bar (menus, results, languages: they scroll like the page)
+        $tools = $this->rules((string) file_get_contents($this->root() . '/assets/styles/_nav-topbar.scss'));
+        $selector = '.site-header :is(a[href], button, input, select, summary, [tabindex]):not(.dropdown-menu *):not(.site-search-panel *):not(.site-header-languages *)';
+        self::assertArrayHasKey($selector, $tools, 'The bar\'s tools keep their scroll box below the scroll padding');
+        self::assertStringContainsString('scroll-margin-top: calc(-1 * (var(--header-height, 0px) + var(--topbar-shift, 0px)))', $tools[$selector]);
+        self::assertStringContainsString('scroll-margin-bottom: calc(var(--header-height, 0px) + var(--topbar-shift, 0px))', $tools[$selector]);
+
+        // The guard itself: what it must catch and what it must let through
+        self::assertTrue(self::isHeaderSized(' 6rem'));
+        self::assertTrue(self::isHeaderSized(' 48px'));
+        self::assertTrue(self::isHeaderSized(' calc(1rem + 3.5em)'));
+        self::assertFalse(self::isHeaderSized(' 1rem'));
+        self::assertFalse(self::isHeaderSized(' calc(var(--compact-bar-height, 0px) + .75rem)'));
+        self::assertFalse(self::isHeaderSized(' 2.75rem'));
+    }
+
+    /** A length of 3rem / 3em / 48 px or more in a scroll margin: the old header's height, not a gap */
+    private static function isHeaderSized(string $value): bool
+    {
+        preg_match_all('~(\d*\.?\d+)(rem|em|px)\b~', $value, $lengths, PREG_SET_ORDER);
+
+        foreach ($lengths as [, $number, $unit]) {
+            if ((float) $number >= ($unit === 'px' ? 48.0 : 3.0)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Follow-up review Q4 (NAV-11, 200 % text size): the 768-1023 px bar - ☰ with its "Menu" label, the logo, the compact
+     * places, 🔍, + Add, ?, Inbox, the avatar - needs 864 px at 200 % (883 px for a guest's Sign in), so the avatar ran off
+     * a 768 px screen. With a large text size (the viewport narrower than 34em, em = the browser's text size setting) ☰
+     * and + Add become their icons - names kept (☰'s aria-label; + Add's label visually hidden, as next to a running
+     * stopwatch) - and a place grows with its label instead of letting it out of its 56 px. At the default size nothing
+     * changes (34em = 544 px).
+     */
+    public function testTheCompactBarStepsDownWithALargeTextSize(): void
+    {
+        $css = "\n" . $this->criticalRules() . "\n";
+        $tier = '(min-width:768px) and (max-width:1023.98px) and (max-width:34em)';
+
+        self::assertStringContainsString("\n@media {$tier} and (min-height:501px),{$tier} and (pointer:fine){.site-header .site-header-menu--desk{width:44px;padding:0}.site-header .site-header-menu-label{display:none}.site-header .site-header-add{width:44px;padding:0}.site-header .site-header-add-label{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}}\n", $css);
+        self::assertStringContainsString('.nav-places--compact .nav-tab{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-width:56px;min-height:56px;padding:0 4px}', $css);
+
+        // ☰ keeps its name without the label, + Add's label is its name
+        $topbar = (string) file_get_contents($this->root() . '/templates/navigation/_topbar.html.twig');
+        self::assertMatchesRegularExpression('~class="site-header-tool site-header-menu site-header-menu--desk"[^>]*aria-label="\{\{ menu_name \}\}"~', $topbar);
+        self::assertStringContainsString('<span class="site-header-menu-label" aria-hidden="true">', $topbar);
+        self::assertStringContainsString('<span class="site-header-add-label">', $topbar);
     }
 
     /**

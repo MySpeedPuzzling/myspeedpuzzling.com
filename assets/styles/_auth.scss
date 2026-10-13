@@ -15,8 +15,9 @@
         min-height: 3rem;
         padding: .6875rem 1rem;
         font-size: 1rem;
-        // Focus/scroll-into-view never tucks a field under the sticky header
-        scroll-margin-top: 6rem;
+        // Focus/scroll-into-view never tucks a field under the sticky header: <html>'s scroll-padding-top reserves the
+        // header (NAV-11), the margin adds only a gap (follow-up review F1)
+        scroll-margin-top: 1rem;
     }
 
     .btn:not(.btn-sm) {
@@ -330,7 +331,8 @@
 // The email form opened under "Continue with email" - the providers follow
 // below the "or continue with" divider
 .auth-disclosure-panel {
-    scroll-margin-top: 6rem;
+    // Below the sticky header (<html>'s scroll-padding-top) by a gap
+    scroll-margin-top: 1rem;
 
     .auth-divider {
         margin-bottom: 0;

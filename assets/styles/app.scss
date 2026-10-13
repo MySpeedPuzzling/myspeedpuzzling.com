@@ -1405,6 +1405,9 @@ canvas {
 .accordion-faq .accordion-item {
     border: 0 !important;
     border-radius: 0 !important;
+    // A question opened from its #anchor (faq_anchor_controller.js) lands a gap below the top bar - <html>'s
+    // scroll-padding-top reserves the bar (NAV-11, follow-up review F1)
+    scroll-margin-top: 1rem;
 }
 
 // A question showing a button ("What does the [Add my time] button do?") - on a narrow phone its label wraps inside it

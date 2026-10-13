@@ -60,7 +60,7 @@
        faq#duplicate-accounts is linked from elsewhere) - faq_anchor opens it. #}
     <div class="accordion accordion-faq my-3" data-controller="faq-anchor">
         {% for item in faq_items %}
-            <div class="accordion-item my-2 shadow" id="{{ item|replace({'_': '-'}) }}" style="scroll-margin-top: 6rem;">
+            <div class="accordion-item my-2 shadow" id="{{ item|replace({'_': '-'}) }}">
                 <h2 class="accordion-header">
                     <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#item-{{ item }}" aria-expanded="false" aria-controls="item-{{ item }}">
                         {# A span keeps the question one run of text: the in-text button example flows with it

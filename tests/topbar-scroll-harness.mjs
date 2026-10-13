@@ -17,7 +17,7 @@ import {
     transformY,
     translateY,
 } from '../assets/topbar_scroll.js';
-import { focusMovedByTab, installFocusOrigin } from '../assets/navigation/focus_origin.js';
+import { focusMovedByTab, focusReturnedWithWindow, installFocusOrigin } from '../assets/navigation/focus_origin.js';
 
 /** Scrolls through the positions, returns whether the bar is hidden after each */
 function scroll(positions, mayHide = true, max = Infinity) {
@@ -98,6 +98,15 @@ const afterKey = (event) => {
 
     return [during, focusMovedByTab()];
 };
+// Follow-up review F3: a focus event seen by the capturing listener - the window's own (it got the focus back) or an
+// element's on its way down; [returning during the task, after it, tabbing during it]
+const afterFocus = (target) => {
+    focusWindow.listeners.filter((l) => l.type === 'focus').forEach((l) => l.listener({ type: 'focus', target }));
+    const during = [focusReturnedWithWindow(), focusMovedByTab()];
+    nextTask();
+
+    return [during[0], focusReturnedWithWindow(), during[1]];
+};
 
 const results = {
     // NAV review F3: a page of 600 px scroll range; iOS's rubber band reports 640, 620 while a fling bounces at the end
@@ -121,9 +130,14 @@ const results = {
         tab: afterKey({ key: 'Tab' }),
         shiftTab: afterKey({ key: 'Tab', shiftKey: true }),
         ctrlTab: afterKey({ key: 'Tab', ctrlKey: true }),
+        // Follow-up review F4: Safari's Option+Tab is its Tab through links and buttons
         altTab: afterKey({ key: 'Tab', altKey: true }),
+        metaTab: afterKey({ key: 'Tab', metaKey: true }),
         letter: afterKey({ key: 'k' }),
         ctrlK: afterKey({ key: 'k', ctrlKey: true }),
+        windowBack: afterFocus(focusWindow),
+        elementFocus: afterFocus({ nodeName: 'INPUT' }),
+        returningBefore: focusReturnedWithWindow(),
     },
 
     constants: { HIDE_AFTER_PX, SHOW_AFTER_PX, PHONE_TOPBAR_PX, SHORT_VIEWPORT_PX },

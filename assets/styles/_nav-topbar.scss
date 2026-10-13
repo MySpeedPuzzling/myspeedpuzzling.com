@@ -57,6 +57,20 @@ $nav-topbar-desktop-h: 64px;
     transition: none;
 }
 
+// The bar's own tools never scroll the page when they get the focus (follow-up review Q1). <html>'s scroll-padding-top
+// reserves the bar's height (NAV-11), so to the browser everything inside the sticky bar looks covered: Tab, Shift+Tab or
+// a script's focus() onto the logo, ?, ☰, the avatar … scrolled the page up by hundreds of pixels (Chromium, from 1200 px
+// down: 372 px at 360, 450 px at 1280) - for nothing, the bar stays at the top. Their scroll box moves down by the bar's
+// height (and by the hidden phone bar's shift: the bar comes back when the focus enters it), which keeps it inside the
+// viewport below the padding. Not what hangs from the bar (the avatar's menu, the search results, the sign-in pages'
+// languages): those scroll like the page. The sign-in pages' sticky header too (.site-header--auth: the logo, the
+// language summary). The search field reveals its caret, which no scroll margin moves - global_search_controller.js makes
+// a Tab move onto it itself, without a scroll.
+.site-header :is(a[href], button, input, select, summary, [tabindex]):not(.dropdown-menu *):not(.site-search-panel *):not(.site-header-languages *) {
+    scroll-margin-top: calc(-1 * (var(--header-height, 0px) + var(--topbar-shift, 0px)));
+    scroll-margin-bottom: calc(var(--header-height, 0px) + var(--topbar-shift, 0px));
+}
+
 // ---- Tools ------------------------------------------------------------------------------------------------------------
 
 .site-header-tool,

@@ -128,21 +128,28 @@ final class TopbarScrollScriptTest extends TestCase
 
     /**
      * NAV-11 (WCAG 3.2.1 On Focus): Tab passing through the top bar's search field must not open the search - the phone
-     * view hides ?, Inbox and ☰ and takes a history entry. assets/navigation/focus_origin.js marks a focus moved by Tab
-     * or Shift+Tab (the keydown's default action, the same task) and forgets it in the next task; Ctrl+K and typing are
-     * not Tab (global_search_controller.js opens the search for them).
+     * view hides ?, Inbox and ☰ and takes a history entry. assets/navigation/focus_origin.js marks a focus moved by Tab,
+     * Shift+Tab or Option+Tab (Safari's Tab through links and buttons - follow-up review F4) - the keydown's default
+     * action, the same task - and forgets it in the next task; Ctrl / Cmd+Tab, Ctrl+K and typing are not Tab
+     * (global_search_controller.js opens the search for the last two). Follow-up review F3: the window's own focus event
+     * (a tab or app got the focus back - the browser then hands it back to the element that had it, in the same task)
+     * marks that task too; an element's focus seen on its way down does not.
      */
     public function testAFocusMovedByTabIsKnownUntilTheNextTask(): void
     {
         self::assertSame([
-            'install' => [true, false, [['keydown', true]]],
+            'install' => [true, false, [['keydown', true], ['focus', true]]],
             'before' => false,
             'tab' => [true, false],
             'shiftTab' => [true, false],
             'ctrlTab' => [false, false],
-            'altTab' => [false, false],
+            'altTab' => [true, false],
+            'metaTab' => [false, false],
             'letter' => [false, false],
             'ctrlK' => [false, false],
+            'windowBack' => [true, false, false],
+            'elementFocus' => [false, false, false],
+            'returningBefore' => false,
         ], self::results()['focusOrigin']);
     }
 

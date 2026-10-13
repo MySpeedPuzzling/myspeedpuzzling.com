@@ -3,7 +3,7 @@ import { getComponent } from '@symfony/ux-live-component';
 import layers, { LAYER_CLOSED_EVENT } from '../layer_history.js';
 import { isNativeApp } from '../platform.js';
 import { TOPBAR_REVEAL_EVENT } from '../topbar_scroll.js';
-import { focusMovedByTab } from '../navigation/focus_origin.js';
+import { focusMovedByTab, focusReturnedWithWindow } from '../navigation/focus_origin.js';
 
 // Whatever opens the page's search (the top bar's 🔍 icon, the old header's search tool, the 404 page's button) - one
 // delegated listener
@@ -39,6 +39,12 @@ const CLOSE_EVENT = 'global-search:close';
 // This instance's own barcode scanner (templates/components/GlobalSearch.html.twig)
 const SCANNER = 'barcode-scanner';
 
+// Every barcode scanner of the page stops on this window event (barcode_scanner_controller.js)
+const SCANNER_CLOSE_EVENT = 'barcode-scan:close';
+
+// What Tab can reach (the phone search view keeps it inside the top bar and the bottom bar - follow-up review Q5)
+const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), summary, [tabindex]:not([tabindex="-1"])';
+
 /**
  * The page search's own behaviour (templates/components/GlobalSearch.html.twig; navigation MENU-03, NAV-03, R3): one
  * controller per GlobalSearch instance, on the component's root, reading only its own elements (targets) - never "the
@@ -46,24 +52,32 @@ const SCANNER = 'barcode-scanner';
  * - `bar`: the top bar's search field. Focusing it (or the scan button, or any [data-global-search-toggle] - the 🔍 that
  *   replaces the field next to a running stopwatch, the old header's tool) opens the search: <html data-search-open>.
  *   Not when Tab merely passes through the field (NAV-11, WCAG 3.2.1 - assets/navigation/focus_origin.js): the phone
- *   view would hide ?, Inbox and ☰ from the Tab order; there the search opens with the first character typed.
+ *   view would hide ?, Inbox and ☰ from the Tab order; there the search opens with the first character typed. Nor when
+ *   the browser only hands the focus back to the field because its window (tab, app) got the focus again (follow-up
+ *   review F3). Opening the search - not the field's focus - stops the page's own barcode scanner (multiscan, the add
+ *   form: follow-up review F2): a Tab pass leaves its camera running.
  *   On phones that is the search view, a layer of assets/layer_history.js (GEST-01): one same-URL history entry, so
  *   Back, ×, Esc and a tap on the scrim close it and a result opened from it replaces its entry (Back then returns to
- *   the page the search was opened on); the scrim and the page's scroll lock belong to it (phones only, CSS). On
- *   desktop it is a dropdown under the field with no history entry (decision 22), no scrim, the page scrolls on (NAV
- *   review F2): Esc anywhere in it, a click outside it and the focus leaving it (Tab past it - not onto its own results,
- *   not into a modal it opened) close it. Esc and × put the focus back into the field - or, where the field hides again
- *   (the 768-1023 px bar), on the 🔍 that opened it - never on <body> (review F5); typing in the still focused field (or
- *   a click on it) opens it again. Closing clears the field. Opened from an icon, the field is shown and focused in the
- *   same tap (iOS opens the keyboard only then).
+ *   the page the search was opened on); the scrim and the page's scroll lock belong to it (phones only, CSS). With a
+ *   keyboard (follow-up review Q5) Tab and Shift+Tab cycle through the top bar (the logo, the field, its buttons, the
+ *   results) and the bottom bar, which stay usable - never into the dimmed page; closing it puts the focus back where
+ *   the search opened (the field at its place in the bar, or the 🔍) once a key opened it, Esc closed it or Tab moved in
+ *   it - a tap-opened view drops the focus instead (the on-screen keyboard goes away). On desktop it is a dropdown under
+ *   the field with no history entry (decision 22), no scrim, the page scrolls on (NAV review F2): Esc anywhere in it, a
+ *   click outside it and the focus leaving it (Tab past it - not onto its own results, not into a modal it opened)
+ *   close it. Esc and × put the focus back into the field - or, where the field hides again (the 768-1023 px bar), on the
+ *   🔍 that opened it - never on <body> (review F5); typing in the still focused field (or a click on it) opens it
+ *   again. Closing clears the field. Opened from an icon, the field is shown and focused in the same tap (iOS opens the
+ *   keyboard only then).
  * - `menu`: the Menu panel's field. Typing shows the results inside the panel (the shell gets .is-searching, CSS hides
  *   #site-menu) - same layer, same history entry. Esc - in the field or on a result - clears a typed query first and
  *   puts focus back into the field; it closes the panel only when the field is empty (assets/layer_history.js handles
  *   that Esc). The field is cleared whenever the panel closes, and its own scanner stops on every close (×, Esc, Back,
  *   a modal taking over, a visit leaving - review F3): the shell stays in the page, so nothing else would stop it.
- * Both close the barcode scanner when the field gets focus. Opening the Menu panel closes the bar's search: the phone
- * search view through the layer swap (the Menu's layer replaces its entry), the desktop dropdown on
- * `global-search:close` (review F11). "Pages & settings" is nav_search_controller.js's.
+ * The Menu's field closes the page's barcode scanner when it gets the focus. Opening the Menu panel closes the bar's
+ * search: the phone search view through the layer swap (the Menu's layer replaces its entry), the desktop dropdown on
+ * `global-search:close` (review F11). A Tab move onto the bar's field never scrolls the page (follow-up review Q1,
+ * handleTab). "Pages & settings" is nav_search_controller.js's.
  *
  * Desktop (NAV-04, README §4.3): Ctrl/Cmd+K focuses the bar's field - in the 768-1023 px bar, where search is the 🔍,
  * it opens the field first; never a single-key shortcut, never behind an open modal or dialog, never while typing in
@@ -79,6 +93,8 @@ export default class extends Controller {
         this.shown = false;
         this.layered = false;
         this.quietFocus = false;
+        // A key opened the search or moved in it (the phone view gives the focus back on closing - follow-up review Q5)
+        this.keyboardUsed = false;
 
         this.searchInputTarget.addEventListener('focus', this.handleFocus);
         // On the whole instance: Esc on a result row too (review Q5)
@@ -91,6 +107,7 @@ export default class extends Controller {
         } else {
             document.addEventListener('click', this.handleToggleClick);
             document.addEventListener('keydown', this.handleShortcut);
+            document.addEventListener('keydown', this.handleTab);
             document.addEventListener(CLOSE_EVENT, this.handleCloseRequest);
             document.addEventListener('turbo:before-cache', this.handleBeforeCache);
             this.element.addEventListener('focusout', this.handleFocusOut);
@@ -111,6 +128,7 @@ export default class extends Controller {
         document.removeEventListener(LAYER_CLOSED_EVENT, this.handleLayerClosed);
         document.removeEventListener('click', this.handleToggleClick);
         document.removeEventListener('keydown', this.handleShortcut);
+        document.removeEventListener('keydown', this.handleTab);
         document.removeEventListener(CLOSE_EVENT, this.handleCloseRequest);
         document.removeEventListener('click', this.handleOutsideClick);
         document.removeEventListener('turbo:before-cache', this.handleBeforeCache);
@@ -139,12 +157,19 @@ export default class extends Controller {
             return;
         }
 
-        window.dispatchEvent(new CustomEvent('barcode-scan:close'));
+        if (this.isMenu()) {
+            window.dispatchEvent(new CustomEvent(SCANNER_CLOSE_EVENT));
 
-        // A tap or a click opens the search; Tab passing through does not (a change of context on focus, NAV-11)
-        if (!this.isMenu() && !focusMovedByTab()) {
-            this.openView();
+            return;
         }
+
+        // A tap or a click opens the search; Tab passing through does not (a change of context on focus, NAV-11), nor
+        // the focus the browser gives back to the field with its window (follow-up review F3) - typing opens it then
+        if (focusMovedByTab() || focusReturnedWithWindow()) {
+            return;
+        }
+
+        this.open(false);
     };
 
     handleInput = () => {
@@ -154,17 +179,17 @@ export default class extends Controller {
             return;
         }
 
-        // Desktop: Esc closed the dropdown and left the focus in the field - typing opens it again (clear() sends an
-        // empty input, which never does)
+        // The focus is in the closed field - reached by Tab, kept after Esc, given back with the window: typing opens the
+        // search (clear() sends an empty input, which never does)
         if (!this.shown && this.searchInputTarget.value !== '' && document.activeElement === this.searchInputTarget) {
-            this.openView();
+            this.open(true);
         }
     };
 
     /** Desktop: a click on the field that kept the focus after Esc (no new focus event) opens the dropdown again */
-    handleFieldClick = () => {
+    handleFieldClick = (event) => {
         if (!this.shown) {
-            this.openView();
+            this.open(Boolean(event) && event.detail === 0);
         }
     };
 
@@ -206,6 +231,10 @@ export default class extends Controller {
                 event.preventDefault();
                 this.closeView('close');
                 this.restoreFocus();
+            } else if (this.shown) {
+                // Phones: assets/layer_history.js closes the view on this Esc - a keyboard is there, so the focus goes
+                // back to where the search opened (follow-up review Q5)
+                this.keyboardUsed = true;
             }
 
             return;
@@ -294,11 +323,12 @@ export default class extends Controller {
         event.preventDefault();
 
         if (!this.shown) {
-            this.openView();
+            this.open(true);
         }
 
-        // Synchronously: html[data-search-open] shows the field where it was the icon, then it can take the focus
-        input.focus();
+        // Synchronously: html[data-search-open] shows the field where it was the icon, then it can take the focus - never
+        // scrolling the page (the sticky bar is in view; <html>'s scroll padding made its caret look covered - Q1)
+        input.focus({ preventScroll: true });
         input.select();
     };
 
@@ -415,19 +445,27 @@ export default class extends Controller {
         }
     };
 
+    /** The scan button's action: a click with detail 0 came from Enter / Space on it */
+    openView = (event) => {
+        this.open(Boolean(event) && event.type === 'click' && event.detail === 0);
+    };
+
     /**
-     * Opens the search: the field's focus, the scan button, a toggle. Idempotent - the focus that follows a toggle's
-     * open finds it open. Phones: the search view takes a history entry (not inside the app: no entry there, and no
-     * web top bar either).
+     * Opens the search: the field's focus, typing, the scan button, a toggle, Ctrl/Cmd+K. Idempotent - the focus that
+     * follows a toggle's open finds it open. The page's own barcode scanner stops (the multiscan camera, a form's scan -
+     * follow-up review F2; the scan button starts this instance's one right after). Phones: the search view takes a
+     * history entry (not inside the app: no entry there, and no web top bar either).
      */
-    openView = () => {
+    open(byKeyboard) {
         if (this.isMenu() || this.shown) {
             return;
         }
 
         this.shown = true;
+        this.keyboardUsed = Boolean(byKeyboard);
         this.layered = typeof window.matchMedia === 'function' && window.matchMedia(PHONE_QUERY).matches
             && !isNativeApp(document.documentElement);
+        window.dispatchEvent(new CustomEvent(SCANNER_CLOSE_EVENT));
         this.setOpen(true);
         // The bar comes back if it was hidden (and stays while the search is open - topbar_controller.js)
         window.dispatchEvent(new CustomEvent(TOPBAR_REVEAL_EVENT));
@@ -440,7 +478,7 @@ export default class extends Controller {
         }
 
         this.closeLegacyCollapse();
-    };
+    }
 
     onLayerClose = ({ reason }) => {
         if (reason === 'leave') {
@@ -459,24 +497,102 @@ export default class extends Controller {
         }
 
         const layered = this.layered;
+        const keyboard = this.keyboardUsed;
+        const active = document.activeElement;
+        // The focus would be lost with the view: on the field, ×, a result, or already nowhere (a tap on the scrim)
+        const focusInView = !active || active === document.body || this.element.contains(active);
 
         this.shown = false;
         this.layered = false;
+        this.keyboardUsed = false;
         document.removeEventListener('click', this.handleOutsideClick);
         this.setOpen(false);
-        window.dispatchEvent(new CustomEvent('barcode-scan:close'));
+        window.dispatchEvent(new CustomEvent(SCANNER_CLOSE_EVENT));
         this.clear();
 
-        if (layered && reason !== 'cache' && document.activeElement === this.searchInputTarget) {
-            // Phones: the keyboard goes away with the search view. Desktop keeps the focus where it is (review F5)
+        if (!layered || reason === 'cache' || reason === 'swap') {
+            // Desktop keeps the focus where it is (review F5); the Menu taking the view's entry over focuses its own ×
+            if (layered && reason === 'swap' && document.activeElement === this.searchInputTarget) {
+                this.searchInputTarget.blur();
+            }
+
+            return;
+        }
+
+        if (keyboard && focusInView) {
+            // Phones with a keyboard (follow-up review Q5): back to where the search opened - never <body> (WCAG 2.4.3)
+            this.restoreFocus();
+        } else if (document.activeElement === this.searchInputTarget) {
+            // Phones: the on-screen keyboard goes away with the search view
             this.searchInputTarget.blur();
         }
     }
 
     /**
+     * Tab, Shift+Tab (and Safari's Option+Tab) around the bar's field.
+     * - Phones, the open search view (follow-up review Q5): they cycle through the top bar - the logo, the field, its
+     *   buttons, the results - and the bottom bar (README §4.12, as the Menu panel), never into the page behind the scrim.
+     * - Everywhere else, a Tab move onto the field from its neighbour in the bar is made here, without a scroll
+     *   (follow-up review Q1): the browser's own move reveals the field's caret, and <html>'s scroll-padding-top (the
+     *   bar's height, NAV-11) makes everything inside the sticky bar look covered - the page jumped up by hundreds of
+     *   pixels for nothing. The bar's other tools keep the browser's move: their scroll margin (_nav-topbar.scss) keeps
+     *   them in view, which no margin does for a caret.
+     */
+    handleTab = (event) => {
+        if (event.key !== 'Tab' || event.defaultPrevented || event.ctrlKey || event.metaKey) {
+            return;
+        }
+
+        const header = this.element.closest('.site-header') || this.element;
+
+        if (this.shown && this.layered) {
+            this.keyboardUsed = true;
+            this.moveFocus(event, [...this.focusables(header), ...this.focusables(document.getElementById('bottom-nav'))]);
+
+            return;
+        }
+
+        const tools = this.focusables(header).filter((element) => !element.closest('.dropdown-menu') && !this.inPanel(element));
+        const at = tools.indexOf(document.activeElement);
+
+        if (at !== -1 && tools[at + (event.shiftKey ? -1 : 1)] === this.searchInputTarget) {
+            event.preventDefault();
+            this.searchInputTarget.focus({ preventScroll: true });
+        }
+    };
+
+    /** The next / previous of the cycle (wrapping); the bars' tools without a scroll, a result inside its panel's own */
+    moveFocus(event, cycle) {
+        if (cycle.length === 0) {
+            return;
+        }
+
+        const at = cycle.indexOf(document.activeElement);
+        const next = cycle[at === -1
+            ? (event.shiftKey ? cycle.length - 1 : 0)
+            : (at + (event.shiftKey ? -1 : 1) + cycle.length) % cycle.length];
+
+        event.preventDefault();
+        next.focus(this.inPanel(next) ? undefined : { preventScroll: true });
+    }
+
+    inPanel(element) {
+        return this.hasPanelTarget && this.panelTarget.contains(element);
+    }
+
+    focusables(root) {
+        if (!root) {
+            return [];
+        }
+
+        return Array.from(root.querySelectorAll(FOCUSABLE)).filter((element) => element.getClientRects().length > 0 && !element.closest('[inert]'));
+    }
+
+    /**
      * Desktop, after Esc or ×: the focus stays in (or goes back to) the field where it is still shown - from 1024 px -
      * else on the header's shown 🔍, which opened it (768-1023 px: the field hides again) - never on <body> (WCAG 2.4.3,
-     * review F5). The focus coming back opens nothing.
+     * review F5). Phones, the search view closed with a keyboard (follow-up review Q5): the same - the field at its place
+     * in the bar, or the 🔍 standing in for it next to a running stopwatch. The focus coming back opens nothing.
      */
     restoreFocus() {
         const input = this.searchInputTarget;
@@ -537,8 +653,9 @@ export default class extends Controller {
         if (this.shown) {
             this.closeSearchBar();
         } else {
-            this.openView();
-            this.searchInputTarget.focus();
+            // Enter / Space on the 🔍 is a click with detail 0; the field in the sticky bar is in view (Q1)
+            this.open(Boolean(event) && event.type === 'click' && event.detail === 0);
+            this.searchInputTarget.focus({ preventScroll: true });
         }
     }
 
@@ -552,7 +669,7 @@ export default class extends Controller {
         event.preventDefault();
         // Synchronously in the tap: the field shows (html[data-search-open]) and takes the focus - iOS opens the
         // keyboard only for a focus inside the user's own gesture
-        this.toggleSearchBar();
+        this.toggleSearchBar(event);
     };
 
     /** A tap on the panel's empty part - the scrim shows through there - closes the search */

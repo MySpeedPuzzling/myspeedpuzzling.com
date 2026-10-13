@@ -1,0 +1,130 @@
+{% extends 'base.html.twig' %}
+
+{#
+    The accuracy report of an online round, Phase 1 (docs/features/online-competitions/README.md §5.9, stream C2, route
+    online_accuracy): the reviewer's adjustment (confirmed − tap) per participant and its distribution; the CSV carries
+    the same rows in epoch ms for the bench. Phase 2 adds the detection error and the delta next to the adjustment
+    (OnlineAccuracy::MEASURES).
+    Variables: competition, round (CompetitionRound), online_round, rows (list of OnlineAccuracyRow), summaries
+    (measure => AccuracySummary), started_at_ms
+#}
+
+{% set hide_comparison_launcher = true %}
+{% set round_id = round.id.toString %}
+
+{% macro elapsed(ms) -%}
+    {%- if ms is not null -%}
+        {%- set absolute = ms < 0 ? -ms : ms -%}
+        {%- set seconds = absolute // 1000 -%}
+        {{- ms < 0 ? '-' -}}{{- '%02d:%02d:%02d.%d'|format(seconds // 3600, (seconds % 3600) // 60, seconds % 60, (absolute // 100) % 10) -}}
+    {%- endif -%}
+{%- endmacro %}
+
+{% macro adjustment(ms) -%}
+    {%- if ms is not null -%}
+        {%- set tenths = ((ms < 0 ? -ms : ms) / 100)|round -%}
+        {{- tenths == 0 ? '' : (ms < 0 ? '−' : '+') -}}{{- '%.1f'|format(tenths / 10) }} s
+    {%- endif -%}
+{%- endmacro %}
+
+{% block title %}{{ 'online_rounds.accuracy.title'|trans }} - {{ round.name }}{% endblock %}
+
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block page_stylesheets %}{{ encore_entry_link_tags('online_rounds') }}{% endblock %}
+
+{% block content %}
+    {{ include('_breadcrumb.html.twig', {items: [
+        {label: 'events.title'|trans, url: path('events')},
+        {label: competition.name, url: path('edit_competition', {competitionId: competition.id})},
+        {label: 'competition.manage_rounds'|trans, url: path('manage_competition_rounds', {competitionId: competition.id})},
+        {label: 'online_rounds.accuracy.title'|trans},
+    ]}) }}
+    {{ include('_return_back_button.html.twig', {fallbackUrl: path('online_review', {roundId: round_id}), fallbackTitle: 'online_rounds.review.title'|trans}) }}
+
+    <div class="online-rounds-page online-accuracy pb-5" data-online-accuracy>
+        <h1 class="h2 mb-1">{{ 'online_rounds.accuracy.title'|trans }}</h1>
+        <p class="h5 text-muted mb-2">{{ competition.name }} — {{ round.name }}</p>
+        <p class="online-rounds-prose small">{{ 'online_rounds.accuracy.intro'|trans }}</p>
+
+        <div class="d-flex flex-wrap gap-2 mb-4">
+            <a href="{{ path('online_review', {roundId: round_id}) }}" class="btn btn-sm btn-outline-primary" data-online-tool="review">
+                <i class="bi bi-check2-square me-1" aria-hidden="true"></i>{{ 'online_rounds.control.tools.review'|trans }}
+            </a>
+            <a href="{{ path('online_control_room', {roundId: round_id}) }}" class="btn btn-sm btn-outline-primary" data-online-tool="control">
+                <i class="bi bi-broadcast-pin me-1" aria-hidden="true"></i>{{ 'online_rounds.review.tools.control'|trans }}
+            </a>
+            <a href="{{ path('online_accuracy', {roundId: round_id, format: 'csv'}) }}" class="btn btn-sm btn-outline-primary" data-turbo="false" data-accuracy-csv>
+                <i class="bi bi-download me-1" aria-hidden="true"></i>{{ 'online_rounds.accuracy.download_csv'|trans }}
+            </a>
+        </div>
+
+        {% if started_at_ms is null %}
+            <div class="alert alert-secondary py-2" role="note">{{ 'online_rounds.accuracy.not_started'|trans }}</div>
+        {% endif %}
+
+        {% set adjustment = summaries.adjustment %}
+        <section class="card shadow-sm mb-4" aria-labelledby="online-accuracy-summary-title" data-accuracy-summary>
+            <div class="card-body">
+                <h2 class="h6" id="online-accuracy-summary-title">{{ 'online_rounds.accuracy.summary.title'|trans }}</h2>
+                <p class="mb-2" data-accuracy-count="{{ adjustment.count }}">{{ 'online_rounds.accuracy.summary.count'|trans({'%count%': adjustment.count}) }}</p>
+                {% if adjustment.count > 0 %}
+                    <dl class="online-accuracy-summary mb-0">
+                        <div>
+                            <dt>{{ 'online_rounds.accuracy.summary.median'|trans }}</dt>
+                            <dd class="font-monospace" data-accuracy-median>{{ _self.adjustment(adjustment.median) }}</dd>
+                        </div>
+                        <div>
+                            <dt>{{ 'online_rounds.accuracy.summary.iqr'|trans }}</dt>
+                            <dd class="font-monospace" data-accuracy-iqr>{{ _self.adjustment(adjustment.iqr)|replace({'+': ''}) }}</dd>
+                            <dd class="small text-body-secondary">{{ 'online_rounds.accuracy.summary.quartiles'|trans({'%q1%': _self.adjustment(adjustment.q1), '%q3%': _self.adjustment(adjustment.q3)}) }}</dd>
+                        </div>
+                    </dl>
+                {% endif %}
+            </div>
+        </section>
+
+        {% if rows is empty %}
+            <p class="text-body-secondary">{{ 'online_rounds.accuracy.empty'|trans }}</p>
+        {% else %}
+            <div class="table-responsive">
+                <table class="table table-sm align-middle online-accuracy-table">
+                    <thead>
+                        <tr>
+                            <th scope="col">{{ 'online_rounds.accuracy.col.participant'|trans }}</th>
+                            <th scope="col">{{ 'online_rounds.accuracy.col.status'|trans }}</th>
+                            <th scope="col" class="text-end">{{ 'online_rounds.accuracy.col.tap'|trans }}</th>
+                            <th scope="col" class="text-end">{{ 'online_rounds.accuracy.col.confirmed'|trans }}</th>
+                            <th scope="col" class="text-end">{{ 'online_rounds.accuracy.col.adjustment'|trans }}</th>
+                            <th scope="col">{{ 'online_rounds.accuracy.col.source'|trans }}</th>
+                            <th scope="col" class="text-end">{{ 'online_rounds.accuracy.col.late'|trans }}</th>
+                            <th scope="col" class="text-end">{{ 'online_rounds.accuracy.col.result'|trans }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in rows %}
+                            <tr data-accuracy-row="{{ row.participantId }}">
+                                <td>{{ row.name }}</td>
+                                <td>{{ ('online_rounds.review.status.' ~ row.status)|trans }}</td>
+                                <td class="text-end font-monospace">{{ _self.elapsed(row.tapElapsedMs) }}</td>
+                                <td class="text-end font-monospace">{{ _self.elapsed(row.confirmedElapsedMs) }}</td>
+                                <td class="text-end font-monospace" data-accuracy-adjustment>{{ _self.adjustment(row.adjustmentMs) }}</td>
+                                <td>{{ row.source is not null ? ('online_rounds.review.source.' ~ row.source)|trans }}</td>
+                                <td class="text-end font-monospace">{{ row.arrivedLateMs is not null ? '%.1f s'|format(row.arrivedLateMs / 1000) }}</td>
+                                <td class="text-end font-monospace">
+                                    {%- if row.official.seconds is not null -%}
+                                        {{- '%02d:%02d:%02d'|format(row.official.seconds // 3600, (row.official.seconds % 3600) // 60, row.official.seconds % 60) -}}
+                                    {%- elseif row.official.piecesPlaced is not null -%}
+                                        {{- 'online_rounds.review.result.pieces'|trans({'%count%': row.official.piecesPlaced}) -}}
+                                    {%- elseif row.official.didNotStart -%}
+                                        {{- 'online_rounds.review.result.did_not_start'|trans -}}
+                                    {%- endif -%}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+    </div>
+{% endblock %}

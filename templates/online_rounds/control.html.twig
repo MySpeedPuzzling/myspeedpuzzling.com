@@ -1,0 +1,156 @@
+{% extends 'base.html.twig' %}
+
+{#
+    The control room of an online round (docs/features/online-competitions/, stream C2, route online_control_room):
+    the round's clock and its actions, the counts, the filters and the grid of participants. The grid and every moving
+    part are drawn by assets/controllers/online_control_controller.js from the state below and the polls of online_live;
+    the clock's actions are the round stopwatch's own routes, asked for JSON.
+    Variables: competition, round (CompetitionRound), online_round, state (OnlineLiveState), timezone, csrf_token_id,
+    start_at_value, start_at_min
+#}
+
+{% set hide_comparison_launcher = true %}
+{% set round_id = round.id.toString %}
+
+{% block title %}{{ 'online_rounds.control.title'|trans }} - {{ round.name }}{% endblock %}
+
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block page_stylesheets %}{{ encore_entry_link_tags('online_rounds') }}{% endblock %}
+
+{% block content %}
+    {{ include('_breadcrumb.html.twig', {items: [
+        {label: 'events.title'|trans, url: path('events')},
+        {label: competition.name, url: path('edit_competition', {competitionId: competition.id})},
+        {label: 'competition.manage_rounds'|trans, url: path('manage_competition_rounds', {competitionId: competition.id})},
+        {label: 'online_rounds.control.title'|trans},
+    ]}) }}
+    {{ include('_return_back_button.html.twig', {fallbackUrl: path('manage_competition_rounds', {competitionId: competition.id}), fallbackTitle: 'competition.manage_rounds'|trans}) }}
+
+    <div class="online-rounds-page online-control pb-5"
+         data-controller="online-control"
+         data-online-control-urls-value="{{ {
+             live: path('online_live', {roundId: round_id}),
+             time: path('online_time'),
+             schedule: path('schedule_round_start', {roundId: round_id}),
+             cancel: path('cancel_round_start', {roundId: round_id}),
+             stop: path('stop_round_stopwatch', {roundId: round_id}),
+         }|json_encode|e('html_attr') }}"
+         data-online-control-csrf-token-value="{{ csrf_token(csrf_token_id) }}"
+         data-online-control-timezone-value="{{ timezone }}"
+         data-online-control-locale-value="{{ app.request.locale }}"
+         data-online-control-texts-value="{{ include('online_rounds/control_texts.html.twig')|e('html_attr') }}">
+        <script type="application/json" data-online-control-target="initialState">{{ state|json_encode(constant('JSON_HEX_TAG') b-or constant('JSON_HEX_AMP') b-or constant('JSON_HEX_APOS') b-or constant('JSON_HEX_QUOT'))|raw }}</script>
+
+        <h1 class="h2 mb-1">{{ 'online_rounds.control.title'|trans }}</h1>
+        <p class="h5 text-muted mb-1">{{ competition.name }} — {{ round.name }}</p>
+        <p class="small text-muted mb-3">
+            <i class="bi bi-calendar-event me-1" aria-hidden="true"></i>{{ zoned_datetime(round.startsAt, timezone, round.timezoneAssumed) }}
+            <span class="mx-1">&middot;</span>
+            <i class="bi bi-stopwatch me-1" aria-hidden="true"></i>{{ round.minutesLimit }} min
+        </p>
+        <p class="online-rounds-prose small">{{ 'online_rounds.control.intro'|trans }}</p>
+
+        <div class="d-flex flex-wrap gap-2 mb-4" data-online-control-tools>
+            <a href="{{ path('online_review', {roundId: round_id}) }}" class="btn btn-sm btn-primary" data-online-tool="review">
+                <i class="bi bi-check2-square me-1" aria-hidden="true"></i>{{ 'online_rounds.control.tools.review'|trans }}
+            </a>
+            <a href="{{ path('online_round_settings', {roundId: round_id}) }}" class="btn btn-sm btn-outline-primary" data-online-tool="settings">
+                <i class="bi bi-broadcast me-1" aria-hidden="true"></i>{{ 'online_rounds.menu.online_timing'|trans }}
+            </a>
+            <a href="{{ path('online_links', {competitionId: competition.id}) }}" class="btn btn-sm btn-outline-primary" data-online-tool="links">
+                <i class="bi bi-link-45deg me-1" aria-hidden="true"></i>{{ 'online_rounds.menu.personal_links'|trans }}
+            </a>
+            <a href="{{ path('round_stopwatch', {roundId: round_id}) }}" class="btn btn-sm btn-outline-primary" data-online-tool="projector" target="_blank" rel="noopener">
+                <i class="bi bi-display me-1" aria-hidden="true"></i>{{ 'online_rounds.control.tools.stopwatch'|trans }}
+            </a>
+            <a href="{{ path('online_accuracy', {roundId: round_id}) }}" class="btn btn-sm btn-outline-primary" data-online-tool="accuracy">
+                <i class="bi bi-bullseye me-1" aria-hidden="true"></i>{{ 'online_rounds.control.tools.accuracy'|trans }}
+            </a>
+        </div>
+
+        <section class="card shadow-sm mb-4 online-control-clock" aria-labelledby="online-control-clock-title">
+            <div class="card-body">
+                <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                    <h2 class="h6 mb-0 me-1" id="online-control-clock-title">{{ 'online_rounds.control.clock.title'|trans }}</h2>
+                    <span class="badge text-bg-secondary" data-online-control-target="statusBadge" role="status">{{ ('online_rounds.control.clock.status.' ~ state.round.status)|trans }}</span>
+                </div>
+
+                <div class="online-control-clock-digits font-monospace" data-online-control-target="clock" aria-live="off">00:00:00</div>
+                <p class="mb-3 text-body-secondary" data-online-control-target="clockLine">{{ 'online_rounds.control.clock.limit'|trans({'%count%': round.minutesLimit}) }}</p>
+
+                {# The actions the clock allows now - each wrapper takes `hidden` (the controller switches them by the screen) #}
+                <div class="d-flex flex-wrap align-items-start gap-3">
+                    <div class="d-flex flex-wrap gap-2" data-online-control-when="waiting" {{ state.round.status != 'waiting' ? 'hidden' }}>
+                        <button type="button" class="btn btn-success" data-action="online-control#startInTen" data-online-control-target="actionButton">
+                            <i class="bi bi-hourglass-split me-1" aria-hidden="true"></i>{{ 'online_rounds.control.actions.start_in_10'|trans }}
+                        </button>
+                    </div>
+                    <form class="online-control-start-at" data-online-control-when="waiting" data-action="submit->online-control#scheduleAt" novalidate {{ state.round.status != 'waiting' ? 'hidden' }}>
+                        <label for="online-control-start-at" class="form-label small fw-semibold mb-1">{{ 'online_rounds.control.actions.start_at_label'|trans }}</label>
+                        <div class="d-flex flex-wrap gap-2">
+                            <input type="datetime-local" id="online-control-start-at" class="form-control" step="1" value="{{ start_at_value }}" min="{{ start_at_min }}" aria-describedby="online-control-start-at-help" data-online-control-target="startAt">
+                            <button type="submit" class="btn btn-outline-primary" data-online-control-target="actionButton">
+                                <i class="bi bi-alarm me-1" aria-hidden="true"></i>{{ 'online_rounds.control.actions.schedule'|trans }}
+                            </button>
+                        </div>
+                        <div class="form-text" id="online-control-start-at-help">{{ 'online_rounds.control.actions.start_at_help'|trans({'%zone%': timezone_name(timezone, round.timezoneAssumed)}) }}</div>
+                    </form>
+                    <div data-online-control-when="scheduled countdown" {{ state.round.status != 'scheduled' ? 'hidden' }}>
+                        <button type="button" class="btn btn-outline-danger" data-action="online-control#cancelStart" data-online-control-target="actionButton">
+                            <i class="bi bi-x-circle me-1" aria-hidden="true"></i>{{ 'online_rounds.control.actions.cancel'|trans }}
+                        </button>
+                    </div>
+                    <div data-online-control-when="running" {{ state.round.status != 'running' ? 'hidden' }}>
+                        <button type="button" class="btn btn-warning" data-action="online-control#askToEnd" data-online-control-target="actionButton">
+                            <i class="bi bi-stop-fill me-1" aria-hidden="true"></i>{{ 'online_rounds.control.actions.end'|trans }}
+                        </button>
+                    </div>
+                </div>
+
+                <div class="alert mt-3 mb-0 py-2" role="status" aria-live="polite" data-online-control-target="notice" hidden></div>
+            </div>
+        </section>
+
+        <div class="alert alert-warning py-2" role="status" data-online-control-target="presence" {{ state.presenceAvailable ? 'hidden' }}>{{ 'online_rounds.control.presence_unavailable'|trans }}</div>
+
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+            <ul class="online-control-counts list-inline mb-0" data-online-control-target="counts" aria-live="polite"></ul>
+            <span class="small text-body-secondary" data-online-control-target="updated" aria-live="polite"></span>
+        </div>
+
+        <fieldset class="mb-3">
+            <legend class="visually-hidden">{{ 'online_rounds.control.filter.label'|trans }}</legend>
+            <div class="btn-group btn-group-sm flex-wrap" role="group" aria-label="{{ 'online_rounds.control.filter.label'|trans }}">
+                {% for filter in ['all', 'not_ready', 'offline', 'finished'] %}
+                    <input type="radio" class="btn-check" name="online-control-filter" id="online-control-filter-{{ filter }}" value="{{ filter }}" autocomplete="off" data-action="online-control#changeFilter" {{ filter == 'all' ? 'checked' }}>
+                    <label class="btn btn-outline-secondary" for="online-control-filter-{{ filter }}">{{ ('online_rounds.control.filter.' ~ filter)|trans }}</label>
+                {% endfor %}
+            </div>
+        </fieldset>
+
+        <div class="online-control-grid" data-online-control-target="grid"></div>
+        <p class="text-body-secondary" data-online-control-target="empty" hidden></p>
+
+        {# "End now" - asked here, never with window.confirm #}
+        <div class="modal fade" tabindex="-1" aria-labelledby="online-control-end-title" aria-hidden="true" data-online-control-target="endDialog">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2 class="modal-title h5" id="online-control-end-title">{{ 'online_rounds.control.end_dialog.title'|trans }}</h2>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ 'online_rounds.control.end_dialog.keep'|trans }}"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="mb-0">{{ 'online_rounds.control.end_dialog.body'|trans }}</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{{ 'online_rounds.control.end_dialog.keep'|trans }}</button>
+                        <button type="button" class="btn btn-danger" data-action="online-control#endNow" data-online-control-target="actionButton">
+                            <i class="bi bi-stop-fill me-1" aria-hidden="true"></i>{{ 'online_rounds.control.end_dialog.confirm'|trans }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

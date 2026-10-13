@@ -1,0 +1,176 @@
+{% extends 'base.html.twig' %}
+
+{#
+    The review of an online round (docs/features/online-competitions/README.md §5.9, stream C2, route online_review):
+    the participants on the left, the selected one's evidence on the right - the Finished taps, the frames around each
+    tap to scrub to the exact moment, the photo at the tap, the reported pieces with the photo when time was up, the
+    timeline. Keyboard first (↑/↓, ←/→, C, U). Drawn by assets/controllers/online_review_controller.js from the state
+    below, the participant's evidence (online_review_entry) and the confirmations (online_review_confirm).
+    Variables: competition, round (CompetitionRound), online_round, state (OnlineReview::list()), selected (a
+    participant id or null), participant_placeholder
+#}
+
+{% set hide_comparison_launcher = true %}
+{% set round_id = round.id.toString %}
+
+{% block title %}{{ 'online_rounds.review.title'|trans }} - {{ round.name }}{% endblock %}
+
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block page_stylesheets %}{{ encore_entry_link_tags('online_rounds') }}{% endblock %}
+
+{% block content %}
+    {{ include('_breadcrumb.html.twig', {items: [
+        {label: 'events.title'|trans, url: path('events')},
+        {label: competition.name, url: path('edit_competition', {competitionId: competition.id})},
+        {label: 'competition.manage_rounds'|trans, url: path('manage_competition_rounds', {competitionId: competition.id})},
+        {label: 'online_rounds.review.title'|trans},
+    ]}) }}
+    {{ include('_return_back_button.html.twig', {fallbackUrl: path('manage_competition_rounds', {competitionId: competition.id}), fallbackTitle: 'competition.manage_rounds'|trans}) }}
+
+    <div class="online-rounds-page online-review pb-5"
+         data-controller="online-review"
+         data-online-review-urls-value="{{ {
+             list: path('online_review', {roundId: round_id}),
+             entry: path('online_review_entry', {roundId: round_id, participantId: participant_placeholder}),
+             confirm: path('online_review_confirm', {roundId: round_id, participantId: participant_placeholder}),
+         }|json_encode|e('html_attr') }}"
+         data-online-review-placeholder-value="{{ participant_placeholder }}"
+         data-online-review-selected-value="{{ selected ?? '' }}"
+         data-online-review-csrf-token-value="{{ csrf_token('official_results') }}"
+         data-online-review-texts-value="{{ include('online_rounds/review_texts.html.twig')|e('html_attr') }}">
+        <script type="application/json" data-online-review-target="initialState">{{ state|json_encode(constant('JSON_HEX_TAG') b-or constant('JSON_HEX_AMP') b-or constant('JSON_HEX_APOS') b-or constant('JSON_HEX_QUOT'))|raw }}</script>
+
+        <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
+            <div>
+                <h1 class="h2 mb-1">{{ 'online_rounds.review.title'|trans }}</h1>
+                <p class="h5 text-muted mb-1">{{ competition.name }} — {{ round.name }}</p>
+            </div>
+            <span class="badge rounded-pill text-bg-light border fs-6 fw-normal" data-online-review-target="progress" aria-live="polite"></span>
+        </div>
+        <p class="online-rounds-prose small mb-1">{{ 'online_rounds.review.intro'|trans }}</p>
+        <p class="small text-body-secondary mb-3"><i class="bi bi-keyboard me-1" aria-hidden="true"></i>{{ 'online_rounds.review.keys'|trans }}</p>
+
+        <div class="d-flex flex-wrap gap-2 mb-3" data-online-review-tools>
+            <a href="{{ path('online_control_room', {roundId: round_id}) }}" class="btn btn-sm btn-outline-primary" data-online-tool="control">
+                <i class="bi bi-broadcast-pin me-1" aria-hidden="true"></i>{{ 'online_rounds.review.tools.control'|trans }}
+            </a>
+            <a href="{{ path('results_desk', {roundId: round_id}) }}" class="btn btn-sm btn-outline-primary" data-online-tool="results">
+                <i class="bi bi-trophy me-1" aria-hidden="true"></i>{{ 'results_desk.tools.results'|trans }}
+            </a>
+            <a href="{{ path('online_accuracy', {roundId: round_id}) }}" class="btn btn-sm btn-outline-primary" data-online-tool="accuracy">
+                <i class="bi bi-bullseye me-1" aria-hidden="true"></i>{{ 'online_rounds.review.tools.accuracy'|trans }}
+            </a>
+        </div>
+
+        {% if state.round.startedAtMs is null or state.round.status in ['waiting', 'scheduled'] %}
+            <div class="alert alert-secondary py-2" role="note" data-review-not-started>{{ 'online_rounds.review.not_started'|trans }}</div>
+        {% endif %}
+
+        <div class="alert py-2" role="status" aria-live="polite" data-online-review-target="notice" hidden></div>
+
+        <div class="online-review-layout">
+            <section class="online-review-list" aria-labelledby="online-review-list-title">
+                <h2 class="h6 mb-2" id="online-review-list-title">{{ 'online_rounds.review.list.title'|trans }}</h2>
+                <fieldset class="mb-2">
+                    <legend class="visually-hidden">{{ 'online_rounds.review.filter.label'|trans }}</legend>
+                    <div class="btn-group btn-group-sm flex-wrap" role="group" aria-label="{{ 'online_rounds.review.filter.label'|trans }}">
+                        {% for filter in ['all', 'needs_look', 'unfinished', 'no_finish', 'confirmed'] %}
+                            <input type="radio" class="btn-check" name="online-review-filter" id="online-review-filter-{{ filter }}" value="{{ filter }}" autocomplete="off" data-action="online-review#changeFilter" {{ filter == 'all' ? 'checked' }}>
+                            <label class="btn btn-outline-secondary" for="online-review-filter-{{ filter }}">{{ ('online_rounds.review.filter.' ~ filter)|trans }}</label>
+                        {% endfor %}
+                    </div>
+                </fieldset>
+                <ol class="online-review-rows list-unstyled mb-0" data-online-review-target="list"></ol>
+                <p class="small text-body-secondary mt-2" data-online-review-target="listEmpty" hidden></p>
+            </section>
+
+            <section class="online-review-detail card shadow-sm" aria-live="off" data-online-review-target="detail">
+                <div class="card-body">
+                    <p class="text-body-secondary mb-0" data-online-review-target="detailPlaceholder">{{ 'online_rounds.review.detail.choose'|trans }}</p>
+                    <p class="text-body-secondary mb-0" data-online-review-target="detailLoading" hidden>{{ 'online_rounds.review.detail.loading'|trans }}</p>
+                    <div class="alert alert-danger py-2 mb-0" role="alert" data-online-review-target="detailError" hidden>
+                        <span>{{ 'online_rounds.review.detail.failed'|trans }}</span>
+                        <button type="button" class="btn btn-sm btn-outline-danger ms-2" data-action="online-review#reloadDetail">{{ 'online_rounds.review.detail.retry'|trans }}</button>
+                    </div>
+
+                    <div data-online-review-target="detailBody" hidden>
+                        <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
+                            <div>
+                                <h2 class="h4 mb-1" data-online-review-target="detailName"></h2>
+                                <p class="small text-body-secondary mb-0" data-online-review-target="detailOfficial"></p>
+                            </div>
+                            <span class="badge" data-online-review-target="detailStatus"></span>
+                        </div>
+                        <ul class="online-review-flags list-unstyled mb-3" data-online-review-target="detailFlags"></ul>
+                        <p class="alert alert-secondary py-2" data-online-review-target="notConnected" hidden>{{ 'online_rounds.review.detail.not_connected'|trans }}</p>
+
+                        <div data-online-review-target="finishPanel">
+                            <h3 class="h6">{{ 'online_rounds.review.detail.taps'|trans }}</h3>
+                            <div class="d-flex flex-wrap gap-2 mb-3" role="group" aria-label="{{ 'online_rounds.review.detail.taps'|trans }}" data-online-review-target="taps"></div>
+
+                            <div class="online-review-evidence" data-online-review-target="evidence" hidden>
+                                <figure class="online-review-burst mb-0">
+                                    <figcaption class="small fw-semibold mb-1">{{ 'online_rounds.review.detail.burst'|trans }}</figcaption>
+                                    <div class="online-review-canvas-box">
+                                        <canvas class="online-review-canvas" width="640" height="360" data-online-review-target="canvas" aria-hidden="true"></canvas>
+                                        <p class="online-review-burst-status small" data-online-review-target="burstStatus" hidden></p>
+                                    </div>
+                                    <div class="d-flex align-items-center gap-2 mt-2">
+                                        <button type="button" class="btn btn-sm btn-outline-secondary" data-action="online-review#previousFrame" aria-label="{{ 'online_rounds.review.detail.previous_frame'|trans }}" data-online-review-target="frameButton"><i class="bi bi-chevron-left" aria-hidden="true"></i></button>
+                                        <label class="visually-hidden" for="online-review-frame">{{ 'online_rounds.review.detail.frame_label'|trans }}</label>
+                                        <input type="range" class="form-range flex-grow-1" id="online-review-frame" min="0" max="0" step="1" value="0" data-online-review-target="slider" data-action="input->online-review#scrub">
+                                        <button type="button" class="btn btn-sm btn-outline-secondary" data-action="online-review#nextFrame" aria-label="{{ 'online_rounds.review.detail.next_frame'|trans }}" data-online-review-target="frameButton"><i class="bi bi-chevron-right" aria-hidden="true"></i></button>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary text-nowrap" data-action="online-review#backToTap" data-online-review-target="frameButton">{{ 'online_rounds.review.detail.to_tap'|trans }}</button>
+                                    </div>
+                                    <p class="small font-monospace mb-0 mt-1" data-online-review-target="frameLabel" aria-live="polite"></p>
+                                </figure>
+                                <figure class="online-review-photo mb-0">
+                                    <figcaption class="small fw-semibold mb-1">{{ 'online_rounds.review.detail.photo'|trans }}</figcaption>
+                                    <a href="#" target="_blank" rel="noopener" data-online-review-target="tapPhotoLink" hidden><img class="online-review-photo-image" alt="{{ 'online_rounds.review.detail.photo'|trans }}" data-online-review-target="tapPhoto"></a>
+                                    <p class="small text-body-secondary" data-online-review-target="tapPhotoPending" hidden>{{ 'online_rounds.review.detail.pending'|trans }}</p>
+                                </figure>
+                            </div>
+
+                            <div class="online-review-moment d-flex flex-wrap align-items-center gap-3 mt-3" data-online-review-target="momentBox" hidden>
+                                <div>
+                                    <div class="small text-body-secondary">{{ 'online_rounds.review.detail.moment'|trans }}</div>
+                                    <div class="fs-4 font-monospace fw-semibold" data-online-review-target="momentTime"></div>
+                                    <div class="small" data-online-review-target="momentLine"></div>
+                                </div>
+                                <button type="button" class="btn btn-success" data-action="online-review#confirmFinish" data-online-review-target="confirmFinishButton">
+                                    <i class="bi bi-check2-circle me-1" aria-hidden="true"></i>{{ 'online_rounds.review.detail.confirm'|trans }} <kbd class="ms-1">C</kbd>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="online-review-unfinished border-top pt-3 mt-3" data-online-review-target="unfinishedPanel">
+                            <h3 class="h6">{{ 'online_rounds.review.detail.unfinished'|trans }}</h3>
+                            <p class="small mb-2" data-online-review-target="reported"></p>
+                            <form class="d-flex flex-wrap align-items-end gap-2" data-action="submit->online-review#confirmUnfinished" novalidate>
+                                <div>
+                                    <label class="form-label small mb-1" for="online-review-pieces">{{ 'online_rounds.review.detail.pieces_label'|trans }}</label>
+                                    <div class="input-group input-group-sm">
+                                        <input type="number" class="form-control" id="online-review-pieces" min="1" step="1" inputmode="numeric" data-online-review-target="pieces" aria-describedby="online-review-pieces-of online-review-pieces-error">
+                                        <span class="input-group-text" id="online-review-pieces-of" data-online-review-target="piecesOf"></span>
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn btn-sm btn-outline-primary" data-online-review-target="confirmUnfinishedButton">{{ 'online_rounds.review.detail.confirm_unfinished'|trans }} <kbd class="ms-1">U</kbd></button>
+                            </form>
+                            <p class="small text-danger mt-1 mb-0" id="online-review-pieces-error" data-online-review-target="piecesError" hidden>{{ 'online_rounds.review.detail.pieces_invalid'|trans }}</p>
+                            <figure class="online-review-end-photo mt-2 mb-0" data-online-review-target="endPhotoBox" hidden>
+                                <figcaption class="small fw-semibold mb-1">{{ 'online_rounds.review.detail.end_photo'|trans }}</figcaption>
+                                <a href="#" target="_blank" rel="noopener" data-online-review-target="endPhotoLink"><img class="online-review-photo-image" alt="{{ 'online_rounds.review.detail.end_photo'|trans }}" data-online-review-target="endPhoto"></a>
+                            </figure>
+                        </div>
+
+                        <div class="border-top pt-3 mt-3">
+                            <h3 class="h6">{{ 'online_rounds.review.detail.timeline'|trans }}</h3>
+                            <ol class="online-timeline list-unstyled mb-0" data-online-review-target="timeline"></ol>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+{% endblock %}

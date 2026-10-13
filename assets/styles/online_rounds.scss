@@ -54,3 +54,375 @@
         height: 100%;
     }
 }
+
+// ---------------------------------------------------------------- C2: control room, review, accuracy
+
+// Status chips - a tile's readiness, connection, camera, clock; a review entry's flags
+.online-chip {
+    display: inline-block;
+    padding: 0.125rem 0.5rem;
+    border-radius: 1rem;
+    font-size: 0.75rem;
+    line-height: 1.4;
+    background: var(--bs-tertiary-bg, #f8f9fa);
+    color: var(--bs-body-color, #212529);
+    border: 1px solid var(--bs-border-color, #dee2e6);
+
+    &--ok {
+        background: #e8f6ee;
+        border-color: #b7e2c8;
+        color: #146c43;
+    }
+
+    &--warn {
+        background: #fff6e0;
+        border-color: #f5d98b;
+        color: #7a5200;
+    }
+
+    &--bad {
+        background: #fdecea;
+        border-color: #f3b8b1;
+        color: #a52834;
+    }
+
+    &--info {
+        background: #e7f1ff;
+        border-color: #b6d4fe;
+        color: #0a4ea8;
+    }
+}
+
+// The control room's clock: readable from across a room
+.online-control-clock-digits {
+    font-size: clamp(2.25rem, 7vw, 4rem);
+    font-weight: 700;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+}
+
+.online-control-start-at .form-control {
+    max-width: 16rem;
+}
+
+.online-control-counts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 1rem;
+
+    .online-control-count {
+        margin-right: 0;
+    }
+}
+
+// The grid of participants: a photo on top, the chips below - as many columns as fit
+.online-control-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+    gap: 0.75rem;
+}
+
+.online-tile {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--bs-border-color, #dee2e6);
+    border-radius: 0.5rem;
+    background: var(--bs-body-bg, #fff);
+    overflow: hidden;
+
+    &[data-finished="true"] {
+        border-color: #b7e2c8;
+        box-shadow: inset 0 3px 0 #198754;
+    }
+
+    &[data-readiness="not_seen"] {
+        opacity: 0.85;
+    }
+}
+
+.online-tile-photo {
+    position: relative;
+    aspect-ratio: 16 / 9;
+    background: var(--bs-secondary-bg, #e9ecef);
+
+    img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+}
+
+.online-tile-no-photo {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8125rem;
+    color: var(--bs-secondary-color, #6c757d);
+}
+
+.online-tile-body {
+    padding: 0.5rem 0.625rem 0.625rem;
+}
+
+.online-tile-name {
+    margin-bottom: 0.375rem;
+    overflow-wrap: anywhere;
+}
+
+.online-tile-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    margin-bottom: 0;
+}
+
+.online-tile-finish {
+    margin: 0.5rem 0 0;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+
+    &--ok {
+        color: #146c43;
+    }
+
+    &--warn {
+        color: #7a5200;
+    }
+
+    &--info {
+        color: #0a4ea8;
+    }
+}
+
+// The review: the list on the left, the evidence on the right (stacked on a phone)
+.online-review-layout {
+    display: grid;
+    gap: 1rem;
+    align-items: start;
+
+    @media (min-width: 992px) {
+        grid-template-columns: minmax(18rem, 24rem) minmax(0, 1fr);
+    }
+}
+
+.online-review-list {
+    @media (min-width: 992px) {
+        position: sticky;
+        top: 1rem;
+        max-height: calc(100vh - 2rem);
+        overflow-y: auto;
+    }
+}
+
+.online-review-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.online-review-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-areas:
+        "name time status"
+        "flags flags flags";
+    align-items: center;
+    gap: 0.125rem 0.5rem;
+    width: 100%;
+    padding: 0.375rem 0.5rem;
+    border: 1px solid var(--bs-border-color, #dee2e6);
+    border-radius: 0.375rem;
+    background: var(--bs-body-bg, #fff);
+    color: inherit;
+    text-align: left;
+
+    &:hover {
+        background: var(--bs-tertiary-bg, #f8f9fa);
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--bs-primary, #fe696a);
+        outline-offset: 1px;
+    }
+
+    &.is-selected {
+        border-color: var(--bs-primary, #fe696a);
+        box-shadow: inset 3px 0 0 var(--bs-primary, #fe696a);
+        background: var(--bs-tertiary-bg, #f8f9fa);
+    }
+}
+
+.online-review-row-name {
+    grid-area: name;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.online-review-row-time {
+    grid-area: time;
+    font-size: 0.875rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.online-review-row .badge {
+    grid-area: status;
+}
+
+.online-review-row-flags {
+    grid-area: flags;
+    font-size: 0.75rem;
+}
+
+.online-review-flags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+}
+
+// The frames around a tap next to the photo at the tap
+.online-review-evidence {
+    display: grid;
+    gap: 1rem;
+
+    @media (min-width: 1200px) {
+        grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+    }
+}
+
+.online-review-canvas-box {
+    position: relative;
+    background: #111;
+    border-radius: 0.375rem;
+    overflow: hidden;
+}
+
+.online-review-canvas {
+    display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 16 / 9;
+}
+
+.online-review-burst-status {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+    padding: 1rem;
+    text-align: center;
+    color: #f1f3f5;
+}
+
+.online-review-photo-image {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: 0.375rem;
+}
+
+.online-review-end-photo {
+    max-width: 24rem;
+}
+
+.online-review-unfinished .form-control {
+    width: 8rem;
+}
+
+// The timeline: one line per thing that happened, the periodic photos as a strip
+.online-timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+}
+
+.online-timeline-item {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.25rem 0.75rem;
+
+    &--mark {
+        font-weight: 600;
+    }
+
+    .online-timeline-photo {
+        flex-basis: 100%;
+        max-width: 12rem;
+    }
+}
+
+.online-timeline-time {
+    min-width: 7.5rem;
+    color: var(--bs-secondary-color, #6c757d);
+    font-variant-numeric: tabular-nums;
+}
+
+.online-timeline-strip {
+    display: flex;
+    gap: 0.5rem;
+    overflow-x: auto;
+    padding: 0.25rem 0 0.5rem;
+}
+
+.online-timeline-photo {
+    flex: 0 0 auto;
+    width: 9rem;
+    margin: 0;
+
+    img {
+        display: block;
+        width: 100%;
+        height: auto;
+        aspect-ratio: 16 / 9;
+        object-fit: cover;
+        border-radius: 0.25rem;
+        background: var(--bs-secondary-bg, #e9ecef);
+    }
+
+    figcaption {
+        font-size: 0.75rem;
+        color: var(--bs-secondary-color, #6c757d);
+    }
+}
+
+.online-timeline-pending {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    aspect-ratio: 16 / 9;
+    border-radius: 0.25rem;
+    background: var(--bs-secondary-bg, #e9ecef);
+}
+
+// The accuracy report's summary: the numbers side by side
+.online-accuracy-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 2.5rem;
+
+    dt {
+        font-weight: 400;
+        font-size: 0.875rem;
+        color: var(--bs-secondary-color, #6c757d);
+    }
+
+    dd {
+        margin-bottom: 0;
+    }
+
+    dd.font-monospace {
+        font-size: 1.5rem;
+        font-weight: 600;
+    }
+}
+
+.online-accuracy-table td {
+    font-variant-numeric: tabular-nums;
+}

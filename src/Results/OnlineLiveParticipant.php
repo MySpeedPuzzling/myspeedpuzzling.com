@@ -1,0 +1,79 @@
+<?php
+
+declare(strict_types=1);
+
+namespace SpeedPuzzling\Web\Results;
+
+/**
+ * One participant of the control room's grid (`online_live`, docs/features/online-competitions/implementation-plan.md
+ * WP 1.7): who they are, whether their phone made contact and said it is ready, its last heartbeat (`presence` - null
+ * when none is known), the last Finished tap not undone, what they reported at time-up, the review, the latest periodic
+ * photo with a short-lived URL. Times are epoch milliseconds on the server's clock.
+ *
+ * @phpstan-type Presence array{lastSeenMs: null|int, deviceId: null|string, visible: null|bool, camera: null|array{ok: null|bool, w: null|int, h: null|int, fps: null|float}, clock: null|array{offsetMs: null|float, rttMs: null|float}, outbox: null|array{events: null|int, media: null|int}}
+ */
+readonly final class OnlineLiveParticipant implements \JsonSerializable
+{
+    /**
+     * @param null|Presence $presence
+     * @param list<string> $flags
+     */
+    public function __construct(
+        public string $participantId,
+        public string $entryId,
+        public string $name,
+        public null|string $country,
+        // The phone made contact (an online entry exists), or a heartbeat is known
+        public bool $seen,
+        public null|int $readyAtMs,
+        public null|string $activeDeviceId,
+        // The round trip of the clock sample the phone was ready with
+        public null|float $readyClockRttMs,
+        public null|array $presence,
+        public null|string $finishEventId,
+        public null|int $finishMomentMs,
+        public null|int $finishReceivedAtMs,
+        public null|string $reportedMeasure,
+        public null|int $reportedPieces,
+        public string $review,
+        public array $flags,
+        public null|string $photoMediaId,
+        public null|int $photoTakenMs,
+        public null|string $photoUrl,
+    ) {
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function jsonSerialize(): array
+    {
+        return [
+            'participantId' => $this->participantId,
+            'entryId' => $this->entryId,
+            'name' => $this->name,
+            'country' => $this->country,
+            'seen' => $this->seen,
+            'readyAtMs' => $this->readyAtMs,
+            'activeDeviceId' => $this->activeDeviceId,
+            'readyClockRttMs' => $this->readyClockRttMs,
+            'presence' => $this->presence,
+            'finish' => $this->finishMomentMs === null ? null : [
+                'eventId' => $this->finishEventId,
+                'momentMs' => $this->finishMomentMs,
+                'receivedAtMs' => $this->finishReceivedAtMs,
+            ],
+            'reported' => $this->reportedPieces === null ? null : [
+                'measure' => $this->reportedMeasure,
+                'pieces' => $this->reportedPieces,
+            ],
+            'review' => $this->review,
+            'flags' => $this->flags,
+            'photo' => $this->photoUrl === null ? null : [
+                'mediaId' => $this->photoMediaId,
+                'takenMs' => $this->photoTakenMs,
+                'url' => $this->photoUrl,
+            ],
+        ];
+    }
+}

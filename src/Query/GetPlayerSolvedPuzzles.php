@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Query;
 
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
+use InvalidArgumentException;
 use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
@@ -40,6 +41,31 @@ final class GetPlayerSolvedPuzzles implements ResetInterface
     public function reset(): void
     {
         $this->existingPlayerIds = [];
+    }
+
+    /**
+     * The WHERE of "the player's solo results" (`:playerId` bound by the caller): the solo list below and every figure
+     * counted from it - the Overview's numbers (GetPlayerOverviewNumbers, docs/features/navigation PROF-03) count
+     * exactly the rows the Results page lists. The caller appends the viewer's HiddenPlayers fragment, as the list does.
+     */
+    public static function soloWhere(string $alias): string
+    {
+        return "{$alias}.player_id = :playerId AND {$alias}.puzzling_type = 'solo'";
+    }
+
+    /**
+     * The WHERE of "the player's pair results" (`duo`) or "team results" (`team`) - the player is any member of the group
+     * (`:playerId` bound by the caller). Shared like soloWhere(); the caller appends HiddenPlayers::sqlExcludeTeam() of
+     * `{$alias}.team`, as the lists do.
+     */
+    public static function groupWhere(string $alias, string $type): string
+    {
+        if ($type !== 'duo' && $type !== 'team') {
+            throw new InvalidArgumentException(sprintf('Unknown group type "%s".', $type));
+        }
+
+        return "({$alias}.team::jsonb -> 'puzzlers') @> jsonb_build_array(jsonb_build_object('player_id', CAST(:playerId AS UUID)))"
+            . " AND {$alias}.puzzling_type = '{$type}'";
     }
 
     /**
@@ -194,6 +220,7 @@ SQL;
         $this->assertPlayerExists($playerId);
 
         $notHidden = $this->hiddenPlayers->sqlExclude('player.id');
+        $soloWhere = self::soloWhere('puzzle_solving_time');
 
         $query = <<<SQL
 WITH solved_counts AS (
@@ -243,8 +270,7 @@ FROM puzzle_solving_time
     LEFT JOIN competition ON competition.id = puzzle_solving_time.competition_id
     LEFT JOIN competition_series cs ON cs.id = COALESCE(competition.series_id, puzzle_solving_time.competition_series_id)
 WHERE
-    puzzle_solving_time.player_id = :playerId
-    AND puzzle_solving_time.puzzling_type = 'solo'
+    {$soloWhere}
     {$notHidden}
 SQL;
 
@@ -457,14 +483,14 @@ SQL;
         $this->assertPlayerExists($playerId);
 
         $notHidden = $this->hiddenPlayers->sqlExcludeTeam('puzzle_solving_time.team');
+        $groupWhere = self::groupWhere('puzzle_solving_time', 'duo');
 
         $query = <<<SQL
 WITH filtered_pst_ids AS (
     SELECT id
     FROM puzzle_solving_time
     WHERE
-        (team::jsonb -> 'puzzlers') @> jsonb_build_array(jsonb_build_object('player_id', CAST(:playerId AS UUID)))
-        AND puzzling_type = 'duo'
+        {$groupWhere}
         {$notHidden}
 SQL;
 
@@ -608,14 +634,14 @@ SQL;
         $this->assertPlayerExists($playerId);
 
         $notHidden = $this->hiddenPlayers->sqlExcludeTeam('puzzle_solving_time.team');
+        $groupWhere = self::groupWhere('puzzle_solving_time', 'team');
 
         $query = <<<SQL
 WITH filtered_pst_ids AS (
     SELECT id
     FROM puzzle_solving_time
     WHERE
-        (team::jsonb -> 'puzzlers') @> jsonb_build_array(jsonb_build_object('player_id', CAST(:playerId AS UUID)))
-        AND puzzling_type = 'team'
+        {$groupWhere}
         {$notHidden}
 SQL;
 

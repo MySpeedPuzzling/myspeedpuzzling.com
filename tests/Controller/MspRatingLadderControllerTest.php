@@ -76,9 +76,10 @@ final class MspRatingLadderControllerTest extends WebTestCase
         $this->assertResponseIsSuccessful();
         $positionLine = $ladder->filter('[data-testid="lb-position"]')->text();
 
-        $profile = $browser->request('GET', '/en/player-profile/' . PlayerFixture::PLAYER_REGULAR);
+        // The rating card moved from the profile to Statistics (docs/features/navigation PROF-04)
+        $statistics = $browser->request('GET', '/en/player-statistics/' . PlayerFixture::PLAYER_REGULAR);
         $this->assertResponseIsSuccessful();
-        $profileCard = $profile->filter('[data-live-name-value="PlayerRatingProfile"]')->text();
+        $profileCard = $statistics->filter('[data-live-name-value="PlayerRatingProfile"]')->text();
 
         self::assertStringContainsString('Ranked among 3 players', $profileCard);
         self::assertStringContainsString('#2', $profileCard);

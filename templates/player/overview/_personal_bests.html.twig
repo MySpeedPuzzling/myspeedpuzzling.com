@@ -1,0 +1,70 @@
+{#
+    The Overview's personal bests (docs/features/navigation README §4.7, PROF-03): the player's fastest solo time per
+    piece-count preset (PiecesRange::PRESETS - GetPlayerOverviewNumbers; never a time awaiting verification, never a
+    relax result) with the puzzle, the date and the rank on that puzzle. A tap on a row opens the Results filtered to
+    that preset, fastest first; the puzzle's image and name open the puzzle. Rows as on Results (.ps-table).
+
+    Nothing for a visitor while there is no best; the owner gets the empty state - their own cards (review banner,
+    Getting started) stay below this block (PROF-01).
+
+    Inputs: player, overview (PlayerOverviewNumbers), best_ranks (array<puzzle id, PlayerRanking>), is_own_profile
+#}
+{% if overview.personalBests is not empty or is_own_profile %}
+    <section class="pov-section" data-testid="personal-bests" aria-labelledby="personal-bests-title">
+        <div class="pov-head">
+            <h2 class="pov-title" id="personal-bests-title">{{ 'player_overview.personal_bests'|trans }}</h2>
+        </div>
+
+        {% if overview.personalBests is empty %}
+            <p class="pov-empty">{{ 'player_overview.no_personal_bests'|trans }}</p>
+        {% else %}
+            <div class="custom-table-wrapper ps-wrapper pov-bests">
+                <table class="table ps-table mb-0">
+                    <tbody>
+                        {% for best in overview.personalBests %}
+                            {% set preset = best.preset.toParam %}
+                            {% set rank = best_ranks[best.puzzleId] ?? null %}
+                            <tr data-pieces="{{ preset }}" data-controller="row-link" data-action="click->row-link#open">
+                                <td class="ps-image">
+                                    <a href="{{ path('puzzle_detail', {puzzleId: best.puzzleId}) }}">
+                                        {{ include('_puzzle_row_image.html.twig', {image: best.puzzleImage, alt: 'puzzle_img_alt'|trans({'%puzzle%': best.manufacturerName ~ ' ' ~ best.puzzleName}), position: loop.index, ratio: best.puzzleImageRatio}) }}
+                                    </a>
+                                </td>
+
+                                <td class="ps-info">
+                                    <span class="pov-best-preset">{{ 'player_overview.best_row_label'|trans({'%pieces%': best.preset.label}) }}</span>
+                                    <a class="ps-puzzle-name" href="{{ path('puzzle_detail', {puzzleId: best.puzzleId}) }}">{{ best.puzzleName }}</a>
+                                    {{ include('puzzle/_name.html.twig', {name: best.puzzleName, alternative_names: best.puzzleAlternativeNames}) }}
+                                    <div class="ps-puzzle-meta">
+                                        {# A preset of one piece count says it already - a range (99/100, 2000+) names the puzzle's #}
+                                        {% if best.preset.minPieces is same as best.preset.maxPieces %}
+                                            {{ best.manufacturerName }}
+                                        {% else %}
+                                            {{ include('_pieces_brand.html.twig', {pieces: best.piecesCount, brand: best.manufacturerName}) }}
+                                        {% endif %}
+                                    </div>
+
+                                    {% if rank is not null %}
+                                        <div class="ps-tags">
+                                            <span class="pr-chip pr-chip-rank">{{ 'puzzle_result.rank'|trans({'%rank%': rank.rank, '%total%': rank.totalPlayers}) }}</span>
+                                        </div>
+                                    {% endif %}
+                                </td>
+
+                                <td class="ps-time">
+                                    {# The row's real link: this preset on Results, fastest first - a tap anywhere else on the row clicks it #}
+                                    <a
+                                        class="ps-time-value"
+                                        href="{{ path('player_results', {playerId: player.playerId, pieces: preset, sort: 'fastest'}) }}"
+                                        data-row-link-target="link"
+                                    >{{ best.seconds|puzzlingTime }}</a>
+                                    <time class="ps-date" datetime="{{ best.solvedAt|date('Y-m-d') }}">{{ best.solvedAt|date('d.m.Y') }}</time>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+    </section>
+{% endif %}

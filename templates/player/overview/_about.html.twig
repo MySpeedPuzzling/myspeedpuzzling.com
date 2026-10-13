@@ -1,0 +1,135 @@
+{#
+    The Overview's About (docs/features/navigation README §4.7, PROF-03): what was the profile's "Personal info" tab -
+    bio, location, country, socials - and the referral supporters line with the owner's share link, moved here.
+    The header shows the avatar, so the picture is not repeated.
+
+    The owner sees every field, an empty one as "Not filled" (where to fill it is Edit profile); a visitor only the
+    filled ones - and no section when nothing is filled.
+
+    Inputs: player, affiliate_supporters (null when the player is not in the referral program), is_own_profile
+#}
+{% set fields = [] %}
+{% if player.bio is not null or is_own_profile %}{% set fields = fields|merge(['bio']) %}{% endif %}
+{% if player.city is not null or is_own_profile %}{% set fields = fields|merge(['city']) %}{% endif %}
+{% if player.countryCode is not null or is_own_profile %}{% set fields = fields|merge(['country']) %}{% endif %}
+{% if player.facebook is not null or is_own_profile %}{% set fields = fields|merge(['facebook']) %}{% endif %}
+{% if player.instagram is not null or is_own_profile %}{% set fields = fields|merge(['instagram']) %}{% endif %}
+{% if player.twitch is not null %}{% set fields = fields|merge(['twitch']) %}{% endif %}
+
+{% if fields is not empty or affiliate_supporters is not null %}
+    <section class="pov-section pov-about" data-testid="about" aria-labelledby="about-title">
+        <div class="pov-head">
+            <h2 class="pov-title" id="about-title">{{ 'player_overview.about'|trans }}</h2>
+        </div>
+
+        {% if fields is not empty %}
+            <dl class="pov-about-fields">
+                {% if 'bio' in fields %}
+                    <div class="pov-about-bio">
+                        <dt>{{ 'profile.about_me'|trans }}</dt>
+                        <dd>{{ player.bio is null ? 'profile.not_filled'|trans : player.bio|nl2br }}</dd>
+                    </div>
+                {% endif %}
+
+                {% if 'city' in fields %}
+                    <div>
+                        <dt>{{ 'profile.location'|trans }}</dt>
+                        <dd>{{ player.city ?? 'profile.not_filled'|trans }}</dd>
+                    </div>
+                {% endif %}
+
+                {% if 'country' in fields %}
+                    <div>
+                        <dt>{{ 'profile.nationality'|trans }}</dt>
+                        <dd>
+                            {% if player.countryCode is null %}
+                                {{ 'profile.not_filled'|trans }}
+                            {% else %}
+                                {{ player.countryCode.value }}
+                                <span class="shadow-custom fi fi-{{ player.countryCode.name }}"></span>
+                            {% endif %}
+                        </dd>
+                    </div>
+                {% endif %}
+
+                {% if 'facebook' in fields %}
+                    <div>
+                        <dt>Facebook</dt>
+                        <dd>{{ player.facebook is null ? 'profile.not_filled'|trans : player.facebook|facebook }}</dd>
+                    </div>
+                {% endif %}
+
+                {% if 'instagram' in fields %}
+                    <div>
+                        <dt>Instagram</dt>
+                        <dd>{{ player.instagram is null ? 'profile.not_filled'|trans : player.instagram|instagram }}</dd>
+                    </div>
+                {% endif %}
+
+                {% if 'twitch' in fields %}
+                    <div>
+                        <dt>Twitch</dt>
+                        <dd>{{ player.twitch|twitch }}</dd>
+                    </div>
+                {% endif %}
+            </dl>
+        {% endif %}
+
+        {% if affiliate_supporters is not null %}
+            <div class="pov-supporters">
+                <h3 class="h6 mb-2">
+                    <i class="ci-heart me-1"></i>
+                    {{ 'referral.supporters.title'|trans }}
+                    {% if affiliate_supporters.total_count > 0 %}
+                        <span class="badge bg-primary ms-1 align-middle fs-sm">{{ affiliate_supporters.total_count }}</span>
+                    {% endif %}
+                </h3>
+
+                {% if is_own_profile %}
+                    <div class="mb-3" style="max-width: 450px;" data-controller="clipboard">
+                        <small class="text-muted">{{ 'referral.profile.share_link'|trans }}</small>
+                        <div class="input-group input-group-sm">
+                            <input
+                                data-action="click->clipboard#selectInputContent dblclick->clipboard#selectInputContent focus->clipboard#selectInputContent"
+                                {{ stimulus_target('clipboard', 'input') }}
+                                value="{{ url('homepage', {'_locale': 'en', 'ref': player.code}) }}"
+                                class="form-control form-control-sm"
+                                type="text"
+                                readonly
+                                aria-label="{{ 'referral.profile.share_link'|trans }}"
+                            >
+                            <button {{ stimulus_action('clipboard', 'copyToClipboard', 'click') }} class="btn btn-sm btn-icon btn-primary" type="button" aria-label="{{ 'player_header.share'|trans }}">
+                                <i {{ stimulus_target('clipboard', 'buttonIcon') }} class="ci-share"></i>
+                            </button>
+                        </div>
+                    </div>
+                {% endif %}
+
+                {% if affiliate_supporters.total_count > 0 %}
+                    {% if affiliate_supporters.public_supporters|length < affiliate_supporters.total_count %}
+                        <p class="text-muted small">
+                            {{ 'referral.supporters.privacy_note'|trans({'%total%': affiliate_supporters.total_count, '%shown%': affiliate_supporters.public_supporters|length}) }}
+                        </p>
+                    {% endif %}
+
+                    <div class="d-flex flex-wrap gap-2">
+                        {% for supporter in affiliate_supporters.public_supporters %}
+                            <a href="{{ path('player_profile', {playerId: supporter.player_id}) }}"
+                               class="d-flex align-items-center gap-2 text-decoration-none bg-light rounded-pill px-3 py-1">
+                                {% if supporter.player_avatar %}
+                                    <img src="{{ supporter.player_avatar|thumbnail('avatar') }}"
+                                         class="rounded-circle"
+                                         width="24" height="24"
+                                         alt="">
+                                {% else %}
+                                    <i class="ci-user text-muted"></i>
+                                {% endif %}
+                                <small class="text-body">{{ supporter.player_name ?? 'Secret Puzzler' }}</small>
+                            </a>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+        {% endif %}
+    </section>
+{% endif %}

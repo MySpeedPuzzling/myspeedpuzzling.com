@@ -127,6 +127,8 @@ final class PlayerStatisticsController extends AbstractController
             'active_show_all' => $activeShowAll,
             'date_from' => $dateFrom,
             'date_to' => $dateTo,
+            // The standing's own variants (opted out of rankings, private) are the owner's (PROF-04)
+            'is_own_profile' => $loggedPlayerProfile !== null && $loggedPlayerProfile->playerId === $player->playerId,
         ]);
     }
 

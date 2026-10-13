@@ -11,6 +11,9 @@
 
     <twig:PlayerHeader player="{{ player }}" tab="statistics" :heading="true" />
 
+    {# The average-time chart and the skill / MSP Rating cards (moved from the profile, docs/features/navigation PROF-04) #}
+    {{ include('player/_standing.html.twig', {player: player, is_own_profile: is_own_profile}) }}
+
     {% set currentRoute = app.request.attributes.get('_route') %}
     {% set routeParams = app.request.attributes.get('_route_params')|default({}) %}
 

@@ -758,7 +758,6 @@
   "remove_from_favorites": "Eliminar de favoritos"
   "no_puzzles_solved": "¿No hay rompecabezas resueltos? ¡Inténtalo y ve cómo lo haces! ¡Creemos que puedes hacerlo!"
   "not_filled": "No completado"
-  "avatar": "Avatar"
   "about_me": "Acerca de mí"
   "location": "Ubicación"
   "nationality": "Nacionalidad"
@@ -766,11 +765,8 @@
   "statistics_time": "Tiempo gastado armando"
   "statistics_puzzles_solved": "Número de rompecabezas resueltos"
   "statistics_pieces_count": "Número de piezas armadas"
-  "solved_puzzles": "Rompecabezas resueltos"
   "solved_puzzles_solo": "Individual"
   "solved_puzzles_group": "Armado en grupo"
-  "recent_activity": "Actividad<br>reciente"
-  "personal_info": "Información<br>personal"
   "private_profile_info_1": "Este puzzlero ha decidido no compartir sus tiempos. Pero insistimos en que no hay tiempos lentos o rápidos—solo piezas esperando a encajar juntas."
   "private_profile_info_2": "¿Quieres saber más? Encuéntralos en persona e intenta convencerlos de revelar sus tiempos. Eso es todo lo que podemos decirte aquí."
 "my_profile":
@@ -6773,7 +6769,8 @@ comparison_entry:
 player_header:
     pages: "Páginas del jugador"
     tabs:
-        profile: "Perfil"
+        overview: "Resumen"
+        results: "Resultados"
         statistics: "Estadísticas"
         calendar: "Calendario"
         achievements: "Logros"
@@ -9125,7 +9122,6 @@ nav:
     row:
         puzzles_place: "Puzzles"
         organized_events: "Eventos que organizas"
-        results: "Resultados"
         lent_borrowed: "Prestados"
         level_boards: "Clasificaciones de nivel y logros"
         puzzlers: "Puzzleros"
@@ -9307,3 +9303,16 @@ barcode_scanner:
     "to": "Hasta el %date%"
     "speed_faster": "Más rápido que %value% %unit%"
     "speed_slower": "Más lento que %value% %unit%"
+
+"player_overview":
+  "personal_bests": "Mejores marcas personales (solo)"
+  "no_personal_bests": "Cuando añadas un resultado en solitario con tiempo, aquí aparecerá tu tiempo más rápido para cada número de piezas."
+  "best_row_label": "%pieces% piezas"
+  "numbers":
+    "solo": "Rompecabezas en solitario|Rompecabezas en solitario"
+    "pairs": "Rompecabezas en pareja|Rompecabezas en pareja"
+    "teams": "Rompecabezas en equipo|Rompecabezas en equipo"
+    "results": "Resultado|Resultados"
+  "latest_results": "Últimos resultados"
+  "all_results": "%count% resultado|Los %count% resultados"
+  "about": "Acerca de"

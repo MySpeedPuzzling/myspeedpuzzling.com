@@ -75,6 +75,8 @@ final class PrivateProfileCanaryTest extends WebTestCase
         // A board everybody sees her row on, as a Hidden Puzzler - same position for every viewer
         yield 'ladder pairs 1000' => ['/en/ladder/pairs/1000-pieces'];
         yield 'puzzle library' => ['/en/puzzle-library/' . self::OWNER];
+        // A teammate's Overview (docs/features/navigation PROF-03): her pair with him among his latest results
+        yield 'teammate overview' => ['/en/player-profile/' . PlayerFixture::PLAYER_REGULAR];
     }
 
     /**

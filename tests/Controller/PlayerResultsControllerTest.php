@@ -65,12 +65,12 @@ final class PlayerResultsControllerTest extends WebTestCase
         self::assertSame('index, follow', $crawler->filter('meta[name="robots"]')->attr('content'));
         self::assertStringContainsString('Turbo-Frame', (string) $browser->getResponse()->headers->get('Vary'));
         // The player header with the name as the page's H1, the search first, and the list - as many puzzles as the
-        // profile lists (the same solo tab)
+        // profile's Overview counts solo (PROF-03: the Overview's numbers are the Results tabs' counts)
         self::assertSame(PlayerFixture::PLAYER_REGULAR_NAME, trim($crawler->filter('main h1')->text()));
         self::assertCount(1, $this->resultsList($crawler));
         self::assertCount(1, $crawler->filter('main form#player-results-form input[type="search"][name="q"]'));
         self::assertGreaterThan(0, $this->rowsCount($crawler));
-        self::assertSame($profile->filter('[data-live-name-value="PlayerSolvedPuzzles"] .ps-table tbody tr')->count(), $this->rowsCount($crawler));
+        self::assertSame((int) $profile->filter('[data-overview-number="solo"] .pov-number-value')->text(), $this->rowsCount($crawler));
 
         if ($viewerId === null) {
             self::assertTrue($browser->getResponse()->headers->hasCacheControlDirective('public'), (string) $browser->getResponse()->headers->get('Cache-Control'));

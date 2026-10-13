@@ -32,8 +32,10 @@ final class PlayerHeaderTest extends WebTestCase
         ));
         self::assertSame('Favorite', trim($actions->filter('.player-head-favorite .player-head-favorite-label')->text()));
 
-        // Favorites are personal: not a tab on someone else's pages; a member's achievements are public
-        self::assertSame(['Profile', 'Statistics', 'Calendar', 'Achievements', 'Library'], $this->tabLabels($crawler));
+        // Favorites are personal: not a tab on someone else's pages; a member's achievements are public. The profile is
+        // the Overview, every result is on Results (docs/features/navigation PROF-02)
+        self::assertSame(['Overview', 'Results', 'Statistics', 'Calendar', 'Achievements', 'Library'], $this->tabLabels($crawler));
+        self::assertSame('Overview', trim($crawler->filter('.player-head-tabs .player-tab.active')->text()));
         self::assertSame('page', $crawler->filter('.player-head-tabs .player-tab.active')->attr('aria-current'));
         self::assertSame('nofollow', $crawler->filter('.player-head-tabs .player-tab[href*="/en/player-statistics/"]')->attr('rel'));
 
@@ -46,6 +48,30 @@ final class PlayerHeaderTest extends WebTestCase
         self::assertSame('Sarah Williams', trim($crawler->filter('h1.player-head-name')->text()));
     }
 
+    /**
+     * PROF-02: Overview · Results · Statistics · Calendar · Achievements · Library · Favorites (owner) - each tab links the
+     * player's page of that name, only Statistics is nofollow
+     */
+    public function testTheTabsLinkThePlayersPages(): void
+    {
+        $id = PlayerFixture::PLAYER_WITH_STRIPE;
+        $crawler = $this->page($id, '/en/player-results/' . $id);
+
+        $tabs = $crawler->filter('.player-head-tabs .player-tab')->each(
+            static fn (Crawler $tab): array => [trim($tab->text()), (string) $tab->attr('href'), $tab->attr('rel')],
+        );
+
+        self::assertSame([
+            ['Overview', '/en/player-profile/' . $id, null],
+            ['Results', '/en/player-results/' . $id, null],
+            ['Statistics', '/en/player-statistics/' . $id, 'nofollow'],
+            ['Calendar', '/en/activity-calendar/' . $id, null],
+            ['Achievements', '/en/player-achievements/' . $id, null],
+            ['Library', '/en/puzzle-library/' . $id, null],
+            ['Favorites', '/en/player-favorites/' . $id, null],
+        ], $tabs);
+    }
+
     public function testTheMenuIsInTheHeaderAndInTheCompactBar(): void
     {
         $crawler = $this->page(PlayerFixture::PLAYER_ADMIN, '/en/player-profile/' . PlayerFixture::PLAYER_WITH_STRIPE);
@@ -53,7 +79,8 @@ final class PlayerHeaderTest extends WebTestCase
         self::assertCount(1, $crawler->filter('.player-head .more-menu[data-nosnippet] .dropdown-menu'));
         self::assertCount(1, $crawler->filter('.player-bar .more-menu[data-nosnippet] .dropdown-menu'));
         self::assertNotNull($crawler->filter('.player-bar')->attr('inert'));
-        self::assertCount(5, $crawler->filter('.player-bar .player-tab'));
+        // Overview, Results, Statistics, Calendar, Achievements, Library (PROF-02: + Results)
+        self::assertCount(6, $crawler->filter('.player-bar .player-tab'));
         self::assertCount(1, $crawler->filter('.player-bar .player-tab[href*="/en/player-statistics/"][rel="nofollow"]'));
     }
 
@@ -94,7 +121,7 @@ final class PlayerHeaderTest extends WebTestCase
         self::assertCount(0, $crawler->filter('[href*="/en/add-player-to-favorites/"]'));
         self::assertCount(0, $crawler->filter('[data-bs-target="#blockPlayerModal"]'));
 
-        self::assertSame(['Profile', 'Statistics', 'Calendar', 'Achievements', 'Library', 'Favorites'], $this->tabLabels($crawler));
+        self::assertSame(['Overview', 'Results', 'Statistics', 'Calendar', 'Achievements', 'Library', 'Favorites'], $this->tabLabels($crawler));
 
         $menu = $crawler->filter('.player-head .dropdown-menu');
         self::assertCount(1, $menu->filter('a[href="/en/export-puzzler-data/' . PlayerFixture::PLAYER_WITH_STRIPE . '"]'));
@@ -308,6 +335,13 @@ final class PlayerHeaderTest extends WebTestCase
         $crawler = $this->page(PlayerFixture::PLAYER_ADMIN, '/en/player-statistics/' . PlayerFixture::PLAYER_WITH_STRIPE, $browser);
         self::assertCount(1, $crawler->filter('h1'));
         self::assertSame('Sarah Williams', trim($crawler->filter('h1')->text()));
+
+        // Results: the name is its H1 too, the Results tab the current page (PROF-02)
+        $crawler = $this->page(PlayerFixture::PLAYER_ADMIN, '/en/player-results/' . PlayerFixture::PLAYER_WITH_STRIPE, $browser);
+        self::assertCount(1, $crawler->filter('h1'));
+        self::assertSame('Sarah Williams', trim($crawler->filter('h1.player-head-name')->text()));
+        self::assertSame('Results', trim($crawler->filter('.player-head-tabs .player-tab.active')->text()));
+        self::assertSame('page', $crawler->filter('.player-head-tabs .player-tab.active')->attr('aria-current'));
 
         foreach (['/en/activity-calendar/', '/en/puzzle-library/'] as $page) {
             $crawler = $this->page(PlayerFixture::PLAYER_ADMIN, $page . PlayerFixture::PLAYER_WITH_STRIPE, $browser);

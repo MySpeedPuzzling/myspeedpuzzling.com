@@ -1037,7 +1037,6 @@ competition_referees:
   "remove_from_favorites": "Aus Favoriten entfernen"
   "no_puzzles_solved": "Keine Puzzles gelöst? Versuchen Sie es und sehen Sie, wie Sie abschneiden! Wir glauben, Sie können es schaffen!"
   "not_filled": "Nicht ausgefüllt"
-  "avatar": "Avatar"
   "about_me": "Über mich"
   "location": "Ort"
   "nationality": "Nationalität"
@@ -1045,11 +1044,8 @@ competition_referees:
   "statistics_time": "Zeit fürs Zusammensetzen verbracht"
   "statistics_puzzles_solved": "Anzahl gelöster Puzzles"
   "statistics_pieces_count": "Anzahl zusammengesetzter Teile"
-  "solved_puzzles": "Gelöste Puzzles"
   "solved_puzzles_solo": "Einzeln"
   "solved_puzzles_group": "Gruppenzusammensetzung"
-  "recent_activity": "Neueste<br>Aktivität"
-  "personal_info": "Persönliche<br>Informationen"
   "private_profile_info_1": "Dieser Puzzler hat entschieden, seine Zeiten nicht zu teilen. Aber wir bestehen darauf, dass es keine langsamen oder schnellen Zeiten gibt - nur Teile, die darauf warten, zusammengefügt zu werden."
   "private_profile_info_2": "Möchten Sie mehr wissen? Treffen Sie sie persönlich und versuchen Sie, sie davon zu überzeugen, ihre Zeiten preiszugeben. Das ist alles, was wir Ihnen hier sagen können."
 "my_profile":
@@ -6772,7 +6768,8 @@ comparison_entry:
 player_header:
     pages: "Seiten des Spielers"
     tabs:
-        profile: "Profil"
+        overview: "Übersicht"
+        results: "Ergebnisse"
         statistics: "Statistiken"
         calendar: "Kalender"
         achievements: "Erfolge"
@@ -9124,7 +9121,6 @@ nav:
     row:
         puzzles_place: "Puzzles"
         organized_events: "Ihre organisierten Veranstaltungen"
-        results: "Ergebnisse"
         lent_borrowed: "Verliehen & ausgeliehen"
         level_boards: "Level- & Erfolgsranglisten"
         puzzlers: "Puzzler"
@@ -9306,3 +9302,16 @@ barcode_scanner:
     "to": "Bis %date%"
     "speed_faster": "Schneller als %value% %unit%"
     "speed_slower": "Langsamer als %value% %unit%"
+
+"player_overview":
+  "personal_bests": "Persönliche Bestzeiten (Solo)"
+  "no_personal_bests": "Sobald Sie ein Solo-Ergebnis mit Zeit eintragen, erscheint hier Ihre schnellste Zeit für jede Teileanzahl."
+  "best_row_label": "%pieces% Teile"
+  "numbers":
+    "solo": "Puzzle solo|Puzzles solo"
+    "pairs": "Puzzle im Paar|Puzzles im Paar"
+    "teams": "Puzzle im Team|Puzzles im Team"
+    "results": "Ergebnis|Ergebnisse"
+  "latest_results": "Neueste Ergebnisse"
+  "all_results": "%count% Ergebnis|Alle %count% Ergebnisse"
+  "about": "Steckbrief"

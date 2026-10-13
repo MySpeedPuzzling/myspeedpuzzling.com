@@ -1,0 +1,89 @@
+{#
+    A player's standing (docs/features/navigation README §4.7, PROF-04 - moved from the profile to Statistics): the
+    average-time chart in its own section, then the skill tier and MSP Rating cards - the member's cards, everybody
+    else's rating card (the header's skill-tier chip is the one lock), the owner's explanations when opted out of
+    rankings or private. Statistics answers a private profile hidden from the viewer with a redirect, so it is never
+    rendered for one.
+
+    Inputs: player, is_own_profile
+#}
+<section class="player-standing-chart mb-3">
+    <twig:Chart:PlayerAverageTimeChart playerId="{{ player.playerId }}" />
+</section>
+
+{# Skill tier and MSP Rating in detail: the header's chips say the essentials #}
+<div class="profile-standing mb-4">
+    {# Ranking opted-out player viewing own profile #}
+    {% if player.rankingOptedOut and is_own_profile %}
+        <div class="d-flex flex-column flex-md-row align-items-md-stretch gap-2 mb-2 w-100">
+            <div class="card shadow-sm flex-grow-1">
+                <div class="card-body py-2 px-3 d-flex flex-column">
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                        <i class="bi bi-eye-slash text-muted" style="font-size: 1.2rem;"></i>
+                        <small class="fw-medium">{{ 'puzzle_intelligence.skill.title'|trans }}</small>
+                    </div>
+                    <small class="text-muted">
+                        {{ 'puzzle_intelligence.skill.ranking_opted_out'|trans }}
+                        <a href="{{ path('edit_profile') }}">{{ 'statistics.change_in_settings'|trans }}</a>
+                    </small>
+                </div>
+            </div>
+            <div class="card shadow-sm flex-shrink-0 flex-grow-0">
+                <div class="card-body py-2 px-3 d-flex flex-column">
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                        <i class="bi bi-eye-slash text-muted" style="font-size: 1.2rem;"></i>
+                        <small class="fw-medium">{{ 'puzzle_intelligence.elo.qualification_title'|trans }}</small>
+                    </div>
+                    <small class="text-muted">
+                        {{ 'puzzle_intelligence.elo.ranking_opted_out'|trans }}
+                        <a href="{{ path('edit_profile') }}">{{ 'statistics.change_in_settings'|trans }}</a>
+                    </small>
+                </div>
+            </div>
+        </div>
+
+    {# Ranking opted-out player viewed by others — hide entirely #}
+    {% elseif player.rankingOptedOut %}
+
+    {# Private player viewing own profile — explain why no rankings #}
+    {% elseif player.isPrivate and is_own_profile %}
+        <div class="d-flex flex-column flex-md-row align-items-md-stretch gap-2 mb-2 w-100">
+            <div class="card shadow-sm flex-grow-1">
+                <div class="card-body py-2 px-3 d-flex flex-column">
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                        <i class="bi bi-incognito text-muted" style="font-size: 1.2rem;"></i>
+                        <small class="fw-medium">{{ 'puzzle_intelligence.skill.title'|trans }}</small>
+                    </div>
+                    <small class="text-muted">{{ 'puzzle_intelligence.skill.private_profile_explanation'|trans }}</small>
+                </div>
+            </div>
+            <div class="card shadow-sm flex-shrink-0 flex-grow-0">
+                <div class="card-body py-2 px-3 d-flex flex-column">
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                        <i class="bi bi-incognito text-muted" style="font-size: 1.2rem;"></i>
+                        <small class="fw-medium">{{ 'puzzle_intelligence.elo.qualification_title'|trans }}</small>
+                    </div>
+                    <small class="text-muted">{{ 'puzzle_intelligence.elo.private_profile_explanation'|trans }}</small>
+                </div>
+            </div>
+        </div>
+
+    {# Normal member view #}
+    {% elseif logged_user.profile is not null and logged_user.profile.activeMembership %}
+        <div class="d-flex flex-column flex-md-row align-items-md-stretch gap-2 mb-2 w-100">
+            <twig:PlayerSkillProfile playerId="{{ player.playerId }}" />
+            <twig:PlayerRatingProfile
+                playerId="{{ player.playerId }}"
+                :isOwnProfile="is_own_profile"
+            />
+        </div>
+    {# Everybody else: the rating card only - the header's skill-tier chip is the one lock on the page #}
+    {% else %}
+        <div class="d-flex flex-column flex-md-row align-items-md-stretch gap-2 mb-2 w-100">
+            <twig:PlayerRatingProfile
+                playerId="{{ player.playerId }}"
+                :isOwnProfile="false"
+            />
+        </div>
+    {% endif %}
+</div>

@@ -1089,7 +1089,6 @@ competition_referees:
   "remove_from_favorites": "Odebrat z oblíbených"
   "no_puzzles_solved": "Žádné poskládané puzzle? Tak to jsi teda pěkná bačkora."
   "not_filled": "Nevyplněno"
-  "avatar": "Avatar"
   "about_me": "O mně"
   "location": "Lokace"
   "nationality": "Národnost"
@@ -1097,11 +1096,8 @@ competition_referees:
   "statistics_time": "Čas strávený skládáním"
   "statistics_puzzles_solved": "Počet složených puzzlí"
   "statistics_pieces_count": "Počet složených dílků"
-  "solved_puzzles": "Poskládané puzzle"
   "solved_puzzles_solo": "Jednotlivec"
   "solved_puzzles_group": "Skupinové skládání"
-  "recent_activity": "Poslední<br>aktivita"
-  "personal_info": "Osobní<br>info"
   "private_profile_info_1": "Rozhodl se nesdílet své časy. My však tvrdíme, že neexistují pomalé ani rychlé časy - jen dílky, které je třeba složit."
   "private_profile_info_2": "Chceš vědět víc? Potkej ho osobně a zkus ho přesvědčit, aby se podělil. Tady ti nic dalšího prozradit nemůžeme."
 "my_profile":
@@ -6873,7 +6869,8 @@ comparison_entry:
 player_header:
     pages: "Stránky hráče"
     tabs:
-        profile: "Profil"
+        overview: "Přehled"
+        results: "Výsledky"
         statistics: "Statistiky"
         calendar: "Kalendář"
         achievements: "Úspěchy"
@@ -9151,7 +9148,6 @@ nav:
     row:
         puzzles_place: "Puzzle"
         organized_events: "Události, které pořádáš"
-        results: "Výsledky"
         lent_borrowed: "Půjčené"
         level_boards: "Žebříčky úrovní a úspěchů"
         puzzlers: "Puzzleři"
@@ -9333,3 +9329,16 @@ barcode_scanner:
     "to": "Do %date%"
     "speed_faster": "Rychleji než %value% %unit%"
     "speed_slower": "Pomaleji než %value% %unit%"
+
+"player_overview":
+  "personal_bests": "Osobní rekordy (solo)"
+  "no_personal_bests": "Až přidáte solo výsledek s časem, ukáže se tu váš nejrychlejší čas pro každý počet dílků."
+  "best_row_label": "%pieces% dílků"
+  "numbers":
+    "solo": "Puzzle solo|Puzzle solo|Puzzle solo"
+    "pairs": "Puzzle ve dvojici|Puzzle ve dvojici|Puzzle ve dvojici"
+    "teams": "Puzzle v týmu|Puzzle v týmu|Puzzle v týmu"
+    "results": "Výsledek|Výsledky|Výsledků"
+  "latest_results": "Poslední výsledky"
+  "all_results": "%count% výsledek|Všechny %count% výsledky|Všech %count% výsledků"
+  "about": "O hráči"

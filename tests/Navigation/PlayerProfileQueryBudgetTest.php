@@ -22,7 +22,7 @@ use Symfony\Component\Messenger\MessageBusInterface;
  * The second request is counted: the first warms the caches and claims an announcement modal, the second claimed
  * none in any row (no player_modal_impression statement).
  *
- * The admin → member row is ProfileProgressionTest::testTheProfilePageCost's member viewer (21): both tests stay, the
+ * The admin → member row is ProfileProgressionTest::testTheProfilePageCost's member viewer (11): both tests stay, the
  * same number pinned twice, so a change that moves one moves the other.
  */
 final class PlayerProfileQueryBudgetTest extends WebTestCase
@@ -35,24 +35,32 @@ final class PlayerProfileQueryBudgetTest extends WebTestCase
     public static function provideViews(): iterable
     {
         // "Other" = a public non-member with results (PLAYER_REGULAR); the member = PLAYER_WITH_STRIPE.
-        // The profile row, the achievements showcase, the statistics by pieces and by brand, the rating, the latest
-        // results and the solved puzzles (= ProfileProgressionTest's guest row)
-        yield 'guest → member' => [NavigationViewer::GUEST, PlayerFixture::PLAYER_WITH_STRIPE, 11];
-        // No showcase (not a member); + the referral program block (3) and the pair/team rows of the solved puzzles
-        yield 'guest → other' => [NavigationViewer::GUEST, PlayerFixture::PLAYER_REGULAR, 14];
-        // A private non-member seen by its owner: + the signed-in chrome (3), the owner's "Review your results"
-        // counts and getting-started progress, the viewer's best times; no showcase, no rating (INB-02: 17 → 16)
-        yield 'player → own' => [NavigationViewer::PLAYER, PlayerFixture::PLAYER_PRIVATE, 16];
-        // guest → other + the signed-in chrome (3) and the viewer's best times (INB-02: 19 → 18)
-        yield 'player → other' => [NavigationViewer::PLAYER, PlayerFixture::PLAYER_REGULAR, 18];
+        // PROF-03/04 (the profile is the Overview, docs/features/navigation README §4.7): the profile row, the Overview's
+        // bests + numbers (GetPlayerOverviewNumbers, one statement) and the bests' ranks, the 8 latest results and the
+        // achievements showcase. Gone: the solved puzzles (player check, solo, pair and team lists, every rank - the
+        // Results page lists them now) and the chart's pieces/brands + the rating card (moved to Statistics, pinned by
+        // PlayerStatisticsQueryBudgetTest). 11 → 5
+        yield 'guest → member' => [NavigationViewer::GUEST, PlayerFixture::PLAYER_WITH_STRIPE, 5];
+        // No showcase (not a member); + the referral program block in About (3). PROF-03/04: 14 → 7 (no solved puzzles,
+        // their pair/team players, chart or rating card; + the Overview's numbers and the bests' ranks)
+        yield 'guest → other' => [NavigationViewer::GUEST, PlayerFixture::PLAYER_REGULAR, 7];
+        // A private non-member seen by its owner: + the signed-in chrome (3), the owner's "Review your results" counts and
+        // getting-started progress, the viewer's best times; no showcase, no rating (INB-02: 17 → 16; PROF-03/04: 16 → 10)
+        yield 'player → own' => [NavigationViewer::PLAYER, PlayerFixture::PLAYER_PRIVATE, 10];
+        // guest → other + the signed-in chrome (3) and the viewer's best times (INB-02: 19 → 18; PROF-03/04: 18 → 11)
+        yield 'player → other' => [NavigationViewer::PLAYER, PlayerFixture::PLAYER_REGULAR, 11];
         // guest → member + the signed-in chrome (3), the owner's review counts and getting-started progress and the
-        // members' insights (chart, skill, first tries, difficulty tiers) (INB-02: 23 → 22)
-        yield 'member → own' => [NavigationViewer::MEMBER, PlayerFixture::PLAYER_WITH_STRIPE, 22];
-        // guest → other + the signed-in chrome (3), the viewer's best times and the members' insights (INB-02: 24 → 23)
-        yield 'member → other' => [NavigationViewer::MEMBER, PlayerFixture::PLAYER_REGULAR, 23];
+        // latest results' difficulty tiers (members) (INB-02: 23 → 22; PROF-03/04: 22 → 11 - also no chart data, skill
+        // card, first-tries count or the solved puzzles' tiers)
+        yield 'member → own' => [NavigationViewer::MEMBER, PlayerFixture::PLAYER_WITH_STRIPE, 11];
+        // guest → other + the signed-in chrome (3), the viewer's best times and the latest results' difficulty tiers
+        // (INB-02: 24 → 23; PROF-03/04: 23 → 12)
+        yield 'member → other' => [NavigationViewer::MEMBER, PlayerFixture::PLAYER_REGULAR, 12];
         // = ProfileProgressionTest::testTheProfilePageCost's member viewer: the admin key's queue counts, no
-        // getting-started card (INB-02: 22 → 21)
-        yield 'admin → member' => [NavigationViewer::ADMIN, PlayerFixture::PLAYER_WITH_STRIPE, 21];
+        // getting-started card (INB-02: 22 → 21; PROF-03/04: 21 → 11)
+        yield 'admin → member' => [NavigationViewer::ADMIN, PlayerFixture::PLAYER_WITH_STRIPE, 11];
+        // PROF-03: a private profile hidden from the viewer is the header and the notice - the profile row alone (new row)
+        yield 'guest → private' => [NavigationViewer::GUEST, PlayerFixture::PLAYER_PRIVATE, 1];
     }
 
     #[DataProvider('provideViews')]
@@ -91,7 +99,7 @@ final class PlayerProfileQueryBudgetTest extends WebTestCase
         $browser->request('GET', $url);
         self::assertResponseIsSuccessful();
 
-        // = the 'member → own' row
-        self::assertSame(22, $this->queryCount($browser), $url . " ran:\n" . implode("\n", $this->executedSql($browser)));
+        // = the 'member → own' row (PROF-03/04: 22 → 11)
+        self::assertSame(11, $this->queryCount($browser), $url . " ran:\n" . implode("\n", $this->executedSql($browser)));
     }
 }

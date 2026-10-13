@@ -1209,7 +1209,6 @@ competition_referees:
   "remove_from_favorites": "お気に入りから削除"
   "no_puzzles_solved": "解いたパズルがありませんか？挑戦してみて、どれだけできるか見てみましょう！できると信じています！"
   "not_filled": "入力されていません"
-  "avatar": "アバター"
   "about_me": "自己紹介"
   "location": "所在地"
   "nationality": "国籍"
@@ -1217,11 +1216,8 @@ competition_referees:
   "statistics_time": "組み立てに費やした時間"
   "statistics_puzzles_solved": "解いたパズル数"
   "statistics_pieces_count": "組み立てたピース数"
-  "solved_puzzles": "解いたパズル"
   "solved_puzzles_solo": "個人"
   "solved_puzzles_group": "グループ組み立て"
-  "recent_activity": "最近の<br>アクティビティ"
-  "personal_info": "個人<br>情報"
   "private_profile_info_1": "このパズラーはタイムを共有しないことに決めました。しかし、私たちは遅いタイムや速いタイムはなく、一緒にクリックするのを待っているピースだけがあると主張します。"
   "private_profile_info_2": "もっと知りたいですか？直接会って、タイムを明かすよう説得してみてください。ここでお伝えできるのはそれだけです。"
 "edit_profile":
@@ -6761,7 +6757,8 @@ comparison_entry:
 player_header:
     pages: "プレイヤーのページ"
     tabs:
-        profile: "プロフィール"
+        overview: "概要"
+        results: "記録"
         statistics: "統計"
         calendar: "カレンダー"
         achievements: "実績"
@@ -9113,7 +9110,6 @@ nav:
     row:
         puzzles_place: "パズル"
         organized_events: "主催するイベント"
-        results: "記録"
         lent_borrowed: "貸し借り"
         level_boards: "レベル・実績ランキング"
         puzzlers: "パズラー"
@@ -9295,3 +9291,16 @@ barcode_scanner:
     "to": "%date%まで"
     "speed_faster": "%value% %unit%より速い"
     "speed_slower": "%value% %unit%より遅い"
+
+"player_overview":
+  "personal_bests": "自己ベスト（ソロ）"
+  "no_personal_bests": "タイム付きのソロ記録を追加すると、ピース数ごとの最速タイムがここに表示されます。"
+  "best_row_label": "%pieces%ピース"
+  "numbers":
+    "solo": "ソロで完成したパズル"
+    "pairs": "ペアで完成したパズル"
+    "teams": "チームで完成したパズル"
+    "results": "記録"
+  "latest_results": "最近の記録"
+  "all_results": "すべての記録（%count%件）"
+  "about": "プロフィール情報"

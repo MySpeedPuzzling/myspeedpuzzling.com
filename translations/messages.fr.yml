@@ -1072,7 +1072,6 @@ competition_referees:
   "remove_from_favorites": "Retirer des favoris"
   "no_puzzles_solved": "Aucun puzzle résolu ? Lancez-vous et voyez comment vous vous débrouillez ! Nous croyons en vous !"
   "not_filled": "Non renseigné"
-  "avatar": "Avatar"
   "about_me": "À propos de moi"
   "location": "Lieu"
   "nationality": "Nationalité"
@@ -1080,11 +1079,8 @@ competition_referees:
   "statistics_time": "Temps passé à assembler"
   "statistics_puzzles_solved": "Nombre de puzzles résolus"
   "statistics_pieces_count": "Nombre de pièces assemblées"
-  "solved_puzzles": "Puzzles résolus"
   "solved_puzzles_solo": "Individuel"
   "solved_puzzles_group": "Assemblage en groupe"
-  "recent_activity": "Activité<br>récente"
-  "personal_info": "Info<br>personnelles"
   "private_profile_info_1": "Ce puzzleur a décidé de ne pas partager ses temps. Mais nous insistons qu'il n'y a pas de temps lents ou rapides—seulement des pièces qui attendent de s'emboîter."
   "private_profile_info_2": "Vous voulez en savoir plus ? Rencontrez-le en personne et essayez de le convaincre de révéler ses temps. C'est tout ce que nous pouvons vous dire ici."
 "my_profile":
@@ -6866,7 +6862,8 @@ comparison_entry:
 player_header:
     pages: "Pages du joueur"
     tabs:
-        profile: "Profil"
+        overview: "Aperçu"
+        results: "Résultats"
         statistics: "Statistiques"
         calendar: "Calendrier"
         achievements: "Succès"
@@ -9144,7 +9141,6 @@ nav:
     row:
         puzzles_place: "Puzzles"
         organized_events: "Événements que vous organisez"
-        results: "Résultats"
         lent_borrowed: "Prêtés et empruntés"
         level_boards: "Classements des niveaux et succès"
         puzzlers: "Puzzleurs"
@@ -9326,3 +9322,16 @@ barcode_scanner:
     "to": "Jusqu'au %date%"
     "speed_faster": "Plus rapide que %value% %unit%"
     "speed_slower": "Plus lent que %value% %unit%"
+
+"player_overview":
+  "personal_bests": "Records personnels (solo)"
+  "no_personal_bests": "Votre temps le plus rapide pour chaque nombre de pièces apparaîtra ici dès que vous ajouterez un résultat solo chronométré."
+  "best_row_label": "%pieces% pièces"
+  "numbers":
+    "solo": "Puzzle en solo|Puzzles en solo"
+    "pairs": "Puzzle en duo|Puzzles en duo"
+    "teams": "Puzzle en équipe|Puzzles en équipe"
+    "results": "Résultat|Résultats"
+  "latest_results": "Derniers résultats"
+  "all_results": "%count% résultat|Les %count% résultats"
+  "about": "À propos"

@@ -104,11 +104,16 @@ final class ProfileProgressionTest extends WebTestCase
         self::assertCount(1, $chip);
         self::assertSame('#2 MSP Rating', trim($chip->text()));
         self::assertStringStartsWith('/en/msp-rating?return=', (string) $chip->attr('href'));
-        // A free visitor sees one lock at the top of the profile: the header's skill-tier chip - the rating card below
-        // carries no "Player Insights" lock any more
+        // A free visitor sees one lock at the top of the profile: the header's skill-tier chip
         self::assertCount(1, $crawler->filter('.player-header [data-bs-target="#membersExclusiveModal"]'));
         self::assertCount(1, $crawler->filter('.player-head-chips [data-bs-target="#membersExclusiveModal"]'));
-        self::assertCount(0, $crawler->filter('.profile-standing [data-bs-target="#membersExclusiveModal"]'));
+
+        // The rating card (on Statistics since PROF-04) carries no "Player Insights" lock either
+        $statistics = $browser->request('GET', '/en/player-statistics/' . PlayerFixture::PLAYER_WITH_STRIPE);
+        self::assertResponseIsSuccessful();
+        self::assertCount(1, $statistics->filter('.profile-standing [data-live-name-value="PlayerRatingProfile"]'));
+        self::assertCount(0, $statistics->filter('.profile-standing [data-bs-target="#membersExclusiveModal"]'));
+        self::assertCount(0, $crawler->filter('.profile-standing'), 'The profile has no standing block (PROF-04)');
 
         // At most three chips; out of the ladder = no place
         self::assertLessThanOrEqual(3, $crawler->filter('.player-head-chips > li')->count());
@@ -175,12 +180,14 @@ final class ProfileProgressionTest extends WebTestCase
         $browser = self::createClient();
 
         // Guest on a member's profile: the profile row (header chips + ring included), the page's own statements and,
-        // since the XP launch, the member's achievements showcase (page content, one statement)
-        self::assertSame(11, $this->measure($browser, null, PlayerFixture::PLAYER_WITH_STRIPE));
-        // A member viewer: + the signed-in overhead, the achievements showcase and the skill / rating cards; the
-        // header's tier and the rings cost nothing. INB-02: 22 → 21 (the two unread counts are one Inbox badge
-        // statement) - = PlayerProfileQueryBudgetTest's admin → member row
-        self::assertSame(21, $this->measure($browser, PlayerFixture::PLAYER_ADMIN, PlayerFixture::PLAYER_WITH_STRIPE));
+        // since the XP launch, the member's achievements showcase (page content, one statement). PROF-03/04: 11 → 5 - the
+        // Overview (bests + numbers, the bests' ranks, latest results); the solved puzzles moved to Results, the chart and
+        // the rating card to Statistics
+        self::assertSame(5, $this->measure($browser, null, PlayerFixture::PLAYER_WITH_STRIPE));
+        // A member viewer: + the signed-in overhead and the latest results' difficulty tiers; the header's tier and the
+        // rings cost nothing. INB-02: 22 → 21 (the two unread counts are one Inbox badge statement); PROF-03/04: 21 → 11
+        // (the skill / rating cards are on Statistics) - = PlayerProfileQueryBudgetTest's admin → member row
+        self::assertSame(11, $this->measure($browser, PlayerFixture::PLAYER_ADMIN, PlayerFixture::PLAYER_WITH_STRIPE));
     }
 
     private function measure(KernelBrowser $browser, null|string $viewer, string $playerId): int

@@ -7,8 +7,10 @@ namespace SpeedPuzzling\Web\Controller;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Query\GetAffiliateSupporters;
 use SpeedPuzzling\Web\Query\GetGettingStartedProgress;
+use SpeedPuzzling\Web\Query\GetPlayerOverviewNumbers;
 use SpeedPuzzling\Web\Query\GetPlayerProfile;
 use SpeedPuzzling\Web\Query\GetPlayerReviewCounts;
+use SpeedPuzzling\Web\Query\GetRanking;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\PlayerResultsCriteria;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -18,6 +20,12 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 
+/**
+ * A player's profile = their Overview (docs/features/navigation README §4.7, PROF-03): personal bests, the headline
+ * numbers, the latest results, achievements and About - every result is on the Results page (PlayerResultsController),
+ * the charts and the skill/rating cards on Statistics (PROF-04). The owner sees the same page plus the owner cards
+ * (review banner, Getting started / country nudge) below the bests (PROF-01).
+ */
 final class PlayerProfileController extends AbstractController
 {
     public function __construct(
@@ -26,6 +34,8 @@ final class PlayerProfileController extends AbstractController
         readonly private GetAffiliateSupporters $getAffiliateSupporters,
         readonly private GetGettingStartedProgress $getGettingStartedProgress,
         readonly private GetPlayerReviewCounts $getPlayerReviewCounts,
+        readonly private GetPlayerOverviewNumbers $getPlayerOverviewNumbers,
+        readonly private GetRanking $getRanking,
     ) {
     }
 
@@ -53,6 +63,23 @@ final class PlayerProfileController extends AbstractController
         $player = $this->getPlayerProfile->byId($playerId);
 
         $loggedProfile = $this->retrieveLoggedUserProfile->getProfile();
+        $isOwnProfile = $loggedProfile !== null && $loggedProfile->playerId === $player->playerId;
+
+        // A private profile hidden from this viewer shows the header and the notice only - nothing is read for it
+        if ($player->isPrivate && $isOwnProfile === false) {
+            return $this->render('player_profile.html.twig', [
+                'getting_started' => null,
+                'review_counts' => null,
+                'player' => $player,
+                'affiliate_supporters' => null,
+                'overview' => null,
+                'best_ranks' => [],
+            ]);
+        }
+
+        // One statement for the bests and the numbers, one for the bests' ranks (none without a best)
+        $overview = $this->getPlayerOverviewNumbers->forPlayer($player->playerId);
+        $bestRanks = $this->getRanking->forPuzzles($player->playerId, $overview->bestPuzzleIds());
 
         $affiliateSupporters = null;
         if ($player->isInReferralProgram()) {
@@ -63,7 +90,7 @@ final class PlayerProfileController extends AbstractController
         // gives it somewhere to go (docs/features/getting-started-guide.md)
         $gettingStarted = null;
         $reviewCounts = null;
-        if ($loggedProfile !== null && $loggedProfile->playerId === $player->playerId) {
+        if ($isOwnProfile) {
             // "Review your results" banner (docs/features/duplicate-results.md) - only the owner pays for it
             $reviewCounts = $this->getPlayerReviewCounts->forPlayer($player->playerId);
 
@@ -79,6 +106,8 @@ final class PlayerProfileController extends AbstractController
             'review_counts' => $reviewCounts,
             'player' => $player,
             'affiliate_supporters' => $affiliateSupporters,
+            'overview' => $overview,
+            'best_ranks' => $bestRanks,
         ]);
     }
 

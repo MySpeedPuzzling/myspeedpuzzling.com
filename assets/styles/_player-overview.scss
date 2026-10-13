@@ -1,0 +1,154 @@
+// A player's Overview, the profile page (docs/features/navigation README §4.7, PROF-03): personal bests, the headline
+// numbers, the latest results and About - sections with a small heading, like the achievements showcase. The bests'
+// rows are the Results rows (.ps-table, _leaderboard.scss). Prefix pov- ("player overview").
+
+.pov-section {
+    margin-bottom: 1.25rem;
+}
+
+.pov-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    column-gap: .75rem;
+    margin-bottom: .5rem;
+}
+
+.pov-title {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.pov-empty {
+    margin: 0;
+    padding: .75rem .875rem;
+    border: 1px dashed #d5dce3;
+    border-radius: .75rem;
+    color: $lb-secondary;
+    font-size: .875rem;
+}
+
+// The preset ("500 pieces") above the puzzle's name - what the row is the best of. The coral's dark ink: the brand coral
+// is 2.9:1 on white, this one 5.3:1 (small text needs 4.5:1, like the Help sheet's links, _dynamic-modal.scss)
+$pov-preset-ink: #c8323a;
+
+.pov-best-preset {
+    display: block;
+    margin-bottom: 1px;
+    color: $pov-preset-ink;
+    font-size: .75rem;
+    font-weight: 600;
+    line-height: 1.3;
+    text-transform: uppercase;
+    letter-spacing: .02em;
+}
+
+.custom-table-wrapper .table a.ps-time-value + .ps-date {
+    margin-top: 1px;
+}
+
+.pov-bests .ps-time-value {
+    font-weight: 600;
+}
+
+// Four figures: two per row on phones, one row from 576 px
+.pov-numbers {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .5rem;
+    margin: 0 0 1.25rem;
+    padding: 0;
+    list-style: none;
+
+    @include media-breakpoint-up(sm) {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+}
+
+.pov-number {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 44px;
+    padding: .625rem .75rem;
+    border: 1px solid #e3e9ef;
+    border-radius: .75rem;
+    background: $white;
+    color: $gray-900;
+    text-decoration: none;
+
+    &:hover,
+    &:focus-visible {
+        border-color: $primary;
+        color: $gray-900;
+    }
+}
+
+.pov-number-value {
+    font-size: 1.375rem;
+    font-weight: 600;
+    line-height: 1.2;
+    font-variant-numeric: tabular-nums;
+}
+
+.pov-number-label {
+    color: $lb-secondary;
+    font-size: .8125rem;
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+}
+
+.pov-number-zero .pov-number-value {
+    color: $lb-secondary;
+}
+
+.pov-more {
+    margin: .625rem 0 0;
+    font-size: .875rem;
+
+    .bi {
+        margin-left: .125rem;
+        font-size: .75rem;
+    }
+}
+
+.pov-about-fields {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: .5rem 1.5rem;
+    margin: 0;
+
+    @include media-breakpoint-up(sm) {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    dt {
+        color: $lb-secondary;
+        font-size: .75rem;
+        font-weight: 400;
+    }
+
+    dd {
+        margin: 0;
+        overflow-wrap: anywhere;
+    }
+}
+
+// The bio takes the whole row
+.pov-about-bio {
+    @include media-breakpoint-up(sm) {
+        grid-column: 1 / -1;
+    }
+}
+
+.pov-supporters {
+    margin-top: 1rem;
+}
+
+// The latest results are the feed component, whose table keeps the Hub's top margin (mt-4): under a section heading the
+// gap is the heading's, as above the bests
+.pov-section .ra-list .ps-wrapper {
+    margin-top: 0 !important;
+}

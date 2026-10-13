@@ -5,12 +5,15 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Value;
 
 /**
- * The page tabs of the player header (templates/components/PlayerHeader.html.twig), in their order.
+ * The page tabs of the player header (templates/components/PlayerHeader.html.twig), in their order: Overview · Results
+ * · Statistics · Calendar · Achievements · Library · Favorites (owner) - docs/features/navigation README §4.7, PROF-02.
  * See docs/features/player-header.md.
  */
 enum PlayerHeaderTab: string
 {
-    case Profile = 'profile';
+    // The profile page itself (player_profile) - "Profile" until PROF-02
+    case Overview = 'overview';
+    case Results = 'results';
     case Statistics = 'statistics';
     case Calendar = 'calendar';
     case Achievements = 'achievements';
@@ -20,7 +23,8 @@ enum PlayerHeaderTab: string
     public function routeName(): string
     {
         return match ($this) {
-            self::Profile => 'player_profile',
+            self::Overview => 'player_profile',
+            self::Results => 'player_results',
             self::Statistics => 'player_statistics',
             self::Calendar => 'activity_calendar',
             self::Achievements => 'player_achievements',

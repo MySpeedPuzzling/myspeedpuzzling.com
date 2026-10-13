@@ -3,7 +3,7 @@
 {#
     A player's Results (docs/features/navigation README §4.7, PROF-05a): the player header, the search and the filters
     (a GET form), and the list region - a Turbo Frame the page's script can reload on its own (PROF-05c). Everything is
-    rendered from the URL (PlayerResultsCriteria) by PlayerResultsController; PROF-02 adds the Results tab.
+    rendered from the URL (PlayerResultsCriteria) by PlayerResultsController; the header shows it as the Results tab (PROF-02).
 
     Head (PROF-07): the name masked by the player's own setting (player/_head_name.html.twig, as on the profile), the
     profile's picture; robots, canonical and hreflang decided by PlayerResultsController (seo): the list's own URL is
@@ -32,7 +32,7 @@
 {% block content %}
     {{ include('_return_back_button.html.twig') }}
     {# The header's player name is the page's H1 #}
-    <twig:PlayerHeader player="{{ player }}" :heading="true" />
+    <twig:PlayerHeader player="{{ player }}" tab="results" :heading="true" />
 
     <div class="player-results mt-3" data-player-results data-controller="player-results">
         {{ include('player/results/_filters.html.twig') }}

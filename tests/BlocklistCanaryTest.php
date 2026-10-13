@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests;
 
+use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Ramsey\Uuid\Uuid;
@@ -25,6 +26,7 @@ use Symfony\Component\DomCrawler\Crawler;
 final class BlocklistCanaryTest extends WebTestCase
 {
     use ClonesSolvingTimes;
+    use ComparisonSeeding;
 
     private const string BLOCKER = PlayerFixture::PLAYER_WITH_FAVORITES;
     private const string BLOCKED = PlayerFixture::PLAYER_WITH_STRIPE;
@@ -105,6 +107,38 @@ final class BlocklistCanaryTest extends WebTestCase
         TestingLogin::asPlayer($browser, self::BLOCKER);
         $browser->request('GET', $url);
         self::assertResponseStatusCodeSame(404);
+    }
+
+    /**
+     * A co-solver's Overview (docs/features/navigation PROF-03): the pair with the blocked player is in the latest results
+     * and counted in the numbers for a bystander - for the blocker neither (GetPlayerOverviewNumbers and the feed both
+     * leave it out)
+     */
+    public function testBlockedPlayerIsNowhereOnACoSolversOverview(): void
+    {
+        $browser = self::createClient();
+        $url = '/en/player-profile/' . PlayerFixture::PLAYER_REGULAR;
+        $pair = $this->seedTeam([PlayerFixture::PLAYER_REGULAR, self::BLOCKED]);
+        $this->seedTime(PlayerFixture::PLAYER_REGULAR, PuzzleFixture::PUZZLE_500_02, 1500, new DateTimeImmutable('-1 minute'), teamId: $pair);
+
+        self::getContainer()->get(Connection::class)->executeStatement(
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, NOW(), 'self')",
+            ['id' => Uuid::uuid7()->toString(), 'blocker' => self::BLOCKER, 'blocked' => self::BLOCKED],
+        );
+
+        TestingLogin::asPlayer($browser, self::BYSTANDER);
+        $crawler = $browser->request('GET', $url);
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString(self::BLOCKED_NAME, $crawler->filter('[data-testid="latest-results"]')->text(), 'No canary: the pair is not among the latest results for a bystander.');
+        $pairs = (int) $crawler->filter('[data-overview-number="duo"] .pov-number-value')->text();
+
+        TestingLogin::asPlayer($browser, self::BLOCKER);
+        $crawler = $browser->request('GET', $url);
+        self::assertResponseIsSuccessful();
+        $content = (string) $browser->getResponse()->getContent();
+        self::assertStringNotContainsString(self::BLOCKED, $content, 'The blocker is shown a player they blocked.');
+        self::assertStringNotContainsString(self::BLOCKED_NAME, $content, 'The blocker is shown a player they blocked.');
+        self::assertSame($pairs - 1, (int) $crawler->filter('[data-overview-number="duo"] .pov-number-value')->text(), 'The pair is not counted for the blocker');
     }
 
     /**

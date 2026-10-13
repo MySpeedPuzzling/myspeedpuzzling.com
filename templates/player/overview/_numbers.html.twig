@@ -1,0 +1,34 @@
+{#
+    The Overview's headline numbers (docs/features/navigation README §4.7, PROF-03): puzzles solved solo, in pairs, in
+    teams and every result - free figures only (decision 69), each the count of the Results tab it opens
+    (PlayerOverviewNumbersParityTest). The default tab's link carries no category, like Results' own links.
+
+    Nothing while the player has no result (the latest results say so).
+
+    Inputs: player, overview (PlayerOverviewNumbers)
+#}
+{% if overview.totalResults > 0 %}
+    {% set default_category = overview.defaultCategory %}
+    <ul class="pov-numbers" data-testid="overview-numbers">
+        {% for number in [
+            {id: 'solo', value: overview.soloPuzzles, label: 'player_overview.numbers.solo', query: default_category == 'solo' ? {} : {category: 'solo'}},
+            {id: 'duo', value: overview.pairPuzzles, label: 'player_overview.numbers.pairs', query: default_category == 'duo' ? {} : {category: 'duo'}},
+            {id: 'group', value: overview.teamPuzzles, label: 'player_overview.numbers.teams', query: default_category == 'group' ? {} : {category: 'group'}},
+            {id: 'every', value: overview.totalResults, label: 'player_overview.numbers.results', query: {view: 'every'}},
+        ] %}
+            <li>
+                {% if number.value > 0 %}
+                    <a class="pov-number" href="{{ path('player_results', {playerId: player.playerId}|merge(number.query)) }}" data-overview-number="{{ number.id }}">
+                        <span class="pov-number-value">{{ number.value|plain_number }}</span>
+                        <span class="pov-number-label">{{ number.label|trans({'%count%': number.value}) }}</span>
+                    </a>
+                {% else %}
+                    <span class="pov-number pov-number-zero" data-overview-number="{{ number.id }}">
+                        <span class="pov-number-value">0</span>
+                        <span class="pov-number-label">{{ number.label|trans({'%count%': 0}) }}</span>
+                    </span>
+                {% endif %}
+            </li>
+        {% endfor %}
+    </ul>
+{% endif %}

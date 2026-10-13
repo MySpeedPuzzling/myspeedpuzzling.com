@@ -511,7 +511,7 @@ final readonly class NavigationRegistry
             new NavEntry(
                 id: 'results',
                 target: RouteTarget::viewer('player_results'),
-                label: 'nav.row.results',
+                label: 'player_header.tabs.results',
                 icon: 'bi-list-ol',
                 place: NavPlace::Profile,
                 phone: $row(10),

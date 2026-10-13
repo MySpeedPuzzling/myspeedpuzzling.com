@@ -613,6 +613,26 @@ td.rank {
     display: block;
 }
 
+// The scanner window, its panel and the global search: a phone held upright gets a 1080x1920 stream, shown full
+// width that is taller than the screen - cropped to half the screen like multiscan. The overlay is cropped the same
+// way and sits exactly on the video (inside the 5 px padding), so the aiming band and the read outline line up;
+// the controller decodes only what is on screen (_visibleRect)
+@mixin barcode-scanner-viewfinder {
+    video {
+        max-height: 50vh;
+        object-fit: cover;
+    }
+
+    canvas {
+        top: 5px !important;
+        left: 5px !important;
+        width: calc(100% - 10px) !important;
+        height: calc(100% - 10px) !important;
+        object-fit: cover;
+        pointer-events: none;
+    }
+}
+
 // Over every scanner's camera (_barcode_scanner_hud.html.twig): above the <video> (z-index 20) and the read overlay
 // (30) - without its own z-index the pill sat behind the first video frame and nobody could zoom
 .barcode-scanner-hud {
@@ -1535,6 +1555,8 @@ canvas {
     canvas {
         z-index: 30;
     }
+
+    @include barcode-scanner-viewfinder;
 }
 
 // Scrolling inside a modal must never chain to the page: in the installed PWA the first
@@ -1661,6 +1683,8 @@ canvas {
     canvas {
         z-index: 30;
     }
+
+    @include barcode-scanner-viewfinder;
 }
 
 .global-search-results {

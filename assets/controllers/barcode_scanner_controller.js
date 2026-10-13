@@ -16,8 +16,6 @@ const COMPETING_CODE_MS = 2000;
 
 const STORAGE_CAMERA = 'msp-scan-camera';
 const STORAGE_ZOOM = 'msp-scan-zoom';
-const STORAGE_DEBUG = 'msp-scan-debug';
-const STORAGE_ENGINE = 'msp-scan-engine';
 const STORAGE_SOUND = 'msp-scan-sound';
 
 export default class extends Controller {
@@ -62,10 +60,6 @@ export default class extends Controller {
         this.audioContext = null;
         this.soundEnabled = this._readSoundPreference();
         this._updateSoundButton();
-        this.debug = this._stickyParam('scan-debug', STORAGE_DEBUG, ['1']) === '1';
-        // ?scanner=zbar / ?scanner=native forces a decoder for this tab (support and testing, README §5.5),
-        // ?scanner=auto goes back to the choice below
-        this.forcedEngine = this._stickyParam('scanner', STORAGE_ENGINE, ['zbar', 'native']);
 
         this._boundStopScanning = () => this.stopScanning();
         window.addEventListener('barcode-scan:close', this._boundStopScanning);
@@ -158,6 +152,13 @@ export default class extends Controller {
     // --- Camera ---
 
     async _startCamera() {
+        // Read on every start from the page's own URL, never remembered: a tab that once had a test link must not
+        // keep the panel or the forced decoder on other pages (README §5.6)
+        this.debug = this._urlParam('scan-debug') === '1';
+        // ?scanner=zbar / ?scanner=native forces a decoder (support and testing, README §5.5)
+        const forced = this._urlParam('scanner');
+        this.forcedEngine = forced === 'zbar' || forced === 'native' ? forced : null;
+
         this.wrapperTarget.classList.remove('d-none');
         this.scanBuffer = [];
         const session = ++this.cameraSession;
@@ -465,7 +466,8 @@ export default class extends Controller {
     // --- Decoding ---
 
     async _detectorClass() {
-        if (this._Detector !== undefined) return this._Detector;
+        if (this._Detector !== undefined && this._detectorForced === this.forcedEngine) return this._Detector;
+        this._detectorForced = this.forcedEngine;
 
         // The browser's own detector where it reads EAN-13 (Google's engine in Android Chrome and Samsung
         // Internet, Apple's in Chrome on macOS), our zbar everywhere else (iOS, Firefox, Chrome on Windows/Linux).
@@ -856,23 +858,12 @@ export default class extends Controller {
 
     // --- ?scan-debug=1: what the camera and the decoder do, for a screenshot (README §5.1) ---
 
-    /**
-     * A URL switch that stays on for the tab: an allowed value is kept in sessionStorage, any other value clears it
-     * (`?scan-debug=0`, `?scanner=auto`), no parameter keeps what the tab had.
-     *
-     * @returns {string|null}
-     */
-    _stickyParam(name, storageKey, allowed) {
+    _urlParam(name) {
         try {
-            const param = new URLSearchParams(window.location.search).get(name);
-            if (param !== null) {
-                this._writeStorage(window.sessionStorage, storageKey, allowed.indexOf(param) !== -1 ? param : null);
-            }
-        } catch (e) { /* no URL API */ }
-
-        const value = this._readStorage(window.sessionStorage, storageKey);
-
-        return allowed.indexOf(value) !== -1 ? value : null;
+            return new URLSearchParams(window.location.search).get(name);
+        } catch (e) {
+            return null;
+        }
     }
 
     _recordDecode(ms, frame) {

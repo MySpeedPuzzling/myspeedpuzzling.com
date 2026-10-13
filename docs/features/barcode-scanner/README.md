@@ -424,15 +424,20 @@ side in one go instead of one A/B step at a time (§5.5). What changed in `barco
 - **Acceptance:** zbar needs 4 agreeing frames with `quality >= 3` (8 for codes starting with `0` and for EAN-8), the
   browser's detector keeps 10; on both, nothing is accepted while another valid code was seen in the last 2 s, and a
   frame with two different codes still counts for nothing.
-- **`?scan-debug=1`** (kept for the tab in `sessionStorage`, `?scan-debug=0` ends it): a panel under the picture with
+- **`?scan-debug=1`** (read from the page's URL on every camera start, never remembered - a tab that once had
+  the link must not keep it on other pages, 2026-10-13 fix): a panel under the picture with
   engine and band, camera label and how it was picked, every camera's label, video size, zoom, focus mode and distance,
   the last refocus, torch, frames and decode time, codes seen with zbar's quality, the accepted code, the device model
   (Chromium's client hints) and the user agent. Ask a player for a screenshot of it, not for "it doesn't focus".
-
-- **`?scanner=zbar` / `?scanner=native`** forces a decoder for the tab (same storage rule, `?scanner=auto` ends it;
-  a forced native detector where the browser has none falls back to zbar). The debug panel's first line says
+- **`?scanner=zbar` / `?scanner=native`** forces a decoder while it is in the URL (same rule; `?scanner=auto` or no
+  parameter = the default; a forced native detector where the browser has none falls back to zbar). The debug panel's first line says
   `(forced …)`. Meant for comparing both decoders on one Android phone before the default changes - zbar on Android
   is still blur-limited (§3.1), and the last blind switch cost half of the Android scans (§1).
+
+- **Viewfinder height:** held upright, the phone delivers a 1080×1920 stream, which full width is taller than the
+  screen (the global search overflowed on an iPhone, 2026-10-13). The scanner window, its panel and the global search
+  cap the video at 50vh with `object-fit: cover`, overlay cropped the same way (`barcode-scanner-viewfinder` mixin in
+  `app.scss`); multiscan already had its own cap. zbar decodes only what is on screen.
 
 Not done: the beacon, so nothing measures the change yet - the Tempo count of `/puzzle-by-ean-search/` per platform
 (§1) is the check until it exists.

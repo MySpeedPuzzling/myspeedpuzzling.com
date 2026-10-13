@@ -37,6 +37,16 @@ that would otherwise be forgotten. Newest section on top.
       ONLINE_ROUNDS_MANAGE besides COMPETITION_RESULTS_ENTRY) - decide before public use; letting them in is one
       condition in `OnlineOrganiserApi` and the review pages' voters.
 
+## Plural texts without a form for 0 (found 2026-10-13 by the online translations' render check)
+
+- [ ] About 55 plural messages per locale outside the online pages are written `{1}…|]1,Inf[…` (or with too few
+      standard forms) and have no form for 0: Symfony throws `InvalidArgumentException` (a 500) and the browser's
+      `translation_choice.js` shows the bare number. English has them too (e.g. `live_results.sync.waiting`,
+      `badges.reveals.invite`, `multiscan.recap.*`, `competition.participants.import.plan.blocker.*`). Most call sites
+      never pass 0 (checked: `free_trial.status.days_left` rounds up while the trial runs) - go through each call site,
+      add a `{0}` / `[0,Inf[` part where 0 can reach it, then widen `tests/OnlinePluralMessagesTest.php` (stream TX,
+      online roots only) to every root with an allowlist of the keys whose callers never pass 0.
+
 ## Anti-farming (`docs/features/xp-levels/README.md` §Anti-farming, workstream G 2026-10-11)
 
 - [ ] lily.srv: add the `verify-progression --repair` cron row (README §Cron) with the deploy; watch its first warnings

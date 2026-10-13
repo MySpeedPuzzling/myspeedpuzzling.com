@@ -4,7 +4,7 @@ The living record of where the prototype stands and what comes next. Updated by 
 
 - **Design and decisions:** [README.md](README.md) (§13)
 - **The plan:** [implementation-plan.md](implementation-plan.md)
-- **Current contract:** [contracts/phase-1.md](contracts/phase-1.md)
+- **Contracts:** [contracts/phase-1.md](contracts/phase-1.md), [contracts/phase-1b.md](contracts/phase-1b.md) (+ the orchestrator's deviations, recorded there when VF merges)
 - **Spikes:** [spikes.md](spikes.md)
 
 **Target:** the first public online competition in Q1 2027, after four test cups (implementation-plan.md §1).
@@ -17,8 +17,8 @@ The living record of where the prototype stands and what comes next. Updated by 
 
 | | |
 |---|---|
-| **Phase** | 1 - remote stopwatch (with Phase 0 spikes in parallel) |
-| **Step** | Phase 1 is built and on `main` (English only); an end-to-end pass runs; next: translations into 6 locales, the real-device pass on phones, Test Cup #1. Phase 1B (live room + studio) has its contract ([contracts/phase-1b.md](contracts/phase-1b.md)) and starts with its foundation on a local LiveKit |
+| **Phase** | 1 built (all 6 locales); 1B (live room + studio) and the Phase 2 groundwork (detection bench) in progress |
+| **Step** | Phase 1 is on `main` in 6 locales; an end-to-end pass on the dev stack runs; the online texts get a plural/wording pass (TX). Phase 1B: the video foundation (VF) runs against a local LiveKit. Phase 2 groundwork (DB): the finish rule, the hands-up signal, the detector worker and the bench tools - ready to score footage the day S1 arrives |
 | **Started** | 2026-10-13 |
 | **Next milestone** | M1 → Test Cup #1 (target Tue 2026-11-10) |
 
@@ -26,11 +26,11 @@ The living record of where the prototype stands and what comes next. Updated by 
 
 | Phase | State | Notes |
 |---|---|---|
-| 0 - spikes | in progress | S1 footage protocol ready for Jan (spikes.md); S2-S6 tooling follows Phase 1 |
-| 1 - remote stopwatch | in progress | contract fixed; F → A, B, C1, D in parallel → C2 |
-| 1B - live room + studio | contract written; foundation next (local LiveKit) | production infrastructure needs ADR D78 on lily.srv (Jan's OK) |
-| 2 - hands-up detection | not started | after the bench (S2) |
-| 3 - completeness check | not started | |
+| 0 - spikes | in progress | S1 footage protocol ready for Jan (spikes.md); S2 bench tools being built (stream DB); S3-S6 follow |
+| 1 - remote stopwatch | **built**, translated | end-to-end pass on the dev stack running; real-device pass on phones pending (`device-test.md`) |
+| 1B - live room + studio | in progress: foundation (VF) on a local LiveKit | then VP (participant video), VM (moderator console + studio), VS (spectators) in parallel; production needs ADR D78 on lily.srv (Jan's OK) |
+| 2 - hands-up detection | groundwork in progress (stream DB) | the finish rule + detector worker + bench; integration into the participant page after 1B |
+| 3 - completeness check | not started | the bench's OpenCV self-test comes with DB |
 | 4 - scale + public event | not started | |
 
 ## Phase 1 streams
@@ -45,19 +45,26 @@ The living record of where the prototype stands and what comes next. Updated by 
 | C1 - organiser set-up (online timing settings, personal links + CSV + QR sheet, sheet column, event-page button, menus) | **merged** - reviewed; the event page hands a link only to a player who showed they hold it | see the log |
 | C2 - control room (live grid, Start in 10 s / at / cancel / end) + review (frame-burst scrubber, confirm into the official results) + accuracy report | **merged** - a result entered meanwhile at the desk is a conflict, never overwritten | see the log |
 
+## Phase 1B and Phase 2 groundwork streams
+
+| Stream | State |
+|---|---|
+| VF - video foundation (dev LiveKit in the compose profile `video`, tokens, server API client, webhook, studio invites, video switches) | in progress |
+| VP / VM / VS - participant video, moderator console + studio, spectators | after VF ([contracts/phase-1b.md](contracts/phase-1b.md)) |
+| DB - detection bench (finish rule, hands-up signal, detector worker, bench page + scorer, OpenCV completeness self-test) | in progress |
+| TX - online texts: every plural renders for 0, "1 pieces", clearer wording, unused keys, a guard test over all 6 locales | in progress |
+
 ## Next steps
 
-1. The end-to-end pass on the dev stack (real API, MinIO, Redis, a fake camera) - its fixes merge.
-2. Translations of every new key into cs, de, es, fr, ja.
-3. Jan: the real-device pass on phones (`device-test.md`), volunteers for Test Cup #1, the OK to apply the bucket CORS rule and to deny `online/` in the images proxy, the OK for ADR D78.
-4. Phase 1B foundation (local LiveKit, tokens, webhooks, studio model).
-3. C2 (control room + review), then the real-device pass, translations into 6 locales, Test Cup #1.
-4. Jan: S1 footage (spikes.md), volunteers for Test Cup #1, an OK to prepare lily.srv ADR D78 for Phase 1B.
+1. Merge the end-to-end pass's fixes, TX, VF and DB as they finish; then start VP, VM and VS.
+2. Jan: the real-device pass on phones (`device-test.md`), S1 footage (spikes.md), volunteers for Test Cup #1, the OK to apply the bucket CORS rule and to deny `online/` in the images proxy, the OK for ADR D78 (LiveKit on lily.srv).
+3. Test Cup #1 (target Tue 2026-11-10): a draft competition with online timing, links sent by hand.
 
 ## Log
 
 | Date | What |
 |---|---|
+| 2026-10-13 | Translations of all 450 online keys into cs, de, es, fr, ja merged (one translator agent per locale, parity + plural checks). Their findings started the TX pass: 8 plural texts threw at a count of 0, "1 pieces", unclear chips. Older texts fixed on the way: 9 Japanese plurals always showed their first form (the live feed's "auto-update in 1 second"), a Czech one threw for 5+. Phase 1B foundation (VF) and the detection bench (DB) started |
 | 2026-10-13 | Analysis, decisions, plan and Phase 1 contract written and committed; delivery started |
 | 2026-10-13 | Control room + review + accuracy report merged; lily.srv cron `prune-online-media` (03:47) added and the command verified on production (no-op) |
 | 2026-10-13 | Participant API + participant page + organiser set-up merged (migration `Version20261013131348`: `competition_participant.online_link_confirmed_at`, additive). Two code reviews: a link is never handed out on the event page to someone who merely claimed a name; the API treats every link as a possibly hostile client; evidence storage never wedges; personal links never reach logs or Sentry |

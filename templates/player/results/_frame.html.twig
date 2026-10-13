@@ -123,17 +123,8 @@
             </table>
         </div>
 
-        {% if results.hasMore %}
-            {# A real link (?page=N renders rows 1…50N) - PROF-05b turns it into an append #}
-            <div class="d-flex flex-column align-items-center gap-2 mt-3 mb-4" id="player-results-more" data-nosnippet>
-                <p class="text-body-secondary fs-sm mb-0" aria-live="polite">
-                    {{ 'profile.results_shown'|trans({'%shown%': results.shownRowsCount|plain_number, '%total%': results.rowsCount|plain_number}) }}
-                </p>
-                <a class="btn btn-outline-primary btn-sm" href="{{ path('player_results', route_params|merge(list.withPage(results.page + 1).toQuery)) }}" data-results-more>
-                    {{ 'puzzle_times.leaderboard.show_more'|trans({'%count%': results.moreCount}) }}
-                </a>
-            </div>
-        {% endif %}
+        {# Show more / Show all (PROF-05b) - real links the page's script turns into an append #}
+        {{ include('player/results/_more.html.twig') }}
     {% elseif criteria.hasFilters %}
         {# The empty state names the filters #}
         <div class="prs-empty text-center py-4" data-testid="results-empty-filtered">

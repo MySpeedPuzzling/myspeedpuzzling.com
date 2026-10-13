@@ -1,0 +1,39 @@
+{#
+    The footer of a player's Results list (docs/features/navigation README §4.7, PROF-05b): "Showing N of M", Show more
+    and Show all. Every control is a real link - `?page=N` renders rows 1…50·N, so they work without JavaScript, a
+    reload keeps the rows and Back finds them again; the page's script (player_results_controller.js) appends the next
+    rows instead of loading the page (Show more: the `fragment=more` stream) or reloads only the list (Show all).
+
+    Show all (`?page=` the last page) only while the tab has at most PlayerResultsPage::SHOW_ALL_MAX rows. Above that the
+    player gets "Export your results" on their own Results, every other viewer nothing more (Show more stays).
+
+    Show more's stream replaces this element, so it is rendered (empty) once every row is shown.
+
+    Input: results (PlayerResultsPage)
+#}
+<div id="player-results-more" data-nosnippet>
+    {% if results.hasMore %}
+        {% set list = results.listCriteria %}
+        {% set route_params = {playerId: results.playerId} %}
+        <div class="d-flex flex-column align-items-center gap-2 mt-3 mb-4">
+            <p class="text-body-secondary fs-sm mb-0" data-testid="results-shown">
+                {{ 'profile.results_shown'|trans({'%shown%': results.shownRowsCount|plain_number, '%total%': results.rowsCount|plain_number}) }}
+            </p>
+            <div class="d-flex flex-wrap justify-content-center gap-2">
+                <a class="btn btn-outline-primary btn-sm" href="{{ path('player_results', route_params|merge(list.withPage(results.page + 1).toQuery)) }}" data-results-more data-action="player-results#more">
+                    {{ 'puzzle_times.leaderboard.show_more'|trans({'%count%': results.moreCount}) }}
+                </a>
+                {% if results.canShowAll %}
+                    <a class="btn btn-outline-secondary btn-sm" href="{{ path('player_results', route_params|merge(list.withPage(results.lastPage).toQuery)) }}" data-results-all data-action="player-results#all">
+                        {{ 'puzzle_times.leaderboard.show_all'|trans({'%count%': results.rowsCount|plain_number}) }}
+                    </a>
+                {% elseif logged_user.profile is not null and logged_user.profile.playerId is same as results.playerId %}
+                    {# Too many rows for one page: the whole history is one download away (docs/features/data-export.md) #}
+                    <a class="btn btn-link btn-sm" href="{{ path('export_puzzler_data', {playerId: results.playerId}) }}" data-results-export>
+                        <i class="bi bi-download me-1" aria-hidden="true"></i>{{ 'player_results.export_results'|trans }}
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    {% endif %}
+</div>

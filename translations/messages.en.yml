@@ -6762,6 +6762,8 @@ pairs_and_teams:
     one_offs: "%count% you puzzled with only once"
     add_time: "Add time"
     results: "Results"
+    results_with_pair: "Results with this pair"
+    results_with_team: "Results with this team"
     delete: "Delete"
     name_it: "Name it"
     rename: "Rename"
@@ -9566,6 +9568,7 @@ player_results:
     clear_all: "Clear all"
     shown_of_total: "%count% of %total%"
     empty_filtered: "No results match %filters%."
+    export_results: "Export your results"
     no_results: "No results here yet."
     chip:
         remove: "Remove filter: %filter%"

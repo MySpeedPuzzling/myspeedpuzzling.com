@@ -48,7 +48,29 @@ final class PuzzlingTeamDetailController extends AbstractController
             'stats' => $viewer !== null && $viewer->activeMembership ? $this->stats($times) : null,
             'comparison' => $this->comparison($team, $viewer),
             'comparison_ref' => ComparisonSubjectRef::team($team->teamId)->toString(),
+            'results_player_id' => $this->resultsPlayerId($team, $viewer),
         ]);
+    }
+
+    /**
+     * Whose Results "Results with this pair/team" opens (docs/features/navigation PROF-05e, decision 71): narrowed to this
+     * pair/team, every member's Results list the same results - the viewer's own when they are in it, else the first
+     * registered member whose Results the viewer may open (not hidden from them, no private profile they may not see).
+     * Null = no link. From the rows the page has, no query.
+     */
+    private function resultsPlayerId(PuzzlingTeamDetail $team, null|PlayerProfile $viewer): null|string
+    {
+        if ($viewer !== null && $team->hasMember($viewer->playerId)) {
+            return $viewer->playerId;
+        }
+
+        foreach ($team->members as $member) {
+            if ($member->playerId !== null && $member->isPrivate === false && $this->hiddenPlayers->isHidden($member->playerId) === false) {
+                return $member->playerId;
+            }
+        }
+
+        return null;
     }
 
     /**

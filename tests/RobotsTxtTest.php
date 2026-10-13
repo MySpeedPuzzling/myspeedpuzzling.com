@@ -165,6 +165,8 @@ final class RobotsTxtTest extends KernelTestCase
             // The navigation's landing and its "Where did it go?" page (docs/features/navigation COM-01, LAUNCH-02a)
             'community landing' => ['community', []],
             'where did it go' => ['where_did_it_go', []],
+            // A player's Results: its own URL is indexable (PROF-07, README §4.7 SEO)
+            'player results' => ['player_results', ['playerId' => self::SAMPLE_ID]],
         ];
     }
 

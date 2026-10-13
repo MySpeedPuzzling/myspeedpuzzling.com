@@ -6310,6 +6310,8 @@ favorite_puzzlers:
   "one_offs": "%count%, se kterými jste skládali jen jednou"
   "add_time": "Přidat čas"
   "results": "Výsledky"
+  "results_with_pair": "Výsledky s touto dvojicí"
+  "results_with_team": "Výsledky s tímto týmem"
   "delete": "Smazat"
   "name_it": "Pojmenovat"
   "rename": "Přejmenovat"
@@ -9320,6 +9322,7 @@ barcode_scanner:
   "clear_all": "Zrušit vše"
   "shown_of_total": "%count% z %total%"
   "empty_filtered": "Filtrům %filters% neodpovídá žádný výsledek."
+  "export_results": "Exportovat výsledky"
   "no_results": "Zatím tu nejsou žádné výsledky."
   "chip":
     "remove": "Odebrat filtr: %filter%"

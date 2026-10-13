@@ -71,9 +71,16 @@ final class PlayerResultsBuilder implements ResetInterface
     /**
      * @param null|int $shownRows how many rows of the shown tab are rendered - null = the criteria's page (Results);
      *                            the legacy component passes its own limit
+     * @param bool $appendPage Show more's stream (PROF-05b): only the criteria's page is rendered after the rows the page
+     *                         already shows - its rows alone are ranked
      */
-    public function build(string $playerId, PlayerResultsCriteria $criteria, bool $legacy = false, null|int $shownRows = null): PlayerResultsPage
-    {
+    public function build(
+        string $playerId,
+        PlayerResultsCriteria $criteria,
+        bool $legacy = false,
+        null|int $shownRows = null,
+        bool $appendPage = false,
+    ): PlayerResultsPage {
         $history = $this->history($playerId);
         $all = [...$history['solo'], ...$history['duo'], ...$history['team']];
         $puzzleIds = array_values(array_unique(array_map(static fn (SolvedPuzzle $puzzle): string => $puzzle->puzzleId, $all)));
@@ -129,19 +136,28 @@ final class PlayerResultsBuilder implements ResetInterface
         };
 
         $page = 1;
+        $appendFrom = 0;
 
         if ($shownRows === null) {
             $page = min($criteria->page, max(1, (int) ceil(count($tabRows) / PlayerResultsPage::PAGE_SIZE)));
             $shownRows = $page * PlayerResultsPage::PAGE_SIZE;
+
+            // The rows before the REQUESTED page are on the client already - a page beyond the end (the list got shorter
+            // meanwhile) appends nothing rather than the last page again
+            if ($appendPage) {
+                $appendFrom = ($criteria->page - 1) * PlayerResultsPage::PAGE_SIZE;
+            }
         }
 
-        // Ranks only for the rows on screen - a solo By-puzzle row shows its rank, other rows none
+        // Ranks only for the rows on screen - a solo By-puzzle row shows its rank, other rows none (PROF-06: one statement
+        // for the shown rows; with the Best rank sort allForPlayer() above already read every rank and forPuzzles() takes
+        // them from its memo)
         $ranking = [];
 
         if ($category === PlayerResultsCriteria::CATEGORY_SOLO && $view === PlayerResultsView::Puzzles) {
             $shownPuzzleIds = [];
 
-            foreach (array_slice($tabRows, 0, $shownRows) as $row) {
+            foreach (array_slice($tabRows, $appendFrom, max(0, $shownRows - $appendFrom)) as $row) {
                 $shownPuzzleIds[] = $row[0]->puzzleId;
             }
 
@@ -169,6 +185,7 @@ final class PlayerResultsBuilder implements ResetInterface
             availablePiecePresets: self::availablePiecePresets($all, $criteria->pieces),
             difficultyOptions: self::difficultyOptions($all, $withDifficulty, $criteria->difficultyTiers, $tiers),
             resultsCount: count($all),
+            appendFrom: $appendFrom,
         );
     }
 

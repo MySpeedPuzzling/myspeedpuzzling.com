@@ -6198,6 +6198,8 @@ favorite_puzzlers:
   "one_offs": "一度だけ一緒に解いた相手：%count%"
   "add_time": "タイムを追加"
   "results": "結果"
+  "results_with_pair": "このペアでの記録"
+  "results_with_team": "このチームでの記録"
   "delete": "削除"
   "name_it": "名前を付ける"
   "rename": "名前を変更"
@@ -9282,6 +9284,7 @@ barcode_scanner:
   "clear_all": "すべてクリア"
   "shown_of_total": "%total%件中%count%件"
   "empty_filtered": "%filters%に一致する記録はありません。"
+  "export_results": "記録をエクスポート"
   "no_results": "まだ記録がありません。"
   "chip":
     "remove": "フィルターを解除：%filter%"

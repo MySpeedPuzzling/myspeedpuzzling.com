@@ -1,0 +1,17 @@
+{#-
+    A player's name in head metadata - title, description, unfurls (docs/features/navigation PROF-07): masked by the
+    player's OWN privacy setting, never by the viewer. An allowed friend sees the name on the page, but their browser
+    must not emit an indexable or unfurlable identity for a private profile; the player sees their own name.
+
+    Prints PLAIN TEXT, not HTML (escaping happens where it is printed): take it only as
+    `include('player/_head_name.html.twig', {player: player})|trim` - the filter makes it a string Twig escapes once,
+    e.g. inside a translation parameter. Never print the include itself.
+
+    Input: player (PlayerProfile)
+-#}
+{%- autoescape false -%}
+    {%- set is_own = logged_user.profile is not null and logged_user.profile.playerId is same as player.playerId -%}
+    {{- player.isPrivateProfile and not is_own
+        ? ('secret_puzzler_name'|trans ~ ' #' ~ player.code|upper)
+        : (player.playerName ?? ('#' ~ player.code|upper)) -}}
+{%- endautoescape -%}

@@ -24,6 +24,12 @@ readonly final class PlayerResultsPage
     public const int PAGE_SIZE = 50;
 
     /**
+     * "Show all" loads every remaining row only up to this many rows of the tab (PROF-05b); a longer list is paged
+     * on - its owner gets the export instead
+     */
+    public const int SHOW_ALL_MAX = 300;
+
+    /**
      * @param array<array-key, non-empty-list<SolvedPuzzle>> $soloRows
      * @param array<array-key, non-empty-list<SolvedPuzzle>> $duoRows
      * @param array<array-key, non-empty-list<SolvedPuzzle>> $teamRows
@@ -33,6 +39,8 @@ readonly final class PlayerResultsPage
      * @param list<array{teamId: string, name: null|string, isPair: bool, players: array<Puzzler>, count: int}> $availableTeams
      * @param list<PiecesRange> $availablePiecePresets
      * @param list<array{value: string, tier: null|DifficultyTier}> $difficultyOptions
+     * @param int $appendFrom Show more's stream (PROF-05b): the rows the page already shows - only the rows after them
+     *                        are rendered (and ranked); 0 = the whole list up to the page
      */
     public function __construct(
         public string $playerId,
@@ -55,6 +63,7 @@ readonly final class PlayerResultsPage
         public array $availablePiecePresets,
         public array $difficultyOptions,
         public int $resultsCount,
+        public int $appendFrom = 0,
     ) {
     }
 
@@ -110,9 +119,44 @@ readonly final class PlayerResultsPage
         return count(array_unique(array_map(static fn (array $row): string => $row[0]->puzzleId, $rows)));
     }
 
+    /**
+     * The rows Show more's stream appends (PROF-05b): the rows of the requested page after the ones already shown -
+     * none when the page asked for is beyond the end (a list that got shorter meanwhile never repeats a row)
+     *
+     * @return array<array-key, non-empty-list<SolvedPuzzle>>
+     */
+    public function appendedRows(): array
+    {
+        return array_slice($this->rows(), $this->appendFrom, max(0, $this->shownRowsCount - $this->appendFrom), preserve_keys: true);
+    }
+
+    /**
+     * The row before the appended ones (its month heading must not repeat under Every result)
+     *
+     * @return null|non-empty-list<SolvedPuzzle>
+     */
+    public function rowBeforeAppended(): null|array
+    {
+        if ($this->appendFrom === 0) {
+            return null;
+        }
+
+        $rows = array_slice($this->rows(), $this->appendFrom - 1, 1);
+
+        return $rows === [] ? null : $rows[array_key_first($rows)];
+    }
+
     public function hasMore(): bool
     {
         return $this->rowsCount() > $this->shownRowsCount;
+    }
+
+    /**
+     * "Show all": more rows remain and the whole tab is at most SHOW_ALL_MAX rows (PROF-05b)
+     */
+    public function canShowAll(): bool
+    {
+        return $this->hasMore() && $this->rowsCount() <= self::SHOW_ALL_MAX;
     }
 
     public function lastPage(): int

@@ -6303,6 +6303,8 @@ favorite_puzzlers:
   "one_offs": "%count% avec qui vous n'avez fait qu'un seul puzzle"
   "add_time": "Ajouter un temps"
   "results": "Résultats"
+  "results_with_pair": "Résultats avec ce duo"
+  "results_with_team": "Résultats avec cette équipe"
   "delete": "Supprimer"
   "name_it": "Nommer"
   "rename": "Renommer"
@@ -9313,6 +9315,7 @@ barcode_scanner:
   "clear_all": "Tout effacer"
   "shown_of_total": "%count% sur %total%"
   "empty_filtered": "Aucun résultat ne correspond à %filters%."
+  "export_results": "Exporter vos résultats"
   "no_results": "Aucun résultat pour l'instant."
   "chip":
     "remove": "Retirer le filtre : %filter%"

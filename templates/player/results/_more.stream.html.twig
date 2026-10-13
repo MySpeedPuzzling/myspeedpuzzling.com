@@ -1,0 +1,27 @@
+{#
+    Show more's answer (docs/features/navigation PROF-05b): PlayerResultsController with `?…&page=N&fragment=more` - the
+    rows of page N after the ones the page shows (PlayerResultsPage::appendedRows(), none beyond the end) appended to the
+    list, and its footer replaced (the next Show more, Show all, "Showing N of M"). Rendered without the page.
+
+    Input: results (PlayerResultsPage built with appendPage)
+#}
+<turbo-stream action="append" target="player-results-rows">
+    <template>
+        {% if results.view.value == 'every' %}
+            {# The month of the row before: its heading is on the page already #}
+            {% set before = results.rowBeforeAppended %}
+            {{ include('player/results/_rows_every.html.twig', {
+                rows: results.appendedRows,
+                offset: results.appendFrom,
+                previous_month: before ? (before[0].finishedAt ?? before[0].trackedAt)|date('Y-m') : null,
+            }) }}
+        {% else %}
+            {{ include('player/results/_rows_by_puzzle.html.twig', {rows: results.appendedRows, offset: results.appendFrom}) }}
+        {% endif %}
+    </template>
+</turbo-stream>
+<turbo-stream action="replace" target="player-results-more">
+    <template>
+        {{ include('player/results/_more.html.twig') }}
+    </template>
+</turbo-stream>

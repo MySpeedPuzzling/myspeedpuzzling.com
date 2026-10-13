@@ -7,10 +7,12 @@ namespace SpeedPuzzling\Web\Tests\Controller;
 use Doctrine\DBAL\Connection;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Results\PlayerResultsPage;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\PuzzleIntelligenceRecalculator;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
+use SpeedPuzzling\Web\Tests\PlayerResultsSeeding;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -21,9 +23,14 @@ use Symfony\Component\DomCrawler\Crawler;
  * from the URL. A player hidden from the viewer is a 404 (GetPlayerProfile::byId), a private profile the viewer may not
  * see goes to the profile (implementation plan decision 69). Every parameter of the URL grammar works, and the
  * members-only ones work for members only: for anybody else they neither filter nor show a chip.
+ *
+ * PROF-05b: 50 rows a page, `?page=N` renders rows 1…50·N; Show more is a real link and its `fragment=more` stream
+ * appends the next page; Show all up to 300 rows, above that the player's own Results offer the export.
  */
 final class PlayerResultsControllerTest extends WebTestCase
 {
+    use PlayerResultsSeeding;
+
     private const string PLAYER = PlayerFixture::PLAYER_REGULAR;
 
     private const string MEMBER = PlayerFixture::PLAYER_WITH_STRIPE;
@@ -54,7 +61,8 @@ final class PlayerResultsControllerTest extends WebTestCase
         $crawler = $browser->request('GET', '/en/player-results/' . self::PLAYER);
 
         self::assertResponseIsSuccessful();
-        self::assertSame('noindex, follow', $crawler->filter('meta[name="robots"]')->attr('content'));
+        // PROF-07: the list's own URL is indexable - the player has more results than the Overview shows (PlayerResultsSeoTest)
+        self::assertSame('index, follow', $crawler->filter('meta[name="robots"]')->attr('content'));
         self::assertStringContainsString('Turbo-Frame', (string) $browser->getResponse()->headers->get('Vary'));
         // The player header with the name as the page's H1, the search first, and the list - as many puzzles as the
         // profile lists (the same solo tab)
@@ -161,8 +169,8 @@ final class PlayerResultsControllerTest extends WebTestCase
         self::assertResponseRedirects($profile, 302);
 
         // The owner, and the friend her allow list names (PrivateProfileViewerFixture), see the list
-        // (the head follows her own setting, not the friend's view of her - as on the profile)
-        foreach ([PlayerFixture::PLAYER_PRIVATE => 'noindex, follow', PlayerFixture::PLAYER_WITH_FAVORITES => 'noindex, nofollow'] as $viewerId => $robots) {
+        // (PROF-07: robots follow her own setting, whoever looks - PlayerResultsSeoTest)
+        foreach ([PlayerFixture::PLAYER_PRIVATE => 'noindex, nofollow', PlayerFixture::PLAYER_WITH_FAVORITES => 'noindex, nofollow'] as $viewerId => $robots) {
             TestingLogin::asPlayer($browser, $viewerId);
             $crawler = $browser->request('GET', $url);
             self::assertResponseIsSuccessful();
@@ -335,12 +343,146 @@ final class PlayerResultsControllerTest extends WebTestCase
     public function testPage(null|string $viewerId): void
     {
         $this->browser($viewerId);
-        $this->addSoloResults(60);
+        // 9 + 160 solo puzzles
+        $this->addSoloResults(self::PLAYER, 160);
 
-        self::assertSame(50, $this->rowsCount($this->results($viewerId, [])));
-        self::assertSame(69, $this->rowsCount($this->results($viewerId, ['page' => '2'])));
-        self::assertSame(69, $this->rowsCount($this->results($viewerId, ['page' => '999'])), 'Beyond the end = the last page');
+        $crawler = $this->results($viewerId, []);
+        self::assertSame(50, $this->rowsCount($crawler));
+        self::assertSame(['page' => '2'], $this->queryOf((string) $crawler->filter('a[data-results-more]')->attr('href')));
+        self::assertSame('Show 50 more', trim($crawler->filter('a[data-results-more]')->text()));
+        self::assertSame('Showing 50 of 169', trim($crawler->filter('[data-testid="results-shown"]')->text()));
+
+        // Rows 1…150, Show more continues with the fourth page
+        $crawler = $this->results($viewerId, ['page' => '3']);
+        self::assertSame(150, $this->rowsCount($crawler));
+        self::assertSame(['page' => '4'], $this->queryOf((string) $crawler->filter('a[data-results-more]')->attr('href')));
+        self::assertSame('Show 19 more', trim($crawler->filter('a[data-results-more]')->text()));
+        // The first 100 are page 2's
+        self::assertSame($this->rowIds($this->results($viewerId, ['page' => '2'])), array_slice($this->rowIds($crawler), 0, 100));
+
+        // Beyond the end = the last page: every row, nothing more to show
+        $crawler = $this->results($viewerId, ['page' => '999']);
+        self::assertSame(169, $this->rowsCount($crawler));
+        self::assertCount(0, $crawler->filter('a[data-results-more], a[data-results-all]'));
+        self::assertCount(1, $crawler->filter('#player-results-more'), 'The footer stays (empty) for the stream to replace');
+
         self::assertSame(50, $this->rowsCount($this->results($viewerId, ['page' => 'x'])));
+    }
+
+    /**
+     * Show more's stream: `?…&page=3&fragment=more` = rows 101-150 appended to the list, the footer replaced
+     */
+    #[DataProvider('provideEveryViewer')]
+    public function testShowMoreAppendsTheNextPage(null|string $viewerId): void
+    {
+        $browser = $this->browser($viewerId);
+        $this->addSoloResults(self::PLAYER, 160);
+        $page = $this->results($viewerId, ['sort' => 'fastest', 'page' => '3']);
+
+        $streams = $this->stream($browser, ['sort' => 'fastest', 'page' => '3']);
+
+        self::assertSame(
+            [['append', 'player-results-rows'], ['replace', 'player-results-more']],
+            $streams->each(static fn (Crawler $stream): array => [(string) $stream->attr('action'), (string) $stream->attr('target')]),
+        );
+        $appended = $this->templateOf($streams->eq(0));
+        self::assertSame(array_slice($this->rowIds($page), 100, 50), $this->rowIds($appended), 'Rows 101-150 of the list, nothing else');
+        self::assertSame(array_slice($this->rankChips($page), 100, 50), $this->rankChips($appended), 'The same ranks as on the page (PROF-06)');
+        self::assertGreaterThan(0, count(array_filter($this->rankChips($appended))));
+
+        $footer = $this->templateOf($streams->eq(1));
+        self::assertSame(['sort' => 'fastest', 'page' => '4'], $this->queryOf((string) $footer->filter('#player-results-more a[data-results-more]')->attr('href')));
+        self::assertSame('Showing 150 of 169', trim($footer->filter('[data-testid="results-shown"]')->text()));
+        self::assertSame('player-results#more', $footer->filter('a[data-results-more]')->attr('data-action'));
+
+        // The last page: its rows, a footer without Show more
+        $streams = $this->stream($browser, ['sort' => 'fastest', 'page' => '4']);
+        self::assertSame(array_slice($this->rowIds($this->results($viewerId, ['sort' => 'fastest', 'page' => '4'])), 150), $this->rowIds($this->templateOf($streams->eq(0))));
+        self::assertCount(0, $this->templateOf($streams->eq(1))->filter('a[data-results-more]'));
+
+        // Beyond the end (the list got shorter meanwhile): nothing appended twice
+        $streams = $this->stream($browser, ['sort' => 'fastest', 'page' => '5']);
+        self::assertSame([], $this->rowIds($this->templateOf($streams->eq(0))));
+    }
+
+    public function testShowMoreUnderEveryResultNeverRepeatsAMonthHeading(): void
+    {
+        $browser = $this->browser(null);
+        $this->addSoloResults(self::PLAYER, 160, PuzzleFixture::PUZZLE_1000_01);
+        // Spread the seeded results over months: result n solved n days ago
+        self::getContainer()->get(Connection::class)->executeStatement(
+            "UPDATE puzzle_solving_time pst SET finished_at = NOW() - (p.name_number || ' days')::interval, tracked_at = NOW() - (p.name_number || ' days')::interval
+             FROM (SELECT id, substring(name from 8) AS name_number FROM puzzle WHERE name LIKE 'Seeded %') p
+             WHERE pst.puzzle_id = p.id",
+        );
+
+        $page = $this->results(null, ['view' => 'every', 'page' => '2']);
+        $months = $this->monthHeadings($page);
+        self::assertGreaterThan(2, count($months), 'The fixture spans several months');
+        self::assertSame(array_values(array_unique($months)), $months);
+
+        $first = $this->monthHeadings($this->results(null, ['view' => 'every']));
+        $appended = $this->monthHeadings($this->templateOf($this->stream($browser, ['view' => 'every', 'page' => '2'])->eq(0)));
+
+        self::assertSame($months, [...$first, ...$appended], 'The page\'s headings and the appended ones = page 2\'s headings');
+    }
+
+    public function testTheStreamIsNoPageOfItsOwn(): void
+    {
+        $browser = $this->browser(null);
+        $browser->request('GET', '/en/player-results/' . self::PLAYER . '?fragment=more&page=2');
+
+        self::assertResponseIsSuccessful();
+        self::assertStringStartsWith('text/vnd.turbo-stream.html', (string) $browser->getResponse()->headers->get('Content-Type'));
+        self::assertSame('noindex, nofollow', $browser->getResponse()->headers->get('X-Robots-Tag'));
+        self::assertFalse($browser->getResponse()->headers->hasCacheControlDirective('public'), 'Never shared');
+        self::assertStringNotContainsString('<html', (string) $browser->getResponse()->getContent());
+
+        // No link carries the parameter: Show more links the page
+        $this->addSoloResults(self::PLAYER, 60);
+        self::assertStringNotContainsString('fragment', (string) $this->results(null, [])->filter('#player-results')->html());
+    }
+
+    /**
+     * @return iterable<string, array{int, null|string, bool, bool}>
+     */
+    public static function provideShowAllThreshold(): iterable
+    {
+        // [rows, viewer, Show all, export link] - the fixture player has 9 solo puzzles
+        yield '299 rows, guest' => [PlayerResultsPage::SHOW_ALL_MAX - 1, null, true, false];
+        yield '299 rows, the player' => [PlayerResultsPage::SHOW_ALL_MAX - 1, self::PLAYER, true, false];
+        yield '301 rows, guest' => [PlayerResultsPage::SHOW_ALL_MAX + 1, null, false, false];
+        yield '301 rows, a member' => [PlayerResultsPage::SHOW_ALL_MAX + 1, self::MEMBER, false, false];
+        yield '301 rows, the player' => [PlayerResultsPage::SHOW_ALL_MAX + 1, self::PLAYER, false, true];
+    }
+
+    #[DataProvider('provideShowAllThreshold')]
+    public function testShowAllUpTo300RowsAndAboveThatTheOwnersExport(int $rows, null|string $viewerId, bool $showAll, bool $export): void
+    {
+        $this->browser($viewerId);
+        $this->addSoloResults(self::PLAYER, $rows - 9);
+
+        $crawler = $this->results($viewerId, ['sort' => 'oldest']);
+
+        self::assertSame(50, $this->rowsCount($crawler));
+        self::assertCount(1, $crawler->filter('a[data-results-more]'), 'Show more always');
+        self::assertCount($showAll ? 1 : 0, $crawler->filter('a[data-results-all]'));
+        self::assertCount($export ? 1 : 0, $crawler->filter('a[data-results-export]'));
+
+        if ($showAll) {
+            $link = $crawler->filter('a[data-results-all]');
+            self::assertSame('Show all (' . $rows . ')', trim($link->text()));
+            self::assertSame(['sort' => 'oldest', 'page' => (string) ceil($rows / 50)], $this->queryOf((string) $link->attr('href')));
+            self::assertSame('player-results#all', $link->attr('data-action'));
+
+            // Every row
+            self::assertSame($rows, $this->rowsCount($this->results($viewerId, ['sort' => 'oldest', 'page' => (string) ceil($rows / 50)])));
+        }
+
+        if ($export) {
+            self::assertSame('/en/export-puzzler-data/' . self::PLAYER, $crawler->filter('a[data-results-export]')->attr('href'));
+            self::assertStringContainsString('Export your results', $crawler->filter('a[data-results-export]')->text());
+        }
     }
 
     /**
@@ -483,29 +625,65 @@ final class PlayerResultsControllerTest extends WebTestCase
     }
 
     /**
-     * Copies of one of the player's solved puzzles, each with his solo time (rolled back with the test's transaction)
+     * Show more's answer as its two <turbo-stream> elements
+     *
+     * @param array<string, string> $query
      */
-    private function addSoloResults(int $copies): void
+    private function stream(KernelBrowser $browser, array $query): Crawler
     {
-        $database = self::getContainer()->get(Connection::class);
-        $timeId = $database->fetchOne(
-            "SELECT id FROM puzzle_solving_time WHERE player_id = :playerId AND puzzle_id = :puzzleId AND puzzling_type = 'solo' ORDER BY id LIMIT 1",
-            ['playerId' => self::PLAYER, 'puzzleId' => PuzzleFixture::PUZZLE_500_01],
-        );
+        $browser->request('GET', '/en/player-results/' . self::PLAYER . '?' . http_build_query([...$query, 'fragment' => 'more']));
+        self::assertResponseIsSuccessful();
+        self::assertStringStartsWith('text/vnd.turbo-stream.html', (string) $browser->getResponse()->headers->get('Content-Type'));
 
-        $database->executeStatement(
-            'CREATE TEMP TABLE copy_puzzle ON COMMIT DROP AS SELECT puzzle.*, g AS copy FROM puzzle, generate_series(1, :copies) g WHERE puzzle.id = :puzzleId',
-            ['copies' => $copies, 'puzzleId' => PuzzleFixture::PUZZLE_500_01],
-        );
-        $database->executeStatement("UPDATE copy_puzzle SET id = gen_random_uuid(), name = 'Copy ' || copy, identification_number = NULL, search_codes = ''");
-        $database->executeStatement(
-            'CREATE TEMP TABLE copy_time ON COMMIT DROP AS SELECT pst.*, cp.id AS copy_puzzle_id FROM puzzle_solving_time pst, copy_puzzle cp WHERE pst.id = :timeId',
-            ['timeId' => $timeId],
-        );
-        $database->executeStatement('UPDATE copy_time SET id = gen_random_uuid(), puzzle_id = copy_puzzle_id');
-        $database->executeStatement('ALTER TABLE copy_puzzle DROP COLUMN copy');
-        $database->executeStatement('ALTER TABLE copy_time DROP COLUMN copy_puzzle_id');
-        $database->executeStatement('INSERT INTO puzzle SELECT * FROM copy_puzzle');
-        $database->executeStatement('INSERT INTO puzzle_solving_time SELECT * FROM copy_time');
+        $streams = (new Crawler((string) $browser->getResponse()->getContent()))->filter('turbo-stream');
+        self::assertCount(2, $streams);
+
+        return $streams;
+    }
+
+    private function templateOf(Crawler $stream): Crawler
+    {
+        $template = $stream->filter('template');
+        self::assertCount(1, $template);
+
+        return new Crawler('<table><tbody id="stream">' . $template->html() . '</tbody></table>');
+    }
+
+    /**
+     * The ids of the result rows, in order (month headings left out)
+     *
+     * @return list<string>
+     */
+    private function rowIds(Crawler $crawler): array
+    {
+        return array_values(array_filter($crawler->filter('tr[id^="result-"]')->each(static fn (Crawler $row): string => (string) $row->attr('id'))));
+    }
+
+    /**
+     * Each result row's rank chip ('' without one), in order
+     *
+     * @return list<string>
+     */
+    private function rankChips(Crawler $crawler): array
+    {
+        return $crawler->filter('tr[id^="result-"]')->each(static fn (Crawler $row): string => $row->filter('.pr-chip-rank')->count() > 0 ? trim($row->filter('.pr-chip-rank')->text()) : '');
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function monthHeadings(Crawler $crawler): array
+    {
+        return $crawler->filter('tr.prs-month-row')->each(static fn (Crawler $row): string => (string) $row->attr('data-month'));
+    }
+
+    /**
+     * @return array<array-key, mixed>
+     */
+    private function queryOf(string $url): array
+    {
+        parse_str((string) parse_url($url, PHP_URL_QUERY), $query);
+
+        return $query;
     }
 }

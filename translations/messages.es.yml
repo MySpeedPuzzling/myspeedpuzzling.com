@@ -6210,6 +6210,8 @@ favorite_puzzlers:
   "one_offs": "%count% con los que armaste solo una vez"
   "add_time": "Añadir tiempo"
   "results": "Resultados"
+  "results_with_pair": "Resultados con esta pareja"
+  "results_with_team": "Resultados con este equipo"
   "delete": "Eliminar"
   "name_it": "Ponle nombre"
   "rename": "Renombrar"
@@ -9294,6 +9296,7 @@ barcode_scanner:
   "clear_all": "Quitar todo"
   "shown_of_total": "%count% de %total%"
   "empty_filtered": "Ningún resultado coincide con %filters%."
+  "export_results": "Exporta tus resultados"
   "no_results": "Todavía no hay resultados aquí."
   "chip":
     "remove": "Quitar filtro: %filter%"

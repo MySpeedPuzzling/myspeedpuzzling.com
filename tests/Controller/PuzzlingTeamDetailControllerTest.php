@@ -187,31 +187,63 @@ final class PuzzlingTeamDetailControllerTest extends WebTestCase
         self::assertStringEndsWith('/en/teams/' . $this->fixturePairId(), (string) $crawler->filter('[data-testid="related-teams"] a')->attr('href'));
     }
 
-    public function testMemberNameOpensTheirProfileNarrowedToThisPair(): void
+    /**
+     * docs/features/navigation PROF-05e, decision 71: a member's name opens their profile; the pair's results are on
+     * Results - a link of its own, the Results of a member the viewer may open, narrowed to this pair
+     */
+    public function testMemberNameOpensTheirProfileAndResultsWithThisPairTheirResults(): void
     {
         $browser = self::createClient();
-        $crawler = $browser->request('GET', '/en/teams/' . $this->fixturePairId());
+        $pairId = $this->fixturePairId();
+        $crawler = $browser->request('GET', '/en/teams/' . $pairId);
 
         $link = $crawler->filter('[data-testid="team-members"]')->selectLink(PlayerFixture::PLAYER_REGULAR_NAME);
         self::assertCount(1, $link);
-        self::assertStringContainsString('team=' . $this->fixturePairId(), (string) $link->attr('href'));
-        self::assertStringContainsString('category=duo', (string) $link->attr('href'));
+        self::assertSame('/en/player-profile/' . PlayerFixture::PLAYER_REGULAR, $link->attr('href'));
 
-        $crawler = $browser->click($link->link());
+        // The private member is no choice for a guest
+        $results = $crawler->filter('[data-testid="team-members"] [data-testid="team-results-link"]');
+        self::assertCount(1, $results);
+        self::assertSame('Results with this pair', trim($results->text()));
+        self::assertSame('/en/player-results/' . PlayerFixture::PLAYER_REGULAR . '?team=' . $pairId . '&category=duo', $results->attr('href'));
+
+        $crawler = $browser->click($results->link());
         $this->assertResponseIsSuccessful();
 
-        // The pair is preselected in the profile's filter, and its results link back to the pair page
-        self::assertSame($this->fixturePairId(), $crawler->filter('select[data-model="team"] option[selected]')->attr('value'));
-        self::assertGreaterThan(0, $crawler->filter('[data-testid="team-link"][href$="/en/teams/' . $this->fixturePairId() . '"]')->count());
+        // The pair is preselected in the Results filter, and its results link back to the pair page
+        self::assertSame($pairId, $crawler->filter('select[name="team"] option[selected]')->attr('value'));
+        self::assertGreaterThan(0, $crawler->filter('[data-testid="team-link"][href$="/en/teams/' . $pairId . '"]')->count());
+
+        // A member gets their own Results
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_PRIVATE);
+        $crawler = $browser->request('GET', '/en/teams/' . $pairId);
+        self::assertSame('/en/player-results/' . PlayerFixture::PLAYER_PRIVATE . '?team=' . $pairId . '&category=duo', $crawler->filter('[data-testid="team-results-link"]')->attr('href'));
+    }
+
+    public function testAnOldProfileLinkNarrowedToThePairOpensTheResults(): void
+    {
+        $browser = self::createClient();
+        $pairId = $this->fixturePairId();
+
+        $browser->request('GET', '/en/player-profile/' . PlayerFixture::PLAYER_REGULAR . '?team=' . $pairId . '&category=duo');
+        self::assertResponseRedirects('/en/player-results/' . PlayerFixture::PLAYER_REGULAR . '?category=duo&team=' . $pairId, 302);
+
+        $crawler = $browser->followRedirect();
+        $this->assertResponseIsSuccessful();
+        self::assertSame($pairId, $crawler->filter('select[name="team"] option[selected]')->attr('value'));
     }
 
     public function testNonsenseInTheProfileTeamFilterIsIgnored(): void
     {
         $browser = self::createClient();
-        $crawler = $browser->request('GET', '/en/player-profile/' . PlayerFixture::PLAYER_REGULAR . '?team=%27%20OR%201=1');
+        $browser->request('GET', '/en/player-profile/' . PlayerFixture::PLAYER_REGULAR . '?team=%27%20OR%201=1');
+
+        // PROF-05e: the old filter goes to Results - without the nonsense
+        self::assertResponseRedirects('/en/player-results/' . PlayerFixture::PLAYER_REGULAR, 302);
+        $crawler = $browser->followRedirect();
 
         $this->assertResponseIsSuccessful();
-        self::assertCount(0, $crawler->filter('select[data-model="team"] option[selected][value!=""]'));
+        self::assertCount(0, $crawler->filter('select[name="team"] option[selected][value!=""]'));
     }
 
     public function testUnknownTeamIsNotFound(): void

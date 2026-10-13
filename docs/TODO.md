@@ -4,7 +4,7 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
-## Navigation redesign - player Results (`docs/features/navigation/`, PROF-05a)
+## Navigation redesign - player Results (`docs/features/navigation/`, PROF-05a, PROF-06)
 
 - [ ] One release after the profile stops rendering it (PROF-03): delete `PlayerSolvedPuzzles` (`src/Component/`,
       `templates/components/PlayerSolvedPuzzles.html.twig`, `templates/_player_solvings.html.twig`), the builder's
@@ -14,6 +14,10 @@ that would otherwise be forgotten. Newest section on top.
       open tabs re-render `/_components/PlayerSolvedPuzzles` until then.
 - [ ] Editing a result from Results returns to the profile (`edit_context: 'profile'`) - an `EditTimeReturnContext`
       case for Results would bring the player back to the list they edited from.
+- [ ] Pair/team rank on the Pairs and Teams tabs of Results (PROF-06; deferred, implementation plan decision 69): only
+      solo rows carry a rank today (`GetRanking`). A set-based statement would fit the budget, but it must equal
+      `PuzzleTimes`' pair/team pools - exact compositions, guests, blocked and private members - so it needs its own
+      design and a parity test like `tests/Controller/PlayerResultsRankParityTest.php`.
 
 ## Anti-farming (`docs/features/xp-levels/README.md` §Anti-farming, workstream G 2026-10-11)
 

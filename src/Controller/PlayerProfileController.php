@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
+use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Query\GetAffiliateSupporters;
 use SpeedPuzzling\Web\Query\GetGettingStartedProgress;
 use SpeedPuzzling\Web\Query\GetPlayerProfile;
 use SpeedPuzzling\Web\Query\GetPlayerReviewCounts;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
+use SpeedPuzzling\Web\Value\PlayerResultsCriteria;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Core\User\UserInterface;
@@ -37,8 +40,15 @@ final class PlayerProfileController extends AbstractController
         ],
         name: 'player_profile',
     )]
-    public function __invoke(string $playerId, #[CurrentUser] null|UserInterface $user): Response
+    public function __invoke(Request $request, string $playerId, #[CurrentUser] null|UserInterface $user): Response
     {
+        // The list narrowed to one pair/team or tab is the Results page now (docs/features/navigation PROF-05e): old
+        // links (team pages, shared URLs) land there - before anything is read; Results answers an unknown, hidden or
+        // private player itself
+        if ($request->query->has('team') || $request->query->has('category')) {
+            return $this->redirectToRoute('player_results', ['playerId' => $playerId, ...self::resultsFilter($request)]);
+        }
+
         // PlayerNotFound extends NotFoundHttpException and bubbles up as 404
         $player = $this->getPlayerProfile->byId($playerId);
 
@@ -70,5 +80,27 @@ final class PlayerProfileController extends AbstractController
             'player' => $player,
             'affiliate_supporters' => $affiliateSupporters,
         ]);
+    }
+
+    /**
+     * The profile's old `?team=<id>&category=duo|group` as Results parameters: a pair/team id only when it is one, its
+     * tab Pairs unless Teams was named (the profile read it the same way); a tab without a pair/team is kept as it is
+     *
+     * @return array{category?: string, team?: string}
+     */
+    private static function resultsFilter(Request $request): array
+    {
+        $query = $request->query->all();
+        $team = is_string($query['team'] ?? null) && Uuid::isValid($query['team']) ? $query['team'] : null;
+        $category = is_string($query['category'] ?? null) && in_array($query['category'], PlayerResultsCriteria::CATEGORIES, true) ? $query['category'] : null;
+
+        if ($team !== null) {
+            return [
+                'category' => $category === PlayerResultsCriteria::CATEGORY_GROUP ? PlayerResultsCriteria::CATEGORY_GROUP : PlayerResultsCriteria::CATEGORY_DUO,
+                'team' => $team,
+            ];
+        }
+
+        return $category !== null ? ['category' => $category] : [];
     }
 }

@@ -1,19 +1,12 @@
 {% extends 'base.html.twig' %}
 
 {% set is_own_profile = logged_user.profile is not null and logged_user.profile.playerId is same as player.playerId %}
-{% set is_masked_profile = player.isPrivate and not is_own_profile %}
-{% set player_display_name = is_masked_profile
-    ? ('secret_puzzler_name'|trans ~ ' #' ~ player.code|upper)
-    : (player.playerName ?? ('#' ~ player.code|upper))
-%}
 
 {# Head metadata follows the player's OWN setting, never the viewer: an allowed friend sees the
-   name on the page, but their browser must not emit an indexable / unfurlable identity #}
+   name on the page, but their browser must not emit an indexable / unfurlable identity
+   (player/_head_name.html.twig, shared with the Results page) #}
 {% set is_private_in_head = player.isPrivateProfile and not is_own_profile %}
-{% set player_head_name = is_private_in_head
-    ? ('secret_puzzler_name'|trans ~ ' #' ~ player.code|upper)
-    : player_display_name
-%}
+{% set player_head_name = include('player/_head_name.html.twig', {player: player})|trim %}
 
 {% block title %}{{ 'player_profile.meta.title'|trans({'%name%': player_head_name}) }}{% endblock %}
 {% block meta_description %}{{ 'player_profile.meta.description'|trans({'%name%': player_head_name}) }}{% endblock %}
@@ -312,13 +305,8 @@
         <div>
             <h2 class="h4 mt-3">{{ 'profile.solved_puzzles'|trans }}</h2>
 
-            {# ?team=<id>&category=duo|group opens the list narrowed to one pair/team - what a team page links to #}
-            {% set team_filter = app.request.query.get('team') %}
-            <twig:PlayerSolvedPuzzles
-                playerId="{{ player.playerId }}"
-                team="{{ team_filter }}"
-                category="{{ team_filter ? (app.request.query.get('category') == 'group' ? 'group' : 'duo') : 'solo' }}"
-            />
+            {# A list narrowed to one pair/team is the Results page now: ?team=&category= redirects there (PROF-05e) #}
+            <twig:PlayerSolvedPuzzles playerId="{{ player.playerId }}" category="solo" />
         </div>
     {% endif %}
 {% endblock %}

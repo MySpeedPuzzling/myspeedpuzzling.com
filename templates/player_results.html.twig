@@ -3,29 +3,38 @@
 {#
     A player's Results (docs/features/navigation README §4.7, PROF-05a): the player header, the search and the filters
     (a GET form), and the list region - a Turbo Frame the page's script can reload on its own (PROF-05c). Everything is
-    rendered from the URL (PlayerResultsCriteria) by PlayerResultsController; PROF-02 adds the Results tab, PROF-07 the
-    indexing rules (until then noindex).
+    rendered from the URL (PlayerResultsCriteria) by PlayerResultsController; PROF-02 adds the Results tab.
+
+    Head (PROF-07): the name masked by the player's own setting (player/_head_name.html.twig, as on the profile), the
+    profile's picture; robots, canonical and hreflang decided by PlayerResultsController (seo): the list's own URL is
+    indexable once the player has more results than the Overview shows, `?page=N` is followed with its own canonical,
+    every filtered or sorted variant points at the list.
 #}
 
 {% set is_own_profile = logged_user.profile is not null and logged_user.profile.playerId is same as player.playerId %}
-{# Head metadata follows the player's OWN setting, never the viewer: an allowed friend sees the name on the page, but
-   their browser must not emit an identity for a private profile (as on the profile page) #}
 {% set is_private_in_head = player.isPrivateProfile and not is_own_profile %}
-{% set player_head_name = is_private_in_head
-    ? ('secret_puzzler_name'|trans ~ ' #' ~ player.code|upper)
-    : (player.playerName ?? ('#' ~ player.code|upper))
-%}
+{% set player_head_name = include('player/_head_name.html.twig', {player: player})|trim %}
 
 {% block title %}{{ 'player_results.meta.title'|trans({'%name%': player_head_name}) }}{% endblock %}
 {% block meta_description %}{{ 'player_results.meta.description'|trans({'%name%': player_head_name}) }}{% endblock %}
-{% block robots %}<meta name="robots" content="{{ is_private_in_head ? 'noindex, nofollow' : 'noindex, follow' }}">{% endblock %}
+{% block og_image %}{% if player.avatar is not null and not is_private_in_head %}{{ absolute_url(player.avatar|thumbnail('puzzle_medium')) }}{% else %}{{ parent() }}{% endif %}{% endblock %}
+{% block robots %}<meta name="robots" content="{{ seo.robots }}">{% endblock %}
+{% block canonical %}<link rel="canonical" href="{{ seo.canonical }}">{% endblock %}
+{% block hreflang %}
+    {% if seo.hreflang %}
+        {% for locale in ['cs', 'en', 'es', 'ja', 'fr', 'de'] %}
+            <link rel="alternate" hreflang="{{ locale }}" href="{{ url('player_results', {playerId: player.playerId, _locale: locale}) }}">
+        {% endfor %}
+        <link rel="alternate" hreflang="x-default" href="{{ url('player_results', {playerId: player.playerId, _locale: 'en'}) }}">
+    {% endif %}
+{% endblock %}
 
 {% block content %}
     {{ include('_return_back_button.html.twig') }}
     {# The header's player name is the page's H1 #}
     <twig:PlayerHeader player="{{ player }}" :heading="true" />
 
-    <div class="player-results mt-3" data-player-results>
+    <div class="player-results mt-3" data-player-results data-controller="player-results">
         {{ include('player/results/_filters.html.twig') }}
         {{ include('player/results/_frame.html.twig') }}
     </div>

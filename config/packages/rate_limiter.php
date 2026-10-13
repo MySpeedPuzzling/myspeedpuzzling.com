@@ -117,6 +117,18 @@ return App::config([
                 'limit' => 60,
                 'interval' => '1 minute',
             ],
+            // The participant API of online competitions (`/api/compete/{token}/…`, OnlineParticipantApi), keyed by
+            // the personal link's token. Generous: a phone sends a heartbeat every 15 s, event batches, photo uploads
+            // every 10 s before the start and the state fetches around it - a few dozen requests a minute even with
+            // two devices on one link; this only stops a runaway or a scripted flood. No lock (the default would be
+            // LOCK_DSN, a Postgres advisory lock per request): the heartbeat never touches Postgres, and two requests
+            // of one link counting at the same moment may at worst lose one count.
+            'online_participant' => [
+                'policy' => 'sliding_window',
+                'limit' => 300,
+                'interval' => '1 minute',
+                'lock_factory' => null,
+            ],
         ],
     ],
 ]);

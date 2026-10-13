@@ -70,7 +70,18 @@ return App::config([
                 // authenticated by its own static token in the request - no user, no session.
                 // /webhook/apple-sign-in: Sign in with Apple server-to-server notifications,
                 // authenticated by Apple's signature on the posted token.
-                'pattern' => '^(/-/health-check|/-/asset-load-failure$|/-/stale-document$|/media/cache|/sitemap|/homepage-stats$|/api/v0/wjpf-pairing$|/webhook/apple-sign-in$)',
+                // /-/time: the server's time for the clock sync of the online competitions' pages
+                // (docs/features/online-competitions/README.md §5.2) - asked several times per page load.
+                'pattern' => '^(/-/health-check|/-/asset-load-failure$|/-/stale-document$|/-/time$|/media/cache|/sitemap|/homepage-stats$|/api/v0/wjpf-pairing$|/webhook/apple-sign-in$)',
+                'stateless' => true,
+                'security' => false,
+            ],
+            // The participant API of online competitions (docs/features/online-competitions/contracts/phase-1.md §6):
+            // the personal link's token in the path is the access right - no session, no user, never a cookie (an
+            // anonymous participant has no account). The controllers resolve the token themselves (OnlineAccess),
+            // answer JSON only and rate-limit per token; the signed-in connect stays on `main`.
+            'compete_api' => [
+                'pattern' => '^/api/compete/',
                 'stateless' => true,
                 'security' => false,
             ],

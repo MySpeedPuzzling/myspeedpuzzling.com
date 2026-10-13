@@ -1,0 +1,59 @@
+<?php
+
+declare(strict_types=1);
+
+namespace SpeedPuzzling\Web\Tests\Controller;
+
+use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\BrowserKit\Cookie;
+
+/**
+ * `GET /-/time` - the clock sync's sample (docs/features/online-competitions/README.md §5.2).
+ */
+final class OnlineTimeControllerTest extends WebTestCase
+{
+    public function testTheServersTimeInMilliseconds(): void
+    {
+        $browser = self::createClient();
+
+        $before = (int) floor(microtime(true) * 1000);
+        $browser->request('GET', '/-/time');
+        $after = (int) ceil(microtime(true) * 1000);
+
+        self::assertResponseIsSuccessful();
+        $response = $browser->getResponse();
+        self::assertStringStartsWith('application/json', (string) $response->headers->get('Content-Type'));
+
+        $json = json_decode((string) $response->getContent(), true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($json);
+        self::assertSame(['serverNowMs'], array_keys($json));
+        self::assertIsInt($json['serverNowMs']);
+        self::assertGreaterThanOrEqual($before, $json['serverNowMs']);
+        self::assertLessThanOrEqual($after, $json['serverNowMs']);
+
+        $cacheControl = (string) $response->headers->get('Cache-Control');
+        self::assertStringContainsString('no-store', $cacheControl);
+        self::assertStringContainsString('private', $cacheControl);
+    }
+
+    public function testNoSessionAndNoCookieEvenForASignedInBrowser(): void
+    {
+        $browser = self::createClient();
+        // A cookie a signed-in browser would send along
+        $browser->getCookieJar()->set(new Cookie('PHPSESSID', 'some-session'));
+
+        $browser->request('GET', '/-/time');
+
+        self::assertResponseIsSuccessful();
+        self::assertSame([], $browser->getResponse()->headers->getCookies());
+    }
+
+    public function testOnlyGet(): void
+    {
+        $browser = self::createClient();
+
+        $browser->request('POST', '/-/time');
+
+        self::assertResponseStatusCodeSame(405);
+    }
+}

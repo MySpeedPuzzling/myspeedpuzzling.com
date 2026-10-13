@@ -58,6 +58,8 @@ use SpeedPuzzling\Web\Message\MoveRoundToCompetition;
 use SpeedPuzzling\Web\Message\PromoteParticipantFromWaitlist;
 use SpeedPuzzling\Web\Message\PublishRoundResults;
 use SpeedPuzzling\Web\Message\ReconcileRoundResults;
+use SpeedPuzzling\Web\Message\RecordOnlineEntryEvents;
+use SpeedPuzzling\Web\Message\RegisterOnlineMedia;
 use SpeedPuzzling\Web\Message\RemovePuzzleFromCompetitionRound;
 use SpeedPuzzling\Web\Message\ResetRoundStopwatch;
 use SpeedPuzzling\Web\Message\RevealRoundPuzzleNow;
@@ -245,6 +247,8 @@ final class SerializedByLockMessagesTest extends TestCase
         OfficialRoundResultsPublished::class => 'the notification after a publish - reads only',
         PublishRoundResults::class => 'shows the recorded results on the public page - writes only the round\'s published state, nothing recorded changes',
         UnpublishRoundResults::class => 'takes the results off the public page - writes only the round\'s published state, nothing recorded changes',
+        RecordOnlineEntryEvents::class => 'a participant\'s phone\'s events on their own online entry (online_entry*) - reads the round entry, never writes entries, teams or official results',
+        RegisterOnlineMedia::class => 'an evidence row on the participant\'s own online entry (online_entry*) - reads the round entry, never writes entries, teams or official results',
         ResetRoundStopwatch::class => 'the round\'s stopwatch only',
         ScheduleRoundStart::class => 'the round\'s stopwatch only - a start ahead (the countdown)',
         StartRoundStopwatch::class => 'the round\'s stopwatch only',

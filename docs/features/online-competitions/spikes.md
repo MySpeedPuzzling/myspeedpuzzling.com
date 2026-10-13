@@ -123,4 +123,27 @@ Throwaway containers on the dev Docker network (Docker Desktop on a Mac laptop):
 
 Not covered here: TURN and strict networks, real phones, the load test, and the dev compose service's own host-port path (`node_ip: 127.0.0.1`) - only checked that `config/livekit/dev.yaml` starts the server and that the host-port overrides reach it (`rtc.portTCP` from `LIVEKIT_RTC_TCP_PORT`, `rtc.portUDP` from `--udp-port`).
 
+### Moderator console (VM), 2026-10-13
+
+The same kind of throwaway set-up: `livekit/livekit-server:v1.13.9` (one node; a fixed address on the dev network as its node IP, UDP mux 7882, ICE/TCP 7881, webhooks to the web container), the stream's worktree on `php -S` in prod mode with a warmed cache, its own Redis and a scratch copy of the test database: the Online Test Cup's round running with video on, seven invented participants added to Olivia (personal links, entries, ready phones, three Finished taps). Selenium Chromium with fake devices: one browser with eight windows as the eight phones (a scratch page publishing a 1280×720 fake camera through `livekit_session.js` with tokens from `compete_api_video_token` - the participant page has no video before VP), the moderator's browser on the control room, the host's on the studio page, hidden spectators with tokens minted for the probe.
+
+| Check | Result |
+|---|---|
+| 8 phones in the hall | each joined in 266-612 ms; the console's grid: 8 live tiles received at 320×180 (the 180p layer), the finished first (newest tap on top), then by name; Arthur's tile "Not in the video room" |
+| Spotlight (click / Enter, ← → / Esc) | the spotlit camera arrives at 1280×720 within ~3 s while every other tile stays at 320×180; closed, it is back at 320×180. The spotlit phone sends its 180p, 360p and top layers, a phone only in the grid its 180p layer only |
+| Paging (4 a page for the proof - the page has 25) | page 2's cameras arrive at 180p; a camera on another page is not received at all and its phone sends no layer (dynacast) |
+| Why a tile has no video | "In the studio" (the phone moved there), "Not in the video room", "No video from this phone" (in the hall, nothing published), "Camera paused" (muted), "Loading the video…" |
+| Push-to-talk | the microphone is published muted (the phone: subscribed, muted, silence); held (Space or the button) the phone sees it unmuted 0.19 s after the press and hears the fake tone (RMS 0.38); released, muted again; "Keep talking" stays on air even when the window loses focus. A held key or button is let go when the window loses focus - by design |
+| Invite → join → studio | the phone answered "join" 66 ms after the data message, left the hall and joined the studio in 119 ms; the console said "On air in the studio" 1.5 s after the click (the studio's JSON, read at once when the camera left the hall); the host's stage shows the guest (640×360 tile, sound playing) and the time on air |
+| "Thank you" | UpdateParticipant + RemoveParticipant: the guest's connection closed 96 ms after the click (`PARTICIPANT_REMOVED`); "Was on air" on both pages |
+| "Withdraw" | an invitation waiting for its answer (the countdown on the tile and in the host's list) withdrawn from the studio page: "Invitation withdrawn" on both |
+| A studio token used again | 12 s and 59 s after it was minted LiveKit admits it - the webhook removes the guest 61-177 ms after their session started, before their camera's publication completes. 130 s after (past the 2-minute `exp`) LiveKit still admits it - **its token check allows 60 s of clock leeway** (go-jose), so a 2-minute token works for about 3 - and the webhook removes it; 190 s after LiveKit refuses it (`token is expired`) |
+| Audience | two hidden spectators: "Live" and "2 people are watching" on the host's page - LiveKit's room count (`Room.numParticipants`, updated every few seconds) includes hidden participants, which nobody sees in the room itself |
+| The same moderator in a second tab | the new tab takes the video over (`DUPLICATE_IDENTITY`); the first says so, its tiles go quiet, "Use the video here" takes it back |
+| LiveKit container | 7 phones publishing 720p simulcast, the moderator receiving 6 tiles at 180p and 1 spotlight at 720p, the host on air with a guest: 4.5 % of one core (median of 12 samples, 4.3-7.0 %), 135 MiB. With 8 phones and the moderator only: 4-6 %, 100-110 MiB |
+
+The encoding is the browsers' work: the Chromium container with the 8 phones and 3 more browsers took 0.8-1.3 cores and 1.9 GiB.
+
+Not covered here: real phones, TURN, a full page of 25 tiles, the participant page's own video (VP), the watch page (VS).
+
 *Results on a test box: pending.*

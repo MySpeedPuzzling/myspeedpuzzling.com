@@ -9,7 +9,7 @@ Evidence = commit hash(es) · test names · command output summary · screenshot
 | Key | Value |
 |---|---|
 | Base | `origin/main` at start: `9347ccdabb0f3d19fd9fc155c0ad12715ff95964` · 2026-10-12T01:07:33+02:00 (synced at every phase gate, see run log) |
-| Last sync with `origin/main` | 24af19c9 (merge f9ef6148, 2026-10-13, HELP gate) |
+| Last sync with `origin/main` | 0cdf6cfc (merge 500ddb2f, 2026-10-13, after the Removal gate: barcode scanner camera fixes) |
 | Delivery branch / worktree | `feature/navigation-redesign` / `.claude/worktrees/navigation` |
 | Delivery DB clone | `speedpuzzling_nav_test` |
 | Isolated web URL | `http://127.0.0.1:18080` (container `nav-web`, php -S; restart: `var/navigation-delivery/tools/restart-web.sh`) |
@@ -232,6 +232,7 @@ One line per session and per phase: date · what was done · next step.
 | 2026-10-13 ~08:30 | Chrome weight within budget (33718f65, member +28.9 KB / guest +14.6 KB); PROF-05a + 05d committed in C (ceb37b44, verified there: 582 tests, PROF-05a 45/45); C's ADD review fixes, COM-01/02 + PUZ-01 and their review fixes cherry-picked (460cb66e, 239c9794, fbf15560; one conflict: PuzzlePickerControllerTest link counts after NAV-06). origin/main unchanged (24af19c9). Removal gate running; PROF-05b/06/07/05e running in C. Next: Removal, ADD and PUZ+COM gates + sweep, push |
 | 2026-10-13 ~10:40 | **ADD gate and PUZ + COM gate verified** (ParaTest 11088 at fbf15560, sweep 0 FAIL). Removal: first gate green, review 0/0/7 minor + 4 questions → fixes in the delivery worktree, then the Removal gate. Push to origin/navigation-rework after this commit |
 | 2026-10-13 ~12:00 | **Removal gate verified** at defda069 (ParaTest 11119). Summary: the old header is gone (every link, count and action has a new home for every role), no page is orphaned (NavigationOrphanTest), every Menu row and search entry opens for its audience (NavigationMenuCompletenessTest), the chrome is within the README weight budget (whole page; ChromeWeightBudgetTest), inline head scripts are minified builds of committed sources. Push to origin/navigation-rework. Next in the delivery worktree: SRCH + FOOT; in C: PROF-03/04/02/01 |
+| 2026-10-13 ~12:30 | origin/main moved (d6461502 + 0cdf6cfc, barcode scanner rewrite) → merge 500ddb2f: two conflicts (scanner controller: main's rewrite + the branch's platform.js/no-camera changes; GlobalSearch: main's HUD partial with an optional data-nav prefix); main's user-agent reads moved into platform.js (PlatformFlagReadersTest). Main's HUD renders in both search instances → member /en/faq +32,286 B, over the 30,720 B budget: a fix agent renders the camera markup once per page (no behaviour change) before the push |
 
 ## Final report
 (written at the end: what shipped, evidence summary, blocked items with options, owner steps — README §11)

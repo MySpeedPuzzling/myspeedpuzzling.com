@@ -45,6 +45,7 @@
         "flatpickr": "^4.6.13",
         "imagesloaded": "^5.0.0",
         "lightgallery": "^2.7.0",
+        "livekit-client": "2.22.4",
         "nouislider": "^15.6.1",
         "prismjs": "^1.29.0",
         "quill": "^2.0.3",

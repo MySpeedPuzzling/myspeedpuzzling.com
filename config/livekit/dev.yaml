@@ -1,0 +1,33 @@
+# The local LiveKit server of the online competitions' live video (docs/features/online-competitions/README.md §5.12,
+# contracts/phase-1b.md §2) - the `livekit` service of compose.yml, profile `video`:
+#   docker compose --profile video up -d livekit
+# Development only, and public like the whole repository: production's configuration lives in lily.srv (ADR D78).
+
+# Signalling and the server API (LIVEKIT_PORT on the host - LIVEKIT_PUBLIC_URL / LIVEKIT_API_URL in .env)
+port: 7880
+log_level: info
+
+rtc:
+  # Media: one UDP port for all WebRTC traffic (mux) and ICE over TCP as the fallback. LiveKit advertises these ports
+  # to the browser, so compose.yml publishes them 1:1 on the host and hands the overridable host ports to the server
+  # (--udp-port, LIVEKIT_RTC_TCP_PORT) - these two are the defaults only.
+  udp_port: 7882
+  tcp_port: 7881
+  # The browser runs on this machine: it reaches the published ports on the loopback address
+  use_external_ip: false
+  node_ip: 127.0.0.1
+
+# The key pair of .env's LIVEKIT_API_KEY / LIVEKIT_API_SECRET (the secret at least 32 characters - HS256)
+keys:
+  devkey: devsecret-msp-local-livekit-not-for-production
+
+# Signed with the key above, checked by LiveKitWebhookVerifier (LiveKitWebhookController)
+webhook:
+  api_key: devkey
+  urls:
+    - http://web:8080/-/livekit-webhook
+
+room:
+  auto_create: true
+  # An empty room closes after five minutes
+  empty_timeout: 300

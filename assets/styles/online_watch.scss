@@ -1,0 +1,10 @@
+// The public watch page of an online round's studio (docs/features/online-competitions/contracts/phase-1b.md §1,
+// stream VS). Its own Encore style entry 'online_watch', linked only on that page through the base layout's
+// page_stylesheets block - never imported into app.scss, so the site-wide CSS stays as it is.
+
+// ---------------------------------------------------------------- VS: the watch page
+
+// Placeholder - stream VS fills it
+.online-watch {
+    display: block;
+}

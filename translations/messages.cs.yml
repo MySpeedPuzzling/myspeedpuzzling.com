@@ -9138,6 +9138,7 @@ compete:
         status_offline: "Offline"
         status_pending: "{1}1 fotka k odeslání|[2,4]%count% fotky k odeslání|[0,Inf[%count% fotek k odeslání"
         camera_alert: "Kamera je vypnutá - klepnutím sem ji znovu zapnete"
+        wake_tap: "Klepněte sem jednou - uslyšíte start a obrazovka zůstane zapnutá"
         keep_open: "Mějte tuto stránku až do konce otevřenou a na očích."
     finish:
         button: "Hotovo"

@@ -9112,6 +9112,7 @@ compete:
         status_offline: "Sin conexión"
         status_pending: "1 foto por enviar|%count% fotos por enviar"
         camera_alert: "La cámara está apagada: toca aquí para volver a encenderla"
+        wake_tap: "Toca aquí una vez: así oirás la salida y la pantalla no se apagará"
         keep_open: "Mantén esta página abierta y delante de ti hasta el final."
     finish:
         button: "Terminado"

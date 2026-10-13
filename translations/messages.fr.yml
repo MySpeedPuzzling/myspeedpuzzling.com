@@ -9131,6 +9131,7 @@ compete:
         status_offline: "Hors ligne"
         status_pending: "%count% photo à envoyer|%count% photos à envoyer"
         camera_alert: "La caméra est éteinte – touchez ici pour la rallumer"
+        wake_tap: "Touchez ici une fois – pour entendre le départ et garder l'écran allumé"
         keep_open: "Gardez cette page ouverte et au premier plan jusqu'à la fin."
     finish:
         button: "Terminé"

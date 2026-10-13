@@ -9111,6 +9111,7 @@ compete:
         status_offline: "Offline"
         status_pending: "1 Foto zu senden|%count% Fotos zu senden"
         camera_alert: "Die Kamera ist aus – tippen Sie hier, um sie wieder einzuschalten"
+        wake_tap: "Tippen Sie einmal hier – damit Sie den Start hören und der Bildschirm an bleibt"
         keep_open: "Lassen Sie diese Seite bis zum Ende geöffnet und im Vordergrund."
     finish:
         button: "Fertig"

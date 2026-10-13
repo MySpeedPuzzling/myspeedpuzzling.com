@@ -9101,6 +9101,7 @@ compete:
         status_offline: "オフライン"
         status_pending: "未送信の写真%count%枚"
         camera_alert: "カメラがオフです - ここをタップしてオンに戻してください"
+        wake_tap: "ここを一度タップしてください - スタートの合図が聞こえ、画面がオンのままになります"
         keep_open: "終了まで、このページを開いて画面に表示しておいてください。"
     finish:
         button: "完成"

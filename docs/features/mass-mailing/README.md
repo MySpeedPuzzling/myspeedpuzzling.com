@@ -19,6 +19,10 @@ three addresses + `bounce@` / `complaint@simulator.amazonses.com`, `SES_EVENTS_T
 subscriptions confirmed by `/-/ses-events`. Verified with `bin/console mailer:test` on prod: 4 test mails through SES
 (eu-north-1), delivery events stamped, the simulator bounce → hard bounce + `email_suppression` row, the simulator
 complaint → `complained_at`. Every other recipient stayed on Seznam (12 player mails in the same 45 minutes).
+**Step 4 done (2026-10-13):** production access granted in eu-north-1 within minutes of the request (case
+179192073900182, mail type Marketing, still on the Free plan): 50,000 / 24 h at 14 messages/s. Listmonk at step 7:
+stay near 8/s so the app keeps room. Before step 5: the Paid plan (the Free plan stops the account when the credits
+or the 6 months - 13 Apr 2027 - run out).
 **Gotcha:** an env change needs a redeploy (re-run the `deploy` job: `dump_secrets` renders `/srv/myspeedpuzzling/.env`)
 **and** `docker compose up -d --no-deps --force-recreate messenger-consumer digest-consumer` - the same-image redeploy
 recreates only the web containers, the queue workers keep the old env.

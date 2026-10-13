@@ -55,16 +55,30 @@ notes: someone walked behind at 00:08:10
 
 Times are as shown by the video player (minutes:seconds, tenths are welcome); a rough value is fine - the bench refines them.
 
+**Several raises (premature ones, a missing piece):** `hands_up` may appear once per raise, in any order. Each value is a time or a range `start-end` (when the hands went down - optional), optionally followed by `complete` or `incomplete`. A raise without that word is incomplete unless it is the last one, which takes the file's `complete:` - so the one-raise file above reads exactly as before.
+
+```
+hands_up: 00:10:05.0-00:10:06.1 incomplete   # a piece was still missing
+hands_up: 00:12:42.2 complete
+```
+
+The bench's labelling mode writes these files (moments to the millisecond of the frame).
+
 ---
 
 ## S2 - detection bench
 
-Tooling: `tools/online-bench/` (code only, no footage).
-- A local page plays a video frame by frame through MediaPipe's pose and gesture models and writes signals per frame.
-- A node runner scores the finish rules against the S1 labels: detection error, misses, false raises.
-- A Python + OpenCV script compares the completeness approaches on the finish frames.
+Tooling: [`tools/online-bench/`](../../../tools/online-bench/README.md) (code only, no footage - `footage/`, `out/`, `models/` gitignored); the README there has every option.
 
-*Results: pending.*
+| Tool | Run | Gives |
+|---|---|---|
+| Bench page (`index.html`) | serve the repository root (`python3 -m http.server 8765`), open `/tools/online-bench/`, drop a video + its label file | the video stepped frame by frame through the phones' own detector worker (`assets/online/detector.worker.js`, MediaPipe tasks-vision 1.1.0, pose + gesture, CPU), landmarks + signal timeline, the finish machine's candidates live; labelling mode (keys) writes the S1 label file; exports `<video>.signals.json` |
+| `score.mjs` | `node tools/online-bench/score.mjs <signals…> --labels <dir> --sweep` | per video: detection error (candidate − labelled raise), detected within ±5 s / within 1 s, misses (and those held back by the cooldown), false raises, the finish; a sweep over hold, minScore, dropped frames, gaps, frame rate (all / 5 / 4 / 2 fps), view and the signal's thresholds → a ranked table; `per-video.csv`, `candidates.csv`, `sweep.csv`, `summary.md` |
+| `completeness/` | `docker run --rm -v "$PWD/tools/online-bench/completeness":/app:ro -w /app python:3.12-slim sh -c 'pip install -q -r requirements.txt && python selftest.py'` | background holes and reference-grid matching → `complete` / `gaps` (boxes) / `unsure`; `selftest.py` = confusion matrices on synthetic finish photos; `check.py` = the verdicts for real photos |
+
+What to measure on the footage day: the detection error and the misses per view (angled = pose, top-down = gestures) and per frame rate; which hold and thresholds keep false raises at zero; inference time per frame on the phones (the pacing targets 4-5 fps at half a core); the completeness checks' false "complete" on the finish photos with a piece left out.
+
+*Results: pending (footage).*
 
 ## S3 + S4 - endurance and clock
 

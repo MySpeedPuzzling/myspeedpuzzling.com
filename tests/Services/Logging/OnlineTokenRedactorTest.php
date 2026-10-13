@@ -70,6 +70,18 @@ final class OnlineTokenRedactorTest extends TestCase
         self::assertSame('param [redacted]', $redactor->redact('param ' . self::TOKEN, $known));
     }
 
+    public function testAnExceptionsMessagesTellTheirTokens(): void
+    {
+        $redactor = new OnlineTokenRedactor(new RequestStack());
+        $exception = new \LogicException('Failed', 0, new \RuntimeException('No routes for "/en/compete/' . self::TOKEN . '/x".'));
+
+        self::assertSame([self::TOKEN], $redactor->tokensIn(['context' => ['exception' => $exception]]));
+
+        $redactor->redactThrowable($exception);
+        self::assertSame('Failed', $exception->getMessage());
+        self::assertSame('No routes for "/en/compete/[redacted]/x".', $exception->getPrevious()?->getMessage());
+    }
+
     public function testATokenOnAnotherRouteIsJustText(): void
     {
         $requestStack = new RequestStack();

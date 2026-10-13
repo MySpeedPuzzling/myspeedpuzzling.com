@@ -14,8 +14,8 @@ use Symfony\Component\HttpFoundation\RequestStack;
  *   page) - also with JSON-escaped (`\/`) or URL-encoded (`%2F`) slashes;
  * - the current request's own token wherever it appears (route parameters, query parameters of a logged statement),
  *   when the request is one of the `compete_*` routes.
- * Used by RedactOnlineTokensProcessor (Monolog), OnlineTokenSentryScrubber (Sentry) and
- * RedactOnlineTokensInExceptionsSubscriber. Stateless - the current token is read from the request stack each time.
+ * Used by RedactOnlineTokensProcessor (Monolog) and OnlineTokenSentryScrubber (Sentry). Stateless - the current token
+ * is read from the request stack each time.
  */
 final readonly class OnlineTokenRedactor
 {
@@ -82,13 +82,36 @@ final readonly class OnlineTokenRedactor
     }
 
     /**
-     * The tokens in a link's paths in the texts of a value (a string, or the strings of an array - objects are not
-     * looked into) - to redact them wherever else they stand
+     * An exception's message and its previous ones' - rewritten in place: the same object, so its class (the log level
+     * and Sentry's ignore rules go by class), code, trace and headers stay; only the text loses the token. The router's
+     * 404 / 405 carry the whole URI ("No route found for "GET …/api/compete/<token>/…""), a lookup's error the token.
+     *
+     * @param list<string> $knownTokens
+     */
+    public function redactThrowable(\Throwable $throwable, array $knownTokens = []): void
+    {
+        foreach (self::chain($throwable) as $link) {
+            $message = $link->getMessage();
+            $redacted = $this->redact($message, $knownTokens);
+
+            if ($redacted !== $message) {
+                (new \ReflectionProperty($link instanceof \Error ? \Error::class : \Exception::class, 'message'))->setValue($link, $redacted);
+            }
+        }
+    }
+
+    /**
+     * The tokens in a link's paths in the texts of a value (a string, the strings of an array, an exception's messages -
+     * other objects are not looked into) - to redact them wherever else they stand
      *
      * @return list<string>
      */
     public function tokensIn(mixed $value, int $depth = 0): array
     {
+        if ($value instanceof \Throwable) {
+            return $this->tokensIn(array_map(static fn (\Throwable $link): string => $link->getMessage(), self::chain($value)), $depth + 1);
+        }
+
         if (is_string($value)) {
             if ((stripos($value, 'compete') === false && stripos($value, 'soutezit') === false) || preg_match_all(self::pattern(), $value, $matches) === false) {
                 return [];
@@ -131,6 +154,20 @@ final readonly class OnlineTokenRedactor
         }
 
         return $token;
+    }
+
+    /**
+     * @return list<\Throwable> the exception and its previous ones
+     */
+    private static function chain(\Throwable $throwable): array
+    {
+        $chain = [];
+
+        for ($link = $throwable; $link !== null && count($chain) < self::MAX_DEPTH; $link = $link->getPrevious()) {
+            $chain[] = $link;
+        }
+
+        return $chain;
     }
 
     private static function pattern(): string

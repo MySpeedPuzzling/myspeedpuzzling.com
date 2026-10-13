@@ -4,18 +4,20 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Services\Logging;
 
+use Monolog\Formatter\JsonFormatter;
 use Monolog\Handler\TestHandler;
+use Monolog\LogRecord;
 use Sentry\Breadcrumb;
 use Sentry\Event;
 use Sentry\State\HubInterface;
 use SpeedPuzzling\Web\Tests\DataFixtures\OnlineRoundsFixture;
-use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
+use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 /**
  * The redaction is wired in, not only written: what the application logs goes through RedactOnlineTokensProcessor,
  * and the Sentry client sends through OnlineTokenSentryScrubber.
  */
-final class OnlineTokenRedactionWiringTest extends KernelTestCase
+final class OnlineTokenRedactionWiringTest extends WebTestCase
 {
     public function testWhatIsLoggedIsRedacted(): void
     {
@@ -29,6 +31,29 @@ final class OnlineTokenRedactionWiringTest extends KernelTestCase
         $records = $handler->getRecords();
         self::assertCount(1, $records);
         self::assertSame(['token' => '[redacted]', 'uri' => '/api/compete/[redacted]/state'], $records[0]->context);
+    }
+
+    /**
+     * The router's 404 on a link's path names the whole URI - in the record's message and in the exception logged with
+     * it (the same object, its class kept)
+     */
+    public function testTheRoutersNotFoundOnALinksPathIsLoggedWithoutTheToken(): void
+    {
+        $browser = self::createClient();
+        $handler = new TestHandler();
+        $browser->getContainer()->get('monolog.logger.request')->pushHandler($handler);
+
+        $browser->request('GET', '/api/compete/' . OnlineRoundsFixture::TOKEN_CONNECTED . '/nothing-here');
+        self::assertResponseStatusCodeSame(404);
+
+        $formatter = new JsonFormatter();
+        $formatter->includeStacktraces();
+        $logged = implode("\n", array_map(static fn (LogRecord $record): string => $formatter->format($record), $handler->getRecords()));
+
+        self::assertStringContainsString('NotFoundHttpException', $logged);
+        self::assertStringContainsString('"No route found for \\"GET http://localhost/api/compete/[redacted]/nothing-here\\""', $logged);
+        self::assertStringContainsString('ResourceNotFoundException', $logged);
+        self::assertStringNotContainsString(OnlineRoundsFixture::TOKEN_CONNECTED, $logged);
     }
 
     public function testSentryGetsScrubbedEvents(): void

@@ -1,0 +1,6 @@
+# The bench is code only: footage (people, homes), its outputs and downloaded models never enter the public repository
+/footage/
+/out/
+/models/
+/completeness/out/
+__pycache__/

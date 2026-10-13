@@ -38,6 +38,7 @@ use SpeedPuzzling\Web\Message\ChangeRoundPuzzleReveal;
 use SpeedPuzzling\Web\Message\ChangeRoundTableNumbersUsage;
 use SpeedPuzzling\Web\Message\CheckInParticipant;
 use SpeedPuzzling\Web\Message\ClearComparisonLineUp;
+use SpeedPuzzling\Web\Message\ConfirmOnlineResult;
 use SpeedPuzzling\Web\Message\ConvertCompetitionToSeries;
 use SpeedPuzzling\Web\Message\CreateOrganizationFromSeries;
 use SpeedPuzzling\Web\Message\DeleteCompetitionRound;
@@ -79,6 +80,7 @@ use SpeedPuzzling\Web\Value\BrandCodeList;
 use SpeedPuzzling\Web\Value\ComparisonKind;
 use SpeedPuzzling\Web\Value\CompetitionParticipantsLock;
 use SpeedPuzzling\Web\Value\EanList;
+use SpeedPuzzling\Web\Value\OnlineConfirmedSource;
 use SpeedPuzzling\Web\Value\ParticipantImportRows;
 use SpeedPuzzling\Web\Value\PuzzleNames;
 use SpeedPuzzling\Web\Value\PuzzleRecordValues;
@@ -164,6 +166,8 @@ final class SerializedByLockMessagesTest extends TestCase
         self::assertSame($key, (new UndoParticipantCheckIn($competitionId, $participantId))->lockKey());
         self::assertSame($key, (new ChangeCompetitionRegistrationSettings($competitionId, true, 10, null, null, 'Europe/Prague', null, null))->lockKey());
         self::assertSame($key, (new ApplyParticipantSheetChanges($competitionId, 'player', null, [], dryRun: true))->lockKey());
+        // The online review's confirmation records the official result - the same lock as every other official result
+        self::assertSame($key, (new ConfirmOnlineResult($competitionId, 'round', $participantId, null, OnlineConfirmedSource::Reviewer, 1200, 'player'))->lockKey());
         // Back to draft only while nobody joined - a join waits for the check (docs/features/organizations/README.md)
         self::assertSame($key, (new UnpublishCompetition($competitionId))->lockKey());
     }

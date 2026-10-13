@@ -159,7 +159,7 @@ The round already has a central clock that phones can follow. Rather than a seco
 
 - **Start with a countdown.** "Start in 10 s" sets `stopwatchStartedAt` to the next whole second at least 10 s ahead, with a new status `scheduled` (any reader we missed then sees "not running" rather than a negative time). A start in the future *is* the countdown: every client shows `startedAt − now` until it reaches zero, and treats the round as running from then on. Aligning to a whole second keeps the existing `TIMESTAMP(0)` columns exact - no schema change for the start (the countdown lasts 10-11 s).
 - **Cancel** while `now < startedAt` = reset (a wrong round, a late organiser).
-- **End**: the time limit ends the round by itself (`startedAt + minutesLimit`, already how the projector page clamps). "End now" = the existing Stop (`stoppedAt`). For online rounds there is no resume: participants keep solving on the other side of the world; a "pause" has no meaning for them.
+- **End**: the time limit ends the round by itself (`startedAt + minutesLimit`, already how the projector page clamps). "End now" = the existing Stop (`stoppedAt`), stored rounded **up** to the next whole second (the column keeps whole seconds; a click at 39.926 s ends at 40 s, so a tap in that fraction still counts - in person a Stop is a pause and keeps rounding down). For online rounds there is no resume: participants keep solving on the other side of the world; a "pause" has no meaning for them.
 
 The same mechanism gives **scheduled starts** for free: "Start at 19:00:00" just stores that moment ahead of time. Phones show "Starts in 2:13:05" for hours and the last 10 s as the countdown; nobody has to press anything at 19:00. Pressing "Start in 10 s" is the special case of a 10-s lead.
 

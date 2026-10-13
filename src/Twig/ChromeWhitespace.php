@@ -25,7 +25,11 @@ use Twig\NodeVisitor\NodeVisitorInterface;
  * insertion sees what it saw before.
  *
  * A template rendered around the content of every page belongs here; a partial shared with page content does not
- * (its bytes are not the chrome's).
+ * (its bytes are not the chrome's) - with one exception: the barcode scanner's HUD (_barcode_scanner_hud.html.twig),
+ * which the chrome renders on every member page (the page search's camera, navigation/_search_camera.html.twig) and
+ * which is most of the indentation left in a member's chrome (~450 B; the avatar's is ~25 B). On its three page
+ * scanners (the add form, the scanner panel, multiscan) the collapse changes no element and no attribute value -
+ * flex containers and buttons, nothing whitespace-sensitive (ChromeWhitespaceTest checks it like every listed one).
  */
 final class ChromeWhitespace implements NodeVisitorInterface
 {
@@ -39,6 +43,7 @@ final class ChromeWhitespace implements NodeVisitorInterface
         '_footer.html.twig',
         '_footer_newsletter.html.twig',
         '_language_menu.html.twig',
+        '_barcode_scanner_hud.html.twig',
     ];
 
     public static function appliesTo(string $template): bool

@@ -73,6 +73,9 @@ final class ChromeWhitespaceTest extends WebTestCase
         self::assertFalse(ChromeWhitespace::appliesTo('navigation.html.twig'));
         self::assertFalse(ChromeWhitespace::appliesTo('components/XpRing.html.twig'));
         self::assertFalse(ChromeWhitespace::appliesTo('_player_avatar.html.twig'));
+        // The one shared partial on the list: the page search's camera renders it on every member page (ChromeWhitespace)
+        self::assertTrue(ChromeWhitespace::appliesTo('_barcode_scanner_hud.html.twig'));
+        self::assertFalse(ChromeWhitespace::appliesTo('_barcode_scanner_panel.html.twig'));
         self::assertFalse(ChromeWhitespace::appliesTo(''));
 
         // Every listed template exists (a rename must not drop it silently)

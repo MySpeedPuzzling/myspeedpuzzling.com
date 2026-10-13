@@ -47,6 +47,12 @@ export default class extends Controller {
         cooldownMs: { type: Number, default: 2500 },
         // "The camera is not available in this browser…" (barcode_scanner.no_camera) - shown in the page's toast
         noCamera: { type: String, default: '' },
+        // The page search (GlobalSearch, both instances on every member page) renders an empty wrapper: on the first
+        // start it takes the page's one copy of the camera markup, the <template> with this id
+        // (templates/navigation/_search_camera.html.twig); `hudNav` (the Menu's instance) turns the copy's HUD data-nav
+        // into `<hudNav>/<item>`. Every other scanner renders its camera itself and sets neither.
+        camera: { type: String, default: '' },
+        hudNav: { type: String, default: '' },
     };
 
     connect() {
@@ -166,6 +172,13 @@ export default class extends Controller {
     // --- Camera ---
 
     async _startCamera() {
+        this._mountCamera();
+        if (!this.hasVideoTarget) {
+            console.error('Barcode scanner: no camera markup');
+            this.stopScanning();
+            return;
+        }
+
         // Read on every start from the page's own URL, never remembered: a tab that once had a test link must not
         // keep the panel or the forced decoder on other pages (README §5.6)
         this.debug = this._urlParam('scan-debug') === '1';
@@ -211,6 +224,30 @@ export default class extends Controller {
         this._setupTrack();
         this._startDebug();
         this.scanLoop();
+    }
+
+    /**
+     * The page search's scanner (`camera`): the page's camera markup into the empty wrapper, once - the wrapper keeps
+     * it from then on (data-live-ignore: Live re-renders leave it alone). Parsed from the template's HTML rather than
+     * cloned, so it is built exactly like the markup the server renders for the other scanners.
+     */
+    _mountCamera() {
+        if (this.hasVideoTarget || this.cameraValue === '') {
+            return;
+        }
+
+        const template = document.getElementById(this.cameraValue);
+        if (template === null) {
+            return;
+        }
+
+        this.wrapperTarget.innerHTML = template.innerHTML;
+
+        if (this.hudNavValue !== '') {
+            this.wrapperTarget.querySelectorAll('[data-nav]').forEach((element) => {
+                element.setAttribute('data-nav', `${this.hudNavValue}/${element.getAttribute('data-nav').split('/').pop()}`);
+            });
+        }
     }
 
     /**
@@ -845,22 +882,27 @@ export default class extends Controller {
         this.toggleButtonTarget.classList.remove('active');
         this._stopDebug();
 
-        // Stop all tracks and release the stream
-        const stream = this.videoTarget.srcObject;
-        if (stream) {
-            stream.getTracks().forEach(track => track.stop());
+        // The page search's scanner has no video until its first start (`camera`) - nothing to release before that
+        if (this.hasVideoTarget) {
+            // Stop all tracks and release the stream
+            const stream = this.videoTarget.srcObject;
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+
+            // Fully release video element resources
+            this.videoTarget.pause();
+            this.videoTarget.srcObject = null;
+            this.videoTarget.load(); // Forces browser to release video memory
         }
 
-        // Fully release video element resources
-        this.videoTarget.pause();
-        this.videoTarget.srcObject = null;
-        this.videoTarget.load(); // Forces browser to release video memory
-
         // Clear canvas and reset dimensions to release memory
-        const ctx = this.overlayTarget.getContext('2d');
-        ctx.clearRect(0, 0, this.overlayTarget.width, this.overlayTarget.height);
-        this.overlayTarget.width = 0;
-        this.overlayTarget.height = 0;
+        if (this.hasOverlayTarget) {
+            const ctx = this.overlayTarget.getContext('2d');
+            ctx.clearRect(0, 0, this.overlayTarget.width, this.overlayTarget.height);
+            this.overlayTarget.width = 0;
+            this.overlayTarget.height = 0;
+        }
         this._cropCanvases = null;
 
         // Clear references to allow garbage collection

@@ -14,7 +14,14 @@
     global-search: opening/closing (bar), Esc and the panel's searching state (menu); nav-search: "Pages & settings" -
     the registry's list (nav-search.json, fetched on the first focus) filtered and ranked in the browser
     (assets/navigation/nav_search.js) into the data-live-ignore container above the server results, which the Live
-    re-renders never touch. An empty query renders no results and costs no statement. -#}
+    re-renders never touch. An empty query renders no results and costs no statement.
+    A member's scanner renders no camera of its own (the chrome's weight, README §4.12 - both instances are on every
+    page): its wrapper stays empty until the first start, when barcode_scanner_controller.js copies the page's one
+    camera markup in (`camera`: templates/navigation/_search_camera.html.twig, rendered by the top bar with the top bar's
+    data-nav on its HUD; the Menu's copy gets menu/search/... - `hudNav`). The wrapper is data-live-ignore, so a Live
+    re-render keeps that markup and the running camera, and it has an id, so a re-render that adds the results list in
+    front of it never takes the list for it (idiomorph pairs elements by id first; without one the list was morphed out
+    of the running camera's wrapper). position: relative comes from .global-search-barcode-scan (app.scss). -#}
 {%- set menu = this.menu -%}
 {%- set member = logged_user.profile is not null and logged_user.profile.activeMembership -%}
 {%- set nav_surface = menu ? 'menu' : 'topbar' -%}
@@ -28,7 +35,7 @@
     'data-nav-search-title-value': 'nav.search.pages_settings'|trans,
     'data-nav-search-more-value': 'nav.search.more'|trans,
 }) }}>
-    <div data-controller="barcode-scanner" data-barcode-scanner-no-camera-value="{{ 'barcode_scanner.no_camera'|trans }}"{% if not menu %} class="site-search-box"{% endif %}>
+    <div data-controller="barcode-scanner" data-barcode-scanner-no-camera-value="{{ 'barcode_scanner.no_camera'|trans }}"{% if member %} data-barcode-scanner-camera-value="search-camera"{% if menu %} data-barcode-scanner-hud-nav-value="menu/search"{% endif %}{% endif %}{% if not menu %} class="site-search-box"{% endif %}>
         {% if menu %}
         <div class="input-group global-search-field">
             <input type="search" data-model="debounce(150)|query" class="form-control" autocomplete="off" aria-label="{{ 'menu.search'|trans }}" data-barcode-scanner-target="input" data-global-search-target="searchInput" data-nav-search-target="input" placeholder="{{ 'forms.global_search_placeholder'|trans }}">
@@ -191,16 +198,7 @@
         {% endif %}
 
         {% if member %}
-        <div data-barcode-scanner-target="wrapper" class="global-search-barcode-scan position-relative d-none">
-            <div class="spinner spinner-border text-primary" role="status">
-                <span class="visually-hidden">Loading...</span>
-            </div>
-            <video class="barcode-scanner-video" data-barcode-scanner-target="video" muted autoplay playsinline></video>
-            <canvas data-barcode-scanner-target="overlay" class="position-absolute top-0 start-0 w-100"></canvas>
-
-            {# The search's scanner lives in the chrome: its buttons carry data-nav like every chrome button (P0-03) #}
-            {{ include('_barcode_scanner_hud.html.twig', {hud_nav: nav_surface ~ '/search'}) }}
-        </div>
+        <div id="search-scan-{{ nav_surface }}" data-barcode-scanner-target="wrapper" class="global-search-barcode-scan d-none" data-live-ignore></div>
         {% endif %}
         {% if not menu %}
         </div>

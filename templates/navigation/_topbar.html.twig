@@ -108,4 +108,6 @@
             {%- if menu_dot %}<span class="nav-menu-dot" aria-hidden="true"></span>{% endif -%}
         </a>
     </div>
+    {#- The page search's camera markup, one copy for both instances (members: the only ones with a scanner there) -#}
+    {%- if profile is not null and profile.activeMembership %}{{ include('navigation/_search_camera.html.twig') }}{% endif %}
 </header>

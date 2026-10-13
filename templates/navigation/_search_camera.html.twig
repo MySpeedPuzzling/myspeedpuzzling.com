@@ -1,0 +1,15 @@
+{#- The page search's camera (templates/components/GlobalSearch.html.twig): one copy per page, for members - the only
+    viewers with a scanner in the search. Both search instances (the top bar's and the Menu's) keep an empty wrapper and
+    barcode_scanner_controller.js copies this markup in on their first start (`camera` = this id) - one copy instead of
+    two on every member page (the chrome's weight, docs/features/navigation README §4.12). It is the markup each instance
+    rendered itself before (tests/Navigation/SearchCameraScriptTest.php): the HUD's buttons are chrome buttons with
+    data-nav (P0-03) - the top bar's here, the Menu's copy gets menu/search/<item> (`hudNav`). Rendered by the top bar
+    (_topbar.html.twig): every page with a page search has it. -#}
+<template id="search-camera">
+    <div class="spinner spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading...</span>
+    </div>
+    <video class="barcode-scanner-video" data-barcode-scanner-target="video" muted autoplay playsinline></video>
+    <canvas data-barcode-scanner-target="overlay" class="position-absolute top-0 start-0 w-100"></canvas>
+    {{ include('_barcode_scanner_hud.html.twig', {hud_nav: 'topbar/search'}) }}
+</template>

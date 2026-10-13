@@ -70,6 +70,8 @@ export default class extends Controller {
         this.selectedId = null;
         this.detail = null;
         this.detailRequest = 0;
+        // The official result the selected participant's evidence showed when it was opened (wire format)
+        this.seenResult = null;
         this.tapId = null;
         this.momentMs = null;
         this.burst = null;
@@ -419,6 +421,13 @@ export default class extends Controller {
         }
 
         this.detail = answer.data;
+
+        // What the reviewer sees now - the `from` of their confirmation. A refresh in the background (keep) leaves it:
+        // a result entered meanwhile must come back as a conflict when they confirm, never pass as the one they saw
+        if (!keep) {
+            this.seenResult = answer.data.entry.official ?? null;
+        }
+
         this.detailBodyTarget.hidden = false;
         this.detailErrorTarget.hidden = true;
         this.renderDetailHeader();
@@ -992,6 +1001,10 @@ export default class extends Controller {
         this.send(body);
     }
 
+    /**
+     * One confirmation - with the official result this participant's evidence showed when it was opened (`seenResult`):
+     * a result somebody entered since then comes back as a conflict, never overwritten.
+     */
     async send(body) {
         if (this.busy || this.selectedId === null) {
             return;
@@ -1003,12 +1016,18 @@ export default class extends Controller {
 
         const answer = await officialResultsRequest(this.confirmUrl(participantId), {
             method: 'POST',
-            body,
+            body: { ...body, seenResult: this.seenResult },
             csrfToken: this.csrfTokenValue,
         });
 
         this.busy = false;
         this.renderBusy();
+
+        if (answer.kind === 'client' && answer.status === 409 && answer.data?.entry) {
+            this.changedMeanwhile(participantId, answer.data);
+
+            return;
+        }
 
         if (answer.kind !== 'ok' || !answer.data?.entry) {
             this.notify(this.refusalText(answer), 'danger');
@@ -1017,12 +1036,7 @@ export default class extends Controller {
         }
 
         const entry = answer.data.entry;
-        const entries = this.list.entries ?? [];
-        const index = entries.findIndex((candidate) => candidate.participantId === entry.participantId);
-
-        if (index >= 0) {
-            entries[index] = entry;
-        }
+        this.replaceEntry(entry);
 
         const done = { name: entry.name, result: this.resultText(answer.data.result) ?? '' };
         this.notify(answer.data.status === 'unchanged' ? this.t('done_unchanged', done) : this.t('done_applied', done), 'success');
@@ -1031,6 +1045,7 @@ export default class extends Controller {
 
         if (this.detail?.entry?.participantId === entry.participantId) {
             this.detail.entry = entry;
+            this.seenResult = entry.official ?? null;
             this.renderDetailHeader();
         }
 
@@ -1040,6 +1055,33 @@ export default class extends Controller {
 
         if (next >= 0 && rows[next].participantId !== participantId) {
             this.select(rows[next].participantId);
+        }
+    }
+
+    /**
+     * Somebody entered another official result since the reviewer opened this participant (the results desk, another
+     * reviewer): nothing was written. The review shows that result and stays on the participant - the reviewer decides
+     * again, now with what they see.
+     */
+    changedMeanwhile(participantId, data) {
+        this.replaceEntry(data.entry);
+        this.renderList();
+
+        if (this.detail?.entry?.participantId === participantId) {
+            this.detail.entry = data.entry;
+            this.seenResult = data.current ?? null;
+            this.renderDetailHeader();
+        }
+
+        this.notify(this.t('conflict', { result: this.resultText(data.current ?? null) ?? this.t('no_result') }), 'warning');
+    }
+
+    replaceEntry(entry) {
+        const entries = this.list.entries ?? [];
+        const index = entries.findIndex((candidate) => candidate.participantId === entry.participantId);
+
+        if (index >= 0) {
+            entries[index] = entry;
         }
     }
 

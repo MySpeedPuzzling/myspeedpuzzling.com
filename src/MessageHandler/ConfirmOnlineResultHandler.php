@@ -42,9 +42,12 @@ use Symfony\Component\Messenger\Attribute\AsMessageHandler;
  *    participant's report and the end photo).
  * 2. The official result goes through the one write path - RecordRoundResultsHandler, called directly (same
  *    transaction, same lock, no second dispatch) with one change: a new UUIDv7, `participant_round:<id>`, `result`,
- *    `from` = the value the entry holds now (read under the lock), `to` = {"seconds": n} or {"piecesPlaced": n}, acting
- *    player = the reviewer. Its planning writes nothing when it refuses, so a refusal (`conflict` 409, `rejected` 422 -
- *    OnlineResultRefused) leaves no change behind in the entity manager either.
+ *    `from` = the result the reviewer saw (`seenResult` - what the review's detail showed when they decided), `to` =
+ *    {"seconds": n} or {"piecesPlaced": n}, acting player = the reviewer. Its own three-way check decides: the entry
+ *    holds `to` already - unchanged; it holds what the reviewer saw - applied; it holds anything else (the results desk
+ *    or another reviewer entered a result meanwhile) - `conflict`, never overwritten: OnlineResultRefused 409 with the
+ *    current result, the reviewer decides again. Its planning writes nothing when it refuses, so a refusal (`conflict`
+ *    409, `rejected` 422) leaves no change behind in the entity manager either.
  * 3. Only then the online entry takes the decision (OnlineEntry::confirm()): the moment, its source, the reviewer, the
  *    time. Confirming the very same decision again (an unchanged result, the same moment and source) writes nothing.
  *
@@ -95,7 +98,9 @@ readonly final class ConfirmOnlineResultHandler
                     clientChangeId: Uuid::uuid7()->toString(),
                     entry: $entry->entryRef(),
                     field: RoundResultField::Result,
-                    from: $entry->officialResult(),
+                    // What the reviewer saw - never the value read here, which would make a result entered meanwhile
+                    // look like the one they decided on
+                    from: $message->seenResult,
                     to: $result,
                 ),
             ],
@@ -106,7 +111,10 @@ readonly final class ConfirmOnlineResultHandler
         $outcome = $recorded->outcomes[0] ?? throw new \LogicException('The official results write path answers every change.');
 
         if ($outcome->status === RoundResultChangeStatus::Conflict) {
-            throw OnlineResultRefused::conflict($outcome->reason ?? 'changed_meanwhile');
+            throw OnlineResultRefused::conflict(
+                $outcome->reason ?? 'changed_meanwhile',
+                $outcome->current instanceof RoundEntryResult ? $outcome->current : $entry->officialResult(),
+            );
         }
 
         if ($outcome->status === RoundResultChangeStatus::Rejected) {

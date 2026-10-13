@@ -84,6 +84,7 @@ use SpeedPuzzling\Web\Value\OnlineConfirmedSource;
 use SpeedPuzzling\Web\Value\ParticipantImportRows;
 use SpeedPuzzling\Web\Value\PuzzleNames;
 use SpeedPuzzling\Web\Value\PuzzleRecordValues;
+use SpeedPuzzling\Web\Value\RoundEntryResult;
 use SplFileInfo;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 
@@ -167,7 +168,7 @@ final class SerializedByLockMessagesTest extends TestCase
         self::assertSame($key, (new ChangeCompetitionRegistrationSettings($competitionId, true, 10, null, null, 'Europe/Prague', null, null))->lockKey());
         self::assertSame($key, (new ApplyParticipantSheetChanges($competitionId, 'player', null, [], dryRun: true))->lockKey());
         // The online review's confirmation records the official result - the same lock as every other official result
-        self::assertSame($key, (new ConfirmOnlineResult($competitionId, 'round', $participantId, null, OnlineConfirmedSource::Reviewer, 1200, 'player'))->lockKey());
+        self::assertSame($key, (new ConfirmOnlineResult($competitionId, 'round', $participantId, null, OnlineConfirmedSource::Reviewer, 1200, 'player', RoundEntryResult::none()))->lockKey());
         // Back to draft only while nobody joined - a join waits for the check (docs/features/organizations/README.md)
         self::assertSame($key, (new UnpublishCompetition($competitionId))->lockKey());
     }

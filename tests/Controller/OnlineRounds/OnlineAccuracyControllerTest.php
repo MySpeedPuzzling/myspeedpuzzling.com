@@ -14,6 +14,7 @@ use SpeedPuzzling\Web\Tests\OverridesFeatureFlagEnv;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use SpeedPuzzling\Web\Value\OnlineConfirmedSource;
 use SpeedPuzzling\Web\Value\OnlineMediaKind;
+use SpeedPuzzling\Web\Value\RoundEntryResult;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -163,6 +164,8 @@ final class OnlineAccuracyControllerTest extends WebTestCase
             $source,
             null,
             PlayerFixture::PLAYER_ADMIN,
+            // Nothing official yet for any of them
+            RoundEntryResult::none(),
         ));
     }
 

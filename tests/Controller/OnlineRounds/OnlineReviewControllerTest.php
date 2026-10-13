@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Tests\Controller\OnlineRounds;
 use Doctrine\DBAL\Connection;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Message\RecordRoundResults;
 use SpeedPuzzling\Web\Services\OnlineRounds\FakeOnlineMediaStorage;
 use SpeedPuzzling\Web\Tests\DataFixtures\OfficialResultsFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\OnlineRoundsFixture;
@@ -18,8 +19,13 @@ use SpeedPuzzling\Web\Tests\TestingLogin;
 use SpeedPuzzling\Web\Value\OnlineEventType;
 use SpeedPuzzling\Web\Value\OnlineMediaKind;
 use SpeedPuzzling\Web\Value\OnlineUnfinishedMeasure;
+use SpeedPuzzling\Web\Value\RoundEntryRef;
+use SpeedPuzzling\Web\Value\RoundEntryResult;
+use SpeedPuzzling\Web\Value\RoundResultChange;
+use SpeedPuzzling\Web\Value\RoundResultField;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\Messenger\MessageBusInterface;
 
 /**
  * The review of an online round (online_review, online_review_entry, online_review_confirm - docs/features/
@@ -84,7 +90,7 @@ final class OnlineReviewControllerTest extends WebTestCase
         $browser->request('GET', self::ENTRY, server: ['HTTP_ACCEPT' => 'application/json']);
         self::assertResponseStatusCodeSame($jsonStatus);
 
-        $this->post($browser, self::CONFIRM, ['momentMs' => null, 'source' => 'reviewer', 'pieces' => 100]);
+        $this->post($browser, self::CONFIRM, ['momentMs' => null, 'source' => 'reviewer', 'pieces' => 100, 'seenResult' => null]);
         self::assertSame($jsonStatus === 200 ? 422 : $jsonStatus, $browser->getResponse()->getStatusCode(), 'nothing to confirm before the start - but only those who may are told so');
     }
 
@@ -232,11 +238,11 @@ final class OnlineReviewControllerTest extends WebTestCase
         self::assertSame(['error' => 'json_required'], $this->json($browser));
 
         // From another site: the stateless token is refused
-        $this->post($browser, self::CONFIRM, ['momentMs' => null, 'source' => 'reviewer', 'pieces' => 100], origin: 'https://elsewhere.example');
+        $this->post($browser, self::CONFIRM, ['momentMs' => null, 'source' => 'reviewer', 'pieces' => 100, 'seenResult' => null], origin: 'https://elsewhere.example');
         self::assertResponseStatusCodeSame(403);
         self::assertSame(['error' => 'invalid_csrf_token'], $this->json($browser));
 
-        $browser->request('POST', self::CONFIRM, server: ['CONTENT_TYPE' => 'application/json', 'HTTP_ACCEPT' => 'application/json', 'HTTP_ORIGIN' => 'http://localhost', 'HTTP_REFERER' => 'http://localhost/'], content: '{"momentMs": null, "source": "reviewer", "pieces": 100}');
+        $browser->request('POST', self::CONFIRM, server: ['CONTENT_TYPE' => 'application/json', 'HTTP_ACCEPT' => 'application/json', 'HTTP_ORIGIN' => 'http://localhost', 'HTTP_REFERER' => 'http://localhost/'], content: '{"momentMs": null, "source": "reviewer", "pieces": 100, "seenResult": null}');
         self::assertResponseStatusCodeSame(403);
         self::assertSame(['error' => 'invalid_csrf_token'], $this->json($browser));
     }
@@ -249,7 +255,7 @@ final class OnlineReviewControllerTest extends WebTestCase
         $this->finishTap($this->onlineEntryOf(OnlineRoundsFixture::ENTRY_CONNECTED), $tapMs);
         $this->hub()->reset();
 
-        $this->post($browser, self::CONFIRM, ['momentMs' => $tapMs, 'source' => 'button', 'pieces' => null]);
+        $this->post($browser, self::CONFIRM, ['momentMs' => $tapMs, 'source' => 'button', 'pieces' => null, 'seenResult' => null]);
 
         self::assertResponseIsSuccessful();
         $answer = $this->json($browser);
@@ -275,10 +281,76 @@ final class OnlineReviewControllerTest extends WebTestCase
 
         // The same again: unchanged, nothing announced
         $this->hub()->reset();
-        $this->post($browser, self::CONFIRM, ['momentMs' => $tapMs, 'source' => 'button', 'pieces' => null]);
+        $this->post($browser, self::CONFIRM, ['momentMs' => $tapMs, 'source' => 'button', 'pieces' => null, 'seenResult' => null]);
         self::assertResponseIsSuccessful();
         self::assertSame('unchanged', $this->json($browser)['status']);
         self::assertSame([], $this->hub()->getPublishedUpdates());
+    }
+
+    /**
+     * The results desk entered a result after the reviewer opened Olivia's evidence: the confirmation comes back as a
+     * conflict with the result as it is now - nothing written, nothing announced; the review shows it and the reviewer
+     * decides again
+     */
+    public function testAResultEnteredMeanwhileComesBackAsAConflict(): void
+    {
+        $browser = $this->signedIn(PlayerFixture::PLAYER_ADMIN);
+        $startMs = $this->startOnlineRound();
+        $tapMs = $startMs + 1_000_345;
+        $this->finishTap($this->onlineEntryOf(OnlineRoundsFixture::ENTRY_CONNECTED), $tapMs);
+
+        // What the review showed: nothing official yet
+        $browser->request('GET', self::ENTRY, server: ['HTTP_ACCEPT' => 'application/json']);
+        $detail = $this->json($browser);
+        self::assertIsArray($detail['entry']);
+        self::assertArrayHasKey('official', $detail['entry']);
+        self::assertNull($detail['entry']['official']);
+
+        $this->enterAtTheResultsDesk(1234);
+        $this->hub()->reset();
+
+        $this->post($browser, self::CONFIRM, ['momentMs' => $tapMs, 'source' => 'button', 'pieces' => null, 'seenResult' => $detail['entry']['official']]);
+
+        self::assertResponseStatusCodeSame(409);
+        $answer = $this->json($browser);
+        self::assertSame('changed_meanwhile', $answer['error']);
+        self::assertSame('Somebody else changed this meanwhile.', $answer['message']);
+        self::assertSame(['seconds' => 1234], $answer['current']);
+        self::assertIsArray($answer['entry']);
+        self::assertSame(['seconds' => 1234], $answer['entry']['official']);
+        self::assertSame('needs_look', $answer['entry']['status']);
+        self::assertSame([], $this->hub()->getPublishedUpdates(), 'nothing changed - nothing to tell the other pages');
+        self::assertSame(1234, $this->officialSeconds());
+
+        // Decided again, knowing the desk's result
+        $this->post($browser, self::CONFIRM, ['momentMs' => $tapMs, 'source' => 'button', 'pieces' => null, 'seenResult' => ['seconds' => 1234]]);
+
+        self::assertResponseIsSuccessful();
+        self::assertSame('applied', $this->json($browser)['status']);
+        self::assertSame(1000, $this->officialSeconds());
+    }
+
+    public function testTheResultTheReviewerSawIsRequired(): void
+    {
+        $browser = $this->signedIn(PlayerFixture::PLAYER_ADMIN);
+        $startMs = $this->startOnlineRound();
+        $tapMs = $startMs + 600_000;
+        $this->finishTap($this->onlineEntryOf(OnlineRoundsFixture::ENTRY_CONNECTED), $tapMs);
+
+        $bodies = [
+            'missing' => ['momentMs' => $tapMs, 'source' => 'button', 'pieces' => null],
+            'not a result' => ['momentMs' => $tapMs, 'source' => 'button', 'pieces' => null, 'seenResult' => ['seconds' => 'soon']],
+            'two results' => ['momentMs' => $tapMs, 'source' => 'button', 'pieces' => null, 'seenResult' => ['seconds' => 1, 'piecesPlaced' => 2]],
+        ];
+
+        foreach ($bodies as $case => $body) {
+            $this->post($browser, self::CONFIRM, $body);
+
+            self::assertResponseStatusCodeSame(422, $case);
+            self::assertSame('invalid_confirmation', $this->json($browser)['error'], $case);
+        }
+
+        self::assertNull($this->officialSeconds());
     }
 
     public function testARefusalIsAnsweredWithItsReason(): void
@@ -289,24 +361,24 @@ final class OnlineReviewControllerTest extends WebTestCase
         $this->finishTap($this->onlineEntryOf(OnlineRoundsFixture::ENTRY_CONNECTED), $tapMs);
 
         // A moment the phone never recorded
-        $this->post($browser, self::CONFIRM, ['momentMs' => $tapMs + 123, 'source' => 'reviewer', 'pieces' => null]);
+        $this->post($browser, self::CONFIRM, ['momentMs' => $tapMs + 123, 'source' => 'reviewer', 'pieces' => null, 'seenResult' => null]);
         self::assertResponseStatusCodeSame(422);
         $answer = $this->json($browser);
         self::assertSame('moment_not_recorded', $answer['error']);
         self::assertSame('The participant\'s phone did not record this moment - pick their tap or a frame around it.', $answer['message']);
 
         // The official results' own rule: pieces placed stay below the puzzle's pieces
-        $this->post($browser, self::CONFIRM, ['momentMs' => null, 'source' => 'reviewer', 'pieces' => 3000]);
+        $this->post($browser, self::CONFIRM, ['momentMs' => null, 'source' => 'reviewer', 'pieces' => 3000, 'seenResult' => null]);
         self::assertResponseStatusCodeSame(422);
         $answer = $this->json($browser);
         self::assertSame('invalid_pieces_placed', $answer['error']);
         self::assertSame('Pieces placed must be at least 1 and fewer than the puzzle has - a finished puzzle gets a time.', $answer['message']);
 
         // Not a number, not a source
-        $this->post($browser, self::CONFIRM, ['momentMs' => '1792000000000', 'source' => 'button', 'pieces' => null]);
+        $this->post($browser, self::CONFIRM, ['momentMs' => '1792000000000', 'source' => 'button', 'pieces' => null, 'seenResult' => null]);
         self::assertResponseStatusCodeSame(422);
         self::assertSame('invalid_confirmation', $this->json($browser)['error']);
-        $this->post($browser, self::CONFIRM, ['momentMs' => $tapMs, 'source' => 'guess', 'pieces' => null]);
+        $this->post($browser, self::CONFIRM, ['momentMs' => $tapMs, 'source' => 'guess', 'pieces' => null, 'seenResult' => null]);
         self::assertResponseStatusCodeSame(422);
 
         self::assertNull(self::getContainer()->get(Connection::class)->fetchOne('SELECT result_seconds FROM competition_participant_round WHERE id = :id', ['id' => OnlineRoundsFixture::ENTRY_CONNECTED]));
@@ -371,6 +443,32 @@ final class OnlineReviewControllerTest extends WebTestCase
 
         /** @var array<string, mixed> $decoded */
         return $decoded;
+    }
+
+    /**
+     * The organiser types a time for Olivia at the results desk - the official results write path, as its page sends it
+     */
+    private function enterAtTheResultsDesk(int $seconds): void
+    {
+        self::getContainer()->get(MessageBusInterface::class)->dispatch(new RecordRoundResults(
+            competitionId: self::COMPETITION,
+            roundId: self::ROUND,
+            actingPlayerId: self::ORGANISER,
+            changes: [RoundResultChange::forEntry(
+                clientChangeId: Uuid::uuid7()->toString(),
+                entry: RoundEntryRef::participantRound(OnlineRoundsFixture::ENTRY_CONNECTED),
+                field: RoundResultField::Result,
+                from: RoundEntryResult::none(),
+                to: RoundEntryResult::finished($seconds),
+            )],
+        ));
+    }
+
+    private function officialSeconds(): null|int
+    {
+        $seconds = self::getContainer()->get(Connection::class)->fetchOne('SELECT result_seconds FROM competition_participant_round WHERE id = :id', ['id' => OnlineRoundsFixture::ENTRY_CONNECTED]);
+
+        return is_numeric($seconds) ? (int) $seconds : null;
     }
 
     private static function hub(): NullMercureHub

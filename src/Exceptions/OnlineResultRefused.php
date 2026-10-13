@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Exceptions;
 
+use SpeedPuzzling\Web\Value\RoundEntryResult;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 /**
@@ -11,7 +12,8 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
  * docs/features/online-competitions/README.md §5.9) - thrown before anything was written, so the transaction commits
  * nothing. An HttpException, so it reaches the controller as itself through the command bus
  * (UnwrapHttpExceptionMiddleware):
- * - 409: the official result's three-way check found another value (the write path's `conflict`);
+ * - 409: the official result is not the one the reviewer saw - somebody entered another one meanwhile (the write path's
+ *   three-way `conflict`); `current` = the result the entry holds now, the reviewer decides again;
  * - 422: the confirmation itself is refused - our reasons (online_rounds.review.reason.*) or the official results
  *   write path's (official_results.reason.*, `officialReason`).
  */
@@ -29,6 +31,8 @@ final class OnlineResultRefused extends HttpException
         readonly public string $reason,
         // The reason is one of the official results write path's (RecordRoundResultsHandler outcomes)
         readonly public bool $officialReason,
+        // A conflict: the official result the entry holds now
+        readonly public null|RoundEntryResult $current = null,
     ) {
         parent::__construct($statusCode, sprintf('The online result was not confirmed (%s). Nothing was changed.', $reason));
     }
@@ -47,11 +51,11 @@ final class OnlineResultRefused extends HttpException
     }
 
     /**
-     * The official result holds another value than the one the change was planned from (`conflict`)
+     * The official result holds another value than the one the reviewer saw (`conflict`)
      */
-    public static function conflict(string $reason): self
+    public static function conflict(string $reason, RoundEntryResult $current): self
     {
-        return new self(409, $reason, true);
+        return new self(409, $reason, true, $current);
     }
 
     public function translationKey(): string

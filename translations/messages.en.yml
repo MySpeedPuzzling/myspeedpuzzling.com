@@ -9741,6 +9741,7 @@ online_rounds:
         done:
             applied: "%name%: %result% confirmed."
             unchanged: "%name%: already confirmed - nothing changed."
+        conflict: "Nothing was confirmed: somebody entered another result meanwhile - %result%. Look at it, then confirm again to replace it."
         reason:
             not_connected: "This participant's phone never connected - enter their result at the results desk."
             invalid_confirmation: "This confirmation could not be read - reload the page and try again."

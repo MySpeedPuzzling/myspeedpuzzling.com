@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Message\GenerateOnlineTokens;
 use SpeedPuzzling\Web\Message\RegenerateOnlineToken;
 use SpeedPuzzling\Web\Value\CompetitionParticipantsLock;
 use SpeedPuzzling\Web\Value\OnlineConfirmedSource;
+use SpeedPuzzling\Web\Value\RoundEntryResult;
 
 /**
  * The online rounds' messages that write participants, their tokens or official results take turns with every other
@@ -28,6 +29,6 @@ final class OnlineRoundsMessagesTest extends TestCase
         self::assertSame($key, (new EnableOnlineRound(self::COMPETITION, 'round', 'player'))->lockKey());
         self::assertSame($key, (new GenerateOnlineTokens(self::COMPETITION))->lockKey());
         self::assertSame($key, (new RegenerateOnlineToken(strtolower(self::COMPETITION), 'participant'))->lockKey());
-        self::assertSame($key, (new ConfirmOnlineResult(self::COMPETITION, 'round', 'participant', 1_792_002_832_345, OnlineConfirmedSource::Button, null, 'player'))->lockKey());
+        self::assertSame($key, (new ConfirmOnlineResult(self::COMPETITION, 'round', 'participant', 1_792_002_832_345, OnlineConfirmedSource::Button, null, 'player', RoundEntryResult::none()))->lockKey());
     }
 }

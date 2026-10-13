@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Message;
 use SpeedPuzzling\Web\Services\MessengerMiddleware\SerializedByLock;
 use SpeedPuzzling\Web\Value\CompetitionParticipantsLock;
 use SpeedPuzzling\Web\Value\OnlineConfirmedSource;
+use SpeedPuzzling\Web\Value\RoundEntryResult;
 
 /**
  * The reviewer confirms a participant's online result (docs/features/online-competitions/README.md §5.9): the finish
@@ -25,6 +26,10 @@ readonly final class ConfirmOnlineResult implements SerializedByLock
         public OnlineConfirmedSource $source,
         public null|int $pieces,
         public string $actingPlayerId,
+        // The official result the reviewer saw when they decided (the review's detail as it showed it) - the `from` of
+        // the official result's change: a result entered meanwhile (the results desk, another reviewer) comes back as a
+        // conflict, it is never overwritten silently
+        public RoundEntryResult $seenResult,
     ) {
     }
 

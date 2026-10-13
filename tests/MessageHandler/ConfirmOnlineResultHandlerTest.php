@@ -5,10 +5,13 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
 use Doctrine\DBAL\Connection;
+use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\OnlineResultRefused;
 use SpeedPuzzling\Web\Exceptions\OnlineRoundNotFound;
 use SpeedPuzzling\Web\Message\ConfirmOnlineResult;
+use SpeedPuzzling\Web\Message\RecordRoundResults;
 use SpeedPuzzling\Web\Results\ConfirmedOnlineResult;
+use SpeedPuzzling\Web\Results\RecordedRoundResults;
 use SpeedPuzzling\Web\Tests\DataFixtures\OfficialResultsFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\OnlineRoundsFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
@@ -16,7 +19,11 @@ use SpeedPuzzling\Web\Tests\OnlineReviewSeeding;
 use SpeedPuzzling\Web\Value\CompetitionParticipantsLock;
 use SpeedPuzzling\Web\Value\OnlineConfirmedSource;
 use SpeedPuzzling\Web\Value\OnlineMediaKind;
+use SpeedPuzzling\Web\Value\RoundEntryRef;
+use SpeedPuzzling\Web\Value\RoundEntryResult;
+use SpeedPuzzling\Web\Value\RoundResultChange;
 use SpeedPuzzling\Web\Value\RoundResultChangeStatus;
+use SpeedPuzzling\Web\Value\RoundResultField;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\HandledStamp;
@@ -118,7 +125,8 @@ final class ConfirmOnlineResultHandlerTest extends KernelTestCase
         $enteredAt = $this->officialRow()['result_entered_at'];
         $reviewedAt = $this->reviewRow()['reviewed_at'];
 
-        $again = $this->confirm($tapMs, OnlineConfirmedSource::Button, reviewer: PlayerFixture::PLAYER_WITH_STRIPE);
+        // Another reviewer, the result shown to them now
+        $again = $this->confirm($tapMs, OnlineConfirmedSource::Button, reviewer: PlayerFixture::PLAYER_WITH_STRIPE, seen: RoundEntryResult::finished(1500));
 
         self::assertSame(RoundResultChangeStatus::Unchanged, $again->status);
         self::assertFalse($again->reviewRecorded);
@@ -128,6 +136,14 @@ final class ConfirmOnlineResultHandlerTest extends KernelTestCase
         self::assertSame(self::REVIEWER, $this->officialRow()['result_entered_by_id']);
         self::assertSame($reviewedAt, $this->reviewRow()['reviewed_at']);
         self::assertSame(self::REVIEWER, $this->reviewRow()['reviewed_by_id']);
+
+        // A request sent again (its answer got lost) still carries the empty result it was sent with - the entry holds
+        // exactly what it asks for, so it is unchanged, no conflict
+        $replay = $this->confirm($tapMs, OnlineConfirmedSource::Button);
+
+        self::assertSame(RoundResultChangeStatus::Unchanged, $replay->status);
+        self::assertFalse($replay->reviewRecorded);
+        self::assertSame(1500, $this->officialRow()['result_seconds']);
     }
 
     public function testAnotherDecisionReplacesThePreviousOne(): void
@@ -137,8 +153,8 @@ final class ConfirmOnlineResultHandlerTest extends KernelTestCase
         $this->finishTap($this->onlineEntryOf(OnlineRoundsFixture::ENTRY_CONNECTED), $tapMs);
         $this->confirm($tapMs, OnlineConfirmedSource::Button);
 
-        // The reviewer looked again: unfinished after all
-        $confirmed = $this->confirm(null, OnlineConfirmedSource::Reviewer, pieces: 2990);
+        // The reviewer looked again (the review shows the 900 s confirmed before): unfinished after all
+        $confirmed = $this->confirm(null, OnlineConfirmedSource::Reviewer, pieces: 2990, seen: RoundEntryResult::finished(900));
 
         self::assertSame(RoundResultChangeStatus::Applied, $confirmed->status);
         self::assertSame(2990, $this->officialRow()['result_pieces_placed']);
@@ -147,10 +163,60 @@ final class ConfirmOnlineResultHandlerTest extends KernelTestCase
     }
 
     /**
+     * The reviewer opened Olivia's evidence while she had no result; the results desk entered one meanwhile. Their
+     * confirmation must not overwrite it: the official results' own three-way check answers `conflict` (409) with the
+     * result the entry holds now, and nothing is written - no result, no receipt, no decision on the online entry.
+     */
+    public function testAResultEnteredMeanwhileIsAConflictNeverOverwritten(): void
+    {
+        $startMs = $this->startOnlineRound();
+        $tapMs = $startMs + 1_000_345;
+        $this->finishTap($this->onlineEntryOf(OnlineRoundsFixture::ENTRY_CONNECTED), $tapMs);
+        $this->enterAtTheResultsDesk(RoundEntryResult::finished(1234));
+
+        try {
+            $this->confirm($tapMs, OnlineConfirmedSource::Button, seen: RoundEntryResult::none());
+            self::fail('A result entered meanwhile must come back as a conflict.');
+        } catch (OnlineResultRefused $refused) {
+            self::assertSame(409, $refused->getStatusCode());
+            self::assertSame('changed_meanwhile', $refused->reason);
+            self::assertSame('official_results.reason.changed_meanwhile', $refused->translationKey());
+            self::assertSame(['seconds' => 1234], $refused->current?->toWire());
+        }
+
+        self::assertSame(1234, $this->officialRow()['result_seconds']);
+        self::assertSame(PlayerFixture::PLAYER_WITH_STRIPE, $this->officialRow()['result_entered_by_id']);
+        self::assertSame('pending', $this->reviewRow()['review_status']);
+        self::assertNull($this->reviewRow()['confirmed_moment_ms']);
+        self::assertSame(1, $this->receipts(), 'the desk\'s change only');
+
+        // Unfinished the same way
+        $this->assertRefused('changed_meanwhile', 409, fn () => $this->confirm(null, OnlineConfirmedSource::Reviewer, pieces: 2000, seen: RoundEntryResult::finished(1199)));
+    }
+
+    /**
+     * The review showed the desk's result - confirming replaces it: the reviewer decided knowing it
+     */
+    public function testTheResultTheReviewerSawIsReplaced(): void
+    {
+        $startMs = $this->startOnlineRound();
+        $tapMs = $startMs + 1_000_345;
+        $this->finishTap($this->onlineEntryOf(OnlineRoundsFixture::ENTRY_CONNECTED), $tapMs);
+        $this->enterAtTheResultsDesk(RoundEntryResult::finished(1234));
+
+        $confirmed = $this->confirm($tapMs, OnlineConfirmedSource::Button, seen: RoundEntryResult::finished(1234));
+
+        self::assertSame(RoundResultChangeStatus::Applied, $confirmed->status);
+        self::assertSame(1000, $this->officialRow()['result_seconds']);
+        self::assertSame(self::REVIEWER, $this->officialRow()['result_entered_by_id']);
+        self::assertSame('confirmed', $this->reviewRow()['review_status']);
+        self::assertSame($tapMs, $this->reviewRow()['confirmed_moment_ms']);
+    }
+
+    /**
      * The official result's write path refuses the value (pieces placed must stay below the puzzle's 3000) - the whole
-     * transaction rolls back: no result, no receipt, no decision on the online entry. A `conflict` outcome takes the
-     * same path (409) - under the participants lock with `from` read right there it cannot come from a concurrent
-     * write, only from the write path's own rules.
+     * transaction rolls back: no result, no receipt, no decision on the online entry (a conflict the same way -
+     * testAResultEnteredMeanwhileIsAConflictNeverOverwritten).
      */
     public function testARefusedResultRollsEverythingBack(): void
     {
@@ -261,7 +327,7 @@ final class ConfirmOnlineResultHandlerTest extends KernelTestCase
         $refused = false;
 
         try {
-            $this->dispatch(new ConfirmOnlineResult(OfficialResultsFixture::COMPETITION_RESULTS_CUP, OfficialResultsFixture::ROUND_GROUP_A, self::OLIVIA, null, OnlineConfirmedSource::Reviewer, 100, self::REVIEWER));
+            $this->dispatch(new ConfirmOnlineResult(OfficialResultsFixture::COMPETITION_RESULTS_CUP, OfficialResultsFixture::ROUND_GROUP_A, self::OLIVIA, null, OnlineConfirmedSource::Reviewer, 100, self::REVIEWER, RoundEntryResult::none()));
         } catch (OnlineRoundNotFound) {
             $refused = true;
         }
@@ -271,12 +337,15 @@ final class ConfirmOnlineResultHandlerTest extends KernelTestCase
 
     public function testItTakesTheEventsParticipantsLock(): void
     {
-        $message = new ConfirmOnlineResult(strtoupper(self::COMPETITION), self::ROUND, self::OLIVIA, null, OnlineConfirmedSource::Reviewer, 10, self::REVIEWER);
+        $message = new ConfirmOnlineResult(strtoupper(self::COMPETITION), self::ROUND, self::OLIVIA, null, OnlineConfirmedSource::Reviewer, 10, self::REVIEWER, RoundEntryResult::none());
 
         self::assertSame(CompetitionParticipantsLock::key(self::COMPETITION), $message->lockKey());
         self::assertSame('participant-import-' . self::COMPETITION, $message->lockKey());
     }
 
+    /**
+     * @param null|RoundEntryResult $seen the result the review showed - none by default (nothing official yet)
+     */
     private function confirm(
         null|int $momentMs,
         OnlineConfirmedSource $source,
@@ -284,8 +353,31 @@ final class ConfirmOnlineResultHandlerTest extends KernelTestCase
         string $reviewer = self::REVIEWER,
         string $participantId = self::OLIVIA,
         string $competitionId = self::COMPETITION,
+        null|RoundEntryResult $seen = null,
     ): ConfirmedOnlineResult {
-        return $this->dispatch(new ConfirmOnlineResult($competitionId, self::ROUND, $participantId, $momentMs, $source, $pieces, $reviewer));
+        return $this->dispatch(new ConfirmOnlineResult($competitionId, self::ROUND, $participantId, $momentMs, $source, $pieces, $reviewer, $seen ?? RoundEntryResult::none()));
+    }
+
+    /**
+     * The organiser types a result for Olivia at the results desk - the official results write path, as its page sends it
+     */
+    private function enterAtTheResultsDesk(RoundEntryResult $result): void
+    {
+        $envelope = self::getContainer()->get(MessageBusInterface::class)->dispatch(new RecordRoundResults(
+            competitionId: self::COMPETITION,
+            roundId: self::ROUND,
+            actingPlayerId: PlayerFixture::PLAYER_WITH_STRIPE,
+            changes: [RoundResultChange::forEntry(
+                clientChangeId: Uuid::uuid7()->toString(),
+                entry: RoundEntryRef::participantRound(OnlineRoundsFixture::ENTRY_CONNECTED),
+                field: RoundResultField::Result,
+                from: RoundEntryResult::none(),
+                to: $result,
+            )],
+        ));
+        $recorded = $envelope->last(HandledStamp::class)?->getResult();
+        self::assertInstanceOf(RecordedRoundResults::class, $recorded);
+        self::assertSame(RoundResultChangeStatus::Applied, $recorded->outcomes[0]->status);
     }
 
     private function dispatch(ConfirmOnlineResult $message): ConfirmedOnlineResult

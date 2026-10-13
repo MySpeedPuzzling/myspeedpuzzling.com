@@ -107,7 +107,7 @@ Repositories (`get()` / `save()` / `delete()` + the finders named here): `Online
 | `RegisterOnlineMedia` | `mediaId`, `participantId`, `roundId`, `deviceId`, `kind`, `takenMs`, `bytes`, `contentType`, `relatedEventId` | A | the controller then presigns |
 | `VerifyOnlineMedia` | `mediaId` | A | **async** (HEAD → `verifiedBytes`) |
 | `PruneOnlineMedia` | `olderThanDays` | A | cron |
-| `ConfirmOnlineResult` | `competitionId`, `roundId`, `participantId`, `momentMs` (nullable), `source`, `pieces` (nullable), `actingPlayerId` | C2 | `SerializedByLock` (`CompetitionParticipantsLock`), one transaction with the official result |
+| `ConfirmOnlineResult` | `competitionId`, `roundId`, `participantId`, `momentMs` (nullable), `source`, `pieces` (nullable), `actingPlayerId`, `seenResult` (`RoundEntryResult` - the official result the review showed when the reviewer decided) | C2 | `SerializedByLock` (`CompetitionParticipantsLock`), one transaction with the official result; `seenResult` is the `from` of the `RecordRoundResults` change, so a result entered meanwhile (the results desk, another reviewer) answers `conflict` (409, with the current result) - never overwritten silently |
 
 ---
 

@@ -31,9 +31,7 @@
   "for_organizers": "Para organizadores"
   "feature_requests": "Sugerencias"
 "accessibility":
-  "toggle_navigation": "Alternar navegación"
   "barcode_scanner": "Escanear código de barras"
-  "notifications_count": "Notificaciones (%count%)"
 "navigation":
   "home": "Inicio"
 "form":
@@ -124,7 +122,6 @@
 "new_badge": "Nuevo"
 "secret_puzzler_name": "Puzzlero Oculto"
 "right_now": "Ahora mismo"
-"live_event_strip": "En directo: %event% – Añade y consulta resultados"
 "round_results":
   "meta":
     "title": "%event% – Resultados %round%"
@@ -6383,7 +6380,6 @@ favorite_puzzlers:
         "text": "Respuestas a las preguntas habituales."
 
 free_trial:
-    topbar_badge: "Prueba"
     offer:
         title: "Prueba la membresía gratis durante %days% días"
         reassurance: "Sin tarjeta. Nada que cancelar. Termina sola."

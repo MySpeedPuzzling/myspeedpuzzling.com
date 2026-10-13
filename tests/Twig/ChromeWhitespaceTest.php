@@ -27,6 +27,22 @@ final class ChromeWhitespaceTest extends WebTestCase
     ];
 
     /**
+     * What the collapse would change in a listed template's own text, with the reason: whitespace the browser keeps,
+     * or literal text Twig hands on as data instead of HTML. Twig comments are left out before matching.
+     */
+    private const array WHITESPACE_SENSITIVE = [
+        '~<pre\b~i' => '<pre> shows its whitespace',
+        '~<textarea\b~i' => '<textarea> keeps its whitespace as the value',
+        '~style="[^"]*white-space~i' => 'an inline white-space style',
+        '~\\\\\n~' => 'a line continuation in an inline script string',
+        '~<script\b[^>]*>(?:(?!</script>).)*`~is' => 'a JS template literal in an inline script keeps its line breaks and indentation',
+        '~\{%-?\s*trans\b~' => 'a {% trans %} body is the message id: collapsed, it is a key translation:extract never wrote',
+        '~\{%-?\s*set\s+\w+\s*-?%\}~' => 'a {% set %} capture is data (a JSON attribute, a compared string)',
+        '~\{%-?\s*(verbatim|raw)\b~' => 'a {% verbatim %} body is printed as written',
+        '~\{%-?\s*apply\b~' => 'an {% apply %} body is filtered as data (json_encode, url_encode, ...)',
+    ];
+
+    /**
      * @return iterable<string, array{string, string}>
      */
     public static function texts(): iterable
@@ -86,23 +102,92 @@ final class ChromeWhitespaceTest extends WebTestCase
     }
 
     /**
-     * No listed template puts literal text where whitespace is kept: no <pre>, no <textarea>, no inline white-space
-     * style, no class of a white-space: pre* rule (but the allowed ones); no line continuation in an inline script.
+     * Twig recompiles a cached template only when an extension's file is newer than it: a change to the visitor
+     * (the template list, the collapse) must count, or dev/test caches keep the old output until a cache:clear
+     */
+    public function testAChangeToTheVisitorRecompilesTheTemplates(): void
+    {
+        $visitor = (string) (new \ReflectionClass(ChromeWhitespace::class))->getFileName();
+        $original = filemtime($visitor);
+        self::assertIsInt($original);
+        $changed = max(time(), $original, (new ChromeWhitespaceTwigExtension())->getLastModified()) + 3600;
+
+        try {
+            self::assertTrue(touch($visitor, $changed));
+            clearstatcache(true, $visitor);
+
+            $twig = new Environment(new ArrayLoader(['navigation/_bar.html.twig' => '<b>x</b>']));
+            $twig->addExtension(new ChromeWhitespaceTwigExtension());
+
+            self::assertFalse($twig->isTemplateFresh('navigation/_bar.html.twig', $changed - 1), 'Compiled before the visitor changed: stale');
+            self::assertTrue($twig->isTemplateFresh('navigation/_bar.html.twig', $changed));
+        } finally {
+            touch($visitor, $original);
+            clearstatcache(true, $visitor);
+        }
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function whitespaceSensitiveSnippets(): iterable
+    {
+        yield 'pre' => ['<pre>a  b</pre>'];
+        yield 'textarea' => ['<textarea name="a"></textarea>'];
+        yield 'inline white-space style' => ['<p style="color: red; white-space: pre-line">'];
+        yield 'line continuation' => ["<script>var a = 'x\\\n    y';</script>"];
+        yield 'template literal in an inline script' => ["<script type=\"module\">\nvar a = `x\n    y`;\n</script>"];
+        yield 'trans block' => ['{% trans %}Hello  {{ name }}{% endtrans %}'];
+        yield 'trans block with a domain' => ['{%- trans from "nav" %}Hello{% endtrans %}'];
+        yield 'set capture' => ['{%- set label -%}<b>x</b>{% endset %}'];
+        yield 'verbatim' => ['{% verbatim %}{{ x }}{% endverbatim %}'];
+        yield 'apply' => ['{% apply json_encode %}a  b{% endapply %}'];
+    }
+
+    #[DataProvider('whitespaceSensitiveSnippets')]
+    public function testTheGuardSeesWhatTheCollapseWouldChange(string $snippet): void
+    {
+        self::assertCount(1, self::whitespaceSensitive($snippet), $snippet);
+    }
+
+    public function testTheGuardLetsTheRestThrough(): void
+    {
+        foreach (
+            [
+            "{% set label = 'x' %}",
+            "{% set label = 'x' -%}",
+            "{{ 'menu.title'|trans }}",
+            "{% trans_default_domain 'nav' %}",
+            '<script>var a = 1;</script><p>`code` outside a script</p>',
+            '{# a `template literal`, {% trans %}, <pre> in a comment #}',
+            '<p class="pre-line">',
+            ] as $snippet
+        ) {
+            self::assertSame([], self::whitespaceSensitive($snippet), $snippet);
+        }
+    }
+
+    /**
+     * No listed template puts literal text where whitespace is kept or where its exact text is data: nothing of
+     * WHITESPACE_SENSITIVE, no class of a white-space: pre* rule (but the allowed ones).
      */
     public function testNoListedTemplateKeepsWhitespace(): void
     {
-        $preClasses = $this->classesOfWhitespacePreservingRules();
-        self::assertNotSame([], $preClasses, 'The stylesheet scan finds the known white-space: pre rules');
+        $templates = $this->listedTemplates();
+        $preClasses = $this->classesOfWhitespacePreservingRules($templates);
+
+        foreach (['mpe-badge', 'msp-confirm-message'] as $known) {
+            self::assertContains($known, $preClasses, 'The stylesheet scan finds the known white-space: pre rules');
+        }
+
         $found = [];
 
-        foreach ($this->listedTemplates() as $path => $code) {
-            $code = (string) preg_replace('~\{#.*?#\}~s', '', $code);
-
-            foreach (['~<pre\b~i', '~<textarea\b~i', '~style="[^"]*white-space~i', '~\\\\\n~'] as $pattern) {
-                if (preg_match($pattern, $code) === 1) {
-                    $found[] = $path . ' ' . $pattern;
-                }
+        foreach ($templates as $path => $code) {
+            foreach (self::whitespaceSensitive($code) as $reason) {
+                $found[] = $path . ': ' . $reason;
             }
+
+            $code = (string) preg_replace('~\{#.*?#\}~s', '', $code);
 
             foreach ($preClasses as $class) {
                 if (!array_key_exists($class, self::PRE_ALLOWED) && preg_match('~class="[^"]*\b' . preg_quote($class, '~') . '\b~', $code) === 1) {
@@ -111,7 +196,33 @@ final class ChromeWhitespaceTest extends WebTestCase
             }
         }
 
-        self::assertSame([], $found, 'Whitespace-preserving markup in a template ChromeWhitespace collapses');
+        self::assertSame([], $found, 'Whitespace-sensitive text in a template ChromeWhitespace collapses');
+    }
+
+    /**
+     * @return iterable<string, array{string, list<string>}>
+     */
+    public static function stylesheets(): iterable
+    {
+        yield 'a plain rule' => ['.a { color: red; white-space: pre; }', ['a']];
+        yield 'nested & suffix' => [".a {\n  color: red;\n  &-b {\n    white-space: pre-line\n  }\n}", ['a-b']];
+        yield 'nested under a selector list' => ['.a, .c { &-b { white-space: pre-wrap; } }', ['a-b', 'c-b']];
+        yield 'nested descendant' => ['.a { .b > .c:not(.d .e) { white-space: pre } }', ['c']];
+        yield 'parent after the child' => ['.a { .b & { white-space: break-spaces } }', ['a']];
+        yield 'pseudo-class on the parent' => ['.a { &:hover { white-space: pre } }', ['a']];
+        yield 'inside @media' => ['.a { @media (min-width: 1px) { white-space: pre; } }', ['a']];
+        yield 'interpolation and a line comment' => [".a {\n  // .x { white-space: pre }\n  color: #{\$c};\n  .b { white-space: pre }\n}", ['b']];
+        yield 'minified' => ['.a{white-space:pre}.b{white-space:nowrap}@media(min-width:1px){.c{white-space:pre-line}}', ['a', 'c']];
+        yield 'nowrap and normal' => ['.a { white-space: nowrap; } .b { &-c { white-space: normal } }', []];
+    }
+
+    /**
+     * @param list<string> $expected
+     */
+    #[DataProvider('stylesheets')]
+    public function testTheStylesheetScanResolvesNesting(string $css, array $expected): void
+    {
+        self::assertSame($expected, self::whitespacePreservingClasses($css));
     }
 
     /**
@@ -134,38 +245,133 @@ final class ChromeWhitespaceTest extends WebTestCase
     }
 
     /**
+     * @return list<string> the reasons of WHITESPACE_SENSITIVE that match the template's code
+     */
+    private static function whitespaceSensitive(string $code): array
+    {
+        $code = (string) preg_replace('~\{#.*?#\}~s', '', $code);
+        $reasons = [];
+
+        foreach (self::WHITESPACE_SENSITIVE as $pattern => $reason) {
+            if (preg_match($pattern, $code) === 1) {
+                $reasons[] = $reason;
+            }
+        }
+
+        return $reasons;
+    }
+
+    /**
+     * The classes of the elements white-space: pre* rules style: every SCSS file of assets/styles (nested rules
+     * resolved) and the <style> of the listed templates (the critical CSS)
+     *
+     * @param array<string, string> $templates
      * @return list<string>
      */
-    private function classesOfWhitespacePreservingRules(): array
+    private function classesOfWhitespacePreservingRules(array $templates): array
     {
         $classes = [];
         $root = dirname(__DIR__, 2) . '/assets/styles';
 
         foreach (new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($root, \FilesystemIterator::SKIP_DOTS)) as $file) {
-            if (!$file instanceof \SplFileInfo || $file->getExtension() !== 'scss') {
-                continue;
+            if ($file instanceof \SplFileInfo && $file->getExtension() === 'scss') {
+                $classes = [...$classes, ...self::whitespacePreservingClasses((string) file_get_contents($file->getPathname()))];
+            }
+        }
+
+        foreach ($templates as $name => $code) {
+            $code = (string) preg_replace(['~\{#.*?#\}~s', '~\{\{.*?\}\}~s', '~\{%.*?%\}~s'], '', $code);
+            $styles = str_ends_with($name, 'css.html.twig') ? [$code] : [];
+
+            if (preg_match_all('~<style\b[^>]*>(.*?)</style>~is', $code, $blocks) > 0) {
+                $styles = [...$styles, ...$blocks[1]];
             }
 
-            $lines = file($file->getPathname()) ?: [];
-
-            foreach ($lines as $number => $line) {
-                if (preg_match('~white-space\s*:\s*(pre|break-spaces)~', $line) !== 1) {
-                    continue;
-                }
-
-                // The selector of the block the declaration sits in: the nearest line above ending with {
-                for ($i = $number - 1; $i >= 0; $i--) {
-                    if (preg_match('~^(.*)\{\s*$~', $lines[$i], $selector) === 1) {
-                        preg_match_all('~\.([a-zA-Z][\w-]*)~', $selector[1], $names);
-                        $classes = [...$classes, ...$names[1]];
-
-                        break;
-                    }
-                }
+            foreach ($styles as $css) {
+                $classes = [...$classes, ...self::whitespacePreservingClasses($css)];
             }
         }
 
         return array_values(array_unique($classes));
+    }
+
+    /**
+     * The classes of the element (the last compound selector) of every rule declaring white-space: pre*, with SCSS
+     * nesting resolved (&, descendants, @media and other at-rules inside a rule)
+     *
+     * @return list<string>
+     */
+    private static function whitespacePreservingClasses(string $css): array
+    {
+        $css = (string) preg_replace(['~/\*.*?\*/~s', '~(^|\s)//[^\n]*~', '~#\{[^}]*\}~'], ['', '$1', 'x'], $css);
+        /** @var list<list<string>> $stack */
+        $stack = [['']];
+        $buffer = '';
+        $classes = [];
+
+        for ($i = 0, $length = strlen($css); $i < $length; $i++) {
+            $char = $css[$i];
+
+            if ($char === '{') {
+                $stack[] = self::nest($stack[count($stack) - 1], trim($buffer));
+                $buffer = '';
+
+                continue;
+            }
+
+            if ($char !== '}' && $char !== ';') {
+                $buffer .= $char;
+
+                continue;
+            }
+
+            if (preg_match('~(^|\s)white-space\s*:\s*(pre|break-spaces)~', $buffer) === 1) {
+                foreach ($stack[count($stack) - 1] as $selector) {
+                    $classes = [...$classes, ...self::subjectClasses($selector)];
+                }
+            }
+
+            if ($char === '}' && count($stack) > 1) {
+                array_pop($stack);
+            }
+
+            $buffer = '';
+        }
+
+        return array_values(array_unique($classes));
+    }
+
+    /**
+     * @param list<string> $parents
+     * @return list<string>
+     */
+    private static function nest(array $parents, string $selector): array
+    {
+        // @media, @supports, @include … { }: the declarations inside still style the rule they sit in
+        if (str_starts_with($selector, '@')) {
+            return $parents;
+        }
+
+        $resolved = [];
+
+        foreach (preg_split('~,(?![^(]*\))~', $selector) ?: [] as $part) {
+            foreach ($parents as $parent) {
+                $resolved[] = str_contains($part, '&') ? str_replace('&', $parent, trim($part)) : trim($parent . ' ' . trim($part));
+            }
+        }
+
+        return $resolved;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private static function subjectClasses(string $selector): array
+    {
+        $compounds = preg_split('#\s*[>+~]\s*|\s+#', trim((string) preg_replace('~\([^)]*\)~', '', $selector))) ?: [];
+        preg_match_all('~\.([a-zA-Z][\w-]*)~', (string) end($compounds), $names);
+
+        return $names[1];
     }
 
     /**

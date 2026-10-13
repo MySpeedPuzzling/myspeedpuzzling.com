@@ -31,9 +31,7 @@
   "for_organizers": "Pour organisateurs"
   "feature_requests": "Suggestions"
 "accessibility":
-  "toggle_navigation": "Basculer la navigation"
   "barcode_scanner": "Scanner le code-barres"
-  "notifications_count": "Notifications (%count%)"
 "navigation":
   "home": "Accueil"
 "form":
@@ -130,7 +128,6 @@
 "new_badge": "Nouveau"
 "secret_puzzler_name": "Puzzleur masqué"
 "right_now": "En ce moment"
-"live_event_strip": "En direct : %event% – Ajouter & voir les résultats"
 "live_refresh":
   "pause": "Mettre en pause les mises à jour automatiques"
   "countdown": "Mise à jour automatique dans %count% seconde|Mise à jour automatique dans %count% secondes"
@@ -6476,7 +6473,6 @@ favorite_puzzlers:
         "text": "Les réponses aux questions courantes."
 
 free_trial:
-    topbar_badge: "Essai"
     offer:
         title: "Essayez l'adhésion gratuitement pendant %days% jours"
         reassurance: "Sans carte. Rien à résilier. Il se termine tout seul."

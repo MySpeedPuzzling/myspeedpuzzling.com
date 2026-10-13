@@ -18,8 +18,11 @@ use Twig\NodeVisitor\NodeVisitorInterface;
  * drops the line break after a block tag, not the spaces after it) one space. Only the template's own text changes,
  * never what an expression prints (a translation, a URL, a JSON attribute). The browser reads both the same: HTML
  * collapses any whitespace run into one space, and none of these templates has a <pre>, a <textarea> or an element
- * styled white-space: pre* around literal text (ChromeWhitespaceTest). The line break, not nothing, keeps every inline
- * script's line endings, so a // comment still ends and automatic semicolon insertion sees what it saw before.
+ * styled white-space: pre* around literal text, nor literal text Twig or a script reads as data - a {% trans %} body
+ * (the message id), a {% set %} capture, {% verbatim %}, {% apply %}, a JS template literal (ChromeWhitespaceTest).
+ * A change to this class recompiles the cached templates (ChromeWhitespaceTwigExtension::getLastModified()). The line
+ * break, not nothing, keeps every inline script's line endings, so a // comment still ends and automatic semicolon
+ * insertion sees what it saw before.
  *
  * A template rendered around the content of every page belongs here; a partial shared with page content does not
  * (its bytes are not the chrome's).

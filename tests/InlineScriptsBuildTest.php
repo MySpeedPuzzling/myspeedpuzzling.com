@@ -9,8 +9,9 @@ use PHPUnit\Framework\TestCase;
 /**
  * The inline <head> scripts every page carries are inlined as their minified builds (docs/features/navigation README
  * §4.12 "Weight"): tools/build-inline-scripts.mjs (npm run inline-scripts) turns the readable ES5 sources in
- * assets/head/ and assets/inline/ into templates/_inline_scripts/, and records each source's hash in sources.json.
- * A source changed without a new build fails here - the page would ship the old behaviour. What the builds do is
+ * assets/head/ and assets/inline/ into templates/_inline_scripts/, and records the hash of each source and of its build
+ * in sources.json. A source changed without a new build fails here - the page would ship the old behaviour - and so
+ * does a build edited by hand: the next build would silently drop that edit. What the builds do is
  * tested on the rendered page (PlatformOsScriptTest, AssetFailureScriptTest, StaleDocumentScriptTest) and against
  * their sources (NavLayoutScriptTest, TopbarScrollScriptTest).
  */
@@ -42,6 +43,11 @@ final class InlineScriptsBuildTest extends TestCase
                 $entry['source'] . ' changed after its build: run `npm run inline-scripts` and commit ' . self::BUILDS . $built,
             );
             self::assertFileExists($this->root() . '/' . self::BUILDS . $built);
+            self::assertSame(
+                $entry['build_sha256'],
+                hash('sha256', $this->read(self::BUILDS . $built)),
+                self::BUILDS . $built . ' is not the build of ' . $entry['source'] . ': edit ' . $entry['source'] . ' and run `npm run inline-scripts`; never edit ' . self::BUILDS,
+            );
         }
 
         // Every head script and inline script has a build - a new one cannot be inlined from its source by mistake
@@ -83,11 +89,11 @@ final class InlineScriptsBuildTest extends TestCase
     }
 
     /**
-     * @return array<string, array{source: string, sha256: string}>
+     * @return array<string, array{source: string, sha256: string, build_sha256: string}>
      */
     private function manifest(): array
     {
-        /** @var array<string, array{source: string, sha256: string}> $manifest */
+        /** @var array<string, array{source: string, sha256: string, build_sha256: string}> $manifest */
         $manifest = json_decode($this->read(self::BUILDS . 'sources.json'), true, flags: JSON_THROW_ON_ERROR);
 
         return $manifest;

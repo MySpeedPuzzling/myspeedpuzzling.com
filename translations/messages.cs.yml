@@ -31,9 +31,7 @@
   "for_organizers": "Pro organizátory"
   "feature_requests": "Návrhy funkcí"
 "accessibility":
-  "toggle_navigation": "Přepnout navigaci"
   "barcode_scanner": "Skenovat čárový kód"
-  "notifications_count": "Oznámení (%count%)"
 "form":
   "visibility": "Viditelnost"
   "visibility_public": "Veřejná"
@@ -130,7 +128,6 @@ pieces_filter:
 "new_badge": "Nové"
 "secret_puzzler_name": "Utajený Puzzler"
 "right_now": "Právě teď"
-"live_event_strip": "Živě: %event% – přidejte čas a sledujte výsledky"
 
 live_refresh:
     pause: "Pozastavit automatické aktualizace"
@@ -6483,7 +6480,6 @@ onboarding:
                 text: "Odpovědi na běžné otázky."
 
 free_trial:
-    topbar_badge: "Zkouška"
     offer:
         title: "Vyzkoušej členství na %days% dní zdarma"
         reassurance: "Bez karty. Nic se neruší. Skončí samo."

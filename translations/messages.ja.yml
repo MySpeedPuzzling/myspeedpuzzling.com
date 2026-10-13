@@ -31,9 +31,7 @@
   "for_organizers": "主催者向け"
   "feature_requests": "機能リクエスト"
 "accessibility":
-  "toggle_navigation": "ナビゲーション切替"
   "barcode_scanner": "バーコードスキャン"
-  "notifications_count": "通知 (%count%)"
 "navigation":
   "home": "ホーム"
 "form":
@@ -124,7 +122,6 @@
 "new_badge": "新着"
 "secret_puzzler_name": "秘密のパズラー"
 "right_now": "今すぐ"
-"live_event_strip": "開催中：%event% – 記録を追加・結果をチェック"
 "round_results":
   "meta":
     "title": "%event% – %round% 結果"
@@ -6371,7 +6368,6 @@ favorite_puzzlers:
         "text": "よくある質問への回答。"
 
 free_trial:
-    topbar_badge: "お試し中"
     offer:
         title: "メンバーシップを%days%日間無料でお試し"
         reassurance: "カード不要。解約手続きも不要。自動的に終了します。"

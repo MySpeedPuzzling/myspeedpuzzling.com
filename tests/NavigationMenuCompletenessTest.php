@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests;
 
+use Doctrine\DBAL\Connection;
 use PHPUnit\Framework\Attributes\DataProvider;
 use SpeedPuzzling\Web\Navigation\MenuSurface;
 use SpeedPuzzling\Web\Navigation\NavEntry;
 use SpeedPuzzling\Web\Navigation\NavigationRegistry;
+use SpeedPuzzling\Web\Navigation\NavVisibility;
 use SpeedPuzzling\Web\Tests\Navigation\NavigationViewer;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -25,7 +27,11 @@ use Symfony\Component\Routing\RouterInterface;
  *   or a destination the registry keeps out of the Menu on purpose (its reason); the only exceptions are the guests'
  *   footer links to signed-in rows (GUEST_FOOTER_ONLY);
  * - every row the viewer gets and every entry their page search lists opens for them (the viewer's own parameters
- *   filled, nav_go and every redirect followed): 200, never 403/404, never the sign-in page for a signed-in viewer.
+ *   filled, nav_go and every redirect followed): 200, never 403/404, never the sign-in page for a signed-in viewer,
+ *   and for a guest only from the guest card's Sign in / Join free (a guest row that needs signing in would be a
+ *   locked row - D13: hidden, never locked);
+ * - the viewers between them are in every audience a row or a search-only entry uses (VIEWERS), and each one reaches
+ *   rows of the audiences it is listed for - so no audience's rows go unopened.
  *
  * Removing a row and its search-only entry makes it fail. Runs after NAV-06 and again in QA.
  */
@@ -53,14 +59,60 @@ final class NavigationMenuCompletenessTest extends WebTestCase
         'multiscan' => 'Add & track › Scan several boxes',
     ];
 
+    // PLAYER with karma set in the test (no fixture has any; DAMA rolls it back), as KarmaPagesTest does
+    private const string KARMA_HOLDER = 'karma holder';
+
+    /**
+     * The viewers, each with the audiences (NavVisibility) whose rows it is here to open - between them every audience
+     * a row or a search-only entry uses (testTheViewersCoverEveryAudience), each reached by its viewer
+     * (testEveryRowAndSearchEntryOfTheViewerOpens). The member is also an event owner; the admin is the moderator and
+     * the time verifier too; MEMBER_ONLY (PLAYER_PRIVATE with a membership) is the private member.
+     *
+     * @var array<string, list<NavVisibility>>
+     */
+    private const array VIEWERS = [
+        NavigationViewer::GUEST => [NavVisibility::Everyone, NavVisibility::GuestOnly, NavVisibility::XpVisible],
+        NavigationViewer::PLAYER => [NavVisibility::SignedIn, NavVisibility::XpPlayer, NavVisibility::XpParticipant, NavVisibility::AchievementsShown],
+        self::KARMA_HOLDER => [NavVisibility::KarmaHolder],
+        NavigationViewer::MEMBER => [NavVisibility::Member, NavVisibility::MemberOrReferral, NavVisibility::Organiser],
+        NavigationViewer::MEMBER_ONLY => [NavVisibility::PrivateMember],
+        NavigationViewer::ADMIN => [NavVisibility::Moderator, NavVisibility::TimeVerifier, NavVisibility::Admin],
+    ];
+
+    // The only links a guest's Menu may send to the sign-in or sign-up page: the guest card's Sign in and Join free
+    // (data-nav) and its page-search entry (id). Exact: an entry fails as stale once it no longer gets there
+    private const array GUEST_AUTH_LINKS = ['row menu/you/sign_in', 'row menu/you/join', 'search entry guest_card'];
+
     /**
      * @return iterable<string, array{string}>
      */
     public static function viewers(): iterable
     {
-        foreach ([NavigationViewer::GUEST, NavigationViewer::PLAYER, NavigationViewer::MEMBER, NavigationViewer::ADMIN] as $role) {
-            yield $role => [$role];
+        foreach (array_keys(self::VIEWERS) as $viewer) {
+            yield $viewer => [$viewer];
         }
+    }
+
+    public function testTheViewersCoverEveryAudience(): void
+    {
+        $used = [];
+
+        foreach ($this->registry()->all() as $entry) {
+            if ($entry->isMenuRow() || $entry->isSearchOnly()) {
+                $used[$entry->visibility->value] = true;
+            }
+        }
+
+        $covered = [];
+
+        foreach (self::VIEWERS as $audiences) {
+            foreach ($audiences as $audience) {
+                $covered[$audience->value] = true;
+            }
+        }
+
+        $missing = array_keys(array_diff_key($used, $covered));
+        self::assertSame([], $missing, 'Rows of these audiences are opened by no viewer: add a viewer in them to VIEWERS');
     }
 
     public function testEveryDestinationIsARowASearchEntryOrSaysWhyNot(): void
@@ -105,7 +157,7 @@ final class NavigationMenuCompletenessTest extends WebTestCase
     public function testWhatTheOtherSurfacesLinkIsInTheViewersMenu(string $role): void
     {
         $browser = self::createClient();
-        NavigationViewer::signIn($browser, $role);
+        $this->signIn($browser, $role);
 
         $crawler = $browser->request('GET', self::PAGE);
         self::assertResponseIsSuccessful();
@@ -156,10 +208,13 @@ final class NavigationMenuCompletenessTest extends WebTestCase
     public function testEveryRowAndSearchEntryOfTheViewerOpens(string $role): void
     {
         $browser = self::createClient();
-        $playerId = NavigationViewer::signIn($browser, $role);
+        $playerId = $this->signIn($browser, $role);
 
         $crawler = $browser->request('GET', self::PAGE);
         self::assertResponseIsSuccessful();
+
+        // The registry entries the viewer gets: the rows of their Menu, the entries of their page search
+        $reached = $this->menuIds($crawler);
 
         // The rows as the viewer gets them, the Log out row aside (it ends the session)
         $targets = [];
@@ -183,12 +238,31 @@ final class NavigationMenuCompletenessTest extends WebTestCase
             }
 
             $targets[$this->withoutFragment($item['u'])] ??= 'search entry ' . $item['id'];
+            $reached[$item['id']] = true;
         }
 
         self::assertGreaterThan($rows, count($targets), 'The page search adds no destination of its own');
 
+        // The viewer is here for these audiences: rows (or search entries) of each are among what they open
+        $registry = $this->registry();
+        $reachedAudiences = [];
+
+        foreach (array_keys($reached) as $id) {
+            $entry = $registry->byId((string) $id);
+
+            if ($entry !== null) {
+                $reachedAudiences[$entry->visibility->value] = true;
+            }
+        }
+
+        foreach (self::VIEWERS[$role] as $audience) {
+            self::assertArrayHasKey($audience->value, $reachedAudiences, sprintf('%s: no row of the audience "%s" in their Menu or page search', $role, $audience->value));
+        }
+
         $login = $this->router()->generate('login');
+        $signInPages = [$login, $this->router()->generate('register')];
         $failures = [];
+        $guestAuthLinks = [];
 
         foreach ($targets as $url => $source) {
             if ($url === '' || !str_starts_with($url, '/')) {
@@ -201,10 +275,40 @@ final class NavigationMenuCompletenessTest extends WebTestCase
                 $failures[] = sprintf('%s → %d (%s)', $url, $status, $source);
             } elseif ($playerId !== null && $finalPath === $login) {
                 $failures[] = sprintf('%s → the sign-in page (%s)', $url, $source);
+            } elseif ($playerId === null && in_array($finalPath, $signInPages, true)) {
+                if (in_array($source, self::GUEST_AUTH_LINKS, true)) {
+                    $guestAuthLinks[] = $source;
+                } else {
+                    $failures[] = sprintf('%s → %s: a guest row that needs signing in is a locked row (%s)', $url, $finalPath, $source);
+                }
             }
         }
 
+        if ($playerId === null) {
+            sort($guestAuthLinks);
+            $expected = self::GUEST_AUTH_LINKS;
+            sort($expected);
+            self::assertSame($expected, $guestAuthLinks, 'Stale GUEST_AUTH_LINKS: the guest card\'s links no longer reach the sign-in or sign-up page');
+        }
+
         self::assertSame([], $failures, sprintf("%s: Menu rows and page-search entries that do not open:\n%s", $role, implode("\n", $failures)));
+    }
+
+    /**
+     * NavigationViewer::signIn(), and the karma holder: PLAYER with karma (XP is launched in the tests)
+     */
+    private function signIn(KernelBrowser $browser, string $viewer): null|string
+    {
+        if ($viewer !== self::KARMA_HOLDER) {
+            return NavigationViewer::signIn($browser, $viewer);
+        }
+
+        $playerId = NavigationViewer::signIn($browser, NavigationViewer::PLAYER);
+        self::assertIsString($playerId);
+        $connection = $browser->getContainer()->get(Connection::class);
+        $connection->executeStatement('UPDATE player SET karma = 7 WHERE id = :id', ['id' => $playerId]);
+
+        return $playerId;
     }
 
     /**

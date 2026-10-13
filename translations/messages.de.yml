@@ -31,9 +31,7 @@
   "for_organizers": "Für Veranstalter"
   "feature_requests": "Feature-Vorschläge"
 "accessibility":
-  "toggle_navigation": "Navigation umschalten"
   "barcode_scanner": "Barcode scannen"
-  "notifications_count": "Benachrichtigungen (%count%)"
 "form":
   "visibility": "Sichtbarkeit"
   "visibility_public": "Öffentlich"
@@ -122,7 +120,6 @@
 "new_badge": "Neu"
 "secret_puzzler_name": "Versteckter Puzzler"
 "right_now": "Gerade jetzt"
-"live_event_strip": "Jetzt live: %event% – Zeit eintragen & Ergebnisse"
 "round_results":
   "meta":
     "title": "%event% – %round% Ergebnisse"
@@ -6382,7 +6379,6 @@ onboarding:
                 text: "Antworten auf häufige Fragen."
 
 free_trial:
-    topbar_badge: "Test"
     offer:
         title: "Teste die Mitgliedschaft %days% Tage kostenlos"
         reassurance: "Keine Karte. Nichts zu kündigen. Endet von selbst."

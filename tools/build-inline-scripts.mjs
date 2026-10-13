@@ -2,7 +2,8 @@
 // plan risk 8): the readable ES5 sources in assets/head/ (the platform flags, templates/_head_flags.html.twig) and
 // assets/inline/ (the asset-failure and stale-document beacons, base.html.twig) are minified with terser into
 // templates/_inline_scripts/, which the templates inline with source(). The output is committed; sources.json records
-// the hash of each source, and tests/InlineScriptsBuildTest.php fails when a source changed without a new build.
+// the hash of each source and of its build, and tests/InlineScriptsBuildTest.php fails when a source changed without a
+// new build, or when a build was edited by hand (the next build would silently drop that edit: edit the source).
 //
 //   npm run inline-scripts      (or: node tools/build-inline-scripts.mjs)
 //
@@ -46,7 +47,11 @@ for (const [built, source] of Object.entries(SCRIPTS)) {
     }
 
     writeFileSync(join(ROOT, OUT, built), result.code);
-    manifest[built] = { source, sha256: createHash('sha256').update(code).digest('hex') };
+    manifest[built] = {
+        source,
+        sha256: createHash('sha256').update(code).digest('hex'),
+        build_sha256: createHash('sha256').update(result.code).digest('hex'),
+    };
     console.log(`${source} ${Buffer.byteLength(code)} B → ${OUT}/${built} ${Buffer.byteLength(result.code)} B`);
 }
 

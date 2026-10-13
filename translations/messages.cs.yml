@@ -2095,6 +2095,11 @@ badges:
   "instructions": "Namiřte vaší kameru na EAN (čárový kód) na krabic a zkuste své štěstí - pokud jsou puzzle v naší databázi, najdeme je ;-)."
   "not_found": "Bohužel puzzle s EAN %code% u nás nejsou. Budeme velmi vděční, pokud k nám přidáte svůj čas s těmito puzzlemi."
   "puzzle_ean_barcode": "Naskenovat EAN kód puzzle"
+  "hint": "Drž kód asi 20 cm od telefonu. Klepnutím na obraz zaostříš."
+  "torch": "Světlo"
+  "zoom_level": "Přiblížení %zoom%×"
+  "zoom_in": "Přiblížit"
+  "zoom_out": "Oddálit"
   "puzzle_form":
     "not_found": "Puzzle s EAN %ean% nebylo nalezeno. Zkuste hledat podle názvu nebo přidejte nové puzzle."
     "multiple_brands": "Pro EAN %ean% bylo nalezeno více značek. Vyberte jednu z nabídky."

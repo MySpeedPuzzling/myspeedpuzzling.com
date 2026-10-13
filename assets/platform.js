@@ -54,3 +54,27 @@ export function isStandalone(root) {
 
     return element.classList.contains('is-standalone') && !isNativeApp(element);
 }
+
+/**
+ * For diagnostics a person reads (the barcode scanner's ?scan-debug=1 panel, docs/features/barcode-scanner README
+ * §5.6) - never to decide anything; decisions use os() / nativePlatform(). The browser's user-agent string.
+ */
+export function browserDiagnostics(nav) {
+    const navigatorObject = nav === undefined ? (typeof navigator !== 'undefined' ? navigator : null) : nav;
+
+    return navigatorObject && typeof navigatorObject.userAgent === 'string' ? navigatorObject.userAgent : '';
+}
+
+/** Same purpose: the device model and OS version where the browser tells them (Chromium), else null */
+export function deviceModel(nav) {
+    const navigatorObject = nav === undefined ? (typeof navigator !== 'undefined' ? navigator : null) : nav;
+    const data = navigatorObject ? navigatorObject.userAgentData : null;
+
+    if (!data || typeof data.getHighEntropyValues !== 'function') {
+        return Promise.resolve(null);
+    }
+
+    return data.getHighEntropyValues(['model', 'platformVersion'])
+        .then(values => [values.model, values.platform, values.platformVersion].filter(Boolean).join(' ') || null)
+        .catch(() => null);
+}

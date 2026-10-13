@@ -2089,6 +2089,11 @@ competition_referees:
   "instructions": "Pointez votre caméra vers l'EAN (code-barres) sur la boîte et tentez votre chance - si le puzzle est dans la base de données, nous le trouverons ;-)."
   "not_found": "Malheureusement, le puzzle avec EAN %code% n'est pas dans notre base de données. N'hésitez pas à suivre le temps et à les ajouter, nous en serions reconnaissants."
   "puzzle_ean_barcode": "Scanner le code-barres EAN du puzzle"
+  "hint": "Tenez le code-barres à environ 20 cm. Touchez l'image pour refaire la mise au point."
+  "torch": "Lampe"
+  "zoom_level": "Zoom %zoom%×"
+  "zoom_in": "Zoomer"
+  "zoom_out": "Dézoomer"
   "puzzle_form":
     "multiple_brands": "Plusieurs marques trouvées pour l'EAN %ean%. Veuillez en sélectionner une dans la liste."
     "multiple_puzzles": "Plusieurs puzzles trouvés pour l'EAN %ean%. Veuillez en sélectionner un dans la liste."

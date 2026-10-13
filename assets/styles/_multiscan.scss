@@ -20,6 +20,8 @@
 
     canvas {
         z-index: 30;
+        // Cropped like the video, so a read's outline and the aiming band land where they are on screen
+        object-fit: cover;
     }
 
     .spinner {

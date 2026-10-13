@@ -198,20 +198,8 @@
             <video class="barcode-scanner-video" data-barcode-scanner-target="video" muted autoplay playsinline></video>
             <canvas data-barcode-scanner-target="overlay" class="position-absolute top-0 start-0 w-100"></canvas>
 
-            <div data-barcode-scanner-target="zoomContainer" class="zoom-container d-none">
-                <span data-barcode-scanner-target="zoomValue">Zoom 1x</span>
-
-                <button type="button"
-                        data-action="click->barcode-scanner#zoomOut"
-                        data-barcode-scanner-target="zoomOut"
-                        data-nav="{{ nav_surface }}/search/zoom_out"
-                        class="btn btn-sm btn-outline-primary ms-2 me-1">–</button>
-                <button type="button"
-                        data-action="click->barcode-scanner#zoomIn"
-                        data-barcode-scanner-target="zoomIn"
-                        data-nav="{{ nav_surface }}/search/zoom_in"
-                        class="btn btn-sm btn-outline-primary">+</button>
-            </div>
+            {# The search's scanner lives in the chrome: its buttons carry data-nav like every chrome button (P0-03) #}
+            {{ include('_barcode_scanner_hud.html.twig', {hud_nav: nav_surface ~ '/search'}) }}
         </div>
         {% endif %}
         {% if not menu %}

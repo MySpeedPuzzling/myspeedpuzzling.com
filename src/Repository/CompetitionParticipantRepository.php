@@ -123,6 +123,36 @@ readonly final class CompetitionParticipantRepository
     }
 
     /**
+     * The event's participants who are going (CompetitionParticipant::isGoing() - not removed, not on the waitlist) and
+     * have no personal link of an online competition yet (docs/features/online-competitions/README.md §5.4), by name.
+     *
+     * @return list<CompetitionParticipant>
+     */
+    public function goingWithoutOnlineToken(string $competitionId): array
+    {
+        if (!Uuid::isValid($competitionId)) {
+            return [];
+        }
+
+        /** @var list<CompetitionParticipant> $participants */
+        $participants = $this->entityManager->createQueryBuilder()
+            ->select('participant')
+            ->from(CompetitionParticipant::class, 'participant')
+            ->where('participant.competition = :competitionId')
+            ->andWhere('participant.deletedAt IS NULL')
+            ->andWhere('(participant.registrationStatus IS NULL OR participant.registrationStatus <> :waitlisted)')
+            ->andWhere('participant.onlineToken IS NULL')
+            ->setParameter('competitionId', $competitionId)
+            ->setParameter('waitlisted', RegistrationStatus::Waitlisted)
+            ->orderBy('participant.name', 'ASC')
+            ->addOrderBy('participant.id', 'ASC')
+            ->getQuery()
+            ->getResult();
+
+        return $participants;
+    }
+
+    /**
      * Many participants in one statement (AdvanceQualified puts a whole qualified field into the next round).
      *
      * @param list<string> $participantIds

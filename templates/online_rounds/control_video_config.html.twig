@@ -1,0 +1,18 @@
+{#
+    The control room's live video (stream VM, contract phase-1b.md): what assets/online/console_video.js needs - the
+    hall's token, "Invite to the studio", "Withdraw" / "Thank you" (the invitation's id in place of the placeholder),
+    the studio's invitations (online_studio asked for JSON) - and the stateless CSRF token of the organiser's JSON
+    endpoints (OfficialResultsApi). Rendered only with live video, into data-online-control-video-value.
+#}
+{%- set invite_placeholder = '00000000-0000-0000-0000-000000000000' -%}
+{{- {
+    urls: {
+        token: path('online_video_token', {roundId: round_id}),
+        invite: path('online_studio_invite', {roundId: round_id}),
+        end: path('online_studio_end', {roundId: round_id, inviteId: invite_placeholder}),
+        studio: path('online_studio', {roundId: round_id}),
+    },
+    placeholder: invite_placeholder,
+    csrfToken: csrf_token('official_results'),
+    pageSize: 25,
+}|json_encode|raw -}}

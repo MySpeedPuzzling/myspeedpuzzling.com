@@ -13,6 +13,7 @@ use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use SpeedPuzzling\Web\Repository\OnlineRoundRepository;
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
 use SpeedPuzzling\Web\Security\OnlineRoundsVoter;
+use SpeedPuzzling\Web\Services\LiveKit\LiveKitSettings;
 use SpeedPuzzling\Web\Services\OnlineRounds\OnlineLiveState;
 use SpeedPuzzling\Web\Value\RoundTimezone;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -29,6 +30,11 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
  *
  * Organisers of the event for whom online rounds are on (COMPETITION_EDIT + ONLINE_ROUNDS_MANAGE), rounds with online
  * timing only. Never cached - it carries photo URLs.
+ *
+ * With live video (a media server configured and the round's video on, contract phase-1b.md stream VM) the grid shows
+ * the puzzle cameras, with a spotlight, push-to-talk into the hall and "Invite to the studio"
+ * (assets/online/console_video.js) - read from the environment and the online round already loaded, no statement of its
+ * own. Without it the page is exactly the Phase 1 page.
  */
 #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
 final class OnlineControlRoomController extends AbstractController
@@ -37,6 +43,7 @@ final class OnlineControlRoomController extends AbstractController
         private readonly CompetitionRoundRepository $competitionRoundRepository,
         private readonly OnlineRoundRepository $onlineRoundRepository,
         private readonly OnlineLiveState $onlineLiveState,
+        private readonly LiveKitSettings $liveKitSettings,
         private readonly ClockInterface $clock,
     ) {
     }
@@ -77,6 +84,8 @@ final class OnlineControlRoomController extends AbstractController
             // round's zone (the zone the stopwatch control page reads every start of the round in)
             'start_at_value' => RoundTimezone::toLocal(self::startAtSuggestion($round->startsAt, $now), $timezone)->format('Y-m-d\TH:i:s'),
             'start_at_min' => RoundTimezone::toLocal($now, $timezone)->format('Y-m-d\TH:i'),
+            // The puzzle cameras, push-to-talk and the studio's invitations (templates/online_rounds/control_video*.html.twig)
+            'video_console' => $this->liveKitSettings->isAvailable() && $onlineRound->videoEnabled,
         ]);
         $response->headers->set('Cache-Control', 'private, no-store');
 

@@ -1,0 +1,41 @@
+{#
+    The control room's console with live video (stream VM, contract phase-1b.md): the connection to the hall, push-to-talk
+    into it and the way to the host's studio. assets/online/console_video.js finds its parts by data-online-console
+    and adds the spotlight and the pager around the grid; the cameras, badges and invitations go into the grid's tiles.
+    Rendered only with live video (control.html.twig).
+#}
+
+        <section class="card shadow-sm mb-4 online-console" aria-labelledby="online-console-title" data-online-console-panel>
+            <div class="card-body">
+                <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                    <h2 class="h6 mb-0 me-1" id="online-console-title"><i class="bi bi-camera-video me-1" aria-hidden="true"></i>{{ 'online_rounds.console.title'|trans }}</h2>
+                    <span class="badge text-bg-secondary" data-online-console="connection" role="status">{{ 'online_rounds.console.connection.connecting'|trans }}</span>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" data-online-console="reconnect" hidden>
+                        <i class="bi bi-arrow-repeat me-1" aria-hidden="true"></i>{{ 'online_rounds.console.reconnect'|trans }}
+                    </button>
+                </div>
+                <p class="online-rounds-prose small text-body-secondary mb-3">{{ 'online_rounds.console.intro'|trans }}</p>
+
+                <div class="online-talk" aria-labelledby="online-talk-title" role="group">
+                    <h3 class="h6 mb-2" id="online-talk-title">{{ 'online_rounds.console.talk.title'|trans }}</h3>
+                    <div class="d-flex flex-wrap align-items-center gap-2">
+                        <button type="button" class="btn btn-outline-primary" data-online-console="micEnable">
+                            {{ 'online_rounds.console.talk.enable'|trans }}
+                        </button>
+                        <button type="button" class="btn btn-danger online-talk-hold" data-online-console="hold" aria-pressed="false" hidden>
+                            <i class="bi bi-mic-fill me-1" aria-hidden="true"></i>{{ 'online_rounds.console.talk.hold'|trans }}
+                        </button>
+                        <button type="button" class="btn btn-outline-danger" data-online-console="latch" aria-pressed="false" hidden>
+                            {{ 'online_rounds.console.talk.latch'|trans }}
+                        </button>
+                        <span class="online-talk-on-air" data-online-console="onAir" role="status" hidden>
+                            <span class="online-talk-dot" aria-hidden="true"></span>{{ 'online_rounds.console.talk.on_air'|trans }}
+                            <span class="font-monospace ms-1" data-online-console="onAirTime"></span>
+                        </span>
+                    </div>
+                    <p class="form-text mb-0">{{ 'online_rounds.console.talk.help'|trans }}</p>
+                    <p class="small text-danger mb-0 mt-1" role="alert" data-online-console="talkError" hidden></p>
+                    <p class="small mb-0 mt-1 online-talk-others" role="status" data-online-console="othersTalking" hidden></p>
+                </div>
+            </div>
+        </section>

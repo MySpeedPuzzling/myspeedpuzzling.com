@@ -279,7 +279,7 @@ One page, its screens driven by the round state:
 
 **Outbox.** Events go into IndexedDB first and are sent in batches, retried until acknowledged (`official_results_outbox.js` pattern: one sending tab, backoff, `beforeunload` warning while anything is unsent). A finish recorded offline keeps its exact time; the server marks it "arrived late" and the review sees by how much.
 
-**Presence = heartbeats in `redis-state`, never Postgres.** Every 15 s: device id, camera ok + resolution, detector fps, clock offset/RTT, page visible, last event. One Lua/HSET per heartbeat into `online:{roundId}:presence`, TTL a few hours. The answer is `{serverNowMs, stateHash}` - a clock sample and a state check in one.
+**Presence = heartbeats in `redis-state`, never Postgres.** Every 15 s: device id, camera ok + resolution, detector fps, clock offset/RTT, page visible, last event. One Lua/HSET per heartbeat into `online:{roundId}:presence`, TTL a few hours. Only the device holding the entry (the last one ready - any while none is) writes the participant's presence; another device on the same link (a second phone, a laptop that never agreed to the photos) is kept apart and shows in the control room's data as `otherDevice`. The answer is `{serverNowMs, stateHash}` - a clock sample and a state check in one.
 
 **Evidence photos** (JPEG, private object storage `online/{competitionId}/{roundId}/{participantId}/{photoId}.jpg`):
 

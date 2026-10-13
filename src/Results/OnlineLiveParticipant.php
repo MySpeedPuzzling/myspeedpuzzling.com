@@ -6,9 +6,10 @@ namespace SpeedPuzzling\Web\Results;
 
 /**
  * One participant of the control room's grid (`online_live`, docs/features/online-competitions/implementation-plan.md
- * WP 1.7): who they are, whether their phone made contact and said it is ready, its last heartbeat (`presence` - null
- * when none is known), the last Finished tap not undone, what they reported at time-up, the review, the latest periodic
- * photo with a short-lived URL. Times are epoch milliseconds on the server's clock.
+ * WP 1.7): who they are, whether their phone made contact and said it is ready, the last heartbeat of the device
+ * holding their entry (`presence` - null when none is known), another device open on the same link (`otherDevice`),
+ * the last Finished tap not undone, what they reported at time-up, the review, the latest periodic photo with a
+ * short-lived URL. Times are epoch milliseconds on the server's clock.
  *
  * @phpstan-type Presence array{lastSeenMs: null|int, deviceId: null|string, visible: null|bool, camera: null|array{ok: null|bool, w: null|int, h: null|int, fps: null|float}, clock: null|array{offsetMs: null|float, rttMs: null|float}, outbox: null|array{events: null|int, media: null|int}}
  */
@@ -17,6 +18,7 @@ readonly final class OnlineLiveParticipant implements \JsonSerializable
     /**
      * @param null|Presence $presence
      * @param list<string> $flags
+     * @param null|array{deviceId: null|string, lastSeenMs: null|int} $otherDevice
      */
     public function __construct(
         public string $participantId,
@@ -40,6 +42,8 @@ readonly final class OnlineLiveParticipant implements \JsonSerializable
         public null|string $photoMediaId,
         public null|int $photoTakenMs,
         public null|string $photoUrl,
+        // Another device beat on the same link (kept apart from the holder's presence) - its id and when it was seen
+        public null|array $otherDevice = null,
     ) {
     }
 
@@ -58,6 +62,7 @@ readonly final class OnlineLiveParticipant implements \JsonSerializable
             'activeDeviceId' => $this->activeDeviceId,
             'readyClockRttMs' => $this->readyClockRttMs,
             'presence' => $this->presence,
+            'otherDevice' => $this->otherDevice,
             'finish' => $this->finishMomentMs === null ? null : [
                 'eventId' => $this->finishEventId,
                 'momentMs' => $this->finishMomentMs,

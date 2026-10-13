@@ -78,6 +78,25 @@ final class RedisOnlinePresenceTest extends TestCase
         );
     }
 
+    /**
+     * Another device on the same link beats into a field of its own (`{participantId}#other`) - never over the holder's
+     */
+    public function testAnotherDevicesBeatIsKeptApart(): void
+    {
+        $this->presence->beat(self::ROUND, self::PARTICIPANT, ['deviceId' => 'phone', 'visible' => true], 1_000);
+        $this->presence->beat(self::ROUND, self::PARTICIPANT, ['deviceId' => 'laptop', 'visible' => false], 2_000, holdsEntry: false);
+        $this->presence->beat(self::ROUND, self::OTHER_PARTICIPANT, ['deviceId' => 'tablet'], 3_000, holdsEntry: false);
+
+        $presence = $this->presence->forRound(self::ROUND);
+        ksort($presence);
+
+        self::assertSame([
+            strtolower(self::PARTICIPANT) => ['deviceId' => 'phone', 'visible' => true, 'lastSeenMs' => 1_000, 'otherDevice' => ['deviceId' => 'laptop', 'lastSeenMs' => 2_000]],
+            self::OTHER_PARTICIPANT => ['otherDevice' => ['deviceId' => 'tablet', 'lastSeenMs' => 3_000]],
+        ], $presence);
+        self::assertSame(1, $this->redis->hExists($this->prefix . strtolower(self::ROUND), strtolower(self::PARTICIPANT) . RedisOnlinePresence::OTHER_DEVICE_SUFFIX) ? 1 : 0);
+    }
+
     public function testARoundNobodyBeatInIsEmpty(): void
     {
         self::assertSame([], $this->presence->forRound(self::ROUND));

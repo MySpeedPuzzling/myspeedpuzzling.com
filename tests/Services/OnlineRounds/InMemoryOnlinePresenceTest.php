@@ -27,4 +27,23 @@ final class InMemoryOnlinePresenceTest extends TestCase
         ], $presence->forRound(self::ROUND));
         self::assertSame([], $presence->forRound(self::OTHER_ROUND));
     }
+
+    public function testAnotherDevicesBeatIsKeptApart(): void
+    {
+        $presence = new InMemoryOnlinePresence();
+        $only = '018d0050-0000-0000-0000-000000000202';
+
+        $presence->beat(self::ROUND, self::PARTICIPANT, ['deviceId' => 'phone', 'visible' => true], 1_000);
+        $presence->beat(self::ROUND, self::PARTICIPANT, ['deviceId' => 'laptop', 'visible' => false], 2_000, holdsEntry: false);
+        $presence->beat(self::ROUND, $only, ['deviceId' => 'tablet'], 3_000, holdsEntry: false);
+
+        self::assertSame([
+            strtolower(self::PARTICIPANT) => ['deviceId' => 'phone', 'visible' => true, 'lastSeenMs' => 1_000, 'otherDevice' => ['deviceId' => 'laptop', 'lastSeenMs' => 2_000]],
+            $only => ['otherDevice' => ['deviceId' => 'tablet', 'lastSeenMs' => 3_000]],
+        ], $presence->forRound(self::ROUND));
+
+        // The laptop takes the link: its beats are the presence now, the phone's older one as "other" is no other device
+        $presence->beat(self::ROUND, self::PARTICIPANT, ['deviceId' => 'laptop', 'visible' => true], 4_000);
+        self::assertSame(['deviceId' => 'laptop', 'visible' => true, 'lastSeenMs' => 4_000], $presence->forRound(self::ROUND)[strtolower(self::PARTICIPANT)]);
+    }
 }

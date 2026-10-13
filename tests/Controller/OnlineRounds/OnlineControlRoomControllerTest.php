@@ -172,6 +172,8 @@ final class OnlineControlRoomControllerTest extends WebTestCase
             'outbox' => ['events' => 0, 'media' => 2],
             'detector' => null,
         ], $nowMs);
+        // A laptop open on the same link - kept apart, never her presence
+        $this->presence()->beat(self::ROUND, OnlineRoundsFixture::PARTICIPANT_CONNECTED, ['deviceId' => 'laptop', 'visible' => false], $nowMs - 5_000, holdsEntry: false);
 
         $browser->request('GET', self::LIVE, server: ['HTTP_ACCEPT' => 'application/json']);
 
@@ -203,6 +205,7 @@ final class OnlineControlRoomControllerTest extends WebTestCase
         self::assertIsArray($arthur);
         self::assertFalse($arthur['seen'], 'his phone never made contact');
         self::assertNull($arthur['presence']);
+        self::assertNull($arthur['otherDevice']);
         self::assertNull($arthur['finish']);
         self::assertNull($arthur['photo']);
 
@@ -222,6 +225,7 @@ final class OnlineControlRoomControllerTest extends WebTestCase
             'clock' => ['offsetMs' => -12.5, 'rttMs' => 38],
             'outbox' => ['events' => 0, 'media' => 2],
         ], $olivia['presence']);
+        self::assertSame(['deviceId' => 'laptop', 'lastSeenMs' => $nowMs - 5_000], $olivia['otherDevice']);
         // The last tap not taken back
         self::assertIsArray($olivia['finish']);
         self::assertSame($startMs + 1_150_000, $olivia['finish']['momentMs']);

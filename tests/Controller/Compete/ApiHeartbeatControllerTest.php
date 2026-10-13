@@ -87,6 +87,34 @@ final class ApiHeartbeatControllerTest extends WebTestCase
         self::assertSame(OnlineRoundsFixture::DEVICE_CONNECTED, self::json($this->browser)['takenOverBy']);
     }
 
+    /**
+     * The control room shows the device holding the entry: a beat of another device on the same link (a laptop that
+     * never got ready, with its camera off) is kept apart - it never overwrites the holder's presence
+     */
+    public function testABeatOfAnotherDeviceNeverOverwritesTheHoldersPresence(): void
+    {
+        // One kernel for both phones - the presence double lives in it
+        $this->browser->disableReboot();
+        self::postJson($this->browser, self::api(OnlineRoundsFixture::TOKEN_CONNECTED, 'heartbeat'), self::beat(OnlineRoundsFixture::DEVICE_CONNECTED));
+        $holder = $this->presence()[OnlineRoundsFixture::PARTICIPANT_CONNECTED];
+
+        self::postJson($this->browser, self::api(OnlineRoundsFixture::TOKEN_CONNECTED, 'heartbeat'), [
+            ...self::beat('laptop-second-screen'),
+            'visible' => false,
+            'camera' => ['ok' => false, 'w' => null, 'h' => null, 'fps' => null],
+        ]);
+        self::assertResponseIsSuccessful();
+        self::assertSame(OnlineRoundsFixture::DEVICE_CONNECTED, self::json($this->browser)['takenOverBy']);
+
+        $beat = $this->presence()[OnlineRoundsFixture::PARTICIPANT_CONNECTED];
+        $otherDevice = $beat['otherDevice'] ?? null;
+        unset($beat['otherDevice']);
+        self::assertSame($holder, $beat, 'the holder\'s camera, visibility and last beat as they were');
+        self::assertIsArray($otherDevice);
+        self::assertSame('laptop-second-screen', $otherDevice['deviceId']);
+        self::assertIsInt($otherDevice['lastSeenMs']);
+    }
+
     public function testAPhoneBeforeItsFirstEventIsHeldByNobody(): void
     {
         self::postJson($this->browser, self::api(OnlineRoundsFixture::TOKEN_ANONYMOUS, 'heartbeat'), self::beat('phone-a'));

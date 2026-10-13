@@ -18,8 +18,9 @@ use SpeedPuzzling\Web\Value\RoundClock;
  * WP 1.7) - the page's first state and every poll after it (every 2-3 s while the page is shown):
  * - `round`: the round's clock as round_state.js reads it (RoundClock: status, the moments in epoch ms, the state hash,
  *   plus the stopwatch status as stored), `asOfMs` = when it was read - a pushed clock newer than that wins on the page;
- * - `participants`: OnlineLiveParticipant per participant entered in the round (GetOnlineLiveParticipants), with their
- *   phone's last heartbeat from the presence (redis-state - never Postgres) and the latest periodic photo's URL
+ * - `participants`: OnlineLiveParticipant per participant entered in the round (GetOnlineLiveParticipants), with the
+ *   last heartbeat of the device holding their entry from the presence (redis-state - never Postgres), another device
+ *   open on the same link (`otherDevice`: its id and when it was seen), and the latest periodic photo's URL
  *   (OnlineMediaStorage::presignGet(), PHOTO_URL_SECONDS: long enough for the image to load, short enough that a URL
  *   leaking from the organiser's screen is soon worthless);
  * - `presenceAvailable`: false when the presence could not be read (logged) - the grid says so instead of showing
@@ -83,7 +84,9 @@ readonly final class OnlineLiveState
                 readyAtMs: $row['ready_at_ms'],
                 activeDeviceId: $row['active_device_id'],
                 readyClockRttMs: $row['clock_rtt_ms'],
-                presence: $beat === null ? null : self::presence($beat),
+                // Only another device beat - the holder's presence is not known
+                presence: $beat === null || !array_key_exists('lastSeenMs', $beat) ? null : self::presence($beat),
+                otherDevice: $beat === null ? null : self::otherDevice($beat),
                 finishEventId: $row['tap_id'],
                 finishMomentMs: $row['tap_ms'],
                 finishReceivedAtMs: $row['tap_received_ms'],
@@ -182,6 +185,20 @@ readonly final class OnlineLiveState
                 'events' => self::integer($outbox['events'] ?? null),
                 'media' => self::integer($outbox['media'] ?? null),
             ],
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $beat
+     * @return null|array{deviceId: null|string, lastSeenMs: null|int}
+     */
+    private static function otherDevice(array $beat): null|array
+    {
+        $other = is_array($beat['otherDevice'] ?? null) ? $beat['otherDevice'] : null;
+
+        return $other === null ? null : [
+            'deviceId' => is_string($other['deviceId'] ?? null) ? $other['deviceId'] : null,
+            'lastSeenMs' => self::integer($other['lastSeenMs'] ?? null),
         ];
     }
 

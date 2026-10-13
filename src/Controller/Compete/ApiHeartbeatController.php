@@ -19,7 +19,9 @@ use Symfony\Component\Routing\Attribute\Route;
 
 /**
  * A participant's phone's heartbeat, every 15 s (docs/features/online-competitions/README.md §5.3, §5.6):
- * - the beat goes to the presence of their current round (OnlinePresence, redis-state) when they are entered in it;
+ * - the beat goes to the presence of their current round (OnlinePresence, redis-state) when they are entered in it -
+ *   as the participant's presence only from the device holding the entry (or any while none holds it): another
+ *   device's beat (a second phone, a laptop that never agreed to the photos) is kept apart, never over it;
  * - the answer `{serverNowMs, stateHash, roundId, takenOverBy}` is a clock sample, the hint to fetch the state again
  *   (the round clock's hash or the round itself differ from what the phone holds - RoundClock::stateHash() has no
  *   round id, so both are sent), and `takenOverBy` = the device holding the entry when it is another one (the last
@@ -75,7 +77,8 @@ final class ApiHeartbeatController extends AbstractController
 
         if ($access->roundId !== null && $access->entryId !== null) {
             try {
-                $this->onlinePresence->beat($access->roundId, $access->participantId, $heartbeat->telemetry, $this->api->nowMs());
+                $holdsEntry = $access->activeDeviceId === null || $access->activeDeviceId === $heartbeat->deviceId;
+                $this->onlinePresence->beat($access->roundId, $access->participantId, $heartbeat->telemetry, $this->api->nowMs(), $holdsEntry);
             } catch (\Throwable $e) {
                 $this->logger->warning('Recording an online heartbeat failed', [
                     'round_id' => $access->roundId,

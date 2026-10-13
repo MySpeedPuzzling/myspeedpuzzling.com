@@ -1,7 +1,12 @@
 //
 // Site footer (docs/features/site-footer.md)
 // The theme's darkest slate, so the page visibly ends. Every text on it passes WCAG AA:
-// links 7.7:1, muted text 4.9:1 (5.6:1 on the bar), the light coral 5.3:1.
+// links 7.7:1, muted text 4.9:1 (5.6:1 on the bar), the light coral 5.3:1, white on the deep coral 4.6:1 (the "New"
+// badges and the newsletter button - white on the theme's $primary is 2.8:1, navigation FOOT-01 / NAV-11).
+//
+// The layout steps are in em, not px: an em in a media query is the browser's default text size, so a visitor who
+// set a larger text size gets the narrower layout early instead of columns too narrow for their words (WCAG 1.4.4;
+// at 16 px they are exactly Bootstrap's md and lg).
 //
 
 $footer-bg:            $gray-900;
@@ -10,7 +15,11 @@ $footer-heading-color: $white;
 $footer-link-color:    #c5ccd8;
 $footer-muted-color:   #98a2b3;
 $footer-accent-color:  #ff8384;
+$footer-strong-accent: #d63c42;
 $footer-rule-color:    rgba($white, .12);
+$footer-two-columns:   20em;
+$footer-md:            48em;
+$footer-lg:            62em;
 
 .site-footer {
   margin-top: 3rem;
@@ -67,9 +76,26 @@ $footer-rule-color:    rgba($white, .12);
 
   a {
     display: inline-block;
+    // A word longer than its column (a large text size) breaks instead of widening the page
+    max-width: 100%;
     padding: .1875rem 0;
     line-height: 1.4;
+    overflow-wrap: anywhere;
   }
+}
+
+// "New" after a link (templates/navigation/_new_badge.html.twig)
+.nav-new {
+  display: inline-block;
+  margin-left: .125rem;
+  padding: .25em .5em;
+  border-radius: 50rem;
+  background-color: $footer-strong-accent;
+  color: $white;
+  font-size: .75em;
+  font-weight: $font-weight-medium;
+  line-height: 1;
+  vertical-align: .1em;
 }
 
 // Newsletter band (guests)
@@ -83,10 +109,19 @@ $footer-rule-color:    rgba($white, .12);
   padding-top: 1.75rem;
   padding-bottom: 1.75rem;
 
-  @include media-breakpoint-up(md) {
+  @media (min-width: $footer-md) {
     grid-template-columns: minmax(0, 1fr) minmax(18rem, 26rem);
     align-items: start;
     gap: 2rem;
+  }
+
+  .btn-primary {
+    --#{$prefix}btn-bg: #{$footer-strong-accent};
+    --#{$prefix}btn-border-color: #{$footer-strong-accent};
+    --#{$prefix}btn-hover-bg: #{darken($footer-strong-accent, 7%)};
+    --#{$prefix}btn-hover-border-color: #{darken($footer-strong-accent, 7%)};
+    --#{$prefix}btn-active-bg: #{darken($footer-strong-accent, 10%)};
+    --#{$prefix}btn-active-border-color: #{darken($footer-strong-accent, 10%)};
   }
 }
 
@@ -114,7 +149,7 @@ $footer-rule-color:    rgba($white, .12);
   padding-top: 2rem;
   padding-bottom: 2rem;
 
-  @include media-breakpoint-up(lg) {
+  @media (min-width: $footer-lg) {
     grid-template-columns: minmax(12rem, 15rem) minmax(0, 1fr);
     gap: 3rem;
     padding-top: 2.5rem;
@@ -127,10 +162,13 @@ $footer-rule-color:    rgba($white, .12);
 
 .footer-columns {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1.75rem 1.25rem;
 
-  @include media-breakpoint-up(md) {
+  @media (min-width: $footer-two-columns) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @media (min-width: $footer-md) {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
@@ -229,7 +267,7 @@ $footer-rule-color:    rgba($white, .12);
   }
 }
 
-@include media-breakpoint-up(md) {
+@media (min-width: $footer-md) {
   .footer-popular-groups {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -275,7 +313,7 @@ $footer-rule-color:    rgba($white, .12);
   padding-top: 1rem;
   padding-bottom: 1.125rem;
 
-  @include media-breakpoint-up(md) {
+  @media (min-width: $footer-md) {
     grid-template-columns: auto minmax(0, 1fr) auto;
     grid-template-areas: "copy legal language";
     column-gap: 1.25rem;

@@ -222,7 +222,8 @@ final class PuzzlePickerControllerTest extends WebTestCase
         $crawler = $browser->request('GET', '/en/puzzle');
         $this->assertResponseIsSuccessful();
         self::assertCount(1, $crawler->filter('a.puzzle-picker-entry[href="/en/what-to-solve-next"]'), 'Small button next to the H1 of the puzzle overview');
-        self::assertCount(1, $crawler->filter('footer a[href="/en/what-to-solve-next"]:contains("What should I solve next?")'), 'Footer link (with the NEW badge)');
+        // The footer's label is the registry's, as on every surface (FOOT-01)
+        self::assertCount(1, $crawler->filter('footer a[href="/en/what-to-solve-next"]:contains("What next?") .nav-new'), 'Footer link (with the NEW badge)');
 
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
 

@@ -34,10 +34,11 @@ final class NavigationLabelHygieneTest extends KernelTestCase
     {
         $sources = $this->navigationPartials();
 
-        self::assertStringContainsString("'marketplace.title'|trans", $sources['_footer.html.twig']);
         // The old header's hamburger Marketplace and Messages tool went with NAV-06: the Menu's rows read their label key
-        // from the registry, the Inbox header's Messages tab its own key
+        // from the registry, the Inbox header's Messages tab its own key; the footer's columns read the registry too
+        // (FOOT-01)
         self::assertStringContainsString('{{ entry.label|trans }}', $sources['navigation/_menu_row.html.twig']);
+        self::assertStringContainsString('{{ link.entry.label|trans }}', $sources['_footer.html.twig']);
         self::assertStringContainsString("'inbox.tab.messages'|trans", $sources['inbox/_header.html.twig']);
 
         // The registry names the same keys (F-01 entries marketplace and messages)

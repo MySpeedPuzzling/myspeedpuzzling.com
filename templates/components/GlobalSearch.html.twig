@@ -25,6 +25,8 @@
 {%- set menu = this.menu -%}
 {%- set member = logged_user.profile is not null and logged_user.profile.activeMembership -%}
 {%- set nav_surface = menu ? 'menu' : 'topbar' -%}
+{#- SRCH-01: the top bar offers a guest the pages of any signed-in player as "Sign in to see …" (the same text for every
+    guest - guest HTML stays shared) -#}
 <div {{ attributes.defaults({
     class: menu ? 'global-search-menu' : 'global-search-bar site-search',
     'data-controller': 'global-search nav-search',
@@ -34,7 +36,7 @@
     'data-nav-search-limit-value': this.limit,
     'data-nav-search-title-value': 'nav.search.pages_settings'|trans,
     'data-nav-search-more-value': 'nav.search.more'|trans,
-}) }}>
+}|merge(not menu and logged_user.profile is null ? {'data-nav-search-sign-in-value': 'nav.search.sign_in_to'|trans} : {})) }}>
     <div data-controller="barcode-scanner" data-barcode-scanner-no-camera-value="{{ 'barcode_scanner.no_camera'|trans }}"{% if member %} data-barcode-scanner-camera-value="search-camera"{% if menu %} data-barcode-scanner-hud-nav-value="menu/search"{% endif %}{% endif %}{% if not menu %} class="site-search-box"{% endif %}>
         {% if menu %}
         <div class="input-group global-search-field">

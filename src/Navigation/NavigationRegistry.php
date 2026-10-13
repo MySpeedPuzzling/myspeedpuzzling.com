@@ -187,7 +187,7 @@ final readonly class NavigationRegistry
     }
 
     /**
-     * The footer's links in column order (filled by FOOT-01).
+     * The footer's links in column order, then position (FOOT-01).
      *
      * @return list<NavEntry>
      */
@@ -198,7 +198,7 @@ final readonly class NavigationRegistry
             static fn (NavEntry $entry): bool => $entry->footer !== null,
         ));
 
-        usort($entries, static fn (NavEntry $a, NavEntry $b): int => [$a->footer?->column, $a->footer?->position] <=> [$b->footer?->column, $b->footer?->position]);
+        usort($entries, static fn (NavEntry $a, NavEntry $b): int => [$a->footer?->column->order(), $a->footer?->position] <=> [$b->footer?->column->order(), $b->footer?->position]);
 
         return $entries;
     }
@@ -334,6 +334,7 @@ final readonly class NavigationRegistry
                 reason: 'Place Community = its landing: Leaderboards · Puzzlers · Events (D1, README §4.9)',
                 since: self::SINCE,
                 kind: RowKind::Place,
+                footer: new FooterPlacement(FooterColumn::Community, 10, newBadge: true),
             ),
             new NavEntry(
                 id: 'profile',
@@ -567,6 +568,7 @@ final readonly class NavigationRegistry
                 count: CountSource::LineUp,
                 activeOn: ['compare_players'],
                 secondary: ['player header compare button', 'Players page'],
+                footer: new FooterPlacement(FooterColumn::Community, 40, newBadge: true, nav: 'track/compare', nofollow: true),
             ),
             new NavEntry(
                 id: 'review_results',
@@ -599,6 +601,7 @@ final readonly class NavigationRegistry
                 since: self::SINCE,
                 legacyLabels: ['menu.pairs_and_teams'],
                 activeOn: ['pairs_and_teams_guest_link'],
+                footer: new FooterPlacement(FooterColumn::Community, 50, newBadge: true, nav: 'track/pairs_and_teams', nofollow: true),
             ),
             new NavEntry(
                 id: 'calendar',
@@ -724,6 +727,7 @@ final readonly class NavigationRegistry
                 description: 'nav.desc.what_next',
                 legacyLabels: ['puzzle_picker.menu_label'],
                 secondary: ['Puzzles › What next? chip'],
+                footer: new FooterPlacement(FooterColumn::Puzzles, 30, newBadge: true, nav: 'track/puzzle_picker'),
             ),
             $this->listRow('unsolved', 'unsolved_puzzles_detail', 'puzzle_search.list.unsolved', 'bi-hourglass-split', 40, 'unsolved_puzzles.title', ['edit_unsolved_puzzles']),
             $this->listRow('sell_swap', 'sell_swap_list_detail', 'puzzle_search.list.sell_swap', 'bi-arrow-left-right', 50, 'sell_swap_list.title', ['edit_sell_swap_list_settings']),
@@ -768,6 +772,7 @@ final readonly class NavigationRegistry
                 legacyLabels: ['menu.ladder'],
                 activeOn: ['ladder_country', ...$ladders],
                 secondary: ['Community landing', 'section chips'],
+                footer: new FooterPlacement(FooterColumn::Community, 20, nav: 'discover/ladder'),
             ),
             new NavEntry(
                 id: 'msp_rating',
@@ -817,6 +822,7 @@ final readonly class NavigationRegistry
                 legacyLabels: ['menu.players'],
                 activeOn: ['players_per_country'],
                 secondary: ['Community landing', 'section chips'],
+                footer: new FooterPlacement(FooterColumn::Community, 30, newBadge: true, nav: 'discover/players'),
             ),
             new NavEntry(
                 id: 'all_puzzlers',
@@ -848,6 +854,7 @@ final readonly class NavigationRegistry
                 legacyLabels: ['menu.events'],
                 activeOn: ['events_archive', 'event_detail', 'event_round_results', 'competition_series_detail', 'edition_detail', 'edition_detail_legacy', 'edition_round_results'],
                 secondary: ['Community landing', 'section chips'],
+                footer: new FooterPlacement(FooterColumn::Community, 60, newBadge: true, nav: 'discover/events'),
             ),
             new NavEntry(
                 id: 'organizations',
@@ -878,6 +885,7 @@ final readonly class NavigationRegistry
                 since: self::SINCE,
                 legacyLabels: ['footer.latest_puzzle_times'],
                 secondary: ['Hub feed'],
+                footer: new FooterPlacement(FooterColumn::Community, 70, nav: 'discover/recent_activity'),
             ),
         ];
     }
@@ -908,6 +916,7 @@ final readonly class NavigationRegistry
                 legacyLabels: ['menu.puzzles_overview', 'footer.puzzle_database'],
                 activeOn: ['puzzles_plural_redirect'],
                 secondary: ['Puzzles › All puzzles chip'],
+                footer: new FooterPlacement(FooterColumn::Puzzles, 10, nav: 'discover/puzzles'),
             ),
             new NavEntry(
                 id: 'brands',
@@ -949,6 +958,7 @@ final readonly class NavigationRegistry
                 section: 'marketplace',
                 activeOn: ['marketplace_puzzle'],
                 secondary: ['Puzzles › Marketplace chip'],
+                footer: new FooterPlacement(FooterColumn::Puzzles, 20, nav: 'discover/marketplace'),
             ),
         ];
     }
@@ -979,6 +989,7 @@ final readonly class NavigationRegistry
                 legacyLabels: ['menu.puzzle_add', 'footer.puzzle_add'],
                 activeOn: ['legacy_add_time', 'edit_time', 'added_time_recap', 'added_tracking_recap'],
                 secondary: ['Add tab', 'desktop + Add button'],
+                footer: new FooterPlacement(FooterColumn::Puzzles, 40, nav: 'track/add_time', nofollow: true),
             ),
             new NavEntry(
                 id: 'stopwatch',
@@ -996,6 +1007,7 @@ final readonly class NavigationRegistry
                 count: CountSource::Stopwatch,
                 activeOn: ['stopwatch_puzzle', 'finish_stopwatch'],
                 secondary: ['Add page', 'running stopwatch pill'],
+                footer: new FooterPlacement(FooterColumn::Puzzles, 50, nav: 'track/stopwatch', nofollow: true),
             ),
             new NavEntry(
                 id: 'multiscan',
@@ -1011,6 +1023,7 @@ final readonly class NavigationRegistry
                 since: self::SINCE,
                 legacyLabels: ['multiscan.title'],
                 secondary: ['Add page'],
+                footer: new FooterPlacement(FooterColumn::Puzzles, 60, newBadge: true, nav: 'track/multiscan', nofollow: true),
             ),
             new NavEntry(
                 id: 'add_event',
@@ -1056,6 +1069,7 @@ final readonly class NavigationRegistry
                 count: CountSource::MembershipStatus,
                 activeOn: ['buy_membership', 'free_trial_started', 'stripe_checkout_success'],
                 secondary: ['You card status line', 'avatar ▾ menu'],
+                footer: new FooterPlacement(FooterColumn::MySpeedPuzzling, 30, nav: 'myspeedpuzzling/membership', nofollow: true),
             ),
             new NavEntry(
                 id: 'settings',
@@ -1160,16 +1174,17 @@ final readonly class NavigationRegistry
                 kind: RowKind::HelpSheet,
                 legacyLabels: ['menu.feedback'],
                 secondary: ['top bar ? / Feedback', 'end-of-page line'],
+                footer: new FooterPlacement(FooterColumn::MySpeedPuzzling, 50, nav: 'myspeedpuzzling/feedback'),
             ),
-            $this->helpRow('methodology', 'methodology', 'nav.row.methodology', 'bi-rulers', 20, legacyLabel: 'footer.methodology'),
+            $this->helpRow('methodology', 'methodology', 'nav.row.methodology', 'bi-rulers', 20, legacyLabel: 'footer.methodology', footer: new FooterPlacement(FooterColumn::Learn, 60, nav: 'learn/methodology')),
             // Help sheet positions (README §4.5, HELP-02): Ideas & feature requests · FAQ · Getting started · How progress
             // works · Where did it go? - after the feedback box and the puzzle correction, before Language and Reload
             // (HelpSheetBuilder::items())
-            $this->helpRow('feature_requests', 'feature_requests', 'nav.row.feature_requests', 'bi-lightbulb', 30, ['feature_request_detail', 'feature_request_edit'], helpSheet: 30, legacyLabel: 'menu.feature_requests'),
-            $this->helpRow('getting_started', 'getting_started', 'onboarding.guide.link', 'bi-signpost-2', 40, helpSheet: 50),
-            $this->helpRow('faq', 'faq', 'menu.faq', 'bi-patch-question', 50, helpSheet: 40),
-            $this->helpRow('guides', 'guides', 'footer.guides', 'bi-book', 60, $guides),
-            $this->helpRow('progression', 'progression_hub', 'progression_hub.menu_label', 'bi-question-circle', 70, [], NavVisibility::XpVisible, helpSheet: 60),
+            $this->helpRow('feature_requests', 'feature_requests', 'nav.row.feature_requests', 'bi-lightbulb', 30, ['feature_request_detail', 'feature_request_edit'], helpSheet: 30, legacyLabel: 'menu.feature_requests', footer: new FooterPlacement(FooterColumn::MySpeedPuzzling, 40, nav: 'myspeedpuzzling/feature_requests')),
+            $this->helpRow('getting_started', 'getting_started', 'onboarding.guide.link', 'bi-signpost-2', 40, helpSheet: 50, footer: new FooterPlacement(FooterColumn::Learn, 10, nav: 'learn/getting_started')),
+            $this->helpRow('faq', 'faq', 'menu.faq', 'bi-patch-question', 50, helpSheet: 40, footer: new FooterPlacement(FooterColumn::Learn, 40, nav: 'learn/faq')),
+            $this->helpRow('guides', 'guides', 'footer.guides', 'bi-book', 60, $guides, footer: new FooterPlacement(FooterColumn::Learn, 50, nav: 'learn/guides')),
+            $this->helpRow('progression', 'progression_hub', 'progression_hub.menu_label', 'bi-question-circle', 70, [], NavVisibility::XpVisible, helpSheet: 60, footer: new FooterPlacement(FooterColumn::Learn, 20, newBadge: true, nav: 'learn/progression_hub', visibility: NavVisibility::XpVisible)),
             // A public page, linked for signed-in players only: guests never had the old menus (R2, README §4.12)
             new NavEntry(
                 id: 'where_did_it_go',
@@ -1185,6 +1200,7 @@ final readonly class NavigationRegistry
                 since: self::SINCE,
                 description: 'nav.desc.where_did_it_go',
                 helpSheet: 70,
+                footer: new FooterPlacement(FooterColumn::Learn, 70, visibility: NavVisibility::SignedIn),
             ),
             new NavEntry(
                 id: 'language',
@@ -1212,10 +1228,10 @@ final readonly class NavigationRegistry
     private function about(): array
     {
         return [
-            $this->aboutRow('tracker_app', 'puzzle_tracker_app', 'footer.puzzle_tracker_app', 'bi-phone', 10),
-            $this->aboutRow('wjpc', 'wjpc_hub', 'nav.row.wjpc', 'bi-globe2', 20, RowKind::Link, NavPlace::Community, 'events', 'footer.wjpc'),
-            $this->aboutRow('developers', 'for_developers', 'menu.for_developers', 'bi-code-slash', 30),
-            $this->aboutRow('organizers', 'for_organizers', 'menu.for_organizers', 'bi-easel', 40),
+            $this->aboutRow('tracker_app', 'puzzle_tracker_app', 'footer.puzzle_tracker_app', 'bi-phone', 10, footer: new FooterPlacement(FooterColumn::MySpeedPuzzling, 10, nav: 'myspeedpuzzling/puzzle_tracker_app')),
+            $this->aboutRow('wjpc', 'wjpc_hub', 'nav.row.wjpc', 'bi-globe2', 20, RowKind::Link, NavPlace::Community, 'events', 'footer.wjpc', new FooterPlacement(FooterColumn::MySpeedPuzzling, 20, nav: 'learn/wjpc')),
+            $this->aboutRow('developers', 'for_developers', 'menu.for_developers', 'bi-code-slash', 30, footer: new FooterPlacement(FooterColumn::MySpeedPuzzling, 70, nav: 'myspeedpuzzling/for_developers')),
+            $this->aboutRow('organizers', 'for_organizers', 'menu.for_organizers', 'bi-easel', 40, footer: new FooterPlacement(FooterColumn::MySpeedPuzzling, 60, nav: 'myspeedpuzzling/for_organizers')),
             $this->aboutRow('legal_terms', 'terms_of_service', 'nav.row.legal_terms', 'bi-file-text', 50, RowKind::Legal, legacyLabel: 'menu.terms_of_service'),
             $this->aboutRow('legal_privacy', 'privacy_policy', 'nav.row.legal_privacy', 'bi-shield-lock', 50, RowKind::Legal, legacyLabel: 'menu.privacy_policy'),
             $this->aboutRow('legal_data_deletion', 'data_deletion', 'menu.data_deletion', 'bi-trash', 50, RowKind::Legal),
@@ -1278,7 +1294,7 @@ final readonly class NavigationRegistry
             $this->searchEntry('suggest_feature', RouteTarget::route('feature_request_create'), 'feature_requests.create_title', 'bi-lightbulb', 'feature_requests', NavPlace::None, RulebookQuestion::Q1, 'Action on Ideas & feature requests (members): a button there and search', NavVisibility::Member),
             ...$ladders,
             $this->searchEntry('country_ranking', RouteTarget::route('ladder_country', dynamic: ['countryCode' => RouteParam::ViewerCountryCode]), 'nav.row.country_ranking', 'bi-flag', 'leaderboards', NavPlace::Community, RulebookQuestion::Q9, "Your country's ranking (members): a filter of Leaderboards and search", NavVisibility::Member, 'leaderboards'),
-            $this->searchEntry('achievements_list', RouteTarget::route('badges_overview'), 'nav.row.achievements_list', 'bi-award', 'achievements', NavPlace::Community, RulebookQuestion::Q9, 'Every achievement: footer, achievements pages and search (XP gate)', NavVisibility::XpVisible, 'leaderboards'),
+            $this->searchEntry('achievements_list', RouteTarget::route('badges_overview'), 'nav.row.achievements_list', 'bi-award', 'achievements', NavPlace::Community, RulebookQuestion::Q9, 'Every achievement: footer, achievements pages and search (XP gate)', NavVisibility::XpVisible, 'leaderboards', new FooterPlacement(FooterColumn::Learn, 30, newBadge: true, nav: 'discover/achievements', visibility: NavVisibility::XpVisible)),
             $this->searchEntry('xp_explainer', RouteTarget::route('xp_explainer'), 'xp.explainer.title', 'bi-question-circle', 'progression', NavPlace::None, RulebookQuestion::Q7, 'Explains XP: How progress works and search (XP gate)', NavVisibility::XpVisible),
             $this->searchEntry('fair_play_xp', RouteTarget::route('xp_fair_play'), 'xp.fair_play.title', 'bi-shield-check', 'progression', NavPlace::None, RulebookQuestion::Q7, 'Explains fair play: How progress works and search (XP gate)', NavVisibility::XpVisible),
             $this->searchEntry('karma_explainer', RouteTarget::route('karma_explainer'), 'karma.explainer.title', 'bi-question-circle', 'progression', NavPlace::None, RulebookQuestion::Q7, 'Explains karma: How progress works and search (XP gate)', NavVisibility::XpVisible),
@@ -1363,7 +1379,7 @@ final readonly class NavigationRegistry
     /**
      * @param list<string> $activeOn
      */
-    private function helpRow(string $id, string $route, string $label, string $icon, int $position, array $activeOn = [], NavVisibility $visibility = NavVisibility::Everyone, null|int $helpSheet = null, null|string $legacyLabel = null): NavEntry
+    private function helpRow(string $id, string $route, string $label, string $icon, int $position, array $activeOn = [], NavVisibility $visibility = NavVisibility::Everyone, null|int $helpSheet = null, null|string $legacyLabel = null, null|FooterPlacement $footer = null): NavEntry
     {
         return new NavEntry(
             id: $id,
@@ -1378,12 +1394,13 @@ final readonly class NavigationRegistry
             reason: 'Explains or helps: Help & learn (and the Help sheet)',
             since: self::SINCE,
             legacyLabels: [$legacyLabel ?? $label],
+            footer: $footer,
             helpSheet: $helpSheet,
             activeOn: $activeOn,
         );
     }
 
-    private function aboutRow(string $id, string $route, string $label, string $icon, int $position, RowKind $kind = RowKind::Link, NavPlace $place = NavPlace::None, null|string $section = null, null|string $legacyLabel = null): NavEntry
+    private function aboutRow(string $id, string $route, string $label, string $icon, int $position, RowKind $kind = RowKind::Link, NavPlace $place = NavPlace::None, null|string $section = null, null|string $legacyLabel = null, null|FooterPlacement $footer = null): NavEntry
     {
         return new NavEntry(
             id: $id,
@@ -1400,6 +1417,7 @@ final readonly class NavigationRegistry
             kind: $kind,
             section: $section,
             legacyLabels: [$legacyLabel ?? $label],
+            footer: $footer,
         );
     }
 
@@ -1414,6 +1432,7 @@ final readonly class NavigationRegistry
         string $reason,
         NavVisibility $visibility = NavVisibility::SignedIn,
         null|string $section = null,
+        null|FooterPlacement $footer = null,
     ): NavEntry {
         return new NavEntry(
             id: $id,
@@ -1428,6 +1447,7 @@ final readonly class NavigationRegistry
             reason: $reason,
             since: self::SINCE,
             section: $section,
+            footer: $footer,
         );
     }
 

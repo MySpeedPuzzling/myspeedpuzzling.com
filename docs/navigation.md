@@ -355,6 +355,40 @@ Linked by a navigation surface, but not a Menu destination - each with why.
 | `inbox` | Inbox / 10 | not in Menu: Desktop: the Inbox tool of the top bar (D3, D16) |
 | `logout` | Log out / 10 | not in Menu: Desktop: Log out in the avatar ▾ account menu (README §4.3) |
 
+## Footer
+
+The site footer's link columns (FOOT-01, README §4.11) - the same for everybody but the audiences named here; each link goes to its entry's own route (guests included). `data-nav` = `footer/<place>/<item>`: the value the link had before FOOT-01, kept so its clicks stay comparable.
+
+| Column | Pos | Entry | Label | Target | Audience | New | nofollow | data-nav |
+|---|---|---|---|---|---|---|---|---|
+| puzzles | 10 | `all_puzzles` | All puzzles | `puzzles` | everyone |  |  | `footer/discover/puzzles` |
+| puzzles | 20 | `marketplace` | Marketplace | `marketplace` | everyone |  |  | `footer/discover/marketplace` |
+| puzzles | 30 | `what_next` | What next? | `puzzle_picker` | everyone | yes |  | `footer/track/puzzle_picker` |
+| puzzles | 40 | `add` | Add | `puzzle_add` | everyone |  | yes | `footer/track/add_time` |
+| puzzles | 50 | `stopwatch` | Stopwatch | `stopwatch` | everyone |  | yes | `footer/track/stopwatch` |
+| puzzles | 60 | `multiscan` | Scan several boxes | `multiscan` | everyone | yes | yes | `footer/track/multiscan` |
+| community | 10 | `community_place` | Community | `community` | everyone | yes |  | `footer/community/community_place` |
+| community | 20 | `leaderboards` | Leaderboards | `ladder` | everyone |  |  | `footer/discover/ladder` |
+| community | 30 | `puzzlers` | Puzzlers | `players` | everyone | yes |  | `footer/discover/players` |
+| community | 40 | `compare` | Compare | `comparison` | everyone | yes | yes | `footer/track/compare` |
+| community | 50 | `pairs_and_teams` | Pairs & teams | `pairs_and_teams` | everyone | yes | yes | `footer/track/pairs_and_teams` |
+| community | 60 | `events` | Events | `events` | everyone | yes |  | `footer/discover/events` |
+| community | 70 | `latest_times` | Latest times | `recent_activity` | everyone |  |  | `footer/discover/recent_activity` |
+| learn | 10 | `getting_started` | Getting started | `getting_started` | everyone |  |  | `footer/learn/getting_started` |
+| learn | 20 | `progression` | How progress works | `progression_hub` | xp_visible | yes |  | `footer/learn/progression_hub` |
+| learn | 30 | `achievements_list` | All achievements | `badges_overview` | xp_visible | yes |  | `footer/discover/achievements` |
+| learn | 40 | `faq` | FAQ | `faq` | everyone |  |  | `footer/learn/faq` |
+| learn | 50 | `guides` | Speed Puzzling Guides | `guides` | everyone |  |  | `footer/learn/guides` |
+| learn | 60 | `methodology` | Difficulty & ratings | `methodology` | everyone |  |  | `footer/learn/methodology` |
+| learn | 70 | `where_did_it_go` | Where did it go? | `where_did_it_go` | signed_in |  |  | `footer/learn/where_did_it_go` |
+| myspeedpuzzling | 10 | `tracker_app` | Puzzle Tracker App | `puzzle_tracker_app` | everyone |  |  | `footer/myspeedpuzzling/puzzle_tracker_app` |
+| myspeedpuzzling | 20 | `wjpc` | World championship | `wjpc_hub` | everyone |  |  | `footer/learn/wjpc` |
+| myspeedpuzzling | 30 | `membership` | Membership | `membership` | everyone |  | yes | `footer/myspeedpuzzling/membership` |
+| myspeedpuzzling | 40 | `feature_requests` | Ideas & feature requests | `feature_requests` | everyone |  |  | `footer/myspeedpuzzling/feature_requests` |
+| myspeedpuzzling | 50 | `send_feedback` | Send feedback | the Help sheet | everyone |  |  | `footer/myspeedpuzzling/feedback` |
+| myspeedpuzzling | 60 | `organizers` | For Organizers | `for_organizers` | everyone |  |  | `footer/myspeedpuzzling/for_organizers` |
+| myspeedpuzzling | 70 | `developers` | For Developers | `for_developers` | everyone |  |  | `footer/myspeedpuzzling/for_developers` |
+
 ## Audiences
 
 One value per entry; a value that needs several conditions names all of them. Personal rows never include guests. "On the page": the viewer's audiences are exposed as `<body data-viewer-audience>` (nav_viewer_audience(), MENU-01; every guest gets `everyone guest`, plus `xp_visible` once XP is launched) - never the role ones, whose entries are rendered for those viewers only.

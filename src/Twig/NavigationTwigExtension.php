@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Twig;
 
 use SpeedPuzzling\Web\Navigation\BarAction;
+use SpeedPuzzling\Web\Navigation\FooterBuilder;
 use SpeedPuzzling\Web\Navigation\HelpPageContext;
 use SpeedPuzzling\Web\Navigation\MenuBuilder;
 use SpeedPuzzling\Web\Navigation\MenuView;
@@ -37,7 +38,8 @@ use Twig\TwigFunction;
  * - nav_search_url(): the page search's "Pages & settings" list, nav-search.json with its version (MENU-03) - one per
  *   request (kept on the request);
  * - nav_search_private(): the moderator / admin entries of that list for those viewers only (JSON, null for everybody
- *   else) - rendered into the Menu as #nav-search-private.
+ *   else) - rendered into the Menu as #nav-search-private;
+ * - nav_footer(): the site footer's link columns for the viewer (FooterBuilder, FOOT-01).
  */
 final class NavigationTwigExtension extends AbstractExtension
 {
@@ -57,6 +59,7 @@ final class NavigationTwigExtension extends AbstractExtension
         readonly private NavigationViewerFactory $viewerFactory,
         readonly private UrlGeneratorInterface $urlGenerator,
         readonly private NavigationSearchIndex $navigationSearchIndex,
+        readonly private FooterBuilder $footerBuilder,
     ) {
     }
 
@@ -77,6 +80,7 @@ final class NavigationTwigExtension extends AbstractExtension
             new TwigFunction('language_switch_urls', $this->languageSwitchUrls(...)),
             new TwigFunction('nav_search_url', $this->searchUrl(...)),
             new TwigFunction('nav_search_private', $this->searchPrivate(...)),
+            new TwigFunction('nav_footer', $this->footerBuilder->columns(...)),
         ];
     }
 

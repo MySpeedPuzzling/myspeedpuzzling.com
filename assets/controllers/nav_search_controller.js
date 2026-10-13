@@ -3,6 +3,7 @@ import {
     audiencesOf,
     BAR_LIMIT,
     locationOf,
+    menuPathOf,
     prepareIndex,
     reportsZero,
     search,
@@ -18,11 +19,14 @@ import { menuFragmentOf, menuPaths, revealInMenu } from '../navigation/menu_link
 // (assets/navigation/nav_search_lists.js)
 const lists = createNavSearchLists({ fetchImpl: (url, options) => window.fetch(url, options) });
 
-// Zero-result reports of this page view (decision 39): reset by every page load
+// Zero-result reports of this page view (decision 39): reset by every page load (guarded: node imports this module -
+// tests/top-bar-search-harness.mjs)
 let reported = new Set();
-document.addEventListener('turbo:load', () => {
-    reported = new Set();
-});
+if (typeof document !== 'undefined') {
+    document.addEventListener('turbo:load', () => {
+        reported = new Set();
+    });
+}
 
 // How long the server results may take after the pause before the zero check gives up (Live request in flight)
 const SETTLE_RETRY_MS = 300;
@@ -54,6 +58,11 @@ function privateEntries() {
  * assets/navigation/nav_search.js and rendered into its data-live-ignore container above the server results - before
  * them, synchronously, so nothing moves when the Live results arrive. `limit` rows first, then "Show N more".
  *
+ * The top bar's (surface `bar`, SRCH-01) - the search of every page, outside the Menu - says under each result where
+ * it lives in the Menu ("☰ Menu › Account › Settings"), and offers a guest the pages of any signed-in player as
+ * "Sign in to see …" (`signIn`, rendered for guests only) - their link leads through sign-in to the page. A member's
+ * page stays hidden from everybody else. The Menu panel's (surface `menu`) lists what the viewer's Menu holds.
+ *
  * Links are plain links: a visit from the open Menu panel is a replace visit (assets/layer_history.js rule (d)).
  * Send feedback opens the Help sheet like its Menu row; Language opens the Menu's language switch; Log out leaves Turbo.
  * A search without any result - no page, no player, no puzzle - is reported once it paused (the P0-03 beacon).
@@ -66,6 +75,7 @@ export default class extends Controller {
         limit: { type: Number, default: BAR_LIMIT },
         title: String,
         more: String,
+        signIn: String,
     };
 
     connect() {
@@ -94,6 +104,10 @@ export default class extends Controller {
 
     get navSurface() {
         return this.surfaceValue === 'menu' ? 'menu' : 'topbar';
+    }
+
+    get inMenu() {
+        return this.surfaceValue === 'menu';
     }
 
     handleFocus = () => {
@@ -133,7 +147,10 @@ export default class extends Controller {
         }
 
         const index = prepareIndex(data, privateEntries());
-        const results = search(index, query, { audiences: audiencesOf(document.body.dataset.viewerAudience) });
+        const results = search(index, query, {
+            audiences: audiencesOf(document.body.dataset.viewerAudience),
+            guestSignIn: !this.inMenu && this.signInValue !== '',
+        });
 
         this.render(results, query);
         this.scheduleZeroCheck(query, results.length);
@@ -164,7 +181,8 @@ export default class extends Controller {
         const list = document.createElement('ul');
         list.className = 'nav-search-list';
         list.setAttribute('aria-labelledby', titleId);
-        shown.forEach((result) => list.appendChild(this.row(result)));
+        const menuName = this.inMenu ? '' : (document.getElementById('site-menu')?.getAttribute('aria-label') || '');
+        shown.forEach((result) => list.appendChild(this.row(result, menuName)));
 
         container.append(title, list);
 
@@ -181,7 +199,7 @@ export default class extends Controller {
         container.hidden = false;
     }
 
-    row({ entry }) {
+    row({ entry, signIn }, menuName = '') {
         const item = document.createElement('li');
         const link = document.createElement('a');
         link.className = 'mr nav-search-row';
@@ -189,6 +207,10 @@ export default class extends Controller {
         link.setAttribute('data-nav', `${this.navSurface}/search/${entry.id}`);
         link.setAttribute('data-nav-search-id', entry.id);
         link.setAttribute('data-press', '');
+
+        if (signIn) {
+            link.setAttribute('data-nav-search-sign-in', '');
+        }
 
         if (entry.x === 'help') {
             this.helpLink(link);
@@ -204,9 +226,9 @@ export default class extends Controller {
 
         const label = document.createElement('span');
         label.className = 'mr-l';
-        label.textContent = entry.l;
+        label.textContent = signIn ? this.signInValue.replace('%label%', entry.l) : entry.l;
 
-        const where = locationOf(entry) || entry.d || '';
+        const where = (this.inMenu ? locationOf(entry) : menuPathOf(entry, menuName)) || entry.d || '';
 
         if (where !== '') {
             const small = document.createElement('small');

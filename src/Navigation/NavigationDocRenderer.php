@@ -91,6 +91,30 @@ final readonly class NavigationDocRenderer
         }
 
         $lines[] = '';
+        $lines[] = '## Footer';
+        $lines[] = '';
+        $lines[] = 'The site footer\'s link columns (FOOT-01, README §4.11) - the same for everybody but the audiences named here; each link goes to its entry\'s own route (guests included). `data-nav` = `footer/<place>/<item>`: the value the link had before FOOT-01, kept so its clicks stay comparable.';
+        $lines[] = '';
+        $lines[] = '| Column | Pos | Entry | Label | Target | Audience | New | nofollow | data-nav |';
+        $lines[] = '|---|---|---|---|---|---|---|---|---|';
+
+        foreach ($this->registry->footer() as $entry) {
+            $footer = $entry->footer;
+            assert($footer !== null);
+            $lines[] = $this->row([
+                $footer->column->value,
+                (string) $footer->position,
+                '`' . $entry->id . '`',
+                $this->registry->label($entry, self::LOCALE),
+                $entry->kind === RowKind::HelpSheet ? 'the Help sheet' : '`' . $entry->target->route . '`',
+                $footer->visibility->value,
+                $footer->newBadge ? 'yes' : '',
+                $footer->nofollow ? 'yes' : '',
+                '`footer/' . $footer->navFor($entry->id) . '`',
+            ]);
+        }
+
+        $lines[] = '';
         $lines[] = '## Audiences';
         $lines[] = '';
         $lines[] = 'One value per entry; a value that needs several conditions names all of them. Personal rows never include guests. "On the page": the viewer\'s audiences are exposed as `<body data-viewer-audience>` (nav_viewer_audience(), MENU-01; every guest gets `everyone guest`, plus `xp_visible` once XP is launched) - never the role ones, whose entries are rendered for those viewers only.';

@@ -44,6 +44,7 @@ footer:
     tagline: "MySpeedPuzzling is the world's largest speed puzzling platform and jigsaw puzzle time tracker."
     nav_label: "Site links"
     language: "Language"
+    all_pages: "All pages"
     puzzle_database: "Puzzle database"
     column:
         discover: "Discover"

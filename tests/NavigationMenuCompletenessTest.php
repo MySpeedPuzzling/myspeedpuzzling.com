@@ -46,10 +46,12 @@ final class NavigationMenuCompletenessTest extends WebTestCase
 
     private const string PAGE = '/en/faq';
 
-    // Today's footer links these for guests too, while their Menu rows are for signed-in players (README §4.12: the
+    // The footer links these for guests too, while their Menu rows are for signed-in players (README §4.12: the
     // personal groups are hidden for guests, rows are hidden - never locked - where the viewer cannot use them). FOOT-01
-    // rebuilds the footer from the registry and decides what a guest's footer links: an entry here fails as stale once
-    // a guest no longer gets the link or gets the row. route => the row
+    // rebuilt the footer from the registry and kept them for guests: the footer is the same index for everybody and
+    // every route it linked stays linked (README §4.11; NAV-12's guest baseline holds all six) - its placements carry
+    // their own audience (FooterPlacement). An entry here fails as stale once a guest no longer gets the link or gets
+    // the row. route => the row
     private const array GUEST_FOOTER_ONLY = [
         'membership' => 'Account › Membership (its registry reason: guests reach it from the footer)',
         'comparison' => 'Your puzzling › Compare',

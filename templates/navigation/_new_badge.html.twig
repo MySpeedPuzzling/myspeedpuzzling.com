@@ -1,0 +1,3 @@
+{#- A "New" badge after a link's label (FOOT-01, decision 1 / R1): shown while the launch date is not set and until 14
+    days after it (NavigationLaunch::newBadgesVisible()). One class, styled where it is used (_footer.scss) -#}
+{% if nav_new_badges_shown() %} <span class="nav-new">{{ 'new_badge'|trans }}</span>{% endif %}

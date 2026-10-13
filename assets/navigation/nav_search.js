@@ -33,8 +33,10 @@ export const TIER_SPREAD = 5;
 // Guests: the fixed page audience (NavigationViewer::pageAudience() for every guest)
 const GUEST_AUDIENCES = ['everyone', 'guest'];
 
-// The audience a guest is shown as "Sign in to …" (SRCH-01): pages any signed-in player opens
+// The audience a guest is shown as "Sign in to …" (SRCH-01): pages any signed-in player opens - never Log out, and never
+// the signed-in half of an entry the guest has a link of their own for (Home, Add: their guests' route)
 const SIGN_IN_AUDIENCE = 'signed_in';
+const NEVER_SIGN_IN = ['logout'];
 
 const WORD_SEPARATOR = /[^\p{L}\p{N}\p{M}]+/u;
 
@@ -135,9 +137,15 @@ export function isVisibleTo(entry, audiences) {
     return entry.own === true || audiences.has(entry.a);
 }
 
+/** Would a guest be offered this entry as "Sign in to …"? (SRCH-01) */
+export function offersSignIn(entry, visibleIds) {
+    return entry.a === SIGN_IN_AUDIENCE && !NEVER_SIGN_IN.includes(entry.x) && !visibleIds.has(entry.id);
+}
+
 /**
  * The entries matching the query that the viewer may open, best first: [{entry, tier, signIn}]. With `guestSignIn`
- * (the top bar, SRCH-01) a guest also gets the pages of any signed-in player, marked signIn ("Sign in to …").
+ * (the top bar, SRCH-01) a guest also gets the pages of any signed-in player, marked signIn ("Sign in to …"); a
+ * member's page stays hidden from everybody else.
  */
 export function search(index, query, { audiences = new Set(GUEST_AUDIENCES), guestSignIn = false } = {}) {
     const folded = foldQuery(query);
@@ -148,11 +156,12 @@ export function search(index, query, { audiences = new Set(GUEST_AUDIENCES), gue
     }
 
     const signInAllowed = guestSignIn && audiences.has('guest');
+    const visibleIds = signInAllowed ? new Set(index.entries.filter((entry) => isVisibleTo(entry, audiences)).map((entry) => entry.id)) : new Set();
     const results = [];
 
     for (const entry of index.entries) {
         const visible = isVisibleTo(entry, audiences);
-        const signIn = !visible && signInAllowed && entry.a === SIGN_IN_AUDIENCE;
+        const signIn = !visible && signInAllowed && offersSignIn(entry, visibleIds);
 
         if (!visible && !signIn) {
             continue;
@@ -185,6 +194,28 @@ export function locationOf(entry, separator = ' › ') {
 
     if (parts.length > 0) {
         parts.pop();
+    }
+
+    return parts.join(separator);
+}
+
+/**
+ * The line under a result of the page's own search (the top bar, SRCH-01): where to find it in the Menu, "☰ Menu ›
+ * Account › Settings" for Password - the Menu's name after the ☰ (the page's #site-menu label), without the entry
+ * itself; "☰ Menu" for a top-level row; empty when the entry has no Menu path.
+ */
+export function menuPathOf(entry, menuName = '', separator = ' › ') {
+    const path = String(entry.p ?? '');
+
+    if (path === '') {
+        return '';
+    }
+
+    const parts = path.split(separator);
+    parts.pop();
+
+    if (parts.length > 0 && parts[0].trim() === '☰' && menuName !== '') {
+        parts[0] = `☰ ${menuName}`;
     }
 
     return parts.join(separator);

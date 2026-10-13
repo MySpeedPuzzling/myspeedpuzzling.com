@@ -1,60 +1,20 @@
-{# Site footer (docs/features/site-footer.md): links in four labelled columns, the brand block,
-   "Popular searches" for guests, then legal, language and credits in the bottom bar #}
+{# Site footer (docs/features/site-footer.md, navigation FOOT-01): the four link columns from the navigation registry
+   (nav_footer(): each destination's label as on every surface, the links it always had, "New" badges until 14 days
+   after the launch), the brand block, "Popular searches" for guests, then All pages, legal, language and credits in
+   the bottom bar #}
 <div class="container px-3 footer-main">
     <nav class="footer-columns" aria-label="{{ 'footer.nav_label'|trans }}">
-        <div>
-            <h2 class="footer-heading">{{ 'footer.column.discover'|trans }}</h2>
-            <ul class="footer-links">
-                <li><a href="{{ path('puzzles') }}" data-nav="footer/discover/puzzles">{{ 'footer.puzzle_database'|trans }}</a></li>
-                <li><a href="{{ path('ladder') }}" data-nav="footer/discover/ladder">{{ 'menu.ladder'|trans }}</a></li>
-                {% if xp_system_visible() %}
-                    <li><a href="{{ path('badges_overview') }}" data-nav="footer/discover/achievements">{{ 'badges.overview_title'|trans }} <span class="badge bg-primary ms-1">{{ 'new_badge'|trans }}</span></a></li>
-                {% endif %}
-                <li><a href="{{ path('players') }}" data-nav="footer/discover/players">{{ 'menu.players'|trans }} <span class="badge bg-primary ms-1">{{ 'new_badge'|trans }}</span></a></li>
-                <li><a href="{{ path('recent_activity') }}" data-nav="footer/discover/recent_activity">{{ 'footer.latest_puzzle_times'|trans }}</a></li>
-                <li><a href="{{ path('events') }}" data-nav="footer/discover/events">{{ 'menu.events'|trans }} <span class="badge bg-primary ms-1">{{ 'new_badge'|trans }}</span></a></li>
-                <li><a href="{{ path('marketplace') }}" data-nav="footer/discover/marketplace">{{ 'marketplace.title'|trans }}</a></li>
-            </ul>
-        </div>
-
-        <div>
-            <h2 class="footer-heading">{{ 'footer.column.track'|trans }}</h2>
-            <ul class="footer-links">
-                <li><a rel="nofollow" href="{{ path('puzzle_add') }}" data-nav="footer/track/add_time">{{ 'footer.puzzle_add'|trans }}</a></li>
-                <li><a rel="nofollow" href="{{ path('stopwatch') }}" data-nav="footer/track/stopwatch">{{ 'menu.stopwatch'|trans }}</a></li>
-                <li><a rel="nofollow" href="{{ path('multiscan') }}" data-nav="footer/track/multiscan">{{ 'multiscan.title'|trans }} <span class="badge bg-primary ms-1">{{ 'new_badge'|trans }}</span></a></li>
-                <li><a href="{{ path('puzzle_picker') }}" data-nav="footer/track/puzzle_picker">{{ 'puzzle_picker.title'|trans }} <span class="badge bg-primary ms-1">{{ 'new_badge'|trans }}</span></a></li>
-                <li><a rel="nofollow" href="{{ path('pairs_and_teams') }}" data-nav="footer/track/pairs_and_teams">{{ 'menu.pairs_and_teams'|trans }} <span class="badge bg-primary ms-1">{{ 'new_badge'|trans }}</span></a></li>
-                <li><a rel="nofollow" href="{{ path('comparison') }}" data-nav="footer/track/compare">{{ 'comparison.title'|trans }} <span class="badge bg-primary ms-1">{{ 'new_badge'|trans }}</span></a></li>
-            </ul>
-        </div>
-
-        <div>
-            <h2 class="footer-heading">{{ 'footer.column.learn'|trans }}</h2>
-            <ul class="footer-links">
-                {% if xp_system_visible() %}
-                    <li><a href="{{ path('progression_hub') }}" data-nav="footer/learn/progression_hub">{{ 'progression_hub.menu_label'|trans }} <span class="badge bg-primary ms-1">{{ 'new_badge'|trans }}</span></a></li>
-                {% endif %}
-                <li><a href="{{ path('getting_started') }}" data-nav="footer/learn/getting_started">{{ 'onboarding.guide.link'|trans }}</a></li>
-                <li><a href="{{ path('guides') }}" data-nav="footer/learn/guides">{{ 'footer.guides'|trans }}</a></li>
-                <li><a href="{{ path('faq') }}" data-nav="footer/learn/faq">{{ 'menu.faq'|trans }}</a></li>
-                <li><a href="{{ path('methodology') }}" data-nav="footer/learn/methodology">{{ 'footer.methodology'|trans }}</a></li>
-                <li><a href="{{ path('wjpc_hub') }}" data-nav="footer/learn/wjpc">{{ 'footer.wjpc'|trans }}</a></li>
-            </ul>
-        </div>
-
-        <div>
-            <h2 class="footer-heading">MySpeedPuzzling</h2>
-            <ul class="footer-links">
-                <li><a href="{{ path('puzzle_tracker_app') }}" data-nav="footer/myspeedpuzzling/puzzle_tracker_app">{{ 'footer.puzzle_tracker_app'|trans }}</a></li>
-                <li><a rel="nofollow" href="{{ path('membership') }}" data-nav="footer/myspeedpuzzling/membership">{{ 'menu.membership'|trans }}</a></li>
-                <li><a href="{{ path('feature_requests') }}" data-nav="footer/myspeedpuzzling/feature_requests">{{ 'menu.feature_requests'|trans }}</a></li>
-                {#- Signed in: a Help sheet opener (help_opener_attrs(), its own scrim - released after a send, review F6) -#}
-                <li><a data-nav="footer/myspeedpuzzling/feedback" {% if logged_user.profile is not null %}href="{{ help_path() }}" {{ help_opener_attrs() }}{% else %}rel="nofollow" href="{{ path('feedback', {'url': app.request.uri}) }}"{% endif %}>{{ 'menu.feedback'|trans }}</a></li>
-                <li><a href="{{ path('for_organizers') }}" data-nav="footer/myspeedpuzzling/for_organizers">{{ 'menu.for_organizers'|trans }}</a></li>
-                <li><a href="{{ path('for_developers') }}" data-nav="footer/myspeedpuzzling/for_developers">{{ 'menu.for_developers'|trans }}</a></li>
-            </ul>
-        </div>
+        {% for column in nav_footer() %}
+            <div>
+                <h2 class="footer-heading">{{ column.column.headingKey ? column.column.headingKey|trans : 'MySpeedPuzzling' }}</h2>
+                <ul class="footer-links">
+                    {% for link in column.links %}
+                        {#- Send feedback opens the Help sheet (help_opener_attrs(): its own scrim, rel="nofollow") -#}
+                        <li><a href="{{ link.href }}" data-nav="footer/{{ link.nav }}"{% if link.helpSheet %} {{ help_opener_attrs() }}{% elseif link.nofollow %} rel="nofollow"{% endif %}>{{ link.entry.label|trans }}{% if link.newBadge %}{{ include('navigation/_new_badge.html.twig') }}{% endif %}</a></li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endfor %}
     </nav>
 
     {# After the links in the markup, so phones show it below them; from lg up it moves to the left column #}
@@ -163,6 +123,8 @@
         <p class="footer-copy">© {{ 'now'|date('Y') }} MySpeedPuzzling</p>
 
         <ul class="footer-legal">
+            {#- The Menu as a page; with JS it opens the Menu (assets/navigation/menu_links.js) -#}
+            <li><a href="{{ path('menu') }}" data-nav="footer/bar/all_pages">{{ 'footer.all_pages'|trans }}</a></li>
             <li><a href="{{ path('terms_of_service') }}" data-nav="footer/legal/terms">{{ 'menu.terms_of_service'|trans }}</a></li>
             <li><a href="{{ path('privacy_policy') }}" data-nav="footer/legal/privacy">{{ 'menu.privacy_policy'|trans }}</a></li>
             <li><a href="{{ path('data_deletion') }}" data-nav="footer/legal/data_deletion">{{ 'menu.data_deletion'|trans }}</a></li>

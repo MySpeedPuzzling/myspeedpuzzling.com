@@ -74,6 +74,10 @@ return App::config([
                 MethodNotAllowedHttpException::class,
             ],
             'traces_sampler' => 'sentry.traces_sampler',
+            // No personal link's token of an online competition in anything sent (OnlineTokenSentryScrubber)
+            'before_send' => 'sentry.before_send',
+            'before_send_transaction' => 'sentry.before_send',
+            'before_breadcrumb' => 'sentry.before_breadcrumb',
             // Relative to traced requests (traces_sampler decides what is traced)
             'profiles_sample_rate' => '%env(float:SENTRY_PROFILES_SAMPLE_RATE)%',
             'ignore_transactions' => [

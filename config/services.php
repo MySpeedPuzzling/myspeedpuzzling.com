@@ -25,6 +25,7 @@ use SpeedPuzzling\Web\Services\OnlineRounds\OnlinePresence;
 use SpeedPuzzling\Web\Services\OnlineRounds\OnlineStoreBreaker;
 use SpeedPuzzling\Web\Services\OnlineRounds\RedisOnlinePresence;
 use SpeedPuzzling\Web\Services\OnlineRounds\S3OnlineMediaStorage;
+use SpeedPuzzling\Web\Services\Sentry\OnlineTokenSentryScrubber;
 use SpeedPuzzling\Web\Services\SentryTracesSampler;
 use SpeedPuzzling\Web\Services\Session\PostgresSessionHandler;
 use SpeedPuzzling\Web\Services\Storage\FailoverS3Adapter;
@@ -440,4 +441,10 @@ return static function (ContainerConfigurator $configurator): void {
 
     $services->set('sentry.traces_sampler', \Closure::class)
         ->factory([service(SentryTracesSampler::class), '__invoke']);
+
+    // No personal link's token of an online competition reaches Sentry (config/packages/sentry.php)
+    $services->set('sentry.before_send', \Closure::class)
+        ->factory([service(OnlineTokenSentryScrubber::class), 'beforeSend']);
+    $services->set('sentry.before_breadcrumb', \Closure::class)
+        ->factory([service(OnlineTokenSentryScrubber::class), 'beforeBreadcrumb']);
 };

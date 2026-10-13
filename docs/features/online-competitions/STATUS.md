@@ -4,7 +4,8 @@ The living record of where the prototype stands and what comes next. Updated by 
 
 - **Design and decisions:** [README.md](README.md) (§13)
 - **The plan:** [implementation-plan.md](implementation-plan.md)
-- **Contracts:** [contracts/phase-1.md](contracts/phase-1.md), [contracts/phase-1b.md](contracts/phase-1b.md) (+ the orchestrator's deviations, recorded there when VF merges)
+- **Contracts:** [contracts/phase-1.md](contracts/phase-1.md), [contracts/phase-1b.md](contracts/phase-1b.md) (§8 = the video foundation as built - binding for the rest of 1B)
+- **Runbooks:** [test-cup-1.md](test-cup-1.md), [device-test.md](device-test.md), [obs-youtube.md](obs-youtube.md)
 - **Spikes:** [spikes.md](spikes.md)
 
 **Target:** the first public online competition in Q1 2027, after four test cups (implementation-plan.md §1).
@@ -13,22 +14,39 @@ The living record of where the prototype stands and what comes next. Updated by 
 
 ---
 
-## Now
+## Now - PAUSED (2026-10-13 evening, Jan: machine restart)
+
+Every running stream finished and is merged on `main`; nothing is half-done. **To resume, follow "Resume here" below.**
 
 | | |
 |---|---|
-| **Phase** | 1 built (all 6 locales); 1B (live room + studio) and the Phase 2 groundwork (detection bench) in progress |
-| **Step** | Phase 1 is on `main` in 6 locales; an end-to-end pass on the dev stack runs; the online texts get a plural/wording pass (TX). Phase 1B: the video foundation (VF) runs against a local LiveKit. Phase 2 groundwork (DB): the finish rule, the hands-up signal, the detector worker and the bench tools - ready to score footage the day S1 arrives |
+| **Phase** | 1 built (6 locales, end-to-end tested + fixed); 1B: foundation, moderator console + studio, spectator page **merged**, participant video (VP) **not started** (brief ready); Phase 2 groundwork (detection bench) merged |
 | **Started** | 2026-10-13 |
-| **Next milestone** | M1 → Test Cup #1 (target Tue 2026-11-10) |
+| **Next milestone** | M1 → Test Cup #1 (target Tue 2026-11-10) - runbook [test-cup-1.md](test-cup-1.md) |
+
+## Resume here
+
+1. **Dev stack**: `docker compose up -d` (port overrides from CLAUDE.md if another project holds a port). Wait for `js-watch` to finish its first build - `public/build/entrypoints.json` must list `app`, `compete`, `online_rounds`, `online_watch` (else the online page tests fail with "Could not find the entry"). LiveKit stays off unless `docker compose --profile video up -d livekit` + the four `LIVEKIT_*` lines in `.env.local` (see `.env`).
+2. **Check nothing is left over**: `git worktree list` (only other sessions' worktrees + `.claude/worktrees/oc-integrate`), `git log origin/main..main` empty.
+3. **Next stream - VP (participant video)**: the brief is ready at `.claude/worktrees/online-delivery/brief-VP.md` (local, git-excluded, with the notes from VM). Launch one agent in its own worktree (`run.sh` name `ocvp`). It builds: the phone publishing its puzzle camera (the same track the frame grabber reads), the host's voice, see-each-other off during the own solve, the studio invite → on air → back, a view-only second screen, `device-test.md` video steps.
+4. **After VP**: translate every Phase 1B English key (`compete.video`, `online_rounds.console|studio|watch|settings.video`) into cs, de, es, fr, ja - one translator agent per locale with `.claude/worktrees/online-delivery/brief-translate.md` adapted to those sub-roots, then the parity + `OnlinePluralMessagesTest` checks.
+5. **Then Phase 2 integration**: the detector on the participant page (model hosting, `detector.worker.js` + pacing fed by `frame_grabber.js`, `finish_machine.js` candidates → photo + burst + `finish.candidate` event, the set-up test "raise both hands", detection error in the accuracy report) - tuning waits for S1 footage.
+6. **Merging**: every stream through `.claude/worktrees/oc-integrate` (`git checkout -B oc-integrate origin/main` → cherry-pick (or the net diff when a branch merged main) → PHPStan + full paratest + schema validate → `git push origin HEAD:main` → `git merge --ff-only origin/main` in the shared checkout) → remove the stream's worktree + its `speedpuzzling_<name>_test*` databases.
+
+## Waiting for Jan
+
+- Before Test Cup #1: the real-device pass on phones (`device-test.md`, now 24 steps), volunteers, the OK to apply the bucket CORS rule (`myspeedpuzzling:online-media:cors --apply`) and to deny `online/` in the images proxy, Traefik access-log redaction of the personal links, a deploy freeze on the day.
+- For Test Cup #2: the OK for ADR D78 (LiveKit on lily.srv: one UDP port + TURN/TLS on 443 through Traefik), the production load run (`tools/online-load/`, a quiet hour) once LT's tooling is merged.
+- S1 footage (spikes.md) - the bench scores it the same day.
+- Small decisions: the control room plays no other moderator's voice (only "X is talking", against echo) - OK? A round's YouTube link has no form field yet (SQL only) - add it to the online timing page? Referees reviewing online rounds (TODO.md). The second screen stays view-only - Finished stays on the camera phone (its burst comes from that camera) - OK?
 
 ## Phases
 
 | Phase | State | Notes |
 |---|---|---|
 | 0 - spikes | in progress | S1 footage protocol ready for Jan (spikes.md, with the label list form for several raises); S2 bench tools **built** (`tools/online-bench/`); S6 local run done (VF); S3-S5 follow |
-| 1 - remote stopwatch | **built**, translated | end-to-end pass on the dev stack running; real-device pass on phones pending (`device-test.md`) |
-| 1B - live room + studio | in progress: foundation (VF) on a local LiveKit | then VP (participant video), VM (moderator console + studio), VS (spectators) in parallel; production needs ADR D78 on lily.srv (Jan's OK) |
+| 1 - remote stopwatch | **built**, translated, end-to-end tested + fixed | real-device pass on phones pending (`device-test.md`) |
+| 1B - live room + studio | VF, VM, VS **merged**; VP next | everything proven against a local LiveKit 1.13.9 (spikes.md S6); production needs ADR D78 on lily.srv (Jan's OK); translations of the 1B keys after VP |
 | 2 - hands-up detection | groundwork **merged** (stream DB) | the finish rule, the hands-up signal, the detector worker + pacing, the bench; integration into the participant page after VP; tuning waits for S1 footage |
 | 3 - completeness check | not started | the bench's OpenCV self-test comes with DB |
 | 4 - scale + public event | not started | |
@@ -50,21 +68,23 @@ The living record of where the prototype stands and what comes next. Updated by 
 | Stream | State |
 |---|---|
 | VF - video foundation (dev LiveKit in the compose profile `video`, tokens, server API client, webhook, studio invites, video switches) | **merged** - proven against a real LiveKit 1.13.9 (join ≈ 0.3 s, 3 simulcast layers, data + permission changes live, 32 webhooks verified); as built: [contracts/phase-1b.md](contracts/phase-1b.md) §8 |
-| VP / VM / VS - participant video, moderator console + studio, spectators | next, in parallel ([contracts/phase-1b.md](contracts/phase-1b.md)) |
+| VM - moderator console (video grid, spotlight, push-to-talk, invites) + the host's studio page + the studio's safety rules | **merged** - 8 cameras joined in 0.3-0.6 s, spotlight 720p in ~3 s, push-to-talk heard in 0.19 s, a reused studio token removed in < 0.2 s |
+| VS - public watch page + spectator tokens (per-IP limit, cap 200), "Watch live" on event pages, OBS + YouTube how-to | **merged** - 3 spectators live in 1.2-1.8 s, the cap turns away and lets in, drafts 404 |
+| VP - participant video (camera to the hall, host's voice, studio on air, second screen) | **not started** - brief ready (`.claude/worktrees/online-delivery/brief-VP.md`) |
+| LT - load tooling (k6) + local storage failover drill (Garage as the second store) | running at the pause - merged before shutdown if it finishes |
 | DB - detection bench (finish rule, hands-up signal, detector worker, bench page + scorer, OpenCV completeness self-test) | **merged** - end-to-end on a public-domain clip (candidate +33 ms, no false raise); completeness self-test: no missing piece ever passed as complete (90 synthetic photos); open questions for the footage day in `spikes.md` S2 |
 | TX - online texts: every plural renders for 0, "1 pieces", clearer wording, unused keys, a guard test over all 6 locales | **merged** (`OnlinePluralMessagesTest`) |
 | P1F - fixes from the end-to-end pass: a Reset starts a fresh run, the limiters under concurrency, End never before the click, take-back in seconds, smaller ones | **merged** - the online limiters are an atomic Redis counter now (exactly 300 of 320 parallel requests, +0.05 ms); take-back 2-15 s (was ~45 s); "End now" rounds up for online rounds only |
 
 ## Next steps
 
-1. Merge the end-to-end pass's fixes, TX, VF and DB as they finish; then start VP, VM and VS.
-2. Jan: the real-device pass on phones (`device-test.md`), S1 footage (spikes.md), volunteers for Test Cup #1, the OK to apply the bucket CORS rule and to deny `online/` in the images proxy, the OK for ADR D78 (LiveKit on lily.srv).
-3. Test Cup #1 (target Tue 2026-11-10): the runbook is [test-cup-1.md](test-cup-1.md) - prerequisites, set-up, the day, fallbacks.
+See "Resume here" above.
 
 ## Log
 
 | Date | What |
 |---|---|
+| 2026-10-13 | Moderator console + studio (VM) and the spectator watch page (VS) merged (migration `Version20261013170851`: `online_round.youtube_url`, nullable). Paused at Jan's request after every running stream finished - resume from "Resume here" |
 | 2026-10-13 | Fixes from the end-to-end pass merged (P1F): a Reset of an online round starts a fresh run (refused once results are confirmed), the participant API's limiters count parallel requests (Lua counter on the cache Redis), "End now" never before the click, the other device stops within a heartbeat after a take-back, "Offline" only without network, refused photos leave the phone, empty payloads stored as `{}`, presence written only by the device holding the entry, the pending-upload cap counts only unfinished uploads |
 | 2026-10-13 | Detection bench merged: `finish_machine.js` (hold 0.5 s, 10 s cooldown, every tunable with its reason), `hands_up_signal.js`, `detector.worker.js` + pacing, `tools/online-bench/` (label + run videos frame by frame, `score.mjs` with a parameter sweep, OpenCV completeness checks + synthetic self-test). Findings: Encore runs the worker classic, MediaPipe needs WebGL2 even on the CPU delegate |
 | 2026-10-13 | Video foundation merged: a local LiveKit (compose profile `video`, off by default), tokens, the server API client, the signed webhook, studio invites (migration `Version20261013154345`, additive), the online timing page's video switches, the client wrapper (`livekit-client` 2.22.4 in its own lazy chunk; the initial bundles are byte-identical). Production unchanged: no `LIVEKIT_*` = video off. Also merged: the end-to-end pass (GO drawn on time, the "Tap here once" banner after a reload) and the texts pass (TX) |

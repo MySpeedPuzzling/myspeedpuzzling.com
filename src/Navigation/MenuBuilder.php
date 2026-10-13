@@ -30,6 +30,9 @@ final class MenuBuilder implements ResetInterface
     // Decision 35: the signed-in viewer's row carries the page it was opened on (rel="nofollow"), guests get the bare link
     private const string PROGRESSION_ROW = 'progression';
 
+    // The docked column's Puzzles place row: the place's default link, as every other Puzzles place link has it (PUZ-01)
+    private const string PUZZLES_PLACE_ROW = 'puzzles_place';
+
     // A group missing on a surface still needs a number to be sorted by there (it is hidden on that surface): the
     // places group comes first on phones, the Inbox follows the You card in the column's DOM, Log out ends it
     private const array FALLBACK_ORDER = [
@@ -247,6 +250,12 @@ final class MenuBuilder implements ResetInterface
         if ($entry->target->route === 'puzzle_add') {
             // One rule for every Add entry point: a puzzle page's Add carries its puzzle (ADD-03)
             $href = $this->addEntry->addEntryUrl();
+        } elseif ($entry->id === self::PUZZLES_PLACE_ROW && $profile !== null) {
+            // The docked column's Puzzles place: the place's default like the tab, rail and compact places (PlacesBuilder)
+            // - My library for players (guests keep the registry's All puzzles); puzzles_section.js then follows the
+            // section used last (PUZ-01, review PUZ+COM F2). From the profile row: no statement
+            $href = $this->urlGenerator->generate('puzzle_library', ['playerId' => $profile->playerId]);
+            $nofollow = true;
         } elseif ($entry->count === CountSource::Stopwatch && $profile?->runningStopwatch !== null) {
             // While it runs the row leads back to it, like the top bar's pill
             $href = $this->urlGenerator->generate('stopwatch', ['stopwatchId' => $profile->runningStopwatch->stopwatchId]);

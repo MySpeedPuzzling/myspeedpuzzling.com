@@ -4,9 +4,11 @@
     The Community landing (docs/features/navigation README §4.9, COM-01a): the place's start page with its three
     sections. A card's title and icon are its registry entry's (one name per destination, README §4.12).
     COM-01: each card previews its section - the top of the solo 500-piece leaderboard, the most active puzzlers this
-    month, the next events - and ends in the call to action (+ Compare under Puzzlers, D8). Every link carries its
-    data-nav (community/community/<item>). The previews are the same for every viewer but the players they hide
-    (CommunityPreview): nothing here depends on the viewer, so the guests' page stays shared-cacheable.
+    month, the next events - and ends in the call to action (+ Compare under Puzzlers, D8 - signed-in viewers only, its
+    registry audience: `compare` is null for guests). Every link carries its data-nav (community/community/<item>). The
+    previews are the same for every viewer except the players a signed-in viewer's blocks hide (CommunityPreview) and
+    the star _leaderboard_player puts on the viewer's own favourites (from the profile row, no statement); every guest
+    gets the same HTML, so the guests' page stays shared-cacheable.
 #}
 
 {% block title %}{{ 'community_page.meta_title'|trans }}{% endblock %}
@@ -100,7 +102,7 @@
                         <a class="community-entry-link" href="{{ path(entry.target.route, entry.target.params) }}" data-nav="community/community/{{ item }}">
                             {{ ('community_page.' ~ item ~ '.cta')|trans }} <i class="bi bi-arrow-right" aria-hidden="true"></i>
                         </a>
-                        {% if item == 'puzzlers' %}
+                        {% if item == 'puzzlers' and compare is not null %}
                             <a class="community-entry-link community-entry-link--secondary" href="{{ path(compare.target.route, compare.target.params) }}" data-nav="community/community/compare">
                                 <i class="bi {{ compare.icon }}" aria-hidden="true"></i> {{ compare.label|trans }}
                             </a>

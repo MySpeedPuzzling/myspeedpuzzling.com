@@ -11,8 +11,12 @@
  *   a guest after signing out) the default: My library for players, All puzzles for guests.
  *
  * Runs on every `turbo:load` (the first page load included), so the links are right before the next tap; a tap before
- * it uses the server's link (accepted, plan PUZ-01). Guests' HTML stays the same for everybody: all of this is the
- * browser's. Storage can be missing or throw (private mode, blocked site data): the links keep their defaults.
+ * it uses the server's link (accepted, plan PUZ-01). Two cases bring a page back without `turbo:load` (review PUZ+COM
+ * Q4): a document restored from the back/forward cache (`pageshow` with `persisted`) records and applies again, like a
+ * visit; another tab recording a section (`storage`) moves this page's links to it - except on a page of a section of
+ * its own, which is the section this tab uses (its links keep leading here, and nothing is recorded, so two tabs never
+ * echo each other's writes). Guests' HTML stays the same for everybody: all of this is the browser's. Storage can be
+ * missing or throw (private mode, blocked site data): the links keep their defaults.
  * Plain functions over a Storage-like object and a document - tests/puzzles-section-harness.mjs runs them under node.
  */
 
@@ -93,22 +97,20 @@ export function targetHref(sections, remembered) {
     return sections.library || sections.all || null;
 }
 
-/**
- * Records this page's section, then points every Puzzles place link at the section used last. Returns the number of
- * links whose href changed.
- */
-export function applyPuzzlesSection(doc, storage) {
+/** The section this page belongs to (`<main data-puzzles-section>`), null for a page of none */
+function pageSection(doc) {
     const main = doc.querySelector('main[data-puzzles-section]');
+    const value = main ? main.getAttribute('data-puzzles-section') : null;
 
-    if (main) {
-        recordSection(storage, main.getAttribute('data-puzzles-section'));
-    }
+    return isSection(value) ? value : null;
+}
 
-    const remembered = readSection(storage);
+/** Points every Puzzles place link at the section's link (the default for null). Returns the number of links changed */
+function pointPlaceLinks(doc, section) {
     let changed = 0;
 
     for (const link of doc.querySelectorAll('a[data-nav-place="puzzles"][data-puzzles-sections]')) {
-        const href = targetHref(parseSections(link.getAttribute('data-puzzles-sections')), remembered);
+        const href = targetHref(parseSections(link.getAttribute('data-puzzles-sections')), section);
 
         if (href && link.getAttribute('href') !== href) {
             link.setAttribute('href', href);
@@ -120,13 +122,54 @@ export function applyPuzzlesSection(doc, storage) {
 }
 
 /**
+ * Records this page's section, then points every Puzzles place link at the section used last. Returns the number of
+ * links whose href changed.
+ */
+export function applyPuzzlesSection(doc, storage) {
+    const own = pageSection(doc);
+
+    if (own) {
+        recordSection(storage, own);
+    }
+
+    return pointPlaceLinks(doc, readSection(storage));
+}
+
+/**
+ * Another tab changed the remembered section: this page's links follow it, without recording anything - unless this
+ * page belongs to a section, which stays the one this tab uses. Returns the number of links whose href changed.
+ */
+export function followOtherTab(doc, storage) {
+    return pointPlaceLinks(doc, pageSection(doc) || readSection(storage));
+}
+
+/**
  * app.js: on every Turbo load (the first page load included) - and at once when the page has already been parsed (the
- * bundle came after Turbo's first turbo:load); applying twice changes nothing
+ * bundle came after Turbo's first turbo:load); applying twice changes nothing. Also on a back/forward-cache restore
+ * (`pageshow`, persisted) and when another tab writes the key (`storage`; a null key = the other tab cleared storage).
  */
 export function installPuzzlesSection({ window: win, document: doc }) {
     const apply = () => applyPuzzlesSection(doc, localStorageOf(win));
 
     doc.addEventListener('turbo:load', apply);
+
+    if (win && typeof win.addEventListener === 'function') {
+        win.addEventListener('pageshow', (event) => {
+            if (event && event.persisted) {
+                apply();
+            }
+        });
+
+        win.addEventListener('storage', (event) => {
+            const storage = localStorageOf(win);
+
+            if (!event || (event.key !== PUZZLES_SECTION_KEY && event.key !== null) || (event.storageArea && event.storageArea !== storage)) {
+                return;
+            }
+
+            followOtherTab(doc, storage);
+        });
+    }
 
     if (doc.readyState !== 'loading') {
         apply();

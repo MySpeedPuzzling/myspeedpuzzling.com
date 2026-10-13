@@ -12,7 +12,8 @@ use Symfony\Component\DomCrawler\Crawler;
 
 /**
  * The Community landing (docs/features/navigation README §4.9, COM-01a): the place's start page with Leaderboards,
- * Puzzlers and Events, in every locale, indexable, and - for guests - shared-cacheable.
+ * Puzzlers and Events, in every locale, indexable, and - for guests - shared-cacheable. Compare under Puzzlers (D8)
+ * follows its registry audience: signed-in viewers only (review PUZ+COM Q1).
  */
 final class CommunityControllerTest extends WebTestCase
 {
@@ -33,11 +34,11 @@ final class CommunityControllerTest extends WebTestCase
         // Shared-cacheable guest HTML: no cookie, no CSRF token in the page (the footer's newsletter form keeps its stateless one)
         self::assertSame([], $browser->getResponse()->headers->getCookies());
         self::assertCount(0, $crawler->filter('main [name="_token"], main [name$="[_token]"]'));
-        $this->assertTheSections($crawler);
+        $this->assertTheSections($crawler, signedIn: false);
         self::assertSame('Community', trim($crawler->filter('main h1')->text()));
     }
 
-    public function testMembersGetTheSamePage(): void
+    public function testMembersGetTheSameSectionsAndCompare(): void
     {
         $browser = self::createClient();
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
@@ -45,7 +46,18 @@ final class CommunityControllerTest extends WebTestCase
         $crawler = $browser->request('GET', '/en/community');
 
         self::assertResponseIsSuccessful();
-        $this->assertTheSections($crawler);
+        $this->assertTheSections($crawler, signedIn: true);
+    }
+
+    public function testAPlayerWithoutMembershipGetsCompareToo(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $crawler = $browser->request('GET', '/en/community');
+
+        self::assertResponseIsSuccessful();
+        $this->assertTheSections($crawler, signedIn: true);
     }
 
     public function testItIsIndexableWithCanonicalAndHreflangInEveryLocale(): void
@@ -97,14 +109,15 @@ final class CommunityControllerTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         self::assertSame($title, trim($crawler->filter('main h1')->text()));
-        // The three calls to action and Compare (COM-01 added the previews' own links)
-        self::assertCount(4, $crawler->filter('.community-entry-links a[data-nav^="community/community/"]'));
+        // The three calls to action - a guest gets no Compare (review PUZ+COM Q1; COM-01 added the previews' own links)
+        self::assertCount(3, $crawler->filter('.community-entry-links a[data-nav^="community/community/"]'));
     }
 
-    private function assertTheSections(Crawler $crawler): void
+    private function assertTheSections(Crawler $crawler, bool $signedIn): void
     {
         // Each card ends in its call to action (COM-01: the previews above it carry links of their own); Compare is the
-        // Puzzlers card's second link (D8), named as its registry entry
+        // Puzzlers card's second link (D8), named as its registry entry - for signed-in viewers, its registry audience
+        // (review PUZ+COM Q1: a guest's tap would end on the sign-in page)
         $links = $crawler->filter('.community-entry-links a.community-entry-link:not(.community-entry-link--secondary)');
         self::assertCount(3, $links);
 
@@ -122,10 +135,15 @@ final class CommunityControllerTest extends WebTestCase
         }
 
         self::assertSame($expected, $found);
-        self::assertSame(['/en/compare'], $crawler->filter('.community-puzzlers a[data-nav="community/community/compare"]')->each(
-            static fn (Crawler $link): string => (string) $link->attr('href'),
-        ));
-        self::assertSame('Compare', trim($crawler->filter('a[data-nav="community/community/compare"]')->text()));
+
+        if (!$signedIn) {
+            self::assertCount(0, $crawler->filter('a[data-nav="community/community/compare"], .community-entry-link--secondary'));
+        } else {
+            self::assertSame(['/en/compare'], $crawler->filter('.community-puzzlers a[data-nav="community/community/compare"]')->each(
+                static fn (Crawler $link): string => (string) $link->attr('href'),
+            ));
+            self::assertSame('Compare', trim($crawler->filter('a[data-nav="community/community/compare"]')->text()));
+        }
 
         // The titles are the registry's labels (one name per destination; MENU-01 named the people section Puzzlers)
         self::assertSame(['Leaderboards', 'Puzzlers', 'Events'], $crawler->filter('.community-entry-title')->each(

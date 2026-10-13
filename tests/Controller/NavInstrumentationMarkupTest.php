@@ -110,12 +110,17 @@ final class NavInstrumentationMarkupTest extends WebTestCase
     {
         // The Community landing (COM-01a) with its previews (COM-01): the solo 500-piece leaders, the most active puzzlers
         // (none in the fixtures: the community stats are not computed), the next events - each card's call to action last,
-        // Compare beside Find puzzlers
+        // Compare beside Find puzzlers for signed-in viewers only (its registry audience, review PUZ+COM Q1)
         yield 'community landing' => ['/en/community', [], '.community-landing', [
+            'community/community/leader', 'community/community/leader', 'community/community/leader', 'community/community/leaderboards',
+            'community/community/puzzlers',
+            'community/community/event', 'community/community/event', 'community/community/event', 'community/community/events',
+        ]];
+        yield 'community landing (player)' => ['/en/community', [], '.community-landing', [
             'community/community/leader', 'community/community/leader', 'community/community/leader', 'community/community/leaderboards',
             'community/community/puzzlers', 'community/community/compare',
             'community/community/event', 'community/community/event', 'community/community/event', 'community/community/events',
-        ]];
+        ], PlayerFixture::PLAYER_REGULAR];
         // The section chips (COM-02, PUZ-01): Community's three on every page of a section, Puzzles' four (My library for
         // players) on its start pages
         yield 'section chips (community)' => ['/en/ladder/solo/500-pieces', [], 'main > nav.section-chips', ['chips/community/leaderboards', 'chips/community/puzzlers', 'chips/community/events']];

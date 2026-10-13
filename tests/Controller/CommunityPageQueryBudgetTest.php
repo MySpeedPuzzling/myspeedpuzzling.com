@@ -11,8 +11,9 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 /**
  * The Community landing's previews (docs/features/navigation COM-01, README §4.9) cost one statement each - the solo
- * 500-piece leaders, the most active puzzlers, the next events (CommunityPreview) - and nothing of the viewer's own,
- * so a member pays exactly what every signed-in page pays on top (account, profile row, the Inbox badge).
+ * 500-piece leaders, the most active puzzlers, the next events (CommunityPreview) - and no statement of the viewer's
+ * own (their favourites' stars and Compare come from the profile row), so a member pays exactly what every signed-in
+ * page pays on top (account, profile row, the Inbox badge).
  *
  * Ceilings of the plan: guest ≤ 4, member ≤ 6 with the chrome. Pinned at the measured values (COM-01, 2026-10-13);
  * budgets only go down, every change commented with its requirement ID. The second request is counted: the first warms

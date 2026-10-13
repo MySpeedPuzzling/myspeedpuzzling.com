@@ -13,7 +13,8 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
  * The five places as the bars link them (docs/features/navigation README §4.2, D1; implementation plan NAV-01) - from
  * the request and the viewer's profile row only, no statement:
  * - Home: the Hub (guests: the homepage, D5);
- * - Puzzles: your own library (guests: the puzzle database); PUZ-01 later opens the last used section;
+ * - Puzzles: your own library (guests: the puzzle database); the browser points it at the last used section (PUZ-01),
+ *   so on the four section start pages it is that page's link (aria-current "page");
  * - Add: add_entry_url() (a puzzle page's Add carries its puzzle; guests: the Add explainer);
  * - Community: its landing;
  * - Profile: your own profile with your avatar (guests: sign in, back to this page afterwards).
@@ -92,6 +93,13 @@ final readonly class PlacesBuilder
             if ($location->place === $place) {
                 // Decision 27: "page" on the exact page the link leads to, "true" deeper inside the place
                 $current = $currentPath !== null && rawurldecode((string) parse_url($href, PHP_URL_PATH)) === $currentPath ? 'page' : 'true';
+
+                if ($this->isPuzzlesSectionStartPage($location)) {
+                    // PUZ-01 (review PUZ+COM F1): the four start pages record themselves before the link follows the
+                    // section used last (assets/puzzles_section.js), so there the Puzzles link leads to this very page
+                    // - whatever the server's default href. aria-current is the server's alone (GEST-04).
+                    $current = 'page';
+                }
             }
 
             $links[] = new PlaceLink(
@@ -108,5 +116,16 @@ final readonly class PlacesBuilder
         }
 
         return $links;
+    }
+
+    /**
+     * My library, All puzzles, Marketplace or What next? - a start page of the Puzzles place with its section (decision
+     * 75); your own library's lists record "library" too, but are no start page
+     */
+    private function isPuzzlesSectionStartPage(NavLocation $location): bool
+    {
+        return $location->place === NavPlace::Puzzles
+            && $location->isStartPage
+            && in_array($location->section, NavPlace::Puzzles->sections(), true);
     }
 }

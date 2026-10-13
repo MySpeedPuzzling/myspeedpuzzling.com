@@ -27,8 +27,9 @@ use SpeedPuzzling\Web\Value\OccurrenceDates;
  *   series - a weekly series would fill every row (decision 74) - and one per one-time event (a competition whose
  *   rounds fall on separate days is several occurrences).
  *
- * Nothing depends on the viewer but the players they hide, so the guests' page stays shared-cacheable and the
- * signed-in page costs the same for everybody. No state.
+ * The rows depend on the viewer only through the players their blocks hide - every guest gets the same rows, so the
+ * guests' page stays shared-cacheable - and the signed-in page costs the same for everybody. The template's one mark of
+ * the viewer's own, the star on their favourites' names (_leaderboard_player), comes from the profile row. No state.
  */
 readonly final class CommunityPreview
 {

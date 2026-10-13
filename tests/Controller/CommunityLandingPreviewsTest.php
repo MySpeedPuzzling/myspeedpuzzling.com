@@ -121,14 +121,51 @@ final class CommunityLandingPreviewsTest extends WebTestCase
         self::assertSame('/en/series/euro-jigsaw-jam-series/ejj-68-february-2026', $series->attr('href'), 'Its next edition');
     }
 
-    public function testMembersGetTheSamePreviewsAsGuests(): void
+    /**
+     * Review PUZ+COM Q2: the previews are the same for every viewer except the players a signed-in viewer's blocks hide
+     * (BlocklistCanaryTest) and the star _leaderboard_player puts in front of the viewer's own favourites; every guest
+     * gets the same HTML (the page is shared-cacheable). The viewers here block nobody (UserBlockFixture).
+     */
+    public function testThePreviewsAreTheSameForEveryViewerButTheirFavouritesStar(): void
     {
         $browser = self::createClient();
-
         $guest = $this->previews($browser);
+        $leaders = self::getContainer()->get(GetFastestPlayers::class)->window(CommunityPreview::LEADERBOARD_PIECES, null, CommunityPreview::LEADERS)->rows;
+        self::assertCount(CommunityPreview::LEADERS, $leaders);
+        self::assertStringNotContainsString('ci-star-filled', $guest, 'A guest has no favourites');
 
+        // Another guest: the same HTML
+        self::ensureKernelShutdown();
+        $browser = self::createClient();
+        self::assertSame($guest, $this->previews($browser));
+
+        // A member following none of the leaders (made sure, not left to the fixtures): the same previews
+        $database = self::getContainer()->get(Connection::class);
+        $database->executeStatement("UPDATE player SET favorite_players = '[]' WHERE id = :id", ['id' => PlayerFixture::PLAYER_WITH_STRIPE]);
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
         self::assertSame($guest, $this->previews($browser));
+
+        // A player following one of the leaders: the star in front of that leader's name, nothing else differs
+        $favourite = $leaders[1]->playerId === PlayerFixture::PLAYER_WITH_FAVORITES ? $leaders[2]->playerId : $leaders[1]->playerId;
+        $database->executeStatement(
+            'UPDATE player SET favorite_players = :favourites WHERE id = :id',
+            ['favourites' => json_encode([$favourite], JSON_THROW_ON_ERROR), 'id' => PlayerFixture::PLAYER_WITH_FAVORITES],
+        );
+        self::ensureKernelShutdown();
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_FAVORITES);
+        $crawler = $browser->request('GET', '/en/community');
+        self::assertResponseIsSuccessful();
+
+        self::assertSame(
+            ['/en/player-profile/' . $favourite],
+            $crawler->filter('.community-preview a.lb-name')
+                ->reduce(static fn (Crawler $link): bool => $link->filter('.ci-star-filled')->count() > 0)
+                ->each(static fn (Crawler $link): string => (string) $link->attr('href')),
+        );
+        $star = '<i class="ci-star-filled text-warning me-1"></i>';
+        self::assertSame(1, substr_count($this->previewsOf($crawler), $star));
+        self::assertSame($guest, str_replace($star, '', $this->previewsOf($crawler)));
     }
 
     private function previews(KernelBrowser $browser): string
@@ -136,7 +173,12 @@ final class CommunityLandingPreviewsTest extends WebTestCase
         $crawler = $browser->request('GET', '/en/community');
         self::assertResponseIsSuccessful();
 
-        // Members see the leaders' tier icons nowhere here (show_tier off): the rows are the same for everybody
+        return $this->previewsOf($crawler);
+    }
+
+    private function previewsOf(Crawler $crawler): string
+    {
+        // Members see the leaders' tier icons nowhere here (show_tier off)
         return (string) preg_replace('/\s+/', ' ', implode('', $crawler->filter('.community-preview')->each(static fn (Crawler $preview): string => $preview->html())));
     }
 }

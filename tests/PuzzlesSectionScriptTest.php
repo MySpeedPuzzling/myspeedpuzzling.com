@@ -13,7 +13,9 @@ use Symfony\Component\Process\Process;
  * run under node (tests/puzzles-section-harness.mjs). A Puzzles section page records itself in localStorage
  * `msp:puzzles-section`, every Puzzles place link (tab bar / rail, compact top bar, docked Menu row) follows; with
  * nothing remembered My library for players, All puzzles for guests; a guest ignores "library"; blocked storage and
- * broken attributes never throw and leave the server's links.
+ * broken attributes never throw and leave the server's links. Without a turbo:load (review PUZ+COM Q4): a document
+ * restored from the back/forward cache records and applies again, another tab's write moves the links of a page of no
+ * section (a section page keeps its own and writes nothing).
  */
 final class PuzzlesSectionScriptTest extends TestCase
 {
@@ -39,7 +41,8 @@ final class PuzzlesSectionScriptTest extends TestCase
             'member' => self::MY_LIBRARY,
             'dockRow' => self::MY_LIBRARY,
             'guest' => '/en/puzzle',
-            'changedMember' => 1,
+            // Review PUZ+COM F2: the docked row's server href is the tab's default, nothing to change
+            'changedMember' => 0,
             'changedGuest' => 0,
             'stored' => false,
         ], self::results()['defaults']);
@@ -96,6 +99,32 @@ final class PuzzlesSectionScriptTest extends TestCase
             'beforeLoad' => self::MY_LIBRARY,
             'afterLoad' => '/en/what-to-solve-next',
         ], self::results()['install']);
+    }
+
+    public function testABackForwardCacheRestoreAppliesAgain(): void
+    {
+        self::assertSame([
+            'before' => self::MY_LIBRARY,
+            // A plain pageshow comes with a turbo:load: nothing of its own
+            'notPersisted' => self::MY_LIBRARY,
+            'restored' => '/en/what-to-solve-next',
+            'sectionPage' => '/en/marketplace',
+            'recordedAgain' => 'marketplace',
+        ], self::results()['bfcache']);
+    }
+
+    public function testAnotherTabsSectionMovesTheLinksOfAPageOfNoSection(): void
+    {
+        self::assertSame([
+            'followed' => '/en/marketplace',
+            'otherKey' => '/en/marketplace',
+            'otherArea' => '/en/marketplace',
+            'cleared' => self::MY_LIBRARY,
+            'ownSection' => '/en/puzzle',
+            'changedOnOwnSection' => 0,
+            'writesOnEvent' => 0,
+            'stillRemembered' => 'marketplace',
+        ], self::results()['otherTab']);
     }
 
     /**

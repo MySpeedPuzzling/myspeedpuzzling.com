@@ -9286,10 +9286,106 @@ compete:
 online_rounds:
     settings:
         title: "Online timing"
+        unavailable:
+            in_person_event: "Online timing is for online events - this event takes place in person."
+            not_solo: "Online timing works for solo rounds for now. Pairs and teams come later."
+            edit_event: "Edit the event"
+        off:
+            title: "This round does not use online timing yet"
+            intro: "With online timing, everybody competes from home through a personal link. Their phone counts down to the start with the round's stopwatch, keeps the time, takes photos as evidence and records the moment they tap Finished."
+            enable: "Turn on online timing"
+            links_note: "Everybody going to the event gets a personal link. You hand them out on the Personal links page."
+        on:
+            badge: "On"
+            title: "This round uses online timing"
+            since: "Turned on %date%."
+            since_by: "Turned on %date% by %name%."
+        detection:
+            label: "Finish"
+            help: "Detecting raised hands arrives in a later version - until then, every finish is a tap on Finished."
+            "off": "Finished button - participants tap Finished when their puzzle is done"
+            shadow: "Finished button, detection watching - the tap counts; the camera's detection is only recorded, to measure it"
+            "on": "Detection - raised hands mark the finish, the Finished button is the fallback"
+        unfinished:
+            label: "When time is up"
+            help: "What participants who did not finish report, together with a photo of their puzzle."
+            left: "Pieces left"
+            placed: "Pieces placed"
+        missing_pieces:
+            label: "Missing pieces"
+            help: "What the review does with a finished puzzle that has a gap."
+            complete_required: "A complete puzzle is required"
+            penalty_5s: "5 seconds added for every missing piece"
+        save: "Save settings"
+        participants:
+            title: "Participants"
+            none: "Nobody is going yet. Add the participants in the participants sheet."
+            open_sheet: "Open the participants sheet"
+            entered: "Entered in this round: %entered% of the %going% people going."
+            with_link: "With a personal link: %with_link% of %going%."
+            not_entered: "{1}1 person going is not entered in this round yet. Their link opens the competition, but they compete in this round only once you enter them.|]1,Inf[%count% people going are not entered in this round yet. Their links open the competition, but they compete in this round only once you enter them."
+            enter: "Enter them in the participants sheet"
+        flash:
+            enabled: "{0}Online timing is on for %round%.|{1}Online timing is on for %round%. 1 participant got a personal link.|]1,Inf[Online timing is on for %round%. %count% participants got a personal link."
+            saved: "The online timing settings of %round% are saved."
+            expired: "The page was open for too long. Please try again."
     links:
         title: "Personal links"
+        rounds:
+            title: "Online timing"
+            in_person: "This event takes place in person - online timing is for online events."
+            none: "The event has no rounds yet."
+            none_online: "No round uses online timing yet. Set it up for a round, and everybody going to the event gets a personal link."
+            "on": "On"
+            "off": "Off"
+            in_person_event: "In person"
+            not_solo: "Solo rounds only"
+            set_up: "Set up"
+            settings: "Settings"
+        list_title: "Links"
+        intro: "Each participant competes through their own link - it opens their competition page with the stopwatch, the camera and the Finished button. Whoever has a link competes as that participant, so send each link only to its owner. \"New link\" stops the old one at once."
+        empty: "Nobody is going yet. Add the participants in the participants sheet - their links appear here."
+        open_sheet: "Open the participants sheet"
+        download_csv: "Download CSV"
+        print_qr: "Print QR codes"
+        col:
+            participant: "Participant"
+            profile: "MySpeedPuzzling profile"
+            link: "Personal link"
+            qr: "QR code"
+            actions: "Actions"
+        link_label: "Personal link of %name%"
+        qr_label: "QR code of the personal link of %name%"
+        copy: "Copy"
+        no_link: "No link yet"
+        regenerate: "New link"
+        create: "Create link"
+        regenerate_confirm: "The current link of %name% will stop working at once. Create a new one?"
+        waitlisted: "{1}1 person on the waitlist gets their link once they have a spot.|]1,Inf[%count% people on the waitlist get their links once they have a spot."
+        open_my_page: "Open my competition page"
+        sheet:
+            column: "Personal link"
+            no_link: "No link yet"
+            open_label: "Open the personal link of %name%"
+        csv:
+            name: "Name"
+            link: "Personal link"
+        qr_sheet:
+            title: "Personal links - QR codes"
+            back: "Back to the personal links"
+            print: "Print"
+            count: "{0}No cards|{1}1 card|]1,Inf[%count% cards"
+            hint: "Cut the cards apart and give each participant their own: they scan the code with the phone they compete on. A card is as personal as a password."
+            scan: "Scan it with the phone you compete on."
+            empty: "No personal links yet."
+        flash:
+            regenerated: "%name% has a new personal link. The old one no longer works."
+            created: "%name% has a personal link now."
+            waitlisted: "%name% is on the waitlist - their link comes with a spot."
+            expired: "The page was open for too long. Please try again."
     menu:
         online_timing: "Online timing"
+        personal_links: "Personal links"
     control:
         title: "Control room"
     review:

@@ -1,3 +1,56 @@
 // The organiser's online-round pages (docs/features/online-competitions/, streams C1 + C2).
 // Its own Encore style entry 'online_rounds', linked only on those pages through the base layout's
 // page_stylesheets block - never imported into app.scss, so the site-wide CSS stays as it is.
+
+// ---------------------------------------------------------------- C1: online timing settings, personal links
+
+// Explanations read as text, not as a wall: a line length that stays readable on a wide screen
+.online-rounds-prose {
+    max-width: 48rem;
+}
+
+// The radio lists of the settings form: a little air between the three questions
+.online-rounds-settings .mb-3 {
+    margin-bottom: 1.5rem !important;
+}
+
+// The event's rounds on the links page: name and start, state, the round's own page
+.online-rounds-list-item {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 0.75rem;
+    padding: 0.625rem 0;
+    border-bottom: 1px solid var(--bs-border-color, #dee2e6);
+
+    &:last-child {
+        border-bottom: 0;
+    }
+}
+
+.online-rounds-list-name {
+    flex: 1 1 14rem;
+    min-width: 0;
+}
+
+// The personal links table: the link field wide enough to read the token, the QR small
+.online-links-table {
+    .online-links-link {
+        min-width: 18rem;
+    }
+
+    .online-links-link .form-control {
+        font-size: 0.8125rem;
+    }
+}
+
+.online-links-qr {
+    width: 4rem;
+    height: 4rem;
+
+    svg {
+        display: block;
+        width: 100%;
+        height: 100%;
+    }
+}

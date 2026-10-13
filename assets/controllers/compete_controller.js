@@ -40,6 +40,7 @@ import {
     practiceState,
     readiness,
     readPieces,
+    runKeyOf,
     saveConsent,
     saveProgress,
     screenFor,
@@ -144,8 +145,10 @@ export default class extends Controller {
         this.participantId = this.participantIdValue;
         this.state = this.readInitialState();
         this.roundId = this.state?.round?.id ?? null;
+        // The run = the start of the round clock: the Finished taps and the pieces are kept per run (compete_flow.js)
+        this.runKey = runKeyOf(this.state);
         this.consent = loadConsent(this.storage, this.participantId);
-        this.progress = loadProgress(this.storage, this.participantId, this.roundId);
+        this.progress = loadProgress(this.storage, this.participantId, this.roundId, this.runKey);
         this.connectStatus = this.connectValue?.status ?? 'anonymous';
         this.connectFailed = false;
 
@@ -662,8 +665,14 @@ export default class extends Controller {
 
         if (roundId !== (previous?.round?.id ?? null)) {
             this.roundChanged();
-        } else if (this.state?.mercure) {
-            this.stream?.update(this.state.mercure);
+        } else {
+            if (this.state?.mercure) {
+                this.stream?.update(this.state.mercure);
+            }
+
+            if (runKeyOf(this.state) !== this.runKey) {
+                this.runChanged();
+            }
         }
 
         const before = readClock(previous);
@@ -680,7 +689,8 @@ export default class extends Controller {
 
     roundChanged() {
         this.roundId = this.state?.round?.id ?? null;
-        this.progress = loadProgress(this.storage, this.participantId, this.roundId);
+        this.runKey = runKeyOf(this.state);
+        this.progress = loadProgress(this.storage, this.participantId, this.roundId, this.runKey);
         this.lastPeriodicMs = null;
         this.sawRunning = null;
         this.practice = null;
@@ -689,6 +699,17 @@ export default class extends Controller {
         this.beeps.cancelCountdown();
         this.startStream();
         this.ensureConsentRecorded();
+    }
+
+    /**
+     * Another run of the same round (a Reset, a new start, a countdown called off or moved): its own Finished taps and
+     * pieces - none of the run that was; the set-up (consent, ready, the empty mat) stays.
+     */
+    runChanged() {
+        this.runKey = runKeyOf(this.state);
+        const run = loadProgress(this.storage, this.participantId, this.roundId, this.runKey);
+        this.progress.finishes = run.finishes;
+        this.progress.pieces = run.pieces;
     }
 
     /**
@@ -1008,7 +1029,7 @@ export default class extends Controller {
     }
 
     saveProgress() {
-        saveProgress(this.storage, this.participantId, this.roundId, this.progress);
+        saveProgress(this.storage, this.participantId, this.roundId, this.progress, this.runKey);
     }
 
     measure() {

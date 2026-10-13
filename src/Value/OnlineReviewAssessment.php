@@ -10,21 +10,27 @@ use SpeedPuzzling\Web\Results\OnlineReviewTap;
 
 /**
  * What the review reads from one participant's online entry (docs/features/online-competitions/README.md §5.9, §5.10,
- * §7) - pure, from the round's clock and the entry's events (GetOnlineReviewData):
+ * §7) - pure, from the round's clock and the entry's events (GetOnlineReviewData). Everything counts for the round's
+ * current run only - a run is one start of the round clock, its events are those from the start on; an earlier run's
+ * (before a Reset) stay stored and listed, but never count:
  *
  * - **Taps**: every `finish.button`; one named by a `finish.button.undone` (`{eventId}`) is undone. A tap before the
- *   start or after the end (the stop or the time limit, whichever came first) does not count.
+ *   start (an earlier run's - Finished works only while a round runs) or after the end (the stop or the time limit,
+ *   whichever came first) does not count.
  * - **Suggestion** (OnlineReviewSuggestion): the last tap that counts - the moment the participant's own page shows as
  *   their finish (compete_flow.js currentFinish()) - else the pieces reported at time-up, else none.
  * - **Status**: `confirmed` once a reviewer confirmed it; otherwise by the suggestion: `needs_look` (a finish to
  *   confirm), `unfinished` (pieces to confirm), `no_finish`.
- * - **Flags** (OnlineReviewFlag, README §7): a tap that arrived LATE_ARRIVAL_MS or more after its moment while other
- *   things of the phone reached the server meanwhile (the heartbeats live only in the presence, so the phone's other
- *   events are the evidence that it was online - GetOnlineReviewData's `heard_meanwhile`); camera lost, page hidden and
- *   offline - how often and how long while the round ran (per device, a loss without its return lasts until the end);
- *   more than one device; more than one tap that counts; taps after the end; and whatever the entry stores itself.
- * - **Adjustment**: a confirmed moment against the tap nearest to it - confirmed − tap, the reviewer's correction (the
- *   accuracy report). Phase 2 adds the detection error the same way, against the finish candidates.
+ * - **Flags** (OnlineReviewFlag, README §7): a tap of the run that arrived LATE_ARRIVAL_MS or more after its moment
+ *   while other things of the phone reached the server meanwhile (the heartbeats live only in the presence, so the
+ *   phone's other events are the evidence that it was online - GetOnlineReviewData's `heard_meanwhile`); camera lost,
+ *   page hidden and offline - how often and how long while the round ran (per device; a loss that began before the
+ *   start counts from it once its return came in the run, a loss without its return lasts until the end when it began
+ *   in the run); more than one device in the run (the one holding the entry at the start - the last ready before it -
+ *   and every device that sent anything since); more than one tap that counts; taps after the end; and whatever the
+ *   entry stores itself.
+ * - **Adjustment**: a confirmed moment against the tap of the run nearest to it - confirmed − tap, the reviewer's
+ *   correction (the accuracy report). Phase 2 adds the detection error the same way, against the finish candidates.
  *
  * @phpstan-import-type OnlineReviewEventRow from \SpeedPuzzling\Web\Query\GetOnlineReviewData
  */
@@ -92,9 +98,12 @@ final readonly class OnlineReviewAssessment
         };
 
         $adjustedTap = null;
+        [$startMs] = self::window($clock);
+        // The run's own taps - an earlier run's lie before its start
+        $runTaps = $startMs === null ? [] : array_values(array_filter($taps, static fn (OnlineReviewTap $tap): bool => $tap->momentMs >= $startMs));
 
         if ($confirmedMomentMs !== null) {
-            foreach ($taps as $tap) {
+            foreach ($runTaps as $tap) {
                 if ($adjustedTap === null || abs($tap->momentMs - $confirmedMomentMs) < abs($adjustedTap->momentMs - $confirmedMomentMs)) {
                     $adjustedTap = $tap;
                 }
@@ -105,7 +114,7 @@ final readonly class OnlineReviewAssessment
             taps: $taps,
             suggestion: $suggestion,
             status: $status,
-            flags: self::flags($clock, $nowMs, $events, $taps, $counting, $storedFlags),
+            flags: self::flags($clock, $nowMs, $events, $runTaps, $counting, $storedFlags),
             adjustedTap: $adjustedTap,
             adjustmentMs: $adjustedTap === null || $confirmedMomentMs === null ? null : $confirmedMomentMs - $adjustedTap->momentMs,
         );
@@ -186,7 +195,7 @@ final readonly class OnlineReviewAssessment
 
     /**
      * @param list<OnlineReviewEventRow> $events by moment
-     * @param list<OnlineReviewTap> $taps
+     * @param list<OnlineReviewTap> $taps the run's own (from its start on)
      * @param list<OnlineReviewTap> $counting
      * @param list<string> $storedFlags
      * @return list<OnlineReviewFlag>
@@ -227,7 +236,7 @@ final readonly class OnlineReviewAssessment
             }
         }
 
-        $devices = array_unique(array_column($events, 'device_id'));
+        $devices = $startMs === null ? [] : self::devicesOfTheRun($events, $startMs);
 
         if (count($devices) > 1) {
             $flags[] = new OnlineReviewFlag(OnlineReviewFlag::TAKEOVER, count: count($devices));
@@ -256,8 +265,37 @@ final readonly class OnlineReviewAssessment
     }
 
     /**
+     * The devices of the run: the one holding the entry at its start (the last `device.ready` before it) and every
+     * device that sent anything from the start on
+     *
+     * @param list<OnlineReviewEventRow> $events by moment
+     * @return list<string>
+     */
+    private static function devicesOfTheRun(array $events, int $startMs): array
+    {
+        $holderAtStart = null;
+        $devices = [];
+
+        foreach ($events as $event) {
+            if ($event['client_ms'] >= $startMs) {
+                $devices[$event['device_id']] = true;
+            } elseif ($event['type'] === OnlineEventType::DeviceReady->value) {
+                $holderAtStart = $event['device_id'];
+            }
+        }
+
+        if ($holderAtStart !== null) {
+            $devices[$holderAtStart] = true;
+        }
+
+        return array_keys($devices);
+    }
+
+    /**
      * How often and how long (ms) something was down while the round ran: per device, from a `down` event to the next
-     * `up` one - a down without its up lasts until the end of the window. Null when it never was.
+     * `up` one, counted from the start of the window. A down without its up lasts until the end of the window - when it
+     * came in the run: one from before the start may be an earlier run's, and a later down of the same device in the
+     * run means it came back meanwhile (a reload records no return). Null when it never was.
      *
      * @param list<OnlineReviewEventRow> $events by moment
      * @return null|array{0: int, 1: int} count, milliseconds
@@ -272,7 +310,9 @@ final readonly class OnlineReviewAssessment
             $device = $event['device_id'];
 
             if ($event['type'] === $down->value) {
-                $openSince[$device] ??= $event['client_ms'];
+                if (!isset($openSince[$device]) || ($openSince[$device] < $fromMs && $event['client_ms'] >= $fromMs)) {
+                    $openSince[$device] = $event['client_ms'];
+                }
             } elseif ($event['type'] === $up->value && isset($openSince[$device])) {
                 $intervals[] = [$openSince[$device], $event['client_ms']];
                 unset($openSince[$device]);
@@ -280,7 +320,9 @@ final readonly class OnlineReviewAssessment
         }
 
         foreach ($openSince as $since) {
-            $intervals[] = [$since, max($since, $untilMs)];
+            if ($since >= $fromMs) {
+                $intervals[] = [$since, max($since, $untilMs)];
+            }
         }
 
         $count = 0;

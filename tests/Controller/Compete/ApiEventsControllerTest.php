@@ -139,6 +139,12 @@ final class ApiEventsControllerTest extends WebTestCase
 
     public function testTheLatestTimeUpReportOnThePhonesClockWins(): void
     {
+        // The round ran (a report is about the round's current run - from its start on)
+        $entityManager = $this->browser->getContainer()->get(EntityManagerInterface::class);
+        $round = $entityManager->find(CompetitionRound::class, OnlineRoundsFixture::ROUND_ONLINE_SOLO);
+        self::assertNotNull($round);
+        $round->startStopwatch(new DateTimeImmutable('-61 minutes'));
+        $entityManager->flush();
         $now = self::nowMs();
 
         $this->sendConnected([self::event('timeup.pieces', $now - 10_000, ['pieces' => 12])]);

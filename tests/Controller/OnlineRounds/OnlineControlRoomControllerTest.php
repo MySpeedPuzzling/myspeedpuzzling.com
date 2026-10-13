@@ -243,6 +243,67 @@ final class OnlineControlRoomControllerTest extends WebTestCase
     }
 
     /**
+     * A run is one start of the round clock: after a Reset and a new start, a tap of the run that was is no finish -
+     * neither while the new round runs nor while it waits for its start
+     */
+    public function testATapOfAnEarlierRunIsNoFinish(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+        $browser->disableReboot();
+
+        $startMs = $this->startOnlineRound(600);
+        $onlineEntry = $this->onlineEntryOf(OnlineRoundsFixture::ENTRY_CONNECTED);
+        $this->finishTap($onlineEntry, $startMs - 1_800_000);
+
+        $browser->request('GET', self::LIVE, server: ['HTTP_ACCEPT' => 'application/json']);
+        self::assertResponseIsSuccessful();
+        self::assertNoFinish($this->olivia($browser));
+
+        $this->onlineRound()->resetStopwatch();
+        $this->entityManager()->flush();
+
+        $browser->request('GET', self::LIVE, server: ['HTTP_ACCEPT' => 'application/json']);
+        self::assertNoFinish($this->olivia($browser));
+
+        // A tap of this run is one
+        $startMs = $this->startOnlineRound(300);
+        // The requests cleared the entity manager - read it again
+        $this->finishTap($this->onlineEntryOf(OnlineRoundsFixture::ENTRY_CONNECTED), $startMs + 120_000);
+        $browser->request('GET', self::LIVE, server: ['HTTP_ACCEPT' => 'application/json']);
+        $finish = $this->olivia($browser)['finish'] ?? null;
+        self::assertIsArray($finish);
+        self::assertSame($startMs + 120_000, $finish['momentMs']);
+    }
+
+    /**
+     * @param array<string, mixed> $participant
+     */
+    private static function assertNoFinish(array $participant): void
+    {
+        self::assertArrayHasKey('finish', $participant);
+        self::assertNull($participant['finish']);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function olivia(KernelBrowser $browser): array
+    {
+        $participants = $this->json($browser)['participants'] ?? null;
+        self::assertIsArray($participants);
+
+        foreach ($participants as $participant) {
+            if (is_array($participant) && ($participant['participantId'] ?? null) === OnlineRoundsFixture::PARTICIPANT_CONNECTED) {
+                /** @var array<string, mixed> $participant */
+                return $participant;
+            }
+        }
+
+        self::fail('Olivia is not in the control room');
+    }
+
+    /**
      * The "Online timing" page of a round that uses it links its control room and its review; a round that does not
      * use online timing has neither
      */

@@ -171,6 +171,8 @@ final class SerializedByLockMessagesTest extends TestCase
         self::assertSame($key, (new ConfirmOnlineResult($competitionId, 'round', $participantId, null, OnlineConfirmedSource::Reviewer, 1200, 'player', RoundEntryResult::none()))->lockKey());
         // Back to draft only while nobody joined - a join waits for the check (docs/features/organizations/README.md)
         self::assertSame($key, (new UnpublishCompetition($competitionId))->lockKey());
+        // A Reset of an online round checks the round's official results and starts a fresh run
+        self::assertSame($key, (new ResetRoundStopwatch('round', $competitionId))->lockKey());
     }
 
     /**
@@ -254,7 +256,6 @@ final class SerializedByLockMessagesTest extends TestCase
         UnpublishRoundResults::class => 'takes the results off the public page - writes only the round\'s published state, nothing recorded changes',
         RecordOnlineEntryEvents::class => 'a participant\'s phone\'s events on their own online entry (online_entry*) - reads the round entry, never writes entries, teams or official results',
         RegisterOnlineMedia::class => 'an evidence row on the participant\'s own online entry (online_entry*) - reads the round entry, never writes entries, teams or official results',
-        ResetRoundStopwatch::class => 'the round\'s stopwatch only',
         ScheduleRoundStart::class => 'the round\'s stopwatch only - a start ahead (the countdown)',
         StartRoundStopwatch::class => 'the round\'s stopwatch only',
         StopRoundStopwatch::class => 'the round\'s stopwatch only',

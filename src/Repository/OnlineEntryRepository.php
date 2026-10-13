@@ -52,6 +52,30 @@ readonly final class OnlineEntryRepository
         return $onlineEntry;
     }
 
+    /**
+     * Every online entry of a round (its participants whose phone made contact)
+     *
+     * @return list<OnlineEntry>
+     */
+    public function ofRound(string $roundId): array
+    {
+        if (!Uuid::isValid($roundId)) {
+            return [];
+        }
+
+        /** @var list<OnlineEntry> $onlineEntries */
+        $onlineEntries = $this->entityManager->createQueryBuilder()
+            ->select('online_entry')
+            ->from(OnlineEntry::class, 'online_entry')
+            ->innerJoin('online_entry.entry', 'entry')
+            ->where('entry.round = :roundId')
+            ->setParameter('roundId', strtolower($roundId))
+            ->getQuery()
+            ->getResult();
+
+        return $onlineEntries;
+    }
+
     public function save(OnlineEntry $onlineEntry): void
     {
         $this->entityManager->persist($onlineEntry);

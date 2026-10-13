@@ -142,6 +142,50 @@ final class OnlineReviewAssessmentTest extends TestCase
         self::assertEquals(new OnlineReviewFlag(OnlineReviewFlag::OFFLINE, 1, 30), self::flag($assessment, OnlineReviewFlag::OFFLINE));
     }
 
+    /**
+     * A run is one start of the round clock: the run that was reset (here two hours before) keeps its events, but
+     * nothing of it counts - not its taps, not a tap of it that arrived late, not the device it was on, not a loss it
+     * never came back from, not as the tap a confirmation is measured against
+     */
+    public function testAnEarlierRunNeverCounts(): void
+    {
+        $earlierRun = self::START - 2 * 60 * self::MINUTE;
+        $events = [
+            self::event('device.ready', $earlierRun - self::MINUTE, device: 'old-phone'),
+            self::event('finish.button', $earlierRun + 40 * self::MINUTE, received: $earlierRun + 42 * self::MINUTE, device: 'old-phone', heard: true, id: 'earlier-tap'),
+            self::event('camera.lost', $earlierRun + 50 * self::MINUTE, device: 'old-phone'),
+            // This run, on another phone
+            self::event('device.ready', self::START - 2 * self::MINUTE, device: 'phone-b'),
+            self::event('finish.button', self::START + 45 * self::MINUTE, device: 'phone-b', id: 'run-tap'),
+        ];
+
+        $assessment = self::assess($events, confirmed: true, confirmedMomentMs: self::START + 45 * self::MINUTE - 500);
+
+        self::assertSame([OnlineReviewTap::BEFORE_START, OnlineReviewTap::IN_ROUND], array_map(static fn (OnlineReviewTap $tap): string => $tap->position, $assessment->taps), 'listed, never counted');
+        self::assertSame([], self::flagCounts($assessment), 'no late tap, no takeover, no camera loss of the run that was');
+        self::assertSame('run-tap', $assessment->adjustedTap?->eventId);
+        self::assertSame(-500, $assessment->adjustmentMs);
+
+        // The device holding the entry at the start was the old phone: a second device in the run is a takeover
+        $taken = self::assess([
+            self::event('device.ready', $earlierRun - self::MINUTE, device: 'old-phone'),
+            self::event('page.visible', self::START + self::MINUTE, device: 'old-phone'),
+            self::event('device.ready', self::START + 5 * self::MINUTE, device: 'phone-b'),
+        ]);
+        self::assertSame([OnlineReviewFlag::TAKEOVER => 2], self::flagCounts($taken));
+
+        // A loss that came back in the run counts from the start; one the old run never came back from does not - and a
+        // new loss of the same device in the run counts from its own moment
+        $losses = self::assess([
+            self::event('camera.lost', $earlierRun + 10 * self::MINUTE),
+            self::event('camera.lost', self::START + 10 * self::MINUTE),
+            self::event('camera.back', self::START + 10 * self::MINUTE + 6_000),
+            self::event('network.offline', $earlierRun + 20 * self::MINUTE, device: 'old-phone'),
+        ]);
+        self::assertEquals(new OnlineReviewFlag(OnlineReviewFlag::CAMERA_LOST, 1, 6), self::flag($losses, OnlineReviewFlag::CAMERA_LOST));
+        self::assertNull(self::flag($losses, OnlineReviewFlag::OFFLINE));
+    }
+
     public function testAnotherDeviceAndStoredFlags(): void
     {
         $assessment = self::assess([

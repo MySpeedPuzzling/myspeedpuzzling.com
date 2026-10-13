@@ -12,7 +12,7 @@
  * Pinned by tests/online-compete-harness.mjs.
  */
 
-import { formatClock } from './round_state.js';
+import { formatClock, readClock } from './round_state.js';
 
 export const SCREENS = [
     'welcome', 'checklist', 'waiting', 'countdown', 'running', 'finished', 'timeup', 'after',
@@ -37,9 +37,13 @@ export const PRACTICE_CLEARANCE_MS = 15000;
 // The connection counts as working while an answer came this recently
 export const CONNECTION_FRESH_MS = 45000;
 
-// What the page remembers on the device, per participant (consent) and per participant + round (the rest)
+// What the page remembers on the device: per participant the consent; per participant + round the set-up (consent sent,
+// ready, the empty mat, the once-per-start marks); per participant + round + run what happened in the run - the
+// Finished taps and the pieces reported at time-up. A run is one start of the round clock (its startedAtMs): a Reset and
+// a new start begin a fresh one, so nothing of the run that was carries over (the server counts the same way)
 const CONSENT_PREFIX = 'msp-compete-consent:';
 const PROGRESS_PREFIX = 'msp-compete:';
+const RUN_INFIX = ':run:';
 export const DEVICE_KEY = 'msp-online-device';
 
 /**
@@ -51,11 +55,12 @@ export const DEVICE_KEY = 'msp-online-device';
  */
 
 /**
- * @typedef {object} Progress   one participant's progress in one round on this device
+ * @typedef {object} Progress   one participant's progress in one round on this device - its run part (finishes,
+ *                              pieces) is the current run's
  * @property {boolean} consentSent    consent.given was recorded for this round
  * @property {boolean} ready          "I'm ready" was tapped (device.ready)
- * @property {Finish[]} finishes
- * @property {{measure: string, pieces: number}|null} pieces   reported at time-up
+ * @property {Finish[]} finishes      this run's Finished taps
+ * @property {{measure: string, pieces: number}|null} pieces   reported at this run's time-up
  * @property {boolean} emptyMat       the empty-mat photo was taken
  * @property {Object<string, boolean>} seen   once-per-start marks: `countdown:<startedAtMs>`, `start:<…>`, `startPhoto:<…>`, …
  */
@@ -565,6 +570,30 @@ function write(storage, key, value) {
     }
 }
 
+/**
+ * The run a state is about: the start of its round clock (startedAtMs, a countdown's too) - null without a round or a
+ * start (none yet, or reset since).
+ */
+export function runKeyOf(state) {
+    return readClock(state)?.startedAtMs ?? null;
+}
+
+function readFinishes(stored, fromMs = null) {
+    if (!Array.isArray(stored)) {
+        return [];
+    }
+
+    return stored.filter((finish) => finish && typeof finish.eventId === 'string' && Number.isFinite(finish.momentMs)
+        && (fromMs === null || finish.momentMs >= fromMs))
+        .map((finish) => ({ eventId: finish.eventId, momentMs: finish.momentMs, undone: finish.undone === true, continued: finish.continued === true }));
+}
+
+function readReportedPieces(stored) {
+    return stored && Number.isFinite(stored.pieces)
+        ? { measure: String(stored.measure ?? ''), pieces: stored.pieces }
+        : null;
+}
+
 export function loadConsent(storage, participantId) {
     return read(storage, CONSENT_PREFIX + participantId)?.consent === true;
 }
@@ -574,37 +603,55 @@ export function saveConsent(storage, participantId, atMs) {
 }
 
 /**
+ * The progress in a round on this device, with the run part of `runKey` (runKeyOf() - null: no run, nothing of one).
+ *
  * @returns {Progress}
  */
-export function loadProgress(storage, participantId, roundId) {
+export function loadProgress(storage, participantId, roundId, runKey = null) {
     const stored = roundId ? read(storage, `${PROGRESS_PREFIX}${participantId}:${roundId}`) : null;
     const progress = emptyProgress();
 
-    if (stored === null || typeof stored !== 'object') {
+    if (stored !== null && typeof stored === 'object') {
+        progress.consentSent = stored.consentSent === true;
+        progress.ready = stored.ready === true;
+        progress.emptyMat = stored.emptyMat === true;
+        progress.seen = stored.seen && typeof stored.seen === 'object' ? { ...stored.seen } : {};
+    }
+
+    if (!roundId || !Number.isFinite(runKey)) {
         return progress;
     }
 
-    progress.consentSent = stored.consentSent === true;
-    progress.ready = stored.ready === true;
-    progress.emptyMat = stored.emptyMat === true;
-    progress.finishes = Array.isArray(stored.finishes)
-        ? stored.finishes.filter((finish) => finish && typeof finish.eventId === 'string' && Number.isFinite(finish.momentMs))
-            .map((finish) => ({ eventId: finish.eventId, momentMs: finish.momentMs, undone: finish.undone === true, continued: finish.continued === true }))
-        : [];
-    progress.pieces = stored.pieces && Number.isFinite(stored.pieces.pieces)
-        ? { measure: String(stored.pieces.measure ?? ''), pieces: stored.pieces.pieces }
-        : null;
-    progress.seen = stored.seen && typeof stored.seen === 'object' ? { ...stored.seen } : {};
+    const run = read(storage, `${PROGRESS_PREFIX}${participantId}:${roundId}${RUN_INFIX}${runKey}`);
+
+    if (run !== null && typeof run === 'object') {
+        progress.finishes = readFinishes(run.finishes);
+        progress.pieces = readReportedPieces(run.pieces);
+    } else if (stored !== null && typeof stored === 'object') {
+        // Kept by an older page in the round's part: the run's own taps lie from its start on; pieces can not be told
+        // apart from an earlier run's - left out
+        progress.finishes = readFinishes(stored.finishes, runKey);
+    }
 
     return progress;
 }
 
-export function saveProgress(storage, participantId, roundId, progress) {
+/**
+ * Keeps the progress: the set-up with the round, the taps and pieces with the run `runKey` (none without a run).
+ */
+export function saveProgress(storage, participantId, roundId, progress, runKey = null) {
     if (!roundId) {
         return false;
     }
 
-    return write(storage, `${PROGRESS_PREFIX}${participantId}:${roundId}`, progress);
+    const { finishes, pieces, ...setUp } = progress;
+    const savedSetUp = write(storage, `${PROGRESS_PREFIX}${participantId}:${roundId}`, setUp);
+
+    if (!Number.isFinite(runKey)) {
+        return savedSetUp;
+    }
+
+    return write(storage, `${PROGRESS_PREFIX}${participantId}:${roundId}${RUN_INFIX}${runKey}`, { finishes, pieces }) && savedSetUp;
 }
 
 /**

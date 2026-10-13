@@ -206,9 +206,13 @@ final class OnlineRoundsRepositoriesTest extends KernelTestCase
         self::assertSame([], $repository->existingIds([]));
         self::assertSame([], $repository->existingIds(['not-a-uuid']));
 
-        self::assertSame(['consent.given' => 1, 'device.ready' => 1], self::sorted($repository->typeCounts(OnlineRoundsFixture::ONLINE_ENTRY_CONNECTED)));
-        self::assertSame([], $repository->typeCounts(Uuid::uuid7()->toString()));
-        self::assertSame([], $repository->typeCounts('not-a-uuid'));
+        self::assertSame(['consent.given' => 1, 'device.ready' => 1], self::sorted($repository->typeCounts(OnlineRoundsFixture::ONLINE_ENTRY_CONNECTED, 0)));
+        // From a moment on (a run's start): the consent came before it, the ready after it
+        $readyMs = $repository->get(OnlineRoundsFixture::EVENT_READY_CONNECTED)->clientMs;
+        self::assertSame(['device.ready' => 1], $repository->typeCounts(OnlineRoundsFixture::ONLINE_ENTRY_CONNECTED, $readyMs));
+        self::assertSame([], $repository->typeCounts(OnlineRoundsFixture::ONLINE_ENTRY_CONNECTED, $readyMs + 1));
+        self::assertSame([], $repository->typeCounts(Uuid::uuid7()->toString(), 0));
+        self::assertSame([], $repository->typeCounts('not-a-uuid', 0));
 
         $this->expectException(OnlineEntryEventNotFound::class);
         $repository->get(Uuid::uuid7()->toString());

@@ -4647,6 +4647,7 @@ competition:
             already_started: "The stopwatch has already started - reset it before scheduling a new start."
             too_late_to_cancel: "The round has already started - its start can no longer be cancelled."
             start_scheduled: "A start is scheduled - cancel it first to start right now."
+            results_confirmed: "This round already has official results. Clear them at the results desk first - a reset starts the round again from scratch."
     flash:
         created: "Event submitted for approval."
         updated: "Event updated."

@@ -28,6 +28,7 @@ import {
     practiceState,
     readiness,
     readPieces,
+    runKeyOf,
     saveConsent,
     saveProgress,
     SCREENS,
@@ -352,7 +353,7 @@ const scenarios = {
         assert.equal(countdownText(0), '00:00');
     },
 
-    async 'what the device remembers: consent per participant, progress per participant and round, nothing breaks on a broken storage'() {
+    async 'what the device remembers: consent per participant, the set-up per round, taps and pieces per run, nothing breaks on a broken storage'() {
         const storage = memoryStorage();
 
         assert.equal(loadConsent(storage, PARTICIPANT), false);
@@ -360,35 +361,104 @@ const scenarios = {
         assert.equal(loadConsent(storage, PARTICIPANT), true);
         assert.equal(loadConsent(storage, 'other'), false);
 
-        const mine = loadProgress(storage, PARTICIPANT, ROUND);
+        const mine = loadProgress(storage, PARTICIPANT, ROUND, START);
         assert.deepEqual(mine, emptyProgress());
         mine.ready = true;
         mine.consentSent = true;
         mine.finishes.push({ eventId: 'e1', momentMs: START + 1000, undone: false, continued: false });
         mine.pieces = { measure: 'placed', pieces: 812 };
         mine.seen['start:1'] = true;
-        saveProgress(storage, PARTICIPANT, ROUND, mine);
+        assert.equal(saveProgress(storage, PARTICIPANT, ROUND, mine, START), true);
 
-        const again = loadProgress(storage, PARTICIPANT, ROUND);
+        const again = loadProgress(storage, PARTICIPANT, ROUND, START);
         assert.deepEqual(again, mine);
         assert.notEqual(again, mine);
-        assert.deepEqual(loadProgress(storage, PARTICIPANT, 'another-round'), emptyProgress(), 'a new round starts afresh');
-        assert.deepEqual(loadProgress(storage, PARTICIPANT, null), emptyProgress());
-        assert.equal(saveProgress(storage, PARTICIPANT, null, mine), false);
+        assert.deepEqual(loadProgress(storage, PARTICIPANT, 'another-round', START), emptyProgress(), 'a new round starts afresh');
+        assert.deepEqual(loadProgress(storage, PARTICIPANT, null, START), emptyProgress());
+        assert.equal(saveProgress(storage, PARTICIPANT, null, mine, START), false);
 
         // Junk stored: the defaults, junk finishes dropped
         storage.setItem(`msp-compete:${PARTICIPANT}:${ROUND}`, '{not json');
-        assert.deepEqual(loadProgress(storage, PARTICIPANT, ROUND), emptyProgress());
-        storage.setItem(`msp-compete:${PARTICIPANT}:${ROUND}`, JSON.stringify({ ready: 'yes', finishes: [{ eventId: 1 }, { eventId: 'ok', momentMs: 5 }] }));
-        const cleaned = loadProgress(storage, PARTICIPANT, ROUND);
+        storage.setItem(`msp-compete:${PARTICIPANT}:${ROUND}:run:${START}`, '{not json');
+        assert.deepEqual(loadProgress(storage, PARTICIPANT, ROUND, START), emptyProgress());
+        storage.setItem(`msp-compete:${PARTICIPANT}:${ROUND}`, JSON.stringify({ ready: 'yes' }));
+        storage.setItem(`msp-compete:${PARTICIPANT}:${ROUND}:run:${START}`, JSON.stringify({ finishes: [{ eventId: 1 }, { eventId: 'ok', momentMs: START + 5 }], pieces: { pieces: 'many' } }));
+        const cleaned = loadProgress(storage, PARTICIPANT, ROUND, START);
         assert.equal(cleaned.ready, false);
-        assert.deepEqual(cleaned.finishes, [{ eventId: 'ok', momentMs: 5, undone: false, continued: false }]);
+        assert.deepEqual(cleaned.finishes, [{ eventId: 'ok', momentMs: START + 5, undone: false, continued: false }]);
+        assert.equal(cleaned.pieces, null);
 
         // A storage that throws (private mode, quota): defaults, and saving says it failed
         const broken = { getItem() { throw new Error('denied'); }, setItem() { throw new Error('denied'); } };
-        assert.deepEqual(loadProgress(broken, PARTICIPANT, ROUND), emptyProgress());
-        assert.equal(saveProgress(broken, PARTICIPANT, ROUND, mine), false);
+        assert.deepEqual(loadProgress(broken, PARTICIPANT, ROUND, START), emptyProgress());
+        assert.equal(saveProgress(broken, PARTICIPANT, ROUND, mine, START), false);
         assert.equal(loadConsent(broken, PARTICIPANT), false);
+    },
+
+    async 'a run is one start of the round clock: after a Reset and a new start no tap and no pieces carry over - the set-up does'() {
+        const storage = memoryStorage();
+        const firstRun = state({ startedAtMs: START, minutesLimit: 30 });
+        assert.equal(runKeyOf(firstRun), START);
+        assert.equal(runKeyOf(state()), null, 'no start - no run');
+        assert.equal(runKeyOf({ ...state(), round: null }), null);
+        assert.equal(runKeyOf(null), null);
+
+        const first = loadProgress(storage, PARTICIPANT, ROUND, START);
+        first.consentSent = true;
+        first.ready = true;
+        first.emptyMat = true;
+        first.finishes.push({ eventId: 'e1', momentMs: START + 20 * MINUTE, undone: false, continued: false });
+        first.pieces = { measure: 'left', pieces: 12 };
+        first.seen[`start:${START}`] = true;
+        saveProgress(storage, PARTICIPANT, ROUND, first, START);
+
+        // The organiser resets: no run - the set-up stays, nothing of the run that was
+        const reset = loadProgress(storage, PARTICIPANT, ROUND, null);
+        assert.deepEqual([reset.consentSent, reset.ready, reset.emptyMat, reset.seen[`start:${START}`]], [true, true, true, true]);
+        assert.deepEqual([reset.finishes, reset.pieces], [[], null]);
+        assert.equal(saveProgress(storage, PARTICIPANT, ROUND, reset, null), true, 'no run: the set-up only');
+        assert.deepEqual(loadProgress(storage, PARTICIPANT, ROUND, START).finishes.length, 1, 'the run that was is still on the device');
+
+        // ...and starts again an hour later: a fresh run
+        const secondStart = START + 60 * MINUTE;
+        const secondRun = state({ startedAtMs: secondStart, minutesLimit: 30 });
+        const second = loadProgress(storage, PARTICIPANT, ROUND, runKeyOf(secondRun));
+        assert.deepEqual([second.finishes, second.pieces, second.ready], [[], null, true]);
+
+        const screen = (serverNowMs, progress, entry = {}) => screenFor({
+            state: state({ startedAtMs: secondStart, minutesLimit: 30, entry }),
+            view: deriveView(secondRun, serverNowMs),
+            consent: true,
+            progress,
+        });
+        // The server counts the new run's taps only (OnlineRoundState) - GO is GO, not "Finish recorded"
+        assert.equal(screen(secondStart + 5 * MINUTE, second), 'running');
+        // ...and at its end the pieces question comes again
+        assert.equal(screen(secondStart + 31 * MINUTE, second), 'timeup');
+
+        // A tap in the second run is kept with it
+        second.finishes.push({ eventId: 'e2', momentMs: secondStart + 25 * MINUTE, undone: false, continued: false });
+        saveProgress(storage, PARTICIPANT, ROUND, second, secondStart);
+        assert.deepEqual(loadProgress(storage, PARTICIPANT, ROUND, secondStart).finishes.map((finish) => finish.eventId), ['e2']);
+        assert.deepEqual(loadProgress(storage, PARTICIPANT, ROUND, START).finishes.map((finish) => finish.eventId), ['e1']);
+    },
+
+    async 'progress an older page kept with the round: the run keeps only the taps from its own start on'() {
+        const storage = memoryStorage();
+        storage.setItem(`msp-compete:${PARTICIPANT}:${ROUND}`, JSON.stringify({
+            consentSent: true,
+            ready: true,
+            finishes: [
+                { eventId: 'earlier', momentMs: START - 30 * MINUTE },
+                { eventId: 'this-run', momentMs: START + 10 * MINUTE },
+            ],
+            pieces: { measure: 'left', pieces: 3 },
+        }));
+
+        const progress = loadProgress(storage, PARTICIPANT, ROUND, START);
+        assert.equal(progress.ready, true);
+        assert.deepEqual(progress.finishes.map((finish) => finish.eventId), ['this-run']);
+        assert.equal(progress.pieces, null, 'a report can not be told apart from an earlier run\'s');
     },
 
     async 'the device id is kept, so a reload is no takeover; a broken storage gets one for the page'() {

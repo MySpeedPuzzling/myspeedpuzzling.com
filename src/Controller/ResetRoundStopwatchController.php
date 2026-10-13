@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
+use SpeedPuzzling\Web\Entity\CompetitionRound;
 use SpeedPuzzling\Web\Message\ResetRoundStopwatch;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -11,7 +12,8 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 /**
- * "Reset" - the stopwatch back to not started (AbstractRoundStopwatchController).
+ * "Reset" - the stopwatch back to not started (AbstractRoundStopwatchController). A round with online timing starts a
+ * fresh run - refused while it has official results (`results_confirmed`: the results desk clears them first).
  */
 #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
 final class ResetRoundStopwatchController extends AbstractRoundStopwatchController
@@ -33,7 +35,10 @@ final class ResetRoundStopwatchController extends AbstractRoundStopwatchControll
         return $this->act(
             $request,
             $roundId,
-            static fn (): ResetRoundStopwatch => new ResetRoundStopwatch(roundId: $roundId),
+            static fn (CompetitionRound $round): ResetRoundStopwatch => new ResetRoundStopwatch(
+                roundId: $roundId,
+                competitionId: $round->competition->id->toString(),
+            ),
             'manage_round_stopwatch',
         );
     }

@@ -54,7 +54,7 @@ readonly final class OnlineLiveState
         $roundId = $round->id->toString();
         $asOf = $this->clock->now();
         $clock = RoundClock::fromRound($round, $asOf);
-        $rows = $this->getOnlineLiveParticipants->forRound($roundId);
+        $rows = $this->getOnlineLiveParticipants->forRound($roundId, $clock->startedAtMs);
 
         $presenceAvailable = true;
 

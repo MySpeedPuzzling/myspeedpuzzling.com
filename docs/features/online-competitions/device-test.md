@@ -54,6 +54,7 @@ Record per device: model, OS + browser version, pass / fail per step, a screensh
 | 21 | Let the round run out | Alarm + vibration, "Time's up - Stop puzzling", an `end` photo, the pieces question with the number keyboard; a count over the puzzle's pieces is refused with a message; Send → "Thank you!" with "Pieces left: N"; server: `timeup.pieces` |
 | 22 | Leave the after screen open until the status line shows nothing to send | Everything uploaded; closing the tab earlier asks "Leave site?" while something is unsent |
 | 23 | Sign in from the welcome screen (anonymous link), come back | The page connects the link to the profile ("Connected to your profile"); an organiser opening a participant's link sees "Preview as organiser" and the page records nothing until "This is me" |
+| 24 | Organiser: "Reset" on the stopwatch page after the round (no result confirmed yet), then "Start in 10 s" again | Every phone that was ready stays ready (no checklist), counts down, GO, **the running stopwatch - not "Finish recorded"**, also on a phone opened fresh; at the end the pieces question again. A Reset after a result was confirmed is refused with "Clear them at the results desk first" |
 
 ## Known platform limits to note, not to fail
 

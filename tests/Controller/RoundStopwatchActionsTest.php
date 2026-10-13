@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Tests\Controller;
 
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionRoundFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\OnlineRoundsFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\TestDouble\NullMercureHub;
 use SpeedPuzzling\Web\Tests\TestingLogin;
@@ -121,6 +122,31 @@ final class RoundStopwatchActionsTest extends WebTestCase
         self::assertResponseStatusCodeSame(403);
         self::assertSame('{"error":"invalid_csrf"}', $this->browser->getResponse()->getContent());
         self::assertSame('running', $this->column('stopwatch_status'));
+    }
+
+    /**
+     * A Reset of an online round starts a fresh run - refused while the round has official results: said on the
+     * control page, `results_confirmed` 409 as JSON, nothing changes
+     */
+    public function testAResetOverAnOnlineRoundsResultsIsRefusedAndSaid(): void
+    {
+        $online = OnlineRoundsFixture::ROUND_ONLINE_SOLO;
+        $connection = self::getContainer()->get(Connection::class);
+        $this->post('/en/start-round-stopwatch/' . $online);
+        $connection->executeStatement('UPDATE competition_participant_round SET result_seconds = 1234 WHERE id = :id', ['id' => OnlineRoundsFixture::ENTRY_CONNECTED]);
+
+        $this->post('/en/reset-round-stopwatch/' . $online);
+
+        self::assertResponseRedirects('/en/manage-round-stopwatch/' . $online);
+        self::assertSame([], self::hub()->getPublishedUpdates());
+        self::assertSame('running', $connection->fetchOne('SELECT stopwatch_status FROM competition_round WHERE id = :id', ['id' => $online]));
+        $this->browser->followRedirect();
+        self::assertSelectorTextContains('.alert', 'Clear them at the results desk first');
+
+        $this->post('/en/reset-round-stopwatch/' . $online, json: true);
+
+        self::assertResponseStatusCodeSame(409);
+        self::assertSame('{"error":"results_confirmed"}', $this->browser->getResponse()->getContent());
     }
 
     public function testANonOrganiserIsDenied(): void

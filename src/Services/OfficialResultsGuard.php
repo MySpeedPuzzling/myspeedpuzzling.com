@@ -36,6 +36,32 @@ SQL;
     }
 
     /**
+     * The round has an official result - finished, pieces placed or did not start - on a round entry or a pair/team of
+     * it (a qualified mark alone is no result). A Reset of a round with online timing waits for the results desk to
+     * clear them (ResetRoundStopwatchHandler).
+     */
+    public function roundHasResults(string $roundId): bool
+    {
+        return $this->database->fetchOne(
+            <<<SQL
+SELECT 1
+WHERE EXISTS (
+    SELECT 1
+    FROM competition_participant_round cpr
+    WHERE cpr.round_id = :roundId
+        AND (cpr.result_seconds IS NOT NULL OR cpr.result_pieces_placed IS NOT NULL OR cpr.result_did_not_start)
+) OR EXISTS (
+    SELECT 1
+    FROM competition_team ct
+    WHERE ct.round_id = :roundId
+        AND (ct.result_seconds IS NOT NULL OR ct.result_pieces_placed IS NOT NULL OR ct.result_did_not_start)
+)
+SQL,
+            ['roundId' => strtolower($roundId)],
+        ) !== false;
+    }
+
+    /**
      * The round's entries with a result or a qualified mark, ranked - what deleting the round takes away, listed for
      * the organiser to confirm.
      *

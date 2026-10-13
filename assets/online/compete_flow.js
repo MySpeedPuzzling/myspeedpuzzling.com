@@ -126,11 +126,11 @@ export function screenFor({ state, view, consent, progress, takenOver = false, l
 
     const ready = progress?.ready === true;
     const finish = currentFinish(progress);
-    const continued = (progress?.finishes ?? []).some((item) => item && item.continued && !item.undone);
-    // A tap the server knows of (another device, or this device's memory was cleared) counts too - unless this device
-    // went on puzzling after its own
-    const finished = finish !== null || (!continued && Number(state.entry.taps ?? 0) > 0);
-    const reported = progress?.pieces !== null && progress?.pieces !== undefined
+    // This device's own taps decide (an undo or "keep puzzling" may not have reached the state held yet); the server's
+    // count stands in only for a device that recorded none - a tap on another device, or this one's memory was cleared
+    const tappedHere = (progress?.finishes ?? []).length > 0;
+    const finished = finish !== null || (!tappedHere && Number(state.entry.taps ?? 0) > 0);
+    const reported = (progress?.pieces !== null && progress?.pieces !== undefined)
         || (state.entry.reportedPieces !== null && state.entry.reportedPieces !== undefined);
 
     if (view?.screen === 'ended') {

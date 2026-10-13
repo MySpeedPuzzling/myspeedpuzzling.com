@@ -156,6 +156,9 @@ const scenarios = {
 
         const undone = { eventId: 'e2', momentMs: START + 10 * MINUTE, undone: true, continued: false };
         assert.equal(screenAt(state({ startedAtMs: START }), START + 20 * MINUTE, { finishes: [undone] }), 'running', 'an undone tap');
+        // A state fetched between the tap and its undo still counts it - this device's own record wins
+        assert.equal(screenAt(running, START + 20 * MINUTE, { finishes: [undone] }), 'running', 'undone here, still counted in the state held');
+        assert.equal(screenAt(state({ startedAtMs: START, minutesLimit: 30, entry: { taps: 1 } }), START + 31 * MINUTE, { finishes: [undone] }), 'timeup', 'and at the end it asks for the pieces');
     },
 
     async 'taken over: only a device that was ready gives way; one still setting up keeps its checklist'() {

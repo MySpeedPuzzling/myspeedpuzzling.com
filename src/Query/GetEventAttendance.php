@@ -24,9 +24,16 @@ use SpeedPuzzling\Web\Value\RoundTimezone;
  *
  * Both statements also say whether the viewer follows the event or its series (`isFollowing`, the header's star of the
  * detail pages, docs/features/events-page/detail-pages.md) - no statement of its own.
+ *
+ * Of an online event they also read the viewer's personal link (docs/features/online-competitions/README.md §5.4,
+ * "Open my competition page"): the participant they are connected to and going as, with its token, while a round of
+ * the event uses online timing - in the same statement. An in-person event's statements are the ones they always were.
  */
 readonly final class GetEventAttendance
 {
+    // The personal link's columns, from the `online_link` join (sqlOnlineLinkJoin())
+    private const string SQL_ONLINE_LINK_COLUMNS = ",\n    online_link.id AS online_participant_id,\n    online_link.online_token AS online_token";
+
     public function __construct(
         private Connection $database,
         private ClockInterface $clock,
@@ -36,19 +43,25 @@ readonly final class GetEventAttendance
     public function forEvent(CompetitionEvent $event, null|string $playerId, bool $publiclyVisible): EventAttendance
     {
         if ($event->registrationManaged === false) {
-            return $this->forPlayer($event->id, $playerId);
+            return $this->forPlayer($event->id, $playerId, $event->isOnline);
         }
 
         return $this->withRegistration($event, $playerId, $publiclyVisible);
     }
 
-    public function forPlayer(string $competitionId, null|string $playerId): EventAttendance
+    /**
+     * @param bool $withOnlineLink an online event - read the viewer's personal link too
+     */
+    public function forPlayer(string $competitionId, null|string $playerId, bool $withOnlineLink = false): EventAttendance
     {
         if ($playerId === null) {
             return EventAttendance::notGoing();
         }
 
         $going = CompetitionParticipantGoing::sql('competition_participant');
+        [$onlineColumns, $onlineJoin] = $withOnlineLink
+            ? [self::SQL_ONLINE_LINK_COLUMNS, "\nFROM (SELECT 1) AS viewer\n" . $this->sqlOnlineLinkJoin()]
+            : ['', ''];
 
         $query = <<<SQL
 SELECT
@@ -66,10 +79,10 @@ SELECT
         AND player_id IS NULL
         AND {$going}
     ) AS has_not_connected_participants,
-    {$this->sqlIsFollowing()} AS is_following
+    {$this->sqlIsFollowing()} AS is_following{$onlineColumns}{$onlineJoin}
 SQL;
 
-        /** @var array{is_going: bool, has_not_connected_participants: bool, is_following: bool} $row */
+        /** @var array{is_going: bool, has_not_connected_participants: bool, is_following: bool, online_participant_id?: null|string, online_token?: null|string} $row */
         $row = $this->database
             ->executeQuery($query, [
                 'competitionId' => $competitionId,
@@ -81,7 +94,42 @@ SQL;
             isGoing: $row['is_going'],
             canChangeParticipant: $row['is_going'] && $row['has_not_connected_participants'],
             isFollowing: $row['is_following'],
+            onlineParticipantId: self::lowerOrNull($row['online_participant_id'] ?? null),
+            onlineToken: $row['online_token'] ?? null,
         );
+    }
+
+    /**
+     * The viewer's personal link of an online event: their participant row that is going and has a token, while a round
+     * of the event uses online timing (docs/features/online-competitions/README.md §5.4). Joined to `viewer`.
+     */
+    private function sqlOnlineLinkJoin(): string
+    {
+        $going = CompetitionParticipantGoing::sql('linked');
+
+        return <<<SQL
+LEFT JOIN LATERAL (
+    SELECT linked.id, linked.online_token
+    FROM competition_participant linked
+    WHERE linked.competition_id = :competitionId
+        AND linked.player_id = :playerId
+        AND {$going}
+        AND linked.online_token IS NOT NULL
+        AND EXISTS (
+            SELECT 1
+            FROM online_round
+            INNER JOIN competition_round online_timing_round ON online_timing_round.id = online_round.round_id
+            WHERE online_timing_round.competition_id = :competitionId
+        )
+    ORDER BY linked.id
+    LIMIT 1
+) AS online_link ON TRUE
+SQL;
+    }
+
+    private static function lowerOrNull(null|string $id): null|string
+    {
+        return $id !== null ? strtolower($id) : null;
     }
 
     private function withRegistration(CompetitionEvent $event, null|string $playerId, bool $publiclyVisible): EventAttendance
@@ -89,6 +137,9 @@ SQL;
         $takenGoing = CompetitionParticipantGoing::sql('taken');
         $listedGoing = CompetitionParticipantGoing::sql('listed');
         $waitlisted = RegistrationStatus::Waitlisted->value;
+        [$onlineColumns, $onlineJoin] = $event->isOnline
+            ? [self::SQL_ONLINE_LINK_COLUMNS, "\n" . $this->sqlOnlineLinkJoin()]
+            : ['', ''];
 
         // The viewer's row: a going one first, when a player somehow holds two
         $query = <<<SQL
@@ -125,7 +176,7 @@ SELECT
             AND ahead.registration_status = '{$waitlisted}'
             AND (COALESCE(ahead.registered_at, '-infinity'), ahead.id) <= (COALESCE(mine.registered_at, '-infinity'), mine.id)
     ) END AS waitlist_position,
-    {$this->sqlIsFollowing()} AS is_following
+    {$this->sqlIsFollowing()} AS is_following{$onlineColumns}
 FROM (SELECT 1) AS viewer
 LEFT JOIN LATERAL (
     SELECT cp.id, cp.registration_status, cp.source, cp.registered_at
@@ -135,7 +186,7 @@ LEFT JOIN LATERAL (
         AND cp.deleted_at IS NULL
     ORDER BY cp.registration_status IS NOT DISTINCT FROM '{$waitlisted}', cp.id
     LIMIT 1
-) AS mine ON TRUE
+) AS mine ON TRUE{$onlineJoin}
 SQL;
 
         /**
@@ -149,6 +200,8 @@ SQL;
          *     player_source: null|string,
          *     waitlist_position: null|int|string,
          *     is_following: bool,
+         *     online_participant_id?: null|string,
+         *     online_token?: null|string,
          * } $row
          */
         $row = $this->database
@@ -194,6 +247,8 @@ SQL;
             canChangeParticipant: $connected && $row['has_not_connected_participants'],
             registration: $registration,
             isFollowing: $row['is_following'],
+            onlineParticipantId: self::lowerOrNull($row['online_participant_id'] ?? null),
+            onlineToken: $row['online_token'] ?? null,
         );
     }
 

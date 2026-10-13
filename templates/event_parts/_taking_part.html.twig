@@ -5,11 +5,20 @@
     event page while the header does not show it. Only on a publicly visible page - joining needs one (README P17), so
     a draft, pending or rejected event offers nobody "I'm going". Variables: the page's event, attendance, can_add_time,
     event_title, timeline, is_publicly_visible; series (edition page only)
+
+    A participant of an online event with online timing (docs/features/online-competitions/README.md §5.4) also gets
+    "Open my competition page" - their personal link (attendance.onlineToken, GetEventAttendance), opened as a full page
+    load: the participant page lives without Turbo.
 #}
 {% if is_publicly_visible %}
 <section class="ev-detail-section ev-taking-part" id="taking-part" aria-labelledby="taking-part-title">
     <h2 class="ev-detail-section-title" id="taking-part-title">{{ 'event_rounds.taking_part'|trans }}</h2>
     <div class="ev-taking-part-body">
+        {% if attendance.onlineToken is not null %}
+            <a href="{{ online_link_url(attendance.onlineToken) }}" class="btn btn-sm btn-primary text-wrap" data-turbo="false" data-online-competition-page>
+                <i class="bi bi-phone me-1" aria-hidden="true"></i>{{ 'online_rounds.links.open_my_page'|trans }}
+            </a>
+        {% endif %}
         {{ include('_event_attendance.html.twig', {competition_id: event.id, attendance: attendance}) }}
         {#- Once: the header has it when the event is over or has no rounds (_event_header_actions.html.twig) -#}
         {% if can_add_time and (series ?? null) is null and not (event_title.isPast or not timeline.hasRounds) %}

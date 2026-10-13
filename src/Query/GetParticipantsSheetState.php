@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Exceptions\CompetitionNotFound;
 use SpeedPuzzling\Web\Exceptions\CompetitionParticipantNotFound;
 use SpeedPuzzling\Web\Results\CompetitionReference;
 use SpeedPuzzling\Web\Results\ParticipantsSheet\ParticipantsSheetCompetition;
+use SpeedPuzzling\Web\Results\ParticipantsSheet\ParticipantsSheetOnlineLink;
 use SpeedPuzzling\Web\Results\ParticipantsSheet\ParticipantsSheetPerson;
 use SpeedPuzzling\Web\Results\ParticipantsSheet\ParticipantsSheetPlace;
 use SpeedPuzzling\Web\Results\ParticipantsSheet\ParticipantsSheetPlayer;
@@ -21,6 +22,7 @@ use SpeedPuzzling\Web\Results\ParticipantsSheet\ParticipantsSheetState;
 use SpeedPuzzling\Web\Results\ParticipantsSheet\ParticipantsSheetTeam;
 use SpeedPuzzling\Web\Services\HiddenPlayers;
 use SpeedPuzzling\Web\Services\OfficialResultsSubscription;
+use SpeedPuzzling\Web\Services\OnlineRounds\OnlineLinkUrl;
 use SpeedPuzzling\Web\Services\PrivateProfileAccess;
 use SpeedPuzzling\Web\Twig\ImageThumbnailTwigExtension;
 use SpeedPuzzling\Web\Value\RegistrationStatus;
@@ -255,6 +257,10 @@ SQL,
      * the event, the one asked for picked afterwards) by GetEventAttendance's rule: first come first served by
      * `registered_at` (none = first), then id - the line the waitlisted player sees on the event page.
      *
+     * An event with a round using online timing gives every person their personal link (the read-only "Personal link"
+     * column, docs/features/online-competitions/README.md §5.4) - a removed person none; the event's online timing is
+     * read once in the same statement, every other event's state stays as it was.
+     *
      * @return list<ParticipantsSheetPerson>
      */
     private function people(string $competitionId, null|string $participantId, null|bool $registrationManaged, null|string $viewerPlayerId): array
@@ -295,7 +301,16 @@ FROM (
         p.code AS player_code,
         p.country AS player_country,
         p.avatar AS player_avatar,
-        {$this->privateProfileAccess->sqlIsPrivate('p')} AS player_is_private
+        {$this->privateProfileAccess->sqlIsPrivate('p')} AS player_is_private,
+        cp.online_token,
+        (
+            SELECT EXISTS (
+                SELECT 1
+                FROM online_round
+                INNER JOIN competition_round online_timing_round ON online_timing_round.id = online_round.round_id
+                WHERE online_timing_round.competition_id = :competitionId
+            )
+        ) AS uses_online_timing
     FROM competition_participant cp
     INNER JOIN competition c ON c.id = cp.competition_id
     LEFT JOIN player p ON p.id = cp.player_id
@@ -320,9 +335,11 @@ SQL,
 
         $people = [];
         foreach ($rows as $row) {
-            /** @var array{id: string, name: string, country: null|string, external_id: null|string, organizer_note: null|string, source: string, deleted_at: null|string, connected_at: null|string, registration_status: null|string, registered_at: null|string, paid_at: null|string, checked_in_at: null|string, waitlist_position: null|int|string, registration_managed: bool, player_id: null|string, player_name: null|string, player_code: null|string, player_country: null|string, player_avatar: null|string, player_is_private: null|bool} $row */
+            /** @var array{id: string, name: string, country: null|string, external_id: null|string, organizer_note: null|string, source: string, deleted_at: null|string, connected_at: null|string, registration_status: null|string, registered_at: null|string, paid_at: null|string, checked_in_at: null|string, waitlist_position: null|int|string, registration_managed: bool, player_id: null|string, player_name: null|string, player_code: null|string, player_country: null|string, player_avatar: null|string, player_is_private: null|bool, online_token: null|string, uses_online_timing: bool} $row */
             $playerId = $row['player_id'] !== null ? strtolower($row['player_id']) : null;
             $managed = $registrationManaged ?? $row['registration_managed'];
+            // A removed participant's link opens nothing any more (OnlineAccess) - not shown
+            $onlineToken = $row['deleted_at'] === null ? $row['online_token'] : null;
 
             $people[] = new ParticipantsSheetPerson(
                 id: strtolower($row['id']),
@@ -350,6 +367,9 @@ SQL,
                     waitlistPosition: $row['waitlist_position'] !== null ? (int) $row['waitlist_position'] : null,
                 ) : null,
                 playerResultRounds: $playerId !== null ? ($resultRounds[$playerId] ?? []) : [],
+                online: $row['uses_online_timing'] ? new ParticipantsSheetOnlineLink(
+                    link: $onlineToken !== null ? OnlineLinkUrl::generate($this->urlGenerator, $onlineToken) : null,
+                ) : null,
             );
         }
 

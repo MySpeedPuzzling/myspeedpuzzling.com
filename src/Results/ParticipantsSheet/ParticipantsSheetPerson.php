@@ -32,15 +32,18 @@ readonly final class ParticipantsSheetPerson implements \JsonSerializable
         // Rounds of the event in which the linked player has a time of their own (or of their pair/team) - such a
         // person cannot be taken out of that round (the results guard)
         public array $playerResultRounds,
+        // The personal link (docs/features/online-competitions/) - only on an event with a round using online timing;
+        // null leaves `online` out of the JSON, so every other event's state is what it always was
+        public null|ParticipantsSheetOnlineLink $online = null,
     ) {
     }
 
     /**
-     * @return array{id: string, name: string, country: null|string, externalId: null|string, note: null|string, source: string, removedAt: null|string, connectedAt: null|string, player: null|ParticipantsSheetPlayer, registration: null|ParticipantsSheetRegistration, playerResultRounds: list<string>}
+     * @return array{id: string, name: string, country: null|string, externalId: null|string, note: null|string, source: string, removedAt: null|string, connectedAt: null|string, player: null|ParticipantsSheetPlayer, registration: null|ParticipantsSheetRegistration, playerResultRounds: list<string>, online?: ParticipantsSheetOnlineLink}
      */
     public function jsonSerialize(): array
     {
-        return [
+        $json = [
             'id' => $this->id,
             'name' => $this->name,
             'country' => $this->country,
@@ -53,5 +56,11 @@ readonly final class ParticipantsSheetPerson implements \JsonSerializable
             'registration' => $this->registration,
             'playerResultRounds' => $this->playerResultRounds,
         ];
+
+        if ($this->online !== null) {
+            $json['online'] = $this->online;
+        }
+
+        return $json;
     }
 }

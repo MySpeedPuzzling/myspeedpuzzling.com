@@ -1,0 +1,3 @@
+// The organiser's online-round pages (docs/features/online-competitions/, streams C1 + C2).
+// Its own Encore style entry 'online_rounds', linked only on those pages through the base layout's
+// page_stylesheets block - never imported into app.scss, so the site-wide CSS stays as it is.

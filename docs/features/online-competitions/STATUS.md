@@ -18,7 +18,7 @@ The living record of where the prototype stands and what comes next. Updated by 
 | | |
 |---|---|
 | **Phase** | 1 - remote stopwatch (with Phase 0 spikes in parallel) |
-| **Step** | foundation (stream F): the shared model, services and fixtures |
+| **Step** | wave 1 - the foundation and the participant JS modules are on `main`; the participant backend (A), the participant page (B2), the organiser set-up (C1) and the round clock (D, part 2) are being built in parallel worktrees |
 | **Started** | 2026-10-13 |
 | **Next milestone** | M1 → Test Cup #1 (target Tue 2026-11-10) |
 
@@ -37,17 +37,18 @@ The living record of where the prototype stands and what comes next. Updated by 
 
 | Stream | State | Branch / commit |
 |---|---|---|
-| F - foundation | in progress | - |
-| A - participant backend | waiting for F | - |
-| B - participant page | waiting for F | - |
-| C1 - organiser set-up | waiting for F | - |
-| D - round clock | waiting for F | - |
+| F - foundation (model, migration `Version20261013111419`, shared services, flag `ONLINE_ROUNDS_FOR_ORGANISERS`, fixture) | **merged** | see the log |
+| B1 - participant page: pure JS modules (clock sync, round state, event + media outbox, frame buffer; 80 node scenarios) | **merged** | see the log |
+| D - round clock (countdown, `scheduled`, publish after commit, every stopwatch reader) | part 1 built and reviewed in its worktree; part 2 (schedule / cancel messages) in progress | - |
+| A - participant backend | in progress | - |
+| B2 - participant page: the page itself | in progress | - |
+| C1 - organiser set-up | in progress | - |
 | C2 - control room + review | waiting for A + D | - |
 
 ## Next steps
 
-1. Foundation lands on `main` (additive tables, nothing visible - the feature is admin-only).
-2. Streams A, B, C1, D in parallel worktrees; each merges after its gates and a review.
+1. Streams A, B2, C1 and D (part 2) in parallel worktrees; each merges after its gates and a review.
+2. D's live-stopwatch changes get a code review before they reach `main` - they touch every in-person event's stopwatch.
 3. C2 (control room + review), then the real-device pass, translations into 6 locales, Test Cup #1.
 4. Jan: S1 footage (spikes.md), volunteers for Test Cup #1, an OK to prepare lily.srv ADR D78 for Phase 1B.
 
@@ -56,3 +57,4 @@ The living record of where the prototype stands and what comes next. Updated by 
 | Date | What |
 |---|---|
 | 2026-10-13 | Analysis, decisions, plan and Phase 1 contract written and committed; delivery started |
+| 2026-10-13 | Foundation merged (4 tables + 2 columns on `competition_participant`, additive; full suite 9,780 tests green) + the participant page's pure JS modules; online page styles get their own Encore entries (`compete`, `online_rounds`) instead of growing `app.scss` |

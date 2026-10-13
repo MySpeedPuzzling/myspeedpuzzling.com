@@ -27,6 +27,19 @@ Meta App Review approved + app published (2026-09-30), so Facebook lost its flag
   - `templates/_solving_time_form.html.twig` — picker vs. old rows (`_group_puzzler_input.html.twig` + `add_copuzzler_controller.js`)
 - **Remove when:** the picker has been live without trouble for a couple of weeks — then delete `templates/_group_puzzler_input.html.twig`, `assets/controllers/add_copuzzler_controller.js`, the `favorite_players` template variable of both controllers, `forms.choose_from_favorites` / `puzzle_add.teamplayer` / `puzzle_add.add_puzzler` / `puzzle_add.group_puzzling` / `puzzle_add.player_code_info` translations, and the flag itself
 
+## Online competitions for organisers (`ONLINE_ROUNDS_FOR_ORGANISERS`)
+
+- **Feature:** online timing of competition rounds - personal links, the participant page, the control room and the review (`docs/features/online-competitions/`, the prototype on its way to the first public online competition in Q1 2027)
+- **Flag:** env var `ONLINE_ROUNDS_FOR_ORGANISERS` → parameter `onlineRoundsForOrganisers` (`config/services.php`, bound as `$onlineRoundsForOrganisers`) → `OnlineRoundsFeature::isAvailableTo(?string $playerId)`, the single decision point → voter attribute `ONLINE_ROUNDS_MANAGE` (`OnlineRoundsVoter`, subject = competition id: `COMPETITION_EDIT` **and** the feature). Not a Twig global - templates ask `is_granted('ONLINE_ROUNDS_MANAGE', competitionId)`
+- **Default:** `0` (`.env`). Admins (`is_granted('ADMIN_ACCESS')`) always have it - they set up the test cups; `1` opens it to every organiser of an event (anyone with `COMPETITION_EDIT` on it)
+- **Gated files:**
+  - `src/Services/OnlineRounds/OnlineRoundsFeature.php` — `isAvailableTo()`
+  - `src/Security/OnlineRoundsVoter.php` — `ONLINE_ROUNDS_MANAGE`
+  - the organiser pages and menu entries of online timing check the voter (added by the Phase 1 streams - list them here)
+- **Not gated:** a personal link (`/{_locale}/compete/{token}` and its API) - the token is the access right, and a link exists only after someone the voter allowed turned online timing on
+- **Tests:** `OverridesFeatureFlagEnv` (`overrideFeatureFlagEnv('ONLINE_ROUNDS_FOR_ORGANISERS', true)` before the kernel boots), `tests/Security/OnlineRoundsVoterTest.php`
+- **Remove when:** the public launch opens online competitions to every organiser (implementation-plan.md 4.7) - delete the flag and `OnlineRoundsFeature`; `ONLINE_ROUNDS_MANAGE` becomes `COMPETITION_EDIT` alone (or the voter goes)
+
 ## Retired: Google/Apple social login flags + admin-only stage (removed 2026-09-29)
 
 `SOCIAL_LOGIN_ADMIN_ONLY`, `SOCIAL_LOGIN_GOOGLE_ENABLED` and `SOCIAL_LOGIN_APPLE_ENABLED` were deleted at the public launch of Google + Apple sign-in (both verified end to end in production, Jan's call). There is no admin-only stage any more: the buttons render on `/login` + `/register` for everyone, rule-4 registration via the `/register/social` interstitial is on, and every signed-in player gets the "Connected sign-in methods" card. Google and Apple are now available **iff their credentials are configured** (`SocialLoginSettings::isAvailable()` — Google: `GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET`; Apple: `APPLE_CLIENT_ID` + `APPLE_TEAM_ID` + `APPLE_KEY_ID` + `APPLE_PRIVATE_KEY`), so local dev and tests without credentials show no button and 404 the provider's routes. Emptying a provider's credentials is the kill switch. A box `.env` / Infisical that still sets the old flags is harmless - nothing reads them. Microsoft (shipped 2026-09-30) follows the same rule from day one - available iff `MICROSOFT_CLIENT_ID` + `MICROSOFT_CLIENT_SECRET` are set, no flag.

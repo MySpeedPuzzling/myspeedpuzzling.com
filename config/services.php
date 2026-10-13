@@ -19,6 +19,10 @@ use SpeedPuzzling\Web\Services\Api\ApiDtoNormalizer;
 use SpeedPuzzling\Web\Services\ApiUsage\ApiUsageCounter;
 use SpeedPuzzling\Web\Services\ApiUsage\RedisApiUsageCounter;
 use SpeedPuzzling\Web\Services\Doctrine\FixDoctrineMigrationTableSchema;
+use SpeedPuzzling\Web\Services\OnlineRounds\FakeOnlineMediaStorage;
+use SpeedPuzzling\Web\Services\OnlineRounds\InMemoryOnlinePresence;
+use SpeedPuzzling\Web\Services\OnlineRounds\OnlineMediaStorage;
+use SpeedPuzzling\Web\Services\OnlineRounds\OnlinePresence;
 use SpeedPuzzling\Web\Services\SentryTracesSampler;
 use SpeedPuzzling\Web\Services\Session\PostgresSessionHandler;
 use SpeedPuzzling\Web\Services\Storage\FailoverS3Adapter;
@@ -106,6 +110,9 @@ return static function (ContainerConfigurator $configurator): void {
     // Pairs & teams picker rollout (docs/features/feature_flags.md): admins only until flipped to 1.
     $parameters->set('pairsTeamsPickerPublic', '%env(bool:PAIRS_TEAMS_PICKER_PUBLIC)%');
 
+    // Online competitions (docs/features/feature_flags.md): organisers may set up online timing only while 1, admins always.
+    $parameters->set('onlineRoundsForOrganisers', '%env(bool:ONLINE_ROUNDS_FOR_ORGANISERS)%');
+
     $services = $configurator->services();
 
     $services->defaults()
@@ -124,6 +131,7 @@ return static function (ContainerConfigurator $configurator): void {
         ->bind('$signInLinkReuseGraceSeconds', '%signInLinkReuseGraceSeconds%')
         ->bind('$kernelSecret', '%kernel.secret%')
         ->bind('$pairsTeamsPickerPublic', '%pairsTeamsPickerPublic%')
+        ->bind('$onlineRoundsForOrganisers', '%onlineRoundsForOrganisers%')
         ->bind('$resultReviewEmailsPerRun', '%result_review_emails_per_run%')
         ->bind('$resultReviewEmailsPerDay', '%result_review_emails_per_day%')
         ->bind('$resultReviewEmailSpacingSeconds', '%result_review_email_spacing_seconds%')
@@ -387,6 +395,11 @@ return static function (ContainerConfigurator $configurator): void {
         ->arg('$redis', service('api_usage.redis'));
 
     $services->alias(ApiUsageCounter::class, RedisApiUsageCounter::class);
+
+    // Online competitions (docs/features/online-competitions/): presence and evidence storage in the process until the
+    // redis-state and object storage implementations are bound here (config/services_test.php keeps the doubles)
+    $services->alias(OnlinePresence::class, InMemoryOnlinePresence::class);
+    $services->alias(OnlineMediaStorage::class, FakeOnlineMediaStorage::class);
 
     // Sentry Traces Sampler with profiling trigger support
     $services->set(SentryTracesSampler::class)

@@ -23,8 +23,11 @@ export const COUNTDOWN_MS = 10000;
 export const CHECK_BEFORE_START_MS = 2000;
 export const CHECK_AFTER_MS = 1000;
 
-// The fields of a round clock - what a push carries and replaces
-const CLOCK_FIELDS = ['status', 'startedAtMs', 'stoppedAtMs', 'startedAt', 'stoppedAt', 'minutesLimit', 'endsAtMs', 'stateHash'];
+// The fields of a round clock - what a push carries and replaces. A push's `status` is the stopwatch's own vocabulary
+// (null / 'scheduled' / 'running' / 'stopped'): it is kept as `stopwatchStatus` and never written over the state's
+// `status` (RoundClock's waiting / scheduled / running / ended, as of the last full state). Nothing reads `status` to
+// decide a screen - deriveView() goes by the moments.
+const CLOCK_FIELDS = ['startedAtMs', 'stoppedAtMs', 'startedAt', 'stoppedAt', 'minutesLimit', 'endsAtMs', 'stateHash', 'stopwatchStatus'];
 
 /**
  * @typedef {object} RoundView
@@ -209,13 +212,21 @@ export function newer(a, b) {
     return asOfB > asOfA ? b : a;
 }
 
-function clockFieldsOf(source) {
+/**
+ * The clock fields of `source` - a stopwatch push (`push`: its `status` becomes `stopwatchStatus`) or a round holding
+ * a pushed clock.
+ */
+function clockFieldsOf(source, { push = false } = {}) {
     const fields = {};
 
     for (const field of CLOCK_FIELDS) {
         if (Object.prototype.hasOwnProperty.call(source, field)) {
             fields[field] = source[field];
         }
+    }
+
+    if (push && Object.prototype.hasOwnProperty.call(source, 'status')) {
+        fields.stopwatchStatus = source.status;
     }
 
     // A payload with only the ATOM times (older shape) replaces the millisecond ones too - never a stale mix
@@ -259,7 +270,7 @@ export function adoptRoundClock(state, update) {
         return state;
     }
 
-    return { ...state, round: { ...state.round, ...clockFieldsOf(update), clockAsOfMs: incoming } };
+    return { ...state, round: { ...state.round, ...clockFieldsOf(update, { push: true }), clockAsOfMs: incoming } };
 }
 
 /**

@@ -268,6 +268,28 @@ const scenarios = {
         assert.equal(adoptState(started, newest), newest);
     },
 
+    async 'a push\'s stopwatch status is kept as stopwatchStatus - the state\'s own status (RoundClock) is never overwritten'() {
+        const held = { ...state({ asOfMs: START - 60_000 }), round: { ...state().round, status: 'waiting' } };
+
+        // The stopwatch vocabulary: null / scheduled / running / stopped
+        const pushed = adoptRoundClock(held, { status: 'scheduled', startedAtMs: START, stoppedAtMs: null, minutesLimit: 60, asOfMs: START - 10_500, stateHash: 'h-start' });
+        assert.equal(pushed.round.status, 'waiting', 'the full state\'s status stays');
+        assert.equal(pushed.round.stopwatchStatus, 'scheduled');
+        assert.equal(deriveView(pushed, START - 2000).screen, 'countdown', 'the screen goes by the moments');
+
+        const stopped = adoptRoundClock(pushed, { status: 'stopped', startedAtMs: START, stoppedAtMs: START + 60_000, minutesLimit: 60, asOfMs: START + 60_001 });
+        assert.equal(stopped.round.status, 'waiting');
+        assert.equal(stopped.round.stopwatchStatus, 'stopped');
+
+        // A full state read before that push: its own status is taken, the pushed clock (with its stopwatch status) kept
+        const fetched = { ...state({ startedAtMs: START, asOfMs: START + 30_000 }), round: { ...state({ startedAtMs: START }).round, status: 'running' } };
+        const merged = adoptState(stopped, fetched);
+        assert.equal(merged.round.status, 'running');
+        assert.equal(merged.round.stopwatchStatus, 'stopped');
+        assert.equal(merged.round.stoppedAtMs, START + 60_000);
+        assert.equal(deriveView(merged, START + 61_000).screen, 'ended');
+    },
+
     async 'a round clock alone (the control room, the stopwatch payload) reads the same as a participant state'() {
         const clock = { status: 'running', startedAtMs: START, stoppedAtMs: null, minutesLimit: 45, asOfMs: START + 1 };
         const view = deriveView(clock, START + 60_000);

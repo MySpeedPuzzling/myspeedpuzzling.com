@@ -465,6 +465,16 @@ export function clockText(ms, { limitMs = null, ceil = false } = {}) {
 }
 
 /**
+ * The time to a start ("Starts in 2:13:05" / "Starts in 00:30"): rounded up - it reaches zero at the start itself -
+ * without the hours while there are none.
+ */
+export function countdownText(ms) {
+    const full = formatClock(ms, { ceil: true });
+
+    return full.startsWith('00:') ? full.slice(3) : full;
+}
+
+/**
  * A text with its %placeholders% filled.
  */
 export function fill(text, params = {}) {

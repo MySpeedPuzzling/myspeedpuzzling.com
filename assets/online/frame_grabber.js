@@ -10,7 +10,8 @@
  * - still(): one photo at the stream's full resolution (start, the Finished tap, the end, the empty mat).
  *
  * Every frame's time is its capture time - performance.now()'s clock, as `captureTime` is - turned into server time by
- * the injected toServerMs() (clock_sync.js), so a frame and a tap compare on one clock.
+ * the injected toServerMs() (clock_sync.js), so a frame and a tap compare on one clock; whole milliseconds, as the
+ * server stores them (bigint epoch ms) and as an event's clientMs is.
  *
  * No DOM at import: the <video>, the canvas factory and the timers are injected - pinned by
  * tests/online-devices-harness.mjs.
@@ -198,7 +199,7 @@ export class FrameGrabber {
 
             const blob = await encodeCanvas(canvas, quality);
 
-            return blob === null ? null : { blob, captureMs: this.toServerMs(perf), width: size.width, height: size.height };
+            return blob === null ? null : { blob, captureMs: Math.round(this.toServerMs(perf)), width: size.width, height: size.height };
         } finally {
             // A 1080p canvas holds 8 MB - given back at once
             canvas.width = 0;
@@ -311,7 +312,7 @@ export class FrameGrabber {
             return;
         }
 
-        const captureMs = this.toServerMs(perf);
+        const captureMs = Math.round(this.toServerMs(perf));
         let wanted = false;
 
         try {

@@ -24,6 +24,7 @@ import {
     cameraWanted,
     checklistRows,
     clockText,
+    countdownText,
     currentFinish,
     deviceIdFrom,
     fill,
@@ -84,6 +85,8 @@ const START_PHOTO_WITHIN_MS = 3000;
 // A push without asOfMs (an older payload) - the state is fetched, spread over this much time
 const REFRESH_JITTER_MS = 2000;
 const NOTICE_MS = 7000;
+// The API answers that are clock samples besides /-/time
+const CLOCK_SAMPLE_REQUESTS = ['heartbeat', 'state'];
 const CLOCK_SCREENS = ['waiting', 'countdown', 'running', 'finished', 'timeup'];
 const COMPETING_SCREENS = ['countdown', 'running', 'finished'];
 
@@ -175,7 +178,13 @@ export default class extends Controller {
         });
         this.api = createCompeteApi({
             urls: { ...this.urlsValue, connect: this.connectValue?.url ?? null },
-            onSample: (sample) => this.clock.observe(sample),
+            // The light requests only (Redis, a few reads): events and photos write to the database and come in bursts -
+            // their slow answers would push the precise samples out of the clock's window (the newest 16 count)
+            onSample: (sample, name) => {
+                if (CLOCK_SAMPLE_REQUESTS.includes(name)) {
+                    this.clock.observe(sample);
+                }
+            },
             onAnswer: (name, answer) => this.noteAnswer(name, answer),
         });
         this.clock.sync();
@@ -1366,13 +1375,13 @@ export default class extends Controller {
         this.setField('elapsed', clockText(view.elapsedMs, { limitMs }));
         this.setField('remaining', view.remainingMs === null ? '' : this.t('left', { time: clockText(view.remainingMs, { limitMs, ceil: true }) }));
         this.setField('waitingLine', Number.isFinite(view.countdownMs) && view.countdownMs > 0
-            ? this.t('starts_in', { time: formatClock(view.countdownMs, { ceil: true }) })
+            ? this.t('starts_in', { time: countdownText(view.countdownMs) })
             : this.t('waiting'));
         this.setField('countdown', digit === 0 ? this.t('go') : String(digit));
         this.setField('timeLimit', Number.isFinite(round?.minutesLimit) ? this.tc('time_limit', round.minutesLimit) : '');
 
         if (this.practice === null) {
-            this.setData('go', digit === 0 ? '1' : '0');
+            this.setData('go', view.startedAtMs !== null && digit === 0 ? '1' : '0');
         }
 
         this.paintFinish(screen, view, serverNow);

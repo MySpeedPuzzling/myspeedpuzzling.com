@@ -37,6 +37,66 @@
     -webkit-tap-highlight-color: transparent;
 }
 
+// The brand's #fe696a carries white text below 3:1 - the page's buttons take the darker red (4.6:1)
+.compete .btn-primary {
+    --bs-btn-bg: #d63c42;
+    --bs-btn-border-color: #d63c42;
+    --bs-btn-hover-bg: #b8323a;
+    --bs-btn-hover-border-color: #b8323a;
+    --bs-btn-active-bg: #a12c33;
+    --bs-btn-active-border-color: #a12c33;
+    --bs-btn-disabled-bg: #d63c42;
+    --bs-btn-disabled-border-color: #d63c42;
+    background-color: var(--bs-btn-bg);
+    border-color: var(--bs-btn-border-color);
+    color: #fff;
+}
+
+.compete .btn-outline-primary {
+    --bs-btn-color: #c0353b;
+    --bs-btn-border-color: #c0353b;
+    --bs-btn-hover-bg: #c0353b;
+    --bs-btn-hover-border-color: #c0353b;
+    --bs-btn-active-bg: #a12c33;
+    --bs-btn-active-border-color: #a12c33;
+    color: var(--bs-btn-color);
+    border-color: var(--bs-btn-border-color);
+}
+
+// The theme's danger pink is too light for text on the page's background
+.compete .btn-outline-danger {
+    border-color: #b42318;
+    color: #b42318;
+
+    &:hover,
+    &:focus-visible {
+        border-color: #b42318;
+        background-color: #b42318;
+        color: #fff;
+    }
+}
+
+.compete .btn-primary:hover,
+.compete .btn-primary:focus-visible {
+    background-color: var(--bs-btn-hover-bg);
+    border-color: var(--bs-btn-hover-border-color);
+    color: #fff;
+}
+
+.compete .btn-outline-primary:hover,
+.compete .btn-outline-primary:focus-visible {
+    background-color: var(--bs-btn-hover-bg);
+    border-color: var(--bs-btn-hover-border-color);
+    color: #fff;
+}
+
+// Links read as links, darker than the brand pink (4.9:1)
+.compete a:not(.btn) {
+    color: #c0353b;
+    text-decoration: underline;
+    text-underline-offset: 0.15em;
+}
+
 // The page behind it (overscroll) in the same colour
 html:has(.compete),
 html:has(.compete) body {
@@ -107,6 +167,11 @@ html:has(.compete) body {
         .btn-outline-primary {
             color: #ff8a8b;
             border-color: #ff8a8b;
+        }
+
+        .btn-outline-danger {
+            color: #ff8c80;
+            border-color: #ff8c80;
         }
 
         .alert-warning {
@@ -392,8 +457,11 @@ html:has(.compete) body {
     color: var(--compete-muted);
 }
 
-.compete-consent ul {
+// The site's reset takes lists' bullets away - these are lists to read
+.compete-consent ul,
+.compete-setup ul {
     padding-inline-start: 1.25rem;
+    list-style: disc;
 }
 
 // On a computer only: the phone is the camera - its way there

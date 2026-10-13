@@ -764,9 +764,9 @@ const scenarios = {
         video.present(1_060, { captureTime: 1_050 });
         assert.equal(paint.made[0].drawn.length, 1);
 
-        video.present(1_210, { captureTime: 1_200 });
+        video.present(1_210, { captureTime: 1_199.7 });
         await paint.finish();
-        assert.deepEqual(frames.map((frame) => frame.captureMs), [START + 1_000, START + 1_200]);
+        assert.deepEqual(frames.map((frame) => frame.captureMs), [START + 1_000, START + 1_200], 'whole milliseconds');
 
         // Stopped: no callback left, a late encoding is not handed over
         video.present(1_310, { captureTime: 1_300 });
@@ -831,14 +831,14 @@ const scenarios = {
 
         const still = grabber.still();
         await settle();
-        video.present(6_010, { captureTime: 6_000 });
+        video.present(6_010, { captureTime: 5_999.6 });
         await settle();
         await paint.finish();
         const full = await still;
         assert.deepEqual([full.width, full.height], [1920, 1080]);
         assert.deepEqual([full.blob.width, full.blob.height], [1920, 1080]);
         assert.equal(full.blob.quality, STILL_QUALITY);
-        assert.equal(full.captureMs, START + 6_000);
+        assert.equal(full.captureMs, START + 6_000, 'whole milliseconds, as the server stores them');
         assert.equal(paint.made.at(-1).width, 0);
 
         const dark = new FrameGrabber({ video: fakeVideo({ width: 0, height: 0 }), toServerMs: (perf) => perf, createCanvas: paint.create, now: clock.now, schedule: clock.schedule, cancel: clock.cancel });

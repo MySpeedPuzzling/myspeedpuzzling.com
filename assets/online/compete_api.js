@@ -85,7 +85,8 @@ export function isDeadLink(answer) {
  * @param {function(string, object): Promise<Response>} [options.fetch]
  * @param {function(): number} [options.now]       the monotonic clock (performance.now)
  * @param {function(): number} [options.wallNow]   Date.now - a sample the phone slept through is refused by the clock
- * @param {function({t0: number, t1: number, w0: number, w1: number, serverNowMs: number}): void} [options.onSample]
+ * @param {function({t0: number, t1: number, w0: number, w1: number, serverNowMs: number}, string): void} [options.onSample]
+ *        a clock sample (clock_sync.js observe()) and the name of the request it came with
  * @param {function(string, object): void} [options.onAnswer]  every answer, by request name (the connection status)
  * @param {number} [options.timeoutMs]
  */
@@ -120,7 +121,7 @@ export function createCompeteApi({
 
             if (Number.isFinite(data?.serverNowMs)) {
                 try {
-                    onSample({ t0, t1, w0, w1, serverNowMs: data.serverNowMs });
+                    onSample({ t0, t1, w0, w1, serverNowMs: data.serverNowMs }, name);
                 } catch (e) {
                     // The clock must never break a request
                 }

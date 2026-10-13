@@ -10,6 +10,7 @@ import {
     CHECK_CODES,
     checklistRows,
     clockText,
+    countdownText,
     currentFinish,
     deviceIdFrom,
     DEVICE_KEY,
@@ -337,6 +338,12 @@ const scenarios = {
         assert.equal(clockText(1, { limitMs: 30 * MINUTE, ceil: true }), '00:01', 'what is left rounds up');
         assert.equal(clockText(75 * MINUTE + 5_000, { limitMs: 90 * MINUTE }), '01:15:05');
         assert.equal(clockText(5_000), '00:00:05', 'no limit known: the long form');
+
+        // The time to a start: rounded up, hours only when there are some
+        assert.equal(countdownText(30_000), '00:30');
+        assert.equal(countdownText(29_001), '00:30');
+        assert.equal(countdownText(2 * 3_600_000 + 13 * MINUTE + 4_200), '02:13:05');
+        assert.equal(countdownText(0), '00:00');
     },
 
     async 'what the device remembers: consent per participant, progress per participant and round, nothing breaks on a broken storage'() {
@@ -434,6 +441,7 @@ const scenarios = {
     async 'the API: every JSON answer is a clock sample, nothing carries a cookie, no answer is cached'() {
         const requests = [];
         const samples = [];
+        const names = [];
         let perf = 1000;
         let wall = START;
         const api = createCompeteApi({
@@ -447,7 +455,10 @@ const scenarios = {
             },
             now: () => perf,
             wallNow: () => wall,
-            onSample: (sample) => samples.push(sample),
+            onSample: (sample, name) => {
+                samples.push(sample);
+                names.push(name);
+            },
         });
 
         const answer = await api.heartbeat({ deviceId: 'd', roundId: ROUND });
@@ -474,6 +485,8 @@ const scenarios = {
         await api.media({ deviceId: 'd', kind: 'periodic' });
         assert.deepEqual(requests.map((request) => request.url), ['/api/compete/T/heartbeat', '/api/compete/T/state', '/api/compete/T/events', '/api/compete/T/media']);
         assert.equal(samples.length, 4);
+        // The page takes the light requests' samples only (compete_controller.js) - each comes with its request's name
+        assert.deepEqual(names, ['heartbeat', 'state', 'events', 'media']);
     },
 
     async 'the API\'s answers: ok, our refusals, busy, failing, a portal page, offline - and a dead link'() {

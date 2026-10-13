@@ -81,7 +81,7 @@
 
                 {# The actions the clock allows now - each wrapper takes `hidden` (the controller switches them by the screen) #}
                 <div class="d-flex flex-wrap align-items-start gap-3">
-                    <div class="d-flex flex-wrap gap-2" data-online-control-when="waiting" {{ state.round.status != 'waiting' ? 'hidden' }}>
+                    <div data-online-control-when="waiting" {{ state.round.status != 'waiting' ? 'hidden' }}>
                         <button type="button" class="btn btn-success" data-action="online-control#startInTen" data-online-control-target="actionButton">
                             <i class="bi bi-hourglass-split me-1" aria-hidden="true"></i>{{ 'online_rounds.control.actions.start_in_10'|trans }}
                         </button>

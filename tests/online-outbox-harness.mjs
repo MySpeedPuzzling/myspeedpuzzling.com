@@ -20,10 +20,13 @@ import {
     BURST_CONTENT_TYPE,
     createMediaMemoryStorage,
     createMediaStorage,
+    MAX_AGE_MS,
     MAX_PRESIGNS_IN_A_ROW,
     MEDIA_DATABASE,
     MediaOutbox,
+    openMediaOutbox,
     putToStore,
+    REFUSED_LISTED,
 } from '../assets/online/media_outbox.js';
 
 const ROUND = '018d0020-0000-0000-0000-000000000101';
@@ -993,8 +996,8 @@ const scenarios = {
         assert.equal((await storage.getAll()).length, 0);
     },
 
-    async 'media: a refused item (media_too_large) waits aside with the reason - the others go on; discardRefused() drops it'() {
-        const { outbox, api } = mediaSetup();
+    async 'media: a refused item (media_too_large) is reported and leaves the device - the others go on'() {
+        const { outbox, api, storage } = mediaSetup();
         api.presignAnswers.push({ kind: 'client', status: 422, data: { error: 'media_too_large' } });
         await outbox.enqueue({ kind: 'burst', blob: photo('huge', 3000), takenMs: START });
         await outbox.enqueue({ kind: 'button', blob: photo('ok'), takenMs: START + 1 });
@@ -1002,11 +1005,96 @@ const scenarios = {
         await outbox.flush();
 
         assert.deepEqual(outbox.refusedItems().map((item) => [item.kind, item.reason]), [['burst', 'media_too_large']]);
+        assert.equal(outbox.status().refused, 1);
         assert.equal(api.reports.length, 1);
         assert.equal(outbox.pendingCount(), 0);
-        assert.equal(outbox.queuedBytes(), 3000, 'kept until let go');
+        assert.equal(outbox.queuedBytes(), 0, 'its blob does not stay');
+        assert.deepEqual(await storage.getAll(), [], 'nothing of it on the device');
+
         assert.equal(await outbox.discardRefused(), 1);
+        assert.deepEqual(outbox.refusedItems(), []);
+        assert.equal(outbox.status().refused, 1, 'the count stays');
+    },
+
+    async 'media: the refusals listed are the newest - the count is all of them'() {
+        const { outbox, api } = mediaSetup();
+
+        for (let index = 0; index < REFUSED_LISTED + 5; index++) {
+            api.presignAnswers.push({ kind: 'client', status: 422, data: { error: 'media_kind_unknown' } });
+            await outbox.enqueue({ kind: 'periodic', blob: photo(`p${index}`), takenMs: START + index });
+        }
+
+        await outbox.flush();
+
+        assert.equal(outbox.status().refused, REFUSED_LISTED + 5);
+        assert.equal(outbox.refusedItems().length, REFUSED_LISTED);
         assert.equal(outbox.queuedBytes(), 0);
+    },
+
+    async 'media: a page opening the outbox drops what is older than 7 days and refused items an older page kept'() {
+        const w = world();
+        const day = 24 * 60 * 60 * 1000;
+        const blob = photo('p');
+        const item = (id, overrides = {}) => ({
+            id,
+            scope: 'participant-1',
+            seq: 1,
+            createdAt: w.clock.now,
+            kind: 'periodic',
+            priority: 'periodic',
+            takenMs: w.clock.now,
+            eventId: null,
+            roundId: ROUND,
+            contentType: 'image/jpeg',
+            bytes: blob.size,
+            manifest: null,
+            blob,
+            stage: 'queued',
+            mediaId: null,
+            store: null,
+            url: null,
+            method: 'PUT',
+            headers: null,
+            validUntil: null,
+            state: 'pending',
+            reason: null,
+            refusedAt: null,
+            attempts: 0,
+            nextAttemptAt: 0,
+            presignsInARow: 0,
+            lastFailure: null,
+            ...overrides,
+        });
+        const storage = createMediaMemoryStorage([
+            item('six-days', { seq: 3, createdAt: w.clock.now - 6 * day }),
+            item('eight-days', { seq: 1, createdAt: w.clock.now - 8 * day }),
+            item('refused-before', { seq: 2, state: 'refused', reason: 'media_too_large', refusedAt: w.clock.now - day }),
+            item('another-participant-a-month-ago', { seq: 4, scope: 'participant-2', createdAt: w.clock.now - 30 * day }),
+        ]);
+        const media = mediaWorld(w);
+
+        const outbox = await openMediaOutbox({
+            storage,
+            presign: media.presign,
+            put: media.put,
+            reportUploaded: media.reportUploaded,
+            scope: 'participant-1',
+            now: w.now,
+            lock: async (task) => {
+                await task();
+
+                return true;
+            },
+            schedule: w.schedule,
+            cancel: w.cancel,
+            autoFlush: false,
+        });
+
+        assert.deepEqual((await storage.getAll()).map((stored) => stored.id), ['six-days']);
+        assert.equal(outbox.pendingCount(), 1);
+        assert.equal(outbox.status().refused, 0, 'an older page reported its refusals');
+        assert.equal(MAX_AGE_MS, 7 * day);
+        assert.equal(await outbox.prune(), 0, 'nothing more to drop');
     },
 
     async 'media: the link died - nothing is uploaded until retryNow()'() {

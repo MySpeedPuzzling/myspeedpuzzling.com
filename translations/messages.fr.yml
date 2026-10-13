@@ -4156,6 +4156,7 @@ competition:
       "already_started": "Le chronomètre a déjà démarré – réinitialisez-le avant de programmer un nouveau départ."
       "too_late_to_cancel": "La manche a déjà commencé – son départ ne peut plus être annulé."
       "start_scheduled": "Un départ est programmé – annulez-le d'abord pour démarrer tout de suite."
+      "results_confirmed": "Cette manche a déjà des résultats officiels. Effacez-les d'abord au Bureau des résultats – une remise à zéro recommence la manche depuis le début."
   "flash":
     "created": "Événement soumis pour approbation."
     "updated": "Événement mis à jour."
@@ -9126,6 +9127,7 @@ compete:
         status_camera_off: "Caméra éteinte"
         status_online: "En ligne"
         status_offline: "Hors ligne"
+        status_problem: "Problème de connexion – nouvelle tentative"
         status_pending: "%count% photo à envoyer|%count% photos à envoyer"
         camera_alert: "La caméra est éteinte – touchez ici pour la rallumer"
         wake_tap: "Touchez ici une fois – pour entendre le départ et garder l'écran allumé"

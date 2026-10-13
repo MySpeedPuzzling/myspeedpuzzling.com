@@ -4064,6 +4064,7 @@ fair_use_policy:
       "already_started": "El cronómetro ya se ha iniciado: reinícialo antes de programar un nuevo inicio."
       "too_late_to_cancel": "La ronda ya ha empezado: su inicio ya no se puede cancelar."
       "start_scheduled": "Hay un inicio programado: cancélalo primero para iniciar ahora mismo."
+      "results_confirmed": "Esta ronda ya tiene resultados oficiales. Bórralos primero en la Mesa de resultados: un reinicio empieza la ronda desde cero."
   "flash":
     "created": "Evento enviado para aprobación."
     "updated": "Evento actualizado."
@@ -9107,6 +9108,7 @@ compete:
         status_camera_off: "Cámara apagada"
         status_online: "En línea"
         status_offline: "Sin conexión"
+        status_problem: "Problema de conexión: reintentando"
         status_pending: "1 foto por enviar|%count% fotos por enviar"
         camera_alert: "La cámara está apagada: toca aquí para volver a encenderla"
         wake_tap: "Toca aquí una vez: así oirás la salida y la pantalla no se apagará"

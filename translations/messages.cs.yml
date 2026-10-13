@@ -4164,6 +4164,7 @@ qr_code:
       "already_started": "Stopky už běžely – před naplánováním nového startu je resetujte."
       "too_late_to_cancel": "Kolo už začalo – jeho start už nejde zrušit."
       "start_scheduled": "Start je naplánovaný – pro okamžité spuštění ho nejprve zrušte."
+      "results_confirmed": "Toto kolo už má oficiální výsledky. Nejprve je vymažte na Výsledkovém pultu – reset spustí kolo znovu od začátku."
   "flash":
     "created": "Událost odeslána ke schválení."
     "updated": "Událost aktualizována."
@@ -9133,6 +9134,7 @@ compete:
         status_camera_off: "Kamera vypnutá"
         status_online: "Online"
         status_offline: "Offline"
+        status_problem: "Problém s připojením - zkoušíme znovu"
         status_pending: "{1}1 fotka k odeslání|[2,4]%count% fotky k odeslání|[0,Inf[%count% fotek k odeslání"
         camera_alert: "Kamera je vypnutá - klepnutím sem ji znovu zapnete"
         wake_tap: "Klepněte sem jednou - uslyšíte start a obrazovka zůstane zapnutá"

@@ -4063,6 +4063,7 @@ qr_code:
       "already_started": "Die Stoppuhr ist bereits gestartet – setzen Sie sie zurück, bevor Sie einen neuen Start planen."
       "too_late_to_cancel": "Die Runde hat bereits begonnen – ihr Start kann nicht mehr abgebrochen werden."
       "start_scheduled": "Ein Start ist geplant – brechen Sie ihn zuerst ab, um sofort zu starten."
+      "results_confirmed": "Diese Runde hat bereits offizielle Ergebnisse. Löschen Sie sie zuerst im Ergebnisbüro – ein Zurücksetzen beginnt die Runde ganz von vorn."
   "flash":
     "created": "Veranstaltung zur Genehmigung eingereicht."
     "updated": "Veranstaltung aktualisiert."
@@ -9106,6 +9107,7 @@ compete:
         status_camera_off: "Kamera aus"
         status_online: "Online"
         status_offline: "Offline"
+        status_problem: "Verbindungsproblem – neuer Versuch läuft"
         status_pending: "1 Foto zu senden|%count% Fotos zu senden"
         camera_alert: "Die Kamera ist aus – tippen Sie hier, um sie wieder einzuschalten"
         wake_tap: "Tippen Sie einmal hier – damit Sie den Start hören und der Bildschirm an bleibt"

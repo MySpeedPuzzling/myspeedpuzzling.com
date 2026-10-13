@@ -9,6 +9,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use SpeedPuzzling\Web\Entity\CompetitionParticipant;
 use SpeedPuzzling\Web\Tests\DataFixtures\OnlineRoundsFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
+use SpeedPuzzling\Web\Tests\QueryCountAssertions;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use SpeedPuzzling\Web\Value\OnlineToken;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
@@ -21,6 +22,7 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 final class CompeteApiGuardsTest extends WebTestCase
 {
     use CompeteApiRequests;
+    use QueryCountAssertions;
 
     private KernelBrowser $browser;
 
@@ -100,7 +102,8 @@ final class CompeteApiGuardsTest extends WebTestCase
     public function testALinkAskingTooOftenIsToldWhenToComeBack(): void
     {
         $token = $this->freshLink();
-        $this->browser->getContainer()->get('limiter.online_participant')->create($token)->consume(300);
+        $limiter = $this->browser->getContainer()->get('limiter.online_participant');
+        $limiter->create($token)->consume($limiter->create($token)->consume(0)->getLimit());
 
         $this->browser->request('GET', self::api($token, 'state'));
         self::assertRefused($this->browser, 429, 'rate_limited');
@@ -115,6 +118,52 @@ final class CompeteApiGuardsTest extends WebTestCase
         // Another link is not held up
         $this->browser->request('GET', self::api(OnlineRoundsFixture::TOKEN_ANONYMOUS, 'state'));
         self::assertResponseIsSuccessful();
+    }
+
+    /**
+     * One network asking for links again and again (guessing them, or a flood) is stopped before any link is read
+     */
+    public function testOneClientAskingTooOftenIsToldBeforeAnyLinkIsRead(): void
+    {
+        $ip = '198.51.100.' . random_int(1, 254);
+        $limiter = $this->browser->getContainer()->get('limiter.online_participant_ip');
+
+        try {
+            $limiter->create($ip)->consume($limiter->create($ip)->consume(0)->getLimit());
+
+            $this->browser->request('GET', self::api(OnlineRoundsFixture::TOKEN_CONNECTED, 'state'), server: ['REMOTE_ADDR' => $ip]);
+            self::assertRefused($this->browser, 429, 'rate_limited');
+
+            self::postJson($this->browser, self::api('NoSuchLinkAnywhere2222', 'heartbeat'), ['deviceId' => 'phone-a']);
+            // Another client is not held up
+            self::assertResponseStatusCodeSame(404);
+        } finally {
+            $limiter->create($ip)->reset();
+        }
+    }
+
+    /**
+     * A link found unknown is answered without the database for a few seconds - on every endpoint
+     */
+    public function testAnUnknownLinkAskedForAgainCostsNoStatement(): void
+    {
+        $token = OnlineToken::generate();
+
+        $this->browser->request('GET', self::api($token, 'state'));
+        self::assertRefused($this->browser, 404, 'unknown_link');
+
+        foreach (['state', 'heartbeat', 'events', 'media'] as $endpoint) {
+            $this->startCountingQueries($this->browser);
+
+            if ($endpoint === 'state') {
+                $this->browser->request('GET', self::api($token, $endpoint));
+            } else {
+                self::postJson($this->browser, self::api($token, $endpoint), ['deviceId' => 'phone-a', 'events' => []]);
+            }
+
+            self::assertRefused($this->browser, 404, 'unknown_link');
+            self::assertSame([], $this->executedSql($this->browser), $endpoint . ' of a link found unknown');
+        }
     }
 
     /**

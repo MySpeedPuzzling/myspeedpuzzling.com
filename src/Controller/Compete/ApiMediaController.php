@@ -8,12 +8,17 @@ use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Psr\Log\LoggerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\OnlineEntryMedia;
+use SpeedPuzzling\Web\Exceptions\OnlineEntryAlreadyConfirmed;
+use SpeedPuzzling\Web\Exceptions\OnlineMediaPendingLimitReached;
+use SpeedPuzzling\Web\Exceptions\OnlineMediaQuotaExceeded;
 use SpeedPuzzling\Web\Exceptions\OnlineParticipantNotEntered;
 use SpeedPuzzling\Web\Exceptions\OnlineRoundNotOnline;
 use SpeedPuzzling\Web\Message\RegisterOnlineMedia;
 use SpeedPuzzling\Web\Services\OnlineRounds\OnlineMediaStorage;
 use SpeedPuzzling\Web\Services\OnlineRounds\OnlineParticipantApi;
 use SpeedPuzzling\Web\Services\OnlineRounds\OnlineStoreBreaker;
+use SpeedPuzzling\Web\Value\CanonicalUuid;
+use SpeedPuzzling\Web\Value\OnlineEntryQuota;
 use SpeedPuzzling\Web\Value\OnlineEventInput;
 use SpeedPuzzling\Web\Value\OnlineHeartbeat;
 use SpeedPuzzling\Web\Value\OnlineMediaKind;
@@ -30,18 +35,22 @@ use Symfony\Component\Routing\Attribute\Route;
  * assets/online/media_outbox.js): `{deviceId, roundId?, kind, takenMs, bytes, contentType, eventId?, previousFailure?}`
  * → `{serverNowMs, mediaId, store, method: "PUT", url, headers, expiresAtMs}`. The phone PUTs the bytes straight to
  * the store, then sends `media.uploaded`.
- * - `kind` one of OnlineMediaKind (`media_kind_unknown` 422), `bytes` the exact size of the blob - at most MAX_BYTES
- *   (`media_too_large` 422) - and `contentType` `image/jpeg` for photos, `application/octet-stream` for a burst; the
- *   URL is signed for exactly those (`invalid_fields` 422 for anything else wrong).
+ * - `kind` one of OnlineMediaKind (`media_kind_unknown` 422), `bytes` the exact size of the blob - at most
+ *   OnlineEntryQuota::MAX_MEDIA_BYTES (`media_too_large` 422) - and `contentType` `image/jpeg` for photos,
+ *   `application/octet-stream` for a burst; the URL is signed for exactly those. Ids are canonical UUIDs
+ *   (`invalid_fields` 422 for anything else wrong).
  * - The round: the one named, else the participant's current one - a round of their competition with online timing
- *   (`round_not_online` 409) they are entered in (`not_entered` 409).
+ *   (`round_not_online` 409) they are entered in (`not_entered` 409), whose result the review has not confirmed yet
+ *   (`entry_confirmed` 409).
+ * - Per link and round (OnlineEntryQuota): `media_quota_exceeded` 422 at the cap of objects or bytes,
+ *   `too_many_pending_media` 429 + Retry-After while too many presigned uploads never arrived; per link and minute the
+ *   media limiter (`rate_limited` 429).
  * - `previousFailure` = the store's answer to this phone's last upload of the item: a 408, 429 or 5xx counts for the
  *   circuit breaker (OnlineStoreBreaker) before the store of this upload is picked.
  * The media id is made here, before the dispatch, so the row and the URL share it.
  */
 final class ApiMediaController extends AbstractController
 {
-    public const int MAX_BYTES = 15 * 1024 * 1024;
     public const string PHOTO_CONTENT_TYPE = 'image/jpeg';
     public const string BURST_CONTENT_TYPE = 'application/octet-stream';
 
@@ -57,7 +66,7 @@ final class ApiMediaController extends AbstractController
     #[Route(path: '/api/compete/{token}/media', name: 'compete_api_media', methods: ['POST'])]
     public function __invoke(Request $request, string $token): JsonResponse
     {
-        $refusal = $this->api->admit($token);
+        $refusal = $this->api->admit($request, $token) ?? $this->api->admitMedia($token);
 
         if ($refusal !== null) {
             return $refusal;
@@ -83,7 +92,7 @@ final class ApiMediaController extends AbstractController
 
         $bytes = self::integer($body['bytes'] ?? null);
 
-        if ($bytes !== null && $bytes > self::MAX_BYTES) {
+        if ($bytes !== null && $bytes > OnlineEntryQuota::MAX_MEDIA_BYTES) {
             return $this->api->error('media_too_large', JsonResponse::HTTP_UNPROCESSABLE_ENTITY);
         }
 
@@ -101,13 +110,13 @@ final class ApiMediaController extends AbstractController
             || $takenMs === null
             || $takenMs < OnlineEventInput::MIN_CLIENT_MS
             || $takenMs > OnlineEventInput::MAX_CLIENT_MS
-            || ($roundId !== null && (!is_string($roundId) || !Uuid::isValid($roundId)))
-            || ($relatedEventId !== null && (!is_string($relatedEventId) || !Uuid::isValid($relatedEventId)))
+            || ($roundId !== null && CanonicalUuid::isValid($roundId) === false)
+            || ($relatedEventId !== null && CanonicalUuid::isValid($relatedEventId) === false)
         ) {
             return $this->api->error('invalid_fields', JsonResponse::HTTP_UNPROCESSABLE_ENTITY);
         }
 
-        if ($roundId === null) {
+        if (!is_string($roundId)) {
             return $this->api->error('round_not_online', JsonResponse::HTTP_CONFLICT);
         }
 
@@ -125,12 +134,20 @@ final class ApiMediaController extends AbstractController
                 takenMs: $takenMs,
                 bytes: $bytes,
                 contentType: $contentType,
-                relatedEventId: $relatedEventId === null ? null : strtolower($relatedEventId),
+                relatedEventId: is_string($relatedEventId) ? strtolower($relatedEventId) : null,
             ));
         } catch (OnlineRoundNotOnline) {
             return $this->api->error('round_not_online', JsonResponse::HTTP_CONFLICT);
         } catch (OnlineParticipantNotEntered) {
             return $this->api->error('not_entered', JsonResponse::HTTP_CONFLICT);
+        } catch (OnlineEntryAlreadyConfirmed) {
+            return $this->api->error('entry_confirmed', JsonResponse::HTTP_CONFLICT);
+        } catch (OnlineMediaQuotaExceeded) {
+            return $this->api->error('media_quota_exceeded', JsonResponse::HTTP_UNPROCESSABLE_ENTITY);
+        } catch (OnlineMediaPendingLimitReached) {
+            return $this->api->error('too_many_pending_media', JsonResponse::HTTP_TOO_MANY_REQUESTS, [
+                'Retry-After' => (string) OnlineEntryQuota::PENDING_MEDIA_RETRY_AFTER_SECONDS,
+            ]);
         } catch (UniqueConstraintViolationException $e) {
             // The phone's first contact with the round, twice at once - the online entry was made by the other request
             $this->logger->info('Online entry created by another request at the same time - the phone asks again', [

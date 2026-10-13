@@ -7,14 +7,19 @@ namespace SpeedPuzzling\Web\Tests\MessageHandler;
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\OnlineEntry;
 use SpeedPuzzling\Web\Entity\OnlineEntryMedia;
 use SpeedPuzzling\Web\Exceptions\OnlineMediaObjectMissing;
 use SpeedPuzzling\Web\Message\VerifyOnlineMedia;
 use SpeedPuzzling\Web\MessageHandler\VerifyOnlineMediaHandler;
+use SpeedPuzzling\Web\Repository\OnlineEntryMediaRepository;
 use SpeedPuzzling\Web\Services\OnlineRounds\FakeOnlineMediaStorage;
+use SpeedPuzzling\Web\Services\OnlineRounds\OnlineStoreBreaker;
 use SpeedPuzzling\Web\Tests\DataFixtures\OnlineRoundsFixture;
+use SpeedPuzzling\Web\Tests\TestDouble\InMemoryLogger;
+use SpeedPuzzling\Web\Value\OnlineEntryQuota;
 use SpeedPuzzling\Web\Value\OnlineMediaKind;
 use SpeedPuzzling\Web\Value\OnlineMediaStore;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -38,15 +43,63 @@ final class VerifyOnlineMediaHandlerTest extends KernelTestCase
         $this->handler = $container->get(VerifyOnlineMediaHandler::class);
     }
 
-    public function testAnUploadedObjectIsVerifiedWithItsRealSize(): void
+    public function testAnUploadedObjectAsDeclaredIsVerified(): void
     {
         $media = $this->media();
-        $this->storage->upload($media, 181_990);
+        $this->storage->upload($media);
 
         ($this->handler)(new VerifyOnlineMedia($media->id->toString()));
         $this->entityManager->flush();
 
-        self::assertSame(181_990, $this->verifiedBytes($media));
+        self::assertSame(182_000, $this->verifiedBytes($media));
+        self::assertSame([], $this->storage->deleted());
+    }
+
+    /**
+     * The URL is signed for the declared size and type - only a store that does not check signed headers lets anything
+     * else through: deleted, never verified, a person is told
+     *
+     * @return iterable<string, array{int, string}>
+     */
+    public static function notAsDeclared(): iterable
+    {
+        yield 'another size' => [181_990, 'image/jpeg'];
+        yield 'another type' => [182_000, 'text/html'];
+        yield 'too large' => [OnlineEntryQuota::MAX_MEDIA_BYTES + 1, 'image/jpeg'];
+    }
+
+    #[DataProvider('notAsDeclared')]
+    public function testAnObjectNotAsDeclaredIsDeleted(int $bytes, string $contentType): void
+    {
+        $media = $this->media();
+        $this->storage->upload($media, $bytes, $contentType);
+        $logger = new InMemoryLogger();
+        $container = self::getContainer();
+        $handler = new VerifyOnlineMediaHandler(
+            $container->get(OnlineEntryMediaRepository::class),
+            $this->storage,
+            $container->get(OnlineStoreBreaker::class),
+            $logger,
+        );
+
+        $handler(new VerifyOnlineMedia($media->id->toString()));
+        $this->entityManager->flush();
+
+        self::assertNull($this->verifiedBytes($media));
+        self::assertSame(['primary/' . $media->objectKey], $this->storage->deleted());
+        self::assertNull($this->storage->inspect($media));
+        self::assertTrue($logger->hasRecord('warning', 'not as declared'));
+    }
+
+    public function testAContentTypeWithParametersIsStillTheType(): void
+    {
+        $media = $this->media();
+        $this->storage->upload($media, contentType: 'IMAGE/JPEG; charset=binary');
+
+        ($this->handler)(new VerifyOnlineMedia($media->id->toString()));
+        $this->entityManager->flush();
+
+        self::assertSame(182_000, $this->verifiedBytes($media));
     }
 
     public function testAMissingObjectFailsForTheTransportToTryAgain(): void

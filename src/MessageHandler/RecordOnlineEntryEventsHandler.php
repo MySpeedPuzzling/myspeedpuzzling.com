@@ -17,12 +17,14 @@ use SpeedPuzzling\Web\Exceptions\OnlineRoundNotOnline;
 use SpeedPuzzling\Web\Message\RecordOnlineEntryEvents;
 use SpeedPuzzling\Web\Message\VerifyOnlineMedia;
 use SpeedPuzzling\Web\Query\GetLatestOnlineEntryEventMoment;
+use SpeedPuzzling\Web\Query\GetOnlineEntryUsage;
 use SpeedPuzzling\Web\Repository\CompetitionParticipantRepository;
 use SpeedPuzzling\Web\Repository\OnlineEntryEventRepository;
 use SpeedPuzzling\Web\Repository\OnlineEntryMediaRepository;
 use SpeedPuzzling\Web\Repository\OnlineRoundRepository;
 use SpeedPuzzling\Web\Results\RecordedOnlineEntryEvents;
 use SpeedPuzzling\Web\Services\OnlineRounds\OnlineEntryResolver;
+use SpeedPuzzling\Web\Value\OnlineEntryQuota;
 use SpeedPuzzling\Web\Value\OnlineEventInput;
 use SpeedPuzzling\Web\Value\OnlineEventType;
 use SpeedPuzzling\Web\Value\RoundClock;
@@ -37,7 +39,8 @@ use Symfony\Component\Messenger\Stamp\DispatchAfterCurrentBusStamp;
  * - the rest are stored on the participant's online entry in the event's round - any round of the competition with
  *   online timing (late reports of a finished round still land on it) - created on the first contact; a round of
  *   another competition or without online timing is `wrong_round`, a round the participant is not entered in
- *   `not_entered`; a `media.uploaded` naming no media of this participant is `invalid_fields`;
+ *   `not_entered`; a `media.uploaded` naming no media of this participant is `invalid_fields`; an entry holding
+ *   OnlineEntryQuota::MAX_EVENTS_PER_ENTRY events takes no more (`too_many_events`);
  * - every stored event keeps the server's receive time - how late it came is the review's business;
  * - side effects, in the order the events happened on the phone's clock (not the order they came in):
  *   `device.ready` → the entry's ready moment, active device and clock quality - unless an older ready arrived late;
@@ -58,6 +61,7 @@ readonly final class RecordOnlineEntryEventsHandler
         private OnlineEntryMediaRepository $onlineEntryMediaRepository,
         private OnlineRoundRepository $onlineRoundRepository,
         private GetLatestOnlineEntryEventMoment $getLatestOnlineEntryEventMoment,
+        private GetOnlineEntryUsage $getOnlineEntryUsage,
         private MessageBusInterface $messageBus,
         private ClockInterface $clock,
     ) {
@@ -101,6 +105,8 @@ readonly final class RecordOnlineEntryEventsHandler
         $entries = [];
         /** @var array<string, null|int> $latestTimeUpMs online entry id => the latest time-up report's moment */
         $latestTimeUpMs = [];
+        /** @var array<string, int> $eventCounts online entry id => its events, stored before and now */
+        $eventCounts = [];
         $activeDeviceChanged = false;
 
         foreach ($new as $input) {
@@ -108,6 +114,15 @@ readonly final class RecordOnlineEntryEventsHandler
 
             if (is_string($onlineEntry)) {
                 $refused[] = ['id' => $input->id, 'reason' => $onlineEntry];
+
+                continue;
+            }
+
+            $entryId = $onlineEntry->id->toString();
+            $eventCounts[$entryId] ??= $this->getOnlineEntryUsage->eventCount($entryId);
+
+            if ($eventCounts[$entryId] >= OnlineEntryQuota::MAX_EVENTS_PER_ENTRY) {
+                $refused[] = ['id' => $input->id, 'reason' => 'too_many_events'];
 
                 continue;
             }
@@ -137,14 +152,13 @@ readonly final class RecordOnlineEntryEventsHandler
                 payload: $input->data,
             ));
             $acks[] = $input->id;
+            $eventCounts[$entryId]++;
 
             if ($input->type === OnlineEventType::DeviceReady && $this->applyReady($onlineEntry, $input, $message->deviceId)) {
                 $activeDeviceChanged = true;
             }
 
             if ($input->type === OnlineEventType::TimeUpPieces) {
-                $entryId = $onlineEntry->id->toString();
-
                 if (array_key_exists($entryId, $latestTimeUpMs) === false) {
                     $latestTimeUpMs[$entryId] = $this->getLatestOnlineEntryEventMoment->of($entryId, OnlineEventType::TimeUpPieces);
                 }

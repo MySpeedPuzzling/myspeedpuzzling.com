@@ -70,8 +70,9 @@ trait CompeteApiRequests
     }
 
     /**
-     * The heartbeat's cached lookups live in the shared cache, on disk in tests - across tests and runs: every test
-     * starts from what the database (rolled back by DAMA) says
+     * The heartbeat's cached lookups and the links found unknown (a test removing a participant leaves its token
+     * unknown for OnlineAccessLight::UNKNOWN_TTL_SECONDS) live in the shared cache, on disk in tests - across tests and
+     * runs: every test starts from what the database (rolled back by DAMA) says
      */
     private static function forgetCachedAccess(KernelBrowser $browser, string ...$tokens): void
     {
@@ -79,6 +80,7 @@ trait CompeteApiRequests
 
         foreach ([OnlineRoundsFixture::TOKEN_CONNECTED, OnlineRoundsFixture::TOKEN_ANONYMOUS, ...$tokens] as $token) {
             $cache->delete(OnlineAccessLight::cacheKey($token));
+            $cache->delete(OnlineAccessLight::UNKNOWN_KEY_PREFIX . $token);
         }
 
         $cache->delete(OnlineAccessLight::ROUND_HASH_KEY_PREFIX . OnlineRoundsFixture::ROUND_ONLINE_SOLO);

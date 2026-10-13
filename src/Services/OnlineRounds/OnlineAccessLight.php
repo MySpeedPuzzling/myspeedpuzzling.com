@@ -27,6 +27,8 @@ use Symfony\Contracts\Cache\ItemInterface;
  * - per round, for ROUND_HASH_TTL_SECONDS: the round clock's state hash (RoundClock::stateHash()), shared by every phone
  *   of the round - the heartbeat's hint to fetch the state again is at most that much late, and the round's row is
  *   read once per that time whatever the number of phones.
+ * - per unknown token, for UNKNOWN_TTL_SECONDS: that a lookup found nothing (isUnknown() / rememberUnknown(), also
+ *   used by OnlineParticipantApi for the other endpoints) - a link asked for again and again costs no statement.
  */
 final readonly class OnlineAccessLight
 {
@@ -34,6 +36,9 @@ final readonly class OnlineAccessLight
     public const int TTL_SECONDS = 60;
     public const string ROUND_HASH_KEY_PREFIX = 'online_round_state_hash.';
     public const int ROUND_HASH_TTL_SECONDS = 2;
+    // A token a lookup found nothing for: answered without the database for a few seconds (every endpoint)
+    public const string UNKNOWN_KEY_PREFIX = 'online_access_unknown.';
+    public const int UNKNOWN_TTL_SECONDS = 10;
 
     public function __construct(
         private CacheInterface $cache,
@@ -53,15 +58,52 @@ final readonly class OnlineAccessLight
             throw new OnlineLinkNotFound();
         }
 
-        $context = OnlineAccessLightContext::fromArray($this->cache->get(self::cacheKey($token), $this->compute($token)));
-
-        if ($context === null) {
-            // Written by another version of this code - read again
-            $this->cache->delete(self::cacheKey($token));
+        try {
             $context = OnlineAccessLightContext::fromArray($this->cache->get(self::cacheKey($token), $this->compute($token)));
+
+            if ($context === null) {
+                // Written by another version of this code - read again
+                $this->cache->delete(self::cacheKey($token));
+                $context = OnlineAccessLightContext::fromArray($this->cache->get(self::cacheKey($token), $this->compute($token)));
+            }
+        } catch (OnlineLinkNotFound $exception) {
+            $this->rememberUnknown($token);
+
+            throw $exception;
         }
 
         return $context ?? throw new OnlineLinkNotFound();
+    }
+
+    /**
+     * A lookup found nothing for this token within UNKNOWN_TTL_SECONDS - answered without the database
+     */
+    public function isUnknown(string $token): bool
+    {
+        if (OnlineToken::looksValid($token) === false) {
+            return true;
+        }
+
+        // A peek: nothing is stored on a miss
+        return $this->cache->get(self::UNKNOWN_KEY_PREFIX . $token, static function (ItemInterface $item, bool &$save): bool {
+            $save = false;
+
+            return false;
+        }) === true;
+    }
+
+    public function rememberUnknown(string $token): void
+    {
+        if (OnlineToken::looksValid($token) === false) {
+            return;
+        }
+
+        $this->cache->delete(self::UNKNOWN_KEY_PREFIX . $token);
+        $this->cache->get(self::UNKNOWN_KEY_PREFIX . $token, static function (ItemInterface $item): bool {
+            $item->expiresAfter(self::UNKNOWN_TTL_SECONDS);
+
+            return true;
+        });
     }
 
     /**
@@ -105,7 +147,11 @@ final readonly class OnlineAccessLight
         return function (ItemInterface $item) use ($token): array {
             $item->expiresAfter(self::TTL_SECONDS);
 
-            // Unknown and removed links throw - nothing is cached for them
+            // Unknown and removed links throw - nothing is cached for them, only that they are unknown (forToken())
+            if ($this->isUnknown($token)) {
+                throw new OnlineLinkNotFound();
+            }
+
             $access = $this->onlineAccess->forToken($token);
             $onlineEntry = $access->entry === null ? null : $this->onlineEntryRepository->ofEntry($access->entry->id->toString());
 

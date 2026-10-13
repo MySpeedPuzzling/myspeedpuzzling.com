@@ -21,6 +21,7 @@ use SpeedPuzzling\Web\Services\OnlineRounds\OnlineMediaStores;
 use SpeedPuzzling\Web\Services\OnlineRounds\S3OnlineMediaStorage;
 use SpeedPuzzling\Web\Services\OnlineRounds\S3QueryPresigner;
 use SpeedPuzzling\Web\Value\OnlineMediaKind;
+use SpeedPuzzling\Web\Value\OnlineMediaObject;
 use SpeedPuzzling\Web\Value\OnlineMediaStore;
 use SpeedPuzzling\Web\Value\RoundCategory;
 use Symfony\Component\Clock\MockClock;
@@ -96,6 +97,75 @@ final class S3OnlineMediaStorageTest extends TestCase
         $storage = $this->storage(new MockHttpClient(new MockResponse('', ['http_code' => 404])));
 
         self::assertNull($storage->head($this->media(OnlineMediaStore::Primary)));
+    }
+
+    public function testInspectReadsTheSizeAndType(): void
+    {
+        $storage = $this->storage(new MockHttpClient(new MockResponse('', ['http_code' => 200, 'response_headers' => [
+            'content-length' => '182000',
+            'content-type' => 'image/jpeg',
+            'last-modified' => 'Tue, 13 Oct 2026 12:00:00 GMT',
+        ]])));
+
+        $object = $storage->inspect($this->media(OnlineMediaStore::Primary));
+
+        self::assertNotNull($object);
+        self::assertSame(182_000, $object->bytes);
+        self::assertSame('image/jpeg', $object->contentType);
+        self::assertSame('2026-10-13 12:00:00', $object->lastModified?->format('Y-m-d H:i:s'));
+    }
+
+    public function testListingAPageOfKeys(): void
+    {
+        $requests = [];
+        $storage = $this->storage(new MockHttpClient(static function (string $method, string $url) use (&$requests): MockResponse {
+            $requests[] = $method . ' ' . $url;
+
+            return new MockResponse(<<<'XML'
+<?xml version="1.0" encoding="UTF-8"?>
+<ListBucketResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
+  <Name>puzzle</Name><Prefix>online/</Prefix><KeyCount>2</KeyCount><MaxKeys>2</MaxKeys><IsTruncated>true</IsTruncated>
+  <Contents><Key>online/a.jpg</Key><LastModified>2026-10-10T10:00:00.000Z</LastModified><Size>35000</Size></Contents>
+  <Contents><Key>online/b.bin</Key><LastModified>2026-10-11T10:00:00.000Z</LastModified><Size>1534000</Size></Contents>
+</ListBucketResult>
+XML, ['http_code' => 200, 'response_headers' => ['content-type' => 'application/xml']]);
+        }));
+
+        $list = $storage->listObjects(OnlineMediaStore::Primary, 'online/', 'online/0.jpg', 2);
+
+        self::assertSame(['online/a.jpg', 'online/b.bin'], array_map(static fn (OnlineMediaObject $object): string => $object->key, $list->objects));
+        self::assertSame([35_000, 1_534_000], array_map(static fn (OnlineMediaObject $object): int => $object->bytes, $list->objects));
+        self::assertSame('online/b.bin', $list->nextStartAfter);
+        self::assertCount(1, $requests);
+        self::assertStringContainsString('start-after=online%2F0.jpg', $requests[0]);
+        self::assertStringContainsString('max-keys=2', $requests[0]);
+    }
+
+    public function testDeletingManyKeysInOneRequestReportsTheFailures(): void
+    {
+        $body = null;
+        $contentMd5 = null;
+        $storage = $this->storage(new MockHttpClient(static function (string $method, string $url, array $options) use (&$body, &$contentMd5): MockResponse {
+            $body = is_string($options['body'] ?? null) ? $options['body'] : null;
+            // S3 refuses a multi-object delete without it
+            $contentMd5 = self::header($options, 'content-md5');
+
+            return new MockResponse(<<<'XML'
+<?xml version="1.0" encoding="UTF-8"?>
+<DeleteResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
+  <Error><Key>online/b.bin</Key><Code>AccessDenied</Code><Message>Access Denied</Message></Error>
+</DeleteResult>
+XML, ['http_code' => 200, 'response_headers' => ['content-type' => 'application/xml']]);
+        }));
+
+        $failed = $storage->deleteObjects(OnlineMediaStore::Secondary, ['online/a.jpg', 'online/b.bin']);
+
+        self::assertSame(['online/b.bin'], $failed);
+        self::assertIsString($body);
+        self::assertStringContainsString('<Key>online/a.jpg</Key>', $body);
+        self::assertStringContainsString('<Quiet>true</Quiet>', $body);
+        self::assertSame('Content-MD5: ' . base64_encode(md5($body, true)), $contentMd5);
+        self::assertSame([], $storage->deleteObjects(OnlineMediaStore::Secondary, []));
     }
 
     public function testDeleteGoesToTheMediasStore(): void
@@ -181,5 +251,18 @@ final class S3OnlineMediaStorageTest extends TestCase
             declaredBytes: 182_000,
             createdAt: $setUpAt,
         );
+    }
+
+    /**
+     * A request header as the mocked client got it (`Name: value`)
+     *
+     * @param array<mixed> $options
+     */
+    private static function header(array $options, string $name): null|string
+    {
+        $headers = $options['normalized_headers'] ?? null;
+        $values = is_array($headers) ? ($headers[$name] ?? null) : null;
+
+        return is_array($values) && is_string($values[0] ?? null) ? $values[0] : null;
     }
 }

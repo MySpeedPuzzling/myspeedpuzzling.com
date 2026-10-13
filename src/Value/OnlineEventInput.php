@@ -4,20 +4,22 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Value;
 
-use Ramsey\Uuid\Uuid;
-
 /**
  * One event as a participant's phone sent it (`POST /api/compete/{token}/events`, docs/features/online-competitions/
- * implementation-plan.md §3.1), read and checked before anything is stored - pure, no database:
- * - its own UUID (the server's primary key, never made here), a known type (else `unknown_type`);
+ * implementation-plan.md §3.1), read and checked before anything is stored - pure, no database. The phone is treated
+ * as a possibly hostile client:
+ * - its own id - a canonical UUID (CanonicalUuid), the server's primary key, never made here; a known type (else
+ *   `unknown_type`);
  * - `clientMs` = the moment on the phone's synced clock, whole epoch milliseconds; `perfMs`, `offsetMs`, `rttMs` =
  *   the raw clock values it was computed with (numbers or null);
  * - `roundId` = the round it belongs to - the request's round when it names none;
- * - `data` = an object, at most MAX_DATA_BYTES as JSON, with what its type needs: `timeup.pieces` a piece count
- *   (`pieces`, optional `measure` left / placed), `media.uploaded` the media id (`mediaId`, optional `bytes` and a
- *   burst's `manifest` of frames), `finish.*` optional photo / burst media ids.
+ * - `data` = an object of at most OnlineEntryQuota::MAX_EVENT_DATA_BYTES as JSON (a `media.uploaded` event's manifest
+ *   apart: at most OnlineEntryQuota::MAX_MANIFEST_FRAMES frames), no NUL in any key or text (Postgres refuses it), with
+ *   what its type needs: `timeup.pieces` a piece count (`pieces`, optional `measure` left / placed), `media.uploaded`
+ *   the media id (`mediaId`, optional `bytes` and a burst's `manifest` of frames), `finish.*` optional photo / burst
+ *   media ids.
  * Anything else wrong is `invalid_fields`. RecordOnlineEntryEventsHandler decides the rest (seen before, the round, the
- * participant's entry, the side effects).
+ * participant's entry, the caps, the side effects).
  */
 final readonly class OnlineEventInput
 {
@@ -27,10 +29,9 @@ final readonly class OnlineEventInput
     // Plausible epoch milliseconds (2001-09-09 … 2286-11-20) - seconds or a performance.now() value never pass
     public const int MIN_CLIENT_MS = 1_000_000_000_000;
     public const int MAX_CLIENT_MS = 9_999_999_999_999;
-    // The payload as stored (jsonb) - a burst's manifest of a few hundred frames fits easily
-    public const int MAX_DATA_BYTES = 32_768;
-    public const int MAX_MANIFEST_FRAMES = 1_000;
     public const int MAX_PIECES = 100_000;
+    // An id echoed back in a refusal - never more than this of what a client sent
+    private const int MAX_ECHOED_ID_LENGTH = 64;
 
     /**
      * @param array<string, mixed> $data
@@ -60,8 +61,8 @@ final readonly class OnlineEventInput
 
         $id = $event['id'] ?? null;
 
-        if (!is_string($id) || !Uuid::isValid($id)) {
-            return self::refusal(is_string($id) ? $id : null, self::INVALID_FIELDS);
+        if (!CanonicalUuid::isValid($id)) {
+            return self::refusal(is_string($id) ? mb_substr($id, 0, self::MAX_ECHOED_ID_LENGTH) : null, self::INVALID_FIELDS);
         }
 
         $id = strtolower($id);
@@ -76,8 +77,7 @@ final readonly class OnlineEventInput
         $data = self::data($type, $event['data'] ?? []);
 
         if (
-            !is_string($roundId)
-            || !Uuid::isValid($roundId)
+            !CanonicalUuid::isValid($roundId)
             || $clientMs === null
             || $clientMs < self::MIN_CLIENT_MS
             || $clientMs > self::MAX_CLIENT_MS
@@ -147,21 +147,28 @@ final readonly class OnlineEventInput
     private static function data(OnlineEventType $type, mixed $data): null|array
     {
         // `{}` decodes to an empty array; a non-empty list is no object
-        if (!is_array($data) || ($data !== [] && array_is_list($data))) {
+        if (!is_array($data) || ($data !== [] && array_is_list($data)) || self::containsNul($data)) {
             return null;
         }
 
         /** @var array<string, mixed> $data */
-        $encoded = json_encode($data, JSON_PRESERVE_ZERO_FRACTION);
+        $measured = $data;
 
-        if ($encoded === false || strlen($encoded) > self::MAX_DATA_BYTES) {
+        // A burst's manifest has its own bound (frames)
+        if ($type === OnlineEventType::MediaUploaded) {
+            unset($measured['manifest']);
+        }
+
+        $encoded = json_encode($measured, JSON_PRESERVE_ZERO_FRACTION);
+
+        if ($encoded === false || strlen($encoded) > OnlineEntryQuota::MAX_EVENT_DATA_BYTES) {
             return null;
         }
 
         $valid = match ($type) {
             OnlineEventType::TimeUpPieces => self::isPieceCount($data['pieces'] ?? null)
                 && (($data['measure'] ?? null) === null || (is_string($data['measure']) && OnlineUnfinishedMeasure::tryFrom($data['measure']) !== null)),
-            OnlineEventType::MediaUploaded => self::isUuid($data['mediaId'] ?? null)
+            OnlineEventType::MediaUploaded => CanonicalUuid::isValid($data['mediaId'] ?? null)
                 && (($data['bytes'] ?? null) === null || (self::integer($data['bytes']) ?? -1) >= 0)
                 && (($data['manifest'] ?? null) === null || (is_array($data['manifest']) && self::frames($data['manifest']) !== null)),
             OnlineEventType::FinishButton, OnlineEventType::FinishCandidate => self::isOptionalUuid($data['photoMediaId'] ?? null)
@@ -173,12 +180,30 @@ final readonly class OnlineEventInput
     }
 
     /**
+     * @param array<mixed> $value
+     */
+    private static function containsNul(array $value): bool
+    {
+        foreach ($value as $key => $item) {
+            if (is_string($key) && str_contains($key, "\0")) {
+                return true;
+            }
+
+            if ((is_string($item) && str_contains($item, "\0")) || (is_array($item) && self::containsNul($item))) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * @param array<mixed> $manifest
      * @return null|list<array{offset: int, length: int, captureMs: int|float}>
      */
     private static function frames(array $manifest): null|array
     {
-        if (!array_is_list($manifest) || count($manifest) > self::MAX_MANIFEST_FRAMES) {
+        if (!array_is_list($manifest) || count($manifest) > OnlineEntryQuota::MAX_MANIFEST_FRAMES) {
             return null;
         }
 
@@ -219,14 +244,9 @@ final readonly class OnlineEventInput
         return $pieces !== null && $pieces >= 0 && $pieces <= self::MAX_PIECES;
     }
 
-    private static function isUuid(mixed $value): bool
-    {
-        return is_string($value) && Uuid::isValid($value);
-    }
-
     private static function isOptionalUuid(mixed $value): bool
     {
-        return $value === null || self::isUuid($value);
+        return $value === null || CanonicalUuid::isValid($value);
     }
 
     private static function isNumber(mixed $value): bool

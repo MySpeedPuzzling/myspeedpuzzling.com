@@ -17,11 +17,14 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
  */
 final class CompeteConnectControllerTest extends WebTestCase
 {
+    use CompeteApiRequests;
+
     private KernelBrowser $browser;
 
     protected function setUp(): void
     {
         $this->browser = self::createClient();
+        self::forgetCachedAccess($this->browser);
     }
 
     public function testAPlayerWhoIsNobodyInTheCompetitionIsConnected(): void
@@ -93,18 +96,18 @@ final class CompeteConnectControllerTest extends WebTestCase
     {
         $this->connect(OnlineRoundsFixture::TOKEN_ANONYMOUS);
         self::assertResponseStatusCodeSame(401);
-        self::assertSame('sign_in_required', $this->json()['error']);
+        self::assertSame('sign_in_required', $this->answer()['error']);
 
         TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_WITH_FAVORITES);
 
         $this->connect(OnlineRoundsFixture::TOKEN_ANONYMOUS, origin: 'https://evil.example');
         self::assertResponseStatusCodeSame(403);
-        self::assertSame('invalid_csrf_token', $this->json()['error']);
+        self::assertSame('invalid_csrf_token', $this->answer()['error']);
         self::assertNull($this->connectedPlayer(OnlineRoundsFixture::PARTICIPANT_ANONYMOUS));
 
         $this->connect('NoSuchLinkAnywhere2222');
         self::assertResponseStatusCodeSame(404);
-        self::assertSame('unknown_link', $this->json()['error']);
+        self::assertSame('unknown_link', $this->answer()['error']);
     }
 
     private function connect(string $token, string $origin = 'http://localhost'): void
@@ -121,13 +124,13 @@ final class CompeteConnectControllerTest extends WebTestCase
 
     private function connectStatus(): mixed
     {
-        return $this->json()['status'] ?? null;
+        return $this->answer()['status'] ?? null;
     }
 
     /**
      * @return array<string, mixed>
      */
-    private function json(): array
+    private function answer(): array
     {
         $decoded = json_decode((string) $this->browser->getResponse()->getContent(), true, flags: JSON_THROW_ON_ERROR);
         self::assertIsArray($decoded);

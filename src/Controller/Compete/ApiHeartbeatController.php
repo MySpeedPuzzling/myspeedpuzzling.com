@@ -40,7 +40,7 @@ final class ApiHeartbeatController extends AbstractController
     #[Route(path: '/api/compete/{token}/heartbeat', name: 'compete_api_heartbeat', methods: ['POST'])]
     public function __invoke(Request $request, string $token): JsonResponse
     {
-        $refusal = $this->api->admit($token);
+        $refusal = $this->api->admit($request, $token);
 
         if ($refusal !== null) {
             return $refusal;

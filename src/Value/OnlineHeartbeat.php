@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Value;
 
-use Ramsey\Uuid\Uuid;
-
 /**
  * A participant's phone's heartbeat, every 15 s (docs/features/online-competitions/implementation-plan.md §3.1):
  * `{deviceId, roundId, visible, camera: {ok, w, h, fps}, detector: {ok, fps, mode}, clock: {offsetMs, rttMs},
@@ -46,7 +44,7 @@ final readonly class OnlineHeartbeat
 
         return new self($deviceId, [
             'deviceId' => $deviceId,
-            'roundId' => is_string($roundId) && Uuid::isValid($roundId) ? strtolower($roundId) : null,
+            'roundId' => is_string($roundId) && CanonicalUuid::isValid($roundId) ? strtolower($roundId) : null,
             'visible' => self::boolean($body['visible'] ?? null),
             'camera' => $camera === null ? null : [
                 'ok' => self::boolean($camera['ok'] ?? null),
@@ -57,7 +55,7 @@ final readonly class OnlineHeartbeat
             'detector' => $detector === null ? null : [
                 'ok' => self::boolean($detector['ok'] ?? null),
                 'fps' => self::number($detector['fps'] ?? null),
-                'mode' => is_string($detector['mode'] ?? null) ? mb_substr($detector['mode'], 0, self::MAX_MODE_LENGTH) : null,
+                'mode' => self::text($detector['mode'] ?? null, self::MAX_MODE_LENGTH),
             ],
             'clock' => $clock === null ? null : [
                 'offsetMs' => self::number($clock['offsetMs'] ?? null),
@@ -71,17 +69,26 @@ final readonly class OnlineHeartbeat
     }
 
     /**
-     * A device id as the phones send it (the events' `deviceId` too) - null when it is none
+     * A device id as the phones send it (the events' `deviceId` too) - null when it is none: empty, too long, not UTF-8
+     * or with a control character (a NUL would make Postgres refuse the row)
      */
     public static function deviceId(mixed $deviceId): null|string
     {
-        if (!is_string($deviceId)) {
+        return self::text($deviceId, self::MAX_DEVICE_ID_LENGTH);
+    }
+
+    /**
+     * A short text of the phone's - trimmed, printable UTF-8 only, at most $maxLength characters; null otherwise
+     */
+    private static function text(mixed $value, int $maxLength): null|string
+    {
+        if (!is_string($value) || preg_match('/[\x00-\x1F\x7F]/', $value) === 1 || mb_check_encoding($value, 'UTF-8') === false) {
             return null;
         }
 
-        $deviceId = trim($deviceId);
+        $value = trim($value);
 
-        return $deviceId !== '' && mb_strlen($deviceId) <= self::MAX_DEVICE_ID_LENGTH ? $deviceId : null;
+        return $value !== '' && mb_strlen($value) <= $maxLength ? $value : null;
     }
 
     /**

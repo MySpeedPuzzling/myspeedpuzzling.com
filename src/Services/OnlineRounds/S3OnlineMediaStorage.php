@@ -7,6 +7,9 @@ namespace SpeedPuzzling\Web\Services\OnlineRounds;
 use AsyncAws\S3\Exception\NoSuchKeyException;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Entity\OnlineEntryMedia;
+use SpeedPuzzling\Web\Value\OnlineMediaObject;
+use SpeedPuzzling\Web\Value\OnlineMediaObjectList;
+use SpeedPuzzling\Web\Value\OnlineMediaStore;
 use SpeedPuzzling\Web\Value\PresignedUpload;
 use SpeedPuzzling\Web\Value\RoundClock;
 
@@ -68,6 +71,11 @@ final readonly class S3OnlineMediaStorage implements OnlineMediaStorage
 
     public function head(OnlineEntryMedia $media): null|int
     {
+        return $this->inspect($media)?->bytes;
+    }
+
+    public function inspect(OnlineEntryMedia $media): null|OnlineMediaObject
+    {
         $result = $this->stores->client($media->store)->headObject([
             'Bucket' => $this->stores->bucket($media->store),
             'Key' => $media->objectKey,
@@ -79,7 +87,13 @@ final readonly class S3OnlineMediaStorage implements OnlineMediaStorage
             return null;
         }
 
-        return $result->getContentLength();
+        $bytes = $result->getContentLength();
+
+        if ($bytes === null) {
+            return null;
+        }
+
+        return new OnlineMediaObject($media->objectKey, $bytes, $result->getContentType(), $result->getLastModified());
     }
 
     public function delete(OnlineEntryMedia $media): void
@@ -89,5 +103,64 @@ final readonly class S3OnlineMediaStorage implements OnlineMediaStorage
             'Bucket' => $this->stores->bucket($media->store),
             'Key' => $media->objectKey,
         ])->resolve();
+    }
+
+    public function listObjects(OnlineMediaStore $store, string $prefix, null|string $startAfter, int $limit): OnlineMediaObjectList
+    {
+        $input = [
+            'Bucket' => $this->stores->bucket($store),
+            'Prefix' => $prefix,
+            'MaxKeys' => max(1, min(1000, $limit)),
+        ];
+
+        if ($startAfter !== null) {
+            $input['StartAfter'] = $startAfter;
+        }
+
+        $result = $this->stores->client($store)->listObjectsV2($input);
+        $objects = [];
+
+        // This page only - the result would fetch every following page by itself
+        foreach ($result->getContents(true) as $object) {
+            $key = $object->getKey();
+
+            if ($key === null) {
+                continue;
+            }
+
+            $objects[] = new OnlineMediaObject($key, (int) $object->getSize(), null, $object->getLastModified());
+        }
+
+        $last = $objects === [] ? null : $objects[count($objects) - 1]->key;
+
+        return new OnlineMediaObjectList($objects, $result->getIsTruncated() === true ? $last : null);
+    }
+
+    public function deleteObjects(OnlineMediaStore $store, array $keys): array
+    {
+        if ($keys === []) {
+            return [];
+        }
+
+        $result = $this->stores->client($store)->deleteObjects([
+            'Bucket' => $this->stores->bucket($store),
+            'Delete' => [
+                'Objects' => array_map(static fn (string $key): array => ['Key' => $key], $keys),
+                // Only the failures come back
+                'Quiet' => true,
+            ],
+        ]);
+
+        $failed = [];
+
+        foreach ($result->getErrors() as $error) {
+            $key = $error->getKey();
+
+            if ($key !== null) {
+                $failed[] = $key;
+            }
+        }
+
+        return $failed;
     }
 }

@@ -8,6 +8,7 @@ use SpeedPuzzling\Web\Services\OnlineRounds\OnlineParticipantApi;
 use SpeedPuzzling\Web\Services\OnlineRounds\OnlineRoundState;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
 
 /**
@@ -24,9 +25,9 @@ final class ApiStateController extends AbstractController
     }
 
     #[Route(path: '/api/compete/{token}/state', name: 'compete_api_state', methods: ['GET'])]
-    public function __invoke(string $token): JsonResponse
+    public function __invoke(Request $request, string $token): JsonResponse
     {
-        $refusal = $this->api->admit($token);
+        $refusal = $this->api->admit($request, $token);
 
         if ($refusal !== null) {
             return $refusal;

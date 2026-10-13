@@ -27,6 +27,36 @@ return App::config([
                 'limit' => 100000,
                 'interval' => '1 hour',
             ],
+            // The online competitions' participant API: every test comes from one IP and uses the fixture's links - the
+            // limits would trip within a minute of local runs. Tests of a 429 read the limit and use up a key of their own.
+            'online_participant_ip' => [
+                'policy' => 'sliding_window',
+                'limit' => 100000,
+                'interval' => '1 minute',
+                'lock_factory' => null,
+                'cache_pool' => 'online_participant_rate_limits',
+            ],
+            'online_participant' => [
+                'policy' => 'sliding_window',
+                'limit' => 100000,
+                'interval' => '1 minute',
+                'lock_factory' => null,
+                'cache_pool' => 'online_participant_rate_limits',
+            ],
+            'online_participant_events' => [
+                'policy' => 'sliding_window',
+                'limit' => 100000,
+                'interval' => '1 minute',
+                'lock_factory' => null,
+                'cache_pool' => 'online_participant_rate_limits',
+            ],
+            'online_participant_media' => [
+                'policy' => 'sliding_window',
+                'limit' => 100000,
+                'interval' => '1 minute',
+                'lock_factory' => null,
+                'cache_pool' => 'online_participant_rate_limits',
+            ],
         ],
     ],
 ]);

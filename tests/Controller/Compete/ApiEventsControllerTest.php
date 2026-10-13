@@ -17,6 +17,8 @@ use SpeedPuzzling\Web\Entity\OnlineRound;
 use SpeedPuzzling\Web\Message\VerifyOnlineMedia;
 use SpeedPuzzling\Web\Tests\DataFixtures\OfficialResultsFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\OnlineRoundsFixture;
+use SpeedPuzzling\Web\Value\OnlineEntryQuota;
+use SpeedPuzzling\Web\Value\OnlineToken;
 use SpeedPuzzling\Web\Value\RoundCategory;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -310,6 +312,62 @@ final class ApiEventsControllerTest extends WebTestCase
         self::postJson($this->browser, $url, ['deviceId' => 'phone-a', 'events' => []]);
         self::assertResponseIsSuccessful();
         self::assertSame([], self::json($this->browser)['acks']);
+    }
+
+    public function testAnEntryHoldingAllTheEventsItMayTakesNoMore(): void
+    {
+        $this->connection()->executeStatement(
+            "INSERT INTO online_entry_event (id, online_entry_id, device_id, type, client_ms, received_at_ms, payload)
+             SELECT gen_random_uuid(), :onlineEntry, 'phone', 'page.hidden', 1792000000000 + n, 1792000000000 + n, '{}'
+             FROM generate_series(1, :count) AS n",
+            // The fixture's two events are counted too
+            ['onlineEntry' => OnlineRoundsFixture::ONLINE_ENTRY_CONNECTED, 'count' => OnlineEntryQuota::MAX_EVENTS_PER_ENTRY - 2],
+        );
+        $event = self::event('page.visible', self::nowMs());
+
+        $this->sendConnected([$event]);
+
+        self::assertResponseIsSuccessful();
+        self::assertSame([['id' => $event['id'], 'reason' => 'too_many_events']], self::json($this->browser)['refused']);
+    }
+
+    public function testALinkSendingTooManyBatchesIsTold(): void
+    {
+        $token = OnlineToken::generate();
+        $entityManager = $this->browser->getContainer()->get(EntityManagerInterface::class);
+        $participant = $entityManager->find(CompetitionParticipant::class, OnlineRoundsFixture::PARTICIPANT_WITHOUT_TOKEN);
+        self::assertNotNull($participant);
+        $participant->assignOnlineToken($token, new DateTimeImmutable());
+        $entityManager->flush();
+
+        $limiter = $this->browser->getContainer()->get('limiter.online_participant_events');
+        $limiter->create($token)->consume($limiter->create($token)->consume(0)->getLimit());
+
+        self::postJson($this->browser, self::api($token, 'events'), ['deviceId' => 'phone-a', 'events' => []]);
+
+        self::assertRefused($this->browser, 429, 'rate_limited');
+    }
+
+    /**
+     * Postgres refuses a NUL in text and jsonb - it is refused before (a 500 otherwise), like any id that is not a
+     * canonical UUID
+     */
+    public function testHostileInputNeverReachesPostgres(): void
+    {
+        $now = self::nowMs();
+        $nul = self::event('device.ready', $now, ['browser' => "Safari\0"]);
+        $braces = [...self::event('page.hidden', $now), 'id' => '{' . Uuid::uuid7()->toString() . '}'];
+        $urnRound = [...self::event('page.hidden', $now), 'roundId' => 'urn:uuid:' . OnlineRoundsFixture::ROUND_ONLINE_SOLO];
+
+        self::postJson($this->browser, self::api(OnlineRoundsFixture::TOKEN_ANONYMOUS, 'events'), ['deviceId' => 'phone-a', 'events' => [$nul, $braces, $urnRound]]);
+
+        self::assertResponseIsSuccessful();
+        $answer = self::json($this->browser);
+        self::assertSame([], $answer['acks']);
+        self::assertSame(['invalid_fields', 'invalid_fields', 'invalid_fields'], array_column((array) $answer['refused'], 'reason'));
+
+        self::postJson($this->browser, self::api(OnlineRoundsFixture::TOKEN_ANONYMOUS, 'events'), ['deviceId' => "phone\0", 'events' => [self::event('page.hidden', $now)]]);
+        self::assertRefused($this->browser, 422, 'invalid_fields');
     }
 
     public function testACompetitionWithoutOnlineTimingTakesNoEvents(): void

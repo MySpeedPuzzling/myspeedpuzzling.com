@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Tests\Value;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use SpeedPuzzling\Web\Value\OnlineEntryQuota;
 use SpeedPuzzling\Web\Value\OnlineEventInput;
 use SpeedPuzzling\Web\Value\OnlineEventType;
 use SpeedPuzzling\Web\Value\OnlineUnfinishedMeasure;
@@ -82,7 +83,15 @@ final class OnlineEventInputTest extends TestCase
         yield 'an offset that is no number' => [[...$valid, 'offsetMs' => 'a lot'], strtolower(self::ID)];
         yield 'a round that is no UUID' => [[...$valid, 'roundId' => 'round-1'], strtolower(self::ID)];
         yield 'data that is a list' => [[...$valid, 'data' => [1, 2]], strtolower(self::ID)];
-        yield 'too much data' => [[...$valid, 'data' => ['blob' => str_repeat('x', OnlineEventInput::MAX_DATA_BYTES)]], strtolower(self::ID)];
+        yield 'too much data' => [[...$valid, 'data' => ['blob' => str_repeat('x', OnlineEntryQuota::MAX_EVENT_DATA_BYTES)]], strtolower(self::ID)];
+        yield 'an id in braces' => [[...$valid, 'id' => '{' . self::ID . '}'], '{' . self::ID . '}'];
+        yield 'an id as a URN' => [[...$valid, 'id' => 'urn:uuid:' . self::ID], 'urn:uuid:' . self::ID];
+        yield 'a round in braces' => [[...$valid, 'roundId' => '{' . self::ROUND . '}'], strtolower(self::ID)];
+        yield 'a NUL in a text' => [[...$valid, 'data' => ['browser' => "Safari\u{0000}"]], strtolower(self::ID)];
+        yield 'a NUL deep down' => [[...$valid, 'data' => ['camera' => ['label' => ['back', "x\0"]]]], strtolower(self::ID)];
+        yield 'a NUL in a key' => [[...$valid, 'data' => ["br\0owser" => 'Safari']], strtolower(self::ID)];
+        yield 'an upload of a media in braces' => [[...$valid, 'type' => 'media.uploaded', 'data' => ['mediaId' => '{' . self::MEDIA . '}']], strtolower(self::ID)];
+        yield 'a manifest of too many frames' => [[...$valid, 'type' => 'media.uploaded', 'data' => ['mediaId' => self::MEDIA, 'manifest' => array_fill(0, OnlineEntryQuota::MAX_MANIFEST_FRAMES + 1, ['offset' => 0, 'length' => 1, 'captureMs' => 1])]], strtolower(self::ID)];
         yield 'time-up without pieces' => [[...$valid, 'type' => 'timeup.pieces', 'data' => []], strtolower(self::ID)];
         yield 'time-up with negative pieces' => [[...$valid, 'type' => 'timeup.pieces', 'data' => ['pieces' => -1]], strtolower(self::ID)];
         yield 'time-up in an unknown measure' => [[...$valid, 'type' => 'timeup.pieces', 'data' => ['pieces' => 3, 'measure' => 'missing']], strtolower(self::ID)];
@@ -95,6 +104,30 @@ final class OnlineEventInputTest extends TestCase
     public function testInvalidFieldsAreRefused(mixed $event, null|string $id): void
     {
         self::assertSame(['id' => $id, 'reason' => OnlineEventInput::INVALID_FIELDS], OnlineEventInput::read($event, self::ROUND));
+    }
+
+    /**
+     * The 2 KB is the event's own data - a burst's manifest is bounded by its frames instead
+     */
+    public function testAManifestDoesNotCountTowardsTheDataLimit(): void
+    {
+        $manifest = array_map(
+            static fn (int $frame): array => ['offset' => $frame * 15_000, 'length' => 15_000, 'captureMs' => 1_792_002_827_345 + $frame * 100],
+            range(0, OnlineEntryQuota::MAX_MANIFEST_FRAMES - 1),
+        );
+
+        $input = OnlineEventInput::read(['id' => self::ID, 'type' => 'media.uploaded', 'clientMs' => 1_792_002_832_345, 'data' => ['mediaId' => self::MEDIA, 'manifest' => $manifest]], self::ROUND);
+
+        self::assertInstanceOf(OnlineEventInput::class, $input);
+        self::assertCount(OnlineEntryQuota::MAX_MANIFEST_FRAMES, (array) $input->manifest());
+    }
+
+    public function testAnEchoedIdIsCut(): void
+    {
+        $refusal = OnlineEventInput::read(['id' => str_repeat('x', 1_000), 'type' => 'camera.lost', 'clientMs' => 1_792_002_832_345], self::ROUND);
+
+        self::assertIsArray($refusal);
+        self::assertSame(64, mb_strlen((string) $refusal['id']));
     }
 
     public function testATimeUpReport(): void

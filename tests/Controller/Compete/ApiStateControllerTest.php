@@ -25,6 +25,7 @@ final class ApiStateControllerTest extends WebTestCase
     protected function setUp(): void
     {
         $this->browser = self::createClient();
+        self::forgetCachedAccess($this->browser);
     }
 
     public function testTheStateOfAConnectedParticipantsLink(): void

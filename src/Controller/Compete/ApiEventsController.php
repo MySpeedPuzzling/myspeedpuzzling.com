@@ -46,7 +46,7 @@ final class ApiEventsController extends AbstractController
     #[Route(path: '/api/compete/{token}/events', name: 'compete_api_events', methods: ['POST'])]
     public function __invoke(Request $request, string $token): JsonResponse
     {
-        $refusal = $this->api->admit($token);
+        $refusal = $this->api->admit($request, $token) ?? $this->api->admitEvents($token);
 
         if ($refusal !== null) {
             return $refusal;

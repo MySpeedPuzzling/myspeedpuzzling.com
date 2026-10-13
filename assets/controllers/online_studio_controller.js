@@ -719,9 +719,18 @@ export default class extends Controller {
 
             return { invite, line, button };
         });
-        const key = JSON.stringify(rows.map(({ invite, line, button }) => [invite.id, invite.name, line, button?.disabled ?? null]));
+        const key = JSON.stringify(rows.map(({ invite, button }) => [invite.id, invite.name, invite.status, button?.textContent ?? null, button?.disabled ?? null]));
 
         if (list.dataset.key === key) {
+            // Only the times move: their text, never new buttons under a pointer about to click them
+            rows.forEach(({ invite, line }) => {
+                const detail = list.querySelector(`[data-participant-id="${invite.participantId}"] .online-studio-list-detail`);
+
+                if (detail && detail.textContent !== line) {
+                    detail.textContent = line;
+                }
+            });
+
             return;
         }
 
@@ -746,7 +755,7 @@ export default class extends Controller {
             name.textContent = invite.name ?? '';
 
             const detail = document.createElement('span');
-            detail.className = 'small text-body-secondary';
+            detail.className = 'small text-body-secondary online-studio-list-detail';
             detail.textContent = line;
 
             item.append(name, detail);

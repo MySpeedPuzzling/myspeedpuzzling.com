@@ -1067,20 +1067,28 @@ export class ConsoleVideo {
         const errorText = error !== null && error.until > Date.now() ? error.text : '';
         const status = state.status === 'joined' && state.onAir ? 'on_air' : state.status;
         const remaining = state.status === 'invited' ? formatRemaining(state.remainingMs) : '';
-        const key = JSON.stringify([status, state.canInvite, state.canEnd, busy, remaining, errorText]);
+        const chipText = status === null ? '' : this.t(`video_studio_${status}`, { time: remaining });
+        const key = JSON.stringify([status, state.canInvite, state.canEnd, busy, errorText]);
 
         if (holder.studioKey === key) {
+            // Only the countdown moves: its text, never new buttons under a pointer about to click them
+            if (holder.studioChip && holder.studioChip.textContent !== chipText) {
+                holder.studioChip.textContent = chipText;
+            }
+
             return;
         }
 
         holder.studioKey = key;
+        holder.studioChip = null;
         const nodes = [];
 
         if (status !== null) {
             const chip = document.createElement('span');
             chip.className = `online-chip online-chip--${STATE_CHIP[status] || 'muted'} online-studio-chip`;
             chip.dataset.studio = status;
-            chip.textContent = this.t(`video_studio_${status}`, { time: remaining });
+            chip.textContent = chipText;
+            holder.studioChip = chip;
             nodes.push(chip);
         }
 

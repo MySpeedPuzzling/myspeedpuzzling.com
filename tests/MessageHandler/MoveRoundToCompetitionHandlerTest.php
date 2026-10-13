@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
+use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\PuzzleInTwoRoundsOfCategory;
 use SpeedPuzzling\Web\Exceptions\RoundMovedMeanwhile;
@@ -155,6 +156,28 @@ final class MoveRoundToCompetitionHandlerTest extends KernelTestCase
         } catch (RoundNotMovable $exception) {
             self::assertSame(RoundNotMovableReason::StopwatchRunning, $exception->reason);
         }
+    }
+
+    public function testACountdownToAScheduledStartIsRefusedLikeARunningStopwatch(): void
+    {
+        $source = $this->createEvent('Willow Creek Puzzle Sprint', 'willow-creek-puzzle-sprint', 'cz');
+        $target = $this->createEvent('Willow Creek Puzzle Sprint Two', 'willow-creek-puzzle-sprint-two', 'cz');
+        $roundId = $this->createRound($source, 'Sprint', []);
+        $this->database->executeStatement(
+            "UPDATE competition_round SET stopwatch_status = 'scheduled', stopwatch_started_at = :startsAt WHERE id = :id",
+            ['startsAt' => new DateTimeImmutable('+1 hour')->format('Y-m-d H:i:s'), 'id' => $roundId],
+        );
+        // Written behind the entity manager's back - the handler reads the round again
+        self::getContainer()->get(EntityManagerInterface::class)->clear();
+
+        try {
+            $this->move($roundId, $source, $target);
+            self::fail('A countdown must be refused');
+        } catch (RoundNotMovable $exception) {
+            self::assertSame(RoundNotMovableReason::StopwatchRunning, $exception->reason);
+        }
+
+        self::assertSame($source, $this->database->fetchOne('SELECT competition_id FROM competition_round WHERE id = :id', ['id' => $roundId]));
     }
 
     public function testADraftTakesOnlyARoundWithoutResults(): void

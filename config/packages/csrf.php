@@ -58,6 +58,9 @@ return App::config([
                 // Official results JSON endpoints (OfficialResultsApi): the organiser devices send it as the
                 // X-CSRF-Token header, often long after the page was loaded and from a page kept open offline
                 'official_results',
+                // The round stopwatch's forms (AbstractRoundStopwatchController): its control page and the public
+                // projector page stay open for hours on a venue laptop, the Start button on the projector too
+                'round_stopwatch',
                 // The follow star on the events page (docs/features/events-page/README.md, "Follow"): it sits on a page
                 // every player opens, on every row - a session-backed token would write the session on each view
                 'event_follow',

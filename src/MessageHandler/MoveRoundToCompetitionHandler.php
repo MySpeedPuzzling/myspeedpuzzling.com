@@ -22,6 +22,7 @@ use SpeedPuzzling\Web\Services\CompetitionSlugGenerator;
 use SpeedPuzzling\Web\Services\Restructuring\EventUrlRedirects;
 use SpeedPuzzling\Web\Value\EventUrlPath;
 use SpeedPuzzling\Web\Value\RoundNotMovableReason;
+use SpeedPuzzling\Web\Value\RoundStopwatchStatus;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 /**
@@ -79,7 +80,8 @@ readonly final class MoveRoundToCompetitionHandler
             throw new RoundNotMovable(RoundNotMovableReason::HasEntries);
         }
 
-        if ($round->stopwatchStatus === 'running') {
+        // Running, or counting down to a scheduled start - organisers are timing it (or about to)
+        if (in_array($round->stopwatchStatus, [RoundStopwatchStatus::RUNNING, RoundStopwatchStatus::SCHEDULED], true)) {
             throw new RoundNotMovable(RoundNotMovableReason::StopwatchRunning);
         }
 

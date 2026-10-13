@@ -139,7 +139,8 @@ organiser recorded them (never player profiles or codes - the list hangs at the 
 ## The seating step: one rule
 
 `SeatingReadiness::isShown()` is THE rule - in-person event, the round uses table numbers, has entrants, it has not
-started (its stopwatch never ran) and it was due to start less than 12 hours ago or later (a late start keeps it). A
+started (its stopwatch never ran, or counts down to a scheduled start) and it was due to start less than 12 hours ago
+or later (a late start keeps it). A
 round under way, finished or past never nags - every existing event's pages stay as they were.
 `GetRoundResultsOverview` computes it into `RoundResultsOverview::$showsTablesReadiness` (JSON `tablesReadiness`, also in
 every Mercure update and state answer), and every page follows it: the round list (compact line), the results desk

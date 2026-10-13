@@ -2,6 +2,7 @@
 import { Controller } from '@hotwired/stimulus';
 import { officialResultsRequest, isGone } from '../official_results_api.js';
 import { OfficialResultsEvents } from '../official_results_events.js';
+import { startedAtMs, stopwatchStatusAt } from '../round_stopwatch_clock.js';
 
 const REFRESH_EVERY_MS = 60000;
 const HIDDEN_LONG_MS = 10000;
@@ -26,6 +27,8 @@ export default class extends Controller {
         this.hiddenSince = null;
         this.refreshing = null;
         this.gone = false;
+        // A round counting down to a scheduled start shows "running" from that moment - nothing announces it
+        this.startTimers = new Map();
         this.onVisibility = this.onVisibility.bind(this);
         document.addEventListener('visibilitychange', this.onVisibility);
 
@@ -46,6 +49,8 @@ export default class extends Controller {
     disconnect() {
         this.events.close();
         clearInterval(this.refreshTimer);
+        this.startTimers.forEach((timer) => clearTimeout(timer));
+        this.startTimers.clear();
         document.removeEventListener('visibilitychange', this.onVisibility);
     }
 
@@ -147,9 +152,30 @@ export default class extends Controller {
             element.hidden = (element.dataset.overviewPublished === 'true') !== (round.resultsPublished === true);
         });
 
+        this.updateStopwatch(row, round);
+    }
+
+    /**
+     * The stopwatch badge as of now (round_stopwatch_clock.js): a scheduled start is shown as running from its moment
+     * on - the row is looked at again then.
+     */
+    updateStopwatch(row, round) {
+        const status = stopwatchStatusAt(round.stopwatch, Date.now()) ?? 'none';
+
         row.querySelectorAll('[data-overview-stopwatch]').forEach((element) => {
-            element.hidden = element.dataset.overviewStopwatch !== (round.stopwatch?.status ?? 'none');
+            element.hidden = element.dataset.overviewStopwatch !== status;
         });
+
+        clearTimeout(this.startTimers.get(round.id));
+        this.startTimers.delete(round.id);
+
+        const start = status === 'scheduled' ? startedAtMs(round.stopwatch) : null;
+
+        if (start !== null) {
+            // setTimeout() takes 32-bit milliseconds - a start further ahead is looked at again on the way
+            const delay = Math.min(Math.max(0, start - Date.now()) + 250, 2 ** 31 - 1);
+            this.startTimers.set(round.id, setTimeout(() => this.updateStopwatch(row, round), delay));
+        }
     }
 
     onVisibility() {

@@ -84,6 +84,8 @@
                                 <td class="small text-nowrap">
                                     {{ overview.startsAt|date('d.m.Y H:i', round.timezone) }}
                                     <span class="d-block text-body-secondary">{{ timezone_name(round.timezone, round.timezoneAssumed) }}</span>
+                                    {# The stopwatch as read now - a scheduled start turns into running by itself (results_overview_controller.js) #}
+                                    <span class="badge text-bg-primary" data-overview-stopwatch="scheduled" {{ overview.stopwatchStatus != 'scheduled' ? 'hidden' }}><i class="bi bi-hourglass-split me-1" aria-hidden="true"></i>{{ 'competition.stopwatch.scheduled'|trans }}</span>
                                     <span class="badge text-bg-success" data-overview-stopwatch="running" {{ overview.stopwatchStatus != 'running' ? 'hidden' }}><i class="bi bi-stopwatch me-1" aria-hidden="true"></i>{{ 'competition.stopwatch.running'|trans }}</span>
                                     <span class="badge text-bg-warning" data-overview-stopwatch="stopped" {{ overview.stopwatchStatus != 'stopped' ? 'hidden' }}>{{ 'competition.stopwatch.stopped'|trans }}</span>
                                 </td>

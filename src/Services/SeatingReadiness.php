@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Services;
 
 use DateTimeImmutable;
+use SpeedPuzzling\Web\Value\RoundStopwatchStatus;
 
 /**
  * THE rule for the seating step "Tables: 180 / 200 assigned - recommended before the round starts"
@@ -13,8 +14,9 @@ use DateTimeImmutable;
  * RoundResultsOverview::$showsTablesReadiness, the JSON's `tablesReadiness`).
  *
  * Shown for an in-person round that uses table numbers, has entrants and has not started yet: its stopwatch never ran
- * and it was due to start in the last 12 hours or later (a late start keeps it). A round under way, a finished one and a
- * past one never nag - every existing event's pages stay as they were. A recommendation, never a block.
+ * (or counts down to a scheduled start) and it was due to start in the last 12 hours or later (a late start keeps it).
+ * A round under way, a finished one and a past one never nag - every existing event's pages stay as they were. A
+ * recommendation, never a block. $stopwatchStatus is the status at $now (RoundStopwatchStatus::at()).
  */
 final readonly class SeatingReadiness
 {
@@ -31,7 +33,8 @@ final readonly class SeatingReadiness
         return $competitionIsOnline === false
             && $tableNumbersOff === false
             && $entriesTotal > 0
-            && $stopwatchStatus === null
+            // Never ran - a countdown to a scheduled start has not started the round either
+            && ($stopwatchStatus === null || $stopwatchStatus === RoundStopwatchStatus::SCHEDULED)
             && $startsAt >= $now->modify(self::RECENT_START);
     }
 }

@@ -52,6 +52,32 @@ final class LiveResultsCurrentRoundTest extends TestCase
         self::assertSame('Semifinal', LiveResultsCurrentRound::pick($rounds, new DateTimeImmutable(self::NOW))?->name);
     }
 
+    public function testACountdownIsNotRunningYetButAPassedScheduledStartRuns(): void
+    {
+        $now = new DateTimeImmutable(self::NOW);
+
+        // Counting down to 12:05 - the round that runs is still the current one
+        $counting = [
+            self::round('Heat 1', '2026-10-10 11:00', 'running', '2026-10-10 11:01'),
+            self::round('Heat 2', '2026-10-10 12:05', 'scheduled', '2026-10-10 12:05'),
+        ];
+        self::assertSame('Heat 1', LiveResultsCurrentRound::pick($counting, $now)?->name);
+
+        // Its moment has passed (nothing was written then): it runs, and it started last
+        $passed = [
+            self::round('Heat 1', '2026-10-10 11:00', 'running', '2026-10-10 11:01'),
+            self::round('Heat 2', '2026-10-10 11:55', 'scheduled', '2026-10-10 11:58'),
+        ];
+        self::assertSame('Heat 2', LiveResultsCurrentRound::pick($passed, $now)?->name);
+
+        // Only a countdown, before anything ran: the next round by schedule, not a "running" one
+        $onlyCountdown = [
+            self::round('Final', '2026-10-10 15:00', null, null),
+            self::round('Semifinal', '2026-10-10 13:00', 'scheduled', '2026-10-10 12:30'),
+        ];
+        self::assertSame('Semifinal', LiveResultsCurrentRound::pick($onlyCountdown, $now)?->name);
+    }
+
     public function testAllOverLongAgoTheLastRound(): void
     {
         $rounds = [

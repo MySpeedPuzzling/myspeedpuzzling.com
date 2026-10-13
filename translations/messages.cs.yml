@@ -4146,6 +4146,23 @@ qr_code:
     "back_to_rounds": "Zpět na kola"
     "confirm_stop": "Opravdu chcete zastavit stopky?"
     "confirm_reset": "Opravdu chcete resetovat stopky?"
+    "status": "Stav"
+    "scheduled": "Start naplánován"
+    "starts_in": "Start za %time%"
+    "starts_at": "Naplánováno na %time% (%zone%)"
+    "start_in_10": "Spustit za 10 s"
+    "start_at": "Spustit v určený čas"
+    "start_at_help": "Každé zařízení odpočítává samo a spustí stopky přesně v tu chvíli. Časové pásmo: %zone%."
+    "schedule": "Naplánovat start"
+    "cancel_start": "Zrušit start"
+    "flash":
+      "expired": "Stránka byla otevřená příliš dlouho – nic se nezměnilo. Zkuste to prosím znovu."
+    "refused":
+      "invalid_start": "Zvolte datum a čas, které v časovém pásmu kola existují."
+      "start_in_the_past": "Tento okamžik už uplynul – zvolte pozdější."
+      "already_started": "Stopky už běžely – před naplánováním nového startu je resetujte."
+      "too_late_to_cancel": "Kolo už začalo – jeho start už nejde zrušit."
+      "start_scheduled": "Start je naplánovaný – pro okamžité spuštění ho nejprve zrušte."
   "flash":
     "created": "Událost odeslána ke schválení."
     "updated": "Událost aktualizována."

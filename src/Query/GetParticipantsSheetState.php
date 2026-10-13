@@ -26,6 +26,7 @@ use SpeedPuzzling\Web\Twig\ImageThumbnailTwigExtension;
 use SpeedPuzzling\Web\Value\RegistrationStatus;
 use SpeedPuzzling\Web\Value\RoundBadgeColor;
 use SpeedPuzzling\Web\Value\RoundEntryResult;
+use SpeedPuzzling\Web\Value\RoundStopwatchStatus;
 use SpeedPuzzling\Web\Value\RoundTimezone;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
@@ -220,7 +221,12 @@ SQL,
                 teamSize: $row['category'] === 'team' ? $row['team_size'] : null,
                 startsAt: $startsAt,
                 timezone: RoundTimezone::resolve($row['timezone'], $countryCode, $seriesCountryCode),
-                started: $row['stopwatch_status'] !== null || $row['stopwatch_started_at'] !== null || $startsAt <= $now,
+                // A countdown to a scheduled start has not started the round yet (RoundStopwatchStatus)
+                started: RoundStopwatchStatus::hasStarted(
+                    $row['stopwatch_status'],
+                    $row['stopwatch_started_at'] !== null ? new DateTimeImmutable($row['stopwatch_started_at']) : null,
+                    $now,
+                ) || $startsAt <= $now,
                 color: $color,
                 textColor: RoundBadgeColor::text($color),
                 tableNumbersOff: $row['table_numbers_off'],

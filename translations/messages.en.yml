@@ -4629,6 +4629,23 @@ competition:
         back_to_rounds: "Back to Rounds"
         confirm_stop: "Are you sure you want to stop the stopwatch?"
         confirm_reset: "Are you sure you want to reset the stopwatch?"
+        status: "Status"
+        scheduled: "Start scheduled"
+        starts_in: "Starts in %time%"
+        starts_at: "Scheduled for %time% (%zone%)"
+        start_in_10: "Start in 10 s"
+        start_at: "Start at a set time"
+        start_at_help: "Every device counts down by itself and starts at exactly that moment. Time zone: %zone%."
+        schedule: "Schedule the start"
+        cancel_start: "Cancel the start"
+        flash:
+            expired: "The page was open too long - nothing changed. Please try again."
+        refused:
+            invalid_start: "Pick a date and time that exists in the round's time zone."
+            start_in_the_past: "That moment has already passed - pick a later one."
+            already_started: "The stopwatch has already started - reset it before scheduling a new start."
+            too_late_to_cancel: "The round has already started - its start can no longer be cancelled."
+            start_scheduled: "A start is scheduled - cancel it first to start right now."
     flash:
         created: "Event submitted for approval."
         updated: "Event updated."

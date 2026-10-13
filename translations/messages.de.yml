@@ -4045,6 +4045,23 @@ qr_code:
     "back_to_rounds": "Zurück zu Runden"
     "confirm_stop": "Sind Sie sicher, dass Sie die Stoppuhr stoppen möchten?"
     "confirm_reset": "Sind Sie sicher, dass Sie die Stoppuhr zurücksetzen möchten?"
+    "status": "Status"
+    "scheduled": "Start geplant"
+    "starts_in": "Start in %time%"
+    "starts_at": "Geplant für %time% (%zone%)"
+    "start_in_10": "In 10 s starten"
+    "start_at": "Zu einer festen Zeit starten"
+    "start_at_help": "Jedes Gerät zählt selbst herunter und startet genau in diesem Moment. Zeitzone: %zone%."
+    "schedule": "Start planen"
+    "cancel_start": "Start abbrechen"
+    "flash":
+      "expired": "Die Seite war zu lange geöffnet – nichts wurde geändert. Bitte versuchen Sie es erneut."
+    "refused":
+      "invalid_start": "Wählen Sie ein Datum und eine Uhrzeit, die es in der Zeitzone der Runde gibt."
+      "start_in_the_past": "Dieser Zeitpunkt ist bereits vorbei – wählen Sie einen späteren."
+      "already_started": "Die Stoppuhr ist bereits gestartet – setzen Sie sie zurück, bevor Sie einen neuen Start planen."
+      "too_late_to_cancel": "Die Runde hat bereits begonnen – ihr Start kann nicht mehr abgebrochen werden."
+      "start_scheduled": "Ein Start ist geplant – brechen Sie ihn zuerst ab, um sofort zu starten."
   "flash":
     "created": "Veranstaltung zur Genehmigung eingereicht."
     "updated": "Veranstaltung aktualisiert."

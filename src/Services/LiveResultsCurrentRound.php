@@ -6,12 +6,14 @@ namespace SpeedPuzzling\Web\Services;
 
 use DateTimeImmutable;
 use SpeedPuzzling\Web\Results\RoundResultsOverview;
+use SpeedPuzzling\Web\Value\RoundStopwatchStatus;
 
 /**
  * The round a referee most likely enters results for right now (docs/features/competitions-management/live-results.md):
  * the one whose stopwatch runs (the latest started when several run - parallel halls), else the one started last
  * within the past 12 hours (late results of the round that just ended), else the next one, else the last one.
  * "Started" = its stopwatch's start, or its scheduled start once that has passed (rounds timed without the stopwatch).
+ * A stopwatch counting down to a scheduled start is not running yet - it runs from that moment (RoundStopwatchStatus).
  */
 final readonly class LiveResultsCurrentRound
 {
@@ -26,7 +28,10 @@ final readonly class LiveResultsCurrentRound
             return null;
         }
 
-        $running = array_filter($rounds, static fn (RoundResultsOverview $round): bool => $round->stopwatchStatus === 'running');
+        $running = array_filter(
+            $rounds,
+            static fn (RoundResultsOverview $round): bool => RoundStopwatchStatus::at($round->stopwatchStatus, $round->stopwatchStartedAt, $now) === RoundStopwatchStatus::RUNNING,
+        );
 
         if ($running !== []) {
             return self::latestStarted(array_values($running), $now);

@@ -14,6 +14,15 @@ original headers), account suppression = BOUNCE. SMTP login for the app: IAM use
 program, not one per domain). Sandbox recipients verified: Jan's iCloud, Gmail and Seznam addresses. Not yet: SNS
 subscriptions (after the deploy + `SES_EVENTS_TOPIC_ARNS`).
 
+**Step 3 live (2026-10-13):** prod has `MAILER_SES_DSN` = `failover(SES, Seznam robot@)`, `SES_TEST_RECIPIENTS` = Jan's
+three addresses + `bounce@` / `complaint@simulator.amazonses.com`, `SES_EVENTS_TOPIC_ARNS` = both topics; both SNS
+subscriptions confirmed by `/-/ses-events`. Verified with `bin/console mailer:test` on prod: 4 test mails through SES
+(eu-north-1), delivery events stamped, the simulator bounce → hard bounce + `email_suppression` row, the simulator
+complaint → `complained_at`. Every other recipient stayed on Seznam (12 player mails in the same 45 minutes).
+**Gotcha:** an env change needs a redeploy (re-run the `deploy` job: `dump_secrets` renders `/srv/myspeedpuzzling/.env`)
+**and** `docker compose up -d --no-deps --force-recreate messenger-consumer digest-consumer` - the same-image redeploy
+recreates only the web containers, the queue workers keep the old env.
+
 **State (2026-10-12): built, switched off.** Every stream still goes through Seznam. Nothing changes until the env
 values below are set. The order is **slow and careful** (Jan): AWS account → tests with verified addresses only →
 production access → one stream at a time.

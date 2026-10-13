@@ -165,10 +165,66 @@ export function screenFor({ state, view, consent, progress, takenOver = false, l
 }
 
 /**
+ * The next moment (server time) the round's clock on screen changes: the countdown's next digit (GO at the start
+ * itself), the stopwatch's next second, the end of GO_SHOWN_MS - null while nothing counts (no start, ended). The page
+ * renders at that very frame instead of within its usual 50 ms, so GO and every second appear on time
+ * (README §5.2: phones side by side within ±100 ms) - measured 2026-10-13: GO up to 50 ms late without it.
+ *
+ * @param {object} view           deriveView()
+ * @param {number} serverNowMs
+ * @returns {number|null}
+ */
+export function nextDisplayChangeAt(view, serverNowMs) {
+    const startedAtMs = view?.startedAtMs;
+
+    if (!Number.isFinite(startedAtMs) || !Number.isFinite(serverNowMs) || view.screen === 'ended') {
+        return null;
+    }
+
+    if (serverNowMs < startedAtMs) {
+        // The digit shown is ceil(left / 1000): the next one comes when `left` reaches the whole second below it
+        return startedAtMs - (Math.ceil((startedAtMs - serverNowMs) / 1000) - 1) * 1000;
+    }
+
+    const nextSecond = startedAtMs + (Math.floor((serverNowMs - startedAtMs) / 1000) + 1) * 1000;
+    const goEnds = startedAtMs + GO_SHOWN_MS;
+
+    return serverNowMs < goEnds ? Math.min(nextSecond, goEnds) : nextSecond;
+}
+
+/**
  * Screens on which the camera runs (and the preview is shown).
  */
 export function cameraWanted(screen, practiceActive = false) {
     return practiceActive || ['checklist', 'waiting', 'countdown', 'running', 'finished', 'timeup'].includes(screen);
+}
+
+// The screens a ready participant waits and competes on: the start's beeps, GO and the time's-up alarm play here, and
+// the screen must not lock (a locked phone stops the camera)
+export const WAKE_SCREENS = ['waiting', 'countdown', 'running', 'finished'];
+
+/**
+ * "Tap here once" (README §5.5 "Browser realities"): a page that loads again - a reload, the browser bringing a
+ * discarded tab back - has no sound (browsers play nothing before a tap) and, in Safari, no screen lock until the
+ * participant touches it, though "I'm ready" was tapped long ago. Shown to a ready participant on the round's screens
+ * until the first touch of this page (which unlocks the sound and asks for the lock) - not in a practice (its own tap
+ * unlocked them), never twice.
+ *
+ * @param {object} input
+ * @param {boolean} input.ready          "I'm ready" was tapped on this device (the progress survives a reload)
+ * @param {string} input.screen          screenFor()
+ * @param {boolean} [input.practice]
+ * @param {boolean} input.touched        a tap on this page since it loaded
+ * @param {boolean} input.soundLocked    the beeps are not unlocked
+ * @param {string} input.wakeLock        wake_lock.js state
+ */
+export function wakeTapNeeded({ ready, screen, practice = false, touched, soundLocked, wakeLock }) {
+    if (ready !== true || practice || touched || !WAKE_SCREENS.includes(screen)) {
+        return false;
+    }
+
+    // Held, being asked for, or impossible on this browser: a tap would not change the lock
+    return soundLocked || !['active', 'pending', 'unsupported'].includes(wakeLock);
 }
 
 /**

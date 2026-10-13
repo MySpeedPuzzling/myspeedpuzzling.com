@@ -32,6 +32,7 @@ import {
     loadConsent,
     loadProgress,
     memoryStorage,
+    nextDisplayChangeAt,
     nextPeriodicPhotoAt,
     PRACTICE_MINUTES,
     practiceAllowed,
@@ -44,6 +45,7 @@ import {
     screenFor,
     shortClock,
     undoLeftMs,
+    wakeTapNeeded,
 } from '../online/compete_flow.js';
 import { OfficialResultsEvents } from '../official_results_events.js';
 import { chooseTranslation } from '../translation_choice.js';
@@ -165,11 +167,15 @@ export default class extends Controller {
         this.painted = new Map();
         this.renderWanted = true;
         this.lastRenderAt = 0;
+        // When the clock on screen changes next (compete_flow.js nextDisplayChangeAt()) - rendered in that frame
+        this.nextChangeAt = null;
         this.cameraLostRecorded = false;
         this.eventsOutbox = null;
         this.mediaOutbox = null;
         this.stateFetch = null;
         this.closed = false;
+        // A tap on this page since it loaded - the sound and Safari's screen lock wait for one (wakeTapNeeded())
+        this.touched = false;
 
         this.clock = createClock({
             fetchTime: () => fetchServerTime(this.urlsValue.time),
@@ -199,6 +205,12 @@ export default class extends Controller {
         this.grabber = new FrameGrabber({ video: this.videoTarget, toServerMs: (perf) => this.clock.toServerMs(perf) });
         this.wakeLock = new ScreenWakeLock({ onChange: () => this.requestRender() }).attach();
         this.beeps = new Beeps();
+
+        // Loaded again after "I'm ready" (a reload, a discarded tab): the screen lock at once where a browser grants it
+        // without a tap (Chrome); Safari waits for the first tap, the sound everywhere - "Tap here once" asks for it
+        if (this.progress.ready && !this.preview) {
+            this.wakeLock.request();
+        }
 
         this.openOutboxes();
         this.startStream();
@@ -265,6 +277,7 @@ export default class extends Controller {
 
     ready() {
         // The tap unlocks the beeps and the wake lock (browsers grant both only from a tap)
+        this.touched = true;
         this.beeps.unlock();
         this.wakeLock.request();
 
@@ -282,6 +295,7 @@ export default class extends Controller {
     }
 
     async takeOver() {
+        this.touched = true;
         this.beeps.unlock();
         this.wakeLock.request();
         this.takenOver = false;
@@ -298,6 +312,20 @@ export default class extends Controller {
     restartCamera() {
         this.beeps.unlock();
         this.ensureCamera({ force: true });
+    }
+
+    /**
+     * "Tap here once" (wakeTapNeeded()) - the tap itself did it (anyTap()); a keyboard's activation comes here only.
+     */
+    wakeUp() {
+        this.touched = true;
+        this.beeps.unlock();
+
+        if (this.wakeLock.state !== 'active') {
+            this.wakeLock.request();
+        }
+
+        this.render();
     }
 
     switchCamera() {
@@ -1076,6 +1104,9 @@ export default class extends Controller {
     // ---- page and network
 
     anyTap() {
+        this.touched = true;
+        this.requestRender();
+
         // Every tap may unlock what needs one: the beeps, the wake lock (Safari), a camera that stopped
         if (this.progress.ready || this.practice !== null) {
             this.beeps.unlock();
@@ -1204,8 +1235,10 @@ export default class extends Controller {
 
         this.frame = window.requestAnimationFrame(this.boundLoop);
         const now = performance.now();
+        // The clock on screen changes now (GO, the next second) - drawn in this very frame, not up to 50 ms later
+        const changeDue = this.nextChangeAt !== null && this.clock.serverNow() >= this.nextChangeAt;
 
-        if (!this.renderWanted && now - this.lastRenderAt < RENDER_EVERY_MS) {
+        if (!this.renderWanted && !changeDue && now - this.lastRenderAt < RENDER_EVERY_MS) {
             return;
         }
 
@@ -1236,6 +1269,7 @@ export default class extends Controller {
             }
 
             this.screen = screen;
+            this.nextChangeAt = nextDisplayChangeAt(this.practice !== null ? deriveView(practiceState(this.practice), serverNow) : view, serverNow);
             this.showScreen(this.practice !== null ? 'practice' : screen);
             this.effects(screen, view, serverNow);
             this.paint(screen, view, serverNow);
@@ -1431,6 +1465,14 @@ export default class extends Controller {
         this.setShown('otherDevice', screen === 'checklist' && this.otherDeviceActive);
         this.setShown('keepOpen', competing && live);
         this.setShown('afterPending', screen === 'after' && this.hasUnsent());
+        this.setShown('wakeTap', !this.preview && wakeTapNeeded({
+            ready,
+            screen,
+            practice: this.practice !== null,
+            touched: this.touched,
+            soundLocked: !this.beeps.isUnlocked(),
+            wakeLock: this.wakeLock.state,
+        }));
     }
 
     paintStatus() {

@@ -289,6 +289,15 @@ html:has(.compete) body {
     color: var(--compete-warn);
 }
 
+// "Tap here once" after a reload - something to do, so it reads as a button
+.compete-banner--wake {
+    padding: 0.85rem 1rem;
+    background: var(--compete-warn-bg);
+    color: var(--compete-warn);
+    font-weight: 700;
+    cursor: pointer;
+}
+
 // Loud on purpose (README §5.5: a full-screen state when the camera stops) - the whole page turns with it
 .compete-banner--camera {
     padding: 1rem;

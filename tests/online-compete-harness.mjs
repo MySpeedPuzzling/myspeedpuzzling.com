@@ -20,6 +20,7 @@ import {
     loadConsent,
     loadProgress,
     memoryStorage,
+    nextDisplayChangeAt,
     nextPeriodicPhotoAt,
     periodicGapMs,
     practiceAllowed,
@@ -34,6 +35,8 @@ import {
     shortClock,
     undoLeftMs,
     UNDO_WINDOW_MS,
+    WAKE_SCREENS,
+    wakeTapNeeded,
 } from '../assets/online/compete_flow.js';
 import { createCompeteApi, isDeadLink, readCompeteAnswer } from '../assets/online/compete_api.js';
 import { deriveView } from '../assets/online/round_state.js';
@@ -428,6 +431,67 @@ const scenarios = {
         assert.equal(fill('On - %width% × %height%', { width: 1920, height: 1080 }), 'On - 1920 × 1080');
         assert.equal(fill('No placeholders'), 'No placeholders');
         assert.equal(fill(null), '');
+    },
+
+    async 'the clock on screen changes on the round\'s whole seconds and when GO ends - the page draws those frames at once'() {
+        const scheduled = state({ startedAtMs: START });
+        const at = (serverNow, from = scheduled) => nextDisplayChangeAt(deriveView(from, serverNow), serverNow);
+
+        // Nothing counts: no start, or the round is over
+        assert.equal(at(START - 5_000, state()), null);
+        assert.equal(at(START + 70 * MINUTE, scheduled), null, 'the time limit ended it');
+        assert.equal(at(START + 5_000, state({ startedAtMs: START, stoppedAtMs: START + 3_000 })), null, 'stopped');
+
+        // The countdown: "4" until 3 s are left, … "1" until the start itself = GO (end-to-end run 2026-10-13: GO was
+        // drawn up to 50 ms late when the next render came on its own)
+        assert.equal(at(START - 3_400), START - 3_000);
+        assert.equal(at(START - 3_000), START - 2_000, 'at exactly 3 s left "3" is shown already');
+        assert.equal(at(START - 1), START, 'GO at the start');
+        // "Starts in 2:13:06" changes to "2:13:05" on the second too
+        assert.equal(at(START - (2 * 3_600_000 + 13 * MINUTE + 5_400)), START - (2 * 3_600_000 + 13 * MINUTE + 5_000));
+
+        // Running: the next whole second - and GO_SHOWN_MS, when GO gives way to the stopwatch
+        assert.equal(at(START), START + 1_000);
+        assert.equal(at(START + 1_200), START + GO_SHOWN_MS);
+        assert.equal(at(START + GO_SHOWN_MS), START + 2_000);
+        assert.equal(at(START + 61_234), START + 62_000);
+        // Always ahead of now, so a frame drawn on the change never asks for itself again
+        for (const serverNow of [START - 10_000, START - 999, START, START + 999, START + 1_499, START + 1_500, START + 59 * MINUTE + 59_999]) {
+            assert.ok(at(serverNow) > serverNow, String(serverNow - START));
+        }
+    },
+
+    async '"tap here once": a ready participant whose page loaded again, on the round\'s screens, until the first touch'() {
+        // A reload after "I'm ready" (end-to-end run 2026-10-13): no sound, no screen lock asked for, nobody touched it
+        const reloaded = { ready: true, screen: 'waiting', touched: false, soundLocked: true, wakeLock: 'idle' };
+
+        for (const screen of WAKE_SCREENS) {
+            assert.equal(wakeTapNeeded({ ...reloaded, screen }), true, screen);
+        }
+
+        assert.deepEqual(WAKE_SCREENS, ['waiting', 'countdown', 'running', 'finished']);
+
+        // Chrome granted the lock without a tap - the sound still waits for one
+        assert.equal(wakeTapNeeded({ ...reloaded, wakeLock: 'active' }), true);
+        // Safari refused the lock without a tap - a tap gets it
+        assert.equal(wakeTapNeeded({ ...reloaded, soundLocked: false, wakeLock: 'denied' }), true);
+        assert.equal(wakeTapNeeded({ ...reloaded, soundLocked: false, wakeLock: 'released' }), true);
+        // The sound unlocked and the lock held, being asked for, or impossible here: a tap would change nothing
+        for (const wakeLock of ['active', 'pending', 'unsupported']) {
+            assert.equal(wakeTapNeeded({ ...reloaded, soundLocked: false, wakeLock }), false, wakeLock);
+        }
+
+        // The first touch of the page ends it, whatever the browser granted then
+        assert.equal(wakeTapNeeded({ ...reloaded, touched: true }), false);
+        assert.equal(wakeTapNeeded({ ...reloaded, touched: true, wakeLock: 'denied' }), false);
+
+        // Not ready (the checklist's own "I'm ready" tap unlocks both), a practice, or no screen of the round
+        assert.equal(wakeTapNeeded({ ...reloaded, ready: false }), false);
+        assert.equal(wakeTapNeeded({ ...reloaded, practice: true }), false);
+
+        for (const screen of SCREENS.filter((name) => !WAKE_SCREENS.includes(name))) {
+            assert.equal(wakeTapNeeded({ ...reloaded, screen }), false, screen);
+        }
     },
 
     async 'the camera runs on the screens of the round and the practice only'() {

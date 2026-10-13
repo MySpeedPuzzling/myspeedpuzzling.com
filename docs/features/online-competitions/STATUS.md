@@ -58,7 +58,7 @@ The living record of where the prototype stands and what comes next. Updated by 
 
 1. Merge the end-to-end pass's fixes, TX, VF and DB as they finish; then start VP, VM and VS.
 2. Jan: the real-device pass on phones (`device-test.md`), S1 footage (spikes.md), volunteers for Test Cup #1, the OK to apply the bucket CORS rule and to deny `online/` in the images proxy, the OK for ADR D78 (LiveKit on lily.srv).
-3. Test Cup #1 (target Tue 2026-11-10): a draft competition with online timing, links sent by hand.
+3. Test Cup #1 (target Tue 2026-11-10): the runbook is [test-cup-1.md](test-cup-1.md) - prerequisites, set-up, the day, fallbacks.
 
 ## Log
 

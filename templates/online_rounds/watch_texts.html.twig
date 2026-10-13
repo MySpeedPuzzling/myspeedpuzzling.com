@@ -1,0 +1,35 @@
+{#
+    JS texts of the watch page (assets/controllers/online_watch_controller.js): one JSON object, keys = what the JS asks
+    for. A curtain is `<key>` + `<key>_text` (watch_view.js curtainFor()), the clock `clock_<state>` (clockLine()). Plain
+    texts with |trans (their %placeholders% filled in the browser), the plural text with browser_translation()
+    (chosen by translation_choice.js). Pinned by tests/OnlineWatchTextsTest.php.
+#}
+{{- {
+    connecting: 'online_rounds.watch.curtain.connecting'|trans,
+    connecting_text: '',
+    not_live: 'online_rounds.watch.curtain.not_live'|trans,
+    not_live_text: 'online_rounds.watch.curtain.not_live_text'|trans,
+    quiet: 'online_rounds.watch.curtain.quiet'|trans,
+    quiet_text: 'online_rounds.watch.curtain.quiet_text'|trans,
+    off_air: 'online_rounds.watch.curtain.off_air'|trans,
+    off_air_text: 'online_rounds.watch.curtain.off_air_text'|trans,
+    full: 'online_rounds.watch.curtain.full'|trans,
+    full_text: 'online_rounds.watch.curtain.full_text'|trans,
+    unavailable: 'online_rounds.watch.curtain.unavailable'|trans,
+    unavailable_text: 'online_rounds.watch.curtain.unavailable_text'|trans,
+    gone: 'online_rounds.watch.curtain.gone'|trans,
+    gone_text: 'online_rounds.watch.curtain.gone_text'|trans,
+    lost: 'online_rounds.watch.curtain.lost'|trans,
+    lost_text: 'online_rounds.watch.curtain.lost_text'|trans,
+    reconnecting: 'online_rounds.watch.curtain.reconnecting'|trans,
+    reconnecting_text: 'online_rounds.watch.curtain.reconnecting_text'|trans,
+    retry_in: 'online_rounds.watch.retry_in'|trans,
+    watching: browser_translation('online_rounds.watch.watching'),
+    mute: 'online_rounds.watch.mute'|trans,
+    unmute: 'online_rounds.watch.unmute'|trans,
+    clock_waiting: 'online_rounds.watch.clock.waiting'|trans,
+    clock_starts_in: 'online_rounds.watch.clock.starts_in'|trans,
+    clock_running: 'online_rounds.watch.clock.running'|trans,
+    clock_ended: 'online_rounds.watch.clock.ended'|trans,
+    clock_left: 'online_rounds.watch.clock.left'|trans,
+}|json_encode|raw -}}

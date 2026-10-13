@@ -84,6 +84,11 @@ return App::config([
                 'times_board_guest_cache' => [
                     'adapters' => ['cache.app'],
                 ],
+                // How many spectators each studio holds (StudioSpectators): LiveKit's list of the room, kept for a few
+                // seconds, plus the places handed out since - one entry per studio
+                'online_watch_spectators' => [
+                    'adapters' => ['cache.adapter.redis'],
+                ],
             ],
         ],
     ],

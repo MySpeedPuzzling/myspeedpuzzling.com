@@ -57,6 +57,14 @@ return App::config([
                 'online_participant_rate_limits' => [
                     'adapters' => ['cache.app'],
                 ],
+                // The watch page's token limit stands in the same way (online_watch_ip)
+                'online_watch_rate_limits' => [
+                    'adapters' => ['cache.app'],
+                ],
+                // A studio's spectator count comes from the LiveKit list a test queues - never one an earlier test left
+                'online_watch_spectators' => [
+                    'adapters' => ['cache.adapter.array'],
+                ],
             ],
         ],
     ],

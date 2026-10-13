@@ -1,0 +1,125 @@
+{% extends 'base.html.twig' %}
+
+{#
+    The public watch page of a round's studio (OnlineWatchController, docs/features/online-competitions/contracts/
+    phase-1b.md §5 `online_watch`, stream VS): the event and the round, the round's clock (read-only) and the studio -
+    drawn by assets/controllers/online_watch_controller.js, which joins it with a spectator token (`online_watch_token`)
+    through assets/online/livekit_session.js and shows the host and the guests on air.
+    `obs` (?obs=1): the video alone on a transparent page, for an OBS browser source (obs-youtube.md) - no bar, no
+    clock, no curtain, no buttons.
+    Variables: competition, round (CompetitionRound), event (CompetitionReference), is_public, planned_start (EventTime),
+    planned_day, obs, stopwatch (RoundStopwatchState), stopwatch_topic, youtube_url
+#}
+
+{% set hide_comparison_launcher = true %}
+{% set round_id = round.id.toString %}
+{% set event_url = event.routeName ? path(event.routeName, event.routeParameters) : null %}
+{% set page_title = 'online_rounds.watch.title'|trans ~ ' - ' ~ round.name ~ ' - ' ~ event.displayName %}
+
+{% block title %}{{ page_title }}{% endblock %}
+{% block meta_description %}{{ 'online_rounds.watch.meta_description'|trans({'%round%': round.name, '%event%': event.displayName}) }}{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+{% block og_title %}{{ page_title }}{% endblock %}
+{% block canonical %}{% endblock %}
+{% block hreflang %}{% endblock %}
+{% block json_ld %}{% endblock %}
+{% block page_stylesheets %}
+    {{ encore_entry_link_tags('online_watch') }}
+    {# Set here, not in the stylesheet: an OBS browser source may run a Chromium without :has() #}
+    {% if obs %}
+        <style>html,body,main{background:transparent!important}main{padding:0!important;margin:0!important}body{overflow:hidden}</style>
+    {% else %}
+        <style>html,body{background:#0d1017}main{padding-top:0!important}</style>
+    {% endif %}
+{% endblock %}
+{% block header %}{% endblock %}
+{% block footer %}{% endblock %}
+
+{% block full_content %}
+    <div class="online-watch{{ obs ? ' online-watch--obs' }}"
+         data-controller="online-watch"
+         data-watch-state="connecting"
+         data-live="false"
+         data-online-watch-urls-value="{{ {
+             token: path('online_watch_token', {roundId: round_id}),
+             time: path('online_time'),
+             state: path('round_stopwatch_state', {roundId: round_id}),
+         }|json_encode|e('html_attr') }}"
+         data-online-watch-stopwatch-value="{{ stopwatch|json_encode|e('html_attr') }}"
+         data-online-watch-mercure-url-value="{{ mercure_public_url }}"
+         data-online-watch-topic-value="{{ stopwatch_topic }}"
+         data-online-watch-obs-value="{{ obs ? 'true' : 'false' }}"
+         data-online-watch-texts-value="{{ include('online_rounds/watch_texts.html.twig')|e('html_attr') }}">
+
+        {% if not obs %}
+            <header class="online-watch-bar">
+                <a class="online-watch-home" href="{{ path('homepage') }}">
+                    <img width="40" height="35" src="{{ asset('img/speedpuzzling-logo.svg') }}" alt="MySpeedPuzzling.com">
+                </a>
+                <div class="online-watch-names">
+                    {% if event_url %}
+                        <a class="online-watch-event" href="{{ event_url }}">{{ event.displayName }}</a>
+                    {% else %}
+                        <span class="online-watch-event">{{ event.displayName }}</span>
+                    {% endif %}
+                    <h1 class="online-watch-round">{{ round.name }}</h1>
+                </div>
+                <div class="online-watch-status">
+                    <span class="online-watch-live" data-online-watch-target="live" hidden>
+                        <span class="live-dot live-dot-light" aria-hidden="true"></span>{{ 'online_rounds.watch.live'|trans }}
+                    </span>
+                    <span class="online-watch-count" data-online-watch-target="count" hidden></span>
+                </div>
+            </header>
+
+            {% if not is_public %}
+                <p class="online-watch-not-public"><i class="bi bi-eye-slash me-2" aria-hidden="true"></i>{{ 'online_rounds.watch.not_public'|trans }}</p>
+            {% endif %}
+        {% endif %}
+
+        <div class="online-watch-stage" data-online-watch-target="stage">
+            <div class="online-watch-tiles" data-online-watch-target="tiles" data-count="0"></div>
+            <div class="online-watch-sounds" data-online-watch-target="sounds" hidden></div>
+
+            {% if not obs %}
+                <div class="online-watch-curtain" data-online-watch-target="curtain" role="status" aria-live="polite">
+                    <p class="online-watch-curtain-title" data-online-watch-target="curtainTitle">{{ 'online_rounds.watch.curtain.connecting'|trans }}</p>
+                    <p class="online-watch-curtain-text" data-online-watch-target="curtainText"></p>
+                    <p class="online-watch-curtain-note" data-online-watch-target="retryNote" hidden></p>
+                    <div class="online-watch-curtain-actions">
+                        <button type="button" class="btn btn-light btn-sm" data-online-watch-target="retryButton" data-action="online-watch#retryNow" hidden>
+                            <i class="bi bi-arrow-clockwise me-1" aria-hidden="true"></i>{{ 'online_rounds.watch.try_again'|trans }}
+                        </button>
+                        {% if youtube_url %}
+                            <a class="btn btn-sm online-watch-youtube" data-online-watch-target="youtube" href="{{ youtube_url }}" target="_blank" rel="noopener noreferrer" hidden>
+                                <i class="bi bi-youtube me-1" aria-hidden="true"></i>{{ 'online_rounds.watch.youtube'|trans }}
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <button type="button" class="online-watch-sound" data-online-watch-target="soundButton" data-action="online-watch#startSound" hidden>
+                    <i class="bi bi-volume-up-fill" aria-hidden="true"></i>
+                    <span>{{ 'online_rounds.watch.sound_on'|trans }}</span>
+                </button>
+                <button type="button" class="online-watch-mute" data-online-watch-target="muteButton" data-action="online-watch#toggleMute" aria-pressed="false" aria-label="{{ 'online_rounds.watch.mute'|trans }}" title="{{ 'online_rounds.watch.mute'|trans }}" hidden>
+                    <i class="bi bi-volume-up-fill online-watch-mute-on" aria-hidden="true"></i>
+                    <i class="bi bi-volume-mute-fill online-watch-mute-off" aria-hidden="true"></i>
+                </button>
+            {% endif %}
+        </div>
+
+        {% if not obs %}
+            <section class="online-watch-clock" aria-label="{{ 'online_rounds.watch.clock.label'|trans }}">
+                <span class="online-watch-clock-label" data-online-watch-target="clockLabel">{{ 'online_rounds.watch.clock.waiting'|trans }}</span>
+                <span class="online-watch-clock-time" role="timer" data-online-watch-target="clockTime" hidden></span>
+                <span class="online-watch-clock-left" data-online-watch-target="clockLeft" hidden></span>
+                <span class="online-watch-planned" data-online-watch-target="planned">
+                    {{ 'online_rounds.watch.clock.planned'|trans({'%day%': planned_day|events_date('yMMMMEEEEd'), '%time%': event_time(planned_start)}) }}
+                </span>
+            </section>
+
+            <noscript><p class="online-watch-noscript">{{ 'online_rounds.watch.no_script'|trans }}</p></noscript>
+        {% endif %}
+    </div>
+{% endblock %}

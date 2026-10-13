@@ -1,0 +1,46 @@
+{% extends 'base.html.twig' %}
+
+{#
+    The watch page of a round without live video (OnlineWatchController): no media server configured, or the round's
+    video is off - a page saying so (200), with the way back to the event. Under ?obs=1 an empty transparent page: an
+    OBS browser source shows nothing rather than this text (refresh the source once the video is on).
+    Variables: competition, round (CompetitionRound), event (CompetitionReference), is_public, planned_start, planned_day,
+    obs
+#}
+
+{% set event_url = event.routeName ? path(event.routeName, event.routeParameters) : null %}
+
+{% block title %}{{ 'online_rounds.watch.title'|trans }} - {{ round.name }} - {{ event.displayName }}{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+{% block canonical %}{% endblock %}
+{% block hreflang %}{% endblock %}
+{% block json_ld %}{% endblock %}
+{% block page_stylesheets %}
+    {{ encore_entry_link_tags('online_watch') }}
+    {% if obs %}
+        <style>html,body,main{background:transparent!important}main{padding:0!important;margin:0!important}body{overflow:hidden}</style>
+    {% endif %}
+{% endblock %}
+
+{% block header %}{% if not obs %}{{ parent() }}{% endif %}{% endblock %}
+{% block footer %}{% if not obs %}{{ parent() }}{% endif %}{% endblock %}
+
+{% block full_content %}
+    {% if obs %}
+        <div class="online-watch online-watch--obs" data-watch-state="unavailable"></div>
+    {% else %}
+        <section class="container px-3 py-5">
+            <div class="online-watch-unavailable" data-watch-state="unavailable">
+                <i class="bi bi-camera-video-off online-watch-unavailable-icon" aria-hidden="true"></i>
+                <h1 class="h3 mb-2">{{ 'online_rounds.watch.unavailable.title'|trans }}</h1>
+                <p class="online-watch-unavailable-names">
+                    {{ round.name }} · {% if event_url %}<a href="{{ event_url }}">{{ event.displayName }}</a>{% else %}{{ event.displayName }}{% endif %}
+                </p>
+                <p class="text-body-secondary">{{ 'online_rounds.watch.unavailable.text'|trans }}</p>
+                {% if event_url %}
+                    <a class="btn btn-primary" href="{{ event_url }}">{{ 'online_rounds.watch.unavailable.back'|trans }}</a>
+                {% endif %}
+            </div>
+        </section>
+    {% endif %}
+{% endblock %}

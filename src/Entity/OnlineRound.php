@@ -22,7 +22,8 @@ use SpeedPuzzling\Web\Value\OnlineUnfinishedMeasure;
 /**
  * A round that uses online timing (docs/features/online-competitions/README.md): participants compete at home on
  * their phones through personal links, the round's stopwatch is the one clock (RoundClock). One row per such round, its
- * settings; a round without a row is untouched by everything online. Changed only through changeSettings().
+ * settings; a round without a row is untouched by everything online. Changed only through changeSettings() and
+ * changeYoutubeUrl().
  */
 #[Entity]
 class OnlineRound
@@ -67,7 +68,23 @@ class OnlineRound
         #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
         #[Column(length: 32, enumType: OnlineMissingPieceRule::class)]
         public OnlineMissingPieceRule $missingPieceRule = OnlineMissingPieceRule::CompleteRequired,
+        // The organiser's own YouTube stream of the studio (docs/features/online-competitions/obs-youtube.md) - the
+        // watch page offers it when the studio is full (Phase 1B)
+        #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+        #[Column(length: 255, nullable: true)]
+        public null|string $youtubeUrl = null,
     ) {
+    }
+
+    /**
+     * The studio's YouTube stream - null or empty: none. Only a YouTube address over https is ever linked
+     * (OnlineWatchController::youtubeLink()).
+     */
+    public function changeYoutubeUrl(null|string $youtubeUrl): void
+    {
+        $youtubeUrl = trim($youtubeUrl ?? '');
+
+        $this->youtubeUrl = $youtubeUrl === '' ? null : $youtubeUrl;
     }
 
     /**

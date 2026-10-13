@@ -33,6 +33,8 @@ readonly final class TimelineRound
         public null|string $addTimeUrl,
         // at least one puzzle is shown (secret ones are dropped by the read model)
         public bool $puzzlesAnnounced,
+        // the studio's watch page - a public page, live video available and on, until a while after the round
+        public null|string $watchUrl = null,
     ) {
     }
 

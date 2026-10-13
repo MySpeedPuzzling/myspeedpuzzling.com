@@ -5,7 +5,8 @@
     (CompetitionEvent), online (bool); the page's difficulty_data, puzzle_statuses.
 
     Date leaf (the round's day in its own zone) · name in its badge colour · category, time limit, the start time in the
-    event's zone named (online: the visitor's own after it) and the when label · its puzzles · its links. The next round
+    event's zone named (online: the visitor's own after it) and the when label · its puzzles · its links (watch the
+    studio live, results, add a time, registration). The next round
     (or a running one) is highlighted; a screen reader hears "Next round:" and the date in words first.
 #}
 {%- set round = item.round -%}
@@ -39,8 +40,15 @@
             </p>
         {% endif %}
         {%- set show_registration = status == 'next' and event.registrationLink -%}
-        {% if item.resultsUrl or item.addTimeUrl or show_registration %}
+        {% if item.resultsUrl or item.addTimeUrl or item.watchUrl or show_registration %}
             <p class="ev-round-links">
+                {#- The studio's watch page (docs/features/online-competitions/): live video on, a public page -#}
+                {% if item.watchUrl %}
+                    <a href="{{ item.watchUrl }}" data-round-watch-live>
+                        {%- if status == 'live' %}<span class="live-dot" aria-hidden="true"></span>{% endif -%}
+                        {{ 'online_rounds.watch.title'|trans -}}
+                    </a>
+                {% endif %}
                 {% if item.resultsUrl %}
                     <a href="{{ item.resultsUrl }}" data-round-results-link>{{ (item.officialResults ? 'event_rounds.official_results' : 'round_results.link')|trans }}</a>
                 {% endif %}

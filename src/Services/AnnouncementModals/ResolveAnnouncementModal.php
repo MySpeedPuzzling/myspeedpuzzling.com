@@ -58,6 +58,8 @@ final class ResolveAnnouncementModal implements ResetInterface
         'online_control_room', 'online_review', 'online_accuracy',
         // Online competitions: the host's studio - on air
         'online_studio',
+        // Online competitions: the public watch page - full-screen video, also an OBS browser source
+        'online_watch',
     ];
 
     private bool $resolved = false;

@@ -33,6 +33,8 @@ readonly final class EditionRoundDetail
         public bool $timezoneAssumed = false,
         // The organiser published the round's official results (docs/features/competitions-management/official-results.md)
         public bool $resultsPublished = false,
+        // The round's online timing has live video on - the studio has a watch page (docs/features/online-competitions/)
+        public bool $onlineVideo = false,
     ) {
     }
 }

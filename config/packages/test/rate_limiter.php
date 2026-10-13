@@ -10,6 +10,10 @@ namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 // per-email limiter keeps production limits; tests use randomized emails.
 return App::config([
     'framework' => [
+        // CI's tests run no Redis: the studio's spectator count locks in the process (the kernel of one request)
+        'lock' => [
+            'online_watch' => 'in-memory',
+        ],
         'rate_limiter' => [
             'login_ip' => [
                 'policy' => 'sliding_window',
@@ -60,6 +64,21 @@ return App::config([
                 'lock_factory' => null,
                 'cache_pool' => 'online_participant_rate_limits',
             ],
+            // The watch page's token endpoint: the same - production counts with RedisSlidingWindowLimiterFactory
+            // (config/packages/rate_limiter.php), this one stands in (the alias below); a test of the 429 uses up a key
+            // of its own
+            'online_watch_ip' => [
+                'policy' => 'sliding_window',
+                'limit' => 100000,
+                'interval' => '1 minute',
+                'lock_factory' => null,
+                'cache_pool' => 'online_watch_rate_limits',
+            ],
+        ],
+    ],
+    'services' => [
+        'online_rate_limiter.online_watch_ip' => [
+            'alias' => 'limiter.online_watch_ip',
         ],
     ],
 ]);

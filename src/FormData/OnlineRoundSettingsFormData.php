@@ -12,8 +12,9 @@ use Symfony\Component\Validator\Constraints as Assert;
 
 /**
  * The settings of a round's online timing the organiser chooses on its "Online timing" page (online_round_settings,
- * docs/features/online-competitions/). Video, participants seeing each other, the studio and recording come with
- * Phase 1B - they are not in the form and keep their values.
+ * docs/features/online-competitions/). Live video and participants seeing each other are in the form only while a
+ * media server is configured (LiveKitSettings, contract phase-1b.md §2) - without one they keep their values. The studio
+ * and recording are not in the form and keep theirs.
  */
 final class OnlineRoundSettingsFormData
 {
@@ -26,12 +27,18 @@ final class OnlineRoundSettingsFormData
     #[Assert\NotNull]
     public null|OnlineMissingPieceRule $missingPieceRule = null;
 
+    public bool $videoEnabled = false;
+
+    public bool $participantsSeeEachOther = false;
+
     public static function fromOnlineRound(OnlineRound $onlineRound): self
     {
         $data = new self();
         $data->detectionMode = $onlineRound->detectionMode;
         $data->unfinishedMeasure = $onlineRound->unfinishedMeasure;
         $data->missingPieceRule = $onlineRound->missingPieceRule;
+        $data->videoEnabled = $onlineRound->videoEnabled;
+        $data->participantsSeeEachOther = $onlineRound->participantsSeeEachOther;
 
         return $data;
     }

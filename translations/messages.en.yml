@@ -9418,6 +9418,8 @@ compete:
         this_is_me: "This is me"
         connecting: "Connecting this link to your profile…"
         failed: "This link could not be connected to your profile - it still works for competing."
+    video:
+        title: "Live video"
 
 # Online competitions: the organiser's pages (docs/features/online-competitions/)
 online_rounds:
@@ -9453,6 +9455,12 @@ online_rounds:
             help: "What the review does with a finished puzzle that has a gap."
             complete_required: "A complete puzzle is required"
             penalty_5s: "5 seconds added for every missing piece"
+        video:
+            title: "Live video"
+            enabled: "Live video"
+            enabled_help: "The participants' phones show their puzzle camera live in the control room. The host can talk to everybody and invite finishers to the studio."
+            see_each_other: "Participants see each other"
+            see_each_other_help: "With live video on, participants can also watch each other's puzzle cameras, like in a video call. Off: only the moderators see them."
         save: "Save settings"
         participants:
             title: "Participants"
@@ -9772,3 +9780,9 @@ online_rounds:
             late: "Arrived after"
             result: "Official result"
         empty: "Nobody is entered in this round."
+    console:
+        title: "Video"
+    studio:
+        title: "Studio"
+    watch:
+        title: "Watch live"

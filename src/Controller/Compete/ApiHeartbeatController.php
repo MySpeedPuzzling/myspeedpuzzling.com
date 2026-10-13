@@ -6,6 +6,8 @@ namespace SpeedPuzzling\Web\Controller\Compete;
 
 use Psr\Log\LoggerInterface;
 use SpeedPuzzling\Web\Exceptions\OnlineLinkNotFound;
+use SpeedPuzzling\Web\Services\LiveKit\LiveKitSettings;
+use SpeedPuzzling\Web\Services\LiveKit\StudioInviteSignal;
 use SpeedPuzzling\Web\Services\OnlineRounds\OnlineAccessLight;
 use SpeedPuzzling\Web\Services\OnlineRounds\OnlineParticipantApi;
 use SpeedPuzzling\Web\Services\OnlineRounds\OnlinePresence;
@@ -23,6 +25,11 @@ use Symfony\Component\Routing\Attribute\Route;
  *   round id, so both are sent), and `takenOverBy` = the device holding the entry when it is another one (the last
  *   to send `device.ready`).
  *
+ * While live video is available (LiveKitSettings) the answer also carries `studioInviteId` - the participant's
+ * invitation to the studio that waits for their answer, or null (contract phase-1b.md §4): a data message the phone
+ * missed costs nothing. It comes from redis-state (StudioInviteSignal), never from Postgres; without a media server the
+ * answer stays exactly as it was before live video.
+ *
  * Postgres is not asked on the way: the link comes from OnlineAccessLight's cache (one lookup a minute per link) and
  * the hash from its per-round cache - pinned by the heartbeat's query budget test. A presence store that is down
  * never fails a heartbeat: the clock sample and the hint still go out.
@@ -33,6 +40,8 @@ final class ApiHeartbeatController extends AbstractController
         private readonly OnlineParticipantApi $api,
         private readonly OnlineAccessLight $onlineAccessLight,
         private readonly OnlinePresence $onlinePresence,
+        private readonly LiveKitSettings $liveKitSettings,
+        private readonly StudioInviteSignal $studioInviteSignal,
         private readonly LoggerInterface $logger,
     ) {
     }
@@ -79,10 +88,18 @@ final class ApiHeartbeatController extends AbstractController
             ? $access->activeDeviceId
             : null;
 
-        return $this->api->json([
+        $answer = [
             'stateHash' => $access->roundId === null ? null : $this->onlineAccessLight->roundStateHash($access->roundId),
             'roundId' => $access->roundId,
             'takenOverBy' => $takenOverBy,
-        ]);
+        ];
+
+        if ($this->liveKitSettings->isAvailable()) {
+            $answer['studioInviteId'] = $access->roundId === null || $access->entryId === null
+                ? null
+                : $this->studioInviteSignal->open($access->roundId, $access->participantId);
+        }
+
+        return $this->api->json($answer);
     }
 }

@@ -4,8 +4,8 @@
     A round's online timing (docs/features/online-competitions/, stream C1, route online_round_settings): on or off,
     the button turning it on, its settings, and whether the event's participants are entered in the round.
     Variables: competition, round (CompetitionRound), online_round (null = off), availability (OnlineTimingAvailability),
-    setup (OnlineRoundSetup), form (null while off), enable_error (a translation key or null), page_url, csrf_token_id,
-    enable_field
+    setup (OnlineRoundSetup), form (null while off; its live video switches only while a media server is configured),
+    enable_error (a translation key or null), page_url, csrf_token_id, enable_field
 #}
 
 {% set hide_comparison_launcher = true %}
@@ -97,6 +97,14 @@
                             {{ form_row(form.unfinishedMeasure) }}
                             {{ form_row(form.missingPieceRule) }}
                         </div>
+                        {# Live video (contract phase-1b.md §2): only while a media server is configured #}
+                        {% if form.videoEnabled is defined %}
+                            <fieldset class="mb-4" data-online-video-settings>
+                                <legend class="h6 mb-2">{{ 'online_rounds.settings.video.title'|trans }}</legend>
+                                {{ form_row(form.videoEnabled) }}
+                                {{ form_row(form.participantsSeeEachOther) }}
+                            </fieldset>
+                        {% endif %}
                         <button type="submit" class="btn btn-primary">{{ 'online_rounds.settings.save'|trans }}</button>
                     {{ form_end(form) }}
                 </div>

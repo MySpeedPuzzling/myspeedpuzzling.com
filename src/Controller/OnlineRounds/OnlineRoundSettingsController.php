@@ -14,6 +14,7 @@ use SpeedPuzzling\Web\Query\GetOnlineRoundSetup;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use SpeedPuzzling\Web\Repository\OnlineRoundRepository;
 use SpeedPuzzling\Web\Security\OnlineRoundsVoter;
+use SpeedPuzzling\Web\Services\LiveKit\LiveKitSettings;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\OnlineTimingAvailability;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -29,7 +30,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * "Online timing" of a round (docs/features/online-competitions/, contract §5 `online_round_settings`): whether the
  * round uses it, the button turning it on (EnableOnlineRound - also gives the participants their personal links), the
  * settings (UpdateOnlineRoundSettings) and how many of the event's participants are entered in the round. Organisers
- * for whom the feature is on (ONLINE_ROUNDS_MANAGE).
+ * for whom the feature is on (ONLINE_ROUNDS_MANAGE). The live video switches (contract phase-1b.md §2) are in the form
+ * only while a media server is configured (LiveKitSettings); hidden, they keep their values.
  *
  * Every POST either redirects (done - back to this page) or answers 422 (an invalid form, a refusal, an expired page):
  * Turbo Drive drops a 200 answer to a form. Never cached - the page leads to the personal links.
@@ -49,6 +51,7 @@ final class OnlineRoundSettingsController extends AbstractController
         private readonly RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         private readonly MessageBusInterface $messageBus,
         private readonly TranslatorInterface $translator,
+        private readonly LiveKitSettings $liveKitSettings,
     ) {
     }
 
@@ -114,10 +117,13 @@ final class OnlineRoundSettingsController extends AbstractController
         }
 
         $form = null;
+        // The live video switches only while a media server is configured - without one they keep their values
+        $videoAvailable = $this->liveKitSettings->isAvailable();
 
         if ($onlineRound !== null) {
             $form = $this->createForm(OnlineRoundSettingsFormType::class, OnlineRoundSettingsFormData::fromOnlineRound($onlineRound), [
                 'action' => $pageUrl,
+                'video_available' => $videoAvailable,
             ]);
             $form->handleRequest($request);
 
@@ -128,9 +134,9 @@ final class OnlineRoundSettingsController extends AbstractController
                 $this->messageBus->dispatch(new UpdateOnlineRoundSettings(
                     roundId: $roundId,
                     detectionMode: $data->detectionMode,
-                    // Not in the form yet (Phase 1B) - kept as they are
-                    videoEnabled: $onlineRound->videoEnabled,
-                    participantsSeeEachOther: $onlineRound->participantsSeeEachOther,
+                    videoEnabled: $videoAvailable ? $data->videoEnabled : $onlineRound->videoEnabled,
+                    participantsSeeEachOther: $videoAvailable ? $data->participantsSeeEachOther : $onlineRound->participantsSeeEachOther,
+                    // Not in the form - kept as they are
                     studioEnabled: $onlineRound->studioEnabled,
                     recordingEnabled: $onlineRound->recordingEnabled,
                     unfinishedMeasure: $data->unfinishedMeasure,

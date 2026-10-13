@@ -8,6 +8,7 @@ use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Tests\DataFixtures\OfficialResultsFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\OnlineRoundsFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
+use SpeedPuzzling\Web\Tests\LiveVideoTesting;
 use SpeedPuzzling\Web\Tests\OverridesFeatureFlagEnv;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
@@ -21,6 +22,7 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
  */
 final class OnlineRoundSettingsControllerTest extends WebTestCase
 {
+    use LiveVideoTesting;
     use OverridesFeatureFlagEnv;
 
     private const string FLAG = 'ONLINE_ROUNDS_FOR_ORGANISERS';
@@ -33,6 +35,7 @@ final class OnlineRoundSettingsControllerTest extends WebTestCase
     protected function tearDown(): void
     {
         $this->restoreFeatureFlagEnv();
+        $this->restoreLiveVideo();
 
         parent::tearDown();
     }
@@ -224,6 +227,58 @@ final class OnlineRoundSettingsControllerTest extends WebTestCase
         self::assertCount(0, $crawler->filter('[data-online-not-entered]'));
     }
 
+    /**
+     * Live video (contract phase-1b.md §2): the two switches are in the form while a media server is configured
+     */
+    public function testTheLiveVideoSwitchesAreSaved(): void
+    {
+        $browser = $this->signedIn(PlayerFixture::PLAYER_ADMIN);
+
+        $crawler = $browser->request('GET', self::url(self::ROUND));
+        self::assertCount(1, $crawler->filter('[data-online-video-settings]'));
+        self::assertStringContainsString('Live video', $crawler->filter('[data-online-video-settings] legend')->text());
+        self::assertCount(1, $crawler->filter('[data-online-video-settings] .form-switch input[name="online_round_settings_form[videoEnabled]"]:not([checked])'));
+        self::assertCount(1, $crawler->filter('[data-online-video-settings] .form-switch input[name="online_round_settings_form[participantsSeeEachOther]"]:not([checked])'));
+
+        $browser->submitForm('Save settings', [
+            'online_round_settings_form[videoEnabled]' => true,
+            'online_round_settings_form[participantsSeeEachOther]' => true,
+        ]);
+        self::assertResponseRedirects(self::url(self::ROUND), 303);
+        self::assertSame([true, true], $this->videoSettings(self::ROUND));
+
+        $crawler = $browser->followRedirect();
+        self::assertCount(1, $crawler->filter('input[name="online_round_settings_form[videoEnabled]"][checked]'));
+
+        $browser->submitForm('Save settings', [
+            'online_round_settings_form[videoEnabled]' => true,
+            'online_round_settings_form[participantsSeeEachOther]' => false,
+        ]);
+        self::assertSame([true, false], $this->videoSettings(self::ROUND));
+    }
+
+    /**
+     * Without a media server the switches are not shown - and saving the page keeps what they hold
+     */
+    public function testWithoutAMediaServerTheVideoSwitchesAreHiddenAndKept(): void
+    {
+        $this->turnLiveVideoOff();
+        $browser = $this->signedIn(PlayerFixture::PLAYER_ADMIN);
+        self::turnRoundVideoOn($this->connection($browser), seeEachOther: true);
+
+        $crawler = $browser->request('GET', self::url(self::ROUND));
+        self::assertResponseIsSuccessful();
+        self::assertCount(0, $crawler->filter('[data-online-video-settings]'));
+        self::assertCount(0, $crawler->filter('input[name="online_round_settings_form[videoEnabled]"]'));
+
+        $browser->submitForm('Save settings', [
+            'online_round_settings_form[detectionMode]' => 'shadow',
+        ]);
+        self::assertResponseRedirects(self::url(self::ROUND), 303);
+        self::assertSame(['shadow', 'left', 'complete_required'], $this->settings(self::ROUND));
+        self::assertSame([true, true], $this->videoSettings(self::ROUND));
+    }
+
     private static function url(string $roundId): string
     {
         return '/en/online-rounds/' . $roundId . '/settings';
@@ -271,6 +326,20 @@ final class OnlineRoundSettingsControllerTest extends WebTestCase
 
         /** @var array{detection_mode: string, unfinished_measure: string, missing_piece_rule: string} $row */
         return [$row['detection_mode'], $row['unfinished_measure'], $row['missing_piece_rule']];
+    }
+
+    /**
+     * @return array{bool, bool} live video, participants see each other
+     */
+    private function videoSettings(string $roundId): array
+    {
+        $row = self::getContainer()->get(Connection::class)->fetchAssociative(
+            'SELECT video_enabled, participants_see_each_other FROM online_round WHERE round_id = :round',
+            ['round' => $roundId],
+        );
+        self::assertIsArray($row);
+
+        return [(bool) $row['video_enabled'], (bool) $row['participants_see_each_other']];
     }
 
     private function token(KernelBrowser $browser, string $participantId): null|string

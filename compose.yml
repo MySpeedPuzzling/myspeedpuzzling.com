@@ -34,6 +34,8 @@ services:
             XDEBUG_CONFIG: "client_host=host.docker.internal"
             XDEBUG_MODE: debug
             PHP_IDE_CONFIG: "serverName=speedpuzzling"
+            # Presigned evidence uploads must point at an address the browser reaches (docs/features/online-competitions/README.md §5.11)
+            ONLINE_MEDIA_PUBLIC_ENDPOINT: "http://localhost:${MINIO_API_PORT:-19000}"
 
     # The async queue (XP, achievements, e-mails, Listmonk, ...), consumed like production does (lily.srv compose).
     # Without it nothing async ever runs locally: the recap after a time waits for XP that never comes. A worker keeps

@@ -9535,3 +9535,13 @@ online_rounds:
         title: "Studio"
     watch:
         title: "Regarder en direct"
+
+email_undeliverable:
+    title: "Nous ne parvenons pas à délivrer d'e-mails à %email%."
+    paused: "Nous avons suspendu les notifications vers cette adresse. Les e-mails importants, comme les liens de connexion, sont toujours envoyés."
+    reason:
+        no_email: "Le serveur de messagerie destinataire indique que cette adresse n'existe pas."
+        suppressed: "Des e-mails vers cette adresse ont déjà été renvoyés auparavant."
+        general: "Le serveur de messagerie destinataire a refusé nos e-mails."
+    server_said: "Réponse du serveur : %answer%"
+    change_address: "Modifier votre adresse e-mail"

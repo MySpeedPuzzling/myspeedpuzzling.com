@@ -28,6 +28,8 @@ use SpeedPuzzling\Web\Services\OnlineRounds\RedisOnlinePresence;
 use SpeedPuzzling\Web\Services\OnlineRounds\S3OnlineMediaStorage;
 use SpeedPuzzling\Web\Services\RateLimiting\RedisSlidingWindowLimiterFactory;
 use SpeedPuzzling\Web\Services\Sentry\OnlineTokenSentryScrubber;
+use SpeedPuzzling\Web\Services\Mailer\MailStreamRouting;
+use SpeedPuzzling\Web\Services\Mailer\Sns\SnsMessageVerifier;
 use SpeedPuzzling\Web\Services\SentryTracesSampler;
 use SpeedPuzzling\Web\Services\Session\PostgresSessionHandler;
 use SpeedPuzzling\Web\Services\Storage\FailoverS3Adapter;
@@ -38,6 +40,7 @@ use SpeedPuzzling\Web\Services\StripeWebhookHandler;
 use Stripe\StripeClient;
 use Symfony\Bridge\Doctrine\SchemaListener\PdoSessionHandlerSchemaListener;
 use Symfony\Component\Cache\Adapter\RedisAdapter;
+use Symfony\Component\HttpClient\HttpClient;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 use Symfony\Component\HttpFoundation\Session\Storage\Handler\PdoSessionHandler;
 
@@ -289,6 +292,28 @@ return static function (ContainerConfigurator $configurator): void {
         ->args([
             service('monolog.logger.object_storage'),
             null, // own transport - autowiring would hand it the framework http_client
+        ]);
+
+    // Amazon SES (docs/features/mass-mailing/README.md): stream marking, suppression and the pre-approval test
+    // routing sit in front of the mailer's transports; SNS certificates and subscription confirmations are fetched
+    // with a client of their own (tests swap it, config/services_test.php)
+    $services->set(MailStreamRouting::class)
+        ->decorate('mailer.transports')
+        ->args([
+            '$inner' => service('.inner'),
+            '$sesTestRecipients' => env('SES_TEST_RECIPIENTS'),
+            '$sesDsn' => env('MAILER_SES_DSN'),
+        ]);
+
+    $services->set('ses_events.http_client', HttpClientInterface::class)
+        ->factory([HttpClient::class, 'create'])
+        ->args([['timeout' => 5, 'max_redirects' => 0]]);
+
+    $services->set(SnsMessageVerifier::class)
+        ->args([
+            '$httpClient' => service('ses_events.http_client'),
+            '$cache' => service('sns_certificate_cache'),
+            '$allowedTopicArns' => env('SES_EVENTS_TOPIC_ARNS'),
         ]);
 
     // AsyncAws logs every failed request at error level before it throws. The

@@ -9542,3 +9542,13 @@ online_rounds:
         title: "Studio"
     watch:
         title: "Sledovat živě"
+
+email_undeliverable:
+    title: "Na adresu %email% nelze doručit e-maily."
+    paused: "Upozornění na tuto adresu jsme pozastavili. Důležité e-maily, jako odkazy pro přihlášení, posíláme dál."
+    reason:
+        no_email: "Přijímající poštovní server uvádí, že tato adresa neexistuje."
+        suppressed: "E-maily na tuto adresu se už dříve vrátily jako nedoručitelné."
+        general: "Přijímající poštovní server naše e-maily odmítl."
+    server_said: "Odpověď serveru: %answer%"
+    change_address: "Změnit e-mailovou adresu"

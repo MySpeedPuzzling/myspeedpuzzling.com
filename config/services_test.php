@@ -87,6 +87,10 @@ return static function (ContainerConfigurator $configurator): void {
     $services->set('social_login.http_client', \GuzzleHttp\Client::class)
         ->factory([\SpeedPuzzling\Web\Tests\TestDouble\SocialLoginHttpMock::class, 'client']);
 
+    // SNS certificates + subscription confirmations never leave the process (static, like the social login mock)
+    $services->set('ses_events.http_client', \Symfony\Component\HttpClient\MockHttpClient::class)
+        ->factory([\SpeedPuzzling\Web\Tests\TestDouble\SnsHttpMock::class, 'client']);
+
     // S3 failover: the real FailoverS3Adapter stays wired (see
     // config/packages/test/oneup_flysystem.php), only the raw S3 adapter and
     // the local spool are swapped for in-memory doubles. setFailing(true) on

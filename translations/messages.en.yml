@@ -9950,3 +9950,13 @@ online_rounds:
             title: "No live video for this round"
             text: "This round has no live video to watch. The event page has its schedule and, later, its results."
             back: "Back to the event"
+
+email_undeliverable:
+    title: "We can't deliver e-mails to %email%."
+    paused: "We have paused notifications to this address. Important e-mails, like sign-in links, are still sent."
+    reason:
+        no_email: "The receiving mail server says this address does not exist."
+        suppressed: "E-mails to this address have bounced before."
+        general: "The receiving mail server refused our e-mails."
+    server_said: "The server's answer: %answer%"
+    change_address: "Change your e-mail address"

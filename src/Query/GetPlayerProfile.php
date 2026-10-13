@@ -197,10 +197,15 @@ SELECT
     ) AS membership_ends_at,
     player.xp_total,
     player.level,
-    player.achievement_points
+    player.achievement_points,
+    -- The address hard-bounced (docs/features/mass-mailing/README.md): the banner asking for a working one
+    email_suppression.id IS NOT NULL AS email_undeliverable,
+    email_suppression.bounce_sub_type AS email_undeliverable_sub_type,
+    email_suppression.diagnostic_code AS email_undeliverable_diagnostic
 FROM player
 LEFT JOIN user_account ON user_account.user_id = player.user_id
 LEFT JOIN membership ON membership.player_id = player.id
+LEFT JOIN email_suppression ON email_suppression.email = user_account.email
 WHERE player.user_id = :userId
 SQL;
 

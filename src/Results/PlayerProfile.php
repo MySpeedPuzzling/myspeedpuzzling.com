@@ -80,6 +80,9 @@ use SpeedPuzzling\Web\Value\SkillTier;
  *     achievement_points?: int|string,
  *     msp_rating_rank?: null|int|string,
  *     skill_tier?: null|int|string,
+ *     email_undeliverable?: bool,
+ *     email_undeliverable_sub_type?: null|string,
+ *     email_undeliverable_diagnostic?: null|string,
  *  }
  */
 readonly final class PlayerProfile
@@ -213,6 +216,11 @@ readonly final class PlayerProfile
          * shown through PlayerHeader::tierChip() and the player card's rules, never on its own.
          */
         public null|SkillTier $skillTier = null,
+        /**
+         * The signed-in player's own profile only: their address hard-bounced (email_suppression) - the banner asks
+         * for a working one (docs/features/mass-mailing/README.md)
+         */
+        public null|EmailUndeliverable $emailUndeliverable = null,
     ) {
     }
 
@@ -423,6 +431,9 @@ readonly final class PlayerProfile
             achievementPoints: (int) ($row['achievement_points'] ?? 0),
             mspRatingRank: isset($row['msp_rating_rank']) ? (int) $row['msp_rating_rank'] : null,
             skillTier: isset($row['skill_tier']) ? SkillTier::tryFrom((int) $row['skill_tier']) : null,
+            emailUndeliverable: ($row['email_undeliverable'] ?? false) === true
+                ? new EmailUndeliverable($row['email_undeliverable_sub_type'] ?? null, $row['email_undeliverable_diagnostic'] ?? null)
+                : null,
         );
     }
 

@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Tests\EventSubscriber;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use SpeedPuzzling\Web\EventSubscriber\EmailAuditSubscriber;
+use SpeedPuzzling\Web\Services\Mailer\SesMessageHeaders;
 use SpeedPuzzling\Web\Value\EmailAuditStatus;
 use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -233,6 +234,38 @@ final class EmailAuditSubscriberTest extends KernelTestCase
         $log = $this->findAuditLogByRecipient('audit-reset@example.com');
         self::assertSame(EmailAuditStatus::Pending->value, $log['status']);
         self::assertNull($log['message_id']);
+    }
+
+    public function testOverSesTheMessageCarriesItsStreamsConfigurationSetAndTagsNamingTheAuditRow(): void
+    {
+        $email = $this->createTemplatedEmail('audit-ses@example.com', 'Digest', 'emails/unread_digest.html.twig');
+        $email->getHeaders()->addTextHeader(SesMessageHeaders::STREAM_HEADER, 'notifications');
+        $event = new MessageEvent($email, Envelope::create($email), 'smtp://email-smtp.eu-central-1.amazonaws.com:587');
+
+        $this->subscriber->onMessage($event);
+
+        $log = $this->findAuditLogByRecipient('audit-ses@example.com');
+        self::assertIsString($log['id']);
+        $headers = $email->getHeaders();
+        self::assertFalse($headers->has(SesMessageHeaders::STREAM_HEADER), 'The stream marker never leaves the app');
+        self::assertSame('notifications', $headers->get('X-SES-CONFIGURATION-SET')?->getBodyAsString());
+        self::assertSame(
+            sprintf('audit_id=%s, email_type=unread_digest', $log['id']),
+            $headers->get('X-SES-MESSAGE-TAGS')?->getBodyAsString(),
+        );
+    }
+
+    public function testOverSeznamNothingSesSpecificIsAddedAndTheStreamMarkerIsGone(): void
+    {
+        $email = $this->createTemplatedEmail('audit-seznam@example.com', 'Sign in', 'emails/sign_in_link.html.twig');
+        $email->getHeaders()->addTextHeader(SesMessageHeaders::STREAM_HEADER, 'transactional');
+
+        $this->subscriber->onMessage(new MessageEvent($email, Envelope::create($email), 'smtp://smtp.seznam.cz:587'));
+
+        $headers = $email->getHeaders();
+        self::assertFalse($headers->has(SesMessageHeaders::STREAM_HEADER));
+        self::assertFalse($headers->has('X-SES-CONFIGURATION-SET'));
+        self::assertFalse($headers->has('X-SES-MESSAGE-TAGS'));
     }
 
     private function createTemplatedEmail(string $to, string $subject, string $template): TemplatedEmail

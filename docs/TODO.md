@@ -74,6 +74,16 @@ that would otherwise be forgotten. Newest section on top.
       add a `{0}` / `[0,Inf[` part where 0 can reach it, then widen `tests/OnlinePluralMessagesTest.php` (stream TX,
       online roots only) to every root with an allowlist of the keys whose callers never pass 0.
 
+## Mass mailing on Amazon SES (`docs/features/mass-mailing/README.md`, built switched off 2026-10-12)
+
+- [ ] Rollout steps 0-8 of the README, one at a time (AWS account first - Jan).
+- [ ] Privacy policy: list AWS (SES) as a sub-processor before the first stream switches.
+- [ ] Metrics per stream (sent / delivered / bounced / complained a day) + an alert on the complaint rate; a paused
+      Listmonk campaign alert that does not go by e-mail.
+- [ ] Un-suppress an address (admin action + removal from the SES suppression list) for "my mailbox works again".
+- [ ] After the switch: rotate/delete the Seznam `newsletter@news` mailbox (its password was printed in a session
+      transcript on 2026-10-12) and switch Listmonk's POP bounce scanner off.
+
 ## Anti-farming (`docs/features/xp-levels/README.md` §Anti-farming, workstream G 2026-10-11)
 
 - [ ] lily.srv: add the `verify-progression --repair` cron row (README §Cron) with the deploy; watch its first warnings

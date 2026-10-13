@@ -10,6 +10,7 @@ use SpeedPuzzling\Web\Message\AwardXpForSolvingTime;
 use SpeedPuzzling\Web\Message\CompensateXpForDeletedSolve;
 use SpeedPuzzling\Web\Message\DeletePlayerStoredFiles;
 use SpeedPuzzling\Web\Message\PrepareDigestEmailForPlayer;
+use SpeedPuzzling\Web\Message\ProcessSesEvent;
 use SpeedPuzzling\Web\Message\PushNewsletterSubscriberToListmonk;
 use SpeedPuzzling\Web\Message\RecalculateBadgesForPlayer;
 use SpeedPuzzling\Web\Message\RecalculateDerivedMetricsForPuzzle;
@@ -80,6 +81,8 @@ return App::config([
                 // Listmonk API calls must not block or fail the user-facing request
                 PushNewsletterSubscriberToListmonk::class => 'async',
                 RemoveNewsletterSubscriberFromListmonk::class => 'async',
+                // Amazon SES events: the endpoint answers SNS at once (docs/features/mass-mailing/README.md)
+                ProcessSesEvent::class => 'async',
                 // Object storage calls after an account deletion - never in the way of the deletion
                 DeletePlayerStoredFiles::class => 'async',
                 DeleteObsoletePuzzleImage::class => 'async',

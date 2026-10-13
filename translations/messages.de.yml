@@ -9515,3 +9515,13 @@ online_rounds:
         title: "Studio"
     watch:
         title: "Live ansehen"
+
+email_undeliverable:
+    title: "Wir können keine E-Mails an %email% zustellen."
+    paused: "Benachrichtigungen an diese Adresse haben wir pausiert. Wichtige E-Mails wie Anmeldelinks senden wir weiterhin."
+    reason:
+        no_email: "Der empfangende Mailserver meldet, dass diese Adresse nicht existiert."
+        suppressed: "E-Mails an diese Adresse kamen schon früher als unzustellbar zurück."
+        general: "Der empfangende Mailserver hat unsere E-Mails abgelehnt."
+    server_said: "Antwort des Servers: %answer%"
+    change_address: "E-Mail-Adresse ändern"

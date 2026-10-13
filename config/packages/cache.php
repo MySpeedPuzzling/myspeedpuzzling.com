@@ -89,6 +89,10 @@ return App::config([
                 'online_watch_spectators' => [
                     'adapters' => ['cache.adapter.redis'],
                 ],
+                // Amazon SNS signing certificates (SnsMessageVerifier), keyed by their URL
+                'sns_certificate_cache' => [
+                    'adapters' => ['cache.app'],
+                ],
             ],
         ],
     ],

@@ -8,6 +8,8 @@ use Psr\Log\LoggerInterface;
 use SpeedPuzzling\Web\Message\CreateEmailAuditLog;
 use SpeedPuzzling\Web\Message\RecordEmailSendFailure;
 use SpeedPuzzling\Web\Message\RecordEmailSendSuccess;
+use SpeedPuzzling\Web\Services\Mailer\SesMessageHeaders;
+use SpeedPuzzling\Web\Value\MailStream;
 use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\Mailer\Event\FailedMessageEvent;
@@ -18,6 +20,7 @@ use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\HandledStamp;
 use Symfony\Component\Mime\Address;
 use Symfony\Component\Mime\Email;
+use Symfony\Component\Mime\Message;
 use Symfony\Contracts\Service\ResetInterface;
 
 final class EmailAuditSubscriber implements EventSubscriberInterface, ResetInterface
@@ -92,6 +95,9 @@ final class EmailAuditSubscriber implements EventSubscriberInterface, ResetInter
 
         $message = $event->getMessage();
 
+        // Always taken off: it only carries the stream from MailStreamRouting to here
+        $stream = $message instanceof Message ? SesMessageHeaders::takeStream($message->getHeaders()) : MailStream::Transactional;
+
         if (!$message instanceof Email || $message->getTo() === []) {
             return;
         }
@@ -131,6 +137,12 @@ final class EmailAuditSubscriber implements EventSubscriberInterface, ResetInter
             $auditLogId = $handledStamp->getResult();
 
             $this->pendingAuditIds[$objectId] = $auditLogId;
+
+            // Over SES: the stream's configuration set (which events come back) + tags naming this audit row.
+            // Decided per attempt - inside a failover() transport the Seznam attempt gets none of it
+            if (SesMessageHeaders::isSes($event->getTransport())) {
+                SesMessageHeaders::apply($headers, $stream, $auditLogId, $emailType);
+            }
 
             if ($this->bounceEmailDomain !== '') {
                 $verpAddress = 'bounce+' . $auditLogId . '@' . $this->bounceEmailDomain;

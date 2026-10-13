@@ -63,6 +63,19 @@ class CompetitionParticipant
     #[Column(length: self::ORGANIZER_NOTE_MAX_LENGTH, nullable: true)]
     public null|string $organizerNote = null;
 
+    /**
+     * The personal link of an online competition (OnlineToken, docs/features/online-competitions/README.md §5.4): who
+     * holds it competes as this participant - the token is the access right. Null until the organiser turns online
+     * timing on; assignOnlineToken() again = a new link, the old one stops working.
+     */
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(length: 32, unique: true, nullable: true)]
+    public null|string $onlineToken = null;
+
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    public null|DateTimeImmutable $onlineTokenCreatedAt = null;
+
     public function __construct(
         #[Id]
         #[Immutable]
@@ -211,5 +224,15 @@ class CompetitionParticipant
     public function updateOrganizerNote(null|string $organizerNote): void
     {
         $this->organizerNote = $organizerNote;
+    }
+
+    /**
+     * A personal link for an online competition - also a new one in place of the old (GenerateOnlineTokens,
+     * RegenerateOnlineToken). The caller makes the token (OnlineToken::generate()).
+     */
+    public function assignOnlineToken(string $token, DateTimeImmutable $at): void
+    {
+        $this->onlineToken = $token;
+        $this->onlineTokenCreatedAt = $at;
     }
 }

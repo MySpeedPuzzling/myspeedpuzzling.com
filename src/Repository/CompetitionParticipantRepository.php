@@ -8,6 +8,8 @@ use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\CompetitionParticipant;
 use SpeedPuzzling\Web\Exceptions\CompetitionParticipantNotFound;
+use SpeedPuzzling\Web\Exceptions\OnlineLinkNotFound;
+use SpeedPuzzling\Web\Value\OnlineToken;
 use SpeedPuzzling\Web\Value\RegistrationStatus;
 
 readonly final class CompetitionParticipantRepository
@@ -63,6 +65,33 @@ readonly final class CompetitionParticipantRepository
         }
 
         return $participant;
+    }
+
+    /**
+     * The participant a personal link belongs to (docs/features/online-competitions/README.md §5.4), with its competition
+     * and connected player - removed ones included, the caller decides (OnlineAccess refuses them). A malformed token
+     * never reaches the database.
+     *
+     * @throws OnlineLinkNotFound
+     */
+    public function getByOnlineToken(string $token): CompetitionParticipant
+    {
+        if (OnlineToken::looksValid($token) === false) {
+            throw new OnlineLinkNotFound();
+        }
+
+        /** @var null|CompetitionParticipant $participant */
+        $participant = $this->entityManager->createQueryBuilder()
+            ->select('participant', 'competition', 'player')
+            ->from(CompetitionParticipant::class, 'participant')
+            ->innerJoin('participant.competition', 'competition')
+            ->leftJoin('participant.player', 'player')
+            ->where('participant.onlineToken = :token')
+            ->setParameter('token', $token)
+            ->getQuery()
+            ->getOneOrNullResult();
+
+        return $participant ?? throw new OnlineLinkNotFound();
     }
 
     /**

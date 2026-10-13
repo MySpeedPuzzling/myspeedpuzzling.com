@@ -26,10 +26,10 @@ The living record of where the prototype stands and what comes next. Updated by 
 
 | Phase | State | Notes |
 |---|---|---|
-| 0 - spikes | in progress | S1 footage protocol ready for Jan (spikes.md); S2 bench tools being built (stream DB); S3-S6 follow |
+| 0 - spikes | in progress | S1 footage protocol ready for Jan (spikes.md, with the label list form for several raises); S2 bench tools **built** (`tools/online-bench/`); S6 local run done (VF); S3-S5 follow |
 | 1 - remote stopwatch | **built**, translated | end-to-end pass on the dev stack running; real-device pass on phones pending (`device-test.md`) |
 | 1B - live room + studio | in progress: foundation (VF) on a local LiveKit | then VP (participant video), VM (moderator console + studio), VS (spectators) in parallel; production needs ADR D78 on lily.srv (Jan's OK) |
-| 2 - hands-up detection | groundwork in progress (stream DB) | the finish rule + detector worker + bench; integration into the participant page after 1B |
+| 2 - hands-up detection | groundwork **merged** (stream DB) | the finish rule, the hands-up signal, the detector worker + pacing, the bench; integration into the participant page after VP; tuning waits for S1 footage |
 | 3 - completeness check | not started | the bench's OpenCV self-test comes with DB |
 | 4 - scale + public event | not started | |
 
@@ -51,7 +51,7 @@ The living record of where the prototype stands and what comes next. Updated by 
 |---|---|
 | VF - video foundation (dev LiveKit in the compose profile `video`, tokens, server API client, webhook, studio invites, video switches) | **merged** - proven against a real LiveKit 1.13.9 (join ≈ 0.3 s, 3 simulcast layers, data + permission changes live, 32 webhooks verified); as built: [contracts/phase-1b.md](contracts/phase-1b.md) §8 |
 | VP / VM / VS - participant video, moderator console + studio, spectators | next, in parallel ([contracts/phase-1b.md](contracts/phase-1b.md)) |
-| DB - detection bench (finish rule, hands-up signal, detector worker, bench page + scorer, OpenCV completeness self-test) | in progress |
+| DB - detection bench (finish rule, hands-up signal, detector worker, bench page + scorer, OpenCV completeness self-test) | **merged** - end-to-end on a public-domain clip (candidate +33 ms, no false raise); completeness self-test: no missing piece ever passed as complete (90 synthetic photos); open questions for the footage day in `spikes.md` S2 |
 | TX - online texts: every plural renders for 0, "1 pieces", clearer wording, unused keys, a guard test over all 6 locales | **merged** (`OnlinePluralMessagesTest`) |
 | P1F - fixes from the end-to-end pass: a Reset starts a fresh run, the limiters under concurrency, End never before the click, take-back in seconds, smaller ones | in progress |
 
@@ -65,6 +65,7 @@ The living record of where the prototype stands and what comes next. Updated by 
 
 | Date | What |
 |---|---|
+| 2026-10-13 | Detection bench merged: `finish_machine.js` (hold 0.5 s, 10 s cooldown, every tunable with its reason), `hands_up_signal.js`, `detector.worker.js` + pacing, `tools/online-bench/` (label + run videos frame by frame, `score.mjs` with a parameter sweep, OpenCV completeness checks + synthetic self-test). Findings: Encore runs the worker classic, MediaPipe needs WebGL2 even on the CPU delegate |
 | 2026-10-13 | Video foundation merged: a local LiveKit (compose profile `video`, off by default), tokens, the server API client, the signed webhook, studio invites (migration `Version20261013154345`, additive), the online timing page's video switches, the client wrapper (`livekit-client` 2.22.4 in its own lazy chunk; the initial bundles are byte-identical). Production unchanged: no `LIVEKIT_*` = video off. Also merged: the end-to-end pass (GO drawn on time, the "Tap here once" banner after a reload) and the texts pass (TX) |
 | 2026-10-13 | Translations of all 450 online keys into cs, de, es, fr, ja merged (one translator agent per locale, parity + plural checks). Their findings started the TX pass: 8 plural texts threw at a count of 0, "1 pieces", unclear chips. Older texts fixed on the way: 9 Japanese plurals always showed their first form (the live feed's "auto-update in 1 second"), a Czech one threw for 5+. Phase 1B foundation (VF) and the detection bench (DB) started |
 | 2026-10-13 | Analysis, decisions, plan and Phase 1 contract written and committed; delivery started |

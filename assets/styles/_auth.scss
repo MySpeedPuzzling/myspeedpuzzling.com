@@ -264,7 +264,7 @@
 
 // Instagram / Facebook / TikTok built-in browser
 .auth-in-app-notice {
-    scroll-margin-top: calc(var(--topbar-h, 0px) + 1rem);
+    scroll-margin-top: 1rem;
     transition: box-shadow .2s ease-in-out;
 
     &:target {

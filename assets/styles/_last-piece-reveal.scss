@@ -371,7 +371,7 @@ $xpl-indigo: #4e54c8;
 
 .xpl-deck,
 .xpl-summary {
-  scroll-margin-top: calc(var(--topbar-h, 0px) + .75rem);
+  scroll-margin-top: .75rem;
 }
 
 // The picture gives way on short phones, so a card's facts and the button fit one screen (375 x 667: 167 px)

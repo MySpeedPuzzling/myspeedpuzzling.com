@@ -656,3 +656,25 @@ $nav-labels-media: "(min-width: 1200px) and (min-height: 501px), (min-width: 120
         color: var(--nav-ink, #4b566b);
     }
 }
+
+// ---- The skip link (NAV-11) -------------------------------------------------------------------------------------------
+// The first stop of the Tab order (base.html.twig, right before the top bar): on focus a chip over the bar's start with
+// the bars' focus ring - fixed, so nothing below it moves - 44 px tall. Hidden otherwise (.visually-hidden-focusable).
+body > a.visually-hidden-focusable[href="#main-content"]:is(:focus, :focus-within) {
+    position: fixed;
+    top: 4px;
+    left: 4px;
+    z-index: $z-site-header + 1;
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 0 1rem;
+    border-radius: .75rem;
+    background: var(--nav-bg, #fff);
+    box-shadow: 0 2px 8px rgba(43, 52, 69, .2);
+    color: var(--nav-ink, #4b566b);
+    font-weight: 500;
+    text-decoration: underline;
+    outline: 2px solid var(--nav-focus, #4e54c8);
+    outline-offset: 2px;
+}

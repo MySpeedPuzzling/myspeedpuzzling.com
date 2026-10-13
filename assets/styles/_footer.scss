@@ -51,6 +51,9 @@ $footer-rule-color:    rgba($white, .12);
   font-weight: 600;
   letter-spacing: .09em;
   text-transform: uppercase;
+  // "MYSPEEDPUZZLING" is one word: with a large text size it must break inside its column - wider, it widened a phone's
+  // layout viewport and pushed the fixed bottom bar off the screen (navigation NAV-11, 200 % text)
+  overflow-wrap: anywhere;
   color: $footer-heading-color;
 }
 

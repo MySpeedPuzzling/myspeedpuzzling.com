@@ -138,7 +138,7 @@ $lb-window-link: #c7393b; // coral ink: 5.2:1 on white
 
 // "Jump to me" lands below the site header (rows of the progress boards: id="board-row-<player id>")
 tr[id^="board-row-"] {
-    scroll-margin-top: calc(var(--topbar-h, 0px) + .75rem);
+    scroll-margin-top: .75rem;
 }
 
 @media (prefers-reduced-motion: no-preference) {

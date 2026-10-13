@@ -131,6 +131,39 @@ final class TurboContractScriptTest extends TestCase
     }
 
     /**
+     * NAV-07 (docs/features/navigation README §4.3 "State"): a visit replaces <body> and copies only lang and dir onto
+     * <html> - the client's flags (the head scripts' data-os / data-nav-layout / data-nav-collapsed / is-standalone, the
+     * top bar's data-topbar, a controller's inline custom property) stay, and nothing else of the new page's <html>
+     * arrives (server state never goes on <html> except data-native-app, which never changes within a session). Turbo
+     * scrolls the new page after turbo:render; assets/navigation/visit_scroll.js makes that scroll instant (app.scss's
+     * html { scroll-behavior: smooth } would glide from the previous page's offset) and lets go by turbo:load.
+     */
+    public function testHtmlKeepsTheClientsAttributesAndTheVisitsScrollIsInstant(): void
+    {
+        self::assertSame([
+            'path' => '/de/attributes',
+            'lang' => 'de',
+            'dir' => 'ltr',
+            'server' => ['dataServer' => null, 'classFromServer' => false],
+            'client' => [
+                'topbar' => 'hidden',
+                'layout' => 'rail',
+                'collapsed' => 'help about',
+                'os' => 'ios',
+                'standalone' => true,
+                'compactBar' => '59px',
+            ],
+            'order' => [
+                'turbo:before-render:auto',
+                'turbo:render:auto',
+                'scrollTo(0, 0):auto',
+                'turbo:load:',
+            ],
+            'behaviorAfter' => '',
+        ], $this->facts()['htmlAcrossVisit']);
+    }
+
+    /**
      * @return array<string, mixed>
      */
     private function facts(): array

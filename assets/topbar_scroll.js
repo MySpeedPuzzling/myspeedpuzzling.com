@@ -61,11 +61,44 @@ export function topbarMayHide(nativeApp, facts = {}) {
 }
 
 /**
- * One scroll step. state: {hidden, anchor, lastY, dir} (null at first); y: window.scrollY; mayHide: topbarMayHide().
+ * The scroll position the hide/show rules read: window.scrollY within [0, max] (max = scrollHeight - innerHeight).
+ * iOS's rubber band reports positions beyond both ends while a fling bounces - a bounce back from beyond the end would
+ * otherwise read as a scroll up and bring the bar back (NAV review F3). A max that is not a number clamps only at 0.
+ */
+export function clampScroll(y, max = Infinity) {
+    const current = Math.max(0, Number.isFinite(y) ? y : 0);
+
+    return Number.isFinite(max) ? Math.min(current, Math.max(0, max)) : current;
+}
+
+/**
+ * The bar's state on <html> back to neutral - shown, no shadow (NAV-07, NAV review F1/Q1). <html> outlives a Turbo
+ * visit: the next page must never start with a hidden bar (its header would be computed translated and slide in, or -
+ * a page without the controller, the sign-in pages - stay out of view). `remove` drops data-topbar too: a page without
+ * the controller then starts neutral.
+ */
+export function resetTopbar(root, { remove = false } = {}) {
+    if (!root || typeof root.setAttribute !== 'function') {
+        return;
+    }
+
+    if (remove) {
+        root.removeAttribute('data-topbar');
+    } else {
+        root.setAttribute('data-topbar', 'shown');
+    }
+
+    root.removeAttribute('data-topbar-scrolled');
+}
+
+/**
+ * One scroll step. state: {hidden, anchor, lastY, dir} (null at first); y: window.scrollY; mayHide: topbarMayHide();
+ * maxY: the largest real scroll position (scrollHeight - innerHeight) - y is clamped to [0, maxY] first, so a move that
+ * only comes from the clamp (a rubber band beyond either end) is no move.
  * Returns the next state, with `scrolled` (the page is not at its top: the bar's shadow).
  */
-export function nextTopbarState(state, y, mayHide, barHeight = PHONE_TOPBAR_PX) {
-    const current = Math.max(0, Number.isFinite(y) ? y : 0);
+export function nextTopbarState(state, y, mayHide, barHeight = PHONE_TOPBAR_PX, maxY = Infinity) {
+    const current = clampScroll(y, maxY);
     const previous = state && typeof state === 'object' ? state : { hidden: false, anchor: current, lastY: current, dir: null };
     const lastY = Number.isFinite(previous.lastY) ? previous.lastY : current;
 

@@ -65,7 +65,7 @@
     gap: .75rem;
     padding: .875rem 0;
     border-bottom: 1px solid $ev-line;
-    scroll-margin-top: calc(var(--topbar-h, 0px) + 1rem);
+    scroll-margin-top: 1rem;
 
     @include media-breakpoint-up(lg) {
         grid-template-columns: 64px minmax(0, 1fr);
@@ -363,12 +363,12 @@ a.ev-round-puzzle-name {
 
     .ev-registration-card {
         flex-basis: 100%;
-        scroll-margin-top: calc(var(--topbar-h, 0px) + 1rem);
+        scroll-margin-top: 1rem;
     }
 }
 
 .ev-taking-part {
-    scroll-margin-top: calc(var(--topbar-h, 0px) + 1rem);
+    scroll-margin-top: 1rem;
 }
 
 // The participants list right under Taking part: the component's own empty state and "Connect" button keep page-sized

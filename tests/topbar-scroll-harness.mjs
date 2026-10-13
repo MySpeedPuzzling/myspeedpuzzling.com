@@ -4,8 +4,10 @@
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 import {
+    clampScroll,
     HIDE_AFTER_PX,
     nextTopbarState,
+    resetTopbar,
     PHONE_TOPBAR_PX,
     SHORT_VIEWPORT_PX,
     SHOW_AFTER_PX,
@@ -15,16 +17,29 @@ import {
     transformY,
     translateY,
 } from '../assets/topbar_scroll.js';
+import { focusMovedByTab, installFocusOrigin } from '../assets/navigation/focus_origin.js';
 
 /** Scrolls through the positions, returns whether the bar is hidden after each */
-function scroll(positions, mayHide = true) {
+function scroll(positions, mayHide = true, max = Infinity) {
     let state = null;
 
     return positions.map((y) => {
-        state = nextTopbarState(state, y, mayHide);
+        state = nextTopbarState(state, y, mayHide, PHONE_TOPBAR_PX, max);
 
         return state.hidden;
     });
+}
+
+/** A fake <html>: the attributes resetTopbar() leaves */
+function reset(attributes, options) {
+    const root = {
+        attributes: { ...attributes },
+        setAttribute(name, value) { this.attributes[name] = String(value); },
+        removeAttribute(name) { delete this.attributes[name]; },
+    };
+    resetTopbar(root, options);
+
+    return root.attributes;
 }
 
 const phone = { phone: true, viewportHeight: 800, searchOpen: false, menuOpen: false, popupOpen: false, focusInside: false };
@@ -67,7 +82,50 @@ function standalone({ displayMode = false, iosStandalone = false, webdriver = fa
     return classes;
 }
 
+// NAV-11: the top bar's search field knows a focus moved there by Tab (assets/navigation/focus_origin.js) - a fake window
+// whose capturing keydown listeners and timers the cases drive by hand
+const focusWindow = { listeners: [], timers: [] };
+focusWindow.addEventListener = (type, listener, capture) => focusWindow.listeners.push({ type, listener, capture });
+focusWindow.setTimeout = (callback) => focusWindow.timers.push(callback);
+const firstInstall = installFocusOrigin(focusWindow);
+const secondInstall = installFocusOrigin(focusWindow);
+const key = (event) => focusWindow.listeners.filter((l) => l.type === 'keydown').forEach((l) => l.listener(event));
+const nextTask = () => focusWindow.timers.splice(0).forEach((callback) => callback());
+const afterKey = (event) => {
+    key(event);
+    const during = focusMovedByTab();
+    nextTask();
+
+    return [during, focusMovedByTab()];
+};
+
 const results = {
+    // NAV review F3: a page of 600 px scroll range; iOS's rubber band reports 640, 620 while a fling bounces at the end
+    rubberBand: {
+        clamped: scroll([0, 300, 600, 640, 620, 600], true, 600),
+        unclamped: scroll([0, 300, 600, 640, 620, 600], true),
+        backUpForReal: scroll([0, 300, 600, 640, 600, 580], true, 600),
+        topBounce: scroll([0, 300, 0, -40, -10], true, 600),
+        shortPage: scroll([0, 40, 48], true, 48),
+    },
+    clampScroll: [clampScroll(-20, 600), clampScroll(700, 600), clampScroll(300, 600), clampScroll(Number.NaN, 600), clampScroll(900), clampScroll(900, -5)],
+    // NAV-07 / NAV review F1: <html> back to neutral before the next page renders, off it when the controller goes
+    reset: {
+        hidden: reset({ 'data-topbar': 'hidden', 'data-topbar-scrolled': '', lang: 'en' }),
+        remove: reset({ 'data-topbar': 'hidden', 'data-topbar-scrolled': '', lang: 'en' }, { remove: true }),
+        nothing: reset({ lang: 'en' }),
+    },
+    focusOrigin: {
+        install: [firstInstall, secondInstall, focusWindow.listeners.map((l) => [l.type, l.capture])],
+        before: focusMovedByTab(),
+        tab: afterKey({ key: 'Tab' }),
+        shiftTab: afterKey({ key: 'Tab', shiftKey: true }),
+        ctrlTab: afterKey({ key: 'Tab', ctrlKey: true }),
+        altTab: afterKey({ key: 'Tab', altKey: true }),
+        letter: afterKey({ key: 'k' }),
+        ctrlK: afterKey({ key: 'k', ctrlKey: true }),
+    },
+
     constants: { HIDE_AFTER_PX, SHOW_AFTER_PX, PHONE_TOPBAR_PX, SHORT_VIEWPORT_PX },
 
     // The Verify's steps: scrollTo 400 at once hides it, 20 px up brings it back

@@ -3,6 +3,7 @@ import { getComponent } from '@symfony/ux-live-component';
 import layers, { LAYER_CLOSED_EVENT } from '../layer_history.js';
 import { isNativeApp } from '../platform.js';
 import { TOPBAR_REVEAL_EVENT } from '../topbar_scroll.js';
+import { focusMovedByTab } from '../navigation/focus_origin.js';
 
 // Whatever opens the page's search (the top bar's 🔍 icon, the old header's search tool, the 404 page's button) - one
 // delegated listener
@@ -44,6 +45,8 @@ const SCANNER = 'barcode-scanner';
  * first search input on the page". Mode:
  * - `bar`: the top bar's search field. Focusing it (or the scan button, or any [data-global-search-toggle] - the 🔍 that
  *   replaces the field next to a running stopwatch, the old header's tool) opens the search: <html data-search-open>.
+ *   Not when Tab merely passes through the field (NAV-11, WCAG 3.2.1 - assets/navigation/focus_origin.js): the phone
+ *   view would hide ?, Inbox and ☰ from the Tab order; there the search opens with the first character typed.
  *   On phones that is the search view, a layer of assets/layer_history.js (GEST-01): one same-URL history entry, so
  *   Back, ×, Esc and a tap on the scrim close it and a result opened from it replaces its entry (Back then returns to
  *   the page the search was opened on); the scrim and the page's scroll lock belong to it (phones only, CSS). On
@@ -138,7 +141,8 @@ export default class extends Controller {
 
         window.dispatchEvent(new CustomEvent('barcode-scan:close'));
 
-        if (!this.isMenu()) {
+        // A tap or a click opens the search; Tab passing through does not (a change of context on focus, NAV-11)
+        if (!this.isMenu() && !focusMovedByTab()) {
             this.openView();
         }
     };

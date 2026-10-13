@@ -76,7 +76,7 @@ $lb-tints: (
 .lb-row {
     cursor: pointer;
     // "Jump to me" lands below the site header and the compact bar (compact_bar_controller.js publishes its height)
-    scroll-margin-top: calc(var(--topbar-h, 0px) + var(--compact-bar-height, 0px) + .75rem);
+    scroll-margin-top: calc(var(--compact-bar-height, 0px) + .75rem);
 }
 
 // The time is the row's link to the result detail - it looks like the time, not like a link

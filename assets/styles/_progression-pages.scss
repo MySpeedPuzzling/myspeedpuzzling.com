@@ -184,7 +184,7 @@ $progression-muted: #5b616d;
     background: $progression-achievements-bg;
     font-size: .875rem;
     color: #4b3a14;
-    scroll-margin-top: calc(var(--topbar-h, 0px) + .75rem);
+    scroll-margin-top: .75rem;
 }
 
 // --- XP history: one block per solve --------------------------------------------------------------------------------
@@ -251,7 +251,7 @@ $progression-muted: #5b616d;
 
 // Methodology sections the hub links to (#skill-tier, #msp-rating) land below the sticky header
 .methodology-anchor {
-    scroll-margin-top: calc(var(--topbar-h, 0px) + .75rem);
+    scroll-margin-top: .75rem;
 }
 
 // --- Leaderboards pill row (templates/_leaderboards_nav.html.twig) -------------------------------------------------

@@ -35,6 +35,8 @@ import './turbo-stream-actions.js'
 import layers from './layer_history.js';
 // The desktop Menu column / rail: the docked-or-rail choice, folded groups, the column's scroll (NAV-13; CSS lays it out)
 import './navigation/nav_layout.js';
+// A Turbo visit lands at its top at once - never a smooth glide from the previous page's offset (NAV-07)
+import './navigation/visit_scroll.js';
 import { startNavInstrumentation } from './nav_instrumentation.js';
 import { installConfirmDialog } from './confirm_dialog.js';
 import { installDocumentReceipts } from './document_receipt.js';

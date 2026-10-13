@@ -46,6 +46,29 @@
     list-style: none;
 }
 
+// A row's icon (Bootstrap Icons, a font with font-display: swap): a box of its own size with the glyph centred inside,
+// laid out the same with or without the font - the icon font arriving after the first paint moves nothing (NAV-07: no
+// layout shift in the docked column; measured: an inline glyph shifted, this box does not)
+@mixin menu-row-icon($box, $glyph) {
+    position: relative;
+    display: block;
+    flex: 0 0 $box;
+    width: $box;
+    height: $box;
+    overflow: hidden;
+    font-size: $glyph;
+    line-height: $box;
+    text-align: center;
+
+    &::before {
+        position: absolute;
+        inset: 0;
+        display: block;
+        line-height: $box;
+        vertical-align: top;
+    }
+}
+
 // A row: the whole width is the target
 .mr {
     display: flex;
@@ -62,10 +85,7 @@
     -webkit-tap-highlight-color: transparent;
 
     > .bi {
-        flex: 0 0 1.5rem;
-        font-size: 1.25rem;
-        line-height: 1;
-        text-align: center;
+        @include menu-row-icon(1.5rem, 1.25rem);
         color: var(--nav-label, #5f6b80);
     }
 
@@ -307,10 +327,11 @@
     }
 }
 
+// Sign in carries text: the darker coral of + Add (white on #d63c42: 4.58:1 - the tab bar's #ec4f52 is for icons only)
 .menu-guest-btn--primary {
-    border-color: var(--nav-add-bg, #ec4f52);
+    border-color: var(--nav-badge-bg, #d63c42);
     color: var(--nav-add-ink, #fff);
-    background: var(--nav-add-bg, #ec4f52);
+    background: var(--nav-badge-bg, #d63c42);
 
     &:hover,
     &:focus {
@@ -367,21 +388,21 @@
     padding: .375rem .5rem;
 
     > .bi {
-        flex: 0 0 1.5rem;
-        font-size: 1.25rem;
-        line-height: 1;
-        text-align: center;
+        @include menu-row-icon(1.5rem, 1.25rem);
         color: var(--nav-label, #5f6b80);
     }
 }
 
 .mr-links {
     display: flex;
+    flex: 1 1 auto;
     flex-wrap: wrap;
     align-items: center;
+    column-gap: 1rem;
     min-width: 0;
 
     a {
+        position: relative;
         display: inline-flex;
         align-items: center;
         min-height: 44px;
@@ -399,9 +420,13 @@
         }
     }
 
+    // The separator sits in the gap, outside the link's own width: a link that does not fit its line wraps whole -
+    // with a large text size the three never overflow the docked column (NAV-11, 200 % text)
     a + a::before {
         content: "·";
-        padding: 0 .5rem;
+        position: absolute;
+        left: -.5rem;
+        transform: translateX(-50%);
         color: var(--nav-label, #5f6b80);
     }
 }

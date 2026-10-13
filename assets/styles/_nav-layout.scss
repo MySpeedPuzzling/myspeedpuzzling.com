@@ -55,17 +55,25 @@ $nav-collapsible-groups: roles, puzzling, library, add, account, help, about;
             }
         }
 
+        // 56 px tall - taller only when a large text size wraps a label
         .nav-tab {
             justify-content: center;
-            height: 56px;
+            min-height: 56px;
             padding: 0 2px;
             border-radius: .75rem;
         }
 
+        // Always visible, never stepped down (bottom_nav_controller.js leaves the rail alone): a label that does not fit
+        // the 84 px - a large text size, NAV-11 at 200 % - wraps (at a hyphen of the page's language where the browser
+        // knows one), centred under its icon
         .nav-tab-label,
         .nav-rail-label {
             max-width: 100%;
             overflow: visible;
+            white-space: normal;
+            overflow-wrap: anywhere;
+            hyphens: auto;
+            text-align: center;
         }
 
         // A guest's Profile reads "Sign in" in the rail (the tab word stays the phone bar's)
@@ -79,7 +87,6 @@ $nav-collapsible-groups: roles, puzzling, library, add, account, help, about;
             font-size: .6875rem;
             font-weight: 500;
             line-height: .875rem;
-            white-space: nowrap;
         }
 
         .nav-tab:hover .nav-tab-icon {
@@ -198,8 +205,7 @@ $nav-collapsible-groups: roles, puzzling, library, add, account, help, about;
         font-size: inherit;
 
         > .bi {
-            flex-basis: 1.25rem;
-            font-size: 1.0625rem;
+            @include menu-row-icon(1.25rem, 1.0625rem);
         }
 
         &::after {
@@ -238,8 +244,7 @@ $nav-collapsible-groups: roles, puzzling, library, add, account, help, about;
         padding: .25rem .5rem;
 
         > .bi {
-            flex-basis: 1.25rem;
-            font-size: 1.0625rem;
+            @include menu-row-icon(1.25rem, 1.0625rem);
         }
     }
 

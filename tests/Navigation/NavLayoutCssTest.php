@@ -381,19 +381,56 @@ final class NavLayoutCssTest extends TestCase
         self::assertStringContainsString('.site-header{position:sticky;top:0;', $this->criticalRules());
     }
 
+    /**
+     * Anchors land below the live top bar (decision 17): since NAV-11 through <html>'s scroll-padding-top =
+     * var(--topbar-h) (critical CSS; scroll-padding-bottom = the phone bottom bar) - every scroll into view, the focus
+     * moving with Tab included. A scroll margin that added the bar's height again would count it twice.
+     */
     public function testScrollMarginsReadTheLiveTopBarHeight(): void
     {
+        self::assertStringContainsString("\nhtml{scroll-padding-top:var(--topbar-h);scroll-padding-bottom:var(--bottom-nav-height)}\n", $this->criticalRules());
+
         $violations = [];
 
         foreach ($this->files('assets/styles', ['scss']) as $path => $code) {
-            if (preg_match_all('~scroll-margin-top\s*:[^;]*--header-height[^;]*;~', $code, $matches) > 0) {
+            if (preg_match_all('~scroll-margin-top\s*:[^;]*--(header-height|topbar-h)[^;]*;~', $code, $matches) > 0) {
                 foreach ($matches[0] as $match) {
                     $violations[] = $path . ': ' . $match;
                 }
             }
         }
 
-        self::assertSame([], $violations, 'Scroll margins read the live var(--topbar-h), not the static --header-height');
+        self::assertSame([], $violations, 'html\'s scroll-padding-top reserves the live top bar; scroll margins add only their own gap');
+    }
+
+    /**
+     * NAV-07: the Menu's row icons are Bootstrap Icons, a font with font-display: swap. Each sits in a box of its own size
+     * with the glyph laid out inside it (measured in Chromium: an inline glyph shifts when the font arrives after the
+     * first paint, this box does not), so the docked column reports no layout shift on a cold load.
+     */
+    public function testMenuRowIconsKeepTheirBoxWithoutTheIconFont(): void
+    {
+        $menu = (string) file_get_contents($this->root() . '/assets/styles/_nav-menu.scss');
+
+        if (preg_match('~@mixin menu-row-icon\(\$box, \$glyph\) \{(.*?)\n\}~s', $menu, $mixin) !== 1) {
+            self::fail('No menu-row-icon mixin in _nav-menu.scss');
+        }
+
+        foreach (['flex: 0 0 $box;', 'width: $box;', 'height: $box;', 'overflow: hidden;', 'line-height: $box;', 'position: absolute;', 'inset: 0;'] as $declaration) {
+            self::assertStringContainsString($declaration, $mixin[1]);
+        }
+
+        foreach (['assets/styles/_nav-menu.scss', 'assets/styles/_nav-layout.scss'] as $file) {
+            $code = (string) file_get_contents($this->root() . '/' . $file);
+            self::assertGreaterThan(0, preg_match_all('~> \.bi \{([^}]*)\}~', $code, $blocks), $file);
+
+            foreach ($blocks[1] as $block) {
+                // A glyph size alone stays inside its box (the place rows' larger glyph); a box size goes through the mixin
+                if (preg_match('~\b(flex|width|height|line-height)\s*:~', $block) === 1) {
+                    self::assertStringContainsString('@include menu-row-icon(', $block, $file . ': a row icon sized without the box');
+                }
+            }
+        }
     }
 
     public function testCriticalCssDefinesTheVariables(): void
@@ -438,7 +475,11 @@ final class NavLayoutCssTest extends TestCase
         }
 
         // README §5 tokens
-        foreach (['--nav-bg:#fff', '--nav-active-ink:#c8323a', '--nav-add-bg:#ec4f52', '--tabbar-h:56px', '--desk-topbar-h:64px', '--nav-col-w:256px', '--nav-rail-w:88px', '--nav-hide-dur:200ms', '--nav-show-dur:280ms'] as $token) {
+        // The bar: README's 56 px at the default text size (39.5 px + .875rem = 53.5 px at 16 px), taller only with a larger
+        // text size so its label is never cut (NAV-11: 68 px at 200 %)
+        self::assertStringContainsString('--tabbar-h:max(56px,calc(39.5px + .875rem))', $css);
+
+        foreach (['--nav-bg:#fff', '--nav-active-ink:#c8323a', '--nav-add-bg:#ec4f52', '--desk-topbar-h:64px', '--nav-col-w:256px', '--nav-rail-w:88px', '--nav-hide-dur:200ms', '--nav-show-dur:280ms'] as $token) {
             self::assertStringContainsString($token, $css);
         }
 

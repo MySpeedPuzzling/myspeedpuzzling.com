@@ -2,6 +2,8 @@ import { Controller } from '@hotwired/stimulus';
 import { isNativeApp } from '../platform.js';
 import {
     nextTopbarState,
+    PHONE_TOPBAR_PX,
+    resetTopbar,
     STICKY_FOLLOWERS,
     stuckAt,
     TOPBAR_REVEAL_EVENT,
@@ -26,7 +28,12 @@ const STUCK = 'data-topbar-stuck';
  * bar hides and on every frame while it is hidden, never moved while it sits further down the page.
  * Never hidden on desktop, under 480 px of height, inside the app, while the search, the Menu or a menu of the bar is
  * open, or while the focus is inside the bar. `msp:topbar-reveal` on window brings it back (the search, GEST-03).
- * Not data-turbo-permanent: every page's bar starts shown.
+ * Not data-turbo-permanent: every page's bar starts shown (NAV-07) - set again before Turbo inserts the next page
+ * (turbo:before-render): <html> keeps its attributes across visits, and a new bar whose style were computed while it
+ * still said "hidden" (the Menu's script after #site-menu measures during the render) would slide in on the new page;
+ * disconnect() takes the state off <html> altogether - a page without the controller (the sign-in pages' header shares
+ * .site-header) starts neutral (NAV review F1). The first decision waits for the next frame, when Turbo has put the new
+ * page at its top. The scroll position is clamped to the page's range (iOS's rubber band, review F3).
  *
  * The installed app's back button (topbar#back) goes back in the history when there is one, else follows its link -
  * the place's start page.
@@ -39,26 +46,32 @@ export default class extends Controller {
         this.phone = typeof window.matchMedia === 'function' ? window.matchMedia(PHONE_QUERY) : null;
 
         // Every page starts with its bar shown (NAV-07: <html> keeps its attributes across Turbo visits)
-        this.root.setAttribute('data-topbar', 'shown');
+        this.reset();
 
         window.addEventListener('scroll', this.schedule, { passive: true });
         window.addEventListener('resize', this.schedule, { passive: true });
         window.addEventListener(TOPBAR_REVEAL_EVENT, this.reveal);
+        document.addEventListener('turbo:before-render', this.beforeRender);
         this.element.addEventListener('focusin', this.schedule);
 
-        this.update();
+        // Read in the next frame: during a Turbo render the window still holds the previous page's scroll position
+        this.schedule();
     }
 
     disconnect() {
         window.removeEventListener('scroll', this.schedule);
         window.removeEventListener('resize', this.schedule);
         window.removeEventListener(TOPBAR_REVEAL_EVENT, this.reveal);
+        document.removeEventListener('turbo:before-render', this.beforeRender);
         this.element.removeEventListener('focusin', this.schedule);
 
         if (this.frame !== null) {
             window.cancelAnimationFrame(this.frame);
             this.frame = null;
         }
+
+        // The next page may have no bar of its own (the sign-in pages, bar-free pages): it starts neutral
+        resetTopbar(this.root, { remove: true });
     }
 
     schedule = () => {
@@ -73,7 +86,9 @@ export default class extends Controller {
     };
 
     update() {
-        this.state = nextTopbarState(this.state, window.scrollY, this.mayHide());
+        // The page's real scroll range: iOS's rubber band reports positions beyond its end (NAV review F3)
+        const max = document.documentElement.scrollHeight - window.innerHeight;
+        this.state = nextTopbarState(this.state, window.scrollY, this.mayHide(), PHONE_TOPBAR_PX, max);
         this.apply(this.state);
     }
 
@@ -89,6 +104,21 @@ export default class extends Controller {
             focusInside: active !== null && active !== document.body && this.element.contains(active),
         });
     }
+
+    /** Shown, no shadow, counting from scratch */
+    reset() {
+        this.state = null;
+        resetTopbar(this.root);
+    }
+
+    /** The next page is about to be inserted: its bar starts shown (a morph keeps this page, bar and scroll alike) */
+    beforeRender = (event) => {
+        if (event && event.detail && event.detail.renderMethod === 'morph') {
+            return;
+        }
+
+        this.reset();
+    };
 
     /** The search opens, GEST-03 asks: shown at once, counting starts again from here */
     reveal = () => {

@@ -89,6 +89,47 @@
     margin-right: .75rem;
 }
 
+// The Help sheet's text keeps 4.5:1 (NAV-11, WCAG 1.4.3; the sheet is chrome): the theme's coral (#fe696a, 2.82:1 on
+// white) and muted grey (#7d879c, 3.6:1) carry text here, so the chrome's own colours - buttons on the darker coral of
+// + Add and the badges (white on #d63c42: 4.58:1), links in the active ink (#c8323a: 5.3:1), hints in the label grey
+// (#5f6b80: 5.4:1). Shared by the sheet and the full help page.
+.help-feedback,
+.help-sign-in {
+    .btn-primary {
+        --cz-btn-color: #fff;
+        --cz-btn-bg: var(--nav-badge-bg, #d63c42);
+        --cz-btn-border-color: var(--nav-badge-bg, #d63c42);
+        --cz-btn-hover-color: #fff;
+        --cz-btn-hover-bg: var(--nav-active-ink, #c8323a);
+        --cz-btn-hover-border-color: var(--nav-active-ink, #c8323a);
+        --cz-btn-active-color: #fff;
+        --cz-btn-active-bg: #b02a31;
+        --cz-btn-active-border-color: #b02a31;
+        --cz-btn-disabled-color: #fff;
+        --cz-btn-disabled-bg: var(--nav-badge-bg, #d63c42);
+        --cz-btn-disabled-border-color: var(--nav-badge-bg, #d63c42);
+    }
+
+    .btn-outline-primary {
+        --cz-btn-color: var(--nav-active-ink, #c8323a);
+        --cz-btn-border-color: var(--nav-active-ink, #c8323a);
+        --cz-btn-hover-color: #fff;
+        --cz-btn-hover-bg: var(--nav-active-ink, #c8323a);
+        --cz-btn-hover-border-color: var(--nav-active-ink, #c8323a);
+        --cz-btn-active-color: #fff;
+        --cz-btn-active-bg: #b02a31;
+        --cz-btn-active-border-color: #b02a31;
+    }
+
+    .form-text {
+        color: var(--nav-label, #5f6b80);
+    }
+}
+
+.help-language-list a {
+    color: var(--nav-active-ink, #c8323a);
+}
+
 // The sent Help sheet (release()): still on screen, no longer in the way - taps outside its dialog reach the page
 #dynamic-modal-container.is-released {
     pointer-events: none;

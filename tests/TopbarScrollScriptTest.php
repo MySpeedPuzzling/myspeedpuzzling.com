@@ -96,6 +96,57 @@ final class TopbarScrollScriptTest extends TestCase
     }
 
     /**
+     * NAV review F3: iOS reports scroll positions beyond the page's end while a fling bounces. Clamped to the real range,
+     * the bounce back is no move - the bar stays hidden; a real scroll up still brings it back, the top bounce too is
+     * clamped (at 0 the bar shows anyway), and a page whose range ends inside the bar's height never hides it.
+     */
+    public function testTheRubberBandAtTheEndOfAPageIsNoScroll(): void
+    {
+        self::assertSame([
+            'clamped' => [false, true, true, true, true, true],
+            'unclamped' => [false, true, true, true, false, false],
+            'backUpForReal' => [false, true, true, true, true, false],
+            'topBounce' => [false, true, false, false, false],
+            'shortPage' => [false, false, false],
+        ], self::results()['rubberBand']);
+        self::assertSame([0, 600, 300, 0, 900, 0], self::results()['clampScroll']);
+    }
+
+    /**
+     * NAV-07 + NAV review F1/Q1: Turbo keeps <html>'s attributes across a visit - the bar's state goes back to "shown"
+     * (no shadow) before the next page renders, and comes off <html> when the controller disconnects (a page without the
+     * bar, the sign-in pages' header, starts neutral). Nothing else on <html> is touched.
+     */
+    public function testTheBarsStateIsResetForTheNextPage(): void
+    {
+        self::assertSame([
+            'hidden' => ['data-topbar' => 'shown', 'lang' => 'en'],
+            'remove' => ['lang' => 'en'],
+            'nothing' => ['lang' => 'en', 'data-topbar' => 'shown'],
+        ], self::results()['reset']);
+    }
+
+    /**
+     * NAV-11 (WCAG 3.2.1 On Focus): Tab passing through the top bar's search field must not open the search - the phone
+     * view hides ?, Inbox and ☰ and takes a history entry. assets/navigation/focus_origin.js marks a focus moved by Tab
+     * or Shift+Tab (the keydown's default action, the same task) and forgets it in the next task; Ctrl+K and typing are
+     * not Tab (global_search_controller.js opens the search for them).
+     */
+    public function testAFocusMovedByTabIsKnownUntilTheNextTask(): void
+    {
+        self::assertSame([
+            'install' => [true, false, [['keydown', true]]],
+            'before' => false,
+            'tab' => [true, false],
+            'shiftTab' => [true, false],
+            'ctrlTab' => [false, false],
+            'altTab' => [false, false],
+            'letter' => [false, false],
+            'ctrlK' => [false, false],
+        ], self::results()['focusOrigin']);
+    }
+
+    /**
      * @return array<string, mixed>
      */
     private static function results(): array

@@ -12,7 +12,7 @@ const require = createRequire(import.meta.url);
 const { JSDOM, VirtualConsole } = require('jsdom');
 
 const ORIGIN = 'https://msp.test';
-const page = (title) => `<!doctype html><html><head><title>${title}</title></head><body><main><h1>${title}</h1>`
+const page = (title, html = '') => `<!doctype html><html${html}><head><title>${title}</title></head><body><main><h1>${title}</h1>`
     + '<a id="link" href="/en/linked">Linked</a>'
     + '<form id="page-form" method="post" action="/en/submit"><button id="page-submit">Send</button></form>'
     + '<turbo-frame id="frame"><form id="frame-form" method="post" action="/en/frame-submit"><button>Send</button></form></turbo-frame>'
@@ -35,7 +35,8 @@ window.fetch = async (url, options = {}) => {
     const requested = new URL(String(url), window.location.href);
     const target = method === 'GET' ? requested : new URL('/en/after', ORIGIN);
     requests.push({ method, path: requested.pathname, turboFrame: new Headers(options.headers || {}).get('Turbo-Frame') });
-    const html = page(target.pathname);
+    // NAV-07: a page whose <html> carries attributes of its own - Turbo copies lang and dir, nothing else
+    const html = page(target.pathname, target.pathname === '/de/attributes' ? ' lang="de" dir="ltr" data-server="yes" class="from-server"' : '');
 
     return {
         ok: true,
@@ -268,6 +269,58 @@ facts.history = {
     const none = prefers();
     meta.content = 'same-origin';
     facts.viewTransition = { without, sameOrigin, none, againSameOrigin: prefers(), shouldTransitionTo: typeof session.view.shouldTransitionTo };
+}
+
+// ---- NAV-07: <html> keeps the client's attributes across a visit; Turbo's own scroll runs instantly ---------------------
+// The head scripts and controllers set data-topbar, data-nav-layout, data-nav-collapsed, data-os, is-standalone and an
+// inline custom property on <html>; a visit replaces only <body> and copies lang/dir from the new page. Turbo scrolls the
+// new page right after turbo:render: assets/navigation/visit_scroll.js holds scroll-behavior: auto from
+// turbo:before-render until then (app.scss's html { scroll-behavior: smooth } would make it a glide).
+{
+    await import(new URL('../assets/navigation/visit_scroll.js', import.meta.url).href);
+    const root = document.documentElement;
+    root.setAttribute('data-topbar', 'hidden');
+    root.setAttribute('data-nav-layout', 'rail');
+    root.setAttribute('data-nav-collapsed', 'help about');
+    root.setAttribute('data-os', 'ios');
+    root.classList.add('is-standalone');
+    root.style.setProperty('--compact-bar-height', '59px');
+
+    const order = [];
+    const behavior = () => root.style.getPropertyValue('scroll-behavior');
+    const originalScrollTo = window.scrollTo;
+    window.scrollTo = (x, y) => order.push(`scrollTo(${x}, ${y}):${behavior()}`);
+    const log = (event) => order.push(`${event.type}:${behavior()}`);
+    for (const type of ['turbo:before-render', 'turbo:render', 'turbo:load']) {
+        document.addEventListener(type, log);
+    }
+
+    const loaded = settle('turbo:load');
+    Turbo.visit('/de/attributes');
+    await loaded;
+    await new Promise((resolve) => window.requestAnimationFrame(() => resolve()));
+
+    for (const type of ['turbo:before-render', 'turbo:render', 'turbo:load']) {
+        document.removeEventListener(type, log);
+    }
+    window.scrollTo = originalScrollTo;
+
+    facts.htmlAcrossVisit = {
+        path: window.location.pathname,
+        lang: root.getAttribute('lang'),
+        dir: root.getAttribute('dir'),
+        server: { dataServer: root.getAttribute('data-server'), classFromServer: root.classList.contains('from-server') },
+        client: {
+            topbar: root.getAttribute('data-topbar'),
+            layout: root.getAttribute('data-nav-layout'),
+            collapsed: root.getAttribute('data-nav-collapsed'),
+            os: root.getAttribute('data-os'),
+            standalone: root.classList.contains('is-standalone'),
+            compactBar: root.style.getPropertyValue('--compact-bar-height'),
+        },
+        order,
+        behaviorAfter: behavior(),
+    };
 }
 
 facts.internals = {

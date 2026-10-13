@@ -490,7 +490,7 @@ $shelf-press: scale(.97);
     background: #fff;
     box-shadow: $shelf-shadow;
     // The sticky header needs the card's own clipping off; its corners are rounded on the header itself
-    scroll-margin-top: calc(var(--topbar-h, 0px) + .75rem);
+    scroll-margin-top: .75rem;
 
     &.tier-1 { --tier-tint: #fbeee4; --tier-ink: #7a4519; }
     &.tier-2 { --tier-tint: #edf1f7; --tier-ink: #3d4a5f; }
@@ -731,7 +731,7 @@ $shelf-press: scale(.97);
     border-radius: .875rem;
     background: #fff;
     box-shadow: $shelf-shadow;
-    scroll-margin-top: calc(var(--topbar-h, 0px) + .75rem);
+    scroll-margin-top: .75rem;
 }
 
 .achievement-ref-head {

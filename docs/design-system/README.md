@@ -122,6 +122,7 @@ The top bar (`header.site-header`) is `position: sticky`, transformed only while
 | 1020 | content `.sticky-top` (`$z-content-sticky`) |
 | 1029 | homepage language banner (just under the bar); desktop rail / docked Menu column (`$z-nav-column`, NAV-13: one under the top bar, whose search panel and account menu overlap the column) |
 | 1030 | top bar - its search panel lies inside it - phone bottom bar (`$z-site-header`, `$z-bottom-nav`) |
+| 1031 | the skip link while it has the focus (over the top bar's start, NAV-11) |
 | 1035 | floating selection bar of the puzzle lists (`$z-selection-bar`) |
 | 1040 | the Menu shell `#menu-layer` (non-modal); sheet scrims (`$z-menu-layer`) |
 | 1045 | sheets and layers: player card, events ⋯ menu, XP recap sheet, multiscan sheet (`$z-sheet`) |

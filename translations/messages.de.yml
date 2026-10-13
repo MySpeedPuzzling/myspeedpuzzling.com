@@ -2017,6 +2017,11 @@ badges:
   "instructions": "Richten Sie Ihre Kamera auf den EAN (Barcode) auf der Schachtel und versuchen Sie Ihr Glück - wenn das Puzzle in der Datenbank ist, werden wir es finden ;-)."
   "not_found": "Leider ist das Puzzle mit EAN %code% nicht in unserer Datenbank. Fühlen Sie sich frei, die Zeit zu verfolgen und es hinzuzufügen, wir wären dafür dankbar."
   "puzzle_ean_barcode": "Puzzle-EAN-Barcode scannen"
+  "hint": "Halte den Barcode etwa 20 cm entfernt. Tippe auf das Bild, um neu scharfzustellen."
+  "torch": "Licht"
+  "zoom_level": "Zoom %zoom%×"
+  "zoom_in": "Vergrößern"
+  "zoom_out": "Verkleinern"
   "puzzle_form":
     "multiple_brands": "Mehrere Marken für EAN %ean% gefunden. Bitte wählen Sie eine aus der Liste."
     "multiple_puzzles": "Mehrere Puzzles für EAN %ean% gefunden. Bitte wählen Sie eines aus der Liste."

@@ -1,0 +1,37 @@
+{#
+    Over the camera of barcode_scanner_controller.js, inside its wrapper target: one hint line (gone once a code reads,
+    back with the next camera start) and a pill with the light and the zoom. The pill stays hidden until the camera
+    says it can zoom or light up; the zoom label is built in JS from `data-label` (%zoom% = the number in the page's
+    locale).
+#}
+<div class="barcode-scanner-hud">
+    <p class="barcode-scanner-hint" data-barcode-scanner-target="hint">{{ 'scan.hint'|trans }}</p>
+    <div data-barcode-scanner-target="zoomContainer" class="barcode-scanner-pill d-none">
+        <button type="button"
+                data-action="click->barcode-scanner#toggleTorch"
+                data-barcode-scanner-target="torchButton"
+                class="btn btn-sm btn-outline-secondary rounded-circle p-1 d-none"
+                aria-pressed="false"
+                aria-label="{{ 'scan.torch'|trans }}"
+                title="{{ 'scan.torch'|trans }}">
+            <i class="bi-lightbulb" aria-hidden="true"></i>
+        </button>
+        <span data-barcode-scanner-target="zoomControls" class="d-none align-items-center gap-1">
+            <span data-barcode-scanner-target="zoomValue" data-label="{{ 'scan.zoom_level'|trans }}" class="small text-nowrap"></span>
+            <button type="button"
+                    data-action="click->barcode-scanner#zoomOut"
+                    data-barcode-scanner-target="zoomOut"
+                    class="btn btn-sm btn-outline-secondary rounded-circle p-1"
+                    aria-label="{{ 'scan.zoom_out'|trans }}">
+                <i class="bi-dash" aria-hidden="true"></i>
+            </button>
+            <button type="button"
+                    data-action="click->barcode-scanner#zoomIn"
+                    data-barcode-scanner-target="zoomIn"
+                    class="btn btn-sm btn-outline-secondary rounded-circle p-1"
+                    aria-label="{{ 'scan.zoom_in'|trans }}">
+                <i class="bi-plus" aria-hidden="true"></i>
+            </button>
+        </span>
+    </div>
+</div>

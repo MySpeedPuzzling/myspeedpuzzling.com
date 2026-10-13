@@ -1,6 +1,8 @@
 # Barcode scanner: reliable EAN reading
 
-**Status:** research and proposal 2026-10-05. Step 0 shipped 2026-10-06; Steps 1-4 not built.
+**Status:** research and proposal 2026-10-05. Step 0 shipped 2026-10-06. The camera fixes of Step 2, the resolution,
+cropped decoding and acceptance of Step 3 and the debug overlay of Step 1 shipped together on 2026-10-13 (§5.6).
+The beacon, the server net and Step 4 are not built.
 **Scope:** `barcode_scanner_controller.js` and everything that reads its output: multiscan, the add-time form, the global
 search, plus the server-side EAN lookup (`SearchPuzzle::allByEan()`).
 
@@ -391,6 +393,49 @@ get their blur tolerance the same way, through model-based or neural decoding.
   read rate. A drop like 2026-10-04 shows within hours.
 - **Device coverage:** the beacon lists the models of sessions that never read. They become the test list for the next
   step.
+
+### 5.6 Shipped 2026-10-13: the camera fixes in one release
+
+A player wrote from multiscan (2026-10-13): the barcode looked blurry, and a "2.0 zoom" box with plus and minus showed
+for a moment and went away. The box was behind the video: the zoom pill had no `z-index` while the `<video>` has 20,
+so it showed only until the first frame painted - on every scanner but the global search. Jan's call: fix the camera
+side in one go instead of one A/B step at a time (§5.5). What changed in `barcode_scanner_controller.js`:
+
+- **HUD** (`templates/_barcode_scanner_hud.html.twig`, used by all four scanners): one hint line "Hold the barcode about
+  20 cm away. Tap the picture to refocus." (hidden once a code reads) and a pill with the light and the zoom, at
+  `z-index: 40`. The zoom label is translated, the number in the page's locale.
+- **Resolution:** `width: { ideal: 1920 }, height: { ideal: 1080 }, resizeMode: { ideal: 'none' }`. Later
+  `applyConstraints` calls re-send the track's own constraints (minus the device), since a call replaces the whole set.
+- **Lens on Android:** after the first `facingMode` stream, `enumerateDevices()`; a device labelled
+  `camera 0, facing back` / `camera2 0, facing back` other than the one opened is opened instead (the first stream is
+  stopped first - several phones cannot hold two). Kept only when its `focusMode` has `continuous`. The choice is
+  remembered in `localStorage` `msp-scan-camera` (a device id, or `facing` = keep facingMode); a remembered id that
+  fails is forgotten. iOS keeps `facingMode`.
+- **Zoom:** 1.5× by default (Jan), clamped to the camera's range; ± changes it by 0.5 and the choice is remembered in
+  `msp-scan-zoom`.
+- **Focus:** `focusMode: 'continuous'` + `pointsOfInterest` at the centre, re-applied with every zoom change. A kick
+  (manual at 0.25 m → 250 ms → continuous) on a tap on the picture, 2.5 s after the start without any code, then every
+  6 s while no code is seen.
+- **Torch** button where `getCapabilities().torch` is true.
+- **Frames:** the browser's detector gets the whole frame (Google asks for 720p-1080p). zbar gets a centred band of
+  what is on screen (object-fit: cover in multiscan), 90 % of the width × up to 60 % of the width tall, alternating with
+  an upright band where the picture is taller than wide. Corner marks on the overlay show the band. Measured with
+  Chrome's fake camera at 1080p: 7-22 ms per frame on an M-series Mac, first read after 0.6-1.0 s.
+- **Acceptance:** zbar needs 4 agreeing frames with `quality >= 3` (8 for codes starting with `0` and for EAN-8), the
+  browser's detector keeps 10; on both, nothing is accepted while another valid code was seen in the last 2 s, and a
+  frame with two different codes still counts for nothing.
+- **`?scan-debug=1`** (kept for the tab in `sessionStorage`, `?scan-debug=0` ends it): a panel under the picture with
+  engine and band, camera label and how it was picked, every camera's label, video size, zoom, focus mode and distance,
+  the last refocus, torch, frames and decode time, codes seen with zbar's quality, the accepted code, the device model
+  (Chromium's client hints) and the user agent. Ask a player for a screenshot of it, not for "it doesn't focus".
+
+- **`?scanner=zbar` / `?scanner=native`** forces a decoder for the tab (same storage rule, `?scanner=auto` ends it;
+  a forced native detector where the browser has none falls back to zbar). The debug panel's first line says
+  `(forced …)`. Meant for comparing both decoders on one Android phone before the default changes - zbar on Android
+  is still blur-limited (§3.1), and the last blind switch cost half of the Android scans (§1).
+
+Not done: the beacon, so nothing measures the change yet - the Tempo count of `/puzzle-by-ean-search/` per platform
+(§1) is the check until it exists.
 
 ## 6. Open questions for Jan
 

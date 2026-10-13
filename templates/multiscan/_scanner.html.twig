@@ -16,11 +16,7 @@
         <canvas data-barcode-scanner-target="overlay" class="position-absolute top-0 start-0 w-100 h-100" style="pointer-events: none;"></canvas>
         <div class="multiscan-flash" data-barcode-scanner-target="flash" aria-hidden="true"></div>
 
-        <div data-barcode-scanner-target="zoomContainer" class="d-none position-absolute bottom-0 start-50 translate-middle-x mb-2 bg-white rounded-pill px-2 py-1 shadow-sm">
-            <span data-barcode-scanner-target="zoomValue" class="me-1 small">Zoom 1x</span>
-            <button type="button" data-action="click->barcode-scanner#zoomOut" data-barcode-scanner-target="zoomOut" class="btn btn-sm btn-outline-secondary rounded-circle p-1 me-1" aria-label="-"><i class="bi-dash"></i></button>
-            <button type="button" data-action="click->barcode-scanner#zoomIn" data-barcode-scanner-target="zoomIn" class="btn btn-sm btn-outline-secondary rounded-circle p-1" aria-label="+"><i class="bi-plus"></i></button>
-        </div>
+        {{ include('_barcode_scanner_hud.html.twig') }}
     </div>
 
     {# Camera off (not started, denied, stopped): a slim bar so the card never collapses to nothing #}

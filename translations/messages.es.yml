@@ -2033,6 +2033,11 @@ badges:
   "instructions": "Apunta tu cámara al EAN (código de barras) en la caja e intenta tu suerte - si el rompecabezas está en la base de datos, lo encontraremos ;-)."
   "not_found": "Desafortunadamente el rompecabezas con EAN %code% no está en nuestra base de datos. Siéntete libre de rastrear el tiempo y añadirlos, estaremos agradecidos por eso."
   "puzzle_ean_barcode": "Escanear código EAN del puzzle"
+  "hint": "Mantén el código de barras a unos 20 cm. Toca la imagen para volver a enfocar."
+  "torch": "Luz"
+  "zoom_level": "Zoom %zoom%×"
+  "zoom_in": "Acercar"
+  "zoom_out": "Alejar"
   "puzzle_form":
     "not_found": "Puzzle con EAN %ean% no encontrado. Intente buscar por nombre o añádalo como nuevo puzzle."
     "multiple_brands": "Se encontraron varias marcas para el EAN %ean%. Por favor, seleccione una de la lista."

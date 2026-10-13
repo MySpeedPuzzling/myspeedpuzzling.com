@@ -1,5 +1,25 @@
 import { Controller } from '@hotwired/stimulus';
 
+// docs/features/barcode-scanner/README.md (§5.2 camera, §5.3 frames and acceptance)
+const DEFAULT_ZOOM = 1.5;
+const ZOOM_STEP = 0.5;
+// Asked in landscape numbers: Chrome on Android otherwise opens 640x480 (480 px across held upright), where zbar
+// only reads closer than the camera can focus. resizeMode none = a format the camera has, not a scaled one.
+const VIDEO_SIZE = { width: { ideal: 1920 }, height: { ideal: 1080 }, resizeMode: { ideal: 'none' } };
+// Manual focus here, then back to continuous: a mode change restarts Chrome's autofocus, 'single-shot' does nothing
+const FOCUS_KICK_DISTANCE_M = 0.25;
+const FOCUS_KICK_HOLD_MS = 250;
+const FOCUS_KICK_FIRST_MS = 2500;
+const FOCUS_KICK_EVERY_MS = 6000;
+// A read is accepted only while no other code was seen this recently
+const COMPETING_CODE_MS = 2000;
+
+const STORAGE_CAMERA = 'msp-scan-camera';
+const STORAGE_ZOOM = 'msp-scan-zoom';
+const STORAGE_DEBUG = 'msp-scan-debug';
+const STORAGE_ENGINE = 'msp-scan-engine';
+const STORAGE_SOUND = 'msp-scan-sound';
+
 export default class extends Controller {
     static targets = [
         "video",
@@ -9,9 +29,12 @@ export default class extends Controller {
         "overlay",
         "results",
         "zoomContainer",
+        "zoomControls",
         "zoomValue",
         "zoomIn",
         "zoomOut",
+        "torchButton",
+        "hint",
         "flash",
         "soundButton",
     ];
@@ -32,17 +55,17 @@ export default class extends Controller {
 
         this.scanning = false;
         this.paused = false;
-        this.scanBuffer = [];
-        this.lastPushTime = 0;
-        this.currentZoom = 1;
-        this.zoomSupported = false;
-        this.videoTrack = null;
-        this.zoomCapabilities = null;
+        this.cameraSession = 0;
+        this._resetCameraState();
         this.acceptedAt = new Map();
         this.nativeAwaitingResume = false;
         this.audioContext = null;
         this.soundEnabled = this._readSoundPreference();
         this._updateSoundButton();
+        this.debug = this._stickyParam('scan-debug', STORAGE_DEBUG, ['1']) === '1';
+        // ?scanner=zbar / ?scanner=native forces a decoder for this tab (support and testing, README §5.5),
+        // ?scanner=auto goes back to the choice below
+        this.forcedEngine = this._stickyParam('scanner', STORAGE_ENGINE, ['zbar', 'native']);
 
         this._boundStopScanning = () => this.stopScanning();
         window.addEventListener('barcode-scan:close', this._boundStopScanning);
@@ -51,6 +74,14 @@ export default class extends Controller {
         this._boundResume = () => this.resume();
         window.addEventListener('barcode-scan:pause', this._boundPause);
         window.addEventListener('barcode-scan:resume', this._boundResume);
+
+        // Tap the picture to refocus (the hint says so); the pill's buttons do their own thing
+        this._boundTap = (event) => {
+            if (this.scanning && !event.target.closest('button')) {
+                this.kickFocus('tap');
+            }
+        };
+        this.wrapperTarget.addEventListener('click', this._boundTap);
 
         // Native scanner callbacks for iOS/Android apps - claimed when this scanner opens the native one, so another
         // scanner (re)connecting meanwhile, e.g. the global search re-rendering, cannot take the result
@@ -63,10 +94,15 @@ export default class extends Controller {
     }
 
     disconnect() {
+        if (!this.hasToggleButtonTarget) {
+            return;
+        }
+
         this.stopScanning();
         window.removeEventListener('barcode-scan:close', this._boundStopScanning);
         window.removeEventListener('barcode-scan:pause', this._boundPause);
         window.removeEventListener('barcode-scan:resume', this._boundResume);
+        this.wrapperTarget.removeEventListener('click', this._boundTap);
 
         // Clean up native scanner callbacks - only our own, another scanner on the page may hold them
         if (window.onNativeScanResult === this._nativeScanResult) {
@@ -106,10 +142,7 @@ export default class extends Controller {
             return;
         }
 
-        this.wrapperTarget.classList.remove('d-none');
         this.toggleButtonTarget.classList.add('active');
-        this.scanBuffer = [];
-        this.lastPushTime = 0;
 
         if (this.inputTarget.value !== '') {
             this.inputTarget.value = '';
@@ -119,63 +152,317 @@ export default class extends Controller {
             this.resultsTarget.classList.add('d-none');
         }
 
-        navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } } })
-            .then(stream => {
-                this.videoTarget.srcObject = stream;
-                this.videoTarget.play().catch(err => console.error('Video play failed:', err));
-                this.scanning = true;
-
-                this.videoTarget.addEventListener('loadedmetadata', () => {
-                    this.overlayTarget.width = this.videoTarget.videoWidth;
-                    this.overlayTarget.height = this.videoTarget.videoHeight;
-                }, { once: true });
-
-                this.setupZoom(stream);
-                this.scanLoop();
-            })
-            .catch(error => {
-                console.error('Error accessing the camera:', error);
-                this.stopScanning();
-            });
+        this._startCamera();
     }
 
-    setupZoom(stream) {
-        try {
-            const videoTrack = stream.getVideoTracks()[0];
-            if (!videoTrack || typeof videoTrack.getCapabilities !== 'function') {
-                if (this.hasZoomContainerTarget) {
-                    this.zoomContainerTarget.classList.add('d-none');
-                }
-                return;
-            }
+    // --- Camera ---
 
-            const capabilities = videoTrack.getCapabilities();
-            if (capabilities.zoom) {
-                this.zoomSupported = true;
-                this.videoTrack = videoTrack;
-                this.zoomCapabilities = capabilities.zoom;
-                const defaultZoom = Math.min(capabilities.zoom.max, Math.max(capabilities.zoom.min, 2));
-                videoTrack.applyConstraints({
-                    advanced: [{ zoom: defaultZoom }]
-                })
-                    .then(() => {
-                        this.currentZoom = defaultZoom;
-                        if (this.hasZoomContainerTarget) {
-                            this.zoomContainerTarget.classList.remove('d-none');
-                            this.updateZoomUI();
-                        }
-                    })
-                    .catch(err => console.error('Failed to apply zoom constraint:', err));
-            } else if (this.hasZoomContainerTarget) {
-                this.zoomContainerTarget.classList.add('d-none');
+    async _startCamera() {
+        this.wrapperTarget.classList.remove('d-none');
+        this.scanBuffer = [];
+        const session = ++this.cameraSession;
+
+        let opened;
+        try {
+            opened = await this._openStream();
+        } catch (error) {
+            console.error('Error accessing the camera:', error);
+            if (session === this.cameraSession) {
+                this.stopScanning();
             }
-        } catch (err) {
-            console.error('Zoom setup failed:', err);
-            if (this.hasZoomContainerTarget) {
-                this.zoomContainerTarget.classList.add('d-none');
+            return;
+        }
+
+        // Stopped (or started again) while the camera was opening
+        if (session !== this.cameraSession) {
+            opened.stream.getTracks().forEach(track => track.stop());
+            return;
+        }
+
+        this.cameraPick = opened.pick;
+        this.videoTrack = opened.stream.getVideoTracks()[0] || null;
+        this.trackCapabilities = this._capabilities(this.videoTrack);
+        this.videoTarget.srcObject = opened.stream;
+        this.videoTarget.play().catch(err => console.error('Video play failed:', err));
+        this.scanning = true;
+        this.startedAt = Date.now();
+        if (this.hasHintTarget) {
+            this.hintTarget.classList.remove('d-none');
+        }
+        this.nextFocusKickAt = this.startedAt + FOCUS_KICK_FIRST_MS;
+
+        this.videoTarget.addEventListener('loadedmetadata', () => this._sizeOverlay(), { once: true });
+
+        this._setupTrack();
+        this._startDebug();
+        this.scanLoop();
+    }
+
+    /**
+     * @returns {Promise<{stream: MediaStream, pick: string}>}
+     */
+    async _openStream() {
+        const media = navigator.mediaDevices;
+        const remembered = this._readStorage(window.localStorage, STORAGE_CAMERA);
+
+        if (remembered && remembered !== 'facing') {
+            try {
+                return { stream: await media.getUserMedia(this._constraints({ deviceId: { exact: remembered } })), pick: 'remembered main lens' };
+            } catch (e) {
+                // Gone (cleared site data rotates the ids, another browser profile): pick again
+                this._writeStorage(window.localStorage, STORAGE_CAMERA, null);
             }
         }
+
+        const stream = await media.getUserMedia(this._constraints({ facingMode: { ideal: 'environment' } }));
+
+        // Chrome on Android opens the highest-index back camera for facingMode - on phones with several back lenses
+        // often the ultra-wide without autofocus. iPhones are fine: Safari picks the virtual camera that switches lenses.
+        if (remembered === 'facing' || !/Android/i.test(navigator.userAgent)) {
+            return { stream, pick: 'facingMode' };
+        }
+
+        const main = await this._mainBackCamera(stream);
+        if (main === null) {
+            this._writeStorage(window.localStorage, STORAGE_CAMERA, 'facing');
+            return { stream, pick: 'facingMode' };
+        }
+
+        // Several phones cannot hold two cameras open
+        stream.getTracks().forEach(track => track.stop());
+
+        try {
+            const mainStream = await media.getUserMedia(this._constraints({ deviceId: { exact: main.deviceId } }));
+            const focusModes = this._capabilities(mainStream.getVideoTracks()[0]).focusMode;
+
+            if (!Array.isArray(focusModes) || focusModes.indexOf('continuous') !== -1) {
+                this._writeStorage(window.localStorage, STORAGE_CAMERA, main.deviceId);
+                return { stream: mainStream, pick: 'main lens' };
+            }
+
+            mainStream.getTracks().forEach(track => track.stop());
+        } catch (e) {
+            console.error('The main back camera could not be opened:', e);
+        }
+
+        this._writeStorage(window.localStorage, STORAGE_CAMERA, 'facing');
+
+        return { stream: await media.getUserMedia(this._constraints({ facingMode: { ideal: 'environment' } })), pick: 'facingMode' };
     }
+
+    _constraints(camera) {
+        return { audio: false, video: Object.assign({}, camera, VIDEO_SIZE) };
+    }
+
+    /**
+     * Android names its cameras "camera 0, facing back" (Chrome 139+) or "camera2 0, facing back"; 0 is the main one
+     *
+     * @returns {Promise<MediaDeviceInfo|null>} null = keep the camera we have
+     */
+    async _mainBackCamera(stream) {
+        try {
+            const current = stream.getVideoTracks()[0];
+            const currentId = current && typeof current.getSettings === 'function' ? current.getSettings().deviceId : null;
+            const devices = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'videoinput');
+            this.cameraLabels = devices.map(d => d.label || '(no label)');
+            const main = devices.find(d => /^camera2? 0\b.*facing back/i.test(d.label));
+
+            return main && main.deviceId !== currentId ? main : null;
+        } catch (e) {
+            return null;
+        }
+    }
+
+    _capabilities(track) {
+        try {
+            return track && typeof track.getCapabilities === 'function' ? (track.getCapabilities() || {}) : {};
+        } catch (e) {
+            return {};
+        }
+    }
+
+    _settings() {
+        try {
+            return this.videoTrack && typeof this.videoTrack.getSettings === 'function' ? (this.videoTrack.getSettings() || {}) : {};
+        } catch (e) {
+            return {};
+        }
+    }
+
+    async _setupTrack() {
+        const track = this.videoTrack;
+        const caps = this.trackCapabilities;
+
+        this.zoomCapabilities = caps.zoom && caps.zoom.max > caps.zoom.min ? caps.zoom : null;
+        this.torchSupported = caps.torch === true;
+
+        if (this.zoomCapabilities) {
+            const remembered = parseFloat(this._readStorage(window.localStorage, STORAGE_ZOOM));
+            this.currentZoom = this._clampZoom(Number.isFinite(remembered) ? remembered : DEFAULT_ZOOM);
+        }
+
+        await this._applyCameraState();
+
+        if (track === this.videoTrack) {
+            this._updateHud();
+        }
+    }
+
+    _clampZoom(zoom) {
+        const caps = this.zoomCapabilities;
+
+        return Math.min(caps.max, Math.max(caps.min, zoom));
+    }
+
+    /**
+     * One call with everything the track should hold: applyConstraints replaces the whole set, and a zoom change
+     * clears Chrome's focus point.
+     *
+     * @param {Object} focus override, e.g. the manual step of a focus kick
+     */
+    async _applyCameraState(focus = null) {
+        const track = this.videoTrack;
+        if (!track || typeof track.applyConstraints !== 'function') {
+            return;
+        }
+
+        const caps = this.trackCapabilities;
+        // Each set on its own: a set the camera cannot satisfy is skipped, the others still apply
+        const advanced = [];
+        if (this.zoomCapabilities) {
+            advanced.push({ zoom: this.currentZoom });
+        }
+        if (focus !== null) {
+            advanced.push(focus);
+        } else if (Array.isArray(caps.focusMode) && caps.focusMode.indexOf('continuous') !== -1) {
+            advanced.push({ focusMode: 'continuous' });
+            advanced.push({ pointsOfInterest: [{ x: 0.5, y: 0.5 }] });
+        }
+        if (this.torchSupported) {
+            advanced.push({ torch: this.torchOn });
+        }
+        if (advanced.length === 0) {
+            return;
+        }
+
+        // Keep the size asked for when the camera opened; the device itself cannot change here
+        const constraints = Object.assign({}, typeof track.getConstraints === 'function' ? track.getConstraints() : {});
+        delete constraints.deviceId;
+        delete constraints.facingMode;
+        constraints.advanced = advanced;
+
+        try {
+            await track.applyConstraints(constraints);
+        } catch (err) {
+            console.error('Failed to apply camera constraints:', err);
+        }
+    }
+
+    async kickFocus(reason = 'auto') {
+        const track = this.videoTrack;
+        const caps = this.trackCapabilities;
+        if (!track || !Array.isArray(caps.focusMode) || caps.focusMode.indexOf('continuous') === -1) {
+            return;
+        }
+
+        this.nextFocusKickAt = Date.now() + FOCUS_KICK_EVERY_MS;
+        this.lastFocusKick = { at: Date.now(), reason };
+
+        const range = caps.focusDistance;
+        if (caps.focusMode.indexOf('manual') !== -1 && range && range.max > range.min) {
+            const distance = Math.min(range.max, Math.max(range.min, FOCUS_KICK_DISTANCE_M));
+            await this._applyCameraState({ focusMode: 'manual', focusDistance: distance });
+            await new Promise(resolve => window.setTimeout(resolve, FOCUS_KICK_HOLD_MS));
+        }
+
+        if (track === this.videoTrack) {
+            await this._applyCameraState();
+        }
+    }
+
+    toggleTorch() {
+        if (!this.torchSupported) return;
+
+        this.torchOn = !this.torchOn;
+        this._applyCameraState();
+        this._updateHud();
+    }
+
+    zoomIn() {
+        this._changeZoom(ZOOM_STEP);
+    }
+
+    zoomOut() {
+        this._changeZoom(-ZOOM_STEP);
+    }
+
+    async _changeZoom(step) {
+        if (!this.videoTrack || !this.zoomCapabilities) return;
+
+        const zoom = this._clampZoom(Math.round((this.currentZoom + step) * 10) / 10);
+        if (zoom === this.currentZoom) return;
+
+        this.currentZoom = zoom;
+        this._writeStorage(window.localStorage, STORAGE_ZOOM, String(zoom));
+        this._updateHud();
+        await this._applyCameraState();
+    }
+
+    _updateHud() {
+        if (!this.hasZoomContainerTarget) return;
+
+        const zoom = this.zoomCapabilities !== null;
+        const torch = this.torchSupported && this.hasTorchButtonTarget;
+        this.zoomContainerTarget.classList.toggle('d-none', !zoom && !torch);
+
+        if (this.hasTorchButtonTarget) {
+            this.torchButtonTarget.classList.toggle('d-none', !torch);
+            this.torchButtonTarget.classList.toggle('active', this.torchOn);
+            this.torchButtonTarget.setAttribute('aria-pressed', this.torchOn ? 'true' : 'false');
+            const icon = this.torchButtonTarget.querySelector('i');
+            if (icon) {
+                icon.className = this.torchOn ? 'bi-lightbulb-fill' : 'bi-lightbulb';
+            }
+        }
+
+        if (this.hasZoomControlsTarget) {
+            this.zoomControlsTarget.classList.toggle('d-none', !zoom);
+            this.zoomControlsTarget.classList.toggle('d-inline-flex', zoom);
+        }
+
+        if (!zoom || !this.hasZoomValueTarget) return;
+
+        let number = this.currentZoom.toFixed(1);
+        try {
+            number = new Intl.NumberFormat(document.documentElement.lang || undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(this.currentZoom);
+        } catch (e) { /* unknown locale */ }
+        const label = this.zoomValueTarget.dataset.label || '%zoom%×';
+        this.zoomValueTarget.textContent = label.replace('%zoom%', number);
+
+        if (this.hasZoomInTarget) {
+            this.zoomInTarget.classList.toggle('disabled', this.currentZoom >= this.zoomCapabilities.max);
+        }
+        if (this.hasZoomOutTarget) {
+            this.zoomOutTarget.classList.toggle('disabled', this.currentZoom <= this.zoomCapabilities.min);
+        }
+    }
+
+    _resetCameraState() {
+        this.videoTrack = null;
+        this.trackCapabilities = {};
+        this.zoomCapabilities = null;
+        this.currentZoom = 1;
+        this.torchSupported = false;
+        this.torchOn = false;
+        this.cameraPick = null;
+        this.scanBuffer = [];
+        this.codeSeenAt = new Map();
+        this.lastFocusKick = null;
+        this.nextFocusKickAt = 0;
+        this.stats = { frames: 0, decodeMs: [], seen: new Map(), accepted: null, region: null };
+    }
+
+    // --- Decoding ---
 
     async _detectorClass() {
         if (this._Detector !== undefined) return this._Detector;
@@ -187,8 +474,10 @@ export default class extends Controller {
         // focuses on. Google's engine can, but it now and then returns another valid code (Ravensburger
         // 4005555011897 as 0045555011897), which `EanList` refuses when a code is stored.
         // The plan out of both: docs/features/barcode-scanner/README.md.
-        if (await this._nativeReadsEan()) {
+        // A forced native detector where the browser has none falls back to zbar (the debug panel says so).
+        if (this.forcedEngine !== 'zbar' && await this._nativeReadsEan()) {
             this._Detector = window.BarcodeDetector;
+            this.engine = 'native';
             return this._Detector;
         }
 
@@ -202,8 +491,10 @@ export default class extends Controller {
 
         if (typeof barcodeDetectorPolyfill !== 'undefined' && barcodeDetectorPolyfill.BarcodeDetectorPolyfill) {
             this._Detector = barcodeDetectorPolyfill.BarcodeDetectorPolyfill;
+            this.engine = 'zbar';
         } else {
             this._Detector = null;
+            this.engine = 'none';
         }
 
         return this._Detector;
@@ -267,53 +558,24 @@ export default class extends Controller {
                 return;
             }
 
-            // Clear the overlay canvas before drawing new results.
+            const now = Date.now();
+            if (now >= this.nextFocusKickAt) {
+                this.kickFocus();
+            }
+
+            this._sizeOverlay();
             ctx.clearRect(0, 0, this.overlayTarget.width, this.overlayTarget.height);
+            this._drawGuide(ctx);
 
             try {
-                const barcodes = await barcodeDetector.detect(this.videoTarget);
-                if (barcodes.length > 0) {
+                const frame = this._frame();
+                if (frame !== null) {
+                    const decodeStart = performance.now();
+                    const barcodes = await barcodeDetector.detect(frame.source);
+                    this._recordDecode(performance.now() - decodeStart, frame);
 
-                    let barcode = barcodes[0];
-                    const code = barcode.rawValue;
-                    // A frame that reads two different codes is not trusted at all: two boxes in view, or a misread
-                    const sameCodeOnly = barcodes.every(b => b.rawValue === code);
-
-                    // Draw bounding polygon if corner points are provided.
-                    if (barcode.cornerPoints && barcode.cornerPoints.length > 0) {
-                        ctx.beginPath();
-                        ctx.moveTo(barcode.cornerPoints[0].x, barcode.cornerPoints[0].y);
-                        for (let i = 1; i < barcode.cornerPoints.length; i++) {
-                            ctx.lineTo(barcode.cornerPoints[i].x, barcode.cornerPoints[i].y);
-                        }
-                        ctx.closePath();
-                        ctx.lineWidth = 3;
-                        ctx.strokeStyle = '#fe4042';  // green color for the bounding box
-                        ctx.stroke();
-                    }
-
-                    if (sameCodeOnly && this._Barcoder.validate(code) && (barcode.quality === undefined || barcode.quality > 8)) {
-                        const now = Date.now();
-                        // Only push if at least X...ms have elapsed since the last push.
-                        if (!this.lastPushTime || now - this.lastPushTime >= 2) {
-                            this.lastPushTime = now;
-                            this.scanBuffer.push(code);
-                            // Count how many times this code appears in the buffer.
-                            const count = this.scanBuffer.filter(c => c === code).length;
-                            if (count >= 10) {
-                                // Remove all entries for this code, leaving other codes in the buffer.
-                                this.scanBuffer = [];
-
-                                if (this.continuousValue) {
-                                    this._acceptContinuous(code, now);
-                                } else {
-                                    this.inputTarget.value = code;
-                                    this.inputTarget.dispatchEvent(new Event('change', {bubbles: true}));
-                                    this._emitScanned(code);
-                                    this.stopScanning();
-                                }
-                            }
-                        }
+                    if (barcodes.length > 0 && this.scanning && generation === this.scanGeneration) {
+                        this._handleBarcodes(barcodes, frame, ctx);
                     }
                 }
             } catch (error) {
@@ -327,8 +589,207 @@ export default class extends Controller {
     }
 
     /**
+     * The browser's detector gets the whole frame (Google asks for 720p-1080p and reads any rotation). zbar gets a
+     * centred band of what the player sees, at full resolution - a whole 1080p frame would cost it ~6x today's
+     * 640x480 - alternating with an upright band where the picture is taller than wide, so a box held sideways reads.
+     *
+     * @returns {{source: CanvasImageSource|ImageData, x: number, y: number, w: number, h: number, vertical: boolean}|null}
+     */
+    _frame() {
+        const video = this.videoTarget;
+        if (!video.videoWidth || !video.videoHeight) {
+            return null;
+        }
+
+        if (this.engine !== 'zbar') {
+            return { source: video, x: 0, y: 0, w: video.videoWidth, h: video.videoHeight, vertical: false };
+        }
+
+        const visible = this._visibleRect();
+        const vertical = visible.h >= visible.w && this.stats.frames % 2 === 1;
+        const band = vertical ? this._verticalBand(visible) : this._horizontalBand(visible);
+
+        this._cropCanvases = this._cropCanvases || {};
+        const key = vertical ? 'v' : 'h';
+        let crop = this._cropCanvases[key];
+        if (!crop) {
+            const canvas = document.createElement('canvas');
+            crop = this._cropCanvases[key] = { canvas, ctx: canvas.getContext('2d', { willReadFrequently: true }) };
+        }
+        if (crop.canvas.width !== band.w || crop.canvas.height !== band.h) {
+            crop.canvas.width = band.w;
+            crop.canvas.height = band.h;
+        }
+
+        crop.ctx.drawImage(video, band.x, band.y, band.w, band.h, 0, 0, band.w, band.h);
+
+        return Object.assign({ source: crop.ctx.getImageData(0, 0, band.w, band.h), vertical }, band);
+    }
+
+    // The part of the video on screen: multiscan crops it with object-fit: cover
+    _visibleRect() {
+        const video = this.videoTarget;
+        const vw = video.videoWidth;
+        const vh = video.videoHeight;
+        const ew = video.clientWidth;
+        const eh = video.clientHeight;
+
+        if (!ew || !eh || window.getComputedStyle(video).objectFit !== 'cover') {
+            return { x: 0, y: 0, w: vw, h: vh };
+        }
+
+        const scale = Math.max(ew / vw, eh / vh);
+        const w = Math.min(vw, ew / scale);
+        const h = Math.min(vh, eh / scale);
+
+        return { x: (vw - w) / 2, y: (vh - h) / 2, w, h };
+    }
+
+    _horizontalBand(visible) {
+        return this._centred(visible, visible.w * 0.9, Math.min(visible.h, visible.w * 0.6));
+    }
+
+    _verticalBand(visible) {
+        return this._centred(visible, Math.min(visible.w, visible.h * 0.6), visible.h * 0.9);
+    }
+
+    _centred(visible, w, h) {
+        const width = Math.max(1, Math.round(w));
+        const height = Math.max(1, Math.round(h));
+
+        return {
+            x: Math.round(visible.x + (visible.w - width) / 2),
+            y: Math.round(visible.y + (visible.h - height) / 2),
+            w: width,
+            h: height,
+        };
+    }
+
+    _sizeOverlay() {
+        const video = this.videoTarget;
+        if (video.videoWidth && (this.overlayTarget.width !== video.videoWidth || this.overlayTarget.height !== video.videoHeight)) {
+            this.overlayTarget.width = video.videoWidth;
+            this.overlayTarget.height = video.videoHeight;
+        }
+    }
+
+    // Corner marks of the horizontal band: where to hold the code (zbar decodes nothing outside it)
+    _drawGuide(ctx) {
+        const video = this.videoTarget;
+        if (!video.videoWidth) return;
+
+        const band = this._horizontalBand(this._visibleRect());
+        const arm = Math.min(band.w, band.h) * 0.18;
+        ctx.save();
+        const width = Math.max(2, video.videoWidth / 220);
+        ctx.beginPath();
+        [[band.x, band.y, 1, 1], [band.x + band.w, band.y, -1, 1], [band.x, band.y + band.h, 1, -1], [band.x + band.w, band.y + band.h, -1, -1]]
+            .forEach(([x, y, dx, dy]) => {
+                ctx.moveTo(x + dx * arm, y);
+                ctx.lineTo(x, y);
+                ctx.lineTo(x, y + dy * arm);
+            });
+        // White on a dark outline: visible on a white box and on a dark one
+        ctx.lineCap = 'round';
+        ctx.lineWidth = width * 2;
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.45)';
+        ctx.stroke();
+        ctx.lineWidth = width;
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.95)';
+        ctx.stroke();
+        ctx.restore();
+    }
+
+    _handleBarcodes(barcodes, frame, ctx) {
+        const barcode = barcodes[0];
+        const code = barcode.rawValue;
+        const now = Date.now();
+        // A frame that reads two different codes is not trusted at all: two boxes in view, or a misread
+        const sameCodeOnly = barcodes.every(b => b.rawValue === code);
+
+        // The camera sees a code, so it is roughly in focus: no kick for a while
+        this.nextFocusKickAt = Math.max(this.nextFocusKickAt, now + FOCUS_KICK_FIRST_MS);
+        // The player found the distance; the hint would only cover the picture now
+        if (this.hasHintTarget) {
+            this.hintTarget.classList.add('d-none');
+        }
+
+        if (barcode.cornerPoints && barcode.cornerPoints.length > 0) {
+            ctx.beginPath();
+            ctx.moveTo(frame.x + barcode.cornerPoints[0].x, frame.y + barcode.cornerPoints[0].y);
+            for (let i = 1; i < barcode.cornerPoints.length; i++) {
+                ctx.lineTo(frame.x + barcode.cornerPoints[i].x, frame.y + barcode.cornerPoints[i].y);
+            }
+            ctx.closePath();
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = '#fe4042';
+            ctx.stroke();
+        }
+
+        if (!sameCodeOnly) {
+            barcodes.filter(b => this._Barcoder.validate(b.rawValue)).forEach(b => this.codeSeenAt.set(b.rawValue, now));
+            return;
+        }
+
+        if (!this._Barcoder.validate(code)) {
+            return;
+        }
+
+        this._recordSeen(code, barcode.quality);
+
+        // zbar's quality = how many scanlines read the code; the browser's detector reports none
+        if (this.engine === 'zbar' && !(barcode.quality >= 3)) {
+            return;
+        }
+
+        this.codeSeenAt.set(code, now);
+        this.scanBuffer.push(code);
+        if (this.scanBuffer.length > 30) {
+            this.scanBuffer.shift();
+        }
+
+        for (const [other, seenAt] of this.codeSeenAt) {
+            if (other !== code && now - seenAt < COMPETING_CODE_MS) {
+                return;
+            }
+        }
+
+        const count = this.scanBuffer.filter(c => c === code).length;
+        if (count < this._readsNeeded(code)) {
+            return;
+        }
+
+        this.scanBuffer = [];
+
+        if (this.continuousValue) {
+            if (this._acceptContinuous(code, now)) {
+                this._recordAccepted(code, now);
+            }
+        } else {
+            this._recordAccepted(code, now);
+            this.inputTarget.value = code;
+            this.inputTarget.dispatchEvent(new Event('change', { bubbles: true }));
+            this._emitScanned(code);
+            this.stopScanning();
+        }
+    }
+
+    /**
+     * zbar's wrong reads are rare and change from frame to frame, so a few agreeing frames filter them (README §5.3);
+     * codes starting with 0 (where wrong reads cluster) and EAN-8 need more. The browser's detector keeps its 10 -
+     * its misreads repeat, more frames would not catch them (`EanList` does when a code is stored).
+     */
+    _readsNeeded(code) {
+        if (this.engine !== 'zbar') {
+            return 10;
+        }
+
+        return code.charAt(0) === '0' || code.length === 8 ? 8 : 4;
+    }
+
+    /**
      * Decode each camera frame once: requestAnimationFrame can fire twice for the same frame, and a frame
-     * decoded twice would count twice towards the 10 matching reads.
+     * decoded twice would count twice towards the matching reads.
      */
     _onNextFrame(callback) {
         const video = this.videoTarget;
@@ -362,8 +823,11 @@ export default class extends Controller {
         }
 
         this.scanning = false;
+        // A camera still opening is closed as soon as it arrives
+        this.cameraSession = (this.cameraSession || 0) + 1;
         this.wrapperTarget.classList.add('d-none');
         this.toggleButtonTarget.classList.remove('active');
+        this._stopDebug();
 
         // Stop all tracks and release the stream
         const stream = this.videoTarget.srcObject;
@@ -381,14 +845,145 @@ export default class extends Controller {
         ctx.clearRect(0, 0, this.overlayTarget.width, this.overlayTarget.height);
         this.overlayTarget.width = 0;
         this.overlayTarget.height = 0;
+        this._cropCanvases = null;
 
         // Clear references to allow garbage collection
-        this.videoTrack = null;
-        this.zoomCapabilities = null;
-        this.scanBuffer = [];
-        this.zoomSupported = false;
+        this._resetCameraState();
+        this._updateHud();
         this.paused = false;
         this.acceptedAt = new Map();
+    }
+
+    // --- ?scan-debug=1: what the camera and the decoder do, for a screenshot (README §5.1) ---
+
+    /**
+     * A URL switch that stays on for the tab: an allowed value is kept in sessionStorage, any other value clears it
+     * (`?scan-debug=0`, `?scanner=auto`), no parameter keeps what the tab had.
+     *
+     * @returns {string|null}
+     */
+    _stickyParam(name, storageKey, allowed) {
+        try {
+            const param = new URLSearchParams(window.location.search).get(name);
+            if (param !== null) {
+                this._writeStorage(window.sessionStorage, storageKey, allowed.indexOf(param) !== -1 ? param : null);
+            }
+        } catch (e) { /* no URL API */ }
+
+        const value = this._readStorage(window.sessionStorage, storageKey);
+
+        return allowed.indexOf(value) !== -1 ? value : null;
+    }
+
+    _recordDecode(ms, frame) {
+        this.stats.frames++;
+        this.stats.decodeMs.push(ms);
+        if (this.stats.decodeMs.length > 30) {
+            this.stats.decodeMs.shift();
+        }
+        this.stats.region = frame;
+    }
+
+    _recordSeen(code, quality) {
+        const seen = this.stats.seen.get(code) || { count: 0, quality: null };
+        seen.count++;
+        seen.quality = quality === undefined ? null : quality;
+        this.stats.seen.delete(code);
+        this.stats.seen.set(code, seen);
+        if (this.stats.seen.size > 4) {
+            this.stats.seen.delete(this.stats.seen.keys().next().value);
+        }
+    }
+
+    _recordAccepted(code, now) {
+        const first = this.stats.accepted;
+        this.stats.accepted = { code, afterMs: first ? first.afterMs : now - this.startedAt, count: (first ? first.count : 0) + 1 };
+    }
+
+    _startDebug() {
+        if (!this.debug) return;
+
+        if (!this.debugPanel) {
+            this.debugPanel = document.createElement('pre');
+            this.debugPanel.className = 'barcode-scanner-debug';
+            this.wrapperTarget.insertAdjacentElement('afterend', this.debugPanel);
+        }
+        this.debugPanel.classList.remove('d-none');
+
+        if (this.debugModel === undefined) {
+            this.debugModel = null;
+            if (navigator.userAgentData && typeof navigator.userAgentData.getHighEntropyValues === 'function') {
+                navigator.userAgentData.getHighEntropyValues(['model', 'platformVersion'])
+                    .then(values => { this.debugModel = [values.model, values.platform, values.platformVersion].filter(Boolean).join(' '); })
+                    .catch(() => {});
+            }
+        }
+
+        // Labels are there once the camera is allowed - for every browser, not only Android's pick
+        if (!this.cameraLabels && navigator.mediaDevices.enumerateDevices) {
+            navigator.mediaDevices.enumerateDevices()
+                .then(devices => { this.cameraLabels = devices.filter(d => d.kind === 'videoinput').map(d => d.label || '(no label)'); })
+                .catch(() => {});
+        }
+
+        window.clearInterval(this.debugTimer);
+        this.debugTimer = window.setInterval(() => this._renderDebug(), 500);
+        this._renderDebug();
+    }
+
+    _stopDebug() {
+        window.clearInterval(this.debugTimer);
+        this.debugTimer = null;
+        if (this.debugPanel) {
+            this.debugPanel.classList.add('d-none');
+        }
+    }
+
+    _renderDebug() {
+        if (!this.debugPanel || !this.scanning) return;
+
+        const video = this.videoTarget;
+        const settings = this._settings();
+        const caps = this.trackCapabilities;
+        const range = (r) => (r && r.min !== undefined ? `${round(r.min)}-${round(r.max)}${r.step ? ` step ${round(r.step)}` : ''}` : '-');
+        const round = (n) => (typeof n === 'number' ? Math.round(n * 100) / 100 : n);
+        const decode = this.stats.decodeMs;
+        const avg = decode.length ? Math.round(decode.reduce((a, b) => a + b, 0) / decode.length) : '-';
+        const region = this.stats.region;
+        const ago = (at) => `${((Date.now() - at) / 1000).toFixed(1)} s ago`;
+
+        const lines = [
+            `engine: ${this.engine || 'loading'}${this.forcedEngine ? ` (forced ${this.forcedEngine})` : ''}${region && this.engine === 'zbar' ? `, band ${region.w}x${region.h}${region.vertical ? ' upright' : ''}` : ''}`,
+            `camera: ${this.videoTrack ? this.videoTrack.label : '-'} (${this.cameraPick || '-'})`,
+            `cameras: ${(this.cameraLabels || []).join(' | ') || '-'}`,
+            `video: ${video.videoWidth}x${video.videoHeight}, settings ${settings.width}x${settings.height} @${round(settings.frameRate)} fps, max ${caps.width ? caps.width.max : '-'}x${caps.height ? caps.height.max : '-'}`,
+            `zoom: ${this.zoomCapabilities ? this.currentZoom : 'not supported'} (settings ${round(settings.zoom)}, range ${range(caps.zoom)})`,
+            `focus: ${settings.focusMode || '-'} [${(caps.focusMode || []).join(', ')}], distance ${round(settings.focusDistance)} (range ${range(caps.focusDistance)})`,
+            `last refocus: ${this.lastFocusKick ? `${this.lastFocusKick.reason} ${ago(this.lastFocusKick.at)}` : '-'}`,
+            `torch: ${this.torchSupported ? (this.torchOn ? 'on' : 'off') : 'not supported'}`,
+            `frames: ${this.stats.frames}, decode ${avg} ms`,
+            `seen: ${[...this.stats.seen].map(([code, s]) => `${code} x${s.count}${s.quality !== null ? ` q${s.quality}` : ''}`).join(', ') || '-'}`,
+            `accepted: ${this.stats.accepted ? `${this.stats.accepted.code} (${this.stats.accepted.count}x), first after ${(this.stats.accepted.afterMs / 1000).toFixed(1)} s` : '-'}`,
+            `running: ${((Date.now() - this.startedAt) / 1000).toFixed(0)} s`,
+            `device: ${this.debugModel || '-'}`,
+            `browser: ${navigator.userAgent}`,
+        ];
+
+        this.debugPanel.textContent = lines.join('\n');
+    }
+
+    _readStorage(storage, key) {
+        try { return storage.getItem(key); } catch (e) { return null; }
+    }
+
+    _writeStorage(storage, key, value) {
+        try {
+            if (value === null) {
+                storage.removeItem(key);
+            } else {
+                storage.setItem(key, value);
+            }
+        } catch (e) { /* private mode */ }
     }
 
     // --- Continuous mode helpers (multiscan) ---
@@ -490,7 +1085,7 @@ export default class extends Controller {
 
     toggleSound() {
         this.soundEnabled = !this.soundEnabled;
-        try { window.localStorage.setItem('msp-scan-sound', this.soundEnabled ? '1' : '0'); } catch (e) { /* private mode */ }
+        try { window.localStorage.setItem(STORAGE_SOUND, this.soundEnabled ? '1' : '0'); } catch (e) { /* private mode */ }
         this._updateSoundButton();
 
         if (this.soundEnabled) {
@@ -499,7 +1094,7 @@ export default class extends Controller {
     }
 
     _readSoundPreference() {
-        try { return window.localStorage.getItem('msp-scan-sound') !== '0'; } catch (e) { return true; }
+        try { return window.localStorage.getItem(STORAGE_SOUND) !== '0'; } catch (e) { return true; }
     }
 
     _updateSoundButton() {
@@ -555,50 +1150,6 @@ export default class extends Controller {
         }
     }
 
-    zoomIn() {
-        if (!this.videoTrack || !this.zoomCapabilities) return;
-        // Increase zoom by 0.5, but do not exceed max.
-        const newZoom = Math.min(this.zoomCapabilities.max, this.currentZoom + 0.5);
-        if (newZoom === this.currentZoom) return;
-        this.videoTrack.applyConstraints({ advanced: [{ zoom: newZoom }] })
-            .then(() => {
-                this.currentZoom = newZoom;
-                this.updateZoomUI();
-            })
-            .catch(err => console.error('Failed to apply zoom constraint:', err));
-    }
-
-    zoomOut() {
-        if (!this.videoTrack || !this.zoomCapabilities) return;
-        // Decrease zoom by 0.5, but do not go below min.
-        const newZoom = Math.max(this.zoomCapabilities.min, this.currentZoom - 0.5);
-        if (newZoom === this.currentZoom) return;
-        this.videoTrack.applyConstraints({ advanced: [{ zoom: newZoom }] })
-            .then(() => {
-                this.currentZoom = newZoom;
-                this.updateZoomUI();
-            })
-            .catch(err => console.error('Failed to apply zoom constraint:', err));
-    }
-
-    updateZoomUI() {
-        if (!this.hasZoomValueTarget || !this.hasZoomInTarget || !this.hasZoomOutTarget || !this.zoomCapabilities) return;
-        // Update the display for the current zoom level.
-        this.zoomValueTarget.textContent = `Zoom: ${this.currentZoom.toFixed(1)}x`;
-
-        // Disable zoomIn if at maximum, disable zoomOut if at minimum.
-        if (this.currentZoom >= this.zoomCapabilities.max) {
-            this.zoomInTarget.classList.add('disabled');
-        } else {
-            this.zoomInTarget.classList.remove('disabled');
-        }
-        if (this.currentZoom <= this.zoomCapabilities.min) {
-            this.zoomOutTarget.classList.add('disabled');
-        } else {
-            this.zoomOutTarget.classList.remove('disabled');
-        }
-    }
-
     // --- Native App Scanner Bridge Methods ---
 
     /**
@@ -648,28 +1199,7 @@ export default class extends Controller {
             return;
         }
 
-        this.wrapperTarget.classList.remove('d-none');
-        this.scanBuffer = [];
-        this.lastPushTime = 0;
-
-        navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } } })
-            .then(stream => {
-                this.videoTarget.srcObject = stream;
-                this.videoTarget.play().catch(err => console.error('Video play failed:', err));
-                this.scanning = true;
-
-                this.videoTarget.addEventListener('loadedmetadata', () => {
-                    this.overlayTarget.width = this.videoTarget.videoWidth;
-                    this.overlayTarget.height = this.videoTarget.videoHeight;
-                }, { once: true });
-
-                this.setupZoom(stream);
-                this.scanLoop();
-            })
-            .catch(error => {
-                console.error('Error accessing the camera:', error);
-                this.stopScanning();
-            });
+        this._startCamera();
     }
 
     /**

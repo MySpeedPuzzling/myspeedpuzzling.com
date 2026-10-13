@@ -155,6 +155,37 @@ $nav-label-safety: .5px;
     }
 }
 
+// ---- The on-screen keyboard (NAV-08, README §4.2, decision 26) -------------------------------------------------------
+// Phones: while a text field has the focus - the keyboard is open - the bar slides away (200 ms) and comes back when the
+// field loses it. CSS only, no script: :has(:focus) on the root; checkboxes, radios, ranges, buttons and file inputs open
+// no keyboard. Only a transform: the bar keeps its room (--bottom-nav-height), so nothing moves under the finger while
+// typing; visibility: hidden once it is away - nothing in it is reachable behind the keyboard. Under reduced motion it
+// only fades. Desktop (the rail, NAV-13) never hides.
+
+@include nav-phone {
+    .bottom-nav {
+        transition: transform var(--nav-hide-dur, 200ms) var(--nav-ease, ease), visibility 0s linear 0s;
+    }
+
+    html:has(:is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="button"], [type="submit"], [type="file"]), textarea, [contenteditable]):focus) .bottom-nav {
+        transform: translateY(110%);
+        visibility: hidden;
+        transition: transform var(--nav-hide-dur, 200ms) var(--nav-ease, ease), visibility 0s linear var(--nav-hide-dur, 200ms);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .bottom-nav {
+            transition: opacity var(--nav-hide-dur, 200ms) linear, visibility 0s linear 0s;
+        }
+
+        // Fades out, then steps away without moving (the transform has no duration)
+        html:has(:is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="button"], [type="submit"], [type="file"]), textarea, [contenteditable]):focus) .bottom-nav {
+            opacity: 0;
+            transition: opacity var(--nav-hide-dur, 200ms) linear, transform 0s linear var(--nav-hide-dur, 200ms), visibility 0s linear var(--nav-hide-dur, 200ms);
+        }
+    }
+}
+
 // Windows high contrast: the pill's background is gone - the current tab is marked by the system's highlight
 @media (forced-colors: active) {
     .nav-tab:is([aria-current]:not(.is-leaving), .is-pending):not(.nav-tab--add) {

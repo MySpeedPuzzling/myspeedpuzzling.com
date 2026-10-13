@@ -386,7 +386,9 @@ final class NavLayoutCssTest extends TestCase
         self::assertStringContainsString('@media (max-width:767.98px) and (max-height:479.98px),(max-height:479.98px) and (pointer:coarse){:root{--header-height:0px}}', $css);
         self::assertMatchesRegularExpression('~:root\{[^}]*--topbar-h:var\(--header-height\)~', $css);
         // The bar's height only while a visible .bottom-nav exists, never with a running stopwatch or in the app
-        self::assertMatchesRegularExpression('~:not\(\[data-stopwatch-running\]\):not\(\[data-native-app\]\):has\(> body > \.bottom-nav:not\(\[hidden\]\)\)\{--bottom-nav-height:calc\(var\(--tabbar-h\) \+ var\(--safe-bottom-max\)\)\}~', $css);
+        self::assertMatchesRegularExpression('~:not\(\[data-stopwatch-running\]\):not\(\[data-native-app\]\):has\(> body > \.bottom-nav:not\(\[hidden\]\):not\(\.bottom-nav--tabbar-hidden\)\)\{--bottom-nav-height:calc\(var\(--tabbar-h\) \+ var\(--safe-bottom-max\)\)\}~', $css);
+        // NAV-08: hide_bottom_bar takes the tab bar away on phones only (decision 46) - desktop keeps the places (the rail)
+        self::assertStringContainsString("\n@media (max-width:767.98px),(max-height:500.98px) and (pointer:coarse){.bottom-nav--tabbar-hidden{display:none}}\n", $css . "\n");
 
         // Every reserved chrome size is 0 in the app (plan §3.5 item 7)
         if (preg_match('~:root\[data-native-app\]\{([^}]*)\}~', $css, $native) !== 1) {

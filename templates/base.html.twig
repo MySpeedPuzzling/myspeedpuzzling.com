@@ -470,8 +470,11 @@
     {% set comparison_launcher = logged_user.profile is not null
         and not hide_comparison_launcher|default(false)
         and logged_user.profile.comparisonLineUp.hasOthers() %}
-    {# The viewer's audiences for the page search (MENU-01/MENU-03): "everyone guest" for every guest (shared-cacheable) #}
-    <body class="lang-{{ app.request.locale }}{{ comparison_launcher ? ' has-comparison-launcher' }}"
+    {# The viewer's audiences for the page search (MENU-01/MENU-03): "everyone guest" for every guest (shared-cacheable).
+       no-nav-chrome: a page without the bars (it sets nav_chrome_off outside its blocks and empties nav_chrome - NAV-08)
+       and the app; no-nav-column: the `menu` page, whose content is the Menu (nav_menu_slot_off) - critical CSS keeps the
+       desktop column's width (--nav-left) at 0 / the rail's there (NAV-13). Both depend on the page only. #}
+    <body class="lang-{{ app.request.locale }}{{ comparison_launcher ? ' has-comparison-launcher' }}{{ (nav_chrome_off ?? false) or not is_web() ? ' no-nav-chrome' }}{{ (nav_menu_slot_off ?? false) ? ' no-nav-column' }}"
           data-viewer-audience="{{ nav_viewer_audience() }}"
           data-controller="pwa-lifecycle gallery file-drop-area datepicker toast{% if ga_tracking is not empty %} analytics{% endif %}"
           {% if ga_tracking is not empty %}data-analytics-tracking-id-value="{{ ga_tracking }}"{% endif %}>

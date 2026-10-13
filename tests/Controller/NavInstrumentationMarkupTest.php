@@ -95,8 +95,9 @@ final class NavInstrumentationMarkupTest extends WebTestCase
      * Navigation containers outside the header and footer (implementation plan §3.3): the Community landing (COM-01a)
      * and the Help sheet (HELP-01a; its feedback box HELP-01b, its order HELP-02) - its page and its frame - the end-of-page
      * line (HELP-04), the Inbox header's tabs on both
-     * Inbox pages (INB-01, signed in), the Menu (MENU-01), its phone panel's shell (MENU-02b) and the phone bottom bar
-     * (NAV-01). Every link and button there is counted too.
+     * Inbox pages (INB-01, signed in), the Menu (MENU-01), its phone panel's shell (MENU-02b), the phone bottom bar
+     * (NAV-01), the top bar (NAV-03, NAV-04, NAV-05) and the auth pages' header (NAV-08). Every link and button there is
+     * counted too.
      *
      * @return iterable<string, array{0: string, 1: array<string, string>, 2: string, 3: list<string>, 4?: string}>
      */
@@ -164,6 +165,8 @@ final class NavInstrumentationMarkupTest extends WebTestCase
         $account = ['topbar/profile/account', 'account/links/view_profile', 'account/links/settings', 'account/links/membership', 'account/language/de', 'account/language/cs', 'account/language/fr', 'account/language/es', 'account/language/ja', 'account/links/logout'];
         yield 'top bar (guest)' => ['/en/faq', [], 'body > header.site-header', ['topbar/none/menu', 'topbar/none/back', 'topbar/home/logo', ...$compactPlaces, 'topbar/none/scan_locked', 'topbar/none/close_search', 'topbar/none/search', 'topbar/add/add', 'topbar/none/help', 'topbar/profile/sign_in', 'topbar/none/menu']];
         yield 'top bar (player, a root page)' => ['/en/hub', [], 'body > header.site-header', ['topbar/none/menu', 'topbar/home/logo', ...$compactPlaces, 'topbar/none/scan_locked', 'topbar/none/close_search', 'topbar/none/search', 'topbar/add/add', 'topbar/none/help', 'topbar/none/inbox', ...$account, 'topbar/none/menu'], PlayerFixture::PLAYER_PRIVATE];
+        // The sign-in / sign-up pages' header (NAV-08, decision 25): the logo and the language switch, nothing else
+        yield 'auth header (guest)' => ['/login', [], 'body > header.site-header--auth', ['topbar/home/logo', 'topbar/language/de', 'topbar/language/cs', 'topbar/language/fr', 'topbar/language/es', 'topbar/language/ja']];
     }
 
     /**

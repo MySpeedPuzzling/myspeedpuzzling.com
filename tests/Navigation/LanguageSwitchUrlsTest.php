@@ -12,7 +12,7 @@ use Symfony\Component\Routing\RouterInterface;
 
 /**
  * language_switch_urls() (decision 36, MENU-01) is the one rule of the language switch: the top bar's and the footer's
- * language menus and the Menu's Language row show the same five links - the current page in the other languages,
+ * language menus, the Menu's Language row and the auth pages' header (NAV-08) show the same five links - the current page in the other languages,
  * filters kept, ?return= dropped (it would send a visitor back to the old language), except on the locale-less auth
  * pages, which keep their destination across the switch and read ?_locale=.
  */
@@ -55,7 +55,10 @@ final class LanguageSwitchUrlsTest extends WebTestCase
             self::assertSame(['return' => '/en/faq', '_locale' => $locale], $query);
         }
 
-        self::assertSame($links, $this->links($crawler, '#site-menu #nav-language'));
+        // NAV-08: an auth page has no Menu (decision 25) - its header's language switch (_auth_header.html.twig) is the
+        // same switch, first on the page
+        self::assertCount(0, $crawler->filter('#site-menu'));
+        self::assertSame($links, $this->links($crawler, 'body > header.site-header--auth .site-header-languages'));
     }
 
     /**

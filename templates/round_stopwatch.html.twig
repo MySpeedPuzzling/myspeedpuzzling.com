@@ -1,6 +1,8 @@
 {% extends 'base.html.twig' %}
 
 {% set hide_comparison_launcher = true %}
+{# No bars on this page (it empties header, nav_chrome and nav_layers): body.no-nav-chrome keeps the desktop column's width at 0 #}
+{% set nav_chrome_off = true %}
 
 {% block title %}{{ 'competition.stopwatch.title'|trans }} - {{ round.name }} - {{ competition.name }}{% endblock %}
 

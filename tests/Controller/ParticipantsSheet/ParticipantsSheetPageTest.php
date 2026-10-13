@@ -116,9 +116,14 @@ final class ParticipantsSheetPageTest extends WebTestCase
         self::assertSame('same-origin', $headers->get('Referrer-Policy'));
         self::assertSame('noindex, nofollow', $crawler->filter('meta[name="robots"]')->attr('content'));
 
-        // No site header, menu or footer - the sheet's own bar
+        // No site header, menu or footer - the sheet's own bar. NAV-08: none of the new bars either - no top bar, no bottom
+        // bar (the rail on desktop), no Menu column or shell, and <body> says so (no column width)
         self::assertCount(0, $crawler->filter('.navbar'));
         self::assertCount(0, $crawler->filter('footer'));
+        self::assertCount(0, $crawler->filter('.site-header, body > header'));
+        self::assertCount(0, $crawler->filter('#bottom-nav, .nav-rail'));
+        self::assertCount(0, $crawler->filter('#menu-slot, #site-menu, #menu-layer'));
+        self::assertStringContainsString('no-nav-chrome', (string) $crawler->filter('body')->attr('class'));
         self::assertCount(1, $crawler->filter('.participants-sheet-bar'));
         self::assertSame('Results Cup', $crawler->filter('.participants-sheet-bar__event')->text());
         self::assertSame('/en/edit-event/' . OfficialResultsFixture::COMPETITION_RESULTS_CUP, $crawler->filter('[data-participants-sheet-back]')->attr('href'));

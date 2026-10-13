@@ -195,6 +195,11 @@ final class BottomNavTest extends WebTestCase
         }
     }
 
+    /**
+     * hide_bottom_bar (decision 46, NAV-08): no tab bar on phones - a class critical CSS hides under the phone query and
+     * keeps no room for; never the hidden attribute, so on desktop the places stay as the rail (README §4.10 hides the
+     * tab bar only)
+     */
     public function testAPageThatSetsHideBottomBarRendersItHidden(): void
     {
         self::bootKernel();
@@ -207,11 +212,13 @@ final class BottomNavTest extends WebTestCase
         $twig = $container->get(Environment::class);
 
         $hidden = new Crawler($twig->render('navigation/_bottom_nav.html.twig', ['hide_bottom_bar' => true]));
-        self::assertNotNull($hidden->filter('nav#bottom-nav')->attr('hidden'));
+        self::assertCount(1, $hidden->filter('nav#bottom-nav.bottom-nav--tabbar-hidden'));
+        self::assertNull($hidden->filter('nav#bottom-nav')->attr('hidden'));
         self::assertCount(5, $hidden->filter('nav#bottom-nav a.nav-tab'));
 
         $shown = new Crawler($twig->render('navigation/_bottom_nav.html.twig', []));
         self::assertNull($shown->filter('nav#bottom-nav')->attr('hidden'));
+        self::assertCount(0, $shown->filter('.bottom-nav--tabbar-hidden'));
     }
 
     public function testTheAppGetsNoBar(): void

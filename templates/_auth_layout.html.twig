@@ -8,7 +8,16 @@
    sessionStorage (never in a URL); last-sign-in marks the method this device
    used last. Both are client-side only, so the pages stay session-free. #}
 
+{# No bars on these pages (NAV-08, README §4.10, decision 25): the minimal header (logo + language) instead of the top
+   bar, and neither the bottom bar, the Menu nor its shell - their search fields would be text inputs next to the form
+   (iOS Password AutoFill on the code page). body.no-nav-chrome keeps the desktop column's width at 0 #}
+{% set nav_chrome_off = true %}
+
 {% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block header %}{% if is_web() %}{{ include('navigation/_auth_header.html.twig') }}{% endif %}{% endblock %}
+{% block nav_chrome %}{% endblock %}
+{% block nav_layers %}{% endblock %}
 
 {# No newsletter e-mail field in the footer: a sign-in page must hold no text
    input but its own, or iOS Password AutoFill offers the saved login over the

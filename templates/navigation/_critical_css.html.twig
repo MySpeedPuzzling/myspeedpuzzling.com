@@ -34,7 +34,13 @@
                      (its label stays the accessible name) and the tools sit 4 px apart. From 1024 px: the logo's
                      name, the field (up to 560 px), Feedback's icon instead of ?. From 1200 px: Feedback's and
                      Inbox's labels. + Add and Sign in: 44 px targets, drawn 40 px.
-    Browsers without :has() reserve the bottom bar's height on phones anyway (no visible-bar test there). -#}
+    Browsers without :has() reserve the bottom bar's height on phones anyway (no visible-bar test there).
+    .site-header--auth  the sign-in / sign-up pages' header (NAV-08, _auth_header.html.twig): the top bar's box with the
+                     logo and the language switch only - the switch at the right edge, its summary a 44 px target
+                     without the disclosure marker before the stylesheet arrives.
+    .bottom-nav--tabbar-hidden  a page that sets hide_bottom_bar (NAV-08, decision 46 - the multiscan scanner's action bar
+                     takes the bottom edge): no tab bar on phones and no room kept for it; desktop keeps the places (the
+                     rail, NAV-13). -#}
 @property --topbar-h{syntax:'<length>';inherits:true;initial-value:0px}
 @property --bottom-nav-height{syntax:'<length>';inherits:true;initial-value:0px}
 @property --nav-left{syntax:'<length>';inherits:true;initial-value:0px}
@@ -45,7 +51,7 @@
 @media (max-width:767.98px) and (max-height:479.98px),(max-height:479.98px) and (pointer:coarse){:root{--header-height:0px}}
 :root{--safe-bottom-max:env(safe-area-max-inset-bottom,env(safe-area-inset-bottom,0px));--topbar-h:var(--header-height);--topbar-shift:0px;--bottom-nav-height:0px;--nav-left:0px}
 :root[data-topbar=hidden]{--topbar-h:0px;--topbar-shift:var(--header-height)}
-@media (max-width:767.98px),(max-height:500.98px) and (pointer:coarse){:root:not([data-stopwatch-running]):not([data-native-app]):has(> body > .bottom-nav:not([hidden])){--bottom-nav-height:calc(var(--tabbar-h) + var(--safe-bottom-max))}}
+@media (max-width:767.98px),(max-height:500.98px) and (pointer:coarse){:root:not([data-stopwatch-running]):not([data-native-app]):has(> body > .bottom-nav:not([hidden]):not(.bottom-nav--tabbar-hidden)){--bottom-nav-height:calc(var(--tabbar-h) + var(--safe-bottom-max))}}
 @supports not selector(:has(a)){@media (max-width:767.98px),(max-height:500.98px) and (pointer:coarse){:root:not([data-stopwatch-running]):not([data-native-app]){--bottom-nav-height:calc(var(--tabbar-h) + var(--safe-bottom-max))}}}
 :root[data-native-app]{--header-height:0px;--topbar-h:0px;--topbar-shift:0px;--bottom-nav-height:0px;--nav-left:0px}
 .global-search-overlay,.site-search-panel,.site-search-close,.site-search-scan{display:none}
@@ -87,3 +93,7 @@ html[data-search-open] .site-header{transform:none;opacity:1}
 html[data-search-open] .site-search-panel,html[data-search-open] .global-search-overlay{display:block}
 html[data-search-open] .site-search-scan{display:inline-flex}
 @media (max-width:767.98px),(max-height:500.98px) and (pointer:coarse){html[data-search-open] .site-header{position:sticky}html[data-search-open] .site-search-close{display:inline-flex}html[data-search-open] .site-header-inner > :not(.site-header-logo):not(.site-search){display:none}}
+.site-header-language{margin-inline-start:auto}
+.site-header-language>summary{display:flex;align-items:center;gap:6px;height:44px;padding:0 10px;color:var(--nav-ink);list-style:none;cursor:pointer}
+.site-header-language>summary::-webkit-details-marker{display:none}
+@media (max-width:767.98px),(max-height:500.98px) and (pointer:coarse){.bottom-nav--tabbar-hidden{display:none}}

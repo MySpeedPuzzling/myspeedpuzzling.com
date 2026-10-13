@@ -1,6 +1,9 @@
 {% extends 'base.html.twig' %}
 
 {% set hide_comparison_launcher = true %}
+{# The tab bar gives way to the scanner's action bar at the bottom (README §4.10, decision 46) - members only: the
+   teaser has no action bar #}
+{% set hide_bottom_bar = is_member %}
 
 {% block title %}{{ 'multiscan.meta.title'|trans }}{% endblock %}
 

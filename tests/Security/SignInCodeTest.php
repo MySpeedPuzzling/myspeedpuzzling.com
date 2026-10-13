@@ -75,6 +75,10 @@ final class SignInCodeTest extends WebTestCase
         self::assertSame('Verifying…', $crawler->filter('form[action="/verify-code"] button[type="submit"]')->attr('data-turbo-submits-with'));
         self::assertCount(1, $crawler->filter('form[action="/verify-code"] input:not([type="hidden"])'));
         self::assertCount(0, $crawler->filter('[autofocus], input[type="password"], input[type="email"], [autocomplete~="username"], [autocomplete~="email"], [autocomplete~="current-password"]'));
+        // ... and no other field anywhere on the page: the auth pages' header has no search field, no Menu (NAV-08,
+        // decision 25)
+        self::assertCount(1, $crawler->filter('input:not([type="hidden"]), textarea, select'));
+        self::assertCount(1, $crawler->filter('body > header.site-header--auth'));
 
         // Switching to the mail app may reload the page (in-app browsers do):
         // the screen stays while the sign-in is pending

@@ -2,7 +2,10 @@
     places, fixed at the bottom of phones and landscape phones, 56 px + the safe area, never hidden on scroll - display:
     none on desktop (NAV-13 turns the places into the rail there). A direct child of <body> in nav_chrome (web only),
     before <main>: critical CSS reserves its height as --bottom-nav-height only while a visible .bottom-nav is a child
-    of <body> - a page that sets `hide_bottom_bar` (outside its blocks) renders it hidden, and the height is 0 there.
+    of <body> - a page that sets `hide_bottom_bar` (outside its blocks; the multiscan scanner, whose action bar takes the
+    bottom edge - decision 46) renders it with .bottom-nav--tabbar-hidden: no tab bar on phones (height 0 there), while
+    on desktop the places stay as the rail (NAV-08: README §4.10 hides the tab bar, and the rail at the left edge collides
+    with nothing - --nav-left stays right).
     Not data-turbo-permanent: re-rendered on every visit (NAV-07).
     - bottom-nav (assets/controllers/bottom_nav_controller.js, NAV-02): corrects the label step upward where the
       container queries of assets/styles/_nav-label-steps.scss guessed too low (a wider fallback font);
@@ -10,7 +13,6 @@
       identifier until its controller exists;
     - data-ptr-ignore: a pull that starts on the bar never refreshes the page (pull_to_refresh.js).
     Shared-cacheable for guests: nothing depends on the visitor but the URL. -#}
-<nav id="bottom-nav" class="bottom-nav" aria-label="{{ 'nav.bar.places'|trans }}" data-ptr-ignore data-controller="bottom-nav tab-gestures"
-    {%- if hide_bottom_bar ?? false %} hidden{% endif %}>
+<nav id="bottom-nav" class="bottom-nav{{ (hide_bottom_bar ?? false) ? ' bottom-nav--tabbar-hidden' }}" aria-label="{{ 'nav.bar.places'|trans }}" data-ptr-ignore data-controller="bottom-nav tab-gestures">
     {{- include('navigation/_places.html.twig', {variant: 'bar'}) -}}
 </nav>

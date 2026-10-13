@@ -579,3 +579,80 @@ $nav-labels-media: "(min-width: 1200px) and (min-height: 501px), (min-width: 120
         overscroll-behavior: contain;
     }
 }
+
+// ---- The sign-in / sign-up pages' header (NAV-08, README §4.10, decision 25) -----------------------------------------
+// templates/navigation/_auth_header.html.twig: the logo and the language switch, nothing else. The box, the switch's
+// place at the right edge and its 44 px summary are in critical CSS; here its look and the open list - right-aligned
+// under the switch, inside the header's layer (the header is sticky at z 1030).
+
+.site-header-language {
+    position: relative;
+
+    > summary {
+        border-radius: 22px;
+        font-size: .875rem;
+        font-weight: 500;
+        line-height: 1;
+        white-space: nowrap;
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
+
+        // A chevron: the list opens under it
+        &::after {
+            content: "";
+            width: .4375rem;
+            height: .4375rem;
+            margin: -.25rem 0 0 .125rem;
+            border-right: 1.5px solid currentColor;
+            border-bottom: 1.5px solid currentColor;
+            transform: rotate(45deg);
+        }
+
+        &:hover {
+            color: var(--nav-active-ink, #c8323a);
+        }
+
+        &:active {
+            background: var(--nav-pressed-pill, rgba(254, 105, 106, .1));
+        }
+
+        &:focus-visible {
+            outline: 2px solid var(--nav-focus, #4e54c8);
+            outline-offset: -2px;
+        }
+    }
+
+    &[open] > summary {
+        background: var(--search-bg, #f3f5f9);
+
+        &::after {
+            margin-top: .25rem;
+            transform: rotate(-135deg);
+        }
+    }
+}
+
+.site-header-languages {
+    position: absolute;
+    top: calc(100% + 4px);
+    right: 0;
+    z-index: 1;
+    min-width: 11rem;
+    margin: 0;
+    padding: .375rem 0;
+    list-style: none;
+    border: 1px solid var(--nav-hairline, rgba(43, 52, 69, .1));
+    border-radius: .75rem;
+    background: var(--nav-bg, #fff);
+    box-shadow: 0 8px 24px rgba(43, 52, 69, .16);
+
+    // The shared language list (_language_menu.html.twig: flag + name): 44 px rows
+    .dropdown-item {
+        display: flex;
+        align-items: center;
+        gap: .25rem;
+        min-height: 44px;
+        padding: 0 1rem;
+        color: var(--nav-ink, #4b566b);
+    }
+}

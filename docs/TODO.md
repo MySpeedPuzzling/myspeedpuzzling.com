@@ -42,6 +42,17 @@ that would otherwise be forgotten. Newest section on top.
       ONLINE_ROUNDS_MANAGE besides COMPETITION_RESULTS_ENTRY) - decide before public use; letting them in is one
       condition in `OnlineOrganiserApi` and the review pages' voters.
 
+## Online competitions - after the end-to-end fixes (`docs/features/online-competitions/`, stream P1F)
+
+- [ ] Start after "End now" on an online round still resumes the in-person way: the start moves and the earlier taps
+      stop counting. Refuse Start on a stopped online round (a Reset is the way to run it again) - decide with the
+      control room's buttons.
+- [ ] Rare race: a link lookup computed while another device's claim commits can stay in `OnlineAccessLight`'s cache
+      for up to 60 s, so the newly claiming device wrongly gives way; tapping "I'm ready" again fixes it. Clear the
+      link's cache entry after a `device.ready` commit if it shows up on phones.
+- [ ] The control room's live JSON carries `otherDevice` (a second device open on a link that isn't the one holding
+      the entry) but no tile shows it yet - one text in `online_rounds.control` + the chip.
+
 ## Plural texts without a form for 0 (found 2026-10-13 by the online translations' render check)
 
 - [ ] About 55 plural messages per locale outside the online pages are written `{1}…|]1,Inf[…` (or with too few

@@ -92,4 +92,21 @@ LiveKit locally (docker), then on a test box with TURN:
 - a studio round trip;
 - a strict-network test.
 
-*Results: pending.*
+### Local run (VF), 2026-10-13
+
+Throwaway containers on the dev Docker network (Docker Desktop on a Mac laptop): `livekit/livekit-server:v1.13.9` (one node, UDP mux 7882, ICE/TCP 7881, `--node-ip` = its address on the network), the stream's worktree on `php -S` (dev env, a scratch copy of the test database: the Online Test Cup), Selenium Chromium with a fake camera and microphone (`--use-fake-device-for-media-stream --use-fake-ui-for-media-stream`). The pages ran the real `assets/online/livekit_session.js` over livekit-client 2.22.4; every token came from the real endpoints / `LiveKitTokens`, every server call from `LiveKitApi`, every webhook went through `POST /-/livekit-webhook`.
+
+| Check | Result |
+|---|---|
+| A participant token (`compete_api_video_token`, camera role) joins the hall and publishes the fake camera (1280×720) | connected + published in 274 ms and 312 ms (two participants, warm browsers; 660 ms in a fresh one); LiveKit lists each camera with 3 simulcast layers and grants exactly `CAMERA` |
+| A moderator token subscribes | both cameras arrive and play (320×180 tiles, adaptive stream) |
+| Subscriber permissions (`moderators`, "see each other" off) | the other participant sees the camera announced but is not subscribed to it |
+| `SendData` (InviteToStudio → StudioLiveUpdates::invited()) | reaches the participant's page: topic `studio`, `{"inviteId": …}`, sender = the server (null); the next heartbeat carries `studioInviteId` too |
+| Studio: answer "join" → studio token → camera + microphone | leaving the hall leaves the camera `live` (the wrapper never stops it); studio join 102 ms; the host has the guest's camera + microphone ~2 s after its own join |
+| `UpdateParticipant` revoking publishing (EndStudioGuest → StudioLiveUpdates::ended()) | the call takes 12 ms; at once the host sees both tracks unpublished and `canPublish: false`; the guest stays in the studio watching, their camera still `live` |
+| Webhooks | 32 delivered, all verified - LiveKit's JWT carries iss, iat, nbf, exp (+300 s) and sha256, no `Bearer`, `Content-Type: application/webhook+json`, `createdAt` as a string of seconds; `participant_joined` in the studio set `onAirFrom`, the guest's leave set `ended` + `onAirTo`; a reconnect with the same identity (`participant_left` with `disconnectReason: DUPLICATE_IDENTITY`, then `participant_joined`) kept the guest on air; an unsigned request → 401 |
+| LiveKit container | idle: 0.1 % CPU, 73 MiB; 2 publishers (720p capture, simulcast) + 1 moderator subscribed to both: 1.3-1.8 % CPU (of one core), 125 MiB |
+
+Not covered here: TURN and strict networks, real phones, the load test, and the dev compose service's own host-port path (`node_ip: 127.0.0.1`) - only checked that `config/livekit/dev.yaml` starts the server and that the host-port overrides reach it (`rtc.portTCP` from `LIVEKIT_RTC_TCP_PORT`, `rtc.portUDP` from `--udp-port`).
+
+*Results on a test box: pending.*

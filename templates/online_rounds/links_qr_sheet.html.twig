@@ -2,7 +2,8 @@
 {#
     The personal links as a printable sheet (docs/features/online-competitions/README.md §5.4, stream C1, route
     online_links_qr_sheet): one card per participant who is going - name, the QR to scan with the phone they compete on,
-    the short link to type. Standalone like the name tags (live_results/name_tags.html.twig).
+    the short link to type - all of them, or one participant's (`?participant=`, the links page's "QR code" of a row).
+    Standalone like the name tags (live_results/name_tags.html.twig): its controls a <header>, the cards the <main>.
     Variables: competition, cards (list of {row: OnlineLinkRow, short_url, qr})
 #}
 <html lang="{{ app.request.locale }}">
@@ -17,6 +18,8 @@
         .controls { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; margin-bottom: 12px; }
         .controls a, .controls button { color: #333; }
         .controls button { min-height: 36px; padding: 4px 10px; font-size: 14px; font-weight: bold; }
+        .page-title { margin-bottom: 8px; font-size: 18px; }
+        .page-title span { font-weight: normal; color: #555; }
         .hint { max-width: 180mm; margin-bottom: 16px; color: #555; font-size: 13px; line-height: 1.4; }
         .sheet { display: grid; grid-template-columns: repeat(2, 90mm); grid-auto-rows: 62mm; }
         .card { display: flex; gap: 4mm; padding: 4mm 4mm 4mm 5mm; border: 1px dashed #bbb; overflow: hidden; break-inside: avoid; page-break-inside: avoid; }
@@ -38,35 +41,38 @@
         @page { size: A4; margin: 10mm 15mm; }
         @media print {
             body { padding: 0; }
-            .controls, .hint { display: none; }
+            .controls, .page-title, .hint { display: none; }
         }
     </style>
 </head>
 <body>
-    <div class="controls">
+    <header class="controls">
         <a href="{{ path('online_links', {competitionId: competition.id}) }}">&larr; {{ 'online_rounds.links.qr_sheet.back'|trans }}</a>
         <button type="button" onclick="window.print()">{{ 'online_rounds.links.qr_sheet.print'|trans }}</button>
         <span data-online-qr-count>{{ 'online_rounds.links.qr_sheet.count'|trans({'%count%': cards|length}) }}</span>
-    </div>
+    </header>
 
-    <p class="hint">{{ 'online_rounds.links.qr_sheet.hint'|trans }}</p>
+    <main>
+        <h1 class="page-title">{{ 'online_rounds.links.qr_sheet.title'|trans }} <span>· {{ competition.name }}</span></h1>
+        <p class="hint">{{ 'online_rounds.links.qr_sheet.hint'|trans }}</p>
 
-    {% if cards is empty %}
-        <p class="empty">{{ 'online_rounds.links.qr_sheet.empty'|trans }}</p>
-    {% else %}
-        <div class="sheet">
-            {% for card in cards %}
-                <div class="card" data-online-qr-card="{{ card.row.participantId }}">
-                    <div class="card-text">
-                        <div class="card-event">{{ competition.name }}</div>
-                        <div class="card-name{{ card.row.name|length > 24 ? ' long' }}">{{ card.row.name }}</div>
-                        <div class="card-scan">{{ 'online_rounds.links.qr_sheet.scan'|trans }}</div>
-                        <div class="card-link" data-online-qr-link>{{ card.short_url }}</div>
-                    </div>
-                    <div class="card-qr">{{ card.qr|raw }}</div>
-                </div>
-            {% endfor %}
-        </div>
-    {% endif %}
+        {% if cards is empty %}
+            <p class="empty">{{ 'online_rounds.links.qr_sheet.empty'|trans }}</p>
+        {% else %}
+            <div class="sheet">
+                {% for card in cards %}
+                    <section class="card" data-online-qr-card="{{ card.row.participantId }}" aria-label="{{ card.row.name }}">
+                        <div class="card-text">
+                            <div class="card-event">{{ competition.name }}</div>
+                            <div class="card-name{{ card.row.name|length > 24 ? ' long' }}">{{ card.row.name }}</div>
+                            <div class="card-scan">{{ 'online_rounds.links.qr_sheet.scan'|trans }}</div>
+                            <div class="card-link" data-online-qr-link>{{ card.short_url }}</div>
+                        </div>
+                        <div class="card-qr" role="img" aria-label="{{ 'online_rounds.links.qr_label'|trans({'%name%': card.row.name}) }}">{{ card.qr|raw }}</div>
+                    </section>
+                {% endfor %}
+            </div>
+        {% endif %}
+    </main>
 </body>
 </html>

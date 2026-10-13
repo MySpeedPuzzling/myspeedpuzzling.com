@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\Controller\OnlineRounds;
 
 use Doctrine\DBAL\Connection;
+use SpeedPuzzling\Web\Message\ConnectCompetitionParticipant;
 use SpeedPuzzling\Web\Query\GetCompetitionEvents;
 use SpeedPuzzling\Web\Query\GetEventAttendance;
 use SpeedPuzzling\Web\Results\EventAttendance;
@@ -15,6 +16,7 @@ use SpeedPuzzling\Web\Tests\QueryCountAssertions;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\Messenger\MessageBusInterface;
 
 /**
  * "Open my competition page" on the event page (docs/features/online-competitions/README.md §5.4, stream C1): a
@@ -62,6 +64,91 @@ final class OpenMyCompetitionPageTest extends WebTestCase
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_FAVORITES);
         $browser->request('GET', self::PAGE);
         self::assertCount(0, $browser->getCrawler()->filter(self::BUTTON), 'another player');
+    }
+
+    /**
+     * The attack the confirmation closes: anybody signed in may pick an unclaimed name from the organiser's list (the
+     * "I'm going" picker) - that must never hand them the participant's personal link
+     */
+    public function testClaimingAParticipantFromTheListHandsOutNoLink(): void
+    {
+        $browser = $this->signedIn(PlayerFixture::PLAYER_WITH_FAVORITES);
+        $this->publishTheCup($browser);
+
+        // Arthur Anonymous is unclaimed and holds a link the organiser hands out
+        $browser->request('GET', '/en/join-event/' . OnlineRoundsFixture::COMPETITION_ONLINE_TEST_CUP);
+        $browser->request('POST', '/en/join-event/' . OnlineRoundsFixture::COMPETITION_ONLINE_TEST_CUP, ['participant_id' => OnlineRoundsFixture::PARTICIPANT_ANONYMOUS]);
+        self::assertSame(PlayerFixture::PLAYER_WITH_FAVORITES, $this->connection($browser)->fetchOne(
+            'SELECT player_id FROM competition_participant WHERE id = :id',
+            ['id' => OnlineRoundsFixture::PARTICIPANT_ANONYMOUS],
+        ), 'claimed');
+
+        $browser->request('GET', self::PAGE);
+
+        self::assertResponseIsSuccessful();
+        self::assertCount(0, $browser->getCrawler()->filter(self::BUTTON));
+        self::assertStringNotContainsString(OnlineRoundsFixture::TOKEN_ANONYMOUS, (string) $browser->getResponse()->getContent(), 'the token is nowhere in the page');
+    }
+
+    /**
+     * Connected by the organiser (the participants sheet, an import): the link comes from the organiser, and once the
+     * player opened it signed in - the page connects (confirms) by itself - the event page hands it to them too
+     */
+    public function testAPlayerTheOrganiserConnectedGetsTheButtonOnceTheyOpenedTheirLinkSignedIn(): void
+    {
+        $browser = $this->signedIn(PlayerFixture::PLAYER_WITH_FAVORITES);
+        $this->publishTheCup($browser);
+        self::getContainer()->get(MessageBusInterface::class)->dispatch(new ConnectCompetitionParticipant(
+            OnlineRoundsFixture::COMPETITION_ONLINE_TEST_CUP,
+            PlayerFixture::PLAYER_WITH_FAVORITES,
+            OnlineRoundsFixture::PARTICIPANT_ANONYMOUS,
+        ));
+
+        $browser->request('GET', self::PAGE);
+        self::assertCount(0, $browser->getCrawler()->filter(self::BUTTON), 'not before they showed they hold the link');
+
+        // Their own link, signed in: the page posts the connect itself ("auto") - it confirms the link
+        $crawler = $browser->request('GET', '/en/compete/' . OnlineRoundsFixture::TOKEN_ANONYMOUS);
+        $connect = json_decode((string) $crawler->filter('.compete')->attr('data-compete-connect-value'), true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($connect);
+        self::assertSame('auto', $connect['status'] ?? null);
+        self::assertSame('/en/compete/' . OnlineRoundsFixture::TOKEN_ANONYMOUS . '/connect', $connect['url'] ?? null);
+
+        $browser->request('POST', '/en/compete/' . OnlineRoundsFixture::TOKEN_ANONYMOUS . '/connect', server: [
+            'CONTENT_TYPE' => 'application/json',
+            'HTTP_ACCEPT' => 'application/json',
+            'HTTP_ORIGIN' => 'http://localhost',
+            'HTTP_X_CSRF_TOKEN' => 'csrf-token',
+        ], content: '{}');
+        $answer = json_decode((string) $browser->getResponse()->getContent(), true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($answer);
+        self::assertSame('already_connected', $answer['status'] ?? null);
+
+        $crawler = $browser->request('GET', self::PAGE);
+        self::assertSame('http://localhost/en/compete/' . OnlineRoundsFixture::TOKEN_ANONYMOUS, $crawler->filter('#taking-part ' . self::BUTTON)->attr('href'));
+
+        // Confirmed: the participant page shows them connected, nothing more to post
+        $crawler = $browser->request('GET', '/en/compete/' . OnlineRoundsFixture::TOKEN_ANONYMOUS);
+        $connect = json_decode((string) $crawler->filter('.compete')->attr('data-compete-connect-value'), true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($connect);
+        self::assertSame('already_connected', $connect['status'] ?? null);
+    }
+
+    public function testAPlayerWhoJoinsByThemselvesGetsTheirLinkRightAway(): void
+    {
+        $browser = $this->signedIn(PlayerFixture::PLAYER_WITH_FAVORITES);
+        $this->publishTheCup($browser);
+
+        $browser->request('POST', '/en/join-event/' . OnlineRoundsFixture::COMPETITION_ONLINE_TEST_CUP, ['self_join' => '1']);
+
+        $token = $this->connection($browser)->fetchOne(
+            'SELECT online_token FROM competition_participant WHERE competition_id = :competition AND player_id = :player AND deleted_at IS NULL',
+            ['competition' => OnlineRoundsFixture::COMPETITION_ONLINE_TEST_CUP, 'player' => PlayerFixture::PLAYER_WITH_FAVORITES],
+        );
+        self::assertIsString($token);
+
+        $crawler = $browser->request('GET', self::PAGE);
+        self::assertSame('http://localhost/en/compete/' . $token, $crawler->filter('#taking-part ' . self::BUTTON)->attr('href'));
     }
 
     public function testTheButtonCostsNoStatement(): void

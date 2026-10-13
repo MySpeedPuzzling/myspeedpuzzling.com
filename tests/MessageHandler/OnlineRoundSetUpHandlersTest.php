@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Exceptions\CompetitionRoundNotFound;
 use SpeedPuzzling\Web\Exceptions\OnlineLinkNotFound;
 use SpeedPuzzling\Web\Exceptions\OnlineRoundNotFound;
 use SpeedPuzzling\Web\Exceptions\OnlineTimingNotAvailable;
+use SpeedPuzzling\Web\Exceptions\OnlineTimingNotUsed;
 use SpeedPuzzling\Web\Exceptions\ParticipantIsWaitlisted;
 use SpeedPuzzling\Web\Message\EnableOnlineRound;
 use SpeedPuzzling\Web\Message\GenerateOnlineTokens;
@@ -28,7 +29,6 @@ use SpeedPuzzling\Web\Value\OnlineUnfinishedMeasure;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\HandledStamp;
-use Symfony\Contracts\Cache\ItemInterface;
 
 /**
  * The organiser's set-up of online timing (docs/features/online-competitions/, contract §4, stream C1):
@@ -202,24 +202,43 @@ final class OnlineRoundSetUpHandlersTest extends KernelTestCase
         self::assertSame($after, $this->tokens());
     }
 
-    public function testAnEventWithoutOnlineTimingGetsNoLinks(): void
+    public function testLinksAreRefusedForAnEventWithoutOnlineTiming(): void
     {
-        self::assertSame(0, $this->generate(OfficialResultsFixture::COMPETITION_RESULTS_CUP));
+        try {
+            $this->messageBus->dispatch(new GenerateOnlineTokens(OfficialResultsFixture::COMPETITION_RESULTS_CUP));
+            self::fail('Links for an in-person event');
+        } catch (OnlineTimingNotUsed) {
+        }
+
+        try {
+            $this->messageBus->dispatch(new RegenerateOnlineToken(OfficialResultsFixture::COMPETITION_RESULTS_CUP, OfficialResultsFixture::PARTICIPANT_ANNA));
+            self::fail('A new link at an in-person event');
+        } catch (OnlineTimingNotUsed) {
+        }
+
+        // The Online Test Cup without its round's online timing - its links would open nothing
+        $this->database->executeStatement('DELETE FROM online_round WHERE id = :id', ['id' => OnlineRoundsFixture::ONLINE_ROUND_SOLO]);
+
+        try {
+            $this->generate(self::COMPETITION);
+            self::fail('No round uses online timing');
+        } catch (OnlineTimingNotUsed) {
+        }
+
         self::assertSame(0, $this->database->fetchOne(
             'SELECT COUNT(*) FROM competition_participant WHERE competition_id = :competition AND online_token IS NOT NULL',
             ['competition' => OfficialResultsFixture::COMPETITION_RESULTS_CUP],
         ));
+        self::assertNull($this->tokens()[OnlineRoundsFixture::PARTICIPANT_WITHOUT_TOKEN]);
     }
 
-    public function testANewLinkReplacesTheOldOneAndTheOldOneOpensNothing(): void
+    public function testANewLinkReplacesTheOldOneAndAnswersIt(): void
     {
-        // The participant API's cached heartbeat lookup of the old link (stream A)
-        $cache = self::getContainer()->get('cache.app');
-        $cache->get('online_access_light.' . OnlineRoundsFixture::TOKEN_CONNECTED, static function (ItemInterface $item): string {
-            return 'cached lookup';
-        });
+        $replaced = $this->messageBus->dispatch(new RegenerateOnlineToken(self::COMPETITION, OnlineRoundsFixture::PARTICIPANT_CONNECTED))
+            ->last(HandledStamp::class)?->getResult();
 
-        $this->messageBus->dispatch(new RegenerateOnlineToken(self::COMPETITION, OnlineRoundsFixture::PARTICIPANT_CONNECTED));
+        // The caller forgets the old link's cached heartbeat lookup once this is committed (OnlineAccessLight::forget())
+        self::assertSame(OnlineRoundsFixture::TOKEN_CONNECTED, $replaced);
 
         $token = $this->tokens()[OnlineRoundsFixture::PARTICIPANT_CONNECTED];
         self::assertIsString($token);
@@ -232,19 +251,39 @@ final class OnlineRoundSetUpHandlersTest extends KernelTestCase
         self::getContainer()->get(EntityManagerInterface::class)->clear();
         self::assertSame(OnlineRoundsFixture::PARTICIPANT_CONNECTED, $repository->getByOnlineToken($token)->id->toString());
 
-        // The cached lookup of the old link is gone
-        self::assertSame('looked up again', $cache->get('online_access_light.' . OnlineRoundsFixture::TOKEN_CONNECTED, static function (ItemInterface $item): string {
-            return 'looked up again';
-        }));
-
         $this->expectException(OnlineLinkNotFound::class);
         $repository->getByOnlineToken(OnlineRoundsFixture::TOKEN_CONNECTED);
     }
 
+    /**
+     * The row is read again under the lock: a token another request put there after this one read the participant is
+     * the one replaced and answered - never the stale one of the identity map
+     */
+    public function testANewLinkReplacesTheTokenAsItIsNowNotAsItWasRead(): void
+    {
+        $repository = self::getContainer()->get(CompetitionParticipantRepository::class);
+        $stale = $repository->get(OnlineRoundsFixture::PARTICIPANT_CONNECTED);
+        self::assertSame(OnlineRoundsFixture::TOKEN_CONNECTED, $stale->onlineToken);
+
+        // Another "New link" committed meanwhile
+        $this->database->executeStatement(
+            "UPDATE competition_participant SET online_token = 'MeanwhileTestCupToken2' WHERE id = :id",
+            ['id' => OnlineRoundsFixture::PARTICIPANT_CONNECTED],
+        );
+
+        $replaced = $this->messageBus->dispatch(new RegenerateOnlineToken(self::COMPETITION, OnlineRoundsFixture::PARTICIPANT_CONNECTED))
+            ->last(HandledStamp::class)?->getResult();
+
+        self::assertSame('MeanwhileTestCupToken2', $replaced);
+        self::assertNotContains($this->tokens()[OnlineRoundsFixture::PARTICIPANT_CONNECTED], [OnlineRoundsFixture::TOKEN_CONNECTED, 'MeanwhileTestCupToken2']);
+    }
+
     public function testANewLinkForSomebodyWithoutOneIsTheirFirst(): void
     {
-        $this->messageBus->dispatch(new RegenerateOnlineToken(self::COMPETITION, OnlineRoundsFixture::PARTICIPANT_WITHOUT_TOKEN));
+        $replaced = $this->messageBus->dispatch(new RegenerateOnlineToken(self::COMPETITION, OnlineRoundsFixture::PARTICIPANT_WITHOUT_TOKEN))
+            ->last(HandledStamp::class)?->getResult();
 
+        self::assertNull($replaced);
         self::assertIsString($this->tokens()[OnlineRoundsFixture::PARTICIPANT_WITHOUT_TOKEN]);
     }
 

@@ -153,6 +153,15 @@ readonly final class CompetitionParticipantRepository
     }
 
     /**
+     * Reads the row again - for a handler under the event's participants lock that must act on the row as it is now, not
+     * as an earlier read of the same request left it in the identity map (a stale personal link token, a connection).
+     */
+    public function refresh(CompetitionParticipant $participant): void
+    {
+        $this->entityManager->refresh($participant);
+    }
+
+    /**
      * Many participants in one statement (AdvanceQualified puts a whole qualified field into the next round).
      *
      * @param list<string> $participantIds

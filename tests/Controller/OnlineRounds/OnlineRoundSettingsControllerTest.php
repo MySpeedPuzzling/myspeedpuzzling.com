@@ -61,6 +61,10 @@ final class OnlineRoundSettingsControllerTest extends WebTestCase
         self::assertSame('left', $crawler->filter('input[name="online_round_settings_form[unfinishedMeasure]"][checked]')->attr('value'));
         self::assertSame('complete_required', $crawler->filter('input[name="online_round_settings_form[missingPieceRule]"][checked]')->attr('value'));
         self::assertStringContainsString('by ', $crawler->filter('[data-online-timing-since]')->text());
+        // The project's own wording for durations (event_rounds.minutes), not a hard-coded unit
+        self::assertStringContainsString('60 min', $crawler->filter('[data-online-round-settings]')->text());
+        // Who gets a link later, and where from
+        self::assertStringContainsString('People who join later by themselves get their link at once', $crawler->filter('[data-online-later-links]')->text());
 
         // Its tools: the personal links and the round's stopwatch
         self::assertSame($this->path('online_links', ['competitionId' => self::COMPETITION]), $crawler->filter('[data-online-tool="links"]')->attr('href'));

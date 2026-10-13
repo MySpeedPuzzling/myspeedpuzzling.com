@@ -51,7 +51,7 @@ readonly final class EnableOnlineRoundHandler
             throw new CompetitionRoundNotFound();
         }
 
-        $availability = OnlineTimingAvailability::of($competition->isOnline, $round->category);
+        $availability = OnlineTimingAvailability::ofRound($round);
 
         if ($availability->isAvailable() === false) {
             throw new OnlineTimingNotAvailable($availability);

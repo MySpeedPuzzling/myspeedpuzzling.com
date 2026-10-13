@@ -19,7 +19,8 @@ use Symfony\Contracts\Cache\ItemInterface;
  * The heartbeat's view of a personal link (`POST /api/compete/{token}/heartbeat`) - what OnlineAccess knows, reduced
  * to ids and kept in the shared cache (`cache.app`), so a phone beating every 15 s costs no statement:
  * - per token, for TTL_SECONDS under `online_access_light.<token>`: the participant, their competition, their current
- *   round, their entry in it and its active device. A new link (RegenerateOnlineToken) deletes the old token's key;
+ *   round, their entry in it and its active device. A new link deletes the old token's key once RegenerateOnlineToken
+ *   is committed (forget(), from online_link_regenerate - contract §6: this class holds the one definition of the key);
  *   a `device.ready` that hands the entry to another device deletes it too (ApiEventsController) - the old device
  *   learns it was taken over on its next beat. Anything else (a round that starts being the current one, a removed
  *   participant) shows within TTL_SECONDS.

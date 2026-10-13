@@ -6,55 +6,62 @@ namespace SpeedPuzzling\Web\MessageHandler;
 
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Exceptions\CompetitionParticipantNotFound;
+use SpeedPuzzling\Web\Exceptions\OnlineTimingNotUsed;
 use SpeedPuzzling\Web\Exceptions\ParticipantIsWaitlisted;
 use SpeedPuzzling\Web\Message\RegenerateOnlineToken;
 use SpeedPuzzling\Web\Repository\CompetitionParticipantRepository;
+use SpeedPuzzling\Web\Repository\OnlineRoundRepository;
 use SpeedPuzzling\Web\Value\OnlineToken;
-use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
-use Symfony\Contracts\Cache\CacheInterface;
 
 /**
  * "New link" (docs/features/online-competitions/README.md §5.4): the participant gets a new personal link and the old
  * one stops working at once - also for a participant who had none yet (their first link). Only for a participant who
- * is going: a removed one is not found, a waitlisted one holds no spot (ParticipantIsWaitlisted).
+ * is going (a removed one is not found, a waitlisted one holds no spot - ParticipantIsWaitlisted), only at an event a
+ * round of which uses online timing (OnlineTimingNotUsed).
  *
- * The participant API keeps a short-lived token lookup for heartbeats in the shared cache pool `cache.app`
- * (`online_access_light.<token>`, stream A): the old token's entry is deleted here, so a heartbeat on the old link
- * finds nothing. (A heartbeat landing between this delete and the commit could cache the old lookup again - for the
- * entry's short lifetime, heartbeats only; every other call of the API reads the database.)
+ * The row is read again under the event's lock: the caller may have read it before (its token is never the one
+ * replaced). Returns the token it replaced - the participant API's cached heartbeat lookup of it
+ * (OnlineAccessLight::forget()) is the caller's to drop once this is committed: dropped inside the transaction, a
+ * heartbeat in between would cache the old link again.
  */
 #[AsMessageHandler]
 readonly final class RegenerateOnlineTokenHandler
 {
-    // The participant API's heartbeat lookup per token - exactly the key stream A writes into `cache.app`
-    private const string HEARTBEAT_LOOKUP_KEY_PREFIX = 'online_access_light.';
-
     public function __construct(
         private CompetitionParticipantRepository $competitionParticipantRepository,
+        private OnlineRoundRepository $onlineRoundRepository,
         private ClockInterface $clock,
-        #[Autowire(service: 'cache.app')]
-        private CacheInterface $cache,
     ) {
     }
 
     /**
+     * @return null|string the token replaced (null: the participant had none)
+     *
      * @throws CompetitionParticipantNotFound
      * @throws ParticipantIsWaitlisted
+     * @throws OnlineTimingNotUsed
      */
-    public function __invoke(RegenerateOnlineToken $message): void
+    public function __invoke(RegenerateOnlineToken $message): null|string
     {
-        $participant = $this->competitionParticipantRepository->getActiveOfCompetition($message->competitionId, $message->participantId);
+        $participant = $this->competitionParticipantRepository->getOfCompetition($message->competitionId, $message->participantId);
+        $this->competitionParticipantRepository->refresh($participant);
+
+        if ($participant->isDeleted()) {
+            throw new CompetitionParticipantNotFound();
+        }
 
         if ($participant->isGoing() === false) {
             throw new ParticipantIsWaitlisted();
         }
 
-        $oldToken = $participant->onlineToken;
+        if ($this->onlineRoundRepository->ofCompetition($participant->competition->id->toString()) === []) {
+            throw new OnlineTimingNotUsed();
+        }
+
+        $replaced = $participant->onlineToken;
         $participant->assignOnlineToken(OnlineToken::generate(), $this->clock->now());
 
-        if ($oldToken !== null) {
-            $this->cache->delete(self::HEARTBEAT_LOOKUP_KEY_PREFIX . $oldToken);
-        }
+        return $replaced;
     }
 }

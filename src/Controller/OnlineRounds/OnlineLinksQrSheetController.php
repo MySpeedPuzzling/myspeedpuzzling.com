@@ -13,6 +13,7 @@ use SpeedPuzzling\Web\Services\OnlineRounds\OnlineLinkList;
 use SpeedPuzzling\Web\Services\OnlineRounds\OnlineLinkUrl;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
@@ -20,7 +21,8 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 /**
  * The personal links as a printable sheet (docs/features/online-competitions/README.md §5.4, contract §5
  * `online_links_qr_sheet`): one card per participant who is going - name, a QR to scan with the phone they compete on,
- * the short link to type. A standalone print page like the name tags. The links are secrets: never cached.
+ * the short link to type. `?participant=<id>` = that participant's card only (the links page's "QR code" of a row). A
+ * standalone print page like the name tags. The links are secrets: never cached.
  */
 #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
 final class OnlineLinksQrSheetController extends AbstractController
@@ -48,17 +50,19 @@ final class OnlineLinksQrSheetController extends AbstractController
         requirements: ['competitionId' => FirstTryConflictsController::ID_REQUIREMENT],
         methods: ['GET'],
     )]
-    public function __invoke(string $competitionId): Response
+    public function __invoke(Request $request, string $competitionId): Response
     {
         $this->denyAccessUnlessGranted(OnlineRoundsVoter::ONLINE_ROUNDS_MANAGE, $competitionId);
 
         $competition = $this->competitionRepository->get($competitionId);
         $competitionId = $competition->id->toString();
         $usesOnlineTiming = $this->onlineRoundRepository->ofCompetition($competitionId) !== [];
+        // One participant's card - the links page's "QR code" of a row
+        $only = strtolower($request->query->getString('participant'));
         $cards = [];
 
         foreach ($this->onlineLinkList->forCompetition($competitionId, $this->retrieveLoggedUserProfile->getProfile()?->playerId, $usesOnlineTiming) as $row) {
-            if ($row->waitlisted || $row->token === null) {
+            if ($row->waitlisted || $row->token === null || ($only !== '' && $row->participantId !== $only)) {
                 continue;
             }
 

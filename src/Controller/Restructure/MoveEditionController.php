@@ -9,6 +9,7 @@ use SpeedPuzzling\Web\Exceptions\CompetitionSlugTaken;
 use SpeedPuzzling\Web\Exceptions\EditionAlreadyInSeries;
 use SpeedPuzzling\Web\Exceptions\EditionNotMovableIntoDraft;
 use SpeedPuzzling\Web\Exceptions\InvalidCompetitionSlug;
+use SpeedPuzzling\Web\Exceptions\OnlineTimingInUse;
 use SpeedPuzzling\Web\FormData\MoveEditionFormData;
 use SpeedPuzzling\Web\FormType\MoveEditionFormType;
 use SpeedPuzzling\Web\Message\MoveEditionToSeries;
@@ -135,6 +136,9 @@ final class MoveEditionController extends AbstractController
                     $form->get('seriesId')->addError(new FormError($this->translator->trans('restructure.move_edition.same_series')));
                 } catch (EditionNotMovableIntoDraft) {
                     $form->get('seriesId')->addError(new FormError($this->translator->trans('restructure.move_edition.draft_target')));
+                } catch (OnlineTimingInUse $inUse) {
+                    // Its rounds use online timing - only into an online series (docs/features/online-competitions/)
+                    $form->get('seriesId')->addError(new FormError($this->translator->trans($inUse->translationKey(), $inUse->translationParameters())));
                 }
             }
         }

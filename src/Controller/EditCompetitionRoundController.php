@@ -10,6 +10,7 @@ use SpeedPuzzling\Web\Entity\CompetitionRound;
 use SpeedPuzzling\Web\Entity\CompetitionRoundPuzzle;
 use SpeedPuzzling\Web\Exceptions\InvalidLocalTime;
 use SpeedPuzzling\Web\Exceptions\OfficialResultsProtected;
+use SpeedPuzzling\Web\Exceptions\OnlineTimingInUse;
 use SpeedPuzzling\Web\Exceptions\PuzzleAlreadyInCompetitionRoundCategory;
 use SpeedPuzzling\Web\Exceptions\SecretPuzzlesWouldBeRevealed;
 use SpeedPuzzling\Web\FormData\CompetitionRoundFormData;
@@ -198,6 +199,10 @@ final class EditCompetitionRoundController extends AbstractController
                     // The round's category stays while it has official results - read the round again, like below
                     $round = $this->competitionRoundRepository->get($roundId);
                     $form->get('category')->addError(new FormError($this->translator->trans($protected->translationKey())));
+                } catch (OnlineTimingInUse $inUse) {
+                    // A round using online timing stays solo (docs/features/online-competitions/) - read it again too
+                    $round = $this->competitionRoundRepository->get($roundId);
+                    $form->get('category')->addError(new FormError($this->translator->trans($inUse->translationKey(), $inUse->translationParameters())));
                 } catch (HandlerFailedException $e) {
                     $nested = $e->getPrevious() ?? $e;
 

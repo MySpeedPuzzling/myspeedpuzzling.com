@@ -31,7 +31,7 @@
         <p class="small text-muted">
             <i class="bi bi-calendar-event me-1" aria-hidden="true"></i>{{ zoned_datetime(round.startsAt, round.displayTimezone, round.timezoneAssumed) }}
             <span class="mx-1">&middot;</span>
-            <i class="bi bi-stopwatch me-1" aria-hidden="true"></i>{{ round.minutesLimit }} min
+            <i class="bi bi-stopwatch me-1" aria-hidden="true"></i>{{ 'event_rounds.minutes'|trans({'%count%': round.minutesLimit}) }}
         </p>
 
         {% if not availability.isAvailable %}
@@ -68,10 +68,11 @@
                         {{ 'online_rounds.settings.on.title'|trans }}
                     </h2>
                     <p class="small text-muted" data-online-timing-since>
+                        {% set enabled_at = zoned_datetime(online_round.enabledAt, round.displayTimezone, round.timezoneAssumed) %}
                         {% if online_round.enabledBy is not null %}
-                            {{ 'online_rounds.settings.on.since_by'|trans({'%date%': online_round.enabledAt|date('d.m.Y H:i'), '%name%': online_round.enabledBy.name ?? ('#' ~ online_round.enabledBy.code|upper)}) }}
+                            {{ 'online_rounds.settings.on.since_by'|trans({'%date%': enabled_at, '%name%': online_round.enabledBy.name ?? ('#' ~ online_round.enabledBy.code|upper)}) }}
                         {% else %}
-                            {{ 'online_rounds.settings.on.since'|trans({'%date%': online_round.enabledAt|date('d.m.Y H:i')}) }}
+                            {{ 'online_rounds.settings.on.since'|trans({'%date%': enabled_at}) }}
                         {% endif %}
                     </p>
 
@@ -111,6 +112,8 @@
                         <p class="mb-2" data-online-entered>{{ 'online_rounds.settings.participants.entered'|trans({'%entered%': setup.entered, '%going%': setup.going}) }}</p>
                         {% if online_round is not null %}
                             <p class="small text-muted mb-2" data-online-with-link>{{ 'online_rounds.settings.participants.with_link'|trans({'%with_link%': setup.withLink, '%going%': setup.going}) }}</p>
+                            {# Later registrants (docs/features/online-competitions/README.md §5.4) #}
+                            <p class="small text-muted mb-2" data-online-later-links>{{ 'online_rounds.settings.participants.later_links'|trans }}</p>
                         {% endif %}
 
                         {% if setup.notEntered > 0 %}

@@ -135,6 +135,8 @@ final class OnlineRoundsFixture extends Fixture implements DependentFixtureInter
 
         $connected = $this->participant($manager, self::PARTICIPANT_CONNECTED, 'Olivia Online', 'cz', $competition, self::TOKEN_CONNECTED, $setUpAt);
         $connected->connect($regularPlayer, $setUpAt->modify('+2 hours'));
+        // She opened her link signed in when her phone first made contact - the event page hands it to her
+        $connected->confirmOnlineLink($setUpAt->modify('+3 hours'));
         $anonymous = $this->participant($manager, self::PARTICIPANT_ANONYMOUS, 'Arthur Anonymous', 'gb', $competition, self::TOKEN_ANONYMOUS, $setUpAt);
         $this->participant($manager, self::PARTICIPANT_WITHOUT_TOKEN, 'Nora Notoken', 'de', $competition, null, $setUpAt);
 

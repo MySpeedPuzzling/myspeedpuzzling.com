@@ -17,6 +17,8 @@ use SpeedPuzzling\Web\Exceptions\PuzzleAlreadyInCompetitionRoundCategory;
 use SpeedPuzzling\Web\Query\GetCompetitionRounds;
 use SpeedPuzzling\Web\Exceptions\SecretPuzzlesWouldBeRevealed;
 use SpeedPuzzling\Web\Exceptions\OfficialResultsProtected;
+use SpeedPuzzling\Web\Exceptions\OnlineTimingInUse;
+use SpeedPuzzling\Web\Repository\OnlineRoundRepository;
 use SpeedPuzzling\Web\Services\OfficialResultsGuard;
 use SpeedPuzzling\Web\Services\SecretPuzzleHides;
 use SpeedPuzzling\Web\Services\SecretRevealPreview;
@@ -31,6 +33,7 @@ readonly final class EditCompetitionRoundHandler
         private ClockInterface $clock,
         private SecretRevealPreview $secretRevealPreview,
         private OfficialResultsGuard $officialResultsGuard,
+        private OnlineRoundRepository $onlineRoundRepository,
     ) {
     }
 
@@ -42,6 +45,7 @@ readonly final class EditCompetitionRoundHandler
      * @throws PuzzleAlreadyInCompetitionRoundCategory
      * @throws SecretPuzzlesWouldBeRevealed
      * @throws OfficialResultsProtected
+     * @throws OnlineTimingInUse a round using online timing changed away from solo
      */
     public function __invoke(EditCompetitionRound $message): void
     {
@@ -68,6 +72,11 @@ readonly final class EditCompetitionRoundHandler
         // before anything changes
         if ($category !== $round->category && $this->officialResultsGuard->countEntriesWithOfficialDataInRound($round->id->toString()) > 0) {
             throw new OfficialResultsProtected(OfficialResultsProtected::ROUND_CATEGORY_LOCKED);
+        }
+
+        // Online timing works for solo rounds only (docs/features/online-competitions/) - a round using it stays solo
+        if ($category !== $round->category && $category !== RoundCategory::Solo && $this->onlineRoundRepository->ofRound($round->id->toString()) !== null) {
+            throw new OnlineTimingInUse(OnlineTimingInUse::ROUND_CATEGORY, [$round->name]);
         }
 
         RoundPuzzleReveal::assertValidDelay($revealDelayMinutes);

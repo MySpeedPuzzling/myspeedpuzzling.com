@@ -10,9 +10,9 @@ use SpeedPuzzling\Web\Entity\OnlineRound;
 use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use SpeedPuzzling\Web\Repository\OnlineRoundRepository;
+use SpeedPuzzling\Web\Query\EventIsOnline;
 use SpeedPuzzling\Web\Results\OnlineLinkRow;
 use SpeedPuzzling\Web\Security\OnlineRoundsVoter;
-use SpeedPuzzling\Web\Services\NameTagQrCode;
 use SpeedPuzzling\Web\Services\OnlineRounds\OnlineLinkList;
 use SpeedPuzzling\Web\Services\OnlineRounds\OnlineLinkUrl;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
@@ -25,9 +25,11 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 /**
  * The personal links of an online event (docs/features/online-competitions/README.md §5.4, contract §5 `online_links`):
  * its rounds with their online timing (each round's "Online timing" page sets it up), and one row per participant who
- * is going - name, linked profile, the link with a copy button, a small QR, "New link" (online_link_regenerate) - plus
- * the CSV and the printable QR sheet. Somebody added since online timing was turned on gets a link when this page opens
- * (OnlineLinkList). Organisers for whom the feature is on (ONLINE_ROUNDS_MANAGE). The links are secrets: never cached.
+ * is going - name, linked profile, the link with a copy button, its QR code (the QR sheet of just that card), "New link"
+ * (online_link_regenerate) - plus the CSV and the printable QR sheet of everybody. No QR is drawn here: the page stays
+ * light for hundreds of participants (one statement for the rows, URLs built in PHP). Somebody added since online timing
+ * was turned on gets a link when this page opens (OnlineLinkList). Organisers for whom the feature is on
+ * (ONLINE_ROUNDS_MANAGE). The links are secrets: never cached.
  */
 #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
 final class OnlineLinksController extends AbstractController
@@ -38,7 +40,6 @@ final class OnlineLinksController extends AbstractController
         private readonly OnlineRoundRepository $onlineRoundRepository,
         private readonly OnlineLinkList $onlineLinkList,
         private readonly OnlineLinkUrl $onlineLinkUrl,
-        private readonly NameTagQrCode $qrCode,
         private readonly RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
     ) {
     }
@@ -72,7 +73,7 @@ final class OnlineLinksController extends AbstractController
         $rounds = array_map(static fn (CompetitionRound $round): array => [
             'round' => $round,
             'online' => in_array($round->id->toString(), $onlineRoundIds, true),
-            'availability' => OnlineTimingAvailability::of($competition->isOnline, $round->category),
+            'availability' => OnlineTimingAvailability::ofRound($round),
         ], $this->competitionRoundRepository->ofCompetition($competition));
 
         $rows = $this->onlineLinkList->forCompetition($competitionId, $this->retrieveLoggedUserProfile->getProfile()?->playerId, $usesOnlineTiming);
@@ -80,17 +81,14 @@ final class OnlineLinksController extends AbstractController
 
         $response = $this->render('online_rounds/links.html.twig', [
             'competition' => $competition,
+            // The one rule - an edition by its series
+            'event_is_online' => EventIsOnline::of($competition),
             'rounds' => $rounds,
             'uses_online_timing' => $usesOnlineTiming,
-            'links' => array_map(function (OnlineLinkRow $row): array {
-                $url = $row->token !== null ? $this->onlineLinkUrl->of($row->token) : null;
-
-                return [
-                    'row' => $row,
-                    'url' => $url,
-                    'qr' => $url !== null ? $this->qrCode->svg($url) : null,
-                ];
-            }, $usesOnlineTiming ? $going : []),
+            'links' => array_map(fn (OnlineLinkRow $row): array => [
+                'row' => $row,
+                'url' => $row->token !== null ? $this->onlineLinkUrl->of($row->token) : null,
+            ], $usesOnlineTiming ? $going : []),
             'waitlisted_count' => count($rows) - count($going),
             'csrf_token_id' => RegenerateOnlineLinkController::CSRF_TOKEN_ID,
         ]);

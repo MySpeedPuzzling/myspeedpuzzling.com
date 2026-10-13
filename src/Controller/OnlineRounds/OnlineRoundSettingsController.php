@@ -73,7 +73,7 @@ final class OnlineRoundSettingsController extends AbstractController
         $this->denyAccessUnlessGranted(OnlineRoundsVoter::ONLINE_ROUNDS_MANAGE, $competitionId);
 
         $roundId = $round->id->toString();
-        $availability = OnlineTimingAvailability::of($competition->isOnline, $round->category);
+        $availability = OnlineTimingAvailability::ofRound($round);
         $onlineRound = $this->onlineRoundRepository->ofRound($roundId);
         // The organiser's way back survives the round trips of this page
         $back = array_filter([

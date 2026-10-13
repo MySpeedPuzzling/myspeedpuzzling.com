@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\Controller\OnlineRounds;
 
 use Doctrine\DBAL\Connection;
+use SpeedPuzzling\Web\Services\OnlineRounds\OnlineAccessLight;
 use SpeedPuzzling\Web\Tests\DataFixtures\OfficialResultsFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\OnlineRoundsFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
@@ -14,6 +15,7 @@ use SpeedPuzzling\Web\Value\OnlineToken;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;
+use Symfony\Contracts\Cache\ItemInterface;
 
 /**
  * The personal links of the Online Test Cup (docs/features/online-competitions/README.md §5.4, stream C1): the links
@@ -38,7 +40,7 @@ final class OnlineLinksControllerTest extends WebTestCase
         parent::tearDown();
     }
 
-    public function testEverybodyGoingIsListedWithTheirLinkAndQrCode(): void
+    public function testEverybodyGoingIsListedWithTheirLink(): void
     {
         $browser = $this->signedIn(PlayerFixture::PLAYER_ADMIN);
         self::assertNull($this->token($browser, OnlineRoundsFixture::PARTICIPANT_WITHOUT_TOKEN));
@@ -58,7 +60,16 @@ final class OnlineLinksControllerTest extends WebTestCase
         ], $this->links($crawler));
 
         $crawler->filter('[data-online-link]')->each(static function (Crawler $row): void {
-            self::assertCount(1, $row->filter('[data-online-link-qr] svg'), 'every row has its QR code');
+            $id = (string) $row->attr('data-online-link');
+            $name = $row->filter('th[scope="row"] [data-online-link-name]')->text();
+
+            // No QR drawn on the page (hundreds of rows) - each row opens its own card of the QR sheet
+            self::assertCount(0, $row->filter('svg'));
+            self::assertSame(self::LINKS . '/qr-sheet?participant=' . $id, $row->filter('[data-online-link-qr]')->attr('href'));
+            self::assertSame('QR code of the personal link of ' . $name, $row->filter('[data-online-link-qr]')->attr('aria-label'));
+            // Every button says whose link it is
+            self::assertSame('Copy the personal link of ' . $name, $row->filter('[data-online-link-copy]')->attr('aria-label'));
+            self::assertSame('New link for ' . $name, $row->filter('[data-online-link-regenerate]')->attr('aria-label'));
             self::assertSame('csrf-token', $row->filter('form input[name="_token"]')->attr('value'));
         });
 
@@ -218,12 +229,29 @@ final class OnlineLinksControllerTest extends WebTestCase
         self::assertStringContainsString('Olivia Online', $olivia->text());
         self::assertSame('localhost/en/compete/' . OnlineRoundsFixture::TOKEN_CONNECTED, $olivia->filter('[data-online-qr-link]')->text());
         self::assertCount(1, $olivia->filter('svg'));
+        self::assertSame('QR code of the personal link of Olivia Online', $olivia->filter('[role="img"]')->attr('aria-label'));
+
+        // A heading and the landmarks of a page
+        self::assertCount(1, $crawler->filter('h1'));
+        self::assertCount(1, $crawler->filter('main [data-online-qr-card="' . OnlineRoundsFixture::PARTICIPANT_CONNECTED . '"]'));
+        self::assertCount(1, $crawler->filter('header [data-online-qr-count]'));
+
+        // One participant's card - a row's "QR code" on the links page
+        $crawler = $browser->request('GET', self::LINKS . '/qr-sheet?participant=' . OnlineRoundsFixture::PARTICIPANT_CONNECTED);
+        self::assertSame([OnlineRoundsFixture::PARTICIPANT_CONNECTED], $crawler->filter('[data-online-qr-card]')->each(
+            static fn (Crawler $card): string => (string) $card->attr('data-online-qr-card'),
+        ));
+        self::assertSame('1 card', $crawler->filter('[data-online-qr-count]')->text());
     }
 
     public function testANewLinkReplacesTheOldOne(): void
     {
         $browser = $this->signedIn(PlayerFixture::PLAYER_ADMIN);
         $crawler = $browser->request('GET', self::LINKS);
+
+        // The participant API's cached heartbeat lookup of the old link (OnlineAccessLight, contract §6)
+        $cache = self::getContainer()->get('cache.app');
+        $cache->get(OnlineAccessLight::cacheKey(OnlineRoundsFixture::TOKEN_CONNECTED), static fn (ItemInterface $item): string => 'cached lookup');
 
         $browser->submit($this->row($crawler, OnlineRoundsFixture::PARTICIPANT_CONNECTED)->filter('form')->form());
 
@@ -235,9 +263,28 @@ final class OnlineLinksControllerTest extends WebTestCase
         // Nobody else's link changed
         self::assertSame(OnlineRoundsFixture::TOKEN_ANONYMOUS, $this->token($browser, OnlineRoundsFixture::PARTICIPANT_ANONYMOUS));
 
+        // Dropped once the new link was committed - the next heartbeat on the old link reads it again
+        self::assertSame('read again', self::getContainer()->get('cache.app')->get(
+            OnlineAccessLight::cacheKey(OnlineRoundsFixture::TOKEN_CONNECTED),
+            static fn (ItemInterface $item): string => 'read again',
+        ));
+
         $crawler = $browser->followRedirect();
         self::assertStringContainsString('Olivia Online has a new personal link. The old one no longer works.', $crawler->filter('.alert-success')->text());
         self::assertSame('http://localhost/en/compete/' . $token, $this->links($crawler)[OnlineRoundsFixture::PARTICIPANT_CONNECTED]);
+    }
+
+    public function testANewLinkIsRefusedWhileNoRoundUsesOnlineTiming(): void
+    {
+        $browser = $this->signedIn(PlayerFixture::PLAYER_ADMIN);
+        $browser->request('GET', self::LINKS);
+        $this->connection($browser)->executeStatement('DELETE FROM online_round WHERE id = :id', ['id' => OnlineRoundsFixture::ONLINE_ROUND_SOLO]);
+
+        $browser->request('POST', self::LINKS . '/' . OnlineRoundsFixture::PARTICIPANT_CONNECTED . '/regenerate', ['_token' => 'csrf-token']);
+
+        self::assertResponseRedirects(self::LINKS . '#participant-' . OnlineRoundsFixture::PARTICIPANT_CONNECTED, 303);
+        self::assertSame(OnlineRoundsFixture::TOKEN_CONNECTED, $this->token($browser, OnlineRoundsFixture::PARTICIPANT_CONNECTED));
+        self::assertStringContainsString('No round of this event uses online timing', $browser->followRedirect()->filter('.alert-warning')->text());
     }
 
     public function testANewLinkNeedsTheFormsToken(): void

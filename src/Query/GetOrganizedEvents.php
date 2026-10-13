@@ -108,11 +108,13 @@ SQL;
         $rounds = OccurrenceRounds::SQL_JOIN;
         // What keeps it from going back to draft - its row offers Unpublish only when nothing does (as the ⋯ menu)
         $blocking = UnpublishBlockers::sqlColumns('c.id');
+        // The one rule (an edition by its series) - the ⋯ menu offers online timing by it
+        $isOnline = EventIsOnline::sql('c', 'cs');
 
         $query = <<<SQL
 SELECT c.id, c.name, c.slug, c.series_id, cs.name AS series_name, cs.slug AS series_slug,
     {$blocking},
-    CASE WHEN c.series_id IS NULL THEN c.is_online ELSE cs.is_online END AS is_online,
+    {$isOnline} AS is_online,
     COALESCE(c.location, cs.location) AS location,
     COALESCE(c.location_country_code, cs.location_country_code) AS country_code,
     c.location_country_code AS own_country_code, cs.location_country_code AS series_country_code,

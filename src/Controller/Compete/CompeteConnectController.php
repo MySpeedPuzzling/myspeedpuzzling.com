@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller\Compete;
 
 use SpeedPuzzling\Web\Exceptions\CompetitionParticipantAlreadyConnectedToDifferentPlayer;
+use SpeedPuzzling\Web\Exceptions\CompetitionParticipantNotFound;
+use SpeedPuzzling\Web\Message\ConfirmOnlineLink;
 use SpeedPuzzling\Web\Message\ConnectCompetitionParticipant;
 use SpeedPuzzling\Web\Services\OnlineRounds\OnlineConnectRules;
 use SpeedPuzzling\Web\Services\OnlineRounds\OnlineParticipantApi;
@@ -22,7 +24,9 @@ use Symfony\Component\Routing\Attribute\Route;
  * mail scanners and prefetchers open links). Answers `{"status": "connected" | "already_connected" |
  * "belongs_to_other" | "is_other_participant" | "organiser_confirm_required", "serverNowMs": …}`; `confirm=1` (form
  * field, JSON or query) is an organiser's explicit "This is me". Connecting is the existing
- * ConnectCompetitionParticipant - the connection that carries the official result to the player's profile.
+ * ConnectCompetitionParticipant - the connection that carries the official result to the player's profile. Connected
+ * or already theirs, the player has shown they hold the link: ConfirmOnlineLink (the event page's "Open my competition
+ * page" needs it).
  *
  * On the `main` firewall (the signed-in player), refusals as JSON: 401 `sign_in_required`, 403 `invalid_csrf_token`
  * (stateless token id `compete_connect`, as the `X-CSRF-Token` header or a `_token` field), 404 `unknown_link`.
@@ -79,6 +83,20 @@ final class CompeteConnectController extends AbstractController
             } catch (CompetitionParticipantAlreadyConnectedToDifferentPlayer) {
                 // Somebody else's connect came first
                 $status = OnlineConnectStatus::BelongsToOther;
+            }
+        }
+
+        // The player holds the link and the participant is theirs: from now on the event page hands them the link
+        // ("Open my competition page") - a participant claimed from the organiser's list without the link never is
+        if ($status === OnlineConnectStatus::Connected || $status === OnlineConnectStatus::AlreadyConnected) {
+            try {
+                $this->messageBus->dispatch(new ConfirmOnlineLink(
+                    competitionId: $access->competition->id->toString(),
+                    participantId: $participant->id->toString(),
+                    playerId: $profile->playerId,
+                ));
+            } catch (CompetitionParticipantNotFound) {
+                // Removed this very moment - the link opens nothing any more, there is nothing to confirm
             }
         }
 

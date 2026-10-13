@@ -23,6 +23,7 @@ use SpeedPuzzling\Web\Repository\CompetitionRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Services\CompetitionRegistrationMailer;
 use SpeedPuzzling\Web\Services\OfficialResultsGuard;
+use SpeedPuzzling\Web\Services\OnlineRounds\OnlinePersonalLinks;
 use SpeedPuzzling\Web\Value\ParticipantSource;
 use SpeedPuzzling\Web\Value\RegistrationAvailability;
 use SpeedPuzzling\Web\Value\RegistrationEmail;
@@ -51,6 +52,7 @@ readonly final class JoinCompetitionHandler
         private CountCompetitionRegistrations $countCompetitionRegistrations,
         private CompetitionRegistrationMailer $registrationMailer,
         private OfficialResultsGuard $officialResultsGuard,
+        private OnlinePersonalLinks $onlinePersonalLinks,
     ) {
     }
 
@@ -137,6 +139,13 @@ readonly final class JoinCompetitionHandler
                 $registration['waitlistPosition'],
             );
         }
+
+        // The row is the player's own (unlike one picked from the organiser's list): the event page may hand them its
+        // personal link - given right away when a round of the event uses online timing, while they are going
+        // (docs/features/online-competitions/README.md §5.4)
+        $now = $this->clock->now();
+        $participant->confirmOnlineLink($now);
+        $this->onlinePersonalLinks->giveOwnLink($participant, $now);
     }
 
     /**

@@ -25,9 +25,13 @@ use SpeedPuzzling\Web\Value\RoundTimezone;
  * Both statements also say whether the viewer follows the event or its series (`isFollowing`, the header's star of the
  * detail pages, docs/features/events-page/detail-pages.md) - no statement of its own.
  *
- * Of an online event they also read the viewer's personal link (docs/features/online-competitions/README.md §5.4,
- * "Open my competition page"): the participant they are connected to and going as, with its token, while a round of
- * the event uses online timing - in the same statement. An in-person event's statements are the ones they always were.
+ * Of an event that may be online they also read the viewer's personal link (docs/features/online-competitions/
+ * README.md §5.4, "Open my competition page") - in the same statement: the participant they are connected to and
+ * going as, with its token, only when the event is online (EventIsOnline - an edition by its series), a round of it
+ * uses online timing, and the viewer has confirmed the link as theirs for this very connection
+ * (CompetitionParticipant::$onlineLinkConfirmedAt: opened it signed in, or joined by themselves) - a participant claimed
+ * from the organiser's list never hands out its link. A one-time event that is not online runs the statements it
+ * always ran.
  */
 readonly final class GetEventAttendance
 {
@@ -43,14 +47,22 @@ readonly final class GetEventAttendance
     public function forEvent(CompetitionEvent $event, null|string $playerId, bool $publiclyVisible): EventAttendance
     {
         if ($event->registrationManaged === false) {
-            return $this->forPlayer($event->id, $playerId, $event->isOnline);
+            return $this->forPlayer($event->id, $playerId, self::mayBeOnline($event));
         }
 
         return $this->withRegistration($event, $playerId, $publiclyVisible);
     }
 
     /**
-     * @param bool $withOnlineLink an online event - read the viewer's personal link too
+     * Online by its own flag, or an edition - online by its series' flag, which the statement reads (EventIsOnline)
+     */
+    private static function mayBeOnline(CompetitionEvent $event): bool
+    {
+        return $event->isOnline || $event->seriesId !== null;
+    }
+
+    /**
+     * @param bool $withOnlineLink an event that may be online - read the viewer's personal link too
      */
     public function forPlayer(string $competitionId, null|string $playerId, bool $withOnlineLink = false): EventAttendance
     {
@@ -100,12 +112,14 @@ SQL;
     }
 
     /**
-     * The viewer's personal link of an online event: their participant row that is going and has a token, while a round
-     * of the event uses online timing (docs/features/online-competitions/README.md §5.4). Joined to `viewer`.
+     * The viewer's personal link: their participant row that is going, has a token and whose link they confirmed for
+     * this very connection (CompetitionParticipant::hasConfirmedOnlineLink()), while the event is online (EventIsOnline)
+     * and a round of it uses online timing (docs/features/online-competitions/README.md §5.4). Joined to `viewer`.
      */
     private function sqlOnlineLinkJoin(): string
     {
         $going = CompetitionParticipantGoing::sql('linked');
+        $isOnline = EventIsOnline::sql('online_event', 'online_series');
 
         return <<<SQL
 LEFT JOIN LATERAL (
@@ -115,6 +129,15 @@ LEFT JOIN LATERAL (
         AND linked.player_id = :playerId
         AND {$going}
         AND linked.online_token IS NOT NULL
+        AND linked.connected_at IS NOT NULL
+        AND linked.online_link_confirmed_at >= linked.connected_at
+        AND EXISTS (
+            SELECT 1
+            FROM competition online_event
+            LEFT JOIN competition_series online_series ON online_series.id = online_event.series_id
+            WHERE online_event.id = :competitionId
+                AND {$isOnline}
+        )
         AND EXISTS (
             SELECT 1
             FROM online_round
@@ -137,7 +160,7 @@ SQL;
         $takenGoing = CompetitionParticipantGoing::sql('taken');
         $listedGoing = CompetitionParticipantGoing::sql('listed');
         $waitlisted = RegistrationStatus::Waitlisted->value;
-        [$onlineColumns, $onlineJoin] = $event->isOnline
+        [$onlineColumns, $onlineJoin] = self::mayBeOnline($event)
             ? [self::SQL_ONLINE_LINK_COLUMNS, "\n" . $this->sqlOnlineLinkJoin()]
             : ['', ''];
 

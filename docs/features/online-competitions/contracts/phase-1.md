@@ -148,6 +148,7 @@ Shapes: implementation-plan.md §3.1, plus:
 - **Idempotency:** an event id seen before is acked again, never stored twice.
 - **Late arrival:** stored as received; the review computes "arrived N s after its moment while heartbeats kept coming".
 - **Heartbeat** never touches Postgres.
+- **Heartbeat lookup cache:** the heartbeat reads a link from the shared pool `cache.app` under `OnlineAccessLight::CACHE_KEY_PREFIX` (`online_access_light.<token>`, `OnlineAccessLight::cacheKey()`, TTL 60 s) - the one definition of the key. Whoever kills a link drops its entry through `OnlineAccessLight::forget()` **after** the change is committed (dropped inside the transaction, a heartbeat in between caches the old link again): "New link" (`online_link_regenerate` - the token `RegenerateOnlineToken` answers it replaced, and the one the request read).
 - **Every answer** carries `serverNowMs` (the clock sync's free sample).
 
 ---

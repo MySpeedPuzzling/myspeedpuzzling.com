@@ -380,7 +380,7 @@ day. Its own competition, so no other fixture's rounds change. Made-up names.
 |---|---|---|
 | `ROUND_ONLINE_SOLO` "Online Round" | solo, 60 min, slug `online-round`, starts +21 days at 18:00 (fixture build time, Europe/Prague), `ROUND_PUZZLE_ONLINE_SOLO` = `PUZZLE_3000` (not secret), stopwatch never started | the round's clock is `waiting`, the state's `piecesTotal` is 3000 |
 | `ONLINE_ROUND_SOLO` | the `OnlineRound` of it: enabled -1 day by PLAYER_ADMIN, the defaults (detection off, no video/studio/recording, pieces left, complete required) | the only online round - every link's current round |
-| `PARTICIPANT_CONNECTED` "Olivia Online" (cz) | connected to **PLAYER_REGULAR**, link `TOKEN_CONNECTED` = `2ConnectedTestCupToken`, entry `ENTRY_CONNECTED` | a signed-in player's own link |
+| `PARTICIPANT_CONNECTED` "Olivia Online" (cz) | connected to **PLAYER_REGULAR** (-1 day 12:00), link `TOKEN_CONNECTED` = `2ConnectedTestCupToken` confirmed as hers (`online_link_confirmed_at` -1 day 13:00 - she opened it signed in), entry `ENTRY_CONNECTED` | a signed-in player's own link - the event page's "Open my competition page" |
 | `PARTICIPANT_ANONYMOUS` "Arthur Anonymous" (gb) | no player, link `TOKEN_ANONYMOUS` = `AnonymousTestCupToken2`, entry `ENTRY_ANONYMOUS`, no online entry | a link whose phone never made contact |
 | `PARTICIPANT_WITHOUT_TOKEN` "Nora Notoken" (de) | no player, no link, not entered | added after the links were made (`GenerateOnlineTokens`) |
 | `ONLINE_ENTRY_CONNECTED` | Olivia's `OnlineEntry`: first seen -1 day 13:00, device `DEVICE_CONNECTED` (`fixture-device-connected`), ready 5 minutes later, clock offset -12.5 ms / RTT 38 ms, review pending | |

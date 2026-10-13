@@ -31,6 +31,12 @@ that would otherwise be forgotten. Newest section on top.
       and `/<locale>/compete/<token>` (`/soutezit/<token>`) land there - redact them in the access log config (the app
       redacts its own logs and Sentry: OnlineTokenRedactor).
 
+## Online competitions - control room and review (`docs/features/online-competitions/`, stream C2)
+
+- [ ] Referees can't review online rounds yet (evidence photos stay with organisers: the review needs
+      ONLINE_ROUNDS_MANAGE besides COMPETITION_RESULTS_ENTRY) - decide before public use; letting them in is one
+      condition in `OnlineOrganiserApi` and the review pages' voters.
+
 ## Anti-farming (`docs/features/xp-levels/README.md` §Anti-farming, workstream G 2026-10-11)
 
 - [ ] lily.srv: add the `verify-progression --repair` cron row (README §Cron) with the deploy; watch its first warnings

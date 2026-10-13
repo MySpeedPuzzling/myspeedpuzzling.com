@@ -36,6 +36,7 @@ final class OnlineControlRoomControllerTest extends WebTestCase
     private const string FLAG = 'ONLINE_ROUNDS_FOR_ORGANISERS';
     private const string COMPETITION = OnlineRoundsFixture::COMPETITION_ONLINE_TEST_CUP;
     private const string ROUND = OnlineRoundsFixture::ROUND_ONLINE_SOLO;
+    private const string ROUND_WITHOUT = '018d0050-0000-0000-0000-0000000001c2';
     private const string PAGE = '/en/online-rounds/' . self::ROUND . '/control';
     private const string LIVE = '/en/online-rounds/' . self::ROUND . '/live.json';
     private const string ORGANISER = PlayerFixture::PLAYER_WITH_STRIPE;
@@ -235,6 +236,36 @@ final class OnlineControlRoomControllerTest extends WebTestCase
         self::assertIsString($olivia['photo']['url']);
         self::assertStringStartsWith(FakeOnlineMediaStorage::BASE_URL . '/primary/online/', $olivia['photo']['url']);
         self::assertStringContainsString('X-Fake-Expires=120', $olivia['photo']['url']);
+    }
+
+    /**
+     * The "Online timing" page of a round that uses it links its control room and its review; a round that does not
+     * use online timing has neither
+     */
+    public function testTheOnlineTimingPageLeadsToTheControlRoomAndTheReview(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+
+        $crawler = $browser->request('GET', '/en/online-rounds/' . self::ROUND . '/settings');
+
+        self::assertResponseIsSuccessful();
+        self::assertSame('/en/online-rounds/' . self::ROUND . '/control', $crawler->filter('[data-online-tool="control"]')->attr('href'));
+        self::assertSame('Control room', trim($crawler->filter('[data-online-tool="control"]')->text()));
+        self::assertSame('/en/online-rounds/' . self::ROUND . '/review', $crawler->filter('[data-online-tool="review"]')->attr('href'));
+        self::assertSame('Review', trim($crawler->filter('[data-online-tool="review"]')->text()));
+
+        $this->connection($browser)->executeStatement(
+            "INSERT INTO competition_round (id, competition_id, name, minutes_limit, starts_at, slug)
+             VALUES (:id, :competition, 'Round Without', 30, NOW() + INTERVAL '25 days', 'round-without')",
+            ['id' => self::ROUND_WITHOUT, 'competition' => self::COMPETITION],
+        );
+
+        $crawler = $browser->request('GET', '/en/online-rounds/' . self::ROUND_WITHOUT . '/settings');
+
+        self::assertResponseIsSuccessful();
+        self::assertCount(0, $crawler->filter('[data-online-tool="control"]'));
+        self::assertCount(0, $crawler->filter('[data-online-tool="review"]'));
     }
 
     public function testTheRoundToolsLeadToTheControlRoomAndTheReview(): void

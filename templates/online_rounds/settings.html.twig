@@ -83,7 +83,12 @@
                         <a href="{{ path('manage_round_stopwatch', {roundId: round.id}) }}" class="btn btn-sm btn-outline-primary" data-online-tool="stopwatch">
                             <i class="bi bi-stopwatch me-1" aria-hidden="true"></i>{{ 'competition.stopwatch.title'|trans }}
                         </a>
-                        {# The control room (stream C2) joins these #}
+                        <a href="{{ path('online_control_room', {roundId: round.id}) }}" class="btn btn-sm btn-outline-primary" data-online-tool="control">
+                            <i class="bi bi-broadcast-pin me-1" aria-hidden="true"></i>{{ 'online_rounds.control.title'|trans }}
+                        </a>
+                        <a href="{{ path('online_review', {roundId: round.id}) }}" class="btn btn-sm btn-outline-primary" data-online-tool="review">
+                            <i class="bi bi-check2-square me-1" aria-hidden="true"></i>{{ 'online_rounds.review.title'|trans }}
+                        </a>
                     </div>
 
                     {{ form_start(form, {action: page_url}) }}

@@ -58,6 +58,16 @@ return static function (ContainerConfigurator $configurator): void {
     $services->alias(\SpeedPuzzling\Web\Services\OnlineRounds\OnlinePresence::class, \SpeedPuzzling\Web\Services\OnlineRounds\InMemoryOnlinePresence::class);
     $services->alias(\SpeedPuzzling\Web\Services\OnlineRounds\OnlineMediaStorage::class, \SpeedPuzzling\Web\Services\OnlineRounds\FakeOnlineMediaStorage::class);
 
+    // Live video (docs/features/online-competitions/contracts/phase-1b.md): LiveKit's server API answers from a static
+    // MockHttpClient that records every request - no test ever needs a running LiveKit -, and the studio invitation
+    // signal lives in the process instead of redis-state (both doubles survive the browser's kernel reboots)
+    $services->set('livekit.test_http_client', \Symfony\Component\HttpClient\MockHttpClient::class)
+        ->factory([\SpeedPuzzling\Web\Tests\TestDouble\LiveKitHttpMock::class, 'client']);
+    $services->set(\SpeedPuzzling\Web\Services\LiveKit\LiveKitApi::class)
+        ->arg('$httpClient', service('livekit.test_http_client'));
+    $services->set(\SpeedPuzzling\Web\Tests\TestDouble\InMemoryStudioInviteSignal::class);
+    $services->alias(\SpeedPuzzling\Web\Services\LiveKit\StudioInviteSignal::class, \SpeedPuzzling\Web\Tests\TestDouble\InMemoryStudioInviteSignal::class);
+
     // The XP launch switch without a statement per page (production: Redis) - see FixedXpLaunchReadiness
     $services->set(\SpeedPuzzling\Web\Tests\TestDouble\FixedXpLaunchReadiness::class);
     $services->alias(\SpeedPuzzling\Web\Services\Xp\XpLaunchReadiness::class, \SpeedPuzzling\Web\Tests\TestDouble\FixedXpLaunchReadiness::class);

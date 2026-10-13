@@ -23,6 +23,7 @@ final class FakeOnlineMediaStorageTest extends KernelTestCase
 {
     public function testTheTestEnvironmentUsesTheFake(): void
     {
+        // @phpstan-ignore staticMethod.impossibleType (PHPStan reads the dev container, which binds S3OnlineMediaStorage)
         self::assertSame(self::getContainer()->get(FakeOnlineMediaStorage::class), self::getContainer()->get(OnlineMediaStorage::class));
     }
 

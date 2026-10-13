@@ -1,0 +1,25 @@
+{% extends 'base.html.twig' %}
+
+{# A personal link that opens nothing (CompetePageController, 404): copied in part, replaced by a new one, or of a
+   participant who was removed - said kindly, with the way to a working link #}
+
+{% set hide_comparison_launcher = true %}
+
+{% block title %}{{ 'compete.page.not_found_title'|trans }}{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+{% block canonical %}{% endblock %}
+{% block hreflang %}{% endblock %}
+{% block json_ld %}{% endblock %}
+{% block page_stylesheets %}{{ encore_entry_link_tags('compete') }}{% endblock %}
+{% block header %}{% endblock %}
+{% block footer %}{% endblock %}
+
+{% block full_content %}
+    <div class="compete compete--not-found" data-turbo="false" data-screen="not_found">
+        <section class="compete-screen compete-screen--message">
+            <h1 class="compete-title"><i class="bi bi-link-45deg me-2" aria-hidden="true"></i>{{ 'compete.page.not_found_title'|trans }}</h1>
+            <p>{{ 'compete.page.not_found_text'|trans }}</p>
+            <p><a class="btn btn-outline-primary" href="{{ path('homepage') }}" data-turbo="false">{{ 'compete.page.not_found_home'|trans }}</a></p>
+        </section>
+    </div>
+{% endblock %}

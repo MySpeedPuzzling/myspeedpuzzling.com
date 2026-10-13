@@ -1,0 +1,65 @@
+{# The welcome screen (README §5.5): who, what, the photos' consent - and the ways out of a wrong browser or device #}
+<section class="compete-screen compete-screen--welcome" data-compete-screen="welcome" aria-labelledby="compete-welcome-title"{% if initial_screen != 'welcome' %} hidden{% endif %}>
+    <h1 class="compete-title" id="compete-welcome-title">{{ competition.name }}</h1>
+
+    {% if round is not null %}
+        <p class="compete-subtitle">
+            {{ round.name }} · <span data-compete-field="timeLimit">{{ 'compete.page.time_limit'|trans({'%count%': minutes_limit}) }}</span>
+        </p>
+    {% endif %}
+
+    <div class="compete-you">
+        <p class="mb-1">{{ 'compete.page.you_are'|trans({'%name%': participant.name}) }}</p>
+        <details class="compete-not-you">
+            <summary>{{ 'compete.page.not_you'|trans }}</summary>
+            <p class="mb-0">{{ 'compete.page.not_you_text'|trans({'%name%': participant.name}) }}</p>
+        </details>
+    </div>
+
+    {{ include('compete/_connect.html.twig') }}
+    {{ include('compete/_in_app_notice.html.twig') }}
+
+    {# On a computer (a fine pointer that can hover): the phone is the camera - its way there #}
+    <div class="compete-desktop card">
+        <div class="card-body d-flex flex-wrap align-items-center gap-3">
+            <div class="compete-qr" aria-hidden="true">{{ qr_svg|raw }}</div>
+            <div class="compete-desktop-text">
+                <h2 class="h6 mb-1">{{ 'compete.page.desktop_title'|trans }}</h2>
+                <p class="small mb-0">{{ 'compete.page.desktop_text'|trans }}</p>
+            </div>
+        </div>
+    </div>
+
+    <form class="compete-consent card" data-action="submit->compete#giveConsent" novalidate>
+        <div class="card-body">
+            <h2 class="h5">{{ 'compete.page.consent_title'|trans }}</h2>
+            <p>{{ 'compete.page.consent_intro'|trans }}</p>
+            <ul>
+                <li>{{ 'compete.page.consent_periodic'|trans }}</li>
+                <li>{{ 'compete.page.consent_finish'|trans }}</li>
+            </ul>
+            <p>{{ 'compete.page.consent_who'|trans }}</p>
+            <p>{{ 'compete.page.consent_how_long'|trans }}</p>
+            <p class="small text-muted">{{ 'compete.page.consent_minors'|trans }}</p>
+
+            <div class="form-check mb-3">
+                <input class="form-check-input" type="checkbox" id="compete-consent" data-compete-target="consentBox" data-action="change->compete#consentChanged">
+                <label class="form-check-label fw-medium" for="compete-consent">{{ 'compete.page.consent_agree'|trans }}</label>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-lg w-100" data-compete-target="consentButton" disabled>{{ 'compete.page.continue'|trans }}</button>
+        </div>
+    </form>
+
+    {{ include('compete/_practice_button.html.twig') }}
+
+    <nav class="compete-languages" aria-label="{{ 'compete.page.language'|trans }}">
+        {% for locale, url in language_urls %}
+            {% if locale == app.request.locale %}
+                <span aria-current="page">{{ locale|upper }}</span>
+            {% else %}
+                <a href="{{ url }}" hreflang="{{ locale }}" lang="{{ locale }}" data-turbo="false">{{ locale|upper }}</a>
+            {% endif %}
+        {% endfor %}
+    </nav>
+</section>

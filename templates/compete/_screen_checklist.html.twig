@@ -1,0 +1,71 @@
+{#
+    The set-up checklist (README §5.5): every row green / amber / red, set by the page (compete_flow.js checklistRows()).
+    "I'm ready" needs the camera and the synced clock; its tap also unlocks the beeps and keeps the screen on.
+#}
+{% set check_rows = [
+    {name: 'camera', label: 'compete.checklist.row_camera', icon: 'bi-camera-video'},
+    {name: 'clock', label: 'compete.checklist.row_clock', icon: 'bi-clock'},
+    {name: 'wake', label: 'compete.checklist.row_wake', icon: 'bi-brightness-high'},
+    {name: 'connection', label: 'compete.checklist.row_connection', icon: 'bi-wifi'},
+    {name: 'uploads', label: 'compete.checklist.row_uploads', icon: 'bi-cloud-arrow-up'},
+    {name: 'emptyMat', label: 'compete.checklist.row_empty_mat', icon: 'bi-image'},
+] %}
+
+<section class="compete-screen compete-screen--checklist" data-compete-screen="checklist" aria-labelledby="compete-checklist-title" hidden>
+    <h1 class="compete-title" id="compete-checklist-title">{{ 'compete.checklist.title'|trans }}</h1>
+
+    <p class="compete-alert compete-alert--live" data-compete-show="liveBanner" role="status" hidden>
+        {{ 'compete.checklist.live_banner'|trans }} <strong class="compete-mono" data-compete-field="elapsed">00:00:00</strong>
+    </p>
+    <p class="compete-alert compete-alert--live" data-compete-show="countdownBanner" role="status" hidden>{{ 'compete.checklist.countdown_banner'|trans }}</p>
+    <p class="compete-alert" data-compete-show="otherDevice" role="status" hidden>{{ 'compete.checklist.other_device'|trans }}</p>
+
+    <p class="compete-intro">{{ 'compete.checklist.intro'|trans }}</p>
+
+    <ul class="compete-checks">
+        {% for row in check_rows %}
+            <li class="compete-check" data-compete-check="{{ row.name }}" data-level="warn">
+                <i class="bi {{ row.icon }} compete-check-icon" aria-hidden="true"></i>
+                <div class="compete-check-body">
+                    <span class="compete-check-label">{{ row.label|trans }}</span>
+                    <span class="compete-check-detail" data-compete-check-detail></span>
+                    {% if row.name == 'camera' %}
+                        <span class="compete-check-actions">
+                            <button type="button" class="btn btn-sm btn-primary" data-compete-show="cameraRetry" data-action="compete#restartCamera" hidden>{{ 'compete.checklist.camera_try_again'|trans }}</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" data-compete-show="cameraSwitch" data-action="compete#switchCamera" hidden><i class="bi bi-arrow-repeat me-1" aria-hidden="true"></i>{{ 'compete.checklist.camera_switch'|trans }}</button>
+                        </span>
+                    {% elseif row.name == 'emptyMat' %}
+                        <span class="compete-check-hint">{{ 'compete.checklist.empty_mat_hint'|trans }}</span>
+                        <span class="compete-check-actions">
+                            <button type="button" class="btn btn-sm btn-outline-primary" data-compete-show="emptyMatButton" data-action="compete#takeEmptyMat" hidden><i class="bi bi-camera me-1" aria-hidden="true"></i>{{ 'compete.checklist.empty_mat_button'|trans }}</button>
+                        </span>
+                    {% endif %}
+                </div>
+            </li>
+        {% endfor %}
+        <li class="compete-check" data-level="info">
+            <i class="bi bi-plug compete-check-icon" aria-hidden="true"></i>
+            <div class="compete-check-body">
+                <span class="compete-check-label">{{ 'compete.checklist.row_charger'|trans }}</span>
+                <span class="compete-check-detail">{{ 'compete.checklist.charger_text'|trans }}</span>
+            </div>
+        </li>
+    </ul>
+
+    <details class="compete-setup">
+        <summary>{{ 'compete.checklist.setup_title'|trans }}</summary>
+        <ul class="mb-0">
+            <li>{{ 'compete.checklist.setup_stand'|trans }}</li>
+            <li>{{ 'compete.checklist.setup_view'|trans }}</li>
+            <li>{{ 'compete.checklist.setup_mat'|trans }}</li>
+            <li>{{ 'compete.checklist.setup_one_device'|trans }}</li>
+        </ul>
+    </details>
+
+    <button type="button" class="btn btn-success btn-lg compete-ready" data-compete-target="readyButton" data-action="compete#ready" disabled>
+        <i class="bi bi-check2-circle me-1" aria-hidden="true"></i>{{ 'compete.checklist.ready'|trans }}
+    </button>
+    <p class="compete-ready-hint small text-muted" data-compete-show="readyHint">{{ 'compete.checklist.ready_hint'|trans }}</p>
+
+    {{ include('compete/_practice_button.html.twig') }}
+</section>

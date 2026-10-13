@@ -1,0 +1,29 @@
+{# The link opens a competition, but nothing to compete in right now - or not on this device any more #}
+<section class="compete-screen compete-screen--message" data-compete-screen="no_round" aria-labelledby="compete-no-round-title"{% if initial_screen != 'no_round' %} hidden{% endif %}>
+    <h1 class="compete-title" id="compete-no-round-title">{{ 'compete.page.no_round_title'|trans }}</h1>
+    <p>{{ 'compete.page.no_round_text'|trans({'%competition%': competition.name}) }}</p>
+    <p class="mb-1">{{ 'compete.page.you_are'|trans({'%name%': participant.name}) }}</p>
+    {{ include('compete/_practice_button.html.twig') }}
+</section>
+
+<section class="compete-screen compete-screen--message" data-compete-screen="not_entered" aria-labelledby="compete-not-entered-title"{% if initial_screen != 'not_entered' %} hidden{% endif %}>
+    <h1 class="compete-title" id="compete-not-entered-title">{{ 'compete.page.not_entered_title'|trans }}</h1>
+    <p>{{ 'compete.page.not_entered_text'|trans({'%name%': participant.name, '%round%': round is not null ? round.name : ''}) }}</p>
+    {% if round is not null %}
+        <div class="compete-clock compete-clock--small" role="timer" data-compete-field="elapsed">00:00:00</div>
+        <p class="compete-clock-caption" data-compete-field="waitingLine">{{ 'compete.screen.waiting'|trans }}</p>
+    {% endif %}
+    {{ include('compete/_practice_button.html.twig') }}
+</section>
+
+<section class="compete-screen compete-screen--message" data-compete-screen="taken_over" aria-labelledby="compete-taken-over-title" hidden>
+    <h1 class="compete-title" id="compete-taken-over-title"><i class="bi bi-phone me-2" aria-hidden="true"></i>{{ 'compete.page.taken_over_title'|trans }}</h1>
+    <p>{{ 'compete.page.taken_over_text'|trans }}</p>
+    <div class="compete-clock compete-clock--small" role="timer" data-compete-field="elapsed">00:00:00</div>
+    <button type="button" class="btn btn-outline-primary btn-lg" data-action="compete#takeOver">{{ 'compete.page.taken_over_button'|trans }}</button>
+</section>
+
+<section class="compete-screen compete-screen--message" data-compete-screen="dead_link" aria-labelledby="compete-dead-link-title" hidden>
+    <h1 class="compete-title" id="compete-dead-link-title"><i class="bi bi-link-45deg me-2" aria-hidden="true"></i>{{ 'compete.page.link_dead_title'|trans }}</h1>
+    <p>{{ 'compete.page.link_dead_text'|trans }}</p>
+</section>

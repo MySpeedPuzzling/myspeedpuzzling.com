@@ -52,6 +52,8 @@ final class ResolveAnnouncementModal implements ResetInterface
         'competition_check_in', 'competition_name_tags',
         // Online competitions: the organiser's set-up (docs/features/online-competitions/)
         'online_round_settings', 'online_links',
+        // Online competitions: the participant's page - a camera and a running clock
+        'compete_page',
     ];
 
     private bool $resolved = false;

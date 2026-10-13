@@ -1,0 +1,17 @@
+{#
+    The link and the visitor's account (README §5.4): anonymous - "Sign in to keep this result"; signed in - what the
+    connect did or will do (CompetePageController::connectState(), updated by the page after its POST).
+#}
+{% set connect_lines = {
+    already_connected: connect.playerName ? 'compete.connect.connected_as'|trans({'%name%': connect.playerName}) : 'compete.connect.connected'|trans,
+    belongs_to_other: 'compete.connect.belongs_to_other'|trans,
+    is_other_participant: 'compete.connect.is_other_participant'|trans,
+    auto: connect.url is not null ? 'compete.connect.connecting'|trans : '',
+} %}
+{% set connect_line = connect_lines[connect.status] ?? '' %}
+
+<p class="compete-connect" data-compete-show="connectLine" data-compete-field="connectLine"{% if connect_line == '' %} hidden{% endif %}>{{ connect_line }}</p>
+
+<p class="compete-sign-in" data-compete-show="signIn"{% if connect.status != 'anonymous' %} hidden{% endif %}>
+    <a href="{{ login_url }}" rel="nofollow" data-turbo="false"><i class="bi bi-person me-1" aria-hidden="true"></i>{{ 'compete.page.sign_in'|trans }}</a>
+</p>

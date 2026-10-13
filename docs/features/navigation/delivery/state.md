@@ -9,7 +9,7 @@ Evidence = commit hash(es) · test names · command output summary · screenshot
 | Key | Value |
 |---|---|
 | Base | `origin/main` at start: `9347ccdabb0f3d19fd9fc155c0ad12715ff95964` · 2026-10-12T01:07:33+02:00 (synced at every phase gate, see run log) |
-| Last sync with `origin/main` | 0cdf6cfc (merge 500ddb2f, 2026-10-13, after the Removal gate: barcode scanner camera fixes) |
+| Last sync with `origin/main` | 60f55b48 (merge 5f6d4139, 2026-10-13 evening: online competitions phase 1; clone migrated to Version20261013131348 - the two migrations are additive) |
 | Delivery branch / worktree | `feature/navigation-redesign` / `.claude/worktrees/navigation` |
 | Delivery DB clone | `speedpuzzling_nav_test` |
 | Isolated web URL | `http://127.0.0.1:18080` (container `nav-web`, php -S; restart: `var/navigation-delivery/tools/restart-web.sh`) |
@@ -248,6 +248,7 @@ One line per session and per phase: date · what was done · next step.
 | 2026-10-13 ~14:30 | Weight fixed after the main merge (1d763279: member +29,934 B, guest +15,140 B; also fixes main's camera lost on a search re-render). Gate `gates/Main-sync` at 1d763279: ParaTest 11125 OK, phpstan, cs, schema; SEARCH-CAMERA 27, NAV-03 96, NAV-04 95, MENU-03 40, MENU-02b 80, ADD-02 25, NAV-01 41 - 0 FAIL. Push. Next in the delivery worktree: SRCH + FOOT (FOOT-01 within the 786 B member margin); C: PROF-05c + PROF-08 |
 | 2026-10-13 ~16:30 | SRCH-01 + FOOT-01 committed 5030f5d4 (gate green, browser 0 FAIL); SRCH + FOOT review running (read-only). PROF cherry-picked into the delivery branch clean (1e17df75, 59df340a, c2538916, 66703717; 645 tests OK); PROF review fixes running in the delivery worktree. C: CARD-01a/01c/03. Delivery logs truncated (host disk 92 %) |
 | 2026-10-13 ~19:30 | **PROF gate verified** at 4dfab9f7 (ParaTest 11476, 44-check sweep). Summary: Results is a server page whose state is the URL (search, filters, sorts, By puzzle / Every result, paging with streams, ranks, SEO rules, old links redirected, its own history entries with Back restoring rows); the profile is an Overview (personal bests, numbers, latest 8), Statistics carries the chart and cards, header tabs Overview · Results · …; profile statement budgets about halved. Push. Next in the delivery worktree: SRCH + FOOT review fixes; C: CARD-04/02/01b |
+| 2026-10-13 ~20:00 | Before pushing the PROF gate: origin/main moved 35 commits (online competitions phase 1) → merge 5f6d4139 (conflicts: security.php stateless pattern + compete_api firewall, services.php parameters, TODO + en.yml appends, manage_round_stopwatch.html.twig = main's structure + in-page confirmations); clone migrated (2 additive migrations; dev DB untouched). A main-sync agent makes the navigation guards hold for main's new routes/pages (place resolver, native dialogs, weight, platform reads) and then fixes the SRCH + FOOT review; push after its gate. C: CARD-04/02/01b (based on 98398a76, rebased later) |
 
 ## Final report
 (written at the end: what shipped, evidence summary, blocked items with options, owner steps — README §11)

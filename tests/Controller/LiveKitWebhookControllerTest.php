@@ -158,7 +158,7 @@ final class LiveKitWebhookControllerTest extends WebTestCase
 
         self::assertSame(
             ['p:' . OnlineRoundsFixture::PARTICIPANT_ANONYMOUS, 'p:' . self::OLIVIA . ':screen', 'p:somebody'],
-            array_map(static fn (array $call): mixed => $call['body']['identity'] ?? null, $this->liveKitCalls()),
+            array_map(static fn (array $call): mixed => is_array($call['body']) ? ($call['body']['identity'] ?? null) : null, $this->liveKitCalls()),
         );
     }
 

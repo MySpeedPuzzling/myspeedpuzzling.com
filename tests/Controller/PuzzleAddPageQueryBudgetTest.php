@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\Controller;
 
 use DateTimeImmutable;
+use Doctrine\DBAL\Connection;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
@@ -69,6 +70,13 @@ final class PuzzleAddPageQueryBudgetTest extends WebTestCase
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
         $scenario = new SeriesEditionScenario(self::getContainer());
         $today = self::getContainer()->get(ClockInterface::class)->now();
+
+        // ADD-01: a save from the add page remembers its mode - one UPDATE when it changes. Remembered beforehand, so the
+        // baseline save does not carry it and the comparison stays as strict as it was
+        self::getContainer()->get(Connection::class)->executeStatement(
+            "UPDATE player SET last_add_mode = 'speed_puzzling' WHERE id = :id",
+            ['id' => PlayerFixture::PLAYER_REGULAR],
+        );
 
         $seriesId = $scenario->series('Lantern Weekly Jam');
         $matched = $scenario->edition($seriesId, 'Jam No. 154', $today->modify('-2 days')->format('Y-m-d'));

@@ -53,6 +53,13 @@ readonly final class AddPuzzleToCollectionHandler
             }
         }
 
+        // The add page's next "Add" opens in Collection (ADD-01) - after the last refusal point: a refused handler's
+        // changes stay in the entity manager and a later flush in the request would write them. Also when the puzzle
+        // was there already: the save went through
+        if ($message->rememberAddMode !== null) {
+            $player->rememberAddMode($message->rememberAddMode);
+        }
+
         // Check if the combination already exists
         $existingItem = $this->collectionItemRepository->findByCollectionPlayerAndPuzzle($collection, $player, $puzzle);
 

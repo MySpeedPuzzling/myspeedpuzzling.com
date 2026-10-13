@@ -30,7 +30,7 @@
         {# The owner's own empty statistics are a starting line, not a dead end #}
         {% if logged_user.profile is not null and logged_user.profile.playerId == this.playerId %}
             <div class="d-grid d-sm-block mb-3">
-                <a class="btn btn-primary" href="{{ path('puzzle_add') }}"><i class="ci-time me-1"></i>{{ 'onboarding.checklist.step.log_puzzle'|trans }}</a>
+                <a class="btn btn-primary" href="{{ path('puzzle_add', {mode: 'speed_puzzling'}) }}"><i class="ci-time me-1"></i>{{ 'onboarding.checklist.step.log_puzzle'|trans }}</a>
                 <a class="btn btn-link" href="{{ path('getting_started') }}#track">{{ 'onboarding.checklist.guide_link'|trans }}</a>
             </div>
         {% endif %}

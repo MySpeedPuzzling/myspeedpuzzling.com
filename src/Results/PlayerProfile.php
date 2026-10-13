@@ -16,6 +16,7 @@ use SpeedPuzzling\Web\Value\FreeTrial;
 use SpeedPuzzling\Web\Value\HintType;
 use SpeedPuzzling\Web\Value\LeaderboardChartView;
 use SpeedPuzzling\Web\Value\LevelTable;
+use SpeedPuzzling\Web\Value\PuzzleAddMode;
 use SpeedPuzzling\Web\Value\SellSwapListSettings;
 use SpeedPuzzling\Web\Value\SkillTier;
 
@@ -83,6 +84,7 @@ use SpeedPuzzling\Web\Value\SkillTier;
  *     skill_tier?: null|int|string,
  *     running_stopwatch?: null|string,
  *     favorites_seen_at?: null|string,
+ *     last_add_mode?: null|string,
  *     dismissed_navigation_hints?: null|string,
  *     organizes_events?: bool,
  *  }
@@ -228,6 +230,11 @@ readonly final class PlayerProfile
          * navigation, INB-04a) - the feed's rows tracked after it are new. Null = never: nothing is new, no count.
          */
         public null|DateTimeImmutable $favoritesSeenAt = null,
+        /**
+         * GetPlayerProfile::byUserId() only: the mode of the viewer's last save from the add page (docs/features/
+         * navigation README §4.6, ADD-01) - the next "Add" opens in it. Null = none yet: Speed puzzling.
+         */
+        public null|PuzzleAddMode $lastAddMode = null,
         /**
          * GetPlayerProfile::byUserId() only: the navigation pointers the viewer dismissed (docs/features/navigation,
          * INB-05/LAUNCH-03) - the hint types starting with HintType::NAVIGATION_PREFIX. Read through NavigationPointers.
@@ -453,6 +460,7 @@ readonly final class PlayerProfile
             skillTier: isset($row['skill_tier']) ? SkillTier::tryFrom((int) $row['skill_tier']) : null,
             runningStopwatch: RunningStopwatch::fromJson($row['running_stopwatch'] ?? null, $now),
             favoritesSeenAt: isset($row['favorites_seen_at']) ? new DateTimeImmutable($row['favorites_seen_at']) : null,
+            lastAddMode: PuzzleAddMode::tryFrom($row['last_add_mode'] ?? ''),
             dismissedNavigationHints: self::navigationHintsFromJson($row['dismissed_navigation_hints'] ?? null),
             organizesEvents: (bool) ($row['organizes_events'] ?? false),
         );

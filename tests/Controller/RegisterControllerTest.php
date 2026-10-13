@@ -156,7 +156,8 @@ final class RegisterControllerTest extends WebTestCase
 
         $links = $crawler->filter('main a')->each(static fn (Crawler $link): string => (string) $link->attr('href'));
 
-        self::assertContains('/en/puzzle-add', $links);
+        // "Log a puzzle I solved" opens the add page in Speed puzzling whatever the last mode (navigation ADD-01)
+        self::assertContains('/en/puzzle-add?mode=speed_puzzling', $links);
         self::assertContains('/en/stopwatch', $links);
         self::assertContains('/en/finish-profile', $links);
         self::assertContains('/en/getting-started', $links);

@@ -401,6 +401,12 @@
     "speed_puzzling": "Speed Puzzling"
     "relax": "Relax (sin tiempo)"
     "to_collection": "Puzzle a la Colección"
+  "tools":
+    "use_stopwatch": "Usar el cronómetro"
+    "back_to_stopwatch": "Volver a tu cronómetro en marcha"
+    "scan_boxes": "Escanear varias cajas"
+    "scan_boxes_title": "Escanea una pila de cajas y añádelas todas a tu colección de una vez"
+    "other_ways": "Otras formas de añadir"
   official_entry:
     notice: "Rellenado a partir de los resultados oficiales de %round% en %event%. Revísalo y guárdalo en tu perfil."
     which_one: "Los resultados oficiales muestran la pareja/equipo por nombre: ¿cuál de ellos eres tú?"

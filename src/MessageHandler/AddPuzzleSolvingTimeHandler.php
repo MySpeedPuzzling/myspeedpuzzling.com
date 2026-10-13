@@ -312,6 +312,12 @@ readonly final class AddPuzzleSolvingTimeHandler
             $this->finishStopwatch($stopwatch, $puzzle, $trackedAt);
         }
 
+        // The add page's next "Add" opens in this mode (ADD-01) - only now that nothing above can refuse the save: a
+        // refused handler's changes stay in the entity manager and a later flush in the request would write them
+        if ($message->rememberAddMode !== null) {
+            $player->rememberAddMode($message->rememberAddMode);
+        }
+
         // In the same transaction: the pair is a confirmed real second solve only if the result exists
         if ($message->duplicateConfirmed) {
             $this->resultDuplicatePreventionRepository->save(new ResultDuplicatePrevention(

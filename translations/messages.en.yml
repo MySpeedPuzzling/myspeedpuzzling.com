@@ -469,6 +469,12 @@ puzzle_add:
         speed_puzzling: "Speed Puzzling"
         relax: "Relax (No Time)"
         to_collection: "Puzzle to Collection"
+    tools:
+        use_stopwatch: "Use the stopwatch"
+        back_to_stopwatch: "Back to your running stopwatch"
+        scan_boxes: "Scan several boxes"
+        scan_boxes_title: "Scan a pile of boxes and add them all to your collection at once"
+        other_ways: "Other ways to add"
 
 forms:
     choose_from_favorites: "- Choose from favorites -"

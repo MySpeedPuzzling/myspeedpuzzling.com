@@ -130,6 +130,12 @@ readonly final class AddPuzzleTrackingHandler
             $puzzlingTeam?->nameIfUnnamed($player, $message->teamName, $trackedAt);
         }
 
+        // The add page's next "Add" opens in this mode (ADD-01) - after the last refusal point (rolled-back handlers
+        // keep their changes in the entity manager, see AddPuzzleSolvingTimeHandler)
+        if ($message->rememberAddMode !== null) {
+            $player->rememberAddMode($message->rememberAddMode);
+        }
+
         $this->entityManager->persist($solvingTime);
 
         // Relax tracking counts toward achievements (Zen Puzzler) and earns XP too - for every registered member of a

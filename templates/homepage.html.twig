@@ -47,7 +47,7 @@
 
                 <div class="homepage-hero-actions">
                     {% if isLoggedIn %}
-                        <a href="{{ path('puzzle_add') }}" class="btn btn-primary btn-lg btn-shadow"><i class="ci-add me-2" aria-hidden="true"></i>{{ 'homepage.hero.cta_add_time'|trans }}</a>
+                        <a href="{{ path('puzzle_add', {mode: 'speed_puzzling'}) }}" class="btn btn-primary btn-lg btn-shadow"><i class="ci-add me-2" aria-hidden="true"></i>{{ 'homepage.hero.cta_add_time'|trans }}</a>
                         <a href="{{ path('recent_activity') }}" class="btn btn-outline-primary btn-lg">{{ 'homepage.hero.cta_recent_activity'|trans }}</a>
                     {% else %}
                         <a href="{{ path('my_profile') }}" class="btn btn-primary btn-lg btn-shadow"><i class="ci-time me-2" aria-hidden="true"></i>{{ 'homepage.hero.cta_start'|trans }}</a>
@@ -230,7 +230,7 @@
 
             <div class="homepage-hero-actions">
                 {% if isLoggedIn %}
-                    <a href="{{ path('puzzle_add') }}" class="btn btn-light btn-lg"><i class="ci-add me-2" aria-hidden="true"></i>{{ 'homepage.hero.cta_add_time'|trans }}</a>
+                    <a href="{{ path('puzzle_add', {mode: 'speed_puzzling'}) }}" class="btn btn-light btn-lg"><i class="ci-add me-2" aria-hidden="true"></i>{{ 'homepage.hero.cta_add_time'|trans }}</a>
                     <a href="{{ path('recent_activity') }}" class="btn btn-outline-light btn-lg">{{ 'homepage.hero.cta_recent_activity'|trans }}</a>
                 {% else %}
                     <a href="{{ path('my_profile') }}" class="btn btn-light btn-lg"><i class="ci-time me-2" aria-hidden="true"></i>{{ 'homepage.hero.cta_start'|trans }}</a>

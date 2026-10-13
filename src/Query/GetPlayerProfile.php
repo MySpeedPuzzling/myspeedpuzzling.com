@@ -206,6 +206,8 @@ SELECT
     {$runningStopwatch} AS running_stopwatch,
     -- "New since your last visit" on the Hub's Favorites feed (docs/features/navigation, INB-04a)
     player.favorites_seen_at,
+    -- The add page opens in the mode of the last save from it (docs/features/navigation README §4.6, ADD-01)
+    player.last_add_mode,
     -- The navigation pointers the viewer dismissed (docs/features/navigation, INB-05/LAUNCH-03) - no query per pointer
     {$dismissedNavigationHints} AS dismissed_navigation_hints,
     -- Whether the Menu shows "Events you organize" (docs/features/navigation README §4.12, MENU-01) - no query per page

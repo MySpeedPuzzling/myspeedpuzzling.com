@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Message;
 use DateTimeImmutable;
 use Ramsey\Uuid\UuidInterface;
 use SpeedPuzzling\Web\Value\FirstTryResolution;
+use SpeedPuzzling\Web\Value\PuzzleAddMode;
 use SpeedPuzzling\Web\Value\SolvingTimeSource;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 
@@ -43,6 +44,9 @@ readonly final class AddPuzzleSolvingTime
         // A series pick (docs/features/events-page/high-frequency-series.md): MySpeedPuzzling finds the edition. Only
         // when neither roundId nor competitionId is given - those are explicit links and win
         public null|string $seriesId = null,
+        // Sent only by the add page (docs/features/navigation README §4.6, ADD-01): the player's next "Add" opens in this
+        // mode. The API, multiscan and the other pages leave it out - their saves never change it
+        public null|PuzzleAddMode $rememberAddMode = null,
     ) {
     }
 }

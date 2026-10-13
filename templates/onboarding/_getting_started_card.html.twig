@@ -3,7 +3,7 @@
    <details> rather than JavaScript: folded from the second visit on, no layout shift. #}
 {% set steps = [
     {key: 'create_account', done: true, url: null},
-    {key: 'log_puzzle', done: progress.hasLoggedPuzzle, url: path('puzzle_add')},
+    {key: 'log_puzzle', done: progress.hasLoggedPuzzle, url: path('puzzle_add', {mode: 'speed_puzzling'})},
     {key: 'finish_profile', done: progress.hasFinishedProfile, url: path('finish_profile')},
     {key: 'add_to_library', done: progress.hasPuzzleInLibrary, url: path('puzzle_add') ~ '?mode=collection'},
     {key: 'add_favorite', done: progress.hasFavoritePlayer, url: path('players')},

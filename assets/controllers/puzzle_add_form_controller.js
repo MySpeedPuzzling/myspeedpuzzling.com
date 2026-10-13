@@ -20,6 +20,8 @@ export default class extends Controller {
         'noDateCheckboxSection', // "I don't remember the date" checkbox (Relax only)
         'dateLabel',           // Label for date field (gets .required class in speed mode)
         'dateFieldSection',    // Date picker wrapper (hidden when "no date" checked)
+        'speedTools',          // "Use the stopwatch" row under the switch (Speed only, navigation ADD-02)
+        'collectionTools',     // "Scan several boxes" row under the switch (Collection only, navigation ADD-02)
     ];
 
     static values = {
@@ -97,6 +99,15 @@ export default class extends Controller {
         // Collection section (Collection only)
         if (this.hasCollectionSectionTarget) {
             this.collectionSectionTarget.classList.toggle('d-none', !isCollection);
+        }
+
+        // Tools under their intent (navigation ADD-02) - the server renders them for the initial mode already
+        if (this.hasSpeedToolsTarget) {
+            this.speedToolsTarget.classList.toggle('d-none', !isSpeed);
+        }
+
+        if (this.hasCollectionToolsTarget) {
+            this.collectionToolsTarget.classList.toggle('d-none', !isCollection);
         }
 
         // Date label gets .required class in speed mode

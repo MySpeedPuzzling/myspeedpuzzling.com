@@ -26,6 +26,7 @@ use SpeedPuzzling\Web\Value\CountryCode;
 use SpeedPuzzling\Web\Value\EmailNotificationFrequency;
 use SpeedPuzzling\Web\Value\FavoritesSeen;
 use SpeedPuzzling\Web\Value\LeaderboardChartView;
+use SpeedPuzzling\Web\Value\PuzzleAddMode;
 use SpeedPuzzling\Web\Value\SellSwapListSettings;
 use DateTimeImmutable;
 
@@ -270,6 +271,16 @@ class Player
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
     public null|DateTimeImmutable $favoritesSeenAt = null;
+
+    /**
+     * The mode of the player's last successful save from the add page (docs/features/navigation README §4.6, ADD-01):
+     * the next "Add" opens in it. Null = never saved there since the feature exists - the page opens in Speed puzzling.
+     * Moved only by rememberAddMode(), which only the add page's saves ask for (API, multiscan, collection pages and the
+     * edit form never do).
+     */
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::STRING, nullable: true, enumType: PuzzleAddMode::class)]
+    public null|PuzzleAddMode $lastAddMode = null;
 
     public function __construct(
         #[Id]
@@ -545,6 +556,15 @@ class Player
         }
 
         $this->favoritesSeenAt = $now;
+    }
+
+    /**
+     * A save from the add page went through - called by the save handlers after their last refusal point, so a refused
+     * save never leaves the change behind in the entity manager. The same mode again changes nothing (no UPDATE).
+     */
+    public function rememberAddMode(PuzzleAddMode $mode): void
+    {
+        $this->lastAddMode = $mode;
     }
 
     public function changeExperienceSystemOptedOut(bool $optedOut): void

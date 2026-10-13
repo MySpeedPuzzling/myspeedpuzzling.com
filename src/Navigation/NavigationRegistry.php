@@ -1025,7 +1025,7 @@ final readonly class NavigationRegistry
                 reason: 'Creates an event; also the button on the events page',
                 since: self::SINCE,
                 section: 'events',
-                secondary: ['events page button'],
+                secondary: ['events page button', 'add page: Other ways to add'],
             ),
         ];
     }

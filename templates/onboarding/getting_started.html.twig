@@ -24,7 +24,7 @@
         {% embed 'onboarding/_guide_step.html.twig' with {number: 1, anchor: 'track', icon: 'ci-time', key: 'track', done: progress is not null and progress.hasLoggedPuzzle} %}
             {% block actions %}
             <div class="d-grid gap-2">
-                <a class="btn btn-primary" rel="nofollow" href="{{ path('puzzle_add') }}">{{ 'onboarding.guide.track.button_finished'|trans }}</a>
+                <a class="btn btn-primary" rel="nofollow" href="{{ path('puzzle_add', {mode: 'speed_puzzling'}) }}">{{ 'onboarding.guide.track.button_finished'|trans }}</a>
                 <a class="btn btn-outline-primary" rel="nofollow" href="{{ path('stopwatch') }}">{{ 'onboarding.guide.track.button_stopwatch'|trans }}</a>
             </div>
             {% endblock %}

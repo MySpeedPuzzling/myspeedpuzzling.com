@@ -184,21 +184,13 @@ final class PuzzleAddController extends AbstractController
             $data->puzzleEans = [$queryEan];
         }
 
-        // Handle query parameters for mode and collection pre-selection
-        $initialMode = 'speed_puzzling';
-        $queryMode = $request->query->getString('mode');
+        // The mode the page opens in - the player's last one unless the link says otherwise (ADD-01, initialMode()).
+        // A submit's own mode replaces it in handleRequest(), and the page is rendered in that one
+        $data->mode = $this->initialMode($request, $stopwatchId, $userProfile->lastAddMode);
         $queryCollection = $request->query->getString('collection');
 
-        if ($queryMode === 'collection') {
-            $data->mode = PuzzleAddMode::Collection;
-            $initialMode = 'collection';
-
-            if ($queryCollection !== '') {
-                $data->collection = $queryCollection;
-            }
-        } elseif ($queryMode === 'relax') {
-            $data->mode = PuzzleAddMode::Relax;
-            $initialMode = 'relax';
+        if ($data->mode === PuzzleAddMode::Collection && $queryCollection !== '') {
+            $data->collection = $queryCollection;
         }
 
         // Deep link from an event page: pre-select it in the picker (docs/features/events-page/high-frequency-series.md
@@ -599,7 +591,13 @@ final class PuzzleAddController extends AbstractController
             'filled_team_name' => $teamName,
             'hide_new_puzzle' => $data->puzzle === null || trim($data->puzzle) === '' || Uuid::isValid($data->puzzle) || $data->brand === null,
             'collections' => $collections,
-            'initial_mode' => $initialMode,
+            // The mode of the data, never of the URL: a refused submit shows the mode it was sent in - the switch and the
+            // hidden mode field always agree
+            'initial_mode' => $data->mode->value,
+            // Tools under their intent (ADD-02): the viewer's fresh running stopwatch from the profile row (no query),
+            // the collection "Scan several boxes" takes along when it is one multiscan can preset
+            'running_stopwatch' => $userProfile->runningStopwatch,
+            'multiscan_collection' => $data->collection === Collection::SYSTEM_ID || Uuid::isValid((string) $data->collection) ? $data->collection : null,
             'has_active_membership' => $hasActiveMembership,
             'system_collection_id' => Collection::SYSTEM_ID,
             'first_try' => $firstTry,
@@ -619,6 +617,42 @@ final class PuzzleAddController extends AbstractController
             'time_id' => $timeId->toString(),
             'new_puzzle_id' => $newPuzzleId->toString(),
         ]);
+    }
+
+    /**
+     * The mode the add page opens in (docs/features/navigation README §4.6, ADD-01, plan decision 42) - the first that
+     * applies:
+     * - saving a stopwatch: Speed puzzling (a measured time);
+     * - an explicit `?mode=` (`speed_puzzling`, `relax`, `collection` - the "Add a time" links name theirs);
+     * - a link to record an event's time (`?competition`, `?series`, `?official_entry`): Speed puzzling, the only mode
+     *   that takes an event;
+     * - a pair's/team's "Add time" (`?team`): the last mode, but never Collection (a collection has no co-puzzlers);
+     * - the mode of the player's last save from this page (`player.last_add_mode`, read from the profile row);
+     * - Speed puzzling.
+     */
+    private function initialMode(Request $request, null|string $stopwatchId, null|PuzzleAddMode $lastAddMode): PuzzleAddMode
+    {
+        if ($stopwatchId !== null) {
+            return PuzzleAddMode::SpeedPuzzling;
+        }
+
+        $explicitMode = PuzzleAddMode::tryFrom($request->query->getString('mode'));
+
+        if ($explicitMode !== null) {
+            return $explicitMode;
+        }
+
+        foreach (['competition', 'series', 'official_entry'] as $eventParameter) {
+            if ($request->query->getString($eventParameter) !== '') {
+                return PuzzleAddMode::SpeedPuzzling;
+            }
+        }
+
+        if ($lastAddMode === PuzzleAddMode::Collection && $request->query->getString('team') !== '') {
+            return PuzzleAddMode::SpeedPuzzling;
+        }
+
+        return $lastAddMode ?? PuzzleAddMode::SpeedPuzzling;
     }
 
     /**
@@ -749,6 +783,8 @@ final class PuzzleAddController extends AbstractController
                 duplicateConfirmed: $duplicateConfirmed,
                 paceConfirmedExpectedSeconds: $paceConfirmedExpectedSeconds,
                 seriesId: $competitionPick?->seriesId(),
+                // The next "Add" opens in Speed puzzling (ADD-01) - a stopwatch's save too
+                rememberAddMode: PuzzleAddMode::SpeedPuzzling,
             ),
         );
 
@@ -782,6 +818,7 @@ final class PuzzleAddController extends AbstractController
                 finishedAt: $data->finishedAt,
                 teamName: $teamName,
                 createdVia: SolvingTimeSource::Form,
+                rememberAddMode: PuzzleAddMode::Relax,
             ),
         );
 
@@ -835,6 +872,7 @@ final class PuzzleAddController extends AbstractController
                 puzzleId: $data->puzzle,
                 collectionId: $targetCollectionId,
                 comment: $data->collectionComment,
+                rememberAddMode: PuzzleAddMode::Collection,
             ),
         );
 

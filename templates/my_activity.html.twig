@@ -78,7 +78,7 @@
             <div class="card card-body mb-4 text-center" data-testid="my-activity-empty">
                 <p class="mb-3">{{ (in_progress ? 'my_activity.empty_in_progress' : 'my_activity.empty')|trans }}</p>
                 <div class="d-flex flex-wrap gap-2 justify-content-center">
-                    <a class="btn btn-primary" href="{{ path('puzzle_add') }}">{{ 'my_activity.add_time'|trans }}</a>
+                    <a class="btn btn-primary" href="{{ path('puzzle_add', {mode: 'speed_puzzling'}) }}">{{ 'my_activity.add_time'|trans }}</a>
                     <a class="btn btn-outline-primary" href="{{ path('puzzle_picker') }}">{{ 'my_activity.pick_puzzle'|trans }}</a>
                 </div>
             </div>

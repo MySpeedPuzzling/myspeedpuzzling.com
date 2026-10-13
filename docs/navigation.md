@@ -98,7 +98,7 @@ Every destination linked by a navigation surface (bars, rail, the Menu, the acco
 | 10 | `add` | Add | `puzzle_add` (guests: `add_intro`); also active on legacy_add_time, edit_time, added_time_recap, added_tracking_recap | everyone | link |  | add | Q4 | 2026-10-12 | Records a time or a puzzle: the Add page (D7); also the Add tab and the + Add button. Also: Add tab; desktop + Add button |
 | 20 | `stopwatch` | Stopwatch | `stopwatch`; also active on stopwatch_puzzle, finish_stopwatch | signed_in | link | stopwatch | add | Q4 | 2026-10-12 | Records a time: Add › Speed puzzling › Use the stopwatch. Also: Add page; running stopwatch pill |
 | 30 | `multiscan` | Scan several boxes | `multiscan` | signed_in | link |  | add | Q4 | 2026-10-12 | Records puzzles: Add › Collection › Scan several boxes. Also: Add page |
-| 40 | `add_event` | Add Event | `add_competition` | signed_in | link |  | community/events | Q4 | 2026-10-12 | Creates an event; also the button on the events page. Also: events page button |
+| 40 | `add_event` | Add Event | `add_competition` | signed_in | link |  | community/events | Q4 | 2026-10-12 | Creates an event; also the button on the events page. Also: events page button; add page: Other ways to add |
 
 ### Account
 
@@ -237,7 +237,7 @@ Every destination linked by a navigation surface (bars, rail, the Menu, the acco
 | 10 | `add` | Add | `puzzle_add` (guests: `add_intro`); also active on legacy_add_time, edit_time, added_time_recap, added_tracking_recap | everyone | link |  | add | Q4 | 2026-10-12 | Records a time or a puzzle: the Add page (D7); also the Add tab and the + Add button. Also: Add tab; desktop + Add button |
 | 20 | `stopwatch` | Stopwatch | `stopwatch`; also active on stopwatch_puzzle, finish_stopwatch | signed_in | link | stopwatch | add | Q4 | 2026-10-12 | Records a time: Add › Speed puzzling › Use the stopwatch. Also: Add page; running stopwatch pill |
 | 30 | `multiscan` | Scan several boxes | `multiscan` | signed_in | link |  | add | Q4 | 2026-10-12 | Records puzzles: Add › Collection › Scan several boxes. Also: Add page |
-| 40 | `add_event` | Add Event | `add_competition` | signed_in | link |  | community/events | Q4 | 2026-10-12 | Creates an event; also the button on the events page. Also: events page button |
+| 40 | `add_event` | Add Event | `add_competition` | signed_in | link |  | community/events | Q4 | 2026-10-12 | Creates an event; also the button on the events page. Also: events page button; add page: Other ways to add |
 
 ### Account
 

@@ -3,7 +3,9 @@
     puzzle / Every result, the sort, the active filters as chips with "N of M", the rows and "Show more". Rendered inside
     the page and on its own for a `Turbo-Frame: player-results` request (PlayerResultsController, Vary: Turbo-Frame).
     Every control is a link to the list's URL (PlayerResultsCriteria::toQuery()); target="_top" makes them full visits
-    until the page's own script loads them into the frame (PROF-05c).
+    until the page's own script loads them into the frame (PROF-05c). The frame tells that script what it shows
+    ([data-results-state]: the list's address in the server's form, what the filter form keeps - tab, view, sort - the
+    filters' count and Clear all), so the address and the form outside the frame follow every load.
 
     Input: results (PlayerResultsPage)
 #}
@@ -48,6 +50,15 @@
     {% set chip_labels = chip_labels|merge({(chip.id): label}) %}
 {% endfor %}
 <turbo-frame id="player-results" target="_top" data-testid="player-results">
+    {% set keep = list.toQuery %}
+    <span hidden data-results-state
+          data-url="{{ path('player_results', route_params|merge(criteria.withPage(results.page).toQuery)) }}"
+          data-category="{{ keep.category ?? '' }}"
+          data-view="{{ keep.view ?? '' }}"
+          data-sort="{{ keep.sort ?? '' }}"
+          data-filters="{{ criteria.activeFiltersCount - (criteria.query is not null ? 1 : 0) }}"
+          data-clear="{{ criteria.hasFilters ? path('player_results', route_params|merge(list.withoutFilters.toQuery)) }}"></span>
+
     {# Solo · Pairs · Teams - a tab without rows (after the filters) cannot be opened, like on the profile #}
     <div class="puzzle-category-types my-3" data-testid="results-categories">
         {% for category, tab in {

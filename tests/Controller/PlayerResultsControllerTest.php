@@ -536,7 +536,75 @@ final class PlayerResultsControllerTest extends WebTestCase
         $this->assertMembersFilterHolds($crawler, $query);
     }
 
+    /**
+     * PROF-05c: the list tells the page's script what it shows ([data-results-state] inside the frame) - the address in
+     * the server's form (defaults, empty values, a free viewer's members-only values dropped, the page clamped), what the
+     * filter form keeps (tab, view, sort - a pair/team filter's tab named), the filters' count (the search not counted)
+     * and Clear all; the form's own Clear all is there (hidden) without filters, for the script to show.
+     */
+    #[DataProvider('provideEveryViewer')]
+    public function testTheFrameSaysWhatItShows(null|string $viewerId): void
+    {
+        $this->browser($viewerId);
+        $base = '/en/player-results/' . self::PLAYER;
+
+        $crawler = $this->results($viewerId, ['sort' => 'newest', 'view' => 'puzzles', 'page' => '999', 'brand' => '', 'q' => ' ', 'relax' => '1', 'speed_unit' => 'min']);
+        $relax = $viewerId === self::MEMBER ? '?relax=1' : '';
+        self::assertSame([
+            'url' => $base . $relax,
+            'category' => '',
+            'view' => '',
+            'sort' => '',
+            'filters' => $relax === '' ? '0' : '1',
+            'clear' => $relax === '' ? '' : $base,
+        ], $this->frameState($crawler));
+        self::assertSame($relax === '', $crawler->filter('#player-results-form a[data-results-form-clear]')->attr('hidden') !== null);
+
+        // The pair filter's tab is named for the form (as its hidden field), the address keeps only what was asked
+        $pairId = self::getContainer()->get(Connection::class)->fetchOne(
+            'SELECT puzzling_team_id FROM puzzle_solving_time WHERE id = :id',
+            ['id' => PuzzleSolvingTimeFixture::TIME_12],
+        );
+        self::assertIsString($pairId);
+        $crawler = $this->results($viewerId, ['team' => $pairId, 'sort' => 'fastest', 'q' => 'puzzle', 'page' => '1']);
+        self::assertSame([
+            'url' => $base . '?sort=fastest&q=puzzle&team=' . $pairId,
+            'category' => 'duo',
+            'view' => '',
+            'sort' => 'fastest',
+            'filters' => '1',
+            'clear' => $base . '?category=duo&sort=fastest',
+        ], $this->frameState($crawler));
+        self::assertSame('duo', $crawler->filter('#player-results-form > input[type="hidden"][name="category"]')->attr('value'));
+        $clear = $crawler->filter('#player-results-form a[data-results-form-clear]');
+        self::assertNull($clear->attr('hidden'));
+        self::assertSame($base . '?category=duo&sort=fastest', $clear->attr('href'));
+
+        // The frame alone says the same (the script reads it after each load)
+        $this->browser($viewerId)->request('GET', $base . '?view=every&page=2', server: ['HTTP_TURBO_FRAME' => 'player-results']);
+        self::assertResponseIsSuccessful();
+        self::assertSame($base . '?view=every', $this->frameState(new Crawler((string) $this->browser?->getResponse()->getContent()))['url'], 'The page clamped to the last one (page 1)');
+    }
+
     // --------------------------------------------------------------------------------- helpers
+
+    /**
+     * @return array{url: null|string, category: null|string, view: null|string, sort: null|string, filters: null|string, clear: null|string}
+     */
+    private function frameState(Crawler $crawler): array
+    {
+        $state = $crawler->filter('turbo-frame#player-results > [data-results-state][hidden]');
+        self::assertCount(1, $state);
+
+        return [
+            'url' => $state->attr('data-url'),
+            'category' => $state->attr('data-category'),
+            'view' => $state->attr('data-view'),
+            'sort' => $state->attr('data-sort'),
+            'filters' => $state->attr('data-filters'),
+            'clear' => $state->attr('data-clear'),
+        ];
+    }
 
     /**
      * @param array<string, string|list<string>> $query

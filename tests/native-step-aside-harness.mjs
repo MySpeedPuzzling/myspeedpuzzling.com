@@ -13,6 +13,7 @@ import { reportsSuppressed } from '../assets/confirm_dialog.js';
 import { menuLinkAction } from '../assets/navigation/menu_links.js';
 import { menuButtonState } from '../assets/navigation/nav_layout.js';
 import { topbarMayHide } from '../assets/topbar_scroll.js';
+import { historyAction, scrollRestore, takesOver } from '../assets/player_results_state.js';
 
 /** A fake <html>: inside the app on an Android phone, or Chrome on the same phone */
 function root(nativeApp) {
@@ -69,6 +70,17 @@ const ROWS = [
         id: 'assets/topbar_scroll.js',
         run: (html) => ({
             scrolledDownOnAPhone: topbarMayHide(isNativeApp(html), { phone: true, viewportHeight: 800 }),
+        }),
+    },
+    // PROF-05c: the Results page owns history entries on the web only - inside the app it writes none, takes no link
+    // over (the app's own navigation decides) and never restores a saved scroll position
+    {
+        id: 'assets/player_results_state.js',
+        run: (html) => ({
+            sortChange: historyAction('discrete', 'https://msp.test/en/player-results/a', 'https://msp.test/en/player-results/a?sort=name', isNativeApp(html)),
+            showMore: historyAction('more', 'https://msp.test/en/player-results/a', 'https://msp.test/en/player-results/a?page=2', isNativeApp(html)),
+            takesOver: takesOver(isNativeApp(html)),
+            backByFullLoad: scrollRestore({ nativeApp: isNativeApp(html), cameBack: true, saved: { y: 400, row: null, rowTop: null } }),
         }),
     },
 ];

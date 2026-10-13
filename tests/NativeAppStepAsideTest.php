@@ -13,9 +13,9 @@ use Symfony\Component\Process\Process;
  * Inside the Hotwire Native app every web-only navigation behaviour steps aside (docs/features/navigation NAV-14 (b)):
  * one row per native-aware module, its pure decision run with the native flag on and off
  * (tests/native-step-aside-harness.mjs). Each bar, layer and gesture item adds its row (implementation plan §3.5
- * item 4): GEST-01 no history entry, GEST-06 the pull never arms, GEST-10 no vibration, GEST-12/17 the view-transition
- * gate stays `none`, GEST-15 the restore decision is `leave`, CARD-01a / MENU-02b the listeners let the link navigate,
- * GEST-13 the confirm watchdog reports nothing.
+ * item 4): GEST-01 no history entry, PROF-05c no Results entry either, GEST-06 the pull never arms, GEST-10 no
+ * vibration, GEST-12/17 the view-transition gate stays `none`, GEST-15 the restore decision is `leave`, CARD-01a /
+ * MENU-02b the listeners let the link navigate, GEST-13 the confirm watchdog reports nothing.
  *
  * @phpstan-type Answer array{value?: mixed, threw?: string}
  * @phpstan-type Row array{id: string, app: Answer, web: Answer}
@@ -56,6 +56,11 @@ final class NativeAppStepAsideTest extends TestCase
         'assets/topbar_scroll.js' => [
             ['scrolledDownOnAPhone' => false],
             ['scrolledDownOnAPhone' => true],
+        ],
+        // PROF-05c: the Results page writes no history entry inside the app, takes nothing over, restores no scroll
+        'assets/player_results_state.js' => [
+            ['sortChange' => 'none', 'showMore' => 'none', 'takesOver' => false, 'backByFullLoad' => 'none'],
+            ['sortChange' => 'push', 'showMore' => 'replace', 'takesOver' => true, 'backByFullLoad' => 'restore'],
         ],
     ];
 

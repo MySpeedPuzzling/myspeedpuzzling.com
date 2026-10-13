@@ -42,6 +42,8 @@ import { installConfirmDialog } from './confirm_dialog.js';
 import { installDocumentReceipts } from './document_receipt.js';
 import { installHelpOpeners } from './help_openers.js';
 import { installPuzzlesSection } from './puzzles_section.js';
+// The URL a restore visit reloads below, for the page it brings back (the Results page's scroll position, PROF-05c)
+import { markRestoreReload } from './restore_reload.js';
 
 // When each page's HTML arrived, before any lazy controller loads - the stopwatch pill's clock (ADD-03 review F5)
 installDocumentReceipts({ window, document });
@@ -87,6 +89,7 @@ document.addEventListener('turbo:visit', function(event) {
         if (navInstrumentation) {
             navInstrumentation.turboRestore();
         }
+        markRestoreReload(event.detail.url);
         window.location.href = event.detail.url;
     }
 });

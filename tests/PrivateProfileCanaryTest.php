@@ -77,6 +77,10 @@ final class PrivateProfileCanaryTest extends WebTestCase
         yield 'puzzle library' => ['/en/puzzle-library/' . self::OWNER];
         // A teammate's Overview (docs/features/navigation PROF-03): her pair with him among his latest results
         yield 'teammate overview' => ['/en/player-profile/' . PlayerFixture::PLAYER_REGULAR];
+        // A teammate's Results (navigation PROF-08): her pair with him a row of his Pairs tab and an option of his
+        // pair/team filter, By puzzle and Every result (her own Results: testHerResultsPageOpensForTheFriendOnly)
+        yield 'teammate results, pairs' => ['/en/player-results/' . PlayerFixture::PLAYER_REGULAR . '?category=duo'];
+        yield 'teammate results, pairs, every result' => ['/en/player-results/' . PlayerFixture::PLAYER_REGULAR . '?category=duo&view=every'];
     }
 
     /**
@@ -204,6 +208,68 @@ final class PrivateProfileCanaryTest extends WebTestCase
         TestingLogin::asPlayer($browser, self::FRIEND);
         self::assertStringContainsString(self::OWNER_NAME, $this->get($browser, $url), 'The allowed friend does not see the private player here - the page is no canary.');
         self::assertStringContainsString('no-store', (string) $browser->getResponse()->headers->get('Cache-Control'));
+    }
+
+    /**
+     * The list alone for its frame (navigation PROF-05c loads it on every change of the list): the teammate's pair row
+     * names her for the friend only, and the answer is never shared
+     */
+    public function testATeammatesResultsFrameNamesHerForTheFriendOnly(): void
+    {
+        $browser = self::createClient();
+        $url = '/en/player-results/' . PlayerFixture::PLAYER_REGULAR . '?category=duo';
+        $frame = ['HTTP_TURBO_FRAME' => 'player-results'];
+
+        $browser->request('GET', $url, server: $frame);
+        self::assertResponseIsSuccessful();
+        self::assertStringNotContainsString(self::OWNER_NAME, (string) $browser->getResponse()->getContent(), 'A guest is shown a private player.');
+
+        foreach (self::STRANGERS as $who => $strangerId) {
+            TestingLogin::asPlayer($browser, $strangerId);
+            $browser->request('GET', $url, server: $frame);
+            self::assertResponseIsSuccessful();
+            self::assertStringNotContainsString(self::OWNER_NAME, (string) $browser->getResponse()->getContent(), "A signed-in stranger ({$who}) is shown a private player.");
+        }
+
+        TestingLogin::asPlayer($browser, self::FRIEND);
+        $browser->request('GET', $url, server: $frame);
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString(self::OWNER_NAME, (string) $browser->getResponse()->getContent(), 'The allowed friend does not see her in the list - no canary.');
+        self::assertStringContainsString('no-store', (string) $browser->getResponse()->headers->get('Cache-Control'));
+    }
+
+    /**
+     * Her player card (navigation PROF-08, the card endpoint as the Players page uses it today; CARD-05 adds context
+     * blocks) follows her profile: the friend opens it, anybody else gets the card's neutral 404 - in the frame too,
+     * where it names nobody.
+     */
+    public function testHerCardOpensForTheFriendOnly(): void
+    {
+        $browser = self::createClient();
+        $url = '/en/puzzler-card/' . self::OWNER;
+        $frame = ['HTTP_TURBO_FRAME' => 'player-card'];
+
+        foreach ([null, ...array_values(self::STRANGERS)] as $viewerId) {
+            if ($viewerId !== null) {
+                TestingLogin::asPlayer($browser, $viewerId);
+            }
+
+            $browser->request('GET', $url);
+            self::assertResponseStatusCodeSame(404);
+
+            $browser->request('GET', $url, server: $frame);
+            self::assertResponseStatusCodeSame(404);
+            $content = (string) $browser->getResponse()->getContent();
+            self::assertStringContainsString('players-card-unavailable', $content);
+            self::assertStringNotContainsString(self::OWNER_NAME, $content, 'A private player\'s card names her.');
+            self::assertStringNotContainsString(self::OWNER, $content, 'A private player\'s card names her.');
+        }
+
+        TestingLogin::asPlayer($browser, self::FRIEND);
+        $browser->request('GET', $url, server: $frame);
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString(self::OWNER_NAME, (string) $browser->getResponse()->getContent(), 'The allowed friend does not open her card.');
+        self::assertStringNotContainsString('public', (string) $browser->getResponse()->headers->get('Cache-Control'));
     }
 
     /**

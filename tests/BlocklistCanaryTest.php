@@ -142,6 +142,101 @@ final class BlocklistCanaryTest extends WebTestCase
     }
 
     /**
+     * A co-solver's Results (docs/features/navigation PROF-08): their pair and their team of three with the blocked player
+     * are rows of the Pairs / Teams tabs, options of the pair/team filter and counted on the tabs for a bystander - for
+     * the blocker none of it, whatever the view, the search or the answer (the page, or the list alone for its frame).
+     * GetPlayerSolvedPuzzles leaves the results out with HiddenPlayers::sqlExcludeTeam().
+     */
+    #[DataProvider('provideCoSolversResults')]
+    public function testBlockedPlayerIsNowhereOnACoSolversResults(string $query, string $category): void
+    {
+        $browser = self::createClient();
+        $url = '/en/player-results/' . PlayerFixture::PLAYER_REGULAR . $query;
+        $pair = $this->seedTeam([PlayerFixture::PLAYER_REGULAR, self::BLOCKED]);
+        $this->seedTime(PlayerFixture::PLAYER_REGULAR, PuzzleFixture::PUZZLE_500_02, 1500, new DateTimeImmutable('-1 minute'), teamId: $pair);
+        $team = $this->seedTeam([PlayerFixture::PLAYER_REGULAR, self::BLOCKED], ['Garden Guest']);
+        $this->seedTime(PlayerFixture::PLAYER_REGULAR, PuzzleFixture::PUZZLE_500_02, 1900, new DateTimeImmutable('-2 minutes'), teamId: $team);
+
+        self::getContainer()->get(Connection::class)->executeStatement(
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, NOW(), 'self')",
+            ['id' => Uuid::uuid7()->toString(), 'blocker' => self::BLOCKER, 'blocked' => self::BLOCKED],
+        );
+
+        TestingLogin::asPlayer($browser, self::BYSTANDER);
+        $crawler = $browser->request('GET', $url);
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString(self::BLOCKED_NAME, $crawler->filter('#player-results-rows')->text(), 'No canary: the bystander is not shown the result with the player.');
+        self::assertStringContainsString(self::BLOCKED_NAME, $crawler->filter('select[name="team"]')->text(), 'No canary: the pair/team filter does not offer them to a bystander.');
+        $shown = $this->tabCount($crawler, $category);
+
+        TestingLogin::asPlayer($browser, self::BLOCKER);
+
+        foreach (['page' => [], 'frame' => ['HTTP_TURBO_FRAME' => 'player-results']] as $answer => $server) {
+            $crawler = $browser->request('GET', $url, server: $server);
+            self::assertResponseIsSuccessful();
+            $content = (string) $browser->getResponse()->getContent();
+            self::assertStringNotContainsString(self::BLOCKED, $content, "The blocker is shown a player they blocked ({$answer}).");
+            self::assertStringNotContainsString(self::BLOCKED_NAME, $content, "The blocker is shown a player they blocked ({$answer}).");
+            self::assertSame($shown - 1, $this->tabCount($crawler, $category), "The result is counted for the blocker ({$answer}).");
+        }
+    }
+
+    /**
+     * @return iterable<string, array{string, string}>
+     */
+    public static function provideCoSolversResults(): iterable
+    {
+        yield 'pairs tab' => ['?category=duo', 'duo'];
+        yield 'teams tab' => ['?category=group', 'group'];
+        yield 'pairs, every result' => ['?category=duo&view=every', 'duo'];
+        // The search (PROF-05d) by the puzzle's EAN
+        yield 'pairs, searched' => ['?category=duo&q=4005556123456', 'duo'];
+    }
+
+    /** "Pairs (3)" → 3 */
+    private function tabCount(Crawler $crawler, string $category): int
+    {
+        $tab = $crawler->filter('[data-results-category="' . $category . '"]');
+        self::assertCount(1, $tab, $category);
+        self::assertSame(1, preg_match('/\((\d+)\)\s*$/', trim($tab->text()), $matches), $tab->text());
+
+        return (int) $matches[1];
+    }
+
+    /**
+     * The player card (navigation PROF-08, the card endpoint as the Players page uses it today; CARD-05 adds context
+     * blocks): a bystander opens the blocked player's card, the blocker gets the card's neutral 404 - in the frame too,
+     * where it names nobody (blocked, private and deleted read the same).
+     */
+    public function testTheCardOfABlockedPlayerDoesNotExistForTheBlocker(): void
+    {
+        $browser = self::createClient();
+        $url = '/en/puzzler-card/' . self::BLOCKED;
+        $frame = ['HTTP_TURBO_FRAME' => 'player-card'];
+
+        self::getContainer()->get(Connection::class)->executeStatement(
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, NOW(), 'self')",
+            ['id' => Uuid::uuid7()->toString(), 'blocker' => self::BLOCKER, 'blocked' => self::BLOCKED],
+        );
+
+        TestingLogin::asPlayer($browser, self::BYSTANDER);
+        $browser->request('GET', $url, server: $frame);
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString(self::BLOCKED_NAME, (string) $browser->getResponse()->getContent(), 'No canary: the card does not name the player to a bystander.');
+
+        TestingLogin::asPlayer($browser, self::BLOCKER);
+        $browser->request('GET', $url);
+        self::assertResponseStatusCodeSame(404);
+
+        $browser->request('GET', $url, server: $frame);
+        self::assertResponseStatusCodeSame(404);
+        $content = (string) $browser->getResponse()->getContent();
+        self::assertStringContainsString('players-card-unavailable', $content);
+        self::assertStringNotContainsString(self::BLOCKED, $content, 'The blocker is shown a player they blocked.');
+        self::assertStringNotContainsString(self::BLOCKED_NAME, $content, 'The blocker is shown a player they blocked.');
+    }
+
+    /**
      * The favorite puzzlers page is the owner's alone, so there is no bystander to compare with: the blocker sees the
      * follower until the block, and never after it.
      */

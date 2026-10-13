@@ -39,6 +39,8 @@ final class PlatformFlagReadersTest extends TestCase
         'assets/topbar_scroll.js',
         'assets/controllers/topbar_controller.js',
         'assets/controllers/global_search_controller.js',
+        // PROF-05c: the Results page owns history entries on the web only (assets/player_results_state.js decides)
+        'assets/controllers/player_results_controller.js',
     ];
 
     private const string PLATFORM_MODULE = 'assets/platform.js';

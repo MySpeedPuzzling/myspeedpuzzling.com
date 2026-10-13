@@ -186,9 +186,8 @@
 
             <div class="d-flex flex-wrap align-items-center gap-3 mt-3">
                 <button type="submit" class="btn btn-primary btn-sm" data-testid="results-apply">{{ 'player_results.apply'|trans }}</button>
-                {% if criteria.hasFilters %}
-                    <a class="fs-sm" href="{{ path('player_results', {playerId: results.playerId}|merge(results.listCriteria.withoutFilters.toQuery)) }}" data-results-clear>{{ 'player_results.clear_all'|trans }}</a>
-                {% endif %}
+                {# Rendered without filters too (hidden): the page's script shows it once a filter is on (PROF-05c) #}
+                <a class="fs-sm" href="{{ path('player_results', {playerId: results.playerId}|merge(results.listCriteria.withoutFilters.toQuery)) }}" data-results-clear data-results-form-clear{% if not criteria.hasFilters %} hidden{% endif %}>{{ 'player_results.clear_all'|trans }}</a>
             </div>
         </div>
     </details>

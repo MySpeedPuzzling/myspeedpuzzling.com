@@ -68,6 +68,12 @@ return static function (ContainerConfigurator $configurator): void {
     $services->set(\SpeedPuzzling\Web\Tests\TestDouble\InMemoryStudioInviteSignal::class);
     $services->alias(\SpeedPuzzling\Web\Services\LiveKit\StudioInviteSignal::class, \SpeedPuzzling\Web\Tests\TestDouble\InMemoryStudioInviteSignal::class);
 
+    // The participant API's rate limits without Redis: the framework limiters of config/packages/test/rate_limiter.php
+    // (RedisSlidingWindowLimiterTest covers the production limiter against a real Redis)
+    foreach (['online_participant_ip', 'online_participant', 'online_participant_events', 'online_participant_media'] as $name) {
+        $services->alias('online_rate_limiter.' . $name, 'limiter.' . $name);
+    }
+
     // The XP launch switch without a statement per page (production: Redis) - see FixedXpLaunchReadiness
     $services->set(\SpeedPuzzling\Web\Tests\TestDouble\FixedXpLaunchReadiness::class);
     $services->alias(\SpeedPuzzling\Web\Services\Xp\XpLaunchReadiness::class, \SpeedPuzzling\Web\Tests\TestDouble\FixedXpLaunchReadiness::class);

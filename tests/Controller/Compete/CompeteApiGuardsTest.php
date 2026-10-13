@@ -113,7 +113,7 @@ final class CompeteApiGuardsTest extends WebTestCase
     public function testALinkAskingTooOftenIsToldWhenToComeBack(): void
     {
         $token = $this->freshLink();
-        $limiter = $this->browser->getContainer()->get('limiter.online_participant');
+        $limiter = $this->browser->getContainer()->get('online_rate_limiter.online_participant');
         $limiter->create($token)->consume($limiter->create($token)->consume(0)->getLimit());
 
         $this->browser->request('GET', self::api($token, 'state'));
@@ -137,7 +137,7 @@ final class CompeteApiGuardsTest extends WebTestCase
     public function testOneClientAskingTooOftenIsToldBeforeAnyLinkIsRead(): void
     {
         $ip = '198.51.100.' . random_int(1, 254);
-        $limiter = $this->browser->getContainer()->get('limiter.online_participant_ip');
+        $limiter = $this->browser->getContainer()->get('online_rate_limiter.online_participant_ip');
 
         try {
             $limiter->create($ip)->consume($limiter->create($ip)->consume(0)->getLimit());

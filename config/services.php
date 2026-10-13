@@ -21,10 +21,12 @@ use SpeedPuzzling\Web\Services\ApiUsage\RedisApiUsageCounter;
 use SpeedPuzzling\Web\Services\Doctrine\FixDoctrineMigrationTableSchema;
 use SpeedPuzzling\Web\Services\OnlineRounds\OnlineMediaStorage;
 use SpeedPuzzling\Web\Services\OnlineRounds\OnlineMediaStores;
+use SpeedPuzzling\Web\Services\OnlineRounds\OnlineParticipantApi;
 use SpeedPuzzling\Web\Services\OnlineRounds\OnlinePresence;
 use SpeedPuzzling\Web\Services\OnlineRounds\OnlineStoreBreaker;
 use SpeedPuzzling\Web\Services\OnlineRounds\RedisOnlinePresence;
 use SpeedPuzzling\Web\Services\OnlineRounds\S3OnlineMediaStorage;
+use SpeedPuzzling\Web\Services\RateLimiting\RedisSlidingWindowLimiterFactory;
 use SpeedPuzzling\Web\Services\Sentry\OnlineTokenSentryScrubber;
 use SpeedPuzzling\Web\Services\SentryTracesSampler;
 use SpeedPuzzling\Web\Services\Session\PostgresSessionHandler;
@@ -209,6 +211,8 @@ return static function (ContainerConfigurator $configurator): void {
             __DIR__ . '/../src/Services/ParticipantsSheet/Plan/',
             // the counters of one suspicious time scan, created per run by its handler - not a service
             __DIR__ . '/../src/Services/SuspiciousTimes/SuspiciousTimeScanTally.php',
+            // one key of a rate limit, made by its factory; the factories are set up per limit below (online_rate_limiter.*)
+            __DIR__ . '/../src/Services/RateLimiting/',
         ]);
 
     // framework.session.handler_id. After the Services load, which would otherwise
@@ -407,6 +411,49 @@ return static function (ContainerConfigurator $configurator): void {
     $services->set(RedisOnlinePresence::class)
         ->arg('$redis', service('api_usage.redis'));
     $services->alias(OnlinePresence::class, RedisOnlinePresence::class);
+
+    // The participant API's rate limits (OnlineParticipantApi): every link is a possibly hostile client, so the count
+    // must hold when many requests come at the same moment - one atomic Lua call per request on the cache Redis
+    // (RedisSlidingWindowLimiterFactory). Framework limiters count in PHP: without a lock parallel requests all pass,
+    // and a lock on Redis makes every waiting request sleep in 100 ms steps on a PHP worker (measured:
+    // docs/features/online-competitions/README.md §6). Short timeouts - the heartbeat never waits long; a Redis that
+    // does not answer lets the request through. config/services_test.php points the API at framework limiters.
+    $services->set('online_rate_limiter.redis', \Redis::class)
+        ->factory([RedisAdapter::class, 'createConnection'])
+        ->args([
+            env('REDIS_CACHE_DSN'),
+            ['lazy' => true, 'timeout' => 0.5, 'read_timeout' => 0.5],
+        ]);
+
+    $onlineRateLimits = [
+        // Per client IP, before anything else: links guessed at, or one network flooding. Generous - a club or a
+        // family on one connection, each phone a few dozen requests a minute
+        'online_participant_ip' => 1_200,
+        // Per link: a phone sends a heartbeat every 15 s, event batches, photo uploads every 10 s before the start and
+        // the state fetches around it - a few dozen requests a minute even with two devices on one link
+        'online_participant' => 300,
+        // Per link and endpoint: event batches (up to 50 events each) and presigned uploads - far above a phone
+        // catching up after an outage, far below a flood of rows
+        'online_participant_events' => 60,
+        'online_participant_media' => 60,
+    ];
+
+    foreach ($onlineRateLimits as $name => $limit) {
+        $services->set('online_rate_limiter.' . $name, RedisSlidingWindowLimiterFactory::class)
+            ->args([
+                '$redis' => service('online_rate_limiter.redis'),
+                '$id' => $name,
+                '$limit' => $limit,
+                '$intervalSeconds' => 60,
+                '$keyPrefix' => 'online_rate_limit:',
+            ]);
+    }
+
+    $services->set(OnlineParticipantApi::class)
+        ->arg('$onlineParticipantIpLimiter', service('online_rate_limiter.online_participant_ip'))
+        ->arg('$onlineParticipantLimiter', service('online_rate_limiter.online_participant'))
+        ->arg('$onlineParticipantEventsLimiter', service('online_rate_limiter.online_participant_events'))
+        ->arg('$onlineParticipantMediaLimiter', service('online_rate_limiter.online_participant_media'));
 
     // The circuit breaker's failure counters (OnlineStoreBreaker) - asked only while a second store is configured
     $services->set(OnlineStoreBreaker::class)

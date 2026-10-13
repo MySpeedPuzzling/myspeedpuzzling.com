@@ -27,8 +27,11 @@ return App::config([
                 'limit' => 100000,
                 'interval' => '1 hour',
             ],
-            // The online competitions' participant API: every test comes from one IP and uses the fixture's links - the
-            // limits would trip within a minute of local runs. Tests of a 429 read the limit and use up a key of their own.
+            // The online competitions' participant API: production counts with RedisSlidingWindowLimiterFactory
+            // (config/services.php - atomic on the cache Redis, RedisSlidingWindowLimiterTest); these framework
+            // limiters stand in without Redis (config/services_test.php points the API at them). Every test comes from
+            // one IP and uses the fixture's links - the limits would trip within a minute of local runs. Tests of a 429
+            // read the limit and use up a key of their own.
             'online_participant_ip' => [
                 'policy' => 'sliding_window',
                 'limit' => 100000,

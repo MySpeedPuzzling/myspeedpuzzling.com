@@ -84,12 +84,6 @@ return App::config([
                 'times_board_guest_cache' => [
                     'adapters' => ['cache.app'],
                 ],
-                // The rate limits of the online competitions' participant API (config/packages/rate_limiter.php,
-                // online_participant*): on the cache Redis like cache.app, but their own pool - a flood of links never
-                // mixes with the site's cache entries, and the pool can be cleared on its own
-                'online_participant_rate_limits' => [
-                    'adapters' => ['cache.adapter.redis'],
-                ],
             ],
         ],
     ],

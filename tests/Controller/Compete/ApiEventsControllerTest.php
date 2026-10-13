@@ -346,7 +346,7 @@ final class ApiEventsControllerTest extends WebTestCase
         $participant->assignOnlineToken($token, new DateTimeImmutable());
         $entityManager->flush();
 
-        $limiter = $this->browser->getContainer()->get('limiter.online_participant_events');
+        $limiter = $this->browser->getContainer()->get('online_rate_limiter.online_participant_events');
         $limiter->create($token)->consume($limiter->create($token)->consume(0)->getLimit());
 
         self::postJson($this->browser, self::api($token, 'events'), ['deviceId' => 'phone-a', 'events' => []]);

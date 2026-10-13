@@ -263,7 +263,7 @@ final class ApiMediaControllerTest extends WebTestCase
         $participant->assignOnlineToken($token, new DateTimeImmutable());
         $entityManager->flush();
 
-        $limiter = $this->browser->getContainer()->get('limiter.online_participant_media');
+        $limiter = $this->browser->getContainer()->get('online_rate_limiter.online_participant_media');
         $limiter->create($token)->consume($limiter->create($token)->consume(0)->getLimit());
 
         self::postJson($this->browser, self::api($token, 'media'), self::photo());

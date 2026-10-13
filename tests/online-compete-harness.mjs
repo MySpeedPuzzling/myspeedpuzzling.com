@@ -5,10 +5,12 @@
 
 import assert from 'node:assert/strict';
 import {
+    answerReach,
     buildEvent,
     cameraWanted,
     CHECK_CODES,
     checklistRows,
+    connectionStatus,
     clockText,
     countdownText,
     currentFinish,
@@ -787,6 +789,30 @@ const scenarios = {
         const laptopAfter = devices.laptop.gaveWayAt.filter((at) => at > 4_200 + 300);
         assert.equal(laptopAfter.length, 1);
         assert.ok(laptopAfter[0] - 4_500 <= 20_000);
+    },
+
+    async 'the status line: "Offline" only when the network is down - a refusal or a server error is a connection problem, retried'() {
+        assert.equal(connectionStatus({ online: false }), 'offline', 'the browser says so');
+        assert.equal(connectionStatus({ online: true, noAnswers: 2 }), 'offline', 'no answer twice in a row');
+        assert.equal(connectionStatus({ online: true, noAnswers: 1 }), 'online', 'one is a hiccup');
+        assert.equal(connectionStatus({ online: true, failedAnswers: 2 }), 'problem');
+        assert.equal(connectionStatus({ online: true, failedAnswers: 1 }), 'online');
+        assert.equal(connectionStatus({ online: true }), 'online');
+
+        const now = START;
+        // 429 rate_limited, 503 retry, a 500 page, a ban page: the server answered - a problem, not offline
+        assert.equal(answerReach(readCompeteAnswer(response(429, null, { headers: { 'Retry-After': '30' } }), { error: 'rate_limited' }, now)), 'failed');
+        assert.equal(answerReach(readCompeteAnswer(response(503, null), { error: 'retry' }, now)), 'failed');
+        assert.equal(answerReach(readCompeteAnswer(response(500, null, { contentType: 'text/html' }), null, now)), 'failed');
+        assert.equal(answerReach(readCompeteAnswer(response(403, null, { contentType: 'text/html' }), null, now)), 'failed');
+        // No answer, or not ours (a captive portal): offline
+        assert.equal(answerReach(readCompeteAnswer(null, null, now)), 'none');
+        assert.equal(answerReach(readCompeteAnswer(response(200, null, { contentType: 'text/html' }), null, now)), 'none');
+        assert.equal(answerReach(undefined), 'none');
+        // Our answers, refusals of ours included: connected
+        assert.equal(answerReach(readCompeteAnswer(response(200, { serverNowMs: 1 }), { serverNowMs: 1 }, now)), 'ok');
+        assert.equal(answerReach(readCompeteAnswer(response(404, null), { error: 'unknown_link' }, now)), 'ok');
+        assert.equal(answerReach(readCompeteAnswer(response(403, null), { error: 'forbidden' }, now)), 'ok');
     },
 
     async 'the API\'s answers: ok, our refusals, busy, failing, a portal page, offline - and a dead link'() {

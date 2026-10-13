@@ -258,7 +258,7 @@ html:has(.compete) body {
 }
 
 .compete:not([data-camera='live']) .compete-status-camera,
-.compete[data-connection='offline'] .compete-status-connection {
+.compete:is([data-connection='offline'], [data-connection='problem']) .compete-status-connection {
     color: var(--compete-bad);
     font-weight: 600;
 }

@@ -247,6 +247,42 @@ export function takeoverVerdict({ activeDevice, deviceId, ready, takenOver, clai
     return { otherDeviceActive: true, takenOver: true, recheckAt: null };
 }
 
+// Requests in a row that went wrong before the status line says so - one is a hiccup
+export const CONNECTION_FAILURES_SHOWN = 2;
+
+/**
+ * The status line's connection (README §5.5): `offline` only when the network is down - the browser says so, or
+ * requests got no answer at all (a captive portal's page counts as none); `problem` when the server answered with an
+ * error or a refusal to wait (5xx, 429 …) - the page keeps retrying; `online` otherwise.
+ *
+ * @param {{online: boolean, noAnswers: number, failedAnswers: number}} input   failures in a row, by kind
+ * @returns {'online'|'offline'|'problem'}
+ */
+export function connectionStatus({ online, noAnswers = 0, failedAnswers = 0 }) {
+    if (online === false || noAnswers >= CONNECTION_FAILURES_SHOWN) {
+        return 'offline';
+    }
+
+    return failedAnswers >= CONNECTION_FAILURES_SHOWN ? 'problem' : 'online';
+}
+
+/**
+ * What an API answer (compete_api.js) says about the connection: `ok` (it answered - a refusal of ours included),
+ * `none` (no answer, or a page that is not ours - a captive portal), `failed` (an error, or a refusal to wait).
+ */
+export function answerReach(answer) {
+    switch (answer?.kind) {
+        case 'ok':
+        case 'client':
+        case 'forbidden':
+            return 'ok';
+        case 'server':
+            return 'failed';
+        default:
+            return 'none';
+    }
+}
+
 /**
  * Screens on which the camera runs (and the preview is shown).
  */

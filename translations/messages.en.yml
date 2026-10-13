@@ -9380,6 +9380,7 @@ compete:
         status_camera_off: "Camera off"
         status_online: "Online"
         status_offline: "Offline"
+        status_problem: "Connection problem - retrying"
         status_pending: "1 photo to send|%count% photos to send"
         camera_alert: "The camera is off - tap here to turn it back on"
         wake_tap: "Tap here once - so you hear the start and the screen stays on"

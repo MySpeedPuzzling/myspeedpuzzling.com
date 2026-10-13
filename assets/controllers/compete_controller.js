@@ -20,9 +20,12 @@ import { Beeps } from '../online/beeps.js';
 import { FrameGrabber } from '../online/frame_grabber.js';
 import { createCompeteApi, isDeadLink } from '../online/compete_api.js';
 import {
+    answerReach,
     buildEvent,
     cameraWanted,
     checklistRows,
+    CONNECTION_FAILURES_SHOWN,
+    connectionStatus,
     clockText,
     countdownText,
     currentFinish,
@@ -162,7 +165,9 @@ export default class extends Controller {
         this.recheckTimer = null;
         this.practice = null;
         this.lastOkAt = null;
-        this.failures = 0;
+        // Requests in a row without an answer / answered with an error (connectionStatus())
+        this.noAnswers = 0;
+        this.failedAnswers = 0;
         this.lastPeriodicMs = null;
         this.periodicBusy = false;
         // The start (startedAtMs) whose running clock this page showed - time's up is live only after it
@@ -848,11 +853,18 @@ export default class extends Controller {
             return;
         }
 
-        if (answer.kind === 'ok' || answer.kind === 'client' || answer.kind === 'forbidden') {
+        const reach = answerReach(answer);
+
+        if (reach === 'ok') {
             this.lastOkAt = Date.now();
-            this.failures = 0;
+            this.noAnswers = 0;
+            this.failedAnswers = 0;
+        } else if (reach === 'none') {
+            this.noAnswers += 1;
+            this.failedAnswers = 0;
         } else {
-            this.failures += 1;
+            this.failedAnswers += 1;
+            this.noAnswers = 0;
         }
 
         if (isDeadLink(answer)) {
@@ -1568,12 +1580,14 @@ export default class extends Controller {
 
     paintStatus() {
         const pending = (this.eventsOutbox?.pendingCount() ?? 0) + (this.mediaOutbox?.pendingCount() ?? 0);
+        // "Offline" only when the network is down - a server error or a refusal says the connection has a problem
+        const connection = connectionStatus({ online: navigator.onLine !== false, noAnswers: this.noAnswers, failedAnswers: this.failedAnswers });
 
         this.setField('statusCamera', this.camera.status === 'live' ? this.t('status_camera_ok') : this.t('status_camera_off'));
-        this.setField('statusConnection', navigator.onLine === false || this.failures >= 2 ? this.t('status_offline') : this.t('status_online'));
+        this.setField('statusConnection', this.t(`status_${connection}`));
         this.setField('statusPending', pending > 0 ? this.tc('status_pending', pending) : '');
         this.setData('camera', this.camera.status);
-        this.setData('connection', navigator.onLine === false || this.failures >= 2 ? 'offline' : 'online');
+        this.setData('connection', connection);
     }
 
     paintChecklist() {
@@ -1585,9 +1599,9 @@ export default class extends Controller {
             clockSyncing: this.clock.syncing !== null,
             wakeLock: this.wakeLock.state,
             connection: {
-                online: navigator.onLine !== false,
+                online: navigator.onLine !== false && this.noAnswers < CONNECTION_FAILURES_SHOWN,
                 lastOkAgoMs: this.lastOkAt === null ? null : Date.now() - this.lastOkAt,
-                failing: this.failures >= 2,
+                failing: this.failedAnswers >= CONNECTION_FAILURES_SHOWN,
             },
             uploads: this.mediaOutbox?.status() ?? null,
             emptyMat: this.progress.emptyMat,

@@ -23,6 +23,8 @@ final class CompeteTextsTest extends KernelTestCase
         'pieces_invalid_' => ['empty', 'not_a_number', 'too_many'],
         // the connect answers shown as a line (compete_controller.js paintConnect())
         'connect_' => ['belongs_to_other', 'is_other_participant'],
+        // the status line's connection (compete_flow.js connectionStatus())
+        'status_' => ['online', 'offline', 'problem'],
     ];
 
     // Chosen in a ternary or passed on - not visible to the t('…') pattern

@@ -24,6 +24,9 @@ final class CompeteApiGuardsTest extends WebTestCase
     use CompeteApiRequests;
     use QueryCountAssertions;
 
+    // The live video endpoints' answer to an invitation to the studio (contract phase-1b.md §5)
+    private const string UNKNOWN_INVITE = '018d0060-0000-7000-8000-00000000ffff';
+
     private KernelBrowser $browser;
 
     protected function setUp(): void
@@ -45,6 +48,8 @@ final class CompeteApiGuardsTest extends WebTestCase
             ['POST', self::api($token, 'heartbeat'), ['deviceId' => OnlineRoundsFixture::DEVICE_CONNECTED]],
             ['POST', self::api($token, 'events'), ['deviceId' => OnlineRoundsFixture::DEVICE_CONNECTED, 'events' => []]],
             ['POST', self::api($token, 'media'), ['deviceId' => OnlineRoundsFixture::DEVICE_CONNECTED, 'kind' => 'periodic', 'takenMs' => self::nowMs(), 'bytes' => 35_000, 'contentType' => 'image/jpeg']],
+            ['POST', self::api($token, 'video-token'), ['deviceId' => OnlineRoundsFixture::DEVICE_CONNECTED, 'room' => 'hall']],
+            ['POST', self::api($token, 'studio-invites/' . self::UNKNOWN_INVITE), ['answer' => 'join']],
             ['GET', self::api($token, 'events'), null],
             ['GET', self::api('NoSuchLinkAnywhere2222', 'state'), null],
             ['GET', '/-/time', null],
@@ -86,6 +91,12 @@ final class CompeteApiGuardsTest extends WebTestCase
         self::assertRefused($this->browser, 404, 'unknown_link');
 
         self::postJson($this->browser, self::api($token, 'media'), ['deviceId' => $device, 'kind' => 'periodic', 'takenMs' => self::nowMs(), 'bytes' => 35_000, 'contentType' => 'image/jpeg']);
+        self::assertRefused($this->browser, 404, 'unknown_link');
+
+        self::postJson($this->browser, self::api($token, 'video-token'), ['deviceId' => $device, 'room' => 'hall']);
+        self::assertRefused($this->browser, 404, 'unknown_link');
+
+        self::postJson($this->browser, self::api($token, 'studio-invites/' . self::UNKNOWN_INVITE), ['answer' => 'join']);
         self::assertRefused($this->browser, 404, 'unknown_link');
     }
 
@@ -152,13 +163,13 @@ final class CompeteApiGuardsTest extends WebTestCase
         $this->browser->request('GET', self::api($token, 'state'));
         self::assertRefused($this->browser, 404, 'unknown_link');
 
-        foreach (['state', 'heartbeat', 'events', 'media'] as $endpoint) {
+        foreach (['state', 'heartbeat', 'events', 'media', 'video-token', 'studio-invites/' . self::UNKNOWN_INVITE] as $endpoint) {
             $this->startCountingQueries($this->browser);
 
             if ($endpoint === 'state') {
                 $this->browser->request('GET', self::api($token, $endpoint));
             } else {
-                self::postJson($this->browser, self::api($token, $endpoint), ['deviceId' => 'phone-a', 'events' => []]);
+                self::postJson($this->browser, self::api($token, $endpoint), ['deviceId' => 'phone-a', 'events' => [], 'room' => 'hall', 'answer' => 'join']);
             }
 
             self::assertRefused($this->browser, 404, 'unknown_link');

@@ -72,7 +72,9 @@ return App::config([
                 // authenticated by Apple's signature on the posted token.
                 // /-/time: the server's time for the clock sync of the online competitions' pages
                 // (docs/features/online-competitions/README.md §5.2) - asked several times per page load.
-                'pattern' => '^(/-/health-check|/-/asset-load-failure$|/-/stale-document$|/-/time$|/media/cache|/sitemap|/homepage-stats$|/api/v0/wjpf-pairing$|/webhook/apple-sign-in$)',
+                // /-/livekit-webhook: the live video server's webhooks (LiveKitWebhookController), server to server,
+                // authenticated by LiveKit's signature on the body - no user, no session.
+                'pattern' => '^(/-/health-check|/-/asset-load-failure$|/-/stale-document$|/-/time$|/-/livekit-webhook$|/media/cache|/sitemap|/homepage-stats$|/api/v0/wjpf-pairing$|/webhook/apple-sign-in$)',
                 'stateless' => true,
                 'security' => false,
             ],

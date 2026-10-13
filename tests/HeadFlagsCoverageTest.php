@@ -21,6 +21,7 @@ final class HeadFlagsCoverageTest extends TestCase
         'templates/print_round_tables.html.twig' => 'print page: no app bundle, nothing reads the flags',
         'templates/seating/print.html.twig' => 'print page: no app bundle, nothing reads the flags',
         'templates/live_results/name_tags.html.twig' => 'printed name tags: no app bundle, nothing reads the flags',
+        'templates/online_rounds/links_qr_sheet.html.twig' => 'printed QR sheet of the personal links: no script at all, nothing reads the flags',
         'templates/asset-recovery.html.twig' => 'standalone recovery page for broken assets: no app bundle, must stay dependency-free',
     ];
 

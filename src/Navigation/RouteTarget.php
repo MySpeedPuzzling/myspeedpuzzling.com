@@ -82,7 +82,8 @@ final readonly class RouteTarget
             $routes[] = $this->route;
         }
 
-        if ($this->guestRoute !== null) {
+        // A guests' route may be the same page (What next?: its public landing) - listed once
+        if ($this->guestRoute !== null && $this->guestRoute !== $this->route) {
             $routes[] = $this->guestRoute;
         }
 
@@ -118,7 +119,9 @@ final readonly class RouteTarget
             $description .= ' {' . implode(', ', $parts) . '}';
         }
 
-        if ($this->guestRoute !== null) {
+        if ($this->guestRoute !== null && $this->guestRoute === $this->route) {
+            $description .= ' (guests: the same page)';
+        } elseif ($this->guestRoute !== null) {
             $description .= ' (guests: `' . $this->guestRoute . '`)';
         }
 

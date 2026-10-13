@@ -172,9 +172,6 @@ function mediaDevices({ devices = null, fail = null, focus = {}, hold = false } 
     return media;
 }
 
-const ANDROID = 'Mozilla/5.0 (Linux; Android 14; SM-A546B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Mobile Safari/537.36';
-const IPHONE = 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1';
-
 // ---- a fake document and wake lock
 
 function fakeDocument(visibilityState = 'visible') {
@@ -397,7 +394,8 @@ const scenarios = {
         const media = mediaDevices();
         const store = storage();
         const changes = [];
-        const camera = new Camera({ mediaDevices: media, storage: store, userAgent: ANDROID, onChange: (c) => changes.push(c.status) });
+        // deviceOs: what assets/platform.js os() answers on the phone (<html data-os>, the head script reads the user agent)
+        const camera = new Camera({ mediaDevices: media, storage: store, deviceOs: 'android', onChange: (c) => changes.push(c.status) });
 
         assert.equal(camera.facing, DEFAULT_FACING);
         assert.equal(DEFAULT_FACING, FACING_FRONT);
@@ -417,7 +415,7 @@ const scenarios = {
     async 'the back camera on Android: the main lens picked by its label and remembered under the scanner\'s key'() {
         const media = mediaDevices();
         const store = storage({ [STORAGE_FACING]: FACING_BACK });
-        const camera = new Camera({ mediaDevices: media, storage: store, userAgent: ANDROID });
+        const camera = new Camera({ mediaDevices: media, storage: store, deviceOs: 'android' });
 
         assert.equal(await camera.open(), 'live');
         // facingMode opened the ultra-wide; it was stopped and the main lens opened
@@ -429,7 +427,7 @@ const scenarios = {
         assert.equal(store.getItem(STORAGE_BACK_LENS), 'main-id', 'the barcode scanner uses it too');
 
         // Next time straight to it
-        const again = new Camera({ mediaDevices: media, storage: store, userAgent: ANDROID });
+        const again = new Camera({ mediaDevices: media, storage: store, deviceOs: 'android' });
         await again.open();
         assert.deepEqual(media.calls[2].video.deviceId, { exact: 'main-id' });
         assert.equal(again.pick, 'remembered main lens');
@@ -438,7 +436,7 @@ const scenarios = {
     async 'the back lens: a remembered one gone is picked again; iPhones and a "facing" choice keep facingMode'() {
         const media = mediaDevices();
         const store = storage({ [STORAGE_FACING]: FACING_BACK, [STORAGE_BACK_LENS]: 'gone-id' });
-        const camera = new Camera({ mediaDevices: media, storage: store, userAgent: ANDROID });
+        const camera = new Camera({ mediaDevices: media, storage: store, deviceOs: 'android' });
 
         assert.equal(await camera.open(), 'live');
         assert.deepEqual(media.calls[0].video.deviceId, { exact: 'gone-id' });
@@ -446,14 +444,14 @@ const scenarios = {
 
         const iphoneMedia = mediaDevices();
         const iphoneStore = storage({ [STORAGE_FACING]: FACING_BACK });
-        const iphone = new Camera({ mediaDevices: iphoneMedia, storage: iphoneStore, userAgent: IPHONE });
+        const iphone = new Camera({ mediaDevices: iphoneMedia, storage: iphoneStore, deviceOs: 'ios' });
         await iphone.open();
         assert.equal(iphoneMedia.calls.length, 1, 'Safari picks the right lens itself');
         assert.equal(iphone.pick, 'facingMode');
         assert.equal(iphoneStore.getItem(STORAGE_BACK_LENS), null);
 
         const facingMedia = mediaDevices();
-        const facing = new Camera({ mediaDevices: facingMedia, storage: storage({ [STORAGE_FACING]: FACING_BACK, [STORAGE_BACK_LENS]: 'facing' }), userAgent: ANDROID });
+        const facing = new Camera({ mediaDevices: facingMedia, storage: storage({ [STORAGE_FACING]: FACING_BACK, [STORAGE_BACK_LENS]: 'facing' }), deviceOs: 'android' });
         await facing.open();
         assert.equal(facingMedia.calls.length, 1);
         assert.equal(facing.pick, 'facingMode');
@@ -462,7 +460,7 @@ const scenarios = {
     async 'a main lens without autofocus is not taken (the scanner\'s rule); no label to go by keeps facingMode'() {
         const media = mediaDevices({ focus: { 'main-id': ['manual'] } });
         const store = storage({ [STORAGE_FACING]: FACING_BACK });
-        const camera = new Camera({ mediaDevices: media, storage: store, userAgent: ANDROID });
+        const camera = new Camera({ mediaDevices: media, storage: store, deviceOs: 'android' });
 
         assert.equal(await camera.open(), 'live');
         assert.equal(store.getItem(STORAGE_BACK_LENS), 'facing');
@@ -476,7 +474,7 @@ const scenarios = {
             ],
         });
         const plainStore = storage({ [STORAGE_FACING]: FACING_BACK });
-        await new Camera({ mediaDevices: unlabelled, storage: plainStore, userAgent: ANDROID }).open();
+        await new Camera({ mediaDevices: unlabelled, storage: plainStore, deviceOs: 'android' }).open();
         assert.equal(unlabelled.calls.length, 1);
         assert.equal(plainStore.getItem(STORAGE_BACK_LENS), 'facing');
 
@@ -502,7 +500,7 @@ const scenarios = {
         // A blocked back camera on Android is not "picked again" in a loop of prompts
         const blocked = mediaDevices({ fail: 'NotAllowedError' });
         const backStore = storage({ [STORAGE_FACING]: FACING_BACK, [STORAGE_BACK_LENS]: 'main-id' });
-        assert.equal(await new Camera({ mediaDevices: blocked, storage: backStore, userAgent: ANDROID }).open(), 'denied');
+        assert.equal(await new Camera({ mediaDevices: blocked, storage: backStore, deviceOs: 'android' }).open(), 'denied');
         assert.equal(blocked.calls.length, 1);
         assert.equal(backStore.getItem(STORAGE_BACK_LENS), 'main-id', 'the lens choice stays');
 

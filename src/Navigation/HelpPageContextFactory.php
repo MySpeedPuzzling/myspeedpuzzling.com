@@ -30,6 +30,9 @@ final readonly class HelpPageContextFactory
     public const array PRIVATE_LINK_ROUTES = [
         // A token in the path
         'claim_oauth2_credentials',
+        // A participant's personal link of an online round (bar-free: no opener on it, listed like every token route)
+        'compete_connect',
+        'compete_page',
         'confirm_account_deletion',
         'email_preferences',
         'email_preferences_save',

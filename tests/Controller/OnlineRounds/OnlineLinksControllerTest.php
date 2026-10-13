@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Tests\Controller\OnlineRounds;
 
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Services\OnlineRounds\OnlineAccessLight;
+use SpeedPuzzling\Web\Tests\AssertsInPageConfirmations;
 use SpeedPuzzling\Web\Tests\DataFixtures\OfficialResultsFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\OnlineRoundsFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
@@ -25,6 +26,7 @@ use Symfony\Contracts\Cache\ItemInterface;
  */
 final class OnlineLinksControllerTest extends WebTestCase
 {
+    use AssertsInPageConfirmations;
     use OverridesFeatureFlagEnv;
 
     private const string FLAG = 'ONLINE_ROUNDS_FOR_ORGANISERS';
@@ -82,6 +84,30 @@ final class OnlineLinksControllerTest extends WebTestCase
         $tokens = $this->tokens($browser);
         $browser->request('GET', self::LINKS);
         self::assertSame($tokens, $this->tokens($browser));
+    }
+
+    /**
+     * "New link" stops the current link at once, so it asks first - in the page (docs/features/navigation GEST-13: iOS
+     * Safari refuses native dialogs after a Back to a layer's entry), as a danger, the action named on its button
+     */
+    public function testANewLinkIsAskedForInThePage(): void
+    {
+        $browser = $this->signedIn(PlayerFixture::PLAYER_ADMIN);
+
+        $crawler = $browser->request('GET', self::LINKS);
+        self::assertResponseIsSuccessful();
+        self::assertAsksInThePage($crawler, 3);
+
+        $crawler->filter('[data-online-link]')->each(static function (Crawler $row): void {
+            $name = $row->filter('th[scope="row"] [data-online-link-name]')->text();
+            $form = $row->filter('[data-online-link-regenerate]')->closest('form');
+            self::assertNotNull($form);
+
+            self::assertSame('The current link of ' . $name . ' will stop working at once. Create a new one?', $form->attr('data-turbo-confirm'));
+            self::assertNotNull($form->attr('data-turbo-confirm-danger'));
+            self::assertNull($form->attr('onsubmit'));
+            self::assertSame('New link', $row->filter('[data-online-link-regenerate]')->attr('data-turbo-confirm-action'));
+        });
     }
 
     public function testTheLinkedProfileIsShownTheWayTheParticipantsSheetShowsIt(): void

@@ -9190,7 +9190,7 @@ nav:
         where_did_it_go: "L'ancien menu et où tout se trouve"
     search:
         pages_settings: "Pages et réglages"
-        sign_in_to: "Connectez-vous pour voir %label%"
+        sign_in_to_see: "Connectez-vous pour y accéder"
         more: "Afficher %count% de plus"
         path_separator: " › "
     syn:

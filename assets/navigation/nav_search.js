@@ -33,10 +33,21 @@ export const TIER_SPREAD = 5;
 // Guests: the fixed page audience (NavigationViewer::pageAudience() for every guest)
 const GUEST_AUDIENCES = ['everyone', 'guest'];
 
-// The audience a guest is shown as "Sign in to …" (SRCH-01): pages any signed-in player opens - never Log out, and never
-// the signed-in half of an entry the guest has a link of their own for (Home, Add: their guests' route)
-const SIGN_IN_AUDIENCE = 'signed_in';
-const NEVER_SIGN_IN = ['logout'];
+// What a guest is offered as a sign-in row (SRCH-01, SRCH+FOOT review F1/Q6): a page of a signed-in player whose link
+// really asks them to sign in (`s` in the list - NavigationSearchIndex) - audience => what the guest must see besides:
+// the XP pages (Level & XP, Your achievements, Your week) only while the XP system is visible to guests. Never a page
+// that opens for guests (What next?'s landing is their own row; Where did it go? is not for guests - R2), never a
+// member's page, never an entry with an action of its own (Log out; the Help sheet is a plain row - it asks inside).
+const SIGN_IN_AUDIENCES = {
+    signed_in: null,
+    xp_player: 'xp_visible',
+    xp_participant: 'xp_visible',
+    achievements_shown: 'xp_visible',
+};
+
+// The Help sheet opens for everybody and asks a guest to sign in there (HELP-03): the top bar offers it to a guest as
+// the plain row it is (SRCH+FOOT review F1/F2)
+const EXTRA_HELP = 'help';
 
 const WORD_SEPARATOR = /[^\p{L}\p{N}\p{M}]+/u;
 
@@ -137,15 +148,21 @@ export function isVisibleTo(entry, audiences) {
     return entry.own === true || audiences.has(entry.a);
 }
 
-/** Would a guest be offered this entry as "Sign in to …"? (SRCH-01) */
-export function offersSignIn(entry, visibleIds) {
-    return entry.a === SIGN_IN_AUDIENCE && !NEVER_SIGN_IN.includes(entry.x) && !visibleIds.has(entry.id);
+/** Would a guest be offered this entry as a sign-in row ("Sign in to see")? (SRCH-01, review F1/Q6) */
+export function offersSignIn(entry, visibleIds, audiences = new Set(GUEST_AUDIENCES)) {
+    if (entry.s !== 1 || entry.x !== undefined || visibleIds.has(entry.id) || !Object.prototype.hasOwnProperty.call(SIGN_IN_AUDIENCES, entry.a)) {
+        return false;
+    }
+
+    const needs = SIGN_IN_AUDIENCES[entry.a];
+
+    return needs === null || audiences.has(needs);
 }
 
 /**
  * The entries matching the query that the viewer may open, best first: [{entry, tier, signIn}]. With `guestSignIn`
- * (the top bar, SRCH-01) a guest also gets the pages of any signed-in player, marked signIn ("Sign in to …"); a
- * member's page stays hidden from everybody else.
+ * (the top bar, SRCH-01) a guest also gets the pages that make a signed-in player of them (offersSignIn()), marked
+ * signIn, and Send feedback as a plain row; a member's page stays hidden from everybody else.
  */
 export function search(index, query, { audiences = new Set(GUEST_AUDIENCES), guestSignIn = false } = {}) {
     const folded = foldQuery(query);
@@ -160,8 +177,8 @@ export function search(index, query, { audiences = new Set(GUEST_AUDIENCES), gue
     const results = [];
 
     for (const entry of index.entries) {
-        const visible = isVisibleTo(entry, audiences);
-        const signIn = !visible && signInAllowed && offersSignIn(entry, visibleIds);
+        const visible = isVisibleTo(entry, audiences) || (signInAllowed && entry.x === EXTRA_HELP);
+        const signIn = !visible && signInAllowed && offersSignIn(entry, visibleIds, audiences);
 
         if (!visible && !signIn) {
             continue;
@@ -200,12 +217,29 @@ export function locationOf(entry, separator = ' › ') {
 }
 
 /**
- * The line under a result of the page's own search (the top bar, SRCH-01): where to find it in the Menu, "☰ Menu ›
- * Account › Settings" for Password - the Menu's name after the ☰ (the page's #site-menu label), without the entry
- * itself; "☰ Menu" for a top-level row; empty when the entry has no Menu path.
+ * Is the entry right there on a bar of this screen? (`b` in the list, NavigationRegistry::ON_BARS) - phones: the tabs and
+ * the top bar's ? and Inbox; desktop: the top bar, the rail and the column's places, and a signed-in player's account
+ * menu (Settings, Membership, Language, Log out).
  */
-export function menuPathOf(entry, menuName = '', separator = ' › ') {
-    const path = String(entry.p ?? '');
+export function onBar(entry, { phone = true, signedIn = false } = {}) {
+    const bars = String(entry.b ?? '');
+
+    return phone ? bars.includes('p') : bars.includes('d') || (signedIn && bars.includes('a'));
+}
+
+/**
+ * The line under a result of the page's own search (the top bar, SRCH-01): where to find it in this screen's Menu,
+ * "☰ Menu › Account › Settings" for Password - the Menu's name after the ☰ (the page's #site-menu label), without the
+ * entry itself; "☰ Menu" for a top-level row. Empty for an entry a bar of this screen offers (Home on a phone is a tab,
+ * Inbox on desktop the top bar's tool - SRCH+FOOT review F3) and for one this Menu has no row for. `phone`: the phone
+ * panel's path (`p`), else the desktop Menu's (`pd` where it differs).
+ */
+export function menuPathOf(entry, menuName = '', separator = ' › ', { phone = true, signedIn = false } = {}) {
+    if (onBar(entry, { phone, signedIn })) {
+        return '';
+    }
+
+    const path = String((phone || entry.pd === undefined ? entry.p : entry.pd) ?? '');
 
     if (path === '') {
         return '';

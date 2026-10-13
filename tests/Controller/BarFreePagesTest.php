@@ -8,6 +8,7 @@ use DOMElement;
 use PHPUnit\Framework\Attributes\DataProvider;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionRoundFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\OfficialResultsFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\OnlineRoundsFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\StopwatchFixture;
 use SpeedPuzzling\Web\Tests\Navigation\NativeUserAgents;
@@ -21,7 +22,9 @@ use Symfony\Component\Routing\RouterInterface;
  * Pages without the bars (docs/features/navigation README §4.10, implementation plan NAV-08): the bottom bar, the Menu
  * element and the rail/column live in {% block nav_chrome %} (+ the Menu shell in nav_layers), which every bar-free
  * template empties together with header and footer - the participants spreadsheet, the round stopwatch, the referees'
- * live results entry, the running stopwatch (ADD-04) and every page inside the app (NAV-14). <body> says so
+ * live results entry, a participant's page of an online round (compete_page and its dead-link page: one document for
+ * the whole round, docs/features/online-competitions README §5.5), the running stopwatch (ADD-04) and every page
+ * inside the app (NAV-14). <body> says so
  * (no-nav-chrome: the desktop column's width stays 0, NAV-13).
  *
  * The sign-in / sign-up pages keep a minimal header - the logo and the language switch - and nothing else: no search
@@ -46,6 +49,26 @@ final class BarFreePagesTest extends WebTestCase
         yield 'round stopwatch (guest)' => ['/en/round-stopwatch/' . CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION, null];
         yield 'round stopwatch (player)' => ['/en/round-stopwatch/' . CompetitionRoundFixture::ROUND_WJPC_QUALIFICATION, PlayerFixture::PLAYER_REGULAR];
         yield 'live results entry' => ['/en/live-results/' . OfficialResultsFixture::ROUND_GROUP_A, PlayerFixture::PLAYER_WITH_STRIPE];
+        yield 'online round participant page (guest)' => ['/en/compete/' . OnlineRoundsFixture::TOKEN_ANONYMOUS, null];
+        yield 'online round participant page (player)' => ['/en/compete/' . OnlineRoundsFixture::TOKEN_CONNECTED, PlayerFixture::PLAYER_REGULAR];
+    }
+
+    /**
+     * A personal link that opens nothing (404) looks like the participant page it stands in for: no bars, its own way on
+     */
+    public function testADeadPersonalLinkRendersNoBars(): void
+    {
+        $browser = self::createClient();
+
+        $crawler = $browser->request('GET', '/en/compete/UnknownTestCupToken222');
+        self::assertResponseStatusCodeSame(404);
+
+        $this->assertNoBars($crawler, 'dead personal link');
+        self::assertCount(0, $crawler->filter('footer.site-footer'));
+        self::assertCount(0, $crawler->filter('.page-help-line'));
+        self::assertStringContainsString('no-nav-chrome', (string) $crawler->filter('body')->attr('class'));
+        $home = self::getContainer()->get(RouterInterface::class)->generate('homepage', ['_locale' => 'en']);
+        self::assertCount(1, $crawler->filter('.compete--not-found a[href="' . $home . '"]'));
     }
 
     #[DataProvider('barFreePages')]

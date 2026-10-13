@@ -803,7 +803,9 @@ html:has(.compete) body {
     align-items: center;
     gap: 0.75rem;
 
-    input {
+    // Named by its own-size class: the touch rule leaves .form-control-lg at this size (navigation F-04,
+    // assets/styles/_nav-tokens.scss $nav-own-size-controls - TouchFontSizeTest)
+    input.form-control-lg {
         max-width: 10rem;
         font-size: 1.75rem;
         font-variant-numeric: tabular-nums;

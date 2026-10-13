@@ -9197,7 +9197,7 @@ nav:
         where_did_it_go: "Původní položky menu a kde jsou teď"
     search:
         pages_settings: "Stránky a nastavení"
-        sign_in_to: "Přihlas se a uvidíš %label%"
+        sign_in_to_see: "Přihlas se a uvidíš"
         more: "Zobrazit další: %count%"
         path_separator: " › "
     syn:

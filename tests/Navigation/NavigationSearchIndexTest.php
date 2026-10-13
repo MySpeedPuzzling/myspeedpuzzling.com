@@ -118,7 +118,7 @@ final class NavigationSearchIndexTest extends WebTestCase
             self::assertTrue($registry->byId($id)?->isInPageSearch() ?? false, sprintf('nav.syn.%s belongs to no entry the page search lists', $id));
         }
 
-        self::assertSame(['pages_settings', 'sign_in_to', 'more', 'path_separator'], array_keys($english['search']));
+        self::assertSame(['pages_settings', 'sign_in_to_see', 'more', 'path_separator'], array_keys($english['search']));
 
         foreach (array_diff(self::LOCALES, ['en']) as $locale) {
             foreach ($english as $group => $keys) {
@@ -150,7 +150,8 @@ final class NavigationSearchIndexTest extends WebTestCase
         self::assertNotSame('', $buildId);
 
         $year = $container->get(ClockInterface::class)->now()->format('Y');
-        self::assertSame(substr(hash('xxh128', '1|' . $buildId . '|de|' . $year), 0, 12), $index->version('de'));
+        // FORMAT 2: the list carries each entry's desktop path, bars and sign-in mark (SRCH+FOOT review F1, F3)
+        self::assertSame(substr(hash('xxh128', '2|' . $buildId . '|de|' . $year), 0, 12), $index->version('de'));
         self::assertNotSame($index->version('en'), $index->version('de'));
 
         $json = $index->json('de');

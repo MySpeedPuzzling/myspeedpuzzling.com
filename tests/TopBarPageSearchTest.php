@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests;
 
 use PHPUnit\Framework\Attributes\DataProvider;
+use SpeedPuzzling\Web\Navigation\MenuSurface;
 use SpeedPuzzling\Web\Navigation\NavigationRegistry;
 use SpeedPuzzling\Web\Tests\Navigation\NavigationViewer;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -20,12 +21,21 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * viewer gets it in each locale, with that locale's real nav-search.json (tests/top-bar-search-harness.mjs):
  * - the group is the first thing in the search panel (the server's players and puzzles follow it), 3 rows, then
  *   "Show N more";
- * - each result says where it lives in the Menu: "☰ Menu › Account › Settings" (the registry's Menu path);
- * - a guest gets the pages of any signed-in player as "Sign in to see …" linking the page (through sign-in) - never
- *   Log out, never twice; a member's page is hidden from everybody else;
+ * - each result says where it lives in this screen's Menu: "☰ Menu › Account › Settings" (the registry's path on the
+ *   phone panel or the desktop Menu) - nothing for a page a bar offers right there (SRCH+FOOT review F3); the ☰ and
+ *   the › are aria-hidden, the words read (Q4);
+ * - a guest gets the pages that ask them to sign in as the page's name with "Sign in to see" under it (Q3), linking the
+ *   page (through sign-in) - never Log out, never twice, never a page that opens for guests (F1: What next? is their
+ *   plain row, Where did it go? is not for them, Send feedback is the Help sheet's plain row - opened like every other
+ *   opener of the page, F2); the XP pages of a player while XP is visible to guests (Q6); a member's page is hidden
+ *   from everybody else;
+ * - the group never moves the server's players and puzzles: a list that arrives after them waits for the next
+ *   keystroke (F4);
  * - five queries per locale find their page first (as the Menu's search does, NavigationSearchScriptTest).
  * The list is one static JSON for everybody: a query that finds only pages costs what every query costs
  * (Component\GlobalSearchTest::testAPagesOnlyQueryCostsWhatEveryQueryCosts).
+ *
+ * @phpstan-type Row array{id: string, label: string, where: null|string, whereSpoken: null|string, whereHidden: list<string>, signInNote: bool, signIn: bool, href: string, nav: string, helpOpener: null|string, turboFrame: null|string, scrim: null|string, rel: null|string, name: string}
  */
 final class TopBarPageSearchTest extends WebTestCase
 {
@@ -52,6 +62,15 @@ final class TopBarPageSearchTest extends WebTestCase
     private const string HOME = 'home';
 
     private const int BAR_LIMIT = 3;
+
+    // A private link page a guest opens (a newsletter link the server does not know: its own page on the base layout)
+    private const string PRIVATE_PAGE = '/en/newsletter/confirm/S3cretT0kenValue';
+
+    // Queries of the extra pages (en): the entries of the review's findings, typed by their names
+    private const array GUEST_QUERIES = ['what next', 'what should I solve next', 'where did it go', 'feedback'];
+    // ... and these entries typed by their labels (Q6: the XP pages of a player; karma and the referral programme never)
+    private const array GUEST_LABEL_QUERIES = ['level_xp', 'achievements', 'your_week', 'karma', 'referral'];
+    private const array SCREEN_QUERIES = ['home', 'inbox', 'password', 'settings', 'log out', 'puzzles'];
 
     /** @var null|array<string, array<string, mixed>> */
     private static null|array $results = null;
@@ -108,11 +127,18 @@ final class TopBarPageSearchTest extends WebTestCase
 
         foreach ($rows as $row) {
             self::assertFalse($row['signIn'], $row['id'] . ': a member is never asked to sign in');
-            self::assertSame($this->menuPathLine((string) $row['id'], $locale), $row['where'], $row['id'] . ': the line under it is its Menu path');
+            self::assertSame($this->lineUnder((string) $row['id'], $locale, phone: true, signedIn: true), $row['where'], $row['id'] . ': the line under it is its phone Menu path');
             self::assertSame('topbar/search/' . $row['id'], $row['nav']);
         }
 
         self::assertStringStartsWith('☰ ' . $this->trans('nav.menu.title', $locale), (string) $rows[0]['where']);
+        // Q4: the symbols are hidden from screen readers, the words read
+        $top = $rows[0];
+        self::assertSame('☰', $top['whereHidden'][0] ?? null);
+        self::assertSame(array_fill(0, substr_count((string) $top['where'], '›'), '›'), array_slice($top['whereHidden'], 1));
+        self::assertSame(trim((string) preg_replace('/\s+/u', ' ', str_replace(['☰', '›'], '', (string) $top['where']))), $top['whereSpoken']);
+        self::assertStringNotContainsString('☰', $top['name']);
+        self::assertStringNotContainsString('›', $top['name']);
     }
 
     /**
@@ -130,7 +156,10 @@ final class TopBarPageSearchTest extends WebTestCase
             self::assertIsArray($row, sprintf('%s "%s": nothing found for a guest', $locale, $query));
             self::assertSame($id, $row['id']);
             self::assertTrue($row['signIn'], $id . ' is offered through sign-in');
-            self::assertSame($this->trans('nav.search.sign_in_to', $locale, ['%label%' => $this->label($id, $locale)]), $row['label']);
+            // Q3: its own name, "Sign in to see" under it - no sentence built around a label
+            self::assertSame($this->label($id, $locale), $row['label']);
+            self::assertSame($this->trans('nav.search.sign_in_to_see', $locale), $row['where']);
+            self::assertTrue($row['signInNote']);
             self::assertSame($this->entry($locale, $id)['u'], $row['href'], 'It links the page; signing in comes first');
         }
 
@@ -198,15 +227,139 @@ final class TopBarPageSearchTest extends WebTestCase
     }
 
     /**
+     * F1/F2/Q6: a guest's sign-in rows are the pages that ask them to sign in - What next? is the landing they open
+     * (their plain row), Where did it go? is not for guests (R2), Send feedback is the Help sheet's plain row opened like
+     * the top bar's ?; the XP pages of a player follow the XP gate; karma and the referral programme never.
+     */
+    public function testAGuestIsOfferedOnlyWhatReallyAsksThemToSignIn(): void
+    {
+        $guest = fn (string $query): array => $this->allRows($this->case(NavigationViewer::GUEST, 'en', $query, expand: true, page: 'extra'));
+        $first = $this->rowOf(...);
+
+        foreach (['what next', 'what should I solve next'] as $query) {
+            $rows = $guest($query);
+            self::assertSame('what_next', $rows[0]['id'] ?? null, $query);
+            self::assertFalse($rows[0]['signIn'], 'What next? opens for guests: a plain row');
+            self::assertSame('/en/what-to-solve-next', $rows[0]['href']);
+            self::assertCount(1, array_filter($rows, static fn (array $row): bool => $row['id'] === 'what_next'), 'once');
+        }
+
+        self::assertNull($first($guest('where did it go'), 'where_did_it_go'), 'Where did it go? is not offered to guests (R2)');
+
+        $feedback = $first($guest('feedback'), 'send_feedback');
+        self::assertIsArray($feedback);
+        self::assertFalse($feedback['signIn'], 'the Help sheet asks inside');
+        $bar = $this->case(NavigationViewer::GUEST, 'en', 'feedback', expand: true, page: 'extra');
+        self::assertSame($bar['barHelpHref'], $feedback['href'], 'F2: the top bar ?\'s own help path');
+        self::assertSame(['page', 'modal-frame', 'own', 'nofollow'], [$feedback['helpOpener'], $feedback['turboFrame'], $feedback['scrim'], $feedback['rel']]);
+
+        // Q6: the XP pages of a player, while XP is visible to guests (the test environment's gate is open)
+        $audience = $bar['audience'] ?? null;
+        self::assertIsString($audience);
+        self::assertContains('xp_visible', explode(' ', $audience));
+
+        foreach (['level_xp', 'achievements', 'your_week'] as $id) {
+            $row = $first($guest($this->label($id, 'en')), $id);
+            self::assertIsArray($row, $id . ' is offered to a guest');
+            self::assertTrue($row['signIn'], $id . ' through sign-in');
+        }
+
+        foreach (['karma', 'referral'] as $id) {
+            self::assertNull($first($guest($this->label($id, 'en')), $id), $id . ' is never offered to a guest');
+        }
+    }
+
+    /**
+     * F2: on a private link page the guest's Send feedback row attaches the token-free path, never the token; on the
+     * help page it is an opener, so assets/help_openers.js leads to the page's own box instead of a second sheet.
+     */
+    public function testTheGuestsSendFeedbackRowIsTheHelpOpenerOfThePage(): void
+    {
+        $private = $this->case(NavigationViewer::GUEST, 'en', 'feedback', page: 'private');
+        $row = $this->rowOf($this->rows($private), 'send_feedback');
+        self::assertIsArray($row);
+        self::assertStringNotContainsString('S3cretT0kenValue', $row['href']);
+        self::assertSame($private['barHelpHref'], $row['href']);
+        self::assertStringContainsString('url=/en/newsletter/confirm/%7Btoken%7D', str_replace('{token}', '%7Btoken%7D', $row['href']));
+        self::assertSame('private', $row['helpOpener']);
+
+        $help = $this->case(NavigationViewer::GUEST, 'en', 'feedback', page: 'help');
+        $row = $this->rowOf($this->rows($help), 'send_feedback');
+        self::assertIsArray($row);
+        self::assertNotNull($row['helpOpener'], 'on the help page an opener leads to its own box');
+    }
+
+    /**
+     * F3: the line under a result names this screen's Menu - nothing for an entry a bar offers right there: on a phone
+     * the tabs (Home, Puzzles) and the Inbox tool, on desktop the Inbox tool and the account menu (Settings, Log out).
+     */
+    public function testThePathLineFollowsTheScreen(): void
+    {
+        foreach ([true, false] as $phone) {
+            $page = $phone ? 'extra' : 'desktop';
+
+            foreach (['home' => 'home', 'puzzles' => 'puzzles_place', 'inbox' => 'inbox', 'password' => 'change_password', 'settings' => 'settings', 'log out' => 'logout'] as $query => $id) {
+                $row = $this->rowOf($this->allRows($this->case(NavigationViewer::MEMBER, 'en', $query, expand: true, page: $page)), $id);
+                self::assertIsArray($row, sprintf('%s "%s"', $page, $query));
+                self::assertSame($this->lineUnder($id, 'en', $phone, signedIn: true), $row['where'], sprintf('%s: %s', $page, $id));
+            }
+        }
+
+        // The review's rows, literally: Home at 360 and Inbox at 1280 say no "☰ Menu"; Password says where it is on both
+        foreach ([['extra', 'home', 'home'], ['desktop', 'inbox', 'inbox']] as [$page, $query, $id]) {
+            $row = $this->rowOf($this->allRows($this->case(NavigationViewer::MEMBER, 'en', $query, expand: true, page: $page)), $id);
+            self::assertIsArray($row);
+            self::assertStringNotContainsString('☰', (string) $row['where'], $page . ' ' . $id);
+        }
+
+        foreach (['extra', 'desktop'] as $page) {
+            $rows = $this->rows($this->case(NavigationViewer::MEMBER, 'en', 'password', page: $page));
+            self::assertSame('☰ Menu › Account › Settings', $rows[0]['where'] ?? null, $page);
+        }
+    }
+
+    /**
+     * F4: the list arrives after the server's players and puzzles are on screen - the group is not inserted above them
+     * (nothing moves); the next keystroke shows it.
+     */
+    public function testALateListNeverMovesTheServerResults(): void
+    {
+        $late = $this->case(NavigationViewer::MEMBER, 'en', 'puzzle', page: 'held');
+        self::assertSame(['hidden' => true, 'rows' => 0], $late['groupBeforeList']);
+        self::assertTrue($late['hidden'], 'the list came: still nothing above the players and puzzles');
+        self::assertSame([], $late['rows']);
+
+        $next = $this->case(NavigationViewer::MEMBER, 'en', 'puzzles', page: 'held');
+        self::assertFalse($next['hidden'], 'the next keystroke shows the group');
+        self::assertNotSame([], $next['rows']);
+        self::assertTrue($next['firstInPanel']);
+    }
+
+    /**
+     * @param list<Row> $rows
+     * @return null|Row
+     */
+    private function rowOf(array $rows, string $id): null|array
+    {
+        foreach ($rows as $row) {
+            if ($row['id'] === $id) {
+                return $row;
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * @param array<string, mixed> $facts
-     * @return list<array{id: string, label: string, where: null|string, signIn: bool, href: string, nav: string}>
+     * @return list<Row>
      */
     private function rows(array $facts): array
     {
         $rows = $facts['rows'] ?? null;
         self::assertIsArray($rows);
 
-        /** @var list<array{id: string, label: string, where: null|string, signIn: bool, href: string, nav: string}> $rows */
+        /** @var list<Row> $rows */
         return $rows;
     }
 
@@ -214,27 +367,40 @@ final class TopBarPageSearchTest extends WebTestCase
      * Every row the query finds: the case with "Show N more" opened (its rows when there was none).
      *
      * @param array<string, mixed> $facts
-     * @return list<array{id: string, label: string, where: null|string, signIn: bool, href: string, nav: string}>
+     * @return list<Row>
      */
     private function allRows(array $facts): array
     {
         $rows = $facts['expanded'] ?? $facts['rows'] ?? null;
         self::assertIsArray($rows);
 
-        /** @var list<array{id: string, label: string, where: null|string, signIn: bool, href: string, nav: string}> $rows */
+        /** @var list<Row> $rows */
         return $rows;
     }
 
     /**
-     * The line under a top-bar result: its Menu path ("☰ › Account › Settings › Password") without the entry, the ☰
-     * followed by the Menu's name
+     * The line under a top-bar result (F3): on a screen whose bars offer the entry, its description (or nothing);
+     * otherwise its path in that screen's Menu ("☰ › Account › Settings › Password") without the entry, the ☰ followed
+     * by the Menu's name; its description when that Menu has no row for it
      */
-    private function menuPathLine(string $id, string $locale): string
+    private function lineUnder(string $id, string $locale, bool $phone, bool $signedIn): null|string
     {
+        $registry = self::getContainer()->get(NavigationRegistry::class);
+        $bars = NavigationRegistry::ON_BARS[$id] ?? [];
+        $onBar = $phone
+            ? in_array(NavigationRegistry::BAR_PHONE, $bars, true)
+            : in_array(NavigationRegistry::BAR_DESKTOP, $bars, true) || ($signedIn && in_array(NavigationRegistry::BAR_ACCOUNT, $bars, true));
         $separator = $this->trans('nav.search.path_separator', $locale);
         self::assertNotSame('', $separator);
-        $path = self::getContainer()->get(NavigationRegistry::class)->menuPath($id, $locale, $separator);
-        self::assertIsString($path, $id);
+        $path = $onBar ? null : $registry->menuPathOn($phone ? MenuSurface::Phone : MenuSurface::Dock, $id, $locale, $separator);
+
+        if ($path === null) {
+            $entry = $registry->byId($id);
+            self::assertNotNull($entry, $id);
+
+            return $entry->description !== null ? $this->trans($entry->description, $locale) : null;
+        }
+
         $parts = explode($separator, $path);
         array_pop($parts);
         self::assertSame('☰', $parts[0] ?? null);
@@ -275,19 +441,19 @@ final class TopBarPageSearchTest extends WebTestCase
     /**
      * @return array<string, mixed>
      */
-    private function case(string $viewer, string $locale, string $query, bool $expand = false): array
+    private function case(string $viewer, string $locale, string $query, bool $expand = false, string $page = 'faq'): array
     {
-        $facts = $this->results()[self::caseName($viewer, $locale, $query, $expand)] ?? null;
-        self::assertIsArray($facts, sprintf('No case for %s %s "%s"', $viewer, $locale, $query));
+        $facts = $this->results()[self::caseName($viewer, $locale, $query, $expand, $page)] ?? null;
+        self::assertIsArray($facts, sprintf('No case for %s %s "%s" on %s', $viewer, $locale, $query, $page));
         self::assertArrayNotHasKey('threw', $facts, is_string($facts['threw'] ?? null) ? $facts['threw'] : '');
 
         /** @var array<string, mixed> $facts */
         return $facts;
     }
 
-    private static function caseName(string $viewer, string $locale, string $query, bool $expand): string
+    private static function caseName(string $viewer, string $locale, string $query, bool $expand, string $page = 'faq'): string
     {
-        return sprintf('%s|%s|%s%s', $viewer, $locale, $query, $expand ? '|more' : '');
+        return sprintf('%s|%s|%s|%s%s', $page, $viewer, $locale, $query, $expand ? '|more' : '');
     }
 
     /**
@@ -299,6 +465,9 @@ final class TopBarPageSearchTest extends WebTestCase
             return self::$results;
         }
 
+        // F5: whatever ran first (a label read from the container) may have booted the kernel - createClient() refuses
+        // a booted one
+        self::ensureKernelShutdown();
         $browser = self::createClient();
         $browser->disableReboot();
         $pages = [];
@@ -342,6 +511,47 @@ final class TopBarPageSearchTest extends WebTestCase
                 }
 
                 $cases[] = ['page' => $name, 'queries' => $queries];
+            }
+
+            // The extra pages of the review's findings (en): the guest's queries; a member's screen queries on a phone
+            // (no matchMedia = the phone) and at 1280 (desktop); a guest on a private link page and on the help page; a
+            // member whose list arrives late (F4)
+            $extra = self::SCREEN_QUERIES;
+
+            if ($viewer === NavigationViewer::GUEST) {
+                $extra = self::GUEST_QUERIES;
+
+                foreach (self::GUEST_LABEL_QUERIES as $id) {
+                    $extra[] = $this->label($id, 'en');
+                }
+            }
+
+            $extraQueries = static function (string $page, string ...$texts) use ($viewer): array {
+                $queries = [];
+
+                foreach ($texts as $text) {
+                    $queries[] = ['name' => self::caseName($viewer, 'en', $text, false, $page), 'query' => $text, 'expand' => false];
+                    $queries[] = ['name' => self::caseName($viewer, 'en', $text, true, $page), 'query' => $text, 'expand' => true];
+                }
+
+                return $queries;
+            };
+            $cases[] = ['page' => $viewer . '|en', 'queries' => $extraQueries('extra', ...$extra)];
+
+            if ($viewer === NavigationViewer::MEMBER) {
+                $cases[] = ['page' => $viewer . '|en', 'phone' => false, 'queries' => $extraQueries('desktop', ...$extra)];
+                $cases[] = ['page' => $viewer . '|en', 'delayList' => true, 'queries' => [
+                    ['name' => self::caseName($viewer, 'en', 'puzzle', false, 'held'), 'query' => 'puzzle', 'serverResults' => true],
+                    ['name' => self::caseName($viewer, 'en', 'puzzles', false, 'held'), 'query' => 'puzzles'],
+                ]];
+            }
+
+            if ($viewer === NavigationViewer::GUEST) {
+                foreach (['private' => self::PRIVATE_PAGE, 'help' => $this->router()->generate('help', ['_locale' => 'en'])] as $page => $url) {
+                    $browser->request('GET', $url);
+                    $pages[$viewer . '|' . $page] = (string) $browser->getResponse()->getContent();
+                    $cases[] = ['page' => $viewer . '|' . $page, 'url' => $url, 'queries' => $extraQueries($page, 'feedback')];
+                }
             }
         }
 

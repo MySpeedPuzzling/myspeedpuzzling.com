@@ -740,6 +740,9 @@ final class NavLayoutCssTest extends TestCase
 
         sort($barFree);
         self::assertSame([
+            // An online round's participant page and its dead-link page (README §4.10: one document for the round)
+            'templates/compete/not_found.html.twig',
+            'templates/compete/page.html.twig',
             'templates/live_results/live_results.html.twig',
             'templates/participants_sheet/page.html.twig',
             'templates/round_stopwatch.html.twig',

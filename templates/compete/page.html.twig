@@ -11,6 +11,10 @@
 #}
 
 {% set hide_comparison_launcher = true %}
+{# No bars (docs/features/navigation README §4.10, like the round stopwatch): the round runs on this one document - a tab
+   or a Menu row would lead off it mid-round (and Turbo visits are off here). It empties header, nav_chrome and
+   nav_layers; body.no-nav-chrome keeps the desktop column's width at 0 #}
+{% set nav_chrome_off = true %}
 {% set connect_data = connect|merge({
     csrfToken: connect.status != 'anonymous' ? csrf_token(constant('SpeedPuzzling\\Web\\Controller\\Compete\\CompetePageController::CONNECT_CSRF_TOKEN_ID')) : null,
 }) %}
@@ -29,6 +33,9 @@
 {% block page_stylesheets %}{{ encore_entry_link_tags('compete') }}{% endblock %}
 {% block header %}{% endblock %}
 {% block footer %}{% endblock %}
+{% block nav_chrome %}{% endblock %}
+{% block nav_layers %}{% endblock %}
+{% block page_help_line %}{% endblock %}
 
 {% block full_content %}
     <div class="compete"

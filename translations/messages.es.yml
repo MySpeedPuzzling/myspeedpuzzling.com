@@ -9171,7 +9171,7 @@ nav:
         where_did_it_go: "El menú antiguo y dónde está todo"
     search:
         pages_settings: "Páginas y ajustes"
-        sign_in_to: "Inicia sesión para ver %label%"
+        sign_in_to_see: "Inicia sesión para acceder"
         more: "Mostrar %count% más"
         path_separator: " › "
     syn:

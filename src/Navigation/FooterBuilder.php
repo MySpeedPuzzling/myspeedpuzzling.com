@@ -53,7 +53,8 @@ final readonly class FooterBuilder
                 entry: $entry,
                 href: $help ? $this->help->helpPath() : $this->href($entry),
                 nav: $placement->navFor($entry->id),
-                nofollow: $placement->nofollow,
+                // Only guests' HTML says nofollow: crawlers never see a signed-in page (SRCH+FOOT review Q2, -90 B a player)
+                nofollow: $placement->nofollow && $viewer->isGuest(),
                 newBadge: $placement->newBadge,
                 helpSheet: $help,
             );

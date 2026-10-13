@@ -196,6 +196,20 @@ final class NavigationPlaceMap
         'start_round_stopwatch' => 'community/events',
         'stop_round_stopwatch' => 'community/events',
         'reset_round_stopwatch' => 'community/events',
+        'schedule_round_start' => 'community/events',
+        'cancel_round_start' => 'community/events',
+        // Online rounds (docs/features/online-competitions): the organiser's pages and actions - links, QR sheet, settings,
+        // control room, review, accuracy - and a participant's page (bar-free, README §4.10: one document for the whole
+        // round, like the round stopwatch); their JSON endpoints have no place (below)
+        'online_links' => 'community/events',
+        'online_links_csv' => 'community/events',
+        'online_links_qr_sheet' => 'community/events',
+        'online_link_regenerate' => 'community/events',
+        'online_round_settings' => 'community/events',
+        'online_control_room' => 'community/events',
+        'online_review' => 'community/events',
+        'online_accuracy' => 'community/events',
+        'compete_page' => 'community/events',
         'join_competition' => 'community/events',
         'leave_competition' => 'community/events',
         // Community without a section: team pages; Profile/Community by owner: player pages (decision 75)
@@ -323,6 +337,13 @@ final class NavigationPlaceMap
         'photo_stash_preview' => 'none',
         'competition_picker_editions' => 'none',
         'competition_picker_series_preview' => 'none',
+        // JSON of online rounds: the control room's live feed, the review's entries and confirmations, a participant's
+        // "This is me", the clock the participant page syncs to
+        'online_live' => 'none',
+        'online_review_entry' => 'none',
+        'online_review_confirm' => 'none',
+        'compete_connect' => 'none',
+        'online_time' => 'none',
         'player_search_autocomplete' => 'none',
         'puzzle_by_brand_autocomplete' => 'none',
         'puzzle_by_ean_search' => 'none',
@@ -406,6 +427,8 @@ final class NavigationPlaceMap
         'official_results_' => 'none',
         // JSON/POST endpoints of the participants spreadsheet
         'participants_sheet_' => 'none',
+        // The participant page's API of online rounds (state, heartbeat, events, media)
+        'compete_api_' => 'none',
         // Actions and pages of your pairs, teams and guests
         'pairs_and_teams_' => 'profile',
         // POST actions of Review your results

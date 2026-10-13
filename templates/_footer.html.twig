@@ -4,14 +4,16 @@
    the bottom bar #}
 <div class="container px-3 footer-main">
     <nav class="footer-columns" aria-label="{{ 'footer.nav_label'|trans }}">
-        {% for column in nav_footer() %}
+        {#- Whitespace between the blocks trimmed: every byte of the chrome counts (README §4.12 "Weight", review Q2) -#}
+        {% for column in nav_footer() -%}
             <div>
                 <h2 class="footer-heading">{{ column.column.headingKey ? column.column.headingKey|trans : 'MySpeedPuzzling' }}</h2>
                 <ul class="footer-links">
                     {% for link in column.links %}
-                        {#- Send feedback opens the Help sheet (help_opener_attrs(): its own scrim, rel="nofollow") -#}
+                        {#- Send feedback opens the Help sheet (help_opener_attrs(): its own scrim, rel="nofollow"); a page behind
+                            sign-in is nofollow for guests only (FooterBuilder - crawlers never see a signed-in page) -#}
                         <li><a href="{{ link.href }}" data-nav="footer/{{ link.nav }}"{% if link.helpSheet %} {{ help_opener_attrs() }}{% elseif link.nofollow %} rel="nofollow"{% endif %}>{{ link.entry.label|trans }}{% if link.newBadge %}{{ include('navigation/_new_badge.html.twig') }}{% endif %}</a></li>
-                    {% endfor %}
+                    {% endfor -%}
                 </ul>
             </div>
         {% endfor %}

@@ -9170,7 +9170,7 @@ nav:
         where_did_it_go: "Alte Menüpunkte und wo sie jetzt sind"
     search:
         pages_settings: "Seiten & Einstellungen"
-        sign_in_to: "Melden Sie sich an für %label%"
+        sign_in_to_see: "Anmeldung erforderlich"
         more: "%count% weitere anzeigen"
         path_separator: " › "
     syn:

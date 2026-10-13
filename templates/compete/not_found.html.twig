@@ -4,6 +4,8 @@
    participant who was removed - said kindly, with the way to a working link #}
 
 {% set hide_comparison_launcher = true %}
+{# No bars, like the participant's page it stands in for (README §4.10): its one way on is the button below #}
+{% set nav_chrome_off = true %}
 
 {% block title %}{{ 'compete.page.not_found_title'|trans }}{% endblock %}
 {% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
@@ -13,6 +15,9 @@
 {% block page_stylesheets %}{{ encore_entry_link_tags('compete') }}{% endblock %}
 {% block header %}{% endblock %}
 {% block footer %}{% endblock %}
+{% block nav_chrome %}{% endblock %}
+{% block nav_layers %}{% endblock %}
+{% block page_help_line %}{% endblock %}
 
 {% block full_content %}
     <div class="compete compete--not-found" data-turbo="false" data-screen="not_found">

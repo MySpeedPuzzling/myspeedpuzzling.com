@@ -32,6 +32,7 @@ final class SiteFooterTest extends WebTestCase
 
     // "<href> <rel>" per column for everybody (navigation README §4.11, implementation plan FOOT-01); a signed-in
     // player's Learn column ends with "Where did it go?". rel="nofollow" where the footer always had it: pages behind sign-in
+    // - in guests' HTML only (crawlers never see a signed-in page, SRCH+FOOT review Q2); the Help sheet's opener always
     private const array COLUMNS = [
         ['/en/puzzle -', '/en/marketplace -', '/en/what-to-solve-next -', '/en/puzzle-add nofollow', '/en/stopwatch nofollow', '/en/multiscan nofollow'],
         ['/en/community -', '/en/ladder -', '/en/puzzlers -', '/en/compare nofollow', '/en/pairs-and-teams nofollow', '/en/events -', '/en/recent-activity -'],
@@ -113,13 +114,18 @@ final class SiteFooterTest extends WebTestCase
         $columns = $crawler->filter('footer .footer-columns > div')->each(static fn (Crawler $column): array => $column->filter('a')->each(
             static fn (Crawler $link): string => sprintf('%s %s', $link->attr('href'), $link->attr('rel') ?? '-'),
         ));
-        $learn = self::COLUMNS[2];
+        $expected = self::COLUMNS;
 
         if ($playerId !== null) {
-            $learn[] = '/en/where-did-it-go -';
+            $expected[2][] = '/en/where-did-it-go -';
+            // A player's HTML is never crawled: no nofollow on the sign-in pages (the Help sheet's opener keeps its own)
+            $expected = array_map(static fn (array $links): array => array_map(
+                static fn (string $link): string => str_starts_with($link, '/en/help?') ? $link : str_replace(' nofollow', ' -', $link),
+                $links,
+            ), $expected);
         }
 
-        self::assertSame([self::COLUMNS[0], self::COLUMNS[1], $learn, self::COLUMNS[3]], $columns);
+        self::assertSame($expected, $columns);
 
         // Every link carries its P0-03 data-nav: the one it had before FOOT-01, footer/<column>/<entry> for a new one
         self::assertSame(

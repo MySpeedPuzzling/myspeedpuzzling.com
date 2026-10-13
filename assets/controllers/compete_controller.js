@@ -18,6 +18,8 @@ import { Camera } from '../online/camera.js';
 import { ScreenWakeLock } from '../online/wake_lock.js';
 import { Beeps } from '../online/beeps.js';
 import { FrameGrabber } from '../online/frame_grabber.js';
+// The user-agent string for the review's diagnostics, read where every platform read is (docs/features/navigation)
+import { browserDiagnostics } from '../platform.js';
 import { createCompeteApi, isDeadLink } from '../online/compete_api.js';
 import {
     buildEvent,
@@ -852,7 +854,7 @@ export default class extends Controller {
 
         this.record('device.ready', {
             takeover,
-            userAgent: navigator.userAgent,
+            userAgent: browserDiagnostics(),
             platform: navigator.userAgentData?.platform ?? navigator.platform ?? null,
             standalone: window.matchMedia?.('(display-mode: standalone)')?.matches === true || navigator.standalone === true,
             inApp: this.inAppValue,

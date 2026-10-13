@@ -13,9 +13,13 @@
  *   Android releases it when the screen turns off - the page logs them (camera.lost / camera.back) and opens it again.
  * - open() again while one is opening: the later call wins, the earlier stream is stopped as soon as it arrives.
  *
- * No DOM: navigator.mediaDevices, the storage and the user agent are injected - pinned by
- * tests/online-devices-harness.mjs. The page attaches `stream` to its <video>.
+ * No DOM: navigator.mediaDevices, the storage and the device's OS are injected - pinned by
+ * tests/online-devices-harness.mjs. The page attaches `stream` to its <video>. The OS comes from assets/platform.js
+ * (os()), the one reader of the device's platform (docs/features/navigation README §4.13) - like the
+ * barcode scanner's same re-pick.
  */
+
+import { os } from '../platform.js';
 
 export const STORAGE_FACING = 'msp-compete-facing';
 // Shared with assets/controllers/barcode_scanner_controller.js (STORAGE_CAMERA there) - same values, same meaning
@@ -106,20 +110,20 @@ export class Camera {
      * @param {object} options
      * @param {MediaDevices|null} [options.mediaDevices]
      * @param {Storage|null} [options.storage]
-     * @param {string} [options.userAgent]
+     * @param {'ios'|'android'|'other'} [options.deviceOs]                os() of assets/platform.js
      * @param {function(Camera): void} [options.onChange]                  status / stream changed
      * @param {function({type: 'mute'|'unmute'|'ended'}): void} [options.onTrackEvent]
      */
     constructor({
         mediaDevices = globalThis.navigator?.mediaDevices ?? null,
         storage = null,
-        userAgent = globalThis.navigator?.userAgent ?? '',
+        deviceOs = os(),
         onChange = () => {},
         onTrackEvent = () => {},
     } = {}) {
         this.mediaDevices = mediaDevices;
         this.storage = storage;
-        this.userAgent = userAgent;
+        this.deviceOs = deviceOs;
         this.onChange = onChange;
         this.onTrackEvent = onTrackEvent;
 
@@ -332,7 +336,7 @@ export class Camera {
         const stream = await media.getUserMedia(this.constraints({ facingMode: { ideal: FACING_BACK } }));
 
         // iPhones are fine: Safari picks the virtual camera that switches lenses by itself
-        if (remembered === 'facing' || !/Android/i.test(this.userAgent)) {
+        if (remembered === 'facing' || this.deviceOs !== 'android') {
             return { stream, pick: 'facingMode' };
         }
 

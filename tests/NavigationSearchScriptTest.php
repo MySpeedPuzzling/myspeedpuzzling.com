@@ -195,7 +195,8 @@ final class NavigationSearchScriptTest extends WebTestCase
                     self::assertNotNull($entry);
 
                     if ($viewer === 'guest') {
-                        self::assertTrue($entry->visibility->includesGuests(), sprintf('%s: a guest gets %s (%s)', $locale, $id, $entry->visibility->value));
+                        // ... or the guests' own half of it (What next?: its landing - SRCH+FOOT review F1)
+                        self::assertTrue($entry->visibility->includesGuests() || $entry->target->guestRoute !== null, sprintf('%s: a guest gets %s (%s)', $locale, $id, $entry->visibility->value));
                     }
 
                     self::assertNotSame('member', $entry->visibility->value, sprintf('%s: a %s gets the member page %s', $locale, $viewer, $id));
@@ -267,6 +268,60 @@ final class NavigationSearchScriptTest extends WebTestCase
         self::assertSame([[], ['members'], ['everyone', 'guest'], ['everyone', 'signed_in', 'member']], $rules['audience']);
         self::assertSame([[], [], []], $rules['nothing']);
         self::assertSame(['Account › Settings', 'Account', '', ''], $rules['location']);
+    }
+
+    /**
+     * SRCH+FOOT review F3: the top bar's line names this screen's Menu - [phone, desktop guest, desktop signed in] -
+     * and nothing for an entry a bar of that screen offers (the tabs on phones, the Inbox tool, the account menu)
+     */
+    public function testThePathLineOfEachScreen(): void
+    {
+        $rules = $this->results()['rules'];
+
+        self::assertSame([
+            'home' => ['', '', ''],
+            'inbox' => ['', '', ''],
+            'settings' => ['☰ Menu › Account', '☰ Menu › Account', ''],
+            'logout' => ['☰ Menu', '', ''],
+            'password' => ['☰ Menu › Account › Settings', '☰ Menu › Account › Settings', '☰ Menu › Account › Settings'],
+            'hub_guest' => ['', '☰ Menu › Home', '☰ Menu › Home'],
+        ], $rules['screenPaths']);
+        self::assertSame([true, false, false, true, false], $rules['onBar']);
+    }
+
+    /**
+     * SRCH+FOOT review F1/Q6: a guest is offered a page through sign-in only when its link asks for it (`s`), for a
+     * signed-in player's audience (the XP pages while XP is visible to guests) - [guest, guest with XP visible]
+     */
+    public function testWhatAGuestIsOfferedThroughSignIn(): void
+    {
+        self::assertSame([
+            'marked signed_in' => [true, true],
+            'unmarked signed_in' => [false, false],
+            'marked xp_player' => [false, true],
+            'marked achievements_shown' => [false, true],
+            'marked member' => [false, false],
+            'marked karma_holder' => [false, false],
+            'marked with an action' => [false, false],
+            'marked, the guest has its own half' => [false, false],
+        ], $this->results()['rules']['signInOffers']);
+
+        // The real lists (top bar, guest): What next? is the guests' own row, Where did it go? never theirs, Send feedback
+        // the Help sheet's plain row, the XP pages through sign-in
+        foreach (self::LOCALES as $locale) {
+            $whatNext = $this->case('guest what next ' . $locale);
+            self::assertSame('what_next', $whatNext['ids'][0] ?? null, $locale);
+            self::assertNotContains('what_next', $whatNext['signIn'], $locale);
+            self::assertNotContains('where_did_it_go', $this->case('guest where did it go ' . $locale)['ids'], $locale);
+            $feedback = $this->case('guest feedback ' . $locale);
+            self::assertContains('send_feedback', $feedback['ids'], $locale);
+            self::assertNotContains('send_feedback', $feedback['signIn'], $locale);
+            self::assertContains('level_xp', $this->case('guest level ' . $locale)['signIn'], $locale);
+            self::assertNotContains('level_xp', $this->case('guest level, XP hidden ' . $locale)['ids'], $locale);
+        }
+
+        // Q1: the old footer's "What should I solve next?" finds What next?
+        self::assertSame('what_next', $this->case('guest what should I solve next')['ids'][0] ?? null);
     }
 
     public function testTheZeroResultsReport(): void
@@ -399,6 +454,20 @@ final class NavigationSearchScriptTest extends WebTestCase
         $cases[] = ['name' => 'admin vouchers', 'locale' => 'en', 'query' => 'vouchers', 'audiences' => self::$adminAudiences, 'withPrivate' => true];
         $cases[] = ['name' => 'admin time verification', 'locale' => 'en', 'query' => 'time verification', 'audiences' => self::$adminAudiences, 'withPrivate' => true];
         $cases[] = ['name' => 'member vouchers', 'locale' => 'en', 'query' => 'vouchers', 'audiences' => self::MEMBER_ORGANISER];
+        $cases[] = ['name' => 'guest what should I solve next', 'locale' => 'en', 'query' => 'what should I solve next', 'audiences' => self::GUEST, 'guestSignIn' => true];
+
+        // SRCH+FOOT review F1/Q6, typed by each locale's labels: the top bar of a guest who sees XP (and one who does not)
+        foreach (self::LOCALES as $locale) {
+            $labels = array_column($this->index()->entries($locale), 'l', 'id');
+            $label = static fn (string $id): string => (string) ($labels[$id] ?? $id);
+            $xpGuest = [...self::GUEST, 'xp_visible'];
+
+            foreach (['what next' => 'what_next', 'where did it go' => 'where_did_it_go', 'feedback' => 'send_feedback', 'level' => 'level_xp'] as $name => $id) {
+                $cases[] = ['name' => 'guest ' . $name . ' ' . $locale, 'locale' => $locale, 'query' => $label($id), 'audiences' => $xpGuest, 'guestSignIn' => true];
+            }
+
+            $cases[] = ['name' => 'guest level, XP hidden ' . $locale, 'locale' => $locale, 'query' => $label('level_xp'), 'audiences' => self::GUEST, 'guestSignIn' => true];
+        }
 
         $node = new ExecutableFinder()->find('node');
         self::assertIsString($node, 'node is required to execute the script - it is part of the base image');

@@ -11,6 +11,9 @@ import {
     foldQuery,
     isVisibleTo,
     locationOf,
+    menuPathOf,
+    offersSignIn,
+    onBar,
     prepareIndex,
     reportsZero,
     search,
@@ -94,6 +97,35 @@ const rules = {
         locationOf({ p: '☰ › Home' }),
         locationOf({ p: '' }),
     ],
+    // SRCH+FOOT review F3: the line under a top-bar result names this screen's Menu, nothing for an entry on its bars
+    // [phone, desktop guest, desktop signed in]
+    screenPaths: Object.fromEntries([
+        ['home', { p: '', pd: '☰ › Home', b: 'pd' }],
+        ['inbox', { p: '☰ › Inbox', pd: '', b: 'pd' }],
+        ['settings', { p: '☰ › Account › Settings', b: 'a' }],
+        ['logout', { p: '☰ › Log out', pd: '', b: 'a' }],
+        ['password', { p: '☰ › Account › Settings › Password' }],
+        ['hub_guest', { p: '', pd: '☰ › Home › Hub' }],
+    ].map(([id, entry]) => [id, [
+        menuPathOf(entry, 'Menu', ' › ', { phone: true, signedIn: true }),
+        menuPathOf(entry, 'Menu', ' › ', { phone: false, signedIn: false }),
+        menuPathOf(entry, 'Menu', ' › ', { phone: false, signedIn: true }),
+    ]])),
+    onBar: [onBar({ b: 'pd' }), onBar({ b: 'a' }), onBar({ b: 'a' }, { phone: false }), onBar({ b: 'a' }, { phone: false, signedIn: true }), onBar({}, { phone: false, signedIn: true })],
+    // SRCH+FOOT review F1/Q6: who is offered what through sign-in [guest, guest with XP visible]
+    signInOffers: Object.fromEntries([
+        ['marked signed_in', { id: 'a', a: 'signed_in', s: 1 }],
+        ['unmarked signed_in', { id: 'b', a: 'signed_in' }],
+        ['marked xp_player', { id: 'c', a: 'xp_player', s: 1 }],
+        ['marked achievements_shown', { id: 'd', a: 'achievements_shown', s: 1 }],
+        ['marked member', { id: 'e', a: 'member', s: 1 }],
+        ['marked karma_holder', { id: 'f', a: 'karma_holder', s: 1 }],
+        ['marked with an action', { id: 'g', a: 'signed_in', s: 1, x: 'logout' }],
+        ['marked, the guest has its own half', { id: 'h', a: 'signed_in', s: 1 }],
+    ].map(([name, entry]) => [name, [
+        offersSignIn(entry, new Set(['h']), new Set(['everyone', 'guest'])),
+        offersSignIn(entry, new Set(['h']), new Set(['everyone', 'guest', 'xp_visible'])),
+    ]])),
     zeroQuery: [zeroResultQuery('  Ünïcödé  QUERY  '), Array.from(zeroResultQuery('x'.repeat(60))).length],
     zero: {
         reported: reportsZero('xyzzy', 0, true, new Set()),

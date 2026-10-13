@@ -149,10 +149,13 @@
                                                         <i class="bi bi-qr-code me-1" aria-hidden="true"></i>{{ 'online_rounds.links.qr'|trans }}
                                                     </a>
                                                 {% endif %}
+                                                {#- A new link stops the current one at once: asked in the page (docs/features/navigation GEST-13 -
+                                                    iOS Safari refuses native dialogs after a Back to a layer's entry), as a danger -#}
                                                 <form method="post" action="{{ path('online_link_regenerate', {competitionId: competition.id, participantId: row.participantId}) }}" class="d-inline"
-                                                      {% if item.url is not null %}onsubmit="return confirm('{{ 'online_rounds.links.regenerate_confirm'|trans({'%name%': row.name})|e('js') }}')"{% endif %}>
+                                                      {% if item.url is not null %}data-turbo-confirm="{{ 'online_rounds.links.regenerate_confirm'|trans({'%name%': row.name}) }}" data-turbo-confirm-danger{% endif %}>
                                                     <input type="hidden" name="_token" value="{{ csrf_token(csrf_token_id) }}">
                                                     <button type="submit" class="btn btn-sm btn-outline-secondary text-nowrap" data-online-link-regenerate
+                                                            {% if item.url is not null %}data-turbo-confirm-action="{{ 'online_rounds.links.regenerate'|trans }}"{% endif %}
                                                             aria-label="{{ (item.url is not null ? 'online_rounds.links.regenerate_label' : 'online_rounds.links.create_label')|trans({'%name%': row.name}) }}">
                                                         <i class="bi bi-arrow-repeat me-1" aria-hidden="true"></i>{{ (item.url is not null ? 'online_rounds.links.regenerate' : 'online_rounds.links.create')|trans }}
                                                     </button>

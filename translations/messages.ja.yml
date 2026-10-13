@@ -9159,7 +9159,7 @@ nav:
         where_did_it_go: "旧メニュー項目の移動先"
     search:
         pages_settings: "ページと設定"
-        sign_in_to: "サインインして%label%を表示"
+        sign_in_to_see: "サインインして表示"
         more: "さらに%count%件を表示"
         path_separator: " › "
     syn:

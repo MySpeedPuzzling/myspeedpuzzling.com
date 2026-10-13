@@ -5,11 +5,14 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Navigation;
 
 use Psr\Clock\ClockInterface;
+use ReflectionClass;
 use SpeedPuzzling\Web\Value\SearchText;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\DependencyInjection\Exception\ParameterNotFoundException;
 use Symfony\Component\DependencyInjection\ParameterBag\ContainerBagInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+use Symfony\Component\Routing\RouterInterface;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Contracts\Cache\CacheInterface;
 use Symfony\Contracts\Cache\ItemInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -23,9 +26,14 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  *   the browser filters it by the page's `<body data-viewer-audience>`. Entries that need the viewer's player id link
  *   `nav_go` (R14), which redirects to the viewer's own page. Moderator, time verifier and admin entries are not in
  *   it: privateJson() renders them into the page of those viewers only (`#nav-search-private`).
- * - Each entry: `id`, `l` label, `d` description, `g` its Menu group, `p` its Menu path ("☰ › Account › Your data"),
- *   `u` URL, `a` audience (a NavVisibility value, or `signed_in` / `guest` for the two halves of an entry with a guests'
- *   route), `i` icon, `o` its place in the Menu (ties of the ranking), `x` what the link does besides navigating
+ * - Each entry: `id`, `l` label, `d` description, `g` its Menu group, `p` its path in the phone panel ("☰ › Account ›
+ *   Your data"; empty when the panel has no row for it - the tabs), `pd` its path in the desktop Menu when that differs
+ *   (empty when it has none - the Inbox tool, Log out in the account menu), `b` the bars that always offer it
+ *   (NavigationRegistry::ON_BARS: `p` phone, `d` desktop, `a` the desktop account menu of a signed-in player - no Menu
+ *   path is shown for it there, SRCH+FOOT review F3), `u` URL, `a` audience (a NavVisibility value, or `signed_in` /
+ *   `guest` for the two halves of an entry with a guests' route), `s` 1 when following `u` asks a guest to sign in first
+ *   (the route wants a signed-in visitor - #[IsGranted] -, or nav_go: the viewer's own page - SRCH+FOOT review F1), `i`
+ *   icon, `o` its place in the Menu (ties of the ranking), `x` what the link does besides navigating
  *   (`help` = the Help sheet, `language` = the Menu's language switch, `logout`) and `k` the search keys: the label,
  *   the synonyms (nav.syn.<id>), the legacy labels and the English label, each folded once by SearchText::fold() -
  *   the browser folds only what is typed (assets/search_fold.js, its twin; assets/navigation/nav_search.js), one per
@@ -40,17 +48,25 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 final readonly class NavigationSearchIndex
 {
     // Bump when the shape of the list changes: every version changes with it
-    private const int FORMAT = 1;
+    private const int FORMAT = 2;
     private const string CACHE_PREFIX = 'nav_search_index.';
     private const int CACHE_TTL = 7 * 86400;
     private const string EXTRA_HELP = 'help';
     private const string EXTRA_LANGUAGE = 'language';
     private const string EXTRA_LOGOUT = 'logout';
 
+    /** NavigationRegistry::ON_BARS in the list's `b` */
+    private const array BAR_FLAGS = [
+        NavigationRegistry::BAR_PHONE => 'p',
+        NavigationRegistry::BAR_DESKTOP => 'd',
+        NavigationRegistry::BAR_ACCOUNT => 'a',
+    ];
+
     public function __construct(
         private NavigationRegistry $registry,
         private TranslatorInterface $translator,
         private UrlGeneratorInterface $urlGenerator,
+        private RouterInterface $router,
         private ClockInterface $clock,
         #[Autowire(service: 'cache.app')]
         private CacheInterface $cache,
@@ -234,9 +250,29 @@ final readonly class NavigationSearchIndex
         }
 
         $data['g'] = $this->group($entry)->value ?? '';
-        $data['p'] = $this->registry->menuPath($entry->id, $locale, $separator) ?? '';
+        // A guests' half of a page whose Menu row is for players only (What next?): no Menu of theirs holds it
+        $inGuestsMenu = $audience !== NavVisibility::GuestOnly->value || $entry->visibility->includesGuests();
+        $phonePath = $inGuestsMenu ? $this->registry->menuPathOn(MenuSurface::Phone, $entry->id, $locale, $separator) ?? '' : '';
+        $deskPath = $inGuestsMenu ? $this->registry->menuPathOn(MenuSurface::Dock, $entry->id, $locale, $separator) ?? '' : '';
+        $data['p'] = $phonePath;
+
+        if ($deskPath !== $phonePath) {
+            $data['pd'] = $deskPath;
+        }
+
+        $bars = implode('', array_map(static fn (string $bar): string => self::BAR_FLAGS[$bar], NavigationRegistry::ON_BARS[$entry->id] ?? []));
+
+        if ($bars !== '') {
+            $data['b'] = $bars;
+        }
+
         $data['u'] = $url;
         $data['a'] = $audience;
+
+        if ($extra === null && $this->asksGuestsToSignIn($entry, $audience)) {
+            $data['s'] = 1;
+        }
+
         $data['i'] = $entry->icon;
         $data['o'] = $orders[$entry->id] ?? PHP_INT_MAX;
 
@@ -247,6 +283,55 @@ final readonly class NavigationSearchIndex
         $data['k'] = implode("\n", $this->keys($entry, $locale, $label));
 
         return $data;
+    }
+
+    /**
+     * Does following the entry's link ask a guest to sign in first? A page of the viewer's own (nav_go: sign-in, then the
+     * page), or a route whose controller wants a signed-in visitor (#[IsGranted] on its class or action: the firewall
+     * sends a guest to sign in - LoginEntryPoint). Only for audiences a guest is not in; a page that opens for guests
+     * never is (What next?'s landing, Where did it go?). TopBarPageSearchTest requests every such link as a guest.
+     */
+    private function asksGuestsToSignIn(NavEntry $entry, string $audience): bool
+    {
+        $visibility = NavVisibility::tryFrom($audience);
+
+        if ($visibility === null || $visibility->includesGuests()) {
+            return false;
+        }
+
+        if ($entry->target->needsViewer()) {
+            return true;
+        }
+
+        $route = $entry->target->route;
+
+        return $route !== null && $this->routeWantsASignedInVisitor($route);
+    }
+
+    private function routeWantsASignedInVisitor(string $route): bool
+    {
+        $routes = $this->router->getRouteCollection();
+        // A localized route is name.<locale> in the collection
+        $definition = $routes->get($route) ?? $routes->get($route . '.en');
+        $controller = $definition?->getDefault('_controller');
+
+        if (!is_string($controller)) {
+            return false;
+        }
+
+        [$class, $method] = str_contains($controller, '::') ? explode('::', $controller, 2) : [$controller, '__invoke'];
+
+        if (!class_exists($class)) {
+            return false;
+        }
+
+        $reflection = new ReflectionClass($class);
+
+        if ($reflection->getAttributes(IsGranted::class) !== []) {
+            return true;
+        }
+
+        return $reflection->hasMethod($method) && $reflection->getMethod($method)->getAttributes(IsGranted::class) !== [];
     }
 
     /**

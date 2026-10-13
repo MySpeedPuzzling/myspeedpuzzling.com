@@ -9443,7 +9443,7 @@ nav:
         where_did_it_go: "Where the old menu items are now"
     search:
         pages_settings: "Pages & settings"
-        sign_in_to: "Sign in to see %label%"
+        sign_in_to_see: "Sign in to see"
         more: "Show %count% more"
         path_separator: " › "
     syn:

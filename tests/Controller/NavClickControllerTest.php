@@ -15,6 +15,7 @@ use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use SpeedPuzzling\Web\Value\AccountDeletionToken;
 use SpeedPuzzling\Web\Value\NewsletterAudience;
+use SpeedPuzzling\Web\Value\OnlineToken;
 use SpeedPuzzling\Web\Value\PasswordResetToken;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -419,6 +420,17 @@ final class NavClickControllerTest extends WebTestCase
         // PhotoStash
         $token = bin2hex(random_bytes(16));
         yield 'photo stash' => ['photo_stash_preview', ['_locale' => 'en', 'token' => $token], $token];
+
+        // OnlineToken: a participant's personal link of an online round - the page (app.js sends its viewport line there
+        // too), its "This is me" and the page's API
+        $token = OnlineToken::generate();
+        yield 'online round participant page' => ['compete_page', ['_locale' => 'en', 'token' => $token], $token];
+        yield 'online round participant page, Czech' => ['compete_page', ['_locale' => 'cs', 'token' => $token], $token];
+        yield 'online round connect' => ['compete_connect', ['_locale' => 'en', 'token' => $token], $token];
+
+        foreach (['state', 'heartbeat', 'events', 'media'] as $call) {
+            yield 'online round API ' . $call => ['compete_api_' . $call, ['token' => $token], $token];
+        }
 
         // A Stripe Checkout Session id: cs_live_ + base62
         $token = 'cs_live_b1' . strtr(base64_encode(random_bytes(42)), '+/', 'Aa');

@@ -15,7 +15,9 @@ use SplFileInfo;
  * `<html data-native-app>` (inside the app), `<html data-os>` (the device OS) and `html.is-standalone` are read in JS
  * only through assets/platform.js; app.js's old globals are only written, never read; the app's user-agent markers
  * live in PlatformDetector and the data-os head script only; Symfony UX Native is not installed; every native-aware
- * module imports its answer from assets/platform.js. GEST-10 adds: `navigator.vibrate` only in assets/haptics.js.
+ * module imports its answer from assets/platform.js. GEST-10 adds: `navigator.vibrate` only in assets/haptics.js. The
+ * user-agent string is read by the platform module and the data-os head script only (the main sync of 2026-10-13
+ * moved the barcode scanner's and the online round camera's Android check onto os()).
  */
 final class PlatformFlagReadersTest extends TestCase
 {
@@ -62,6 +64,19 @@ final class PlatformFlagReadersTest extends TestCase
 
     private const string APP_JS = 'assets/app.js';
 
+    /** A read of the user-agent string (`navigator.userAgent`, `nav.userAgent`, `navigator?.userAgent`) */
+    private const string USER_AGENT_READ = '~\??\.\s*userAgent\b(?!Data)~';
+
+    /**
+     * Who may read the user-agent string - file => why. Everybody else asks assets/platform.js: os() / nativePlatform()
+     * to decide, browserDiagnostics() / deviceModel() for diagnostics a person reads.
+     */
+    private const array USER_AGENT_READERS = [
+        'assets/controllers/analytics_controller.js' => 'tells crawlers from people before loading GA - no platform question',
+        'assets/head/platform_os.js' => 'sets <html data-os> before any module exists',
+        'assets/platform.js' => 'the one reader: browserDiagnostics()',
+    ];
+
     public function testTheFlagsAreReadOnlyThroughThePlatformModule(): void
     {
         $offenders = [];
@@ -89,6 +104,25 @@ final class PlatformFlagReadersTest extends TestCase
         self::assertStringContainsString("'data-native-app'", $platform);
         self::assertStringContainsString("'data-os'", $platform);
         self::assertStringContainsString("'is-standalone'", $platform);
+    }
+
+    public function testTheUserAgentIsReadWhereThePlatformIsRead(): void
+    {
+        $readers = [];
+
+        foreach ($this->javascriptFiles() as $path => $code) {
+            if (preg_match(self::USER_AGENT_READ, $code) === 1) {
+                $readers[] = $path;
+            }
+        }
+
+        self::assertSame(array_keys(self::USER_AGENT_READERS), $readers, 'Decide with os() / nativePlatform() of assets/platform.js; diagnostics through browserDiagnostics() / deviceModel()');
+
+        foreach (['navigator.userAgent', 'globalThis.navigator?.userAgent', 'nav.userAgent'] as $read) {
+            self::assertSame(1, preg_match(self::USER_AGENT_READ, $read), $read);
+        }
+
+        self::assertSame(0, preg_match(self::USER_AGENT_READ, 'navigator.userAgentData.platform'));
     }
 
     public function testOnlyTheDataOsHeadScriptWritesTheDataOsAttribute(): void

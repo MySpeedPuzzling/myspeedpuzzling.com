@@ -223,6 +223,12 @@ final class TouchFontSizeTest extends TestCase
             return true;
         }
 
+        // Another element's type selector (`dd.font-monospace`): never a text-entry control, whatever class it shares
+        // with one (the main sync of 2026-10-13: the online accuracy report's figures)
+        if (preg_match('~^[a-z][a-z0-9]*(?![\w-])~', $withoutFunctions) === 1) {
+            return false;
+        }
+
         foreach ($this->classesOf($compound) as $class) {
             if ($class === 'form-control' || $class === 'form-select' || isset($controlClasses[$class])) {
                 return true;

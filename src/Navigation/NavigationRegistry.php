@@ -26,6 +26,41 @@ final readonly class NavigationRegistry
     private const string SINCE = '2026-10-12';
     public const string SYNONYMS_PREFIX = 'nav.syn.';
 
+    /** A bar of the phone (the bottom bar's tabs, the top bar's tools) */
+    public const string BAR_PHONE = 'phone';
+    /** A bar of the desktop (the top bar - with its places from 768 px -, the rail, the docked column's places) */
+    public const string BAR_DESKTOP = 'desktop';
+    /** The desktop account menu (avatar ▾) - signed-in players only */
+    public const string BAR_ACCOUNT = 'account';
+
+    /**
+     * The entries a bar always offers, per surface (README §3, §4.1-§4.3). The page search says where a result lives in
+     * the Menu only for the others: an entry right there on a bar has no "☰ Menu › …" line (SRCH+FOOT review F3) -
+     * Home, Puzzles, Community and Profile are tabs on phones, Inbox and Log out are not in the desktop Menu at all.
+     * NavigationBarEntriesTest checks each against the rendered bars.
+     *
+     * @var array<string, list<string>>
+     */
+    public const array ON_BARS = [
+        // Phones: the Home tab (and the logo); desktop: the logo, the places of the 768-1023 px bar, the rail, the column
+        'home' => [self::BAR_PHONE, self::BAR_DESKTOP],
+        'puzzles_place' => [self::BAR_PHONE, self::BAR_DESKTOP],
+        'community_place' => [self::BAR_PHONE, self::BAR_DESKTOP],
+        // Phones: the Profile tab; desktop: the rail and "View your profile" in the account menu
+        'profile' => [self::BAR_PHONE, self::BAR_ACCOUNT],
+        // The Add tab; desktop: + Add
+        'add' => [self::BAR_PHONE, self::BAR_DESKTOP],
+        // The top bar's ? (phones) and Feedback (desktop): the Help sheet
+        'send_feedback' => [self::BAR_PHONE, self::BAR_DESKTOP],
+        // The Inbox tool of both top bars
+        'inbox' => [self::BAR_PHONE, self::BAR_DESKTOP],
+        // The account menu: Settings, Membership, Language, Log out
+        'settings' => [self::BAR_ACCOUNT],
+        'membership' => [self::BAR_ACCOUNT],
+        'language' => [self::BAR_ACCOUNT],
+        'logout' => [self::BAR_ACCOUNT],
+    ];
+
     /**
      * Built once per service instance: plain request-independent data (no translator, no viewer), so the readonly
      * service keeps no per-request state (FrankenPHP worker mode) and lookups never rebuild the entries.
@@ -242,6 +277,42 @@ final readonly class NavigationRegistry
         }
 
         $placement = $entry->phone->isRow() ? $entry->phone : $entry->dock;
+        $group = $placement->group;
+
+        if ($group === null) {
+            return null;
+        }
+
+        if (!$group->hasHeading() || $entry->kind === RowKind::Place) {
+            return '☰' . $separator . $label;
+        }
+
+        return '☰' . $separator . $this->groupTitle($group, $locale) . $separator . $label;
+    }
+
+    /**
+     * Where an entry lives in one surface's Menu - the phone panel, or the desktop's docked column (its overlay and rail
+     * state hold the same rows): "☰ › Account › Your data"; a search-only entry under its parent; null when that Menu
+     * has no row for it (a tab of the bottom bar on phones, the top bar's Inbox tool on desktop - SRCH+FOOT review F3).
+     */
+    public function menuPathOn(MenuSurface $surface, string $id, string $locale, string $separator = ' › ', int $depth = 0): null|string
+    {
+        $entry = $this->byId($id);
+
+        if ($entry === null || $depth > 5) {
+            return null;
+        }
+
+        $label = $this->label($entry, $locale);
+        $placement = $entry->placement($surface);
+
+        if ($placement->isSearchOnly()) {
+            $parent = $placement->parent;
+            $parentPath = $parent !== null && $parent !== $id ? $this->menuPathOn($surface, $parent, $locale, $separator, $depth + 1) : null;
+
+            return $parentPath === null ? null : $parentPath . $separator . $label;
+        }
+
         $group = $placement->group;
 
         if ($group === null) {
@@ -713,7 +784,8 @@ final readonly class NavigationRegistry
             $this->listRow('collection', 'system_collection_detail', 'collections.system_name', 'bi-box-seam', 20, null, ['collection_detail', 'edit_system_collection']),
             new NavEntry(
                 id: 'what_next',
-                target: RouteTarget::route('puzzle_picker'),
+                // Guests: the same page, its public landing - a plain result of their page search (SRCH+FOOT review F1)
+                target: RouteTarget::route('puzzle_picker', guestRoute: 'puzzle_picker'),
                 label: 'puzzle_picker.menu_label',
                 icon: 'bi-shuffle',
                 place: NavPlace::Puzzles,
@@ -725,7 +797,8 @@ final readonly class NavigationRegistry
                 since: self::SINCE,
                 section: 'next',
                 description: 'nav.desc.what_next',
-                legacyLabels: ['puzzle_picker.menu_label'],
+                // The old footer's "What should I solve next?" (SRCH+FOOT review Q1)
+                legacyLabels: ['puzzle_picker.menu_label', 'puzzle_picker.title'],
                 secondary: ['Puzzles › What next? chip'],
                 footer: new FooterPlacement(FooterColumn::Puzzles, 30, newBadge: true, nav: 'track/puzzle_picker'),
             ),
@@ -1294,7 +1367,7 @@ final readonly class NavigationRegistry
             $this->searchEntry('suggest_feature', RouteTarget::route('feature_request_create'), 'feature_requests.create_title', 'bi-lightbulb', 'feature_requests', NavPlace::None, RulebookQuestion::Q1, 'Action on Ideas & feature requests (members): a button there and search', NavVisibility::Member),
             ...$ladders,
             $this->searchEntry('country_ranking', RouteTarget::route('ladder_country', dynamic: ['countryCode' => RouteParam::ViewerCountryCode]), 'nav.row.country_ranking', 'bi-flag', 'leaderboards', NavPlace::Community, RulebookQuestion::Q9, "Your country's ranking (members): a filter of Leaderboards and search", NavVisibility::Member, 'leaderboards'),
-            $this->searchEntry('achievements_list', RouteTarget::route('badges_overview'), 'nav.row.achievements_list', 'bi-award', 'achievements', NavPlace::Community, RulebookQuestion::Q9, 'Every achievement: footer, achievements pages and search (XP gate)', NavVisibility::XpVisible, 'leaderboards', new FooterPlacement(FooterColumn::Learn, 30, newBadge: true, nav: 'discover/achievements', visibility: NavVisibility::XpVisible)),
+            $this->searchEntry('achievements_list', RouteTarget::route('badges_overview'), 'nav.row.achievements_list', 'bi-award', 'achievements', NavPlace::Community, RulebookQuestion::Q9, 'Every achievement: footer, achievements pages and search (XP gate)', NavVisibility::XpVisible, 'leaderboards', new FooterPlacement(FooterColumn::Learn, 30, newBadge: true, nav: 'discover/achievements', visibility: NavVisibility::XpVisible), ['badges.overview_title']),
             $this->searchEntry('xp_explainer', RouteTarget::route('xp_explainer'), 'xp.explainer.title', 'bi-question-circle', 'progression', NavPlace::None, RulebookQuestion::Q7, 'Explains XP: How progress works and search (XP gate)', NavVisibility::XpVisible),
             $this->searchEntry('fair_play_xp', RouteTarget::route('xp_fair_play'), 'xp.fair_play.title', 'bi-shield-check', 'progression', NavPlace::None, RulebookQuestion::Q7, 'Explains fair play: How progress works and search (XP gate)', NavVisibility::XpVisible),
             $this->searchEntry('karma_explainer', RouteTarget::route('karma_explainer'), 'karma.explainer.title', 'bi-question-circle', 'progression', NavPlace::None, RulebookQuestion::Q7, 'Explains karma: How progress works and search (XP gate)', NavVisibility::XpVisible),
@@ -1421,6 +1494,9 @@ final readonly class NavigationRegistry
         );
     }
 
+    /**
+     * @param list<string> $legacyLabels older names of the page (search keys, MENU-03)
+     */
     private function searchEntry(
         string $id,
         RouteTarget $target,
@@ -1433,6 +1509,7 @@ final readonly class NavigationRegistry
         NavVisibility $visibility = NavVisibility::SignedIn,
         null|string $section = null,
         null|FooterPlacement $footer = null,
+        array $legacyLabels = [],
     ): NavEntry {
         return new NavEntry(
             id: $id,
@@ -1447,6 +1524,7 @@ final readonly class NavigationRegistry
             reason: $reason,
             since: self::SINCE,
             section: $section,
+            legacyLabels: $legacyLabels,
             footer: $footer,
         );
     }

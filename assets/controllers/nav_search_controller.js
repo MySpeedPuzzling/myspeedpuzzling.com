@@ -12,7 +12,7 @@ import {
 } from '../navigation/nav_search.js';
 import { SEARCH_ZERO_EVENT } from '../nav_instrumentation.js';
 import { createNavSearchLists, listForQuery } from '../navigation/nav_search_lists.js';
-import { menuFragmentOf, menuPaths, revealInMenu } from '../navigation/menu_links.js';
+import { menuFragmentOf, menuPaths, PHONE_QUERY, revealInMenu } from '../navigation/menu_links.js';
 
 // One list per URL for the whole tab (both search fields, every Turbo visit): fetched on the first focus of a field;
 // a failed load is asked for again by the next focus or keystroke, a list of another deploy is kept a minute only
@@ -34,6 +34,51 @@ const SETTLE_RETRIES = 20;
 
 // The `nav_go` redirect (/{_locale}/go/{entryId}, R14): a page of the viewer's own the public list cannot name
 const NAV_GO = /\/go\/([a-z0-9_]+)$/;
+
+// The list's paths are joined by nav.search.path_separator (" › " in every locale) and start with "☰"
+const PATH_SEPARATOR = ' › ';
+const MENU_SYMBOL = '☰';
+
+// What a row of the Help sheet copies from the page's own opener (help_path() + help_opener_attrs(), HELP-01b)
+const HELP_OPENER_ATTRIBUTES = ['href', 'data-turbo-frame', 'data-modal-scrim', 'rel', 'data-help-opener'];
+
+/**
+ * A path line as nodes (SRCH+FOOT review Q4): the ☰ and the › separators are symbols a screen reader would spell out
+ * ("trigram for heaven") - aria-hidden; the words are read ("Menu Account Settings")
+ */
+function pathNodes(path) {
+    const nodes = [];
+    const hidden = (text) => {
+        const span = document.createElement('span');
+        span.setAttribute('aria-hidden', 'true');
+        span.textContent = text;
+
+        return span;
+    };
+    const symbol = PATH_SEPARATOR.trim();
+    const [before, after] = PATH_SEPARATOR.split(symbol);
+
+    String(path).split(PATH_SEPARATOR).forEach((part, index) => {
+        if (index > 0) {
+            nodes.push(document.createTextNode(before), hidden(symbol), document.createTextNode(after));
+        }
+
+        if (index === 0 && part.startsWith(MENU_SYMBOL)) {
+            nodes.push(hidden(MENU_SYMBOL));
+            const rest = part.slice(MENU_SYMBOL.length);
+
+            if (rest !== '') {
+                nodes.push(document.createTextNode(rest));
+            }
+
+            return;
+        }
+
+        nodes.push(document.createTextNode(part));
+    });
+
+    return nodes;
+}
 
 function privateEntries() {
     const element = document.getElementById('nav-search-private');
@@ -59,9 +104,10 @@ function privateEntries() {
  * them, synchronously, so nothing moves when the Live results arrive. `limit` rows first, then "Show N more".
  *
  * The top bar's (surface `bar`, SRCH-01) - the search of every page, outside the Menu - says under each result where
- * it lives in the Menu ("☰ Menu › Account › Settings"), and offers a guest the pages of any signed-in player as
- * "Sign in to see …" (`signIn`, rendered for guests only) - their link leads through sign-in to the page. A member's
- * page stays hidden from everybody else. The Menu panel's (surface `menu`) lists what the viewer's Menu holds.
+ * it lives in this screen's Menu ("☰ Menu › Account › Settings"; nothing for a page a bar offers right there - review
+ * F3), and offers a guest the pages that ask them to sign in as the page's name with "Sign in to see" under it
+ * (`signIn`, rendered for guests only; review Q3) - their link leads through sign-in to the page. A member's page
+ * stays hidden from everybody else. The Menu panel's (surface `menu`) lists what the viewer's Menu holds.
  *
  * Links are plain links: a visit from the open Menu panel is a replace visit (assets/layer_history.js rule (d)).
  * Send feedback opens the Help sheet like its Menu row; Language opens the Menu's language switch; Log out leaves Turbo.
@@ -119,11 +165,26 @@ export default class extends Controller {
         lists.want(this.urlValue, this.handleListReady);
     };
 
+    // A list that arrives after the server's players and puzzles for the typed query are on screen waits for the next
+    // keystroke: the group goes above them, and inserting it now would move what the visitor is about to tap
+    // (SRCH+FOOT review F4 - "nothing moves when the Live results arrive", decision 38, also on a slow first load)
     handleListReady = () => {
-        if (this.element.isConnected) {
+        if (this.element.isConnected && !this.serverResultsShown()) {
             this.update();
         }
     };
+
+    serverResultsShown() {
+        return this.inputTarget.value.trim() !== '' && this.element.querySelector('.global-search-results') !== null;
+    }
+
+    /** The screen the top bar's paths are for: the phone panel's, or the desktop Menu (+ a signed-in account menu) */
+    get screen() {
+        return {
+            phone: typeof window.matchMedia === 'function' ? window.matchMedia(PHONE_QUERY).matches : true,
+            signedIn: audiencesOf(document.body.dataset.viewerAudience).has('signed_in'),
+        };
+    }
 
     // `change` also fires when the field loses focus - a tap on a result: the rows must stay the same elements, or the
     // tap's click never reaches the link (mousedown and mouseup on two different nodes)
@@ -226,14 +287,27 @@ export default class extends Controller {
 
         const label = document.createElement('span');
         label.className = 'mr-l';
-        label.textContent = signIn ? this.signInValue.replace('%label%', entry.l) : entry.l;
+        label.textContent = entry.l;
 
-        const where = (this.inMenu ? locationOf(entry) : menuPathOf(entry, menuName)) || entry.d || '';
+        // The line under it: "Sign in to see" on a guest's sign-in row (one text in every language - review Q3), else
+        // where it lives in the Menu (none for an entry right there on a bar), else its description
+        const small = document.createElement('small');
+        small.className = 'mr-d';
 
-        if (where !== '') {
-            const small = document.createElement('small');
-            small.className = 'mr-d';
-            small.textContent = where;
+        if (signIn) {
+            small.setAttribute('data-nav-search-sign-in-note', '');
+            small.textContent = this.signInValue;
+        } else {
+            const path = this.inMenu ? locationOf(entry, PATH_SEPARATOR) : menuPathOf(entry, menuName, PATH_SEPARATOR, this.screen);
+
+            if (path !== '') {
+                small.append(...pathNodes(path));
+            } else {
+                small.textContent = entry.d || '';
+            }
+        }
+
+        if (small.textContent !== '') {
             label.append(small);
         }
 
@@ -262,14 +336,22 @@ export default class extends Controller {
         return entry.u;
     }
 
-    /** Send feedback opens the Help sheet with the current page attached - exactly as the Menu's row does */
+    /**
+     * Send feedback opens the Help sheet exactly as the page's own openers do (SRCH+FOOT review F2): it copies the one
+     * the server made for this page - the Menu's row, else the top bar's ?, else any other (the end-of-page line, the
+     * footer): help_path() (the token-free path on a private link page, HELP review Q2) and help_opener_attrs() (its own
+     * scrim, nofollow, data-help-opener: the page at the tap, and on the help page its own box - assets/help_openers.js).
+     * A page without any opener: the help page with this page attached, as an opener.
+     */
     helpLink(link) {
-        const row = document.querySelector('#site-menu [data-nav$="/send_feedback"]');
+        const opener = document.querySelector('#site-menu a[data-help-opener][data-nav$="/send_feedback"]')
+            || document.querySelector('a[data-help-opener][data-bar-action="help"]')
+            || document.querySelector('a[data-help-opener]');
 
-        if (row) {
-            ['href', 'data-turbo-frame', 'data-modal-scrim', 'rel'].forEach((name) => {
-                if (row.hasAttribute(name)) {
-                    link.setAttribute(name, row.getAttribute(name));
+        if (opener) {
+            HELP_OPENER_ATTRIBUTES.forEach((name) => {
+                if (opener.hasAttribute(name)) {
+                    link.setAttribute(name, opener.getAttribute(name));
                 }
             });
 
@@ -280,6 +362,7 @@ export default class extends Controller {
         link.setAttribute('data-turbo-frame', 'modal-frame');
         link.setAttribute('data-modal-scrim', 'own');
         link.setAttribute('rel', 'nofollow');
+        link.setAttribute('data-help-opener', 'page');
     }
 
     handleClick = (event) => {

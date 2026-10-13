@@ -72,6 +72,11 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
 final class PuzzleAddController extends AbstractController
 {
+    /**
+     * `?solve=1`: the link promises a solve - the last mode, never Collection (initialMode(), navigation review ADD F1)
+     */
+    public const string SOLVE_PARAMETER = 'solve';
+
     public function __construct(
         readonly private MessageBusInterface $messageBus,
         readonly private GetPuzzleOverview $getPuzzleOverview,
@@ -597,6 +602,9 @@ final class PuzzleAddController extends AbstractController
             // Tools under their intent (ADD-02): the viewer's fresh running stopwatch from the profile row (no query),
             // the collection "Scan several boxes" takes along when it is one multiscan can preset
             'running_stopwatch' => $userProfile->runningStopwatch,
+            // "Use the stopwatch" for the chosen puzzle - the URL's or the one a refused submit chose (navigation review
+            // ADD Q1). One hidden from the viewer never gets here: assertWritableByViewer() above answers 404
+            'stopwatch_puzzle_id' => $chosenPuzzleId,
             'multiscan_collection' => $data->collection === Collection::SYSTEM_ID || Uuid::isValid((string) $data->collection) ? $data->collection : null,
             'has_active_membership' => $hasActiveMembership,
             'system_collection_id' => Collection::SYSTEM_ID,
@@ -626,7 +634,8 @@ final class PuzzleAddController extends AbstractController
      * - an explicit `?mode=` (`speed_puzzling`, `relax`, `collection` - the "Add a time" links name theirs);
      * - a link to record an event's time (`?competition`, `?series`, `?official_entry`): Speed puzzling, the only mode
      *   that takes an event;
-     * - a pair's/team's "Add time" (`?team`): the last mode, but never Collection (a collection has no co-puzzlers);
+     * - a link that names a solve (linkNamesASolve()): the last mode, but never Collection (a collection records no
+     *   solve and has no co-puzzlers);
      * - the mode of the player's last save from this page (`player.last_add_mode`, read from the profile row);
      * - Speed puzzling.
      */
@@ -648,11 +657,21 @@ final class PuzzleAddController extends AbstractController
             }
         }
 
-        if ($lastAddMode === PuzzleAddMode::Collection && $request->query->getString('team') !== '') {
+        if ($lastAddMode === PuzzleAddMode::Collection && $this->linkNamesASolve($request)) {
             return PuzzleAddMode::SpeedPuzzling;
         }
 
         return $lastAddMode ?? PuzzleAddMode::SpeedPuzzling;
+    }
+
+    /**
+     * A link that promises a solve but leaves Speed puzzling or Relax to the player: "Add solving" (`?solve=1` - the
+     * puzzle page and its ⋯, the puzzle list menus, the library lists, the puzzle picker card) and a pair's/team's "Add
+     * time" (`?team`). The Add place itself (`/puzzle-add/{id}` on a puzzle page, README D7) carries neither.
+     */
+    private function linkNamesASolve(Request $request): bool
+    {
+        return $request->query->getString(self::SOLVE_PARAMETER) !== '' || $request->query->getString('team') !== '';
     }
 
     /**

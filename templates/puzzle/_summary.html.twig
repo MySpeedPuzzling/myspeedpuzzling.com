@@ -117,7 +117,7 @@
     {% if not summary.hasSoloTimes %}
         {# The add page is robots-blocked, the translated link carries rel="nofollow" #}
         <p class="mb-0 mt-3">{{ (summary.hasGroupTimes ? 'puzzle_detail.summary.no_solo_times' : 'puzzle_detail.summary.no_times')|trans({
-            '%add_url%': path('puzzle_add', {puzzleId: puzzle.puzzleId})|e,
+            '%add_url%': path('puzzle_add', {puzzleId: puzzle.puzzleId, mode: 'speed_puzzling'})|e,
         })|raw }}</p>
     {% endif %}
 </section>

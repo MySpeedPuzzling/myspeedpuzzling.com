@@ -22,6 +22,8 @@ export default class extends Controller {
         'dateFieldSection',    // Date picker wrapper (hidden when "no date" checked)
         'speedTools',          // "Use the stopwatch" row under the switch (Speed only, navigation ADD-02)
         'collectionTools',     // "Scan several boxes" row under the switch (Collection only, navigation ADD-02)
+        'useStopwatch',        // "Use the stopwatch" link - follows the chosen puzzle (navigation review ADD Q1)
+        'puzzleField',         // The puzzle input (a catalogue puzzle's id, a new puzzle's name or nothing)
     ];
 
     static values = {
@@ -30,8 +32,18 @@ export default class extends Controller {
     };
 
     connect() {
+        // The server rendered the sections for this mode already (_solving_time_form.html.twig) - this changes nothing
+        // on a first render, it only keeps a page whose markup came from elsewhere right
         this.updateVisibility();
         this._initNoDateCheckbox();
+
+        // tom-select fires a bubbling change on the puzzle input whenever the chosen puzzle changes
+        this._onChange = (event) => {
+            if (this.hasPuzzleFieldTarget && event.target === this.puzzleFieldTarget) {
+                this.updateStopwatchLink();
+            }
+        };
+        this.element.addEventListener('change', this._onChange);
 
         // Watch for collection field changes to show/hide new collection fields
         if (this.hasCollectionSectionTarget) {
@@ -42,6 +54,10 @@ export default class extends Controller {
                 collectionInput.addEventListener('autocomplete:connect', this._autoSelectSingleOption.bind(this));
             }
         }
+    }
+
+    disconnect() {
+        this.element.removeEventListener('change', this._onChange);
     }
 
     switchMode(event) {
@@ -125,6 +141,24 @@ export default class extends Controller {
             const checkbox = this.noDateCheckboxSectionTarget.querySelector('input[type="checkbox"]');
             const isNoDate = isRelax && checkbox && checkbox.checked;
             this.dateFieldSectionTarget.classList.toggle('d-none', isNoDate);
+        }
+    }
+
+    // "Use the stopwatch" starts one for the puzzle chosen in the form (navigation review ADD Q1): a catalogue puzzle (its
+    // id - the same check as the server's Uuid::isValid()) gets its own stopwatch, a new puzzle or none the plain one
+    updateStopwatchLink() {
+        if (!this.hasUseStopwatchTarget || !this.hasPuzzleFieldTarget) {
+            return;
+        }
+
+        const link = this.useStopwatchTarget;
+        const puzzleId = this.puzzleFieldTarget.value.trim();
+        const href = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(puzzleId)
+            ? (link.dataset.puzzleStopwatchUrl || '').replace('__PUZZLE_ID__', encodeURIComponent(puzzleId))
+            : link.dataset.stopwatchUrl;
+
+        if (href) {
+            link.setAttribute('href', href);
         }
     }
 

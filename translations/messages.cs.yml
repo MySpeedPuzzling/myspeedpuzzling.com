@@ -443,8 +443,6 @@ puzzle_result:
   "tools":
     "use_stopwatch": "Použít stopky"
     "back_to_stopwatch": "Zpět k běžícím stopkám"
-    "scan_boxes": "Naskenovat více krabic"
-    "scan_boxes_title": "Naskenujte hromadu krabic a přidejte je všechny najednou do kolekce"
     "other_ways": "Další možnosti přidání"
   official_entry:
     notice: "Předvyplněno z oficiálních výsledků kola %round% na události %event%. Zkontrolujte to a uložte do svého profilu."

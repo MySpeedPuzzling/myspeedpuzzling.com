@@ -167,7 +167,7 @@
             <a class="btn btn-primary btn-sm" rel="nofollow" href="{{ path('stopwatch_puzzle', {puzzleId: suggestion.puzzleId}) }}">
                 <i class="ci-time me-1"></i>{{ 'start_solving'|trans }}
             </a>
-            <a class="btn btn-outline-primary btn-sm" rel="nofollow" href="{{ path('puzzle_add', {puzzleId: suggestion.puzzleId}) }}">
+            <a class="btn btn-outline-primary btn-sm" rel="nofollow" href="{{ path('puzzle_add', {puzzleId: suggestion.puzzleId, solve: 1}) }}">
                 <i class="ci-add me-1"></i>{{ 'add_solving'|trans }}
             </a>
         {% else %}

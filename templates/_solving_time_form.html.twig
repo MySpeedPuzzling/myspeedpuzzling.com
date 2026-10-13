@@ -6,6 +6,15 @@
      data-image-editor-apply-value="{{ 'image_editor.apply'|trans }}"
      data-image-editor-edit-value="{{ 'forms.edit'|trans }}">
 
+    {# The sections are rendered for the mode the page opens in - the truth table of puzzle_add_form_controller.js
+       updateVisibility() (+ _initNoDateCheckbox()), so a full load shows no other mode's form first and the form is right
+       without JS; the controller only switches them (navigation review ADD F3) #}
+    {% set form_mode = initial_mode|default('speed_puzzling') %}
+    {% set is_speed = form_mode == 'speed_puzzling' %}
+    {% set is_relax = form_mode == 'relax' %}
+    {% set is_collection = form_mode == 'collection' %}
+    {% set no_date = is_relax and solving_time_form.finishedAt.vars.value is empty %}
+
     {# Edit form, the tracker: the result can move to another puzzle (docs/features/duplicate-results.md, Layer 4) #}
     {% set puzzle_change = active_puzzle is not null and can_change_puzzle|default(false) %}
     {% set puzzle_picker_open = puzzle_change and solving_time_form.puzzle.vars.errors|length > 0 %}
@@ -128,7 +137,7 @@
 
                         {{ form_row(solving_time_form.brand, {'attr': {'data-time-form-autocomplete-target': 'brand'}}) }}
 
-                        {% set puzzle_attr = {'data-time-form-autocomplete-target': 'puzzle', 'data-first-try-check-target': 'puzzle'} %}
+                        {% set puzzle_attr = {'data-time-form-autocomplete-target': 'puzzle', 'data-first-try-check-target': 'puzzle', 'data-puzzle-add-form-target': 'puzzleField'} %}
                         {% if solving_time_form.alternativeNames is defined %}
                             {# A new puzzle can bring the names of its other boxes: a quiet link on the label line, nothing more until tapped #}
                             {% set extra_names = solving_time_form.alternativeNames %}
@@ -278,10 +287,10 @@
 
             <div class="col-lg-6 order-lg-2">
                 {# Time and date section (Speed + Relax, but time only for Speed) #}
-                <div class="card card-body shadow mb-3" data-puzzle-add-form-target="timeAndDateSection">
+                <div class="card card-body shadow mb-3 {{ is_collection ? 'd-none' }}" data-puzzle-add-form-target="timeAndDateSection">
                     <div class="row">
                         {# Time field - Speed Puzzling only #}
-                        <div class="col-sm mb-3" data-puzzle-add-form-target="timeSection">
+                        <div class="col-sm mb-3 {{ not is_speed ? 'd-none' }}" data-puzzle-add-form-target="timeSection">
                             {% if active_stopwatch is not null %}
                                 <span class="form-label">{{ 'puzzle_add.time_from_stopwatch'|trans }}</span><br>
                                 <span class="h5 mt-2 d-inline-block">{{ active_stopwatch.totalSeconds|puzzlingTime }}</span>
@@ -312,8 +321,8 @@
                         </div>
 
                         {# Date field - Speed + Relax #}
-                        <div class="col-sm mb-3" data-puzzle-add-form-target="dateFieldSection">
-                            {{ form_label(solving_time_form.finishedAt, null, {'label_attr': {'data-puzzle-add-form-target': 'dateLabel'}}) }}
+                        <div class="col-sm mb-3 {{ no_date ? 'd-none' }}" data-puzzle-add-form-target="dateFieldSection">
+                            {{ form_label(solving_time_form.finishedAt, null, {'label_attr': {'data-puzzle-add-form-target': 'dateLabel', 'class': is_speed ? 'required' : ''}}) }}
                             <div class="input-group">
                                 {{ form_widget(solving_time_form.finishedAt, {'attr': {'data-first-try-check-target': 'date', 'class': 'form-control rounded date-picker pe-5', 'data-datepicker-options': '{"altInput": true, "dateFormat": "d.m.Y", "maxDate": "today"}'}}) }}
                                 <i class="ci-calendar position-absolute top-50 end-0 translate-middle-y me-3" style="pointer-events: none;"></i>
@@ -324,13 +333,13 @@
                     </div>
 
                     {# "I do not remember the date" toggle - Relax only #}
-                    <div class="form-check form-switch" data-puzzle-add-form-target="noDateCheckboxSection">
-                        <input type="checkbox" class="form-check-input" id="no-date-checkbox" name="no_remember_date" value="1" data-action="puzzle-add-form#toggleNoDate">
+                    <div class="form-check form-switch {{ not is_relax ? 'd-none' }}" data-puzzle-add-form-target="noDateCheckboxSection">
+                        <input type="checkbox" class="form-check-input" id="no-date-checkbox" name="no_remember_date" value="1" data-action="puzzle-add-form#toggleNoDate"{{ no_date ? ' checked' }}>
                         <label class="form-check-label" for="no-date-checkbox">{{ 'forms.do_not_remember_date'|trans }}</label>
                     </div>
 
                     {# First attempt - Speed Puzzling only #}
-                    <div class="form-switch" data-puzzle-add-form-target="firstAttemptSection">
+                    <div class="form-switch {{ not is_speed ? 'd-none' }}" data-puzzle-add-form-target="firstAttemptSection">
                         {{ form_row(solving_time_form.firstAttempt, {'attr': {'data-first-try-check-target': 'checkbox'}}) }}
 
                         {# docs/features/first-try-integrity.md + duplicate-results.md - filled by first-try-check, or by a refused submit #}
@@ -346,13 +355,13 @@
                     </div>
 
                     {# Unboxed - Speed Puzzling only #}
-                    <div class="form-switch" data-puzzle-add-form-target="unboxedSection">
+                    <div class="form-switch {{ not is_speed ? 'd-none' }}" data-puzzle-add-form-target="unboxedSection">
                         {{ form_row(solving_time_form.unboxed) }}
                     </div>
                 </div>
 
                 {# Group players section (Speed + Relax only) #}
-                <div data-puzzle-add-form-target="groupSection">
+                <div class="{{ is_collection ? 'd-none' }}" data-puzzle-add-form-target="groupSection">
                     {% if copuzzler_picker_enabled|default(false) %}
                         {{ include('_copuzzler_picker.html.twig') }}
                     {% else %}
@@ -379,7 +388,7 @@
                 </div>
 
                 {# Competition section (Speed Puzzling only) #}
-                <div data-puzzle-add-form-target="competitionSection">
+                <div class="{{ not is_speed ? 'd-none' }}" data-puzzle-add-form-target="competitionSection">
                     {% set competition_filled = solving_time_form.competition.vars.value is not empty %}
                     <div data-controller="toggle">
                         <button type="button" class="btn btn-outline-accent shadow w-100 mb-3 {{ competition_filled ? 'hidden' }}" data-action="click->toggle#toggle" data-toggle-target-param="competition">
@@ -405,7 +414,7 @@
                 </div>
 
                 {# Comment and photo section (Speed + Relax only) #}
-                <div class="card card-body shadow mb-3" data-puzzle-add-form-target="commonSection">
+                <div class="card card-body shadow mb-3 {{ is_collection ? 'd-none' }}" data-puzzle-add-form-target="commonSection">
                     {{ form_row(solving_time_form.comment) }}
 
                     {{ form_label(solving_time_form.finishedPuzzlesPhoto) }}
@@ -433,7 +442,7 @@
 
                 {# Collection section (Collection mode only, not in edit form) #}
                 {% if solving_time_form.collection is defined %}
-                    <div class="card card-body shadow mb-3 d-none" data-puzzle-add-form-target="collectionSection">
+                    <div class="card card-body shadow mb-3 {{ not is_collection ? 'd-none' }}" data-puzzle-add-form-target="collectionSection">
                         {% if not has_active_membership|default(true) %}
                             {# Non-member: show locked input with system collection name #}
                             <div class="mb-3">

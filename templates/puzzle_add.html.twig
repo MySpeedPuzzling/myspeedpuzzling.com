@@ -31,7 +31,20 @@
         </div>
     {% endif %}
 
+    {# Tools under their intent (docs/features/navigation README §4.6, ADD-02) - none while a stopwatch's result or an
+       official result is being saved: that save is the only thing on the page #}
+    {% set show_add_tools = active_stopwatch|default(null) is null and official_entry|default(null) is null %}
+
     <div data-controller="puzzle-add-form" data-puzzle-add-form-mode-value="{{ initial_mode|default('speed_puzzling') }}" data-puzzle-add-form-system-id-value="{{ system_collection_id }}">
+        {# A stopwatch runs: the way back to it, whatever the mode (navigation review ADD Q4) - no tool of one mode #}
+        {% if show_add_tools and running_stopwatch|default(null) is not null %}
+            <div class="mb-3" data-add-tools="running_stopwatch">
+                <a class="btn btn-sm btn-primary" href="{{ path('stopwatch', {stopwatchId: running_stopwatch.stopwatchId}) }}" data-nav="page/add/back_to_stopwatch" data-add-tool="back_to_stopwatch">
+                    <i class="bi bi-stopwatch-fill me-1" aria-hidden="true"></i>{{ 'puzzle_add.tools.back_to_stopwatch'|trans }}
+                </a>
+            </div>
+        {% endif %}
+
         <div class="mb-4">
             <div class="btn-group w-100" role="group" aria-label="Form mode selection">
                 <input type="radio" class="btn-check" name="form-mode" id="mode-speed" autocomplete="off"
@@ -63,20 +76,20 @@
             </div>
         </div>
 
-        {# Tools under their intent (docs/features/navigation README §4.6, ADD-02): each row belongs to one mode, rendered
-           hidden for the others and switched with the form's sections by puzzle_add_form_controller.js. None while a
-           stopwatch's result or an official result is being saved - that save is the only thing on the page #}
-        {% set show_add_tools = active_stopwatch|default(null) is null and official_entry|default(null) is null %}
+        {# Each row belongs to one mode: rendered hidden for the others and switched with the form's sections by
+           puzzle_add_form_controller.js #}
         {% if show_add_tools %}
             {# The outer element carries d-none (Bootstrap's d-flex would win over it), the inner one the layout #}
             <div class="{{ initial_mode != 'speed_puzzling' ? 'd-none' }}" data-puzzle-add-form-target="speedTools" data-add-tools="speed_puzzling">
                 <div class="d-flex flex-wrap align-items-center gap-2 mb-4">
-                    {% if running_stopwatch|default(null) is not null %}
-                        <a class="btn btn-sm btn-primary" href="{{ path('stopwatch', {stopwatchId: running_stopwatch.stopwatchId}) }}" data-nav="page/add/back_to_stopwatch" data-add-tool="back_to_stopwatch">
-                            <i class="bi bi-stopwatch-fill me-1" aria-hidden="true"></i>{{ 'puzzle_add.tools.back_to_stopwatch'|trans }}
-                        </a>
-                    {% endif %}
-                    <a class="btn btn-sm btn-outline-primary" href="{{ active_puzzle is not null ? path('stopwatch_puzzle', {puzzleId: active_puzzle.puzzleId}) : path('stopwatch') }}" data-nav="page/add/use_stopwatch" data-add-tool="use_stopwatch">
+                    {# For the chosen puzzle - the URL's or a refused submit's (stopwatch_puzzle_id); the controller follows
+                       the puzzle field (navigation review ADD Q1) #}
+                    <a class="btn btn-sm btn-outline-primary"
+                       href="{{ stopwatch_puzzle_id|default(null) is not null ? path('stopwatch_puzzle', {puzzleId: stopwatch_puzzle_id}) : path('stopwatch') }}"
+                       data-puzzle-add-form-target="useStopwatch"
+                       data-stopwatch-url="{{ path('stopwatch') }}"
+                       data-puzzle-stopwatch-url="{{ path('stopwatch_puzzle', {puzzleId: '__PUZZLE_ID__'}) }}"
+                       data-nav="page/add/use_stopwatch" data-add-tool="use_stopwatch">
                         <i class="bi bi-stopwatch me-1" aria-hidden="true"></i>{{ 'puzzle_add.tools.use_stopwatch'|trans }}
                     </a>
                 </div>
@@ -84,11 +97,12 @@
 
             <div class="{{ initial_mode != 'collection' ? 'd-none' }}" data-puzzle-add-form-target="collectionTools" data-add-tools="collection">
                 <div class="d-flex flex-wrap align-items-center gap-2 mb-4">
-                    {# Every signed-in player sees it; non-members with the same lock as everywhere else (plan decision 43) #}
+                    {# Every signed-in player sees it; non-members with the same lock as everywhere else (plan decision 43).
+                       Its name is the Menu row's, its title the scanning button's (navigation review ADD F4, Q5) #}
                     {{ include('multiscan/_entry_button.html.twig', {
                         params: {action: 'add_to_library'}|merge(multiscan_collection|default(null) is not null ? {collection: multiscan_collection} : {}),
-                        label: 'puzzle_add.tools.scan_boxes',
-                        title: 'puzzle_add.tools.scan_boxes_title',
+                        label: 'nav.row.multiscan',
+                        title: 'multiscan.entry.library_title',
                         nav: 'page/add/scan_boxes',
                     }) }}
                 </div>

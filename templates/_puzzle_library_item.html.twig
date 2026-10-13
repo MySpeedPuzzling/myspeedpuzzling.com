@@ -282,7 +282,7 @@
                                 {# Solving actions for collection, unsolved, wishlist #}
                                 {% if show_solving_actions %}
                                     <li>
-                                        <a class="dropdown-item" data-turbo-frame="_top" rel="nofollow" href="{{ path('puzzle_add', {puzzleId: item.puzzleId}) }}">
+                                        <a class="dropdown-item" data-turbo-frame="_top" rel="nofollow" href="{{ path('puzzle_add', {puzzleId: item.puzzleId, solve: 1}) }}">
                                             <i class="ci-add me-1"></i> {{ 'add_solving'|trans }}
                                         </a>
                                     </li>

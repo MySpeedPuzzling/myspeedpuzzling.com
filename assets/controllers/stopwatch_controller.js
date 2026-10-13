@@ -41,6 +41,9 @@ export default class extends Controller {
     };
 
     connect() {
+        // An answer that arrives after the page was left belongs to no page (navigation review ADD F2): a Turbo visit
+        // keeps <html>, so it must not mark the next page running nor start anything on it
+        this._connected = true;
         this._serverOffset = this._calculateServerOffset();
         this._totalPreviousMs = this.totalMillisecondsValue;
         // The server's moment on this phone's clock, so a reloaded running stopwatch goes on from where it was
@@ -79,6 +82,7 @@ export default class extends Controller {
     }
 
     disconnect() {
+        this._connected = false;
         // The next page (a Turbo visit keeps <html>) gets its tab bar back
         document.documentElement.removeAttribute(RUNNING_ATTRIBUTE);
         this._stopRaf();
@@ -107,6 +111,14 @@ export default class extends Controller {
             const response = await this._apiPost(this.startUrlValue, body);
             const data = await response.json();
 
+            if (!this._connected) {
+                // Left while the start was on its way: the stopwatch runs (the pill of the next page should know), this
+                // page is gone - no running mark, frame loop, wake lock or history entry on the page shown now
+                rememberStopwatchState(data.stopwatchId, 'running', 0);
+
+                return;
+            }
+
             this.stopwatchIdValue = data.stopwatchId;
             this.statusValue = 'running';
             // The top bar's pill (ADD-03) knows from the next page on; noted for this device as well
@@ -121,7 +133,9 @@ export default class extends Controller {
 
             history.replaceState(null, '', window.location.href);
         } catch {
-            this._updateButtons();
+            if (this._connected) {
+                this._updateButtons();
+            }
         }
     }
 
@@ -471,7 +485,16 @@ export default class extends Controller {
     async _requestWakeLock() {
         if (!('wakeLock' in navigator)) return;
         try {
-            this._wakeLock = await navigator.wakeLock.request('screen');
+            const wakeLock = await navigator.wakeLock.request('screen');
+
+            // Granted after the page was left: the next page never keeps the screen on for it
+            if (!this._connected) {
+                wakeLock.release();
+
+                return;
+            }
+
+            this._wakeLock = wakeLock;
             this._wakeLock.addEventListener('release', () => {
                 this._wakeLock = null;
                 this._syncWakeLockCheckbox();
@@ -508,14 +531,68 @@ export default class extends Controller {
         this._actionQueue = [];
         localStorage.removeItem('stopwatch-queue');
 
+        const replayed = [];
+
         for (const item of queue) {
             try {
                 await this._apiPost(`/api/stopwatch/${item.stopwatchId}/${item.action}`, this._queuedBody(item));
+                replayed.push(item);
             } catch {
                 this._enqueueAction(item.action, item.stopwatchId, item.body ?? {}, item.timestamp);
                 break;
             }
         }
+
+        this._applyReplayed(replayed);
+    }
+
+    // The server took this page's own queued Stop / Continue (tapped offline, on this page or before it was rendered):
+    // the page shows what the server holds now - the status, the time and the running mark - like the pill already does
+    // (rememberStopwatchState() ran at the tap). Navigation review ADD Q2.
+    _applyReplayed(replayed) {
+        if (!this._connected) return;
+
+        let state = null;
+
+        for (const item of replayed) {
+            if (item.stopwatchId !== this.stopwatchIdValue) continue;
+
+            if (item.action === 'pause') {
+                const shown = item.body && Number.isFinite(item.body.shownTotalMs) ? item.body.shownTotalMs : null;
+                state = { status: 'paused', totalMs: shown ?? (state ? this._elapsedOf(state) : this._getElapsedMs()), lastStart: null };
+            } else if (item.action === 'resume') {
+                state = { status: 'running', totalMs: state ? state.totalMs : this._totalPreviousMs, lastStart: item.timestamp };
+            }
+        }
+
+        if (state === null) return;
+
+        const wasRunning = this.statusValue === 'running';
+        this.statusValue = state.status;
+        this._totalPreviousMs = state.totalMs;
+        this._lastStartTimestamp = state.lastStart;
+        this._updateButtons();
+        // The time may have gone back (the page was rendered with the server's older running time): the milestone bar
+        // and the rank start again from the time now shown
+        this._initMilestones();
+        this._updateRank(this._getElapsedMs());
+
+        if (state.status === 'running') {
+            this._startRaf();
+            if (!wasRunning) {
+                this._requestWakeLock();
+            }
+        } else {
+            this._stopRaf();
+            this._renderTime(state.totalMs);
+            if (wasRunning) {
+                this._releaseWakeLock();
+            }
+        }
+    }
+
+    _elapsedOf(state) {
+        return state.status === 'running' && state.lastStart !== null ? Date.now() - state.lastStart + state.totalMs : state.totalMs;
     }
 
     // A queued Continue tells the server when it was tapped; a queued Stop carries what the stopwatch showed

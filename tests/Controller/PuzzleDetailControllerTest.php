@@ -330,7 +330,8 @@ final class PuzzleDetailControllerTest extends WebTestCase
 
         $addLink = $summary->filter('a[rel="nofollow"]');
         self::assertCount(1, $addLink);
-        self::assertSame('/en/puzzle-add/' . PuzzleFixture::PUZZLE_4000, $addLink->attr('href'));
+        // "log yours ... on the leaderboard" promises a time: Speed puzzling, never the player's last mode (navigation review ADD F1)
+        self::assertSame('/en/puzzle-add/' . PuzzleFixture::PUZZLE_4000 . '?mode=speed_puzzling', $addLink->attr('href'));
 
         self::assertSame(
             'Ravensburger Puzzle 16 (4000 pieces): no solve times yet – log yours and be the first. EAN 4005556999996.',

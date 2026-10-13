@@ -145,7 +145,8 @@ final class PuzzlePickerControllerTest extends WebTestCase
 
         // Personal CTAs + personal history on every card of a fully solved shelf
         self::assertCount(6, $crawler->filter('.puzzle-picker-card a[href*="/en/puzzle-stopwatch/"]'));
-        self::assertCount(6, $crawler->filter('.puzzle-picker-card a[href*="/en/puzzle-add/"]'));
+        // "Add solving" names a solve: the last mode, never Collection (?solve=1, navigation review ADD F1)
+        self::assertCount(6, $crawler->filter('.puzzle-picker-card a[href*="/en/puzzle-add/"][href$="?solve=1"]'));
         self::assertStringContainsString('solved', $content);
         self::assertStringContainsString('In Collection', $content);
 

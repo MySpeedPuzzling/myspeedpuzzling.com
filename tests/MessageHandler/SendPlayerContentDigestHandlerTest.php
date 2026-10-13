@@ -186,7 +186,8 @@ final class SendPlayerContentDigestHandlerTest extends KernelTestCase
 
         $this->render($email);
         $html = (string) $email->getHtmlBody();
-        self::assertStringContainsString('/en/puzzle-add', $html, 'Log the times they forgot');
+        // "Add a time" opens Speed puzzling, never the player's last mode (navigation review ADD F1)
+        self::assertStringContainsString('/en/puzzle-add?mode=speed_puzzling', $html, 'Log the times they forgot');
         self::assertStringContainsString('/en/what-to-solve-next', $html);
         self::assertStringContainsString('/activity-digest/unsubscribe/' . self::FREE_PLAYER, $html);
         self::assertStringContainsString('/en/email-preferences/', $html);

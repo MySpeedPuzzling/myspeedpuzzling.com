@@ -11,6 +11,7 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Controller\NavClickController;
 use SpeedPuzzling\Web\Entity\Collection;
 use SpeedPuzzling\Web\Tests\DataFixtures\CollectionFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\ManufacturerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\OfficialResultsFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
@@ -20,6 +21,7 @@ use SpeedPuzzling\Web\Value\StopwatchStatus;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * Tools under their intent (docs/features/navigation README §4.6, ADD-02): "Use the stopwatch" under Speed puzzling,
@@ -67,28 +69,90 @@ final class PuzzleAddToolsTest extends WebTestCase
     {
         $browser = $this->signedIn(PlayerFixture::PLAYER_WITH_STRIPE);
 
-        $tool = $browser->request('GET', '/en/puzzle-add')->filter('a[data-add-tool="use_stopwatch"]');
+        $crawler = $browser->request('GET', '/en/puzzle-add');
+        $tool = $crawler->filter('a[data-add-tool="use_stopwatch"]');
         self::assertSame('/en/stopwatch', $tool->attr('href'));
         self::assertSame('Use the stopwatch', trim($tool->text()));
+        // The client side follows the puzzle field (puzzle_add_form_controller.js updateStopwatchLink())
+        self::assertSame('useStopwatch', $tool->attr('data-puzzle-add-form-target'));
+        self::assertSame('/en/stopwatch', $tool->attr('data-stopwatch-url'));
+        self::assertSame('/en/puzzle-stopwatch/__PUZZLE_ID__', $tool->attr('data-puzzle-stopwatch-url'));
+        self::assertCount(1, $crawler->filter('[data-controller="puzzle-add-form"] input[name="puzzle_add_form[puzzle]"][data-puzzle-add-form-target="puzzleField"]'));
 
         $tool = $browser->request('GET', '/en/puzzle-add/' . PuzzleFixture::PUZZLE_1000_05)->filter('a[data-add-tool="use_stopwatch"]');
         self::assertSame('/en/puzzle-stopwatch/' . PuzzleFixture::PUZZLE_1000_05, $tool->attr('href'));
     }
 
-    public function testARunningStopwatchIsOfferedFirst(): void
+    public function testARefusedSubmitKeepsTheChosenPuzzleForTheStopwatch(): void
+    {
+        $browser = $this->signedIn(PlayerFixture::PLAYER_WITH_STRIPE);
+        $crawler = $browser->request('GET', '/en/puzzle-add');
+        $token = $crawler->filter('input[name="puzzle_add_form[_token]"]')->attr('value');
+
+        // A puzzle picked in the form, the time forgotten: refused, the stopwatch is offered for that puzzle (review Q1)
+        $crawler = $browser->request('POST', '/en/puzzle-add', [
+            'puzzle_add_form' => [
+                '_token' => $token,
+                'mode' => 'speed_puzzling',
+                'brand' => ManufacturerFixture::MANUFACTURER_RAVENSBURGER,
+                'puzzle' => PuzzleFixture::PUZZLE_500_01,
+                'finishedAt' => '12.07.2026',
+            ],
+            'time_id' => $crawler->filter('input[name="time_id"]')->attr('value'),
+        ]);
+
+        $this->assertResponseStatusCodeSame(422);
+        self::assertSame('/en/puzzle-stopwatch/' . PuzzleFixture::PUZZLE_500_01, $crawler->filter('a[data-add-tool="use_stopwatch"]')->attr('href'));
+
+        // A new puzzle (a name, no id yet): the plain stopwatch
+        $crawler = $browser->request('POST', '/en/puzzle-add', [
+            'puzzle_add_form' => [
+                '_token' => $token,
+                'mode' => 'speed_puzzling',
+                'brand' => ManufacturerFixture::MANUFACTURER_RAVENSBURGER,
+                'puzzle' => 'A puzzle nobody added yet',
+                'finishedAt' => '12.07.2026',
+            ],
+            'time_id' => $crawler->filter('input[name="time_id"]')->attr('value'),
+        ]);
+
+        $this->assertResponseStatusCodeSame(422);
+        self::assertSame('/en/stopwatch', $crawler->filter('a[data-add-tool="use_stopwatch"]')->attr('href'));
+    }
+
+    /**
+     * The way back to a running stopwatch is no tool of one mode (navigation review ADD Q4): Leave from a stopwatch
+     * without a puzzle lands on Add in the last mode, whatever it is
+     *
+     * @return iterable<string, array{string}>
+     */
+    public static function provideEveryMode(): iterable
+    {
+        yield 'speed puzzling' => ['/en/puzzle-add?mode=speed_puzzling'];
+        yield 'relax' => ['/en/puzzle-add?mode=relax'];
+        yield 'collection' => ['/en/puzzle-add?mode=collection'];
+    }
+
+    #[DataProvider('provideEveryMode')]
+    public function testARunningStopwatchIsOfferedInEveryMode(string $url): void
     {
         $browser = $this->signedIn(PlayerFixture::PLAYER_WITH_STRIPE);
 
         // None running: no way back
-        self::assertCount(0, $browser->request('GET', '/en/puzzle-add')->filter('a[data-add-tool="back_to_stopwatch"]'));
+        self::assertCount(0, $browser->request('GET', $url)->filter('a[data-add-tool="back_to_stopwatch"]'));
 
         $stopwatchId = $this->runningStopwatch(PlayerFixture::PLAYER_WITH_STRIPE);
-        $crawler = $browser->request('GET', '/en/puzzle-add');
+        $crawler = $browser->request('GET', $url);
 
-        $tools = $crawler->filter('[data-add-tools="speed_puzzling"] a');
-        self::assertSame(['back_to_stopwatch', 'use_stopwatch'], $tools->each(static fn (Crawler $tool): string => (string) $tool->attr('data-add-tool')));
-        self::assertSame('/en/stopwatch/' . $stopwatchId, $tools->first()->attr('href'));
-        self::assertSame('Back to your running stopwatch', trim($tools->first()->text()));
+        $back = $crawler->filter('[data-add-tools="running_stopwatch"]');
+        self::assertCount(1, $back);
+        self::assertNotContains('d-none', explode(' ', (string) $back->attr('class')), 'shown in every mode');
+        self::assertNull($back->attr('data-puzzle-add-form-target'), 'never switched with a mode');
+        self::assertSame('/en/stopwatch/' . $stopwatchId, $back->filter('a[data-add-tool="back_to_stopwatch"]')->attr('href'));
+        self::assertSame('Back to your running stopwatch', trim($back->text()));
+        // First on the page, before the switch; the mode rows hold only their own tools
+        self::assertCount(3, $crawler->filter('[data-add-tools="running_stopwatch"] ~ .mb-4 input[name="form-mode"]'));
+        self::assertSame(['use_stopwatch'], $crawler->filter('[data-add-tools="speed_puzzling"] a')->each(static fn (Crawler $tool): string => (string) $tool->attr('data-add-tool')));
     }
 
     public function testScanningTakesTheCollectionAlong(): void
@@ -101,10 +165,35 @@ final class PuzzleAddToolsTest extends WebTestCase
         self::assertSame('/en/multiscan?action=add_to_library', $scan->attr('href'));
         self::assertSame('Scan several boxes', $this->ownText($scan));
         self::assertCount(1, $scan->filter('i.bi-upc-scan'));
+        // The scanning button's own title, as on the library pages (navigation review ADD Q5)
+        self::assertSame('Scan a pile of boxes and lend, return, add or wishlist them all at once', $scan->attr('title'));
 
         // A collection page's "Add" names its collection: scanning goes into it too
         $scan = $browser->request('GET', '/en/puzzle-add?mode=collection&collection=' . CollectionFixture::COLLECTION_PUBLIC)->filter('a[data-nav="page/add/scan_boxes"]');
         self::assertSame('/en/multiscan?action=add_to_library&collection=' . CollectionFixture::COLLECTION_PUBLIC, $scan->attr('href'));
+    }
+
+    /**
+     * "Scan several boxes" reads like the Menu's row of the same place in every language - one key, nav.row.multiscan
+     * (navigation review ADD F4) - and its title like the scanning button of the library pages
+     */
+    public function testScanningIsNamedLikeTheMenuRowInEveryLanguage(): void
+    {
+        $browser = $this->signedIn(PlayerFixture::PLAYER_WITH_STRIPE);
+        $translator = self::getContainer()->get(TranslatorInterface::class);
+        $paths = ['en' => '/en/puzzle-add', 'cs' => '/pridat-puzzle', 'de' => '/de/puzzle-hinzufuegen', 'es' => '/es/agregar-puzzle', 'fr' => '/fr/ajouter-puzzle', 'ja' => '/ja/パズル追加'];
+
+        foreach ($paths as $locale => $path) {
+            $scan = $browser->request('GET', $path . '?mode=collection')->filter('a[data-nav="page/add/scan_boxes"]');
+            self::assertCount(1, $scan, $locale);
+            self::assertSame($translator->trans('nav.row.multiscan', locale: $locale), $this->ownText($scan), $locale);
+            self::assertSame($translator->trans('multiscan.entry.library_title', locale: $locale), $scan->attr('title'), $locale);
+        }
+
+        // Same words as the library page's scanning button
+        $library = $browser->request('GET', '/en/puzzle-library/' . PlayerFixture::PLAYER_WITH_STRIPE)->filter('a.multiscan-entry');
+        self::assertCount(1, $library);
+        self::assertSame($translator->trans('multiscan.entry.library_title', locale: 'en'), $library->attr('title'));
     }
 
     public function testANonMemberSeesScanningLockedAsEverywhereElse(): void

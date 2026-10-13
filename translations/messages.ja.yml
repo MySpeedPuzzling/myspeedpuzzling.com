@@ -406,8 +406,6 @@
   "tools":
     "use_stopwatch": "ストップウォッチを使う"
     "back_to_stopwatch": "動作中のストップウォッチに戻る"
-    "scan_boxes": "複数の箱をスキャン"
-    "scan_boxes_title": "箱の山をスキャンして、まとめてコレクションに追加"
     "other_ways": "その他の追加方法"
   official_entry:
     notice: "%event%の%round%の公式結果から入力しました。内容を確認して、プロフィールに保存してください。"

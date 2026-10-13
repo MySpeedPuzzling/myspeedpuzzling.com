@@ -4,6 +4,17 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
+## Navigation redesign - player Results (`docs/features/navigation/`, PROF-05a)
+
+- [ ] One release after the profile stops rendering it (PROF-03): delete `PlayerSolvedPuzzles` (`src/Component/`,
+      `templates/components/PlayerSolvedPuzzles.html.twig`, `templates/_player_solvings.html.twig`), the builder's
+      `legacy` mode (`PlayerResultsBuilder::legacyRows()`, `legacySorted()`, the PHP search) and the five
+      `tests/Component/PlayerSolvedPuzzles*Test.php` + the profile cases of `PairsAndTeamsFiltersTest` /
+      `FirstTriesForPairsAndTeamsTest` (ported to `tests/Services/PlayerResultsBuilderTest.php`; decision 97). Stale
+      open tabs re-render `/_components/PlayerSolvedPuzzles` until then.
+- [ ] Editing a result from Results returns to the profile (`edit_context: 'profile'`) - an `EditTimeReturnContext`
+      case for Results would bring the player back to the list they edited from.
+
 ## Anti-farming (`docs/features/xp-levels/README.md` §Anti-farming, workstream G 2026-10-11)
 
 - [ ] lily.srv: add the `verify-progression --repair` cron row (README §Cron) with the deploy; watch its first warnings

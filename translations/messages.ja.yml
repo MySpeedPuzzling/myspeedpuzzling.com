@@ -290,6 +290,9 @@
   "easiest": "簡単な順"
   "hardest": "難しい順"
   "default_order": "標準の並び順"
+  "best_rank": "最高順位"
+  "name": "パズル名"
+  "attempts": "挑戦回数順"
 "puzzle_overview":
   "meta":
     "title": "ジグソーパズルデータベースと完成タイム"
@@ -9262,3 +9265,30 @@ confirm_dialog:
 
 barcode_scanner:
     no_camera: "このブラウザではカメラを利用できません。ページを再読み込みしてください。"
+
+"player_results":
+  "meta":
+    "title": "%name% – パズルの記録"
+    "description": "%name%のすべてのパズル記録：ソロ・ペア・チームのタイムをMySpeedPuzzlingで検索・並べ替え。"
+  "search_label": "記録を検索"
+  "search_placeholder": "名前・EAN・ブランドコード"
+  "search_submit": "検索"
+  "view":
+    "label": "表示"
+    "by_puzzle": "パズルごと"
+    "every_result": "すべての記録"
+  "filters": "記録を絞り込む"
+  "apply": "結果を表示"
+  "clear_all": "すべてクリア"
+  "shown_of_total": "%total%件中%count%件"
+  "empty_filtered": "%filters%に一致する記録はありません。"
+  "no_results": "まだ記録がありません。"
+  "chip":
+    "remove": "フィルターを解除：%filter%"
+    "search": "「%query%」"
+    "pieces": "%pieces%ピース"
+    "team": "ペアまたはチーム"
+    "from": "%date%から"
+    "to": "%date%まで"
+    "speed_faster": "%value% %unit%より速い"
+    "speed_slower": "%value% %unit%より遅い"

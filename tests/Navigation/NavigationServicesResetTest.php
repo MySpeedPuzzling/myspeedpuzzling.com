@@ -34,6 +34,8 @@ final class NavigationServicesResetTest extends TestCase
         \SpeedPuzzling\Web\Twig\AdminQueueCountsTwigExtension::class,
         // COM-01: the Community landing's previews (stateless - kept that way)
         \SpeedPuzzling\Web\Services\Community\CommunityPreview::class,
+        // PROF-05a: the Results builder (memo of the histories loaded in the request)
+        \SpeedPuzzling\Web\Services\PlayerResults\PlayerResultsBuilder::class,
     ];
 
     public function testMutableNavigationServicesResetBetweenRequests(): void

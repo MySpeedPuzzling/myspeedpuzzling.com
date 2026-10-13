@@ -1,9 +1,10 @@
 {% extends 'base.html.twig' %}
 
 {#
-    A player's results (docs/features/navigation README §4.7, PROF-00): the profile's results list - the same
-    PlayerSolvedPuzzles with the same ?team=&category= reading - under the player header. PROF-05a replaces the content,
-    PROF-02 adds the Results tab, PROF-07 decides the indexing (until then noindex).
+    A player's Results (docs/features/navigation README §4.7, PROF-05a): the player header, the search and the filters
+    (a GET form), and the list region - a Turbo Frame the page's script can reload on its own (PROF-05c). Everything is
+    rendered from the URL (PlayerResultsCriteria) by PlayerResultsController; PROF-02 adds the Results tab, PROF-07 the
+    indexing rules (until then noindex).
 #}
 
 {% set is_own_profile = logged_user.profile is not null and logged_user.profile.playerId is same as player.playerId %}
@@ -15,7 +16,8 @@
     : (player.playerName ?? ('#' ~ player.code|upper))
 %}
 
-{% block title %}{{ 'player_profile.meta.title'|trans({'%name%': player_head_name}) }}{% endblock %}
+{% block title %}{{ 'player_results.meta.title'|trans({'%name%': player_head_name}) }}{% endblock %}
+{% block meta_description %}{{ 'player_results.meta.description'|trans({'%name%': player_head_name}) }}{% endblock %}
 {% block robots %}<meta name="robots" content="{{ is_private_in_head ? 'noindex, nofollow' : 'noindex, follow' }}">{% endblock %}
 
 {% block content %}
@@ -23,15 +25,8 @@
     {# The header's player name is the page's H1 #}
     <twig:PlayerHeader player="{{ player }}" :heading="true" />
 
-    <div>
-        <h2 class="h4 mt-3">{{ 'profile.solved_puzzles'|trans }}</h2>
-
-        {# ?team=<id>&category=duo|group opens the list narrowed to one pair/team - as on the profile #}
-        {% set team_filter = app.request.query.get('team') %}
-        <twig:PlayerSolvedPuzzles
-            playerId="{{ player.playerId }}"
-            team="{{ team_filter }}"
-            category="{{ team_filter ? (app.request.query.get('category') == 'group' ? 'group' : 'duo') : 'solo' }}"
-        />
+    <div class="player-results mt-3" data-player-results>
+        {{ include('player/results/_filters.html.twig') }}
+        {{ include('player/results/_frame.html.twig') }}
     </div>
 {% endblock %}

@@ -1,0 +1,146 @@
+{#
+    The list region of a player's Results (docs/features/navigation README §4.7, PROF-05a): Solo · Pairs · Teams, By
+    puzzle / Every result, the sort, the active filters as chips with "N of M", the rows and "Show more". Rendered inside
+    the page and on its own for a `Turbo-Frame: player-results` request (PlayerResultsController, Vary: Turbo-Frame).
+    Every control is a link to the list's URL (PlayerResultsCriteria::toQuery()); target="_top" makes them full visits
+    until the page's own script loads them into the frame (PROF-05c).
+
+    Input: results (PlayerResultsPage)
+#}
+{% set criteria = results.criteria %}
+{% set list = results.listCriteria %}
+{% set route_params = {playerId: results.playerId} %}
+{% set is_member = logged_user.profile is not null and logged_user.profile.activeMembership %}
+{# Each chip's label as text (escaped once where it is printed), by chip id #}
+{% set chip_labels = {} %}
+{% for chip in criteria.chips %}
+    {% if chip.filter == 'q' %}
+        {% set label = 'player_results.chip.search'|trans({'%query%': chip.value}) %}
+    {% elseif chip.filter == 'pieces' %}
+        {% set label = 'player_results.chip.pieces'|trans({'%pieces%': criteria.pieces.label}) %}
+    {% elseif chip.filter == 'team' %}
+        {% set label = 'player_results.chip.team'|trans %}
+        {% for team in results.availableTeams|filter(team => team.teamId == chip.value) %}
+            {% set label = team.name ?? (team.players|map(puzzler => puzzler.isPrivate and (logged_user.profile is null or puzzler.playerId != logged_user.profile.playerId) ? 'secret_puzzler_name'|trans : (puzzler.playerName ?? ('#' ~ puzzler.playerCode)))|join(', ')) %}
+        {% endfor %}
+    {% elseif chip.filter == 'first' %}
+        {% set label = 'only_first_tries_filter'|trans %}
+    {% elseif chip.filter == 'unboxed' %}
+        {% set label = 'only_unboxed_filter'|trans %}
+    {% elseif chip.filter == 'relax' %}
+        {% set label = 'filters.only_relax'|trans %}
+    {% elseif chip.filter == 'from' %}
+        {% set label = 'player_results.chip.from'|trans({'%date%': criteria.dateFrom|events_date('yMMMd')}) %}
+    {% elseif chip.filter == 'to' %}
+        {% set label = 'player_results.chip.to'|trans({'%date%': criteria.dateTo|events_date('yMMMd')}) %}
+    {% elseif chip.filter == 'speed' %}
+        {% set label = ('player_results.chip.speed_' ~ criteria.speedComparison)|trans({
+            '%value%': chip.value,
+            '%unit%': criteria.speedUnit == 'min' ? 'filters.minutes'|trans : 'PPM',
+        }) %}
+    {% elseif chip.filter == 'difficultyTiers' %}
+        {# The offered chips always hold the selected ones (PlayerResultsBuilder::difficultyOptions()) #}
+        {% set option = results.difficultyOptions|filter(option => option.value == chip.value)|first %}
+        {% set label = option and option.tier is not null ? option.tier.translationKey|trans : 'puzzle_intelligence.difficulty.tiers.unknown'|trans %}
+    {% else %}
+        {% set label = chip.value %}
+    {% endif %}
+    {% set chip_labels = chip_labels|merge({(chip.id): label}) %}
+{% endfor %}
+<turbo-frame id="player-results" target="_top" data-testid="player-results">
+    {# Solo · Pairs · Teams - a tab without rows (after the filters) cannot be opened, like on the profile #}
+    <div class="puzzle-category-types my-3" data-testid="results-categories">
+        {% for category, tab in {
+            solo: {label: 'ladder.solo', icons: '<span class="users-icons"><i class="ci-user"></i></span>'},
+            duo: {label: 'ladder.duo', icons: '<span class="users-icons duo"><i class="ci-user"></i><i class="ci-user"></i></span>'},
+            group: {label: 'ladder.team', icons: '<span class="users-icons team"><i class="ci-user"></i><i class="ci-user"></i><i class="ci-user"></i><i class="ci-user"></i></span>'},
+        } %}
+            {% set count = results.countOf(category) %}
+            {% set active = results.category == category %}
+            {% if active or count > 0 %}
+                <a class="btn{{ active ? ' active' }}" href="{{ path('player_results', route_params|merge(results.categoryCriteria(category).toQuery)) }}" data-results-category="{{ category }}"{% if active %} aria-current="page"{% endif %}>
+                    {{ tab.icons|raw }}
+                    {{ tab.label|trans }} ({{ count|plain_number }})
+                </a>
+            {% else %}
+                <span class="btn disabled" aria-disabled="true" data-results-category="{{ category }}">
+                    {{ tab.icons|raw }}
+                    {{ tab.label|trans }} (0)
+                </span>
+            {% endif %}
+        {% endfor %}
+    </div>
+
+    <div class="prs-toolbar d-flex flex-wrap align-items-center gap-2 mb-3">
+        {# By puzzle / Every result #}
+        <div class="btn-group btn-group-sm prs-views" role="group" aria-label="{{ 'player_results.view.label'|trans }}">
+            {% for view in enum('SpeedPuzzling\\Web\\Value\\PlayerResultsView').cases() %}
+                {% set active = results.view == view %}
+                <a class="btn {{ active ? 'btn-primary' : 'btn-outline-primary' }}" href="{{ path('player_results', route_params|merge(list.withView(view).toQuery)) }}" data-results-view="{{ view.value }}"{% if active %} aria-current="true"{% endif %}>
+                    {{ view.translationKey|trans }}
+                </a>
+            {% endfor %}
+        </div>
+
+        {# The sort - links; Easiest / Hardest locked for non-members #}
+        <div class="dropdown ms-auto">
+            <button class="btn btn-outline-primary btn-sm dropdown-toggle" type="button" id="player-results-sort" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi-sort-up" aria-hidden="true"></i>
+                {{ 'sorting.sort_by'|trans }}: {{ results.sort.translationKey|trans }}
+            </button>
+            <div class="dropdown-menu dropdown-menu-end" aria-labelledby="player-results-sort">
+                {% for sort in enum('SpeedPuzzling\\Web\\Value\\PlayerResultsSort').cases() %}
+                    {% if sort.appliesTo(results.category, results.view) %}
+                        {% if sort.value in ['fastest_ppm', 'name', 'easiest'] %}<div class="dropdown-divider"></div>{% endif %}
+                        {% if sort.membersOnly and not is_member %}
+                            <button type="button" class="dropdown-item d-flex align-items-center gap-2 text-muted" data-bs-toggle="modal" data-bs-target="#membersExclusiveModal" data-results-sort-locked="{{ sort.value }}">
+                                <i class="ci-locked" aria-hidden="true"></i>{{ sort.translationKey|trans }}
+                                <span class="badge bg-primary ms-auto">{{ 'membership.members_exclusive_short'|trans }}</span>
+                            </button>
+                        {% else %}
+                            <a class="dropdown-item{{ results.sort == sort ? ' active' }}" href="{{ path('player_results', route_params|merge(list.withSort(sort).toQuery)) }}" data-results-sort="{{ sort.value }}"{% if results.sort == sort %} aria-current="true"{% endif %}>
+                                {{ sort.translationKey|trans }}
+                            </a>
+                        {% endif %}
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    {{ include('player/results/_chips.html.twig', {chip_labels: chip_labels}) }}
+
+    {% if results.rowsCount > 0 %}
+        <div class="custom-table-wrapper ps-wrapper">
+            <table class="table table-hover ps-table mb-0">
+                <tbody id="player-results-rows">
+                    {% if results.view.value == 'every' %}
+                        {{ include('player/results/_rows_every.html.twig', {rows: results.shownRows, offset: 0}) }}
+                    {% else %}
+                        {{ include('player/results/_rows_by_puzzle.html.twig', {rows: results.shownRows, offset: 0}) }}
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+
+        {% if results.hasMore %}
+            {# A real link (?page=N renders rows 1…50N) - PROF-05b turns it into an append #}
+            <div class="d-flex flex-column align-items-center gap-2 mt-3 mb-4" id="player-results-more" data-nosnippet>
+                <p class="text-body-secondary fs-sm mb-0" aria-live="polite">
+                    {{ 'profile.results_shown'|trans({'%shown%': results.shownRowsCount|plain_number, '%total%': results.rowsCount|plain_number}) }}
+                </p>
+                <a class="btn btn-outline-primary btn-sm" href="{{ path('player_results', route_params|merge(list.withPage(results.page + 1).toQuery)) }}" data-results-more>
+                    {{ 'puzzle_times.leaderboard.show_more'|trans({'%count%': results.moreCount}) }}
+                </a>
+            </div>
+        {% endif %}
+    {% elseif criteria.hasFilters %}
+        {# The empty state names the filters #}
+        <div class="prs-empty text-center py-4" data-testid="results-empty-filtered">
+            <p class="mb-3">{{ 'player_results.empty_filtered'|trans({'%filters%': chip_labels|join(', ')}) }}</p>
+            <a class="btn btn-outline-primary btn-sm" href="{{ path('player_results', route_params|merge(list.withoutFilters.toQuery)) }}" data-results-clear>{{ 'player_results.clear_all'|trans }}</a>
+        </div>
+    {% else %}
+        <p class="prs-empty text-center text-body-secondary py-4" data-testid="results-empty">{{ 'player_results.no_results'|trans }}</p>
+    {% endif %}
+</turbo-frame>

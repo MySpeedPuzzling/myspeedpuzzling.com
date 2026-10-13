@@ -331,6 +331,9 @@ sorting:
     default_order: "Default order"
     fastest_ppm: "Fastest PPM"
     slowest_ppm: "Slowest PPM"
+    best_rank: "Best rank"
+    name: "Puzzle name"
+    attempts: "Most attempts"
 puzzle_overview:
     meta:
         title: "Jigsaw Puzzle Database & Solve Times"
@@ -9546,3 +9549,30 @@ confirm_dialog:
 
 barcode_scanner:
     no_camera: "The camera is not available in this browser. Please try reloading the page."
+
+player_results:
+    meta:
+        title: "%name% – Puzzle Results"
+        description: "Every jigsaw puzzle result of %name%: solo, pair and team times, searchable and sortable on MySpeedPuzzling."
+    search_label: "Search these results"
+    search_placeholder: "Name, EAN or brand code"
+    search_submit: "Search"
+    view:
+        label: "Show"
+        by_puzzle: "By puzzle"
+        every_result: "Every result"
+    filters: "Filter the results"
+    apply: "Show results"
+    clear_all: "Clear all"
+    shown_of_total: "%count% of %total%"
+    empty_filtered: "No results match %filters%."
+    no_results: "No results here yet."
+    chip:
+        remove: "Remove filter: %filter%"
+        search: "“%query%”"
+        pieces: "%pieces% pieces"
+        team: "Pair or team"
+        from: "From %date%"
+        to: "Until %date%"
+        speed_faster: "Faster than %value% %unit%"
+        speed_slower: "Slower than %value% %unit%"

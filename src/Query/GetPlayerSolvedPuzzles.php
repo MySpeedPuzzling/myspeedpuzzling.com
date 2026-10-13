@@ -272,8 +272,9 @@ SQL;
 SQL;
         }
 
+        // The id ends every order: equal times keep one order from one load to the next (navigation PROF-05a)
         $query .= <<<SQL
-    ORDER BY seconds_to_solve
+    ORDER BY seconds_to_solve, puzzle_solving_time.id
 SQL;
 
         $data = $this->database
@@ -527,7 +528,7 @@ INNER JOIN puzzle ON puzzle.id = pst.puzzle_id
 INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
 LEFT JOIN competition ON competition.id = pst.competition_id
 LEFT JOIN competition_series cs ON cs.id = COALESCE(competition.series_id, pst.competition_series_id)
-ORDER BY pst.seconds_to_solve ASC
+ORDER BY pst.seconds_to_solve ASC, pst.id
 SQL;
 
         $data = $this->database
@@ -678,7 +679,7 @@ INNER JOIN puzzle ON puzzle.id = pst.puzzle_id
 INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
 LEFT JOIN competition ON competition.id = pst.competition_id
 LEFT JOIN competition_series cs ON cs.id = COALESCE(competition.series_id, pst.competition_series_id)
-ORDER BY pst.seconds_to_solve ASC
+ORDER BY pst.seconds_to_solve ASC, pst.id
 SQL;
 
         $data = $this->database

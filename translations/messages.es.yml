@@ -290,6 +290,9 @@
   "easiest": "Más fáciles primero"
   "hardest": "Más difíciles primero"
   "default_order": "Orden predeterminado"
+  "best_rank": "Mejor posición"
+  "name": "Nombre del puzzle"
+  "attempts": "Más intentos"
 "puzzle_overview":
   "meta":
     "title": "Base de datos de puzzles y tiempos"
@@ -9274,3 +9277,30 @@ confirm_dialog:
 
 barcode_scanner:
     no_camera: "La cámara no está disponible en este navegador. Intenta recargar la página."
+
+"player_results":
+  "meta":
+    "title": "%name% – Resultados de puzzles"
+    "description": "Todos los resultados de %name%: tiempos individuales, en pareja y en equipo, con búsqueda y orden en MySpeedPuzzling."
+  "search_label": "Buscar en los resultados"
+  "search_placeholder": "Nombre, EAN o cód. de marca"
+  "search_submit": "Buscar"
+  "view":
+    "label": "Mostrar"
+    "by_puzzle": "Por puzzle"
+    "every_result": "Cada resultado"
+  "filters": "Filtrar los resultados"
+  "apply": "Mostrar resultados"
+  "clear_all": "Quitar todo"
+  "shown_of_total": "%count% de %total%"
+  "empty_filtered": "Ningún resultado coincide con %filters%."
+  "no_results": "Todavía no hay resultados aquí."
+  "chip":
+    "remove": "Quitar filtro: %filter%"
+    "search": "«%query%»"
+    "pieces": "%pieces% piezas"
+    "team": "Pareja o equipo"
+    "from": "Desde el %date%"
+    "to": "Hasta el %date%"
+    "speed_faster": "Más rápido que %value% %unit%"
+    "speed_slower": "Más lento que %value% %unit%"

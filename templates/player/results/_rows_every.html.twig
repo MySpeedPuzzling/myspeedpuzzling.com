@@ -1,0 +1,30 @@
+{#
+    Every result (docs/features/navigation PROF-05a): one row per result - date, time or Relax, PPM, the badges, the
+    pair's/team's members, the puzzle and the result detail (player/results/_row.html.twig with a one-result row: no
+    attempts badge, no rank). Sorted by date (Newest, Oldest), the rows are grouped under month headings.
+
+    Inputs: results (PlayerResultsPage), rows (the rows to render), offset (rows before them), previous_month (optional:
+    the month of the row before them, so an appended page does not repeat its heading)
+#}
+{% set by_date = results.sort.value in ['newest', 'oldest'] %}
+{% set month = previous_month ?? null %}
+{% for key, row in rows %}
+    {% set result = row[0] %}
+    {% if by_date %}
+        {% set result_date = result.finishedAt ?? result.trackedAt %}
+        {% if result_date|date('Y-m') != month %}
+            {% set month = result_date|date('Y-m') %}
+            <tr class="prs-month-row" data-month="{{ month }}">
+                <th colspan="3" scope="colgroup">{{ result_date|events_date('yMMMM') }}</th>
+            </tr>
+        {% endif %}
+    {% endif %}
+    {{ include('player/results/_row.html.twig', {
+        row: row,
+        position: offset + loop.index,
+        ranking: {},
+        with_difficulty: results.withDifficulty,
+        difficulty_tiers: results.difficultyTiers,
+        row_id: 'result-' ~ result.timeId,
+    }) }}
+{% endfor %}

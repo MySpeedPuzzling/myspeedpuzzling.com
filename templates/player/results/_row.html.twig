@@ -1,0 +1,113 @@
+{#
+    One row of a player's results (docs/features/navigation PROF-05a), shared by the profile's list
+    (_player_solvings.html.twig) and the Results page (_rows_by_puzzle / _rows_every): a tap on the row opens the result
+    detail - every attempt, deltas and the chart - in the modal (docs/features/puzzle-result-detail.md). Same building
+    blocks as the puzzle leaderboard (_leaderboard_player, _leaderboard_time_badges, monospace numbers): image · puzzle
+    with its tags (takes the rest, truncates) · time - the table never scrolls sideways.
+
+    Inputs:
+      - row: non-empty list<SolvedPuzzle> - the result the row shows first, the puzzle's other attempts after it
+      - position: the row's position (the first images load eagerly)
+      - ranking: array<puzzle id, PlayerRanking> - the rank chip of a solo row (none for pair/team rows)
+      - with_difficulty (bool) + difficulty_tiers (array<puzzle id, DifficultyTier>): members see the tier on the image
+      - row_id (string, optional): the row's id (Results: Back restores the scroll to it, PROF-05c)
+      - edit_context (string, optional): where the edit form returns, default the profile
+#}
+{% set puzzle = row[0] %}
+{% set is_owner = logged_user.profile is not null and logged_user.profile.playerId is same as puzzle.playerId %}
+<tr{% if row_id is defined and row_id %} id="{{ row_id }}"{% endif %} class="{{ puzzle.suspicious ? 'table-warning' }}" data-controller="row-link" data-action="click->row-link#open">
+    <td class="ps-image">
+        <div class="position-relative diff-corner-host">
+            <a href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">
+                {{ include('_puzzle_row_image.html.twig', {image: puzzle.puzzleImage, alt: 'puzzle_img_alt'|trans({'%puzzle%': puzzle.manufacturerName ~ ' ' ~ puzzle.puzzleName}), position: position, ratio: puzzle.puzzleImageRatio}) }}
+            </a>
+
+            {# Members see the puzzle's difficulty on the image's corner, like on the comparison #}
+            {% if with_difficulty %}
+                {{ include('_difficulty_corner.html.twig', {tier: difficulty_tiers[puzzle.puzzleId] ?? null}) }}
+            {% endif %}
+
+            {# Share / edit / delete, like in the recent activity - whoever tracked the time and every group member #}
+            {% if logged_user.profile is not null and puzzle.isEditableBy(logged_user.profile.playerId) %}
+                {{ include('_time_actions_menu.html.twig', {
+                    time_id: puzzle.timeId,
+                    puzzle_name: puzzle.puzzleName,
+                    can_delete: puzzle.playerId is same as logged_user.profile.playerId,
+                    edit_context: edit_context ?? 'profile',
+                }) }}
+            {% endif %}
+        </div>
+
+        {# The photo of the finished puzzle only for its owner - the large stripped preset, not the
+           uploaded original (older uploads may carry EXIF/GPS) #}
+        {% if is_owner and puzzle.finishedPuzzlePhoto is not null %}
+            <div class="gallery ps-photo">
+                <a class="gallery-item gallery-item-inline-block rounded-2" href="{{ puzzle.finishedPuzzlePhoto|thumbnail('puzzle_large') }}">
+                    <img alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': puzzle.manufacturerName ~ ' ' ~ puzzle.puzzleName}) }}" class="rounded-2" loading="lazy" src="{{ puzzle.finishedPuzzlePhoto|thumbnail('puzzle_small') }}">
+                </a>
+            </div>
+        {% endif %}
+    </td>
+
+    <td class="ps-info">
+        <a class="ps-puzzle-name" href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">{{ puzzle.puzzleName }}</a>
+        <div class="ps-puzzle-meta">
+            {{ include('_pieces_brand.html.twig', {pieces: puzzle.piecesCount, brand: puzzle.manufacturerName}) }}
+        </div>
+
+        {% if puzzle.players|length > 0 %}
+            <div class="ps-members">
+                {% for puzzle_solver in puzzle.players %}
+                    {{ include('_leaderboard_player.html.twig', {player: puzzle_solver, small: true, show_tier: false}) }}
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <div class="ps-tags">
+            {# Rank for solo (only if ranking exists - won't exist for relax-only puzzles) #}
+            {% if puzzle.players is null and ranking[puzzle.puzzleId] is defined %}
+                <span class="pr-chip pr-chip-rank">
+                    {{ 'puzzle_result.rank'|trans({'%rank%': ranking[puzzle.puzzleId].rank, '%total%': ranking[puzzle.puzzleId].totalPlayers}) }}
+                </span>
+            {% endif %}
+
+            {{ include('_leaderboard_time_badges.html.twig', {
+                time: puzzle,
+                attempts: row|length,
+                team_page_label: (puzzle.players|length == 2 ? 'puzzling_team.pair_page' : 'puzzling_team.team_page')|trans,
+            }) }}
+
+        </div>
+    </td>
+
+    <td class="ps-time">
+        {# The row's real link to the result detail - a tap anywhere else on the row clicks it #}
+        <a
+            class="ps-time-value"
+            href="{{ path('puzzle_result_detail', {timeId: puzzle.timeId}) }}"
+            data-row-link-target="link"
+            data-turbo-frame="modal-frame"
+            rel="nofollow"
+        >
+            {%- if puzzle.time is not null -%}
+                {{ puzzle.time|puzzlingTime }}
+            {%- else -%}
+                <span class="badge rounded-pill bg-secondary"><i class="bi bi-cup-hot"></i> {{ 'badge.relax'|trans }}</span>
+            {%- endif -%}
+        </a>
+
+        {% if puzzle.finishedAt is not null %}
+            <time class="ps-date" datetime="{{ puzzle.finishedAt|date('Y-m-d') }}">{{ puzzle.finishedAt|date('d.m.Y') }}</time>
+        {% endif %}
+
+        {% if puzzle.time is not null %}
+            <span class="ps-ppm">
+                PPM <span class="tabular-nums">{{ ppm(puzzle.time, puzzle.piecesCount) }}</span>
+                {%- if puzzle.players is not null %}
+                    <br>{{ puzzle.players|length }}× <span class="tabular-nums">{{ ppm(puzzle.time, puzzle.piecesCount, puzzle.players|length) }}</span>
+                {%- endif %}
+            </span>
+        {% endif %}
+
+    </td>
+</tr>

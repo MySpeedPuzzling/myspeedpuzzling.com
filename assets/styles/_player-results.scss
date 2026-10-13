@@ -1,0 +1,84 @@
+// A player's Results (docs/features/navigation README §4.7, PROF-05a): the search, the folded filters, the view switch,
+// the filter chips and the month headings of "Every result". The rows are the profile's (.ps-table, _leaderboard.scss).
+// Prefix prs- ("player results"): pr- belongs to the result detail (_puzzle-result.scss).
+
+.prs-filters {
+    > summary {
+        display: inline-flex;
+        align-items: center;
+        gap: .375rem;
+        list-style: none;
+
+        &::-webkit-details-marker {
+            display: none;
+        }
+    }
+
+    &[open] > summary.btn {
+        border-color: $primary;
+        background-color: rgba($primary, .1);
+        color: $primary;
+    }
+}
+
+.prs-filters-panel {
+    margin-top: .75rem;
+    padding: 1rem;
+    border: 1px solid $border-color;
+    border-radius: .5rem;
+    background: $white;
+}
+
+// Over the disabled members-only filters of a non-member, like the profile list's
+.prs-members-lock {
+    z-index: 10;
+    backdrop-filter: blur(2px);
+    background: rgba(255, 255, 255, .4);
+}
+
+// A removable filter: the whole chip is the link that removes it
+.prs-chip-filter {
+    display: inline-flex;
+    align-items: center;
+    gap: .375rem;
+    max-width: 100%;
+    min-height: 2rem;
+    padding: .25rem .75rem;
+    border: 1px solid rgba($primary, .35);
+    border-radius: 999px;
+    background: rgba($primary, .08);
+    color: $gray-900;
+    font-size: .8125rem;
+    line-height: 1.3;
+
+    &:hover,
+    &:focus-visible {
+        border-color: $primary;
+        color: $gray-900;
+    }
+
+    .bi {
+        flex-shrink: 0;
+        font-size: .6875rem;
+        color: $primary;
+    }
+}
+
+.prs-chip-filter-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.prs-clear-all {
+    text-decoration: underline;
+}
+
+// "Every result" under Newest / Oldest: a heading row per month
+.ps-table > tbody > tr.prs-month-row > th {
+    padding: .5rem 10px .25rem;
+    background: $gray-100;
+    font-size: .8125rem;
+    font-weight: 500;
+    color: $gray-700;
+}

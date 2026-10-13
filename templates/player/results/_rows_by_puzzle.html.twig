@@ -1,0 +1,17 @@
+{#
+    By puzzle (docs/features/navigation PROF-05a): one row per puzzle - per puzzle and pair/team on the Pairs and Teams
+    tabs - led by the player's best attempt, the attempts badge counting all of them; the rank chip on solo rows.
+
+    Inputs: results (PlayerResultsPage), rows (the rows to render, keyed like PlayerResultsPage rows), offset (rows
+    before them - their positions continue)
+#}
+{% for key, row in rows %}
+    {{ include('player/results/_row.html.twig', {
+        row: row,
+        position: offset + loop.index,
+        ranking: results.ranking,
+        with_difficulty: results.withDifficulty,
+        difficulty_tiers: results.difficultyTiers,
+        row_id: 'result-' ~ (key|replace({'|': '-'})),
+    }) }}
+{% endfor %}

@@ -310,6 +310,9 @@ live_refresh:
   "easiest": "Nejsnazší"
   "hardest": "Nejtěžší"
   "default_order": "Výchozí řazení"
+  "best_rank": "Nejlepší umístění"
+  "name": "Název puzzle"
+  "attempts": "Nejvíc pokusů"
 "puzzle_overview":
   "meta":
     "title": "Databáze puzzle a časy skládání"
@@ -9300,3 +9303,30 @@ confirm_dialog:
 
 barcode_scanner:
     no_camera: "Kamera není v tomto prohlížeči dostupná. Zkuste stránku načíst znovu."
+
+"player_results":
+  "meta":
+    "title": "%name% – Výsledky skládání"
+    "description": "Všechny výsledky hráče %name%: časy jednotlivce, dvojic i týmů s vyhledáváním a řazením na MySpeedPuzzling."
+  "search_label": "Hledat ve výsledcích"
+  "search_placeholder": "Název, EAN nebo kód značky"
+  "search_submit": "Hledat"
+  "view":
+    "label": "Zobrazit"
+    "by_puzzle": "Podle puzzle"
+    "every_result": "Každý výsledek"
+  "filters": "Filtrovat výsledky"
+  "apply": "Zobrazit výsledky"
+  "clear_all": "Zrušit vše"
+  "shown_of_total": "%count% z %total%"
+  "empty_filtered": "Filtrům %filters% neodpovídá žádný výsledek."
+  "no_results": "Zatím tu nejsou žádné výsledky."
+  "chip":
+    "remove": "Odebrat filtr: %filter%"
+    "search": "„%query%“"
+    "pieces": "%pieces% dílků"
+    "team": "Dvojice nebo tým"
+    "from": "Od %date%"
+    "to": "Do %date%"
+    "speed_faster": "Rychleji než %value% %unit%"
+    "speed_slower": "Pomaleji než %value% %unit%"

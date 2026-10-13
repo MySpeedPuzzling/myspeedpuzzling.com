@@ -1,0 +1,195 @@
+{#
+    The search box and the filters of a player's Results (docs/features/navigation README §4.7, PROF-05a): one GET form,
+    outside the list's frame, that works without JavaScript - the search first, the filters folded in a <details>. It
+    keeps the tab, the view and the sort (hidden fields); a submit starts the list from its first page.
+
+    Free: search, brand, pair/team, piece count. Members: difficulty, Relax, first tries, unboxed, date range, speed -
+    for everyone else a disabled fieldset under a lock that opens #membersExclusiveModal (and
+    PlayerResultsCriteria drops whatever a crafted URL sends).
+
+    Input: results (PlayerResultsPage)
+#}
+{% set criteria = results.criteria %}
+{% set is_member = logged_user.profile is not null and logged_user.profile.activeMembership %}
+{% set keep = results.listCriteria.toQuery %}
+{% set filters_count = criteria.activeFiltersCount - (criteria.query is not null ? 1 : 0) %}
+{% set pieces_param = criteria.pieces is not null ? criteria.pieces.toParam : '' %}
+{% set pieces_is_preset = results.availablePiecePresets|filter(preset => preset.toParam == pieces_param)|length > 0 %}
+<form method="get" action="{{ path('player_results', {playerId: results.playerId}) }}" class="prs-form mb-2" id="player-results-form" role="search">
+    {% for name in ['category', 'view', 'sort'] %}
+        {% if keep[name] is defined %}<input type="hidden" name="{{ name }}" value="{{ keep[name] }}">{% endif %}
+    {% endfor %}
+
+    <div class="prs-search d-flex gap-2">
+        <label for="player-results-q" class="visually-hidden">{{ 'player_results.search_label'|trans }}</label>
+        <input
+            type="search"
+            id="player-results-q"
+            name="q"
+            value="{{ criteria.query }}"
+            class="form-control"
+            maxlength="{{ constant('SpeedPuzzling\\Web\\Value\\PlayerResultsCriteria::MAX_QUERY_LENGTH') }}"
+            placeholder="{{ 'player_results.search_placeholder'|trans }}"
+            enterkeyhint="search"
+            autocomplete="off"
+        >
+        <button type="submit" class="btn btn-primary px-3" aria-label="{{ 'player_results.search_submit'|trans }}">
+            <i class="bi bi-search" aria-hidden="true"></i>
+        </button>
+    </div>
+
+    <details class="prs-filters mt-2">
+        <summary class="btn btn-outline-primary btn-sm" data-testid="results-filters-toggle">
+            <i class="bi-filter" aria-hidden="true"></i>
+            {{ 'filters.button'|trans }}
+            {%- if filters_count > 0 %} <span class="badge rounded-pill bg-primary" data-testid="results-filters-count">{{ filters_count }}</span>{% endif %}
+        </summary>
+
+        <div class="prs-filters-panel" role="group" aria-label="{{ 'player_results.filters'|trans }}">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label fs-sm mb-1" for="player-results-brand">{{ 'forms.brand'|trans }}</label>
+                    <select name="brand" id="player-results-brand" class="form-select form-select-sm">
+                        <option value="">{{ 'filters.all_manufacturers'|trans }}</option>
+                        {% for brand_name, count in results.availableBrands %}
+                            <option value="{{ brand_name }}"{{ criteria.brand == brand_name ? ' selected' }}>{{ brand_name }} ({{ count }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                {% if results.availableTeams is not empty %}
+                    <div class="col-md-6">
+                        <label class="form-label fs-sm mb-1" for="player-results-team">{{ 'menu.pairs_and_teams'|trans }}</label>
+                        <select name="team" id="player-results-team" class="form-select form-select-sm">
+                            <option value="">{{ 'filters.all_pairs_and_teams'|trans }}</option>
+                            {% for available_team in results.availableTeams %}
+                                <option value="{{ available_team.teamId }}"{{ criteria.team == available_team.teamId ? ' selected' }}>
+                                    {%- if available_team.name is not null -%}
+                                        {{ available_team.name }}
+                                    {%- else -%}
+                                        {%- for puzzler in available_team.players -%}
+                                            {{- not loop.first ? ', ' -}}
+                                            {{- puzzler.isPrivate and (logged_user.profile is null or puzzler.playerId != logged_user.profile.playerId) ? 'secret_puzzler_name'|trans : (puzzler.playerName ?? ('#' ~ puzzler.playerCode)) -}}
+                                        {%- endfor -%}
+                                    {%- endif %} ({{ available_team.count }})
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                {% endif %}
+
+                {# Piece count: the chips, or a custom from-to. pieces_was = what is applied - the one changed wins #}
+                <div class="col-12">
+                    <span class="form-label fs-sm d-block mb-1" id="player-results-pieces-label">{{ 'pieces_filter.label'|trans }}</span>
+                    <input type="hidden" name="pieces_was" value="{{ pieces_param }}">
+                    <div class="d-flex flex-wrap align-items-center gap-1" role="radiogroup" aria-labelledby="player-results-pieces-label">
+                        <div class="form-check form-option form-check-inline mb-0">
+                            <input type="radio" class="form-check-input" id="player-results-pieces-any" name="pieces" value=""{{ criteria.pieces is null ? ' checked' }}>
+                            <label for="player-results-pieces-any" class="form-option-label">{{ 'all_pieces'|trans }}</label>
+                        </div>
+                        {% for preset in results.availablePiecePresets %}
+                            {% set param = preset.toParam %}
+                            <div class="form-check form-option form-check-inline mb-0">
+                                <input type="radio" class="form-check-input" id="player-results-pieces-{{ param }}" name="pieces" value="{{ param }}"{{ pieces_param == param ? ' checked' }}>
+                                <label for="player-results-pieces-{{ param }}" class="form-option-label">{{ preset.label }}</label>
+                            </div>
+                        {% endfor %}
+                        <div class="d-flex align-items-center gap-1">
+                            <input type="text" name="pieces_min" class="form-control form-control-sm pieces-filter-bound"
+                                   value="{{ criteria.pieces is not null and not pieces_is_preset ? criteria.pieces.minPieces }}"
+                                   inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off"
+                                   placeholder="{{ 'pieces_filter.from'|trans }}" aria-label="{{ 'pieces_filter.from_label'|trans }}">
+                            <span class="text-muted" aria-hidden="true">–</span>
+                            <input type="text" name="pieces_max" class="form-control form-control-sm pieces-filter-bound"
+                                   value="{{ criteria.pieces is not null and not pieces_is_preset ? criteria.pieces.maxPieces }}"
+                                   inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off"
+                                   placeholder="{{ 'pieces_filter.to'|trans }}" aria-label="{{ 'pieces_filter.to_label'|trans }}">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {# Members only - disabled (never submitted) for everyone else #}
+            <div class="position-relative mt-3 prs-members-filters">
+                {% if not is_member %}
+                    <div class="prs-members-lock position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center">
+                        <button type="button" class="btn btn-outline-primary btn-sm bg-white" data-bs-toggle="modal" data-bs-target="#membersExclusiveModal" data-testid="results-members-lock">
+                            <i class="ci-locked me-1" aria-hidden="true"></i>{{ 'membership.members_exclusive_button'|trans }}
+                        </button>
+                    </div>
+                {% endif %}
+
+                <fieldset class="row g-3"{% if not is_member %} disabled{% endif %} data-testid="results-members-filters">
+                    <div class="col-12">
+                        <span class="form-label fs-sm d-block mb-1">{{ 'puzzle_intelligence.difficulty.filter_label'|trans }}</span>
+                        {% from '_difficulty_icon.html.twig' import icon as difficulty_icon %}
+                        <div class="d-flex flex-wrap align-items-center gap-1">
+                            {% for option in results.difficultyOptions %}
+                                <div class="form-check form-option form-check-inline mb-0">
+                                    <input type="checkbox" class="form-check-input" id="player-results-difficulty-{{ option.value }}" name="difficultyTiers[]" value="{{ option.value }}"{{ option.value in criteria.difficultyTiers ? ' checked' }}>
+                                    <label for="player-results-difficulty-{{ option.value }}" class="form-option-label d-inline-flex align-items-center gap-1">
+                                        {{ difficulty_icon(option.tier, false, 16) }}
+                                        {{ option.tier is not null ? option.tier.translationKey|trans : 'puzzle_intelligence.difficulty.tiers.unknown'|trans }}
+                                    </label>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        {% for switch in [
+                            {name: 'relax', id: 'player-results-relax', label: 'filters.only_relax', icon: 'bi bi-cup-hot', checked: criteria.onlyRelax},
+                            {name: 'first', id: 'player-results-first', label: 'only_first_tries_filter', icon: null, checked: criteria.onlyFirstTries},
+                            {name: 'unboxed', id: 'player-results-unboxed', label: 'only_unboxed_filter', icon: 'bi bi-box-seam', checked: criteria.onlyUnboxed},
+                        ] %}
+                            <div class="form-check form-switch mb-2">
+                                <input type="checkbox" class="form-check-input" role="switch" switch id="{{ switch.id }}" name="{{ switch.name }}" value="1"{{ switch.checked ? ' checked' }}>
+                                <label for="{{ switch.id }}" class="form-check-label">
+                                    {% if switch.icon %}<i class="{{ switch.icon }}" aria-hidden="true"></i> {% endif %}{{ switch.label|trans }}
+                                </label>
+                            </div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="col-md-6">
+                        <span class="form-label fs-sm d-block mb-1">{{ 'filters.date_range'|trans }}</span>
+                        <div class="row g-2" data-controller="datepicker">
+                            <div class="col-6">
+                                <input type="text" name="from" class="form-control form-control-sm date-picker"
+                                       value="{{ criteria.dateFrom ? criteria.dateFrom|date('Y-m-d') }}"
+                                       placeholder="{{ 'filters.date_from'|trans }}" aria-label="{{ 'filters.date_from'|trans }}" autocomplete="off"
+                                       data-datepicker-options='{"altInput": true, "dateFormat": "Y-m-d", "maxDate": "today"}'>
+                            </div>
+                            <div class="col-6">
+                                <input type="text" name="to" class="form-control form-control-sm date-picker"
+                                       value="{{ criteria.dateTo ? criteria.dateTo|date('Y-m-d') }}"
+                                       placeholder="{{ 'filters.date_to'|trans }}" aria-label="{{ 'filters.date_to'|trans }}" autocomplete="off"
+                                       data-datepicker-options='{"altInput": true, "dateFormat": "Y-m-d", "maxDate": "today"}'>
+                            </div>
+                        </div>
+
+                        <span class="form-label fs-sm d-block mt-3 mb-1">{{ 'filters.time_filter'|trans }}</span>
+                        <div class="input-group input-group-sm">
+                            <select name="speed_cmp" class="form-select form-select-sm" aria-label="{{ 'filters.time_filter'|trans }}">
+                                <option value="faster"{{ criteria.speedComparison == 'faster' ? ' selected' }}>{{ 'filters.faster_than'|trans }}</option>
+                                <option value="slower"{{ criteria.speedComparison == 'slower' ? ' selected' }}>{{ 'filters.slower_than'|trans }}</option>
+                            </select>
+                            <input type="number" name="speed" class="form-control form-control-sm" value="{{ criteria.speedValue }}" min="0.1" step="0.1" inputmode="decimal" aria-label="{{ 'filters.time_filter'|trans }}">
+                            <select name="speed_unit" class="form-select form-select-sm" aria-label="{{ 'filters.time_filter'|trans }}">
+                                <option value="ppm"{{ criteria.speedUnit == 'ppm' ? ' selected' }}>PPM</option>
+                                <option value="min"{{ criteria.speedUnit == 'min' ? ' selected' }}>{{ 'filters.minutes'|trans }}</option>
+                            </select>
+                        </div>
+                    </div>
+                </fieldset>
+            </div>
+
+            <div class="d-flex flex-wrap align-items-center gap-3 mt-3">
+                <button type="submit" class="btn btn-primary btn-sm" data-testid="results-apply">{{ 'player_results.apply'|trans }}</button>
+                {% if criteria.hasFilters %}
+                    <a class="fs-sm" href="{{ path('player_results', {playerId: results.playerId}|merge(results.listCriteria.withoutFilters.toQuery)) }}" data-results-clear>{{ 'player_results.clear_all'|trans }}</a>
+                {% endif %}
+            </div>
+        </div>
+    </details>
+</form>

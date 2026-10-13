@@ -16,7 +16,7 @@ that would otherwise be forgotten. Newest section on top.
 
 ## Online competitions - participant API and evidence storage (`docs/features/online-competitions/`, stream A)
 
-- [ ] lily.srv: a daily cron row for `myspeedpuzzling:prune-online-media` (periodic photos after 30 days, the rest
+- [x] lily.srv: a daily cron row for `myspeedpuzzling:prune-online-media` (periodic photos after 30 days, the rest - added 2026-10-13 (lily.srv a1f9fb6), the command verified on production
       after 365, then the orphan sweep of `online/`) - the orchestrator adds it with the deploy.
 - [ ] Before Test Cup #1, with Jan's OK: `myspeedpuzzling:online-media:cors --apply` on production (the bucket CORS
       rule for the phones' PUT + the review's GET from the site's origin; keeps the bucket's other rules - run it

@@ -9060,6 +9060,7 @@ nav:
         close_search: "Cerrar búsqueda"
         help: "Ayuda y comentarios"
         menu: "Menú"
+        menu_waiting: "Menú, hay elementos pendientes de revisión"
         back: "Atrás"
         home_logo: "MySpeedPuzzling – inicio"
         feedback: "Comentarios"

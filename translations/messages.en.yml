@@ -9332,6 +9332,7 @@ nav:
         close_search: "Close search"
         help: "Help & feedback"
         menu: "Menu"
+        menu_waiting: "Menu, items waiting for review"
         back: "Back"
         home_logo: "MySpeedPuzzling – Home"
         feedback: "Feedback"

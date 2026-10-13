@@ -24,6 +24,8 @@ import { NAV_LAYOUT_EVENT } from '../nav_instrumentation.js';
 //   no aria-haspopup, a tooltip saying what a click does (data-nav-fold-label / data-nav-dock-label: nav.layout.fold /
 //   nav.layout.dock); below 1280 px it opens the overlay dialog (aria-haspopup="dialog", aria-controls="menu-layer").
 // - Links to `menu` where the column is docked focus its first row (focusDockedMenu()).
+// - On the `menu` page itself the ☰ is that page (the server renders aria-current="page" on it, no popup): a click
+//   focuses the Menu's first row - phones and desktop - instead of reloading the page (focusPageMenu(); NAV review Q5).
 //
 // Inside the native app nothing here runs (no column, no rail - the app's own navigation). Pure functions are exported for
 // tests/nav-layout-harness.mjs; the browser listeners are installed once when app.js imports this module.
@@ -51,6 +53,8 @@ export const LAYOUT_EVENT = NAV_LAYOUT_EVENT;
 const SLOT_ID = 'menu-slot';
 const MENU_ID = 'site-menu';
 const DESKTOP_MENU_BUTTON = '.site-header-menu--desk[data-bar-action="menu"]';
+// Either ☰ on the `menu` page (the server marks it the current page)
+const CURRENT_MENU_BUTTON = '[data-bar-action="menu"][aria-current="page"]';
 const FOCUSABLE_ROW = 'a[href], summary, button:not([disabled])';
 const GROUP_ID = /^[a-z_]+$/;
 
@@ -116,9 +120,14 @@ export function columnScrollTop({ saved = null, height = 0, max = 0, row = null 
  * The desktop ☰'s state (native-aware decision, tests/native-step-aside-harness.mjs): from 1280 px it switches the
  * docked column - aria-expanded = docked, aria-controls the Menu, no popup, the tooltip of what a click does (fold |
  * dock); below 1280 px (and inside the app, where it is never shown) it opens the overlay dialog - its aria-expanded is
- * the overlay's, kept by menu_layer_controller.js (null = leave it).
+ * the overlay's, kept by menu_layer_controller.js (null = leave it). On the `menu` page (current: the ☰ carries
+ * aria-current="page") it only points at the Menu, the page's content: no popup, no expanded state, no tooltip.
  */
-export function menuButtonState({ nativeApp = false, wide = false, docked = false } = {}) {
+export function menuButtonState({ nativeApp = false, wide = false, docked = false, current = false } = {}) {
+    if (current) {
+        return { haspopup: null, expanded: null, controls: MENU_ID, tooltip: null };
+    }
+
     if (nativeApp || !wide) {
         return { haspopup: 'dialog', expanded: null, controls: 'menu-layer', tooltip: null };
     }
@@ -258,13 +267,15 @@ export function setGroupFolded(window, document, id, folded) {
 
 /** The desktop ☰'s attributes for this screen (menuButtonState) */
 export function syncMenuButtons(window, document) {
-    const state = menuButtonState({
+    const screen = {
         nativeApp: isNativeApp(document.documentElement),
         wide: matches(window, WIDE_QUERY),
         docked: isDocked(document),
-    });
+    };
 
     document.querySelectorAll(DESKTOP_MENU_BUTTON).forEach((button) => {
+        const state = menuButtonState({ ...screen, current: button.getAttribute('aria-current') === 'page' });
+
         if (state.haspopup === null) {
             button.removeAttribute('aria-haspopup');
         } else {
@@ -365,6 +376,48 @@ export function focusDockedMenu(window, document, fragment = null) {
     return true;
 }
 
+/**
+ * The `menu` page (NAV review Q5): its Menu - the page's content, #site-menu inside <main> - gets the focus on its first
+ * row; the page scrolls (at once) only when that row is not in sight under the top bar. False when this page's Menu is
+ * not its content.
+ */
+export function focusPageMenu(window, document) {
+    const nav = document.getElementById(MENU_ID);
+
+    if (!nav || !nav.closest('main')) {
+        return false;
+    }
+
+    const first = Array.from(nav.querySelectorAll(FOCUSABLE_ROW)).find(shown);
+
+    if (!first) {
+        return true;
+    }
+
+    first.focus({ preventScroll: true });
+
+    const header = document.querySelector('body > .site-header');
+    const under = header ? Math.max(0, header.getBoundingClientRect().bottom) : 0;
+    const row = first.getBoundingClientRect();
+
+    if (row.top < under || row.bottom > window.innerHeight) {
+        window.scrollTo({ top: Math.max(0, window.scrollY + row.top - under - 16), behavior: 'instant' });
+    }
+
+    return true;
+}
+
+/** A plain click (no modifier, the main button, not taken yet) on the ☰ of the `menu` page itself, or null */
+export function pageMenuButtonOf(event) {
+    const button = event.target && typeof event.target.closest === 'function' ? event.target.closest(CURRENT_MENU_BUTTON) : null;
+
+    if (!button || event.defaultPrevented || (event.button || 0) > 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) {
+        return null;
+    }
+
+    return button;
+}
+
 /** Installs the listeners once (app.js imports this module); returns false inside the app */
 export function installNavLayout(window, document) {
     if (window.__mspNavLayout) {
@@ -373,6 +426,14 @@ export function installNavLayout(window, document) {
 
     window.__mspNavLayout = true;
     const web = () => !isNativeApp(document.documentElement);
+
+    // The ☰ on the `menu` page: the page is the Menu - its first row takes the focus, the page is not loaded again
+    // (bubble phase on the document: before Turbo's own listener on the window)
+    document.addEventListener('click', (event) => {
+        if (web() && pageMenuButtonOf(event) && focusPageMenu(window, document)) {
+            event.preventDefault();
+        }
+    });
 
     document.addEventListener('click', (event) => {
         const button = event.target && typeof event.target.closest === 'function' ? event.target.closest('.menu-disclosure') : null;

@@ -240,6 +240,80 @@ final class TopBarTest extends WebTestCase
         self::assertCount(1, $crawler->filter('.site-header .site-header-menu--desk .nav-menu-dot'));
         self::assertCount(1, $crawler->filter('.site-header .site-header-menu--phone .nav-menu-dot'));
         self::assertSame(['true', 'true'], $dots->each(static fn (Crawler $dot): string => (string) $dot->attr('aria-hidden')));
+
+        // NAV review Q4: the dot is aria-hidden, so the ☰'s name says it - the visible "Menu" stays inside it
+        self::assertSame(['Menu, items waiting for review', 'Menu, items waiting for review'], $crawler->filter('.site-header [data-bar-action="menu"]')->each(static fn (Crawler $menu): string => (string) $menu->attr('aria-label')));
+        self::assertSame('Menu', trim($crawler->filter('.site-header .site-header-menu--desk .site-header-menu-label')->text()));
+    }
+
+    /**
+     * NAV review Q4: the name with the dot in every locale - translated, and the ☰'s visible label ("Menu") is part of it
+     * (WCAG 2.5.3)
+     */
+    public function testTheMenuNameWithTheDotKeepsTheLabelInEveryLocale(): void
+    {
+        $browser = self::createClient();
+        NavigationViewer::signIn($browser, NavigationViewer::MODERATOR);
+        $router = self::getContainer()->get(RouterInterface::class);
+        $names = [];
+
+        foreach (['en', 'cs', 'de', 'es', 'fr', 'ja'] as $locale) {
+            $crawler = $browser->request('GET', $router->generate('faq', ['_locale' => $locale]));
+            self::assertResponseIsSuccessful($locale);
+            $menu = $crawler->filter('.site-header .site-header-menu--desk');
+            self::assertCount(1, $menu->filter('.nav-menu-dot'), $locale);
+
+            $name = (string) $menu->attr('aria-label');
+            $label = trim($menu->filter('.site-header-menu-label')->text());
+            self::assertNotSame('', $label, $locale);
+            self::assertNotSame($label, $name, $locale . ': the name says items are waiting');
+            self::assertTrue(str_starts_with($name, $label), $locale . ': "' . $name . '" starts with the visible "' . $label . '"');
+            self::assertSame($name, $crawler->filter('.site-header .site-header-menu--phone')->attr('aria-label'), $locale);
+            $names[$locale] = $name;
+        }
+
+        self::assertCount(6, array_unique($names), 'Translated in every locale');
+    }
+
+    /**
+     * NAV review Q5: on the `menu` page both ☰ are that page - aria-current="page", no popup and no expanded state (the
+     * page's content is the Menu; assets/navigation/nav_layout.js focuses its first row on a click, never a reload) -
+     * still links to it without JS. Elsewhere they stay dialog openers.
+     */
+    public function testTheMenuButtonsOnTheMenuPageAreThatPage(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, self::PLAYER);
+        $router = self::getContainer()->get(RouterInterface::class);
+
+        $crawler = $browser->request('GET', $router->generate('menu'));
+        self::assertResponseIsSuccessful();
+        self::assertCount(1, $crawler->filter('main #site-menu'));
+
+        $menus = $crawler->filter('.site-header [data-bar-action="menu"]');
+        self::assertCount(2, $menus);
+
+        foreach ($menus as $menu) {
+            assert($menu instanceof DOMElement);
+            self::assertSame('page', $menu->getAttribute('aria-current'));
+            self::assertFalse($menu->hasAttribute('aria-haspopup'));
+            self::assertFalse($menu->hasAttribute('aria-expanded'));
+            self::assertSame($router->generate('menu'), $menu->getAttribute('href'));
+            self::assertSame('Menu', $menu->getAttribute('aria-label'));
+        }
+
+        self::assertSame('site-menu', $menus->first()->attr('aria-controls'));
+
+        // A guest's too (the page stays shared: it depends on the route only)
+        self::ensureKernelShutdown();
+        $guest = self::createClient();
+        $crawler = $guest->request('GET', '/en/menu');
+        self::assertSame(['page', 'page'], $crawler->filter('.site-header [data-bar-action="menu"]')->each(static fn (Crawler $menu): string => (string) $menu->attr('aria-current')));
+
+        // Anywhere else no ☰ is the current page
+        $crawler = $guest->request('GET', '/en/faq');
+        self::assertCount(0, $crawler->filter('.site-header [data-bar-action="menu"][aria-current]'));
+        self::assertSame(['dialog', 'dialog'], $crawler->filter('.site-header [data-bar-action="menu"]')->each(static fn (Crawler $menu): string => (string) $menu->attr('aria-haspopup')));
     }
 
     public function testNoMenuDotForAMemberOrAnOrganiser(): void
@@ -252,6 +326,7 @@ final class TopBarTest extends WebTestCase
             $crawler = $browser->request('GET', '/en/faq');
             self::assertResponseIsSuccessful($role);
             self::assertCount(0, $crawler->filter('.site-header .nav-menu-dot'), $role);
+            self::assertSame(['Menu', 'Menu'], $crawler->filter('.site-header [data-bar-action="menu"]')->each(static fn (Crawler $menu): string => (string) $menu->attr('aria-label')), $role);
         }
     }
 

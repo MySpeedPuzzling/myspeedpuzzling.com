@@ -9079,6 +9079,7 @@ nav:
         close_search: "Fermer la recherche"
         help: "Aide et commentaires"
         menu: "Menu"
+        menu_waiting: "Menu, des éléments attendent une vérification"
         back: "Retour"
         home_logo: "MySpeedPuzzling – accueil"
         feedback: "Commentaires"

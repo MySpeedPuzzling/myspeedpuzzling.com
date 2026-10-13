@@ -9048,6 +9048,7 @@ nav:
         close_search: "検索を閉じる"
         help: "ヘルプとフィードバック"
         menu: "メニュー"
+        menu_waiting: "メニュー、確認待ちの項目があります"
         back: "戻る"
         home_logo: "MySpeedPuzzling – ホーム"
         feedback: "フィードバック"

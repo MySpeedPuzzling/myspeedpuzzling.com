@@ -34,6 +34,7 @@ final class MultiscanControllerTest extends WebTestCase
         self::assertCount(1, $crawler->filter('.multiscan-teaser button[data-bs-target="#membersExclusiveModal"]'));
         // The teaser has no action bar: the tab bar stays (NAV-08, decision 46)
         self::assertCount(1, $crawler->filter('body > #bottom-nav:not([hidden]):not(.bottom-nav--tabbar-hidden)'));
+        self::assertStringNotContainsString('no-tab-bar', (string) $crawler->filter('body')->attr('class'));
         self::assertStringContainsString('<meta name="robots" content="noindex, nofollow">', (string) $browser->getResponse()->getContent());
     }
 
@@ -52,6 +53,9 @@ final class MultiscanControllerTest extends WebTestCase
         // The tab bar gives way to the scanner's action bar (README §4.10, NAV-08, decision 46): on phones only - critical
         // CSS hides it there and reserves no room; desktop keeps the places as the rail
         self::assertCount(1, $crawler->filter('body > #bottom-nav.bottom-nav--tabbar-hidden:not([hidden])'));
+        // <body> says so too: critical CSS keeps no room for the tab bar on it, also in browsers without :has() (NAV
+        // review F4)
+        self::assertStringContainsString('no-tab-bar', (string) $crawler->filter('body')->attr('class'));
     }
 
     public function testEntryPointPresetsTheActionAndAValidatedCollection(): void

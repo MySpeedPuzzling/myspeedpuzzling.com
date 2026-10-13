@@ -19,6 +19,8 @@ import {
     collapsedValue,
     columnScrollTop,
     focusDockedMenu,
+    focusPageMenu,
+    installNavLayout,
     LAYOUT_ATTRIBUTE,
     LAYOUT_EVENT,
     LAYOUT_KEY,
@@ -141,6 +143,9 @@ cases.push(run('pure', () => ({
         wideRail: menuButtonState({ wide: true, docked: false }),
         narrow: menuButtonState({ wide: false, docked: false }),
         insideTheApp: menuButtonState({ nativeApp: true, wide: true, docked: true }),
+        // The `menu` page (NAV review Q5): the ☰ is that page - no popup, no expanded state, no tooltip, at any width
+        menuPageWide: menuButtonState({ wide: true, docked: false, current: true }),
+        menuPageNarrow: menuButtonState({ wide: false, docked: false, current: true }),
     },
 })));
 
@@ -302,6 +307,76 @@ cases.push(run('the column scroll is saved', () => {
     saveColumnScroll(rail.window, rail.document);
 
     return { saved, railSaves: rail.window.sessionStorage.getItem(COLUMN_SCROLL_KEY) };
+}));
+
+// ---- the `menu` page: its ☰ focuses the Menu instead of loading the page again (NAV review Q5) ---------------------
+
+function menuPage({ wide = true, current = true } = {}) {
+    const marker = current ? ' aria-current="page"' : ' aria-haspopup="dialog" aria-expanded="false"';
+    const html = `<!doctype html><html lang="en"><body>
+        <header class="site-header"><a class="site-header-menu site-header-menu--desk" id="menu-desk" href="/en/menu" data-bar-action="menu"${marker} aria-controls="site-menu" data-nav-fold-label="Collapse the menu" data-nav-dock-label="Expand the menu">☰</a><a class="site-header-menu site-header-menu--phone" id="menu-phone" href="/en/menu" data-bar-action="menu"${marker}>☰</a></header>
+        <main><h1>Menu</h1><nav id="site-menu"><section class="menu-group" data-menu-group="you"><ul><li><a class="mr" id="first-row" href="/en/player/1">You</a></li><li><a class="mr" href="/en/settings">Settings</a></li></ul></section></nav></main>
+        </body></html>`;
+    const window = new JSDOM(html, { url: ORIGIN + '/en/menu', virtualConsole: new VirtualConsole() }).window;
+    const document = window.document;
+
+    document.querySelectorAll('#site-menu a').forEach((element) => {
+        element.getClientRects = () => [{}];
+    });
+    window.matchMedia = (query) => ({ matches: query === WIDE_QUERY ? wide : false, addEventListener: () => {}, removeEventListener: () => {} });
+    window.requestAnimationFrame = (callback) => callback();
+
+    return { window, document };
+}
+
+function click(window, element, init = {}) {
+    const event = new window.MouseEvent('click', { bubbles: true, cancelable: true, button: 0, ...init });
+    element.dispatchEvent(event);
+
+    return event.defaultPrevented;
+}
+
+cases.push(run('the ☰ on the menu page', () => {
+    const wide = menuPage({ wide: true });
+    installNavLayout(wide.window, wide.document);
+    const desk = wide.document.getElementById('menu-desk');
+    const attributes = {
+        haspopup: desk.getAttribute('aria-haspopup'),
+        expanded: desk.getAttribute('aria-expanded'),
+        controls: desk.getAttribute('aria-controls'),
+        title: desk.getAttribute('title'),
+        current: desk.getAttribute('aria-current'),
+    };
+    const deskPrevented = click(wide.window, desk);
+    const deskFocused = wide.document.activeElement ? wide.document.activeElement.id : null;
+    const layoutStored = wide.window.localStorage.getItem(LAYOUT_KEY);
+
+    const phone = menuPage({ wide: false });
+    installNavLayout(phone.window, phone.document);
+    const phonePrevented = click(phone.window, phone.document.getElementById('menu-phone'));
+    const phoneFocused = phone.document.activeElement ? phone.document.activeElement.id : null;
+
+    // A click the browser keeps (a new tab) goes to the page as it is
+    const kept = menuPage();
+    installNavLayout(kept.window, kept.document);
+    const ctrlClick = click(kept.window, kept.document.getElementById('menu-phone'), { ctrlKey: true });
+
+    // Elsewhere (no aria-current) this listener leaves the ☰ alone - the Menu shell's listener opens the Menu there
+    const other = menuPage({ current: false });
+    installNavLayout(other.window, other.document);
+    const otherPrevented = click(other.window, other.document.getElementById('menu-phone'));
+
+    return {
+        attributes,
+        deskPrevented,
+        deskFocused,
+        layoutStored,
+        phonePrevented,
+        phoneFocused,
+        ctrlClick,
+        otherPrevented,
+        notTheMenuPage: focusPageMenu(page().window, page().document),
+    };
 }));
 
 process.stdout.write(JSON.stringify(Object.fromEntries(cases)));

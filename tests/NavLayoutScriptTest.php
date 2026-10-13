@@ -19,7 +19,8 @@ use Symfony\Component\Process\Process;
  *   column scrolls to (its own scrollTop: where it was, moved onto the current row when that is out of sight), focuses
  *   the docked column's first row for a link to `menu`, and docking asks for the Menu's numbers with the 5-minute TTL;
  * - assets/navigation/menu_links.js: a link to `menu` opens the panel on phones, the overlay below 1280 px and in the
- *   rail state, focuses the docked column; the ☰ from 1280 px docks / folds; the app and kept clicks go to the page.
+ *   rail state, focuses the docked column; the ☰ from 1280 px docks / folds; the app and kept clicks go to the page;
+ * - on the `menu` page itself the ☰ focuses the Menu's first row (nav_layout.js, NAV review Q5).
  */
 final class NavLayoutScriptTest extends TestCase
 {
@@ -101,7 +102,31 @@ final class NavLayoutScriptTest extends TestCase
             'wideRail' => ['haspopup' => null, 'expanded' => 'false', 'controls' => 'site-menu', 'tooltip' => 'dock'],
             'narrow' => ['haspopup' => 'dialog', 'expanded' => null, 'controls' => 'menu-layer', 'tooltip' => null],
             'insideTheApp' => ['haspopup' => 'dialog', 'expanded' => null, 'controls' => 'menu-layer', 'tooltip' => null],
+            // NAV review Q5: on the `menu` page the ☰ is that page - it only points at the Menu
+            'menuPageWide' => ['haspopup' => null, 'expanded' => null, 'controls' => 'site-menu', 'tooltip' => null],
+            'menuPageNarrow' => ['haspopup' => null, 'expanded' => null, 'controls' => 'site-menu', 'tooltip' => null],
         ], $pure['menuButtonState']);
+    }
+
+    /**
+     * NAV review Q5: on the `menu` page (the server marks both ☰ aria-current="page") a plain click on either ☰ focuses
+     * the Menu's first row instead of loading the page again - from 1280 px too, where the ☰ elsewhere docks / folds
+     * (the stored layout stays); a kept click (Ctrl, a new tab) goes to the page; elsewhere this listener leaves the ☰
+     * to the Menu shell's
+     */
+    public function testTheMenuButtonOnTheMenuPageFocusesTheMenu(): void
+    {
+        self::assertSame([
+            'attributes' => ['haspopup' => null, 'expanded' => null, 'controls' => 'site-menu', 'title' => null, 'current' => 'page'],
+            'deskPrevented' => true,
+            'deskFocused' => 'first-row',
+            'layoutStored' => null,
+            'phonePrevented' => true,
+            'phoneFocused' => 'first-row',
+            'ctrlClick' => false,
+            'otherPrevented' => false,
+            'notTheMenuPage' => false,
+        ], self::results()['the ☰ on the menu page']);
     }
 
     /**

@@ -9059,6 +9059,7 @@ nav:
         close_search: "Suche schließen"
         help: "Hilfe & Feedback"
         menu: "Menü"
+        menu_waiting: "Menü, Einträge warten auf Prüfung"
         back: "Zurück"
         home_logo: "MySpeedPuzzling – Start"
         feedback: "Feedback"

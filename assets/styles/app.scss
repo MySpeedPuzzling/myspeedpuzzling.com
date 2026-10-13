@@ -1429,6 +1429,8 @@ canvas {
 // (README §4.2, F-03; the critical CSS hides it before the stylesheet). Over everything fixed on the page - the compact
 // bar ($zindex-sticky - 10) included - under the top bar and the bottom bar ($zindex-sticky), which stay usable while
 // searching. A tap on it closes the search.
+// Phones only - the search view, with the page locked under it. The desktop search is a dropdown under the field: no
+// scrim, the page keeps scrolling and nothing jumps sideways for a removed scrollbar (NAV review F2).
 .global-search-overlay {
     display: none;
     position: fixed;
@@ -1440,20 +1442,22 @@ canvas {
     z-index: $zindex-sticky - 6;
 }
 
-html[data-search-open] {
-    overflow: hidden;
+@include nav-phone {
+    html[data-search-open] {
+        overflow: hidden;
 
-    .global-search-overlay {
-        display: block;
-        opacity: 1;
-        transition: opacity .2s ease-in-out;
+        .global-search-overlay {
+            display: block;
+            opacity: 1;
+            transition: opacity .2s ease-in-out;
 
-        @starting-style {
-            opacity: 0;
-        }
+            @starting-style {
+                opacity: 0;
+            }
 
-        @media (prefers-reduced-motion: reduce) {
-            transition: none;
+            @media (prefers-reduced-motion: reduce) {
+                transition: none;
+            }
         }
     }
 }

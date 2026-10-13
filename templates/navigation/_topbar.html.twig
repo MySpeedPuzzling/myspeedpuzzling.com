@@ -14,7 +14,11 @@
     - ? = the Help sheet (help_opener_attrs(), HELP-01b); Inbox for signed-in players (inbox/_link.html.twig, INB-01/02);
       ☰ = the Menu: a link to the `menu` page that opens the phone panel (MENU-02b), last at the right edge, a dot
       while one of a moderator's or admin's review queues holds items (the memoised admin_queue_counts() statement the
-      Menu's Your roles rows read - no statement of its own).
+      Menu's Your roles rows read - no statement of its own) - the dot is aria-hidden, so the ☰'s name says it then
+      ("Menu, items waiting for review", nav.bar.menu_waiting - the visible "Menu" stays inside it; NAV review Q4).
+      On the `menu` page itself (its content is the Menu: nav_menu_slot_off) both ☰ are that page: aria-current="page",
+      no popup, and a click focuses the Menu's first row instead of reloading the page (assets/navigation/nav_layout.js;
+      NAV review Q5).
     Desktop (64 px, never hides; README §4.3, D16):
     - 768-1023 px, the compact bar: ☰ Menu (label shown) · logo · Home · Puzzles · Community (_places `compact`) · 🔍 (the
       field opens in the bar on a tap or Ctrl/Cmd+K) · ⏱ · + Add · ? · Inbox · avatar ▾;
@@ -41,6 +45,8 @@
 {%- set stopwatch_running = profile is not null and profile.runningStopwatch is not null -%}
 {%- set back = not location.rootPage -%}
 {%- set menu_dot = profile is not null and nav_menu().hasQueueBacklog() -%}
+{%- set menu_name = menu_dot ? 'nav.bar.menu_waiting'|trans : 'nav.bar.menu'|trans -%}
+{%- set menu_page = nav_menu_slot_off ?? false -%}
 {#- The back button's link without JS: the start page of the place this page belongs to (the bars' own link to it); a
     guest's Sign in: the Profile tab's link (sign in, back to this page afterwards - SignInLink) -#}
 {%- set back_href = home_href -%}
@@ -52,7 +58,7 @@
 <header class="site-header{{ back ? ' site-header--back' }}{{ stopwatch_running ? ' site-header--stopwatch' }}" data-controller="topbar"
     {%- if profile is not null %} data-viewer-signed-in{% endif %}>
     <div class="site-header-inner">
-        <a class="site-header-tool site-header-menu site-header-menu--desk" href="{{ path('menu') }}" data-bar-action="{{ bar_action('menu') }}" data-nav="topbar/none/menu" aria-label="{{ 'nav.bar.menu'|trans }}" aria-haspopup="dialog" aria-expanded="false" aria-controls="site-menu" data-nav-fold-label="{{ 'nav.layout.fold'|trans }}" data-nav-dock-label="{{ 'nav.layout.dock'|trans }}">
+        <a class="site-header-tool site-header-menu site-header-menu--desk" href="{{ path('menu') }}" data-bar-action="{{ bar_action('menu') }}" data-nav="topbar/none/menu" aria-label="{{ menu_name }}"{% if menu_page %} aria-current="page"{% else %} aria-haspopup="dialog" aria-expanded="false"{% endif %} aria-controls="site-menu" data-nav-fold-label="{{ 'nav.layout.fold'|trans }}" data-nav-dock-label="{{ 'nav.layout.dock'|trans }}">
             <svg class="nav-i" aria-hidden="true" focusable="false"><use href="#nav-i-list"></use></svg>
             <span class="site-header-menu-label" aria-hidden="true">{{ 'nav.bar.menu'|trans }}</span>
             {%- if menu_dot %}<span class="nav-menu-dot" aria-hidden="true"></span>{% endif -%}
@@ -97,7 +103,7 @@
         {%- else -%}
             <a class="site-header-signin" href="{{ sign_in_href }}" rel="nofollow" data-nav="topbar/profile/sign_in">{{ 'nav.bar.sign_in'|trans }}</a>
         {%- endif -%}
-        <a class="site-header-tool site-header-menu site-header-menu--phone" href="{{ path('menu') }}" data-bar-action="{{ bar_action('menu') }}" data-nav="topbar/none/menu" aria-label="{{ 'nav.bar.menu'|trans }}" aria-haspopup="dialog" aria-expanded="false">
+        <a class="site-header-tool site-header-menu site-header-menu--phone" href="{{ path('menu') }}" data-bar-action="{{ bar_action('menu') }}" data-nav="topbar/none/menu" aria-label="{{ menu_name }}"{% if menu_page %} aria-current="page"{% else %} aria-haspopup="dialog" aria-expanded="false"{% endif %}>
             <svg class="nav-i" aria-hidden="true" focusable="false"><use href="#nav-i-list"></use></svg>
             {%- if menu_dot %}<span class="nav-menu-dot" aria-hidden="true"></span>{% endif -%}
         </a>

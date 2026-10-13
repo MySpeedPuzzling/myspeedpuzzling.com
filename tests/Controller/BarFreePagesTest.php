@@ -141,6 +141,9 @@ final class BarFreePagesTest extends WebTestCase
         self::assertSame('topbar/home/logo', $header->filter('a.site-header-logo')->attr('data-nav'));
         self::assertSame('MySpeedPuzzling – Home', $header->filter('a.site-header-logo')->attr('aria-label'));
         self::assertSame('Language: English', $header->filter('details.site-header-language > summary')->attr('aria-label'));
+        // NAV review F6: it closes on Esc and on a tap or click outside it, like the old dropdown (the <details> itself
+        // works before any script)
+        self::assertSame('details-dismiss', $header->filter('details.site-header-language')->attr('data-controller'));
 
         $languages = $header->filter('.site-header-languages a[data-locale-preference-locale-param]');
         self::assertSame(['de', 'cs', 'fr', 'es', 'ja'], $languages->each(static fn (Crawler $link): string => (string) $link->attr('data-locale-preference-locale-param')));
@@ -166,6 +169,7 @@ final class BarFreePagesTest extends WebTestCase
             self::assertCount(0, $crawler->filter($selector), $url . ': ' . $selector);
         }
 
+        // <body> says it has no bars: critical CSS keeps no room for the tab bar on it, also without :has() (NAV review F4)
         self::assertStringContainsString('no-nav-chrome', (string) $crawler->filter('body')->attr('class'));
 
         // Every field on the page belongs to one of the page's own forms

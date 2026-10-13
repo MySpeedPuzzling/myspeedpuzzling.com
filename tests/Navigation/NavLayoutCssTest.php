@@ -90,6 +90,32 @@ final class NavLayoutCssTest extends TestCase
         self::assertMatchesRegularExpression('~display\s*:\s*block~', $this->declarationsOf('assets/styles/app.scss', 'html[data-search-open] .global-search-overlay'));
     }
 
+    /**
+     * NAV review F2: the scrim and the page's scroll lock belong to the phone search view only. On desktop the search is
+     * a dropdown under the field - focusing the always-visible field neither dims the page nor stops it scrolling, and
+     * no removed scrollbar moves the page sideways. The dropdown panel itself opens at every width.
+     */
+    public function testTheDesktopSearchNeitherDimsNorLocksThePage(): void
+    {
+        $phone = '@media (max-width:767.98px),(max-height:500.98px) and (pointer:coarse){';
+        $lines = array_values(array_filter(explode("\n", $this->criticalRules()), static fn (string $line): bool => str_contains($line, 'html[data-search-open] .global-search-overlay')));
+
+        self::assertCount(1, $lines, 'One critical rule shows the scrim');
+        self::assertStringStartsWith($phone, $lines[0], 'The critical CSS shows the scrim on phones only');
+        self::assertStringContainsString("\nhtml[data-search-open] .site-search-panel{display:block}\n", "\n" . $this->criticalRules() . "\n", 'The panel opens at every width');
+
+        $app = $this->withoutComments((string) file_get_contents($this->root() . '/assets/styles/app.scss'));
+        self::assertSame(1, substr_count($app, 'html[data-search-open]'), 'app.scss styles the open search in one place');
+        self::assertMatchesRegularExpression('~@include nav-phone\s*\{\s*html\[data-search-open\]\s*\{\s*overflow\s*:\s*hidden\s*;~', $app, 'The scroll lock and the scrim of the open search are phones only');
+
+        // No other stylesheet locks the page for the open search
+        foreach ($this->files('assets/styles', ['scss']) as $path => $code) {
+            if ($path !== 'assets/styles/app.scss') {
+                self::assertDoesNotMatchRegularExpression('~\[data-search-open\][^{]*\{[^}]*overflow\s*:\s*hidden~', $this->withoutComments($code), $path);
+            }
+        }
+    }
+
     public function testNoScriptOrTemplateWritesTheLayoutLengths(): void
     {
         $names = implode('|', array_map(static fn (string $name): string => preg_quote($name, '~'), self::CSS_ONLY_LENGTHS));
@@ -390,8 +416,15 @@ final class NavLayoutCssTest extends TestCase
         self::assertStringContainsString('@media (min-width:768px) and (min-height:501px),(min-width:768px) and (pointer:fine){:root{--header-height:64px}}', $css);
         self::assertStringContainsString('@media (max-width:767.98px) and (max-height:479.98px),(max-height:479.98px) and (pointer:coarse){:root{--header-height:0px}}', $css);
         self::assertMatchesRegularExpression('~:root\{[^}]*--topbar-h:var\(--header-height\)~', $css);
-        // The bar's height only while a visible .bottom-nav exists, never with a running stopwatch or in the app
-        self::assertMatchesRegularExpression('~:not\(\[data-stopwatch-running\]\):not\(\[data-native-app\]\):has\(> body > \.bottom-nav:not\(\[hidden\]\):not\(\.bottom-nav--tabbar-hidden\)\)\{--bottom-nav-height:calc\(var\(--tabbar-h\) \+ var\(--safe-bottom-max\)\)\}~', $css);
+        // The bar's height only while a visible .bottom-nav exists, never in the app
+        self::assertMatchesRegularExpression('~:root:not\(\[data-native-app\]\):has\(> body > \.bottom-nav:not\(\[hidden\]\):not\(\.bottom-nav--tabbar-hidden\)\)\{--bottom-nav-height:calc\(var\(--tabbar-h\) \+ var\(--safe-bottom-max\)\)\}~', $css);
+        // NAV review Q3: nothing sets html[data-stopwatch-running] - the dead selector is gone (ADD-04 adds what it needs)
+        self::assertStringNotContainsString('data-stopwatch-running', $css);
+        // NAV review F4: a page the server knows has no tab bar says 0 on <body> itself - bar-free and auth pages, the
+        // app (no-nav-chrome) and hide_bottom_bar (no-tab-bar) - so browsers without :has() keep no room for it either
+        self::assertStringContainsString("\nbody.no-nav-chrome,body.no-tab-bar{--bottom-nav-height:0px}\n", "\n" . $css . "\n");
+        $base = (string) file_get_contents($this->root() . '/templates/base.html.twig');
+        self::assertStringContainsString("{{ (hide_bottom_bar ?? false) ? ' no-tab-bar' }}", $base);
         // NAV-08: hide_bottom_bar takes the tab bar away on phones only (decision 46) - desktop keeps the places (the rail)
         self::assertStringContainsString("\n@media (max-width:767.98px),(max-height:500.98px) and (pointer:coarse){.bottom-nav--tabbar-hidden{display:none}}\n", $css . "\n");
 

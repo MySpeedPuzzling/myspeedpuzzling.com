@@ -46,9 +46,13 @@ const SCANNER = 'barcode-scanner';
  *   replaces the field next to a running stopwatch, the old header's tool) opens the search: <html data-search-open>.
  *   On phones that is the search view, a layer of assets/layer_history.js (GEST-01): one same-URL history entry, so
  *   Back, ×, Esc and a tap on the scrim close it and a result opened from it replaces its entry (Back then returns to
- *   the page the search was opened on). On desktop it is a dropdown under the field with no history entry
- *   (decision 22): Esc or a click outside closes it. Closing clears the field. Opened from an icon, the field is shown
- *   and focused in the same tap (iOS opens the keyboard only then).
+ *   the page the search was opened on); the scrim and the page's scroll lock belong to it (phones only, CSS). On
+ *   desktop it is a dropdown under the field with no history entry (decision 22), no scrim, the page scrolls on (NAV
+ *   review F2): Esc anywhere in it, a click outside it and the focus leaving it (Tab past it - not onto its own results,
+ *   not into a modal it opened) close it. Esc and × put the focus back into the field - or, where the field hides again
+ *   (the 768-1023 px bar), on the 🔍 that opened it - never on <body> (review F5); typing in the still focused field (or
+ *   a click on it) opens it again. Closing clears the field. Opened from an icon, the field is shown and focused in the
+ *   same tap (iOS opens the keyboard only then).
  * - `menu`: the Menu panel's field. Typing shows the results inside the panel (the shell gets .is-searching, CSS hides
  *   #site-menu) - same layer, same history entry. Esc - in the field or on a result - clears a typed query first and
  *   puts focus back into the field; it closes the panel only when the field is empty (assets/layer_history.js handles
@@ -71,6 +75,7 @@ export default class extends Controller {
     connect() {
         this.shown = false;
         this.layered = false;
+        this.quietFocus = false;
 
         this.searchInputTarget.addEventListener('focus', this.handleFocus);
         // On the whole instance: Esc on a result row too (review Q5)
@@ -85,6 +90,8 @@ export default class extends Controller {
             document.addEventListener('keydown', this.handleShortcut);
             document.addEventListener(CLOSE_EVENT, this.handleCloseRequest);
             document.addEventListener('turbo:before-cache', this.handleBeforeCache);
+            this.element.addEventListener('focusout', this.handleFocusOut);
+            this.searchInputTarget.addEventListener('click', this.handleFieldClick);
 
             if (this.hasPanelTarget) {
                 this.panelTarget.addEventListener('click', this.handlePanelClick);
@@ -104,6 +111,8 @@ export default class extends Controller {
         document.removeEventListener(CLOSE_EVENT, this.handleCloseRequest);
         document.removeEventListener('click', this.handleOutsideClick);
         document.removeEventListener('turbo:before-cache', this.handleBeforeCache);
+        this.element.removeEventListener('focusout', this.handleFocusOut);
+        this.searchInputTarget.removeEventListener('click', this.handleFieldClick);
 
         if (this.hasPanelTarget) {
             this.panelTarget.removeEventListener('click', this.handlePanelClick);
@@ -122,6 +131,11 @@ export default class extends Controller {
     }
 
     handleFocus = () => {
+        // The focus coming back after Esc or × (restoreFocus) reopens nothing
+        if (this.quietFocus) {
+            return;
+        }
+
         window.dispatchEvent(new CustomEvent('barcode-scan:close'));
 
         if (!this.isMenu()) {
@@ -132,14 +146,51 @@ export default class extends Controller {
     handleInput = () => {
         if (this.isMenu()) {
             this.syncSearching();
+
+            return;
         }
+
+        // Desktop: Esc closed the dropdown and left the focus in the field - typing opens it again (clear() sends an
+        // empty input, which never does)
+        if (!this.shown && this.searchInputTarget.value !== '' && document.activeElement === this.searchInputTarget) {
+            this.openView();
+        }
+    };
+
+    /** Desktop: a click on the field that kept the focus after Esc (no new focus event) opens the dropdown again */
+    handleFieldClick = () => {
+        if (!this.shown) {
+            this.openView();
+        }
+    };
+
+    /**
+     * Desktop (review F2): the dropdown closes when the focus leaves the search - Tab past it, Shift+Tab back to the
+     * logo, a click on a focusable element outside it. Not for a move inside it (the field → the scan button → a
+     * result), not into a modal opened from it (the members-only scan modal), and not when nothing gets the focus (the
+     * window lost it - another tab or app - or a click on nothing focusable: the outside click decides that one). The
+     * phone search view is a layer: Back, ×, Esc, the scrim and a visit close it.
+     */
+    handleFocusOut = (event) => {
+        if (!this.shown || this.layered) {
+            return;
+        }
+
+        const next = event.relatedTarget;
+
+        if (!next || typeof next.closest !== 'function' || this.element.contains(next) || next.closest('.modal')) {
+            return;
+        }
+
+        this.closeView('close');
     };
 
     /**
      * Menu: Esc in the field or on a result clears a filled field (and stops there - the panel stays) with focus back in
      * the field (review Q5); with an empty field Esc closes the panel.
      * Bar: on phones Esc closes the search view through assets/layer_history.js (its document listener); the desktop
-     * dropdown has no history entry and closes here.
+     * dropdown has no history entry and closes here - Esc on the field or on a result - and the focus goes back to
+     * the field (or the 🔍 where the field hides again).
      */
     handleKeydown = (event) => {
         if (event.key !== 'Escape' || event.defaultPrevented) {
@@ -150,6 +201,7 @@ export default class extends Controller {
             if (this.shown && !this.layered) {
                 event.preventDefault();
                 this.closeView('close');
+                this.restoreFocus();
             }
 
             return;
@@ -402,6 +454,8 @@ export default class extends Controller {
             return;
         }
 
+        const layered = this.layered;
+
         this.shown = false;
         this.layered = false;
         document.removeEventListener('click', this.handleOutsideClick);
@@ -409,13 +463,49 @@ export default class extends Controller {
         window.dispatchEvent(new CustomEvent('barcode-scan:close'));
         this.clear();
 
-        if (reason !== 'cache' && document.activeElement === this.searchInputTarget) {
-            // The keyboard goes away with the search view
+        if (layered && reason !== 'cache' && document.activeElement === this.searchInputTarget) {
+            // Phones: the keyboard goes away with the search view. Desktop keeps the focus where it is (review F5)
             this.searchInputTarget.blur();
         }
     }
 
-    /** ×: through Back while the search view holds its history entry, else at once */
+    /**
+     * Desktop, after Esc or ×: the focus stays in (or goes back to) the field where it is still shown - from 1024 px -
+     * else on the header's shown 🔍, which opened it (768-1023 px: the field hides again) - never on <body> (WCAG 2.4.3,
+     * review F5). The focus coming back opens nothing.
+     */
+    restoreFocus() {
+        const input = this.searchInputTarget;
+        const target = input.getClientRects().length > 0 ? input : this.shownToggle();
+
+        if (!target || document.activeElement === target) {
+            return;
+        }
+
+        this.quietFocus = true;
+
+        try {
+            target.focus({ preventScroll: true });
+        } finally {
+            this.quietFocus = false;
+        }
+    }
+
+    /** The header's 🔍 that stands in for the field right now, or null */
+    shownToggle() {
+        const header = this.element.closest('.site-header');
+
+        if (!header) {
+            return null;
+        }
+
+        return Array.from(header.querySelectorAll(TOGGLE)).find((toggle) => toggle.getClientRects().length > 0) || null;
+    }
+
+    /**
+     * ×: through Back while the search view holds its history entry, else at once (desktop: the focus back to the field
+     * or the 🔍 - review F5). Without an event: the scrim, the panel's empty part, an outside click, the 🔍 again.
+     */
     closeSearchBar(event) {
         if (event) {
             event.preventDefault();
@@ -427,7 +517,12 @@ export default class extends Controller {
             return;
         }
 
+        const shown = this.shown;
         this.closeView('close');
+
+        if (event && shown) {
+            this.restoreFocus();
+        }
     }
 
     toggleSearchBar(event) {

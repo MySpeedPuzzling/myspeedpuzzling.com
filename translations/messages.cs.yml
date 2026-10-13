@@ -9086,6 +9086,7 @@ nav:
         close_search: "Zavřít hledání"
         help: "Nápověda a zpětná vazba"
         menu: "Menu"
+        menu_waiting: "Menu, položky čekají na kontrolu"
         back: "Zpět"
         home_logo: "MySpeedPuzzling – domů"
         feedback: "Zpětná vazba"

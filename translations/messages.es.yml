@@ -8996,7 +8996,6 @@ modal:
 # Online competitions: the participant page (docs/features/online-competitions/)
 compete:
     page:
-        title: "Competición en línea"
         meta_description: "La página personal de un participante de una ronda en línea de MySpeedPuzzling."
         no_script: "Esta página necesita JavaScript. Actívalo en tu navegador o abre el enlace en otro navegador."
         you_are: "Eres %name%"
@@ -9043,7 +9042,6 @@ compete:
         taken_over_button: "Usar este dispositivo"
         hidden_warning: "Esta página estuvo %time% en segundo plano. Mantenla abierta y delante de ti durante toda la ronda."
         offline_banner: "Sin conexión: todo se guarda en este móvil y se envía cuando vuelva la conexión."
-        reload_warning: "Todavía hay algo pendiente de enviar: mantén esta página abierta hasta que se envíe."
     checklist:
         title: "Prepárate"
         intro: "Pon el móvil en un soporte, apuntando a tu zona de puzzle. Todas las filas deberían ponerse en verde."
@@ -9057,7 +9055,6 @@ compete:
         charger_text: "Conecta el cargador: la cámara funciona durante toda la ronda."
         camera_switch: "Cambiar de cámara"
         camera_try_again: "Reintentar"
-        camera_turn_on: "Encender la cámara"
         empty_mat_button: "Hacer la foto"
         empty_mat_hint: "Antes de desembalar el puzzle, apunta la cámara a tu tapete vacío."
         ready: "Todo listo"
@@ -9149,8 +9146,6 @@ compete:
         this_is_me: "Soy yo"
         connecting: "Conectando este enlace a tu perfil…"
         failed: "No se pudo conectar este enlace a tu perfil: aun así, sirve para competir."
-    api:
-        unknown_link: "Este enlace no abre ninguna competición."
 
 # Online competitions: the organiser's pages (docs/features/online-competitions/)
 online_rounds:
@@ -9191,16 +9186,16 @@ online_rounds:
             title: "Participantes"
             none: "Aún no va nadie. Añade a los participantes en la hoja de participantes."
             open_sheet: "Abrir la hoja de participantes"
-            entered: "Inscritos en esta ronda: %entered% de las %going% personas que van."
+            entered: "Personas que van al evento inscritas en esta ronda: %entered% de %going%."
             with_link: "Con enlace personal: %with_link% de %going%."
-            not_entered: "{1}1 persona que va aún no está inscrita en esta ronda. Su enlace abre la competición, pero solo compite en esta ronda cuando la inscribas.|]1,Inf[%count% personas que van aún no están inscritas en esta ronda. Sus enlaces abren la competición, pero solo compiten en esta ronda cuando las inscribas."
+            not_entered: "{1}1 persona que va aún no está inscrita en esta ronda. Su enlace abre la competición, pero solo compite en esta ronda cuando la inscribas.|[0,Inf[%count% personas que van aún no están inscritas en esta ronda. Sus enlaces abren la competición, pero solo compiten en esta ronda cuando las inscribas."
             enter: "Inscríbelos en la hoja de participantes"
             later_links: "Quienes se apunten más tarde por su cuenta reciben su enlace al instante, en la página del evento («Abrir mi página de competición»). Quienes añadas en la hoja de participantes reciben el suyo cuando abras «Enlaces personales», su CSV o sus códigos QR: desde ahí se los repartes."
         in_use:
-            round_category: "%rounds% usa cronometraje en línea, que solo funciona en rondas individuales: la ronda sigue siendo individual."
+            round_category: "El cronometraje en línea está activado en %rounds%: solo funciona en rondas individuales, así que la ronda sigue siendo individual."
             event_in_person: "El cronometraje en línea está activado en %rounds%: solo funciona en un evento en línea, así que el evento sigue siendo en línea."
             series_in_person: "Hay ediciones de esta serie que usan cronometraje en línea (%rounds%): solo funciona en eventos en línea, así que la serie sigue siendo en línea."
-            round_move: "%rounds% usa cronometraje en línea, que solo funciona en un evento en línea: solo se puede mover a un evento en línea."
+            round_move: "El cronometraje en línea está activado en %rounds%: solo funciona en un evento en línea, así que la ronda solo se puede mover a un evento en línea."
             edition_move: "El cronometraje en línea está activado en %rounds% de esta edición: solo funciona en eventos en línea, así que la edición solo se puede mover a una serie en línea."
         flash:
             enabled: "{0}El cronometraje en línea está activado en %round%.|{1}El cronometraje en línea está activado en %round%. 1 participante ha recibido un enlace personal.|]1,Inf[El cronometraje en línea está activado en %round%. %count% participantes han recibido un enlace personal."
@@ -9241,7 +9236,7 @@ online_rounds:
         create: "Crear enlace"
         create_label: "Crear enlace para %name%"
         regenerate_confirm: "El enlace actual de %name% dejará de funcionar al instante. ¿Crear uno nuevo?"
-        waitlisted: "{1}1 persona en la lista de espera recibirá su enlace cuando consiga una plaza.|]1,Inf[%count% personas en la lista de espera recibirán su enlace cuando consigan una plaza."
+        waitlisted: "{1}1 persona en la lista de espera recibirá su enlace cuando consiga una plaza.|[0,Inf[%count% personas en la lista de espera recibirán su enlace cuando consigan una plaza."
         open_my_page: "Abrir mi página de competición"
         sheet:
             column: "Enlace personal"
@@ -9282,7 +9277,7 @@ online_rounds:
                 countdown: "Cuenta atrás"
                 running: "En marcha"
                 ended: "Finalizado"
-            limit: "{1}Límite de tiempo: 1 minuto|]1,Inf[Límite de tiempo: %count% minutos"
+            limit: "{1}Límite de tiempo: 1 minuto|[0,Inf[Límite de tiempo: %count% minutos"
             starts_in: "Empieza en %time%"
             starts_at: "Empieza el %time% (%zone%)"
             left: "Quedan %time%"
@@ -9314,7 +9309,7 @@ online_rounds:
             failed: "No ha funcionado: no se ha cambiado nada. Inténtalo de nuevo."
         counts:
             entered: "{0}Nadie inscrito|{1}1 inscrito|]1,Inf[%count% inscritos"
-            seen: "Vistos: %count%"
+            seen: "Abrieron la página: %count%"
             ready: "Listos: %count%"
             online: "En línea: %count%"
             camera_off: "Cámara apagada: %count%"
@@ -9329,7 +9324,7 @@ online_rounds:
         tile:
             ready: "Listo"
             waiting: "Aún no listo"
-            not_seen: "Aún no visto"
+            not_seen: "Aún no ha abierto la página"
             online: "En línea"
             offline: "Sin conexión"
             last_seen: "visto hace %time%"
@@ -9340,12 +9335,12 @@ online_rounds:
             clock_poor: "Reloj desfasado hasta %ms% ms"
             finished: "Terminó en %time%"
             finished_after_end: "Tocó «Terminado» tras el fin de la ronda"
-            reported_left: "Piezas restantes: %pieces%"
-            reported_placed: "Piezas colocadas: %pieces%"
+            reported_left: "{1}Queda 1 pieza|[0,Inf[Quedan %count% piezas"
+            reported_placed: "{1}1 pieza colocada|[0,Inf[%count% piezas colocadas"
             confirmed: "Confirmado"
             no_photo: "Aún sin foto"
             photo_alt: "La última foto del puzzle de %name%"
-            uploads_pending: "{1}1 foto pendiente de subir|]1,Inf[%count% fotos pendientes de subir"
+            uploads_pending: "{1}1 foto pendiente de subir|[0,Inf[%count% fotos pendientes de subir"
         empty: "Aún no hay nadie inscrito en esta ronda. Inscribe a los participantes en la hoja de participantes."
         empty_filter: "Nadie coincide con este filtro."
         presence_unavailable: "Ahora mismo no se puede saber quién está en línea: las fichas muestran lo que los móviles informaron antes."
@@ -9385,10 +9380,10 @@ online_rounds:
             empty: "No hay nadie inscrito en esta ronda."
             empty_filter: "Nadie coincide con este filtro."
         flag:
-            arrived_late: "Un toque llegó %seconds% s después de su momento mientras el móvil seguía enviando datos"
-            camera_lost: "{1}Cámara perdida 1 vez (%seconds% s)|]1,Inf[Cámara perdida %count% veces (%seconds% s)"
-            page_hidden: "{1}Página en segundo plano 1 vez (%seconds% s)|]1,Inf[Página en segundo plano %count% veces (%seconds% s)"
-            offline: "{1}Sin conexión 1 vez (%seconds% s)|]1,Inf[Sin conexión %count% veces (%seconds% s)"
+            arrived_late: "El toque de «Terminado» nos llegó con %seconds% s de retraso, aunque el móvil estuvo en línea todo el tiempo"
+            camera_lost: "{1}Cámara perdida 1 vez (%seconds% s)|[0,Inf[Cámara perdida %count% veces (%seconds% s)"
+            page_hidden: "{1}Página en segundo plano 1 vez (%seconds% s)|[0,Inf[Página en segundo plano %count% veces (%seconds% s)"
+            offline: "{1}Sin conexión 1 vez (%seconds% s)|[0,Inf[Sin conexión %count% veces (%seconds% s)"
             takeover: "%count% dispositivos"
             several_taps: "%count% toques de «Terminado»"
             tap_after_end: "Tocó «Terminado» tras el fin de la ronda"
@@ -9422,8 +9417,8 @@ online_rounds:
             moment_moved: "desplazado %adjustment% respecto al toque"
             confirm: "Confirmar el final"
             unfinished: "No terminó"
-            reported_left: "Piezas restantes indicadas al acabarse el tiempo: %pieces%"
-            reported_placed: "Piezas colocadas indicadas al acabarse el tiempo: %pieces%"
+            reported_left: "{1}Indicado al acabarse el tiempo: queda 1 pieza|[0,Inf[Indicado al acabarse el tiempo: quedan %count% piezas"
+            reported_placed: "{1}Indicado al acabarse el tiempo: 1 pieza colocada|[0,Inf[Indicado al acabarse el tiempo: %count% piezas colocadas"
             reported_none: "No indicó nada al acabarse el tiempo."
             pieces_label: "Piezas colocadas"
             pieces_of: "de %total%"
@@ -9461,7 +9456,7 @@ online_rounds:
                 burst: "Fotogramas alrededor del toque"
                 end: "Foto al acabarse el tiempo"
         result:
-            pieces: "{1}1 pieza colocada|]1,Inf[%count% piezas colocadas"
+            pieces: "{1}1 pieza colocada|[0,Inf[%count% piezas colocadas"
             did_not_start: "No empezó"
         source:
             button: "el toque de «Terminado»"

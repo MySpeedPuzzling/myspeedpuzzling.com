@@ -25,7 +25,7 @@ final class OnlineTimingGuardFormsTest extends WebTestCase
         $crawler = $browser->submitForm('Save Changes', ['competition_round_form[category]' => 'duo']);
 
         self::assertResponseStatusCodeSame(422);
-        self::assertStringContainsString('Online Round uses online timing, which works for solo rounds only', $crawler->filter('.invalid-feedback')->text());
+        self::assertStringContainsString('Online timing is on for Online Round - it works for solo rounds only', $crawler->filter('.invalid-feedback')->text());
         self::assertSame('solo', $this->connection($browser)->fetchOne(
             'SELECT category FROM competition_round WHERE id = :id',
             ['id' => OnlineRoundsFixture::ROUND_ONLINE_SOLO],

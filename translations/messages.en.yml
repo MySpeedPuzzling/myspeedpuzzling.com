@@ -9268,7 +9268,6 @@ modal:
 # Online competitions: the participant page (docs/features/online-competitions/)
 compete:
     page:
-        title: "Online competition"
         meta_description: "The personal page of a participant in an online round on MySpeedPuzzling."
         no_script: "This page needs JavaScript. Turn it on in your browser, or open the link in another browser."
         you_are: "You are %name%"
@@ -9315,7 +9314,6 @@ compete:
         taken_over_button: "Use this device instead"
         hidden_warning: "This page was in the background for %time%. Keep it open and in front of you for the whole round."
         offline_banner: "Offline - everything is kept on this phone and sent when the connection is back."
-        reload_warning: "Something is still waiting to be sent - keep this page open until it is."
     checklist:
         title: "Get ready"
         intro: "Put your phone on a stand, pointed at your puzzle area. Every row should turn green."
@@ -9329,7 +9327,6 @@ compete:
         charger_text: "Connect the charger - the camera runs for the whole round."
         camera_switch: "Switch camera"
         camera_try_again: "Try again"
-        camera_turn_on: "Turn on the camera"
         empty_mat_button: "Take the photo"
         empty_mat_hint: "Before you unwrap the puzzle: point the camera at your empty mat."
         ready: "I'm ready"
@@ -9421,8 +9418,6 @@ compete:
         this_is_me: "This is me"
         connecting: "Connecting this link to your profile…"
         failed: "This link could not be connected to your profile - it still works for competing."
-    api:
-        unknown_link: "This link does not open any competition."
 
 # Online competitions: the organiser's pages (docs/features/online-competitions/)
 online_rounds:
@@ -9463,16 +9458,16 @@ online_rounds:
             title: "Participants"
             none: "Nobody is going yet. Add the participants in the participants sheet."
             open_sheet: "Open the participants sheet"
-            entered: "Entered in this round: %entered% of the %going% people going."
+            entered: "Entered in this round: %entered% of %going% going to the event."
             with_link: "With a personal link: %with_link% of %going%."
-            not_entered: "{1}1 person going is not entered in this round yet. Their link opens the competition, but they compete in this round only once you enter them.|]1,Inf[%count% people going are not entered in this round yet. Their links open the competition, but they compete in this round only once you enter them."
+            not_entered: "{1}1 person going is not entered in this round yet. Their link opens the competition, but they compete in this round only once you enter them.|[0,Inf[%count% people going are not entered in this round yet. Their links open the competition, but they compete in this round only once you enter them."
             enter: "Enter them in the participants sheet"
             later_links: "People who join later by themselves get their link at once - on the event page (\"Open my competition page\"). People you add in the participants sheet get theirs when you open Personal links, its CSV or its QR codes - you hand those out from there."
         in_use:
-            round_category: "%rounds% uses online timing, which works for solo rounds only - the round stays solo."
+            round_category: "Online timing is on for %rounds% - it works for solo rounds only, so the round stays solo."
             event_in_person: "Online timing is on for %rounds% - it works only at an online event, so the event stays online."
             series_in_person: "Editions of this series use online timing (%rounds%) - it works only at online events, so the series stays online."
-            round_move: "%rounds% uses online timing, which works only at an online event - it can move only to an online event."
+            round_move: "Online timing is on for %rounds% - it works only at an online event, so the round can move only to an online event."
             edition_move: "Online timing is on for %rounds% of this edition - it works only at online events, so the edition can move only into an online series."
         flash:
             enabled: "{0}Online timing is on for %round%.|{1}Online timing is on for %round%. 1 participant got a personal link.|]1,Inf[Online timing is on for %round%. %count% participants got a personal link."
@@ -9513,7 +9508,7 @@ online_rounds:
         create: "Create link"
         create_label: "Create link for %name%"
         regenerate_confirm: "The current link of %name% will stop working at once. Create a new one?"
-        waitlisted: "{1}1 person on the waitlist gets their link once they have a spot.|]1,Inf[%count% people on the waitlist get their links once they have a spot."
+        waitlisted: "{1}1 person on the waitlist gets their link once they have a spot.|[0,Inf[%count% people on the waitlist get their links once they have a spot."
         open_my_page: "Open my competition page"
         sheet:
             column: "Personal link"
@@ -9554,7 +9549,7 @@ online_rounds:
                 countdown: "Counting down"
                 running: "Running"
                 ended: "Ended"
-            limit: "{1}Time limit: 1 minute|]1,Inf[Time limit: %count% minutes"
+            limit: "{1}Time limit: 1 minute|[0,Inf[Time limit: %count% minutes"
             starts_in: "Starts in %time%"
             starts_at: "Starts at %time% (%zone%)"
             left: "%time% left"
@@ -9586,7 +9581,7 @@ online_rounds:
             failed: "That did not work - nothing was changed. Try again."
         counts:
             entered: "{0}Nobody entered|{1}1 entered|]1,Inf[%count% entered"
-            seen: "%count% seen"
+            seen: "%count% opened the page"
             ready: "%count% ready"
             online: "%count% online"
             camera_off: "%count% camera off"
@@ -9601,7 +9596,7 @@ online_rounds:
         tile:
             ready: "Ready"
             waiting: "Not ready yet"
-            not_seen: "Not seen yet"
+            not_seen: "Page not opened yet"
             online: "Online"
             offline: "Offline"
             last_seen: "seen %time% ago"
@@ -9612,12 +9607,12 @@ online_rounds:
             clock_poor: "Clock off by up to %ms% ms"
             finished: "Finished %time%"
             finished_after_end: "Tapped Finished after the end"
-            reported_left: "%pieces% pieces left"
-            reported_placed: "%pieces% pieces placed"
+            reported_left: "{1}1 piece left|[0,Inf[%count% pieces left"
+            reported_placed: "{1}1 piece placed|[0,Inf[%count% pieces placed"
             confirmed: "Confirmed"
             no_photo: "No photo yet"
             photo_alt: "The latest photo of the puzzle of %name%"
-            uploads_pending: "{1}1 photo waiting to upload|]1,Inf[%count% photos waiting to upload"
+            uploads_pending: "{1}1 photo waiting to upload|[0,Inf[%count% photos waiting to upload"
         empty: "Nobody is entered in this round yet. Enter the participants in the participants sheet."
         empty_filter: "Nobody matches this filter."
         presence_unavailable: "Who is online cannot be read right now - the tiles show what the phones reported before."
@@ -9657,10 +9652,10 @@ online_rounds:
             empty: "Nobody is entered in this round."
             empty_filter: "Nobody matches this filter."
         flag:
-            arrived_late: "Arrived %seconds% s after its moment while the phone kept sending"
-            camera_lost: "{1}Camera lost once (%seconds% s)|]1,Inf[Camera lost %count% times (%seconds% s)"
-            page_hidden: "{1}Page hidden once (%seconds% s)|]1,Inf[Page hidden %count% times (%seconds% s)"
-            offline: "{1}Offline once (%seconds% s)|]1,Inf[Offline %count% times (%seconds% s)"
+            arrived_late: "Finished tap reached us %seconds% s late, though the phone was online the whole time"
+            camera_lost: "{1}Camera lost once (%seconds% s)|[0,Inf[Camera lost %count% times (%seconds% s)"
+            page_hidden: "{1}Page hidden once (%seconds% s)|[0,Inf[Page hidden %count% times (%seconds% s)"
+            offline: "{1}Offline once (%seconds% s)|[0,Inf[Offline %count% times (%seconds% s)"
             takeover: "%count% devices"
             several_taps: "%count% Finished taps"
             tap_after_end: "Tapped Finished after the end"
@@ -9694,8 +9689,8 @@ online_rounds:
             moment_moved: "moved %adjustment% from the tap"
             confirm: "Confirm the finish"
             unfinished: "Unfinished"
-            reported_left: "Reported when time was up: %pieces% pieces left"
-            reported_placed: "Reported when time was up: %pieces% pieces placed"
+            reported_left: "{1}Reported when time was up: 1 piece left|[0,Inf[Reported when time was up: %count% pieces left"
+            reported_placed: "{1}Reported when time was up: 1 piece placed|[0,Inf[Reported when time was up: %count% pieces placed"
             reported_none: "Nothing reported when time was up."
             pieces_label: "Pieces placed"
             pieces_of: "of %total%"
@@ -9733,7 +9728,7 @@ online_rounds:
                 burst: "Frames around the tap"
                 end: "Photo when time was up"
         result:
-            pieces: "{1}1 piece placed|]1,Inf[%count% pieces placed"
+            pieces: "{1}1 piece placed|[0,Inf[%count% pieces placed"
             did_not_start: "Did not start"
         source:
             button: "the Finished tap"

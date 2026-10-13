@@ -77,7 +77,7 @@
                 </div>
 
                 <div class="online-control-clock-digits font-monospace" data-online-control-target="clock" aria-live="off">00:00:00</div>
-                <p class="mb-3 text-body-secondary" data-online-control-target="clockLine">{{ 'online_rounds.control.clock.limit'|trans({'%count%': round.minutesLimit}) }}</p>
+                <p class="mb-3 text-body-secondary" data-online-control-target="clockLine">{{ round.minutesLimit > 0 ? 'online_rounds.control.clock.limit'|trans({'%count%': round.minutesLimit}) }}</p>
 
                 {# The actions the clock allows now - each wrapper takes `hidden` (the controller switches them by the screen) #}
                 <div class="d-flex flex-wrap align-items-start gap-3">

@@ -8985,7 +8985,6 @@ modal:
 # Online competitions: the participant page (docs/features/online-competitions/)
 compete:
     page:
-        title: "オンライン大会"
         meta_description: "MySpeedPuzzlingのオンラインラウンドに出場する参加者の個人ページです。"
         no_script: "このページにはJavaScriptが必要です。ブラウザでJavaScriptを有効にするか、別のブラウザでリンクを開いてください。"
         you_are: "%name%として参加します"
@@ -9032,7 +9031,6 @@ compete:
         taken_over_button: "この端末に切り替える"
         hidden_warning: "このページが%time%の間バックグラウンドになっていました。ラウンド中はずっと、このページを開いて画面に表示しておいてください。"
         offline_banner: "オフラインです。すべてこのスマートフォンに保存され、接続が戻ると送信されます。"
-        reload_warning: "まだ送信待ちのものがあります。送信が終わるまで、このページを開いたままにしてください。"
     checklist:
         title: "準備をしましょう"
         intro: "スマートフォンをスタンドに置き、パズルを組む場所に向けてください。すべての項目が緑色になるようにしましょう。"
@@ -9046,7 +9044,6 @@ compete:
         charger_text: "充電器をつないでください。ラウンド中ずっとカメラが動き続けます。"
         camera_switch: "カメラを切り替え"
         camera_try_again: "再試行"
-        camera_turn_on: "カメラをオンにする"
         empty_mat_button: "写真を撮る"
         empty_mat_hint: "パズルを開封する前に、何も置いていないマットにカメラを向けてください。"
         ready: "準備完了"
@@ -9138,8 +9135,6 @@ compete:
         this_is_me: "これは自分です"
         connecting: "このリンクをあなたのプロフィールに紐付けています…"
         failed: "このリンクをプロフィールに紐付けられませんでした。出場にはこのまま使えます。"
-    api:
-        unknown_link: "このリンクでは大会を開けません。"
 
 # Online competitions: the organiser's pages (docs/features/online-competitions/)
 online_rounds:
@@ -9186,10 +9181,10 @@ online_rounds:
             enter: "参加者シートでラウンドに追加する"
             later_links: "後から自分で参加した人には、すぐにリンクが発行されます（イベントページの「自分の大会ページを開く」）。参加者シートで追加した人のリンクは、「専用リンク」ページやそのCSV、QRコードを開いたときに発行されます。そこから配布してください。"
         in_use:
-            round_category: "%rounds%はオンライン計時を使っています。オンライン計時はソロラウンドでしか使えないため、ラウンドはソロのままです。"
+            round_category: "%rounds%でオンライン計時が有効になっています。オンライン計時はソロラウンドでしか使えないため、ラウンドはソロのままです。"
             event_in_person: "%rounds%でオンライン計時が有効になっています。オンライン計時はオンラインイベントでしか使えないため、イベントはオンラインのままです。"
             series_in_person: "このシリーズのエディションがオンライン計時を使っています（%rounds%）。オンライン計時はオンラインイベントでしか使えないため、シリーズはオンラインのままです。"
-            round_move: "%rounds%はオンライン計時を使っています。オンライン計時はオンラインイベントでしか使えないため、オンラインイベントにしか移動できません。"
+            round_move: "%rounds%でオンライン計時が有効になっています。オンライン計時はオンラインイベントでしか使えないため、ラウンドはオンラインイベントにしか移動できません。"
             edition_move: "このエディションの%rounds%でオンライン計時が有効になっています。オンライン計時はオンラインイベントでしか使えないため、このエディションはオンラインのシリーズにしか移動できません。"
         flash:
             enabled: "{0}%round%のオンライン計時を有効にしました。|]0,Inf[%round%のオンライン計時を有効にしました。参加者%count%人に専用リンクを発行しました。"
@@ -9303,7 +9298,7 @@ online_rounds:
             failed: "うまくいきませんでした。何も変更されていません。もう一度お試しください。"
         counts:
             entered: "{0}出場者なし|]0,Inf[出場者%count%人"
-            seen: "アクセス済み%count%人"
+            seen: "ページを開いた%count%人"
             ready: "準備完了%count%人"
             online: "オンライン%count%人"
             camera_off: "カメラオフ%count%人"
@@ -9318,7 +9313,7 @@ online_rounds:
         tile:
             ready: "準備完了"
             waiting: "準備中"
-            not_seen: "未アクセス"
+            not_seen: "まだページを開いていません"
             online: "オンライン"
             offline: "オフライン"
             last_seen: "最終通信%time%前"
@@ -9329,8 +9324,8 @@ online_rounds:
             clock_poor: "時計の誤差：最大%ms% ms"
             finished: "完成：%time%"
             finished_after_end: "終了後に「完成」をタップ"
-            reported_left: "残りのピース：%pieces%"
-            reported_placed: "はめたピース：%pieces%"
+            reported_left: "残りのピース：%count%"
+            reported_placed: "はめたピース：%count%"
             confirmed: "確定済み"
             no_photo: "写真はまだありません"
             photo_alt: "%name%のパズルの最新の写真"
@@ -9374,7 +9369,7 @@ online_rounds:
             empty: "このラウンドには出場者がいません。"
             empty_filter: "この条件に当てはまる人はいません。"
         flag:
-            arrived_late: "その瞬間から%seconds%秒遅れて届きました（その間もスマートフォンは送信を続けていました）"
+            arrived_late: "「完成」タップが%seconds%秒遅れて届きました（スマートフォンはずっとオンラインでした）"
             camera_lost: "カメラ中断%count%回（%seconds%秒）"
             page_hidden: "ページ非表示%count%回（%seconds%秒）"
             offline: "オフライン%count%回（%seconds%秒）"
@@ -9411,8 +9406,8 @@ online_rounds:
             moment_moved: "タップから%adjustment%移動"
             confirm: "完成を確定"
             unfinished: "未完成"
-            reported_left: "時間切れ時に報告された残りのピース：%pieces%"
-            reported_placed: "時間切れ時に報告されたはめたピース：%pieces%"
+            reported_left: "時間切れ時に報告された残りのピース：%count%"
+            reported_placed: "時間切れ時に報告されたはめたピース：%count%"
             reported_none: "時間切れ時の報告はありません。"
             pieces_label: "はめたピース"
             pieces_of: "/ %total%ピース"

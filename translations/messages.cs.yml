@@ -9022,7 +9022,6 @@ modal:
 # Online competitions: the participant page (docs/features/online-competitions/)
 compete:
     page:
-        title: "Online soutěž"
         meta_description: "Osobní stránka účastníka online kola na MySpeedPuzzling."
         no_script: "Tato stránka potřebuje JavaScript. Zapněte ho v prohlížeči, nebo otevřete odkaz v jiném prohlížeči."
         you_are: "Jste %name%"
@@ -9069,7 +9068,6 @@ compete:
         taken_over_button: "Použít toto zařízení"
         hidden_warning: "Tato stránka byla %time% na pozadí. Mějte ji po celé kolo otevřenou a na očích."
         offline_banner: "Offline - vše zůstává v tomto telefonu a odešle se, až se obnoví připojení."
-        reload_warning: "Něco ještě čeká na odeslání - nechte tuto stránku otevřenou, dokud se to neodešle."
     checklist:
         title: "Připravte se"
         intro: "Postavte telefon do stojanu a namiřte ho na místo, kde skládáte. Všechny řádky by měly zezelenat."
@@ -9083,7 +9081,6 @@ compete:
         charger_text: "Připojte nabíječku - kamera běží po celé kolo."
         camera_switch: "Přepnout kameru"
         camera_try_again: "Zkusit znovu"
-        camera_turn_on: "Zapnout kameru"
         empty_mat_button: "Vyfotit"
         empty_mat_hint: "Než puzzle rozbalíte, namiřte kameru na prázdnou podložku."
         ready: "Jsem připraven(a)"
@@ -9175,8 +9172,6 @@ compete:
         this_is_me: "To jsem já"
         connecting: "Propojování odkazu s vaším profilem…"
         failed: "Tento odkaz se nepodařilo propojit s vaším profilem - soutěžit s ním ale můžete dál."
-    api:
-        unknown_link: "Tento odkaz neotevírá žádnou soutěž."
 
 # Online competitions: the organiser's pages (docs/features/online-competitions/)
 online_rounds:
@@ -9219,14 +9214,14 @@ online_rounds:
             open_sheet: "Otevřít tabulku účastníků"
             entered: "Účastníci události zařazení do tohoto kola: %entered% z %going%."
             with_link: "S osobním odkazem: %with_link% z %going%."
-            not_entered: "{1}Jeden účastník události ještě není zařazen do tohoto kola. Odkaz mu otevře soutěž, ale v tomto kole bude soutěžit, až ho zařadíte.|[2,4]%count% účastníci události ještě nejsou zařazeni do tohoto kola. Odkazy jim otevřou soutěž, ale v tomto kole budou soutěžit, až je zařadíte.|[5,Inf[%count% účastníků události ještě není zařazeno do tohoto kola. Odkazy jim otevřou soutěž, ale v tomto kole budou soutěžit, až je zařadíte."
+            not_entered: "{1}Jeden účastník události ještě není zařazen do tohoto kola. Odkaz mu otevře soutěž, ale v tomto kole bude soutěžit, až ho zařadíte.|[2,4]%count% účastníci události ještě nejsou zařazeni do tohoto kola. Odkazy jim otevřou soutěž, ale v tomto kole budou soutěžit, až je zařadíte.|[0,Inf[%count% účastníků události ještě není zařazeno do tohoto kola. Odkazy jim otevřou soutěž, ale v tomto kole budou soutěžit, až je zařadíte."
             enter: "Zařadit je v tabulce účastníků"
             later_links: "Kdo se na událost později přihlásí sám, dostane svůj odkaz hned - na stránce události („Otevřít mou soutěžní stránku“). Lidé, které přidáte v tabulce účastníků, ho dostanou, až otevřete stránku Osobní odkazy, její CSV nebo QR kódy - odtud je pak rozdáte."
         in_use:
-            round_category: "Kolo %rounds% používá online časomíru, která funguje jen pro sólová kola - kolo proto zůstává sólové."
+            round_category: "Online časomíra je zapnutá (%rounds%) - funguje jen pro sólová kola, proto kolo zůstává sólové."
             event_in_person: "Online časomíra je zapnutá (%rounds%) - funguje jen na online události, proto událost zůstává online."
             series_in_person: "Edice této série používají online časomíru (%rounds%) - funguje jen na online událostech, proto série zůstává online."
-            round_move: "Kolo %rounds% používá online časomíru, která funguje jen na online události - lze ho proto přesunout jen do online události."
+            round_move: "Online časomíra je zapnutá (%rounds%) - funguje jen na online události, proto lze kolo přesunout jen do online události."
             edition_move: "Online časomíra je v této edici zapnutá (%rounds%) - funguje jen na online událostech, proto lze edici přesunout jen do online série."
         flash:
             enabled: "{0}Online časomíra je pro kolo %round% zapnutá.|{1}Online časomíra je pro kolo %round% zapnutá. 1 účastník dostal osobní odkaz.|[2,4]Online časomíra je pro kolo %round% zapnutá. %count% účastníci dostali osobní odkaz.|[5,Inf[Online časomíra je pro kolo %round% zapnutá. %count% účastníků dostalo osobní odkaz."
@@ -9267,7 +9262,7 @@ online_rounds:
         create: "Vytvořit odkaz"
         create_label: "Vytvořit odkaz: %name%"
         regenerate_confirm: "Současný odkaz pro %name% okamžitě přestane fungovat. Vytvořit nový?"
-        waitlisted: "{1}Jeden člověk na čekací listině dostane odkaz, jakmile bude mít místo.|[2,4]%count% lidé na čekací listině dostanou odkazy, jakmile budou mít místo.|[5,Inf[%count% lidí na čekací listině dostane odkazy, jakmile budou mít místo."
+        waitlisted: "{1}Jeden člověk na čekací listině dostane odkaz, jakmile bude mít místo.|[2,4]%count% lidé na čekací listině dostanou odkazy, jakmile budou mít místo.|[0,Inf[%count% lidí na čekací listině dostane odkazy, jakmile budou mít místo."
         open_my_page: "Otevřít mou soutěžní stránku"
         sheet:
             column: "Osobní odkaz"
@@ -9308,7 +9303,7 @@ online_rounds:
                 countdown: "Odpočítávání"
                 running: "Běží"
                 ended: "Skončilo"
-            limit: "{1}Časový limit: 1 minuta|[2,4]Časový limit: %count% minuty|[5,Inf[Časový limit: %count% minut"
+            limit: "{1}Časový limit: 1 minuta|[2,4]Časový limit: %count% minuty|[0,Inf[Časový limit: %count% minut"
             starts_in: "Start za %time%"
             starts_at: "Naplánováno na %time% (%zone%)"
             left: "Zbývá %time%"
@@ -9340,7 +9335,7 @@ online_rounds:
             failed: "To se nepovedlo - nic se nezměnilo. Zkuste to znovu."
         counts:
             entered: "{0}Nikdo není zařazen|{1}Zařazeno: 1|[2,4]Zařazeno: %count%|[5,Inf[Zařazeno: %count%"
-            seen: "Připojilo se: %count%"
+            seen: "Otevřelo stránku: %count%"
             ready: "Připraveno: %count%"
             online: "Online: %count%"
             camera_off: "Kamera vypnutá: %count%"
@@ -9355,7 +9350,7 @@ online_rounds:
         tile:
             ready: "Připraveno"
             waiting: "Zatím nepřipraveno"
-            not_seen: "Zatím nepřipojeno"
+            not_seen: "Stránka zatím neotevřena"
             online: "Online"
             offline: "Offline"
             last_seen: "naposledy před %time%"
@@ -9366,12 +9361,12 @@ online_rounds:
             clock_poor: "Hodiny se mohou lišit až o %ms% ms"
             finished: "Dokončeno za %time%"
             finished_after_end: "Klepnutí na Hotovo po konci kola"
-            reported_left: "Zbývající dílky: %pieces%"
-            reported_placed: "Položené dílky: %pieces%"
+            reported_left: "{1}Zbývá 1 dílek|[2,4]Zbývají %count% dílky|[0,Inf[Zbývá %count% dílků"
+            reported_placed: "{1}Položen 1 dílek|[2,4]Položeny %count% dílky|[0,Inf[Položeno %count% dílků"
             confirmed: "Potvrzeno"
             no_photo: "Zatím bez fotky"
             photo_alt: "Poslední fotka puzzle: %name%"
-            uploads_pending: "{1}1 fotka čeká na nahrání|[2,4]%count% fotky čekají na nahrání|[5,Inf[%count% fotek čeká na nahrání"
+            uploads_pending: "{1}1 fotka čeká na nahrání|[2,4]%count% fotky čekají na nahrání|[0,Inf[%count% fotek čeká na nahrání"
         empty: "Do tohoto kola zatím není nikdo zařazen. Zařaďte účastníky v tabulce účastníků."
         empty_filter: "Tomuto filtru nikdo neodpovídá."
         presence_unavailable: "Kdo je online, teď nejde zjistit - dlaždice ukazují, co telefony nahlásily dříve."
@@ -9411,10 +9406,10 @@ online_rounds:
             empty: "V tomto kole není nikdo zařazen."
             empty_filter: "Tomuto filtru nikdo neodpovídá."
         flag:
-            arrived_late: "Klepnutí dorazilo o %seconds% s později, přestože telefon mezitím odesílal"
-            camera_lost: "{1}Kamera jednou vypadla (%seconds% s)|[2,4]Kamera vypadla %count%krát (%seconds% s)|[5,Inf[Kamera vypadla %count%krát (%seconds% s)"
-            page_hidden: "{1}Stránka byla jednou skrytá (%seconds% s)|[2,4]Stránka byla %count%krát skrytá (%seconds% s)|[5,Inf[Stránka byla %count%krát skrytá (%seconds% s)"
-            offline: "{1}Jednou offline (%seconds% s)|[2,4]%count%krát offline (%seconds% s)|[5,Inf[%count%krát offline (%seconds% s)"
+            arrived_late: "Klepnutí na Hotovo k nám dorazilo o %seconds% s později, přestože byl telefon celou dobu online"
+            camera_lost: "{1}Kamera jednou vypadla (%seconds% s)|[2,4]Kamera vypadla %count%krát (%seconds% s)|[0,Inf[Kamera vypadla %count%krát (%seconds% s)"
+            page_hidden: "{1}Stránka byla jednou skrytá (%seconds% s)|[2,4]Stránka byla %count%krát skrytá (%seconds% s)|[0,Inf[Stránka byla %count%krát skrytá (%seconds% s)"
+            offline: "{1}Jednou offline (%seconds% s)|[2,4]%count%krát offline (%seconds% s)|[0,Inf[%count%krát offline (%seconds% s)"
             takeover: "%count% zařízení"
             several_taps: "Klepnutí na Hotovo: %count%"
             tap_after_end: "Klepnutí na Hotovo po konci kola"
@@ -9448,8 +9443,8 @@ online_rounds:
             moment_moved: "posunuto o %adjustment% od klepnutí"
             confirm: "Potvrdit dokončení"
             unfinished: "Nedokončeno"
-            reported_left: "Zbývající dílky nahlášené po vypršení času: %pieces%"
-            reported_placed: "Položené dílky nahlášené po vypršení času: %pieces%"
+            reported_left: "{1}Nahlášeno po vypršení času: zbývá 1 dílek|[2,4]Nahlášeno po vypršení času: zbývají %count% dílky|[0,Inf[Nahlášeno po vypršení času: zbývá %count% dílků"
+            reported_placed: "{1}Nahlášeno po vypršení času: položen 1 dílek|[2,4]Nahlášeno po vypršení času: položeny %count% dílky|[0,Inf[Nahlášeno po vypršení času: položeno %count% dílků"
             reported_none: "Po vypršení času nebylo nic nahlášeno."
             pieces_label: "Položené dílky"
             pieces_of: "z %total%"
@@ -9487,7 +9482,7 @@ online_rounds:
                 burst: "Snímky kolem klepnutí"
                 end: "Fotka po vypršení času"
         result:
-            pieces: "{1}1 položený dílek|[2,4]%count% položené dílky|[5,Inf[%count% položených dílků"
+            pieces: "{1}1 položený dílek|[2,4]%count% položené dílky|[0,Inf[%count% položených dílků"
             did_not_start: "Bez startu"
         source:
             button: "klepnutí na Hotovo"

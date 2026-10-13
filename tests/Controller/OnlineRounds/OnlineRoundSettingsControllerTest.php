@@ -205,7 +205,7 @@ final class OnlineRoundSettingsControllerTest extends WebTestCase
         $crawler = $browser->request('GET', self::url(self::ROUND));
 
         // Olivia and Arthur are entered, Nora is not
-        self::assertSame('Entered in this round: 2 of the 3 people going.', $crawler->filter('[data-online-entered]')->text());
+        self::assertSame('Entered in this round: 2 of 3 going to the event.', $crawler->filter('[data-online-entered]')->text());
         self::assertSame('With a personal link: 2 of 3.', $crawler->filter('[data-online-with-link]')->text());
         self::assertSame('1', $crawler->filter('[data-online-not-entered]')->attr('data-online-not-entered'));
         self::assertStringContainsString('1 person going is not entered in this round yet.', $crawler->filter('[data-online-not-entered]')->text());

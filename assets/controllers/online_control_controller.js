@@ -379,7 +379,8 @@ export default class extends Controller {
         }
 
         let clock = formatClock(view.elapsedMs);
-        let line = this.tc('limit', Math.round((view.limitMs ?? 0) / 60000));
+        // A round without a time limit has no limit line - and a limit never reads as 0 minutes
+        let line = view.limitMs === null ? '' : this.tc('limit', Math.max(1, Math.round(view.limitMs / 60000)));
 
         if (screen === 'scheduled' || screen === 'countdown') {
             clock = formatClock(view.countdownMs, { ceil: true });
@@ -388,7 +389,7 @@ export default class extends Controller {
                 zone: this.timezoneValue,
             })}`;
         } else if (screen === 'running') {
-            line = this.t('left', { time: formatClock(view.remainingMs, { ceil: true }) });
+            line = view.remainingMs === null ? '' : this.t('left', { time: formatClock(view.remainingMs, { ceil: true }) });
         } else if (screen === 'ended') {
             const time = { time: formatClock(view.elapsedMs) };
             line = view.endedBy === 'stop' ? this.t('ended_by_stop', time) : this.t('ended_by_limit', time);
@@ -614,8 +615,9 @@ export default class extends Controller {
                 : this.t('tile_finished', { time: view.finishElapsedMs === null ? '' : formatClock(view.finishElapsedMs) });
             finishKind = view.finishAfterEnd ? 'warn' : 'ok';
         } else if (view.reported) {
-            const pieces = { pieces: view.reported.pieces };
-            finish = view.reported.measure === 'placed' ? this.t('tile_reported_placed', pieces) : this.t('tile_reported_left', pieces);
+            finish = view.reported.measure === 'placed'
+                ? this.tc('tile_reported_placed', view.reported.pieces)
+                : this.tc('tile_reported_left', view.reported.pieces);
             finishKind = 'info';
         }
 

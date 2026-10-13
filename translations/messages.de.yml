@@ -8995,7 +8995,6 @@ modal:
 # Online competitions: the participant page (docs/features/online-competitions/)
 compete:
     page:
-        title: "Online-Wettbewerb"
         meta_description: "Die persönliche Seite eines Teilnehmers einer Online-Runde auf MySpeedPuzzling."
         no_script: "Diese Seite benötigt JavaScript. Schalten Sie es in Ihrem Browser ein oder öffnen Sie den Link in einem anderen Browser."
         you_are: "Sie sind %name%"
@@ -9042,7 +9041,6 @@ compete:
         taken_over_button: "Stattdessen dieses Gerät verwenden"
         hidden_warning: "Diese Seite war %time% lang im Hintergrund. Lassen Sie sie während der ganzen Runde geöffnet und im Vordergrund."
         offline_banner: "Offline – alles bleibt auf diesem Handy und wird gesendet, sobald die Verbindung wieder da ist."
-        reload_warning: "Noch wartet etwas auf das Senden – lassen Sie diese Seite geöffnet, bis alles gesendet ist."
     checklist:
         title: "Vorbereitung"
         intro: "Stellen Sie Ihr Handy in eine Halterung und richten Sie es auf Ihre Puzzlefläche. Jede Zeile sollte grün werden."
@@ -9056,7 +9054,6 @@ compete:
         charger_text: "Schließen Sie das Ladegerät an – die Kamera läuft die ganze Runde lang."
         camera_switch: "Kamera wechseln"
         camera_try_again: "Erneut versuchen"
-        camera_turn_on: "Kamera einschalten"
         empty_mat_button: "Foto aufnehmen"
         empty_mat_hint: "Bevor Sie das Puzzle auspacken: Richten Sie die Kamera auf Ihre leere Unterlage."
         ready: "Ich bin bereit"
@@ -9148,8 +9145,6 @@ compete:
         this_is_me: "Das bin ich"
         connecting: "Dieser Link wird mit Ihrem Profil verknüpft…"
         failed: "Dieser Link konnte nicht mit Ihrem Profil verknüpft werden – zum Teilnehmen funktioniert er trotzdem."
-    api:
-        unknown_link: "Dieser Link öffnet keinen Wettbewerb."
 
 # Online competitions: the organiser's pages (docs/features/online-competitions/)
 online_rounds:
@@ -9190,16 +9185,16 @@ online_rounds:
             title: "Teilnehmer"
             none: "Noch ist niemand dabei. Fügen Sie die Teilnehmer in der Teilnehmertabelle hinzu."
             open_sheet: "Teilnehmertabelle öffnen"
-            entered: "In dieser Runde eingetragen: %entered% von %going% Personen der Veranstaltung."
+            entered: "Personen der Veranstaltung, die in dieser Runde eingetragen sind: %entered% von %going%."
             with_link: "Mit persönlichem Link: %with_link% von %going%."
-            not_entered: "{1}1 Person der Veranstaltung ist in dieser Runde noch nicht eingetragen. Deren Link öffnet den Wettbewerb, aber an dieser Runde nimmt sie erst teil, wenn Sie sie eintragen.|]1,Inf[%count% Personen der Veranstaltung sind in dieser Runde noch nicht eingetragen. Deren Links öffnen den Wettbewerb, aber an dieser Runde nehmen sie erst teil, wenn Sie sie eintragen."
+            not_entered: "{1}1 Person der Veranstaltung ist in dieser Runde noch nicht eingetragen. Deren Link öffnet den Wettbewerb, aber an dieser Runde nimmt sie erst teil, wenn Sie sie eintragen.|[0,Inf[%count% Personen der Veranstaltung sind in dieser Runde noch nicht eingetragen. Deren Links öffnen den Wettbewerb, aber an dieser Runde nehmen sie erst teil, wenn Sie sie eintragen."
             enter: "In der Teilnehmertabelle eintragen"
             later_links: "Wer sich später selbst anmeldet, bekommt den Link sofort – auf der Veranstaltungsseite („Meine Wettbewerbsseite öffnen“). Personen, die Sie in der Teilnehmertabelle hinzufügen, bekommen ihren Link, sobald Sie die Seite „Persönliche Links“, deren CSV-Datei oder deren QR-Codes öffnen – von dort aus verteilen Sie die Links."
         in_use:
-            round_category: "Die Online-Zeitmessung ist für %rounds% eingeschaltet und funktioniert nur bei Solo-Runden – die Runde bleibt solo."
+            round_category: "Die Online-Zeitmessung ist für %rounds% eingeschaltet – sie funktioniert nur bei Solo-Runden, daher bleibt die Runde solo."
             event_in_person: "Die Online-Zeitmessung ist für %rounds% eingeschaltet – sie funktioniert nur bei einer Online-Veranstaltung, daher bleibt die Veranstaltung online."
             series_in_person: "Ausgaben dieser Serie nutzen die Online-Zeitmessung (%rounds%) – sie funktioniert nur bei Online-Veranstaltungen, daher bleibt die Serie online."
-            round_move: "Die Online-Zeitmessung ist für %rounds% eingeschaltet und funktioniert nur bei einer Online-Veranstaltung – die Runde kann nur in eine Online-Veranstaltung verschoben werden."
+            round_move: "Die Online-Zeitmessung ist für %rounds% eingeschaltet – sie funktioniert nur bei einer Online-Veranstaltung, daher kann die Runde nur in eine Online-Veranstaltung verschoben werden."
             edition_move: "Die Online-Zeitmessung ist für %rounds% dieser Ausgabe eingeschaltet – sie funktioniert nur bei Online-Veranstaltungen, daher kann die Ausgabe nur in eine Online-Serie verschoben werden."
         flash:
             enabled: "{0}Die Online-Zeitmessung ist für %round% eingeschaltet.|{1}Die Online-Zeitmessung ist für %round% eingeschaltet. 1 Teilnehmer hat einen persönlichen Link bekommen.|]1,Inf[Die Online-Zeitmessung ist für %round% eingeschaltet. %count% Teilnehmer haben einen persönlichen Link bekommen."
@@ -9240,7 +9235,7 @@ online_rounds:
         create: "Link erstellen"
         create_label: "Link für %name% erstellen"
         regenerate_confirm: "Der aktuelle Link von %name% funktioniert dann sofort nicht mehr. Einen neuen erstellen?"
-        waitlisted: "{1}1 Person auf der Warteliste bekommt ihren Link, sobald sie einen Platz hat.|]1,Inf[%count% Personen auf der Warteliste bekommen ihre Links, sobald sie einen Platz haben."
+        waitlisted: "{1}1 Person auf der Warteliste bekommt ihren Link, sobald sie einen Platz hat.|[0,Inf[%count% Personen auf der Warteliste bekommen ihre Links, sobald sie einen Platz haben."
         open_my_page: "Meine Wettbewerbsseite öffnen"
         sheet:
             column: "Persönlicher Link"
@@ -9281,7 +9276,7 @@ online_rounds:
                 countdown: "Countdown läuft"
                 running: "Läuft"
                 ended: "Beendet"
-            limit: "{1}Zeitlimit: 1 Minute|]1,Inf[Zeitlimit: %count% Minuten"
+            limit: "{1}Zeitlimit: 1 Minute|[0,Inf[Zeitlimit: %count% Minuten"
             starts_in: "Start in %time%"
             starts_at: "Start um %time% (%zone%)"
             left: "Noch %time%"
@@ -9313,7 +9308,7 @@ online_rounds:
             failed: "Das hat nicht geklappt – nichts wurde geändert. Versuchen Sie es erneut."
         counts:
             entered: "{0}Niemand eingetragen|{1}1 eingetragen|]1,Inf[%count% eingetragen"
-            seen: "%count% gesehen"
+            seen: "%count% mit geöffneter Seite"
             ready: "%count% bereit"
             online: "%count% online"
             camera_off: "%count% Kamera aus"
@@ -9328,7 +9323,7 @@ online_rounds:
         tile:
             ready: "Bereit"
             waiting: "Noch nicht bereit"
-            not_seen: "Noch nicht gesehen"
+            not_seen: "Seite noch nicht geöffnet"
             online: "Online"
             offline: "Offline"
             last_seen: "vor %time% gesehen"
@@ -9339,12 +9334,12 @@ online_rounds:
             clock_poor: "Uhr weicht bis zu %ms% ms ab"
             finished: "Fertig nach %time%"
             finished_after_end: "„Fertig“ nach dem Ende getippt"
-            reported_left: "%pieces% Teile übrig"
-            reported_placed: "%pieces% Teile gelegt"
+            reported_left: "{1}1 Teil übrig|[0,Inf[%count% Teile übrig"
+            reported_placed: "{1}1 Teil gelegt|[0,Inf[%count% Teile gelegt"
             confirmed: "Bestätigt"
             no_photo: "Noch kein Foto"
             photo_alt: "Das neueste Foto des Puzzles von %name%"
-            uploads_pending: "{1}1 Foto wartet auf den Upload|]1,Inf[%count% Fotos warten auf den Upload"
+            uploads_pending: "{1}1 Foto wartet auf den Upload|[0,Inf[%count% Fotos warten auf den Upload"
         empty: "In dieser Runde ist noch niemand eingetragen. Tragen Sie die Teilnehmer in der Teilnehmertabelle ein."
         empty_filter: "Niemand passt zu diesem Filter."
         presence_unavailable: "Wer online ist, lässt sich gerade nicht abrufen – die Kacheln zeigen, was die Handys zuvor gemeldet haben."
@@ -9384,10 +9379,10 @@ online_rounds:
             empty: "In dieser Runde ist niemand eingetragen."
             empty_filter: "Niemand passt zu diesem Filter."
         flag:
-            arrived_late: "Tipp kam %seconds% s nach seinem Zeitpunkt an, obwohl das Handy weiter sendete"
-            camera_lost: "{1}Kamera einmal verloren (%seconds% s)|]1,Inf[Kamera %count%-mal verloren (%seconds% s)"
-            page_hidden: "{1}Seite einmal im Hintergrund (%seconds% s)|]1,Inf[Seite %count%-mal im Hintergrund (%seconds% s)"
-            offline: "{1}Einmal offline (%seconds% s)|]1,Inf[%count%-mal offline (%seconds% s)"
+            arrived_late: "Tipp auf „Fertig“ kam %seconds% s verspätet bei uns an, obwohl das Handy die ganze Zeit online war"
+            camera_lost: "{1}Kamera einmal verloren (%seconds% s)|[0,Inf[Kamera %count%-mal verloren (%seconds% s)"
+            page_hidden: "{1}Seite einmal im Hintergrund (%seconds% s)|[0,Inf[Seite %count%-mal im Hintergrund (%seconds% s)"
+            offline: "{1}Einmal offline (%seconds% s)|[0,Inf[%count%-mal offline (%seconds% s)"
             takeover: "%count% Geräte"
             several_taps: "%count% Tipps auf „Fertig“"
             tap_after_end: "„Fertig“ nach dem Ende getippt"
@@ -9421,8 +9416,8 @@ online_rounds:
             moment_moved: "um %adjustment% gegenüber dem Tipp verschoben"
             confirm: "Zielzeit bestätigen"
             unfinished: "Nicht fertig"
-            reported_left: "Bei Zeitablauf gemeldet: %pieces% Teile übrig"
-            reported_placed: "Bei Zeitablauf gemeldet: %pieces% Teile gelegt"
+            reported_left: "{1}Bei Zeitablauf gemeldet: 1 Teil übrig|[0,Inf[Bei Zeitablauf gemeldet: %count% Teile übrig"
+            reported_placed: "{1}Bei Zeitablauf gemeldet: 1 Teil gelegt|[0,Inf[Bei Zeitablauf gemeldet: %count% Teile gelegt"
             reported_none: "Bei Zeitablauf nichts gemeldet."
             pieces_label: "Gelegte Teile"
             pieces_of: "von %total%"
@@ -9460,7 +9455,7 @@ online_rounds:
                 burst: "Bilder rund um den Tipp"
                 end: "Foto bei Zeitablauf"
         result:
-            pieces: "{1}1 Teil gelegt|]1,Inf[%count% Teile gelegt"
+            pieces: "{1}1 Teil gelegt|[0,Inf[%count% Teile gelegt"
             did_not_start: "Nicht gestartet"
         source:
             button: "Tipp auf „Fertig“"

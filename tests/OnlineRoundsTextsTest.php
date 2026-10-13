@@ -57,7 +57,7 @@ final class OnlineRoundsTextsTest extends KernelTestCase
 
         self::assertSame([], $missing, 'texts the control room uses but control_texts.html.twig does not have');
         self::assertGreaterThan(40, count(array_unique($used)));
-        self::assertTexts($texts, ['limit', 'count_entered', 'tile_uploads_pending']);
+        self::assertTexts($texts, ['limit', 'count_entered', 'tile_uploads_pending', 'tile_reported_left', 'tile_reported_placed']);
     }
 
     public function testEveryTextTheReviewAsksForIsThere(): void
@@ -93,8 +93,8 @@ final class OnlineRoundsTextsTest extends KernelTestCase
 
         self::assertSame([], $missing, 'texts the review uses but review_texts.html.twig does not have');
         self::assertGreaterThan(50, count(array_unique($used)));
-        self::assertTexts($texts, ['flag_camera_lost', 'flag_page_hidden', 'flag_offline', 'result_pieces']);
-        self::assertSame('Arrived %seconds% s after its moment while the phone kept sending', $texts['flag_arrived_late'] ?? null);
+        self::assertTexts($texts, ['flag_camera_lost', 'flag_page_hidden', 'flag_offline', 'result_pieces', 'reported_left', 'reported_placed']);
+        self::assertSame('Finished tap reached us %seconds% s late, though the phone was online the whole time', $texts['flag_arrived_late'] ?? null);
     }
 
     /**

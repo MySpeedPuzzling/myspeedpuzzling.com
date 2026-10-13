@@ -144,7 +144,7 @@ Organiser routes are locale maps like `manage_round_stopwatch`; ids use `FirstTr
 
 Shapes: implementation-plan.md §3.1, plus:
 
-- **Errors:** `{"error": "<code>"}`, `private, no-store`. Codes: `unknown_link` 404, `invalid_json` 400, `round_not_online` 409, `rate_limited` 429 (+ `Retry-After`), `media_too_large` 422 (> 15 MB), `media_kind_unknown` 422. A refused event is not an HTTP error: it appears in `refused` with `reason` (`unknown_type`, `invalid_fields`, `wrong_round`).
+- **Errors:** `{"error": "<code>"}`, `private, no-store`. Codes: `unknown_link` 404, `invalid_json` 400, `round_not_online` 409, `rate_limited` 429 (+ `Retry-After`; per IP, per link, and per link for events / media), `media_too_large` 422 (> 15 MB), `media_kind_unknown` 422; after the review hardening also `entry_confirmed` 409 (no uploads once the reviewer confirmed the entry - the page stops uploading quietly), `media_quota_exceeded` 422, `too_many_pending_media` 429 (+ `Retry-After: 60`), and the per-event refusal `too_many_events`. A refused event is not an HTTP error: it appears in `refused` with `reason` (`unknown_type`, `invalid_fields`, `wrong_round`).
 - **Idempotency:** an event id seen before is acked again, never stored twice.
 - **Late arrival:** stored as received; the review computes "arrived N s after its moment while heartbeats kept coming".
 - **Heartbeat** never touches Postgres.

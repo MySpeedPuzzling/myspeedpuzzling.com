@@ -1,6 +1,14 @@
 // Runs assets/online/finish_machine.js - the finish rule: hands-up signals in, finish candidates out - through
 // synthetic signal sequences and prints {scenario: "ok" | error} as JSON. tests/OnlineFinishMachineScriptTest.php
 // asserts every one is "ok".
+//
+// The decisions these scenarios pin (each a tunable - the reasons are in the module's header):
+// - a frame gap > maxGapMs (1.5 s; the pacing never goes below 1 fps) restarts a hold after it (`gapPolicy: 'restart'`;
+//   'bridge' keeps it) and ends a raise that already is a candidate;
+// - up to maxDropFrames (1) frames down inside a raise are a flicker if the raised frames around them are at most
+//   maxDropMs (0.7 s) apart - the hold counts on from the first raised frame;
+// - a raise that began inside the cooldown becomes a candidate once held past its end, at its own first raised frame
+//   (`straddle: 'whole'`; 'from_end' / 'suppress'); one that ends inside it is reported once (`raise_suppressed`).
 
 import assert from 'node:assert/strict';
 import {

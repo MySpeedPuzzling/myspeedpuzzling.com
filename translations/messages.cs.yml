@@ -9319,6 +9319,7 @@ barcode_scanner:
   "shown_of_total": "%count% z %total%"
   "empty_filtered": "Filtrům %filters% neodpovídá žádný výsledek."
   "export_results": "Exportovat výsledky"
+  "show_from_start": "Zobrazit od začátku"
   "no_results": "Zatím tu nejsou žádné výsledky."
   "chip":
     "remove": "Odebrat filtr: %filter%"

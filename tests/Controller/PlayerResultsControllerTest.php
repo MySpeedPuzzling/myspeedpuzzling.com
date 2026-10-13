@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
+use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
+use DOMElement;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Results\PlayerResultsPage;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\PuzzleIntelligenceRecalculator;
+use SpeedPuzzling\Web\Tests\ComparisonSeeding;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
@@ -29,6 +32,7 @@ use Symfony\Component\DomCrawler\Crawler;
  */
 final class PlayerResultsControllerTest extends WebTestCase
 {
+    use ComparisonSeeding;
     use PlayerResultsSeeding;
 
     private const string PLAYER = PlayerFixture::PLAYER_REGULAR;
@@ -339,6 +343,75 @@ final class PlayerResultsControllerTest extends WebTestCase
         self::assertCount(0, $this->results($viewerId, ['team' => 'nonsense'])->filter('a[data-results-chip]'));
     }
 
+    /**
+     * PROF review F1: under a pair/team filter the Solo tab is reachable - from the team page's "Results with this
+     * pair" (`?category=duo&team=…`, PROF-05e) and from `?team=…` alike - and every change of the Solo list (sort,
+     * view, another chip, Show more, the filter form) stays on Solo; only the tab's own link drops the category, so
+     * removing the filter never jumps to another tab either.
+     */
+    #[DataProvider('provideEveryViewer')]
+    public function testTheSoloTabStaysReachableUnderAPairFilter(null|string $viewerId): void
+    {
+        $browser = $this->browser($viewerId);
+        // 9 + 60 solo puzzles: Show more on the Solo tab
+        $this->addSoloResults(self::PLAYER, 60);
+        $pairId = self::getContainer()->get(Connection::class)->fetchOne(
+            'SELECT puzzling_team_id FROM puzzle_solving_time WHERE id = :id',
+            ['id' => PuzzleSolvingTimeFixture::TIME_12],
+        );
+        self::assertIsString($pairId);
+
+        foreach ([['category' => 'duo', 'team' => $pairId], ['team' => $pairId]] as $entry) {
+            $crawler = $this->results($viewerId, $entry);
+            self::assertSame('page', $crawler->filter('[data-results-category="duo"]')->attr('aria-current'));
+            $soloLink = (string) $crawler->filter('a[data-results-category="solo"]')->attr('href');
+            self::assertSame(['category' => 'solo', 'team' => $pairId], $this->queryOf($soloLink), 'The Solo tab names itself under the pair filter');
+
+            // Followed: Solo, the pair's chip still on
+            $solo = $browser->request('GET', $soloLink);
+            self::assertResponseIsSuccessful();
+            self::assertSame('page', $solo->filter('[data-results-category="solo"]')->attr('aria-current'), http_build_query($entry));
+            self::assertCount(1, $solo->filter('a[data-results-chip="team"]'));
+            self::assertSame(50, $this->rowsCount($solo));
+        }
+
+        // Every change of ?category=solo&team=… stays on Solo
+        $crawler = $this->results($viewerId, ['category' => 'solo', 'team' => $pairId]);
+        $links = [
+            'sort' => $crawler->filter('a[data-results-sort="fastest"]')->attr('href'),
+            'view' => $crawler->filter('a[data-results-view="every"]')->attr('href'),
+            'show more' => $crawler->filter('a[data-results-more]')->attr('href'),
+        ];
+
+        foreach ($links as $change => $link) {
+            self::assertSame('solo', $this->queryOf((string) $link)['category'] ?? null, $change);
+            $after = $browser->request('GET', (string) $link);
+            self::assertResponseIsSuccessful();
+            self::assertSame('page', $after->filter('[data-results-category="solo"]')->attr('aria-current'), $change);
+            self::assertCount(1, $after->filter('a[data-results-chip="team"]'), $change . ': the filter stays');
+        }
+
+        // The sort changed on that list: still Solo, sorted
+        $sorted = $browser->request('GET', (string) $links['sort']);
+        self::assertSame(['category' => 'solo', 'sort' => 'fastest', 'team' => $pairId], $this->queryOf((string) $sorted->filter('[data-results-state]')->attr('data-url')));
+
+        // The filter form keeps the tab: a submit (here with a search typed) stays on Solo
+        self::assertSame('solo', $crawler->filter('#player-results-form > input[type="hidden"][name="category"]')->attr('value'));
+        $form = $crawler->filter('#player-results-form')->form();
+        $form['q'] = 'puzzle';
+        $submitted = $browser->submit($form);
+        self::assertResponseIsSuccessful();
+        self::assertSame('page', $submitted->filter('[data-results-category="solo"]')->attr('aria-current'));
+        self::assertCount(1, $submitted->filter('a[data-results-chip="team"]'));
+        self::assertCount(1, $submitted->filter('a[data-results-chip="q"]'));
+
+        // Removing the filter (its chip, Clear all) keeps Solo - the history's default tab, so no category
+        self::assertSame([], $this->queryOf((string) $crawler->filter('a[data-results-chip="team"]')->attr('href')));
+        self::assertSame([], $this->queryOf((string) $crawler->filter('#player-results a[data-results-clear]')->attr('href')));
+        // The shown tab's own link is the list as its address names it: a click on it changes nothing
+        self::assertSame(['category' => 'solo', 'team' => $pairId], $this->queryOf((string) $crawler->filter('a[data-results-category="solo"]')->attr('href')));
+    }
+
     #[DataProvider('provideEveryViewer')]
     public function testPage(null|string $viewerId): void
     {
@@ -421,6 +494,13 @@ final class PlayerResultsControllerTest extends WebTestCase
         self::assertGreaterThan(2, count($months), 'The fixture spans several months');
         self::assertSame(array_values(array_unique($months)), $months);
 
+        // A heading row of its own, scope left to HTML's auto state (PROF review F7: "colgroup" without a <colgroup>)
+        foreach ($page->filter('tr.prs-month-row > th') as $heading) {
+            self::assertInstanceOf(DOMElement::class, $heading);
+            self::assertFalse($heading->hasAttribute('scope'), 'No scope on a month heading');
+            self::assertSame('3', $heading->getAttribute('colspan'));
+        }
+
         $first = $this->monthHeadings($this->results(null, ['view' => 'every']));
         $appended = $this->monthHeadings($this->templateOf($this->stream($browser, ['view' => 'every', 'page' => '2'])->eq(0)));
 
@@ -483,6 +563,142 @@ final class PlayerResultsControllerTest extends WebTestCase
             self::assertSame('/en/export-puzzler-data/' . self::PLAYER, $crawler->filter('a[data-results-export]')->attr('href'));
             self::assertStringContainsString('Export your results', $crawler->filter('a[data-results-export]')->text());
         }
+    }
+
+    /**
+     * @return iterable<string, array{null|string, bool}>
+     */
+    public static function provideWindowViewers(): iterable
+    {
+        // [viewer, renders every row]
+        yield 'guest' => [null, false];
+        yield 'signed in' => [self::NON_MEMBER, false];
+        yield 'member' => [self::MEMBER, false];
+        yield 'the player' => [self::PLAYER, true];
+    }
+
+    /**
+     * PROF review Q5: `?page=N` renders rows 1…50·N - beyond Show all's 300 rows the last 300 for anybody but the player,
+     * with "Show from the start" above them (the page and its frame alike); the player keeps every row. Show more's
+     * stream is unaffected, and Back finds its row: the saved row is one of the last ones the page showed.
+     */
+    #[DataProvider('provideWindowViewers')]
+    public function testAPageBeyond300RowsRendersTheLast300ForAnybodyButThePlayer(null|string $viewerId, bool $everyRow): void
+    {
+        $browser = $this->browser($viewerId);
+        // 9 + 500 solo puzzles: page 10 = rows 1…500
+        $this->addSoloResults(self::PLAYER, 500);
+        $player = $this->browser(self::PLAYER);
+        $all = $this->rowIds($player->request('GET', '/en/player-results/' . self::PLAYER . '?page=11'));
+        self::assertCount(509, $all);
+
+        $this->browser($viewerId);
+        $page = $this->results($viewerId, ['page' => '10']);
+        $frame = $browser->request('GET', '/en/player-results/' . self::PLAYER . '?page=10', server: ['HTTP_TURBO_FRAME' => 'player-results']);
+        self::assertResponseIsSuccessful();
+
+        foreach (['page' => $page, 'frame' => $frame] as $answer => $crawler) {
+            if ($everyRow) {
+                self::assertSame(array_slice($all, 0, 500), $this->rowIds($crawler), $answer);
+                self::assertCount(0, $crawler->filter('[data-testid="results-window"]'), $answer);
+            } else {
+                self::assertSame(array_slice($all, 200, 300), $this->rowIds($crawler), $answer . ': rows 201…500');
+                $start = $crawler->filter('[data-testid="results-window"] a[data-results-start]');
+                self::assertCount(1, $start, $answer);
+                self::assertSame('/en/player-results/' . self::PLAYER, $start->attr('href'), $answer . ': the list from its first row');
+                self::assertSame('Show from the start', trim($start->text()));
+            }
+
+            // The rows shown carry their ranks (one statement for them, PROF-06), Show more continues after row 500
+            self::assertCount(1, $crawler->filter('tr[id^="result-"]')->last()->filter('.pr-chip-rank'), $answer);
+            self::assertSame(['page' => '11'], $this->queryOf((string) $crawler->filter('a[data-results-more]')->attr('href')), $answer);
+        }
+
+        // Page 6 = 300 rows: whole for everybody
+        self::assertSame(array_slice($all, 0, 300), $this->rowIds($this->results($viewerId, ['page' => '6'])));
+        // Page 7: the last 300 (rows 51…350) - or all 350 for the player
+        self::assertSame($everyRow ? array_slice($all, 0, 350) : array_slice($all, 50, 300), $this->rowIds($this->results($viewerId, ['page' => '7'])));
+
+        // The stream appends the page asked for after the rows shown, whoever asks
+        self::assertSame(array_slice($all, 500, 9), $this->rowIds($this->templateOf($this->stream($browser, ['page' => '11'])->eq(0))));
+    }
+
+    /**
+     * PROF review Q3: a row shows the main title and, under it, puzzle/_name.html.twig - the name in the viewer's
+     * language, and with a search "Matched: …" when another name or one of the puzzle's codes found it (nothing when
+     * the title did; the title highlighted). The rows' names come with the results, the codes with the search
+     * statement: the statement count stays (PlayerResultsQueryBudgetTest).
+     */
+    public function testRowsShowTheNameInTheViewersLanguageAndWhatTheSearchMatched(): void
+    {
+        $browser = $this->browser(null);
+
+        // PUZZLE_1000_02 ("Puzzle 7", Czech "Kouzelná zahrada"): the Czech page shows the Czech name under the title
+        $czech = $browser->request('GET', '/vysledky-hrace/' . self::PLAYER);
+        self::assertResponseIsSuccessful();
+        $row = $this->rowOf($czech, PuzzleFixture::PUZZLE_1000_02);
+        self::assertSame('Kouzelná zahrada', trim($row->filter('.puzzle-name-local[lang="cs"]')->text()));
+        self::assertCount(0, $czech->filter('.puzzle-name-matched'), 'Nothing matched without a search');
+        // The English page: no second line for a guest
+        self::assertCount(0, $this->rowOf($this->results(null, []), PuzzleFixture::PUZZLE_1000_02)->filter('.puzzle-name-local'));
+
+        $matched = [
+            // Another name: the German one
+            'zauberhafter' => [PuzzleFixture::PUZZLE_1000_02, 'Matched: Zauberhafter Garten'],
+            // The EAN, with leading zeros typed
+            '00' . PuzzleFixture::EAN_PUZZLE_300 => [PuzzleFixture::PUZZLE_300, 'Matched: ' . PuzzleFixture::EAN_PUZZLE_300],
+            // The whole brand code, and a part of it (5+ letters and digits)
+            'RB-500-001' => [PuzzleFixture::PUZZLE_500_01, 'Matched: RB-500-001'],
+            'rb-500' => [PuzzleFixture::PUZZLE_500_01, 'Matched: RB-500-001'],
+        ];
+
+        foreach ($matched as $query => [$puzzleId, $line]) {
+            $crawler = $this->results(null, ['q' => $query]);
+            self::assertSame(1, $this->rowsCount($crawler), $query);
+            self::assertSame($line, trim($this->rowOf($crawler, $puzzleId)->filter('.puzzle-name-matched')->text()), $query);
+        }
+
+        // The title found it: highlighted, no "Matched"
+        $crawler = $this->results(null, ['q' => 'puzzle 7']);
+        $row = $this->rowOf($crawler, PuzzleFixture::PUZZLE_1000_02);
+        self::assertCount(0, $row->filter('.puzzle-name-matched'));
+        self::assertSame(['Puzzle', '7'], $row->filter('a.ps-puzzle-name .search-highlight')->each(static fn (Crawler $word): string => $word->text()), 'The title highlights the search');
+        self::assertSame('Puzzle 7', trim($row->filter('a.ps-puzzle-name')->text()));
+    }
+
+    /**
+     * PROF review Q4: the chips' "N of M" counts what the tab's label counts - puzzles By puzzle (a Pairs row is a puzzle
+     * and a pair: two pairs on one puzzle are two rows and one puzzle), results on Every result; the footer's "Showing
+     * N of M" counts rows (paging)
+     */
+    #[DataProvider('provideEveryViewer')]
+    public function testTheChipsCountTheTabsUnit(null|string $viewerId): void
+    {
+        $this->browser($viewerId);
+        $database = self::getContainer()->get(Connection::class);
+        $pairPuzzle = $database->fetchOne('SELECT puzzle_id FROM puzzle_solving_time WHERE id = :id', ['id' => PuzzleSolvingTimeFixture::TIME_12]);
+        self::assertIsString($pairPuzzle);
+        $brand = $database->fetchOne('SELECT m.name FROM puzzle p JOIN manufacturer m ON m.id = p.manufacturer_id WHERE p.id = :id', ['id' => $pairPuzzle]);
+        self::assertIsString($brand);
+        // A second pair on one of the player's pair puzzles: a row more, not a puzzle more
+        $this->seedSecondPair($pairPuzzle);
+
+        $all = $this->results($viewerId, ['category' => 'duo']);
+        $puzzles = $this->tabCount($all, 'duo');
+        self::assertGreaterThan($puzzles, $this->rowsCount($all), 'Two pairs on one puzzle: more rows than puzzles');
+
+        // By puzzle: puzzles of puzzles
+        $crawler = $this->results($viewerId, ['category' => 'duo', 'brand' => $brand]);
+        $shown = $this->tabCount($crawler, 'duo');
+        self::assertGreaterThan(0, $shown);
+        self::assertGreaterThan($shown, $this->rowsCount($crawler), 'The filtered tab still has the two pairs on one puzzle');
+        self::assertSame($shown . ' of ' . $puzzles, trim($crawler->filter('[data-testid="results-count"]')->text()));
+
+        // Every result: results of results
+        $results = $this->tabCount($this->results($viewerId, ['category' => 'duo', 'view' => 'every']), 'duo');
+        $crawler = $this->results($viewerId, ['category' => 'duo', 'view' => 'every', 'brand' => $brand]);
+        self::assertSame($this->rowsCount($crawler), $this->tabCount($crawler, 'duo'));
+        self::assertSame($this->rowsCount($crawler) . ' of ' . $results, trim($crawler->filter('[data-testid="results-count"]')->text()));
     }
 
     /**
@@ -587,6 +803,32 @@ final class PlayerResultsControllerTest extends WebTestCase
     }
 
     // --------------------------------------------------------------------------------- helpers
+
+    /**
+     * Another pair of the player on the puzzle: a new partner, their pair, a result together (ComparisonSeeding)
+     */
+    private function seedSecondPair(string $puzzleId): void
+    {
+        $pair = $this->seedTeam([self::PLAYER, $this->seedPlayer('Second Pair Partner')]);
+        $this->seedTime(self::PLAYER, $puzzleId, 2500, new DateTimeImmutable('-3 hours'), teamId: $pair);
+    }
+
+    private function rowOf(Crawler $crawler, string $puzzleId): Crawler
+    {
+        $row = $crawler->filter('#player-results-rows > tr[id]')->reduce(static fn (Crawler $tr): bool => $tr->filter('a.ps-puzzle-name[href$="/' . $puzzleId . '"]')->count() > 0);
+        self::assertCount(1, $row, 'One row of ' . $puzzleId);
+
+        return $row;
+    }
+
+    private function tabCount(Crawler $crawler, string $category): int
+    {
+        $tab = $crawler->filter('[data-testid="results-categories"] [data-results-category="' . $category . '"]');
+        self::assertCount(1, $tab, $category);
+        self::assertSame(1, preg_match('/\((\d+)\)\s*$/', trim($tab->text()), $match), $tab->text());
+
+        return (int) $match[1];
+    }
 
     /**
      * @return array{url: null|string, category: null|string, view: null|string, sort: null|string, filters: null|string, clear: null|string}

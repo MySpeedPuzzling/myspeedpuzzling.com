@@ -9,6 +9,8 @@
     - name: the main title
     - alternative_names: PuzzleNames
     - query (optional): the typed search - search results only; its words are highlighted like in the main title
+    - matched_code (optional): with a query, the code the search found the puzzle by (PuzzleCodeMatch - a list that
+      shows no codes, e.g. a player's Results): "Matched: …" with the code when no name matched
     - class (optional): extra classes for each line, e.g. text-truncate where the title is cut too
     - tag (optional): the element of each line, `span` by default (valid inside links and buttons); display: block
 #}
@@ -24,6 +26,10 @@
         {# highlight() escapes the name, the label is a translation #}
         <{{ tag }} class="puzzle-name-matched {{ class|default('') }}">{{ 'puzzle_name_display.matched'|trans({
             '%name%': '<b' ~ (matched.language is not null ? ' lang="' ~ matched.language|e('html_attr') ~ '"' : '') ~ '>' ~ highlight(matched.name, query) ~ '</b>',
+        })|raw }}</{{ tag }}>
+    {% elseif matched_code|default(null) is not empty %}
+        <{{ tag }} class="puzzle-name-matched {{ class|default('') }}">{{ 'puzzle_name_display.matched'|trans({
+            '%name%': '<b class="font-monospace">' ~ highlight(matched_code, query) ~ '</b>',
         })|raw }}</{{ tag }}>
     {% endif %}
 {% endif %}

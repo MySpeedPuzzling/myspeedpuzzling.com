@@ -8,8 +8,10 @@
  * - sameState(): two addresses of the same list (parameter order, `difficultyTiers[]` vs `difficultyTiers[0]`, `+` vs
  *   `%20`, defaults and `return*` do not count)
  * - historyAction(): push for a discrete change (tab, view, sort, a filter, a chip, Clear all), replace for typing and
- *   for Show more / Show all, nothing when the list stays the same - and nothing inside the Hotwire Native app, where
- *   the page writes no history entry (NAV-14, tests/native-step-aside-harness.mjs)
+ *   for paging (Show more / Show all / Show from the start), nothing when the list stays the same - and nothing inside
+ *   the Hotwire Native app, where the page writes no history entry (NAV-14, tests/native-step-aside-harness.mjs)
+ * - withTypedQuery(): a click while the search still waits for its 300 ms takes the typed text along (PROF review F4)
+ * - streamApplies(): whether Show more's answer still belongs to the list and the page it was asked for (review F2)
  * - formStateFromUrl(): what the filter form shows for an address (after Back, a chip, Clear all)
  * - scrollKey() / scrollRestore(): the full-load Back path - where the page was when it was left, keyed by its address,
  *   restored only after a full load that brought the visitor back (never after a snapshot restore, GEST-15)
@@ -36,8 +38,8 @@ const FLAGS = ['first', 'unboxed', 'relax'];
 
 const MAX_PIECES = 100000;
 
-/** Changes that keep the entry (the address follows what the page shows) */
-const REPLACING = ['typing', 'more', 'all'];
+/** Changes that keep the entry (the address follows what the page shows): typing and paging */
+const REPLACING = ['typing', 'more', 'all', 'start'];
 
 // ---- Piece counts: PiecesRange's grammar (`N`, `A-B`, `A-`, `-B`) ------------------------------------------------
 
@@ -272,6 +274,38 @@ export function historyAction(kind, from, to, nativeApp = false, base = undefine
     }
 
     return REPLACING.includes(kind) ? 'replace' : 'push';
+}
+
+/**
+ * The address of a change made while the search still waits for its debounce (PROF review F4): the change's own
+ * address with the typed text as its `q` (trimmed, cut like the field; no `q` when it is empty) - so neither the click
+ * nor the typed text is lost. Everything else of the address stays (a tab, a sort, Show more's page).
+ */
+export function withTypedQuery(url, typed, base = undefined) {
+    const parsed = toUrl(url, base);
+
+    if (!parsed) {
+        return String(url);
+    }
+
+    const text = String(typed === null || typed === undefined ? '' : typed).trim().slice(0, MAX_QUERY_LENGTH);
+
+    if (text === '') {
+        parsed.searchParams.delete('q');
+    } else {
+        parsed.searchParams.set('q', text);
+    }
+
+    return parsed.href;
+}
+
+/**
+ * Does Show more's answer still apply (PROF review F2)? Only to the list it was asked for, on the page it was asked
+ * on: nothing aborted it (a newer change of the list, a visit, the page leaving), the page and its footer are still in
+ * the document, no other list is loading and the list shown is the one the request started from.
+ */
+export function streamApplies({ aborted = false, connected = true, footerConnected = true, pending = false, requestedFrom = '', shownUrl = '' } = {}, base = undefined) {
+    return !aborted && connected && footerConnected && !pending && sameState(requestedFrom, shownUrl, base);
 }
 
 /** Does the page take its links and its form over (frame loads + its own entries)? Not inside the app */

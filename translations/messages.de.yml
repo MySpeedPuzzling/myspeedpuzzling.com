@@ -9292,6 +9292,7 @@ barcode_scanner:
   "shown_of_total": "%count% von %total%"
   "empty_filtered": "Keine Ergebnisse für %filters%."
   "export_results": "Ihre Ergebnisse exportieren"
+  "show_from_start": "Von Anfang an anzeigen"
   "no_results": "Hier gibt es noch keine Ergebnisse."
   "chip":
     "remove": "Filter entfernen: %filter%"

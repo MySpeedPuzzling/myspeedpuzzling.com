@@ -9,6 +9,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\Navigation\NavigationViewer;
+use SpeedPuzzling\Web\Tests\Navigation\PlayerProfileQueryBudgetTest;
 use SpeedPuzzling\Web\Tests\QueryCountAssertions;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -18,8 +19,9 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
  * included, like PlayerProfileQueryBudgetTest - for the page and for its frame (`Turbo-Frame: player-results`). The
  * whole history is loaded and filtered, sorted and paged in PHP, so the count does not depend on how many results the
  * player has (a fixture player with 9 puzzles and with 69 cost the same) nor on the page; the search costs exactly one
- * statement more (PROF-05d). Each row stays at or below the profile's P0-02 pin for the same viewer (the Results list
- * is the profile's list without the rest of the profile).
+ * statement more (PROF-05d). Each row stays at or below the profile's (the Overview's) current pin for the same viewer
+ * in PlayerProfileQueryBudgetTest, read from its provider (PROF review Q6): the list moved off the profile, and Results
+ * never costs more than the page it was moved from does now.
  *
  * Pinned exactly; budgets only go down, every change commented with the requirement ID. The second request is counted
  * (the first warms the caches and claims an announcement modal).
@@ -33,36 +35,36 @@ final class PlayerResultsQueryBudgetTest extends WebTestCase
     use QueryCountAssertions;
 
     /**
-     * @return iterable<string, array{string, string, bool, int, int}>
+     * @return iterable<string, array{string, string, bool, int, string}>
      */
     public static function provideViews(): iterable
     {
-        // [viewer, player, frame only, statements, the profile's pin for the same view (PlayerProfileQueryBudgetTest)]
+        // [viewer, player, frame only, statements, the same view's row of PlayerProfileQueryBudgetTest (the Overview)]
         // The player's profile row, the history (GetPlayerSolvedPuzzles: the player once, solo, pairs + their members,
         // teams + their members) and the shown rows' ranks
-        yield 'guest → other, page' => [NavigationViewer::GUEST, PlayerFixture::PLAYER_REGULAR, false, 7, 14];
-        yield 'guest → other, frame' => [NavigationViewer::GUEST, PlayerFixture::PLAYER_REGULAR, true, 7, 14];
+        yield 'guest → other, page' => [NavigationViewer::GUEST, PlayerFixture::PLAYER_REGULAR, false, 7, 'guest → other'];
+        yield 'guest → other, frame' => [NavigationViewer::GUEST, PlayerFixture::PLAYER_REGULAR, true, 7, 'guest → other'];
         // + the signed-in chrome on the page (user refresh, the viewer's profile row, the Inbox badge), in the frame the
         // first two
-        yield 'player → other, page' => [NavigationViewer::PLAYER, PlayerFixture::PLAYER_REGULAR, false, 10, 18];
-        yield 'player → other, frame' => [NavigationViewer::PLAYER, PlayerFixture::PLAYER_REGULAR, true, 9, 18];
+        yield 'player → other, page' => [NavigationViewer::PLAYER, PlayerFixture::PLAYER_REGULAR, false, 10, 'player → other'];
+        yield 'player → other, frame' => [NavigationViewer::PLAYER, PlayerFixture::PLAYER_REGULAR, true, 9, 'player → other'];
         // + the members' difficulty
-        yield 'member → other, page' => [NavigationViewer::MEMBER, PlayerFixture::PLAYER_REGULAR, false, 11, 23];
-        yield 'member → other, frame' => [NavigationViewer::MEMBER, PlayerFixture::PLAYER_REGULAR, true, 10, 23];
+        yield 'member → other, page' => [NavigationViewer::MEMBER, PlayerFixture::PLAYER_REGULAR, false, 11, 'member → other'];
+        yield 'member → other, frame' => [NavigationViewer::MEMBER, PlayerFixture::PLAYER_REGULAR, true, 10, 'member → other'];
         // Own results: the player's profile row is the viewer's
-        yield 'member → own, page' => [NavigationViewer::MEMBER, PlayerFixture::PLAYER_WITH_STRIPE, false, 10, 22];
-        yield 'member → own, frame' => [NavigationViewer::MEMBER, PlayerFixture::PLAYER_WITH_STRIPE, true, 9, 22];
+        yield 'member → own, page' => [NavigationViewer::MEMBER, PlayerFixture::PLAYER_WITH_STRIPE, false, 10, 'member → own'];
+        yield 'member → own, frame' => [NavigationViewer::MEMBER, PlayerFixture::PLAYER_WITH_STRIPE, true, 9, 'member → own'];
     }
 
     #[DataProvider('provideViews')]
-    public function testTheResultsCost(string $role, string $playerId, bool $frameOnly, int $statements, int $profilePin): void
+    public function testTheResultsCost(string $role, string $playerId, bool $frameOnly, int $statements, string $overviewView): void
     {
         $browser = self::createClient();
         NavigationViewer::signIn($browser, $role);
         $url = '/en/player-results/' . $playerId;
 
         self::assertSame($statements, $this->statements($browser, $url, $frameOnly), $role . ' ' . $url . " ran:\n" . implode("\n", $this->executedSql($browser)));
-        self::assertLessThanOrEqual($profilePin, $statements, 'Results cost no more than the profile');
+        self::assertLessThanOrEqual(self::overviewPin($overviewView, $playerId), $statements, 'Results cost no more than the profile (the Overview) for the same viewer');
 
         // The search is one statement more (PROF-05d); another sort costs the same, Best rank too (PROF-06: one rank
         // statement, the memo); Every result and the Pairs tab one less - their rows carry no rank (PROF-06)
@@ -136,6 +138,22 @@ final class PlayerResultsQueryBudgetTest extends WebTestCase
         self::assertSame($before, $after);
         // Best rank reads every rank in the one rank statement the shown rows' ranks would cost
         self::assertSame($before['page'], $before['best rank']);
+    }
+
+    /**
+     * The Overview's current pin for a view (PlayerProfileQueryBudgetTest::provideViews(): [viewer, player, pin])
+     */
+    private static function overviewPin(string $view, string $playerId): int
+    {
+        foreach (PlayerProfileQueryBudgetTest::provideViews() as $name => [, $profilePlayerId, $pin]) {
+            if ($name === $view) {
+                self::assertSame($playerId, $profilePlayerId, 'The Overview row is the same player\'s');
+
+                return $pin;
+            }
+        }
+
+        self::fail('PlayerProfileQueryBudgetTest has no row "' . $view . '"');
     }
 
     private function statements(KernelBrowser $browser, string $url, bool $frameOnly): int

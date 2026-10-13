@@ -144,7 +144,8 @@ final class BlocklistCanaryTest extends WebTestCase
     /**
      * A co-solver's Results (docs/features/navigation PROF-08): their pair and their team of three with the blocked player
      * are rows of the Pairs / Teams tabs, options of the pair/team filter and counted on the tabs for a bystander - for
-     * the blocker none of it, whatever the view, the search or the answer (the page, or the list alone for its frame).
+     * the blocker none of it, whatever the view, the search or the answer (the page, the list alone for its frame, or
+     * Show more's stream - `fragment=more`, page 1's rows: PROF review F6).
      * GetPlayerSolvedPuzzles leaves the results out with HiddenPlayers::sqlExcludeTeam().
      */
     #[DataProvider('provideCoSolversResults')]
@@ -153,9 +154,11 @@ final class BlocklistCanaryTest extends WebTestCase
         $browser = self::createClient();
         $url = '/en/player-results/' . PlayerFixture::PLAYER_REGULAR . $query;
         $pair = $this->seedTeam([PlayerFixture::PLAYER_REGULAR, self::BLOCKED]);
-        $this->seedTime(PlayerFixture::PLAYER_REGULAR, PuzzleFixture::PUZZLE_500_02, 1500, new DateTimeImmutable('-1 minute'), teamId: $pair);
+        $pairTime = $this->seedTime(PlayerFixture::PLAYER_REGULAR, PuzzleFixture::PUZZLE_500_02, 1500, new DateTimeImmutable('-1 minute'), teamId: $pair);
         $team = $this->seedTeam([PlayerFixture::PLAYER_REGULAR, self::BLOCKED], ['Garden Guest']);
-        $this->seedTime(PlayerFixture::PLAYER_REGULAR, PuzzleFixture::PUZZLE_500_02, 1900, new DateTimeImmutable('-2 minutes'), teamId: $team);
+        $teamTime = $this->seedTime(PlayerFixture::PLAYER_REGULAR, PuzzleFixture::PUZZLE_500_02, 1900, new DateTimeImmutable('-2 minutes'), teamId: $team);
+        // The seeded result of the tab: its row links its result detail (the row itself, not only the names on it)
+        $seededTime = $category === 'duo' ? $pairTime : $teamTime;
 
         self::getContainer()->get(Connection::class)->executeStatement(
             "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, NOW(), 'self')",
@@ -169,6 +172,14 @@ final class BlocklistCanaryTest extends WebTestCase
         self::assertStringContainsString(self::BLOCKED_NAME, $crawler->filter('select[name="team"]')->text(), 'No canary: the pair/team filter does not offer them to a bystander.');
         $shown = $this->tabCount($crawler, $category);
 
+        // Show more's stream appends the rows of the page asked for after the ones shown - page 1: every row there is
+        $stream = $url . '&fragment=more';
+        $browser->request('GET', $stream);
+        self::assertResponseIsSuccessful();
+        self::assertStringStartsWith('text/vnd.turbo-stream.html', (string) $browser->getResponse()->headers->get('Content-Type'));
+        self::assertStringContainsString(self::BLOCKED_NAME, (string) $browser->getResponse()->getContent(), 'No canary: the stream does not show the bystander the result with the player.');
+        self::assertStringContainsString($seededTime, (string) $browser->getResponse()->getContent(), 'No canary: the stream does not list the result with the player for the bystander.');
+
         TestingLogin::asPlayer($browser, self::BLOCKER);
 
         foreach (['page' => [], 'frame' => ['HTTP_TURBO_FRAME' => 'player-results']] as $answer => $server) {
@@ -179,6 +190,13 @@ final class BlocklistCanaryTest extends WebTestCase
             self::assertStringNotContainsString(self::BLOCKED_NAME, $content, "The blocker is shown a player they blocked ({$answer}).");
             self::assertSame($shown - 1, $this->tabCount($crawler, $category), "The result is counted for the blocker ({$answer}).");
         }
+
+        $browser->request('GET', $stream);
+        self::assertResponseIsSuccessful();
+        $content = (string) $browser->getResponse()->getContent();
+        self::assertStringNotContainsString(self::BLOCKED, $content, 'The blocker is shown a player they blocked (stream).');
+        self::assertStringNotContainsString(self::BLOCKED_NAME, $content, 'The blocker is shown a player they blocked (stream).');
+        self::assertStringNotContainsString($seededTime, $content, 'The blocker is shown the result with a player they blocked (stream).');
     }
 
     /**

@@ -28,7 +28,9 @@ readonly final class GetPlayerResultsSearchMatches
 
     /**
      * @param list<string> $puzzleIds the player's puzzles
-     * @return array<string, true> the ids found, as keys
+     * @return array<string, null|string> the ids found, as keys - each with the puzzle's stored EANs (the row's
+     *                                    "Matched: …" when the search found it by one, PuzzleCodeMatch; the brand codes
+     *                                    come with the results already)
      */
     public function puzzleIds(string $search, array $puzzleIds): array
     {
@@ -41,24 +43,25 @@ readonly final class GetPlayerResultsSearchMatches
 
         // One array parameter whatever the history's size (2,000+ puzzles) - the plan stays the same
         $query = <<<SQL
-SELECT p.id
+SELECT p.id, p.ean
 FROM puzzle p
 WHERE p.id = ANY(CAST(:puzzleIds AS uuid[]))
   AND {$textSearch->condition('p')}
 SQL;
 
+        /** @var list<array{id: mixed, ean: mixed}> $ids */
         $ids = $this->database
             ->executeQuery($query, [
                 'puzzleIds' => '{' . implode(',', $puzzleIds) . '}',
                 ...$textSearch->parameters($this->clock->now()),
             ])
-            ->fetchFirstColumn();
+            ->fetchAllAssociative();
 
         $found = [];
 
-        foreach ($ids as $id) {
-            if (is_string($id)) {
-                $found[$id] = true;
+        foreach ($ids as $row) {
+            if (is_string($row['id'])) {
+                $found[$row['id']] = is_string($row['ean']) ? $row['ean'] : null;
             }
         }
 

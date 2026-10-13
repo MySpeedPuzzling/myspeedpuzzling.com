@@ -14,8 +14,10 @@ import {
     scrollKey,
     scrollRestore,
     stateQuery,
+    streamApplies,
     takesOver,
     urlFromForm,
+    withTypedQuery,
     OWNER,
     SCROLL_KEY_PREFIX,
     TYPING_DEBOUNCE_MS,
@@ -159,12 +161,38 @@ run('history action', () => ({
     typing: historyAction('typing', BASE, abs(PAGE + '?q=night')),
     more: historyAction('more', BASE, abs(PAGE + '?page=2')),
     all: historyAction('all', BASE, abs(PAGE + '?page=6')),
+    start: historyAction('start', abs(PAGE + '?page=10'), BASE),
     sameList: historyAction('discrete', abs(PAGE + '?sort=newest'), BASE),
     sameTyping: historyAction('typing', abs(PAGE + '?q=night'), abs(PAGE + '?q=night+')),
     insideTheApp: historyAction('discrete', BASE, abs(PAGE + '?sort=fastest'), true),
     takesOverOnTheWeb: takesOver(false),
     takesOverInTheApp: takesOver(true),
 }));
+
+// PROF review F4: a click within the search's wait takes the typed text along
+run('typed query', () => ({
+    tab: withTypedQuery(abs(PAGE + '?category=duo'), ' night  sky ', BASE),
+    replaced: withTypedQuery(abs(PAGE + '?q=old&sort=fastest'), 'new', BASE),
+    paging: withTypedQuery(abs(PAGE + '?page=2'), 'night', BASE),
+    emptied: withTypedQuery(abs(PAGE + '?q=old&brand=X'), '   ', BASE),
+    long: new URL(withTypedQuery(BASE, 'x'.repeat(150), BASE)).searchParams.get('q').length,
+}));
+
+// PROF review F2: Show more's answer applies only to the list and the page it was asked for
+run('stream applies', () => {
+    const asked = { requestedFrom: abs(PAGE + '?sort=fastest'), shownUrl: abs(PAGE + '?sort=fastest') };
+
+    return {
+        same: streamApplies(asked, BASE),
+        sameListOtherForm: streamApplies({ requestedFrom: abs(PAGE + '?sort=fastest&sort=fastest'), shownUrl: abs(PAGE + '?sort=fastest&return=x') }, BASE),
+        aborted: streamApplies({ ...asked, aborted: true }, BASE),
+        disconnected: streamApplies({ ...asked, connected: false }, BASE),
+        footerGone: streamApplies({ ...asked, footerConnected: false }, BASE),
+        anotherListLoading: streamApplies({ ...asked, pending: true }, BASE),
+        anotherListShown: streamApplies({ ...asked, shownUrl: abs(PAGE + '?category=duo') }, BASE),
+        anotherPage: streamApplies({ ...asked, shownUrl: abs('/en/puzzle/abc') }, BASE),
+    };
+});
 
 // What the filter form shows for an address
 run('form state', () => {

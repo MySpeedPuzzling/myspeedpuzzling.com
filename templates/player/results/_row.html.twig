@@ -11,6 +11,8 @@
       - ranking: array<puzzle id, PlayerRanking> - the rank chip of a solo row (none for pair/team rows)
       - with_difficulty (bool) + difficulty_tiers (array<puzzle id, DifficultyTier>): members see the tier on the image
       - row_id (string, optional): the row's id (Results: Back restores the scroll to it, PROF-05c)
+      - search_query (string, optional) + matched_codes (array<puzzle id, string>, optional): the Results search - the
+        title highlighted, "Matched: …" under it when another name or a code found the puzzle (puzzle/_name.html.twig)
       - edit_context (string, optional): where the edit form returns, default the profile
 #}
 {% set puzzle = row[0] %}
@@ -50,7 +52,14 @@
     </td>
 
     <td class="ps-info">
-        <a class="ps-puzzle-name" href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">{{ puzzle.puzzleName }}</a>
+        <a class="ps-puzzle-name" href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">{{ highlight(puzzle.puzzleName, search_query ?? null) }}</a>
+        {# The name in the viewer's language, "Matched: …" with a search (docs/features/puzzle-names "Display") #}
+        {{ include('puzzle/_name.html.twig', {
+            name: puzzle.puzzleName,
+            alternative_names: puzzle.puzzleAlternativeNames,
+            query: search_query ?? null,
+            matched_code: (matched_codes ?? {})[puzzle.puzzleId] ?? null,
+        }, with_context = false) }}
         <div class="ps-puzzle-meta">
             {{ include('_pieces_brand.html.twig', {pieces: puzzle.piecesCount, brand: puzzle.manufacturerName}) }}
         </div>

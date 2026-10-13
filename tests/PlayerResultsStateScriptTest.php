@@ -125,12 +125,46 @@ final class PlayerResultsStateScriptTest extends TestCase
             'typing' => 'replace',
             'more' => 'replace',
             'all' => 'replace',
+            // "Show from the start" above a page that leaves its first rows out (PROF review Q5): paging
+            'start' => 'replace',
             'sameList' => 'none',
             'sameTyping' => 'none',
             'insideTheApp' => 'none',
             'takesOverOnTheWeb' => true,
             'takesOverInTheApp' => false,
         ], self::case('history action'));
+    }
+
+    /**
+     * PROF review F4: a click within the search's 300 ms takes the typed text along as `q` (trimmed, cut like the field,
+     * dropped when empty) and keeps the rest of its address
+     */
+    public function testAClickWithinTheTypingTakesTheTypedTextAlong(): void
+    {
+        self::assertSame([
+            'tab' => 'https://msp.test' . self::PAGE . '?category=duo&q=night++sky',
+            'replaced' => 'https://msp.test' . self::PAGE . '?q=new&sort=fastest',
+            'paging' => 'https://msp.test' . self::PAGE . '?page=2&q=night',
+            'emptied' => 'https://msp.test' . self::PAGE . '?brand=X',
+            'long' => 100,
+        ], self::case('typed query'));
+    }
+
+    /**
+     * PROF review F2: Show more's answer is dropped unless it is still the list's and the page's it was asked for
+     */
+    public function testShowMoresAnswerAppliesOnlyToTheListItWasAskedFor(): void
+    {
+        self::assertSame([
+            'same' => true,
+            'sameListOtherForm' => true,
+            'aborted' => false,
+            'disconnected' => false,
+            'footerGone' => false,
+            'anotherListLoading' => false,
+            'anotherListShown' => false,
+            'anotherPage' => false,
+        ], self::case('stream applies'));
     }
 
     public function testTheFormShowsTheListOfAnAddress(): void

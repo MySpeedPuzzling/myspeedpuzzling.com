@@ -11,7 +11,7 @@
 #}
 {% set criteria = results.criteria %}
 {% set is_member = logged_user.profile is not null and logged_user.profile.activeMembership %}
-{% set keep = results.listCriteria.toQuery %}
+{% set keep = results.formCriteria.toQuery %}
 {% set filters_count = criteria.activeFiltersCount - (criteria.query is not null ? 1 : 0) %}
 {% set pieces_param = criteria.pieces is not null ? criteria.pieces.toParam : '' %}
 {% set pieces_is_preset = results.availablePiecePresets|filter(preset => preset.toParam == pieces_param)|length > 0 %}
@@ -187,7 +187,7 @@
             <div class="d-flex flex-wrap align-items-center gap-3 mt-3">
                 <button type="submit" class="btn btn-primary btn-sm" data-testid="results-apply">{{ 'player_results.apply'|trans }}</button>
                 {# Rendered without filters too (hidden): the page's script shows it once a filter is on (PROF-05c) #}
-                <a class="fs-sm" href="{{ path('player_results', {playerId: results.playerId}|merge(results.listCriteria.withoutFilters.toQuery)) }}" data-results-clear data-results-form-clear{% if not criteria.hasFilters %} hidden{% endif %}>{{ 'player_results.clear_all'|trans }}</a>
+                <a class="fs-sm" href="{{ path('player_results', {playerId: results.playerId}|merge(results.clearCriteria.toQuery)) }}" data-results-clear data-results-form-clear{% if not criteria.hasFilters %} hidden{% endif %}>{{ 'player_results.clear_all'|trans }}</a>
             </div>
         </div>
     </details>

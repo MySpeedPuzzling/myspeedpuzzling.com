@@ -15,7 +15,7 @@ use Symfony\Component\DomCrawler\Crawler;
 /**
  * The Overview's numbers (GetPlayerOverviewNumbers, docs/features/navigation PROF-03) are the counts of the Results tabs
  * they link - for the same viewer, read from both rendered pages: Solo / Pairs / Teams = the By-puzzle tabs, Results =
- * the three Every-result tabs together. The history holds what could make them differ: results awaiting verification
+ * the three Every-result tabs together, and so is "All N results" under the latest results (PROF review Q1). The history holds what could make them differ: results awaiting verification
  * (listed on Results, so counted), a relax result, a puzzle solved twice, a pair with a member the viewer blocked (gone
  * from both for that viewer only), a team with a guest.
  */
@@ -74,6 +74,15 @@ final class PlayerOverviewNumbersParityTest extends WebTestCase
         self::assertSame($numbers['solo'], $this->tabCounts($browser->request('GET', $soloLink))['solo']);
         $everyLink = (string) $overview->filter('[data-overview-number="every"]')->attr('href');
         self::assertSame($numbers['every'], array_sum($this->tabCounts($browser->request('GET', $everyLink))));
+
+        // PROF review Q1: "All N results" under the latest results opens Every result, whose three tabs count results
+        // (Solo 7 results of 5 puzzles) and add up to N
+        $allResults = $overview->filter('a[data-testid="all-results"]');
+        self::assertCount(1, $allResults, 'More results than the Overview shows');
+        self::assertSame('All ' . $numbers['every'] . ' results', trim($allResults->text()));
+        $every = $this->tabCounts($browser->request('GET', (string) $allResults->attr('href')));
+        self::assertSame($numbers['every'], array_sum($every));
+        self::assertSame(['solo' => 7, 'duo' => $numbers['duo'], 'group' => $numbers['group']], $every, 'Every result counts results, not puzzles');
     }
 
     /**

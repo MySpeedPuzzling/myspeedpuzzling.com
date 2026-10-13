@@ -18,6 +18,7 @@ use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\DifficultyFilter;
 use SpeedPuzzling\Web\Value\DifficultyTier;
 use SpeedPuzzling\Web\Value\PiecesRange;
+use SpeedPuzzling\Web\Value\PuzzleCodeMatch;
 use SpeedPuzzling\Web\Value\PlayerResultsCriteria;
 use SpeedPuzzling\Web\Value\PlayerResultsSort;
 use SpeedPuzzling\Web\Value\PlayerResultsView;
@@ -100,19 +101,23 @@ final class PlayerResultsBuilder implements ResetInterface
         }
 
         $searchMatches = null;
+        // The code a puzzle was found by when none of its names holds the text (the row's "Matched: …", PROF review Q3)
+        $matchedCodes = [];
 
         if ($criteria->query !== null && $legacy === false) {
             $searchMatches = $this->getPlayerResultsSearchMatches->puzzleIds($criteria->query, $puzzleIds);
+            $matchedCodes = self::matchedCodes($criteria->query, $all, $searchMatches);
         }
 
         $solo = $this->filtered($history['solo'], $criteria, false, $searchMatches, $tiers, $legacy);
         $duo = $this->filtered($history['duo'], $criteria, true, $searchMatches, $tiers, $legacy);
         $team = $this->filtered($history['team'], $criteria, true, $searchMatches, $tiers, $legacy);
 
-        // Links leave the tab out only when it is the history's default: a pair/team filter's tab (the default while the
-        // filter is on) stays named, so "Clear all" and removing the filter keep it
+        // A missing category opens the history's default tab - under a pair/team filter that pair's or team's tab. Links
+        // name their tab unless it is the one they would open without it (PlayerResultsPage::categoryCriteria() and co.)
         $defaultCategory = $legacy ? PlayerResultsCriteria::CATEGORY_SOLO : self::defaultCategory($history, null);
-        $category = $criteria->category ?? ($legacy ? $defaultCategory : self::defaultCategory($history, $criteria->team));
+        $teamDefaultCategory = $legacy ? $defaultCategory : self::defaultCategory($history, $criteria->team);
+        $category = $criteria->category ?? $teamDefaultCategory;
         $view = $legacy ? PlayerResultsView::Puzzles : $criteria->view;
 
         if ($legacy) {
@@ -137,15 +142,21 @@ final class PlayerResultsBuilder implements ResetInterface
 
         $page = 1;
         $appendFrom = 0;
+        $windowStart = 0;
 
         if ($shownRows === null) {
             $page = min($criteria->page, max(1, (int) ceil(count($tabRows) / PlayerResultsPage::PAGE_SIZE)));
             $shownRows = $page * PlayerResultsPage::PAGE_SIZE;
 
-            // The rows before the REQUESTED page are on the client already - a page beyond the end (the list got shorter
-            // meanwhile) appends nothing rather than the last page again
             if ($appendPage) {
+                // The rows before the REQUESTED page are on the client already - a page beyond the end (the list got
+                // shorter meanwhile) appends nothing rather than the last page again
                 $appendFrom = ($criteria->page - 1) * PlayerResultsPage::PAGE_SIZE;
+            } elseif ($this->retrieveLoggedUserProfile->getProfile()?->playerId !== $playerId) {
+                // A render of `?page=N` (page or frame) is at most Show all's SHOW_ALL_MAX rows for anybody but the
+                // player (PROF review Q5): the last ones, "Show from the start" above them. One GET never renders a
+                // whole history; the player keeps every row (and has the export)
+                $windowStart = max(0, min($shownRows, count($tabRows)) - PlayerResultsPage::SHOW_ALL_MAX);
             }
         }
 
@@ -157,7 +168,9 @@ final class PlayerResultsBuilder implements ResetInterface
         if ($category === PlayerResultsCriteria::CATEGORY_SOLO && $view === PlayerResultsView::Puzzles) {
             $shownPuzzleIds = [];
 
-            foreach (array_slice($tabRows, $appendFrom, max(0, $shownRows - $appendFrom)) as $row) {
+            $from = max($appendFrom, $windowStart);
+
+            foreach (array_slice($tabRows, $from, max(0, $shownRows - $from)) as $row) {
                 $shownPuzzleIds[] = $row[0]->puzzleId;
             }
 
@@ -169,12 +182,13 @@ final class PlayerResultsBuilder implements ResetInterface
             criteria: $criteria,
             category: $category,
             defaultCategory: $defaultCategory,
+            teamDefaultCategory: $teamDefaultCategory,
             view: $view,
             sort: $shownSort,
             soloRows: $soloRows,
             duoRows: $duoRows,
             teamRows: $teamRows,
-            unfilteredRowsCount: self::unfilteredRowsCount($history, $category, $view),
+            unfilteredCount: self::unfilteredCount($history, $category, $view),
             shownRowsCount: $shownRows,
             page: $page,
             ranking: $ranking,
@@ -186,7 +200,35 @@ final class PlayerResultsBuilder implements ResetInterface
             difficultyOptions: self::difficultyOptions($all, $withDifficulty, $criteria->difficultyTiers, $tiers),
             resultsCount: count($all),
             appendFrom: $appendFrom,
+            windowStart: $windowStart,
+            matchedCodes: $matchedCodes,
         );
+    }
+
+    /**
+     * @param list<SolvedPuzzle> $all
+     * @param array<string, null|string> $searchMatches the puzzles found => their stored EANs
+     * @return array<string, string> puzzle id => the code (as printed) the search found it by
+     */
+    private static function matchedCodes(string $query, array $all, array $searchMatches): array
+    {
+        $codes = [];
+
+        foreach ($all as $puzzle) {
+            if (array_key_exists($puzzle->puzzleId, $searchMatches) === false || array_key_exists($puzzle->puzzleId, $codes)) {
+                continue;
+            }
+
+            $codes[$puzzle->puzzleId] = PuzzleCodeMatch::find(
+                $query,
+                $puzzle->puzzleName,
+                $puzzle->puzzleAlternativeNames,
+                $searchMatches[$puzzle->puzzleId],
+                $puzzle->puzzleIdentificationNumber,
+            );
+        }
+
+        return array_filter($codes, static fn (null|string $code): bool => $code !== null);
     }
 
     /**
@@ -228,11 +270,12 @@ final class PlayerResultsBuilder implements ResetInterface
     }
 
     /**
-     * The shown tab's rows without any filter, in the shown view - the "of M" of "N of M"
+     * The shown tab without any filter, in the unit its label counts (PlayerResultsPage::countOf()) - the "of M" of the
+     * chips' "N of M" (PROF review Q4): puzzles By puzzle, results on Every result
      *
      * @param array{solo: list<SolvedPuzzle>, duo: list<SolvedPuzzle>, team: list<SolvedPuzzle>} $history
      */
-    private static function unfilteredRowsCount(array $history, string $category, PlayerResultsView $view): int
+    private static function unfilteredCount(array $history, string $category, PlayerResultsView $view): int
     {
         $puzzles = match ($category) {
             PlayerResultsCriteria::CATEGORY_DUO => $history['duo'],
@@ -247,7 +290,7 @@ final class PlayerResultsBuilder implements ResetInterface
         $keys = [];
 
         foreach ($puzzles as $puzzle) {
-            $keys[$category === PlayerResultsCriteria::CATEGORY_SOLO ? $puzzle->puzzleId : self::teamRowKey($puzzle)] = true;
+            $keys[$puzzle->puzzleId] = true;
         }
 
         return count($keys);
@@ -255,7 +298,8 @@ final class PlayerResultsBuilder implements ResetInterface
 
     /**
      * @param list<SolvedPuzzle> $puzzles
-     * @param null|array<string, true> $searchMatches the puzzles the search found (Results); null = no search or legacy
+     * @param null|array<string, null|string> $searchMatches the puzzles the search found, as keys (Results); null = no
+     *                                               search or legacy
      * @param array<string, DifficultyTier> $tiers
      * @return list<SolvedPuzzle>
      */
@@ -289,7 +333,7 @@ final class PlayerResultsBuilder implements ResetInterface
                 return false;
             }
 
-            if ($searchMatches !== null && isset($searchMatches[$puzzle->puzzleId]) === false) {
+            if ($searchMatches !== null && array_key_exists($puzzle->puzzleId, $searchMatches) === false) {
                 return false;
             }
 

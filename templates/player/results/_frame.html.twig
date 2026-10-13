@@ -50,14 +50,14 @@
     {% set chip_labels = chip_labels|merge({(chip.id): label}) %}
 {% endfor %}
 <turbo-frame id="player-results" target="_top" data-testid="player-results">
-    {% set keep = list.toQuery %}
+    {% set keep = results.formCriteria.toQuery %}
     <span hidden data-results-state
           data-url="{{ path('player_results', route_params|merge(criteria.withPage(results.page).toQuery)) }}"
           data-category="{{ keep.category ?? '' }}"
           data-view="{{ keep.view ?? '' }}"
           data-sort="{{ keep.sort ?? '' }}"
           data-filters="{{ criteria.activeFiltersCount - (criteria.query is not null ? 1 : 0) }}"
-          data-clear="{{ criteria.hasFilters ? path('player_results', route_params|merge(list.withoutFilters.toQuery)) }}"></span>
+          data-clear="{{ criteria.hasFilters ? path('player_results', route_params|merge(results.clearCriteria.toQuery)) }}"></span>
 
     {# Solo · Pairs · Teams - a tab without rows (after the filters) cannot be opened, like on the profile #}
     <div class="puzzle-category-types my-3" data-testid="results-categories">
@@ -122,13 +122,21 @@
     {{ include('player/results/_chips.html.twig', {chip_labels: chip_labels}) }}
 
     {% if results.rowsCount > 0 %}
+        {# `?page=N` beyond Show all's 300 rows renders the last 300 for anybody but the player (PROF review Q5) #}
+        {% if results.isWindowed %}
+            <p class="prs-window text-center fs-sm mb-2" data-testid="results-window">
+                <a href="{{ path('player_results', route_params|merge(list.toQuery)) }}" data-results-start>
+                    <i class="bi bi-arrow-up" aria-hidden="true"></i> {{ 'player_results.show_from_start'|trans }}
+                </a>
+            </p>
+        {% endif %}
         <div class="custom-table-wrapper ps-wrapper">
             <table class="table table-hover ps-table mb-0">
                 <tbody id="player-results-rows">
                     {% if results.view.value == 'every' %}
-                        {{ include('player/results/_rows_every.html.twig', {rows: results.shownRows, offset: 0}) }}
+                        {{ include('player/results/_rows_every.html.twig', {rows: results.shownRows, offset: results.windowStart}) }}
                     {% else %}
-                        {{ include('player/results/_rows_by_puzzle.html.twig', {rows: results.shownRows, offset: 0}) }}
+                        {{ include('player/results/_rows_by_puzzle.html.twig', {rows: results.shownRows, offset: results.windowStart}) }}
                     {% endif %}
                 </tbody>
             </table>
@@ -140,7 +148,7 @@
         {# The empty state names the filters #}
         <div class="prs-empty text-center py-4" data-testid="results-empty-filtered">
             <p class="mb-3">{{ 'player_results.empty_filtered'|trans({'%filters%': chip_labels|join(', ')}) }}</p>
-            <a class="btn btn-outline-primary btn-sm" href="{{ path('player_results', route_params|merge(list.withoutFilters.toQuery)) }}" data-results-clear>{{ 'player_results.clear_all'|trans }}</a>
+            <a class="btn btn-outline-primary btn-sm" href="{{ path('player_results', route_params|merge(results.clearCriteria.toQuery)) }}" data-results-clear>{{ 'player_results.clear_all'|trans }}</a>
         </div>
     {% else %}
         <p class="prs-empty text-center text-body-secondary py-4" data-testid="results-empty">{{ 'player_results.no_results'|trans }}</p>

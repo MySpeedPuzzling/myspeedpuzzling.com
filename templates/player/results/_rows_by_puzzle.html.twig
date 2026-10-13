@@ -12,6 +12,8 @@
         ranking: results.ranking,
         with_difficulty: results.withDifficulty,
         difficulty_tiers: results.difficultyTiers,
+        search_query: results.criteria.query,
+        matched_codes: results.matchedCodes,
         row_id: 'result-' ~ (key|replace({'|': '-'})),
     }) }}
 {% endfor %}

@@ -211,31 +211,45 @@ final class PrivateProfileCanaryTest extends WebTestCase
     }
 
     /**
-     * The list alone for its frame (navigation PROF-05c loads it on every change of the list): the teammate's pair row
-     * names her for the friend only, and the answer is never shared
+     * The list alone for its frame (navigation PROF-05c loads it on every change of the list) and Show more's stream
+     * (`fragment=more`, PROF-05b - page 1's rows; PROF review F6): the teammate's pair row names her for the friend
+     * only, and neither answer is ever shared
+     *
+     * @param array<string, string> $server
      */
-    public function testATeammatesResultsFrameNamesHerForTheFriendOnly(): void
+    #[DataProvider('provideTeammatesResultsAnswers')]
+    public function testATeammatesResultsFrameNamesHerForTheFriendOnly(string $query, array $server): void
     {
         $browser = self::createClient();
-        $url = '/en/player-results/' . PlayerFixture::PLAYER_REGULAR . '?category=duo';
-        $frame = ['HTTP_TURBO_FRAME' => 'player-results'];
+        $url = '/en/player-results/' . PlayerFixture::PLAYER_REGULAR . $query;
 
-        $browser->request('GET', $url, server: $frame);
+        $browser->request('GET', $url, server: $server);
         self::assertResponseIsSuccessful();
         self::assertStringNotContainsString(self::OWNER_NAME, (string) $browser->getResponse()->getContent(), 'A guest is shown a private player.');
 
         foreach (self::STRANGERS as $who => $strangerId) {
             TestingLogin::asPlayer($browser, $strangerId);
-            $browser->request('GET', $url, server: $frame);
+            $browser->request('GET', $url, server: $server);
             self::assertResponseIsSuccessful();
             self::assertStringNotContainsString(self::OWNER_NAME, (string) $browser->getResponse()->getContent(), "A signed-in stranger ({$who}) is shown a private player.");
         }
 
         TestingLogin::asPlayer($browser, self::FRIEND);
-        $browser->request('GET', $url, server: $frame);
+        $browser->request('GET', $url, server: $server);
         self::assertResponseIsSuccessful();
         self::assertStringContainsString(self::OWNER_NAME, (string) $browser->getResponse()->getContent(), 'The allowed friend does not see her in the list - no canary.');
         self::assertStringContainsString('no-store', (string) $browser->getResponse()->headers->get('Cache-Control'));
+    }
+
+    /**
+     * @return iterable<string, array{string, array<string, string>}>
+     */
+    public static function provideTeammatesResultsAnswers(): iterable
+    {
+        yield 'frame' => ['?category=duo', ['HTTP_TURBO_FRAME' => 'player-results']];
+        yield 'frame, every result' => ['?category=duo&view=every', ['HTTP_TURBO_FRAME' => 'player-results']];
+        yield 'show more stream' => ['?category=duo&fragment=more', []];
+        yield 'show more stream, every result' => ['?category=duo&view=every&fragment=more', []];
     }
 
     /**

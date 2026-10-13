@@ -1,25 +1,25 @@
 {#
     The active filters of a player's Results as removable chips (docs/features/navigation README §4.7, PROF-05a):
-    "N of M" (rows after the filters of the rows of the tab), one chip per filter - a link to the list without it - and
-    "Clear all" (the same tab, view and sort without the search and the filters). Nothing without a filter.
+    "N of M" (the tab after the filters of the tab without them, in the unit its label counts: puzzles By puzzle,
+    results on Every result - PROF review Q4), one chip per filter - a link to the list without it - and "Clear all"
+    (the same tab, view and sort without the search and the filters). Nothing without a filter.
 
     Inputs: results (PlayerResultsPage), chip_labels (chip id => label text, from _frame.html.twig)
 #}
 {% set criteria = results.criteria %}
 {% if criteria.hasFilters %}
-    {% set list = results.listCriteria %}
     {% set route_params = {playerId: results.playerId} %}
     <div class="prs-chips d-flex flex-wrap align-items-center gap-2 mb-3" data-testid="results-chips">
         <span class="prs-count fs-sm text-body-secondary" data-testid="results-count">
-            {{- 'player_results.shown_of_total'|trans({'%count%': results.rowsCount|plain_number, '%total%': results.unfilteredRowsCount|plain_number}) -}}
+            {{- 'player_results.shown_of_total'|trans({'%count%': results.countOf(results.category)|plain_number, '%total%': results.unfilteredCount|plain_number}) -}}
         </span>
         {% for chip in criteria.chips %}
             {% set label = chip_labels[chip.id] ?? chip.value %}
-            <a class="prs-chip-filter" href="{{ path('player_results', route_params|merge(list.without(chip.id).toQuery)) }}" data-results-chip="{{ chip.id }}" aria-label="{{ 'player_results.chip.remove'|trans({'%filter%': label}) }}">
+            <a class="prs-chip-filter" href="{{ path('player_results', route_params|merge(results.chipCriteria(chip.id).toQuery)) }}" data-results-chip="{{ chip.id }}" aria-label="{{ 'player_results.chip.remove'|trans({'%filter%': label}) }}">
                 <span class="prs-chip-filter-label">{{ label }}</span>
                 <i class="bi bi-x-lg" aria-hidden="true"></i>
             </a>
         {% endfor %}
-        <a class="prs-clear-all fs-sm" href="{{ path('player_results', route_params|merge(list.withoutFilters.toQuery)) }}" data-results-clear>{{ 'player_results.clear_all'|trans }}</a>
+        <a class="prs-clear-all fs-sm" href="{{ path('player_results', route_params|merge(results.clearCriteria.toQuery)) }}" data-results-clear>{{ 'player_results.clear_all'|trans }}</a>
     </div>
 {% endif %}

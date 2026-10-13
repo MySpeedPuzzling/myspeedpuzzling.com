@@ -14,8 +14,10 @@ import {
     sameState,
     scrollKey,
     scrollRestore,
+    streamApplies,
     takesOver,
     urlFromForm,
+    withTypedQuery,
 } from '../player_results_state.js';
 
 const FRAME_ID = 'player-results';
@@ -27,8 +29,12 @@ const STREAM_TYPE = 'text/vnd.turbo-stream.html';
 // The stream's actions render after the next repaint (Turbo): the new footer is the sign they are done
 const RENDER_TIMEOUT_MS = 5000;
 
-// Links that show another list (tab, view, sort, a chip, Clear all): a new entry, the list loaded into its frame
-const LIST_LINKS = 'a[data-results-category], a[data-results-view], a[data-results-sort], a[data-results-chip], a[data-results-clear]';
+// Links that show another list (tab, view, sort, a chip, Clear all): a new entry, the list loaded into its frame - and
+// "Show from the start" above a page that leaves its first rows out (paging: the entry replaced)
+const LIST_LINKS = 'a[data-results-category], a[data-results-view], a[data-results-sort], a[data-results-chip], a[data-results-clear], a[data-results-start]';
+
+// Links that drop the search: a text still being typed goes with them no further (review F4)
+const DROPS_SEARCH = 'a[data-results-chip="q"], a[data-results-clear]';
 
 const TEXT_TYPES = ['text', 'search', 'number', 'email', 'tel', 'url'];
 
@@ -47,7 +53,15 @@ const TEXT_TYPES = ['text', 'search', 'number', 'email', 'tel', 'url'];
  * - Back / Forward between the page's own entries (popstate with Turbo paused) loads that entry's list - no page load.
  *   A pop onto another page's entry is layer_history's: it gives Turbo its history back and restores that page.
  * - Show more (`a[data-results-more]`, `?…&page=N+1`): the same URL with `fragment=more` answers a Turbo Stream - the
- *   next rows appended, the footer replaced (PlayerResultsController). Show all reloads the list with every row.
+ *   next rows appended, the footer replaced (PlayerResultsController). Show all reloads the list with every row. The
+ *   stream belongs to the list and the page it was asked for (review F2): a newer change of the list, a visit or the
+ *   page leaving aborts it, and an answer that arrives for a list no longer shown is dropped - it never appends rows
+ *   to another list, never writes another page's history entry.
+ * - A change while the search still waits for its 300 ms (review F4): the typed text goes with it - a click's address
+ *   gets the typed `q` (one entry, pushed for a discrete change), a filter of the form sends it anyway; a link that
+ *   drops the search (its chip, Clear all) drops it. Typing that ends while a change is loading continues that change.
+ * - A list answer without the list (`turbo:frame-missing`: the player blocked or turned private meanwhile, a deploy's
+ *   error page) becomes a full visit of what the server answered, never "Content missing" (review F5).
  * - Back from another page: the address says `?page=N`, so a full load renders the same rows; where the page was when it
  *   was left (sessionStorage `msp:results-scroll:<address>`, saved at turbo:before-visit and pagehide: scrollY and the
  *   row clicked / first in view) is restored only when a full load brought the visitor back (app.js's restore reload,
@@ -69,6 +83,10 @@ export default class extends Controller {
         this.typingTimer = null;
         this.restoreCleanup = null;
         this.pending = null;
+        // Show more's request in flight: {controller (AbortController), from (the list it was asked for)}
+        this.moreRequest = null;
+        // A visit is leaving the page: nothing writes an entry any more (taken back when the visit is cancelled)
+        this.leaving = false;
         this.lastRow = null;
         this.pathname = window.location.pathname;
         this.currentUrl = window.location.href;
@@ -80,6 +98,7 @@ export default class extends Controller {
         if (this.listFrame) {
             this.listFrame.addEventListener('turbo:frame-load', this.onFrameLoad);
             this.listFrame.addEventListener('turbo:fetch-request-error', this.onFrameError);
+            this.listFrame.addEventListener('turbo:frame-missing', this.onFrameMissing);
         }
 
         this.element.addEventListener('click', this.onClick);
@@ -119,8 +138,11 @@ export default class extends Controller {
         if (this.listFrame) {
             this.listFrame.removeEventListener('turbo:frame-load', this.onFrameLoad);
             this.listFrame.removeEventListener('turbo:fetch-request-error', this.onFrameError);
+            this.listFrame.removeEventListener('turbo:frame-missing', this.onFrameMissing);
             this.listFrame = null;
         }
+
+        this.abortMore();
 
         this.element.removeEventListener('click', this.onClick);
         this.element.removeEventListener('input', this.onInput);
@@ -158,17 +180,41 @@ export default class extends Controller {
         }
 
         const url = new URL(link.href, window.location.href);
+        const typed = this.takeTyping();
+
+        // The search still waited (review F4): the typed text makes it another list - its rows up to the next page load
+        // into the frame instead of being appended to this one
+        if (typed !== null && !sameState(withTypedQuery(url.href, typed), url.href)) {
+            this.change('more', withTypedQuery(url.href, typed));
+
+            return;
+        }
+
         const streamUrl = new URL(url.href);
         streamUrl.searchParams.set('fragment', 'more');
 
         const before = this.rowsCount();
         const footer = document.getElementById(FOOTER_ID);
+        const request = { controller: new AbortController(), from: this.shownUrl };
+        this.abortMore();
+        this.moreRequest = request;
         this.busy(link, footer);
+
+        // The answer is the list's and the page's it was asked for, nobody else's (review F2)
+        const applies = () => streamApplies({
+            aborted: request.controller.signal.aborted,
+            connected: this.element.isConnected,
+            footerConnected: !footer || footer.isConnected,
+            pending: this.pending !== null,
+            requestedFrom: request.from,
+            shownUrl: this.shownUrl,
+        }, window.location.href);
 
         try {
             const response = await fetch(streamUrl.href, {
                 headers: { Accept: STREAM_TYPE },
                 credentials: 'same-origin',
+                signal: request.controller.signal,
             });
             const type = response.headers.get('Content-Type') || '';
 
@@ -176,21 +222,60 @@ export default class extends Controller {
                 throw new Error('Results: no stream (' + response.status + ')');
             }
 
-            renderStreamMessage(await response.text());
+            const stream = await response.text();
+
+            if (!applies()) {
+                this.endMore(request);
+
+                return;
+            }
+
+            renderStreamMessage(stream);
             await this.replaced(footer);
         } catch (error) {
+            this.endMore(request);
+
+            // Aborted or superseded: another list or page is on its way - nothing to fall back to
+            if (!applies()) {
+                return;
+            }
+
             // The link's own way: load the page with the rows
-            this.loading = false;
             visit(url.href);
 
             return;
         }
 
-        this.loading = false;
+        this.endMore(request);
+
+        // Rendered, then a visit started or the page went: the entry is the new page's now
+        if (request.controller.signal.aborted || !this.element.isConnected) {
+            return;
+        }
+
         // The address says what the page shows (?page=N+1): a reload or a Back from a puzzle page renders the same rows
         this.write('more', url.href);
         this.shownUrl = url.href;
         this.focusRow(before);
+    }
+
+    /** Show more's request in flight is cancelled (a newer change of the list, a visit, the page leaving) */
+    abortMore() {
+        const request = this.moreRequest;
+
+        if (request) {
+            this.moreRequest = null;
+            this.loading = false;
+            request.controller.abort();
+        }
+    }
+
+    endMore(request) {
+        if (this.moreRequest === request) {
+            this.moreRequest = null;
+        }
+
+        this.loading = false;
     }
 
     all(event) {
@@ -207,13 +292,17 @@ export default class extends Controller {
         }
 
         const before = this.rowsCount();
+        const typed = this.takeTyping();
+        let url = new URL(link.href, window.location.href).href;
+
+        // The search still waited (review F4): every row of the list it asks for
+        if (typed !== null) {
+            url = withTypedQuery(url, typed);
+        }
+
         this.busy(link, document.getElementById(FOOTER_ID));
-        this.change('all', new URL(link.href, window.location.href).href, {
-            after: () => {
-                this.loading = false;
-                this.focusRow(before);
-            },
-        });
+        // `loading` ends with the list's load, whichever load that is (review F3); `after` only puts the focus
+        this.change('all', url, { after: () => this.focusRow(before) });
     }
 
     // ---- Changes of the list ------------------------------------------------------------------------------------------
@@ -236,7 +325,16 @@ export default class extends Controller {
         }
 
         event.preventDefault();
-        this.change('discrete', new URL(link.href, window.location.href).href, { focus: focusTargets(link) });
+
+        const typed = this.takeTyping();
+        let url = new URL(link.href, window.location.href).href;
+
+        // The search still waited (review F4): the typed text goes with the click - unless the click drops the search
+        if (typed !== null && !link.matches(DROPS_SEARCH)) {
+            url = withTypedQuery(url, typed);
+        }
+
+        this.change(link.hasAttribute('data-results-start') ? 'start' : 'discrete', url, { focus: focusTargets(link) });
     };
 
     onInput = (event) => {
@@ -247,6 +345,19 @@ export default class extends Controller {
         clearTimeout(this.typingTimer);
         this.typingTimer = setTimeout(() => {
             this.typingTimer = null;
+            const pending = this.pending;
+
+            // A change is loading (a click within the typing): the typed text continues it rather than undoing it -
+            // the form's hidden tab/view/sort still name the list before it (review F4)
+            if (pending) {
+                this.change(pending.kind === 'pop' ? 'typing' : pending.kind, withTypedQuery(pending.url, event.target.value), {
+                    focus: pending.focus,
+                    after: pending.after,
+                });
+
+                return;
+            }
+
             this.change('typing', this.formUrl());
         }, TYPING_DEBOUNCE_MS);
     };
@@ -259,6 +370,8 @@ export default class extends Controller {
             return;
         }
 
+        // The form sends the typed text with the change: the search's own wait is over (review F4)
+        this.takeTyping();
         this.change('discrete', this.formUrl());
     };
 
@@ -293,6 +406,11 @@ export default class extends Controller {
      */
     change(kind, url, { focus = null, after = null } = {}) {
         if (sameState(url, this.pending ? this.pending.url : this.shownUrl)) {
+            // Nothing loads for it: a busy Show all is idle again (a load already on its way ends it itself)
+            if (!this.pending && !this.moreRequest) {
+                this.loading = false;
+            }
+
             if (after) {
                 after();
             }
@@ -305,6 +423,11 @@ export default class extends Controller {
 
     /** The entry for `url` written as the rule says (assets/player_results_state.js): 'push' | 'replace' | 'none' */
     write(kind, url) {
+        // Never for a page that went or is going: the entry is another page's then (review F2)
+        if (this.leaving || !this.element.isConnected) {
+            return 'none';
+        }
+
         const action = historyAction(kind, window.location.href, url, this.nativeApp);
 
         if (action === 'push') {
@@ -323,6 +446,9 @@ export default class extends Controller {
     /** `kind` 'pop': the entry is there already (Back / Forward) - nothing is written for it */
     load(url, { kind = 'pop', focus = null, after = null } = {}) {
         const frame = this.frame();
+
+        // Another list from now on: Show more's answer for the old one would land in it
+        this.abortMore();
 
         if (!frame) {
             visit(url);
@@ -349,6 +475,8 @@ export default class extends Controller {
         }
 
         this.pending = null;
+        // Whatever load this was (Show all's or one that superseded it): the list is idle again (review F3)
+        this.loading = false;
 
         const state = this.frameState(frame);
 
@@ -383,6 +511,19 @@ export default class extends Controller {
         }
     };
 
+    /**
+     * The answer holds no list (review F5): a 404 (the player blocked meanwhile, the account gone), the profile a private
+     * player's Results redirect to, an error page - shown as the page it is, by a full visit of that answer (the player
+     * card's rule), never Turbo's "Content missing"
+     */
+    onFrameMissing = (event) => {
+        event.preventDefault();
+        this.pending = null;
+        this.loading = false;
+        this.abortMore();
+        event.detail.visit(event.detail.response);
+    };
+
     /** Back / Forward between the page's own entries: that entry's list. Layer entries never reach this (layer_history) */
     onPopState = (event) => {
         const state = event.state;
@@ -407,6 +548,8 @@ export default class extends Controller {
 
     onBeforeVisit = (event) => {
         this.saveScroll();
+        this.leaving = true;
+        this.abortMore();
         layers.resumeTurboHistory(OWNER);
 
         if (SNAPSHOT_RESTORES) {
@@ -418,6 +561,7 @@ export default class extends Controller {
         // Another listener stopped the visit: the page stays, and keeps owning its entries
         queueMicrotask(() => {
             if (event.defaultPrevented && this.element.isConnected) {
+                this.leaving = false;
                 layers.pauseTurboHistory(OWNER);
                 layers.replacePageState(OWNER, window.location.href);
             }
@@ -434,6 +578,7 @@ export default class extends Controller {
         this.typingTimer = null;
         this.stopRestoring();
         this.pending = null;
+        this.abortMore();
         this.loading = false;
 
         const form = this.form();
@@ -702,6 +847,22 @@ export default class extends Controller {
 
     // ---- Helpers ------------------------------------------------------------------------------------------------------
 
+    /**
+     * The search's wait ended by another change (review F4): null when nothing waited, else the typed text - the change
+     * takes it along (or drops it)
+     */
+    takeTyping() {
+        if (this.typingTimer === null) {
+            return null;
+        }
+
+        clearTimeout(this.typingTimer);
+        this.typingTimer = null;
+        const field = document.getElementById(SEARCH_ID);
+
+        return field ? field.value : null;
+    }
+
     /** A plain left click this page handles - anything else (a new tab, a download) is the browser's */
     plainClick(event) {
         return !(event.defaultPrevented || event.button > 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey);
@@ -811,6 +972,10 @@ function focusTargets(link) {
 
     if (link.hasAttribute('data-results-sort')) {
         return ['#player-results-sort'];
+    }
+
+    if (link.hasAttribute('data-results-start')) {
+        return ['#player-results-rows > tr[id] a.ps-puzzle-name'];
     }
 
     if (link.closest('#player-results')) {

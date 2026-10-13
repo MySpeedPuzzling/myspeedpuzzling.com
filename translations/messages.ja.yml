@@ -9281,6 +9281,7 @@ barcode_scanner:
   "shown_of_total": "%total%件中%count%件"
   "empty_filtered": "%filters%に一致する記録はありません。"
   "export_results": "記録をエクスポート"
+  "show_from_start": "最初から表示"
   "no_results": "まだ記録がありません。"
   "chip":
     "remove": "フィルターを解除：%filter%"

@@ -124,3 +124,37 @@ Simulcast for the puzzle camera: 180p / 360p / 720p; `adaptiveStream` + `dynacas
 - An empty `LIVEKIT_API_URL` leaves every page and endpoint as it is today.
 - Gates green.
 - `spikes.md` S6 filled for the local run.
+
+---
+
+## 8. As built by VF (2026-10-13) - binding for VP / VM / VS, overrides the sections above
+
+**Orchestrator's decisions before VF started:**
+- JWT through `firebase/php-jwt` (a direct dependency already), not `lcobucci/jwt` (only transitive).
+- The dev `livekit` service sits in the compose profile `video`; `.env` keeps `LIVEKIT_*` empty = video off, the dev values are in its comments (`.env.local` + `docker compose --profile video up -d livekit`). `.env.test` turns video on with fake values and a mocked server API.
+- The heartbeat stays Postgres-free: the open invite reaches it through a redis-state signal (`StudioInviteSignal`), set by the studio controllers after the dispatch returned.
+- LiveKit calls (`SendData`, `UpdateParticipant`) run after the commit (`StudioLiveUpdates`); a failing LiveKit never fails a request.
+
+**Deviations VF made (accepted):**
+- `LiveKitSettings::isAvailable()` needs all four `LIVEKIT_*` values and a secret of at least 32 characters (HS256 cannot sign with less).
+- The webhook's writes go through a message of their own, `RecordStudioGuestPresence`.
+- Joining sets `joined` + `answeredAt`; `onAirFrom` / `onAirTo` come from the webhook (`participant_joined` / `participant_left` in `studio-*`; a reconnect of the same identity is no leave).
+- With video off, `studio` (state) and `studioInviteId` (heartbeat) are **absent**, not null - the answers stay byte-identical to Phase 1. Clients treat a missing key as null.
+- Ending and declining an invite keep working after the round's video was switched off; only an empty env refuses an end.
+- `LiveKitTokens::participant()` has a 4th argument `role` (`camera` default / `screen`) and puts `{role, deviceId}` into the participant's attributes; moderators may send data messages.
+- Simulcast: the top layer is the camera's own resolution (1080p from `camera.js`) at the 720p bitrate - all layers come from the one shared track.
+
+**Endpoints as built** (errors `{"error": code}`):
+- `compete_api_video_token` `{deviceId, room, role}` → `{serverNowMs, url, token, identity, room}`; refusals `video_unavailable`, `round_not_online`, `not_entered`, `not_active_device`, `studio_not_joined` (409), `invalid_fields` (422).
+- `compete_api_studio_answer` `{answer}` → `{serverNowMs, studio: {inviteId, status}}`; refusals `invite_not_found` (404), `invite_not_open`, `invite_expired`, `video_unavailable` (409).
+- `online_video_token`, `online_studio_invite` → `{invite: {id, participantId, status, invitedAtMs, expiresAtMs, onAirFromMs, onAirToMs}}` (`already_invited` 409 carries the open invite), `online_studio_end` → `{invite}`.
+- `livekit_webhook` → 200, 401 `invalid_signature`, 409 while video is off.
+
+**Client wrapper as built** (`assets/online/livekit_session.js`): `joinRoom({url, token, publishTrack?, simulcastLayers?, allowSubscribers = 'moderators'})` → a session with `setSubscribers('all' | 'moderators' | [identities])`, `onData(topic, fn(data, {from, topic}))`, `onParticipants(fn(list))` (entries `{identity, kind, id, camera, microphone, screen}`), `onConnectionState(fn)` - each returns an off function - `attach(publication, element)` → detach, `publish`, `unpublish`, `replaceTrack`, `leave()`. `livekit-client` is loaded by a dynamic import (its own 591 KB / 149 KB gz chunk, only when a page joins). **It never stops or reopens the page's camera**: `leave()` disconnects without stopping tracks, LiveKit's own stop paths are neutralised, a camera LiveKit disables in the background is re-enabled on return.
+- VP: pass `allowSubscribers` from the round's "see each other" (`'all'` / `'moderators'`); trust `studio` data messages only when `from === null` (sent by the server).
+- VM: the host joins the hall with `allowSubscribers: 'all'` - otherwise participants never hear them.
+
+**Decided for the studio's safety (VM builds it, server side):** a studio token alone must never put somebody on air.
+- Studio tokens (participant, room `studio`) live **2 minutes** - enough to join; LiveKit keeps a joined connection alive with its own refreshed tokens.
+- `EndStudioGuest` also removes the guest from the studio room (`RemoveParticipant`), after the commit like the permission change.
+- The webhook enforces it: a `p:*` identity joining `studio-*` without a `joined` invite is removed at once (`RemoveParticipant`), logged at info.

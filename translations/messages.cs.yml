@@ -9172,6 +9172,8 @@ compete:
         this_is_me: "To jsem já"
         connecting: "Propojování odkazu s vaším profilem…"
         failed: "Tento odkaz se nepodařilo propojit s vaším profilem - soutěžit s ním ale můžete dál."
+    video:
+        title: "Živé video"
 
 # Online competitions: the organiser's pages (docs/features/online-competitions/)
 online_rounds:
@@ -9207,6 +9209,12 @@ online_rounds:
             help: "Co kontrola udělá s dokončeným puzzle, ve kterém chybí dílek."
             complete_required: "Puzzle musí být kompletní"
             penalty_5s: "Za každý chybějící dílek se přičte 5 sekund"
+        video:
+            title: "Živé video"
+            enabled: "Živé video"
+            enabled_help: "Telefony účastníků ukazují kameru na puzzle živě ve velíně. Moderátor může mluvit ke všem a zvát do studia ty, kdo dokončili."
+            see_each_other: "Účastníci se vidí navzájem"
+            see_each_other_help: "Se zapnutým živým videem mohou účastníci sledovat i kamery ostatních, jako při videohovoru. Vypnuto: vidí je jen moderátoři."
         save: "Uložit nastavení"
         participants:
             title: "Účastníci"
@@ -9526,3 +9534,9 @@ online_rounds:
             late: "Zpoždění"
             result: "Oficiální výsledek"
         empty: "V tomto kole není nikdo zařazen."
+    console:
+        title: "Video"
+    studio:
+        title: "Studio"
+    watch:
+        title: "Sledovat živě"

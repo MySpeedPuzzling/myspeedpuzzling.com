@@ -9145,6 +9145,8 @@ compete:
         this_is_me: "Das bin ich"
         connecting: "Dieser Link wird mit Ihrem Profil verknüpft…"
         failed: "Dieser Link konnte nicht mit Ihrem Profil verknüpft werden – zum Teilnehmen funktioniert er trotzdem."
+    video:
+        title: "Live-Video"
 
 # Online competitions: the organiser's pages (docs/features/online-competitions/)
 online_rounds:
@@ -9180,6 +9182,12 @@ online_rounds:
             help: "Wie die Prüfung ein fertiges Puzzle mit einer Lücke behandelt."
             complete_required: "Ein vollständiges Puzzle ist Pflicht"
             penalty_5s: "5 Sekunden Zuschlag für jedes fehlende Teil"
+        video:
+            title: "Live-Video"
+            enabled: "Live-Video"
+            enabled_help: "Die Handys der Teilnehmer zeigen ihre Puzzle-Kamera live im Kontrollraum. Der Moderator kann mit allen sprechen und Teilnehmer, die fertig sind, ins Studio einladen."
+            see_each_other: "Teilnehmer sehen sich gegenseitig"
+            see_each_other_help: "Mit Live-Video können sich die Teilnehmer auch gegenseitig über die Puzzle-Kameras sehen, wie in einem Videoanruf. Aus: Nur die Moderatoren sehen sie."
         save: "Einstellungen speichern"
         participants:
             title: "Teilnehmer"
@@ -9499,3 +9507,9 @@ online_rounds:
             late: "Verspätung"
             result: "Offizielles Ergebnis"
         empty: "In dieser Runde ist niemand eingetragen."
+    console:
+        title: "Video"
+    studio:
+        title: "Studio"
+    watch:
+        title: "Live ansehen"

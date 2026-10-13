@@ -9135,6 +9135,8 @@ compete:
         this_is_me: "これは自分です"
         connecting: "このリンクをあなたのプロフィールに紐付けています…"
         failed: "このリンクをプロフィールに紐付けられませんでした。出場にはこのまま使えます。"
+    video:
+        title: "ライブ映像"
 
 # Online competitions: the organiser's pages (docs/features/online-competitions/)
 online_rounds:
@@ -9170,6 +9172,12 @@ online_rounds:
             help: "完成したパズルに欠けがある場合に、判定でどう扱うかです。"
             complete_required: "パズルが完全に完成していることが必要"
             penalty_5s: "欠けているピース1個につき5秒を加算"
+        video:
+            title: "ライブ映像"
+            enabled: "ライブ映像"
+            enabled_help: "参加者のスマートフォンのパズル用カメラの映像が、コントロールルームにライブで表示されます。進行役は全員に話しかけ、完成した参加者をスタジオに招待できます。"
+            see_each_other: "参加者同士で映像を見られる"
+            see_each_other_help: "ライブ映像がオンのとき、参加者はビデオ通話のようにお互いのパズル用カメラも見られます。オフの場合は、モデレーターだけが見られます。"
         save: "設定を保存"
         participants:
             title: "参加者"
@@ -9489,3 +9497,9 @@ online_rounds:
             late: "到着の遅れ"
             result: "公式結果"
         empty: "このラウンドには出場者がいません。"
+    console:
+        title: "映像"
+    studio:
+        title: "スタジオ"
+    watch:
+        title: "ライブで見る"

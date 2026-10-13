@@ -9165,6 +9165,8 @@ compete:
         this_is_me: "C'est moi"
         connecting: "Liaison de ce lien à votre profil…"
         failed: "Ce lien n'a pas pu être relié à votre profil – il fonctionne quand même pour participer."
+    video:
+        title: "Vidéo en direct"
 
 # Online competitions: the organiser's pages (docs/features/online-competitions/)
 online_rounds:
@@ -9200,6 +9202,12 @@ online_rounds:
             help: "Comment la vérification traite un puzzle terminé auquel il manque des pièces."
             complete_required: "Un puzzle complet est exigé"
             penalty_5s: "5 secondes ajoutées par pièce manquante"
+        video:
+            title: "Vidéo en direct"
+            enabled: "Vidéo en direct"
+            enabled_help: "Les téléphones des participants montrent leur caméra sur le puzzle en direct dans la salle de contrôle. L'animateur peut parler à tout le monde et inviter au studio ceux qui ont terminé."
+            see_each_other: "Les participants se voient entre eux"
+            see_each_other_help: "Avec la vidéo en direct, les participants peuvent aussi voir les caméras des autres, comme dans un appel vidéo. Désactivé : seuls les modérateurs les voient."
         save: "Enregistrer les paramètres"
         participants:
             title: "Participants"
@@ -9519,3 +9527,9 @@ online_rounds:
             late: "Reçu après"
             result: "Résultat officiel"
         empty: "Personne n'est dans cette manche."
+    console:
+        title: "Vidéo"
+    studio:
+        title: "Studio"
+    watch:
+        title: "Regarder en direct"

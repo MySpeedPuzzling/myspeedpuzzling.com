@@ -23,6 +23,17 @@
  * tests/online-hands-up-harness.mjs.
  */
 
+// The models these thresholds were made for, pinned - never `latest` (README §5.7): MediaPipe tasks-vision from
+// jsDelivr (its ESM bundle + the WASM base the worker hands to FilesetResolver), the models at their numbered version
+// path in Google's bucket. The prototype may load them from these CDNs; Phase 2 hosts them itself (WP 2.1).
+export const TASKS_VISION_VERSION = '1.1.0';
+export const DETECTOR_ASSETS = Object.freeze({
+    tasksVisionUrl: `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${TASKS_VISION_VERSION}/vision_bundle.mjs`,
+    wasmBaseUrl: `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${TASKS_VISION_VERSION}/wasm`,
+    poseModelUrl: 'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task',
+    gestureModelUrl: 'https://storage.googleapis.com/mediapipe-models/gesture_recognizer/gesture_recognizer/float16/1/gesture_recognizer.task',
+});
+
 export const VIEW_ANGLED = 'angled';
 export const VIEW_TOP_DOWN = 'topDown';
 export const VIEW_ANY = 'any';

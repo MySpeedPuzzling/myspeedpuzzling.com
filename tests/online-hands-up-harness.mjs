@@ -34,7 +34,7 @@ import {
     VIEW_TOP_DOWN,
 } from '../assets/online/hands_up_signal.js';
 import { createDetectorPacing, MAX_DUTY, TARGET_FPS } from '../assets/online/detector_pacing.js';
-import { createDetectorHost, modelsFor, pickPose } from '../assets/online/detector.worker.js';
+import { createDetectorHost, isModuleWorker, modelsFor, pickPose, workerHasWebGl2 } from '../assets/online/detector.worker.js';
 
 const WIDE = 16 / 9;
 
@@ -102,7 +102,7 @@ const INIT = { type: 'init', tasksVisionUrl: TASKS_URL, wasmBaseUrl: WASM_BASE, 
  * MediaPipe as the worker sees it: the tasks-vision module, the WASM loader module (whose default export is the
  * ModuleFactory MediaPipe reads from the global scope - and clears after each task, as the real one does).
  */
-function fakeMediaPipe({ failModel = null, throwOnFrame = false, poses = null, gestures = null } = {}) {
+function fakeMediaPipe({ failModel = null, throwOnFrame = false, poses = null, gestures = null, classic = false } = {}) {
     const scope = {};
     const calls = { imports: [], filesets: [], created: [], closed: [], timestamps: [] };
     const loader = { default: function ModuleFactory() {} };
@@ -134,6 +134,12 @@ function fakeMediaPipe({ failModel = null, throwOnFrame = false, poses = null, g
 
     const creator = (kind, url) => ({
         async createFromOptions(fileset, options) {
+            if (classic) {
+                // A classic worker: MediaPipe importScripts() the classic loader, which sets the global itself
+                assert.equal(scope.ModuleFactory, undefined, 'nothing is set for a classic worker');
+                scope.ModuleFactory = loader.default;
+            }
+
             assert.equal(scope.ModuleFactory, loader.default, `ModuleFactory is set before the ${kind} task`);
             // As MediaPipe does after creating a task
             scope.ModuleFactory = undefined;
@@ -183,7 +189,14 @@ function fakeMediaPipe({ failModel = null, throwOnFrame = false, poses = null, g
 function host(options = {}) {
     const mediaPipe = fakeMediaPipe(options);
     const messages = [];
-    const detector = createDetectorHost({ post: (message) => messages.push(message), importModule: mediaPipe.importModule, now: mediaPipe.now, scope: mediaPipe.scope });
+    const detector = createDetectorHost({
+        post: (message) => messages.push(message),
+        importModule: mediaPipe.importModule,
+        now: mediaPipe.now,
+        scope: mediaPipe.scope,
+        hasWebGl2: () => options.webGl2 ?? true,
+        moduleWorker: () => !options.classic,
+    });
 
     return { detector, messages, mediaPipe, last: () => messages[messages.length - 1] };
 }
@@ -499,7 +512,9 @@ const scenarios = {
             assert.deepEqual(messages.map((message) => message.type), ['ready']);
             assert.deepEqual(messages[0].models, ['pose']);
             assert.equal(messages[0].view, VIEW_ANGLED);
-            assert.deepEqual(mediaPipe.calls.filesets, [[WASM_BASE, true]]);
+            assert.deepEqual(mediaPipe.calls.filesets, [[WASM_BASE, true]], 'a module worker takes the ES-module WASM loader');
+            assert.deepEqual(mediaPipe.calls.imports, [TASKS_URL, `${WASM_BASE}/vision_wasm_module_internal.js`]);
+            assert.equal(messages[0].worker, 'module');
             assert.deepEqual(mediaPipe.calls.created.map((task) => task.kind), ['pose']);
             assert.deepEqual(mediaPipe.calls.created[0].options.baseOptions, { modelAssetPath: POSE_URL, delegate: 'CPU' });
             assert.equal(mediaPipe.calls.created[0].options.runningMode, 'VIDEO');
@@ -507,6 +522,22 @@ const scenarios = {
             assert.deepEqual(modelsFor(VIEW_TOP_DOWN), ['gesture']);
             assert.deepEqual(modelsFor('nope'), []);
         });
+    },
+
+    async 'worker init in a classic worker (what Encore bundles): the classic WASM loader, nothing pre-set'() {
+        const { detector, messages, mediaPipe } = host({ classic: true });
+        await detector.handle({ ...INIT, view: VIEW_ANY });
+
+        assert.equal(messages[0].type, 'ready', JSON.stringify(messages[0]));
+        assert.equal(messages[0].worker, 'classic');
+        assert.deepEqual(mediaPipe.calls.filesets, [[WASM_BASE, false]]);
+        assert.deepEqual(mediaPipe.calls.imports, [TASKS_URL], 'the loader is left to MediaPipe');
+        assert.deepEqual(mediaPipe.calls.created.map((task) => task.kind), ['pose', 'gesture']);
+
+        // The probe: importScripts() with nothing to load throws only in a module worker
+        assert.equal(isModuleWorker({ importScripts() {} }), false);
+        assert.equal(isModuleWorker({ importScripts() { throw new TypeError('Module scripts don\'t support importScripts().'); } }), true);
+        assert.equal(isModuleWorker({}), true);
     },
 
     async 'worker init "any": both models - ModuleFactory set again before the second (MediaPipe clears it)'() {
@@ -642,6 +673,23 @@ const scenarios = {
 
         assert.deepEqual(messages.map((message) => message.type), ['disposed']);
         assert.deepEqual(mediaPipe.calls.created.map((task) => task.kind).sort(), mediaPipe.calls.closed.sort());
+    },
+
+    async 'worker without WebGL2 (MediaPipe needs it even on the CPU): init fails at once, nothing is downloaded'() {
+        const { detector, last, mediaPipe } = host({ webGl2: false });
+        await detector.handle({ ...INIT, view: VIEW_ANGLED });
+
+        assert.deepEqual([last().type, last().phase, last().name], ['error', 'init', 'NotSupportedError']);
+        assert.deepEqual(mediaPipe.calls.imports, []);
+        assert.equal(detector.state.status, 'failed');
+
+        // The real check: no OffscreenCanvas, no context, a throwing one
+        assert.equal(workerHasWebGl2({}), false);
+        assert.equal(workerHasWebGl2({ OffscreenCanvas: class { getContext() { return null; } } }), false);
+        assert.equal(workerHasWebGl2({ OffscreenCanvas: class { getContext() { throw new Error('blocked'); } } }), false);
+        let lost = false;
+        assert.equal(workerHasWebGl2({ OffscreenCanvas: class { getContext() { return { getExtension: () => ({ loseContext: () => { lost = true; } }) }; } } }), true);
+        assert.equal(lost, true, 'the probe context is given back');
     },
 
     'pickPose: of several people, the most prominent one'() {

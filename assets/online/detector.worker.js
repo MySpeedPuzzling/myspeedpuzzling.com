@@ -8,9 +8,12 @@
  *   numPoses = 1, numHands = 2, signal?: {pose?, gesture?} (hands_up_signal.js thresholds)} - loads MediaPipe
  *   tasks-vision by `import()` of a pinned ESM URL (no build step: the same file runs from Encore and from the bench),
  *   the models the view needs (`angled` = pose, `topDown` = gesture, `any` = both - the set-up's test raise and the
- *   bench), CPU delegate (README §5.7: GPU = WebGL2, wrong on iOS), `runningMode: 'VIDEO'`. Once per worker: a second
- *   init is refused (creating and disposing detectors runs Safari out of memory, MediaPipe #5036) - after a failed one
- *   it may be retried. → `ready` {view, models, loadMs}
+ *   bench), CPU delegate (README §5.7: GPU = WebGL2, wrong on iOS), `runningMode: 'VIDEO'`. MediaPipe still uploads
+ *   each frame through WebGL2 - a worker without it fails init at once (`NotSupportedError`: button-only). Once per
+ *   worker: a second init is refused (creating and disposing detectors runs Safari out of memory, MediaPipe #5036) -
+ *   after a failed one it may be retried. Runs as a module worker (the bench) or a classic one (webpack 5 bundles
+ *   it as classic) - the WASM loader is chosen to match (isModuleWorker()). → `ready` {view, models, worker:
+ *   'module' | 'classic', loadMs}
  * - `frame` {bitmap: ImageBitmap (transferred), captureTimeMs, frameId?} → `result` {frameId, captureTimeMs,
  *   inferenceMs, timings: {poseMs, gestureMs}, width, height, poses, landmarks: {pose, hands} (compact -
  *   hands_up_signal.js), signal: {raised, score, reason, view, angled?, topDown?}}. The bitmap is closed whatever
@@ -78,6 +81,52 @@ export function pickPose(poses) {
     return best ?? (Array.isArray(poses) && poses.length > 0 ? poses[0] : null);
 }
 
+/**
+ * MediaPipe uploads every frame as a WebGL2 texture - with the CPU delegate too (without it a frame fails with
+ * "Cannot read properties of undefined (reading 'activeTexture')"). A worker without WebGL2 on an OffscreenCanvas
+ * (iOS before 17, a browser without any GPU path) cannot run the detector: init says so at once, the page competes
+ * button-only (README §5.7).
+ */
+export function workerHasWebGl2(scope = globalThis) {
+    try {
+        if (typeof scope.OffscreenCanvas !== 'function') {
+            return false;
+        }
+
+        const context = new scope.OffscreenCanvas(1, 1).getContext('webgl2');
+
+        if (!context) {
+            return false;
+        }
+
+        context.getExtension('WEBGL_lose_context')?.loseContext();
+
+        return true;
+    } catch (e) {
+        return false;
+    }
+}
+
+/**
+ * A module worker, or a classic one? In a module worker importScripts() throws even with nothing to load; in a
+ * classic worker it does nothing. The bench starts this file as a module worker; webpack 5 (Encore) bundles
+ * `new Worker(new URL('./detector.worker.js', import.meta.url), {type: 'module'})` into a CLASSIC worker (it emits
+ * `type: undefined`) - and MediaPipe loads its WASM loader differently in each (below).
+ */
+export function isModuleWorker(scope = globalThis) {
+    if (typeof scope.importScripts !== 'function') {
+        return true;
+    }
+
+    try {
+        scope.importScripts();
+
+        return false;
+    } catch (e) {
+        return true;
+    }
+}
+
 function describe(error) {
     return {
         name: typeof error?.name === 'string' ? error.name : 'Error',
@@ -99,8 +148,16 @@ function closeBitmap(bitmap) {
  * @param {function(string): Promise<object>} io.importModule    import() of an absolute URL
  * @param {function(): number} [io.now]                          performance.now()
  * @param {object} [io.scope]                                    where MediaPipe reads `ModuleFactory` (the worker's global)
+ * @param {function(): boolean} [io.hasWebGl2]                   workerHasWebGl2()
  */
-export function createDetectorHost({ post, importModule, now = () => globalThis.performance.now(), scope = globalThis }) {
+export function createDetectorHost({
+    post,
+    importModule,
+    now = () => globalThis.performance.now(),
+    scope = globalThis,
+    hasWebGl2 = () => workerHasWebGl2(scope),
+    moduleWorker = () => isModuleWorker(scope),
+}) {
     const host = {
         status: 'idle', // idle | loading | ready | failed | disposed
         view: null,
@@ -109,6 +166,7 @@ export function createDetectorHost({ post, importModule, now = () => globalThis.
         tasks: { pose: null, gesture: null },
         base: null,
         lastTimestamp: 0,
+        workerType: null,
     };
 
     const send = (message) => {
@@ -153,6 +211,13 @@ export function createDetectorHost({ post, importModule, now = () => globalThis.
             return;
         }
 
+        if (!hasWebGl2()) {
+            host.status = 'failed';
+            send({ type: 'error', phase: 'init', name: 'NotSupportedError', message: 'No WebGL2 in this worker - the detector cannot run here (button-only)' });
+
+            return;
+        }
+
         host.status = 'loading';
         const startedAt = now();
         const tasks = { pose: null, gesture: null };
@@ -161,15 +226,23 @@ export function createDetectorHost({ post, importModule, now = () => globalThis.
 
         try {
             const vision = await importModule(urls.tasksVision);
-            // The ES-module build of the WASM loader: a module worker cannot importScripts() the classic one
-            const fileset = await vision.FilesetResolver.forVisionTasks(urls.wasmBase, true);
-            // MediaPipe imports the loader and reads `ModuleFactory` from the global scope, then clears it - a second
-            // task's import() is served from the module cache and would find nothing, so it is set from the loader's
-            // export before every task
-            const loader = await importModule(fileset.wasmLoaderPath);
+            // A module worker cannot importScripts() MediaPipe's classic WASM loader: it takes the ES-module build,
+            // which MediaPipe import()s and then reads `ModuleFactory` from the global scope - and clears it after
+            // each task, while a second import() is served from the module cache and would set nothing. So the
+            // factory is set from the loader's export before every task. A classic worker (Encore's bundle)
+            // importScripts() the classic loader, which sets the global itself, every time.
+            const asModule = moduleWorker();
+            const fileset = await vision.FilesetResolver.forVisionTasks(urls.wasmBase, asModule);
+            const factory = asModule ? (await importModule(fileset.wasmLoaderPath)).default : null;
+            const prepare = () => {
+                if (asModule) {
+                    scope.ModuleFactory = factory;
+                }
+            };
+            host.workerType = asModule ? 'module' : 'classic';
 
             if (models.includes(MODEL_POSE) && !abandoned()) {
-                scope.ModuleFactory = loader.default;
+                prepare();
                 tasks.pose = await vision.PoseLandmarker.createFromOptions(fileset, {
                     baseOptions: { modelAssetPath: urls.pose, delegate: 'CPU' },
                     runningMode: 'VIDEO',
@@ -179,7 +252,7 @@ export function createDetectorHost({ post, importModule, now = () => globalThis.
             }
 
             if (models.includes(MODEL_GESTURE) && !abandoned()) {
-                scope.ModuleFactory = loader.default;
+                prepare();
                 tasks.gesture = await vision.GestureRecognizer.createFromOptions(fileset, {
                     baseOptions: { modelAssetPath: urls.gesture, delegate: 'CPU' },
                     runningMode: 'VIDEO',
@@ -208,7 +281,7 @@ export function createDetectorHost({ post, importModule, now = () => globalThis.
         host.models = models;
         host.signalOptions = message.signal && typeof message.signal === 'object' ? message.signal : {};
         host.status = 'ready';
-        send({ type: 'ready', view, models, loadMs: Math.round(now() - startedAt) });
+        send({ type: 'ready', view, models, worker: host.workerType, loadMs: Math.round(now() - startedAt) });
     }
 
     function closeAll(tasks) {

@@ -113,7 +113,7 @@ final class OnlineRoundsTextsTest extends KernelTestCase
         // Built from a value: a tile's video (console_grid.js tileVideoState()), the connection (console_room.js
         // RoomLink), a microphone that failed (console_talk.js MIC_ERRORS), an invitation's state (console_invites.js
         // inviteView(), on air apart), a refused invite / end (console_room.js studioRefusal())
-        foreach (['connecting', 'not_joined', 'no_camera', 'paused', 'loading', 'playing'] as $state) {
+        foreach (['connecting', 'in_studio', 'not_joined', 'no_camera', 'paused', 'loading', 'playing'] as $state) {
             $used[] = 'video_tile_' . $state;
         }
 

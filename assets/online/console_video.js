@@ -204,6 +204,10 @@ export class ConsoleVideo {
         this.connection = connection;
         this.renderConnection();
         this.renderTalk();
+
+        for (const tile of this.tiles.values()) {
+            this.syncTileVideo(tile);
+        }
     }
 
     roomChanged(list) {
@@ -400,14 +404,33 @@ export class ConsoleVideo {
             }
         }
 
-        const state = tileVideoState({ connected, entry, playing: c.playing && c.track !== null });
+        // No video here for good (another tab took over, video turned off, signed out): the panel says why, the tiles
+        // say nothing
+        const state = this.videoGone()
+            ? 'off'
+            : tileVideoState({ connected, entry, playing: c.playing && c.track !== null, inStudio: this.inStudio(c.participantId) });
 
         if (c.state !== state) {
             c.state = state;
             tile.element.dataset.video = state;
-            c.badge.textContent = this.t(`video_tile_${state}`);
+            c.badge.textContent = state === 'off' ? '' : this.t(`video_tile_${state}`);
             c.badge.className = `online-tile-video-state online-tile-video-state--${state}`;
+            c.badge.hidden = state === 'off';
         }
+    }
+
+    /**
+     * The hall will not come back by itself: another tab took over, the round's video was turned off, signed out
+     */
+    videoGone() {
+        return ['duplicate', 'unavailable', 'sign_in', 'forbidden'].includes(this.connection);
+    }
+
+    /**
+     * Their phone is in the studio: a joined invitation (console_invites.js)
+     */
+    inStudio(participantId) {
+        return inviteView(this.invites.get(participantId) ?? null, this.serverNow(), false).status === 'joined';
     }
 
     detachTile(tile) {
@@ -648,7 +671,7 @@ export class ConsoleVideo {
             }
         }
 
-        const state = tileVideoState({ connected, entry, playing: spot.playing && spot.track !== null });
+        const state = tileVideoState({ connected, entry, playing: spot.playing && spot.track !== null, inStudio: this.inStudio(id) });
         spot.section.dataset.video = state;
         spot.badge.textContent = this.t(`video_tile_${state}`);
         spot.badge.className = `online-tile-video-state online-tile-video-state--${state}`;

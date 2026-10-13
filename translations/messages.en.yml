@@ -9798,6 +9798,7 @@ online_rounds:
             forbidden: "You can no longer manage this round"
         tile:
             connecting: "Connecting to the video…"
+            in_studio: "In the studio"
             not_joined: "Not in the video room"
             no_camera: "No video from this phone"
             paused: "Camera paused"

@@ -123,6 +123,11 @@ const scenarios = {
         assert.equal(tileVideoState({ connected: true, entry: { camera }, playing: false }), 'loading');
         assert.equal(tileVideoState({ connected: true, entry: { camera }, playing: true }), 'playing');
         assert.equal(tileVideoState(), 'connecting');
+
+        // Not in the hall because the phone is in the studio - and back in the hall, the hall's camera counts
+        assert.equal(tileVideoState({ connected: true, entry: null, inStudio: true }), 'in_studio');
+        assert.equal(tileVideoState({ connected: true, entry: { camera }, playing: true, inStudio: true }), 'playing');
+        assert.equal(tileVideoState({ connected: false, entry: null, inStudio: true }), 'connecting');
     },
 
     async 'spotlight: the camera before and after in the console\'s order, the same one at either end'() {

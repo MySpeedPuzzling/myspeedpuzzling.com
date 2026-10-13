@@ -129,22 +129,25 @@ export function dimensionsFor(layer) {
 /**
  * What a tile shows about its video:
  * - `connecting`: the console is not in the hall (yet, or again);
+ * - `in_studio`: the participant's camera device is not in the hall because it is in the studio (an invitation they
+ *   joined - the phone moved there);
  * - `not_joined`: the participant's camera device is not in the hall;
  * - `no_camera`: it is, but publishes no camera (its camera could not be published, or it has none);
  * - `paused`: the camera is muted (a phone's page in the background, say);
  * - `loading`: received, the first frame not there yet;
  * - `playing`.
  *
- * @param {{connected?: boolean, entry?: object|null, playing?: boolean}} state `entry`: the participant's camera
- *        device in the room (livekit_session.js participantsOf()), its `camera` a publication or null
+ * @param {{connected?: boolean, entry?: object|null, playing?: boolean, inStudio?: boolean}} state `entry`: the
+ *        participant's camera device in the room (livekit_session.js participantsOf()), its `camera` a publication or
+ *        null; `inStudio`: their invitation to the studio is joined
  */
-export function tileVideoState({ connected = false, entry = null, playing = false } = {}) {
+export function tileVideoState({ connected = false, entry = null, playing = false, inStudio = false } = {}) {
     if (connected !== true) {
         return 'connecting';
     }
 
     if (!entry) {
-        return 'not_joined';
+        return inStudio === true ? 'in_studio' : 'not_joined';
     }
 
     const camera = entry.camera ?? null;

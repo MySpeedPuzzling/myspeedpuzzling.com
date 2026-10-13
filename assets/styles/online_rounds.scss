@@ -505,8 +505,9 @@ $online-on-air: #d6293e;
     color: var(--bs-secondary-color, #6c757d);
 }
 
-// A tile's camera over its latest photo, shown once it plays. Never hidden with display: an element that is not shown
-// is never sent a frame (LiveKit's adaptive stream watches the element's visibility)
+// A tile's camera over its latest photo, shown while it plays - a paused camera lets the photo show again. Never hidden
+// with display: an element that is not shown is never sent a frame (LiveKit's adaptive stream watches the element's
+// visibility)
 .online-tile-video {
     position: absolute;
     inset: 0;
@@ -518,8 +519,7 @@ $online-on-air: #d6293e;
     transition: opacity 0.2s ease-in-out;
 }
 
-.online-tile[data-video="playing"] .online-tile-video,
-.online-tile[data-video="paused"] .online-tile-video {
+.online-tile[data-video="playing"] .online-tile-video {
     opacity: 1;
 }
 
@@ -536,6 +536,11 @@ $online-on-air: #d6293e;
     font-size: 0.75rem;
     line-height: 1.4;
     pointer-events: none;
+
+    &--in_studio {
+        background: #0a4ea8;
+        color: #fff;
+    }
 
     &--playing {
         background: $online-on-air;
@@ -715,9 +720,10 @@ $online-on-air: #d6293e;
     }
 }
 
+// Two side by side on a laptop - the host alone stays one of them, never the whole width
 .online-studio-stage {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 20rem), 1fr));
     gap: 0.75rem;
 }
 

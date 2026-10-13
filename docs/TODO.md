@@ -53,6 +53,17 @@ that would otherwise be forgotten. Newest section on top.
 - [ ] The control room's live JSON carries `otherDevice` (a second device open on a link that isn't the one holding
       the entry) but no tile shows it yet - one text in `online_rounds.control` + the chip.
 
+## Online competitions - load and storage failover (`tools/online-load/README.md`, `spikes.md` S5, stream LT)
+
+- [ ] lily.srv (Jan's yes): route `/api/compete/*` and `/-/time` like `/api/v` - past the bot-blocker (90/min per IP +
+      browser) and out of CrowdSec's captcha, before the first online event (a club on one Wi-Fi would be blocked).
+- [ ] A timeout on the phone's upload request (a hanging store took 41 s to switch to the second store - each phone
+      waited for its connection timeout).
+- [ ] Mark upload rows abandoned after a failure, so the review doesn't show them as pending.
+- [ ] Probe the primary store before the circuit breaker closes again (now it closes after 60 s and one round of
+      uploads fails before it reopens).
+- [ ] The production load run at a quiet hour (Tue/Wed 05-07 Prague) with Jan's OK - plan in the README.
+
 ## Plural texts without a form for 0 (found 2026-10-13 by the online translations' render check)
 
 - [ ] About 55 plural messages per locale outside the online pages are written `{1}…|]1,Inf[…` (or with too few

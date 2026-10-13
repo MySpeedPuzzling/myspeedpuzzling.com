@@ -16,7 +16,7 @@ The living record of where the prototype stands and what comes next. Updated by 
 
 ## Now - PAUSED (2026-10-13 evening, Jan: machine restart)
 
-Every running stream finished and is merged on `main`; nothing is half-done. **To resume, follow "Resume here" below.**
+Every stream that ran finished and is merged on `main` (the last one, LT, too); nothing is half-done, no throwaway container is left. **To resume, follow "Resume here" below.**
 
 | | |
 |---|---|
@@ -36,7 +36,8 @@ Every running stream finished and is merged on `main`; nothing is half-done. **T
 ## Waiting for Jan
 
 - Before Test Cup #1: the real-device pass on phones (`device-test.md`, now 24 steps), volunteers, the OK to apply the bucket CORS rule (`myspeedpuzzling:online-media:cors --apply`) and to deny `online/` in the images proxy, Traefik access-log redaction of the personal links, a deploy freeze on the day.
-- For Test Cup #2: the OK for ADR D78 (LiveKit on lily.srv: one UDP port + TURN/TLS on 443 through Traefik), the production load run (`tools/online-load/`, a quiet hour) once LT's tooling is merged.
+- **Before any online event (found by LT):** `/api/compete/*` and `/-/time` pass lily.srv's bot-blocker today (90 requests a minute per IP + browser) - six phones on one club Wi-Fi would be blocked in the minutes before GO, and a CrowdSec captcha in front of the JSON API cannot be solved by the page. Route both like `/api/v` (a lily.srv change - needs Jan's yes).
+- For Test Cup #2: the OK for ADR D78 (LiveKit on lily.srv: one UDP port + TURN/TLS on 443 through Traefik), the production load run at a quiet hour (`tools/online-load/README.md`: a draft event with made-up participants, generators allowlisted in CrowdSec, stop rules).
 - S1 footage (spikes.md) - the bench scores it the same day.
 - Small decisions: the control room plays no other moderator's voice (only "X is talking", against echo) - OK? A round's YouTube link has no form field yet (SQL only) - add it to the online timing page? Referees reviewing online rounds (TODO.md). The second screen stays view-only - Finished stays on the camera phone (its burst comes from that camera) - OK?
 
@@ -71,7 +72,7 @@ Every running stream finished and is merged on `main`; nothing is half-done. **T
 | VM - moderator console (video grid, spotlight, push-to-talk, invites) + the host's studio page + the studio's safety rules | **merged** - 8 cameras joined in 0.3-0.6 s, spotlight 720p in ~3 s, push-to-talk heard in 0.19 s, a reused studio token removed in < 0.2 s |
 | VS - public watch page + spectator tokens (per-IP limit, cap 200), "Watch live" on event pages, OBS + YouTube how-to | **merged** - 3 spectators live in 1.2-1.8 s, the cap turns away and lets in, drafts 404 |
 | VP - participant video (camera to the hall, host's voice, studio on air, second screen) | **not started** - brief ready (`.claude/worktrees/online-delivery/brief-VP.md`) |
-| LT - load tooling (k6) + local storage failover drill (Garage as the second store) | running at the pause - merged before shutdown if it finishes |
+| LT - load tooling (k6 + SSE, `tools/online-load/`) + local storage failover drill (Garage as the second store) | **merged** - 100 phones locally: 35 req/s, p95 ≤ 140 ms (234 ms in the start burst), ~0.1 core, 0 errors, GO p95 4 ms late, Mercure updates 20-41 ms; the drill found and fixed a breaker that never opened for a store that gives no answer (now: uploads on Garage 3.3 s after the primary died, all retried); numbers in `spikes.md` S5 |
 | DB - detection bench (finish rule, hands-up signal, detector worker, bench page + scorer, OpenCV completeness self-test) | **merged** - end-to-end on a public-domain clip (candidate +33 ms, no false raise); completeness self-test: no missing piece ever passed as complete (90 synthetic photos); open questions for the footage day in `spikes.md` S2 |
 | TX - online texts: every plural renders for 0, "1 pieces", clearer wording, unused keys, a guard test over all 6 locales | **merged** (`OnlinePluralMessagesTest`) |
 | P1F - fixes from the end-to-end pass: a Reset starts a fresh run, the limiters under concurrency, End never before the click, take-back in seconds, smaller ones | **merged** - the online limiters are an atomic Redis counter now (exactly 300 of 320 parallel requests, +0.05 ms); take-back 2-15 s (was ~45 s); "End now" rounds up for online rounds only |
@@ -84,6 +85,7 @@ See "Resume here" above.
 
 | Date | What |
 |---|---|
+| 2026-10-13 | Load tooling + storage failover drill merged (LT): k6 with SSE, a production-like local stack (FrankenPHP worker mode, Mercure, MinIO + Garage). 100 local phones cost ~0.1 core with 0 errors; the drill found that a store giving no readable answer never opened the circuit breaker - fixed (phone reports "no answer" as a store failure, fresh upload URL after the second failure; server counts it) |
 | 2026-10-13 | Moderator console + studio (VM) and the spectator watch page (VS) merged (migration `Version20261013170851`: `online_round.youtube_url`, nullable). Paused at Jan's request after every running stream finished - resume from "Resume here" |
 | 2026-10-13 | Fixes from the end-to-end pass merged (P1F): a Reset of an online round starts a fresh run (refused once results are confirmed), the participant API's limiters count parallel requests (Lua counter on the cache Redis), "End now" never before the click, the other device stops within a heartbeat after a take-back, "Offline" only without network, refused photos leave the phone, empty payloads stored as `{}`, presence written only by the device holding the entry, the pending-upload cap counts only unfinished uploads |
 | 2026-10-13 | Detection bench merged: `finish_machine.js` (hold 0.5 s, 10 s cooldown, every tunable with its reason), `hands_up_signal.js`, `detector.worker.js` + pacing, `tools/online-bench/` (label + run videos frame by frame, `score.mjs` with a parameter sweep, OpenCV completeness checks + synthetic self-test). Findings: Encore runs the worker classic, MediaPipe needs WebGL2 even on the CPU delegate |

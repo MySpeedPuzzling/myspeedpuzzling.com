@@ -4,6 +4,16 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
+## Online competitions (`docs/features/online-competitions/`, round clock - stream D)
+
+- [ ] Open the scheduled start ("Start in 10 s", "Start at a set time", "Cancel the start") to every organiser once
+      the test cups are done: drop `can_schedule` in `manage_round_stopwatch.html.twig` and the `requiredAttribute`
+      of `ScheduleRoundStartController` / `CancelRoundStartController` (feature_flags.md `ONLINE_ROUNDS_FOR_ORGANISERS`).
+- [ ] The acting player of a scheduled start and of a cancel is carried by the messages but not stored anywhere yet
+      (no column) - add it when the control room or the review needs to say who started a round.
+- [ ] A stopwatch page left open across the deploy that added the CSRF token fails its first action (Start, Stop,
+      Reset: "the page was open too long") - a reload fixes it. Fine, but never deploy during a live event.
+
 ## Anti-farming (`docs/features/xp-levels/README.md` §Anti-farming, workstream G 2026-10-11)
 
 - [ ] lily.srv: add the `verify-progression --repair` cron row (README §Cron) with the deploy; watch its first warnings

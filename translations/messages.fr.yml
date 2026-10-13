@@ -4149,6 +4149,7 @@ competition:
     "cancel_start": "Annuler le départ"
     "flash":
       "expired": "La page est restée ouverte trop longtemps – rien n'a été modifié. Veuillez réessayer."
+      "scheduling_unavailable": "Les départs programmés ne sont pas encore disponibles pour cet événement."
     "refused":
       "invalid_start": "Choisissez une date et une heure qui existent dans le fuseau horaire de la manche."
       "start_in_the_past": "Ce moment est déjà passé – choisissez-en un plus tardif."

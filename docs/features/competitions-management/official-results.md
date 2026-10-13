@@ -277,7 +277,7 @@ unsent changes of that round are refused one by one (`round_not_found`).
 
 | Method + path | Message | Answer |
 |---|---|---|
-| `GET rounds/{roundId}` | - | `serverNow`, `topic`, `competition`, `round`, `rounds`, `entries`, `mercure` |
+| `GET rounds/{roundId}` | - | `serverNow`, `serverNowMs` (the live entry's clock offset - the state answer with the shortest round trip wins), `topic`, `competition`, `round`, `rounds`, `entries`, `mercure` |
 | `GET competitions/{competitionId}` (organisers only - the results overview) | - | `rounds` (every round's progress), `mercure` |
 | `POST rounds/{roundId}/changes` | `RecordRoundResults` | `dryRun`, `outcomes`, `entries` (400 unreadable set) |
 | `POST rounds/{roundId}/publish` / `unpublish` | `PublishRoundResults` / `UnpublishRoundResults` | `round` |

@@ -117,7 +117,8 @@ export default class extends Controller {
     }
 
     startPolling() {
-        if (this.pollId !== null) {
+        // Nothing re-arms on a page that is gone (disconnect() cleared everything)
+        if (this.pollId !== null || !this.element.isConnected) {
             return;
         }
 
@@ -152,6 +153,11 @@ export default class extends Controller {
 
             const data = await response.json();
 
+            // Answered after the page was left - nothing to apply, nothing to re-arm
+            if (!this.element.isConnected) {
+                return;
+            }
+
             if (typeof data.serverNowMs === 'number') {
                 this.clock.observe({ sentAtMs, receivedAtMs, serverNowMs: data.serverNowMs });
             } else if (data.serverNow) {
@@ -165,6 +171,10 @@ export default class extends Controller {
     }
 
     apply(data) {
+        if (!this.element.isConnected) {
+            return;
+        }
+
         if (!data || typeof data !== 'object' || !('status' in data) || !isNewerState(this.state, data)) {
             return;
         }
@@ -189,7 +199,7 @@ export default class extends Controller {
     scheduleStartChecks() {
         this.clearStartTimers();
 
-        if (this.state?.status !== 'scheduled') {
+        if (!this.element.isConnected || this.state?.status !== 'scheduled') {
             return;
         }
 
@@ -220,6 +230,10 @@ export default class extends Controller {
     }
 
     render() {
+        if (!this.element.isConnected) {
+            return;
+        }
+
         const view = stopwatchView(this.state, this.serverNow());
 
         this.renderClock(view);

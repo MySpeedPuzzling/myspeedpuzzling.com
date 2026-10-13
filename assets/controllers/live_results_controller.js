@@ -18,7 +18,7 @@ import {
     shownValue,
 } from '../official_results_live.js';
 import { parseNameTagUrl, startQrScan } from '../official_results_scan.js';
-import { formatCountdown, startedAtMs, stopwatchStatusAt } from '../round_stopwatch_clock.js';
+import { createServerClock, formatCountdown, startedAtMs, stopwatchStatusAt } from '../round_stopwatch_clock.js';
 import { chooseTranslation } from '../translation_choice.js';
 
 /**
@@ -44,6 +44,14 @@ const ROUND_KEY = 'msp.liveResults.round.';
 
 function escapeHtml(value) {
     return String(value ?? '').replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character]);
+}
+
+/**
+ * The server's time of a state answer in milliseconds - `serverNowMs`, or the whole seconds of `serverNow` (an answer
+ * from before the milliseconds came).
+ */
+function serverTimeOf(state) {
+    return typeof state?.serverNowMs === 'number' ? state.serverNowMs : Date.parse(state?.serverNow ?? '');
 }
 
 function storageGet(key) {
@@ -94,8 +102,10 @@ export default class extends Controller {
 
     connect() {
         const state = JSON.parse(this.initialStateTarget.textContent);
-        // Server clock minus ours - refined (round trip compensated) by every state fetch
-        this.clockOffset = Date.now() - Date.parse(state.serverNow);
+        // The server's clock: the state fetch with the shortest round trip (round_stopwatch_clock.js) - "Finished now"
+        // and the countdown agree with the projector; the page's own server time until the first fetch answers
+        this.serverClock = createServerClock();
+        this.serverClock.hint(serverTimeOf(state) - Date.now());
         this.stopwatchKnownAt = Date.now();
         // The event's people who are no entry of this round - quick add offers them before typing a name in again
         this.eventPeople = this.hasEventPeopleTarget ? JSON.parse(this.eventPeopleTarget.textContent || '[]') : [];
@@ -461,7 +471,7 @@ export default class extends Controller {
 
             if (answer.kind === 'ok') {
                 this.stateBlocked = null;
-                this.clockOffset = (sentAt + answeredAt) / 2 - Date.parse(answer.data.serverNow);
+                this.serverClock.observe({ sentAtMs: sentAt, receivedAtMs: answeredAt, serverNowMs: serverTimeOf(answer.data) });
                 this.stopwatchKnownAt = answeredAt;
                 this.applyState(answer.data);
                 this.scheduleRender();
@@ -1039,7 +1049,7 @@ export default class extends Controller {
     // ---- Stopwatch ----
 
     serverNow() {
-        return Date.now() - this.clockOffset;
+        return this.serverClock.serverNow();
     }
 
     /**

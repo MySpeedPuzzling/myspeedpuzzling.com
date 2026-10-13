@@ -4157,6 +4157,7 @@ qr_code:
     "cancel_start": "Zrušit start"
     "flash":
       "expired": "Stránka byla otevřená příliš dlouho – nic se nezměnilo. Zkuste to prosím znovu."
+      "scheduling_unavailable": "Naplánovaný start zatím u této události není k dispozici."
     "refused":
       "invalid_start": "Zvolte datum a čas, které v časovém pásmu kola existují."
       "start_in_the_past": "Tento okamžik už uplynul – zvolte pozdější."

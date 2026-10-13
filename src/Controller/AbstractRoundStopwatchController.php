@@ -31,7 +31,11 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  *   handler.
  * - A refusal (RoundStopwatchRefused) changes nothing and is said: a flash on the control page.
  * - Asked with `Accept: application/json` (the online control room) the answer is `{"stopwatch": RoundStopwatchState}`,
- *   or `{"error": "<code>"}` - `invalid_csrf` (403) or a RoundStopwatchRefusal value (409) - `private, no-store`.
+ *   or `{"error": "<code>"}` - `invalid_csrf` (403), `scheduling_unavailable` (403) or a RoundStopwatchRefusal value
+ *   (409) - `private, no-store`.
+ * - The scheduled start (schedule, cancel) needs ONLINE_ROUNDS_MANAGE as well until the test cups are done (admins, and
+ *   organisers while ONLINE_ROUNDS_FOR_ORGANISERS is on - docs/features/feature_flags.md); start, stop and reset are
+ *   for every organiser.
  */
 abstract class AbstractRoundStopwatchController extends AbstractController
 {
@@ -51,14 +55,29 @@ abstract class AbstractRoundStopwatchController extends AbstractController
     /**
      * @param \Closure(CompetitionRound): object $message the message to dispatch - may throw RoundStopwatchRefused
      *                                                    for what the request asks (a start that is no moment)
+     * @param null|string $requiredAttribute what the action needs besides COMPETITION_EDIT (subject = competition id) -
+     *                                       the scheduled start needs ONLINE_ROUNDS_MANAGE until the test cups are done
      */
-    protected function act(Request $request, string $roundId, \Closure $message, string $successRoute): Response
+    protected function act(Request $request, string $roundId, \Closure $message, string $successRoute, null|string $requiredAttribute = null): Response
     {
         $round = $this->competitionRoundRepository->get($roundId);
-        $this->denyAccessUnlessGranted(CompetitionEditVoter::COMPETITION_EDIT, $round->competition->id->toString());
+        $competitionId = $round->competition->id->toString();
+        $this->denyAccessUnlessGranted(CompetitionEditVoter::COMPETITION_EDIT, $competitionId);
 
         $roundId = $round->id->toString();
         $wantsJson = str_contains((string) $request->headers->get('Accept'), 'application/json');
+
+        // An organiser without it never sees the action (the control page asks the same) - a stale page or a crafted
+        // request is told so, nothing changes
+        if ($requiredAttribute !== null && $this->isGranted($requiredAttribute, $competitionId) === false) {
+            if ($wantsJson) {
+                return self::privateJson(['error' => 'scheduling_unavailable'], Response::HTTP_FORBIDDEN);
+            }
+
+            $this->addFlash('warning', $this->translator->trans('competition.stopwatch.flash.scheduling_unavailable'));
+
+            return $this->redirectToRoute('manage_round_stopwatch', ['roundId' => $roundId], Response::HTTP_SEE_OTHER);
+        }
 
         if ($this->isCsrfTokenValid(self::CSRF_TOKEN_ID, $request->request->getString('_token')) === false) {
             if ($wantsJson) {

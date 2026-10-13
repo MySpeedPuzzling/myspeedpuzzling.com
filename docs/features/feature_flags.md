@@ -36,9 +36,10 @@ Meta App Review approved + app published (2026-09-30), so Facebook lost its flag
   - `src/Services/OnlineRounds/OnlineRoundsFeature.php` — `isAvailableTo()`
   - `src/Security/OnlineRoundsVoter.php` — `ONLINE_ROUNDS_MANAGE`
   - the organiser pages and menu entries of online timing check the voter (added by the Phase 1 streams - list them here)
+  - the scheduled start of the round stopwatch (stream D) - `templates/manage_round_stopwatch.html.twig`: "Start in 10 s", "Start at a set time" and "Cancel the start" only with `can_schedule` (`is_granted('ONLINE_ROUNDS_MANAGE', competitionId)`); `src/Controller/ScheduleRoundStartController.php` + `src/Controller/CancelRoundStartController.php` pass `requiredAttribute: ONLINE_ROUNDS_MANAGE` to `AbstractRoundStopwatchController::act()` (403 `{"error": "scheduling_unavailable"}` for JSON, a flash otherwise, nothing changes). Start / Stop / Reset and the countdown display stay for every organiser (`COMPETITION_EDIT`)
 - **Not gated:** a personal link (`/{_locale}/compete/{token}` and its API) - the token is the access right, and a link exists only after someone the voter allowed turned online timing on
-- **Tests:** `OverridesFeatureFlagEnv` (`overrideFeatureFlagEnv('ONLINE_ROUNDS_FOR_ORGANISERS', true)` before the kernel boots), `tests/Security/OnlineRoundsVoterTest.php`
-- **Remove when:** the public launch opens online competitions to every organiser (implementation-plan.md 4.7) - delete the flag and `OnlineRoundsFeature`; `ONLINE_ROUNDS_MANAGE` becomes `COMPETITION_EDIT` alone (or the voter goes)
+- **Tests:** `OverridesFeatureFlagEnv` (`overrideFeatureFlagEnv('ONLINE_ROUNDS_FOR_ORGANISERS', true)` before the kernel boots), `tests/Security/OnlineRoundsVoterTest.php`, `tests/Controller/ScheduledStartFeatureFlagTest.php`
+- **Remove when:** the public launch opens online competitions to every organiser (implementation-plan.md 4.7) - delete the flag and `OnlineRoundsFeature`; `ONLINE_ROUNDS_MANAGE` becomes `COMPETITION_EDIT` alone (or the voter goes). The scheduled start may open earlier, right after the test cups (docs/TODO.md "Online competitions"): drop `can_schedule` and the two `requiredAttribute` arguments
 
 ## Retired: Google/Apple social login flags + admin-only stage (removed 2026-09-29)
 

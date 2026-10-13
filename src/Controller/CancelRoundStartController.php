@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Controller;
 use SpeedPuzzling\Web\Controller\FirstTry\FirstTryConflictsController;
 use SpeedPuzzling\Web\Entity\CompetitionRound;
 use SpeedPuzzling\Web\Message\CancelRoundStart;
+use SpeedPuzzling\Web\Security\OnlineRoundsVoter;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -14,7 +15,8 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 /**
  * "Cancel the start" - a countdown called off before its moment (docs/features/online-competitions/README.md §5.1);
- * once the round runs it is refused (AbstractRoundStopwatchController: CSRF, refusals, JSON).
+ * once the round runs it is refused (AbstractRoundStopwatchController: CSRF, refusals, JSON). Needs
+ * ONLINE_ROUNDS_MANAGE too until the test cups are done.
  */
 #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
 final class CancelRoundStartController extends AbstractRoundStopwatchController
@@ -42,6 +44,8 @@ final class CancelRoundStartController extends AbstractRoundStopwatchController
                 actingPlayerId: $this->actingPlayerId(),
             ),
             'manage_round_stopwatch',
+            // Online timing's prototype until the test cups are done (docs/features/feature_flags.md)
+            requiredAttribute: OnlineRoundsVoter::ONLINE_ROUNDS_MANAGE,
         );
     }
 }

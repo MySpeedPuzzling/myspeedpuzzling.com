@@ -16,6 +16,7 @@ use SpeedPuzzling\Web\Security\CompetitionResultsEntryVoter;
 use SpeedPuzzling\Web\Services\OfficialResultsLiveUpdates;
 use SpeedPuzzling\Web\Services\OfficialResultsSubscription;
 use SpeedPuzzling\Web\Services\RefereeEntriesView;
+use SpeedPuzzling\Web\Value\RoundClock;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -80,6 +81,8 @@ final class LiveResultsController extends AbstractController
         $entrantId = $request->query->getString('entrant');
         $entrant = $entrantId !== '' ? $this->getLiveResultsEntrant->ofCompetition($competitionId, $entrantId) : null;
 
+        $serverNow = $this->clock->now();
+
         $response = $this->render('live_results/live_results.html.twig', [
             'competition' => $competition,
             'round' => $round,
@@ -91,7 +94,8 @@ final class LiveResultsController extends AbstractController
             'unknown_tag' => $request->query->getString('notice') === 'tag_unknown',
             // Same shape as official_results_round_state - the page renders at once, the controller refreshes it
             'state' => [
-                'serverNow' => $this->clock->now()->format(\DateTimeInterface::ATOM),
+                'serverNow' => $serverNow->format(\DateTimeInterface::ATOM),
+                'serverNowMs' => RoundClock::milliseconds($serverNow),
                 'topic' => OfficialResultsLiveUpdates::topic($roundId),
                 'competition' => [
                     'id' => $competitionId,

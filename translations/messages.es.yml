@@ -4057,6 +4057,7 @@ fair_use_policy:
     "cancel_start": "Cancelar el inicio"
     "flash":
       "expired": "La página estuvo abierta demasiado tiempo: no se ha cambiado nada. Inténtalo de nuevo."
+      "scheduling_unavailable": "Los inicios programados aún no están disponibles para este evento."
     "refused":
       "invalid_start": "Elige una fecha y hora que exista en la zona horaria de la ronda."
       "start_in_the_past": "Ese momento ya ha pasado: elige uno posterior."

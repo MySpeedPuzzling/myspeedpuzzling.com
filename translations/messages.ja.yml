@@ -4046,6 +4046,7 @@ qr_code:
     "cancel_start": "開始を取り消す"
     "flash":
       "expired": "ページが長時間開かれていたため、何も変更されていません。もう一度お試しください。"
+      "scheduling_unavailable": "このイベントでは、開始の予約はまだご利用いただけません。"
     "refused":
       "invalid_start": "ラウンドのタイムゾーンに存在する日時を選んでください。"
       "start_in_the_past": "その時刻はすでに過ぎています。もっと後の時刻を選んでください。"

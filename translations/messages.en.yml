@@ -4640,6 +4640,7 @@ competition:
         cancel_start: "Cancel the start"
         flash:
             expired: "The page was open too long - nothing changed. Please try again."
+            scheduling_unavailable: "Scheduled starts are not available for this event yet."
         refused:
             invalid_start: "Pick a date and time that exists in the round's time zone."
             start_in_the_past: "That moment has already passed - pick a later one."

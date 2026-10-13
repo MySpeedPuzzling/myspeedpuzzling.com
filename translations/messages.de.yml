@@ -4056,6 +4056,7 @@ qr_code:
     "cancel_start": "Start abbrechen"
     "flash":
       "expired": "Die Seite war zu lange geöffnet – nichts wurde geändert. Bitte versuchen Sie es erneut."
+      "scheduling_unavailable": "Geplante Starts sind für diese Veranstaltung noch nicht verfügbar."
     "refused":
       "invalid_start": "Wählen Sie ein Datum und eine Uhrzeit, die es in der Zeitzone der Runde gibt."
       "start_in_the_past": "Dieser Zeitpunkt ist bereits vorbei – wählen Sie einen späteren."

@@ -3035,7 +3035,7 @@ recap_progress:
     "add_help": "Hledejte podle jména nebo kódu hráče. Můžete přidat několik hráčů najednou."
     "add_submit": "Udělit roli moderátora"
     "choose_player": "Vyberte alespoň jednoho hráče."
-    "granted": "Role moderátora byla udělena.|Role moderátora byla udělena %count% hráčům."
+    "granted": "{1}Role moderátora byla udělena.|[0,Inf[Role moderátora byla udělena %count% hráčům."
     "revoked": "Role moderátora byla odebrána."
     "revoke": "Odebrat"
     "revoke_confirm": "Odebrat tomuto hráči roli moderátora?"

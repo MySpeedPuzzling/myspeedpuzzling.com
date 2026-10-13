@@ -379,6 +379,8 @@
   "pill":
     "label": "Cronómetro en marcha"
     "title": "Volver a tu cronómetro"
+  "leave": "Salir"
+  "leave_label": "Salir del cronómetro – sigue en marcha"
 "puzzle_add":
   "meta":
     "title": "Agregar puzzle"

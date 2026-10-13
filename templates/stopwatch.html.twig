@@ -1,8 +1,20 @@
 {% extends 'base.html.twig' %}
 
 {% set hide_comparison_launcher = true %}
+{# A running stopwatch has the screen to itself (docs/features/navigation README §4.10, ADD-04): no top bar, bottom bar,
+   rail, column, Menu, footer or "Something wrong" line - "Leave" in the toolbar leads out, the stopwatch keeps running.
+   Decided at render from its status; a start or a resume on the page hides only the phone tab bar
+   (html[data-stopwatch-running], stopwatch_controller.js). body.no-nav-chrome keeps the desktop column's width at 0. #}
+{% set stopwatch_running = active_stopwatch is not null and active_stopwatch.status.value == 'running' %}
+{% set nav_chrome_off = stopwatch_running %}
 
 {% block title %}{{ 'stopwatch.meta.title'|trans }}{% endblock %}
+
+{% block header %}{% if not stopwatch_running %}{{ parent() }}{% endif %}{% endblock %}
+{% block nav_chrome %}{% if not stopwatch_running %}{{ parent() }}{% endif %}{% endblock %}
+{% block nav_layers %}{% if not stopwatch_running %}{{ parent() }}{% endif %}{% endblock %}
+{% block footer %}{% if not stopwatch_running %}{{ parent() }}{% endif %}{% endblock %}
+{% block page_help_line %}{% if not stopwatch_running %}{{ parent() }}{% endif %}{% endblock %}
 
 {% block content %}
     <div
@@ -22,9 +34,20 @@
         data-stopwatch-label-solved-times-value="{{ (solo_times|length == 1 ? 'stopwatch.solved_time' : 'stopwatch.solved_times')|trans({'%count%': solo_times|length}) }}"
         data-stopwatch-label-current-ranking-value="{{ 'stopwatch.current_ranking'|trans({'%rank%': '%rank%', '%total%': '%total%'}) }}"
         data-stopwatch-label-delete-confirm-value="{{ 'stopwatch.delete_confirm'|trans }}"
+        data-stopwatch-label-leave-running-value="{{ 'stopwatch.leave_label'|trans }}"
     >
         {# Toolbar row #}
         <div class="stopwatch-toolbar d-flex align-items-center justify-content-between px-3 py-2">
+            {# The way out (ADD-04, decision 44): the stopwatch's puzzle page when this player may see it, else Add. While
+               it runs the name says it keeps running (stopwatch_controller.js keeps it true after a start or a pause) #}
+            <a href="{{ active_puzzle is not null ? path('puzzle_detail', {puzzleId: active_puzzle.puzzleId}) : path('puzzle_add') }}"
+               class="stopwatch-leave"
+               data-stopwatch-target="leaveLink"
+               data-stopwatch-leave
+               data-nav="page/add/stopwatch_leave"
+               {% if stopwatch_running %}aria-label="{{ 'stopwatch.leave_label'|trans }}"{% endif %}
+            ><i class="ci-arrow-left" aria-hidden="true"></i><span>{{ 'stopwatch.leave'|trans }}</span></a>
+
             <div class="form-check form-switch mb-0" data-stopwatch-target="wakeLockToggle">
                 <input class="form-check-input" type="checkbox" id="stopwatch-wake-lock" data-stopwatch-target="wakeLockCheckbox" data-action="stopwatch#toggleWakeLock">
                 <label class="form-check-label small" for="stopwatch-wake-lock">{{ 'stopwatch.display_always_on'|trans }}</label>

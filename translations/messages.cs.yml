@@ -416,6 +416,8 @@ puzzle_result:
   "pill":
     "label": "Stopky běží"
     "title": "Zpět ke stopkám"
+  "leave": "Odejít"
+  "leave_label": "Odejít ze stopek – poběží dál"
 "puzzle_add":
   "meta":
     "title": "Přidat puzzle"

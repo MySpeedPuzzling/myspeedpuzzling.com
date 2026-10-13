@@ -532,10 +532,24 @@ final class NavLayoutCssTest extends TestCase
         self::assertStringContainsString('@media (min-width:768px) and (min-height:501px),(min-width:768px) and (pointer:fine){:root{--header-height:64px}}', $css);
         self::assertStringContainsString('@media (max-width:767.98px) and (max-height:479.98px),(max-height:479.98px) and (pointer:coarse){:root{--header-height:0px}}', $css);
         self::assertMatchesRegularExpression('~:root\{[^}]*--topbar-h:var\(--header-height\)~', $css);
-        // The bar's height only while a visible .bottom-nav exists, never in the app
-        self::assertMatchesRegularExpression('~:root:not\(\[data-native-app\]\):has\(> body > \.bottom-nav:not\(\[hidden\]\):not\(\.bottom-nav--tabbar-hidden\)\)\{--bottom-nav-height:calc\(var\(--tabbar-h\) \+ var\(--safe-bottom-max\)\)\}~', $css);
-        // NAV review Q3: nothing sets html[data-stopwatch-running] - the dead selector is gone (ADD-04 adds what it needs)
-        self::assertStringNotContainsString('data-stopwatch-running', $css);
+        // The bar's height only while a visible .bottom-nav exists, never in the app, never while the page's stopwatch runs
+        self::assertMatchesRegularExpression('~:root:not\(\[data-native-app\]\):not\(\[data-stopwatch-running\]\):has\(> body > \.bottom-nav:not\(\[hidden\]\):not\(\.bottom-nav--tabbar-hidden\)\)\{--bottom-nav-height:calc\(var\(--tabbar-h\) \+ var\(--safe-bottom-max\)\)\}~', $css);
+        // ADD-04 (decision 44): a start or a resume on the stopwatch page (stopwatch_controller.js sets
+        // html[data-stopwatch-running]) takes the phone tab bar away and keeps no room for it - with and without :has() -
+        // the top bar stays, desktop keeps the places (NAV review Q3: the attribute is set now, by its one writer)
+        self::assertStringContainsString('@supports not selector(:has(a)){@media (max-width:767.98px),(max-height:500.98px) and (pointer:coarse){:root:not([data-native-app]):not([data-stopwatch-running]){--bottom-nav-height:calc(var(--tabbar-h) + var(--safe-bottom-max))}}}', $css);
+        self::assertStringContainsString("\n@media (max-width:767.98px),(max-height:500.98px) and (pointer:coarse){:root[data-stopwatch-running] .bottom-nav{display:none}}\n", $css . "\n");
+        self::assertSame(3, substr_count($css, 'data-stopwatch-running'), 'html[data-stopwatch-running] touches the tab bar only');
+        self::assertDoesNotMatchRegularExpression('~data-stopwatch-running\][^{]*\.site-header~', $css, 'the top bar is never hidden client-side');
+        $writers = [];
+
+        foreach ($this->files('assets', ['js']) as $path => $code) {
+            if (str_contains($code, 'data-stopwatch-running')) {
+                $writers[] = $path;
+            }
+        }
+
+        self::assertSame(['assets/controllers/stopwatch_controller.js'], $writers);
         // NAV review F4: a page the server knows has no tab bar says 0 on <body> itself - bar-free and auth pages, the
         // app (no-nav-chrome) and hide_bottom_bar (no-tab-bar) - so browsers without :has() keep no room for it either
         self::assertStringContainsString("\nbody.no-nav-chrome,body.no-tab-bar{--bottom-nav-height:0px}\n", "\n" . $css . "\n");

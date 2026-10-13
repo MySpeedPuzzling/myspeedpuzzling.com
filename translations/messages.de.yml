@@ -377,6 +377,8 @@
   "pill":
     "label": "Stoppuhr läuft"
     "title": "Zurück zu Ihrer Stoppuhr"
+  "leave": "Verlassen"
+  "leave_label": "Verlassen – die Stoppuhr läuft weiter"
 "puzzle_add":
   "meta":
     "title": "Puzzle hinzufügen"

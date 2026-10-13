@@ -379,6 +379,8 @@
   "pill":
     "label": "ストップウォッチ計測中"
     "title": "ストップウォッチに戻る"
+  "leave": "離れる"
+  "leave_label": "離れる – ストップウォッチは計測を続けます"
 "puzzle_add":
   "meta":
     "title": "パズル追加"

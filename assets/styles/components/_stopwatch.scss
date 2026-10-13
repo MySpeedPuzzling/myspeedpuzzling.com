@@ -4,11 +4,44 @@
 }
 
 .stopwatch-toolbar {
+    // Leave, the wake-lock switch and the name keep their width: on a narrow phone in a long language the next one moves
+    // to a second row instead of squeezing the name to nothing (ADD-04)
+    flex-wrap: wrap;
     gap: 0.5rem;
 }
 
+// The way out of the stopwatch (docs/features/navigation ADD-04): a running stopwatch's page has no bars, this is the
+// exit - a 44 × 44 target at least (an arrow and "Leave", its label never cut: it grows with the text)
+.stopwatch-leave {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+    min-width: 44px;
+    min-height: 44px;
+    margin-inline-start: -0.5rem;
+    padding: 0 0.5rem;
+    border-radius: 0.5rem;
+    color: var(--bs-body-color);
+    font-weight: 500;
+    white-space: nowrap;
+    text-decoration: none;
+    touch-action: manipulation;
+
+    &:hover,
+    &:focus-visible {
+        background-color: var(--bs-gray-100);
+        color: var(--bs-gray-900);
+    }
+
+    > .ci-arrow-left {
+        font-size: 1.125rem;
+    }
+}
+
 .stopwatch-name-area {
-    flex: 1;
+    flex: 1 1 auto;
     min-width: 0;
 }
 
@@ -137,8 +170,11 @@
 
 // Landscape: fit digits + milestones on screen without scrolling
 @media (orientation: landscape) and (max-height: 500px) {
+    // Full width: Leave and the name keep clear of a notch at the side
     .stopwatch-page {
         max-width: 100%;
+        padding-right: env(safe-area-inset-right, 0px);
+        padding-left: env(safe-area-inset-left, 0px);
     }
 
     .stopwatch-toolbar {

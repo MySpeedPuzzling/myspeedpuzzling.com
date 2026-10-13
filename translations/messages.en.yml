@@ -438,6 +438,8 @@ stopwatch:
     pill:
         label: "Stopwatch running"
         title: "Back to your stopwatch"
+    leave: "Leave"
+    leave_label: "Leave the stopwatch – it keeps running"
 
 puzzle_add:
     meta:

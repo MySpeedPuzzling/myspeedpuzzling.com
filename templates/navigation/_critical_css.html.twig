@@ -15,10 +15,11 @@
                      clear of the phone bottom bar.
     --topbar-h       live height of the top bar (0 while hidden).
     --topbar-shift   how far the hidden top bar moved up: sub-bars follow it with `translate` (mixin nav-follow-topbar).
-    --bottom-nav-height  phone bottom bar + safe area, 0 while no visible .bottom-nav and in the app. Every fixed
-                     bottom element sits above it (mixin nav-bottom). A page the server knows has no tab bar says 0 on
-                     <body> itself (body.no-nav-chrome: bar-free and auth pages, the app; body.no-tab-bar: hide_bottom_bar)
-                     - the same 0 the :has() test computes, and what browsers without :has() rely on (NAV review F4).
+    --bottom-nav-height  phone bottom bar + safe area, 0 while no visible .bottom-nav, while the page's stopwatch runs
+                     (html[data-stopwatch-running], ADD-04) and in the app. Every fixed bottom element sits above it
+                     (mixin nav-bottom). A page the server knows has no tab bar says 0 on <body> itself
+                     (body.no-nav-chrome: bar-free and auth pages, the app; body.no-tab-bar: hide_bottom_bar) - the same
+                     0 the :has() test computes, and what browsers without :has() rely on (NAV review F4).
     --tabbar-h       the bar itself: README's 56 px, taller only with a large text size (NAV-11) - 2.5 px above the 32 px
                      pill, 4 px gap, the label's .875rem line and the 1 px hairline must fit (200 %: 68 px), so the label
                      is never cut and everything above the bar moves up with it.
@@ -73,7 +74,11 @@
                      without the disclosure marker before the stylesheet arrives.
     .bottom-nav--tabbar-hidden  a page that sets hide_bottom_bar (NAV-08, decision 46 - the multiscan scanner's action bar
                      takes the bottom edge): no tab bar on phones and no room kept for it; desktop keeps the places (the
-                     rail, NAV-13). -#}
+                     rail, NAV-13).
+    html[data-stopwatch-running]  the stopwatch page's stopwatch was started or resumed on the page (ADD-04,
+                     stopwatch_controller.js; decision 44): the phone tab bar steps aside and keeps no room, the top bar
+                     stays, desktop keeps the places. A page rendered with a running stopwatch has no bars at all
+                     (stopwatch.html.twig empties the blocks, body.no-nav-chrome). -#}
 @property --topbar-h{syntax:'<length>';inherits:true;initial-value:0px}
 @property --bottom-nav-height{syntax:'<length>';inherits:true;initial-value:0px}
 @property --nav-left{syntax:'<length>';inherits:true;initial-value:0px}
@@ -86,8 +91,8 @@
 :root[data-topbar=hidden]{--topbar-h:0px;--topbar-shift:var(--header-height)}
 html{scroll-padding-top:var(--header-height);scroll-padding-bottom:var(--bottom-nav-height)}
 :root:has(> body.no-nav-chrome):not(:has(> body > .site-header)){scroll-padding-top:0}
-@media (max-width:767.98px),(max-height:500.98px) and (pointer:coarse){:root:not([data-native-app]):has(> body > .bottom-nav:not([hidden]):not(.bottom-nav--tabbar-hidden)){--bottom-nav-height:calc(var(--tabbar-h) + var(--safe-bottom-max))}}
-@supports not selector(:has(a)){@media (max-width:767.98px),(max-height:500.98px) and (pointer:coarse){:root:not([data-native-app]){--bottom-nav-height:calc(var(--tabbar-h) + var(--safe-bottom-max))}}}
+@media (max-width:767.98px),(max-height:500.98px) and (pointer:coarse){:root:not([data-native-app]):not([data-stopwatch-running]):has(> body > .bottom-nav:not([hidden]):not(.bottom-nav--tabbar-hidden)){--bottom-nav-height:calc(var(--tabbar-h) + var(--safe-bottom-max))}}
+@supports not selector(:has(a)){@media (max-width:767.98px),(max-height:500.98px) and (pointer:coarse){:root:not([data-native-app]):not([data-stopwatch-running]){--bottom-nav-height:calc(var(--tabbar-h) + var(--safe-bottom-max))}}}
 :root[data-native-app]{--header-height:0px;--topbar-h:0px;--topbar-shift:0px;--bottom-nav-height:0px;--nav-left:0px}
 body.no-nav-chrome,body.no-tab-bar{--bottom-nav-height:0px}
 .global-search-overlay,.site-search-panel,.site-search-close,.site-search-scan{display:none}
@@ -144,3 +149,4 @@ html[data-search-open] .site-search-scan{display:inline-flex}
 .site-header-language>summary{display:flex;align-items:center;gap:6px;height:44px;padding:0 10px;color:var(--nav-ink);list-style:none;cursor:pointer}
 .site-header-language>summary::-webkit-details-marker{display:none}
 @media (max-width:767.98px),(max-height:500.98px) and (pointer:coarse){.bottom-nav--tabbar-hidden{display:none}}
+@media (max-width:767.98px),(max-height:500.98px) and (pointer:coarse){:root[data-stopwatch-running] .bottom-nav{display:none}}

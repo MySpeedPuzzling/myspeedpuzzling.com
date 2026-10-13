@@ -68,9 +68,8 @@ final class BarFreePagesTest extends WebTestCase
     }
 
     /**
-     * The running stopwatch's first render has no bars (README §4.10; the exit control leads out). The page is ADD-04's
-     * (phase 9): until it empties the chrome blocks this row reports itself incomplete - ADD-04 removes the guard
-     * (verify-after: ADD-04).
+     * The running stopwatch's first render has no bars (README §4.10; ADD-04 empties the blocks while it runs, "Leave"
+     * leads out - StopwatchPageChromeTest). Running is the stopwatch's status: the fixture's lap age does not matter.
      */
     public function testARunningStopwatchRendersNoBars(): void
     {
@@ -80,11 +79,11 @@ final class BarFreePagesTest extends WebTestCase
         $crawler = $browser->request('GET', '/en/stopwatch/' . StopwatchFixture::STOPWATCH_RUNNING);
         self::assertResponseIsSuccessful();
 
-        if ($crawler->filter('body > header')->count() > 0) {
-            self::markTestIncomplete('verify-after: ADD-04 - the running stopwatch page still renders the bars');
-        }
-
         $this->assertNoBars($crawler, 'running stopwatch');
+        self::assertCount(0, $crawler->filter('footer.site-footer'));
+        self::assertCount(0, $crawler->filter('.page-help-line'));
+        self::assertStringContainsString('no-nav-chrome', (string) $crawler->filter('body')->attr('class'));
+        self::assertCount(1, $crawler->filter('.stopwatch-toolbar a[data-stopwatch-leave]'));
     }
 
     /**

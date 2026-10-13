@@ -2,6 +2,9 @@ import { Controller } from '@hotwired/stimulus';
 import { confirmDialog } from '../confirm_dialog.js';
 import { rememberStopwatchState } from '../stopwatch_elapsed.js';
 
+// Set on <html> while this page's stopwatch runs: the phone tab bar steps aside (templates/navigation/_critical_css.html.twig)
+const RUNNING_ATTRIBUTE = 'data-stopwatch-running';
+
 // Milestone labels are player names: whatever a player typed is escaped before it goes into innerHTML
 const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
@@ -16,6 +19,7 @@ export default class extends Controller {
         'wakeLockToggle', 'wakeLockCheckbox',
         'otherStopwatches',
         'rankDisplay',
+        'leaveLink',
     ];
 
     static values = {
@@ -33,6 +37,7 @@ export default class extends Controller {
         labelSolvedTimes: String,
         labelCurrentRanking: String,
         labelDeleteConfirm: String,
+        labelLeaveRunning: String,
     };
 
     connect() {
@@ -74,6 +79,8 @@ export default class extends Controller {
     }
 
     disconnect() {
+        // The next page (a Turbo visit keeps <html>) gets its tab bar back
+        document.documentElement.removeAttribute(RUNNING_ATTRIBUTE);
         this._stopRaf();
         this._releaseWakeLock();
         window.removeEventListener('online', this._onlineHandler);
@@ -85,9 +92,11 @@ export default class extends Controller {
     async start() {
         if (!navigator.onLine) return;
 
-        // Counting starts at the tap, not when the server answers
+        // Counting starts at the tap, not when the server answers - and the tab bar steps aside with it (a failed start
+        // brings it back through _updateButtons())
         const tappedAt = Date.now();
         this._setButtonsLoading();
+        document.documentElement.setAttribute(RUNNING_ATTRIBUTE, '');
 
         try {
             const body = {};
@@ -297,11 +306,25 @@ export default class extends Controller {
 
     _updateButtons() {
         const status = this.statusValue;
+        const running = status === 'running';
 
         this._toggleTarget('startBtn', !status || status === 'not_started');
-        this._toggleTarget('pauseBtn', status === 'running');
+        this._toggleTarget('pauseBtn', running);
         this._toggleTarget('resumeBtn', status === 'paused');
         this._toggleTarget('finishBtn', status === 'paused');
+
+        // ADD-04: while it runs the phone tab bar steps aside (critical CSS), the top bar stays - a page rendered running
+        // has no bars at all (stopwatch.html.twig)
+        document.documentElement.toggleAttribute(RUNNING_ATTRIBUTE, running);
+
+        // "Leave" says the stopwatch keeps running only while it does
+        if (this.hasLeaveLinkTarget) {
+            if (running && this.labelLeaveRunningValue) {
+                this.leaveLinkTarget.setAttribute('aria-label', this.labelLeaveRunningValue);
+            } else {
+                this.leaveLinkTarget.removeAttribute('aria-label');
+            }
+        }
     }
 
     _setButtonsLoading() {

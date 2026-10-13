@@ -412,6 +412,8 @@
   "pill":
     "label": "Chronomètre en cours"
     "title": "Retour à votre chronomètre"
+  "leave": "Quitter"
+  "leave_label": "Quitter le chronomètre – il continue de tourner"
 "puzzle_add":
   "meta":
     "title": "Ajouter puzzle"

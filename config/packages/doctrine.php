@@ -6,6 +6,7 @@ namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
 use Ramsey\Uuid\Doctrine\UuidType;
 use SpeedPuzzling\Web\Services\Doctrine\CustomIndexFilteringSchemaManagerFactory;
+use SpeedPuzzling\Web\Doctrine\JsonbObjectArrayDoctrineType;
 use SpeedPuzzling\Web\Doctrine\LapsArrayDoctrineType;
 use SpeedPuzzling\Web\Doctrine\PuzzlersGroupDoctrineType;
 use SpeedPuzzling\Web\Doctrine\SellSwapListSettingsDoctrineType;
@@ -18,6 +19,7 @@ return App::config([
             'idle_connection_ttl' => 300,
             'types' => [
                 'uuid' => UuidType::class,
+                JsonbObjectArrayDoctrineType::NAME => JsonbObjectArrayDoctrineType::class,
                 LapsArrayDoctrineType::NAME => LapsArrayDoctrineType::class,
                 PuzzlersGroupDoctrineType::NAME => PuzzlersGroupDoctrineType::class,
                 SellSwapListSettingsDoctrineType::NAME => SellSwapListSettingsDoctrineType::class,

@@ -104,7 +104,8 @@ readonly final class OnlineReview
                 'atMs' => $event['client_ms'],
                 'receivedAtMs' => $event['received_at_ms'],
                 'deviceId' => $event['device_id'],
-                'data' => $event['payload'],
+                // Always a JSON object, an empty one too
+                'data' => $event['payload'] === [] ? new \stdClass() : $event['payload'],
             ], $events),
             'media' => $media,
         ];

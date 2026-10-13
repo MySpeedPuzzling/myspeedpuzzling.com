@@ -15,8 +15,10 @@ use SpeedPuzzling\Web\Entity\Competition;
 use SpeedPuzzling\Web\Entity\CompetitionParticipant;
 use SpeedPuzzling\Web\Entity\CompetitionParticipantRound;
 use SpeedPuzzling\Web\Entity\CompetitionRound;
+use SpeedPuzzling\Web\Entity\OnlineEntryEvent;
 use SpeedPuzzling\Web\Entity\OnlineRound;
 use SpeedPuzzling\Web\Message\RecordOnlineEntryEvents;
+use SpeedPuzzling\Web\Query\GetOnlineReviewData;
 use SpeedPuzzling\Web\Results\RecordedOnlineEntryEvents;
 use SpeedPuzzling\Web\Tests\DataFixtures\OnlineRoundsFixture;
 use SpeedPuzzling\Web\Value\OnlineDetectionMode;
@@ -130,6 +132,54 @@ final class RecordOnlineEntryEventsHandlerTest extends KernelTestCase
 
         self::assertSame([$event['id']], $recorded->acks);
         self::assertSame(1, $this->connection->fetchOne('SELECT COUNT(*) FROM online_entry_event WHERE id = :id', ['id' => $event['id']]));
+    }
+
+    /**
+     * Every payload is a JSON object - an event without data too (`{}`, never `[]`); a `[]` stored before reads as an
+     * empty payload all the same
+     */
+    public function testAPayloadIsAlwaysStoredAsAnObject(): void
+    {
+        $now = self::nowMs();
+        $tapId = Uuid::uuid7()->toString();
+        $hidden = self::event('page.hidden', $now);
+        $undo = self::event('finish.button.undone', $now + 1, ['eventId' => $tapId]);
+
+        $this->record(OnlineRoundsFixture::PARTICIPANT_CONNECTED, OnlineRoundsFixture::DEVICE_CONNECTED, [$hidden, $undo]);
+
+        $stored = $this->connection->fetchAllKeyValue(
+            'SELECT id::text, jsonb_typeof(payload) FROM online_entry_event WHERE id IN (:hidden, :undo)',
+            ['hidden' => $hidden['id'], 'undo' => $undo['id']],
+        );
+        self::assertSame([$hidden['id'] => 'object', $undo['id'] => 'object'], $stored);
+        self::assertSame('{}', $this->connection->fetchOne('SELECT payload::text FROM online_entry_event WHERE id = :id', ['id' => $hidden['id']]));
+
+        // A row an older release stored with `[]` - the review reads it as no payload
+        $legacyId = Uuid::uuid7()->toString();
+        $this->connection->insert('online_entry_event', [
+            'id' => $legacyId,
+            'online_entry_id' => OnlineRoundsFixture::ONLINE_ENTRY_CONNECTED,
+            'device_id' => OnlineRoundsFixture::DEVICE_CONNECTED,
+            'type' => 'page.visible',
+            'client_ms' => $now + 2,
+            'received_at_ms' => $now + 2,
+            'payload' => '[]',
+        ]);
+        $this->entityManager->clear();
+
+        $payloads = [];
+
+        foreach (self::getContainer()->get(GetOnlineReviewData::class)->events(OnlineRoundsFixture::ROUND_ONLINE_SOLO, OnlineRoundsFixture::ONLINE_ENTRY_CONNECTED) as $event) {
+            $payloads[$event['id']] = $event['payload'];
+        }
+
+        self::assertSame([], $payloads[$legacyId]);
+        self::assertSame([], $payloads[$hidden['id']]);
+        self::assertSame(['eventId' => $tapId], $payloads[$undo['id']]);
+
+        $legacy = $this->entityManager->find(OnlineEntryEvent::class, $legacyId);
+        self::assertNotNull($legacy);
+        self::assertSame([], $legacy->payload);
     }
 
     /**

@@ -17,26 +17,30 @@ use Symfony\Component\DomCrawler\Crawler;
 use Twig\Environment;
 
 /**
- * Navigation instrumentation (docs/features/navigation P0-03): every link and button of the site header and footer
- * carries a well-formed data-nav="<surface>/<place>/<item>" - assets/nav_instrumentation.js counts nothing else, so a
- * link without one is a link nobody can measure. The page's own <header>/<footer> elements are not chrome.
+ * Navigation instrumentation (docs/features/navigation P0-03): every link and button of the site header, the Menu's
+ * docked-column slot and the footer carries a well-formed data-nav="<surface>/<place>/<item>" -
+ * assets/nav_instrumentation.js counts nothing else, so a link without one is a link nobody can measure. The page's own
+ * <header>/<footer> elements are not chrome.
  */
 final class NavInstrumentationMarkupTest extends WebTestCase
 {
-    // The top bar (NAV-03) and the old header's rows under it until NAV-06 (.legacy-chrome), the footer
-    private const string CHROME = 'body > header a, body > header button, body > .legacy-chrome a, body > .legacy-chrome button, body > footer a, body > footer button';
+    // The top bar (NAV-03), the Menu in its docked-column slot (MENU-01: the old header's rows and its admin key went
+    // there with NAV-06), the footer
+    private const string CHROME = 'body > header a, body > header button, #menu-slot a, #menu-slot button, body > footer a, body > footer button';
 
     /**
      * @return iterable<string, array{null|string, bool, list<string>}>
      */
     public static function viewers(): iterable
     {
-        // Guests: register / sign in, the newsletter form, popular searches; the top bar's tools (NAV-03)
-        yield 'guest' => [null, false, ['topbar/home/logo', 'topbar/none/search', 'topbar/none/help', 'topbar/none/menu', 'topbar/places/home', 'topbar/add/add', 'topbar/profile/sign_in', 'toolbar/tools/sign_in', 'toolbar/tools/register', 'footer/newsletter/subscribe', 'footer/newsletter/privacy', 'footer/popular_brands/cobble_hill', 'footer/popular_world_championship/wjpc_2026', 'footer/credits/jan']];
-        // NAV-05: the account menu (avatar ▾) - its trigger is the top bar's, its items account/links/*
-        yield 'member' => [PlayerFixture::PLAYER_WITH_STRIPE, false, ['topbar/none/inbox', 'topbar/none/scan', 'topbar/profile/account', 'account/links/view_profile', 'account/links/settings', 'account/links/membership', 'account/language/de', 'account/toggle/open', 'account/links/logout', 'toolbar/tools/messages', 'toolbar/tools/notifications', 'hamburger/places/hub', 'footer/language/de']];
-        // The admin key with every queue
-        yield 'admin' => [PlayerFixture::PLAYER_ADMIN, false, ['admin_key/toggle/open', 'admin_key/queues/change_requests', 'admin_key/queues/duplicate_results', 'topbar/language/de']];
+        // Guests: sign in (the top bar) and join (the Menu's guest card), the newsletter form, popular searches; the top
+        // bar's tools (NAV-03)
+        yield 'guest' => [null, false, ['topbar/home/logo', 'topbar/none/search', 'topbar/none/help', 'topbar/none/menu', 'topbar/places/home', 'topbar/add/add', 'topbar/profile/sign_in', 'menu/you/sign_in', 'menu/you/join', 'footer/newsletter/subscribe', 'footer/newsletter/privacy', 'footer/popular_brands/cobble_hill', 'footer/popular_world_championship/wjpc_2026', 'footer/credits/jan']];
+        // NAV-05: the account menu (avatar ▾) - its trigger is the top bar's, its items account/links/*; the Inbox (one
+        // link for both parts, INB-01/02) and Home (the logo, the places) in the top bar
+        yield 'member' => [PlayerFixture::PLAYER_WITH_STRIPE, false, ['topbar/none/inbox', 'topbar/none/scan', 'topbar/profile/account', 'account/links/view_profile', 'account/links/settings', 'account/links/membership', 'account/language/de', 'account/links/logout', 'topbar/home/logo', 'topbar/places/home', 'menu/home/home', 'footer/language/de']];
+        // Every queue of the old admin key: Your roles in the Menu (MENU-01)
+        yield 'admin' => [PlayerFixture::PLAYER_ADMIN, false, ['menu/roles/mod_change_requests', 'menu/roles/mod_merge_requests', 'menu/roles/mod_puzzle_approvals', 'menu/roles/mod_time_verification', 'menu/roles/admin_duplicate_results', 'menu/roles/admin_api_usage', 'account/language/de']];
         // A player who switched the newsletter off gets the "Turn it on" button
         yield 'player with the newsletter off' => [PlayerFixture::PLAYER_REGULAR, true, ['footer/newsletter/turn_on']];
     }
@@ -199,7 +203,7 @@ final class NavInstrumentationMarkupTest extends WebTestCase
 
     /**
      * One id per destination: two elements share an id only when they are the same destination (the phone and the
-     * desktop logo) - the beacon's layout field tells the tiers apart.
+     * desktop ☰) - the beacon's layout field tells the tiers apart.
      */
     public function testNavIdsNameOneDestinationEach(): void
     {
@@ -219,15 +223,15 @@ final class NavInstrumentationMarkupTest extends WebTestCase
             self::assertCount(1, array_unique($targets), $navId . ' names different destinations: ' . implode(', ', $targets));
         }
 
-        self::assertSame(['/', '/'], array_map(
-            static fn (string $target): string => substr($target, 2),
-            $hrefsById['navbar/logo/home'] ?? [],
-        ), 'The phone and the desktop logo');
+        // The old header's two logos went with NAV-06: the top bar has one; its phone and desktop ☰ share an id
+        self::assertSame(['a /en/hub'], $hrefsById['topbar/home/logo'] ?? [], 'The logo');
+        self::assertSame(['a /en/menu', 'a /en/menu'], $hrefsById['topbar/none/menu'] ?? [], 'The phone and the desktop ☰');
     }
 
     /**
-     * The toolbar's Inbox links keep their ids through a realtime push: the Mercure stream (MercureNotifier, INB-02)
-     * carries numbers only and never re-renders a link, and the Messages tool it used to replace renders its id.
+     * The Inbox links keep their ids through a realtime push: the Mercure stream (MercureNotifier, INB-02) carries
+     * numbers only and never re-renders a link, and the top bar's Inbox link (the old header's bell and Messages tool
+     * went with NAV-06) renders its id with the badge inside.
      */
     public function testTheStreamedBadgeLeavesTheNavIdsInPlace(): void
     {
@@ -239,9 +243,9 @@ final class NavInstrumentationMarkupTest extends WebTestCase
         self::assertStringNotContainsString('<a', $stream);
         self::assertStringNotContainsString('data-nav', $stream);
 
-        $crawler = new Crawler($twig->render('messaging/_unread_badge.html.twig', ['parts' => new InboxBadgeParts(1, 2, 3)]));
+        $crawler = new Crawler($twig->render('inbox/_link.html.twig', ['parts' => new InboxBadgeParts(1, 2, 3), 'nav' => 'topbar/none/inbox', 'surface' => 'topbar']));
 
-        self::assertSame('toolbar/tools/messages', $crawler->filter('a')->attr('data-nav'));
-        self::assertSame('5', $crawler->filter('a .inbox-badge[data-inbox-part="messages"]')->text());
+        self::assertSame('topbar/none/inbox', $crawler->filter('a')->attr('data-nav'));
+        self::assertSame('6', $crawler->filter('a .inbox-badge[data-inbox-part="total"]')->text());
     }
 }

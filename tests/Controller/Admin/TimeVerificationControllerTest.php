@@ -72,7 +72,7 @@ final class TimeVerificationControllerTest extends WebTestCase
         $crawler = $browser->request('GET', '/admin/time-verification');
 
         self::assertResponseIsSuccessful();
-        // The Menu's Your roles row with its waiting count (MENU-01; the old key menu keeps the link without it)
+        // The Menu's Your roles row with its waiting count (MENU-01; the old key menu went with NAV-06)
         $link = $crawler->filter('#site-menu a[href="/admin/time-verification"]');
         self::assertCount(1, $link);
         // Two pending cases in the fixtures

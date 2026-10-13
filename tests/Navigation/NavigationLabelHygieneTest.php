@@ -35,8 +35,10 @@ final class NavigationLabelHygieneTest extends KernelTestCase
         $sources = $this->navigationPartials();
 
         self::assertStringContainsString("'marketplace.title'|trans", $sources['_footer.html.twig']);
-        self::assertStringContainsString("'marketplace.title'|trans", $sources['base.html.twig (header)']);
-        self::assertSame(2, substr_count($sources['messaging/_unread_badge.html.twig'], "'messaging.title'|trans"));
+        // The old header's hamburger Marketplace and Messages tool went with NAV-06: the Menu's rows read their label key
+        // from the registry, the Inbox header's Messages tab its own key
+        self::assertStringContainsString('{{ entry.label|trans }}', $sources['navigation/_menu_row.html.twig']);
+        self::assertStringContainsString("'inbox.tab.messages'|trans", $sources['inbox/_header.html.twig']);
 
         // The registry names the same keys (F-01 entries marketplace and messages)
         $registry = self::getContainer()->get(NavigationRegistry::class);
@@ -81,8 +83,8 @@ final class NavigationLabelHygieneTest extends KernelTestCase
     }
 
     /**
-     * The navigation partials: footer, the header block of base, the messages tool, templates/inbox (the Inbox link, badge
-     * and stream), templates/navigation.
+     * The navigation partials: footer, the header block of base, templates/inbox (the Inbox link, header, badge and
+     * stream), templates/navigation.
      *
      * @return array<string, string>
      */
@@ -100,10 +102,6 @@ final class NavigationLabelHygieneTest extends KernelTestCase
             'base.html.twig (header)' => substr($base, $start, $end - $start),
         ];
 
-        foreach ((new Finder())->files()->in(self::TEMPLATES . '/messaging')->name('_unread_badge*.twig') as $file) {
-            $sources['messaging/' . $file->getFilename()] = $file->getContents();
-        }
-
         // The Inbox link, badge and their realtime stream (INB-02 replaced the messages stream)
         foreach ((new Finder())->files()->in(self::TEMPLATES . '/inbox')->name('*.twig') as $file) {
             $sources['inbox/' . $file->getRelativePathname()] = $file->getContents();
@@ -113,7 +111,8 @@ final class NavigationLabelHygieneTest extends KernelTestCase
             $sources['navigation/' . $file->getRelativePathname()] = $file->getContents();
         }
 
-        self::assertArrayHasKey('messaging/_unread_badge.html.twig', $sources);
+        self::assertArrayHasKey('navigation/_menu_row.html.twig', $sources);
+        self::assertArrayHasKey('inbox/_header.html.twig', $sources);
         self::assertArrayHasKey('inbox/_badge_stream.html.twig', $sources);
         self::assertArrayHasKey('inbox/_link.html.twig', $sources);
 

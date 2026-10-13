@@ -6,7 +6,6 @@ namespace SpeedPuzzling\Web\Twig;
 
 use SpeedPuzzling\Web\Navigation\BarAction;
 use SpeedPuzzling\Web\Navigation\HelpPageContext;
-use SpeedPuzzling\Web\Navigation\LegacyChromeSwitch;
 use SpeedPuzzling\Web\Navigation\MenuBuilder;
 use SpeedPuzzling\Web\Navigation\MenuView;
 use SpeedPuzzling\Web\Navigation\NavigationLaunch;
@@ -19,7 +18,6 @@ use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Twig\Extension\AbstractExtension;
-use Twig\Extension\GlobalsInterface;
 use Twig\TwigFunction;
 
 /**
@@ -39,10 +37,9 @@ use Twig\TwigFunction;
  * - nav_search_url(): the page search's "Pages & settings" list, nav-search.json with its version (MENU-03) - one per
  *   request (kept on the request);
  * - nav_search_private(): the moderator / admin entries of that list for those viewers only (JSON, null for everybody
- *   else) - rendered into the Menu as #nav-search-private;
- * - global nav_omit_legacy_chrome: the weight probe's test-only switch (LegacyChromeSwitch, decision 34).
+ *   else) - rendered into the Menu as #nav-search-private.
  */
-final class NavigationTwigExtension extends AbstractExtension implements GlobalsInterface
+final class NavigationTwigExtension extends AbstractExtension
 {
     public const string REQUEST_ATTRIBUTE = '_nav_location';
     private const string SEARCH_URL_ATTRIBUTE = '_nav_search_url';
@@ -59,19 +56,8 @@ final class NavigationTwigExtension extends AbstractExtension implements Globals
         readonly private MenuBuilder $menuBuilder,
         readonly private NavigationViewerFactory $viewerFactory,
         readonly private UrlGeneratorInterface $urlGenerator,
-        readonly private LegacyChromeSwitch $legacyChromeSwitch,
         readonly private NavigationSearchIndex $navigationSearchIndex,
     ) {
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    public function getGlobals(): array
-    {
-        return [
-            'nav_omit_legacy_chrome' => $this->legacyChromeSwitch->omitsLegacyChrome(),
-        ];
     }
 
     /**

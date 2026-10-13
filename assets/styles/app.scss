@@ -27,7 +27,6 @@
 @import 'bootstrap/scss/dropdown';
 @import 'bootstrap/scss/button-group';
 @import 'bootstrap/scss/nav';
-@import 'bootstrap/scss/navbar';
 @import 'bootstrap/scss/card';
 @import 'bootstrap/scss/accordion';
 @import 'bootstrap/scss/breadcrumb';
@@ -210,41 +209,6 @@ body {
 
 main {
     flex-grow: 1;
-}
-
-@media (min-width: 992px) {
-    // The menu had no spare width at 992 and 1200 px, so with the bigger root size (see html above) it must not widen:
-    // px gaps between the items, and the toolbar shows icons only until 1400 px (as it does below 992 px) - German,
-    // French and Spanish menus did not fit at 1200 px even before
-    .navbar {
-        --cz-navbar-nav-link-padding-x: 14px;
-    }
-
-    @media (max-width: 1399.98px) {
-        .navbar-toolbar .navbar-tool-text {
-            display: none !important;
-        }
-    }
-
-    .navbar-nav .nav-link {
-        line-height: 1.2;
-        padding-top: 0.25rem !important;
-        padding-bottom: 0.25rem !important;
-
-        > i {
-            font-size: 1.15rem;
-            height: 23px;
-            line-height: 23px;
-        }
-
-        > small {
-            font-size: 0.8rem;
-        }
-    }
-}
-
-.navbar {
-    padding: 2px 0;
 }
 
 .badge.bg-dark.badge-shadow.rounded-pill {
@@ -500,42 +464,6 @@ td.rank {
     }
 }
 
-.navbar-light .nav-item {
-    background: transparent !important;
-    margin-bottom: 0;
-}
-
-.navbar {
-    background: rgba(255, 255, 255, .66);
-
-    .active.nav-link > i {
-        color: $primary !important;
-    }
-
-    .navbar-brand {
-        padding: 4px 0;
-        margin-right: 0 !important;
-    }
-
-    @include media-breakpoint-up(lg) {
-        .badge {
-            margin-top: -2px;
-            margin-left: 3px !important;
-        }
-    }
-
-    // 8 px: the Spanish menu next to a signed-in player's toolbar was 13 px wider than the screen at 992 px
-    @media (min-width: 992px) and (max-width: 1100px) {
-        .nav-item {
-            a {
-                padding-left: 8px !important;
-                padding-right: 8px !important;
-                font-size: 15px !important;
-            }
-        }
-    }
-}
-
 .low-line-height {
     line-height: 110%;
 }
@@ -592,32 +520,6 @@ td.rank {
 [data-controller~="competition-picker"] .ts-dropdown-content {
     // cards are ~48px tall; TomSelect's default 200px shows only 4 rows
     max-height: 60vh;
-}
-
-.navbar-tool .navbar-tool-label {
-    top: 1.6rem;
-    right: -0.1rem;
-
-    &.bg-secondary {
-        background: #e2e6ea !important;
-    }
-
-    // The old header's Inbox badge instances (INB-02, until NAV-06): hidden at 0, "99+" grows the circle into a pill
-    &.inbox-badge {
-        width: auto;
-        min-width: $navbar-tool-label-size;
-        padding: 0 .25rem;
-        border-radius: $navbar-tool-label-size * .5;
-    }
-}
-
-.dropdown-toggle.navbar-tool::after {
-    color: #4b566b !important;
-    margin-left: -7px;
-
-    @media (min-width: 992px) {
-        margin-left: 4px;
-    }
 }
 
 .avatar-name {
@@ -735,16 +637,6 @@ button[data-submit-prevention-target] {
     input {
         max-width: 200px;
     }
-}
-
-.topbar {
-    background: rgba(240, 244, 246, 0.7);
-}
-
-.topbar-link .badge {
-    float: right;
-    margin-top: -1px;
-    margin-left: 3px !important;
 }
 
 .dropdown-menu.filters {
@@ -1360,44 +1252,6 @@ canvas {
     }
 }
 
-.navbar-toggler {
-    border: none;
-    background: transparent;
-    position: relative;
-    width: 50px;
-    height: 50px;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between; /* Adds space between bars */
-    align-items: center;
-    cursor: pointer;
-    padding: 18px 14px;
-}
-
-.toggler-bar {
-    display: block;
-    width: 100%;
-    height: 2px;
-    background-color: #4b566b;
-    border-radius: 2px;
-    transition: all 0.3s ease-in-out;
-}
-
-/* When toggler is opened */
-.navbar-toggler[aria-expanded="true"] .toggler-bar:nth-child(1) {
-    transform: rotate(-45deg) translateY(9px);
-    margin-right: 4px;
-}
-
-.navbar-toggler[aria-expanded="true"] .toggler-bar:nth-child(2) {
-    opacity: 0;
-}
-
-.navbar-toggler[aria-expanded="true"] .toggler-bar:nth-child(3) {
-    transform: rotate(45deg) translateY(-8px);
-    margin-right: 2px;
-}
-
 .accordion-faq {
     border-radius: 0 !important;
 }
@@ -1808,28 +1662,6 @@ div[data-countdown-target] {
     background-size: contain;
 }
 
-// The old header's rows (.legacy-chrome, static under the top bar until NAV-06). The top bar itself never gets a
-// backdrop-filter: it would trap the search panel, which is position: fixed inside it (decision 20)
-@media (max-width: 380px) {
-    .legacy-chrome .container {
-        padding: 0 5px !important;
-    }
-
-    // "Envoyer un commentaire · Adhésion · FR" is wider than a 320 px phone (de, es, fr, ja - more with the admin key
-    // or the trial badge): feedback shows its icon only (the label stays for screen readers), membership its label only
-    .topbar-feedback-label {
-        @include visually-hidden;
-    }
-
-    .topbar .topbar-link > .ci-user-circle {
-        display: none;
-    }
-}
-
-.no-caret::after {
-    display: none !important;
-}
-
 .event-image {
     width: 60px;
 
@@ -1845,27 +1677,8 @@ div[data-countdown-target] {
     overflow-wrap: break-word;
 }
 
-// Live-event strip at the top of the sticky header - the whole strip is one link
-.competition-panel-info {
-    display: block;
-    background: $primary;
-    color: #fff;
-    font-size: 12px;
-    font-weight: 500;
-    line-height: 1.5;
-    padding: 4px 15px;
-    text-align: center;
-
-    &:hover,
-    &:focus {
-        color: #fff;
-        background: darken($primary, 6%);
-        text-decoration: underline;
-    }
-}
-
-// A pulsing "live" dot, always aria-hidden next to a text that says it: red on the events page's "Live", white on the
-// live event strip (`.live-dot-light`). A static dot under prefers-reduced-motion.
+// A pulsing "live" dot, always aria-hidden next to a text that says it: red on the events page's "Live". A static dot
+// under prefers-reduced-motion.
 $live-dot-red: #e0262d;
 
 .live-dot {
@@ -1884,12 +1697,6 @@ $live-dot-red: #e0262d;
     @media (prefers-reduced-motion: no-preference) {
         animation: live-dot-pulse 1.6s ease-out infinite;
     }
-}
-
-.live-dot-light {
-    --live-dot-color: #fff;
-    --live-dot-ring: #{rgba(#fff, .7)};
-    --live-dot-ring-end: #{rgba(#fff, 0)};
 }
 
 @keyframes live-dot-pulse {

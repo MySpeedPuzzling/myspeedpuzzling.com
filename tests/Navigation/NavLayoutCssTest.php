@@ -587,7 +587,7 @@ final class NavLayoutCssTest extends TestCase
      * 88 px (the rail, #bottom-nav restyled) from 1024 px, 256 px (the docked column, #site-menu in #menu-slot) at
      * 1280-1439 px with html[data-nav-layout="docked"] and from 1440 px unless html[data-nav-layout="rail"]; never on
      * pages without the bars (body.no-nav-chrome) or in print; the `menu` page (body.no-nav-column) keeps the rail.
-     * main, the footer and the old header rows start right of it; the folded groups are hidden before paint.
+     * main and the footer start right of it; the folded groups are hidden before paint.
      */
     public function testTheDesktopMenuTiersAreCriticalCss(): void
     {
@@ -625,9 +625,7 @@ final class NavLayoutCssTest extends TestCase
         }
 
         // The content and the footer start right of the rail / column; print and the bar-free pages have neither
-        self::assertStringContainsString('body>main,body>.site-footer,body>.legacy-chrome{margin-inline-start:var(--nav-left)}', $css);
-        // The old header rows (until NAV-06) never scroll the page sideways next to the column
-        self::assertStringContainsString("\nbody>.legacy-chrome{overflow-x:clip}\n", $css);
+        self::assertStringContainsString("\nbody>main,body>.site-footer{margin-inline-start:var(--nav-left)}\n", $css);
         self::assertStringContainsString('@media print{body{--nav-left:0px!important}.bottom-nav,.menu-slot{display:none!important}}', $css);
         self::assertSame(2, substr_count($css, '--nav-left:var(--nav-rail-w)'), 'the rail width: from 1024 px, and on the `menu` page');
         self::assertSame(2, substr_count($css, '--nav-left:var(--nav-col-w)'), 'the column width: docked by choice, docked by default');
@@ -677,6 +675,26 @@ final class NavLayoutCssTest extends TestCase
         // Inside the critical <style>: no other </style> between its start and the partial
         $style = substr($head, (int) $positions['critical style'], (int) $positions['critical partial'] - (int) $positions['critical style']);
         self::assertStringNotContainsString('</style>', $style);
+    }
+
+    /**
+     * NAV-06: the old header went with its critical CSS - the topbar band, the navbar with its toolbar, toggler and
+     * collapsed menu, the live-event strip, the .legacy-chrome rows' offsets and clip, the test-only weight-probe switch
+     * (nav_omit_legacy_chrome) and the .css-loading rules no code set. Neither base.html.twig's critical <style> nor the
+     * navigation partial carries any of them; the header block holds the top bar alone.
+     */
+    public function testTheOldHeaderLeftNoCriticalCss(): void
+    {
+        $base = (string) file_get_contents($this->root() . '/templates/base.html.twig');
+        $start = (int) strpos($base, '<style>@font-face');
+        $style = substr($base, $start, (int) strpos($base, '</style>', $start) - $start) . "\n" . $this->criticalRules();
+
+        foreach (['.topbar', '.navbar', 'toggler', '.collapse', 'legacy-chrome', 'competition-panel-info', 'nav_omit_legacy_chrome', 'css-loading', '.no-caret'] as $old) {
+            self::assertStringNotContainsString($old, $style, 'Critical CSS of the old header: ' . $old);
+        }
+
+        self::assertSame(1, preg_match('~\{% block header %\}(.*?)\{% endblock %\}~s', $base, $header));
+        self::assertSame("{% if is_web() %}{{ include('navigation/_topbar.html.twig') }}{% endif %}", trim((string) preg_replace('~\{#.*?#\}~s', '', $header[1])));
     }
 
     public function testNavBlocksAreWebOnlyAndEmptiedWithTheBars(): void

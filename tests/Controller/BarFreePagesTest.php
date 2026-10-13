@@ -30,9 +30,9 @@ use Symfony\Component\Routing\RouterInterface;
  */
 final class BarFreePagesTest extends WebTestCase
 {
-    // The new chrome: the top bar, the bottom bar (the rail on desktop, or its own element if R9 ever needs one), the
-    // docked column's slot and the Menu, the phone panel's shell, the icon sprite; and the old header rows until NAV-06
-    private const array BARS = ['body > header', '.site-header', '#bottom-nav', '.nav-rail', '#menu-slot', '#site-menu', '#menu-layer', '.nav-sprite', '.legacy-chrome'];
+    // The chrome: the top bar, the bottom bar (the rail on desktop, or its own element if R9 ever needs one), the docked
+    // column's slot and the Menu, the phone panel's shell, the icon sprite (the old header rows went with NAV-06)
+    private const array BARS = ['body > header', '.site-header', '#bottom-nav', '.nav-rail', '#menu-slot', '#site-menu', '#menu-layer', '.nav-sprite'];
 
     // The sign-in / sign-up pages (templates extending _auth_layout.html.twig) a visitor opens without a pending state
     private const array AUTH_PAGES = ['/login', '/login?return=/en/faq', '/register', '/register?method=email', '/login-link', '/password-reset'];
@@ -164,7 +164,7 @@ final class BarFreePagesTest extends WebTestCase
         self::assertCount(0, $header->filter('button, form, input, textarea, select, .dropdown-menu, [data-bs-toggle]'));
 
         // No bars, no Menu, no search field anywhere
-        foreach (['.site-header:not(.site-header--auth)', '#bottom-nav', '.nav-rail', '#menu-slot', '#site-menu', '#menu-layer', '.nav-sprite', '.legacy-chrome', '.site-search', 'input[type="search"]'] as $selector) {
+        foreach (['.site-header:not(.site-header--auth)', '#bottom-nav', '.nav-rail', '#menu-slot', '#site-menu', '#menu-layer', '.nav-sprite', '.site-search', 'input[type="search"]'] as $selector) {
             self::assertCount(0, $crawler->filter($selector), $url . ': ' . $selector);
         }
 
@@ -196,7 +196,7 @@ final class BarFreePagesTest extends WebTestCase
         self::assertSame($router->generate('hub'), $crawler->filter('body > header.site-header--auth a.site-header-logo')->attr('href'));
         self::assertNotNull($crawler->filter('body > header.site-header--auth')->attr('data-viewer-signed-in'));
         self::assertCount(1, $crawler->filter('body > header'));
-        self::assertCount(0, $crawler->filter('.site-header:not(.site-header--auth), #bottom-nav, .nav-rail, #menu-slot, #site-menu, #menu-layer, .nav-sprite, .legacy-chrome'));
+        self::assertCount(0, $crawler->filter('.site-header:not(.site-header--auth), #bottom-nav, .nav-rail, #menu-slot, #site-menu, #menu-layer, .nav-sprite'));
     }
 
     private function assertNoBars(Crawler $crawler, string $message): void

@@ -7,16 +7,19 @@ namespace SpeedPuzzling\Web\Tests\Twig;
 use PHPUnit\Framework\TestCase;
 
 /**
- * base.html.twig inlines a handful of icon rules into its critical CSS so the
- * header paints before app.css arrives. Those codepoints are a hand-written
+ * base.html.twig inlined a handful of icon rules into its critical CSS so the
+ * old header painted before app.css arrived. Those codepoints were a hand-written
  * copy of the real ones, and a copy drifts: every `.ci-*` value in it was
  * silently wrong from February to September 2026, because app.css overrides
  * them microseconds later and nobody sees the difference — until a visitor's
  * cached app.css breaks and the header renders LinkedIn, Messenger and dribbble
  * glyphs instead of search, sign-in and mail.
  *
- * So the inline block is pinned here against the sources app.css is built from.
- * Regenerating either icon font now fails this test instead of shipping.
+ * So any inlined icon rule is pinned here against the sources app.css is built
+ * from: regenerating either icon font fails this test instead of shipping. Since
+ * the old header went (docs/features/navigation NAV-06) none is inlined - the
+ * bars draw their icons from the SVG sprite (templates/navigation/_icons.html.twig),
+ * which needs no font at first paint; an icon inlined again must match.
  */
 final class CriticalCssIconCodepointsTest extends TestCase
 {
@@ -24,6 +27,7 @@ final class CriticalCssIconCodepointsTest extends TestCase
     private const string CARTZILLA_SCSS = __DIR__ . '/../../assets/styles/components/_icons.scss';
     private const string BOOTSTRAP_ICONS_CSS = __DIR__ . '/../../node_modules/bootstrap-icons/font/bootstrap-icons.css';
     private const string MANIFEST = __DIR__ . '/../../public/build/manifest.json';
+    private const string TOP_BAR = __DIR__ . '/../../templates/navigation/_topbar.html.twig';
 
     /**
      * The same inline block hardcodes the manifest keys of both icon fonts,
@@ -73,7 +77,9 @@ final class CriticalCssIconCodepointsTest extends TestCase
         $inlined = $this->inlinedCodepoints('ci');
         $authoritative = $this->cartzillaCodepoints();
 
-        self::assertNotEmpty($inlined, 'No .ci-* rules found in the critical CSS — has the block moved?');
+        if ($inlined === []) {
+            $this->assertTheBarsNeedNoIconFont();
+        }
 
         foreach ($inlined as $icon => $codepoint) {
             self::assertArrayHasKey(
@@ -105,7 +111,9 @@ final class CriticalCssIconCodepointsTest extends TestCase
         $inlined = $this->inlinedCodepoints('bi');
         $authoritative = $this->bootstrapIconCodepoints();
 
-        self::assertNotEmpty($inlined, 'No .bi-* rules found in the critical CSS — has the block moved?');
+        if ($inlined === []) {
+            $this->assertTheBarsNeedNoIconFont();
+        }
 
         foreach ($inlined as $icon => $codepoint) {
             self::assertArrayHasKey(
@@ -126,6 +134,17 @@ final class CriticalCssIconCodepointsTest extends TestCase
                 ),
             );
         }
+    }
+
+    /**
+     * Nothing inlined: the top bar draws its icons from the SVG sprite, not from an icon font (NAV-06)
+     */
+    private function assertTheBarsNeedNoIconFont(): void
+    {
+        $topBar = (string) file_get_contents(self::TOP_BAR);
+
+        self::assertStringContainsString('<use href="#nav-i-', $topBar);
+        self::assertDoesNotMatchRegularExpression('/class="[^"]*\b(ci|bi)-[a-z]/', $topBar, 'The top bar uses an icon font again - inline its codepoints into the critical CSS');
     }
 
     /**

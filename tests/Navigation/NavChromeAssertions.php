@@ -19,10 +19,9 @@ final class NavChromeAssertions
      * asserts `main #site-menu` itself (implementation plan decision 103, review F26)
      */
     public const array WEB_CHROME_SELECTORS = [
-        // The top bar (NAV-03: header.site-header; content pages have <header> elements of their own) and the old header's
-        // rows under it until NAV-06
+        // The top bar (NAV-03: header.site-header; content pages have <header> elements of their own) - the old header's
+        // rows under it went with NAV-06
         'body > header',
-        'body > .legacy-chrome',
         'footer.site-footer',
         '#site-menu:not(main #site-menu)',
         // The Menu shell of the phone panel (MENU-02b, block nav_layers)

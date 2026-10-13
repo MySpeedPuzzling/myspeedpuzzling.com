@@ -61,7 +61,7 @@ final class PlayerStatisticsControllerTest extends WebTestCase
 
         $this->assertResponseIsSuccessful();
 
-        // The signed-in user menu and the player header
+        // The Menu's Statistics row (MENU-01; the old user menu went with NAV-06) and the player header
         $links = $crawler->filter('a[href="/en/player-statistics/' . PlayerFixture::PLAYER_REGULAR . '"]');
         self::assertGreaterThanOrEqual(2, $links->count());
         self::assertSame(array_fill(0, $links->count(), 'nofollow'), $links->each(static fn (Crawler $link): null|string => $link->attr('rel')));

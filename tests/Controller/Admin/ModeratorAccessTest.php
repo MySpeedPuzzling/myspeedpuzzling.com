@@ -131,15 +131,16 @@ final class ModeratorAccessTest extends WebTestCase
 
         $crawler = $browser->request('GET', '/admin/puzzle-change-requests');
 
-        // The Menu's Your roles (MENU-01) - scoped to it while the old key menu still renders the same links; page-wide
-        // again once NAV-06 removed the old header
+        // The Menu's Your roles (MENU-01) - page-wide again since NAV-06 removed the old header's key menu: each queue is
+        // linked exactly once on the page, from the Menu
         $menu = $crawler->filter('#site-menu');
         self::assertCount(1, $menu);
-        self::assertCount(1, $menu->filter('a[href="/admin/puzzle-merge-requests"]'));
-        self::assertCount(1, $menu->filter('a[href="/admin/puzzle-approvals"]'));
-        self::assertCount(1, $menu->filter('a[href="/admin/time-verification"]'));
-        self::assertCount(0, $menu->filter('a[href="/admin/moderators"]'));
-        self::assertCount(0, $menu->filter('a[href="/admin/vouchers"]'));
+
+        foreach (['/admin/puzzle-merge-requests', '/admin/puzzle-approvals', '/admin/time-verification'] as $queue) {
+            self::assertCount(1, $crawler->filter('a[href="' . $queue . '"]'), $queue);
+            self::assertCount(1, $menu->filter('a[href="' . $queue . '"]'), $queue);
+        }
+
         // No admin link anywhere on the page
         self::assertCount(0, $crawler->filter('a[href="/admin/moderators"]'));
         self::assertCount(0, $crawler->filter('a[href="/admin/vouchers"]'));

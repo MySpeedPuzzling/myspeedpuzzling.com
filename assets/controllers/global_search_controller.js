@@ -5,8 +5,7 @@ import { isNativeApp } from '../platform.js';
 import { TOPBAR_REVEAL_EVENT } from '../topbar_scroll.js';
 import { focusMovedByTab, focusReturnedWithWindow } from '../navigation/focus_origin.js';
 
-// Whatever opens the page's search (the top bar's 🔍 icon, the old header's search tool, the 404 page's button) - one
-// delegated listener
+// Whatever opens the page's search (the top bar's 🔍 icon, the 404 page's button) - one delegated listener
 const TOGGLE = '[data-global-search-toggle]';
 
 // The Menu panel's shell (templates/navigation/_menu_layer.html.twig): searching there hides the Menu (CSS)
@@ -50,7 +49,7 @@ const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]):not([t
  * controller per GlobalSearch instance, on the component's root, reading only its own elements (targets) - never "the
  * first search input on the page". Mode:
  * - `bar`: the top bar's search field. Focusing it (or the scan button, or any [data-global-search-toggle] - the 🔍 that
- *   replaces the field next to a running stopwatch, the old header's tool) opens the search: <html data-search-open>.
+ *   replaces the field next to a running stopwatch and from 768 to 1023 px) opens the search: <html data-search-open>.
  *   Not when Tab merely passes through the field (NAV-11, WCAG 3.2.1 - assets/navigation/focus_origin.js): the phone
  *   view would hide ?, Inbox and ☰ from the Tab order; there the search opens with the first character typed. Nor when
  *   the browser only hands the focus back to the field because its window (tab, app) got the focus again (follow-up
@@ -476,8 +475,6 @@ export default class extends Controller {
             // Added while the opening click may still be on its way up: a click inside the search never closes it
             document.addEventListener('click', this.handleOutsideClick);
         }
-
-        this.closeLegacyCollapse();
     }
 
     onLayerClose = ({ reason }) => {
@@ -743,21 +740,4 @@ export default class extends Controller {
             this.closeSearchBar();
         }
     };
-
-    /** The old header's collapsed menu (until NAV-06) closes when the search opens */
-    closeLegacyCollapse() {
-        const navbarCollapse = document.querySelector('.navbar-collapse.show');
-
-        if (!navbarCollapse) {
-            return;
-        }
-
-        navbarCollapse.classList.remove('show');
-
-        const navbarToggler = document.querySelector('.navbar-toggler[aria-expanded="true"]');
-
-        if (navbarToggler) {
-            navbarToggler.setAttribute('aria-expanded', 'false');
-        }
-    }
 }

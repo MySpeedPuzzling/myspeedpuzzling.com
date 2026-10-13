@@ -35,8 +35,8 @@ final class NavigationRegistryTest extends WebTestCase
     // README §4.12: never "rival", never "suspicious" - not even as a hidden synonym
     private const string FORBIDDEN_SYNONYMS = '/rival|suspicious|verdächtig|podezřel|sospechos|suspect|不審/iu';
 
-    // Chrome containers of today's and the new navigation (header, footer, the Menu, its shell, the bars, the chips,
-    // the community landing, the Help sheet). A bare header/footer counts only outside <main>.
+    // Chrome containers of the navigation (header, footer, the Menu, its shell, the bars, the chips, the community
+    // landing, the Help sheet; the old header's rows went with NAV-06). A bare header/footer counts only outside <main>.
     private const array CHROME_XPATHS = [
         '//header[not(ancestor::main)]',
         '//footer[not(ancestor::main)]',
@@ -44,7 +44,6 @@ final class NavigationRegistryTest extends WebTestCase
         '//*[@id="menu-layer"]',
         '//*[@id="bottom-nav"]',
         '//*[contains(concat(" ", normalize-space(@class), " "), " site-header ")]',
-        '//*[contains(concat(" ", normalize-space(@class), " "), " legacy-chrome ")]',
         '//*[contains(concat(" ", normalize-space(@class), " "), " section-chips ")]',
         '//*[contains(concat(" ", normalize-space(@class), " "), " community-landing ")]',
         '//*[@data-help-sheet]',

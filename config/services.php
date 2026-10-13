@@ -17,7 +17,6 @@ use Sentry\State\HubInterface;
 use SpeedPuzzling\Web\Doctrine\RegexSchemaAssetFilter;
 use SpeedPuzzling\Web\Navigation\FavoritesFeed;
 use SpeedPuzzling\Web\Navigation\InboxBadge;
-use SpeedPuzzling\Web\Navigation\LegacyChromeSwitch;
 use SpeedPuzzling\Web\Navigation\NavigationLaunch;
 use SpeedPuzzling\Web\Services\Api\ApiDtoNormalizer;
 use SpeedPuzzling\Web\Services\ApiUsage\ApiUsageCounter;
@@ -184,9 +183,6 @@ return static function (ContainerConfigurator $configurator): void {
     $services->set(InboxBadge::class);
     // The Hub's Favorites feed rows, read by its tab's count and by the feed (INB-04b)
     $services->set(FavoritesFeed::class);
-    // Test-only switch of the MENU-01 weight probe (decision 34): off everywhere, deleted by NAV-06. Public (never
-    // inlined) so the probe's kernel can replace it before the first render
-    $services->set(LegacyChromeSwitch::class)->public();
 
     // Repositories
     $services->load('SpeedPuzzling\\Web\\Repository\\', __DIR__ . '/../src/Repository/{*Repository.php}');

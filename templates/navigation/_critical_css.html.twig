@@ -29,11 +29,9 @@
                      is the player's choice per device, set before paint by assets/head/nav_layout.js. 1440 px is the one
                      switch of D16's fold rule ($nav-dock-default-from in _nav-layout.scss). <body> overrides it: a page
                      without the bars (body.no-nav-chrome: bar-free templates, the app) keeps 0, the `menu` page
-                     (body.no-nav-column: the Menu is its content) keeps the rail; print 0. main, the footer and the old
-                     header rows (until NAV-06) start right of it - the footer sits right of the column. hide_bottom_bar
-                     hides the phone tab bar only: the rail stays on desktop (NAV-08). The old header
-                     rows (.legacy-chrome, until NAV-06) are clipped at the content's right edge: in de/es/fr their tools
-                     no longer fit next to the column and would scroll the page sideways.
+                     (body.no-nav-column: the Menu is its content) keeps the rail; print 0. main and the footer start right
+                     of it - the footer sits right of the column. hide_bottom_bar hides the phone tab bar only: the rail
+                     stays on desktop (NAV-08).
     Under html[data-native-app] every reserved chrome size is 0 (plan §3.5 item 7).
     .menu-slot       the docked-column slot of the page's one #site-menu (MENU-01): hidden wherever there is no docked
                      column, shown where there is one - the column itself is #site-menu in it, fixed under the top bar,
@@ -108,8 +106,7 @@ body{padding-bottom:var(--bottom-nav-height)}
 :root[data-native-app],body.no-nav-chrome{--nav-left:0px}
 .menu-slot>.site-menu{position:fixed;top:var(--desk-topbar-h);bottom:0;left:0;z-index:1029;width:var(--nav-col-w);overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;background:var(--nav-bg);border-right:1px solid var(--nav-hairline)}
 :root[data-nav-collapsed~=roles] .menu-slot [data-menu-group=roles]>ul>li:not(.menu-only-dock),:root[data-nav-collapsed~=puzzling] .menu-slot [data-menu-group=puzzling]>ul>li:not(.menu-only-dock),:root[data-nav-collapsed~=library] .menu-slot [data-menu-group=library]>ul>li:not(.menu-only-dock),:root[data-nav-collapsed~=add] .menu-slot [data-menu-group=add]>ul>li:not(.menu-only-dock),:root[data-nav-collapsed~=account] .menu-slot [data-menu-group=account]>ul>li:not(.menu-only-dock),:root[data-nav-collapsed~=help] .menu-slot [data-menu-group=help]>ul>li:not(.menu-only-dock),:root[data-nav-collapsed~=about] .menu-slot [data-menu-group=about]>ul>li:not(.menu-only-dock){display:none}
-body>main,body>.site-footer,body>.legacy-chrome{margin-inline-start:var(--nav-left)}
-body>.legacy-chrome{overflow-x:clip}
+body>main,body>.site-footer{margin-inline-start:var(--nav-left)}
 @media print{body{--nav-left:0px!important}.bottom-nav,.menu-slot{display:none!important}}
 .nav-sprite,.nav-rail-label{display:none}
 .site-header{position:sticky;top:0;z-index:1030;height:52px;background:var(--nav-bg);border-bottom:1px solid var(--nav-hairline)}

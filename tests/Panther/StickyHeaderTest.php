@@ -9,8 +9,8 @@ use Facebook\WebDriver\WebDriverDimension;
 /**
  * The top bar (header.site-header, NAV-03) is `position: sticky` and every viewport-fixed overlay follows its static
  * height `--header-height` (52 px phones, 64 px desktop - templates/navigation/_critical_css.html.twig); the live
- * height `--topbar-h` equals it while the bar is shown and is 0 while the phone bar is hidden (scrolled down). The old
- * header's rows sit static under it until NAV-06. The header used to be
+ * height `--topbar-h` equals it while the bar is shown and is 0 while the phone bar is hidden (scrolled down) - the old
+ * header's rows under it went with NAV-06. The header used to be
  * `position: fixed` with `main` reserving a hardcoded 97/101px for it, so any
  * header taller than the guess - the Spanish navbar wraps, the sign-in migration
  * strip once sat above the topbar - simply covered the page heading.

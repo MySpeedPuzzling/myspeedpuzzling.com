@@ -203,7 +203,7 @@ readonly final class PlayerProfile
         /** "Hide my achievements": no achievements anywhere for anybody, owner included (docs/features/opt-out.md) */
         public bool $achievementsOptedOut = false,
         /**
-         * Progression on the row itself (docs/features/xp-levels/launch-2026-10.md): the header ring, the navbar avatar
+         * Progression on the row itself (docs/features/xp-levels/launch-2026-10.md): the header ring, the account menu avatar
          * ring and the achievements showcase read them - no query of their own. Denormalised player columns.
          */
         public int $xpTotal = 0,

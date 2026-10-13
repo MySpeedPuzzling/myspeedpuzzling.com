@@ -41,7 +41,8 @@ final class HelpOpenerLinksTest extends WebTestCase
         yield 'player help page' => [PlayerFixture::PLAYER_REGULAR, '/en/help', 1];
         yield 'admin faq' => [PlayerFixture::PLAYER_ADMIN, '/en/faq', 1];
         yield 'player, Czech' => [PlayerFixture::PLAYER_REGULAR, '/napoveda', 1];
-        // The old top bar's and the footer's Feedback links (review F6) next to the Menu's row and the end-of-page line
+        // The top bar's ? / Feedback (NAV-03/04; the old top bar's link went with NAV-06) and the footer's Feedback link
+        // (review F6) next to the Menu's row and the end-of-page line
         yield 'player faq, every opener' => [PlayerFixture::PLAYER_REGULAR, '/en/faq', 4];
     }
 

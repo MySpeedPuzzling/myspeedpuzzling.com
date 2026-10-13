@@ -11,8 +11,8 @@ use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\Routing\RouterInterface;
 
 /**
- * language_switch_urls() (decision 36, MENU-01) is the one rule of the language switch: the top bar's and the footer's
- * language menus, the Menu's Language row and the auth pages' header (NAV-08) show the same five links - the current page in the other languages,
+ * language_switch_urls() (decision 36, MENU-01) is the one rule of the language switch: the top bar's account menu
+ * (NAV-05) and the footer's language menus, the Menu's Language row and the auth pages' header (NAV-08) show the same five links - the current page in the other languages,
  * filters kept, ?return= dropped (it would send a visitor back to the old language), except on the locale-less auth
  * pages, which keep their destination across the switch and read ?_locale=.
  */
@@ -34,7 +34,8 @@ final class LanguageSwitchUrlsTest extends WebTestCase
         }
 
         self::assertSame($expected, $this->links($crawler, '#site-menu #nav-language'));
-        self::assertSame($expected, $this->links($crawler, '.legacy-chrome .topbar .dropdown-menu[data-controller="locale-preference"]'));
+        // The top bar's switch is the account menu's Language (NAV-05) since the old topbar went (NAV-06)
+        self::assertSame($expected, $this->links($crawler, '.site-header .nav-account-language [data-controller="locale-preference"]'));
         self::assertSame($expected, $this->links($crawler, 'footer.site-footer .dropdown-menu[data-controller="locale-preference"]'));
         self::assertStringContainsString('pieces=500', $expected['cs']);
     }

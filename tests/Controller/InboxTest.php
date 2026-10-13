@@ -32,10 +32,9 @@ final class InboxTest extends WebTestCase
 
     private const string PLAYER = PlayerFixture::PLAYER_REGULAR;
     private const string TABS = 'main nav.inbox-tabs a.inbox-tab';
-    // Today's Inbox link: the old header's bell (INB-02, until NAV-03/MENU-01 add the top-bar tool and the Menu row)
-    // The top bar's Inbox tool (NAV-03) and the old header's bell - static under it until NAV-06
+    // The top bar's Inbox tool (NAV-03) and the Menu's Inbox row (MENU-01) - the old header's bell went with NAV-06
     private const string INBOX_LINK = '.site-header a[data-inbox-link]';
-    private const string LEGACY_INBOX_LINK = '.legacy-chrome a[data-inbox-link]';
+    private const string MENU_INBOX_LINK = '#menu-slot #site-menu a[data-inbox-link]';
 
     /**
      * @return iterable<string, array{string, string, non-empty-string}>
@@ -131,8 +130,8 @@ final class InboxTest extends WebTestCase
     }
 
     /**
-     * The header costs no statement: its two counts, the old header's bell and Messages tool read the one memoised badge
-     * statement - no notification or conversation count of their own on either page.
+     * The header costs no statement: its two counts, the top bar's Inbox tool and the Menu's Inbox row read the one
+     * memoised badge statement - no notification or conversation count of their own on either page.
      */
     #[DataProvider('inboxPages')]
     public function testTheHeaderReadsTheOneBadgeStatement(string $url): void
@@ -180,8 +179,8 @@ final class InboxTest extends WebTestCase
 
     /**
      * The Inbox link's target as one function of the badge parts, on the rendered links - the top bar's Inbox tool
-     * (NAV-03; its badge = both parts) and the old header's bell until NAV-06 (MENU-01 adds the Menu row) - and the tab
-     * the link then opens.
+     * (NAV-03) and the Menu's Inbox row (MENU-01), each with the badge of both parts - and the tab the link then opens,
+     * whose tabs show the parts.
      *
      * @param list<string> $setup
      * @param array{for_you: string, messages: string} $parts
@@ -216,23 +215,22 @@ final class InboxTest extends WebTestCase
         $crawler = $browser->request('GET', '/en/faq');
         self::assertResponseIsSuccessful();
 
-        foreach ([self::INBOX_LINK, self::LEGACY_INBOX_LINK] as $selector) {
+        $total = (string) ((int) $parts['for_you'] + (int) $parts['messages']);
+
+        foreach ([self::INBOX_LINK, self::MENU_INBOX_LINK] as $selector) {
             $link = $crawler->filter($selector);
             self::assertCount(1, $link, $selector);
             self::assertSame($href, $link->attr('href'), $selector);
             self::assertSame('inbox', $link->attr('data-bar-action'), $selector);
+            self::assertSame($total, $link->attr('data-bar-count'), $selector);
+            self::assertSame($total, $link->filter('.inbox-badge[data-inbox-part="total"]')->text(), $selector);
         }
 
-        $total = (string) ((int) $parts['for_you'] + (int) $parts['messages']);
-        self::assertSame($total, $crawler->filter(self::INBOX_LINK . ' .inbox-badge[data-inbox-part="total"]')->text());
-        self::assertSame($total, $crawler->filter(self::INBOX_LINK)->attr('data-bar-count'));
-        self::assertSame($parts['for_you'], $crawler->filter('.legacy-chrome .inbox-badge[data-inbox-part="for_you"]')->text());
-        self::assertSame($parts['messages'], $crawler->filter('.legacy-chrome .inbox-badge[data-inbox-part="messages"]')->text());
-
-        // The link opens the Inbox on that tab
+        // The link opens the Inbox on that tab; its tabs show the parts (the For you page marks what it lists as read)
         $crawler = $browser->request('GET', $href);
         self::assertResponseIsSuccessful();
         self::assertSame('inbox/none/' . $tab, $crawler->filter(self::TABS . '[aria-current="page"]')->attr('data-nav'));
+        self::assertSame([$tab === 'for_you' ? '0' : $parts['for_you'], $parts['messages']], $this->tabCounts($crawler));
 
         if ($href === '/en/messages?tab=requests') {
             self::assertSame($href, $crawler->filter('main .nav-tabs .nav-link.active')->attr('href'));

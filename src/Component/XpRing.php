@@ -20,7 +20,7 @@ use Symfony\UX\TwigComponent\Attribute\PostMount;
  *  - header: the player header's avatar - the arc, a "Lv 12" tab under it, the whole avatar a link (own XP history,
  *    or how levels work for anybody else)
  *  - bar: the compact bar's small avatar - the arc only
- *  - nav: the navbar avatar of the signed-in player - the arc only
+ *  - nav: the account menu's avatar of the signed-in player (the top bar's avatar ▾, the Menu's You card) - the arc only
  *
  * Reads the player's profile row only (xp_total, level, experience_system_opted_out ride on it) - no query. Renders
  * its content unchanged while XP is not visible to this viewer (XpFeatureGate: launch ready or admin), when the player

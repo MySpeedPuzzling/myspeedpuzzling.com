@@ -27,9 +27,13 @@ final class NotificationsControllerTest extends WebTestCase
 {
     use QueryCountAssertions;
 
-    // The Inbox badge's parts (INB-02): the old bell shows For you, the old Messages tool the Messages part
+    // The Inbox badge's parts (INB-02): the Inbox header's tabs show For you and Messages (INB-01) - the old bell and
+    // Messages tool that showed them on every page went with NAV-06; every page's top bar shows the total
     private const string FOR_YOU = '.inbox-badge[data-inbox-part="for_you"]';
     private const string MESSAGES = '.inbox-badge[data-inbox-part="messages"]';
+    private const string TOTAL = '.site-header .inbox-badge[data-inbox-part="total"]';
+    // An Inbox page that marks nothing: the Messages tab shows both parts
+    private const string PARTS_PAGE = '/en/messages';
 
     // A page that marks: the session's user refresh, the viewer's profile row, the Inbox badge, the notifications, the
     // mark's UPDATE in its transaction - the same as before the badge moved ahead of the list (INB-02 review F1)
@@ -66,8 +70,11 @@ final class NotificationsControllerTest extends WebTestCase
         $this->notifyGroupEdit($connection, PlayerFixture::PLAYER_REGULAR);
         self::assertSame(1, $this->unreadCount($connection, PlayerFixture::PLAYER_REGULAR));
 
-        // Other pages show both parts
+        // Other pages show the total; the Messages tab shows both parts
         $crawler = $browser->request('GET', '/en/marketplace');
+        $this->assertResponseIsSuccessful();
+        self::assertSame('3', $crawler->filter(self::TOTAL)->text());
+        $crawler = $browser->request('GET', self::PARTS_PAGE);
         $this->assertResponseIsSuccessful();
         self::assertSame('1', $crawler->filter(self::FOR_YOU)->text());
         self::assertNull($crawler->filter(self::FOR_YOU)->attr('hidden'));
@@ -106,7 +113,7 @@ final class NotificationsControllerTest extends WebTestCase
         // NotificationFixture: three unread favorites' times + the unread group edit
         self::assertSame(4, $this->unreadCount($connection, PlayerFixture::PLAYER_WITH_FAVORITES));
 
-        $crawler = $browser->request('GET', '/en/marketplace');
+        $crawler = $browser->request('GET', self::PARTS_PAGE);
         $this->assertResponseIsSuccessful();
         self::assertSame('1', $crawler->filter(self::FOR_YOU)->text());
 
@@ -157,7 +164,7 @@ final class NotificationsControllerTest extends WebTestCase
         self::assertFalse($connection->fetchOne('SELECT 1 FROM puzzle WHERE id = :id', ['id' => PuzzleFixture::PUZZLE_500_05]), 'The reported puzzle was merged away');
 
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
-        $crawler = $browser->request('GET', '/en/faq');
+        $crawler = $browser->request('GET', self::PARTS_PAGE);
         $this->assertResponseIsSuccessful();
         self::assertSame('1', $crawler->filter(self::FOR_YOU)->text());
 
@@ -169,7 +176,7 @@ final class NotificationsControllerTest extends WebTestCase
         // Linked to the puzzle it became
         self::assertCount(1, $row->filter('a[href="/en/puzzle/' . PuzzleFixture::PUZZLE_500_04 . '"]'));
 
-        $crawler = $browser->request('GET', '/en/faq');
+        $crawler = $browser->request('GET', self::PARTS_PAGE);
         self::assertSame('0', $crawler->filter(self::FOR_YOU)->text());
         self::assertSame(0, $this->unreadCount($connection, PlayerFixture::PLAYER_REGULAR));
     }
@@ -192,7 +199,7 @@ final class NotificationsControllerTest extends WebTestCase
             ['id' => Uuid::uuid7()->toString(), 'player' => PlayerFixture::PLAYER_REGULAR],
         );
 
-        $crawler = $browser->request('GET', '/en/faq');
+        $crawler = $browser->request('GET', self::PARTS_PAGE);
         self::assertSame('1', $crawler->filter(self::FOR_YOU)->text());
 
         $this->startCountingQueries($browser);
@@ -204,7 +211,7 @@ final class NotificationsControllerTest extends WebTestCase
         self::assertSame(1, $this->badgeStatements($browser));
         self::assertSame(self::MARKING_PAGE_STATEMENTS, $this->queryCount($browser), "/en/notifications ran:\n" . implode("\n", $this->executedSql($browser)));
 
-        $crawler = $browser->request('GET', '/en/faq');
+        $crawler = $browser->request('GET', self::PARTS_PAGE);
         self::assertSame('0', $crawler->filter(self::FOR_YOU)->text());
         self::assertSame(0, $this->unreadCount($connection, PlayerFixture::PLAYER_REGULAR));
     }

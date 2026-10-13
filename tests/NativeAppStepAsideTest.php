@@ -62,6 +62,11 @@ final class NativeAppStepAsideTest extends TestCase
             ['sortChange' => 'none', 'showMore' => 'none', 'takesOver' => false, 'backByFullLoad' => 'none'],
             ['sortChange' => 'push', 'showMore' => 'replace', 'takesOver' => true, 'backByFullLoad' => 'restore'],
         ],
+        // CARD-01a: a tap on a player's name opens the card on the web; inside the app the link goes to the profile
+        'assets/player_card.js' => [
+            ['tapOnAName' => 'profile'],
+            ['tapOnAName' => 'card'],
+        ],
     ];
 
     /** @var null|array<string, Row> */

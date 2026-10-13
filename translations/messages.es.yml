@@ -1255,8 +1255,9 @@ competition_referees:
     "favorite_on": "En favoritos"
     "compare": "Comparar"
     "compare_open": "En la comparación"
-    "profile": "Perfil"
     "unavailable": "La ficha de este puzzlero no está disponible."
+    "recent_title": "Últimos puzzles"
+    "view_profile": "Ver perfil"
   "spotlight":
     "title_world": "Speed puzzleros de todo el mundo"
     "title_country": "Puzzleros de %country%"

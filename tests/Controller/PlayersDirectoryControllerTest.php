@@ -26,7 +26,8 @@ final class PlayersDirectoryControllerTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertSame('index, follow', $crawler->filter('meta[name="robots"]')->attr('content'));
         self::assertSelectorTextContains('h1', 'All puzzlers');
-        self::assertSelectorExists('.players-page[data-controller="players-card"]');
+        // Every person is a player card trigger (data-player-card, assets/player_card.js - CARD-01a)
+        self::assertSelectorExists('.players-page a.players-directory-card[data-player-card][aria-haspopup="dialog"]');
 
         $names = $this->names($crawler);
         self::assertContains('John Doe', $names);
@@ -98,8 +99,9 @@ final class PlayersDirectoryControllerTest extends WebTestCase
         $card = $crawler->filter('.players-directory-card');
         self::assertCount(1, $card);
         self::assertSame('/en/player-profile/' . PlayerFixture::PLAYER_WITH_STRIPE, $card->attr('href'));
-        self::assertSame('players-card#open', $card->attr('data-action'));
-        self::assertSame('/en/puzzler-card/' . PlayerFixture::PLAYER_WITH_STRIPE, $card->attr('data-players-card-url-param'));
+        // The link opens the player card (CARD-01a): the trigger's player is the href's
+        self::assertNotNull($card->attr('data-player-card'));
+        self::assertSame('dialog', $card->attr('aria-haspopup'));
         // Every player fits on one page - no "Show more"
         self::assertSelectorNotExists('.players-directory-more');
     }

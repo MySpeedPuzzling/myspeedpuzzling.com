@@ -54,7 +54,7 @@ final class PlayersThisWeekTest extends WebTestCase
         self::assertStringNotContainsString('Jane Smith', $crawler->filter('.players-week')->text());
 
         // The person opens the player card, like everywhere on the page
-        self::assertCount(1, $cards->eq(0)->filter('a.players-person[data-action="players-card#open"]'));
+        self::assertCount(1, $cards->eq(0)->filter('a.players-person[data-player-card][aria-haspopup="dialog"]'));
     }
 
     public function testACountryHasItsOwnHeadingAndPeople(): void

@@ -1756,8 +1756,9 @@ players:
         favorite_on: "In favorites"
         compare: "Compare"
         compare_open: "In comparison"
-        profile: "Profile"
         unavailable: "This puzzler's card isn't available."
+        recent_title: "Latest puzzles"
+        view_profile: "View profile"
 
     spotlight:
         title_world: "Speed puzzlers worldwide"

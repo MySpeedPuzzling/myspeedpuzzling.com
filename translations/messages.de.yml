@@ -1253,8 +1253,9 @@ competition_referees:
     "favorite_on": "In Favoriten"
     "compare": "Vergleichen"
     "compare_open": "Im Vergleich"
-    "profile": "Profil"
     "unavailable": "Die Karte dieses Puzzlers ist nicht verfügbar."
+    "recent_title": "Zuletzt gelegte Puzzles"
+    "view_profile": "Profil ansehen"
   "spotlight":
     "title_world": "Speed Puzzler weltweit"
     "title_country": "Puzzler aus %country%"

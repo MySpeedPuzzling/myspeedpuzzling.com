@@ -1,8 +1,8 @@
 {% extends 'base.html.twig' %}
 
 {#
-    The player card as a page of its own: the card's URL opened directly (a new tab, no JavaScript). The profile is the
-    page to index.
+    The player card as a page of its own: the card's URL opened directly (a new tab, no JavaScript, inside the native app
+    - docs/features/navigation NAV-14). The profile is the page to index - and the way back (CARD-03).
 #}
 
 {% block title %}{{ 'players.card.meta_title'|trans({'%name%': player.playerName ?? ('#' ~ player.code|upper)}) }}{% endblock %}
@@ -17,8 +17,8 @@
 
 {% block content %}
     <div class="players-card-page">
-        <a class="players-card-page-back" href="{{ path('players') }}">
-            <i class="ci-arrow-left" aria-hidden="true"></i> {{ 'puzzlers.title'|trans }}
+        <a class="players-card-page-back" href="{{ path('player_profile', {playerId: player.playerId}) }}">
+            <i class="ci-arrow-left" aria-hidden="true"></i> {{ 'players.card.view_profile'|trans }}
         </a>
 
         <h1 class="players-card-page-title">{{ 'players.card.title'|trans }}</h1>

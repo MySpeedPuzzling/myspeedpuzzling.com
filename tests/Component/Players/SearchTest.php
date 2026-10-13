@@ -39,8 +39,9 @@ final class SearchTest extends WebTestCase
         $row = $crawler->filter('.players-search-result a.players-person');
         self::assertCount(1, $row);
         self::assertSame('/en/player-profile/' . PlayerFixture::PLAYER_WITH_STRIPE, $row->attr('href'));
-        self::assertSame('players-card#open', $row->attr('data-action'));
-        self::assertSame('/en/puzzler-card/' . PlayerFixture::PLAYER_WITH_STRIPE, $row->attr('data-players-card-url-param'));
+        // The row opens the player card (CARD-01a: data-player-card, the player is the href's)
+        self::assertNotNull($row->attr('data-player-card'));
+        self::assertSame('dialog', $row->attr('aria-haspopup'));
         self::assertSame('Sarah', $row->filter('.players-person-name .search-highlight')->text());
         self::assertSame('#PLAYER4', $row->filter('.players-person-chip')->text());
         self::assertMatchesRegularExpression('/^\d+ puzzles?$/', trim($row->filter('.players-person-value')->text()));
@@ -87,13 +88,14 @@ final class SearchTest extends WebTestCase
         self::assertStringContainsString('Hidden Puzzler', $hidden->text());
         self::assertStringContainsString('#PLAYER2', $hidden->text());
         self::assertStringNotContainsString('Jane Smith', $crawler->html());
-        self::assertCount(0, $crawler->filter('[data-players-card-url-param="/en/puzzler-card/' . PlayerFixture::PLAYER_PRIVATE . '"]'), 'No card for a masked player');
+        self::assertCount(0, $crawler->filter('[data-player-card]'), 'No card for a masked player');
         self::assertCount(0, $crawler->filter('.players-person-value'), 'No numbers for a masked player');
 
         // On her allow list: found by name like anybody else
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_FAVORITES);
         $crawler = $this->search($browser, 'Jane');
-        self::assertSame('/en/puzzler-card/' . PlayerFixture::PLAYER_PRIVATE, $crawler->filter('.players-search-result a.players-person')->attr('data-players-card-url-param'));
+        $row = $crawler->filter('.players-search-result a.players-person[data-player-card]');
+        self::assertSame('/en/player-profile/' . PlayerFixture::PLAYER_PRIVATE, $row->attr('href'));
     }
 
     public function testTheBlockerNeverFindsThePlayerTheyBlocked(): void

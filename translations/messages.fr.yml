@@ -1288,8 +1288,9 @@ competition_referees:
     "favorite_on": "Dans vos favoris"
     "compare": "Comparer"
     "compare_open": "Dans la comparaison"
-    "profile": "Profil"
     "unavailable": "La fiche de ce puzzleur n'est pas disponible."
+    "recent_title": "Derniers puzzles"
+    "view_profile": "Voir le profil"
   "spotlight":
     "title_world": "Speed puzzleurs du monde entier"
     "title_country": "Puzzleurs du pays %country%"

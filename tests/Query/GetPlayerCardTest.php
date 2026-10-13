@@ -11,7 +11,11 @@ use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Message\RecalculateCommunityStats;
 use SpeedPuzzling\Web\MessageHandler\RecalculateCommunityStatsHandler;
 use SpeedPuzzling\Web\Query\GetPlayerCard;
+use SpeedPuzzling\Web\Results\PlayerCardRecentPuzzle;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
+use SpeedPuzzling\Web\Tests\PlayerResultsSeeding;
 use SpeedPuzzling\Web\Tests\TestingViewer;
 use SpeedPuzzling\Web\Value\SkillTier;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -23,6 +27,8 @@ use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
  */
 final class GetPlayerCardTest extends KernelTestCase
 {
+    use PlayerResultsSeeding;
+
     private GetPlayerCard $query;
     private Connection $database;
 
@@ -144,6 +150,72 @@ final class GetPlayerCardTest extends KernelTestCase
     {
         $this->expectException(PlayerNotFound::class);
         $this->query->byPlayerId(Uuid::uuid7()->toString(), withActivity: false);
+    }
+
+    /**
+     * CARD-03: the 3 latest puzzles - distinct, by their latest solve; a secret puzzle (hide_until) and a result awaiting
+     * verification never; a picture still secret (hide_image_until) masked
+     */
+    public function testTheLatestPuzzlesLeaveSecretAndUnverifiedOnesOut(): void
+    {
+        // Result n solved n hours ago: Seeded 1 is the newest
+        $playerId = $this->seedPlayerWithSoloResults(6);
+        /** @var array<string, string> $puzzles name => id */
+        $puzzles = array_column($this->database->fetchAllAssociative(
+            "SELECT p.name, p.id FROM puzzle p JOIN puzzle_solving_time pst ON pst.puzzle_id = p.id WHERE pst.player_id = :id",
+            ['id' => $playerId],
+        ), 'id', 'name');
+
+        // Seeded 5 solved again just now: the latest solve decides, once
+        $this->database->executeStatement(
+            'INSERT INTO puzzle_solving_time (id, player_id, puzzle_id, seconds_to_solve, tracked_at, finished_at, verified, first_attempt) VALUES (:id, :player, :puzzle, 2500, NOW(), NOW(), true, false)',
+            ['id' => Uuid::uuid7()->toString(), 'player' => $playerId, 'puzzle' => $puzzles['Seeded 5']],
+        );
+        $this->database->executeStatement("UPDATE puzzle SET image = 'seeded.jpg', image_ratio = 1.25 WHERE name LIKE 'Seeded %' AND id IN (SELECT puzzle_id FROM puzzle_solving_time WHERE player_id = :id)", ['id' => $playerId]);
+        // Seeded 1 is still a secret, Seeded 2 only its picture, Seeded 3's result awaits verification
+        $this->database->executeStatement("UPDATE puzzle SET hide_until = NOW() + INTERVAL '30 days' WHERE id = :id", ['id' => $puzzles['Seeded 1']]);
+        $this->database->executeStatement("UPDATE puzzle SET hide_image_until = NOW() + INTERVAL '30 days' WHERE id = :id", ['id' => $puzzles['Seeded 2']]);
+        $this->database->executeStatement('UPDATE puzzle_solving_time SET suspicious = true WHERE puzzle_id = :id', ['id' => $puzzles['Seeded 3']]);
+
+        $recent = $this->query->byPlayerId($playerId, withActivity: false)->recentPuzzles;
+
+        self::assertSame(['Seeded 5', 'Seeded 2', 'Seeded 4'], array_map(static fn (PlayerCardRecentPuzzle $puzzle): string => $puzzle->puzzleName, $recent));
+        self::assertSame($puzzles['Seeded 5'], $recent[0]->puzzleId);
+        self::assertSame('seeded.jpg', $recent[0]->image, 'A public picture');
+        self::assertSame(1.25, $recent[0]->imageRatio);
+        self::assertNull($recent[1]->image, 'The secret picture is masked');
+        self::assertNull($recent[1]->imageRatio);
+        self::assertSame(500, $recent[0]->piecesCount);
+        self::assertNotSame('', $recent[0]->manufacturerName);
+    }
+
+    public function testAPairResultCountsForEveryMemberUnlessItsPartnerIsHiddenFromTheViewer(): void
+    {
+        // TIME_41 (PUZZLE_1000_03): PLAYER_REGULAR tracked it as a pair with PLAYER_PRIVATE - her newest result now
+        $this->database->executeStatement(
+            'UPDATE puzzle_solving_time SET tracked_at = NOW(), finished_at = NOW() WHERE id = :id',
+            ['id' => PuzzleSolvingTimeFixture::TIME_41],
+        );
+
+        $recent = $this->query->byPlayerId(PlayerFixture::PLAYER_PRIVATE, withActivity: false)->recentPuzzles;
+        self::assertSame(PuzzleFixture::PUZZLE_1000_03, $recent[0]->puzzleId ?? null);
+
+        // A viewer who blocked her partner does not see the pair's result - as on her profile
+        $this->database->executeStatement(
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, NOW(), 'self')",
+            ['id' => Uuid::uuid7()->toString(), 'blocker' => PlayerFixture::PLAYER_ADMIN, 'blocked' => PlayerFixture::PLAYER_REGULAR],
+        );
+        TestingViewer::signIn(self::getContainer(), PlayerFixture::PLAYER_ADMIN);
+
+        $recent = $this->query->byPlayerId(PlayerFixture::PLAYER_PRIVATE, withActivity: false)->recentPuzzles;
+        self::assertNotContains(PuzzleFixture::PUZZLE_1000_03, array_map(static fn (PlayerCardRecentPuzzle $puzzle): string => $puzzle->puzzleId, $recent));
+    }
+
+    public function testAPlayerWithoutResultsHasNoLatestPuzzles(): void
+    {
+        $playerId = $this->seedPlayerWithSoloResults(0);
+
+        self::assertSame([], $this->query->byPlayerId($playerId, withActivity: false)->recentPuzzles);
     }
 
     private function rate(string $playerId, float $elo, SkillTier $tier): void

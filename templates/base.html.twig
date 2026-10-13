@@ -177,6 +177,7 @@
        :has() - NAV review F4). All depend on the page only. #}
     <body class="lang-{{ app.request.locale }}{{ comparison_launcher ? ' has-comparison-launcher' }}{{ (nav_chrome_off ?? false) or not is_web() ? ' no-nav-chrome' }}{{ (nav_menu_slot_off ?? false) ? ' no-nav-column' }}{{ (hide_bottom_bar ?? false) ? ' no-tab-bar' }}"
           data-viewer-audience="{{ nav_viewer_audience() }}"
+          data-player-card-url="{{ path('player_card', {playerId: '00000000-0000-0000-0000-000000000000'}) }}"
           data-controller="pwa-lifecycle gallery file-drop-area datepicker toast{% if ga_tracking is not empty %} analytics{% endif %}"
           {% if ga_tracking is not empty %}data-analytics-tracking-id-value="{{ ga_tracking }}"{% endif %}>
         <a href="#main-content" class="visually-hidden-focusable">{{ 'forms.skip_to_content'|trans }}</a>

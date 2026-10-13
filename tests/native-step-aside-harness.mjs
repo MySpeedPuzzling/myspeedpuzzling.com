@@ -14,6 +14,7 @@ import { menuLinkAction } from '../assets/navigation/menu_links.js';
 import { menuButtonState } from '../assets/navigation/nav_layout.js';
 import { topbarMayHide } from '../assets/topbar_scroll.js';
 import { historyAction, scrollRestore, takesOver } from '../assets/player_results_state.js';
+import { shouldOpen } from '../assets/player_card_rules.js';
 
 /** A fake <html>: inside the app on an Android phone, or Chrome on the same phone */
 function root(nativeApp) {
@@ -82,6 +83,19 @@ const ROWS = [
             takesOver: takesOver(isNativeApp(html)),
             backByFullLoad: scrollRestore({ nativeApp: isNativeApp(html), cameBack: true, saved: { y: 400, row: null, rowTop: null } }),
         }),
+    },
+    // CARD-01a: a plain tap on a player's name opens the card on the web; inside the app the listener steps aside and the
+    // link navigates to the profile (assets/player_card.js asks shouldOpen() with the app flag)
+    {
+        id: 'assets/player_card.js',
+        run: (html) => {
+            const name = {
+                getAttribute: (attribute) => ({ href: '/en/player-profile/0190a1b2-c3d4-7e5f-8a9b-0c1d2e3f4a5b', 'data-player-card': '' })[attribute] ?? null,
+                closest: () => null,
+            };
+
+            return { tapOnAName: shouldOpen({ button: 0, detail: 1, pointerType: 'touch' }, name, { nativeApp: isNativeApp(html) }) ? 'card' : 'profile' };
+        },
     },
 ];
 

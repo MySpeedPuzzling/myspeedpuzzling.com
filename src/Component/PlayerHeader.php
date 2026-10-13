@@ -4,11 +4,10 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Component;
 
-use SpeedPuzzling\Web\Query\HasExistingConversation;
 use SpeedPuzzling\Web\Results\PlayerProfile;
+use SpeedPuzzling\Web\Services\PlayerActionsResolver;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Services\Xp\XpFeatureGate;
-use SpeedPuzzling\Web\Value\ComparisonSubjectRef;
 use SpeedPuzzling\Web\Value\PlayerHeaderTab;
 use Symfony\UX\TwigComponent\Attribute\AsTwigComponent;
 use Symfony\UX\TwigComponent\Attribute\PostMount;
@@ -16,6 +15,9 @@ use Symfony\UX\TwigComponent\Attribute\PostMount;
 /**
  * The header of every page of one player (docs/features/player-header.md): who it is, what can be done with them and
  * their pages as tabs - or, on the owner's own form and history pages ($compact), a one-line strip.
+ *
+ * What can be done (Favorite, Compare, Message, Block, the tier chip) is decided by PlayerActionsResolver - the same
+ * service the player card asks (docs/features/navigation CARD-01c); this component only copies it into its props.
  */
 #[AsTwigComponent]
 final class PlayerHeader
@@ -57,7 +59,7 @@ final class PlayerHeader
     /** ComparisonSubjectRef::toString() of this player - what the add/remove forms send */
     public null|string $comparisonRef = null;
 
-    /** 'tier' | 'no_tier_yet' | 'locked' | null - see tierChip() */
+    /** 'tier' | 'no_tier_yet' | 'locked' | null - see PlayerActionsResolver */
     public null|string $tierChip = null;
 
     /**
@@ -74,7 +76,7 @@ final class PlayerHeader
 
     public function __construct(
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
-        readonly private HasExistingConversation $hasExistingConversation,
+        readonly private PlayerActionsResolver $playerActionsResolver,
         readonly private XpFeatureGate $xpFeatureGate,
     ) {
     }
@@ -92,9 +94,12 @@ final class PlayerHeader
         $this->isHidden = $player->isPrivate && $this->isOwnProfile === false;
         $this->showLevelRing = $this->isHidden === false && $player->experienceSystemOptedOut === false;
 
+        // The strip offers no actions: nothing to decide (and no statement to spend)
         if ($this->compact) {
             return;
         }
+
+        $actions = $this->playerActionsResolver->resolve($player, $viewer);
 
         // A hidden private profile has nothing but its profile page
         if ($this->isHidden === false) {
@@ -111,50 +116,11 @@ final class PlayerHeader
             ));
         }
 
-        if ($this->isOwnProfile === false && $this->isHidden === false) {
-            $ref = ComparisonSubjectRef::player($player->playerId);
-            $this->comparisonRef = $ref->toString();
-            $this->compare = match (true) {
-                $viewer === null => 'sign_in',
-                $viewer->comparisonLineUp->contains($ref) => 'open',
-                default => 'add',
-            };
-        }
-
-        if ($viewer !== null && $this->isOwnProfile === false) {
-            $this->isInViewersFavorites = in_array($player->playerId, $viewer->favoritePlayers, true);
-
-            // The query only for the few who switched direct messages off
-            $this->canMessage = $player->allowDirectMessages
-                || $this->hasExistingConversation->acceptedBetween($viewer->playerId, $player->playerId);
-        }
-
-        $this->tierChip = $this->tierChip($viewer?->activeMembership === true);
+        $this->comparisonRef = $actions->comparisonRef;
+        $this->compare = $actions->compare;
+        $this->isInViewersFavorites = $actions->isInViewersFavorites();
+        $this->canMessage = $actions->canMessage;
+        $this->tierChip = $actions->tierChip;
         $this->mspRatingRank = $this->isHidden || $player->rankingOptedOut ? null : $player->mspRatingRank;
-    }
-
-    /**
-     * Opted out of rankings = nothing at all; not ranked yet = a quiet "No tier yet" (members only, like the tier);
-     * private profiles have no tiers, so they never get the "yet" or the lock either
-     */
-    private function tierChip(bool $viewerIsMember): null|string
-    {
-        $player = $this->player;
-        assert($player !== null);
-
-        if ($this->isHidden || $player->rankingOptedOut) {
-            return null;
-        }
-
-        if ($viewerIsMember === false) {
-            return $player->isPrivateProfile ? null : 'locked';
-        }
-
-        // The tier rides on the player's profile row (GetPlayerProfile::byId()) - no query of its own
-        if ($player->skillTier !== null) {
-            return 'tier';
-        }
-
-        return $player->isPrivateProfile ? null : 'no_tier_yet';
     }
 }

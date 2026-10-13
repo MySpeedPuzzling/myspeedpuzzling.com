@@ -42,6 +42,7 @@ import { installConfirmDialog } from './confirm_dialog.js';
 import { installDocumentReceipts } from './document_receipt.js';
 import { installHelpOpeners } from './help_openers.js';
 import { installPuzzlesSection } from './puzzles_section.js';
+import { installPlayerCard } from './player_card.js';
 // The URL a restore visit reloads below, for the page it brings back (the Results page's scroll position, PROF-05c)
 import { markRestoreReload } from './restore_reload.js';
 
@@ -55,6 +56,10 @@ installHelpOpeners({ window, document, layers });
 // The Puzzles place opens the section used last: each Puzzles section page records itself, the place's links follow
 // (PUZ-01, on every turbo:load)
 installPuzzlesSection({ window, document });
+
+// A click on a player's name opens their card - a sheet on phones, a popover from 576 px (CARD-01a); the layer itself
+// loads on the first hover, focus or open
+installPlayerCard({ window, document });
 
 Turbo.config.drive.progressBarDelay = 0;
 

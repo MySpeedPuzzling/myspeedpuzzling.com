@@ -1305,8 +1305,9 @@ competition_referees:
     "favorite_on": "V oblíbených"
     "compare": "Porovnat"
     "compare_open": "V porovnání"
-    "profile": "Profil"
     "unavailable": "Karta tohoto puzzlera není k dispozici."
+    "recent_title": "Poslední puzzle"
+    "view_profile": "Zobrazit profil"
   "spotlight":
     "title_world": "Speed puzzleři z celého světa"
     "title_country": "Puzzleři ze země %country%"

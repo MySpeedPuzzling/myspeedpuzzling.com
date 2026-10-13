@@ -80,8 +80,8 @@
                 <a class="players-directory-card"
                    id="players-directory-card-{{ loop.index }}"
                    href="{{ path('player_profile', {playerId: card.playerId}) }}"
-                   data-action="players-card#open"
-                   data-players-card-url-param="{{ path('player_card', {playerId: card.playerId}) }}"
+                   data-player-card
+                   aria-haspopup="dialog"
                 >
                     <span class="players-directory-card-top">
                         {{- include('_player_avatar.html.twig', {

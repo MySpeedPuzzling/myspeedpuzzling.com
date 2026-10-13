@@ -101,8 +101,8 @@ final class NavInstrumentationMarkupTest extends WebTestCase
      * and the Help sheet (HELP-01a; its feedback box HELP-01b, its order HELP-02) - its page and its frame - the end-of-page
      * line (HELP-04), the Inbox header's tabs on both
      * Inbox pages (INB-01, signed in), the Menu (MENU-01), its phone panel's shell (MENU-02b), the phone bottom bar
-     * (NAV-01), the top bar (NAV-03, NAV-04, NAV-05) and the auth pages' header (NAV-08). Every link and button there is
-     * counted too.
+     * (NAV-01), the top bar (NAV-03, NAV-04, NAV-05), the player card (CARD-03) and the auth pages' header (NAV-08).
+     * Every link and button there is counted too.
      *
      * @return iterable<string, array{0: string, 1: array<string, string>, 2: string, 3: list<string>, 4?: string}>
      */
@@ -187,6 +187,11 @@ final class NavInstrumentationMarkupTest extends WebTestCase
         $account = ['topbar/profile/account', 'account/links/view_profile', 'account/links/settings', 'account/links/membership', 'account/language/de', 'account/language/cs', 'account/language/fr', 'account/language/es', 'account/language/ja', 'account/links/logout'];
         yield 'top bar (guest)' => ['/en/faq', [], 'body > header.site-header', ['topbar/none/menu', 'topbar/none/back', 'topbar/home/logo', ...$compactPlaces, 'topbar/none/scan_locked', 'topbar/none/close_search', 'topbar/none/search', 'topbar/add/add', 'topbar/none/help', 'topbar/profile/sign_in', 'topbar/none/menu']];
         yield 'top bar (player, a root page)' => ['/en/hub', [], 'body > header.site-header', ['topbar/none/menu', 'topbar/home/logo', ...$compactPlaces, 'topbar/none/scan_locked', 'topbar/none/close_search', 'topbar/none/search', 'topbar/add/add', 'topbar/none/help', 'topbar/none/inbox', ...$account, 'topbar/none/menu'], PlayerFixture::PLAYER_PRIVATE];
+        // The player card (CARD-03): card/<context kind>/<item> - a guest's (sign-in links, the locked tier) and a member's
+        // (Message; no context = none, a context names its kind)
+        $cardPages = ['card/none/overview', 'card/none/results', 'card/none/statistics'];
+        yield 'player card (guest)' => ['/en/puzzler-card/' . PlayerFixture::PLAYER_WITH_STRIPE, ['HTTP_TURBO_FRAME' => 'player-card'], 'turbo-frame#player-card', ['card/none/profile', 'card/none/close', 'card/none/tier_locked', 'card/none/unlock', 'card/none/puzzle', 'card/none/puzzle', 'card/none/puzzle', ...$cardPages, 'card/none/favorite', 'card/none/compare', 'card/none/share']];
+        yield 'player card (member, a context)' => ['/en/puzzler-card/' . PlayerFixture::PLAYER_REGULAR . '?context=leaderboard:times-500', ['HTTP_TURBO_FRAME' => 'player-card'], 'turbo-frame#player-card', ['card/leaderboard/profile', 'card/leaderboard/close', 'card/leaderboard/puzzle', 'card/leaderboard/puzzle', 'card/leaderboard/puzzle', 'card/leaderboard/overview', 'card/leaderboard/results', 'card/leaderboard/statistics', 'card/leaderboard/favorite', 'card/leaderboard/compare', 'card/leaderboard/message', 'card/leaderboard/share'], PlayerFixture::PLAYER_ADMIN];
         // The sign-in / sign-up pages' header (NAV-08, decision 25): the logo and the language switch, nothing else
         yield 'auth header (guest)' => ['/login', [], 'body > header.site-header--auth', ['topbar/home/logo', 'topbar/language/de', 'topbar/language/cs', 'topbar/language/fr', 'topbar/language/es', 'topbar/language/ja']];
     }

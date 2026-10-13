@@ -55,7 +55,9 @@ final class PlayersPerCountryControllerTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('h1', 'Speed Puzzlers from Czechia');
         self::assertSelectorExists('h1 .fi-cz');
-        self::assertSelectorExists('.players-page[data-controller="players-card"] .players-spotlight');
+        self::assertSelectorExists('.players-page .players-spotlight');
+        // Its people open the player card (CARD-01a: data-player-card on every person link)
+        self::assertSelectorExists('.players-page a[data-player-card][aria-haspopup="dialog"]');
         self::assertSelectorExists('.players-page .players-directory');
         self::assertEqualsCanonicalizing(['John Doe', 'Admin User'], $this->names($crawler));
         // The country is the page: no "Where", the filters submit to this page, the way back keeps the country

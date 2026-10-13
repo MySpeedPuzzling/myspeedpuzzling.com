@@ -1406,8 +1406,9 @@ competition_referees:
     "favorite_on": "お気に入り登録済み"
     "compare": "比較に追加"
     "compare_open": "比較中"
-    "profile": "プロフィール"
     "unavailable": "このパズラーのカードは表示できません。"
+    "recent_title": "最近のパズル"
+    "view_profile": "プロフィールを見る"
   "spotlight":
     "title_world": "世界のスピードパズラー"
     "title_country": "%country%のパズラー"

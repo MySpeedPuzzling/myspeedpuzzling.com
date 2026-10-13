@@ -36,6 +36,8 @@ final class NavigationServicesResetTest extends TestCase
         \SpeedPuzzling\Web\Services\Community\CommunityPreview::class,
         // PROF-05a: the Results builder (memo of the histories loaded in the request)
         \SpeedPuzzling\Web\Services\PlayerResults\PlayerResultsBuilder::class,
+        // CARD-01c: Favorite / Compare / Message for the header and the card (stateless - kept that way)
+        \SpeedPuzzling\Web\Services\PlayerActionsResolver::class,
     ];
 
     public function testMutableNavigationServicesResetBetweenRequests(): void

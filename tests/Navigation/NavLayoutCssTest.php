@@ -59,7 +59,8 @@ final class NavLayoutCssTest extends TestCase
         yield 'search icon, critical' => [self::CRITICAL, '.site-header .site-search-icon'];
         yield 'global search overlay, critical' => [self::CRITICAL, '.global-search-overlay'];
         yield 'global search overlay' => ['assets/styles/app.scss', '.global-search-overlay'];
-        yield 'player card layer' => ['assets/styles/players/_card.scss', '.players-card-layer[hidden]'];
+        // CARD-01a: the card's layer is a <dialog> (assets/player_card_layer.js) - display: none while not [open]
+        yield 'player card layer' => ['assets/styles/players/_card.scss', '.player-card-layer:not([open])'];
         yield 'events ⋯ menu layer' => ['assets/styles/_events-organizer.scss', '.ev-menu-layer[hidden]'];
         yield 'events country sheet' => ['assets/styles/_events-page.scss', '.ev-sheet'];
         yield 'XP recap sheet' => ['assets/styles/_xp-recap.scss', '.recap-sheet[hidden]'];
@@ -170,8 +171,8 @@ final class NavLayoutCssTest extends TestCase
         yield 'every modal incl. the dynamic modal container (decision 18, review F4)' => ['assets/styles/_dynamic-modal.scss', '.modal', ['bottom']];
         yield 'modal backdrop (decision 18)' => ['assets/styles/_dynamic-modal.scss', '.modal-backdrop', ['bottom']];
         yield 'the Help sheet\'s own scrim (decision 18, HELP-01b)' => ['assets/styles/_dynamic-modal.scss', '.dynamic-modal-scrim', ['bottom']];
-        yield 'player card layer' => ['assets/styles/players/_card.scss', '.players-card-layer', ['bottom']];
-        yield 'player card sheet' => ['assets/styles/players/_card.scss', '.is-sheet .players-card-dialog', ['bottom']];
+        yield 'player card layer' => ['assets/styles/players/_card.scss', '.player-card-layer', ['bottom']];
+        yield 'player card sheet' => ['assets/styles/players/_card.scss', '.is-sheet .player-card-box', ['bottom']];
         yield 'events ⋯ menu layer' => ['assets/styles/_events-organizer.scss', '.ev-menu-layer', ['bottom']];
         yield 'events ⋯ menu sheet' => ['assets/styles/_events-organizer.scss', '.is-sheet .ev-menu-dialog', ['bottom']];
         yield 'events country sheet' => ['assets/styles/_events-page.scss', '.ev-sheet', ['bottom']];

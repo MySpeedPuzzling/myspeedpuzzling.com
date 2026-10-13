@@ -8,20 +8,25 @@ use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Query\GetPlayerCard;
 use SpeedPuzzling\Web\Query\GetPlayerProfile;
+use SpeedPuzzling\Web\Services\PlayerActionsResolver;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
-use SpeedPuzzling\Web\Value\ComparisonSubjectRef;
+use SpeedPuzzling\Web\Value\PlayerCardContext;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
 /**
- * The player card on the Players page (docs/features/players-page/README.md, stream S1): fetched into
- * <turbo-frame id="player-card"> when a person is tapped (players_card_controller.js), a minimal noindex page
- * otherwise. Two statements: the profile (GetPlayerProfile::byId() 404s hidden players) and the card's numbers.
+ * The player card (docs/features/navigation README §4.8, CARD-*; first built for the Players page,
+ * docs/features/players-page/README.md): fetched into <turbo-frame id="player-card"> when a player name is tapped
+ * (assets/player_card.js → assets/player_card_layer.js), a minimal noindex page otherwise. Two statements: the profile
+ * (GetPlayerProfile::byId() 404s hidden players) and the card incl. its latest puzzles - plus one only when the player
+ * switched direct messages off (PlayerActionsResolver, the decisions shared with the player header).
  *
- * A card never shows a private player - only to themselves. Favorite and Compare stay inside the frame: both come
- * back here through their `return`, so the card shows the new state and the flash.
+ * A card never shows a private player - only to themselves and their allow list. Favorite and Compare stay inside the
+ * frame: both come back here through their `return` (the card's URL with its `context`), so the card shows the new
+ * state and the flash. A guest's sign-in links carry the profile as `return`; the layer points them at the page the
+ * card was opened on (data-card-return-page) - the guest card stays the same for everybody (shared cache).
  */
 final class PlayerCardController extends AbstractController
 {
@@ -31,6 +36,7 @@ final class PlayerCardController extends AbstractController
         readonly private GetPlayerProfile $getPlayerProfile,
         readonly private GetPlayerCard $getPlayerCard,
         readonly private RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
+        readonly private PlayerActionsResolver $playerActionsResolver,
         readonly private ClockInterface $clock,
     ) {
     }
@@ -73,30 +79,12 @@ final class PlayerCardController extends AbstractController
             return $response;
         }
 
-        $isOwnCard = $viewer !== null && $viewer->playerId === $player->playerId;
-        $comparisonRef = ComparisonSubjectRef::player($player->playerId);
-
-        // What Favorite and Compare offer: decided from the viewer's own profile row - no query
-        $favorite = match (true) {
-            $isOwnCard => null,
-            $viewer === null => 'sign_in',
-            in_array($player->playerId, $viewer->favoritePlayers, true) => 'on',
-            default => 'off',
-        };
-        $compare = match (true) {
-            $isOwnCard => null,
-            $viewer === null => 'sign_in',
-            $viewer->comparisonLineUp->contains($comparisonRef) => 'open',
-            default => 'add',
-        };
-
         $response = $this->render($inFrame ? 'players/_card_frame.html.twig' : 'players/card.html.twig', [
             'player' => $player,
             'card' => $card,
+            'actions' => $this->playerActionsResolver->resolve($player, $viewer),
+            'context' => PlayerCardContext::tryFrom($request->query->get('context')),
             'viewer_is_member' => $viewerIsMember,
-            'favorite' => $favorite,
-            'compare' => $compare,
-            'comparison_ref' => $comparisonRef->toString(),
             'activity' => $viewerIsMember ? $card->activity($this->clock->now()) : [],
         ]);
 

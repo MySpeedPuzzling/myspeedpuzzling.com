@@ -1,10 +1,10 @@
 {#
     The answer (404) inside the player-card frame for a player the viewer may not see - blocked, private or deleted
-    read the same, so it never tells which.
+    read the same, so it never tells which. The × closes the layer (assets/player_card_layer.js).
 #}
 <turbo-frame id="player-card">
     <article class="players-card players-card-unavailable">
-        <button type="button" class="btn-close players-card-close" data-players-card-close aria-label="{{ 'players.card.close'|trans }}"></button>
-        <p class="mb-0">{{ 'players.card.unavailable'|trans }}</p>
+        <p class="players-card-body mb-0">{{ 'players.card.unavailable'|trans }}</p>
+        <button type="button" class="btn-close players-card-close" data-player-card-close data-nav="card/none/close" aria-label="{{ 'players.card.close'|trans }}"></button>
     </article>
 </turbo-frame>

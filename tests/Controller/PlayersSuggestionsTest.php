@@ -40,7 +40,7 @@ final class PlayersSuggestionsTest extends WebTestCase
         self::assertStringContainsString('Also at WJPC 2024', $card->filter('.players-suggestion-reason')->text());
 
         // The person opens the player card, the buttons are the player header's own endpoints and come back here
-        self::assertCount(1, $card->filter('a.players-person[data-action="players-card#open"]'));
+        self::assertCount(1, $card->filter('a.players-person[data-player-card][aria-haspopup="dialog"]'));
         $favorite = (string) $card->filter('.players-suggestion-actions a.btn-outline-primary')->attr('href');
         self::assertSame('/en/add-player-to-favorites/' . PlayerFixture::PLAYER_WITH_FAVORITES, parse_url($favorite, PHP_URL_PATH));
         parse_str((string) parse_url($favorite, PHP_URL_QUERY), $query);
@@ -73,14 +73,14 @@ final class PlayersSuggestionsTest extends WebTestCase
         $browser->request('GET', '/en/puzzlers');
 
         self::assertResponseIsSuccessful();
-        self::assertSelectorNotExists('.players-suggestion a[data-players-card-url-param$="' . PlayerFixture::PLAYER_REGULAR . '"]');
+        self::assertSelectorNotExists('.players-suggestion a[data-player-card][href$="' . PlayerFixture::PLAYER_REGULAR . '"]');
     }
 
     private function cardOf(Crawler $crawler, string $playerId): Crawler
     {
         $card = $crawler
             ->filter('.players-suggestion')
-            ->reduce(static fn (Crawler $node): bool => $node->filter('a.players-person[data-players-card-url-param$="' . $playerId . '"]')->count() === 1);
+            ->reduce(static fn (Crawler $node): bool => $node->filter('a.players-person[data-player-card][href$="' . $playerId . '"]')->count() === 1);
 
         self::assertCount(1, $card, 'A card for ' . $playerId);
 

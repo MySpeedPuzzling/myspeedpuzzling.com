@@ -1,7 +1,7 @@
 {#
     One person in a Players page list (docs/features/players-page/README.md): avatar with the flag, name, optional
     chips under the name, an optional value on the right and an optional rank. It is a link to the profile; with
-    JavaScript, players_card_controller.js (on .players-page) opens the player card instead.
+    JavaScript, a plain click opens the player card instead (data-player-card, assets/player_card.js - CARD-01a).
 
     Inputs:
       - player: anything with playerId, playerName, playerCode, playerCountry (CountryCode, a plain code or null) and
@@ -16,8 +16,8 @@
 {%- set name = player.playerName ?? ('#' ~ player.playerCode) -%}
 <a class="players-person"
    href="{{ path('player_profile', {playerId: player.playerId}) }}"
-   data-action="players-card#open"
-   data-players-card-url-param="{{ path('player_card', {playerId: player.playerId}) }}"
+   data-player-card
+   aria-haspopup="dialog"
 >
     {%- if rank is defined and rank -%}
         <span class="players-person-rank">{{ rank }}</span>

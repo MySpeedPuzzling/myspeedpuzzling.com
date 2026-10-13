@@ -43,6 +43,8 @@ final class PlatformFlagReadersTest extends TestCase
         'assets/controllers/global_search_controller.js',
         // PROF-05c: the Results page owns history entries on the web only (assets/player_results_state.js decides)
         'assets/controllers/player_results_controller.js',
+        // CARD-01a: a name opens the player card on the web only - inside the app the link navigates
+        'assets/player_card.js',
     ];
 
     private const string PLATFORM_MODULE = 'assets/platform.js';

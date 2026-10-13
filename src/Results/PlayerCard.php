@@ -17,6 +17,7 @@ readonly final class PlayerCard
     /**
      * @param null|list<int> $monthlySolves 12 calendar months, oldest first, the current month last - loaded for
      *                                      members only (null otherwise)
+     * @param list<PlayerCardRecentPuzzle> $recentPuzzles the latest puzzles, newest first (GetPlayerCard::RECENT_PUZZLES)
      */
     public function __construct(
         public int $solvedTotal,
@@ -34,6 +35,7 @@ readonly final class PlayerCard
         public bool $competesInEvents,
         public bool $swapsPuzzles,
         public bool $onInstagram,
+        public array $recentPuzzles = [],
     ) {
     }
 
@@ -52,6 +54,7 @@ readonly final class PlayerCard
      *     competes_in_events: bool,
      *     swaps_puzzles: bool,
      *     on_instagram: bool,
+     *     recent_puzzles?: null|string,
      * } $row
      */
     public static function fromDatabaseRow(array $row): self
@@ -80,7 +83,46 @@ readonly final class PlayerCard
             competesInEvents: $row['competes_in_events'],
             swapsPuzzles: $row['swaps_puzzles'],
             onInstagram: $row['on_instagram'],
+            recentPuzzles: self::recentPuzzlesFromJson($row['recent_puzzles'] ?? null),
         );
+    }
+
+    /**
+     * @return list<PlayerCardRecentPuzzle>
+     */
+    private static function recentPuzzlesFromJson(null|string $json): array
+    {
+        if ($json === null) {
+            return [];
+        }
+
+        /** @var mixed $decoded */
+        $decoded = json_decode($json, true);
+
+        if (!is_array($decoded)) {
+            return [];
+        }
+
+        $puzzles = [];
+
+        foreach ($decoded as $item) {
+            if (!is_array($item) || !is_string($item['puzzle_id'] ?? null)) {
+                continue;
+            }
+
+            $ratio = $item['image_ratio'] ?? null;
+
+            $puzzles[] = new PlayerCardRecentPuzzle(
+                puzzleId: $item['puzzle_id'],
+                puzzleName: is_string($item['name'] ?? null) ? $item['name'] : '',
+                manufacturerName: is_string($item['manufacturer'] ?? null) ? $item['manufacturer'] : '',
+                piecesCount: is_numeric($item['pieces'] ?? null) ? (int) $item['pieces'] : 0,
+                image: is_string($item['image'] ?? null) ? $item['image'] : null,
+                imageRatio: is_numeric($ratio) ? (float) $ratio : null,
+            );
+        }
+
+        return $puzzles;
     }
 
     /**

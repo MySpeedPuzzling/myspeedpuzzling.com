@@ -14,6 +14,23 @@ that would otherwise be forgotten. Newest section on top.
 - [ ] A stopwatch page left open across the deploy that added the CSRF token fails its first action (Start, Stop,
       Reset: "the page was open too long") - a reload fixes it. Fine, but never deploy during a live event.
 
+## Online competitions - participant API and evidence storage (`docs/features/online-competitions/`, stream A)
+
+- [ ] lily.srv: a daily cron row for `myspeedpuzzling:prune-online-media` (periodic photos after 30 days, the rest
+      after 365, then the orphan sweep of `online/`) - the orchestrator adds it with the deploy.
+- [ ] Before Test Cup #1, with Jan's OK: `myspeedpuzzling:online-media:cors --apply` on production (the bucket CORS
+      rule for the phones' PUT + the review's GET from the site's origin; keeps the bucket's other rules - run it
+      without `--apply` first to see the rule).
+- [ ] The images proxy (`img.*/original/<key>` through imgproxy) can fetch ANY key of the bucket, `online/…` evidence
+      included. The keys are unguessable (UUIDv7 in the path), but before any public use deny the `online/` prefix in
+      the images nginx (lily.srv) - or move the evidence to a bucket of its own.
+- [ ] Spike S5 (`spikes.md`): does Hetzner Object Storage enforce a signed `Content-Length` / `Content-Type` in a
+      presigned PUT (MinIO does: another length or type is 403 SignatureDoesNotMatch)? If not, VerifyOnlineMedia's
+      size/type check is the only guard - it deletes what was not declared.
+- [ ] Traefik's access log (lily.srv) writes the full path, so the personal links' tokens of `/api/compete/<token>`
+      and `/<locale>/compete/<token>` (`/soutezit/<token>`) land there - redact them in the access log config (the app
+      redacts its own logs and Sentry: OnlineTokenRedactor).
+
 ## Anti-farming (`docs/features/xp-levels/README.md` §Anti-farming, workstream G 2026-10-11)
 
 - [ ] lily.srv: add the `verify-progression --repair` cron row (README §Cron) with the deploy; watch its first warnings

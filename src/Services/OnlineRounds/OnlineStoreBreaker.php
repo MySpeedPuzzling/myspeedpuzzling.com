@@ -17,10 +17,12 @@ use SpeedPuzzling\Web\Value\RoundClock;
  * exists - then the second store, until the failures age out of the window (the next uploads try the primary again,
  * and a primary still down opens the breaker again).
  *
- * A failure is a store's own error: a phone's PUT answered 408, 429 or 5xx (the phone reports it with its next presign
- * request, `previousFailure`) or the server's HEAD failing (VerifyOnlineMedia). Sources are counted, not failures - the
- * participant id of a phone, SERVER for the server - so one participant's phone can never move everybody's uploads.
- * A refused URL (400 / 403) or a phone that is offline is no store failure.
+ * A failure is a store's own error: a phone's PUT answered 408, 429 or 5xx - or not answered at all (status 0: in a
+ * browser a store that is down looks like that, its error pages carry no CORS headers) - which the phone reports with
+ * its next presign request (`previousFailure`, countsAsStoreFailure()), or the server's HEAD failing
+ * (VerifyOnlineMedia). Sources are counted, not failures - the participant id of a phone, SERVER for the server - so
+ * one participant's phone can never move everybody's uploads. A refused URL (400 / 403) or a phone its browser knows
+ * to be offline is no store failure.
  *
  * The counters live in `redis-state` (a sorted set per store, source => last failure ms, expiring after
  * 2 × WINDOW_SECONDS). Without a second store nothing is counted and nothing is asked - every upload goes to the primary,
@@ -47,6 +49,16 @@ LUA;
         private LoggerInterface $logger,
         private string $keyPrefix = 'online:store_failures:',
     ) {
+    }
+
+    /**
+     * A phone's upload answered with this status counts as the store failing: a timeout, a busy store, a server error,
+     * or no answer at all (0 - the phone's browser was online, the store did not answer: refused, unreachable, or an
+     * error without CORS headers). 400 / 403 and the rest are a URL the store refused - no sign of a store being down.
+     */
+    public static function countsAsStoreFailure(int $status): bool
+    {
+        return $status === 0 || $status === 408 || $status === 429 || $status >= 500;
     }
 
     /**

@@ -270,7 +270,7 @@ function mediaWorld(w = world()) {
     return { w, api, store, presign, put, reportUploaded };
 }
 
-function mediaSetup({ storage = createMediaMemoryStorage(), estimate = null, maxBytes = undefined, autoFlush = false, lock = null, scope = 'participant-1', w = world(), quotaShare = undefined } = {}) {
+function mediaSetup({ storage = createMediaMemoryStorage(), estimate = null, maxBytes = undefined, autoFlush = false, lock = null, scope = 'participant-1', w = world(), quotaShare = undefined, isOnline = undefined } = {}) {
     const media = mediaWorld(w);
     let ids = 0;
     const outbox = new MediaOutbox({
@@ -287,6 +287,7 @@ function mediaSetup({ storage = createMediaMemoryStorage(), estimate = null, max
         maxBytes,
         quotaShare,
         autoFlush,
+        isOnline,
         newId: () => `item-${scope}-${++ids}`,
     });
 
@@ -780,7 +781,7 @@ const scenarios = {
 
     async 'media: a URL that ended while the phone was offline is presigned again - by the presign answer\'s own clock'() {
         // The phone's clock is three hours ahead of the server's: expiresAtMs alone would look long gone
-        const { outbox, api, store, w } = mediaSetup({ autoFlush: true });
+        const { outbox, api, store, w } = mediaSetup({ autoFlush: true, isOnline: () => false });
         api.serverAheadMs = -3 * 3_600_000;
         store.answers.push(...Array(40).fill('offline'));
 
@@ -835,7 +836,7 @@ const scenarios = {
     },
 
     async 'media: offline during the upload - the same URL again while it is valid; online() goes at once'() {
-        const { outbox, api, store } = mediaSetup();
+        const { outbox, api, store } = mediaSetup({ isOnline: () => false });
         store.answers.push('offline');
         await outbox.enqueue({ kind: 'burst', blob: photo('burst', 4000), takenMs: START, manifest: [{ offset: 0, length: 4000, captureMs: START }] });
 
@@ -849,6 +850,56 @@ const scenarios = {
         assert.equal(store.puts[0].url, store.puts[1].url);
         assert.equal(api.reports.length, 1);
         assert.equal(outbox.status().offline, false);
+        assert.equal(outbox.items.length, 0);
+    },
+
+    async 'media: a store that does not answer while the phone is online - from the second failure a fresh URL, the presign telling the breaker (status 0)'() {
+        // The failover drill (spikes.md S5): a stopped store, or one answering errors without CORS headers, is a failed
+        // fetch in a browser - never a 5xx the page could read
+        const { outbox, api, store, w } = mediaSetup({ isOnline: () => true });
+        store.answers.push('offline', { status: 0 });
+        await outbox.enqueue({ kind: 'periodic', blob: photo('p'), takenMs: START });
+
+        await outbox.flush();
+        assert.equal(store.puts.length, 1);
+        assert.equal(outbox.status().waitingUntil, START + 1000, 'the offline pause - the next try comes soon');
+        assert.deepEqual(outbox.items[0].lastFailure, { status: 0, store: 'primary', mediaId: 'm1' });
+
+        w.clock.now += 1000;
+        await outbox.flush();
+        assert.equal(store.puts.length, 2);
+        assert.equal(store.puts[1].url, store.puts[0].url, 'the second try: the same URL');
+        assert.equal(api.presigns.length, 1);
+
+        w.clock.now += 2000;
+        await outbox.flush();
+        assert.equal(api.presigns.length, 2, 'then a fresh one');
+        assert.deepEqual(api.presigns[1].previousFailure, { status: 0, store: 'primary', mediaId: 'm1' });
+        assert.equal(store.puts[2].url, 'https://objects.test/online/m2');
+        assert.equal(api.reports.length, 1);
+        assert.equal(outbox.status().offline, false);
+        assert.equal(outbox.items.length, 0);
+    },
+
+    async 'media: a phone the browser knows to be offline blames no store - the same URL, no previousFailure'() {
+        const { outbox, api, store, w } = mediaSetup({ isOnline: () => false });
+        store.answers.push('offline', 'offline', 'offline');
+        await outbox.enqueue({ kind: 'button', blob: photo('b'), takenMs: START });
+
+        await outbox.flush();
+        w.clock.now += 1000;
+        await outbox.flush();
+        w.clock.now += 2000;
+        await outbox.flush();
+        assert.equal(store.puts.length, 3);
+        assert.equal(new Set(store.puts.map((put) => put.url)).size, 1);
+        assert.equal(api.presigns.length, 1);
+        assert.equal(outbox.items[0].lastFailure, null);
+
+        w.clock.now += 4000;
+        await outbox.flush();
+        assert.equal(api.presigns.length, 1);
+        assert.equal(api.reports.length, 1);
     },
 
     async 'media: a busy API (429) is waited for as long as it asks; a server error pauses and the item waits its own turn'() {

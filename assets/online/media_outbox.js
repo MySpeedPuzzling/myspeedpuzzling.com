@@ -13,6 +13,8 @@
  *   before the upload; a store refusing the URL (400 / 403 / other 4xx) gets a fresh one at once; a store failing
  *   (5xx, 408, 429) is tried again after a pause - with a fresh URL from the second try on, so the server may send it
  *   to its other store; the next presign carries the failure (`previousFailure`) for the server's circuit breaker.
+ *   A store giving no answer at all while the browser is online counts too (status 0, unreachable()): in a browser a
+ *   store that is down looks like that - its error pages carry no CORS headers (spikes.md S5, the failover drill).
  * - Offline 1 s → 30 s, a busy server (429) as long as its Retry-After asks, a failing server 5 s → 2 min; a refusal
  *   of the item itself (media_too_large, media_kind_unknown, round_not_online) is reported - counted in status(),
  *   listed with its reason in refusedItems() - and the item leaves the device (it would never be taken); the link died
@@ -219,6 +221,7 @@ export class MediaOutbox {
      * @param {function(): string} [options.newId]
      * @param {function(): void} [options.onChange]
      * @param {boolean} [options.autoFlush]
+     * @param {function(): boolean} [options.isOnline]  navigator.onLine - only its "offline" is certain
      */
     constructor({
         storage,
@@ -236,6 +239,7 @@ export class MediaOutbox {
         newId = newClientId,
         onChange = () => {},
         autoFlush = true,
+        isOnline = () => globalThis.navigator?.onLine !== false,
     }) {
         this.storage = storage;
         this.presign = presign;
@@ -243,6 +247,7 @@ export class MediaOutbox {
         this.reportUploaded = reportUploaded;
         this.scope = scope;
         this.now = now;
+        this.isOnline = isOnline;
         this.lock = lock ?? (async (task) => {
             await task();
 
@@ -926,9 +931,7 @@ export class MediaOutbox {
         try {
             response = await this.put(item.url, { ...item.headers }, item.blob, { method: item.method });
         } catch (e) {
-            this.goOffline(this.now());
-
-            return 'stop';
+            return this.unreachable(item);
         }
 
         const now = this.now();
@@ -955,9 +958,7 @@ export class MediaOutbox {
 
         if (status === 0) {
             // Nothing readable came back (a dropped connection, a blocked request)
-            this.goOffline(now);
-
-            return 'stop';
+            return this.unreachable(item);
         }
 
         item.lastFailure = { status, store: item.store, mediaId: item.mediaId };
@@ -1035,6 +1036,31 @@ export class MediaOutbox {
         this.offline = true;
         this.offlineAttempts += 1;
         this.retryAt = now + backoff(OFFLINE_BACKOFF_MS, this.offlineAttempts);
+    }
+
+    /**
+     * The store gave no readable answer: a refused or dropped connection, a name that does not resolve - and in a
+     * browser also any store error whose answer has no CORS headers (a failed preflight looks the same), so a store
+     * that is down looks exactly like this, never like a 5xx. The pause is an offline one either way. While the browser
+     * says it is online, the store is the suspect: the failure is kept for the next presign (`previousFailure` with
+     * status 0, so the server's circuit breaker can send uploads to its other store) and from the second failure on the
+     * item gets a fresh URL. A phone the browser knows to be offline blames no store and keeps its URL.
+     */
+    async unreachable(item) {
+        this.goOffline(this.now());
+
+        if (this.isOnline()) {
+            item.lastFailure = { status: 0, store: item.store, mediaId: item.mediaId };
+            item.attempts += 1;
+
+            if (item.attempts >= 2) {
+                this.dropPresign(item);
+            }
+
+            await this.write(item);
+        }
+
+        return 'stop';
     }
 
     cancelTimer() {

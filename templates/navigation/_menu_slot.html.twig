@@ -1,7 +1,14 @@
-{#- The docked-column slot (README §4.3, §4.12): where the page's one #site-menu lives server-side. Hidden by critical CSS
-    wherever there is no column (everywhere until NAV-13 docks it); the phone panel (MENU-02b) and the desktop overlay
+{#- The docked-column slot (README §4.3, §4.12): where the page's one #site-menu lives server-side. Shown by critical CSS
+    where the Menu is docked as the desktop column (NAV-13: 1280-1439 px when the player docked it, from 1440 px unless
+    they folded it - html[data-nav-layout]), hidden everywhere else; the phone panel (MENU-02b) and the desktop overlay
     (NAV-13) move the same element into their shell and back - never a second copy. The `menu` page renders the Menu as
-    its content and sets nav_menu_slot_off, so the page still holds exactly one. Inside nav_chrome: web only. -#}
+    its content and sets nav_menu_slot_off, so the page still holds exactly one. Inside nav_chrome: web only.
+    The script right after the Menu runs before the column is painted (full loads; Turbo runs it again with each new
+    body): the disclosure buttons of the groups the player folded (html[data-nav-collapsed], set by the head script
+    assets/head/nav_layout.js - CSS already hides their rows) get aria-expanded="false", and the docked column scrolls
+    itself - its own scrollTop, never an element scrolled into view (that moves the page too) - to where it was on the previous page
+    (sessionStorage msp:nav-col-scroll, saved by assets/navigation/nav_layout.js) or, when the current row would be out
+    of sight, to show it. Plain ES5, the same text on every page (shared-cacheable). -#}
 {%- if not (nav_menu_slot_off ?? false) -%}
-<div class="menu-slot" id="menu-slot">{{ include('navigation/_menu.html.twig', {surface: 'slot'}, with_context = false) }}</div>
+<div class="menu-slot" id="menu-slot">{{ include('navigation/_menu.html.twig', {surface: 'slot'}, with_context = false) }}<script>(function(d){try{var n=d.getElementById('site-menu');if(!n||n.parentNode!==d.getElementById('menu-slot'))return;var c=' '+(d.documentElement.getAttribute('data-nav-collapsed')||'')+' ',b=n.querySelectorAll('.menu-disclosure'),i,g;for(i=0;i<b.length;i++){g=b[i].parentNode.getAttribute('data-menu-group');b[i].setAttribute('aria-expanded',c.indexOf(' '+g+' ')<0?'true':'false')}if(!n.getClientRects().length)return;var s=NaN;try{s=parseFloat(sessionStorage.getItem('msp:nav-col-scroll'))}catch(e){}var t=s>0?s:0,h=n.clientHeight,r=n.querySelector('[aria-current="page"]');if(r&&r.getClientRects().length){var y=r.getBoundingClientRect().top-n.getBoundingClientRect().top+n.scrollTop,rh=r.getBoundingClientRect().height;if(y<t||y+rh>t+h)t=y-(h-rh)/2}n.scrollTop=Math.max(0,Math.round(t))}catch(e){}})(document)</script></div>
 {%- endif -%}

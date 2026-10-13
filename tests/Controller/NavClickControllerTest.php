@@ -67,7 +67,9 @@ final class NavClickControllerTest extends WebTestCase
     {
         [$browser, $log] = self::clientWithNavigationLog();
 
-        self::beacon($browser, ['k' => 'viewport', 'bucket' => '1280_1439', 'pointer' => 'fine', 'standalone' => false, 'layout' => 'desktop', 'wd' => true]);
+        self::beacon($browser, ['k' => 'viewport', 'bucket' => '1280_1439', 'pointer' => 'fine', 'standalone' => false, 'dock' => 'rail', 'layout' => 'desktop', 'wd' => true]);
+        // NAV-13: a desktop Menu state the script cannot send is logged as unknown, the line stays
+        self::beacon($browser, ['k' => 'viewport', 'bucket' => '1440_1919', 'pointer' => 'fine', 'standalone' => false, 'dock' => 'floating', 'layout' => 'desktop']);
 
         self::assertResponseStatusCodeSame(204);
         self::assertSame([[
@@ -75,10 +77,43 @@ final class NavClickControllerTest extends WebTestCase
             'bucket' => '1280_1439',
             'pointer' => 'fine',
             'standalone' => false,
+            'dock' => 'rail',
             'page' => '/en/faq',
             'layout' => 'desktop',
             'webdriver' => true,
+        ], [
+            'kind' => 'viewport',
+            'bucket' => '1440_1919',
+            'pointer' => 'fine',
+            'standalone' => false,
+            'dock' => null,
+            'page' => '/en/faq',
+            'layout' => 'desktop',
+            'webdriver' => false,
         ]], self::contexts($log));
+    }
+
+    /**
+     * NAV-13: the desktop ☰ docked the Menu column or folded it to the rail - one line per switch (D16's fold share); an
+     * unknown state drops the line, an unknown width bucket is logged as unknown
+     */
+    public function testADesktopMenuSwitchIsLogged(): void
+    {
+        [$browser, $log] = self::clientWithNavigationLog();
+
+        self::beacon($browser, ['k' => 'layout', 'state' => 'rail', 'bucket' => '1440_1919', 'layout' => 'desktop']);
+        self::beacon($browser, ['k' => 'layout', 'state' => 'docked', 'bucket' => 'huge', 'layout' => 'desktop']);
+        self::beacon($browser, ['k' => 'layout', 'state' => 'floating', 'bucket' => '1440_1919', 'layout' => 'desktop']);
+        self::beacon($browser, ['k' => 'layout', 'bucket' => '1440_1919']);
+
+        self::assertResponseStatusCodeSame(204);
+        self::assertNull($browser->getResponse()->headers->get('Set-Cookie'));
+        self::assertSame('Navigation layout', $log->getRecords()[0]->message);
+        self::assertSame('INFO', $log->getRecords()[0]->level->getName());
+        self::assertSame([
+            ['kind' => 'layout', 'state' => 'rail', 'bucket' => '1440_1919', 'page' => '/en/faq', 'layout' => 'desktop', 'webdriver' => false],
+            ['kind' => 'layout', 'state' => 'docked', 'bucket' => null, 'page' => '/en/faq', 'layout' => 'desktop', 'webdriver' => false],
+        ], self::contexts($log));
     }
 
     public function testABackIsLogged(): void

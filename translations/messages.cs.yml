@@ -9090,6 +9090,9 @@ nav:
         home_logo: "MySpeedPuzzling – domů"
         feedback: "Zpětná vazba"
         sign_in: "Přihlásit se"
+    layout:
+        fold: "Sbalit menu"
+        dock: "Rozbalit menu"
     account:
         trigger_label: "Nabídka účtu"
         view_profile: "Zobrazit profil"

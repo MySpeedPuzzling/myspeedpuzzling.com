@@ -9063,6 +9063,9 @@ nav:
         home_logo: "MySpeedPuzzling – Start"
         feedback: "Feedback"
         sign_in: "Anmelden"
+    layout:
+        fold: "Menü einklappen"
+        dock: "Menü ausklappen"
     account:
         trigger_label: "Kontomenü"
         view_profile: "Profil ansehen"

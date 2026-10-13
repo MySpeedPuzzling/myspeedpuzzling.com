@@ -41,11 +41,16 @@ final class NativeAppStepAsideTest extends TestCase
             ['refusedOnAnIphone' => false, 'refusedOnThisDevice' => false],
             ['refusedOnAnIphone' => true, 'refusedOnThisDevice' => false],
         ],
-        // MENU-02b: a link to `menu` (or the ☰) goes to the page inside the app (the app's Menu screen), opens the phone
-        // panel on the web
+        // MENU-02b / NAV-13: a link to `menu` (or the ☰) goes to the page inside the app (the app's Menu screen); on the
+        // web it opens the phone panel or the desktop overlay, focuses the docked column, and the ☰ docks / folds it
         'assets/navigation/menu_links.js' => [
-            ['phone' => 'page', 'desktop' => 'page'],
-            ['phone' => 'panel', 'desktop' => 'page'],
+            ['phone' => 'page', 'desktop' => 'page', 'docked' => 'page', 'burgerFrom1280' => 'page'],
+            ['phone' => 'panel', 'desktop' => 'overlay', 'docked' => 'focus', 'burgerFrom1280' => 'toggle'],
+        ],
+        // NAV-13: the desktop ☰'s dock / fold state is the web's; inside the app it stays a plain opener
+        'assets/navigation/nav_layout.js' => [
+            ['menuButtonAt1440' => null],
+            ['menuButtonAt1440' => 'fold'],
         ],
         // NAV-03: the top bar may hide on a phone on the web, never inside the app
         'assets/topbar_scroll.js' => [

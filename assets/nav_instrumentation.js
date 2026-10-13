@@ -16,7 +16,10 @@
  * the Menu (MENU-02b: the phone panel; NAV-13: the desktop overlay) is one `menu_open` line: the Menu's controller
  * dispatches `msp:menu-open` {surface, place} on the document (MENU_OPEN_EVENT), this module sends it. A page search
  * that found nothing at all (MENU-03: no page, no player, no puzzle) is one `search_zero` line: the search dispatches
- * `msp:search-zero` {surface, q} (SEARCH_ZERO_EVENT) with the folded query, cut to 40 characters.
+ * `msp:search-zero` {surface, q} (SEARCH_ZERO_EVENT) with the folded query, cut to 40 characters. The desktop ☰
+ * docking or folding the Menu column (NAV-13) is one `layout` line {state, bucket}: assets/navigation/nav_layout.js
+ * dispatches `msp:nav-layout` {layout, width} (NAV_LAYOUT_EVENT); the viewport line carries the state the session
+ * started in (`dock`: docked | rail | none, read from the column's width --nav-left - D16's fold share).
  *
  * Every beacon carries the page's path, never its query string: loggablePage() replaces a path segment that looks like a
  * secret (a password-reset or account-deletion link, a credential claim, a newsletter or e-mail preferences token...)
@@ -57,6 +60,12 @@ export const SEARCH_SURFACES = ['menu', 'topbar'];
 
 /** The longest query a search_zero line carries (decision 39) - NavClickController::MAX_QUERY_LENGTH */
 export const SEARCH_QUERY_MAX = 40;
+
+/** The document event of the desktop ☰ docking / folding the Menu (assets/navigation/nav_layout.js), detail {layout, width} */
+export const NAV_LAYOUT_EVENT = 'msp:nav-layout';
+
+/** The desktop Menu's states (NAV-13) - NavClickController::NAV_LAYOUTS */
+export const NAV_LAYOUTS = ['docked', 'rail'];
 
 /** The page's place (NavPlace) - the same list as NavClickController::PLACES */
 export const PLACES = ['home', 'puzzles', 'add', 'community', 'profile', 'none'];
@@ -111,6 +120,25 @@ function matches(window, query) {
 
 export function layoutTier(window) {
     return matches(window, DESKTOP_QUERY) ? 'desktop' : 'phone';
+}
+
+/**
+ * The desktop Menu on this screen (NAV-13): 'docked' (the 256 px column), 'rail' (88 px) or 'none' (phones, 768-1023 px,
+ * pages without the bars) - read from the column's width --nav-left on <body>, which CSS alone sets
+ */
+export function dockState(window) {
+    try {
+        const body = window.document && window.document.body;
+        const width = body && typeof window.getComputedStyle === 'function' ? parseFloat(window.getComputedStyle(body).getPropertyValue('--nav-left')) : NaN;
+
+        if (!(width > 0)) {
+            return 'none';
+        }
+
+        return width >= 200 ? 'docked' : 'rail';
+    } catch (e) {
+        return 'none';
+    }
 }
 
 export function pointerType(window) {
@@ -249,6 +277,7 @@ export function createNavInstrumentation(env) {
             bucket: viewportBucket(window.innerWidth),
             pointer: pointerType(window),
             standalone: matches(window, '(display-mode: standalone)') || navigator.standalone === true,
+            dock: dockState(window),
         });
     }
 
@@ -323,6 +352,10 @@ export function createNavInstrumentation(env) {
         api.searchZero(event && event.detail ? event.detail : {});
     }
 
+    function onNavLayout(event) {
+        api.layoutChanged(event && event.detail ? event.detail : {});
+    }
+
     const api = {
         /** app.js: a Turbo restore visit, right before it turns it into a full page load */
         turboRestore() {
@@ -384,10 +417,25 @@ export function createNavInstrumentation(env) {
             send({ k: 'search_zero', surface: detail.surface, q });
         },
 
+        /**
+         * NAV-13: the desktop ☰ docked the Menu column or folded it to the rail - the new state and the width bucket.
+         * Anything else sends nothing.
+         */
+        layoutChanged(detail = {}) {
+            if (!NAV_LAYOUTS.includes(detail.layout)) {
+                return;
+            }
+
+            const width = typeof detail.width === 'number' && Number.isFinite(detail.width) ? detail.width : window.innerWidth;
+
+            send({ k: 'layout', state: detail.layout, bucket: viewportBucket(width) });
+        },
+
         start() {
             document.addEventListener('click', onClick, { capture: true, passive: true });
             document.addEventListener(MENU_OPEN_EVENT, onMenuOpen);
             document.addEventListener(SEARCH_ZERO_EVENT, onSearchZero);
+            document.addEventListener(NAV_LAYOUT_EVENT, onNavLayout);
             // Capture: at the window, capture listeners run before Turbo's popstate listener starts the restore
             window.addEventListener('popstate', rememberTraverse, { capture: true });
             window.addEventListener('pageshow', onPageShow);

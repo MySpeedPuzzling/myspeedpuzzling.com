@@ -6,7 +6,7 @@
 // otherwise, the history position).
 
 import { readFileSync } from 'node:fs';
-import { BEACON_URL, createNavInstrumentation, loggablePage, MENU_OPEN_EVENT, parseNav, SEARCH_ZERO_EVENT, viewportBucket } from '../assets/nav_instrumentation.js';
+import { BEACON_URL, createNavInstrumentation, loggablePage, MENU_OPEN_EVENT, NAV_LAYOUT_EVENT, parseNav, SEARCH_ZERO_EVENT, viewportBucket } from '../assets/nav_instrumentation.js';
 
 const input = JSON.parse(readFileSync(0, 'utf8'));
 
@@ -104,6 +104,9 @@ function run(scenario) {
             history: { state: options.turboIndex === undefined ? null : { turbo: { restorationIndex: options.turboIndex } } },
             performance: { getEntriesByType: () => (options.timingType ? [{ type: options.timingType }] : []) },
             CustomEvent: FakeCustomEvent,
+            // NAV-13: the desktop Menu's width on <body> (--nav-left, CSS only) - the viewport line's `dock`
+            document: { body: {} },
+            getComputedStyle: () => ({ getPropertyValue: (name) => (name === '--nav-left' ? String(options.navLeft ?? scenario.navLeft ?? '0px') : '') }),
             gaLoaded: Boolean(options.gaLoaded),
             gtag: (...args) => out.gtag.push(args),
         });
@@ -152,6 +155,10 @@ function run(scenario) {
             case 'search zero':
                 // MENU-03: nav_search_controller.js dispatches it on the document when a search found nothing
                 page.document.fire(SEARCH_ZERO_EVENT, { type: SEARCH_ZERO_EVENT, detail: step.detail });
+                break;
+            case 'nav layout':
+                // NAV-13: assets/navigation/nav_layout.js dispatches it on the document when the desktop ☰ docked/folded the Menu
+                page.document.fire(NAV_LAYOUT_EVENT, { type: NAV_LAYOUT_EVENT, detail: step.detail });
                 break;
             case 'dialog suppressed':
                 // The GEST-13 watchdog of assets/confirm_dialog.js

@@ -166,15 +166,20 @@ final class MenuLayerTest extends WebTestCase
     }
 
     /**
-     * The panel's rules in its script: show(), never showModal() (the bottom bar must stay usable, plan §3.4 item 4);
-     * history through assets/layer_history.js only; eager (☰ must answer the first tap)
+     * The panel's rules in its script: show(), never showModal() (the bottom bar must stay usable, plan §3.4 item 4) -
+     * showModal() only for the desktop overlay (NAV-13, README §4.3: no bottom bar there), whose Esc / close go through
+     * the helper's bindDialog(); history through assets/layer_history.js only; eager (☰ must answer the first tap)
      */
     public function testTheControllerOpensANonModalDialogThroughTheLayerHelper(): void
     {
         $code = (string) file_get_contents(dirname(__DIR__, 2) . '/assets/controllers/menu_layer_controller.js');
 
         self::assertStringContainsString('this.element.show();', $code);
-        self::assertDoesNotMatchRegularExpression('~\.showModal\s*\(~', $code);
+        // One showModal(), in the overlay's branch only
+        self::assertSame(1, preg_match_all('~\.showModal\s*\(~', $code));
+        self::assertMatchesRegularExpression('~if \(mode === OVERLAY\) \{[^}]*?this\.element\.showModal\(\);~s', $code);
+        self::assertMatchesRegularExpression('~\} else \{\s*applyMenuOrder\(nav, PHONE\);[^}]*?this\.element\.show\(\);~s', $code);
+        self::assertStringContainsString('layers.bindDialog(this.element, LAYER)', $code);
         self::assertStringContainsString("import layers from '../layer_history.js';", $code);
         self::assertStringContainsString("const LAYER = 'menu';", $code);
         self::assertStringContainsString('layers.open(LAYER,', $code);

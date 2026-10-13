@@ -1,8 +1,11 @@
-{#- The Menu shell (docs/features/navigation README §4.12 "Phone panel", MENU-02b; decision 87): an empty
-    <dialog id="menu-layer"> at the end of <body> (block nav_layers, web only - bar-free and auth pages empty it). The
-    phone panel moves the page's one #site-menu in here when it opens and back to its slot when it closes
-    (assets/controllers/menu_layer_controller.js) - never a second copy of the Menu. Opened with show(), never
-    showModal(); closed it is display: none.
+{#- The Menu shell (docs/features/navigation README §4.12 "Phone panel", MENU-02b; §4.3 overlay, NAV-13; decision 87): an
+    empty <dialog id="menu-layer"> at the end of <body> (block nav_layers, web only - bar-free and auth pages empty it).
+    The phone panel and the desktop overlay move the page's one #site-menu in here when they open and back to its slot
+    when they close (assets/controllers/menu_layer_controller.js) - never a second copy of the Menu. The panel opens
+    with show(), never showModal() (the bottom bar stays usable); the desktop overlay (768-1279 px, and a link to `menu`
+    in the rail state) with showModal() as .menu-layer--overlay: a sheet from the left, this header as its own 64 px
+    one (× · logo; "Menu" names the dialog), the Menu as in the docked column - the search field is the panel's only.
+    Closed it is display: none.
     data-menu-paths: the `menu` page in every locale - a link to any of them opens the panel on phones
     (assets/navigation/menu_links.js). data-menu-layer-place-value: the page's place (a tap on its tab only closes).
     Shared-cacheable for guests: nothing in here depends on the visitor but the logo's target (Home: hub / homepage).

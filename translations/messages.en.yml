@@ -9336,6 +9336,9 @@ nav:
         home_logo: "MySpeedPuzzling – Home"
         feedback: "Feedback"
         sign_in: "Sign in"
+    layout:
+        fold: "Collapse the menu"
+        dock: "Expand the menu"
     account:
         trigger_label: "Account menu"
         view_profile: "View profile"

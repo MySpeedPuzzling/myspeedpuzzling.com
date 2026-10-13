@@ -1,0 +1,373 @@
+// The desktop Menu: the rail, the docked column and the overlay (docs/features/navigation README §4.3 / D16, §5;
+// implementation plan NAV-13; templates/navigation/_menu_slot.html.twig, _bottom_nav.html.twig, _menu_layer.html.twig,
+// assets/navigation/nav_layout.js, assets/controllers/menu_layer_controller.js).
+//
+// Which one shows, and every box that takes room, is decided before first paint in critical CSS
+// (templates/navigation/_critical_css.html.twig): --nav-left (0 / 88 / 256 px, never written by JS), the rail's box
+// (#bottom-nav fixed under the top bar, 88 px, from 1024 px where the column is not docked), the column's box (#site-menu
+// in #menu-slot fixed under the top bar, 256 px, its own scroller) and the folded groups (html[data-nav-collapsed]).
+// Here is the rest: the rail's items, the column's and the overlay's rows, the disclosure buttons, the overlay sheet.
+// No hover expansion anywhere (D16): a hover only tints what is under the pointer.
+// Chrome markup rules (implementation plan §3.2): own prefixes only.
+
+// D16's fold rule in one place: from this width the Menu docks by default (else the rail). The critical CSS and
+// menu_layer_controller.js use the same number - tests/Navigation/NavLayoutCssTest.php keeps them equal.
+$nav-dock-default-from: 1440px;
+
+// The rail's tier: from 1024 px on desktop (Media Queries Level 3, like $nav-desktop-media)
+$nav-rail-media: "(min-width: 1024px) and (min-height: 501px), (min-width: 1024px) and (pointer: fine)";
+
+// The groups a player can fold in the column and the overlay (MenuGroupView::isCollapsible(): every headed group but the
+// places - Puzzles and Community head the column, decision 30). NavLayoutCssTest keeps the list equal to the PHP rule.
+$nav-collapsible-groups: roles, puzzling, library, add, account, help, about;
+
+// ---- The rail: #bottom-nav from 1024 px (R9) -------------------------------------------------------------------------
+// Home · Puzzles · Community · Profile (guests: Sign in) - the phone tab bar turned vertical, minus Add (the top bar's
+// + Add); 88 × 56 items, the icon on its pill over an always-visible label (the tab bar's tokens, 11 px).
+
+// The guests' "Sign in" of the rail never shows in the phone tab bar
+.nav-rail-label {
+    display: none;
+}
+
+@media #{$nav-rail-media} {
+    .bottom-nav {
+        // No label steps in the rail: the tab bar's container queries measure the bar's width - 88 px here
+        container-type: normal;
+        overflow-x: hidden;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        // The hairline outside the 88 px (items are the full width): critical CSS draws the same
+        box-shadow: 1px 0 0 var(--nav-hairline, rgba(43, 52, 69, .1));
+
+        .nav-places--bar {
+            flex: 0 0 auto;
+            flex-direction: column;
+            gap: 4px;
+            width: 100%;
+
+            > .nav-place {
+                flex: 0 0 auto;
+            }
+
+            > .nav-place--add {
+                display: none;
+            }
+        }
+
+        .nav-tab {
+            justify-content: center;
+            height: 56px;
+            padding: 0 2px;
+            border-radius: .75rem;
+        }
+
+        .nav-tab-label,
+        .nav-rail-label {
+            max-width: 100%;
+            overflow: visible;
+        }
+
+        // A guest's Profile reads "Sign in" in the rail (the tab word stays the phone bar's)
+        .has-rail-label .nav-tab-label {
+            display: none;
+        }
+
+        .has-rail-label .nav-rail-label {
+            display: block;
+            color: var(--nav-label, #5f6b80);
+            font-size: .6875rem;
+            font-weight: 500;
+            line-height: .875rem;
+            white-space: nowrap;
+        }
+
+        .nav-tab:hover .nav-tab-icon {
+            background: var(--nav-pressed-pill, rgba(254, 105, 106, .1));
+        }
+
+        .nav-tab:is([aria-current]:not(.is-leaving), .is-pending):hover .nav-tab-icon {
+            background: var(--nav-active-pill, #ffe8e8);
+        }
+    }
+}
+
+// ---- The docked column and the overlay: the same Menu, the same rows (README §4.3) -----------------------------------
+// The column = #site-menu in #menu-slot (shown only where it is docked); the overlay = #site-menu moved into the shell
+// .menu-layer--overlay. Both show the dock-only parts (Home, the place rows, the "Profile" row heading Your puzzling) and
+// hide the phone-only ones (the You card, Inbox, Log out, the group headings the place rows replace); rows 40 px for
+// places, 32 px for sections; group headings are disclosure buttons.
+
+@mixin nav-dock-menu {
+    padding: .5rem .5rem 1.5rem;
+    font-size: .875rem;
+    scrollbar-width: thin;
+
+    .menu-group {
+        position: relative;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        margin: 0;
+    }
+
+    li.menu-only-dock {
+        display: list-item;
+    }
+
+    // The heading and its disclosure button share the first cell: the button lies over the heading
+    .menu-group-title {
+        grid-area: 1 / 1;
+        display: flex;
+        align-items: center;
+        min-height: 32px;
+        margin: .75rem 0 0;
+        padding: 0 2.25rem 0 .5rem;
+        font-size: .6875rem;
+        line-height: 1.2;
+    }
+
+    .menu-list {
+        grid-area: 2 / 1;
+    }
+
+    .menu-disclosure {
+        grid-area: 1 / 1;
+        position: relative;
+        display: block;
+        width: 100%;
+        min-height: 32px;
+        margin: .75rem 0 0;
+        padding: 0;
+        border: 0;
+        border-radius: .5rem;
+        color: var(--nav-label, #5f6b80);
+        background: transparent;
+        cursor: pointer;
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
+
+        // The chevron: down while open, right while folded
+        &::after {
+            content: "";
+            position: absolute;
+            top: 50%;
+            right: .875rem;
+            width: .4375rem;
+            height: .4375rem;
+            margin-top: -.3125rem;
+            border-right: 2px solid currentColor;
+            border-bottom: 2px solid currentColor;
+            transform: rotate(45deg);
+        }
+
+        &[aria-expanded="false"]::after {
+            margin-top: -.21875rem;
+            transform: rotate(-45deg);
+        }
+
+        &:hover {
+            background: var(--nav-pressed-pill, rgba(254, 105, 106, .1));
+        }
+
+        &:focus-visible {
+            outline: 2px solid var(--nav-focus, #4e54c8);
+            outline-offset: -2px;
+        }
+    }
+
+    // A group the column heads with its place row (Your puzzling: "Profile"): the button sits at that row's end
+    .menu-group--by-place .menu-disclosure {
+        grid-area: 2 / 1;
+        z-index: 1;
+        justify-self: end;
+        align-self: start;
+        width: 40px;
+        min-height: 40px;
+        margin: 0;
+    }
+
+    .menu-group--by-place .mr--place {
+        padding-right: 44px;
+    }
+
+    // Rows: 32 px sections, 40 px places
+    .mr {
+        gap: .625rem;
+        min-height: 32px;
+        padding: .25rem .5rem;
+        font-size: inherit;
+
+        > .bi {
+            flex-basis: 1.25rem;
+            font-size: 1.0625rem;
+        }
+
+        &::after {
+            width: .375rem;
+            height: .375rem;
+            opacity: .35;
+        }
+    }
+
+    .mr--place {
+        min-height: 40px;
+        font-weight: 500;
+
+        > .bi {
+            font-size: 1.1875rem;
+        }
+
+        // A place is not a page among others: no chevron (the rail's places have none either)
+        &::after {
+            display: none;
+        }
+    }
+
+    // 256 px: a long compound word (de "Empfehlungsprogramm") breaks at a hyphen of the page's language, not mid-letter
+    .mr-l {
+        hyphens: auto;
+    }
+
+    .mr-d {
+        font-size: .75rem;
+    }
+
+    .mr-legal {
+        gap: .625rem;
+        min-height: 32px;
+        padding: .25rem .5rem;
+
+        > .bi {
+            flex-basis: 1.25rem;
+            font-size: 1.0625rem;
+        }
+    }
+
+    .mr-links a,
+    .menu-language-list a {
+        min-height: 32px;
+    }
+
+    .menu-language-list {
+        padding-left: 2.375rem;
+    }
+
+    // The guests' Sign in · Join free card follows the places (decision 31)
+    .menu-guest {
+        margin: .5rem 0 0;
+        padding: .5rem 0;
+        border-top: 1px solid var(--nav-hairline, rgba(43, 52, 69, .1));
+        border-bottom: 0;
+    }
+
+    .menu-guest-line {
+        font-size: .8125rem;
+    }
+
+    .menu-guest-btn {
+        min-height: 36px;
+        padding: .25rem .75rem;
+    }
+
+    // Last - the rules above give groups and headings a display: the phone-only parts stay hidden (the You card, Inbox,
+    // Log out, the headings the place rows replace)
+    .menu-only-phone {
+        display: none;
+    }
+
+    // Folded groups: their rows are hidden - the place row heading a group stays (critical CSS does the column before
+    // first paint)
+    @each $group in $nav-collapsible-groups {
+        :root[data-nav-collapsed~="#{$group}"] & [data-menu-group="#{$group}"] > ul > li:not(.menu-only-dock) {
+            display: none;
+        }
+    }
+}
+
+.menu-slot > .site-menu {
+    @include nav-dock-menu;
+}
+
+.menu-layer--overlay .site-menu {
+    @include nav-dock-menu;
+}
+
+// ---- The overlay (768-1279 px, and a link to `menu` in the rail state) -------------------------------------------------
+// The shell <dialog id="menu-layer"> opened with showModal() as .menu-layer--overlay: a sheet from the left,
+// min(320 px, 85vw), its own 64 px header (× · logo), a scrim; slides in and out in 200 ms, none with reduced motion.
+
+.menu-layer.menu-layer--overlay {
+    top: 0;
+    right: auto;
+    bottom: 0;
+    left: 0;
+    width: min(320px, 85vw);
+    height: 100%;
+    border-right: 1px solid var(--nav-hairline, rgba(43, 52, 69, .1));
+    box-shadow: 0 0 24px rgba(43, 52, 69, .18);
+
+    &[open] {
+        animation: menu-overlay-in 200ms var(--nav-ease, cubic-bezier(.2, 0, 0, 1)) both;
+    }
+
+    &[open].is-closing {
+        animation: menu-overlay-out 200ms var(--nav-ease, cubic-bezier(.2, 0, 0, 1)) both;
+    }
+
+    &::backdrop {
+        background: rgba(43, 52, 69, .4);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        &[open],
+        &[open].is-closing {
+            animation: none;
+        }
+    }
+
+    .menu-layer-header {
+        height: 64px;
+        min-height: 0;
+        padding: 0 12px;
+        gap: .5rem;
+    }
+
+    // "Menu" still names the dialog (aria-labelledby) - the header shows × and the logo, like the top bar's ☰ and logo
+    .menu-layer-title {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+    }
+
+    // The panel's search field: the desktop top bar has the search
+    .menu-layer-search {
+        display: none;
+    }
+
+    .menu-layer-body {
+        padding: 0;
+    }
+}
+
+@keyframes menu-overlay-in {
+    from {
+        transform: translateX(-100%);
+    }
+
+    to {
+        transform: none;
+    }
+}
+
+@keyframes menu-overlay-out {
+    from {
+        transform: none;
+    }
+
+    to {
+        transform: translateX(-100%);
+    }
+}

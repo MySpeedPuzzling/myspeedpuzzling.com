@@ -29,7 +29,7 @@ $z-sub-bar: 1010;            // page sub-bars under the top bar: compact bar, ev
 $z-content-sticky: 1020;     // Bootstrap .sticky-top content
 $z-site-header: 1030;        // the top bar
 $z-bottom-nav: 1030;         // the phone bottom bar
-$z-nav-column: 1030;         // the desktop rail / docked Menu column
+$z-nav-column: 1029;         // the desktop rail / docked Menu column: under the top bar (its search panel, account menu)
 $z-selection-bar: 1035;      // the floating selection bar of the puzzle lists
 $z-menu-layer: 1040;         // the Menu shell #menu-layer (non-modal, above the bars); sheet scrims
 $z-sheet: 1045;              // sheets and layers: player card, events ⋯ menu, XP recap sheet, multiscan sheet

@@ -19,8 +19,9 @@ use Symfony\Component\Process\Process;
  *   the `menu` page's server-rendered phone order (MENU-02a: the page shows the panel's rows);
  * - assets/navigation/menu_counts.js: the lazy counts are asked on every open of the panel and at most once per
  *   5 minutes per tab for the docked column (sessionStorage), never from another player's answer;
- * - assets/navigation/menu_links.js: a click on a link to `menu` (any locale) or the ☰ opens the panel on phones; a
- *   click the browser should keep, desktop (until NAV-13) and the native app go to the page.
+ * - assets/navigation/menu_links.js: a click on a link to `menu` (any locale) or the ☰ opens the panel on phones - on
+ *   desktop (NAV-13) the overlay, the docked column's focus or the ☰'s dock / fold; a click the browser should keep and
+ *   the native app go to the page.
  */
 final class MenuOrderScriptTest extends WebTestCase
 {
@@ -196,7 +197,9 @@ final class MenuOrderScriptTest extends WebTestCase
     {
         self::assertSame([
             'phone' => 'panel',
-            'desktop' => 'page',
+            'desktop' => 'overlay',
+            'docked' => 'focus',
+            'dockedBurger' => 'toggle',
             'nativeApp' => 'page',
             'middleButton' => 'page',
             'modified' => 'page',
@@ -205,18 +208,21 @@ final class MenuOrderScriptTest extends WebTestCase
             'download' => 'page',
         ], $this->case('menuLinkAction'));
 
-        $opened = ['opened' => ['to-menu'], 'prevented' => true, 'afterStop' => false];
-        $page = ['opened' => [], 'prevented' => false, 'afterStop' => false];
+        $opened = ['opened' => ['to-menu'], 'actions' => ['panel'], 'prevented' => true, 'afterStop' => false];
+        $page = ['opened' => [], 'actions' => [], 'prevented' => false, 'afterStop' => false];
 
         self::assertSame([
             'phone' => $opened,
-            'burger' => ['opened' => ['burger'], 'prevented' => true, 'afterStop' => false],
-            'desktop' => $page,
+            'burger' => ['opened' => ['burger'], 'actions' => ['panel'], 'prevented' => true, 'afterStop' => false],
+            'desktop' => ['opened' => ['to-menu'], 'actions' => ['overlay'], 'prevented' => true, 'afterStop' => false],
+            'rail' => ['opened' => ['to-menu'], 'actions' => ['overlay'], 'prevented' => true, 'afterStop' => false],
+            'docked' => ['opened' => ['to-menu'], 'actions' => ['focus'], 'prevented' => true, 'afterStop' => false],
+            'wideBurger' => ['opened' => ['burger'], 'actions' => ['toggle'], 'prevented' => true, 'afterStop' => false],
             'nativeApp' => $page,
             'ctrlClick' => $page,
             'newTab' => $page,
             // The panel could not open (no Menu on the page): the link goes to the page
-            'cannotOpen' => ['opened' => ['to-menu'], 'prevented' => false, 'afterStop' => false],
+            'cannotOpen' => ['opened' => ['to-menu'], 'actions' => ['panel'], 'prevented' => false, 'afterStop' => false],
             'otherLink' => $page,
             'opener' => 'to-menu',
         ], $this->case('listenForMenuLinks'));

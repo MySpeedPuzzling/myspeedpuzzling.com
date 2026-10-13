@@ -11,6 +11,7 @@ import { isNativeApp, nativePlatform, os } from '../assets/platform.js';
 import { closeAction, entryAction } from '../assets/layer_history.js';
 import { reportsSuppressed } from '../assets/confirm_dialog.js';
 import { menuLinkAction } from '../assets/navigation/menu_links.js';
+import { menuButtonState } from '../assets/navigation/nav_layout.js';
 import { topbarMayHide } from '../assets/topbar_scroll.js';
 
 /** A fake <html>: inside the app on an Android phone, or Chrome on the same phone */
@@ -45,13 +46,22 @@ const ROWS = [
             refusedOnThisDevice: reportsSuppressed(isNativeApp(html), os(html), false, 0, false),
         }),
     },
-    // MENU-02b: a plain click on a link to `menu` - the app's own Menu screen inside the app, the phone panel on the web
-    // (desktop goes to the page until NAV-13)
+    // MENU-02b / NAV-13: a plain click on a link to `menu` - the app's own Menu screen inside the app; on the web the
+    // phone panel, the desktop overlay, the docked column's focus, the desktop ☰'s dock / fold
     {
         id: 'assets/navigation/menu_links.js',
         run: (html) => ({
-            phone: menuLinkAction(isNativeApp(html), true, {}),
-            desktop: menuLinkAction(isNativeApp(html), false, {}),
+            phone: menuLinkAction(isNativeApp(html), 'phone', {}),
+            desktop: menuLinkAction(isNativeApp(html), 'overlay', {}),
+            docked: menuLinkAction(isNativeApp(html), 'docked', {}),
+            burgerFrom1280: menuLinkAction(isNativeApp(html), 'rail', {}, true),
+        }),
+    },
+    // NAV-13: the desktop ☰ docks / folds the column on the web from 1280 px; the app has no column (never shown there)
+    {
+        id: 'assets/navigation/nav_layout.js',
+        run: (html) => ({
+            menuButtonAt1440: menuButtonState({ nativeApp: isNativeApp(html), wide: true, docked: true }).tooltip,
         }),
     },
     // NAV-03: the phone top bar hides on scroll on the web; the app has no web top bar - nothing to hide there

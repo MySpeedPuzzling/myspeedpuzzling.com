@@ -10,10 +10,25 @@
     --topbar-shift   how far the hidden top bar moved up: sub-bars follow it with `translate` (mixin nav-follow-topbar).
     --bottom-nav-height  phone bottom bar + safe area, 0 while no visible .bottom-nav, with a running stopwatch and in
                      the app. Every fixed bottom element sits above it (mixin nav-bottom).
-    --nav-left       width of the desktop menu column/rail: 0 until NAV-13 adds the tier values here (88/256 px).
+    --nav-left       width of the desktop Menu column / rail (NAV-13, README §4.3 / D16): 0 on phones and 768-1023 px;
+                     88 px (the rail) from 1024 px; 256 px (the docked column) at 1280-1439 px with
+                     html[data-nav-layout="docked"] and from 1440 px unless html[data-nav-layout="rail"] - the attribute
+                     is the player's choice per device, set before paint by assets/head/nav_layout.js. 1440 px is the one
+                     switch of D16's fold rule ($nav-dock-default-from in _nav-layout.scss). <body> overrides it: a page
+                     without the bars (body.no-nav-chrome: bar-free templates, the app) keeps 0, the `menu` page
+                     (body.no-nav-column: the Menu is its content) keeps the rail; print 0. main, the footer and the old
+                     header rows (until NAV-06) start right of it - the footer sits right of the column. A page that
+                     hides the bar (hide_bottom_bar) has no rail but keeps the 88 px (NAV-08 decides). The old header
+                     rows (.legacy-chrome, until NAV-06) are clipped at the content's right edge: in de/es/fr their tools
+                     no longer fit next to the column and would scroll the page sideways.
     Under html[data-native-app] every reserved chrome size is 0 (plan §3.5 item 7).
-    .menu-slot       the docked-column slot of the page's one #site-menu (MENU-01): hidden wherever there is no column -
-                     everywhere until NAV-13 docks it - before the stylesheet arrives, so the Menu never flashes.
+    .menu-slot       the docked-column slot of the page's one #site-menu (MENU-01): hidden wherever there is no docked
+                     column, shown where there is one - the column itself is #site-menu in it, fixed under the top bar,
+                     256 px, its own scroller. Its groups folded by the player (html[data-nav-collapsed], disclosure
+                     buttons) are hidden before paint; the place row heading a group stays.
+                     The rail (NAV-13, R9) is .bottom-nav itself from 1024 px wherever the column is not docked: 88 px,
+                     fixed under the top bar - one under it on the z-scale (1029: the bar's search panel and menus
+                     overlap the column).
     .bottom-nav      the phone bottom bar's box (NAV-01, README §4.2): fixed, 56 px + the safe area (Chrome 135+ fast
                      path: bottom = inset - max inset, padding = max inset), none on desktop; <body> keeps its height
                      free at the end of the page. Its look and the label steps live in _nav-bars.scss.
@@ -60,7 +75,17 @@
 .bottom-nav[hidden]{display:none}
 @media (min-width:768px) and (min-height:501px),(min-width:768px) and (pointer:fine){.bottom-nav{display:none}}
 body{padding-bottom:var(--bottom-nav-height)}
-.nav-sprite{display:none}
+@media (min-width:1024px) and (min-height:501px),(min-width:1024px) and (pointer:fine){:root{--nav-left:var(--nav-rail-w)}body:not(.no-nav-chrome)>.bottom-nav:not([hidden]){display:flex;flex-direction:column;top:var(--desk-topbar-h);right:auto;bottom:0;z-index:1029;width:var(--nav-rail-w);height:auto;padding:8px 0;border-top:0;box-shadow:1px 0 0 var(--nav-hairline)}}
+@media (min-width:1280px) and (min-height:501px),(min-width:1280px) and (pointer:fine){:root[data-nav-layout=docked]{--nav-left:var(--nav-col-w)}:root[data-nav-layout=docked] body:not(.no-nav-column)>.bottom-nav{display:none}:root[data-nav-layout=docked] body:not(.no-nav-column)>.menu-slot{display:block}}
+@media (min-width:1440px) and (min-height:501px),(min-width:1440px) and (pointer:fine){:root:not([data-nav-layout=rail]){--nav-left:var(--nav-col-w)}:root:not([data-nav-layout=rail]) body:not(.no-nav-column)>.bottom-nav{display:none}:root:not([data-nav-layout=rail]) body:not(.no-nav-column)>.menu-slot{display:block}}
+@media (min-width:1024px) and (min-height:501px),(min-width:1024px) and (pointer:fine){body.no-nav-column{--nav-left:var(--nav-rail-w)}}
+:root[data-native-app],body.no-nav-chrome{--nav-left:0px}
+.menu-slot>.site-menu{position:fixed;top:var(--desk-topbar-h);bottom:0;left:0;z-index:1029;width:var(--nav-col-w);overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;background:var(--nav-bg);border-right:1px solid var(--nav-hairline)}
+:root[data-nav-collapsed~=roles] .menu-slot [data-menu-group=roles]>ul>li:not(.menu-only-dock),:root[data-nav-collapsed~=puzzling] .menu-slot [data-menu-group=puzzling]>ul>li:not(.menu-only-dock),:root[data-nav-collapsed~=library] .menu-slot [data-menu-group=library]>ul>li:not(.menu-only-dock),:root[data-nav-collapsed~=add] .menu-slot [data-menu-group=add]>ul>li:not(.menu-only-dock),:root[data-nav-collapsed~=account] .menu-slot [data-menu-group=account]>ul>li:not(.menu-only-dock),:root[data-nav-collapsed~=help] .menu-slot [data-menu-group=help]>ul>li:not(.menu-only-dock),:root[data-nav-collapsed~=about] .menu-slot [data-menu-group=about]>ul>li:not(.menu-only-dock){display:none}
+body>main,body>.site-footer,body>.legacy-chrome{margin-inline-start:var(--nav-left)}
+body>.legacy-chrome{overflow-x:clip}
+@media print{body{--nav-left:0px!important}.bottom-nav,.menu-slot{display:none!important}}
+.nav-sprite,.nav-rail-label{display:none}
 .site-header{position:sticky;top:0;z-index:1030;height:52px;background:var(--nav-bg);border-bottom:1px solid var(--nav-hairline)}
 @media (min-width:768px) and (min-height:501px),(min-width:768px) and (pointer:fine){.site-header{height:64px}}
 @media (max-width:767.98px) and (max-height:479.98px),(max-height:479.98px) and (pointer:coarse){.site-header{position:relative}}

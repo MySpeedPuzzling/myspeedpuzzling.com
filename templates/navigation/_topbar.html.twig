@@ -25,7 +25,10 @@
       account menu (navigation/_account_menu.html.twig, NAV-05); guests get a Sign in button in its place (decision
       23 - back to this page afterwards, like the Profile tab). No Puzzles ▾ / Community ▾ dropdowns.
     - ☰ is rendered twice (R8): first for desktop (above the docked column, NAV-13; Tab order skip link → ☰ → logo …),
-      last for phones; CSS shows one. Until NAV-13 a click on the desktop one opens the `menu` page.
+      last for phones; CSS shows one. The desktop one (NAV-13, README §4.3): from 1280 px it docks the Menu as the left
+      column or folds it to the rail (assets/navigation/nav_layout.js keeps aria-expanded = docked, aria-controls and the
+      tooltip nav.layout.fold / nav.layout.dock from its data attributes), below 1280 px it opens the Menu as an overlay
+      (aria-haspopup="dialog" - the server renders that state). Without JS it is a link to the `menu` page.
     The tools carry data-bar-action (BarAction, NAV-14) - search, help, inbox and menu on each surface; Inbox also
     data-bar-count. Phones hide the bar on scroll down and bring it back on scroll up (topbar_controller.js, sticky, a
     transform only while hidden - never a backdrop-filter: the search panel inside is position: fixed).
@@ -49,7 +52,7 @@
 <header class="site-header{{ back ? ' site-header--back' }}{{ stopwatch_running ? ' site-header--stopwatch' }}" data-controller="topbar"
     {%- if profile is not null %} data-viewer-signed-in{% endif %}>
     <div class="site-header-inner">
-        <a class="site-header-tool site-header-menu site-header-menu--desk" href="{{ path('menu') }}" data-bar-action="{{ bar_action('menu') }}" data-nav="topbar/none/menu" aria-label="{{ 'nav.bar.menu'|trans }}" aria-haspopup="dialog" aria-expanded="false">
+        <a class="site-header-tool site-header-menu site-header-menu--desk" href="{{ path('menu') }}" data-bar-action="{{ bar_action('menu') }}" data-nav="topbar/none/menu" aria-label="{{ 'nav.bar.menu'|trans }}" aria-haspopup="dialog" aria-expanded="false" aria-controls="site-menu" data-nav-fold-label="{{ 'nav.layout.fold'|trans }}" data-nav-dock-label="{{ 'nav.layout.dock'|trans }}">
             <svg class="nav-i" aria-hidden="true" focusable="false"><use href="#nav-i-list"></use></svg>
             <span class="site-header-menu-label" aria-hidden="true">{{ 'nav.bar.menu'|trans }}</span>
             {%- if menu_dot %}<span class="nav-menu-dot" aria-hidden="true"></span>{% endif -%}

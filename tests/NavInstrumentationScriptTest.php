@@ -273,6 +273,8 @@ final class NavInstrumentationScriptTest extends TestCase
             'bucket' => 'lt768',
             'pointer' => 'coarse',
             'standalone' => false,
+            // NAV-13: no desktop Menu on a phone
+            'dock' => 'none',
             'page' => '/en/faq',
             'layout' => 'phone',
             'wd' => false,
@@ -289,6 +291,38 @@ final class NavInstrumentationScriptTest extends TestCase
 
         $viewport = self::beacons($did, 'viewport')[0] ?? [];
         self::assertSame(['1440_1919', 'fine', true, 'desktop'], [$viewport['bucket'] ?? null, $viewport['pointer'] ?? null, $viewport['standalone'] ?? null, $viewport['layout'] ?? null]);
+    }
+
+    /**
+     * NAV-13 (README §4.3 / D16 "if more than half of desktop players fold the column…"): the viewport line says which
+     * desktop Menu the session started with - from the column's width on <body> (--nav-left, set by CSS alone) - and each
+     * dock / fold of the ☰ is one `layout` line with the new state and the width bucket
+     */
+    public function testTheDesktopMenusStateAndItsSwitches(): void
+    {
+        $desktop = ['(pointer: coarse)' => false, '(pointer: fine)' => true, '(min-width: 768px) and (min-height: 501px), (min-width: 768px) and (pointer: fine)' => true];
+        $states = [];
+
+        foreach (['256px' => 1440, '88px' => 1280, '0px' => 820] as $navLeft => $width) {
+            $did = $this->scenario(['media' => $desktop, 'width' => $width, 'navLeft' => $navLeft, 'steps' => [['do' => 'load']]]);
+            $states[$navLeft] = self::beacons($did, 'viewport')[0]['dock'] ?? null;
+        }
+
+        self::assertSame(['256px' => 'docked', '88px' => 'rail', '0px' => 'none'], $states);
+
+        $did = $this->scenario(['media' => $desktop, 'width' => 1440, 'navLeft' => '256px', 'steps' => [
+            ['do' => 'load', 'page' => '/en/hub'],
+            ['do' => 'nav layout', 'detail' => ['layout' => 'rail', 'width' => 1440]],
+            ['do' => 'nav layout', 'detail' => ['layout' => 'docked', 'width' => 1300]],
+            // Not a state: nothing
+            ['do' => 'nav layout', 'detail' => ['layout' => 'sideways', 'width' => 1300]],
+            ['do' => 'nav layout', 'detail' => []],
+        ]]);
+
+        self::assertSame([
+            ['url' => '/-/nav-click', 'v' => 1, 'k' => 'layout', 'state' => 'rail', 'bucket' => '1440_1919', 'page' => '/en/hub', 'layout' => 'desktop', 'wd' => false],
+            ['url' => '/-/nav-click', 'v' => 1, 'k' => 'layout', 'state' => 'docked', 'bucket' => '1280_1439', 'page' => '/en/hub', 'layout' => 'desktop', 'wd' => false],
+        ], self::beacons($did, 'layout'));
     }
 
     /**

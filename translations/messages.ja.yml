@@ -9052,6 +9052,9 @@ nav:
         home_logo: "MySpeedPuzzling – ホーム"
         feedback: "フィードバック"
         sign_in: "サインイン"
+    layout:
+        fold: "メニューを折りたたむ"
+        dock: "メニューを展開する"
     account:
         trigger_label: "アカウントメニュー"
         view_profile: "プロフィールを見る"

@@ -2,10 +2,10 @@
 // one #site-menu. Rows: icon · label (+ a one-line description) · count or status · chevron, ≥ 48 px on phones; labels
 // wrap, never truncate (README §4.12, checked at 320 px in 6 locales). Colours from the README §5 tokens.
 //
-// Surfaces: the slot (`.menu-slot`, hidden by critical CSS wherever there is no docked column - everywhere until
-// NAV-13), the `menu` page (phone rows only) and, from MENU-02b, the phone panel. Phone-only parts carry
-// `.menu-only-phone`, dock-only parts `.menu-only-dock`: everywhere but the docked column and the overlay (NAV-13
-// flips these there) the dock-only parts and the disclosure buttons stay hidden.
+// Surfaces: the slot (`.menu-slot`, shown by critical CSS only where the Menu is docked as the desktop column, NAV-13),
+// the `menu` page (phone rows only), the phone panel (MENU-02b) and the desktop overlay (NAV-13). Phone-only parts carry
+// `.menu-only-phone`, dock-only parts `.menu-only-dock`: everywhere but the docked column and the overlay (_nav-layout.scss
+// flips these there, with the column's 40/32 px rows) the dock-only parts and the disclosure buttons stay hidden.
 // Chrome markup rules (implementation plan §3.2): own prefixes only (`site-menu`, `menu-*`, `mr*`).
 
 .menu-slot {

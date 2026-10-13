@@ -1,9 +1,12 @@
 import { isNativeApp } from '../platform.js';
+import { isDocked, WIDE_QUERY } from './nav_layout.js';
 
-// Links to the Menu (docs/features/navigation README §4.12 "Fallback page", MENU-02b): the route `menu` is a real page -
-// for no JS, a new tab, deep links and the native app - and with JS on the web a link to it opens the Menu instead.
-// On phones that is the panel (MENU-02b); the desktop column and overlay are NAV-13's. The ☰ of the top bar
-// (data-bar-action="menu", NAV-03) is such a link too.
+// Links to the Menu (docs/features/navigation README §4.12 "Fallback page", MENU-02b, NAV-13): the route `menu` is a
+// real page - for no JS, a new tab, deep links and the native app - and with JS on the web a link to it opens the Menu
+// instead: on phones the panel (MENU-02b); on desktop (NAV-13, README §4.3) the docked column gets the focus where the
+// Menu is docked, the overlay opens everywhere else (the rail, below 1280 px). The ☰ of the top bar
+// (data-bar-action="menu", NAV-03 / NAV-04) is such a link too - but from 1280 px the desktop ☰ switches the column
+// between docked and rail instead.
 //
 // One delegated click listener on the document (bubble phase: it runs before Turbo's own listener on the window and
 // takes the click with preventDefault(), so Turbo never visits the page). A click the browser should keep - another
@@ -14,6 +17,25 @@ import { isNativeApp } from '../platform.js';
 
 /** Phones in Media Queries Level 3 syntax (requirements, Conventions; $nav-phone-media in _nav-tokens.scss) */
 export const PHONE_QUERY = '(max-width: 767.98px), (max-height: 500.98px) and (pointer: coarse)';
+
+/**
+ * Which Menu this screen has (NAV-13): 'phone' (the panel), 'overlay' (desktop below 1280 px: the ☰ opens it), 'rail'
+ * and 'docked' (from 1280 px, the player's choice per device - the ☰ switches between them)
+ */
+export const SURFACES = ['phone', 'overlay', 'rail', 'docked'];
+
+/** The surface from what the screen is (pure): phone, at least 1280 px wide (desktop), the column docked */
+export function menuSurface({ phone = false, wide = false, docked = false } = {}) {
+    if (phone) {
+        return 'phone';
+    }
+
+    if (docked) {
+        return 'docked';
+    }
+
+    return wide ? 'rail' : 'overlay';
+}
 
 const OPENER_SELECTOR = 'a[href], [data-bar-action="menu"]';
 
@@ -137,11 +159,14 @@ export function menuOpenerOf(target, paths, base) {
 
 /**
  * What a click on a link to the Menu does (native-aware decision, tests/native-step-aside-harness.mjs):
- * 'page' - the browser follows the link to the `menu` page (the native app always, a click it should keep, desktop
- * until NAV-13); 'panel' - the phone panel opens.
- * click: {button, modified (Ctrl/Cmd/Shift/Alt), defaultPrevented, newTab (a target other than _self), download}
+ * 'page' - the browser follows the link to the `menu` page (the native app always, a click it should keep);
+ * 'panel' - the phone panel opens; 'overlay' - the desktop overlay opens (below 1280 px, and from a link in the rail
+ * state); 'focus' - the docked column's first row gets the focus (a link where the Menu is docked); 'toggle' - the
+ * desktop ☰ from 1280 px switches the column between docked and rail.
+ * surface: menuSurface(); click: {button, modified (Ctrl/Cmd/Shift/Alt), defaultPrevented, newTab (a target other than
+ * _self), download}; bar: the click is on the top bar's ☰ (data-bar-action="menu")
  */
-export function menuLinkAction(nativeApp, phone, click = {}) {
+export function menuLinkAction(nativeApp, surface, click = {}, bar = false) {
     if (nativeApp) {
         return 'page';
     }
@@ -150,7 +175,25 @@ export function menuLinkAction(nativeApp, phone, click = {}) {
         return 'page';
     }
 
-    return phone ? 'panel' : 'page';
+    switch (surface) {
+        case 'phone':
+            return 'panel';
+        case 'docked':
+            return bar ? 'toggle' : 'focus';
+        case 'rail':
+            return bar ? 'toggle' : 'overlay';
+        case 'overlay':
+            return 'overlay';
+        default:
+            return 'page';
+    }
+}
+
+/** This screen's surface (menuSurface() from the media queries and whether the column is shown) */
+export function currentMenuSurface(window, document) {
+    const query = (media) => typeof window.matchMedia === 'function' && window.matchMedia(media).matches;
+
+    return menuSurface({ phone: query(PHONE_QUERY), wide: query(WIDE_QUERY), docked: isDocked(document) });
 }
 
 function clickFacts(event, opener) {
@@ -166,10 +209,13 @@ function clickFacts(event, opener) {
 }
 
 /**
- * Listens for clicks on links to the Menu. open(opener) shows the surface and returns true, or false when it cannot
- * (the click then goes on to the page). Returns the function that stops listening.
+ * Listens for clicks on links to the Menu. open(opener, action) does what menuLinkAction() decided ('panel', 'overlay',
+ * 'focus', 'toggle') and returns true, or false when it cannot (the click then goes on to the page). surface() tells
+ * this screen's Menu surface (default: currentMenuSurface()). Returns the function that stops listening.
  */
-export function listenForMenuLinks({ document, window, paths, open }) {
+export function listenForMenuLinks({ document, window, paths, open, surface = null }) {
+    const surfaceOf = typeof surface === 'function' ? surface : () => currentMenuSurface(window, document);
+
     const onClick = (event) => {
         const opener = menuOpenerOf(event.target, paths, window.location.href);
 
@@ -177,13 +223,13 @@ export function listenForMenuLinks({ document, window, paths, open }) {
             return;
         }
 
-        const phone = typeof window.matchMedia === 'function' && window.matchMedia(PHONE_QUERY).matches;
+        const action = menuLinkAction(isNativeApp(document.documentElement), surfaceOf(), clickFacts(event, opener), opener.getAttribute('data-bar-action') === 'menu');
 
-        if (menuLinkAction(isNativeApp(document.documentElement), phone, clickFacts(event, opener)) !== 'panel') {
+        if (action === 'page') {
             return;
         }
 
-        if (open(opener) === true) {
+        if (open(opener, action) === true) {
             event.preventDefault();
         }
     };

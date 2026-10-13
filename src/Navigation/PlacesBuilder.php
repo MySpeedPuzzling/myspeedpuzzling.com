@@ -18,8 +18,9 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
  * - Community: its landing;
  * - Profile: your own profile with your avatar (guests: sign in, back to this page afterwards).
  * Labels and icons come from the registry's place entries - the same key and icon on every surface.
- * Variants: `bar` the phone tab bar (all five), `rail` the desktop rail (NAV-13: no Add), `compact` the 768-1023 px top
- * bar (NAV-04: Home, Puzzles, Community).
+ * Variants: `bar` the phone tab bar (all five) - also the desktop rail (NAV-13, R9: #bottom-nav restyled, Add hidden,
+ * a guest's Profile labelled "Sign in" through railLabel), `rail` the rail's four places alone (no Add), `compact` the
+ * 768-1023 px top bar (NAV-04: Home, Puzzles, Community).
  * No state: the place and the current page come in with the call.
  */
 final readonly class PlacesBuilder
@@ -27,6 +28,9 @@ final readonly class PlacesBuilder
     public const string VARIANT_BAR = 'bar';
     public const string VARIANT_RAIL = 'rail';
     public const string VARIANT_COMPACT = 'compact';
+
+    // The guests' Profile in the rail (NAV-13): the top bar's Sign in word
+    private const string GUEST_RAIL_LABEL = 'nav.bar.sign_in';
 
     // The registry's entry of each place, in bar order
     private const array ENTRIES = [
@@ -98,6 +102,8 @@ final readonly class PlacesBuilder
                 current: $current,
                 avatar: $place === NavPlace::Profile ? $profile : null,
                 nofollow: $place === NavPlace::Profile || ($place === NavPlace::Puzzles && $playerId !== null),
+                // The rail (NAV-13, README §4.3): "Sign in" where a guest's tab bar says Profile
+                railLabel: $place === NavPlace::Profile && $playerId === null && $variant !== self::VARIANT_COMPACT ? self::GUEST_RAIL_LABEL : null,
             );
         }
 

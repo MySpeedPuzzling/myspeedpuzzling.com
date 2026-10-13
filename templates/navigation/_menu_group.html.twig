@@ -1,9 +1,11 @@
 {#- One group of the Menu (_menu.html.twig): a heading (`p[role=heading]`, never h2 - ten tests read the first h2,
-    implementation plan §3.2), the docked column's disclosure button (shown only in the column and the overlay, NAV-13)
-    and its rows. data-order-phone / data-order-dock: the group's place on each surface (MENU-02b sorts by them).
+    implementation plan §3.2), the docked column's disclosure button (shown only in the column and the overlay, NAV-13:
+    it lies over the heading - or, in a group the column heads with its place row (.menu-group--by-place: Your
+    puzzling's Profile row), at that row's end - and folds the group's rows; the state is html[data-nav-collapsed],
+    assets/navigation/nav_layout.js) and its rows. data-order-phone / data-order-dock: the group's place on each surface (MENU-02b sorts by them).
     `group`: MenuGroupView, `viewer`: NavigationViewer, `surface`: slot | page (the page never docks: no disclosure) -#}
 {%- set id = group.id -%}
-<section class="menu-group menu-group--{{ id }}{{ group.only ? ' menu-only-' ~ group.only.value }}" data-menu-group="{{ id }}" data-order-phone="{{ group.orderPhone }}" data-order-dock="{{ group.orderDock }}"
+<section class="menu-group menu-group--{{ id }}{{ group.only ? ' menu-only-' ~ group.only.value }}{{ group.headingOnPhoneOnly ? ' menu-group--by-place' }}" data-menu-group="{{ id }}" data-order-phone="{{ group.orderPhone }}" data-order-dock="{{ group.orderDock }}"
     {%- if group.hasHeading %} aria-labelledby="menu-g-{{ id }}"{% endif %}>
     {%- if group.hasHeading -%}
         <p class="menu-group-title{{ group.headingOnPhoneOnly ? ' menu-only-phone' }}" role="heading" aria-level="2" id="menu-g-{{ id }}">{{ group.group.titleKey|trans }}</p>

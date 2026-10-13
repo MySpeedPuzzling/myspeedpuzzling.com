@@ -9083,6 +9083,9 @@ nav:
         home_logo: "MySpeedPuzzling – accueil"
         feedback: "Commentaires"
         sign_in: "Se connecter"
+    layout:
+        fold: "Replier le menu"
+        dock: "Déplier le menu"
     account:
         trigger_label: "Menu du compte"
         view_profile: "Voir le profil"

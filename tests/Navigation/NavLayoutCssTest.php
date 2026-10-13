@@ -6,6 +6,8 @@ namespace SpeedPuzzling\Web\Tests\Navigation;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use SpeedPuzzling\Web\Navigation\MenuGroup;
+use SpeedPuzzling\Web\Navigation\MenuGroupView;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use SplFileInfo;
@@ -65,6 +67,9 @@ final class NavLayoutCssTest extends TestCase
         yield 'dynamic modal scrim' => ['assets/styles/_dynamic-modal.scss', '.dynamic-modal-scrim[hidden]'];
         // MENU-02b: the Menu shell (a <dialog>: display: none while not [open], also while the stylesheet loads)
         yield 'Menu shell #menu-layer' => ['assets/styles/_nav-menu.scss', '.menu-layer:not([open])'];
+        // NAV-13: the docked column's slot wherever the Menu is not docked; the rail's "Sign in" in the phone tab bar
+        yield 'Menu slot, critical' => [self::CRITICAL, '.menu-slot'];
+        yield 'rail label, critical' => [self::CRITICAL, '.nav-rail-label'];
     }
 
     #[DataProvider('closedOverlays')]
@@ -376,7 +381,7 @@ final class NavLayoutCssTest extends TestCase
         self::assertMatchesRegularExpression('~:root\{[^}]*--safe-bottom-max:env\(safe-area-max-inset-bottom,env\(safe-area-inset-bottom,0px\)\)~', $css);
         self::assertMatchesRegularExpression('~:root\{[^}]*--bottom-nav-height:0px~', $css);
         self::assertMatchesRegularExpression('~:root\{[^}]*--topbar-shift:0px~', $css);
-        // 0 until NAV-13 adds the tier values (decision 17)
+        // 0 on :root - NAV-13 sets the tiers on <body> (testTheDesktopMenuTiersAreCriticalCss)
         self::assertMatchesRegularExpression('~:root\{[^}]*--nav-left:0px~', $css);
         self::assertMatchesRegularExpression('~:root\[data-topbar=hidden\]\{--topbar-h:0px;--topbar-shift:var\(--header-height\)\}~', $css);
         // NAV-03: the top bar's static height - 52 px phones, 64 px desktop, 0 on phones under 480 px tall (it scrolls with
@@ -408,6 +413,73 @@ final class NavLayoutCssTest extends TestCase
         foreach (explode("\n", trim($css)) as $line) {
             self::assertStringEndsWith('}', $line, 'One rule per line: ' . $line);
         }
+    }
+
+    /**
+     * NAV-13 (README §4.3 / D16): the desktop Menu's width --nav-left is decided before first paint, by CSS alone -
+     * 88 px (the rail, #bottom-nav restyled) from 1024 px, 256 px (the docked column, #site-menu in #menu-slot) at
+     * 1280-1439 px with html[data-nav-layout="docked"] and from 1440 px unless html[data-nav-layout="rail"]; never on
+     * pages without the bars (body.no-nav-chrome) or in print; the `menu` page (body.no-nav-column) keeps the rail.
+     * main, the footer and the old header rows start right of it; the folded groups are hidden before paint.
+     */
+    public function testTheDesktopMenuTiersAreCriticalCss(): void
+    {
+        $css = $this->criticalRules();
+        $desktop = static fn (int $from): string => sprintf('@media (min-width:%1$dpx) and (min-height:501px),(min-width:%1$dpx) and (pointer:fine){', $from);
+
+        // The rail from 1024 px - fixed under the top bar, 88 px, one under the bar on the z-scale; a hidden bar
+        // (hide_bottom_bar) is no rail
+        self::assertStringContainsString($desktop(1024) . ':root{--nav-left:var(--nav-rail-w)}body:not(.no-nav-chrome)>.bottom-nav:not([hidden]){display:flex;flex-direction:column;top:var(--desk-topbar-h);right:auto;bottom:0;z-index:1029;width:var(--nav-rail-w);', $css);
+
+        // The docked column: the player's choice from 1280 px, the default from $nav-dock-default-from (D16's one switch);
+        // the `menu` page keeps the rail (its content is the Menu)
+        $dock = 'body:not(.no-nav-column)';
+        self::assertSame(1, preg_match('~^\$nav-dock-default-from:\s*(\d+)px;~m', (string) file_get_contents($this->root() . '/assets/styles/_nav-layout.scss'), $default));
+        self::assertSame('1440', $default[1]);
+
+        foreach ([1280 => ':root[data-nav-layout=docked]', (int) $default[1] => ':root:not([data-nav-layout=rail])'] as $from => $state) {
+            self::assertStringContainsString(sprintf('%s%2$s{--nav-left:var(--nav-col-w)}%2$s %3$s>.bottom-nav{display:none}%2$s %3$s>.menu-slot{display:block}}', $desktop($from), $state, $dock), $css);
+        }
+
+        // <body> overrides the tiers after them: the `menu` page keeps the rail's width, the app and the bar-free pages 0
+        self::assertStringContainsString($desktop(1024) . 'body.no-nav-column{--nav-left:var(--nav-rail-w)}}', $css);
+        self::assertStringContainsString("\n:root[data-native-app],body.no-nav-chrome{--nav-left:0px}\n", $css);
+        self::assertGreaterThan((int) strpos($css, ':root:not([data-nav-layout=rail]){--nav-left'), (int) strpos($css, ':root[data-native-app],body.no-nav-chrome{--nav-left:0px}'));
+
+        // The Menu shell closes when the window crosses a tier - the same widths
+        $controller = (string) file_get_contents($this->root() . '/assets/controllers/menu_layer_controller.js');
+        self::assertStringContainsString("'(min-width: {$default[1]}px) and (min-height: 501px), (min-width: {$default[1]}px) and (pointer: fine)'", $controller);
+        self::assertStringContainsString("'(min-width: 1280px) and (min-height: 501px), (min-width: 1280px) and (pointer: fine)'", $controller);
+
+        // The column's box: fixed under the top bar, 256 px, its own scroller that never hands a scroll on to the page
+        self::assertSame(1, preg_match('~(?:^|\n)\.menu-slot>\.site-menu\{([^}]*)\}~', $css, $column));
+        foreach (['position:fixed', 'top:var(--desk-topbar-h)', 'bottom:0', 'left:0', 'z-index:1029', 'width:var(--nav-col-w)', 'overflow-y:auto', 'overscroll-behavior:contain', 'border-right:1px solid var(--nav-hairline)'] as $declaration) {
+            self::assertStringContainsString($declaration, $column[1]);
+        }
+
+        // The content and the footer start right of the rail / column; print and the bar-free pages have neither
+        self::assertStringContainsString('body>main,body>.site-footer,body>.legacy-chrome{margin-inline-start:var(--nav-left)}', $css);
+        // The old header rows (until NAV-06) never scroll the page sideways next to the column
+        self::assertStringContainsString("\nbody>.legacy-chrome{overflow-x:clip}\n", $css);
+        self::assertStringContainsString('@media print{body{--nav-left:0px!important}.bottom-nav,.menu-slot{display:none!important}}', $css);
+        self::assertSame(2, substr_count($css, '--nav-left:var(--nav-rail-w)'), 'the rail width: from 1024 px, and on the `menu` page');
+        self::assertSame(2, substr_count($css, '--nav-left:var(--nav-col-w)'), 'the column width: docked by choice, docked by default');
+
+        // The folded groups of the column, before paint: exactly the groups a player can fold (the places' groups head the
+        // column and never fold, decision 30), the same list as the stylesheet's
+        $collapsible = [];
+        foreach (MenuGroup::cases() as $group) {
+            $view = new MenuGroupView($group, 0, 0, []);
+            if ($view->isCollapsible()) {
+                $collapsible[] = $group->value;
+            }
+        }
+
+        self::assertSame(['roles', 'puzzling', 'library', 'add', 'account', 'help', 'about'], $collapsible);
+        preg_match_all('#:root\[data-nav-collapsed~=([a-z_]+)\] \.menu-slot \[data-menu-group=\1\]>ul>li:not\(\.menu-only-dock\)#', $css, $folded);
+        self::assertSame($collapsible, $folded[1]);
+        self::assertSame(1, preg_match('~^\$nav-collapsible-groups:\s*([a-z_, ]+);~m', (string) file_get_contents($this->root() . '/assets/styles/_nav-layout.scss'), $scss));
+        self::assertSame($collapsible, array_map('trim', explode(',', $scss[1])));
     }
 
     public function testBaseIncludesTheCriticalCssInTheHeadOrder(): void
@@ -475,6 +547,9 @@ final class NavLayoutCssTest extends TestCase
             foreach (['footer', 'nav_chrome', 'nav_layers'] as $block) {
                 self::assertMatchesRegularExpression('~\{%\s*block ' . $block . '\s*%\}\s*\{%\s*endblock\s*%\}~', $code, $path . ' empties header but not ' . $block);
             }
+
+            // NAV-13: and says so - body.no-nav-chrome keeps the desktop column's width (--nav-left) at 0
+            self::assertMatchesRegularExpression('~\{%\s*set nav_chrome_off = true\s*%\}~', $code, $path . ' empties the bars but does not set nav_chrome_off');
         }
 
         sort($barFree);

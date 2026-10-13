@@ -25,6 +25,9 @@ use Symfony\Component\Routing\Attribute\Route;
  *   which place's page (README §4.12 "Measurement")
  * - search_zero: a page search found nothing at all - no page, no player, no puzzle (MENU-03, decision 39): which field
  *   (the Menu panel's, the page's / top bar's) and the query, folded and cut to 40 characters by the script
+ * - layout: the desktop ☰ docked the Menu column or folded it to the rail (NAV-13, README §4.3 / D16 "if more than half
+ *   of desktop players fold the column within two weeks, the rail becomes the default") - the new state and the
+ *   innerWidth bucket; the viewport line carries the state the session started in (`dock`: docked | rail | none)
  *
  * The page's path and the data-nav value only - no cookies, no session (the `stateless` firewall), no user agent.
  * A path segment that looks like a secret (a password-reset, account-deletion, credential-claim, sign-in, newsletter or
@@ -70,6 +73,8 @@ final class NavClickController extends AbstractController
     private const array HISTORY_DIRECTIONS = ['back', 'forward', 'unknown'];
     private const array MENU_SURFACES = ['panel', 'overlay'];
     private const array SEARCH_SURFACES = ['menu', 'topbar'];
+    private const array NAV_LAYOUTS = ['docked', 'rail'];
+    private const array DOCK_STATES = ['docked', 'rail', 'none'];
 
     /** The longest search_zero query (SEARCH_QUERY_MAX in assets/nav_instrumentation.js) - anything longer drops the line */
     public const int MAX_QUERY_LENGTH = 40;
@@ -105,6 +110,7 @@ final class NavClickController extends AbstractController
                     'dialog_suppressed' => $this->dialogSuppressed($payload, $context),
                     'menu_open' => $this->menuOpen($payload, $context),
                     'search_zero' => $this->searchZero($payload, $context),
+                    'layout' => $this->layoutChanged($payload, $context),
                     default => null,
                 };
             }
@@ -154,6 +160,30 @@ final class NavClickController extends AbstractController
             'bucket' => $bucket,
             'pointer' => in_array($payload['pointer'] ?? null, self::POINTERS, true) ? $payload['pointer'] : null,
             'standalone' => ($payload['standalone'] ?? null) === true,
+            'dock' => in_array($payload['dock'] ?? null, self::DOCK_STATES, true) ? $payload['dock'] : null,
+            ...$context,
+        ]);
+    }
+
+    /**
+     * NAV-13: the desktop ☰ switched the Menu - docked as the column or folded to the rail. An unknown state drops the
+     * line, an unknown width bucket is logged as null.
+     *
+     * @param array<string, mixed> $payload
+     * @param array<string, mixed> $context
+     */
+    private function layoutChanged(array $payload, array $context): void
+    {
+        $state = $payload['state'] ?? null;
+
+        if (!in_array($state, self::NAV_LAYOUTS, true)) {
+            return;
+        }
+
+        $this->logger->info('Navigation layout', [
+            'kind' => 'layout',
+            'state' => $state,
+            'bucket' => in_array($payload['bucket'] ?? null, self::VIEWPORT_BUCKETS, true) ? $payload['bucket'] : null,
             ...$context,
         ]);
     }

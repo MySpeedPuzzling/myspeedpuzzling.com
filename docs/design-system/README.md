@@ -120,8 +120,8 @@ The top bar (`header.site-header`) is `position: sticky`, transformed only while
 | 1010 | page sub-bars under the top bar: compact bar, events toolbar (`$z-sub-bar`) |
 | 1014 | the scrim behind the open search (`.global-search-overlay`, `$zindex-sticky - 6`: over the compact bar, under the top bar and the bottom bar) |
 | 1020 | content `.sticky-top` (`$z-content-sticky`) |
-| 1029 | homepage language banner (just under the bar) |
-| 1030 | top bar - its search panel lies inside it - phone bottom bar, desktop rail / docked column (`$z-site-header`, `$z-bottom-nav`, `$z-nav-column`) |
+| 1029 | homepage language banner (just under the bar); desktop rail / docked Menu column (`$z-nav-column`, NAV-13: one under the top bar, whose search panel and account menu overlap the column) |
+| 1030 | top bar - its search panel lies inside it - phone bottom bar (`$z-site-header`, `$z-bottom-nav`) |
 | 1035 | floating selection bar of the puzzle lists (`$z-selection-bar`) |
 | 1040 | the Menu shell `#menu-layer` (non-modal); sheet scrims (`$z-menu-layer`) |
 | 1045 | sheets and layers: player card, events ⋯ menu, XP recap sheet, multiscan sheet (`$z-sheet`) |

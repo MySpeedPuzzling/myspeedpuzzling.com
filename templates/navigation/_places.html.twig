@@ -5,8 +5,10 @@
     current), guests a person icon. Each icon is rendered in outline and filled (the sprite of _icons.html.twig): CSS
     shows the filled one on the current tab - and on .is-pending, the tab GEST-04 marks on tap before Turbo answers.
     Labels (.nav-tab-label) never truncate: NAV-02 picks 11 px, 10 px or "current label only" (data-label-step).
-    `variant`: bar (the phone tab bar, default), rail (NAV-13), compact (NAV-04: Home · Puzzles · Community in the
-    768-1023 px top bar - its links are the top bar's, data-nav topbar/places/<id>).
+    `variant`: bar (the phone tab bar, default - from 1024 px also the desktop rail, NAV-13: the same #bottom-nav restyled,
+    Add hidden, a guest's Profile (.has-rail-label) shows its second label .nav-rail-label "Sign in" there and CSS hides
+    the tab word - display: none, so the link's name is the label shown), rail (the four places alone), compact (NAV-04: Home ·
+    Puzzles · Community in the 768-1023 px top bar - its links are the top bar's, data-nav topbar/places/<id>).
     Chrome markup rules (implementation plan §3.2): own prefixes (nav-*), no heading, no form; data-nav on every link. -#}
 {%- set variant = variant|default('bar') -%}
 {%- set nav_surface = variant == 'compact' ? 'topbar' : 'tabbar' -%}
@@ -14,7 +16,7 @@
 {%- for place in nav_places(nav_location(), variant) -%}
     {%- set id = place.place.value -%}
     <li class="nav-place nav-place--{{ id }}">
-        {#- -#}<a class="nav-tab nav-tab--{{ id }}" href="{{ place.href }}" data-nav-place="{{ id }}" data-nav="{{ nav_surface }}/places/{{ id }}" data-press="fixed"
+        {#- -#}<a class="nav-tab nav-tab--{{ id }}{{ place.railLabel is not null ? ' has-rail-label' }}" href="{{ place.href }}" data-nav-place="{{ id }}" data-nav="{{ nav_surface }}/places/{{ id }}" data-press="fixed"
         {%- if place.current %} aria-current="{{ place.current }}"{% endif %}
         {%- if place.nofollow %} rel="nofollow"{% endif %}>
         {#- -#}<span class="nav-tab-icon" aria-hidden="true">
@@ -26,6 +28,7 @@
         {%- endif -%}
         </span>
         {#- -#}<span class="nav-tab-label">{{ place.label|trans }}</span>
+        {%- if place.railLabel is not null -%}<span class="nav-rail-label">{{ place.railLabel|trans }}</span>{%- endif -%}
         {#- -#}</a>
     </li>
 {%- endfor -%}

@@ -4,7 +4,8 @@
 //   (`pages`: the slot's #site-menu of /en/faq, compared with the `menu` page's server-rendered phone order);
 // - assets/navigation/menu_counts.js: the lazy counts - fresh on every open of the panel (maxAge 0), at most once per
 //   5 minutes for the docked column (TTL_MS), never another player's;
-// - assets/navigation/menu_links.js: which clicks on a link to `menu` open the panel.
+// - assets/navigation/menu_links.js: which clicks on a link to `menu` open the panel (phones) - or, on desktop (NAV-13),
+//   the overlay, focus the docked column, dock / fold it (the ☰ from 1280 px).
 // Prints {case: facts} as JSON.
 
 import { readFileSync } from 'node:fs';
@@ -12,6 +13,7 @@ import { createRequire } from 'node:module';
 import { applyMenuOrder, groupsOf, orderOf, sortedGroups } from '../assets/navigation/menu_order.js';
 import { applyCounts, cachedCounts, countText, loadMenuCounts, STORAGE_KEY, TTL_MS } from '../assets/navigation/menu_counts.js';
 import { isMenuHref, listenForMenuLinks, menuLinkAction, menuOpenerOf, menuPaths, PHONE_QUERY } from '../assets/navigation/menu_links.js';
+import { WIDE_QUERY } from '../assets/navigation/nav_layout.js';
 
 const require = createRequire(import.meta.url);
 const { JSDOM, VirtualConsole } = require('jsdom');
@@ -300,17 +302,20 @@ cases.push(run('isMenuHref', () => {
 }));
 
 cases.push(run('menuLinkAction', () => ({
-    phone: menuLinkAction(false, true, {}),
-    desktop: menuLinkAction(false, false, {}),
-    nativeApp: menuLinkAction(true, true, {}),
-    middleButton: menuLinkAction(false, true, { button: 1 }),
-    modified: menuLinkAction(false, true, { modified: true }),
-    alreadyTaken: menuLinkAction(false, true, { defaultPrevented: true }),
-    newTab: menuLinkAction(false, true, { newTab: true }),
-    download: menuLinkAction(false, true, { download: true }),
+    phone: menuLinkAction(false, 'phone', {}),
+    // NAV-13: below 1280 px the overlay, a link where the column is docked focuses it, the ☰ from 1280 px docks / folds
+    desktop: menuLinkAction(false, 'overlay', {}),
+    docked: menuLinkAction(false, 'docked', {}),
+    dockedBurger: menuLinkAction(false, 'docked', {}, true),
+    nativeApp: menuLinkAction(true, 'phone', {}),
+    middleButton: menuLinkAction(false, 'phone', { button: 1 }),
+    modified: menuLinkAction(false, 'phone', { modified: true }),
+    alreadyTaken: menuLinkAction(false, 'phone', { defaultPrevented: true }),
+    newTab: menuLinkAction(false, 'phone', { newTab: true }),
+    download: menuLinkAction(false, 'phone', { download: true }),
 })));
 
-function clickScenario({ html, selector, phone = true, nativeApp = false, opens = true, init = {} }) {
+function clickScenario({ html, selector, phone = true, wide = false, docked = false, nativeApp = false, opens = true, init = {} }) {
     const window = dom(html, ORIGIN + '/en/faq').window;
     const document = window.document;
 
@@ -318,9 +323,19 @@ function clickScenario({ html, selector, phone = true, nativeApp = false, opens 
         document.documentElement.setAttribute('data-native-app', 'android');
     }
 
-    window.matchMedia = (query) => ({ matches: query === PHONE_QUERY ? phone : false });
+    window.matchMedia = (query) => ({ matches: query === PHONE_QUERY ? phone : (query === WIDE_QUERY ? wide : false) });
+
+    if (docked) {
+        // jsdom lays nothing out: the docked column's slot is shown
+        const slot = document.createElement('div');
+        slot.id = 'menu-slot';
+        slot.getClientRects = () => [{}];
+        document.body.appendChild(slot);
+    }
+
     const opened = [];
-    const stop = listenForMenuLinks({ document, window, paths: menuPaths(JSON.stringify(PATHS)), open: (opener) => (opened.push(opener.id || opener.tagName), opens) });
+    const actions = [];
+    const stop = listenForMenuLinks({ document, window, paths: menuPaths(JSON.stringify(PATHS)), open: (opener, action) => (opened.push(opener.id || opener.tagName), actions.push(action), opens) });
     // A navigation is never followed by jsdom; the default action is only read back
     const event = new window.MouseEvent('click', { bubbles: true, cancelable: true, button: 0, ...init });
     document.querySelector(selector).dispatchEvent(event);
@@ -328,7 +343,7 @@ function clickScenario({ html, selector, phone = true, nativeApp = false, opens 
     const second = new window.MouseEvent('click', { bubbles: true, cancelable: true });
     document.querySelector(selector).dispatchEvent(second);
 
-    return { opened, prevented: event.defaultPrevented, afterStop: second.defaultPrevented };
+    return { opened, actions, prevented: event.defaultPrevented, afterStop: second.defaultPrevented };
 }
 
 cases.push(run('listenForMenuLinks', () => {
@@ -337,7 +352,12 @@ cases.push(run('listenForMenuLinks', () => {
     return {
         phone: clickScenario({ html: link, selector: '#inside' }),
         burger: clickScenario({ html: '<header><a id="burger" href="/en/menu" data-bar-action="menu" aria-expanded="false">☰</a></header>', selector: '#burger' }),
+        // NAV-13: desktop below 1280 px opens the overlay; from 1280 px a link opens it in the rail state, focuses the
+        // docked column; the ☰ docks / folds
         desktop: clickScenario({ html: link, selector: '#to-menu', phone: false }),
+        rail: clickScenario({ html: link, selector: '#to-menu', phone: false, wide: true }),
+        docked: clickScenario({ html: link, selector: '#to-menu', phone: false, wide: true, docked: true }),
+        wideBurger: clickScenario({ html: '<header><a id="burger" href="/en/menu" data-bar-action="menu" aria-expanded="false">☰</a></header>', selector: '#burger', phone: false, wide: true }),
         nativeApp: clickScenario({ html: link, selector: '#to-menu', nativeApp: true }),
         ctrlClick: clickScenario({ html: link, selector: '#to-menu', init: { ctrlKey: true } }),
         newTab: clickScenario({ html: '<a id="blank" href="/en/menu" target="_blank">x</a>', selector: '#blank' }),

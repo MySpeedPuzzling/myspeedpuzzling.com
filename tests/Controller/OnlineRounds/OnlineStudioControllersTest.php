@@ -166,14 +166,21 @@ final class OnlineStudioControllersTest extends WebTestCase
         self::assertSame('ended', $invite['status']);
         self::assertIsInt($invite['onAirToMs']);
 
+        // Off air at once (her tracks unpublished for everybody), then out of the studio - a studio token alone never
+        // brings her back (contract phase-1b.md §8)
         $requests = LiveKitHttpMock::requests();
-        self::assertCount(1, $requests);
+        self::assertCount(2, $requests);
         self::assertSame(self::LIVEKIT_TEST_API_URL . '/twirp/livekit.RoomService/UpdateParticipant', $requests[0]['url']);
         self::assertSame([
             'room' => 'studio-' . self::ROUND,
             'identity' => 'p:' . self::OLIVIA,
             'permission' => ['can_subscribe' => true, 'can_publish' => false, 'can_publish_data' => false, 'can_publish_sources' => [], 'hidden' => false],
         ], json_decode($requests[0]['body'], true, flags: JSON_THROW_ON_ERROR));
+        self::assertSame(self::LIVEKIT_TEST_API_URL . '/twirp/livekit.RoomService/RemoveParticipant', $requests[1]['url']);
+        self::assertSame([
+            'room' => 'studio-' . self::ROUND,
+            'identity' => 'p:' . self::OLIVIA,
+        ], json_decode($requests[1]['body'], true, flags: JSON_THROW_ON_ERROR));
 
         // Again: nothing more to take away
         LiveKitHttpMock::reset();
@@ -210,6 +217,43 @@ final class OnlineStudioControllersTest extends WebTestCase
         $this->post($browser, self::end($inviteId), []);
 
         self::assertResponseIsSuccessful();
+        self::assertSame('ended', $this->connection($browser)->fetchOne('SELECT status FROM studio_invite WHERE id = :id', ['id' => $inviteId]));
+    }
+
+    /**
+     * The permission change fails, the removal works: off air anyway. The guest already gone: nothing to remove.
+     */
+    public function testTheGuestIsRemovedEvenWhenThePermissionChangeFails(): void
+    {
+        $browser = $this->signedIn(PlayerFixture::PLAYER_ADMIN);
+        self::turnRoundVideoOn($this->connection($browser));
+        $inviteId = $this->invite($browser);
+        $browser->getContainer()->get(MessageBusInterface::class)->dispatch(new AnswerStudioInvite($inviteId, self::OLIVIA, StudioInviteAnswer::Join));
+        LiveKitHttpMock::reset();
+        LiveKitHttpMock::queue(LiveKitHttpMock::answer(['code' => 'internal', 'msg' => 'boom'], 500));
+
+        $this->post($browser, self::end($inviteId), []);
+
+        self::assertResponseIsSuccessful();
+        self::assertSame(
+            ['UpdateParticipant', 'RemoveParticipant'],
+            array_map(static fn (array $request): string => basename($request['url']), LiveKitHttpMock::requests()),
+        );
+    }
+
+    public function testAGuestNoLongerInTheStudioIsNotRemoved(): void
+    {
+        $browser = $this->signedIn(PlayerFixture::PLAYER_ADMIN);
+        self::turnRoundVideoOn($this->connection($browser));
+        $inviteId = $this->invite($browser);
+        $browser->getContainer()->get(MessageBusInterface::class)->dispatch(new AnswerStudioInvite($inviteId, self::OLIVIA, StudioInviteAnswer::Join));
+        LiveKitHttpMock::reset();
+        LiveKitHttpMock::queue(LiveKitHttpMock::answer(['code' => 'not_found', 'msg' => 'participant not found'], 404));
+
+        $this->post($browser, self::end($inviteId), []);
+
+        self::assertResponseIsSuccessful();
+        self::assertSame(['UpdateParticipant'], array_map(static fn (array $request): string => basename($request['url']), LiveKitHttpMock::requests()));
         self::assertSame('ended', $this->connection($browser)->fetchOne('SELECT status FROM studio_invite WHERE id = :id', ['id' => $inviteId]));
     }
 

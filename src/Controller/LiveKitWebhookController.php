@@ -9,15 +9,19 @@ use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
 use SpeedPuzzling\Web\Exceptions\LiveKitWebhookRejected;
 use SpeedPuzzling\Web\Message\RecordStudioGuestPresence;
+use SpeedPuzzling\Web\Repository\StudioInviteRepository;
 use SpeedPuzzling\Web\Services\LiveKit\LiveKitSettings;
 use SpeedPuzzling\Web\Services\LiveKit\LiveKitWebhookVerifier;
+use SpeedPuzzling\Web\Services\LiveKit\StudioLiveUpdates;
 use SpeedPuzzling\Web\Services\OfficialResultsApi;
 use SpeedPuzzling\Web\Value\LiveKitIdentity;
 use SpeedPuzzling\Web\Value\LiveKitRoomKind;
+use SpeedPuzzling\Web\Value\StudioInviteStatus;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Messenger\MessageBusInterface;
+use Symfony\Component\Messenger\Stamp\HandledStamp;
 use Symfony\Component\Routing\Attribute\Route;
 
 /**
@@ -30,6 +34,11 @@ use Symfony\Component\Routing\Attribute\Route;
  * reconnect (the same identity joined again over a new connection, a move to another server) is no leave. Every other
  * event, room and identity is acknowledged and ignored (200, logged at debug). `video_unavailable` 409 while LIVEKIT_*
  * is empty - nothing could be verified.
+ *
+ * The studio's safety (contract phase-1b.md §8): a studio token alone never puts anybody on air - anybody of a
+ * participant's (`p:…`, their camera or a second screen) joining a studio without a joined invitation of theirs in
+ * that round is removed at once (StudioLiveUpdates::removedFromStudio(), after the presence is committed, logged at
+ * info): a token kept from an earlier invitation, a guest the host thanked coming back.
  */
 final class LiveKitWebhookController extends AbstractController
 {
@@ -47,6 +56,8 @@ final class LiveKitWebhookController extends AbstractController
         private readonly LiveKitSettings $liveKitSettings,
         private readonly LiveKitWebhookVerifier $liveKitWebhookVerifier,
         private readonly MessageBusInterface $messageBus,
+        private readonly StudioInviteRepository $studioInviteRepository,
+        private readonly StudioLiveUpdates $studioLiveUpdates,
         private readonly ClockInterface $clock,
         private readonly LoggerInterface $logger,
     ) {
@@ -71,11 +82,23 @@ final class LiveKitWebhookController extends AbstractController
         $room = is_array($event['room'] ?? null) ? $event['room'] : [];
         $participant = is_array($event['participant'] ?? null) ? $event['participant'] : [];
         $roundId = LiveKitRoomKind::Studio->roundOf(is_string($room['name'] ?? null) ? $room['name'] : '');
-        $participantId = LiveKitIdentity::participantOf(is_string($participant['identity'] ?? null) ? $participant['identity'] : '');
+        $identity = is_string($participant['identity'] ?? null) ? $participant['identity'] : '';
+        $participantId = LiveKitIdentity::participantOf($identity);
         $present = self::PRESENCE_EVENTS[$name] ?? null;
 
-        if ($present === null || $roundId === null || $participantId === null) {
+        if ($present === null || $roundId === null || str_starts_with($identity, LiveKitIdentity::PARTICIPANT_PREFIX) === false) {
             $this->logger->debug('A LiveKit webhook was acknowledged and ignored', ['event' => $name, 'room' => $room['name'] ?? null]);
+
+            return OfficialResultsApi::json(['received' => true]);
+        }
+
+        // A participant's second screen (or no device of ours): never on air - in the studio only beside a guest
+        if ($participantId === null) {
+            if ($present && $this->secondScreenMayWatch($roundId, $identity) === false) {
+                $this->studioLiveUpdates->removedFromStudio($roundId, $identity);
+            } else {
+                $this->logger->debug('A participant\'s second screen in the studio was acknowledged', ['event' => $name, 'round_id' => $roundId]);
+            }
 
             return OfficialResultsApi::json(['received' => true]);
         }
@@ -86,14 +109,38 @@ final class LiveKitWebhookController extends AbstractController
             return OfficialResultsApi::json(['received' => true]);
         }
 
-        $this->messageBus->dispatch(new RecordStudioGuestPresence(
+        $onAir = $this->messageBus->dispatch(new RecordStudioGuestPresence(
             roundId: $roundId,
             participantId: $participantId,
             present: $present,
             at: $this->occurredAt($event['createdAt'] ?? null),
-        ));
+        ))->last(HandledStamp::class)?->getResult();
+
+        // Committed - a studio token alone never puts anybody on air
+        if ($present && $onAir !== true) {
+            $this->studioLiveUpdates->removedFromStudio($roundId, $identity);
+        }
 
         return OfficialResultsApi::json(['received' => true]);
+    }
+
+    /**
+     * A second screen (`p:{participantId}:screen`) may watch the studio only while its participant is a guest there - a
+     * joined invitation in the round; anything else of a participant's is never invited
+     */
+    private function secondScreenMayWatch(string $roundId, string $identity): bool
+    {
+        if (str_ends_with($identity, LiveKitIdentity::SCREEN_SUFFIX) === false) {
+            return false;
+        }
+
+        $participantId = LiveKitIdentity::participantOf(substr($identity, 0, -strlen(LiveKitIdentity::SCREEN_SUFFIX)));
+
+        if ($participantId === null) {
+            return false;
+        }
+
+        return $this->studioInviteRepository->latestOf($roundId, $participantId)?->statusAt($this->clock->now()) === StudioInviteStatus::Joined;
     }
 
     /**

@@ -123,9 +123,13 @@ final class ApiVideoTokenControllerTest extends WebTestCase
         $answer = self::json($this->browser);
         self::assertSame('studio-' . self::ROUND, $answer['room']);
         self::assertIsString($answer['token']);
-        $video = self::liveKitClaims($answer['token'])['video'];
+        $claims = self::liveKitClaims($answer['token']);
+        $video = $claims['video'];
         self::assertIsArray($video);
         self::assertSame(['camera', 'microphone'], $video['canPublishSources']);
+        // Good for joining only (contract phase-1b.md §8) - LiveKit refreshes a joined connection's token itself
+        self::assertIsInt($claims['nbf']);
+        self::assertSame($claims['nbf'] + 120, $claims['exp']);
 
         // Arthur has no invitation of his own
         $this->ask(OnlineRoundsFixture::TOKEN_ANONYMOUS, ['deviceId' => 'phone-a', 'room' => 'studio', 'role' => 'screen']);

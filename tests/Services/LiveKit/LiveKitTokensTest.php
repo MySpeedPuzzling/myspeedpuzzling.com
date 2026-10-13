@@ -79,6 +79,26 @@ final class LiveKitTokensTest extends KernelTestCase
         self::assertFalse(self::video($claims)['canPublishData']);
     }
 
+    /**
+     * The studio's safety (contract phase-1b.md §8): a participant's studio token - camera or second screen - is good
+     * for joining only, two minutes; LiveKit refreshes the token of a joined connection itself. The hall's tokens and
+     * the host's keep their six hours.
+     */
+    public function testAParticipantsStudioTokenLivesTwoMinutes(): void
+    {
+        foreach ([LiveKitParticipantRole::Camera, LiveKitParticipantRole::Screen] as $role) {
+            $token = $this->tokens->participant($this->olivia, 'phone-1', LiveKitRoomKind::Studio, $role);
+            $claims = self::claims($token->token);
+
+            self::assertSame(strtotime(self::NOW), $claims['nbf'], $role->value);
+            self::assertSame(strtotime(self::NOW) + 120, $claims['exp'], $role->value);
+            self::assertSame((strtotime(self::NOW) + 120) * 1000, $token->expiresAtMs, $role->value);
+        }
+
+        self::assertSame(strtotime(self::NOW) + 6 * 3600, self::claims($this->tokens->participant($this->olivia, 'phone-1', LiveKitRoomKind::Hall, LiveKitParticipantRole::Screen)->token)['exp']);
+        self::assertSame(strtotime(self::NOW) + 6 * 3600, self::claims($this->tokens->moderator(PlayerFixture::PLAYER_ADMIN, self::ROUND, LiveKitRoomKind::Studio)->token)['exp']);
+    }
+
     public function testASecondScreenOnlyWatches(): void
     {
         foreach ([LiveKitRoomKind::Hall, LiveKitRoomKind::Studio] as $room) {

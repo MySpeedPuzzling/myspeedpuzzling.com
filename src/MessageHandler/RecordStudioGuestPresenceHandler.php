@@ -13,6 +13,10 @@ use Symfony\Component\Messenger\Attribute\AsMessageHandler;
  * round (`joined`) gets `onAirFrom` when they appear in the studio - the first time only -, and ends (`ended` +
  * `onAirTo`) when they leave it. Without such an invitation nothing changes: a guest the host thanked already, an
  * unknown round or participant, a webhook delivered twice.
+ *
+ * Returns whether the participant has an invitation on air (`joined`) - for a join without one the webhook removes
+ * them from the studio once this is committed (contract phase-1b.md §8: a studio token alone never puts anybody on
+ * air).
  */
 #[AsMessageHandler]
 readonly final class RecordStudioGuestPresenceHandler
@@ -22,20 +26,22 @@ readonly final class RecordStudioGuestPresenceHandler
     ) {
     }
 
-    public function __invoke(RecordStudioGuestPresence $message): void
+    public function __invoke(RecordStudioGuestPresence $message): bool
     {
         $invite = $this->studioInviteRepository->joinedOfForUpdate($message->roundId, $message->participantId);
 
         if ($invite === null) {
-            return;
+            return false;
         }
 
         if ($message->present) {
             $invite->cameOnAir($message->at);
 
-            return;
+            return true;
         }
 
         $invite->end($message->at);
+
+        return true;
     }
 }

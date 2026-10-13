@@ -32,11 +32,17 @@ use SpeedPuzzling\Web\Value\RoundClock;
  * setTrackSubscriptionPermissions() (assets/online/livekit_session.js): moderators only, or everybody when the round
  * lets participants see each other.
  *
+ * A participant's studio token lives STUDIO_PARTICIPANT_TTL_SECONDS only (contract phase-1b.md §8, the studio's
+ * safety): enough to join - LiveKit keeps a joined connection alive with tokens it refreshes itself -, never a ticket
+ * back on air once the host said "Thank you" (the webhook also removes anybody in the studio without a joined
+ * invitation, LiveKitWebhookController).
+ *
  * server() mints the short-lived tokens of LiveKitApi's own calls.
  */
 final readonly class LiveKitTokens
 {
     public const int TTL_SECONDS = 6 * 3600;
+    public const int STUDIO_PARTICIPANT_TTL_SECONDS = 120;
     public const int SERVER_TTL_SECONDS = 60;
     public const string ALGORITHM = 'HS256';
 
@@ -76,6 +82,7 @@ final readonly class LiveKitTokens
                 'canPublishData' => false,
             ],
             attributes: ['role' => $role->value, 'deviceId' => $deviceId],
+            ttlSeconds: $room === LiveKitRoomKind::Studio ? self::STUDIO_PARTICIPANT_TTL_SECONDS : self::TTL_SECONDS,
         );
     }
 
@@ -141,15 +148,21 @@ final readonly class LiveKitTokens
      * @param array<string, bool|string|list<string>> $grant
      * @param array<string, string> $attributes
      */
-    private function mint(string $identity, null|string $name, string $room, array $grant, array $attributes = []): LiveKitToken
-    {
+    private function mint(
+        string $identity,
+        null|string $name,
+        string $room,
+        array $grant,
+        array $attributes = [],
+        int $ttlSeconds = self::TTL_SECONDS,
+    ): LiveKitToken {
         $now = $this->clock->now();
         $issuedAt = $now->getTimestamp();
         $payload = [
             'iss' => $this->settings->apiKey(),
             'sub' => $identity,
             'nbf' => $issuedAt,
-            'exp' => $issuedAt + self::TTL_SECONDS,
+            'exp' => $issuedAt + $ttlSeconds,
             'video' => [
                 'room' => $room,
                 'roomJoin' => true,
@@ -170,7 +183,7 @@ final readonly class LiveKitTokens
             token: JWT::encode($payload, $this->settings->apiSecret(), self::ALGORITHM),
             identity: $identity,
             room: $room,
-            expiresAtMs: RoundClock::milliseconds($now) + self::TTL_SECONDS * 1000,
+            expiresAtMs: RoundClock::milliseconds($now) + $ttlSeconds * 1000,
         );
     }
 

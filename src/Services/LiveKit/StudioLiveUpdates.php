@@ -20,10 +20,14 @@ use SpeedPuzzling\Web\Value\LiveKitRoomKind;
  *   participant's camera device in the hall - topic DATA_TOPIC, `{"inviteId": "…"}`;
  * - answered(): the signal goes;
  * - ended(): the signal goes, and a guest who was on air loses their publishing in the studio (UpdateParticipant -
- *   LiveKit unpublishes their microphone and camera at once); they stay in the studio, watching.
+ *   LiveKit unpublishes their microphone and camera at once) and is removed from it (RemoveParticipant, contract
+ *   phase-1b.md §8: a studio token alone never puts anybody back on air);
+ * - removedFromStudio(): somebody of a participant's (`p:…`) joined the studio without a joined invitation - a stale
+ *   studio token, a second screen of a guest the host thanked - and is removed at once (the webhook,
+ *   LiveKitWebhookController), logged at info.
  *
  * Nothing here fails a request: a failed LiveKit call is logged - at info when the participant learns it another way
- * (the heartbeat, the state), at warning when it may leave a guest on air.
+ * (the heartbeat, the state) or nobody stays on air, at warning when it may leave a guest on air.
  */
 final readonly class StudioLiveUpdates
 {
@@ -82,26 +86,78 @@ final readonly class StudioLiveUpdates
             return;
         }
 
-        try {
-            $this->liveKitApi->updateParticipant(
-                LiveKitRoomKind::Studio->roomName($roundId),
-                LiveKitIdentity::participant($participantId),
-                LiveKitPermission::subscribeOnly(),
-            );
-        } catch (LiveKitRequestFailed $e) {
-            $context = [
-                'round_id' => $roundId,
-                'invite_id' => $invite->id->toString(),
-                'exception' => $e,
-            ];
+        $room = LiveKitRoomKind::Studio->roomName($roundId);
+        $identity = LiveKitIdentity::participant($participantId);
+        $context = [
+            'round_id' => $roundId,
+            'invite_id' => $invite->id->toString(),
+        ];
 
+        // Off air at once for everybody watching - their tracks are unpublished - then out of the studio
+        $revoked = null;
+
+        try {
+            $this->liveKitApi->updateParticipant($room, $identity, LiveKitPermission::subscribeOnly());
+        } catch (LiveKitRequestFailed $e) {
             if ($e->isNotFound()) {
-                $this->logger->info('The studio guest the host thanked is not in the studio - nothing to take away', $context);
+                $this->logger->info('The studio guest the host thanked is not in the studio - nothing to take away', [...$context, 'exception' => $e]);
 
                 return;
             }
 
-            $this->logger->warning('Taking the publishing away from a studio guest failed - they may still be on air', $context);
+            $revoked = $e;
         }
+
+        try {
+            $this->liveKitApi->removeParticipant($room, $identity);
+        } catch (LiveKitRequestFailed $e) {
+            if ($e->isNotFound()) {
+                $this->logger->info('The studio guest the host thanked left the studio meanwhile', [...$context, 'exception' => $e]);
+
+                return;
+            }
+
+            if ($revoked !== null) {
+                $this->logger->warning('Taking the publishing away from a studio guest and removing them failed - they may still be on air', [...$context, 'exception' => $e]);
+
+                return;
+            }
+
+            $this->logger->info('Removing a studio guest the host thanked failed - they can no longer publish, they may still watch', [...$context, 'exception' => $e]);
+
+            return;
+        }
+
+        if ($revoked !== null) {
+            $this->logger->info('Taking the publishing away from a studio guest failed - they were removed from the studio anyway', [...$context, 'exception' => $revoked]);
+        }
+    }
+
+    /**
+     * Somebody of a participant's (`p:{participantId}` or its `:screen`) in the round's studio without a joined
+     * invitation: removed at once. Called by the webhook after the presence was recorded (committed).
+     */
+    public function removedFromStudio(string $roundId, string $identity): void
+    {
+        $context = [
+            'round_id' => $roundId,
+            'identity' => $identity,
+        ];
+
+        try {
+            $this->liveKitApi->removeParticipant(LiveKitRoomKind::Studio->roomName($roundId), $identity);
+        } catch (LiveKitRequestFailed $e) {
+            if ($e->isNotFound()) {
+                $this->logger->info('A participant in the studio without a joined invitation left before being removed', [...$context, 'exception' => $e]);
+
+                return;
+            }
+
+            $this->logger->warning('Removing a participant from the studio without a joined invitation failed - they may be on air', [...$context, 'exception' => $e]);
+
+            return;
+        }
+
+        $this->logger->info('A participant joined the studio without a joined invitation - removed', $context);
     }
 }

@@ -34,6 +34,8 @@ import {
     SCREENS,
     screenFor,
     shortClock,
+    TAKEOVER_GRACE_MS,
+    takeoverVerdict,
     undoLeftMs,
     UNDO_WINDOW_MS,
     WAKE_SCREENS,
@@ -102,6 +104,96 @@ function response(status, body, { type = 'basic', contentType = 'application/jso
         headers: { get: (name) => all[name.toLowerCase()] ?? null },
         json: async () => (typeof body === 'string' ? JSON.parse(body) : body),
     };
+}
+
+const HEARTBEAT_MS = 15_000;
+
+/**
+ * Two (or more) devices on one link, heartbeating, claiming it ("I'm ready" / "Use this device instead") - what the
+ * page does with takeoverVerdict() (compete_controller.js applyTakeover(), noteClaim(), scheduleRecheck()), on a fake
+ * time line in ms. The server holds the device whose claim it stored last; a claim is stored `ackMs` after the tap and
+ * the device hears the ack then; a heartbeat is read by the server `rttMs / 2` after it was sent and answered after
+ * `rttMs`. Returns every device's state and the moment each one gave way.
+ */
+function simulateDevices({ devices, claims, untilMs, ackMs = 300, rttMs = 200 }) {
+    const state = Object.fromEntries(devices.map(({ id, phaseMs }) => [id, {
+        id,
+        phaseMs,
+        takenOver: false,
+        claim: null,
+        recheckAfterClaim: false,
+        gaveWayAt: [],
+    }]));
+    const stored = claims.map(({ device, atMs }) => ({ device, storedAt: atMs + ackMs })).sort((a, b) => a.storedAt - b.storedAt);
+    const activeAt = (ms) => stored.filter((claim) => claim.storedAt <= ms).at(-1)?.device ?? null;
+    const queue = [];
+    const push = (atMs, kind, device, extra = {}) => queue.push({ atMs, kind, device, ...extra });
+
+    for (const { id, phaseMs } of devices) {
+        for (let at = phaseMs; at <= untilMs; at += HEARTBEAT_MS) {
+            push(at, 'beat', id);
+        }
+    }
+
+    for (const { device, atMs } of claims) {
+        push(atMs, 'claim', device);
+        push(atMs + ackMs, 'ack', device, { claimAt: atMs });
+        // ready() / takeOver() beat right away
+        push(atMs, 'beat', device);
+    }
+
+    const order = { claim: 0, ack: 1, beat: 2, answer: 3 };
+
+    while (queue.length > 0) {
+        queue.sort((a, b) => a.atMs - b.atMs || order[a.kind] - order[b.kind]);
+        const step = queue.shift();
+
+        if (step.atMs > untilMs) {
+            break;
+        }
+
+        const device = state[step.device];
+
+        if (step.kind === 'claim') {
+            device.claim = { pending: true, ackedAt: null, claimAt: step.atMs };
+            device.takenOver = false;
+        } else if (step.kind === 'ack') {
+            // noteClaim() - only the latest claim of the device
+            if (device.claim !== null && device.claim.claimAt === step.claimAt && device.claim.pending) {
+                device.claim = { ...device.claim, pending: false, ackedAt: step.atMs };
+
+                if (device.recheckAfterClaim) {
+                    device.recheckAfterClaim = false;
+                    push(step.atMs + TAKEOVER_GRACE_MS + 50, 'beat', device.id);
+                }
+            }
+        } else if (step.kind === 'beat') {
+            push(step.atMs + rttMs, 'answer', device.id, { sentAt: step.atMs, active: activeAt(step.atMs + rttMs / 2) });
+        } else {
+            const verdict = takeoverVerdict({
+                activeDevice: step.active,
+                deviceId: device.id,
+                ready: true,
+                takenOver: device.takenOver,
+                claim: device.claim,
+                beatSentAt: step.sentAt,
+            });
+
+            if (verdict.takenOver && !device.takenOver) {
+                device.gaveWayAt.push(step.atMs);
+            }
+
+            device.takenOver = verdict.takenOver;
+
+            if (verdict.recheckAt !== null) {
+                push(Math.max(step.atMs, verdict.recheckAt) + 50, 'beat', device.id);
+            } else if (verdict.otherDeviceActive && device.claim?.pending) {
+                device.recheckAfterClaim = true;
+            }
+        }
+    }
+
+    return state;
 }
 
 const scenarios = {
@@ -624,6 +716,77 @@ const scenarios = {
         assert.equal(samples.length, 4);
         // The page takes the light requests' samples only (compete_controller.js) - each comes with its request's name
         assert.deepEqual(names, ['heartbeat', 'state', 'events', 'media']);
+    },
+
+    async 'several devices on one link: the device that claimed last holds it; an answer older than this device\'s own claim never makes it give way'() {
+        const verdict = (input) => takeoverVerdict({ deviceId: 'phone-b', ready: true, takenOver: false, claim: null, beatSentAt: START, ...input });
+
+        // Nobody else, or this device itself
+        assert.deepEqual(verdict({ activeDevice: null }), { otherDeviceActive: false, takenOver: false, recheckAt: null });
+        assert.deepEqual(verdict({ activeDevice: 'phone-b' }), { otherDeviceActive: false, takenOver: false, recheckAt: null });
+        // Still setting up: the checklist only says the link is in use elsewhere
+        assert.deepEqual(verdict({ activeDevice: 'phone-a', ready: false }), { otherDeviceActive: true, takenOver: false, recheckAt: null });
+        // Ready, no claim on this page (a reload): another device holds it - give way
+        assert.deepEqual(verdict({ activeDevice: 'phone-a' }), { otherDeviceActive: true, takenOver: true, recheckAt: null });
+        // This device's claim is not stored yet: the answer says nothing about it
+        assert.deepEqual(verdict({ activeDevice: 'phone-a', claim: { pending: true, ackedAt: null } }), { otherDeviceActive: true, takenOver: false, recheckAt: null });
+        // Stored, but the heartbeat was sent before the grace ended: set aside, asked again when it ends
+        const claim = { pending: false, ackedAt: START };
+        assert.deepEqual(verdict({ activeDevice: 'phone-a', claim, beatSentAt: START + TAKEOVER_GRACE_MS - 1 }), { otherDeviceActive: true, takenOver: false, recheckAt: START + TAKEOVER_GRACE_MS });
+        // Sent after it: another device took the link since - give way
+        assert.deepEqual(verdict({ activeDevice: 'phone-a', claim, beatSentAt: START + TAKEOVER_GRACE_MS }), { otherDeviceActive: true, takenOver: true, recheckAt: null });
+        // Given way, it stays so - only its own claim takes the link back, never an answer
+        assert.deepEqual(verdict({ activeDevice: 'phone-b', takenOver: true }), { otherDeviceActive: false, takenOver: true, recheckAt: null });
+        assert.deepEqual(verdict({ activeDevice: null, takenOver: true }), { otherDeviceActive: false, takenOver: true, recheckAt: null });
+    },
+
+    async 'take-back: the device that lost the link stops within 20 s - whenever its heartbeat comes and however recently it claimed'() {
+        let worst = 0;
+
+        for (const takeBackAfterMs of [1_000, 2_500, 3_500, 5_000, 10_000, 20_000, 45_000]) {
+            for (let phaseMs = 100; phaseMs < HEARTBEAT_MS; phaseMs += 700) {
+                // phone-a got ready first, phone-b took the link at 0, phone-a takes it back
+                const devices = simulateDevices({
+                    devices: [{ id: 'phone-a', phaseMs: (phaseMs * 7) % HEARTBEAT_MS }, { id: 'phone-b', phaseMs }],
+                    claims: [{ device: 'phone-a', atMs: -60_000 }, { device: 'phone-b', atMs: 0 }, { device: 'phone-a', atMs: takeBackAfterMs }],
+                    untilMs: takeBackAfterMs + 60_000,
+                });
+                const storedAt = takeBackAfterMs + 300;
+                const gaveWay = devices['phone-b'].gaveWayAt.filter((at) => at >= storedAt);
+
+                assert.equal(gaveWay.length, 1, `phone-b gives way once (take back after ${takeBackAfterMs} ms, phase ${phaseMs} ms)`);
+                assert.ok(gaveWay[0] - storedAt <= 20_000, `phone-b gave way ${gaveWay[0] - storedAt} ms after the take-back was stored`);
+                assert.equal(devices['phone-b'].takenOver, true);
+                assert.equal(devices['phone-a'].takenOver, false, 'phone-a records');
+                worst = Math.max(worst, gaveWay[0] - storedAt);
+            }
+        }
+
+        // The heartbeat's 15 s and its round trip - no 30-s grace on top any more
+        assert.ok(worst <= HEARTBEAT_MS + 500, `worst ${worst} ms`);
+    },
+
+    async 'two devices fighting over the link never flap: each gives way only to a newer claim, and once'() {
+        const devices = simulateDevices({
+            devices: [{ id: 'phone-a', phaseMs: 4_000 }, { id: 'laptop', phaseMs: 11_000 }],
+            // Taps on both, a second apart, then quiet
+            claims: [
+                { device: 'phone-a', atMs: 0 },
+                { device: 'laptop', atMs: 1_000 },
+                { device: 'phone-a', atMs: 2_000 },
+                { device: 'laptop', atMs: 2_600 },
+                { device: 'phone-a', atMs: 4_200 },
+            ],
+            untilMs: 120_000,
+        });
+
+        // The last claim wins; the other gives way after it - once, and only to it
+        assert.equal(devices['phone-a'].takenOver, false);
+        assert.equal(devices.laptop.takenOver, true);
+        assert.deepEqual(devices['phone-a'].gaveWayAt.filter((at) => at > 4_200), [], 'the last claimer never gives way after its claim');
+        const laptopAfter = devices.laptop.gaveWayAt.filter((at) => at > 4_200 + 300);
+        assert.equal(laptopAfter.length, 1);
+        assert.ok(laptopAfter[0] - 4_500 <= 20_000);
     },
 
     async 'the API\'s answers: ok, our refusals, busy, failing, a portal page, offline - and a dead link'() {

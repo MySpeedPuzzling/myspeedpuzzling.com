@@ -642,6 +642,25 @@ const scenarios = {
         assert.equal(calm.prevented, false);
     },
 
+    async 'events: isPending() - on its way while stored, queued or sent; no more once acknowledged or refused'() {
+        const { outbox, server } = eventsSetup();
+        const ready = event('device.ready');
+        const refusedOne = event('finish.button');
+
+        assert.equal(outbox.isPending(ready.id), false, 'never here');
+        const storing = outbox.enqueue(ready);
+        assert.equal(outbox.isPending(ready.id), true, 'while it is being stored');
+        await storing;
+        await outbox.enqueue(refusedOne);
+        assert.equal(outbox.isPending(ready.id), true, 'queued');
+
+        server.decide = (sent) => (sent.id === refusedOne.id ? { refused: 'wrong_round' } : 'ack');
+        await outbox.flush();
+
+        assert.equal(outbox.isPending(ready.id), false, 'acknowledged - the server stored it');
+        assert.equal(outbox.isPending(refusedOne.id), false, 'refused - nothing more to wait for');
+    },
+
     async 'events: another participant\'s events on this device are never sent'() {
         const storage = createMemoryStorage();
         const other = eventsSetup({ storage, scope: 'participant-2' });

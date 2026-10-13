@@ -197,6 +197,56 @@ export function nextDisplayChangeAt(view, serverNowMs) {
     return serverNowMs < goEnds ? Math.min(nextSecond, goEnds) : nextSecond;
 }
 
+// Several devices on one link (README §5.4): the device that said "I'm ready" last holds it. After this device claimed
+// it ("I'm ready", "Use this device instead"), a heartbeat answer naming another device is believed only once the claim
+// was stored by the server and this long has passed since - a heartbeat sent earlier may have been answered from before
+// the claim. So a device never gives way to an answer older than its own claim (no flapping when two devices fight),
+// and the device that lost the link learns it at its next heartbeat (every 15 s): ≤ 15 s + a round trip after the other
+// device's claim was stored, and when it had claimed itself just before, a heartbeat goes again when the grace ends
+// (≤ the grace + a round trip after its own claim was stored) - always under 20 s.
+export const TAKEOVER_GRACE_MS = 3000;
+
+/**
+ * What a heartbeat's answer says about the link: is another device holding it (`otherDeviceActive` - the checklist's
+ * "in use on another device"), was this device taken over (`takenOver` - it stops recording and says so), and when to
+ * ask again (`recheckAt`: an answer set aside during the grace).
+ *
+ * `takenOver` is never undone by an answer: only this device's own claim takes the link back - a stale answer must
+ * never make two devices record.
+ *
+ * @param {object} input
+ * @param {string|null} input.activeDevice      the answer's `takenOverBy`
+ * @param {string} input.deviceId
+ * @param {boolean} input.ready                 "I'm ready" was tapped on this device
+ * @param {boolean} input.takenOver             what the page shows now
+ * @param {{pending: boolean, ackedAt: number|null}|null} [input.claim]   this page's last claim (null: none since it
+ *                                              loaded - a reload of a ready page claims nothing)
+ * @param {number} input.beatSentAt             when the heartbeat was sent (Date.now() of this device)
+ * @returns {{otherDeviceActive: boolean, takenOver: boolean, recheckAt: number|null}}
+ */
+export function takeoverVerdict({ activeDevice, deviceId, ready, takenOver, claim = null, beatSentAt }) {
+    const other = typeof activeDevice === 'string' && activeDevice !== '' && activeDevice !== deviceId;
+
+    if (!other || !ready || takenOver) {
+        return { otherDeviceActive: other, takenOver, recheckAt: null };
+    }
+
+    if (claim !== null && claim !== undefined) {
+        // The server has not stored this device's claim yet - the answer says nothing about it
+        if (claim.pending) {
+            return { otherDeviceActive: true, takenOver: false, recheckAt: null };
+        }
+
+        const trustedFrom = (Number.isFinite(claim.ackedAt) ? claim.ackedAt : 0) + TAKEOVER_GRACE_MS;
+
+        if (!Number.isFinite(beatSentAt) || beatSentAt < trustedFrom) {
+            return { otherDeviceActive: true, takenOver: false, recheckAt: trustedFrom };
+        }
+    }
+
+    return { otherDeviceActive: true, takenOver: true, recheckAt: null };
+}
+
 /**
  * Screens on which the camera runs (and the preview is shown).
  */

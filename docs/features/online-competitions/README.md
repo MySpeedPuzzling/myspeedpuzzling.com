@@ -226,7 +226,7 @@ Expected accuracy: the error is bounded by half the fastest round trip (the two 
 
 "Matched forever" = the existing participant ↔ player link, which carries the official result to the player's profile.
 
-**Several devices on one link.** The page registers a device id. The latest device that opens the camera *takes over* (the previous one shows "Opened on another device" via the private topic or the next heartbeat). A second-screen role (stopwatch + button only, e.g. a laptop) fits the same model - see §5.5.
+**Several devices on one link.** The page registers a device id. The latest device that opens the camera *takes over* (the previous one shows "Opened on another device" via the private topic or the next heartbeat). A device gives way to a heartbeat answer only once its own claim (`device.ready`) is stored and 3 s old - an older answer may predate it (`compete_flow.js` `takeoverVerdict()`) - and never switches back by itself: the device that lost the link stops within one heartbeat (≤ 15 s + a round trip; measured in the harness: worst 15.0-15.7 s, 0.8-4 s when both were tapped within seconds), and two devices tapped back and forth never flap - the last tap wins. A second-screen role (stopwatch + button only, e.g. a laptop) fits the same model - see §5.5.
 
 ### 5.5 The participant page
 

@@ -45,6 +45,8 @@ import {
     saveProgress,
     screenFor,
     shortClock,
+    TAKEOVER_GRACE_MS,
+    takeoverVerdict,
     undoLeftMs,
     wakeTapNeeded,
 } from '../online/compete_flow.js';
@@ -60,7 +62,8 @@ import { chooseTranslation } from '../translation_choice.js';
  * - state: the first one from the page, then the round's Mercure stream (official_results_events.js) and fetches - on
  *   (re)connect, on return, 2 s before / 1 s after the start, and whenever a heartbeat's hash or round differs; the
  *   newest wins by asOfMs (round_state.js adoptState / adoptRoundClock);
- * - heartbeat every 15 s: device, camera, clock quality, visibility, outbox counts; `takenOverBy` = another device;
+ * - heartbeat every 15 s: device, camera, clock quality, visibility, outbox counts; `takenOverBy` = another device -
+ *   this one gives way once its own claim is older (compete_flow.js takeoverVerdict());
  * - events through the event outbox and photos through the media outbox (stored on the phone first, sent until
  *   acknowledged) - nothing is recorded before the participant agreed to the photos, nothing at all in an organiser's
  *   preview;
@@ -76,8 +79,6 @@ const RENDER_EVERY_MS = 50;
 const SLOW_POLL_MS = 60000;
 // The longest single wait of the state-check timer (it re-plans itself)
 const MAX_TIMER_MS = 10 * 60 * 1000;
-// After this device said "I'm ready", a heartbeat still naming the old device is not a takeover yet
-const TAKEOVER_GRACE_MS = 30000;
 // iOS mutes the camera for a moment on many occasions - logged as lost only when it lasts
 const MUTE_GRACE_MS = 1000;
 const REOPEN_DELAY_MS = 600;
@@ -155,7 +156,10 @@ export default class extends Controller {
         this.linkDead = false;
         this.takenOver = false;
         this.otherDeviceActive = false;
-        this.ignoreTakeoverUntil = 0;
+        // This page's last claim of the link ("I'm ready", "Use this device instead") - takeoverVerdict()
+        this.claim = null;
+        this.recheckAfterClaim = false;
+        this.recheckTimer = null;
         this.practice = null;
         this.lastOkAt = null;
         this.failures = 0;
@@ -242,6 +246,7 @@ export default class extends Controller {
         window.clearTimeout(this.noticeTimer);
         window.clearTimeout(this.muteTimer);
         window.clearTimeout(this.refreshTimer);
+        window.clearTimeout(this.recheckTimer);
         this.unlisten();
         this.stream?.close();
         this.grabber.stop();
@@ -290,9 +295,7 @@ export default class extends Controller {
 
         this.progress.ready = true;
         this.saveProgress();
-        this.takenOver = false;
-        this.ignoreTakeoverUntil = Date.now() + TAKEOVER_GRACE_MS;
-        this.recordDeviceReady(false);
+        this.finishClaim(this.startClaim(), this.recordDeviceReady(false));
         this.beat();
         this.render();
     }
@@ -301,14 +304,14 @@ export default class extends Controller {
         this.touched = true;
         this.beeps.unlock();
         this.wakeLock.request();
-        this.takenOver = false;
         this.otherDeviceActive = false;
-        this.ignoreTakeoverUntil = Date.now() + TAKEOVER_GRACE_MS;
+        // Claimed from this tap on: no answer until the server stored it makes this device give way again
+        const claim = this.startClaim();
         // The camera first (it reports with device.ready), then the screen
         const opening = this.ensureCamera({ force: true });
         this.render();
         await opening;
-        this.recordDeviceReady(true);
+        this.finishClaim(claim, this.recordDeviceReady(true));
         this.beat();
     }
 
@@ -511,7 +514,10 @@ export default class extends Controller {
         this.eventsReady = openEventOutbox({
             scope: this.participantId,
             send: (events) => this.api.events({ deviceId: this.deviceId, events }),
-            onChange: () => this.requestRender(),
+            onChange: () => {
+                this.noteClaim();
+                this.requestRender();
+            },
         }).then((outbox) => {
             this.eventsOutbox = outbox;
 
@@ -770,6 +776,7 @@ export default class extends Controller {
         try {
             const quality = this.clock.quality();
             const settings = this.camera.settings();
+            const sentAt = Date.now();
             const answer = await this.api.heartbeat({
                 deviceId: this.deviceId,
                 roundId: this.state.round.id,
@@ -802,30 +809,37 @@ export default class extends Controller {
                 this.refreshState();
             }
 
-            this.applyTakeover(data.takenOverBy);
+            this.applyTakeover(data.takenOverBy, sentAt);
         } finally {
             this.beating = false;
         }
     }
 
-    applyTakeover(activeDevice) {
-        const other = typeof activeDevice === 'string' && activeDevice !== '' && activeDevice !== this.deviceId;
-        this.otherDeviceActive = other;
+    /**
+     * The heartbeat's `takenOverBy` (sent at `beatSentAt`): another device holds the link - the checklist says so, a
+     * ready device gives way once its own claim is older than the answer (takeoverVerdict()); never back by itself.
+     */
+    applyTakeover(activeDevice, beatSentAt) {
+        this.noteClaim();
+        const verdict = takeoverVerdict({
+            activeDevice,
+            deviceId: this.deviceId,
+            ready: this.progress.ready === true,
+            takenOver: this.takenOver,
+            claim: this.claim,
+            beatSentAt,
+        });
+        this.otherDeviceActive = verdict.otherDeviceActive;
 
-        if (!other) {
-            this.takenOver = false;
-
-            return;
-        }
-
-        // Not competing here (yet): the checklist says the link is in use elsewhere; "I'm ready" moves it here
-        if (!this.progress.ready || Date.now() < this.ignoreTakeoverUntil || (this.eventsOutbox?.pendingCount() ?? 0) > 0) {
-            return;
-        }
-
-        if (!this.takenOver) {
-            this.takenOver = true;
+        if (verdict.takenOver !== this.takenOver) {
+            this.takenOver = verdict.takenOver;
             this.requestRender();
+        }
+
+        if (verdict.recheckAt !== null) {
+            this.scheduleRecheck(verdict.recheckAt);
+        } else if (verdict.otherDeviceActive && this.claim?.pending) {
+            this.recheckAfterClaim = true;
         }
     }
 
@@ -875,6 +889,62 @@ export default class extends Controller {
         return explicitRound || (Boolean(this.state?.round) && Boolean(this.state?.entry));
     }
 
+    /**
+     * This device takes the link: until its device.ready is stored (and TAKEOVER_GRACE_MS after), no heartbeat answer
+     * naming another device makes it give way (takeoverVerdict()).
+     */
+    startClaim() {
+        const claim = { eventId: null, pending: true, ackedAt: null };
+        this.claim = claim;
+        this.takenOver = false;
+
+        return claim;
+    }
+
+    finishClaim(claim, event) {
+        if (event === null) {
+            // Nothing recorded (an organiser's preview) - nothing to wait for
+            claim.pending = false;
+            claim.ackedAt = Date.now();
+
+            return;
+        }
+
+        // After record() handed the event to the outbox (an earlier callback of the same promise)
+        this.eventsReady.then(() => {
+            claim.eventId = event.id;
+            this.noteClaim();
+        });
+    }
+
+    /**
+     * The claim's device.ready left the outbox - the server stored it (or refused it): from TAKEOVER_GRACE_MS on, an
+     * answer naming another device is believed. An answer set aside meanwhile is asked again then.
+     */
+    noteClaim() {
+        const claim = this.claim;
+
+        if (claim === null || !claim.pending || claim.eventId === null || this.eventsOutbox?.isPending(claim.eventId)) {
+            return;
+        }
+
+        claim.pending = false;
+        claim.ackedAt = Date.now();
+
+        if (this.recheckAfterClaim) {
+            this.recheckAfterClaim = false;
+            this.scheduleRecheck(claim.ackedAt + TAKEOVER_GRACE_MS);
+        }
+    }
+
+    scheduleRecheck(at) {
+        window.clearTimeout(this.recheckTimer);
+        this.recheckTimer = window.setTimeout(() => {
+            this.recheckTimer = null;
+            this.beat();
+        }, Math.max(0, at - Date.now()) + 50);
+    }
+
     record(type, data = {}, { stamp = null, id = null } = {}) {
         if (!this.mayRecord()) {
             return null;
@@ -899,7 +969,7 @@ export default class extends Controller {
         const quality = this.clock.quality();
         const settings = this.camera.settings();
 
-        this.record('device.ready', {
+        return this.record('device.ready', {
             takeover,
             userAgent: navigator.userAgent,
             platform: navigator.userAgentData?.platform ?? navigator.platform ?? null,

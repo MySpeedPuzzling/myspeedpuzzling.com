@@ -55,6 +55,8 @@ const ui = {
         maxDropFrames: $('rule-drop-frames'),
         maxDropMs: $('rule-drop-ms'),
         maxGapMs: $('rule-gap'),
+        armMs: $('rule-arm-ms'),
+        armFrames: $('rule-arm-frames'),
     },
     candidates: $('candidates'),
     stats: $('stats'),

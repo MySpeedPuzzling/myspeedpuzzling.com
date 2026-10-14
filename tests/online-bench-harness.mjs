@@ -366,6 +366,19 @@ complete: yes
         assert.equal(events.at(-1).type, 'raise_end');
         assert.equal(state.candidates, 1);
     },
+
+    'a video that starts with the hands up: the phones\' machine never takes that raise (arming) - armMs 0 + armFrames 0 does'() {
+        const list = frames({ toMs: 20_000, up: [[0, 3000], [10_000, 11_000]] });
+        const labels = 'hands_up: 00:00:00.0 incomplete\nhands_up: 00:00:10.0\ncomplete: yes\n';
+        const armed = scoreVideo(video('start.mp4', list, labels));
+
+        assert.deepEqual([armed.candidates, armed.detected, armed.missed, armed.finishDetected], [1, 1, 1, true]);
+        assert.deepEqual(armed.errors, [0]);
+
+        const always = scoreVideo(video('start.mp4', list, labels), { rules: { armMs: 0, armFrames: 0 } });
+        assert.deepEqual([always.candidates, always.detected, always.missed], [2, 2, 0]);
+        assert.deepEqual(setupOf({ armMs: 0, armFrames: 0 }).rules, { armMs: 0, armFrames: 0 }, 'sweepable');
+    },
 };
 
 const results = {};

@@ -56,9 +56,15 @@ export default class extends Controller {
             return true;
         }
 
+        // Only what the form would send: a control without a name is never submitted (flatpickr's visible date field,
+        // whose text the script sets on an untouched form; search boxes) - a reload loses nothing of it
         const forms = document.querySelectorAll('form');
         for (const form of forms) {
             for (const el of form.elements) {
+                if (!el.name) {
+                    continue;
+                }
+
                 if (el.tagName === 'INPUT' && (el.type === 'text' || el.type === 'number' || el.type === 'search' || el.type === 'email' || el.type === 'url' || el.type === 'tel')) {
                     if (el.value !== el.defaultValue) return true;
                 } else if (el.tagName === 'TEXTAREA') {

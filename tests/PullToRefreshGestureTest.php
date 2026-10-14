@@ -229,6 +229,8 @@ final class PullToRefreshGestureTest extends TestCase
         self::assertStringContainsString('layer: layers.current(),', $controller);
         // GEST review Q2: never armed over typed form input - the 15-minute reload's own rule
         self::assertStringContainsString('hasFormInput: () => this._hasActiveFormInput(),', $controller);
+        // ... counting only controls the form sends: an untouched add form (flatpickr's unnamed date field) still pulls
+        self::assertMatchesRegularExpression('~for \(const el of form\.elements\) \{\s*if \(!el\.name\) \{\s*continue;\s*\}~', $controller);
         // GEST review F8: a second finger on a pull sends the indicator back before the gesture starts again
         self::assertMatchesRegularExpression('~if \(this\._gesture\.pulling\) \{\s*this\._resetIndicator\(\);\s*\}\s*this\._gesture\.start\(~', $controller);
         self::assertStringContainsString('pastThreshold(this._gesture.end())', $controller);

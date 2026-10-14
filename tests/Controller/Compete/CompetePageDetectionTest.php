@@ -16,8 +16,9 @@ use Symfony\Component\DomCrawler\Crawler;
 /**
  * The participant page's finish detection parts (docs/features/online-competitions/README.md §5.7, stream P2I): only
  * when the round's detection is not off does the page carry them - the detection value (where the detector's runtime and
- * models come from: OnlineDetectorAssets, the one place), the checklist's row with its test / retry / skip, the running
- * screen's "Finish recorded" and its quiet lines, time's up after a detected finish, the green flash and the texts. A
+ * models come from: OnlineDetectorAssets, the one place), the checklist's row with its test / retry / skip, the waiting
+ * screen's set-up test (stream RP), the running screen's "Finish recorded" and its quiet lines, time's up after a
+ * detected finish, the green flash and the texts. A
  * round whose detection is off is the page without them, byte for byte - but for the two texts of the banner such a page
  * shows when the organiser turns detection on ("reload the page to use it", stream SP: built by the script only then,
  * its text can come from nowhere else); the parts are the only difference, and they cost no statement.
@@ -40,6 +41,8 @@ final class CompetePageDetectionTest extends WebTestCase
         'compete-detected',
         'compete-detection-line',
         'compete-detection-flash',
+        'compete-detection-waiting',
+        'detectionWaiting',
         'compete#timeupComplete',
         'jsdelivr',
         'mediapipe',
@@ -89,6 +92,16 @@ final class CompetePageDetectionTest extends WebTestCase
             self::assertSame($action, $button->attr('data-action'));
         }
 
+        // The waiting screen (stream RP): the set-up test offered to a page that came back untested - hidden until the
+        // script says so, its "Test" the checklist's action
+        $waiting = $crawler->filter('[data-compete-screen="waiting"] [data-compete-detection="waiting"]');
+        self::assertCount(1, $waiting);
+        self::assertSame('detectionWaiting', $waiting->attr('data-compete-show'));
+        self::assertNotNull($waiting->attr('hidden'));
+        self::assertSame('Finish detection', trim($waiting->filter('.compete-check-label')->text()));
+        self::assertCount(1, $waiting->filter('[data-compete-field="detectionCheck"]'));
+        self::assertSame('compete#detectionTest', $waiting->filter('[data-compete-show="detectionTest"]')->attr('data-action'));
+
         // The running screen: "Finish recorded" above the Finished button, which stays
         $running = $crawler->filter('[data-compete-screen="running"]');
         foreach (['detectionDetected', 'detectionHint', 'detectionSuppressed', 'detectionButtonOnly'] as $part) {
@@ -131,6 +144,7 @@ final class CompetePageDetectionTest extends WebTestCase
             '/\s*<li class="compete-check" data-compete-detection="check".*?<\/li>/s',
             '/\s*<div class="compete-detected" data-compete-show="detectionDetected".*?<\/div>\s*<p class="compete-detection-line".*?<p class="compete-detection-line".*?<\/p>\s*<p class="compete-detection-line".*?<\/p>/s',
             '/\s*<div class="compete-detected compete-detected--timeup".*?<\/div>/s',
+            '/\s*<div class="compete-check compete-detection-waiting".*?<\/span>\s*<\/div>\s*<\/div>/s',
             '/\s*<div class="compete-detection-flash" aria-hidden="true"><\/div>/',
         ], '', $with);
 

@@ -1337,6 +1337,13 @@ html:has(.compete) body {
     font-size: 1rem;
 }
 
+// The set-up test on the waiting screen (stream RP): the checklist's row, as wide as the screen allows
+.compete-detection-waiting {
+    width: 100%;
+    max-width: 34rem;
+    text-align: start;
+}
+
 .compete[data-detected='1'] .compete-clock--running {
     font-size: min(12vw, 10vh);
 }

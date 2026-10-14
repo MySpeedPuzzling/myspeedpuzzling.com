@@ -10,6 +10,9 @@
         <p class="compete-limit" data-compete-field="timeLimit">{{ 'compete.page.time_limit'|trans({'%count%': minutes_limit}) }}</p>
     {% endif %}
     <p class="compete-keep-open small">{{ 'compete.screen.keep_open'|trans }}</p>
+    {%~ if detection is defined and detection is not null %}
+    {{ include('compete/_detection_waiting.html.twig') }}
+    {%~ endif %}
     {{ include('compete/_practice_button.html.twig') }}
 </section>
 

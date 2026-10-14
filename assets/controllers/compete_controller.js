@@ -2300,6 +2300,7 @@ export default class extends Controller {
                 linkDead: this.linkDead,
                 entryConfirmed: this.state?.entry?.review === 'confirmed',
                 runKey: this.runKey,
+                roundView: view,
                 startedAtMs: view.startedAtMs,
                 limitMs: view.limitMs,
                 detections: this.progress.detections ?? [],

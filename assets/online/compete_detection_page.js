@@ -23,7 +23,9 @@
  *   does not watch right now (a frozen camera, the camera restarting, still loading) the page shows the button-only
  *   line too - never "Raise both hands" when nothing would see them.
  * - **The set-up test** on the checklist (compete_detection.js SetUpTest), started by itself once the detector is ready
- *   (unless this device passed one before), again by "Test again"; its result and view are kept on the device.
+ *   (unless this device passed one before), again by "Test again"; its result and view are kept on the device. A test
+ *   belongs to the screen it began on and ends untested when the page leaves it, or when a practice begins - the
+ *   waiting screen offers one too (stream RP, waitingOffer(): a page reloaded after "I'm ready" lands there untested).
  * - **The round**: the finish machine in the round's mode (`on` / `shadow`) from the running screen on - stopped
  *   (interrupt(): unarmed) whenever the detector stops looking, the Finished tap included; a candidate → the
  *   `finish.candidate` event (its moment = the first raised frame's capture time), the ±5 s burst and the sharpest of a
@@ -83,6 +85,7 @@ import {
     TEST_FAILED,
     TEST_PASSED,
     TEST_SKIPPED,
+    waitingOffer,
     WATCH_STALE_MS,
 } from './compete_detection.js';
 import { clockText } from './compete_flow.js';
@@ -191,6 +194,9 @@ export class CompeteDetectionPage {
         this.configuring = null;
         this.choice = loadDetectorChoice(storage, participantId);
         this.setUp = null;
+        // The screen the set-up test began on, and whether one began on the waiting screen (its result stays shown)
+        this.setUpScreen = null;
+        this.waitingTested = false;
         // The set-up test starts by itself once per page - a participant who skipped or failed it starts it again
         this.autoTested = false;
         this.pacing = createDetectorPacing();
@@ -260,13 +266,14 @@ export class CompeteDetectionPage {
             }
         }
 
-        if (input.screen === 'checklist') {
-            if (this.state === STATE_READY && !this.autoTested && this.setUp === null && this.choice.test === null) {
-                this.autoTested = true;
-                this.startTest({ asked: false });
-            }
-        } else if (this.setUp !== null) {
-            // "I'm ready" while the test watched: untested, not failed - the device keeps its view
+        if (input.screen === 'checklist' && this.state === STATE_READY && !this.autoTested && this.setUp === null && this.choice.test === null) {
+            this.autoTested = true;
+            this.startTest({ asked: false });
+        }
+
+        // "I'm ready" while the checklist's test watched, the countdown while the waiting screen's did, a practice: the
+        // test ends untested, not failed - the device keeps its view
+        if (this.setUp !== null && (input.screen !== this.setUpScreen || input.practice)) {
             this.setUp = null;
         }
 
@@ -328,8 +335,20 @@ export class CompeteDetectionPage {
 
         const paint = this.paint;
 
-        if (input.screen === 'checklist') {
-            const row = checklistRow({
+        // The waiting screen's set-up test (stream RP) - the checklist's row, its test only
+        const offer = input.screen === 'waiting' ? waitingOffer({
+            mode: input.mode,
+            state: this.state,
+            test: this.choice.test,
+            view: this.choice.view,
+            setUp: this.setUp,
+            testedHere: this.waitingTested,
+            roundView: input.roundView,
+        }) : null;
+        paint.shown('detectionWaiting', offer !== null);
+
+        if (input.screen === 'checklist' || offer !== null) {
+            const row = offer ?? checklistRow({
                 state: this.state,
                 test: this.choice.test,
                 view: this.choice.view,
@@ -337,7 +356,7 @@ export class CompeteDetectionPage {
                 loadingForMs: this.state === STATE_LOADING && this.loadStartedAt !== null ? this.now() - this.loadStartedAt : null,
                 mode: input.mode,
             });
-            const element = this.parts.get('check');
+            const element = this.parts.get(offer === null ? 'check' : 'waiting');
 
             if (element && element.dataset.level !== row.level) {
                 element.dataset.level = row.level;
@@ -437,6 +456,8 @@ export class CompeteDetectionPage {
         }
 
         this.setUp = createSetUpTest({ startedAtMs: this.now(), asked });
+        this.setUpScreen = this.input?.screen ?? 'checklist';
+        this.waitingTested ||= this.setUpScreen === 'waiting';
 
         if (this.choice.test === TEST_SKIPPED) {
             // Back from button-only: the test decides again

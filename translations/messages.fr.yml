@@ -9267,11 +9267,11 @@ online_rounds:
         detection:
             label: "Arrivée"
             how: "Détection : les participants lèvent les deux mains quand leur puzzle est complet – leur téléphone enregistre le moment avec une photo et les secondes autour ; vous le confirmez lors de la vérification. Le bouton « Terminé » fonctionne toujours aussi. Une manche avec détection demande à chaque téléphone un court test pendant l'installation."
-            locked: "Verrouillé du début de la manche jusqu'à la réinitialisation du chronomètre – les téléphones l'utilisent déjà."
-            locked_refused: "La manche a commencé (ou son départ est fixé), la détection de l'arrivée ne peut donc plus changer. Réinitialisez le chronomètre de la manche pour la modifier – rien n'a été enregistré."
             "off": "Bouton « Terminé » – les participants appuient sur « Terminé » quand leur puzzle est fini"
             shadow: "Bouton « Terminé », détection en observation – l'appui compte ; la détection de la caméra est seulement enregistrée, pour l'évaluer"
             "on": "Détection – les mains levées marquent l'arrivée, le bouton « Terminé » sert de solution de secours"
+            locked: "Verrouillé du début de la manche jusqu'à la réinitialisation du chronomètre – les téléphones l'utilisent déjà."
+            locked_refused: "La manche a commencé (ou son départ est fixé), la détection de l'arrivée ne peut donc plus changer. Réinitialisez le chronomètre de la manche pour la modifier – rien n'a été enregistré."
         unfinished:
             label: "Quand le temps est écoulé"
             help: "Ce que déclarent les participants qui n'ont pas terminé, avec une photo de leur puzzle."

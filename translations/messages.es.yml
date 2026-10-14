@@ -9248,11 +9248,11 @@ online_rounds:
         detection:
             label: "Registro del final"
             how: "Detección: los participantes levantan las dos manos cuando su puzzle está completo; su móvil registra el momento con una foto y los segundos alrededor, y tú lo confirmas en la revisión. El botón «Terminado» también funciona siempre. En una ronda con detección, cada móvil hace una prueba rápida durante la preparación."
-            locked: "Bloqueado desde el inicio de la ronda hasta reiniciar el cronómetro: los móviles ya lo usan."
-            locked_refused: "La ronda ya ha empezado (o tiene el inicio fijado), así que la detección del final ya no puede cambiar. Reinicia el cronómetro de la ronda para cambiarla; no se ha guardado nada."
             "off": "Botón «Terminado»: los participantes tocan «Terminado» cuando acaban su puzzle"
             shadow: "Botón «Terminado» con la detección de fondo: cuenta el toque; lo que detecta la cámara solo se registra, para medirlo"
             "on": "Detección: las manos levantadas marcan el final y el botón «Terminado» queda como respaldo"
+            locked: "Bloqueado desde el inicio de la ronda hasta reiniciar el cronómetro: los móviles ya lo usan."
+            locked_refused: "La ronda ya ha empezado (o tiene el inicio fijado), así que la detección del final ya no puede cambiar. Reinicia el cronómetro de la ronda para cambiarla; no se ha guardado nada."
         unfinished:
             label: "Cuando se acaba el tiempo"
             help: "Lo que indican los participantes que no terminaron, junto con una foto de su puzzle."

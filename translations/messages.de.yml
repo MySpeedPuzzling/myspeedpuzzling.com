@@ -9247,11 +9247,11 @@ online_rounds:
         detection:
             label: "Zielzeit"
             how: "Erkennung: Die Teilnehmer heben beide Hände, wenn ihr Puzzle vollständig ist – ihr Handy erfasst den Moment mit einem Foto und den Sekunden rund um ihn; Sie bestätigen ihn in der Prüfung. Auch der „Fertig“-Button funktioniert immer. In einer Runde mit Erkennung macht jedes Handy während der Vorbereitung einen kurzen Test."
-            locked: "Ab dem Start der Runde bis zum Zurücksetzen gesperrt – die Handys verwenden es bereits."
-            locked_refused: "Die Runde hat begonnen (oder ihr Start ist festgelegt), daher kann die Zielerkennung nicht mehr geändert werden. Setzen Sie die Stoppuhr der Runde zurück, um sie zu ändern – nichts wurde gespeichert."
             "off": "„Fertig“-Button – die Teilnehmer tippen auf „Fertig“, wenn ihr Puzzle vollständig ist"
             shadow: "„Fertig“-Button, die Erkennung läuft mit – der Tipp zählt; die Erkennung der Kamera wird nur aufgezeichnet, um sie zu messen"
             "on": "Erkennung – erhobene Hände markieren die Zielzeit, der „Fertig“-Button dient als Reserve"
+            locked: "Ab dem Start der Runde bis zum Zurücksetzen gesperrt – die Handys verwenden es bereits."
+            locked_refused: "Die Runde hat begonnen (oder ihr Start ist festgelegt), daher kann die Zielerkennung nicht mehr geändert werden. Setzen Sie die Stoppuhr der Runde zurück, um sie zu ändern – nichts wurde gespeichert."
         unfinished:
             label: "Bei Zeitablauf"
             help: "Was Teilnehmer, die nicht fertig geworden sind, melden – zusammen mit einem Foto ihres Puzzles."

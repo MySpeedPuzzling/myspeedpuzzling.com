@@ -27,12 +27,13 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * (MarkOnlineMomentGap), `"gap": false` takes the mark back - "Not a gap", or the reviewer confirmed that very moment
  * (UnmarkOnlineMomentGap). The same again changes nothing, so the page may send it again after a lost answer.
  *
- * Answers `{status: marked | unmarked | unchanged, eventId, gap, gaps}` (`gaps` = the participant's moments marked as
- * it is now, as the review's detail lists them), or `{error, message}`: 422 `moment_not_found` (no finish moment of
+ * Answers `{status: marked | unmarked | unchanged, eventId, gap, gaps, entry}` (`gaps` = the participant's moments
+ * marked as it is now, as the review's detail lists them; `entry` = their review row - a raise marked as a gap is never
+ * suggested, so the suggestion may have moved on to the next one), or `{error, message}`: 422 `moment_not_found` (no finish moment of
  * this participant the review shows - never telling a hidden raise of a `shadow` round apart), `invalid_verdict` (the
  * body). JSON on the review's rules (OnlineOrganiserApi: COMPETITION_RESULTS_ENTRY and ONLINE_ROUNDS_MANAGE,
- * `Content-Type: application/json`, the stateless CSRF header) - as the confirmation. Nothing else changes: not the
- * suggestion, a confirmation or an official time.
+ * `Content-Type: application/json`, the stateless CSRF header) - as the confirmation. Nothing else changes: not a
+ * confirmation or an official time.
  */
 final class OnlineReviewGapController extends AbstractController
 {
@@ -110,6 +111,7 @@ final class OnlineReviewGapController extends AbstractController
             'eventId' => strtolower($eventId),
             'gap' => $gap,
             'gaps' => $this->onlineReview->gaps($change->onlineEntryId, $access['onlineRound']->detectionMode),
+            'entry' => $this->onlineReview->row($round, $participantId, $access['onlineRound']->detectionMode),
         ]);
     }
 }

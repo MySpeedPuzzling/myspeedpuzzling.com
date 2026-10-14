@@ -446,10 +446,10 @@ final class OnlineReviewAssessmentTest extends TestCase
 
         $confirmed = self::assess($events, confirmed: true, confirmedMomentMs: $raiseMs + 400, detection: OnlineDetectionMode::On, gaps: $marked);
         self::assertSame('raise', $confirmed->detectedCandidate?->eventId);
-        self::assertSame(400, $confirmed->detectionErrorMs, 'the marks change no measure');
+        self::assertSame(400, $confirmed->detectionErrorMs, 'the finish\'s raise is not marked - its error is as without marks');
         self::assertSame(2, $confirmed->prematureRaises, 'the marked raises - a tap near one or not');
         self::assertSame(1, $confirmed->falseDetections, 'the stray one');
-        self::assertSame(2, $confirmed->falseRaises, 'the old count stays: not the finish and no tap near (stray, premature)');
+        self::assertSame(2, $confirmed->falseRaises, 'false detections + premature raises without a tap near (stray, premature)');
         self::assertSame(1, $confirmed->prematureTaps);
         self::assertSame(0, $confirmed->missedRaises);
 
@@ -461,15 +461,20 @@ final class OnlineReviewAssessmentTest extends TestCase
         $pending = self::assess($events, detection: OnlineDetectionMode::On, gaps: $marked);
         self::assertSame('stray', $pending->suggestion->candidateEventId);
         self::assertSame([2, 0], [$pending->prematureRaises, $pending->falseDetections]);
-        // ... unless it is marked: then none is - a mark never changes the suggestion itself
+        // ... unless it is marked: then it is never suggested - the earliest unmarked moment is (here the early tap)
         $suggestedMarked = self::assess($events, detection: OnlineDetectionMode::On, gaps: [...$marked, 'stray']);
-        self::assertSame('stray', $suggestedMarked->suggestion->candidateEventId);
+        self::assertNull($suggestedMarked->suggestion->candidateEventId);
+        self::assertSame('early-tap', $suggestedMarked->suggestion->tapEventId);
         self::assertSame([3, 0], [$suggestedMarked->prematureRaises, $suggestedMarked->falseDetections]);
 
-        // A marked raise within 10 s of the confirmed moment stays that finish's (the window wins)
+        // A marked raise within 10 s of the confirmed moment is never that finish's (the mark overrides the window): no
+        // detection, the tap is a missed raise
         $markedFinish = self::assess($events, confirmed: true, confirmedMomentMs: $raiseMs + 400, detection: OnlineDetectionMode::On, gaps: [...$marked, 'raise']);
-        self::assertSame('raise', $markedFinish->detectedCandidate?->eventId);
-        self::assertSame(2, $markedFinish->prematureRaises);
+        self::assertNull($markedFinish->detectedCandidate);
+        self::assertNull($markedFinish->detectionErrorMs);
+        self::assertNull($markedFinish->deltaMs);
+        self::assertSame(3, $markedFinish->prematureRaises);
+        self::assertSame(1, $markedFinish->missedRaises);
 
         // A marked tap the reviewer confirmed at its own moment is the finish all the same
         $tapConfirmed = self::assess($events, confirmed: true, confirmedMomentMs: $tapMs, detection: OnlineDetectionMode::On, gaps: [...$marked, 'tap']);
@@ -485,6 +490,80 @@ final class OnlineReviewAssessmentTest extends TestCase
 
         // Without a tap that counts there is nothing to count
         self::assertNull(self::assess([self::candidate(self::START + self::MINUTE, id: 'only')], detection: OnlineDetectionMode::On, gaps: ['only'])->prematureTaps);
+    }
+
+    /**
+     * A raise the reviewer marked as a gap is never a finish's raise - the mark overrides the ±10 s window (the
+     * orchestrator's decision, stream RG): the detected moment, the detection error and the tap delay come from the
+     * next unmarked raise in the window, and a finish whose only raise is marked has no detection
+     */
+    public function testAMarkedRaiseIsNeverTheFinishsRaise(): void
+    {
+        $raiseMs = self::START + 30 * self::MINUTE;
+        $ready = self::event('device.ready', self::START - self::MINUTE, ['detector' => ['state' => 'ready', 'view' => 'angled', 'setupTest' => 'passed', 'loadMs' => 900]]);
+        $events = [
+            $ready,
+            // Raised with a piece missing, placed it, raised again 4 s later; tapped in between
+            self::candidate($raiseMs, id: 'early'),
+            self::event('finish.button', $raiseMs + 1_500, id: 'tap'),
+            self::candidate($raiseMs + 4_000, id: 'again'),
+        ];
+        $confirmedAt = $raiseMs + 1_000;
+
+        // Without marks the nearer raise is the finish's: +1.0 s error, tap delay +1.5 s
+        $unmarked = self::assess($events, confirmed: true, confirmedMomentMs: $confirmedAt, detection: OnlineDetectionMode::On);
+        self::assertSame('early', $unmarked->detectedCandidate?->eventId);
+        self::assertSame([1_000, 'early', 1_500, 0], [$unmarked->detectionErrorMs, $unmarked->deltaCandidate?->eventId, $unmarked->deltaMs, $unmarked->prematureRaises]);
+
+        // Marked: the next unmarked raise inside the window is the finish's - error −3.0 s, tap delay −2.5 s
+        $marked = self::assess($events, confirmed: true, confirmedMomentMs: $confirmedAt, detection: OnlineDetectionMode::On, gaps: ['early']);
+        self::assertSame('again', $marked->detectedCandidate?->eventId);
+        self::assertSame([-3_000, 'again', -2_500], [$marked->detectionErrorMs, $marked->deltaCandidate?->eventId, $marked->deltaMs]);
+        self::assertSame([1, 0, 0], [$marked->prematureRaises, $marked->falseDetections, $marked->missedRaises]);
+
+        // The finish's only raise marked: no detection - a missed raise on a phone whose detector watched ...
+        $only = [$ready, self::candidate($raiseMs, id: 'early'), self::event('finish.button', $raiseMs + 6_000, id: 'tap')];
+        $missed = self::assess($only, confirmed: true, confirmedMomentMs: $raiseMs + 6_000, detection: OnlineDetectionMode::On, gaps: ['early']);
+        self::assertNull($missed->detectedCandidate);
+        self::assertNull($missed->detectionErrorMs);
+        self::assertNull($missed->deltaCandidate);
+        self::assertSame([1, 0, 1, 0], [$missed->missedRaises, $missed->detectorNotRunning, $missed->prematureRaises, $missed->falseDetections]);
+        // ... (without the mark the raise 6 s before was that finish's)
+        self::assertSame([0, 'early'], [self::assess($only, confirmed: true, confirmedMomentMs: $raiseMs + 6_000, detection: OnlineDetectionMode::On)->missedRaises, self::assess($only, confirmed: true, confirmedMomentMs: $raiseMs + 6_000, detection: OnlineDetectionMode::On)->detectedCandidate?->eventId]);
+        // ... and "detector not running" on a phone whose detector did not
+        $notRunning = [self::event('device.ready', self::START - self::MINUTE, ['detector' => ['state' => 'unsupported', 'view' => null, 'setupTest' => null, 'loadMs' => null]]), ...array_slice($only, 1)];
+        $withoutDetector = self::assess($notRunning, confirmed: true, confirmedMomentMs: $raiseMs + 6_000, detection: OnlineDetectionMode::On, gaps: ['early']);
+        self::assertSame([0, 1], [$withoutDetector->missedRaises, $withoutDetector->detectorNotRunning]);
+
+        // A tap marked as a gap is matched against its own (marked) raise: no missed raise for it
+        $prematureTap = self::assess($only, detection: OnlineDetectionMode::Shadow, gaps: ['early', 'tap']);
+        self::assertSame([0, 1], [$prematureTap->missedRaises, $prematureTap->prematureTaps]);
+    }
+
+    /**
+     * `on`: the suggestion is the first raise the reviewer did not mark as a gap - and without marks exactly as before
+     */
+    public function testTheSuggestionSkipsARaiseMarkedAsAGap(): void
+    {
+        $first = self::candidate(self::START + 20 * self::MINUTE, id: 'first');
+        $second = self::candidate(self::START + 21 * self::MINUTE, id: 'second');
+        $tap = self::event('finish.button', self::START + 21 * self::MINUTE + 2_000, id: 'tap');
+
+        self::assertSame('first', self::assess([$first, $second, $tap], detection: OnlineDetectionMode::On)->suggestion->candidateEventId, 'without marks: the first raise');
+        self::assertSame('first', self::assess([$first, $second, $tap], detection: OnlineDetectionMode::On, gaps: [])->suggestion->candidateEventId);
+
+        $marked = self::assess([$first, $second, $tap], detection: OnlineDetectionMode::On, gaps: ['FIRST']);
+        self::assertSame('second', $marked->suggestion->candidateEventId);
+        self::assertSame((21 * 60), $marked->suggestion->seconds);
+        self::assertSame('second', $marked->detectedCandidate?->eventId, 'the presumed finish follows the suggestion');
+
+        // Every raise marked: the tap
+        $allMarked = self::assess([$first, $second, $tap], detection: OnlineDetectionMode::On, gaps: ['first', 'second']);
+        self::assertNull($allMarked->suggestion->candidateEventId);
+        self::assertSame('tap', $allMarked->suggestion->tapEventId);
+
+        // `shadow` / `off`: the tap as ever
+        self::assertSame('tap', self::assess([$first, $second, $tap], detection: OnlineDetectionMode::Shadow, gaps: ['first'])->suggestion->tapEventId);
     }
 
     /**

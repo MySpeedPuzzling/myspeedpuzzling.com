@@ -60,7 +60,8 @@ const TAP_MEDIA = ['button', 'candidate', 'burst'];
  * - Stream RG - G is stored: the moment G leaves is marked "Gap" in the moments list (online_review_gap, kept by
  *   review_gaps.js GapMarks: shown at once, sent after, sent again when the page is back online; the detail's `gaps`
  *   after a reload); "Not a gap" - or confirming that very moment - takes the mark back. G on the last moment marks it
- *   and says there is nothing after it. The marks feed the accuracy report only.
+ *   and says there is nothing after it. A raise marked as a gap is never suggested (the saved mark's answer brings
+ *   the row as it is now) nor ever a finish's raise in the accuracy report.
  */
 export default class extends Controller {
     static targets = [
@@ -104,6 +105,13 @@ export default class extends Controller {
                 method: 'POST',
                 body: { eventId, gap },
                 csrfToken: this.csrfTokenValue,
+            }).then((answer) => {
+                // A raise marked as a gap is never suggested - the row may suggest the next moment now
+                if (answer.kind === 'ok' && answer.data?.entry) {
+                    this.gapEntryChanged(answer.data.entry);
+                }
+
+                return answer;
             }),
             changed: () => this.gapMarksChanged(),
             report: (report) => this.gapReport(report),
@@ -642,6 +650,24 @@ export default class extends Controller {
 
         this.renderTaps();
         this.renderBusy();
+    }
+
+    /**
+     * A mark saved: the participant's row as it is now (its suggestion skips a raise marked as a gap) - the list and
+     * the header show it; the result the reviewer saw (`seenResult`) stays, a mark changes no official result
+     */
+    gapEntryChanged(entry) {
+        if (this.closed) {
+            return;
+        }
+
+        this.replaceEntry(entry);
+        this.renderList();
+
+        if (this.detail?.entry?.participantId === entry.participantId) {
+            this.detail.entry = entry;
+            this.renderDetailHeader();
+        }
     }
 
     /**

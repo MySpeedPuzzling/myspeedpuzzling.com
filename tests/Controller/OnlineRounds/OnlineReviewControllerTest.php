@@ -406,11 +406,16 @@ final class OnlineReviewControllerTest extends WebTestCase
         $this->post($browser, self::GAP, ['eventId' => strtoupper($earlyId), 'gap' => true]);
         self::assertResponseIsSuccessful();
         self::assertStringContainsString('no-store', (string) $browser->getResponse()->headers->get('Cache-Control'));
-        self::assertSame(['status' => 'marked', 'eventId' => $earlyId, 'gap' => true, 'gaps' => [$earlyId]], $this->json($browser));
+        $answer = $this->json($browser);
+        self::assertSame(['status' => 'marked', 'eventId' => $earlyId, 'gap' => true, 'gaps' => [$earlyId]], array_diff_key($answer, ['entry' => true]));
+        // The row as it is now: a raise marked as a gap is never suggested - the next one is
+        self::assertIsArray($answer['entry']);
+        self::assertIsArray($answer['entry']['suggestion']);
+        self::assertSame($raiseId, $answer['entry']['suggestion']['candidateEventId']);
 
         // Again (a lost answer, a second G): nothing changes
         $this->post($browser, self::GAP, ['eventId' => $earlyId, 'gap' => true]);
-        self::assertSame(['status' => 'unchanged', 'eventId' => $earlyId, 'gap' => true, 'gaps' => [$earlyId]], $this->json($browser));
+        self::assertSame(['status' => 'unchanged', 'eventId' => $earlyId, 'gap' => true, 'gaps' => [$earlyId]], array_diff_key($this->json($browser), ['entry' => true]));
 
         $this->post($browser, self::GAP, ['eventId' => $tapId, 'gap' => true]);
         self::assertSame([$earlyId, $tapId], $this->json($browser)['gaps']);
@@ -422,12 +427,12 @@ final class OnlineReviewControllerTest extends WebTestCase
         self::assertIsArray($detail['entry']);
         self::assertSame('needs_look', $detail['entry']['status']);
         self::assertIsArray($detail['entry']['suggestion']);
-        self::assertSame($earlyId, $detail['entry']['suggestion']['candidateEventId'], 'a mark never changes the suggestion');
+        self::assertSame($raiseId, $detail['entry']['suggestion']['candidateEventId'], 'a raise marked as a gap is never suggested - the next one is');
         self::assertNull($detail['entry']['official']);
 
         // "Not a gap"
         $this->post($browser, self::GAP, ['eventId' => $tapId, 'gap' => false]);
-        self::assertSame(['status' => 'unmarked', 'eventId' => $tapId, 'gap' => false, 'gaps' => [$earlyId]], $this->json($browser));
+        self::assertSame(['status' => 'unmarked', 'eventId' => $tapId, 'gap' => false, 'gaps' => [$earlyId]], array_diff_key($this->json($browser), ['entry' => true]));
         $this->post($browser, self::GAP, ['eventId' => $raiseId, 'gap' => false]);
         self::assertSame('unchanged', $this->json($browser)['status']);
 

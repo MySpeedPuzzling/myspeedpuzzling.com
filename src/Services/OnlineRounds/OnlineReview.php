@@ -29,8 +29,8 @@ use SpeedPuzzling\Web\Value\RoundEntryResult;
  * The review of an online round (docs/features/online-competitions/README.md §5.9) - what its page and JSON show:
  * - list(): one row per participant entered in the round (OnlineReviewEntry - status, suggested and official result,
  *   flags), the round's clock, the subscription to the round's private results topic (another reviewer's or the results
- *   desk's saves) - the entries and their events, two statements whatever the number of participants (plus the round's
- *   puzzle once);
+ *   desk's saves) - the entries, their events and the round's gap marks (a raise marked as a gap is never suggested -
+ *   stream RG), three statements whatever the number of participants (plus the round's puzzle once);
  * - detail(): one participant's row plus everything behind it - the taps, the finish candidates (Phase 2: raised hands
  *   the phone's detector held), the events in order and the evidence with short-lived URLs (MEDIA_URL_SECONDS: the
  *   reviewer looks at a participant for a few minutes; the page asks again when it comes back) - a photo or a burst the
@@ -79,7 +79,7 @@ readonly final class OnlineReview
         $piecesTotal = $round->singlePuzzlePiecesCount();
         $entries = array_map(
             static fn (array $assessed): OnlineReviewEntry => self::forReviewer($assessed['entry'], $onlineRound->detectionMode),
-            $this->assessed($round, $onlineRound->detectionMode, $clock, $asOfMs, $piecesTotal),
+            $this->assessed($round, $onlineRound->detectionMode, $clock, $asOfMs, $piecesTotal, $this->getOnlineMomentVerdicts->gapsOfRound($round->id->toString())),
         );
         $roundData = self::round($round, $onlineRound, $clock, $piecesTotal);
 
@@ -124,7 +124,12 @@ readonly final class OnlineReview
         $events = $onlineEntryId === null ? [] : $this->getOnlineReviewData->events($roundId, $onlineEntryId);
         $piecesTotal = $round->singlePuzzlePiecesCount();
         $detection = $onlineRound->detectionMode;
-        [$entry, $assessment] = self::entry($row, $events, $clock, $asOfMs, $piecesTotal, $detection);
+        // Every mark of the entry - the assessment never suggests a marked raise; the page gets those it shows
+        $gaps = $onlineEntryId === null ? [] : $this->getOnlineMomentVerdicts->gapsOfEntry($onlineEntryId);
+        [$entry, $assessment] = self::entry($row, $events, $clock, $asOfMs, $piecesTotal, $detection, $gaps);
+        $hiddenCandidates = $detection === OnlineDetectionMode::Shadow
+            ? array_fill_keys(array_map(static fn (OnlineReviewCandidate $candidate): string => strtolower($candidate->eventId), $assessment->candidates), true)
+            : [];
         $media = $onlineEntryId === null ? [] : $this->getOnlineReviewData->media($onlineEntryId);
         $hidden = self::hiddenFromReviewer($detection, $events);
         $roundData = self::round($round, $onlineRound, $clock, $piecesTotal);
@@ -144,7 +149,7 @@ readonly final class OnlineReview
             'taps' => $assessment->taps,
             'candidates' => $detection === OnlineDetectionMode::Shadow ? [] : $assessment->candidates,
             // The moments the reviewers marked as showing a gap (the G key) - of those shown here only
-            'gaps' => $onlineEntryId === null ? [] : $this->gaps($onlineEntryId, $detection),
+            'gaps' => array_values(array_filter($gaps, static fn (string $eventId): bool => !isset($hiddenCandidates[strtolower($eventId)]))),
             'events' => array_map(static fn (array $event): array => [
                 'id' => $event['id'],
                 'type' => $event['type'],
@@ -243,7 +248,8 @@ readonly final class OnlineReview
         }
 
         $events = $row['online_entry_id'] === null ? [] : $this->getOnlineReviewData->events($roundId, $row['online_entry_id']);
-        [$entry] = self::entry($row, $events, RoundClock::fromRound($round, $now), RoundClock::milliseconds($now), $round->singlePuzzlePiecesCount(), $detection);
+        $gaps = $row['online_entry_id'] === null ? [] : $this->getOnlineMomentVerdicts->gapsOfEntry($row['online_entry_id']);
+        [$entry] = self::entry($row, $events, RoundClock::fromRound($round, $now), RoundClock::milliseconds($now), $round->singlePuzzlePiecesCount(), $detection, $gaps);
 
         return self::forReviewer($entry, $detection);
     }

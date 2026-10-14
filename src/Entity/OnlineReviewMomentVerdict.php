@@ -22,8 +22,9 @@ use SpeedPuzzling\Web\Value\OnlineMomentVerdict;
  * README.md §5.9): the moment is the phone's own event - a finish candidate (`finish.candidate`, raised hands its
  * detector held) or a Finished tap (`finish.button`) - and `gap` says its photo shows an unfinished puzzle (the
  * reviewer's G). One row per moment (the unique event id): pressing G again changes nothing, "Not a gap" deletes the
- * row. Who said it and when are kept for the dataset of Phase 3.5 (README §5.8 "Collect the dataset"). Read by the
- * review's marks and the accuracy report only - a suggestion, a confirmation or an official time never reads it.
+ * row. Who said it and when are kept for the dataset of Phase 3.5 (README §5.8 "Collect the dataset"). A raise marked
+ * as a gap is never a finish's raise (OnlineReviewAssessment: never suggested, never the detected one in the accuracy
+ * report); a confirmation or an official time never reads it.
  */
 #[Entity]
 #[UniqueConstraint(columns: ['event_id'])]

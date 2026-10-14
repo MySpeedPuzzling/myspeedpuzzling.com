@@ -33,8 +33,9 @@ final class OnlineLiveQueryBudgetTest extends WebTestCase
     // more), the round, its online timing - 4 - and then: the participants, their latest photos (2). Measured 2026-10-13.
     private const int LIVE_BUDGET = 6;
     // The same 4, then the round's puzzle (its puzzles, the puzzle), the entries, their events, the event (the round's
-    // time zone falls back to its country) - 5. Measured 2026-10-13.
-    private const int REVIEW_BUDGET = 9;
+    // time zone falls back to its country) - 5. Measured 2026-10-13. + the round's gap marks (stream RG, 2026-10-14: a
+    // raise the reviewer marked as a gap is never suggested) - one statement for every participant at once.
+    private const int REVIEW_BUDGET = 10;
 
     public function testTheLiveStateCostsTheSameForFortyTwoParticipantsAsForTwo(): void
     {

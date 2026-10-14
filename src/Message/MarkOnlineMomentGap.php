@@ -9,8 +9,8 @@ use SpeedPuzzling\Web\Services\MessengerMiddleware\SerializedByLock;
 /**
  * The reviewer pressed G (docs/features/online-competitions/README.md §5.9): the photo at this finish moment of the
  * participant - a raise of the hands (`finish.candidate`) or a Finished tap (`finish.button`), the moment's event id -
- * shows a gap. Stored as the moment's verdict (OnlineReviewMomentVerdict); marking it again changes nothing. Never
- * touches a suggestion, a confirmation or an official time.
+ * shows a gap. Stored as the moment's verdict (OnlineReviewMomentVerdict); marking it again changes nothing. A raise
+ * marked as a gap is no longer suggested (OnlineReviewAssessment); a confirmation or an official time never changes.
  *
  * Under the moment's own lock: two reviewers pressing G on the same moment at once write one row, never two.
  */

@@ -21,8 +21,8 @@ use Symfony\Component\Messenger\Attribute\AsMessageHandler;
  * The reviewer's G stored (docs/features/online-competitions/README.md §5.9): the moment must be one the review shows
  * them - a Finished tap or a raise of the hands of this participant in this round, never a raise in a `shadow` round
  * (OnlineReviewMoments) -, then its verdict `gap` is kept with the reviewer and the time. A moment marked already
- * stays as it was (the first mark, nothing written). Nothing else changes - not the suggestion, a confirmation or an
- * official time.
+ * stays as it was (the first mark, nothing written). Nothing else is written - not a confirmation or an official
+ * time (the suggestion, derived, skips a marked raise from now on - OnlineReviewAssessment).
  */
 #[AsMessageHandler]
 readonly final class MarkOnlineMomentGapHandler

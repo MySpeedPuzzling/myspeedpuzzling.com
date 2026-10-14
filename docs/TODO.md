@@ -51,8 +51,9 @@ that would otherwise be forgotten. Newest section on top.
 - [ ] Rare race: a link lookup computed while another device's claim commits can stay in `OnlineAccessLight`'s cache
       for up to 60 s, so the newly claiming device wrongly gives way; tapping "I'm ready" again fixes it. Clear the
       link's cache entry after a `device.ready` commit if it shows up on phones.
-- [ ] The control room's live JSON carries `otherDevice` (a second device open on a link that isn't the one holding
-      the entry) but no tile shows it yet - one text in `online_rounds.control` + the chip.
+- [x] The control room's live JSON carries `otherDevice` (a second device open on a link that isn't the one holding
+      the entry) but no tile shows it yet - one text in `online_rounds.control` + the chip. Done (stream P1G): the chip
+      "Also open on another device" while that device beats.
 
 ## Online competitions - load and storage failover (`tools/online-load/README.md`, `spikes.md` S5, stream LT)
 

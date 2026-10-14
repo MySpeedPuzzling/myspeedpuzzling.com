@@ -10,6 +10,8 @@
  *   with): its error is at most rtt / 2 - good up to CLOCK_GOOD_RTT_MS, poor from CLOCK_POOR_RTT_MS (the phone would
  *   not let the participant be ready - clock_sync.js READY_RTT_MS);
  * - finished: the last Finished tap not undone, as an elapsed time - marked when it lies after the round's end;
+ * - another device open on the link (`otherDevice` - a second phone, a laptop: not the one holding the entry) while it
+ *   beats, i.e. seen within ONLINE_FRESH_MS like the holder's own heartbeat;
  * - counts and the filters (not ready, offline, finished).
  */
 
@@ -55,6 +57,9 @@ export function participantView(participant, { serverNowMs, startedAtMs = null, 
         clockQuality = rttMs <= CLOCK_GOOD_RTT_MS ? 'good' : (rttMs < CLOCK_POOR_RTT_MS ? 'fair' : 'poor');
     }
 
+    const otherSeenMs = finite(participant?.otherDevice?.lastSeenMs);
+    const otherDevice = otherSeenMs !== null && Number.isFinite(serverNowMs) && serverNowMs - otherSeenMs <= ONLINE_FRESH_MS;
+
     const finishMs = finite(participant?.finish?.momentMs);
     const finished = finishMs !== null;
     const finishElapsedMs = finished && Number.isFinite(startedAtMs) && finishMs >= startedAtMs ? finishMs - startedAtMs : null;
@@ -67,6 +72,7 @@ export function participantView(participant, { serverNowMs, startedAtMs = null, 
         hidden: online === true && presence?.visible === false,
         clockQuality,
         clockErrorMs: rttMs === null ? null : Math.round(rttMs / 2),
+        otherDevice,
         finished,
         finishElapsedMs,
         finishAfterEnd: finished && Number.isFinite(endedAtMs) && finishMs > endedAtMs,

@@ -9624,6 +9624,7 @@ online_rounds:
             no_photo: "No photo yet"
             photo_alt: "The latest photo of the puzzle of %name%"
             uploads_pending: "{1}1 photo waiting to upload|[0,Inf[%count% photos waiting to upload"
+            other_device: "Also open on another device"
         empty: "Nobody is entered in this round yet. Enter the participants in the participants sheet."
         empty_filter: "Nobody matches this filter."
         presence_unavailable: "Who is online cannot be read right now - the tiles show what the phones reported before."

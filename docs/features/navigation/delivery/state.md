@@ -9,7 +9,7 @@ Evidence = commit hash(es) · test names · command output summary · screenshot
 | Key | Value |
 |---|---|
 | Base | `origin/main` at start: `9347ccdabb0f3d19fd9fc155c0ad12715ff95964` · 2026-10-12T01:07:33+02:00 (synced at every phase gate, see run log) |
-| Last sync with `origin/main` | 60f55b48 (merge 5f6d4139, 2026-10-13 evening; clone migrated to Version20261013131348). origin/main is already 40 commits further (e3ee4f14) - see the resume point |
+| Last sync with `origin/main` | 5296a5de (merges 6af903ba = 24f178ac and 6a72aaaf = 5296a5de, 2026-10-14; clone migrated to Version20261014011432: `email_suppression` + nullable `email_audit_log` columns, `studio_invite`, `online_round.youtube_url`, `online_entry_media.abandoned_at` - all additive, dev DB untouched) |
 | Delivery branch / worktree | `feature/navigation-redesign` / `.claude/worktrees/navigation` |
 | Delivery DB clone | `speedpuzzling_nav_test` |
 | Isolated web URL | `http://127.0.0.1:18080` (container `nav-web`, php -S; restart: `var/navigation-delivery/tools/restart-web.sh`) |
@@ -19,31 +19,26 @@ Evidence = commit hash(es) · test names · command output summary · screenshot
 | Deps | composer.lock identical to main → main `vendor` mounted read-only. `node_modules`: own copy in the worktree from the Layers phase on (GEST-01 pins Turbo exactly → lock differs); tools no longer mount main's |
 | P0-03 commit to deploy separately | `62c99662` (cherry-picks cleanly onto origin/main e6068ac7: every touched file equals origin/main at its parent). Not `b49d3c8d` (superseded, logged secret token paths) |
 
-## Resume point (paused 2026-10-13 ~22:00, owner rebooting)
+## Resume point (updated 2026-10-14 after the main sync; first written at the pause of 2026-10-13 ~22:00)
 
-Nothing was running when the session paused: no agent, no browser lock, every change committed.
+If a session stops, resume from here.
 
 **Branches**
-- Delivery worktree `.claude/worktrees/navigation`, branch `feature/navigation-redesign`: committed and pushed to `origin/navigation-rework` (this commit). Verified phases: P0, F, Skeletons, Layers, ADD-03+INB, MENU+Help, NAV, Removal, HELP, ADD, PUZ+COM, PROF (PROF-05c verify-after GEST-15), SRCH+FOOT.
-- Worktree C `.claude/worktrees/navigation-c`, branch `nav/prof`: `98398a76` (an older delivery commit) + `9fa7b441` (CARD-01a/01c/03) + `fc1f949b` (CARD-04/02/01b). Both are verified in C; neither is in the delivery branch yet.
+- Delivery worktree `.claude/worktrees/navigation`, branch `feature/navigation-redesign`: synced with origin/main 5296a5de and pushed to `origin/navigation-rework`. Verified phases: P0, F, Skeletons, Layers, ADD-03+INB, MENU+Help, NAV, Removal, HELP, ADD, PUZ+COM, PROF (PROF-05c verify-after GEST-15), SRCH+FOOT.
+- Worktree C `.claude/worktrees/navigation-c`, branch `nav/prof`: `98398a76` (an older delivery commit) + `9fa7b441` (CARD-01a/01c/03) + `fc1f949b` (CARD-04/02/01b), both verified in C; CARD batch 3 (CARD-05/06/07, TEASE-01) being built there. None of it is in the delivery branch yet.
 
 **Bring the environment back**
 1. Owner: Docker on; the shared stack up (`docker compose up -d` in the main checkout - at least postgres; the clone `speedpuzzling_nav_test` lives in its volume).
 2. `var/navigation-delivery/tools/env-up.sh` starts `nav-mailer`, both Selenium containers (14444, 14445) and both web servers, and removes a stale browser lock.
 3. `rm -f tests/.database.cache` in both worktrees.
-4. Checks run with `python3.14` (the host `python3` is 3.15 without PyYAML; `brief-common.md` and the scratch sweep scripts say so).
+4. Checks run with `python3.14` (or `python3` since PyYAML was installed for it).
 
 **Next steps, in order**
-1. Sync origin/main (40 commits ahead at e3ee4f14, online competitions continued):
-   - Conflicts expected in `config/packages/security.php` and `translations/messages.{cs,de,es,fr,ja}.yml`.
-   - New migration `Version20261013154345`: migrate the clone after checking it is additive.
-   - `package.json`/`package-lock.json` changed: npm install in each worktree's own `node_modules`, via a one-off container.
-   - Gate and guards as after 5f6d4139 (place map for new routes, native dialogs, platform reads, weight).
-2. Cherry-pick `9fa7b441` + `fc1f949b` into the delivery branch:
+1. Commit CARD batch 3 in C after verifying it there; cherry-pick `9fa7b441`, `fc1f949b` and batch 3 into the delivery branch:
    - Expected overlap: NavigationRegistry (player_card reasons vs ON_BARS), `docs/navigation.md` regeneration, NavInstrumentationMarkupTest, PlatformFlagReadersTest, translations.
    - Re-run NAV-11's Q3 in-page-jump row (52 = 52 boundary seen once in C) and the card rows of NAV-11/NAV-14/GEST-02.
-3. Rebase C onto the delivery branch. CARD batch 3 in C: CARD-05, CARD-06, CARD-07, TEASE-01. Then the CARD phase review, fixes and gate (also NAV-11 final, NAV-14 card row, GEST-02 card rows).
-4. Delivery lane in parallel: GEST phase (GEST-03 → GEST-04; GEST-05 ∥ GEST-06 ∥ GEST-07). Then Platform feel (GEST-10 must route main's `assets/online/beeps.js` vibrate through haptics.js), Instant Back (GEST-14 → GEST-15 → GEST-08; then PROF-05c's snapshot path), LAUNCH + DOC, QA.
+2. Rebase C onto the delivery branch. CARD phase review, fixes and gate (also NAV-11 final, NAV-14 card row, GEST-02 card rows).
+3. The other lane in parallel: GEST phase (GEST-03 → GEST-04; GEST-05 ∥ GEST-06 ∥ GEST-07). Then Platform feel (GEST-10 must route main's `assets/online/beeps.js` vibrate through haptics.js), Instant Back (GEST-14 → GEST-15 → GEST-08; then PROF-05c's snapshot path), LAUNCH + DOC, QA.
 
 **Open notes (QA / TODO)**
 - Flakes seen once and clean on re-run: HELP-04 desktop /en/hub "Tell us"; SRCH-01 guest sign-in console error; NAV-08 tab bar hide on the brand tom-select (300 ms); NAV-13 menu_counts at 820.
@@ -286,6 +281,8 @@ One line per session and per phase: date · what was done · next step.
 | 2026-10-13 ~16:30 | SRCH-01 + FOOT-01 committed 5030f5d4 (gate green, browser 0 FAIL); SRCH + FOOT review running (read-only). PROF cherry-picked into the delivery branch clean (1e17df75, 59df340a, c2538916, 66703717; 645 tests OK); PROF review fixes running in the delivery worktree. C: CARD-01a/01c/03. Delivery logs truncated (host disk 92 %) |
 | 2026-10-13 ~19:30 | **PROF gate verified** at 4dfab9f7 (ParaTest 11476, 44-check sweep). Summary: Results is a server page whose state is the URL (search, filters, sorts, By puzzle / Every result, paging with streams, ranks, SEO rules, old links redirected, its own history entries with Back restoring rows); the profile is an Overview (personal bests, numbers, latest 8), Statistics carries the chart and cards, header tabs Overview · Results · …; profile statement budgets about halved. Push. Next in the delivery worktree: SRCH + FOOT review fixes; C: CARD-04/02/01b |
 | 2026-10-13 ~20:00 | Before pushing the PROF gate: origin/main moved 35 commits (online competitions phase 1) → merge 5f6d4139 (conflicts: security.php stateless pattern + compete_api firewall, services.php parameters, TODO + en.yml appends, manage_round_stopwatch.html.twig = main's structure + in-page confirmations); clone migrated (2 additive migrations; dev DB untouched). A main-sync agent makes the navigation guards hold for main's new routes/pages (place resolver, native dialogs, weight, platform reads) and then fixes the SRCH + FOOT review; push after its gate. C: CARD-04/02/01b (based on 98398a76, rebased later) |
+| 2026-10-14 | Session resumed after the owner's reboot at the main sync, HEAD c78fd4fa: `env-up.sh` brought all 5 containers back, both web servers 200, test caches cleared. origin/main was 58 commits ahead (24f178ac: online competitions continued with live video/studio, mass mailing on SES) → main-sync agent; CARD batch 3 (CARD-05/06/07, TEASE-01) started in C |
+| 2026-10-14 ~03:45 | Main sync: merge 6af903ba (24f178ac; conflicts security.php stateless pattern + `/-/livekit-webhook`, GetPlayerProfile/PlayerProfile = branch columns then main's e-mail suppression columns in one statement, 5 locales appended both sides - strict loader 0 duplicates, three-way key check against 60f55b48) + guards d992feb5 (place map: studio Community › Events with bars, watch page bar-free and its no-video page under `?obs=1`, token/invite JSON + LiveKit/SES webhooks none; NavClick secret paths `compete_api_video_token`/`compete_api_studio_answer`; BarFreePagesTest renders the real watch page, mutation-checked). Gate `Main-sync5` at d992feb5's tree: ParaTest 12197 OK · phpstan · cs 0 · schema. Weight /en/faq member +30,002 B (margin 718), guest +15,303 B. Browser (agent): NAV-01 41, NAV-03 96, NAV-04 95, NAV-08 44, NAV-11 129 + 2 FAIL (card rows, wait for CARD), NAV-13 165, MENU-02b 80, MENU-03 40, HELP-01b 60, ADD-04 19, GEST-01 52, FOOT-01 69, SRCH-01 78, SEARCH-CAMERA 27, PROF-05a 45; main's new pages at 360/1280 no overflow, no console errors. origin/main moved 13 more commits meanwhile → merge 6a72aaaf (5296a5de, clean; locale gaps = main's own 16), clone migrated (`online_entry_media.abandoned_at`). **Gate `Main-sync6` at 6a72aaaf: phpstan [OK] · cs 0 · schema in sync · ParaTest 12223 OK** (27 notices, 5 skipped pre-existing) · orchestrator browser run `checks/sweep-sync6` (encore + restart, under the lock): NAV-01 41, NAV-03 96, NAV-04 95, NAV-08 44, NAV-13 165, MENU-02b 80, MENU-03 40, HELP-01b 60, ADD-04 19, GEST-01 52, FOOT-01 69, SRCH-01 78, SEARCH-CAMERA 27, PROF-05a 45, NAV-11 129 + 2 FAIL (the Players page card trigger at member 360 / 1440 docked - arrives with the CARD cherry-picks). Push. CARD batch 3 done in C (verified there: 691 tests, phpstan, cs; browser rows running) |
 
 ## Final report
 (written at the end: what shipped, evidence summary, blocked items with options, owner steps — README §11)

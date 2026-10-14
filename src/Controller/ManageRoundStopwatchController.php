@@ -8,6 +8,7 @@ use DateTimeImmutable;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Query\GetRoundResultsOverview;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
+use SpeedPuzzling\Web\Repository\OnlineRoundRepository;
 use SpeedPuzzling\Web\Results\RoundStopwatchState;
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
 use SpeedPuzzling\Web\Value\RoundClock;
@@ -20,8 +21,9 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 /**
  * The round stopwatch's control page (docs/features/competitions-management/README.md "Round Stopwatch"): its clock as
  * every device shows it, and the actions the clock allows now - start (now, in 10 s, at a chosen moment of the round's
- * zone), cancel a countdown, stop, reset (AbstractRoundStopwatchController). round_stopwatch_controller.js keeps the
- * clock and the buttons current while the page stays open.
+ * zone), cancel a countdown, stop, reset (AbstractRoundStopwatchController); a stopped round with online timing offers
+ * no Start (it ended - a Reset runs it again). round_stopwatch_controller.js keeps the clock and the buttons current
+ * while the page stays open.
  */
 #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
 final class ManageRoundStopwatchController extends AbstractController
@@ -29,6 +31,7 @@ final class ManageRoundStopwatchController extends AbstractController
     public function __construct(
         private readonly CompetitionRoundRepository $competitionRoundRepository,
         private readonly GetRoundResultsOverview $getRoundResultsOverview,
+        private readonly OnlineRoundRepository $onlineRoundRepository,
         private readonly ClockInterface $clock,
     ) {
     }
@@ -62,6 +65,8 @@ final class ManageRoundStopwatchController extends AbstractController
             'stopwatch' => RoundStopwatchState::ofRound($round, $now),
             'server_now_ms' => RoundClock::milliseconds($now),
             'state_url' => $this->generateUrl('round_stopwatch_state', ['roundId' => $round->id->toString()]),
+            // An ended online round is never resumed - no Start while it is stopped, only Reset (README §5.1)
+            'online_timing' => $this->onlineRoundRepository->ofRound($round->id->toString()) !== null,
             'timezone' => $timezone,
             // "Start at": the round's planned start while it lies ahead, else the next whole minute but one - in the
             // round's zone, the zone the organiser reads every start of the round in

@@ -321,9 +321,13 @@ class CompetitionRound implements EntityWithEvents
      * from another device or a stale page never restarts the clock. While a start is scheduled it is refused: starting
      * now would move the moment every device counts down to - the countdown is cancelled first.
      *
+     * A round with online timing (`$onlineTiming` - the caller knows: OnlineRound) that ended is never resumed: its end is
+     * the end every participant's taps were counted against, and they kept solving on the other side of the world
+     * (docs/features/online-competitions/README.md §5.1) - refused, a Reset runs it again (a fresh run).
+     *
      * @throws RoundStopwatchRefused
      */
-    public function startStopwatch(DateTimeImmutable $startedAt): void
+    public function startStopwatch(DateTimeImmutable $startedAt, bool $onlineTiming = false): void
     {
         $startedAt = self::wholeSecond($startedAt);
         $status = $this->stopwatchStatusAt($startedAt);
@@ -334,6 +338,10 @@ class CompetitionRound implements EntityWithEvents
 
         if ($status === RoundStopwatchStatus::SCHEDULED) {
             throw new RoundStopwatchRefused(RoundStopwatchRefusal::StartScheduled);
+        }
+
+        if ($onlineTiming && $status === RoundStopwatchStatus::STOPPED) {
+            throw new RoundStopwatchRefused(RoundStopwatchRefusal::EndedUseReset);
         }
 
         if (
@@ -358,11 +366,12 @@ class CompetitionRound implements EntityWithEvents
      * A start at a moment ahead (online rounds: "Start in 10 s", "Start at 19:00:00") - a start in the future IS the
      * countdown: every device shows `startsAt - now` and runs from that moment, nothing is written then. On a whole
      * second, like the TIMESTAMP(0) column keeps it (callers align: ScheduleRoundStart). Only for a clock that never
-     * ran, or to move a countdown - a running or stopped one is reset first.
+     * ran, or to move a countdown - a running or stopped one is reset first (an ended round with online timing is told
+     * so - EndedUseReset, as its Start is).
      *
      * @throws RoundStopwatchRefused
      */
-    public function scheduleStopwatchStart(DateTimeImmutable $startsAt, DateTimeImmutable $now): void
+    public function scheduleStopwatchStart(DateTimeImmutable $startsAt, DateTimeImmutable $now, bool $onlineTiming = false): void
     {
         if ((int) $startsAt->format('u') !== 0) {
             throw new \InvalidArgumentException('A scheduled start is on a whole second.');
@@ -376,6 +385,10 @@ class CompetitionRound implements EntityWithEvents
         }
 
         $status = $this->stopwatchStatusAt($now);
+
+        if ($onlineTiming && $status === RoundStopwatchStatus::STOPPED) {
+            throw new RoundStopwatchRefused(RoundStopwatchRefusal::EndedUseReset);
+        }
 
         if ($status !== null && $status !== RoundStopwatchStatus::SCHEDULED) {
             throw new RoundStopwatchRefused(RoundStopwatchRefusal::AlreadyStarted);

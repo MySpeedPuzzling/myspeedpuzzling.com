@@ -250,6 +250,29 @@ const scenarios = {
         assert.equal(view.hidden, true);
     },
 
+    async 'control room: another device open on the link - shown while it beats, gone when it stops'() {
+        // online_live's `otherDevice`: a device beating on the link that does not hold the entry (OnlinePresenceRecords)
+        const lastSeen = START - 5_000;
+        const withOther = participant({ otherDevice: { deviceId: 'laptop-1', lastSeenMs: lastSeen } });
+
+        assert.equal(participantView(withOther, { serverNowMs: lastSeen + ONLINE_FRESH_MS }).otherDevice, true);
+        assert.equal(participantView(withOther, { serverNowMs: lastSeen + ONLINE_FRESH_MS + 1 }).otherDevice, false, 'it stopped beating');
+        assert.equal(participantView(participant(), { serverNowMs: START }).otherDevice, false);
+        assert.equal(participantView(participant({ otherDevice: null }), { serverNowMs: START }).otherDevice, false);
+        assert.equal(participantView(participant({ otherDevice: { deviceId: 'laptop-1', lastSeenMs: null } }), { serverNowMs: START }).otherDevice, false, 'no time, no claim');
+
+        // Only the other device beats - the holder's presence is not known, the other device still shows
+        const onlyOther = participantView(participant({ presence: null, otherDevice: { deviceId: 'laptop-1', lastSeenMs: lastSeen } }), { serverNowMs: START });
+        assert.equal(onlyOther.otherDevice, true);
+        assert.equal(onlyOther.online, null);
+
+        // Neither a count nor a filter changes
+        const plain = participantView(participant(), { serverNowMs: START });
+        const other = participantView(withOther, { serverNowMs: START });
+        assert.deepEqual(countsOf([other]), countsOf([plain]));
+        assert.deepEqual(['not_ready', 'offline', 'finished'].map((filter) => matchesFilter(other, filter)), ['not_ready', 'offline', 'finished'].map((filter) => matchesFilter(plain, filter)));
+    },
+
     async 'control room: the clock quality from the round trip, its error half of it'() {
         const now = START;
 

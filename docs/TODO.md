@@ -57,26 +57,20 @@ that would otherwise be forgotten. Newest section on top.
       ONLINE_ROUNDS_MANAGE besides COMPETITION_RESULTS_ENTRY) - decide before public use; letting them in is one
       condition in `OnlineOrganiserApi` and the review pages' voters.
 
-## Online competitions - after the end-to-end fixes (`docs/features/online-competitions/`, stream P1F)
-
-- [ ] Start after "End now" on an online round still resumes the in-person way: the start moves and the earlier taps
-      stop counting. Refuse Start on a stopped online round (a Reset is the way to run it again) - decide with the
-      control room's buttons.
-- [ ] Rare race: a link lookup computed while another device's claim commits can stay in `OnlineAccessLight`'s cache
-      for up to 60 s, so the newly claiming device wrongly gives way; tapping "I'm ready" again fixes it. Clear the
-      link's cache entry after a `device.ready` commit if it shows up on phones.
-- [ ] The control room's live JSON carries `otherDevice` (a second device open on a link that isn't the one holding
-      the entry) but no tile shows it yet - one text in `online_rounds.control` + the chip.
-
 ## Online competitions - load and storage failover (`tools/online-load/README.md`, `spikes.md` S5, stream LT)
 
 - [ ] lily.srv (Jan's yes): route `/api/compete/*` and `/-/time` like `/api/v` - past the bot-blocker (90/min per IP +
       browser) and out of CrowdSec's captcha, before the first online event (a club on one Wi-Fi would be blocked).
-- [ ] A timeout on the phone's upload request (a hanging store took 41 s to switch to the second store - each phone
-      waited for its connection timeout).
-- [ ] Mark upload rows abandoned after a failure, so the review doesn't show them as pending.
-- [ ] Probe the primary store before the circuit breaker closes again (now it closes after 60 s and one round of
-      uploads fails before it reopens).
+- [x] A timeout on the phone's upload request (a hanging store took 41 s to switch to the second store - each phone
+      waited for its connection timeout). Done (stream P1G): `media_outbox.js` aborts a PUT after 15 s + its body at
+      32 KB/s and reports it like "no answer" with a fresh URL at once - a hanging store is left in ~17 s (harness).
+- [x] Mark upload rows abandoned after a failure, so the review doesn't show them as pending. Done (stream P1G):
+      `online_entry_media.abandoned_at` - set by the presign that names the given-up upload, else by the daily prune
+      (nothing in the store 30 min after); the review says "never arrived". Run `myspeedpuzzling:prune-online-media`
+      after an event's round if its review should say so before the night's run (safe at any time).
+- [x] Probe the primary store before the circuit breaker closes again (now it closes after 60 s and one round of
+      uploads fails before it reopens). Done (stream P1G): a HEAD of a key nobody writes, one request at a time; no
+      answer = open another 60 s.
 - [ ] The production load run at a quiet hour (Tue/Wed 05-07 Prague) with Jan's OK - plan in the README.
 
 ## Plural texts without a form for 0 (found 2026-10-13 by the online translations' render check)

@@ -47,7 +47,8 @@ use Symfony\Component\Routing\Attribute\Route;
  *   media limiter (`rate_limited` 429).
  * - `previousFailure` = the store's answer to this phone's last upload of the item: a 408, 429, 5xx or no answer at
  *   all (0) counts for the circuit breaker (OnlineStoreBreaker::countsAsStoreFailure()) before the store of this upload
- *   is picked.
+ *   is picked; its `mediaId` (any status) is the upload this one replaces - the phone dropped that URL, the row is
+ *   marked abandoned (RegisterOnlineMedia::$supersededMediaId).
  * The media id is made here, before the dispatch, so the row and the URL share it.
  */
 final class ApiMediaController extends AbstractController
@@ -136,6 +137,7 @@ final class ApiMediaController extends AbstractController
                 bytes: $bytes,
                 contentType: $contentType,
                 relatedEventId: is_string($relatedEventId) ? strtolower($relatedEventId) : null,
+                supersededMediaId: self::supersededMediaId($body['previousFailure'] ?? null),
             ));
         } catch (OnlineRoundNotOnline) {
             return $this->api->error('round_not_online', JsonResponse::HTTP_CONFLICT);
@@ -184,6 +186,16 @@ final class ApiMediaController extends AbstractController
         }
 
         return is_float($value) && is_finite($value) && floor($value) === $value && abs($value) < 2 ** 53 ? (int) $value : null;
+    }
+
+    /**
+     * The media of the failed upload the phone gave up - a canonical id, else none (it is only a hint)
+     */
+    private static function supersededMediaId(mixed $failure): null|string
+    {
+        $mediaId = is_array($failure) ? ($failure['mediaId'] ?? null) : null;
+
+        return is_string($mediaId) && CanonicalUuid::isValid($mediaId) ? strtolower($mediaId) : null;
     }
 
     /**

@@ -27,6 +27,8 @@ import {
     openMediaOutbox,
     putToStore,
     REFUSED_LISTED,
+    UPLOAD_TIMEOUT_FLOOR_MS,
+    uploadTimeoutMs,
 } from '../assets/online/media_outbox.js';
 
 const ROUND = '018d0020-0000-0000-0000-000000000101';
@@ -1236,6 +1238,182 @@ const scenarios = {
         assert.deepEqual(init.headers, { 'Content-Type': 'image/jpeg', 'x-amz-meta-round': '7' });
         assert.equal(init.credentials, 'omit');
         assert.equal(init.cache, 'no-store');
+        assert.equal('signal' in init, false, 'no signal asked for, none sent');
+
+        // The outbox's timeout aborts it through the signal
+        const abort = new AbortController();
+        await putToStore('https://objects.test/online/m2', {}, blob, {
+            signal: abort.signal,
+            fetch: async (url, init) => {
+                calls.push([url, init]);
+
+                return { status: 200 };
+            },
+        });
+        assert.equal(calls[1][1].signal, abort.signal);
+    },
+
+    async 'media: the upload timeout - a floor plus the body at a poor mobile speed'() {
+        assert.equal(UPLOAD_TIMEOUT_FLOOR_MS, 15_000);
+        assert.equal(uploadTimeoutMs(0), 15_000);
+        assert.equal(uploadTimeoutMs(Number.NaN), 15_000);
+        assert.equal(uploadTimeoutMs(-5), 15_000);
+        // A periodic photo (~35 KB), a pessimistic photo (150 KB), a 1 MB burst, a 1.8 MB burst
+        assert.equal(uploadTimeoutMs(35 * 1024), 16_094);
+        assert.equal(uploadTimeoutMs(150 * 1024), 19_688);
+        assert.equal(uploadTimeoutMs(1024 * 1024), 47_000);
+        assert.equal(uploadTimeoutMs(1_800_000), 69_932);
+    },
+
+    async 'media: a store that hangs - every upload aborted at its bound with a fresh URL at once; three phones are on the second store within 20 s'() {
+        // The failover drill's black hole (spikes.md S5: 41 s to switch - every phone waited for its connection timeout).
+        // Three phones, one server with a circuit breaker like OnlineStoreBreaker: the primary is left once three phones
+        // reported it failing (status 0) within 60 s.
+        const w = world();
+        const failing = new Map();
+        const presigns = [];
+        const puts = [];
+        const reports = [];
+        let nextMediaId = 1;
+        let nextItemId = 1;
+
+        const presignFor = (phone) => async (input) => {
+            presigns.push({ phone, at: w.clock.now, previousFailure: input.previousFailure });
+
+            if (input.previousFailure?.status === 0 && input.previousFailure?.store === 'primary') {
+                failing.set(phone, w.clock.now);
+            }
+
+            const open = [...failing.values()].filter((at) => w.clock.now - at <= 60_000).length >= 3;
+            const store = open ? 'secondary' : 'primary';
+            const mediaId = `m${nextMediaId++}`;
+
+            return {
+                kind: 'ok',
+                status: 200,
+                data: {
+                    serverNowMs: w.clock.now,
+                    mediaId,
+                    store,
+                    method: 'PUT',
+                    url: `https://${store}.test/online/${mediaId}`,
+                    headers: { 'Content-Type': input.contentType, 'Content-Length': String(input.bytes) },
+                    expiresAtMs: w.clock.now + 300_000,
+                },
+            };
+        };
+
+        // The primary never answers - its request ends only when aborted; the second store answers at once
+        const putFor = (phone) => (url, headers, blob, { signal = null } = {}) => {
+            const upload = { phone, url, at: w.clock.now, abortedAt: null };
+            puts.push(upload);
+
+            if (url.startsWith('https://secondary.test/')) {
+                return Promise.resolve({ status: 200 });
+            }
+
+            return new Promise((resolve, reject) => {
+                signal?.addEventListener('abort', () => {
+                    upload.abortedAt = w.clock.now;
+                    reject(new Error('The operation was aborted.'));
+                });
+            });
+        };
+
+        const phones = ['phone-1', 'phone-2', 'phone-3'].map((phone) => new MediaOutbox({
+            storage: createMediaMemoryStorage(),
+            presign: presignFor(phone),
+            put: putFor(phone),
+            reportUploaded: async (report) => {
+                reports.push({ phone, mediaId: report.mediaId, store: report.store, at: w.clock.now });
+            },
+            scope: phone,
+            now: w.now,
+            schedule: w.schedule,
+            cancel: w.cancel,
+            autoFlush: true,
+            isOnline: () => true,
+            newId: () => `item-${nextItemId++}`,
+        }));
+
+        for (const [index, outbox] of phones.entries()) {
+            await outbox.enqueue({ kind: 'periodic', blob: photo(`p${index}`, 35 * 1024), takenMs: START + index });
+        }
+
+        await settle();
+        assert.equal(puts.length, 3, 'every phone is uploading to the primary');
+
+        for (let elapsed = 0; elapsed < 45_000 && reports.length < 3; elapsed += 500) {
+            await w.advance(500);
+        }
+
+        const bound = uploadTimeoutMs(35 * 1024);
+        const onPrimary = puts.filter((upload) => upload.url.startsWith('https://primary.test/'));
+        const firstOnSecondary = puts.find((upload) => upload.url.startsWith('https://secondary.test/'));
+
+        assert.ok(firstOnSecondary, 'the second store took an upload');
+        assert.ok(firstOnSecondary.at - START <= 20_000, `the first upload reached the second store ${firstOnSecondary.at - START} ms after the primary began to hang`);
+        assert.ok(onPrimary.every((upload) => upload.abortedAt !== null && upload.abortedAt - upload.at === bound), 'every hanging upload was aborted at its bound');
+        assert.equal(new Set(onPrimary.map((upload) => upload.url)).size, onPrimary.length, 'never the same URL twice - a fresh one at once');
+        assert.ok(presigns.filter((presign) => presign.previousFailure !== null).every((presign) => presign.previousFailure.status === 0 && presign.previousFailure.store === 'primary'));
+
+        // Nothing lost: every photo reached the second store and was reported
+        assert.equal(reports.length, 3);
+        assert.ok(reports.every((report) => report.store === 'secondary'));
+        assert.ok(phones.every((outbox) => outbox.pendingCount() === 0));
+    },
+
+    async 'media: a slow upload that keeps going is never cut off - only one past its bound is'() {
+        const w = world();
+        const media = mediaWorld(w);
+        const uploads = [];
+        let takesMs = 60_000;
+        const put = (url, headers, blob, { signal = null } = {}) => {
+            const upload = { url, at: w.clock.now, aborted: false };
+            uploads.push(upload);
+            signal?.addEventListener('abort', () => {
+                upload.aborted = true;
+            });
+
+            return new Promise((resolve, reject) => {
+                w.schedule(() => (upload.aborted ? reject(new Error('aborted')) : resolve({ status: 200 })), takesMs);
+            });
+        };
+        const outbox = new MediaOutbox({
+            storage: createMediaMemoryStorage(),
+            presign: media.presign,
+            put,
+            reportUploaded: media.reportUploaded,
+            scope: 'participant-1',
+            now: w.now,
+            schedule: w.schedule,
+            cancel: w.cancel,
+            isOnline: () => true,
+        });
+
+        // A 1.8 MB burst on a poor connection: 60 s, within its 69.9 s
+        await outbox.enqueue({ kind: 'burst', blob: photo('burst', 1_800_000), takenMs: START, manifest: [{ offset: 0, length: 1_800_000, captureMs: START }] });
+        await settle();
+        await w.advance(61_000);
+
+        assert.equal(uploads.length, 1);
+        assert.equal(uploads[0].aborted, false);
+        assert.equal(media.api.presigns.length, 1);
+        assert.equal(media.api.reports.length, 1);
+        assert.equal(outbox.status().offline, false);
+
+        // The same burst taking 75 s: aborted at 69.9 s, then sent again with a fresh URL
+        takesMs = 75_000;
+        await outbox.enqueue({ kind: 'burst', blob: photo('burst-2', 1_800_000), takenMs: START + 1, manifest: [{ offset: 0, length: 1_800_000, captureMs: START + 1 }] });
+        await settle();
+        const started = w.clock.now;
+        await w.advance(uploadTimeoutMs(1_800_000) - 1);
+        assert.equal(uploads[1].aborted, false, 'still within its bound');
+        await w.advance(1);
+        assert.equal(uploads[1].aborted, true);
+        assert.equal(w.clock.now - started, 69_932);
+        assert.equal(outbox.items[0].stage, 'queued', 'a fresh URL next time');
+        assert.deepEqual(outbox.items[0].lastFailure, { status: 0, store: 'primary', mediaId: 'm2' });
     },
 };
 

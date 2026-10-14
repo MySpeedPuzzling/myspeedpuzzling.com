@@ -161,6 +161,11 @@ final class SweepOnlineMediaOrphansHandlerTest extends KernelTestCase
             {
                 return $keys;
             }
+
+            public function probe(OnlineMediaStore $store): bool
+            {
+                return true;
+            }
         };
     }
 }

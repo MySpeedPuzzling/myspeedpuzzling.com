@@ -15,6 +15,9 @@
  *   to its other store; the next presign carries the failure (`previousFailure`) for the server's circuit breaker.
  *   A store giving no answer at all while the browser is online counts too (status 0, unreachable()): in a browser a
  *   store that is down looks like that - its error pages carry no CORS headers (spikes.md S5, the failover drill).
+ * - An upload that has not finished after uploadTimeoutMs() (a floor plus the body at a poor mobile speed) is aborted
+ *   and reported the same way, with a fresh URL at once: a store that hangs (a black hole) held every phone for its
+ *   connection timeout - the second store took 41 s to get the uploads (the drill); now ~20 s.
  * - Offline 1 s → 30 s, a busy server (429) as long as its Retry-After asks, a failing server 5 s → 2 min; a refusal
  *   of the item itself (media_too_large, media_kind_unknown, round_not_online) is reported - counted in status(),
  *   listed with its reason in refusedItems() - and the item leaves the device (it would never be taken); the link died
@@ -61,6 +64,11 @@ export const BURST_CONTENT_TYPE = 'application/octet-stream';
 export const PHOTO_CONTENT_TYPE = 'image/jpeg';
 // Items older than this are dropped when a page opens the outbox (prune())
 export const MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+// An upload not finished after UPLOAD_TIMEOUT_FLOOR_MS + its body at UPLOAD_MIN_BYTES_PER_SECOND is aborted
+// (uploadTimeoutMs()): 32 KB/s = 256 kbit/s, a poor mobile connection - a 35 KB periodic photo gets ~16 s, a 150 KB
+// photo ~20 s, a 1 MB burst ~47 s, a 1.8 MB burst ~73 s
+export const UPLOAD_TIMEOUT_FLOOR_MS = 15000;
+export const UPLOAD_MIN_BYTES_PER_SECOND = 32 * 1024;
 // Refusals listed for the page (refusedItems()) - the newest; status() counts them all
 export const REFUSED_LISTED = 50;
 
@@ -106,11 +114,12 @@ export function createMediaMemoryStorage(initial = []) {
 
 /**
  * The upload itself - the default `put`: the presigned request with the blob as its body, no cookies, no referrer.
- * Headers the browser sets itself (Content-Length - signed, and equal to the blob's size) are left to it.
+ * Headers the browser sets itself (Content-Length - signed, and equal to the blob's size) are left to it. `signal`
+ * aborts it (the outbox's upload timeout).
  *
- * @returns {Promise<Response>} rejects when the request never reached the store
+ * @returns {Promise<Response>} rejects when the request never reached the store, or was aborted
  */
-export function putToStore(url, headers, blob, { method = 'PUT', fetch: request = (...args) => globalThis.fetch(...args) } = {}) {
+export function putToStore(url, headers, blob, { method = 'PUT', signal = null, fetch: request = (...args) => globalThis.fetch(...args) } = {}) {
     const sent = {};
 
     for (const [name, value] of Object.entries(headers ?? {})) {
@@ -119,7 +128,7 @@ export function putToStore(url, headers, blob, { method = 'PUT', fetch: request 
         }
     }
 
-    return request(url, {
+    const init = {
         method,
         headers: sent,
         body: blob,
@@ -127,8 +136,28 @@ export function putToStore(url, headers, blob, { method = 'PUT', fetch: request 
         cache: 'no-store',
         mode: 'cors',
         referrerPolicy: 'no-referrer',
-    });
+    };
+
+    if (signal !== null && signal !== undefined) {
+        init.signal = signal;
+    }
+
+    return request(url, init);
 }
+
+/**
+ * How long an upload of `bytes` may take before it is aborted: UPLOAD_TIMEOUT_FLOOR_MS (the connection, a slow first
+ * byte) plus the body at UPLOAD_MIN_BYTES_PER_SECOND - generous for a working phone on poor mobile data, short enough
+ * that a store that hangs is left within ~20 s for a photo.
+ */
+export function uploadTimeoutMs(bytes) {
+    const size = Number.isFinite(bytes) && bytes > 0 ? bytes : 0;
+
+    return UPLOAD_TIMEOUT_FLOOR_MS + Math.ceil((size / UPLOAD_MIN_BYTES_PER_SECOND) * 1000);
+}
+
+// What the upload timer resolves the race with
+const TIMED_OUT = Symbol('timed out');
 
 /**
  * What a presign resolved to: an official_results_api.js answer ({kind: 'ok', data}, offline, server, client …) or
@@ -208,7 +237,7 @@ export class MediaOutbox {
      * @param {object} options
      * @param {object} options.storage            createMediaStorage() / createMediaMemoryStorage()
      * @param {function(object): Promise<object>} options.presign   POST /api/compete/{token}/media → the answer
-     * @param {function(string, object, Blob, {method: string}): Promise<{status: number}>} options.put  putToStore
+     * @param {function(string, object, Blob, {method: string, signal: AbortSignal|null}): Promise<{status: number}>} options.put  putToStore (aborted by `signal` after uploadTimeoutMs())
      * @param {function(object): Promise<*>} options.reportUploaded  the page enqueues `media.uploaded`
      * @param {string|null} [options.scope]
      * @param {function(): number} [options.now]
@@ -927,11 +956,34 @@ export class MediaOutbox {
 
     async upload(item) {
         let response;
+        // Not finished within its bound: aborted, and reported like a store that gives no answer (uploadTimeoutMs())
+        const abort = typeof AbortController === 'function' ? new AbortController() : null;
+        let timer = null;
+        const timeout = new Promise((resolve) => {
+            timer = this.schedule(() => {
+                timer = null;
+                resolve(TIMED_OUT);
+            }, uploadTimeoutMs(item.bytes));
+        });
 
         try {
-            response = await this.put(item.url, { ...item.headers }, item.blob, { method: item.method });
+            response = await Promise.race([
+                this.put(item.url, { ...item.headers }, item.blob, { method: item.method, signal: abort?.signal ?? null }),
+                timeout,
+            ]);
         } catch (e) {
             return this.unreachable(item);
+        } finally {
+            if (timer !== null) {
+                this.cancel(timer);
+                timer = null;
+            }
+        }
+
+        if (response === TIMED_OUT) {
+            abort?.abort();
+
+            return this.unreachable(item, { timedOut: true });
         }
 
         const now = this.now();
@@ -1045,15 +1097,19 @@ export class MediaOutbox {
      * says it is online, the store is the suspect: the failure is kept for the next presign (`previousFailure` with
      * status 0, so the server's circuit breaker can send uploads to its other store) and from the second failure on the
      * item gets a fresh URL. A phone the browser knows to be offline blames no store and keeps its URL.
+     *
+     * An upload aborted after uploadTimeoutMs() (`timedOut`) is the same "no answer", but gets a fresh URL at once: it
+     * already waited its whole bound, and waiting once more for the same store would double the time until the next
+     * presign tells the circuit breaker - a store that hangs is left within ~20 s instead of ~40 s.
      */
-    async unreachable(item) {
+    async unreachable(item, { timedOut = false } = {}) {
         this.goOffline(this.now());
 
         if (this.isOnline()) {
             item.lastFailure = { status: 0, store: item.store, mediaId: item.mediaId };
             item.attempts += 1;
 
-            if (item.attempts >= 2) {
+            if (timedOut || item.attempts >= 2) {
                 this.dropPresign(item);
             }
 

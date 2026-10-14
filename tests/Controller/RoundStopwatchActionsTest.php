@@ -149,6 +149,78 @@ final class RoundStopwatchActionsTest extends WebTestCase
         self::assertSame('{"error":"results_confirmed"}', $this->browser->getResponse()->getContent());
     }
 
+    /**
+     * "End now" ends an online round for good (docs/features/online-competitions/README.md §5.1): Start - now, in 10 s
+     * or at a set time - is refused and said (`ended_use_reset` 409 as JSON, a flash on the control page), nothing is
+     * written or published; the pages offer no Start while it is stopped, only Reset
+     */
+    public function testAnEndedOnlineRoundIsNotStartedAgain(): void
+    {
+        $online = OnlineRoundsFixture::ROUND_ONLINE_SOLO;
+        $connection = self::getContainer()->get(Connection::class);
+        $this->post('/en/start-round-stopwatch/' . $online);
+        $this->post('/en/stop-round-stopwatch/' . $online);
+        $before = $connection->fetchAssociative('SELECT stopwatch_status, stopwatch_started_at, stopwatch_stopped_at FROM competition_round WHERE id = :id', ['id' => $online]);
+        self::assertIsArray($before);
+        self::assertSame('stopped', $before['stopwatch_status']);
+
+        $this->post('/en/start-round-stopwatch/' . $online);
+
+        self::assertResponseRedirects('/en/manage-round-stopwatch/' . $online);
+        self::assertSame([], self::hub()->getPublishedUpdates());
+        self::assertSame($before, $connection->fetchAssociative('SELECT stopwatch_status, stopwatch_started_at, stopwatch_stopped_at FROM competition_round WHERE id = :id', ['id' => $online]));
+        $page = $this->browser->followRedirect();
+        self::assertSelectorTextContains('.alert', 'This online round has ended - Reset it to run it again.');
+        // The page offers Reset, not Start
+        self::assertSame('idle', $page->filter('form[action$="/en/start-round-stopwatch/' . $online . '"]')->closest('[data-stopwatch-when]')?->attr('data-stopwatch-when'));
+        self::assertNotNull($page->filter('form[action$="/en/start-round-stopwatch/' . $online . '"]')->closest('[data-stopwatch-when]')->attr('hidden'));
+        self::assertNull($page->filter('form[action$="/en/reset-round-stopwatch/' . $online . '"]')->closest('[data-stopwatch-when]')?->attr('hidden'));
+        $projector = $this->browser->request('GET', '/en/round-stopwatch/' . $online);
+        self::assertNotNull($projector->filter('form[action$="/en/start-round-stopwatch/' . $online . '"]')->closest('[data-stopwatch-when]')?->attr('hidden'));
+
+        $this->post('/en/start-round-stopwatch/' . $online, json: true);
+
+        self::assertResponseStatusCodeSame(409);
+        self::assertSame('{"error":"ended_use_reset"}', $this->browser->getResponse()->getContent());
+
+        // The control room's "Start in 10 s"
+        self::hub()->reset();
+        $this->browser->request('POST', '/en/round-stopwatch/' . $online . '/schedule', ['_token' => 'csrf-token', 'countdown' => '10'], [], ['HTTP_ORIGIN' => 'http://localhost', 'HTTP_ACCEPT' => 'application/json']);
+
+        self::assertResponseStatusCodeSame(409);
+        self::assertSame('{"error":"ended_use_reset"}', $this->browser->getResponse()->getContent());
+        self::assertSame([], self::hub()->getPublishedUpdates());
+        self::assertSame($before, $connection->fetchAssociative('SELECT stopwatch_status, stopwatch_started_at, stopwatch_stopped_at FROM competition_round WHERE id = :id', ['id' => $online]));
+
+        // A Reset runs it again
+        $this->post('/en/reset-round-stopwatch/' . $online);
+        $this->post('/en/start-round-stopwatch/' . $online);
+        self::assertResponseRedirects('/en/round-stopwatch/' . $online);
+        self::assertSame('running', $connection->fetchOne('SELECT stopwatch_status FROM competition_round WHERE id = :id', ['id' => $online]));
+    }
+
+    /**
+     * In person Stop is a pause and Start resumes it - unchanged, and the pages keep offering Start while stopped
+     */
+    public function testAStoppedInPersonRoundIsResumed(): void
+    {
+        $this->post('/en/start-round-stopwatch/' . self::ROUND);
+        $this->post('/en/stop-round-stopwatch/' . self::ROUND);
+
+        $page = $this->browser->request('GET', '/en/manage-round-stopwatch/' . self::ROUND);
+        self::assertSame('idle stopped', $page->filter('form[action$="/en/start-round-stopwatch/' . self::ROUND . '"]')->closest('[data-stopwatch-when]')?->attr('data-stopwatch-when'));
+        self::assertNull($page->filter('form[action$="/en/start-round-stopwatch/' . self::ROUND . '"]')->closest('[data-stopwatch-when]')->attr('hidden'));
+        $projector = $this->browser->request('GET', '/en/round-stopwatch/' . self::ROUND);
+        self::assertNull($projector->filter('form[action$="/en/start-round-stopwatch/' . self::ROUND . '"]')->closest('[data-stopwatch-when]')?->attr('hidden'));
+
+        $this->post('/en/start-round-stopwatch/' . self::ROUND);
+
+        self::assertResponseRedirects('/en/round-stopwatch/' . self::ROUND);
+        self::assertSame('running', $this->column('stopwatch_status'));
+        self::assertNull($this->column('stopwatch_stopped_at'));
+        self::assertSame('running', self::payload($this->onlyUpdate())['status']);
+    }
+
     public function testANonOrganiserIsDenied(): void
     {
         TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_REGULAR);

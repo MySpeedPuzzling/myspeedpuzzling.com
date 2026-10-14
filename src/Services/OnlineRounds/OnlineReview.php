@@ -26,7 +26,8 @@ use SpeedPuzzling\Web\Value\RoundEntryResult;
  *   puzzle once);
  * - detail(): one participant's row plus everything behind it - the taps, the events in order and the evidence with
  *   short-lived URLs (MEDIA_URL_SECONDS: the reviewer looks at a participant for a few minutes; the page asks again when
- *   it comes back) - a photo or a burst the phone has not uploaded yet is listed as pending, never hidden (README §5.11);
+ *   it comes back) - a photo or a burst the phone has not uploaded yet is listed as pending, never hidden (README §5.11),
+ *   one that never arrived and never will (OnlineEntryMedia::$abandonedAt) as abandoned;
  * - assessed(): the rows with their OnlineReviewAssessment - the accuracy report.
  *
  * @phpstan-import-type OnlineReviewEntryRow from GetOnlineReviewData
@@ -239,7 +240,9 @@ readonly final class OnlineReview
             'takenMs' => $media->takenMs,
             'relatedEventId' => $media->relatedEventId?->toString(),
             // Registered, the phone has not reported the upload yet (offline, a store outage) - shown as pending
-            'pending' => $media->uploadedAtMs === null,
+            'pending' => $media->uploadedAtMs === null && $media->abandonedAt === null,
+            // Never arrived and never will (the phone gave the URL up, or nothing was there long after it ran out)
+            'abandoned' => $media->uploadedAtMs === null && $media->abandonedAt !== null,
             'url' => $url,
             'bytes' => $media->verifiedBytes ?? $media->declaredBytes,
             'manifest' => $media->manifest,

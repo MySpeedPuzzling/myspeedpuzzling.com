@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Controller;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Exceptions\DraftNotVisible;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
+use SpeedPuzzling\Web\Repository\OnlineRoundRepository;
 use SpeedPuzzling\Web\Results\RoundStopwatchState;
 use SpeedPuzzling\Web\Security\CompetitionEditVoter;
 use SpeedPuzzling\Web\Value\RoundClock;
@@ -23,6 +24,7 @@ final class RoundStopwatchController extends AbstractController
 {
     public function __construct(
         private readonly CompetitionRoundRepository $competitionRoundRepository,
+        private readonly OnlineRoundRepository $onlineRoundRepository,
         private readonly ClockInterface $clock,
     ) {
     }
@@ -55,6 +57,8 @@ final class RoundStopwatchController extends AbstractController
             'round' => $round,
             'competition' => $round->competition,
             'canManage' => $canManage,
+            // Its Start button: an ended online round is never resumed - asked only for an organiser, who sees the button
+            'onlineTiming' => $canManage && $this->onlineRoundRepository->ofRound($round->id->toString()) !== null,
             'stopwatch' => RoundStopwatchState::ofRound($round, $now),
             'serverNowMs' => RoundClock::milliseconds($now),
             'stateUrl' => $this->generateUrl('round_stopwatch_state', ['roundId' => $round->id->toString()]),

@@ -13,8 +13,8 @@ use Symfony\Component\Process\Process;
  * README.md §5.9, implementation-plan.md WP 1.7 + 1.8): assets/online/review_logic.js - the official time of a moment,
  * a burst's manifest sliced into its frames, the frame nearest a tap, the confirmation of a moment (button or reviewer)
  * and of pieces, the statistics (the same cases as AccuracySummaryTest), the keys - and assets/online/review_control.js
- * - the control room's readiness, online, camera, clock quality, finish, counts, filters and photo refreshes. Every
- * scenario must report "ok".
+ * - the control room's readiness, online, camera, clock quality, another device on the link, finish, counts, filters
+ * and photo refreshes. Every scenario must report "ok".
  */
 final class OnlineReviewScriptTest extends TestCase
 {
@@ -30,7 +30,7 @@ final class OnlineReviewScriptTest extends TestCase
         /** @var array<string, string> $results */
         $results = json_decode($process->getOutput(), true, flags: JSON_THROW_ON_ERROR);
 
-        self::assertGreaterThanOrEqual(21, count($results));
+        self::assertGreaterThanOrEqual(22, count($results));
 
         foreach ($results as $scenario => $result) {
             self::assertSame('ok', $result, $scenario);

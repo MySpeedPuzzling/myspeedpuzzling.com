@@ -12,7 +12,9 @@ use SpeedPuzzling\Web\Exceptions\RoundStopwatchRefused;
 use SpeedPuzzling\Web\Message\CancelRoundStart;
 use SpeedPuzzling\Web\Message\ScheduleRoundStart;
 use SpeedPuzzling\Web\Message\StartRoundStopwatch;
+use SpeedPuzzling\Web\Message\StopRoundStopwatch;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionRoundFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\OnlineRoundsFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Value\RoundStopwatchRefusal;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -84,6 +86,36 @@ final class ScheduleRoundStartHandlerTest extends KernelTestCase
         self::assertSame('running', $this->row()['stopwatch_status']);
     }
 
+    /**
+     * An online round that ended is never started again - not in 10 s, not at a set time: a Reset runs it again
+     * (docs/features/online-competitions/README.md §5.1)
+     */
+    public function testAnEndedOnlineRoundIsToldToBeResetFirst(): void
+    {
+        $online = OnlineRoundsFixture::ROUND_ONLINE_SOLO;
+        $this->messageBus->dispatch(new StartRoundStopwatch($online));
+        $this->messageBus->dispatch(new StopRoundStopwatch($online));
+        $before = $this->row($online);
+
+        $this->assertRefused(RoundStopwatchRefusal::EndedUseReset, fn () => $this->schedule($this->wholeSecond('+10 seconds'), $online));
+
+        self::assertSame('stopped', $before['stopwatch_status']);
+        self::assertSame($before, $this->row($online));
+    }
+
+    /**
+     * In person a stopped clock is a pause: scheduling a start still asks for a reset first, as before
+     */
+    public function testAStoppedInPersonRoundIsStillAskedForAReset(): void
+    {
+        $this->messageBus->dispatch(new StartRoundStopwatch(self::ROUND));
+        $this->messageBus->dispatch(new StopRoundStopwatch(self::ROUND));
+
+        $this->assertRefused(RoundStopwatchRefusal::AlreadyStarted, fn () => $this->schedule($this->wholeSecond('+1 hour')));
+
+        self::assertSame('stopped', $this->row()['stopwatch_status']);
+    }
+
     public function testACancelBeforeTheMomentCallsTheCountdownOff(): void
     {
         $this->schedule($this->wholeSecond('+10 minutes'));
@@ -107,10 +139,10 @@ final class ScheduleRoundStartHandlerTest extends KernelTestCase
         self::assertSame($startedAt->format('Y-m-d H:i:s'), $this->row()['stopwatch_started_at']);
     }
 
-    private function schedule(DateTimeImmutable $startsAt): void
+    private function schedule(DateTimeImmutable $startsAt, string $roundId = self::ROUND): void
     {
         $this->messageBus->dispatch(new ScheduleRoundStart(
-            roundId: self::ROUND,
+            roundId: $roundId,
             startsAt: $startsAt,
             actingPlayerId: PlayerFixture::PLAYER_ADMIN,
         ));
@@ -132,11 +164,11 @@ final class ScheduleRoundStartHandlerTest extends KernelTestCase
     /**
      * @return array{stopwatch_status: null|string, stopwatch_started_at: null|string, stopwatch_stopped_at: null|string}
      */
-    private function row(): array
+    private function row(string $roundId = self::ROUND): array
     {
         $row = $this->database->fetchAssociative(
             'SELECT stopwatch_status, stopwatch_started_at, stopwatch_stopped_at FROM competition_round WHERE id = :id',
-            ['id' => self::ROUND],
+            ['id' => $roundId],
         );
         self::assertIsArray($row);
 

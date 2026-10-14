@@ -254,6 +254,70 @@ final class ApiMediaControllerTest extends WebTestCase
         self::assertIsString(self::json($this->browser)['url'] ?? null);
     }
 
+    /**
+     * A presign after a failed upload names the one the phone gave up (`previousFailure.mediaId`): it never arrives -
+     * marked abandoned, the review says "never arrived" instead of "pending"; whatever else is named is left alone
+     */
+    public function testAPresignAfterAFailedUploadMarksTheOneGivenUpAbandoned(): void
+    {
+        self::postJson($this->browser, self::api(OnlineRoundsFixture::TOKEN_CONNECTED, 'media'), self::photo());
+        $givenUp = self::json($this->browser)['mediaId'] ?? null;
+        self::assertIsString($givenUp);
+
+        self::postJson($this->browser, self::api(OnlineRoundsFixture::TOKEN_CONNECTED, 'media'), [
+            ...self::photo(),
+            'previousFailure' => ['status' => 0, 'store' => 'primary', 'mediaId' => $givenUp],
+        ]);
+
+        self::assertResponseIsSuccessful();
+        self::assertNotSame($givenUp, self::json($this->browser)['mediaId'] ?? null);
+        self::assertNotNull($this->abandonedAt($givenUp));
+
+        // A refused URL (403) names it as well; another participant's media, an uploaded one, an id that is no media:
+        // nothing changes
+        self::postJson($this->browser, self::api(OnlineRoundsFixture::TOKEN_ANONYMOUS, 'media'), [...self::photo(), 'deviceId' => 'phone-a']);
+        $someoneElses = self::json($this->browser)['mediaId'] ?? null;
+        self::assertIsString($someoneElses);
+
+        foreach ([$someoneElses, OnlineRoundsFixture::MEDIA_EMPTY_MAT_CONNECTED, Uuid::uuid7()->toString(), 'not-an-id'] as $named) {
+            self::postJson($this->browser, self::api(OnlineRoundsFixture::TOKEN_CONNECTED, 'media'), [
+                ...self::photo(),
+                'previousFailure' => ['status' => 403, 'store' => 'primary', 'mediaId' => $named],
+            ]);
+
+            self::assertResponseIsSuccessful();
+        }
+
+        self::assertNull($this->abandonedAt($someoneElses));
+        self::assertNull($this->abandonedAt(OnlineRoundsFixture::MEDIA_EMPTY_MAT_CONNECTED));
+    }
+
+    /**
+     * During a store outage every retry is a new row: the ones the phone gave up are pending no more - the one this
+     * presign replaces included, so a phone at the cap can retry its item
+     */
+    public function testUploadsGivenUpNeverHoldThePhoneUp(): void
+    {
+        $this->insertMedia(OnlineEntryQuota::MAX_PENDING_MEDIA_PER_ENTRY + 20, 35_000, verified: false, abandoned: true);
+        $this->insertMedia(OnlineEntryQuota::MAX_PENDING_MEDIA_PER_ENTRY - 1, 35_000, verified: false);
+
+        self::postJson($this->browser, self::api(OnlineRoundsFixture::TOKEN_CONNECTED, 'media'), self::photo());
+        self::assertResponseIsSuccessful();
+        $failed = self::json($this->browser)['mediaId'] ?? null;
+        self::assertIsString($failed);
+
+        // At the cap now - only the retry of the item that failed goes through
+        self::postJson($this->browser, self::api(OnlineRoundsFixture::TOKEN_CONNECTED, 'media'), self::photo());
+        self::assertRefused($this->browser, 429, 'too_many_pending_media');
+
+        self::postJson($this->browser, self::api(OnlineRoundsFixture::TOKEN_CONNECTED, 'media'), [
+            ...self::photo(),
+            'previousFailure' => ['status' => 503, 'store' => 'primary', 'mediaId' => $failed],
+        ]);
+        self::assertResponseIsSuccessful();
+        self::assertNotNull($this->abandonedAt($failed));
+    }
+
     public function testALinkAskingForTooManyUploadsIsTold(): void
     {
         $token = OnlineToken::generate();
@@ -288,21 +352,28 @@ final class ApiMediaControllerTest extends WebTestCase
 
     /**
      * @param bool $uploaded the phone reported it done (`media.uploaded`) - verified ones are uploaded too
+     * @param bool $abandoned never arrived (OnlineEntryMedia::$abandonedAt)
      */
-    private function insertMedia(int $count, int $bytes, bool $verified, bool $uploaded = false): void
+    private function insertMedia(int $count, int $bytes, bool $verified, bool $uploaded = false, bool $abandoned = false): void
     {
         $this->connection()->executeStatement(
-            "INSERT INTO online_entry_media (id, online_entry_id, kind, taken_ms, store, object_key, content_type, declared_bytes, uploaded_at_ms, verified_bytes, created_at)
-             SELECT gen_random_uuid(), :onlineEntry, 'periodic', 1792000000000, 'primary', 'online/quota/' || n || '.jpg', 'image/jpeg', :bytes, :uploadedAt, :verified, NOW()
+            "INSERT INTO online_entry_media (id, online_entry_id, kind, taken_ms, store, object_key, content_type, declared_bytes, uploaded_at_ms, verified_bytes, abandoned_at, created_at)
+             SELECT gen_random_uuid(), :onlineEntry, 'periodic', 1792000000000, 'primary', 'online/quota/' || n || '.jpg', 'image/jpeg', :bytes, :uploadedAt, :verified, :abandonedAt, NOW()
              FROM generate_series(1, :count) AS n",
             [
                 'onlineEntry' => OnlineRoundsFixture::ONLINE_ENTRY_CONNECTED,
                 'bytes' => $bytes,
                 'uploadedAt' => $uploaded || $verified ? 1_792_000_001_000 : null,
                 'verified' => $verified ? $bytes : null,
+                'abandonedAt' => $abandoned ? new DateTimeImmutable()->format('Y-m-d H:i:s') : null,
                 'count' => $count,
             ],
         );
+    }
+
+    private function abandonedAt(string $mediaId): mixed
+    {
+        return $this->connection()->fetchOne('SELECT abandoned_at FROM online_entry_media WHERE id = :id', ['id' => $mediaId]);
     }
 
     private static function uuidVersion(UuidInterface $uuid): null|int

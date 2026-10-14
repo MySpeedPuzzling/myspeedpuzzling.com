@@ -16,7 +16,8 @@ use SpeedPuzzling\Web\Value\RoundClock;
 /**
  * Object storage without object storage - the test environment's OnlineMediaStorage (config/services_test.php). Its
  * URLs lead nowhere (`.invalid`); a test plays the phone's upload with upload(), puts any other object with put()
- * (the orphan sweep's leftovers) and reads deletions from deleted().
+ * (the orphan sweep's leftovers) and reads deletions from deleted(); takeDown() makes a store fail its probe(), probes()
+ * lists them.
  *
  * Deliberately not reset between requests of one kernel (like InMemoryApiUsageCounter): an upload a test made must
  * still be there for the request that verifies it.
@@ -31,6 +32,12 @@ final class FakeOnlineMediaStorage implements OnlineMediaStorage
 
     /** @var list<string> "store/key" of every deleted object, in order */
     private array $deleted = [];
+
+    /** @var array<string, true> stores whose probe fails (store value => true) */
+    private array $down = [];
+
+    /** @var list<string> the store of every probe, in order */
+    private array $probes = [];
 
     public function __construct(
         private readonly ClockInterface $clock,
@@ -106,6 +113,33 @@ final class FakeOnlineMediaStorage implements OnlineMediaStorage
         }
 
         return [];
+    }
+
+    public function probe(OnlineMediaStore $store): bool
+    {
+        $this->probes[] = $store->value;
+
+        return isset($this->down[$store->value]) === false;
+    }
+
+    /**
+     * The store does not answer its probe (true) - or answers again (false)
+     */
+    public function takeDown(OnlineMediaStore $store, bool $down = true): void
+    {
+        if ($down) {
+            $this->down[$store->value] = true;
+        } else {
+            unset($this->down[$store->value]);
+        }
+    }
+
+    /**
+     * @return list<string> the store of every probe, in order
+     */
+    public function probes(): array
+    {
+        return $this->probes;
     }
 
     /**

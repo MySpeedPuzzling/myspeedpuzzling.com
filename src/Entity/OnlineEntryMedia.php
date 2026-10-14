@@ -23,7 +23,10 @@ use SpeedPuzzling\Web\Value\OnlineMediaStore;
  * or a finish burst the phone uploads straight to object storage through a presigned URL. The row exists before the
  * upload (its id is made by the controller before dispatch); `uploadedAtMs` is set when the phone reports the upload
  * (`media.uploaded`, with a burst's manifest of frames), `verifiedBytes` when the server checked the object is there.
- * `store` follows the presigned upload - the second store takes an upload while the primary is down.
+ * `store` follows the presigned upload - the second store takes an upload while the primary is down. `abandonedAt`:
+ * the upload never arrived and never will - the phone gave this URL up (its next presign named it as the failed one:
+ * RegisterOnlineMediaHandler), or nothing was in the store long after the URL ran out (MarkAbandonedOnlineMediaHandler,
+ * with the daily prune); the review says "never arrived" instead of "pending".
  */
 #[Entity]
 #[Index(columns: ['online_entry_id', 'kind', 'taken_ms'])]
@@ -34,6 +37,9 @@ class OnlineEntryMedia
 
     #[Column(nullable: true)]
     public null|int $verifiedBytes = null;
+
+    #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    public null|DateTimeImmutable $abandonedAt = null;
 
     /**
      * A burst's frames in the one uploaded object: [{offset, length, captureMs}]
@@ -100,10 +106,29 @@ class OnlineEntryMedia
     public function markUploaded(int $uploadedAtMs, null|array $manifest = null): void
     {
         $this->uploadedAtMs = $uploadedAtMs;
+        // It arrived after all (a report that waited on a phone offline for long) - the upload wins
+        $this->abandonedAt = null;
 
         if ($manifest !== null) {
             $this->manifest = $manifest;
         }
+    }
+
+    /**
+     * The upload never arrived and never will: the phone gave the URL up, or the store has nothing long after the URL
+     * ran out. Nothing for an upload already reported, nor one marked before (the first moment stays).
+     *
+     * @return bool whether it is marked now
+     */
+    public function markAbandoned(DateTimeImmutable $at): bool
+    {
+        if ($this->uploadedAtMs !== null || $this->abandonedAt !== null) {
+            return false;
+        }
+
+        $this->abandonedAt = $at;
+
+        return true;
     }
 
     /**

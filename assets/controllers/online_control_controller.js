@@ -638,6 +638,11 @@ export default class extends Controller {
             chips.push(['warn', this.tc('tile_uploads_pending', view.pendingUploads)]);
         }
 
+        // A second phone or a laptop open on the same link - not the device holding the entry
+        if (view.otherDevice) {
+            chips.push(['warn', this.t('tile_other_device')]);
+        }
+
         if (view.confirmed) {
             chips.push(['ok', this.t('tile_confirmed')]);
         }

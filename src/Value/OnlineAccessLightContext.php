@@ -11,7 +11,8 @@ use Ramsey\Uuid\Uuid;
  * for a minute so a heartbeat costs no statement: the participant, their competition, the round their page is about
  * now (OnlineAccess' choice; null while the competition has no round with online timing), their entry in it (null when
  * they are not entered) and the device holding that entry (OnlineEntry::$activeDeviceId, null before any
- * `device.ready`). Ids in lower case.
+ * `device.ready`). Ids in lower case. `generation`: the link's cache generation when it was read (null = the link was
+ * never forgotten lately) - a lookup read before the latest forget() is never used (OnlineAccessLight).
  */
 final readonly class OnlineAccessLightContext
 {
@@ -21,11 +22,12 @@ final readonly class OnlineAccessLightContext
         public null|string $roundId,
         public null|string $entryId,
         public null|string $activeDeviceId,
+        public null|string $generation = null,
     ) {
     }
 
     /**
-     * @return array{participantId: string, competitionId: string, roundId: null|string, entryId: null|string, activeDeviceId: null|string}
+     * @return array{participantId: string, competitionId: string, roundId: null|string, entryId: null|string, activeDeviceId: null|string, generation: null|string}
      */
     public function toArray(): array
     {
@@ -35,6 +37,7 @@ final readonly class OnlineAccessLightContext
             'roundId' => $this->roundId,
             'entryId' => $this->entryId,
             'activeDeviceId' => $this->activeDeviceId,
+            'generation' => $this->generation,
         ];
     }
 
@@ -52,6 +55,7 @@ final readonly class OnlineAccessLightContext
         $roundId = $cached['roundId'] ?? null;
         $entryId = $cached['entryId'] ?? null;
         $activeDeviceId = $cached['activeDeviceId'] ?? null;
+        $generation = $cached['generation'] ?? null;
 
         if (
             !is_string($participantId) || !Uuid::isValid($participantId)
@@ -59,10 +63,11 @@ final readonly class OnlineAccessLightContext
             || ($roundId !== null && (!is_string($roundId) || !Uuid::isValid($roundId)))
             || ($entryId !== null && (!is_string($entryId) || !Uuid::isValid($entryId)))
             || ($activeDeviceId !== null && !is_string($activeDeviceId))
+            || ($generation !== null && !is_string($generation))
         ) {
             return null;
         }
 
-        return new self($participantId, $competitionId, $roundId, $entryId, $activeDeviceId);
+        return new self($participantId, $competitionId, $roundId, $entryId, $activeDeviceId, $generation);
     }
 }

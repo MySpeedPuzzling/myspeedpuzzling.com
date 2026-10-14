@@ -501,14 +501,26 @@ export default class extends Controller {
         }
 
         const media = this.detail.media ?? [];
-        const photo = media.filter((item) => item.kind === 'button' && item.relatedEventId === tap.eventId).pop() ?? null;
+        const photo = this.tapMedia(media, 'button', tap.eventId);
         this.showPhoto(this.tapPhotoLinkTarget, this.tapPhotoTarget, photo);
-        // Registered but not uploaded yet (the phone was offline, a store outage) - said, never hidden
+        // Registered but not uploaded yet (the phone was offline, a store outage) - said, never hidden; one that never
+        // arrived (the phone gave its URL up, nothing came later) says so
         this.tapPhotoPendingTarget.hidden = !(photo !== null && photo.url === null);
+        this.tapPhotoPendingTarget.textContent = this.t(photo?.abandoned ? 'never_arrived' : 'pending');
 
-        const burst = media.filter((item) => item.kind === 'burst' && item.relatedEventId === tap.eventId).pop() ?? null;
+        const burst = this.tapMedia(media, 'burst', tap.eventId);
         this.renderMoment();
         this.openBurst(burst, tap);
+    }
+
+    /**
+     * The tap's photo or burst: the latest one that arrived - a retry after a store failure is a new row, the one given
+     * up never arrives - else the latest one
+     */
+    tapMedia(media, kind, eventId) {
+        const rows = media.filter((item) => item.kind === kind && item.relatedEventId === eventId);
+
+        return rows.filter((item) => item.url !== null).pop() ?? rows.pop() ?? null;
     }
 
     selectTap(event) {
@@ -583,7 +595,7 @@ export default class extends Controller {
         }
 
         if (media.url === null) {
-            this.setBurstStatus(this.t('burst_pending'));
+            this.setBurstStatus(this.t(media.abandoned ? 'burst_never_arrived' : 'burst_pending'));
 
             return;
         }
@@ -911,7 +923,7 @@ export default class extends Controller {
         if (item.media.url === null) {
             const pending = document.createElement('span');
             pending.className = 'online-timeline-pending small text-body-secondary';
-            pending.textContent = this.t('pending');
+            pending.textContent = this.t(item.media.abandoned ? 'never_arrived' : 'pending');
             figure.append(pending);
         } else {
             const link = document.createElement('a');

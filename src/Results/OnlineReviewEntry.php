@@ -12,7 +12,10 @@ use SpeedPuzzling\Web\Value\RoundEntryResult;
  * (OnlineReviewAssessment: needs a look / confirmed / unfinished / no finish), the suggested official result, the
  * official result the entry holds now, the confirmed decision (moment, source, when) and the reviewer's adjustment
  * against the nearest tap, the flags, how many taps there are - and (Phase 2) how many finish candidates, and the
- * detection error of a confirmed finish (confirmed − the candidate it was detected by, OnlineReviewAssessment).
+ * detection error of a confirmed finish (confirmed − the candidate it was detected by, OnlineReviewAssessment) - and
+ * (Phase 3) the completeness check of the photo the review opens on (the suggested candidate's or tap's photo -
+ * OnlineReview): `false` while the check is off (no `check` key at all - the JSON as before), null when there is no
+ * such photo.
  */
 readonly final class OnlineReviewEntry implements \JsonSerializable
 {
@@ -38,7 +41,35 @@ readonly final class OnlineReviewEntry implements \JsonSerializable
         public null|int $readyAtMs,
         public int $candidates = 0,
         public null|int $detectionErrorMs = null,
+        public null|false|OnlineFinishPhotoCheck $check = false,
     ) {
+    }
+
+    /**
+     * The same row with the completeness check of the photo the review opens on
+     */
+    public function withCheck(null|OnlineFinishPhotoCheck $check): self
+    {
+        return new self(
+            participantId: $this->participantId,
+            entryId: $this->entryId,
+            onlineEntryId: $this->onlineEntryId,
+            name: $this->name,
+            country: $this->country,
+            status: $this->status,
+            suggestion: $this->suggestion,
+            official: $this->official,
+            confirmedMomentMs: $this->confirmedMomentMs,
+            confirmedSource: $this->confirmedSource,
+            reviewedAtMs: $this->reviewedAtMs,
+            adjustmentMs: $this->adjustmentMs,
+            flags: $this->flags,
+            taps: $this->taps,
+            readyAtMs: $this->readyAtMs,
+            candidates: $this->candidates,
+            detectionErrorMs: $this->detectionErrorMs,
+            check: $check,
+        );
     }
 
     /**
@@ -46,7 +77,7 @@ readonly final class OnlineReviewEntry implements \JsonSerializable
      */
     public function jsonSerialize(): array
     {
-        return [
+        $data = [
             'participantId' => $this->participantId,
             'entryId' => $this->entryId,
             'onlineEntryId' => $this->onlineEntryId,
@@ -67,5 +98,12 @@ readonly final class OnlineReviewEntry implements \JsonSerializable
             'readyAtMs' => $this->readyAtMs,
             'candidates' => $this->candidates,
         ];
+
+        // Only while the completeness check is on - otherwise the row is byte for byte what it was before it
+        if ($this->check !== false) {
+            $data['check'] = $this->check;
+        }
+
+        return $data;
     }
 }

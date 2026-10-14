@@ -3,8 +3,10 @@
     for. Plain texts with |trans (their %placeholders% filled in the browser), plural texts with browser_translation()
     (chosen by translation_choice.js). Flags are `flag_<code>`, statuses `status_<status>`, timeline lines
     `event_<type with _>` / `photo_<kind>`, sources `source_<source>`. Pinned by tests/OnlineRoundsTextsTest.php.
+    Phase 3: the completeness check's texts (`check_*`, assets/online/review_check.js checkBadge()) only while the check
+    is on (completeness_check) - off, the page is what it was before.
 #}
-{{- {
+{%- set texts = {
     progress: 'online_rounds.review.progress'|trans,
     status_needs_look: 'online_rounds.review.status.needs_look'|trans,
     status_confirmed: 'online_rounds.review.status.confirmed'|trans,
@@ -101,4 +103,18 @@
     error_offline: 'online_rounds.review.error.offline'|trans,
     error_failed: 'online_rounds.review.error.failed'|trans,
     error_gone: 'online_rounds.review.error.gone'|trans,
-}|json_encode|raw -}}
+} -%}
+{%- if completeness_check ?? false -%}
+    {%- set texts = texts|merge({
+        check_complete: 'online_rounds.review.check.complete'|trans,
+        check_gaps: 'online_rounds.review.check.gaps'|trans,
+        check_unsure: 'online_rounds.review.check.unsure'|trans,
+        check_pending: 'online_rounds.review.check.pending'|trans,
+        check_title: 'online_rounds.review.check.title'|trans,
+        check_pending_title: 'online_rounds.review.check.pending_title'|trans,
+        check_failed_title: 'online_rounds.review.check.failed_title'|trans,
+        check_reason: 'online_rounds.review.check.reason'|trans,
+        check_gap_box: 'online_rounds.review.check.gap_box'|trans,
+    }) -%}
+{%- endif -%}
+{{- texts|json_encode|raw -}}

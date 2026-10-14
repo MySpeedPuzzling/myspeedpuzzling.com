@@ -336,6 +336,61 @@
     max-width: 24rem;
 }
 
+// The completeness check (Phase 3, advisory - only on a page whose check is on): a photo's badge, its suspected gaps
+// drawn over it in percent of the photo (assets/online/review_check.js gapBoxes()), so they scale with it
+.online-check-badge {
+    font-weight: 600;
+    vertical-align: middle;
+
+    &--complete {
+        background: var(--bs-success-bg-subtle, #d1e7dd);
+        color: var(--bs-success-text-emphasis, #0a3622);
+    }
+
+    &--gaps {
+        background: var(--bs-danger, #dc3545);
+        color: #fff;
+    }
+
+    &--unsure {
+        background: var(--bs-warning-bg-subtle, #fff3cd);
+        color: var(--bs-warning-text-emphasis, #664d03);
+    }
+
+    &--pending {
+        background: var(--bs-secondary-bg-subtle, #e2e3e5);
+        color: var(--bs-secondary-text-emphasis, #2b2f32);
+    }
+}
+
+.online-check-photo {
+    position: relative;
+    display: block;
+}
+
+.online-check-boxes {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}
+
+.online-check-box {
+    position: absolute;
+    // Placed by its middle (left / top = the gap's centre): a piece of a 1000-piece puzzle is a few pixels in the photo,
+    // its box never smaller than this
+    min-width: 1.25rem;
+    min-height: 1.25rem;
+    transform: translate(-50%, -50%);
+    border: 3px solid #dc3545;
+    border-radius: 2px;
+    // White on both sides: visible on a dark and a light motif alike
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.9), inset 0 0 0 1px rgba(255, 255, 255, 0.9);
+}
+
+.online-review--gaps-hidden .online-check-boxes {
+    display: none;
+}
+
 .online-review-unfinished .form-control {
     width: 8rem;
 }

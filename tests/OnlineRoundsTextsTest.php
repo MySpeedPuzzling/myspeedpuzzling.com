@@ -70,8 +70,18 @@ final class OnlineRoundsTextsTest extends KernelTestCase
 
     public function testEveryTextTheReviewAsksForIsThere(): void
     {
-        $texts = $this->render('online_rounds/review_texts.html.twig');
+        // With the completeness check on (Phase 3) - its texts are there only then
+        $texts = $this->render('online_rounds/review_texts.html.twig', ['completeness_check' => true]);
         $used = self::literalKeys(__DIR__ . '/../assets/controllers/online_review_controller.js');
+
+        // A photo's check badge (assets/online/review_check.js checkBadge()): its text and its title by the state
+        foreach (['complete', 'gaps', 'unsure', 'pending'] as $state) {
+            $used[] = 'check_' . $state;
+        }
+
+        foreach (['check_title', 'check_pending_title', 'check_failed_title'] as $key) {
+            $used[] = $key;
+        }
 
         foreach ([OnlineReviewAssessment::STATUS_NEEDS_LOOK, OnlineReviewAssessment::STATUS_CONFIRMED, OnlineReviewAssessment::STATUS_UNFINISHED, OnlineReviewAssessment::STATUS_NO_FINISH] as $status) {
             $used[] = 'status_' . $status;
@@ -113,6 +123,11 @@ final class OnlineRoundsTextsTest extends KernelTestCase
         self::assertGreaterThan(50, count(array_unique($used)));
         self::assertTexts($texts, ['flag_camera_lost', 'flag_page_hidden', 'flag_offline', 'result_pieces', 'reported_left', 'reported_placed']);
         self::assertSame('Finished tap reached us %seconds% s late, though the phone was online the whole time', $texts['flag_arrived_late'] ?? null);
+
+        // Off, the review's texts are what they were before the check existed
+        $off = $this->render('online_rounds/review_texts.html.twig');
+        self::assertSame([], array_values(array_filter(array_keys($off), static fn (string $key): bool => str_starts_with($key, 'check_'))));
+        self::assertSame(array_diff_key($texts, array_flip(array_filter(array_keys($texts), static fn (string $key): bool => str_starts_with($key, 'check_')))), $off);
     }
 
     public function testEveryTextTheConsoleAsksForIsThere(): void

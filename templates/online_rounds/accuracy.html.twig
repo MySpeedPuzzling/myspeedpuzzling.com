@@ -10,7 +10,8 @@
     Variables: competition, round (CompetitionRound), online_round, rows (list of OnlineAccuracyRow), summaries
     (measure => AccuracySummary), started_at_ms, detection, detection_shown, by_device / by_view (lists of
     OnlineAccuracyGroup), detector_not_running (finishes on a phone whose detector did not watch - never a missed raise,
-    stream P2F)
+    stream P2F), completeness (Phase 3: OnlineAccuracy::OUTCOMES => count + `compared` - null while the completeness
+    check is off, and nothing of it is shown then)
 #}
 
 {% set hide_comparison_launcher = true %}
@@ -163,6 +164,28 @@
             </div>
         </section>
 
+        {% if completeness is not null %}
+            {# The automatic completeness check's verdict on the confirmed photo against the reviewer (Phase 3, advisory) #}
+            <section class="card shadow-sm mb-4" aria-labelledby="online-accuracy-completeness-title" data-accuracy-completeness="{{ completeness.compared }}">
+                <div class="card-body">
+                    <h2 class="h6" id="online-accuracy-completeness-title">{{ 'online_rounds.accuracy.completeness.title'|trans }}</h2>
+                    <p class="small text-body-secondary mb-2">{{ 'online_rounds.accuracy.completeness.help'|trans }}</p>
+                    <dl class="online-accuracy-summary mb-0">
+                        {% for outcome in ['agree', 'false_complete', 'false_gap', 'unsure', 'not_checked'] %}
+                            {% set alarm = outcome == 'false_complete' and completeness[outcome] > 0 %}
+                            <div class="{{ alarm ? 'text-danger' }}" data-completeness-outcome="{{ outcome }}">
+                                <dt class="{{ alarm ? 'text-danger fw-semibold' }}">
+                                    {%- if alarm %}<i class="bi bi-exclamation-octagon-fill me-1" aria-hidden="true"></i>{% endif -%}
+                                    {{- ('online_rounds.accuracy.completeness.' ~ outcome)|trans -}}
+                                </dt>
+                                <dd class="font-monospace">{{ completeness[outcome] }}</dd>
+                            </div>
+                        {% endfor %}
+                    </dl>
+                </div>
+            </section>
+        {% endif %}
+
         {% if detection_shown %}
             <p class="small mb-4" data-accuracy-not-running="{{ detector_not_running }}">{{ 'online_rounds.accuracy.summary.not_running'|trans({'%count%': detector_not_running}) }}</p>
             <div class="online-accuracy-measures">
@@ -194,11 +217,14 @@
                             <th scope="col">{{ 'online_rounds.accuracy.col.source'|trans }}</th>
                             <th scope="col" class="text-end">{{ 'online_rounds.accuracy.col.late'|trans }}</th>
                             <th scope="col" class="text-end">{{ 'online_rounds.accuracy.col.result'|trans }}</th>
+                            {% if completeness is not null %}
+                                <th scope="col">{{ 'online_rounds.accuracy.col.completeness'|trans }}</th>
+                            {% endif %}
                         </tr>
                     </thead>
                     <tbody>
                         {% for row in rows %}
-                            <tr data-accuracy-row="{{ row.participantId }}">
+                            <tr data-accuracy-row="{{ row.participantId }}"{% if row.completenessOutcome == 'false_complete' %} class="table-danger"{% endif %}>
                                 <td>{{ row.name }}</td>
                                 <td>{{ ('online_rounds.review.status.' ~ row.status)|trans }}</td>
                                 <td class="text-end font-monospace">{{ _self.elapsed(row.tapElapsedMs) }}</td>
@@ -226,6 +252,11 @@
                                         {{- 'online_rounds.review.result.did_not_start'|trans -}}
                                     {%- endif -%}
                                 </td>
+                                {% if completeness is not null %}
+                                    <td class="{{ row.completenessOutcome == 'false_complete' ? 'text-danger fw-semibold' }}" data-accuracy-completeness-outcome="{{ row.completenessOutcome ?? '' }}">
+                                        {{- row.completenessOutcome is not null ? ('online_rounds.accuracy.completeness.' ~ row.completenessOutcome)|trans -}}
+                                    </td>
+                                {% endif %}
                             </tr>
                         {% endfor %}
                     </tbody>

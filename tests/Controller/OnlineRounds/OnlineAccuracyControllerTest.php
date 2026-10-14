@@ -109,7 +109,7 @@ final class OnlineAccuracyControllerTest extends WebTestCase
         // Detection off: no detection columns filled, no misses counted
         self::assertSame(['', '', ''], array_slice($rows['Olivia Online'], 7, 3));
         self::assertSame(['', ''], array_slice($rows['Olivia Online'], 14, 2));
-        self::assertSame(array_merge(['Arthur Anonymous', 'no_finish'], array_fill(0, 18, '')), $rows['Arthur Anonymous']);
+        self::assertSame(array_merge(['Arthur Anonymous', 'no_finish'], array_fill(0, count(OnlineAccuracyController::CSV_COLUMNS) - 2, '')), $rows['Arthur Anonymous']);
     }
 
     public function testWithDetectionTheReportMeasuresTheDetectionByPhoneAndView(): void
@@ -199,7 +199,8 @@ final class OnlineAccuracyControllerTest extends WebTestCase
         self::assertSame('0', $oliviaCsv[$columns['detector_not_running']]);
         self::assertSame(['0', '1'], [$rows['Una Unsupported'][$columns['missed_raises']], $rows['Una Unsupported'][$columns['detector_not_running']]]);
         self::assertSame(['0', '1'], [$rows['Vic Slow'][$columns['missed_raises']], $rows['Vic Slow'][$columns['detector_not_running']]]);
-        self::assertSame('detector_not_running', OnlineAccuracyController::CSV_COLUMNS[array_key_last(OnlineAccuracyController::CSV_COLUMNS)], 'a new column goes to the end');
+        // A new column goes to the end: Phase 3's completeness columns came after detector_not_running
+        self::assertSame(['detector_not_running', 'completeness_verdict', 'completeness_outcome'], array_slice($lines[0], -3));
     }
 
     public function testARoundWithDetectionOffShowsThePhaseOneReport(): void

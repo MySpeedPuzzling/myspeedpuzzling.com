@@ -48,15 +48,26 @@ $hub-feed-compact-below: 400px;
 // ---- Swipe between the feeds (README §4.13 G14, GEST-16, decision 67; feed_swipe_controller.js) -----------------------
 // Phones (< 768 px - assets/feed_swipe.js PHONE_QUERY): both panes are columns of one horizontal scroll-snap scroller,
 // the browser does the swipe (no JS gesture code); a sideways overscroll never turns into Back. Bootstrap's hidden
-// inactive pane and its fade are overridden here. The pane not shown first is .is-resting from the server: before the
-// controller runs (no .is-awake yet) it takes no column at all, so the default pane is at the scroller's start whichever
-// it is and the page loads without a shift; once awake a resting pane is a column without height - the controller wakes
-// it on the first touch or scroll (it renders while the finger brings it in) and lets the other one rest again on
-// settle. The scroller is as high as the shown pane - the grid row while the other one rests, the shown pane's exact
-// height (set by the controller) while the other one is awake - and clips the other one.
+// inactive pane and its fade are overridden here. Until the controller runs (no .is-awake yet - its lazy chunk on the way,
+// or never there) the panes follow Bootstrap's tabs: only the .active one shows, so a tap on the other tab shows its
+// feed. The server's default pane is the .active one, at the scroller's start whichever it is, so the page loads
+// without a shift and nothing moves when the controller wakes the scroller at that pane. Awake, the pane not shown is
+// .is-resting - a column without height (the server renders the other pane so); the controller wakes it on the first
+// touch or scroll (it renders while the finger brings it in) and lets it rest again on settle. The scroller is as high
+// as the shown pane - the grid row while the other one rests, the shown pane's exact height (set by the controller)
+// while the other one is awake - and clips the other one.
+// A scroll container clips both axes, so the scroller reaches the screen's edges and the page's side padding moves into
+// the panes (Platform feel review F2): a feed's table runs edge to edge below 576 px like every table of results (its
+// own full bleed, app.scss, measured from the pane's content box), the "new" bar on its image side (below) and the outer
+// cells' padding stay on the screen, and from 576 px the table's shadow fits in the pane's padding. Alerts and the
+// "Show more" row keep their inset.
 // The tabs' underline follows the scroller: one bar under the tab list placed by --hub-feed-x / -w / -y (each frame
 // of a swipe, no transition - it is the finger's), in place of each tab's own ::before (the same box, so nothing jumps
 // when the controller takes over).
+
+// The page's side padding: the content container's px-3 (templates/base.html.twig, `container px-3`)
+$hub-feeds-page-padding: map-get($spacers, 3);
+
 @media (max-width: 767.98px) {
     .hub-feeds {
         display: grid;
@@ -66,6 +77,8 @@ $hub-feed-compact-below: 400px;
         // edge-adjacent box as in view, and the other feed would load on the first touch instead of when shown
         column-gap: 1rem;
         align-items: start;
+        margin-right: -$hub-feeds-page-padding;
+        margin-left: -$hub-feeds-page-padding;
         overflow-x: auto;
         overflow-y: hidden;
         overscroll-behavior-x: contain;
@@ -79,18 +92,20 @@ $hub-feed-compact-below: 400px;
         > .tab-pane {
             display: block;
             min-width: 0;
+            padding-right: $hub-feeds-page-padding;
+            padding-left: $hub-feeds-page-padding;
             opacity: 1;
             transition: none;
             scroll-snap-align: start;
             scroll-snap-stop: always;
         }
 
-        > .tab-pane.is-resting {
+        &.is-awake > .tab-pane.is-resting {
             height: 0;
             overflow: hidden;
         }
 
-        &:not(.is-awake) > .tab-pane.is-resting {
+        &:not(.is-awake) > .tab-pane:not(.active) {
             display: none;
         }
     }

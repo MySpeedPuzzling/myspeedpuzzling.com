@@ -23,10 +23,11 @@ import {
  * - a tab shown (a tap, the keyboard's arrows, the address's #pane) scrolls its pane into view - smooth, at once with
  *   reduced motion - from Bootstrap's show.bs.tab, before the tab's classes switch: Bootstrap's own click handler of
  *   data-bs-toggle="tab" runs in the capture phase on the document, before any action on the link could;
- * - when the scroller settles (scrollend; without it: a pane ≥ 60 % visible selects its tab, the scroll at rest
- *   settles) its tab is selected through Bootstrap (aria-selected, .active), the other pane rests (.is-resting: height 0)
- *   and is inert, `feed-swipe:shown` is dispatched on the shown pane (INB-04a's mark-seen listens), and when the switch
- *   happened below the tabs the page goes back up to them;
+ * - when the scroller settles (scrollend; without it: the scroll at rest with no finger on the scroller) its tab is
+ *   selected through Bootstrap (aria-selected, .active), the other pane rests (.is-resting: height 0) and is inert,
+ *   `feed-swipe:shown` is dispatched on the shown pane (INB-04a's mark-seen listens), and when the switch happened below
+ *   the tabs the page goes back up to them. Without scrollend a pane ≥ 60 % in view selects its tab at once - nothing
+ *   more: the pane the finger still holds keeps its content, its height and the page's scroll until the scroller settles;
  * - the first touch or scroll wakes the resting pane (it renders while the finger brings it in);
  * - the indicator under the tabs follows scrollLeft (one transform per frame); the scroller is as high as the shown
  *   pane (ResizeObserver - also after a Live re-render of its feed).
@@ -44,17 +45,25 @@ export default class extends Controller {
         this.showingItself = false;
         this.frame = null;
         this.idleTimer = null;
+        // A finger on the scroller (touchstart → touchend): without scrollend a scroll at rest settles only once it lifts
+        this.touching = false;
         this.hasScrollEnd = 'onscrollend' in window;
 
         this.onScroll = () => this.scrolled();
         this.onScrollEnd = () => this.settle();
-        this.onTouchStart = () => this.wake();
+        this.onTouchStart = () => {
+            this.touching = true;
+            this.wake();
+        };
+        this.onTouchEnd = (event) => this.touchEnded(event);
         this.onMediaChange = () => this.layout();
         this.onTabShow = (event) => this.tabShowing(event);
         this.onTabShown = () => this.tabShown();
 
         this.scrollerTarget.addEventListener('scroll', this.onScroll, { passive: true });
         this.scrollerTarget.addEventListener('touchstart', this.onTouchStart, { passive: true });
+        this.scrollerTarget.addEventListener('touchend', this.onTouchEnd, { passive: true });
+        this.scrollerTarget.addEventListener('touchcancel', this.onTouchEnd, { passive: true });
         this.tabsTarget.addEventListener('show.bs.tab', this.onTabShow);
         this.tabsTarget.addEventListener('shown.bs.tab', this.onTabShown);
         this.phone.addEventListener('change', this.onMediaChange);
@@ -62,7 +71,7 @@ export default class extends Controller {
         if (this.hasScrollEnd) {
             this.scrollerTarget.addEventListener('scrollend', this.onScrollEnd);
         } else if (typeof IntersectionObserver === 'function') {
-            // Without scrollend: the tab follows a pane ≥ 60 % in view at once, the rest waits for the scroll to rest
+            // Without scrollend: the tab follows a pane ≥ 60 % in view at once, the rest waits for the scroll to rest (rested())
             this.visibility = new IntersectionObserver((entries) => this.paneInView(entries), { root: this.scrollerTarget, threshold: VISIBLE_RATIO });
             this.paneTargets.forEach((pane) => this.visibility.observe(pane));
         }
@@ -79,6 +88,8 @@ export default class extends Controller {
         this.scrollerTarget.removeEventListener('scroll', this.onScroll);
         this.scrollerTarget.removeEventListener('scrollend', this.onScrollEnd);
         this.scrollerTarget.removeEventListener('touchstart', this.onTouchStart);
+        this.scrollerTarget.removeEventListener('touchend', this.onTouchEnd);
+        this.scrollerTarget.removeEventListener('touchcancel', this.onTouchEnd);
         this.tabsTarget.removeEventListener('show.bs.tab', this.onTabShow);
         this.tabsTarget.removeEventListener('shown.bs.tab', this.onTabShown);
         this.phone.removeEventListener('change', this.onMediaChange);
@@ -175,12 +186,46 @@ export default class extends Controller {
         }
 
         if (!this.hasScrollEnd) {
-            clearTimeout(this.idleTimer);
-            this.idleTimer = setTimeout(() => this.settle(), SCROLL_IDLE_MS);
+            this.restLater();
         }
     }
 
-    /** Without scrollend: the tab of a pane ≥ 60 % in view is selected at once */
+    /** Without scrollend: the last finger lifted - the snap's own scroll (if any) re-arms the wait, rested() settles */
+    touchEnded(event) {
+        if (event && event.touches && event.touches.length > 0) {
+            return;
+        }
+
+        this.touching = false;
+
+        if (!this.hasScrollEnd) {
+            this.restLater();
+        }
+    }
+
+    /** Without scrollend: the scroll is at rest after SCROLL_IDLE_MS without a scroll event */
+    restLater() {
+        clearTimeout(this.idleTimer);
+        this.idleTimer = setTimeout(() => this.rested(), SCROLL_IDLE_MS);
+    }
+
+    /**
+     * Without scrollend: the scroll came to rest - unless a finger still holds the scroller somewhere between the panes
+     * (no scroll events while it pauses): its touchend asks again
+     */
+    rested() {
+        if (this.touching) {
+            return;
+        }
+
+        this.settle();
+    }
+
+    /**
+     * Without scrollend: the tab of a pane ≥ 60 % in view is selected at once - only the tab (showTab(): aria-selected,
+     * .active). The finger may still hold the scroller, or bring the other pane back: resting, inert, the height,
+     * `feed-swipe:shown` and the way back up to the tabs wait for settle()
+     */
     paneInView(entries) {
         if (!this.phone.matches) {
             return;
@@ -231,6 +276,12 @@ export default class extends Controller {
 
     /** Bootstrap showed a tab: from 768 px only the hidden pane's inert; on phones the scroll's end settles - or now */
     tabShown() {
+        // This controller selecting the tab itself (settle(), a pane ≥ 60 % in view): never a settle of its own - Bootstrap
+        // runs a link's `shown` synchronously inside show() (no .fade on the tab links), while a finger may hold the scroller
+        if (this.showingItself) {
+            return;
+        }
+
         if (!this.phone.matches) {
             this.selected = this.activeIndex();
             this.applyStates();

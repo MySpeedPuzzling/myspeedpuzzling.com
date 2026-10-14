@@ -3,7 +3,8 @@
  * countdown, GO, the time's-up alarm and the chime of a detected finish - WebAudio, unlocked by the "I'm ready" tap (browsers play nothing before a
  * tap), with vibration as a bonus where it exists (never on iOS) - through signal() of assets/haptics.js, the one place
  * that talks to the vibration API (navigation GEST-10): these alerts keep their own patterns and play wherever the
- * browser has the API, outside the haptic rules and the Vibration setting.
+ * browser has the API, outside the haptic rules and the Vibration setting - on the web: inside the native app the
+ * vibration backend is none until a bridge exists (navigation README §4.14 (c)).
  *
  * The countdown is scheduled on the audio clock from the server-time distance to each beep (countdownPlan()), so a
  * beep lands on its second even while the page renders slowly; a new start (a cancel, a reschedule) cancels the plan.

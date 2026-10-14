@@ -8,6 +8,7 @@ use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use SpeedPuzzling\Web\Services\NewsletterTokenSigner;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
+use SpeedPuzzling\Web\Tests\Navigation\NativeUserAgents;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use SpeedPuzzling\Web\Value\NewsletterAudience;
 use SplFileInfo;
@@ -54,6 +55,34 @@ final class SwitchAttributeTest extends WebTestCase
         self::assertSame('Vibration', trim($card->filter('label[for="haptics-setting"]')->text()));
         self::assertSame('haptics-setting-help', $vibration->attr('aria-describedby'));
         self::assertStringContainsString('Your phone\'s own vibration settings still apply.', $card->filter('#haptics-setting-help')->text());
+    }
+
+    /**
+     * The Vibration switch only on the web (Platform feel review F4): inside the Hotwire Native app no haptic plays until a
+     * bridge component exists (README §4.14 (c)) - the card would promise vibrations that never come. Phone browsers keep it
+     */
+    public function testTheVibrationSwitchIsNotRenderedInsideTheNativeApp(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        foreach (NativeUserAgents::allNative() as $name => [$userAgent]) {
+            $crawler = $browser->request('GET', '/en/edit-profile', server: ['HTTP_USER_AGENT' => $userAgent]);
+
+            self::assertResponseIsSuccessful($name);
+            self::assertCount(0, $crawler->filter('#preferences'), $name);
+            self::assertCount(0, $crawler->filter('#haptics-setting'), $name);
+            self::assertCount(0, $crawler->filter('[data-controller~="haptics-setting"]'), $name);
+            // The page's other settings stay
+            self::assertCount(1, $crawler->filter('#emails'), $name);
+        }
+
+        foreach (NativeUserAgents::web() as $name => [$userAgent]) {
+            $crawler = $browser->request('GET', '/en/edit-profile', server: ['HTTP_USER_AGENT' => $userAgent]);
+
+            self::assertResponseIsSuccessful($name);
+            self::assertCount(1, $crawler->filter('#preferences.os-android-only input#haptics-setting'), $name);
+        }
     }
 
     public function testEveryRenderedSwitchOnTheEmailPreferencesPageIsARealSwitch(): void

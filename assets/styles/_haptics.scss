@@ -1,7 +1,7 @@
 // Haptics (docs/features/navigation README §4.13 G10, GEST-10): what only an Android phone shows. The Vibration switch
-// of Settings › Preferences (edit-profile, haptics_setting_controller.js) is rendered for everyone - guest and member
-// HTML stays the same on every device - and shown only where haptics exist: <html data-os="android"> (set before first
-// paint by the head script, assets/head/platform_os.js).
+// of Settings › Preferences (edit-profile, haptics_setting_controller.js) is rendered for every web visitor - the HTML
+// stays the same on every device; never inside the native app, where no haptic plays - and shown only where haptics
+// exist: <html data-os="android"> (set before first paint by the head script, assets/head/platform_os.js).
 html:not([data-os="android"]) .os-android-only {
     display: none !important;
 }

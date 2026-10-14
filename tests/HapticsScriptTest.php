@@ -13,8 +13,9 @@ use Symfony\Component\Process\Process;
  * (tests/haptics-harness.mjs). haptic(name) plays only on an Android phone (data-os), outside the native app, with the
  * device's Vibration setting not off, the page visible, the user having interacted and the API present - the decision
  * matrix os × native × setting × visibility × activation × API has exactly two playing cells (activation true or not
- * reported); the pattern table; never throws (a throwing vibrate or storage, no env at all). signal() - the online
- * round's alerts - keeps its own patterns and plays wherever the API exists. install() turns a user's switch toggle into
+ * reported); the pattern table; never throws (a throwing vibrate or storage, no env at all); a storage that refuses still
+ * lets the switch turn haptics off for the page. signal() - the online round's alerts - keeps its own patterns and plays
+ * wherever the web's API exists, never inside the app. install() turns a user's switch toggle into
  * toggleOn / toggleOff, a refused Turbo form (422) into reject and a successful submit of a form naming its haptic into
  * that haptic.
  */
@@ -116,7 +117,31 @@ final class HapticsScriptTest extends TestCase
             'on' => [true, 'on'],
             'throwing' => false,
             'noStorage' => false,
+            'keptAgain' => [true, 'on', 'on'],
         ], self::results()['writeSetting']);
+    }
+
+    /**
+     * Platform feel review F5 (README §4.13 G10: the setting must be able to turn haptics off): a storage that refuses -
+     * site data blocked, no storage at all, a full one holding "on" - keeps the switch's value for the page, in memory;
+     * the next haptic follows it. A write the storage keeps again hands the decision back to the storage.
+     */
+    public function testARefusingStorageStillTurnsHapticsOffForThePage(): void
+    {
+        self::assertSame([
+            'blocked' => [
+                'before' => true,
+                'turnedOff' => false,
+                'read' => ['off', 'off', 'off'],
+                'afterOff' => false,
+                'turnedOn' => false,
+                'afterOn' => true,
+            ],
+            'none' => ['turnedOff' => false, 'afterOff' => false],
+            'full' => ['turnedOff' => false, 'read' => 'off', 'afterOff' => false],
+            'keptAgain' => ['turnedOn' => true, 'stored' => 'on', 'read' => 'on', 'plays' => true],
+            'played' => [20, 20, 20],
+        ], self::results()['a refusing storage']);
     }
 
     public function testTheBrowserIsReadThroughThePlatformModule(): void
@@ -139,12 +164,18 @@ final class HapticsScriptTest extends TestCase
         self::assertSame(['returned' => true, 'calls' => [30]], self::results()['the vibrate call keeps navigator as its receiver']);
     }
 
-    /** The online round's alerts (assets/online/beeps.js) keep their patterns and the rule they always had: the API */
-    public function testSignalsPlayWhereverTheApiExists(): void
+    /**
+     * The online round's alerts (assets/online/beeps.js) keep their patterns and the rule they always had on the web: the
+     * API - whatever the device, the Vibration setting, visibility or activation say. Through the one backend, so never
+     * inside the app (README §4.14 (b)/(c), Platform feel review Q1)
+     */
+    public function testSignalsPlayWhereverTheWebApiExists(): void
     {
         self::assertSame([
             'iosDesktopSettingOffHiddenInactive' => [true, true],
-            'played' => [[250], [400, 150, 400, 150, 700]],
+            'insideTheApp' => [false, false, false],
+            'browserTab' => true,
+            'played' => [[250], [400, 150, 400, 150, 700], [700]],
             'noApi' => false,
             'throwing' => false,
             'noEnv' => false,

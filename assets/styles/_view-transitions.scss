@@ -15,8 +15,13 @@
 // The bars, the rail and the docked column stand still while the page under them changes: each is captured on its own
 // (no animation, see above). Only while a transition is armed (<html data-vt>), so the names never exist in between.
 // The column's name sits on its slot - never on #site-menu, which moves into the phone's Menu shell (decision 63).
+// Not the top bar while the search is open (<html data-search-open>, Platform feel review F3): its results panel sits
+// inside the bar (fixed down to the tab bar on phones, a dropdown from 768 px) and would be captured with it - a still,
+// opaque old image over the incoming page for the whole transition. Unnamed, the open bar belongs to the page and
+// leaves with it (the place's fade out; the morph's page fading in over it); the new page's bar - the search closed,
+// global_search_controller.js takes the attribute off when the page goes - enters as its own still image.
 html[data-vt] {
-    body > header.site-header {
+    &:not([data-search-open]) body > header.site-header {
         view-transition-name: msp-topbar;
     }
 

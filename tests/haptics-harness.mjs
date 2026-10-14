@@ -43,7 +43,8 @@ function root(attributes) {
     return { getAttribute: (name) => (name in attributes ? attributes[name] : null), classList: { contains: () => false } };
 }
 
-function storage(values, { throws = false } = {}) {
+// `throws`: every call throws (site data blocked); `refusesWrites`: reads work, writes throw (a full storage)
+function storage(values, { throws = false, refusesWrites = false } = {}) {
     return {
         getItem: (key) => {
             if (throws) {
@@ -53,7 +54,7 @@ function storage(values, { throws = false } = {}) {
             return key in values ? values[key] : null;
         },
         setItem: (key, value) => {
-            if (throws) {
+            if (throws || refusesWrites) {
                 throw new Error('QuotaExceededError');
             }
 
@@ -169,13 +170,50 @@ const results = Object.fromEntries([
     })),
     run('writeSetting', () => {
         const values = {};
-
-        return {
+        const answer = {
             off: [writeSetting(false, storage(values)), values[SETTING_KEY]],
             on: [writeSetting(true, storage(values)), values[SETTING_KEY]],
             throwing: writeSetting(false, storage({}, { throws: true })),
             noStorage: writeSetting(false, null),
         };
+
+        // A write kept again: the storage answers again, the page's own setting is forgotten
+        answer.keptAgain = [writeSetting(true, storage(values)), values[SETTING_KEY], readSetting(storage({}))];
+
+        return answer;
+    }),
+
+    // Platform feel review F5: a storage that refuses still lets the switch turn haptics off - for this page (in memory)
+    run('a refusing storage', () => {
+        const played = [];
+        const nav = { vibrate: (pattern) => played.push(pattern), userActivation: { hasBeenActive: true } };
+        const blocked = storage({}, { throws: true });
+        const envWith = (store) => browserEnv({ root: root({ 'data-os': 'android' }), nav, storage: store, doc: { visibilityState: 'visible' } });
+        const answer = {};
+
+        // Site data blocked (every call throws): on by default, off once the switch is turned off, on again
+        answer.blocked = {
+            before: haptic('confirm', envWith(blocked)),
+            turnedOff: writeSetting(false, blocked),
+            read: [readSetting(blocked), readSetting(null), readSetting()],
+            afterOff: haptic('confirm', envWith(blocked)),
+            turnedOn: writeSetting(true, blocked),
+            afterOn: haptic('confirm', envWith(blocked)),
+        };
+
+        // No storage at all (the localStorage getter throws: globalStorage() is null)
+        answer.none = { turnedOff: writeSetting(false, null), afterOff: haptic('tick', envWith(null)) };
+
+        // Reads work, writes are refused (a full storage holding "on"): the switch's "off" wins over the stale value
+        const full = storage({ [SETTING_KEY]: SETTING_ON }, { refusesWrites: true });
+        answer.full = { turnedOff: writeSetting(false, full), read: readSetting(full), afterOff: haptic('confirm', envWith(full)) };
+
+        // A write kept again: the storage decides again
+        const values = { [SETTING_KEY]: SETTING_OFF };
+        answer.keptAgain = { turnedOn: writeSetting(true, storage(values)), stored: values[SETTING_KEY], read: readSetting(blocked), plays: haptic('confirm', envWith(blocked)) };
+        answer.played = played;
+
+        return answer;
     }),
 
     // browserEnv() reads the platform flags, the setting, visibility and activation; never throws
@@ -206,16 +244,24 @@ const results = Object.fromEntries([
         return { returned, calls: nav.calls };
     }),
 
-    // signal(): the online round's alerts - their own patterns, wherever the API exists, whatever the haptic rules say
+    // signal(): the online round's alerts - their own patterns, wherever the web's API exists, whatever the haptic rules
+    // say; through the one backend, so nothing inside the app (Platform feel review Q1, README §4.14 (c))
     run('signal', () => {
         const played = [];
         const record = (pattern) => played.push(pattern);
+        const nav = { vibrate: record, userActivation: { hasBeenActive: true } };
 
         return {
             iosDesktopSettingOffHiddenInactive: [
                 signal([250], { os: 'ios', native: false, setting: SETTING_OFF, visibility: 'hidden', hasBeenActive: false, vibrate: record }),
-                signal([400, 150, 400, 150, 700], { os: 'other', native: true, setting: SETTING_OFF, visibility: 'visible', hasBeenActive: false, vibrate: record }),
+                signal([400, 150, 400, 150, 700], { os: 'other', native: false, setting: SETTING_OFF, visibility: 'visible', hasBeenActive: false, vibrate: record }),
             ],
+            insideTheApp: [
+                signal([250], { os: 'android', native: true, setting: SETTING_ON, visibility: 'visible', hasBeenActive: true, vibrate: record }),
+                signal([400, 150, 400, 150, 700], { os: 'ios', native: true, setting: SETTING_OFF, visibility: 'hidden', hasBeenActive: false, vibrate: record }),
+                signal([250], browserEnv({ root: root({ 'data-os': 'android', 'data-native-app': 'android' }), nav, storage: storage({}), doc: { visibilityState: 'visible' } })),
+            ],
+            browserTab: signal([700], browserEnv({ root: root({ 'data-os': 'android' }), nav, storage: storage({ [SETTING_KEY]: SETTING_OFF }), doc: { visibilityState: 'hidden' } })),
             played,
             noApi: signal([250], { vibrate: null }),
             throwing: signal([250], { vibrate: () => { throw new Error('nope'); } }),

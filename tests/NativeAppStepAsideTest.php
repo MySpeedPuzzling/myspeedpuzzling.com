@@ -79,10 +79,11 @@ final class NativeAppStepAsideTest extends TestCase
             ['installedApp' => false, 'browserTab' => false],
             ['installedApp' => true, 'browserTab' => false],
         ],
-        // GEST-10: no vibration inside the app (the haptics backend is none there); on the web an Android phone plays
+        // GEST-10: no vibration inside the app (the haptics backend is none there) - the online round's alerts neither
+        // (Platform feel review Q1); on the web an Android phone plays
         'assets/haptics.js' => [
-            ['timeSaved' => false, 'switchOn' => false],
-            ['timeSaved' => true, 'switchOn' => true],
+            ['timeSaved' => false, 'switchOn' => false, 'onlineAlert' => false],
+            ['timeSaved' => true, 'switchOn' => true, 'onlineAlert' => true],
         ],
         // GEST-18: the long-press label belongs to the web tab bar - none inside the app
         'assets/tab_long_press.js' => [

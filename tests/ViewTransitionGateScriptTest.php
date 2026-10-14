@@ -248,9 +248,10 @@ final class ViewTransitionGateScriptTest extends TestCase
             }
         }
 
-        // The bars' names, only while a transition is armed; from the desktop query #bottom-nav is the rail
+        // The bars' names, only while a transition is armed; from the desktop query #bottom-nav is the rail. The top bar
+        // not while the search is open: its results panel would stand still over the incoming page (review F3)
         self::assertSame([
-            'html[data-vt] body > header.site-header' => 'view-transition-name: msp-topbar;',
+            'html[data-vt]:not([data-search-open]) body > header.site-header' => 'view-transition-name: msp-topbar;',
             'html[data-vt] #bottom-nav' => 'view-transition-name: msp-tabbar;view-transition-name: msp-rail;',
             'html[data-vt] #menu-slot' => 'view-transition-name: msp-menucol;',
         ], $names);

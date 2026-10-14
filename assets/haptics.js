@@ -17,8 +17,10 @@ import { isNativeApp, os } from './platform.js';
 // label of a cut tab.
 //
 // signal(pattern) is not a haptic: the online round's alerts (GO, time's up, a detected finish - assets/online/beeps.js)
-// keep their own long patterns and the rule they always had (the browser has the API), so a participant feels them
-// whatever the device, the Vibration setting or the haptic rules say. It goes through the same backend in one place.
+// keep their own long patterns and the rule they always had (the browser has the API), so a participant on the web feels
+// them whatever the device, the Vibration setting or the haptic rules say. It goes through the same backend (backend())
+// in one place: none inside the Hotwire Native app until a bridge component exists (README §4.14 (b)/(c), Platform
+// feel review Q1) - the alerts reach a bridge through that one switch once it does.
 //
 // Pure: no DOM access when imported; the browser is read on every call (browserEnv()), or the caller passes an env.
 
@@ -55,8 +57,17 @@ function globalStorage() {
     }
 }
 
-/** The stored setting: 'on' | 'off' (missing, unreadable or junk = on) */
+// The page's own setting while the storage refuses to keep it (site data blocked, a full or read-only storage): the last
+// value the switch was turned to, for as long as this page's scripts live (Turbo visits included) - null while the
+// storage keeps it (Platform feel review F5)
+let pageSetting = null;
+
+/** The setting: 'on' | 'off' (missing, unreadable or junk = on) - the page's own while the storage refused the last write */
 export function readSetting(storage = globalStorage()) {
+    if (pageSetting !== null) {
+        return pageSetting;
+    }
+
     try {
         return storage && storage.getItem(SETTING_KEY) === SETTING_OFF ? SETTING_OFF : SETTING_ON;
     } catch (e) {
@@ -64,19 +75,27 @@ export function readSetting(storage = globalStorage()) {
     }
 }
 
-/** Stores the setting; false when the storage refused (a private window) - the switch then lasts for the page only */
+/**
+ * Stores the setting; false when the storage refused (a private window, site data blocked) - the switch then lasts for
+ * the page only: readSetting() answers it until a write is kept again
+ */
 export function writeSetting(on, storage = globalStorage()) {
+    const value = on ? SETTING_ON : SETTING_OFF;
+
     try {
-        if (!storage) {
-            return false;
+        if (storage) {
+            storage.setItem(SETTING_KEY, value);
+            pageSetting = null;
+
+            return true;
         }
-
-        storage.setItem(SETTING_KEY, on ? SETTING_ON : SETTING_OFF);
-
-        return true;
     } catch (e) {
-        return false;
+        // refused - kept for the page below
     }
+
+    pageSetting = value;
+
+    return false;
 }
 
 /**
@@ -167,7 +186,8 @@ export function haptic(name, env) {
 
 /**
  * The online round's alerts (assets/online/beeps.js): its own patterns, played wherever the browser has the API - as
- * before this module existed. Never throws; returns whether the pattern was handed to the device.
+ * before this module existed - through the web backend: nothing inside the app (backend() none there, README §4.14 (c)).
+ * Never throws; returns whether the pattern was handed to the device.
  *
  * @param {number|number[]} pattern
  */
@@ -175,7 +195,7 @@ export function signal(pattern, env) {
     try {
         const current = env === undefined ? browserEnv() : env;
 
-        if (typeof current.vibrate !== 'function') {
+        if (backend(current) !== 'web') {
             return false;
         }
 

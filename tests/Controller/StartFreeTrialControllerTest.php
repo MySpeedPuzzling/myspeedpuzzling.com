@@ -86,9 +86,46 @@ final class StartFreeTrialControllerTest extends WebTestCase
         self::assertCount(1, $modal->filter('input[name="source"][value="members_modal"]'), 'The stored source stays members_modal');
         self::assertCount(1, $modal->filter('a[href="/en/membership"][data-members-modal-target="link"]'));
 
-        // The membership page's own trial form has no placement - it is no teaser
+        // The membership page's own trial form has no placement of its own - it is no teaser (the modal's link brings one)
         $crawler = $browser->request('GET', '/en/membership');
         self::assertCount(0, $crawler->filter('.free-trial-offer input[name="placement"]'));
+    }
+
+    /**
+     * TEASE-01 (review CARD+TEASE Q2): the members modal's membership link carries ?placement=; the membership page puts
+     * a placement it knows (MembersPlacement) into its own trial form, so a trial started there after a teaser is the
+     * same info line - the stored source stays membership_page; anything else is ignored
+     */
+    public function testTheMembershipPagePassesAKnownPlacementToItsTrialForm(): void
+    {
+        $browser = $this->establishedPlayer();
+        $browser->disableReboot();
+        $log = self::navigationLog();
+
+        foreach (['/en/membership?placement=header.everything', '/en/membership?placement[]=card.tier', '/en/membership?placement='] as $url) {
+            $crawler = $browser->request('GET', $url);
+            self::assertResponseIsSuccessful();
+            self::assertCount(1, $crawler->filter('.free-trial-offer form'), $url);
+            self::assertCount(0, $crawler->filter('.free-trial-offer input[name="placement"]'), $url);
+        }
+
+        $crawler = $browser->request('GET', '/en/membership?placement=card.tier');
+        self::assertResponseIsSuccessful();
+        $form = $crawler->filter('.free-trial-offer form[action="' . self::ENDPOINT . '"]');
+        self::assertCount(1, $form);
+        self::assertSame('card.tier', $form->filter('input[name="placement"]')->attr('value'));
+        self::assertSame('membership_page', $form->filter('input[name="source"]')->attr('value'));
+
+        $this->start($browser, ['source' => 'membership_page', 'placement' => (string) $form->filter('input[name="placement"]')->attr('value')]);
+        $this->assertResponseRedirects('/en/membership/free-trial');
+
+        $membership = $browser->getContainer()->get(MembershipRepository::class)->getByPlayerId(PlayerFixture::PLAYER_REGULAR);
+        self::assertSame(FreeTrialSource::MembershipPage, $membership->trialSource);
+        self::assertSame([[
+            'kind' => 'trial_start',
+            'placement' => 'card.tier',
+            'source' => 'membership_page',
+        ]], array_map(static fn (LogRecord $record): array => $record->context, $log->getRecords()));
     }
 
     /**

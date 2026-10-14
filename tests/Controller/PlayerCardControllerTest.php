@@ -232,8 +232,13 @@ final class PlayerCardControllerTest extends WebTestCase
     {
         $browser = $this->browser();
 
-        $this->card($browser, Uuid::uuid7()->toString());
+        $crawler = $this->card($browser, Uuid::uuid7()->toString());
         self::assertResponseStatusCodeSame(404);
+        // The layer's dialog is named by #players-card-name (aria-labelledby) - the unavailable card has it too, the same
+        // words for every reason (review CARD+TEASE F4)
+        $name = $crawler->filter('turbo-frame#player-card .players-card-unavailable #players-card-name');
+        self::assertCount(1, $name);
+        self::assertSame('Puzzler card', trim($name->text()));
 
         $browser->request('GET', '/en/puzzler-card/not-a-uuid');
         self::assertResponseStatusCodeSame(404);

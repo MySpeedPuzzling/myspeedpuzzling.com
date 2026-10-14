@@ -2,11 +2,14 @@
 // layer's pure helpers (assets/player_card_layer.js) and its measurement (assets/player_card_measure.js) through the
 // scenarios tests/PlayerCardScriptTest.php asks for (docs/features/navigation CARD-01a, CARD-07) and prints one JSON
 // object of results. Links, dialogs and the document are plain fakes: attributes in a map, closest() answering the
-// selectors the rules ask for.
+// selectors the rules ask for. The layer itself (requests per open, the focus return, a failed card fetch, a modal over
+// the card - review CARD+TEASE F1, F2, F4, F5) runs on jsdom with the real trigger listener, a fake layer history and a
+// Turbo frame played by the harness (its src set = one request, answered or failed on demand).
 
+import { createRequire } from 'node:module';
 import { bypassOf, cardUrl, contextKindOf, contextOf, inputOf, isReverted, playerIdOf, PLAYER_ID_PLACEHOLDER, shouldOpen, TRIGGER_SELECTOR } from '../assets/player_card_rules.js';
 import { installPlayerCard } from '../assets/player_card.js';
-import { freshEntry, PREFETCH_TTL_MS, withReturnPage } from '../assets/player_card_layer.js';
+import { closedRecently, createPlayerCardLayer, freshEntry, PREFETCH_TTL_MS, withReturnPage } from '../assets/player_card_layer.js';
 import { BOUNCE_MS, createCardMeasure, outcomeOf } from '../assets/player_card_measure.js';
 import { CARD_BYPASS_EVENT, CARD_OPEN_EVENT, CARD_OUTCOME_EVENT } from '../assets/nav_instrumentation.js';
 
@@ -154,6 +157,11 @@ results.layer = {
     returnLogin: withReturnPage('/login?return=%2Fen%2Fplayer-profile%2F' + ID, '/en/puzzle/' + OTHER + '?tab=pairs', 'http://site/en/puzzle/' + OTHER),
     returnFavorite: withReturnPage('/en/add-player-to-favorites/' + ID + '?return=%2Fen%2Fplayer-profile%2F' + ID, '/en/hub', 'http://site/en/hub'),
     notAPath: withReturnPage('/login?return=%2Fen', '//evil.example', 'http://site/en/hub'),
+    // The card just closed is not prefetched again by the focus returning to its name - for the cache's 20 s
+    closedNow: closedRecently({ url: '/a', at: now - 1 }, '/a', now),
+    closedLong: closedRecently({ url: '/a', at: now - PREFETCH_TTL_MS }, '/a', now),
+    closedOther: closedRecently({ url: '/a', at: now - 1 }, '/b', now),
+    closedNever: closedRecently(null, '/a', now),
 };
 
 // installPlayerCard(): the delegated click on the document, with a fake layer module
@@ -324,5 +332,277 @@ results.listener = {
     notATrigger: await scenario({ target: element({ href: '/en/player-profile/' + ID }) }),
     layerFailed: await scenario({ fail: true }),
 };
+
+
+// ---- The layer on jsdom (review CARD+TEASE F1, F2, F4, F5) ----------------------------------------------------------
+
+const require = createRequire(import.meta.url);
+const { JSDOM, VirtualConsole } = require('jsdom');
+
+const CARD_URL = '/en/puzzler-card/' + ID;
+const PROFILE = 'https://msp.test/en/player-profile/' + ID;
+const CARD_HTML = '<html><body><turbo-frame id="player-card"><article class="players-card"><h2 id="players-card-name">Anna</h2>'
+    + '<button type="button" class="players-card-lock" data-bs-toggle="modal" data-bs-target="#membersExclusiveModal">Tier</button>'
+    + '<form class="players-card-favorite" action="/en/favorite"><button>Favorite</button></form></article></turbo-frame></body></html>';
+
+const flush = async () => {
+    for (let i = 0; i < 5; i++) {
+        await new Promise((resolve) => setImmediate(resolve));
+    }
+};
+
+/**
+ * One page with one name, the real trigger listener and the real layer; returns the levers the scenarios pull and what
+ * the page asked the network for: `fetches` (prefetches, window.fetch) and `frameRequests` (the frame's src).
+ */
+function layerPage({ online = true } = {}) {
+    const dom = new JSDOM('<!doctype html><html><body data-player-card-url="/en/puzzler-card/' + PLAYER_ID_PLACEHOLDER + '">'
+        + '<main><a id="name" href="/en/player-profile/' + ID + '" data-player-card>Anna</a><button id="page-lock">Lock</button></main>'
+        + '<div data-dynamic-modal-target="loading"><span class="visually-hidden">Loading...</span></div>'
+        + '<div class="modal" id="membersExclusiveModal"></div><div class="modal" id="otherModal"></div></body></html>',
+    { url: 'https://msp.test/en/hub', pretendToBeVisual: true, virtualConsole: new VirtualConsole() });
+    const { window } = dom;
+    const document = window.document;
+    const env = { fetches: [], frameRequests: [], visits: [], hidden: [], answer: online ? 'ok' : 'offline' };
+
+    // A phone (the sheet) with reduced motion: a close is over at once, no slide-out to wait for
+    window.matchMedia = (query) => ({ matches: query.includes('max-width') || query.includes('reduce'), addEventListener() {}, removeEventListener() {} });
+    window.HTMLDialogElement.prototype.show = function show() {
+        this.setAttribute('open', '');
+    };
+    window.HTMLDialogElement.prototype.close = function close() {
+        this.removeAttribute('open');
+    };
+    Object.defineProperty(window.HTMLDialogElement.prototype, 'open', { configurable: true, get() { return this.hasAttribute('open'); } });
+    // jsdom lays nothing out: the name is on screen
+    const anchor = document.getElementById('name');
+    anchor.getClientRects = () => [{ width: 40, height: 20 }];
+
+    window.fetch = (url) => {
+        env.fetches.push(String(url));
+
+        return env.answer === 'offline'
+            ? Promise.reject(new TypeError('Failed to fetch'))
+            : Promise.resolve({ ok: true, text: () => Promise.resolve(CARD_HTML) });
+    };
+
+    // Bootstrap's Modal: hide() drops .show and fires hidden.bs.modal (its own focus return to the opener comes first)
+    window.bootstrap = {
+        Modal: {
+            getInstance: (element) => ({
+                hide() {
+                    env.hidden.push(element.id);
+                    element.classList.remove('show');
+                    element.dispatchEvent(new window.Event('hidden.bs.modal', { bubbles: true }));
+                },
+            }),
+        },
+    };
+
+    // The layer history: one top, Back closes it ({reason: 'back'}), a visit from the layer is recorded
+    const history = {
+        top: null,
+        open(id, options) {
+            this.top = { id, ...options };
+        },
+        isOpen(id) {
+            return this.top !== null && this.top.id === id;
+        },
+        requestClose() {
+            this.back();
+        },
+        back() {
+            const top = this.top;
+            this.top = null;
+
+            if (top) {
+                top.onClose({ reason: 'back', id: top.id });
+            }
+        },
+        closeForCache() {
+            this.top = null;
+        },
+        visitFromLayer(url) {
+            env.visits.push(String(url));
+        },
+    };
+
+    const layer = createPlayerCardLayer({ window, document, layerHistory: history });
+    installPlayerCard({
+        window,
+        document,
+        load: () => Promise.resolve({ openCard: (link, url, options) => layer.open(link, url, options.input), prefetchCard: (url) => layer.prefetch(url) }),
+    });
+
+    // Turbo's frame: a src set is one request; answered with the card (before-fetch-response, frame-load) or failed
+    const frameEvent = (frame, type, detail) => frame.dispatchEvent(new window.CustomEvent(type, { bubbles: true, cancelable: true, detail }));
+    new window.MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+            const frame = mutation.target;
+
+            if (mutation.attributeName !== 'src' || !frame.getAttribute('src')) {
+                return;
+            }
+
+            env.frameRequests.push(frame.getAttribute('src'));
+            frameEvent(frame, 'turbo:before-fetch-request', {});
+
+            if (env.answer === 'offline') {
+                frameEvent(frame, 'turbo:fetch-request-error', { error: new TypeError('Failed to fetch') });
+
+                return;
+            }
+
+            const answer = () => {
+                frameEvent(frame, 'turbo:before-fetch-response', { fetchResponse: { succeeded: true, redirected: false, responseHTML: Promise.resolve(CARD_HTML) } });
+                frame.innerHTML = new window.DOMParser().parseFromString(CARD_HTML, 'text/html').querySelector('turbo-frame').innerHTML;
+                frameEvent(frame, 'turbo:frame-load', {});
+            };
+
+            if (env.answer === 'hold') {
+                env.release = answer;
+
+                return;
+            }
+
+            answer();
+        });
+    }).observe(document.body, { attributes: true, attributeFilter: ['src'], subtree: true });
+
+    const page = {
+        window,
+        document,
+        anchor,
+        env,
+        layer,
+        history,
+        // A tap: Safari and iOS focus no link on it - no prefetch before the open
+        async tap() {
+            anchor.dispatchEvent(new window.MouseEvent('click', { bubbles: true, cancelable: true, button: 0, detail: 1 }));
+            await flush();
+        },
+        // Chrome: the pointer rests / the link gets the focus first - one prefetch
+        async focus() {
+            anchor.focus();
+            await flush();
+        },
+        async back() {
+            history.back();
+            await flush();
+        },
+        open: () => document.querySelector('dialog.player-card-layer[open]') !== null,
+        busy: () => document.querySelector('.player-card-box[aria-busy]') !== null,
+        name: () => {
+            const dialog = document.querySelector('dialog.player-card-layer');
+            const named = dialog ? document.getElementById(dialog.getAttribute('aria-labelledby')) : null;
+
+            return named ? named.textContent.trim() : null;
+        },
+        counts: () => ({ fetches: env.fetches.length, frameRequests: env.frameRequests.length }),
+        focusOnName: () => document.activeElement === anchor,
+    };
+
+    return page;
+}
+
+const realNow = Date.now;
+let clock = 5_000_000;
+Date.now = () => clock;
+
+async function layerScenarios() {
+    const out = {};
+
+    // Safari / iOS: no prefetch before the tap - the open is the frame's own request; closing (Back, ×) puts the focus
+    // back on the name and fetches nothing; a reopen within 20 s shows the kept answer, a later one asks again
+    {
+        const page = layerPage();
+        page.env.answer = 'hold';
+        await page.tap();
+        const loading = { busy: page.busy(), name: page.name(), open: page.open() };
+        page.env.answer = 'ok';
+        page.env.release();
+        await flush();
+        const opened = { ...page.counts(), open: page.open(), name: page.name() };
+        clock += 5000;
+        await page.back();
+        const closed = { ...page.counts(), open: page.open(), focusOnName: page.focusOnName() };
+        clock += 5000;
+        await page.tap();
+        const reopened = { ...page.counts(), open: page.open(), busy: page.busy() };
+        await page.back();
+        clock += PREFETCH_TTL_MS + 1000;
+        await page.tap();
+        const later = { ...page.counts(), open: page.open() };
+        out.safari = { loading, opened, closed, reopened, later };
+    }
+
+    // Chrome: the focus prefetches once, the open shows it; a card left open for 25 s closes without a second request
+    {
+        const page = layerPage();
+        await page.focus();
+        const prefetched = page.counts();
+        await page.tap();
+        const opened = { ...page.counts(), open: page.open(), busy: page.busy() };
+        clock += 25000;
+        await page.back();
+        const closed = { ...page.counts(), open: page.open(), focusOnName: page.focusOnName() };
+        // The focus of a deliberate reopen later on prefetches as always
+        clock += PREFETCH_TTL_MS + 1000;
+        page.anchor.blur();
+        await page.focus();
+        out.chrome = { prefetched, opened, closed, laterFocus: page.counts() };
+    }
+
+    // The card fetch fails on the network (offline after the layer loaded): the profile, as a replace visit from the layer
+    {
+        const page = layerPage({ online: false });
+        await page.tap();
+        out.offline = { ...page.counts(), visits: page.env.visits, busy: page.busy() };
+    }
+
+    // A failure after the card arrived (Favorite inside it, offline) is no reason to leave
+    {
+        const page = layerPage();
+        await page.tap();
+        page.layer.frame.querySelector('form').dispatchEvent(new page.window.CustomEvent('turbo:fetch-request-error', { bubbles: true, detail: {} }));
+        await flush();
+        out.failureInsideTheCard = { visits: page.env.visits, open: page.open() };
+    }
+
+    // Back with the members modal opened from the card's lock: both close, the focus ends on the name; a modal the page
+    // opened (its opener outside the card) is not the card's to close
+    {
+        const page = layerPage();
+        await page.tap();
+        const { document, window } = page;
+        const modal = document.getElementById('membersExclusiveModal');
+        const other = document.getElementById('otherModal');
+        const lock = document.querySelector('dialog.player-card-layer .players-card-lock');
+        const show = (element, opener) => {
+            const event = new window.Event('show.bs.modal', { bubbles: true, cancelable: true });
+            Object.defineProperty(event, 'relatedTarget', { value: opener });
+            element.dispatchEvent(event);
+            element.classList.add('show');
+            // Bootstrap's data API: focus back to the opener once hidden
+            element.addEventListener('hidden.bs.modal', () => opener.focus(), { once: true });
+        };
+        show(modal, lock);
+        show(other, document.getElementById('page-lock'));
+        await page.back();
+        out.modalOverTheCard = {
+            hidden: page.env.hidden,
+            membersModalShown: modal.classList.contains('show'),
+            otherShown: other.classList.contains('show'),
+            open: page.open(),
+            focusOnName: page.focusOnName(),
+            requests: page.counts(),
+        };
+    }
+
+    return out;
+}
+
+results.layerRun = await layerScenarios();
+Date.now = realNow;
 
 process.stdout.write(JSON.stringify(results));

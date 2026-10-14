@@ -11,9 +11,10 @@ that would otherwise be forgotten. Newest section on top.
       ranked board for viewers who hide nobody like `TimesBoardGuestCache` does for guests (keep CARD-06's statement
       pins in mind).
 - [ ] Revert rule review, 14 days after launch and then monthly: count the `card_open` / `card_outcome` lines of the
-      `navigation` Loki channel per context kind × input; a cell with ≥ 300 opens where ≥ 70 % continue to the profile
-      within 30 s and < 5 % use anything else switches to direct links (`NavigationRegistry::PLAYER_CARD_DIRECT`, the
-      numbers in the commit message).
+      `navigation` Loki channel per context kind × input; a cell with ≥ 300 opens (`card_open`) where, of its
+      `card_outcome` lines, ≥ 70 % continue to the profile within 30 s and < 5 % use anything else switches to direct
+      links (`NavigationRegistry::PLAYER_CARD_DIRECT`, the numbers in the commit message). The shares are never of the
+      opens: an outcome lost with a discarded iOS tab (no `pagehide`) would count as "did not continue".
 
 ## Navigation redesign - members teasers (`docs/features/navigation/README.md` §6, TEASE-01)
 

@@ -1,9 +1,11 @@
 {#
     The answer (404) inside the player-card frame for a player the viewer may not see - blocked, private or deleted
-    read the same, so it never tells which. The × closes the layer (assets/player_card_layer.js).
+    read the same, so it never tells which. The × closes the layer (assets/player_card_layer.js). The hidden heading is
+    the layer dialog's name (its aria-labelledby, review CARD+TEASE F4) - the same words for every reason.
 #}
 <turbo-frame id="player-card">
-    <article class="players-card players-card-unavailable">
+    <article class="players-card players-card-unavailable" aria-labelledby="players-card-name">
+        <h2 class="visually-hidden" id="players-card-name">{{ 'players.card.title'|trans }}</h2>
         <p class="players-card-body mb-0">{{ 'players.card.unavailable'|trans }}</p>
         <button type="button" class="btn-close players-card-close" data-player-card-close data-nav="card/none/close" aria-label="{{ 'players.card.close'|trans }}"></button>
     </article>

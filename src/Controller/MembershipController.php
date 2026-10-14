@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Query\GetPlayerMembership;
 use SpeedPuzzling\Web\Query\GetVoucherFreePeriods;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
+use SpeedPuzzling\Web\Value\MembersPlacement;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -76,8 +77,15 @@ final class MembershipController extends AbstractController
             $discountedYearlyPrice = number_format($baseYearly * (100 - $discount) / 100, $decimals, '.', '');
         }
 
+        // The members teaser the player came from (the members modal's links carry ?placement=, docs/features/navigation
+        // TEASE-01): passed on to the page's own trial form, counted when the trial starts, never stored - anything else
+        // is ignored. The page is for signed-in players only: nothing shared-cached varies with it.
+        $placementParameter = $request->query->all()['placement'] ?? null;
+        $placement = is_string($placementParameter) ? MembersPlacement::tryFrom($placementParameter) : null;
+
         return $this->render('membership.html.twig', [
             'membership' => $membership,
+            'members_placement' => $placement?->value,
             'player' => $player,
             'now' => $now,
             'monthlyPrice' => $monthlyPrice,

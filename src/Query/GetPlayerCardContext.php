@@ -260,8 +260,10 @@ SQL;
     /**
      * The player's result in a round of a publicly visible event (never a draft - not even for its team): the official
      * place and result once published, ranked over every ranked entry exactly like the round page
-     * (OfficialResultsRanking; GetPublishedRoundResults::sqlShowsOfficialResults()), else their earliest linked time on
-     * a puzzle the round no longer keeps secret, once the round started - the round page's unofficial list
+     * (OfficialResultsRanking; GetPublishedRoundResults::sqlShowsOfficialResults()), else - before publishing, or
+     * without a ranked official entry of theirs - their earliest linked time on a puzzle the round no longer keeps
+     * secret, once the round started: the round page's unofficial list (folded under the official table once
+     * published). An official pair/team entry of theirs with a member hidden from the viewer is no line at all.
      */
     private function round(string $roundId, string $playerId, null|string $viewerId): null|PlayerCardRoundContext
     {
@@ -370,30 +372,43 @@ SQL;
             );
             $ranks = OfficialResultsRanking::rank($results);
             $mine = null;
+            $hidden = false;
 
             foreach ($entries as $index => $entry) {
-                if ($entry['mine'] !== true || $ranks[$index] === null || $this->hidesTeam($entry['members'] ?? [], $viewerId)) {
+                if ($entry['mine'] !== true) {
                     continue;
                 }
 
-                if ($mine === null || $ranks[$index] < $ranks[$mine]) {
+                if ($this->hidesTeam($entry['members'] ?? [], $viewerId)) {
+                    $hidden = true;
+
+                    continue;
+                }
+
+                if ($ranks[$index] !== null && ($mine === null || $ranks[$index] < $ranks[$mine])) {
                     $mine = $index;
                 }
             }
 
-            if ($mine === null) {
+            if ($mine !== null) {
+                return new PlayerCardRoundContext(
+                    roundName: $row['round_name'],
+                    competitionName: $row['competition_name'],
+                    official: true,
+                    rank: $ranks[$mine],
+                    result: $results[$mine],
+                    qualified: $entries[$mine]['qualified'],
+                    piecesCount: $piecesCount,
+                );
+            }
+
+            // Their entry is a pair/team with a member hidden from the viewer: no line at all (decided, CARD-02)
+            if ($hidden) {
                 return null;
             }
 
-            return new PlayerCardRoundContext(
-                roundName: $row['round_name'],
-                competitionName: $row['competition_name'],
-                official: true,
-                rank: $ranks[$mine],
-                result: $results[$mine],
-                qualified: $entries[$mine]['qualified'],
-                piecesCount: $piecesCount,
-            );
+            // No ranked official entry of theirs: the round page still lists the times puzzlers added, folded under the
+            // official table - their linked time is the line, as before publishing (review CARD+TEASE F3)
         }
 
         if ($row['linked_result'] === null) {

@@ -11,7 +11,8 @@ use Symfony\Component\Process\Process;
 /**
  * The player card's trigger (docs/features/navigation README §4.8, CARD-01a) under node
  * (tests/player-card-harness.mjs): which clicks open the card and which keep following the link to the profile, whose
- * card it is, how it was asked for, its URL - and the listener itself, with a fake layer module.
+ * card it is, how it was asked for, its URL - and the listener itself, with a fake layer module. The layer itself runs
+ * on jsdom with that listener (requests per open, the focus return, a card that never arrives, a modal over the card).
  */
 final class PlayerCardScriptTest extends TestCase
 {
@@ -113,7 +114,72 @@ final class PlayerCardScriptTest extends TestCase
             'returnLogin' => '/login?return=%2Fen%2Fpuzzle%2F' . self::OTHER . '%3Ftab%3Dpairs',
             'returnFavorite' => '/en/add-player-to-favorites/' . self::ID . '?return=%2Fen%2Fhub',
             'notAPath' => null,
+            // The card just closed is not prefetched again (its name gets the focus back) - for the cache's 20 s
+            'closedNow' => true,
+            'closedLong' => false,
+            'closedOther' => false,
+            'closedNever' => false,
         ], self::results()['layer']);
+    }
+
+    /**
+     * Review CARD+TEASE F1: one request per open. Safari and iOS focus no name before the tap - the open is the frame's
+     * own request, its answer is kept like a prefetch (a reopen within 20 s costs nothing); Chrome's focus prefetches
+     * once. Closing (Back, ×, Esc, a swipe) puts the focus back on the name - that focus fetches nothing, however long
+     * the card was open. F4: while it loads, the dialog is named by its "Loading" text.
+     */
+    public function testAnOpenCostsOneRequestAndClosingItNone(): void
+    {
+        $run = self::results()['layerRun'];
+        self::assertIsArray($run);
+
+        self::assertSame([
+            'loading' => ['busy' => true, 'name' => 'Loading...', 'open' => true],
+            'opened' => ['fetches' => 0, 'frameRequests' => 1, 'open' => true, 'name' => 'Anna'],
+            'closed' => ['fetches' => 0, 'frameRequests' => 1, 'open' => false, 'focusOnName' => true],
+            'reopened' => ['fetches' => 0, 'frameRequests' => 1, 'open' => true, 'busy' => false],
+            'later' => ['fetches' => 0, 'frameRequests' => 2, 'open' => true],
+        ], $run['safari']);
+
+        self::assertSame([
+            'prefetched' => ['fetches' => 1, 'frameRequests' => 0],
+            'opened' => ['fetches' => 1, 'frameRequests' => 0, 'open' => true, 'busy' => false],
+            // Open for 25 s - older than the cache: still no request when the focus comes back
+            'closed' => ['fetches' => 1, 'frameRequests' => 0, 'open' => false, 'focusOnName' => true],
+            'laterFocus' => ['fetches' => 2, 'frameRequests' => 0],
+        ], $run['chrome']);
+    }
+
+    /**
+     * Review CARD+TEASE F5: a card that never arrives (the network failed) is the profile - a visit from the layer, like
+     * a layer module that fails to load; a failure inside a card that did arrive (Favorite, offline) leaves nothing
+     */
+    public function testACardThatNeverArrivesIsTheProfile(): void
+    {
+        $run = self::results()['layerRun'];
+        self::assertIsArray($run);
+
+        self::assertSame(['fetches' => 0, 'frameRequests' => 1, 'visits' => ['https://msp.test/en/player-profile/' . self::ID], 'busy' => true], $run['offline']);
+        self::assertSame(['visits' => [], 'open' => true], $run['failureInsideTheCard']);
+    }
+
+    /**
+     * Review CARD+TEASE F2: Back with the members modal (opened from the card's lock) over the card closes both - the
+     * modal never outlives the card; the focus ends on the name. A modal the page opened is not the card's to close.
+     */
+    public function testBackClosesTheModalOpenedFromTheCardWithIt(): void
+    {
+        $run = self::results()['layerRun'];
+        self::assertIsArray($run);
+
+        self::assertSame([
+            'hidden' => ['membersExclusiveModal'],
+            'membersModalShown' => false,
+            'otherShown' => true,
+            'open' => false,
+            'focusOnName' => true,
+            'requests' => ['fetches' => 0, 'frameRequests' => 1],
+        ], $run['modalOverTheCard']);
     }
 
     public function testTheListenerOpensTheCardInsteadOfFollowingTheLink(): void

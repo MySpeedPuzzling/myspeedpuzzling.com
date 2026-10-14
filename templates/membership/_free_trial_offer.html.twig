@@ -8,6 +8,7 @@
         {{ include('membership/_free_trial_start_form.html.twig', {
             source: 'membership_page',
             label: 'free_trial.offer.button'|trans,
+            placement_value: members_placement|default(null),
         }) }}
 
         <p class="text-muted small mt-3 mb-0">{{ 'free_trial.offer.one_per_player'|trans }}</p>

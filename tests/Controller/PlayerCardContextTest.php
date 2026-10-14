@@ -261,6 +261,73 @@ final class PlayerCardContextTest extends WebTestCase
         self::assertSame('1', $page->filter('tr[data-official-entry="participant_round:' . OfficialResultsFixture::ENTRY_A_ANNA . '"]')->attr('data-official-rank'));
     }
 
+    /**
+     * Review CARD+TEASE F3: once the round shows official results, a puzzler without a ranked official entry who linked
+     * a time to it is still in the round page's list of times puzzlers added (folded under the official table) - the
+     * card opened from that list says the same, as before publishing
+     */
+    public function testWithoutARankedOfficialEntryThePublishedRoundShowsTheLinkedTime(): void
+    {
+        $browser = $this->browser(PlayerFixture::PLAYER_ADMIN);
+        // PLAYER_REGULAR has no entry in Group A (published): their solo TIME_07 (31:40) linked to the round's puzzle
+        $this->database()->executeStatement(
+            'UPDATE puzzle_solving_time SET puzzle_id = :puzzle, competition_round_id = :round, suspicious = false WHERE id = :id',
+            ['puzzle' => PuzzleFixture::PUZZLE_1000_05, 'round' => OfficialResultsFixture::ROUND_GROUP_A, 'id' => PuzzleSolvingTimeFixture::TIME_07],
+        );
+
+        $crawler = $this->card($browser, PlayerFixture::PLAYER_REGULAR, 'round:' . OfficialResultsFixture::ROUND_GROUP_A);
+        self::assertResponseIsSuccessful();
+        $block = $crawler->filter('.players-card-context[data-card-context="round"]');
+        self::assertCount(1, $block);
+        self::assertStringContainsString('Results Cup', $block->filter('h3')->text());
+        self::assertSame('00:31:40 · added by the puzzler, not official', trim($block->filter('.players-card-context-line')->text()));
+
+        // Parity: the round page shows the official table and, folded under it, this time among the times puzzlers added
+        $page = $browser->request('GET', '/en/events/results-cup/results/group-a');
+        self::assertResponseIsSuccessful();
+        self::assertGreaterThan(0, $page->filter('[data-official-results] tr[data-official-entry]')->count());
+        $added = $page->filter('details[data-round-player-times] [data-player-card-context="round:' . OfficialResultsFixture::ROUND_GROUP_A . '"]');
+        self::assertCount(1, $added);
+        $row = $added->filter('tr')->reduce(
+            static fn (Crawler $row): bool => $row->filter('a[href="/en/player-profile/' . PlayerFixture::PLAYER_REGULAR . '"]')->count() > 0,
+        );
+        self::assertCount(1, $row);
+        self::assertStringContainsString('00:31:40', $row->text());
+        self::assertCount(0, $page->filter('[data-official-results] a[href="/en/player-profile/' . PlayerFixture::PLAYER_REGULAR . '"]'));
+    }
+
+    /**
+     * The decided rule stays (CARD-02, decisions log 2026-10-13): an official pair/team entry with a member hidden from
+     * the viewer is not on the round page for them - the card shows no round line, not even the linked time of another
+     * pair the player solved with (it would tell the entry is there)
+     */
+    public function testAHiddenOfficialTeamEntryShowsNoLineEvenWithALinkedTime(): void
+    {
+        $browser = $this->browser(PlayerFixture::PLAYER_ADMIN);
+        $database = $this->database();
+        // Pairs published; "Edge Hunters" = PLAYER_REGULAR + PLAYER_WITH_FAVORITES (instead of Gina's player); the pair
+        // TIME_41 (PLAYER_REGULAR + PLAYER_PRIVATE) linked to the round's puzzle
+        $database->executeStatement('UPDATE competition_round SET results_published_at = NOW() WHERE id = :id', ['id' => OfficialResultsFixture::ROUND_PAIRS]);
+        $database->executeStatement('UPDATE competition_participant SET player_id = :player WHERE id = :id', ['player' => PlayerFixture::PLAYER_WITH_FAVORITES, 'id' => OfficialResultsFixture::PARTICIPANT_GINA]);
+        $database->executeStatement(
+            'UPDATE puzzle_solving_time SET puzzle_id = :puzzle, competition_round_id = :round WHERE id = :id',
+            ['puzzle' => PuzzleFixture::PUZZLE_2000, 'round' => OfficialResultsFixture::ROUND_PAIRS, 'id' => PuzzleSolvingTimeFixture::TIME_41],
+        );
+        $context = 'round:' . OfficialResultsFixture::ROUND_PAIRS;
+
+        $crawler = $this->card($browser, PlayerFixture::PLAYER_REGULAR, $context);
+        self::assertSame('Official result: #2 · 01:40:00 · Qualified', trim($crawler->filter('.players-card-context[data-card-context="round"] .players-card-context-line')->text()));
+
+        $database->executeStatement(
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, NOW(), 'self')",
+            ['id' => Uuid::uuid7()->toString(), 'blocker' => PlayerFixture::PLAYER_ADMIN, 'blocked' => PlayerFixture::PLAYER_WITH_FAVORITES],
+        );
+
+        $crawler = $this->card($browser, PlayerFixture::PLAYER_REGULAR, $context);
+        self::assertResponseIsSuccessful();
+        self::assertCount(0, $crawler->filter('.players-card-context'));
+    }
+
     public function testAnUnpublishedRoundShowsTheLinkedTimeAsUnofficial(): void
     {
         $browser = $this->browser(PlayerFixture::PLAYER_ADMIN);

@@ -29,8 +29,10 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * redirect - Turbo Drive drops a 200 answer to a form submission.
  *
  * From the members modal the form also carries the teaser that opened it (`placement`, docs/features/navigation
- * TEASE-01): a started trial with a known placement is one info line on the `navigation` channel; an unknown one is
- * ignored. Never stored - the stored source stays FreeTrialSource (implementation plan decision 12).
+ * TEASE-01) - and so does the membership page's own form when the modal's link brought the player there
+ * (?placement=, MembershipController): a started trial with a known placement is one info line on the `navigation`
+ * channel; an unknown one is ignored. Never stored - the stored source stays FreeTrialSource (implementation plan
+ * decision 12).
  */
 final class StartFreeTrialController extends AbstractController
 {

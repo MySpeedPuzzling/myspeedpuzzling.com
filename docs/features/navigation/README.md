@@ -162,7 +162,7 @@ Measured in the mockup bar (Rubik 11 px, 5 tabs): at 360 px all fit except Frenc
 - Content: avatar, name (profile link), code, country, level, tier chip (members; non-members see the locked chip), 3 latest puzzle boxes, deep links Results · Statistics, actions Favorite · Compare · Message (when allowed) · ⋯ Share. Action decisions come from one service shared with `PlayerHeader`.
 - Context blocks (validated `context`): puzzle (their rank, best time and attempts on this puzzle + your gap), feed result, event round, leaderboard place vs yours, notification result. Own card: owner actions (Edit this result, Your results on this puzzle / Edit profile, View profile).
 - Privacy: hidden, blocked, private, deleted → the neutral unavailable card. Budget: 0 statements on page load, ≤ 4 per open.
-- Measurement and revert rule: `card_open` (context, input type) + continuation events; a context reverts to direct links if ≥ 70 % of opens continue to the profile within 30 s and < 5 % use anything else (≥ 14 days, ≥ 300 opens per context and input type).
+- Measurement and revert rule: `card_open` (context, input type) + continuation events; a context reverts to direct links if, of the opens' recorded outcomes (`card_outcome`), ≥ 70 % continue to the profile within 30 s and < 5 % use anything else (≥ 14 days, ≥ 300 opens (`card_open`) per context and input type).
 
 ### 4.9 Community landing
 - Route `community` (6 locales), indexable, in `sitemap-static`: Leaderboards · Puzzlers · Events entries with small previews (next events via `IsCompetitionPubliclyVisible::SQL_CONDITION`); pinned query budget; guest response stays shared-cacheable.

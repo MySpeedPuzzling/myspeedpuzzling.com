@@ -47,9 +47,14 @@ final class PlayerCardRevertRuleTest extends WebTestCase
         self::assertNotNull($entry);
         self::assertStringContainsString(NavigationRegistry::PLAYER_CARD_REVERT_RULE, $entry->reason);
 
-        foreach (['300 card opens', '14 days', '70 %', 'within 30 s', 'under 5 %'] as $part) {
+        foreach (['300 card opens (card_open lines)', '14 days', '70 %', 'within 30 s', 'under 5 %'] as $part) {
             self::assertStringContainsString($part, NavigationRegistry::PLAYER_CARD_REVERT_RULE);
         }
+
+        // The shares are of the outcomes that arrived, never of the opens: a lost outcome (a discarded tab never fires
+        // pagehide) must not count as "did not continue" (review CARD+TEASE Q3); card_open counts only for the 300
+        self::assertStringContainsString('of its card_outcome lines (the base of both shares', NavigationRegistry::PLAYER_CARD_REVERT_RULE);
+        self::assertStringNotContainsString('70 % of them', NavigationRegistry::PLAYER_CARD_REVERT_RULE);
     }
 
     /**

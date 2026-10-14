@@ -1,8 +1,9 @@
 {# The one way to start the free trial (docs/features/free-trial/README.md).
    Parameters: source (FreeTrialSource value), label, return (optional - the page to come back to),
    button_class (optional), placement_field (optional - the members modal's: an empty `placement` field the modal fills
-   with the teaser that opened it, docs/features/navigation TEASE-01; measured, never stored). The action is explicit
-   on purpose: this form also lives inside modals. #}
+   with the teaser that opened it, docs/features/navigation TEASE-01; measured, never stored), placement_value
+   (optional - the membership page's: the MembersPlacement value its ?placement= named). The action is explicit on
+   purpose: this form also lives inside modals. #}
 <form method="post" action="{{ path('start_free_trial') }}" class="d-inline-block {{ form_class|default('') }}" data-turbo-frame="_top">
     <input type="hidden" name="_token" value="{{ csrf_token(constant('SpeedPuzzling\\Web\\Controller\\StartFreeTrialController::CSRF_TOKEN_ID')) }}">
     <input type="hidden" name="source" value="{{ source }}">
@@ -11,6 +12,8 @@
     {% endif %}
     {% if placement_field|default(false) %}
         <input type="hidden" name="placement" value="" data-members-modal-target="placement">
+    {% elseif placement_value|default(null) %}
+        <input type="hidden" name="placement" value="{{ placement_value }}">
     {% endif %}
 
     <button type="submit" class="{{ button_class|default('btn btn-primary btn-shadow') }}">

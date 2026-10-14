@@ -77,8 +77,12 @@ final readonly class NavigationRegistry
         'leaderboard' => ['mouse' => false, 'touch' => false, 'pen' => false, 'keyboard' => false],
     ];
 
-    /** When a cell of PLAYER_CARD_DIRECT turns true - counted from the card_open / card_outcome lines (NavClickController) */
-    public const string PLAYER_CARD_REVERT_RULE = 'Revert rule (CARD-07): a context kind × input switches to direct profile links (NavigationRegistry::PLAYER_CARD_DIRECT) once that cell has at least 300 card opens over at least 14 days, at least 70 % of them continue to the profile within 30 s (card_outcome continue, ms ≤ 30000) and under 5 % use anything else the card offers (deep, puzzle, action); every cell is false at launch';
+    /**
+     * When a cell of PLAYER_CARD_DIRECT turns true - counted from the card_open / card_outcome lines (NavClickController).
+     * The shares are of the card_outcome lines: an outcome is sent on pagehide, which a discarded iOS tab never fires, so
+     * shares of card_open would count every lost outcome as "did not continue" (review CARD+TEASE Q3).
+     */
+    public const string PLAYER_CARD_REVERT_RULE = 'Revert rule (CARD-07): a context kind × input switches to direct profile links (NavigationRegistry::PLAYER_CARD_DIRECT) once that cell has at least 300 card opens (card_open lines) over at least 14 days and, of its card_outcome lines (the base of both shares - an open whose outcome never arrived counts in neither), at least 70 % continue to the profile within 30 s (card_outcome continue, ms ≤ 30000) and under 5 % use anything else the card offers (deep, puzzle, action); every cell is false at launch';
 
     /**
      * Built once per service instance: plain request-independent data (no translator, no viewer), so the readonly

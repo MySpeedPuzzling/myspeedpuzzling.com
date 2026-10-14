@@ -15,10 +15,17 @@ import { SHEET_PHONE_MEDIA } from './sheet_drag.js';
  *   content runs the shared bottom-sheet controller on .player-card-box, GEST-02), × always. From 576 px a popover
  *   anchored next to the tapped name, following it while the page scrolls: aria-modal="false", no focus trap, a click
  *   outside closes it.
- * - One fresh <turbo-frame id="player-card"> per open: a prefetched card (≤ 20 s old) shows at once, else "Loading…"
- *   (aria-busy) until turbo:frame-load; an answer without the frame (turbo:frame-missing) becomes a page visit.
- *   Favorite and Compare navigate inside the frame - and empty the prefetch cache, which turbo:load empties too.
- * - Focus moves into the card and back to the name that opened it.
+ * - One fresh <turbo-frame id="player-card"> per open: a card prefetched or loaded ≤ 20 s ago shows at once (the frame's
+ *   own first answer is kept like a prefetch - Safari and iOS focus no name before the tap, so they never prefetch),
+ *   else "Loading…" (aria-busy; the dialog is named by it until the card's heading arrives) until turbo:frame-load; an
+ *   answer without the frame (turbo:frame-missing) becomes a page visit; a card that never arrives (the network failed,
+ *   turbo:fetch-request-error) is the profile, like a layer module that fails to load (player_card.js). Favorite and
+ *   Compare navigate inside the frame - and empty the cache, which turbo:load empties too.
+ * - Focus moves into the card and back to the name that opened it - a focus that prefetches nothing: a card just closed
+ *   is not fetched again for 20 s (review CARD+TEASE F1).
+ * - A Bootstrap modal opened from inside the card (the members modal of the locked tier chip) is above it, outside the
+ *   layer history: Esc closes only the modal; Back (and ×) close the card and that modal together - it never outlives the
+ *   card it was opened from (review CARD+TEASE F2).
  * - History only through assets/layer_history.js (GEST-01): opening pushes one same-URL entry ('card'); another name
  *   while the card is open swaps the frame, no history change; ×, Esc, the scrim, a swipe and a click outside close it
  *   through Back; a link leaving the card (data-turbo-frame="_top") is a replace visit; a layer opened over it (the
@@ -68,6 +75,11 @@ export function freshEntry(entry, now, ttl = PREFETCH_TTL_MS) {
     return Boolean(entry) && typeof entry.html === 'string' && typeof entry.at === 'number' && now - entry.at < ttl && now >= entry.at;
 }
 
+/** Was this card closed a moment ago ({url, at} of the last close)? Its name gets the focus back - no prefetch for that */
+export function closedRecently(closed, url, now, ttl = PREFETCH_TTL_MS) {
+    return Boolean(closed) && closed.url === url && typeof closed.at === 'number' && now - closed.at < ttl && now >= closed.at;
+}
+
 /** A guest's sign-in link pointed at the page the card was opened on: its `return` replaced, the rest kept */
 export function withReturnPage(href, page, base) {
     if (typeof page !== 'string' || !page.startsWith('/') || page.startsWith('//')) {
@@ -88,9 +100,10 @@ export function withReturnPage(href, page, base) {
 }
 
 class PlayerCardLayer {
-    constructor(window, document) {
+    constructor(window, document, layerHistory = layers) {
         this.window = window;
         this.document = document;
+        this.layers = layerHistory;
         this.dialog = null;
         this.box = null;
         this.frame = null;
@@ -106,6 +119,12 @@ class PlayerCardLayer {
         this.listening = false;
         this.cache = new Map();
         this.inflight = new Map();
+        // The URL of the frame's first request - its answer is kept like a prefetched one
+        this.keepAnswerOf = null;
+        // {url, at} of the card closed last (F1)
+        this.closedCard = null;
+        // Bootstrap modals opened from inside the open card (F2)
+        this.modalsOver = [];
         this.media = window.matchMedia(SHEET_PHONE_MEDIA);
         this.reducedMotion = window.matchMedia(REDUCED_MOTION);
         this.measure = createCardMeasure({
@@ -144,7 +163,7 @@ class PlayerCardLayer {
         const wasShown = this.shown && !this.released;
 
         // History first: a layer holding the entry (the Menu panel, the search view) hands it over and closes
-        layers.open(LAYER_ID, { element: this.dialog, onClose: this.onLayerClose });
+        this.layers.open(LAYER_ID, { element: this.dialog, onClose: this.onLayerClose });
 
         this.anchor = anchor;
         this.url = url;
@@ -207,6 +226,8 @@ class PlayerCardLayer {
         frame.addEventListener('turbo:frame-load', this.onFrameLoad);
         frame.addEventListener('turbo:frame-missing', this.onFrameMissing);
         frame.addEventListener('turbo:before-fetch-request', this.onFrameFetch);
+        frame.addEventListener('turbo:before-fetch-response', this.onFrameResponse);
+        frame.addEventListener('turbo:fetch-request-error', this.onFrameError);
         this.frame = frame;
         this.box.appendChild(frame);
 
@@ -243,6 +264,7 @@ class PlayerCardLayer {
 
     load(frame, url) {
         this.initialFetch = true;
+        this.keepAnswerOf = url;
         frame.setAttribute('src', url);
     }
 
@@ -255,6 +277,8 @@ class PlayerCardLayer {
         // The page's own "Loading" (the dynamic modal's spinner, base.html.twig) - no string of the card's in every page
         const text = this.document.querySelector('[data-dynamic-modal-target="loading"] .visually-hidden');
         loading.lastElementChild.textContent = text ? text.textContent.trim() : '';
+        // The dialog's name (aria-labelledby) until the card's heading replaces it (review CARD+TEASE F4)
+        loading.lastElementChild.id = 'players-card-name';
         frame.replaceChildren(loading);
     }
 
@@ -296,9 +320,12 @@ class PlayerCardLayer {
         this.frame.removeEventListener('turbo:frame-load', this.onFrameLoad);
         this.frame.removeEventListener('turbo:frame-missing', this.onFrameMissing);
         this.frame.removeEventListener('turbo:before-fetch-request', this.onFrameFetch);
+        this.frame.removeEventListener('turbo:before-fetch-response', this.onFrameResponse);
+        this.frame.removeEventListener('turbo:fetch-request-error', this.onFrameError);
         this.frame.remove();
         this.frame = null;
         this.initialFetch = false;
+        this.keepAnswerOf = null;
     }
 
     // ---- Prefetch -------------------------------------------------------------------------------------------------
@@ -312,21 +339,17 @@ class PlayerCardLayer {
             return this.inflight.get(url);
         }
 
+        // The focus returning to the name of the card just closed is no interest in it (F1); a reopen loads as usual
+        if (closedRecently(this.closedCard, url, Date.now())) {
+            return Promise.resolve(null);
+        }
+
         const request = this.window.fetch(url, {
             credentials: 'same-origin',
             headers: { 'Turbo-Frame': FRAME_ID, Accept: 'text/html, application/xhtml+xml' },
         })
             .then((response) => (response.ok ? response.text() : null))
-            .then((html) => {
-                const inner = html === null ? null : this.frameHtmlOf(html);
-
-                if (inner !== null) {
-                    this.prune();
-                    this.cache.set(url, { html: inner, at: Date.now() });
-                }
-
-                return inner;
-            })
+            .then((html) => this.keep(url, html))
             .catch(() => null)
             .finally(() => {
                 this.inflight.delete(url);
@@ -335,6 +358,18 @@ class PlayerCardLayer {
         this.inflight.set(url, request);
 
         return request;
+    }
+
+    /** The card inside a frame response, kept for PREFETCH_TTL_MS; null when the response holds no card frame */
+    keep(url, html) {
+        const inner = typeof html === 'string' ? this.frameHtmlOf(html) : null;
+
+        if (inner !== null) {
+            this.prune();
+            this.cache.set(url, { html: inner, at: Date.now() });
+        }
+
+        return inner;
     }
 
     frameHtmlOf(html) {
@@ -358,8 +393,8 @@ class PlayerCardLayer {
 
     /** ×, Esc, the scrim, a swipe, a click outside: through Back while the card holds its entry, else at once */
     requestClose() {
-        if (layers.isOpen(LAYER_ID)) {
-            layers.requestClose(LAYER_ID);
+        if (this.layers.isOpen(LAYER_ID)) {
+            this.layers.requestClose(LAYER_ID);
 
             return;
         }
@@ -391,16 +426,23 @@ class PlayerCardLayer {
 
         const anchor = this.anchor;
         const animate = (reason === 'back' || reason === 'close') && this.isSheet() && !this.reducedMotion.matches;
+        const modals = this.modalsOver;
+
+        if (this.url !== null) {
+            this.closedCard = { url: this.url, at: Date.now() };
+        }
 
         this.shown = false;
         this.released = false;
         this.anchor = null;
         this.url = null;
         this.offset = null;
+        this.modalsOver = [];
         this.setInert(false);
         this.listen(false);
 
         if (reason === 'back' || reason === 'close') {
+            this.hideModals(modals, anchor);
             this.focusAnchor(anchor);
         }
 
@@ -447,6 +489,28 @@ class PlayerCardLayer {
         if (anchor && anchor.isConnected && anchor.getClientRects().length > 0) {
             anchor.focus({ preventScroll: true });
         }
+    }
+
+    /**
+     * Back (or ×) with a Bootstrap modal opened from the card still over it: one Back clears what the player sees - the
+     * modal is not in the layer history, it would stay over the page, and the next Back would leave the page under it.
+     * Bootstrap gives its focus back to the lock inside the card once hidden: the name gets it after that.
+     */
+    hideModals(modals, anchor) {
+        const Modal = this.window.bootstrap && this.window.bootstrap.Modal;
+
+        modals.forEach((element) => {
+            const modal = element.isConnected && element.classList.contains('show') && Modal && typeof Modal.getInstance === 'function'
+                ? Modal.getInstance(element)
+                : null;
+
+            if (!modal) {
+                return;
+            }
+
+            element.addEventListener('hidden.bs.modal', () => this.focusAnchor(anchor), { once: true });
+            modal.hide();
+        });
     }
 
     // ---- Layout ---------------------------------------------------------------------------------------------------
@@ -553,6 +617,7 @@ class PlayerCardLayer {
         this.document[method]('keydown', this.onKeydown, { capture: true });
         this.window[method]('resize', this.onResize);
         this.window[method]('scroll', this.onScroll, { passive: true, capture: true });
+        this.document[method]('show.bs.modal', this.onModalShow);
 
         if (!on && this.scrollFrame !== null) {
             this.window.cancelAnimationFrame(this.scrollFrame);
@@ -581,6 +646,17 @@ class PlayerCardLayer {
 
     onPageHide = () => {
         this.measure.closed();
+    };
+
+    // A Bootstrap modal opened by a control inside the card (Bootstrap's relatedTarget: the members modal's lock)
+    onModalShow = (event) => {
+        const opener = event.relatedTarget;
+
+        if (!this.shown || this.released || this.box === null || !opener || !this.box.contains(opener) || this.modalsOver.includes(event.target)) {
+            return;
+        }
+
+        this.modalsOver.push(event.target);
     };
 
     onDialogClick = (event) => {
@@ -705,6 +781,43 @@ class PlayerCardLayer {
         this.loaded();
     };
 
+    // The frame's first answer is the card as a prefetch would have fetched it: kept for a reopen within 20 s (F1) - the
+    // server's HTML (fetchResponse.responseHTML), never the live frame Stimulus has touched
+    onFrameResponse = (event) => {
+        const url = this.keepAnswerOf;
+        const fetchResponse = event.detail ? event.detail.fetchResponse : null;
+
+        if (url === null || event.target !== this.frame) {
+            return;
+        }
+
+        this.keepAnswerOf = null;
+
+        if (!fetchResponse || !fetchResponse.succeeded || fetchResponse.redirected) {
+            return;
+        }
+
+        Promise.resolve(fetchResponse.responseHTML)
+            .then((html) => {
+                this.keep(url, html);
+            })
+            .catch(() => {});
+    };
+
+    // The card never came (the phone lost its connection): the profile, like a layer module that fails to load
+    // (player_card.js) - the service worker's offline page answers that visit when the phone is offline (F5)
+    onFrameError = () => {
+        if (!this.shown || this.released || this.box === null || !this.box.hasAttribute('aria-busy')) {
+            return;
+        }
+
+        const href = this.anchor && this.anchor.href ? this.anchor.href : this.url;
+
+        if (href) {
+            this.layers.visitFromLayer(href);
+        }
+    };
+
     // Favorite / Compare inside the card: what was prefetched is out of date
     onFrameFetch = () => {
         if (this.initialFetch) {
@@ -738,12 +851,12 @@ class PlayerCardLayer {
         }
 
         if (responseHTML === undefined) {
-            layers.visitFromLayer(location);
+            this.layers.visitFromLayer(location);
 
             return;
         }
 
-        layers.visitFromLayer(location, { response: { redirected: response.redirected, statusCode: response.status, responseHTML } });
+        this.layers.visitFromLayer(location, { response: { redirected: response.redirected, statusCode: response.status, responseHTML } });
     };
 
     // ---- Turbo ----------------------------------------------------------------------------------------------------
@@ -755,8 +868,8 @@ class PlayerCardLayer {
         }
 
         if (this.shown) {
-            if (layers.isOpen(LAYER_ID)) {
-                layers.closeForCache();
+            if (this.layers.isOpen(LAYER_ID)) {
+                this.layers.closeForCache();
             }
 
             this.closeUi('cache');
@@ -796,6 +909,11 @@ class PlayerCardLayer {
             this.closeUi('cache');
         }
     };
+}
+
+/** The layer with its environment given (tests/player-card-harness.mjs: jsdom and a fake layer history) */
+export function createPlayerCardLayer({ window, document, layerHistory = layers }) {
+    return new PlayerCardLayer(window, document, layerHistory);
 }
 
 let layer = null;

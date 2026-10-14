@@ -18,14 +18,18 @@ use Symfony\Component\DomCrawler\Crawler;
  * when the round's detection is not off does the page carry them - the detection value (where the detector's runtime and
  * models come from: OnlineDetectorAssets, the one place), the checklist's row with its test / retry / skip, the running
  * screen's "Finish recorded" and its quiet lines, time's up after a detected finish, the green flash and the texts. A
- * round whose detection is off is the page without them, byte for byte; the parts are the only difference, and they
- * cost no statement.
+ * round whose detection is off is the page without them, byte for byte - but for the two texts of the banner such a page
+ * shows when the organiser turns detection on ("reload the page to use it", stream SP: built by the script only then,
+ * its text can come from nowhere else); the parts are the only difference, and they cost no statement.
  */
 final class CompetePageDetectionTest extends WebTestCase
 {
     use QueryCountAssertions;
 
     private const string PAGE = '/en/compete/' . OnlineRoundsFixture::TOKEN_ANONYMOUS;
+
+    // The only detection texts a page without the detection parts carries: the reload banner's (stream SP)
+    private const array RELOAD_TEXTS = ['detection_turned_on', 'detection_turned_on_reload'];
 
     // Every trace the detection parts leave in the page
     private const array TRACES = [
@@ -49,7 +53,12 @@ final class CompetePageDetectionTest extends WebTestCase
             self::assertStringNotContainsString($trace, $html, $trace);
         }
 
-        self::assertSame([], array_values(array_filter(array_keys(self::texts($html)), static fn (string $key): bool => str_starts_with($key, 'detection_'))));
+        $texts = self::texts($html);
+        self::assertSame(self::RELOAD_TEXTS, array_values(array_filter(array_keys($texts), static fn (string $key): bool => str_starts_with($key, 'detection_'))));
+        self::assertSame('The organiser turned on finish detection - reload the page to use it.', $texts['detection_turned_on']);
+        self::assertSame('Reload', $texts['detection_turned_on_reload']);
+        // The banner itself is built by the script when it is needed - no element of it in the page
+        self::assertStringNotContainsString('compete-banner--reload', $html);
     }
 
     public function testARoundWithDetectionCarriesItsParts(): void

@@ -21,9 +21,13 @@
 //   photo timer; `shadow` never holds "I'm ready" and starts looking once loaded; slow / stalled / broken detectors
 //   become button-only (said, reported, one `detector.changed`), "Try again" starts ONE new worker; the hint to raise
 //   both hands only while the detector watches.
+// - stream SP: the organiser's mode reaches an open page - `shadow` <-> `on` before GO switch the machine, the hold on
+//   "I'm ready" and the hints at once; `off` stops the detector (the worker terminated, the set-up test never counted
+//   as failed, nothing shown, `detector.changed` off) and ONE new worker starts when it comes back; a page without the
+//   detection parts offers "reload to use it" before the start only.
 
 import assert from 'node:assert/strict';
-import { detectionLoadWanted, detectionMode, LOAD_RETRY_MS } from '../assets/online/compete_detection_basics.js';
+import { detectionLoadWanted, detectionMode, LOAD_RETRY_MS, reloadForDetection } from '../assets/online/compete_detection_basics.js';
 import {
     browserSupportsDetector,
     buttonOnly,
@@ -1325,6 +1329,138 @@ const scenarios = {
         assert.equal(t.paint.shown.get('detectionHint'), true);
         assert.equal(t.detection.machine.state().armed, false);
         assert.equal(t.recorded.length, 0);
+    },
+
+    async 'the organiser switches `shadow` <-> `on` before GO: the hold on "I\'m ready", the machine and the hints follow at once (stream SP)'() {
+        const t = page();
+        t.detection.plan(input({ mode: 'shadow' }));
+        assert.equal(t.detection.state, 'loading');
+        assert.equal(t.detection.blocksReady(), false, '`shadow` never holds anybody up');
+
+        t.detection.plan(input({ mode: 'on' }));
+        assert.equal(t.detection.blocksReady(), true, '`on`: "I\'m ready" waits for the detector');
+        assert.equal(t.workers.length, 1, 'the same worker - nothing loads twice');
+        t.clock.set(LOAD_SKIP_AFTER_MS + 1);
+        t.detection.tick();
+        assert.equal(t.paint.shown.get('detectionSkip'), true, '`on` offers the skip after a while');
+
+        t.detection.plan(input({ mode: 'shadow' }));
+        t.detection.tick();
+        assert.equal(t.paint.shown.get('detectionSkip'), false);
+        assert.equal(t.detection.blocksReady(), false);
+
+        // Loaded and tested; "I'm ready" tapped - the waiting screen
+        t.workers[0].answer({ type: 'ready', view: 'any', models: ['pose', 'gesture'], worker: 'classic', loadMs: 900 });
+        t.detection.choice = { view: 'angled', test: 'passed', atMs: null };
+        t.detection.plan(input({ mode: 'shadow', screen: 'waiting', ready: true }));
+        const shadowMachine = t.detection.machine;
+        assert.equal(shadowMachine.rules.mode, 'shadow');
+        t.detection.plan(input({ mode: 'on', screen: 'waiting', ready: true }));
+        assert.notEqual(t.detection.machine, shadowMachine, 'another mode: a new machine');
+        assert.equal(t.detection.machine.rules.mode, 'on');
+        assert.equal(t.workers.length, 1);
+
+        // GO in `on`: the hint to raise both hands
+        t.clock.set(20_000);
+        t.detection.plan(input({ mode: 'on', screen: 'running', ready: true }));
+        t.workers[0].answer({ type: 'configured', view: 'angled' });
+        t.detection.tick();
+        assert.equal(t.paint.shown.get('detectionHint'), true, '"Done? Raise both hands - or tap Finished."');
+        assert.equal(t.detection.telemetry().mode, 'on');
+
+        // Another page switched back to `shadow` before GO: nothing shown in the round, the detector still watches
+        const quiet = page();
+        await running(quiet, { mode: 'on' });
+        quiet.detection.plan(input({ mode: 'shadow', screen: 'waiting', ready: true }));
+        quiet.detection.plan(input({ mode: 'shadow', screen: 'running', ready: true }));
+        quiet.detection.tick();
+        assert.equal(quiet.paint.shown.get('detectionHint'), false);
+        assert.equal(quiet.paint.shown.get('detectionButtonOnly'), false);
+        assert.equal(quiet.detection.machine.rules.mode, 'shadow');
+        assert.equal(quiet.detection.run, 'round', '`shadow` still watches - silently');
+    },
+
+    async '`off` before GO stops the detector: the worker goes, the set-up test never fails, nothing shown - on again: ONE new worker (stream SP)'() {
+        const t = page();
+        await readyDetector(t);
+        t.detection.plan(input());
+        assert.notEqual(t.detection.setUp, null, 'the set-up test watches');
+        assert.equal(t.grabber.isFeeding(), true);
+        await frames(t, 200, 600, () => ({ angled: 0, topDown: 0 }));
+
+        t.detection.plan(input({ mode: 'off' }));
+        assert.equal(t.detection.setUp, null, 'the test stops - untested');
+        assert.equal(t.grabber.isFeeding(), false, 'no frame goes anywhere');
+        assert.equal(t.workers[0].terminated, true, 'the worker and its memory go');
+        assert.deepEqual(t.workers[0].posted.at(-1).message, { type: 'dispose' });
+        assert.equal(t.detection.state, 'off');
+        assert.equal(t.detection.blocksReady(), false);
+        assert.deepEqual(t.detection.telemetry(), { ok: false, fps: null, mode: 'off', state: 'off', inferenceMs: null, view: null });
+
+        // Long past the test's window: still untested, never failed (nobody could pass it)
+        await t.clock.advance(SETUP_TEST_MS + 1_000);
+        t.detection.plan(input({ mode: 'off' }));
+        assert.equal(t.detection.choice.test, null);
+        assert.equal(loadDetectorChoice(t.store, 'p1').test, null);
+        assert.equal(t.workers.length, 1, 'nothing starts while it is off');
+
+        // "I'm ready" and the round in `off`: nothing shown, the server told the detector is not used
+        t.detection.plan(input({ mode: 'off', screen: 'waiting', ready: true }));
+        assert.deepEqual(t.usages.at(-1), { state: 'off', running: false, reason: 'off', view: null });
+        t.detection.plan(input({ mode: 'off', screen: 'running', ready: true }));
+        t.detection.tick();
+
+        for (const part of ['detectionDetected', 'detectionTimeUp', 'detectionHint', 'detectionSuppressed', 'detectionButtonOnly']) {
+            assert.equal(t.paint.shown.get(part), false, part);
+        }
+
+        assert.equal(t.detection.detectedMoment(), null);
+
+        // On again (before GO - a Reset made the round wait again): ONE new worker, loaded like on a fresh page
+        t.detection.plan(input({ mode: 'on', screen: 'waiting', ready: true }));
+        assert.equal(t.workers.length, 2);
+        assert.equal(t.workers[1].terminated, false);
+        assert.equal(t.workers[1].of('init').length, 1);
+        assert.equal(t.detection.state, 'loading');
+        t.detection.plan(input({ mode: 'on', screen: 'waiting', ready: true }));
+        assert.equal(t.workers.length, 2, 'never a third');
+        t.workers[1].answer({ type: 'ready', view: 'any', models: ['pose', 'gesture'], worker: 'classic', loadMs: 700 });
+        t.detection.plan(input({ mode: 'on', screen: 'waiting', ready: true }));
+        assert.deepEqual(t.usages.at(-1), { state: 'ready', running: true, reason: null, view: 'angled' });
+
+        // A message of the terminated worker is not listened to
+        t.workers[0].answer({ type: 'error', message: 'late' });
+        assert.equal(t.detection.state, 'ready');
+    },
+
+    async 'a page without the detection parts: "reload to use it" when the organiser turns detection on - before the start only (stream SP)'() {
+        const on = { round: { settings: { detection: 'on' } } };
+        const base = { hasParts: false, state: on, screen: 'checklist', view: { screen: 'waiting' } };
+
+        assert.equal(reloadForDetection(base), true);
+        assert.equal(reloadForDetection({ ...base, state: { round: { settings: { detection: 'shadow' } } } }), true, '`shadow` needs the parts too');
+        assert.equal(reloadForDetection({ ...base, screen: 'welcome' }), true);
+        assert.equal(reloadForDetection({ ...base, screen: 'waiting' }), true);
+        assert.equal(reloadForDetection({ ...base, screen: 'waiting', view: { screen: 'scheduled' } }), true, 'a start set, minutes away');
+
+        assert.equal(reloadForDetection({ ...base, hasParts: true }), false, 'a page with the parts applies it live');
+        assert.equal(reloadForDetection({ ...base, state: { round: { settings: { detection: 'off' } } } }), false);
+        assert.equal(reloadForDetection({ ...base, state: null }), false);
+
+        for (const view of ['countdown', 'running', 'ended']) {
+            assert.equal(reloadForDetection({ ...base, view: { screen: view } }), false, view);
+            assert.equal(reloadForDetection({ ...base, screen: 'waiting', view: { screen: view } }), false, view);
+        }
+
+        for (const screen of ['countdown', 'running', 'finished', 'timeup', 'after', 'no_round', 'not_entered', 'taken_over', 'dead_link', 'second_screen']) {
+            assert.equal(reloadForDetection({ ...base, screen }), false, screen);
+        }
+
+        assert.equal(reloadForDetection({ ...base, practice: true }), false, 'not in the middle of a practice');
+        assert.equal(reloadForDetection({ ...base, preview: true }), false);
+        assert.equal(reloadForDetection({ ...base, secondScreen: true }), false);
+        assert.equal(reloadForDetection({ ...base, linkDead: true }), false);
+        assert.equal(reloadForDetection({ ...base, view: null }), false);
     },
 
     async 'the watch: slow needs a sustained stretch, one long interval is a gap; the stall counts only frames offered'() {

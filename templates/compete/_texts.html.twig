@@ -5,7 +5,9 @@
     compete_flow.js checklistRows(). Pinned by tests/CompeteTextsTest.php.
     With live video (`video` not null - a media server configured) the `video_` texts follow; with finish detection
     (`detection` not null - the round's detection was not off when the page loaded) the `detection_` texts; without
-    them the JSON is the Phase 1 JSON, byte for byte.
+    them the JSON is the Phase 1 JSON, byte for byte - but for the two texts of the banner a page without the detection
+    parts shows when the organiser turns detection on (`detection_turned_on…`, stream SP): such a page can not know it
+    will need them, and the text comes from nowhere else.
 #}
 {%- set texts = {
     waiting: 'compete.screen.waiting'|trans,
@@ -64,6 +66,8 @@
     check_uploads_refused: browser_translation('compete.checklist.uploads_refused'),
     check_emptyMat_taken: 'compete.checklist.empty_mat_taken'|trans,
     check_emptyMat_take: 'compete.checklist.empty_mat_take'|trans,
+    detection_turned_on: 'compete.detection.turned_on'|trans,
+    detection_turned_on_reload: 'compete.detection.turned_on_reload'|trans,
 } -%}
 {%- if video is defined and video is not null -%}
     {%- set texts = texts|merge({

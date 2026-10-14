@@ -16,7 +16,8 @@ use Twig\Environment;
  * assets/online/compete_flow.js. Live video's texts (`video_…`) come only on a page with its video parts (a media server
  * configured), finish detection's (`detection_…`, the checklist row's `detection_check_<code>` for every code of
  * CHECK_CODES in assets/online/compete_detection.js) only on a page whose round detects raised hands - without them the
- * JSON is the Phase 1 JSON.
+ * JSON is the Phase 1 JSON, but for the reload banner's two texts (stream SP: a page without the detection parts whose
+ * round turns detection on offers a reload - it can not know beforehand that it will).
  */
 final class CompeteTextsTest extends KernelTestCase
 {
@@ -42,6 +43,9 @@ final class CompeteTextsTest extends KernelTestCase
     private const array INDIRECT = ['pieces_question_left', 'pieces_question_placed', 'pieces_reported_left', 'pieces_reported_placed'];
 
     private const array PLURAL = ['time_limit', 'status_pending', 'check_uploads_pending', 'check_uploads_refused', 'video_strip_title'];
+
+    // The reload banner's texts - on every page (stream SP)
+    private const array RELOAD_TEXTS = ['detection_turned_on', 'detection_turned_on_reload'];
 
     public function testEveryTextThePageScriptUsesIsInTheJson(): void
     {
@@ -91,7 +95,7 @@ final class CompeteTextsTest extends KernelTestCase
         $without = $this->render(detection: false);
         $with = $this->render();
 
-        self::assertSame([], array_values(array_filter(array_keys($without), static fn (string $key): bool => str_starts_with($key, 'detection_'))));
+        self::assertSame(self::RELOAD_TEXTS, array_values(array_filter(array_keys($without), static fn (string $key): bool => str_starts_with($key, 'detection_'))));
         self::assertSame($without, array_slice($with, 0, count($without), true), 'every other text, then the detection ones');
         $added = array_keys(array_slice($with, count($without), null, true));
         self::assertNotSame([], $added);

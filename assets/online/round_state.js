@@ -14,7 +14,8 @@
  *
  * A state is the participant state of implementation-plan.md §3.1 (`{asOfMs, round: {…}, …}`) or a round clock alone
  * (the round stopwatch payload `{status, startedAtMs, stoppedAtMs, minutesLimit, asOfMs, stateHash, …}` - the ATOM
- * `startedAt` / `stoppedAt` of older payloads are read too). Pinned by tests/online-round-state-harness.mjs.
+ * `startedAt` / `stoppedAt` of older payloads are read too). A message with a `type` on the round's topic is never a
+ * clock (the online timing settings' `online.settings` - needsStateFetch()). Pinned by tests/online-round-state-harness.mjs.
  */
 
 export const COUNTDOWN_MS = 10000;
@@ -22,6 +23,8 @@ export const COUNTDOWN_MS = 10000;
 // missed cancel or a missed "End now" is caught right there)
 export const CHECK_BEFORE_START_MS = 2000;
 export const CHECK_AFTER_MS = 1000;
+// The push after an organiser saved the round's online timing settings (OnlineRoundSettingsLiveUpdates)
+export const SETTINGS_MESSAGE = 'online.settings';
 
 // The fields of a round clock - what a push carries and replaces. A push's `status` is the stopwatch's own vocabulary
 // (null / 'scheduled' / 'running' / 'stopped'): it is kept as `stopwatchStatus` and never written over the state's
@@ -252,14 +255,15 @@ function sameRound(state, update) {
 
 /**
  * A round clock pushed on the round's topic (`/round-stopwatch/{roundId}`), applied to the state's round when it is
- * newer than what that clock was read at. Returns the state unchanged (the same object) otherwise.
+ * newer than what that clock was read at. Returns the state unchanged (the same object) otherwise - also for a message
+ * with a `type` (never a clock: the stopwatch payload has none).
  */
 export function adoptRoundClock(state, update) {
     if (state === null || typeof state !== 'object' || state.round === null || typeof state.round !== 'object') {
         return state;
     }
 
-    if (update === null || typeof update !== 'object' || !sameRound(state, update)) {
+    if (update === null || typeof update !== 'object' || typeof update.type === 'string' || !sameRound(state, update)) {
         return state;
     }
 
@@ -297,6 +301,40 @@ export function adoptState(current, incoming) {
     }
 
     return incoming;
+}
+
+/**
+ * Whether a hint says the state held is out of date - fetch it again (README §5.3): a heartbeat answer
+ * `{stateHash, settingsHash, roundId, …}` or the `online.settings` push `{type, roundId, settingsHash}`.
+ * - another round (neither hash has the round in it - two waiting rounds hash alike);
+ * - another round clock (`stateHash` - start, schedule, cancel, end, the time limit);
+ * - other online timing settings (`settingsHash` - live video, see each other, the studio, finish detection, what time's
+ *   up asks): the organiser saved them while the page was open.
+ * A hint without a field (an older server, a push of another kind) says nothing about it. A state without a round:
+ * only a round named by the hint counts.
+ */
+export function needsStateFetch(state, hint) {
+    if (hint === null || typeof hint !== 'object') {
+        return false;
+    }
+
+    const round = state !== null && typeof state === 'object' && state.round !== null && typeof state.round === 'object' ? state.round : null;
+    const heldRound = typeof round?.id === 'string' ? round.id.toLowerCase() : '';
+
+    if (typeof hint.roundId === 'string' && hint.roundId.toLowerCase() !== heldRound) {
+        return true;
+    }
+
+    if (round === null) {
+        return false;
+    }
+
+    // The push carries no clock - its hash would not be the round clock's
+    if (typeof hint.type !== 'string' && typeof hint.stateHash === 'string' && hint.stateHash !== round.stateHash) {
+        return true;
+    }
+
+    return typeof hint.settingsHash === 'string' && hint.settingsHash !== round.settingsHash;
 }
 
 /**

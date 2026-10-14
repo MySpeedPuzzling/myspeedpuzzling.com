@@ -46,3 +46,27 @@ export function detectionLoadWanted({ hasParts, state, consent, preview = false,
 
     return ['checklist', 'waiting', 'countdown', 'running', 'finished'].includes(screen);
 }
+
+/**
+ * A page without the detection parts (the round's detection was `off` when it loaded) whose organiser turned detection
+ * on: "reload the page to use it" - on the screens before the start only (welcome, the checklist, waiting - never in
+ * the countdown, the solve or after), on a device that competes (no preview, no second screen, no practice running, a
+ * link that still opens). Never a reload by itself: a page that is not reloaded competes with the Finished button.
+ *
+ * @param {object} input
+ * @param {boolean} input.hasParts
+ * @param {object|null} input.state
+ * @param {string} input.screen      compete_flow.js screenFor()
+ * @param {object} input.view        round_state.js deriveView()
+ * @param {boolean} [input.practice]
+ * @param {boolean} [input.preview]
+ * @param {boolean} [input.secondScreen]
+ * @param {boolean} [input.linkDead]
+ */
+export function reloadForDetection({ hasParts, state, screen, view, practice = false, preview = false, secondScreen = false, linkDead = false }) {
+    if (hasParts || detectionMode(state) === MODE_OFF || practice || preview || secondScreen || linkDead) {
+        return false;
+    }
+
+    return ['welcome', 'checklist', 'waiting'].includes(screen) && ['waiting', 'scheduled'].includes(view?.screen);
+}

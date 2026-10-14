@@ -1341,3 +1341,17 @@ html:has(.compete) body {
         transition: none;
     }
 }
+
+// ---- settings changed while the page was open (stream SP)
+
+// A page loaded while the round's detection was off, the organiser turned it on: calm, the participant decides
+// (compete_controller.js paintDetectionReload(), built only then)
+.compete-banner--reload {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    background: var(--compete-info-bg);
+    color: var(--compete-info);
+}

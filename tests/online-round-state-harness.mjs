@@ -9,10 +9,12 @@ import {
     countdownDigit,
     deriveView,
     formatClock,
+    needsStateFetch,
     newer,
     nextStateCheckAt,
     readClock,
     resultSeconds,
+    SETTINGS_MESSAGE,
 } from '../assets/online/round_state.js';
 
 const ROUND = '018d0020-0000-0000-0000-000000000101';
@@ -39,6 +41,7 @@ function state({ startedAtMs = null, stoppedAtMs = null, minutesLimit = 60, asOf
             stoppedAtMs,
             stateHash: `h-${startedAtMs}-${stoppedAtMs}`,
             settings: { detection: 'off', video: false, seeEachOther: false, studio: false, unfinishedMeasure: 'left' },
+            settingsHash: 's-1',
             ...round,
         },
         entry: { confirmedMomentMs: null, candidates: 0, taps: 0, reportedPieces: null, review: 'pending' },
@@ -353,6 +356,56 @@ const scenarios = {
         assert.equal(resultSeconds(START - 1, START), null, 'before the start');
         assert.equal(resultSeconds(null, START), null);
         assert.equal(resultSeconds(START, null), null);
+    },
+
+    async 'a heartbeat sends the phone to fetch the state: another round, another round clock or other settings (stream SP)'() {
+        const held = state({ startedAtMs: START });
+        const beat = { serverNowMs: START, stateHash: held.round.stateHash, settingsHash: 's-1', roundId: ROUND, takenOverBy: null };
+
+        assert.equal(needsStateFetch(held, beat), false, 'nothing changed');
+        assert.equal(needsStateFetch(held, { ...beat, roundId: ROUND.toUpperCase() }), false, 'the same round in another case');
+        assert.equal(needsStateFetch(held, { ...beat, roundId: OTHER_ROUND }), true, 'another round - two waiting rounds hash alike');
+        assert.equal(needsStateFetch(held, { ...beat, stateHash: 'h-other' }), true, 'the organiser started, scheduled, cancelled or ended it');
+        assert.equal(needsStateFetch(held, { ...beat, settingsHash: 's-2' }), true, 'the organiser saved other online timing settings');
+
+        // An older server answers without the settings hash: nothing said about them
+        const { settingsHash, ...beforeSp } = beat;
+        assert.equal(settingsHash, 's-1');
+        assert.equal(needsStateFetch(held, beforeSp), false);
+        assert.equal(needsStateFetch(held, { ...beat, stateHash: null, settingsHash: null, roundId: null }), false, 'no current round - nothing to compare');
+
+        // A state held from before this server (no settingsHash): the first beat fetches it once, then they agree
+        const older = { ...held, round: { ...held.round } };
+        delete older.round.settingsHash;
+        assert.equal(needsStateFetch(older, beat), true);
+
+        // A page without a round yet: only a round named by the server counts
+        assert.equal(needsStateFetch({ ...held, round: null }, { ...beat, roundId: ROUND }), true);
+        assert.equal(needsStateFetch({ ...held, round: null }, { ...beat, roundId: null }), false);
+        assert.equal(needsStateFetch(held, null), false);
+        assert.equal(needsStateFetch(held, 'ok'), false);
+    },
+
+    async 'the settings push: other settings are fetched, the same ones not - and it is never a round clock'() {
+        const held = state({ startedAtMs: START, asOfMs: START - 5000 });
+        const push = { type: SETTINGS_MESSAGE, roundId: ROUND, settingsHash: 's-2' };
+
+        assert.equal(SETTINGS_MESSAGE, 'online.settings');
+        assert.equal(needsStateFetch(held, push), true);
+        assert.equal(needsStateFetch(held, { ...push, settingsHash: 's-1' }), false, 'already held (fetched since, or a second save of the same)');
+        // Its hash is the settings', never compared with the clock's - even a field of that name would not count
+        assert.equal(needsStateFetch(held, { ...push, settingsHash: 's-1', stateHash: 'anything' }), false);
+
+        // Never adopted as a clock - not even with an asOfMs (a later version might add one)
+        assert.equal(adoptRoundClock(held, push), held);
+        assert.equal(adoptRoundClock(held, { ...push, asOfMs: START }), held);
+        assert.equal(adoptRoundClock(held, { ...push, asOfMs: START, startedAtMs: null, status: null }), held, 'a message with a type is never a clock');
+
+        // The stopwatch payload (no type) is adopted as before
+        const cancelled = adoptRoundClock(held, { roundId: ROUND, status: null, startedAtMs: null, stoppedAtMs: null, minutesLimit: 60, asOfMs: START - 1000, stateHash: 'h-none' });
+        assert.notEqual(cancelled, held);
+        assert.equal(cancelled.round.startedAtMs, null);
+        assert.equal(cancelled.round.settingsHash, 's-1', 'a clock push leaves the settings as they are');
     },
 
     async 'state checks: 2 s before the start, 1 s after it, 1 s after the limit - nothing once stopped'() {

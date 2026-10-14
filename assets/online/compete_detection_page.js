@@ -31,6 +31,10 @@
  *   Finished tap; in `on` mode also the green flash, the chime and "Finish recorded at 47:12". `shadow` shows nothing.
  *   A candidate's stills are let go as soon as its photo is chosen; a new run or mode ends the photo sessions (their
  *   timers cancelled, the best still so far kept as the photo).
+ * - **The organiser's mode, live** (stream SP): `shadow` ↔ `on` switch the round's machine and what is shown at once;
+ *   `off` (only before GO - the mode is fixed from the start until a Reset) stops the detector: the feed, the set-up
+ *   test (never counted as failed), the photo sessions, and the worker is terminated - its memory goes with it, a
+ *   button-only round needs none; switched on again, ONE new worker starts (never two alive).
  * - plan(input) before the screen is drawn, tick() after it (the detection parts, through the controller's painters);
  *   telemetry() for the heartbeat, readyDetails() for device.ready (it also marks what device.ready reported - later
  *   changes go out as `detector.changed`), blocksReady() for "I'm ready".
@@ -231,6 +235,15 @@ export class CompeteDetectionPage {
         this.lastPlanAt = now;
         this.input = input;
         this.mode = input.mode;
+
+        if (input.mode === MODE_OFF) {
+            // The organiser switched detection off: nothing looks, nothing is loaded - the parts are painted hidden
+            this.switchOff(now);
+            this.reportUsage(input);
+
+            return;
+        }
+
         this.start();
 
         // The round's machine: a new one for a new run or another mode (a raise in progress is not carried over; the
@@ -479,6 +492,45 @@ export class CompeteDetectionPage {
         }
 
         this.worker = null;
+    }
+
+    /**
+     * The round's detection was switched off (before GO): the detector stops - the frames, the set-up test (untested,
+     * never failed: nobody could pass it), the photo sessions (their best still kept), the worker (terminated). What
+     * the device's own test decided before stays. Turned on again, everything starts as on a fresh page: one new worker.
+     */
+    switchOff(now) {
+        if (this.run !== 'off') {
+            this.runChanged(this.run, 'off', now);
+            this.run = 'off';
+        }
+
+        if (this.feed.isFeeding()) {
+            this.feed.stopFeed();
+        }
+
+        this.setUp = null;
+        this.autoTested = false;
+        this.endSessions();
+        this.machine = null;
+        this.machineKey = null;
+        this.flashUntilMs = null;
+        this.suppressedUntilMs = null;
+
+        if (this.worker !== null) {
+            try {
+                this.worker.postMessage({ type: 'dispose' });
+            } catch (e) {
+                // Gone already
+            }
+        }
+
+        this.terminateWorker();
+        this.workerDead = false;
+        this.stopped = null;
+        this.frameErrors = 0;
+        this.loadStartedAt = null;
+        this.state = STATE_OFF;
     }
 
     // ---- the worker

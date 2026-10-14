@@ -34,12 +34,12 @@ If a session stops, resume from here.
 4. Checks run with `python3.14` (or `python3` since PyYAML was installed for it).
 
 **Next steps, in order**
-1. GEST: review `reviews/GEST.md` (running) → fixes → GEST gate + sweep → push. Lane C: Platform feel part 1 (GEST-10 → GEST-18 → GEST-11, running).
-2. Delivery lane after the GEST gate: chrome weight diet (member margin 387 B), then Platform feel part 2 (GEST-12 → GEST-17 → GEST-19, GEST-16) → Platform feel review + gate.
+1. GEST: review `reviews/GEST.md` done (decisions in the log) → fixes (running in the delivery worktree) → GEST gate + sweep → push. Lane C: Platform feel part 1 (GEST-10 → GEST-18 → GEST-11, running).
+2. Delivery lane after the GEST gate (the weight diet is done, 340c042e): Platform feel part 2 (GEST-12 → GEST-17 → GEST-19, GEST-16) → Platform feel review + gate.
 3. Then Instant Back (GEST-14 → GEST-15 → GEST-08; then PROF-05c's snapshot path), LAUNCH + DOC, QA.
 
 **Open notes (QA / TODO)**
-- Chrome weight: after GEST-03…06 in C the member /en/faq growth is 30,333 of 30,720 B (387 B left), guest 15,600 of 20,480 - anything else on every page needs a diet first.
+- Chrome weight after the diet 340c042e: member /en/faq growth 27,406 of 30,720 B (3,314 B left), guest 13,581 of 20,480. Not taken (and why) in the diet's notes: the navigation's critical CSS is 13.2 KB of the member growth and repeats `app.css` box rules - the plan fixes it as is.
 - Flakes seen once and clean on re-run: HELP-04 desktop /en/hub "Tell us"; SRCH-01 guest sign-in console error; NAV-08 tab bar hide on the brand tom-select (300 ms); NAV-13 menu_counts at 820.
 - Clone data: the WJPC 2026 round-results page is 373 px wide at 360 (its "Add my time" button) - not navigation.
 - Owner sign-offs for the final report:
@@ -258,6 +258,7 @@ Decisions taken during delivery where the spec was silent (date · ID · decisio
 | 2026-10-14 | GEST review Q2 | Pull-to-refresh does not arm while the page has active form input (`_hasActiveFormInput()`) | a reload would throw a half-filled form away; the travel is now only ~128 px |
 | 2026-10-14 | GEST review Q3 | The Menu's place rows carry no new `data-nav-place`: the place is derived from the existing `mr--place` class and `data-nav` | 74 B on every page against a 387 B margin |
 | 2026-10-14 | GEST review F2 | The press ink is a custom property `--nav-press-ink` (default `var(--nav-pressed-pill)`) set to a visible ink on coral surfaces (Add tile/tab, the guest card's Sign in); GEST-11's ripple reads the same property | a 10 % coral-on-coral layer is invisible (≈ 1.01) |
+| 2026-10-14 | Weight diet | The Puzzles sections JSON (`data-puzzles-sections`) rides on the page's first Puzzles place link only (plan PUZ-01 said every place link); `puzzles_section.js` points every place link from it, the server href stays on all three (PUZ-01 review F2) | the same rule as the Inbox strings; 354 B member / 218 B guest on every page, no behaviour change (PuzzlesSectionScriptTest + PUZ-01 58/58) |
 
 ## Run log
 One line per session and per phase: date · what was done · next step.
@@ -301,6 +302,7 @@ One line per session and per phase: date · what was done · next step.
 | 2026-10-14 ~08:10 | Pushed c61d05bb (CARD gate). GEST-05/06/07 verified in C and committed (d47ffd3b); GEST-03…07 cherry-picked into the delivery branch clean (b4c53f2c, eb2f52e6); origin/main merged a9e80e3e (29 commits: online completeness check worker; clean, additive migration `online_media_check` applied to the clone, no new route, compete_controller's platform read pre-existing and allowed); C reset to a9e80e3e. Running: GEST gate `GEST-1`, fresh GEST review (read-only) → `reviews/GEST.md`, Platform feel part 1 in C (GEST-10 → GEST-18 → GEST-11). Next in the delivery lane after the GEST gate: a chrome weight diet (member margin 387 B) before part 2 (GEST-12 → GEST-17 → GEST-19, GEST-16) |
 | 2026-10-14 ~08:30 | First GEST gate `GEST-1` at a9e80e3e: phpstan [OK] · cs 0 · schema in sync · ParaTest 12617 OK (27 notices, 5 skipped). Chrome weight diet started in the delivery worktree (goal: ≥ 2,000 B member back, no behaviour change); GEST review fixes follow it |
 | 2026-10-14 ~08:55 | GEST review `reviews/GEST.md`: 0 blocker · 2 major (the top bar's + Add discards a half-filled add form from 768 px; pressing the coral Add shows nothing) · 7 minor · Q1–Q3 decided (decisions log); the standalone test flag is webdriver-only, no test weakened. Fixes follow the weight diet in the delivery worktree; GEST-11 in C told about the ink property (F2) |
+| 2026-10-14 ~09:40 | Chrome weight diet committed 340c042e: member +27,406 B (was 30,333; budget 30,720), guest +13,581 B (was 15,600; budget 20,480), no behaviour change (json_attribute single-quoted JSON attributes, one locale save per list, Puzzles sections JSON on one link, compact sprite paths, critical CSS compacted at compile time). Orchestrator re-ran: 581 tests OK (tests/Navigation, tests/Twig, PuzzlesSection*), phpstan [OK], cs 0; browser under the lock NAV-03 96, NAV-04 95, MENU-02b 80, MENU-03 40, FOOT-01 69, PUZ-01 58 + 1 SKIP, NAV-13 165, HELP-01b 60, GEST-04 21, SEARCH-CAMERA 27 - 0 FAIL; 22 of 24 before/after screenshots pixel-identical, 2 differ only in the anti-aliasing of the footer language button's focus-ring corner (a 124 × 3 px strip). GEST review fixes started in the delivery worktree |
 
 ## Final report
 (written at the end: what shipped, evidence summary, blocked items with options, owner steps — README §11)

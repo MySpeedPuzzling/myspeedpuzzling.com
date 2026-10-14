@@ -45,9 +45,9 @@ final readonly class OnlineRoundSettingsLiveUpdates
      */
     public function settingsChanged(string $roundId): null|string
     {
-        $this->onlineAccessLight->forgetRound($roundId);
-
         try {
+            // A cache that fails never fails the save either - the hashes then turn over within ROUND_HASH_TTL_SECONDS
+            $this->onlineAccessLight->forgetRound($roundId);
             $onlineRound = $this->onlineRoundRepository->ofRound($roundId);
 
             if ($onlineRound === null) {

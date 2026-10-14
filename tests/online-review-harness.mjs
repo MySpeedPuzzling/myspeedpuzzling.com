@@ -4,11 +4,13 @@
 
 import assert from 'node:assert/strict';
 import {
+    finishMoments,
     formatAdjustment,
     formatElapsed,
     frameSlices,
     momentConfirmation,
     nearestFrame,
+    nextMoment,
     nextToReview,
     piecesConfirmation,
     piecesPlaced,
@@ -20,6 +22,7 @@ import {
 import {
     agoParts,
     countsOf,
+    detectorStatus,
     matchesFilter,
     ONLINE_FRESH_MS,
     participantView,
@@ -301,6 +304,86 @@ const scenarios = {
         assert.equal(view.finishElapsedMs, TAP - START);
         assert.equal(view.finishAfterEnd, false);
         assert.equal(participantView(finished, { serverNowMs: TAP + 1000, startedAtMs: START, endedAtMs: TAP - 1 }).finishAfterEnd, true);
+    },
+
+    async 'control room, detection on: raised hands count as a finish at once - the later of tap and detection is shown'() {
+        const DETECTED = TAP - 2_400;
+        const candidate = { eventId: 'c', momentMs: DETECTED, receivedAtMs: DETECTED + 900, count: 1 };
+        const context = { serverNowMs: TAP + 1000, startedAtMs: START, endedAtMs: null, detection: 'on' };
+
+        const detected = participantView(participant({ candidate }), context);
+        assert.equal(detected.finished, true);
+        assert.equal(detected.finishSource, 'detection');
+        assert.equal(detected.finishMomentMs, DETECTED);
+        assert.equal(detected.finishElapsedMs, DETECTED - START);
+        assert.equal(detected.detectedElapsedMs, DETECTED - START);
+        assert.equal(detected.tapElapsedMs, null);
+        assert.deepEqual(countsOf([detected]).finished, 1, 'counted as finished');
+        assert.equal(matchesFilter(detected, 'finished'), true);
+
+        // A tap after the detection: the tap is shown, the detection stays readable next to it
+        const both = participantView(participant({ candidate, finish: { eventId: 't', momentMs: TAP, receivedAtMs: TAP + 300 } }), context);
+        assert.equal(both.finishSource, 'button');
+        assert.equal(both.finishMomentMs, TAP);
+        assert.equal(both.detectedElapsedMs, DETECTED - START);
+
+        // Raised again after a tap (a piece was missing): the newer detection
+        const later = participantView(participant({ candidate: { ...candidate, momentMs: TAP + 30_000 }, finish: { eventId: 't', momentMs: TAP, receivedAtMs: TAP } }), context);
+        assert.equal(later.finishSource, 'detection');
+        assert.equal(later.tapElapsedMs, TAP - START);
+
+        // Shadow and off: a candidate is never a finish on the tile - the participant did not see it
+        for (const detection of ['shadow', 'off', undefined]) {
+            const view = participantView(participant({ candidate }), { ...context, detection });
+            assert.equal(view.finished, false, String(detection));
+            assert.equal(view.detectedElapsedMs, null);
+        }
+    },
+
+    async 'control room: the phone\'s detector - ready, loading, button only - only while the round detects'() {
+        const withDetector = (detector) => participant({ presence: { ...participant().presence, detector } });
+
+        assert.equal(detectorStatus(withDetector({ state: 'ready', fps: 4.8 }), 'on'), 'ready');
+        assert.equal(detectorStatus(withDetector({ state: 'loading' }), 'shadow'), 'loading');
+        assert.equal(detectorStatus(withDetector({ state: 'unsupported' }), 'on'), 'button_only');
+        assert.equal(detectorStatus(withDetector({ state: 'error' }), 'on'), 'button_only');
+        assert.equal(detectorStatus(withDetector({ state: 'off' }), 'on'), 'button_only', 'switched off on the phone (a failed set-up test)');
+        assert.equal(detectorStatus(withDetector({ state: 'weird' }), 'on'), 'unknown');
+        assert.equal(detectorStatus(participant(), 'on'), 'unknown', 'a heartbeat without a detector (an older page)');
+        assert.equal(detectorStatus(participant({ presence: null }), 'on'), 'unknown');
+        assert.equal(detectorStatus(withDetector({ state: 'ready' }), 'off'), null, 'the round does not detect');
+        assert.equal(participantView(withDetector({ state: 'ready' }), { serverNowMs: START, detection: 'on' }).detector, 'ready');
+        assert.equal(participantView(withDetector({ state: 'ready' }), { serverNowMs: START }).detector, null);
+    },
+
+    async 'review: taps and raised hands in time, G steps to the next, a candidate confirms as detection'() {
+        const taps = [{ eventId: 't-1', momentMs: TAP }, { eventId: 't-2', momentMs: TAP + 60_000 }];
+        const candidates = [{ eventId: 'c-1', momentMs: TAP - 30_000 }, { eventId: 'c-2', momentMs: TAP }];
+        const moments = finishMoments(taps, candidates);
+
+        assert.deepEqual(moments.map((moment) => [moment.kind, moment.id, moment.number]), [
+            ['candidate', 'c-1', 1],
+            ['candidate', 'c-2', 2],
+            ['tap', 't-1', 1],
+            ['tap', 't-2', 2],
+        ], 'in time, each kind numbered on its own; a candidate first on the same millisecond');
+        assert.equal(nextMoment(moments, 'c-1').id, 'c-2');
+        assert.equal(nextMoment(moments, 't-1').id, 't-2');
+        assert.equal(nextMoment(moments, 't-2'), null, 'the last one');
+        assert.equal(nextMoment(moments, 'nope'), null);
+        assert.deepEqual(finishMoments(null, [{ eventId: 'x' }, null]), [], 'nothing usable');
+
+        assert.deepEqual(momentConfirmation(TAP - 30_000, taps, candidates), { momentMs: TAP - 30_000, source: 'detection', pieces: null });
+        assert.deepEqual(momentConfirmation(TAP, taps, candidates).source, 'detection', 'a tap and a candidate on one millisecond: the detection');
+        assert.deepEqual(momentConfirmation(TAP + 60_000, taps, candidates).source, 'button');
+        assert.deepEqual(momentConfirmation(TAP + 60_000.4, taps, candidates).source, 'button', 'rounded first');
+        assert.deepEqual(momentConfirmation(TAP - 29_900, taps, candidates).source, 'reviewer', 'a frame the reviewer moved to');
+        assert.deepEqual(momentConfirmation(TAP + 60_000, taps).source, 'button', 'Phase 1 calls - no candidates');
+
+        assert.equal(reviewKey({ key: 'g', target: document() }), 'gap');
+        assert.equal(reviewKey({ key: 'G', target: document() }), 'gap');
+        assert.equal(reviewKey({ key: 'g', target: { tagName: 'INPUT', type: 'number' } }), null, 'typing pieces');
+        assert.equal(reviewKey({ key: 'g', target: document(), ctrlKey: true }), null);
     },
 
     async 'control room: counts and filters'() {

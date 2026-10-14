@@ -11,7 +11,8 @@ use SpeedPuzzling\Web\Value\RoundEntryResult;
  * One participant of an online round's review list (docs/features/online-competitions/README.md §5.9): who, the status
  * (OnlineReviewAssessment: needs a look / confirmed / unfinished / no finish), the suggested official result, the
  * official result the entry holds now, the confirmed decision (moment, source, when) and the reviewer's adjustment
- * against the nearest tap, the flags, how many taps there are.
+ * against the nearest tap, the flags, how many taps there are - and (Phase 2) how many finish candidates, and the
+ * detection error of a confirmed finish (confirmed − the candidate it was detected by, OnlineReviewAssessment).
  */
 readonly final class OnlineReviewEntry implements \JsonSerializable
 {
@@ -35,6 +36,8 @@ readonly final class OnlineReviewEntry implements \JsonSerializable
         public array $flags,
         public int $taps,
         public null|int $readyAtMs,
+        public int $candidates = 0,
+        public null|int $detectionErrorMs = null,
     ) {
     }
 
@@ -57,10 +60,12 @@ readonly final class OnlineReviewEntry implements \JsonSerializable
                 'source' => $this->confirmedSource,
                 'reviewedAtMs' => $this->reviewedAtMs,
                 'adjustmentMs' => $this->adjustmentMs,
+                'detectionErrorMs' => $this->detectionErrorMs,
             ],
             'flags' => $this->flags,
             'taps' => $this->taps,
             'readyAtMs' => $this->readyAtMs,
+            'candidates' => $this->candidates,
         ];
     }
 }

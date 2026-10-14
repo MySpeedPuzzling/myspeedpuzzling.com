@@ -14,7 +14,9 @@ use SpeedPuzzling\Web\Entity\OnlineEntry;
 use SpeedPuzzling\Web\Entity\OnlineEntryEvent;
 use SpeedPuzzling\Web\Entity\OnlineEntryMedia;
 use SpeedPuzzling\Web\Repository\OnlineEntryRepository;
+use SpeedPuzzling\Web\Repository\OnlineRoundRepository;
 use SpeedPuzzling\Web\Tests\DataFixtures\OnlineRoundsFixture;
+use SpeedPuzzling\Web\Value\OnlineDetectionMode;
 use SpeedPuzzling\Web\Value\OnlineEventType;
 use SpeedPuzzling\Web\Value\OnlineMediaKind;
 use SpeedPuzzling\Web\Value\OnlineMediaStore;
@@ -117,6 +119,51 @@ trait OnlineReviewSeeding
     private function finishTap(OnlineEntry $onlineEntry, int $momentMs, null|int $receivedAtMs = null): string
     {
         return $this->phoneEvent($onlineEntry, OnlineEventType::FinishButton, $momentMs, [], $receivedAtMs);
+    }
+
+    /**
+     * Raised hands the phone's detector held (Phase 2) - the payload as compete page sends it, overridable
+     *
+     * @param array<string, mixed> $payload
+     */
+    private function finishCandidate(
+        OnlineEntry $onlineEntry,
+        int $momentMs,
+        array $payload = [],
+        null|int $receivedAtMs = null,
+        string $deviceId = OnlineRoundsFixture::DEVICE_CONNECTED,
+    ): string {
+        return $this->phoneEvent($onlineEntry, OnlineEventType::FinishCandidate, $momentMs, [
+            'candidateId' => 1,
+            'detectedAtMs' => $momentMs + 520,
+            'windowFromMs' => $momentMs,
+            'windowToMs' => $momentMs + 520,
+            'heldMs' => 520,
+            'score' => 0.86,
+            'view' => 'angled',
+            'mode' => 'on',
+            'machineVersion' => 1,
+            ...$payload,
+        ], $receivedAtMs, $deviceId);
+    }
+
+    /**
+     * The fixture's online round with this finish detection (its other settings kept)
+     */
+    private function detectionMode(OnlineDetectionMode $mode): void
+    {
+        $onlineRound = self::getContainer()->get(OnlineRoundRepository::class)->ofRound(OnlineRoundsFixture::ROUND_ONLINE_SOLO);
+        assert($onlineRound !== null);
+        $onlineRound->changeSettings(
+            detectionMode: $mode,
+            videoEnabled: $onlineRound->videoEnabled,
+            participantsSeeEachOther: $onlineRound->participantsSeeEachOther,
+            studioEnabled: $onlineRound->studioEnabled,
+            recordingEnabled: $onlineRound->recordingEnabled,
+            unfinishedMeasure: $onlineRound->unfinishedMeasure,
+            missingPieceRule: $onlineRound->missingPieceRule,
+        );
+        $this->entityManager()->flush();
     }
 
     private function undoTap(OnlineEntry $onlineEntry, string $tapId, int $atMs): string

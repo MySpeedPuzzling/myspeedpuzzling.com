@@ -8,14 +8,16 @@ use SpeedPuzzling\Web\Value\OnlineReviewAssessment;
 use SpeedPuzzling\Web\Value\RoundEntryResult;
 
 /**
- * One participant of the online accuracy report (docs/features/online-competitions/README.md §5.9, Phase 1): the tap
- * the review stands on - the one nearest to the confirmed moment, before a confirmation the suggested one -, the
- * confirmed moment, the reviewer's adjustment (confirmed − tap), where the confirmed moment came from, and how late the
- * tap arrived. Moments in epoch ms, elapsed times since the round's start.
+ * One participant of the online accuracy report (docs/features/online-competitions/README.md §5.9): the tap the review
+ * stands on - the one nearest to the confirmed moment, before a confirmation the suggested one -, the confirmed moment,
+ * the reviewer's adjustment (confirmed − tap), where the confirmed moment came from, and how late the tap arrived.
+ * Moments in epoch ms, elapsed times since the round's start.
  *
- * Phase 2 adds the detection here: the detected moment (the finish candidate nearest to the confirmed moment), the
- * detection error (confirmed − detected) and the delta (tap − detected) - columns next to the adjustment, measured like
- * it (OnlineAccuracy::MEASURES).
+ * Phase 2 - the detection (OnlineReviewAssessment): the detected moment (the finish candidate the finish was detected
+ * by - nearest to the confirmed moment within 10 s; before a confirmation the suggested one, else the one nearest to
+ * the tap), the detection error (confirmed − detected) and the delta (tap − the candidate nearest to it), the missed
+ * raises (taps without a candidate) and false raises (candidates neither the finish nor near a tap) - null while the
+ * round's detection is off -, the camera view the phone's detector used and the phone (OnlineDeviceLabel).
  */
 readonly final class OnlineAccuracyRow
 {
@@ -34,6 +36,16 @@ readonly final class OnlineAccuracyRow
         public null|string $source,
         public null|int $arrivedLateMs,
         public RoundEntryResult $official,
+        public null|int $detectedMomentMs = null,
+        public null|int $detectedElapsedMs = null,
+        public null|int $detectionErrorMs = null,
+        public null|int $deltaMs = null,
+        public null|int $missedRaises = null,
+        public null|int $falseRaises = null,
+        // angled | topDown - null when the phone's detector never said
+        public null|string $view = null,
+        public null|string $device = null,
+        public null|string $browser = null,
     ) {
     }
 }

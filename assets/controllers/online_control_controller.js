@@ -483,7 +483,7 @@ export default class extends Controller {
         const participants = Array.isArray(this.state.participants) ? this.state.participants : [];
         const views = participants.map((participant) => ({
             participant,
-            view: participantView(participant, { serverNowMs, startedAtMs: round.startedAtMs, endedAtMs: round.endedAtMs }),
+            view: participantView(participant, { serverNowMs, startedAtMs: round.startedAtMs, endedAtMs: round.endedAtMs, detection: this.state.detection ?? 'off' }),
         }));
 
         this.renderCounts(countsOf(views.map((item) => item.view)));
@@ -643,17 +643,41 @@ export default class extends Controller {
             chips.push(['warn', this.t('tile_other_device')]);
         }
 
+        // The phone's finish detector (detection shadow / on) - "button only" when it can not run there
+        if (view.detector === 'ready') {
+            chips.push(['ok', this.t('tile_detector_ready')]);
+        } else if (view.detector === 'loading') {
+            chips.push(['warn', this.t('tile_detector_loading')]);
+        } else if (view.detector === 'button_only') {
+            chips.push(['warn', this.t('tile_detector_button_only')]);
+        }
+
         if (view.confirmed) {
             chips.push(['ok', this.t('tile_confirmed')]);
         }
 
         let finish = '';
         let finishKind = '';
+        const clock = (ms) => (ms === null ? '' : formatClock(ms));
 
         if (view.finished) {
-            finish = view.finishAfterEnd
-                ? this.t('tile_finished_after_end')
-                : this.t('tile_finished', { time: view.finishElapsedMs === null ? '' : formatClock(view.finishElapsedMs) });
+            if (view.finishAfterEnd) {
+                finish = this.t('tile_finished_after_end');
+            } else if (view.finishSource === 'detection') {
+                finish = this.t('tile_finished_detected', { time: clock(view.finishElapsedMs) });
+
+                if (view.tapElapsedMs !== null) {
+                    finish += ` · ${this.t('tile_tap_at', { time: clock(view.tapElapsedMs) })}`;
+                }
+            } else {
+                finish = this.t('tile_finished', { time: clock(view.finishElapsedMs) });
+
+                // Raised hands detected before the tap - both moments for the moderator
+                if (view.detectedElapsedMs !== null) {
+                    finish += ` · ${this.t('tile_detected_at', { time: clock(view.detectedElapsedMs) })}`;
+                }
+            }
+
             finishKind = view.finishAfterEnd ? 'warn' : 'ok';
         } else if (view.reported) {
             finish = view.reported.measure === 'placed'

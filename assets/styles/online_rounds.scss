@@ -432,6 +432,16 @@
     font-variant-numeric: tabular-nums;
 }
 
+// Phase 2: the detection error and the delta, side by side from a tablet up
+.online-accuracy-measures {
+    display: grid;
+    gap: 0 1rem;
+
+    @media (min-width: 768px) {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
 // ---------------------------------------------------------------- VM: the console's live video, the host's studio
 // (docs/features/online-competitions/contracts/phase-1b.md stream VM - assets/online/console_video.js,
 // assets/controllers/online_studio_controller.js)

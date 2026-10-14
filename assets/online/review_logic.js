@@ -7,11 +7,13 @@
  *   the frames the scrubber shows - in capture order, only those that lie inside the object;
  * - the moment the reviewer settles on is a frame's capture time rounded to the millisecond (the server accepts only
  *   moments the phone recorded - GetOnlineEntryRecordedMoments); its source is `button` when it is a tap's own moment,
- *   `reviewer` when the reviewer moved it;
+ *   `detection` when it is a finish candidate's (Phase 2), `reviewer` when the reviewer moved it; finishMoments() /
+ *   nextMoment() = the taps and candidates in time, the `G` key's step;
  * - the official time of a moment: floor((moment − start) / 1000) s (round_state.js resultSeconds());
  * - summarize(): count, median, quartiles and IQR by linear interpolation between the closest ranks - the same numbers
  *   as the accuracy report's AccuracySummary (PHP), pinned by the same cases on both sides;
- * - reviewKey(): ↑/↓ participants, ←/→ frames, C confirm, U unfinished - never while the reviewer types.
+ * - reviewKey(): ↑/↓ participants, ←/→ frames, C confirm, G gap (next moment), U unfinished - never while the reviewer
+ *   types.
  */
 
 import { formatClock, resultSeconds } from './round_state.js';
@@ -82,22 +84,62 @@ export function stepIndex(index, delta, count) {
 }
 
 /**
- * What a confirmation sends for a moment: the moment in whole milliseconds and where it came from - `button` when it
- * is the moment of one of the participant's taps, else `reviewer` (a frame the reviewer picked).
+ * What a confirmation sends for a moment: the moment in whole milliseconds and where it came from - `detection` when it
+ * is the moment of one of the phone's finish candidates (raised hands it detected - Phase 2), `button` when it is the
+ * moment of one of the participant's taps, else `reviewer` (a frame the reviewer picked). A moment that is both (a tap
+ * and a candidate in the same millisecond) is the detection's: the review stood on the candidate.
  *
  * @param {number} momentMs
  * @param {Array<{momentMs: number}>} taps
- * @returns {{momentMs: number, source: 'button'|'reviewer', pieces: null}|null}
+ * @param {Array<{momentMs: number}>} [candidates]
+ * @returns {{momentMs: number, source: 'button'|'detection'|'reviewer', pieces: null}|null}
  */
-export function momentConfirmation(momentMs, taps = []) {
+export function momentConfirmation(momentMs, taps = [], candidates = []) {
     if (!Number.isFinite(momentMs)) {
         return null;
     }
 
     const moment = Math.round(momentMs);
-    const isTap = Array.isArray(taps) && taps.some((tap) => tap && tap.momentMs === moment);
+    const isAt = (list) => Array.isArray(list) && list.some((item) => item && item.momentMs === moment);
+    let source = 'reviewer';
 
-    return { momentMs: moment, source: isTap ? 'button' : 'reviewer', pieces: null };
+    if (isAt(candidates)) {
+        source = 'detection';
+    } else if (isAt(taps)) {
+        source = 'button';
+    }
+
+    return { momentMs: moment, source, pieces: null };
+}
+
+/**
+ * The finish moments of a participant the review steps through (README §5.9: the candidates with their photos, the
+ * taps): every tap and every finish candidate, in time - `{kind: 'tap'|'candidate', id, momentMs, item}`, each kind
+ * numbered from 1 in its own order (`number`); on the same millisecond the candidate first.
+ *
+ * @param {Array<{eventId: string, momentMs: number}>} taps
+ * @param {Array<{eventId: string, momentMs: number}>} candidates
+ */
+export function finishMoments(taps = [], candidates = []) {
+    const list = [];
+    const add = (items, kind) => (Array.isArray(items) ? items : [])
+        .filter((item) => item && typeof item.eventId === 'string' && Number.isFinite(item.momentMs))
+        .forEach((item, index) => list.push({ kind, id: item.eventId, momentMs: item.momentMs, number: index + 1, item }));
+
+    add(candidates, 'candidate');
+    add(taps, 'tap');
+
+    return list.sort((a, b) => a.momentMs - b.momentMs || (a.kind === b.kind ? 0 : (a.kind === 'candidate' ? -1 : 1)));
+}
+
+/**
+ * The moment after `id` among finishMoments() - the reviewer's `G` (the photo shows a gap: on to the next raise or tap).
+ * Null at the last one, or when `id` is not among them.
+ */
+export function nextMoment(moments, id) {
+    const index = (Array.isArray(moments) ? moments : []).findIndex((moment) => moment.id === id);
+
+    return index === -1 || index + 1 >= moments.length ? null : moments[index + 1];
 }
 
 /**
@@ -199,12 +241,12 @@ export function summarize(values) {
 }
 
 /**
- * The review's keys: ↑/↓ the participants, ←/→ the frames, C confirm, U unfinished. Nothing while the reviewer types
- * (an input - but the frame slider, which takes ←/→ itself -, a select, a text area, an editable element) or holds a
- * modifier - the browser's own shortcuts stay.
+ * The review's keys: ↑/↓ the participants, ←/→ the frames, C confirm, G gap (the photo shows a gap - on to the next
+ * moment), U unfinished. Nothing while the reviewer types (an input - but the frame slider, which takes ←/→ itself -, a
+ * select, a text area, an editable element) or holds a modifier - the browser's own shortcuts stay.
  *
  * @param {{key: string, target?: {tagName?: string, isContentEditable?: boolean, type?: string}, ctrlKey?: boolean, metaKey?: boolean, altKey?: boolean}} event
- * @returns {'up'|'down'|'left'|'right'|'confirm'|'unfinished'|null}
+ * @returns {'up'|'down'|'left'|'right'|'confirm'|'gap'|'unfinished'|null}
  */
 export function reviewKey(event) {
     if (!event || event.ctrlKey || event.metaKey || event.altKey) {
@@ -237,6 +279,9 @@ export function reviewKey(event) {
         case 'c':
         case 'C':
             return 'confirm';
+        case 'g':
+        case 'G':
+            return 'gap';
         case 'u':
         case 'U':
             return 'unfinished';

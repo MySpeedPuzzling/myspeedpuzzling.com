@@ -17,7 +17,8 @@ use SpeedPuzzling\Web\Value\OnlineMediaKind;
  * participant entered in the round and going (CompetitionParticipantGoing), with their online entry's summary - ready,
  * the device holding it, the clock quality at ready, what they reported at time-up, the review status and flags -, the
  * last Finished tap not undone of the round's current run (a `finish.button.undone` names the tap it takes back:
- * `{eventId}`; a run is one start of the round clock - an earlier run's taps lie before its start) and the latest
+ * `{eventId}`; a run is one start of the round clock - an earlier run's taps lie before its start), the latest finish
+ * candidate of the run (Phase 2: raised hands the phone's detector held - with how many the run has) and the latest
  * uploaded periodic photo. One statement, whatever the number of participants; the photos' rows in one more
  * (latestPhotos()) - pinned by OnlineLiveQueryBudgetTest.
  *
@@ -37,6 +38,10 @@ use SpeedPuzzling\Web\Value\OnlineMediaKind;
  *     tap_id: null|string,
  *     tap_ms: null|int,
  *     tap_received_ms: null|int,
+ *     candidate_id: null|string,
+ *     candidate_ms: null|int,
+ *     candidate_received_ms: null|int,
+ *     candidate_count: int,
  *     photo_id: null|string,
  *     photo_taken_ms: null|int,
  * }
@@ -80,6 +85,10 @@ SELECT
     tap.id AS tap_id,
     tap.client_ms AS tap_ms,
     tap.received_at_ms AS tap_received_ms,
+    candidate.id AS candidate_id,
+    candidate.client_ms AS candidate_ms,
+    candidate.received_at_ms AS candidate_received_ms,
+    candidate.candidates AS candidate_count,
     photo.id AS photo_id,
     photo.taken_ms AS photo_taken_ms
 FROM competition_participant_round cpr
@@ -102,6 +111,15 @@ LEFT JOIN LATERAL (
     LIMIT 1
 ) tap ON TRUE
 LEFT JOIN LATERAL (
+    SELECT e.id, e.client_ms, e.received_at_ms, COUNT(*) OVER () AS candidates
+    FROM online_entry_event e
+    WHERE e.online_entry_id = oe.id
+        AND e.type = :candidate
+        {$tapOfTheRun}
+    ORDER BY e.client_ms DESC
+    LIMIT 1
+) candidate ON TRUE
+LEFT JOIN LATERAL (
     SELECT m.id, m.taken_ms
     FROM online_entry_media m
     WHERE m.online_entry_id = oe.id
@@ -118,6 +136,7 @@ SQL,
                 'roundId' => strtolower($roundId),
                 'tap' => OnlineEventType::FinishButton->value,
                 'undone' => OnlineEventType::FinishButtonUndone->value,
+                'candidate' => OnlineEventType::FinishCandidate->value,
                 'periodic' => OnlineMediaKind::Periodic->value,
                 ...($runStartedAtMs === null ? [] : ['runStartedAtMs' => $runStartedAtMs]),
             ],
@@ -182,6 +201,10 @@ SQL,
             'tap_id' => self::string($row['tap_id']),
             'tap_ms' => self::integer($row['tap_ms']),
             'tap_received_ms' => self::integer($row['tap_received_ms']),
+            'candidate_id' => self::string($row['candidate_id']),
+            'candidate_ms' => self::integer($row['candidate_ms']),
+            'candidate_received_ms' => self::integer($row['candidate_received_ms']),
+            'candidate_count' => self::integer($row['candidate_count']) ?? 0,
             'photo_id' => self::string($row['photo_id']),
             'photo_taken_ms' => self::integer($row['photo_taken_ms']),
         ];

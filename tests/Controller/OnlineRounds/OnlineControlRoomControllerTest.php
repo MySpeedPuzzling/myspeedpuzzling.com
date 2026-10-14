@@ -14,6 +14,7 @@ use SpeedPuzzling\Web\Tests\OnlineReviewSeeding;
 use SpeedPuzzling\Web\Tests\OverridesFeatureFlagEnv;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use SpeedPuzzling\Web\Tests\TestingViewer;
+use SpeedPuzzling\Web\Value\OnlineDetectionMode;
 use SpeedPuzzling\Web\Value\OnlineMediaKind;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -224,7 +225,12 @@ final class OnlineControlRoomControllerTest extends WebTestCase
             'camera' => ['ok' => true, 'w' => 1920, 'h' => 1080, 'fps' => 30],
             'clock' => ['offsetMs' => -12.5, 'rttMs' => 38],
             'outbox' => ['events' => 0, 'media' => 2],
+            'detector' => null,
         ], $olivia['presence']);
+        // Phase 2: the round's detection (off in the fixture) and no candidate
+        self::assertSame('off', $state['detection'] ?? null);
+        self::assertArrayHasKey('candidate', $olivia);
+        self::assertNull($olivia['candidate']);
         self::assertSame(['deviceId' => 'laptop', 'lastSeenMs' => $nowMs - 5_000], $olivia['otherDevice']);
         // The last tap not taken back
         self::assertIsArray($olivia['finish']);
@@ -274,6 +280,52 @@ final class OnlineControlRoomControllerTest extends WebTestCase
         $finish = $this->olivia($browser)['finish'] ?? null;
         self::assertIsArray($finish);
         self::assertSame($startMs + 120_000, $finish['momentMs']);
+    }
+
+    /**
+     * Phase 2 (detection on): the latest finish candidate of the run with how many the run has - an earlier run's is
+     * none -, the round's detection mode and the phone's detector as its heartbeat reports it (types checked again)
+     */
+    public function testTheLiveStateCarriesTheDetection(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+        $browser->disableReboot();
+
+        $this->detectionMode(OnlineDetectionMode::On);
+        $startMs = $this->startOnlineRound(1200);
+        $onlineEntry = $this->onlineEntryOf(OnlineRoundsFixture::ENTRY_CONNECTED);
+        // An earlier run's raise, then two of this run
+        $this->finishCandidate($onlineEntry, $startMs - 60_000);
+        $this->finishCandidate($onlineEntry, $startMs + 900_000);
+        $latestId = $this->finishCandidate($onlineEntry, $startMs + 1_000_000, receivedAtMs: $startMs + 1_000_800);
+        $nowMs = (int) floor(microtime(true) * 1000);
+        $this->presence()->beat(self::ROUND, OnlineRoundsFixture::PARTICIPANT_CONNECTED, [
+            'deviceId' => OnlineRoundsFixture::DEVICE_CONNECTED,
+            'visible' => true,
+            'detector' => ['ok' => true, 'fps' => 4.8, 'mode' => 'on', 'state' => 'ready', 'inferenceMs' => 92.5, 'view' => 'angled'],
+        ], $nowMs);
+
+        $browser->request('GET', self::LIVE, server: ['HTTP_ACCEPT' => 'application/json']);
+
+        self::assertResponseIsSuccessful();
+        self::assertSame('on', $this->json($browser)['detection'] ?? null);
+        $olivia = $this->olivia($browser);
+        self::assertSame(['eventId' => $latestId, 'momentMs' => $startMs + 1_000_000, 'receivedAtMs' => $startMs + 1_000_800, 'count' => 2], $olivia['candidate']);
+        self::assertNull($olivia['finish'], 'no tap - the page decides a candidate is a finish (detection on)');
+        $presence = $olivia['presence'];
+        self::assertIsArray($presence);
+        self::assertSame(['ok' => true, 'fps' => 4.8, 'mode' => 'on', 'state' => 'ready', 'inferenceMs' => 92.5, 'view' => 'angled'], $presence['detector']);
+
+        // What a phone made up is not believed
+        $this->presence()->beat(self::ROUND, OnlineRoundsFixture::PARTICIPANT_CONNECTED, [
+            'deviceId' => OnlineRoundsFixture::DEVICE_CONNECTED,
+            'detector' => ['ok' => 'yes', 'fps' => 'fast', 'state' => 'superb', 'view' => 'sideways'],
+        ], $nowMs);
+        $browser->request('GET', self::LIVE, server: ['HTTP_ACCEPT' => 'application/json']);
+        $presence = $this->olivia($browser)['presence'];
+        self::assertIsArray($presence);
+        self::assertSame(['ok' => null, 'fps' => null, 'mode' => null, 'state' => null, 'inferenceMs' => null, 'view' => null], $presence['detector']);
     }
 
     /**

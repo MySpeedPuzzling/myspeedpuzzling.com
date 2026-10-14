@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Value;
 
+use SpeedPuzzling\Web\Results\OnlineReviewCandidate;
 use SpeedPuzzling\Web\Results\OnlineReviewFlag;
 use SpeedPuzzling\Web\Results\OnlineReviewSuggestion;
 use SpeedPuzzling\Web\Results\OnlineReviewTap;
@@ -17,8 +18,13 @@ use SpeedPuzzling\Web\Results\OnlineReviewTap;
  * - **Taps**: every `finish.button`; one named by a `finish.button.undone` (`{eventId}`) is undone. A tap before the
  *   start (an earlier run's - Finished works only while a round runs) or after the end (the stop or the time limit,
  *   whichever came first) does not count.
- * - **Suggestion** (OnlineReviewSuggestion): the last tap that counts - the moment the participant's own page shows as
- *   their finish (compete_flow.js currentFinish()) - else the pieces reported at time-up, else none.
+ * - **Candidates** (Phase 2, OnlineReviewCandidate): every `finish.candidate` - raised hands the phone's detector held;
+ *   one counts inside the round (a candidate has no undo), placed against the round like a tap.
+ * - **Suggestion** (OnlineReviewSuggestion): in a round whose detection is `on`, the first candidate that counts (README
+ *   §5.9: the official finish is the first candidate whose photo shows a complete puzzle - the reviewer looks at it and
+ *   moves on with `G` when it shows a gap); otherwise - and in `shadow` / `off` always - the last tap that counts - the
+ *   moment the participant's own page shows as their finish (compete_flow.js currentFinish()) - else the pieces
+ *   reported at time-up, else none.
  * - **Status**: `confirmed` once a reviewer confirmed it; otherwise by the suggestion: `needs_look` (a finish to
  *   confirm), `unfinished` (pieces to confirm), `no_finish`.
  * - **Flags** (OnlineReviewFlag, README §7): a tap of the run that arrived LATE_ARRIVAL_MS or more after its moment
@@ -30,13 +36,24 @@ use SpeedPuzzling\Web\Results\OnlineReviewTap;
  *   and every device that sent anything since); more than one tap that counts; taps after the end; and whatever the
  *   entry stores itself.
  * - **Adjustment**: a confirmed moment against the tap of the run nearest to it - confirmed − tap, the reviewer's
- *   correction (the accuracy report). Phase 2 adds the detection error the same way, against the finish candidates.
+ *   correction (the accuracy report).
+ * - **Detection** (Phase 2, the accuracy report - README §5.9): the detected candidate is the counting candidate
+ *   nearest to the confirmed moment within MATCH_WINDOW_MS - before a confirmation the suggested one, else the one
+ *   nearest to the reference tap, else the first; the **detection error** = confirmed − detected; the **delta** = the
+ *   reference tap (the adjusted one, else the last tap that counts) − the counting candidate nearest to it within the
+ *   window. With detection on (`shadow` / `on`): **missed raises** = counting taps without a counting candidate within
+ *   the window; **false raises** = counting candidates that are not the finish (the confirmed one; before a
+ *   confirmation the suggested one) and lie outside the window of every counting tap.
  *
  * @phpstan-import-type OnlineReviewEventRow from \SpeedPuzzling\Web\Query\GetOnlineReviewData
  */
 final readonly class OnlineReviewAssessment
 {
     public const int LATE_ARRIVAL_MS = 30_000;
+    // A tap and a candidate (or a confirmed moment and a candidate) this close are the same finish
+    public const int MATCH_WINDOW_MS = 10_000;
+    // The camera views the phone's detector reports (assets/online/hands_up_signal.js)
+    public const array VIEWS = ['angled', 'topDown'];
     // How much of the late window does not count as "heard from" - an event sent in the same moment as the tap
     public const int HEARD_GRACE_MS = 5_000;
 
@@ -49,6 +66,7 @@ final readonly class OnlineReviewAssessment
      * @param list<OnlineReviewTap> $taps by moment
      * @param self::STATUS_* $status
      * @param list<OnlineReviewFlag> $flags
+     * @param list<OnlineReviewCandidate> $candidates by moment
      */
     private function __construct(
         public array $taps,
@@ -58,6 +76,18 @@ final readonly class OnlineReviewAssessment
         // The tap nearest to the confirmed moment, and confirmed − its moment
         public null|OnlineReviewTap $adjustedTap,
         public null|int $adjustmentMs,
+        public array $candidates = [],
+        // The tap the review stands on: the adjusted one, else the last tap that counts
+        public null|OnlineReviewTap $referenceTap = null,
+        // The candidate the finish was detected by, and confirmed − its moment (null before a confirmation)
+        public null|OnlineReviewCandidate $detectedCandidate = null,
+        public null|int $detectionErrorMs = null,
+        // The reference tap − the counting candidate nearest to it within MATCH_WINDOW_MS
+        public null|OnlineReviewCandidate $deltaCandidate = null,
+        public null|int $deltaMs = null,
+        // Null while the round's detection is off
+        public null|int $missedRaises = null,
+        public null|int $falseRaises = null,
     ) {
     }
 
@@ -75,14 +105,20 @@ final readonly class OnlineReviewAssessment
         null|int $piecesTotal,
         array $events,
         array $storedFlags = [],
+        OnlineDetectionMode $detection = OnlineDetectionMode::Off,
     ): self {
         usort($events, static fn (array $a, array $b): int => [$a['client_ms'], $a['id']] <=> [$b['client_ms'], $b['id']]);
 
         $taps = self::taps($clock, $events);
         $counting = array_values(array_filter($taps, static fn (OnlineReviewTap $tap): bool => $tap->counts()));
         $lastCounting = $counting === [] ? null : $counting[count($counting) - 1];
+        $candidates = self::candidates($clock, $events);
+        $countingCandidates = array_values(array_filter($candidates, static fn (OnlineReviewCandidate $candidate): bool => $candidate->counts()));
+        $firstCandidate = $countingCandidates[0] ?? null;
 
-        if ($lastCounting !== null && $lastCounting->seconds !== null) {
+        if ($detection === OnlineDetectionMode::On && $firstCandidate !== null && $firstCandidate->seconds !== null) {
+            $suggestion = OnlineReviewSuggestion::detected($firstCandidate, $firstCandidate->seconds);
+        } elseif ($lastCounting !== null && $lastCounting->seconds !== null) {
             $suggestion = OnlineReviewSuggestion::finished($lastCounting, $lastCounting->seconds);
         } elseif ($reportedPieces !== null) {
             $suggestion = OnlineReviewSuggestion::unfinished(self::piecesPlaced($reportedMeasure, $reportedPieces, $piecesTotal), $reportedMeasure, $reportedPieces);
@@ -110,6 +146,36 @@ final readonly class OnlineReviewAssessment
             }
         }
 
+        $referenceTap = $adjustedTap ?? $lastCounting;
+        $confirmedMoment = $confirmed ? $confirmedMomentMs : null;
+        $suggested = null;
+
+        foreach ($countingCandidates as $candidate) {
+            if ($candidate->eventId === $suggestion->candidateEventId) {
+                $suggested = $candidate;
+            }
+        }
+
+        $detectedCandidate = $confirmedMoment !== null
+            ? self::nearestCandidate($countingCandidates, $confirmedMoment)
+            : ($suggested ?? ($referenceTap === null ? null : self::nearestCandidate($countingCandidates, $referenceTap->momentMs)) ?? $firstCandidate);
+        $deltaCandidate = $referenceTap === null ? null : self::nearestCandidate($countingCandidates, $referenceTap->momentMs);
+        $missedRaises = null;
+        $falseRaises = null;
+
+        if ($detection !== OnlineDetectionMode::Off) {
+            $missedRaises = count(array_filter(
+                $counting,
+                static fn (OnlineReviewTap $tap): bool => self::nearestCandidate($countingCandidates, $tap->momentMs) === null,
+            ));
+            // The finish: the confirmed one - before a confirmation the suggested one is presumed it
+            $finish = $confirmedMoment !== null ? $detectedCandidate : $suggested;
+            $falseRaises = count(array_filter(
+                $countingCandidates,
+                static fn (OnlineReviewCandidate $candidate): bool => $candidate !== $finish && self::nearestTap($counting, $candidate->momentMs) === null,
+            ));
+        }
+
         return new self(
             taps: $taps,
             suggestion: $suggestion,
@@ -117,7 +183,55 @@ final readonly class OnlineReviewAssessment
             flags: self::flags($clock, $nowMs, $events, $runTaps, $counting, $storedFlags),
             adjustedTap: $adjustedTap,
             adjustmentMs: $adjustedTap === null || $confirmedMomentMs === null ? null : $confirmedMomentMs - $adjustedTap->momentMs,
+            candidates: $candidates,
+            referenceTap: $referenceTap,
+            detectedCandidate: $detectedCandidate,
+            detectionErrorMs: $confirmedMoment === null || $detectedCandidate === null ? null : $confirmedMoment - $detectedCandidate->momentMs,
+            deltaCandidate: $deltaCandidate,
+            deltaMs: $referenceTap === null || $deltaCandidate === null ? null : $referenceTap->momentMs - $deltaCandidate->momentMs,
+            missedRaises: $missedRaises,
+            falseRaises: $falseRaises,
         );
+    }
+
+    /**
+     * Of the candidates, the one nearest to a moment within MATCH_WINDOW_MS - the earlier one on a tie
+     *
+     * @param list<OnlineReviewCandidate> $candidates by moment
+     */
+    private static function nearestCandidate(array $candidates, int $momentMs): null|OnlineReviewCandidate
+    {
+        $nearest = null;
+
+        foreach ($candidates as $candidate) {
+            $distance = abs($candidate->momentMs - $momentMs);
+
+            if ($distance <= self::MATCH_WINDOW_MS && ($nearest === null || $distance < abs($nearest->momentMs - $momentMs))) {
+                $nearest = $candidate;
+            }
+        }
+
+        return $nearest;
+    }
+
+    /**
+     * Of the taps, the one nearest to a moment within MATCH_WINDOW_MS
+     *
+     * @param list<OnlineReviewTap> $taps
+     */
+    private static function nearestTap(array $taps, int $momentMs): null|OnlineReviewTap
+    {
+        $nearest = null;
+
+        foreach ($taps as $tap) {
+            $distance = abs($tap->momentMs - $momentMs);
+
+            if ($distance <= self::MATCH_WINDOW_MS && ($nearest === null || $distance < abs($nearest->momentMs - $momentMs))) {
+                $nearest = $tap;
+            }
+        }
+
+        return $nearest;
     }
 
     /**
@@ -144,6 +258,67 @@ final readonly class OnlineReviewAssessment
         }
 
         return [$clock->startedAtMs, $clock->hasEnded() ? $clock->endsAtMs : null];
+    }
+
+    /**
+     * The finish candidates with what the phone's detector said about each (the `finish.candidate` payload - any value
+     * of the wrong type or outside its set is left out)
+     *
+     * @param list<OnlineReviewEventRow> $events by moment
+     * @return list<OnlineReviewCandidate>
+     */
+    private static function candidates(RoundClock $clock, array $events): array
+    {
+        [$startMs, $endMs] = self::window($clock);
+        $candidates = [];
+
+        foreach ($events as $event) {
+            if ($event['type'] !== OnlineEventType::FinishCandidate->value) {
+                continue;
+            }
+
+            $momentMs = $event['client_ms'];
+            $position = match (true) {
+                $startMs === null || $momentMs < $startMs => OnlineReviewTap::BEFORE_START,
+                $endMs !== null && $momentMs > $endMs => OnlineReviewTap::AFTER_END,
+                default => OnlineReviewTap::IN_ROUND,
+            };
+            $payload = $event['payload'];
+            $score = $payload['score'] ?? null;
+            $view = $payload['view'] ?? null;
+            $mode = $payload['mode'] ?? null;
+
+            $candidates[] = new OnlineReviewCandidate(
+                eventId: $event['id'],
+                momentMs: $momentMs,
+                receivedAtMs: $event['received_at_ms'],
+                deviceId: $event['device_id'],
+                position: $position,
+                lateMs: max(0, $event['received_at_ms'] - $momentMs),
+                heardMeanwhile: $event['heard_meanwhile'],
+                seconds: $position === OnlineReviewTap::IN_ROUND ? intdiv($momentMs - $startMs, 1000) : null,
+                detectedAtMs: self::integer($payload['detectedAtMs'] ?? null),
+                heldMs: self::integer($payload['heldMs'] ?? null),
+                score: (is_int($score) || is_float($score)) && is_finite((float) $score) ? round((float) $score, 3) : null,
+                view: is_string($view) && in_array($view, self::VIEWS, true) ? $view : null,
+                mode: is_string($mode) && OnlineDetectionMode::tryFrom($mode) !== null ? $mode : null,
+                machineVersion: self::integer($payload['machineVersion'] ?? null),
+            );
+        }
+
+        return $candidates;
+    }
+
+    /**
+     * A whole number of the payload - JSON may carry one as `12.0`, a moment may come with a fraction
+     */
+    private static function integer(mixed $value): null|int
+    {
+        if (is_int($value)) {
+            return $value;
+        }
+
+        return is_float($value) && is_finite($value) && abs($value) < 2 ** 53 ? (int) round($value) : null;
     }
 
     /**

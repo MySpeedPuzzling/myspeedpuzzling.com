@@ -17,6 +17,7 @@ use SpeedPuzzling\Web\Tests\OnlineReviewSeeding;
 use SpeedPuzzling\Web\Tests\OverridesFeatureFlagEnv;
 use SpeedPuzzling\Web\Tests\TestDouble\NullMercureHub;
 use SpeedPuzzling\Web\Tests\TestingLogin;
+use SpeedPuzzling\Web\Value\OnlineDetectionMode;
 use SpeedPuzzling\Web\Value\OnlineEventType;
 use SpeedPuzzling\Web\Value\OnlineMediaKind;
 use SpeedPuzzling\Web\Value\OnlineUnfinishedMeasure;
@@ -120,6 +121,10 @@ final class OnlineReviewControllerTest extends WebTestCase
         self::assertSame(['Arthur Anonymous', 'Olivia Online'], array_column($state['entries'], 'name'));
         self::assertSame(3000, $state['round']['piecesTotal'] ?? null);
         self::assertSame(['/round-results/' . self::ROUND, '/round-stopwatch/' . self::ROUND], $state['mercure']['topics'] ?? null);
+        // Detection off: the Phase 1 review - taps only, no G
+        self::assertSame('off', $state['round']['detection'] ?? null);
+        self::assertCount(0, $crawler->filter('[data-online-review-target="gapButton"]'));
+        self::assertSame('Finished taps', $crawler->filter('[data-online-review-target="finishPanel"] h3')->text());
     }
 
     public function testTheListSaysWhatToLookAt(): void
@@ -220,6 +225,71 @@ final class OnlineReviewControllerTest extends WebTestCase
         self::assertFalse($burstMedia['pending']);
         self::assertFalse($burstMedia['abandoned']);
         self::assertCount(6, $detail['media'], 'with the fixture\'s empty mat');
+    }
+
+    /**
+     * Phase 2, detection on: the review lists the raised hands next to the taps (each with its photo and burst), the
+     * suggestion is the first raise, and the reviewer confirms a raise as `detection` - its detection error then 0
+     */
+    public function testWithDetectionOnTheReviewerConfirmsRaisedHands(): void
+    {
+        $browser = $this->signedIn(PlayerFixture::PLAYER_ADMIN);
+        $this->detectionMode(OnlineDetectionMode::On);
+        $startMs = $this->startOnlineRound();
+        $olivia = $this->onlineEntryOf(OnlineRoundsFixture::ENTRY_CONNECTED);
+        $raiseMs = $startMs + 1_000_345;
+        $raiseId = $this->finishCandidate($olivia, $raiseMs, ['score' => 0.91, 'view' => 'topDown']);
+        $photo = $this->evidence($olivia, OnlineMediaKind::Candidate, $raiseMs + 300, $raiseId);
+        $burst = $this->evidence($olivia, OnlineMediaKind::Burst, $raiseMs, $raiseId, self::burstManifest($raiseMs));
+        $tapMs = $raiseMs + 2_100;
+        $this->finishTap($olivia, $tapMs);
+
+        $browser->request('GET', self::ENTRY, server: ['HTTP_ACCEPT' => 'application/json']);
+
+        self::assertResponseIsSuccessful();
+        $detail = $this->json($browser);
+        self::assertIsArray($detail['round']);
+        self::assertSame('on', $detail['round']['detection'] ?? null);
+        self::assertIsArray($detail['candidates']);
+        self::assertCount(1, $detail['candidates']);
+        self::assertSame([
+            'eventId' => $raiseId,
+            'momentMs' => $raiseMs,
+            'position' => 'in_round',
+            'seconds' => 1000,
+            'heldMs' => 520,
+            'score' => 0.91,
+            'view' => 'topDown',
+            'mode' => 'on',
+            'machineVersion' => 1,
+        ], array_intersect_key((array) $detail['candidates'][0], array_flip(['eventId', 'momentMs', 'position', 'seconds', 'heldMs', 'score', 'view', 'mode', 'machineVersion'])));
+        self::assertIsArray($detail['entry']);
+        self::assertSame(1, $detail['entry']['candidates']);
+        self::assertSame(['kind' => 'finished', 'momentMs' => $raiseMs, 'tapEventId' => null, 'source' => 'detection', 'candidateEventId' => $raiseId], array_intersect_key((array) $detail['entry']['suggestion'], array_flip(['kind', 'momentMs', 'tapEventId', 'source', 'candidateEventId'])));
+        self::assertIsArray($detail['media']);
+        $related = array_column(array_filter($detail['media'], static fn (mixed $media): bool => is_array($media) && ($media['relatedEventId'] ?? null) === $raiseId), 'kind', 'id');
+        // By the moment they were taken: the burst from the raise on, the sharpest photo of the raised window after it
+        self::assertSame([$burst->id->toString() => 'burst', $photo->id->toString() => 'candidate'], $related);
+
+        $this->post($browser, self::CONFIRM, ['momentMs' => $raiseMs, 'source' => 'detection', 'pieces' => null, 'seenResult' => null]);
+
+        self::assertResponseIsSuccessful();
+        $answer = $this->json($browser);
+        self::assertSame('detection', $answer['source']);
+        self::assertSame(['seconds' => 1000], $answer['result']);
+        self::assertIsArray($answer['entry']);
+        self::assertSame(['momentMs' => $raiseMs, 'source' => 'detection', 'adjustmentMs' => -2_100, 'detectionErrorMs' => 0], array_intersect_key((array) $answer['entry']['confirmed'], array_flip(['momentMs', 'source', 'adjustmentMs', 'detectionErrorMs'])));
+
+        // A tap's moment is no detection - refused, nothing recorded at that moment as a candidate
+        $this->post($browser, self::CONFIRM, ['momentMs' => $tapMs, 'source' => 'detection', 'pieces' => null, 'seenResult' => ['seconds' => 1000]]);
+        self::assertResponseStatusCodeSame(422);
+
+        // The page: the moments are raised hands and taps, G moves on
+        $crawler = $browser->request('GET', self::PAGE);
+        self::assertResponseIsSuccessful();
+        self::assertCount(1, $crawler->filter('[data-online-review-target="gapButton"]'));
+        self::assertStringContainsString('G the photo shows a gap', $crawler->filter('.online-review')->text());
+        self::assertStringContainsString('Finish - raised hands and taps', $crawler->filter('[data-online-review-target="finishPanel"] h3')->text());
     }
 
     public function testTheEntryAddressOpenedAsAPageLeadsToTheReview(): void

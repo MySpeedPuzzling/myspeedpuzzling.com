@@ -104,6 +104,21 @@ services:
             - "${LIVEKIT_TCP_PORT:-7881}:${LIVEKIT_TCP_PORT:-7881}"
             - "${LIVEKIT_UDP_PORT:-7882}:${LIVEKIT_UDP_PORT:-7882}/udp"
 
+    # The completeness check of the online competitions' finish photos (docs/features/online-competitions/README.md §5.8,
+    # Phase 3 - advisory): the CV worker, built from tools/online-cv/. Off unless asked for -
+    # `docker compose --profile cv up -d online-cv` - with ONLINE_CV_URL=http://online-cv:8000 in .env.local (the app
+    # reaches it on this network; the messenger consumer runs the checks). No published port on purpose (an internal
+    # service fetching URLs): ask it from the web container - `docker compose exec web curl -s http://online-cv:8000/health`.
+    # It fetches only from the allowed hosts - MinIO as the app's presigned URLs name it (S3_ENDPOINT).
+    online-cv:
+        build: tools/online-cv
+        image: msp-online-cv:dev
+        profiles: ["cv"]
+        restart: unless-stopped
+        read_only: true
+        environment:
+            ONLINE_CV_ALLOWED_HOSTS: "minio:9000"
+
     # API usage counters (docs/features/api/usage-statistics.md) - configured like
     # production's: never evicts, persists every second; the cache redis above does neither
     redis-state:

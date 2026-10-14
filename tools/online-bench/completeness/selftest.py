@@ -31,7 +31,10 @@ from pathlib import Path
 import cv2
 import numpy as np
 
-from completeness import COMPLETE, GAPS, UNSURE, check_grid, check_holes, combine
+# The checks live with the CV worker (tools/online-cv/completeness.py) - one implementation for the bench and the app
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "online-cv"))
+
+from completeness import COMPLETE, GAPS, UNSURE, check_grid, check_holes, combine  # noqa: E402
 
 MOTIFS = ["texture", "smooth", "low_texture"]
 GRIDS = [(15, 20), (20, 25), (25, 40)]

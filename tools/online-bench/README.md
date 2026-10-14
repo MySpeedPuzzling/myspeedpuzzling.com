@@ -9,7 +9,7 @@ design that is still a guess (hold, thresholds, frame rate, which model) gets de
 |---|---|
 | `index.html` + `bench.js` + `lib/` | a local page: steps a video frame by frame through **the** detector worker the phones will run (`assets/online/detector.worker.js`), draws the landmarks, runs the finish machine (`assets/online/finish_machine.js`), exports per-frame signals; a labelling mode writes the S1 label file |
 | `score.mjs` | node: signals + labels → the finish machine → detection error, misses, false raises, candidates per video; a parameter sweep → a ranked table; CSV + markdown |
-| `completeness/` | Python 3 + OpenCV: background holes (empty-mat photo vs finish photo) and reference-grid matching → `complete` / `gaps` (boxes) / `unsure`; a synthetic self-test with confusion matrices |
+| `completeness/` | Python 3 + OpenCV: background holes (empty-mat photo vs finish photo) and reference-grid matching → `complete` / `gaps` (boxes) / `unsure`; a synthetic self-test with confusion matrices (the checks: `tools/online-cv/completeness.py`, shared with the CV worker) |
 | `fetch-models.mjs` | downloads the pinned MediaPipe assets into `models/` for offline runs |
 
 **Code only.** Footage shows people and homes: it never enters this public repository. `footage/`, `out/` and
@@ -118,11 +118,13 @@ asks for it). Matching takes the closest (raise, candidate) pairs first.
 
 ## completeness/
 
-Python 3.12 + OpenCV 4.14 + numpy (pinned in `requirements.txt`), run in a throwaway container so nothing is
-installed on the machine:
+Python 3.12 + OpenCV 4.14 + numpy (pinned once, in `tools/online-cv/requirements.txt` - this folder's
+`requirements.txt` includes it), run in a throwaway container so nothing is installed on the machine. The checks
+themselves live with the CV worker - `tools/online-cv/completeness.py`, the one implementation for the bench and the
+app (README §5.8) - so the container mounts `tools/`:
 
 ```sh
-docker run --rm -v "$PWD/tools/online-bench/completeness":/app:ro -w /app python:3.12-slim \
+docker run --rm -v "$PWD/tools":/tools:ro -w /tools/online-bench/completeness python:3.12-slim \
   sh -c 'pip install -q -r requirements.txt && python selftest.py'
 ```
 
@@ -135,8 +137,11 @@ docker run --rm -v "$PWD/tools/online-bench/completeness":/app:ro -w /app python
 - `check.py --finish F --pieces N [--mat M] [--reference R] [--grid 25x40] [--draw out.jpg]` runs the checks on real
   photos (the empty mat → background holes, the motif → grid matching, both → combined) and prints the verdicts as
   JSON; `--draw` marks the outline and the gaps.
-- `completeness.py` is the library: `check_holes()`, `check_grid()`, `combine()` - every threshold a named option
-  with its reason. Every doubt answers `unsure`, never `complete`.
+- `tools/online-cv/completeness.py` is the library: `check_holes()`, `check_grid()`, `combine()` - every threshold a
+  named option with its reason - and `check_photo()`, what the worker answers with. Every doubt answers `unsure`,
+  never `complete`. A change of a threshold or a rule bumps its `VERSION`.
+- The same self-test through the worker's HTTP endpoint (+ unfinished puzzles): `tools/online-cv/http_selftest.py`
+  (its README).
 
 ## Tests
 

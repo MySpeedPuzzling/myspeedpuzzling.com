@@ -38,6 +38,8 @@ import {
     shortClock,
     TAKEOVER_GRACE_MS,
     takeoverVerdict,
+    undoAccepted,
+    UNDO_GUARD_MS,
     undoLeftMs,
     UNDO_WINDOW_MS,
     WAKE_SCREENS,
@@ -284,6 +286,25 @@ const scenarios = {
         assert.equal(undoLeftMs(third, third.momentMs + UNDO_WINDOW_MS), 0);
         assert.equal(undoLeftMs(third, third.momentMs + 60_000), 0);
         assert.equal(undoLeftMs(null, START), 0);
+    },
+
+    async '"I tapped by mistake" never takes the click of the Finished tap itself - only a later tap, within the window'() {
+        const tap = { eventId: 'c', momentMs: START + 9000, undone: false, continued: false };
+
+        // The phone's click of the same tap, delivered to the button that appeared under the finger (rehearsal 2026-10-14:
+        // 50-90 ms after the tap on 375 × 667 and 360 × 740 screens) - and a slow phone's, up to the guard
+        assert.equal(undoAccepted(tap, tap.momentMs + 50), false, 'the tap\'s own click');
+        assert.equal(undoAccepted(tap, tap.momentMs + 90), false);
+        assert.equal(undoAccepted(tap, tap.momentMs + UNDO_GUARD_MS - 1), false, 'a slow phone\'s click of the tap');
+        // The participant's own tap on the button
+        assert.equal(undoAccepted(tap, tap.momentMs + UNDO_GUARD_MS), true);
+        assert.equal(undoAccepted(tap, tap.momentMs + 3_000), true);
+        assert.equal(undoAccepted(tap, tap.momentMs + UNDO_WINDOW_MS - 1), true);
+        // The window still closes
+        assert.equal(undoAccepted(tap, tap.momentMs + UNDO_WINDOW_MS), false);
+        assert.ok(UNDO_GUARD_MS < UNDO_WINDOW_MS / 2, 'the guard leaves most of the window');
+        // The button is offered all the while - only the tap's own click is not taken
+        assert.ok(undoLeftMs(tap, tap.momentMs + 50) > 0);
     },
 
     async '"I\'m ready" needs the camera on and the clock synced'() {

@@ -52,6 +52,7 @@ import {
     shortClock,
     TAKEOVER_GRACE_MS,
     takeoverVerdict,
+    undoAccepted,
     undoLeftMs,
     wakeTapNeeded,
 } from '../online/compete_flow.js';
@@ -538,7 +539,9 @@ export default class extends Controller {
     undoFinish() {
         const finish = currentFinish(this.progress);
 
-        if (finish === null || undoLeftMs(finish, this.clock.serverNow()) <= 0) {
+        // Within the window - and never the click the phone makes of the Finished tap itself, which lands here when
+        // this button appears under the finger (compete_flow.js UNDO_GUARD_MS)
+        if (finish === null || !undoAccepted(finish, this.clock.serverNow())) {
             return;
         }
 

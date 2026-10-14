@@ -24,6 +24,11 @@ export const SCREENS = [
 export const GO_SHOWN_MS = 1500;
 // "I tapped by mistake" is offered this long after a Finished tap
 export const UNDO_WINDOW_MS = 10000;
+// A phone turns the Finished tap into a click too, after the finger lifts - delivered to whatever is under the finger
+// then. The tap has already switched to the "Finish recorded" screen, and on a short screen "I tapped by mistake" lies
+// right there (the rehearsal of 2026-10-14: 375 × 667 and 360 × 740 undid every tap within 0.1 s). An undo this soon
+// after the tap is that click, never the participant's
+export const UNDO_GUARD_MS = 1500;
 // Periodic photos (README §5.6): every 30 s, every 10 s in the last 3 minutes before GO (the unwrapping on camera)
 export const PERIODIC_EVERY_MS = 30000;
 export const PERIODIC_UNWRAP_EVERY_MS = 10000;
@@ -101,6 +106,14 @@ export function undoLeftMs(finish, serverNowMs) {
     }
 
     return Math.max(0, finish.momentMs + UNDO_WINDOW_MS - serverNowMs);
+}
+
+/**
+ * Whether "I tapped by mistake" undoes the tap now: within the undo window, and not the click the phone made of the
+ * Finished tap itself (UNDO_GUARD_MS).
+ */
+export function undoAccepted(finish, serverNowMs) {
+    return undoLeftMs(finish, serverNowMs) > 0 && serverNowMs - finish.momentMs >= UNDO_GUARD_MS;
 }
 
 function hasRound(state) {

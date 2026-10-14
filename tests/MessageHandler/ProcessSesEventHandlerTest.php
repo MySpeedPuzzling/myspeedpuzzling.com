@@ -12,14 +12,19 @@ use SpeedPuzzling\Web\Entity\NewsletterSubscriber;
 use SpeedPuzzling\Web\Message\ProcessSesEvent;
 use SpeedPuzzling\Web\Message\PushNewsletterSubscriberToListmonk;
 use SpeedPuzzling\Web\MessageHandler\ProcessSesEventHandler;
+use Psr\Log\AbstractLogger;
+use Psr\Log\LogLevel;
+use SpeedPuzzling\Web\Repository\EmailAuditLogRepository;
 use SpeedPuzzling\Web\Repository\EmailSuppressionRepository;
 use SpeedPuzzling\Web\Repository\NewsletterSubscriberRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
+use SpeedPuzzling\Web\Repository\UserAccountRepository;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Value\BounceType;
 use SpeedPuzzling\Web\Value\ContentDigestFrequency;
 use SpeedPuzzling\Web\Value\NewsletterSubscriberStatus;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
+use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Transport\InMemory\InMemoryTransport;
 
 /**
@@ -155,6 +160,34 @@ final class ProcessSesEventHandlerTest extends KernelTestCase
         ]);
 
         $this->handler->__invoke(new ProcessSesEvent('{"no": "type"}', 'sns-unreadable'));
+    }
+
+    public function testTheTopicValidationTextSesPostsForANewEventDestinationIsNotAWarning(): void
+    {
+        $logger = new class extends AbstractLogger {
+            /** @var list<string> */
+            public array $levels = [];
+
+            public function log($level, string|\Stringable $message, array $context = []): void
+            {
+                $this->levels[] = is_string($level) ? $level : get_debug_type($level);
+            }
+        };
+        $container = self::getContainer();
+        $handler = new ProcessSesEventHandler(
+            $container->get(EmailAuditLogRepository::class),
+            $container->get(EmailSuppressionRepository::class),
+            $container->get(UserAccountRepository::class),
+            $this->playerRepository,
+            $container->get(NewsletterSubscriberRepository::class),
+            $container->get(MessageBusInterface::class),
+            $logger,
+        );
+
+        $handler(new ProcessSesEvent('Successfully validated SNS topic for Amazon SES event publishing.', 'sns-validation'));
+        $handler(new ProcessSesEvent('{"no": "type"}', 'sns-unreadable'));
+
+        self::assertSame([LogLevel::INFO, LogLevel::WARNING], $logger->levels);
     }
 
     private function complain(string $emailType): EmailAuditLog

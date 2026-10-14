@@ -41,6 +41,7 @@ readonly final class ProcessSesEventHandler
     private const array ACTIVITY_DIGEST_EMAIL_TYPES = ['content_digest_activity', 'content_digest_miss_you'];
     private const string UNREAD_DIGEST_EMAIL_TYPE = 'unread_digest';
     private const string RESULT_REVIEW_EMAIL_TYPE = 'result_review';
+    private const string TOPIC_VALIDATION_MESSAGE = 'Successfully validated SNS topic for Amazon SES event publishing';
 
     public function __construct(
         private EmailAuditLogRepository $emailAuditLogRepository,
@@ -55,6 +56,15 @@ readonly final class ProcessSesEventHandler
 
     public function __invoke(ProcessSesEvent $message): void
     {
+        // SES posts this plain text (no JSON) whenever an event destination is created or changed
+        if (str_starts_with($message->eventJson, self::TOPIC_VALIDATION_MESSAGE)) {
+            $this->logger->info('SES validated the SNS topic of an event destination', [
+                'sns_message_id' => $message->snsMessageId,
+            ]);
+
+            return;
+        }
+
         try {
             $event = SesEvent::fromJson($message->eventJson);
         } catch (\JsonException | \InvalidArgumentException $exception) {

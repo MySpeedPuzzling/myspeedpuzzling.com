@@ -216,4 +216,39 @@ final class OnlineEventInputTest extends TestCase
             );
         }
     }
+
+    public function testADetectorChangeAsThePageSendsIt(): void
+    {
+        $running = ['state' => 'ready', 'running' => true, 'reason' => null, 'view' => 'topDown'];
+        $input = OnlineEventInput::read(['id' => self::ID, 'type' => 'detector.changed', 'clientMs' => 1_792_002_832_345, 'data' => $running], self::ROUND);
+
+        self::assertInstanceOf(OnlineEventInput::class, $input);
+        self::assertSame(OnlineEventType::DetectorChanged, $input->type);
+        self::assertSame($running, $input->data);
+
+        foreach (['slow', 'stalled', 'error', 'loading', 'unsupported', 'failed', 'skipped', 'off'] as $reason) {
+            self::assertInstanceOf(
+                OnlineEventInput::class,
+                OnlineEventInput::read(['id' => self::ID, 'type' => 'detector.changed', 'clientMs' => 1_792_002_832_345, 'data' => ['state' => 'ready', 'running' => false, 'reason' => $reason, 'view' => null]], self::ROUND),
+                $reason,
+            );
+        }
+
+        $wrongs = [
+            'no running' => ['state' => 'ready'],
+            'running as text' => ['state' => 'ready', 'running' => 'yes'],
+            'a state nobody knows' => ['state' => 'sleepy', 'running' => false],
+            'no state' => ['running' => false],
+            'a reason nobody knows' => ['state' => 'ready', 'running' => false, 'reason' => 'tired'],
+            'a view nobody knows' => ['state' => 'ready', 'running' => true, 'view' => 'sideways'],
+        ];
+
+        foreach ($wrongs as $case => $wrong) {
+            self::assertSame(
+                ['id' => strtolower(self::ID), 'reason' => OnlineEventInput::INVALID_FIELDS],
+                OnlineEventInput::read(['id' => self::ID, 'type' => 'detector.changed', 'clientMs' => 1_792_002_832_345, 'data' => $wrong], self::ROUND),
+                $case,
+            );
+        }
+    }
 }

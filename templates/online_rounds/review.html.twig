@@ -12,8 +12,9 @@
 
 {% set hide_comparison_launcher = true %}
 {% set round_id = round.id.toString %}
-{# Phase 2: with the finish detection on (shadow / on) the moments are taps and raised hands, G moves on #}
-{% set detection_on = online_round.detectionMode.value != 'off' %}
+{# Phase 2: with the finish detection `on` the moments are taps and raised hands, G moves on. `shadow` (stream P2F):
+   the detection stays invisible to the reviewer too - taps only, as with detection off (OnlineReview) #}
+{% set detection_on = online_round.detectionMode.value == 'on' %}
 
 {% block title %}{{ 'online_rounds.review.title'|trans }} - {{ round.name }}{% endblock %}
 

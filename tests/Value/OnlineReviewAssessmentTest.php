@@ -243,6 +243,8 @@ final class OnlineReviewAssessmentTest extends TestCase
         $raiseMs = self::START + 47 * self::MINUTE + 12_000;
         $tapMs = $raiseMs + 1_800;
         $events = [
+            // The phone said "I'm ready" with its detector watching (its set-up test passed)
+            self::event('device.ready', self::START - self::MINUTE, ['detector' => ['state' => 'ready', 'view' => 'angled', 'setupTest' => 'passed', 'loadMs' => 900]]),
             // A premature raise (a piece was missing) - no tap near it, never confirmed: a false raise
             self::candidate(self::START + 40 * self::MINUTE, id: 'premature'),
             self::candidate($raiseMs, id: 'raise'),
@@ -261,13 +263,22 @@ final class OnlineReviewAssessmentTest extends TestCase
         self::assertSame(1, $confirmed->missedRaises);
         self::assertSame(1, $confirmed->falseRaises);
 
-        // Before a confirmation: the suggested candidate (the first) is presumed the finish - the later raise has its tap
+        // Before a confirmation: the suggestion is the earliest moment - here the tap the detector missed (20 min) came
+        // before every raise, so no candidate is presumed the finish; the one nearest to the last tap is the detected one
         $pending = self::assess($events, detection: OnlineDetectionMode::On);
-        self::assertSame('premature', $pending->detectedCandidate?->eventId);
+        self::assertSame('missed-tap', $pending->suggestion->tapEventId);
+        self::assertSame('raise', $pending->detectedCandidate?->eventId);
         self::assertNull($pending->detectionErrorMs, 'no error before a person confirmed');
         self::assertSame(1_800, $pending->deltaMs);
-        self::assertSame(0, $pending->falseRaises);
+        self::assertSame(1, $pending->falseRaises, 'the premature raise');
         self::assertSame(1, $pending->missedRaises);
+
+        // Without that early tap the suggested candidate (the first) is presumed the finish - the later raise has its tap
+        $withoutEarlyTap = self::assess(array_slice($events, 0, 4), detection: OnlineDetectionMode::On);
+        self::assertSame('premature', $withoutEarlyTap->suggestion->candidateEventId);
+        self::assertSame('premature', $withoutEarlyTap->detectedCandidate?->eventId);
+        self::assertSame(0, $withoutEarlyTap->falseRaises);
+        self::assertSame(0, $withoutEarlyTap->missedRaises);
 
         // Shadow: the suggestion is the tap - the candidate nearest to it is the detected one
         $shadow = self::assess($events, detection: OnlineDetectionMode::Shadow);
@@ -284,7 +295,95 @@ final class OnlineReviewAssessmentTest extends TestCase
         $off = self::assess($events);
         self::assertNull($off->missedRaises);
         self::assertNull($off->falseRaises);
+        self::assertNull($off->detectorNotRunning);
         self::assertSame(1_800, $off->deltaMs, 'candidates that came all the same are still measured');
+        self::assertSame(0, $confirmed->detectorNotRunning);
+    }
+
+    public function testInOnModeACandidateAfterTheParticipantsOwnTapIsNeverSuggestedOverIt(): void
+    {
+        $tap = self::event('finish.button', self::START + 40 * self::MINUTE, id: 'tap');
+        $after = self::candidate(self::START + 40 * self::MINUTE + 5_000, id: 'after');
+
+        $suggestion = self::assess([$after, $tap], detection: OnlineDetectionMode::On)->suggestion;
+        self::assertSame('tap', $suggestion->tapEventId, 'the tap came first');
+        self::assertSame(OnlineReviewSuggestion::SOURCE_BUTTON, $suggestion->source);
+        self::assertNull($suggestion->candidateEventId);
+        self::assertSame(40 * 60, $suggestion->seconds);
+
+        // The earliest of the first counting candidate and the first counting tap - a tap continued from ("Keep
+        // puzzling") counts as a tap
+        $kept = self::event('finish.button', self::START + 38 * self::MINUTE, id: 'kept');
+        $raise = self::candidate(self::START + 39 * self::MINUTE, id: 'raise');
+        self::assertSame('kept', self::assess([$kept, $raise, $tap], detection: OnlineDetectionMode::On)->suggestion->tapEventId);
+
+        // The candidate before the tap stays the suggestion; an undone tap before it does not count
+        self::assertSame('raise', self::assess([$raise, $tap], detection: OnlineDetectionMode::On)->suggestion->candidateEventId);
+        $undo = self::event('finish.button.undone', self::START + 38 * self::MINUTE + 2_000, ['eventId' => 'kept']);
+        self::assertSame('raise', self::assess([$kept, $undo, $raise, $tap], detection: OnlineDetectionMode::On)->suggestion->candidateEventId);
+
+        // The same millisecond: the candidate (the review stands on it)
+        $same = self::candidate(self::START + 40 * self::MINUTE, id: 'same');
+        self::assertSame('same', self::assess([$tap, $same], detection: OnlineDetectionMode::On)->suggestion->candidateEventId);
+    }
+
+    public function testAFinishOnAPhoneWhoseDetectorDidNotRunIsNoMissedRaise(): void
+    {
+        $tapMs = self::START + 30 * self::MINUTE;
+        $tap = self::event('finish.button', $tapMs, id: 'tap');
+        $ready = static fn (array $detector, string $device = 'phone-a'): array => self::event('device.ready', self::START - self::MINUTE, ['detector' => $detector], device: $device);
+        $watching = ['state' => 'ready', 'view' => 'angled', 'setupTest' => 'passed', 'loadMs' => 900];
+
+        $cases = [
+            'watching: a miss' => [[$ready($watching), $tap], 1, 0],
+            'untested (the default view): a miss' => [[$ready([...$watching, 'setupTest' => null]), $tap], 1, 0],
+            'a page loaded while the detection was off (no detector)' => [[self::event('device.ready', self::START - self::MINUTE, ['userAgent' => 'x']), $tap], 0, 1],
+            'unsupported' => [[$ready(['state' => 'unsupported', 'view' => null, 'setupTest' => null, 'loadMs' => null]), $tap], 0, 1],
+            'did not load' => [[$ready(['state' => 'error', 'view' => null, 'setupTest' => null, 'loadMs' => null]), $tap], 0, 1],
+            'its set-up test failed' => [[$ready([...$watching, 'setupTest' => 'failed']), $tap], 0, 1],
+            'skipped' => [[$ready([...$watching, 'setupTest' => 'skipped']), $tap], 0, 1],
+            'turned button-only before the tap (too slow)' => [[$ready($watching), self::event('detector.changed', $tapMs - self::MINUTE, ['state' => 'ready', 'running' => false, 'reason' => 'slow', 'view' => null]), $tap], 0, 1],
+            'turned button-only after the tap' => [[$ready($watching), self::event('detector.changed', $tapMs + 1_000, ['state' => 'error', 'running' => false, 'reason' => 'stalled', 'view' => null]), $tap], 1, 0],
+            'still loading at "I\'m ready", watching once loaded (shadow)' => [[$ready(['state' => 'loading', 'view' => null, 'setupTest' => null, 'loadMs' => null]), self::event('detector.changed', self::START + self::MINUTE, ['state' => 'ready', 'running' => true, 'reason' => null, 'view' => 'angled']), $tap], 1, 0],
+            'still loading, never loaded' => [[$ready(['state' => 'loading', 'view' => null, 'setupTest' => null, 'loadMs' => null]), $tap], 0, 1],
+            'another device tapped (its own ready has none)' => [[$ready($watching), self::event('device.ready', self::START + self::MINUTE, ['userAgent' => 'x'], device: 'laptop'), self::event('finish.button', $tapMs, id: 'tap', device: 'laptop')], 0, 1],
+            'a tap without any ready (nothing known)' => [[$tap], 0, 1],
+        ];
+
+        foreach ($cases as $case => [$events, $missed, $notRunning]) {
+            foreach ([OnlineDetectionMode::On, OnlineDetectionMode::Shadow] as $mode) {
+                $assessment = self::assess($events, detection: $mode);
+                self::assertSame($missed, $assessment->missedRaises, "{$case} ({$mode->value})");
+                self::assertSame($notRunning, $assessment->detectorNotRunning, "{$case} ({$mode->value})");
+            }
+        }
+
+        // A tap with its candidate is no miss either way
+        self::assertSame([0, 0], (static function (OnlineReviewAssessment $assessment): array {
+            return [$assessment->missedRaises, $assessment->detectorNotRunning];
+        })(self::assess([$tap, self::candidate($tapMs - 2_000)], detection: OnlineDetectionMode::On)));
+    }
+
+    public function testACandidateNearTheConfirmedMomentIsNeverAFalseRaise(): void
+    {
+        $events = [
+            self::candidate(self::START + 100_000, id: 'first'),
+            self::candidate(self::START + 112_000, id: 'second'),
+            self::candidate(self::START + 300_000, id: 'stray'),
+        ];
+
+        // The reviewer moved the moment between them: the nearer is the detected one, the other one is that finish's too
+        $moved = self::assess($events, confirmed: true, confirmedMomentMs: self::START + 106_500, detection: OnlineDetectionMode::On);
+        self::assertSame('second', $moved->detectedCandidate?->eventId);
+        self::assertSame(1, $moved->falseRaises, 'only the stray raise, 3 minutes away');
+
+        // Moved more than 10 s from every candidate (detectedCandidate null): a candidate 11 s away is not that finish's
+        $far = self::assess($events, confirmed: true, confirmedMomentMs: self::START + 123_500, detection: OnlineDetectionMode::On);
+        self::assertNull($far->detectedCandidate);
+        self::assertSame(3, $far->falseRaises);
+        $near = self::assess($events, confirmed: true, confirmedMomentMs: self::START + 122_000, detection: OnlineDetectionMode::On);
+        self::assertSame('second', $near->detectedCandidate?->eventId);
+        self::assertSame(2, $near->falseRaises, 'the first raise is 22 s before the confirmed moment, the stray one far');
     }
 
     /**

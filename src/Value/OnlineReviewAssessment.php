@@ -20,11 +20,12 @@ use SpeedPuzzling\Web\Results\OnlineReviewTap;
  *   whichever came first) does not count.
  * - **Candidates** (Phase 2, OnlineReviewCandidate): every `finish.candidate` - raised hands the phone's detector held;
  *   one counts inside the round (a candidate has no undo), placed against the round like a tap.
- * - **Suggestion** (OnlineReviewSuggestion): in a round whose detection is `on`, the first candidate that counts (README
- *   §5.9: the official finish is the first candidate whose photo shows a complete puzzle - the reviewer looks at it and
- *   moves on with `G` when it shows a gap); otherwise - and in `shadow` / `off` always - the last tap that counts - the
- *   moment the participant's own page shows as their finish (compete_flow.js currentFinish()) - else the pieces
- *   reported at time-up, else none.
+ * - **Suggestion** (OnlineReviewSuggestion): in a round whose detection is `on`, the earliest of the first candidate that
+ *   counts and the first tap that counts (README §5.9: the official finish is the first candidate whose photo shows a
+ *   complete puzzle - the reviewer looks at it and moves on with `G` when it shows a gap; stream P2F: a candidate after
+ *   the participant's own tap is never suggested over the tap); otherwise - and in `shadow` / `off` always - the last
+ *   tap that counts - the moment the participant's own page shows as their finish (compete_flow.js currentFinish()) -
+ *   else the pieces reported at time-up, else none.
  * - **Status**: `confirmed` once a reviewer confirmed it; otherwise by the suggestion: `needs_look` (a finish to
  *   confirm), `unfinished` (pieces to confirm), `no_finish`.
  * - **Flags** (OnlineReviewFlag, README §7): a tap of the run that arrived LATE_ARRIVAL_MS or more after its moment
@@ -42,8 +43,13 @@ use SpeedPuzzling\Web\Results\OnlineReviewTap;
  *   nearest to the reference tap, else the first; the **detection error** = confirmed − detected; the **delta** = the
  *   reference tap (the adjusted one, else the last tap that counts) − the counting candidate nearest to it within the
  *   window. With detection on (`shadow` / `on`): **missed raises** = counting taps without a counting candidate within
- *   the window; **false raises** = counting candidates that are not the finish (the confirmed one; before a
- *   confirmation the suggested one) and lie outside the window of every counting tap.
+ *   the window, on a device whose detector watched the round then; **detector not running** (stream P2F) = such taps
+ *   on a device whose detector did not (detectorRunningAt(): the device's latest `device.ready` - its `detector`, none
+ *   on a page loaded while the detection was off - or `detector.changed` before the tap; unsupported, broken,
+ *   skipped, a failed test, stopped as too slow) - not the detector's miss; **false raises** = counting candidates that
+ *   are not the finish (the confirmed one; before a confirmation the suggested one), lie outside the window of every
+ *   counting tap and - once confirmed - outside the window of the confirmed moment (a candidate that close is that
+ *   finish's, wherever the reviewer moved the moment).
  *
  * @phpstan-import-type OnlineReviewEventRow from \SpeedPuzzling\Web\Query\GetOnlineReviewData
  */
@@ -88,6 +94,8 @@ final readonly class OnlineReviewAssessment
         // Null while the round's detection is off
         public null|int $missedRaises = null,
         public null|int $falseRaises = null,
+        // Counting taps without a candidate on a device whose detector did not watch the round - null while it is off
+        public null|int $detectorNotRunning = null,
     ) {
     }
 
@@ -115,9 +123,14 @@ final readonly class OnlineReviewAssessment
         $candidates = self::candidates($clock, $events);
         $countingCandidates = array_values(array_filter($candidates, static fn (OnlineReviewCandidate $candidate): bool => $candidate->counts()));
         $firstCandidate = $countingCandidates[0] ?? null;
+        $firstCounting = $counting[0] ?? null;
+        // A candidate after the participant's own tap never comes before the tap
+        $tapFirst = $firstCounting !== null && $firstCandidate !== null && $firstCounting->momentMs < $firstCandidate->momentMs;
 
-        if ($detection === OnlineDetectionMode::On && $firstCandidate !== null && $firstCandidate->seconds !== null) {
+        if ($detection === OnlineDetectionMode::On && $firstCandidate !== null && $firstCandidate->seconds !== null && $tapFirst === false) {
             $suggestion = OnlineReviewSuggestion::detected($firstCandidate, $firstCandidate->seconds);
+        } elseif ($detection === OnlineDetectionMode::On && $tapFirst && $firstCounting->seconds !== null) {
+            $suggestion = OnlineReviewSuggestion::finished($firstCounting, $firstCounting->seconds);
         } elseif ($lastCounting !== null && $lastCounting->seconds !== null) {
             $suggestion = OnlineReviewSuggestion::finished($lastCounting, $lastCounting->seconds);
         } elseif ($reportedPieces !== null) {
@@ -162,17 +175,31 @@ final readonly class OnlineReviewAssessment
         $deltaCandidate = $referenceTap === null ? null : self::nearestCandidate($countingCandidates, $referenceTap->momentMs);
         $missedRaises = null;
         $falseRaises = null;
+        $detectorNotRunning = null;
 
         if ($detection !== OnlineDetectionMode::Off) {
-            $missedRaises = count(array_filter(
-                $counting,
-                static fn (OnlineReviewTap $tap): bool => self::nearestCandidate($countingCandidates, $tap->momentMs) === null,
-            ));
+            $missedRaises = 0;
+            $detectorNotRunning = 0;
+
+            foreach ($counting as $tap) {
+                if (self::nearestCandidate($countingCandidates, $tap->momentMs) !== null) {
+                    continue;
+                }
+
+                if (self::detectorRunningAt($events, $tap)) {
+                    $missedRaises++;
+                } else {
+                    $detectorNotRunning++;
+                }
+            }
+
             // The finish: the confirmed one - before a confirmation the suggested one is presumed it
             $finish = $confirmedMoment !== null ? $detectedCandidate : $suggested;
             $falseRaises = count(array_filter(
                 $countingCandidates,
-                static fn (OnlineReviewCandidate $candidate): bool => $candidate !== $finish && self::nearestTap($counting, $candidate->momentMs) === null,
+                static fn (OnlineReviewCandidate $candidate): bool => $candidate !== $finish
+                    && self::nearestTap($counting, $candidate->momentMs) === null
+                    && ($confirmedMoment === null || abs($candidate->momentMs - $confirmedMoment) > self::MATCH_WINDOW_MS),
             ));
         }
 
@@ -191,7 +218,42 @@ final readonly class OnlineReviewAssessment
             deltaMs: $referenceTap === null || $deltaCandidate === null ? null : $referenceTap->momentMs - $deltaCandidate->momentMs,
             missedRaises: $missedRaises,
             falseRaises: $falseRaises,
+            detectorNotRunning: $detectorNotRunning,
         );
+    }
+
+    /**
+     * Did the tap's phone have its finish detector watching the round then? Its own reports up to the tap decide - the
+     * latest of its `device.ready` (the `detector` it was ready with: ready and a set-up test neither failed nor
+     * skipped; none at all = a page loaded while the round's detection was off) and its `detector.changed` (`running`,
+     * stream P2F). No report: not running.
+     *
+     * @param list<OnlineReviewEventRow> $events by moment
+     */
+    private static function detectorRunningAt(array $events, OnlineReviewTap $tap): bool
+    {
+        $running = false;
+
+        foreach ($events as $event) {
+            if ($event['client_ms'] > $tap->momentMs) {
+                break;
+            }
+
+            if ($event['device_id'] !== $tap->deviceId) {
+                continue;
+            }
+
+            if ($event['type'] === OnlineEventType::DeviceReady->value) {
+                $detector = $event['payload']['detector'] ?? null;
+                $running = is_array($detector)
+                    && ($detector['state'] ?? null) === 'ready'
+                    && in_array($detector['setupTest'] ?? null, ['failed', 'skipped'], true) === false;
+            } elseif ($event['type'] === OnlineEventType::DetectorChanged->value) {
+                $running = ($event['payload']['running'] ?? null) === true;
+            }
+        }
+
+        return $running;
     }
 
     /**

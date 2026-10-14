@@ -15,6 +15,8 @@ use SpeedPuzzling\Web\Results\OnlineReviewEntry;
 use SpeedPuzzling\Web\Results\OnlineReviewTap;
 use SpeedPuzzling\Web\Services\OfficialResultsSubscription;
 use SpeedPuzzling\Web\Value\OnlineDetectionMode;
+use SpeedPuzzling\Web\Value\OnlineEventType;
+use SpeedPuzzling\Web\Value\OnlineMediaKind;
 use SpeedPuzzling\Web\Value\OnlineReviewAssessment;
 use SpeedPuzzling\Web\Value\OnlineReviewStatus;
 use SpeedPuzzling\Web\Value\RoundClock;
@@ -32,7 +34,11 @@ use SpeedPuzzling\Web\Value\RoundEntryResult;
  *   phone has not uploaded yet is listed as pending, never hidden (README §5.11), one that never arrived and never will
  *   (OnlineEntryMedia::$abandonedAt) as abandoned;
  * - assessed(): the rows with their OnlineReviewAssessment - the accuracy report.
- * The round's detection mode decides the suggestion (OnlineReviewAssessment: `on` = the first candidate) - `round.detection`.
+ * The round's detection mode decides the suggestion (OnlineReviewAssessment: `on` = the first candidate, unless a tap
+ * came first) - `round.detection`. In a `shadow` round the reviewer never sees the detection (stream P2F, README §5.7:
+ * the button is the official moment there - the cleanest delta data): the row, the detail, its events and its evidence
+ * carry no candidate, nothing of the phone's detector (forReviewer()) - the reviewer steps through the taps only, as in
+ * `off`; the accuracy report (assessed()) has them all.
  *
  * @phpstan-import-type OnlineReviewEntryRow from GetOnlineReviewData
  * @phpstan-import-type OnlineReviewEventRow from GetOnlineReviewData
@@ -60,7 +66,7 @@ readonly final class OnlineReview
         $clock = RoundClock::fromRound($round, $asOf);
         $piecesTotal = $round->singlePuzzlePiecesCount();
         $entries = array_map(
-            static fn (array $assessed): OnlineReviewEntry => $assessed['entry'],
+            static fn (array $assessed): OnlineReviewEntry => self::forReviewer($assessed['entry'], $onlineRound->detectionMode),
             $this->assessed($round, $onlineRound->detectionMode, $clock, $asOfMs, $piecesTotal),
         );
         $mercure = $this->officialResultsSubscription->forRound($round->id->toString());
@@ -94,16 +100,18 @@ readonly final class OnlineReview
         $onlineEntryId = $row['online_entry_id'];
         $events = $onlineEntryId === null ? [] : $this->getOnlineReviewData->events($roundId, $onlineEntryId);
         $piecesTotal = $round->singlePuzzlePiecesCount();
-        [$entry, $assessment] = self::entry($row, $events, $clock, $asOfMs, $piecesTotal, $onlineRound->detectionMode);
-        $media = $onlineEntryId === null ? [] : array_map($this->media(...), $this->getOnlineReviewData->media($onlineEntryId));
+        $detection = $onlineRound->detectionMode;
+        [$entry, $assessment] = self::entry($row, $events, $clock, $asOfMs, $piecesTotal, $detection);
+        $media = $onlineEntryId === null ? [] : $this->getOnlineReviewData->media($onlineEntryId);
+        $hidden = self::hiddenFromReviewer($detection, $events);
 
         return [
             'serverNowMs' => RoundClock::milliseconds($this->clock->now()),
             'asOfMs' => $asOfMs,
             'round' => self::round($round, $onlineRound, $clock, $piecesTotal),
-            'entry' => $entry,
+            'entry' => self::forReviewer($entry, $detection),
             'taps' => $assessment->taps,
-            'candidates' => $assessment->candidates,
+            'candidates' => $detection === OnlineDetectionMode::Shadow ? [] : $assessment->candidates,
             'events' => array_map(static fn (array $event): array => [
                 'id' => $event['id'],
                 'type' => $event['type'],
@@ -112,9 +120,68 @@ readonly final class OnlineReview
                 'deviceId' => $event['device_id'],
                 // Always a JSON object, an empty one too
                 'data' => $event['payload'] === [] ? new \stdClass() : $event['payload'],
-            ], $events),
-            'media' => $media,
+            ], array_values(array_filter($events, static fn (array $event): bool => !isset($hidden['events'][strtolower($event['id'])])))),
+            'media' => array_map(
+                $this->media(...),
+                array_values(array_filter(
+                    $media,
+                    static fn (OnlineEntryMedia $item): bool => !($detection === OnlineDetectionMode::Shadow && $item->kind === OnlineMediaKind::Candidate)
+                        && !isset($hidden['events'][strtolower($item->relatedEventId?->toString() ?? '')]),
+                )),
+            ),
         ];
+    }
+
+    /**
+     * What a `shadow` round hides from the reviewer: the candidates' events (and with them their photos and bursts) and
+     * the detector's own reports (`detector.changed`)
+     *
+     * @param list<OnlineReviewEventRow> $events
+     * @return array{events: array<string, true>}
+     */
+    private static function hiddenFromReviewer(OnlineDetectionMode $detection, array $events): array
+    {
+        $hidden = [];
+
+        if ($detection === OnlineDetectionMode::Shadow) {
+            foreach ($events as $event) {
+                if ($event['type'] === OnlineEventType::FinishCandidate->value || $event['type'] === OnlineEventType::DetectorChanged->value) {
+                    $hidden[strtolower($event['id'])] = true;
+                }
+            }
+        }
+
+        return ['events' => $hidden];
+    }
+
+    /**
+     * The row as the reviewer sees it - in a `shadow` round without the detection (no candidates, no detection error)
+     */
+    private static function forReviewer(OnlineReviewEntry $entry, OnlineDetectionMode $detection): OnlineReviewEntry
+    {
+        if ($detection !== OnlineDetectionMode::Shadow) {
+            return $entry;
+        }
+
+        return new OnlineReviewEntry(
+            participantId: $entry->participantId,
+            entryId: $entry->entryId,
+            onlineEntryId: $entry->onlineEntryId,
+            name: $entry->name,
+            country: $entry->country,
+            status: $entry->status,
+            suggestion: $entry->suggestion,
+            official: $entry->official,
+            confirmedMomentMs: $entry->confirmedMomentMs,
+            confirmedSource: $entry->confirmedSource,
+            reviewedAtMs: $entry->reviewedAtMs,
+            adjustmentMs: $entry->adjustmentMs,
+            flags: $entry->flags,
+            taps: $entry->taps,
+            readyAtMs: $entry->readyAtMs,
+            candidates: 0,
+            detectionErrorMs: null,
+        );
     }
 
     /**
@@ -134,7 +201,7 @@ readonly final class OnlineReview
         $events = $row['online_entry_id'] === null ? [] : $this->getOnlineReviewData->events($roundId, $row['online_entry_id']);
         [$entry] = self::entry($row, $events, RoundClock::fromRound($round, $now), RoundClock::milliseconds($now), $round->singlePuzzlePiecesCount(), $detection);
 
-        return $entry;
+        return self::forReviewer($entry, $detection);
     }
 
     /**

@@ -25,6 +25,8 @@ readonly final class OnlineAccuracyGroup
         public int $falseRaises,
         public AccuracySummary $detectionError,
         public AccuracySummary $delta,
+        // Finishes on a phone whose detector did not watch - apart from the missed raises (stream P2F)
+        public int $detectorNotRunning = 0,
     ) {
     }
 }

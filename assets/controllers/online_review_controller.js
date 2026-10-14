@@ -589,7 +589,8 @@ export default class extends Controller {
         if (moments.length === 0) {
             const none = document.createElement('p');
             none.className = 'small text-body-secondary mb-0';
-            none.textContent = this.t(detection === 'off' ? 'no_taps' : 'no_moments');
+            // `shadow` shows no raised hands (the server sends none): taps only, as with detection off
+            none.textContent = this.t(detection === 'on' ? 'no_moments' : 'no_taps');
             this.tapsTarget.replaceChildren(none);
 
             return;
@@ -998,6 +999,11 @@ export default class extends Controller {
             return (event.data.measure ?? this.detail?.round?.unfinishedMeasure) === 'placed'
                 ? this.tc('reported_placed', event.data.pieces)
                 : this.tc('reported_left', event.data.pieces);
+        }
+
+        // The phone's detector started watching (again) - or stopped: Finished button only (stream P2F)
+        if (event.type === 'detector.changed' && event.data?.running === true) {
+            return this.t('event_detector_running');
         }
 
         const key = `event_${String(event.type).replaceAll('.', '_')}`;

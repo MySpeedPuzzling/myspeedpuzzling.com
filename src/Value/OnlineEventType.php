@@ -25,4 +25,6 @@ enum OnlineEventType: string
     case NetworkOnline = 'network.online';
     case TimeUpPieces = 'timeup.pieces';
     case MediaUploaded = 'media.uploaded';
+    // Phase 2 (stream P2F): after "I'm ready" the phone's finish detector started or stopped watching the round
+    case DetectorChanged = 'detector.changed';
 }

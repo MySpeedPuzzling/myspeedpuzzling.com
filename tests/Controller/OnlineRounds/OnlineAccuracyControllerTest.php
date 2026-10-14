@@ -109,7 +109,7 @@ final class OnlineAccuracyControllerTest extends WebTestCase
         // Detection off: no detection columns filled, no misses counted
         self::assertSame(['', '', ''], array_slice($rows['Olivia Online'], 7, 3));
         self::assertSame(['', ''], array_slice($rows['Olivia Online'], 14, 2));
-        self::assertSame(array_merge(['Arthur Anonymous', 'no_finish'], array_fill(0, 17, '')), $rows['Arthur Anonymous']);
+        self::assertSame(array_merge(['Arthur Anonymous', 'no_finish'], array_fill(0, 18, '')), $rows['Arthur Anonymous']);
     }
 
     public function testWithDetectionTheReportMeasuresTheDetectionByPhoneAndView(): void
@@ -132,9 +132,23 @@ final class OnlineAccuracyControllerTest extends WebTestCase
         $paula = $this->onlineEntryOf($paulaEntry->id->toString());
         $this->phoneEvent($paula, OnlineEventType::DeviceReady, $startMs - 30_000, ['userAgent' => self::ANDROID, 'detector' => ['state' => 'ready', 'view' => 'topDown']], deviceId: 'paula-phone');
         $this->finishCandidate($paula, $startMs + 1_500_000, ['view' => 'topDown'], deviceId: 'paula-phone');
-        $this->finishTap($paula, $startMs + 2_000_000);
+        // Tapped on the phone that was ready with its detector watching: a missed raise
+        $this->phoneEvent($paula, OnlineEventType::FinishButton, $startMs + 2_000_000, deviceId: 'paula-phone');
         // The reviewer saw the gap on the raise's photo and confirmed her tap
         $this->confirmResult($paulaEntry->participant->id->toString(), $startMs + 2_000_000, OnlineConfirmedSource::Button);
+
+        // Una: her phone could not run the detector - a tap without a detection is no missed raise (stream P2F); Vic:
+        // his detector stopped mid-round as too slow (`detector.changed`) before his tap
+        $unaEntry = $this->enterParticipant('Una Unsupported');
+        $una = $this->onlineEntryOf($unaEntry->id->toString());
+        $this->phoneEvent($una, OnlineEventType::DeviceReady, $startMs - 20_000, ['detector' => ['state' => 'unsupported', 'view' => null, 'setupTest' => null, 'loadMs' => null]], deviceId: 'una-phone');
+        $this->phoneEvent($una, OnlineEventType::FinishButton, $startMs + 2_200_000, deviceId: 'una-phone');
+        $this->confirmResult($unaEntry->participant->id->toString(), $startMs + 2_200_000, OnlineConfirmedSource::Button);
+        $vicEntry = $this->enterParticipant('Vic Slow');
+        $vic = $this->onlineEntryOf($vicEntry->id->toString());
+        $this->phoneEvent($vic, OnlineEventType::DeviceReady, $startMs - 20_000, ['detector' => ['state' => 'ready', 'view' => 'angled', 'setupTest' => 'passed', 'loadMs' => 900]], deviceId: 'vic-phone');
+        $this->phoneEvent($vic, OnlineEventType::DetectorChanged, $startMs + 60_000, ['state' => 'ready', 'running' => false, 'reason' => 'slow', 'view' => null], deviceId: 'vic-phone');
+        $this->phoneEvent($vic, OnlineEventType::FinishButton, $startMs + 2_300_000, deviceId: 'vic-phone');
 
         $crawler = $browser->request('GET', self::PAGE);
 
@@ -155,6 +169,16 @@ final class OnlineAccuracyControllerTest extends WebTestCase
         $paulaRow = $crawler->filter('[data-accuracy-row="' . $paulaEntry->participant->id->toString() . '"]');
         self::assertSame('1 missed / 1 false', $paulaRow->filter('[data-accuracy-misses]')->text());
         self::assertSame('Top-down (hands)', $paulaRow->filter('[data-accuracy-view]')->text());
+        self::assertCount(0, $paulaRow->filter('[data-accuracy-not-running-row]'));
+
+        foreach ([$unaEntry, $vicEntry] as $entry) {
+            $row = $crawler->filter('[data-accuracy-row="' . $entry->participant->id->toString() . '"]');
+            self::assertStringStartsWith('0 missed / 0 false', $row->filter('[data-accuracy-misses]')->text(), $entry->participant->name);
+            self::assertSame('Detector not running', $row->filter('[data-accuracy-not-running-row]')->text());
+        }
+
+        self::assertSame('2', $crawler->filter('[data-accuracy-not-running]')->attr('data-accuracy-not-running'));
+        self::assertSame(['0', '0', '2'], $crawler->filter('[data-accuracy-breakdown="device"] [data-accuracy-group-not-running]')->each(static fn ($cell): string => $cell->text()), 'the phones without a label');
 
         self::assertSame(['Android · Chrome 141', 'iPhone · Safari 18', ''], $crawler->filter('[data-accuracy-breakdown="device"] [data-accuracy-group]')->each(static fn ($row): string => (string) $row->attr('data-accuracy-group')));
         self::assertSame(['angled', 'topDown', ''], $crawler->filter('[data-accuracy-breakdown="view"] [data-accuracy-group]')->each(static fn ($row): string => (string) $row->attr('data-accuracy-group')));
@@ -172,6 +196,10 @@ final class OnlineAccuracyControllerTest extends WebTestCase
         self::assertSame('1500', $oliviaCsv[$columns['delta_ms']]);
         self::assertSame(['0', '0', 'angled', 'iPhone', 'Safari 18'], array_slice($oliviaCsv, $columns['missed_raises'], 5));
         self::assertSame(['1', '1', 'topDown', 'Android', 'Chrome 141'], array_slice($rows['Paula Pace'], $columns['missed_raises'], 5));
+        self::assertSame('0', $oliviaCsv[$columns['detector_not_running']]);
+        self::assertSame(['0', '1'], [$rows['Una Unsupported'][$columns['missed_raises']], $rows['Una Unsupported'][$columns['detector_not_running']]]);
+        self::assertSame(['0', '1'], [$rows['Vic Slow'][$columns['missed_raises']], $rows['Vic Slow'][$columns['detector_not_running']]]);
+        self::assertSame('detector_not_running', OnlineAccuracyController::CSV_COLUMNS[array_key_last(OnlineAccuracyController::CSV_COLUMNS)], 'a new column goes to the end');
     }
 
     public function testARoundWithDetectionOffShowsThePhaseOneReport(): void

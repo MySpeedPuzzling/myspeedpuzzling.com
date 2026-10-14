@@ -46,6 +46,8 @@ readonly final class OnlineAccuracyRow
         public null|string $view = null,
         public null|string $device = null,
         public null|string $browser = null,
+        // Finishes without a detection on a phone whose detector did not watch (stream P2F) - never a missed raise
+        public null|int $detectorNotRunning = null,
     ) {
     }
 }

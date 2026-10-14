@@ -9828,6 +9828,8 @@ online_rounds:
                 network_offline: "Offline"
                 network_online: "Back online"
                 timeup_pieces: "Reported pieces"
+                detector_changed: "Finish detection stopped - Finished button only"
+                detector_running: "Finish detection watching"
             photo:
                 periodic: "Photo"
                 empty_mat: "Empty mat"
@@ -9854,6 +9856,7 @@ online_rounds:
             moment_before_start: "This moment lies before the start."
             moment_after_end: "This moment lies after the end of the round - a finish after the end does not count."
             moment_not_recorded: "The participant's phone did not record this moment - pick their tap or a frame around it."
+            detection_not_shown: "Raised hands do not count in this round - the Finished tap does. Confirm the tap or a frame around it."
         error:
             sign_in: "You were signed out - sign in again and reload the page."
             forbidden: "You can no longer review this round."
@@ -9871,6 +9874,7 @@ online_rounds:
             median: "Median"
             iqr: "Spread of the middle half (IQR)"
             quartiles: "From %q1% to %q3%"
+            not_running: "Finishes on a phone whose detector was not running (not counted as missed raises): %count%"
         col:
             participant: "Participant"
             status: "Status"
@@ -9887,7 +9891,7 @@ online_rounds:
             view: "Camera view"
             device: "Phone"
         empty: "Nobody is entered in this round."
-        intro_detection: "How good the finish detection is. The detection error is the confirmed moment minus the moment the phone saw raised hands, the tap delay is the Finished tap minus that moment, and the adjustment is the confirmed moment minus the tap. A missed raise is a tap without a detection within 10 seconds, a false raise a detection that was not the finish and has no tap near it."
+        intro_detection: "How good the finish detection is. The detection error is the confirmed moment minus the moment the phone saw raised hands, the tap delay is the Finished tap minus that moment, and the adjustment is the confirmed moment minus the tap. A missed raise is a tap without a detection within 10 seconds on a phone whose detector was running, a false raise a detection that was not the finish and has no tap near it."
         mode:
             "off": "Finish detection is off for this round. Phones still recorded the detections below."
             shadow: "Finish detection watched in the background - participants did not see it, the Finished tap was the official moment."
@@ -9901,6 +9905,7 @@ online_rounds:
             help: "Finished tap minus the detected moment - how long it took to reach the button."
             count: "{0}No finish with both a tap and a detection yet|{1}1 finish with both a tap and a detection|]1,Inf[%count% finishes with both a tap and a detection"
         misses: "%missed% missed / %false% false"
+        not_running: "Detector not running"
         view:
             angled: "Angled (body)"
             top_down: "Top-down (hands)"
@@ -9913,6 +9918,7 @@ online_rounds:
             detected: "Detected"
             missed: "Missed raises"
             "false": "False raises"
+            not_running: "Detector not running"
             median_error: "Median detection error"
             median_delta: "Median tap delay"
             unknown: "Not known"

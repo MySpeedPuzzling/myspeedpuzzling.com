@@ -25,6 +25,8 @@ final class OnlineResultRefused extends HttpException
     public const string MOMENT_BEFORE_START = 'moment_before_start';
     public const string MOMENT_AFTER_END = 'moment_after_end';
     public const string MOMENT_NOT_RECORDED = 'moment_not_recorded';
+    // A detected moment in a round whose detection only watches (`shadow`): the Finished tap is the official moment there
+    public const string DETECTION_NOT_SHOWN = 'detection_not_shown';
 
     private function __construct(
         int $statusCode,

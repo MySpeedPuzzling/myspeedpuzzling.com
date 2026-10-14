@@ -55,6 +55,8 @@ final class OnlineAccuracyController extends AbstractController
         'view',
         'device',
         'browser',
+        // Stream P2F: finishes on a phone whose detector did not watch - never counted in missed_raises
+        'detector_not_running',
     ];
 
     public function __construct(
@@ -112,6 +114,7 @@ final class OnlineAccuracyController extends AbstractController
             'detection_shown' => $report['detectionShown'],
             'by_device' => $report['byDevice'],
             'by_view' => $report['byView'],
+            'detector_not_running' => $report['detectorNotRunning'],
         ]);
         $response->headers->set('Cache-Control', 'private, no-store');
 
@@ -151,6 +154,7 @@ final class OnlineAccuracyController extends AbstractController
                 $row->view,
                 $row->device,
                 $row->browser,
+                $row->detectorNotRunning,
             ]), ',', '"', '');
         }
 

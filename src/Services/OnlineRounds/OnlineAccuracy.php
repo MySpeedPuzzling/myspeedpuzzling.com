@@ -24,7 +24,10 @@ use SpeedPuzzling\Web\Value\RoundClock;
  * the report and the review never disagree.
  *
  * Phase 2 - the detection of raised hands (OnlineReviewAssessment "Detection"): the detected moment, the detection error
- * (confirmed − detected), the delta (tap − detected), the missed and the false raises; MEASURES names the distributions
+ * (confirmed − detected), the delta (tap − detected), the missed and the false raises - and (stream P2F) the finishes on a
+ * phone whose detector did not watch the round (`detectorNotRunning`: it could not run, broke, was skipped, failed its
+ * test, stopped as too slow, or the page was loaded before detection was switched on - from the phone's own
+ * `device.ready` / `detector.changed`), counted apart, never as missed raises; MEASURES names the distributions
  * (one summary each). The breakdown groups the participants by their phone (OnlineDeviceLabel, from the User-Agent of
  * the holding device's latest `device.ready`) and by the camera view their detector used (the candidates' own `view`,
  * else the one `device.ready` reported) - "autodetection reliability is the key to success" (Jan): this is what every
@@ -48,7 +51,7 @@ readonly final class OnlineAccuracy
     }
 
     /**
-     * @return array{rows: list<OnlineAccuracyRow>, summaries: array<string, AccuracySummary>, startedAtMs: null|int, detection: string, detectionShown: bool, byDevice: list<OnlineAccuracyGroup>, byView: list<OnlineAccuracyGroup>}
+     * @return array{rows: list<OnlineAccuracyRow>, summaries: array<string, AccuracySummary>, startedAtMs: null|int, detection: string, detectionShown: bool, byDevice: list<OnlineAccuracyGroup>, byView: list<OnlineAccuracyGroup>, detectorNotRunning: int}
      */
     public function forRound(CompetitionRound $round, OnlineRound $onlineRound): array
     {
@@ -89,6 +92,7 @@ readonly final class OnlineAccuracy
                 view: self::viewOf($assessment) ?? $readyView,
                 device: $label?->device,
                 browser: $label?->browser,
+                detectorNotRunning: $assessment->detectorNotRunning,
             );
         }
 
@@ -108,6 +112,7 @@ readonly final class OnlineAccuracy
             'detectionShown' => $detection !== OnlineDetectionMode::Off || $anyCandidate,
             'byDevice' => self::groups($rows, static fn (OnlineAccuracyRow $row): null|string => $row->device === null ? null : $row->device . ' · ' . $row->browser),
             'byView' => self::groups($rows, static fn (OnlineAccuracyRow $row): null|string => $row->view),
+            'detectorNotRunning' => array_sum(array_map(static fn (OnlineAccuracyRow $row): int => $row->detectorNotRunning ?? 0, $rows)),
         ];
     }
 
@@ -156,6 +161,7 @@ readonly final class OnlineAccuracy
                 falseRaises: array_sum(array_map(static fn (OnlineAccuracyRow $row): int => $row->falseRaises ?? 0, $members)),
                 detectionError: self::summary($members, static fn (OnlineAccuracyRow $row): null|int => $row->detectionErrorMs),
                 delta: self::summary($members, static fn (OnlineAccuracyRow $row): null|int => $row->deltaMs),
+                detectorNotRunning: array_sum(array_map(static fn (OnlineAccuracyRow $row): int => $row->detectorNotRunning ?? 0, $members)),
             );
         }
 

@@ -217,6 +217,65 @@ final class OnlineAccuracyControllerTest extends WebTestCase
         self::assertCount(8, $crawler->filter('.online-accuracy-table thead th'));
     }
 
+    /**
+     * The rehearsal of Test Cup #1 (2026-10-14): a participant confirmed as unfinished (U - the pieces, no moment) read
+     * "a frame picked in the review" as the source, in the report, its CSV and the review's own line. An unfinished
+     * confirmation has no moment, so it names no source.
+     */
+    public function testAnUnfinishedConfirmationNamesNoSource(): void
+    {
+        $browser = $this->signedIn(PlayerFixture::PLAYER_ADMIN);
+        $startMs = $this->seedConfirmedRound();
+        $this->endOnlineRound();
+
+        $quinnEntry = $this->enterParticipant('Quinn Unfinished');
+        $quinn = $this->onlineEntryOf($quinnEntry->id->toString());
+        $this->phoneEvent($quinn, OnlineEventType::TimeUpPieces, $startMs + 1_790_000, ['pieces' => 37, 'measure' => 'left']);
+        $quinnId = $quinnEntry->participant->id->toString();
+        self::getContainer()->get(MessageBusInterface::class)->dispatch(new ConfirmOnlineResult(
+            self::COMPETITION,
+            self::ROUND,
+            $quinnId,
+            null,
+            OnlineConfirmedSource::Reviewer,
+            463,
+            PlayerFixture::PLAYER_ADMIN,
+            RoundEntryResult::none(),
+        ));
+
+        $crawler = $browser->request('GET', self::PAGE);
+
+        self::assertResponseIsSuccessful();
+        $row = $crawler->filter('[data-accuracy-row="' . $quinnId . '"]');
+        self::assertCount(1, $row);
+        self::assertStringContainsString('463', $row->text());
+        self::assertStringNotContainsString('frame picked', $row->text());
+        // A frame the reviewer did pick still says so
+        self::assertStringContainsString('a frame picked in the review', $crawler->filter('[data-accuracy-row="' . OnlineRoundsFixture::PARTICIPANT_CONNECTED . '"]')->text());
+
+        $browser->request('GET', self::PAGE . '?format=csv');
+        $lines = array_map(
+            static fn (string $line): array => str_getcsv($line, ',', '"', ''),
+            array_values(array_filter(explode("\n", substr((string) $browser->getResponse()->getContent(), 3)), static fn (string $line): bool => $line !== '')),
+        );
+        $columns = array_flip($lines[0]);
+        $rows = array_column(array_slice($lines, 1), null, 0);
+        self::assertSame('', $rows['Quinn Unfinished'][$columns['source']]);
+        self::assertSame('reviewer', $rows['Olivia Online'][$columns['source']]);
+
+        // The review's own line ("Confirmed from …") reads the same field
+        $browser->request('GET', '/en/online-rounds/' . self::ROUND . '/review/' . $quinnId, server: ['HTTP_ACCEPT' => 'application/json']);
+        self::assertResponseIsSuccessful();
+        /** @var array{entry: array{status: string, confirmed: null|array{momentMs: null|int, source: null|string}}} $detail */
+        $detail = json_decode((string) $browser->getResponse()->getContent(), true, flags: JSON_THROW_ON_ERROR);
+        self::assertSame('confirmed', $detail['entry']['status']);
+        $confirmed = $detail['entry']['confirmed'];
+        self::assertIsArray($confirmed);
+        self::assertArrayHasKey('source', $confirmed);
+        self::assertNull($confirmed['momentMs']);
+        self::assertNull($confirmed['source']);
+    }
+
     public function testOnlyTheEventsOrganisersWithTheFeatureSeeIt(): void
     {
         $this->overrideFeatureFlagEnv(self::FLAG, false);

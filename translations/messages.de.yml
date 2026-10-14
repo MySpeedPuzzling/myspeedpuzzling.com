@@ -1066,6 +1066,10 @@ competition_referees:
   "meta":
     "title": "Profil bearbeiten"
   "title": "Profil bearbeiten"
+  "preferences":
+    "title": "Geräteeinstellungen"
+    "vibration": "Vibrationen"
+    "vibration_help": "Kurze Vibrationen, wenn eine Zeit gespeichert, eine Schachtel gescannt wird oder etwas fehlschlägt. Die Vibrationseinstellungen Ihres Telefons gelten weiterhin."
   "player_code_change": "Spielercode ändern"
   "profile_visibility": "Profilsichtbarkeit"
   "allow_direct_messages": "Anderen Benutzern erlauben, mir direkt zu schreiben"

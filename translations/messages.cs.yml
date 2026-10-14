@@ -1118,6 +1118,10 @@ competition_referees:
   "meta":
     "title": "Úprava profilu"
   "title": "Úprava profilu"
+  "preferences":
+    "title": "Předvolby"
+    "vibration": "Vibrace"
+    "vibration_help": "Krátké zavibrování, když se uloží čas, naskenuje krabice nebo se něco nepovede. Nastavení vibrací ve vašem telefonu platí i nadále."
   "player_code_change": "Změna kódu hráče"
   "profile_visibility": "Viditelnost profilu"
   "allow_direct_messages": "Povolit ostatním uživatelům posílat mi přímé zprávy"

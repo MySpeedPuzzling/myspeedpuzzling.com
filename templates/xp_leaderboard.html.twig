@@ -106,7 +106,7 @@
 
             {% if viewer is not null %}
                 <div class="form-check form-switch fs-sm mb-0 d-flex align-items-center gap-2" style="min-height: 44px;">
-                    <input class="form-check-input mt-0" type="checkbox" id="favorites-only" name="favorites" value="1" {{ favorites_only ? 'checked' }}>
+                    <input class="form-check-input mt-0" type="checkbox" role="switch" switch id="favorites-only" name="favorites" value="1" {{ favorites_only ? 'checked' }}>
                     <label class="form-check-label py-2" for="favorites-only">{{ 'xp.leaderboard.favorites_only'|trans }}</label>
                 </div>
             {% endif %}

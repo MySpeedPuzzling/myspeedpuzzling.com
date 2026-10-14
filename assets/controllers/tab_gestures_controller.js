@@ -1,6 +1,8 @@
 import { Controller } from '@hotwired/stimulus';
+import { haptic } from '../haptics.js';
 import layers from '../layer_history.js';
-import { isNativeApp } from '../platform.js';
+import { isNativeApp, os } from '../platform.js';
+import { BUBBLE_ID, bubblePosition, CLICK_WINDOW_MS, isTruncated, LongPress, longPressEnabled, wantsTitle } from '../tab_long_press.js';
 import { CLOSE_LAYER, decide, FEED_REFRESH_EVENT, NONE, placeOfNav, REFRESH_FEED, SCROLL_TOP } from '../tab_reselect.js';
 import { TOPBAR_REVEAL_EVENT } from '../topbar_scroll.js';
 
@@ -32,10 +34,17 @@ const NO_CLICK_MS = 400;
 const PENDING = 'is-pending';
 const LEAVING = 'is-leaving';
 
-// While a mark is pending, the pointer is followed on the window (capture): a mouse is not captured to the tab like a
-// finger is, so a press dragged off the 88 px rail and released on the page never reaches the bar (GEST review F6)
+// While a mark is pending or a finger is held on a tab (GEST-18), the pointer is followed on the window (capture): a
+// mouse is not captured to the tab like a finger is, so a press dragged off the 88 px rail and released on the page never
+// reaches the bar (GEST review F6)
 const FOLLOW = { capture: true };
 const FOLLOW_PASSIVE = { capture: true, passive: true };
+
+// GEST-18: what reads as "current" for NAV-02's step 3 (the server's aria-current, unless GEST-04 moved the pill away)
+const CURRENT_LOOK = '[aria-current]:not(.is-leaving), .is-pending';
+const LABEL = '.nav-tab-label';
+// The title GEST-18 set itself (a tab may carry none of its own): removed again when the label fits
+const OWN_TITLE = 'data-label-title';
 
 /**
  * The bars' tab gestures (docs/features/navigation README §4.13; implementation plan GEST-03, GEST-04 - GEST-18 adds the
@@ -59,29 +68,48 @@ const FOLLOW_PASSIVE = { capture: true, passive: true };
  * arrives replaces the bars (not data-turbo-permanent), and a bar that comes back from Turbo's snapshot cache drops
  * them when it connects (never in turbo:before-cache: the page would show the pill jump back for a frame before the
  * next one renders).
+ *
+ * GEST-18 - long-press a cut tab (assets/tab_long_press.js decides): on an iPhone or an Android phone a finger held
+ * 500 ms on a tab whose label is not fully shown (NAV-02's step 3, or a label wider than its box - read from
+ * data-label-step / .nav-tab-label, the contract of `nav:labels-fitted`) shows the full label in a bubble 12 px above it
+ * (one <span role="tooltip"> on <body>, the tab's aria-describedby while shown), Android feels `longPress`; the release
+ * does not navigate (the click that may follow is dropped once), the bubble goes on release or after 1.5 s. A touch's
+ * context menu (the link preview) never opens on a tab. Desktop and other devices: a cut label's text is the tab's
+ * native `title`, set here (no markup per tab) whenever the bar fits its labels.
  */
 export default class extends Controller {
     connect() {
         this.pending = null;
         this.noClickTimer = null;
         this.visitStarted = false;
+        this.pressed = null;
+        this.dropClick = null;
+        this.longPress = new LongPress({ onShow: () => this.showBubble(), onHide: () => this.hideBubble() });
 
         document.addEventListener('pointerdown', this.onPointerDown);
+        this.element.addEventListener('nav:labels-fitted', this.updateTitles);
         document.addEventListener('click', this.onClick);
         document.addEventListener('turbo:visit', this.onVisit);
         document.addEventListener('turbo:fetch-request-error', this.revert);
+        document.addEventListener('turbo:before-cache', this.endLongPress);
         window.addEventListener('pageshow', this.revert);
 
         // A bar restored from Turbo's snapshot cache (GEST-15) carries the marks it had when the page was left
         this.revert();
+        // bottom_nav_controller.js (connected first) fitted the labels before this listener existed
+        this.updateTitles();
     }
 
     disconnect() {
         document.removeEventListener('pointerdown', this.onPointerDown);
+        this.element.removeEventListener('nav:labels-fitted', this.updateTitles);
         document.removeEventListener('click', this.onClick);
         document.removeEventListener('turbo:visit', this.onVisit);
         document.removeEventListener('turbo:fetch-request-error', this.revert);
+        document.removeEventListener('turbo:before-cache', this.endLongPress);
         window.removeEventListener('pageshow', this.revert);
+        clearTimeout(this.noClickTimer);
+        this.endLongPress();
         this.revert();
     }
 
@@ -96,6 +124,15 @@ export default class extends Controller {
         const tabPlace = link ? this.placeOf(link) : null;
 
         if (tabPlace === null) {
+            return;
+        }
+
+        // GEST-18: the release of a long press shows a label, it never navigates
+        if (this.dropClick && this.dropClick.tab === link && performance.now() <= this.dropClick.until) {
+            this.dropClick = null;
+            event.preventDefault();
+            this.revert();
+
             return;
         }
 
@@ -193,12 +230,17 @@ export default class extends Controller {
             return;
         }
 
+        this.dropClick = null;
         this.revert();
+        // The cut is read before the tab is marked pending below - a pending tab shows its label in step 3
+        this.pressLongPress(tab, event);
 
         const current = bar.querySelector(CURRENT_TAB);
 
-        // The current place's tab: nothing moves (GEST-03 decides what the tap does)
+        // The current place's tab: nothing moves (GEST-03 decides what the tap does) - a held finger is still followed
         if (tab === current) {
+            this.follow();
+
             return;
         }
 
@@ -209,12 +251,32 @@ export default class extends Controller {
         }
 
         this.pending = { tab, current, pointerId: event.pointerId, x: event.clientX, y: event.clientY, clicked: false };
+        this.follow();
+    };
+
+    /** The pointer is followed on the window while a mark is pending or a finger is held (adding twice adds once) */
+    follow() {
+        if (!this.pending && !this.pressed) {
+            return;
+        }
 
         window.addEventListener('pointermove', this.onPointerMove, FOLLOW_PASSIVE);
         window.addEventListener('pointerup', this.onPointerUp, FOLLOW);
         window.addEventListener('pointercancel', this.onPointerCancel, FOLLOW);
-        window.addEventListener('contextmenu', this.revert, FOLLOW);
-    };
+        window.addEventListener('contextmenu', this.onContextMenu, FOLLOW);
+    }
+
+    /** ... and no longer once neither is */
+    unfollow() {
+        if (this.pending || this.pressed) {
+            return;
+        }
+
+        window.removeEventListener('pointermove', this.onPointerMove, FOLLOW_PASSIVE);
+        window.removeEventListener('pointerup', this.onPointerUp, FOLLOW);
+        window.removeEventListener('pointercancel', this.onPointerCancel, FOLLOW);
+        window.removeEventListener('contextmenu', this.onContextMenu, FOLLOW);
+    }
 
     /** The bar a tab belongs to (#bottom-nav or the 768-1023 px top bar's places), null for any other link */
     barOf(tab) {
@@ -226,6 +288,10 @@ export default class extends Controller {
     }
 
     onPointerMove = (event) => {
+        if (this.pressed && event.pointerId === this.pressed.pointerId) {
+            this.longPress.move({ x: event.clientX, y: event.clientY });
+        }
+
         const pending = this.pending;
 
         if (!pending || event.pointerId !== pending.pointerId) {
@@ -238,9 +304,20 @@ export default class extends Controller {
     };
 
     onPointerUp = (event) => {
+        if (this.pressed && event.pointerId === this.pressed.pointerId) {
+            const tab = this.pressed.tab;
+            this.pressed = null;
+
+            if (this.longPress.up()) {
+                this.dropClick = { tab, until: performance.now() + CLICK_WINDOW_MS };
+            }
+        }
+
         const pending = this.pending;
 
         if (!pending || event.pointerId !== pending.pointerId) {
+            this.unfollow();
+
             return;
         }
 
@@ -252,14 +329,168 @@ export default class extends Controller {
         }, NO_CLICK_MS);
     };
 
+    onVisit = () => {
+        this.visitStarted = true;
+    };
+
     onPointerCancel = (event) => {
+        if (this.pressed && event.pointerId === this.pressed.pointerId) {
+            this.pressed = null;
+            this.longPress.cancel();
+        }
+
         if (this.pending && event.pointerId === this.pending.pointerId) {
             this.revert();
         }
+
+        this.unfollow();
     };
 
-    onVisit = () => {
-        this.visitStarted = true;
+    /**
+     * A touch's context menu (Android's link preview, iOS's callout - also off in CSS) never opens on a tab: the long
+     * press is the label's. A mouse's right click keeps its menu (open in a new tab)
+     */
+    onContextMenu = (event) => {
+        const tab = event.target instanceof Element ? event.target.closest(BAR_TAB) : null;
+
+        if (tab && this.pressed && this.pressed.tab === tab) {
+            event.preventDefault();
+        }
+
+        this.revert();
+    };
+
+    // ---- GEST-18: long-press a cut tab ---------------------------------------------------------------------------------
+
+    /** A primary touch on a tab: starts the hold when this device shows bubbles and the tab's label is cut */
+    pressLongPress(tab, event) {
+        this.endLongPress();
+
+        if (!longPressEnabled({ os: os(document.documentElement), nativeApp: isNativeApp(document.documentElement), pointerType: event.pointerType })) {
+            return;
+        }
+
+        // Every touch on a tab is followed (its context menu is the label's); the cut is read before GEST-04 marks the
+        // tab pending below - a pending tab shows its label in step 3
+        this.pressed = { tab, pointerId: event.pointerId, label: this.labelText(tab) };
+
+        if (!this.labelCut(tab) || this.pressed.label === '') {
+            this.pressed.label = null;
+
+            return;
+        }
+
+        this.longPress.down({ x: event.clientX, y: event.clientY });
+    }
+
+    labelCut(tab) {
+        const label = tab.querySelector(LABEL);
+
+        if (!label) {
+            return false;
+        }
+
+        return isTruncated({
+            step: this.element.getAttribute('data-label-step-override') || this.element.getAttribute('data-label-step'),
+            current: tab.matches(CURRENT_LOOK),
+            scrollWidth: label.scrollWidth,
+            clientWidth: label.clientWidth,
+        });
+    }
+
+    labelText(tab) {
+        const label = tab.querySelector(LABEL);
+
+        return label ? label.textContent.trim() : '';
+    }
+
+    showBubble() {
+        const pressed = this.pressed;
+
+        if (!pressed || !pressed.label || !pressed.tab.isConnected) {
+            return;
+        }
+
+        let bubble = document.getElementById(BUBBLE_ID);
+
+        if (!bubble) {
+            bubble = document.createElement('span');
+            bubble.id = BUBBLE_ID;
+            bubble.className = 'nav-tab-bubble';
+            bubble.setAttribute('role', 'tooltip');
+            document.body.appendChild(bubble);
+        }
+
+        bubble.textContent = pressed.label;
+        bubble.hidden = false;
+
+        const tabBox = pressed.tab.getBoundingClientRect();
+        const { left, top } = bubblePosition({
+            tab: { left: tabBox.left, top: tabBox.top, width: tabBox.width },
+            bubble: { width: bubble.offsetWidth, height: bubble.offsetHeight },
+            viewportWidth: document.documentElement.clientWidth || window.innerWidth,
+        });
+        bubble.style.left = `${left}px`;
+        bubble.style.top = `${top}px`;
+
+        pressed.tab.setAttribute('aria-describedby', BUBBLE_ID);
+        this.bubbleTab = pressed.tab;
+        haptic('longPress');
+    }
+
+    hideBubble() {
+        const bubble = document.getElementById(BUBBLE_ID);
+
+        if (bubble) {
+            bubble.hidden = true;
+        }
+
+        if (this.bubbleTab) {
+            if (this.bubbleTab.getAttribute('aria-describedby') === BUBBLE_ID) {
+                this.bubbleTab.removeAttribute('aria-describedby');
+            }
+
+            this.bubbleTab = null;
+        }
+    }
+
+    /** No bubble left behind: a cached snapshot (turbo:before-cache) or a bar that goes */
+    endLongPress = () => {
+        this.pressed = null;
+
+        if (this.longPress) {
+            this.longPress.cancel();
+        }
+
+        this.hideBubble();
+        document.getElementById(BUBBLE_ID)?.remove();
+        this.unfollow();
+    };
+
+    /**
+     * Desktop and other devices: the tab's native `title` while its label is cut (README §4.13 G16) - after every fit of
+     * the labels (`nav:labels-fitted`, bottom_nav_controller.js). Phones get the bubble instead.
+     */
+    updateTitles = () => {
+        const device = os(document.documentElement);
+        const nativeApp = isNativeApp(document.documentElement);
+        // Phones and the app never get one: nothing to measure there
+        const titles = wantsTitle({ os: device, nativeApp, truncated: true });
+
+        this.element.querySelectorAll(BAR_TAB).forEach((tab) => {
+            const text = this.labelText(tab);
+            const own = tab.hasAttribute(OWN_TITLE);
+
+            if (titles && text !== '' && wantsTitle({ os: device, nativeApp, truncated: this.labelCut(tab) })) {
+                if (own || !tab.hasAttribute('title')) {
+                    tab.setAttribute('title', text);
+                    tab.setAttribute(OWN_TITLE, '');
+                }
+            } else if (own) {
+                tab.removeAttribute('title');
+                tab.removeAttribute(OWN_TITLE);
+            }
+        });
     };
 
     /** The marks go back: the server's aria-current shows again */
@@ -267,11 +498,7 @@ export default class extends Controller {
         clearTimeout(this.noClickTimer);
         this.noClickTimer = null;
         this.pending = null;
-
-        window.removeEventListener('pointermove', this.onPointerMove, FOLLOW_PASSIVE);
-        window.removeEventListener('pointerup', this.onPointerUp, FOLLOW);
-        window.removeEventListener('pointercancel', this.onPointerCancel, FOLLOW);
-        window.removeEventListener('contextmenu', this.revert, FOLLOW);
+        this.unfollow();
 
         document.querySelectorAll(MARKED).forEach((tab) => {
             tab.classList.remove(PENDING, LEAVING);

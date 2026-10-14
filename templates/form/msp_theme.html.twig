@@ -1,0 +1,13 @@
+{#- The project's form theme, registered after Bootstrap 5's (config/packages/twig.php): everything is Bootstrap 5's,
+    except that a checkbox shown as a switch (label class `checkbox-switch`, which gives it Bootstrap's form-switch) is a
+    real switch - `switch` + role="switch" on the input (docs/features/navigation README §4.13 G10, GEST-10): iOS Safari
+    plays its own haptic when the user toggles it; it renders exactly as before under Bootstrap's appearance: none. -#}
+{% use 'bootstrap_5_layout.html.twig' %}
+
+{%- block checkbox_widget -%}
+    {%- set parent_label_class = parent_label_class|default(label_attr.class|default('')) -%}
+    {%- if 'checkbox-switch' in parent_label_class -%}
+        {%- set attr = attr|merge({switch: true, role: attr.role|default('switch')}) -%}
+    {%- endif -%}
+    {{- parent() -}}
+{%- endblock checkbox_widget %}

@@ -19,11 +19,13 @@
     {% set puzzle_change = active_puzzle is not null and can_change_puzzle|default(false) %}
     {% set puzzle_picker_open = puzzle_change and solving_time_form.puzzle.vars.errors|length > 0 %}
     {# A puzzle that can still change is read from the puzzle field by first-try-check #}
+    {# data-haptic-on-success: "time saved" - the haptic of a successful submit, add and edit alike (GEST-10, assets/haptics.js) #}
     {# first-try-check judges a typed time against the player's own times (pace) - not one a stopwatch measured #}
 
     {% set form_start_options = {
         'attr': {
             'data-controller': 'submit-prevention ppm-validator first-try-check',
+            'data-haptic-on-success': 'confirm',
             'data-first-try-check-url-value': path('first_try_check'),
             'data-first-try-check-puzzle-value': active_puzzle is defined and active_puzzle is not null and not puzzle_change ? active_puzzle.puzzleId : '',
             'data-first-try-check-time-value': solved_puzzle is defined ? solved_puzzle.timeId : '',
@@ -334,13 +336,15 @@
 
                     {# "I do not remember the date" toggle - Relax only #}
                     <div class="form-check form-switch {{ not is_relax ? 'd-none' }}" data-puzzle-add-form-target="noDateCheckboxSection">
-                        <input type="checkbox" class="form-check-input" id="no-date-checkbox" name="no_remember_date" value="1" data-action="puzzle-add-form#toggleNoDate"{{ no_date ? ' checked' }}>
+                        <input type="checkbox" class="form-check-input" role="switch" switch id="no-date-checkbox" name="no_remember_date" value="1" data-action="puzzle-add-form#toggleNoDate"{{ no_date ? ' checked' }}>
                         <label class="form-check-label" for="no-date-checkbox">{{ 'forms.do_not_remember_date'|trans }}</label>
                     </div>
 
-                    {# First attempt - Speed Puzzling only #}
+                    {# First attempt - Speed Puzzling only. The checkbox is a real switch through the form theme (label class
+                       checkbox-switch: `switch` + role="switch", templates/form/msp_theme.html.twig, GEST-10); the outer
+                       form-switch keeps the notice below aligned with the label, as before #}
                     <div class="form-switch {{ not is_speed ? 'd-none' }}" data-puzzle-add-form-target="firstAttemptSection">
-                        {{ form_row(solving_time_form.firstAttempt, {'attr': {'data-first-try-check-target': 'checkbox'}}) }}
+                        {{ form_row(solving_time_form.firstAttempt, {'attr': {'data-first-try-check-target': 'checkbox'}, 'label_attr': {'class': 'checkbox-switch'}}) }}
 
                         {# docs/features/first-try-integrity.md + duplicate-results.md - filled by first-try-check, or by a refused submit #}
                         <input type="hidden" name="first_try_resolution" value="{{ first_try_resolution|default('') }}" data-first-try-check-target="resolution">
@@ -356,7 +360,7 @@
 
                     {# Unboxed - Speed Puzzling only #}
                     <div class="form-switch {{ not is_speed ? 'd-none' }}" data-puzzle-add-form-target="unboxedSection">
-                        {{ form_row(solving_time_form.unboxed) }}
+                        {{ form_row(solving_time_form.unboxed, {'label_attr': {'class': 'checkbox-switch'}}) }}
                     </div>
                 </div>
 

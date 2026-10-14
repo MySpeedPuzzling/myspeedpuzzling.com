@@ -16,7 +16,7 @@ use Symfony\Component\Process\Process;
  * item 4): GEST-01 no history entry, PROF-05c no Results entry either, GEST-06 the pull never arms, GEST-10 no
  * vibration, GEST-12/17 the view-transition gate stays `none`, GEST-15 the restore decision is `leave`, CARD-01a /
  * MENU-02b the listeners let the link navigate, GEST-13 the confirm watchdog reports nothing, GEST-03 a tab tap
- * navigates.
+ * navigates, GEST-18 no long-press label.
  *
  * @phpstan-type Answer array{value?: mixed, threw?: string}
  * @phpstan-type Row array{id: string, app: Answer, web: Answer}
@@ -78,6 +78,16 @@ final class NativeAppStepAsideTest extends TestCase
         'assets/pull_to_refresh.js' => [
             ['installedApp' => false, 'browserTab' => false],
             ['installedApp' => true, 'browserTab' => false],
+        ],
+        // GEST-10: no vibration inside the app (the haptics backend is none there); on the web an Android phone plays
+        'assets/haptics.js' => [
+            ['timeSaved' => false, 'switchOn' => false],
+            ['timeSaved' => true, 'switchOn' => true],
+        ],
+        // GEST-18: the long-press label belongs to the web tab bar - none inside the app
+        'assets/tab_long_press.js' => [
+            ['heldOnACutTab' => false],
+            ['heldOnACutTab' => true],
         ],
     ];
 

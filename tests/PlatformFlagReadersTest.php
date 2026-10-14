@@ -53,7 +53,14 @@ final class PlatformFlagReadersTest extends TestCase
         // assets/pull_to_refresh.js decides, the PWA controller passes the flags)
         'assets/pull_to_refresh.js',
         'assets/controllers/pwa_lifecycle_controller.js',
+        // GEST-10: the haptics backend is none inside the app (README §4.14 (c)) - assets/haptics.js decides
+        'assets/haptics.js',
+        // GEST-18: the long-press label of a cut tab is the web tab bar's (assets/tab_long_press.js decides)
+        'assets/tab_long_press.js',
     ];
+
+    /** The one module that talks to the vibration API (README §4.14 (c), GEST-10) */
+    private const string HAPTICS_MODULE = 'assets/haptics.js';
 
     private const string PLATFORM_MODULE = 'assets/platform.js';
 
@@ -197,6 +204,25 @@ final class PlatformFlagReadersTest extends TestCase
             array_keys($found),
             'The user-agent markers of the app: PlatformDetector::IOS_MARKERS / ANDROID_MARKERS and their copy in the data-os head script',
         );
+    }
+
+    /**
+     * GEST-10 Verify: `grep -rn "vibrate" assets/` finds assets/haptics.js only - every file under assets/ (scripts,
+     * styles, comments included; the vendored packages excepted), so a haptic can only be played through haptic() (or the
+     * online round's signal()) and every rule of README §4.13 G10 applies to it
+     */
+    public function testOnlyTheHapticsModuleTalksToTheVibrationApi(): void
+    {
+        $found = [];
+
+        foreach ($this->files('assets', ['js', 'mjs', 'ts', 'scss', 'css', 'twig', 'json']) as $path => $code) {
+            if (str_contains($code, 'vibrate')) {
+                $found[] = $path;
+            }
+        }
+
+        self::assertSame([self::HAPTICS_MODULE], $found, 'Play haptics through haptic(name) of assets/haptics.js (the online round\'s alerts through signal())');
+        self::assertStringContainsString('vibrate(', $this->read(self::HAPTICS_MODULE));
     }
 
     public function testSymfonyUxNativeIsNotInstalled(): void

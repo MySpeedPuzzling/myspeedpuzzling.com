@@ -22,7 +22,7 @@
 
                 <div class="card card-body shadow-lg mb-3">
                     <div class="form-check form-switch">
-                        <input class="form-check-input" type="checkbox" role="switch" id="newsletter-switch"
+                        <input class="form-check-input" type="checkbox" role="switch" switch id="newsletter-switch"
                                name="newsletter_enabled" value="1" {{ newsletterEnabled ? 'checked' }}>
                         <label class="form-check-label" for="newsletter-switch">
                             <span class="d-block fw-bold">📬 {{ 'email_preferences.newsletter_title'|trans }}</span>
@@ -33,7 +33,7 @@
 
                 <div class="card card-body shadow-lg mb-3" data-controller="conditional-field">
                     <div class="form-check form-switch">
-                        <input class="form-check-input" type="checkbox" role="switch" id="notifications-switch"
+                        <input class="form-check-input" type="checkbox" role="switch" switch id="notifications-switch"
                                name="email_notifications_enabled" value="1" {{ emailNotificationsEnabled ? 'checked' }}>
                         <label class="form-check-label" for="notifications-switch">
                             <span class="d-block fw-bold">💬 {{ 'email_preferences.notifications_title'|trans }}</span>
@@ -59,7 +59,7 @@
 
                 <div class="card card-body shadow-lg mb-3">
                     <div class="form-check form-switch">
-                        <input class="form-check-input" type="checkbox" role="switch" id="result-emails-switch"
+                        <input class="form-check-input" type="checkbox" role="switch" switch id="result-emails-switch"
                                name="result_emails_enabled" value="1" {{ resultEmailsEnabled ? 'checked' }}>
                         <label class="form-check-label" for="result-emails-switch">
                             <span class="d-block fw-bold">🧩 {{ 'email_preferences.result_emails_title'|trans }}</span>

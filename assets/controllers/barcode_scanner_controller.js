@@ -1,5 +1,6 @@
 import { Controller } from '@hotwired/stimulus';
 import { browserDiagnostics, deviceModel, isNativeApp, nativePlatform, os } from '../platform.js';
+import { haptic } from '../haptics.js';
 
 // docs/features/barcode-scanner/README.md (§5.2 camera, §5.3 frames and acceptance)
 const DEFAULT_ZOOM = 1.5;
@@ -1078,13 +1079,13 @@ export default class extends Controller {
      * kind: read (a code was decoded), found, duplicate, unknown, invalid, error
      */
     feedback(kind) {
-        const patterns = {
-            read: [40],
-            found: [],
-            duplicate: [30, 40, 30],
-            unknown: [200],
-            invalid: [60, 40, 60],
-            error: [],
+        // Haptics through assets/haptics.js (GEST-10): a read confirms, a duplicate ticks, an unknown or invalid code is
+        // refused; found and error stay silent - Android only, never on iOS or desktop
+        const haptics = {
+            read: 'confirm',
+            duplicate: 'tick',
+            unknown: 'reject',
+            invalid: 'reject',
         };
         const tones = {
             read: [[1320, 60]],
@@ -1095,9 +1096,8 @@ export default class extends Controller {
             error: [],
         };
 
-        const pattern = patterns[kind] || [];
-        if (pattern.length && typeof navigator.vibrate === 'function') {
-            try { navigator.vibrate(pattern); } catch (e) { /* not supported */ }
+        if (haptics[kind]) {
+            haptic(haptics[kind]);
         }
 
         (tones[kind] || []).reduce((delay, [frequency, duration]) => {

@@ -10,7 +10,8 @@ use SpeedPuzzling\Web\Services\SocialLogin\SocialLoginSettings;
 
 return App::config([
     'twig' => [
-        'form_themes' => ['bootstrap_5_layout.html.twig'],
+        // Bootstrap 5's theme, then the project's: a checkbox switch is a real switch (GEST-10, templates/form/msp_theme.html.twig)
+        'form_themes' => ['bootstrap_5_layout.html.twig', 'form/msp_theme.html.twig'],
         'date' => [
             'timezone' => 'Europe/Prague',
         ],

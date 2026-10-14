@@ -231,6 +231,7 @@
                     type="checkbox"
                     class="form-check-input"
                     role="switch"
+                    switch
                     id="only-my-teams"
                     {{ this.onlyMyTeams ? 'checked' }}>
                 <label for="only-my-teams" class="form-check-label fs-sm">{{ (this.category == 'duo' ? 'only_my_pairs_filter' : 'only_my_teams_filter')|trans }}</label>
@@ -261,6 +262,7 @@
                                     type="checkbox"
                                     class="form-check-input"
                                     role="switch"
+                                    switch
                                     id="only-first-attempt"
                                     {{ this.onlyFirstTries ? 'checked' }}>
                                 <label for="only-first-attempt" class="form-check-label" onclick="arguments[0].stopPropagation()">{{ 'only_first_tries_filter'|trans }}</label>
@@ -272,6 +274,7 @@
                                     type="checkbox"
                                     class="form-check-input"
                                     role="switch"
+                                    switch
                                     id="only-unboxed"
                                     {{ this.onlyUnboxed ? 'checked' }}>
                                 <label for="only-unboxed" class="form-check-label" onclick="arguments[0].stopPropagation()">{{ 'only_unboxed_filter'|trans }}</label>
@@ -285,6 +288,7 @@
                                     type="checkbox"
                                     class="form-check-input"
                                     role="switch"
+                                    switch
                                     id="only-favorite-players"
                                     {{ this.onlyFavoritePlayers ? 'checked' }}>
                                 <label for="only-favorite-players" class="form-check-label" onclick="arguments[0].stopPropagation()">{{ 'only_favorite_players_filter'|trans }}</label>

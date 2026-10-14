@@ -105,7 +105,7 @@
                         </div>
                         <div data-controller="filter-toggle" class="mt-2">
                             <div class="form-check form-switch mb-1">
-                                <input class="form-check-input" type="checkbox" role="switch" id="picker-pieces-custom-on" data-filter-toggle-target="switch" data-action="filter-toggle#update" {{ custom_range is not null ? 'checked' }}>
+                                <input class="form-check-input" type="checkbox" role="switch" switch id="picker-pieces-custom-on" data-filter-toggle-target="switch" data-action="filter-toggle#update" {{ custom_range is not null ? 'checked' }}>
                                 <label class="form-check-label fs-sm" for="picker-pieces-custom-on">{{ 'puzzle_picker.filters.pieces.custom'|trans }}</label>
                             </div>
                             <div class="d-flex align-items-center gap-2 ms-4 puzzle-picker-toggle-panel" data-filter-toggle-target="panel">
@@ -158,7 +158,7 @@
                         {% set show_count_max = criteria.solvedMax is not null and criteria.solved.value != 'never' %}
                         <div data-controller="filter-toggle" class="mt-2">
                             <div class="form-check form-switch mb-1">
-                                <input class="form-check-input" type="checkbox" role="switch" id="picker-solved-count-on" data-filter-toggle-target="switch" data-action="filter-toggle#update" {{ show_count_min or show_count_max ? 'checked' }}>
+                                <input class="form-check-input" type="checkbox" role="switch" switch id="picker-solved-count-on" data-filter-toggle-target="switch" data-action="filter-toggle#update" {{ show_count_min or show_count_max ? 'checked' }}>
                                 <label class="form-check-label fs-sm" for="picker-solved-count-on">{{ 'puzzle_picker.filters.solved.count_toggle'|trans }}</label>
                             </div>
                             <div class="d-flex flex-wrap align-items-center gap-2 ms-4 puzzle-picker-toggle-panel" data-filter-toggle-target="panel">
@@ -173,7 +173,7 @@
                         {# Last solved more than N days / weeks / months ago - never-solved included by default #}
                         <div data-controller="filter-toggle" class="mt-2">
                             <div class="form-check form-switch mb-1">
-                                <input class="form-check-input" type="checkbox" role="switch" id="picker-since-on" data-filter-toggle-target="switch" data-action="filter-toggle#update" {{ criteria.sinceAmount is not null ? 'checked' }}>
+                                <input class="form-check-input" type="checkbox" role="switch" switch id="picker-since-on" data-filter-toggle-target="switch" data-action="filter-toggle#update" {{ criteria.sinceAmount is not null ? 'checked' }}>
                                 <label class="form-check-label fs-sm" for="picker-since-on">{{ 'puzzle_picker.filters.since.toggle'|trans }}</label>
                             </div>
                             <div class="ms-4 puzzle-picker-toggle-panel" data-filter-toggle-target="panel">
@@ -198,7 +198,7 @@
                         {# My fastest / latest / first time is under / over N minutes (solo times only) #}
                         <div data-controller="filter-toggle" class="mt-2">
                             <div class="form-check form-switch mb-1">
-                                <input class="form-check-input" type="checkbox" role="switch" id="picker-my-time-on" data-filter-toggle-target="switch" data-action="filter-toggle#update" {{ criteria.myTime is not null ? 'checked' }}>
+                                <input class="form-check-input" type="checkbox" role="switch" switch id="picker-my-time-on" data-filter-toggle-target="switch" data-action="filter-toggle#update" {{ criteria.myTime is not null ? 'checked' }}>
                                 <label class="form-check-label fs-sm" for="picker-my-time-on">{{ 'puzzle_picker.filters.my_time.toggle'|trans }}</label>
                             </div>
                             <div class="ms-4 puzzle-picker-toggle-panel" data-filter-toggle-target="panel">
@@ -242,7 +242,7 @@
                     <fieldset class="mb-3" data-controller="filter-toggle">
                         <legend class="fs-sm fw-bold mb-1">{{ 'puzzle_picker.filters.budget.label'|trans }}</legend>
                         <div class="form-check form-switch mb-1">
-                            <input class="form-check-input" type="checkbox" role="switch" id="picker-budget-on" data-filter-toggle-target="switch" data-action="filter-toggle#update" {{ criteria.predictedMaxMinutes is not null ? 'checked' }}>
+                            <input class="form-check-input" type="checkbox" role="switch" switch id="picker-budget-on" data-filter-toggle-target="switch" data-action="filter-toggle#update" {{ criteria.predictedMaxMinutes is not null ? 'checked' }}>
                             <label class="form-check-label fs-sm" for="picker-budget-on">{{ 'puzzle_picker.filters.budget.toggle'|trans }}</label>
                         </div>
                         <div class="ms-4 puzzle-picker-toggle-panel" data-filter-toggle-target="panel">

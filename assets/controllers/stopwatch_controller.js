@@ -1,5 +1,6 @@
 import { Controller } from '@hotwired/stimulus';
 import { confirmDialog } from '../confirm_dialog.js';
+import { haptic } from '../haptics.js';
 import { rememberStopwatchState } from '../stopwatch_elapsed.js';
 
 // Set on <html> while this page's stopwatch runs: the phone tab bar steps aside (templates/navigation/_critical_css.html.twig)
@@ -121,6 +122,8 @@ export default class extends Controller {
 
             this.stopwatchIdValue = data.stopwatchId;
             this.statusValue = 'running';
+            // Started (GEST-10: assets/haptics.js, Android only) - once the stopwatch really runs
+            haptic('confirm');
             // The top bar's pill (ADD-03) knows from the next page on; noted for this device as well
             rememberStopwatchState(data.stopwatchId, 'running', 0);
             this._totalPreviousMs = 0;
@@ -169,6 +172,7 @@ export default class extends Controller {
         const tappedAt = Date.now();
         this.statusValue = 'running';
         this._lastStartTimestamp = tappedAt;
+        haptic('confirm');
         // With the time so far: a pill hidden by the pause shows again counting from here, the pause left out
         rememberStopwatchState(this.stopwatchIdValue, 'running', this._totalPreviousMs);
         this._updateButtons();
@@ -224,6 +228,7 @@ export default class extends Controller {
     // The finish link opens the add form: the stopwatch is done for the top bar's pill (ADD-03), the link goes on
     finish() {
         rememberStopwatchState(this.stopwatchIdValue, 'finished');
+        haptic('confirm');
     }
 
     async toggleWakeLock() {

@@ -1101,6 +1101,10 @@ competition_referees:
   "meta":
     "title": "Modifier le profil"
   "title": "Modifier le profil"
+  "preferences":
+    "title": "Préférences"
+    "vibration": "Vibrations"
+    "vibration_help": "De courtes vibrations quand un temps est enregistré, qu'une boîte est scannée ou que quelque chose échoue. Les réglages de vibration de votre téléphone s'appliquent toujours."
   "player_code_change": "Changer le code joueur"
   "profile_visibility": "Visibilité du profil"
   "allow_direct_messages": "Autoriser les autres utilisateurs à m'envoyer des messages directs"

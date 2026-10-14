@@ -48,6 +48,17 @@
                 {{ form_end(features_options_form) }}
             </div>
 
+            {# Preferences of this device (GEST-10, README §4.13 G10): the Vibration switch - localStorage only
+               (haptics_setting_controller.js), rendered for everyone and shown only on Android (.os-android-only) #}
+            <div class="card card-body shadow-lg my-3 os-android-only" id="preferences" data-controller="haptics-setting">
+                <h3 class="h5">{{ 'edit_profile.preferences.title'|trans }}</h3>
+                <div class="form-check form-switch mb-1">
+                    <input class="form-check-input" type="checkbox" role="switch" switch id="haptics-setting" checked aria-describedby="haptics-setting-help" data-haptics-setting-target="switch" data-action="haptics-setting#change">
+                    <label class="form-check-label" for="haptics-setting">{{ 'edit_profile.preferences.vibration'|trans }}</label>
+                </div>
+                <p class="form-text mb-0" id="haptics-setting-help">{{ 'edit_profile.preferences.vibration_help'|trans }}</p>
+            </div>
+
             <div class="card card-body shadow-lg my-3" id="emails">
                 <h3 class="h5">{{ 'edit_profile.messaging_notifications'|trans }}</h3>
 

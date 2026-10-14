@@ -2,6 +2,7 @@
 import { Controller } from '@hotwired/stimulus';
 import { formatResultTime, parseResultTime } from '../official_results_time.js';
 import { confirmDialog, guardLeave } from '../confirm_dialog.js';
+import { haptic } from '../haptics.js';
 import { isGone, newClientId, officialResultsRequest } from '../official_results_api.js';
 import { createIndexedDbStorage, createMemoryStorage, createTabLock, Outbox, STUCK_AFTER_ATTEMPTS } from '../official_results_outbox.js';
 import { OfficialResultsEvents } from '../official_results_events.js';
@@ -577,15 +578,47 @@ export default class extends Controller {
             },
             onChange: () => {
                 this.indexDirty = true;
+                this.noticeFailedSaves();
                 this.scheduleRender();
             },
         });
 
         this.outbox.load().then(async () => {
+            // What already failed before this page opened is not news: only a save failing from now on is refused
+            this.failedSaves = this.failedSaveCount();
             this.foreign = await this.outbox.foreignCount();
             this.scheduleRender();
             this.flushSoon();
         });
+    }
+
+    /** Saves the server refused or that ended in a conflict - the outbox keeps them for the referee to decide */
+    failedSaveCount() {
+        if (!this.outbox) {
+            return 0;
+        }
+
+        const { conflicts, rejected, forbidden } = this.outbox.status();
+
+        return (conflicts || 0) + (rejected || 0) + (forbidden || 0);
+    }
+
+    /**
+     * An offline save failed (README §4.13 G10: reject) - once per newly failed save, never for the ones the page found
+     * on load (`failedSaves` is null until then)
+     */
+    noticeFailedSaves() {
+        if (this.failedSaves === null || this.failedSaves === undefined) {
+            return;
+        }
+
+        const failed = this.failedSaveCount();
+
+        if (failed > this.failedSaves) {
+            haptic('reject');
+        }
+
+        this.failedSaves = failed;
     }
 
     async sendChanges(roundId, changes) {
@@ -1504,9 +1537,8 @@ export default class extends Controller {
 
         const item = this.enqueue(entry, 'result', value);
 
-        if (navigator.vibrate) {
-            navigator.vibrate(30);
-        }
+        // Saved (into the outbox first): assets/haptics.js, Android only (GEST-10)
+        haptic('confirm');
 
         this.showToast(this.t('toastSaved', {
             '%name%': entry.displayName ?? entry.name ?? '',
@@ -1679,9 +1711,8 @@ export default class extends Controller {
             return;
         }
 
-        if (navigator.vibrate) {
-            navigator.vibrate(40);
-        }
+        // A name tag scanned (GEST-10)
+        haptic('confirm');
 
         this.openEntry(entry.ref);
     }

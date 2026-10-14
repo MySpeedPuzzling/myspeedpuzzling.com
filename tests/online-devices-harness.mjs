@@ -16,7 +16,7 @@ import {
     STORAGE_FACING,
 } from '../assets/online/camera.js';
 import { ScreenWakeLock } from '../assets/online/wake_lock.js';
-import { ALARM_PATTERN_MS, Beeps, CHIME_PATTERN, CHIME_VIBRATION, countdownPlan, GO_VIBRATION, TONES } from '../assets/online/beeps.js';
+import { ALARM_PATTERN_MS, ALARM_VIBRATION, Beeps, CHIME_PATTERN, CHIME_VIBRATION, countdownPlan, GO_VIBRATION, TONES } from '../assets/online/beeps.js';
 import {
     captureTimeOf,
     fitWithin,
@@ -660,7 +660,7 @@ const scenarios = {
     async 'the beeps go on the audio clock once each; a new start cancels the old plan; nothing before the tap'() {
         FakeAudioContext.instances = [];
         const vibrations = [];
-        const beeps = new Beeps({ AudioContext: FakeAudioContext, vibrate: (pattern) => vibrations.push(pattern) });
+        const beeps = new Beeps({ AudioContext: FakeAudioContext, vibration: (pattern) => vibrations.push(pattern) });
 
         assert.equal(beeps.scheduleCountdown(START, START - 3_500), 0, 'not unlocked: no sound');
 
@@ -696,14 +696,49 @@ const scenarios = {
         assert.equal(context.state, 'closed');
 
         // No WebAudio: the vibration alone, nothing throws
-        const silent = new Beeps({ AudioContext: null, vibrate: (pattern) => vibrations.push(pattern) });
+        const silent = new Beeps({ AudioContext: null, vibration: (pattern) => vibrations.push(pattern) });
         assert.equal(silent.unlock(), false);
         assert.equal(silent.alarm(), false);
         assert.equal(vibrations.length, 4, 'GO, the alarm, the chime and the silent alarm');
-        const still = new Beeps({ AudioContext: null, vibrate: null });
+        const still = new Beeps({ AudioContext: null, vibration: null });
         still.tap();
         still.goVibration();
         assert.equal(still.chime(), false, 'not unlocked: no chime, nothing throws');
+
+        // The default goes through signal() of assets/haptics.js (navigation GEST-10, the one module that talks to the
+        // vibration API): the same patterns, wherever the browser has the API - whatever the haptic rules say (no data-os,
+        // no user activation reported here)
+        const original = Object.getOwnPropertyDescriptor(globalThis, 'navigator');
+        const handed = [];
+        Object.defineProperty(globalThis, 'navigator', { configurable: true, value: { vibrate(pattern) { handed.push(pattern); return true; }, userActivation: { hasBeenActive: false } } });
+
+        try {
+            const browser = new Beeps({ AudioContext: null });
+            browser.goVibration();
+            browser.alarm();
+            browser.chime();
+            browser.tap();
+            assert.deepEqual(handed, [GO_VIBRATION, ALARM_VIBRATION, CHIME_VIBRATION, [60]]);
+        } finally {
+            if (original) {
+                Object.defineProperty(globalThis, 'navigator', original);
+            } else {
+                delete globalThis.navigator;
+            }
+        }
+
+        // No API (iOS): nothing, nothing throws
+        Object.defineProperty(globalThis, 'navigator', { configurable: true, value: {} });
+
+        try {
+            new Beeps({ AudioContext: null }).goVibration();
+        } finally {
+            if (original) {
+                Object.defineProperty(globalThis, 'navigator', original);
+            } else {
+                delete globalThis.navigator;
+            }
+        }
     },
 
     async 'frame sizes: fitted into 640×360 (turned for a portrait frame), never upscaled, even'() {

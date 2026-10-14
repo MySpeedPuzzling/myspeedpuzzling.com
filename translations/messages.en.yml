@@ -1561,6 +1561,10 @@ edit_profile:
     meta:
         title: "Edit profile"
     title: "Edit profile"
+    preferences:
+        title: "Preferences"
+        vibration: "Vibration"
+        vibration_help: "Short vibrations when a time is saved, a box is scanned or something fails. Your phone's own vibration settings still apply."
     player_code_change: "Change player code"
     profile_visibility: "Profile visibility"
     messaging_notifications: "Messaging & Notifications"

@@ -62,6 +62,8 @@ $nav-label-safety: .5px;
     text-decoration: none;
     -webkit-tap-highlight-color: transparent;
     user-select: none;
+    // GEST-18: a held finger shows the cut label's bubble, never iOS's link callout (only tab links - README §4.13 G16)
+    -webkit-touch-callout: none;
 
     &:hover,
     &:focus {
@@ -152,6 +154,31 @@ $nav-label-safety: .5px;
 
     .lb-avatar-img {
         font-size: .75rem;
+    }
+}
+
+// ---- Long-press a cut tab (GEST-18, README §4.13 G16) -----------------------------------------------------------------
+// The full label of a tab whose label is not fully shown, 12 px over it while a finger holds it (tab_gestures_controller.js
+// places it: fixed, at least 8 px from the sides). One element on <body>, role="tooltip"; it never takes a touch.
+.nav-tab-bubble {
+    position: fixed;
+    z-index: $z-tooltip;
+    max-width: calc(100vw - 16px);
+    padding: 6px 10px;
+    overflow: hidden;
+    border-radius: 8px;
+    background: var(--nav-ink, #4b566b);
+    box-shadow: 0 2px 8px rgba(43, 52, 69, .2);
+    color: #fff;
+    font-size: .8125rem;
+    font-weight: 500;
+    line-height: 1.125rem;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    pointer-events: none;
+
+    &[hidden] {
+        display: none;
     }
 }
 

@@ -1,4 +1,5 @@
 import { Controller } from '@hotwired/stimulus';
+import { haptic } from '../haptics.js';
 import layers from '../layer_history.js';
 import { isNativeApp, isStandalone } from '../platform.js';
 import { canStartPull, overlayOpen, pastThreshold, PULL_TARGET, pullEnabled, pullOffset, pullProgress, PullGesture } from '../pull_to_refresh.js';
@@ -321,9 +322,8 @@ export default class extends Controller {
         }, 300);
     }
 
+    // The threshold crossed (once per crossing): a tick through assets/haptics.js - Android only (GEST-10)
     _haptic() {
-        if (navigator.vibrate) {
-            navigator.vibrate(10);
-        }
+        haptic('tick');
     }
 }

@@ -1,0 +1,65 @@
+// Pressed feedback per platform (docs/features/navigation README §4.13 G11; implementation plan GEST-11, decision 62):
+// Android's ripple from the touch point, drawn by assets/press_feedback.js on [data-press] targets (not cards). iOS and
+// desktop keep GEST-04's state layer only (_press-states.scss) - the script never adds a host there.
+//
+// The host fills the target (or its inner pill) and clips the circle to its corners, so the target itself never gets
+// overflow: hidden; it never takes a touch. The circle (sized and placed by the script to reach the farthest corner)
+// starts at 20 % of the target's larger side (--msp-ripple-from) and covers it in 450 ms - Material's own timing, the
+// one motion over 400 ms (NavigationMotionRulesTest lists it): an answer to a held finger, never motion without one.
+// The host fades out in 150 ms after the release (never before the ripple has shown 225 ms - the script's timing).
+//
+// Its colour is the element's --nav-press-ink - shared with GEST-04's state layer - by default the 10 % coral
+// --nav-pressed-pill. On the coral surfaces that layer vanishes (≈ 1.01:1 against the coral, GEST review F2): they set a
+// dark ink in _press-states.scss (16 % black: ≈ 1.36:1 over the Add tile's #ec4f52, ≈ 1.33:1 over + Add's #d63c42 -
+// measured by checks/GEST-11.py on the Add tab; the 10 % coral over white is ≈ 1.11:1).
+
+.msp-ripple-host {
+    position: absolute;
+    // Under the target's icon and label (the script isolates the target while a ripple is in it)
+    z-index: -1;
+    inset: 0;
+    overflow: hidden;
+    border-radius: inherit;
+    pointer-events: none;
+    contain: paint;
+}
+
+.msp-ripple {
+    position: absolute;
+    border-radius: 50%;
+    background: var(--nav-press-ink, var(--nav-pressed-pill, rgba(254, 105, 106, .1)));
+    transform: scale(var(--msp-ripple-from, .2));
+    animation: msp-ripple-cover 450ms cubic-bezier(.2, 0, 0, 1) forwards;
+    pointer-events: none;
+}
+
+.msp-ripple-host.is-fading {
+    animation: msp-ripple-fade 150ms linear forwards;
+}
+
+@keyframes msp-ripple-cover {
+    from {
+        transform: scale(var(--msp-ripple-from, .2));
+    }
+
+    to {
+        transform: scale(1);
+    }
+}
+
+@keyframes msp-ripple-fade {
+    from {
+        opacity: 1;
+    }
+
+    to {
+        opacity: 0;
+    }
+}
+
+// Reduced motion: no ripple at all (the script adds none either; this keeps one from showing should it)
+@media (prefers-reduced-motion: reduce) {
+    .msp-ripple-host {
+        display: none;
+    }
+}

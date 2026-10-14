@@ -73,6 +73,14 @@ final class NavigationMotionRulesTest extends TestCase
     /** The navigation's motion custom properties (critical CSS) */
     private const string CRITICAL = 'templates/navigation/_critical_css.html.twig';
 
+    /**
+     * Motions over 400 ms the README sets itself: keyframes => [ms, why] - the one exception to "nothing over 400 ms"
+     * (G8) is G11's own number. Each is an answer to a held finger, never motion without one.
+     */
+    private const array LONGER = [
+        'msp-ripple-cover' => [450, 'README §4.13 G11: Android\'s ripple covers its target in 450 ms (Material\'s timing) - only while a finger holds it, never under reduced motion'],
+    ];
+
     /** Endless animations allowed: keyframes => why (they run only after an interaction, while something loads) */
     private const array LOOPS = [
         'pwa-ptr-spin' => 'the installed app\'s refresh spinner: shown after the release of a pull, until the page reloads',
@@ -114,7 +122,15 @@ final class NavigationMotionRulesTest extends TestCase
                     continue;
                 }
 
-                self::assertLessThanOrEqual(self::MAX_MS, array_sum($this->times($item)), sprintf('%s: %s: %s', $path, $property, $item));
+                $max = self::MAX_MS;
+
+                foreach (self::LONGER as $name => [$allowed]) {
+                    if (preg_match('~(?<![\w-])' . preg_quote($name, '~') . '(?![\w-])~', $item) === 1) {
+                        $max = $allowed;
+                    }
+                }
+
+                self::assertLessThanOrEqual($max, array_sum($this->times($item)), sprintf('%s: %s: %s', $path, $property, $item));
             }
         }
 
@@ -148,6 +164,32 @@ final class NavigationMotionRulesTest extends TestCase
         foreach ($this->reducedMotionBlocks($code) as $block) {
             self::assertMatchesRegularExpression('~\bnone\b|opacity|fade~', $block, $path . ': under reduced motion only fades or nothing');
         }
+    }
+
+    /**
+     * GEST-11's exception is pinned to its one place: the ripple's cover animation in _press-feedback.scss, exactly 450 ms
+     * - and that partial turns the ripple off under reduced motion
+     */
+    public function testTheRippleIsTheOneLongerMotion(): void
+    {
+        $longer = [];
+
+        foreach ([...self::PARTIALS, ...self::LATER] as $path) {
+            if (!is_file(__DIR__ . '/../' . $path)) {
+                continue;
+            }
+
+            foreach ($this->motionDeclarations($path) as [$property, $value]) {
+                foreach ($this->items($value) as $item) {
+                    if (!str_contains($item, 'infinite') && array_sum($this->times($item)) > self::MAX_MS) {
+                        $longer[] = $path . ' ' . $property . ': ' . $item;
+                    }
+                }
+            }
+        }
+
+        self::assertSame(['assets/styles/_press-feedback.scss animation: msp-ripple-cover 450ms cubic-bezier(.2, 0, 0, 1) forwards'], $longer);
+        self::assertMatchesRegularExpression('~@media \(prefers-reduced-motion: reduce\) \{\s*\.msp-ripple-host \{\s*display: none;~', $this->code('assets/styles/_press-feedback.scss'));
     }
 
     /** The decision for GEST-04's pressed layer (see the class comment): a colour fade only, so no block */

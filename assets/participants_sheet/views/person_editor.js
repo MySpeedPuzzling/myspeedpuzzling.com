@@ -605,7 +605,7 @@ export class PersonEditor {
 
         return `<div class="sheet-person-round" data-round="${escapeHtml(round.id)}">
                 <div class="form-check form-switch">
-                    <input class="form-check-input" type="checkbox" role="switch" id="${id}" data-round-switch="${escapeHtml(round.id)}" data-shown="${escapeHtml(shown)}" data-focus-key="round-${escapeHtml(round.id)}"${inRound ? ' checked' : ''}${disabled}>
+                    <input class="form-check-input" type="checkbox" role="switch" switch id="${id}" data-round-switch="${escapeHtml(round.id)}" data-shown="${escapeHtml(shown)}" data-focus-key="round-${escapeHtml(round.id)}"${inRound ? ' checked' : ''}${disabled}>
                     <label class="form-check-label" for="${id}">${swatch} ${escapeHtml(round.name)} <span class="text-body-secondary small">${escapeHtml(kind)}</span></label>
                 </div>
                 ${picker}

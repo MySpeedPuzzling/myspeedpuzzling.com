@@ -1,14 +1,17 @@
 /**
  * The participant page's sounds (docs/features/online-competitions/README.md §5.5): the last three seconds of the
  * countdown, GO, the time's-up alarm and the chime of a detected finish - WebAudio, unlocked by the "I'm ready" tap (browsers play nothing before a
- * tap), with vibration as a bonus where it exists (never on iOS).
+ * tap), with vibration as a bonus where it exists (never on iOS) - through signal() of assets/haptics.js, the one place
+ * that talks to the vibration API (navigation GEST-10): these alerts keep their own patterns and play wherever the
+ * browser has the API, outside the haptic rules and the Vibration setting.
  *
  * The countdown is scheduled on the audio clock from the server-time distance to each beep (countdownPlan()), so a
  * beep lands on its second even while the page renders slowly; a new start (a cancel, a reschedule) cancels the plan.
  * The phones' own beeps are the timing reference - a spoken countdown over the call arrives late (README §5.12).
  *
- * No DOM at import: the AudioContext constructor and vibrate are injected - pinned by tests/online-devices-harness.mjs.
+ * No DOM at import: the AudioContext constructor and the vibration are injected - pinned by tests/online-devices-harness.mjs.
  */
+import { signal } from '../haptics.js';
 
 // The beeps before GO, in ms before the start
 export const COUNTDOWN_BEEPS_MS = [3000, 2000, 1000];
@@ -55,14 +58,14 @@ export class Beeps {
     /**
      * @param {object} [options]
      * @param {function(new: AudioContext)|null} [options.AudioContext]
-     * @param {function(number[]): boolean|null} [options.vibrate]
+     * @param {function(number[]): boolean|null} [options.vibration] plays a pattern (default: signal() of assets/haptics.js)
      */
     constructor({
         AudioContext = globalThis.AudioContext ?? globalThis.webkitAudioContext ?? null,
-        vibrate = typeof globalThis.navigator?.vibrate === 'function' ? (pattern) => globalThis.navigator.vibrate(pattern) : null,
+        vibration = (pattern) => signal(pattern),
     } = {}) {
         this.AudioContextClass = AudioContext;
-        this.vibrateFunction = vibrate;
+        this.vibrationFunction = vibration;
         this.context = null;
         // The countdown on the audio clock: its start and the beeps put there (by atMs)
         this.plan = { startedAtMs: null, scheduled: new Map() };
@@ -155,14 +158,14 @@ export class Beeps {
      * GO's vibration (the sound is part of the countdown plan).
      */
     goVibration() {
-        this.vibrate(GO_VIBRATION);
+        this.buzz(GO_VIBRATION);
     }
 
     /**
      * Time's up: the alarm and a long vibration.
      */
     alarm() {
-        this.vibrate(ALARM_VIBRATION);
+        this.buzz(ALARM_VIBRATION);
 
         if (!this.isUnlocked()) {
             return false;
@@ -180,7 +183,7 @@ export class Beeps {
      * Raised hands were recorded as the finish (README §5.7, `on` mode): a two-tone chime and a short vibration.
      */
     chime() {
-        this.vibrate(CHIME_VIBRATION);
+        this.buzz(CHIME_VIBRATION);
 
         if (!this.isUnlocked()) {
             return false;
@@ -197,7 +200,7 @@ export class Beeps {
      * A short confirmation (the Finished tap).
      */
     tap() {
-        this.vibrate([60]);
+        this.buzz([60]);
     }
 
     close() {
@@ -214,9 +217,9 @@ export class Beeps {
 
     // ---- internals
 
-    vibrate(pattern) {
+    buzz(pattern) {
         try {
-            this.vibrateFunction?.(pattern);
+            this.vibrationFunction?.(pattern);
         } catch (e) {
             // No vibration (iOS) - the sound and the screen carry it
         }

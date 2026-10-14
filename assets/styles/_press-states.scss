@@ -37,11 +37,12 @@
 }
 
 // Coral surfaces (the Add tile, + Add, the guest card's Sign in): 10 % coral on coral is invisible (contrast ≈ 1.01 over
-// the tile's #ec4f52) - a dark ink there (≈ 1.23, PressStatesCssTest computes it). Add stays "never styled selected"
+// the tile's #ec4f52) - a dark ink there, 16 % black (≈ 1.36 over the tile, ≈ 1.33 over + Add's #d63c42;
+// PressStatesCssTest computes it). The one definition: GEST-11's ripple reads the same ink. Add stays "never styled selected"
 .nav-tab--add[data-press],
 .site-header-add[data-press],
 .menu-guest-btn--primary[data-press] {
-    --nav-press-ink: rgba(43, 52, 69, .16);
+    --nav-press-ink: rgba(0, 0, 0, .16);
 }
 
 // The browser's own grey flash would sit on top of ours

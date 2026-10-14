@@ -1224,6 +1224,10 @@ competition_referees:
   "meta":
     "title": "プロフィール編集"
   "title": "プロフィール編集"
+  "preferences":
+    "title": "環境設定"
+    "vibration": "バイブレーション"
+    "vibration_help": "タイムを保存したとき、箱をスキャンしたとき、何かがうまくいかなかったときに短く振動します。スマートフォン本体のバイブレーション設定も引き続き適用されます。"
   "player_code_change": "プレイヤーコード変更"
   "profile_visibility": "プロフィールの表示"
   "allow_direct_messages": "他のユーザーからのダイレクトメッセージを許可する"

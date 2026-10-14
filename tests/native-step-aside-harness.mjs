@@ -17,6 +17,8 @@ import { historyAction, scrollRestore, takesOver } from '../assets/player_result
 import { shouldOpen } from '../assets/player_card_rules.js';
 import { decideFor } from '../assets/tab_reselect.js';
 import { pullEnabledFor } from '../assets/pull_to_refresh.js';
+import { browserEnv, haptic } from '../assets/haptics.js';
+import { longPressEnabledFor } from '../assets/tab_long_press.js';
 
 /** A fake <html>: inside the app on an Android phone, or Chrome on the same phone */
 function root(nativeApp) {
@@ -121,6 +123,26 @@ const ROWS = [
             installedApp: pullEnabledFor({ ...html, classList: { contains: (name) => name === 'is-standalone' } }),
             browserTab: pullEnabledFor(html),
         }),
+    },
+    // GEST-10: haptics play on an Android phone's browser (the API there, the user active, the page visible, the setting
+    // on) - inside the app the backend is none until a bridge component exists (README §4.14 (c)): no vibration
+    {
+        id: 'assets/haptics.js',
+        run: (html) => {
+            const env = browserEnv({
+                root: html,
+                nav: { vibrate: () => true, userActivation: { hasBeenActive: true } },
+                storage: null,
+                doc: { visibilityState: 'visible' },
+            });
+
+            return { timeSaved: haptic('confirm', env), switchOn: haptic('toggleOn', env) };
+        },
+    },
+    // GEST-18: a finger held on a cut tab shows its label on the web tab bar; the app has no web tab bar - no bubble
+    {
+        id: 'assets/tab_long_press.js',
+        run: (html) => ({ heldOnACutTab: longPressEnabledFor(html, 'touch') }),
     },
 ];
 

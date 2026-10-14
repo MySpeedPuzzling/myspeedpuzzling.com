@@ -1,8 +1,8 @@
 /* stimulusFetch: 'lazy' */
 import { Controller } from '@hotwired/stimulus';
+import { haptic } from '../haptics.js';
 
 const TILT = { none: 0, rim: 8, masterpiece: 12 };
-const HAPTIC_MS = 10;
 
 /**
  * The medal of the achievement detail sheet (templates/_achievement_info_modal.html.twig,
@@ -12,7 +12,7 @@ const HAPTIC_MS = 10;
  *   back's engraving, and the medal data of the row (`data-holo`: back plate, tones, the foil masks of Platinum and
  *   Diamond) as custom properties. Switching always shows the front.
  * - The medal is a <button aria-pressed>: a tap, Enter or Space turns it over to the back (CSS transition; a 0.2 s
- *   cross-fade under prefers-reduced-motion). `navigator.vibrate(10)` where there is one, never under reduced motion.
+ *   cross-fade under prefers-reduced-motion). A `tick` haptic (assets/haptics.js: Android only), never under reduced motion.
  * - A tier row first brings the medal into view (scrollIntoView, nearest), then switches.
  * - Platinum (8°) and Diamond (12°) tilt with a mouse or pen (never touch) and get one light sweep: the engine
  *   (assets/holo_medal/engine.js) and the Diamond textures are imported only when such a medal is shown and motion is
@@ -106,7 +106,7 @@ export default class extends Controller {
         this.turnTo(this.cardTarget.getAttribute('aria-pressed') !== 'true', true);
     }
 
-    turnTo(toBack, haptic) {
+    turnTo(toBack, withHaptic) {
         if (!this.hasCardTarget) {
             return;
         }
@@ -123,8 +123,8 @@ export default class extends Controller {
             this.hintTarget.textContent = toBack ? this.hintBackValue : this.hintFrontValue;
         }
 
-        if (haptic && !this.reducedMotion.matches && typeof navigator.vibrate === 'function') {
-            navigator.vibrate(HAPTIC_MS);
+        if (withHaptic && !this.reducedMotion.matches) {
+            haptic('tick');
         }
     }
 

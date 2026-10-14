@@ -43,6 +43,8 @@ import { installDocumentReceipts } from './document_receipt.js';
 import { installHelpOpeners } from './help_openers.js';
 import { installPuzzlesSection } from './puzzles_section.js';
 import { installPlayerCard } from './player_card.js';
+import { install as installHaptics } from './haptics.js';
+import { install as installPressFeedback } from './press_feedback.js';
 // The URL a restore visit reloads below, for the page it brings back (the Results page's scroll position, PROF-05c)
 import { markRestoreReload } from './restore_reload.js';
 
@@ -61,12 +63,20 @@ installPuzzlesSection({ window, document });
 // loads on the first hover, focus or open
 installPlayerCard({ window, document });
 
+// Haptics (GEST-10, assets/haptics.js - Android only, the device's Vibration setting): a switch turned on, a refused
+// form (422), a form's successful submit that names its haptic (the add / edit form: "time saved")
+installHaptics({ document });
+
 Turbo.config.drive.progressBarDelay = 0;
 
 // Pressed states within 100 ms (GEST-04, assets/styles/_press-states.scss): iOS Safari applies :active only to elements
 // with a touch listener above them (WebKit bug 138816) - one empty passive listener on the document gives every
 // [data-press] target its state layer at touch, without delaying the tap or the scroll
 document.addEventListener('touchstart', () => {}, { passive: true });
+
+// Android's ripple from the touch point on the same [data-press] targets (GEST-11, assets/press_feedback.js): on top of
+// the state layer, never on iOS or desktop, never under reduced motion
+installPressFeedback({ window, document });
 
 // Navigation clicks, the viewport once per session and Back/Forward navigations (docs/features/navigation, P0-03).
 // The web chrome only - the app's navigation is native

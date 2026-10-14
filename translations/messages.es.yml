@@ -787,6 +787,10 @@
   "meta":
     "title": "Editar perfil"
   "title": "Editar perfil"
+  "preferences":
+    "title": "Preferencias"
+    "vibration": "Vibración"
+    "vibration_help": "Vibraciones cortas cuando se guarda un tiempo, se escanea una caja o algo falla. Los ajustes de vibración de tu teléfono se siguen aplicando."
   "player_code_change": "Cambiar código de jugador"
   "profile_visibility": "Visibilidad del perfil"
   "allow_direct_messages": "Permitir que otros usuarios me envíen mensajes directos"

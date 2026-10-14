@@ -85,7 +85,7 @@ studio page as the host. Headphones on the host. After any change to `assets/onl
 
 The phone detects raised hands itself (README §5.7, stream P2I): MediaPipe from the pinned CDN URLs (OnlineDetectorAssets),
 a worker on the page's own camera frames, the set-up test on the checklist, candidates with a photo and a ±5 s burst.
-Set the round's "Finish" to **Detection** (`on`) for steps 38-49, to **detection watching** (`shadow`) for 50-51. Devices:
+Set the round's "Finish" to **Detection** (`on`) for steps 38-49 and 53-56, to **detection watching** (`shadow`) for 50-51. Devices:
 an **iPhone in Safari** and an **Android phone in Chrome** (one older / mid-range one if there is one), each on a stand -
 once **angled** (3-4 ft away, ≥ 12" above the table, upper body in view) and once **top-down** (only the table). After any
 change to `assets/online/compete_detection*.js`, `detector_feed.js`, `detector_pacing.js`, `finish_machine.js`,
@@ -101,11 +101,13 @@ FROM online_entry_event e JOIN online_entry o ON o.id = e.online_entry_id
 JOIN competition_participant_round r ON r.id = o.entry_id
 WHERE r.participant_id = :participant AND e.type = 'finish.candidate' ORDER BY e.client_ms;
 
--- The detector as the phone reported it when it said "I'm ready" (state, view, the set-up test, load time)
-SELECT e.device_id, e.payload->'detector' AS detector, e.payload->>'userAgent' AS browser
+-- The detector as the phone reported it when it said "I'm ready" (state, view, the set-up test, load time) - and every
+-- change after it (detector.changed: running or not, and why - slow, stalled, error, loading, ...)
+SELECT to_timestamp(e.client_ms / 1000.0) AS at, e.type, e.device_id,
+       coalesce(e.payload->'detector', e.payload) AS detector, e.payload->>'userAgent' AS browser
 FROM online_entry_event e JOIN online_entry o ON o.id = e.online_entry_id
 JOIN competition_participant_round r ON r.id = o.entry_id
-WHERE r.participant_id = :participant AND e.type = 'device.ready' ORDER BY e.client_ms;
+WHERE r.participant_id = :participant AND e.type IN ('device.ready', 'detector.changed') ORDER BY e.client_ms;
 ```
 
 | # | Do | Must happen |
@@ -119,12 +121,16 @@ WHERE r.participant_id = :participant AND e.type = 'device.ready' ORDER BY e.cli
 | 44 | Wait 15 s, raise again | A second candidate (a later raise after the cooldown is a new one); the screen shows its time |
 | 45 | A **premature** raise: raise at 1:00, keep puzzling, raise again at 2:00, tap Finished at 2:03 | Two candidates and a tap. Review: the suggestion is the first candidate; `G` moves to the second, `C` confirms it as "Confirmed from the detection"; the accuracy report shows the detection error, the delta (tap − candidate ≈ 3 s) and one false raise |
 | 46 | Gestures that are not a finish: scratch your head, adjust glasses, stretch one arm, wave one hand, put both hands on the table edge | No candidate. Note every false one (with the burst - it is the bench's material) |
-| 47 | Lock the phone while holding a raise, unlock | No candidate from before the lock carries over; the gap is in the events (`page.hidden`); a new raise after unlocking is detected |
+| 47 | Lock the phone while holding a raise, unlock | No candidate from before the lock carries over; the gap is in the events (`page.hidden`); a new raise after unlocking - once the hands were down for a moment - is detected |
 | 48 | **Endurance:** let the round run 30 minutes with detection on (and live video on, if the media server is there), charger connected | The detector keeps running (the control room's chip stays "Detection ready", its fps in live.json ≥ 2); note **heat** (by hand: cool / warm / hot), **battery %** at start and end (charger off for this one if possible), the phone's own slowdowns, and the **inference ms + fps** from live.json every 5 minutes (`presence.detector`) |
 | 49 | Time's up after a detected finish (no tap) | "Time's up" with "Finish recorded at MM:SS - Was your puzzle complete then?" and "My puzzle is complete"; tapping it ends with "Your time MM:SS - being verified"; the pieces question still works for a phone whose puzzle was not complete |
-| 50 | Round set to **detection watching** (`shadow`): repeat 42 and tap Finished 2 s after the raise | **Nothing is shown** - no flash, no chime, no "Finish recorded"; the Finished tap is the finish. Server: the candidate with its photo and burst all the same; the control room shows only the tap |
-| 51 | Review the shadow round | The suggestion is the tap ("Confirmed from the Finished button" after `C`); the candidate is listed next to it with its photo and burst; the accuracy report lists the delta |
-| 52 | A phone without the detector (iOS 16 or older, or a browser in which the row says "This phone can't detect raised hands") | Button-only, said in the row; "I'm ready" works at once; the control room's chip says "Button only" |
+| 50 | Round set to **detection watching** (`shadow`), on a slow connection (or the first visit): "I'm ready" at once, then repeat 42 and tap Finished 2 s after the raise | "I'm ready" never waits for the detector (no "Skip"); it loads in the background and watches from GO once loaded. **Nothing is shown** - no flash, no chime, no "Finish recorded"; the Finished tap is the finish. Server: the candidate with its photo and burst all the same (and a `detector.changed` "running" if it loaded after "I'm ready"); the control room shows only the tap |
+| 51 | Review the shadow round | The review shows **the tap only** - no raised hands among the moments, no candidate photo or burst, `G` steps through taps; the suggestion is the tap ("Confirmed from the Finished button" after `C`). The accuracy report lists the candidate and the delta |
+| 52 | A phone without the detector (iOS 16 or older, or a browser in which the row says "This phone can't detect raised hands") | Button-only, said in the row; "I'm ready" works at once; the control room's chip says "Button only"; a finish there is "Detector not running" in the accuracy report, not a missed raise |
+| 53 | **Hands up at GO:** raise both hands during the countdown and keep them up through GO and 5 s after it, lower them, puzzle 30 s, raise again | **No candidate at 0:01** - nothing shown, no `finish.candidate` near GO; the later raise is a candidate at its own first raised frame (the review's burst). Stream P2F's arming rule |
+| 54 | **Hidden with hands up:** with the hands up, switch to another app (or lock) for 5 s, come back still holding them up, keep holding 5 s; then lower, wait 2 s, raise | No candidate while the hands stay up after coming back (the page saw no raise begin); the raise after lowering is a candidate. `page.hidden` / `page.visible` in the events |
+| 55 | **A slow phone** (if one is at hand): the oldest phone, or one made busy (battery saver, a video call in another app) until live.json's `presence.detector.inferenceMs` stays above ~1,500 ms (the reported fps never goes below 1 - the pacing's floor) | Within ~10 s the running screen says **"Tap Finished when your puzzle is complete."** (no more "Raise both hands"), the control room's chip **"Button only"**, one `detector.changed` with `reason: slow` (query above); a finish there is "Detector not running" in the accuracy report. Note the phone and its fps / inference ms |
+| 56 | **A frozen camera:** cover nothing - make the camera stop delivering frames without the page noticing (on Android: open the camera in a split-screen app; on a laptop with a USB camera: unplug it for 5 s, plug it back) while holding the hands up, then lower and raise | While it delivers no frames the hint becomes "Tap Finished when your puzzle is complete." (never a candidate from the frozen picture); when frames come again the hint returns, the hands still up give no candidate, a raise after lowering does. Note how the browser behaved (camera.lost? frames frozen?) |
 
 ## Known platform limits to note, not to fail
 

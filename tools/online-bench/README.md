@@ -90,7 +90,9 @@ node tools/online-bench/score.mjs ~/msp-footage/signals/ --labels ~/msp-footage/
 - Inputs: signals files (or folders of them); label files are found by their `video:` line or by name (`07.txt`
   next to `07.signals.json`, or in a `--labels` folder).
 - `--rules '{"holdMs":700}'` scores other finish rules; `--fps 5` thins the frames to a phone's rate; `--view angled`
-  recomputes the signal of one view from the stored landmarks.
+  recomputes the signal of one view from the stored landmarks. The machine arms like the phones' (stream P2F: a raise
+  already going on at a video's first frame or after a gap is never a candidate) - `--rules '{"armMs":0,"armFrames":0}'`
+  scores the machine without arming; `armMs` / `armFrames` are sweepable grid keys too.
 - `--sweep`: every combination of hold (300-1000 ms), minScore, tolerated dropped frames, max gap and frame rate
   (all / 5 / 4 / 2 fps); `--sweep-views` adds the three views; `--sweep-signal` adds the signal's own thresholds
   (wrist visibility, lift, gesture score), recomputed from the landmarks.

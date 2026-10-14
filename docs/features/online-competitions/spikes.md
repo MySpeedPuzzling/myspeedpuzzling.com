@@ -131,6 +131,51 @@ then brief jumping jacks (each up < 0.5 s), the loop's own time drawn in the cor
 Not covered here: real phones (device-test.md steps 38-52), top-down gestures on real hands, heat and battery, a real
 puzzle under the hands. *Results on phones: pending.*
 
+### Local run (P2F), 2026-10-14
+
+The fixes of stream P2F (arming, nothing after Finished, `shadow` invisible to the reviewer and never holding anybody
+up, "Button only" for every silent failure) end to end, the same kind of set-up as P2I's: the worktree in FrankenPHP
+worker mode (prod, the production build) with its own Redis, Mercure, MinIO and Garage (`local-stack.sh`), a throwaway
+copy of the test database, Selenium Chromium with mobile emulation as the phones (`--enable-unsafe-swiftshader
+--use-angle=swiftshader`: without them the container's Chromium has no WebGL2 and the page rightly says "This phone
+can't detect raised hands"), a second browser as the organiser. The fake camera: a **27-second loop** (640×480, 30 fps
+MJPEG) cut from the same clip ("Jumping jacks and burpees", Taco fleur, CC BY-SA 4.0 - local only, deleted after):
+the top of a jumping jack **held 0-12 s**, burpees and standing 12-20 s, the top **held 20-23 s**, burpees 23-27 s; the
+loop's frame number drawn as 10 bits in the corner, read back from the page's `<video>` (the control room's "Start in
+10 s" clicked at the loop phase that put GO 0.9 s into the first hold) and from every burst frame.
+
+| Check | Result |
+|---|---|
+| Set-up test (`on`) | passed on the first page load ("Sees your raised hands - camera at an angle") - its machines arm like the round's: the clip's raise after the burpees |
+| **Hands up at GO** (`on`) | the clip's hands up from GO to +11 s, the detector's first frames at GO + 1.5 s: **no candidate**, "Done? Raise both hands - or tap Finished." shown, nothing recorded; the first candidate **0:19.27** = the clip's raise after 8 s of burpees (its first raised burst frame 133 ms before the candidate; the candidate's hold 700 ms, 4 frames at the 4.3 fps cadence, `machineVersion` 2) |
+| Candidates against the clip (8 in the round) | candidate − the first raised burst frame (bursts at ~10 fps, so +0..+67 ms more against the clip's own transition): **0, +98, +133, +135 ms** for the raise from standing, **+266, +266, +269, +303 ms** for the holds that follow a bent-over burpee frame - an instant jump into a frozen frame that MediaPipe's VIDEO-mode tracking smooths over a frame or two (P2I's continuous raise: +0..+100 ms). Holds that began inside the 10 s cooldown became candidates at their own first frame once held past it (`straddle: 'whole'`, as designed) |
+| **Nothing after Finished** | tapped at 1:16.5 (a candidate at 1:13.2 before it); the hold that began at 1:20.4 - a candidate in every earlier loop - gave **none** (the `finished` screen runs the detector off); "Not complete? Keep puzzling" at 1:40.9 while the clip's hands were up: **no candidate** for that raise (unarmed); the next raise after the hands were seen down: candidate at 1:47.4 |
+| Review (`on`) | 6 raised hands and the tap in time order; opens on "Raised hands 1 · 00:00:19.2" (the earliest of the first candidate and the first tap); `G` offered |
+| **`shadow`: "I'm ready" never held** | the worker's `ready` answer held back 25 s by test instrumentation (a phone still downloading): the row "Finish detection - Preparing the camera check…" and **"I'm ready" enabled** at once, no skip; `device.ready` stored `detector: {state: loading}`; 14 s later one **`detector.changed` `{running: true, view: angled}`** (untested → the default view) |
+| `shadow` in the round | a candidate at 0:09.6 with its photo and burst - **nothing shown** on the phone; Finished tapped 2.0 s later |
+| **Review (`shadow`)** | "Finished taps" - **the tap only** (00:00:11.6), the keys without `G`, no "Shows a gap" button; the detail's JSON: 0 candidates, no `finish.candidate` / `detector.changed` events, no candidate photo or burst - the tap's burst and photo as usual |
+| **Accuracy report (`shadow`)** | after confirming the tap: detected 0:09.6, detection error +2.0 s, tap delay +2.0 s, "0 missed / 0 false", Angled (body), Android · Chrome 141; "Finishes on a phone whose detector was not running: 0" |
+| Bundles (production build) | the `compete` controller's chunk **+300 B (+94 B gzipped)**; the detection chunk `compete-detection` 35.2 KB (10.5 KB gz, +4.9 / +1.5 KB) and the worker chunk 14.9 KB (4.9 KB gz, unchanged) load only on a page whose round detects |
+
+Screenshots: the stream's scratchpad (`shots-p2f/`), not kept in the repository.
+
+**To re-measure on phones after P2F** (device-test.md steps 53-56):
+- The set-up test now needs the hands seen down for 0.6 s before the raise: seconds from "Raise both hands" to the green
+  row, and how often somebody already holding their hands up when the test starts waits for nothing (the row then shows
+  "Raise both hands" until they lower and raise again).
+- Arming at GO: how long after GO + 1.5 s the round's machine arms (the 0.6 s of hands down) - a real finish raise
+  before that is impossible, but note any.
+- `slow` (answers > 1.5 s apart for 10 s): which phones reach it - live.json's `presence.detector.inferenceMs` over
+  90 minutes, with heat; `stalled` (no answer for 10 s while the camera gives frames): does iOS pause a worker when the
+  screen dims or a call comes in, and does the page then say "Button only" rightly or wrongly.
+- A frozen camera per browser: does `requestVideoFrameCallback` stop and `video.currentTime` stand still (the detector
+  then gets no frames - "Tap Finished…" until it thaws), or does a browser keep advancing `currentTime` on a frozen
+  stream (Firefox?) - then the 250 ms fallback tick would still pass frames.
+- Memory over a long round with many candidates (the stills are now let go once each photo is chosen): the tab's memory
+  after 20+ candidates.
+- The detection error against a real raise (continuous motion) on phones - this run's +266..+303 ms came from a frozen
+  jump in a synthetic clip, P2I's continuous raise gave +0..+100 ms.
+
 ## S5 - load + storage
 
 Tooling: [`tools/online-load/`](../../../tools/online-load/README.md) - a k6 script (k6 v2.3.0 + xk6-sse, built with

@@ -9452,7 +9452,7 @@ compete:
         studio_leave: "Leave the studio"
         outcome_thanks: "Thank you for joining the studio!"
         outcome_left: "You left the studio."
-        outcome_moved_on: "The studio has moved on - thanks!"
+        outcome_moved_on: "Your time in the studio is over - thanks!"
         outcome_expired: "The invitation to the studio has expired."
         outcome_withdrawn: "The invitation to the studio was withdrawn."
         outcome_declined: "You said not now to the studio."

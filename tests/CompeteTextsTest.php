@@ -96,7 +96,7 @@ final class CompeteTextsTest extends KernelTestCase
 
         self::assertSame(['message' => 'Time limit: 1 minute|Time limit: %count% minutes', 'locale' => 'en'], $texts['time_limit'] ?? null);
         self::assertSame(['message' => '1 other participant|%count% other participants', 'locale' => 'en'], $texts['video_strip_title'] ?? null);
-        self::assertSame('The studio has moved on - thanks!', $texts['video_outcome_moved_on'] ?? null);
+        self::assertSame('Your time in the studio is over - thanks!', $texts['video_outcome_moved_on'] ?? null);
         self::assertSame('On - %width% × %height%', $texts['check_camera_live'] ?? null);
         self::assertSame('Synced (± %ms% ms)', $texts['check_clock_synced'] ?? null);
         self::assertSame('I tapped by mistake (%seconds%)', $texts['undo'] ?? null);

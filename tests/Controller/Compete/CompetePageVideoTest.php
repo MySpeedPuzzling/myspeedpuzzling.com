@@ -117,7 +117,7 @@ final class CompetePageVideoTest extends WebTestCase
 
         $texts = self::texts($html);
         self::assertSame('Video on', $texts['video_status_live'] ?? null);
-        self::assertSame('The studio has moved on - thanks!', $texts['video_outcome_moved_on'] ?? null);
+        self::assertSame('Your time in the studio is over - thanks!', $texts['video_outcome_moved_on'] ?? null);
         self::assertSame(['message' => '1 other participant|%count% other participants', 'locale' => 'en'], $texts['video_strip_title'] ?? null);
     }
 

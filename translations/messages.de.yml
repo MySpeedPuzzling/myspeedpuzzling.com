@@ -9223,6 +9223,8 @@ compete:
         timeup_complete: "Mein Puzzle ist vollständig"
 
 # Online competitions: the organiser's pages (docs/features/online-competitions/)
+        turned_on: "Der Veranstalter hat die Zielerkennung eingeschaltet – laden Sie die Seite neu, um sie zu nutzen."
+        turned_on_reload: "Neu laden"
 online_rounds:
     settings:
         title: "Online-Zeitmessung"
@@ -9243,6 +9245,8 @@ online_rounds:
         detection:
             label: "Zielzeit"
             how: "Erkennung: Die Teilnehmer heben beide Hände, wenn ihr Puzzle vollständig ist – ihr Handy erfasst den Moment mit einem Foto und den Sekunden rund um ihn; Sie bestätigen ihn in der Prüfung. Auch der „Fertig“-Button funktioniert immer. In einer Runde mit Erkennung macht jedes Handy während der Vorbereitung einen kurzen Test."
+            locked: "Ab dem Start der Runde bis zum Zurücksetzen gesperrt – die Handys verwenden es bereits."
+            locked_refused: "Die Runde hat begonnen (oder ihr Start ist festgelegt), daher kann die Zielerkennung nicht mehr geändert werden. Setzen Sie die Stoppuhr der Runde zurück, um sie zu ändern – nichts wurde gespeichert."
             "off": "„Fertig“-Button – die Teilnehmer tippen auf „Fertig“, wenn ihr Puzzle vollständig ist"
             shadow: "„Fertig“-Button, die Erkennung läuft mit – der Tipp zählt; die Erkennung der Kamera wird nur aufgezeichnet, um sie zu messen"
             "on": "Erkennung – erhobene Hände markieren die Zielzeit, der „Fertig“-Button dient als Reserve"
@@ -9262,6 +9266,7 @@ online_rounds:
             enabled_help: "Die Handys der Teilnehmer zeigen ihre Puzzle-Kamera live im Kontrollraum. Der Moderator kann mit allen sprechen und Teilnehmer, die fertig sind, ins Studio einladen."
             see_each_other: "Teilnehmer sehen sich gegenseitig"
             see_each_other_help: "Mit Live-Video können sich die Teilnehmer auch gegenseitig über die Puzzle-Kameras sehen, wie in einem Videoanruf. Aus: Nur die Moderatoren sehen sie."
+        live_note: "Geöffnete Handys der Teilnehmer übernehmen eine Änderung innerhalb weniger Sekunden."
         save: "Einstellungen speichern"
         participants:
             title: "Teilnehmer"

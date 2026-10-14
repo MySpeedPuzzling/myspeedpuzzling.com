@@ -9243,6 +9243,8 @@ compete:
         timeup_complete: "Mon puzzle est complet"
 
 # Online competitions: the organiser's pages (docs/features/online-competitions/)
+        turned_on: "L'organisateur a activé la détection de l'arrivée – rechargez la page pour l'utiliser."
+        turned_on_reload: "Recharger"
 online_rounds:
     settings:
         title: "Chronométrage en ligne"
@@ -9263,6 +9265,8 @@ online_rounds:
         detection:
             label: "Arrivée"
             how: "Détection : les participants lèvent les deux mains quand leur puzzle est complet – leur téléphone enregistre le moment avec une photo et les secondes autour ; vous le confirmez lors de la vérification. Le bouton « Terminé » fonctionne toujours aussi. Une manche avec détection demande à chaque téléphone un court test pendant l'installation."
+            locked: "Verrouillé du début de la manche jusqu'à la réinitialisation du chronomètre – les téléphones l'utilisent déjà."
+            locked_refused: "La manche a commencé (ou son départ est fixé), la détection de l'arrivée ne peut donc plus changer. Réinitialisez le chronomètre de la manche pour la modifier – rien n'a été enregistré."
             "off": "Bouton « Terminé » – les participants appuient sur « Terminé » quand leur puzzle est fini"
             shadow: "Bouton « Terminé », détection en observation – l'appui compte ; la détection de la caméra est seulement enregistrée, pour l'évaluer"
             "on": "Détection – les mains levées marquent l'arrivée, le bouton « Terminé » sert de solution de secours"
@@ -9282,6 +9286,7 @@ online_rounds:
             enabled_help: "Les téléphones des participants montrent leur caméra sur le puzzle en direct dans la salle de contrôle. L'animateur peut parler à tout le monde et inviter au studio ceux qui ont terminé."
             see_each_other: "Les participants se voient entre eux"
             see_each_other_help: "Avec la vidéo en direct, les participants peuvent aussi voir les caméras des autres, comme dans un appel vidéo. Désactivé : seuls les modérateurs les voient."
+        live_note: "Les téléphones des participants déjà ouverts prennent en compte un changement en quelques secondes."
         save: "Enregistrer les paramètres"
         participants:
             title: "Participants"

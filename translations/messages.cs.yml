@@ -9250,6 +9250,8 @@ compete:
         timeup_complete: "Moje puzzle je složené"
 
 # Online competitions: the organiser's pages (docs/features/online-competitions/)
+        turned_on: "Organizátor zapnul rozpoznávání dokončení - pro jeho použití stránku znovu načtěte."
+        turned_on_reload: "Znovu načíst"
 online_rounds:
     settings:
         title: "Online časomíra"
@@ -9270,6 +9272,8 @@ online_rounds:
         detection:
             label: "Dokončení"
             how: "Rozpoznávání: účastníci zvednou obě ruce, když mají puzzle složené - jejich telefon zaznamená okamžik s fotkou a sekundami kolem něj; vy ho potvrdíte při kontrole. Tlačítko Hotovo funguje vždy také. Kolo s rozpoznáváním při přípravě požádá každý telefon o krátký test."
+            locked: "Od startu kola až do resetu stopek je zamčené - telefony ho už používají."
+            locked_refused: "Kolo už začalo (nebo má nastavený start), takže rozpoznávání dokončení už nejde změnit. Pro změnu resetujte stopky kola - nic se neuložilo."
             "off": "Tlačítko Hotovo - účastníci klepnou na Hotovo, když mají puzzle složené"
             shadow: "Tlačítko Hotovo a rozpoznávání na pozadí - počítá se klepnutí; rozpoznávání kamerou se jen zaznamenává, aby se dalo změřit"
             "on": "Rozpoznávání - dokončení označí zvednuté ruce, tlačítko Hotovo slouží jako záloha"
@@ -9289,6 +9293,7 @@ online_rounds:
             enabled_help: "Telefony účastníků ukazují kameru na puzzle živě ve velíně. Moderátor může mluvit ke všem a zvát do studia ty, kdo dokončili."
             see_each_other: "Účastníci se vidí navzájem"
             see_each_other_help: "Se zapnutým živým videem mohou účastníci sledovat i kamery ostatních, jako při videohovoru. Vypnuto: vidí je jen moderátoři."
+        live_note: "Otevřené telefony účastníků převezmou změnu během několika sekund."
         save: "Uložit nastavení"
         participants:
             title: "Účastníci"

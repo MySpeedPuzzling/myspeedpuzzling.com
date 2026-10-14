@@ -9224,6 +9224,8 @@ compete:
         timeup_complete: "Mi puzzle está completo"
 
 # Online competitions: the organiser's pages (docs/features/online-competitions/)
+        turned_on: "El organizador ha activado la detección del final: recarga la página para usarla."
+        turned_on_reload: "Recargar"
 online_rounds:
     settings:
         title: "Cronometraje en línea"
@@ -9244,6 +9246,8 @@ online_rounds:
         detection:
             label: "Registro del final"
             how: "Detección: los participantes levantan las dos manos cuando su puzzle está completo; su móvil registra el momento con una foto y los segundos alrededor, y tú lo confirmas en la revisión. El botón «Terminado» también funciona siempre. En una ronda con detección, cada móvil hace una prueba rápida durante la preparación."
+            locked: "Bloqueado desde el inicio de la ronda hasta reiniciar el cronómetro: los móviles ya lo usan."
+            locked_refused: "La ronda ya ha empezado (o tiene el inicio fijado), así que la detección del final ya no puede cambiar. Reinicia el cronómetro de la ronda para cambiarla; no se ha guardado nada."
             "off": "Botón «Terminado»: los participantes tocan «Terminado» cuando acaban su puzzle"
             shadow: "Botón «Terminado» con la detección de fondo: cuenta el toque; lo que detecta la cámara solo se registra, para medirlo"
             "on": "Detección: las manos levantadas marcan el final y el botón «Terminado» queda como respaldo"
@@ -9263,6 +9267,7 @@ online_rounds:
             enabled_help: "Los móviles de los participantes muestran en directo su cámara del puzzle en la sala de control. El presentador puede hablar con todos e invitar al estudio a quienes terminen."
             see_each_other: "Los participantes se ven entre sí"
             see_each_other_help: "Con el vídeo en directo activado, los participantes también pueden ver las cámaras de los demás, como en una videollamada. Desactivado: solo los moderadores las ven."
+        live_note: "Los móviles de los participantes que estén abiertos recogen el cambio en unos segundos."
         save: "Guardar ajustes"
         participants:
             title: "Participantes"

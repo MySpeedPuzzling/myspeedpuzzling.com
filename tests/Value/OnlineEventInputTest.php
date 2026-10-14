@@ -170,4 +170,50 @@ final class OnlineEventInputTest extends TestCase
         self::assertInstanceOf(OnlineEventInput::class, $photo);
         self::assertNull($photo->manifest());
     }
+
+    public function testAFinishCandidateAsThePageSendsIt(): void
+    {
+        $data = [
+            'candidateId' => 1,
+            'detectedAtMs' => 1_792_002_832_845,
+            'windowFromMs' => 1_792_002_832_345,
+            'windowToMs' => 1_792_002_832_845,
+            'heldMs' => 500,
+            'score' => 0.86,
+            'minScore' => 0.71,
+            'peakScore' => 0.93,
+            'upFrames' => 3,
+            'droppedFrames' => 0,
+            'straddled' => false,
+            'view' => 'angled',
+            'mode' => 'on',
+            'machineVersion' => 1,
+            'fps' => 4.8,
+            'inferenceMs' => null,
+        ];
+        $input = OnlineEventInput::read(['id' => self::ID, 'type' => 'finish.candidate', 'clientMs' => 1_792_002_832_345, 'data' => $data], self::ROUND);
+
+        self::assertInstanceOf(OnlineEventInput::class, $input);
+        self::assertSame($data, $input->data, 'stored as sent');
+
+        // Older pages and the bench send fewer fields - every one is optional
+        self::assertInstanceOf(OnlineEventInput::class, OnlineEventInput::read(['id' => self::ID, 'type' => 'finish.candidate', 'clientMs' => 1_792_002_832_345, 'data' => []], self::ROUND));
+
+        $wrongs = [
+            'a view nobody knows' => ['view' => 'sideways'],
+            'a mode nobody knows' => ['mode' => 'loud'],
+            'a textual score' => ['score' => 'high'],
+            'a moment as text' => ['detectedAtMs' => '1792002832845'],
+            'straddled as a number' => ['straddled' => 1],
+            'a photo that is no media id' => ['photoMediaId' => 'photo'],
+        ];
+
+        foreach ($wrongs as $case => $wrong) {
+            self::assertSame(
+                ['id' => strtolower(self::ID), 'reason' => OnlineEventInput::INVALID_FIELDS],
+                OnlineEventInput::read(['id' => self::ID, 'type' => 'finish.candidate', 'clientMs' => 1_792_002_832_345, 'data' => [...$data, ...$wrong]], self::ROUND),
+                $case,
+            );
+        }
+    }
 }

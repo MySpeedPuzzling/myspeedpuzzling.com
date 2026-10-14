@@ -61,6 +61,29 @@ final class OnlineHeartbeatTest extends TestCase
         ], $heartbeat->telemetry);
     }
 
+    public function testThePhaseTwoDetectorTelemetryIsKeptWhenSentAndCheckedByValue(): void
+    {
+        $heartbeat = OnlineHeartbeat::read([
+            'deviceId' => 'phone-1',
+            'detector' => ['ok' => true, 'fps' => 4.6, 'mode' => 'on', 'state' => 'ready', 'inferenceMs' => 61.4, 'view' => 'topDown'],
+        ]);
+
+        self::assertNotNull($heartbeat);
+        self::assertSame(['ok' => true, 'fps' => 4.6, 'mode' => 'on', 'state' => 'ready', 'inferenceMs' => 61.4, 'view' => 'topDown'], $heartbeat->telemetry['detector']);
+
+        // A state or view nobody knows, a negative or textual inference time: kept as null, never stored as sent
+        $made = OnlineHeartbeat::read([
+            'deviceId' => 'phone-1',
+            'detector' => ['ok' => false, 'fps' => null, 'mode' => 'shadow', 'state' => 'melting', 'inferenceMs' => -3, 'view' => 'sideways'],
+        ]);
+        self::assertNotNull($made);
+        self::assertSame(['ok' => false, 'fps' => null, 'mode' => 'shadow', 'state' => null, 'inferenceMs' => null, 'view' => null], $made->telemetry['detector']);
+
+        $textual = OnlineHeartbeat::read(['deviceId' => 'phone-1', 'detector' => ['state' => 'unsupported', 'inferenceMs' => '80', 'view' => null]]);
+        self::assertNotNull($textual);
+        self::assertSame(['ok' => null, 'fps' => null, 'mode' => null, 'state' => 'unsupported', 'inferenceMs' => null, 'view' => null], $textual->telemetry['detector']);
+    }
+
     public function testADeviceIdIsRequired(): void
     {
         self::assertNull(OnlineHeartbeat::read([]));

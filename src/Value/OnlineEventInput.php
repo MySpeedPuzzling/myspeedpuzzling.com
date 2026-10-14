@@ -17,7 +17,7 @@ namespace SpeedPuzzling\Web\Value;
  *   apart: at most OnlineEntryQuota::MAX_MANIFEST_FRAMES frames), no NUL in any key or text (Postgres refuses it), with
  *   what its type needs: `timeup.pieces` a piece count (`pieces`, optional `measure` left / placed), `media.uploaded`
  *   the media id (`mediaId`, optional `bytes` and a burst's `manifest` of frames), `finish.*` optional photo / burst
- *   media ids.
+ *   media ids, `finish.candidate` (Phase 2) its finish machine's numbers, view and mode (isCandidate()).
  * Anything else wrong is `invalid_fields`. RecordOnlineEntryEventsHandler decides the rest (seen before, the round, the
  * participant's entry, the caps, the side effects).
  */
@@ -32,6 +32,13 @@ final readonly class OnlineEventInput
     public const int MAX_PIECES = 100_000;
     // An id echoed back in a refusal - never more than this of what a client sent
     private const int MAX_ECHOED_ID_LENGTH = 64;
+    // A finish candidate's numbers (the finish machine's: moments on the synced clock, the hold, the scores, the frames)
+    private const array CANDIDATE_NUMBERS = [
+        'candidateId', 'detectedAtMs', 'windowFromMs', 'windowToMs', 'heldMs', 'score', 'minScore', 'peakScore',
+        'upFrames', 'droppedFrames', 'machineVersion', 'fps', 'inferenceMs',
+    ];
+    public const array CANDIDATE_VIEWS = ['angled', 'topDown'];
+    public const array CANDIDATE_MODES = ['off', 'shadow', 'on'];
 
     /**
      * @param array<string, mixed> $data
@@ -171,12 +178,39 @@ final readonly class OnlineEventInput
             OnlineEventType::MediaUploaded => CanonicalUuid::isValid($data['mediaId'] ?? null)
                 && (($data['bytes'] ?? null) === null || (self::integer($data['bytes']) ?? -1) >= 0)
                 && (($data['manifest'] ?? null) === null || (is_array($data['manifest']) && self::frames($data['manifest']) !== null)),
-            OnlineEventType::FinishButton, OnlineEventType::FinishCandidate => self::isOptionalUuid($data['photoMediaId'] ?? null)
+            OnlineEventType::FinishButton => self::isOptionalUuid($data['photoMediaId'] ?? null)
                 && self::isOptionalUuid($data['burstMediaId'] ?? null),
+            OnlineEventType::FinishCandidate => self::isOptionalUuid($data['photoMediaId'] ?? null)
+                && self::isOptionalUuid($data['burstMediaId'] ?? null)
+                && self::isCandidate($data),
             default => true,
         };
 
         return $valid ? $data : null;
+    }
+
+    /**
+     * `finish.candidate` (Phase 2, assets/online/compete_detection.js candidateData()): what the finish machine said about
+     * the raise - every field optional, but those present must be what they claim: CANDIDATE_NUMBERS numbers (null
+     * allowed), `straddled` a boolean, `view` one of CANDIDATE_VIEWS, `mode` one of CANDIDATE_MODES
+     *
+     * @param array<string, mixed> $data
+     */
+    private static function isCandidate(array $data): bool
+    {
+        foreach (self::CANDIDATE_NUMBERS as $field) {
+            if (!self::isOptionalNumber($data[$field] ?? null)) {
+                return false;
+            }
+        }
+
+        $straddled = $data['straddled'] ?? null;
+        $view = $data['view'] ?? null;
+        $mode = $data['mode'] ?? null;
+
+        return ($straddled === null || is_bool($straddled))
+            && ($view === null || in_array($view, self::CANDIDATE_VIEWS, true))
+            && ($mode === null || in_array($mode, self::CANDIDATE_MODES, true));
     }
 
     /**

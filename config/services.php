@@ -124,6 +124,18 @@ return static function (ContainerConfigurator $configurator): void {
     // Online competitions' evidence uploads: an empty ONLINE_MEDIA_PUBLIC_ENDPOINT falls back to this (OnlineMediaStores)
     $parameters->set('online_media_s3_endpoint', '%env(S3_ENDPOINT)%');
 
+    // Online competitions' finish detection (docs/features/online-competitions/README.md §5.7, implementation-plan.md
+    // WP 2.1): where the participant's page loads MediaPipe and its models from - the one place (OnlineDetectorAssets →
+    // the page's config). Pinned versions, never `latest`: the prototype loads them from these CDNs; hosting them
+    // ourselves later = new URLs here. The bench pins the same ones (assets/online/hands_up_signal.js DETECTOR_ASSETS) -
+    // OnlineDetectorAssetsTest keeps both equal.
+    $parameters->set('onlineDetectorAssets', [
+        'tasksVisionUrl' => 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.1.0/vision_bundle.mjs',
+        'wasmBaseUrl' => 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.1.0/wasm',
+        'poseModelUrl' => 'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task',
+        'gestureModelUrl' => 'https://storage.googleapis.com/mediapipe-models/gesture_recognizer/gesture_recognizer/float16/1/gesture_recognizer.task',
+    ]);
+
     $services = $configurator->services();
 
     $services->defaults()

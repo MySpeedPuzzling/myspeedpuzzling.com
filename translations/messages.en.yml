@@ -2031,7 +2031,7 @@ hub:
     most_solved_puzzle: "Most solved puzzle"
     statistics: "Statistics"
     no_favorites: "You have no favorite players. Add some and follow their activity here."
-    not_logged: "You are nog logged in - to use full potential of what this platform offers to you, log in."
+    not_logged: "You are not logged in - to use full potential of what this platform offers to you, log in."
     seo_suffix: "- Speed Puzzling Community"
 
 statistics:

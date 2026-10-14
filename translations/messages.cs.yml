@@ -1121,7 +1121,7 @@ competition_referees:
   "preferences":
     "title": "Předvolby"
     "vibration": "Vibrace"
-    "vibration_help": "Krátké zavibrování, když se uloží čas, naskenuje krabice nebo se něco nepovede. Nastavení vibrací ve vašem telefonu platí i nadále."
+    "vibration_help": "Krátké zavibrování, když se uloží čas, naskenuje krabice nebo se něco nepovede. Nastavení vibrací ve tvém telefonu platí i nadále."
   "player_code_change": "Změna kódu hráče"
   "profile_visibility": "Viditelnost profilu"
   "allow_direct_messages": "Povolit ostatním uživatelům posílat mi přímé zprávy"
@@ -1568,7 +1568,7 @@ competition_referees:
   "most_solved_puzzle": "Nejskládanější puzzle"
   "statistics": "Statistiky"
   "no_favorites": "Nemáte žádné hráče v oblíbených. Přidejte si a sledujte zde jejich aktivitu."
-  "not_logged": "Nejste přihlášení - pro využití plného potenciálu toho, co vám platforma nabízí se přihlašte."
+  "not_logged": "Nejste přihlášení - pro využití plného potenciálu toho, co vám platforma nabízí, se přihlašte."
   "seo_suffix": "- Speed Puzzling Komunita"
 "statistics":
   "puzzle_solved": "Složených puzzlí"
@@ -1641,7 +1641,7 @@ competition_referees:
 "inbox":
   "title": "Schránka"
   "tab":
-    "for_you": "Pro vás"
+    "for_you": "Pro tebe"
     "messages": "Zprávy"
   "badge":
     "name":
@@ -1650,7 +1650,7 @@ competition_referees:
       "for_you": "Schránka, 1 nová notifikace|Schránka, %count% nové notifikace|Schránka, %count% nových notifikací"
       "mixed": "Schránka, %count% nová položka|Schránka, %count% nové položky|Schránka, %count% nových položek"
   "pointer":
-    "favorites_moved": "Nové časy vašich oblíbených puzzlerů teď najdete v Domů › Oblíbení."
+    "favorites_moved": "Nové časy tvých oblíbených puzzlerů teď najdeš v Domů › Oblíbení."
     "open_favorites": "Zobrazit oblíbené"
     "dismiss": "Skrýt upozornění"
 
@@ -9383,7 +9383,7 @@ confirm_dialog:
     confirm: "Potvrdit"
 
 barcode_scanner:
-    no_camera: "Kamera není v tomto prohlížeči dostupná. Zkuste stránku načíst znovu."
+    no_camera: "Kamera není v tomto prohlížeči dostupná. Zkus stránku načíst znovu."
 
 "player_results":
   "meta":
@@ -9416,7 +9416,7 @@ barcode_scanner:
 
 "player_overview":
   "personal_bests": "Osobní rekordy (solo)"
-  "no_personal_bests": "Až přidáte solo výsledek s časem, ukáže se tu váš nejrychlejší čas pro každý počet dílků."
+  "no_personal_bests": "Až přidáš solo výsledek s časem, ukáže se tu tvůj nejrychlejší čas pro každý počet dílků."
   "best_row_label": "%pieces% dílků"
   "numbers":
     "solo": "Puzzle solo|Puzzle solo|Puzzle solo"

@@ -199,8 +199,10 @@ final class NavigationPlaceMap
         'schedule_round_start' => 'community/events',
         'cancel_round_start' => 'community/events',
         // Online rounds (docs/features/online-competitions): the organiser's pages and actions - links, QR sheet, settings,
-        // control room, review, accuracy - and a participant's page (bar-free, README §4.10: one document for the whole
-        // round, like the round stopwatch); their JSON endpoints have no place (below)
+        // control room, review, accuracy, the host's studio - a participant's page (bar-free, README §4.10: one document for
+        // the whole round, like the round stopwatch) and the public watch page of the round's studio (bar-free too: the
+        // video and the round's clock on one dark document, ?obs=1 the video alone for a stream); their JSON endpoints
+        // have no place (below)
         'online_links' => 'community/events',
         'online_links_csv' => 'community/events',
         'online_links_qr_sheet' => 'community/events',
@@ -209,7 +211,9 @@ final class NavigationPlaceMap
         'online_control_room' => 'community/events',
         'online_review' => 'community/events',
         'online_accuracy' => 'community/events',
+        'online_studio' => 'community/events',
         'compete_page' => 'community/events',
+        'online_watch' => 'community/events',
         'join_competition' => 'community/events',
         'leave_competition' => 'community/events',
         // Community without a section: team pages; Profile/Community by owner: player pages (decision 75)
@@ -338,12 +342,17 @@ final class NavigationPlaceMap
         'competition_picker_editions' => 'none',
         'competition_picker_series_preview' => 'none',
         // JSON of online rounds: the control room's live feed, the review's entries and confirmations, a participant's
-        // "This is me", the clock the participant page syncs to
+        // "This is me", the clock the participant page syncs to, the live video's tokens (moderator, spectator) and the
+        // studio's invitations
         'online_live' => 'none',
         'online_review_entry' => 'none',
         'online_review_confirm' => 'none',
         'compete_connect' => 'none',
         'online_time' => 'none',
+        'online_video_token' => 'none',
+        'online_watch_token' => 'none',
+        'online_studio_invite' => 'none',
+        'online_studio_end' => 'none',
         'player_search_autocomplete' => 'none',
         'puzzle_by_brand_autocomplete' => 'none',
         'puzzle_by_ean_search' => 'none',
@@ -370,6 +379,9 @@ final class NavigationPlaceMap
         'microsoft_identity_association' => 'none',
         'apple_sign_in_notification' => 'none',
         'stripe_webhook' => 'none',
+        // Server to server: the live video server's webhooks, Amazon SES events through SNS
+        'livekit_webhook' => 'none',
+        'ses_events' => 'none',
         'sentry_test' => 'none',
         'test_login' => 'none',
         'test_whoami' => 'none',

@@ -9,6 +9,9 @@
 #}
 
 {% set event_url = event.routeName ? path(event.routeName, event.routeParameters) : null %}
+{# Under ?obs=1 a stream shows this page as it is: no bars there either, like the watch page itself (docs/features/
+   navigation README §4.10) - without OBS an ordinary page with its way back to the event #}
+{% set nav_chrome_off = obs %}
 
 {% block title %}{{ 'online_rounds.watch.title'|trans }} - {{ round.name }} - {{ event.displayName }}{% endblock %}
 {% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
@@ -24,6 +27,9 @@
 
 {% block header %}{% if not obs %}{{ parent() }}{% endif %}{% endblock %}
 {% block footer %}{% if not obs %}{{ parent() }}{% endif %}{% endblock %}
+{% block nav_chrome %}{% if not obs %}{{ parent() }}{% endif %}{% endblock %}
+{% block nav_layers %}{% if not obs %}{{ parent() }}{% endif %}{% endblock %}
+{% block page_help_line %}{% if not obs %}{{ parent() }}{% endif %}{% endblock %}
 
 {% block full_content %}
     {% if obs %}

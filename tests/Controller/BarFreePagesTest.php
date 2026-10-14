@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller;
 
+use Doctrine\DBAL\Connection;
 use DOMElement;
 use PHPUnit\Framework\Attributes\DataProvider;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionRoundFixture;
@@ -11,6 +12,7 @@ use SpeedPuzzling\Web\Tests\DataFixtures\OfficialResultsFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\OnlineRoundsFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\StopwatchFixture;
+use SpeedPuzzling\Web\Tests\LiveVideoTesting;
 use SpeedPuzzling\Web\Tests\Navigation\NativeUserAgents;
 use SpeedPuzzling\Web\Tests\Navigation\NavChromeAssertions;
 use SpeedPuzzling\Web\Tests\TestingLogin;
@@ -23,8 +25,9 @@ use Symfony\Component\Routing\RouterInterface;
  * element and the rail/column live in {% block nav_chrome %} (+ the Menu shell in nav_layers), which every bar-free
  * template empties together with header and footer - the participants spreadsheet, the round stopwatch, the referees'
  * live results entry, a participant's page of an online round (compete_page and its dead-link page: one document for
- * the whole round, docs/features/online-competitions README §5.5), the running stopwatch (ADD-04) and every page
- * inside the app (NAV-14). <body> says so
+ * the whole round, docs/features/online-competitions README §5.5), the public watch page of a round's studio (its
+ * video and clock, ?obs=1 for a stream), the running stopwatch (ADD-04) and every page inside the app (NAV-14). <body>
+ * says so
  * (no-nav-chrome: the desktop column's width stays 0, NAV-13).
  *
  * The sign-in / sign-up pages keep a minimal header - the logo and the language switch - and nothing else: no search
@@ -33,6 +36,8 @@ use Symfony\Component\Routing\RouterInterface;
  */
 final class BarFreePagesTest extends WebTestCase
 {
+    use LiveVideoTesting;
+
     // The chrome: the top bar, the bottom bar (the rail on desktop, or its own element if R9 ever needs one), the docked
     // column's slot and the Menu, the phone panel's shell, the icon sprite (the old header rows went with NAV-06)
     private const array BARS = ['body > header', '.site-header', '#bottom-nav', '.nav-rail', '#menu-slot', '#site-menu', '#menu-layer', '.nav-sprite'];
@@ -90,6 +95,47 @@ final class BarFreePagesTest extends WebTestCase
         // COM-02: no section chips, though each of them belongs to Community › Events
         self::assertCount(0, $crawler->filter('.section-chips'), $url);
         self::assertStringContainsString('no-nav-chrome', (string) $crawler->filter('body')->attr('class'), $url);
+    }
+
+    /**
+     * The public watch page of an online round's studio (the main sync of 2026-10-14): the video and the round's clock on
+     * one dark document with its own bar (the logo home), ?obs=1 the video alone for a stream - no bars in either. Without
+     * live video it is an ordinary page saying so, with the bars - except under ?obs=1, where a stream shows it as it is.
+     */
+    public function testTheWatchPageRendersNoBars(): void
+    {
+        self::resetLiveVideoDoubles();
+        $browser = self::createClient();
+        // The Online Test Cup is a draft with its round's video off (OnlineRoundsFixture): published in the test's transaction
+        $browser->getContainer()->get(Connection::class)->executeStatement('UPDATE competition SET is_draft = false WHERE id = :id', ['id' => OnlineRoundsFixture::COMPETITION_ONLINE_TEST_CUP]);
+        $url = '/en/online-rounds/' . OnlineRoundsFixture::ROUND_ONLINE_SOLO . '/watch';
+
+        // No live video for the round: an ordinary page
+        $crawler = $browser->request('GET', $url);
+        self::assertResponseIsSuccessful();
+        self::assertCount(1, $crawler->filter('.online-watch-unavailable'));
+        self::assertCount(1, $crawler->filter('body > header'), 'no live video: an ordinary page with the bars');
+        self::assertCount(1, $crawler->filter('.page-help-line'));
+        self::assertStringNotContainsString('no-nav-chrome', (string) $crawler->filter('body')->attr('class'));
+
+        $crawler = $browser->request('GET', $url . '?obs=1');
+        self::assertResponseIsSuccessful();
+        self::assertCount(1, $crawler->filter('.online-watch--obs[data-watch-state="unavailable"]'));
+        $this->assertWatchPageHasNoBars($crawler, 'no live video, OBS');
+
+        self::turnRoundVideoOn($browser->getContainer()->get(Connection::class));
+
+        $crawler = $browser->request('GET', $url);
+        self::assertResponseIsSuccessful();
+        self::assertCount(1, $crawler->filter('[data-controller="online-watch"]'));
+        $this->assertWatchPageHasNoBars($crawler, 'watch page');
+        // Its own way out: the logo home
+        self::assertCount(1, $crawler->filter('.online-watch-bar a.online-watch-home'));
+
+        $crawler = $browser->request('GET', $url . '?obs=1');
+        self::assertResponseIsSuccessful();
+        self::assertCount(1, $crawler->filter('.online-watch--obs[data-controller="online-watch"]'));
+        $this->assertWatchPageHasNoBars($crawler, 'watch page, OBS');
     }
 
     /**
@@ -222,6 +268,15 @@ final class BarFreePagesTest extends WebTestCase
         self::assertNotNull($crawler->filter('body > header.site-header--auth')->attr('data-viewer-signed-in'));
         self::assertCount(1, $crawler->filter('body > header'));
         self::assertCount(0, $crawler->filter('.site-header:not(.site-header--auth), #bottom-nav, .nav-rail, #menu-slot, #site-menu, #menu-layer, .nav-sprite'));
+    }
+
+    private function assertWatchPageHasNoBars(Crawler $crawler, string $message): void
+    {
+        $this->assertNoBars($crawler, $message);
+        self::assertCount(0, $crawler->filter('footer.site-footer'), $message);
+        self::assertCount(0, $crawler->filter('.page-help-line'), $message);
+        self::assertCount(0, $crawler->filter('.section-chips'), $message);
+        self::assertStringContainsString('no-nav-chrome', (string) $crawler->filter('body')->attr('class'), $message);
     }
 
     private function assertNoBars(Crawler $crawler, string $message): void

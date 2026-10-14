@@ -744,6 +744,8 @@ final class NavLayoutCssTest extends TestCase
             'templates/compete/not_found.html.twig',
             'templates/compete/page.html.twig',
             'templates/live_results/live_results.html.twig',
+            // The public watch page of an online round's studio (the main sync of 2026-10-14: video + clock, ?obs=1)
+            'templates/online_rounds/watch.html.twig',
             'templates/participants_sheet/page.html.twig',
             'templates/round_stopwatch.html.twig',
         ], $barFree);

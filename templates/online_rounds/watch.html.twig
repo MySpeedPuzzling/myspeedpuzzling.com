@@ -12,6 +12,11 @@
 #}
 
 {% set hide_comparison_launcher = true %}
+{# No bars (docs/features/navigation README §4.10, like a participant's page and the round stopwatch): the video and the
+   round's clock fill one dark document with its own bar (the logo home, the event), and under ?obs=1 a stream shows
+   the page as it is - no tab, rail or Menu may land in it. It empties header, nav_chrome and nav_layers;
+   body.no-nav-chrome keeps the desktop column's width at 0 #}
+{% set nav_chrome_off = true %}
 {% set round_id = round.id.toString %}
 {% set event_url = event.routeName ? path(event.routeName, event.routeParameters) : null %}
 {% set page_title = 'online_rounds.watch.title'|trans ~ ' - ' ~ round.name ~ ' - ' ~ event.displayName %}
@@ -34,6 +39,9 @@
 {% endblock %}
 {% block header %}{% endblock %}
 {% block footer %}{% endblock %}
+{% block nav_chrome %}{% endblock %}
+{% block nav_layers %}{% endblock %}
+{% block page_help_line %}{% endblock %}
 
 {% block full_content %}
     <div class="online-watch{{ obs ? ' online-watch--obs' }}"

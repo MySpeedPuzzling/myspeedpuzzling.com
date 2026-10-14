@@ -422,15 +422,17 @@ final class NavClickControllerTest extends WebTestCase
         yield 'photo stash' => ['photo_stash_preview', ['_locale' => 'en', 'token' => $token], $token];
 
         // OnlineToken: a participant's personal link of an online round - the page (app.js sends its viewport line there
-        // too), its "This is me" and the page's API
+        // too), its "This is me" and the page's API (the live video's token and the answer to a studio invitation too)
         $token = OnlineToken::generate();
         yield 'online round participant page' => ['compete_page', ['_locale' => 'en', 'token' => $token], $token];
         yield 'online round participant page, Czech' => ['compete_page', ['_locale' => 'cs', 'token' => $token], $token];
         yield 'online round connect' => ['compete_connect', ['_locale' => 'en', 'token' => $token], $token];
 
-        foreach (['state', 'heartbeat', 'events', 'media'] as $call) {
+        foreach (['state', 'heartbeat', 'events', 'media', 'video_token'] as $call) {
             yield 'online round API ' . $call => ['compete_api_' . $call, ['token' => $token], $token];
         }
+
+        yield 'online round API studio answer' => ['compete_api_studio_answer', ['token' => $token, 'inviteId' => Uuid::uuid7()->toString()], $token];
 
         // A Stripe Checkout Session id: cs_live_ + base62
         $token = 'cs_live_b1' . strtr(base64_encode(random_bytes(42)), '+/', 'Aa');

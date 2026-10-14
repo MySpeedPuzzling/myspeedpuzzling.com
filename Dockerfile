@@ -12,6 +12,17 @@ FROM ${BUILD_ASSETS_IMAGE} AS previous-build-assets
 # test jobs keep (`--build-context composer-cache=.composer-cache`)
 FROM scratch AS composer-cache
 
+# The finish detector's files, served by us (docs/features/online-competitions/README.md §5.7 "Downloads"): MediaPipe
+# tasks-vision's ESM bundle + wasm/ (the npm tarball, its sha512 the one package-lock.json pins) and the pose + gesture
+# models (SHA-256), fetched by bin/fetch-online-detector.mjs - any other byte fails the build - with .br / .gz siblings
+# for Caddy. A stage of its own on a pinned Node image, its only inputs the script and the licence text: the registry
+# cache keeps it until a pin changes, while the app stage rebuilds with every daily base image (brotli 11 over the
+# ~53 MB takes ~90 s of CPU)
+FROM node:24.21.0-trixie-slim AS online-detector
+COPY bin/fetch-online-detector.mjs /src/bin/
+COPY .docker/online-detector/LICENSE-Apache-2.0.txt /src/.docker/online-detector/
+RUN node /src/bin/fetch-online-detector.mjs --precompress /online-detector
+
 FROM ghcr.io/myspeedpuzzling/web-base-php85:main AS app
 
 ENV APP_ENV="prod" \
@@ -24,6 +35,14 @@ ENV APP_ENV="prod" \
 RUN rm -f $PHP_INI_DIR/conf.d/docker-php-ext-xdebug.ini $PHP_INI_DIR/conf.d/docker-php-ext-xdebug.ini.disabled
 
 COPY .docker/on-startup.sh /docker-entrypoint.d/
+
+# The finish detector's files at a versioned path outside /build/ (README §5.7 "Downloads"), and the Caddy rule that
+# serves them immutable and precompressed (the base Caddyfile imports /etc/frankenphp/Caddyfile.d/*.caddyfile). The
+# page loads them from here (OnlineDetectorAssets); a new version = a new path in bin/fetch-online-detector.mjs and
+# here - an env on the box can still point it elsewhere, or set it empty for the pinned CDNs
+COPY .docker/online-detector/online-detector.caddyfile /etc/frankenphp/Caddyfile.d/
+COPY --from=online-detector /online-detector public/online-detector
+ENV ONLINE_DETECTOR_BASE_URL=/online-detector/1.1.0-pose-lite-1-gesture-1
 
 COPY composer.json composer.lock symfony.lock ./
 # Guards against GitHub throttling the dist downloads (2026-08-18: the base
@@ -55,7 +74,9 @@ RUN --mount=type=secret,id=github_token \
     done
 
 COPY package.json package-lock.json ./
-RUN npm install
+# package.json pins @mediapipe/tasks-vision for the finish detector, but the image serves the `online-detector` stage's
+# copy of the same tarball (public/online-detector) - nothing imports it, so its 52 MB in node_modules are dropped
+RUN npm install && rm -rf node_modules/@mediapipe
 
 COPY webpack.config.js ./
 COPY ./assets ./assets

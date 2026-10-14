@@ -8,7 +8,9 @@
  *   numPoses = 1, numHands = 2, signal?: {pose?, gesture?} (hands_up_signal.js thresholds)} - loads MediaPipe
  *   tasks-vision by `import()` of a pinned ESM URL (no build step: the same file runs from Encore and from the bench),
  *   the models the view needs (`angled` = pose, `topDown` = gesture, `any` = both - the set-up's test raise and the
- *   bench), CPU delegate (README §5.7: GPU = WebGL2, wrong on iOS), `runningMode: 'VIDEO'`. MediaPipe still uploads
+ *   bench), CPU delegate (README §5.7: GPU = WebGL2, wrong on iOS), `runningMode: 'VIDEO'`. The URLs are https, or
+ *   paths from the site's root for our own copy (README §5.7 "Downloads") - `import()`, MediaPipe's
+ *   `importScripts()` and `fetch()` all resolve those against this worker's URL, our origin. MediaPipe still uploads
  *   each frame through WebGL2 - a worker without it fails init at once (`NotSupportedError`: button-only). Once per
  *   worker: a second init is refused (creating and disposing detectors runs Safari out of memory, MediaPipe #5036) -
  *   after a failed one it may be retried. Runs as a module worker (the bench) or a classic one (webpack 5 bundles

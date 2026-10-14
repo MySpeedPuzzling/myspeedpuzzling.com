@@ -14,6 +14,9 @@
 
 compose.override.yml
 
+# The finish detector's files (bin/fetch-online-detector.mjs) - fetched at build time, never committed
+/public/online-detector/
+
 ###> symfony/webpack-encore-bundle ###
 /node_modules/
 /public/build/

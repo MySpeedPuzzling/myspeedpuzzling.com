@@ -168,6 +168,34 @@ XML, ['http_code' => 200, 'response_headers' => ['content-type' => 'application/
         self::assertSame([], $storage->deleteObjects(OnlineMediaStore::Secondary, []));
     }
 
+    /**
+     * The circuit breaker's probe: a HEAD of a key nobody writes - any answer of the store is "it answers", its own
+     * error or no answer at all is not
+     */
+    public function testAProbeIsOneHeadThatAnyAnswerOfTheStorePasses(): void
+    {
+        $requests = [];
+        $answer = static function (int $status) use (&$requests): MockHttpClient {
+            return new MockHttpClient(static function (string $method, string $url) use (&$requests, $status): MockResponse {
+                $requests[] = $method . ' ' . $url;
+
+                return new MockResponse('', ['http_code' => $status]);
+            });
+        };
+
+        self::assertTrue($this->storage($answer(404))->probe(OnlineMediaStore::Primary));
+        self::assertTrue($this->storage($answer(403))->probe(OnlineMediaStore::Primary), 'no list rights - still an answer');
+        self::assertTrue($this->storage($answer(200))->probe(OnlineMediaStore::Secondary));
+        self::assertSame([
+            'HEAD http://minio.internal:9000/puzzle/' . S3OnlineMediaStorage::PROBE_KEY,
+            'HEAD http://minio.internal:9000/puzzle/' . S3OnlineMediaStorage::PROBE_KEY,
+            'HEAD https://garage.example.org/evidence/' . S3OnlineMediaStorage::PROBE_KEY,
+        ], $requests);
+
+        self::assertFalse($this->storage($answer(503))->probe(OnlineMediaStore::Primary));
+        self::assertFalse($this->storage(new MockHttpClient(new MockResponse('', ['error' => 'Connection refused'])))->probe(OnlineMediaStore::Primary));
+    }
+
     public function testDeleteGoesToTheMediasStore(): void
     {
         $requests = [];

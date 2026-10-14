@@ -51,4 +51,11 @@ interface OnlineMediaStorage
     public function head(OnlineEntryMedia $media): null|int;
 
     public function delete(OnlineEntryMedia $media): void;
+
+    /**
+     * Does the store answer? One cheap request through the server's own client - the circuit breaker asks before it
+     * sends uploads back to a store that failed (OnlineStoreBreaker). An answer of the store, whatever it says about
+     * the object, is true; no answer, or the store's own error (5xx), is false. Never throws.
+     */
+    public function probe(OnlineMediaStore $store): bool;
 }

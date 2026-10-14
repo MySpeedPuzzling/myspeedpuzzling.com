@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Services\OnlineRounds;
 
+use AsyncAws\Core\Exception\Http\ClientException;
 use AsyncAws\S3\Exception\NoSuchKeyException;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Entity\OnlineEntryMedia;
@@ -21,11 +22,14 @@ use SpeedPuzzling\Web\Value\RoundClock;
  *   any other upload. Made for the store's public endpoint, without a request.
  * - presignGet(): a short-lived URL for a look (control room thumbnails, the review).
  * - head() / delete(): the server's own requests, through the store's server-side client.
+ * - probe(): does the store answer at all (the circuit breaker, before it closes again).
  */
 final readonly class S3OnlineMediaStorage implements OnlineMediaStorage
 {
     // Long enough for a slow upload to start, short enough that a URL leaking from a phone is soon worthless
     public const int PUT_LIFETIME_SECONDS = 300;
+    // What probe() asks for - a key nobody writes
+    public const string PROBE_KEY = 'online/.store-probe';
 
     public function __construct(
         private OnlineMediaStores $stores,
@@ -94,6 +98,27 @@ final readonly class S3OnlineMediaStorage implements OnlineMediaStorage
         }
 
         return new OnlineMediaObject($media->objectKey, $bytes, $result->getContentType(), $result->getLastModified());
+    }
+
+    /**
+     * A HEAD of PROBE_KEY - never written, so the store answers 404 (or 403 without list rights): needs no permission
+     * the server does not have already. Any 4xx is the store answering; a 5xx, a timeout, a refused connection is not.
+     */
+    public function probe(OnlineMediaStore $store): bool
+    {
+        try {
+            $this->stores->client($store)->headObject([
+                'Bucket' => $this->stores->bucket($store),
+                'Key' => self::PROBE_KEY,
+            ])->resolve();
+        } catch (ClientException) {
+            // NoSuchKeyException (404) included - an answer
+            return true;
+        } catch (\Throwable) {
+            return false;
+        }
+
+        return true;
     }
 
     public function delete(OnlineEntryMedia $media): void

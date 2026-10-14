@@ -224,6 +224,11 @@ final class PruneOnlineMediaHandlerTest extends KernelTestCase
             {
                 return [];
             }
+
+            public function probe(OnlineMediaStore $store): bool
+            {
+                return true;
+            }
         };
     }
 

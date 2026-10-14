@@ -206,6 +206,11 @@ final class MarkAbandonedOnlineMediaHandlerTest extends KernelTestCase
             {
                 return [];
             }
+
+            public function probe(OnlineMediaStore $store): bool
+            {
+                return false;
+            }
         };
     }
 

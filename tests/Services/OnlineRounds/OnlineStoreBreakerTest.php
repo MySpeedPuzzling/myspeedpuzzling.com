@@ -13,6 +13,7 @@ use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
 use Ramsey\Uuid\Uuid;
 use Redis;
+use SpeedPuzzling\Web\Services\OnlineRounds\FakeOnlineMediaStorage;
 use SpeedPuzzling\Web\Services\OnlineRounds\OnlineMediaStores;
 use SpeedPuzzling\Web\Services\OnlineRounds\OnlineStoreBreaker;
 use SpeedPuzzling\Web\Tests\TestDouble\InMemoryLogger;
@@ -31,6 +32,7 @@ final class OnlineStoreBreakerTest extends TestCase
     private string $prefix;
     private MockClock $clock;
     private InMemoryLogger $logger;
+    private FakeOnlineMediaStorage $storage;
 
     protected function setUp(): void
     {
@@ -44,6 +46,8 @@ final class OnlineStoreBreakerTest extends TestCase
         $this->prefix = 'test_online_store_failures:' . Uuid::uuid7()->toString() . ':';
         $this->clock = new MockClock(new DateTimeImmutable('2026-10-13 12:00:00', new DateTimeZone('UTC')));
         $this->logger = new InMemoryLogger();
+        // The store double: every store answers its probe unless taken down
+        $this->storage = new FakeOnlineMediaStorage($this->clock);
     }
 
     protected function tearDown(): void
@@ -143,6 +147,113 @@ final class OnlineStoreBreakerTest extends TestCase
         $this->clock->sleep(OnlineStoreBreaker::WINDOW_SECONDS + 1);
 
         self::assertSame(OnlineMediaStore::Primary, $breaker->storeForNewUpload());
+        self::assertSame(['primary'], $this->storage->probes(), 'asked once before closing');
+
+        // Closed - nothing is asked again
+        self::assertSame(OnlineMediaStore::Primary, $breaker->storeForNewUpload());
+        self::assertSame(['primary'], $this->storage->probes());
+    }
+
+    /**
+     * A store still down when its failures age out stays out of the uploads another window - one probe a minute
+     * instead of a wave of failed uploads (spikes.md S5: the breaker flapped once a minute)
+     */
+    public function testThePrimaryIsProbedBeforeTheBreakerClosesAgain(): void
+    {
+        $breaker = $this->breaker();
+
+        foreach (['participant-1', 'participant-2', 'participant-3'] as $source) {
+            $breaker->recordFailure(OnlineMediaStore::Primary, $source);
+        }
+
+        $this->storage->takeDown(OnlineMediaStore::Primary);
+        $this->clock->sleep(OnlineStoreBreaker::WINDOW_SECONDS + 1);
+
+        self::assertSame(OnlineMediaStore::Secondary, $breaker->storeForNewUpload(), 'the probe failed - still open');
+        self::assertSame(['primary'], $this->storage->probes());
+        self::assertTrue($this->logger->hasRecord('info', 'still fails its probe'));
+
+        // Held open for a window without asking again
+        $this->clock->sleep(OnlineStoreBreaker::WINDOW_SECONDS - 1);
+        self::assertSame(OnlineMediaStore::Secondary, $breaker->storeForNewUpload());
+        self::assertTrue($breaker->isOpen(OnlineMediaStore::Primary));
+        self::assertSame(['primary'], $this->storage->probes());
+
+        // Then asked again - still down, held again
+        $this->clock->sleep(2);
+        $this->expireHeld(OnlineMediaStore::Primary);
+        self::assertSame(OnlineMediaStore::Secondary, $breaker->storeForNewUpload());
+        self::assertSame(['primary', 'primary'], $this->storage->probes());
+
+        // Back: the next probe closes the breaker for good
+        $this->storage->takeDown(OnlineMediaStore::Primary, false);
+        $this->expireHeld(OnlineMediaStore::Primary);
+        self::assertSame(OnlineMediaStore::Primary, $breaker->storeForNewUpload());
+        self::assertSame(OnlineMediaStore::Primary, $breaker->storeForNewUpload());
+        self::assertSame(['primary', 'primary', 'primary'], $this->storage->probes());
+        self::assertTrue($this->logger->hasRecord('info', 'answers its probe again'));
+        self::assertSame([], array_values(array_filter($this->keys(), static fn (string $key): bool => !str_ends_with($key, ':primary'))), 'no mark left behind');
+    }
+
+    /**
+     * One request probes at a time - while it does, every other one keeps the uploads on the second store
+     */
+    public function testWhileAnotherRequestProbesTheBreakerStaysOpen(): void
+    {
+        $breaker = $this->breaker();
+
+        foreach (['participant-1', 'participant-2', 'participant-3'] as $source) {
+            $breaker->recordFailure(OnlineMediaStore::Primary, $source);
+        }
+
+        $this->clock->sleep(OnlineStoreBreaker::WINDOW_SECONDS + 1);
+        $this->redis->set($this->prefix . 'primary:probing', '1', ['ex' => OnlineStoreBreaker::PROBE_LOCK_SECONDS]);
+
+        self::assertSame(OnlineMediaStore::Secondary, $breaker->storeForNewUpload());
+        self::assertSame([], $this->storage->probes());
+    }
+
+    /**
+     * Failures that never opened the breaker are no reason to ask - closed is closed
+     */
+    public function testABreakerThatNeverOpenedProbesNothing(): void
+    {
+        $breaker = $this->breaker();
+        $breaker->recordFailure(OnlineMediaStore::Primary, 'participant-1');
+        $breaker->recordFailure(OnlineMediaStore::Primary, 'participant-2');
+        $this->storage->takeDown(OnlineMediaStore::Primary);
+
+        self::assertSame(OnlineMediaStore::Primary, $breaker->storeForNewUpload());
+        $this->clock->sleep(OnlineStoreBreaker::WINDOW_SECONDS + 1);
+        self::assertSame(OnlineMediaStore::Primary, $breaker->storeForNewUpload());
+        self::assertSame([], $this->storage->probes());
+    }
+
+    /**
+     * The mark that asks for a probe does not live forever - nor does any other key
+     */
+    public function testTheTrippedMarkExpires(): void
+    {
+        $breaker = $this->breaker();
+
+        foreach (['participant-1', 'participant-2', 'participant-3'] as $source) {
+            $breaker->recordFailure(OnlineMediaStore::Primary, $source);
+        }
+
+        $ttl = $this->redis->ttl($this->prefix . 'primary:tripped');
+        self::assertIsInt($ttl);
+        self::assertGreaterThan(OnlineStoreBreaker::WINDOW_SECONDS, $ttl);
+        self::assertLessThanOrEqual(OnlineStoreBreaker::TRIPPED_SECONDS, $ttl);
+
+        $this->storage->takeDown(OnlineMediaStore::Primary);
+        $this->clock->sleep(OnlineStoreBreaker::WINDOW_SECONDS + 1);
+        $breaker->storeForNewUpload();
+
+        foreach ($this->keys() as $key) {
+            $keyTtl = $this->redis->ttl($key);
+            self::assertIsInt($keyTtl);
+            self::assertGreaterThan(0, $keyTtl, $key . ' expires');
+        }
     }
 
     public function testBothStoresFailingIsThePrimary(): void
@@ -178,16 +289,24 @@ final class OnlineStoreBreakerTest extends TestCase
         $deadRedis = RedisAdapter::createConnection('redis://127.0.0.1:1', ['lazy' => true, 'timeout' => 0.2]);
         self::assertInstanceOf(Redis::class, $deadRedis);
 
-        $breaker = new OnlineStoreBreaker($deadRedis, self::stores(secondStore: true), $this->clock, $this->logger, $this->prefix);
+        $breaker = new OnlineStoreBreaker($deadRedis, self::stores(secondStore: true), $this->storage, $this->clock, $this->logger, $this->prefix);
         $breaker->recordFailure(OnlineMediaStore::Primary, 'participant-1');
 
         self::assertSame(OnlineMediaStore::Primary, $breaker->storeForNewUpload());
         self::assertTrue($this->logger->hasRecord('warning', 'failed'));
     }
 
+    /**
+     * The real key expires on Redis' own clock - the test moves the breaker's clock only
+     */
+    private function expireHeld(OnlineMediaStore $store): void
+    {
+        $this->redis->del($this->prefix . $store->value . ':held');
+    }
+
     private function breaker(bool $secondStore = true): OnlineStoreBreaker
     {
-        return new OnlineStoreBreaker($this->redis, self::stores($secondStore), $this->clock, $this->logger, $this->prefix);
+        return new OnlineStoreBreaker($this->redis, self::stores($secondStore), $this->storage, $this->clock, $this->logger, $this->prefix);
     }
 
     public static function stores(bool $secondStore): OnlineMediaStores

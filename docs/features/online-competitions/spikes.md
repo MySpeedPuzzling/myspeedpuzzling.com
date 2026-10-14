@@ -205,7 +205,9 @@ max(3, 1 % of the round's phones) sources. Follow-ups (`docs/TODO.md` material):
 - a presign carrying `previousFailure.mediaId` could mark that never-uploaded row superseded, so the review shows no
   "pending" twin; **done (P1G)**: marked abandoned (`abandoned_at`) - "never arrived" in the review, no longer
   pending for the cap; the rest by the daily prune;
-- before closing, a server-side probe of the primary (a HEAD of a canary object) would spare the flap's failed wave.
+- before closing, a server-side probe of the primary (a HEAD of a canary object) would spare the flap's failed wave;
+  **done (P1G)**: `OnlineMediaStorage::probe()` (a HEAD of `online/.store-probe` - any 4xx is an answer, a 5xx or no
+  answer is not) before the breaker closes; a failed probe holds it open another 60 s, one request probes at a time.
 
 **For lily** (the production run's plan is in the tool's README - Jan's OK, a quiet hour, the edge prepared):
 - 2 × 32 FrankenPHP workers are plenty for 100 phones (~0.1 core, a ~1 core start burst); the participant API limits

@@ -66,8 +66,9 @@ that would otherwise be forgotten. Newest section on top.
       `online_entry_media.abandoned_at` - set by the presign that names the given-up upload, else by the daily prune
       (nothing in the store 30 min after); the review says "never arrived". Run `myspeedpuzzling:prune-online-media`
       after an event's round if its review should say so before the night's run (safe at any time).
-- [ ] Probe the primary store before the circuit breaker closes again (now it closes after 60 s and one round of
-      uploads fails before it reopens).
+- [x] Probe the primary store before the circuit breaker closes again (now it closes after 60 s and one round of
+      uploads fails before it reopens). Done (stream P1G): a HEAD of a key nobody writes, one request at a time; no
+      answer = open another 60 s.
 - [ ] The production load run at a quiet hour (Tue/Wed 05-07 Prague) with Jan's OK - plan in the README.
 
 ## Plural texts without a form for 0 (found 2026-10-13 by the online translations' render check)

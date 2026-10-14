@@ -27,6 +27,20 @@ final class FakeOnlineMediaStorageTest extends KernelTestCase
         self::assertSame(self::getContainer()->get(FakeOnlineMediaStorage::class), self::getContainer()->get(OnlineMediaStorage::class));
     }
 
+    public function testAStoreAnswersItsProbeUntilTakenDown(): void
+    {
+        $storage = new FakeOnlineMediaStorage(new MockClock());
+
+        self::assertTrue($storage->probe(OnlineMediaStore::Primary));
+        $storage->takeDown(OnlineMediaStore::Primary);
+        self::assertFalse($storage->probe(OnlineMediaStore::Primary));
+        self::assertTrue($storage->probe(OnlineMediaStore::Secondary));
+        $storage->takeDown(OnlineMediaStore::Primary, false);
+        self::assertTrue($storage->probe(OnlineMediaStore::Primary));
+
+        self::assertSame(['primary', 'primary', 'secondary', 'primary'], $storage->probes());
+    }
+
     public function testAPresignedUploadIsSignedForTheMediasStoreTypeAndLength(): void
     {
         $storage = new FakeOnlineMediaStorage(new MockClock(new DateTimeImmutable('2026-10-13 12:00:00', new DateTimeZone('UTC'))));

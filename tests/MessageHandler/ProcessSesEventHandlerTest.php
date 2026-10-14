@@ -12,7 +12,6 @@ use SpeedPuzzling\Web\Entity\NewsletterSubscriber;
 use SpeedPuzzling\Web\Message\ProcessSesEvent;
 use SpeedPuzzling\Web\Message\PushNewsletterSubscriberToListmonk;
 use SpeedPuzzling\Web\MessageHandler\ProcessSesEventHandler;
-use Psr\Log\AbstractLogger;
 use Psr\Log\LogLevel;
 use SpeedPuzzling\Web\Repository\EmailAuditLogRepository;
 use SpeedPuzzling\Web\Repository\EmailSuppressionRepository;
@@ -20,6 +19,7 @@ use SpeedPuzzling\Web\Repository\NewsletterSubscriberRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\UserAccountRepository;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
+use SpeedPuzzling\Web\Tests\TestDouble\InMemoryLogger;
 use SpeedPuzzling\Web\Value\BounceType;
 use SpeedPuzzling\Web\Value\ContentDigestFrequency;
 use SpeedPuzzling\Web\Value\NewsletterSubscriberStatus;
@@ -164,15 +164,53 @@ final class ProcessSesEventHandlerTest extends KernelTestCase
 
     public function testTheTopicValidationTextSesPostsForANewEventDestinationIsNotAWarning(): void
     {
-        $logger = new class extends AbstractLogger {
-            /** @var list<string> */
-            public array $levels = [];
+        [$handler, $logger] = $this->handlerWithRecordingLogger();
 
-            public function log($level, string|\Stringable $message, array $context = []): void
-            {
-                $this->levels[] = is_string($level) ? $level : get_debug_type($level);
-            }
-        };
+        $handler(new ProcessSesEvent('Successfully validated SNS topic for Amazon SES event publishing.', 'sns-validation'));
+        $handler(new ProcessSesEvent('{"no": "type"}', 'sns-unreadable'));
+
+        self::assertSame([LogLevel::INFO, LogLevel::WARNING], array_column($logger->records, 'level'));
+    }
+
+    public function testEveryHardBounceAndComplaintIsAWarningButASoftBounceOrDeliveryIsNot(): void
+    {
+        [$handler, $logger] = $this->handlerWithRecordingLogger();
+        $auditLog = $this->auditLog('sign_in_link', 'nobody@example.com');
+
+        $handler(new ProcessSesEvent(json_encode($this->event('Delivery', $auditLog, ['delivery' => ['timestamp' => '2026-10-14T08:00:01.000Z']]), JSON_THROW_ON_ERROR), 'sns-delivery'));
+        $handler(new ProcessSesEvent(json_encode($this->event('Bounce', $auditLog, ['bounce' => [
+            'bounceType' => 'Transient',
+            'bounceSubType' => 'MailboxFull',
+            'timestamp' => '2026-10-14T08:00:02.000Z',
+            'bouncedRecipients' => [['emailAddress' => 'nobody@example.com']],
+        ]], recipients: ['nobody@example.com']), JSON_THROW_ON_ERROR), 'sns-soft'));
+        self::assertSame([], array_column($logger->records, 'level'), 'A delivery or a soft bounce is no warning');
+
+        $handler(new ProcessSesEvent(json_encode($this->event('Bounce', $auditLog, ['bounce' => [
+            'bounceType' => 'Permanent',
+            'bounceSubType' => 'NoEmail',
+            'timestamp' => '2026-10-14T08:00:03.000Z',
+            'bouncedRecipients' => [['emailAddress' => 'nobody@example.com', 'diagnosticCode' => 'smtp; 550 5.1.1 <nobody@example.com>: Recipient address rejected: user unknown']],
+        ]], recipients: ['nobody@example.com']), JSON_THROW_ON_ERROR), 'sns-hard'));
+        $handler(new ProcessSesEvent(json_encode($this->event('Complaint', $auditLog, ['complaint' => [
+            'complainedRecipients' => [['emailAddress' => 'nobody@example.com']],
+            'timestamp' => '2026-10-14T09:00:00.000Z',
+        ]], recipients: ['nobody@example.com']), JSON_THROW_ON_ERROR), 'sns-complaint'));
+
+        self::assertSame([LogLevel::WARNING, LogLevel::WARNING], array_column($logger->records, 'level'));
+        self::assertSame('sign_in_link', $logger->records[0]['context']['email_type']);
+        self::assertSame('NoEmail', $logger->records[0]['context']['bounce_sub_type']);
+        self::assertSame('smtp; 550 5.1.1 <<address>>: Recipient address rejected: user unknown', $logger->records[0]['context']['diagnostic_code']);
+        self::assertSame('sign_in_link', $logger->records[1]['context']['email_type']);
+        self::assertStringNotContainsString('nobody@example.com', json_encode($logger->records, JSON_THROW_ON_ERROR), 'Addresses stay out of Sentry');
+    }
+
+    /**
+     * @return array{ProcessSesEventHandler, InMemoryLogger}
+     */
+    private function handlerWithRecordingLogger(): array
+    {
+        $logger = new InMemoryLogger();
         $container = self::getContainer();
         $handler = new ProcessSesEventHandler(
             $container->get(EmailAuditLogRepository::class),
@@ -184,10 +222,7 @@ final class ProcessSesEventHandlerTest extends KernelTestCase
             $logger,
         );
 
-        $handler(new ProcessSesEvent('Successfully validated SNS topic for Amazon SES event publishing.', 'sns-validation'));
-        $handler(new ProcessSesEvent('{"no": "type"}', 'sns-unreadable'));
-
-        self::assertSame([LogLevel::INFO, LogLevel::WARNING], $logger->levels);
+        return [$handler, $logger];
     }
 
     private function complain(string $emailType): EmailAuditLog

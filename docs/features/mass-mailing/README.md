@@ -136,6 +136,11 @@ but they need warm-up and steady volume we don't have. Every stream stays on SES
 | Complaint, anything transactional | `complained_at` only |
 | Reject / Rendering Failure | warning (→ Sentry) |
 
+**Every hard bounce and every complaint is also a warning** (→ Sentry: "E-mail hard bounced" / "E-mail marked as
+spam", context `stream`, `email_type`, `audit_log_id`; addresses are cut out of the server's answer). Jan wants to
+know when one appears (2026-10-14). Sentry groups them, so a campaign's bounces are one issue with a count. A newsletter
+bounce can arrive twice (configuration set event + `news.` identity feedback).
+
 Events can arrive twice or out of order, so every action is idempotent. An event for an audit row that was already
 pruned only applies the rules.
 

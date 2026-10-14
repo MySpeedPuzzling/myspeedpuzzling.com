@@ -9521,8 +9521,8 @@ online_rounds:
             "off": "Finished button - participants tap Finished when their puzzle is done"
             shadow: "Finished button, detection watching - the tap counts; the camera's detection is only recorded, to measure it"
             "on": "Detection - raised hands mark the finish, the Finished button is the fallback"
-            locked: "Fixed from the round's start until a Reset - the phones already know how this round finishes."
-            locked_refused: "The round has started (or its start is set), so the finish can't change any more. Reset the round's stopwatch to change it - nothing was saved."
+            locked: "Locked from the round's start until a Reset - the phones already use it."
+            locked_refused: "The round has started (or its start is set), so finish detection can't change any more. Reset the round's stopwatch to change it - nothing was saved."
         unfinished:
             label: "When time is up"
             help: "What participants who did not finish report, together with a photo of their puzzle."

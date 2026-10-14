@@ -383,7 +383,7 @@ final class OnlineRoundSettingsControllerTest extends WebTestCase
 
             self::assertCount(3, $crawler->filter('input[name="online_round_settings_form[detectionMode]"][disabled]'), $case);
             self::assertSame('off', $crawler->filter('input[name="online_round_settings_form[detectionMode]"][checked]')->attr('value'), $case);
-            self::assertStringContainsString('Fixed from the round\'s start until a Reset', $crawler->filter('[data-detection-locked]')->text(), $case);
+            self::assertStringContainsString('Locked from the round\'s start until a Reset', $crawler->filter('[data-detection-locked]')->text(), $case);
         }
 
         // The rest of the settings save from a locked page; the detection stays

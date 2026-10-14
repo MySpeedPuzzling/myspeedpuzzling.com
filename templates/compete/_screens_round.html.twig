@@ -21,6 +21,9 @@
 <section class="compete-screen compete-screen--running" data-compete-screen="running" aria-labelledby="compete-running-clock" hidden>
     <div class="compete-clock compete-clock--running" id="compete-running-clock" role="timer" data-compete-field="elapsed">00:00:00</div>
     <p class="compete-clock-caption" data-compete-field="remaining"></p>
+    {%~ if detection is defined and detection is not null %}
+    {{ include('compete/_detection_running.html.twig') }}
+    {%~ endif %}
     <button type="button" class="compete-finish" data-action="pointerdown->compete#finish click->compete#finish">
         <span class="compete-finish-label">{{ 'compete.finish.button'|trans }}</span>
         <span class="compete-finish-hint">{{ 'compete.finish.button_hint'|trans }}</span>
@@ -52,6 +55,9 @@
 <section class="compete-screen compete-screen--timeup" data-compete-screen="timeup" aria-labelledby="compete-timeup-title" hidden>
     <h1 class="compete-timeup-title" id="compete-timeup-title"><i class="bi bi-alarm me-2" aria-hidden="true"></i>{{ 'compete.timeup.title'|trans }}</h1>
     <p class="compete-timeup-stop">{{ 'compete.timeup.stop'|trans }}</p>
+    {%~ if detection is defined and detection is not null %}
+    {{ include('compete/_detection_timeup.html.twig') }}
+    {%~ endif %}
 
     <form class="compete-pieces" data-turbo="false" data-action="submit->compete#sendPieces" novalidate>
         <label class="form-label fw-medium" for="compete-pieces" data-compete-field="piecesQuestion">{{ 'compete.timeup.question_left'|trans }}</label>

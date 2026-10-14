@@ -13,7 +13,10 @@ use Twig\Environment;
  * text assets/controllers/compete_controller.js asks for - a key the JS uses but the partial misses would show the key
  * itself to a participant in the middle of a round. Plural texts come as browser_translation() objects
  * ({message, locale}); the checklist rows' texts are `check_<row>_<code>` for every code of CHECK_CODES in
- * assets/online/compete_flow.js.
+ * assets/online/compete_flow.js. Live video's texts (`video_…`) come only on a page with its video parts (a media server
+ * configured), finish detection's (`detection_…`, the checklist row's `detection_check_<code>` for every code of
+ * CHECK_CODES in assets/online/compete_detection.js) only on a page whose round detects raised hands - without them the
+ * JSON is the Phase 1 JSON.
  */
 final class CompeteTextsTest extends KernelTestCase
 {
@@ -25,19 +28,27 @@ final class CompeteTextsTest extends KernelTestCase
         'connect_' => ['belongs_to_other', 'is_other_participant'],
         // the status line's connection (compete_flow.js connectionStatus())
         'status_' => ['online', 'offline', 'problem'],
+        // live video (assets/online/compete_video.js): the quiet line, the invitation's ends and errors, the studio panel
+        'video_status_' => ['connecting', 'live', 'weak', 'retrying', 'off'],
+        'video_outcome_' => ['thanks', 'left', 'moved_on', 'expired', 'withdrawn', 'declined', 'unavailable'],
+        'video_invite_error_' => ['offline', 'failed'],
+        'video_studio_' => ['joining', 'on_air', 'leaving'],
     ];
+
+    // Chosen in a ternary in assets/online/compete_detection_page.js
+    private const array DETECTION_INDIRECT = ['detection_test', 'detection_test_again'];
 
     // Chosen in a ternary or passed on - not visible to the t('…') pattern
     private const array INDIRECT = ['pieces_question_left', 'pieces_question_placed', 'pieces_reported_left', 'pieces_reported_placed'];
 
-    private const array PLURAL = ['time_limit', 'status_pending', 'check_uploads_pending', 'check_uploads_refused'];
+    private const array PLURAL = ['time_limit', 'status_pending', 'check_uploads_pending', 'check_uploads_refused', 'video_strip_title'];
 
     public function testEveryTextThePageScriptUsesIsInTheJson(): void
     {
         $texts = $this->render();
         $used = [];
 
-        foreach ([__DIR__ . '/../assets/controllers/compete_controller.js'] as $file) {
+        foreach ([__DIR__ . '/../assets/controllers/compete_controller.js', __DIR__ . '/../assets/online/compete_video.js', __DIR__ . '/../assets/online/compete_video_page.js', __DIR__ . '/../assets/online/compete_detection_page.js'] as $file) {
             preg_match_all("/\\bt[c]?\\('([A-Za-z0-9_]+)'/", (string) file_get_contents($file), $matches);
             $used = [...$used, ...$matches[1]];
         }
@@ -54,11 +65,41 @@ final class CompeteTextsTest extends KernelTestCase
             }
         }
 
-        $used = [...$used, ...self::INDIRECT];
+        foreach (self::detectionCheckCodes() as $code) {
+            $used[] = 'detection_check_' . $code;
+        }
+
+        $used = [...$used, ...self::INDIRECT, ...self::DETECTION_INDIRECT];
         $missing = array_values(array_diff(array_unique($used), array_keys($texts)));
 
         self::assertSame([], $missing, 'texts the JS uses but templates/compete/_texts.html.twig does not have');
         self::assertGreaterThan(50, count(array_unique($used)));
+    }
+
+    public function testWithoutLiveVideoNoVideoTextIsThereAndThePhaseOneTextsComeFirst(): void
+    {
+        $without = $this->render(video: false, detection: false);
+        $with = $this->render(detection: false);
+
+        self::assertSame([], array_values(array_filter(array_keys($without), static fn (string $key): bool => str_starts_with($key, 'video_'))));
+        self::assertSame($without, array_slice($with, 0, count($without), true), 'the Phase 1 texts, then the video ones');
+        self::assertSame([], array_values(array_filter(array_keys(array_slice($with, count($without), null, true)), static fn (string $key): bool => !str_starts_with($key, 'video_'))));
+    }
+
+    public function testWithoutDetectionNoDetectionTextIsThereAndItsTextsComeLast(): void
+    {
+        $without = $this->render(detection: false);
+        $with = $this->render();
+
+        self::assertSame([], array_values(array_filter(array_keys($without), static fn (string $key): bool => str_starts_with($key, 'detection_'))));
+        self::assertSame($without, array_slice($with, 0, count($without), true), 'every other text, then the detection ones');
+        $added = array_keys(array_slice($with, count($without), null, true));
+        self::assertNotSame([], $added);
+        self::assertSame([], array_values(array_filter($added, static fn (string $key): bool => !str_starts_with($key, 'detection_'))));
+
+        self::assertSame('Finish recorded at %time%', $with['detection_recorded'] ?? null);
+        self::assertSame('Raise both hands for a second (%seconds% s)', $with['detection_check_testing'] ?? null);
+        self::assertSame('Detection may miss your finish - use the Finished button', $with['detection_check_failed'] ?? null);
     }
 
     public function testPluralTextsCarryTheirMessageAndLocaleAndPlainTextsAreStrings(): void
@@ -79,9 +120,27 @@ final class CompeteTextsTest extends KernelTestCase
         }
 
         self::assertSame(['message' => 'Time limit: 1 minute|Time limit: %count% minutes', 'locale' => 'en'], $texts['time_limit'] ?? null);
+        self::assertSame(['message' => '1 other participant|%count% other participants', 'locale' => 'en'], $texts['video_strip_title'] ?? null);
+        self::assertSame('Your time in the studio is over - thanks!', $texts['video_outcome_moved_on'] ?? null);
         self::assertSame('On - %width% × %height%', $texts['check_camera_live'] ?? null);
         self::assertSame('Synced (± %ms% ms)', $texts['check_clock_synced'] ?? null);
         self::assertSame('I tapped by mistake (%seconds%)', $texts['undo'] ?? null);
+    }
+
+    /**
+     * CHECK_CODES of assets/online/compete_detection.js - a plain list of strings.
+     *
+     * @return list<string>
+     */
+    private static function detectionCheckCodes(): array
+    {
+        $source = (string) file_get_contents(__DIR__ . '/../assets/online/compete_detection.js');
+        self::assertSame(1, preg_match('/export const CHECK_CODES = (\[.*?\]);/s', $source, $match), 'CHECK_CODES in compete_detection.js');
+        $codes = json_decode(str_replace("'", '"', $match[1]), true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($codes);
+        self::assertGreaterThanOrEqual(10, count($codes));
+
+        return array_values(array_map(strval(...), array_filter($codes, is_string(...))));
     }
 
     /**
@@ -112,7 +171,7 @@ final class CompeteTextsTest extends KernelTestCase
     /**
      * @return array<string, mixed>
      */
-    private function render(): array
+    private function render(bool $video = true, bool $detection = true): array
     {
         $container = self::bootKernel()->getContainer();
         $request = Request::create('/en/compete/x');
@@ -120,7 +179,12 @@ final class CompeteTextsTest extends KernelTestCase
         $container->get('request_stack')->push($request);
         $container->get('router')->getContext()->setParameter('_locale', 'en');
 
-        $json = self::getContainer()->get(Environment::class)->render('compete/_texts.html.twig');
+        // The page passes `video` only with a media server configured (CompetePageController)
+        // The page passes `detection` only when the round's detection is not off (CompetePageController)
+        $json = self::getContainer()->get(Environment::class)->render('compete/_texts.html.twig', [
+            ...($video ? ['video' => ['urls' => []]] : []),
+            ...($detection ? ['detection' => ['assets' => []]] : []),
+        ]);
         $texts = json_decode($json, true, flags: JSON_THROW_ON_ERROR);
         self::assertIsArray($texts);
 

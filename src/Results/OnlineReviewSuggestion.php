@@ -7,8 +7,11 @@ namespace SpeedPuzzling\Web\Results;
 /**
  * The official result the review suggests for a participant (docs/features/online-competitions/README.md §5.9 "the
  * suggested time rule", OnlineReviewAssessment) - before a person confirmed it:
- * - finished: the last Finished tap that counts (not undone, inside the round) - floor((moment − start) / 1000) s;
- * - unfinished: no such tap, but the participant reported pieces at time-up - pieces placed, from the report in the
+ * - finished: the last Finished tap that counts (not undone, inside the round) - floor((moment − start) / 1000) s,
+ *   source `button`; in a round whose detection is `on` the first finish candidate that counts comes first (README §5.9
+ *   "the first candidate whose photo shows a complete puzzle" - the reviewer looks at it, `G` moves on), source
+ *   `detection`;
+ * - unfinished: no such moment, but the participant reported pieces at time-up - pieces placed, from the report in the
  *   round's measure (pieces left convert through the round puzzle's piece count; null when it is not known);
  * - none: neither.
  */
@@ -18,8 +21,12 @@ readonly final class OnlineReviewSuggestion implements \JsonSerializable
     public const string UNFINISHED = 'unfinished';
     public const string NONE = 'none';
 
+    public const string SOURCE_BUTTON = 'button';
+    public const string SOURCE_DETECTION = 'detection';
+
     /**
      * @param self::FINISHED|self::UNFINISHED|self::NONE $kind
+     * @param null|self::SOURCE_* $source
      */
     private function __construct(
         public string $kind,
@@ -29,12 +36,19 @@ readonly final class OnlineReviewSuggestion implements \JsonSerializable
         public null|int $piecesPlaced = null,
         public null|string $reportedMeasure = null,
         public null|int $reportedPieces = null,
+        public null|string $source = null,
+        public null|string $candidateEventId = null,
     ) {
     }
 
     public static function finished(OnlineReviewTap $tap, int $seconds): self
     {
-        return new self(self::FINISHED, momentMs: $tap->momentMs, seconds: $seconds, tapEventId: $tap->eventId);
+        return new self(self::FINISHED, momentMs: $tap->momentMs, seconds: $seconds, tapEventId: $tap->eventId, source: self::SOURCE_BUTTON);
+    }
+
+    public static function detected(OnlineReviewCandidate $candidate, int $seconds): self
+    {
+        return new self(self::FINISHED, momentMs: $candidate->momentMs, seconds: $seconds, source: self::SOURCE_DETECTION, candidateEventId: $candidate->eventId);
     }
 
     public static function unfinished(null|int $piecesPlaced, null|string $reportedMeasure, int $reportedPieces): self
@@ -62,6 +76,8 @@ readonly final class OnlineReviewSuggestion implements \JsonSerializable
                 'measure' => $this->reportedMeasure,
                 'pieces' => $this->reportedPieces,
             ],
+            'source' => $this->source,
+            'candidateEventId' => $this->candidateEventId,
         ];
     }
 }

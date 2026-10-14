@@ -86,7 +86,50 @@ The participant page in practice mode (Phase 1, stream B):
 - **S3 - endurance:** 90 minutes of camera + wake lock (+ the detector from Phase 2) on 3-4 phones: frame rate, battery, heat, tab survival, a call, a lock.
 - **S4 - clock:** five phones counting down side by side, filmed at 240 fps.
 
-*Results: pending.*
+**What to measure on the phones for the detector (Phase 2, stream P2I)** - the page reports most of it itself:
+- **Load:** the `device.ready` event's `detector.loadMs` (MediaPipe + both models, ~18 MB) on Wi-Fi and on mobile data,
+  first visit and a second one (the browser's cache) - the checklist waits for it.
+- **Inference and cadence:** the heartbeat's `detector.inferenceMs` (smoothed) and `detector.fps` (live.json's
+  `presence.detector`, every 15 s) - the pacing targets 4-5 fps at most half a core; a phone below 2 fps or with
+  inference over ~200 ms is the one to look at. Each candidate's own `fps` / `inferenceMs` in its payload too.
+- **Over 30 / 90 minutes:** does the fps drop as the phone heats (the pacing backs off by the inference time - it must,
+  never the page); battery % per hour with and without the detector (and with live video); tab survival; the camera's
+  frame rate (`camera.fps` in the heartbeat) with the detector running.
+- **The set-up test:** seconds from "preparing" to the green row; which view it picked for angled and top-down mounts;
+  how often it fails on a real raise.
+- **Candidates against the burst:** per candidate, the burst frame where the hands really went up against the
+  candidate's moment (the review's scrubber, "Back to the detected moment") - the detection error the review records
+  when the reviewer moves the moment; the delta (tap − candidate) per participant in the accuracy report's CSV.
+- **False raises:** every candidate a reviewer did not confirm and no tap was near (the accuracy report's
+  `false_raises`) with its burst, by view and phone - the bench's material for minScore / hold.
+
+### Local run (P2I), 2026-10-14
+
+The participant page with the detector on, end to end, in throwaway containers on the dev network: the stream's
+worktree in FrankenPHP worker mode (prod, warmed cache, the production asset build) with its own Redis, Mercure and
+MinIO (`tools/online-load/local-stack.sh`), a copy of the test database (the Online Test Cup, its round's "Finish" set
+to Detection / detection watching / off), Selenium Chromium 152 with mobile emulation as the phone and a **fake camera
+fed from a 16-second loop** (640×480, 30 fps MJPEG) cut from "Jumping jacks and burpees" (Taco fleur, CC BY-SA 4.0,
+Wikimedia Commons - local only): burpees and standing, then the top of a jumping jack **held from 6.000 s to 8.5 s**,
+then brief jumping jacks (each up < 0.5 s), the loop's own time drawn in the corner. A second browser was the organiser
+(sign-in, control room "Start in 10 s", review, accuracy report); one run with live video (LiveKit 1.13.9).
+
+| Check | Result |
+|---|---|
+| Detector load (MediaPipe 1.1.0 from jsDelivr, pose lite + gesture from Google's bucket, classic worker under Encore) | `ready` 1.2-1.7 s after the checklist opened (warm HTTP cache after the first run); no init error; one worker per page (the spy counted 1) |
+| Set-up test | started by itself; "Keep them up…" at the loop's raise, **"Sees your raised hands - camera at an angle"** 0.6-0.8 s after it (hold 0.5 s + inference), chosen view `angled`, kept on the device |
+| Inference in that Chromium (software WebGL, 320×240 frames, Docker on a laptop) | median **20-35 ms**, p90 43-66 ms, max 225-284 ms (pose only in the round; both models in the test); cadence **4.3 fps** (233 ms - the 200 ms interval meets the camera's 33 ms frames). With live video publishing at the same time: median 41 ms, p90 78 ms |
+| Candidate moment vs the clip's raise (6.000 s) | four candidates whose raise began while the detector looked: **+0, +0..33, +67, +100 ms** (read from the burst frames around the moment, ±33 ms) - bounded by the 4.3 fps cadence. A raise already going on at GO gave a candidate at GO + 1.5 s (the first frames the round's detector saw) |
+| `on` | "Finish recorded at 00:16" with the green flash 0.7 s after the raise, the running clock small; a raise 16 s later (past the 10 s cooldown) a new candidate; the brief jumping jacks never one. The control room: "Detection ready" chip, "Finished 00:00:19 · detected 00:00:16" (tap and detection) |
+| Evidence | per candidate a `candidate` photo (the stream's full 640×480, hands up, the sharpest of up to three stills) and a burst (93-95 frames, −4.4 … +5.0 s, ~1.5 MB); the tap's `button` photo + burst as before; everything uploaded and verified |
+| Review | candidates and the tap in one row in time order; the suggestion = the first candidate (source `detection`); `G` → the second, `C` → "Confirmed from the detection", detection error 0.0 s |
+| Accuracy report + CSV | detection error 0 ms, delta (tap − candidate) +3.0 s, one false raise (the candidate at GO), device "Android", browser "Chrome 141" (the emulated user agent), view `angled` |
+| `shadow` | nothing shown on the phone (no flash, no panel); two candidates with photos and bursts on the server; the suggestion stays the tap (`button`); detection error / delta 2.45 s |
+| Page CPU (the Chromium container with one phone page, `docker stats`, % of one core) | detection off: median **60 %**; `shadow`: 70 %; `on` (incl. the candidates' stills and bursts): 93 %; `on` + live video publishing to LiveKit: 91 % (p90 153 %). The web container stayed under 2 % |
+| Bundles (production build) | the `compete` controller's chunk +7.3 KB (+1.8 KB gzipped); the detection chunk `compete-detection` 29.5 KB (8.8 KB gz) and the worker chunk 14.5 KB (4.7 KB gz) load only on a page whose round detects; MediaPipe and the models never enter a bundle |
+
+Not covered here: real phones (device-test.md steps 38-52), top-down gestures on real hands, heat and battery, a real
+puzzle under the hands. *Results on phones: pending.*
 
 ## S5 - load + storage
 
@@ -268,5 +311,41 @@ The same kind of throwaway set-up: `livekit/livekit-server:v1.13.9` (one node; a
 The encoding is the browsers' work: the Chromium container with the 8 phones and 3 more browsers took 0.8-1.3 cores and 1.9 GiB.
 
 Not covered here: real phones, TURN, a full page of 25 tiles, the participant page's own video (VP), the watch page (VS).
+
+### Participant video (VP), 2026-10-14
+
+The same kind of throwaway set-up: `livekit/livekit-server:v1.13.9` (one node, a fixed address on the dev network as
+its node IP), the stream's worktree in FrankenPHP worker mode (prod, warmed cache, the production asset build) with its
+own Redis, Mercure and MinIO, a scratch copy of the test database (the Online Test Cup's round with "Live video", "See
+each other" and "Studio" on). Four Selenium Chromium containers with fake devices: the two participants' phones (mobile
+emulation, the real participant page - consent, checklist, "I'm ready"), the moderator on the control room (VM's
+console), the host on the studio page; a peer-connection and canvas probe injected before each page (counts the frame
+grabber's JPEG encodes, reads `getStats()`).
+
+| Check | Result |
+|---|---|
+| "I'm ready" → in the hall | "Video on" 197 ms / 234 ms after the tap, the first frame out 277 ms / 303 ms (two phones). The published sender's track **is** the page's camera track (`sender.track === video.srcObject.getVideoTracks()[0]`) |
+| Simulcast + dynacast | three layers out (320×180, 640×360, 1920×1080 of the fake 1080p camera); with only the moderators' grid and the other phone's strip watching, dynacast paused the two upper layers within ~10 s - the phone sends the 180p layer only |
+| The moderator | both cameras live in the console's grid at 320×180 |
+| See each other | each phone receives the other's camera at 320×180 in the strip; "Hide" unsubscribes it (no inbound video) and is remembered; countdown and running: the strip goes and is unsubscribed; after Finished it is back. Switched off: both strips gone. Switched on with one phone not yet refreshed: the other wants its camera but **LiveKit keeps it out** (that phone still allows moderators only) - the tile stays empty until that phone has read the state, then 320×180 |
+| The host's voice | push-to-talk held ("Keep talking"): "Admin User is speaking" on both phones; the fake tone arrives at RMS 0.35; it plays through the page's own AudioContext (webAudioMix: one MediaStreamSource on it) |
+| The frame grabber while publishing | 99 encodes in 10.1 s during the run (9.8 fps), 10 fps while finished with the strip and the voice on; it went on through the studio and with LiveKit down |
+| Invitation | console's "Invite to the studio" → the prompt on the phone ~0.5 s later ("2:00 left to answer") |
+| Join | tap → leaving the hall 0.35 s → on air 1.0 s (the hall left first, the studio token asked for then, the same camera track + a new microphone track); the phone shows the host at 640×360, the host sees the guest at 640×360 and hears the microphone |
+| "Thank you" | the guest off air 0.25 s after the host's click, back in the hall publishing 0.77 s after it; "Thank you for joining the studio!"; the screen stayed "Finish recorded"; the microphone track stopped, the camera never |
+| LiveKit killed mid-round | the phone still puzzling: "Video: reconnecting" in the bar, no banner; the clock and the grabber went on (124 encodes in 12 s); a Finished tap during the outage reached the server with its button photo and burst. LiveKit started again: both phones and the console were back by themselves 13 s / 14 s later (backoff), no reload |
+| The round's video switched off / on | the phone left the hall (no peer connection left), kept its camera and grabber; on again: back in the hall |
+| Second screen | a laptop opening phone 2's link: "Use as a second screen" offered 1.3 s after the consent (the first heartbeat); joined the hall as `p:…:screen` 0.23 s after the tap: no camera, nothing published, the voice, both cameras (the participant had finished), "56:18 left", no Finished |
+| Takeover | "I'm ready" on the laptop: in the hall 0.13 s after the tap; LiveKit dropped the phone 0.35 s after it (the same identity) - "Video off"; the phone's next heartbeat (12.8 s) said taken over: no peer connection left, camera off, "Use as a second screen" offered |
+| Reload | "Video on" 0.49 s after a reload. Chrome lets a page that captures the camera start its AudioContext without a tap, so the voice played at once (the beeps still wait for "Tap here once", which also lets the voice go on iOS); the held-back path is pinned by the harness |
+| CPU (Docker Desktop; each browser in its own container, fake 1080p camera) | a phone in the hall publishing + one strip tile + the voice: 26-38 % of one core; the same phone with the round's video off: 22-29 %. 10 s on the finished screen: one long task (107 ms), rendering at 30 fps. LiveKit: 2.1 % CPU, 129 MiB; the web container < 1 % |
+
+The bundles (production build): the `compete` controller's chunks grow by 6.0 KB (1.7 KB gzipped) - the page of a
+round without video carries a few helpers only; everything else is the `compete-video` chunk (34 KB, 10 KB gzipped),
+loaded when the round's video is on; `livekit-client` stays its own chunk (591 KB), loaded when a room is joined.
+
+Open: a change of the round's video switches reaches a phone only at its next state fetch (a start, a return to the
+page, a reload) - the online timing settings change neither the stopwatch's hash nor a Mercure message. Real phones,
+TURN and mobile networks: device-test.md steps 25-37.
 
 *Results on a test box: pending.*

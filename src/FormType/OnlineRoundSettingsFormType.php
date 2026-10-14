@@ -33,7 +33,7 @@ final class OnlineRoundSettingsFormType extends AbstractType
             'class' => OnlineDetectionMode::class,
             'expanded' => true,
             'label' => 'online_rounds.settings.detection.label',
-            'help' => 'online_rounds.settings.detection.help',
+            'help' => 'online_rounds.settings.detection.how',
             'choice_label' => static fn (OnlineDetectionMode $mode): string => 'online_rounds.settings.detection.' . $mode->value,
         ]);
 

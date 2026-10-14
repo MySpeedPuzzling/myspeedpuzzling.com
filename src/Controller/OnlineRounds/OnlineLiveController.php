@@ -48,6 +48,6 @@ final class OnlineLiveController extends AbstractController
             return $access;
         }
 
-        return OfficialResultsApi::json($this->onlineLiveState->forRound($access['round']));
+        return OfficialResultsApi::json($this->onlineLiveState->forRound($access['round'], $access['onlineRound']));
     }
 }

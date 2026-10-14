@@ -1,16 +1,87 @@
 {% extends 'base.html.twig' %}
 
 {#
-    The accuracy report of an online round, Phase 1 (docs/features/online-competitions/README.md §5.9, stream C2, route
+    The accuracy report of an online round (docs/features/online-competitions/README.md §5.9, stream C2, route
     online_accuracy): the reviewer's adjustment (confirmed − tap) per participant and its distribution; the CSV carries
-    the same rows in epoch ms for the bench. Phase 2 adds the detection error and the delta next to the adjustment
-    (OnlineAccuracy::MEASURES).
+    the same rows in epoch ms for the bench. Phase 2 (stream P2I): with the round's detection on (or candidates all the
+    same - detection_shown) the detection error (confirmed − detected) and the delta (tap − detected) join the
+    adjustment (OnlineAccuracy::MEASURES), each row says what the detector caught, missed and raised falsely, and the
+    breakdown groups the participants by phone and by camera view. A round with detection off shows the Phase 1 report.
     Variables: competition, round (CompetitionRound), online_round, rows (list of OnlineAccuracyRow), summaries
-    (measure => AccuracySummary), started_at_ms
+    (measure => AccuracySummary), started_at_ms, detection, detection_shown, by_device / by_view (lists of
+    OnlineAccuracyGroup)
 #}
 
 {% set hide_comparison_launcher = true %}
 {% set round_id = round.id.toString %}
+{% set view_keys = {angled: 'angled', topDown: 'top_down'} %}
+
+{% macro measure_card(summary, measure) -%}
+    <section class="card shadow-sm mb-4" aria-labelledby="online-accuracy-{{ measure }}-title" data-accuracy-measure="{{ measure }}">
+        <div class="card-body">
+            <h2 class="h6" id="online-accuracy-{{ measure }}-title">{{ ('online_rounds.accuracy.' ~ measure ~ '.title')|trans }}</h2>
+            <p class="small text-body-secondary mb-1">{{ ('online_rounds.accuracy.' ~ measure ~ '.help')|trans }}</p>
+            <p class="mb-2" data-measure-count="{{ summary.count }}">{{ ('online_rounds.accuracy.' ~ measure ~ '.count')|trans({'%count%': summary.count}) }}</p>
+            {% if summary.count > 0 %}
+                <dl class="online-accuracy-summary mb-0">
+                    <div>
+                        <dt>{{ 'online_rounds.accuracy.summary.median'|trans }}</dt>
+                        <dd class="font-monospace" data-measure-median>{{ _self.adjustment(summary.median) }}</dd>
+                    </div>
+                    <div>
+                        <dt>{{ 'online_rounds.accuracy.summary.iqr'|trans }}</dt>
+                        <dd class="font-monospace" data-measure-iqr>{{ _self.adjustment(summary.iqr)|replace({'+': ''}) }}</dd>
+                        <dd class="small text-body-secondary">{{ 'online_rounds.accuracy.summary.quartiles'|trans({'%q1%': _self.adjustment(summary.q1), '%q3%': _self.adjustment(summary.q3)}) }}</dd>
+                    </div>
+                </dl>
+            {% endif %}
+        </div>
+    </section>
+{%- endmacro %}
+
+{% macro breakdown(groups, measure, title_key) -%}
+    <section class="mb-4" aria-labelledby="online-accuracy-by-{{ measure }}-title" data-accuracy-breakdown="{{ measure }}">
+        <h2 class="h6" id="online-accuracy-by-{{ measure }}-title">{{ title_key|trans }}</h2>
+        <div class="table-responsive">
+            <table class="table table-sm align-middle online-accuracy-table">
+                <thead>
+                    <tr>
+                        <th scope="col">{{ 'online_rounds.accuracy.breakdown.group'|trans }}</th>
+                        <th scope="col" class="text-end">{{ 'online_rounds.accuracy.breakdown.participants'|trans }}</th>
+                        <th scope="col" class="text-end">{{ 'online_rounds.accuracy.breakdown.finishes'|trans }}</th>
+                        <th scope="col" class="text-end">{{ 'online_rounds.accuracy.breakdown.detected'|trans }}</th>
+                        <th scope="col" class="text-end">{{ 'online_rounds.accuracy.breakdown.missed'|trans }}</th>
+                        <th scope="col" class="text-end">{{ 'online_rounds.accuracy.breakdown.false'|trans }}</th>
+                        <th scope="col" class="text-end">{{ 'online_rounds.accuracy.breakdown.median_error'|trans }}</th>
+                        <th scope="col" class="text-end">{{ 'online_rounds.accuracy.breakdown.median_delta'|trans }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for group in groups %}
+                        <tr data-accuracy-group="{{ group.label ?? '' }}">
+                            <td>
+                                {%- if group.label is null -%}
+                                    {{- 'online_rounds.accuracy.breakdown.unknown'|trans -}}
+                                {%- elseif measure == 'view' -%}
+                                    {{- ('online_rounds.accuracy.view.' ~ ({angled: 'angled', topDown: 'top_down'}[group.label] ?? 'angled'))|trans -}}
+                                {%- else -%}
+                                    {{- group.label -}}
+                                {%- endif -%}
+                            </td>
+                            <td class="text-end">{{ group.participants }}</td>
+                            <td class="text-end">{{ group.finishes }}</td>
+                            <td class="text-end">{{ group.detected }}</td>
+                            <td class="text-end">{{ group.missedRaises }}</td>
+                            <td class="text-end">{{ group.falseRaises }}</td>
+                            <td class="text-end font-monospace">{{ _self.adjustment(group.detectionError.median) }}</td>
+                            <td class="text-end font-monospace">{{ _self.adjustment(group.delta.median) }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+{%- endmacro %}
 
 {% macro elapsed(ms) -%}
     {%- if ms is not null -%}
@@ -45,7 +116,12 @@
     <div class="online-rounds-page online-accuracy pb-5" data-online-accuracy>
         <h1 class="h2 mb-1">{{ 'online_rounds.accuracy.title'|trans }}</h1>
         <p class="h5 text-muted mb-2">{{ competition.name }} — {{ round.name }}</p>
-        <p class="online-rounds-prose small">{{ 'online_rounds.accuracy.intro'|trans }}</p>
+        {% if detection_shown %}
+            <p class="online-rounds-prose small">{{ 'online_rounds.accuracy.intro_detection'|trans }}</p>
+            <p class="small mb-2" data-accuracy-detection="{{ detection }}">{{ ('online_rounds.accuracy.mode.' ~ detection)|trans }}</p>
+        {% else %}
+            <p class="online-rounds-prose small">{{ 'online_rounds.accuracy.intro'|trans }}</p>
+        {% endif %}
 
         <div class="d-flex flex-wrap gap-2 mb-4">
             <a href="{{ path('online_review', {roundId: round_id}) }}" class="btn btn-sm btn-outline-primary" data-online-tool="review">
@@ -84,6 +160,13 @@
             </div>
         </section>
 
+        {% if detection_shown %}
+            <div class="online-accuracy-measures">
+                {{ _self.measure_card(summaries.detection_error, 'detection_error') }}
+                {{ _self.measure_card(summaries.delta, 'delta') }}
+            </div>
+        {% endif %}
+
         {% if rows is empty %}
             <p class="text-body-secondary">{{ 'online_rounds.accuracy.empty'|trans }}</p>
         {% else %}
@@ -96,6 +179,14 @@
                             <th scope="col" class="text-end">{{ 'online_rounds.accuracy.col.tap'|trans }}</th>
                             <th scope="col" class="text-end">{{ 'online_rounds.accuracy.col.confirmed'|trans }}</th>
                             <th scope="col" class="text-end">{{ 'online_rounds.accuracy.col.adjustment'|trans }}</th>
+                            {% if detection_shown %}
+                                <th scope="col" class="text-end">{{ 'online_rounds.accuracy.col.detected'|trans }}</th>
+                                <th scope="col" class="text-end">{{ 'online_rounds.accuracy.col.detection_error'|trans }}</th>
+                                <th scope="col" class="text-end">{{ 'online_rounds.accuracy.col.delta'|trans }}</th>
+                                <th scope="col" class="text-end">{{ 'online_rounds.accuracy.col.misses'|trans }}</th>
+                                <th scope="col">{{ 'online_rounds.accuracy.col.view'|trans }}</th>
+                                <th scope="col">{{ 'online_rounds.accuracy.col.device'|trans }}</th>
+                            {% endif %}
                             <th scope="col">{{ 'online_rounds.accuracy.col.source'|trans }}</th>
                             <th scope="col" class="text-end">{{ 'online_rounds.accuracy.col.late'|trans }}</th>
                             <th scope="col" class="text-end">{{ 'online_rounds.accuracy.col.result'|trans }}</th>
@@ -109,6 +200,14 @@
                                 <td class="text-end font-monospace">{{ _self.elapsed(row.tapElapsedMs) }}</td>
                                 <td class="text-end font-monospace">{{ _self.elapsed(row.confirmedElapsedMs) }}</td>
                                 <td class="text-end font-monospace" data-accuracy-adjustment>{{ _self.adjustment(row.adjustmentMs) }}</td>
+                                {% if detection_shown %}
+                                    <td class="text-end font-monospace" data-accuracy-detected>{{ _self.elapsed(row.detectedElapsedMs) }}</td>
+                                    <td class="text-end font-monospace" data-accuracy-detection-error>{{ _self.adjustment(row.detectionErrorMs) }}</td>
+                                    <td class="text-end font-monospace" data-accuracy-delta>{{ _self.adjustment(row.deltaMs) }}</td>
+                                    <td class="text-end" data-accuracy-misses>{{ row.missedRaises is not null ? 'online_rounds.accuracy.misses'|trans({'%missed%': row.missedRaises, '%false%': row.falseRaises ?? 0}) }}</td>
+                                    <td data-accuracy-view>{{ row.view is not null ? ('online_rounds.accuracy.view.' ~ (view_keys[row.view] ?? 'angled'))|trans }}</td>
+                                    <td class="small" data-accuracy-device>{{ row.device is not null ? row.device ~ ' · ' ~ row.browser }}</td>
+                                {% endif %}
                                 <td>{{ row.source is not null ? ('online_rounds.review.source.' ~ row.source)|trans }}</td>
                                 <td class="text-end font-monospace">{{ row.arrivedLateMs is not null ? '%.1f s'|format(row.arrivedLateMs / 1000) }}</td>
                                 <td class="text-end font-monospace">
@@ -125,6 +224,11 @@
                     </tbody>
                 </table>
             </div>
+
+            {% if detection_shown %}
+                {{ _self.breakdown(by_device, 'device', 'online_rounds.accuracy.breakdown.by_device') }}
+                {{ _self.breakdown(by_view, 'view', 'online_rounds.accuracy.breakdown.by_view') }}
+            {% endif %}
         {% endif %}
     </div>
 {% endblock %}

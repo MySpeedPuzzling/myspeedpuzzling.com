@@ -8,6 +8,13 @@
     this page in full when a link elsewhere leads here.
     The screens are all rendered; the controller shows one (welcome → checklist → waiting → countdown → running →
     finished → timeup → after, plus no_round / not_entered / taken_over / dead_link and the practice).
+    Live video (contract phase-1b.md stream VP): only with a media server configured (`video` not null) does the page
+    carry its video parts - without one it is the Phase 1 page, byte for byte (each part sits in an `if` whose tags
+    leave no trace).
+    Finish detection (Phase 2, stream P2I): only when the round's detection is not off (`detection` not null - the
+    detector's pinned assets, OnlineDetectorAssets) does the page carry its detection parts: the checklist's row, the
+    running screen's "Finish recorded", time's up after a detected finish, the green flash - the same way without
+    trace otherwise.
 #}
 
 {% set hide_comparison_launcher = true %}
@@ -49,7 +56,7 @@
          data-compete-urls-value="{{ urls|json_encode|e('html_attr') }}"
          data-compete-connect-value="{{ connect_data|json_encode|e('html_attr') }}"
          data-compete-texts-value="{{ include('compete/_texts.html.twig')|e('html_attr') }}"
-         data-compete-in-app-value="{{ in_app is not null ? 'true' : 'false' }}">
+         data-compete-in-app-value="{{ in_app is not null ? 'true' : 'false' }}"{% if video is not null %} data-compete-video-value="{{ video|json_encode|e('html_attr') }}"{% endif %}{% if detection is not null %} data-compete-detection-value="{{ detection|json_encode|e('html_attr') }}"{% endif %}>
         <script type="application/json" data-compete-target="initialState">{{ state|json_encode(constant('JSON_HEX_TAG') b-or constant('JSON_HEX_AMP') b-or constant('JSON_HEX_APOS') b-or constant('JSON_HEX_QUOT'))|raw }}</script>
 
         <noscript><p class="compete-noscript">{{ 'compete.page.no_script'|trans }}</p></noscript>
@@ -66,6 +73,9 @@
                     <span class="compete-status-item compete-status-connection" data-compete-field="statusConnection"></span>
                     <span class="compete-status-item compete-status-pending" data-compete-field="statusPending"></span>
                 </span>
+                {%~ if video is not null %}
+                <span class="compete-video-status" data-compete-field="videoStatus" aria-live="off"></span>
+                {%~ endif %}
             </div>
         </header>
 
@@ -83,12 +93,21 @@
                 <i class="bi bi-camera-video-off me-2" aria-hidden="true"></i>{{ 'compete.screen.camera_alert'|trans }}
             </button>
             <div class="compete-banner compete-banner--notice" data-compete-target="notice" role="status" aria-live="polite" hidden></div>
+            {%~ if video is not null %}
+            {{ include('compete/_video_banners.html.twig') }}
+            {%~ endif %}
         </div>
 
+        {%~ if detection is not null %}
+        <div class="compete-detection-flash" aria-hidden="true"></div>
+        {%~ endif %}
         <div class="compete-stage">
             <div class="compete-camera" data-compete-target="cameraBox" hidden>
                 <video class="compete-video" data-compete-target="video" playsinline muted autoplay disablepictureinpicture></video>
                 <div class="compete-frame-guide" aria-hidden="true"><span>{{ 'compete.checklist.frame_guide'|trans }}</span></div>
+                {%~ if video is not null %}
+                <p class="compete-voice" data-compete-show="videoSpeaking" role="status" hidden><i class="bi bi-mic-fill me-1" aria-hidden="true"></i><span data-compete-field="videoSpeaking"></span></p>
+                {%~ endif %}
             </div>
 
             <div class="compete-screens">
@@ -97,7 +116,16 @@
                 {{ include('compete/_screens_round.html.twig') }}
                 {{ include('compete/_screens_other.html.twig') }}
                 {{ include('compete/_screen_practice.html.twig') }}
+                {%~ if video is not null %}
+                {{ include('compete/_screen_second.html.twig') }}
+                {%~ endif %}
             </div>
+            {%~ if video is not null %}
+            {{ include('compete/_video_studio.html.twig') }}
+            {%~ endif %}
         </div>
+        {%~ if video is not null %}
+        {{ include('compete/_video_strip.html.twig') }}
+        {%~ endif %}
     </div>
 {% endblock %}

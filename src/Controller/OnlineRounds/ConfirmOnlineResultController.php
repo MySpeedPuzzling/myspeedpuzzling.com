@@ -25,8 +25,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * The reviewer confirms a participant's online result (contract §5 `online_review_confirm`, ConfirmOnlineResult):
- * `{"momentMs": <epoch ms>, "source": "button" | "reviewer", "pieces": null, "seenResult": …}` - a finish moment the
- * phone recorded (a tap, or a frame of its burst) - or `{"momentMs": null, "source": "reviewer", "pieces": <placed>,
+ * `{"momentMs": <epoch ms>, "source": "button" | "detection" | "reviewer", "pieces": null, "seenResult": …}` - a finish
+ * moment the phone recorded (a tap, a finish candidate of its detector, or a frame of its burst) - or `{"momentMs": null, "source": "reviewer", "pieces": <placed>,
  * "seenResult": …}` for an unfinished puzzle. `seenResult` is required: the official result the review showed when
  * the reviewer decided, in RoundEntryResult's wire format (null, {"seconds": n}, {"piecesPlaced": n},
  * {"didNotStart": true}). The decision and the official result are written together (ConfirmOnlineResultHandler);
@@ -107,7 +107,7 @@ final class ConfirmOnlineResultController extends AbstractController
                 // Somebody entered another result meanwhile - what it is now, so the reviewer decides again
                 return $this->refusal($refused, [
                     'current' => $refused->current?->toWire(),
-                    'entry' => $this->onlineReview->row($round, $participantId),
+                    'entry' => $this->onlineReview->row($round, $participantId, $access['onlineRound']->detectionMode),
                 ]);
             }
 
@@ -127,7 +127,7 @@ final class ConfirmOnlineResultController extends AbstractController
             'result' => $confirmed->result->toWire(),
             'momentMs' => $confirmed->momentMs,
             'source' => $confirmed->source->value,
-            'entry' => $this->onlineReview->row($round, $participantId),
+            'entry' => $this->onlineReview->row($round, $participantId, $access['onlineRound']->detectionMode),
         ]);
     }
 

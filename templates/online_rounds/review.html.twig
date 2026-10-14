@@ -12,6 +12,8 @@
 
 {% set hide_comparison_launcher = true %}
 {% set round_id = round.id.toString %}
+{# Phase 2: with the finish detection on (shadow / on) the moments are taps and raised hands, G moves on #}
+{% set detection_on = online_round.detectionMode.value != 'off' %}
 
 {% block title %}{{ 'online_rounds.review.title'|trans }} - {{ round.name }}{% endblock %}
 
@@ -49,7 +51,7 @@
             <span class="badge rounded-pill text-bg-light border fs-6 fw-normal" data-online-review-target="progress" aria-live="polite"></span>
         </div>
         <p class="online-rounds-prose small mb-1">{{ 'online_rounds.review.intro'|trans }}</p>
-        <p class="small text-body-secondary mb-3"><i class="bi bi-keyboard me-1" aria-hidden="true"></i>{{ 'online_rounds.review.keys'|trans }}</p>
+        <p class="small text-body-secondary mb-3"><i class="bi bi-keyboard me-1" aria-hidden="true"></i>{{ (detection_on ? 'online_rounds.review.keys_detection' : 'online_rounds.review.keys')|trans }}</p>
 
         <div class="d-flex flex-wrap gap-2 mb-3" data-online-review-tools>
             <a href="{{ path('online_control_room', {roundId: round_id}) }}" class="btn btn-sm btn-outline-primary" data-online-tool="control">
@@ -105,13 +107,14 @@
                         <ul class="online-review-flags list-unstyled mb-3" data-online-review-target="detailFlags"></ul>
                         <p class="alert alert-secondary py-2" data-online-review-target="notConnected" hidden>{{ 'online_rounds.review.detail.not_connected'|trans }}</p>
 
+                        {% set moments_title = (detection_on ? 'online_rounds.review.detail.moments' : 'online_rounds.review.detail.taps')|trans %}
                         <div data-online-review-target="finishPanel">
-                            <h3 class="h6">{{ 'online_rounds.review.detail.taps'|trans }}</h3>
-                            <div class="d-flex flex-wrap gap-2 mb-3" role="group" aria-label="{{ 'online_rounds.review.detail.taps'|trans }}" data-online-review-target="taps"></div>
+                            <h3 class="h6">{{ moments_title }}</h3>
+                            <div class="d-flex flex-wrap gap-2 mb-3" role="group" aria-label="{{ moments_title }}" data-online-review-target="taps"></div>
 
                             <div class="online-review-evidence" data-online-review-target="evidence" hidden>
                                 <figure class="online-review-burst mb-0">
-                                    <figcaption class="small fw-semibold mb-1">{{ 'online_rounds.review.detail.burst'|trans }}</figcaption>
+                                    <figcaption class="small fw-semibold mb-1" data-online-review-target="burstCaption">{{ 'online_rounds.review.detail.burst'|trans }}</figcaption>
                                     <div class="online-review-canvas-box">
                                         <canvas class="online-review-canvas" width="640" height="360" data-online-review-target="canvas" aria-hidden="true"></canvas>
                                         <p class="online-review-burst-status small" data-online-review-target="burstStatus" hidden></p>
@@ -121,12 +124,12 @@
                                         <label class="visually-hidden" for="online-review-frame">{{ 'online_rounds.review.detail.frame_label'|trans }}</label>
                                         <input type="range" class="form-range flex-grow-1" id="online-review-frame" min="0" max="0" step="1" value="0" data-online-review-target="slider" data-action="input->online-review#scrub">
                                         <button type="button" class="btn btn-sm btn-outline-secondary" data-action="online-review#nextFrame" aria-label="{{ 'online_rounds.review.detail.next_frame'|trans }}" data-online-review-target="frameButton"><i class="bi bi-chevron-right" aria-hidden="true"></i></button>
-                                        <button type="button" class="btn btn-sm btn-outline-secondary text-nowrap" data-action="online-review#backToTap" data-online-review-target="frameButton">{{ 'online_rounds.review.detail.to_tap'|trans }}</button>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary text-nowrap" data-action="online-review#backToTap" data-online-review-target="frameButton toMomentButton">{{ 'online_rounds.review.detail.to_tap'|trans }}</button>
                                     </div>
                                     <p class="small font-monospace mb-0 mt-1" data-online-review-target="frameLabel" aria-live="polite"></p>
                                 </figure>
                                 <figure class="online-review-photo mb-0">
-                                    <figcaption class="small fw-semibold mb-1">{{ 'online_rounds.review.detail.photo'|trans }}</figcaption>
+                                    <figcaption class="small fw-semibold mb-1" data-online-review-target="photoCaption">{{ 'online_rounds.review.detail.photo'|trans }}</figcaption>
                                     <a href="#" target="_blank" rel="noopener" data-online-review-target="tapPhotoLink" hidden><img class="online-review-photo-image" alt="{{ 'online_rounds.review.detail.photo'|trans }}" data-online-review-target="tapPhoto"></a>
                                     <p class="small text-body-secondary" data-online-review-target="tapPhotoPending" hidden>{{ 'online_rounds.review.detail.pending'|trans }}</p>
                                 </figure>
@@ -143,6 +146,12 @@
                                     <button type="button" class="btn btn-success" data-action="online-review#confirmFinish" data-online-review-target="confirmFinishButton">
                                         <i class="bi bi-check2-circle me-1" aria-hidden="true"></i>{{ 'online_rounds.review.detail.confirm'|trans }} <kbd class="ms-1">C</kbd>
                                     </button>
+                                    {% if detection_on %}
+                                        {# The photo shows a gap - on to the next raise or tap (README §5.9) #}
+                                        <button type="button" class="btn btn-outline-secondary" data-action="online-review#gapNext" data-online-review-target="gapButton" disabled>
+                                            <i class="bi bi-skip-forward me-1" aria-hidden="true"></i>{{ 'online_rounds.review.detail.gap'|trans }} <kbd class="ms-1">G</kbd>
+                                        </button>
+                                    {% endif %}
                                 </div>
                             </div>
                         </div>

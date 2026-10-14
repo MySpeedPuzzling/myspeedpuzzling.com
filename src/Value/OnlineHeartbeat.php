@@ -7,7 +7,8 @@ namespace SpeedPuzzling\Web\Value;
 /**
  * A participant's phone's heartbeat, every 15 s (docs/features/online-competitions/implementation-plan.md §3.1):
  * `{deviceId, roundId, visible, camera: {ok, w, h, fps}, detector: {ok, fps, mode}, clock: {offsetMs, rttMs},
- * outbox: {events, media}}`. The device id is required (a non-empty string of at most MAX_DEVICE_ID_LENGTH
+ * outbox: {events, media}}` - the detector with `state`, `inferenceMs` and `view` too from a page that runs the finish
+ * detection (Phase 2). The device id is required (a non-empty string of at most MAX_DEVICE_ID_LENGTH
  * characters); the rest is telemetry: what has the right type is kept, anything else (or unknown) is dropped - the
  * presence (OnlinePresence) stores only these few fields, never what a phone made up.
  */
@@ -15,6 +16,9 @@ final readonly class OnlineHeartbeat
 {
     public const int MAX_DEVICE_ID_LENGTH = 64;
     private const int MAX_MODE_LENGTH = 16;
+    // The finish detector on the page (assets/online/compete_detection.js DETECTOR_STATES / VIEWS)
+    public const array DETECTOR_STATES = ['off', 'loading', 'ready', 'unsupported', 'error'];
+    public const array DETECTOR_VIEWS = ['angled', 'topDown'];
 
     /**
      * @param array<string, mixed> $telemetry
@@ -52,11 +56,7 @@ final readonly class OnlineHeartbeat
                 'h' => self::count($camera['h'] ?? null),
                 'fps' => self::number($camera['fps'] ?? null),
             ],
-            'detector' => $detector === null ? null : [
-                'ok' => self::boolean($detector['ok'] ?? null),
-                'fps' => self::number($detector['fps'] ?? null),
-                'mode' => self::text($detector['mode'] ?? null, self::MAX_MODE_LENGTH),
-            ],
+            'detector' => $detector === null ? null : self::detector($detector),
             'clock' => $clock === null ? null : [
                 'offsetMs' => self::number($clock['offsetMs'] ?? null),
                 'rttMs' => self::number($clock['rttMs'] ?? null),
@@ -66,6 +66,40 @@ final readonly class OnlineHeartbeat
                 'media' => self::count($outbox['media'] ?? null),
             ],
         ]);
+    }
+
+    /**
+     * The finish detector's telemetry (Phase 2, stream P2I): `{ok, fps, mode}` as in Phase 1, and - only when the phone
+     * sends them, so a Phase 1 phone's beat stays exactly as it was - `state` (DETECTOR_STATES), `inferenceMs` and
+     * `view` (DETECTOR_VIEWS); an unknown state or view is kept as null
+     *
+     * @param array<mixed> $detector
+     * @return array<string, mixed>
+     */
+    private static function detector(array $detector): array
+    {
+        $telemetry = [
+            'ok' => self::boolean($detector['ok'] ?? null),
+            'fps' => self::number($detector['fps'] ?? null),
+            'mode' => self::text($detector['mode'] ?? null, self::MAX_MODE_LENGTH),
+        ];
+
+        if (array_key_exists('state', $detector)) {
+            $state = $detector['state'];
+            $telemetry['state'] = is_string($state) && in_array($state, self::DETECTOR_STATES, true) ? $state : null;
+        }
+
+        if (array_key_exists('inferenceMs', $detector)) {
+            $inferenceMs = self::number($detector['inferenceMs']);
+            $telemetry['inferenceMs'] = $inferenceMs !== null && $inferenceMs >= 0 ? $inferenceMs : null;
+        }
+
+        if (array_key_exists('view', $detector)) {
+            $view = $detector['view'];
+            $telemetry['view'] = is_string($view) && in_array($view, self::DETECTOR_VIEWS, true) ? $view : null;
+        }
+
+        return $telemetry;
     }
 
     /**

@@ -22,16 +22,19 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\String\Slugger\AsciiSlugger;
 
 /**
- * The accuracy report of an online round, Phase 1 (docs/features/online-competitions/README.md §5.9, contract §5
+ * The accuracy report of an online round (docs/features/online-competitions/README.md §5.9, contract §5
  * `online_accuracy`, OnlineAccuracy): per participant the tap, the confirmed moment, the reviewer's adjustment, its
- * source and how late the tap arrived, with the adjustment's distribution - as a page, or with `?format=csv` as CSV
- * (CSV_COLUMNS - stable names, for the bench and spreadsheets; every cell through SpreadsheetSafeValue: names are
- * typed by people). Organisers of the event for whom online rounds are on (COMPETITION_EDIT + ONLINE_ROUNDS_MANAGE).
+ * source and how late the tap arrived, with the adjustment's distribution; Phase 2 adds the detection of raised hands
+ * (the detected moment, the detection error, the delta, missed and false raises, the camera view, the phone) and a
+ * breakdown by phone and by view - as a page, or with `?format=csv` as CSV (CSV_COLUMNS - stable names, for the bench
+ * and spreadsheets; every cell through SpreadsheetSafeValue: names are typed by people, User-Agents by phones).
+ * Organisers of the event for whom online rounds are on (COMPETITION_EDIT + ONLINE_ROUNDS_MANAGE).
  */
 #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
 final class OnlineAccuracyController extends AbstractController
 {
-    // Phase 2 adds detected_moment_ms, detection_error_ms and delta_ms after adjustment_ms (OnlineAccuracy::MEASURES)
+    // Phase 2 inserted detected_moment_ms, detection_error_ms and delta_ms after adjustment_ms (OnlineAccuracy::MEASURES)
+    // and appended the rest - a column is never renamed or moved again, new ones go to the end
     public const array CSV_COLUMNS = [
         'participant',
         'status',
@@ -40,10 +43,18 @@ final class OnlineAccuracyController extends AbstractController
         'confirmed_moment_ms',
         'confirmed_elapsed_ms',
         'adjustment_ms',
+        'detected_moment_ms',
+        'detection_error_ms',
+        'delta_ms',
         'source',
         'arrived_late_ms',
         'official_seconds',
         'official_pieces_placed',
+        'missed_raises',
+        'false_raises',
+        'view',
+        'device',
+        'browser',
     ];
 
     public function __construct(
@@ -74,7 +85,7 @@ final class OnlineAccuracyController extends AbstractController
         $this->denyAccessUnlessGranted(OnlineRoundsVoter::ONLINE_ROUNDS_MANAGE, $competitionId);
 
         $onlineRound = $this->onlineRoundRepository->ofRound($round->id->toString()) ?? throw new OnlineRoundNotFound();
-        $report = $this->onlineAccuracy->forRound($round);
+        $report = $this->onlineAccuracy->forRound($round, $onlineRound);
 
         if ($request->query->getString('format') === 'csv') {
             $slug = new AsciiSlugger()->slug($round->competition->name . ' ' . $round->name)->lower()->truncate(80)->toString();
@@ -97,6 +108,10 @@ final class OnlineAccuracyController extends AbstractController
             'rows' => $report['rows'],
             'summaries' => $report['summaries'],
             'started_at_ms' => $report['startedAtMs'],
+            'detection' => $report['detection'],
+            'detection_shown' => $report['detectionShown'],
+            'by_device' => $report['byDevice'],
+            'by_view' => $report['byView'],
         ]);
         $response->headers->set('Cache-Control', 'private, no-store');
 
@@ -124,10 +139,18 @@ final class OnlineAccuracyController extends AbstractController
                 $row->confirmedMomentMs,
                 $row->confirmedElapsedMs,
                 $row->adjustmentMs,
+                $row->detectedMomentMs,
+                $row->detectionErrorMs,
+                $row->deltaMs,
                 $row->source,
                 $row->arrivedLateMs,
                 $row->official->seconds,
                 $row->official->piecesPlaced,
+                $row->missedRaises,
+                $row->falseRaises,
+                $row->view,
+                $row->device,
+                $row->browser,
             ]), ',', '"', '');
         }
 

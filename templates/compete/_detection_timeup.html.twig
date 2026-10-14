@@ -1,0 +1,10 @@
+{#
+    Time's up after a detected finish (`on` mode, stream P2I): the finish recorded stays the suggested time - a
+    participant whose puzzle was complete says so; one who kept going after it (a piece was missing) reports the pieces
+    below as everybody still solving does. compete_controller.js timeupComplete().
+#}
+<div class="compete-detected compete-detected--timeup" data-compete-show="detectionTimeUp" hidden>
+    <p class="compete-detected-title"><i class="bi bi-check-circle-fill me-2" aria-hidden="true"></i><span data-compete-field="detectionRecorded"></span></p>
+    <p class="compete-detected-text">{{ 'compete.detection.timeup_text'|trans }}</p>
+    <button type="button" class="btn btn-success btn-lg w-100" data-action="compete#timeupComplete">{{ 'compete.detection.timeup_complete'|trans }}</button>
+</div>

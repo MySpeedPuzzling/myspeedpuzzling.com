@@ -74,6 +74,15 @@ const scenarios = {
         assert.equal(items[0].participant.participantId, 'anna');
     },
 
+    async 'grid order, detection on: raised hands detected count as a finish - by the view\'s finish moment'() {
+        // review_control.js participantView(): the finish the tile shows (a tap or, detection on, a candidate)
+        const detected = { participant: { participantId: 'hana', finish: null, candidate: { momentMs: NOW - 1_000 } }, view: { finished: true, finishMomentMs: NOW - 1_000 } };
+        const later = { participant: { participantId: 'ivan', finish: { momentMs: NOW - 90_000 } }, view: { finished: true, finishMomentMs: NOW - 2_000 } };
+        const items = [item('anna'), item('bert', NOW - 60_000), detected, later];
+
+        assert.deepEqual(orderTiles(items).map((entry) => entry.participant.participantId), ['hana', 'ivan', 'bert', 'anna']);
+    },
+
     async 'paging: 25 tiles a page, a page out of range is the nearest one, 1-based range for the pager'() {
         const ids = Array.from({ length: 63 }, (_, i) => `p${i}`);
         assert.equal(PAGE_SIZE, 25);

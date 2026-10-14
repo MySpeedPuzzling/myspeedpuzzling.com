@@ -1,0 +1,14 @@
+{#
+    The other participants' cameras (compete_video.js stripPlan()): when the round lets participants see each other, on
+    the waiting screen and after the finish - never during the solve. The 180p layer, a tile per camera (only the tiles
+    on screen are sent); "Hide" is remembered on this device. The host's voice plays from the hidden box below.
+#}
+<aside class="compete-strip" data-compete-show="videoStrip" aria-labelledby="compete-strip-title" hidden>
+    <div class="compete-strip-head">
+        <span class="compete-strip-title" id="compete-strip-title" data-compete-field="videoStripTitle"></span>
+        <button type="button" class="btn btn-sm btn-link compete-strip-toggle" data-action="compete#toggleStrip" data-compete-field="videoStripToggle" aria-controls="compete-strip-tiles"></button>
+    </div>
+    <div class="compete-strip-tiles" id="compete-strip-tiles" data-compete-show="videoStripTiles" data-compete-video="strip" hidden></div>
+    <p class="compete-strip-empty" data-compete-show="videoStripEmpty" hidden>{{ 'compete.video.strip_empty'|trans }}</p>
+</aside>
+<div class="compete-audio" data-compete-video="audio" hidden></div>

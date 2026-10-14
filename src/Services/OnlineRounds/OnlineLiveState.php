@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Services\OnlineRounds;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
 use SpeedPuzzling\Web\Entity\CompetitionRound;
+use SpeedPuzzling\Web\Entity\OnlineRound;
 use SpeedPuzzling\Web\Query\GetOnlineLiveParticipants;
 use SpeedPuzzling\Web\Results\OnlineLiveParticipant;
 use SpeedPuzzling\Web\Services\OfficialResultsSubscription;
@@ -27,7 +28,11 @@ use SpeedPuzzling\Web\Value\RoundClock;
  *   everybody offline;
  * - `mercure`: the round's stopwatch topic (OfficialResultsSubscription::forOnlineParticipant() - public, start / cancel
  *   / end), its token renewed with every poll;
- * - `serverNowMs`: the server's time when the answer was made - a free clock sample.
+ * - `serverNowMs`: the server's time when the answer was made - a free clock sample;
+ * - `detection` (Phase 2): the round's finish detection - `off`, `shadow` or `on`; with it each participant's latest
+ *   finish candidate of the run (`candidate`) and their phone's detector as its heartbeat reports it
+ *   (`presence.detector` - state, frame rate, inference time, camera view). In `on` mode the control room shows a
+ *   candidate as a finish (review_control.js).
  *
  * Statements: the participants and their photos - two, constant in the number of participants (the presence is one
  * Redis call).
@@ -35,6 +40,9 @@ use SpeedPuzzling\Web\Value\RoundClock;
 readonly final class OnlineLiveState
 {
     public const int PHOTO_URL_SECONDS = 120;
+    // What a phone's heartbeat may say about its detector (OnlineHeartbeat) - anything else is not believed
+    public const array DETECTOR_STATES = ['off', 'loading', 'ready', 'unsupported', 'error'];
+    public const array DETECTOR_VIEWS = ['angled', 'topDown'];
 
     public function __construct(
         private GetOnlineLiveParticipants $getOnlineLiveParticipants,
@@ -47,9 +55,9 @@ readonly final class OnlineLiveState
     }
 
     /**
-     * @return array{serverNowMs: int, asOfMs: int, round: array<string, mixed>, presenceAvailable: bool, participants: list<OnlineLiveParticipant>, mercure: null|array{url: string, topics: list<string>, token: string, expiresAt: string, expiresIn: int}}
+     * @return array{serverNowMs: int, asOfMs: int, round: array<string, mixed>, detection: string, presenceAvailable: bool, participants: list<OnlineLiveParticipant>, mercure: null|array{url: string, topics: list<string>, token: string, expiresAt: string, expiresIn: int}}
      */
-    public function forRound(CompetitionRound $round): array
+    public function forRound(CompetitionRound $round, OnlineRound $onlineRound): array
     {
         $roundId = $round->id->toString();
         $asOf = $this->clock->now();
@@ -97,6 +105,10 @@ readonly final class OnlineLiveState
                 photoMediaId: $row['photo_id'],
                 photoTakenMs: $row['photo_taken_ms'],
                 photoUrl: $row['photo_id'] === null ? null : ($photoUrls[$row['photo_id']] ?? null),
+                candidateEventId: $row['candidate_id'],
+                candidateMomentMs: $row['candidate_ms'],
+                candidateReceivedAtMs: $row['candidate_received_ms'],
+                candidates: $row['candidate_count'],
             );
         }
 
@@ -105,6 +117,7 @@ readonly final class OnlineLiveState
             'serverNowMs' => RoundClock::milliseconds($this->clock->now()),
             'asOfMs' => RoundClock::milliseconds($asOf),
             'round' => self::round($round, $clock),
+            'detection' => $onlineRound->detectionMode->value,
             'presenceAvailable' => $presenceAvailable,
             'participants' => $participants,
             'mercure' => $this->officialResultsSubscription->forOnlineParticipant($roundId),
@@ -159,13 +172,14 @@ readonly final class OnlineLiveState
      * presence is shared storage, the grid must never break on a value
      *
      * @param array<string, mixed> $beat
-     * @return array{lastSeenMs: null|int, deviceId: null|string, visible: null|bool, camera: null|array{ok: null|bool, w: null|int, h: null|int, fps: null|float}, clock: null|array{offsetMs: null|float, rttMs: null|float}, outbox: null|array{events: null|int, media: null|int}}
+     * @return array{lastSeenMs: null|int, deviceId: null|string, visible: null|bool, camera: null|array{ok: null|bool, w: null|int, h: null|int, fps: null|float}, clock: null|array{offsetMs: null|float, rttMs: null|float}, outbox: null|array{events: null|int, media: null|int}, detector: null|array{ok: null|bool, fps: null|float, mode: null|string, state: null|string, inferenceMs: null|float, view: null|string}}
      */
     private static function presence(array $beat): array
     {
         $camera = is_array($beat['camera'] ?? null) ? $beat['camera'] : null;
         $clock = is_array($beat['clock'] ?? null) ? $beat['clock'] : null;
         $outbox = is_array($beat['outbox'] ?? null) ? $beat['outbox'] : null;
+        $detector = is_array($beat['detector'] ?? null) ? $beat['detector'] : null;
 
         return [
             'lastSeenMs' => self::integer($beat['lastSeenMs'] ?? null),
@@ -185,7 +199,23 @@ readonly final class OnlineLiveState
                 'events' => self::integer($outbox['events'] ?? null),
                 'media' => self::integer($outbox['media'] ?? null),
             ],
+            'detector' => $detector === null ? null : [
+                'ok' => is_bool($detector['ok'] ?? null) ? $detector['ok'] : null,
+                'fps' => self::number($detector['fps'] ?? null),
+                'mode' => is_string($detector['mode'] ?? null) ? $detector['mode'] : null,
+                'state' => self::oneOf($detector['state'] ?? null, self::DETECTOR_STATES),
+                'inferenceMs' => self::number($detector['inferenceMs'] ?? null),
+                'view' => self::oneOf($detector['view'] ?? null, self::DETECTOR_VIEWS),
+            ],
         ];
+    }
+
+    /**
+     * @param list<string> $allowed
+     */
+    private static function oneOf(mixed $value, array $allowed): null|string
+    {
+        return is_string($value) && in_array($value, $allowed, true) ? $value : null;
     }
 
     /**

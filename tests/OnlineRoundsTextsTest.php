@@ -97,6 +97,16 @@ final class OnlineRoundsTextsTest extends KernelTestCase
             $used[] = 'source_' . $source;
         }
 
+        // A finish candidate's own words (Phase 2: `${key}_candidate`, chosen by the moment's kind)
+        foreach (['burst_none', 'burst_pending', 'burst_never_arrived'] as $key) {
+            $used[] = $key;
+            $used[] = $key . '_candidate';
+        }
+
+        foreach (['burst_title_tap', 'burst_title_candidate', 'photo_title_tap', 'photo_title_candidate', 'to_tap', 'to_candidate', 'view_angled', 'view_top_down', 'moment_moved_candidate'] as $key) {
+            $used[] = $key;
+        }
+
         $missing = array_values(array_diff(array_unique($used), array_keys($texts)));
 
         self::assertSame([], $missing, 'texts the review uses but review_texts.html.twig does not have');

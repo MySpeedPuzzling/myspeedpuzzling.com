@@ -1,6 +1,6 @@
 /**
  * The participant page's sounds (docs/features/online-competitions/README.md §5.5): the last three seconds of the
- * countdown, GO, and the time's-up alarm - WebAudio, unlocked by the "I'm ready" tap (browsers play nothing before a
+ * countdown, GO, the time's-up alarm and the chime of a detected finish - WebAudio, unlocked by the "I'm ready" tap (browsers play nothing before a
  * tap), with vibration as a bonus where it exists (never on iOS).
  *
  * The countdown is scheduled on the audio clock from the server-time distance to each beep (countdownPlan()), so a
@@ -21,7 +21,12 @@ export const TONES = {
     tick: { frequency: 880, durationMs: 150, gain: 0.35 },
     go: { frequency: 1320, durationMs: 600, gain: 0.45 },
     alarm: { frequency: 1046, durationMs: 220, gain: 0.45 },
+    chime: { frequency: 988, durationMs: 180, gain: 0.35 },
 };
+
+// A finish candidate (Phase 2, `on` mode): two rising tones - B5, then E6 a fifth up
+export const CHIME_PATTERN = [{ offsetMs: 0, frequency: 988 }, { offsetMs: 170, frequency: 1319 }];
+export const CHIME_VIBRATION = [80, 60, 80];
 
 // The alarm: three double tones
 export const ALARM_PATTERN_MS = [0, 280, 700, 980, 1400, 1680];
@@ -167,6 +172,23 @@ export class Beeps {
             const tone = index % 2 === 0 ? TONES.alarm : { ...TONES.alarm, frequency: TONES.alarm.frequency * 0.75 };
             this.tone(tone, offsetMs / 1000);
         });
+
+        return true;
+    }
+
+    /**
+     * Raised hands were recorded as the finish (README §5.7, `on` mode): a two-tone chime and a short vibration.
+     */
+    chime() {
+        this.vibrate(CHIME_VIBRATION);
+
+        if (!this.isUnlocked()) {
+            return false;
+        }
+
+        for (const { offsetMs, frequency } of CHIME_PATTERN) {
+            this.tone({ ...TONES.chime, frequency }, offsetMs / 1000);
+        }
 
         return true;
     }

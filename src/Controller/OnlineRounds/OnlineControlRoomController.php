@@ -77,7 +77,7 @@ final class OnlineControlRoomController extends AbstractController
             'competition' => $round->competition,
             'round' => $round,
             'online_round' => $onlineRound,
-            'state' => $this->onlineLiveState->forRound($round),
+            'state' => $this->onlineLiveState->forRound($round, $onlineRound),
             'timezone' => $timezone,
             'csrf_token_id' => AbstractRoundStopwatchController::CSRF_TOKEN_ID,
             // "Start at": the round's planned start while it lies ahead, else the next whole minute but one - in the

@@ -1,0 +1,21 @@
+{#
+    Live video's lines at the top of the participant page (contract phase-1b.md stream VP, compete_controller.js
+    paintVideo()): the invitation to the studio with its answer window (offered when the participant is not solving -
+    compete_video.js studioView()), the same invitation on a device that is not the camera phone, and "tap to hear the
+    host" when the browser holds the sound back. The host speaking is a pill on the camera preview (page.html.twig) and a
+    line on the second screen - nothing moves under a finger.
+#}
+<section class="compete-banner compete-banner--studio" data-compete-show="videoInvite" aria-labelledby="compete-invite-title" hidden>
+    <p class="compete-invite-title" id="compete-invite-title"><i class="bi bi-broadcast me-2" aria-hidden="true"></i>{{ 'compete.video.invite_title'|trans }}</p>
+    <p class="compete-invite-text">{{ 'compete.video.invite_text'|trans }}</p>
+    <div class="compete-invite-actions">
+        <button type="button" class="btn btn-success" data-compete-video="inviteJoin" data-action="compete#studioJoin"><i class="bi bi-camera-video me-1" aria-hidden="true"></i>{{ 'compete.video.invite_join'|trans }}</button>
+        <button type="button" class="btn btn-outline-secondary" data-compete-video="inviteDecline" data-action="compete#studioDecline">{{ 'compete.video.invite_decline'|trans }}</button>
+    </div>
+    <p class="compete-invite-left" data-compete-field="videoInviteLeft"></p>
+    <p class="compete-invite-error" data-compete-field="videoInviteError" role="alert"></p>
+</section>
+<p class="compete-banner compete-banner--studio-elsewhere" data-compete-show="videoInviteElsewhere" role="status" hidden><i class="bi bi-broadcast me-2" aria-hidden="true"></i>{{ 'compete.video.invite_elsewhere'|trans }}</p>
+<button type="button" class="compete-banner compete-banner--wake" data-compete-show="videoAudioTap" data-action="compete#wakeUp" hidden>
+    <i class="bi bi-volume-up me-2" aria-hidden="true"></i>{{ 'compete.video.audio_tap'|trans }}
+</button>

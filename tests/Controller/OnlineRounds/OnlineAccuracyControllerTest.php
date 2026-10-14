@@ -13,6 +13,8 @@ use SpeedPuzzling\Web\Tests\OnlineReviewSeeding;
 use SpeedPuzzling\Web\Tests\OverridesFeatureFlagEnv;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use SpeedPuzzling\Web\Value\OnlineConfirmedSource;
+use SpeedPuzzling\Web\Value\OnlineDetectionMode;
+use SpeedPuzzling\Web\Value\OnlineEventType;
 use SpeedPuzzling\Web\Value\OnlineMediaKind;
 use SpeedPuzzling\Web\Value\RoundEntryResult;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
@@ -34,6 +36,8 @@ final class OnlineAccuracyControllerTest extends WebTestCase
     private const string ROUND = OnlineRoundsFixture::ROUND_ONLINE_SOLO;
     private const string PAGE = '/en/online-rounds/' . self::ROUND . '/accuracy';
     private const string FORMULA_NAME = '=HYPERLINK("https://evil.example","Prize")';
+    private const string IPHONE = 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Mobile/15E148 Safari/604.1';
+    private const string ANDROID = 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Mobile Safari/537.36';
 
     protected function tearDown(): void
     {
@@ -94,15 +98,94 @@ final class OnlineAccuracyControllerTest extends WebTestCase
         self::assertSame('confirmed', $formula[1]);
         self::assertSame((string) ($startMs + 2_000_000), $formula[2]);
         self::assertSame('400', $formula[6]);
-        self::assertSame('reviewer', $formula[7]);
+        self::assertSame('reviewer', $formula[10]);
 
         // A negative adjustment is a number, not text with an apostrophe
         self::assertSame('-1200', $rows['Olivia Online'][6]);
         self::assertSame('1000000', $rows['Olivia Online'][3]);
         self::assertSame('998800', $rows['Olivia Online'][5]);
-        self::assertSame('3500', $rows['Olivia Online'][8]);
-        self::assertSame('998', $rows['Olivia Online'][9]);
-        self::assertSame(['Arthur Anonymous', 'no_finish', '', '', '', '', '', '', '', '', ''], $rows['Arthur Anonymous']);
+        self::assertSame('3500', $rows['Olivia Online'][11]);
+        self::assertSame('998', $rows['Olivia Online'][12]);
+        // Detection off: no detection columns filled, no misses counted
+        self::assertSame(['', '', ''], array_slice($rows['Olivia Online'], 7, 3));
+        self::assertSame(['', ''], array_slice($rows['Olivia Online'], 14, 2));
+        self::assertSame(array_merge(['Arthur Anonymous', 'no_finish'], array_fill(0, 17, '')), $rows['Arthur Anonymous']);
+    }
+
+    public function testWithDetectionTheReportMeasuresTheDetectionByPhoneAndView(): void
+    {
+        $browser = $this->signedIn(PlayerFixture::PLAYER_ADMIN);
+        $this->detectionMode(OnlineDetectionMode::On);
+        $startMs = $this->startOnlineRound();
+
+        // Olivia: raised her hands, tapped 1.5 s later, confirmed 300 ms after the detected moment - on an iPhone
+        $olivia = $this->onlineEntryOf(OnlineRoundsFixture::ENTRY_CONNECTED);
+        $this->phoneEvent($olivia, OnlineEventType::DeviceReady, $startMs - 60_000, ['userAgent' => self::IPHONE, 'detector' => ['state' => 'ready', 'view' => 'angled']]);
+        $raiseMs = $startMs + 1_000_000;
+        $raiseId = $this->finishCandidate($olivia, $raiseMs);
+        $this->evidence($olivia, OnlineMediaKind::Burst, $raiseMs, $raiseId, self::burstManifest($raiseMs));
+        $this->finishTap($olivia, $raiseMs + 1_500);
+        $this->confirmResult(OnlineRoundsFixture::PARTICIPANT_CONNECTED, (int) round(self::burstManifest($raiseMs)[53]['captureMs']), OnlineConfirmedSource::Reviewer);
+
+        // Paula: the detector missed her raise - only a tap; and once it fired when she was not done - on Android
+        $paulaEntry = $this->enterParticipant('Paula Pace');
+        $paula = $this->onlineEntryOf($paulaEntry->id->toString());
+        $this->phoneEvent($paula, OnlineEventType::DeviceReady, $startMs - 30_000, ['userAgent' => self::ANDROID, 'detector' => ['state' => 'ready', 'view' => 'topDown']], deviceId: 'paula-phone');
+        $this->finishCandidate($paula, $startMs + 1_500_000, ['view' => 'topDown'], deviceId: 'paula-phone');
+        $this->finishTap($paula, $startMs + 2_000_000);
+        // The reviewer saw the gap on the raise's photo and confirmed her tap
+        $this->confirmResult($paulaEntry->participant->id->toString(), $startMs + 2_000_000, OnlineConfirmedSource::Button);
+
+        $crawler = $browser->request('GET', self::PAGE);
+
+        self::assertResponseIsSuccessful();
+        self::assertSame('on', $crawler->filter('[data-accuracy-detection]')->attr('data-accuracy-detection'));
+        self::assertSame('1', $crawler->filter('[data-accuracy-measure="detection_error"] [data-measure-count]')->attr('data-measure-count'));
+        self::assertSame('+0.3 s', $crawler->filter('[data-accuracy-measure="detection_error"] [data-measure-median]')->text());
+        self::assertSame('1', $crawler->filter('[data-accuracy-measure="delta"] [data-measure-count]')->attr('data-measure-count'));
+        self::assertSame('+1.5 s', $crawler->filter('[data-accuracy-measure="delta"] [data-measure-median]')->text());
+
+        $olivia = $crawler->filter('[data-accuracy-row="' . OnlineRoundsFixture::PARTICIPANT_CONNECTED . '"]');
+        self::assertSame('+0.3 s', $olivia->filter('[data-accuracy-detection-error]')->text());
+        self::assertSame('+1.5 s', $olivia->filter('[data-accuracy-delta]')->text());
+        self::assertSame('0 missed / 0 false', $olivia->filter('[data-accuracy-misses]')->text());
+        self::assertSame('Angled (body)', $olivia->filter('[data-accuracy-view]')->text());
+        self::assertSame('iPhone · Safari 18', $olivia->filter('[data-accuracy-device]')->text());
+
+        $paulaRow = $crawler->filter('[data-accuracy-row="' . $paulaEntry->participant->id->toString() . '"]');
+        self::assertSame('1 missed / 1 false', $paulaRow->filter('[data-accuracy-misses]')->text());
+        self::assertSame('Top-down (hands)', $paulaRow->filter('[data-accuracy-view]')->text());
+
+        self::assertSame(['Android · Chrome 141', 'iPhone · Safari 18', ''], $crawler->filter('[data-accuracy-breakdown="device"] [data-accuracy-group]')->each(static fn ($row): string => (string) $row->attr('data-accuracy-group')));
+        self::assertSame(['angled', 'topDown', ''], $crawler->filter('[data-accuracy-breakdown="view"] [data-accuracy-group]')->each(static fn ($row): string => (string) $row->attr('data-accuracy-group')));
+
+        $browser->request('GET', self::PAGE . '?format=csv');
+        $lines = array_map(
+            static fn (string $line): array => str_getcsv($line, ',', '"', ''),
+            array_values(array_filter(explode("\n", substr((string) $browser->getResponse()->getContent(), 3)), static fn (string $line): bool => $line !== '')),
+        );
+        $rows = array_column(array_slice($lines, 1), null, 0);
+        $columns = array_flip(OnlineAccuracyController::CSV_COLUMNS);
+        $oliviaCsv = $rows['Olivia Online'];
+        self::assertSame((string) $raiseMs, $oliviaCsv[$columns['detected_moment_ms']]);
+        self::assertSame('300', $oliviaCsv[$columns['detection_error_ms']]);
+        self::assertSame('1500', $oliviaCsv[$columns['delta_ms']]);
+        self::assertSame(['0', '0', 'angled', 'iPhone', 'Safari 18'], array_slice($oliviaCsv, $columns['missed_raises'], 5));
+        self::assertSame(['1', '1', 'topDown', 'Android', 'Chrome 141'], array_slice($rows['Paula Pace'], $columns['missed_raises'], 5));
+    }
+
+    public function testARoundWithDetectionOffShowsThePhaseOneReport(): void
+    {
+        $browser = $this->signedIn(PlayerFixture::PLAYER_ADMIN);
+        $this->seedConfirmedRound();
+
+        $crawler = $browser->request('GET', self::PAGE);
+
+        self::assertResponseIsSuccessful();
+        self::assertCount(0, $crawler->filter('[data-accuracy-measure]'));
+        self::assertCount(0, $crawler->filter('[data-accuracy-breakdown]'));
+        self::assertCount(0, $crawler->filter('[data-accuracy-detection-error]'));
+        self::assertCount(8, $crawler->filter('.online-accuracy-table thead th'));
     }
 
     public function testOnlyTheEventsOrganisersWithTheFeatureSeeIt(): void

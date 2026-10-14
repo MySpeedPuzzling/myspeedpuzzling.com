@@ -19,6 +19,9 @@
     </p>
     <p class="compete-alert compete-alert--live" data-compete-show="countdownBanner" role="status" hidden>{{ 'compete.checklist.countdown_banner'|trans }}</p>
     <p class="compete-alert" data-compete-show="otherDevice" role="status" hidden>{{ 'compete.checklist.other_device'|trans }}</p>
+    {%~ if video is defined and video is not null %}
+    {{ include('compete/_video_second_offer.html.twig') }}
+    {%~ endif %}
 
     <p class="compete-intro">{{ 'compete.checklist.intro'|trans }}</p>
 
@@ -43,6 +46,9 @@
                 </div>
             </li>
         {% endfor %}
+        {%~ if detection is defined and detection is not null %}
+        {{ include('compete/_detection_check.html.twig') }}
+        {%~ endif %}
         <li class="compete-check" data-level="info">
             <i class="bi bi-plug compete-check-icon" aria-hidden="true"></i>
             <div class="compete-check-body">

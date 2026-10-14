@@ -1,0 +1,21 @@
+{#
+    A second screen (implementation-plan.md 1B.6, view-only for now): the same personal link on a device that is not the
+    camera phone - the round's clock, the host (sound and camera), the others when the round lets them be seen, the
+    studio on the round's watch page. No camera, nothing recorded, no Finished and no takeover: the camera phone records
+    every tap with its frames.
+#}
+<section class="compete-screen compete-screen--second" data-compete-screen="second_screen" aria-labelledby="compete-second-title" hidden>
+    <h1 class="compete-title" id="compete-second-title"><i class="bi bi-display me-2" aria-hidden="true"></i>{{ 'compete.video.second_title'|trans }}</h1>
+    <div class="compete-clock" role="timer" data-compete-field="elapsed">00:00:00</div>
+    <p class="compete-clock-caption" data-compete-field="videoSecondLine"></p>
+    <div class="compete-second-host">
+        <div class="compete-second-host-tiles" data-compete-video="host"></div>
+        <p class="compete-second-host-empty" data-compete-show="videoSecondNoHost">{{ 'compete.video.second_no_host'|trans }}</p>
+        <p class="compete-voice compete-voice--line" data-compete-show="videoSpeaking" role="status" hidden><i class="bi bi-mic-fill me-1" aria-hidden="true"></i><span data-compete-field="videoSpeaking"></span></p>
+    </div>
+    <p class="compete-second-note"><i class="bi bi-phone me-1" aria-hidden="true"></i>{{ 'compete.video.second_note'|trans }}</p>
+    {% if video.urls.watch is not null %}
+        <p class="mb-0" data-compete-show="videoWatchLink" hidden><a class="btn btn-outline-primary" href="{{ video.urls.watch }}" target="_blank" rel="noopener noreferrer" data-turbo="false"><i class="bi bi-broadcast me-1" aria-hidden="true"></i>{{ 'compete.video.second_watch'|trans }}</a></p>
+    {% endif %}
+    <button type="button" class="btn btn-outline-secondary" data-action="compete#leaveSecondScreen">{{ 'compete.video.second_leave'|trans }}</button>
+</section>

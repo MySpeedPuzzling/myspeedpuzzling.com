@@ -21,6 +21,9 @@
     <p>{{ 'compete.page.taken_over_text'|trans }}</p>
     <div class="compete-clock compete-clock--small" role="timer" data-compete-field="elapsed">00:00:00</div>
     <button type="button" class="btn btn-outline-primary btn-lg" data-action="compete#takeOver">{{ 'compete.page.taken_over_button'|trans }}</button>
+    {%~ if video is defined and video is not null %}
+    {{ include('compete/_video_second_offer.html.twig') }}
+    {%~ endif %}
 </section>
 
 <section class="compete-screen compete-screen--message" data-compete-screen="dead_link" aria-labelledby="compete-dead-link-title" hidden>

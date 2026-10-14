@@ -55,6 +55,8 @@ import {
     undoLeftMs,
     wakeTapNeeded,
 } from '../online/compete_flow.js';
+import { LOAD_RETRY_MS as VIDEO_RETRY_MS, loadSecondScreen, saveSecondScreen, videoOn } from '../online/compete_video_basics.js';
+import { detectionLoadWanted, detectionMode, LOAD_RETRY_MS as DETECTION_RETRY_MS, MODE_OFF } from '../online/compete_detection_basics.js';
 import { OfficialResultsEvents } from '../official_results_events.js';
 import { chooseTranslation } from '../translation_choice.js';
 
@@ -73,7 +75,18 @@ import { chooseTranslation } from '../translation_choice.js';
  *   acknowledged) - nothing is recorded before the participant agreed to the photos, nothing at all in an organiser's
  *   preview;
  * - the screens (compete_flow.js screenFor()), the stopwatch on requestAnimationFrame, the Finished button with its
- *   10-second undo, time's up with the pieces question, a 1-minute practice that sends nothing.
+ *   10-second undo, time's up with the pieces question, a 1-minute practice that sends nothing;
+ * - live video, when the page has its video parts (a media server, `data-compete-video-value`) and the round's video is
+ *   on (contract phase-1b.md stream VP): compete_video_page.js (a chunk of its own, loaded then) decides on every frame
+ *   drawn with compete_video.js, joins the hall through compete_video_runtime.js with the very camera track the frame
+ *   grabber reads, plays the host's voice, shows the others, takes the phone into the studio and back; a second screen
+ *   watches. Video never touches the clock, the screens or what is recorded - a failure there leaves the page competing
+ *   as without it;
+ * - finish detection, when the page has its detection parts (the round's detection was not `off` when it loaded -
+ *   `data-compete-detection-value`, Phase 2 stream P2I): compete_detection_page.js (a chunk of its own, loaded from the
+ *   checklist on) runs the detector worker on the frame grabber's frames - the set-up test, then the round's finish
+ *   machine; a candidate is recorded like a Finished tap (`finish.candidate` + its photo + its burst), shown in `on`
+ *   mode. The Finished button stays; a failure there is button-only, never a blocked page.
  *
  * One document for the whole session: no Turbo visit, no history change (iOS mutes the camera on them, README §5.5).
  */
@@ -137,6 +150,10 @@ export default class extends Controller {
         connect: Object,
         texts: Object,
         inApp: Boolean,
+        // Live video's endpoints - only on a page with its video parts (a media server configured)
+        video: Object,
+        // Finish detection's assets (OnlineDetectorAssets) - only on a page with its detection parts
+        detection: Object,
     };
 
     connect() {
@@ -190,6 +207,8 @@ export default class extends Controller {
         this.closed = false;
         // A tap on this page since it loaded - the sound and Safari's screen lock wait for one (wakeTapNeeded())
         this.touched = false;
+        this.setUpVideo();
+        this.setUpDetection();
 
         this.clock = createClock({
             fetchTime: () => fetchServerTime(this.urlsValue.time),
@@ -197,7 +216,12 @@ export default class extends Controller {
             onChange: () => this.requestRender(),
         });
         this.api = createCompeteApi({
-            urls: { ...this.urlsValue, connect: this.connectValue?.url ?? null },
+            urls: {
+                ...this.urlsValue,
+                connect: this.connectValue?.url ?? null,
+                videoToken: this.videoConfig?.urls?.token ?? null,
+                studioAnswer: this.videoConfig?.urls?.studioAnswer ?? null,
+            },
             // The light requests only (Redis, a few reads): events and photos write to the database and come in bursts -
             // their slow answers would push the precise samples out of the clock's window (the newest 16 count)
             onSample: (sample, name) => {
@@ -256,6 +280,25 @@ export default class extends Controller {
         window.clearTimeout(this.recheckTimer);
         this.unlisten();
         this.stream?.close();
+        window.clearTimeout(this.videoLoadTimer);
+        this.videoPage?.close().catch(() => {});
+        this.videoPage = null;
+        window.clearTimeout(this.detectionLoadTimer);
+
+        try {
+            this.detectionPage?.close();
+        } catch (e) {
+            // Gone already
+        }
+
+        this.detectionPage = null;
+
+        try {
+            this.voiceContext?.close?.()?.catch?.(() => {});
+        } catch (e) {
+            // Closed already
+        }
+
         this.grabber.stop();
         this.camera.stop();
         this.frameBuffer.cancelAll();
@@ -291,12 +334,13 @@ export default class extends Controller {
     }
 
     ready() {
-        // The tap unlocks the beeps and the wake lock (browsers grant both only from a tap)
+        // The tap unlocks the beeps, the host's voice and the wake lock (browsers grant them only from a tap)
         this.touched = true;
         this.beeps.unlock();
+        this.voiceUnlock();
         this.wakeLock.request();
 
-        if (!readiness(this.camera, this.clock.quality()).canBeReady) {
+        if (!readiness(this.camera, this.clock.quality()).canBeReady || this.detectionBlocksReady()) {
             return;
         }
 
@@ -310,6 +354,7 @@ export default class extends Controller {
     async takeOver() {
         this.touched = true;
         this.beeps.unlock();
+        this.voiceUnlock();
         this.wakeLock.request();
         this.otherDeviceActive = false;
         // Claimed from this tap on: no answer until the server stored it makes this device give way again
@@ -333,11 +378,91 @@ export default class extends Controller {
     wakeUp() {
         this.touched = true;
         this.beeps.unlock();
+        this.voiceUnlock();
 
         if (this.wakeLock.state !== 'active') {
             this.wakeLock.request();
         }
 
+        this.render();
+    }
+
+    // ---- live video's actions (templates/compete/_video_*.html.twig, compete_video_page.js)
+
+    /**
+     * "Join" on the invitation: the answer goes out; once joined the phone leaves the hall and joins the studio
+     * (the runtime asks for the studio token right before it joins).
+     */
+    studioJoin() {
+        this.touched = true;
+        this.voiceUnlock();
+        this.videoPage?.join();
+    }
+
+    studioDecline() {
+        this.videoPage?.decline();
+    }
+
+    studioLeave() {
+        this.videoPage?.leave();
+    }
+
+    studioMute() {
+        this.videoPage?.mute();
+    }
+
+    toggleStrip() {
+        this.videoPage?.toggleStrip();
+    }
+
+    useAsSecondScreen() {
+        this.touched = true;
+        this.voiceUnlock();
+        this.secondScreen = true;
+        saveSecondScreen(this.storage, this.participantId, true);
+        this.render();
+    }
+
+    leaveSecondScreen() {
+        this.secondScreen = false;
+        saveSecondScreen(this.storage, this.participantId, false);
+        this.render();
+    }
+
+    // ---- finish detection's actions (templates/compete/_detection_*.html.twig, compete_detection_page.js)
+
+    /**
+     * "Test" / "Test again" on the checklist: raise both hands for a second.
+     */
+    detectionTest() {
+        this.detectionPage?.startTest();
+        this.requestRender();
+    }
+
+    /**
+     * "Skip - use the Finished button": this device competes button-only.
+     */
+    detectionSkip() {
+        this.detectionPage?.skip();
+        this.requestRender();
+    }
+
+    detectionRetry() {
+        this.detectionPage?.retry();
+        this.requestRender();
+    }
+
+    /**
+     * Time's up after a detected finish (`on` mode): "My puzzle is complete" - nothing left to report.
+     */
+    timeupComplete() {
+        if (this.progress.pieces !== null) {
+            return;
+        }
+
+        this.progress.pieces = { measure: 'left', pieces: 0 };
+        this.saveProgress();
+        this.record('timeup.pieces', { measure: 'left', pieces: 0, complete: true });
         this.render();
     }
 
@@ -498,6 +623,20 @@ export default class extends Controller {
                 detail: element.querySelector('[data-compete-check-detail]'),
             });
         }
+
+        // Live video's containers and buttons (templates/compete/_video_*.html.twig) - none without its parts
+        this.videoParts = new Map();
+
+        for (const element of this.element.querySelectorAll('[data-compete-video]')) {
+            this.videoParts.set(element.dataset.competeVideo, element);
+        }
+
+        // Finish detection's elements (templates/compete/_detection_*.html.twig) - none without its parts
+        this.detectionParts = new Map();
+
+        for (const element of this.element.querySelectorAll('[data-compete-detection]')) {
+            this.detectionParts.set(element.dataset.competeDetection, element);
+        }
     }
 
     readInitialState() {
@@ -643,6 +782,10 @@ export default class extends Controller {
 
         this.stateFetch = this.api.state().then((answer) => {
             if (answer.kind === 'ok' && answer.data !== null && typeof answer.data === 'object') {
+                if (Object.prototype.hasOwnProperty.call(answer.data, 'studio')) {
+                    this.videoHint('stateStudio', answer.data.studio);
+                }
+
                 this.adopt(answer.data);
 
                 return 'ok';
@@ -722,6 +865,7 @@ export default class extends Controller {
         this.runKey = runKeyOf(this.state);
         const run = loadProgress(this.storage, this.participantId, this.roundId, this.runKey);
         this.progress.finishes = run.finishes;
+        this.progress.detections = run.detections;
         this.progress.pieces = run.pieces;
     }
 
@@ -784,6 +928,7 @@ export default class extends Controller {
             const quality = this.clock.quality();
             const settings = this.camera.settings();
             const sentAt = Date.now();
+            const sentServerMs = this.clock.serverNow();
             const answer = await this.api.heartbeat({
                 deviceId: this.deviceId,
                 roundId: this.state.round.id,
@@ -795,7 +940,7 @@ export default class extends Controller {
                     fps: settings.frameRate ?? null,
                     facing: this.camera.facing,
                 },
-                detector: { ok: false, fps: null, mode: this.state.round.settings?.detection ?? 'off' },
+                detector: this.detectorTelemetry(),
                 clock: { offsetMs: quality.offsetMs, rttMs: quality.rttMs },
                 outbox: { events: this.eventsOutbox?.pendingCount() ?? 0, media: this.mediaOutbox?.pendingCount() ?? 0 },
                 ready: this.progress.ready === true,
@@ -817,6 +962,11 @@ export default class extends Controller {
             }
 
             this.applyTakeover(data.takenOverBy, sentAt);
+
+            // With a media server: the open invitation to the studio - a missed data message costs nothing
+            if (Object.prototype.hasOwnProperty.call(data, 'studioInviteId')) {
+                this.videoHint('heartbeat', data, sentServerMs);
+            }
         } finally {
             this.beating = false;
         }
@@ -897,6 +1047,11 @@ export default class extends Controller {
      */
     mayRecord(explicitRound = false) {
         if (this.preview || this.linkDead || !this.consent) {
+            return false;
+        }
+
+        // A second screen watches - the camera phone records (photos this device took before still report their upload)
+        if (this.secondScreen && !explicitRound) {
             return false;
         }
 
@@ -1000,6 +1155,7 @@ export default class extends Controller {
             },
             clock: { offsetMs: quality.offsetMs, rttMs: quality.rttMs, errorMs: quality.errorMs },
             wakeLock: this.wakeLock.state,
+            ...(this.detectionConfig === null ? {} : { detector: this.detectorReadyDetails() }),
         });
     }
 
@@ -1131,7 +1287,7 @@ export default class extends Controller {
             return;
         }
 
-        if (!force && !cameraWanted(this.screen, this.practice !== null)) {
+        if (!force && !this.cameraIsWanted()) {
             return;
         }
 
@@ -1219,6 +1375,12 @@ export default class extends Controller {
 
         if (this.progress.ready && this.wakeLock.state !== 'active') {
             this.wakeLock.request();
+        }
+
+        // The host's voice held back by the browser (a reload, iOS interrupted the audio) - only then: the Finished
+        // tap passes here first
+        if (this.videoPage?.audioBlocked() || (this.voiceContext !== null && this.voiceContext.state !== 'running')) {
+            this.voiceUnlock();
         }
     }
 
@@ -1365,6 +1527,7 @@ export default class extends Controller {
                 progress: this.progress,
                 takenOver: this.takenOver,
                 linkDead: this.linkDead,
+                secondScreen: this.secondScreen,
             });
 
             // The real round comes first: a countdown or a running round ends a practice
@@ -1374,14 +1537,22 @@ export default class extends Controller {
             }
 
             this.screen = screen;
+            // Live video's place in the hall - before the screen, which turns the camera on or off by it
+            this.planVideo(screen, view, serverNow);
+            this.planDetection(screen, view, serverNow);
             this.nextChangeAt = nextDisplayChangeAt(this.practice !== null ? deriveView(practiceState(this.practice), serverNow) : view, serverNow);
             this.showScreen(this.practice !== null ? 'practice' : screen);
+            this.applyCameraWanted();
             this.effects(screen, view, serverNow);
             this.paint(screen, view, serverNow);
         } catch (e) {
             // The loop must go on - a broken frame is drawn again on the next one
             console.error(e);
         }
+
+        // Live video and the detection on their own: nothing they do may stop the frame above
+        this.videoTick();
+        this.detectionTick();
     }
 
     showScreen(shown) {
@@ -1396,7 +1567,33 @@ export default class extends Controller {
             section.hidden = name !== shown;
         }
 
-        const wanted = cameraWanted(this.screen, this.practice !== null);
+        this.applyCameraWanted(true);
+
+        if (shown === 'timeup') {
+            window.setTimeout(() => this.piecesInputTarget.focus({ preventScroll: true }), 300);
+        }
+    }
+
+    /**
+     * The camera runs on the round's screens (compete_flow.js cameraWanted()) - and where live video holds it: on air in
+     * the studio, the after screen while the hall still gets it (compete_video.js videoHoldsCamera()).
+     */
+    cameraIsWanted() {
+        return cameraWanted(this.screen, this.practice !== null) || this.videoHolds === true;
+    }
+
+    /**
+     * Turns the camera (and its preview) on or off as cameraIsWanted() says - at every screen change, otherwise only when
+     * it changed.
+     */
+    applyCameraWanted(screenChanged = false) {
+        const wanted = this.cameraIsWanted();
+
+        if (!screenChanged && wanted === this.cameraWantedNow) {
+            return;
+        }
+
+        this.cameraWantedNow = wanted;
         this.cameraBoxTarget.hidden = !wanted;
 
         if (wanted) {
@@ -1404,10 +1601,6 @@ export default class extends Controller {
         } else {
             this.grabber.stop();
             this.camera.stop();
-        }
-
-        if (shown === 'timeup') {
-            window.setTimeout(() => this.piecesInputTarget.focus({ preventScroll: true }), 300);
         }
     }
 
@@ -1546,7 +1739,10 @@ export default class extends Controller {
     paintFinish(screen, view, serverNow) {
         const finish = currentFinish(this.progress);
         const startedAtMs = view.startedAtMs;
-        const seconds = finish !== null ? resultSeconds(finish.momentMs, startedAtMs) : null;
+        // `on` mode: a detected finish is the time shown after the round when no Finished tap stands
+        const detectedMs = finish === null ? this.detectionMoment() : null;
+        const momentMs = finish !== null ? finish.momentMs : detectedMs;
+        const seconds = momentMs !== null ? resultSeconds(momentMs, startedAtMs) : null;
 
         this.setField('finishTime', seconds === null ? '' : clockText(seconds * 1000, { limitMs: view.limitMs }));
         this.setShown('afterTime', screen === 'after' && seconds !== null);
@@ -1635,7 +1831,7 @@ export default class extends Controller {
             }
         }
 
-        const { canBeReady } = readiness(this.camera, quality);
+        const canBeReady = readiness(this.camera, quality).canBeReady && !this.detectionBlocksReady();
 
         if (this.readyButtonTarget.disabled === canBeReady) {
             this.readyButtonTarget.disabled = !canBeReady;
@@ -1657,7 +1853,8 @@ export default class extends Controller {
         this.setField('piecesReported', reported === null
             ? ''
             : this.t(reported.measure === 'placed' ? 'pieces_reported_placed' : 'pieces_reported_left', { count: reported.pieces }));
-        this.setShown('afterPieces', reported !== null);
+        // "My puzzle is complete" after a detected finish: the time says it, not "0 pieces left"
+        this.setShown('afterPieces', reported !== null && !(reported.pieces === 0 && this.detectionMoment() !== null));
     }
 
     paintPractice(serverNow) {
@@ -1748,6 +1945,411 @@ export default class extends Controller {
         this.noticeTimer = window.setTimeout(() => {
             this.noticeTarget.hidden = true;
         }, NOTICE_MS);
+    }
+
+    // ---- live video (contract phase-1b.md stream VP): compete_video_page.js in a chunk of its own - only rounds with
+    // live video load it
+
+    setUpVideo() {
+        const config = this.hasVideoValue ? this.videoValue : null;
+        // Only a page with its video parts (a media server configured) - otherwise nothing below ever runs
+        this.videoConfig = config !== null && typeof config === 'object' && typeof config.urls?.token === 'string' ? config : null;
+        this.videoPage = null;
+        this.videoLoading = false;
+        this.videoLoadFailures = 0;
+        this.videoLoadRetryAt = 0;
+        this.videoLoadTimer = null;
+        this.videoHolds = false;
+        // Hints of an invitation that came before the chunk (replayed when it is there)
+        this.videoHints = [];
+        this.voiceContext = null;
+        this.secondScreen = this.videoConfig !== null && !this.preview && loadSecondScreen(this.storage, this.participantId);
+    }
+
+    /**
+     * The host's voice plays through this page's own AudioContext (LiveKit's webAudioMix) - created and resumed inside
+     * a tap ("I'm ready", "Tap here once", Join, any tap while it is held back): browsers start sound only from one.
+     */
+    voiceUnlock() {
+        if (this.videoConfig === null || !videoOn(this.state)) {
+            return;
+        }
+
+        try {
+            if (this.voiceContext === null) {
+                this.createVoiceContext();
+            }
+
+            const context = this.voiceContext;
+
+            if (context !== null && context.state !== 'running') {
+                context.resume?.()?.catch?.(() => {});
+                // iOS unlocks on a sound started by the tap itself
+                const source = context.createBufferSource();
+                source.buffer = context.createBuffer(1, 1, 22050);
+                source.connect(context.destination);
+                source.start(0);
+            }
+
+            this.videoPage?.unlockAudio();
+        } catch (e) {
+            // Asked again with the next tap
+        }
+    }
+
+    createVoiceContext() {
+        try {
+            const AudioContextClass = window.AudioContext ?? window.webkitAudioContext ?? null;
+            this.voiceContext = AudioContextClass === null ? null : new AudioContextClass();
+        } catch (e) {
+            this.voiceContext = null;
+        }
+    }
+
+    /**
+     * Before the screen is shown (it turns the camera on or off by it): live video's place in the hall and whether it
+     * holds the camera - by compete_video_page.js once loaded (loaded as soon as the round's video is on).
+     */
+    planVideo(screen, view, serverNow) {
+        this.videoHolds = false;
+
+        if (this.videoConfig === null) {
+            return;
+        }
+
+        const input = {
+            state: this.state,
+            screen,
+            view,
+            serverNowMs: serverNow,
+            ready: this.progress.ready === true,
+            claimPending: this.claim?.pending === true,
+            takenOver: this.takenOver,
+            preview: this.preview,
+            linkDead: this.linkDead,
+            secondScreen: this.secondScreen,
+            cameraStatus: this.camera.status,
+            cameraTrack: this.camera.track,
+            practice: this.practice !== null,
+            otherDeviceActive: this.otherDeviceActive,
+        };
+
+        if (this.videoPage === null) {
+            if (videoOn(this.state)) {
+                this.loadVideo();
+            }
+
+            return;
+        }
+
+        try {
+            this.videoHolds = this.videoPage.plan(input) === true;
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    /**
+     * After the frame: the rooms brought to the plan, the video parts painted. Never throws.
+     */
+    videoTick() {
+        try {
+            this.videoPage?.tick({ wakeTapShown: this.painted.get('s:wakeTap') === true });
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    loadVideo() {
+        if (this.videoLoading || this.closed || Date.now() < this.videoLoadRetryAt) {
+            return;
+        }
+
+        this.videoLoading = true;
+        import(/* webpackChunkName: "compete-video" */ '../online/compete_video_page.js').then(({ CompeteVideoPage }) => {
+            this.videoLoading = false;
+
+            if (this.closed || this.videoPage !== null) {
+                return;
+            }
+
+            if (this.voiceContext === null) {
+                // After a reload: created now, held until the first tap ("Tap here once")
+                this.createVoiceContext();
+            }
+
+            this.videoPage = new CompeteVideoPage({
+                api: this.api,
+                deviceId: this.deviceId,
+                storage: this.storage,
+                parts: this.videoParts,
+                audioContext: this.voiceContext,
+                paint: {
+                    field: (name, text) => this.setField(name, text),
+                    shown: (name, visible) => this.setShown(name, visible),
+                    data: (name, value) => this.setData(name, value),
+                    t: (key, params) => this.t(key, params),
+                    tc: (key, count, params) => this.tc(key, count, params),
+                    notify: (text, level) => this.notify(text, level),
+                },
+                serverNow: () => this.clock.serverNow(),
+                requestRender: () => this.requestRender(),
+            });
+
+            for (const [kind, ...args] of this.videoHints.splice(0)) {
+                this.videoPage[kind](...args);
+            }
+
+            this.requestRender();
+        }).catch(() => {
+            // The chunk did not load (offline, a deploy in between): tried again later - the page competes meanwhile
+            this.videoLoading = false;
+            this.videoLoadFailures += 1;
+            const wait = VIDEO_RETRY_MS[Math.min(this.videoLoadFailures - 1, VIDEO_RETRY_MS.length - 1)];
+            this.videoLoadRetryAt = Date.now() + wait;
+            window.clearTimeout(this.videoLoadTimer);
+            this.videoLoadTimer = window.setTimeout(() => this.requestRender(), wait + 50);
+        });
+    }
+
+    /**
+     * An invitation's hint (the heartbeat's `studioInviteId`, the state's `studio`) - kept until the chunk is there.
+     */
+    videoHint(kind, ...args) {
+        if (this.videoConfig === null) {
+            return;
+        }
+
+        if (this.videoPage !== null) {
+            this.videoPage[kind](...args);
+        } else {
+            this.videoHints = [...this.videoHints.slice(-7), [kind, ...args]];
+        }
+    }
+
+    // ---- finish detection (Phase 2, stream P2I): compete_detection_page.js in a chunk of its own - only a page with the
+    // detection parts loads it, from the checklist on (README §5.7 "Downloads": ~18 MB of models during the preparation)
+
+    setUpDetection() {
+        const config = this.hasDetectionValue ? this.detectionValue : null;
+        // Only a page with its detection parts (the round's detection was on when the page loaded) - otherwise nothing
+        // below ever runs
+        this.detectionConfig = config !== null && typeof config === 'object' && typeof config.assets?.tasksVisionUrl === 'string' ? config : null;
+        this.detectionPage = null;
+        this.detectionLoading = false;
+        this.detectionLoadFailures = 0;
+        this.detectionLoadRetryAt = 0;
+        this.detectionLoadTimer = null;
+        // The chunk itself would not load (offline, a deploy in between) for this long: button-only, said so
+        this.detectionUnavailable = false;
+    }
+
+    /**
+     * Before the screen is drawn: the detection chunk loaded when wanted, then told what the page knows.
+     */
+    planDetection(screen, view, serverNow) {
+        if (this.detectionConfig === null) {
+            return;
+        }
+
+        if (this.detectionPage === null) {
+            if (detectionLoadWanted({
+                hasParts: true,
+                state: this.state,
+                consent: this.consent,
+                preview: this.preview,
+                secondScreen: this.secondScreen,
+                linkDead: this.linkDead,
+                screen,
+            })) {
+                this.loadDetection();
+            }
+
+            return;
+        }
+
+        try {
+            this.detectionPage.plan({
+                mode: detectionMode(this.state),
+                screen,
+                ready: this.progress.ready === true,
+                visible: document.visibilityState !== 'hidden',
+                cameraLive: this.camera.status === 'live',
+                practice: this.practice !== null,
+                preview: this.preview,
+                secondScreen: this.secondScreen,
+                takenOver: this.takenOver,
+                linkDead: this.linkDead,
+                entryConfirmed: this.state?.entry?.review === 'confirmed',
+                runKey: this.runKey,
+                startedAtMs: view.startedAtMs,
+                limitMs: view.limitMs,
+                detections: this.progress.detections ?? [],
+                serverNowMs: serverNow,
+            });
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    detectionTick() {
+        try {
+            this.detectionPage?.tick();
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    loadDetection() {
+        if (this.detectionLoading || this.closed || Date.now() < this.detectionLoadRetryAt) {
+            return;
+        }
+
+        this.detectionLoading = true;
+        import(/* webpackChunkName: "compete-detection" */ '../online/compete_detection_page.js').then(({ CompeteDetectionPage }) => {
+            this.detectionLoading = false;
+
+            if (this.closed || this.detectionPage !== null) {
+                return;
+            }
+
+            this.detectionUnavailable = false;
+            this.detectionPage = new CompeteDetectionPage({
+                assets: this.detectionConfig.assets,
+                grabber: this.grabber,
+                clock: this.clock,
+                storage: this.preview ? memoryStorage() : this.storage,
+                participantId: this.participantId,
+                parts: this.detectionParts,
+                paint: {
+                    field: (name, text) => this.setField(name, text),
+                    shown: (name, visible) => this.setShown(name, visible),
+                    data: (name, value) => this.setData(name, value),
+                    t: (key, params) => this.t(key, params),
+                    tc: (key, count, params) => this.tc(key, count, params),
+                },
+                recordCandidate: (data, perfMoment) => this.recordCandidate(data, perfMoment),
+                captureBurst: (eventId, momentMs) => this.captureBurst(eventId, momentMs),
+                capturePhoto: (eventId, still) => this.captureCandidatePhoto(eventId, still),
+                onDetection: (detection) => {
+                    this.progress.detections = [...(this.progress.detections ?? []), detection];
+                    this.saveProgress();
+                },
+                beeps: this.beeps,
+                serverNow: () => this.clock.serverNow(),
+                requestRender: () => this.requestRender(),
+            });
+            this.requestRender();
+        }).catch(() => {
+            // The chunk did not load: tried again later - the page competes with the Finished button meanwhile
+            this.detectionLoading = false;
+            this.detectionLoadFailures += 1;
+            this.detectionUnavailable = this.detectionLoadFailures >= 2;
+            const wait = DETECTION_RETRY_MS[Math.min(this.detectionLoadFailures - 1, DETECTION_RETRY_MS.length - 1)];
+            this.detectionLoadRetryAt = Date.now() + wait;
+            window.clearTimeout(this.detectionLoadTimer);
+            this.detectionLoadTimer = window.setTimeout(() => this.requestRender(), wait + 50);
+        });
+    }
+
+    /**
+     * "I'm ready" waits while the detector loads - the chunk itself too, until it failed to load twice.
+     */
+    detectionBlocksReady() {
+        if (this.detectionConfig === null || detectionMode(this.state) === MODE_OFF || this.preview) {
+            return false;
+        }
+
+        if (this.detectionPage === null) {
+            return !this.detectionUnavailable;
+        }
+
+        return this.detectionPage.blocksReady() === true;
+    }
+
+    /**
+     * The heartbeat's detector - Phase 1's shape on a page without detection.
+     */
+    detectorTelemetry() {
+        const mode = this.state?.round?.settings?.detection ?? 'off';
+
+        if (this.detectionConfig === null) {
+            return { ok: false, fps: null, mode };
+        }
+
+        if (this.detectionPage === null) {
+            const state = mode === MODE_OFF ? 'off' : (this.detectionUnavailable ? 'error' : 'loading');
+
+            return { ok: false, fps: null, mode, state, inferenceMs: null, view: null };
+        }
+
+        return this.detectionPage.telemetry();
+    }
+
+    detectorReadyDetails() {
+        if (this.detectionPage === null) {
+            return { state: detectionMode(this.state) === MODE_OFF ? 'off' : (this.detectionUnavailable ? 'error' : 'loading'), view: null, setupTest: null, loadMs: null };
+        }
+
+        return this.detectionPage.readyDetails();
+    }
+
+    /**
+     * `on` mode: the latest detected finish of the run (server ms) - null otherwise.
+     */
+    detectionMoment() {
+        try {
+            return this.detectionPage?.detectedMoment() ?? null;
+        } catch (e) {
+            return null;
+        }
+    }
+
+    /**
+     * A finish candidate as an event - its moment the first raised frame's capture time (on performance.now()'s clock,
+     * stamped on the synced one). Only while a Finished tap would count (README §5.7: the candidate is a finish).
+     */
+    recordCandidate(data, perfMoment) {
+        if (!['running', 'finished'].includes(this.screen)) {
+            return null;
+        }
+
+        const stamp = this.clock.stamp(perfMoment);
+
+        return this.record('finish.candidate', data, { stamp, id: uuidv7(stamp.clientMs) });
+    }
+
+    /**
+     * The ±5 s burst around a moment (a candidate's - a Finished tap's goes with captureFinishEvidence()).
+     */
+    captureBurst(eventId, momentMs) {
+        if (!this.mayRecord() || !(this.frameBuffer.size() > 0 || this.grabber.isRunning())) {
+            return;
+        }
+
+        const roundId = this.state.round.id;
+
+        this.frameBuffer.burst(momentMs).then((burst) => {
+            if (burst.manifest.length > 0) {
+                this.enqueueMedia({
+                    kind: 'burst',
+                    blob: burst.blob,
+                    takenMs: momentMs,
+                    eventId,
+                    manifest: burst.manifest,
+                    contentType: BURST_CONTENT_TYPE,
+                    roundId,
+                });
+            }
+        }).catch(() => {});
+    }
+
+    captureCandidatePhoto(eventId, still) {
+        if (!this.mayRecord() || !still?.blob) {
+            return;
+        }
+
+        this.enqueueMedia({ kind: 'candidate', blob: still.blob, takenMs: still.captureMs, eventId, roundId: this.state.round.id });
     }
 
     // ---- texts (templates/compete/_texts.html.twig)

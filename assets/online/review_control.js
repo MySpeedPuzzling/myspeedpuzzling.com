@@ -9,7 +9,12 @@
  * - clock quality from the round trip of the phone's best clock sample (the heartbeat's, else the one it was ready
  *   with): its error is at most rtt / 2 - good up to CLOCK_GOOD_RTT_MS, poor from CLOCK_POOR_RTT_MS (the phone would
  *   not let the participant be ready - clock_sync.js READY_RTT_MS);
- * - finished: the last Finished tap not undone, as an elapsed time - marked when it lies after the round's end;
+ * - finished: the last Finished tap not undone, as an elapsed time - marked when it lies after the round's end; with the
+ *   round's detection `on` (Phase 2, README §5.7) the latest finish candidate of the run counts as a finish too - the
+ *   moderator sees "Finished (detected)" at once; the shown finish is the later of the two (`finishSource` button /
+ *   detection), the detected one stays readable (`detectedElapsedMs`) next to a later tap;
+ * - the phone's finish detector (detection `shadow` / `on`): `ready`, `loading`, `button_only` (it can not run there,
+ *   failed, or was switched off on the phone - the Finished button is all it has) or `unknown` (no heartbeat with it);
  * - another device open on the link (`otherDevice` - a second phone, a laptop: not the one holding the entry) while it
  *   beats, i.e. seen within ONLINE_FRESH_MS like the holder's own heartbeat;
  * - counts and the filters (not ready, offline, finished).
@@ -19,16 +24,43 @@ export const ONLINE_FRESH_MS = 45000;
 export const CLOCK_GOOD_RTT_MS = 250;
 export const CLOCK_POOR_RTT_MS = 1000;
 export const FILTERS = ['all', 'not_ready', 'offline', 'finished'];
+export const DETECTION_MODES = ['off', 'shadow', 'on'];
 
 function finite(value) {
     return typeof value === 'number' && Number.isFinite(value) ? value : null;
 }
 
 /**
- * @param {object} participant  one of online_live's participants
- * @param {{serverNowMs: number, startedAtMs?: number|null, endedAtMs?: number|null}} context
+ * The phone's finish detector as the tile shows it - null while the round's detection is off.
+ *
+ * @returns {'ready'|'loading'|'button_only'|'unknown'|null}
  */
-export function participantView(participant, { serverNowMs, startedAtMs = null, endedAtMs = null } = {}) {
+export function detectorStatus(participant, detection) {
+    if (detection !== 'shadow' && detection !== 'on') {
+        return null;
+    }
+
+    const state = participant?.presence?.detector?.state;
+
+    switch (state) {
+        case 'ready':
+            return 'ready';
+        case 'loading':
+            return 'loading';
+        case 'unsupported':
+        case 'error':
+        case 'off':
+            return 'button_only';
+        default:
+            return 'unknown';
+    }
+}
+
+/**
+ * @param {object} participant  one of online_live's participants
+ * @param {{serverNowMs: number, startedAtMs?: number|null, endedAtMs?: number|null, detection?: string}} context
+ */
+export function participantView(participant, { serverNowMs, startedAtMs = null, endedAtMs = null, detection = 'off' } = {}) {
     const presence = participant?.presence ?? null;
     const lastSeenMs = finite(presence?.lastSeenMs);
     const lastSeenAgoMs = lastSeenMs !== null && Number.isFinite(serverNowMs) ? Math.max(0, serverNowMs - lastSeenMs) : null;
@@ -60,9 +92,14 @@ export function participantView(participant, { serverNowMs, startedAtMs = null, 
     const otherSeenMs = finite(participant?.otherDevice?.lastSeenMs);
     const otherDevice = otherSeenMs !== null && Number.isFinite(serverNowMs) && serverNowMs - otherSeenMs <= ONLINE_FRESH_MS;
 
-    const finishMs = finite(participant?.finish?.momentMs);
+    const tapMs = finite(participant?.finish?.momentMs);
+    // A candidate is a finish only while the round's detection is `on` - in `shadow` the participant never saw it
+    const detectedMs = detection === 'on' ? finite(participant?.candidate?.momentMs) : null;
+    const finishMs = tapMs === null ? detectedMs : (detectedMs === null ? tapMs : Math.max(tapMs, detectedMs));
     const finished = finishMs !== null;
-    const finishElapsedMs = finished && Number.isFinite(startedAtMs) && finishMs >= startedAtMs ? finishMs - startedAtMs : null;
+    const finishSource = !finished ? null : (finishMs === tapMs ? 'button' : 'detection');
+    const elapsed = (moment) => (moment !== null && Number.isFinite(startedAtMs) && moment >= startedAtMs ? moment - startedAtMs : null);
+    const finishElapsedMs = elapsed(finishMs);
 
     return {
         readiness,
@@ -74,7 +111,12 @@ export function participantView(participant, { serverNowMs, startedAtMs = null, 
         clockErrorMs: rttMs === null ? null : Math.round(rttMs / 2),
         otherDevice,
         finished,
+        finishMomentMs: finishMs,
+        finishSource,
         finishElapsedMs,
+        detectedElapsedMs: elapsed(detectedMs),
+        tapElapsedMs: elapsed(tapMs),
+        detector: detectorStatus(participant, detection),
         finishAfterEnd: finished && Number.isFinite(endedAtMs) && finishMs > endedAtMs,
         reported: participant?.reported ?? null,
         confirmed: participant?.review === 'confirmed',

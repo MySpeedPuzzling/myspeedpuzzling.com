@@ -1,0 +1,16 @@
+{#
+    On air in the studio (README §5.12 "The studio flow", compete_controller.js paintVideo()): takes the place of the
+    round's screens while the phone is in the studio - the round's own state does not change underneath (a finished
+    participant comes back finished). The camera preview beside it is what the studio sees.
+#}
+<section class="compete-studio" data-compete-show="videoStudio" aria-labelledby="compete-studio-title" hidden>
+    <p class="compete-studio-title" id="compete-studio-title"><span class="compete-studio-dot" aria-hidden="true"></span><span data-compete-field="videoStudioTitle"></span></p>
+    <div class="compete-studio-stage" data-compete-video="studio"></div>
+    <p class="compete-studio-people" data-compete-field="videoStudioPeople"></p>
+    <p class="compete-studio-error" data-compete-field="videoStudioMicError" role="status"></p>
+    <p class="compete-studio-hint small">{{ 'compete.video.studio_hint'|trans }}</p>
+    <div class="compete-studio-actions">
+        <button type="button" class="btn btn-outline-secondary" data-compete-show="videoStudioMic" data-action="compete#studioMute" hidden><i class="bi bi-mic me-1" aria-hidden="true"></i><span data-compete-field="videoStudioMic"></span></button>
+        <button type="button" class="btn btn-outline-danger" data-action="compete#studioLeave"><i class="bi bi-box-arrow-left me-1" aria-hidden="true"></i>{{ 'compete.video.studio_leave'|trans }}</button>
+    </div>
+</section>

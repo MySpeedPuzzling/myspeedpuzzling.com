@@ -3,8 +3,9 @@
  * moderator console", contract phase-1b.md stream VM) - the grid's pure rules, no DOM, pinned by
  * tests/online-console-harness.mjs:
  *
- * - orderTiles(): what matters first - the finished, the newest Finished tap on top -, then everybody else in the order
- *   given (online_live's: by name);
+ * - orderTiles(): what matters first - the finished, the newest finish on top (a Finished tap, or in a round whose
+ *   detection is `on` raised hands the phone detected) -, then everybody else in the order given (online_live's: by
+ *   name);
  * - pageOf(): one page of PAGE_SIZE tiles, the page asked for kept within the pages there are;
  * - subscriptionPlan(): which puzzle cameras the console receives, and how large - the page's tiles at the smallest
  *   simulcast layer (180p), the spotlight at the top one, nothing else: a camera nobody watches is not sent at all
@@ -29,7 +30,8 @@ function finishMomentOf(item) {
         return null;
     }
 
-    const moment = item?.participant?.finish?.momentMs;
+    // The view's finish (a detected one counts - review_control.js participantView()), else the tap's
+    const moment = item?.view?.finishMomentMs ?? item?.participant?.finish?.momentMs;
 
     // Finished without a known moment: after every known one
     return typeof moment === 'number' && Number.isFinite(moment) ? moment : -Infinity;

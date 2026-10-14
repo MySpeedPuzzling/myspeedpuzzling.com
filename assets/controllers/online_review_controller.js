@@ -2,11 +2,13 @@
 import { Controller } from '@hotwired/stimulus';
 import { formatClock } from '../online/round_state.js';
 import {
+    finishMoments,
     formatAdjustment,
     formatElapsed,
     frameSlices,
     momentConfirmation,
     nearestFrame,
+    nextMoment,
     nextToReview,
     piecesConfirmation,
     piecesPlaced,
@@ -31,8 +33,8 @@ const STATUS_BADGES = {
     unfinished: 'text-bg-info',
     no_finish: 'text-bg-secondary',
 };
-// Shown with their tap, not in the timeline
-const TAP_MEDIA = ['button', 'burst'];
+// Shown with their tap / candidate, not in the timeline
+const TAP_MEDIA = ['button', 'candidate', 'burst'];
 
 /**
  * The review of an online round (templates/online_rounds/review.html.twig, docs/features/online-competitions/README.md
@@ -40,12 +42,15 @@ const TAP_MEDIA = ['button', 'burst'];
  *
  * - the list (OnlineReview::list(), read again every LIST_REFRESH_MS and after another device's save on the round's
  *   private results topic): ↑/↓ choose a participant; their evidence (online_review_entry) loads at once;
- * - a Finished tap opens its burst: the one object is fetched once through its short-lived URL, its frames sliced by
- *   the manifest (review_logic.js frameSlices()) and decoded on demand (createImageBitmap); ←/→ or the slider step
- *   through them, every frame's time on the round's clock - the moment becomes the frame's;
- * - C confirms the finish (the tap's own moment = source `button`, a frame = `reviewer`), U confirms unfinished with the
- *   pieces placed (online_review_confirm); the answer replaces the row, the next participant to look at follows. A
- *   refusal is shown with its reason - never silently.
+ * - the finish moments - every Finished tap and (Phase 2) every finish candidate, raised hands the phone detected, in
+ *   time (review_logic.js finishMoments()): one opens its photo (`button` / `candidate`) and its burst - the one object
+ *   is fetched once through its short-lived URL, its frames sliced by the manifest (review_logic.js frameSlices()) and
+ *   decoded on demand (createImageBitmap); ←/→ or the slider step through them, every frame's time on the round's
+ *   clock - the moment becomes the frame's. The review opens on the suggested one (in a round whose detection is `on`
+ *   the first candidate); G - its photo shows a gap - moves on to the next moment;
+ * - C confirms the finish (a candidate's own moment = source `detection`, a tap's = `button`, a frame = `reviewer`), U
+ *   confirms unfinished with the pieces placed (online_review_confirm); the answer replaces the row, the next
+ *   participant to look at follows. A refusal is shown with its reason - never silently.
  */
 export default class extends Controller {
     static targets = [
@@ -54,6 +59,7 @@ export default class extends Controller {
         'evidence', 'canvas', 'burstStatus', 'slider', 'frameButton', 'frameLabel', 'tapPhotoLink', 'tapPhoto',
         'tapPhotoPending', 'momentBox', 'momentTime', 'momentLine', 'confirmFinishButton', 'unfinishedPanel', 'reported',
         'pieces', 'piecesOf', 'piecesError', 'confirmUnfinishedButton', 'endPhotoBox', 'endPhotoLink', 'endPhoto', 'timeline',
+        'burstCaption', 'photoCaption', 'toMomentButton', 'gapButton',
     ];
 
     static values = {
@@ -345,8 +351,8 @@ export default class extends Controller {
                 this.renderList();
                 const after = this.entry(this.selectedId);
 
-                // New taps or a decision from elsewhere - the evidence shown is read again
-                if (this.selectedId !== null && after !== null && (before === null || before.taps !== after.taps || before.status !== after.status || JSON.stringify(before.official) !== JSON.stringify(after.official))) {
+                // New taps or candidates, or a decision from elsewhere - the evidence shown is read again
+                if (this.selectedId !== null && after !== null && (before === null || before.taps !== after.taps || before.candidates !== after.candidates || before.status !== after.status || JSON.stringify(before.official) !== JSON.stringify(after.official))) {
                     this.loadDetail(this.selectedId, { keepMoment: true });
                 }
             }
@@ -432,27 +438,44 @@ export default class extends Controller {
         this.detailErrorTarget.hidden = true;
         this.renderDetailHeader();
 
-        const taps = this.detail.taps ?? [];
+        const moments = this.moments();
         const entry = this.detail.entry;
         let tapId = null;
         let momentMs = null;
 
-        if (keep && taps.some((tap) => tap.eventId === keep.tapId)) {
+        if (keep && moments.some((moment) => moment.id === keep.tapId)) {
             tapId = keep.tapId;
             momentMs = keep.momentMs;
-        } else if (entry.confirmed && Number.isFinite(entry.confirmed.momentMs) && taps.length > 0) {
-            // What was confirmed - its tap, its moment
+        } else if (entry.confirmed && Number.isFinite(entry.confirmed.momentMs) && moments.length > 0) {
+            // What was confirmed - its tap or candidate (a candidate's own moment wins a tie), its moment
             momentMs = entry.confirmed.momentMs;
-            tapId = taps.reduce((best, tap) => (Math.abs(tap.momentMs - momentMs) < Math.abs(best.momentMs - momentMs) ? tap : best)).eventId;
+            tapId = moments.reduce((best, moment) => (Math.abs(moment.momentMs - momentMs) < Math.abs(best.momentMs - momentMs) ? moment : best)).id;
+        } else if (entry.suggestion?.candidateEventId && moments.some((moment) => moment.id === entry.suggestion.candidateEventId)) {
+            // Detection on: the first candidate - its photo decides (G moves on)
+            tapId = entry.suggestion.candidateEventId;
         } else if (entry.suggestion?.tapEventId) {
             tapId = entry.suggestion.tapEventId;
-        } else if (taps.length > 0) {
-            tapId = taps[taps.length - 1].eventId;
+        } else if (moments.length > 0) {
+            tapId = moments[moments.length - 1].id;
         }
 
         this.renderUnfinished();
         this.renderTimeline();
         this.chooseTap(tapId, { momentMs });
+    }
+
+    /**
+     * The participant's finish moments in time - taps and finish candidates (review_logic.js finishMoments())
+     */
+    moments() {
+        return finishMoments(this.detail?.taps ?? [], this.detail?.candidates ?? []);
+    }
+
+    /**
+     * The moment the review stands on (a tap or a candidate) - null without one
+     */
+    currentMoment() {
+        return this.moments().find((moment) => moment.id === this.tapId) ?? null;
     }
 
     renderDetailHeader() {
@@ -466,6 +489,11 @@ export default class extends Controller {
 
         if (entry.confirmed?.source) {
             line += ` · ${this.t('confirmed_by', { source: this.t(`source_${entry.confirmed.source}`) })}`;
+        }
+
+        // How far the detected moment was from the confirmed one (Phase 2 - the accuracy report's number)
+        if (Number.isFinite(entry.confirmed?.detectionErrorMs)) {
+            line += ` · ${this.t('detection_error', { adjustment: formatAdjustment(entry.confirmed.detectionErrorMs) })}`;
         }
 
         this.detailOfficialTarget.textContent = line;
@@ -483,34 +511,60 @@ export default class extends Controller {
         this.unfinishedPanelTarget.hidden = !connected;
     }
 
+    /**
+     * Stands on a moment - a tap or a finish candidate (its id): its photo, its burst, the moment to confirm
+     */
     chooseTap(tapId, { momentMs = null } = {}) {
-        const taps = this.detail?.taps ?? [];
-        const tap = taps.find((candidate) => candidate.eventId === tapId) ?? null;
-        this.tapId = tap?.eventId ?? null;
-        this.momentMs = tap === null ? null : (Number.isFinite(momentMs) ? momentMs : tap.momentMs);
+        const moment = this.moments().find((item) => item.id === tapId) ?? null;
+        this.tapId = moment?.id ?? null;
+        this.momentMs = moment === null ? null : (Number.isFinite(momentMs) ? momentMs : moment.momentMs);
         this.burst = null;
         this.frameIndex = -1;
         this.renderTaps();
-        this.evidenceTarget.hidden = tap === null;
-        this.momentBoxTarget.hidden = tap === null;
+        this.evidenceTarget.hidden = moment === null;
+        this.momentBoxTarget.hidden = moment === null;
 
-        if (tap === null) {
+        if (moment === null) {
             this.renderMoment();
 
             return;
         }
 
+        const detected = moment.kind === 'candidate';
+        this.burstCaptionTarget.textContent = this.t(detected ? 'burst_title_candidate' : 'burst_title_tap');
+        this.photoCaptionTarget.textContent = this.t(detected ? 'photo_title_candidate' : 'photo_title_tap');
+        this.toMomentButtonTarget.textContent = this.t(detected ? 'to_candidate' : 'to_tap');
+
         const media = this.detail.media ?? [];
-        const photo = this.tapMedia(media, 'button', tap.eventId);
+        const photo = this.tapMedia(media, detected ? 'candidate' : 'button', moment.id);
         this.showPhoto(this.tapPhotoLinkTarget, this.tapPhotoTarget, photo);
         // Registered but not uploaded yet (the phone was offline, a store outage) - said, never hidden; one that never
         // arrived (the phone gave its URL up, nothing came later) says so
         this.tapPhotoPendingTarget.hidden = !(photo !== null && photo.url === null);
         this.tapPhotoPendingTarget.textContent = this.t(photo?.abandoned ? 'never_arrived' : 'pending');
 
-        const burst = this.tapMedia(media, 'burst', tap.eventId);
+        const burst = this.tapMedia(media, 'burst', moment.id);
         this.renderMoment();
-        this.openBurst(burst, tap);
+        this.openBurst(burst, moment);
+    }
+
+    /**
+     * G - the photo shows a gap: on to the next moment (a later raise of the hands, a tap). Said when there is none.
+     */
+    gapNext() {
+        if (this.detail === null || this.tapId === null) {
+            return;
+        }
+
+        const next = nextMoment(this.moments(), this.tapId);
+
+        if (next === null) {
+            this.notify(this.t('gap_last'), 'info');
+
+            return;
+        }
+
+        this.chooseTap(next.id);
     }
 
     /**
@@ -528,31 +582,58 @@ export default class extends Controller {
     }
 
     renderTaps() {
-        const taps = this.detail?.taps ?? [];
+        const moments = this.moments();
         const start = this.startedAtMs();
+        const detection = this.detail?.round?.detection ?? 'off';
 
-        if (taps.length === 0) {
+        if (moments.length === 0) {
             const none = document.createElement('p');
             none.className = 'small text-body-secondary mb-0';
-            none.textContent = this.t('no_taps');
+            none.textContent = this.t(detection === 'off' ? 'no_taps' : 'no_moments');
             this.tapsTarget.replaceChildren(none);
 
             return;
         }
 
-        this.tapsTarget.replaceChildren(...taps.map((tap, index) => {
+        this.tapsTarget.replaceChildren(...moments.map((moment) => {
+            const tap = moment.item;
+            const detected = moment.kind === 'candidate';
+            const selected = moment.id === this.tapId;
             const button = document.createElement('button');
             button.type = 'button';
-            button.className = `btn btn-sm ${tap.eventId === this.tapId ? 'btn-primary' : 'btn-outline-primary'}`;
-            button.dataset.tapId = tap.eventId;
-            button.setAttribute('aria-pressed', tap.eventId === this.tapId ? 'true' : 'false');
+            button.className = `btn btn-sm ${selected ? (detected ? 'btn-success' : 'btn-primary') : (detected ? 'btn-outline-success' : 'btn-outline-primary')}`;
+            button.dataset.tapId = moment.id;
+            button.dataset.momentKind = moment.kind;
+            button.setAttribute('aria-pressed', selected ? 'true' : 'false');
             button.addEventListener('click', (event) => this.selectTap(event));
-            button.textContent = this.t('tap', {
-                number: index + 1,
+
+            if (detected) {
+                const icon = document.createElement('i');
+                icon.className = 'bi bi-person-raised-hand me-1';
+                icon.setAttribute('aria-hidden', 'true');
+                button.append(icon);
+            }
+
+            button.append(document.createTextNode(this.t(detected ? 'candidate' : 'tap', {
+                number: moment.number,
                 time: Number.isFinite(start) ? formatElapsed(tap.momentMs - start) : new Date(tap.momentMs).toLocaleTimeString(),
-            });
+            })));
 
             const notes = [];
+
+            if (detected) {
+                const details = [];
+
+                if (Number.isFinite(tap.score)) {
+                    details.push(this.t('candidate_score', { score: tap.score.toFixed(2) }));
+                }
+
+                if (tap.view === 'angled' || tap.view === 'topDown') {
+                    details.push(this.t(tap.view === 'angled' ? 'view_angled' : 'view_top_down'));
+                }
+
+                notes.push(...details);
+            }
 
             if (tap.undone) {
                 notes.push(this.t('tap_undone'));
@@ -581,27 +662,33 @@ export default class extends Controller {
 
     // ---------------------------------------------------------------- the burst
 
-    async openBurst(media, tap) {
+    /**
+     * A moment's burst (`moment` from finishMoments() - a tap's or a candidate's)
+     */
+    async openBurst(media, moment) {
         this.setBurstStatus('');
         this.sliderTarget.max = '0';
         this.sliderTarget.value = '0';
         this.frameLabelTarget.textContent = '';
         this.clearCanvas();
+        // The candidate's own words ("around these raised hands") - a tap's are the Phase 1 texts
+        const suffix = moment.kind === 'candidate' ? '_candidate' : '';
 
         if (media === null) {
-            this.setBurstStatus(this.t('burst_none'));
+            this.setBurstStatus(this.t(`burst_none${suffix}`));
 
             return;
         }
 
         if (media.url === null) {
-            this.setBurstStatus(this.t(media.abandoned ? 'burst_never_arrived' : 'burst_pending'));
+            this.setBurstStatus(this.t(media.abandoned ? `burst_never_arrived${suffix}` : `burst_pending${suffix}`));
 
             return;
         }
 
         this.setBurstStatus(this.t('burst_loading'));
-        const tapId = tap.eventId;
+        const tapId = moment.id;
+        const tap = moment;
         let burst;
 
         try {
@@ -619,7 +706,7 @@ export default class extends Controller {
         }
 
         if (burst.frames.length === 0) {
-            this.setBurstStatus(this.t('burst_none'));
+            this.setBurstStatus(this.t(`burst_none${suffix}`));
 
             return;
         }
@@ -676,8 +763,11 @@ export default class extends Controller {
         }
     }
 
+    /**
+     * Back to the tap's - or the candidate's - own moment
+     */
     backToTap() {
-        const tap = (this.detail?.taps ?? []).find((candidate) => candidate.eventId === this.tapId);
+        const tap = this.currentMoment();
 
         if (tap) {
             this.momentMs = tap.momentMs;
@@ -768,7 +858,7 @@ export default class extends Controller {
     }
 
     renderMoment() {
-        const tap = (this.detail?.taps ?? []).find((candidate) => candidate.eventId === this.tapId) ?? null;
+        const tap = this.currentMoment();
         const start = this.startedAtMs();
 
         if (tap === null || !Number.isFinite(this.momentMs)) {
@@ -784,7 +874,10 @@ export default class extends Controller {
         let line = seconds === null ? '' : this.t('moment_official', { time: formatClock(seconds * 1000) });
 
         if (Math.round(this.momentMs) !== tap.momentMs) {
-            line += `${line === '' ? '' : ' · '}${this.t('moment_moved', { adjustment: formatAdjustment(this.momentMs - tap.momentMs) })}`;
+            const key = tap.kind === 'candidate' ? 'moment_moved_candidate' : 'moment_moved';
+            line += `${line === '' ? '' : ' · '}${this.t(key, { adjustment: formatAdjustment(this.momentMs - tap.momentMs) })}`;
+        } else if (tap.kind === 'candidate') {
+            line += `${line === '' ? '' : ' · '}${this.t('moment_detected')}`;
         }
 
         this.momentLineTarget.textContent = line;
@@ -976,6 +1069,9 @@ export default class extends Controller {
             case 'confirm':
                 this.confirmFinish();
                 break;
+            case 'gap':
+                this.gapNext();
+                break;
             case 'unfinished':
                 this.confirmUnfinished();
                 break;
@@ -989,7 +1085,8 @@ export default class extends Controller {
             return;
         }
 
-        const body = momentConfirmation(this.momentMs, this.detail.taps ?? []);
+        // A candidate's own moment = source detection, a tap's = button, a frame the reviewer moved to = reviewer
+        const body = momentConfirmation(this.momentMs, this.detail.taps ?? [], this.detail.candidates ?? []);
 
         if (body !== null) {
             this.send(body);
@@ -1116,9 +1213,13 @@ export default class extends Controller {
     }
 
     renderBusy() {
-        const tap = (this.detail?.taps ?? []).find((candidate) => candidate.eventId === this.tapId) ?? null;
+        const tap = this.currentMoment();
         this.confirmFinishButtonTarget.disabled = this.busy || tap === null || !Number.isFinite(this.momentMs);
         this.confirmUnfinishedButtonTarget.disabled = this.busy;
+        // Only with the round's detection on (review.html.twig)
+        if (this.hasGapButtonTarget) {
+            this.gapButtonTarget.disabled = this.busy || tap === null || nextMoment(this.moments(), tap.id) === null;
+        }
     }
 
     notify(text, kind) {

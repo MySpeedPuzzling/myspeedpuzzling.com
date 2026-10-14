@@ -1,6 +1,7 @@
 // Runs the participant page's device modules - assets/online/camera.js (front / back, the Android main-lens re-pick,
 // mute / unmute / ended), wake_lock.js (asked on a tap, again on every return), beeps.js (the countdown on the audio
-// clock) and frame_grabber.js (frames with their capture time, photos) - against fake browser APIs, and prints
+// clock, the chime of a detected finish), frame_grabber.js (frames with their capture time, photos) and detector_feed.js
+// (the finish detector's frames, how sharp a still is) - against fake browser APIs, and prints
 // {scenario: "ok" | error} as JSON. tests/OnlineDevicesScriptTest.php asserts every one is "ok".
 
 import assert from 'node:assert/strict';
@@ -15,7 +16,7 @@ import {
     STORAGE_FACING,
 } from '../assets/online/camera.js';
 import { ScreenWakeLock } from '../assets/online/wake_lock.js';
-import { ALARM_PATTERN_MS, Beeps, countdownPlan, GO_VIBRATION, TONES } from '../assets/online/beeps.js';
+import { ALARM_PATTERN_MS, Beeps, CHIME_PATTERN, CHIME_VIBRATION, countdownPlan, GO_VIBRATION, TONES } from '../assets/online/beeps.js';
 import {
     captureTimeOf,
     fitWithin,
@@ -25,6 +26,7 @@ import {
     PHOTO_QUALITY,
     STILL_QUALITY,
 } from '../assets/online/frame_grabber.js';
+import { canvasSharpness, DETECTOR_SIDE, DetectorFeed, laplacianVariance, SHARPNESS_WIDTH } from '../assets/online/detector_feed.js';
 
 const START = 1_792_000_000_000;
 
@@ -684,6 +686,12 @@ const scenarios = {
         assert.equal(context.oscillators.length, 4 + ALARM_PATTERN_MS.length);
         assert.equal(vibrations.length, 2);
 
+        // A detected finish: two rising tones and a short vibration
+        const before = context.oscillators.length;
+        assert.equal(beeps.chime(), true);
+        assert.deepEqual(context.oscillators.slice(before).map((oscillator) => oscillator.hz), CHIME_PATTERN.map((tone) => tone.frequency));
+        assert.deepEqual(vibrations.at(-1), CHIME_VIBRATION);
+
         beeps.close();
         assert.equal(context.state, 'closed');
 
@@ -691,10 +699,11 @@ const scenarios = {
         const silent = new Beeps({ AudioContext: null, vibrate: (pattern) => vibrations.push(pattern) });
         assert.equal(silent.unlock(), false);
         assert.equal(silent.alarm(), false);
-        assert.equal(vibrations.length, 3);
+        assert.equal(vibrations.length, 4, 'GO, the alarm, the chime and the silent alarm');
         const still = new Beeps({ AudioContext: null, vibrate: null });
         still.tap();
         still.goVibration();
+        assert.equal(still.chime(), false, 'not unlocked: no chime, nothing throws');
     },
 
     async 'frame sizes: fitted into 640×360 (turned for a portrait frame), never upscaled, even'() {
@@ -843,6 +852,184 @@ const scenarios = {
         assert.equal(dark.hasFrames(), false);
         assert.equal(await dark.small(), null);
         assert.equal(await dark.still(), null);
+    },
+
+    async 'the detector feed: each camera frame asked first, one bitmap at a time, 320 px on the longer side, its capture time on the performance clock'() {
+        const video = fakeVideo();
+        const paint = canvases();
+        const clock = timers();
+        const made = [];
+        const pending = [];
+        const grabber = new FrameGrabber({ video, toServerMs: (perf) => START + perf, createCanvas: paint.create, now: clock.now, schedule: clock.schedule, cancel: clock.cancel });
+        const feed = new DetectorFeed({
+            grabber,
+            createImageBitmap: (source, options) => new Promise((resolve) => {
+                made.push({ source, options });
+                pending.push(() => resolve({ width: options.resizeWidth, height: options.resizeHeight, closed: false, close() { this.closed = true; } }));
+            }),
+        });
+        const asked = [];
+        const bitmaps = [];
+        let wanted = true;
+
+        feed.startFeed({
+            wants: (perf) => {
+                asked.push(perf);
+
+                return wanted;
+            },
+            onBitmap: (bitmap, perf) => bitmaps.push({ bitmap, perf }),
+        });
+        assert.equal(feed.isFeeding(), true);
+        assert.equal(video.waiting(), 1);
+
+        video.present(1_010, { captureTime: 1_000 });
+        assert.deepEqual(asked, [1_000], 'the capture time on performance.now()\'s clock - the finish machine\'s');
+        assert.equal(made.length, 1);
+        assert.equal(made[0].source, video, 'the very <video> - the camera track is never touched');
+        assert.deepEqual(made[0].options, { resizeWidth: DETECTOR_SIDE, resizeHeight: 180, resizeQuality: 'low' });
+
+        // The bitmap is not made yet: the next frame is not even asked for
+        video.present(1_210, { captureTime: 1_200 });
+        assert.deepEqual(asked, [1_000]);
+
+        pending.shift()();
+        await settle();
+        assert.equal(bitmaps.length, 1);
+        assert.equal(bitmaps[0].perf, 1_000);
+        assert.deepEqual([bitmaps[0].bitmap.width, bitmaps[0].bitmap.height], [320, 180]);
+
+        // Not wanted (the pacing says wait): nothing made
+        wanted = false;
+        video.present(1_410, { captureTime: 1_400 });
+        assert.equal(made.length, 1);
+
+        // The ring buffer's loop runs next to it on the same <video>, each with its own frame callback
+        const frames = [];
+        grabber.start({ wants: () => true, onFrame: (blob, captureMs) => frames.push(captureMs) });
+        assert.equal(video.waiting(), 2);
+        wanted = true;
+        video.present(1_610, { captureTime: 1_600 });
+        await paint.finish();
+        assert.deepEqual(frames, [START + 1_600]);
+        assert.equal(made.length, 2);
+
+        // Stopped while a bitmap is being made: it is closed, never handed over; the ring buffer goes on
+        feed.stopFeed();
+        assert.equal(feed.isFeeding(), false);
+        assert.equal(video.waiting(), 1, 'only the ring buffer\'s callback is left');
+        pending.shift()();
+        await settle();
+        assert.equal(bitmaps.length, 1, 'a bitmap of a stopped feed is not handed over');
+        assert.equal(grabber.isRunning(), true);
+        grabber.stop();
+    },
+
+    async 'the detector feed falls back to a small canvas where createImageBitmap refuses its resize options; a portrait frame stays portrait'() {
+        const video = fakeVideo({ width: 1080, height: 1920 });
+        const paint = canvases();
+        const clock = timers();
+        const sources = [];
+        const grabber = new FrameGrabber({ video, toServerMs: (perf) => START + perf, createCanvas: paint.create, now: clock.now, schedule: clock.schedule, cancel: clock.cancel });
+        const feed = new DetectorFeed({
+            grabber,
+            createImageBitmap: (source, options) => {
+                sources.push({ source, options });
+
+                if (options !== undefined) {
+                    return Promise.reject(new TypeError('resize options not supported'));
+                }
+
+                return Promise.resolve({ width: source.width, height: source.height, close() {} });
+            },
+        });
+        const bitmaps = [];
+        feed.startFeed({ wants: () => true, onBitmap: (bitmap) => bitmaps.push(bitmap) });
+
+        video.present(10, { captureTime: 5 });
+        await settle();
+        assert.deepEqual([bitmaps[0].width, bitmaps[0].height], [180, 320], 'portrait: 320 on the longer side');
+        assert.equal(sources.length, 2, 'tried with the options once, then the canvas');
+
+        video.present(220, { captureTime: 215 });
+        await settle();
+        assert.equal(sources.length, 3, 'the options are not tried again');
+        assert.equal(sources[2].options, undefined);
+        assert.equal(bitmaps.length, 2);
+        feed.stopFeed();
+    },
+
+    async 'how sharp a still is: the Laplacian variance - edges score, a flat or blurred frame does not; still({judge}) asks it of the canvas'() {
+        const size = 8;
+        const flat = new Uint8ClampedArray(size * size * 4).fill(128);
+        const stripes = new Uint8ClampedArray(size * size * 4);
+        const soft = new Uint8ClampedArray(size * size * 4);
+
+        for (let y = 0; y < size; y++) {
+            for (let x = 0; x < size; x++) {
+                const p = (y * size + x) * 4;
+                const sharp = x % 2 === 0 ? 255 : 0;
+                const blurred = 128 + (x % 2 === 0 ? 20 : -20);
+                stripes.fill(sharp, p, p + 3);
+                soft.fill(blurred, p, p + 3);
+                stripes[p + 3] = 255;
+                soft[p + 3] = 255;
+            }
+        }
+
+        assert.equal(laplacianVariance(flat, size, size), 0);
+        assert.ok(laplacianVariance(stripes, size, size) > laplacianVariance(soft, size, size) * 10);
+        assert.ok(laplacianVariance(soft, size, size) > 0);
+        assert.equal(laplacianVariance(flat, 2, 2), 0, 'too small to judge');
+        assert.equal(laplacianVariance(new Uint8ClampedArray(4), size, size), 0, 'missing pixels');
+
+        // The judge draws the full-resolution canvas to a 160 px copy and reads its pixels
+        const drawnOn = [];
+        const judge = canvasSharpness(() => ({
+            width: 0,
+            height: 0,
+            getContext: () => ({
+                drawImage: (source, x, y, width, height) => drawnOn.push({ width, height }),
+                getImageData: (x, y, width, height) => ({ data: new Uint8ClampedArray(width * height * 4).fill(200) }),
+            }),
+        }));
+        assert.equal(judge({}, { width: 1920, height: 1080 }), 0);
+        assert.deepEqual(drawnOn, [{ width: SHARPNESS_WIDTH, height: 90 }]);
+        assert.equal(canvasSharpness(() => ({ getContext: () => null }))({}, { width: 10, height: 10 }), null, 'pixels that can not be read');
+
+        // still({judge}): the frame's sharpness with the photo - null when the judge fails; a plain still as always
+        const video = fakeVideo();
+        const paint = canvases();
+        const clock = timers();
+        const grabber = new FrameGrabber({ video, toServerMs: (perf) => START + perf, createCanvas: paint.create, now: clock.now, schedule: clock.schedule, cancel: clock.cancel });
+        const judged = [];
+        const shot = grabber.still({ judge: (canvas, frameSize) => {
+            judged.push(frameSize);
+
+            return 42.5;
+        } });
+        await settle();
+        video.present(8_010, { captureTime: 8_000 });
+        await settle();
+        await paint.finish();
+        const result = await shot;
+        assert.equal(result.captureMs, START + 8_000);
+        assert.equal(result.sharpness, 42.5);
+        assert.deepEqual(judged, [{ width: 1920, height: 1080 }], 'the full-resolution frame, before it is encoded');
+
+        const failing = grabber.still({ judge: () => { throw new Error('tainted'); } });
+        await settle();
+        video.present(8_510, { captureTime: 8_500 });
+        await settle();
+        await paint.finish();
+        assert.equal((await failing).sharpness, null);
+
+        const plain = grabber.still();
+        await settle();
+        video.present(9_010, { captureTime: 9_000 });
+        await settle();
+        await paint.finish();
+        assert.equal('sharpness' in (await plain), false, 'a plain still is as it always was');
     },
 };
 

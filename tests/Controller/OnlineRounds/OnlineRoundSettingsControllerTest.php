@@ -373,7 +373,7 @@ final class OnlineRoundSettingsControllerTest extends WebTestCase
         $crawler = $browser->submit($stale);
 
         self::assertResponseStatusCodeSame(422);
-        self::assertStringContainsString('The round has started (or its start is set), so the finish can\'t change any more.', $crawler->filter('[data-online-timing-on]')->text());
+        self::assertStringContainsString('The round has started (or its start is set), so finish detection can\'t change any more.', $crawler->filter('[data-online-timing-on]')->text());
         self::assertSame(['off', 'left', 'complete_required'], $this->settings(self::ROUND), 'nothing saved - not the other settings either');
         self::assertCount(3, $crawler->filter('input[name="online_round_settings_form[detectionMode]"][disabled]'));
 

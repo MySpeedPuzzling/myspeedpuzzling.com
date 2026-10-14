@@ -28,7 +28,7 @@ The living record of where the prototype stands and what comes next. Updated by 
 
 1. **Test Cup #1 go / no-go** (rehearsal RH, 2026-10-14): the Finished-tap fix for short phones is live; the cup stays a draft only Jan sees (Jan, 2026-10-14); start with "Start at" at least 2 minutes ahead, never "Start in 10 s"; the real-device pass includes an iPhone SE or a 360 px Android tapping Finished (`device-test.md` step 15); the volunteers' e-mail is drafted ([test-cup-1-volunteer-email.md](test-cup-1-volunteer-email.md)) and goes out only after the cup is fully tested (Jan).
 2. The footage day (S1) - tuning the detector and the completeness check waits for real footage.
-3. Without Jan, when wanted: `VerifyOnlineMedia`'s store HEAD outside the transaction + its own queue (event scale - needs a consumer change on lily), the dataset export (WP 3.5), the organiser + participant guides (WP 4.6) - all in `docs/TODO.md`. Translations of the gap marks + the reference image into 5 locales: running.
+3. Without Jan, when wanted: `VerifyOnlineMedia`'s store HEAD outside the transaction + its own queue (event scale - needs a consumer change on lily), the dataset export (WP 3.5), the organiser + participant guides (WP 4.6) - all in `docs/TODO.md`.
 4. Merging recipe: every stream through `.claude/worktrees/oc-integrate` (`git checkout -B oc-integrate origin/main` → cherry-pick, or the net diff when a branch merged main → PHPStan + full paratest + schema validate → `git push origin HEAD:main` → `git merge --ff-only origin/main` in the shared checkout) → remove the stream's worktree (only after `git cherry` shows no `+`, or the content is verified) + its `speedpuzzling_<name>_test*` databases. A read-only review agent runs on every big stream while the gates run. CI waiters filter `--workflow CI`. Briefs and `run.sh` / `heavy.sh` in `.claude/worktrees/online-delivery/` (local).
 
 ## Waiting for Jan
@@ -90,6 +90,7 @@ The living record of where the prototype stands and what comes next. Updated by 
 
 | Date | What |
 |---|---|
+| 2026-10-14 | Their texts in cs, de, es, fr, ja (796 online keys in every locale) |
 | 2026-10-14 | Gap marks stored (RG) + a reference image per round (RF) merged; full suite 10,596 green. Also: Hetzner enforces a presigned PUT's signed size and type (spike S5), npm's cache out of the image, the completeness check proven end to end on production (a presigned catalogue image through the worker, 0.9 s) |
 | 2026-10-14 | Jan's answers carried out on production (lily.srv `2b90668` + the bucket): `/api/compete/*` + `/-/time` past the bot-blocker (120 × `/-/time` a minute from one phone = all 200), the `online-cv` worker (image by `.github/workflows/online-cv.yml`), `online/` refused by the images proxy, tokens redacted in Loki, the bucket CORS rule. Found on the way (lily.srv backlog): the reconciler's SIGHUP never reloaded Alloy's bind-mounted config (recreated by hand), Traefik's access log is never rotated |
 | 2026-10-14 | Rehearsal polish merged (RP) + its texts in 6 locales (763 online keys each), the volunteers' e-mail drafted for Jan; full suite 10,562 green |

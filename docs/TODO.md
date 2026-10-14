@@ -44,9 +44,10 @@ that would otherwise be forgotten. Newest section on top.
 
 ## Online competitions - after the end-to-end fixes (`docs/features/online-competitions/`, stream P1F)
 
-- [ ] Start after "End now" on an online round still resumes the in-person way: the start moves and the earlier taps
+- [x] Start after "End now" on an online round still resumes the in-person way: the start moves and the earlier taps
       stop counting. Refuse Start on a stopped online round (a Reset is the way to run it again) - decide with the
-      control room's buttons.
+      control room's buttons. Done (stream P1G): Start / "Start in 10 s" / "Start at" on an ended online round are
+      refused (`ended_use_reset`), the stopwatch pages show only Reset while it is stopped; in person unchanged.
 - [ ] Rare race: a link lookup computed while another device's claim commits can stay in `OnlineAccessLight`'s cache
       for up to 60 s, so the newly claiming device wrongly gives way; tapping "I'm ready" again fixes it. Clear the
       link's cache entry after a `device.ready` commit if it shows up on phones.

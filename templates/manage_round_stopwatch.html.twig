@@ -83,8 +83,10 @@
                 {# The actions the clock allows now - each in a plain wrapper that takes `hidden` (Bootstrap's d-flex would win
                    over it); round_stopwatch_controller.js switches them when the phase changes #}
                 <div class="d-flex flex-wrap gap-2">
-                    {# Start now - a resumed start for a stopped clock (in person: stopped = paused) #}
-                    <div data-stopwatch-when="idle stopped" {{ phase not in ['idle', 'stopped'] ? 'hidden' }}>
+                    {# Start now - a resumed start for a stopped clock (in person: stopped = paused); a round with online
+                       timing that ended is never resumed - only Reset runs it again #}
+                    {% set start_phases = online_timing ? ['idle'] : ['idle', 'stopped'] %}
+                    <div data-stopwatch-when="{{ start_phases|join(' ') }}" {{ phase not in start_phases ? 'hidden' }}>
                         <form method="post" action="{{ path('start_round_stopwatch', {'roundId': round.id}) }}">
                             <input type="hidden" name="_token" value="{{ csrf }}">
                             <button type="submit" class="btn btn-success">

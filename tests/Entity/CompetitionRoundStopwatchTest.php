@@ -170,6 +170,63 @@ final class CompetitionRoundStopwatchTest extends TestCase
         self::assertNull($round->stopwatchStoppedAt);
     }
 
+    /**
+     * An online round that ended is never resumed - its end is what every participant's taps were counted against
+     * (docs/features/online-competitions/README.md §5.1): Start now, in 10 s or at a set time is refused, nothing moves
+     */
+    public function testAnEndedOnlineRoundIsNeverStartedAgain(): void
+    {
+        $round = self::round();
+        $round->startStopwatch(self::at(), onlineTiming: true);
+        $round->endStopwatch(self::at('+10 minutes'));
+        $startedAt = $round->stopwatchStartedAt;
+        $endedAt = $round->stopwatchStoppedAt;
+
+        $this->assertRefused(RoundStopwatchRefusal::EndedUseReset, static fn () => $round->startStopwatch(self::at('+12 minutes'), onlineTiming: true));
+        $this->assertRefused(RoundStopwatchRefusal::EndedUseReset, static fn () => $round->scheduleStopwatchStart(self::at('+12 minutes', whole: true), self::at('+11 minutes'), onlineTiming: true));
+
+        self::assertSame(RoundStopwatchStatus::STOPPED, $round->stopwatchStatus);
+        self::assertEquals($startedAt, $round->stopwatchStartedAt);
+        self::assertEquals($endedAt, $round->stopwatchStoppedAt);
+
+        // A Reset runs it again - a fresh run
+        $round->resetStopwatch();
+        $round->startStopwatch(self::at('+13 minutes'), onlineTiming: true);
+        self::assertSame(RoundStopwatchStatus::RUNNING, $round->stopwatchStatus);
+        self::assertEquals(self::at('+13 minutes', whole: true), $round->stopwatchStartedAt);
+    }
+
+    /**
+     * Online timing changes nothing else: a first start, a second Start of a running round, a countdown
+     */
+    public function testAnOnlineRoundStartsAndCountsDownAsBefore(): void
+    {
+        $round = self::round();
+        $round->scheduleStopwatchStart(self::at('+10 seconds', whole: true), self::at(), onlineTiming: true);
+        self::assertSame(RoundStopwatchStatus::SCHEDULED, $round->stopwatchStatus);
+
+        $round->startStopwatch(self::at('+1 minute'), onlineTiming: true);
+        self::assertEquals(self::at('+10 seconds', whole: true), $round->stopwatchStartedAt);
+
+        $this->assertRefused(RoundStopwatchRefusal::AlreadyStarted, static fn () => $round->scheduleStopwatchStart(self::at('+1 hour', whole: true), self::at('+1 minute'), onlineTiming: true));
+
+        $fresh = self::round();
+        $fresh->startStopwatch(self::at(), onlineTiming: true);
+        self::assertSame(RoundStopwatchStatus::RUNNING, $fresh->stopwatchStatus);
+    }
+
+    /**
+     * In person a stopped clock keeps its meaning: a pause - scheduling a start still asks for a reset first
+     */
+    public function testAStoppedInPersonRoundIsStillAskedToBeResetBeforeAScheduledStart(): void
+    {
+        $round = self::round();
+        $round->startStopwatch(self::at());
+        $round->stopStopwatch(self::at('+10 minutes'));
+
+        $this->assertRefused(RoundStopwatchRefusal::AlreadyStarted, static fn () => $round->scheduleStopwatchStart(self::at('+1 hour', whole: true), self::at('+11 minutes')));
+    }
+
     public function testTheMomentsAreKeptInWholeSecondsLikeTheColumns(): void
     {
         $round = self::round();

@@ -8,12 +8,14 @@ use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Exceptions\RoundStopwatchRefused;
 use SpeedPuzzling\Web\Message\ScheduleRoundStart;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
+use SpeedPuzzling\Web\Repository\OnlineRoundRepository;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 /**
  * A start at a moment ahead - "Start in 10 s", "Start at 19:00:00" (CompetitionRound::scheduleStopwatchStart(), the
  * countdown every device shows by itself). The caller checked the rights (COMPETITION_EDIT); the acting player is not
- * stored. Publishes nothing: the controller tells the open pages once the dispatch returned, after the commit
+ * stored. A round with online timing that ended is told to be reset first (RoundStopwatchRefusal::EndedUseReset).
+ * Publishes nothing: the controller tells the open pages once the dispatch returned, after the commit
  * (RoundStopwatchLiveUpdates).
  */
 #[AsMessageHandler]
@@ -21,6 +23,7 @@ readonly final class ScheduleRoundStartHandler
 {
     public function __construct(
         private CompetitionRoundRepository $competitionRoundRepository,
+        private OnlineRoundRepository $onlineRoundRepository,
         private ClockInterface $clock,
     ) {
     }
@@ -32,6 +35,10 @@ readonly final class ScheduleRoundStartHandler
     {
         $round = $this->competitionRoundRepository->get($message->roundId);
 
-        $round->scheduleStopwatchStart($message->startsAt, $this->clock->now());
+        $round->scheduleStopwatchStart(
+            $message->startsAt,
+            $this->clock->now(),
+            onlineTiming: $this->onlineRoundRepository->ofRound($round->id->toString()) !== null,
+        );
     }
 }

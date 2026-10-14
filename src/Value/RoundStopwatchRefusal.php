@@ -24,6 +24,10 @@ enum RoundStopwatchRefusal: string
     // A Reset of a round with online timing starts a fresh run - not while official results of it are recorded (they
     // belong to the run that was): the results desk clears them first
     case ResultsConfirmed = 'results_confirmed';
+    // "Start" (now, in 10 s, at a set time) of a round with online timing that ended ("End now"): an online round has no
+    // resume - participants kept solving on the other side of the world - so it runs again only from a Reset (a fresh
+    // run, README §5.1). In person a stopped clock is a pause and Start resumes it.
+    case EndedUseReset = 'ended_use_reset';
 
     public function translationKey(): string
     {

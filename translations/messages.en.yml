@@ -4648,6 +4648,7 @@ competition:
             too_late_to_cancel: "The round has already started - its start can no longer be cancelled."
             start_scheduled: "A start is scheduled - cancel it first to start right now."
             results_confirmed: "This round already has official results. Clear them at the results desk first - a reset starts the round again from scratch."
+            ended_use_reset: "This online round has ended - Reset it to run it again."
     flash:
         created: "Event submitted for approval."
         updated: "Event updated."

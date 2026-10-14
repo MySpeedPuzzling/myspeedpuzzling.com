@@ -56,7 +56,9 @@
         </div>
 
         {% if canManage %}
-            <div class="mb-3" data-stopwatch-when="idle stopped" {{ phase not in ['idle', 'stopped'] ? 'hidden' }}>
+            {# A round with online timing that ended is never resumed - only a Reset (the control page) runs it again #}
+            {% set start_phases = onlineTiming ? ['idle'] : ['idle', 'stopped'] %}
+            <div class="mb-3" data-stopwatch-when="{{ start_phases|join(' ') }}" {{ phase not in start_phases ? 'hidden' }}>
                 <form method="post" action="{{ path('start_round_stopwatch', {'roundId': round.id}) }}">
                     <input type="hidden" name="_token" value="{{ csrf_token(constant('SpeedPuzzling\\Web\\Controller\\AbstractRoundStopwatchController::CSRF_TOKEN_ID')) }}">
                     <button type="submit" class="btn btn-success btn-lg">

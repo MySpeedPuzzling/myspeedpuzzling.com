@@ -9515,7 +9515,6 @@ online_rounds:
             since_by: "Turned on %date% by %name%."
         detection:
             label: "Finish"
-            help: "Detecting raised hands arrives in a later version - until then, every finish is a tap on Finished."
             how: "Detection: participants raise both hands when their puzzle is complete - their phone records the moment with a photo and the seconds around it; you confirm it in the review. The Finished button always works too. A round with detection asks each phone for a quick test during the set-up."
             "off": "Finished button - participants tap Finished when their puzzle is done"
             shadow: "Finished button, detection watching - the tap counts; the camera's detection is only recorded, to measure it"

@@ -22,6 +22,8 @@ import { retryAfterMs } from '../official_results_api.js';
 
 export const REQUEST_TIMEOUT_MS = 15000;
 const RETRYABLE_STATUSES = [408, 425, 429];
+// Stands for the invitation's id in the studio answer's URL (CompetePageController::STUDIO_INVITE_PLACEHOLDER)
+export const STUDIO_INVITE_PLACEHOLDER = '00000000-0000-0000-0000-000000000000';
 
 async function readJson(response) {
     const type = response?.headers?.get?.('Content-Type') ?? '';
@@ -81,7 +83,7 @@ export function isDeadLink(answer) {
 
 /**
  * @param {object} options
- * @param {{state: string, heartbeat: string, events: string, media: string, connect?: string|null}} options.urls
+ * @param {{state: string, heartbeat: string, events: string, media: string, connect?: string|null, videoToken?: string|null, studioAnswer?: string|null}} options.urls
  * @param {function(string, object): Promise<Response>} [options.fetch]
  * @param {function(): number} [options.now]       the monotonic clock (performance.now)
  * @param {function(): number} [options.wallNow]   Date.now - a sample the phone slept through is refused by the clock
@@ -177,6 +179,25 @@ export function createCompeteApi({
 
         media(body) {
             return json('media', urls.media, body);
+        },
+
+        /**
+         * Live video (contract phase-1b.md §8): a token of a room of the round - `{deviceId, room: 'hall' | 'studio',
+         * role: 'camera' | 'screen'}` → `{url, token, identity, room}`. No video parts on the page: never sent.
+         */
+        videoToken(body) {
+            return json('videoToken', urls.videoToken ?? null, body);
+        },
+
+        /**
+         * The answer to an invitation to the studio: 'join' | 'decline' → `{studio: {inviteId, status}}`
+         * (`urls.studioAnswer` holds STUDIO_INVITE_PLACEHOLDER where the invitation's id goes).
+         */
+        studioAnswer({ inviteId, answer }) {
+            const template = typeof urls.studioAnswer === 'string' ? urls.studioAnswer : '';
+            const valid = typeof inviteId === 'string' && /^[0-9a-f-]{36}$/i.test(inviteId);
+
+            return json('studioAnswer', template === '' || !valid ? null : template.replace(STUDIO_INVITE_PLACEHOLDER, inviteId), { answer });
         },
 
         /**

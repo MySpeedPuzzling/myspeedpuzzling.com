@@ -7,7 +7,8 @@
  * Screens (README §5.5): welcome → checklist → waiting (no start yet, or a scheduled one) → countdown (the last 10 s and
  * GO) → running → finished (a Finished tap recorded) → timeup (the round ended while still puzzling) → after. Besides:
  * no_round (the competition has no round with online timing), not_entered (the participant is not in the round),
- * taken_over (the link was opened on another device), dead_link (the organiser made a new link).
+ * taken_over (the link was opened on another device), dead_link (the organiser made a new link); with live video
+ * second_screen (this device watches next to the camera phone - compete_video.js, implementation-plan.md 1B.6).
  *
  * Pinned by tests/online-compete-harness.mjs.
  */
@@ -16,7 +17,7 @@ import { formatClock, readClock } from './round_state.js';
 
 export const SCREENS = [
     'welcome', 'checklist', 'waiting', 'countdown', 'running', 'finished', 'timeup', 'after',
-    'no_round', 'not_entered', 'taken_over', 'dead_link',
+    'no_round', 'not_entered', 'taken_over', 'dead_link', 'second_screen',
 ];
 
 // GO stays on screen this long after the start, then the running stopwatch takes over
@@ -114,9 +115,10 @@ function hasRound(state) {
  * @param {Progress} input.progress
  * @param {boolean} [input.takenOver]          the link is active on another device
  * @param {boolean} [input.linkDead]           the token opens nothing any more
+ * @param {boolean} [input.secondScreen]       this device is a second screen (live video): it watches, records nothing
  * @returns {string} one of SCREENS
  */
-export function screenFor({ state, view, consent, progress, takenOver = false, linkDead = false }) {
+export function screenFor({ state, view, consent, progress, takenOver = false, linkDead = false, secondScreen = false }) {
     if (linkDead) {
         return 'dead_link';
     }
@@ -127,6 +129,11 @@ export function screenFor({ state, view, consent, progress, takenOver = false, l
 
     if (state.entry === null || typeof state.entry !== 'object') {
         return 'not_entered';
+    }
+
+    // Watching next to the camera phone - the round's clock to its end, never Finished
+    if (secondScreen) {
+        return 'second_screen';
     }
 
     const ready = progress?.ready === true;

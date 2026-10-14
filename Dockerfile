@@ -75,8 +75,9 @@ RUN --mount=type=secret,id=github_token \
 
 COPY package.json package-lock.json ./
 # package.json pins @mediapipe/tasks-vision for the finish detector, but the image serves the `online-detector` stage's
-# copy of the same tarball (public/online-detector) - nothing imports it, so its 52 MB in node_modules are dropped
-RUN npm install && rm -rf node_modules/@mediapipe
+# copy of the same tarball (public/online-detector) - nothing imports it, so its 52 MB in node_modules are dropped.
+# npm's download cache (~113 MB in /root/.npm) is cleaned in the same layer - nothing after the install reads it.
+RUN npm install && npm cache clean --force && rm -rf node_modules/@mediapipe
 
 COPY webpack.config.js ./
 COPY ./assets ./assets

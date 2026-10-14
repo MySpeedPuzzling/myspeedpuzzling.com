@@ -23,8 +23,8 @@ use SpeedPuzzling\Web\Value\RoundClock;
 /**
  * A round that uses online timing (docs/features/online-competitions/README.md): participants compete at home on
  * their phones through personal links, the round's stopwatch is the one clock (RoundClock). One row per such round, its
- * settings; a round without a row is untouched by everything online. Changed only through changeSettings() and
- * changeYoutubeUrl().
+ * settings; a round without a row is untouched by everything online. Changed only through changeSettings(),
+ * changeYoutubeUrl() and changeReferenceImage().
  */
 #[Entity]
 class OnlineRound
@@ -74,7 +74,25 @@ class OnlineRound
         #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
         #[Column(length: 255, nullable: true)]
         public null|string $youtubeUrl = null,
+        // The organiser's reference image of the motif for the completeness check (docs/features/online-competitions/
+        // README.md §5.8): its object key in the primary store (OnlineReferenceImages) - null: the round puzzle's
+        // catalogue image is the reference
+        #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+        #[Column(length: 255, nullable: true)]
+        public null|string $referenceImage = null,
     ) {
+    }
+
+    /**
+     * A new reference image (its object key), or none (null) - answers the key it replaced, whose object the caller
+     * deletes after the commit (DeleteOnlineReferenceImage)
+     */
+    public function changeReferenceImage(null|string $objectKey): null|string
+    {
+        $previous = $this->referenceImage;
+        $this->referenceImage = $objectKey;
+
+        return $previous === $objectKey ? null : $previous;
     }
 
     /**

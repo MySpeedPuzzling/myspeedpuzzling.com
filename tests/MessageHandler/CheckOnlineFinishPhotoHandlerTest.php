@@ -13,9 +13,11 @@ use SpeedPuzzling\Web\Message\CheckOnlineFinishPhoto;
 use SpeedPuzzling\Web\MessageHandler\CheckOnlineFinishPhotoHandler;
 use SpeedPuzzling\Web\Repository\OnlineEntryMediaRepository;
 use SpeedPuzzling\Web\Repository\OnlineMediaCheckRepository;
+use SpeedPuzzling\Web\Repository\OnlineRoundRepository;
 use SpeedPuzzling\Web\Services\OnlineRounds\OnlineCvClient;
 use SpeedPuzzling\Web\Services\OnlineRounds\OnlineCvInputs;
 use SpeedPuzzling\Web\Services\OnlineRounds\OnlineCvSettings;
+use SpeedPuzzling\Web\Services\OnlineRounds\OnlineReferenceImages;
 use SpeedPuzzling\Web\Tests\DataFixtures\OnlineRoundsFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\OnlineCvTesting;
@@ -83,6 +85,38 @@ final class CheckOnlineFinishPhotoHandlerTest extends KernelTestCase
         self::assertIsString($body['referenceUrl']);
         self::assertStringStartsWith('http://minio:9000/puzzle/trefl/puzzle-15-3000.jpg?', $body['referenceUrl']);
         self::assertSame(3000, $body['pieceCount']);
+    }
+
+    /**
+     * The organiser's reference image of the round (OnlineReferenceImages) is the reference while there is one - the
+     * catalogue image again once it is removed
+     */
+    public function testTheRoundsUploadedReferenceImageIsPreferredOverTheCatalogueImage(): void
+    {
+        $puzzle = $this->entityManager()->find(Puzzle::class, PuzzleFixture::PUZZLE_3000);
+        self::assertInstanceOf(Puzzle::class, $puzzle);
+        $puzzle->image = 'trefl/puzzle-15-3000.jpg';
+        $reference = OnlineReferenceImages::objectKey(OnlineRoundsFixture::COMPETITION_ONLINE_TEST_CUP, OnlineRoundsFixture::ROUND_ONLINE_SOLO, '018d0050-0000-7000-8000-00000000a11e');
+        $onlineRound = self::getContainer()->get(OnlineRoundRepository::class)->get(OnlineRoundsFixture::ONLINE_ROUND_SOLO);
+        $onlineRound->changeReferenceImage($reference);
+        $photo = $this->finishPhoto();
+
+        $this->check($photo);
+
+        $body = OnlineCvHttpMock::body(0);
+        self::assertIsString($body['referenceUrl']);
+        // In the primary store, for the worker's endpoint, signed like every input
+        self::assertStringStartsWith('http://minio:9000/puzzle/' . $reference . '?', $body['referenceUrl']);
+        self::assertStringContainsString('X-Amz-Expires=' . OnlineCvInputs::URL_SECONDS, $body['referenceUrl']);
+        self::assertSame(3000, $body['pieceCount']);
+
+        $onlineRound->changeReferenceImage(null);
+        $this->entityManager()->flush();
+        $this->check($photo, force: true);
+
+        $body = OnlineCvHttpMock::body(1);
+        self::assertIsString($body['referenceUrl']);
+        self::assertStringStartsWith('http://minio:9000/puzzle/trefl/puzzle-15-3000.jpg?', $body['referenceUrl']);
     }
 
     public function testTheVerdictIsStoredForTheWorkersVersion(): void

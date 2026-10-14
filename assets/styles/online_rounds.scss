@@ -14,6 +14,12 @@
     margin-bottom: 1.5rem !important;
 }
 
+// The completeness check's reference image: the whole motif at a glance, never taller than a screen's third
+.online-reference-preview img {
+    max-height: 20rem;
+    object-fit: contain;
+}
+
 // The event's rounds on the links page: name and start, state, the round's own page
 .online-rounds-list-item {
     display: flex;

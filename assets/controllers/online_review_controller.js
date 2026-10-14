@@ -18,6 +18,7 @@ import {
     stepIndex,
 } from '../online/review_logic.js';
 import { checkBadge, gapBoxes, reviewOrder } from '../online/review_check.js';
+import { gapMark, GapMarks } from '../online/review_gaps.js';
 import { OfficialResultsEvents } from '../official_results_events.js';
 import { officialResultsRequest } from '../official_results_api.js';
 import { chooseTranslation } from '../translation_choice.js';
@@ -56,6 +57,11 @@ const TAP_MEDIA = ['button', 'candidate', 'burst'];
  * - Phase 3, only while the completeness check is on (`round.completenessCheck` - off, none of it): every finish photo
  *   carries the automatic check's badge and its suspected gaps drawn over it (review_check.js; the switch hides them),
  *   and the list puts "needs a look" first (reviewOrder()). Advisory: nothing here reads it to suggest or confirm.
+ * - Stream RG - G is stored: the moment G leaves is marked "Gap" in the moments list (online_review_gap, kept by
+ *   review_gaps.js GapMarks: shown at once, sent after, sent again when the page is back online; the detail's `gaps`
+ *   after a reload); "Not a gap" - or confirming that very moment - takes the mark back. G on the last moment marks it
+ *   and says there is nothing after it. A raise marked as a gap is never suggested (the saved mark's answer brings
+ *   the row as it is now) nor ever a finish's raise in the accuracy report.
  */
 export default class extends Controller {
     static targets = [
@@ -64,7 +70,7 @@ export default class extends Controller {
         'evidence', 'canvas', 'burstStatus', 'slider', 'frameButton', 'frameLabel', 'tapPhotoLink', 'tapPhoto',
         'tapPhotoPending', 'momentBox', 'momentTime', 'momentLine', 'confirmFinishButton', 'unfinishedPanel', 'reported',
         'pieces', 'piecesOf', 'piecesError', 'confirmUnfinishedButton', 'endPhotoBox', 'endPhotoLink', 'endPhoto', 'timeline',
-        'burstCaption', 'photoCaption', 'toMomentButton', 'gapButton',
+        'burstCaption', 'photoCaption', 'toMomentButton', 'gapButton', 'notGapButton',
         // The completeness check (Phase 3) - rendered only while it is on
         'tapPhotoCheckLine', 'tapPhotoCheck', 'tapPhotoBoxes', 'showGaps', 'showGapsSwitch', 'endPhotoCheck', 'endPhotoBoxes',
     ];
@@ -93,12 +99,32 @@ export default class extends Controller {
         this.busy = false;
         this.closed = false;
         this.listFetch = null;
+        // The reviewer's gap marks (stream RG) - shown at once, saved after
+        this.gapMarks = new GapMarks({
+            send: ({ participantId, eventId, gap }) => officialResultsRequest(this.gapUrl(participantId), {
+                method: 'POST',
+                body: { eventId, gap },
+                csrfToken: this.csrfTokenValue,
+            }).then((answer) => {
+                // A raise marked as a gap is never suggested - the row may suggest the next moment now
+                if (answer.kind === 'ok' && answer.data?.entry) {
+                    this.gapEntryChanged(answer.data.entry);
+                }
+
+                return answer;
+            }),
+            changed: () => this.gapMarksChanged(),
+            report: (report) => this.gapReport(report),
+        });
+        this.onOnline = () => this.gapMarks.retry();
+        window.addEventListener('online', this.onOnline);
 
         this.onKeydown = (event) => this.keydown(event);
         document.addEventListener('keydown', this.onKeydown);
         this.onVisibility = () => {
             if (document.visibilityState === 'visible') {
                 this.refreshList();
+                this.gapMarks.retry();
             }
         };
         document.addEventListener('visibilitychange', this.onVisibility);
@@ -112,6 +138,7 @@ export default class extends Controller {
         this.listTimer = window.setInterval(() => {
             if (document.visibilityState === 'visible') {
                 this.refreshList();
+                this.gapMarks.retry();
             }
         }, LIST_REFRESH_MS);
 
@@ -129,6 +156,7 @@ export default class extends Controller {
         this.closed = true;
         document.removeEventListener('keydown', this.onKeydown);
         document.removeEventListener('visibilitychange', this.onVisibility);
+        window.removeEventListener('online', this.onOnline);
         window.clearInterval(this.listTimer);
         window.clearTimeout(this.liveTimer);
         this.events.close();
@@ -408,6 +436,10 @@ export default class extends Controller {
         return this.urlsValue.confirm.replace(this.placeholderValue, participantId);
     }
 
+    gapUrl(participantId) {
+        return this.urlsValue.gap.replace(this.placeholderValue, participantId);
+    }
+
     reloadDetail() {
         if (this.selectedId !== null) {
             this.loadDetail(this.selectedId);
@@ -451,6 +483,8 @@ export default class extends Controller {
         }
 
         this.detail = answer.data;
+        // The moments marked as showing a gap, as the server has them (a mark not saved yet still shows)
+        this.gapMarks.load(participantId, answer.data.gaps ?? []);
 
         // What the reviewer sees now - the `from` of their confirmation. A refresh in the background (keep) leaves it:
         // a result entered meanwhile must come back as a conflict when they confirm, never pass as the one they saw
@@ -575,13 +609,15 @@ export default class extends Controller {
     }
 
     /**
-     * G - the photo shows a gap: on to the next moment (a later raise of the hands, a tap). Said when there is none.
+     * G - the photo shows a gap: the moment is marked (stored - stream RG) and the review goes on to the next moment (a
+     * later raise of the hands, a tap). Said when there is none - the mark stays.
      */
     gapNext() {
         if (this.detail === null || this.tapId === null) {
             return;
         }
 
+        this.gapMarks.set(this.detail.entry.participantId, this.tapId, true);
         const next = nextMoment(this.moments(), this.tapId);
 
         if (next === null) {
@@ -591,6 +627,68 @@ export default class extends Controller {
         }
 
         this.chooseTap(next.id);
+    }
+
+    /**
+     * "Not a gap" - the mark on the moment the review stands on is taken back
+     */
+    notGap() {
+        if (this.detail === null || this.tapId === null) {
+            return;
+        }
+
+        this.gapMarks.set(this.detail.entry.participantId, this.tapId, false);
+    }
+
+    /**
+     * A mark shown changed (set, saved, refused) - the moments list and the moment's buttons say so
+     */
+    gapMarksChanged() {
+        if (this.detail === null || this.closed) {
+            return;
+        }
+
+        this.renderTaps();
+        this.renderBusy();
+    }
+
+    /**
+     * A mark saved: the participant's row as it is now (its suggestion skips a raise marked as a gap) - the list and
+     * the header show it; the result the reviewer saw (`seenResult`) stays, a mark changes no official result
+     */
+    gapEntryChanged(entry) {
+        if (this.closed) {
+            return;
+        }
+
+        this.replaceEntry(entry);
+        this.renderList();
+
+        if (this.detail?.entry?.participantId === entry.participantId) {
+            this.detail.entry = entry;
+            this.renderDetailHeader();
+        }
+    }
+
+    /**
+     * What happened to the marks on their way: not saved (offline - kept and sent again; signed out), saved after all,
+     * refused (dropped, with the server's reason)
+     */
+    gapReport(report) {
+        switch (report.kind) {
+            case 'offline':
+                this.notify(this.t('gap_offline'), 'warning');
+                break;
+            case 'auth':
+                this.notify(this.t('error_sign_in'), 'danger');
+                break;
+            case 'saved':
+                this.notify(this.t('gap_saved'), 'success');
+                break;
+            default:
+                this.notify(this.refusalText(report.answer ?? {}), 'danger');
+                break;
+        }
     }
 
     /**
@@ -681,6 +779,18 @@ export default class extends Controller {
                 small.className = 'ms-1 small';
                 small.textContent = `(${notes.join(', ')})`;
                 button.append(small);
+            }
+
+            // The reviewer's G on this moment (stream RG) - "not saved yet" while the server does not have it
+            const mark = gapMark(this.gapMarks, this.detail.entry.participantId, moment.id);
+
+            if (mark !== null) {
+                const badge = document.createElement('span');
+                badge.className = `badge ms-1 ${mark.unsaved ? 'text-bg-light border border-warning' : 'text-bg-warning'}`;
+                badge.dataset.gapMark = mark.unsaved ? 'unsaved' : 'saved';
+                badge.textContent = this.t(mark.text);
+                badge.title = this.t(mark.title);
+                button.append(badge);
             }
 
             return button;
@@ -1244,6 +1354,8 @@ export default class extends Controller {
         }
 
         const participantId = this.selectedId;
+        // A finish confirmed at the very moment the review stands on (its own moment - not a frame moved to) is no gap
+        const momentId = body.momentMs !== null && body.source !== 'reviewer' ? this.tapId : null;
         this.busy = true;
         this.renderBusy();
 
@@ -1270,6 +1382,10 @@ export default class extends Controller {
 
         const entry = answer.data.entry;
         this.replaceEntry(entry);
+
+        if (momentId !== null && this.gapMarks.isGap(participantId, momentId)) {
+            this.gapMarks.set(participantId, momentId, false);
+        }
 
         const done = { name: entry.name, result: this.resultText(answer.data.result) ?? '' };
         this.notify(answer.data.status === 'unchanged' ? this.t('done_unchanged', done) : this.t('done_applied', done), 'success');
@@ -1339,9 +1455,14 @@ export default class extends Controller {
         const tap = this.currentMoment();
         this.confirmFinishButtonTarget.disabled = this.busy || tap === null || !Number.isFinite(this.momentMs);
         this.confirmUnfinishedButtonTarget.disabled = this.busy;
-        // Only with the round's detection on (review.html.twig)
+        // Only with the round's detection on (review.html.twig) - on the last moment too: G marks it, nothing follows
         if (this.hasGapButtonTarget) {
-            this.gapButtonTarget.disabled = this.busy || tap === null || nextMoment(this.moments(), tap.id) === null;
+            this.gapButtonTarget.disabled = this.busy || tap === null;
+        }
+
+        // "Not a gap" - only on a moment marked as showing one (stream RG)
+        if (this.hasNotGapButtonTarget) {
+            this.notGapButtonTarget.hidden = tap === null || this.detail === null || !this.gapMarks.isGap(this.detail.entry.participantId, tap.id);
         }
     }
 

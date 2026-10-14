@@ -270,6 +270,107 @@ final class ImageOptimizerTest extends TestCase
         }
     }
 
+    /**
+     * toJpeg() - the online round's reference image (OnlineReferenceImages): a JPEG, upright, no metadata
+     */
+    public function testAPhotoBecomesAnUprightJpegWithoutItsMetadata(): void
+    {
+        // 200x100 stored, EXIF orientation 6 = shown rotated 90° clockwise: the red top-left corner ends up top-right
+        $path = $this->file(ImagesWithMetadata::jpeg(200, 100, orientation: 6), 'jpg');
+        $before = $this->exif($path);
+        self::assertArrayHasKey('GPSLatitude', $before);
+
+        try {
+            $jpeg = $this->optimizer->toJpeg($path, 3_000, 90);
+            $converted = $this->file($jpeg, 'jpg');
+
+            $imagick = new Imagick($converted);
+            self::assertSame('JPEG', $imagick->getImageFormat());
+            self::assertSame([100, 200], [$imagick->getImageWidth(), $imagick->getImageHeight()]);
+            self::assertRed($imagick, 95, 5);
+            self::assertNotRed($imagick, 5, 5);
+            $after = $this->exif($converted);
+            self::assertArrayNotHasKey('GPSLatitude', $after);
+            self::assertArrayNotHasKey('Make', $after);
+            self::assertArrayNotHasKey('Orientation', $after);
+            self::assertArrayNotHasKey('COMMENT', $after);
+            // The colour profile is the one piece of metadata that stays
+            self::assertArrayHasKey('icc', $imagick->getImageProfiles('icc'));
+            self::assertSame(ImagesWithMetadata::jpeg(200, 100, orientation: 6), file_get_contents($path), 'the upload itself is left as it is');
+            unlink($converted);
+        } finally {
+            unlink($path);
+        }
+    }
+
+    public function testTheLongerSideIsCappedAndASmallPictureNeverEnlarged(): void
+    {
+        $wide = $this->file(ImagesWithMetadata::png(4_000, 1_000), 'png');
+        $small = $this->file(ImagesWithMetadata::png(640, 480), 'png');
+
+        try {
+            $imagick = new Imagick();
+            $imagick->readImageBlob($this->optimizer->toJpeg($wide, 3_000, 90));
+            self::assertSame(['JPEG', 3_000, 750], [$imagick->getImageFormat(), $imagick->getImageWidth(), $imagick->getImageHeight()]);
+            self::assertRed($imagick, 5, 5);
+
+            $imagick = new Imagick();
+            $imagick->readImageBlob($this->optimizer->toJpeg($small, 3_000, 90));
+            self::assertSame(['JPEG', 640, 480], [$imagick->getImageFormat(), $imagick->getImageWidth(), $imagick->getImageHeight()]);
+        } finally {
+            unlink($wide);
+            unlink($small);
+        }
+    }
+
+    public function testATransparentPngIsLaidOnWhite(): void
+    {
+        $png = new Imagick();
+        $png->newImage(40, 30, 'transparent');
+        $png->setImageFormat('png');
+        $path = $this->file($png->getImageBlob(), 'png');
+
+        try {
+            $imagick = new Imagick();
+            $imagick->readImageBlob($this->optimizer->toJpeg($path, 3_000, 90));
+            $pixel = $imagick->getImagePixelColor(20, 15)->getColor();
+
+            self::assertGreaterThan(245, min($pixel['r'], $pixel['g'], $pixel['b']), 'white, not black');
+        } finally {
+            unlink($path);
+        }
+    }
+
+    public function testAHeicPictureBecomesAJpeg(): void
+    {
+        $heic = new Imagick();
+        $heic->newImage(320, 240, 'red');
+        $heic->setImageFormat('heic');
+        $path = $this->file($heic->getImageBlob(), 'heic');
+
+        try {
+            $imagick = new Imagick();
+            $imagick->readImageBlob($this->optimizer->toJpeg($path, 3_000, 90));
+
+            self::assertSame(['JPEG', 320, 240], [$imagick->getImageFormat(), $imagick->getImageWidth(), $imagick->getImageHeight()]);
+            self::assertRed($imagick, 160, 120);
+        } finally {
+            unlink($path);
+        }
+    }
+
+    public function testAFileThatIsNoPictureIsRefused(): void
+    {
+        $path = $this->file('just some text, no picture', 'jpg');
+
+        try {
+            $this->expectException(\ImagickException::class);
+            $this->optimizer->toJpeg($path, 3_000, 90);
+        } finally {
+            unlink($path);
+        }
+    }
+
     private function file(string $content, string $extension): string
     {
         $path = tempnam(sys_get_temp_dir(), 'test_img_') . '.' . $extension;

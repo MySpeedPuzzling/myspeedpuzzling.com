@@ -21,7 +21,7 @@ use SpeedPuzzling\Web\Results\OnlineReviewTap;
  * - **Candidates** (Phase 2, OnlineReviewCandidate): every `finish.candidate` - raised hands the phone's detector held;
  *   one counts inside the round (a candidate has no undo), placed against the round like a tap.
  * - **Suggestion** (OnlineReviewSuggestion): in a round whose detection is `on`, the earliest of the first candidate that
- *   counts and the first tap that counts (README §5.9: the official finish is the first candidate whose photo shows a
+ *   counts - and that the reviewer did not mark as a gap (stream RG) - and the first tap that counts (README §5.9: the official finish is the first candidate whose photo shows a
  *   complete puzzle - the reviewer looks at it and moves on with `G` when it shows a gap; stream P2F: a candidate after
  *   the participant's own tap is never suggested over the tap); otherwise - and in `shadow` / `off` always - the last
  *   tap that counts - the moment the participant's own page shows as their finish (compete_flow.js currentFinish()) -
@@ -52,6 +52,20 @@ use SpeedPuzzling\Web\Results\OnlineReviewTap;
  *   are not the finish (the confirmed one; before a confirmation the suggested one), lie outside the window of every
  *   counting tap and - once confirmed - outside the window of the confirmed moment (a candidate that close is that
  *   finish's, wherever the reviewer moved the moment).
+ * - **The reviewer's gap marks** (stream RG - the G key stored, OnlineReviewMomentVerdict; `gaps` = the event ids
+ *   marked): a candidate the reviewer marked as a gap is **never a finish's candidate** - the photo at it showed an
+ *   unfinished puzzle, the participant raised early; counting it as the finish's would put the seconds they still
+ *   needed into the detector's error. So the mark overrides the window: it is never suggested (`on`), never the
+ *   detected candidate, never the one of the detection error or the delta - the nearest unmarked counting candidate
+ *   within the window is matched instead, and without one the finish has no detection (a tap-only finish: a missed
+ *   raise on a device whose detector watched, else "detector not running"). A tap the reviewer marked as a gap keeps
+ *   being matched against every counting candidate (its raise, if there was one, is usually marked too). **Premature
+ *   raises** = every counting candidate marked as a gap; **false detections** = counting candidates not marked, neither
+ *   the finish nor near a counting tap (nor, once confirmed, within the window of the confirmed moment) - the
+ *   detector's own mistakes. `falseRaises` (the CSV's `false_raises`) = the false detections plus the premature raises
+ *   without a tap near them. **Premature taps** = counting taps marked as a gap, but the one at the very moment the
+ *   reviewer confirmed (a confirmation wins over a mark) - null without a counting tap; counted whatever the detection.
+ *   Without marks nothing of this changes anything.
  *
  * @phpstan-import-type OnlineReviewEventRow from \SpeedPuzzling\Web\Query\GetOnlineReviewData
  */
@@ -98,12 +112,18 @@ final readonly class OnlineReviewAssessment
         public null|int $falseRaises = null,
         // Counting taps without a candidate on a device whose detector did not watch the round - null while it is off
         public null|int $detectorNotRunning = null,
+        // The reviewer's gap marks (stream RG): the raises marked as a gap, the others that are neither the finish nor
+        // near a tap - null while the detection is off -, and the taps marked as a gap (null without a counting tap)
+        public null|int $prematureRaises = null,
+        public null|int $falseDetections = null,
+        public null|int $prematureTaps = null,
     ) {
     }
 
     /**
      * @param list<OnlineReviewEventRow> $events the entry's events (any order)
      * @param list<string> $storedFlags OnlineEntry::$flags
+     * @param list<string> $gaps the event ids of the moments a reviewer marked as a gap (GetOnlineMomentVerdicts)
      */
     public static function of(
         RoundClock $clock,
@@ -116,7 +136,10 @@ final readonly class OnlineReviewAssessment
         array $events,
         array $storedFlags = [],
         OnlineDetectionMode $detection = OnlineDetectionMode::Off,
+        array $gaps = [],
     ): self {
+        $marked = array_fill_keys(array_map(strtolower(...), $gaps), true);
+        $isGap = static fn (string $eventId): bool => isset($marked[strtolower($eventId)]);
         usort($events, static fn (array $a, array $b): int => [$a['client_ms'], $a['id']] <=> [$b['client_ms'], $b['id']]);
 
         $taps = self::taps($clock, $events);
@@ -124,7 +147,9 @@ final readonly class OnlineReviewAssessment
         $lastCounting = $counting === [] ? null : $counting[count($counting) - 1];
         $candidates = self::candidates($clock, $events);
         $countingCandidates = array_values(array_filter($candidates, static fn (OnlineReviewCandidate $candidate): bool => $candidate->counts()));
-        $firstCandidate = $countingCandidates[0] ?? null;
+        // The candidates that may be a finish's: never one the reviewer marked as a gap (stream RG) - without marks, all
+        $finishCandidates = array_values(array_filter($countingCandidates, static fn (OnlineReviewCandidate $candidate): bool => $isGap($candidate->eventId) === false));
+        $firstCandidate = $finishCandidates[0] ?? null;
         $firstCounting = $counting[0] ?? null;
         // A candidate after the participant's own tap never comes before the tap
         $tapFirst = $firstCounting !== null && $firstCandidate !== null && $firstCounting->momentMs < $firstCandidate->momentMs;
@@ -165,26 +190,29 @@ final readonly class OnlineReviewAssessment
         $confirmedMoment = $confirmed ? $confirmedMomentMs : null;
         $suggested = null;
 
-        foreach ($countingCandidates as $candidate) {
+        foreach ($finishCandidates as $candidate) {
             if ($candidate->eventId === $suggestion->candidateEventId) {
                 $suggested = $candidate;
             }
         }
 
         $detectedCandidate = $confirmedMoment !== null
-            ? self::nearestCandidate($countingCandidates, $confirmedMoment)
-            : ($suggested ?? ($referenceTap === null ? null : self::nearestCandidate($countingCandidates, $referenceTap->momentMs)) ?? $firstCandidate);
-        $deltaCandidate = $referenceTap === null ? null : self::nearestCandidate($countingCandidates, $referenceTap->momentMs);
+            ? self::nearestCandidate($finishCandidates, $confirmedMoment)
+            : ($suggested ?? ($referenceTap === null ? null : self::nearestCandidate($finishCandidates, $referenceTap->momentMs)) ?? $firstCandidate);
+        $deltaCandidate = $referenceTap === null ? null : self::nearestCandidate($finishCandidates, $referenceTap->momentMs);
         $missedRaises = null;
         $falseRaises = null;
         $detectorNotRunning = null;
+        $prematureRaises = null;
+        $falseDetections = null;
 
         if ($detection !== OnlineDetectionMode::Off) {
             $missedRaises = 0;
             $detectorNotRunning = 0;
 
             foreach ($counting as $tap) {
-                if (self::nearestCandidate($countingCandidates, $tap->momentMs) !== null) {
+                // A finish is detected by an unmarked candidate only; a tap marked as a gap by any (its raise was seen)
+                if (self::nearestCandidate($isGap($tap->eventId) ? $countingCandidates : $finishCandidates, $tap->momentMs) !== null) {
                     continue;
                 }
 
@@ -195,15 +223,27 @@ final readonly class OnlineReviewAssessment
                 }
             }
 
-            // The finish: the confirmed one - before a confirmation the suggested one is presumed it
+            // The finish: the confirmed one - before a confirmation the suggested one (never a marked one) is presumed it
             $finish = $confirmedMoment !== null ? $detectedCandidate : $suggested;
-            $falseRaises = count(array_filter(
-                $countingCandidates,
+            $markedCandidates = array_values(array_filter($countingCandidates, static fn (OnlineReviewCandidate $candidate): bool => $isGap($candidate->eventId)));
+            $withoutTap = static fn (OnlineReviewCandidate $candidate): bool => self::nearestTap($counting, $candidate->momentMs) === null;
+            // Unmarked, not the finish, and - once confirmed - not near the confirmed moment (that close it is that finish's)
+            $falseDetections = count(array_filter(
+                $finishCandidates,
                 static fn (OnlineReviewCandidate $candidate): bool => $candidate !== $finish
-                    && self::nearestTap($counting, $candidate->momentMs) === null
+                    && $withoutTap($candidate)
                     && ($confirmedMoment === null || abs($candidate->momentMs - $confirmedMoment) > self::MATCH_WINDOW_MS),
             ));
+            $prematureRaises = count($markedCandidates);
+            $falseRaises = $falseDetections + count(array_filter($markedCandidates, $withoutTap));
         }
+
+        // A tap marked as a gap - the participant tapped too early; the one the reviewer confirmed at its own moment is
+        // the finish all the same
+        $prematureTaps = $counting === [] ? null : count(array_filter(
+            $counting,
+            static fn (OnlineReviewTap $tap): bool => $isGap($tap->eventId) && $tap->momentMs !== $confirmedMoment,
+        ));
 
         return new self(
             taps: $taps,
@@ -221,6 +261,9 @@ final readonly class OnlineReviewAssessment
             missedRaises: $missedRaises,
             falseRaises: $falseRaises,
             detectorNotRunning: $detectorNotRunning,
+            prematureRaises: $prematureRaises,
+            falseDetections: $falseDetections,
+            prematureTaps: $prematureTaps,
         );
     }
 

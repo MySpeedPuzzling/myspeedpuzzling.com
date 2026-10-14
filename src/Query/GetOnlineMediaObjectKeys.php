@@ -6,14 +6,17 @@ namespace SpeedPuzzling\Web\Query;
 
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
+use SpeedPuzzling\Web\Services\OnlineRounds\OnlineReferenceImages;
 use SpeedPuzzling\Web\Value\CanonicalUuid;
 
 /**
- * Which object keys still have their evidence row (online_entry_media) - the orphan sweep deletes the rest: a deleted
- * competition, round or participant takes the rows with it (cascade), never the objects.
+ * Which object keys under `online/` still have their row - the orphan sweep deletes the rest: a deleted competition,
+ * round or participant takes the rows with it (cascade), never the objects.
  *
- * A key ends with its media's id (`online/{competition}/{round}/{participant}/{media}.jpg`), so the rows are found by
- * their primary key; a key without an id in that place has no row.
+ * - Evidence: a key ends with its media's id (`online/{competition}/{round}/{participant}/{media}.jpg`), so the rows are
+ *   found by their primary key; a key without an id in that place has no row.
+ * - A round's reference image (`online/{competition}/{round}/reference/{id}.jpg`, OnlineReferenceImages) is not evidence:
+ *   its row is the online round holding the key (`online_round.reference_image`) - kept as long as one does.
  */
 readonly final class GetOnlineMediaObjectKeys
 {
@@ -29,8 +32,15 @@ readonly final class GetOnlineMediaObjectKeys
     public function existing(array $keys): array
     {
         $ids = [];
+        $references = [];
 
         foreach ($keys as $key) {
+            if (OnlineReferenceImages::isObjectKey($key)) {
+                $references[] = $key;
+
+                continue;
+            }
+
             $id = self::mediaId($key);
 
             if ($id !== null) {
@@ -38,16 +48,27 @@ readonly final class GetOnlineMediaObjectKeys
             }
         }
 
-        if ($ids === []) {
-            return [];
+        $stored = [];
+
+        if ($ids !== []) {
+            /** @var list<string> $evidence */
+            $evidence = $this->database->fetchFirstColumn(
+                'SELECT object_key FROM online_entry_media WHERE id IN (:ids)',
+                ['ids' => array_keys($ids)],
+                ['ids' => ArrayParameterType::STRING],
+            );
+            $stored = $evidence;
         }
 
-        /** @var list<string> $stored */
-        $stored = $this->database->fetchFirstColumn(
-            'SELECT object_key FROM online_entry_media WHERE id IN (:ids)',
-            ['ids' => array_keys($ids)],
-            ['ids' => ArrayParameterType::STRING],
-        );
+        if ($references !== []) {
+            /** @var list<string> $held */
+            $held = $this->database->fetchFirstColumn(
+                'SELECT reference_image FROM online_round WHERE reference_image IN (:keys)',
+                ['keys' => $references],
+                ['keys' => ArrayParameterType::STRING],
+            );
+            $stored = [...$stored, ...$held];
+        }
 
         return array_values(array_intersect($keys, $stored));
     }

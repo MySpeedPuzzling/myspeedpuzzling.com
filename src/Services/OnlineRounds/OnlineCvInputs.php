@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Services\OnlineRounds;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Entity\OnlineEntryMedia;
 use SpeedPuzzling\Web\Repository\OnlineEntryMediaRepository;
+use SpeedPuzzling\Web\Repository\OnlineRoundRepository;
 use SpeedPuzzling\Web\Value\OnlineCvRequest;
 use SpeedPuzzling\Web\Value\OnlineMediaKind;
 use SpeedPuzzling\Web\Value\OnlineMediaStore;
@@ -18,11 +19,11 @@ use SpeedPuzzling\Web\Value\OnlineMediaStore;
  * - the finish photo (a `candidate`, `button` or `end` photo) in its own store;
  * - the entry's empty mat: its latest verified `empty_mat` photo taken before the finish photo (the set-up captures it
  *   before the unwrapping) - none: the background-holes check cannot run;
- * - the reference: the round's one puzzle's catalogue image (its stored image, in the primary store - a box photo too:
- *   the worker decides how far to trust it; a secret puzzle's stays on the server, the check runs there) - none with
- *   several puzzles or a puzzle without an image: the grid check cannot run;
+ * - the reference: the organiser's reference image of the round when there is one (OnlineReferenceImages - a clean
+ *   motif, a JPEG in the primary store), else the round's one puzzle's catalogue image (its stored image, in the
+ *   primary store - a box photo too: the worker decides how far to trust it); a secret puzzle's stays on the server,
+ *   the check runs there - none with several puzzles or a puzzle without an image: the grid check cannot run;
  * - the piece count of the round's one puzzle (null with several: the checks need it).
- * An organiser-uploaded reference is not built yet (docs/TODO.md).
  */
 readonly final class OnlineCvInputs
 {
@@ -33,6 +34,7 @@ readonly final class OnlineCvInputs
         private OnlineMediaStores $stores,
         private S3QueryPresigner $presigner,
         private OnlineEntryMediaRepository $onlineEntryMediaRepository,
+        private OnlineRoundRepository $onlineRoundRepository,
         private ClockInterface $clock,
     ) {
     }
@@ -45,15 +47,31 @@ readonly final class OnlineCvInputs
             OnlineMediaKind::EmptyMat,
             $finish->takenMs,
         );
-        $roundPuzzle = $round->roundPuzzles->count() === 1 ? $round->roundPuzzles->first() : false;
-        $image = $roundPuzzle === false ? null : $roundPuzzle->puzzle->image;
 
         return new OnlineCvRequest(
             finishUrl: $this->url($finish->store, $finish->objectKey),
             emptyMatUrl: $emptyMat === null ? null : $this->url($emptyMat->store, $emptyMat->objectKey),
-            referenceUrl: $image === null || trim($image) === '' ? null : $this->url(OnlineMediaStore::Primary, ltrim($image, '/')),
+            referenceUrl: $this->referenceUrl($finish),
             pieceCount: $round->singlePuzzlePiecesCount(),
         );
+    }
+
+    /**
+     * The organiser's reference image of the photo's round, else the catalogue image of its one puzzle - null: neither
+     */
+    private function referenceUrl(OnlineEntryMedia $finish): null|string
+    {
+        $round = $finish->onlineEntry->entry->round;
+        $uploaded = $this->onlineRoundRepository->ofRound($round->id->toString())?->referenceImage;
+
+        if ($uploaded !== null) {
+            return $this->url(OnlineMediaStore::Primary, $uploaded);
+        }
+
+        $roundPuzzle = $round->roundPuzzles->count() === 1 ? $round->roundPuzzles->first() : false;
+        $image = $roundPuzzle === false ? null : $roundPuzzle->puzzle->image;
+
+        return $image === null || trim($image) === '' ? null : $this->url(OnlineMediaStore::Primary, ltrim($image, '/'));
     }
 
     private function url(OnlineMediaStore $store, string $key): string

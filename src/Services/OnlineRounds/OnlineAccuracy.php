@@ -8,6 +8,7 @@ use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Entity\CompetitionRound;
 use SpeedPuzzling\Web\Entity\OnlineRound;
 use SpeedPuzzling\Web\Query\GetOnlineFinishPhotoChecks;
+use SpeedPuzzling\Web\Query\GetOnlineMomentVerdicts;
 use SpeedPuzzling\Web\Results\OnlineAccuracyGroup;
 use SpeedPuzzling\Web\Results\OnlineAccuracyRow;
 use SpeedPuzzling\Web\Results\OnlineReviewEntry;
@@ -36,6 +37,12 @@ use SpeedPuzzling\Web\Value\RoundClock;
  * the holding device's latest `device.ready`) and by the camera view their detector used (the candidates' own `view`,
  * else the one `device.ready` reported) - "autodetection reliability is the key to success" (Jan): this is what every
  * detector change is judged by.
+ *
+ * The reviewers' gap marks (the G key stored, stream RG - GetOnlineMomentVerdicts, OnlineReviewAssessment) split the
+ * raises that were not the finish: **premature raises** (the reviewer marked the raise's photo as a gap - the
+ * participant raised too early, the detector was right) and **false detections** (not marked, no tap near - the
+ * detector's own); the taps marked as a gap are **premature taps**. In the summary (`raises`, `prematureTaps`), per
+ * row, in the breakdowns and in three CSV columns appended at the end.
  *
  * Phase 3 - the completeness check (README §5.8, advisory), only while it is on: per confirmed participant its verdict
  * on the confirmed photo against the reviewer's outcome (completenessOf()) - the photo of the finish moment the
@@ -69,11 +76,12 @@ readonly final class OnlineAccuracy
         private ClockInterface $clock,
         private OnlineCvSettings $onlineCvSettings,
         private GetOnlineFinishPhotoChecks $getOnlineFinishPhotoChecks,
+        private GetOnlineMomentVerdicts $getOnlineMomentVerdicts,
     ) {
     }
 
     /**
-     * @return array{rows: list<OnlineAccuracyRow>, summaries: array<string, AccuracySummary>, startedAtMs: null|int, detection: string, detectionShown: bool, byDevice: list<OnlineAccuracyGroup>, byView: list<OnlineAccuracyGroup>, detectorNotRunning: int, completeness: null|array<string, int>}
+     * @return array{rows: list<OnlineAccuracyRow>, summaries: array<string, AccuracySummary>, startedAtMs: null|int, detection: string, detectionShown: bool, byDevice: list<OnlineAccuracyGroup>, byView: list<OnlineAccuracyGroup>, detectorNotRunning: int, completeness: null|array<string, int>, raises: array{missed: int, premature: int, falseDetections: int}, prematureTaps: int}
      */
     public function forRound(CompetitionRound $round, OnlineRound $onlineRound): array
     {
@@ -86,7 +94,10 @@ readonly final class OnlineAccuracy
         $checkOn = $this->onlineCvSettings->isOn();
         $photos = $checkOn ? $this->getOnlineFinishPhotoChecks->forRound($round->id->toString()) : [];
 
-        foreach ($this->onlineReview->assessed($round, $detection, $clock, RoundClock::milliseconds($now)) as $assessed) {
+        // The reviewers' gap marks (the G key, stream RG) - every one, a `shadow` round's raises too
+        $gaps = $this->getOnlineMomentVerdicts->gapsOfRound($round->id->toString());
+
+        foreach ($this->onlineReview->assessed($round, $detection, $clock, RoundClock::milliseconds($now), gaps: $gaps) as $assessed) {
             $entry = $assessed['entry'];
             $assessment = $assessed['assessment'];
             $tap = $assessment->referenceTap;
@@ -122,6 +133,9 @@ readonly final class OnlineAccuracy
                 detectorNotRunning: $assessment->detectorNotRunning,
                 completenessVerdict: $completenessVerdict,
                 completenessOutcome: $completenessOutcome,
+                prematureRaises: $assessment->prematureRaises,
+                falseDetections: $assessment->falseDetections,
+                prematureTaps: $assessment->prematureTaps,
             );
         }
 
@@ -143,6 +157,12 @@ readonly final class OnlineAccuracy
             'byView' => self::groups($rows, static fn (OnlineAccuracyRow $row): null|string => $row->view),
             'detectorNotRunning' => array_sum(array_map(static fn (OnlineAccuracyRow $row): int => $row->detectorNotRunning ?? 0, $rows)),
             'completeness' => $checkOn ? self::completenessCounts($rows) : null,
+            'raises' => [
+                'missed' => self::total($rows, static fn (OnlineAccuracyRow $row): null|int => $row->missedRaises),
+                'premature' => self::total($rows, static fn (OnlineAccuracyRow $row): null|int => $row->prematureRaises),
+                'falseDetections' => self::total($rows, static fn (OnlineAccuracyRow $row): null|int => $row->falseDetections),
+            ],
+            'prematureTaps' => self::total($rows, static fn (OnlineAccuracyRow $row): null|int => $row->prematureTaps),
         ];
     }
 
@@ -259,6 +279,17 @@ readonly final class OnlineAccuracy
     }
 
     /**
+     * The sum of a count over the rows - a row without it (null) counts nothing
+     *
+     * @param list<OnlineAccuracyRow> $rows
+     * @param \Closure(OnlineAccuracyRow): (null|int) $count
+     */
+    private static function total(array $rows, \Closure $count): int
+    {
+        return array_sum(array_map(static fn (OnlineAccuracyRow $row): int => $count($row) ?? 0, $rows));
+    }
+
+    /**
      * The participants grouped by a label, the largest group first (a tie by label, the unknown last)
      *
      * @param list<OnlineAccuracyRow> $rows
@@ -282,8 +313,9 @@ readonly final class OnlineAccuracy
                 participants: count($members),
                 finishes: count(array_filter($members, static fn (OnlineAccuracyRow $row): bool => $row->tapMomentMs !== null || $row->detectedMomentMs !== null || $row->confirmedMomentMs !== null)),
                 detected: count(array_filter($members, static fn (OnlineAccuracyRow $row): bool => $row->detectedMomentMs !== null)),
-                missedRaises: array_sum(array_map(static fn (OnlineAccuracyRow $row): int => $row->missedRaises ?? 0, $members)),
-                falseRaises: array_sum(array_map(static fn (OnlineAccuracyRow $row): int => $row->falseRaises ?? 0, $members)),
+                missedRaises: self::total($members, static fn (OnlineAccuracyRow $row): null|int => $row->missedRaises),
+                prematureRaises: self::total($members, static fn (OnlineAccuracyRow $row): null|int => $row->prematureRaises),
+                falseDetections: self::total($members, static fn (OnlineAccuracyRow $row): null|int => $row->falseDetections),
                 detectionError: self::summary($members, static fn (OnlineAccuracyRow $row): null|int => $row->detectionErrorMs),
                 delta: self::summary($members, static fn (OnlineAccuracyRow $row): null|int => $row->deltaMs),
                 detectorNotRunning: array_sum(array_map(static fn (OnlineAccuracyRow $row): int => $row->detectorNotRunning ?? 0, $members)),

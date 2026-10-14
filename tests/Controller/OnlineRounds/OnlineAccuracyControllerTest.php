@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Tests\Controller\OnlineRounds;
 use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Controller\OnlineRounds\OnlineAccuracyController;
 use SpeedPuzzling\Web\Message\ConfirmOnlineResult;
+use SpeedPuzzling\Web\Message\MarkOnlineMomentGap;
 use SpeedPuzzling\Web\Tests\DataFixtures\OnlineRoundsFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\OnlineReviewSeeding;
@@ -122,6 +123,8 @@ final class OnlineAccuracyControllerTest extends WebTestCase
         $olivia = $this->onlineEntryOf(OnlineRoundsFixture::ENTRY_CONNECTED);
         $this->phoneEvent($olivia, OnlineEventType::DeviceReady, $startMs - 60_000, ['userAgent' => self::IPHONE, 'detector' => ['state' => 'ready', 'view' => 'angled']]);
         $raiseMs = $startMs + 1_000_000;
+        // Once the detector fired when nobody raised their hands - not the finish, not marked, no tap near it
+        $this->finishCandidate($olivia, $startMs + 500_000);
         $raiseId = $this->finishCandidate($olivia, $raiseMs);
         $this->evidence($olivia, OnlineMediaKind::Burst, $raiseMs, $raiseId, self::burstManifest($raiseMs));
         $this->finishTap($olivia, $raiseMs + 1_500);
@@ -131,10 +134,12 @@ final class OnlineAccuracyControllerTest extends WebTestCase
         $paulaEntry = $this->enterParticipant('Paula Pace');
         $paula = $this->onlineEntryOf($paulaEntry->id->toString());
         $this->phoneEvent($paula, OnlineEventType::DeviceReady, $startMs - 30_000, ['userAgent' => self::ANDROID, 'detector' => ['state' => 'ready', 'view' => 'topDown']], deviceId: 'paula-phone');
-        $this->finishCandidate($paula, $startMs + 1_500_000, ['view' => 'topDown'], deviceId: 'paula-phone');
+        $paulaRaise = $this->finishCandidate($paula, $startMs + 1_500_000, ['view' => 'topDown'], deviceId: 'paula-phone');
         // Tapped on the phone that was ready with its detector watching: a missed raise
         $this->phoneEvent($paula, OnlineEventType::FinishButton, $startMs + 2_000_000, deviceId: 'paula-phone');
-        // The reviewer saw the gap on the raise's photo and confirmed her tap
+        // The reviewer saw the gap on the raise's photo (G - stream RG: a premature raise, not the detector's fault) and
+        // confirmed her tap
+        $this->markGap($paulaEntry->participant->id->toString(), $paulaRaise);
         $this->confirmResult($paulaEntry->participant->id->toString(), $startMs + 2_000_000, OnlineConfirmedSource::Button);
 
         // Una: her phone could not run the detector - a tap without a detection is no missed raise (stream P2F); Vic:
@@ -148,7 +153,9 @@ final class OnlineAccuracyControllerTest extends WebTestCase
         $vic = $this->onlineEntryOf($vicEntry->id->toString());
         $this->phoneEvent($vic, OnlineEventType::DeviceReady, $startMs - 20_000, ['detector' => ['state' => 'ready', 'view' => 'angled', 'setupTest' => 'passed', 'loadMs' => 900]], deviceId: 'vic-phone');
         $this->phoneEvent($vic, OnlineEventType::DetectorChanged, $startMs + 60_000, ['state' => 'ready', 'running' => false, 'reason' => 'slow', 'view' => null], deviceId: 'vic-phone');
-        $this->phoneEvent($vic, OnlineEventType::FinishButton, $startMs + 2_300_000, deviceId: 'vic-phone');
+        $vicTap = $this->phoneEvent($vic, OnlineEventType::FinishButton, $startMs + 2_300_000, deviceId: 'vic-phone');
+        // His tap's photo showed a gap - a premature tap
+        $this->markGap($vicEntry->participant->id->toString(), $vicTap);
 
         $crawler = $browser->request('GET', self::PAGE);
 
@@ -162,20 +169,31 @@ final class OnlineAccuracyControllerTest extends WebTestCase
         $olivia = $crawler->filter('[data-accuracy-row="' . OnlineRoundsFixture::PARTICIPANT_CONNECTED . '"]');
         self::assertSame('+0.3 s', $olivia->filter('[data-accuracy-detection-error]')->text());
         self::assertSame('+1.5 s', $olivia->filter('[data-accuracy-delta]')->text());
-        self::assertSame('0 missed / 0 false', $olivia->filter('[data-accuracy-misses]')->text());
+        self::assertSame('0 missed / 0 premature / 1 false', $olivia->filter('[data-accuracy-misses]')->text());
         self::assertSame('Angled (body)', $olivia->filter('[data-accuracy-view]')->text());
         self::assertSame('iPhone · Safari 18', $olivia->filter('[data-accuracy-device]')->text());
 
         $paulaRow = $crawler->filter('[data-accuracy-row="' . $paulaEntry->participant->id->toString() . '"]');
-        self::assertSame('1 missed / 1 false', $paulaRow->filter('[data-accuracy-misses]')->text());
+        self::assertSame('1 missed / 1 premature / 0 false', $paulaRow->filter('[data-accuracy-misses]')->text());
         self::assertSame('Top-down (hands)', $paulaRow->filter('[data-accuracy-view]')->text());
         self::assertCount(0, $paulaRow->filter('[data-accuracy-not-running-row]'));
 
         foreach ([$unaEntry, $vicEntry] as $entry) {
             $row = $crawler->filter('[data-accuracy-row="' . $entry->participant->id->toString() . '"]');
-            self::assertStringStartsWith('0 missed / 0 false', $row->filter('[data-accuracy-misses]')->text(), $entry->participant->name);
+            self::assertStringStartsWith('0 missed / 0 premature / 0 false', $row->filter('[data-accuracy-misses]')->text(), $entry->participant->name);
             self::assertSame('Detector not running', $row->filter('[data-accuracy-not-running-row]')->text());
         }
+
+        // The split in the summary (stream RG), and the premature tap
+        self::assertSame(['1', '1', '1'], $crawler->filter('[data-accuracy-raises] [data-accuracy-raises-count] dd')->each(static fn ($cell): string => $cell->text()));
+        self::assertSame(['missed', 'premature', 'falseDetections'], $crawler->filter('[data-accuracy-raises-count]')->each(static fn ($item): string => (string) $item->attr('data-accuracy-raises-count')));
+        self::assertSame('1', $crawler->filter('[data-accuracy-premature-taps]')->attr('data-accuracy-premature-taps'));
+        self::assertSame('1 premature tap', $crawler->filter('[data-accuracy-row="' . $vicEntry->participant->id->toString() . '"] [data-accuracy-premature-taps-row]')->text());
+        self::assertStringContainsString('premature raise', $crawler->filter('.online-accuracy')->text());
+        // ... and in the breakdowns: Android (Paula) the premature raise, iPhone (Olivia) the false detection
+        self::assertSame(['1', '0', '0'], $crawler->filter('[data-accuracy-breakdown="device"] [data-accuracy-group-premature]')->each(static fn ($cell): string => $cell->text()));
+        self::assertSame(['0', '1', '0'], $crawler->filter('[data-accuracy-breakdown="device"] [data-accuracy-group-false-detections]')->each(static fn ($cell): string => $cell->text()));
+        self::assertSame(['0', '1', '0'], $crawler->filter('[data-accuracy-breakdown="view"] [data-accuracy-group-premature]')->each(static fn ($cell): string => $cell->text()), 'angled, top-down, not known');
 
         self::assertSame('2', $crawler->filter('[data-accuracy-not-running]')->attr('data-accuracy-not-running'));
         self::assertSame(['0', '0', '2'], $crawler->filter('[data-accuracy-breakdown="device"] [data-accuracy-group-not-running]')->each(static fn ($cell): string => $cell->text()), 'the phones without a label');
@@ -194,19 +212,29 @@ final class OnlineAccuracyControllerTest extends WebTestCase
         self::assertSame((string) $raiseMs, $oliviaCsv[$columns['detected_moment_ms']]);
         self::assertSame('300', $oliviaCsv[$columns['detection_error_ms']]);
         self::assertSame('1500', $oliviaCsv[$columns['delta_ms']]);
-        self::assertSame(['0', '0', 'angled', 'iPhone', 'Safari 18'], array_slice($oliviaCsv, $columns['missed_raises'], 5));
+        self::assertSame(['0', '1', 'angled', 'iPhone', 'Safari 18'], array_slice($oliviaCsv, $columns['missed_raises'], 5));
+        // `false_raises` keeps its meaning (the premature raise without a tap near it counts there) - the split follows
         self::assertSame(['1', '1', 'topDown', 'Android', 'Chrome 141'], array_slice($rows['Paula Pace'], $columns['missed_raises'], 5));
+        self::assertSame(['0', '1', '0'], [$oliviaCsv[$columns['premature_raises']], $oliviaCsv[$columns['false_detections']], $oliviaCsv[$columns['premature_taps']]]);
+        self::assertSame(['1', '0', '0'], [$rows['Paula Pace'][$columns['premature_raises']], $rows['Paula Pace'][$columns['false_detections']], $rows['Paula Pace'][$columns['premature_taps']]]);
+        self::assertSame(['0', '0', '1'], [$rows['Vic Slow'][$columns['premature_raises']], $rows['Vic Slow'][$columns['false_detections']], $rows['Vic Slow'][$columns['premature_taps']]]);
         self::assertSame('0', $oliviaCsv[$columns['detector_not_running']]);
         self::assertSame(['0', '1'], [$rows['Una Unsupported'][$columns['missed_raises']], $rows['Una Unsupported'][$columns['detector_not_running']]]);
         self::assertSame(['0', '1'], [$rows['Vic Slow'][$columns['missed_raises']], $rows['Vic Slow'][$columns['detector_not_running']]]);
-        // A new column goes to the end: Phase 3's completeness columns came after detector_not_running
-        self::assertSame(['detector_not_running', 'completeness_verdict', 'completeness_outcome'], array_slice($lines[0], -3));
+        // A new column goes to the end: Phase 3's completeness columns came after detector_not_running, stream RG's after them
+        self::assertSame(['detector_not_running', 'completeness_verdict', 'completeness_outcome', 'premature_raises', 'false_detections', 'premature_taps'], array_slice($lines[0], -6));
+        self::assertSame(['missed_raises', 'false_raises', 'view'], array_slice($lines[0], 14, 3), 'the existing columns stay where they are');
     }
 
     public function testARoundWithDetectionOffShowsThePhaseOneReport(): void
     {
         $browser = $this->signedIn(PlayerFixture::PLAYER_ADMIN);
-        $this->seedConfirmedRound();
+        $startMs = $this->seedConfirmedRound();
+        // G on the taps (stream RG): Olivia's photo at the tap showed a gap (she was confirmed 1.2 s before it - a
+        // premature tap); Paula's too, but the reviewer confirmed her at that very tap - the confirmation wins
+        $this->markGap(OnlineRoundsFixture::PARTICIPANT_CONNECTED, $this->tapAt($startMs + 1_000_000));
+        $paulaId = $this->participantNamed('Paula Pace');
+        $this->markGap($paulaId, $this->tapAt($startMs + 2_500_000));
 
         $crawler = $browser->request('GET', self::PAGE);
 
@@ -214,7 +242,23 @@ final class OnlineAccuracyControllerTest extends WebTestCase
         self::assertCount(0, $crawler->filter('[data-accuracy-measure]'));
         self::assertCount(0, $crawler->filter('[data-accuracy-breakdown]'));
         self::assertCount(0, $crawler->filter('[data-accuracy-detection-error]'));
+        self::assertCount(0, $crawler->filter('[data-accuracy-raises]'));
         self::assertCount(8, $crawler->filter('.online-accuracy-table thead th'));
+        self::assertSame('1', $crawler->filter('[data-accuracy-premature-taps]')->attr('data-accuracy-premature-taps'));
+        self::assertSame('1 premature tap', $crawler->filter('[data-accuracy-row="' . OnlineRoundsFixture::PARTICIPANT_CONNECTED . '"] [data-accuracy-premature-taps-row]')->text());
+        self::assertCount(0, $crawler->filter('[data-accuracy-row="' . $paulaId . '"] [data-accuracy-premature-taps-row]'));
+
+        $browser->request('GET', self::PAGE . '?format=csv');
+        $lines = array_map(
+            static fn (string $line): array => str_getcsv($line, ',', '"', ''),
+            array_values(array_filter(explode("\n", substr((string) $browser->getResponse()->getContent(), 3)), static fn (string $line): bool => $line !== '')),
+        );
+        $rows = array_column(array_slice($lines, 1), null, 0);
+        $columns = array_flip(OnlineAccuracyController::CSV_COLUMNS);
+        // Detection off: no raises counted, the premature taps are (none without a tap)
+        self::assertSame(['', '', '1'], [$rows['Olivia Online'][$columns['premature_raises']], $rows['Olivia Online'][$columns['false_detections']], $rows['Olivia Online'][$columns['premature_taps']]]);
+        self::assertSame('0', $rows['Paula Pace'][$columns['premature_taps']]);
+        self::assertSame('', $rows['Arthur Anonymous'][$columns['premature_taps']]);
     }
 
     /**
@@ -324,6 +368,30 @@ final class OnlineAccuracyControllerTest extends WebTestCase
         $this->confirmResult($paulaEntry->participant->id->toString(), $paulaTapMs, OnlineConfirmedSource::Button);
 
         return $startMs;
+    }
+
+    /**
+     * The reviewer's G on a moment (stream RG)
+     */
+    private function markGap(string $participantId, string $eventId): void
+    {
+        self::getContainer()->get(MessageBusInterface::class)->dispatch(new MarkOnlineMomentGap(self::COMPETITION, self::ROUND, $participantId, $eventId, PlayerFixture::PLAYER_ADMIN));
+    }
+
+    private function tapAt(int $momentMs): string
+    {
+        $id = self::getContainer()->get(Connection::class)->fetchOne("SELECT id::text FROM online_entry_event WHERE type = 'finish.button' AND client_ms = :moment", ['moment' => $momentMs]);
+        self::assertIsString($id);
+
+        return $id;
+    }
+
+    private function participantNamed(string $name): string
+    {
+        $id = self::getContainer()->get(Connection::class)->fetchOne('SELECT id::text FROM competition_participant WHERE name = :name', ['name' => $name]);
+        self::assertIsString($id);
+
+        return $id;
     }
 
     private function confirmResult(string $participantId, int $momentMs, OnlineConfirmedSource $source): void

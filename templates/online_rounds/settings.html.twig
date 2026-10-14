@@ -6,7 +6,10 @@
     Variables: competition, round (CompetitionRound), online_round (null = off), availability (OnlineTimingAvailability),
     setup (OnlineRoundSetup), form (null while off; its live video switches only while a media server is configured),
     enable_error (a translation key or null), page_url, csrf_token_id, enable_field, detection_locked (finish detection
-    fixed from the round's start until a Reset - its field disabled, the reason under it)
+    fixed from the round's start until a Reset - its field disabled, the reason under it), completeness_check (the
+    check is on and the round uses online timing - the reference image card), reference_form (null while not),
+    reference_preview_url (a short presigned GET of the uploaded reference image, null: none), finish_photos (the
+    round's verified finish photos - "Check them again" from 1), back (the page's return / return_title)
 #}
 
 {% set hide_comparison_launcher = true %}
@@ -115,6 +118,51 @@
                     {{ form_end(form) }}
                 </div>
             </section>
+
+            {# The completeness check's reference image (README §5.8) - only while the check is on #}
+            {% if completeness_check %}
+                <section class="card shadow-sm mb-4" id="online-reference-image" data-online-reference-image aria-labelledby="online-reference-image-title">
+                    <div class="card-body">
+                        <h2 class="h5" id="online-reference-image-title">{{ 'online_rounds.settings.reference.title'|trans }}</h2>
+                        <p class="online-rounds-prose">{{ 'online_rounds.settings.reference.intro'|trans }}</p>
+
+                        {% if reference_preview_url is not null %}
+                            <figure class="online-reference-preview mb-3" data-reference-preview>
+                                <img src="{{ reference_preview_url }}" alt="{{ 'online_rounds.settings.reference.preview_alt'|trans({'%round%': round.name}) }}" class="img-fluid rounded border" loading="lazy" referrerpolicy="no-referrer">
+                                <figcaption class="small text-muted mt-1">{{ 'online_rounds.settings.reference.in_use'|trans }}</figcaption>
+                            </figure>
+                            <form method="post" action="{{ path('online_round_reference_image_remove', {roundId: round.id}|merge(back)) }}" class="mb-4" data-reference-remove>
+                                <input type="hidden" name="_token" value="{{ csrf_token(csrf_token_id) }}">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">
+                                    <i class="bi bi-trash me-1" aria-hidden="true"></i>{{ 'online_rounds.settings.reference.remove'|trans }}
+                                </button>
+                            </form>
+                        {% else %}
+                            <p class="small text-muted" data-reference-catalogue>{{ 'online_rounds.settings.reference.catalogue'|trans }}</p>
+                        {% endif %}
+
+                        {{ form_start(reference_form, {action: page_url, attr: {'data-reference-upload': ''}}) }}
+                            {{ form_row(reference_form.image) }}
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-upload me-1" aria-hidden="true"></i>{{ (reference_preview_url is null ? 'online_rounds.settings.reference.upload' : 'online_rounds.settings.reference.replace')|trans }}
+                            </button>
+                        {{ form_end(reference_form) }}
+
+                        {# The verdicts made before the reference changed stay until the photos are checked again #}
+                        {% if finish_photos > 0 %}
+                            <div class="border-top mt-4 pt-3" data-reference-recheck>
+                                <p class="small text-muted mb-2">{{ 'online_rounds.settings.reference.recheck_note'|trans({'%count%': finish_photos}) }}</p>
+                                <form method="post" action="{{ path('online_round_recheck_finish_photos', {roundId: round.id}|merge(back)) }}">
+                                    <input type="hidden" name="_token" value="{{ csrf_token(csrf_token_id) }}">
+                                    <button type="submit" class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-arrow-repeat me-1" aria-hidden="true"></i>{{ 'online_rounds.settings.reference.recheck'|trans }}
+                                    </button>
+                                </form>
+                            </div>
+                        {% endif %}
+                    </div>
+                </section>
+            {% endif %}
         {% endif %}
 
         {% if availability.isAvailable %}

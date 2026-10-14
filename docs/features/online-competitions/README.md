@@ -395,7 +395,7 @@ Jan's requirement (2026-10-13): whether the media is handled by distributed (cam
 
 1. The phone asks `POST /api/compete/{token}/photos` with `{kind, takenMs, bytes}`.
 2. The server answers `{photoId, store, url, headers}`: a presigned PUT for one exact, unguessable key (`online/{competitionId}/{roundId}/{participantId}/{photoId}.jpg`), valid ~5 minutes, with `Content-Type` and `Content-Length` signed (that caps the size).
-3. The phone PUTs the file.
+3. The phone PUTs the file - aborted when it has not finished after 15 s + the body at 32 KB/s (`media_outbox.js` `uploadTimeoutMs()`): a store that hangs counts as failing for the circuit breaker, like one that does not answer.
 4. The phone reports `photo.uploaded`; the server checks it with a HEAD (size, type) before the review uses it.
 
 AsyncAws (already our S3 client) has `presign()` for any request.

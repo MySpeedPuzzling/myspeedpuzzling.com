@@ -59,8 +59,9 @@ that would otherwise be forgotten. Newest section on top.
 
 - [ ] lily.srv (Jan's yes): route `/api/compete/*` and `/-/time` like `/api/v` - past the bot-blocker (90/min per IP +
       browser) and out of CrowdSec's captcha, before the first online event (a club on one Wi-Fi would be blocked).
-- [ ] A timeout on the phone's upload request (a hanging store took 41 s to switch to the second store - each phone
-      waited for its connection timeout).
+- [x] A timeout on the phone's upload request (a hanging store took 41 s to switch to the second store - each phone
+      waited for its connection timeout). Done (stream P1G): `media_outbox.js` aborts a PUT after 15 s + its body at
+      32 KB/s and reports it like "no answer" with a fresh URL at once - a hanging store is left in ~17 s (harness).
 - [ ] Mark upload rows abandoned after a failure, so the review doesn't show them as pending.
 - [ ] Probe the primary store before the circuit breaker closes again (now it closes after 60 s and one round of
       uploads fails before it reopens).

@@ -57,6 +57,8 @@ final class PlatformFlagReadersTest extends TestCase
         'assets/haptics.js',
         // GEST-18: the long-press label of a cut tab is the web tab bar's (assets/tab_long_press.js decides)
         'assets/tab_long_press.js',
+        // GEST-12 / GEST-17: no view transition inside the app (assets/view_transition_gate.js decides)
+        'assets/view_transition_gate.js',
     ];
 
     /** The one module that talks to the vibration API (README §4.14 (c), GEST-10) */

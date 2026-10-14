@@ -4,6 +4,7 @@ import { getComponent } from '@symfony/ux-live-component';
 import { subscribe, wake } from '../page_ticker.js';
 import { chooseTranslation } from '../translation_choice.js';
 import { FEED_REFRESH_EVENT } from '../tab_reselect.js';
+import { VISIBLE_RATIO } from '../feed_swipe.js';
 
 const JITTER_MS = 5000;
 const WATCHDOG_MS = 30000;
@@ -18,7 +19,10 @@ let pausedByVisitor = false;
  * somebody can see it (docs/features/live-activity-feed.md). The library's own `data-poll` is a bare setInterval:
  * production showed 91 % of the feed's refreshes coming from desktop tabs left open for hours.
  *
- * - only a component that is shown (not in a hidden tab pane) refreshes; one that comes back overdue refreshes at once
+ * - only a component that is shown (not in a hidden tab pane) refreshes; one that comes back overdue refreshes at once.
+ *   In the Hub's feed scroller (.hub-feeds, GEST-16) "shown" = ≥ 60 % of it inside the scroller (an IntersectionObserver
+ *   rooted there - the other pane is in the page, only scrolled aside); elsewhere checkVisibility(); never inside [inert]
+ *   (the resting pane)
  * - nothing runs while the page is hidden (the page ticker sleeps) or after `idleAfter` without any interaction -
  *   the next touch, key, scroll or return to the tab resumes it
  * - the status line ("Auto-update in 42 seconds" + a ring filling smoothly) counts down and is the WCAG 2.2.2
@@ -78,6 +82,21 @@ export default class extends Controller {
             });
         });
 
+        // GEST-16: in the Hub's feed scroller the other pane is laid out beside this one - visibility is the scroller's
+        const scroller = this.element.closest('.hub-feeds');
+
+        if (scroller && typeof IntersectionObserver === 'function') {
+            this.inScroller = null;
+            this.scrollerVisibility = new IntersectionObserver((entries) => {
+                for (const entry of entries) {
+                    this.inScroller = entry.isIntersecting && entry.intersectionRatio >= VISIBLE_RATIO;
+                }
+
+                wake();
+            }, { root: scroller, threshold: [0, VISIBLE_RATIO] });
+            this.scrollerVisibility.observe(this.element);
+        }
+
         this.unsubscribe = subscribe((now) => this.tick(now));
     }
 
@@ -89,6 +108,8 @@ export default class extends Controller {
         this.unsubscribe();
         clearTimeout(this.watchdog);
         this.stopRing();
+        this.scrollerVisibility?.disconnect();
+        this.scrollerVisibility = null;
     }
 
     statusTargetConnected(element) {
@@ -114,7 +135,7 @@ export default class extends Controller {
 
     /** GEST-03: the Home tab tapped at the top of the Hub - only the feed the visitor sees refreshes, and only once */
     onFeedRefresh = () => {
-        if (this.component === null || this.inFlight || !isShown(this.element)) {
+        if (this.component === null || this.inFlight || !this.isShown()) {
             return;
         }
 
@@ -126,7 +147,7 @@ export default class extends Controller {
     tick(now) {
         const state = this.state(now);
 
-        if (!isShown(this.element)) {
+        if (!this.isShown()) {
             // A tab pane that is not shown: checked again in a second, refreshed at once when shown overdue
             this.stopRing();
 
@@ -196,6 +217,19 @@ export default class extends Controller {
         this.lastRenderAt = Date.now();
         this.dueAt = this.lastRenderAt + BACKOFF_SECONDS[Math.min(this.failures, BACKOFF_SECONDS.length) - 1] * 1000;
         wake();
+    }
+
+    /** Shown: never inside [inert]; in the Hub's scroller ≥ 60 % inside it (until the observer answered: its box) */
+    isShown() {
+        if (this.element.closest('[inert]') !== null) {
+            return false;
+        }
+
+        if (this.scrollerVisibility && this.inScroller !== null) {
+            return this.inScroller;
+        }
+
+        return isShown(this.element);
     }
 
     nextDue(from) {

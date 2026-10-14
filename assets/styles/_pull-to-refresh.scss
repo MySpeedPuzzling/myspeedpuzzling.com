@@ -1,0 +1,111 @@
+// The installed app's pull-to-refresh indicator (docs/features/navigation README §4.13 G6, G17; GEST-06, GEST-19):
+// built per platform by controllers/pwa_lifecycle_controller.js (assets/pull_indicator.js: its markup and each frame of
+// the pull, set inline while the finger moves). It injected these styles as a <style> before GEST-19.
+//
+// It comes out from under the top bar (top: --topbar-h; z-index right under the bar's - $z-nav-column). Android and
+// other: Material's disc, 40 px (= INDICATOR_SIZE), the arrow flipping past the threshold, the spinner after the
+// release. iOS (.is-ios): a bare spinner - no disc, no shadow, no arrow element - fading and turning in with the pull
+// (inline opacity and rotate), spinning in eight steps after the release like the system's own. Under reduced motion
+// it still follows the finger (that is the finger, not motion), then only fades.
+
+$pwa-ptr-size: 40px;
+
+@keyframes pwa-ptr-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.pwa-ptr-indicator {
+    position: fixed;
+    top: var(--topbar-h, 0px);
+    left: 50%;
+    z-index: $z-nav-column;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: $pwa-ptr-size;
+    height: $pwa-ptr-size;
+    margin-left: -($pwa-ptr-size * .5);
+    border-radius: 50%;
+    background: #e9ecef;
+    box-shadow: 0 1px 6px rgba(0, 0, 0, .16);
+    opacity: 0;
+    pointer-events: none;
+    // Hidden above the bar until a pull (INDICATOR_SIZE + 10 px up, at .3)
+    transform: translateY(-($pwa-ptr-size + 10px)) scale(.3);
+    will-change: transform, opacity;
+}
+
+.pwa-ptr-indicator.is-pulling {
+    transition: none;
+}
+
+.pwa-ptr-indicator.is-settling {
+    transition: transform .3s cubic-bezier(.4, 0, .2, 1), opacity .3s ease;
+}
+
+.pwa-ptr-indicator.is-refreshing {
+    transition: transform .2s cubic-bezier(.4, 0, .2, 1);
+}
+
+// The disc's arrow and spinner (22 px: today's 20 px in the 36 px disc, resized with it)
+.pwa-ptr-arrow {
+    width: 22px;
+    height: 22px;
+    color: #555;
+    transition: transform .15s ease;
+}
+
+.pwa-ptr-spinner {
+    display: none;
+    width: 22px;
+    height: 22px;
+
+    circle {
+        fill: none;
+        stroke: #555;
+        stroke-width: 2.5;
+        stroke-linecap: round;
+        stroke-dasharray: 40, 60;
+        transform-origin: center;
+        animation: pwa-ptr-spin .7s linear infinite;
+    }
+}
+
+.pwa-ptr-indicator.is-refreshing {
+    .pwa-ptr-arrow {
+        display: none;
+    }
+
+    .pwa-ptr-spinner {
+        display: block;
+    }
+}
+
+// iOS: the bare spinner
+.pwa-ptr-indicator.is-ios {
+    background: transparent;
+    box-shadow: none;
+}
+
+.pwa-ptr-ios-spinner {
+    width: 24px;
+    height: 24px;
+    color: #8e8e93;
+}
+
+.pwa-ptr-indicator.is-ios.is-refreshing .pwa-ptr-ios-spinner {
+    animation: pwa-ptr-spin .8s steps(8) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .pwa-ptr-indicator.is-settling,
+    .pwa-ptr-indicator.is-refreshing {
+        transition: opacity .2s ease;
+    }
+
+    .pwa-ptr-arrow {
+        transition: none;
+    }
+}

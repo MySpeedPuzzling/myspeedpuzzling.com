@@ -272,16 +272,18 @@
         <aside class="puzzle-aside">
             <div class="puzzle-head">
                 <div class="puzzle-head-image">
+                    {# img.puzzle-hero: the box image a card's thumbnail morphs into on phones (GEST-17, assets/view_transition_gate.js
+                       names it right before the page renders) - never the compact bar's thumbnail above #}
                     <div class="gallery">
                         {% if puzzle.puzzleImage is not null %}
                             {# The large stripped preset, not the uploaded original (older uploads may carry EXIF/GPS) #}
                             <a class="gallery-item gallery-item-inline-block" href="{{ puzzle.puzzleImage|thumbnail('puzzle_large') }}">
                                 {# Always the whole box in its own proportions, never cropped: at most 112 px each way on phones, 160 px on tablets,
                                    340 px wide on desktop - the 900 px preset keeps it sharp there, phones still load the 400 px one #}
-                                <img alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': puzzle.manufacturerName ~ ' ' ~ puzzle.puzzleName}) }}" src="{{ puzzle.puzzleImage|puzzle_image('puzzle_medium') }}" srcset="{{ puzzle.puzzleImage|puzzle_image('puzzle_medium') }} 400w, {{ puzzle.puzzleImage|puzzle_image('puzzle_large') }} 900w" sizes="(min-width: 992px) 340px, (min-width: 768px) 160px, 112px" {{ puzzle_image_dimensions(puzzle.puzzleImageRatio, 110) }} fetchpriority="high">
+                                <img class="puzzle-hero" alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': puzzle.manufacturerName ~ ' ' ~ puzzle.puzzleName}) }}" src="{{ puzzle.puzzleImage|puzzle_image('puzzle_medium') }}" srcset="{{ puzzle.puzzleImage|puzzle_image('puzzle_medium') }} 400w, {{ puzzle.puzzleImage|puzzle_image('puzzle_large') }} 900w" sizes="(min-width: 992px) 340px, (min-width: 768px) 160px, 112px" {{ puzzle_image_dimensions(puzzle.puzzleImageRatio, 110) }} fetchpriority="high">
                             </a>
                         {% else %}
-                            <img alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': puzzle.manufacturerName ~ ' ' ~ puzzle.puzzleName}) }}" src="{{ puzzle.puzzleImage|puzzle_image('puzzle_medium') }}" {{ puzzle_image_dimensions(puzzle.puzzleImageRatio, 110) }} fetchpriority="high">
+                            <img class="puzzle-hero" alt="{{ 'puzzle_img_alt'|trans({'%puzzle%': puzzle.manufacturerName ~ ' ' ~ puzzle.puzzleName}) }}" src="{{ puzzle.puzzleImage|puzzle_image('puzzle_medium') }}" {{ puzzle_image_dimensions(puzzle.puzzleImageRatio, 110) }} fetchpriority="high">
                         {% endif %}
                     </div>
                 </div>

@@ -45,6 +45,7 @@ import { installPuzzlesSection } from './puzzles_section.js';
 import { installPlayerCard } from './player_card.js';
 import { install as installHaptics } from './haptics.js';
 import { install as installPressFeedback } from './press_feedback.js';
+import { install as installViewTransitionGate } from './view_transition_gate.js';
 // The URL a restore visit reloads below, for the page it brings back (the Results page's scroll position, PROF-05c)
 import { markRestoreReload } from './restore_reload.js';
 
@@ -77,6 +78,10 @@ document.addEventListener('touchstart', () => {}, { passive: true });
 // Android's ripple from the touch point on the same [data-press] targets (GEST-11, assets/press_feedback.js): on top of
 // the state layer, never on iOS or desktop, never under reduced motion
 installPressFeedback({ window, document });
+
+// Which visits run as a view transition (GEST-12, GEST-17; assets/view_transition_gate.js): Android's fade through on
+// place switches, the thumbnail → puzzle page morph on both phones - never on Back, iOS / desktop switch instantly
+installViewTransitionGate({ window, document });
 
 // Navigation clicks, the viewport once per session and Back/Forward navigations (docs/features/navigation, P0-03).
 // The web chrome only - the app's navigation is native

@@ -89,6 +89,12 @@ final class NativeAppStepAsideTest extends TestCase
             ['heldOnACutTab' => false],
             ['heldOnACutTab' => true],
         ],
+        // GEST-12 / GEST-17: the view-transition gate stays `none` inside the app; Chrome on the same phone fades through
+        // on a place tap and morphs a card's thumbnail
+        'assets/view_transition_gate.js' => [
+            ['placeTap' => ['meta' => 'none', 'vt' => null], 'cardTap' => ['meta' => 'none', 'vt' => null]],
+            ['placeTap' => ['meta' => 'same-origin', 'vt' => 'place'], 'cardTap' => ['meta' => 'same-origin', 'vt' => 'morph']],
+        ],
     ];
 
     /** @var null|array<string, Row> */

@@ -22,6 +22,9 @@
         <meta name="format-detection" content="telephone=no">
         <meta name="turbo-cache-control" content="no-cache">
         <meta name="turbo-prefetch" content="false">
+        {# Turbo runs a visit as a view transition only while this says same-origin: assets/view_transition_gate.js sets it
+           per visit (Android's place fade, the thumbnail morph - GEST-12/17) and to none everywhere else #}
+        <meta name="view-transition" content="same-origin">
 
         {% block robots %}<meta name="robots" content="index, follow">{% endblock %}
 

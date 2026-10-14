@@ -73,6 +73,11 @@ $lb-tints: (
     }
 }
 
+// A numbered empty slot of a short list (MostActiveSoloPlayers keeps its placeholder's rows - no shift at load)
+.lb-row-empty .lb-rank {
+    color: $lb-secondary;
+}
+
 .lb-row {
     cursor: pointer;
     // "Jump to me" lands below the site header and the compact bar (compact_bar_controller.js publishes its height)

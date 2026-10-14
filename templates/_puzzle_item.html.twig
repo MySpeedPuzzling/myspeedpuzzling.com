@@ -1,6 +1,9 @@
+{# data-morph-source: a tap on the card's thumbnail or name morphs the thumbnail into the puzzle page's box image on phones
+   (GEST-17, assets/view_transition_gate.js) -#}
 <div
     id="puzzle-list-item-{{ puzzle.puzzleId }}"
     class="position-relative col-12 col-lg-6"
+    data-morph-source="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}"
 >
     <div class="card card-body shadow p-2 puzzle-list-item" data-press="layer">
         <div class="d-flex">

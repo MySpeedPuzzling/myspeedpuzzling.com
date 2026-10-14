@@ -50,16 +50,13 @@ final class NavigationMotionRulesTest extends TestCase
         'assets/styles/_inbox.scss',
         'assets/styles/_community.scss',
         'assets/styles/_touch.scss',
-    ];
-
-    /** Partials of later items (GEST-11 ripple, GEST-12/17 view transitions, GEST-19 pull indicator): checked once they exist */
-    private const array LATER = [
+        // GEST-11 ripple, GEST-12/17 view transitions, GEST-19 the installed app's pull indicator
         'assets/styles/_press-feedback.scss',
         'assets/styles/_view-transitions.scss',
         'assets/styles/_pull-to-refresh.scss',
     ];
 
-    /** The installed app's pull indicator, injected as a <style> by the controller until GEST-19 moves it to _pull-to-refresh.scss */
+    /** The pull indicator's controller injected its styles as a <style> until GEST-19 moved them to _pull-to-refresh.scss */
     private const string PULL_INDICATOR = 'assets/controllers/pwa_lifecycle_controller.js';
 
     /** Where the partials' shared SCSS variables come from */
@@ -96,13 +93,19 @@ final class NavigationMotionRulesTest extends TestCase
      */
     public static function sources(): iterable
     {
-        foreach ([...self::PARTIALS, ...self::LATER] as $path) {
-            if (is_file(__DIR__ . '/../' . $path)) {
-                yield $path => [$path];
-            }
+        foreach (self::PARTIALS as $path) {
+            yield $path => [$path];
         }
+    }
 
-        yield self::PULL_INDICATOR => [self::PULL_INDICATOR];
+    /** GEST-19: every motion of the pull indicator is in a partial the rules above read - no <style> injected by script */
+    public function testThePullIndicatorStylesLiveInTheirPartial(): void
+    {
+        $controller = $this->read(self::PULL_INDICATOR);
+
+        self::assertStringNotContainsString("createElement('style')", $controller);
+        self::assertStringNotContainsString('textContent = `', $controller);
+        self::assertStringContainsString('@keyframes pwa-ptr-spin', $this->read('assets/styles/_pull-to-refresh.scss'));
     }
 
     #[DataProvider('sources')]
@@ -174,11 +177,7 @@ final class NavigationMotionRulesTest extends TestCase
     {
         $longer = [];
 
-        foreach ([...self::PARTIALS, ...self::LATER] as $path) {
-            if (!is_file(__DIR__ . '/../' . $path)) {
-                continue;
-            }
-
+        foreach (self::PARTIALS as $path) {
             foreach ($this->motionDeclarations($path) as [$property, $value]) {
                 foreach ($this->items($value) as $item) {
                     if (!str_contains($item, 'infinite') && array_sum($this->times($item)) > self::MAX_MS) {
@@ -486,17 +485,10 @@ final class NavigationMotionRulesTest extends TestCase
         return $preludes;
     }
 
-    /** A source without its comments: a stylesheet, or the <style> a script injects */
+    /** A stylesheet without its comments */
     private function code(string $path): string
     {
-        $code = $this->read($path);
-
-        if (str_ends_with($path, '.js')) {
-            self::assertSame(1, preg_match('~style\.textContent = `(.*?)`;~s', $code, $match), $path . ': the injected <style>');
-            $code = $match[1];
-        }
-
-        return ScssReader::withoutComments($code);
+        return ScssReader::withoutComments($this->read($path));
     }
 
     /**

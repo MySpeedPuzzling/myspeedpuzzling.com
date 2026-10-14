@@ -19,6 +19,7 @@ import { decideFor } from '../assets/tab_reselect.js';
 import { pullEnabledFor } from '../assets/pull_to_refresh.js';
 import { browserEnv, haptic } from '../assets/haptics.js';
 import { longPressEnabledFor } from '../assets/tab_long_press.js';
+import { gateFor } from '../assets/view_transition_gate.js';
 
 /** A fake <html>: inside the app on an Android phone, or Chrome on the same phone */
 function root(nativeApp) {
@@ -143,6 +144,16 @@ const ROWS = [
     {
         id: 'assets/tab_long_press.js',
         run: (html) => ({ heldOnACutTab: longPressEnabledFor(html, 'touch') }),
+    },
+    // GEST-12 / GEST-17: an Android phone's browser fades through on a place tap and morphs a card's thumbnail into its
+    // puzzle page; inside the app the view-transition gate stays `none` (the app animates its own screens)
+    {
+        id: 'assets/view_transition_gate.js',
+        run: (html) => {
+            const facts = { os: os(html), nativeApp: isNativeApp(html), reducedMotion: false };
+
+            return { placeTap: gateFor({ ...facts, place: true }), cardTap: gateFor({ ...facts, morph: true }) };
+        },
     },
 ];
 

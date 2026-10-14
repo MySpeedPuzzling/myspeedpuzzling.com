@@ -1,4 +1,4 @@
-// The Hub's two feeds, Favorites | Everyone (docs/features/navigation INB-04b; GEST-16 adds the phone scroller here).
+// The Hub's two feeds, Favorites | Everyone (docs/features/navigation INB-04b; GEST-16's phone scroller below).
 //
 // "N new" on the Favorites tab: the active-pill colours of the bars (README §5, 4.5:1). The two tabs are always one row of
 // two, in every locale and from 320 px: below $hub-feed-compact-below the pill shows the number alone ("2", "20+") - the
@@ -42,6 +42,80 @@ $hub-feed-compact-below: 400px;
 
     .hub-feed-new-short {
         display: inline;
+    }
+}
+
+// ---- Swipe between the feeds (README §4.13 G14, GEST-16, decision 67; feed_swipe_controller.js) -----------------------
+// Phones (< 768 px - assets/feed_swipe.js PHONE_QUERY): both panes are columns of one horizontal scroll-snap scroller,
+// the browser does the swipe (no JS gesture code); a sideways overscroll never turns into Back. Bootstrap's hidden
+// inactive pane and its fade are overridden here. The pane not shown first is .is-resting from the server: before the
+// controller runs (no .is-awake yet) it takes no column at all, so the default pane is at the scroller's start whichever
+// it is and the page loads without a shift; once awake a resting pane is a column without height - the controller wakes
+// it on the first touch or scroll (it renders while the finger brings it in) and lets the other one rest again on
+// settle. The scroller is as high as the shown pane - the grid row while the other one rests, the shown pane's exact
+// height (set by the controller) while the other one is awake - and clips the other one.
+// The tabs' underline follows the scroller: one bar under the tab list placed by --hub-feed-x / -w / -y (each frame
+// of a swipe, no transition - it is the finger's), in place of each tab's own ::before (the same box, so nothing jumps
+// when the controller takes over).
+@media (max-width: 767.98px) {
+    .hub-feeds {
+        display: grid;
+        grid-auto-columns: 100%;
+        grid-auto-flow: column;
+        // A gap between the panes: the other one never touches the scroller's edge - Live's lazy loading counts an
+        // edge-adjacent box as in view, and the other feed would load on the first touch instead of when shown
+        column-gap: 1rem;
+        align-items: start;
+        overflow-x: auto;
+        overflow-y: hidden;
+        overscroll-behavior-x: contain;
+        scroll-snap-type: x mandatory;
+        scrollbar-width: none;
+
+        &::-webkit-scrollbar {
+            display: none;
+        }
+
+        > .tab-pane {
+            display: block;
+            min-width: 0;
+            opacity: 1;
+            transition: none;
+            scroll-snap-align: start;
+            scroll-snap-stop: always;
+        }
+
+        > .tab-pane.is-resting {
+            height: 0;
+            overflow: hidden;
+        }
+
+        &:not(.is-awake) > .tab-pane.is-resting {
+            display: none;
+        }
+    }
+
+    .nav-tabs.hub-feed-tabs.is-swipeable {
+        position: relative;
+
+        .nav-link::before,
+        .nav-link.active::before {
+            background-color: transparent;
+        }
+
+        &::after {
+            position: absolute;
+            // The tab's own bottom edge (--hub-feed-y: the link's offsetTop + offsetHeight), where its ::before sat
+            top: calc(var(--hub-feed-y, 100%) - #{$nav-tabs-border-width});
+            left: 0;
+            width: 1px;
+            height: $nav-tabs-border-width;
+            background-color: $nav-tabs-link-active-border-color;
+            content: "";
+            pointer-events: none;
+            transform: translateX(var(--hub-feed-x, 0px)) scaleX(var(--hub-feed-w, 0));
+            transform-origin: 0 0;
+        }
     }
 }
 

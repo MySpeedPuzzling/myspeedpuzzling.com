@@ -95,6 +95,53 @@ final class HubControllerTest extends WebTestCase
         self::assertCount(0, $favorites->filter('tr.ra-new'));
     }
 
+    /**
+     * GEST-16 (README §4.13 G14, decision 67): the feed switcher is one tab list + one scroller whose two panes are its
+     * tabpanels (aria-controls); the pane not shown first rests (.is-resting, no height on phones) in both orders, so the
+     * page loads without a shift; the controller scrolls a tab's pane in when Bootstrap is about to show it (show.bs.tab).
+     * Guests start on Everyone too.
+     */
+    public function testTheFeedsAreOneSwipeableScrollerWithTheOffPaneResting(): void
+    {
+        $browser = self::createClient();
+
+        foreach ([PlayerFixture::PLAYER_WITH_FAVORITES => 'recent-favorites-activity', PlayerFixture::PLAYER_REGULAR => 'recent-activity', 'guest' => 'recent-activity'] as $viewer => $shown) {
+            if ($viewer !== 'guest') {
+                TestingLogin::asPlayer($browser, $viewer);
+            }
+
+            $crawler = $browser->request('GET', '/en/hub');
+            self::assertResponseIsSuccessful();
+
+            $switcher = $crawler->filter('[data-controller="feed-swipe"]');
+            self::assertCount(1, $switcher, $viewer);
+
+            $tabs = $switcher->filter('ul.nav-tabs[role="tablist"][data-feed-swipe-target="tabs"]');
+            self::assertCount(1, $tabs, $viewer);
+            self::assertSame(
+                [['recent-favorites-activity', 'tabs#showTab'], ['recent-activity', 'tabs#showTab']],
+                $tabs->filter('a[role="tab"]')->each(static fn ($tab): array => [(string) $tab->attr('aria-controls'), (string) $tab->attr('data-action')]),
+                $viewer,
+            );
+
+            $panes = $switcher->filter('.tab-content.hub-feeds[data-feed-swipe-target="scroller"] > .tab-pane[role="tabpanel"][data-feed-swipe-target="pane"]');
+            self::assertSame(['recent-favorites-activity', 'recent-activity'], $panes->each(static fn ($pane): string => (string) $pane->attr('id')), $viewer);
+
+            $panes->each(static function (Crawler $pane) use ($viewer, $shown): void {
+                $id = (string) $pane->attr('id');
+                $classes = explode(' ', (string) $pane->attr('class'));
+                $isShown = $id === $shown;
+
+                self::assertSame($isShown, in_array('active', $classes, true), $viewer . ' ' . $id);
+                self::assertSame(!$isShown, in_array('is-resting', $classes, true), $viewer . ' ' . $id);
+                // inert is the controller's (from 768 px Bootstrap shows the pane again without it)
+                self::assertNull($pane->attr('inert'), $viewer . ' ' . $id);
+            });
+
+            $browser->restart();
+        }
+    }
+
     public function testTheFavoritesTabCountsTheNewRowsUpToTwentyPlus(): void
     {
         $browser = self::createClient();

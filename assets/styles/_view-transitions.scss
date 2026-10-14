@@ -1,0 +1,95 @@
+// View transitions of Turbo visits (docs/features/navigation README §4.13 G12, G15; implementation plan GEST-12,
+// GEST-17, decisions 63, 68). Which visit runs one is assets/view_transition_gate.js's call (the head meta); here is how
+// they look.
+//
+// Every view transition is instant unless named below: no cross-fade of the whole page, no slide of a named element
+// (a content link on an Android phone still runs a view transition - with nothing animated in it).
+
+::view-transition-group(*),
+::view-transition-image-pair(*),
+::view-transition-old(*),
+::view-transition-new(*) {
+    animation: none;
+}
+
+// The bars, the rail and the docked column stand still while the page under them changes: each is captured on its own
+// (no animation, see above). Only while a transition is armed (<html data-vt>), so the names never exist in between.
+// The column's name sits on its slot - never on #site-menu, which moves into the phone's Menu shell (decision 63).
+html[data-vt] {
+    body > header.site-header {
+        view-transition-name: msp-topbar;
+    }
+
+    #bottom-nav {
+        view-transition-name: msp-tabbar;
+    }
+
+    #menu-slot {
+        view-transition-name: msp-menucol;
+    }
+
+    @include nav-desktop {
+        // From 1024 px the same element is the rail (NAV-13)
+        #bottom-nav {
+            view-transition-name: msp-rail;
+        }
+    }
+}
+
+// G12 place switches (Android): fade through - the old page out in 90 ms (emphasized accelerate), the new one in over
+// 210 ms after those 90 ms, from a .92 scale (emphasized decelerate). 300 ms in all.
+html[data-vt="place"]::view-transition-old(root) {
+    animation: msp-vt-fade-out 90ms cubic-bezier(.3, 0, .8, .15) both;
+}
+
+html[data-vt="place"]::view-transition-new(root) {
+    animation: msp-vt-place-in 210ms cubic-bezier(.05, .7, .1, 1) 90ms both;
+}
+
+// G15 thumbnail → puzzle page (both phones): the box image flies from the tapped thumbnail to its place - the browser's
+// own group animation (position and size, `revert` brings back the user agent's), 300 ms emphasized decelerate; the
+// image pair keeps the picture's proportions (cover). The new page fades in over the old one in 150 ms.
+html[data-vt="morph"]::view-transition-group(puzzle-hero) {
+    animation: revert;
+    animation-duration: 300ms;
+    animation-timing-function: cubic-bezier(.05, .7, .1, 1);
+}
+
+html[data-vt="morph"]::view-transition-old(puzzle-hero),
+html[data-vt="morph"]::view-transition-new(puzzle-hero) {
+    height: 100%;
+    object-fit: cover;
+}
+
+html[data-vt="morph"]::view-transition-new(root) {
+    animation: msp-vt-fade-in 150ms ease-out both;
+}
+
+@keyframes msp-vt-fade-out {
+    to {
+        opacity: 0;
+    }
+}
+
+@keyframes msp-vt-fade-in {
+    from {
+        opacity: 0;
+    }
+}
+
+@keyframes msp-vt-place-in {
+    from {
+        opacity: 0;
+        transform: scale(.92);
+    }
+}
+
+// Reduced motion: nothing animates (Turbo runs no view transition then either; this holds should one start)
+@media (prefers-reduced-motion: reduce) {
+    ::view-transition-group(*),
+    ::view-transition-image-pair(*),
+    ::view-transition-old(*),
+    ::view-transition-new(*) {
+        animation: none !important;
+    }
+}

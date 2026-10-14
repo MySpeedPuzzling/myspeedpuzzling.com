@@ -33,7 +33,8 @@
 {% set source_collection_id = source_collection_id|default(null) %}
 {% set currentCollectionId = currentCollectionId|default(null) %}
 
-{# Container ID follows pattern: library-{context}-{puzzleId} #}
+{# Container ID follows pattern: library-{context}-{puzzleId}. data-morph-source: the thumbnail morphs into the puzzle page's
+   box image on phones (GEST-17, assets/view_transition_gate.js) #}
 {% set container_id = 'library-' ~ page_context ~ '-' ~ item.puzzleId %}
 
 {# Determine puzzle statuses from centralized UserPuzzleStatuses #}
@@ -82,6 +83,7 @@
 
 <div class="col-12 col-lg-6"
      id="{{ container_id }}"
+     data-morph-source="{{ path('puzzle_detail', {puzzleId: item.puzzleId}) }}"
      data-collection-items-target="item"
      data-puzzle-id="{{ item.puzzleId }}"
      data-collection-filter-target="item"

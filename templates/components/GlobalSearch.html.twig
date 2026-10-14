@@ -128,7 +128,8 @@
 
                 {% for puzzle in computed.puzzle %}
                     <div class="shadow" data-press="layer">
-                        <div class="d-flex py-2">
+                        {# data-morph-source: the thumbnail morphs into the puzzle page's box image on phones (GEST-17) #}
+                        <div class="d-flex py-2" data-morph-source="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">
                             <div style="width: 90px;">
                                 <a data-turbo-frame="_top" href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">
                                     {{ lazy_puzzle_image(

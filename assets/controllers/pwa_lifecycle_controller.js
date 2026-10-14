@@ -1,13 +1,11 @@
 import { Controller } from '@hotwired/stimulus';
 import { haptic } from '../haptics.js';
 import layers from '../layer_history.js';
-import { isNativeApp, isStandalone } from '../platform.js';
-import { canStartPull, overlayOpen, pastThreshold, PULL_TARGET, pullEnabled, pullOffset, pullProgress, PullGesture } from '../pull_to_refresh.js';
+import { isNativeApp, isStandalone, os } from '../platform.js';
+import { indicatorClass, indicatorMarkup, INDICATOR_SIZE, lookFor, pullFrame } from '../pull_indicator.js';
+import { canStartPull, overlayOpen, pastThreshold, pullEnabled, PullGesture } from '../pull_to_refresh.js';
 
 const STALE_THRESHOLD_MS = 15 * 60 * 1000; // 15 minutes
-const INDICATOR_SIZE = 36; // px — diameter of the circular indicator
-// The indicator stops this far past the refresh point (the finger may go on)
-const INDICATOR_OVERSHOOT = 20;
 
 // The installed web app (GEST-06, README §4.13 G6): the 15-minute reload on return and our pull-to-refresh with its
 // indicator. A browser tab is left to the browser; the Hotwire Native app has neither (assets/platform.js: the installed
@@ -92,7 +90,6 @@ export default class extends Controller {
         this._gesture = new PullGesture();
         this._thresholdReached = false;
 
-        this._injectStyles();
         this._createIndicator();
 
         this._onTouchStart = this._handleTouchStart.bind(this);
@@ -106,93 +103,35 @@ export default class extends Controller {
         document.addEventListener('touchcancel', this._onTouchCancel, { passive: true });
     }
 
-    // The indicator comes out from under the top bar (top: --topbar-h, z-index right under the bar's 1030 - the
-    // $z-nav-column step of _nav-tokens.scss). Under reduced motion it still follows the finger, then only fades.
-    _injectStyles() {
-        if (document.getElementById('pwa-ptr-styles')) return;
-
-        const style = document.createElement('style');
-        style.id = 'pwa-ptr-styles';
-        style.textContent = `
-            @keyframes pwa-ptr-spin {
-                to { transform: rotate(360deg); }
-            }
-            .pwa-ptr-indicator {
-                position: fixed;
-                top: var(--topbar-h, 0px);
-                left: 50%;
-                z-index: 1029;
-                width: ${INDICATOR_SIZE}px;
-                height: ${INDICATOR_SIZE}px;
-                margin-left: -${INDICATOR_SIZE / 2}px;
-                border-radius: 50%;
-                background: #e9ecef;
-                box-shadow: 0 1px 6px rgba(0,0,0,.16);
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                pointer-events: none;
-                transform: translateY(-${INDICATOR_SIZE + 10}px) scale(0.3);
-                opacity: 0;
-                will-change: transform, opacity;
-            }
-            .pwa-ptr-indicator.is-pulling {
-                transition: none;
-            }
-            .pwa-ptr-indicator.is-settling {
-                transition: transform .3s cubic-bezier(.4,.0,.2,1), opacity .3s ease;
-            }
-            .pwa-ptr-indicator.is-refreshing {
-                transition: transform .2s cubic-bezier(.4,.0,.2,1);
-            }
-            .pwa-ptr-arrow {
-                width: 20px;
-                height: 20px;
-                color: #555;
-                transition: transform .15s ease;
-            }
-            .pwa-ptr-spinner {
-                width: 20px;
-                height: 20px;
-                display: none;
-            }
-            .pwa-ptr-spinner circle {
-                fill: none;
-                stroke: #555;
-                stroke-width: 2.5;
-                stroke-linecap: round;
-                stroke-dasharray: 40, 60;
-                animation: pwa-ptr-spin .7s linear infinite;
-                transform-origin: center;
-            }
-            .pwa-ptr-indicator.is-refreshing .pwa-ptr-arrow { display: none; }
-            .pwa-ptr-indicator.is-refreshing .pwa-ptr-spinner { display: block; }
-            @media (prefers-reduced-motion: reduce) {
-                .pwa-ptr-indicator.is-settling,
-                .pwa-ptr-indicator.is-refreshing {
-                    transition: opacity .2s ease;
-                }
-                .pwa-ptr-arrow {
-                    transition: none;
-                }
-            }
-        `;
-        document.head.appendChild(style);
+    // The indicator per platform (GEST-19, assets/pull_indicator.js): Material's 40 px disc with its arrow, on iOS the
+    // bare spinner (no arrow element). Its styles are assets/styles/_pull-to-refresh.scss.
+    _createIndicator() {
+        this._look = lookFor(os());
+        this._indicator = document.createElement('div');
+        this._indicator.className = indicatorClass(this._look);
+        this._indicator.innerHTML = indicatorMarkup(this._look);
+        document.body.appendChild(this._indicator);
     }
 
-    _createIndicator() {
-        this._indicator = document.createElement('div');
-        this._indicator.className = 'pwa-ptr-indicator';
-        this._indicator.innerHTML = `
-            <svg class="pwa-ptr-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="12" y1="5" x2="12" y2="19"/>
-                <polyline points="19 12 12 19 5 12"/>
-            </svg>
-            <svg class="pwa-ptr-spinner" viewBox="0 0 24 24">
-                <circle cx="12" cy="12" r="9"/>
-            </svg>
-        `;
-        document.body.appendChild(this._indicator);
+    // One frame of the pull (assets/pull_indicator.js): where the indicator is, how far it shows, the arrow's flip or
+    // the iOS spinner's turn. Returns whether a release here refreshes.
+    _drawPull(delta) {
+        const frame = pullFrame(this._look, delta);
+        this._indicator.style.transform = frame.transform;
+        this._indicator.style.opacity = frame.opacity;
+
+        const arrow = frame.arrow === null ? null : this._indicator.querySelector('.pwa-ptr-arrow');
+        const spinner = frame.spinner === null ? null : this._indicator.querySelector('.pwa-ptr-ios-spinner');
+
+        if (arrow) {
+            arrow.style.transform = frame.arrow;
+        }
+
+        if (spinner) {
+            spinner.style.transform = frame.spinner;
+        }
+
+        return frame.past;
     }
 
     _destroyPullToRefresh() {
@@ -262,19 +201,7 @@ export default class extends Controller {
         // The finger's way down (pull_to_refresh.js): the indicator follows half of it and refreshes past PULL_TARGET -
         // about 128 px of finger travel
         const delta = this._gesture.distance;
-        const progress = pullProgress(delta);
-        const past = pastThreshold(delta);
-
-        // Position: slides down from under the top bar, capped slightly past the refresh point
-        const translateY = Math.min(pullOffset(delta), PULL_TARGET + INDICATOR_OVERSHOOT) - INDICATOR_SIZE / 2;
-        const scale = 0.3 + (progress * 0.7);
-        this._indicator.style.transform = `translateY(${translateY}px) scale(${scale})`;
-        this._indicator.style.opacity = Math.min(progress * 1.5, 1);
-
-        // Arrow rotates: points down initially, flips up past threshold
-        const arrow = this._indicator.querySelector('.pwa-ptr-arrow');
-        const rotation = past ? 180 : 0;
-        arrow.style.transform = `rotate(${rotation}deg)`;
+        const past = this._drawPull(delta);
 
         // Haptic feedback when crossing threshold (once per crossing; haptic('tick') in GEST-10)
         if (past && !this._thresholdReached) {

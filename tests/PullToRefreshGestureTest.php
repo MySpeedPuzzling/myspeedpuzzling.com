@@ -234,7 +234,7 @@ final class PullToRefreshGestureTest extends TestCase
         // GEST review F8: a second finger on a pull sends the indicator back before the gesture starts again
         self::assertMatchesRegularExpression('~if \(this\._gesture\.pulling\) \{\s*this\._resetIndicator\(\);\s*\}\s*this\._gesture\.start\(~', $controller);
         self::assertStringContainsString('pastThreshold(this._gesture.end())', $controller);
-        self::assertStringContainsString('top: var(--topbar-h, 0px);', $controller);
+        self::assertStringContainsString('top: var(--topbar-h, 0px);', (string) file_get_contents(__DIR__ . '/../assets/styles/_pull-to-refresh.scss'));
         self::assertStringNotContainsString('display-mode', $controller);
         self::assertStringNotContainsString('PULL_RESISTANCE', $controller);
     }

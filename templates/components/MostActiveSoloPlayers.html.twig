@@ -40,12 +40,36 @@
                     {% for most_active_player in this.players %}
                         {{ include('_most_active_player_row.html.twig', {player: most_active_player, rank: loop.index, hidden: this.showLimit > 0 and loop.index > this.showLimit}) }}
                     {% endfor %}
+                    {#- Fewer puzzlers than the rows the placeholder draws (a month just begun, a quiet one): numbered empty slots
+                        up to showLimit, so the lazy swap of the placeholder moves nothing under it - the Hub loads without a
+                        layout shift (docs/features/navigation GEST-16, checks/GEST-16.py) -#}
+                    {% if this.showLimit > 0 and this.players|length < this.showLimit %}
+                        {% for rank in (this.players|length + 1)..this.showLimit %}
+                            <tr class="lb-row-empty" aria-hidden="true">
+                                <td class="rank"><span class="lb-rank">{{ rank }}</span></td>
+                                <td class="lb-solver">
+                                    <span class="lb-player">
+                                        <span class="lb-avatar"><span class="lb-avatar-img lb-tint-guest"></span></span>
+                                        <span class="lb-name lb-name-guest">–</span>
+                                    </span>
+                                </td>
+                                <td class="lb-time">
+                                    <span class="lb-time-value">&nbsp;</span>
+                                    <span class="lb-gap">&nbsp;</span>
+                                    <span class="lb-gap">&nbsp;</span>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    {% endif %}
                 </tbody>
             </table>
         </div>
 
         {% if this.showLimit > 0 and this.players|length > this.showLimit %}
             <button class="mt-3 btn btn-outline-primary btn-sm" data-action="click->show-more-recent-activity#revealRows" data-show-more-recent-activity-target="button">{{ 'show_more'|trans }}</button>
+        {% elseif this.showLimit > 0 %}
+            {#- No more rows to show: the button's room is kept, as the placeholder draws it (no shift, GEST-16) -#}
+            <button class="mt-3 btn btn-outline-primary btn-sm invisible" type="button" tabindex="-1" aria-hidden="true" disabled>{{ 'show_more'|trans }}</button>
         {% endif %}
     </div>
 </div>
@@ -98,8 +122,10 @@
         </div>
 
         {% if props.showLimit > 0 %}
-            <button class="mt-3 btn btn-outline-primary btn-sm disabled" style="width: 100px;">
-                <span class="spinner-border spinner-border-sm"></span>
+            {#- The real button's box (its words, invisible) with the spinner over it - the swap moves nothing -#}
+            <button class="mt-3 btn btn-outline-primary btn-sm disabled position-relative" type="button" tabindex="-1" aria-hidden="true">
+                <span class="invisible">{{ 'show_more'|trans }}</span>
+                <span class="spinner-border spinner-border-sm position-absolute top-50 start-50 translate-middle"></span>
             </button>
         {% endif %}
     </div>

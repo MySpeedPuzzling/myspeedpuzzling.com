@@ -41,8 +41,11 @@
         {# "N new" since the last visit, counted from the rows the Favorites feed renders (FavoritesFeed: no statement of its own) #}
         {% set new_count = favorites_first ? favorites_new_count() : null %}
         {% set feed_limit = constant('SpeedPuzzling\\Web\\Navigation\\FavoritesFeed::LIMIT') %}
-        <div class="col-lg-6 pt-lg-4">
-            <ul class="nav nav-fill nav-tabs hub-feed-tabs mt-0" role="tablist" data-controller="tabs">
+        {# Phones (< 768 px): both panes in one horizontal scroll-snap scroller - a swipe switches feeds, the tabs stay the main
+           control (GEST-16, feed_swipe_controller.js, _hub-feeds.scss). The pane not shown first is .is-resting (no height)
+           from the server, so the page loads without a shift; from 768 px Bootstrap's tabs as before. #}
+        <div class="col-lg-6 pt-lg-4" data-controller="feed-swipe">
+            <ul class="nav nav-fill nav-tabs hub-feed-tabs mt-0" role="tablist" data-controller="tabs" data-feed-swipe-target="tabs">
                 <li class="nav-item">
                     <a class="nav-link{{ favorites_first ? ' active' }}" href="#recent-favorites-activity" data-bs-toggle="tab" role="tab" aria-controls="recent-favorites-activity" aria-selected="{{ favorites_first ? 'true' : 'false' }}" data-action="tabs#showTab">
                         <div class="text-center">
@@ -71,13 +74,13 @@
                 </li>
             </ul>
 
-            <div class="tab-content">
+            <div class="tab-content hub-feeds" data-feed-swipe-target="scroller">
                 {# Both feeds refresh every minute while shown and somebody is here; the line on the "Show more" row counts down
                    and pauses (docs/features/live-activity-feed.md).
                    "New since your last visit" (INB-04a): the first time this pane is shown in a visit - at once when it is the
                    first pane - the feed is marked seen (favorites_seen_controller.js, never from an automatic refresh); the
                    feed keeps the last visit it was rendered with as `newSince`, so this visit's new rows stay new #}
-                <div class="tab-pane fade{{ favorites_first ? ' show active' }}" id="recent-favorites-activity" role="tabpanel"
+                <div class="tab-pane fade{{ favorites_first ? ' show active' : ' is-resting' }}" id="recent-favorites-activity" role="tabpanel" data-feed-swipe-target="pane"
                     {%- if favorites_first %}
                     data-controller="favorites-seen"
                     data-favorites-seen-new-since-value="{{ favorites_seen_at is not null ? favorites_seen_at.timestamp : 0 }}"
@@ -96,7 +99,7 @@
                     {% endif %}
                 </div>
 
-                <div class="tab-pane fade{{ favorites_first ? '' : ' show active' }}" id="recent-activity" role="tabpanel">
+                <div class="tab-pane fade{{ favorites_first ? ' is-resting' : ' show active' }}" id="recent-activity" role="tabpanel" data-feed-swipe-target="pane">
                     <twig:RecentActivity :loading="favorites_first ? 'lazy' : null" limit="20" :showLimit="4" :autoRefresh="true" />
                 </div>
             </div>

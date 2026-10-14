@@ -183,6 +183,10 @@
 @import "press-feedback";
 // Android-only settings (the Vibration switch, GEST-10)
 @import "haptics";
+// View transitions: Android's place fade (GEST-12), the thumbnail morph (GEST-17)
+@import "view-transitions";
+// The installed app's pull indicator per platform (GEST-19; the controller injected it as a <style> before)
+@import "pull-to-refresh";
 
 // Text grows one step on tablets and one more on desktops - there is the room, and people sit further from the screen
 // (user feedback: desktop needed 133 % zoom). Percentages, never px, so a visitor's own browser text size still applies.

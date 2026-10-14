@@ -9,7 +9,8 @@ use SpeedPuzzling\Web\Value\OnlineMediaKind;
 /**
  * An evidence object a participant's phone is about to upload (`POST /api/compete/{token}/media`,
  * docs/features/online-competitions/implementation-plan.md §3.1) - the row first, under an id the controller made, then
- * the controller presigns the upload (OnlineMediaStorage::presignPut()).
+ * the controller presigns the upload (OnlineMediaStorage::presignPut()). A presign after a failed upload names the media
+ * it replaces (`supersededMediaId`) - marked abandoned (OnlineEntryMedia::markAbandoned()).
  */
 readonly final class RegisterOnlineMedia
 {
@@ -26,6 +27,9 @@ readonly final class RegisterOnlineMedia
         public string $contentType,
         // The phone's event it belongs to (a finish tap's photo and burst)
         public null|string $relatedEventId = null,
+        // The media whose upload this one replaces - the phone gave its URL up after a failure (`previousFailure.mediaId`
+        // of the presign request): it never arrives
+        public null|string $supersededMediaId = null,
     ) {
     }
 }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller\OnlineRounds;
 
+use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Ramsey\Uuid\Uuid;
@@ -171,6 +172,9 @@ final class OnlineReviewControllerTest extends WebTestCase
         $this->evidence($olivia, OnlineMediaKind::Button, $tapMs + 40, $tapId);
         $this->evidence($olivia, OnlineMediaKind::Periodic, $startMs + 30_000);
         $pending = $this->evidence($olivia, OnlineMediaKind::Periodic, $startMs + 60_000, uploaded: false);
+        $neverArrived = $this->evidence($olivia, OnlineMediaKind::Periodic, $startMs + 90_000, uploaded: false);
+        $neverArrived->markAbandoned(new DateTimeImmutable());
+        $this->entityManager()->flush();
 
         $browser->request('GET', self::ENTRY, server: ['HTTP_ACCEPT' => 'application/json']);
 
@@ -205,9 +209,17 @@ final class OnlineReviewControllerTest extends WebTestCase
         // Not uploaded yet - listed, never hidden
         self::assertIsArray($media[$pending->id->toString()] ?? null);
         self::assertTrue($media[$pending->id->toString()]['pending']);
+        self::assertFalse($media[$pending->id->toString()]['abandoned']);
         self::assertArrayHasKey('url', $media[$pending->id->toString()]);
         self::assertNull($media[$pending->id->toString()]['url']);
-        self::assertCount(5, $detail['media'], 'with the fixture\'s empty mat');
+        // Never arrived, never will (the phone gave its URL up) - listed as such, not as pending
+        self::assertIsArray($media[$neverArrived->id->toString()] ?? null);
+        self::assertFalse($media[$neverArrived->id->toString()]['pending']);
+        self::assertTrue($media[$neverArrived->id->toString()]['abandoned']);
+        self::assertNull($media[$neverArrived->id->toString()]['url']);
+        self::assertFalse($burstMedia['pending']);
+        self::assertFalse($burstMedia['abandoned']);
+        self::assertCount(6, $detail['media'], 'with the fixture\'s empty mat');
     }
 
     public function testTheEntryAddressOpenedAsAPageLeadsToTheReview(): void

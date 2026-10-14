@@ -203,7 +203,8 @@ max(3, 1 % of the round's phones) sources. Follow-ups (`docs/TODO.md` material):
   aborted upload is reported as status 0 with a fresh URL at once - three phones on a hanging store reach the second
   store 17.1 s after it began to hang (harness), was 41 s;
 - a presign carrying `previousFailure.mediaId` could mark that never-uploaded row superseded, so the review shows no
-  "pending" twin;
+  "pending" twin; **done (P1G)**: marked abandoned (`abandoned_at`) - "never arrived" in the review, no longer
+  pending for the cap; the rest by the daily prune;
 - before closing, a server-side probe of the primary (a HEAD of a canary object) would spare the flap's failed wave.
 
 **For lily** (the production run's plan is in the tool's README - Jan's OK, a quiet hour, the edge prepared):

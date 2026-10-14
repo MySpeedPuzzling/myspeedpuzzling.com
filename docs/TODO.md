@@ -62,7 +62,10 @@ that would otherwise be forgotten. Newest section on top.
 - [x] A timeout on the phone's upload request (a hanging store took 41 s to switch to the second store - each phone
       waited for its connection timeout). Done (stream P1G): `media_outbox.js` aborts a PUT after 15 s + its body at
       32 KB/s and reports it like "no answer" with a fresh URL at once - a hanging store is left in ~17 s (harness).
-- [ ] Mark upload rows abandoned after a failure, so the review doesn't show them as pending.
+- [x] Mark upload rows abandoned after a failure, so the review doesn't show them as pending. Done (stream P1G):
+      `online_entry_media.abandoned_at` - set by the presign that names the given-up upload, else by the daily prune
+      (nothing in the store 30 min after); the review says "never arrived". Run `myspeedpuzzling:prune-online-media`
+      after an event's round if its review should say so before the night's run (safe at any time).
 - [ ] Probe the primary store before the circuit breaker closes again (now it closes after 60 s and one round of
       uploads fails before it reopens).
 - [ ] The production load run at a quiet hour (Tue/Wed 05-07 Prague) with Jan's OK - plan in the README.

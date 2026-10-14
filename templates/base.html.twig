@@ -19,8 +19,25 @@
         {% set ogLocales = {'cs': 'cs_CZ', 'en': 'en_US', 'es': 'es_ES', 'ja': 'ja_JP', 'fr': 'fr_FR', 'de': 'de_DE'} %}
 
         <meta name="description" content="{%- block meta_description -%}{%- endblock -%}{% if block('meta_description') is empty %}{{ 'homepage.meta.description'|trans }}{% endif %}">
-        <meta name="format-detection" content="telephone=no">
-        <meta name="turbo-cache-control" content="no-cache">
+        <meta name="format-detection" content="telephone=no">{#
+            Instant Back (README §4.13 G9, GEST-15): Turbo keeps no copy of a page - browse pages override the block with
+            no-preview (cached for restores only, assets/instant_back.js); who the page was rendered for (GEST-14) - for
+            signed-in viewers only: a guest's page is byte for byte what it was (assets/instant_back.js knows a guest's
+            page by <body data-viewer-audience>). The empty lines and the whitespace control keep those bytes: Twig eats
+            the line break after a tag or a comment, ChromeWhitespace turns the rest into one line break.
+            msp-clears-snapshots: this page's GET wrote (notifications marked read, a conversation read, a stopwatch
+            started or stopped - `clears_snapshots` or the block): the copies of the pages before it are stale
+            (assets/instant_back.js) - signed-in pages only.
+        #}
+
+        <meta name="turbo-cache-control" content="{% block turbo_cache_control %}no-cache{% endblock %}">
+        {%- set msp_viewer = viewer_marker() %}
+        {%- if msp_viewer != '' %}
+
+        <meta name="msp-viewer" content="{{ msp_viewer }}">
+        {%- block clears_snapshots %}{% if clears_snapshots ?? false %}<meta name="msp-clears-snapshots">{% endif %}{% endblock %}
+        {%- endif %}
+
         <meta name="turbo-prefetch" content="false">
         {# Turbo runs a visit as a view transition only while this says same-origin: assets/view_transition_gate.js sets it
            per visit (Android's place fade, the thumbnail morph - GEST-12/17) and to none everywhere else #}
@@ -210,7 +227,8 @@
             {% set comparison_just_added = comparison_launcher and app.request.hasPreviousSession and app.session.flashBag.peek(comparison_added_flash) is not empty %}
             {% for label in app.request.hasPreviousSession ? ['success', 'danger', 'warning', 'info'] : [] %}
                 {% for message in app.flashes(label) %}
-                    <div class="container mt-3">
+                    {# data-turbo-temporary: a page restored by Back never shows an old message again (GEST-15) #}
+                    <div class="container mt-3" data-turbo-temporary>
                         <div class="alert-dismissible mb-0 fade show alert alert-{{ label }}" role="alert">
                             {{ message }}
                             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="{{ 'forms.close'|trans }}"></button>

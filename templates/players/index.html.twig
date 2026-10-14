@@ -1,5 +1,8 @@
 {% extends 'base.html.twig' %}
 
+{# Instant Back (README §4.13 G9, GEST-15): a browse page - Turbo keeps a copy of it for Back only #}
+{% block turbo_cache_control %}no-preview{% endblock %}
+
 {#
     The Players page (docs/features/players-page/README.md). Order: find someone -> the spotlight on the world or one
     country -> this week -> people for you -> the countries. Each section is a component that loads its own data.

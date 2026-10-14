@@ -10318,3 +10318,8 @@ email_undeliverable:
         general: "Le serveur de messagerie destinataire a refusé nos e-mails."
     server_said: "Réponse du serveur : %answer%"
     change_address: "Modifier votre adresse e-mail"
+post_action:
+    lead: "Confirmez avec le bouton ci-dessous."
+    failed: "Ça n'a pas fonctionné. Veuillez réessayer."
+    unfollow: "Ne plus suivre"
+    collection_remove: "Retirer de la collection"

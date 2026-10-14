@@ -10287,3 +10287,8 @@ email_undeliverable:
         general: "受信側のメールサーバーがメールを拒否しました。"
     server_said: "サーバーの応答: %answer%"
     change_address: "メールアドレスを変更する"
+post_action:
+    lead: "下のボタンで確定してください。"
+    failed: "うまくいきませんでした。もう一度お試しください。"
+    unfollow: "フォローをやめる"
+    collection_remove: "コレクションから削除"

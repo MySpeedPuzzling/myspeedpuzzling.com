@@ -59,6 +59,9 @@ final class PlatformFlagReadersTest extends TestCase
         'assets/tab_long_press.js',
         // GEST-12 / GEST-17: no view transition inside the app (assets/view_transition_gate.js decides)
         'assets/view_transition_gate.js',
+        // GEST-14 / GEST-15: the instant-Back restore handling steps aside inside the app (restoreDecision() 'leave',
+        // bfcacheVerdict() today's reload - assets/instant_back.js decides, app.js and the PWA controller pass it on)
+        'assets/instant_back.js',
     ];
 
     /** The one module that talks to the vibration API (README §4.14 (c), GEST-10) */

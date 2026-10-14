@@ -1,5 +1,8 @@
 {% extends 'base.html.twig' %}
 
+{# Instant Back (README §4.13 G9, GEST-15): a browse page - Turbo keeps a copy of it for Back only #}
+{% block turbo_cache_control %}no-preview{% endblock %}
+
 {#
     "Browse all puzzlers" (docs/features/players-page/README.md, stream S5). The world or one country (?scope=), with
     the directory's filters and sorts. Only the bare world page is for the index; a scope, a filter, a sort or a longer

@@ -38,7 +38,7 @@ final class SetMyCountryControllerTest extends WebTestCase
 
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorTextContains('.players-nudge-error', "We couldn't find that country.");
-        self::assertCount(1, $crawler->filter('.players-nudge form[action="' . self::ENDPOINT . '"] select[name="country"][aria-invalid="true"]'));
+        self::assertCount(1, $crawler->filter('.players-nudge form[data-post-action-url-value="' . self::ENDPOINT . '"] select[name="country"][aria-invalid="true"]'));
         self::assertNull($this->countryOf($browser, PlayerFixture::PLAYER_REGULAR));
     }
 
@@ -89,10 +89,11 @@ final class SetMyCountryControllerTest extends WebTestCase
         $crawler = $browser->request('GET', '/en/puzzlers');
         self::assertResponseIsSuccessful();
 
-        $token = $crawler->filter('.players-nudge form[action="' . self::ENDPOINT . '"] input[name="_token"]');
-        self::assertCount(1, $token);
+        // The nudge's GET form to the one-tap action's view carries the token for post_action_controller.js (GEST-15)
+        $form = $crawler->filter('.players-nudge form[data-post-action-url-value="' . self::ENDPOINT . '"]');
+        self::assertCount(1, $form);
 
-        return (string) $token->attr('value');
+        return (string) $form->attr('data-post-action-token-value');
     }
 
     private function countryOf(KernelBrowser $browser, string $playerId): null|string

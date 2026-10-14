@@ -1,0 +1,18 @@
+{#
+    A one-tap action that asks first (Block - PostAction::confirmsInFrame()) in the modal frame
+    (PostActionConfirmController, docs/features/navigation GEST-15, decision 99): the view is the confirmation, its form
+    lives in the frame - never in a page Turbo may restore from its cache.
+#}
+<turbo-frame id="modal-frame">
+    <div class="modal-header">
+        <h5 class="modal-title">{{ post_action.titleKey|trans }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ 'forms.close'|trans }}"></button>
+    </div>
+    <div class="modal-body">
+        {% for key in post_action.textKeys %}
+            <p class="{{ loop.last ? 'mb-3 text-muted small' : 'mb-2' }}">{{ key|trans }}</p>
+        {% endfor %}
+        {% set cancel %}<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ 'forms.cancel'|trans }}</button>{% endset %}
+        {{ include('post_action/_form.html.twig', {in_frame: true, cancel: cancel}) }}
+    </div>
+</turbo-frame>

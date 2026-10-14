@@ -132,6 +132,8 @@ final class ConversationDetailController extends AbstractController
         }
 
         return $this->render('messaging/conversation_detail.html.twig', [
+            // Instant Back: the messages were marked read - the copies of the pages before (their badges) are stale
+            'clears_snapshots' => $conversation->status === ConversationStatus::Accepted,
             'conversation' => $conversation,
             'messages' => $messagesPage->messages,
             'has_older_messages' => $messagesPage->hasOlderMessages,

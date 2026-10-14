@@ -16,17 +16,10 @@
     {# User lent this puzzle - show return/pass actions #}
     {% set lent_puzzle_id = puzzle_statuses.lentPuzzleIds[puzzle_id] %}
     <li>
-        <form action="{{ path('return_puzzle', {lentPuzzleId: lent_puzzle_id}) }}"
-              method="post"
-              data-turbo="true"
-              class="d-inline w-100">
-            <input type="hidden" name="context" value="{{ context }}">
-            <input type="hidden" name="tab" value="{{ tab }}">
-            <input type="hidden" name="collection_id" value="{{ collection_id }}">
-            <button type="submit" class="dropdown-item text-success w-100 text-start">
-                <i class="bi bi-box-arrow-in-left me-1"></i> {{ 'lend_borrow.return.button'|trans }}
-            </button>
-        </form>
+        {# A one-tap link, never a POST form (GEST-15: the catalogue may be restored from Turbo's cache) #}
+        <a class="dropdown-item text-success w-100 text-start" {{ post_action_attributes('puzzle_return', {lentPuzzleId: lent_puzzle_id}, {context: context, tab: tab, collection_id: collection_id ~ ''}) }}>
+            <i class="bi bi-box-arrow-in-left me-1"></i> {{ 'lend_borrow.return.button'|trans }}
+        </a>
     </li>
     <li>
         <a class="dropdown-item text-primary"
@@ -40,17 +33,10 @@
     {# User borrowed this puzzle - show return/pass actions #}
     {% set lent_puzzle_id = puzzle_statuses.borrowedPuzzleIds[puzzle_id] %}
     <li>
-        <form action="{{ path('return_puzzle', {lentPuzzleId: lent_puzzle_id}) }}"
-              method="post"
-              data-turbo="true"
-              class="d-inline w-100">
-            <input type="hidden" name="context" value="{{ context }}">
-            <input type="hidden" name="tab" value="{{ tab }}">
-            <input type="hidden" name="collection_id" value="{{ collection_id }}">
-            <button type="submit" class="dropdown-item text-success w-100 text-start">
-                <i class="bi bi-box-arrow-in-left me-1"></i> {{ 'lend_borrow.return.button'|trans }}
-            </button>
-        </form>
+        {# A one-tap link, never a POST form (GEST-15: the catalogue may be restored from Turbo's cache) #}
+        <a class="dropdown-item text-success w-100 text-start" {{ post_action_attributes('puzzle_return', {lentPuzzleId: lent_puzzle_id}, {context: context, tab: tab, collection_id: collection_id ~ ''}) }}>
+            <i class="bi bi-box-arrow-in-left me-1"></i> {{ 'lend_borrow.return.button'|trans }}
+        </a>
     </li>
     <li>
         <a class="dropdown-item text-primary"

@@ -183,11 +183,31 @@ export function slotMenu(document) {
     return slot && nav && nav.parentNode === slot ? nav : null;
 }
 
-/** Is the Menu docked as the column right now - its slot shown (critical CSS decides) */
+/**
+ * Is the Menu docked as the column right now - its slot shown (critical CSS decides). Critical CSS shows the slot only
+ * within WIDE_QUERY, so anywhere narrower the answer needs no layout: asking getClientRects() at turbo:render laid the
+ * whole new page out in the middle of the render on every phone visit and Back (GEST-15 (e)).
+ */
 export function isDocked(document) {
     const slot = document.getElementById(SLOT_ID);
 
-    return Boolean(slot) && slot.getClientRects().length > 0;
+    if (!slot) {
+        return false;
+    }
+
+    const view = document.defaultView;
+
+    if (view && typeof view.matchMedia === 'function') {
+        try {
+            if (!view.matchMedia(WIDE_QUERY).matches) {
+                return false;
+            }
+        } catch (e) {
+            // the layout below decides
+        }
+    }
+
+    return slot.getClientRects().length > 0;
 }
 
 function shown(element) {

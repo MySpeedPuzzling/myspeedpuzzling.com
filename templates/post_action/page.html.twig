@@ -1,0 +1,22 @@
+{% extends 'base.html.twig' %}
+
+{#
+    A one-tap action on its own page (PostActionConfirmController, docs/features/navigation GEST-15): what its link opens
+    without JavaScript or in a new tab (Block's confirmation inside the app, too). One heading, one button.
+#}
+
+{% block title %}{{ post_action.titleKey|trans }}{% endblock %}
+
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+    <div class="post-action-page mx-auto py-3" style="max-width: 32rem;">
+        <h1 class="h3 mb-3">{{ post_action.titleKey|trans }}</h1>
+        {% if detail %}<p class="fw-medium">{{ detail }}</p>{% endif %}
+        {% for key in post_action.textKeys %}
+            <p class="text-muted">{{ key|trans }}</p>
+        {% endfor %}
+        {% set cancel %}<a class="btn btn-outline-secondary" href="{{ back ?? path('homepage') }}">{{ 'forms.cancel'|trans }}</a>{% endset %}
+        {{ include('post_action/_form.html.twig', {in_frame: false, cancel: cancel}) }}
+    </div>
+{% endblock %}

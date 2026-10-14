@@ -4,7 +4,8 @@
 {% block meta_description %}{{ 'membership.meta.description'|trans }}{% endblock %}
 
 {% block content %}
-    <div class="pb-4">
+    {# GEST-14: a Back to this page reloads it - the membership state may have changed meanwhile (checkout) #}
+    <div class="pb-4" data-bfcache-reload>
         <div class="row gy-3 pb-3">
             <div class="col-lg-6 col-md-8">
                 <h1 class="h2">{{ 'membership.title'|trans }}</h1>

@@ -45,9 +45,9 @@ final class UnsolvedListTest extends AbstractPantherTestCase
         $client->waitForVisibility($puzzleCardSelector . ' .dropdown-menu');
 
         // Click "Remove from collection" button (it's a form submit button)
-        // The form action is /en/collections/{puzzleId}/remove
+        // A one-tap link posting to /en/collections/{puzzleId}/remove (GEST-15)
         $client->getCrawler()
-            ->filter($puzzleCardSelector . ' .dropdown-menu form[action*="/collections/"] button')
+            ->filter($puzzleCardSelector . ' .dropdown-menu a[data-post-action-url-value*="/collections/"]')
             ->first()
             ->click();
 
@@ -96,9 +96,9 @@ final class UnsolvedListTest extends AbstractPantherTestCase
         $client->waitForVisibility($puzzleCardSelector . ' .dropdown-menu');
 
         // Click the first "Remove from collection" button (removes from one of two collections)
-        // The form action is /en/collections/{puzzleId}/remove
+        // A one-tap link posting to /en/collections/{puzzleId}/remove (GEST-15)
         $client->getCrawler()
-            ->filter($puzzleCardSelector . ' .dropdown-menu form[action*="/collections/"] button')
+            ->filter($puzzleCardSelector . ' .dropdown-menu a[data-post-action-url-value*="/collections/"]')
             ->first()
             ->click();
 
@@ -373,10 +373,12 @@ final class UnsolvedListTest extends AbstractPantherTestCase
         // The form action contains /sell-swap/ and ends with /remove
         $client->executeScript("
             const card = document.querySelector('" . $puzzleCardSelector . "');
-            const forms = card.querySelectorAll('.dropdown-menu form');
-            for (const form of forms) {
-                if (form.action.includes('sell-swap') && form.action.includes('remove')) {
-                    form.querySelector('button').click();
+            // One-tap links (GEST-15): the route they post to is data-post-action-url-value
+            const links = card.querySelectorAll('.dropdown-menu a[data-post-action-url-value]');
+            for (const link of links) {
+                const url = link.getAttribute('data-post-action-url-value');
+                if (url.includes('sell-swap') && url.includes('remove')) {
+                    link.click();
                     break;
                 }
             }
@@ -553,9 +555,9 @@ final class UnsolvedListTest extends AbstractPantherTestCase
 
         $client->waitForVisibility($puzzleCardSelector . ' .dropdown-menu');
 
-        // Click "Return" button (form action is /en/return-puzzle/{lentPuzzleId})
+        // Click "Return" (a one-tap link posting to /en/return-puzzle/{lentPuzzleId}, GEST-15)
         $client->getCrawler()
-            ->filter($puzzleCardSelector . ' .dropdown-menu form[action*="return-puzzle"] button')
+            ->filter($puzzleCardSelector . ' .dropdown-menu a[data-post-action-url-value*="return-puzzle"]')
             ->first()
             ->click();
 

@@ -10,8 +10,10 @@
  * carries data-nav-layout, never data-nav).
  *
  * Once per browser session it also sends the innerWidth bucket and the pointer type, and one line per Back/Forward
- * navigation: a Turbo restore (app.js calls turboRestore() before it reloads the page - that reload is a replace, so
- * it is not counted again), a page loaded by a traverse, or a page shown from the back/forward cache. The GEST-13
+ * navigation: a Turbo restore (turboRestore() before a restore turns into a full load - that reload is a replace, so
+ * it is not counted again), a page loaded by a traverse, or a page shown from the back/forward cache. Since GEST-08 the
+ * app starts it with `history: false` and assets/back_measurement.js sends that one line per Back instead, with how the
+ * page came back (back(): kind `back` - restore snapshot | reload | bfcache | bfcache-reload, ms_to_load). The GEST-13
  * watchdog (assets/confirm_dialog.js) reports a native dialog an iPhone refused through dialogSuppressed(). Each open of
  * the Menu (MENU-02b: the phone panel; NAV-13: the desktop overlay) is one `menu_open` line: the Menu's controller
  * dispatches `msp:menu-open` {surface, place} on the document (MENU_OPEN_EVENT), this module sends it. A page search
@@ -104,6 +106,12 @@ export const MEMBERS_MODAL_EVENT = 'msp:members-modal';
 /** A teaser's placement id (data-members-placement - the server knows them, MembersPlacement); 'none' without one */
 export const MEMBERS_PLACEMENT_PATTERN = /^[a-z]+\.[a-z_]+$/;
 
+/** GEST-08: how a page came back by a Back / Forward (NavClickController::RESTORE_KINDS) */
+export const BACK_RESTORE_KINDS = ['snapshot', 'reload', 'bfcache', 'bfcache-reload'];
+
+/** The longest ms_to_load logged (10 minutes; NavClickController::BACK_MS_MAX) - anything else is null */
+export const BACK_MS_MAX = 600000;
+
 /** The page's place (NavPlace) - the same list as NavClickController::PLACES */
 export const PLACES = ['home', 'puzzles', 'add', 'community', 'profile', 'none'];
 
@@ -186,7 +194,7 @@ export function pointerType(window) {
 }
 
 /** The history position: the Navigation API's, else the one Turbo keeps in history.state */
-function historyIndex(window) {
+export function historyIndex(window) {
     try {
         const entry = window.navigation && window.navigation.currentEntry;
 
@@ -202,7 +210,7 @@ function historyIndex(window) {
     }
 }
 
-function direction(from, to) {
+export function direction(from, to) {
     if (typeof from !== 'number' || typeof to !== 'number' || from < 0 || to < 0 || from === to) {
         return 'unknown';
     }
@@ -210,13 +218,15 @@ function direction(from, to) {
     return to < from ? 'back' : 'forward';
 }
 
-function activationDirection(activation) {
+export function activationDirection(activation) {
     return direction(activation.from ? activation.from.index : null, activation.entry ? activation.entry.index : null);
 }
 
 export function createNavInstrumentation(env) {
     const { window, document } = env;
     const navigator = env.navigator || window.navigator || {};
+    // P0-03's own Back/Forward lines - off once GEST-08's back measurement sends them (app.js)
+    const historyLines = env.history !== false;
 
     // Where the last page was shown (each turbo:load), to tell Back from Forward on a restore
     let lastIndex = historyIndex(window);
@@ -359,7 +369,7 @@ export function createNavInstrumentation(env) {
     }
 
     function onPageShow(event) {
-        if (!event.persisted) {
+        if (!event.persisted || !historyLines) {
             return;
         }
 
@@ -410,8 +420,12 @@ export function createNavInstrumentation(env) {
     }
 
     const api = {
-        /** app.js: a Turbo restore visit, right before it turns it into a full page load */
+        /** A Turbo restore visit, right before it turns into a full page load (P0-03; GEST-08 sends back() instead) */
         turboRestore() {
+            if (!historyLines) {
+                return;
+            }
+
             const index = historyIndex(window);
 
             send({
@@ -423,6 +437,27 @@ export function createNavInstrumentation(env) {
 
             lastIndex = index;
             traverse = null;
+        },
+
+        /**
+         * GEST-08 (assets/back_measurement.js): one line per Back / Forward with how the page came back - `restore`
+         * snapshot | reload | bfcache | bfcache-reload, `ms` to load (whole ms, null when unknown), `dir` and whether the
+         * browser animated it itself. Anything outside the lists sends nothing.
+         */
+        back(detail = {}) {
+            if (!BACK_RESTORE_KINDS.includes(detail.restore)) {
+                return;
+            }
+
+            const ms = Number.isInteger(detail.ms) && detail.ms >= 0 && detail.ms <= BACK_MS_MAX ? detail.ms : null;
+
+            send({
+                k: 'back',
+                restore: detail.restore,
+                ms,
+                dir: ['back', 'forward', 'unknown'].includes(detail.dir) ? detail.dir : 'unknown',
+                uaTransition: typeof detail.uaTransition === 'boolean' ? detail.uaTransition : null,
+            });
         },
 
         /**
@@ -549,7 +584,10 @@ export function createNavInstrumentation(env) {
             }
 
             sendViewportOncePerSession();
-            sendLoadedByTraverse();
+
+            if (historyLines) {
+                sendLoadedByTraverse();
+            }
 
             return api;
         },

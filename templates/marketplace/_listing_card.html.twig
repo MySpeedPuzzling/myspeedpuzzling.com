@@ -51,15 +51,13 @@
                 </li>
                 {% if item.reserved %}
                     <li>
-                        <form action="{{ path('sell_swap_remove_reservation', {itemId: item.itemId}) }}" method="post" data-turbo="true">
-                            <input type="hidden" name="context" value="marketplace">
-                            <button type="submit" class="dropdown-item">
-                                <i class="bi bi-bookmark-dash me-1"></i> {{ 'sell_swap_list.remove_reservation.button'|trans }}
-                                {% if item.reservedForPlayerName is not null %}
-                                    <small class="text-muted">({{ item.reservedForPlayerName }})</small>
-                                {% endif %}
-                            </button>
-                        </form>
+                        {# One-tap links, never POST forms (GEST-15: the marketplace may be restored from Turbo's cache) #}
+                        <a class="dropdown-item" {{ post_action_attributes('reservation_remove', {itemId: item.itemId}, {context: 'marketplace'}) }}>
+                            <i class="bi bi-bookmark-dash me-1"></i> {{ 'sell_swap_list.remove_reservation.button'|trans }}
+                            {% if item.reservedForPlayerName is not null %}
+                                <small class="text-muted">({{ item.reservedForPlayerName }})</small>
+                            {% endif %}
+                        </a>
                     </li>
                 {% else %}
                     <li>
@@ -80,11 +78,9 @@
                     </a>
                 </li>
                 <li>
-                    <form action="{{ path('sellswap_remove', {puzzleId: item.puzzleId}) }}" method="post">
-                        <button type="submit" class="dropdown-item text-danger">
-                            <i class="bi bi-trash me-1"></i> {{ 'sell_swap_list.remove.button'|trans }}
-                        </button>
-                    </form>
+                    <a class="dropdown-item text-danger" {{ post_action_attributes('sell_swap_remove', {puzzleId: item.puzzleId}) }}>
+                        <i class="bi bi-trash me-1"></i> {{ 'sell_swap_list.remove.button'|trans }}
+                    </a>
                 </li>
             </ul>
         </div>

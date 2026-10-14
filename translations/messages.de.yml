@@ -10298,3 +10298,8 @@ email_undeliverable:
         general: "Der empfangende Mailserver hat unsere E-Mails abgelehnt."
     server_said: "Antwort des Servers: %answer%"
     change_address: "E-Mail-Adresse ändern"
+post_action:
+    lead: "Bestätigen Sie mit der Schaltfläche unten."
+    failed: "Das hat nicht geklappt. Bitte versuchen Sie es erneut."
+    unfollow: "Nicht mehr folgen"
+    collection_remove: "Aus der Sammlung entfernen"

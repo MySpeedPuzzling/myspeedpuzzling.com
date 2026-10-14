@@ -21,6 +21,7 @@ import {
     focusDockedMenu,
     focusPageMenu,
     installNavLayout,
+    isDocked,
     LAYOUT_ATTRIBUTE,
     LAYOUT_EVENT,
     LAYOUT_KEY,
@@ -382,6 +383,22 @@ cases.push(run('the ☰ on the menu page', () => {
         otherPrevented,
         notTheMenuPage: focusPageMenu(page().window, page().document),
     };
+}));
+
+// GEST-15 (e): below 1280 px the column cannot be docked (critical CSS shows its slot only within WIDE_QUERY) - known
+// without a layout, so a render (a Back restoring a long list) is not laid out in the middle by turbo:render's check
+cases.push(run('docked without a layout below 1280 px', () => {
+    const narrow = page({ docked: true, wide: false });
+    let measured = 0;
+    narrow.document.getElementById('menu-slot').getClientRects = () => {
+        measured += 1;
+        return [{}];
+    };
+    const narrowDocked = isDocked(narrow.document);
+    const wide = page({ docked: true, wide: true });
+    const hidden = page({ docked: false, wide: true });
+
+    return { narrowDocked, measured, wideDocked: isDocked(wide.document), wideHidden: isDocked(hidden.document) };
 }));
 
 process.stdout.write(JSON.stringify(Object.fromEntries(cases)));

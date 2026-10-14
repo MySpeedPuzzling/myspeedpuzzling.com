@@ -1,14 +1,16 @@
 /* stimulusFetch: 'lazy' */
 import { Controller } from '@hotwired/stimulus';
+import { clearSnapshots, notePost } from '../instant_back.js';
 
 /**
  * The follow star of the events page and the detail pages' headers (docs/features/events-page/README.md, "Follow";
  * templates/event_parts/_follow_star.html.twig) - the labelled variant (`.ev-star-labelled`) flips its visible text.
  *
- * Signed in (on the star's <form>): the submit is sent with fetch (Accept: application/json) instead of a full page
- * post, and every star of the same target on the page flips at once - optimistically, put back when the answer is not
- * a success ("That didn't work. Please try again." under the row). Without JavaScript the form posts and the server
- * redirects back with a flash.
+ * Signed in (on the star's <form>): the follow / unfollow is posted with fetch (Accept: application/json; the stateless
+ * CSRF token from data-token) and every star of the same target on the page flips at once - optimistically, put back
+ * when the answer is not a success ("That didn't work. Please try again." under the row). The form itself is a GET form
+ * to the one-tap action's confirmation view (GEST-15, decision 99: no POST form on a page Turbo may restore from its
+ * cache) - without JavaScript that view's single button posts it and the server redirects back with a flash.
  *
  * Guests (on the star's sign-in link): the tap shows "Sign in to follow events and series." under the row, with a link
  * to sign in and come back; a second tap hides it. Without JavaScript the star is that sign-in link.
@@ -57,6 +59,11 @@ export default class extends Controller {
         try {
             const body = new FormData(form);
             body.set('return', currentUrl());
+            body.delete('back');
+
+            if (form.dataset.token) {
+                body.set('_token', form.dataset.token);
+            }
 
             const response = await fetch(url, {
                 method: 'POST',
@@ -68,6 +75,9 @@ export default class extends Controller {
             if (response.ok) {
                 const data = await response.json();
                 ok = data.following === following;
+                // GEST-15 (decision 65): a page restored by Back never shows the star before the tap
+                clearSnapshots();
+                notePost();
             }
         } catch {
             ok = false;

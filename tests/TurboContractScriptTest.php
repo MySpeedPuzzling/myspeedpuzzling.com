@@ -12,7 +12,9 @@ use Symfony\Component\Process\Process;
  * The Turbo internals the navigation helpers rely on, pinned against the real dist (docs/features/navigation
  * implementation plan decision 92, review F5). assets/layer_history.js uses session.history.{stop, start, replace,
  * currentIndex, restorationIdentifier} and session.navigator.currentVisit.action, marks a link in turbo:click and a
- * form in turbo:submit-start; GEST-12/17 rely on the view-transition decision reading the live head meta.
+ * form in turbo:submit-start, and sets session.view.lastRenderedLocation for a page owner's entries; GEST-12/17 rely on
+ * the view-transition decision reading the live head meta; assets/instant_back.js (GEST-15) on the cache's order,
+ * session.view.snapshotCache.has, session.navigator.currentVisit.{cancel, willRender} and Turbo.cache.clear.
  *
  * @hotwired/turbo is pinned to exactly 8.0.23 because of them. A Turbo upgrade must keep this test green and re-run the
  * browser checks of GEST-01, GEST-12, GEST-15 and GEST-17; the helpers also detect missing internals at runtime and fall
@@ -128,6 +130,40 @@ final class TurboContractScriptTest extends TestCase
             'againSameOrigin' => true,
             'shouldTransitionTo' => 'function',
         ], $this->facts()['viewTransition']);
+    }
+
+    /**
+     * GEST-15 (assets/instant_back.js): turbo:before-cache comes first (before the render), Turbo then reads the location
+     * to cache under (layer_history sets it for a page owner's entries) and clones the page one task later - a task
+     * queued in turbo:before-cache lands in the copy, so the cache work can wait until a view transition captured the
+     * live page. A restore of a cached page renders that copy (turbo:before-render's newBody) without a request; the
+     * visit is cancellable at turbo:visit (a restore turned into a full load renders nothing); willRender marks a visit
+     * that renders the page; Turbo.visit() renders an answer it is given without fetching (post_action_controller.js).
+     */
+    public function testTheCacheAndRestoreInternalsInstantBackUses(): void
+    {
+        self::assertSame([
+            'order' => ['before-cache', 'before-render'],
+            'cachedUnderTheLocationSetInBeforeCache' => true,
+            'syncMark' => 'yes',
+            'deferredMark' => 'yes',
+            'cacheClear' => 'function',
+            'snapshotCacheHas' => 'function',
+            'hasCached' => true,
+            'lastRenderedLocationIsAUrl' => true,
+        ], $this->facts()['cacheOrder']);
+
+        self::assertSame([
+            'fetched' => 0,
+            'newBodyIsTheCopy' => true,
+            // holdRestorePosition(): the identifier at turbo:visit, the data a plain object, a position put back in
+            // turbo:render is the one Turbo scrolls to
+            'identifierAtVisit' => 'restore-cached',
+            'restorationDataIsAnObject' => true,
+            'scrolledTo' => [[0, 777]],
+        ], $this->facts()['snapshotRestore']);
+        self::assertSame(['cancel' => 'function', 'willRender' => true, 'rendered' => false], $this->facts()['cancelledRestore']);
+        self::assertSame(['fetched' => 0, 'path' => '/en/answered', 'h1' => 'Answered'], $this->facts()['visitWithResponse']);
     }
 
     /**

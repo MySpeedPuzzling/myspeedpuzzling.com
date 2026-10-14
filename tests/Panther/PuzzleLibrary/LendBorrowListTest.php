@@ -142,7 +142,7 @@ final class LendBorrowListTest extends AbstractPantherTestCase
 
         // Click the "Return to owner" button (it's a form submit button)
         $client->getCrawler()
-            ->filter($puzzleCardSelector . ' .dropdown-menu form[action*="/return-puzzle/"] button')
+            ->filter($puzzleCardSelector . ' .dropdown-menu a[data-post-action-url-value*="/return-puzzle/"]')
             ->first()
             ->click();
 
@@ -200,7 +200,7 @@ final class LendBorrowListTest extends AbstractPantherTestCase
 
         // Click the "Return to owner" button (it's a form submit button)
         $client->getCrawler()
-            ->filter($puzzleCardSelector . ' .dropdown-menu form[action*="/return-puzzle/"] button')
+            ->filter($puzzleCardSelector . ' .dropdown-menu a[data-post-action-url-value*="/return-puzzle/"]')
             ->first()
             ->click();
 

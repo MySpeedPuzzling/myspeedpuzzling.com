@@ -29,12 +29,17 @@ final class EventFollowStarTest extends WebTestCase
         self::assertSame('false', $riverside->attr('aria-pressed'));
         self::assertSame('Follow ' . EventsPageFixture::COMPETITION_RIVERSIDE_OPEN_NAME, $riverside->attr('aria-label'));
 
+        // GEST-15 (decision 99): a GET form to the one-tap action's view (no POST form in a page Turbo may restore);
+        // event_follow_controller.js posts follow / unfollow with the stateless token of data-token
         $form = $riverside->ancestors()->filter('form')->first();
-        self::assertSame('/en/follow-event', $form->attr('action'));
-        self::assertSame('post', strtolower((string) $form->attr('method')));
+        self::assertSame('/en/action/follow', $form->attr('action'));
+        self::assertSame('get', strtolower((string) $form->attr('method')));
         self::assertSame('event-follow', $form->attr('data-controller'));
+        self::assertSame('/en/follow-event', $form->attr('data-follow-url'));
         self::assertSame('/en/unfollow-event', $form->attr('data-unfollow-url'));
-        self::assertNotEmpty($form->filter('input[name="_token"]')->attr('value'));
+        self::assertNotEmpty($form->attr('data-token'));
+        self::assertCount(0, $form->filter('input[name="_token"]'));
+        self::assertSame('competition:' . EventsPageFixture::COMPETITION_RIVERSIDE_OPEN, $form->filter('input[name="target"]')->attr('value'));
         self::assertSame('/en/events?country=de', $form->filter('input[name="return"]')->attr('value'));
 
         // Followed: pressed, the form unfollows - on every star of that target (an edition's star follows its series)
@@ -43,7 +48,7 @@ final class EventFollowStarTest extends WebTestCase
         $harbor->each(static function (Crawler $star): void {
             self::assertSame('true', $star->attr('aria-pressed'));
             self::assertSame('Following ' . EventsPageFixture::SERIES_HARBOR_NIGHTS_NAME, $star->attr('aria-label'));
-            self::assertSame('/en/unfollow-event', $star->ancestors()->filter('form')->first()->attr('action'));
+            self::assertSame('/en/action/unfollow', $star->ancestors()->filter('form')->first()->attr('action'));
         });
 
         // No sign-in note for players

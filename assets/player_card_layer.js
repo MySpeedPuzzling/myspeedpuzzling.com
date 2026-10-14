@@ -1,4 +1,5 @@
 import layers from './layer_history.js';
+import { BEFORE_CACHE_EVENT } from './instant_back.js';
 import { createCardMeasure } from './player_card_measure.js';
 import { contextKindOf, contextOf } from './player_card_rules.js';
 import { SHEET_PHONE_MEDIA } from './sheet_drag.js';
@@ -29,7 +30,7 @@ import { SHEET_PHONE_MEDIA } from './sheet_drag.js';
  * - History only through assets/layer_history.js (GEST-01): opening pushes one same-URL entry ('card'); another name
  *   while the card is open swaps the frame, no history change; ×, Esc, the scrim, a swipe and a click outside close it
  *   through Back; a link leaving the card (data-turbo-frame="_top") is a replace visit; a layer opened over it (the
- *   Message modal, the Menu) takes the entry over and the card closes; turbo:before-cache closes it silently. Inside
+ *   Message modal, the Menu) takes the entry over and the card closes; msp:before-cache closes it silently. Inside
  *   the native app the trigger never opens it (player_card.js).
  * - A guest's sign-in links (data-card-return-page) come back to the page the card was opened on, not the profile.
  * - Pull-to-refresh does not arm while it is open (an open <dialog>, assets/pull_to_refresh.js).
@@ -138,7 +139,7 @@ class PlayerCardLayer {
             },
         });
 
-        document.addEventListener('turbo:before-cache', this.onBeforeCache);
+        document.addEventListener(BEFORE_CACHE_EVENT, this.onBeforeCache);
         document.addEventListener('turbo:load', this.onLoad);
         this.media.addEventListener('change', this.onModeChange);
         // The page goes away with the card open (a full page load, the tab closed): how it ended still counts
@@ -861,7 +862,10 @@ class PlayerCardLayer {
 
     // ---- Turbo ----------------------------------------------------------------------------------------------------
 
-    /** Turbo caches the page: a restored page never shows an open card (and no inert page) */
+    /**
+     * Turbo caches the page (GEST-15, `msp:before-cache` of assets/instant_back.js - after a view transition captured it):
+     * a restored page never shows an open card (and no inert page)
+     */
     onBeforeCache = () => {
         if (this.dialog === null) {
             return;

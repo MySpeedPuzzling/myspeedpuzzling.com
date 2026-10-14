@@ -30,6 +30,7 @@
 
 {% block full_content %}
     <div class="participants-sheet"
+         data-bfcache-reload
          data-controller="participants-sheet"
          data-participants-sheet-urls-value="{{ urls|json_encode|e('html_attr') }}"
          data-participants-sheet-csrf-token-value="{{ csrf_token(csrf_token_id) }}"

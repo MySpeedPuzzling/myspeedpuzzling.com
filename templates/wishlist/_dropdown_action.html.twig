@@ -1,15 +1,10 @@
 {% set context = context|default('detail') %}
 {% if puzzle_id in puzzle_statuses.wishlist %}
     <li>
-        <form action="{{ path('remove_puzzle_from_wish_list', {puzzleId: puzzle_id}) }}"
-              method="post"
-              class="d-inline"
-              data-turbo="true">
-            <input type="hidden" name="context" value="{{ context }}">
-            <button type="submit" class="dropdown-item text-danger">
-                <i class="bi bi-heart-fill text-danger me-1"></i> {{ 'wish_list.remove.button'|trans }}
-            </button>
-        </form>
+        {# A one-tap link, never a POST form (GEST-15: the catalogue may be restored from Turbo's cache) #}
+        <a class="dropdown-item text-danger" {{ post_action_attributes('wishlist_remove', {puzzleId: puzzle_id}, {context: context}) }}>
+            <i class="bi bi-heart-fill text-danger me-1"></i> {{ 'wish_list.remove.button'|trans }}
+        </a>
     </li>
 {% elseif puzzle_id not in puzzle_statuses.collection and puzzle_id not in puzzle_statuses.borrowed %}
     <li>

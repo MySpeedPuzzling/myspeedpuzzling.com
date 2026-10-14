@@ -53,15 +53,19 @@ final class HubController extends AbstractController
             }
         }
 
+        $gettingStartedComplete = $gettingStarted !== null && $profile !== null && $gettingStarted->isComplete();
+
         $response = $this->render('hub.html.twig', [
             'getting_started' => $gettingStarted,
             'review_counts' => $reviewCounts,
             // Open while the core action is still ahead of them; once the first puzzle is logged the
             // card steps back to one line, so it does not keep pushing the Hub off a phone screen
             'getting_started_folded' => $gettingStarted !== null && $gettingStarted->hasLoggedPuzzle,
+            // Instant Back: the card is dismissed below - the copies of the pages showing it are stale
+            'clears_snapshots' => $gettingStartedComplete,
         ]);
 
-        if ($gettingStarted !== null && $profile !== null && $gettingStarted->isComplete()) {
+        if ($gettingStartedComplete) {
             // Everything ticked: this render shows the "all set" state, and it is the last one
             $this->messageBus->dispatch(new DismissHint($profile->playerId, HintType::GettingStartedChecklist));
         }

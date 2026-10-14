@@ -32,9 +32,14 @@ final class PlayersCountryNudgeTest extends WebTestCase
         self::assertSame('players_country_nudge', $nudge->attr('data-dismiss-hint-type-value'));
         self::assertStringContainsString('%country%', (string) $nudge->attr('data-players-country-nudge-named-value'));
 
-        $form = $nudge->filter('form[method="post"][action="/en/puzzlers/my-country"]');
+        // A GET form to the one-tap action's view (GEST-15, decision 99: no POST form in a page Turbo may restore) -
+        // post_action_controller.js posts the country to /en/puzzlers/my-country with its token at once
+        $form = $nudge->filter('form[method="get"][action^="/en/action/set_country"]');
         self::assertCount(1, $form);
-        self::assertCount(1, $form->filter('input[name="_token"]'));
+        self::assertSame('post-action', $form->attr('data-controller'));
+        self::assertSame('/en/puzzlers/my-country', $form->attr('data-post-action-url-value'));
+        self::assertNotEmpty($form->attr('data-post-action-token-value'));
+        self::assertSame('/en/puzzlers', $form->filter('input[name="back"]')->attr('value'));
         self::assertSame('Choose your country', $form->filter('select[name="country"] option')->first()->text());
         self::assertSame('', $form->filter('select[name="country"] option')->first()->attr('value'), 'Nothing preselected on the server - the browser guesses');
         self::assertSame('Czechia', $form->filter('select[name="country"] option[value="cz"]')->text());
@@ -104,7 +109,7 @@ final class PlayersCountryNudgeTest extends WebTestCase
 
         $crawler = $browser->request('GET', '/en/player-profile/' . PlayerFixture::PLAYER_REGULAR);
         self::assertResponseIsSuccessful();
-        self::assertCount(1, $crawler->filter('.players-nudge.mb-3 form[action="/en/puzzlers/my-country"]'));
+        self::assertCount(1, $crawler->filter('.players-nudge.mb-3 form[data-post-action-url-value="/en/puzzlers/my-country"]'));
 
         // Somebody else's profile is about them, not about the viewer
         $crawler = $browser->request('GET', '/en/player-profile/' . PlayerFixture::PLAYER_WITH_FAVORITES);

@@ -10,7 +10,8 @@ use Symfony\Component\Process\Process;
 
 /**
  * The Results page's address rules (docs/features/navigation PROF-05c): assets/player_results_state.js and
- * assets/restore_reload.js run under node (tests/player-results-state-harness.mjs).
+ * assets/instant_back.js createRestoreReload() (PROF-05c's restore mark, folded there by GEST-15) run under node
+ * (tests/player-results-state-harness.mjs).
  *
  * - A change of the filter form asks for the address PlayerResultsCriteria::toQuery() would write: the grammar's order,
  *   defaults and empty values dropped, never `page` and never the form's helpers; piece counts by the server's rule.
@@ -42,8 +43,8 @@ final class PlayerResultsStateScriptTest extends TestCase
             'prefix' => 'msp:results-scroll:',
             'debounce' => 300,
             'restoreKey' => 'msp:restore-reload',
-            // GEST-15 turns snapshots on
-            'snapshots' => false,
+            // GEST-15 turned snapshots on (INSTANT_BACK in assets/instant_back.js)
+            'snapshots' => true,
         ], self::case('constants'));
     }
 

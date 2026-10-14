@@ -22,8 +22,11 @@
             </span>
         </p>
 
-        <form method="post" action="{{ path('set_my_country') }}" class="players-nudge-form">
-            <input type="hidden" name="_token" value="{{ csrf_token(constant('SpeedPuzzling\\Web\\Controller\\SetMyCountryController::CSRF_TOKEN_ID')) }}">
+        {# A GET form to the one-tap action's view, never a POST form (GEST-15, decision 99: the Players page and the profile
+           may be restored from Turbo's cache) - post_action_controller.js posts the country at once #}
+        <form method="get" action="{{ post_action_url('set_country') }}" class="players-nudge-form"
+              {{ post_action_data('set_country') }}>
+            <input type="hidden" name="back" value="{{ app.request.requestUri }}">
             <label class="visually-hidden" for="players-nudge-country">{{ 'players.nudge.label'|trans }}</label>
             <select id="players-nudge-country"
                     name="country"

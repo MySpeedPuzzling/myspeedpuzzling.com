@@ -1,7 +1,11 @@
 {% extends 'base.html.twig' %}
 
-{% block content %}
+{# Instant Back: the membership changed to get here - the pages cached before (other tabs, the back/forward cache) are stale #}
+{% block clears_snapshots %}<meta name="msp-clears-snapshots">{% endblock %}
 
+{% block content %}
+    {# GEST-14: a Back to this page reloads it (the membership state comes from the server) #}
+    <div hidden data-bfcache-reload></div>
 {% endblock %}
 
 {% block title %}

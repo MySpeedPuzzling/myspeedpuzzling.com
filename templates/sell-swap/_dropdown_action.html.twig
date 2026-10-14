@@ -15,16 +15,13 @@
         </li>
         {% if puzzle_id in puzzle_statuses.sellSwapReserved %}
             <li>
-                <form action="{{ path('sell_swap_remove_reservation', {itemId: item_id}) }}" method="post" data-turbo="true">
-                    <input type="hidden" name="context" value="{{ context }}">
-                    {% if currentCollectionId is defined and currentCollectionId %}<input type="hidden" name="collection_id" value="{{ currentCollectionId }}">{% endif %}
-                    <button type="submit" class="dropdown-item">
-                        <i class="bi bi-bookmark-dash me-1"></i> {{ 'sell_swap_list.remove_reservation.button'|trans }}
-                        {% if puzzle_statuses.sellSwapReservedNames[puzzle_id] is defined %}
-                            <small class="text-muted">({{ puzzle_statuses.sellSwapReservedNames[puzzle_id] }})</small>
-                        {% endif %}
-                    </button>
-                </form>
+                {# A one-tap link, never a POST form (GEST-15: the catalogue may be restored from Turbo's cache) #}
+                <a class="dropdown-item" {{ post_action_attributes('reservation_remove', {itemId: item_id}, {context: context}|merge(currentCollectionId is defined and currentCollectionId ? {collection_id: currentCollectionId} : {})) }}>
+                    <i class="bi bi-bookmark-dash me-1"></i> {{ 'sell_swap_list.remove_reservation.button'|trans }}
+                    {% if puzzle_statuses.sellSwapReservedNames[puzzle_id] is defined %}
+                        <small class="text-muted">({{ puzzle_statuses.sellSwapReservedNames[puzzle_id] }})</small>
+                    {% endif %}
+                </a>
             </li>
         {% else %}
             <li>
@@ -45,16 +42,9 @@
             </a>
         </li>
         <li>
-            <form action="{{ path('sellswap_remove', {puzzleId: puzzle_id}) }}"
-                  method="post"
-                  class="d-inline"
-                  data-turbo="true">
-                <input type="hidden" name="context" value="{{ context }}">
-                <input type="hidden" name="collection_id" value="{{ collection_id }}">
-                <button type="submit" class="dropdown-item text-danger">
-                    <i class="bi bi-shop text-danger me-1"></i> {{ 'sell_swap_list.remove.button'|trans }}
-                </button>
-            </form>
+            <a class="dropdown-item text-danger" {{ post_action_attributes('sell_swap_remove', {puzzleId: puzzle_id}, {context: context, collection_id: collection_id ~ ''}) }}>
+                <i class="bi bi-shop text-danger me-1"></i> {{ 'sell_swap_list.remove.button'|trans }}
+            </a>
         </li>
     {% else %}
         <li>

@@ -238,6 +238,10 @@ $skill-legend: #1a1a2e;
   position: relative;
   display: inline-flex;
   flex: 0 0 auto;
+  // Not on the text baseline: an inline-flex box's baseline is its picture's bottom edge, which moves while the
+  // picture loads - the row changed height with it, and a Back restoring a long list from Turbo's snapshot found the
+  // rows above shifted by their pictures' load state (GEST-15, PROF-05c)
+  vertical-align: top;
 
   // A link around the picture would be a line box - its descender gap pushed the disc 6 px below the picture's corner
   > a {

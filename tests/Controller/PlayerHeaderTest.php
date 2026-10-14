@@ -168,16 +168,18 @@ final class PlayerHeaderTest extends WebTestCase
         // PLAYER_ADMIN's line-ups are empty
         $crawler = $this->page(PlayerFixture::PLAYER_ADMIN, '/en/puzzle-library/' . PlayerFixture::PLAYER_WITH_STRIPE);
 
-        $form = $crawler->filter('.player-head-actions > form.player-head-compare');
-        self::assertCount(1, $form);
-        self::assertSame('/en/compare/add', $form->attr('action'));
-        self::assertSame('post', $form->attr('method'));
-        self::assertSame('p-' . PlayerFixture::PLAYER_WITH_STRIPE, $form->filter('input[name="subject"]')->attr('value'));
-        self::assertSame('/en/puzzle-library/' . PlayerFixture::PLAYER_WITH_STRIPE, $form->filter('input[name="return"]')->attr('value'));
-        self::assertNotEmpty($form->filter('input[name="_token"]')->attr('value'));
+        // A one-tap link posting the add (GEST-15, decision 99: no POST form in a page Turbo may restore)
+        $button = $crawler->filter('.player-head-actions > .player-head-compare > a.more-btn[data-controller="post-action"]');
+        self::assertCount(1, $button);
+        self::assertSame('/en/compare/add', $button->attr('data-post-action-url-value'));
+        self::assertStringStartsWith('/en/action/compare_add?', (string) $button->attr('href'));
+        self::assertSame([
+            'subject' => 'p-' . PlayerFixture::PLAYER_WITH_STRIPE,
+            'return' => '/en/puzzle-library/' . PlayerFixture::PLAYER_WITH_STRIPE,
+        ], json_decode((string) $button->attr('data-post-action-fields-value'), true));
+        self::assertNotEmpty($button->attr('data-post-action-token-value'));
 
         // An icon only: the label is its name
-        $button = $form->filter('button[type="submit"].more-btn');
         self::assertSame('Add to comparison', $button->attr('aria-label'));
         self::assertSame('Add to comparison', $button->attr('title'));
         // No label text - only the "New" badge on its top edge, hidden from screen readers (the name is the label)
@@ -187,10 +189,10 @@ final class PlayerHeaderTest extends WebTestCase
         // The ⋯ menu - in the header and in the compact bar - offers the same, without ids
         foreach (['.player-head', '.player-bar'] as $where) {
             $menu = $crawler->filter($where . ' .dropdown-menu');
-            self::assertCount(1, $menu->filter('form[action="/en/compare/add"] button.dropdown-item'), $where);
+            self::assertCount(1, $menu->filter('a.dropdown-item[data-post-action-url-value="/en/compare/add"]'), $where);
             self::assertStringContainsString('Add to comparison', $menu->text(), $where);
-            self::assertCount(1, $menu->filter('form[action="/en/compare/add"] button.dropdown-item .badge'), $where . ': "New"');
-            self::assertCount(0, $menu->filter('form[action="/en/compare/remove"]'), $where);
+            self::assertCount(1, $menu->filter('a.dropdown-item[data-post-action-url-value="/en/compare/add"] .badge'), $where . ': "New"');
+            self::assertCount(0, $menu->filter('[data-post-action-url-value="/en/compare/remove"]'), $where);
             self::assertCount(0, $menu->filter('[id]'), $where);
         }
 
@@ -203,7 +205,7 @@ final class PlayerHeaderTest extends WebTestCase
         // PLAYER_WITH_STRIPE has PLAYER_ADMIN in the Solo line-up
         $crawler = $this->page(PlayerFixture::PLAYER_WITH_STRIPE, '/en/player-profile/' . PlayerFixture::PLAYER_ADMIN);
 
-        self::assertCount(0, $crawler->filter('.player-head-actions form.player-head-compare'));
+        self::assertCount(0, $crawler->filter('.player-head-actions .player-head-compare [data-controller="post-action"]'));
         $link = $crawler->filter('.player-head-actions > .player-head-compare > a.more-btn.is-active');
         self::assertCount(1, $link);
         self::assertSame('/en/compare?kind=solo', $link->attr('href'));
@@ -212,11 +214,13 @@ final class PlayerHeaderTest extends WebTestCase
 
         $menu = $crawler->filter('.player-head .dropdown-menu');
         self::assertCount(1, $menu->filter('a.dropdown-item[href="/en/compare?kind=solo"]'));
-        $remove = $menu->filter('form[action="/en/compare/remove"]');
+        $remove = $menu->filter('a[data-post-action-url-value="/en/compare/remove"]');
         self::assertCount(1, $remove);
-        self::assertSame('p-' . PlayerFixture::PLAYER_ADMIN, $remove->filter('input[name="subject"]')->attr('value'));
+        $fields = json_decode((string) $remove->attr('data-post-action-fields-value'), true);
+        self::assertIsArray($fields);
+        self::assertSame('p-' . PlayerFixture::PLAYER_ADMIN, $fields['subject'] ?? null);
         self::assertStringContainsString('Remove from comparison', $remove->text());
-        self::assertCount(0, $menu->filter('form[action="/en/compare/add"]'));
+        self::assertCount(0, $menu->filter('[data-post-action-url-value="/en/compare/add"]'));
     }
 
     public function testGuestIsAskedToSignInFirst(): void
@@ -232,7 +236,7 @@ final class PlayerHeaderTest extends WebTestCase
         self::assertSame($link->attr('href'), $crawler->filter('.player-head .dropdown-menu a[href^="/login?return="]')->attr('href'));
 
         // No forms for guests - the page stays the same for every guest
-        self::assertCount(0, $crawler->filter('form[action^="/en/compare/"]'));
+        self::assertCount(0, $crawler->filter('form[action^="/en/compare/"], [data-post-action-url-value^="/en/compare/"]'));
         self::assertCount(0, $crawler->filter('.player-head-message'));
     }
 
@@ -241,7 +245,7 @@ final class PlayerHeaderTest extends WebTestCase
         $crawler = $this->page(PlayerFixture::PLAYER_WITH_STRIPE, '/en/player-profile/' . PlayerFixture::PLAYER_WITH_STRIPE);
 
         self::assertCount(0, $crawler->filter('.player-head-compare'));
-        self::assertCount(0, $crawler->filter('form[action^="/en/compare/"]'));
+        self::assertCount(0, $crawler->filter('form[action^="/en/compare/"], [data-post-action-url-value^="/en/compare/"]'));
         self::assertCount(0, $crawler->filter('.player-head-favorite'));
     }
 
@@ -253,11 +257,11 @@ final class PlayerHeaderTest extends WebTestCase
         $crawler = $this->page(PlayerFixture::PLAYER_ADMIN, '/en/player-profile/' . PlayerFixture::PLAYER_PRIVATE, $browser);
 
         self::assertCount(0, $crawler->filter('.player-head-compare'));
-        self::assertCount(0, $crawler->filter('form[action^="/en/compare/"]'));
+        self::assertCount(0, $crawler->filter('form[action^="/en/compare/"], [data-post-action-url-value^="/en/compare/"]'));
 
         // …while PLAYER_WITH_FAVORITES, who is on it, may compare her
         $crawler = $this->page(PlayerFixture::PLAYER_WITH_FAVORITES, '/en/player-profile/' . PlayerFixture::PLAYER_PRIVATE, $browser);
-        self::assertCount(1, $crawler->filter('.player-head-actions > form.player-head-compare'));
+        self::assertCount(1, $crawler->filter('.player-head-actions > .player-head-compare > a[data-controller="post-action"]'));
     }
 
     public function testRankingOptOutHidesTheTierChipCompletely(): void
@@ -302,7 +306,8 @@ final class PlayerHeaderTest extends WebTestCase
 
         // No conversation between them
         $crawler = $this->page(PlayerFixture::PLAYER_ADMIN, '/en/player-profile/' . PlayerFixture::PLAYER_WITH_STRIPE, $browser);
-        self::assertCount(0, $crawler->filter('.player-header a[data-turbo-frame="modal-frame"]'));
+        // (Block opens its confirmation in the modal frame too - GEST-15 - it is no Message)
+        self::assertCount(0, $crawler->filter('.player-header a[data-turbo-frame="modal-frame"]:not([href^="/en/action/"])'));
 
         // PLAYER_REGULAR started an accepted conversation with PLAYER_ADMIN
         $crawler = $this->page(PlayerFixture::PLAYER_ADMIN, '/en/player-profile/' . PlayerFixture::PLAYER_REGULAR, $browser);

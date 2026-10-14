@@ -1,5 +1,6 @@
 import { isNativeApp, os } from './platform.js';
 import layers, { LAYER_CLOSED_EVENT } from './layer_history.js';
+import { lastRestoreKind } from './instant_back.js';
 
 /**
  * In-page confirmations (docs/features/navigation README §4.13 G13, requirement GEST-13, implementation plan decision 60).
@@ -28,7 +29,8 @@ import layers, { LAYER_CLOSED_EVENT } from './layer_history.js';
  * - the watchdog wraps window.confirm: a `false` within 50 ms on an iPhone (os() === 'ios') sends one
  *   `dialog_suppressed` P0-03 event per page view {afterLayerBack, afterRestore} - a native dialog that is still
  *   reachable and was refused.
- *   afterRestore = the page was loaded by a history traversal (decision 102; GEST-15 hands in lastRestoreKind()).
+ *   afterRestore = how the page shown came back by a Back / Forward: assets/instant_back.js lastRestoreKind() - 'snapshot',
+ *   'bfcache' or 'reload' (GEST-15; null when it did not; decision 102's loadedByTraverse() is the fallback of a bare env).
  *
  * Pure factory: createConfirmDialog(env) takes {window, document, layers?, now?, restoreKind?} so
  * tests/confirm-dialog-harness.mjs runs it under node; the named exports below are the browser instance.
@@ -428,7 +430,7 @@ let browserInstance = null;
 
 function instance() {
     if (browserInstance === null) {
-        browserInstance = createConfirmDialog({ window, document, layers });
+        browserInstance = createConfirmDialog({ window, document, layers, restoreKind: () => lastRestoreKind() });
     }
 
     return browserInstance;

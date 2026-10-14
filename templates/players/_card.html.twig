@@ -203,23 +203,24 @@
 
         <div class="players-card-actions{{ actions.isOwn ? ' is-own' }}">
             {% if actions.favorite == 'on' %}
-                <a class="btn btn-sm players-card-action players-card-favorite is-on" href="{{ path('remove_player_from_favorite', {playerId: player.playerId, return: card_path}) }}" rel="nofollow" data-turbo-prefetch="false" data-nav="{{ nav }}favorite" title="{{ 'profile.remove_from_favorites'|trans }}" aria-label="{{ 'profile.remove_from_favorites'|trans }}">
+                <a class="btn btn-sm players-card-action players-card-favorite is-on" href="{{ path('remove_player_from_favorite', {playerId: player.playerId, return: card_path}) }}" rel="nofollow" data-turbo-prefetch="false"{{ app.user is not null ? ' data-clears-snapshots' }} data-nav="{{ nav }}favorite" title="{{ 'profile.remove_from_favorites'|trans }}" aria-label="{{ 'profile.remove_from_favorites'|trans }}">
                     <i class="bi bi-star-fill" aria-hidden="true"></i> {{ 'players.card.favorite_on'|trans }}
                 </a>
             {% elseif actions.favorite == 'off' %}
-                <a class="btn btn-sm btn-outline-secondary players-card-action players-card-favorite" href="{{ path('add_player_to_favorite', {playerId: player.playerId, return: card_path}) }}" rel="nofollow" data-turbo-prefetch="false" data-nav="{{ nav }}favorite" title="{{ 'profile.add_to_favorites'|trans }}" aria-label="{{ 'profile.add_to_favorites'|trans }}">
+                <a class="btn btn-sm btn-outline-secondary players-card-action players-card-favorite" href="{{ path('add_player_to_favorite', {playerId: player.playerId, return: card_path}) }}" rel="nofollow" data-turbo-prefetch="false"{{ app.user is not null ? ' data-clears-snapshots' }} data-nav="{{ nav }}favorite" title="{{ 'profile.add_to_favorites'|trans }}" aria-label="{{ 'profile.add_to_favorites'|trans }}">
                     <i class="bi bi-star" aria-hidden="true"></i> {{ 'players.card.favorite'|trans }}
                 </a>
             {% elseif actions.favorite == 'sign_in' %}
                 {# Signing in comes back with the player in favorites (the route asks for sign-in first) - to the profile
                    on the card's own page, to the page the card was opened on in the layer (data-card-return-page) #}
-                <a class="btn btn-sm btn-outline-secondary players-card-action players-card-favorite" href="{{ path('add_player_to_favorite', {playerId: player.playerId, return: profile_path}) }}" rel="nofollow" data-turbo-prefetch="false" data-turbo-frame="_top" data-card-return-page data-nav="{{ nav }}favorite" title="{{ 'profile.add_to_favorites'|trans }}" aria-label="{{ 'profile.add_to_favorites'|trans }}">
+                <a class="btn btn-sm btn-outline-secondary players-card-action players-card-favorite" href="{{ path('add_player_to_favorite', {playerId: player.playerId, return: profile_path}) }}" rel="nofollow" data-turbo-prefetch="false"{{ app.user is not null ? ' data-clears-snapshots' }} data-turbo-frame="_top" data-card-return-page data-nav="{{ nav }}favorite" title="{{ 'profile.add_to_favorites'|trans }}" aria-label="{{ 'profile.add_to_favorites'|trans }}">
                     <i class="bi bi-star" aria-hidden="true"></i> {{ 'players.card.favorite'|trans }}
                 </a>
             {% endif %}
 
             {% if actions.compare == 'add' %}
-                {{ include('comparison_entry/_subject_form.html.twig', {
+                {# The POST form itself: the card's frame posts it and answers inside the card (a layer, never cached - GEST-15) #}
+                {{ include('comparison_entry/_subject_post_form.html.twig', {
                     action: 'add',
                     subject: actions.comparisonRef,
                     form_class: 'players-card-action-form',

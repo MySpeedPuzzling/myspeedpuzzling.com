@@ -10325,3 +10325,8 @@ email_undeliverable:
         general: "Přijímající poštovní server naše e-maily odmítl."
     server_said: "Odpověď serveru: %answer%"
     change_address: "Změnit e-mailovou adresu"
+post_action:
+    lead: "Potvrď to tlačítkem níže."
+    failed: "Nepovedlo se to. Zkus to prosím znovu."
+    unfollow: "Přestat sledovat"
+    collection_remove: "Odebrat z kolekce"

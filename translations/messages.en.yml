@@ -10571,3 +10571,9 @@ email_undeliverable:
         general: "The receiving mail server refused our e-mails."
     server_said: "The server's answer: %answer%"
     change_address: "Change your e-mail address"
+# One-tap actions of the browse pages (docs/features/navigation GEST-15, PostAction): the confirmation view and a failed tap
+post_action:
+    lead: "Press the button below to confirm."
+    failed: "That didn't work. Please try again."
+    unfollow: "Unfollow"
+    collection_remove: "Remove from the collection"

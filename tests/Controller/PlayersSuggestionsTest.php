@@ -45,7 +45,12 @@ final class PlayersSuggestionsTest extends WebTestCase
         self::assertSame('/en/add-player-to-favorites/' . PlayerFixture::PLAYER_WITH_FAVORITES, parse_url($favorite, PHP_URL_PATH));
         parse_str((string) parse_url($favorite, PHP_URL_QUERY), $query);
         self::assertSame('/en/puzzlers?scope=cz', $query['return'] ?? null);
-        self::assertCount(1, $card->filter('form[action="/en/compare/add"] input[name="subject"][value="p-' . PlayerFixture::PLAYER_WITH_FAVORITES . '"]'));
+        // A one-tap link (GEST-15, decision 99: the Players page may be restored from Turbo's cache)
+        $compare = $card->filter('a[data-post-action-url-value="/en/compare/add"]');
+        self::assertCount(1, $compare);
+        $fields = json_decode((string) $compare->attr('data-post-action-fields-value'), true);
+        self::assertIsArray($fields);
+        self::assertSame('p-' . PlayerFixture::PLAYER_WITH_FAVORITES, $fields['subject'] ?? null);
     }
 
     public function testSomebodyAlreadyInTheComparisonLinksToIt(): void

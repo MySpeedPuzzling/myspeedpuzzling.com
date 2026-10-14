@@ -10299,3 +10299,8 @@ email_undeliverable:
         general: "El servidor de correo receptor rechazó nuestros correos."
     server_said: "Respuesta del servidor: %answer%"
     change_address: "Cambiar tu dirección de correo"
+post_action:
+    lead: "Confírmalo con el botón de abajo."
+    failed: "No ha funcionado. Inténtalo de nuevo."
+    unfollow: "Dejar de seguir"
+    collection_remove: "Quitar de la colección"

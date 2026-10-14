@@ -158,7 +158,8 @@ final class EligibilityScheduleTest extends WebTestCase
 
         $browser->followRedirect();
         self::assertSelectorTextContains('.alert-success', 'Saved as a draft');
-        self::assertSelectorExists('[data-draft-banner-own] form');
+        // Publish is a one-tap link (GEST-15 decision 99: no POST form in a page Turbo may restore)
+        self::assertSelectorExists('[data-draft-banner-own] a.ev-draft-banner-button[data-controller="post-action"]');
     }
 
     private function connection(): Connection

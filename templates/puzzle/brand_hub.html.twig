@@ -1,5 +1,8 @@
 {% extends 'base.html.twig' %}
 
+{# Instant Back (README §4.13 G9, GEST-15): a browse page - Turbo keeps a copy of it for Back only #}
+{% block turbo_cache_control %}no-preview{% endblock %}
+
 {# Page 1 carries the stats; pages 2+ (/page/{n}) are the rest of the brand's
    puzzle list with their own title - same indexability as page 1. #}
 {% set is_first_page = pagination.isFirstPage %}

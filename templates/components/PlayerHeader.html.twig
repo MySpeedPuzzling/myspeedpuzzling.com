@@ -128,11 +128,11 @@
                     {# Filled while the player is in the viewer's favorites - a toggle that shows its state. Below 380 px,
                        next to Message, only its star: the label is in aria-label/title (_player-header.scss) #}
                     {% if this.isInViewersFavorites %}
-                        <a class="btn btn-primary player-head-favorite" data-turbo-prefetch="false" rel="nofollow" href="{{ path('remove_player_from_favorite', {playerId: player.playerId, return: return_path}) }}" title="{{ 'profile.remove_from_favorites'|trans }}" aria-label="{{ 'profile.remove_from_favorites'|trans }}">
+                        <a class="btn btn-primary player-head-favorite" data-turbo-prefetch="false"{{ app.user is not null ? ' data-clears-snapshots' }} rel="nofollow" href="{{ path('remove_player_from_favorite', {playerId: player.playerId, return: return_path}) }}" title="{{ 'profile.remove_from_favorites'|trans }}" aria-label="{{ 'profile.remove_from_favorites'|trans }}">
                             <i class="bi bi-star-fill me-1" aria-hidden="true"></i> <span class="player-head-favorite-label">{{ 'player_header.favorite_on'|trans }}</span>
                         </a>
                     {% else %}
-                        <a class="btn btn-outline-primary player-head-favorite" data-turbo-prefetch="false" rel="nofollow" href="{{ path('add_player_to_favorite', {playerId: player.playerId, return: return_path}) }}" title="{{ 'profile.add_to_favorites'|trans }}" aria-label="{{ 'profile.add_to_favorites'|trans }}">
+                        <a class="btn btn-outline-primary player-head-favorite" data-turbo-prefetch="false"{{ app.user is not null ? ' data-clears-snapshots' }} rel="nofollow" href="{{ path('add_player_to_favorite', {playerId: player.playerId, return: return_path}) }}" title="{{ 'profile.add_to_favorites'|trans }}" aria-label="{{ 'profile.add_to_favorites'|trans }}">
                             <i class="bi bi-star me-1" aria-hidden="true"></i> <span class="player-head-favorite-label">{{ 'player_header.favorite'|trans }}</span>
                         </a>
                     {% endif %}
@@ -183,27 +183,4 @@
         {% endif %}
     </div>
 
-    {% if logged_user.profile is not null and not this.isOwnProfile %}
-        <div class="modal fade" id="blockPlayerModal" tabindex="-1" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content">
-                    <form action="{{ path('block_user', {playerId: player.playerId}) }}" method="post" data-turbo="false">
-                        <input type="hidden" name="_token" value="{{ csrf_token(constant('SpeedPuzzling\\Web\\Controller\\Messaging\\BlockUserController::CSRF_TOKEN_ID')) }}">
-                        <div class="modal-header">
-                            <h5 class="modal-title">{{ 'blocklist.modal_title'|trans }}</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ 'forms.close'|trans }}"></button>
-                        </div>
-                        <div class="modal-body">
-                            <p>{{ 'blocklist.modal_text'|trans }}</p>
-                            <p class="mb-0 text-muted small">{{ 'blocklist.modal_undo'|trans }}</p>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ 'blocklist.cancel'|trans }}</button>
-                            <button type="submit" class="btn btn-danger">{{ 'blocklist.block_player'|trans }}</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-    {% endif %}
 {% endif %}

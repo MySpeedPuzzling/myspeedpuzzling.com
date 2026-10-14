@@ -9,7 +9,9 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use SpeedPuzzling\Web\Tests\DataFixtures\OrganizationFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\TestingLogin;
+use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -40,12 +42,40 @@ final class DraftBannerTest extends WebTestCase
         self::assertSelectorTextContains('[data-draft-banner-own]', 'Draft: only you and your team can see this page.');
         self::assertSelectorNotExists('[data-draft-banner-series]');
 
-        $form = $crawler->filter('[data-draft-banner-own] form');
+        // GEST-15 (decision 99): no POST form in a page Turbo may restore - Publish is a one-tap link: with JavaScript it
+        // posts at once (post_action_controller.js) what the form posted, without it the link opens the confirmation view
+        $link = $crawler->filter('[data-draft-banner-own] a.ev-draft-banner-button');
+        self::assertSame('Publish', trim($link->text()));
+        self::assertCount(0, $crawler->filter('[data-draft-banner] form'));
+        $this->assertPostsAtOnce($link, $publishAction, $url);
+
+        $form = $this->publishForm($browser, $link);
         self::assertSame($publishAction, $form->attr('action'));
         self::assertSame('post', $form->attr('method'));
         self::assertNotEmpty($form->filter('input[name="_token"]')->attr('value'));
         self::assertSame($url, $form->filter('input[name="return"]')->attr('value'));
-        self::assertSame('Publish', trim($form->filter('button')->text()));
+        // The confirmation names what it publishes (a series: "Publish series")
+        self::assertSame(str_contains($publishAction, '/publish-series/') ? 'Publish series' : 'Publish', trim($form->filter('button[type="submit"]')->text()));
+    }
+
+    /** One tap, as the form's button was: the link posts the route with the page as `return` and a CSRF token */
+    private function assertPostsAtOnce(Crawler $link, string $publishAction, string $return): void
+    {
+        self::assertSame('post-action', $link->attr('data-controller'));
+        self::assertNull($link->attr('data-turbo-frame'));
+        self::assertSame($publishAction, $link->attr('data-post-action-url-value'));
+        self::assertSame(['return' => $return], json_decode((string) $link->attr('data-post-action-fields-value'), true, flags: JSON_THROW_ON_ERROR));
+        self::assertNotEmpty($link->attr('data-post-action-token-value'));
+        self::assertStringContainsString('nofollow', (string) $link->attr('rel'));
+    }
+
+    /** The confirmation view the banner's Publish link opens without JavaScript - its form */
+    private function publishForm(KernelBrowser $browser, Crawler $link): Crawler
+    {
+        $page = $browser->request('GET', (string) $link->attr('href'));
+        self::assertResponseIsSuccessful();
+
+        return $page->filter('main form.post-action-form');
     }
 
     /**
@@ -86,9 +116,12 @@ final class DraftBannerTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertSelectorNotExists('[data-draft-banner-own]');
         self::assertSelectorTextContains('[data-draft-banner-series]', 'This series is a draft: only you and your team can see this page.');
-        $form = $crawler->filter('[data-draft-banner-series] form');
+        $link = $crawler->filter('[data-draft-banner-series] a.ev-draft-banner-button');
+        self::assertSame('Publish series', trim($link->text()));
+        $this->assertPostsAtOnce($link, '/en/publish-series/' . OrganizationFixture::SERIES_QUIET_PINES_DRAFT, self::QUIET_PINES_EDITION);
+        $form = $this->publishForm($browser, $link);
         self::assertSame('/en/publish-series/' . OrganizationFixture::SERIES_QUIET_PINES_DRAFT, $form->attr('action'));
-        self::assertSame('Publish series', trim($form->filter('button')->text()));
+        self::assertSame('Publish series', trim($form->filter('button[type="submit"]')->text()));
     }
 
     public function testADraftEditionOfADraftSeriesShowsBothLines(): void
@@ -104,8 +137,10 @@ final class DraftBannerTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         self::assertCount(1, $crawler->filter('[data-draft-banner]'));
-        self::assertSame('/en/publish-event/' . OrganizationFixture::EDITION_QUIET_PINES_1, $crawler->filter('[data-draft-banner-own] form')->attr('action'));
-        self::assertSame('/en/publish-series/' . OrganizationFixture::SERIES_QUIET_PINES_DRAFT, $crawler->filter('[data-draft-banner-series] form')->attr('action'));
+        $own = $crawler->filter('[data-draft-banner-own] a.ev-draft-banner-button');
+        $series = $crawler->filter('[data-draft-banner-series] a.ev-draft-banner-button');
+        self::assertSame('/en/publish-event/' . OrganizationFixture::EDITION_QUIET_PINES_1, $this->publishForm($browser, $own)->attr('action'));
+        self::assertSame('/en/publish-series/' . OrganizationFixture::SERIES_QUIET_PINES_DRAFT, $this->publishForm($browser, $series)->attr('action'));
     }
 
     public function testAPublishedPageHasNoBanner(): void
@@ -126,7 +161,7 @@ final class DraftBannerTest extends WebTestCase
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
 
         $crawler = $browser->request('GET', self::DRAFT_NIGHT);
-        $browser->submit($crawler->filter('[data-draft-banner-own] form')->form());
+        $browser->submit($this->publishForm($browser, $crawler->filter('[data-draft-banner-own] a.ev-draft-banner-button'))->form());
 
         self::assertResponseRedirects(self::DRAFT_NIGHT);
         $browser->followRedirect();
@@ -144,7 +179,7 @@ final class DraftBannerTest extends WebTestCase
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
 
         $crawler = $browser->request('GET', self::QUIET_PINES_EDITION);
-        $browser->submit($crawler->filter('[data-draft-banner-series] form')->form());
+        $browser->submit($this->publishForm($browser, $crawler->filter('[data-draft-banner-series] a.ev-draft-banner-button'))->form());
 
         self::assertResponseRedirects(self::QUIET_PINES_EDITION);
 

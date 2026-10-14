@@ -1,5 +1,8 @@
 {% extends 'base.html.twig' %}
 
+{# Instant Back (README §4.13 G9, GEST-15): a browse page - Turbo keeps a copy of it for Back only #}
+{% block turbo_cache_control %}no-preview{% endblock %}
+
 {% set is_own_profile = logged_user.profile is not null and logged_user.profile.playerId is same as player.playerId %}
 
 {# Head metadata follows the player's OWN setting, never the viewer: an allowed friend sees the

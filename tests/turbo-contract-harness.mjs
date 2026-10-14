@@ -323,6 +323,104 @@ facts.history = {
     };
 }
 
+// ---- GEST-15 (assets/instant_back.js): what Turbo caches, when, under which key; restores; cancel; a given answer -----
+// turbo:before-cache is dispatched before Turbo reads the location to cache under and clones the page one task later
+// (nextEventLoopTick): a task queued in turbo:before-cache runs first, so the cache work done there lands in the copy -
+// and the live page is not touched in the frame a view transition captures it.
+{
+    const order = [];
+    document.addEventListener('turbo:before-cache', () => {
+        order.push('before-cache');
+        // The page Turbo caches is the <body> of this moment (the new one may already be in place when the task runs)
+        const leaving = document.body;
+        leaving.setAttribute('data-sync', 'yes');
+        setTimeout(() => {
+            leaving.setAttribute('data-deferred', 'yes');
+        }, 0);
+        // layer_history keeps it current for a page owner's own entries (Results)
+        session.view.lastRenderedLocation = new URL('/en/cached-under', ORIGIN);
+    }, { once: true });
+    document.addEventListener('turbo:before-render', () => order.push('before-render'), { once: true });
+    const loaded = settle('turbo:load');
+    Turbo.visit('/en/next');
+    await loaded;
+    const cached = session.view.snapshotCache.get(new URL('/en/cached-under', ORIGIN));
+    facts.cacheOrder = {
+        order,
+        cachedUnderTheLocationSetInBeforeCache: Boolean(cached),
+        syncMark: cached ? cached.element.getAttribute('data-sync') : null,
+        deferredMark: cached ? cached.element.getAttribute('data-deferred') : null,
+        cacheClear: typeof Turbo.cache.clear,
+        snapshotCacheHas: typeof session.view.snapshotCache.has,
+        hasCached: session.view.snapshotCache.has(new URL('/en/cached-under', ORIGIN)),
+        lastRenderedLocationIsAUrl: session.view.lastRenderedLocation instanceof URL,
+    };
+}
+
+// A restore visit with a cached snapshot renders that copy (turbo:before-render's newBody is the cached element) and
+// fetches nothing
+{
+    const cachedNow = session.view.snapshotCache.get(new URL('/en/cached-under', ORIGIN));
+    const before = requests.length;
+    let newBodyIsTheCopy = null;
+    document.addEventListener('turbo:before-render', (event) => {
+        newBodyIsTheCopy = event.detail.newBody === cachedNow.element;
+    }, { once: true });
+    // assets/instant_back.js holdRestorePosition(): the visit's identifier at turbo:visit, Turbo's restoration data as a
+    // plain object, and a position put back in turbo:render is the one Turbo scrolls to (performScroll after renderPage)
+    session.history.restorationData['restore-cached'] = { scrollPosition: { x: 0, y: 10 } };
+    let identifierAtVisit = null;
+    document.addEventListener('turbo:visit', () => {
+        identifierAtVisit = session.navigator.currentVisit ? session.navigator.currentVisit.restorationIdentifier : null;
+    }, { once: true });
+    document.addEventListener('turbo:render', () => {
+        session.history.restorationData['restore-cached'] = { ...session.history.restorationData['restore-cached'], scrollPosition: { x: 0, y: 777 } };
+    }, { once: true });
+    const scrolls = [];
+    const originalScrollTo = window.scrollTo;
+    window.scrollTo = (x, y) => scrolls.push([x, y]);
+    const loaded = settle('turbo:load');
+    session.navigator.startVisit(new URL('/en/cached-under', ORIGIN), 'restore-cached', { action: 'restore', historyChanged: true });
+    await loaded;
+    window.scrollTo = originalScrollTo;
+    facts.snapshotRestore = {
+        fetched: requests.length - before,
+        newBodyIsTheCopy,
+        identifierAtVisit,
+        restorationDataIsAnObject: typeof session.history.restorationData === 'object' && session.history.restorationData !== null,
+        scrolledTo: scrolls,
+    };
+}
+
+// A restore turned into a full load: the visit is cancelled at turbo:visit (no render follows); willRender tells a frame
+// visit promoted to the address bar (it renders nothing of the page)
+{
+    let atVisit = null;
+    let rendered = false;
+    const onRender = () => {
+        rendered = true;
+    };
+    document.addEventListener('turbo:render', onRender);
+    document.addEventListener('turbo:visit', () => {
+        const visit = session.navigator.currentVisit;
+        atVisit = { cancel: typeof visit.cancel, willRender: visit.willRender };
+        visit.cancel();
+    }, { once: true });
+    session.navigator.startVisit(new URL('/en/cached-under', ORIGIN), 'restore-cancelled', { action: 'restore', historyChanged: true });
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    document.removeEventListener('turbo:render', onRender);
+    facts.cancelledRestore = { ...atVisit, rendered };
+}
+
+// post_action_controller.js: a redirect fetch already followed is rendered from its answer - Turbo fetches nothing
+{
+    const before = requests.length;
+    const loaded = settle('turbo:load');
+    Turbo.visit(new URL('/en/answered', ORIGIN), { action: 'advance', response: { statusCode: 200, redirected: true, responseHTML: page('Answered') } });
+    await loaded;
+    facts.visitWithResponse = { fetched: requests.length - before, path: window.location.pathname, h1: document.querySelector('h1').textContent };
+}
+
 facts.internals = {
     navigator: typeof session.navigator,
     visit: typeof session.visit,

@@ -6,10 +6,17 @@ import { Controller } from '@hotwired/stimulus';
  * it, and out again when it comes back - a leaderboard or a results list below can be hundreds of rows long. While
  * hidden it is `inert`, so neither Tab nor a screen reader lands in it.
  */
+// Compact bars connected right now. Turbo keeps <html> between pages, so the last bar to go removes
+// --compact-bar-height - in the next frame, once the next page's bar (if it has one) has connected and published its
+// height, usually the same, which then changes nothing: removing and setting again a custom property of <html> restyles
+// the whole page twice in the middle of a render (a Back restoring a long list from Turbo's snapshot, GEST-15 (e)).
+let connectedBars = 0;
+
 export default class extends Controller {
     static targets = ['head', 'bar'];
 
     connect() {
+        connectedBars += 1;
         this.publishHeight();
 
         if (typeof ResizeObserver !== 'undefined') {
@@ -34,8 +41,13 @@ export default class extends Controller {
         this.resizeObserver?.disconnect();
         window.removeEventListener('resize', this.onResize);
 
-        // Turbo keeps <html> between pages - the next one may have no bar
-        document.documentElement.style.removeProperty('--compact-bar-height');
+        // Turbo keeps <html> between pages - the next one may have no bar (decided in the next frame, see connectedBars)
+        connectedBars = Math.max(0, connectedBars - 1);
+        window.requestAnimationFrame(() => {
+            if (connectedBars === 0) {
+                document.documentElement.style.removeProperty('--compact-bar-height');
+            }
+        });
     }
 
     /**
@@ -45,8 +57,12 @@ export default class extends Controller {
     publishHeight() {
         const height = Math.round(this.barTarget.getBoundingClientRect().height);
 
-        if (height > 0) {
-            document.documentElement.style.setProperty('--compact-bar-height', `${height}px`);
+        const value = `${height}px`;
+        const root = document.documentElement.style;
+
+        // Only a change restyles the page
+        if (height > 0 && root.getPropertyValue('--compact-bar-height') !== value) {
+            root.setProperty('--compact-bar-height', value);
         }
     }
 

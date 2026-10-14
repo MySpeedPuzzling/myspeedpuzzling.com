@@ -18,6 +18,7 @@
     {% set desk_url = path('results_desk', {roundId: round.id}) %}
 
     <div class="results-desk pb-5"
+         data-bfcache-reload
          data-controller="results-desk"
          data-results-desk-state-value="{{ state|json_encode|e('html_attr') }}"
          data-results-desk-csrf-token-value="{{ csrf_token('official_results') }}"

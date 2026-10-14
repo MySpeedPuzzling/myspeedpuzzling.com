@@ -19,7 +19,11 @@ use Symfony\Component\Routing\Attribute\Route;
  *
  * - click: a link or button of the chrome carrying data-nav="<surface>/<place>/<item>" was clicked
  * - viewport: once per browser session, the innerWidth bucket and the pointer type
- * - history: a Back/Forward navigation (a Turbo restore, a page loaded by a traverse, a back/forward cache restore)
+ * - history: a Back/Forward navigation (a Turbo restore, a page loaded by a traverse, a back/forward cache restore) - the
+ *   P0-03 baseline; since GEST-08 the app sends `back` instead
+ * - back: one line per Back/Forward with how the page came back (GEST-08, assets/back_measurement.js): `restore`
+ *   snapshot (Turbo's snapshot, GEST-15) | reload (a full load) | bfcache (the browser's back/forward cache, kept -
+ *   GEST-14) | bfcache-reload, `ms_to_load`, the direction and whether the browser animated it itself
  * - dialog_suppressed: a native confirm dialog an iPhone answered `false` at once - a dialog Safari refused to show
  *   (GEST-13 watchdog in assets/confirm_dialog.js, once per page view): after a layer was closed by Back, after a
  *   Back/Forward restore of the page
@@ -82,6 +86,11 @@ final class NavClickController extends AbstractController
     private const array POINTERS = ['coarse', 'fine', 'none'];
     private const array HISTORY_VIA = ['turbo_restore', 'load', 'bfcache'];
     private const array HISTORY_DIRECTIONS = ['back', 'forward', 'unknown'];
+    /** GEST-08: how a page came back by a Back / Forward (assets/back_measurement.js, assets/instant_back.js) */
+    public const array RESTORE_KINDS = ['snapshot', 'reload', 'bfcache', 'bfcache-reload'];
+
+    /** The longest ms_to_load logged (10 minutes; BACK_MS_MAX in the script) - anything else is logged as null */
+    public const int BACK_MS_MAX = 600_000;
     private const array MENU_SURFACES = ['panel', 'overlay'];
     private const array SEARCH_SURFACES = ['menu', 'topbar', 'wdig'];
     private const array NAV_LAYOUTS = ['docked', 'rail'];
@@ -128,6 +137,7 @@ final class NavClickController extends AbstractController
                     'click' => $this->click($payload, $context),
                     'viewport' => $this->viewport($payload, $context),
                     'history' => $this->history($payload, $context),
+                    'back' => $this->back($payload, $context),
                     'dialog_suppressed' => $this->dialogSuppressed($payload, $context),
                     'menu_open' => $this->menuOpen($payload, $context),
                     'search_zero' => $this->searchZero($payload, $context),
@@ -234,18 +244,48 @@ final class NavClickController extends AbstractController
     }
 
     /**
-     * GEST-13: `afterRestore` is a boolean today (the page was loaded by a traverse, decision 102); GEST-15 sends its
-     * restore kind instead - anything this endpoint does not know yet is logged as null, the line stays.
+     * GEST-08: one line per Back/Forward. An unknown restore kind drops the line; an ms_to_load that is no whole number
+     * within 10 minutes, an unknown direction or transition flag are logged as null / unknown.
+     *
+     * @param array<string, mixed> $payload
+     * @param array<string, mixed> $context
+     */
+    private function back(array $payload, array $context): void
+    {
+        $restore = $payload['restore'] ?? null;
+
+        if (!in_array($restore, self::RESTORE_KINDS, true)) {
+            return;
+        }
+
+        $ms = $payload['ms'] ?? null;
+
+        $this->logger->info('Navigation back', [
+            'kind' => 'back',
+            'restore' => $restore,
+            'ms_to_load' => is_int($ms) && $ms >= 0 && $ms <= self::BACK_MS_MAX ? $ms : null,
+            'direction' => in_array($payload['dir'] ?? null, self::HISTORY_DIRECTIONS, true) ? $payload['dir'] : 'unknown',
+            'ua_visual_transition' => is_bool($payload['uaTransition'] ?? null) ? $payload['uaTransition'] : null,
+            ...$context,
+        ]);
+    }
+
+    /**
+     * GEST-13: `afterRestore` is how the page came back by a Back / Forward - since GEST-15 the restore kind of
+     * assets/instant_back.js lastRestoreKind() (`snapshot`, `bfcache`, `reload`), a boolean from a script cached before
+     * it (the page was loaded by a traverse, decision 102); anything else is logged as null, the line stays.
      *
      * @param array<string, mixed> $payload
      * @param array<string, mixed> $context
      */
     private function dialogSuppressed(array $payload, array $context): void
     {
+        $afterRestore = $payload['afterRestore'] ?? null;
+
         $this->logger->info('Navigation dialog suppressed', [
             'kind' => 'dialog_suppressed',
             'after_layer_back' => ($payload['afterLayerBack'] ?? null) === true,
-            'after_restore' => is_bool($payload['afterRestore'] ?? null) ? $payload['afterRestore'] : null,
+            'after_restore' => is_bool($afterRestore) || in_array($afterRestore, self::RESTORE_KINDS, true) ? $afterRestore : null,
             ...$context,
         ]);
     }

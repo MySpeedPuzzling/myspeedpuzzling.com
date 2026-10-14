@@ -119,7 +119,8 @@ function run(scenario) {
             },
         };
 
-        const instrumentation = createNavInstrumentation({ window, document, navigator, storage }).start();
+        // GEST-08: the app hands the Back/Forward lines to assets/back_measurement.js (history: false)
+        const instrumentation = createNavInstrumentation({ window, document, navigator, storage, history: options.history ?? scenario.history }).start();
         page = { window, document, navigationApi, instrumentation };
     }
 
@@ -164,6 +165,10 @@ function run(scenario) {
                 // A document event another module dispatches: the card's open / outcome / bypass (CARD-07), the members
                 // modal's open (TEASE-01)
                 page.document.fire(step.name, { type: step.name, detail: step.detail });
+                break;
+            case 'back line':
+                // GEST-08: assets/back_measurement.js sends one line per Back through it
+                page.instrumentation.back(step.detail);
                 break;
             case 'dialog suppressed':
                 // The GEST-13 watchdog of assets/confirm_dialog.js

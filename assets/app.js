@@ -46,8 +46,10 @@ import { installPlayerCard } from './player_card.js';
 import { install as installHaptics } from './haptics.js';
 import { install as installPressFeedback } from './press_feedback.js';
 import { install as installViewTransitionGate } from './view_transition_gate.js';
-// The URL a restore visit reloads below, for the page it brings back (the Results page's scroll position, PROF-05c)
-import { markRestoreReload } from './restore_reload.js';
+// Instant Back (GEST-14/15): Turbo's snapshot of a browse page on Back, the clean copy it caches, the staleness rules
+import { installInstantBack } from './instant_back.js';
+import { installBackMeasurement } from './back_measurement.js';
+import { applyMenuOrder, DOCK } from './navigation/menu_order.js';
 
 // When each page's HTML arrived, before any lazy controller loads - the stopwatch pill's clock (ADD-03 review F5)
 installDocumentReceipts({ window, document });
@@ -83,9 +85,14 @@ installPressFeedback({ window, document });
 // place switches, the thumbnail → puzzle page morph on both phones - never on Back, iOS / desktop switch instantly
 installViewTransitionGate({ window, document });
 
-// Navigation clicks, the viewport once per session and Back/Forward navigations (docs/features/navigation, P0-03).
-// The web chrome only - the app's navigation is native
-const navInstrumentation = isNativeApp() ? null : startNavInstrumentation({ window, document });
+// Navigation clicks and the viewport once per session (docs/features/navigation, P0-03); its Back/Forward lines are
+// GEST-08's now (assets/back_measurement.js: one line per Back with how the page came back - snapshot, reload, bfcache,
+// bfcache-reload - and ms_to_load). The web chrome only - the app's navigation is native
+const navInstrumentation = isNativeApp() ? null : startNavInstrumentation({ window, document, history: false });
+
+if (navInstrumentation) {
+    installBackMeasurement({ window, document, send: (line) => navInstrumentation.back(line) });
+}
 
 // In-page confirmations (GEST-13): data-turbo-confirm and the controllers ask in MSP's own <dialog>, never through
 // window.confirm (iOS Safari silently refuses native dialogs after a Back to a pushState entry, hotwired/turbo#637);
@@ -99,24 +106,15 @@ installConfirmDialog({
     },
 });
 
-// Force native browser navigation for back/forward (restoration visits)
-// This ensures iOS swipe-back, browser back/forward buttons all work identically to a non-Turbo site
-// Inside the app the native adapter owns Back: its restore visits are left alone (a reload would turn the native Back
-// into a full WebView load)
-document.addEventListener('turbo:visit', function(event) {
-    if (isNativeApp()) {
-        return;
-    }
-
-    if (event.detail.action === 'restore') {
-        event.preventDefault();
-        // Counted here: the reload below is a replace navigation, not a traverse, so it is not counted again
-        if (navInstrumentation) {
-            navInstrumentation.turboRestore();
-        }
-        markRestoreReload(event.detail.url);
-        window.location.href = event.detail.url;
-    }
+// Back and Forward (README §4.13 G9, assets/instant_back.js): a restore visit renders Turbo's snapshot of a browse page
+// that opted in (turbo-cache-control no-preview), cached less than 10 minutes ago for the same viewer - otherwise it is a
+// full load of the URL, as before (INSTANT_BACK = false turns every restore into one again). What Turbo caches is a
+// clean copy: no open layer, modal or menu, no widget that builds its own DOM. Inside the app the native adapter owns
+// Back: its restore visits are left alone (a reload would turn the native Back into a full WebView load)
+installInstantBack({
+    turbo: () => Turbo,
+    layers,
+    menuOrder: (nav) => applyMenuOrder(nav, DOCK),
 });
 
 // After Turbo morph/render, cached images lose the "loaded" class.

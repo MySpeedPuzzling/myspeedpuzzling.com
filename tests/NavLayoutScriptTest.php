@@ -186,6 +186,18 @@ final class NavLayoutScriptTest extends TestCase
         self::assertSame(['expanded' => 'false', 'haspopup' => 'dialog', 'controls' => 'menu-layer', 'title' => null], self::results()['the ☰ below 1280 px']);
     }
 
+    /**
+     * GEST-15 (e): critical CSS shows the column's slot only within WIDE_QUERY - below it the answer is "not docked"
+     * without asking for a layout (turbo:render asks on every visit and Back)
+     */
+    public function testBelow1280TheColumnIsNotDockedWithoutALayout(): void
+    {
+        self::assertSame(
+            ['narrowDocked' => false, 'measured' => 0, 'wideDocked' => true, 'wideHidden' => false],
+            self::results()['docked without a layout below 1280 px'],
+        );
+    }
+
     public function testALinkToTheMenuWhereTheColumnIsDocked(): void
     {
         self::assertSame([

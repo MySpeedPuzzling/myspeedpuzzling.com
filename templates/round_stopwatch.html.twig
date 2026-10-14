@@ -18,6 +18,7 @@
     {% set phase = stopwatch.status == 'scheduled' ? 'scheduled' : (stopwatch.status == 'running' ? 'running' : (stopwatch.status == 'stopped' ? 'stopped' : 'idle')) %}
     <style>main{padding-top:0!important}</style>
     <div class="d-flex flex-column align-items-center justify-content-center py-5"
+         data-bfcache-reload
          data-controller="round-stopwatch"
          data-round-stopwatch-state-value="{{ stopwatch|json_encode|e('html_attr') }}"
          data-round-stopwatch-server-now-ms-value="{{ serverNowMs }}"

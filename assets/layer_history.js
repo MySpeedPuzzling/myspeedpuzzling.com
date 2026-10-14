@@ -412,6 +412,31 @@ export function createLayerHistory(env) {
         return released;
     }
 
+    /**
+     * GEST-15: Turbo caches the page shown under its last rendered location - a page owner's own entries (Results) change
+     * the address without a Turbo render, so the location follows them: Back to that address finds its snapshot
+     */
+    function syncRenderedLocation() {
+        const session = turbo();
+        const view = session && session.view;
+
+        if (!view) {
+            return;
+        }
+
+        if (!('lastRenderedLocation' in view)) {
+            warnOnce('rendered-location', 'Turbo view.lastRenderedLocation missing: a page owner\'s page is cached under its first address');
+
+            return;
+        }
+
+        try {
+            view.lastRenderedLocation = new URL(href());
+        } catch (e) {
+            // the cached address stays the first one
+        }
+    }
+
     function restoreVisit(current) {
         const session = turbo();
         const restorationIdentifier = current && current.turbo ? current.turbo.restorationIdentifier : undefined;
@@ -671,6 +696,8 @@ export function createLayerHistory(env) {
             if (otherEntry && !ownersEntry) {
                 releasePageOwners();
                 restoreVisit(current);
+            } else if (ownersEntry) {
+                syncRenderedLocation();
             }
 
             flushQueued();
@@ -698,6 +725,13 @@ export function createLayerHistory(env) {
 
             releasePageOwners();
             restoreVisit(current);
+
+            return;
+        }
+
+        // Another entry of the page owner: its own popstate handler renders it - the address shown is that entry's
+        if (owners.size > 0 && ownsEntry(current)) {
+            syncRenderedLocation();
         }
     }
 
@@ -1065,6 +1099,7 @@ export function createLayerHistory(env) {
             const entry = state() && state().turbo;
             const index = entry && typeof entry.restorationIndex === 'number' ? entry.restorationIndex : (noted ? noted.currentIndex : 0);
             history().pushState({ turbo: { restorationIdentifier: uuid(window), restorationIndex: index + 1 }, [PAGE_STATE]: owner }, '', url);
+            syncRenderedLocation();
         },
 
         replacePageState(owner, url) {
@@ -1077,6 +1112,7 @@ export function createLayerHistory(env) {
                 },
                 [PAGE_STATE]: owner,
             }, '', url === undefined ? href() : url);
+            syncRenderedLocation();
         },
 
         visitFromLayer(url, options = {}) {

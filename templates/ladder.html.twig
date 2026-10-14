@@ -1,5 +1,8 @@
 {% extends 'base.html.twig' %}
 
+{# Instant Back (README §4.13 G9, GEST-15): a browse page - Turbo keeps a copy of it for Back only #}
+{% block turbo_cache_control %}no-preview{% endblock %}
+
 {% block title %}{{ 'ladder.meta.title'|trans }}{% endblock %}
 {% block meta_description %}{{ 'ladder.meta.description'|trans }}{% endblock %}
 

@@ -3,7 +3,7 @@ import { Controller } from '@hotwired/stimulus';
 import { renderStreamMessage, visit } from '@hotwired/turbo';
 import layers, { PAGE_STATE } from '../layer_history.js';
 import { isNativeApp } from '../platform.js';
-import { cameBackByFullLoad, isSnapshotRestore, SNAPSHOT_RESTORES } from '../restore_reload.js';
+import { BEFORE_CACHE_EVENT, cameBackByFullLoad, isSnapshotRestore, SNAPSHOT_RESTORES } from '../instant_back.js';
 import {
     OWNER,
     TYPING_DEBOUNCE_MS,
@@ -65,15 +65,16 @@ const TEXT_TYPES = ['text', 'search', 'number', 'email', 'tel', 'url'];
  * - Back from another page: the address says `?page=N`, so a full load renders the same rows; where the page was when it
  *   was left (sessionStorage `msp:results-scroll:<address>`, saved at turbo:before-visit and pagehide: scrollY and the
  *   row clicked / first in view) is restored only when a full load brought the visitor back (app.js's restore reload,
- *   a back/forward load - assets/restore_reload.js), never after a snapshot restore (GEST-15, which keeps the page
+ *   a back/forward load - assets/instant_back.js), never after a snapshot restore (GEST-15, which keeps the page
  *   and its scroll), never on a page reached by a visit.
  *
  * Inside the Hotwire Native app the page writes no history and takes nothing over (the app's own navigation decides);
  * Show more / Show all still load in place.
  *
- * GEST-15 hooks, inert until it turns snapshots on: isSnapshotRestore() (no saved position applied), SNAPSHOT_RESTORES
- * (Turbo's scroll record for the entry is refreshed when the page is left), turbo:before-cache (the date pickers and
- * the open sort menu torn down, nothing pending). The filters are a <details>: its open state is DOM, kept as it was.
+ * GEST-15 (Results opts in to Turbo's restore cache): isSnapshotRestore() (no saved position applied), SNAPSHOT_RESTORES
+ * (Turbo's scroll record for the entry is refreshed when the page is left), `msp:before-cache` (assets/instant_back.js:
+ * the date pickers and the open sort menu torn down, nothing pending - after a view transition captured the page,
+ * before Turbo clones it). The filters are a <details>: its open state is DOM, kept as it was.
  */
 export default class extends Controller {
     connect() {
@@ -127,7 +128,7 @@ export default class extends Controller {
         window.addEventListener('popstate', this.onPopState);
         window.addEventListener('pagehide', this.onPageHide);
         document.addEventListener('turbo:before-visit', this.onBeforeVisit);
-        document.addEventListener('turbo:before-cache', this.onBeforeCache);
+        document.addEventListener(BEFORE_CACHE_EVENT, this.onBeforeCache);
 
         if (restore === 'restore') {
             this.restoreScroll(saved, key);
@@ -151,7 +152,7 @@ export default class extends Controller {
         window.removeEventListener('popstate', this.onPopState);
         window.removeEventListener('pagehide', this.onPageHide);
         document.removeEventListener('turbo:before-visit', this.onBeforeVisit);
-        document.removeEventListener('turbo:before-cache', this.onBeforeCache);
+        document.removeEventListener(BEFORE_CACHE_EVENT, this.onBeforeCache);
         clearTimeout(this.typingTimer);
         this.typingTimer = null;
         this.stopRestoring();

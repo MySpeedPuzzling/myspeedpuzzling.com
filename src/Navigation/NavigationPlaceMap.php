@@ -279,6 +279,8 @@ final class NavigationPlaceMap
         'help' => 'none',
         'menu' => 'none',
         'where_did_it_go' => 'none',
+        // The confirmation view of a one-tap action (GEST-15, PostAction): no place of its own
+        'post_action_confirm' => 'none',
         'feedback' => 'none',
         'faq' => 'none',
         'getting_started' => 'none',

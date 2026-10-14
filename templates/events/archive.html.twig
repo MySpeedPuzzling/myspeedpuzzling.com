@@ -1,5 +1,8 @@
 {% extends 'base.html.twig' %}
 
+{# Instant Back (README §4.13 G9, GEST-15): a browse page - Turbo keeps a copy of it for Back only #}
+{% block turbo_cache_control %}no-preview{% endblock %}
+
 {#
     One year of past events, route events_archive (owner: workstream D, docs/features/events-page/README.md "SEO").
     Variables: archive (EventsArchivePage). The same lines as the archive on the events page (events/_archive_line),

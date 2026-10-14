@@ -46,18 +46,26 @@ final class PlayerBlocklistTest extends WebTestCase
     {
         $browser = self::createClient();
 
+        $block = 'a[href^="/en/action/block_player?"]';
+
         $crawler = $browser->request('GET', '/en/player-profile/' . PlayerFixture::PLAYER_WITH_STRIPE);
-        self::assertCount(0, $crawler->filter('#blockPlayerModal'));
+        self::assertCount(0, $crawler->filter($block));
 
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
 
+        // GEST-15 (decision 99): the profile may be restored from Turbo's cache, so it holds no POST form - Block opens its
+        // confirmation (the former modal's question and text) in the modal frame
         $crawler = $browser->request('GET', '/en/player-profile/' . PlayerFixture::PLAYER_WITH_STRIPE);
-        self::assertCount(1, $crawler->filter('#blockPlayerModal form'));
-        // The ⋯ menu is in the header and in its compact bar; the modal is rendered once
-        self::assertCount(2, $crawler->filter('[data-bs-target="#blockPlayerModal"]'));
+        self::assertCount(0, $crawler->filter('#blockPlayerModal, form[action*="/block-user/"]'));
+        // The ⋯ menu is in the header and in its compact bar
+        self::assertCount(2, $crawler->filter($block));
+        $crawler->filter($block)->each(static function ($link): void {
+            self::assertSame('modal-frame', $link->attr('data-turbo-frame'));
+            self::assertStringContainsString('playerId=' . PlayerFixture::PLAYER_WITH_STRIPE, (string) $link->attr('href'));
+        });
 
         $crawler = $browser->request('GET', '/en/player-profile/' . PlayerFixture::PLAYER_ADMIN);
-        self::assertCount(0, $crawler->filter('#blockPlayerModal'));
+        self::assertCount(0, $crawler->filter($block));
     }
 
     public function testBlockingFromAProfileLandsOnOwnProfileAndHidesThePlayer(): void
@@ -67,7 +75,8 @@ final class PlayerBlocklistTest extends WebTestCase
 
         $profileUrl = '/en/player-profile/' . PlayerFixture::PLAYER_WITH_STRIPE;
         $crawler = $browser->request('GET', $profileUrl);
-        $form = $crawler->filter('#blockPlayerModal form')->form();
+        $confirmation = $browser->request('GET', (string) $crawler->filter('a[href^="/en/action/block_player?"]')->first()->attr('href'), server: ['HTTP_TURBO_FRAME' => 'modal-frame']);
+        $form = $confirmation->filter('turbo-frame#modal-frame form.post-action-form')->form();
 
         $browser->submit($form, [], ['HTTP_REFERER' => 'http://localhost' . $profileUrl]);
 

@@ -84,7 +84,7 @@ final class PuzzlesTest extends AbstractPantherTestCase
         $client->waitForVisibility($puzzleCardSelector . ' .dropdown-menu');
 
         $client->getCrawler()
-            ->filter($puzzleCardSelector . ' .dropdown-menu form[action*="remove-from-wish-list"] button')
+            ->filter($puzzleCardSelector . ' .dropdown-menu a[data-post-action-url-value*="remove-from-wish-list"]')
             ->first()
             ->click();
 
@@ -129,7 +129,7 @@ final class PuzzlesTest extends AbstractPantherTestCase
 
         $client->waitForVisibility($puzzleCardSelector . ' .dropdown-menu');
 
-        $initialRemoveButtons = $client->getCrawler()->filter($dropdownActionsSelector . ' form[action*="collections"][action*="remove"]')->count();
+        $initialRemoveButtons = $client->getCrawler()->filter($dropdownActionsSelector . ' a[data-post-action-url-value*="collections"][data-post-action-url-value*="remove"]')->count();
 
         // Add to another collection
         $client->getCrawler()
@@ -162,12 +162,12 @@ final class PuzzlesTest extends AbstractPantherTestCase
 
         $client->waitForVisibility($puzzleCardSelector . ' .dropdown-menu');
 
-        $newRemoveButtons = $client->getCrawler()->filter($dropdownActionsSelector . ' form[action*="collections"][action*="remove"]')->count();
+        $newRemoveButtons = $client->getCrawler()->filter($dropdownActionsSelector . ' a[data-post-action-url-value*="collections"][data-post-action-url-value*="remove"]')->count();
         self::assertGreaterThan($initialRemoveButtons, $newRemoveButtons, 'Should have more remove buttons after adding to collection');
 
         // Remove from one collection
         $client->getCrawler()
-            ->filter($dropdownActionsSelector . ' form[action*="collections"][action*="remove"] button')
+            ->filter($dropdownActionsSelector . ' a[data-post-action-url-value*="collections"][data-post-action-url-value*="remove"]')
             ->first()
             ->click();
 
@@ -336,7 +336,7 @@ final class PuzzlesTest extends AbstractPantherTestCase
         $client->waitForVisibility($puzzleCardSelector . ' .dropdown-menu');
 
         $client->getCrawler()
-            ->filter($puzzleCardSelector . ' .dropdown-menu form[action*="return-puzzle"] button')
+            ->filter($puzzleCardSelector . ' .dropdown-menu a[data-post-action-url-value*="return-puzzle"]')
             ->first()
             ->click();
 
@@ -424,7 +424,7 @@ final class PuzzlesTest extends AbstractPantherTestCase
         $client->waitForVisibility($puzzleCardSelector . ' .dropdown-menu');
 
         $client->getCrawler()
-            ->filter($puzzleCardSelector . ' .dropdown-menu form[action*="sell-swap"][action*="remove"] button')
+            ->filter($puzzleCardSelector . ' .dropdown-menu a[data-post-action-url-value*="sell-swap"][data-post-action-url-value*="remove"]')
             ->first()
             ->click();
 
@@ -468,7 +468,7 @@ final class PuzzlesTest extends AbstractPantherTestCase
 
         $client->waitForVisibility($puzzleCardSelector . ' .dropdown-menu');
 
-        $removeButtons = $client->getCrawler()->filter($dropdownActionsSelector . ' form[action*="collections"][action*="remove"]');
+        $removeButtons = $client->getCrawler()->filter($dropdownActionsSelector . ' a[data-post-action-url-value*="collections"][data-post-action-url-value*="remove"]');
         self::assertCount(1, $removeButtons, 'Should have 1 remove button initially');
 
         // Click "Add to collection" and select different collection
@@ -502,12 +502,12 @@ final class PuzzlesTest extends AbstractPantherTestCase
 
         $client->waitForVisibility($puzzleCardSelector . ' .dropdown-menu');
 
-        $removeButtons = $client->getCrawler()->filter($dropdownActionsSelector . ' form[action*="collections"][action*="remove"]');
+        $removeButtons = $client->getCrawler()->filter($dropdownActionsSelector . ' a[data-post-action-url-value*="collections"][data-post-action-url-value*="remove"]');
         self::assertCount(2, $removeButtons, 'Should have 2 remove buttons after adding to second collection');
 
         // Click one "Remove from collection" button
         $client->getCrawler()
-            ->filter($dropdownActionsSelector . ' form[action*="collections"][action*="remove"] button')
+            ->filter($dropdownActionsSelector . ' a[data-post-action-url-value*="collections"][data-post-action-url-value*="remove"]')
             ->first()
             ->click();
 
@@ -521,7 +521,7 @@ final class PuzzlesTest extends AbstractPantherTestCase
 
         $client->waitForVisibility($puzzleCardSelector . ' .dropdown-menu');
 
-        $removeButtons = $client->getCrawler()->filter($dropdownActionsSelector . ' form[action*="collections"][action*="remove"]');
+        $removeButtons = $client->getCrawler()->filter($dropdownActionsSelector . ' a[data-post-action-url-value*="collections"][data-post-action-url-value*="remove"]');
         self::assertCount(1, $removeButtons, 'Should have 1 remove button after removing from one collection');
     }
 

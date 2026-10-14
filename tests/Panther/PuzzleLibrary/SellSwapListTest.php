@@ -47,7 +47,7 @@ final class SellSwapListTest extends AbstractPantherTestCase
 
         // Click the "Remove from list" button (it's a form submit button)
         $client->getCrawler()
-            ->filter($puzzleCardSelector . ' .dropdown-menu form[action*="/remove"] button')
+            ->filter($puzzleCardSelector . ' .dropdown-menu a[data-post-action-url-value*="/remove"]')
             ->first()
             ->click();
 

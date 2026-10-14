@@ -1,5 +1,8 @@
 {% extends 'base.html.twig' %}
 
+{# Instant Back: the stopwatch was started, stopped or reset to get here (GET links) - the pages cached before are stale #}
+{% block clears_snapshots %}<meta name="msp-clears-snapshots">{% endblock %}
+
 {% set hide_comparison_launcher = true %}
 {# A running stopwatch has the screen to itself (docs/features/navigation README §4.10, ADD-04): no top bar, bottom bar,
    rail, column, Menu, footer or "Something wrong" line - "Leave" in the toolbar leads out, the stopwatch keeps running.
@@ -19,6 +22,7 @@
 {% block content %}
     <div
         class="stopwatch-page"
+        data-bfcache-reload
         data-controller="stopwatch"
         data-stopwatch-status-value="{{ active_stopwatch is not null ? active_stopwatch.status.value : '' }}"
         data-stopwatch-stopwatch-id-value="{{ active_stopwatch is not null ? active_stopwatch.stopwatchId : '' }}"

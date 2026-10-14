@@ -20,6 +20,7 @@ import { pullEnabledFor } from '../assets/pull_to_refresh.js';
 import { browserEnv, haptic, signal } from '../assets/haptics.js';
 import { longPressEnabledFor } from '../assets/tab_long_press.js';
 import { gateFor } from '../assets/view_transition_gate.js';
+import { bfcacheVerdict, restoreDecision } from '../assets/instant_back.js';
 
 /** A fake <html>: inside the app on an Android phone, or Chrome on the same phone */
 function root(nativeApp) {
@@ -154,6 +155,20 @@ const ROWS = [
             const facts = { os: os(html), nativeApp: isNativeApp(html), reducedMotion: false };
 
             return { placeTap: gateFor({ ...facts, place: true }), cardTap: gateFor({ ...facts, morph: true }) };
+        },
+    },
+    // GEST-14 / GEST-15: on the web a fresh snapshot of a browse page comes back on Back (and a fresh back/forward-cache
+    // copy stays); inside the app the restore is the native adapter's ('leave') and a back/forward-cache copy reloads
+    // as before
+    {
+        id: 'assets/instant_back.js',
+        run: (html) => {
+            const now = 1_000_000;
+
+            return {
+                backToAFreshSnapshot: restoreDecision({ native: isNativeApp(html), os: os(html), entry: { cachedAt: now - 1000, viewer: '' }, now, viewer: '' }),
+                backForwardCache: bfcacheVerdict({ persisted: true, awayMs: 1000, os: os(html), native: isNativeApp(html) }),
+            };
         },
     },
 ];

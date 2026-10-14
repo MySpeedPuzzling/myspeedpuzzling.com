@@ -7,13 +7,15 @@
     see this page." + Publish), `seriesId` / `seriesName` = an edition whose series is a draft ("This series is a draft…"
     + Publish series) - both lines when both apply; `kind` picks the publish route.
 
-    Publish = a POST with the route's session CSRF token, back to this page (`return`).
+    Publish = a one-tap link (PostAction, GEST-15 decision 99: the series page may be restored from Turbo's cache, so it
+    holds no POST form): with JavaScript it posts at once what the form's button posted - the route's session CSRF token,
+    back to this page (`return`); without it or in a new tab it opens the confirmation view post_action_confirm.
 #}
 {% if draft_state is not null and draft_state.isHidden %}
     {%- set publish_routes = {
-        organization: {route: 'publish_organization', param: 'organizationId', attribute: 'ORGANIZATION_EDIT'},
-        series: {route: 'publish_competition_series', param: 'seriesId', attribute: 'COMPETITION_SERIES_EDIT'},
-        competition: {route: 'publish_competition', param: 'competitionId', attribute: 'COMPETITION_EDIT'},
+        organization: {action: 'publish_organization', param: 'organizationId', attribute: 'ORGANIZATION_EDIT'},
+        series: {action: 'publish_series', param: 'seriesId', attribute: 'COMPETITION_SERIES_EDIT'},
+        competition: {action: 'publish_competition', param: 'competitionId', attribute: 'COMPETITION_EDIT'},
     } -%}
     <div class="ev-draft-banner" role="status" data-draft-banner>
         {% if draft_state.isDraft %}
@@ -24,11 +26,10 @@
                     <span>{{ 'drafts.banner.own'|trans }}</span>
                 </p>
                 {% if is_granted(publish.attribute, draft_state.id) %}
-                    <form method="post" action="{{ path(publish.route, {(publish.param): draft_state.id}) }}" class="ev-draft-banner-form">
-                        <input type="hidden" name="_token" value="{{ csrf_token(publish.route ~ '_' ~ draft_state.id) }}">
-                        <input type="hidden" name="return" value="{{ app.request.requestUri }}">
-                        <button type="submit" class="btn btn-primary ev-draft-banner-button">{{ 'drafts.banner.publish'|trans }}</button>
-                    </form>
+                    {# One tap, as the button was (PostAction, GEST-15 decision 99) #}
+                    <div class="ev-draft-banner-form">
+                        <a class="btn btn-primary ev-draft-banner-button" {{ post_action_attributes(publish.action, {(publish.param): draft_state.id}, {return: app.request.requestUri}) }}>{{ 'drafts.banner.publish'|trans }}</a>
+                    </div>
                 {% endif %}
             </div>
         {% endif %}
@@ -39,11 +40,9 @@
                     <span>{{ 'drafts.banner.series'|trans }}</span>
                 </p>
                 {% if is_granted('COMPETITION_SERIES_EDIT', draft_state.seriesId) %}
-                    <form method="post" action="{{ path('publish_competition_series', {seriesId: draft_state.seriesId}) }}" class="ev-draft-banner-form">
-                        <input type="hidden" name="_token" value="{{ csrf_token('publish_competition_series_' ~ draft_state.seriesId) }}">
-                        <input type="hidden" name="return" value="{{ app.request.requestUri }}">
-                        <button type="submit" class="btn btn-primary ev-draft-banner-button">{{ 'drafts.banner.publish_series'|trans }}</button>
-                    </form>
+                    <div class="ev-draft-banner-form">
+                        <a class="btn btn-primary ev-draft-banner-button" {{ post_action_attributes('publish_series', {seriesId: draft_state.seriesId}, {return: app.request.requestUri}) }}>{{ 'drafts.banner.publish_series'|trans }}</a>
+                    </div>
                 {% endif %}
             </div>
         {% endif %}

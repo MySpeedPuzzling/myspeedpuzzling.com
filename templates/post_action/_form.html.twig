@@ -1,0 +1,18 @@
+{#
+    The confirmation view's form (PostActionConfirmController, docs/features/navigation GEST-15): the action's own route,
+    its values, a fresh CSRF token. A full page posts without Turbo (the route answers a redirect - never a Turbo Stream
+    meant for the list the link sat in); in the modal frame it posts for the whole page (_top).
+    Inputs: post_action (PostAction), target_url, fields, csrf_token_id, in_frame (bool), cancel (the Cancel control's markup)
+#}
+<form method="post" action="{{ target_url }}" class="post-action-form"{{ in_frame ? ' data-turbo-frame="_top"' : ' data-turbo="false"' }}>
+    {% if csrf_token_id is not null %}
+        <input type="hidden" name="_token" value="{{ csrf_token(csrf_token_id) }}">
+    {% endif %}
+    {% for name, value in fields %}
+        <input type="hidden" name="{{ name }}" value="{{ value }}">
+    {% endfor %}
+    <div class="d-flex flex-wrap gap-2 justify-content-end">
+        {{ cancel }}
+        <button type="submit" class="btn {{ post_action.danger ? 'btn-danger' : 'btn-primary' }}">{{ post_action.labelKey|trans }}</button>
+    </div>
+</form>

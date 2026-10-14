@@ -74,6 +74,8 @@ final class NotificationsController extends AbstractController
 
         return $this->render('notifications.html.twig', [
             'notifications' => $notifications,
+            // Instant Back: marked read - the copies of the pages before (their badges) are stale
+            'clears_snapshots' => $unread,
         ]);
     }
 }

@@ -143,8 +143,10 @@ final class NavClickControllerTest extends WebTestCase
         [$browser, $log] = self::clientWithNavigationLog();
 
         self::beacon($browser, ['k' => 'dialog_suppressed', 'afterLayerBack' => true, 'afterRestore' => false]);
-        // GEST-15 sends its restore kind: not known here yet, logged as null - the line stays
-        self::beacon($browser, ['k' => 'dialog_suppressed', 'afterLayerBack' => 'yes', 'afterRestore' => 'snapshot', 'wd' => true]);
+        // A restore kind this endpoint does not know is logged as null - the line stays
+        self::beacon($browser, ['k' => 'dialog_suppressed', 'afterLayerBack' => 'yes', 'afterRestore' => 'teleport', 'wd' => true]);
+        // GEST-15: how the page came back (assets/instant_back.js lastRestoreKind())
+        self::beacon($browser, ['k' => 'dialog_suppressed', 'afterLayerBack' => false, 'afterRestore' => 'snapshot']);
 
         self::assertResponseStatusCodeSame(204);
         self::assertNull($browser->getResponse()->headers->get('Set-Cookie'));
@@ -167,6 +169,38 @@ final class NavClickControllerTest extends WebTestCase
                 'layout' => 'phone',
                 'webdriver' => true,
             ],
+            [
+                'kind' => 'dialog_suppressed',
+                'after_layer_back' => false,
+                'after_restore' => 'snapshot',
+                'page' => '/en/faq',
+                'layout' => 'phone',
+                'webdriver' => false,
+            ],
+        ], self::contexts($log));
+    }
+
+    /**
+     * GEST-08 (assets/back_measurement.js): one line per Back with how the page came back and how long it took
+     */
+    public function testABackWithItsRestoreKindIsLogged(): void
+    {
+        [$browser, $log] = self::clientWithNavigationLog();
+
+        self::beacon($browser, ['k' => 'back', 'restore' => 'snapshot', 'ms' => 42, 'dir' => 'back', 'uaTransition' => false]);
+        self::beacon($browser, ['k' => 'back', 'restore' => 'bfcache-reload', 'ms' => 1350, 'dir' => 'forward', 'uaTransition' => null]);
+        // Values the script never sends are not trusted: a fraction, an hour, an unknown direction and flag
+        self::beacon($browser, ['k' => 'back', 'restore' => 'reload', 'ms' => 12.5, 'dir' => 'sideways', 'uaTransition' => 'yes']);
+        self::beacon($browser, ['k' => 'back', 'restore' => 'bfcache', 'ms' => 3_600_000]);
+
+        self::assertResponseStatusCodeSame(204);
+        self::assertSame('Navigation back', $log->getRecords()[0]->message);
+        self::assertSame('INFO', $log->getRecords()[0]->level->getName());
+        self::assertSame([
+            ['kind' => 'back', 'restore' => 'snapshot', 'ms_to_load' => 42, 'direction' => 'back', 'ua_visual_transition' => false, 'page' => '/en/faq', 'layout' => 'phone', 'webdriver' => false],
+            ['kind' => 'back', 'restore' => 'bfcache-reload', 'ms_to_load' => 1350, 'direction' => 'forward', 'ua_visual_transition' => null, 'page' => '/en/faq', 'layout' => 'phone', 'webdriver' => false],
+            ['kind' => 'back', 'restore' => 'reload', 'ms_to_load' => null, 'direction' => 'unknown', 'ua_visual_transition' => null, 'page' => '/en/faq', 'layout' => 'phone', 'webdriver' => false],
+            ['kind' => 'back', 'restore' => 'bfcache', 'ms_to_load' => null, 'direction' => 'unknown', 'ua_visual_transition' => null, 'page' => '/en/faq', 'layout' => 'phone', 'webdriver' => false],
         ], self::contexts($log));
     }
 
@@ -337,6 +371,8 @@ final class NavClickControllerTest extends WebTestCase
         yield 'page too long' => [['page' => str_repeat('/faq', 76)] + $click];
         yield 'unknown viewport bucket' => [['v' => 1, 'k' => 'viewport', 'bucket' => '360', 'pointer' => 'coarse', 'page' => '/en/faq']];
         yield 'unknown history kind' => [['v' => 1, 'k' => 'history', 'via' => 'swipe', 'dir' => 'back', 'page' => '/en/faq']];
+        yield 'unknown back restore kind' => [['v' => 1, 'k' => 'back', 'restore' => 'prerender', 'ms' => 5, 'page' => '/en/faq']];
+        yield 'back without a restore kind' => [['v' => 1, 'k' => 'back', 'ms' => 5, 'page' => '/en/faq']];
         yield 'menu open on an unknown surface' => [['v' => 1, 'k' => 'menu_open', 'surface' => 'drawer', 'place' => 'home', 'page' => '/en/faq']];
         yield 'menu open without a surface' => [['v' => 1, 'k' => 'menu_open', 'place' => 'home', 'page' => '/en/faq']];
         yield 'search zero on an unknown field' => [['v' => 1, 'k' => 'search_zero', 'surface' => 'footer', 'q' => 'xyzzy', 'page' => '/en/faq']];

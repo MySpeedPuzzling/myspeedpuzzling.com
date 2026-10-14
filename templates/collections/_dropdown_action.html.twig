@@ -33,22 +33,15 @@
     {% endif %}
     {% for collection_id, collection_name in collections_for_puzzle %}
         <li>
-            <form action="{{ path('collection_remove', {puzzleId: puzzle_id}) }}"
-                  method="post"
-                  class="d-inline w-100"
-                  data-turbo="true">
-                <input type="hidden" name="collectionId" value="{{ collection_id }}">
-                <input type="hidden" name="currentCollectionId" value="{{ currentCollectionId }}">
-                <input type="hidden" name="context" value="{{ context }}">
-                <button type="submit" class="dropdown-item text-danger w-100 text-start">
-                    <i class="bi bi-bookmark-dash me-1"></i>
-                    {% if collection_name == '__system_collection__' %}
-                        {{ 'collections.remove_from'|trans({'%collection%': 'collections.system_name'|trans}) }}
-                    {% else %}
-                        {{ 'collections.remove_from'|trans({'%collection%': collection_name}) }}
-                    {% endif %}
-                </button>
-            </form>
+            {# A one-tap link, never a POST form (GEST-15: the catalogue may be restored from Turbo's cache) #}
+            <a class="dropdown-item text-danger w-100 text-start" {{ post_action_attributes('collection_remove', {puzzleId: puzzle_id}, {collectionId: collection_id ~ '', currentCollectionId: currentCollectionId ?? '', context: context}) }}>
+                <i class="bi bi-bookmark-dash me-1"></i>
+                {% if collection_name == '__system_collection__' %}
+                    {{ 'collections.remove_from'|trans({'%collection%': 'collections.system_name'|trans}) }}
+                {% else %}
+                    {{ 'collections.remove_from'|trans({'%collection%': collection_name}) }}
+                {% endif %}
+            </a>
         </li>
     {% endfor %}
 {% else %}

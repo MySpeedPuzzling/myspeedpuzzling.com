@@ -40,9 +40,9 @@ final class SystemCollectionTest extends AbstractPantherTestCase
 
         $client->waitForVisibility($puzzleCardSelector . ' .dropdown-menu');
 
-        // Click "Remove from collection" button (form action contains /collections/ and /remove)
+        // Click "Remove from collection" (a one-tap link posting to /collections/…/remove, GEST-15)
         $client->getCrawler()
-            ->filter($puzzleCardSelector . ' .dropdown-menu form[action*="/collections/"] button')
+            ->filter($puzzleCardSelector . ' .dropdown-menu a[data-post-action-url-value*="/collections/"]')
             ->first()
             ->click();
 
@@ -148,13 +148,13 @@ final class SystemCollectionTest extends AbstractPantherTestCase
 
         // Get count of remove form buttons before
         $removeButtonsBefore = $client->getCrawler()
-            ->filter($puzzleCardSelector . ' .dropdown-menu form[action*="/collections/"] button')
+            ->filter($puzzleCardSelector . ' .dropdown-menu a[data-post-action-url-value*="/collections/"]')
             ->count();
 
         // Click the second remove button (remove from a named collection, not system collection)
         // The first button removes from current (system) collection, second removes from another
         $client->getCrawler()
-            ->filter($puzzleCardSelector . ' .dropdown-menu form[action*="/collections/"] button')
+            ->filter($puzzleCardSelector . ' .dropdown-menu a[data-post-action-url-value*="/collections/"]')
             ->eq(1)
             ->click();
 
@@ -174,7 +174,7 @@ final class SystemCollectionTest extends AbstractPantherTestCase
         $client->waitForVisibility($puzzleCardSelector . ' .dropdown-menu');
 
         $removeButtonsAfter = $client->getCrawler()
-            ->filter($puzzleCardSelector . ' .dropdown-menu form[action*="/collections/"] button')
+            ->filter($puzzleCardSelector . ' .dropdown-menu a[data-post-action-url-value*="/collections/"]')
             ->count();
 
         self::assertLessThan($removeButtonsBefore, $removeButtonsAfter, 'Should have one less remove button after removing from other collection');
@@ -400,10 +400,12 @@ final class SystemCollectionTest extends AbstractPantherTestCase
         // Click "Remove from sell/swap" button using JavaScript
         $client->executeScript("
             const card = document.querySelector('" . $puzzleCardSelector . "');
-            const forms = card.querySelectorAll('.dropdown-menu form');
-            for (const form of forms) {
-                if (form.action.includes('sell-swap') && form.action.includes('remove')) {
-                    form.querySelector('button').click();
+            // One-tap links (GEST-15): the route they post to is data-post-action-url-value
+            const links = card.querySelectorAll('.dropdown-menu a[data-post-action-url-value]');
+            for (const link of links) {
+                const url = link.getAttribute('data-post-action-url-value');
+                if (url.includes('sell-swap') && url.includes('remove')) {
+                    link.click();
                     break;
                 }
             }
@@ -567,9 +569,9 @@ final class SystemCollectionTest extends AbstractPantherTestCase
 
         $client->waitForVisibility($puzzleCardSelector . ' .dropdown-menu');
 
-        // Click "Return" button (form action contains return-puzzle)
+        // Click "Return" (a one-tap link posting to return-puzzle, GEST-15)
         $client->getCrawler()
-            ->filter($puzzleCardSelector . ' .dropdown-menu form[action*="return-puzzle"] button')
+            ->filter($puzzleCardSelector . ' .dropdown-menu a[data-post-action-url-value*="return-puzzle"]')
             ->first()
             ->click();
 

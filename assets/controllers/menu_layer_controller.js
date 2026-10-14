@@ -1,5 +1,6 @@
 import { Controller } from '@hotwired/stimulus';
 import layers from '../layer_history.js';
+import { BEFORE_CACHE_EVENT } from '../instant_back.js';
 import { applyMenuOrder, DOCK, PHONE } from '../navigation/menu_order.js';
 import { currentMenuSurface, listenForMenuLinks, menuFragmentOf, menuPaths, revealInMenu } from '../navigation/menu_links.js';
 import { focusDockedMenu, toggleNavLayout } from '../navigation/nav_layout.js';
@@ -95,7 +96,7 @@ export default class extends Controller {
 
         document.addEventListener('keydown', this.handleTab);
         document.addEventListener('click', this.handleTabBarClick, true);
-        document.addEventListener('turbo:before-cache', this.handleBeforeCache);
+        document.addEventListener(BEFORE_CACHE_EVENT, this.handleBeforeCache);
         document.addEventListener('turbo:load', this.handleLoad);
         this.element.addEventListener('cancel', this.handleCancel);
         this.element.addEventListener('click', this.handleScrimClick);
@@ -118,7 +119,7 @@ export default class extends Controller {
 
         document.removeEventListener('keydown', this.handleTab);
         document.removeEventListener('click', this.handleTabBarClick, true);
-        document.removeEventListener('turbo:before-cache', this.handleBeforeCache);
+        document.removeEventListener(BEFORE_CACHE_EVENT, this.handleBeforeCache);
         document.removeEventListener('turbo:load', this.handleLoad);
         this.element.removeEventListener('close', this.handleOwnClose, { capture: true });
         this.element.removeEventListener('cancel', this.handleCancel);
@@ -386,7 +387,10 @@ export default class extends Controller {
         }
     };
 
-    /** Turbo caches the page: the Menu goes back to its slot first (a restored page has no open panel) */
+    /**
+     * Turbo caches the page (GEST-15, `msp:before-cache` of assets/instant_back.js - after a view transition captured it):
+     * the Menu goes back to its slot first (a restored page has no open panel)
+     */
     handleBeforeCache = () => {
         if (!this.shown && !this.element.open) {
             return;

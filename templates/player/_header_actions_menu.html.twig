@@ -43,11 +43,11 @@
         {% else %}
             <li>
                 {% if header.isInViewersFavorites %}
-                    <a class="dropdown-item" data-turbo-prefetch="false" rel="nofollow" href="{{ path('remove_player_from_favorite', {playerId: player.playerId, return: return_path}) }}">
+                    <a class="dropdown-item" data-turbo-prefetch="false"{{ app.user is not null ? ' data-clears-snapshots' }} rel="nofollow" href="{{ path('remove_player_from_favorite', {playerId: player.playerId, return: return_path}) }}">
                         <i class="bi bi-star-fill me-1" aria-hidden="true"></i> {{ 'profile.remove_from_favorites'|trans }}
                     </a>
                 {% else %}
-                    <a class="dropdown-item" data-turbo-prefetch="false" rel="nofollow" href="{{ path('add_player_to_favorite', {playerId: player.playerId, return: return_path}) }}">
+                    <a class="dropdown-item" data-turbo-prefetch="false"{{ app.user is not null ? ' data-clears-snapshots' }} rel="nofollow" href="{{ path('add_player_to_favorite', {playerId: player.playerId, return: return_path}) }}">
                         <i class="bi bi-star me-1" aria-hidden="true"></i> {{ 'profile.add_to_favorites'|trans }}
                     </a>
                 {% endif %}
@@ -102,9 +102,10 @@
             {% if logged_user.profile is not null %}
                 <li><hr class="dropdown-divider"></li>
                 <li>
-                    <button type="button" class="dropdown-item small text-muted" data-bs-toggle="modal" data-bs-target="#blockPlayerModal">
+                    {# Opens the confirmation in the modal frame (GEST-15, decision 99: no POST form in a page Turbo may restore) #}
+                    <a class="dropdown-item small text-muted" {{ post_action_attributes('block_player', {playerId: player.playerId}) }}>
                         <i class="bi bi-slash-circle me-1" aria-hidden="true"></i> {{ 'blocklist.block_player'|trans }}
-                    </button>
+                    </a>
                 </li>
             {% endif %}
         {% endif %}

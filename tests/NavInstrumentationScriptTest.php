@@ -446,6 +446,33 @@ final class NavInstrumentationScriptTest extends TestCase
     }
 
     /**
+     * GEST-08: the app starts the module with `history: false` - assets/back_measurement.js sends the one line per Back
+     * instead (kind `back`, with how the page came back): no P0-03 history line from a traverse load, a Turbo restore or
+     * a back/forward-cache pageshow; back() passes on only what the server accepts.
+     */
+    public function testWithTheBackMeasurementTheHistoryLinesAreItsOwn(): void
+    {
+        $did = $this->scenario(['history' => false, 'steps' => [
+            ['do' => 'load', 'index' => 2, 'activation' => ['navigationType' => 'traverse', 'from' => ['index' => 3], 'entry' => ['index' => 2]]],
+            ['do' => 'turbo:load', 'index' => 2],
+            ['do' => 'navigate', 'index' => 1, 'uaTransition' => true],
+            ['do' => 'turbo restore'],
+            ['do' => 'pageshow', 'persisted' => true, 'activation' => ['navigationType' => 'traverse', 'from' => ['index' => 4], 'entry' => ['index' => 3]]],
+            ['do' => 'back line', 'detail' => ['restore' => 'snapshot', 'ms' => 37, 'dir' => 'back', 'uaTransition' => false]],
+            ['do' => 'back line', 'detail' => ['restore' => 'bfcache-reload', 'ms' => 12.5, 'dir' => 'sideways', 'uaTransition' => 'yes']],
+            ['do' => 'back line', 'detail' => ['restore' => 'prerender', 'ms' => 5]],
+            ['do' => 'back line', 'detail' => ['restore' => 'reload', 'ms' => 600001]],
+        ]]);
+
+        self::assertSame([], self::beacons($did, 'history'));
+        self::assertSame([
+            ['url' => '/-/nav-click', 'v' => 1, 'k' => 'back', 'restore' => 'snapshot', 'ms' => 37, 'dir' => 'back', 'uaTransition' => false, 'page' => '/en/faq', 'layout' => 'phone', 'wd' => false],
+            ['url' => '/-/nav-click', 'v' => 1, 'k' => 'back', 'restore' => 'bfcache-reload', 'ms' => null, 'dir' => 'unknown', 'uaTransition' => null, 'page' => '/en/faq', 'layout' => 'phone', 'wd' => false],
+            ['url' => '/-/nav-click', 'v' => 1, 'k' => 'back', 'restore' => 'reload', 'ms' => null, 'dir' => 'unknown', 'uaTransition' => null, 'page' => '/en/faq', 'layout' => 'phone', 'wd' => false],
+        ], self::beacons($did, 'back'));
+    }
+
+    /**
      * GEST-13: the confirm watchdog's report goes out on the same channel - what it knew, nothing else.
      */
     public function testASuppressedDialogIsOneLine(): void
@@ -620,18 +647,24 @@ final class NavInstrumentationScriptTest extends TestCase
     }
 
     /**
-     * app.js counts a restore right before it turns it into a full page load.
+     * A restore is counted right before it turns into a full page load (since GEST-08: assets/instant_back.js announces
+     * its decision - assets/back_measurement.js marks the Back for the next document - before `location.href`), and
+     * app.js hands the Back lines to the back measurement.
      */
     public function testAppJsCountsTheRestoreBeforeReloading(): void
     {
-        $appJs = (string) file_get_contents(__DIR__ . '/../assets/app.js');
+        $instantBack = (string) file_get_contents(__DIR__ . '/../assets/instant_back.js');
 
-        $counted = strpos($appJs, 'navInstrumentation.turboRestore();');
-        $reloaded = strpos($appJs, 'window.location.href = event.detail.url;');
+        $counted = strpos($instantBack, 'dispatch(document, RESTORE_DECIDED_EVENT, { kind, url: detail.url });');
+        $reloaded = strpos($instantBack, 'window.location.href = detail.url;');
 
         self::assertNotFalse($counted);
         self::assertNotFalse($reloaded);
         self::assertLessThan($reloaded, $counted);
+
+        $appJs = (string) file_get_contents(__DIR__ . '/../assets/app.js');
+        self::assertStringContainsString('startNavInstrumentation({ window, document, history: false })', $appJs);
+        self::assertStringContainsString('installBackMeasurement({ window, document, send: (line) => navInstrumentation.back(line) })', $appJs);
     }
 
     /**

@@ -96,6 +96,11 @@ final class NativeAppStepAsideTest extends TestCase
             ['placeTap' => ['meta' => 'none', 'vt' => null], 'cardTap' => ['meta' => 'none', 'vt' => null]],
             ['placeTap' => ['meta' => 'same-origin', 'vt' => 'place'], 'cardTap' => ['meta' => 'same-origin', 'vt' => 'morph']],
         ],
+        // GEST-14 / GEST-15: the restore is the native adapter's inside the app; a bfcache copy reloads as before
+        'assets/instant_back.js' => [
+            ['backToAFreshSnapshot' => 'leave', 'backForwardCache' => 'reload'],
+            ['backToAFreshSnapshot' => 'snapshot', 'backForwardCache' => 'keep'],
+        ],
     ];
 
     /** @var null|array<string, Row> */

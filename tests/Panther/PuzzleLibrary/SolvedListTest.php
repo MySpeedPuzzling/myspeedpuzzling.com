@@ -46,7 +46,7 @@ final class SolvedListTest extends AbstractPantherTestCase
 
         // Click "Remove from collection" button
         $client->getCrawler()
-            ->filter($puzzleCardSelector . ' .dropdown-menu form[action*="/collections/"] button')
+            ->filter($puzzleCardSelector . ' .dropdown-menu a[data-post-action-url-value*="/collections/"]')
             ->first()
             ->click();
 
@@ -237,10 +237,12 @@ final class SolvedListTest extends AbstractPantherTestCase
         // Click "Remove from sell/swap" button using JavaScript
         $client->executeScript("
             const card = document.querySelector('" . $puzzleCardSelector . "');
-            const forms = card.querySelectorAll('.dropdown-menu form');
-            for (const form of forms) {
-                if (form.action.includes('sell-swap') && form.action.includes('remove')) {
-                    form.querySelector('button').click();
+            // One-tap links (GEST-15): the route they post to is data-post-action-url-value
+            const links = card.querySelectorAll('.dropdown-menu a[data-post-action-url-value]');
+            for (const link of links) {
+                const url = link.getAttribute('data-post-action-url-value');
+                if (url.includes('sell-swap') && url.includes('remove')) {
+                    link.click();
                     break;
                 }
             }
@@ -477,9 +479,9 @@ final class SolvedListTest extends AbstractPantherTestCase
 
         $client->waitForVisibility($puzzleCardSelector . ' .dropdown-menu');
 
-        // Click "Return" button (form action is /en/return-puzzle/{lentPuzzleId})
+        // Click "Return" (a one-tap link posting to /en/return-puzzle/{lentPuzzleId}, GEST-15)
         $client->getCrawler()
-            ->filter($puzzleCardSelector . ' .dropdown-menu form[action*="return-puzzle"] button')
+            ->filter($puzzleCardSelector . ' .dropdown-menu a[data-post-action-url-value*="return-puzzle"]')
             ->first()
             ->click();
 
@@ -598,7 +600,7 @@ final class SolvedListTest extends AbstractPantherTestCase
 
         // Click "Remove from wishlist" button
         $client->getCrawler()
-            ->filter($puzzleCardSelector . ' .dropdown-menu form[action*="wish-list"] button')
+            ->filter($puzzleCardSelector . ' .dropdown-menu a[data-post-action-url-value*="wish-list"]')
             ->first()
             ->click();
 

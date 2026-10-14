@@ -1,5 +1,6 @@
 // Runs assets/player_results_state.js (the Results page's address rules, docs/features/navigation PROF-05c) and
-// assets/restore_reload.js (which document a Back brought back by a full load) through the cases
+// assets/instant_back.js's createRestoreReload() (which document a Back brought back by a full load - PROF-05c's
+// restore mark, folded there from assets/restore_reload.js by GEST-15) through the cases
 // tests/PlayerResultsStateScriptTest.php asks for and prints one JSON object of results.
 
 import {
@@ -22,7 +23,7 @@ import {
     SCROLL_KEY_PREFIX,
     TYPING_DEBOUNCE_MS,
 } from '../assets/player_results_state.js';
-import { createRestoreReload, RESTORE_RELOAD_KEY, SNAPSHOT_RESTORES } from '../assets/restore_reload.js';
+import { createRestoreReload, RESTORE_RELOAD_KEY, SNAPSHOT_RESTORES } from '../assets/instant_back.js';
 
 const PAGE = '/en/player-results/abc';
 const BASE = 'https://msp.test' + PAGE;

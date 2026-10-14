@@ -24,6 +24,17 @@ Meta App Review approved + app published (2026-09-30), so Facebook lost its flag
 - **Gated files:** `src/Navigation/NavigationLaunch.php` (the decision), `src/Twig/NavigationTwigExtension.php` (Twig functions); consumers added later list themselves here - LAUNCH-01 (What moved rule), LAUNCH-03 (pointers), INB-05 (Inbox pointer: `src/Navigation/NavigationPointers.php` - the pointers' one rule, Twig `navigation_pointer('inbox')` - and `templates/inbox/_favorites_pointer.html.twig`), FOOT-01/MENU-01 ("New" badges)
 - **Remove when:** the pointers have expired (`DATE` + 30 days) - then delete the pointers, the "What moved" rule's launch check and the "New" badges of the launch, and the constant with them. Removing the date also needs a decision on the "What moved" modal: it has no expiry (`NavigationWhatMovedRule` - an account created before `DATE` gets it whenever it next comes back, months later too), so either keep the date for the rule or retire the modal on purpose (LAUNCH review Q1)
 
+## Instant Back (`KEEP_BFCACHE`, `INSTANT_BACK`, `INSTANT_BACK_IOS`)
+
+- **Feature:** Back and Forward come back at once, at the same place (`docs/features/navigation/README.md` §4.13 G9, requirements GEST-14 and GEST-15; measured by GEST-08). GEST-14: a fresh copy from the browser's back/forward cache is shown as it was. GEST-15: the browse pages that opt in (`{% block turbo_cache_control %}no-preview{% endblock %}`) come back from Turbo's snapshot, at most 10 minutes old, for the same viewer
+- **Flags:** three constants in `assets/instant_back.js` (the only definitions - `InstantBackScriptTest` pins them):
+  - `KEEP_BFCACHE = true` - the one-line revert of GEST-14: `false` reloads every back/forward-cache restore (the old unconditional reload in `pwa_lifecycle_controller.js`)
+  - `INSTANT_BACK = true` - the revert of GEST-15: `false` turns every Back after a Turbo visit into a full page load again (`location.href = url`, as before)
+  - `INSTANT_BACK_IOS = true` - iPhones too. Set true only because GEST-13 (in-page confirmations) is verified (decision 66); `false` gives iPhones the full load on both caches (iOS Safari refuses native dialogs after a Back to a pushState entry). The owner may flip it after the device checks DC1/DC7
+- **Default:** all three `true`. Changing one = one line in `assets/instant_back.js`, deployed like any change (the assets are rebuilt)
+- **Gated files:** `assets/instant_back.js` (every decision: `bfcacheVerdict()`, `restoreDecision()`, the cache work), `assets/controllers/pwa_lifecycle_controller.js` (`pageshow` / `pagehide`), `assets/app.js` (`installInstantBack()`); the opt-in pages' `turbo_cache_control` block (TurboCacheControlOptInTest lists them); `assets/controllers/player_results_controller.js` reads `SNAPSHOT_RESTORES` (= `INSTANT_BACK`)
+- **Remove when:** never as a whole - they are the revert switches of a behaviour that stays. After the launch watch (`docs/features/navigation/delivery/launch-watch.md` #14: Back restores by kind and `ms_to_load`) the owner may drop `INSTANT_BACK_IOS` once iPhones have been fine for a release (inline `true`)
+
 ## Pairs & teams picker rollout (`PAIRS_TEAMS_PICKER_PUBLIC`)
 
 - **Feature:** the Solo / Pair / Team picker of the add/edit time form (`docs/features/pairs-and-teams/README.md`)

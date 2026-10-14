@@ -1,5 +1,6 @@
 import { Controller } from '@hotwired/stimulus';
 import { chooseStep, readStep } from '../bottom_nav_labels.js';
+import { whenFontsReady } from '../fonts_settled.js';
 
 // The step's custom property, set on the list by the container queries of assets/styles/_nav-label-steps.scss
 const CSS_STEP_PROPERTY = '--nav-label-step';
@@ -26,13 +27,13 @@ export default class extends Controller {
             this.observer.observe(this.element);
         }
 
-        if (document.fonts && document.fonts.ready && typeof document.fonts.ready.then === 'function') {
-            document.fonts.ready.then(() => {
-                if (this.element.isConnected) {
-                    this.fit();
-                }
-            });
-        }
+        // Asked only while the fonts can still change a label (fonts_settled.js: reading document.fonts.ready later lays
+        // the page out in the middle of a render)
+        whenFontsReady(() => {
+            if (this.element.isConnected) {
+                this.fit();
+            }
+        });
     }
 
     disconnect() {

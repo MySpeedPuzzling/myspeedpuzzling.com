@@ -5,8 +5,10 @@
     <span data-follow-text> (text_follow / text_following, e.g. "Follow series" / "Following series"), class
     ev-star-labelled and no aria-label - the visible text is its name. Guests get the same labelled link.
 
-    Signed in: a stateless-CSRF POST form - event_follow_controller.js sends it with fetch and flips every star of the same
-    target in place; without JavaScript it posts and the controller redirects back (303) with a flash.
+    Signed in: a GET form to the one-tap action's confirmation view (post_action_confirm, PostAction::Follow / Unfollow -
+    never a POST form: the events pages may be restored from Turbo's cache, GEST-15 decision 99). event_follow_controller.js
+    sends the follow / unfollow POST with fetch (the stateless CSRF token from data-token) and flips every star of the same
+    target in place; without JavaScript the view's single button posts it and the controller redirects back with a flash.
     Guests: a link to sign in (and back); with JavaScript it shows "Sign in to follow…" under the row instead
     (the note's template is in event_parts/_manage_menu_host.html.twig).
 #}
@@ -22,15 +24,16 @@
     {%- set text_following = text_following|default(label_following) -%}
 {%- endif -%}
 {% if is_granted('IS_AUTHENTICATED_REMEMBERED') %}
-    <form class="ev-star-form" method="post" action="{{ path(following ? 'event_unfollow' : 'event_follow') }}"
+    <form class="ev-star-form" method="get" action="{{ path('post_action_confirm', {action: following ? 'unfollow' : 'follow'}) }}"
           data-controller="event-follow"
           data-action="submit->event-follow#submit"
           data-follow-url="{{ path('event_follow') }}"
           data-unfollow-url="{{ path('event_unfollow') }}"
+          data-token="{{ csrf_token('event_follow') }}"
           data-error="{{ 'events_organizer.follow.try_again'|trans }}">
-        <input type="hidden" name="_token" value="{{ csrf_token('event_follow') }}">
         <input type="hidden" name="target" value="{{ target }}">
         <input type="hidden" name="return" value="{{ app.request.requestUri }}">
+        <input type="hidden" name="back" value="{{ app.request.requestUri }}">
         {% if labelled %}
             <button type="submit" class="ev-star ev-star-labelled"
                     aria-pressed="{{ following ? 'true' : 'false' }}"

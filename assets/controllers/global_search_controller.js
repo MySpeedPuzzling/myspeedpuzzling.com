@@ -1,6 +1,8 @@
 import { Controller } from '@hotwired/stimulus';
 import { getComponent } from '@symfony/ux-live-component';
 import layers, { LAYER_CLOSED_EVENT } from '../layer_history.js';
+import { BEFORE_CACHE_EVENT } from '../instant_back.js';
+import { whenFontsReady } from '../fonts_settled.js';
 import { isNativeApp } from '../platform.js';
 import { TOPBAR_REVEAL_EVENT } from '../topbar_scroll.js';
 import { focusMovedByTab, focusReturnedWithWindow } from '../navigation/focus_origin.js';
@@ -108,7 +110,7 @@ export default class extends Controller {
             document.addEventListener('keydown', this.handleShortcut);
             document.addEventListener('keydown', this.handleTab);
             document.addEventListener(CLOSE_EVENT, this.handleCloseRequest);
-            document.addEventListener('turbo:before-cache', this.handleBeforeCache);
+            document.addEventListener(BEFORE_CACHE_EVENT, this.handleBeforeCache);
             this.element.addEventListener('focusout', this.handleFocusOut);
             this.searchInputTarget.addEventListener('click', this.handleFieldClick);
 
@@ -130,7 +132,7 @@ export default class extends Controller {
         document.removeEventListener('keydown', this.handleTab);
         document.removeEventListener(CLOSE_EVENT, this.handleCloseRequest);
         document.removeEventListener('click', this.handleOutsideClick);
-        document.removeEventListener('turbo:before-cache', this.handleBeforeCache);
+        document.removeEventListener(BEFORE_CACHE_EVENT, this.handleBeforeCache);
         this.element.removeEventListener('focusout', this.handleFocusOut);
         this.searchInputTarget.removeEventListener('click', this.handleFieldClick);
 
@@ -347,10 +349,9 @@ export default class extends Controller {
             this.desktopQuery.addEventListener('change', this.schedulePlaceholder);
         }
 
-        // The web font may arrive after the first measure (font-display: optional - within 100 ms or never)
-        if (document.fonts && document.fonts.ready) {
-            document.fonts.ready.then(this.schedulePlaceholder, () => {});
-        }
+        // The web font may arrive after the first measure (font-display: optional - within 100 ms or never); asked only
+        // while it can (fonts_settled.js: reading document.fonts.ready later lays the page out in the middle of a render)
+        whenFontsReady(this.schedulePlaceholder);
 
         getComponent(this.element).then((component) => {
             if (!this.element.isConnected) {
@@ -694,8 +695,9 @@ export default class extends Controller {
         this.closeSearchBar();
     };
 
+    // Turbo caches the page (GEST-15, assets/instant_back.js `msp:before-cache`: after a view transition captured it, so a
+    // result opened from the open search view still morphs - GEST-17): its snapshot shows the search closed and empty
     handleBeforeCache = () => {
-        // Turbo's snapshot of this page shows the search closed and empty
         if (this.shown) {
             if (layers.isOpen(LAYER)) {
                 layers.closeForCache();
@@ -703,7 +705,32 @@ export default class extends Controller {
 
             this.closeView('cache');
         }
+
+        this.forgetLiveQuery();
     };
+
+    /**
+     * The cached copy keeps no query: the Live component of a restored page writes its model back into the field, and its
+     * props still name the query the field had (the update of the emptied field never reached the server) - GEST-15
+     */
+    forgetLiveQuery() {
+        const props = this.element.getAttribute('data-live-props-value');
+
+        if (!props) {
+            return;
+        }
+
+        try {
+            const data = JSON.parse(props);
+
+            if (typeof data.query === 'string' && data.query !== '') {
+                data.query = '';
+                this.element.setAttribute('data-live-props-value', JSON.stringify(data));
+            }
+        } catch {
+            // not the props of the search: nothing to forget
+        }
+    }
 
     setOpen(open) {
         const root = document.documentElement;

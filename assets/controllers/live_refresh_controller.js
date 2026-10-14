@@ -5,6 +5,7 @@ import { subscribe, wake } from '../page_ticker.js';
 import { chooseTranslation } from '../translation_choice.js';
 import { FEED_REFRESH_EVENT } from '../tab_reselect.js';
 import { VISIBLE_RATIO } from '../feed_swipe.js';
+import { restoredSnapshotAge } from '../instant_back.js';
 
 const JITTER_MS = 5000;
 const WATCHDOG_MS = 30000;
@@ -41,7 +42,8 @@ export default class extends Controller {
 
     initialize() {
         this.component = null;
-        this.lastRenderAt = Date.now();
+        // A page restored from Turbo's snapshot (GEST-15) shows what was rendered when it was cached: due that much sooner
+        this.lastRenderAt = Date.now() - (restoredSnapshotAge() ?? 0);
         this.dueAt = this.nextDue(this.lastRenderAt);
         this.inFlight = false;
         this.failures = 0;

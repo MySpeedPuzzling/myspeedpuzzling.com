@@ -105,11 +105,14 @@ final class PuzzlingTeamDetailControllerTest extends WebTestCase
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
         $crawler = $browser->request('GET', '/en/teams/' . $this->fixturePairId());
 
-        $form = $crawler->filter('form.team-compare');
+        // A one-tap link (the shared comparison_entry/_subject_form.html.twig, GEST-15 decision 99)
+        $form = $crawler->filter('.team-compare > a[data-controller="post-action"]');
         self::assertCount(1, $form);
-        self::assertSame('/en/compare/add', $form->attr('action'));
-        self::assertSame('t-' . $this->fixturePairId(), $form->filter('input[name="subject"]')->attr('value'));
-        self::assertSame('/en/teams/' . $this->fixturePairId(), $form->filter('input[name="return"]')->attr('value'));
+        self::assertSame('/en/compare/add', $form->attr('data-post-action-url-value'));
+        self::assertSame([
+            'subject' => 't-' . $this->fixturePairId(),
+            'return' => '/en/teams/' . $this->fixturePairId(),
+        ], json_decode((string) $form->attr('data-post-action-fields-value'), true));
         self::assertStringContainsString('Add to comparison', $form->text());
     }
 

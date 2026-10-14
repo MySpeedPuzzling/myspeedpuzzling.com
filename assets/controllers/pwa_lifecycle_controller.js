@@ -1,5 +1,6 @@
 import { Controller } from '@hotwired/stimulus';
 import { haptic } from '../haptics.js';
+import { BFCACHE_RELOAD_EVENT, BFCACHE_RESTORE_EVENT, bfcacheVerdictFor, stampPageHide } from '../instant_back.js';
 import layers from '../layer_history.js';
 import { isNativeApp, isStandalone, os } from '../platform.js';
 import { indicatorClass, indicatorMarkup, INDICATOR_SIZE, lookFor, pullFrame } from '../pull_indicator.js';
@@ -18,9 +19,11 @@ export default class extends Controller {
         this._lastHiddenAt = null;
         this._onVisibilityChange = this._handleVisibilityChange.bind(this);
         this._onPageShow = this._handlePageShow.bind(this);
+        this._onPageHide = this._handlePageHide.bind(this);
 
         document.addEventListener('visibilitychange', this._onVisibilityChange);
         window.addEventListener('pageshow', this._onPageShow);
+        window.addEventListener('pagehide', this._onPageHide);
 
         if (this._pullEnabled) {
             this._initPullToRefresh();
@@ -30,6 +33,7 @@ export default class extends Controller {
     disconnect() {
         document.removeEventListener('visibilitychange', this._onVisibilityChange);
         window.removeEventListener('pageshow', this._onPageShow);
+        window.removeEventListener('pagehide', this._onPageHide);
 
         if (this._pullEnabled) {
             this._destroyPullToRefresh();
@@ -78,9 +82,23 @@ export default class extends Controller {
         return false;
     }
 
+    // GEST-14 (README §4.13 G9, assets/instant_back.js): the page leaves - when it left, per document (a back/forward-cache
+    // restore asks how long it was away)
+    _handlePageHide() {
+        stampPageHide();
+    }
+
+    // GEST-14: a page the browser kept in its back/forward cache is shown as it was - unless it was away longer than 10
+    // minutes, carries [data-bfcache-reload], the viewer changed, a POST left from it, it is an iPhone while
+    // INSTANT_BACK_IOS is off, or the Hotwire Native app (bfcacheVerdict()). Revert: KEEP_BFCACHE = false
     _handlePageShow(event) {
-        if (event.persisted) {
+        const verdict = bfcacheVerdictFor(event);
+
+        if (verdict === 'reload') {
+            window.dispatchEvent(new CustomEvent(BFCACHE_RELOAD_EVENT));
             window.location.reload();
+        } else if (verdict === 'keep') {
+            window.dispatchEvent(new CustomEvent(BFCACHE_RESTORE_EVENT));
         }
     }
 

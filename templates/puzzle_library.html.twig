@@ -251,7 +251,7 @@
                             </div>
                             <div class="modal-footer">
                                 <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">{{ 'forms.cancel'|trans }}</button>
-                                <a data-turbo-prefetch="false" href="{{ path('delete_collection', {'collectionId': collection.collectionId}) }}" class="btn btn-danger btn-sm">{{ 'collections.delete.confirm.button'|trans }}</a>
+                                <a data-turbo-prefetch="false" data-clears-snapshots href="{{ path('delete_collection', {'collectionId': collection.collectionId}) }}" class="btn btn-danger btn-sm">{{ 'collections.delete.confirm.button'|trans }}</a>
                             </div>
                         </div>
                     </div>

@@ -2,7 +2,7 @@
 
 The camera, the wake lock, sounds and the browsers' background rules cannot be tested in CI (README §5.5 "Browser
 realities"). Run this on real phones before every test cup and after any change to `assets/controllers/compete_controller.js`
-or `assets/online/{camera,wake_lock,beeps,frame_grabber}.js`. Takes about 45 minutes.
+or `assets/online/{camera,wake_lock,beeps,frame_grabber}.js`. Takes about 45 minutes (live video, steps 25-37: about 25 more).
 
 ## Set-up
 
@@ -56,6 +56,30 @@ Record per device: model, OS + browser version, pass / fail per step, a screensh
 | 23 | Sign in from the welcome screen (anonymous link), come back | The page connects the link to the profile ("Connected to your profile"); an organiser opening a participant's link sees "Preview as organiser" and the page records nothing until "This is me" |
 | 24 | Organiser: "Reset" on the stopwatch page after the round (no result confirmed yet), then "Start in 10 s" again | Every phone that was ready stays ready (no checklist), counts down, GO, **the running stopwatch - not "Finish recorded"**, also on a phone opened fresh; at the end the pieces question again. A Reset after a result was confirmed is refused with "Clear them at the results desk first" |
 
+## Live video (rounds with "Live video" on)
+
+Needs a media server the phones reach (LiveKit, contract phase-1b.md) and the round's "Live video", "See each other"
+and "Studio" switches on. Devices: an iPhone in Safari and an Android phone in Chrome as the two participants (one of
+them on **mobile data**, Wi-Fi off), the organiser's laptop on the control room, a second laptop (or a tablet) on the
+studio page as the host. Headphones on the host. After any change to `assets/online/compete_video*.js`,
+`assets/online/livekit_session.js` or the video parts of `compete_controller.js`.
+
+| # | Do | Must happen |
+|---|----|-------------|
+| 25 | Both phones: the checklist, "I'm ready" | Within ~1 s the bar says "Video on"; the control room shows both cameras live (small tiles). The preview never blinks, the camera is never asked for again; photos keep coming every 30 s |
+| 26 | Organiser: "Turn on the microphone", hold it (or "Keep talking") and speak | Both phones play the voice and show "… is speaking" on the camera preview; nothing on the page moves |
+| 27 | Organiser keeps talking, "Start in 10 s" | The beeps on 3-2-1 and GO stay clearly louder than the voice (the voice is lowered around them - Android; on iOS the voice may not be lowered, the beeps must still be heard) |
+| 28 | During the waiting screen: the strip of the others | Each phone shows the other's camera at the bottom; "Hide" hides it and stays hidden after a reload, "Show" brings it back. At the countdown and during the solve the strip is gone; after Finished it is back |
+| 29 | Reload a phone on the waiting screen while the organiser talks | Android: the voice plays again at once (Chrome lets a page that uses the camera play sound); iPhone: no voice until "Tap here once", then the voice and the beeps |
+| 30 | A phone taps Finished; organiser: "Invite to the studio" on its tile | Within ~1 s "You're invited to the studio" with "2:00 left to answer" counting down. A phone still puzzling is never asked during the solve - the invitation waits for its Finished |
+| 31 | Join | The microphone permission prompt (the microphone only - never the camera); "On air" with the host's picture and voice; the host sees the finished puzzle and hears the participant. The camera preview stays live the whole time |
+| 32 | Host: "Thank you" | Within ~1 s the phone is back: "Thank you for joining the studio!", still "Finish recorded" with the same time, "Video on"; the microphone indicator of the phone (iOS orange dot / Android icon) goes off |
+| 33 | Invite again, "Not now"; invite once more and let it run out | "Not now": the prompt goes; run out: "The invitation to the studio has expired." - never offered again |
+| 34 | During a running round, stop the media server (or block it on the phone's network) for a minute, tap Finished meanwhile | The bar says "Video: reconnecting" - no banner, nothing else changes: the clock, Finished (time, photo, burst on the server), the photos. Once the server is back the phone is "Video on" again by itself within ~30 s, never reloading |
+| 35 | Open a phone's link on the laptop while the phone is ready | The checklist says the link is in use on another device and offers "Use as a second screen"; there: the round's clock, the host's voice, the others (not while still puzzling), "Watch the studio" opens the watch page, **no Finished**. "Use this device for the camera instead" goes back to the checklist |
+| 36 | "I'm ready" on the laptop (takeover) | The phone's bar says "Video off" at once, "Opened on another device" within ~15 s, and its camera leaves the hall (the control room shows the laptop's camera instead) |
+| 37 | Organiser switches "See each other" or "Live video" off and back on (online timing page) | The phones follow at their next state fetch (open the page again, or a start): the strip goes / the phone leaves the hall and competes on, then comes back - see the open question in spikes.md S6 |
+
 ## Known platform limits to note, not to fail
 
 - iOS mutes the camera whenever the page is hidden - the review sees it as `camera.lost` / `camera.back`.
@@ -64,3 +88,7 @@ Record per device: model, OS + browser version, pass / fail per step, a screensh
 - Home-screen web apps on iOS before 18.4 have no wake lock: the Screen row says to turn auto-lock off.
 - A home-screen (PWA) copy of the site reloads itself after 15 minutes in the background (`pwa_lifecycle_controller.js`); the
   page survives a reload (step 18), but open personal links in the browser, not from the home screen.
+- iOS ignores an `<audio>` element's volume: the host's voice plays through the page's own AudioContext (lowered there
+  around the beeps); if a phone plays the voice from the earpiece after the studio (the microphone switched the audio
+  session), note the iOS version.
+- Without headphones the studio may echo for a moment - WebRTC's echo cancellation settles within seconds.

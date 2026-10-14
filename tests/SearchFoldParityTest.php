@@ -86,7 +86,7 @@ final class SearchFoldParityTest extends KernelTestCase
                 }
 
                 if ($entry->synonyms !== null) {
-                    array_push($texts, ...explode('|', $translator->trans($entry->synonyms, [], null, $locale)));
+                    array_push($texts, ...explode(';', $translator->trans($entry->synonyms, [], null, $locale)));
                 }
             }
         }

@@ -62,7 +62,7 @@ final class NavigationSearchIndexTest extends WebTestCase
             foreach (self::LOCALES as $locale) {
                 self::assertTrue($translator->getCatalogue($locale)->defines($entry->synonyms), sprintf('%s: %s is missing', $locale, $entry->synonyms));
 
-                foreach (explode('|', $translator->trans($entry->synonyms, [], null, $locale)) as $synonym) {
+                foreach (explode(';', $translator->trans($entry->synonyms, [], null, $locale)) as $synonym) {
                     self::assertNotSame('', $synonym, sprintf('%s %s: an empty synonym', $locale, $entry->synonyms));
                     self::assertSame(trim($synonym), $synonym, sprintf('%s %s: "%s"', $locale, $entry->synonyms, $synonym));
                 }
@@ -85,7 +85,7 @@ final class NavigationSearchIndexTest extends WebTestCase
             self::assertNotNull($entry, $id);
 
             $texts = array_map(static fn (string $key): string => $translator->trans($key, [], null, 'en'), $entry->legacyLabels);
-            array_push($texts, ...explode('|', $translator->trans((string) $entry->synonyms, [], null, 'en')));
+            array_push($texts, ...explode(';', $translator->trans((string) $entry->synonyms, [], null, 'en')));
             $texts = array_map(mb_strtolower(...), $texts);
 
             self::assertContains(mb_strtolower($label), $texts, sprintf('"%s" is not a key of %s', $label, $id));

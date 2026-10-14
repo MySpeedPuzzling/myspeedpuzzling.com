@@ -104,7 +104,7 @@
      data-price="{{ item.price ?? '' }}"
      {% endif %}>
 
-    <div class="card card-body shadow p-2 position-relative {{ isLent and page_context not in ['lend-borrow-lent', 'lend-borrow-borrowed'] ? 'puzzle-lent' }}">
+    <div class="card card-body shadow p-2 position-relative {{ isLent and page_context not in ['lend-borrow-lent', 'lend-borrow-borrowed'] ? 'puzzle-lent' }}" data-press="layer">
         <div class="d-flex">
             {# Puzzle image #}
             <div style="width: 60px;" class="flex-shrink-0 position-relative">

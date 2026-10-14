@@ -1,8 +1,9 @@
 {#- One row of the Menu (README §4.12): icon · label (a one-line description under it only where the label is ambiguous)
     · count or status · chevron (CSS). Same translation key and icon as the destination has on every surface (the
     registry). Anchor id menu-row-<id> on the <li>, aria-current="page" on the current page's row (nav_location()
-    .menuRowId). Kept lean - it repeats ~55 times on every page (chrome weight, MENU-01). The docked column's Puzzles
-    place row carries its sections' links like the tab (data-nav-place, data-puzzles-sections - PUZ-01).
+    .menuRowId). Kept lean - it repeats ~55 times on every page (chrome weight, MENU-01). The docked column's place rows
+    carry their place like the tabs (data-nav-place: a tap on the current place's row works as a tap on its tab, GEST-03)
+    and the Puzzles row its sections' links (data-puzzles-sections - PUZ-01). data-press: the pressed state (GEST-04).
     `row`: MenuRowView, `viewer`: NavigationViewer -#}
 {%- set entry = row.entry -%}
 {%- set kind = row.kind.value -%}
@@ -22,7 +23,7 @@
 {%- elseif entry.count is not null and entry.count.value == 'inbox_badge' -%}
     {#- The Inbox link of every surface (INB-01/INB-02): the tab holding the unread items, the combined badge -#}
     <li id="{{ row.anchorId }}"{{ only ? (' class="' ~ only ~ '"')|raw }}>
-    {%- embed 'inbox/_link.html.twig' with {nav: row.navId, class: 'mr', surface: 'menu', current: row.current, row_label: entry.label|trans, icon: entry.icon} only -%}
+    {%- embed 'inbox/_link.html.twig' with {nav: row.navId, class: 'mr', surface: 'menu', current: row.current, press: '', row_label: entry.label|trans, icon: entry.icon} only -%}
         {%- block content -%}<i class="bi {{ icon }}" aria-hidden="true"></i><span class="mr-l">{{ row_label }}</span> <span class="mr-c">{{ include('inbox/_badge.html.twig', {part: 'total', parts: parts, class: 'mr-badge'}) }}</span>{%- endblock -%}
     {%- endembed -%}
     </li>
@@ -36,7 +37,8 @@
         {%- if row.nofollow %} rel="nofollow"{% endif %}
         {%- if kind == 'help_sheet' %} {{ help_opener_attrs() }}{% endif %}
         {%- if kind == 'logout' %} data-turbo="false"{% endif %}
-        {%- if entry.id == 'puzzles_place' %} data-nav-place="puzzles" data-puzzles-sections="{{ nav_puzzles_sections()|json_encode(constant('JSON_UNESCAPED_SLASHES') b-or constant('JSON_UNESCAPED_UNICODE')) }}"{% endif %}>
+        {%- if kind == 'place' %} data-nav-place="{{ entry.place.value }}"{% endif %}
+        {%- if entry.id == 'puzzles_place' %} data-puzzles-sections="{{ nav_puzzles_sections()|json_encode(constant('JSON_UNESCAPED_SLASHES') b-or constant('JSON_UNESCAPED_UNICODE')) }}"{% endif %}>
         {#- -#}<i class="bi {{ entry.icon }}" aria-hidden="true"></i><span class="mr-l">{{ entry.label|trans }}
         {%- if stopwatch is not null -%}
             <small class="mr-d mr-running">{{ 'nav.menu.running'|trans }} · {{ include('navigation/_stopwatch_elapsed.html.twig', {stopwatch: stopwatch}, with_context = false) }}</small>

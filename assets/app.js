@@ -63,6 +63,11 @@ installPlayerCard({ window, document });
 
 Turbo.config.drive.progressBarDelay = 0;
 
+// Pressed states within 100 ms (GEST-04, assets/styles/_press-states.scss): iOS Safari applies :active only to elements
+// with a touch listener above them (WebKit bug 138816) - one empty passive listener on the document gives every
+// [data-press] target its state layer at touch, without delaying the tap or the scroll
+document.addEventListener('touchstart', () => {}, { passive: true });
+
 // Navigation clicks, the viewport once per session and Back/Forward navigations (docs/features/navigation, P0-03).
 // The web chrome only - the app's navigation is native
 const navInstrumentation = isNativeApp() ? null : startNavInstrumentation({ window, document });

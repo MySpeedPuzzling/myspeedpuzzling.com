@@ -2,7 +2,7 @@
     id="puzzle-list-item-{{ puzzle.puzzleId }}"
     class="position-relative col-12 col-lg-6"
 >
-    <div class="card card-body shadow p-2 puzzle-list-item">
+    <div class="card card-body shadow p-2 puzzle-list-item" data-press="layer">
         <div class="d-flex">
             <div style="width: 90px;">
                 <a data-turbo-frame="_top" href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">

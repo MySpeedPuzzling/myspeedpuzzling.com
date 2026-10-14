@@ -1,0 +1,81 @@
+// Pressed states within 100 ms (docs/features/navigation README §4.13 G4, D22; implementation plan GEST-04, decision 58
+// D-6) - on every platform.
+//
+// While the finger or the button is down (:active) a 10 % state layer (--nav-pressed-pill) lies over the target, drawn at
+// once (transition: none), and fades out in 150 ms after the release; the browser's own tap highlight is off on the same
+// targets. iOS applies :active only to elements with a touch listener above them: assets/app.js registers one empty,
+// passive touchstart listener on the document (WebKit bug 138816). Android's ripple from the touch point comes on top
+// (GEST-11, assets/press_feedback.js - the same markers); desktop keeps its hover states as they are.
+//
+// The targets, by marker (the markup's, decision 58 D-6):
+// - data-press="fixed" - the bars' controls: the tabs (tab bar, rail, the 768-1023 px top bar's places), the top bar's
+//   tools, + Add, the ⏱ pill, Sign in, the avatar ▾;
+// - data-press - in the page: Menu rows, sheet rows (Help, the player card's pages), chips, link rows;
+// - data-press="layer" - cards (catalogue, library, search): the layer only, never a ripple. A card holds several links
+//   and buttons of its own, so it shows while one of its links is pressed;
+// - .row-link - table rows that open their link (row_link_controller.js adds the class): the layer on their cells.
+//
+// The layer never replaces a background (white chips and cards, the coral + Add, the current tab's pill): it is a
+// gradient of one colour over the element's own background - or, where the visible shape is an inner pill (a tab's 56 × 32
+// indicator, the ⏱ pill's body), an inset shadow of that pill. The colour is a registered custom property, so it can
+// fade; a browser without @property shows and drops the layer at once. An element's own :active background (+ Add's
+// darker coral, Sign in) still wins where its rule is the stronger one.
+
+@property --nav-press-layer {
+    syntax: "<color>";
+    inherits: false;
+    initial-value: transparent;
+}
+
+// The browser's own grey flash would sit on top of ours
+[data-press],
+[data-press="layer"] a,
+.row-link {
+    -webkit-tap-highlight-color: transparent;
+}
+
+// The layer: transparent at rest
+[data-press]:not(.nav-tab, .stopwatch-pill),
+.row-link > * {
+    background-image: linear-gradient(var(--nav-press-layer), var(--nav-press-layer));
+}
+
+.nav-tab[data-press] .nav-tab-icon,
+.stopwatch-pill[data-press] .stopwatch-pill-body {
+    box-shadow: inset 0 0 0 2rem var(--nav-press-layer);
+}
+
+// A tab's colours change with its pill, at once: the theme's link colour transition (_reboot.scss) would bring the
+// tapped tab's icon 250 ms after its pill and label (.is-pending, tab_gestures_controller.js)
+.nav-tab[data-press] {
+    transition: none;
+}
+
+// A row link with no corners of its own gets the Menu row's, so the layer has them
+.help-row,
+.menu-you-status,
+.players-card-page-link {
+    border-radius: .5rem;
+}
+
+// The release: it fades out in 150 ms. :where() weighs nothing - an element's own transition wins (the layer then goes
+// at once)
+:where([data-press]:not(.nav-tab, .stopwatch-pill), .row-link > *, .nav-tab[data-press] .nav-tab-icon, .stopwatch-pill[data-press] .stopwatch-pill-body) {
+    transition: --nav-press-layer .15s ease-out;
+}
+
+// A link keeps the theme's colour transition (_reboot.scss: a { transition: $link-transition }) next to the fade - the
+// same weight as that rule, and later
+a:where([data-press]:not(.nav-tab, .stopwatch-pill)) {
+    transition: $link-transition, --nav-press-layer .15s ease-out;
+}
+
+// Pressed: at once
+[data-press]:not(.nav-tab, .stopwatch-pill, [data-press="layer"]):active,
+[data-press="layer"]:has(a[href]:active),
+.row-link:active > *,
+.nav-tab[data-press]:active .nav-tab-icon,
+.stopwatch-pill[data-press]:active .stopwatch-pill-body {
+    --nav-press-layer: var(--nav-pressed-pill, rgba(254, 105, 106, .1));
+    transition: none;
+}

@@ -180,9 +180,9 @@
 
         {# The player's pages - the labels of the player header's tabs (PROF-02) #}
         <nav class="players-card-pages" aria-label="{{ 'player_header.pages'|trans }}">
-            <a class="players-card-page-link" href="{{ profile_path }}" data-turbo-frame="_top" data-nav="{{ nav }}overview">{{ 'player_header.tabs.overview'|trans }}</a>
-            <a class="players-card-page-link" href="{{ path('player_results', {playerId: player.playerId}) }}" data-turbo-frame="_top" data-nav="{{ nav }}results">{{ 'player_header.tabs.results'|trans }}</a>
-            <a class="players-card-page-link" href="{{ path('player_statistics', {playerId: player.playerId}) }}" data-turbo-frame="_top" rel="nofollow" data-nav="{{ nav }}statistics">{{ 'player_header.tabs.statistics'|trans }}</a>
+            <a class="players-card-page-link" data-press href="{{ profile_path }}" data-turbo-frame="_top" data-nav="{{ nav }}overview">{{ 'player_header.tabs.overview'|trans }}</a>
+            <a class="players-card-page-link" data-press href="{{ path('player_results', {playerId: player.playerId}) }}" data-turbo-frame="_top" data-nav="{{ nav }}results">{{ 'player_header.tabs.results'|trans }}</a>
+            <a class="players-card-page-link" data-press href="{{ path('player_statistics', {playerId: player.playerId}) }}" data-turbo-frame="_top" rel="nofollow" data-nav="{{ nav }}statistics">{{ 'player_header.tabs.statistics'|trans }}</a>
         </nav>
 
         {# What Favorite / Compare just did. Read only by a visitor with a session - reading starts one otherwise #}

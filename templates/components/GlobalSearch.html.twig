@@ -127,7 +127,7 @@
                 {% endif %}
 
                 {% for puzzle in computed.puzzle %}
-                    <div class="shadow">
+                    <div class="shadow" data-press="layer">
                         <div class="d-flex py-2">
                             <div style="width: 90px;">
                                 <a data-turbo-frame="_top" href="{{ path('puzzle_detail', {puzzleId: puzzle.puzzleId}) }}">

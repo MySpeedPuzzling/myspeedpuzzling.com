@@ -120,7 +120,7 @@
                 } %}
             {% endif %}
             <li class="list-group-item px-0{% if kind == 'reload' %} standalone-only{% endif %}" data-help-item="{{ item.id }}">
-                <a class="help-row d-flex align-items-center gap-3 text-body" href="{{ link.href }}"
+                <a class="help-row d-flex align-items-center gap-3 text-body" href="{{ link.href }}" data-press
                     {%- if link.frame is not null %} data-turbo-frame="{{ link.frame }}"{% endif %}
                     {%- if kind == 'reload' %} data-turbo="false"{% if in_frame %} data-action="help-sheet#reload"{% endif %}{% endif %}
                     data-nav="help/help/{{ item.id }}">

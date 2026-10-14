@@ -7,7 +7,8 @@
     Params: nav = data-nav (required); class = the link's classes; surface = adds inbox-link--<surface>;
     label = visible label text (none by default); badge_part = total (default) | for_you | messages; badge_class;
     parts = InboxBadgeParts (default inbox_badge()); current = true marks the current page's link (aria-current, the
-    Menu's Inbox row - MENU-01). Renders nothing for guests.
+    Menu's Inbox row - MENU-01); press = the pressed-state marker (GEST-04: 'fixed' in a bar, '' in the Menu; none by
+    default). Renders nothing for guests.
     Embed it and override block `content` for a surface's own icon and badge markup (the badge stays an include of
     inbox/_badge.html.twig with `parts`). -#}
 {%- set parts = parts ?? inbox_badge() -%}
@@ -18,6 +19,7 @@
        rel="nofollow"
        data-inbox-link
        data-nav="{{ nav }}"
+       {%- if (press ?? null) is not null %} data-press{% if press != '' %}="{{ press }}"{% endif %}{% endif %}
        {%- if current ?? false %} aria-current="page"{% endif %}
        data-bar-action="{{ bar_action('inbox') }}"
        data-bar-count="{{ parts.total() }}"

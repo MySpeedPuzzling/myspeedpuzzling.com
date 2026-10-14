@@ -45,6 +45,10 @@ final class PlatformFlagReadersTest extends TestCase
         'assets/controllers/player_results_controller.js',
         // CARD-01a: a name opens the player card on the web only - inside the app the link navigates
         'assets/player_card.js',
+        // GEST-03: tapping the active tab (scroll to the top, the feed's refresh) is the web tab bar's - inside the app
+        // the link navigates (assets/tab_reselect.js decides, the bar's controller passes the flag)
+        'assets/tab_reselect.js',
+        'assets/controllers/tab_gestures_controller.js',
     ];
 
     private const string PLATFORM_MODULE = 'assets/platform.js';

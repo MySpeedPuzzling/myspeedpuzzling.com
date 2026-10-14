@@ -8,7 +8,7 @@
     all fixed at render (_stopwatch_elapsed.html.twig, RunningStopwatch::showsCompactIcon()). -#}
 {%- set stopwatch = running_stopwatch ?? logged_user.profile.runningStopwatch ?? null -%}
 {%- if stopwatch is not null -%}
-<a href="{{ path('stopwatch', {stopwatchId: stopwatch.stopwatchId}) }}" class="stopwatch-pill{{ stopwatch.showsCompactIcon ? '' : ' stopwatch-pill--no-compact-icon' }}" data-stopwatch-pill data-nav="topbar/add/stopwatch_pill" aria-label="{{ 'stopwatch.pill.label'|trans }}" title="{{ 'stopwatch.pill.title'|trans }}">
+<a href="{{ path('stopwatch', {stopwatchId: stopwatch.stopwatchId}) }}" class="stopwatch-pill{{ stopwatch.showsCompactIcon ? '' : ' stopwatch-pill--no-compact-icon' }}" data-stopwatch-pill data-nav="topbar/add/stopwatch_pill" data-press="fixed" aria-label="{{ 'stopwatch.pill.label'|trans }}" title="{{ 'stopwatch.pill.title'|trans }}">
     <span class="stopwatch-pill-body" aria-hidden="true">
         <svg class="stopwatch-pill-icon" viewBox="0 0 24 24" width="16" height="16" focusable="false" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13.5" r="7.5"/><path d="M12 10v3.5l2.25 2.25M10 2.75h4M12 2.75V6"/></svg>
         {{- include('navigation/_stopwatch_elapsed.html.twig', {stopwatch: stopwatch}) -}}

@@ -10,5 +10,5 @@
         {#- -#}<span class="menu-you-text"><span class="menu-you-name">{{ profile.playerName ?? ('#' ~ profile.code|upper) }}</span><span class="menu-you-link">{{ 'nav.menu.view_profile'|trans }}</span></span>
     {#- -#}</a>
     {#- -#}<a class="menu-you-settings" href="{{ path('edit_profile') }}" data-nav="menu/you/settings" data-press aria-label="{{ 'nav.row.settings'|trans }}" title="{{ 'nav.row.settings'|trans }}"><i class="bi bi-gear" aria-hidden="true"></i></a>
-    {#- -#}<a class="menu-you-status" href="{{ path('membership') }}" data-nav="menu/you/membership">{{ include('navigation/_membership_status.html.twig', {profile: profile}, with_context = false) }}</a>
+    {#- -#}<a class="menu-you-status" href="{{ path('membership') }}" data-nav="menu/you/membership" data-press>{{ include('navigation/_membership_status.html.twig', {profile: profile}, with_context = false) }}</a>
 {#- -#}</li>

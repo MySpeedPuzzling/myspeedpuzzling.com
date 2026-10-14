@@ -17,7 +17,7 @@
 {%- set own_profile_href = path('player_profile', {playerId: profile.playerId}) -%}
 {%- set names = {en: 'English', de: 'Deutsch', cs: 'Čeština', fr: 'Français', es: 'Español', ja: '日本語'} -%}
 <div class="site-header-account dropdown">
-    {#- -#}<button type="button" class="nav-account-trigger" data-bs-toggle="dropdown" data-bs-auto-close="outside" data-bs-display="static" aria-expanded="false" data-nav="topbar/profile/account" aria-label="{{ 'nav.account.trigger_label'|trans }}">
+    {#- -#}<button type="button" class="nav-account-trigger" data-bs-toggle="dropdown" data-bs-auto-close="outside" data-bs-display="static" aria-expanded="false" data-nav="topbar/profile/account" data-press="fixed" aria-label="{{ 'nav.account.trigger_label'|trans }}">
         {#- -#}<twig:XpRing :player="profile" variant="nav">
             {{- include('_player_avatar.html.twig', {player_id: profile.playerId, name: profile.playerName ?? ('#' ~ profile.code), avatar: profile.avatar, country_code: null, size: 'lg'}, with_context = false) -}}
         </twig:XpRing>

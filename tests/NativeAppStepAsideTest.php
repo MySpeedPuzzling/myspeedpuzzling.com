@@ -15,7 +15,8 @@ use Symfony\Component\Process\Process;
  * (tests/native-step-aside-harness.mjs). Each bar, layer and gesture item adds its row (implementation plan §3.5
  * item 4): GEST-01 no history entry, PROF-05c no Results entry either, GEST-06 the pull never arms, GEST-10 no
  * vibration, GEST-12/17 the view-transition gate stays `none`, GEST-15 the restore decision is `leave`, CARD-01a /
- * MENU-02b the listeners let the link navigate, GEST-13 the confirm watchdog reports nothing.
+ * MENU-02b the listeners let the link navigate, GEST-13 the confirm watchdog reports nothing, GEST-03 a tab tap
+ * navigates.
  *
  * @phpstan-type Answer array{value?: mixed, threw?: string}
  * @phpstan-type Row array{id: string, app: Answer, web: Answer}
@@ -66,6 +67,12 @@ final class NativeAppStepAsideTest extends TestCase
         'assets/player_card.js' => [
             ['tapOnAName' => 'profile'],
             ['tapOnAName' => 'card'],
+        ],
+        // GEST-03: a tap on the active tab scrolls to the top / refreshes the Hub's feed on the web; the app has no web
+        // tab bar - the link navigates
+        'assets/tab_reselect.js' => [
+            ['hubScrolled' => 'navigate', 'hubAtTheTop' => 'navigate'],
+            ['hubScrolled' => 'scroll-top', 'hubAtTheTop' => 'refresh-feed'],
         ],
     ];
 

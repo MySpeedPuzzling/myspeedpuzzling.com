@@ -15,6 +15,7 @@ import { menuButtonState } from '../assets/navigation/nav_layout.js';
 import { topbarMayHide } from '../assets/topbar_scroll.js';
 import { historyAction, scrollRestore, takesOver } from '../assets/player_results_state.js';
 import { shouldOpen } from '../assets/player_card_rules.js';
+import { decideFor } from '../assets/tab_reselect.js';
 
 /** A fake <html>: inside the app on an Android phone, or Chrome on the same phone */
 function root(nativeApp) {
@@ -95,6 +96,19 @@ const ROWS = [
             };
 
             return { tapOnAName: shouldOpen({ button: 0, detail: 1, pointerType: 'touch' }, name, { nativeApp: isNativeApp(html) }) ? 'card' : 'profile' };
+        },
+    },
+    // GEST-03: a tap on the active tab scrolls the Hub to its top / refreshes its feed on the web; inside the app there is
+    // no web tab bar - the link does what it says
+    {
+        id: 'assets/tab_reselect.js',
+        run: (html) => {
+            const hub = { tabPlace: 'home', currentPlace: 'home', tabPath: '/en/hub', currentPath: '/en/hub' };
+
+            return {
+                hubScrolled: decideFor(html, { ...hub, scrollY: 800 }).action,
+                hubAtTheTop: decideFor(html, { ...hub, scrollY: 0 }).action,
+            };
         },
     },
 ];

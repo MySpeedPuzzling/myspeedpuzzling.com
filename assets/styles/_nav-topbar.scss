@@ -86,9 +86,7 @@ $nav-topbar-desktop-h: 64px;
         text-decoration: none;
     }
 
-    &:active {
-        background: var(--nav-pressed-pill, rgba(254, 105, 106, .1));
-    }
+    // Pressed: the tools' state layer is _press-states.scss's (data-press="fixed", GEST-04); the logo has none
 
     &:focus-visible {
         outline: 2px solid var(--nav-focus, #4e54c8);
@@ -98,10 +96,6 @@ $nav-topbar-desktop-h: 64px;
 
 .site-header-logo {
     border-radius: .75rem;
-
-    &:active {
-        background: transparent;
-    }
 }
 
 // The Inbox count on the icon's corner (the badge colours of the bars, README §5); hidden at 0, "99+" grows it
@@ -316,9 +310,7 @@ $nav-labels-media: "(min-width: 1200px) and (min-height: 501px), (min-width: 120
             text-decoration: none;
         }
 
-        &:active {
-            background: var(--nav-pressed-pill, rgba(254, 105, 106, .1));
-        }
+        // Pressed: _press-states.scss's layer over the white (data-press="fixed", GEST-04)
 
         &:focus-visible {
             outline: 2px solid var(--nav-focus, #4e54c8);

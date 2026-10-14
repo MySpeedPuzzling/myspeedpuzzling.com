@@ -3,6 +3,7 @@ import { Controller } from '@hotwired/stimulus';
 import { getComponent } from '@symfony/ux-live-component';
 import { subscribe, wake } from '../page_ticker.js';
 import { chooseTranslation } from '../translation_choice.js';
+import { FEED_REFRESH_EVENT } from '../tab_reselect.js';
 
 const JITTER_MS = 5000;
 const WATCHDOG_MS = 30000;
@@ -23,6 +24,8 @@ let pausedByVisitor = false;
  * - the status line ("Auto-update in 42 seconds" + a ring filling smoothly) counts down and is the WCAG 2.2.2
  *   pause / resume button; it is `data-live-ignore`, so no re-render ever morphs what this controller drew
  * - a failed refresh is retried later (60 → 120 → 300 s) instead of showing the error page
+ * - a tap on the Home tab at the top of the Hub asks for a refresh now (`msp:feed-refresh`, GEST-03 -
+ *   assets/tab_reselect.js): the shown feed re-renders in place, paused or not, unless a refresh is under way
  */
 export default class extends Controller {
     static targets = ['status', 'text', 'fill'];
@@ -52,6 +55,7 @@ export default class extends Controller {
         INTERACTION_EVENTS.forEach((type) => document.addEventListener(type, this.onInteraction, { capture: true, passive: true }));
         document.addEventListener('visibilitychange', this.onInteraction);
         window.addEventListener('online', this.onOnline);
+        document.addEventListener(FEED_REFRESH_EVENT, this.onFeedRefresh);
 
         getComponent(this.element).then((component) => {
             this.component = component;
@@ -81,6 +85,7 @@ export default class extends Controller {
         INTERACTION_EVENTS.forEach((type) => document.removeEventListener(type, this.onInteraction, { capture: true }));
         document.removeEventListener('visibilitychange', this.onInteraction);
         window.removeEventListener('online', this.onOnline);
+        document.removeEventListener(FEED_REFRESH_EVENT, this.onFeedRefresh);
         this.unsubscribe();
         clearTimeout(this.watchdog);
         this.stopRing();
@@ -106,6 +111,17 @@ export default class extends Controller {
 
         wake();
     }
+
+    /** GEST-03: the Home tab tapped at the top of the Hub - only the feed the visitor sees refreshes, and only once */
+    onFeedRefresh = () => {
+        if (this.component === null || this.inFlight || !isShown(this.element)) {
+            return;
+        }
+
+        this.lastInteractionAt = Date.now();
+        this.refresh();
+        wake();
+    };
 
     tick(now) {
         const state = this.state(now);

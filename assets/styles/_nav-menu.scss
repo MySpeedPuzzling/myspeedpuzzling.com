@@ -109,9 +109,7 @@
         background: var(--nav-pressed-pill, rgba(254, 105, 106, .1));
     }
 
-    &:active {
-        background: var(--nav-pressed-pill, rgba(254, 105, 106, .1));
-    }
+    // Pressed: _press-states.scss's layer (every row carries data-press, GEST-04)
 
     &:focus-visible {
         outline: 2px solid var(--nav-focus, #4e54c8);

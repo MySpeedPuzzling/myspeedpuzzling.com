@@ -14,24 +14,20 @@ The living record of where the prototype stands and what comes next. Updated by 
 
 ---
 
-## Now - PAUSED (2026-10-13 evening, Jan: machine restart)
-
-Every stream that ran finished and is merged on `main` (the last one, LT, too); nothing is half-done, no throwaway container is left. **To resume, follow "Resume here" below.**
+## Now
 
 | | |
 |---|---|
-| **Phase** | 1 built (6 locales, end-to-end tested + fixed); 1B: foundation, moderator console + studio, spectator page **merged**, participant video (VP) **not started** (brief ready); Phase 2 groundwork (detection bench) merged |
-| **Started** | 2026-10-13 |
+| **Phase** | 1 built (6 locales, end-to-end tested + fixed, follow-ups done); **1B complete** (foundation, moderator console + studio, spectator page, participant video - proven against a local LiveKit; production waits for ADR D78); Phase 2 groundwork merged |
+| **Resumed** | 2026-10-14 after the pause of 2026-10-13 |
 | **Next milestone** | M1 → Test Cup #1 (target Tue 2026-11-10) - runbook [test-cup-1.md](test-cup-1.md) |
 
-## Resume here
+## Next
 
-1. **Dev stack**: `docker compose up -d` (port overrides from CLAUDE.md if another project holds a port). Wait for `js-watch` to finish its first build - `public/build/entrypoints.json` must list `app`, `compete`, `online_rounds`, `online_watch` (else the online page tests fail with "Could not find the entry"). LiveKit stays off unless `docker compose --profile video up -d livekit` + the four `LIVEKIT_*` lines in `.env.local` (see `.env`).
-2. **Check nothing is left over**: `git worktree list` (only other sessions' worktrees + `.claude/worktrees/oc-integrate`), `git log origin/main..main` empty. One stale worktree of this delivery stays locked by the paused session: `.claude/worktrees/agent-af577572e63ede22c` (stream B2, all of it on `main`) - remove it with `git worktree unlock` + `git worktree remove --force` + `git branch -D worktree-agent-af577572e63ede22c`.
-3. **Next stream - VP (participant video)**: the brief is ready at `.claude/worktrees/online-delivery/brief-VP.md` (local, git-excluded, with the notes from VM). Launch one agent in its own worktree (`run.sh` name `ocvp`). It builds: the phone publishing its puzzle camera (the same track the frame grabber reads), the host's voice, see-each-other off during the own solve, the studio invite → on air → back, a view-only second screen, `device-test.md` video steps.
-4. **After VP**: translate every Phase 1B English key (`compete.video`, `online_rounds.console|studio|watch|settings.video`) into cs, de, es, fr, ja - one translator agent per locale with `.claude/worktrees/online-delivery/brief-translate.md` adapted to those sub-roots, then the parity + `OnlinePluralMessagesTest` checks.
-5. **Then Phase 2 integration**: the detector on the participant page (model hosting, `detector.worker.js` + pacing fed by `frame_grabber.js`, `finish_machine.js` candidates → photo + burst + `finish.candidate` event, the set-up test "raise both hands", detection error in the accuracy report) - tuning waits for S1 footage.
-6. **Merging**: every stream through `.claude/worktrees/oc-integrate` (`git checkout -B oc-integrate origin/main` → cherry-pick (or the net diff when a branch merged main) → PHPStan + full paratest + schema validate → `git push origin HEAD:main` → `git merge --ff-only origin/main` in the shared checkout) → remove the stream's worktree + its `speedpuzzling_<name>_test*` databases.
+1. Translations of the participant page's video texts (`compete.video`, 46 keys) into cs, de, es, fr, ja - running.
+2. **Phase 2 integration** - the detector on the participant page: model hosting (pinned CDN URLs for the prototype), `detector.worker.js` + pacing fed by `frame_grabber.js`, `finish_machine.js` candidates → sharp photo + burst + a `finish.candidate` event, the set-up test "raise both hands", modes off / shadow / on per round, detection error in the accuracy report. Tuning waits for S1 footage.
+3. Settings changes (live video, see each other) reach phones only at their next state fetch - publish a state-hash bump when the online timing settings change (`docs/TODO.md`).
+4. Merging recipe: every stream through `.claude/worktrees/oc-integrate` (`git checkout -B oc-integrate origin/main` → cherry-pick, or the net diff when a branch merged main → PHPStan + full paratest + schema validate → `git push origin HEAD:main` → `git merge --ff-only origin/main` in the shared checkout) → remove the stream's worktree + its `speedpuzzling_<name>_test*` databases. Briefs and `run.sh` / `heavy.sh` in `.claude/worktrees/online-delivery/` (local).
 
 ## Waiting for Jan
 
@@ -47,8 +43,8 @@ Every stream that ran finished and is merged on `main` (the last one, LT, too); 
 |---|---|---|
 | 0 - spikes | in progress | S1 footage protocol ready for Jan (spikes.md, with the label list form for several raises); S2 bench tools **built** (`tools/online-bench/`); S6 local run done (VF); S3-S5 follow |
 | 1 - remote stopwatch | **built**, translated, end-to-end tested + fixed | real-device pass on phones pending (`device-test.md`) |
-| 1B - live room + studio | VF, VM, VS **merged**; VP next | everything proven against a local LiveKit 1.13.9 (spikes.md S6); production needs ADR D78 on lily.srv (Jan's OK); translations of the 1B keys after VP |
-| 2 - hands-up detection | groundwork **merged** (stream DB) | the finish rule, the hands-up signal, the detector worker + pacing, the bench; integration into the participant page after VP; tuning waits for S1 footage |
+| 1B - live room + studio | **complete** (VF, VM, VS, VP merged, translated except `compete.video` - running) | everything proven against a local LiveKit 1.13.9 (spikes.md S6); production needs ADR D78 on lily.srv (Jan's OK); real phones: `device-test.md` steps 25-37 |
+| 2 - hands-up detection | groundwork **merged** (stream DB); integration next | the finish rule, the hands-up signal, the detector worker + pacing, the bench; tuning waits for S1 footage |
 | 3 - completeness check | not started | the bench's OpenCV self-test comes with DB |
 | 4 - scale + public event | not started | |
 
@@ -71,7 +67,8 @@ Every stream that ran finished and is merged on `main` (the last one, LT, too); 
 | VF - video foundation (dev LiveKit in the compose profile `video`, tokens, server API client, webhook, studio invites, video switches) | **merged** - proven against a real LiveKit 1.13.9 (join ≈ 0.3 s, 3 simulcast layers, data + permission changes live, 32 webhooks verified); as built: [contracts/phase-1b.md](contracts/phase-1b.md) §8 |
 | VM - moderator console (video grid, spotlight, push-to-talk, invites) + the host's studio page + the studio's safety rules | **merged** - 8 cameras joined in 0.3-0.6 s, spotlight 720p in ~3 s, push-to-talk heard in 0.19 s, a reused studio token removed in < 0.2 s |
 | VS - public watch page + spectator tokens (per-IP limit, cap 200), "Watch live" on event pages, OBS + YouTube how-to | **merged** - 3 spectators live in 1.2-1.8 s, the cap turns away and lets in, drafts 404 |
-| VP - participant video (camera to the hall, host's voice, studio on air, second screen) | **not started** - brief ready (`.claude/worktrees/online-delivery/brief-VP.md`) |
+| VP - participant video (camera to the hall, host's voice, studio on air, the others' strip, view-only second screen) | **merged** - "I'm ready" → video on in ~0.2 s, the frame grabber kept 9.8 fps while publishing, invite → on air 1 s, Thank you → back in the hall 0.8 s, LiveKit killed mid-round = the round goes on; +6 KB initial JS, the rest lazy |
+| P1G - follow-ups: Start refused after End now (online), another device on the tile, upload timeout (failover 41 s → 17 s), uploads that never arrived, breaker probe, cached link during a claim | **merged** (migration `Version20261014011432`, additive) |
 | LT - load tooling (k6 + SSE, `tools/online-load/`) + local storage failover drill (Garage as the second store) | **merged** - 100 phones locally: 35 req/s, p95 ≤ 140 ms (234 ms in the start burst), ~0.1 core, 0 errors, GO p95 4 ms late, Mercure updates 20-41 ms; the drill found and fixed a breaker that never opened for a store that gives no answer (now: uploads on Garage 3.3 s after the primary died, all retried); numbers in `spikes.md` S5 |
 | DB - detection bench (finish rule, hands-up signal, detector worker, bench page + scorer, OpenCV completeness self-test) | **merged** - end-to-end on a public-domain clip (candidate +33 ms, no false raise); completeness self-test: no missing piece ever passed as complete (90 synthetic photos); open questions for the footage day in `spikes.md` S2 |
 | TX - online texts: every plural renders for 0, "1 pieces", clearer wording, unused keys, a guard test over all 6 locales | **merged** (`OnlinePluralMessagesTest`) |
@@ -85,6 +82,7 @@ See "Resume here" above.
 
 | Date | What |
 |---|---|
+| 2026-10-14 | Resumed. Participant video (VP) merged - Phase 1B complete; Phase 1 follow-ups (P1G) merged; the console / studio / watch texts translated into 5 locales (146 keys each) |
 | 2026-10-13 | Load tooling + storage failover drill merged (LT): k6 with SSE, a production-like local stack (FrankenPHP worker mode, Mercure, MinIO + Garage). 100 local phones cost ~0.1 core with 0 errors; the drill found that a store giving no readable answer never opened the circuit breaker - fixed (phone reports "no answer" as a store failure, fresh upload URL after the second failure; server counts it) |
 | 2026-10-13 | Moderator console + studio (VM) and the spectator watch page (VS) merged (migration `Version20261013170851`: `online_round.youtube_url`, nullable). Paused at Jan's request after every running stream finished - resume from "Resume here" |
 | 2026-10-13 | Fixes from the end-to-end pass merged (P1F): a Reset of an online round starts a fresh run (refused once results are confirmed), the participant API's limiters count parallel requests (Lua counter on the cache Redis), "End now" never before the click, the other device stops within a heartbeat after a take-back, "Offline" only without network, refused photos leave the phone, empty payloads stored as `{}`, presence written only by the device holding the entry, the pending-upload cap counts only unfinished uploads |

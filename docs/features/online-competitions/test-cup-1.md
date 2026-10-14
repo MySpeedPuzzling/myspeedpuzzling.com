@@ -51,6 +51,7 @@ The cup is a **draft** event: it never appears in a public list, the personal li
 | S | everybody | 10 → 0 on every phone, the stopwatch runs; puzzling |
 | during | Jan | watch the tiles: offline, camera lost, page hidden; finishes arrive as they happen |
 | S+45 min | - | time's up by itself on every phone; unfinished participants report their pieces |
+| after | orchestrator | `myspeedpuzzling:prune-online-media` once (safe any time) - uploads that never arrived then show "Never arrived" in the review instead of waiting for the nightly run |
 | after | reviewer | every participant: scrub the frames around the tap, set the exact moment, `C` confirm / `U` unfinished |
 | after | Jan | the results desk publishes the round (visible to the editors - the event is a draft); the accuracy report → CSV |
 | after | orchestrator | deploy freeze ends; numbers into [STATUS.md](STATUS.md), issues into [TODO.md](../../TODO.md) |

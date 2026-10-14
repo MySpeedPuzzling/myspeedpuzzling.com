@@ -58,6 +58,11 @@ that would otherwise be forgotten. Newest section on top.
       answer = open another 60 s.
 - [ ] The production load run at a quiet hour (Tue/Wed 05-07 Prague) with Jan's OK - plan in the README.
 
+## Online competitions - live video on the participant page (stream VP)
+
+- [ ] Changing "Live video" / "Participants see each other" on the online timing page reaches a phone only at its next state fetch (start, return to the page, reload) - bump the round's state hash / publish on the stopwatch topic when the settings change.
+- [ ] Real phones (`device-test.md` steps 25-37): the host's voice on iOS Safari waits for "Tap here once", the ducking around the beeps, the studio microphone added while the camera is open (earpiece vs speaker), mobile data + strict networks (TURN) once LiveKit runs on a server.
+
 ## Plural texts without a form for 0 (found 2026-10-13 by the online translations' render check)
 
 - [ ] About 55 plural messages per locale outside the online pages are written `{1}…|]1,Inf[…` (or with too few

@@ -40,7 +40,7 @@ export const CONNECTION_FRESH_MS = 45000;
 
 // What the page remembers on the device: per participant the consent; per participant + round the set-up (consent sent,
 // ready, the empty mat, the once-per-start marks); per participant + round + run what happened in the run - the
-// Finished taps and the pieces reported at time-up. A run is one start of the round clock (its startedAtMs): a Reset and
+// Finished taps, the finish candidates (raised hands) and the pieces reported at time-up. A run is one start of the round clock (its startedAtMs): a Reset and
 // a new start begin a fresh one, so nothing of the run that was carries over (the server counts the same way)
 const CONSENT_PREFIX = 'msp-compete-consent:';
 const PROGRESS_PREFIX = 'msp-compete:';
@@ -61,13 +61,15 @@ export const DEVICE_KEY = 'msp-online-device';
  * @property {boolean} consentSent    consent.given was recorded for this round
  * @property {boolean} ready          "I'm ready" was tapped (device.ready)
  * @property {Finish[]} finishes      this run's Finished taps
+ * @property {{eventId: string, momentMs: number}[]} detections   this run's finish candidates recorded on this device
+ *                                    (Phase 2: raised hands - compete_detection_page.js; shown in `on` mode)
  * @property {{measure: string, pieces: number}|null} pieces   reported at this run's time-up
  * @property {boolean} emptyMat       the empty-mat photo was taken
  * @property {Object<string, boolean>} seen   once-per-start marks: `countdown:<startedAtMs>`, `start:<…>`, `startPhoto:<…>`, …
  */
 
 export function emptyProgress() {
-    return { consentSent: false, ready: false, finishes: [], pieces: null, emptyMat: false, seen: {} };
+    return { consentSent: false, ready: false, finishes: [], detections: [], pieces: null, emptyMat: false, seen: {} };
 }
 
 /**
@@ -681,6 +683,15 @@ function readFinishes(stored, fromMs = null) {
         .map((finish) => ({ eventId: finish.eventId, momentMs: finish.momentMs, undone: finish.undone === true, continued: finish.continued === true }));
 }
 
+function readDetections(stored) {
+    if (!Array.isArray(stored)) {
+        return [];
+    }
+
+    return stored.filter((item) => item && typeof item.eventId === 'string' && Number.isFinite(item.momentMs))
+        .map((item) => ({ eventId: item.eventId, momentMs: item.momentMs }));
+}
+
 function readReportedPieces(stored) {
     return stored && Number.isFinite(stored.pieces)
         ? { measure: String(stored.measure ?? ''), pieces: stored.pieces }
@@ -719,6 +730,7 @@ export function loadProgress(storage, participantId, roundId, runKey = null) {
 
     if (run !== null && typeof run === 'object') {
         progress.finishes = readFinishes(run.finishes);
+        progress.detections = readDetections(run.detections);
         progress.pieces = readReportedPieces(run.pieces);
     } else if (stored !== null && typeof stored === 'object') {
         // Kept by an older page in the round's part: the run's own taps lie from its start on; pieces can not be told
@@ -737,14 +749,17 @@ export function saveProgress(storage, participantId, roundId, progress, runKey =
         return false;
     }
 
-    const { finishes, pieces, ...setUp } = progress;
+    const { finishes, detections, pieces, ...setUp } = progress;
     const savedSetUp = write(storage, `${PROGRESS_PREFIX}${participantId}:${roundId}`, setUp);
 
     if (!Number.isFinite(runKey)) {
         return savedSetUp;
     }
 
-    return write(storage, `${PROGRESS_PREFIX}${participantId}:${roundId}${RUN_INFIX}${runKey}`, { finishes, pieces }) && savedSetUp;
+    // A page without detection keeps the run as it always did
+    const run = Array.isArray(detections) && detections.length > 0 ? { finishes, detections, pieces } : { finishes, pieces };
+
+    return write(storage, `${PROGRESS_PREFIX}${participantId}:${roundId}${RUN_INFIX}${runKey}`, run) && savedSetUp;
 }
 
 /**

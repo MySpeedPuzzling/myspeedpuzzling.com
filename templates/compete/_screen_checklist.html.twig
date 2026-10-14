@@ -46,6 +46,9 @@
                 </div>
             </li>
         {% endfor %}
+        {%~ if detection is defined and detection is not null %}
+        {{ include('compete/_detection_check.html.twig') }}
+        {%~ endif %}
         <li class="compete-check" data-level="info">
             <i class="bi bi-plug compete-check-icon" aria-hidden="true"></i>
             <div class="compete-check-body">

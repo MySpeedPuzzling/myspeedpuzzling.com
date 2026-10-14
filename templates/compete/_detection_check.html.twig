@@ -1,0 +1,20 @@
+{#
+    Finish detection on the set-up checklist (docs/features/online-competitions/README.md §5.5, §5.7; stream P2I) - only
+    on a page whose round detects raised hands (CompetePageController `detection`). The detector loads here ("Preparing
+    the camera check…", a skip after a while), then the set-up test watches for raised hands and keeps the camera
+    placement it saw them with. A failed test is never a blocker: the Finished button. Painted by
+    assets/online/compete_detection_page.js (compete_detection.js checklistRow()).
+#}
+<li class="compete-check" data-compete-detection="check" data-level="warn">
+    <i class="bi bi-person-raised-hand compete-check-icon" aria-hidden="true"></i>
+    <div class="compete-check-body">
+        <span class="compete-check-label">{{ 'compete.detection.row'|trans }}</span>
+        <span class="compete-check-detail" data-compete-field="detectionCheck" aria-live="polite">{{ 'compete.detection.check_loading'|trans }}</span>
+        <span class="compete-check-hint">{{ 'compete.detection.row_hint'|trans }}</span>
+        <span class="compete-check-actions">
+            <button type="button" class="btn btn-sm btn-outline-primary" data-compete-show="detectionTest" data-action="compete#detectionTest" hidden><i class="bi bi-person-raised-hand me-1" aria-hidden="true"></i><span data-compete-field="detectionTestLabel">{{ 'compete.detection.test'|trans }}</span></button>
+            <button type="button" class="btn btn-sm btn-outline-primary" data-compete-show="detectionRetry" data-action="compete#detectionRetry" hidden>{{ 'compete.detection.retry'|trans }}</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" data-compete-show="detectionSkip" data-action="compete#detectionSkip" hidden>{{ 'compete.detection.skip'|trans }}</button>
+        </span>
+    </div>
+</li>

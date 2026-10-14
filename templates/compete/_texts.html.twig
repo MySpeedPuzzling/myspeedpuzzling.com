@@ -3,8 +3,9 @@
     for. Plain texts with |trans (their %placeholders% filled in the browser), plural texts with browser_translation()
     (chosen by translation_choice.js). The checklist's detail texts are asked for as `check_<row>_<code>` - the codes of
     compete_flow.js checklistRows(). Pinned by tests/CompeteTextsTest.php.
-    With live video (`video` not null - a media server configured) the `video_` texts follow; without it the JSON is the
-    Phase 1 JSON, byte for byte.
+    With live video (`video` not null - a media server configured) the `video_` texts follow; with finish detection
+    (`detection` not null - the round's detection was not off when the page loaded) the `detection_` texts; without
+    them the JSON is the Phase 1 JSON, byte for byte.
 #}
 {%- set texts = {
     waiting: 'compete.screen.waiting'|trans,
@@ -96,6 +97,24 @@
         video_strip_hide: 'compete.video.strip_hide'|trans,
         video_strip_show: 'compete.video.strip_show'|trans,
         video_second_ended: 'compete.video.second_ended'|trans,
+    }) -%}
+{%- endif -%}
+{%- if detection is defined and detection is not null -%}
+    {%- set texts = texts|merge({
+        detection_check_loading: 'compete.detection.check_loading'|trans,
+        detection_check_loading_slow: 'compete.detection.check_loading_slow'|trans,
+        detection_check_testing: 'compete.detection.check_testing'|trans,
+        detection_check_holding: 'compete.detection.check_holding'|trans,
+        detection_check_passed_angled: 'compete.detection.check_passed_angled'|trans,
+        detection_check_passed_topDown: 'compete.detection.check_passed_top_down'|trans,
+        detection_check_untested: 'compete.detection.check_untested'|trans,
+        detection_check_failed: 'compete.detection.check_failed'|trans,
+        detection_check_skipped: 'compete.detection.check_skipped'|trans,
+        detection_check_unsupported: 'compete.detection.check_unsupported'|trans,
+        detection_check_error: 'compete.detection.check_error'|trans,
+        detection_test: 'compete.detection.test'|trans,
+        detection_test_again: 'compete.detection.test_again'|trans,
+        detection_recorded: 'compete.detection.recorded'|trans,
     }) -%}
 {%- endif -%}
 {{- texts|json_encode|raw -}}

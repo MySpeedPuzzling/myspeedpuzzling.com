@@ -1275,3 +1275,69 @@ html:has(.compete) body {
         width: 7rem;
     }
 }
+
+// ---- finish detection (Phase 2, stream P2I; templates/compete/_detection_*.html.twig): "Finish recorded at 47:12" big,
+// the running clock small after it (README §5.7), a green flash and the quiet lines - only on a page with its parts
+
+.compete-detected {
+    width: 100%;
+    max-width: 34rem;
+    padding: 0.75rem 1rem;
+    border: 2px solid var(--compete-ok);
+    border-radius: 1rem;
+    background: var(--compete-ok-bg);
+    color: var(--compete-text);
+    text-align: center;
+}
+
+.compete-detected-title {
+    margin: 0;
+    color: var(--compete-ok);
+    font-size: clamp(1.5rem, 7vw, 2.5rem);
+    font-variant-numeric: tabular-nums;
+    font-weight: 800;
+    line-height: 1.15;
+}
+
+.compete-detected-text {
+    margin: 0.25rem 0 0;
+    font-size: 1rem;
+}
+
+.compete-detected--timeup {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.compete-detection-line {
+    margin: 0;
+    color: var(--compete-muted);
+    font-size: 1rem;
+}
+
+.compete[data-detected='1'] .compete-clock--running {
+    font-size: min(12vw, 10vh);
+}
+
+.compete-detection-flash {
+    position: fixed;
+    inset: 0;
+    z-index: 30;
+    border: 0.75rem solid var(--compete-ok);
+    background: color-mix(in srgb, var(--compete-ok) 18%, transparent);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease-out;
+}
+
+.compete[data-detection-flash='1'] .compete-detection-flash {
+    opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .compete-detection-flash {
+        transition: none;
+    }
+}

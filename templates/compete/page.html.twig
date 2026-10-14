@@ -11,6 +11,10 @@
     Live video (contract phase-1b.md stream VP): only with a media server configured (`video` not null) does the page
     carry its video parts - without one it is the Phase 1 page, byte for byte (each part sits in an `if` whose tags
     leave no trace).
+    Finish detection (Phase 2, stream P2I): only when the round's detection is not off (`detection` not null - the
+    detector's pinned assets, OnlineDetectorAssets) does the page carry its detection parts: the checklist's row, the
+    running screen's "Finish recorded", time's up after a detected finish, the green flash - the same way without
+    trace otherwise.
 #}
 
 {% set hide_comparison_launcher = true %}
@@ -45,7 +49,7 @@
          data-compete-urls-value="{{ urls|json_encode|e('html_attr') }}"
          data-compete-connect-value="{{ connect_data|json_encode|e('html_attr') }}"
          data-compete-texts-value="{{ include('compete/_texts.html.twig')|e('html_attr') }}"
-         data-compete-in-app-value="{{ in_app is not null ? 'true' : 'false' }}"{% if video is not null %} data-compete-video-value="{{ video|json_encode|e('html_attr') }}"{% endif %}>
+         data-compete-in-app-value="{{ in_app is not null ? 'true' : 'false' }}"{% if video is not null %} data-compete-video-value="{{ video|json_encode|e('html_attr') }}"{% endif %}{% if detection is not null %} data-compete-detection-value="{{ detection|json_encode|e('html_attr') }}"{% endif %}>
         <script type="application/json" data-compete-target="initialState">{{ state|json_encode(constant('JSON_HEX_TAG') b-or constant('JSON_HEX_AMP') b-or constant('JSON_HEX_APOS') b-or constant('JSON_HEX_QUOT'))|raw }}</script>
 
         <noscript><p class="compete-noscript">{{ 'compete.page.no_script'|trans }}</p></noscript>
@@ -87,6 +91,9 @@
             {%~ endif %}
         </div>
 
+        {%~ if detection is not null %}
+        <div class="compete-detection-flash" aria-hidden="true"></div>
+        {%~ endif %}
         <div class="compete-stage">
             <div class="compete-camera" data-compete-target="cameraBox" hidden>
                 <video class="compete-video" data-compete-target="video" playsinline muted autoplay disablepictureinpicture></video>

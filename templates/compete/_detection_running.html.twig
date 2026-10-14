@@ -1,0 +1,13 @@
+{#
+    Finish detection on the running screen (docs/features/online-competitions/README.md §5.7 "What the participant sees
+    in `on` mode"; stream P2I): "Finish recorded at 47:12 - if a piece is missing, keep going and raise your hands
+    again", the hint to raise both hands, the cooldown's "raise again in a moment", and button-only said plainly. `shadow`
+    shows none of it. Painted by assets/online/compete_detection_page.js (compete_detection.js feedback()).
+#}
+<div class="compete-detected" data-compete-show="detectionDetected" role="status" hidden>
+    <p class="compete-detected-title"><i class="bi bi-check-circle-fill me-2" aria-hidden="true"></i><span data-compete-field="detectionRecorded"></span></p>
+    <p class="compete-detected-text">{{ 'compete.detection.keep_going'|trans }}</p>
+</div>
+<p class="compete-detection-line" data-compete-show="detectionHint" hidden><i class="bi bi-person-raised-hand me-1" aria-hidden="true"></i>{{ 'compete.detection.raise_hint'|trans }}</p>
+<p class="compete-detection-line" data-compete-show="detectionSuppressed" role="status" hidden>{{ 'compete.detection.suppressed'|trans }}</p>
+<p class="compete-detection-line" data-compete-show="detectionButtonOnly" hidden>{{ 'compete.detection.button_only'|trans }}</p>

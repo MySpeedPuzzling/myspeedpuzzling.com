@@ -7,7 +7,9 @@
  *   frame's `captureTime`; a requestAnimationFrame / timer fallback where it is missing or stays silent), asks `wants()`
  *   before it spends the encoding (the buffer drops frames closer than 1000/fps), and encodes one frame at a time.
  * - small(): one downscaled photo now (the periodic photos, ~35 KB).
- * - still(): one photo at the stream's full resolution (start, the Finished tap, the end, the empty mat).
+ * - still(): one photo at the stream's full resolution (start, the Finished tap, the end, the empty mat) - with a
+ *   `judge(canvas, size)` it also says how sharp the frame is (a finish candidate keeps the sharpest of a few - the judge
+ *   and the finish detector's own frames live in detector_feed.js, in the detection's chunk).
  *
  * Every frame's time is its capture time - performance.now()'s clock, as `captureTime` is - turned into server time by
  * the injected toServerMs() (clock_sync.js), so a frame and a tap compare on one clock; whole milliseconds, as the
@@ -166,15 +168,18 @@ export class FrameGrabber {
     }
 
     /**
-     * One photo of the next frame at the stream's full resolution. Null: no frame to take.
+     * One photo of the next frame at the stream's full resolution. Null: no frame to take. With `judge` the result's
+     * `sharpness` is what it says of the frame drawn (null when it fails).
+     *
+     * @param {{judge?: function(HTMLCanvasElement, {width: number, height: number}): (number|null)}} [options]
      */
-    still() {
-        return this.photo(Infinity, Infinity, STILL_QUALITY);
+    still({ judge = null } = {}) {
+        return this.photo(Infinity, Infinity, STILL_QUALITY, judge);
     }
 
     // ---- internals
 
-    async photo(maxWidth, maxHeight, quality) {
+    async photo(maxWidth, maxHeight, quality, judge = null) {
         if (!this.hasFrames()) {
             return null;
         }
@@ -197,9 +202,16 @@ export class FrameGrabber {
                 return null;
             }
 
+            const sharpness = judge === null ? undefined : judged(judge, canvas, size);
             const blob = await encodeCanvas(canvas, quality);
 
-            return blob === null ? null : { blob, captureMs: Math.round(this.toServerMs(perf)), width: size.width, height: size.height };
+            if (blob === null) {
+                return null;
+            }
+
+            const shot = { blob, captureMs: Math.round(this.toServerMs(perf)), width: size.width, height: size.height };
+
+            return judge === null ? shot : { ...shot, sharpness };
         } finally {
             // A 1080p canvas holds 8 MB - given back at once
             canvas.width = 0;
@@ -350,5 +362,15 @@ export class FrameGrabber {
                 }
             }
         });
+    }
+}
+
+function judged(judge, canvas, size) {
+    try {
+        const value = judge(canvas, size);
+
+        return Number.isFinite(value) ? value : null;
+    } catch (e) {
+        return null;
     }
 }

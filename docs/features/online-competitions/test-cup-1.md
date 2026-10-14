@@ -24,7 +24,7 @@ The cup is a **draft** event: it never appears in a public list, the personal li
 - [x] Daily `myspeedpuzzling:prune-online-media` on lily.srv (a1f9fb6).
 - [x] All online pages in 6 locales (2026-10-13).
 - [ ] **A deploy freeze** from two hours before the start until the review is done: every push to `main` deploys, and a new build is a risk nobody needs during a round. Every session working on the repo is told. (A page open across a deploy no longer fails its first action - that was the one deploy that added the stopwatch forms' CSRF tokens, 2026-10-13. The rehearsal of 2026-10-14 restarted the app mid-round: every phone lost one heartbeat and caught up, and "End now" in a control room / "Stop" on a stopwatch page opened before the restart worked as the first action after it.)
-- [ ] **The results for the volunteers - Jan decides:** the cup is a draft, so its event page and round results answer 404 to everybody but its editors, publishing the round notifies nobody, and the volunteers get no "Add to my profile" - also a signed-in, connected volunteer (rehearsal 2026-10-14). If they should see the results and add the time to their profile: after the review, "Publish" on the event page + approve it in `/admin/competition-approvals` (it then shows in the public lists like any event). Otherwise tell them where the results go.
+- [x] **The results for the volunteers - decided (Jan, 2026-10-14):** the cup is a proof of concept that **only Jan sees** - it stays a draft: its event page and round results answer 404 to everybody but its editors, publishing the round notifies nobody, and the volunteers get no "Add to my profile". Tell them so in the e-mail (one sentence).
 
 ## T-14 days - volunteers
 

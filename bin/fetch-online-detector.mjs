@@ -63,8 +63,8 @@ export const MODELS = Object.freeze([
         sha256: '97952348cf6a6a4915c2ea1496b4b37ebabc50cbbf80571435643c455f2b0482',
         licence: 'the hand landmark models: Apache-2.0 - model card "Hand Tracking (Lite/Full)" (Google, 2021-10): '
             + 'https://storage.googleapis.com/mediapipe-assets/Model%20Card%20Hand%20Tracking%20(Lite_Full)%20with%20Fairness%20Oct%202021.pdf; '
-            + 'the gesture embedder + classifier: model card "MediaPipe Hand Gesture Classification" (Google, 2022), which names '
-            + 'no licence: https://storage.googleapis.com/mediapipe-assets/gesture_recognizer/model_card_hand_gesture_classification_with_faireness_2022.pdf',
+            + 'the gesture embedder + classifier: model card "MediaPipe Hand Gesture Classification" (Google, 2022): '
+            + 'https://storage.googleapis.com/mediapipe-assets/gesture_recognizer/model_card_hand_gesture_classification_with_faireness_2022.pdf',
     }),
 ]);
 

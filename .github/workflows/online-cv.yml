@@ -1,0 +1,66 @@
+# The completeness check's worker (tools/online-cv/, docs/features/online-competitions/README.md §5.8): its tests, then
+# its image to GHCR - ghcr.io/myspeedpuzzling/online-cv:main and :sha-<commit>. Only when the worker changes (or by
+# hand); the website image and its deploy (test.yml) are untouched. lily.srv runs the image pinned by its sha tag
+# (apps/myspeedpuzzling/compose.yaml `online-cv`) - a new worker goes live when that pin is bumped there.
+name: online-cv
+
+on:
+    push:
+        branches: [main]
+        paths:
+            - 'tools/online-cv/**'
+            - 'tools/online-bench/completeness/**'
+            - '.github/workflows/online-cv.yml'
+    workflow_dispatch:
+
+permissions:
+    contents: read
+
+concurrency:
+    group: online-cv-${{ github.ref }}
+    cancel-in-progress: false
+
+jobs:
+    image:
+        name: test + image
+        runs-on: ubuntu-latest
+        permissions:
+            contents: read
+            packages: write
+        steps:
+            -   uses: actions/checkout@v7
+
+            # The worker's tests take their synthetic puzzles from the bench (tools/online-bench/completeness)
+            -   name: Worker tests
+                run: tools/online-cv/test.sh
+
+            -   name: Docker meta
+                id: meta
+                uses: docker/metadata-action@v6
+                with:
+                    images: ghcr.io/myspeedpuzzling/online-cv
+                    tags: |
+                        type=sha
+                        type=raw,value=main
+
+            -   name: Set up Docker Buildx
+                uses: docker/setup-buildx-action@v4
+                with:
+                    cleanup: false
+
+            -   name: Login to GHCR
+                uses: docker/login-action@v4
+                with:
+                    registry: ghcr.io
+                    username: ${{ github.repository_owner }}
+                    password: ${{ secrets.GITHUB_TOKEN }}
+
+            -   name: Build and push
+                uses: docker/build-push-action@v7
+                with:
+                    context: tools/online-cv
+                    push: true
+                    tags: ${{ steps.meta.outputs.tags }}
+                    labels: ${{ steps.meta.outputs.labels }}
+                    cache-from: type=registry,ref=ghcr.io/myspeedpuzzling/online-cv:buildcache
+                    cache-to: type=registry,ref=ghcr.io/myspeedpuzzling/online-cv:buildcache,mode=max

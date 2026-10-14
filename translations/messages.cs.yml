@@ -2417,6 +2417,7 @@ recap_progress:
     <ul>
         <li><strong>Hetzner Online GmbH</strong> (Německo) – servery, databáze a úložiště nahraných obrázků, v datových centrech v EU,</li>
         <li><strong>Seznam.cz, a.s.</strong> (Česká republika) – doručování našich e-mailů,</li>
+        <li><strong>Amazon Web Services EMEA SARL</strong> (Lucembursko) – doručování našich e-mailů z datového centra v EU (Švédsko); uchovává adresy, na které se naše e-maily nepodařilo doručit, aby se na ně už neposílaly,</li>
         <li><strong>Stripe</strong> (Stripe Payments Europe, Limited, Irsko) – platby za členství,</li>
         <li><strong>Functional Software, Inc. (Sentry)</strong> (USA) – hlášení chyb,</li>
         <li><strong>Google Ireland Limited</strong> (Google Analytics) – statistiky návštěvnosti webu,</li>
@@ -2432,7 +2433,7 @@ recap_progress:
     </ul>
     <p>Cookies můžete kdykoli smazat nebo zablokovat v nastavení prohlížeče; zablokováním nezbytných cookies ale přestane fungovat přihlášení.</p>
     <h2>15. Předávání mimo EU</h2>
-    <p>Někteří poskytovatelé (Sentry, Cloudflare a v rámci svých skupin také Stripe nebo Google) mohou údaje zpracovávat v USA. Takové předávání se opírá o rámec pro ochranu osobních údajů mezi EU a USA (EU–US Data Privacy Framework) nebo o standardní smluvní doložky Evropské komise.</p>
+    <p>Někteří poskytovatelé (Sentry, Cloudflare a v rámci svých skupin také Amazon Web Services, Stripe nebo Google) mohou údaje zpracovávat v USA. Takové předávání se opírá o rámec pro ochranu osobních údajů mezi EU a USA (EU–US Data Privacy Framework) nebo o standardní smluvní doložky Evropské komise.</p>
     <h2>16. Jak dlouho údaje uchováváme</h2>
     <ul>
         <li>Váš účet a vše v něm uchováváme, dokud účet máte.</li>

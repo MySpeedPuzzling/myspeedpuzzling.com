@@ -2302,6 +2302,7 @@ badges:
     <ul>
         <li><strong>Hetzner Online GmbH</strong> (Deutschland) – Server, Datenbank und Speicherung hochgeladener Bilder, in Rechenzentren in der EU,</li>
         <li><strong>Seznam.cz, a.s.</strong> (Tschechische Republik) – Zustellung unserer E-Mails,</li>
+        <li><strong>Amazon Web Services EMEA SARL</strong> (Luxemburg) – Zustellung unserer E-Mails aus einem Rechenzentrum in der EU (Schweden); speichert Adressen, an die unsere E-Mails nicht zugestellt werden konnten, damit sie nicht erneut versucht werden,</li>
         <li><strong>Stripe</strong> (Stripe Payments Europe, Limited, Irland) – Zahlungen für die Mitgliedschaft,</li>
         <li><strong>Functional Software, Inc. (Sentry)</strong> (USA) – Fehlerberichte,</li>
         <li><strong>Google Ireland Limited</strong> (Google Analytics) – Besucherstatistiken der Website,</li>
@@ -2317,7 +2318,7 @@ badges:
     </ul>
     <p>Sie können Cookies jederzeit in den Einstellungen Ihres Browsers löschen oder blockieren; wenn Sie die notwendigen blockieren, funktioniert die Anmeldung nicht mehr.</p>
     <h2>15. Übermittlungen außerhalb der EU</h2>
-    <p>Einige Dienstleister (Sentry, Cloudflare sowie Stripe oder Google innerhalb ihrer Unternehmensgruppen) können Daten in den USA verarbeiten. Solche Übermittlungen stützen sich auf das EU-US Data Privacy Framework oder auf die Standardvertragsklauseln der Europäischen Kommission.</p>
+    <p>Einige Dienstleister (Sentry, Cloudflare sowie Amazon Web Services, Stripe oder Google innerhalb ihrer Unternehmensgruppen) können Daten in den USA verarbeiten. Solche Übermittlungen stützen sich auf das EU-US Data Privacy Framework oder auf die Standardvertragsklauseln der Europäischen Kommission.</p>
     <h2>16. Wie lange wir Ihre Daten aufbewahren</h2>
     <ul>
         <li>Ihr Konto und alles darin bewahren wir auf, solange Sie das Konto haben.</li>

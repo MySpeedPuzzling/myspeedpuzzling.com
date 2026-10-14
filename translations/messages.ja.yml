@@ -2311,6 +2311,7 @@ badges:
     <ul>
         <li><strong>Hetzner Online GmbH</strong>（ドイツ） - サーバー、データベース、アップロードされた画像の保存（EU域内のデータセンター）</li>
         <li><strong>Seznam.cz, a.s.</strong>（チェコ共和国） - メールの配信</li>
+        <li><strong>Amazon Web Services EMEA SARL</strong>（ルクセンブルク） - EU域内（スウェーデン）のデータセンターからのメールの配信。配信できなかったアドレスには再送しないよう、そのアドレスを保管します</li>
         <li><strong>Stripe</strong>（Stripe Payments Europe, Limited、アイルランド） - メンバーシップの支払い</li>
         <li><strong>Functional Software, Inc.（Sentry）</strong>（米国） - エラーレポート</li>
         <li><strong>Google Ireland Limited</strong>（Googleアナリティクス） - ウェブサイトのアクセス統計</li>
@@ -2326,7 +2327,7 @@ badges:
     </ul>
     <p>Cookieはブラウザーの設定でいつでも削除またはブロックできます。ただし、必須Cookieをブロックするとサインインできなくなります。</p>
     <h2>15. EU域外へのデータ移転</h2>
-    <p>一部の提供者（Sentry、Cloudflare、およびグループ内のStripeやGoogle）は、米国でデータを処理する場合があります。こうした移転は、EU・米国データプライバシーフレームワーク、または欧州委員会の標準契約条項に基づいて行われます。</p>
+    <p>一部の提供者（Sentry、Cloudflare、およびグループ内のAmazon Web Services、StripeやGoogle）は、米国でデータを処理する場合があります。こうした移転は、EU・米国データプライバシーフレームワーク、または欧州委員会の標準契約条項に基づいて行われます。</p>
     <h2>16. データの保存期間</h2>
     <ul>
         <li>アカウントとその中のすべてのデータは、アカウントをお持ちである限り保存されます。</li>

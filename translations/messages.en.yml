@@ -2949,6 +2949,7 @@ privacy_policy:
         <ul>
             <li><strong>Hetzner Online GmbH</strong> (Germany) – servers, database and storage of uploaded images, in data centres in the EU,</li>
             <li><strong>Seznam.cz, a.s.</strong> (Czech Republic) – delivery of our e-mails,</li>
+            <li><strong>Amazon Web Services EMEA SARL</strong> (Luxembourg) – delivery of our e-mails, from a data centre in the EU (Sweden); it keeps addresses our e-mails could not be delivered to, so they are not tried again,</li>
             <li><strong>Stripe</strong> (Stripe Payments Europe, Limited, Ireland) – payments for membership,</li>
             <li><strong>Functional Software, Inc. (Sentry)</strong> (USA) – error reports,</li>
             <li><strong>Google Ireland Limited</strong> (Google Analytics) – website traffic statistics,</li>
@@ -2964,7 +2965,7 @@ privacy_policy:
         </ul>
         <p>You can delete or block cookies in your browser settings at any time; blocking the necessary ones will stop signing in from working.</p>
         <h2>15. Transfers outside the EU</h2>
-        <p>Some providers (Sentry, Cloudflare, and Stripe or Google within their groups) may process data in the USA. Such transfers rely on the EU–US Data Privacy Framework or on the European Commission's standard contractual clauses.</p>
+        <p>Some providers (Sentry, Cloudflare, and Amazon Web Services, Stripe or Google within their groups) may process data in the USA. Such transfers rely on the EU–US Data Privacy Framework or on the European Commission's standard contractual clauses.</p>
         <h2>16. How long we keep your data</h2>
         <ul>
             <li>Your account and everything in it are kept for as long as you have the account.</li>

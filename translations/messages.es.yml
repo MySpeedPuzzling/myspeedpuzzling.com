@@ -2318,6 +2318,7 @@ badges:
     <ul>
         <li><strong>Hetzner Online GmbH</strong> (Alemania): servidores, base de datos y almacenamiento de las imágenes subidas, en centros de datos de la UE,</li>
         <li><strong>Seznam.cz, a.s.</strong> (República Checa): envío de nuestros correos electrónicos,</li>
+        <li><strong>Amazon Web Services EMEA SARL</strong> (Luxemburgo): envío de nuestros correos electrónicos desde un centro de datos en la UE (Suecia); guarda las direcciones a las que no se pudieron entregar nuestros correos, para no volver a intentarlo,</li>
         <li><strong>Stripe</strong> (Stripe Payments Europe, Limited, Irlanda): pagos de la membresía,</li>
         <li><strong>Functional Software, Inc. (Sentry)</strong> (EE. UU.): informes de errores,</li>
         <li><strong>Google Ireland Limited</strong> (Google Analytics): estadísticas de tráfico del sitio web,</li>
@@ -2333,7 +2334,7 @@ badges:
     </ul>
     <p>Puedes eliminar o bloquear las cookies en cualquier momento en la configuración de tu navegador; si bloqueas las necesarias, dejará de funcionar el inicio de sesión.</p>
     <h2>15. Transferencias fuera de la UE</h2>
-    <p>Algunos proveedores (Sentry, Cloudflare y, dentro de sus grupos, Stripe o Google) pueden tratar datos en EE. UU. Estas transferencias se basan en el Marco de Privacidad de Datos UE-EE. UU. o en las cláusulas contractuales tipo de la Comisión Europea.</p>
+    <p>Algunos proveedores (Sentry, Cloudflare y, dentro de sus grupos, Amazon Web Services, Stripe o Google) pueden tratar datos en EE. UU. Estas transferencias se basan en el Marco de Privacidad de Datos UE-EE. UU. o en las cláusulas contractuales tipo de la Comisión Europea.</p>
     <h2>16. Cuánto tiempo conservamos tus datos</h2>
     <ul>
         <li>Tu cuenta y todo su contenido se conservan mientras tengas la cuenta.</li>

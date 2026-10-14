@@ -2410,6 +2410,7 @@ competition_referees:
     <ul>
         <li><strong>Hetzner Online GmbH</strong> (Allemagne) – serveurs, base de données et stockage des images téléversées, dans des centres de données situés dans l'UE,</li>
         <li><strong>Seznam.cz, a.s.</strong> (République tchèque) – envoi de nos e-mails,</li>
+        <li><strong>Amazon Web Services EMEA SARL</strong> (Luxembourg) – envoi de nos e-mails depuis un centre de données dans l’UE (Suède) ; conserve les adresses auxquelles nos e-mails n’ont pas pu être remis, pour ne pas réessayer,</li>
         <li><strong>Stripe</strong> (Stripe Payments Europe, Limited, Irlande) – paiements de l'adhésion,</li>
         <li><strong>Functional Software, Inc. (Sentry)</strong> (États-Unis) – rapports d'erreurs,</li>
         <li><strong>Google Ireland Limited</strong> (Google Analytics) – statistiques de fréquentation du site,</li>
@@ -2425,7 +2426,7 @@ competition_referees:
     </ul>
     <p>Vous pouvez supprimer ou bloquer les cookies à tout moment dans les paramètres de votre navigateur ; si vous bloquez les cookies nécessaires, la connexion ne fonctionnera plus.</p>
     <h2>15. Transferts hors de l'UE</h2>
-    <p>Certains prestataires (Sentry, Cloudflare, ainsi que Stripe ou Google au sein de leurs groupes) peuvent traiter des données aux États-Unis. Ces transferts reposent sur le cadre de protection des données UE–États-Unis (Data Privacy Framework) ou sur les clauses contractuelles types de la Commission européenne.</p>
+    <p>Certains prestataires (Sentry, Cloudflare, ainsi que Amazon Web Services, Stripe ou Google au sein de leurs groupes) peuvent traiter des données aux États-Unis. Ces transferts reposent sur le cadre de protection des données UE–États-Unis (Data Privacy Framework) ou sur les clauses contractuelles types de la Commission européenne.</p>
     <h2>16. Durée de conservation de vos données</h2>
     <ul>
         <li>Votre compte et tout ce qu'il contient sont conservés aussi longtemps que vous avez un compte.</li>

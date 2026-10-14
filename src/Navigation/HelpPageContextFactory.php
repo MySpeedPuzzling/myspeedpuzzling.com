@@ -32,6 +32,7 @@ final readonly class HelpPageContextFactory
         'claim_oauth2_credentials',
         // A participant's personal link of an online round (bar-free: no opener on it, listed like every token route)
         'compete_connect',
+        'compete_link',
         'compete_page',
         'confirm_account_deletion',
         'email_preferences',

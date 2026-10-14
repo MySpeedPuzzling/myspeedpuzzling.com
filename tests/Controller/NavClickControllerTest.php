@@ -484,6 +484,7 @@ final class NavClickControllerTest extends WebTestCase
         yield 'online round participant page' => ['compete_page', ['_locale' => 'en', 'token' => $token], $token];
         yield 'online round participant page, Czech' => ['compete_page', ['_locale' => 'cs', 'token' => $token], $token];
         yield 'online round connect' => ['compete_connect', ['_locale' => 'en', 'token' => $token], $token];
+        yield 'online round link without a language' => ['compete_link', ['token' => $token], $token];
 
         foreach (['state', 'heartbeat', 'events', 'media', 'video_token'] as $call) {
             yield 'online round API ' . $call => ['compete_api_' . $call, ['token' => $token], $token];

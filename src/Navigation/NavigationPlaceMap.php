@@ -348,6 +348,8 @@ final class NavigationPlaceMap
         'online_review_entry' => 'none',
         'online_review_confirm' => 'none',
         'compete_connect' => 'none',
+        // The participant's link without a language: a redirect to compete_page in their own language
+        'compete_link' => 'none',
         'online_time' => 'none',
         'online_video_token' => 'none',
         'online_watch_token' => 'none',

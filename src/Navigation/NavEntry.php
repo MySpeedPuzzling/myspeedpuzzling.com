@@ -17,7 +17,7 @@ final readonly class NavEntry
      *                      English label in every locale (MENU-01)
      * @param string $icon Bootstrap Icons name (bi-*)
      * @param null|string $description translation key of the one-line description (umbrella/ambiguous rows only)
-     * @param null|string $synonyms translation key of the search synonyms, `|`-separated (MENU-03: nav.syn.<id> on every
+     * @param null|string $synonyms translation key of the search synonyms, `;`-separated (MENU-03: nav.syn.<id> on every
      *                            entry the page search lists, set by NavigationRegistry)
      * @param list<string> $legacyLabels today's chrome keys (menu.*, footer.*, …): extra synonyms and "old name"
      * @param list<string> $activeOn other routes on which this row is the current one (aria-current)

@@ -344,7 +344,7 @@ final readonly class NavigationSearchIndex
         $texts = [$label];
 
         if ($entry->synonyms !== null) {
-            array_push($texts, ...explode('|', $this->translator->trans($entry->synonyms, [], null, $locale)));
+            array_push($texts, ...explode(';', $this->translator->trans($entry->synonyms, [], null, $locale)));
         }
 
         foreach ($entry->legacyLabels as $legacyLabel) {

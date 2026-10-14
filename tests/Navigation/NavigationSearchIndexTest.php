@@ -15,8 +15,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * The words of the page search (docs/features/navigation README §4.12 "Search", MENU-03): every entry the search lists
- * has its synonyms (nav.syn.<id>, `|`-separated, incl. today's old labels) and the search's own texts (nav.search.*) in
- * all 6 locales - never "rival", never "suspicious" (or a translation of it), not even hidden; and a moderator's or an
+ * has its synonyms (nav.syn.<id>, `;`-separated - a `|` would make it a plural message - incl. today's old labels) and
+ * the search's own texts (nav.search.*) in all 6 locales - never "rival", never "suspicious" (or a translation of it), not even hidden; and a moderator's or an
  * admin's entries reach only their own pages (#nav-search-private).
  */
 final class NavigationSearchIndexTest extends WebTestCase
@@ -107,6 +107,20 @@ final class NavigationSearchIndexTest extends WebTestCase
         }
 
         self::assertGreaterThan(500, $values);
+    }
+
+    /**
+     * Synonyms are `;`-separated (NavigationSearchIndex splits there): a `|` would not split them, and makes the message a
+     * plural one - the translator then picks one part by a count (PluralMessagesTest renders it for every count)
+     */
+    public function testSynonymListsAreSeparatedBySemicolons(): void
+    {
+        foreach (self::LOCALES as $locale) {
+            foreach ($this->navKeys($locale, 'syn') as $key => $value) {
+                self::assertStringNotContainsString('|', $value, sprintf('%s nav.syn.%s', $locale, $key));
+                self::assertSame($value, implode(';', array_map(trim(...), explode(';', $value))), sprintf('%s nav.syn.%s: no space around ";"', $locale, $key));
+            }
+        }
     }
 
     public function testNoStaleSynonymsAndNothingLeftInEnglish(): void

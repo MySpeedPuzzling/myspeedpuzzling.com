@@ -174,7 +174,7 @@ Every failed submit answers **422** (the form object is passed to `render()`), n
 | `src/Controller/EditTimeController.php` | mode detection fix, pre-fill, exception mapping |
 | `src/Query/GetPlayerSolvedPuzzles.php` + `Results/SolvedPuzzle*.php` | select `pieces_placed`, `finished_later_seconds` everywhere this query returns rows (one change feeds profile list, calendar drill-down, recap, edit, API lists) |
 | `src/MessageHandler/RemoveFromWishListWhenPuzzleSolved.php` | skip when `piecesPlaced !== null` (tier 2: not a solve) |
-| `src/MessageHandler/NotifyWhenPuzzleSolved.php` | unchanged — favourites are told, the template labels it (tier 3) |
+| `src/MessageHandler/NotifyWhenPuzzleSolved.php` | (deleted by the navigation redesign, INB-03 - favourites see the result on Home › Favorites, whose row would label it) |
 
 `PuzzleSolved` keeps being recorded for unfinished results: the statistics and intelligence recalculation handlers must run on finished → unfinished edits anyway, and both are idempotent and filter on `seconds_to_solve`.
 

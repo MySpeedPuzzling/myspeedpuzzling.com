@@ -77,6 +77,31 @@ Instead of `import 'bootstrap'`, we import only used JS components:
 ### Puzzle Detail Hero Image
 - Hero `<img>` tags on puzzle detail pages have `fetchpriority="high"` for faster LCP.
 
+### Lazy Live Components on the Hub
+- A lazy component's placeholder has its content's exact shape: `MostActiveSoloPlayers` renders its numbered empty rows and the room of its "Show more" button (navigation Platform feel, Hub CLS). `MostSolvedPuzzles`' placeholder has not been checked yet (`docs/TODO.md`).
+- The Hub's feed scroller (phones, `feed_swipe_controller.js`) sets a height only while a swipe runs, none at rest.
+
+## Navigation chrome (`docs/features/navigation/`)
+
+The bars, the Menu and the rail/column are on every page, so they must cost no layout shift, no statement and few bytes.
+
+### Layout before the first paint
+- **Every chrome length is set in critical CSS**, `templates/navigation/_critical_css.html.twig`, included at the end of `base.html.twig`'s critical `<style>`: `--header-height`, `--topbar-h`, `--bottom-nav-height`, `--tabbar-h`, `--nav-left`, decided by media queries and `<html>` attributes - never written by JavaScript (`NavLayoutCssTest`), so the bars, the rail and the docked column take their room at the first paint. Keep it plain CSS, one rule per line, no Twig output: `ChromeWhitespace::compactCss()` compacts it when the template compiles (neighbouring rules with the same media query merge).
+- **Head flag scripts** (`templates/_head_flags.html.twig`, right after the viewport meta): `assets/head/platform_os.js` (`data-os`), `standalone.js` (`html.is-standalone`), `nav_layout.js` (`data-nav-layout`, collapsed Menu groups) set what CSS needs before the first paint. They are minified builds of readable ES5 sources (`docker compose exec js-watch npm run inline-scripts`, `InlineScriptsBuildTest`), and their text is the same on every page - Turbo re-runs a head script whose text changed.
+- **The bottom bar's label step** (11 px → 10 px → current tab only) is chosen by CSS container queries from a measured table (`assets/styles/_nav-label-steps.scss`); JavaScript raises it after paint only where a device's font renders wider.
+- **A Turbo visit lands at once:** `assets/navigation/visit_scroll.js` makes `<html>` scroll instantly from `turbo:before-render` until Turbo has scrolled (app.scss keeps `scroll-behavior: smooth` for in-page jumps, which would glide every new page from the old offset).
+
+### Statements and bytes
+- **0 statements per page view** for the chrome: everything rides on the viewer's profile row, the one Inbox badge statement or the memoised `admin_queue_counts()` (moderators/admins). Pinned by `ChromeQueryBudgetTest`, `HubQueryBudgetTest`, `PlayerProfileQueryBudgetTest`; lazy endpoints (`menu_counts`, `player_card`, the Help frame) are measured against an empty signed-in endpoint (`tests/Navigation/EmptySignedInEndpoint.php`).
+- **Weight budget:** the chrome may grow `/en/faq`'s HTML by at most 30 KB for a member and 20 KB for a guest over the P0-02 baseline (`ChromeWeightBudgetTest`, the whole page uncompressed - a change to the FAQ moves it too). What keeps it lean:
+  - `ChromeWhitespace` strips the indentation of the templates rendered around every page at compile time. Only such templates belong in its list (a partial shared with page content does not), and a listed template never holds `<pre>`, `<textarea>`, literal text styled `white-space: pre*`, a JS template literal, a `{% trans %}` block, a `{% set %}` capture, `{% verbatim %}` or `{% apply %}` (`ChromeWhitespaceTest`).
+  - The icon sprite (`navigation/_icons.html.twig`) carries only the symbols the page's bars use: person icons for guests, Inbox/chevron for signed-in players, the back arrow on non-root pages. A Turbo frame, stream or Live re-render must not rely on one of these conditional symbols (use the `bi` font or an always-carried symbol). Paths keep the published Bootstrap Icons numbers (`SpritePathsTest`).
+  - JSON in chrome data attributes is `data-x='{{ v|json_attribute }}'` (single-quoted), never `"{{ v|json_encode }}"`.
+  - Data shared by many links rides on the page's first one only: the Inbox link strings (`inbox_link_strings()`, `InboxLinkStringsTest`), the Puzzles sections JSON.
+  - The page search's list is never inlined: `/{_locale}/nav-search.json`, fetched on the first focus.
+- **Page-only styles** go into their own Encore entry, never `app.scss`: `where_did_it_go` next to `compete` / `online_*`; the "What moved" announcement modal carries its styles inline (it renders once per player ever).
+- Not done yet: the navigation's critical CSS (~13 KB of the member's growth) repeats `app.css` box rules (`docs/TODO.md`).
+
 ## Guidelines for Future Changes
 
 - When adding new Bootstrap components, check if they need to be added to the selective imports in `app.scss` and `app.js` (+ `window.bootstrap` object).

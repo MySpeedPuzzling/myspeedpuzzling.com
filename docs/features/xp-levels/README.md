@@ -116,7 +116,7 @@ achievement with this time. Become a member to find out which." Level-up: the "L
 (`RecapProgress::isFresh`, 60 min) and once per time id, remembered in localStorage by
 `recap_celebration_controller.js` - no server state, closing needs no request, nothing replays on reload or Back.
 Both recap routes are quiet routes (no announcement modal). The level ring around the player header's
-avatar and the navbar avatar (`XpRing`, read from the profile row - no query; the arc is a masked
+avatar and the account menu's avatar + the Menu's You card (`XpRing` variant `nav`, read from the profile row - no query; the arc is a masked
 `::before` outside the avatar, one colour per 10 levels - lime, aqua, violet, magenta, obsidian, gold at 50 - on the ring, its track
 and the "Lv 12" tab: `.xp-level-band-*`, `XpRing::band()`, design-spec §9; the recap's level row shows the same ring around the
 player's face), achievements catalog `/achievements` + holders directory
@@ -369,7 +369,7 @@ through `XpFormulaCutoff` (cached per worker process - it never changes). Tests 
 
 - Production: `content_digest_emails` consumer + `deploy.sh` restart + the cron rows above, in lily.srv, with the merge.
 - Per-page cost after launch: the estimate / receipt / celebration re-query the opt-out. (Done for the rings,
-  2026-10-10: `xp_total`, `level`, `achievement_points` ride on both `PlayerProfile` rows - `XpRing` and the navbar no
+  2026-10-10: `xp_total`, `level`, `achievement_points` ride on both `PlayerProfile` rows - `XpRing` and the account menu no
   longer run `GetXpProfile`.)
 - One subscriber on main's result events (`PuzzleSolvingTimeDeleted` / `Modified` / `MovedToOtherPuzzle`) would cover
   future write paths without per-handler dispatches. (The safety net exists since 2026-10-11 - §Anti-farming; a result

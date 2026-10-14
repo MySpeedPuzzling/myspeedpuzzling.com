@@ -15,7 +15,7 @@ Everything else goes through from–to, so the chip row stays short.
 | Page | How it filters |
 |---|---|
 | `/{_locale}/puzzle` (`PuzzleSearch`) | SQL (`SearchPuzzle`, `:minPieces`/`:maxPieces`), one URL param `pieces` |
-| Profile results (`PlayerSolvedPuzzles`) | PHP over the loaded results; only chips the player has results for (+ the active one) |
+| A player's Results (`player_results`, `PlayerResultsBuilder`; the profile's `PlayerSolvedPuzzles` list before the navigation redesign) | PHP over the loaded results; only chips the player has results for (+ the active one) |
 | Collections, wishlist, solved, unsolved, sell/swap | client-side, `collection_filter_controller.js` + `_pieces_filter_client.html.twig` |
 | Marketplace (`MarketplaceListing`) | SQL, URL params `piecesMin`/`piecesMax` stay; chips just set them |
 

@@ -208,7 +208,7 @@ src/Controller/Messaging/ReportConversationController.php     # POST /en/message
 ```
 /conversations/{playerId}          # New conversation requests, conversation status changes
 /messages/{conversationId}         # New messages in a conversation
-/unread-count/{playerId}           # Unread message count updates (for navbar badge)
+/unread-count/{playerId}           # The Inbox badge (For you + Messages, stream `inbox_badge` - docs/features/navigation INB-02)
 ```
 
 ### Frontend Integration

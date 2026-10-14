@@ -1,6 +1,9 @@
 # Player header (issue #224)
 
-Status: **built 2026-10-03**, variant "A + B" of the design canvas.
+Status: **built 2026-10-03**, variant "A + B" of the design canvas. The navigation redesign (2026-10-13,
+`docs/features/navigation/README.md` §4.7, PROF-02) changed the tabs to Overview · Results · Statistics · Calendar ·
+Achievements · Library · Favorites and moved the action decisions into `PlayerActionsResolver`, shared with the player
+card (CARD-01c).
 
 - Issue: https://github.com/MySpeedPuzzling/myspeedpuzzling.com/issues/224
 - Design canvas: https://claude.ai/artifact/M45MsP7nY6Hmm7HMDr6NQU (today, variant A on phones, its edge cases,
@@ -19,7 +22,7 @@ alone: the membership badge, "Send message", and the owner's share-link input. U
 | | Decision |
 |---|---|
 | Layout | **A + B**: the header of variant A, the bar of variant B (it carries the page tabs on phones too) |
-| Tab labels | short: Profile · Statistics · Calendar · Achievements · Library · Favorites (`player_header.tabs.*`) |
+| Tab labels | short: Profile · Statistics · Calendar · Achievements · Library · Favorites (`player_header.tabs.*`); since navigation PROF-02 **Overview · Results · Statistics · Calendar · Achievements · Library · Favorites** - the profile page is the Overview, every result lives on Results (`player_results`) |
 | Country | the flag on the avatar only - the meta line is just `#CODE` |
 | Tier chip | opted out of rankings = **no chip**; not ranked yet = "No tier yet" (members only); see the rules below |
 | Owner-only pages | a one-line strip instead of the header (reasoning below) |
@@ -27,7 +30,7 @@ alone: the membership badge, "Send message", and the owner's share-link input. U
 | Favorite button | **filled while the player is in your favorites** (a toggle that shows its state), outline otherwise |
 | Repeated page titles | "Puzzle library of X" and "Activity calendar" are visually hidden (kept as the H1 for search engines and screen readers) - the header and its tab say it |
 | Favorites | **personal**: the tab and the page exist only for the owner, and the page also lists who has *you* in favorites (see "Favorites page") |
-| Achievements | `player_achievements` (`/en/player-achievements/{id}`, 2026-10-11): the catalogue rows with this player's tiers, Earned / Next up / All. Only members have achievements: the tab is shown on a member's pages (public) and to a non-member owner (the member tease), never on a non-member's pages for others; behind the launch switch (`XpFeatureGate`); opting out of XP does not hide it. The owner's unrevealed tiers are "?" rows leading to the reveal page. The showcase summary and the user menu's "My achievements" link here; `/achievements` stays the catalogue of all achievements |
+| Achievements | `player_achievements` (`/en/player-achievements/{id}`, 2026-10-11): the catalogue rows with this player's tiers, Earned / Next up / All. Only members have achievements: the tab is shown on a member's pages (public) and to a non-member owner (the member tease), never on a non-member's pages for others; behind the launch switch (`XpFeatureGate`); opting out of XP does not hide it. The owner's unrevealed tiers are "?" rows leading to the reveal page. The showcase summary and the Menu's Achievements row (Your puzzling) link here; `/achievements` stays the catalogue of all achievements |
 
 **Why the strip on owner-only pages:** the header answers *whose page is this*, *what can I do with this person*, and
 *where else can I go*. On the owner's own forms and histories (edit a collection, sell/swap settings, export …)
@@ -43,7 +46,7 @@ bar with it while scrolling a form. Visitors never reach these pages (403/404). 
 │ + ring │  #CODE · ♥ Member · 🕶 Private profile    (14 px, $lb-secondary)
 └─Lv 12──┘  [◆ Expert] [🏆 #14 MSP Rating] [karma - workstream F]
 [ ★ Favorite ][ ✉ Message ][⋯]          own: [ ⇪ Share ][ ✎ Edit profile ][⋯]
- Profile   Statistics   Calendar   Library   (Favorites - owner only)
+ Overview  Results  Statistics  Calendar  Achievements  Library  (Favorites - owner only)
 ```
 
 - Avatar = `_player_avatar.html.twig` size `xl` (64 px phones, 72 px tablets, 96 px desktop): photo with the flag on
@@ -67,7 +70,7 @@ bar with it while scrolling a form. Visitors never reach these pages (403/404). 
 | Chips | tier rules · MSP place (Member, Private profile on the #CODE line) | tier rules · MSP place (Member on the #CODE line) | none | locked tier · MSP place |
 | Buttons | Share · Edit profile | Favorite · Message (if `canMessage`) · compare icon | Favorite · Message (if `canMessage`) | Favorite (→ sign-in) · compare icon (→ sign-in) |
 | ⋯ menu | Share profile, Edit profile, Who can see my profile (if private) / Export data, Referral Program | Add to/Remove from favorites, Send message (if `canMessage`) / Add to comparison - or Open comparison + Remove from comparison, Share profile / Block player | no comparison items | Add to favorites, Add to comparison (→ sign-in), Share profile |
-| Tabs | 5 | 4 (no Favorites) | none | 4 |
+| Tabs | all 7 (Achievements also for a non-member owner: the member tease) | all but Favorites (Achievements only on a member's pages) | none | as someone else's |
 
 **Compare** (docs/features/player-comparison.md, D11) - `PlayerHeader::$compare`, decided from the viewer's own profile
 row (`comparisonLineUp`, no query): `add` = not in the viewer's Solo line-up → a POST form (`comparison_add`, stateless
@@ -117,13 +120,15 @@ The tier rides on the profile row (`GetPlayerProfile::byId()`) - no query (2026-
 
 | Template | `<twig:PlayerHeader …>` |
 |---|---|
-| `player_profile` | `tab="profile" :heading="true"` (the name is the page's H1) |
+| `player_profile` (Overview) | `tab="overview" :heading="true"` (the name is the page's H1) |
+| `player_results` | `tab="results" :heading="true"` |
+| `player_achievements` | `tab="achievements"` (`player_achievements_hidden`: no tab) |
 | `player_statistics` | `tab="statistics" :heading="true"` |
 | `player_favorite_puzzlers` | `tab="favorites" :heading="true"` |
 | `activity_calendar`, `puzzle_library` | `tab="calendar"` / `tab="library"` (their own H1, visually hidden) |
 | list views: `collections/detail`, `wishlist/detail`, `unsolved_puzzles/detail`, `solved_puzzles/detail`, `sell-swap/detail`, `lend-borrow/detail`, `lend-borrow/private` | `tab="library"` (`aria-current="true"`, not `"page"`) |
 | owner-only: `collections/{create,edit,edit_system,edit-item-comment}`, `wishlist/edit`, `unsolved_puzzles/edit`, `solved_puzzles/edit`, `sell-swap/{edit_settings,history}`, `lend-borrow/{edit_settings,history}` | `tab="library" :compact="true"` (strip) |
-| `export-puzzler-data` | `:compact="true"` (strip without a section) |
+| `export-puzzler-data`, `xp_history`, `karma/history` | `:compact="true"` (strip without a section) |
 
 `tab` is validated into `Value\PlayerHeaderTab` (`from()`: a typo fails the page), which owns each tab's route,
 label key, owner-only flag and nofollow.

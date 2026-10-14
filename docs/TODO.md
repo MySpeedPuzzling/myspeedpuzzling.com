@@ -4,6 +4,71 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
+## Navigation redesign - reserved places and later steps (`docs/features/navigation/README.md` §7, §9)
+
+- [ ] Live-event banner pattern for the next big event (the expired WJPC live strip was deleted with the old chrome,
+      NAV-06): one reusable pattern with an end date, never in the bars - navigation is not a launch channel (README §7)
+- [ ] Insights: the owner-only tab next to Statistics + a Menu row, "See why" links on the recap and own puzzle rows
+      (README D20, §7 "Planned pages")
+- [ ] Duels: "Challenge" on the player card / header and puzzle pages, each duel an object page, Menu › Your puzzling ›
+      Your duels (README §7; the card reserves the action, D12)
+- [ ] Thanks & resources: footer + Help sheet + Menu › About (README D20, §4.5 - nothing renders until the page exists)
+- [ ] Blog index: footer Learn + "What's new" in the Help sheet + Menu › Help & learn; a new post gets a 14-day Home
+      card (README §7; the outage post stays an orphan until then)
+- [ ] Cleanup of the old `SubscribedPlayerAddedTime` rows (README D4, INB-03 - neither listed nor counted since): delete
+      the rows, then the code INB-03 kept for them - `GetSubscribedPlayers`, `NotificationRepository::addForSolvingTime()`,
+      `GetPrivateProfileViewers::followersAllowedBy()`, the `NotificationType::SubscribedPlayerAddedTime` case with the
+      exclusions `GetNotifications::sqlListed()` / `GetInboxBadge::NOT_FOR_YOU`, the notification template's else-branch,
+      `tests/MessageHandler/NotifyWhenPuzzleSolvedTest.php` (inverted cases) and the fixture rows (`.claude/fixtures.md`
+      "Notifications")
+- [ ] Events in the global search (README §9): the top-bar search finds puzzles, puzzlers and pages; events only through
+      the events page's own search
+- [ ] Hub links to the Community sections - with the Hub rework (README §9; "Players page" section below)
+- [ ] A "Menu" micro-label under ☰ - only if the launch data shows the ☰ is missed (README §10 risk 2a; `menu_open` per
+      session in `delivery/launch-watch.md`)
+- [ ] User-pinned Menu shortcuts (README §9; the Menu's order itself stays fixed for everybody, §7)
+- [ ] Web Haptics API ([chromestatus 5167864517623808](https://chromestatus.com/feature/5167864517623808)): when it
+      ships, give `assets/haptics.js` a `navigator.playHaptics` backend (the names already follow the proposal, README
+      §4.14 (c))
+- [ ] Hotwire Native, when the app is built (README §4.14): the haptics bridge component (`haptics.js` `backend()`, which
+      `signal()` - the online round's alerts - shares; nothing vibrates inside the app until then), the path configuration
+      (every layer is a plain route, §4.14 (a)) and the edge rule of `docs/features/seo/cloudflare.md` step 8 once HTML
+      is cached at the edge
+- [ ] Library lists with the selection mode (collections, wishlist, unsolved, sell/swap, lend/borrow) → Turbo's restore
+      cache (README §4.13 G9): they hold POST forms and the selection bar, so they do not opt in this release
+- [ ] iOS standalone without overscroll bounce (the Home Screen app, `overscroll-behavior-y: none`) - revisit after the
+      owner's device check DC14 (`delivery/device-check.md`: does the page edge feel "dead"?)
+- [ ] The events country sheet, the multiscan sheet and the XP recap sheet through `assets/layer_history.js` + swipe down
+      (implementation plan decision 58 D-3: no history entry and no swipe this release)
+
+## Navigation redesign - found on the way (`docs/features/navigation/`, not caused by it)
+
+- [ ] At 200 % text (NAV-11): the Inbox badge covers the Inbox icon on phones; the one-word search placeholder is cut
+      ("Searc" - the accessible name is whole); the docked column's labels break mid-word (256 px column)
+- [ ] axe findings in page content (NAV-11 ran axe on every page it checked; the chrome itself is clean):
+      `color-contrast`, `label`, `select-name`, `button-name`, `aria-required-children`, `listitem`,
+      `aria-progressbar-name`
+- [ ] Browsers without `:has()`: `html`'s `scroll-padding-bottom` reads `:root`'s `--bottom-nav-height`, so bar-free,
+      auth and multiscan pages keep 56 px of extra room under an in-page jump (extra space only, NAV review F4)
+- [ ] Hard-coded English: `aria-label="Form mode selection"` of the add/edit form's mode switch (`puzzle_add`,
+      `edit-time`, `edit-time_modal`) and the stopwatch rename button's `title="Rename"` (`stopwatch.html.twig`) - keys in
+      6 locales
+- [ ] Stopwatch page at 320 px in Spanish: the "More of my stopwatches" list cuts another stopwatch's name to one letter
+- [ ] `admin.puzzle_merge_request.validation_failed` exists in cs/de/es/fr/ja only and nothing uses it -
+      `tools/check-translations.php` reports it missing in en; delete it
+- [ ] Unused keys of the old feedback page: `feedback.title`, `feedback.message`, `feedback.send`, `feedback.thank_you`,
+      `forms.feedback`, `forms.feedback_help` (HELP-01b; check `FormerNavigation`'s old labels before deleting)
+- [ ] `stopwatch_controller.js` `reset()` calls `location.replace()` after its request even when the page was left
+      meanwhile - it can pull a player back to the stopwatch page
+- [ ] `StartStopwatchHandler` starts the lap when the request arrives, while the stopwatch page counts from the tap
+      (since a679d100): pass `tappedMsAgo` to start like resume does (the top-bar pill, other devices and a reload count
+      from the later server start; the saved time is unaffected)
+- [ ] `MostSolvedPuzzles` (Hub): its lazy placeholder was not checked against its content (below the fold at 360 × 800,
+      taller viewports could shift) - `MostActiveSoloPlayers` was fixed the same way (`docs/performance-optimizations.md`)
+- [ ] `_tom-select.scss`: `.ts-dropdown-content { scroll-behavior: smooth }` has no reduced-motion guard (README §4.13 G8)
+- [ ] The navigation's critical CSS (`templates/navigation/_critical_css.html.twig`, ~13 KB of the member's chrome
+      growth on `/en/faq`) repeats `app.css` box rules - trim it to what the first paint needs
+
 ## Navigation redesign - player card (`docs/features/navigation/`, CARD-02, CARD-07)
 
 - [ ] The card's Times-board context (`GetFastestPlayers::positionsOf()`) costs what the board's own window costs (the
@@ -181,7 +246,8 @@ that would otherwise be forgotten. Newest section on top.
 ## Progression UX polish (`docs/features/xp-levels/ux-polish/design-spec.md`, 2026-10-11)
 
 - [ ] Real-device pass of the bottom sheet and the holo medal (iPhone Safari, Android Chrome): swipe to close vs the content's
-      scroll, the Android back gesture (`CloseWatcher`), tilt only with a mouse/pen, haptics, the 92dvh cap with the toolbar
+      scroll, Back (`data-modal-history` through `assets/layer_history.js` since navigation GEST-01), tilt only with a
+      mouse/pen, haptics, the 92dvh cap with the toolbar
 - [ ] /ladder overview: each table now ends with "Full board, around you" next to the old "Top 10" badge and "Show more" link -
       decide which stays
 - [ ] Sheet skeleton dropped (the spinner only shows after 150 ms and the sheet renders fast); revisit if phones show it often
@@ -241,7 +307,8 @@ that would otherwise be forgotten. Newest section on top.
 - [x] Launch badge backfill vs the first digest: tiers earned before the launch switch went on are never counted (`PlayerPeriodActivityReader::achievementsEarned()` starts at `XpLaunchReadiness::readyAt()`), whenever the backfill runs
 - [ ] "We miss you" waves by hand (README wave plan): Tue 27 Oct 28d-3m + visitors with an older result, Tue 3 Nov 3-9m; Tuesday cron row from 10 Nov
 - [ ] Holdout comparison (README §Holdout SQL) once the first spells are 8 weeks old (late December)
-- [ ] Link the page (`my_activity`) from the app: user menu / own profile / the recap ("See your week") - nothing links it yet besides the e-mail
+- [ ] Link the page (`my_activity`) from the own profile and the recap ("See your week") - the Menu has had it since the
+      navigation redesign (Your puzzling › Your week, XP gate); before that only the e-mail linked it
 - [ ] Visual check of the page and both e-mails at 375 / 320 px and in a long locale (not done in WS-E: no isolated browser run)
 - [ ] Admin line with per-run counts (`content_digest_run`) on the e-mail audit page
 - [ ] Seznam Email Profi daily ceiling (README §17.1) before the audience passes ~10k/day
@@ -805,8 +872,8 @@ player lost the form. Shipped: limit 128M (`web-base-php85/php.ini`), photos up 
 - [ ] Charts tab at 320 px: the head-to-head grid card pushes the page ~60 px sideways with 7 subjects (measured
       2026-10-03; `.cmp-chart` / `.cmp-h2h-wrap`). Also `.cmp-h2h` is two things: the head-to-head card
       (`_comparison.scss`) and the charts' grid table (`_comparison-charts.scss`) - the card's padding lands on the table.
-- [ ] Site topbar at 320 px: the language/feedback row overflows by 15-35 px in de/fr/es/ja on every page (not
-      compare-specific; measured on the homepage 2026-10-03).
+- [x] Site topbar at 320 px: the language/feedback row overflows by 15-35 px in de/fr/es/ja on every page (not
+      compare-specific; measured on the homepage 2026-10-03). Gone with the old top bar (navigation NAV-06).
 - [x] Panther suite red (found 2026-10-03, fixed the same day, 62/62 green). Only one test was about the launcher,
       and it was test-only: WebDriver scrolls an element just to the window's edge, under the pill (or the sticky
       header at the top) - people scroll it clear, every page has room for the pill under the footer. Cards are now
@@ -826,8 +893,8 @@ Shipped: [`features/player-header.md`](features/player-header.md).
       button would be the honest form now that it is a primary action on 12 pages
 - [x] Found while screenshotting, not caused by #224: `onboarding.checklist.progress` was overwritten by the free trial
       (`cf819693`) with `%logged%`/`%required%` in en, cs, de - restored, guarded by `HubControllerTest`
-- [ ] Found while screenshotting, not caused by #224: the site topbar (`.topbar-text.text-nowrap`) is wider than
-      320 px in German and for admins - the page scrolls sideways there
+- [x] Found while screenshotting, not caused by #224: the site topbar (`.topbar-text.text-nowrap`) is wider than
+      320 px in German and for admins - the page scrolls sideways there. Gone with the old top bar (navigation NAV-06)
 
 ## Transactional e-mails
 
@@ -844,8 +911,9 @@ Shipped: [`features/transactional-emails.md`](features/transactional-emails.md).
 
 Plan: [`features/duplicate-results.md`](features/duplicate-results.md).
 
-- [ ] "Possibly saved twice" marker in the player's results list (`PlayerSolvedPuzzles`) for results with an open
-      case - left out of P4 while those templates are being reworked
+- [ ] "Possibly saved twice" marker in the player's results list (the Results page `player_results`,
+      `player/results/_row.html.twig`, since navigation PROF-05) for results with an open case - left out of P4 while
+      those templates were being reworked
 - [ ] "Your results" backlog (491 planned 2026-10-02, sending since ~16:00, one e-mail a minute around the clock,
       crons live in lily.srv) - after the first day
       watch bounces/complaints, the reaction rate and the folder at Gmail / iCloud / Seznam (admin "Contacts"); lower
@@ -881,8 +949,9 @@ Shipped: [`features/puzzle-result-detail.md`](features/puzzle-result-detail.md),
       profile (edit context `puzzle-detail`)
 - [ ] The modal's rank is always the unfiltered leaderboard rank - with a country / first-try filter on the puzzle
       page it can differ from the row's rank
-- [ ] After a link out of the modal, the page shows up twice in history (Back from the next page, then once more on
-      the same page) - accepted trade-off of pausing Turbo's history, see the hotwire guide
+- [x] After a link out of the modal, the page shows up twice in history (Back from the next page, then once more on
+      the same page) - accepted trade-off of pausing Turbo's history, see the hotwire guide. Fixed by navigation GEST-01
+      (d): a visit started from an open layer replaces its entry (`assets/layer_history.js`)
 - [ ] Profile pair/team tabs count distinct puzzles while their rows are per puzzle *and* pair - "Pair (1)" can have 2
       rows; decide whether the tab should count rows
 - [ ] Older, found on the way: `templates/puzzle/brand_hub.html.twig` uses `column-gap-*`, which Bootstrap 5.2 does

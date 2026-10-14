@@ -20,12 +20,12 @@ previous one, no targeting, marked as "displayed" by any HTML response - even wi
 ### Order of checks (cheapest first)
 
 1. main request, not an error sub-request; `GET`; no `Turbo-Frame` header, not XHR (a fragment would claim the modal and show nothing)
-2. no `?return=` (a step of a flow), route not on `QUIET_ROUTES` (membership, checkout, voucher, sign-in/registration/password/account, edit profile, add/edit time, stopwatch), not admin / API
+2. no `?return=` (a step of a flow), route not on `QUIET_ROUTES` (membership, checkout, voucher, sign-in/registration/password/account, edit profile, add/edit time, stopwatch, the organiser and online-round pages; the navigation's `help`, `feedback`, `where_did_it_go` and `menu` - a player looking for help or for a moved item is in the middle of something, and "Where did it go?" links open the Menu page on a row), not admin / API
 3. web only - native apps sell membership through their stores
 4. signed in
 5. no announcement modal shown to this player in the last `COOLDOWN_DAYS` (14) - except a modal whose
-   `AnnouncementModal::ignoresCooldown()` says so (the XP launch reveal: the first thing a player sees after the
-   launch; the next modal's pause then counts from it)
+   `AnnouncementModal::ignoresCooldown()` says so (the XP launch reveal and the navigation's "What moved": the first
+   things a player sees after their launches; the next modal's pause then counts from the last of them)
 6. first enum case with no impression yet whose rule says yes
 7. **claim**
 
@@ -68,6 +68,7 @@ opened" in the admin numbers therefore means "the level was revealed".
 | Case (priority order) | Rule | Audience |
 |---|---|---|
 | `xp_launch_reveal` | `XpLaunchRevealRule` | every player with a counted solving time (`PlayerProfile::$hasSolvingTime`), not opted out of XP, once the XP launch switch is on; ignores the pause. Its template is the reveal's first step (`XpLaunchRevealModal` component - its queries run on that one page view only). Opening `/my/xp-reveal` claims the same impression (docs/features/xp-levels/README.md "The launch reveal") |
+| `navigation_what_moved` | `NavigationWhatMovedRule` | accounts created before `NavigationLaunch::DATE`, once that day has come (never while the date is `null`, never for an account created on or after it or without a registration date); ignores the pause; **no expiry** - a player back after months still finds the bars new, so retiring the date needs a decision on this modal (`docs/features/feature_flags.md`). One screen: "Everything is in ☰ Menu, top right, where the ☰ always was" (phones) / "… on the left" (desktop, the docked column) + three lines, "Got it" and "Where did it go?"; its pictures are inline schematics built from the bars' tokens and sprite, and its styles ride inline in the template (it renders once per player ever, so no page pays for them in `app.css`; `NavigationLaunchStylesTest`). Web only (docs/features/navigation README §8, LAUNCH-01) |
 | `free_trial_offer` | `FreeTrialOfferRule` | players who can start the free trial right now |
 
 Tests: every fixture player has seen `xp_launch_reveal` long ago (`XpLaunchRevealSeenFixture`), otherwise it would open
@@ -84,7 +85,10 @@ on the first page view of nearly every test; the modal's own tests delete that r
 5. Tests: the rule, and a case in `tests/Controller/AnnouncementModalTest.php`.
 
 Panther note: fixture players are registered "now", so the free trial offer (account 7 days old) never opens in browser tests. A
-modal without an age gate would - and would intercept clicks; give such a rule a way to stay out of tests.
+modal without an age gate would - and would intercept clicks; give such a rule a way to stay out of tests. Once
+`NavigationLaunch::DATE` is set, every fixture player registered before it gets "What moved" on its first page view
+in browser tests - there is no seen-fixture for it like `XpLaunchRevealSeenFixture`; functional tests replace
+`NavigationLaunch` with a `MockClock` and a date.
 
 ## Leftover
 

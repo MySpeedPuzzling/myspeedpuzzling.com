@@ -37,8 +37,10 @@ sees "Hidden Puzzler" somewhere is a bug report; a stranger who sees a name is a
   list a private player *as a Hidden Puzzler* (fastest pairs/groups, most active) keep every row
   and position for every viewer and only put her name on the row for an allowed friend (Jan's
   call, 2026-09-20). `PrivateProfileQueryCoverageTest` lists each raw read with its reason.
-- **Notifications**: `NotifyWhenPuzzleSolved` tells followers of a private solver only if they are
-  on the solver's list (`GetPrivateProfileViewers::followersAllowedBy()`). `GetNotifications`
+- **Notifications**: a favorite's new time is no notification any more (navigation INB-03: `NotifyWhenPuzzleSolved`
+  is gone, the times are on Home › Favorites, filtered like every feed). It used to tell followers of a private solver
+  only if they were on the solver's list (`GetPrivateProfileViewers::followersAllowedBy()`, kept until the old rows are
+  cleaned up - `docs/TODO.md`). `GetNotifications`
   masks the solver in SQL for the *reader*, so taking somebody off the list re-masks the
   notifications they already have. The editor of a shared time stays named to the group, by design
   (group-time-editing.md).

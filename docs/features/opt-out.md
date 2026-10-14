@@ -29,7 +29,7 @@ Hides skill tier and MSP Rating ranking. The player is excluded from the MSP Rat
 - `GetFastestPlayers`, `GetFastestPairs`, `GetFastestGroups`, `GetPuzzleSolvers`, `GetRecentActivity` — carry the flag for template display
 
 **Affected templates:**
-- `templates/player_profile.html.twig` — hides PlayerSkillProfile and PlayerRatingProfile components (own profile shows explanation message)
+- `templates/player/_standing.html.twig` (on Statistics, `player_statistics` - the profile page showed these cards until the navigation redesign, PROF-04) — hides PlayerSkillProfile and PlayerRatingProfile components (own profile shows explanation message)
 - `templates/components/PlayerHeader.html.twig` — no tier chip at all (not even the members' lock), `PlayerHeader::tierChip()`
 - `templates/components/PuzzleTimes.html.twig` — hides skill tier icons in puzzle time listings
 - `templates/components/RecentActivity.html.twig` — hides skill tier icons in activity feed

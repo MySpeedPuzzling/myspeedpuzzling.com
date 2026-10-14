@@ -133,14 +133,31 @@ The top bar (`header.site-header`) is `position: sticky`, transformed only while
 
 ## Components
 
-### Navbar
+### Navigation bars (`docs/features/navigation/README.md` §4, §5)
 
-- Fixed to top of page
-- **Frosted glass effect**: `backdrop-filter: blur(10px)` on semi-transparent white `rgba(255,255,255,.66)`
-- Content padding accounts for ~101px navbar height
-- Navigation icons are thin-line style with labels below
-- Active nav item highlighted in coral primary color
-- Right side: Search, Sign in, Add, notification bell with badge count
+- **Solid white bars with a hairline** - no glass, no `backdrop-filter` (it would trap the top bar's fixed search panel); the phone top bar gains a soft shadow once scrolled
+- Phones: top bar 52 px (logo · search · ? · Inbox · ☰, it hides on scroll down and returns on scroll up) + bottom bar 56 px + safe area (Home · Puzzles · Add · Community · Profile, icon + label always). Desktop: 64 px top bar that never hides + the Menu docked left / rail / overlay
+- Active tab: the filled icon on a 56 × 32 pill `#ffe8e8` with ink `#c8323a`; Add is a coral tile `#ec4f52` with a white plus, never "selected"
+- Colours, sizes and easing are the `--nav-*` tokens (README §5), defined in critical CSS; layout variables below
+- Targets ≥ 44 × 44 px on phones and in the bars (docked column and overlay rows ≥ 32 px); every text input ≥ 16 px on touch screens (iOS zooms into smaller ones; `TouchFontSizeTest`)
+
+### Pressed states (navigation README §4.13 G4, G11)
+
+- **Every tap answers within 100 ms:** while a finger or button is down a state layer lies over the target in the press ink `--nav-press-ink` (the 10 % coral `--nav-pressed-pill`; on coral surfaces - the Add tile, + Add, Sign in - a 16 % black, since coral on coral is invisible), drawn at once and faded out in 150 ms. `assets/styles/_press-states.scss` is the only source of that layer - never give a component its own `:active` background
+- Targets are marked in the markup: `data-press="fixed"` (the bars' controls), `data-press` (in the page: Menu rows, sheet rows, chips, link rows), `data-press="layer"` (cards: the layer only); `.row-link` table rows get it by class. `assets/app.js` holds the one empty passive `touchstart` listener iOS needs for `:active`
+- Android adds a ripple from the touch point (`assets/press_feedback.js`, `_press-feedback.scss`, same ink, not on cards, none under reduced motion); iOS and desktop keep the state layer only (`html[data-os]`, README §4.13 table)
+
+### Motion (navigation README §4.13 G8)
+
+- Sheets come in within 300 ms (ease-out) and leave in about 200 ms; nothing lasts over 400 ms - the Android ripple's 450 ms cover is the one listed exception (an answer to a held finger)
+- Nothing moves without an interaction (an endless animation only for a progress indicator)
+- Reduced motion: fades or nothing, instant scrolls; a drag still follows the finger. A partial that moves something has a `prefers-reduced-motion` block; one that only fades colours needs none
+- The document stays the scroller (fixed bars over a scrolling page, never an app-shell scroll box). Guarded by `NavigationMotionRulesTest`
+
+### Bottom sheets (navigation README §4.13 G2)
+
+- One controller for every sheet (`bottom_sheet_controller.js` + `assets/sheet_drag.js`, styles `_bottom-sheet.scss`), below 576 px: handle 36 × 5 px, top radius 16 px, the scrim, × always visible; swipe down closes (from the handle/header, or the content scrolled to its top); identical on iOS and Android
+- Back closes a sheet through `assets/layer_history.js` (the dynamic modal's `data-modal-history`)
 
 ### Cards
 
@@ -161,8 +178,8 @@ The top bar (`header.site-header`) is `position: sticky`, transformed only while
 
 - **Competition badges**: Coral-salmon background, white text, rounded pill shape, small diamond/heart icon prefix (e.g., "WJPC 2024", "Australia National 2024")
 - **Status badges**: Small rounded pills - green for "1st try", coral for counts
-- **"New" badge**: Coral pill on navigation items (e.g., Marketplace)
-- **Notification count**: Small circular coral badge on bell icon
+- **"New" badge**: `.nav-new` (`navigation/_new_badge.html.twig`), white on the deep coral `#d63c42` (4.6:1), next to links to new pages (the footer, the compare buttons) until 14 days after the navigation launch; never on places
+- **Inbox badge**: `.inbox-badge`, white on `#d63c42` (`--nav-badge-bg`), on the Inbox tool and the Menu's Inbox row - unread For you + Messages in one number, "99+" at most
 
 ### Tables
 
@@ -223,7 +240,7 @@ A **stopwatch merged with a jigsaw puzzle piece** - the two core concepts of spe
 
 - **Sporty energy** (coral color, speed lines, timers, leaderboards) with **warmth** (rounded fonts, soft colors, no harsh contrasts)
 - **Data-rich content** (times, rankings, statistics, PPM scores) with **clean readability** (generous spacing, clear hierarchy, subtle cards)
-- **Community feel** (player names with country flags, puzzle images, completion counts) with **professional polish** (consistent components, frosted glass navbar, soft shadows)
+- **Community feel** (player names with country flags, puzzle images, completion counts) with **professional polish** (consistent components, solid white bars with a hairline, soft shadows)
 
 ### Design Principles
 

@@ -11,7 +11,7 @@ Status: **built** (2026-10-07; plan reviewed against the code once, decisions be
 | Read model | `Query\GetExportableSolvingTimes::byPlayerId()`: **one SQL statement**, `fetchAllAssociative()`, mapped to `Results\ExportableSolvingTime` |
 | Rendering | `Services\PuzzlerDataExporter` (PhpSpreadsheet for XLSX/CSV, `SimpleXMLElement` for XML, `json_encode` for JSON) |
 | Formats | `Value\ExportFormat` (content type + extension) |
-| Entry points | user menu (`base.html.twig`), profile ⋯ menu (`player/_header_actions_menu.html.twig`), edit-profile danger zone |
+| Entry points | the Menu's "Your data" row (Account; the user menu before the navigation redesign), profile ⋯ menu (`player/_header_actions_menu.html.twig`), the puzzle library page, edit-profile danger zone |
 | Tests | `tests/Controller/ExportPuzzlerData{Page,Download}ControllerTest.php`; `GetExportableSolvingTimes` is `OWN_DATA` in `BlocklistQueryCoverageTest` |
 
 The pattern we keep: **one statement per dataset, no N+1, built in memory, returned as one `Response`, no async job.**

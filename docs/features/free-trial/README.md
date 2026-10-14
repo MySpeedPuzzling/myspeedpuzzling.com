@@ -20,7 +20,7 @@ Status: plan + brainstorm. DeciStatus: **built and rolled out to everyone 2026-0
 | Verified e-mail (D9) | **not required.** Production, 2026-09-20: of 10,116 players without a membership only 6,378 have a verified e-mail - the condition would have locked ~3,700 players out of a marketing feature to prevent a EUR 6 abuse |
 | Surfaces (D4) | membership page card; button in the members-only modal; one-time offer modal, never twice. Button and modal appear only for a player who can start the trial right now - a player who is not there yet keeps the modal unused for the day they are. All three web only (D7) |
 | Start | `POST start_free_trial` (stateless CSRF id - the form sits in the layout), always a redirect: back to `return` from a modal, to the welcome page `free_trial_started` otherwise |
-| During | membership page: days left + the plan buttons stay ("keep the rest of your trial", hidden in the last 24 h when checkout has no whole day to carry over); topbar badge |
+| During | membership page: days left + the plan buttons stay ("keep the rest of your trial", hidden in the last 24 h when checkout has no whole day to carry over); the membership status line of the Menu's You card and the account menu ("Free trial · 3 days left"; the topbar badge before the navigation redesign) |
 | E-mails | `free_trial_started` (instead of `membership_granted`), `free_trial_ending` 3 days before the end - cron `myspeedpuzzling:send-free-trial-ending-reminders`, daily; nothing at the end |
 | After | neutral "Your free trial has ended" instead of the red "expired" |
 | Analytics | `activity_daily_summary.active_trials`; trial players are **not** in `active_members` |
@@ -146,7 +146,8 @@ pressure and it raises conversion quality.
   subscribe buttons *stay visible* with the line "Subscribe now and keep your remaining trial days —
   first payment on {date}". (Existing `trial_period_days` logic makes that literally true.)
 - **Topbar:** the existing "Membership" link gets a small muted pill "Trial · 7 d". That is the only
-  persistent indicator. Optional — see open decisions.
+  persistent indicator. Optional — see open decisions. (Since the navigation redesign: the membership status line of
+  the Menu's You card and the desktop account menu - "Free trial · 3 days left".)
 - **One reminder e-mail, 3 days before the end** ("Your trial ends on {date}" + what they keep /
   lose + subscribe link with the keep-your-days argument). Skipped when they already subscribed or
   hold a grant beyond the trial. Daily cron, idempotent via `trial_ending_reminder_sent_at`.

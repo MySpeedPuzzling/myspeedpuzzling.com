@@ -17,7 +17,7 @@ moderators.
 
 Access: `PUZZLE_MODERATION_ACCESS` (admins + moderators), the same capability as change and merge requests -
 approving new puzzles is the same job of looking after the catalogue. The `access_control` rule
-`^/admin/puzzle(s/|-((change|merge)-requests|approvals))` must stay above `^/admin`. Key menu → "Puzzle Approvals".
+`^/admin/puzzle(s/|-((change|merge)-requests|approvals))` must stay above `^/admin`. Menu › Your roles → "Puzzle Approvals".
 
 ## A moderator has two choices - there is no reject
 

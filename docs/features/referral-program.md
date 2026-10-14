@@ -59,12 +59,12 @@ Entities:
 
 ## UI Locations
 
-- **User dropdown menu** — "Referral Program" link with NEW badge
-- **Player profile dropdown** — same link (own profile only)
+- **The Menu** — Account › "Referral Program" for members and programme partners (the user dropdown menu before the navigation redesign)
+- **Player header ⋯ menu** — same link (own profile only)
 - **Player profile page** — referral link copy + supporters list (own profile only for the link, supporters visible to all)
 - **Membership page** — referral code input card (always visible when not subscribed)
 - **`/referral-program`** — join CTA or dashboard with stats, referral link, supporters
-- **`/admin/referrals`** — commissions overview: per-currency unpaid/paid totals + all affiliates sorted by unpaid commission (in admin topbar dropdown)
+- **`/admin/referrals`** — commissions overview: per-currency unpaid/paid totals + all affiliates sorted by unpaid commission (Menu › Your roles, admins)
 - **`/admin/referrals/{playerId}`** — affiliate detail: contact info, per-currency totals, referred players (with subscription status), full commission list per Stripe invoice, suspend/unsuspend button (the former `/admin/affiliates` page was consolidated into this section)
 - **Flash message** — shown on `?ref=` visit after redirect
 

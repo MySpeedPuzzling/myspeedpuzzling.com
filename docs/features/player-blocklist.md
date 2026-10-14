@@ -56,6 +56,9 @@ request-scoped (`ResetInterface`), resolved lazily from the security token:
   query budgets in `tests/Controller/Api` include it.
 
 - **No viewer → nothing hidden**: guests, cron, async consumers.
+- **Working for another player than the viewer** (the Inbox badge pushed to a message's recipient, docs/features/navigation
+  INB-02): `sqlExcludeFor()` / `sqlExcludeTeamFor()` / `sqlNotificationNotHiddenFor()` take that player's hidden ids
+  explicitly (`InboxBadge::forPlayer()`), never the request's viewer.
 - **`/admin` and `/internal-api` → nothing hidden**: moderation sees everyone.
 
 ### Performance contract
@@ -106,9 +109,10 @@ resolves its subject through it, so all of them answer the 404 a deleted player 
 
 Nothing is created *about* a hidden player *for* the viewer who hides them:
 
-- `NotifyWhenPuzzleSolved` skips subscribers who block the solver (or any registered group member).
+- `NotifyWhenPuzzleSolved` skipped subscribers who block the solver (or any registered group member) - deleted by the
+  navigation redesign (INB-03): a favorite's new time is no notification any more, Home › Favorites filters it on read.
 - `NotifyWhenGroupSolvingTimeEdited` skips members who block the editor.
-- Both may run async, where there is no viewer, so they ask `GetUserBlocks::blockersOf()` rather
+- Such handlers may run async, where there is no viewer, so they ask `GetUserBlocks::blockersOf()` rather
   than `HiddenPlayers`. Notifications that already exist are filtered on read
   (`GetNotifications`, list and unread badge alike).
 - Messaging was already covered (`StartConversationHandler`, `NotifyOnChatMessageSent`, unread

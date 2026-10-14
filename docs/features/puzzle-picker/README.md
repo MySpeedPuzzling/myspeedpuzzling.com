@@ -26,7 +26,8 @@ the picker card and the collection pages, and leaves hooks for the stopwatch and
 
 Naming (decided) — feature/code name **Puzzle Picker** (`PuzzlePicker*` classes, route
 `puzzle_picker`, EN path `/en/what-to-solve-next`), page title **"What should I solve next?"**,
-menu label **"What next?"** (profile dropdown + a button on the puzzle library / collection pages).
+menu label **"What next?"** (profile dropdown + a button on the puzzle library / collection pages; since the
+navigation redesign a Menu row - Your puzzles - and the Puzzles section "What next?").
 Alternatives considered: "Suggest a puzzle" (sounds like the puzzle-submission form), "Next puzzle"
 (too close to `next` pagination), "Spin" (cute, but opaque in six locales).
 
@@ -174,7 +175,7 @@ rendered (Twig + Turbo Drive); the only JS is the filter sheet, chips and a tiny
 - **No share button** (dropped 2026-08-19): with personal filters a shared seeded URL shows the recipient *their* pick, not yours; the seed stays an internal mechanic (reproducible refresh/back, duplicate-free "5 more").
 - **Entry points** (Jan, 2026-08-19): a very small button next to the H1 on the puzzle overview
   page (`/en/puzzle`, `puzzles.html.twig`), an item in the **My profile** dropdown
-  (`base.html.twig`), a small button in the header of the **puzzle library** page
+  (`base.html.twig`; since the navigation redesign the Menu row Your puzzles › What next? and the Puzzles section), a small button in the header of the **puzzle library** page
   (`puzzle_library.html.twig`, own profile only), "Pick from this collection" on the collection
   detail pages (deep-links with that collection preselected) and a **footer link with a NEW badge**.
   Later: hub mini card.

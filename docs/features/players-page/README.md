@@ -28,7 +28,7 @@ Measure every release against this baseline with the same Tempo search.
 |-------|----------|
 | Direction | **Atlas, world-first**: a spotlight on the world or one country, then the countries |
 | Default scope | The page **always opens on World**; your country is one tap away (`?scope=cz`), not remembered |
-| Player card | **Stat card**, Players page only. Six public numbers; the 12-month activity strip and the skill tier are **members only**, like the profile's charts |
+| Player card | **Stat card**, Players page only. Six public numbers; the 12-month activity strip and the skill tier are **members only**, like the profile's charts. Since the navigation redesign (CARD-01…07, 2026-10-13) it opens from every player name and avatar on the site - see "The card site-wide" below |
 | Country Cup | Yes. **Per active puzzler** by default (10+ active puzzlers), total pieces one tap away |
 | New faces | Public players with **at least one result** |
 | Most followed | World **and** per country, with **Show more** |
@@ -186,7 +186,9 @@ Things that happened to a player. They are stored, so the future Hub feed (and i
 
 - Every section reads the precomputed tables: **one statement per section**, at most 8 for the full page, and no
   per-request aggregation over `puzzle_solving_time`.
-- Player card: 1 statement, plus 1 for the activity strip when the viewer is a member. Nothing until it is opened.
+- Player card: nothing until it is opened. Since navigation CARD-06: the profile row + one card statement (numbers, members'
+  activity strip and the 3 latest puzzles in one `GetPlayerCard` query), + 1 for the context block and + 1 only when the
+  player switched direct messages off - at most 4 more than an empty signed-in endpoint (`PlayerCardQueryBudgetTest`).
 - The cron run stays under a few seconds on production data (timed on the dev copy before shipping).
 - Show more reveals rows already rendered (at most 10 per column); the full list is a separate page.
 
@@ -300,6 +302,29 @@ tab of the profile.
   - private profiles: in no people list for anybody, the friend on the allow list included
   - the card: only the friend may open a private player's card, and the blocker gets a 404
 - Every person-listing query is in `PrivateProfileQueryCoverageTest::RAW_COLUMN` (public-only for everybody).
+
+### The card site-wide (navigation CARD-01…07, 2026-10-13)
+
+Design of record: `docs/features/navigation/README.md` §4.8 (D12).
+
+- **Trigger:** every player name/avatar link carries `data-player-card` (`_leaderboard_player.html.twig` and the
+  hand-written links of the other surfaces); its `href` stays the profile, so modifier and middle clicks, a new tab
+  and the app navigate. One delegated listener (`assets/player_card.js`) opens the layer
+  (`assets/player_card_layer.js`): a bottom sheet below 576 px, an anchored popover above; Back closes it through
+  `assets/layer_history.js`. No triggers inside modals.
+- **Context block:** the closest `data-player-card-context` (puzzle, feed result, event round, leaderboard place,
+  notification) becomes `?context=`, validated and answered by `GetPlayerCardContext` (CARD-02); an invalid one is
+  ignored.
+- **Content:** name (the profile link), code, country, level, tier chip (members; non-members see the passive locked
+  chip - the card's one teaser, TEASE-01), the members' activity strip (nothing in its place for anybody else), the 3
+  latest puzzles, links Overview · Results · Statistics, actions Favorite · Compare · Message · ⋯ Share. No Block (it
+  stays on the profile), no "Challenge" (reserved for duels). Your own card shows owner actions (CARD-04).
+- **One rule for the actions:** `PlayerActionsResolver` decides Favorite, Compare, Message and the tier chip for the
+  card and `PlayerHeader` alike (CARD-01c, parity test).
+- **Privacy:** hidden, blocked, private (not on the allow list) and deleted players give the same neutral "unavailable"
+  card (CARD-05); the canaries cover the context queries.
+- **Measured:** `card_open` / `card_outcome` lines on the `navigation` channel and the revert rule per context
+  (`NavigationRegistry::PLAYER_CARD_DIRECT`, `docs/TODO.md` "Navigation redesign - player card").
 
 ## Out of scope / follow-ups
 

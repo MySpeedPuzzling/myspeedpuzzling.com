@@ -42,8 +42,10 @@
         {% set new_count = favorites_first ? favorites_new_count() : null %}
         {% set feed_limit = constant('SpeedPuzzling\\Web\\Navigation\\FavoritesFeed::LIMIT') %}
         {# Phones (< 768 px): both panes in one horizontal scroll-snap scroller - a swipe switches feeds, the tabs stay the main
-           control (GEST-16, feed_swipe_controller.js, _hub-feeds.scss). The pane not shown first is .is-resting (no height)
-           from the server, so the page loads without a shift; from 768 px Bootstrap's tabs as before. #}
+           control (GEST-16, feed_swipe_controller.js, _hub-feeds.scss). Until the lazy controller wakes the scroller only the
+           .active pane shows, as with Bootstrap's tabs, so the page loads without a shift; the pane not shown first carries
+           .is-resting from the server, which takes its height only once the scroller is awake. From 768 px Bootstrap's
+           tabs as before. #}
         <div class="col-lg-6 pt-lg-4" data-controller="feed-swipe">
             <ul class="nav nav-fill nav-tabs hub-feed-tabs mt-0" role="tablist" data-controller="tabs" data-feed-swipe-target="tabs">
                 <li class="nav-item">

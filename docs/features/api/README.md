@@ -282,7 +282,7 @@ The API twin of the Puzzle Insights block on the puzzle detail page (`PuzzleDeta
 
 ### Profile insights (`GET /api/v1/me`, `GET /api/v1/players/{id}`)
 
-The three blocks the profile page shows, under the page's own gates (`templates/player_profile.html.twig`). Built by `ProfileInsightsResponseFactory` (`src/Services/Api/`), one query each; the providers (`CurrentUserResponseProvider`, `PlayerProfileResponseProvider`) decide who sees what.
+The three blocks a player's Statistics page shows, under the page's own gates (`templates/player/_standing.html.twig`; the profile page showed them until the navigation redesign, PROF-04). Built by `ProfileInsightsResponseFactory` (`src/Services/Api/`), one query each; the providers (`CurrentUserResponseProvider`, `PlayerProfileResponseProvider`) decide who sees what.
 
 ```json
 "rating": [ { "pieces_count": 500, "points": 1532, "rank": 87, "total_players": 1204 },
@@ -317,7 +317,7 @@ The favorites link (`player.favorite_players`, a JSON array of player ids - no j
 - `is_mutual`: on `favorites` the player follows you back, on `followers` you follow them back - so a "follow back" UI needs one call.
 - **Private players are counted and listed, but masked** (`name`, `avatar`, `country` `null`, `is_private: true`) in both lists, like `GET /players/{id}`. A private player who put the token's player on their allow list is listed unmasked, still with `is_private: true`. For followers this is the point: a private player's favorites list is hidden on the website, so naming them as your follower would leak an entry of it.
 - Order: by name (case-insensitive), players without a name then by code; private players last, by code - the order never hints at a masked name.
-- One query per list whatever its size (`GetPlayerConnections`, asserted by `PlayerConnectionsEndpointTest`). The reverse lookup is a sequential scan over `player` with a `jsonb @>` containment test - the same cost `NotifyWhenPuzzleSolved` pays on every solve. If it ever shows up, add `custom_player_favorite_players_gin` on `(favorite_players::jsonb)`; the queries already use `@>`.
+- One query per list whatever its size (`GetPlayerConnections`, asserted by `PlayerConnectionsEndpointTest`). The reverse lookup is a sequential scan over `player` with a `jsonb @>` containment test - the cost `NotifyWhenPuzzleSolved` paid on every solve until the navigation redesign removed it (INB-03). If it ever shows up, add `custom_player_favorite_players_gin` on `(favorite_players::jsonb)`; the queries already use `@>`.
 - Deliberately not there (follow-ups): `/players/{id}/favorites|followers` (followers of someone else are shown nowhere on the website), write endpoints (the `AddPlayerToFavorites` / `RemovePlayerFromFavorites` handlers exist; needs a write scope stripped from `client_credentials`), `followed_at` (needs a `player_favorite` table).
 
 ### POST `/api/v1/me/solving-times`

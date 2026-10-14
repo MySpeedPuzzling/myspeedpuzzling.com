@@ -247,7 +247,7 @@ edition 11, teammates' group 3, comment 1; includes breaks 94, minutes in the ho
 ## Moderator queue - `/admin/time-verification`
 
 Admins and moderators (`SuspiciousResultsVoter::REVIEW_SUSPICIOUS_TIMES`, its own access_control rule
-`^/admin/time-verification` above `^/admin`), linked from the key menu with the number of pending cases. **English only,
+`^/admin/time-verification` above `^/admin`), linked from Menu › Your roles with the number of pending cases. **English only,
 not translated** (Jan, 2026-10-07).
 
 **Private profiles**: a moderator sees a private player's time **only while it is in the queue** (a case exists) - the

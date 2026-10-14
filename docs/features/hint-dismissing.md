@@ -5,7 +5,7 @@ Allows logged-in users to permanently dismiss informational banners (hints) show
 ## How it works
 
 1. **Server-side check**: Each page controller queries `IsHintDismissed` to decide whether to show the hint
-2. **Frontend**: The hint banner uses the `dismiss-hint` Stimulus controller. Clicking the close button sends a POST to the `dismiss_hint` route and removes the element from the DOM
+2. **Frontend**: The hint banner uses the `dismiss-hint` Stimulus controller. Clicking the close button sends a POST to the `dismiss_hint` route and removes the element from the DOM - **and every other copy of the same hint type on the page** (the navigation launch pointer is on the Hub and at the top of the Menu at once). When the focus was on the ×, it moves on first, so it never falls to `<body>` behind an open Menu layer: inside the Menu to its first shown row, elsewhere to the page's `main h1` (WCAG 2.4.3)
 3. **Backend**: `DismissHintController` validates the hint type and dispatches a `DismissHint` message
 4. **Persistence**: `DismissHintHandler` creates a `DismissedHint` entity (idempotent via unique constraint on player + type)
 
@@ -57,6 +57,7 @@ Allows logged-in users to permanently dismiss informational banners (hints) show
 | `getting_started_checklist` | Hub ("Getting started" card, newcomers only) | Checklist card - also dismissed by `HubController` itself once every step is done, see `getting-started-guide.md` |
 | `players_country_nudge` | Players page + the player's own profile ("Add your country", only while the player has no country; `Players:CountryNudge` component) | Warm banner with a country select - see `players-page/README.md` |
 | `achievements_explainer` | Achievements reference (`badges_overview`, "How achievements work") | Collapsible hint (below) |
+| `navigation_launch_pointer` | Hub (a line at the top) **and** the top of the Menu (phone panel and docked column) - "We rearranged the navigation" + "Where did it go?", 30 days after `NavigationLaunch::DATE`, signed-in accounts created before it, never guests (docs/features/navigation LAUNCH-03, `navigation/_launch_pointer.html.twig`) | Pointer line - one dismissal hides both copies; read like every `navigation_*` type (next row) |
 | `navigation_inbox_pointer` | Inbox › For you (`notifications`, "Your favorites' new times are now on Home › Favorites", 30 days after the navigation launch, players who follow somebody) | Pointer line - **not read through `IsHintDismissed`**: every `navigation_*` dismissal rides on the viewer's profile row (`PlayerProfile::$dismissedNavigationHints`), decided by `NavigationPointers` (docs/features/navigation, INB-05) |
 
 Note: `marketplace_settings_checklist` is only dismissable in the marketplace. The same settings checklist on the sell-swap list detail page (`sell-swap/detail.html.twig`) is always shown without a dismiss option.

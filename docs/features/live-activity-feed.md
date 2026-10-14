@@ -630,3 +630,26 @@ Animations that the controller starts for every refresh cycle (`currentTime` = t
 | Idle stop (shortened to 3 s for the test) | no refresh for 9 s at an 8 s interval; a key press resumes and refreshes |
 | Hidden tab, 25 s at an 8 s interval | **0 refreshes**; one refresh 136 ms after coming back |
 | Phone width | tab line continues under the ring, no sideways scroll |
+
+## 13. Since the navigation redesign (2026-10-13/14)
+
+§1 describes the feed before this work and before the navigation redesign; what changed with the redesign
+(`docs/features/navigation/README.md` D4, §4.13 G14; requirements INB-03, INB-04, GEST-16):
+
+- **The Hub's two feeds are Favorites | Everyone.** Players who follow somebody start on Favorites (rendered with the
+  page) and Everyone loads lazily; everybody else the other way round. A favorite's new time is no notification any
+  more (INB-03) - Favorites is where it is, with "N new" / "20+ new" counted from the 20 rows it renders
+  (`FavoritesFeed`, no statement of its own) against `player.favorites_seen_at`, highlighted rows (`ra-new`) and a
+  hidden "New" for screen readers. The mark moves at most once per 10 minutes (`FavoritesSeen::MARK_EVERY_SECONDS`,
+  `favorites_seen_controller.js` → `RecentActivity::markFavoritesSeen()`), only when the pane is first shown - never from
+  an automatic refresh.
+- **Phones swipe between the two feeds** (GEST-16, `feed_swipe_controller.js` + `assets/feed_swipe.js`,
+  `_hub-feeds.scss`): both panes in one horizontal scroll-snap scroller - the browser does the swipe; the tabs stay the
+  main control; the pane not shown rests (no height, `inert`). Before the lazy controller connects the tabs behave as
+  Bootstrap's (only `.active` shows), so nothing shifts when it wakes. Without `scrollend` the feed settles 150 ms after
+  the scroller stopped with no finger on it. From 768 px Bootstrap's tabs as before.
+- **"Shown" for the refresh scheduler** (§4.1): in the Hub's scroller a feed is shown at ≥ 60 % inside it (an
+  IntersectionObserver rooted there - the resting pane is in the page, only scrolled aside), elsewhere
+  `checkVisibility()`; never inside `[inert]`. So the resting feed never refreshes.
+- **The profile** shows the player's latest results on its Overview (`PlayerOverview::LATEST_RESULTS` rows, no
+  auto-refresh); every result is on the Results page.

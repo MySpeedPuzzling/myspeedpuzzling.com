@@ -31,7 +31,7 @@ is made a flex box, its line box would push the disc below the corner). "Unknown
 
 | Where | Template | Tiers from |
 |---|---|---|
-| Profile results (solo, pairs, teams) | `_player_solvings.html.twig` | `PlayerSolvedPuzzles` - the whole history |
+| A player's Results (solo, pairs, teams; `player_results` since the navigation redesign) | `player/results/_row.html.twig` | `PlayerResultsBuilder` - the whole history |
 | Recent activity (Hub all + favorites, profile, `/recent-activity`, homepage) | `components/RecentActivity` | `RecentActivity::getDifficultyTiers()` |
 | Ladders (`/ladder`, per-pieces ladder) | `components/LadderTable` | `LadderTable::getDifficultyTiers()` |
 | Most solved puzzles (Hub) | `components/MostSolvedPuzzles` | `MostSolvedPuzzles::getDifficultyTiers()` |

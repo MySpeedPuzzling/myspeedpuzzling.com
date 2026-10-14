@@ -41,12 +41,13 @@ Granting twice keeps the original date; revoking sets it back to `NULL`.
 - The puzzle-review controllers (change, merge and approval queues) carry `#[IsGranted(PuzzleModerationVoter::PUZZLE_MODERATION_ACCESS)]`;
   every other admin controller stays on `ADMIN_ACCESS`.
 - `PlayerProfile::$isModerator` (from `GetPlayerProfile`) is what the voter reads.
-- The top-bar key menu shows for `PUZZLE_MODERATION_ACCESS`; the admin-only entries inside it are
-  wrapped in `is_granted('ADMIN_ACCESS')`.
+- Menu › Your roles shows the moderator rows (registry audience `moderator`, with their queue counts from
+  `admin_queue_counts()`) for `PUZZLE_MODERATION_ACCESS`; the admin rows only for admins (the top-bar key menu before
+  the navigation redesign).
 
 ## Managing moderators
 
-`/admin/moderators` (admins only, key menu → "Community Moderators"):
+`/admin/moderators` (admins only, Menu › Your roles → "Community Moderators"):
 
 - **Add** — the same player picker as the event form's "maintainers" field (`AddModeratorsFormType`,
   TomSelect fed by `player_search_autocomplete`), several players at once → one `GrantModeratorRole` each.

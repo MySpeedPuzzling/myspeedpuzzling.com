@@ -92,9 +92,10 @@
                                 </a>
                             </li>
                         {% elseif this.tierChip == 'locked' %}
-                            {# The only lock a free visitor sees on a profile #}
+                            {# The only lock a free visitor sees on a profile - its placement rides along to the members modal
+                               (README §6, TEASE-01) #}
                             <li>
-                                <button type="button" class="player-chip" data-bs-toggle="modal" data-bs-target="#membersExclusiveModal" title="{{ 'player_header.tier_locked_title'|trans }}">
+                                <button type="button" class="player-chip" data-bs-toggle="modal" data-bs-target="#membersExclusiveModal" data-members-placement="profile.tier" title="{{ 'player_header.tier_locked_title'|trans }}">
                                     <svg class="rank-icon" width="16" height="16" style="color: var(--rank-locked)" aria-hidden="true"><use href="/rank-icons-sprite.svg#rank-locked"/></svg>
                                     {{ 'player_header.skill_tier'|trans }}
                                 </button>

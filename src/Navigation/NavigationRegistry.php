@@ -62,6 +62,25 @@ final readonly class NavigationRegistry
     ];
 
     /**
+     * The player card's revert rule (README §4.8 "Measurement and revert rule", CARD-07), per context kind ('none' =
+     * opened without one) × input: true = the triggers of that cell go straight to the profile instead of opening the
+     * card. Every cell is false at launch; a cell is switched here, by hand, only when PLAYER_CARD_REVERT_RULE holds for
+     * it. Rendered viewer-independently as <body data-player-card-direct> (playerCardDirect()), read by shouldOpen() in
+     * assets/player_card_rules.js.
+     */
+    public const array PLAYER_CARD_DIRECT = [
+        'none' => ['mouse' => false, 'touch' => false, 'pen' => false, 'keyboard' => false],
+        'puzzle' => ['mouse' => false, 'touch' => false, 'pen' => false, 'keyboard' => false],
+        'feed' => ['mouse' => false, 'touch' => false, 'pen' => false, 'keyboard' => false],
+        'notification' => ['mouse' => false, 'touch' => false, 'pen' => false, 'keyboard' => false],
+        'round' => ['mouse' => false, 'touch' => false, 'pen' => false, 'keyboard' => false],
+        'leaderboard' => ['mouse' => false, 'touch' => false, 'pen' => false, 'keyboard' => false],
+    ];
+
+    /** When a cell of PLAYER_CARD_DIRECT turns true - counted from the card_open / card_outcome lines (NavClickController) */
+    public const string PLAYER_CARD_REVERT_RULE = 'Revert rule (CARD-07): a context kind × input switches to direct profile links (NavigationRegistry::PLAYER_CARD_DIRECT) once that cell has at least 300 card opens over at least 14 days, at least 70 % of them continue to the profile within 30 s (card_outcome continue, ms ≤ 30000) and under 5 % use anything else the card offers (deep, puzzle, action); every cell is false at launch';
+
+    /**
      * Built once per service instance: plain request-independent data (no translator, no viewer), so the readonly
      * service keeps no per-request state (FrankenPHP worker mode) and lookups never rebuild the entries.
      *
@@ -118,6 +137,27 @@ final readonly class NavigationRegistry
         $this->entriesById = $byId;
         $this->entriesByRoute = $byRoute;
         $this->entriesByTargetRoute = $byTargetRoute;
+    }
+
+    /**
+     * The cells of the revert rule switched to direct profile links: "kind:input" pairs, space-separated - the value of
+     * <body data-player-card-direct> ('' = none: the attribute is left out)
+     *
+     * @param array<string, array<string, bool>> $flags
+     */
+    public static function playerCardDirect(array $flags = self::PLAYER_CARD_DIRECT): string
+    {
+        $pairs = [];
+
+        foreach ($flags as $kind => $inputs) {
+            foreach ($inputs as $input => $direct) {
+                if ($direct === true) {
+                    $pairs[] = $kind . ':' . $input;
+                }
+            }
+        }
+
+        return implode(' ', $pairs);
     }
 
     /**
@@ -1410,7 +1450,7 @@ final readonly class NavigationRegistry
             ),
             $this->notInMenuEntry('my_profile', RouteTarget::route('my_profile'), 'menu.my_profile', 'bi-person', NavPlace::Profile, RulebookQuestion::Q8, 'Legacy redirect (your profile, or sign in for guests); the Profile tab and the You card link player_profile directly (D9)'),
             $this->notInMenuEntry('player_page', RouteTarget::route('player_profile'), 'menu.profile', 'bi-person', NavPlace::Community, RulebookQuestion::Q2, "Object page: others' profiles are reached from lists, search and the player card"),
-            $this->notInMenuEntry('player_card', RouteTarget::route('player_card'), 'menu.profile', 'bi-person-vcard', NavPlace::Community, RulebookQuestion::Q2, 'Layer of a player name (D12); its page is the no-JS fallback. Not a trigger (CARD-01b): own surfaces (header, account menu, crumbs, own history pages), names inside layers and modals (search, ratings, Message, the result detail modal), the conversation page, bilateral and owner pages (lending and sell/swap history, affiliate, referees, profile viewers, guest link), links that are not the profile, decorative faces, comparison chips, e-mails'),
+            $this->notInMenuEntry('player_card', RouteTarget::route('player_card'), 'menu.profile', 'bi-person-vcard', NavPlace::Community, RulebookQuestion::Q2, 'Layer of a player name (D12); its page is the no-JS fallback. Not a trigger (CARD-01b): own surfaces (header, account menu, crumbs, own history pages), names inside layers and modals (search, ratings, Message, the result detail modal), the conversation page, bilateral and owner pages (lending and sell/swap history, affiliate, referees, profile viewers, guest link), links that are not the profile, decorative faces, comparison chips, e-mails. ' . self::PLAYER_CARD_REVERT_RULE),
             $this->notInMenuEntry('puzzle_page', RouteTarget::route('puzzle_detail'), 'menu.puzzles_overview', 'bi-puzzle', NavPlace::Puzzles, RulebookQuestion::Q2, 'Object page: reached from lists, search and scans'),
             $this->notInMenuEntry('event_page', RouteTarget::route('event_detail'), 'menu.events', 'bi-calendar-event', NavPlace::Community, RulebookQuestion::Q2, 'Object page: reached from Events (the footer lists WJPC editions)'),
             $this->notInMenuEntry('team_page', RouteTarget::route('puzzling_team_detail'), 'menu.pairs_and_teams', 'bi-people-fill', NavPlace::Community, RulebookQuestion::Q2, 'Object page: reached from results and Pairs & teams'),

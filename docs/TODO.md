@@ -4,12 +4,28 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
-## Navigation redesign - player card (`docs/features/navigation/`, CARD-02)
+## Navigation redesign - player card (`docs/features/navigation/`, CARD-02, CARD-07)
 
 - [ ] The card's Times-board context (`GetFastestPlayers::positionsOf()`) costs what the board's own window costs (the
       same `BestTimes` aggregate) on every open - and a desktop hover prefetches it. If it shows in Tempo, cache the
       ranked board for viewers who hide nobody like `TimesBoardGuestCache` does for guests (keep CARD-06's statement
       pins in mind).
+- [ ] Revert rule review, 14 days after launch and then monthly: count the `card_open` / `card_outcome` lines of the
+      `navigation` Loki channel per context kind × input; a cell with ≥ 300 opens where ≥ 70 % continue to the profile
+      within 30 s and < 5 % use anything else switches to direct links (`NavigationRegistry::PLAYER_CARD_DIRECT`, the
+      numbers in the commit message).
+
+## Navigation redesign - members teasers (`docs/features/navigation/README.md` §6, TEASE-01)
+
+- [ ] Dismissable teasers - a rule only in this release (README §6 rule 3): × hides a teaser 30 days, a second × for
+      good, at most one shown per day, accounts ≥ 7 days old; each carries `data-members-placement`
+      (`MembersPlacement`) and the free trial stays inside the members modal. Build it only with the first teaser that
+      is not passive.
+- [ ] The top bar search's locked scan button (non-members, shown in the opened search only - implementation plan
+      decision 21) opens the members modal without a placement (`members_modal` lines say `none`) - give it one
+      (`search.scan`) when the search's teasers are next touched.
+- [ ] Every other members lock of the site (charts, filters, recap, difficulty...) opens the modal without a placement:
+      add `data-members-placement` + a `MembersPlacement` case when a lock is touched (README §6 rule 5).
 
 ## Navigation redesign - player Results (`docs/features/navigation/`, PROF-05a, PROF-06)
 

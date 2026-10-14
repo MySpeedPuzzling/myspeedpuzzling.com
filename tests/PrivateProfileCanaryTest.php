@@ -287,6 +287,51 @@ final class PrivateProfileCanaryTest extends WebTestCase
     }
 
     /**
+     * Her card with a context (navigation CARD-05): the page it is opened from never opens it - for a guest and the
+     * strangers it is the same neutral 404 as without a context and as an id nobody has, byte for byte; she and the
+     * allowed friend open it whatever the context.
+     */
+    public function testHerCardWithAnyContextOpensForTheFriendAndHerselfOnly(): void
+    {
+        $browser = self::createClient();
+        $frame = ['HTTP_TURBO_FRAME' => 'player-card'];
+        $contexts = [
+            // her solo time on PUZZLE_500_02 (TIME_37), her pair with PLAYER_REGULAR (TIME_12)
+            'puzzle:' . PuzzleFixture::PUZZLE_500_02,
+            'feed:' . PuzzleSolvingTimeFixture::TIME_37,
+            'notification:' . PuzzleSolvingTimeFixture::TIME_12,
+            'leaderboard:times-500',
+        ];
+
+        $browser->request('GET', '/en/puzzler-card/' . Uuid::uuid7()->toString(), server: $frame);
+        self::assertResponseStatusCodeSame(404);
+        $nobody = (string) $browser->getResponse()->getContent();
+
+        foreach ([null, ...array_values(self::STRANGERS)] as $viewerId) {
+            if ($viewerId !== null) {
+                TestingLogin::asPlayer($browser, $viewerId);
+            }
+
+            foreach ($contexts as $context) {
+                $browser->request('GET', '/en/puzzler-card/' . self::OWNER . '?context=' . rawurlencode($context), server: $frame);
+                self::assertResponseStatusCodeSame(404, $context);
+                self::assertSame($nobody, (string) $browser->getResponse()->getContent(), 'Her card tells it is there: ' . $context);
+            }
+        }
+
+        foreach ([self::FRIEND, self::OWNER] as $viewerId) {
+            TestingLogin::asPlayer($browser, $viewerId);
+
+            foreach ([null, ...$contexts] as $context) {
+                $browser->request('GET', '/en/puzzler-card/' . self::OWNER . ($context !== null ? '?context=' . rawurlencode($context) : ''), server: $frame);
+                self::assertResponseIsSuccessful((string) $context);
+                self::assertStringContainsString(self::OWNER_NAME, (string) $browser->getResponse()->getContent(), $viewerId . ' does not open her card: ' . $context);
+                self::assertStringNotContainsString('public', (string) $browser->getResponse()->headers->get('Cache-Control'));
+            }
+        }
+    }
+
+    /**
      * The player card's puzzle context (navigation CARD-02) ranks like the puzzle's leaderboard for each viewer: her
      * faster time (27:30 on PUZZLE_500_02) counts for the friend, for nobody else - and the card's rank is the rank the
      * puzzle page shows that viewer

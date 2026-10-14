@@ -160,6 +160,11 @@ function run(scenario) {
                 // NAV-13: assets/navigation/nav_layout.js dispatches it on the document when the desktop ☰ docked/folded the Menu
                 page.document.fire(NAV_LAYOUT_EVENT, { type: NAV_LAYOUT_EVENT, detail: step.detail });
                 break;
+            case 'event':
+                // A document event another module dispatches: the card's open / outcome / bypass (CARD-07), the members
+                // modal's open (TEASE-01)
+                page.document.fire(step.name, { type: step.name, detail: step.detail });
+                break;
             case 'dialog suppressed':
                 // The GEST-13 watchdog of assets/confirm_dialog.js
                 page.instrumentation.dialogSuppressed(step.detail);

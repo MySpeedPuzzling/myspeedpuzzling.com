@@ -215,6 +215,55 @@ final class NavClickControllerTest extends WebTestCase
     }
 
     /**
+     * CARD-07: the player card's open, its one outcome and a bypass - the context kind and the input (+ the outcome and
+     * its ms); a time that is no whole ms within a day is logged as null, the line stays
+     */
+    public function testThePlayerCardsLinesAreLogged(): void
+    {
+        [$browser, $log] = self::clientWithNavigationLog();
+
+        self::beacon($browser, ['k' => 'card_open', 'context' => 'feed', 'input' => 'touch']);
+        self::beacon($browser, ['k' => 'card_outcome', 'context' => 'feed', 'input' => 'touch', 'outcome' => 'continue', 'ms' => 2400]);
+        self::beacon($browser, ['k' => 'card_outcome', 'context' => 'none', 'input' => 'keyboard', 'outcome' => 'close', 'ms' => 86_400_001, 'layout' => 'desktop']);
+        self::beacon($browser, ['k' => 'card_outcome', 'context' => 'leaderboard', 'input' => 'mouse', 'outcome' => 'action', 'ms' => 12.5, 'layout' => 'desktop']);
+        self::beacon($browser, ['k' => 'card_bypass', 'context' => 'round', 'input' => 'mouse', 'layout' => 'desktop']);
+
+        self::assertResponseStatusCodeSame(204);
+        self::assertNull($browser->getResponse()->headers->get('Set-Cookie'));
+        self::assertSame(
+            ['Navigation card open', 'Navigation card outcome', 'Navigation card outcome', 'Navigation card outcome', 'Navigation card bypass'],
+            array_map(static fn (LogRecord $record): string => $record->message, $log->getRecords()),
+        );
+        self::assertSame([
+            ['kind' => 'card_open', 'context' => 'feed', 'input' => 'touch', 'page' => '/en/faq', 'layout' => 'phone', 'webdriver' => false],
+            ['kind' => 'card_outcome', 'context' => 'feed', 'input' => 'touch', 'outcome' => 'continue', 'ms' => 2400, 'page' => '/en/faq', 'layout' => 'phone', 'webdriver' => false],
+            ['kind' => 'card_outcome', 'context' => 'none', 'input' => 'keyboard', 'outcome' => 'close', 'ms' => null, 'page' => '/en/faq', 'layout' => 'desktop', 'webdriver' => false],
+            ['kind' => 'card_outcome', 'context' => 'leaderboard', 'input' => 'mouse', 'outcome' => 'action', 'ms' => null, 'page' => '/en/faq', 'layout' => 'desktop', 'webdriver' => false],
+            ['kind' => 'card_bypass', 'context' => 'round', 'input' => 'mouse', 'page' => '/en/faq', 'layout' => 'desktop', 'webdriver' => false],
+        ], self::contexts($log));
+    }
+
+    /**
+     * TEASE-01: the members modal opened - from which teaser (a MembersPlacement value, `none` without one)
+     */
+    public function testAMembersModalOpenIsLogged(): void
+    {
+        [$browser, $log] = self::clientWithNavigationLog();
+
+        self::beacon($browser, ['k' => 'members_modal', 'placement' => 'card.tier']);
+        self::beacon($browser, ['k' => 'members_modal', 'placement' => 'profile.tier']);
+        self::beacon($browser, ['k' => 'members_modal', 'placement' => 'none']);
+
+        self::assertResponseStatusCodeSame(204);
+        self::assertSame('Navigation members modal', $log->getRecords()[0]->message);
+        self::assertSame([
+            ['kind' => 'members_modal', 'placement' => 'card.tier', 'page' => '/en/faq', 'layout' => 'phone', 'webdriver' => false],
+            ['kind' => 'members_modal', 'placement' => 'profile.tier', 'page' => '/en/faq', 'layout' => 'phone', 'webdriver' => false],
+            ['kind' => 'members_modal', 'placement' => 'none', 'page' => '/en/faq', 'layout' => 'phone', 'webdriver' => false],
+        ], self::contexts($log));
+    }
+
+    /**
      * Optional fields the script could not fill are logged as unknown, the line stays.
      */
     public function testUnknownOptionalValuesAreNotTrusted(): void
@@ -292,6 +341,14 @@ final class NavClickControllerTest extends WebTestCase
         yield 'search zero with an empty query' => [['v' => 1, 'k' => 'search_zero', 'surface' => 'menu', 'q' => " \u{200B} ", 'page' => '/en/faq']];
         yield 'search zero with a long query' => [['v' => 1, 'k' => 'search_zero', 'surface' => 'menu', 'q' => str_repeat('x', 41), 'page' => '/en/faq']];
         yield 'search zero with a query that is not text' => [['v' => 1, 'k' => 'search_zero', 'surface' => 'menu', 'q' => ['xyzzy'], 'page' => '/en/faq']];
+        yield 'card open of an unknown context kind' => [['v' => 1, 'k' => 'card_open', 'context' => 'duel', 'input' => 'touch', 'page' => '/en/faq']];
+        yield 'card open of an unknown input' => [['v' => 1, 'k' => 'card_open', 'context' => 'feed', 'input' => 'voice', 'page' => '/en/faq']];
+        yield 'card open without a context' => [['v' => 1, 'k' => 'card_open', 'input' => 'touch', 'page' => '/en/faq']];
+        yield 'card outcome unknown' => [['v' => 1, 'k' => 'card_outcome', 'context' => 'feed', 'input' => 'touch', 'outcome' => 'challenge', 'ms' => 1, 'page' => '/en/faq']];
+        yield 'card outcome without an input' => [['v' => 1, 'k' => 'card_outcome', 'context' => 'feed', 'outcome' => 'deep', 'ms' => 1, 'page' => '/en/faq']];
+        yield 'card bypass of an unknown context kind' => [['v' => 1, 'k' => 'card_bypass', 'context' => ['feed'], 'input' => 'mouse', 'page' => '/en/faq']];
+        yield 'members modal of an unknown placement' => [['v' => 1, 'k' => 'members_modal', 'placement' => 'header.everything', 'page' => '/en/faq']];
+        yield 'members modal without a placement' => [['v' => 1, 'k' => 'members_modal', 'page' => '/en/faq']];
         yield 'suppressed dialog with a whole URL' => [['v' => 1, 'k' => 'dialog_suppressed', 'afterLayerBack' => true, 'afterRestore' => false, 'page' => 'https://evil.example/en/faq']];
         yield 'over 1 KB' => [['padding' => str_repeat('x', 1024)] + $click];
     }

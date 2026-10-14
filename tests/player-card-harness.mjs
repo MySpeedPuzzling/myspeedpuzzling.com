@@ -1,11 +1,14 @@
-// Runs the player card's trigger rules (assets/player_card_rules.js), the trigger listener (assets/player_card.js) and
-// the layer's pure helpers (assets/player_card_layer.js) through the scenarios tests/PlayerCardScriptTest.php asks for
-// (docs/features/navigation CARD-01a) and prints one JSON object of results. Links, dialogs and the document are
-// plain fakes: attributes in a map, closest() answering the selectors the rules ask for.
+// Runs the player card's trigger rules (assets/player_card_rules.js), the trigger listener (assets/player_card.js), the
+// layer's pure helpers (assets/player_card_layer.js) and its measurement (assets/player_card_measure.js) through the
+// scenarios tests/PlayerCardScriptTest.php asks for (docs/features/navigation CARD-01a, CARD-07) and prints one JSON
+// object of results. Links, dialogs and the document are plain fakes: attributes in a map, closest() answering the
+// selectors the rules ask for.
 
-import { cardUrl, contextKindOf, contextOf, inputOf, isReverted, playerIdOf, PLAYER_ID_PLACEHOLDER, shouldOpen, TRIGGER_SELECTOR } from '../assets/player_card_rules.js';
+import { bypassOf, cardUrl, contextKindOf, contextOf, inputOf, isReverted, playerIdOf, PLAYER_ID_PLACEHOLDER, shouldOpen, TRIGGER_SELECTOR } from '../assets/player_card_rules.js';
 import { installPlayerCard } from '../assets/player_card.js';
 import { freshEntry, PREFETCH_TTL_MS, withReturnPage } from '../assets/player_card_layer.js';
+import { BOUNCE_MS, createCardMeasure, outcomeOf } from '../assets/player_card_measure.js';
+import { CARD_BYPASS_EVENT, CARD_OPEN_EVENT, CARD_OUTCOME_EVENT } from '../assets/nav_instrumentation.js';
 
 const ID = '0190a1b2-c3d4-7e5f-8a9b-0c1d2e3f4a5b';
 const OTHER = '0190ffff-0000-7000-8000-000000000001';
@@ -154,17 +157,39 @@ results.layer = {
 };
 
 // installPlayerCard(): the delegated click on the document, with a fake layer module
-function fakeDocument(nativeApp = false) {
+function fakeDocument(nativeApp = false, direct = null) {
     const listeners = {};
+    const dispatched = [];
 
     return {
         listeners,
+        dispatched,
         documentElement: { getAttribute: (name) => (name === 'data-native-app' && nativeApp ? 'android' : null) },
-        body: { getAttribute: (name) => (name === 'data-player-card-url' ? template : null) },
+        body: {
+            getAttribute: (name) => {
+                if (name === 'data-player-card-url') {
+                    return template;
+                }
+
+                return name === 'data-player-card-direct' ? direct : null;
+            },
+        },
         addEventListener(type, listener) {
             (listeners[type] = listeners[type] || []).push(listener);
         },
+        dispatchEvent(event) {
+            dispatched.push({ type: event.type, detail: event.detail });
+
+            return true;
+        },
     };
+}
+
+class FakeCustomEvent {
+    constructor(type, init = {}) {
+        this.type = type;
+        this.detail = init.detail;
+    }
 }
 
 function fakeWindow() {
@@ -173,6 +198,7 @@ function fakeWindow() {
         location: { assign(url) { this.parent.assigned = url; } },
         setTimeout: () => 1,
         clearTimeout: () => {},
+        CustomEvent: FakeCustomEvent,
     };
 }
 
@@ -198,6 +224,96 @@ async function scenario({ nativeApp = false, event = {}, target = trigger(), fai
 
     return { prevented: clickEvent.prevented, loads, opened, assigned: window.assigned };
 }
+
+// CARD-07: a trigger opened in a new tab or window instead of the card - one msp:card-bypass on the document
+async function bypassScenario({ type = 'click', event = {}, target = trigger(), nativeApp = false, direct = null } = {}) {
+    const document = fakeDocument(nativeApp, direct);
+    const window = fakeWindow();
+    window.location.parent = window;
+
+    installPlayerCard({ window, document, load: () => Promise.resolve({ openCard: () => {}, prefetchCard: () => {} }) });
+    const fired = { ...click(event), target: { closest: (selector) => target.closest(selector) } };
+    fired.preventDefault = () => {
+        fired.defaultPrevented = true;
+    };
+    (document.listeners[type] || []).forEach((listener) => listener(fired));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    return document.dispatched.filter((event) => event.type === CARD_BYPASS_EVENT).map((event) => event.detail);
+}
+
+results.bypass = {
+    eventName: CARD_BYPASS_EVENT,
+    ctrlInARow: await bypassScenario({ event: { ctrlKey: true }, target: trigger({}, { parent: contextRow }) }),
+    meta: await bypassScenario({ event: { metaKey: true } }),
+    shiftTouch: await bypassScenario({ event: { shiftKey: true, pointerType: 'touch' } }),
+    altKeyboard: await bypassScenario({ event: { altKey: true, detail: 0, pointerType: '' } }),
+    middle: await bypassScenario({ type: 'auxclick', event: { button: 1 } }),
+    // The middle button counts through auxclick only - a browser firing click for it too is not counted twice
+    middleAsClick: await bypassScenario({ event: { button: 1 } }),
+    right: await bypassScenario({ type: 'auxclick', event: { button: 2 } }),
+    plain: await bypassScenario(),
+    handledElsewhere: await bypassScenario({ event: { ctrlKey: true, defaultPrevented: true } }),
+    native: await bypassScenario({ event: { ctrlKey: true }, nativeApp: true }),
+    notATrigger: await bypassScenario({ event: { ctrlKey: true }, target: element({ href: '/en/player-profile/' + ID }) }),
+    insideModal: await bypassScenario({ event: { ctrlKey: true }, target: trigger({}, { parent: modal }) }),
+    // A reverted cell goes to the profile anyway: no card to bypass
+    reverted: await bypassScenario({ event: { ctrlKey: true }, target: trigger({}, { parent: contextRow }), direct: 'puzzle:mouse' }),
+};
+
+results.bypassOf = {
+    ctrl: bypassOf(click({ ctrlKey: true }), trigger()),
+    middle: bypassOf(click({ button: 1 }), trigger()),
+    plain: bypassOf(click(), trigger()),
+    rightWithCtrl: bypassOf(click({ button: 2, ctrlKey: true }), trigger()),
+    noPlayer: bypassOf(click({ ctrlKey: true }), trigger({ href: '/en/faq' })),
+};
+
+// CARD-07: the outcome of an open - a fake clock, the events as emitted
+function measured(steps) {
+    let now = 0;
+    const emitted = [];
+    const measure = createCardMeasure({ now: () => now, emit: (name, detail) => emitted.push({ event: name, ...detail }) });
+
+    for (const step of steps) {
+        if (step.wait) {
+            now += step.wait;
+        }
+
+        if (step.open) {
+            measure.opened(step.open[0], step.open[1]);
+        }
+
+        if (step.click !== undefined) {
+            measure.clicked(step.click);
+        }
+
+        if (step.close) {
+            measure.closed();
+        }
+    }
+
+    return emitted;
+}
+
+results.measure = {
+    events: [CARD_OPEN_EVENT, CARD_OUTCOME_EVENT],
+    bounceMs: BOUNCE_MS,
+    bounce: measured([{ open: ['puzzle', 'touch'] }, { wait: 500, close: true }]),
+    closeAfterLooking: measured([{ open: ['puzzle', 'touch'] }, { wait: BOUNCE_MS, close: true }]),
+    quickX: measured([{ open: ['none', 'mouse'] }, { wait: 300, click: 'close' }, { close: true }]),
+    touchedThenClosed: measured([{ open: ['feed', 'touch'] }, { wait: 400, click: '' }, { close: true }]),
+    profile: measured([{ open: ['leaderboard', 'keyboard'] }, { wait: 1200, click: 'profile' }, { wait: 100, close: true }]),
+    firstWins: measured([{ open: ['round', 'pen'] }, { wait: 900, click: 'favorite' }, { wait: 900, click: 'results' }, { close: true }]),
+    swap: measured([{ open: ['feed', 'mouse'] }, { wait: 800, open: ['notification', 'mouse'] }, { wait: 3000, click: 'overview' }]),
+    nothingOpen: measured([{ click: 'profile' }, { close: true }]),
+    closedTwice: measured([{ open: ['puzzle', 'mouse'] }, { wait: 5000, close: true }, { close: true }]),
+};
+
+results.outcomeOf = Object.fromEntries(
+    ['profile', 'overview', 'view_profile', 'results', 'statistics', 'puzzle', 'favorite', 'compare', 'compare_open', 'message', 'share', 'tier_locked', 'edit_result', 'own_results', 'edit_profile', 'close', '', null]
+        .map((item) => [String(item), outcomeOf(item)]),
+);
 
 results.listener = {
     plain: await scenario(),

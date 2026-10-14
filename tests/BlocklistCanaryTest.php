@@ -8,6 +8,7 @@ use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Message\DeletePlayer;
 use SpeedPuzzling\Web\Tests\DataFixtures\MarketplaceEventFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\OfficialResultsFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
@@ -15,6 +16,7 @@ use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;
+use Symfony\Component\Messenger\MessageBusInterface;
 
 /**
  * The read side has no chokepoint - every query is hand-written SQL - so nothing but a test can
@@ -300,19 +302,22 @@ final class BlocklistCanaryTest extends WebTestCase
     }
 
     /**
-     * A third player's card (CARD-02): the blocked player's result is not on the puzzle's leaderboard nor on the board
-     * for the blocker - their place closes up on the card exactly like on the page (PLAYER_WITH_STRIPE's 33:20 on
-     * PUZZLE_500_02 is faster than PLAYER_ADMIN's 35:00; on the 500-piece board they are one player of the board). The
-     * same viewer before and after the block, so only the block makes the difference.
+     * A third player's card (CARD-02, CARD-05): the blocked player's result is not on the puzzle's leaderboard nor on the
+     * board for the blocker - their place closes up on the card exactly like on the page (PLAYER_WITH_STRIPE's 33:20 on
+     * PUZZLE_500_02 is faster than PLAYER_ADMIN's results there; on the 500-piece board they are one player of the
+     * board), and a result's own line ranks it among the puzzle's results without them. The same viewer before and after
+     * the block, so only the block makes the difference.
      */
     public function testABlockedPlayersResultCountsOnAnotherCardForTheBlockerNever(): void
     {
         $browser = self::createClient();
         $puzzleCard = '/en/puzzler-card/' . PlayerFixture::PLAYER_ADMIN . '?context=' . rawurlencode('puzzle:' . PuzzleFixture::PUZZLE_500_02);
         $boardCard = '/en/puzzler-card/' . PlayerFixture::PLAYER_ADMIN . '?context=' . rawurlencode('leaderboard:times-500');
+        // PLAYER_ADMIN's result on PUZZLE_500_02, as the Hub feed opens it
+        $feedCard = '/en/puzzler-card/' . PlayerFixture::PLAYER_ADMIN . '?context=' . rawurlencode('feed:' . PuzzleSolvingTimeFixture::TIME_31);
         $frame = ['HTTP_TURBO_FRAME' => 'player-card'];
         $place = static function (Crawler $crawler): array {
-            self::assertSame(1, preg_match('~^#(\d+) of (\d+)~', trim($crawler->filter('.players-card-context-line')->text()), $match));
+            self::assertSame(1, preg_match('~#(\d+) of (\d+)~', trim($crawler->filter('.players-card-context-line')->text()), $match));
 
             return [(int) $match[1], (int) $match[2]];
         };
@@ -320,6 +325,7 @@ final class BlocklistCanaryTest extends WebTestCase
         TestingLogin::asPlayer($browser, self::BLOCKER);
         $puzzleBefore = $place($browser->request('GET', $puzzleCard, server: $frame));
         $boardBefore = $place($browser->request('GET', $boardCard, server: $frame));
+        $feedBefore = $place($browser->request('GET', $feedCard, server: $frame));
 
         self::getContainer()->get(Connection::class)->executeStatement(
             "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, NOW(), 'self')",
@@ -328,9 +334,120 @@ final class BlocklistCanaryTest extends WebTestCase
 
         $puzzleAfter = $place($browser->request('GET', $puzzleCard, server: $frame));
         $boardAfter = $place($browser->request('GET', $boardCard, server: $frame));
+        $feedAfter = $place($browser->request('GET', $feedCard, server: $frame));
 
         self::assertSame([$puzzleBefore[0] - 1, $puzzleBefore[1] - 1], $puzzleAfter, 'The blocked player\'s faster result still counts for the blocker.');
         self::assertSame($boardBefore[1] - 1, $boardAfter[1], 'The blocked player is still on the board for the blocker.');
+        self::assertSame([$feedBefore[0] - 1, $feedBefore[1] - 1], $feedAfter, 'The blocked player\'s faster result still ranks the feed result for the blocker.');
+    }
+
+    /**
+     * Every card the viewer may not open is the same answer (CARD-05): blocked by the viewer, blocked by an admin on
+     * the viewer's behalf, private without the viewer on her list, deleted, an id nobody has, not an id at all - the
+     * same 404 and, in the frame, the same bytes, with a context or without. So the answer never tells which it is.
+     */
+    public function testEveryCardTheViewerMayNotOpenIsTheSameNeutral404(): void
+    {
+        $browser = self::createClient();
+        $database = self::getContainer()->get(Connection::class);
+        $frame = ['HTTP_TURBO_FRAME' => 'player-card'];
+
+        $database->executeStatement(
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, NOW(), 'self')",
+            ['id' => Uuid::uuid7()->toString(), 'blocker' => self::BYSTANDER, 'blocked' => self::BLOCKED],
+        );
+        $database->executeStatement(
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, NOW(), 'admin')",
+            ['id' => Uuid::uuid7()->toString(), 'blocker' => self::BYSTANDER, 'blocked' => self::BLOCKER],
+        );
+
+        // A deleted player: deleted the way the account deletion does it
+        self::getContainer()->get(MessageBusInterface::class)->dispatch(new DeletePlayer(PlayerFixture::PLAYER_REGULAR));
+
+        $unavailable = [
+            'blocked by the viewer' => self::BLOCKED,
+            'blocked by an admin for the viewer' => self::BLOCKER,
+            'private, the viewer not on her list' => PlayerFixture::PLAYER_PRIVATE,
+            'deleted' => PlayerFixture::PLAYER_REGULAR,
+            'an id nobody has' => Uuid::uuid7()->toString(),
+            'not an id' => 'not-a-player',
+        ];
+        $contexts = [
+            null,
+            'puzzle:' . PuzzleFixture::PUZZLE_500_02,
+            'feed:' . PuzzleSolvingTimeFixture::TIME_05,
+            'round:' . OfficialResultsFixture::ROUND_GROUP_A,
+            'leaderboard:times-500',
+        ];
+        $reference = null;
+
+        foreach ([self::BYSTANDER, null] as $viewerId) {
+            if ($viewerId !== null) {
+                TestingLogin::asPlayer($browser, $viewerId);
+            } else {
+                $browser->getCookieJar()->clear();
+            }
+
+            foreach ($unavailable as $reason => $playerId) {
+                // A guest blocks nobody: blocked players are somebody else's to the guest
+                if ($viewerId === null && in_array($playerId, [self::BLOCKED, self::BLOCKER], true)) {
+                    continue;
+                }
+
+                foreach ($contexts as $context) {
+                    $url = '/en/puzzler-card/' . $playerId . ($context !== null ? '?context=' . rawurlencode($context) : '');
+                    $who = ($viewerId === null ? 'guest' : 'signed in') . ', ' . $reason . ($context !== null ? ', ' . $context : '');
+
+                    $browser->request('GET', $url);
+                    self::assertResponseStatusCodeSame(404, $who);
+
+                    $browser->request('GET', $url, server: $frame);
+                    self::assertResponseStatusCodeSame(404, $who);
+                    $content = (string) $browser->getResponse()->getContent();
+                    $reference ??= $content;
+
+                    self::assertStringContainsString('players-card-unavailable', $content, $who);
+                    self::assertSame($reference, $content, 'The card tells why it is not there: ' . $who);
+                }
+            }
+        }
+    }
+
+    /**
+     * The blocked side never learns about the block (docs/features/player-blocklist.md): the blocker's card, opened by
+     * the player they blocked, is a stranger's card - the same bytes before the block and after it, whatever the context.
+     */
+    public function testTheBlockedSideGetsAStrangersCard(): void
+    {
+        $browser = self::createClient();
+        $frame = ['HTTP_TURBO_FRAME' => 'player-card'];
+        $urls = [];
+
+        // PLAYER_WITH_FAVORITES is the fastest on PUZZLE_500_02 (TIME_33) and on the 500-piece board
+        foreach ([null, 'puzzle:' . PuzzleFixture::PUZZLE_500_02, 'feed:' . PuzzleSolvingTimeFixture::TIME_33, 'leaderboard:times-500'] as $context) {
+            $urls[] = '/en/puzzler-card/' . self::BLOCKER . ($context !== null ? '?context=' . rawurlencode($context) : '');
+        }
+
+        TestingLogin::asPlayer($browser, self::BLOCKED);
+        $before = [];
+
+        foreach ($urls as $url) {
+            $browser->request('GET', $url, server: $frame);
+            self::assertResponseIsSuccessful($url);
+            $before[$url] = (string) $browser->getResponse()->getContent();
+            self::assertStringContainsString(PlayerFixture::PLAYER_WITH_FAVORITES_NAME, $before[$url], $url);
+        }
+
+        self::getContainer()->get(Connection::class)->executeStatement(
+            "INSERT INTO user_block (id, blocker_id, blocked_id, blocked_at, source) VALUES (:id, :blocker, :blocked, NOW(), 'self')",
+            ['id' => Uuid::uuid7()->toString(), 'blocker' => self::BLOCKER, 'blocked' => self::BLOCKED],
+        );
+
+        foreach ($urls as $url) {
+            $browser->request('GET', $url, server: $frame);
+            self::assertResponseIsSuccessful($url);
+            self::assertSame($before[$url], (string) $browser->getResponse()->getContent(), 'The blocked side can tell from the card: ' . $url);
+        }
     }
 
     /**

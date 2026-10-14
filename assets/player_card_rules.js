@@ -165,3 +165,36 @@ export function shouldOpen(event, link, env = {}) {
 
     return !isReverted(env.direct, contextKindOf(contextOf(link)), inputOf(event, env.lastPointerType || null));
 }
+
+/**
+ * Was this a trigger opened in a new tab or window instead of the card (CARD-07 `card_bypass`)? A click a plain click
+ * of would have opened the card, made with Ctrl/Cmd/Shift/Alt (button 0, the `click` event) or the middle button
+ * (button 1, the `auxclick` event) - never one somebody else handled, never inside the native app, never where the
+ * revert rule sends that context and input straight to the profile anyway.
+ */
+export function bypassOf(event, link, env = {}) {
+    if (!event || event.defaultPrevented) {
+        return false;
+    }
+
+    const modifier = Boolean(event.ctrlKey || event.metaKey || event.shiftKey || event.altKey);
+    const middle = event.button === 1;
+
+    if (!middle && !(modifier && (event.button === undefined || event.button === 0))) {
+        return false;
+    }
+
+    // The same click without the modifier, with the primary button: would it have opened the card?
+    const plain = {
+        button: 0,
+        detail: event.detail,
+        pointerType: event.pointerType,
+        defaultPrevented: false,
+        ctrlKey: false,
+        metaKey: false,
+        shiftKey: false,
+        altKey: false,
+    };
+
+    return shouldOpen(plain, link, env);
+}

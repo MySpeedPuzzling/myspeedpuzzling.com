@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Controller\NavClickController;
 use SpeedPuzzling\Web\Navigation\NavPlace;
 use SpeedPuzzling\Web\Services\NewsletterTokenSigner;
 use SpeedPuzzling\Web\Value\AccountDeletionToken;
+use SpeedPuzzling\Web\Value\MembersPlacement;
 use SpeedPuzzling\Web\Value\NewsletterAudience;
 use SpeedPuzzling\Web\Value\PasswordResetToken;
 use Symfony\Component\Clock\MockClock;
@@ -518,6 +519,84 @@ final class NavInstrumentationScriptTest extends TestCase
             ['/en/faq', 'menu', 'xyzzy'],
             ['/en/faq', 'topbar', str_repeat('ab', 20)],
         ], $lines);
+    }
+
+    /**
+     * CARD-07: the card's open, its outcome and a bypass are one line each - the context kind and the input (and the
+     * outcome with its ms); anything outside the lists sends nothing, a time that is no sane ms is sent as null
+     */
+    public function testThePlayerCardsEventsAreOneLineEach(): void
+    {
+        $did = $this->scenario(['steps' => [
+            ['do' => 'load', 'page' => '/en/puzzle/0190a1b2-c3d4-7e5f-8a9b-0c1d2e3f4a5b'],
+            ['do' => 'event', 'name' => 'msp:card-open', 'detail' => ['context' => 'puzzle', 'input' => 'touch']],
+            ['do' => 'event', 'name' => 'msp:card-outcome', 'detail' => ['context' => 'puzzle', 'input' => 'touch', 'outcome' => 'deep', 'ms' => 1234]],
+            ['do' => 'event', 'name' => 'msp:card-outcome', 'detail' => ['context' => 'none', 'input' => 'mouse', 'outcome' => 'bounce', 'ms' => -5]],
+            ['do' => 'event', 'name' => 'msp:card-bypass', 'detail' => ['context' => 'leaderboard', 'input' => 'mouse']],
+            // Dropped: an unknown kind, input or outcome, no detail
+            ['do' => 'event', 'name' => 'msp:card-open', 'detail' => ['context' => 'duel', 'input' => 'touch']],
+            ['do' => 'event', 'name' => 'msp:card-open', 'detail' => ['context' => 'feed', 'input' => 'voice']],
+            ['do' => 'event', 'name' => 'msp:card-outcome', 'detail' => ['context' => 'feed', 'input' => 'touch', 'outcome' => 'challenge', 'ms' => 1]],
+            ['do' => 'event', 'name' => 'msp:card-bypass', 'detail' => null],
+        ]]);
+
+        $lines = array_map(
+            static fn (array $beacon): array => array_diff_key($beacon, ['url' => true, 'v' => true, 'layout' => true, 'wd' => true]),
+            array_values(array_filter($did['beacons'], static fn (array $beacon): bool => is_string($beacon['k'] ?? null) && str_starts_with($beacon['k'], 'card_'))),
+        );
+
+        $page = '/en/puzzle/0190a1b2-c3d4-7e5f-8a9b-0c1d2e3f4a5b';
+        self::assertSame([
+            ['k' => 'card_open', 'context' => 'puzzle', 'input' => 'touch', 'page' => $page],
+            ['k' => 'card_outcome', 'context' => 'puzzle', 'input' => 'touch', 'outcome' => 'deep', 'ms' => 1234, 'page' => $page],
+            ['k' => 'card_outcome', 'context' => 'none', 'input' => 'mouse', 'outcome' => 'bounce', 'ms' => null, 'page' => $page],
+            ['k' => 'card_bypass', 'context' => 'leaderboard', 'input' => 'mouse', 'page' => $page],
+        ], $lines);
+    }
+
+    /**
+     * TEASE-01: each open of the members modal is one line with the teaser's placement - 'none' from a lock without one
+     */
+    public function testEachMembersModalOpenIsOneLine(): void
+    {
+        $did = $this->scenario(['steps' => [
+            ['do' => 'load', 'page' => '/en/puzzlers'],
+            ['do' => 'event', 'name' => 'msp:members-modal', 'detail' => ['placement' => 'card.tier']],
+            ['do' => 'event', 'name' => 'msp:members-modal', 'detail' => ['placement' => 'none']],
+            ['do' => 'event', 'name' => 'msp:members-modal', 'detail' => ['placement' => '<b>']],
+            ['do' => 'event', 'name' => 'msp:members-modal', 'detail' => null],
+        ]]);
+
+        self::assertSame(
+            [['/en/puzzlers', 'card.tier'], ['/en/puzzlers', 'none'], ['/en/puzzlers', 'none'], ['/en/puzzlers', 'none']],
+            array_map(static fn (array $beacon): array => [$beacon['page'], $beacon['placement']], self::beacons($did, 'members_modal')),
+        );
+    }
+
+    /**
+     * The script and the server know the same card values (CARD-07): context kinds (PlayerCardContextKind + none),
+     * inputs, outcomes, the longest ms
+     */
+    public function testTheScriptAndTheServerKnowTheSameCardValues(): void
+    {
+        $script = (string) file_get_contents(__DIR__ . '/../assets/nav_instrumentation.js');
+        $list = static function (string $name) use ($script): array {
+            self::assertSame(1, preg_match('~export const ' . $name . ' = \[([^\]]*)\];~', $script, $match), $name);
+
+            return array_map(static fn (string $value): string => trim($value, " '"), explode(',', $match[1]));
+        };
+
+        self::assertSame(NavClickController::cardContexts(), $list('CARD_CONTEXTS'));
+        self::assertSame(NavClickController::CARD_INPUTS, $list('CARD_INPUTS'));
+        self::assertSame(NavClickController::CARD_OUTCOMES, $list('CARD_OUTCOMES'));
+        self::assertStringContainsString('export const CARD_MS_MAX = ' . NavClickController::CARD_MS_MAX . ';', $script);
+
+        // Every placement the server knows passes the script's pattern
+        self::assertSame(1, preg_match('~export const MEMBERS_PLACEMENT_PATTERN = /(.+)/;~', $script, $match));
+
+        foreach (MembersPlacement::cases() as $placement) {
+            self::assertSame(1, preg_match('~' . $match[1] . '~', $placement->value), $placement->value);
+        }
     }
 
     /**

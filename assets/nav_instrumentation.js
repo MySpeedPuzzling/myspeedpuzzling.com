@@ -20,6 +20,12 @@
  * docking or folding the Menu column (NAV-13) is one `layout` line {state, bucket}: assets/navigation/nav_layout.js
  * dispatches `msp:nav-layout` {layout, width} (NAV_LAYOUT_EVENT); the viewport line carries the state the session
  * started in (`dock`: docked | rail | none, read from the column's width --nav-left - D16's fold share).
+ * The player card (CARD-07) is measured per open: assets/player_card_layer.js dispatches `msp:card-open` {context,
+ * input} (CARD_OPEN_EVENT) and exactly one `msp:card-outcome` {context, input, outcome, ms} (CARD_OUTCOME_EVENT,
+ * assets/player_card_measure.js), assets/player_card.js `msp:card-bypass` {context, input} (CARD_BYPASS_EVENT) for a
+ * trigger clicked with a modifier or the middle button; each is one line (card_open, card_outcome, card_bypass). The
+ * members modal (TEASE-01, assets/controllers/members_modal_controller.js) dispatches `msp:members-modal` {placement}
+ * (MEMBERS_MODAL_EVENT) when it opens - one `members_modal` line with the teaser's placement, 'none' without one.
  *
  * Every beacon carries the page's path, never its query string: loggablePage() replaces a path segment that looks like a
  * secret (a password-reset or account-deletion link, a credential claim, a newsletter or e-mail preferences token...)
@@ -66,6 +72,31 @@ export const NAV_LAYOUT_EVENT = 'msp:nav-layout';
 
 /** The desktop Menu's states (NAV-13) - NavClickController::NAV_LAYOUTS */
 export const NAV_LAYOUTS = ['docked', 'rail'];
+
+/** The player card (CARD-07): an open and its one outcome (assets/player_card_layer.js), detail {context, input[, outcome, ms]} */
+export const CARD_OPEN_EVENT = 'msp:card-open';
+export const CARD_OUTCOME_EVENT = 'msp:card-outcome';
+
+/** A card trigger clicked with a modifier or the middle button - no card, a new tab (assets/player_card.js) */
+export const CARD_BYPASS_EVENT = 'msp:card-bypass';
+
+/** The card's context kinds (PlayerCardContextKind, 'none' without one) - NavClickController::CARD_CONTEXTS */
+export const CARD_CONTEXTS = ['none', 'puzzle', 'feed', 'notification', 'round', 'leaderboard'];
+
+/** How the card was asked for (player_card_rules.js inputOf()) - NavClickController::CARD_INPUTS */
+export const CARD_INPUTS = ['mouse', 'touch', 'pen', 'keyboard'];
+
+/** What an open of the card ended in (assets/player_card_measure.js) - NavClickController::CARD_OUTCOMES */
+export const CARD_OUTCOMES = ['continue', 'deep', 'puzzle', 'action', 'bounce', 'close'];
+
+/** The longest time to an outcome a card_outcome line carries (a day, ms) - NavClickController::CARD_MS_MAX */
+export const CARD_MS_MAX = 86400000;
+
+/** The members modal opened (TEASE-01, members_modal_controller.js), detail {placement} */
+export const MEMBERS_MODAL_EVENT = 'msp:members-modal';
+
+/** A teaser's placement id (data-members-placement - the server knows them, MembersPlacement); 'none' without one */
+export const MEMBERS_PLACEMENT_PATTERN = /^[a-z]+\.[a-z_]+$/;
 
 /** The page's place (NavPlace) - the same list as NavClickController::PLACES */
 export const PLACES = ['home', 'puzzles', 'add', 'community', 'profile', 'none'];
@@ -356,6 +387,22 @@ export function createNavInstrumentation(env) {
         api.layoutChanged(event && event.detail ? event.detail : {});
     }
 
+    function onCardOpen(event) {
+        api.cardOpen(event && event.detail ? event.detail : {});
+    }
+
+    function onCardOutcome(event) {
+        api.cardOutcome(event && event.detail ? event.detail : {});
+    }
+
+    function onCardBypass(event) {
+        api.cardBypass(event && event.detail ? event.detail : {});
+    }
+
+    function onMembersModal(event) {
+        api.membersModal(event && event.detail ? event.detail : {});
+    }
+
     const api = {
         /** app.js: a Turbo restore visit, right before it turns it into a full page load */
         turboRestore() {
@@ -431,11 +478,57 @@ export function createNavInstrumentation(env) {
             send({ k: 'layout', state: detail.layout, bucket: viewportBucket(width) });
         },
 
+        /**
+         * CARD-07: a player card opened - its context kind and the input that asked for it (a prefetch is no open).
+         * Anything outside the lists sends nothing.
+         */
+        cardOpen(detail = {}) {
+            if (!CARD_CONTEXTS.includes(detail.context) || !CARD_INPUTS.includes(detail.input)) {
+                return;
+            }
+
+            send({ k: 'card_open', context: detail.context, input: detail.input });
+        },
+
+        /**
+         * CARD-07: what one open of the card ended in, and after how long (ms; null when it is not a sane number).
+         * Anything outside the lists sends nothing.
+         */
+        cardOutcome(detail = {}) {
+            if (!CARD_CONTEXTS.includes(detail.context) || !CARD_INPUTS.includes(detail.input) || !CARD_OUTCOMES.includes(detail.outcome)) {
+                return;
+            }
+
+            const ms = Number.isInteger(detail.ms) && detail.ms >= 0 && detail.ms <= CARD_MS_MAX ? detail.ms : null;
+
+            send({ k: 'card_outcome', context: detail.context, input: detail.input, outcome: detail.outcome, ms });
+        },
+
+        /** CARD-07: a card trigger opened in a new tab or window instead (a modifier or the middle button) */
+        cardBypass(detail = {}) {
+            if (!CARD_CONTEXTS.includes(detail.context) || !CARD_INPUTS.includes(detail.input)) {
+                return;
+            }
+
+            send({ k: 'card_bypass', context: detail.context, input: detail.input });
+        },
+
+        /** TEASE-01: the members modal opened - from which teaser (its placement), 'none' from a lock without one */
+        membersModal(detail = {}) {
+            const placement = typeof detail.placement === 'string' && MEMBERS_PLACEMENT_PATTERN.test(detail.placement) ? detail.placement : 'none';
+
+            send({ k: 'members_modal', placement });
+        },
+
         start() {
             document.addEventListener('click', onClick, { capture: true, passive: true });
             document.addEventListener(MENU_OPEN_EVENT, onMenuOpen);
             document.addEventListener(SEARCH_ZERO_EVENT, onSearchZero);
             document.addEventListener(NAV_LAYOUT_EVENT, onNavLayout);
+            document.addEventListener(CARD_OPEN_EVENT, onCardOpen);
+            document.addEventListener(CARD_OUTCOME_EVENT, onCardOutcome);
+            document.addEventListener(CARD_BYPASS_EVENT, onCardBypass);
+            document.addEventListener(MEMBERS_MODAL_EVENT, onMembersModal);
             // Capture: at the window, capture listeners run before Turbo's popstate listener starts the restore
             window.addEventListener('popstate', rememberTraverse, { capture: true });
             window.addEventListener('pageshow', onPageShow);

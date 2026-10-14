@@ -12,8 +12,10 @@ use SpeedPuzzling\Web\Message\StartFreeTrial;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\FreeTrial;
 use SpeedPuzzling\Web\Value\FreeTrialSource;
+use SpeedPuzzling\Web\Value\MembersPlacement;
 use SpeedPuzzling\Web\Value\ReturnUrl;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Messenger\Exception\HandlerFailedException;
@@ -25,6 +27,10 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 /**
  * One click starts the free trial (docs/features/free-trial/README.md). Always answers with a
  * redirect - Turbo Drive drops a 200 answer to a form submission.
+ *
+ * From the members modal the form also carries the teaser that opened it (`placement`, docs/features/navigation
+ * TEASE-01): a started trial with a known placement is one info line on the `navigation` channel; an unknown one is
+ * ignored. Never stored - the stored source stays FreeTrialSource (implementation plan decision 12).
  */
 final class StartFreeTrialController extends AbstractController
 {
@@ -35,6 +41,8 @@ final class StartFreeTrialController extends AbstractController
         readonly private MessageBusInterface $messageBus,
         readonly private TranslatorInterface $translator,
         readonly private LoggerInterface $logger,
+        #[Autowire(service: 'monolog.logger.navigation')]
+        readonly private LoggerInterface $navigationLogger,
     ) {
     }
 
@@ -88,6 +96,17 @@ final class StartFreeTrialController extends AbstractController
             $this->addFlash('warning', $this->translator->trans('free_trial.not_available'));
 
             return $this->redirectToRoute('membership');
+        }
+
+        // Which members teaser it came from (TEASE-01) - counted, not stored
+        $placement = MembersPlacement::tryFrom((string) $request->request->get('placement'));
+
+        if ($placement !== null) {
+            $this->navigationLogger->info('Free trial started from a members teaser', [
+                'kind' => 'trial_start',
+                'placement' => $placement->value,
+                'source' => $source->value,
+            ]);
         }
 
         // From a modal the player goes back to the page they were on - now unlocked

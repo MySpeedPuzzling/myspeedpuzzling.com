@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Navigation\MenuView;
 use SpeedPuzzling\Web\Navigation\NavigationLaunch;
 use SpeedPuzzling\Web\Navigation\NavigationPlaceResolver;
 use SpeedPuzzling\Web\Navigation\NavigationPointers;
+use SpeedPuzzling\Web\Navigation\NavigationRegistry;
 use SpeedPuzzling\Web\Navigation\NavigationSearchIndex;
 use SpeedPuzzling\Web\Navigation\NavigationViewerFactory;
 use SpeedPuzzling\Web\Navigation\NavLocation;
@@ -39,7 +40,9 @@ use Twig\TwigFunction;
  *   request (kept on the request);
  * - nav_search_private(): the moderator / admin entries of that list for those viewers only (JSON, null for everybody
  *   else) - rendered into the Menu as #nav-search-private;
- * - nav_footer(): the site footer's link columns for the viewer (FooterBuilder, FOOT-01).
+ * - nav_footer(): the site footer's link columns for the viewer (FooterBuilder, FOOT-01);
+ * - player_card_direct(): the player card's reverted cells for `<body data-player-card-direct>` (CARD-07,
+ *   NavigationRegistry::PLAYER_CARD_DIRECT) - the same for every viewer, '' while none is reverted.
  */
 final class NavigationTwigExtension extends AbstractExtension
 {
@@ -70,6 +73,7 @@ final class NavigationTwigExtension extends AbstractExtension
     {
         return [
             new TwigFunction('nav_location', $this->navLocation(...)),
+            new TwigFunction('player_card_direct', NavigationRegistry::playerCardDirect(...)),
             new TwigFunction('bar_action', $this->barAction(...)),
             new TwigFunction('nav_launched', $this->navigationLaunch->hasLaunched(...)),
             new TwigFunction('nav_new_badges_shown', $this->navigationLaunch->newBadgesVisible(...)),

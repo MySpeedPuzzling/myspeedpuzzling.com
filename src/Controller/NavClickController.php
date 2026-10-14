@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller;
 
 use Psr\Log\LoggerInterface;
+use SpeedPuzzling\Web\Value\MembersPlacement;
+use SpeedPuzzling\Web\Value\PlayerCardContextKind;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\Request;
@@ -28,6 +30,14 @@ use Symfony\Component\Routing\Attribute\Route;
  * - layout: the desktop ☰ docked the Menu column or folded it to the rail (NAV-13, README §4.3 / D16 "if more than half
  *   of desktop players fold the column within two weeks, the rail becomes the default") - the new state and the
  *   innerWidth bucket; the viewport line carries the state the session started in (`dock`: docked | rail | none)
+ * - card_open: a player card opened (CARD-07, README §4.8 "Measurement") - the context's kind (none without one) and
+ *   the input that asked for it (mouse | touch | pen | keyboard); a prefetch is no open
+ * - card_outcome: what that open ended in, exactly one per open - continue (the profile), deep (Results, Statistics),
+ *   puzzle, action, bounce (closed within 2 s, nothing used) or close - and after how many ms; with card_open the
+ *   counts of the revert rule (NavigationRegistry::PLAYER_CARD_REVERT_RULE) per context kind × input
+ * - card_bypass: a card trigger opened in a new tab or window instead (a modifier or the middle button)
+ * - members_modal: the members modal opened (TEASE-01) - from which teaser (its data-members-placement, MembersPlacement;
+ *   `none` from a lock without one)
  *
  * The page's path and the data-nav value only - no cookies, no session (the `stateless` firewall), no user agent.
  * A path segment that looks like a secret (a password-reset, account-deletion, credential-claim, sign-in, newsletter or
@@ -82,6 +92,16 @@ final class NavClickController extends AbstractController
     /** NavPlace values - the script sends the same list (PLACES in assets/nav_instrumentation.js) */
     public const array PLACES = ['home', 'puzzles', 'add', 'community', 'profile', 'none'];
 
+    /** The player card's inputs and outcomes (CARD-07) - CARD_INPUTS / CARD_OUTCOMES in assets/nav_instrumentation.js */
+    public const array CARD_INPUTS = ['mouse', 'touch', 'pen', 'keyboard'];
+    public const array CARD_OUTCOMES = ['continue', 'deep', 'puzzle', 'action', 'bounce', 'close'];
+
+    /** The longest time to an outcome logged, ms (a day; CARD_MS_MAX in the script) - anything else is logged as null */
+    public const int CARD_MS_MAX = 86_400_000;
+
+    /** A members modal opened from a lock without a placement (TEASE-01) */
+    public const string NO_PLACEMENT = 'none';
+
     public function __construct(
         #[Autowire(service: 'monolog.logger.navigation')]
         readonly private LoggerInterface $logger,
@@ -111,6 +131,9 @@ final class NavClickController extends AbstractController
                     'menu_open' => $this->menuOpen($payload, $context),
                     'search_zero' => $this->searchZero($payload, $context),
                     'layout' => $this->layoutChanged($payload, $context),
+                    'card_open', 'card_bypass' => $this->card($payload, $context),
+                    'card_outcome' => $this->cardOutcome($payload, $context),
+                    'members_modal' => $this->membersModal($payload, $context),
                     default => null,
                 };
             }
@@ -275,6 +298,96 @@ final class NavClickController extends AbstractController
             'kind' => 'search_zero',
             'surface' => $surface,
             'query' => $query,
+            ...$context,
+        ]);
+    }
+
+    /**
+     * The player card's context kinds as the script sends them (CARD_CONTEXTS in assets/nav_instrumentation.js):
+     * PlayerCardContextKind, `none` without a context.
+     *
+     * @return list<string>
+     */
+    public static function cardContexts(): array
+    {
+        return ['none', ...array_map(static fn (PlayerCardContextKind $kind): string => $kind->value, PlayerCardContextKind::cases())];
+    }
+
+    /**
+     * CARD-07: card_open / card_bypass - an unknown context kind or input drops the line.
+     *
+     * @param array<string, mixed> $payload
+     * @param array<string, mixed> $context
+     */
+    private function card(array $payload, array $context): void
+    {
+        $cardContext = $payload['context'] ?? null;
+        $input = $payload['input'] ?? null;
+
+        if (!in_array($cardContext, self::cardContexts(), true) || !in_array($input, self::CARD_INPUTS, true)) {
+            return;
+        }
+
+        $open = ($payload['k'] ?? null) === 'card_open';
+
+        $this->logger->info($open ? 'Navigation card open' : 'Navigation card bypass', [
+            'kind' => $open ? 'card_open' : 'card_bypass',
+            'context' => $cardContext,
+            'input' => $input,
+            ...$context,
+        ]);
+    }
+
+    /**
+     * CARD-07: one per open of the card - an unknown context kind, input or outcome drops the line; a time that is not a
+     * whole number of ms within a day is logged as null.
+     *
+     * @param array<string, mixed> $payload
+     * @param array<string, mixed> $context
+     */
+    private function cardOutcome(array $payload, array $context): void
+    {
+        $cardContext = $payload['context'] ?? null;
+        $input = $payload['input'] ?? null;
+        $outcome = $payload['outcome'] ?? null;
+
+        if (
+            !in_array($cardContext, self::cardContexts(), true)
+            || !in_array($input, self::CARD_INPUTS, true)
+            || !in_array($outcome, self::CARD_OUTCOMES, true)
+        ) {
+            return;
+        }
+
+        $ms = $payload['ms'] ?? null;
+
+        $this->logger->info('Navigation card outcome', [
+            'kind' => 'card_outcome',
+            'context' => $cardContext,
+            'input' => $input,
+            'outcome' => $outcome,
+            'ms' => is_int($ms) && $ms >= 0 && $ms <= self::CARD_MS_MAX ? $ms : null,
+            ...$context,
+        ]);
+    }
+
+    /**
+     * TEASE-01: the members modal opened - from which teaser. A placement the server does not know drops the line.
+     *
+     * @param array<string, mixed> $payload
+     * @param array<string, mixed> $context
+     */
+    private function membersModal(array $payload, array $context): void
+    {
+        $placement = $payload['placement'] ?? null;
+
+        if ($placement !== self::NO_PLACEMENT && (!is_string($placement) || MembersPlacement::tryFrom($placement) === null)) {
+            return;
+        }
+
+        $this->logger->info('Navigation members modal', [
+            'kind' => 'members_modal',
+            'placement' => $placement,
             ...$context,
         ]);
     }

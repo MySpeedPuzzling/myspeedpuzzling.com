@@ -71,7 +71,11 @@ final class PlayerCardControllerTest extends WebTestCase
         self::assertStringContainsString('Turbo-Frame', (string) $browser->getResponse()->headers->get('Vary'));
     }
 
-    public function testAGuestSeesTheActivityAndTheTierLocked(): void
+    /**
+     * TEASE-01 (D13 change): a guest gets the locked tier chip - the card's one teaser, passive, carrying its placement
+     * for the members modal - and no activity strip at all (the blurred stand-in is gone).
+     */
+    public function testAGuestSeesTheTierLockedAndNoActivity(): void
     {
         // Before the XP launch (the switch off): only admins see progression
         FixedXpLaunchReadiness::$ready = false;
@@ -80,15 +84,15 @@ final class PlayerCardControllerTest extends WebTestCase
 
         $crawler = $this->card($browser, PlayerFixture::PLAYER_REGULAR);
 
-        self::assertCount(0, $crawler->filter('.players-card-bars[role="img"]'), 'No activity numbers for a guest');
-        self::assertCount(1, $crawler->filter('.players-card-locked button.players-card-unlock[data-bs-target="#membersExclusiveModal"]'));
-        self::assertStringContainsString('Members exclusive', $crawler->filter('.players-card-unlock')->text());
+        self::assertCount(0, $crawler->filter('.players-card-activity'), 'No activity strip for a guest - nor a stand-in');
+        self::assertCount(0, $crawler->filter('.players-card-bars'));
+        self::assertCount(1, $crawler->filter('[data-bs-target="#membersExclusiveModal"]'), 'One teaser on the card');
 
         // Progression on the card = the level and the tier only (docs/features/xp-levels/launch-2026-10.md); the level
         // follows XpFeatureGate (launch ready or admin)
         self::assertCount(0, $crawler->filter('.players-card-chip-level'));
         self::assertStringNotContainsString('MSP Rating', (string) $browser->getResponse()->getContent());
-        self::assertCount(1, $crawler->filter('button.players-card-chip-locked[data-bs-target="#membersExclusiveModal"]'));
+        self::assertCount(1, $crawler->filter('button.players-card-chip-locked[data-bs-target="#membersExclusiveModal"][data-members-placement="card.tier"]'));
         self::assertCount(0, $crawler->filter('.players-card-chip-tier'));
 
         // Favorite and Compare ask to sign in first, then land on the profile - in the layer on the page the card was
@@ -101,14 +105,20 @@ final class PlayerCardControllerTest extends WebTestCase
         self::assertCount(1, $crawler->filter('.players-card-actions a[href^="/login?return="][data-turbo-frame="_top"][data-card-return-page]'));
     }
 
-    public function testANonMemberSeesTheActivityLockedToo(): void
+    /**
+     * TEASE-01 (D13 change): a signed-in player without a membership gets the same - the locked tier chip with its
+     * placement, no activity strip
+     */
+    public function testANonMemberSeesTheTierLockedAndNoActivity(): void
     {
         $browser = $this->browser(PlayerFixture::PLAYER_REGULAR);
 
         $crawler = $this->card($browser, PlayerFixture::PLAYER_WITH_STRIPE);
 
-        self::assertCount(0, $crawler->filter('.players-card-bars[role="img"]'));
-        self::assertCount(1, $crawler->filter('.players-card-locked'));
+        self::assertCount(0, $crawler->filter('.players-card-activity'));
+        self::assertCount(0, $crawler->filter('.players-card-bars'));
+        self::assertCount(1, $crawler->filter('button.players-card-chip-locked[data-members-placement="card.tier"]'));
+        self::assertCount(1, $crawler->filter('[data-bs-target="#membersExclusiveModal"]'), 'One teaser on the card');
     }
 
     public function testAMemberSeesTheActivityAndTheTier(): void
@@ -118,7 +128,7 @@ final class PlayerCardControllerTest extends WebTestCase
 
         $crawler = $this->card($browser, PlayerFixture::PLAYER_REGULAR);
 
-        self::assertCount(0, $crawler->filter('.players-card-locked'));
+        self::assertCount(0, $crawler->filter('[data-bs-target="#membersExclusiveModal"]'), 'No teaser for a member');
         $strip = $crawler->filter('.players-card-bars[role="img"]');
         self::assertCount(1, $strip);
         self::assertCount(12, $strip->filter('i'));
@@ -304,12 +314,13 @@ final class PlayerCardControllerTest extends WebTestCase
      */
     public static function viewers(): iterable
     {
-        // viewer, the card's player, the data-nav ids of the card in order (the latest puzzles' card/none/puzzle aside)
+        // viewer, the card's player, the data-nav ids of the card in order (the latest puzzles' card/none/puzzle aside);
+        // TEASE-01: the locked tier chip is the one teaser - the activity strip's stand-in and its unlock are gone
         $pages = ['card/none/overview', 'card/none/results', 'card/none/statistics'];
 
         yield 'member' => [PlayerFixture::PLAYER_ADMIN, PlayerFixture::PLAYER_REGULAR, ['card/none/profile', 'card/none/close', ...$pages, 'card/none/favorite', 'card/none/compare', 'card/none/message', 'card/none/share']];
-        yield 'non-member' => [PlayerFixture::PLAYER_REGULAR, PlayerFixture::PLAYER_WITH_STRIPE, ['card/none/profile', 'card/none/close', 'card/none/tier_locked', 'card/none/unlock', ...$pages, 'card/none/favorite', 'card/none/compare', 'card/none/message', 'card/none/share']];
-        yield 'guest' => [null, PlayerFixture::PLAYER_WITH_STRIPE, ['card/none/profile', 'card/none/close', 'card/none/tier_locked', 'card/none/unlock', ...$pages, 'card/none/favorite', 'card/none/compare', 'card/none/share']];
+        yield 'non-member' => [PlayerFixture::PLAYER_REGULAR, PlayerFixture::PLAYER_WITH_STRIPE, ['card/none/profile', 'card/none/close', 'card/none/tier_locked', ...$pages, 'card/none/favorite', 'card/none/compare', 'card/none/message', 'card/none/share']];
+        yield 'guest' => [null, PlayerFixture::PLAYER_WITH_STRIPE, ['card/none/profile', 'card/none/close', 'card/none/tier_locked', ...$pages, 'card/none/favorite', 'card/none/compare', 'card/none/share']];
     }
 
     /**

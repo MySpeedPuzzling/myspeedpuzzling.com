@@ -7,6 +7,9 @@ namespace SpeedPuzzling\Web\Tests\Controller;
 use SpeedPuzzling\Web\Exceptions\MembershipNotFound;
 use SpeedPuzzling\Web\Repository\MembershipRepository;
 use Doctrine\DBAL\Connection;
+use Monolog\Handler\TestHandler;
+use Monolog\Logger;
+use Monolog\LogRecord;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\FreeTrialConditions;
 use SpeedPuzzling\Web\Tests\TestingLogin;
@@ -65,6 +68,71 @@ final class StartFreeTrialControllerTest extends WebTestCase
         self::assertCount(0, $crawler->filter('#membersExclusiveModal input[name="source"]'), 'Nothing left to offer');
     }
 
+    /**
+     * TEASE-01: the members modal's trial form carries an empty `placement` field and its membership link is the
+     * modal controller's - members_modal_controller.js fills both with the teaser that opened the modal
+     */
+    public function testTheMembersModalPassesThePlacementOn(): void
+    {
+        $browser = $this->establishedPlayer();
+
+        $crawler = $browser->request('GET', '/en/ladder');
+
+        $modal = $crawler->filter('#membersExclusiveModal[data-controller="members-modal"]');
+        self::assertCount(1, $modal);
+        $field = $modal->filter('form input[name="placement"][data-members-modal-target="placement"]');
+        self::assertCount(1, $field);
+        self::assertSame('', $field->attr('value'));
+        self::assertCount(1, $modal->filter('input[name="source"][value="members_modal"]'), 'The stored source stays members_modal');
+        self::assertCount(1, $modal->filter('a[href="/en/membership"][data-members-modal-target="link"]'));
+
+        // The membership page's own trial form has no placement - it is no teaser
+        $crawler = $browser->request('GET', '/en/membership');
+        self::assertCount(0, $crawler->filter('.free-trial-offer input[name="placement"]'));
+    }
+
+    /**
+     * TEASE-01: a trial started from a teaser is one info line on the `navigation` channel with its placement; the
+     * stored source is the form's (members_modal), nothing else is stored
+     */
+    public function testATrialFromATeaserLogsItsPlacementAndKeepsTheSource(): void
+    {
+        $browser = $this->establishedPlayer();
+        $browser->disableReboot();
+        $log = self::navigationLog();
+
+        $this->start($browser, ['source' => 'members_modal', 'placement' => 'card.tier', 'return' => '/en/ladder']);
+        $this->assertResponseRedirects('/en/ladder');
+
+        $membership = $browser->getContainer()->get(MembershipRepository::class)->getByPlayerId(PlayerFixture::PLAYER_REGULAR);
+        self::assertSame(FreeTrialSource::MembersModal, $membership->trialSource);
+
+        self::assertSame([[
+            'kind' => 'trial_start',
+            'placement' => 'card.tier',
+            'source' => 'members_modal',
+        ]], array_map(static fn (LogRecord $record): array => $record->context, $log->getRecords()));
+        self::assertSame('Free trial started from a members teaser', $log->getRecords()[0]->message);
+        self::assertSame('INFO', $log->getRecords()[0]->level->getName());
+    }
+
+    /**
+     * TEASE-01: a placement the server does not know is ignored - the trial starts as always, no line
+     */
+    public function testAnUnknownPlacementIsIgnored(): void
+    {
+        $browser = $this->establishedPlayer();
+        $browser->disableReboot();
+        $log = self::navigationLog();
+
+        $this->start($browser, ['source' => 'members_modal', 'placement' => 'header.everything']);
+        $this->assertResponseRedirects('/en/membership/free-trial');
+
+        $membership = $browser->getContainer()->get(MembershipRepository::class)->getByPlayerId(PlayerFixture::PLAYER_REGULAR);
+        self::assertSame(FreeTrialSource::MembersModal, $membership->trialSource);
+        self::assertSame([], $log->getRecords());
+    }
+
     public function testReturnUrlIsNeverTrustedToLeaveTheSite(): void
     {
         $browser = $this->establishedPlayer();
@@ -82,6 +150,9 @@ final class StartFreeTrialControllerTest extends WebTestCase
         $crawler = $browser->request('GET', '/en/membership');
         self::assertCount(0, $crawler->filter('.free-trial-offer'));
         self::assertCount(0, $crawler->filter('#membersExclusiveModal input[name="source"]'));
+        // A member gets no locks: the modal's teaser measurement is left out of their pages (TEASE-01)
+        self::assertCount(1, $crawler->filter('#membersExclusiveModal'));
+        self::assertCount(0, $crawler->filter('#membersExclusiveModal[data-controller], #membersExclusiveModal [data-members-modal-target]'));
 
         $this->start($browser, ['source' => 'membership_page']);
         $this->assertResponseRedirects('/en/membership');
@@ -155,6 +226,21 @@ final class StartFreeTrialControllerTest extends WebTestCase
         $this->start($browser, ['source' => 'membership_page']);
         $this->assertResponseRedirects('/en/membership');
         $this->assertNoMembership($browser, PlayerFixture::PLAYER_REGULAR);
+    }
+
+    /**
+     * A TestHandler pushed onto the `navigation` logger of the current container (the client must not reboot)
+     */
+    private static function navigationLog(): TestHandler
+    {
+        /** @var Logger $logger */
+        $logger = self::getContainer()->get('monolog.logger.navigation');
+
+        $handler = new TestHandler();
+        $handler->setSkipReset(true);
+        $logger->pushHandler($handler);
+
+        return $handler;
     }
 
     private function establishedPlayer(): KernelBrowser

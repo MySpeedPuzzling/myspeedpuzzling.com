@@ -174,10 +174,12 @@
        and the app; no-nav-column: the `menu` page, whose content is the Menu (nav_menu_slot_off) - critical CSS keeps the
        desktop column's width (--nav-left) at 0 / the rail's there (NAV-13); no-tab-bar: a page that sets hide_bottom_bar
        (NAV-08) - like no-nav-chrome it keeps no room for the phone tab bar (--bottom-nav-height 0 on <body>, also without
-       :has() - NAV review F4). All depend on the page only. #}
+       :has() - NAV review F4). All depend on the page only. data-player-card-url / data-player-card-direct: the player
+       card's URL template (CARD-01a) and the revert rule's reverted cells (CARD-07, left out while none is) - the same
+       for every viewer. #}
     <body class="lang-{{ app.request.locale }}{{ comparison_launcher ? ' has-comparison-launcher' }}{{ (nav_chrome_off ?? false) or not is_web() ? ' no-nav-chrome' }}{{ (nav_menu_slot_off ?? false) ? ' no-nav-column' }}{{ (hide_bottom_bar ?? false) ? ' no-tab-bar' }}"
           data-viewer-audience="{{ nav_viewer_audience() }}"
-          data-player-card-url="{{ path('player_card', {playerId: '00000000-0000-0000-0000-000000000000'}) }}"
+          data-player-card-url="{{ path('player_card', {playerId: '00000000-0000-0000-0000-000000000000'}) }}"{% if player_card_direct() != '' %} data-player-card-direct="{{ player_card_direct() }}"{% endif %}
           data-controller="pwa-lifecycle gallery file-drop-area datepicker toast{% if ga_tracking is not empty %} analytics{% endif %}"
           {% if ga_tracking is not empty %}data-analytics-tracking-id-value="{{ ga_tracking }}"{% endif %}>
         <a href="#main-content" class="visually-hidden-focusable">{{ 'forms.skip_to_content'|trans }}</a>
@@ -263,7 +265,11 @@
             {{ include(announcement.template()) }}
         {% endif %}
 
-        <div class="modal fade" tabindex="-1" role="dialog" id="membersExclusiveModal">
+        {#- The members modal: every members-only lock opens it. members-modal (lazy) passes the teaser's placement on to the
+           trial form and the membership links, and counts the open (TEASE-01, README §6 rule 5) - for whoever gets locks:
+           a member sees none, so their pages carry neither the controller nor its targets #}
+        {%- set members_modal_measured = logged_user.profile is null or not logged_user.profile.activeMembership %}
+        <div class="modal fade" tabindex="-1" role="dialog" id="membersExclusiveModal"{% if members_modal_measured %} data-controller="members-modal"{% endif %}>
             <div class="modal-dialog modal-dialog-centered" role="document">
                 <div class="modal-content">
                     <div class="modal-header">
@@ -282,15 +288,16 @@
                                 label: 'free_trial.modal.button'|trans({'%days%': constant('SpeedPuzzling\\Web\\Value\\FreeTrial::DAYS')}),
                                 return: app.request.requestUri,
                                 form_class: 'me-2 mb-2',
+                                placement_field: true,
                             }) }}
 
-                            <a href="{{ path('membership') }}" class="btn btn-outline-primary btn-sm me-2 mb-2">{{ 'free_trial.modal.secondary'|trans }}</a>
+                            <a href="{{ path('membership') }}" class="btn btn-outline-primary btn-sm me-2 mb-2" data-members-modal-target="link">{{ 'free_trial.modal.secondary'|trans }}</a>
                         {% elseif logged_user.profile %}
                             {% if is_web() and logged_user.profile.freeTrialAvailable %}
                                 <p class="small text-muted">{{ include('membership/_free_trial_unlock_sentence.html.twig', {profile: logged_user.profile}) }}</p>
                             {% endif %}
 
-                            <a href="{{ path('membership') }}" class="btn btn-primary d-inline-block me-2 btn-shadow" type="submit"><i class="bi-person-circle"></i> {{ 'membership.modal.cta'|trans }}</a>
+                            <a href="{{ path('membership') }}" class="btn btn-primary d-inline-block me-2 btn-shadow" type="submit"{% if members_modal_measured %} data-members-modal-target="link"{% endif %}><i class="bi-person-circle"></i> {{ 'membership.modal.cta'|trans }}</a>
                         {% else %}
                             <a href="{{ path('login') }}" class="btn btn-primary d-inline-block me-2 btn-shadow" type="submit"><i class="bi-person"></i> {{ 'menu.sign_in'|trans }}</a>
                         {% endif %}

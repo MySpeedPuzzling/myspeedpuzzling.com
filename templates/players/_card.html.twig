@@ -1,8 +1,8 @@
 {#
     The player card (docs/features/navigation README §4.8, CARD-03; first built for the Players page,
     docs/features/players-page/README.md): who - the name is the profile link -, level and tier, the six public
-    numbers, the 12-month strip (members), the 3 latest puzzles, the player's pages Overview · Results · Statistics,
-    then Favorite · Compare · Message · ⋯ (Share). No Block (D12: it stays on the profile), no "Challenge" (reserved for
+    numbers, the 12-month strip (members - nobody else gets a stand-in, TEASE-01), the 3 latest puzzles, the player's
+    pages Overview · Results · Statistics, then Favorite · Compare · Message · ⋯ (Share). No Block (D12: it stays on the profile), no "Challenge" (reserved for
     duels). What the viewer may do comes from PlayerActionsResolver - the same decisions as the player header.
 
     Rendered inside <turbo-frame id="player-card">: in the layer of assets/player_card_layer.js (a bottom sheet below
@@ -71,8 +71,10 @@
                 {% elseif actions.tierChip == 'no_tier_yet' %}
                     <li class="players-card-chip">{{ 'player_header.no_tier_yet'|trans }}</li>
                 {% elseif actions.tierChip == 'locked' %}
+                    {# The card's one members teaser (README §6, TEASE-01): passive, it opens the members modal only when
+                       clicked, and its placement rides along (MembersPlacement) #}
                     <li>
-                        <button type="button" class="players-card-chip players-card-chip-locked" data-bs-toggle="modal" data-bs-target="#membersExclusiveModal" title="{{ 'player_header.tier_locked_title'|trans }}" data-nav="{{ nav }}tier_locked">
+                        <button type="button" class="players-card-chip players-card-chip-locked" data-bs-toggle="modal" data-bs-target="#membersExclusiveModal" data-members-placement="card.tier" title="{{ 'player_header.tier_locked_title'|trans }}" data-nav="{{ nav }}tier_locked">
                             <i class="ci-locked" aria-hidden="true"></i>
                             {{ 'players.card.tier_locked'|trans }}
                         </button>
@@ -121,8 +123,8 @@
             </div>
         </dl>
 
-        {# Members see the strip; everyone else a blurred stand-in (no real numbers in the markup) under a lock - until
-           TEASE-01 takes the stand-in away #}
+        {# The 12-month strip: members only, and nothing in its place for anybody else (TEASE-01 - the tier chip above is
+           the card's one teaser) #}
         {% if viewer_is_member %}
             {% set busiest = card.busiestMonth %}
             {% set described = [] %}
@@ -141,23 +143,6 @@
                         <span>{{ (activity|last).month|format_date(pattern: 'LLL') }}</span>
                     </div>
                 {% endif %}
-            </div>
-        {% else %}
-            <div class="players-card-activity is-locked">
-                <div class="players-card-locked">
-                    <div class="players-card-bars" aria-hidden="true">
-                        {%- for height in [35, 50, 30, 60, 45, 70, 55, 40, 65, 80, 60, 90] -%}
-                            <i style="height: {{ height }}%"></i>
-                        {%- endfor -%}
-                    </div>
-                    <button type="button" class="players-card-unlock" data-bs-toggle="modal" data-bs-target="#membersExclusiveModal" data-nav="{{ nav }}unlock">
-                        <i class="ci-locked" aria-hidden="true"></i>
-                        {{ 'membership.members_exclusive_button'|trans }}
-                    </button>
-                </div>
-                <div class="players-card-activity-labels" aria-hidden="true">
-                    <span>{{ 'players.card.activity_label'|trans }}</span>
-                </div>
             </div>
         {% endif %}
 

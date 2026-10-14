@@ -1,4 +1,6 @@
 import layers from './layer_history.js';
+import { createCardMeasure } from './player_card_measure.js';
+import { contextKindOf, contextOf } from './player_card_rules.js';
 import { SHEET_PHONE_MEDIA } from './sheet_drag.js';
 
 /**
@@ -24,6 +26,9 @@ import { SHEET_PHONE_MEDIA } from './sheet_drag.js';
  *   the native app the trigger never opens it (player_card.js).
  * - A guest's sign-in links (data-card-return-page) come back to the page the card was opened on, not the profile.
  * - Pull-to-refresh does not arm while it is open (an open <dialog>, assets/pull_to_refresh.js).
+ * - Measurement (CARD-07, assets/player_card_measure.js): each open is one `card_open` (its context kind and input) and
+ *   ends in exactly one `card_outcome` - the first thing used inside the card (its data-nav item), else how it closed;
+ *   a prefetch is never an open. Sent as document events, assets/nav_instrumentation.js beacons them.
  */
 
 export const LAYER_ID = 'card';
@@ -103,15 +108,27 @@ class PlayerCardLayer {
         this.inflight = new Map();
         this.media = window.matchMedia(SHEET_PHONE_MEDIA);
         this.reducedMotion = window.matchMedia(REDUCED_MOTION);
+        this.measure = createCardMeasure({
+            now: () => (window.performance && typeof window.performance.now === 'function' ? window.performance.now() : Date.now()),
+            emit: (name, detail) => {
+                try {
+                    document.dispatchEvent(new window.CustomEvent(name, { detail }));
+                } catch (e) {
+                    // a lost count, never a broken card
+                }
+            },
+        });
 
         document.addEventListener('turbo:before-cache', this.onBeforeCache);
         document.addEventListener('turbo:load', this.onLoad);
         this.media.addEventListener('change', this.onModeChange);
+        // The page goes away with the card open (a full page load, the tab closed): how it ended still counts
+        window.addEventListener('pagehide', this.onPageHide);
     }
 
     // ---- Opening -------------------------------------------------------------------------------------------------
 
-    open(anchor, url) {
+    open(anchor, url, input = 'mouse') {
         if (this.closingTimer !== null) {
             this.finishClose();
         }
@@ -147,6 +164,8 @@ class PlayerCardLayer {
 
         this.place();
         this.box.focus({ preventScroll: true });
+        // Another name while a card is open ends that card's measure first
+        this.measure.opened(contextKindOf(contextOf(anchor)), input);
     }
 
     ensureDialog() {
@@ -169,6 +188,8 @@ class PlayerCardLayer {
         box.tabIndex = -1;
 
         dialog.append(scrim, box);
+        // Capture: counted before whatever the click starts (a visit, a frame load, a modal)
+        dialog.addEventListener('click', this.onMeasureClick, true);
         dialog.addEventListener('click', this.onDialogClick);
         dialog.addEventListener('cancel', this.onCancel);
         dialog.addEventListener('bottom-sheet:dismiss', this.onDismiss);
@@ -350,6 +371,7 @@ class PlayerCardLayer {
         if (reason === 'leave') {
             // A visit leaves from the card (Results, a puzzle, a tab of the bottom bar): it stays on screen until the new
             // page replaces it - the page under it is usable again, nothing stays inert if that page never comes (onLoad)
+            this.measure.closed();
             this.released = true;
             this.setInert(false);
 
@@ -364,6 +386,8 @@ class PlayerCardLayer {
         if (!this.shown) {
             return;
         }
+
+        this.measure.closed();
 
         const anchor = this.anchor;
         const animate = (reason === 'back' || reason === 'close') && this.isSheet() && !this.reducedMotion.matches;
@@ -535,6 +559,29 @@ class PlayerCardLayer {
             this.scrollFrame = null;
         }
     }
+
+    /** CARD-07: a control inside the card was used - its data-nav item ("card/<kind>/<item>"), '' without one */
+    onMeasureClick = (event) => {
+        const target = event.target;
+
+        if (!this.shown || this.released || this.box === null || !target || typeof target.closest !== 'function') {
+            return;
+        }
+
+        const control = target.closest('a[href], button, summary');
+
+        if (!control || !this.box.contains(control)) {
+            return;
+        }
+
+        const parts = String(control.getAttribute('data-nav') || '').split('/');
+
+        this.measure.clicked(parts.length === 3 ? parts[2] : '');
+    };
+
+    onPageHide = () => {
+        this.measure.closed();
+    };
 
     onDialogClick = (event) => {
         const target = event.target;
@@ -761,9 +808,9 @@ function instance() {
     return layer;
 }
 
-/** Opens the card of the player `link` names (assets/player_card.js) */
-export function openCard(link, url) {
-    instance().open(link, url);
+/** Opens the card of the player `link` names (assets/player_card.js); options.input = how it was asked for (CARD-07) */
+export function openCard(link, url, options = {}) {
+    instance().open(link, url, options.input || 'mouse');
 }
 
 /** Loads the card early - a pointer rests on the name, or it has the focus */

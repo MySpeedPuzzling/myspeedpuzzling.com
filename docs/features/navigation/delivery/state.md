@@ -35,7 +35,7 @@ If a session stops, resume from here.
 
 **Next steps, in order**
 1. Lane C: Platform feel part 2 → orchestrator verifies in C → commit in C → cherry-pick into the delivery branch → fresh Platform feel review (`reviews/Platform-feel.md`) → fixes → Platform feel gate + sweep (encore built before the gate) → push.
-2. Delivery lane meanwhile: Instant Back (GEST-14 → GEST-15 once GEST-12 is in → GEST-08; then PROF-05c's snapshot path and NAV-14's final rows), LAUNCH-01…05, DOC-01 (notes in `var/navigation-delivery/doc-notes.md`), DOC-02.
+2. Delivery lane meanwhile: LAUNCH-01 → 02 → 03 (running) ∥ LAUNCH-04/05 docs (running); after part 2 is in: Instant Back (GEST-14 → GEST-15 → GEST-08; then PROF-05c's snapshot path and NAV-14's final rows) - not before, GEST-14 and GEST-19 both edit `pwa_lifecycle_controller.js`; DOC-01 (notes in `var/navigation-delivery/doc-notes.md`, current through Platform feel part 1), DOC-02.
 3. QA-01…06, final report, cleanup (delivery containers, the guard-allowed `_test` DBs), ship commands for the owner.
 
 **Open notes (QA / TODO)**
@@ -43,6 +43,7 @@ If a session stops, resume from here.
 - Flakes seen once and clean on re-run: HELP-04 desktop /en/hub "Tell us"; NAV-08 tab bar hide on the brand tom-select (300 ms); NAV-13 menu_counts at 820. SRCH-01's sign-in console error was main's lazy `last-sign-in` controller racing a scripted submit: the check now waits for it, the race is in docs/TODO.md (Sign-in UX).
 - Device checks for QA-06: the `switch` attribute on checkboxes (iOS Safari), Chromium applies `:active` to a touch only at the tap.
 - Clone data: the WJPC 2026 round-results page is 373 px wide at 360 (its "Add my time" button) - not navigation.
+- **Time-critical for the owner (LAUNCH-05):** the P0-03 click instrumentation (62c99662) is not on origin/main yet; README §8 wants it live ≥ 2 weeks before launch, and Loki keeps 30 days / Tempo 14 - the baseline snapshots must start by D−28.
 - Owner sign-offs for the final report:
   - the whole-page reading of the weight budget (Removal Q1);
   - the newsletter Subscribe button colour change (SRCH+FOOT Q5);
@@ -146,11 +147,11 @@ If a session stops, resume from here.
 | SRCH-01 | Pages & settings in the global search | verified | SRCH + FOOT gate at 1ea156ee (after the main sync 5f6d4139): ParaTest 11986 OK (first run: 1 error = a test-cache race after clearing var/cache/test, full re-run with a warm cache clean) · phpstan [OK] · cs 0 · schema in sync · review `reviews/SRCH+FOOT.md` F1–F5 + Q1–Q4/Q6/Q7 fixed in 1ea156ee (12 mutation checks) · orchestrator browser run: SRCH-01 78, FOOT-01 69, NAV-08 44 (incl. the participant page bar-free + dead-link rows), MENU-03 40, HELP-04 28 (SRCH-01 and NAV-08 each had one flaky row on the first run - console error in the guest sign-in row, the 300 ms tab-bar hide on the brand tom-select - both clean on re-run) · weight /en/faq member +30,000 B (margin 720), guest +15,301 B · 5030f5d4 · gate `gates/SRCH-FOOT` (uncommitted tree = 5030f5d4): ParaTest 11183 OK, phpstan [OK], cs 0, schema in sync · orchestrator browser run: SRCH-01 58, FOOT-01 69, NAV-11 129 + 2 SKIP (card rows, CARD-01a), MENU-03 40, HELP-01b 60, NAV-01 41 - 0 FAIL · footer screenshots looked at (guest en 1280) · TopBarPageSearchTest (jsdom on the real controller + nav-search.json; 3 mutations fail it) | Menu panel search unchanged; MENU-03 verify-after SRCH-01 now satisfied |
 | FOOT-01 | Footer | verified | SRCH + FOOT gate at 1ea156ee (after the main sync 5f6d4139): ParaTest 11986 OK (first run: 1 error = a test-cache race after clearing var/cache/test, full re-run with a warm cache clean) · phpstan [OK] · cs 0 · schema in sync · review `reviews/SRCH+FOOT.md` F1–F5 + Q1–Q4/Q6/Q7 fixed in 1ea156ee (12 mutation checks) · orchestrator browser run: SRCH-01 78, FOOT-01 69, NAV-08 44 (incl. the participant page bar-free + dead-link rows), MENU-03 40, HELP-04 28 (SRCH-01 and NAV-08 each had one flaky row on the first run - console error in the guest sign-in row, the 300 ms tab-bar hide on the brand tom-select - both clean on re-run) · weight /en/faq member +30,000 B (margin 720), guest +15,301 B · 5030f5d4 · gate `gates/SRCH-FOOT` (uncommitted tree = 5030f5d4): ParaTest 11183 OK, phpstan [OK], cs 0, schema in sync · orchestrator browser run: SRCH-01 58, FOOT-01 69, NAV-11 129 + 2 SKIP (card rows, CARD-01a), MENU-03 40, HELP-01b 60, NAV-01 41 - 0 FAIL · footer screenshots looked at (guest en 1280) · SiteFooterTest (headings, 9 badges / 0 at launch + 15 days, every baseline footer route), FooterPlacementsTest · weight /en/faq member +30,097 B (margin 623), guest +15,316 B | GUEST_FOOTER_ONLY stays 6 (README §4.11 + NAV-12 guest baseline) |
 | LAUNCH-00 | Launch constant | verified | a31db772 · NavigationLaunchTest (null, before/at/after, +14 d, +30 d, MockClock) OK in tests/Navigation · grep `const null\|string DATE` → one hit `NavigationLaunch.php:26 … = null;` · `docs/features/feature_flags.md` row added | consumers get their null/set-date tests in their own items |
-| LAUNCH-01 | What moved | todo | | |
-| LAUNCH-02 | "Where did it go?" content | todo | | |
-| LAUNCH-03 | Pointers | todo | | |
-| LAUNCH-04 | Announcement drafts | todo | | |
-| LAUNCH-05 | Watch list | todo | | |
+| LAUNCH-01 | What moved | in progress | delivery worktree (LAUNCH-01 → 02 → 03, one agent; started 2026-10-14 ~16:50 while Platform feel part 2 runs in C - Instant Back waits for GEST-19, both touch `pwa_lifecycle_controller.js`) | |
+| LAUNCH-02 | "Where did it go?" content | in progress | delivery worktree (after LAUNCH-01) | |
+| LAUNCH-03 | Pointers | in progress | delivery worktree (after LAUNCH-02) | |
+| LAUNCH-04 | Announcement drafts | verified | `delivery/announcement.md` (agent draft, orchestrator-checked 2026-10-14 ~17:30): the checklist table maps README §4.1–4.13 + D5, D6 and the §8 safeguards each to a paragraph; §4.14 deliberately not announced (decisions log); lines for items not yet verified carry *(ship check: ID)* (GEST-10…19, LAUNCH-01…03); "You said, we changed" template + channel checklist (13 rows); privacy grep clean | translate at publish time (owner) |
+| LAUNCH-05 | Watch list | verified | `delivery/launch-watch.md` (agent draft, orchestrator-checked 2026-10-14 ~17:30): all 17 README §8 metrics have a row with source, exact query/report path, comparison and alarm (+ `members_modal` placements and Results `?page=N` from the plan); method D…D+13 vs D−14…D−1, D−28…D−15 holiday check, Prague days; SQL read-only against real columns, LogQL against the fields `NavClickController` logs, GA4 regexes for 6 locales; to confirm during the baseline: Tempo search bursts (#3), GEST-08 `back` field names (#14), GA4/Loki/Stripe settings listed in the file | P0-03 must be live ≥ 2 weeks before launch (Loki 30 d, Tempo 14 d) - owner |
 | DOC-01 | Project docs | todo | | |
 | DOC-02 | Translations complete | todo | | |
 | QA-01 | Screenshot matrix | todo | | |
@@ -268,6 +269,7 @@ Decisions taken during delivery where the spec was silent (date · ID · decisio
 | 2026-10-14 | Main sync abc3d5ad | The search synonyms `nav.syn.*` are `;`-separated in all 6 locales (`NavigationSearchIndex` splits there; `testSynonymListsAreSeparatedBySemicolons`) | main's `PluralMessagesTest` treats any message with a `|` as a plural and renders it for every count |
 | 2026-10-14 | Main sync abc3d5ad | main's personal `compete_link` is a private link (`HelpPageContextFactory::PRIVATE_LINK_ROUTES`, `NavClickControllerTest` secret paths) with no place (`NavigationPlaceMap` 'none') | a participant's token URL must never reach a Help report or the click log; it is a page of its own, not a tab |
 | 2026-10-14 | Main sync abc3d5ad | The branch's own count texts with a `|` got a 0 form (`community_page.puzzlers.this_month`, `nav.menu.trial_days_left`: `[0,Inf[` in cs/en/de/es, `{0,1}` in fr) | main's `PluralMessagesTest` renders every plural for 0 |
+| 2026-10-14 | LAUNCH-04 | The announcement leaves out README §4.14 (native-ready) | it changes nothing a web visitor sees, and naming it would promise an app that is not in scope |
 
 ## Run log
 One line per session and per phase: date · what was done · next step.

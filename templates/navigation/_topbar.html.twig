@@ -37,6 +37,7 @@
     data-bar-count. Every control of the bar carries data-press="fixed" (GEST-04: the pressed state layer at once,
     assets/styles/_press-states.scss; GEST-11's ripple without delay) - not the logo. Phones hide the bar on scroll down and bring it back on scroll up (topbar_controller.js, sticky, a
     transform only while hidden - never a backdrop-filter: the search panel inside is position: fixed).
+    data-ptr-ignore: a pull that starts on the bar never refreshes the installed app (GEST-06, pull_to_refresh.js).
     Guest HTML stays shared-cacheable: nothing depends on the visitor but the URL (help_path(), the back link, Sign in).
     Chrome markup rules (implementation plan §3.2): no heading, no form, own class prefixes, .dropdown-menu only in the
     avatar ▾; data-nav on every link and button. -#}
@@ -56,7 +57,7 @@
     {%- if back and place.place == location.place -%}{%- set back_href = place.href -%}{%- endif -%}
     {%- if profile is null and place.place.value == 'profile' -%}{%- set sign_in_href = place.href -%}{%- endif -%}
 {%- endfor -%}
-<header class="site-header{{ back ? ' site-header--back' }}{{ stopwatch_running ? ' site-header--stopwatch' }}" data-controller="topbar"
+<header class="site-header{{ back ? ' site-header--back' }}{{ stopwatch_running ? ' site-header--stopwatch' }}" data-ptr-ignore data-controller="topbar"
     {%- if profile is not null %} data-viewer-signed-in{% endif %}>
     <div class="site-header-inner">
         <a class="site-header-tool site-header-menu site-header-menu--desk" href="{{ path('menu') }}" data-bar-action="{{ bar_action('menu') }}" data-nav="topbar/none/menu" data-press="fixed" aria-label="{{ menu_name }}"{% if menu_page %} aria-current="page"{% else %} aria-haspopup="dialog" aria-expanded="false"{% endif %} aria-controls="site-menu" data-nav-fold-label="{{ 'nav.layout.fold'|trans }}" data-nav-dock-label="{{ 'nav.layout.dock'|trans }}">

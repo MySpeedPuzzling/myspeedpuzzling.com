@@ -1,0 +1,64 @@
+// No accidental zoom (docs/features/navigation README §4.13 G5, D22; requirement GEST-05, implementation plan GEST-05).
+//
+// The viewport lets people pinch-zoom everywhere (F-04: no maximum-scale=1). What it must not do is zoom when somebody
+// taps a control twice in a row: a quick second tap on a tab, a button, a chip or the stopwatch is read as a double-tap
+// zoom, and a browser that waits for that second tap answers the first one late. touch-action: manipulation keeps
+// panning and pinch-zoom and drops only the double-tap - on the bars, buttons and everything that acts like one, tab
+// strips, chips, the stopwatch's controls and the sheet and panel bodies.
+//
+// touch-action: none - the page may neither scroll nor zoom under the finger - only on drag handles, never on a large
+// area (tests/TouchActionRulesTest.php keeps the list): the sheets' handle + header (.bottom-sheet-top, _bottom-sheet.scss
+// - also the achievement sheet's since GEST-02), the seating drag handle (_seating.scss) and the online round's
+// hold-to-talk button (online_rounds.scss). The achievement medal keeps touch-action: pan-y pinch-zoom
+// (_achievement-medal.scss: a sideways drag tilts it); charts keep canvas { touch-action: pan-y !important } (app.scss) -
+// a known exception (implementation plan decision 59).
+//
+// Imported early (after the navigation tokens, before every component): an element's own touch-action wins on equal
+// weight. The browser intersects an element's touch-action with its ancestors', so manipulation on a container never
+// widens what a child inside it allows.
+
+// The bars and every control marked for the pressed state (GEST-04's data-press: tabs, bar tools, Menu and sheet rows,
+// chips, link rows, cards)
+.site-header,
+.bottom-nav,
+[data-press] {
+    touch-action: manipulation;
+}
+
+// Buttons and everything that acts like one
+button,
+.btn,
+[role="button"],
+summary,
+label,
+select,
+input[type="checkbox"],
+input[type="radio"],
+.form-check {
+    touch-action: manipulation;
+}
+
+// Tab strips and chips
+.nav-link,
+[role="tab"],
+.player-tabs,
+a[class*="chip"] {
+    touch-action: manipulation;
+}
+
+// The stopwatch's controls (the stopwatch page, the organisers' round stopwatch)
+[data-controller~="stopwatch"] button,
+[data-controller~="stopwatch"] a,
+[data-controller~="round-stopwatch"] button,
+[data-controller~="round-stopwatch"] a {
+    touch-action: manipulation;
+}
+
+// Sheet and panel bodies: the dynamic modal and its sheets, the player card, the Menu panel and the docked column
+.modal-body,
+[data-bottom-sheet-target="body"],
+.player-card-box,
+.menu-layer-body,
+.site-menu {
+    touch-action: manipulation;
+}

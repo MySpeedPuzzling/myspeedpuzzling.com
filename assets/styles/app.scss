@@ -46,6 +46,8 @@
 
 // Navigation layout tokens: --bottom-nav-height / --nav-left / top-bar mixins and the $z-* scale (F-03)
 @import 'nav-tokens';
+// No double-tap zoom on controls, bars, chips and sheet bodies (GEST-05) - early, so an element's own touch-action wins
+@import 'touch';
 
 // Layout & components
 @import 'reboot';
@@ -198,12 +200,13 @@ body {
     min-height: 100vh;
 }
 
-// Prevent iOS overscroll bounce in standalone PWA mode
-// which causes fixed-position header to visually shift during scroll
-@media (display-mode: standalone) {
-    html, body {
-        overscroll-behavior-y: none;
-    }
+// The installed web app only (html.is-standalone, set before first paint by assets/head/standalone.js - the class the
+// pull-to-refresh controller reads through isStandalone()): no overscroll bounce, which shifts the fixed bars, and no
+// browser pull-to-refresh next to our own (GEST-06, README §4.13 G6). Browser tabs keep the browser's own overscroll
+// and pull-to-refresh: never overscroll-behavior-y on html outside the installed app (PullToRefreshGestureTest).
+html.is-standalone,
+html.is-standalone body {
+    overscroll-behavior-y: none;
 }
 
 @media (prefers-reduced-motion: no-preference) {

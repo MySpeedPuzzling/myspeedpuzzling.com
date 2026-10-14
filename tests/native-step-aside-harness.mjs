@@ -16,6 +16,7 @@ import { topbarMayHide } from '../assets/topbar_scroll.js';
 import { historyAction, scrollRestore, takesOver } from '../assets/player_results_state.js';
 import { shouldOpen } from '../assets/player_card_rules.js';
 import { decideFor } from '../assets/tab_reselect.js';
+import { pullEnabledFor } from '../assets/pull_to_refresh.js';
 
 /** A fake <html>: inside the app on an Android phone, or Chrome on the same phone */
 function root(nativeApp) {
@@ -110,6 +111,16 @@ const ROWS = [
                 hubAtTheTop: decideFor(html, { ...hub, scrollY: 0 }).action,
             };
         },
+    },
+    // GEST-06: our pull-to-refresh arms in the installed web app only - never in a browser tab, never inside the app
+    // (the same <html> with the installed-app class added: inside the app the head script never sets it, a stray one
+    // changes nothing)
+    {
+        id: 'assets/pull_to_refresh.js',
+        run: (html) => ({
+            installedApp: pullEnabledFor({ ...html, classList: { contains: (name) => name === 'is-standalone' } }),
+            browserTab: pullEnabledFor(html),
+        }),
     },
 ];
 

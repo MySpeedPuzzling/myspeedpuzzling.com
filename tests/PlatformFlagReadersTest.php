@@ -49,6 +49,10 @@ final class PlatformFlagReadersTest extends TestCase
         // the link navigates (assets/tab_reselect.js decides, the bar's controller passes the flag)
         'assets/tab_reselect.js',
         'assets/controllers/tab_gestures_controller.js',
+        // GEST-06: our pull-to-refresh arms in the installed web app only - never inside the app (pullEnabled() in
+        // assets/pull_to_refresh.js decides, the PWA controller passes the flags)
+        'assets/pull_to_refresh.js',
+        'assets/controllers/pwa_lifecycle_controller.js',
     ];
 
     private const string PLATFORM_MODULE = 'assets/platform.js';

@@ -11,7 +11,7 @@
     in is_web()). Guest HTML stays shared-cacheable: nothing depends on the visitor but the URL and the Home link. -#}
 {%- set names = {en: 'English', de: 'Deutsch', cs: 'Čeština', fr: 'Français', es: 'Español', ja: '日本語'} -%}
 {%- set current_language = names[app.request.locale] ?? app.request.locale|upper -%}
-<header class="site-header site-header--auth"{% if logged_user.profile is not null %} data-viewer-signed-in{% endif %}>
+<header class="site-header site-header--auth" data-ptr-ignore{% if logged_user.profile is not null %} data-viewer-signed-in{% endif %}>
     <div class="site-header-inner">
         <a class="site-header-logo" href="{{ logged_user.profile is not null ? path('hub') : path('homepage') }}" data-nav="topbar/home/logo" aria-label="{{ 'nav.bar.home_logo'|trans }}">
             <img src="{{ asset('img/speedpuzzling-logo.svg') }}" width="36" height="32" alt="">

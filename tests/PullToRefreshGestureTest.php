@@ -6,6 +6,10 @@ namespace SpeedPuzzling\Web\Tests;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use RecursiveDirectoryIterator;
+use RecursiveIteratorIterator;
+use SpeedPuzzling\Web\Tests\Navigation\ScssReader;
+use SplFileInfo;
 use Symfony\Component\Process\ExecutableFinder;
 use Symfony\Component\Process\Process;
 
@@ -14,6 +18,9 @@ use Symfony\Component\Process\Process;
  * calls preventDefault() on touchmove - whatever it takes, the browser cannot scroll. It used to take every downward
  * move while the page was at its top: inside an open modal (the page behind it does not scroll) a sheet scrolled down
  * could never be scrolled back up, and a sideways swipe over a table drifting a little downwards lost its scroll.
+ * GEST-06 (docs/features/navigation README §4.13 G6): only in the installed web app - never in a browser tab, never
+ * inside the Hotwire Native app (NAV-14) -, never under a layer holding a history entry (the Menu panel, the player
+ * card, the search view), and about 128 px of finger travel refreshes (it was about 256 px).
  * Runs the real module under node.
  */
 final class PullToRefreshGestureTest extends TestCase
@@ -63,20 +70,154 @@ final class PullToRefreshGestureTest extends TestCase
             'a closed modal' => [['html' => $sheet('modal') . $page, 'target' => '#page'], false],
         ];
 
-        $node = new ExecutableFinder()->find('node');
-        self::assertIsString($node, 'node is required to execute the script - it is part of the base image');
-
-        $process = new Process([$node, __DIR__ . '/pull-to-refresh-harness.mjs']);
-        $process->setInput(json_encode(['overlay' => array_column($cases, 0)], JSON_THROW_ON_ERROR));
-        $process->mustRun();
-
-        $results = json_decode($process->getOutput(), true, flags: JSON_THROW_ON_ERROR);
+        $results = $this->harness(['overlay' => array_column($cases, 0)]);
         self::assertIsArray($results);
 
         self::assertSame(
             array_combine(array_keys($cases), array_column($cases, 1)),
             array_combine(array_keys($cases), $results),
         );
+    }
+
+    /**
+     * GEST-06 / implementation plan §3.4 item 6: while a layer of assets/layer_history.js holds the history entry the
+     * page is covered - the Menu panel, the player card, the phone search view (also html[data-search-open]), a sheet,
+     * the live results views. The released Help sheet keeps its entry, but the page behind it is armed again (HELP-05).
+     */
+    public function testALayerHoldingTheHistoryEntryCoversThePage(): void
+    {
+        $page = '<main><p id="page">Page</p></main>';
+        $released = '<div class="modal show is-released"><div class="modal-dialog"><p id="sheet">Thanks</p></div></div>';
+        $cases = [
+            'no layer' => [['html' => $page, 'target' => '#page', 'layer' => null], false],
+            'the Menu panel' => [['html' => $page, 'target' => '#page', 'layer' => 'menu'], true],
+            'the player card' => [['html' => $page, 'target' => '#page', 'layer' => 'card'], true],
+            'the phone search view' => [['html' => $page, 'target' => '#page', 'layer' => 'search'], true],
+            'the live results views' => [['html' => $page, 'target' => '#page', 'layer' => 'live-results'], true],
+            'a sheet of the dynamic modal' => [['html' => '<div class="modal show"><p>Sheet</p></div>' . $page, 'target' => '#page', 'layer' => 'modal'], true],
+            'the released Help sheet, a touch on the page' => [['html' => $released . $page, 'target' => '#page', 'layer' => 'modal'], false],
+            'the released Help sheet, a touch on the sheet' => [['html' => $released . $page, 'target' => '#sheet', 'layer' => 'modal'], true],
+            'the open search (html[data-search-open])' => [['htmlAttributes' => 'data-search-open', 'html' => $page, 'target' => '#page'], true],
+        ];
+
+        $results = $this->harness(['overlay' => array_column($cases, 0)]);
+        self::assertIsArray($results);
+
+        self::assertSame(
+            array_combine(array_keys($cases), array_column($cases, 1)),
+            array_combine(array_keys($cases), $results),
+        );
+    }
+
+    /**
+     * README §4.13 G6: the indicator follows half of the finger's way and refreshes once it has come 64 px - about 128 px of
+     * finger travel, no longer about 256 px (the old curve: 70 px after a resistance of 2.8 + d/300)
+     */
+    public function testAbout128PxOfFingerTravelRefreshes(): void
+    {
+        $result = $this->harness(['maths' => [0, 64, 100, 127, 128, 160, 256, -20]]);
+        self::assertIsArray($result);
+
+        self::assertSame(0.5, $result['dragRate']);
+        self::assertSame(64, $result['pullTarget']);
+
+        self::assertIsArray($result['pulls']);
+        $pulls = [];
+
+        foreach ($result['pulls'] as $pull) {
+            self::assertIsArray($pull);
+            self::assertIsInt($pull['distance']);
+            $pulls[(string) $pull['distance']] = [$pull['offset'], $pull['past'], $pull['progress']];
+        }
+
+        self::assertEquals([
+            '0' => [0, false, 0],
+            '64' => [32, false, 0.5],
+            '100' => [50, false, 0.78125],
+            '127' => [63.5, false, 0.9921875],
+            '128' => [64, true, 1],
+            '160' => [80, true, 1],
+            '256' => [128, true, 1],
+            '-20' => [0, false, 0],
+        ], $pulls);
+    }
+
+    /**
+     * README §4.13 G6 + §4.14 (b): our pull-to-refresh only in the installed web app. A browser tab keeps the browser's
+     * own; the Hotwire Native app never arms it (its <html data-native-app>; the installed-app class is not even set
+     * there - assets/head/standalone.js returns early - but a stray one changes nothing)
+     */
+    public function testOnlyTheInstalledWebAppPulls(): void
+    {
+        self::assertSame(
+            [true, false, false, false],
+            $this->harness(['enabled' => [
+                ['standalone' => true, 'nativeApp' => false],
+                ['standalone' => false, 'nativeApp' => false],
+                ['standalone' => true, 'nativeApp' => true],
+                ['standalone' => false, 'nativeApp' => true],
+            ]]),
+        );
+
+        self::assertSame(
+            [true, false, false, false],
+            $this->harness(['roots' => [
+                ['classes' => ['is-standalone']],
+                ['classes' => []],
+                ['classes' => ['is-standalone'], 'attributes' => ['data-native-app' => 'ios']],
+                ['classes' => [], 'attributes' => ['data-native-app' => 'android']],
+            ]]),
+        );
+    }
+
+    /**
+     * README §4.13 G6: browser tabs keep the browser's own overscroll and pull-to-refresh - overscroll-behavior on the
+     * document (html, body) only inside the installed app (html.is-standalone, the same flag as the controller's
+     * isStandalone()), never in a browser tab
+     */
+    public function testBrowserTabsKeepTheirOverscroll(): void
+    {
+        $compound = '(?::root|html|body)(?:\[[^\]]*\]|\.[\w-]+|:[\w-]+(?:\([^)]*\))?)*';
+        $document = '~^' . $compound . '(?:\s*>?\s*' . $compound . ')*$~';
+        $found = [];
+
+        $root = dirname(__DIR__);
+        /** @var SplFileInfo $file */
+        foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator($root . '/assets/styles', RecursiveDirectoryIterator::SKIP_DOTS)) as $file) {
+            if ($file->getExtension() !== 'scss') {
+                continue;
+            }
+
+            foreach (ScssReader::rules((string) file_get_contents($file->getPathname())) as $selector => $declarations) {
+                if (preg_match($document, $selector) === 1 && preg_match('~(^|;)\s*overscroll-behavior(-y)?\s*:~', $declarations) === 1) {
+                    $found[$selector] = trim($declarations);
+                }
+            }
+        }
+
+        self::assertSame(['html.is-standalone' => 'overscroll-behavior-y: none;', 'html.is-standalone body' => 'overscroll-behavior-y: none;'], $found);
+
+        // Nor in the critical CSS (base.html.twig's <style>, the navigation partial)
+        foreach (['templates/base.html.twig', 'templates/navigation/_critical_css.html.twig'] as $path) {
+            self::assertDoesNotMatchRegularExpression('~(?:^|[}\s,])' . $compound . '\{[^}]*overscroll-behavior~', (string) file_get_contents($root . '/' . $path), $path);
+        }
+    }
+
+    /**
+     * The controller asks the module for every decision: the enable rule, the maths, the layer guard - never its own
+     * curve or matchMedia (GEST-06 moved the pull-distance maths out of it)
+     */
+    public function testTheControllerUsesTheModule(): void
+    {
+        $controller = (string) file_get_contents(__DIR__ . '/../assets/controllers/pwa_lifecycle_controller.js');
+
+        self::assertStringContainsString('pullEnabled({ standalone: this._isPwa, nativeApp: isNativeApp() })', $controller);
+        self::assertStringContainsString('this._isPwa = isStandalone();', $controller);
+        self::assertStringContainsString('layer: layers.current(),', $controller);
+        self::assertStringContainsString('pastThreshold(this._gesture.end())', $controller);
+        self::assertStringContainsString('top: var(--topbar-h, 0px);', $controller);
+        self::assertStringNotContainsString('display-mode', $controller);
+        self::assertStringNotContainsString('PULL_RESISTANCE', $controller);
     }
 
     public function testAClearlyDownwardMoveIsAPull(): void
@@ -140,17 +281,25 @@ final class PullToRefreshGestureTest extends TestCase
      */
     private function gesture(array $case): array
     {
+        /** @var list<array{allowed: bool, prevented: list<bool>, distance: int|float}> $results */
+        $results = $this->harness([$case + ['moves' => []]]);
+
+        return $results[0];
+    }
+
+    /**
+     * @param array<mixed> $input
+     */
+    private function harness(array $input): mixed
+    {
         $node = new ExecutableFinder()->find('node');
 
         self::assertIsString($node, 'node is required to execute the script - it is part of the base image');
 
         $process = new Process([$node, __DIR__ . '/pull-to-refresh-harness.mjs']);
-        $process->setInput(json_encode([$case + ['moves' => []]], JSON_THROW_ON_ERROR));
+        $process->setInput(json_encode($input, JSON_THROW_ON_ERROR));
         $process->mustRun();
 
-        /** @var list<array{allowed: bool, prevented: list<bool>, distance: int|float}> $results */
-        $results = json_decode($process->getOutput(), true, flags: JSON_THROW_ON_ERROR);
-
-        return $results[0];
+        return json_decode($process->getOutput(), true, flags: JSON_THROW_ON_ERROR);
     }
 }

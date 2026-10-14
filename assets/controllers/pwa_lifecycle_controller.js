@@ -1,15 +1,20 @@
 import { Controller } from '@hotwired/stimulus';
-import { canStartPull, overlayOpen, PullGesture } from '../pull_to_refresh.js';
+import layers from '../layer_history.js';
+import { isNativeApp, isStandalone } from '../platform.js';
+import { canStartPull, overlayOpen, pastThreshold, PULL_TARGET, pullEnabled, pullOffset, pullProgress, PullGesture } from '../pull_to_refresh.js';
 
 const STALE_THRESHOLD_MS = 15 * 60 * 1000; // 15 minutes
-const PULL_THRESHOLD = 70; // px to trigger refresh
-const PULL_RESISTANCE = 2.8; // damping factor — increases resistance as you pull further
 const INDICATOR_SIZE = 36; // px — diameter of the circular indicator
+// The indicator stops this far past the refresh point (the finger may go on)
+const INDICATOR_OVERSHOOT = 20;
 
+// The installed web app (GEST-06, README §4.13 G6): the 15-minute reload on return and our pull-to-refresh with its
+// indicator. A browser tab is left to the browser; the Hotwire Native app has neither (assets/platform.js: the installed
+// app is never the native one, and pullEnabled() steps aside there - NAV-14).
 export default class extends Controller {
     connect() {
-        this._isPwa = window.matchMedia('(display-mode: standalone)').matches
-            || window.navigator.standalone === true;
+        this._isPwa = isStandalone();
+        this._pullEnabled = pullEnabled({ standalone: this._isPwa, nativeApp: isNativeApp() });
 
         this._lastHiddenAt = null;
         this._onVisibilityChange = this._handleVisibilityChange.bind(this);
@@ -18,7 +23,7 @@ export default class extends Controller {
         document.addEventListener('visibilitychange', this._onVisibilityChange);
         window.addEventListener('pageshow', this._onPageShow);
 
-        if (this._isPwa) {
+        if (this._pullEnabled) {
             this._initPullToRefresh();
         }
     }
@@ -27,7 +32,7 @@ export default class extends Controller {
         document.removeEventListener('visibilitychange', this._onVisibilityChange);
         window.removeEventListener('pageshow', this._onPageShow);
 
-        if (this._isPwa) {
+        if (this._pullEnabled) {
             this._destroyPullToRefresh();
         }
     }
@@ -78,7 +83,6 @@ export default class extends Controller {
     // only reads the page for it and draws the indicator.
     _initPullToRefresh() {
         this._gesture = new PullGesture();
-        this._pullDistance = 0;
         this._thresholdReached = false;
 
         this._injectStyles();
@@ -95,6 +99,8 @@ export default class extends Controller {
         document.addEventListener('touchcancel', this._onTouchCancel, { passive: true });
     }
 
+    // The indicator comes out from under the top bar (top: --topbar-h, z-index right under the bar's 1030 - the
+    // $z-nav-column step of _nav-tokens.scss). Under reduced motion it still follows the finger, then only fades.
     _injectStyles() {
         if (document.getElementById('pwa-ptr-styles')) return;
 
@@ -106,9 +112,9 @@ export default class extends Controller {
             }
             .pwa-ptr-indicator {
                 position: fixed;
-                top: 0;
+                top: var(--topbar-h, 0px);
                 left: 50%;
-                z-index: 9999;
+                z-index: 1029;
                 width: ${INDICATOR_SIZE}px;
                 height: ${INDICATOR_SIZE}px;
                 margin-left: -${INDICATOR_SIZE / 2}px;
@@ -154,6 +160,15 @@ export default class extends Controller {
             }
             .pwa-ptr-indicator.is-refreshing .pwa-ptr-arrow { display: none; }
             .pwa-ptr-indicator.is-refreshing .pwa-ptr-spinner { display: block; }
+            @media (prefers-reduced-motion: reduce) {
+                .pwa-ptr-indicator.is-settling,
+                .pwa-ptr-indicator.is-refreshing {
+                    transition: opacity .2s ease;
+                }
+                .pwa-ptr-arrow {
+                    transition: none;
+                }
+            }
         `;
         document.head.appendChild(style);
     }
@@ -198,11 +213,13 @@ export default class extends Controller {
         }), event.touches.length);
     }
 
-    // A modal, sheet, the Menu panel or the site search over the page (pull_to_refresh.js overlayOpen())
+    // A modal, sheet, the Menu panel, the player card or the site search over the page - or any other layer holding a
+    // history entry (pull_to_refresh.js overlayOpen(), assets/layer_history.js)
     _overlayOpen(target) {
         return overlayOpen(target, {
             hasBodyClass: (name) => document.body.classList.contains(name),
             matches: (selector) => document.querySelector(selector) !== null,
+            layer: layers.current(),
         });
     }
 
@@ -228,29 +245,28 @@ export default class extends Controller {
             this._indicator.classList.add('is-pulling');
         }
 
+        // The finger's way down (pull_to_refresh.js): the indicator follows half of it and refreshes past PULL_TARGET -
+        // about 128 px of finger travel
         const delta = this._gesture.distance;
+        const progress = pullProgress(delta);
+        const past = pastThreshold(delta);
 
-        // Progressive resistance — gets harder the further you pull
-        this._pullDistance = delta / (PULL_RESISTANCE + (delta / 300));
-
-        const progress = Math.min(this._pullDistance / PULL_THRESHOLD, 1);
-
-        // Position: slides down from top, capped slightly past threshold
-        const translateY = Math.min(this._pullDistance, PULL_THRESHOLD + 20) - INDICATOR_SIZE / 2;
+        // Position: slides down from under the top bar, capped slightly past the refresh point
+        const translateY = Math.min(pullOffset(delta), PULL_TARGET + INDICATOR_OVERSHOOT) - INDICATOR_SIZE / 2;
         const scale = 0.3 + (progress * 0.7);
         this._indicator.style.transform = `translateY(${translateY}px) scale(${scale})`;
         this._indicator.style.opacity = Math.min(progress * 1.5, 1);
 
         // Arrow rotates: points down initially, flips up past threshold
         const arrow = this._indicator.querySelector('.pwa-ptr-arrow');
-        const rotation = progress >= 1 ? 180 : 0;
+        const rotation = past ? 180 : 0;
         arrow.style.transform = `rotate(${rotation}deg)`;
 
-        // Haptic feedback when crossing threshold
-        if (progress >= 1 && !this._thresholdReached) {
+        // Haptic feedback when crossing threshold (once per crossing; haptic('tick') in GEST-10)
+        if (past && !this._thresholdReached) {
             this._thresholdReached = true;
             this._haptic();
-        } else if (progress < 1 && this._thresholdReached) {
+        } else if (!past && this._thresholdReached) {
             this._thresholdReached = false;
         }
     }
@@ -269,9 +285,7 @@ export default class extends Controller {
             return;
         }
 
-        this._gesture.end();
-
-        if (this._pullDistance >= PULL_THRESHOLD) {
+        if (pastThreshold(this._gesture.end())) {
             // Settle into refreshing position
             this._indicator.classList.remove('is-pulling');
             this._indicator.classList.add('is-refreshing');

@@ -74,6 +74,11 @@ final class NativeAppStepAsideTest extends TestCase
             ['hubScrolled' => 'navigate', 'hubAtTheTop' => 'navigate'],
             ['hubScrolled' => 'scroll-top', 'hubAtTheTop' => 'refresh-feed'],
         ],
+        // GEST-06: the pull never arms inside the app; on the web only in the installed app, never in a browser tab
+        'assets/pull_to_refresh.js' => [
+            ['installedApp' => false, 'browserTab' => false],
+            ['installedApp' => true, 'browserTab' => false],
+        ],
     ];
 
     /** @var null|array<string, Row> */

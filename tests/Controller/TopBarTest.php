@@ -55,6 +55,8 @@ final class TopBarTest extends WebTestCase
         self::assertCount(1, $crawler->filter('body > header'), 'One banner: the old rows are no <header> any more');
         self::assertNotNull($header->attr('data-viewer-signed-in'));
         self::assertSame('topbar', $header->attr('data-controller'));
+        // GEST-06: a pull that starts on the bar never refreshes the installed app (pull_to_refresh.js canStartPull())
+        self::assertNotNull($header->attr('data-ptr-ignore'));
 
         // The FAQ is no place's start page: the installed app's back button comes before the logo (CSS shows it there
         // only); the desktop ☰ comes first, the phones' last
@@ -158,6 +160,7 @@ final class TopBarTest extends WebTestCase
         self::assertCount(0, $header->filter('[data-bar-action="inbox"], a[data-inbox-link]'), 'Inbox is for signed-in players');
         self::assertCount(0, $header->filter('.site-header-account, .nav-account-trigger, .dropdown-menu'), 'The account menu is for signed-in players');
         self::assertNull($header->attr('data-viewer-signed-in'));
+        self::assertNotNull($header->attr('data-ptr-ignore'));
         // D5: guests' Home is the homepage
         self::assertSame($router->generate('homepage'), $header->filter('a.site-header-logo')->attr('href'));
         self::assertSame(['menu', 'search', 'help', 'menu'], $header->filter('[data-bar-action]')->each(static fn (Crawler $tool): string => (string) $tool->attr('data-bar-action')));

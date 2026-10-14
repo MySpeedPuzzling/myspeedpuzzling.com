@@ -6,7 +6,9 @@
    The pictures are schematics drawn from the bars' own tokens (--nav-*, critical CSS), their sprite icons
    (navigation/_icons.html.twig: only symbols every signed-in page carries) and their labels (the places of nav_places()) -
    never a screenshot, no names, no numbers. Phone picture and lead below the desktop media query, the docked column's
-   picture and lead above it (_navigation-launch.scss). #}
+   picture and lead above it. Their styles ride along inline, here only: the modal renders once per player ever, so no
+   other page pays for them in app.css (LAUNCH review F7; the media query is $nav-desktop-media of _nav-tokens.scss -
+   NavigationLaunchStylesTest keeps them equal). #}
 <div
     class="modal fade"
     tabindex="-1"
@@ -17,6 +19,50 @@
     data-autoshow-modal-seen-url-value="{{ path('announcement_modal_seen') }}"
     data-autoshow-modal-name-value="{{ announcement.value }}"
 >
+    <style>
+        {#- The pictures (decorative: aria-hidden), the phone's below the desktop media query, the column's above it -#}
+        .wm-pic{margin:.25rem auto 1.25rem;color:var(--nav-ink, #4b566b);font-size:9px;line-height:1.2;text-align:left}
+        .wm-pic--desktop,.wm-lead--desktop{display:none}
+        @media (min-width: 768px) and (min-height: 501px), (min-width: 768px) and (pointer: fine){.wm-pic--phone,.wm-lead--phone{display:none}.wm-pic--desktop,.wm-lead--desktop{display:block}}
+        .wm-i{flex-shrink:0;width:12px;height:12px;fill:currentcolor}
+        .wm-text{overflow:hidden;text-overflow:clip;white-space:nowrap}
+        .wm-top{display:flex;align-items:center;gap:4px;height:28px;padding:0 6px;border-bottom:1px solid var(--nav-hairline, rgba(43, 52, 69, .1));background:var(--nav-bg, #fff)}
+        .wm-logo{flex-shrink:0;width:16px;height:16px;border-radius:4px;background:var(--nav-add-bg, #ec4f52)}
+        .wm-search{display:flex;flex:1 1 auto;align-items:center;gap:3px;min-width:0;height:18px;padding:0 5px;border-radius:9px;background:var(--search-bg, #f3f5f9);color:var(--search-placeholder, #5f6b80)}
+        .wm-tool{position:relative;display:inline-flex;flex-shrink:0;align-items:center;justify-content:center;width:20px;height:20px;border-radius:6px}
+        .wm-avatar{flex-shrink:0;width:14px;height:14px;border-radius:50%;background:var(--nav-label, #5f6b80);opacity:.45}
+        {#- The ☰ (phones) and the docked column (desktop): ringed in the active ink, its name in a callout -#}
+        .wm-mark{box-shadow:0 0 0 2px var(--nav-active-ink, #c8323a);background:var(--nav-active-pill, #ffe8e8);color:var(--nav-active-ink, #c8323a)}
+        .wm-callout{position:absolute;padding:1px 6px;border-radius:8px;background:var(--nav-active-ink, #c8323a);color:#fff;font-weight:500;white-space:nowrap}
+        .wm-page{display:flex;flex:1 1 auto;flex-direction:column;gap:7px;padding:10px 8px}
+        .wm-page span{height:6px;border-radius:3px;background:var(--search-bg, #f3f5f9)}
+        .wm-page span:nth-child(odd){width:80%}
+        {#- The phone: top bar, page, bottom bar with the five places (Add as the coral tile); ~50 px per place - the longest
+            tab words (fr "Communauté", ja コミュニティ) fit at the tabs' 7.5 px -#}
+        .wm-phone{display:flex;flex-direction:column;width:256px;height:196px;margin:0 auto;overflow:visible;border:2px solid var(--nav-hairline, rgba(43, 52, 69, .1));border-radius:16px;background:var(--nav-bg, #fff)}
+        .wm-phone .wm-top{border-radius:14px 14px 0 0}
+        .wm-phone .wm-callout{top:calc(100% + 6px);right:-4px}
+        .wm-tabs{display:flex;height:40px;border-top:1px solid var(--nav-hairline, rgba(43, 52, 69, .1));border-radius:0 0 14px 14px;background:var(--nav-bg, #fff)}
+        .wm-tab{display:flex;flex:1 1 0;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-width:0;color:var(--nav-label, #5f6b80);font-size:7.5px}
+        .wm-tab .wm-i{width:14px;height:14px}
+        .wm-tab .wm-text{max-width:100%}
+        .wm-tab--add .wm-i{box-sizing:content-box;padding:2px 6px;border-radius:6px;background:var(--nav-add-bg, #ec4f52);color:var(--nav-add-ink, #fff)}
+        {#- The desktop: top bar, the docked column, the page -#}
+        .wm-desk{display:flex;flex-direction:column;width:100%;max-width:420px;height:200px;margin:0 auto;border:2px solid var(--nav-hairline, rgba(43, 52, 69, .1));border-radius:10px;background:var(--nav-bg, #fff)}
+        .wm-desk .wm-top{height:30px;border-radius:8px 8px 0 0}
+        .wm-desk .wm-search{max-width:160px}
+        .wm-add{display:inline-flex;flex-shrink:0;align-items:center;gap:2px;height:18px;margin-left:auto;padding:0 6px;border-radius:9px;background:var(--nav-add-bg, #ec4f52);color:var(--nav-add-ink, #fff);font-weight:500}
+        .wm-desk-body{display:flex;flex:1 1 auto;min-height:0}
+        .wm-column{position:relative;display:flex;flex:0 0 34%;flex-direction:column;gap:3px;padding:8px 6px;border-radius:0 0 0 8px}
+        .wm-column .wm-callout{top:6px;left:calc(100% + 8px)}
+        .wm-row{display:flex;align-items:center;gap:5px;min-width:0;height:16px;padding:0 4px}
+        .wm-row--more::before{content:"";width:70%;height:5px;border-radius:3px;background:var(--nav-active-ink, #c8323a);opacity:.2}
+        {#- The three lines -#}
+        .wm-lines{max-width:22rem}
+        .wm-lines li{position:relative;padding-left:1rem}
+        .wm-lines li::before{content:"";position:absolute;top:.6em;left:.25rem;width:.3rem;height:.3rem;border-radius:50%;background:var(--nav-active-ink, #c8323a)}
+        .wm-lines li+li{margin-top:.35rem}
+    </style>
     <div class="modal-dialog modal-dialog-centered" role="document">
         <div class="modal-content">
             <div class="modal-header border-0 pb-0">

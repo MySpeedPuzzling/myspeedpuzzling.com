@@ -26,7 +26,8 @@ use Symfony\Component\Routing\Attribute\Route;
  * - menu_open: the Menu was opened - on which surface (the phone panel MENU-02b, the desktop overlay NAV-13) and on
  *   which place's page (README §4.12 "Measurement")
  * - search_zero: a page search found nothing at all - no page, no player, no puzzle (MENU-03, decision 39): which field
- *   (the Menu panel's, the page's / top bar's) and the query, folded and cut to 40 characters by the script
+ *   (the Menu panel's, the page's / top bar's, the filter of "Where did it go?" - LAUNCH review Q3) and the query,
+ *   folded and cut to 40 characters by the script
  * - layout: the desktop ☰ docked the Menu column or folded it to the rail (NAV-13, README §4.3 / D16 "if more than half
  *   of desktop players fold the column within two weeks, the rail becomes the default") - the new state and the
  *   innerWidth bucket; the viewport line carries the state the session started in (`dock`: docked | rail | none)
@@ -82,7 +83,7 @@ final class NavClickController extends AbstractController
     private const array HISTORY_VIA = ['turbo_restore', 'load', 'bfcache'];
     private const array HISTORY_DIRECTIONS = ['back', 'forward', 'unknown'];
     private const array MENU_SURFACES = ['panel', 'overlay'];
-    private const array SEARCH_SURFACES = ['menu', 'topbar'];
+    private const array SEARCH_SURFACES = ['menu', 'topbar', 'wdig'];
     private const array NAV_LAYOUTS = ['docked', 'rail'];
     private const array DOCK_STATES = ['docked', 'rail', 'none'];
 

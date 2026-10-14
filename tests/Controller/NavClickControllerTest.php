@@ -202,6 +202,8 @@ final class NavClickControllerTest extends WebTestCase
         self::beacon($browser, ['k' => 'search_zero', 'surface' => 'menu', 'q' => 'xyzzy']);
         self::beacon($browser, ['k' => 'search_zero', 'surface' => 'topbar', 'q' => "pa\u{200B}ssw\u{0007}ord ", 'layout' => 'desktop']);
         self::beacon($browser, ['k' => 'search_zero', 'surface' => 'menu', 'q' => str_repeat('ř', 40)]);
+        // The filter of "Where did it go?" that leaves nothing (LAUNCH review Q3)
+        self::beacon($browser, ['k' => 'search_zero', 'surface' => 'wdig', 'q' => 'bell']);
 
         self::assertResponseStatusCodeSame(204);
         self::assertNull($browser->getResponse()->headers->get('Set-Cookie'));
@@ -211,6 +213,7 @@ final class NavClickControllerTest extends WebTestCase
             ['kind' => 'search_zero', 'surface' => 'menu', 'query' => 'xyzzy', 'page' => '/en/faq', 'layout' => 'phone', 'webdriver' => false],
             ['kind' => 'search_zero', 'surface' => 'topbar', 'query' => 'password', 'page' => '/en/faq', 'layout' => 'desktop', 'webdriver' => false],
             ['kind' => 'search_zero', 'surface' => 'menu', 'query' => str_repeat('ř', 40), 'page' => '/en/faq', 'layout' => 'phone', 'webdriver' => false],
+            ['kind' => 'search_zero', 'surface' => 'wdig', 'query' => 'bell', 'page' => '/en/faq', 'layout' => 'phone', 'webdriver' => false],
         ], self::contexts($log));
     }
 

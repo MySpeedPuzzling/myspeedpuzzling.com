@@ -9098,6 +9098,7 @@ where_did_it_go:
     title: "どこに移動しましたか？"
     meta_description: "以前のMySpeedPuzzlingのメニュー、上部バー、フッターの各項目が今どこにあるかをご案内します。"
     intro: "ナビゲーションを再構成しました。以前のメニュー、上部バー、フッターの各項目が今どこにあるかをこのページでご確認いただけます。"
+    in_app: "アプリでは、下部のタブバーとメニューをご利用ください。"
     surface:
         topbar: "ヘッダー上部の細いバー"
         admin_key: "鍵メニュー（管理）"
@@ -9112,6 +9113,8 @@ where_did_it_go:
     filter_label: "以前の項目を探す"
     filter_placeholder: "例：統計"
     no_match: "一致する項目がありません。別の言葉で試すか、☰ メニューをご覧ください。"
+    no_match_app: "一致する項目がありません。別の言葉でお試しください。"
+    matches: "%count%件が一致します"
     bottom_bar: "下部バー"
     left_menu: "左側のメニュー"
     top_bar: "上部バー"

@@ -706,3 +706,11 @@
 }
 
 // In the top bar's search panel (NAV-03): its results are cards in _nav-topbar.scss
+
+// The `menu` page opened on a row (the "Now" links of Where did it go? - menu#menu-row-<id>, LAUNCH review Q5): the row
+// it names carries the active pill's tint, so the eye finds it among the ~50 under the top bar. Static - no motion (G8);
+// nowhere else (data-surface="page" is the `menu` page's Menu only)
+#site-menu[data-surface="page"] li:target {
+    border-radius: .5rem;
+    background: var(--nav-active-pill, #ffe8e8);
+}

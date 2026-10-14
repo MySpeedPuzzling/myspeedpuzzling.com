@@ -80,9 +80,10 @@ final class FormerNavigation
             new FormerNavigationItem($surface, 'where_did_it_go.logo', 'home', ['homepage'], path: ['where_did_it_go.top_bar', 'where_did_it_go.logo']),
             // The search icon became the top bar's field; without JavaScript it leads to the puzzle search (decision 79)
             new FormerNavigationItem($surface, 'menu.search', 'all_puzzles', [], path: ['where_did_it_go.top_bar', 'nav.bar.search_placeholder']),
-            // Guests: the guest card at the top of the Menu
-            new FormerNavigationItem($surface, 'menu.sign_in', 'guest_card', ['my_profile'], audience: NavVisibility::Everyone, path: ['☰', 'nav.menu.sign_in']),
-            new FormerNavigationItem($surface, 'menu.register', 'guest_card', ['register'], link: 'register', audience: NavVisibility::Everyone, path: ['☰', 'nav.menu.join_free']),
+            // Guests: the guest card at the top of the Menu - for guests only (its audience), as in the old toolbar; a
+            // signed-in player's Menu has the You card there (LAUNCH review F4)
+            new FormerNavigationItem($surface, 'menu.sign_in', 'guest_card', ['my_profile'], path: ['☰', 'nav.menu.sign_in']),
+            new FormerNavigationItem($surface, 'menu.register', 'guest_card', ['register'], link: 'register', path: ['☰', 'nav.menu.join_free']),
             new FormerNavigationItem($surface, 'menu.puzzle_add', 'add', ['puzzle_add']),
             // The bell and the envelope are one Inbox
             new FormerNavigationItem($surface, 'notifications.title', 'inbox', ['notifications']),

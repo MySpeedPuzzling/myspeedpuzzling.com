@@ -1,0 +1,86 @@
+// "Where did it go?" (docs/features/navigation LAUNCH-02, templates/where_did_it_go/index.html.twig): the old name and
+// its new place. Its own Encore style entry 'where_did_it_go', linked only on that page through the base layout's
+// page_stylesheets block - never imported into app.scss, so no other page pays for it (LAUNCH review F7).
+//
+// "Now" holds up to three texts, each shown at its width: the phone's; from 768 px the computer's when it differs; at
+// 768-1023 px the compact top bar's when that differs again (no left menu yet: Home, Puzzles and Community are in the top
+// bar, the profile under the avatar ▾ - LAUNCH review F1).
+
+// The bars' own media queries: $nav-desktop-media (_nav-tokens.scss) and $nav-rail-media (_nav-layout.scss). Those
+// partials print rules of their own, so they are not imported here - NavigationLaunchStylesTest keeps the strings equal.
+$wdig-desktop-media: "(min-width: 768px) and (min-height: 501px), (min-width: 768px) and (pointer: fine)";
+$wdig-rail-media: "(min-width: 1024px) and (min-height: 501px), (min-width: 1024px) and (pointer: fine)";
+
+.wdig {
+    max-width: 48rem;
+}
+
+// The filter's status line (a live region, always in the page - LAUNCH review F5): its line kept, so a count appearing
+// never moves the tables
+.wdig-status {
+    min-height: 1.5em;
+}
+
+.wdig-table {
+    th,
+    td {
+        padding: .625rem .5rem;
+        vertical-align: top;
+    }
+
+    thead th {
+        color: var(--nav-label, #5f6b80);
+        font-size: .875rem;
+        font-weight: 500;
+    }
+
+    tbody th {
+        width: 45%;
+        font-weight: 400;
+    }
+}
+
+.wdig-members {
+    display: inline-block;
+    margin-left: .25rem;
+    color: var(--nav-label, #5f6b80);
+    font-size: .875rem;
+    white-space: nowrap;
+}
+
+.wdig-after {
+    display: block;
+    color: var(--nav-label, #5f6b80);
+    font-size: .875rem;
+}
+
+.wdig-now--tablet,
+.wdig-now--desktop {
+    display: none;
+}
+
+@media #{$wdig-desktop-media} {
+    .wdig-now--phone {
+        display: none;
+    }
+
+    .wdig-now--tablet,
+    .wdig-now--desktop {
+        display: inline;
+    }
+
+    // 768-1023 px: the tablet's text instead of the computer's
+    .wdig-now--tablet + .wdig-now--desktop {
+        display: none;
+    }
+}
+
+@media #{$wdig-rail-media} {
+    .wdig-now--tablet {
+        display: none;
+    }
+
+    .wdig-now--tablet + .wdig-now--desktop {
+        display: inline;
+    }
+}

@@ -9109,6 +9109,7 @@ where_did_it_go:
     title: "Wo ist es jetzt?"
     meta_description: "Wo Sie jeden Eintrag der bisherigen Menüs, der oberen Leiste und der Fußzeile von MySpeedPuzzling jetzt finden."
     intro: "Wir haben die Navigation neu geordnet. Hier sehen Sie, wo jeder Eintrag der bisherigen Menüs, der oberen Leiste und der Fußzeile jetzt zu finden ist."
+    in_app: "In der App nutzen Sie ihre untere Leiste und das Menü."
     surface:
         topbar: "Schmale Leiste über dem Kopfbereich"
         admin_key: "Schlüssel-Menü (Verwaltung)"
@@ -9123,6 +9124,8 @@ where_did_it_go:
     filter_label: "Alten Eintrag finden"
     filter_placeholder: "z. B. Statistiken"
     no_match: "Keine Treffer. Versuchen Sie ein anderes Wort oder schauen Sie ins ☰ Menü."
+    no_match_app: "Keine Treffer. Versuchen Sie ein anderes Wort."
+    matches: "{1}1 Eintrag passt|[0,Inf[%count% Einträge passen"
     bottom_bar: "Untere Leiste"
     left_menu: "Linkes Menü"
     top_bar: "Obere Leiste"

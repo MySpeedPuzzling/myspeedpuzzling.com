@@ -84,6 +84,31 @@ final class ChromeQueryBudgetTest extends WebTestCase
     }
 
     /**
+     * LAUNCH-02 (LAUNCH review F8): "Where did it go?" has no statement of its own - the registry, the viewer from the
+     * profile row and the router build it - so it costs exactly the chrome: the FAQ's pin without the FAQ's own
+     * statement, for every role. A guest's page stays shared-cacheable.
+     */
+    #[DataProvider('provideViewers')]
+    public function testWhereDidItGoCostsTheChromeOnly(string $role, int $faqStatements): void
+    {
+        $browser = self::createClient();
+        NavigationViewer::signIn($browser, $role);
+
+        $browser->request('GET', '/en/where-did-it-go');
+        $this->startCountingQueries($browser);
+        $browser->request('GET', '/en/where-did-it-go');
+        self::assertResponseIsSuccessful();
+
+        $statements = $this->queryCount($browser);
+        self::assertSame($faqStatements - self::GUEST_PAGE, $statements, $role . " /en/where-did-it-go ran:\n" . implode("\n", $this->executedSql($browser)));
+        self::assertLessThanOrEqual($faqStatements, $statements);
+
+        if ($role === NavigationViewer::GUEST) {
+            self::assertTrue($browser->getResponse()->headers->hasCacheControlDirective('public'), (string) $browser->getResponse()->headers->get('Cache-Control'));
+        }
+    }
+
+    /**
      * LAUNCH-03: with the launch date set, inside its 30 days, every account older than it gets the line at the top of
      * the Menu - from the profile row (its registration date, its navigation dismissals), so the chrome costs what its pin
      * says; a guest gets nothing and stays shared-cacheable. The first request claims "What moved" (LAUNCH-01), the

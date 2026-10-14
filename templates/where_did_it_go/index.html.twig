@@ -3,30 +3,41 @@
 {#
     "Where did it go?" (docs/features/navigation README §8, LAUNCH-02): every item of the old navigation and where it is
     now - one table per old surface (FormerNavigation, for the viewer by WhereDidItGoBuilder). The old name links its
-    page; "Now" is its place in the Menu (linking its row on the `menu` page) or on the bars - the phone's and the
-    computer's when they differ, shown by the desktop media query (_navigation-launch.scss). Members-only rows carry a
+    page (an action like Log out: its place in the Menu); "Now" is its place in the Menu (linking its row on the `menu`
+    page), on the bars or the top bar's tools - the phone's, the 768-1023 px top bar's and the computer's when they
+    differ, each shown by its media query (where_did_it_go.scss, the page's own Encore entry). Members-only rows carry a
     lock (no modal), a guest's rows that need an account say so. The filter box (where_did_it_go_controller.js) appears
-    with JavaScript and searches each row's data-search (folded like SearchText::fold()); without it every row shows.
-    Public, not for the index, in no sitemap.
+    with JavaScript and searches each row's data-search (folded like SearchText::fold()); its status line says how many
+    rows match, or that none does (a live region, always in the page - LAUNCH review F5); without JavaScript every row
+    shows. Links carry data-nav page/none/wdig_<entry> and page/none/wdig_now_<entry> (LAUNCH review Q3).
+    The native app (not is_web()) has no ☰ and no web bars: the old names and their links only, and one line pointing at
+    the app's own tab bar and Menu (LAUNCH review F6). Public, not for the index, in no sitemap.
 #}
 
 {% block title %}{{ 'where_did_it_go.title'|trans }}{% endblock %}
 {% block meta_description %}{{ 'where_did_it_go.meta_description'|trans }}{% endblock %}
 {% block robots %}<meta name="robots" content="noindex, follow">{% endblock %}
+{% block page_stylesheets %}{{ encore_entry_link_tags('where_did_it_go') }}{% endblock %}
 
 {% block content %}
-    <div class="wdig mx-auto" data-controller="where-did-it-go">
+    {%- set web = is_web() -%}
+    <div class="wdig mx-auto" data-controller="where-did-it-go"
+         data-where-did-it-go-none-value="{{ (web ? 'where_did_it_go.no_match' : 'where_did_it_go.no_match_app')|trans }}"
+         data-where-did-it-go-count-value="{{ browser_translation('where_did_it_go.matches')|json_encode }}">
         <h1 class="mb-2">{{ 'where_did_it_go.title'|trans }}</h1>
         <p class="lead mb-4">{{ 'where_did_it_go.intro'|trans }}</p>
+        {%- if not web %}
+            <p class="wdig-app mb-4">{{ 'where_did_it_go.in_app'|trans }}</p>
+        {%- endif %}
 
         <div class="wdig-filter mb-4" role="search" data-where-did-it-go-target="bar" hidden>
             <label class="form-label" for="wdig-filter">{{ 'where_did_it_go.filter_label'|trans }}</label>
             <input type="search" id="wdig-filter" class="form-control" autocomplete="off" enterkeyhint="search"
                    placeholder="{{ 'where_did_it_go.filter_placeholder'|trans }}"
                    data-where-did-it-go-target="input" data-action="input->where-did-it-go#filter keydown.enter->where-did-it-go#keepEnter">
+            {#- Empty while nothing is typed; the script writes the count or "Nothing matches" when it changes -#}
+            <p class="wdig-status form-text mb-0" id="wdig-status" role="status" data-where-did-it-go-target="status"></p>
         </div>
-
-        <p class="wdig-none text-muted" data-where-did-it-go-target="none" role="status" hidden>{{ 'where_did_it_go.no_match'|trans }}</p>
 
         <div class="wdig-mapping" data-where-did-it-go-mapping>
             {% for section in sections %}
@@ -37,23 +48,26 @@
                         <thead>
                             <tr>
                                 <th scope="col">{{ 'where_did_it_go.was'|trans }}</th>
-                                <th scope="col">{{ 'where_did_it_go.now'|trans }}</th>
+                                {%- if web %}<th scope="col">{{ 'where_did_it_go.now'|trans }}</th>{% endif %}
                             </tr>
                         </thead>
                         <tbody>
                             {% for row in section.rows %}
-                                <tr id="{{ row.id }}" class="wdig-row" data-search="{{ row.search }}" data-where-did-it-go-target="row">
+                                <tr id="{{ row.id }}" class="wdig-row" data-search="{{ web ? row.search : row.nameSearch }}" data-where-did-it-go-target="row">
                                     <th scope="row" class="wdig-old">
-                                        <a href="{{ row.href }}">{{ row.oldName }}</a>
+                                        <a href="{{ row.href }}" data-nav="{{ row.navId }}">{{ row.oldName }}</a>
                                         {%- if row.members %} <span class="wdig-members"><i class="bi bi-lock-fill" aria-hidden="true"></i> {{ 'where_did_it_go.members'|trans }}</span>{% endif %}
                                     </th>
+                                    {%- if web %}
                                     <td class="wdig-new">
                                         {%- if row.afterSignIn %}<span class="wdig-after">{{ 'where_did_it_go.after_sign_in'|trans }}</span> {% endif -%}
-                                        {%- if row.nowHref is not null %}<a href="{{ row.nowHref }}">{% endif -%}
+                                        {%- if row.nowHref is not null %}<a href="{{ row.nowHref }}" data-nav="{{ row.nowNavId }}">{% endif -%}
                                         <span class="wdig-now{{ row.nowDesktop is not null ? ' wdig-now--phone' }}">{{ row.now }}</span>
+                                        {%- if row.nowTablet is not null %}<span class="wdig-now wdig-now--tablet">{{ row.nowTablet }}</span>{% endif -%}
                                         {%- if row.nowDesktop is not null %}<span class="wdig-now wdig-now--desktop">{{ row.nowDesktop }}</span>{% endif -%}
                                         {%- if row.nowHref is not null %}</a>{% endif -%}
                                     </td>
+                                    {%- endif %}
                                 </tr>
                             {% endfor %}
                         </tbody>

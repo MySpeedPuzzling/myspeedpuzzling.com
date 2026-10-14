@@ -504,6 +504,8 @@ final class NavInstrumentationScriptTest extends TestCase
             ['do' => 'load', 'page' => '/en/faq'],
             ['do' => 'search zero', 'detail' => ['surface' => 'menu', 'q' => 'xyzzy']],
             ['do' => 'search zero', 'detail' => ['surface' => 'topbar', 'q' => '  ' . str_repeat('ab', 30) . '  ']],
+            // The filter of "Where did it go?" (LAUNCH review Q3)
+            ['do' => 'search zero', 'detail' => ['surface' => 'wdig', 'q' => 'bell']],
             ['do' => 'search zero', 'detail' => ['surface' => 'drawer', 'q' => 'xyzzy']],
             ['do' => 'search zero', 'detail' => ['surface' => 'menu', 'q' => '   ']],
             ['do' => 'search zero', 'detail' => ['surface' => 'menu', 'q' => 42]],
@@ -518,6 +520,7 @@ final class NavInstrumentationScriptTest extends TestCase
         self::assertSame([
             ['/en/faq', 'menu', 'xyzzy'],
             ['/en/faq', 'topbar', str_repeat('ab', 20)],
+            ['/en/faq', 'wdig', 'bell'],
         ], $lines);
     }
 

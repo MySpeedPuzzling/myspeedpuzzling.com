@@ -23,7 +23,11 @@ What to measure for 14 days after the launch (Google Search Console: 8 weeks), w
 ## 2. Method
 
 ### 2.1 The launch day
-`<D>` = the **first full Prague day on which the new chrome served every page in production**. Normally the deploy day + 1: the deploy day itself mixes old and new chrome (shared-cached guest HTML, open tabs) and is left out of every window, together with its weekday in the baseline. `NavigationLaunch::DATE` (the "What moved" modal and the pointers) should be the same day; if the owner sets it later, note both days: the watch measures the chrome from `<D>`, the modal's effect from `DATE`.
+`<D>` = the **first full Prague day on which the new chrome served every page in production**: the deploy day + 1. The deploy day itself mixes old and new chrome (shared-cached guest HTML, open tabs) and is left out of every window, together with its weekday in the baseline.
+
+`NavigationLaunch::DATE` (the "What moved" modal and the pointers) is **the deploy day itself**, set in the deploy that ships the chrome, and the deploy runs in the quietest morning hours (Tuesday or Wednesday 05:00-07:00 Prague). The rule reads `DATE` as Prague midnight: every account created before it knew the old navigation and gets the modal and the pointers from the moment the new chrome is live, and an account registered on the deploy day after the deploy - one that never saw the old navigation - gets neither. Only the few accounts registered in the early hours before the deploy miss the modal. With `DATE` = `<D>` the old players would use the new chrome for the rest of the deploy day with no modal and no pointers, and that day's new accounts would get "What moved" the next day.
+
+So **`DATE` and `<D>` differ on purpose**: `DATE` = the deploy day (the safeguards), `<D>` = the deploy day + 1 (the measurement). Note both in the watch folder; the modal's own numbers (Q7) start at `DATE`. If the chrome ships before the date is set (the merge may - `docs/features/feature_flags.md`), `DATE` is the day of the deploy that sets it, again early in the morning, and the accounts created in between get "What moved" too; `<D>` stays the chrome's deploy day + 1.
 
 ### 2.2 Windows and ratios
 - **Launch** L = `<D>` … `<D+13>` (14 days) · **baseline** B = `<D-14>` … `<D-1>` · **holiday check** H = `<D-28>` … `<D-15>`. Day i of each (i = 0 … 13) falls on the same weekday: L_i = `<D+i>`, B_i = `<D-14+i>`, H_i = `<D-28+i>`.
@@ -35,7 +39,7 @@ What to measure for 14 days after the launch (Google Search Console: 8 weeks), w
 - **Days are Prague calendar days** (midnight to midnight, `Europe/Prague`). Postgres stores UTC: `(column AT TIME ZONE 'UTC') AT TIME ZONE 'Europe/Prague'`. Loki and Tempo: count by the hour and add the hours up per Prague day (24 h, 23 h or 25 h) - hours are whole in both offsets, so the days stay exact. `player_activity_day` uses UTC days: only its 7-day sums are compared.
 - **Sessions:** GA4 sessions for GA4 rows (GA loads after the visitor's first interaction and skips bots - the same before and after). For Loki rows, **tab sessions** = `viewport` lines (one per browser tab session, sessionStorage), split by `layout` (phone/desktop). A ratio takes numerator and denominator from the same source; the one exception (searches per session: Tempo ÷ GA4) is read only as a before/after change.
 - **Bots:** Loki rows filter `webdriver = false`; this catches automated browsers that admit it, not every bot. A sudden jump of tab sessions with `pointer = none` is a bot wave: note the day.
-- **Known shifts caused by the launch itself** (not alarms): Inbox opens fall (favorites' times left the bell, D4); feedback volume rises (one tap from every page); with instant Back a Back no longer reloads the page, so GA4 counts a history page view instead of a fresh page load (P3).
+- **Known shifts caused by the launch itself** (not alarms): Inbox opens fall (favorites' times left the bell, D4); feedback volume rises (one tap from every page); with instant Back a Back no longer reloads the page, so GA4 counts a history page view instead of a fresh page load (P3); trial starts from `offer_modal` fall for 14 days after `DATE` - "What moved" is an announcement modal, so the free-trial offer modal waits out the 14-day pause behind it for every account created before `DATE` (decision 57, `ResolveAnnouncementModal::COOLDOWN_DAYS`), and accounts that turn 7 days old around the launch get the offer up to two weeks later (read row #12 without them).
 
 ### 2.4 Recording table (one per metric, local only)
 
@@ -55,14 +59,14 @@ What to measure for 14 days after the launch (Google Search Console: 8 weeks), w
 | 2 | Add-form opens per session | GA4 page views of the add form ÷ sessions; Loki Add clicks (L3) | G1, L3 | r_i + 7-day sums | r_i < 0.90 on 3 days or week < 0.90 → read with #1, check the Add tab and the last-mode rule |
 | 3 | Searches per session | Tempo `GlobalSearch` Live requests (search bursts) ÷ GA4 sessions | T1, G0 | 7-day sums | week < 0.90 → check the top-bar field and the Menu search (the launch should raise it) |
 | 4 | Reach of Library / Leaderboards / Events / Puzzlers | GA4 share of sessions with a page view of the section | G2 (four regexes) | 7-day sums per section | a section's week < 0.85 → check its entries (chips, Menu rows, Community landing) |
-| 5 | Feedback volume and findability share | Postgres `email_audit_log` (`email_type = 'feedback'`) + weekly hand tags; feature requests | Q3, Q4, §4.7, L12 | weekly vs the 4 weekly baselines (`<D-28>` … `<D-1>`) | volume: none (expected up). Findability share of a launch week above the highest baseline week **and** ≥ 3 messages naming the same destination → fix its placement within the week (synonym, row description, pointer) |
+| 5 | Feedback volume and findability share | Postgres `email_audit_log` (`email_type = 'feedback'`) + weekly hand tags; feature requests | Q3, Q4, §4.7, L12, L13 (context) | weekly vs the 4 weekly baselines (`<D-28>` … `<D-1>`) | volume: none (expected up). Findability share of a launch week above the highest baseline week **and** ≥ 3 messages naming the same destination → fix its placement within the week (synonym, row description, pointer) |
 | 6 | Inbox opens | GA4 views of notifications + messages ÷ sessions; Loki Inbox clicks | G3, L3, T4 | r_i + 7-day sums; split For you / Messages | Messages week < 0.90 → check the badge parts and the link's target tab (INB-02). For you falls by design: read it next to Home › Favorites views (T4) |
 | 7 | Player card opens and continuation | Loki `card_open`, `card_outcome`, `card_bypass` | L8 | absolute: the revert rule | a context × input cell with ≥ 300 opens over ≥ 14 days, ≥ 70 % `continue` within 30 s and < 5 % other use → switch it to direct links (§5) |
-| 8 | Menu opens and row clicks per group | Loki `menu_open`; `click` lines with surface `menu` | L4, L5 | opens per phone tab session vs the old ☰ + account-menu opens per tab session (L3 mapping); rows per group: shares, no baseline | phone opens per tab session in week 2 < 0.8 × the old toggles → the ☰ may be missed: decide the "Menu" micro-label (§5) |
+| 8 | Menu opens and row clicks per group; a missed ☰ | Loki `menu_open`; `click` lines with surface `menu`; feedback tags; zero-result searches and Where did it go? lookups | L4, L5, L3, L6, L13, §4.7 | opens per phone tab session: context only - they are expected to fall (the old ☰ and account menu mostly led to Home, Puzzles, Profile and the bell, all on the bars now); rows per group: shares, no baseline. The micro-label is decided from signals of a **missed ☰** for the **Menu-only entries** (on no bar - not in `NavigationRegistry::ON_BARS`): (1) `cant_find` tags naming one (§4.7); (2) zero-result searches and Where did it go? lookups for one (L6, L13); (3) its Menu row clicks per phone tab session vs the old menus' clicks for the same entries per phone tab session (L5 vs L3) | in week 2 (3) < 0.8 × the old clicks **and** (1) above its highest baseline week or (2) ≥ 5 for one entry → the ☰ may be missed: decide the "Menu" micro-label (§5). Fewer ☰ opens alone is the design working, never a reason |
 | 9 | Zero-result page searches | Loki `search_zero` | L6 | weekly list of queries | the same query ≥ 5 times in a week → add a synonym (`nav.syn.*`, 6 locales, `;`-separated) or an entry |
 | 10 | Desktop docked vs folded share | Loki `viewport` (`dock`) + `layout` | L7 | absolute: D16 | **> 50 % of desktop tab sessions at ≥ 1440 px start folded in `<D+7>` … `<D+13>` → the rail becomes the default** (owner decision, §5) |
 | 11 | Membership page visits | GA4 views of the membership page ÷ sessions; Loki membership clicks | G4, L3 | r_i + 7-day sums | week < 0.85 → check the account menu, the Menu's You card and Account row |
-| 12 | Trial starts | Postgres `membership.trial_started_at` (+ `trial_source`); Loki `trial_start` lines | Q2, L11 | 7-day sums (small numbers: no per-day alarm) | week < 0.80 → look at the members modal opens and their placements (L11) |
+| 12 | Trial starts | Postgres `membership.trial_started_at` (+ `trial_source`); Loki `trial_start` lines | Q2, L11 | 7-day sums (small numbers: no per-day alarm) of the trials with `trial_source <> 'offer_modal'` during L - the offer modal waits 14 days behind "What moved" (§2.3); its own column from `<D+14>` | week < 0.80 → look at the members modal opens and their placements (L11) |
 | 13 | Checkout starts | Stripe Checkout Sessions (mode `subscription`); Tempo 303s of `buy_membership` | S1, T2 | 7-day sums | week < 0.80 → check the membership page path (#11) and the checkout redirect |
 | 14 | Back restores by kind and `ms_to_load` | Loki `history` lines before; Loki `back` lines from GEST-08 | L9 | share of Backs that reload the page: before vs after; `ms_to_load` per kind after | by `<D+3>` the reload share on browse pages is not clearly lower → check `INSTANT_BACK` / `INSTANT_BACK_IOS`; snapshot median `ms_to_load` > 100 ms → look; a Sentry issue on a restored page → set `INSTANT_BACK = false` (one constant, `assets/instant_back.js`) |
 | 15 | `dialog_suppressed` from iPhones | Loki `dialog_suppressed` (sent only on `data-os="ios"`) | L10 | absolute | any line on a page outside `/admin` → a native dialog is left on a player page: fix it (GEST-13) |
@@ -164,7 +168,7 @@ ORDER BY 1;
 ```
 Q1's `at_events` column shows the same in results.
 
-**Q7 Launch safeguards** (context, not a §8 metric; the enum values `AnnouncementModal::NavigationWhatMoved` and `HintType::NavigationLaunchPointer` / `NavigationInboxPointer` - LAUNCH-01/03 were still uncommitted when this was written, re-check after they land)
+**Q7 Launch safeguards** (context, not a §8 metric; the enum values of `AnnouncementModal::NavigationWhatMoved` and `HintType::NavigationLaunchPointer` / `NavigationInboxPointer`, LAUNCH-01/03 and INB-05)
 ```sql
 SELECT ((i.displayed_at AT TIME ZONE 'UTC') AT TIME ZONE 'Europe/Prague')::date AS day,
        count(*) AS what_moved_shown, count(i.seen_at) AS what_moved_seen_reported
@@ -188,7 +192,7 @@ GROUP BY 1, 2 ORDER BY 2, 1;
 | `viewport` | Navigation viewport | `bucket` (`lt768`, `768_1023`, `1024_1279`, `1280_1439`, `1440_1919`, `gte1920`), `pointer` (`coarse`/`fine`/`none`), `standalone`, `dock` (`docked`/`rail`/`none`, the state the tab session started in - NAV-13) | P0-03 (`dock` NAV-13) |
 | `history` | Navigation history | `via` (`turbo_restore`/`load`/`bfcache`), `direction` (`back`/`forward`/`unknown`), `ua_visual_transition` | P0-03 |
 | `menu_open` | Navigation menu open | `surface` (`panel` phone / `overlay` desktop < 1280 px), `place` (the page's place) | MENU-02b, NAV-13 |
-| `search_zero` | Navigation search without results | `surface` (`menu`/`topbar`), `query` (folded, ≤ 40 characters) | MENU-03, SRCH-01 |
+| `search_zero` | Navigation search without results | `surface` (`menu`/`topbar`; `wdig` = the filter of Where did it go? left nothing), `query` (folded, ≤ 40 characters) | MENU-03, SRCH-01 (`wdig`: LAUNCH review Q3) |
 | `layout` | Navigation layout | `state` (`docked`/`rail` - the ☰ switched it), `bucket` | NAV-13 |
 | `card_open`, `card_bypass` | Navigation card open / bypass | `context` (`none`/`puzzle`/`feed`/`notification`/`round`/`leaderboard`), `input` (`mouse`/`touch`/`pen`/`keyboard`) | CARD-07 |
 | `card_outcome` | Navigation card outcome | `context`, `input`, `outcome` (`continue`/`deep`/`puzzle`/`action`/`bounce`/`close`), `ms` | CARD-07 |
@@ -246,7 +250,7 @@ sum by (context_place, context_layout) (count_over_time({app="myspeedpuzzling"} 
 ```
 Per row: the same with `sum by (context_item)`, weekly. There is no separate `menu_row` line: the row id is the click's `item`, its position is fixed per surface in `docs/navigation.md` (the order never changes per player); `layout` tells the phone panel (`phone`) from the desktop column/overlay (`desktop`).
 
-**L6 Zero-result page searches** (#9)
+**L6 Zero-result page searches** (#9) - `surface="wdig"` is the filter of Where did it go? (old names, not page searches): read it in L13
 ```logql
 sum by (context_surface) (count_over_time({app="myspeedpuzzling"} |= `"channel":"navigation"` | json | context_webdriver="false" | context_kind="search_zero" [1h]))
 ```
@@ -300,6 +304,14 @@ sum by (context_placement, context_source) (count_over_time({app="myspeedpuzzlin
 ```logql
 sum by (context_nav) (count_over_time({app="myspeedpuzzling"} |= `"channel":"navigation"` | json | context_webdriver="false" | context_kind="click" | context_nav=~"topbar/none/help|page/[a-z_]+/help_line|menu/help/send_feedback|help/help/send_feedback|topbar/links/feedback|footer/myspeedpuzzling/feedback" [1h]))
 ```
+
+**L13 Where did it go? lookups** (#5, #8, #9; LAUNCH review Q3) - which old items players look up: a click on an old name is `page/none/wdig_<entry>` (the entry whose page it opens), on its new place `page/none/wdig_now_<entry>` (the new home's Menu row); a filter that left nothing is a `search_zero` line with `surface="wdig"`. Weekly lists (instant queries at the end of each week):
+```logql
+topk(30, sum by (context_item) (count_over_time({app="myspeedpuzzling"} |= `"channel":"navigation"` | json | context_webdriver="false" | context_kind="click" | context_nav=~"page/none/wdig_.*" [7d])))
+
+topk(30, sum by (context_query) (count_over_time({app="myspeedpuzzling"} |= `"channel":"navigation"` | json | context_webdriver="false" | context_kind="search_zero" | context_surface="wdig" [7d])))
+```
+`wdig_now_*` items are the "Now" links (the player went on to the Menu row). No baseline: the page is new at the launch. An item looked up often in week 1 and still in week 2 is a placement to explain better (synonym, row description, a "You said, we changed" note); feed the entries into row #8's missed-☰ signals when they are Menu-only.
 
 ### 4.3 GA4
 
@@ -387,7 +399,7 @@ Record per week: all, `cant_find`, `nav_other`, and for `cant_find` the destinat
 | `<D+14>` | Rail as the desktop default (D16) when > 50 % fold | L7 | the default of the docked state (NAV-13) |
 | `<D+14>`, then monthly | Player card → direct links for a context × input cell | L8 | `NavigationRegistry::PLAYER_CARD_DIRECT` (numbers in the commit message; `docs/TODO.md` item) |
 | after the device checks | Instant Back on iPhones | L9 (iOS restores), L10 | `INSTANT_BACK_IOS` in `assets/instant_back.js` |
-| `<D+14>` | A "Menu" micro-label under ☰ (README §9) | L4 vs the old toggles | `docs/TODO.md` item |
+| `<D+14>` | A "Menu" micro-label under ☰ (README §9) | row #8: the missed-☰ signals for Menu-only entries (§4.7 `cant_find`, L6 + L13, L5 vs L3) - never the ☰ opens alone (L4) | `docs/TODO.md` item |
 | weekly | New search synonyms or entries | L6, §4.7 | `nav.syn.*` (6 locales, `;`-separated), `NavigationRegistry` |
 | quarterly | Menu group order (README §7: re-decided only from measured data) | L5 | `MenuGroup::order()` |
 | 8 weeks | SEO follow-ups (`rel="nofollow"` on Show more, crawl) | C1–C3, T3 | PROF-05b fallback |
@@ -410,6 +422,5 @@ Three Prague days in a row with r_i < 0.90 for times logged:
 - **GA4 settings** P2–P5 (custom dimensions, history page views, time zone, Japanese path form), and whether GA4 accepts the longer regexes in one condition.
 - **Tempo:** the span attribute holding the query string (needed for `?page=N` in T3), and whether span paths hold Japanese characters decoded or percent-encoded.
 - **Stripe:** the `created` filter on the Checkout Sessions list (otherwise page back from the newest and stop at `<D-28>`).
-- **Launch safeguard values** in Q7 (`navigation_what_moved`, `navigation_launch_pointer`) match the LAUNCH-01/03 work in the worktree, which was not committed yet when this was written.
 - **`email_audit_log` retention:** 90 days is the cleanup command's default argument; check the production cron line passes no shorter value.
 - **P0-03 deploy date** (P1): the baseline's first usable day for every Loki row.

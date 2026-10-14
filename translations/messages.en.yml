@@ -9382,6 +9382,7 @@ where_did_it_go:
     title: "Where did it go?"
     meta_description: "Where every item of the old MySpeedPuzzling menus, top bar and footer is now."
     intro: "We rearranged the navigation. Here you can see where every item of the old menus, top bar and footer is now."
+    in_app: "In the app, use its tab bar and Menu."
     surface:
         topbar: "Thin strip above the header"
         admin_key: "Admin key menu"
@@ -9396,6 +9397,8 @@ where_did_it_go:
     filter_label: "Find an old item"
     filter_placeholder: "e.g. Statistics"
     no_match: "Nothing matches. Try another word, or look in ☰ Menu."
+    no_match_app: "Nothing matches. Try another word."
+    matches: "{1}1 item matches|[0,Inf[%count% items match"
     bottom_bar: "Bottom bar"
     left_menu: "Left menu"
     top_bar: "Top bar"

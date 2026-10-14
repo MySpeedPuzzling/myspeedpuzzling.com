@@ -25,6 +25,8 @@ Encore
     .addStyleEntry('compete', './assets/styles/compete.scss')
     .addStyleEntry('online_rounds', './assets/styles/online_rounds.scss')
     .addStyleEntry('online_watch', './assets/styles/online_watch.scss')
+    // "Where did it go?" (docs/features/navigation LAUNCH-02), linked only on its page (LAUNCH review F7)
+    .addStyleEntry('where_did_it_go', './assets/styles/where_did_it_go.scss')
 
     // enables the Symfony UX Stimulus bridge (used in assets/bootstrap.js)
     .enableStimulusBridge('./assets/controllers.json')

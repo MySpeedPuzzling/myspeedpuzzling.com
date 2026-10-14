@@ -5,14 +5,11 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Navigation;
 
 use Psr\Clock\ClockInterface;
-use ReflectionClass;
 use SpeedPuzzling\Web\Value\SearchText;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\DependencyInjection\Exception\ParameterNotFoundException;
 use Symfony\Component\DependencyInjection\ParameterBag\ContainerBagInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
-use Symfony\Component\Routing\RouterInterface;
-use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Contracts\Cache\CacheInterface;
 use Symfony\Contracts\Cache\ItemInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -66,7 +63,7 @@ final readonly class NavigationSearchIndex
         private NavigationRegistry $registry,
         private TranslatorInterface $translator,
         private UrlGeneratorInterface $urlGenerator,
-        private RouterInterface $router,
+        private NavigationSignInRule $signInRule,
         private ClockInterface $clock,
         #[Autowire(service: 'cache.app')]
         private CacheInterface $cache,
@@ -286,10 +283,9 @@ final readonly class NavigationSearchIndex
     }
 
     /**
-     * Does following the entry's link ask a guest to sign in first? A page of the viewer's own (nav_go: sign-in, then the
-     * page), or a route whose controller wants a signed-in visitor (#[IsGranted] on its class or action: the firewall
-     * sends a guest to sign in - LoginEntryPoint). Only for audiences a guest is not in; a page that opens for guests
-     * never is (What next?'s landing, Where did it go?). TopBarPageSearchTest requests every such link as a guest.
+     * Does following the entry's link ask a guest to sign in first (NavigationSignInRule)? Only for audiences a guest is
+     * not in; a page that opens for guests never is (What next?'s landing, Where did it go?). TopBarPageSearchTest
+     * requests every such link as a guest.
      */
     private function asksGuestsToSignIn(NavEntry $entry, string $audience): bool
     {
@@ -299,39 +295,7 @@ final readonly class NavigationSearchIndex
             return false;
         }
 
-        if ($entry->target->needsViewer()) {
-            return true;
-        }
-
-        $route = $entry->target->route;
-
-        return $route !== null && $this->routeWantsASignedInVisitor($route);
-    }
-
-    private function routeWantsASignedInVisitor(string $route): bool
-    {
-        $routes = $this->router->getRouteCollection();
-        // A localized route is name.<locale> in the collection
-        $definition = $routes->get($route) ?? $routes->get($route . '.en');
-        $controller = $definition?->getDefault('_controller');
-
-        if (!is_string($controller)) {
-            return false;
-        }
-
-        [$class, $method] = str_contains($controller, '::') ? explode('::', $controller, 2) : [$controller, '__invoke'];
-
-        if (!class_exists($class)) {
-            return false;
-        }
-
-        $reflection = new ReflectionClass($class);
-
-        if ($reflection->getAttributes(IsGranted::class) !== []) {
-            return true;
-        }
-
-        return $reflection->hasMethod($method) && $reflection->getMethod($method)->getAttributes(IsGranted::class) !== [];
+        return $this->signInRule->asksGuestsToSignIn($entry);
     }
 
     /**

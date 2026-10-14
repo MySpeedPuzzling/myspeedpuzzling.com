@@ -378,7 +378,8 @@ final class AnnouncementModalTest extends WebTestCase
     {
         $browser = $this->signedInAfterTheLaunch(PlayerFixture::PLAYER_WITH_STRIPE, self::LAUNCH_DAY, self::AFTER_THE_LAUNCH, self::OLD_ACCOUNT);
 
-        foreach (['/en/help', '/en/where-did-it-go'] as $quietPage) {
+        // The Menu page too: every "Now" link of Where did it go? opens it on a row (LAUNCH review F2)
+        foreach (['/en/help', '/en/where-did-it-go', '/en/menu'] as $quietPage) {
             $crawler = $browser->request('GET', $quietPage);
             $this->assertResponseIsSuccessful();
             self::assertCount(0, $crawler->filter(self::MODAL), "No modal on {$quietPage}");

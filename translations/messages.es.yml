@@ -9110,6 +9110,7 @@ where_did_it_go:
     title: "¿Dónde está ahora?"
     meta_description: "Dónde encontrar ahora cada elemento de los antiguos menús, la barra superior y el pie de página de MySpeedPuzzling."
     intro: "Hemos reorganizado la navegación. Aquí puedes ver dónde está ahora cada elemento de los antiguos menús, la barra superior y el pie de página."
+    in_app: "En la app, usa su barra inferior y el Menú."
     surface:
         topbar: "Franja fina sobre la cabecera"
         admin_key: "Menú de la llave (administración)"
@@ -9124,6 +9125,8 @@ where_did_it_go:
     filter_label: "Busca un elemento antiguo"
     filter_placeholder: "p. ej. Estadísticas"
     no_match: "No hay coincidencias. Prueba otra palabra o mira en el ☰ Menú."
+    no_match_app: "No hay coincidencias. Prueba otra palabra."
+    matches: "{1}1 elemento coincide|[0,Inf[%count% elementos coinciden"
     bottom_bar: "Barra inferior"
     left_menu: "Menú izquierdo"
     top_bar: "Barra superior"

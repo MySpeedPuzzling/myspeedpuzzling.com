@@ -21,4 +21,13 @@ enum RowKind: string
     case LogOut = 'logout';
     case YouCard = 'you_card';
     case GuestCard = 'guest_card';
+
+    /**
+     * Following the row does something instead of opening a page (Log out ends the session): "Where did it go?" links
+     * its place in the Menu, never the action (LAUNCH review F3).
+     */
+    public function isAction(): bool
+    {
+        return $this === self::LogOut;
+    }
 }

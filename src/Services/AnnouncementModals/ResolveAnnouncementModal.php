@@ -61,8 +61,9 @@ final class ResolveAnnouncementModal implements ResetInterface
         // Online competitions: the public watch page - full-screen video, also an OBS browser source
         'online_watch',
         // The navigation's Help page, the feedback form and "Where did it go?" - a player looking for help or for a moved
-        // item is in the middle of something (docs/features/navigation decision 57)
-        'help', 'feedback', 'where_did_it_go',
+        // item is in the middle of something (docs/features/navigation decision 57) - and the Menu page its "Now" links
+        // open on the row they name (LAUNCH review F2)
+        'help', 'feedback', 'where_did_it_go', 'menu',
     ];
 
     private bool $resolved = false;

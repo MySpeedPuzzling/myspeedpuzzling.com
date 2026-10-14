@@ -58,11 +58,17 @@ export const MENU_OPEN_EVENT = 'msp:menu-open';
 /** Where the Menu was opened: the phone panel (MENU-02b) or the desktop overlay (NAV-13) */
 export const MENU_SURFACES = ['panel', 'overlay'];
 
-/** The document event of a page search without any result (nav_search_controller.js), detail {surface, q} */
+/**
+ * The document event of a page search without any result (nav_search_controller.js; where_did_it_go_controller.js for
+ * a filter of "Where did it go?" that leaves nothing), detail {surface, q}
+ */
 export const SEARCH_ZERO_EVENT = 'msp:search-zero';
 
-/** Which search found nothing: the Menu panel's field or the page's / top bar's (MENU-03, SRCH-01) */
-export const SEARCH_SURFACES = ['menu', 'topbar'];
+/**
+ * Which search found nothing: the Menu panel's field or the page's / top bar's (MENU-03, SRCH-01), the filter of
+ * "Where did it go?" (LAUNCH review Q3)
+ */
+export const SEARCH_SURFACES = ['menu', 'topbar', 'wdig'];
 
 /** The longest query a search_zero line carries (decision 39) - NavClickController::MAX_QUERY_LENGTH */
 export const SEARCH_QUERY_MAX = 40;

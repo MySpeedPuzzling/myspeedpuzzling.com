@@ -30,7 +30,7 @@ On phones, almost everything on MySpeedPuzzling sat behind one menu button, and 
 
 **On a computer.** A slim top bar: ☰ · logo · search (Ctrl/Cmd + K jumps into it) · your running stopwatch · **+ Add** · Feedback · Inbox · your avatar. The avatar opens a short account menu: View profile · Settings · Membership · Language · Log out. On wide screens the Menu stays open as a column on the left; on medium screens a slim rail shows Home · Puzzles · Community · Profile instead. ☰ switches between the two, and that computer remembers your choice. On smaller screens and tablets, ☰ opens the Menu over the page.
 
-**Inbox: notifications and messages together.** The bell and the messages icon became one **Inbox** with two tabs, **For you** and **Messages**. The one number on the Inbox counts what is new for you, and the Inbox opens on the tab that holds it. "A favorite added a time" no longer goes to the Inbox: your favorites' new times are on **Home › Favorites**, where everything new since your last visit is marked. For the first month a short note in the Inbox points there.
+**Inbox: notifications and messages together.** The bell and the messages icon became one **Inbox** with two tabs, **For you** and **Messages**. The one number on the Inbox counts what is new for you, and the Inbox opens on the tab that holds it. "A favorite added a time" no longer goes to the Inbox: your favorites' new times are on **Home › Favorites**, where everything new since your last visit is marked. If you follow other puzzlers, for the first month a short note in the Inbox points there.
 
 **Home.** For signed-in players Home is your feed — **Favorites** first when you follow someone, then **Everyone**. The logo and the Home tab both lead there. Visitors who are not signed in keep the homepage.
 
@@ -68,7 +68,7 @@ On phones, almost everything on MySpeedPuzzling sat behind one menu button, and 
 
 **Pages that need the whole screen.** A running stopwatch, the organisers' participants spreadsheet, the round stopwatch, live results entry and print pages show no bars. Sign-in pages show only the logo and the language switch.
 
-**Where did it go?** A permanent page lists every item of the old menus, top bar and footer and where it is now — for example "☰ Menu › Account › Your data" — each one a working link, with a filter box. Signed-in players reach it from the Help sheet, the Menu, the search and the footer; the page itself is open to everyone. The first time you visit after the change, a short "What moved" note explains it once, starting with "Everything is in ☰ Menu, top right, where the ☰ always was". For the first month, a line on Home and at the top of the Menu points there too *(ship check: LAUNCH-01, LAUNCH-02, LAUNCH-03)*.
+**Where did it go?** A permanent page lists every item of the old menus, top bar and footer and where it is now — for example "☰ Menu › Account › Your data" — each one a working link, with a filter box. Signed-in players reach it from the Help sheet, the Menu, the search and the footer; the page itself is open to everyone. If you had an account before the change, a short "What moved" note explains it once, the first time you visit after it, starting with "Everything is in ☰ Menu, top right, where the ☰ always was" (on a computer: "Everything is in the ☰ Menu on the left"). For the first month, a line on Home and at the top of the Menu points there too *(ship check: LAUNCH-01, LAUNCH-02, LAUNCH-03)*.
 
 ### How to give feedback
 
@@ -82,7 +82,7 @@ We read everything. Every week we post a short "You said, we changed" note with 
 
 ### Short version (social posts, newsletter teaser)
 
-> **A new way around MySpeedPuzzling.** Five places are now always at the bottom of your phone — Home, Puzzles, Add, Community, Profile — and everything else is in ☰ Menu, top right, where the ☰ always was. The search finds pages and settings too, and "Where did it go?" shows where every old menu item lives now. Tell us what you think: tap **?** on any page.
+> **A new way around MySpeedPuzzling.** Five places are now always at the bottom of your phone — Home, Puzzles, Add, Community, Profile — and everything else is in ☰ Menu: on your phone top right, where the ☰ always was; on a computer it is on the left. The search finds pages and settings too, and "Where did it go?" shows where every old menu item lives now. Tell us what you think: tap **?** on any page.
 
 ---
 

@@ -137,6 +137,8 @@ final class OnlineReviewControllerTest extends WebTestCase
         $tapMs = $startMs + (47 * 60 + 12) * 1000 + 345;
         $this->phoneEvent($olivia, OnlineEventType::PageHidden, $tapMs + 10_000, receivedAtMs: $tapMs + 12_000);
         $this->phoneEvent($olivia, OnlineEventType::PageVisible, $tapMs + 25_000);
+        // Stream RP: her page reloaded later in the round - a flag of its own
+        $this->phoneEvent($olivia, OnlineEventType::PageReloaded, $tapMs + 200_000, ['goneMs' => 6_000, 'screen' => 'finished']);
         $this->finishTap($olivia, $tapMs, $tapMs + 95_000);
         $arthur = $this->onlineEntryOf(OnlineRoundsFixture::ENTRY_ANONYMOUS);
         $this->phoneEvent($arthur, OnlineEventType::TimeUpPieces, $startMs + 3_000_000, ['pieces' => 312, 'measure' => 'left']);
@@ -159,6 +161,7 @@ final class OnlineReviewControllerTest extends WebTestCase
         self::assertSame(1, $oliviaRow['taps']);
         self::assertContains(['code' => 'arrived_late', 'count' => 1, 'seconds' => 95], (array) $oliviaRow['flags']);
         self::assertContains(['code' => 'page_hidden', 'count' => 1, 'seconds' => 15], (array) $oliviaRow['flags']);
+        self::assertContains(['code' => 'page_reloaded', 'count' => 1, 'seconds' => null], (array) $oliviaRow['flags']);
 
         self::assertSame('unfinished', $arthurRow['status']);
         self::assertIsArray($arthurRow['suggestion']);

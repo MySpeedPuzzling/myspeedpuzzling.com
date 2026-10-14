@@ -145,6 +145,40 @@ final class OnlineReviewAssessmentTest extends TestCase
     }
 
     /**
+     * Stream RP: a page (re)opened while the round ran (`page.reloaded`) is a flag of its own - counted in the run only,
+     * on any device - and the page it replaced went hidden as it went: the reload is that page's return, never a page
+     * hidden until the end
+     */
+    public function testAReloadIsAFlagAndThePageHiddenAsItWentComesBackWithIt(): void
+    {
+        $assessment = self::assess([
+            // A reload before the start (the waiting screen) is no incident of the round
+            self::event('page.reloaded', self::START - 2 * self::MINUTE, ['goneMs' => 3_000]),
+            // The old page goes hidden as it is reloaded, the new one says so 5 s later
+            self::event('page.hidden', self::START + 10 * self::MINUTE),
+            self::event('page.reloaded', self::START + 10 * self::MINUTE + 5_000, ['goneMs' => 5_000, 'screen' => 'running']),
+            // A reload the phone could not time
+            self::event('page.reloaded', self::START + 30 * self::MINUTE, ['goneMs' => null]),
+        ], nowMs: self::START + 59 * self::MINUTE);
+
+        self::assertEquals(new OnlineReviewFlag(OnlineReviewFlag::PAGE_RELOADED, 2), self::flag($assessment, OnlineReviewFlag::PAGE_RELOADED));
+        self::assertEquals(new OnlineReviewFlag(OnlineReviewFlag::PAGE_HIDDEN, 1, 5), self::flag($assessment, OnlineReviewFlag::PAGE_HIDDEN), 'hidden for 5 s, not for 49 minutes');
+        self::assertSame([OnlineReviewFlag::PAGE_HIDDEN, OnlineReviewFlag::PAGE_RELOADED], array_map(static fn (OnlineReviewFlag $flag): string => $flag->code, $assessment->flags));
+
+        // A reload after the end, or another run's, never counts
+        $ended = RoundClock::fromStopwatch('stopped', self::moment(self::START), self::moment(self::START + 30 * self::MINUTE), 60, self::moment(self::START + 40 * self::MINUTE));
+        $after = self::assess([self::event('page.reloaded', self::START + 31 * self::MINUTE, ['goneMs' => 1_000])], clock: $ended, nowMs: self::START + 40 * self::MINUTE);
+        self::assertArrayNotHasKey(OnlineReviewFlag::PAGE_RELOADED, self::flagCounts($after));
+
+        // A reload on the second device of the link counts too - and makes it a device of the run
+        $second = self::assess([
+            self::event('device.ready', self::START - self::MINUTE, device: 'phone-a'),
+            self::event('page.reloaded', self::START + 5 * self::MINUTE, ['goneMs' => 2_000], device: 'phone-b'),
+        ]);
+        self::assertSame([OnlineReviewFlag::PAGE_RELOADED => 1, OnlineReviewFlag::TAKEOVER => 2], self::flagCounts($second));
+    }
+
+    /**
      * A run is one start of the round clock: the run that was reset (here two hours before) keeps its events, but
      * nothing of it counts - not its taps, not a tap of it that arrived late, not the device it was on, not a loss it
      * never came back from, not as the tap a confirmation is measured against

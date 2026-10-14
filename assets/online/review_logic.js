@@ -201,6 +201,22 @@ export function formatElapsed(ms) {
 }
 
 /**
+ * A `page.reloaded` event's line in the timeline (stream RP): "Page reloaded - gone for 00:00:02.3" (with tenths, like
+ * the timeline's moments) when the phone knew how long the page was gone (`goneMs`), else "Page reloaded" - the text's
+ * key and its parameters.
+ *
+ * @param {object|null} data   the event's data
+ * @returns {{key: string, params: object}}
+ */
+export function reloadedLine(data) {
+    const goneMs = data?.goneMs;
+
+    return Number.isFinite(goneMs) && goneMs >= 0
+        ? { key: 'event_page_reloaded_gone', params: { time: formatElapsed(goneMs) } }
+        : { key: 'event_page_reloaded', params: {} };
+}
+
+/**
  * The reviewer's adjustment (confirmed − tap) in seconds with a sign and a tenth: "+0.4 s", "−1.2 s", "0.0 s".
  */
 export function formatAdjustment(ms) {

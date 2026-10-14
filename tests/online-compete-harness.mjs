@@ -19,8 +19,10 @@ import {
     emptyProgress,
     fill,
     GO_SHOWN_MS,
+    goneSince,
     loadConsent,
     loadProgress,
+    markAlive,
     memoryStorage,
     nextDisplayChangeAt,
     nextPeriodicPhotoAt,
@@ -30,6 +32,9 @@ import {
     practiceState,
     readiness,
     readPieces,
+    RELOAD_DECIDE_WITHIN_MS,
+    RELOAD_GONE_MAX_MS,
+    reloadReported,
     runKeyOf,
     saveConsent,
     saveProgress,
@@ -44,6 +49,7 @@ import {
     UNDO_WINDOW_MS,
     WAKE_SCREENS,
     wakeTapNeeded,
+    wakeTapText,
 } from '../assets/online/compete_flow.js';
 import { createCompeteApi, isDeadLink, readCompeteAnswer } from '../assets/online/compete_api.js';
 import { deriveView } from '../assets/online/round_state.js';
@@ -677,6 +683,113 @@ const scenarios = {
         for (const screen of SCREENS.filter((name) => !WAKE_SCREENS.includes(name))) {
             assert.equal(wakeTapNeeded({ ...reloaded, screen }), false, screen);
         }
+    },
+
+    async '"tap here once" says what it is for by the round: the start before GO, time\'s up while it runs - never after the end (stream RP)'() {
+        const at = (roundState, serverNow) => wakeTapText(deriveView(roundState, serverNow));
+        const started = state({ startedAtMs: START });
+
+        assert.equal(at(state(), START), 'start', 'waiting for the organiser');
+        assert.equal(at(started, START - 2 * MINUTE), 'start', 'a start set');
+        assert.equal(at(started, START - 5_000), 'start', 'the countdown');
+        assert.equal(at(started, START + 500), 'timeup', 'GO - the start is behind');
+        assert.equal(at(started, START + 30 * MINUTE), 'timeup', 'running');
+        assert.equal(at(started, START + 61 * MINUTE), null, 'time is up');
+        assert.equal(at(state({ startedAtMs: START, stoppedAtMs: START + 10 * MINUTE }), START + 11 * MINUTE), null, 'ended by the organiser');
+        assert.equal(wakeTapText(null), 'start', 'no view yet: nothing has started');
+
+        // A page loaded again after the end lands on time's up or the after screen - the banner never asks there
+        // (nothing left to hear: the alarm rang on the page that was open at the end)
+        const ended = deriveView(started, START + 61 * MINUTE);
+        const reloaded = { ready: true, touched: false, soundLocked: true, wakeLock: 'idle' };
+
+        for (const progress of [
+            { ...emptyProgress(), ready: true },
+            { ...emptyProgress(), ready: true, finishes: [{ eventId: 'tap', momentMs: START + 20 * MINUTE, undone: false, continued: false }] },
+            { ...emptyProgress(), ready: true, pieces: { measure: 'left', pieces: 12 } },
+        ]) {
+            const screen = screenFor({ state: started, view: ended, consent: true, progress });
+            assert.ok(['timeup', 'after'].includes(screen), screen);
+            assert.equal(wakeTapNeeded({ ...reloaded, screen }), false, screen);
+        }
+    },
+
+    async 'after the end only time\'s up and the after screen - the practice still offered there, so its hint never says "before the round" (stream RP)'() {
+        const started = state({ startedAtMs: START });
+
+        for (const ended of [deriveView(started, START + 2 * 3_600_000), deriveView(state({ startedAtMs: START, stoppedAtMs: START + MINUTE }), START + 2 * MINUTE)]) {
+            assert.equal(ended.screen, 'ended');
+            assert.equal(practiceAllowed(ended), true, 'the practice run is still there after the round');
+
+            // Whatever this device did - never a screen of before the round (the waiting / checklist screens carry the
+            // hint; the after screen's practice comes without it - templates/compete/_screens_round.html.twig)
+            for (const consent of [true, false]) {
+                for (const progress of [emptyProgress(), { ...emptyProgress(), ready: true }, { ...emptyProgress(), ready: true, pieces: { measure: 'left', pieces: 3 } }]) {
+                    const screen = screenFor({ state: started, view: ended, consent, progress });
+                    assert.ok(['timeup', 'after'].includes(screen), `${consent} ${JSON.stringify(progress)}: ${screen}`);
+                }
+            }
+        }
+    },
+
+    async 'a page (re)opened during the round on a device that was ready leaves one trace, with how long it was gone (stream RP)'() {
+        const started = state({ startedAtMs: START });
+        const running = deriveView(started, START + 5 * MINUTE);
+
+        assert.equal(reloadReported({ ready: true, view: running }), true);
+        assert.equal(reloadReported({ ready: true, view: deriveView(started, START + 200) }), true, 'right after GO');
+        assert.equal(reloadReported({ ready: false, view: running }), false, 'never ready on this device - a first visit mid-round');
+
+        for (const [name, view] of [
+            ['waiting', deriveView(state(), START)],
+            ['a start set', deriveView(started, START - 2 * MINUTE)],
+            ['the countdown', deriveView(started, START - 3_000)],
+            ['after the end', deriveView(started, START + 61 * MINUTE)],
+            ['no view', null],
+        ]) {
+            assert.equal(reloadReported({ ready: true, view }), false, name);
+        }
+
+        assert.equal(reloadReported({ ready: true, view: running, preview: true }), false, 'an organiser\'s preview records nothing');
+        assert.equal(reloadReported({ ready: true, view: running, secondScreen: true }), false, 'a second screen records nothing');
+        assert.equal(reloadReported({ ready: true, view: running, practice: true }), false, 'a practice records nothing');
+
+        // How long the page was gone: the last alive mark of the same round on this device
+        const storage = memoryStorage();
+        assert.equal(goneSince(storage, PARTICIPANT, ROUND, START), null, 'nothing kept yet');
+        assert.equal(markAlive(storage, PARTICIPANT, ROUND, START), true);
+        assert.equal(goneSince(storage, PARTICIPANT, ROUND, START + 4_321), 4_321);
+        assert.equal(goneSince(storage, PARTICIPANT, '018d0050-0000-0000-0000-000000000999', START + 4_321), null, 'another round\'s mark');
+        assert.equal(goneSince(storage, '018d0050-0000-0000-0000-000000000999', ROUND, START + 4_321), null, 'another participant\'s');
+        assert.equal(goneSince(storage, PARTICIPANT, ROUND, START - 1), null, 'a clock that went back');
+        assert.equal(goneSince(storage, PARTICIPANT, ROUND, START + RELOAD_GONE_MAX_MS), RELOAD_GONE_MAX_MS);
+        assert.equal(goneSince(storage, PARTICIPANT, ROUND, START + RELOAD_GONE_MAX_MS + 1), null, 'too old to tell');
+        assert.equal(markAlive(storage, PARTICIPANT, null, START + 9_000), false, 'no round - nothing kept');
+        assert.equal(goneSince(storage, PARTICIPANT, ROUND, START + 4_321), 4_321);
+
+        storage.setItem(`msp-compete-alive:${PARTICIPANT}`, JSON.stringify({ roundId: ROUND, atMs: '12' }));
+        assert.equal(goneSince(storage, PARTICIPANT, ROUND, START), null, 'a mark that is no moment');
+        storage.setItem(`msp-compete-alive:${PARTICIPANT}`, '{broken');
+        assert.equal(goneSince(storage, PARTICIPANT, ROUND, START), null);
+
+        // A storage that refuses (private mode, blocked site data): nothing known, nothing breaks
+        const refusing = { getItem() { throw new Error('denied'); }, setItem() { throw new Error('denied'); } };
+        assert.equal(markAlive(refusing, PARTICIPANT, ROUND, START), false);
+        assert.equal(goneSince(refusing, PARTICIPANT, ROUND, START + 1_000), null);
+
+        // The event as the outbox keeps it - stamped with the load's moment on the synced clock
+        const stamp = { clientMs: START + 5 * MINUTE, perfMs: 812.5, offsetMs: -20.5, rttMs: 31 };
+        assert.deepEqual(buildEvent('page.reloaded', stamp, { id: 'e-1', roundId: ROUND, data: { goneMs: 4_321, screen: 'running' } }), {
+            id: 'e-1',
+            type: 'page.reloaded',
+            roundId: ROUND,
+            clientMs: START + 5 * MINUTE,
+            perfMs: 812.5,
+            offsetMs: -20.5,
+            rttMs: 31,
+            data: { goneMs: 4_321, screen: 'running' },
+        });
+        assert.equal(RELOAD_DECIDE_WITHIN_MS, 10_000, 'an unsynced clock decides by the phone\'s own after 10 s');
     },
 
     async 'the camera runs on the screens of the round and the practice only'() {

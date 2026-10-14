@@ -34,8 +34,10 @@ import {
     deviceIdFrom,
     fill,
     GO_SHOWN_MS,
+    goneSince,
     loadConsent,
     loadProgress,
+    markAlive,
     memoryStorage,
     nextDisplayChangeAt,
     nextPeriodicPhotoAt,
@@ -45,6 +47,8 @@ import {
     practiceState,
     readiness,
     readPieces,
+    RELOAD_DECIDE_WITHIN_MS,
+    reloadReported,
     runKeyOf,
     saveConsent,
     saveProgress,
@@ -55,6 +59,7 @@ import {
     undoAccepted,
     undoLeftMs,
     wakeTapNeeded,
+    wakeTapText,
 } from '../online/compete_flow.js';
 import { LOAD_RETRY_MS as VIDEO_RETRY_MS, loadSecondScreen, saveSecondScreen, videoOn } from '../online/compete_video_basics.js';
 import {
@@ -188,6 +193,11 @@ export default class extends Controller {
         this.runKey = runKeyOf(this.state);
         this.consent = loadConsent(this.storage, this.participantId);
         this.progress = loadProgress(this.storage, this.participantId, this.roundId, this.runKey);
+        // Loaded again on a device that was ready: `page.reloaded` once the clock says the round ran then (noteReload())
+        // - how long the page before it was gone is read before this one marks itself alive
+        this.reloadCheck = this.progress.ready && !this.preview
+            ? { atPerf: performance.now(), goneMs: goneSince(this.storage, this.participantId, this.roundId, Date.now()) }
+            : null;
         this.connectStatus = this.connectValue?.status ?? 'anonymous';
         this.connectFailed = false;
 
@@ -714,6 +724,7 @@ export default class extends Controller {
         this.onOffline = () => this.wentOffline();
         this.onOnline = () => this.cameOnline();
         this.onFirstTap = () => this.anyTap();
+        this.onPageHide = () => markAlive(this.storage, this.participantId, this.roundId, Date.now());
         this.onBeforeUnload = createBeforeUnloadHandler(() => this.hasUnsent()
             || (this.progress.ready && !this.preview && COMPETING_SCREENS.includes(this.screen)));
 
@@ -721,6 +732,7 @@ export default class extends Controller {
         window.addEventListener('offline', this.onOffline);
         window.addEventListener('online', this.onOnline);
         window.addEventListener('beforeunload', this.onBeforeUnload);
+        window.addEventListener('pagehide', this.onPageHide);
         this.element.addEventListener('pointerdown', this.onFirstTap, { capture: true, passive: true });
     }
 
@@ -729,6 +741,7 @@ export default class extends Controller {
         window.removeEventListener('offline', this.onOffline);
         window.removeEventListener('online', this.onOnline);
         window.removeEventListener('beforeunload', this.onBeforeUnload);
+        window.removeEventListener('pagehide', this.onPageHide);
         this.element.removeEventListener('pointerdown', this.onFirstTap, { capture: true });
     }
 
@@ -950,6 +963,7 @@ export default class extends Controller {
         }
 
         this.beating = true;
+        markAlive(this.storage, this.participantId, this.roundId, Date.now());
 
         try {
             const quality = this.clock.quality();
@@ -1411,6 +1425,7 @@ export default class extends Controller {
     visibilityChanged() {
         if (document.visibilityState === 'hidden') {
             this.hiddenAt = Date.now();
+            this.onPageHide();
 
             if (this.progress.ready) {
                 this.record('page.hidden', { screen: this.screen });
@@ -1568,6 +1583,7 @@ export default class extends Controller {
             this.showScreen(this.practice !== null ? 'practice' : screen);
             this.applyCameraWanted();
             this.effects(screen, view, serverNow);
+            this.noteReload();
             this.paint(screen, view, serverNow);
         } catch (e) {
             // The loop must go on - a broken frame is drawn again on the next one
@@ -1710,6 +1726,31 @@ export default class extends Controller {
         action();
     }
 
+    /**
+     * `page.reloaded` (compete_flow.js reloadReported()) once the clock can tell whether the round ran when this page
+     * loaded - synced, or after RELOAD_DECIDE_WITHIN_MS by the phone's own clock; stamped with the load's moment.
+     */
+    noteReload() {
+        const check = this.reloadCheck;
+
+        if (check === null || (!this.clock.quality().synced && performance.now() - check.atPerf < RELOAD_DECIDE_WITHIN_MS)) {
+            return;
+        }
+
+        this.reloadCheck = null;
+        const stamp = this.clock.stamp(check.atPerf);
+
+        if (reloadReported({
+            ready: this.progress.ready,
+            view: deriveView(this.state, stamp.clientMs),
+            preview: this.preview,
+            secondScreen: this.secondScreen,
+            practice: this.practice !== null,
+        })) {
+            this.record('page.reloaded', { goneMs: check.goneMs, screen: this.screen }, { stamp });
+        }
+    }
+
     practiceEffects(serverNow) {
         const practice = this.practice;
         const view = deriveView(practiceState(practice), serverNow);
@@ -1791,7 +1832,11 @@ export default class extends Controller {
         this.setShown('keepOpen', competing && live);
         this.setShown('afterPending', screen === 'after' && this.hasUnsent());
         this.paintDetectionReload(screen, view);
-        this.setShown('wakeTap', !this.preview && wakeTapNeeded({
+        // Its text follows the round: the start before GO, time's up while it runs - never after the end
+        const wakeFor = wakeTapText(view);
+        this.setShown('wakeTapStart', wakeFor === 'start');
+        this.setShown('wakeTapTimeUp', wakeFor === 'timeup');
+        this.setShown('wakeTap', !this.preview && wakeFor !== null && wakeTapNeeded({
             ready,
             screen,
             practice: this.practice !== null,

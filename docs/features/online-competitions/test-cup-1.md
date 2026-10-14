@@ -12,7 +12,7 @@ The cup is a **draft** event: it never appears in a public list, the personal li
 | Reviewer adjustment = confirmed moment − tap (median, IQR) | accuracy report | median under 1 s |
 | Clock agreement between phones | control room tiles ("clock ± ms" = half the best round trip - the error bound, not the offset) | every phone within ±100 ms |
 | Reviewer minutes per participant | a stopwatch on the reviewer's desk (the page itself waits < 0.4 s per participant - rehearsal) | ≤ 1.5 min |
-| Incidents: reloads, offline gaps, takeovers, camera lost, page hidden | review flags - except reloads: a reload leaves no event, ask the volunteers | each one explained |
+| Incidents: reloads, offline gaps, takeovers, camera lost, page hidden | review flags ("Page reloaded" since stream RP, with how long the page was gone in the timeline) | each one explained |
 | How it felt | volunteers' answers (below) | no blocker |
 
 ## Before - production prerequisites

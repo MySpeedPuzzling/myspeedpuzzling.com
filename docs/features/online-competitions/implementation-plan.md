@@ -131,7 +131,7 @@ The round shown is the participant's current one: a running or scheduled clock f
    "data": {"burstMediaId": "…", "photoMediaId": "…"}}]}
 ```
 
-Event types: `consent.given`, `device.ready`, `countdown.seen`, `start.seen`, `finish.candidate` (Phase 2), `finish.button`, `finish.button.undone`, `camera.lost`, `camera.back`, `page.hidden`, `page.visible`, `network.offline`, `network.online`, `timeup.pieces`, `media.uploaded`. Unknown types are refused, never fatal; idempotent by `id`.
+Event types: `consent.given`, `device.ready`, `countdown.seen`, `start.seen`, `finish.candidate` (Phase 2), `finish.button`, `finish.button.undone`, `camera.lost`, `camera.back`, `page.hidden`, `page.visible`, `network.offline`, `network.online`, `timeup.pieces`, `media.uploaded`, `detector.changed` (stream P2F), `page.reloaded` (stream RP: `{goneMs, screen}` - the page (re)opened while the round runs on a device that was ready). Unknown types are refused, never fatal; idempotent by `id`.
 
 `POST /api/compete/{token}/media` → a presigned upload
 

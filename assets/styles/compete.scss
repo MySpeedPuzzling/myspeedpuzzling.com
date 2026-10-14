@@ -221,7 +221,15 @@ html:has(.compete) body {
     min-width: 0;
 }
 
+// Who this phone is for comes first (stream RP, the rehearsal at 360 px): the person's side keeps its width - up to 70 %
+// of the bar - and the event's name takes what is left, cut with an ellipsis first
+.compete-bar-names {
+    flex: 1 1 0%;
+}
+
 .compete-bar-side {
+    flex: 0 1 auto;
+    max-width: 70%;
     align-items: flex-end;
     text-align: end;
 }
@@ -244,13 +252,25 @@ html:has(.compete) body {
 
 .compete-status {
     display: none;
-    gap: 0.5rem;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    column-gap: 0.5rem;
+    max-width: 100%;
     color: var(--compete-muted);
     font-size: 0.75rem;
 }
 
 .compete:is([data-screen='waiting'], [data-screen='countdown'], [data-screen='running'], [data-screen='finished'], [data-screen='timeup']) .compete-status {
     display: inline-flex;
+}
+
+// A status never breaks inside itself ("オンライン" across two lines - the rehearsal): the items wrap as wholes, one too
+// long for the bar on its own is cut
+.compete-status-item {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .compete-status-item:empty {

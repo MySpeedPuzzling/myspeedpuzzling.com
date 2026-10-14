@@ -247,7 +247,9 @@ One page, its screens driven by the round state:
 | **Time's up** | alarm, "Stop puzzling", pieces left (or placed - the competition's measure) if unfinished |
 | **After** | "Results after verification", link to the round results; anonymous: "Sign in to keep this result" |
 
-**Practice mode** on the same page: a personal clock ("Start a 1-minute practice") to try the set-up and the hands-up detection days before the event, without the organiser. It lowers the support load on the day and - with consent - yields footage for the bench.
+**Practice mode** on the same page: a personal clock ("Start a 1-minute practice") to try the set-up and the hands-up detection days before the event, without the organiser. It lowers the support load on the day and - with consent - yields footage for the bench. After the round the after screen still offers it, without the hint "any time before the round" (stream RP).
+
+**The top bar** (stream RP, the rehearsal at 360 px): who the phone is for comes first - the participant's side keeps its width (up to 70 % of the bar), the event's name takes what is left and is cut with an ellipsis first; a status word never breaks inside itself (the items wrap as wholes, one too long on its own is cut).
 
 **Set-up rules for participants** (today's organisers' rules, to be confirmed by the footage, S1): phone on a stand, landscape, ≥ 12" (30 cm) above the table and 3-4 ft (1-1.2 m) away, charger connected, a plain mat in a contrasting colour, the whole puzzling space, all pieces and the hands in view at all times (raised hands too), light from the side or above (no window behind the puzzle), one device per entry. With the **front camera** the screen faces the puzzler (they see the clock and their own framing); with a top-down mount the screen is out of sight - the second-screen role (§5.4, §13) covers that.
 
@@ -265,7 +267,7 @@ One page, its screens driven by the round state:
 | `ImageCapture.takePhoto()`: Chrome / Android 60, **Safari / iOS 18.4**; Firefox behind a flag | full-sensor stills are possible later; the prototype grabs frames from the 1080p stream everywhere |
 | No browser caps the camera resolution; 1080p from the front camera is normally available, 4K depends on the phone | ask for 1080p, read the real size back (`videoWidth` / `getSettings()`) and report it |
 | A page can't read the phone's temperature (Compute Pressure is desktop Chrome only); the Battery API is Chrome only | charger is a rule, not a check; frame rate adapts to the measured inference time |
-| Audio needs a user gesture; `navigator.vibrate` doesn't exist on iOS | the "I'm ready" tap unlocks the beeps; vibration is a bonus on Android |
+| Audio needs a user gesture; `navigator.vibrate` doesn't exist on iOS | the "I'm ready" tap unlocks the beeps; vibration is a bonus on Android; a page loaded again after "I'm ready" asks "Tap here once - so you hear the start …" before GO, "… so you hear time's up …" while the round runs (stream RP) and nothing after the end (time's up / the after screen have no sound left to wait for) |
 
 **Support floor (proposal):** Safari 17+ (iOS 17+) and a current Chrome on Android for the camera finish; anything older competes in button-only mode with the evidence photos it can take.
 
@@ -280,6 +282,7 @@ One page, its screens driven by the round state:
 | `finish.candidate` | raised hands detected | the finish moment(s), with the photo id |
 | `finish.button` / `finish.button.undone` | tap / "I tapped by mistake" within 10 s | fallback + delta |
 | `camera.lost` / `camera.back`, `page.hidden` / `page.visible`, `network.offline` / `online` (logged afterwards) | as they happen | flags for the review |
+| `page.reloaded` (stream RP) | a page (re)opened while the round runs, on a device that was ready - a reload, a tab the browser brought back, the link opened again; once the clock is synced (or after 10 s), stamped with the load's moment; `goneMs` = how long the page before it was gone (the last alive mark on the device: every heartbeat, hidden, `pagehide`), null when unknown. Never in a practice, a preview or on a second screen | the review's flag "Page reloaded" and its line in the timeline ("Page reloaded - gone for 00:00:02.3"); it is also the return of that device's `page.hidden` (the old page went hidden as it went) |
 | `timeup.pieces` | participant reports pieces left / placed | unfinished result |
 
 **Outbox.** Events go into IndexedDB first and are sent in batches, retried until acknowledged (`official_results_outbox.js` pattern: one sending tab, backoff, `beforeunload` warning while anything is unsent). A finish recorded offline keeps its exact time; the server marks it "arrived late" and the review sees by how much.
@@ -392,7 +395,7 @@ The reference image: the round puzzle's catalogue photo by default; the organise
 A review screen per online round (organisers, `COMPETITION_RESULTS_ENTRY`):
 
 - One row per participant: name, suggested official time, status (complete / needs a look / unfinished / no finish), flags.
-- Opening a row: the timeline (start, periodic thumbnails, candidates with photos + automated verdict, button tap, end photo), delta, flags (late arrival, camera lost, page hidden, offline gaps, takeovers).
+- Opening a row: the timeline (start, periodic thumbnails, candidates with photos + automated verdict, button tap, end photo), delta, flags (late arrival, camera lost, page hidden, offline gaps, page reloaded - stream RP, takeovers).
 - **The exact moment** (Jan: "we need the exact moment + a few seconds around, if the autodetection was not precise"). Every candidate and tap opens its finish burst as a frame scrubber - ±5 s at ~10 fps, every frame stamped on the same synced clock. If the detected moment is off, the reviewer moves it to the right frame (the hands going up - or the last piece, if the competition's rule says so). The difference between detected and confirmed moment is stored: the **detection error**, the number that tells how good the autodetection is.
 - **Suggested time rule:** the first candidate a reviewer marks complete → `floor((momentMs − startedAtMs) / 1000)` s, where the moment is the detected one unless the reviewer moved it. No complete candidate but a button tap with a complete photo → the tap's moment (scrubbable the same way). Neither → unfinished with the reported pieces (end photo next to it). With detection `on` the review opens on the **earliest of the first counting candidate and the first counting tap** - a candidate after the participant's own tap is never suggested over the tap (stream P2F; on the same millisecond the candidate). In `shadow` / `off` the suggestion is the tap (the last one that counts - what the participant's page shows) and a detected moment can not be confirmed in `shadow` (§5.7).
 - Keyboard-first: ↑/↓ participants, ←/→ candidates, `C` complete, `G` gap → next candidate, `U` unfinished. The target is P5: 100 participants in ≤ 15 min.

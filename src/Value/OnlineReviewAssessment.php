@@ -33,9 +33,11 @@ use SpeedPuzzling\Web\Results\OnlineReviewTap;
  *   phone's other events are the evidence that it was online - GetOnlineReviewData's `heard_meanwhile`); camera lost,
  *   page hidden and offline - how often and how long while the round ran (per device; a loss that began before the
  *   start counts from it once its return came in the run, a loss without its return lasts until the end when it began
- *   in the run); more than one device in the run (the one holding the entry at the start - the last ready before it -
- *   and every device that sent anything since); more than one tap that counts; taps after the end; and whatever the
- *   entry stores itself.
+ *   in the run; a page hidden comes back with the page reloaded - the new page is the one shown); the page reloaded
+ *   (stream RP: `page.reloaded` - a page (re)opened while the round ran on a device that was ready) - how often in the
+ *   run; more than one device in the run (the one holding the entry at the start - the last ready before it - and
+ *   every device that sent anything since); more than one tap that counts; taps after the end; and whatever the entry
+ *   stores itself.
  * - **Adjustment**: a confirmed moment against the tap of the run nearest to it - confirmed − tap, the reviewer's
  *   correction (the accuracy report).
  * - **Detection** (Phase 2, the accuracy report - README §5.9): the detected candidate is the counting candidate
@@ -459,17 +461,29 @@ final readonly class OnlineReviewAssessment
         if ($startMs !== null) {
             $until = $endMs ?? max($startMs, $nowMs);
             $outages = [
-                OnlineReviewFlag::CAMERA_LOST => [OnlineEventType::CameraLost, OnlineEventType::CameraBack],
-                OnlineReviewFlag::PAGE_HIDDEN => [OnlineEventType::PageHidden, OnlineEventType::PageVisible],
-                OnlineReviewFlag::OFFLINE => [OnlineEventType::NetworkOffline, OnlineEventType::NetworkOnline],
+                OnlineReviewFlag::CAMERA_LOST => [OnlineEventType::CameraLost, [OnlineEventType::CameraBack]],
+                // The old page went hidden as it was reloaded - the new one is shown: the reload is the return
+                OnlineReviewFlag::PAGE_HIDDEN => [OnlineEventType::PageHidden, [OnlineEventType::PageVisible, OnlineEventType::PageReloaded]],
+                OnlineReviewFlag::OFFLINE => [OnlineEventType::NetworkOffline, [OnlineEventType::NetworkOnline]],
             ];
 
-            foreach ($outages as $code => [$down, $up]) {
-                $outage = self::outage($events, $down, $up, $startMs, $until);
+            foreach ($outages as $code => [$down, $ups]) {
+                $outage = self::outage($events, $down, $ups, $startMs, $until);
 
                 if ($outage !== null) {
                     $flags[] = new OnlineReviewFlag($code, count: $outage[0], seconds: intdiv($outage[1], 1000));
                 }
+            }
+
+            $reloads = count(array_filter(
+                $events,
+                static fn (array $event): bool => $event['type'] === OnlineEventType::PageReloaded->value
+                    && $event['client_ms'] >= $startMs
+                    && $event['client_ms'] <= $until,
+            ));
+
+            if ($reloads > 0) {
+                $flags[] = new OnlineReviewFlag(OnlineReviewFlag::PAGE_RELOADED, count: $reloads);
             }
         }
 
@@ -530,14 +544,16 @@ final readonly class OnlineReviewAssessment
 
     /**
      * How often and how long (ms) something was down while the round ran: per device, from a `down` event to the next
-     * `up` one, counted from the start of the window. A down without its up lasts until the end of the window - when it
-     * came in the run: one from before the start may be an earlier run's, and a later down of the same device in the
-     * run means it came back meanwhile (a reload records no return). Null when it never was.
+     * of the `up` ones, counted from the start of the window. A down without its up lasts until the end of the window -
+     * when it came in the run: one from before the start may be an earlier run's, and a later down of the same device in
+     * the run means it came back meanwhile (a page of before stream RP recorded no return at a reload). Null when it
+     * never was.
      *
      * @param list<OnlineReviewEventRow> $events by moment
+     * @param list<OnlineEventType> $up
      * @return null|array{0: int, 1: int} count, milliseconds
      */
-    private static function outage(array $events, OnlineEventType $down, OnlineEventType $up, int $fromMs, int $untilMs): null|array
+    private static function outage(array $events, OnlineEventType $down, array $up, int $fromMs, int $untilMs): null|array
     {
         /** @var array<string, int> $openSince device => when it went down */
         $openSince = [];
@@ -550,7 +566,7 @@ final readonly class OnlineReviewAssessment
                 if (!isset($openSince[$device]) || ($openSince[$device] < $fromMs && $event['client_ms'] >= $fromMs)) {
                     $openSince[$device] = $event['client_ms'];
                 }
-            } elseif ($event['type'] === $up->value && isset($openSince[$device])) {
+            } elseif (isset($openSince[$device]) && in_array(OnlineEventType::tryFrom($event['type']), $up, true)) {
                 $intervals[] = [$openSince[$device], $event['client_ms']];
                 unset($openSince[$device]);
             }

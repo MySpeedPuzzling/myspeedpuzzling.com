@@ -88,7 +88,7 @@ final class LiveResultsPageTest extends WebTestCase
 
         $plurals = json_decode((string) $root->attr('data-live-results-plurals-value'), true, flags: JSON_THROW_ON_ERROR);
         self::assertIsArray($plurals);
-        self::assertSame(['message' => '{1}1 waiting|]1,Inf[%count% waiting', 'locale' => 'en'], $plurals['waiting']);
+        self::assertSame(['message' => '{1}1 waiting|[0,Inf[%count% waiting', 'locale' => 'en'], $plurals['waiting']);
 
         // The round picker lists every round of the event, this one selected
         self::assertSame(['Group A', 'Group B', 'Pairs', 'Final', 'Pairs Final'], $crawler->filter('select[data-live-results-target="roundSelect"] option')->each(static fn (Crawler $option): string => trim($option->text())));

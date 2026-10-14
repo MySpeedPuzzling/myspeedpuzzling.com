@@ -373,13 +373,13 @@ organization_rejected:
     button: "„Von Ihnen organisiert“ öffnen"
 
 activity_digest:
-    achievement_teaser: "{1}Du hast einen Erfolg verdient. Werde Mitglied, um herauszufinden, welchen.|]1,Inf[Du hast %count% Erfolge verdient. Werde Mitglied, um herauszufinden, welche."
+    achievement_teaser: "{1}Du hast einen Erfolg verdient. Werde Mitglied, um herauszufinden, welchen.|[0,Inf[Du hast %count% Erfolge verdient. Werde Mitglied, um herauszufinden, welche."
     become_member: "Mitglied werden"
     button:
         month: "Deinen Monat ansehen"
         two_weeks: "Deine zwei Wochen ansehen"
         week: "Deine Woche ansehen"
-    favorite_solves: "{1}1 Puzzle|]1,Inf[%count% Puzzles"
+    favorite_solves: "{1}1 Puzzle|[0,Inf[%count% Puzzles"
     favorites_title: "Deine Lieblings-Puzzler"
     footer:
         change: "E-Mails ändern"
@@ -387,7 +387,7 @@ activity_digest:
         monthly: "Du bekommst diese E-Mail am ersten Montag im Monat."
         unsubscribe: "Abmelden"
         weekly: "Du bekommst diese E-Mail jeden Montag."
-    karma: "{1}Danke: 1 deiner Beiträge zur Puzzle-Datenbank wurde angenommen.|]1,Inf[Danke: %count% deiner Beiträge zur Puzzle-Datenbank wurden angenommen."
+    karma: "{1}Danke: 1 deiner Beiträge zur Puzzle-Datenbank wurde angenommen.|[0,Inf[Danke: %count% deiner Beiträge zur Puzzle-Datenbank wurden angenommen."
     level: "Level %level%"
     level_up: "Level %from% → %to%"
     mark:
@@ -406,19 +406,19 @@ activity_digest:
         subject: "Deine Puzzles vermissen dich"
         title: "Wir vermissen deine Zeiten, %name%"
     most_solved: "Am häufigsten gelegt in der Community:"
-    most_solved_count: "{1}(1 Puzzler)|]1,Inf[(%count% Puzzler)"
+    most_solved_count: "{1}(1 Puzzler)|[0,Inf[(%count% Puzzler)"
     new_achievement: "Neu: %achievement%"
     preheader:
         achievement: "Neuer Erfolg: %achievement% – und der Rest deiner Woche."
         achievement_locked: "Du hast einen Erfolg verdient – und hier ist der Rest deiner Woche."
         level: "Du hast Level %level% erreicht – so hast du es geschafft."
-        numbers: "{1}1 Puzzle, %pieces% Teile – deine Woche in einer kurzen E-Mail.|]1,Inf[%count% Puzzles, %pieces% Teile – deine Woche in einer kurzen E-Mail."
+        numbers: "{1}1 Puzzle, %pieces% Teile – deine Woche in einer kurzen E-Mail.|[0,Inf[%count% Puzzles, %pieces% Teile – deine Woche in einer kurzen E-Mail."
         personal_best: "Eine neue persönliche Bestzeit bei %puzzle% – und mehr aus deiner Woche."
-        rating: "{1}1 Platz höher im MSP Rating – und mehr aus deiner Woche.|]1,Inf[%count% Plätze höher im MSP Rating – und mehr aus deiner Woche."
+        rating: "{1}1 Platz höher im MSP Rating – und mehr aus deiner Woche.|[0,Inf[%count% Plätze höher im MSP Rating – und mehr aus deiner Woche."
     puzzler: "Puzzler"
     rating: "MSP Rating: #%rank% von %total%"
-    rating_down: "{1}1 Platz tiefer|]1,Inf[%count% Plätze tiefer"
-    rating_up: "{1}1 Platz höher|]1,Inf[%count% Plätze höher"
+    rating_down: "{1}1 Platz tiefer|[0,Inf[%count% Plätze tiefer"
+    rating_up: "{1}1 Platz höher|[0,Inf[%count% Plätze höher"
     results_title: "Highlights"
     skill_tier: "Neue Skill-Stufe bei %pieces% Teilen: %tier%"
     stat:

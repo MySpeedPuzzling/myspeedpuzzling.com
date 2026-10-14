@@ -30,9 +30,17 @@ use Twig\NodeVisitor\NodeVisitorInterface;
  * which is most of the indentation left in a member's chrome (~450 B; the avatar's is ~25 B). On its three page
  * scanners (the add form, the scanner panel, multiscan) the collapse changes no element and no attribute value -
  * flex containers and buttons, nothing whitespace-sensitive (ChromeWhitespaceTest checks it like every listed one).
+ *
+ * The navigation's critical CSS (navigation/_critical_css.html.twig: plain CSS, one rule per line, no Twig output) is
+ * compacted instead (compactCss()): the line breaks between its rules go, `@media (` loses its space, and neighbouring
+ * rules with the same media query - or the same selector - become one. The same rules in the same order, so the
+ * cascade is the one the source reads; the tests keep reading the source's lines.
  */
 final class ChromeWhitespace implements NodeVisitorInterface
 {
+    /** Compacted as CSS (compactCss()) */
+    public const string CRITICAL_CSS = 'navigation/_critical_css.html.twig';
+
     /** Exact template names, and prefixes ending in "/" */
     public const array TEMPLATES = [
         'base.html.twig',
@@ -68,12 +76,80 @@ final class ChromeWhitespace implements NodeVisitorInterface
         return (string) preg_replace('~\A[ \t]{2,}|[ \t]{2,}\z~', ' ', $text);
     }
 
+    /**
+     * Plain CSS written one rule per line → the same rules without the line breaks between them: `@media (` → `@media(`,
+     * and two neighbouring rules with the same @media query, or the same selector, one rule (bodies in order). Other
+     * at-rules (@font-face, @property, @supports, @keyframes) are never merged. Strings and comments are copied as they are.
+     */
+    public static function compactCss(string $css): string
+    {
+        /** @var list<array{string, string}> $rules prelude, body */
+        $rules = [];
+        $length = strlen($css);
+        $start = 0;
+        $depth = 0;
+        $open = null;
+
+        for ($index = 0; $index < $length; $index++) {
+            $char = $css[$index];
+
+            if ($char === '"' || $char === "'") {
+                // A string (an escaped quote does not end it)
+                for ($index++; $index < $length && $css[$index] !== $char; $index++) {
+                    $index += $css[$index] === '\\' ? 1 : 0;
+                }
+            } elseif ($char === '/' && ($css[$index + 1] ?? '') === '*') {
+                $end = strpos($css, '*/', $index + 2);
+                $index = $end === false ? $length : $end + 1;
+            } elseif ($char === '{') {
+                if ($depth === 0) {
+                    $open = $index;
+                }
+
+                $depth++;
+            } elseif ($char === '}' && $depth > 0) {
+                $depth--;
+
+                if ($depth === 0 && $open !== null) {
+                    $rules[] = [self::oneLine(substr($css, $start, $open - $start)), self::oneLine(substr($css, $open + 1, $index - $open - 1))];
+                    $start = $index + 1;
+                }
+            }
+        }
+
+        $tail = self::oneLine(substr($css, $start));
+        $merged = [];
+
+        foreach ($rules as [$prelude, $body]) {
+            $prelude = (string) preg_replace('~^@media\s+\(~', '@media(', $prelude);
+            $last = array_key_last($merged);
+
+            if ($last !== null && $merged[$last][0] === $prelude && (str_starts_with($prelude, '@media') || !str_starts_with($prelude, '@'))) {
+                $merged[$last][1] .= (str_starts_with($prelude, '@') || str_ends_with($merged[$last][1], ';') ? '' : ';') . $body;
+
+                continue;
+            }
+
+            $merged[] = [$prelude, $body];
+        }
+
+        return implode('', array_map(static fn (array $rule): string => $rule[0] . '{' . $rule[1] . '}', $merged)) . $tail;
+    }
+
+    /** A line break inside a rule (none in the source today) reads as a space; around the rule it goes */
+    private static function oneLine(string $css): string
+    {
+        return trim((string) preg_replace('~\s*\n\s*~', ' ', $css));
+    }
+
     public function enterNode(Node $node, Environment $env): Node
     {
-        if ($node instanceof TextNode && self::appliesTo((string) $node->getSourceContext()?->getName())) {
+        $template = (string) $node->getSourceContext()?->getName();
+
+        if ($node instanceof TextNode && self::appliesTo($template)) {
             $data = $node->getAttribute('data');
             assert(is_string($data));
-            $node->setAttribute('data', self::collapse($data));
+            $node->setAttribute('data', $template === self::CRITICAL_CSS ? self::compactCss($data) : self::collapse($data));
         }
 
         return $node;

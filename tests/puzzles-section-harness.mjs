@@ -1,8 +1,8 @@
 // Runs assets/puzzles_section.js (the Puzzles place opens the section used last, docs/features/navigation PUZ-01)
 // through the scenarios tests/PuzzlesSectionScriptTest.php asks for and prints one JSON object of results. Storage is a
-// Map-backed fake (or one that throws, like blocked site data); the document is a fake with the two queries the module
-// makes: <main data-puzzles-section> and the Puzzles place links; the window a fake whose events the cases fire
-// (pageshow, storage).
+// Map-backed fake (or one that throws, like blocked site data); the document is a fake with the queries the module
+// makes: <main data-puzzles-section>, the first Puzzles place link carrying the sections and every Puzzles place link;
+// the window a fake whose events the cases fire (pageshow, storage).
 
 import {
     applyPuzzlesSection,
@@ -70,8 +70,14 @@ function doc(section, links, readyState = 'complete') {
 
     return {
         readyState,
-        querySelector: (selector) => (selector === 'main[data-puzzles-section]' ? main : null),
-        querySelectorAll: (selector) => (selector === 'a[data-nav-place="puzzles"][data-puzzles-sections]' ? links.filter((l) => l.getAttribute('data-puzzles-sections') !== null) : []),
+        querySelector: (selector) => {
+            if (selector === 'main[data-puzzles-section]') {
+                return main;
+            }
+
+            return selector === 'a[data-nav-place="puzzles"][data-puzzles-sections]' ? links.find((l) => l.getAttribute('data-puzzles-sections') !== null) || null : null;
+        },
+        querySelectorAll: (selector) => (selector === 'a[data-nav-place="puzzles"]' ? links : []),
         addEventListener: (type, listener) => {
             (listeners[type] = listeners[type] || []).push(listener);
         },
@@ -101,8 +107,9 @@ results.key = PUZZLES_SECTION_KEY;
 {
     const s = storage();
     const member = link(MEMBER.library, MEMBER);
-    // The docked Menu's place row has the tab's server default too (review PUZ+COM F2): nothing to change
-    const dockRow = link(MEMBER.library, MEMBER);
+    // The docked Menu's place row has the tab's server default too (review PUZ+COM F2): nothing to change. The page's
+    // first place link carries the sections, the others none (weight diet 2026-10-14)
+    const dockRow = link(MEMBER.library, null);
     const guest = link(GUEST.all, GUEST);
     const changedMember = applyPuzzlesSection(doc(null, [member, dockRow]), s);
     const changedGuest = applyPuzzlesSection(doc(null, [guest]), s);
@@ -114,11 +121,11 @@ results.key = PUZZLES_SECTION_KEY;
 {
     const s = storage();
     applyPuzzlesSection(doc('marketplace', [link(MEMBER.library, MEMBER)]), s);
-    const tab = link(MEMBER.library, MEMBER);
     const compact = link(MEMBER.library, MEMBER);
-    const dockRow = link(MEMBER.library, MEMBER);
-    const changed = applyPuzzlesSection(doc(null, [tab, compact, dockRow]), s);
-    const again = applyPuzzlesSection(doc(null, [tab, compact, dockRow]), s);
+    const tab = link(MEMBER.library, null);
+    const dockRow = link(MEMBER.library, null);
+    const changed = applyPuzzlesSection(doc(null, [compact, tab, dockRow]), s);
+    const again = applyPuzzlesSection(doc(null, [compact, tab, dockRow]), s);
 
     results.remembered = { tab: tab.href(), compact: compact.href(), dockRow: dockRow.href(), changed, again, read: readSection(s) };
 }
@@ -171,8 +178,11 @@ results.key = PUZZLES_SECTION_KEY;
     broken.setAttribute('data-puzzles-sections', '{not json');
     const s = storage();
     recordSection(s, 'marketplace');
-    const changed = applyPuzzlesSection(doc(null, [broken]), s);
-    results.hostile = { parsed, brokenParsed: parseSections('{not json'), nullParsed: parseSections(null), changed, href: broken.href() };
+    const changed = applyPuzzlesSection(doc(null, [broken, link('/en/puzzle', null)]), s);
+    // No link of the page carries the sections: the links keep the server's default
+    const bare = link('/en/puzzle', null);
+    const noCarrier = applyPuzzlesSection(doc(null, [bare]), s);
+    results.hostile = { parsed, brokenParsed: parseSections('{not json'), nullParsed: parseSections(null), changed, href: broken.href(), noCarrier, bareHref: bare.href() };
 }
 
 // An unknown stored value is no section: the default

@@ -61,13 +61,13 @@
     {%- if profile is not null %} data-viewer-signed-in{% endif %}>
     <div class="site-header-inner">
         <a class="site-header-tool site-header-menu site-header-menu--desk" href="{{ path('menu') }}" data-bar-action="{{ bar_action('menu') }}" data-nav="topbar/none/menu" data-press="fixed" aria-label="{{ menu_name }}"{% if menu_page %} aria-current="page"{% else %} aria-haspopup="dialog" aria-expanded="false"{% endif %} aria-controls="site-menu" data-nav-fold-label="{{ 'nav.layout.fold'|trans }}" data-nav-dock-label="{{ 'nav.layout.dock'|trans }}">
-            <svg class="nav-i" aria-hidden="true" focusable="false"><use href="#nav-i-list"></use></svg>
+            <svg class="nav-i" aria-hidden="true"><use href="#nav-i-list"/></svg>
             <span class="site-header-menu-label" aria-hidden="true">{{ 'nav.bar.menu'|trans }}</span>
             {%- if menu_dot %}<span class="nav-menu-dot" aria-hidden="true"></span>{% endif -%}
         </a>
         {%- if back -%}
             <a class="site-header-tool site-header-back standalone-only" href="{{ back_href }}" data-action="topbar#back" data-nav="topbar/none/back" data-press="fixed" aria-label="{{ 'nav.bar.back'|trans }}">
-                <svg class="nav-i" aria-hidden="true" focusable="false"><use href="#nav-i-arrow-left"></use></svg>
+                <svg class="nav-i" aria-hidden="true"><use href="#nav-i-arrow-left"/></svg>
             </a>
         {%- endif -%}
         <a class="site-header-logo" href="{{ home_href }}" data-nav="topbar/home/logo" aria-label="{{ 'nav.bar.home_logo'|trans }}">
@@ -80,23 +80,23 @@
         <twig:GlobalSearch />
         {{- include('navigation/_stopwatch_pill.html.twig') -}}
         <a class="site-header-tool site-search-icon" href="{{ path('puzzles') }}" data-global-search-toggle data-bar-action="{{ bar_action('search') }}" data-nav="topbar/none/search" data-press="fixed" aria-label="{{ 'nav.bar.search_label'|trans }}">
-            <svg class="nav-i" aria-hidden="true" focusable="false"><use href="#nav-i-search"></use></svg>
+            <svg class="nav-i" aria-hidden="true"><use href="#nav-i-search"/></svg>
         </a>
         <a class="site-header-add" href="{{ add_entry_url() }}" data-nav="topbar/add/add" data-press="fixed">
-            <svg class="nav-i" aria-hidden="true" focusable="false"><use href="#nav-i-plus-lg"></use></svg>
+            <svg class="nav-i" aria-hidden="true"><use href="#nav-i-plus-lg"/></svg>
             <span class="site-header-add-label">{{ 'nav.bar.add'|trans }}</span>
         </a>
         {#- One help opener: ? on phones and in the compact bar, Feedback from 1024 px (its label from 1200 px - part of the
             accessible name "Help & feedback") -#}
         <a class="site-header-tool site-header-help" href="{{ help_path() }}" {{ help_opener_attrs() }} data-bar-action="{{ bar_action('help') }}" data-nav="topbar/none/help" data-press="fixed" aria-label="{{ 'nav.bar.help'|trans }}">
-            <svg class="nav-i site-header-help-q" aria-hidden="true" focusable="false"><use href="#nav-i-question-circle"></use></svg>
-            <svg class="nav-i site-header-help-fb" aria-hidden="true" focusable="false"><use href="#nav-i-chat-square-text"></use></svg>
+            <svg class="nav-i site-header-help-q" aria-hidden="true"><use href="#nav-i-question-circle"/></svg>
+            <svg class="nav-i site-header-help-fb" aria-hidden="true"><use href="#nav-i-chat-square-text"/></svg>
             <span class="site-header-label" aria-hidden="true">{{ 'nav.bar.feedback'|trans }}</span>
         </a>
         {%- if profile is not null -%}
             {% embed 'inbox/_link.html.twig' with {nav: 'topbar/none/inbox', class: 'site-header-tool', surface: 'topbar', press: 'fixed'} only %}
                 {% block content %}
-                    <svg class="nav-i" aria-hidden="true" focusable="false"><use href="#nav-i-inbox"></use></svg>
+                    <svg class="nav-i" aria-hidden="true"><use href="#nav-i-inbox"/></svg>
                     {{- include('inbox/_badge.html.twig', {part: 'total', parts: parts, class: ''}) -}}
                     <span class="site-header-label" aria-hidden="true">{{ 'inbox.title'|trans }}</span>
                 {% endblock %}
@@ -106,7 +106,7 @@
             <a class="site-header-signin" href="{{ sign_in_href }}" rel="nofollow" data-nav="topbar/profile/sign_in" data-press="fixed">{{ 'nav.bar.sign_in'|trans }}</a>
         {%- endif -%}
         <a class="site-header-tool site-header-menu site-header-menu--phone" href="{{ path('menu') }}" data-bar-action="{{ bar_action('menu') }}" data-nav="topbar/none/menu" data-press="fixed" aria-label="{{ menu_name }}"{% if menu_page %} aria-current="page"{% else %} aria-haspopup="dialog" aria-expanded="false"{% endif %}>
-            <svg class="nav-i" aria-hidden="true" focusable="false"><use href="#nav-i-list"></use></svg>
+            <svg class="nav-i" aria-hidden="true"><use href="#nav-i-list"/></svg>
             {%- if menu_dot %}<span class="nav-menu-dot" aria-hidden="true"></span>{% endif -%}
         </a>
     </div>

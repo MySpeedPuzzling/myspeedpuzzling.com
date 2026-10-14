@@ -15,7 +15,7 @@
 {%- if not (nav_menu_slot_off ?? false) -%}
 {%- set menu_paths = ['cs', 'en', 'de', 'es', 'fr', 'ja']|map(locale => path('menu', {_locale: locale})) -%}
 <dialog id="menu-layer" class="menu-layer" aria-labelledby="menu-layer-title" data-controller="menu-layer"
-    data-menu-paths="{{ menu_paths|json_encode(constant('JSON_UNESCAPED_SLASHES')) }}"
+    data-menu-paths={{ menu_paths|json_attribute }}
     data-menu-layer-place-value="{{ nav_location().place.value }}">
     <div class="menu-layer-header">
         {#- -#}<button type="button" class="menu-layer-close" data-menu-layer-target="close" data-action="menu-layer#close" data-nav="menu/none/close" aria-label="{{ 'nav.menu.close'|trans }}"><i class="bi bi-x-lg" aria-hidden="true"></i></button>

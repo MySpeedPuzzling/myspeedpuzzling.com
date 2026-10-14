@@ -133,7 +133,7 @@ $nav-collapsible-groups: roles, puzzling, library, add, account, help, about;
         line-height: 1.2;
     }
 
-    .menu-list {
+    .menu-group > :where(ul) {
         grid-area: 2 / 1;
     }
 

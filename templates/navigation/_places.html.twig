@@ -5,30 +5,32 @@
     current), guests a person icon. Each icon is rendered in outline and filled (the sprite of _icons.html.twig): CSS
     shows the filled one on the current tab - and on .is-pending, the tab GEST-04 marks on tap before Turbo answers.
     Labels (.nav-tab-label) never truncate: NAV-02 picks 11 px, 10 px or "current label only" (data-label-step).
-    Puzzles carries its sections' links (data-puzzles-sections, PUZ-01): assets/puzzles_section.js points it at the
-    section used last (default: My library for players, All puzzles for guests - its server-rendered href); on its four
-    section start pages it is "page" (they record themselves first, so it leads there - PlacesBuilder).
+    Puzzles carries its sections' links (data-puzzles-sections, PUZ-01 - on the page's first Puzzles place link only,
+    nav_puzzles_sections_carrier()): assets/puzzles_section.js points every Puzzles place link at the section used last
+    (default: My library for players, All puzzles for guests - its server-rendered href); on its four section start
+    pages it is "page" (they record themselves first, so it leads there - PlacesBuilder).
     `variant`: bar (the phone tab bar, default - from 1024 px also the desktop rail, NAV-13: the same #bottom-nav restyled,
     Add hidden, a guest's Profile (.has-rail-label) shows its second label .nav-rail-label "Sign in" there and CSS hides
     the tab word - display: none, so the link's name is the label shown), rail (the four places alone), compact (NAV-04: Home ·
     Puzzles · Community in the 768-1023 px top bar - its links are the top bar's, data-nav topbar/places/<id>).
-    Chrome markup rules (implementation plan §3.2): own prefixes (nav-*), no heading, no form; data-nav on every link. -#}
+    Chrome markup rules (implementation plan §3.2): own prefixes (nav-*), no heading, no form; data-nav on every link.
+    The item says only what the rail styles (.nav-place--add: no Add there); the link carries the place (nav-tab--<id>). -#}
 {%- set variant = variant|default('bar') -%}
 {%- set nav_surface = variant == 'compact' ? 'topbar' : 'tabbar' -%}
 <ul class="nav-places nav-places--{{ variant }}">
 {%- for place in nav_places(nav_location(), variant) -%}
     {%- set id = place.place.value -%}
-    <li class="nav-place nav-place--{{ id }}">
+    <li class="nav-place{{ id == 'add' ? ' nav-place--add' }}">
         {#- -#}<a class="nav-tab nav-tab--{{ id }}{{ place.railLabel is not null ? ' has-rail-label' }}" href="{{ place.href }}" data-nav-place="{{ id }}" data-nav="{{ nav_surface }}/places/{{ id }}" data-press="fixed"
         {%- if place.current %} aria-current="{{ place.current }}"{% endif %}
         {%- if place.nofollow %} rel="nofollow"{% endif %}
-        {%- if id == 'puzzles' %} data-puzzles-sections="{{ nav_puzzles_sections()|json_encode(constant('JSON_UNESCAPED_SLASHES') b-or constant('JSON_UNESCAPED_UNICODE')) }}"{% endif %}>
+        {%- if id == 'puzzles' and nav_puzzles_sections_carrier() %} data-puzzles-sections={{ nav_puzzles_sections()|json_attribute }}{% endif %}>
         {#- -#}<span class="nav-tab-icon" aria-hidden="true">
         {%- if place.avatar is not null -%}
             {{- include('_player_avatar.html.twig', {player_id: place.avatar.playerId, name: place.avatar.playerName ?? ('#' ~ place.avatar.code), avatar: place.avatar.avatar, country_code: null}, with_context = false) -}}
         {%- else -%}
-            <svg class="nav-i"><use href="#{{ place.symbol }}"></use></svg>
-            {%- if place.filledSymbol is not null -%}<svg class="nav-i nav-i--fill"><use href="#{{ place.filledSymbol }}"></use></svg>{%- endif -%}
+            <svg class="nav-i"><use href="#{{ place.symbol }}"/></svg>
+            {%- if place.filledSymbol is not null -%}<svg class="nav-i nav-i--fill"><use href="#{{ place.filledSymbol }}"/></svg>{%- endif -%}
         {%- endif -%}
         </span>
         {#- -#}<span class="nav-tab-label">{{ place.label|trans }}</span>

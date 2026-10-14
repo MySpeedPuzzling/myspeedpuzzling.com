@@ -40,7 +40,9 @@
     color: var(--nav-label, #5f6b80);
 }
 
-.menu-list {
+// A group's rows: the <ul> right inside .menu-group (no class of its own - it repeats in every group on every page, the
+// chrome's weight, README §4.12); :where() keeps the weight of one class, as .menu-list had
+.menu-group > :where(ul) {
     margin: 0;
     padding: 0;
     list-style: none;

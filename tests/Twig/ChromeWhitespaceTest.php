@@ -229,6 +229,52 @@ final class ChromeWhitespaceTest extends WebTestCase
     }
 
     /**
+     * @return iterable<string, array{string, string}>
+     */
+    public static function css(): iterable
+    {
+        yield 'line breaks between rules' => [".a{x:1}\n.b{y:2}\n", '.a{x:1}.b{y:2}'];
+        yield 'the space after @media' => ['@media (min-width:768px){.a{x:1}}', '@media(min-width:768px){.a{x:1}}'];
+        yield 'neighbouring rules of one media query' => ["@media (a){.x{p:1}}\n@media (a){.y{q:2}}", '@media(a){.x{p:1}.y{q:2}}'];
+        yield 'neighbouring rules of one selector' => [":root{--a:1}\n:root{--b:2;}\n:root{--c:3}", ':root{--a:1;--b:2;--c:3}'];
+        yield 'never across another rule' => ["@media (a){.x{p:1}}\n.y{q:2}\n@media (a){.z{r:3}}", '@media(a){.x{p:1}}.y{q:2}@media(a){.z{r:3}}'];
+        yield 'other queries stay apart' => ["@media (a){.x{p:1}}\n@media (b){.x{p:2}}", '@media(a){.x{p:1}}@media(b){.x{p:2}}'];
+        yield 'other at-rules never merge' => [
+            "@font-face{font-family:A}\n@font-face{font-family:B}\n@supports not selector(:has(a)){.x{p:1}}\n@supports not selector(:has(a)){.y{p:1}}",
+            '@font-face{font-family:A}@font-face{font-family:B}@supports not selector(:has(a)){.x{p:1}}@supports not selector(:has(a)){.y{p:1}}',
+        ];
+        yield 'strings and comments keep their braces' => ["@property --x{syntax:'<a{b>';inherits:true}\n.a{content:\"}\\\"{\"}\n/* { */.b{c:d}", "@property --x{syntax:'<a{b>';inherits:true}.a{content:\"}\\\"{\"}/* { */.b{c:d}"];
+        yield 'a line break inside a rule reads as a space' => ["@media (a)\n  and (b){.x{p:1}}", '@media(a) and (b){.x{p:1}}'];
+        yield 'nothing' => ['', ''];
+    }
+
+    #[DataProvider('css')]
+    public function testCompactCss(string $css, string $expected): void
+    {
+        self::assertSame($expected, ChromeWhitespace::compactCss($css));
+    }
+
+    /**
+     * The navigation's critical CSS is compacted, not collapsed: it renders as compactCss() of its source - the rules of
+     * the source (NavLayoutCssTest reads its lines), in one text node: no Twig code in it but its comment. Chromium read
+     * both to the same 590 declarations in the same order and context (weight diet 2026-10-14).
+     */
+    public function testTheCriticalCssRendersCompacted(): void
+    {
+        $source = (string) file_get_contents($this->templates() . ChromeWhitespace::CRITICAL_CSS);
+        $css = trim((string) preg_replace('~\{#.*?#\}~s', '', $source));
+        self::assertDoesNotMatchRegularExpression('~\{[{%]~', $css, 'Plain CSS: no Twig output or tag');
+
+        $twig = new Environment(new ArrayLoader([ChromeWhitespace::CRITICAL_CSS => $source]));
+        $twig->addExtension(new ChromeWhitespaceTwigExtension());
+        $rendered = $twig->render(ChromeWhitespace::CRITICAL_CSS);
+
+        self::assertSame(ChromeWhitespace::compactCss($css), trim($rendered));
+        self::assertStringNotContainsString("\n", trim($rendered));
+        self::assertLessThan(strlen($css), strlen($rendered));
+    }
+
+    /**
      * A guest's /en/faq (no avatar - _player_avatar and XpRing are shared with page content, not listed): no indentation
      * left in the bars, the Menu and its shell. Two text nodes may leave a space each (" " + " ").
      */

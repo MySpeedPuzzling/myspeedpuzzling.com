@@ -21,7 +21,7 @@
         {#- -#}<twig:XpRing :player="profile" variant="nav">
             {{- include('_player_avatar.html.twig', {player_id: profile.playerId, name: profile.playerName ?? ('#' ~ profile.code), avatar: profile.avatar, country_code: null, size: 'lg'}, with_context = false) -}}
         </twig:XpRing>
-        {#- -#}<svg class="nav-i nav-account-caret" aria-hidden="true" focusable="false"><use href="#nav-i-chevron-down"></use></svg>
+        {#- -#}<svg class="nav-i nav-account-caret" aria-hidden="true"><use href="#nav-i-chevron-down"/></svg>
     {#- -#}</button>
     {#- -#}<div class="dropdown-menu dropdown-menu-end nav-account-menu">
         {#- -#}<p class="nav-account-head">

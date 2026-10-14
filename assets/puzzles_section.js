@@ -6,9 +6,10 @@
  *   (base.html.twig - the four start pages and your own library's lists; object pages say nothing) and it is kept in
  *   localStorage `msp:puzzles-section`.
  * - Applying: every Puzzles place link - the tab bar / rail, the 768-1023 px top bar's places, the docked Menu's place
- *   row - carries its sections' links (`data-puzzles-sections`, server-rendered for the viewer: guests have no
- *   `library`) and gets the remembered one as its href; with nothing remembered (or a section the viewer has not, e.g.
- *   a guest after signing out) the default: My library for players, All puzzles for guests.
+ *   row - gets the remembered section's link as its href. The links (`data-puzzles-sections`, server-rendered for the
+ *   viewer: guests have no `library`) ride on the page's first Puzzles place link only (the chrome's weight, README
+ *   §4.12); with nothing remembered (or a section the viewer has not, e.g. a guest after signing out) the default: My
+ *   library for players, All puzzles for guests.
  *
  * Runs on every `turbo:load` (the first page load included), so the links are right before the next tap; a tap before
  * it uses the server's link (accepted, plan PUZ-01). Two cases bring a page back without `turbo:load` (review PUZ+COM
@@ -105,14 +106,21 @@ function pageSection(doc) {
     return isSection(value) ? value : null;
 }
 
-/** Points every Puzzles place link at the section's link (the default for null). Returns the number of links changed */
+/**
+ * Points every Puzzles place link at the section's link (the default for null), read from the page's link that carries
+ * the sections. Returns the number of links changed
+ */
 function pointPlaceLinks(doc, section) {
+    const carrier = doc.querySelector('a[data-nav-place="puzzles"][data-puzzles-sections]');
+    const href = carrier ? targetHref(parseSections(carrier.getAttribute('data-puzzles-sections')), section) : null;
     let changed = 0;
 
-    for (const link of doc.querySelectorAll('a[data-nav-place="puzzles"][data-puzzles-sections]')) {
-        const href = targetHref(parseSections(link.getAttribute('data-puzzles-sections')), section);
+    if (!href) {
+        return changed;
+    }
 
-        if (href && link.getAttribute('href') !== href) {
+    for (const link of doc.querySelectorAll('a[data-nav-place="puzzles"]')) {
+        if (link.getAttribute('href') !== href) {
             link.setAttribute('href', href);
             changed += 1;
         }

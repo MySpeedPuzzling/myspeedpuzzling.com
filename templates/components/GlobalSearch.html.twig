@@ -59,7 +59,7 @@
             and after every Live re-render) · scan; × closes the opened search (phones and the 768-1023 px bar). -#}
         <div class="site-search-row">
             <div class="site-search-field">
-                <svg class="site-search-glass" aria-hidden="true" focusable="false"><use href="#nav-i-search"></use></svg>
+                <svg class="site-search-glass" aria-hidden="true"><use href="#nav-i-search"/></svg>
                 <input type="search" data-model="debounce(150)|query" class="site-search-input" autocomplete="off" enterkeyhint="search"
                        aria-label="{{ 'nav.bar.search_label'|trans }}" placeholder="{{ 'nav.bar.search_placeholder'|trans }}"
                        data-placeholder-short="{{ 'nav.bar.search_placeholder'|trans }}" data-placeholder-long="{{ 'nav.bar.search_placeholder_long'|trans }}"
@@ -70,20 +70,20 @@
                             data-barcode-scanner-target="toggleButton"
                             data-nav="topbar/none/scan"
                             aria-label="{{ 'accessibility.barcode_scanner'|trans }}">
-                        <svg class="nav-i" aria-hidden="true" focusable="false"><use href="#nav-i-upc-scan"></use></svg>
+                        <svg class="nav-i" aria-hidden="true"><use href="#nav-i-upc-scan"/></svg>
                     </button>
                 {% else %}
                     <button type="button" class="site-search-scan site-search-scan--locked"
                             data-bs-toggle="modal" data-bs-target="#membersExclusiveModal"
                             data-nav="topbar/none/scan_locked"
                             aria-label="{{ 'accessibility.barcode_scanner'|trans }}">
-                        <svg class="nav-i" aria-hidden="true" focusable="false"><use href="#nav-i-upc-scan"></use></svg>
+                        <svg class="nav-i" aria-hidden="true"><use href="#nav-i-upc-scan"/></svg>
                         <i class="ci-locked site-search-lock" aria-hidden="true"></i>
                     </button>
                 {% endif %}
             </div>
             <button type="button" class="site-search-close" data-action="click->global-search#closeSearchBar" data-nav="topbar/none/close_search" aria-label="{{ 'nav.bar.close_search'|trans }}">
-                <svg class="nav-i" aria-hidden="true" focusable="false"><use href="#nav-i-x-lg"></use></svg>
+                <svg class="nav-i" aria-hidden="true"><use href="#nav-i-x-lg"/></svg>
             </button>
         </div>
         {#- The results panel: phones - fixed under the bar down to the bottom bar; desktop - a dropdown under the field.

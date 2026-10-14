@@ -48,6 +48,7 @@ final class PuzzlesSectionScriptTest extends TestCase
         ], self::results()['defaults']);
     }
 
+    /** The page's first place link carries the sections (the weight diet): the top bar's, the tab and the docked row follow */
     public function testEveryPlaceLinkOpensTheSectionUsedLast(): void
     {
         self::assertSame([
@@ -89,6 +90,8 @@ final class PuzzlesSectionScriptTest extends TestCase
             'nullParsed' => [],
             'changed' => 0,
             'href' => '/en/puzzle',
+            'noCarrier' => 0,
+            'bareHref' => '/en/puzzle',
         ], self::results()['hostile']);
     }
 

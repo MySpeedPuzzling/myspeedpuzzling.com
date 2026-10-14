@@ -63,7 +63,7 @@ final class ChromeWeightBudgetTest extends WebTestCase
             [
             'head' => ['<head>', '</head>'],
             'header' => ['<header class="site-header', '</header>'],
-            'sprite' => ['<svg xmlns="http://www.w3.org/2000/svg" class="nav-sprite"', '</svg>'],
+            'sprite' => ['<svg class="nav-sprite"', '</svg>'],
             'tab bar' => ['<nav id="bottom-nav"', '</nav>'],
             'Menu' => ['<nav id="site-menu"', '</nav>'],
             'main' => ['<main id="main-content"', '</main>'],

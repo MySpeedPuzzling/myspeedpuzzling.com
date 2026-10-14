@@ -3,7 +3,8 @@
     registry). Anchor id menu-row-<id> on the <li>, aria-current="page" on the current page's row (nav_location()
     .menuRowId). Kept lean - it repeats ~55 times on every page (chrome weight, MENU-01). The docked column's place rows
     carry their place like the tabs (data-nav-place: a tap on the current place's row works as a tap on its tab, GEST-03)
-    and the Puzzles row its sections' links (data-puzzles-sections - PUZ-01). data-press: the pressed state (GEST-04).
+    and the Puzzles row its sections' links where it is the page's first Puzzles place link (data-puzzles-sections -
+    PUZ-01, nav_puzzles_sections_carrier()). data-press: the pressed state (GEST-04).
     `row`: MenuRowView, `viewer`: NavigationViewer -#}
 {%- set entry = row.entry -%}
 {%- set kind = row.kind.value -%}
@@ -38,7 +39,7 @@
         {%- if kind == 'help_sheet' %} {{ help_opener_attrs() }}{% endif %}
         {%- if kind == 'logout' %} data-turbo="false"{% endif %}
         {%- if kind == 'place' %} data-nav-place="{{ entry.place.value }}"{% endif %}
-        {%- if entry.id == 'puzzles_place' %} data-puzzles-sections="{{ nav_puzzles_sections()|json_encode(constant('JSON_UNESCAPED_SLASHES') b-or constant('JSON_UNESCAPED_UNICODE')) }}"{% endif %}>
+        {%- if entry.id == 'puzzles_place' and nav_puzzles_sections_carrier() %} data-puzzles-sections={{ nav_puzzles_sections()|json_attribute }}{% endif %}>
         {#- -#}<i class="bi {{ entry.icon }}" aria-hidden="true"></i><span class="mr-l">{{ entry.label|trans }}
         {%- if stopwatch is not null -%}
             <small class="mr-d mr-running">{{ 'nav.menu.running'|trans }} · {{ include('navigation/_stopwatch_elapsed.html.twig', {stopwatch: stopwatch}, with_context = false) }}</small>

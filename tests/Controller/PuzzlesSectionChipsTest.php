@@ -193,8 +193,9 @@ final class PuzzlesSectionChipsTest extends WebTestCase
     }
 
     /**
-     * The tab bar (= the rail), the 768-1023 px top bar's places and the docked Menu's Puzzles row: the same sections and
-     * the same server href, the place's default (review PUZ+COM F2)
+     * The tab bar (= the rail), the 768-1023 px top bar's places and the docked Menu's Puzzles row: the same server href,
+     * the place's default (review PUZ+COM F2), and the sections assets/puzzles_section.js points all three with - carried
+     * by the page's first place link only, the top bar's (the chrome's weight, README §4.12; nav_puzzles_sections_carrier())
      *
      * @param array<string, string> $sections
      */
@@ -205,9 +206,14 @@ final class PuzzlesSectionChipsTest extends WebTestCase
 
         foreach ($links as $link) {
             assert($link instanceof \DOMElement);
-            self::assertSame($sections, json_decode($link->getAttribute('data-puzzles-sections'), true, flags: JSON_THROW_ON_ERROR), $link->getAttribute('data-nav'));
             self::assertSame($defaultHref, $link->getAttribute('href'), $link->getAttribute('data-nav'));
         }
+
+        $carriers = $crawler->filter('a[data-puzzles-sections]');
+        self::assertCount(1, $carriers, 'The sections ride on one link');
+        self::assertSame('topbar/places/puzzles', $carriers->attr('data-nav'), 'The first place link of the page carries them');
+        self::assertSame($crawler->filter('a[data-nav-place="puzzles"]')->first()->attr('data-nav'), $carriers->attr('data-nav'));
+        self::assertSame($sections, json_decode((string) $carriers->attr('data-puzzles-sections'), true, flags: JSON_THROW_ON_ERROR));
     }
 
     /**

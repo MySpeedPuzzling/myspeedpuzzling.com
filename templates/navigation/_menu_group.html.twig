@@ -13,7 +13,7 @@
             <button type="button" class="menu-disclosure" aria-expanded="true" aria-controls="menu-l-{{ id }}" aria-labelledby="menu-g-{{ id }}" data-nav="menu/{{ id }}/disclosure"></button>
         {%- endif -%}
     {%- endif -%}
-    <ul class="menu-list" id="menu-l-{{ id }}">
+    <ul id="menu-l-{{ id }}">
         {%- for row in group.rows -%}
             {{- include('navigation/_menu_row.html.twig', {row: row, viewer: viewer}, with_context = false) -}}
         {%- endfor -%}

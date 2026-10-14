@@ -25,8 +25,8 @@
        data-bar-count="{{ parts.total() }}"
        aria-label="{{ ('inbox.badge.name.' ~ parts.labelKind())|trans({'%count%': parts.labelCount()}) }}"
        {%- if inbox_link_strings() %}
-       data-inbox-hrefs="{{ {for_you: path('notifications'), messages: path('conversations_list'), requests: path('conversations_list', {tab: 'requests'})}|json_encode }}"
-       data-inbox-labels="{{ {none: browser_translation('inbox.badge.name.none'), messages: browser_translation('inbox.badge.name.messages'), for_you: browser_translation('inbox.badge.name.for_you'), mixed: browser_translation('inbox.badge.name.mixed')}|json_encode }}"
+       data-inbox-hrefs={{ {for_you: path('notifications'), messages: path('conversations_list'), requests: path('conversations_list', {tab: 'requests'})}|json_attribute }}
+       data-inbox-labels={{ {none: browser_translation('inbox.badge.name.none'), messages: browser_translation('inbox.badge.name.messages'), for_you: browser_translation('inbox.badge.name.for_you'), mixed: browser_translation('inbox.badge.name.mixed')}|json_attribute }}
        {%- endif %}>
         {%- block content -%}
             <i class="bi bi-inbox" aria-hidden="true"></i>

@@ -1,17 +1,17 @@
 {# The other five languages - the auth pages' header (NAV-08), the footer and the account menu's Language (NAV-05) share it.
    The links are language_switch_urls() - the one rule of the switch (decision 36, MENU-01), also behind the Menu's
    Language row; nav_surface (topbar / footer / account) is the data-nav surface of its links. list_class: the list's
-   classes - a Bootstrap dropdown of its own by default; the account menu opens it inside its <details> (decision 24) #}
+   classes - a Bootstrap dropdown of its own by default; the account menu opens it inside its <details> (decision 24).
+   One click action on the list (locale-preference#save reads the clicked link's locale param) and no whitespace
+   between the rows - the chrome's weight (README §4.12): every member page carries two of these lists #}
 {% set nav_surface = nav_surface|default('topbar') %}
 {% set list_class = list_class|default('dropdown-menu dropdown-menu-end') %}
 {% set language_urls = language_switch_urls() %}
 {% set language_names = {en: ['us', 'English'], de: ['de', 'Deutsch'], cs: ['cz', 'Čeština'], fr: ['fr', 'Français'], es: ['es', 'Español'], ja: ['jp', '日本語']} %}
-<ul class="{{ list_class }}" data-controller="locale-preference">
-    {% for locale, url in language_urls %}
-        <li>
-            <a class="dropdown-item pb-1" href="{{ url }}" data-action="click->locale-preference#save" data-locale-preference-locale-param="{{ locale }}" data-nav="{{ nav_surface }}/language/{{ locale }}">
-                <span class="fi shadow-custom fi-{{ language_names[locale][0] }} me-1"></span> {{ language_names[locale][1] }}
-            </a>
-        </li>
-    {% endfor %}
+<ul class="{{ list_class }}" data-controller="locale-preference" data-action="click->locale-preference#save">
+    {%- for locale, url in language_urls -%}
+        <li><a class="dropdown-item pb-1" href="{{ url }}" data-locale-preference-locale-param="{{ locale }}" data-nav="{{ nav_surface }}/language/{{ locale }}">
+            {#- -#}<span class="fi shadow-custom fi-{{ language_names[locale][0] }} me-1"></span> {{ language_names[locale][1] -}}
+        </a></li>
+    {%- endfor -%}
 </ul>

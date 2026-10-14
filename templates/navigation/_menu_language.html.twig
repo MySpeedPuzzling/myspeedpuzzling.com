@@ -4,9 +4,9 @@
 {%- set names = {en: 'English', de: 'Deutsch', cs: 'Čeština', fr: 'Français', es: 'Español', ja: '日本語'} -%}
 <li id="{{ row.anchorId }}"{{ only ? (' class="' ~ only ~ '"')|raw }}><details id="nav-language" class="menu-language">
     {#- -#}<summary class="mr" data-press><i class="bi {{ row.entry.icon }}" aria-hidden="true"></i><span class="mr-l">{{ row.entry.label|trans }}<small class="mr-d" lang="{{ app.request.locale }}">{{ names[app.request.locale] ?? app.request.locale|upper }}</small></span></summary>
-    {#- -#}<ul class="menu-language-list" data-controller="locale-preference">
+    {#- -#}<ul class="menu-language-list" data-controller="locale-preference" data-action="click->locale-preference#save">
     {%- for locale, url in language_switch_urls() -%}
-        <li><a href="{{ url }}" lang="{{ locale }}" hreflang="{{ locale }}" data-action="click->locale-preference#save" data-locale-preference-locale-param="{{ locale }}" data-nav="menu/{{ row.group.value }}/language_{{ locale }}">{{ names[locale] }}</a></li>
+        <li><a href="{{ url }}" lang="{{ locale }}" hreflang="{{ locale }}" data-locale-preference-locale-param="{{ locale }}" data-nav="menu/{{ row.group.value }}/language_{{ locale }}">{{ names[locale] }}</a></li>
     {%- endfor -%}
     </ul>
 {#- -#}</details></li>

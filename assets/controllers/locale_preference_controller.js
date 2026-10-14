@@ -3,7 +3,7 @@ import { Controller } from '@hotwired/stimulus';
 /**
  * Remembers the visitor's language choice and suggests it back.
  *
- * - save():  attached to language links (header switcher + suggestion banner)
+ * - save():  on language links (the suggestion banner, the Help sheet) or once on a list of them (the chrome's)
  * - banner mode (homepage at "/" only): if a stored preference exists,
  *   differs from the current locale and its homepage URL differs from the
  *   current path, reveal a small dismissible banner linking to that locale's
@@ -58,8 +58,14 @@ export default class extends Controller {
         this.bannerTarget.classList.remove('d-none');
     }
 
+    /**
+     * A language link was followed: keeps its locale. Bound on the link itself (its own locale param: the suggestion
+     * banner, the Help sheet) or once on a whole list (the chrome's lists - the footer's, the account menu's, the Menu's,
+     * the auth pages' header: the clicked link carries the param; a click beside the links keeps nothing).
+     */
     save(event) {
-        const locale = event.params.locale;
+        const link = event.target instanceof Element ? event.target.closest('[data-locale-preference-locale-param]') : null;
+        const locale = event.params.locale || (link && this.element.contains(link) ? link.getAttribute('data-locale-preference-locale-param') : null);
 
         if (!locale) {
             return;

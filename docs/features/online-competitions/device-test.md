@@ -2,7 +2,8 @@
 
 The camera, the wake lock, sounds and the browsers' background rules cannot be tested in CI (README §5.5 "Browser
 realities"). Run this on real phones before every test cup and after any change to `assets/controllers/compete_controller.js`
-or `assets/online/{camera,wake_lock,beeps,frame_grabber}.js`. Takes about 45 minutes (live video, steps 25-37: about 25 more).
+or `assets/online/{camera,wake_lock,beeps,frame_grabber}.js`. Takes about 45 minutes (live video, steps 25-37: about 25 more;
+finish detection, steps 38-52: about 60 more, half of it the 30-minute endurance run).
 
 ## Set-up
 
@@ -80,6 +81,51 @@ studio page as the host. Headphones on the host. After any change to `assets/onl
 | 36 | "I'm ready" on the laptop (takeover) | The phone's bar says "Video off" at once, "Opened on another device" within ~15 s, and its camera leaves the hall (the control room shows the laptop's camera instead) |
 | 37 | Organiser switches "See each other" or "Live video" off and back on (online timing page) | The phones follow at their next state fetch (open the page again, or a start): the strip goes / the phone leaves the hall and competes on, then comes back - see the open question in spikes.md S6 |
 
+## Finish detection (rounds with "Finish: Detection" or "detection watching")
+
+The phone detects raised hands itself (README §5.7, stream P2I): MediaPipe from the pinned CDN URLs (OnlineDetectorAssets),
+a worker on the page's own camera frames, the set-up test on the checklist, candidates with a photo and a ±5 s burst.
+Set the round's "Finish" to **Detection** (`on`) for steps 38-49, to **detection watching** (`shadow`) for 50-51. Devices:
+an **iPhone in Safari** and an **Android phone in Chrome** (one older / mid-range one if there is one), each on a stand -
+once **angled** (3-4 ft away, ≥ 12" above the table, upper body in view) and once **top-down** (only the table). After any
+change to `assets/online/compete_detection*.js`, `detector_feed.js`, `detector_pacing.js`, `finish_machine.js`,
+`hands_up_signal.js` or `detector.worker.js`.
+
+```sql
+-- The candidates and what the phone said about each (view, score, held, the window), with their evidence
+SELECT to_timestamp(e.client_ms / 1000.0) AS moment, e.received_at_ms - e.client_ms AS late_ms,
+       e.payload->>'view' AS view, e.payload->>'score' AS score, e.payload->>'heldMs' AS held_ms,
+       e.payload->>'mode' AS mode, e.payload->>'fps' AS fps, e.payload->>'inferenceMs' AS inference_ms,
+       (SELECT string_agg(m.kind || ':' || coalesce(m.verified_bytes, m.declared_bytes), ', ') FROM online_entry_media m WHERE m.related_event_id = e.id) AS evidence
+FROM online_entry_event e JOIN online_entry o ON o.id = e.online_entry_id
+JOIN competition_participant_round r ON r.id = o.entry_id
+WHERE r.participant_id = :participant AND e.type = 'finish.candidate' ORDER BY e.client_ms;
+
+-- The detector as the phone reported it when it said "I'm ready" (state, view, the set-up test, load time)
+SELECT e.device_id, e.payload->'detector' AS detector, e.payload->>'userAgent' AS browser
+FROM online_entry_event e JOIN online_entry o ON o.id = e.online_entry_id
+JOIN competition_participant_round r ON r.id = o.entry_id
+WHERE r.participant_id = :participant AND e.type = 'device.ready' ORDER BY e.client_ms;
+```
+
+| # | Do | Must happen |
+|---|----|-------------|
+| 38 | Open the link (angled stand), consent | The checklist has a "Finish detection" row: "Preparing the camera check…" while ~18 MB download (note how long - Wi-Fi and mobile data); "I'm ready" waits for it. On a slow connection "Skip - use the Finished button" appears after 15 s |
+| 39 | Once it is prepared: sit still for 5 s, then **raise both hands above your shoulders** for a second | The row counts down "Raise both hands for a second (N s)", says "Keep them up…" while you hold, then **"Sees your raised hands - camera at an angle"** (green) and a short chime/vibration where allowed. Note the time from raising to the green row |
+| 40 | Move the phone to the **top-down** mount (only the table in view), reload, "Test again", show **both open palms** to the camera | "Sees your raised hands - camera from above". Then try the angled raise in the top-down view: it must not be needed - the palms are what this view looks for |
+| 41 | "Test again" and do nothing for 20 s | "Detection may miss your finish - use the Finished button" (amber); "I'm ready" still works. A reload keeps it (button-only on this phone) until a test passes. (The page's own first test - started by itself - that never saw hands up just goes back to "Raise both hands once to test it": nobody tried) |
+| 42 | "I'm ready", organiser "Start in 10 s", puzzle (or pretend) for 1 minute, **then raise both hands and hold** | Within ~1 s a **green flash and a chime**, "Finish recorded at MM:SS - if a piece is missing, keep going and raise your hands again", the running clock small, the Finished button still there. The control room's tile: "Detection ready" and **"Finished (detected) MM:SS"**, on top of the grid. Server: a `finish.candidate` (view, score, held ≈ 500-700 ms) with a `candidate` photo (hands up, full resolution) and, ~6 s later, a `burst` |
+| 43 | Keep the hands up for 5 s, lower them, raise again **within 10 s** | One candidate for the long raise; the second raise inside the cooldown gives none - "Raise your hands again in a moment - or tap Finished" |
+| 44 | Wait 15 s, raise again | A second candidate (a later raise after the cooldown is a new one); the screen shows its time |
+| 45 | A **premature** raise: raise at 1:00, keep puzzling, raise again at 2:00, tap Finished at 2:03 | Two candidates and a tap. Review: the suggestion is the first candidate; `G` moves to the second, `C` confirms it as "Confirmed from the detection"; the accuracy report shows the detection error, the delta (tap − candidate ≈ 3 s) and one false raise |
+| 46 | Gestures that are not a finish: scratch your head, adjust glasses, stretch one arm, wave one hand, put both hands on the table edge | No candidate. Note every false one (with the burst - it is the bench's material) |
+| 47 | Lock the phone while holding a raise, unlock | No candidate from before the lock carries over; the gap is in the events (`page.hidden`); a new raise after unlocking is detected |
+| 48 | **Endurance:** let the round run 30 minutes with detection on (and live video on, if the media server is there), charger connected | The detector keeps running (the control room's chip stays "Detection ready", its fps in live.json ≥ 2); note **heat** (by hand: cool / warm / hot), **battery %** at start and end (charger off for this one if possible), the phone's own slowdowns, and the **inference ms + fps** from live.json every 5 minutes (`presence.detector`) |
+| 49 | Time's up after a detected finish (no tap) | "Time's up" with "Finish recorded at MM:SS - Was your puzzle complete then?" and "My puzzle is complete"; tapping it ends with "Your time MM:SS - being verified"; the pieces question still works for a phone whose puzzle was not complete |
+| 50 | Round set to **detection watching** (`shadow`): repeat 42 and tap Finished 2 s after the raise | **Nothing is shown** - no flash, no chime, no "Finish recorded"; the Finished tap is the finish. Server: the candidate with its photo and burst all the same; the control room shows only the tap |
+| 51 | Review the shadow round | The suggestion is the tap ("Confirmed from the Finished button" after `C`); the candidate is listed next to it with its photo and burst; the accuracy report lists the delta |
+| 52 | A phone without the detector (iOS 16 or older, or a browser in which the row says "This phone can't detect raised hands") | Button-only, said in the row; "I'm ready" works at once; the control room's chip says "Button only" |
+
 ## Known platform limits to note, not to fail
 
 - iOS mutes the camera whenever the page is hidden - the review sees it as `camera.lost` / `camera.back`.
@@ -92,3 +138,7 @@ studio page as the host. Headphones on the host. After any change to `assets/onl
   around the beeps); if a phone plays the voice from the earpiece after the studio (the microphone switched the audio
   session), note the iOS version.
 - Without headphones the studio may echo for a moment - WebRTC's echo cancellation settles within seconds.
+- The detector needs WebGL2 in a worker even on the CPU delegate (MediaPipe uploads every frame): iOS before 17 and
+  browsers without it compete button-only - that is the design, not a failure.
+- MediaPipe logs its own lines (`INFO: Created TensorFlow Lite XNNPACK delegate for CPU`) to the console as errors -
+  they are not.

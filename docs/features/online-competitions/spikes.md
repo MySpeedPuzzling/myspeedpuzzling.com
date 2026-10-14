@@ -86,7 +86,50 @@ The participant page in practice mode (Phase 1, stream B):
 - **S3 - endurance:** 90 minutes of camera + wake lock (+ the detector from Phase 2) on 3-4 phones: frame rate, battery, heat, tab survival, a call, a lock.
 - **S4 - clock:** five phones counting down side by side, filmed at 240 fps.
 
-*Results: pending.*
+**What to measure on the phones for the detector (Phase 2, stream P2I)** - the page reports most of it itself:
+- **Load:** the `device.ready` event's `detector.loadMs` (MediaPipe + both models, ~18 MB) on Wi-Fi and on mobile data,
+  first visit and a second one (the browser's cache) - the checklist waits for it.
+- **Inference and cadence:** the heartbeat's `detector.inferenceMs` (smoothed) and `detector.fps` (live.json's
+  `presence.detector`, every 15 s) - the pacing targets 4-5 fps at most half a core; a phone below 2 fps or with
+  inference over ~200 ms is the one to look at. Each candidate's own `fps` / `inferenceMs` in its payload too.
+- **Over 30 / 90 minutes:** does the fps drop as the phone heats (the pacing backs off by the inference time - it must,
+  never the page); battery % per hour with and without the detector (and with live video); tab survival; the camera's
+  frame rate (`camera.fps` in the heartbeat) with the detector running.
+- **The set-up test:** seconds from "preparing" to the green row; which view it picked for angled and top-down mounts;
+  how often it fails on a real raise.
+- **Candidates against the burst:** per candidate, the burst frame where the hands really went up against the
+  candidate's moment (the review's scrubber, "Back to the detected moment") - the detection error the review records
+  when the reviewer moves the moment; the delta (tap − candidate) per participant in the accuracy report's CSV.
+- **False raises:** every candidate a reviewer did not confirm and no tap was near (the accuracy report's
+  `false_raises`) with its burst, by view and phone - the bench's material for minScore / hold.
+
+### Local run (P2I), 2026-10-14
+
+The participant page with the detector on, end to end, in throwaway containers on the dev network: the stream's
+worktree in FrankenPHP worker mode (prod, warmed cache, the production asset build) with its own Redis, Mercure and
+MinIO (`tools/online-load/local-stack.sh`), a copy of the test database (the Online Test Cup, its round's "Finish" set
+to Detection / detection watching / off), Selenium Chromium 152 with mobile emulation as the phone and a **fake camera
+fed from a 16-second loop** (640×480, 30 fps MJPEG) cut from "Jumping jacks and burpees" (Taco fleur, CC BY-SA 4.0,
+Wikimedia Commons - local only): burpees and standing, then the top of a jumping jack **held from 6.000 s to 8.5 s**,
+then brief jumping jacks (each up < 0.5 s), the loop's own time drawn in the corner. A second browser was the organiser
+(sign-in, control room "Start in 10 s", review, accuracy report); one run with live video (LiveKit 1.13.9).
+
+| Check | Result |
+|---|---|
+| Detector load (MediaPipe 1.1.0 from jsDelivr, pose lite + gesture from Google's bucket, classic worker under Encore) | `ready` 1.2-1.7 s after the checklist opened (warm HTTP cache after the first run); no init error; one worker per page (the spy counted 1) |
+| Set-up test | started by itself; "Keep them up…" at the loop's raise, **"Sees your raised hands - camera at an angle"** 0.6-0.8 s after it (hold 0.5 s + inference), chosen view `angled`, kept on the device |
+| Inference in that Chromium (software WebGL, 320×240 frames, Docker on a laptop) | median **20-35 ms**, p90 43-66 ms, max 225-284 ms (pose only in the round; both models in the test); cadence **4.3 fps** (233 ms - the 200 ms interval meets the camera's 33 ms frames). With live video publishing at the same time: median 41 ms, p90 78 ms |
+| Candidate moment vs the clip's raise (6.000 s) | four candidates whose raise began while the detector looked: **+0, +0..33, +67, +100 ms** (read from the burst frames around the moment, ±33 ms) - bounded by the 4.3 fps cadence. A raise already going on at GO gave a candidate at GO + 1.5 s (the first frames the round's detector saw) |
+| `on` | "Finish recorded at 00:16" with the green flash 0.7 s after the raise, the running clock small; a raise 16 s later (past the 10 s cooldown) a new candidate; the brief jumping jacks never one. The control room: "Detection ready" chip, "Finished 00:00:19 · detected 00:00:16" (tap and detection) |
+| Evidence | per candidate a `candidate` photo (the stream's full 640×480, hands up, the sharpest of up to three stills) and a burst (93-95 frames, −4.4 … +5.0 s, ~1.5 MB); the tap's `button` photo + burst as before; everything uploaded and verified |
+| Review | candidates and the tap in one row in time order; the suggestion = the first candidate (source `detection`); `G` → the second, `C` → "Confirmed from the detection", detection error 0.0 s |
+| Accuracy report + CSV | detection error 0 ms, delta (tap − candidate) +3.0 s, one false raise (the candidate at GO), device "Android", browser "Chrome 141" (the emulated user agent), view `angled` |
+| `shadow` | nothing shown on the phone (no flash, no panel); two candidates with photos and bursts on the server; the suggestion stays the tap (`button`); detection error / delta 2.45 s |
+| Page CPU (the Chromium container with one phone page, `docker stats`, % of one core) | detection off: median **60 %**; `shadow`: 70 %; `on` (incl. the candidates' stills and bursts): 93 %; `on` + live video publishing to LiveKit: 91 % (p90 153 %). The web container stayed under 2 % |
+| Bundles (production build) | the `compete` controller's chunk +7.3 KB (+1.8 KB gzipped); the detection chunk `compete-detection` 29.5 KB (8.8 KB gz) and the worker chunk 14.5 KB (4.7 KB gz) load only on a page whose round detects; MediaPipe and the models never enter a bundle |
+
+Not covered here: real phones (device-test.md steps 38-52), top-down gestures on real hands, heat and battery, a real
+puzzle under the hands. *Results on phones: pending.*
 
 ## S5 - load + storage
 

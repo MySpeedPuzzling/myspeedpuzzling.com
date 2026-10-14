@@ -34,9 +34,10 @@ If a session stops, resume from here.
 4. Checks run with `python3.14` (or `python3` since PyYAML was installed for it).
 
 **Next steps, in order**
-1. Lane C: Platform feel part 2 → orchestrator verifies in C → commit in C → cherry-pick into the delivery branch → fresh Platform feel review (`reviews/Platform-feel.md`) → fixes → Platform feel gate + sweep (encore built before the gate) → push.
-2. Delivery lane meanwhile: LAUNCH-01 → 02 → 03 (running) ∥ LAUNCH-04/05 docs (running); after part 2 is in: Instant Back (GEST-14 → GEST-15 → GEST-08; then PROF-05c's snapshot path and NAV-14's final rows) - not before, GEST-14 and GEST-19 both edit `pwa_lifecycle_controller.js`; DOC-01 (notes in `var/navigation-delivery/doc-notes.md`, current through Platform feel part 1), DOC-02.
-3. QA-01…06, final report, cleanup (delivery containers, the guard-allowed `_test` DBs), ship commands for the owner.
+1. Lane C: Platform feel part 2 (GEST-12/17/19/16) built and re-run by the orchestrator in C (5323 tests, phpstan, cs, GEST-12 16, GEST-17 13, GEST-19 8, GEST-01 52, NAV-01 41) except GEST-16's Hub CLS rows (0.0008 / 0.0065 from `div.col-lg-6` on a fresh build) - the agent is fixing it in C. Then commit in C → cherry-pick into the delivery branch (conflicts expected in `pwa_lifecycle_controller.js`, `hub.html.twig` next to the LAUNCH-03 banner, `PullToRefreshGestureTest`) → the check scripts GEST-06 (iOS row: spinner at 270°, no arrow) and INB-04b (pane shown = rendered, not inert, height, ≥ 60 % across) are already updated for it → fresh Platform feel review → fixes → gate + sweep (encore before the gate) → push.
+2. LAUNCH-01…05 verified (32f71813, 42edd6526); LAUNCH review running (read-only → `reviews/LAUNCH.md`), fixes follow. The LAUNCH + DOC gate comes after DOC-01/02.
+3. After part 2 is in: Instant Back (GEST-14 → GEST-15 → GEST-08; then PROF-05c's snapshot path and NAV-14's final rows) - not before, GEST-14 and GEST-19 both edit `pwa_lifecycle_controller.js`.
+4. DOC-01 (notes in `var/navigation-delivery/doc-notes.md`; add part 2's and LAUNCH's notes), DOC-02, then QA-01…06, final report, cleanup, ship commands for the owner.
 
 **Open notes (QA / TODO)**
 - Chrome weight after the diet 340c042e: member /en/faq growth 27,406 of 30,720 B (3,314 B left), guest 13,581 of 20,480. Part 1 of Platform feel added 0 B (the bubble and titles are made by JS). Not taken (and why) in the diet's notes: the navigation's critical CSS is 13.2 KB of the member growth and repeats `app.css` box rules - the plan fixes it as is.

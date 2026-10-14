@@ -187,7 +187,7 @@ the streams replace the Gatling scenario. Profiles `steady`, `start_burst`, `fin
 The production run waits for Jan's OK (the plan: the tool's README).
 
 Also checked here:
-- presigned PUT + CORS on Hetzner Object Storage and on a Garage test instance - Garage done, Hetzner pending;
+- presigned PUT + CORS on Hetzner Object Storage and on a Garage test instance - both done (Hetzner 2026-10-14, below);
 - a failover drill - done locally.
 
 ### Local run (LT), 2026-10-13
@@ -306,7 +306,14 @@ max(3, 1 % of the round's phones) sources. Follow-ups (`docs/TODO.md` material):
   decisions (unsolvable for a JSON API) and the **bot-blocker's 90 requests a minute per IP + User-Agent**: six phones
   of the same model and iOS on one Wi-Fi (a club meeting) are blocked in the 3 minutes before GO. Route both like
   `/api/v` (`myspeedpuzzling-api-edge`: no bot-blocker, no captcha) before the first event - a lily.srv change, Jan's
-  "yes".
+  "yes". **Done 2026-10-14** (lily.srv `2b90668`, router `myspeedpuzzling-compete-api`): 120 × `/-/time` in under a
+  minute from one IP + an iPhone UA = 120 × 200.
+- **Presigned PUT on Hetzner Object Storage** (production bucket, 2026-10-14, a throwaway key under `online/_probe/`,
+  deleted after): signed for `content-type: image/jpeg` + `content-length: 100` (S3QueryPresigner, as the app does) -
+  the declared body = 200; a 200-byte body = **403 SignatureDoesNotMatch**; `text/html` = **403
+  SignatureDoesNotMatch**. Hetzner enforces both like MinIO and Garage - VerifyOnlineMedia's size/type check is a
+  second guard. The bucket's CORS rule (`online-media:cors --apply`, same day): preflight from the site's origin 200
+  with the headers, from another origin 403.
 - One load generator counts as one client everywhere (app 1,200/min, Traefik 100/s burst 200, bot-blocker, CrowdSec):
   ~30 phones per generator address keeps the start burst inside Traefik's bucket - 100 phones = 3-4 small VMs.
 

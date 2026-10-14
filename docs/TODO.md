@@ -11,8 +11,8 @@ that would otherwise be forgotten. Newest section on top.
       of `ScheduleRoundStartController` / `CancelRoundStartController` (feature_flags.md `ONLINE_ROUNDS_FOR_ORGANISERS`).
 - [ ] The acting player of a scheduled start and of a cancel is carried by the messages but not stored anywhere yet
       (no column) - add it when the control room or the review needs to say who started a round.
-- [ ] A stopwatch page left open across the deploy that added the CSRF token fails its first action (Start, Stop,
-      Reset: "the page was open too long") - a reload fixes it. Fine, but never deploy during a live event.
+- [x] A stopwatch page left open across the deploy that added the CSRF token fails its first action (Start, Stop,
+      Reset: "the page was open too long") - a reload fixes it. Fine, but never deploy during a live event. Gone: that was the one deploy that introduced the token; the Test Cup #1 rehearsal (stream RH, 2026-10-14) restarted the app twice mid-round and pages opened before worked on their first action (End now, Stop).
 
 ## Online competitions - participant API and evidence storage (`docs/features/online-competitions/`, stream A)
 
@@ -24,9 +24,9 @@ that would otherwise be forgotten. Newest section on top.
 - [x] The images proxy (`img.*/original/<key>` through imgproxy) can fetch ANY key of the bucket, `online/…` evidence
       included. The keys are unguessable (UUIDv7 in the path), but before any public use deny the `online/` prefix in
       the images nginx (lily.srv) - or move the evidence to a bucket of its own. Done 2026-10-14 (lily.srv `2b90668`): `online/` refused under `/original/`, `/puzzle/` and any `plain/` source, and only `plain/` sources accepted (the base64 form would bypass a path rule) - verified on production (404).
-- [ ] Spike S5 (`spikes.md`): does Hetzner Object Storage enforce a signed `Content-Length` / `Content-Type` in a
+- [x] Spike S5 (`spikes.md`): does Hetzner Object Storage enforce a signed `Content-Length` / `Content-Type` in a
       presigned PUT (MinIO does: another length or type is 403 SignatureDoesNotMatch)? If not, VerifyOnlineMedia's
-      size/type check is the only guard - it deletes what was not declared.
+      size/type check is the only guard - it deletes what was not declared. **Yes** (production bucket, 2026-10-14): a presigned PUT signed for 100 B `image/jpeg` accepts exactly that (200); 200 B or `text/html` → 403 SignatureDoesNotMatch. VerifyOnlineMedia's check is the second guard, not the only one.
 - [ ] Ops note for the test cups: `VerifyOnlineMedia` (a HEAD per uploaded object) runs on the shared `async` transport
       with e-mails, XP and badges. It no longer holds a phone up - the pending-upload cap counts only what the phone has
       not uploaded (stream P1F) - but a backlog delays the review's checked sizes and the deletion of objects that are
@@ -67,7 +67,7 @@ that would otherwise be forgotten. Newest section on top.
 ## Online competitions - hands-up detection on the participant page (stream P2I, README §5.7)
 
 - [x] Serve the detector's files ourselves before the cup that turns detection on (Jan: open source **and self-hosted**) - stream MH, 2026-10-14: the production image carries `/online-detector/1.1.0-pose-lite-1-gesture-1/` (the npm tarball + the models, checksums verified at build, immutable, brotli), `ONLINE_DETECTOR_BASE_URL` switches (README §5.7 "Downloads").
-- [ ] Not online-specific (found by stream MH, 2026-10-14): the production image carries npm's download cache (`/root/.npm`, ~113 MB) from the asset build - `npm install` + `npm run build` then `npm cache clean --force` in the same `RUN` (or a cache mount) would drop it (`docs/ci-pipeline.md`, image tuning).
+- [x] Not online-specific (found by stream MH, 2026-10-14): the production image carries npm's download cache (`/root/.npm`, ~113 MB) from the asset build - `npm install` + `npm run build` then `npm cache clean --force` in the same `RUN` (or a cache mount) would drop it (`docs/ci-pipeline.md`, image tuning). Done 2026-10-14: `npm cache clean --force` in the install's `RUN`.
 - [ ] The detector's Caddy rule is a site block for a path (`:8080/online-detector/*`), because the base image imports `Caddyfile.d` outside its `:8080` block - Caddy calls a path in a site address deprecated. Move the import inside the block in MySpeedPuzzling/Docker, then make the rule a `handle` (`OnlineDetectorCaddyRuleTest` catches a Caddy that drops it).
 - [ ] The reviewer's "G - the photo shows a gap" is not stored: keep it per candidate (a participant's premature raise vs a detector's false raise) - the accuracy report's "false raises" count both today, and the Phase 3.5 dataset needs the verdicts.
 - [ ] Older iPhones: the worker keeps both models (pose + gesture) loaded all session so "Test again" works - measure memory / reloads on the real-device pass (`device-test.md` 38-52); load only the chosen view's model if it hurts.

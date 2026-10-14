@@ -3,8 +3,10 @@
     for. Plain texts with |trans (their %placeholders% filled in the browser), plural texts with browser_translation()
     (chosen by translation_choice.js). The checklist's detail texts are asked for as `check_<row>_<code>` - the codes of
     compete_flow.js checklistRows(). Pinned by tests/CompeteTextsTest.php.
+    With live video (`video` not null - a media server configured) the `video_` texts follow; without it the JSON is the
+    Phase 1 JSON, byte for byte.
 #}
-{{- {
+{%- set texts = {
     waiting: 'compete.screen.waiting'|trans,
     starts_in: 'compete.screen.starts_in'|trans,
     left: 'compete.screen.left'|trans,
@@ -61,4 +63,39 @@
     check_uploads_refused: browser_translation('compete.checklist.uploads_refused'),
     check_emptyMat_taken: 'compete.checklist.empty_mat_taken'|trans,
     check_emptyMat_take: 'compete.checklist.empty_mat_take'|trans,
-}|json_encode|raw -}}
+} -%}
+{%- if video is defined and video is not null -%}
+    {%- set texts = texts|merge({
+        video_status_connecting: 'compete.video.status_connecting'|trans,
+        video_status_live: 'compete.video.status_live'|trans,
+        video_status_weak: 'compete.video.status_weak'|trans,
+        video_status_retrying: 'compete.video.status_retrying'|trans,
+        video_status_off: 'compete.video.status_off'|trans,
+        video_host_speaking: 'compete.video.host_speaking'|trans,
+        video_host_speaking_name: 'compete.video.host_speaking_name'|trans,
+        video_invite_left: 'compete.video.invite_left'|trans,
+        video_invite_error_offline: 'compete.video.invite_error_offline'|trans,
+        video_invite_error_failed: 'compete.video.invite_error_failed'|trans,
+        video_studio_joining: 'compete.video.studio_joining'|trans,
+        video_studio_on_air: 'compete.video.studio_on_air'|trans,
+        video_studio_leaving: 'compete.video.studio_leaving'|trans,
+        video_studio_people: 'compete.video.studio_people'|trans,
+        video_studio_alone: 'compete.video.studio_alone'|trans,
+        video_studio_host: 'compete.video.studio_host'|trans,
+        video_studio_mute: 'compete.video.studio_mute'|trans,
+        video_studio_unmute: 'compete.video.studio_unmute'|trans,
+        video_studio_mic_blocked: 'compete.video.studio_mic_blocked'|trans,
+        video_outcome_thanks: 'compete.video.outcome_thanks'|trans,
+        video_outcome_left: 'compete.video.outcome_left'|trans,
+        video_outcome_moved_on: 'compete.video.outcome_moved_on'|trans,
+        video_outcome_expired: 'compete.video.outcome_expired'|trans,
+        video_outcome_withdrawn: 'compete.video.outcome_withdrawn'|trans,
+        video_outcome_declined: 'compete.video.outcome_declined'|trans,
+        video_outcome_unavailable: 'compete.video.outcome_unavailable'|trans,
+        video_strip_title: browser_translation('compete.video.strip_title'),
+        video_strip_hide: 'compete.video.strip_hide'|trans,
+        video_strip_show: 'compete.video.strip_show'|trans,
+        video_second_ended: 'compete.video.second_ended'|trans,
+    }) -%}
+{%- endif -%}
+{{- texts|json_encode|raw -}}

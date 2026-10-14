@@ -942,3 +942,336 @@ html:has(.compete) body {
         font-size: min(11vw, 24vh);
     }
 }
+
+// ---- live video (contract phase-1b.md stream VP): only on a page with its video parts (a media server configured)
+
+// The quiet line in the bar - never a banner: a phone that can not reach the media server competes as without video
+.compete-video-status {
+    color: var(--compete-muted);
+    font-size: 0.75rem;
+
+    &:empty {
+        display: none;
+    }
+}
+
+.compete:is([data-video='weak'], [data-video='retrying']) .compete-video-status {
+    color: var(--compete-warn);
+}
+
+// The host speaking: a pill on the camera preview, so nothing moves under a finger reaching for Finished
+.compete-voice {
+    position: absolute;
+    top: 0.5rem;
+    left: 50%;
+    z-index: 2;
+    display: inline-flex;
+    align-items: center;
+    margin: 0;
+    padding: 0.3rem 0.8rem;
+    border-radius: 999px;
+    background: rgba(17, 21, 29, 0.85);
+    color: #fff;
+    font-size: 0.875rem;
+    font-weight: 600;
+    transform: translateX(-50%);
+    pointer-events: none;
+
+    &[hidden] {
+        display: none;
+    }
+
+    .bi {
+        color: #4ade9b;
+    }
+}
+
+// On the second screen (no camera preview): a line under the host
+.compete-voice--line {
+    position: static;
+    margin-top: 0.5rem;
+    transform: none;
+}
+
+// The invitation to the studio
+.compete-banner--studio {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.9rem 1rem;
+    border-bottom: 3px solid var(--compete-accent);
+    background: var(--compete-surface);
+    color: var(--compete-text);
+
+    &[hidden] {
+        display: none;
+    }
+
+    p {
+        margin: 0;
+    }
+}
+
+.compete-invite-title {
+    font-size: 1.125rem;
+    font-weight: 700;
+}
+
+.compete-invite-text {
+    max-width: 32rem;
+    color: var(--compete-muted);
+    font-size: 0.9rem;
+    font-weight: 400;
+}
+
+.compete-invite-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: 0.25rem;
+
+    .btn {
+        min-width: 7rem;
+        min-height: 2.75rem;
+    }
+}
+
+.compete-invite-left {
+    color: var(--compete-muted);
+    font-size: 0.8125rem;
+    font-weight: 500;
+}
+
+.compete-invite-error {
+    color: var(--compete-bad);
+    font-size: 0.875rem;
+}
+
+.compete-invite-left:empty,
+.compete-invite-error:empty {
+    display: none;
+}
+
+.compete-banner--studio-elsewhere {
+    margin: 0;
+    background: var(--compete-info-bg);
+    color: var(--compete-info);
+}
+
+// A camera tile: the strip, the host on a second screen, the studio's stage
+.compete-video-tile {
+    position: relative;
+    overflow: hidden;
+    aspect-ratio: 16 / 9;
+    border-radius: 0.375rem;
+    background: #000;
+
+    video {
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+}
+
+.compete-video-tile-name {
+    position: absolute;
+    right: 0.25rem;
+    bottom: 0.25rem;
+    left: 0.25rem;
+    overflow: hidden;
+    padding: 0.05rem 0.35rem;
+    border-radius: 0.25rem;
+    background: rgba(0, 0, 0, 0.6);
+    color: #fff;
+    font-size: 0.6875rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    &:empty {
+        display: none;
+    }
+}
+
+// On air: the studio takes the place of the round's screens (the round's state stays as it is underneath)
+.compete:is([data-studio='joining'], [data-studio='on_air'], [data-studio='leaving']) .compete-screens {
+    display: none;
+}
+
+.compete-studio {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.6rem;
+    width: 100%;
+    max-width: 40rem;
+    margin: 0 auto;
+    padding: 1rem;
+    text-align: center;
+
+    &[hidden] {
+        display: none;
+    }
+
+    p {
+        margin: 0;
+    }
+}
+
+.compete-studio-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.compete-studio-dot {
+    width: 0.75rem;
+    height: 0.75rem;
+    border-radius: 50%;
+    background: var(--compete-muted);
+}
+
+.compete[data-studio='on_air'] .compete-studio-dot {
+    background: #e5484d;
+    box-shadow: 0 0 0 0.25rem rgba(229, 72, 77, 0.25);
+}
+
+.compete-studio-stage {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+    gap: 0.5rem;
+    width: 100%;
+
+    &:empty {
+        display: none;
+    }
+}
+
+.compete-studio-people {
+    font-weight: 500;
+}
+
+.compete-studio-error {
+    color: var(--compete-warn);
+    font-size: 0.875rem;
+}
+
+.compete-studio-people:empty,
+.compete-studio-error:empty {
+    display: none;
+}
+
+.compete-studio-hint {
+    color: var(--compete-muted);
+}
+
+.compete-studio-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: auto;
+
+    .btn {
+        min-height: 2.75rem;
+    }
+}
+
+// The other participants: a strip under the stage, scrolling sideways (LiveKit sends only the tiles on screen)
+.compete-strip {
+    padding: 0.5rem 1rem calc(0.75rem + env(safe-area-inset-bottom));
+    border-top: 1px solid var(--compete-border);
+    background: var(--compete-surface);
+
+    &[hidden] {
+        display: none;
+    }
+}
+
+.compete-strip-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    color: var(--compete-muted);
+    font-size: 0.8125rem;
+}
+
+.compete-strip-toggle {
+    padding-inline: 0.25rem;
+    font-size: 0.8125rem;
+}
+
+.compete-strip-tiles {
+    display: flex;
+    gap: 0.5rem;
+    overflow-x: auto;
+    padding-top: 0.4rem;
+    scroll-snap-type: x proximity;
+    overscroll-behavior-x: contain;
+
+    &[hidden] {
+        display: none;
+    }
+
+    .compete-video-tile {
+        flex: 0 0 auto;
+        width: 8.5rem;
+        scroll-snap-align: start;
+    }
+}
+
+.compete-strip-empty {
+    margin: 0.4rem 0 0;
+    color: var(--compete-muted);
+    font-size: 0.8125rem;
+}
+
+// A second screen: the clock, the host, the way to the studio
+.compete-second-host {
+    width: 100%;
+    max-width: 32rem;
+}
+
+.compete-second-host-tiles {
+    display: grid;
+    gap: 0.5rem;
+
+    &:empty {
+        display: none;
+    }
+}
+
+.compete-second-host-empty,
+.compete-second-note {
+    margin: 0;
+    color: var(--compete-muted);
+    font-size: 0.875rem;
+}
+
+.compete-second-offer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.35rem;
+    color: var(--compete-muted);
+
+    &[hidden] {
+        display: none;
+    }
+}
+
+@media (orientation: landscape) and (max-height: 34rem) {
+    .compete-strip {
+        padding-block: 0.35rem;
+    }
+
+    .compete-strip-tiles .compete-video-tile {
+        width: 7rem;
+    }
+}

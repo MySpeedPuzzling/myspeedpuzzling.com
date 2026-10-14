@@ -1,0 +1,485 @@
+// The public watch page of an online round's studio (docs/features/online-competitions/contracts/phase-1b.md §1,
+// stream VS). Its own Encore style entry 'online_watch', linked only on that page through the base layout's
+// page_stylesheets block - never imported into app.scss, so the site-wide CSS stays as it is.
+//
+// A theatre: the video is the page. Always dark - a light page around a video glares - and every text pair passes
+// WCAG AA on its background. Phones first: held upright the tiles stack at the full width and the clock follows;
+// landscape and desktop put them side by side as large as the window allows (online_watch_controller.js measures the
+// window and sets --watch-columns, --watch-tile-width and the stage's height). `--obs`: the video alone on a transparent
+// page for an OBS browser source - the page's transparency itself is set inline by the template (no :has() needed).
+
+.online-watch {
+    --watch-bg: #0d1017;
+    --watch-surface: #171c27;
+    --watch-text: #eef1f6;
+    // 8.9:1 on --watch-bg
+    --watch-muted: #aeb6c4;
+    // White text on it: 4.6:1
+    --watch-live: #d63c42;
+    // 8.3:1 on --watch-bg
+    --watch-link: #ffa3a4;
+    --watch-focus: #8fb4ff;
+
+    display: flex;
+    flex-direction: column;
+    gap: .75rem;
+    width: 100%;
+    max-width: 1600px;
+    margin: 0 auto;
+    padding:
+        max(.75rem, env(safe-area-inset-top))
+        max(.75rem, env(safe-area-inset-right))
+        max(1rem, env(safe-area-inset-bottom))
+        max(.75rem, env(safe-area-inset-left));
+    color: var(--watch-text);
+    background: var(--watch-bg);
+
+    a:not(.btn) {
+        color: var(--watch-link);
+    }
+
+    :focus-visible {
+        outline: 2px solid var(--watch-focus);
+        outline-offset: 2px;
+    }
+}
+
+// ---------------------------------------------------------------- the bar: where this is, Live, the number watching
+
+.online-watch-bar {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    min-width: 0;
+}
+
+.online-watch-home {
+    flex: none;
+    border-radius: .375rem;
+    line-height: 0;
+
+    img {
+        width: 2.25rem;
+        height: auto;
+    }
+}
+
+.online-watch-names {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.online-watch .online-watch-event {
+    overflow: hidden;
+    color: var(--watch-muted);
+    font-size: .875rem;
+    text-decoration: none;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    &:hover {
+        color: var(--watch-text);
+        text-decoration: underline;
+    }
+}
+
+.online-watch-round {
+    margin: 0;
+    color: var(--watch-text);
+    font-size: 1.125rem;
+    font-weight: 600;
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+
+    @media (min-width: 768px) {
+        font-size: 1.375rem;
+    }
+}
+
+.online-watch-status {
+    display: flex;
+    flex: none;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: .25rem;
+
+    @media (min-width: 576px) {
+        flex-direction: row;
+        align-items: center;
+        gap: .75rem;
+    }
+}
+
+.online-watch-live {
+    display: inline-flex;
+    align-items: center;
+    padding: .25rem .625rem;
+    border-radius: 999px;
+    background: var(--watch-live);
+    color: #fff;
+    font-size: .8125rem;
+    font-weight: 700;
+    letter-spacing: .05em;
+    line-height: 1.2;
+    text-transform: uppercase;
+
+    .live-dot {
+        margin-right: .375rem;
+    }
+}
+
+.online-watch-count {
+    color: var(--watch-muted);
+    font-size: .875rem;
+    white-space: nowrap;
+}
+
+.online-watch-not-public {
+    margin: 0;
+    padding: .5rem .75rem;
+    border-radius: .5rem;
+    background: #2b2514;
+    // 10.6:1 on its background
+    color: #ffd98a;
+    font-size: .875rem;
+}
+
+// ---------------------------------------------------------------- the stage: the studio's tiles
+
+.online-watch-stage {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    // Before anybody is on air: a 16:9 box that fits the window (--watch-available, measured by the controller)
+    max-width: calc(var(--watch-available, calc(100dvh - 10rem)) * 16 / 9);
+    max-height: var(--watch-available, calc(100dvh - 10rem));
+    margin: 0 auto;
+    overflow: hidden;
+    border-radius: .75rem;
+    background: #000;
+    aspect-ratio: 16 / 9;
+
+    // On air: exactly the tiles - their width, the rows they need
+    &[data-on-air] {
+        width: var(--watch-stage-width, 100%);
+        max-width: 100%;
+        max-height: none;
+        height: var(--watch-stage-height, auto);
+        aspect-ratio: auto;
+        background: transparent;
+    }
+}
+
+.online-watch-tiles {
+    display: grid;
+    grid-template-columns: repeat(var(--watch-columns, 1), var(--watch-tile-width, minmax(0, 1fr)));
+    align-content: center;
+    justify-content: center;
+    gap: .375rem;
+    width: 100%;
+    height: 100%;
+
+    &[data-count='0'] {
+        display: none;
+    }
+}
+
+.online-watch-tile {
+    position: relative;
+    overflow: hidden;
+    border-radius: .5rem;
+    background: var(--watch-surface);
+    aspect-ratio: 16 / 9;
+}
+
+.online-watch-video {
+    display: block;
+    width: 100%;
+    height: 100%;
+    // The whole frame, letterboxed: a guest's phone may well send an upright picture
+    object-fit: contain;
+    background: #000;
+}
+
+// A camera turned off, or a voice without a camera: who it is, a microphone
+.online-watch-placeholder {
+    position: absolute;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    color: var(--watch-muted);
+    font-size: 2.5rem;
+}
+
+.online-watch-tile.is-muted {
+    .online-watch-placeholder {
+        display: flex;
+    }
+
+    .online-watch-video {
+        visibility: hidden;
+    }
+}
+
+.online-watch-name {
+    position: absolute;
+    bottom: .5rem;
+    left: .5rem;
+    max-width: calc(100% - 1rem);
+    overflow: hidden;
+    padding: .125rem .5rem;
+    border-radius: .25rem;
+    background: rgba(0, 0, 0, .65);
+    color: #fff;
+    font-size: .8125rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+// ---------------------------------------------------------------- the curtain: why there is no studio on screen
+
+.online-watch-curtain {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: .375rem;
+    padding: 1.25rem;
+    background: radial-gradient(ellipse at center, #1b2232 0%, #0d1017 78%);
+    text-align: center;
+}
+
+.online-watch-curtain-title {
+    margin: 0;
+    color: var(--watch-text);
+    font-size: 1.125rem;
+    font-weight: 600;
+
+    @media (min-width: 768px) {
+        font-size: 1.5rem;
+    }
+}
+
+.online-watch-curtain-text,
+.online-watch-curtain-note {
+    max-width: 34rem;
+    margin: 0;
+    color: var(--watch-muted);
+    font-size: .9375rem;
+}
+
+.online-watch-curtain-note {
+    font-variant-numeric: tabular-nums;
+}
+
+.online-watch-curtain-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: .5rem;
+    margin-top: .5rem;
+}
+
+// LiveKit reconnecting by itself: a veil over the frozen picture, not a wall
+.online-watch[data-curtain='reconnecting'] .online-watch-curtain {
+    background: rgba(13, 16, 23, .72);
+}
+
+// A small spinner while it connects
+.online-watch[data-curtain='connecting'] .online-watch-curtain-title::before,
+.online-watch[data-curtain='reconnecting'] .online-watch-curtain-title::before {
+    content: '';
+    display: inline-block;
+    width: 1em;
+    height: 1em;
+    margin-right: .5rem;
+    border: .15em solid rgba(255, 255, 255, .25);
+    border-top-color: #fff;
+    border-radius: 50%;
+    vertical-align: -.125em;
+
+    @media (prefers-reduced-motion: no-preference) {
+        animation: online-watch-spin .9s linear infinite;
+    }
+}
+
+@keyframes online-watch-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+// YouTube's own red - white text 5.1:1
+.online-watch .online-watch-youtube {
+    border-color: #c4302b;
+    background: #c4302b;
+    color: #fff;
+
+    &:hover,
+    &:focus-visible {
+        border-color: #a32622;
+        background: #a32622;
+        color: #fff;
+    }
+}
+
+// ---------------------------------------------------------------- the sound
+
+// Browsers play nothing before a tap: one big, obvious button over the video
+.online-watch-sound {
+    position: absolute;
+    bottom: 1rem;
+    left: 50%;
+    z-index: 2;
+    display: inline-flex;
+    align-items: center;
+    gap: .5rem;
+    min-height: 2.75rem;
+    padding: .5rem 1.125rem;
+    border: 0;
+    border-radius: 999px;
+    background: #fff;
+    box-shadow: 0 .5rem 1.5rem rgba(0, 0, 0, .45);
+    color: #11151d;
+    font-weight: 600;
+    white-space: nowrap;
+    transform: translateX(-50%);
+
+    i {
+        font-size: 1.25rem;
+    }
+}
+
+.online-watch-mute {
+    position: absolute;
+    top: .5rem;
+    right: .5rem;
+    z-index: 2;
+    width: 2.75rem;
+    height: 2.75rem;
+    border: 0;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, .6);
+    color: #fff;
+    font-size: 1.25rem;
+    line-height: 1;
+
+    .online-watch-mute-off {
+        display: none;
+    }
+
+    &.is-muted {
+        .online-watch-mute-on {
+            display: none;
+        }
+
+        .online-watch-mute-off {
+            display: inline;
+        }
+    }
+}
+
+// ---------------------------------------------------------------- the round's clock
+
+.online-watch-clock {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: center;
+    gap: .125rem .75rem;
+    color: var(--watch-muted);
+    text-align: center;
+}
+
+.online-watch-clock-label {
+    font-size: .9375rem;
+}
+
+.online-watch-clock-time {
+    color: var(--watch-text);
+    font-family: ui-monospace, 'SF Mono', 'Roboto Mono', Menlo, Consolas, monospace;
+    font-size: 1.75rem;
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+    letter-spacing: -.02em;
+    line-height: 1.1;
+
+    @media (min-width: 768px) {
+        font-size: 2.25rem;
+    }
+}
+
+.online-watch-clock-left,
+.online-watch-planned {
+    font-size: .9375rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.online-watch-planned {
+    flex-basis: 100%;
+}
+
+.online-watch-noscript {
+    margin: 0;
+    color: var(--watch-muted);
+    text-align: center;
+}
+
+// ---------------------------------------------------------------- OBS: the video alone, transparent around it
+
+.online-watch--obs {
+    position: fixed;
+    inset: 0;
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    background: transparent;
+
+    .online-watch-stage {
+        position: absolute;
+        inset: 0;
+        max-width: none;
+        max-height: none;
+        height: auto;
+        border-radius: 0;
+        background: transparent;
+        aspect-ratio: auto;
+    }
+
+    .online-watch-tile,
+    .online-watch-video {
+        border-radius: 0;
+        background: transparent;
+    }
+
+    .online-watch-placeholder {
+        display: none !important;
+    }
+}
+
+// ---------------------------------------------------------------- no live video for this round (the site's own layout)
+
+.online-watch-unavailable {
+    max-width: 34rem;
+    margin: 0 auto;
+    text-align: center;
+}
+
+.online-watch-unavailable-icon {
+    display: block;
+    margin-bottom: 1rem;
+    color: #6b7488;
+    font-size: 3rem;
+}
+
+.online-watch-unavailable-names {
+    margin-bottom: 1rem;
+    font-weight: 500;
+}

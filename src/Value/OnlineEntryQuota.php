@@ -24,8 +24,9 @@ final readonly class OnlineEntryQuota
     // Media rows of one online entry, and the bytes they declared - beyond: refused `media_quota_exceeded`
     public const int MAX_MEDIA_PER_ENTRY = 1_500;
     public const int MAX_MEDIA_BYTES_PER_ENTRY = 500 * 1024 * 1024;
-    // Presigned uploads not verified yet within PENDING_MEDIA_WINDOW_SECONDS - beyond: `too_many_pending_media` (429,
-    // the phone comes back later; a store that is down makes every phone ask again and again)
+    // Presigned uploads the phone has not reported done (`media.uploaded`) within PENDING_MEDIA_WINDOW_SECONDS - beyond:
+    // `too_many_pending_media` (429, the phone comes back later; a store that is down makes every phone ask again and
+    // again). What the phone uploaded counts no more, verified or not - the async check never holds a phone up
     public const int MAX_PENDING_MEDIA_PER_ENTRY = 100;
     public const int PENDING_MEDIA_WINDOW_SECONDS = 1_800;
     public const int PENDING_MEDIA_RETRY_AFTER_SECONDS = 60;

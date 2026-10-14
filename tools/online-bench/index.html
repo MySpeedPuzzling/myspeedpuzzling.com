@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Detection bench</title>
+    <style>
+        :root {
+            --text: #1d2733;
+            --muted: #5b6878;
+            --line: #d6dce4;
+            --panel: #f5f7fa;
+            --accent: #1f9d55;
+            --error: #c53030;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
+            color: var(--text);
+            background: #fff;
+        }
+
+        header {
+            padding: 10px 16px;
+            border-bottom: 1px solid var(--line);
+        }
+
+        header h1 { margin: 0; font-size: 18px; }
+        header p { margin: 2px 0 0; color: var(--muted); }
+
+        main {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 380px;
+            gap: 16px;
+            padding: 12px 16px;
+        }
+
+        @media (max-width: 1000px) {
+            main { grid-template-columns: 1fr; }
+        }
+
+        .viewer {
+            position: relative;
+            background: #0b0f14;
+            aspect-ratio: 16 / 9;
+        }
+
+        .viewer video, .viewer canvas {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .viewer canvas { pointer-events: none; }
+
+        #timeline {
+            display: block;
+            width: 100%;
+            height: 150px;
+            margin-top: 8px;
+            border: 1px solid var(--line);
+            cursor: crosshair;
+        }
+
+        .status-line {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px 16px;
+            margin-top: 6px;
+        }
+
+        #time { font-variant-numeric: tabular-nums; font-weight: 600; }
+        #status.error { color: var(--error); }
+
+        aside fieldset {
+            margin: 0 0 12px;
+            padding: 8px 10px 10px;
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            background: var(--panel);
+        }
+
+        aside legend { font-weight: 600; padding: 0 4px; }
+
+        .row {
+            display: grid;
+            grid-template-columns: 130px minmax(0, 1fr);
+            align-items: center;
+            gap: 6px;
+            margin: 4px 0;
+        }
+
+        .row input, .row select { width: 100%; }
+        details input { width: 100%; font-size: 12px; margin: 2px 0 6px; }
+        .buttons { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+        progress { width: 100%; }
+        ul { margin: 6px 0 0; padding-left: 18px; }
+        li { cursor: pointer; }
+        li.missed { color: var(--error); }
+        kbd { padding: 0 4px; border: 1px solid var(--line); border-radius: 3px; background: #fff; font-size: 12px; }
+        .keys { color: var(--muted); font-size: 12px; }
+        #stats { font-size: 12px; color: var(--muted); }
+    </style>
+</head>
+<body>
+<header>
+    <h1>Hands-up detection bench</h1>
+    <p>Online competitions, spike S2 (docs/features/online-competitions/spikes.md). Footage stays outside the repository - drop a video and its label file anywhere on the page.</p>
+</header>
+<main>
+    <section>
+        <div class="viewer">
+            <video id="video" muted playsinline preload="auto"></video>
+            <canvas id="overlay"></canvas>
+        </div>
+        <canvas id="timeline" height="150"></canvas>
+        <div class="status-line">
+            <span id="time">00:00:00.0</span>
+            <span id="frame-info"></span>
+            <span id="status">Drop a video (and its .txt label file), or choose them below.</span>
+        </div>
+    </section>
+
+    <aside>
+        <fieldset>
+            <legend>Footage</legend>
+            <input id="file-input" type="file" accept="video/*,.txt" multiple>
+            <div class="row"><label for="video-fps">Video frame rate</label><input id="video-fps" type="number" value="30" min="1" step="0.01" title="For ← / → (one frame)"></div>
+        </fieldset>
+
+        <fieldset>
+            <legend>Detector</legend>
+            <div class="row"><label for="view">View</label><select id="view" title="angled = pose, topDown = gestures, any = both"></select></div>
+            <div class="row">
+                <label for="fps">Analyse at</label>
+                <select id="fps">
+                    <option value="2">2 fps</option>
+                    <option value="4">4 fps</option>
+                    <option value="5">5 fps (the phone)</option>
+                    <option value="10" selected>10 fps (score.mjs can thin it)</option>
+                    <option value="15">15 fps</option>
+                    <option value="30">30 fps</option>
+                </select>
+            </div>
+            <div class="row">
+                <label for="input-width">Frame sent</label>
+                <select id="input-width">
+                    <option value="640" selected>640 px wide (the phone)</option>
+                    <option value="960">960 px wide</option>
+                    <option value="full">full size</option>
+                </select>
+            </div>
+            <div class="row"><label for="mirror">Mirrored</label><input id="mirror" type="checkbox" title="Flip the frames, as a front camera shows them"></div>
+            <details>
+                <summary>Models (pinned)</summary>
+                <label for="tasks-vision-url">tasks-vision ESM</label><input id="tasks-vision-url">
+                <label for="wasm-base-url">WASM base</label><input id="wasm-base-url">
+                <label for="pose-model-url">Pose model</label><input id="pose-model-url">
+                <label for="gesture-model-url">Gesture model</label><input id="gesture-model-url">
+            </details>
+            <div class="buttons">
+                <button id="load" type="button">Load detector</button>
+                <button id="analyse" type="button">Analyse the video</button>
+                <button id="stop" type="button">Stop</button>
+            </div>
+            <progress id="progress" value="0" max="1"></progress>
+            <div id="stats"></div>
+        </fieldset>
+
+        <fieldset>
+            <legend>Finish rules (finish_machine.js)</legend>
+            <div class="row"><label for="rule-hold">Hold (ms)</label><input id="rule-hold" type="number" step="50"></div>
+            <div class="row"><label for="rule-cooldown">Cooldown (ms)</label><input id="rule-cooldown" type="number" step="500"></div>
+            <div class="row"><label for="rule-min-score">Min score</label><input id="rule-min-score" type="number" step="0.05" min="0" max="1"></div>
+            <div class="row"><label for="rule-drop-frames">Dropped frames</label><input id="rule-drop-frames" type="number" step="1" min="0"></div>
+            <div class="row"><label for="rule-drop-ms">Drop span (ms)</label><input id="rule-drop-ms" type="number" step="50"></div>
+            <div class="row"><label for="rule-gap">Max gap (ms)</label><input id="rule-gap" type="number" step="100"></div>
+            <ul id="candidates"></ul>
+        </fieldset>
+
+        <fieldset>
+            <legend>Labels (S1)</legend>
+            <div class="row"><label for="label-video">Video</label><input id="label-video"></div>
+            <div class="row"><label for="label-phone">Phone</label><input id="label-phone"></div>
+            <div class="row"><label for="label-placement">Placement</label><input id="label-placement" placeholder="angled / top-down"></div>
+            <div class="row"><label for="label-light">Light</label><input id="label-light"></div>
+            <div class="row"><label for="label-puzzle">Puzzle</label><input id="label-puzzle"></div>
+            <div class="row">
+                <label for="label-complete">Complete</label>
+                <select id="label-complete"><option value=""></option><option value="yes">yes</option><option value="no">no</option></select>
+            </div>
+            <div class="row"><label for="label-notes">Notes</label><input id="label-notes"></div>
+            <ul id="marks"></ul>
+            <p class="keys">
+                <kbd>←</kbd>/<kbd>→</kbd> frame, <kbd>Shift</kbd> second, <kbd>Alt</kbd> 0.1 s, <kbd>Space</kbd> play ·
+                <kbd>M</kbd> empty mat (start, end) · <kbd>L</kbd> last piece · <kbd>H</kbd> hands up, complete ·
+                <kbd>I</kbd> hands up, incomplete · <kbd>E</kbd> hands down · <kbd>Del</kbd> nearest mark · <kbd>S</kbd> save
+            </p>
+            <div class="buttons">
+                <button id="save-labels" type="button">Save the label file</button>
+                <button id="export-signals" type="button">Export signals JSON</button>
+            </div>
+        </fieldset>
+    </aside>
+</main>
+<script type="module" src="bench.js"></script>
+</body>
+</html>

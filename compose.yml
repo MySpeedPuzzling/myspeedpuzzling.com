@@ -85,6 +85,25 @@ services:
         volumes:
             - redis-data:/data
 
+    # Live video of the online competitions (docs/features/online-competitions/README.md §5.12): a local LiveKit server.
+    # Off unless asked for - `docker compose --profile video up -d livekit` - with the LIVEKIT_* lines of .env put into
+    # .env.local. Configured by config/livekit/dev.yaml; the browser connects to ws://localhost:${LIVEKIT_PORT}. The media
+    # ports are advertised to the browser by the server itself, so they are published 1:1 and the same host port is
+    # handed to the server (--udp-port, LIVEKIT_RTC_TCP_PORT) - never mapped to another one.
+    livekit:
+        image: livekit/livekit-server:v1.13.9
+        profiles: ["video"]
+        restart: unless-stopped
+        command: ["--config", "/etc/livekit.yaml", "--udp-port", "${LIVEKIT_UDP_PORT:-7882}"]
+        environment:
+            LIVEKIT_RTC_TCP_PORT: "${LIVEKIT_TCP_PORT:-7881}"
+        volumes:
+            - ./config/livekit/dev.yaml:/etc/livekit.yaml:ro
+        ports:
+            - "${LIVEKIT_PORT:-7880}:7880"
+            - "${LIVEKIT_TCP_PORT:-7881}:${LIVEKIT_TCP_PORT:-7881}"
+            - "${LIVEKIT_UDP_PORT:-7882}:${LIVEKIT_UDP_PORT:-7882}/udp"
+
     # API usage counters (docs/features/api/usage-statistics.md) - configured like
     # production's: never evicts, persists every second; the cache redis above does neither
     redis-state:

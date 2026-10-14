@@ -5,20 +5,30 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\Controller\Compete;
 
 use DateTimeImmutable;
+use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use SpeedPuzzling\Web\Entity\CompetitionParticipant;
+use SpeedPuzzling\Web\Entity\StudioInvite;
+use SpeedPuzzling\Web\Message\AnswerStudioInvite;
+use SpeedPuzzling\Web\Message\InviteToStudio;
 use SpeedPuzzling\Web\Tests\DataFixtures\OnlineRoundsFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
+use SpeedPuzzling\Web\Tests\LiveVideoTesting;
 use SpeedPuzzling\Web\Tests\TestingLogin;
+use SpeedPuzzling\Web\Value\StudioInviteAnswer;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\Messenger\MessageBusInterface;
+use Symfony\Component\Messenger\Stamp\HandledStamp;
 
 /**
- * `GET /api/compete/{token}/state` - the state a participant's page lives on (implementation-plan.md §3.1).
+ * `GET /api/compete/{token}/state` - the state a participant's page lives on (implementation-plan.md §3.1), and while
+ * live video is available the participant's invitation to the studio (contract phase-1b.md §4).
  */
 final class ApiStateControllerTest extends WebTestCase
 {
     use CompeteApiRequests;
+    use LiveVideoTesting;
 
     private KernelBrowser $browser;
 
@@ -26,6 +36,14 @@ final class ApiStateControllerTest extends WebTestCase
     {
         $this->browser = self::createClient();
         self::forgetCachedAccess($this->browser);
+        self::resetLiveVideoDoubles();
+    }
+
+    protected function tearDown(): void
+    {
+        $this->restoreLiveVideo();
+
+        parent::tearDown();
     }
 
     public function testTheStateOfAConnectedParticipantsLink(): void
@@ -38,7 +56,7 @@ final class ApiStateControllerTest extends WebTestCase
         self::assertNoCookie($this->browser);
 
         $state = self::json($this->browser);
-        self::assertSame(['serverNowMs', 'asOfMs', 'participant', 'competition', 'round', 'entry', 'mercure'], array_keys($state));
+        self::assertSame(['serverNowMs', 'asOfMs', 'participant', 'competition', 'round', 'entry', 'mercure', 'studio'], array_keys($state));
         self::assertIsInt($state['serverNowMs']);
         self::assertGreaterThanOrEqual($before, $state['serverNowMs']);
         self::assertIsInt($state['asOfMs']);
@@ -65,6 +83,57 @@ final class ApiStateControllerTest extends WebTestCase
         $mercure = $state['mercure'];
         self::assertIsArray($mercure);
         self::assertSame(['/round-stopwatch/' . OnlineRoundsFixture::ROUND_ONLINE_SOLO], $mercure['topics']);
+
+        // The round's video is off - no studio
+        self::assertNull($state['studio']);
+    }
+
+    public function testTheStateCarriesTheParticipantsInvitationToTheStudio(): void
+    {
+        $connection = $this->browser->getContainer()->get(Connection::class);
+        self::turnRoundVideoOn($connection);
+
+        $this->browser->request('GET', self::api(OnlineRoundsFixture::TOKEN_CONNECTED, 'state'));
+        self::assertNull(self::json($this->browser)['studio'], 'never invited');
+
+        $bus = $this->browser->getContainer()->get(MessageBusInterface::class);
+        $invite = $bus->dispatch(new InviteToStudio(OnlineRoundsFixture::COMPETITION_ONLINE_TEST_CUP, OnlineRoundsFixture::ROUND_ONLINE_SOLO, OnlineRoundsFixture::PARTICIPANT_CONNECTED, PlayerFixture::PLAYER_ADMIN))
+            ->last(HandledStamp::class)?->getResult();
+        self::assertInstanceOf(StudioInvite::class, $invite);
+        $inviteId = $invite->id->toString();
+
+        $this->browser->request('GET', self::api(OnlineRoundsFixture::TOKEN_CONNECTED, 'state'));
+        self::assertSame(['inviteId' => $inviteId, 'status' => 'invited'], self::json($this->browser)['studio']);
+
+        // Somebody else's state knows nothing of it
+        $this->browser->request('GET', self::api(OnlineRoundsFixture::TOKEN_ANONYMOUS, 'state'));
+        self::assertNull(self::json($this->browser)['studio']);
+
+        // Nobody answered for two minutes: expired, checked on read
+        $connection->executeStatement("UPDATE studio_invite SET invited_at = invited_at - interval '121 seconds' WHERE id = :id", ['id' => $inviteId]);
+        $this->browser->request('GET', self::api(OnlineRoundsFixture::TOKEN_CONNECTED, 'state'));
+        self::assertSame(['inviteId' => $inviteId, 'status' => 'expired'], self::json($this->browser)['studio']);
+        self::assertSame('invited', $connection->fetchOne('SELECT status FROM studio_invite WHERE id = :id', ['id' => $inviteId]), 'reading writes nothing');
+
+        $connection->executeStatement("UPDATE studio_invite SET invited_at = invited_at + interval '121 seconds' WHERE id = :id", ['id' => $inviteId]);
+        $this->browser->getContainer()->get(MessageBusInterface::class)->dispatch(new AnswerStudioInvite($inviteId, OnlineRoundsFixture::PARTICIPANT_CONNECTED, StudioInviteAnswer::Join));
+        $this->browser->request('GET', self::api(OnlineRoundsFixture::TOKEN_CONNECTED, 'state'));
+        self::assertSame(['inviteId' => $inviteId, 'status' => 'joined'], self::json($this->browser)['studio']);
+    }
+
+    /**
+     * No media server (production until it has one): the state is exactly what it was before live video
+     */
+    public function testWithoutAMediaServerTheStateIsAsBeforeLiveVideo(): void
+    {
+        self::ensureKernelShutdown();
+        $this->turnLiveVideoOff();
+        $this->browser = self::createClient();
+
+        $this->browser->request('GET', self::api(OnlineRoundsFixture::TOKEN_CONNECTED, 'state'));
+
+        self::assertResponseIsSuccessful();
+        self::assertSame(['serverNowMs', 'asOfMs', 'participant', 'competition', 'round', 'entry', 'mercure'], array_keys(self::json($this->browser)));
     }
 
     public function testAnAnonymousLinkOfADraftCompetitionWorks(): void

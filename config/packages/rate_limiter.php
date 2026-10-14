@@ -12,6 +12,12 @@ namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 // (2026-09-18): these limiters count password attempts and nothing else.
 return App::config([
     'framework' => [
+        // The lock of the studio's spectator count (StudioSpectators): on the cache Redis, one key per studio - never
+        // LOCK_DSN, which is a Postgres advisory lock per request. Declared here, next to the watch page's limit below;
+        // config/packages/lock.php keeps the default lock.
+        'lock' => [
+            'online_watch' => '%env(REDIS_CACHE_DSN)%',
+        ],
         'rate_limiter' => [
             // Brute force on a single account (keyed email + client IP)
             'login_email_ip' => [
@@ -117,44 +123,30 @@ return App::config([
                 'limit' => 60,
                 'interval' => '1 minute',
             ],
-            // The participant API of online competitions (`/api/compete/{token}/…`, OnlineParticipantApi) - every link
-            // is treated as a possibly hostile client. Their state lives in their own pool on the cache Redis
-            // (online_participant_rate_limits, config/packages/cache.php), never in the shared cache.app. No lock (the
-            // default would be LOCK_DSN, a Postgres advisory lock per request): the heartbeat never touches Postgres,
-            // and two requests counting at the same moment may at worst lose one count.
-            // Per client IP, before anything else: links guessed at, or one network flooding. Generous - a club or a
-            // family on one connection, each phone a few dozen requests a minute.
-            'online_participant_ip' => [
-                'policy' => 'sliding_window',
-                'limit' => 1_200,
-                'interval' => '1 minute',
-                'lock_factory' => null,
-                'cache_pool' => 'online_participant_rate_limits',
-            ],
-            // Per link: a phone sends a heartbeat every 15 s, event batches, photo uploads every 10 s before the start
-            // and the state fetches around it - a few dozen requests a minute even with two devices on one link
-            'online_participant' => [
-                'policy' => 'sliding_window',
-                'limit' => 300,
-                'interval' => '1 minute',
-                'lock_factory' => null,
-                'cache_pool' => 'online_participant_rate_limits',
-            ],
-            // Per link and endpoint: event batches (up to 50 events each) and presigned uploads - far above a phone
-            // catching up after an outage, far below a flood of rows
-            'online_participant_events' => [
-                'policy' => 'sliding_window',
-                'limit' => 60,
-                'interval' => '1 minute',
-                'lock_factory' => null,
-                'cache_pool' => 'online_participant_rate_limits',
-            ],
-            'online_participant_media' => [
-                'policy' => 'sliding_window',
-                'limit' => 60,
-                'interval' => '1 minute',
-                'lock_factory' => null,
-                'cache_pool' => 'online_participant_rate_limits',
+            // The participant API of online competitions (`/api/compete/{token}/…`, OnlineParticipantApi) is limited by
+            // RedisSlidingWindowLimiterFactory (config/services.php) - one atomic Redis call per request, so the count
+            // holds when a phone (or a flood) sends many requests at the same moment; the test environment stands in
+            // with framework limiters of the same names (config/packages/test/rate_limiter.php). The watch page's
+            // limit counts the same way (online_rate_limiter.online_watch_ip below).
+        ],
+    ],
+    'services' => [
+        // The public watch page of a round's studio: its token endpoint (OnlineWatchTokenController) answers anybody, so
+        // it is limited per client IP before anything is read - a page asks once when it opens and again after a lost
+        // connection, backing off; a household or a mobile network's shared address stays far below, a script does
+        // not. Every token also holds a place in the studio for a few seconds (StudioSpectators), so the limit bounds
+        // what one address can take there too. One atomic call on the cache Redis like the participant API's limits
+        // (RedisSlidingWindowLimiterFactory, its connection online_rate_limiter.redis - config/services.php); the test
+        // environment stands in with the framework limiter `online_watch_ip` (config/packages/test/rate_limiter.php).
+        'online_rate_limiter.online_watch_ip' => [
+            'class' => \SpeedPuzzling\Web\Services\RateLimiting\RedisSlidingWindowLimiterFactory::class,
+            'autowire' => true,
+            'arguments' => [
+                '$redis' => service('online_rate_limiter.redis'),
+                '$id' => 'online_watch_ip',
+                '$limit' => 60,
+                '$intervalSeconds' => 60,
+                '$keyPrefix' => 'online_rate_limit:',
             ],
         ],
     ],

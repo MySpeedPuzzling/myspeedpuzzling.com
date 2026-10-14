@@ -56,6 +56,26 @@ class EmailAuditLog
     #[Column(type: Types::TEXT, nullable: true)]
     public null|string $bounceReason = null;
 
+    /** First SES delivery event: the receiving server accepted the message */
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    public null|DateTimeImmutable $deliveredAt = null;
+
+    /** First open (a soft signal: Apple Mail Privacy Protection opens everything) - notifications only */
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    public null|DateTimeImmutable $openedAt = null;
+
+    /** First click on a link - notifications only */
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    public null|DateTimeImmutable $clickedAt = null;
+
+    /** The recipient marked it as spam (a mailbox provider's feedback loop) */
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    public null|DateTimeImmutable $complainedAt = null;
+
     public function __construct(
         #[Id]
         #[Immutable]
@@ -106,5 +126,25 @@ class EmailAuditLog
         $this->bounceType = $type;
         $this->bouncedAt = $at;
         $this->bounceReason = $reason;
+    }
+
+    public function markAsDelivered(DateTimeImmutable $at): void
+    {
+        $this->deliveredAt ??= $at;
+    }
+
+    public function markAsOpened(DateTimeImmutable $at): void
+    {
+        $this->openedAt ??= $at;
+    }
+
+    public function markAsClicked(DateTimeImmutable $at): void
+    {
+        $this->clickedAt ??= $at;
+    }
+
+    public function markAsComplained(DateTimeImmutable $at): void
+    {
+        $this->complainedAt ??= $at;
     }
 }

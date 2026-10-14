@@ -84,11 +84,14 @@ return App::config([
                 'times_board_guest_cache' => [
                     'adapters' => ['cache.app'],
                 ],
-                // The rate limits of the online competitions' participant API (config/packages/rate_limiter.php,
-                // online_participant*): on the cache Redis like cache.app, but their own pool - a flood of links never
-                // mixes with the site's cache entries, and the pool can be cleared on its own
-                'online_participant_rate_limits' => [
+                // How many spectators each studio holds (StudioSpectators): LiveKit's list of the room, kept for a few
+                // seconds, plus the places handed out since - one entry per studio
+                'online_watch_spectators' => [
                     'adapters' => ['cache.adapter.redis'],
+                ],
+                // Amazon SNS signing certificates (SnsMessageVerifier), keyed by their URL
+                'sns_certificate_cache' => [
+                    'adapters' => ['cache.app'],
                 ],
             ],
         ],

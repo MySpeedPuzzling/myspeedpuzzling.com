@@ -11,19 +11,23 @@ use SpeedPuzzling\Web\Entity\CompetitionRound;
 use SpeedPuzzling\Web\Services\OnlineRounds\InMemoryOnlinePresence;
 use SpeedPuzzling\Web\Services\OnlineRounds\OnlineAccessLight;
 use SpeedPuzzling\Web\Tests\DataFixtures\OnlineRoundsFixture;
+use SpeedPuzzling\Web\Tests\LiveVideoTesting;
 use SpeedPuzzling\Web\Tests\QueryCountAssertions;
+use SpeedPuzzling\Web\Tests\TestDouble\InMemoryStudioInviteSignal;
 use SpeedPuzzling\Web\Value\RoundClock;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Contracts\Cache\CacheInterface;
 
 /**
- * `POST /api/compete/{token}/heartbeat` - presence, a clock sample, the hint to fetch the state again, and the
- * takeover (README §5.3, §5.4, §5.6). Never Postgres once the link is cached.
+ * `POST /api/compete/{token}/heartbeat` - presence, a clock sample, the hint to fetch the state again, the takeover
+ * (README §5.3, §5.4, §5.6) and, while live video is available, the open invitation to the studio (contract
+ * phase-1b.md §4). Never Postgres once the link is cached.
  */
 final class ApiHeartbeatControllerTest extends WebTestCase
 {
     use CompeteApiRequests;
+    use LiveVideoTesting;
     use QueryCountAssertions;
 
     private const string NOT_ENTERED_TOKEN = 'NoraNotEnteredToken222';
@@ -34,6 +38,14 @@ final class ApiHeartbeatControllerTest extends WebTestCase
     {
         $this->browser = self::createClient();
         self::forgetCachedAccess($this->browser, self::NOT_ENTERED_TOKEN);
+        self::resetLiveVideoDoubles();
+    }
+
+    protected function tearDown(): void
+    {
+        $this->restoreLiveVideo();
+
+        parent::tearDown();
     }
 
     public function testABeatIsThePresenceOfTheParticipantInTheirRound(): void
@@ -46,13 +58,15 @@ final class ApiHeartbeatControllerTest extends WebTestCase
         self::assertNoCookie($this->browser);
 
         $answer = self::json($this->browser);
-        self::assertSame(['serverNowMs', 'stateHash', 'roundId', 'takenOverBy'], array_keys($answer));
+        self::assertSame(['serverNowMs', 'stateHash', 'roundId', 'takenOverBy', 'studioInviteId'], array_keys($answer));
         self::assertIsInt($answer['serverNowMs']);
         self::assertGreaterThanOrEqual($before, $answer['serverNowMs']);
         self::assertSame($this->roundStateHash(), $answer['stateHash']);
         self::assertSame(OnlineRoundsFixture::ROUND_ONLINE_SOLO, $answer['roundId']);
         // The device holding the entry itself
         self::assertNull($answer['takenOverBy']);
+        // Not invited to the studio
+        self::assertNull($answer['studioInviteId']);
 
         $presence = $this->presence();
         self::assertSame([OnlineRoundsFixture::PARTICIPANT_CONNECTED], array_keys($presence));
@@ -71,6 +85,34 @@ final class ApiHeartbeatControllerTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         self::assertSame(OnlineRoundsFixture::DEVICE_CONNECTED, self::json($this->browser)['takenOverBy']);
+    }
+
+    /**
+     * The control room shows the device holding the entry: a beat of another device on the same link (a laptop that
+     * never got ready, with its camera off) is kept apart - it never overwrites the holder's presence
+     */
+    public function testABeatOfAnotherDeviceNeverOverwritesTheHoldersPresence(): void
+    {
+        // One kernel for both phones - the presence double lives in it
+        $this->browser->disableReboot();
+        self::postJson($this->browser, self::api(OnlineRoundsFixture::TOKEN_CONNECTED, 'heartbeat'), self::beat(OnlineRoundsFixture::DEVICE_CONNECTED));
+        $holder = $this->presence()[OnlineRoundsFixture::PARTICIPANT_CONNECTED];
+
+        self::postJson($this->browser, self::api(OnlineRoundsFixture::TOKEN_CONNECTED, 'heartbeat'), [
+            ...self::beat('laptop-second-screen'),
+            'visible' => false,
+            'camera' => ['ok' => false, 'w' => null, 'h' => null, 'fps' => null],
+        ]);
+        self::assertResponseIsSuccessful();
+        self::assertSame(OnlineRoundsFixture::DEVICE_CONNECTED, self::json($this->browser)['takenOverBy']);
+
+        $beat = $this->presence()[OnlineRoundsFixture::PARTICIPANT_CONNECTED];
+        $otherDevice = $beat['otherDevice'] ?? null;
+        unset($beat['otherDevice']);
+        self::assertSame($holder, $beat, 'the holder\'s camera, visibility and last beat as they were');
+        self::assertIsArray($otherDevice);
+        self::assertSame('laptop-second-screen', $otherDevice['deviceId']);
+        self::assertIsInt($otherDevice['lastSeenMs']);
     }
 
     public function testAPhoneBeforeItsFirstEventIsHeldByNobody(): void
@@ -125,10 +167,12 @@ final class ApiHeartbeatControllerTest extends WebTestCase
     }
 
     /**
-     * Postgres is asked once a minute per link at most - a heartbeat of a cached link costs no statement
+     * Postgres is asked once a minute per link at most - a heartbeat of a cached link costs no statement, with an
+     * invitation to the studio open too (its signal is in redis-state)
      */
     public function testAHeartbeatCostsNoStatementOnceTheLinkIsKnown(): void
     {
+        (new InMemoryStudioInviteSignal())->raise(OnlineRoundsFixture::ROUND_ONLINE_SOLO, OnlineRoundsFixture::PARTICIPANT_CONNECTED, '018d0060-0000-7000-8000-000000000001', 120);
         $this->startCountingQueries($this->browser);
         self::postJson($this->browser, self::api(OnlineRoundsFixture::TOKEN_CONNECTED, 'heartbeat'), self::beat(OnlineRoundsFixture::DEVICE_CONNECTED));
         self::assertResponseIsSuccessful();
@@ -139,6 +183,45 @@ final class ApiHeartbeatControllerTest extends WebTestCase
         self::postJson($this->browser, self::api(OnlineRoundsFixture::TOKEN_CONNECTED, 'heartbeat'), self::beat(OnlineRoundsFixture::DEVICE_CONNECTED));
         self::assertResponseIsSuccessful();
         self::assertSame([], $this->executedSql($this->browser), 'A heartbeat of a cached link never touches Postgres');
+        self::assertSame('018d0060-0000-7000-8000-000000000001', self::json($this->browser)['studioInviteId']);
+    }
+
+    /**
+     * A data message the phone missed costs nothing: its next beat names the invitation waiting for its answer - only
+     * its own, only while it waits
+     */
+    public function testTheBeatCarriesTheOpenInvitationToTheStudio(): void
+    {
+        $signal = new InMemoryStudioInviteSignal();
+        $signal->raise(OnlineRoundsFixture::ROUND_ONLINE_SOLO, OnlineRoundsFixture::PARTICIPANT_CONNECTED, '018d0060-0000-7000-8000-000000000001', 120);
+
+        self::postJson($this->browser, self::api(OnlineRoundsFixture::TOKEN_CONNECTED, 'heartbeat'), self::beat(OnlineRoundsFixture::DEVICE_CONNECTED));
+        self::assertSame('018d0060-0000-7000-8000-000000000001', self::json($this->browser)['studioInviteId']);
+
+        // Arthur has none
+        self::postJson($this->browser, self::api(OnlineRoundsFixture::TOKEN_ANONYMOUS, 'heartbeat'), self::beat('phone-a'));
+        self::assertNull(self::json($this->browser)['studioInviteId']);
+
+        // Answered or ended: gone
+        $signal->clear(OnlineRoundsFixture::ROUND_ONLINE_SOLO, OnlineRoundsFixture::PARTICIPANT_CONNECTED, '018d0060-0000-7000-8000-000000000001');
+        self::postJson($this->browser, self::api(OnlineRoundsFixture::TOKEN_CONNECTED, 'heartbeat'), self::beat(OnlineRoundsFixture::DEVICE_CONNECTED));
+        self::assertNull(self::json($this->browser)['studioInviteId']);
+    }
+
+    /**
+     * No media server (production until it has one): the answer is exactly what it was before live video
+     */
+    public function testWithoutAMediaServerTheBeatIsAsBeforeLiveVideo(): void
+    {
+        self::ensureKernelShutdown();
+        $this->turnLiveVideoOff();
+        $this->browser = self::createClient();
+        (new InMemoryStudioInviteSignal())->raise(OnlineRoundsFixture::ROUND_ONLINE_SOLO, OnlineRoundsFixture::PARTICIPANT_CONNECTED, '018d0060-0000-7000-8000-000000000001', 120);
+
+        self::postJson($this->browser, self::api(OnlineRoundsFixture::TOKEN_CONNECTED, 'heartbeat'), self::beat(OnlineRoundsFixture::DEVICE_CONNECTED));
+
+        self::assertResponseIsSuccessful();
+        self::assertSame(['serverNowMs', 'stateHash', 'roundId', 'takenOverBy'], array_keys(self::json($this->browser)));
     }
 
     public function testRefusals(): void

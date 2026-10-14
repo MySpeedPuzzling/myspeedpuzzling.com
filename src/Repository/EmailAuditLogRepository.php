@@ -21,6 +21,14 @@ readonly final class EmailAuditLogRepository
         $this->entityManager->persist($log);
     }
 
+    /**
+     * Null when the row is gone - audit rows are pruned (CleanupEmailAuditLogs) and SES events can arrive late
+     */
+    public function find(UuidInterface $id): null|EmailAuditLog
+    {
+        return $this->entityManager->find(EmailAuditLog::class, $id);
+    }
+
     public function get(UuidInterface $id): EmailAuditLog
     {
         $log = $this->entityManager->find(EmailAuditLog::class, $id);

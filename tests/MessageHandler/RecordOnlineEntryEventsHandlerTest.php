@@ -15,8 +15,10 @@ use SpeedPuzzling\Web\Entity\Competition;
 use SpeedPuzzling\Web\Entity\CompetitionParticipant;
 use SpeedPuzzling\Web\Entity\CompetitionParticipantRound;
 use SpeedPuzzling\Web\Entity\CompetitionRound;
+use SpeedPuzzling\Web\Entity\OnlineEntryEvent;
 use SpeedPuzzling\Web\Entity\OnlineRound;
 use SpeedPuzzling\Web\Message\RecordOnlineEntryEvents;
+use SpeedPuzzling\Web\Query\GetOnlineReviewData;
 use SpeedPuzzling\Web\Results\RecordedOnlineEntryEvents;
 use SpeedPuzzling\Web\Tests\DataFixtures\OnlineRoundsFixture;
 use SpeedPuzzling\Web\Value\OnlineDetectionMode;
@@ -112,6 +114,7 @@ final class RecordOnlineEntryEventsHandlerTest extends KernelTestCase
             unfinishedMeasure: OnlineUnfinishedMeasure::PiecesPlaced,
             missingPieceRule: OnlineMissingPieceRule::CompleteRequired,
         );
+        $onlineRound->round->startStopwatch(new DateTimeImmutable('-61 minutes'));
         $this->entityManager->flush();
 
         $this->record(OnlineRoundsFixture::PARTICIPANT_CONNECTED, OnlineRoundsFixture::DEVICE_CONNECTED, [self::event('timeup.pieces', self::nowMs(), ['pieces' => 480])]);
@@ -122,6 +125,35 @@ final class RecordOnlineEntryEventsHandlerTest extends KernelTestCase
         );
     }
 
+    /**
+     * A run is one start of the round clock: a time-up report from before the current start belongs to a run that was
+     * reset (sent late by a phone that was offline) - stored, never the entry's report; with no start there is no run
+     */
+    public function testATimeUpReportOfAnEarlierRunIsStoredButNotTheEntrysReport(): void
+    {
+        $round = $this->entityManager->find(CompetitionRound::class, OnlineRoundsFixture::ROUND_ONLINE_SOLO);
+        self::assertNotNull($round);
+        $now = self::nowMs();
+        $earlier = self::event('timeup.pieces', $now - 20 * 60_000, ['pieces' => 7]);
+
+        // Reset, no start yet
+        $waiting = $this->record(OnlineRoundsFixture::PARTICIPANT_CONNECTED, OnlineRoundsFixture::DEVICE_CONNECTED, [$earlier]);
+        self::assertSame([$earlier['id']], $waiting->acks);
+        self::assertNull($this->reportedPieces());
+
+        // The new run started 10 minutes ago
+        $round->startStopwatch(new DateTimeImmutable('-10 minutes'));
+        $this->entityManager->flush();
+        $another = self::event('timeup.pieces', $now - 15 * 60_000, ['pieces' => 9]);
+        $this->record(OnlineRoundsFixture::PARTICIPANT_CONNECTED, OnlineRoundsFixture::DEVICE_CONNECTED, [$another]);
+        self::assertNull($this->reportedPieces());
+
+        $current = self::event('timeup.pieces', $now, ['pieces' => 42]);
+        $this->record(OnlineRoundsFixture::PARTICIPANT_CONNECTED, OnlineRoundsFixture::DEVICE_CONNECTED, [$current]);
+        self::assertSame(42, $this->reportedPieces());
+        self::assertSame(3, $this->connection->fetchOne("SELECT COUNT(*) FROM online_entry_event WHERE type = 'timeup.pieces' AND online_entry_id = :id", ['id' => OnlineRoundsFixture::ONLINE_ENTRY_CONNECTED]));
+    }
+
     public function testTheSameEventTwiceInOneBatchIsStoredOnce(): void
     {
         $event = self::event('network.offline', self::nowMs());
@@ -130,6 +162,59 @@ final class RecordOnlineEntryEventsHandlerTest extends KernelTestCase
 
         self::assertSame([$event['id']], $recorded->acks);
         self::assertSame(1, $this->connection->fetchOne('SELECT COUNT(*) FROM online_entry_event WHERE id = :id', ['id' => $event['id']]));
+    }
+
+    /**
+     * Every payload is a JSON object - an event without data too (`{}`, never `[]`); a `[]` stored before reads as an
+     * empty payload all the same
+     */
+    public function testAPayloadIsAlwaysStoredAsAnObject(): void
+    {
+        $now = self::nowMs();
+        $tapId = Uuid::uuid7()->toString();
+        $hidden = self::event('page.hidden', $now);
+        $undo = self::event('finish.button.undone', $now + 1, ['eventId' => $tapId]);
+
+        $hiddenId = $hidden['id'];
+        $undoId = $undo['id'];
+        self::assertIsString($hiddenId);
+        self::assertIsString($undoId);
+
+        $this->record(OnlineRoundsFixture::PARTICIPANT_CONNECTED, OnlineRoundsFixture::DEVICE_CONNECTED, [$hidden, $undo]);
+
+        $stored = $this->connection->fetchAllKeyValue(
+            'SELECT id::text, jsonb_typeof(payload) FROM online_entry_event WHERE id IN (:hidden, :undo)',
+            ['hidden' => $hiddenId, 'undo' => $undoId],
+        );
+        self::assertSame([$hiddenId => 'object', $undoId => 'object'], $stored);
+        self::assertSame('{}', $this->connection->fetchOne('SELECT payload::text FROM online_entry_event WHERE id = :id', ['id' => $hiddenId]));
+
+        // A row an older release stored with `[]` - the review reads it as no payload
+        $legacyId = Uuid::uuid7()->toString();
+        $this->connection->insert('online_entry_event', [
+            'id' => $legacyId,
+            'online_entry_id' => OnlineRoundsFixture::ONLINE_ENTRY_CONNECTED,
+            'device_id' => OnlineRoundsFixture::DEVICE_CONNECTED,
+            'type' => 'page.visible',
+            'client_ms' => $now + 2,
+            'received_at_ms' => $now + 2,
+            'payload' => '[]',
+        ]);
+        $this->entityManager->clear();
+
+        $payloads = [];
+
+        foreach (self::getContainer()->get(GetOnlineReviewData::class)->events(OnlineRoundsFixture::ROUND_ONLINE_SOLO, OnlineRoundsFixture::ONLINE_ENTRY_CONNECTED) as $event) {
+            $payloads[$event['id']] = $event['payload'];
+        }
+
+        self::assertSame([], $payloads[$legacyId]);
+        self::assertSame([], $payloads[$hiddenId]);
+        self::assertSame(['eventId' => $tapId], $payloads[$undoId]);
+
+        $legacy = $this->entityManager->find(OnlineEntryEvent::class, $legacyId);
+        self::assertNotNull($legacy);
+        self::assertSame([], $legacy->payload);
     }
 
     /**
@@ -224,6 +309,11 @@ final class RecordOnlineEntryEventsHandlerTest extends KernelTestCase
         $this->entityManager->persist(new OnlineRound(Uuid::uuid7(), $round, new DateTimeImmutable(), null));
 
         return $round;
+    }
+
+    private function reportedPieces(): mixed
+    {
+        return $this->connection->fetchOne('SELECT reported_pieces FROM online_entry WHERE id = :id', ['id' => OnlineRoundsFixture::ONLINE_ENTRY_CONNECTED]);
     }
 
     private static function nowMs(): int

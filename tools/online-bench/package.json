@@ -1,0 +1,7 @@
+{
+    "name": "msp-online-bench",
+    "private": true,
+    "type": "module",
+    "description": "Detection bench of the online competitions (docs/features/online-competitions/spikes.md S2) - plain ES modules, no dependencies",
+    "license": "UNLICENSED"
+}

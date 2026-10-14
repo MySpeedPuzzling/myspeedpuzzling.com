@@ -258,7 +258,7 @@ html:has(.compete) body {
 }
 
 .compete:not([data-camera='live']) .compete-status-camera,
-.compete[data-connection='offline'] .compete-status-connection {
+.compete:is([data-connection='offline'], [data-connection='problem']) .compete-status-connection {
     color: var(--compete-bad);
     font-weight: 600;
 }
@@ -287,6 +287,15 @@ html:has(.compete) body {
 .compete-banner--offline {
     background: var(--compete-warn-bg);
     color: var(--compete-warn);
+}
+
+// "Tap here once" after a reload - something to do, so it reads as a button
+.compete-banner--wake {
+    padding: 0.85rem 1rem;
+    background: var(--compete-warn-bg);
+    color: var(--compete-warn);
+    font-weight: 700;
+    cursor: pointer;
 }
 
 // Loud on purpose (README §5.5: a full-screen state when the camera stops) - the whole page turns with it

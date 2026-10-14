@@ -58,6 +58,22 @@ return static function (ContainerConfigurator $configurator): void {
     $services->alias(\SpeedPuzzling\Web\Services\OnlineRounds\OnlinePresence::class, \SpeedPuzzling\Web\Services\OnlineRounds\InMemoryOnlinePresence::class);
     $services->alias(\SpeedPuzzling\Web\Services\OnlineRounds\OnlineMediaStorage::class, \SpeedPuzzling\Web\Services\OnlineRounds\FakeOnlineMediaStorage::class);
 
+    // Live video (docs/features/online-competitions/contracts/phase-1b.md): LiveKit's server API answers from a static
+    // MockHttpClient that records every request - no test ever needs a running LiveKit -, and the studio invitation
+    // signal lives in the process instead of redis-state (both doubles survive the browser's kernel reboots)
+    $services->set('livekit.test_http_client', \Symfony\Component\HttpClient\MockHttpClient::class)
+        ->factory([\SpeedPuzzling\Web\Tests\TestDouble\LiveKitHttpMock::class, 'client']);
+    $services->set(\SpeedPuzzling\Web\Services\LiveKit\LiveKitApi::class)
+        ->arg('$httpClient', service('livekit.test_http_client'));
+    $services->set(\SpeedPuzzling\Web\Tests\TestDouble\InMemoryStudioInviteSignal::class);
+    $services->alias(\SpeedPuzzling\Web\Services\LiveKit\StudioInviteSignal::class, \SpeedPuzzling\Web\Tests\TestDouble\InMemoryStudioInviteSignal::class);
+
+    // The participant API's rate limits without Redis: the framework limiters of config/packages/test/rate_limiter.php
+    // (RedisSlidingWindowLimiterTest covers the production limiter against a real Redis)
+    foreach (['online_participant_ip', 'online_participant', 'online_participant_events', 'online_participant_media'] as $name) {
+        $services->alias('online_rate_limiter.' . $name, 'limiter.' . $name);
+    }
+
     // The XP launch switch without a statement per page (production: Redis) - see FixedXpLaunchReadiness
     $services->set(\SpeedPuzzling\Web\Tests\TestDouble\FixedXpLaunchReadiness::class);
     $services->alias(\SpeedPuzzling\Web\Services\Xp\XpLaunchReadiness::class, \SpeedPuzzling\Web\Tests\TestDouble\FixedXpLaunchReadiness::class);
@@ -70,6 +86,10 @@ return static function (ContainerConfigurator $configurator): void {
     // call Google/Apple/Facebook (the static handler survives kernel reboots)
     $services->set('social_login.http_client', \GuzzleHttp\Client::class)
         ->factory([\SpeedPuzzling\Web\Tests\TestDouble\SocialLoginHttpMock::class, 'client']);
+
+    // SNS certificates + subscription confirmations never leave the process (static, like the social login mock)
+    $services->set('ses_events.http_client', \Symfony\Component\HttpClient\MockHttpClient::class)
+        ->factory([\SpeedPuzzling\Web\Tests\TestDouble\SnsHttpMock::class, 'client']);
 
     // S3 failover: the real FailoverS3Adapter stays wired (see
     // config/packages/test/oneup_flysystem.php), only the raw S3 adapter and

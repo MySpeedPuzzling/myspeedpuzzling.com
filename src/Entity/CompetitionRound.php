@@ -412,8 +412,24 @@ class CompetitionRound implements EntityWithEvents
      */
     public function stopStopwatch(DateTimeImmutable $stoppedAt): void
     {
-        $stoppedAt = self::wholeSecond($stoppedAt);
-        $status = $this->stopwatchStatusAt($stoppedAt);
+        $this->stop($stoppedAt, self::wholeSecond($stoppedAt));
+    }
+
+    /**
+     * "End now" of an online round (StopRoundStopwatchHandler) - stopStopwatch(), but the end is stored rounded UP to the
+     * next whole second: the column keeps whole seconds, and an end stored before the click (39.926 → 39) would turn a
+     * Finished tap in that last fraction of a second into a tap after the end. The end is never before the click and at
+     * most a second after it. In person a Stop is a pause and keeps rounding down - rounded up, every pause would add up
+     * to a second to the clock.
+     */
+    public function endStopwatch(DateTimeImmutable $endedAt): void
+    {
+        $this->stop($endedAt, self::wholeSecondUp($endedAt));
+    }
+
+    private function stop(DateTimeImmutable $moment, DateTimeImmutable $storedEnd): void
+    {
+        $status = $this->stopwatchStatusAt($moment);
 
         if ($status === RoundStopwatchStatus::SCHEDULED) {
             $this->resetStopwatch();
@@ -426,7 +442,7 @@ class CompetitionRound implements EntityWithEvents
         }
 
         $this->stopwatchStatus = RoundStopwatchStatus::STOPPED;
-        $this->stopwatchStoppedAt = $stoppedAt;
+        $this->stopwatchStoppedAt = $storedEnd;
     }
 
     public function resetStopwatch(): void
@@ -443,5 +459,15 @@ class CompetitionRound implements EntityWithEvents
     private static function wholeSecond(DateTimeImmutable $moment): DateTimeImmutable
     {
         return $moment->setTimestamp($moment->getTimestamp());
+    }
+
+    /**
+     * The moment on the next whole second - itself when it is one already
+     */
+    private static function wholeSecondUp(DateTimeImmutable $moment): DateTimeImmutable
+    {
+        $seconds = $moment->getTimestamp();
+
+        return $moment->setTimestamp((int) $moment->format('u') > 0 ? $seconds + 1 : $seconds);
     }
 }

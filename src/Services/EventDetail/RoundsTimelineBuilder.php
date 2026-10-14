@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Results\EventDetail\TimelineRound;
 use SpeedPuzzling\Web\Results\EventsPage\DateLeaf;
 use SpeedPuzzling\Web\Results\EventsPage\WhenLabel;
 use SpeedPuzzling\Web\Services\EventsPage\EventRowFactory;
+use SpeedPuzzling\Web\Services\LiveKit\LiveKitSettings;
 use SpeedPuzzling\Web\Value\EventOccurrenceStatus;
 use SpeedPuzzling\Web\Value\EventTime;
 use SpeedPuzzling\Web\Value\OccurrenceDates;
@@ -22,13 +23,19 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 /**
  * The rounds timeline of the edition and one-time event pages (docs/features/events-page/detail-pages.md "Rounds
  * timeline", detail-pages-plan.md 1.3): one row per round in schedule order, past / live / next / later, earlier rounds
- * folded, the links each round offers - and the page's dates, from the same sessions rule as the events page
- * (OccurrenceDates::sessions()). Pure apart from the URL generator; each rule has a test in RoundsTimelineBuilderTest.
+ * folded, the links each round offers (results, add a time, watch its studio live) - and the page's dates, from the same
+ * sessions rule as the events page (OccurrenceDates::sessions()). Pure apart from the URL generator and whether a media
+ * server is configured; each rule has a test in RoundsTimelineBuilderTest.
  */
 readonly final class RoundsTimelineBuilder
 {
+    // The studio may go on after a round (the host talks to the finishers): its "Watch live" stays this long after the
+    // round's time limit (docs/features/online-competitions/contracts/phase-1b.md §5 `online_watch`)
+    public const int WATCH_AFTER_END_HOURS = 3;
+
     public function __construct(
         private UrlGeneratorInterface $urlGenerator,
+        private LiveKitSettings $liveKitSettings,
     ) {
     }
 
@@ -72,6 +79,8 @@ readonly final class RoundsTimelineBuilder
 
         $timelineRounds = [];
         $roundsWithResults = 0;
+        // Live video needs a media server - without one (production until ADR D78) no round has a watch page
+        $videoAvailable = $isPublic && $this->liveKitSettings->isAvailable();
 
         foreach ($rounds as $round) {
             $started = $round->startsAt <= $now;
@@ -106,6 +115,9 @@ readonly final class RoundsTimelineBuilder
                 officialResults: $round->resultsPublished,
                 addTimeUrl: $canAddTime && $started ? $this->addTimeUrl($competitionId, $round) : null,
                 puzzlesAnnounced: $round->puzzles !== [],
+                watchUrl: $videoAvailable && $round->onlineVideo && self::stillWatchable($round, $now)
+                    ? $this->urlGenerator->generate('online_watch', ['roundId' => $round->id])
+                    : null,
             );
         }
 
@@ -154,6 +166,14 @@ readonly final class RoundsTimelineBuilder
             runsUntilEnd: $runsUntilEnd,
             mixedZones: count($zones) > 1,
         );
+    }
+
+    /**
+     * Before the round, while it runs and WATCH_AFTER_END_HOURS after its time limit - not on an old round's row
+     */
+    private static function stillWatchable(EditionRoundDetail $round, DateTimeImmutable $now): bool
+    {
+        return $round->startsAt->modify(sprintf('+%d minutes +%d hours', $round->minutesLimit, self::WATCH_AFTER_END_HOURS)) > $now;
     }
 
     /**

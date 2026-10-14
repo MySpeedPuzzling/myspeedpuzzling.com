@@ -139,6 +139,12 @@ final class ApiEventsControllerTest extends WebTestCase
 
     public function testTheLatestTimeUpReportOnThePhonesClockWins(): void
     {
+        // The round ran (a report is about the round's current run - from its start on)
+        $entityManager = $this->browser->getContainer()->get(EntityManagerInterface::class);
+        $round = $entityManager->find(CompetitionRound::class, OnlineRoundsFixture::ROUND_ONLINE_SOLO);
+        self::assertNotNull($round);
+        $round->startStopwatch(new DateTimeImmutable('-61 minutes'));
+        $entityManager->flush();
         $now = self::nowMs();
 
         $this->sendConnected([self::event('timeup.pieces', $now - 10_000, ['pieces' => 12])]);
@@ -340,7 +346,7 @@ final class ApiEventsControllerTest extends WebTestCase
         $participant->assignOnlineToken($token, new DateTimeImmutable());
         $entityManager->flush();
 
-        $limiter = $this->browser->getContainer()->get('limiter.online_participant_events');
+        $limiter = $this->browser->getContainer()->get('online_rate_limiter.online_participant_events');
         $limiter->create($token)->consume($limiter->create($token)->consume(0)->getLimit());
 
         self::postJson($this->browser, self::api($token, 'events'), ['deviceId' => 'phone-a', 'events' => []]);

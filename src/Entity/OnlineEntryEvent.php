@@ -14,6 +14,7 @@ use Doctrine\ORM\Mapping\ManyToOne;
 use JetBrains\PhpStorm\Immutable;
 use Ramsey\Uuid\Doctrine\UuidType;
 use Ramsey\Uuid\UuidInterface;
+use SpeedPuzzling\Web\Doctrine\JsonbObjectArrayDoctrineType;
 use SpeedPuzzling\Web\Value\OnlineEventType;
 
 /**
@@ -60,8 +61,9 @@ class OnlineEntryEvent
         #[Immutable]
         #[Column(type: Types::BIGINT)]
         public int $receivedAtMs,
+        // A JSON object - an empty one is stored as `{}`, never `[]` (JsonbObjectArrayDoctrineType)
         #[Immutable]
-        #[Column(type: Types::JSONB, options: ['default' => '{}'])]
+        #[Column(type: JsonbObjectArrayDoctrineType::NAME, options: ['default' => '{}'])]
         public array $payload = [],
     ) {
     }

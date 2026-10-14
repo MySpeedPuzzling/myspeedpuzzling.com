@@ -75,6 +75,10 @@
                 <button type="button" class="btn btn-sm btn-light" data-compete-show="thisIsMe" data-action="compete#confirmConnect" hidden>{{ 'compete.connect.this_is_me'|trans }}</button>
             </div>
             <div class="compete-banner compete-banner--offline" data-compete-show="offline" role="status" hidden>{{ 'compete.page.offline_banner'|trans }}</div>
+            {# After a reload: no sound and (Safari) no screen lock until a tap - compete_flow.js wakeTapNeeded() #}
+            <button type="button" class="compete-banner compete-banner--wake" data-compete-show="wakeTap" data-action="compete#wakeUp" hidden>
+                <i class="bi bi-volume-up me-2" aria-hidden="true"></i>{{ 'compete.screen.wake_tap'|trans }}
+            </button>
             <button type="button" class="compete-banner compete-banner--camera" data-compete-show="cameraAlert" data-action="compete#restartCamera" hidden>
                 <i class="bi bi-camera-video-off me-2" aria-hidden="true"></i>{{ 'compete.screen.camera_alert'|trans }}
             </button>

@@ -28,7 +28,10 @@ use SpeedPuzzling\Web\Value\RoundClock;
  * - `piecesTotal` is the piece count of the round's one puzzle - null with several puzzles, or while it is kept secret
  *   entirely until the round starts.
  * - `entry` is null when the participant is not entered in the round; before their phone's first contact it holds the
- *   defaults. `taps` counts the Finished taps that were not undone.
+ *   defaults. `taps` counts the Finished taps that were not undone, `candidates` the finish candidates - both of the
+ *   round's current run only (a run is one start of the round clock: events from `startedAtMs` on; before the first
+ *   start or after a Reset there is none). The reported pieces and the review are the current run's too (a Reset clears
+ *   them - OnlineEntry::startFreshRun()).
  *
  * @phpstan-type OnlineStateRound array{
  *     id: string,
@@ -146,7 +149,10 @@ readonly final class OnlineRoundState
         }
 
         $onlineEntry = $this->onlineEntryRepository->ofEntry($context->entry->id->toString());
-        $counts = $onlineEntry === null ? [] : $this->onlineEntryEventRepository->typeCounts($onlineEntry->id->toString());
+        $runStartedAtMs = $context->clock?->startedAtMs;
+        $counts = $onlineEntry === null || $runStartedAtMs === null
+            ? []
+            : $this->onlineEntryEventRepository->typeCounts($onlineEntry->id->toString(), $runStartedAtMs);
         $taps = ($counts[OnlineEventType::FinishButton->value] ?? 0) - ($counts[OnlineEventType::FinishButtonUndone->value] ?? 0);
 
         return [

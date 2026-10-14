@@ -26,7 +26,8 @@ use SpeedPuzzling\Web\Value\OnlineUnfinishedMeasure;
  * The events and the evidence hang off it (OnlineEntryEvent, OnlineEntryMedia).
  *
  * The participant's phone changes the device, readiness, clock and reported fields (RecordOnlineEntryEvents), the review
- * the rest (ConfirmOnlineResult) - through the public properties, confirm() and addFlag().
+ * the rest (ConfirmOnlineResult) - through the public properties, confirm() and addFlag(); a Reset of the round clears
+ * what belonged to the run that was (startFreshRun()). The reported pieces are always the current run's.
  */
 #[Entity]
 class OnlineEntry
@@ -104,6 +105,23 @@ class OnlineEntry
         $this->reviewStatus = OnlineReviewStatus::Confirmed;
         $this->reviewedBy = $reviewer;
         $this->reviewedAt = $reviewedAt;
+    }
+
+    /**
+     * A Reset of the round starts a fresh run (ResetRoundStopwatchHandler): what belongs to the run that was - the
+     * pieces reported at its time-up and the review's decision - is cleared. The device holding the entry, its
+     * readiness and clock stay (the participant set up once), and the events stay stored: the review reads them as an
+     * earlier run's.
+     */
+    public function startFreshRun(): void
+    {
+        $this->reportedMeasure = null;
+        $this->reportedPieces = null;
+        $this->confirmedMomentMs = null;
+        $this->confirmedSource = null;
+        $this->reviewStatus = OnlineReviewStatus::Pending;
+        $this->reviewedBy = null;
+        $this->reviewedAt = null;
     }
 
     public function addFlag(string $flag): void

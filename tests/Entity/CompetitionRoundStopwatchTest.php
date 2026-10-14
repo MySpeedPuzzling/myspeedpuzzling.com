@@ -180,6 +180,59 @@ final class CompetitionRoundStopwatchTest extends TestCase
         self::assertSame('000000', $round->stopwatchStoppedAt?->format('u'));
     }
 
+    /**
+     * "End now" of an online round: a click at 39.926 s is stored as 40 s - never 39, which would make a Finished tap
+     * at 39.95 one after the end. An in-person Stop (a pause) still rounds down.
+     */
+    public function testAnOnlineEndIsStoredOnTheNextWholeSecondNeverBeforeTheClick(): void
+    {
+        $startedAt = self::at(whole: true);
+        $round = self::round();
+        $round->startStopwatch($startedAt);
+
+        $round->endStopwatch($startedAt->modify('+39 seconds +926 milliseconds'));
+
+        self::assertSame(RoundStopwatchStatus::STOPPED, $round->stopwatchStatus);
+        self::assertEquals($startedAt->modify('+40 seconds'), $round->stopwatchStoppedAt);
+        self::assertSame('000000', $round->stopwatchStoppedAt?->format('u'));
+
+        // On a whole second it stays there
+        $exact = self::round();
+        $exact->startStopwatch($startedAt);
+        $exact->endStopwatch($startedAt->modify('+2 minutes'));
+        self::assertEquals($startedAt->modify('+2 minutes'), $exact->stopwatchStoppedAt);
+
+        // In person: the pause keeps the second it was in
+        $inPerson = self::round();
+        $inPerson->startStopwatch($startedAt);
+        $inPerson->stopStopwatch($startedAt->modify('+39 seconds +926 milliseconds'));
+        self::assertEquals($startedAt->modify('+39 seconds'), $inPerson->stopwatchStoppedAt);
+    }
+
+    /**
+     * The status is read at the click, not at the rounded-up end: 0.7 s before a scheduled start the countdown is
+     * called off - it never becomes a round that ran for no time
+     */
+    public function testEndingACountdownJustBeforeItsMomentCallsItOff(): void
+    {
+        $round = self::round();
+        $startsAt = self::at('+10 seconds', whole: true);
+        $round->scheduleStopwatchStart($startsAt, self::at());
+
+        $round->endStopwatch($startsAt->modify('-700 milliseconds'));
+
+        self::assertNull($round->stopwatchStatus);
+        self::assertNull($round->stopwatchStartedAt);
+        self::assertNull($round->stopwatchStoppedAt);
+
+        // A second end never moves the first one
+        $ended = self::round();
+        $ended->scheduleStopwatchStart($startsAt, self::at());
+        $ended->endStopwatch($startsAt->modify('+5 minutes +100 milliseconds'));
+        $ended->endStopwatch($startsAt->modify('+6 minutes'));
+        self::assertEquals($startsAt->modify('+5 minutes +1 second'), $ended->stopwatchStoppedAt);
+    }
+
     public function testASecondStopNeverMovesTheEnd(): void
     {
         $round = self::round();

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Repository;
 
 use Doctrine\DBAL\ArrayParameterType;
+use Doctrine\DBAL\ParameterType;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\OnlineEntryEvent;
@@ -60,11 +61,12 @@ readonly final class OnlineEntryEventRepository
     }
 
     /**
-     * How many events of each type an online entry has
+     * How many events of each type an online entry has from a moment on (its round's current run: from the start of the
+     * round clock - an earlier run's events stay stored and are not counted)
      *
      * @return array<string, int> OnlineEventType value => count, types without an event left out
      */
-    public function typeCounts(string $onlineEntryId): array
+    public function typeCounts(string $onlineEntryId, int $fromMs): array
     {
         if (!Uuid::isValid($onlineEntryId)) {
             return [];
@@ -72,8 +74,9 @@ readonly final class OnlineEntryEventRepository
 
         /** @var array<string, int|string> $counts */
         $counts = $this->entityManager->getConnection()->fetchAllKeyValue(
-            'SELECT type, COUNT(*) FROM online_entry_event WHERE online_entry_id = :onlineEntryId GROUP BY type',
-            ['onlineEntryId' => $onlineEntryId],
+            'SELECT type, COUNT(*) FROM online_entry_event WHERE online_entry_id = :onlineEntryId AND client_ms >= :fromMs GROUP BY type',
+            ['onlineEntryId' => $onlineEntryId, 'fromMs' => $fromMs],
+            ['fromMs' => ParameterType::INTEGER],
         );
 
         return array_map(static fn (int|string $count): int => (int) $count, $counts);

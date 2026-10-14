@@ -21,6 +21,9 @@ enum RoundStopwatchRefusal: string
     case TooLateToCancel = 'too_late_to_cancel';
     // "Start" while a countdown runs would move the start every phone counts down to - cancel the countdown first
     case StartScheduled = 'start_scheduled';
+    // A Reset of a round with online timing starts a fresh run - not while official results of it are recorded (they
+    // belong to the run that was): the results desk clears them first
+    case ResultsConfirmed = 'results_confirmed';
 
     public function translationKey(): string
     {

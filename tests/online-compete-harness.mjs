@@ -5,10 +5,12 @@
 
 import assert from 'node:assert/strict';
 import {
+    answerReach,
     buildEvent,
     cameraWanted,
     CHECK_CODES,
     checklistRows,
+    connectionStatus,
     clockText,
     countdownText,
     currentFinish,
@@ -20,6 +22,7 @@ import {
     loadConsent,
     loadProgress,
     memoryStorage,
+    nextDisplayChangeAt,
     nextPeriodicPhotoAt,
     periodicGapMs,
     practiceAllowed,
@@ -27,13 +30,18 @@ import {
     practiceState,
     readiness,
     readPieces,
+    runKeyOf,
     saveConsent,
     saveProgress,
     SCREENS,
     screenFor,
     shortClock,
+    TAKEOVER_GRACE_MS,
+    takeoverVerdict,
     undoLeftMs,
     UNDO_WINDOW_MS,
+    WAKE_SCREENS,
+    wakeTapNeeded,
 } from '../assets/online/compete_flow.js';
 import { createCompeteApi, isDeadLink, readCompeteAnswer } from '../assets/online/compete_api.js';
 import { deriveView } from '../assets/online/round_state.js';
@@ -98,6 +106,96 @@ function response(status, body, { type = 'basic', contentType = 'application/jso
         headers: { get: (name) => all[name.toLowerCase()] ?? null },
         json: async () => (typeof body === 'string' ? JSON.parse(body) : body),
     };
+}
+
+const HEARTBEAT_MS = 15_000;
+
+/**
+ * Two (or more) devices on one link, heartbeating, claiming it ("I'm ready" / "Use this device instead") - what the
+ * page does with takeoverVerdict() (compete_controller.js applyTakeover(), noteClaim(), scheduleRecheck()), on a fake
+ * time line in ms. The server holds the device whose claim it stored last; a claim is stored `ackMs` after the tap and
+ * the device hears the ack then; a heartbeat is read by the server `rttMs / 2` after it was sent and answered after
+ * `rttMs`. Returns every device's state and the moment each one gave way.
+ */
+function simulateDevices({ devices, claims, untilMs, ackMs = 300, rttMs = 200 }) {
+    const state = Object.fromEntries(devices.map(({ id, phaseMs }) => [id, {
+        id,
+        phaseMs,
+        takenOver: false,
+        claim: null,
+        recheckAfterClaim: false,
+        gaveWayAt: [],
+    }]));
+    const stored = claims.map(({ device, atMs }) => ({ device, storedAt: atMs + ackMs })).sort((a, b) => a.storedAt - b.storedAt);
+    const activeAt = (ms) => stored.filter((claim) => claim.storedAt <= ms).at(-1)?.device ?? null;
+    const queue = [];
+    const push = (atMs, kind, device, extra = {}) => queue.push({ atMs, kind, device, ...extra });
+
+    for (const { id, phaseMs } of devices) {
+        for (let at = phaseMs; at <= untilMs; at += HEARTBEAT_MS) {
+            push(at, 'beat', id);
+        }
+    }
+
+    for (const { device, atMs } of claims) {
+        push(atMs, 'claim', device);
+        push(atMs + ackMs, 'ack', device, { claimAt: atMs });
+        // ready() / takeOver() beat right away
+        push(atMs, 'beat', device);
+    }
+
+    const order = { claim: 0, ack: 1, beat: 2, answer: 3 };
+
+    while (queue.length > 0) {
+        queue.sort((a, b) => a.atMs - b.atMs || order[a.kind] - order[b.kind]);
+        const step = queue.shift();
+
+        if (step.atMs > untilMs) {
+            break;
+        }
+
+        const device = state[step.device];
+
+        if (step.kind === 'claim') {
+            device.claim = { pending: true, ackedAt: null, claimAt: step.atMs };
+            device.takenOver = false;
+        } else if (step.kind === 'ack') {
+            // noteClaim() - only the latest claim of the device
+            if (device.claim !== null && device.claim.claimAt === step.claimAt && device.claim.pending) {
+                device.claim = { ...device.claim, pending: false, ackedAt: step.atMs };
+
+                if (device.recheckAfterClaim) {
+                    device.recheckAfterClaim = false;
+                    push(step.atMs + TAKEOVER_GRACE_MS + 50, 'beat', device.id);
+                }
+            }
+        } else if (step.kind === 'beat') {
+            push(step.atMs + rttMs, 'answer', device.id, { sentAt: step.atMs, active: activeAt(step.atMs + rttMs / 2) });
+        } else {
+            const verdict = takeoverVerdict({
+                activeDevice: step.active,
+                deviceId: device.id,
+                ready: true,
+                takenOver: device.takenOver,
+                claim: device.claim,
+                beatSentAt: step.sentAt,
+            });
+
+            if (verdict.takenOver && !device.takenOver) {
+                device.gaveWayAt.push(step.atMs);
+            }
+
+            device.takenOver = verdict.takenOver;
+
+            if (verdict.recheckAt !== null) {
+                push(Math.max(step.atMs, verdict.recheckAt) + 50, 'beat', device.id);
+            } else if (verdict.otherDeviceActive && device.claim?.pending) {
+                device.recheckAfterClaim = true;
+            }
+        }
+    }
+
+    return state;
 }
 
 const scenarios = {
@@ -349,7 +447,7 @@ const scenarios = {
         assert.equal(countdownText(0), '00:00');
     },
 
-    async 'what the device remembers: consent per participant, progress per participant and round, nothing breaks on a broken storage'() {
+    async 'what the device remembers: consent per participant, the set-up per round, taps and pieces per run, nothing breaks on a broken storage'() {
         const storage = memoryStorage();
 
         assert.equal(loadConsent(storage, PARTICIPANT), false);
@@ -357,35 +455,104 @@ const scenarios = {
         assert.equal(loadConsent(storage, PARTICIPANT), true);
         assert.equal(loadConsent(storage, 'other'), false);
 
-        const mine = loadProgress(storage, PARTICIPANT, ROUND);
+        const mine = loadProgress(storage, PARTICIPANT, ROUND, START);
         assert.deepEqual(mine, emptyProgress());
         mine.ready = true;
         mine.consentSent = true;
         mine.finishes.push({ eventId: 'e1', momentMs: START + 1000, undone: false, continued: false });
         mine.pieces = { measure: 'placed', pieces: 812 };
         mine.seen['start:1'] = true;
-        saveProgress(storage, PARTICIPANT, ROUND, mine);
+        assert.equal(saveProgress(storage, PARTICIPANT, ROUND, mine, START), true);
 
-        const again = loadProgress(storage, PARTICIPANT, ROUND);
+        const again = loadProgress(storage, PARTICIPANT, ROUND, START);
         assert.deepEqual(again, mine);
         assert.notEqual(again, mine);
-        assert.deepEqual(loadProgress(storage, PARTICIPANT, 'another-round'), emptyProgress(), 'a new round starts afresh');
-        assert.deepEqual(loadProgress(storage, PARTICIPANT, null), emptyProgress());
-        assert.equal(saveProgress(storage, PARTICIPANT, null, mine), false);
+        assert.deepEqual(loadProgress(storage, PARTICIPANT, 'another-round', START), emptyProgress(), 'a new round starts afresh');
+        assert.deepEqual(loadProgress(storage, PARTICIPANT, null, START), emptyProgress());
+        assert.equal(saveProgress(storage, PARTICIPANT, null, mine, START), false);
 
         // Junk stored: the defaults, junk finishes dropped
         storage.setItem(`msp-compete:${PARTICIPANT}:${ROUND}`, '{not json');
-        assert.deepEqual(loadProgress(storage, PARTICIPANT, ROUND), emptyProgress());
-        storage.setItem(`msp-compete:${PARTICIPANT}:${ROUND}`, JSON.stringify({ ready: 'yes', finishes: [{ eventId: 1 }, { eventId: 'ok', momentMs: 5 }] }));
-        const cleaned = loadProgress(storage, PARTICIPANT, ROUND);
+        storage.setItem(`msp-compete:${PARTICIPANT}:${ROUND}:run:${START}`, '{not json');
+        assert.deepEqual(loadProgress(storage, PARTICIPANT, ROUND, START), emptyProgress());
+        storage.setItem(`msp-compete:${PARTICIPANT}:${ROUND}`, JSON.stringify({ ready: 'yes' }));
+        storage.setItem(`msp-compete:${PARTICIPANT}:${ROUND}:run:${START}`, JSON.stringify({ finishes: [{ eventId: 1 }, { eventId: 'ok', momentMs: START + 5 }], pieces: { pieces: 'many' } }));
+        const cleaned = loadProgress(storage, PARTICIPANT, ROUND, START);
         assert.equal(cleaned.ready, false);
-        assert.deepEqual(cleaned.finishes, [{ eventId: 'ok', momentMs: 5, undone: false, continued: false }]);
+        assert.deepEqual(cleaned.finishes, [{ eventId: 'ok', momentMs: START + 5, undone: false, continued: false }]);
+        assert.equal(cleaned.pieces, null);
 
         // A storage that throws (private mode, quota): defaults, and saving says it failed
         const broken = { getItem() { throw new Error('denied'); }, setItem() { throw new Error('denied'); } };
-        assert.deepEqual(loadProgress(broken, PARTICIPANT, ROUND), emptyProgress());
-        assert.equal(saveProgress(broken, PARTICIPANT, ROUND, mine), false);
+        assert.deepEqual(loadProgress(broken, PARTICIPANT, ROUND, START), emptyProgress());
+        assert.equal(saveProgress(broken, PARTICIPANT, ROUND, mine, START), false);
         assert.equal(loadConsent(broken, PARTICIPANT), false);
+    },
+
+    async 'a run is one start of the round clock: after a Reset and a new start no tap and no pieces carry over - the set-up does'() {
+        const storage = memoryStorage();
+        const firstRun = state({ startedAtMs: START, minutesLimit: 30 });
+        assert.equal(runKeyOf(firstRun), START);
+        assert.equal(runKeyOf(state()), null, 'no start - no run');
+        assert.equal(runKeyOf({ ...state(), round: null }), null);
+        assert.equal(runKeyOf(null), null);
+
+        const first = loadProgress(storage, PARTICIPANT, ROUND, START);
+        first.consentSent = true;
+        first.ready = true;
+        first.emptyMat = true;
+        first.finishes.push({ eventId: 'e1', momentMs: START + 20 * MINUTE, undone: false, continued: false });
+        first.pieces = { measure: 'left', pieces: 12 };
+        first.seen[`start:${START}`] = true;
+        saveProgress(storage, PARTICIPANT, ROUND, first, START);
+
+        // The organiser resets: no run - the set-up stays, nothing of the run that was
+        const reset = loadProgress(storage, PARTICIPANT, ROUND, null);
+        assert.deepEqual([reset.consentSent, reset.ready, reset.emptyMat, reset.seen[`start:${START}`]], [true, true, true, true]);
+        assert.deepEqual([reset.finishes, reset.pieces], [[], null]);
+        assert.equal(saveProgress(storage, PARTICIPANT, ROUND, reset, null), true, 'no run: the set-up only');
+        assert.deepEqual(loadProgress(storage, PARTICIPANT, ROUND, START).finishes.length, 1, 'the run that was is still on the device');
+
+        // ...and starts again an hour later: a fresh run
+        const secondStart = START + 60 * MINUTE;
+        const secondRun = state({ startedAtMs: secondStart, minutesLimit: 30 });
+        const second = loadProgress(storage, PARTICIPANT, ROUND, runKeyOf(secondRun));
+        assert.deepEqual([second.finishes, second.pieces, second.ready], [[], null, true]);
+
+        const screen = (serverNowMs, progress, entry = {}) => screenFor({
+            state: state({ startedAtMs: secondStart, minutesLimit: 30, entry }),
+            view: deriveView(secondRun, serverNowMs),
+            consent: true,
+            progress,
+        });
+        // The server counts the new run's taps only (OnlineRoundState) - GO is GO, not "Finish recorded"
+        assert.equal(screen(secondStart + 5 * MINUTE, second), 'running');
+        // ...and at its end the pieces question comes again
+        assert.equal(screen(secondStart + 31 * MINUTE, second), 'timeup');
+
+        // A tap in the second run is kept with it
+        second.finishes.push({ eventId: 'e2', momentMs: secondStart + 25 * MINUTE, undone: false, continued: false });
+        saveProgress(storage, PARTICIPANT, ROUND, second, secondStart);
+        assert.deepEqual(loadProgress(storage, PARTICIPANT, ROUND, secondStart).finishes.map((finish) => finish.eventId), ['e2']);
+        assert.deepEqual(loadProgress(storage, PARTICIPANT, ROUND, START).finishes.map((finish) => finish.eventId), ['e1']);
+    },
+
+    async 'progress an older page kept with the round: the run keeps only the taps from its own start on'() {
+        const storage = memoryStorage();
+        storage.setItem(`msp-compete:${PARTICIPANT}:${ROUND}`, JSON.stringify({
+            consentSent: true,
+            ready: true,
+            finishes: [
+                { eventId: 'earlier', momentMs: START - 30 * MINUTE },
+                { eventId: 'this-run', momentMs: START + 10 * MINUTE },
+            ],
+            pieces: { measure: 'left', pieces: 3 },
+        }));
+
+        const progress = loadProgress(storage, PARTICIPANT, ROUND, START);
+        assert.equal(progress.ready, true);
+        assert.deepEqual(progress.finishes.map((finish) => finish.eventId), ['this-run']);
+        assert.equal(progress.pieces, null, 'a report can not be told apart from an earlier run\'s');
     },
 
     async 'the device id is kept, so a reload is no takeover; a broken storage gets one for the page'() {
@@ -428,6 +595,67 @@ const scenarios = {
         assert.equal(fill('On - %width% × %height%', { width: 1920, height: 1080 }), 'On - 1920 × 1080');
         assert.equal(fill('No placeholders'), 'No placeholders');
         assert.equal(fill(null), '');
+    },
+
+    async 'the clock on screen changes on the round\'s whole seconds and when GO ends - the page draws those frames at once'() {
+        const scheduled = state({ startedAtMs: START });
+        const at = (serverNow, from = scheduled) => nextDisplayChangeAt(deriveView(from, serverNow), serverNow);
+
+        // Nothing counts: no start, or the round is over
+        assert.equal(at(START - 5_000, state()), null);
+        assert.equal(at(START + 70 * MINUTE, scheduled), null, 'the time limit ended it');
+        assert.equal(at(START + 5_000, state({ startedAtMs: START, stoppedAtMs: START + 3_000 })), null, 'stopped');
+
+        // The countdown: "4" until 3 s are left, … "1" until the start itself = GO (end-to-end run 2026-10-13: GO was
+        // drawn up to 50 ms late when the next render came on its own)
+        assert.equal(at(START - 3_400), START - 3_000);
+        assert.equal(at(START - 3_000), START - 2_000, 'at exactly 3 s left "3" is shown already');
+        assert.equal(at(START - 1), START, 'GO at the start');
+        // "Starts in 2:13:06" changes to "2:13:05" on the second too
+        assert.equal(at(START - (2 * 3_600_000 + 13 * MINUTE + 5_400)), START - (2 * 3_600_000 + 13 * MINUTE + 5_000));
+
+        // Running: the next whole second - and GO_SHOWN_MS, when GO gives way to the stopwatch
+        assert.equal(at(START), START + 1_000);
+        assert.equal(at(START + 1_200), START + GO_SHOWN_MS);
+        assert.equal(at(START + GO_SHOWN_MS), START + 2_000);
+        assert.equal(at(START + 61_234), START + 62_000);
+        // Always ahead of now, so a frame drawn on the change never asks for itself again
+        for (const serverNow of [START - 10_000, START - 999, START, START + 999, START + 1_499, START + 1_500, START + 59 * MINUTE + 59_999]) {
+            assert.ok(at(serverNow) > serverNow, String(serverNow - START));
+        }
+    },
+
+    async '"tap here once": a ready participant whose page loaded again, on the round\'s screens, until the first touch'() {
+        // A reload after "I'm ready" (end-to-end run 2026-10-13): no sound, no screen lock asked for, nobody touched it
+        const reloaded = { ready: true, screen: 'waiting', touched: false, soundLocked: true, wakeLock: 'idle' };
+
+        for (const screen of WAKE_SCREENS) {
+            assert.equal(wakeTapNeeded({ ...reloaded, screen }), true, screen);
+        }
+
+        assert.deepEqual(WAKE_SCREENS, ['waiting', 'countdown', 'running', 'finished']);
+
+        // Chrome granted the lock without a tap - the sound still waits for one
+        assert.equal(wakeTapNeeded({ ...reloaded, wakeLock: 'active' }), true);
+        // Safari refused the lock without a tap - a tap gets it
+        assert.equal(wakeTapNeeded({ ...reloaded, soundLocked: false, wakeLock: 'denied' }), true);
+        assert.equal(wakeTapNeeded({ ...reloaded, soundLocked: false, wakeLock: 'released' }), true);
+        // The sound unlocked and the lock held, being asked for, or impossible here: a tap would change nothing
+        for (const wakeLock of ['active', 'pending', 'unsupported']) {
+            assert.equal(wakeTapNeeded({ ...reloaded, soundLocked: false, wakeLock }), false, wakeLock);
+        }
+
+        // The first touch of the page ends it, whatever the browser granted then
+        assert.equal(wakeTapNeeded({ ...reloaded, touched: true }), false);
+        assert.equal(wakeTapNeeded({ ...reloaded, touched: true, wakeLock: 'denied' }), false);
+
+        // Not ready (the checklist's own "I'm ready" tap unlocks both), a practice, or no screen of the round
+        assert.equal(wakeTapNeeded({ ...reloaded, ready: false }), false);
+        assert.equal(wakeTapNeeded({ ...reloaded, practice: true }), false);
+
+        for (const screen of SCREENS.filter((name) => !WAKE_SCREENS.includes(name))) {
+            assert.equal(wakeTapNeeded({ ...reloaded, screen }), false, screen);
+        }
     },
 
     async 'the camera runs on the screens of the round and the practice only'() {
@@ -490,6 +718,101 @@ const scenarios = {
         assert.equal(samples.length, 4);
         // The page takes the light requests' samples only (compete_controller.js) - each comes with its request's name
         assert.deepEqual(names, ['heartbeat', 'state', 'events', 'media']);
+    },
+
+    async 'several devices on one link: the device that claimed last holds it; an answer older than this device\'s own claim never makes it give way'() {
+        const verdict = (input) => takeoverVerdict({ deviceId: 'phone-b', ready: true, takenOver: false, claim: null, beatSentAt: START, ...input });
+
+        // Nobody else, or this device itself
+        assert.deepEqual(verdict({ activeDevice: null }), { otherDeviceActive: false, takenOver: false, recheckAt: null });
+        assert.deepEqual(verdict({ activeDevice: 'phone-b' }), { otherDeviceActive: false, takenOver: false, recheckAt: null });
+        // Still setting up: the checklist only says the link is in use elsewhere
+        assert.deepEqual(verdict({ activeDevice: 'phone-a', ready: false }), { otherDeviceActive: true, takenOver: false, recheckAt: null });
+        // Ready, no claim on this page (a reload): another device holds it - give way
+        assert.deepEqual(verdict({ activeDevice: 'phone-a' }), { otherDeviceActive: true, takenOver: true, recheckAt: null });
+        // This device's claim is not stored yet: the answer says nothing about it
+        assert.deepEqual(verdict({ activeDevice: 'phone-a', claim: { pending: true, ackedAt: null } }), { otherDeviceActive: true, takenOver: false, recheckAt: null });
+        // Stored, but the heartbeat was sent before the grace ended: set aside, asked again when it ends
+        const claim = { pending: false, ackedAt: START };
+        assert.deepEqual(verdict({ activeDevice: 'phone-a', claim, beatSentAt: START + TAKEOVER_GRACE_MS - 1 }), { otherDeviceActive: true, takenOver: false, recheckAt: START + TAKEOVER_GRACE_MS });
+        // Sent after it: another device took the link since - give way
+        assert.deepEqual(verdict({ activeDevice: 'phone-a', claim, beatSentAt: START + TAKEOVER_GRACE_MS }), { otherDeviceActive: true, takenOver: true, recheckAt: null });
+        // Given way, it stays so - only its own claim takes the link back, never an answer
+        assert.deepEqual(verdict({ activeDevice: 'phone-b', takenOver: true }), { otherDeviceActive: false, takenOver: true, recheckAt: null });
+        assert.deepEqual(verdict({ activeDevice: null, takenOver: true }), { otherDeviceActive: false, takenOver: true, recheckAt: null });
+    },
+
+    async 'take-back: the device that lost the link stops within 20 s - whenever its heartbeat comes and however recently it claimed'() {
+        let worst = 0;
+
+        for (const takeBackAfterMs of [1_000, 2_500, 3_500, 5_000, 10_000, 20_000, 45_000]) {
+            for (let phaseMs = 100; phaseMs < HEARTBEAT_MS; phaseMs += 700) {
+                // phone-a got ready first, phone-b took the link at 0, phone-a takes it back
+                const devices = simulateDevices({
+                    devices: [{ id: 'phone-a', phaseMs: (phaseMs * 7) % HEARTBEAT_MS }, { id: 'phone-b', phaseMs }],
+                    claims: [{ device: 'phone-a', atMs: -60_000 }, { device: 'phone-b', atMs: 0 }, { device: 'phone-a', atMs: takeBackAfterMs }],
+                    untilMs: takeBackAfterMs + 60_000,
+                });
+                const storedAt = takeBackAfterMs + 300;
+                const gaveWay = devices['phone-b'].gaveWayAt.filter((at) => at >= storedAt);
+
+                assert.equal(gaveWay.length, 1, `phone-b gives way once (take back after ${takeBackAfterMs} ms, phase ${phaseMs} ms)`);
+                assert.ok(gaveWay[0] - storedAt <= 20_000, `phone-b gave way ${gaveWay[0] - storedAt} ms after the take-back was stored`);
+                assert.equal(devices['phone-b'].takenOver, true);
+                assert.equal(devices['phone-a'].takenOver, false, 'phone-a records');
+                worst = Math.max(worst, gaveWay[0] - storedAt);
+            }
+        }
+
+        // The heartbeat's 15 s and its round trip - no 30-s grace on top any more
+        assert.ok(worst <= HEARTBEAT_MS + 500, `worst ${worst} ms`);
+    },
+
+    async 'two devices fighting over the link never flap: each gives way only to a newer claim, and once'() {
+        const devices = simulateDevices({
+            devices: [{ id: 'phone-a', phaseMs: 4_000 }, { id: 'laptop', phaseMs: 11_000 }],
+            // Taps on both, a second apart, then quiet
+            claims: [
+                { device: 'phone-a', atMs: 0 },
+                { device: 'laptop', atMs: 1_000 },
+                { device: 'phone-a', atMs: 2_000 },
+                { device: 'laptop', atMs: 2_600 },
+                { device: 'phone-a', atMs: 4_200 },
+            ],
+            untilMs: 120_000,
+        });
+
+        // The last claim wins; the other gives way after it - once, and only to it
+        assert.equal(devices['phone-a'].takenOver, false);
+        assert.equal(devices.laptop.takenOver, true);
+        assert.deepEqual(devices['phone-a'].gaveWayAt.filter((at) => at > 4_200), [], 'the last claimer never gives way after its claim');
+        const laptopAfter = devices.laptop.gaveWayAt.filter((at) => at > 4_200 + 300);
+        assert.equal(laptopAfter.length, 1);
+        assert.ok(laptopAfter[0] - 4_500 <= 20_000);
+    },
+
+    async 'the status line: "Offline" only when the network is down - a refusal or a server error is a connection problem, retried'() {
+        assert.equal(connectionStatus({ online: false }), 'offline', 'the browser says so');
+        assert.equal(connectionStatus({ online: true, noAnswers: 2 }), 'offline', 'no answer twice in a row');
+        assert.equal(connectionStatus({ online: true, noAnswers: 1 }), 'online', 'one is a hiccup');
+        assert.equal(connectionStatus({ online: true, failedAnswers: 2 }), 'problem');
+        assert.equal(connectionStatus({ online: true, failedAnswers: 1 }), 'online');
+        assert.equal(connectionStatus({ online: true }), 'online');
+
+        const now = START;
+        // 429 rate_limited, 503 retry, a 500 page, a ban page: the server answered - a problem, not offline
+        assert.equal(answerReach(readCompeteAnswer(response(429, null, { headers: { 'Retry-After': '30' } }), { error: 'rate_limited' }, now)), 'failed');
+        assert.equal(answerReach(readCompeteAnswer(response(503, null), { error: 'retry' }, now)), 'failed');
+        assert.equal(answerReach(readCompeteAnswer(response(500, null, { contentType: 'text/html' }), null, now)), 'failed');
+        assert.equal(answerReach(readCompeteAnswer(response(403, null, { contentType: 'text/html' }), null, now)), 'failed');
+        // No answer, or not ours (a captive portal): offline
+        assert.equal(answerReach(readCompeteAnswer(null, null, now)), 'none');
+        assert.equal(answerReach(readCompeteAnswer(response(200, null, { contentType: 'text/html' }), null, now)), 'none');
+        assert.equal(answerReach(undefined), 'none');
+        // Our answers, refusals of ours included: connected
+        assert.equal(answerReach(readCompeteAnswer(response(200, { serverNowMs: 1 }), { serverNowMs: 1 }, now)), 'ok');
+        assert.equal(answerReach(readCompeteAnswer(response(404, null), { error: 'unknown_link' }, now)), 'ok');
+        assert.equal(answerReach(readCompeteAnswer(response(403, null), { error: 'forbidden' }, now)), 'ok');
     },
 
     async 'the API\'s answers: ok, our refusals, busy, failing, a portal page, offline - and a dead link'() {

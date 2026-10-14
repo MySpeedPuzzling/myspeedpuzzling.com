@@ -20,10 +20,13 @@ import {
     BURST_CONTENT_TYPE,
     createMediaMemoryStorage,
     createMediaStorage,
+    MAX_AGE_MS,
     MAX_PRESIGNS_IN_A_ROW,
     MEDIA_DATABASE,
     MediaOutbox,
+    openMediaOutbox,
     putToStore,
+    REFUSED_LISTED,
 } from '../assets/online/media_outbox.js';
 
 const ROUND = '018d0020-0000-0000-0000-000000000101';
@@ -267,7 +270,7 @@ function mediaWorld(w = world()) {
     return { w, api, store, presign, put, reportUploaded };
 }
 
-function mediaSetup({ storage = createMediaMemoryStorage(), estimate = null, maxBytes = undefined, autoFlush = false, lock = null, scope = 'participant-1', w = world(), quotaShare = undefined } = {}) {
+function mediaSetup({ storage = createMediaMemoryStorage(), estimate = null, maxBytes = undefined, autoFlush = false, lock = null, scope = 'participant-1', w = world(), quotaShare = undefined, isOnline = undefined } = {}) {
     const media = mediaWorld(w);
     let ids = 0;
     const outbox = new MediaOutbox({
@@ -284,6 +287,7 @@ function mediaSetup({ storage = createMediaMemoryStorage(), estimate = null, max
         maxBytes,
         quotaShare,
         autoFlush,
+        isOnline,
         newId: () => `item-${scope}-${++ids}`,
     });
 
@@ -642,6 +646,25 @@ const scenarios = {
         assert.equal(calm.prevented, false);
     },
 
+    async 'events: isPending() - on its way while stored, queued or sent; no more once acknowledged or refused'() {
+        const { outbox, server } = eventsSetup();
+        const ready = event('device.ready');
+        const refusedOne = event('finish.button');
+
+        assert.equal(outbox.isPending(ready.id), false, 'never here');
+        const storing = outbox.enqueue(ready);
+        assert.equal(outbox.isPending(ready.id), true, 'while it is being stored');
+        await storing;
+        await outbox.enqueue(refusedOne);
+        assert.equal(outbox.isPending(ready.id), true, 'queued');
+
+        server.decide = (sent) => (sent.id === refusedOne.id ? { refused: 'wrong_round' } : 'ack');
+        await outbox.flush();
+
+        assert.equal(outbox.isPending(ready.id), false, 'acknowledged - the server stored it');
+        assert.equal(outbox.isPending(refusedOne.id), false, 'refused - nothing more to wait for');
+    },
+
     async 'events: another participant\'s events on this device are never sent'() {
         const storage = createMemoryStorage();
         const other = eventsSetup({ storage, scope: 'participant-2' });
@@ -758,7 +781,7 @@ const scenarios = {
 
     async 'media: a URL that ended while the phone was offline is presigned again - by the presign answer\'s own clock'() {
         // The phone's clock is three hours ahead of the server's: expiresAtMs alone would look long gone
-        const { outbox, api, store, w } = mediaSetup({ autoFlush: true });
+        const { outbox, api, store, w } = mediaSetup({ autoFlush: true, isOnline: () => false });
         api.serverAheadMs = -3 * 3_600_000;
         store.answers.push(...Array(40).fill('offline'));
 
@@ -813,7 +836,7 @@ const scenarios = {
     },
 
     async 'media: offline during the upload - the same URL again while it is valid; online() goes at once'() {
-        const { outbox, api, store } = mediaSetup();
+        const { outbox, api, store } = mediaSetup({ isOnline: () => false });
         store.answers.push('offline');
         await outbox.enqueue({ kind: 'burst', blob: photo('burst', 4000), takenMs: START, manifest: [{ offset: 0, length: 4000, captureMs: START }] });
 
@@ -827,6 +850,56 @@ const scenarios = {
         assert.equal(store.puts[0].url, store.puts[1].url);
         assert.equal(api.reports.length, 1);
         assert.equal(outbox.status().offline, false);
+        assert.equal(outbox.items.length, 0);
+    },
+
+    async 'media: a store that does not answer while the phone is online - from the second failure a fresh URL, the presign telling the breaker (status 0)'() {
+        // The failover drill (spikes.md S5): a stopped store, or one answering errors without CORS headers, is a failed
+        // fetch in a browser - never a 5xx the page could read
+        const { outbox, api, store, w } = mediaSetup({ isOnline: () => true });
+        store.answers.push('offline', { status: 0 });
+        await outbox.enqueue({ kind: 'periodic', blob: photo('p'), takenMs: START });
+
+        await outbox.flush();
+        assert.equal(store.puts.length, 1);
+        assert.equal(outbox.status().waitingUntil, START + 1000, 'the offline pause - the next try comes soon');
+        assert.deepEqual(outbox.items[0].lastFailure, { status: 0, store: 'primary', mediaId: 'm1' });
+
+        w.clock.now += 1000;
+        await outbox.flush();
+        assert.equal(store.puts.length, 2);
+        assert.equal(store.puts[1].url, store.puts[0].url, 'the second try: the same URL');
+        assert.equal(api.presigns.length, 1);
+
+        w.clock.now += 2000;
+        await outbox.flush();
+        assert.equal(api.presigns.length, 2, 'then a fresh one');
+        assert.deepEqual(api.presigns[1].previousFailure, { status: 0, store: 'primary', mediaId: 'm1' });
+        assert.equal(store.puts[2].url, 'https://objects.test/online/m2');
+        assert.equal(api.reports.length, 1);
+        assert.equal(outbox.status().offline, false);
+        assert.equal(outbox.items.length, 0);
+    },
+
+    async 'media: a phone the browser knows to be offline blames no store - the same URL, no previousFailure'() {
+        const { outbox, api, store, w } = mediaSetup({ isOnline: () => false });
+        store.answers.push('offline', 'offline', 'offline');
+        await outbox.enqueue({ kind: 'button', blob: photo('b'), takenMs: START });
+
+        await outbox.flush();
+        w.clock.now += 1000;
+        await outbox.flush();
+        w.clock.now += 2000;
+        await outbox.flush();
+        assert.equal(store.puts.length, 3);
+        assert.equal(new Set(store.puts.map((put) => put.url)).size, 1);
+        assert.equal(api.presigns.length, 1);
+        assert.equal(outbox.items[0].lastFailure, null);
+
+        w.clock.now += 4000;
+        await outbox.flush();
+        assert.equal(api.presigns.length, 1);
+        assert.equal(api.reports.length, 1);
     },
 
     async 'media: a busy API (429) is waited for as long as it asks; a server error pauses and the item waits its own turn'() {
@@ -974,8 +1047,8 @@ const scenarios = {
         assert.equal((await storage.getAll()).length, 0);
     },
 
-    async 'media: a refused item (media_too_large) waits aside with the reason - the others go on; discardRefused() drops it'() {
-        const { outbox, api } = mediaSetup();
+    async 'media: a refused item (media_too_large) is reported and leaves the device - the others go on'() {
+        const { outbox, api, storage } = mediaSetup();
         api.presignAnswers.push({ kind: 'client', status: 422, data: { error: 'media_too_large' } });
         await outbox.enqueue({ kind: 'burst', blob: photo('huge', 3000), takenMs: START });
         await outbox.enqueue({ kind: 'button', blob: photo('ok'), takenMs: START + 1 });
@@ -983,11 +1056,96 @@ const scenarios = {
         await outbox.flush();
 
         assert.deepEqual(outbox.refusedItems().map((item) => [item.kind, item.reason]), [['burst', 'media_too_large']]);
+        assert.equal(outbox.status().refused, 1);
         assert.equal(api.reports.length, 1);
         assert.equal(outbox.pendingCount(), 0);
-        assert.equal(outbox.queuedBytes(), 3000, 'kept until let go');
+        assert.equal(outbox.queuedBytes(), 0, 'its blob does not stay');
+        assert.deepEqual(await storage.getAll(), [], 'nothing of it on the device');
+
         assert.equal(await outbox.discardRefused(), 1);
+        assert.deepEqual(outbox.refusedItems(), []);
+        assert.equal(outbox.status().refused, 1, 'the count stays');
+    },
+
+    async 'media: the refusals listed are the newest - the count is all of them'() {
+        const { outbox, api } = mediaSetup();
+
+        for (let index = 0; index < REFUSED_LISTED + 5; index++) {
+            api.presignAnswers.push({ kind: 'client', status: 422, data: { error: 'media_kind_unknown' } });
+            await outbox.enqueue({ kind: 'periodic', blob: photo(`p${index}`), takenMs: START + index });
+        }
+
+        await outbox.flush();
+
+        assert.equal(outbox.status().refused, REFUSED_LISTED + 5);
+        assert.equal(outbox.refusedItems().length, REFUSED_LISTED);
         assert.equal(outbox.queuedBytes(), 0);
+    },
+
+    async 'media: a page opening the outbox drops what is older than 7 days and refused items an older page kept'() {
+        const w = world();
+        const day = 24 * 60 * 60 * 1000;
+        const blob = photo('p');
+        const item = (id, overrides = {}) => ({
+            id,
+            scope: 'participant-1',
+            seq: 1,
+            createdAt: w.clock.now,
+            kind: 'periodic',
+            priority: 'periodic',
+            takenMs: w.clock.now,
+            eventId: null,
+            roundId: ROUND,
+            contentType: 'image/jpeg',
+            bytes: blob.size,
+            manifest: null,
+            blob,
+            stage: 'queued',
+            mediaId: null,
+            store: null,
+            url: null,
+            method: 'PUT',
+            headers: null,
+            validUntil: null,
+            state: 'pending',
+            reason: null,
+            refusedAt: null,
+            attempts: 0,
+            nextAttemptAt: 0,
+            presignsInARow: 0,
+            lastFailure: null,
+            ...overrides,
+        });
+        const storage = createMediaMemoryStorage([
+            item('six-days', { seq: 3, createdAt: w.clock.now - 6 * day }),
+            item('eight-days', { seq: 1, createdAt: w.clock.now - 8 * day }),
+            item('refused-before', { seq: 2, state: 'refused', reason: 'media_too_large', refusedAt: w.clock.now - day }),
+            item('another-participant-a-month-ago', { seq: 4, scope: 'participant-2', createdAt: w.clock.now - 30 * day }),
+        ]);
+        const media = mediaWorld(w);
+
+        const outbox = await openMediaOutbox({
+            storage,
+            presign: media.presign,
+            put: media.put,
+            reportUploaded: media.reportUploaded,
+            scope: 'participant-1',
+            now: w.now,
+            lock: async (task) => {
+                await task();
+
+                return true;
+            },
+            schedule: w.schedule,
+            cancel: w.cancel,
+            autoFlush: false,
+        });
+
+        assert.deepEqual((await storage.getAll()).map((stored) => stored.id), ['six-days']);
+        assert.equal(outbox.pendingCount(), 1);
+        assert.equal(outbox.status().refused, 0, 'an older page reported its refusals');
+        assert.equal(MAX_AGE_MS, 7 * day);
+        assert.equal(await outbox.prune(), 0, 'nothing more to drop');
     },
 
     async 'media: the link died - nothing is uploaded until retryNow()'() {

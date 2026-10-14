@@ -1,0 +1,4 @@
+{#- The control room's tool link to the host's studio (stream VM) - only with live video; opens beside the control room -#}
+            <a href="{{ path('online_studio', {roundId: round_id}) }}" class="btn btn-sm btn-outline-primary" data-online-tool="studio" target="_blank" rel="noopener">
+                <i class="bi bi-camera-reels me-1" aria-hidden="true"></i>{{ 'online_rounds.console.open_studio'|trans }}
+            </a>

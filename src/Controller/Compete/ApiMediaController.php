@@ -45,8 +45,9 @@ use Symfony\Component\Routing\Attribute\Route;
  * - Per link and round (OnlineEntryQuota): `media_quota_exceeded` 422 at the cap of objects or bytes,
  *   `too_many_pending_media` 429 + Retry-After while too many presigned uploads never arrived; per link and minute the
  *   media limiter (`rate_limited` 429).
- * - `previousFailure` = the store's answer to this phone's last upload of the item: a 408, 429 or 5xx counts for the
- *   circuit breaker (OnlineStoreBreaker) before the store of this upload is picked.
+ * - `previousFailure` = the store's answer to this phone's last upload of the item: a 408, 429, 5xx or no answer at
+ *   all (0) counts for the circuit breaker (OnlineStoreBreaker::countsAsStoreFailure()) before the store of this upload
+ *   is picked.
  * The media id is made here, before the dispatch, so the row and the URL share it.
  */
 final class ApiMediaController extends AbstractController
@@ -198,7 +199,7 @@ final class ApiMediaController extends AbstractController
         $store = is_string($failure['store'] ?? null) ? OnlineMediaStore::tryFrom($failure['store']) : null;
 
         // 400 / 403: a URL the store refused (ran out, signature) - no sign of a store being down
-        if ($store !== null && is_int($status) && ($status === 408 || $status === 429 || $status >= 500)) {
+        if ($store !== null && is_int($status) && OnlineStoreBreaker::countsAsStoreFailure($status)) {
             $this->onlineStoreBreaker->recordFailure($store, $participantId);
         }
     }

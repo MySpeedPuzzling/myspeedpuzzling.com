@@ -8,6 +8,7 @@ use AsyncAws\Core\Configuration;
 use AsyncAws\S3\S3Client;
 use DateTimeImmutable;
 use DateTimeZone;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
 use Ramsey\Uuid\Uuid;
@@ -83,6 +84,34 @@ final class OnlineStoreBreakerTest extends TestCase
         // Told once per opening
         $breaker->recordFailure(OnlineMediaStore::Primary, 'participant-3');
         self::assertCount(1, array_filter($this->logger->records, static fn (array $record): bool => $record['level'] === 'warning'));
+    }
+
+    /**
+     * What a phone reports as `previousFailure.status` - 0 is a store that gave no answer at all, which is how a store
+     * that is down looks in a browser (the failover drill, spikes.md S5: a stopped primary never opened the breaker
+     * while only 408 / 429 / 5xx counted)
+     */
+    #[DataProvider('uploadAnswers')]
+    public function testWhichUploadAnswersCountAsTheStoreFailing(int $status, bool $counts): void
+    {
+        self::assertSame($counts, OnlineStoreBreaker::countsAsStoreFailure($status));
+    }
+
+    /**
+     * @return iterable<string, array{int, bool}>
+     */
+    public static function uploadAnswers(): iterable
+    {
+        yield 'no answer at all' => [0, true];
+        yield 'timeout' => [408, true];
+        yield 'busy' => [429, true];
+        yield 'server error' => [500, true];
+        yield 'unavailable' => [503, true];
+        yield 'gateway timeout' => [504, true];
+        yield 'a URL the store refused' => [403, false];
+        yield 'a bad request' => [400, false];
+        yield 'not found' => [404, false];
+        yield 'uploaded' => [200, false];
     }
 
     /**

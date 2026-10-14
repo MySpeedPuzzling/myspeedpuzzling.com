@@ -42,6 +42,11 @@ that would otherwise be forgotten. Newest section on top.
 - [ ] Spike S5 (`spikes.md`): does Hetzner Object Storage enforce a signed `Content-Length` / `Content-Type` in a
       presigned PUT (MinIO does: another length or type is 403 SignatureDoesNotMatch)? If not, VerifyOnlineMedia's
       size/type check is the only guard - it deletes what was not declared.
+- [ ] Ops note for the test cups: `VerifyOnlineMedia` (a HEAD per uploaded object) runs on the shared `async` transport
+      with e-mails, XP and badges. It no longer holds a phone up - the pending-upload cap counts only what the phone has
+      not uploaded (stream P1F) - but a backlog delays the review's checked sizes and the deletion of objects that are
+      not as declared. Expect ~3.3 checks/s per 100 participants (a periodic photo every 30 s), ~10/s in the 3 minutes
+      before GO; watch the `async` queue depth during the cup and add a consumer (or a transport of its own) if it lags.
 - [ ] Traefik's access log (lily.srv) writes the full path, so the personal links' tokens of `/api/compete/<token>`
       and `/<locale>/compete/<token>` (`/soutezit/<token>`) land there - redact them in the access log config (the app
       redacts its own logs and Sentry: OnlineTokenRedactor).
@@ -51,6 +56,48 @@ that would otherwise be forgotten. Newest section on top.
 - [ ] Referees can't review online rounds yet (evidence photos stay with organisers: the review needs
       ONLINE_ROUNDS_MANAGE besides COMPETITION_RESULTS_ENTRY) - decide before public use; letting them in is one
       condition in `OnlineOrganiserApi` and the review pages' voters.
+
+## Online competitions - after the end-to-end fixes (`docs/features/online-competitions/`, stream P1F)
+
+- [ ] Start after "End now" on an online round still resumes the in-person way: the start moves and the earlier taps
+      stop counting. Refuse Start on a stopped online round (a Reset is the way to run it again) - decide with the
+      control room's buttons.
+- [ ] Rare race: a link lookup computed while another device's claim commits can stay in `OnlineAccessLight`'s cache
+      for up to 60 s, so the newly claiming device wrongly gives way; tapping "I'm ready" again fixes it. Clear the
+      link's cache entry after a `device.ready` commit if it shows up on phones.
+- [ ] The control room's live JSON carries `otherDevice` (a second device open on a link that isn't the one holding
+      the entry) but no tile shows it yet - one text in `online_rounds.control` + the chip.
+
+## Online competitions - load and storage failover (`tools/online-load/README.md`, `spikes.md` S5, stream LT)
+
+- [ ] lily.srv (Jan's yes): route `/api/compete/*` and `/-/time` like `/api/v` - past the bot-blocker (90/min per IP +
+      browser) and out of CrowdSec's captcha, before the first online event (a club on one Wi-Fi would be blocked).
+- [ ] A timeout on the phone's upload request (a hanging store took 41 s to switch to the second store - each phone
+      waited for its connection timeout).
+- [ ] Mark upload rows abandoned after a failure, so the review doesn't show them as pending.
+- [ ] Probe the primary store before the circuit breaker closes again (now it closes after 60 s and one round of
+      uploads fails before it reopens).
+- [ ] The production load run at a quiet hour (Tue/Wed 05-07 Prague) with Jan's OK - plan in the README.
+
+## Plural texts without a form for 0 (found 2026-10-13 by the online translations' render check)
+
+- [ ] About 55 plural messages per locale outside the online pages are written `{1}…|]1,Inf[…` (or with too few
+      standard forms) and have no form for 0: Symfony throws `InvalidArgumentException` (a 500) and the browser's
+      `translation_choice.js` shows the bare number. English has them too (e.g. `live_results.sync.waiting`,
+      `badges.reveals.invite`, `multiscan.recap.*`, `competition.participants.import.plan.blocker.*`). Most call sites
+      never pass 0 (checked: `free_trial.status.days_left` rounds up while the trial runs) - go through each call site,
+      add a `{0}` / `[0,Inf[` part where 0 can reach it, then widen `tests/OnlinePluralMessagesTest.php` (stream TX,
+      online roots only) to every root with an allowlist of the keys whose callers never pass 0.
+
+## Mass mailing on Amazon SES (`docs/features/mass-mailing/README.md`, built switched off 2026-10-12)
+
+- [ ] Rollout steps 0-8 of the README, one at a time (AWS account first - Jan).
+- [ ] Privacy policy: list AWS (SES) as a sub-processor before the first stream switches.
+- [ ] Metrics per stream (sent / delivered / bounced / complained a day) + an alert on the complaint rate; a paused
+      Listmonk campaign alert that does not go by e-mail.
+- [ ] Un-suppress an address (admin action + removal from the SES suppression list) for "my mailbox works again".
+- [ ] After the switch: rotate/delete the Seznam `newsletter@news` mailbox (its password was printed in a session
+      transcript on 2026-10-12) and switch Listmonk's POP bounce scanner off.
 
 ## Anti-farming (`docs/features/xp-levels/README.md` §Anti-farming, workstream G 2026-10-11)
 

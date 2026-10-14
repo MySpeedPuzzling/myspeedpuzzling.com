@@ -44,7 +44,9 @@ use Symfony\Component\Messenger\Stamp\DispatchAfterCurrentBusStamp;
  * - every stored event keeps the server's receive time - how late it came is the review's business;
  * - side effects, in the order the events happened on the phone's clock (not the order they came in):
  *   `device.ready` → the entry's ready moment, active device and clock quality - unless an older ready arrived late;
- *   `timeup.pieces` → the reported pieces and measure (the round's when none is named) - the latest report wins;
+ *   `timeup.pieces` → the reported pieces and measure (the round's when none is named) - the latest report of the
+ *   round's current run wins (a run is one start of the round clock: a report from before its start belongs to a run
+ *   that was reset, and is stored without changing the entry);
  *   `media.uploaded` → the media's upload moment and manifest, then VerifyOnlineMedia after the commit.
  *
  * Two requests storing the same new event at the same time: the later commit fails on the primary key, the controller
@@ -158,7 +160,7 @@ readonly final class RecordOnlineEntryEventsHandler
                 $activeDeviceChanged = true;
             }
 
-            if ($input->type === OnlineEventType::TimeUpPieces) {
+            if ($input->type === OnlineEventType::TimeUpPieces && $this->isInCurrentRun($onlineEntry, $input->clientMs)) {
                 if (array_key_exists($entryId, $latestTimeUpMs) === false) {
                     $latestTimeUpMs[$entryId] = $this->getLatestOnlineEntryEventMoment->of($entryId, OnlineEventType::TimeUpPieces);
                 }
@@ -233,6 +235,16 @@ readonly final class RecordOnlineEntryEventsHandler
         $onlineEntry->clockRttMs = $input->rttMs;
 
         return $changed;
+    }
+
+    /**
+     * The moment lies in the round's current run - from its start on (none before the first start or after a Reset)
+     */
+    private function isInCurrentRun(OnlineEntry $onlineEntry, int $momentMs): bool
+    {
+        $startedAtMs = RoundClock::fromRound($onlineEntry->entry->round, $this->clock->now())->startedAtMs;
+
+        return $startedAtMs !== null && $momentMs >= $startedAtMs;
     }
 
     private function applyTimeUp(OnlineEntry $onlineEntry, OnlineEventInput $input): void

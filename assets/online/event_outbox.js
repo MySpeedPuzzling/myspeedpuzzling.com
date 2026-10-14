@@ -440,6 +440,14 @@ export class EventOutbox {
     }
 
     /**
+     * The event is still on its way: being stored, waiting or being sent - false once the server acknowledged it (or
+     * refused it, or it never was here).
+     */
+    isPending(id) {
+        return this.writing.has(id) || this.items.some((item) => item.id === id && item.state === 'pending');
+    }
+
+    /**
      * @returns {{id: string, reason: string|null, refusedAt: number|null, event: OutboxEvent}[]}
      */
     refusedEvents() {

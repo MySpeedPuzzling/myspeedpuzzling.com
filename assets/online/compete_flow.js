@@ -12,7 +12,7 @@
  * Pinned by tests/online-compete-harness.mjs.
  */
 
-import { formatClock } from './round_state.js';
+import { formatClock, readClock } from './round_state.js';
 
 export const SCREENS = [
     'welcome', 'checklist', 'waiting', 'countdown', 'running', 'finished', 'timeup', 'after',
@@ -37,9 +37,13 @@ export const PRACTICE_CLEARANCE_MS = 15000;
 // The connection counts as working while an answer came this recently
 export const CONNECTION_FRESH_MS = 45000;
 
-// What the page remembers on the device, per participant (consent) and per participant + round (the rest)
+// What the page remembers on the device: per participant the consent; per participant + round the set-up (consent sent,
+// ready, the empty mat, the once-per-start marks); per participant + round + run what happened in the run - the
+// Finished taps and the pieces reported at time-up. A run is one start of the round clock (its startedAtMs): a Reset and
+// a new start begin a fresh one, so nothing of the run that was carries over (the server counts the same way)
 const CONSENT_PREFIX = 'msp-compete-consent:';
 const PROGRESS_PREFIX = 'msp-compete:';
+const RUN_INFIX = ':run:';
 export const DEVICE_KEY = 'msp-online-device';
 
 /**
@@ -51,11 +55,12 @@ export const DEVICE_KEY = 'msp-online-device';
  */
 
 /**
- * @typedef {object} Progress   one participant's progress in one round on this device
+ * @typedef {object} Progress   one participant's progress in one round on this device - its run part (finishes,
+ *                              pieces) is the current run's
  * @property {boolean} consentSent    consent.given was recorded for this round
  * @property {boolean} ready          "I'm ready" was tapped (device.ready)
- * @property {Finish[]} finishes
- * @property {{measure: string, pieces: number}|null} pieces   reported at time-up
+ * @property {Finish[]} finishes      this run's Finished taps
+ * @property {{measure: string, pieces: number}|null} pieces   reported at this run's time-up
  * @property {boolean} emptyMat       the empty-mat photo was taken
  * @property {Object<string, boolean>} seen   once-per-start marks: `countdown:<startedAtMs>`, `start:<…>`, `startPhoto:<…>`, …
  */
@@ -165,10 +170,152 @@ export function screenFor({ state, view, consent, progress, takenOver = false, l
 }
 
 /**
+ * The next moment (server time) the round's clock on screen changes: the countdown's next digit (GO at the start
+ * itself), the stopwatch's next second, the end of GO_SHOWN_MS - null while nothing counts (no start, ended). The page
+ * renders at that very frame instead of within its usual 50 ms, so GO and every second appear on time
+ * (README §5.2: phones side by side within ±100 ms) - measured 2026-10-13: GO up to 50 ms late without it.
+ *
+ * @param {object} view           deriveView()
+ * @param {number} serverNowMs
+ * @returns {number|null}
+ */
+export function nextDisplayChangeAt(view, serverNowMs) {
+    const startedAtMs = view?.startedAtMs;
+
+    if (!Number.isFinite(startedAtMs) || !Number.isFinite(serverNowMs) || view.screen === 'ended') {
+        return null;
+    }
+
+    if (serverNowMs < startedAtMs) {
+        // The digit shown is ceil(left / 1000): the next one comes when `left` reaches the whole second below it
+        return startedAtMs - (Math.ceil((startedAtMs - serverNowMs) / 1000) - 1) * 1000;
+    }
+
+    const nextSecond = startedAtMs + (Math.floor((serverNowMs - startedAtMs) / 1000) + 1) * 1000;
+    const goEnds = startedAtMs + GO_SHOWN_MS;
+
+    return serverNowMs < goEnds ? Math.min(nextSecond, goEnds) : nextSecond;
+}
+
+// Several devices on one link (README §5.4): the device that said "I'm ready" last holds it. After this device claimed
+// it ("I'm ready", "Use this device instead"), a heartbeat answer naming another device is believed only once the claim
+// was stored by the server and this long has passed since - a heartbeat sent earlier may have been answered from before
+// the claim. So a device never gives way to an answer older than its own claim (no flapping when two devices fight),
+// and the device that lost the link learns it at its next heartbeat (every 15 s): ≤ 15 s + a round trip after the other
+// device's claim was stored, and when it had claimed itself just before, a heartbeat goes again when the grace ends
+// (≤ the grace + a round trip after its own claim was stored) - always under 20 s.
+export const TAKEOVER_GRACE_MS = 3000;
+
+/**
+ * What a heartbeat's answer says about the link: is another device holding it (`otherDeviceActive` - the checklist's
+ * "in use on another device"), was this device taken over (`takenOver` - it stops recording and says so), and when to
+ * ask again (`recheckAt`: an answer set aside during the grace).
+ *
+ * `takenOver` is never undone by an answer: only this device's own claim takes the link back - a stale answer must
+ * never make two devices record.
+ *
+ * @param {object} input
+ * @param {string|null} input.activeDevice      the answer's `takenOverBy`
+ * @param {string} input.deviceId
+ * @param {boolean} input.ready                 "I'm ready" was tapped on this device
+ * @param {boolean} input.takenOver             what the page shows now
+ * @param {{pending: boolean, ackedAt: number|null}|null} [input.claim]   this page's last claim (null: none since it
+ *                                              loaded - a reload of a ready page claims nothing)
+ * @param {number} input.beatSentAt             when the heartbeat was sent (Date.now() of this device)
+ * @returns {{otherDeviceActive: boolean, takenOver: boolean, recheckAt: number|null}}
+ */
+export function takeoverVerdict({ activeDevice, deviceId, ready, takenOver, claim = null, beatSentAt }) {
+    const other = typeof activeDevice === 'string' && activeDevice !== '' && activeDevice !== deviceId;
+
+    if (!other || !ready || takenOver) {
+        return { otherDeviceActive: other, takenOver, recheckAt: null };
+    }
+
+    if (claim !== null && claim !== undefined) {
+        // The server has not stored this device's claim yet - the answer says nothing about it
+        if (claim.pending) {
+            return { otherDeviceActive: true, takenOver: false, recheckAt: null };
+        }
+
+        const trustedFrom = (Number.isFinite(claim.ackedAt) ? claim.ackedAt : 0) + TAKEOVER_GRACE_MS;
+
+        if (!Number.isFinite(beatSentAt) || beatSentAt < trustedFrom) {
+            return { otherDeviceActive: true, takenOver: false, recheckAt: trustedFrom };
+        }
+    }
+
+    return { otherDeviceActive: true, takenOver: true, recheckAt: null };
+}
+
+// Requests in a row that went wrong before the status line says so - one is a hiccup
+export const CONNECTION_FAILURES_SHOWN = 2;
+
+/**
+ * The status line's connection (README §5.5): `offline` only when the network is down - the browser says so, or
+ * requests got no answer at all (a captive portal's page counts as none); `problem` when the server answered with an
+ * error or a refusal to wait (5xx, 429 …) - the page keeps retrying; `online` otherwise.
+ *
+ * @param {{online: boolean, noAnswers: number, failedAnswers: number}} input   failures in a row, by kind
+ * @returns {'online'|'offline'|'problem'}
+ */
+export function connectionStatus({ online, noAnswers = 0, failedAnswers = 0 }) {
+    if (online === false || noAnswers >= CONNECTION_FAILURES_SHOWN) {
+        return 'offline';
+    }
+
+    return failedAnswers >= CONNECTION_FAILURES_SHOWN ? 'problem' : 'online';
+}
+
+/**
+ * What an API answer (compete_api.js) says about the connection: `ok` (it answered - a refusal of ours included),
+ * `none` (no answer, or a page that is not ours - a captive portal), `failed` (an error, or a refusal to wait).
+ */
+export function answerReach(answer) {
+    switch (answer?.kind) {
+        case 'ok':
+        case 'client':
+        case 'forbidden':
+            return 'ok';
+        case 'server':
+            return 'failed';
+        default:
+            return 'none';
+    }
+}
+
+/**
  * Screens on which the camera runs (and the preview is shown).
  */
 export function cameraWanted(screen, practiceActive = false) {
     return practiceActive || ['checklist', 'waiting', 'countdown', 'running', 'finished', 'timeup'].includes(screen);
+}
+
+// The screens a ready participant waits and competes on: the start's beeps, GO and the time's-up alarm play here, and
+// the screen must not lock (a locked phone stops the camera)
+export const WAKE_SCREENS = ['waiting', 'countdown', 'running', 'finished'];
+
+/**
+ * "Tap here once" (README §5.5 "Browser realities"): a page that loads again - a reload, the browser bringing a
+ * discarded tab back - has no sound (browsers play nothing before a tap) and, in Safari, no screen lock until the
+ * participant touches it, though "I'm ready" was tapped long ago. Shown to a ready participant on the round's screens
+ * until the first touch of this page (which unlocks the sound and asks for the lock) - not in a practice (its own tap
+ * unlocked them), never twice.
+ *
+ * @param {object} input
+ * @param {boolean} input.ready          "I'm ready" was tapped on this device (the progress survives a reload)
+ * @param {string} input.screen          screenFor()
+ * @param {boolean} [input.practice]
+ * @param {boolean} input.touched        a tap on this page since it loaded
+ * @param {boolean} input.soundLocked    the beeps are not unlocked
+ * @param {string} input.wakeLock        wake_lock.js state
+ */
+export function wakeTapNeeded({ ready, screen, practice = false, touched, soundLocked, wakeLock }) {
+    if (ready !== true || practice || touched || !WAKE_SCREENS.includes(screen)) {
+        return false;
+    }
+
+    // Held, being asked for, or impossible on this browser: a tap would not change the lock
+    return soundLocked || !['active', 'pending', 'unsupported'].includes(wakeLock);
 }
 
 /**
@@ -509,6 +656,30 @@ function write(storage, key, value) {
     }
 }
 
+/**
+ * The run a state is about: the start of its round clock (startedAtMs, a countdown's too) - null without a round or a
+ * start (none yet, or reset since).
+ */
+export function runKeyOf(state) {
+    return readClock(state)?.startedAtMs ?? null;
+}
+
+function readFinishes(stored, fromMs = null) {
+    if (!Array.isArray(stored)) {
+        return [];
+    }
+
+    return stored.filter((finish) => finish && typeof finish.eventId === 'string' && Number.isFinite(finish.momentMs)
+        && (fromMs === null || finish.momentMs >= fromMs))
+        .map((finish) => ({ eventId: finish.eventId, momentMs: finish.momentMs, undone: finish.undone === true, continued: finish.continued === true }));
+}
+
+function readReportedPieces(stored) {
+    return stored && Number.isFinite(stored.pieces)
+        ? { measure: String(stored.measure ?? ''), pieces: stored.pieces }
+        : null;
+}
+
 export function loadConsent(storage, participantId) {
     return read(storage, CONSENT_PREFIX + participantId)?.consent === true;
 }
@@ -518,37 +689,55 @@ export function saveConsent(storage, participantId, atMs) {
 }
 
 /**
+ * The progress in a round on this device, with the run part of `runKey` (runKeyOf() - null: no run, nothing of one).
+ *
  * @returns {Progress}
  */
-export function loadProgress(storage, participantId, roundId) {
+export function loadProgress(storage, participantId, roundId, runKey = null) {
     const stored = roundId ? read(storage, `${PROGRESS_PREFIX}${participantId}:${roundId}`) : null;
     const progress = emptyProgress();
 
-    if (stored === null || typeof stored !== 'object') {
+    if (stored !== null && typeof stored === 'object') {
+        progress.consentSent = stored.consentSent === true;
+        progress.ready = stored.ready === true;
+        progress.emptyMat = stored.emptyMat === true;
+        progress.seen = stored.seen && typeof stored.seen === 'object' ? { ...stored.seen } : {};
+    }
+
+    if (!roundId || !Number.isFinite(runKey)) {
         return progress;
     }
 
-    progress.consentSent = stored.consentSent === true;
-    progress.ready = stored.ready === true;
-    progress.emptyMat = stored.emptyMat === true;
-    progress.finishes = Array.isArray(stored.finishes)
-        ? stored.finishes.filter((finish) => finish && typeof finish.eventId === 'string' && Number.isFinite(finish.momentMs))
-            .map((finish) => ({ eventId: finish.eventId, momentMs: finish.momentMs, undone: finish.undone === true, continued: finish.continued === true }))
-        : [];
-    progress.pieces = stored.pieces && Number.isFinite(stored.pieces.pieces)
-        ? { measure: String(stored.pieces.measure ?? ''), pieces: stored.pieces.pieces }
-        : null;
-    progress.seen = stored.seen && typeof stored.seen === 'object' ? { ...stored.seen } : {};
+    const run = read(storage, `${PROGRESS_PREFIX}${participantId}:${roundId}${RUN_INFIX}${runKey}`);
+
+    if (run !== null && typeof run === 'object') {
+        progress.finishes = readFinishes(run.finishes);
+        progress.pieces = readReportedPieces(run.pieces);
+    } else if (stored !== null && typeof stored === 'object') {
+        // Kept by an older page in the round's part: the run's own taps lie from its start on; pieces can not be told
+        // apart from an earlier run's - left out
+        progress.finishes = readFinishes(stored.finishes, runKey);
+    }
 
     return progress;
 }
 
-export function saveProgress(storage, participantId, roundId, progress) {
+/**
+ * Keeps the progress: the set-up with the round, the taps and pieces with the run `runKey` (none without a run).
+ */
+export function saveProgress(storage, participantId, roundId, progress, runKey = null) {
     if (!roundId) {
         return false;
     }
 
-    return write(storage, `${PROGRESS_PREFIX}${participantId}:${roundId}`, progress);
+    const { finishes, pieces, ...setUp } = progress;
+    const savedSetUp = write(storage, `${PROGRESS_PREFIX}${participantId}:${roundId}`, setUp);
+
+    if (!Number.isFinite(runKey)) {
+        return savedSetUp;
+    }
+
+    return write(storage, `${PROGRESS_PREFIX}${participantId}:${roundId}${RUN_INFIX}${runKey}`, { finishes, pieces }) && savedSetUp;
 }
 
 /**

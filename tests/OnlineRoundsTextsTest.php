@@ -15,13 +15,21 @@ use Twig\Environment;
 
 /**
  * The texts of the organiser's online round pages' JavaScript - the control room (templates/online_rounds/
- * control_texts.html.twig, assets/controllers/online_control_controller.js) and the review (review_texts.html.twig,
- * online_review_controller.js): a key the JS asks for but the partial misses would show the key itself on the page.
- * Keys built from a value - a status, a flag, an event type, a refusal - are listed from the PHP side, so a new case
- * there fails here until it has its text.
+ * control_texts.html.twig, assets/controllers/online_control_controller.js), its console with live video (the same
+ * partial with video_console, assets/online/console_video.js), the review (review_texts.html.twig,
+ * online_review_controller.js) and the host's studio (studio_texts.html.twig, online_studio_controller.js): a key the
+ * JS asks for but the partial misses would show the key itself on the page. Keys built from a value - a status, a flag,
+ * an event type, a refusal - are listed from the PHP side (or the JS module that makes the value), so a new case there
+ * fails here until it has its text.
  */
 final class OnlineRoundsTextsTest extends KernelTestCase
 {
+    // A moderator's video connection (assets/online/console_room.js RoomLink)
+    private const array CONNECTION_STATES = ['connecting', 'connected', 'reconnecting', 'failed', 'duplicate', 'unavailable', 'sign_in', 'forbidden'];
+
+    // A refused invite / "Thank you" (console_room.js studioRefusal(): the endpoints' codes, then the connection's)
+    private const array STUDIO_REFUSALS = ['already_invited', 'not_entered', 'participant_not_found', 'video_unavailable', 'invite_not_found', 'round_not_online', 'sign_in', 'forbidden', 'offline', 'failed'];
+
     public function testEveryTextTheControlRoomAsksForIsThere(): void
     {
         $texts = $this->render('online_rounds/control_texts.html.twig');
@@ -57,7 +65,7 @@ final class OnlineRoundsTextsTest extends KernelTestCase
 
         self::assertSame([], $missing, 'texts the control room uses but control_texts.html.twig does not have');
         self::assertGreaterThan(40, count(array_unique($used)));
-        self::assertTexts($texts, ['limit', 'count_entered', 'tile_uploads_pending']);
+        self::assertTexts($texts, ['limit', 'count_entered', 'tile_uploads_pending', 'tile_reported_left', 'tile_reported_placed']);
     }
 
     public function testEveryTextTheReviewAsksForIsThere(): void
@@ -93,8 +101,79 @@ final class OnlineRoundsTextsTest extends KernelTestCase
 
         self::assertSame([], $missing, 'texts the review uses but review_texts.html.twig does not have');
         self::assertGreaterThan(50, count(array_unique($used)));
-        self::assertTexts($texts, ['flag_camera_lost', 'flag_page_hidden', 'flag_offline', 'result_pieces']);
-        self::assertSame('Arrived %seconds% s after its moment while the phone kept sending', $texts['flag_arrived_late'] ?? null);
+        self::assertTexts($texts, ['flag_camera_lost', 'flag_page_hidden', 'flag_offline', 'result_pieces', 'reported_left', 'reported_placed']);
+        self::assertSame('Finished tap reached us %seconds% s late, though the phone was online the whole time', $texts['flag_arrived_late'] ?? null);
+    }
+
+    public function testEveryTextTheConsoleAsksForIsThere(): void
+    {
+        $texts = $this->render('online_rounds/control_texts.html.twig', ['video_console' => true]);
+        $used = self::quotedKeys(__DIR__ . '/../assets/online/console_video.js', '/^video_[a-z_]+$/');
+
+        // Built from a value: a tile's video (console_grid.js tileVideoState()), the connection (console_room.js
+        // RoomLink), a microphone that failed (console_talk.js MIC_ERRORS), an invitation's state (console_invites.js
+        // inviteView(), on air apart), a refused invite / end (console_room.js studioRefusal())
+        foreach (['connecting', 'in_studio', 'not_joined', 'no_camera', 'paused', 'loading', 'playing'] as $state) {
+            $used[] = 'video_tile_' . $state;
+        }
+
+        foreach (self::CONNECTION_STATES as $state) {
+            $used[] = 'video_connection_' . $state;
+        }
+
+        foreach (['mic_denied', 'mic_missing', 'mic_failed', 'not_connected'] as $error) {
+            $used[] = 'video_talk_error_' . $error;
+        }
+
+        foreach (['invited', 'joined', 'on_air', 'declined', 'expired', 'ended', 'withdrawn'] as $status) {
+            $used[] = 'video_studio_' . $status;
+        }
+
+        foreach (self::STUDIO_REFUSALS as $refusal) {
+            $used[] = 'video_studio_error_' . $refusal;
+        }
+
+        $missing = array_values(array_diff(array_unique($used), array_keys($texts)));
+
+        self::assertSame([], $missing, 'texts the console uses but control_texts.html.twig does not have with video');
+        self::assertGreaterThan(50, count(array_unique($used)));
+        self::assertTexts($texts, ['limit', 'count_entered', 'tile_uploads_pending', 'tile_reported_left', 'tile_reported_placed']);
+
+        // Without live video: none of them
+        self::assertSame([], array_values(array_filter(array_keys($this->render('online_rounds/control_texts.html.twig')), static fn (string $key): bool => str_starts_with($key, 'video_'))));
+    }
+
+    public function testEveryTextTheStudioAsksForIsThere(): void
+    {
+        $texts = $this->render('online_rounds/studio_texts.html.twig');
+        $used = [
+            ...self::quotedKeys(__DIR__ . '/../assets/controllers/online_studio_controller.js', '/^(stage|controls|lists|status|error|connection)_[a-z_]+$/'),
+            ...array_values(array_intersect(['live', 'not_live', 'audience', 'working', 'thank_you', 'withdraw'], self::quotedKeys(__DIR__ . '/../assets/controllers/online_studio_controller.js', '/^[a-z_]+$/'))),
+        ];
+
+        foreach (self::CONNECTION_STATES as $state) {
+            $used[] = 'connection_' . $state;
+        }
+
+        foreach (['camera_denied', 'camera_missing', 'camera_failed', 'share_failed', 'not_connected'] as $error) {
+            $used[] = 'error_' . $error;
+        }
+
+        foreach (self::STUDIO_REFUSALS as $refusal) {
+            $used[] = 'error_end_' . $refusal;
+        }
+
+        // The earlier invitations (console_studio.js studioSections())
+        foreach (['declined', 'expired', 'ended', 'withdrawn'] as $status) {
+            $used[] = 'status_' . $status;
+        }
+
+        $missing = array_values(array_diff(array_unique($used), array_keys($texts)));
+
+        self::assertSame([], $missing, 'texts the studio uses but studio_texts.html.twig does not have');
+        self::assertGreaterThan(40, count(array_unique($used)));
+        self::assertContains('audience', $used);
+        self::assertTexts($texts, ['audience']);
     }
 
     /**
@@ -134,9 +213,22 @@ final class OnlineRoundsTextsTest extends KernelTestCase
     }
 
     /**
+     * The single-quoted strings of a JS file that look like text keys (a ternary between two keys included)
+     *
+     * @return list<string>
+     */
+    private static function quotedKeys(string $file, string $pattern): array
+    {
+        preg_match_all("/'([a-z][a-z0-9_]*)'/", (string) file_get_contents($file), $matches);
+
+        return array_values(array_unique(array_filter($matches[1], static fn (string $key): bool => preg_match($pattern, $key) === 1)));
+    }
+
+    /**
+     * @param array<string, mixed> $context
      * @return array<string, mixed>
      */
-    private function render(string $template): array
+    private function render(string $template, array $context = []): array
     {
         $container = self::bootKernel()->getContainer();
         $request = Request::create('/en/online-rounds/x/control');
@@ -144,7 +236,7 @@ final class OnlineRoundsTextsTest extends KernelTestCase
         $container->get('request_stack')->push($request);
         $container->get('router')->getContext()->setParameter('_locale', 'en');
 
-        $texts = json_decode(self::getContainer()->get(Environment::class)->render($template), true, flags: JSON_THROW_ON_ERROR);
+        $texts = json_decode(self::getContainer()->get(Environment::class)->render($template, $context), true, flags: JSON_THROW_ON_ERROR);
         self::assertIsArray($texts);
 
         /** @var array<string, mixed> $texts */

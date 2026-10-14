@@ -23,6 +23,7 @@ final class RoundStopwatchRefused extends ConflictHttpException
             RoundStopwatchRefusal::AlreadyStarted => 'The round stopwatch has already started - reset it before scheduling a start. Nothing was changed.',
             RoundStopwatchRefusal::TooLateToCancel => 'The round has already started - its start can no longer be cancelled. Nothing was changed.',
             RoundStopwatchRefusal::StartScheduled => 'A start is scheduled - cancel it before starting the stopwatch now. Nothing was changed.',
+            RoundStopwatchRefusal::ResultsConfirmed => 'The round has official results - clear them at the results desk before resetting its stopwatch. Nothing was changed.',
         });
     }
 }

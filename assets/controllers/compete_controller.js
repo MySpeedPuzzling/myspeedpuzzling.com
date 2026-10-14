@@ -22,9 +22,12 @@ import { FrameGrabber } from '../online/frame_grabber.js';
 import { browserDiagnostics } from '../platform.js';
 import { createCompeteApi, isDeadLink } from '../online/compete_api.js';
 import {
+    answerReach,
     buildEvent,
     cameraWanted,
     checklistRows,
+    CONNECTION_FAILURES_SHOWN,
+    connectionStatus,
     clockText,
     countdownText,
     currentFinish,
@@ -34,6 +37,7 @@ import {
     loadConsent,
     loadProgress,
     memoryStorage,
+    nextDisplayChangeAt,
     nextPeriodicPhotoAt,
     PRACTICE_MINUTES,
     practiceAllowed,
@@ -41,11 +45,15 @@ import {
     practiceState,
     readiness,
     readPieces,
+    runKeyOf,
     saveConsent,
     saveProgress,
     screenFor,
     shortClock,
+    TAKEOVER_GRACE_MS,
+    takeoverVerdict,
     undoLeftMs,
+    wakeTapNeeded,
 } from '../online/compete_flow.js';
 import { OfficialResultsEvents } from '../official_results_events.js';
 import { chooseTranslation } from '../translation_choice.js';
@@ -59,7 +67,8 @@ import { chooseTranslation } from '../translation_choice.js';
  * - state: the first one from the page, then the round's Mercure stream (official_results_events.js) and fetches - on
  *   (re)connect, on return, 2 s before / 1 s after the start, and whenever a heartbeat's hash or round differs; the
  *   newest wins by asOfMs (round_state.js adoptState / adoptRoundClock);
- * - heartbeat every 15 s: device, camera, clock quality, visibility, outbox counts; `takenOverBy` = another device;
+ * - heartbeat every 15 s: device, camera, clock quality, visibility, outbox counts; `takenOverBy` = another device -
+ *   this one gives way once its own claim is older (compete_flow.js takeoverVerdict());
  * - events through the event outbox and photos through the media outbox (stored on the phone first, sent until
  *   acknowledged) - nothing is recorded before the participant agreed to the photos, nothing at all in an organiser's
  *   preview;
@@ -75,8 +84,6 @@ const RENDER_EVERY_MS = 50;
 const SLOW_POLL_MS = 60000;
 // The longest single wait of the state-check timer (it re-plans itself)
 const MAX_TIMER_MS = 10 * 60 * 1000;
-// After this device said "I'm ready", a heartbeat still naming the old device is not a takeover yet
-const TAKEOVER_GRACE_MS = 30000;
 // iOS mutes the camera for a moment on many occasions - logged as lost only when it lasts
 const MUTE_GRACE_MS = 1000;
 const REOPEN_DELAY_MS = 600;
@@ -144,18 +151,25 @@ export default class extends Controller {
         this.participantId = this.participantIdValue;
         this.state = this.readInitialState();
         this.roundId = this.state?.round?.id ?? null;
+        // The run = the start of the round clock: the Finished taps and the pieces are kept per run (compete_flow.js)
+        this.runKey = runKeyOf(this.state);
         this.consent = loadConsent(this.storage, this.participantId);
-        this.progress = loadProgress(this.storage, this.participantId, this.roundId);
+        this.progress = loadProgress(this.storage, this.participantId, this.roundId, this.runKey);
         this.connectStatus = this.connectValue?.status ?? 'anonymous';
         this.connectFailed = false;
 
         this.linkDead = false;
         this.takenOver = false;
         this.otherDeviceActive = false;
-        this.ignoreTakeoverUntil = 0;
+        // This page's last claim of the link ("I'm ready", "Use this device instead") - takeoverVerdict()
+        this.claim = null;
+        this.recheckAfterClaim = false;
+        this.recheckTimer = null;
         this.practice = null;
         this.lastOkAt = null;
-        this.failures = 0;
+        // Requests in a row without an answer / answered with an error (connectionStatus())
+        this.noAnswers = 0;
+        this.failedAnswers = 0;
         this.lastPeriodicMs = null;
         this.periodicBusy = false;
         // The start (startedAtMs) whose running clock this page showed - time's up is live only after it
@@ -167,11 +181,15 @@ export default class extends Controller {
         this.painted = new Map();
         this.renderWanted = true;
         this.lastRenderAt = 0;
+        // When the clock on screen changes next (compete_flow.js nextDisplayChangeAt()) - rendered in that frame
+        this.nextChangeAt = null;
         this.cameraLostRecorded = false;
         this.eventsOutbox = null;
         this.mediaOutbox = null;
         this.stateFetch = null;
         this.closed = false;
+        // A tap on this page since it loaded - the sound and Safari's screen lock wait for one (wakeTapNeeded())
+        this.touched = false;
 
         this.clock = createClock({
             fetchTime: () => fetchServerTime(this.urlsValue.time),
@@ -202,6 +220,12 @@ export default class extends Controller {
         this.wakeLock = new ScreenWakeLock({ onChange: () => this.requestRender() }).attach();
         this.beeps = new Beeps();
 
+        // Loaded again after "I'm ready" (a reload, a discarded tab): the screen lock at once where a browser grants it
+        // without a tap (Chrome); Safari waits for the first tap, the sound everywhere - "Tap here once" asks for it
+        if (this.progress.ready && !this.preview) {
+            this.wakeLock.request();
+        }
+
         this.openOutboxes();
         this.startStream();
         this.listen();
@@ -229,6 +253,7 @@ export default class extends Controller {
         window.clearTimeout(this.noticeTimer);
         window.clearTimeout(this.muteTimer);
         window.clearTimeout(this.refreshTimer);
+        window.clearTimeout(this.recheckTimer);
         this.unlisten();
         this.stream?.close();
         this.grabber.stop();
@@ -267,6 +292,7 @@ export default class extends Controller {
 
     ready() {
         // The tap unlocks the beeps and the wake lock (browsers grant both only from a tap)
+        this.touched = true;
         this.beeps.unlock();
         this.wakeLock.request();
 
@@ -276,30 +302,43 @@ export default class extends Controller {
 
         this.progress.ready = true;
         this.saveProgress();
-        this.takenOver = false;
-        this.ignoreTakeoverUntil = Date.now() + TAKEOVER_GRACE_MS;
-        this.recordDeviceReady(false);
+        this.finishClaim(this.startClaim(), this.recordDeviceReady(false));
         this.beat();
         this.render();
     }
 
     async takeOver() {
+        this.touched = true;
         this.beeps.unlock();
         this.wakeLock.request();
-        this.takenOver = false;
         this.otherDeviceActive = false;
-        this.ignoreTakeoverUntil = Date.now() + TAKEOVER_GRACE_MS;
+        // Claimed from this tap on: no answer until the server stored it makes this device give way again
+        const claim = this.startClaim();
         // The camera first (it reports with device.ready), then the screen
         const opening = this.ensureCamera({ force: true });
         this.render();
         await opening;
-        this.recordDeviceReady(true);
+        this.finishClaim(claim, this.recordDeviceReady(true));
         this.beat();
     }
 
     restartCamera() {
         this.beeps.unlock();
         this.ensureCamera({ force: true });
+    }
+
+    /**
+     * "Tap here once" (wakeTapNeeded()) - the tap itself did it (anyTap()); a keyboard's activation comes here only.
+     */
+    wakeUp() {
+        this.touched = true;
+        this.beeps.unlock();
+
+        if (this.wakeLock.state !== 'active') {
+            this.wakeLock.request();
+        }
+
+        this.render();
     }
 
     switchCamera() {
@@ -482,7 +521,10 @@ export default class extends Controller {
         this.eventsReady = openEventOutbox({
             scope: this.participantId,
             send: (events) => this.api.events({ deviceId: this.deviceId, events }),
-            onChange: () => this.requestRender(),
+            onChange: () => {
+                this.noteClaim();
+                this.requestRender();
+            },
         }).then((outbox) => {
             this.eventsOutbox = outbox;
 
@@ -636,8 +678,14 @@ export default class extends Controller {
 
         if (roundId !== (previous?.round?.id ?? null)) {
             this.roundChanged();
-        } else if (this.state?.mercure) {
-            this.stream?.update(this.state.mercure);
+        } else {
+            if (this.state?.mercure) {
+                this.stream?.update(this.state.mercure);
+            }
+
+            if (runKeyOf(this.state) !== this.runKey) {
+                this.runChanged();
+            }
         }
 
         const before = readClock(previous);
@@ -654,7 +702,8 @@ export default class extends Controller {
 
     roundChanged() {
         this.roundId = this.state?.round?.id ?? null;
-        this.progress = loadProgress(this.storage, this.participantId, this.roundId);
+        this.runKey = runKeyOf(this.state);
+        this.progress = loadProgress(this.storage, this.participantId, this.roundId, this.runKey);
         this.lastPeriodicMs = null;
         this.sawRunning = null;
         this.practice = null;
@@ -663,6 +712,17 @@ export default class extends Controller {
         this.beeps.cancelCountdown();
         this.startStream();
         this.ensureConsentRecorded();
+    }
+
+    /**
+     * Another run of the same round (a Reset, a new start, a countdown called off or moved): its own Finished taps and
+     * pieces - none of the run that was; the set-up (consent, ready, the empty mat) stays.
+     */
+    runChanged() {
+        this.runKey = runKeyOf(this.state);
+        const run = loadProgress(this.storage, this.participantId, this.roundId, this.runKey);
+        this.progress.finishes = run.finishes;
+        this.progress.pieces = run.pieces;
     }
 
     /**
@@ -723,6 +783,7 @@ export default class extends Controller {
         try {
             const quality = this.clock.quality();
             const settings = this.camera.settings();
+            const sentAt = Date.now();
             const answer = await this.api.heartbeat({
                 deviceId: this.deviceId,
                 roundId: this.state.round.id,
@@ -755,30 +816,37 @@ export default class extends Controller {
                 this.refreshState();
             }
 
-            this.applyTakeover(data.takenOverBy);
+            this.applyTakeover(data.takenOverBy, sentAt);
         } finally {
             this.beating = false;
         }
     }
 
-    applyTakeover(activeDevice) {
-        const other = typeof activeDevice === 'string' && activeDevice !== '' && activeDevice !== this.deviceId;
-        this.otherDeviceActive = other;
+    /**
+     * The heartbeat's `takenOverBy` (sent at `beatSentAt`): another device holds the link - the checklist says so, a
+     * ready device gives way once its own claim is older than the answer (takeoverVerdict()); never back by itself.
+     */
+    applyTakeover(activeDevice, beatSentAt) {
+        this.noteClaim();
+        const verdict = takeoverVerdict({
+            activeDevice,
+            deviceId: this.deviceId,
+            ready: this.progress.ready === true,
+            takenOver: this.takenOver,
+            claim: this.claim,
+            beatSentAt,
+        });
+        this.otherDeviceActive = verdict.otherDeviceActive;
 
-        if (!other) {
-            this.takenOver = false;
-
-            return;
-        }
-
-        // Not competing here (yet): the checklist says the link is in use elsewhere; "I'm ready" moves it here
-        if (!this.progress.ready || Date.now() < this.ignoreTakeoverUntil || (this.eventsOutbox?.pendingCount() ?? 0) > 0) {
-            return;
-        }
-
-        if (!this.takenOver) {
-            this.takenOver = true;
+        if (verdict.takenOver !== this.takenOver) {
+            this.takenOver = verdict.takenOver;
             this.requestRender();
+        }
+
+        if (verdict.recheckAt !== null) {
+            this.scheduleRecheck(verdict.recheckAt);
+        } else if (verdict.otherDeviceActive && this.claim?.pending) {
+            this.recheckAfterClaim = true;
         }
     }
 
@@ -787,11 +855,18 @@ export default class extends Controller {
             return;
         }
 
-        if (answer.kind === 'ok' || answer.kind === 'client' || answer.kind === 'forbidden') {
+        const reach = answerReach(answer);
+
+        if (reach === 'ok') {
             this.lastOkAt = Date.now();
-            this.failures = 0;
+            this.noAnswers = 0;
+            this.failedAnswers = 0;
+        } else if (reach === 'none') {
+            this.noAnswers += 1;
+            this.failedAnswers = 0;
         } else {
-            this.failures += 1;
+            this.failedAnswers += 1;
+            this.noAnswers = 0;
         }
 
         if (isDeadLink(answer)) {
@@ -828,6 +903,62 @@ export default class extends Controller {
         return explicitRound || (Boolean(this.state?.round) && Boolean(this.state?.entry));
     }
 
+    /**
+     * This device takes the link: until its device.ready is stored (and TAKEOVER_GRACE_MS after), no heartbeat answer
+     * naming another device makes it give way (takeoverVerdict()).
+     */
+    startClaim() {
+        const claim = { eventId: null, pending: true, ackedAt: null };
+        this.claim = claim;
+        this.takenOver = false;
+
+        return claim;
+    }
+
+    finishClaim(claim, event) {
+        if (event === null) {
+            // Nothing recorded (an organiser's preview) - nothing to wait for
+            claim.pending = false;
+            claim.ackedAt = Date.now();
+
+            return;
+        }
+
+        // After record() handed the event to the outbox (an earlier callback of the same promise)
+        this.eventsReady.then(() => {
+            claim.eventId = event.id;
+            this.noteClaim();
+        });
+    }
+
+    /**
+     * The claim's device.ready left the outbox - the server stored it (or refused it): from TAKEOVER_GRACE_MS on, an
+     * answer naming another device is believed. An answer set aside meanwhile is asked again then.
+     */
+    noteClaim() {
+        const claim = this.claim;
+
+        if (claim === null || !claim.pending || claim.eventId === null || this.eventsOutbox?.isPending(claim.eventId)) {
+            return;
+        }
+
+        claim.pending = false;
+        claim.ackedAt = Date.now();
+
+        if (this.recheckAfterClaim) {
+            this.recheckAfterClaim = false;
+            this.scheduleRecheck(claim.ackedAt + TAKEOVER_GRACE_MS);
+        }
+    }
+
+    scheduleRecheck(at) {
+        window.clearTimeout(this.recheckTimer);
+        this.recheckTimer = window.setTimeout(() => {
+            this.recheckTimer = null;
+            this.beat();
+        }, Math.max(0, at - Date.now()) + 50);
+    }
+
     record(type, data = {}, { stamp = null, id = null } = {}) {
         if (!this.mayRecord()) {
             return null;
@@ -852,7 +983,7 @@ export default class extends Controller {
         const quality = this.clock.quality();
         const settings = this.camera.settings();
 
-        this.record('device.ready', {
+        return this.record('device.ready', {
             takeover,
             userAgent: browserDiagnostics(),
             platform: navigator.userAgentData?.platform ?? navigator.platform ?? null,
@@ -982,7 +1113,7 @@ export default class extends Controller {
     }
 
     saveProgress() {
-        saveProgress(this.storage, this.participantId, this.roundId, this.progress);
+        saveProgress(this.storage, this.participantId, this.roundId, this.progress, this.runKey);
     }
 
     measure() {
@@ -1078,6 +1209,9 @@ export default class extends Controller {
     // ---- page and network
 
     anyTap() {
+        this.touched = true;
+        this.requestRender();
+
         // Every tap may unlock what needs one: the beeps, the wake lock (Safari), a camera that stopped
         if (this.progress.ready || this.practice !== null) {
             this.beeps.unlock();
@@ -1206,8 +1340,10 @@ export default class extends Controller {
 
         this.frame = window.requestAnimationFrame(this.boundLoop);
         const now = performance.now();
+        // The clock on screen changes now (GO, the next second) - drawn in this very frame, not up to 50 ms later
+        const changeDue = this.nextChangeAt !== null && this.clock.serverNow() >= this.nextChangeAt;
 
-        if (!this.renderWanted && now - this.lastRenderAt < RENDER_EVERY_MS) {
+        if (!this.renderWanted && !changeDue && now - this.lastRenderAt < RENDER_EVERY_MS) {
             return;
         }
 
@@ -1238,6 +1374,7 @@ export default class extends Controller {
             }
 
             this.screen = screen;
+            this.nextChangeAt = nextDisplayChangeAt(this.practice !== null ? deriveView(practiceState(this.practice), serverNow) : view, serverNow);
             this.showScreen(this.practice !== null ? 'practice' : screen);
             this.effects(screen, view, serverNow);
             this.paint(screen, view, serverNow);
@@ -1433,16 +1570,26 @@ export default class extends Controller {
         this.setShown('otherDevice', screen === 'checklist' && this.otherDeviceActive);
         this.setShown('keepOpen', competing && live);
         this.setShown('afterPending', screen === 'after' && this.hasUnsent());
+        this.setShown('wakeTap', !this.preview && wakeTapNeeded({
+            ready,
+            screen,
+            practice: this.practice !== null,
+            touched: this.touched,
+            soundLocked: !this.beeps.isUnlocked(),
+            wakeLock: this.wakeLock.state,
+        }));
     }
 
     paintStatus() {
         const pending = (this.eventsOutbox?.pendingCount() ?? 0) + (this.mediaOutbox?.pendingCount() ?? 0);
+        // "Offline" only when the network is down - a server error or a refusal says the connection has a problem
+        const connection = connectionStatus({ online: navigator.onLine !== false, noAnswers: this.noAnswers, failedAnswers: this.failedAnswers });
 
         this.setField('statusCamera', this.camera.status === 'live' ? this.t('status_camera_ok') : this.t('status_camera_off'));
-        this.setField('statusConnection', navigator.onLine === false || this.failures >= 2 ? this.t('status_offline') : this.t('status_online'));
+        this.setField('statusConnection', this.t(`status_${connection}`));
         this.setField('statusPending', pending > 0 ? this.tc('status_pending', pending) : '');
         this.setData('camera', this.camera.status);
-        this.setData('connection', navigator.onLine === false || this.failures >= 2 ? 'offline' : 'online');
+        this.setData('connection', connection);
     }
 
     paintChecklist() {
@@ -1454,9 +1601,9 @@ export default class extends Controller {
             clockSyncing: this.clock.syncing !== null,
             wakeLock: this.wakeLock.state,
             connection: {
-                online: navigator.onLine !== false,
+                online: navigator.onLine !== false && this.noAnswers < CONNECTION_FAILURES_SHOWN,
                 lastOkAgoMs: this.lastOkAt === null ? null : Date.now() - this.lastOkAt,
-                failing: this.failures >= 2,
+                failing: this.failedAnswers >= CONNECTION_FAILURES_SHOWN,
             },
             uploads: this.mediaOutbox?.status() ?? null,
             emptyMat: this.progress.emptyMat,

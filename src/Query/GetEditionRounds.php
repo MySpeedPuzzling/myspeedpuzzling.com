@@ -43,10 +43,14 @@ SELECT
     cr.timezone,
     cr.results_published_at IS NOT NULL AS results_published,
     c.location_country_code,
-    tz_cs.location_country_code AS series_country_code
+    tz_cs.location_country_code AS series_country_code,
+    -- The round's online timing has live video on - its watch page (docs/features/online-competitions/), in this
+    -- statement so the pages pay nothing for it
+    COALESCE(o_r.video_enabled, false) AS online_video
 FROM competition_round cr
 INNER JOIN competition c ON c.id = cr.competition_id
 LEFT JOIN competition_series tz_cs ON tz_cs.id = c.series_id
+LEFT JOIN online_round o_r ON o_r.round_id = cr.id
 WHERE cr.competition_id = :competitionId
 -- The position decides a round's automatic colour (RoundBadgeColor) - the same order everywhere, ties by id
 ORDER BY cr.starts_at, cr.id
@@ -149,7 +153,7 @@ SQL;
 
         // Rounds come ordered by start, so the index is the round's position in the schedule
         return array_map(static function (array $row, int $schedulePosition) use ($puzzlesByRound): EditionRoundDetail {
-            /** @var array{id: string, name: string, minutes_limit: int|string, starts_at: string, category: string, badge_background_color: null|string, badge_text_color: null|string, slug: null|string, results_link: null|string, timezone: null|string, results_published: bool, location_country_code: null|string, series_country_code: null|string} $row */
+            /** @var array{id: string, name: string, minutes_limit: int|string, starts_at: string, category: string, badge_background_color: null|string, badge_text_color: null|string, slug: null|string, results_link: null|string, timezone: null|string, results_published: bool, location_country_code: null|string, series_country_code: null|string, online_video: bool} $row */
 
             $color = RoundBadgeColor::background($row['badge_background_color'], $schedulePosition);
 
@@ -169,6 +173,7 @@ SQL;
                 timezone: RoundTimezone::resolve($row['timezone'], $row['location_country_code'], $row['series_country_code']),
                 timezoneAssumed: RoundTimezone::isAssumed($row['timezone'], $row['location_country_code'], $row['series_country_code']),
                 resultsPublished: $row['results_published'],
+                onlineVideo: $row['online_video'],
             );
         }, $rounds, array_keys($rounds));
     }

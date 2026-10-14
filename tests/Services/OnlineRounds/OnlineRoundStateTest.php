@@ -120,11 +120,12 @@ final class OnlineRoundStateTest extends KernelTestCase
 
     public function testTapsCountTheFinishesThatWereNotUndone(): void
     {
+        $startMs = $this->startRound('-30 minutes');
         $onlineEntry = $this->entityManager->find(OnlineEntry::class, OnlineRoundsFixture::ONLINE_ENTRY_CONNECTED);
         self::assertNotNull($onlineEntry);
 
         foreach ([OnlineEventType::FinishButton, OnlineEventType::FinishButtonUndone, OnlineEventType::FinishButton, OnlineEventType::FinishCandidate] as $offset => $type) {
-            $this->entityManager->persist(new OnlineEntryEvent(Uuid::uuid7(), $onlineEntry, OnlineRoundsFixture::DEVICE_CONNECTED, $type, 1_792_002_832_345 + $offset, null, null, null, 1_792_002_833_000 + $offset));
+            $this->entityManager->persist(new OnlineEntryEvent(Uuid::uuid7(), $onlineEntry, OnlineRoundsFixture::DEVICE_CONNECTED, $type, $startMs + 600_000 + $offset, null, null, null, $startMs + 601_000 + $offset));
         }
 
         $onlineEntry->reportedPieces = 12;
@@ -138,6 +139,42 @@ final class OnlineRoundStateTest extends KernelTestCase
             'candidates' => $entry['candidates'],
             'reportedPieces' => $entry['reportedPieces'],
         ]);
+    }
+
+    /**
+     * A run is one start of the round clock: after a Reset and a new start, the taps of the run that was count no more
+     * (a fresh phone would show "Finish recorded" at GO) - and with no start at all there is no run to count in
+     */
+    public function testOnlyTheCurrentRunsTapsCount(): void
+    {
+        $onlineEntry = $this->entityManager->find(OnlineEntry::class, OnlineRoundsFixture::ONLINE_ENTRY_CONNECTED);
+        self::assertNotNull($onlineEntry);
+        $firstRunMs = RoundClock::milliseconds($this->clock->now()) - 3_600_000;
+
+        // The first run: a tap and a candidate 20 minutes in
+        foreach ([OnlineEventType::FinishButton, OnlineEventType::FinishCandidate] as $offset => $type) {
+            $this->entityManager->persist(new OnlineEntryEvent(Uuid::uuid7(), $onlineEntry, OnlineRoundsFixture::DEVICE_CONNECTED, $type, $firstRunMs + 1_200_000 + $offset, null, null, null, $firstRunMs + 1_201_000 + $offset));
+        }
+
+        $this->entityManager->flush();
+
+        // No start (none yet, or reset since): no run
+        $waiting = $this->state(OnlineRoundsFixture::TOKEN_CONNECTED)['entry'];
+        self::assertSame([0, 0], [$waiting['taps'] ?? null, $waiting['candidates'] ?? null]);
+
+        // The new start, 10 minutes ago - nothing tapped in it yet
+        $this->startRound('-10 minutes');
+        $fresh = $this->state(OnlineRoundsFixture::TOKEN_CONNECTED)['entry'];
+        self::assertSame([0, 0], [$fresh['taps'] ?? null, $fresh['candidates'] ?? null]);
+
+        // A countdown to a start ahead - nothing counts before it either
+        $round = $this->access()->forToken(OnlineRoundsFixture::TOKEN_CONNECTED)->round;
+        self::assertNotNull($round);
+        $round->resetStopwatch();
+        $round->scheduleStopwatchStart($this->clock->now()->modify('+10 seconds')->setTime(12, 0, 10), $this->clock->now());
+        $this->entityManager->flush();
+        $countdown = $this->state(OnlineRoundsFixture::TOKEN_CONNECTED)['entry'];
+        self::assertSame(0, $countdown['taps'] ?? null);
     }
 
     public function testAConfirmedResultCarriesItsMoment(): void
@@ -223,6 +260,23 @@ final class OnlineRoundStateTest extends KernelTestCase
         self::assertSame(1_791_892_500_000, $roundState['startedAtMs']);
         self::assertSame(1_791_892_500_000 + 3_600_000, $roundState['endsAtMs']);
         self::assertSame(RoundClock::fromRound($round, $this->clock->now())->stateHash(), $roundState['stateHash']);
+    }
+
+    /**
+     * The round's clock started at a moment before the test's clock, on a whole second - its start in epoch ms
+     */
+    private function startRound(string $modifier): int
+    {
+        $round = $this->access()->forToken(OnlineRoundsFixture::TOKEN_CONNECTED)->round;
+        self::assertNotNull($round);
+        $round->resetStopwatch();
+        $round->startStopwatch($this->clock->now()->modify($modifier));
+        $this->entityManager->flush();
+
+        $startedAt = $round->stopwatchStartedAt;
+        self::assertNotNull($startedAt);
+
+        return RoundClock::milliseconds($startedAt);
     }
 
     /**

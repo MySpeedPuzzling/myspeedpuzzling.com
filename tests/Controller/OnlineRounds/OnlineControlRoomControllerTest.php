@@ -172,6 +172,8 @@ final class OnlineControlRoomControllerTest extends WebTestCase
             'outbox' => ['events' => 0, 'media' => 2],
             'detector' => null,
         ], $nowMs);
+        // A laptop open on the same link - kept apart, never her presence
+        $this->presence()->beat(self::ROUND, OnlineRoundsFixture::PARTICIPANT_CONNECTED, ['deviceId' => 'laptop', 'visible' => false], $nowMs - 5_000, holdsEntry: false);
 
         $browser->request('GET', self::LIVE, server: ['HTTP_ACCEPT' => 'application/json']);
 
@@ -203,6 +205,7 @@ final class OnlineControlRoomControllerTest extends WebTestCase
         self::assertIsArray($arthur);
         self::assertFalse($arthur['seen'], 'his phone never made contact');
         self::assertNull($arthur['presence']);
+        self::assertNull($arthur['otherDevice']);
         self::assertNull($arthur['finish']);
         self::assertNull($arthur['photo']);
 
@@ -222,6 +225,7 @@ final class OnlineControlRoomControllerTest extends WebTestCase
             'clock' => ['offsetMs' => -12.5, 'rttMs' => 38],
             'outbox' => ['events' => 0, 'media' => 2],
         ], $olivia['presence']);
+        self::assertSame(['deviceId' => 'laptop', 'lastSeenMs' => $nowMs - 5_000], $olivia['otherDevice']);
         // The last tap not taken back
         self::assertIsArray($olivia['finish']);
         self::assertSame($startMs + 1_150_000, $olivia['finish']['momentMs']);
@@ -236,6 +240,67 @@ final class OnlineControlRoomControllerTest extends WebTestCase
         self::assertIsString($olivia['photo']['url']);
         self::assertStringStartsWith(FakeOnlineMediaStorage::BASE_URL . '/primary/online/', $olivia['photo']['url']);
         self::assertStringContainsString('X-Fake-Expires=120', $olivia['photo']['url']);
+    }
+
+    /**
+     * A run is one start of the round clock: after a Reset and a new start, a tap of the run that was is no finish -
+     * neither while the new round runs nor while it waits for its start
+     */
+    public function testATapOfAnEarlierRunIsNoFinish(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+        $browser->disableReboot();
+
+        $startMs = $this->startOnlineRound(600);
+        $onlineEntry = $this->onlineEntryOf(OnlineRoundsFixture::ENTRY_CONNECTED);
+        $this->finishTap($onlineEntry, $startMs - 1_800_000);
+
+        $browser->request('GET', self::LIVE, server: ['HTTP_ACCEPT' => 'application/json']);
+        self::assertResponseIsSuccessful();
+        self::assertNoFinish($this->olivia($browser));
+
+        $this->onlineRound()->resetStopwatch();
+        $this->entityManager()->flush();
+
+        $browser->request('GET', self::LIVE, server: ['HTTP_ACCEPT' => 'application/json']);
+        self::assertNoFinish($this->olivia($browser));
+
+        // A tap of this run is one
+        $startMs = $this->startOnlineRound(300);
+        // The requests cleared the entity manager - read it again
+        $this->finishTap($this->onlineEntryOf(OnlineRoundsFixture::ENTRY_CONNECTED), $startMs + 120_000);
+        $browser->request('GET', self::LIVE, server: ['HTTP_ACCEPT' => 'application/json']);
+        $finish = $this->olivia($browser)['finish'] ?? null;
+        self::assertIsArray($finish);
+        self::assertSame($startMs + 120_000, $finish['momentMs']);
+    }
+
+    /**
+     * @param array<string, mixed> $participant
+     */
+    private static function assertNoFinish(array $participant): void
+    {
+        self::assertArrayHasKey('finish', $participant);
+        self::assertNull($participant['finish']);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function olivia(KernelBrowser $browser): array
+    {
+        $participants = $this->json($browser)['participants'] ?? null;
+        self::assertIsArray($participants);
+
+        foreach ($participants as $participant) {
+            if (is_array($participant) && ($participant['participantId'] ?? null) === OnlineRoundsFixture::PARTICIPANT_CONNECTED) {
+                /** @var array<string, mixed> $participant */
+                return $participant;
+            }
+        }
+
+        self::fail('Olivia is not in the control room');
     }
 
     /**

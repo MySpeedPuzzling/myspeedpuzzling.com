@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Query;
 
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\ParameterType;
 use Doctrine\ORM\EntityManagerInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\OnlineEntryMedia;
@@ -15,7 +16,8 @@ use SpeedPuzzling\Web\Value\OnlineMediaKind;
  * The control room's grid of an online round (docs/features/online-competitions/implementation-plan.md WP 1.7): every
  * participant entered in the round and going (CompetitionParticipantGoing), with their online entry's summary - ready,
  * the device holding it, the clock quality at ready, what they reported at time-up, the review status and flags -, the
- * last Finished tap not undone (a `finish.button.undone` names the tap it takes back: `{eventId}`) and the latest
+ * last Finished tap not undone of the round's current run (a `finish.button.undone` names the tap it takes back:
+ * `{eventId}`; a run is one start of the round clock - an earlier run's taps lie before its start) and the latest
  * uploaded periodic photo. One statement, whatever the number of participants; the photos' rows in one more
  * (latestPhotos()) - pinned by OnlineLiveQueryBudgetTest.
  *
@@ -48,15 +50,17 @@ readonly final class GetOnlineLiveParticipants
     }
 
     /**
+     * @param null|int $runStartedAtMs the start of the round's current run (RoundClock::$startedAtMs) - null: no run, no tap
      * @return list<OnlineLiveRow>
      */
-    public function forRound(string $roundId): array
+    public function forRound(string $roundId, null|int $runStartedAtMs): array
     {
         if (Uuid::isValid($roundId) === false) {
             return [];
         }
 
         $going = CompetitionParticipantGoing::sql('cp');
+        $tapOfTheRun = $runStartedAtMs === null ? 'AND FALSE' : 'AND e.client_ms >= :runStartedAtMs';
 
         $rows = $this->database->fetchAllAssociative(
             <<<SQL
@@ -86,6 +90,7 @@ LEFT JOIN LATERAL (
     FROM online_entry_event e
     WHERE e.online_entry_id = oe.id
         AND e.type = :tap
+        {$tapOfTheRun}
         AND NOT EXISTS (
             SELECT 1
             FROM online_entry_event undone
@@ -114,7 +119,9 @@ SQL,
                 'tap' => OnlineEventType::FinishButton->value,
                 'undone' => OnlineEventType::FinishButtonUndone->value,
                 'periodic' => OnlineMediaKind::Periodic->value,
+                ...($runStartedAtMs === null ? [] : ['runStartedAtMs' => $runStartedAtMs]),
             ],
+            $runStartedAtMs === null ? [] : ['runStartedAtMs' => ParameterType::INTEGER],
         );
 
         return array_map(self::row(...), $rows);

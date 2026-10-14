@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Tests;
 use Doctrine\DBAL\Connection;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Psr\Clock\ClockInterface;
+use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\CompetitionNotEligibleForMarketplace;
 use SpeedPuzzling\Web\Query\GetAdminQueueCounts;
 use SpeedPuzzling\Web\Query\GetMarketplaceEvents;
@@ -325,6 +326,59 @@ final class DraftCanaryTest extends WebTestCase
             'SELECT COUNT(*) FROM puzzle_solving_time WHERE competition_id = :id',
             ['id' => OrganizationFixture::COMPETITION_DRAFT_NIGHT],
         ));
+    }
+
+    /**
+     * The watch page of an online round's studio and its token (docs/features/online-competitions/contracts/phase-1b.md
+     * §5 `online_watch`, `online_watch_token`) - a page of an event's own, so not a list: open to anybody once the event
+     * is published, a 404 for a guest and a player off its team while it is a draft (or its series is). Both items get
+     * online timing with live video by SQL.
+     */
+    public function testTheWatchPageOfADraftIsNotThere(): void
+    {
+        $browser = self::createClient();
+        $connection = self::getContainer()->get(Connection::class);
+        $draftNight = [self::COMPETITION, OrganizationFixture::COMPETITION_DRAFT_NIGHT, OrganizationFixture::ROUND_DRAFT_NIGHT, OrganizationFixture::COMPETITION_DRAFT_NIGHT_NAME];
+
+        // An edition of the draft series gets a round of its own
+        $quietPinesRound = Uuid::uuid7()->toString();
+        $connection->executeStatement(
+            "INSERT INTO competition_round (id, competition_id, name, minutes_limit, starts_at, slug) VALUES (:id, :edition, 'Quiet Pines Round', 60, NOW() + INTERVAL '10 days', 'quiet-pines-round')",
+            ['id' => $quietPinesRound, 'edition' => OrganizationFixture::EDITION_QUIET_PINES_1],
+        );
+        $quietPines = [self::SERIES, OrganizationFixture::SERIES_QUIET_PINES_DRAFT, $quietPinesRound, OrganizationFixture::EDITION_QUIET_PINES_1_NAME];
+
+        foreach ([$draftNight, $quietPines] as [$table, $id, $roundId, $name]) {
+            $connection->executeStatement(
+                "INSERT INTO online_round (id, round_id, enabled_at, detection_mode, video_enabled, participants_see_each_other, studio_enabled, recording_enabled, unfinished_measure, missing_piece_rule)
+                 VALUES (:id, :round, NOW(), 'off', true, false, false, false, 'left', 'complete_required')",
+                ['id' => Uuid::uuid7()->toString(), 'round' => $roundId],
+            );
+            $page = '/en/online-rounds/' . $roundId . '/watch';
+
+            $this->setDraft($table, $id, false);
+            self::assertStringContainsString($name, $this->surface($browser, $page, null), 'No canary: the published event\'s watch page does not show it.');
+            $browser->request('POST', $page . '/token');
+            self::assertResponseIsSuccessful();
+
+            $this->setDraft($table, $id, true);
+
+            foreach ([null, PlayerFixture::PLAYER_REGULAR] as $viewer) {
+                if ($viewer !== null) {
+                    TestingLogin::asPlayer($browser, $viewer);
+                }
+
+                $browser->request('GET', $page);
+                self::assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND, 'A draft\'s watch page is public.');
+                self::assertStringNotContainsString($name, (string) $browser->getResponse()->getContent());
+
+                $browser->request('POST', $page . '/token');
+                self::assertResponseStatusCodeSame(Response::HTTP_NOT_FOUND, 'A draft\'s studio hands out tokens.');
+            }
+
+            // A guest again for the next item
+            $browser->getCookieJar()->clear();
+        }
     }
 
     private static function inThePast(string $competitionId): string

@@ -3,8 +3,10 @@
     asks for. Plain texts with |trans (their %placeholders% filled in the browser), plural texts with browser_translation()
     (chosen by translation_choice.js). A refused stopwatch action is shown as `refused_<code>` (the stopwatch's own
     RoundStopwatchRefusal texts) or `error_<code>`. Pinned by tests/OnlineRoundsTextsTest.php.
+    With live video (video_console, stream VM) the console's texts follow (`video_*`, assets/online/console_video.js);
+    without it the object is exactly the Phase 1 one.
 #}
-{{- {
+{%- set texts = {
     status_waiting: 'online_rounds.control.clock.status.waiting'|trans,
     status_scheduled: 'online_rounds.control.clock.status.scheduled'|trans,
     status_countdown: 'online_rounds.control.clock.status.countdown'|trans,
@@ -25,6 +27,7 @@
     refused_already_started: 'competition.stopwatch.refused.already_started'|trans,
     refused_too_late_to_cancel: 'competition.stopwatch.refused.too_late_to_cancel'|trans,
     refused_start_scheduled: 'competition.stopwatch.refused.start_scheduled'|trans,
+    refused_results_confirmed: 'competition.stopwatch.refused.results_confirmed'|trans,
     error_invalid_csrf: 'online_rounds.control.error.invalid_csrf'|trans,
     error_scheduling_unavailable: 'online_rounds.control.error.scheduling_unavailable'|trans,
     error_sign_in: 'online_rounds.control.error.sign_in'|trans,
@@ -51,8 +54,8 @@
     tile_clock_poor: 'online_rounds.control.tile.clock_poor'|trans,
     tile_finished: 'online_rounds.control.tile.finished'|trans,
     tile_finished_after_end: 'online_rounds.control.tile.finished_after_end'|trans,
-    tile_reported_left: 'online_rounds.control.tile.reported_left'|trans,
-    tile_reported_placed: 'online_rounds.control.tile.reported_placed'|trans,
+    tile_reported_left: browser_translation('online_rounds.control.tile.reported_left'),
+    tile_reported_placed: browser_translation('online_rounds.control.tile.reported_placed'),
     tile_confirmed: 'online_rounds.control.tile.confirmed'|trans,
     tile_no_photo: 'online_rounds.control.tile.no_photo'|trans,
     tile_photo_alt: 'online_rounds.control.tile.photo_alt'|trans,
@@ -67,4 +70,66 @@
     unit_s: 'online_rounds.control.unit.s'|trans,
     unit_min: 'online_rounds.control.unit.min'|trans,
     unit_h: 'online_rounds.control.unit.h'|trans,
-}|json_encode|raw -}}
+} -%}
+{%- if video_console ?? false -%}
+    {%- set texts = texts|merge({
+        video_connection_connecting: 'online_rounds.console.connection.connecting'|trans,
+        video_connection_connected: 'online_rounds.console.connection.connected'|trans,
+        video_connection_reconnecting: 'online_rounds.console.connection.reconnecting'|trans,
+        video_connection_failed: 'online_rounds.console.connection.failed'|trans,
+        video_connection_duplicate: 'online_rounds.console.connection.duplicate'|trans,
+        video_connection_unavailable: 'online_rounds.console.connection.unavailable'|trans,
+        video_connection_sign_in: 'online_rounds.console.connection.sign_in'|trans,
+        video_connection_forbidden: 'online_rounds.console.connection.forbidden'|trans,
+        video_tile_connecting: 'online_rounds.console.tile.connecting'|trans,
+        video_tile_in_studio: 'online_rounds.console.tile.in_studio'|trans,
+        video_tile_not_joined: 'online_rounds.console.tile.not_joined'|trans,
+        video_tile_no_camera: 'online_rounds.console.tile.no_camera'|trans,
+        video_tile_paused: 'online_rounds.console.tile.paused'|trans,
+        video_tile_loading: 'online_rounds.console.tile.loading'|trans,
+        video_tile_playing: 'online_rounds.console.tile.playing'|trans,
+        video_tile_spotlight: 'online_rounds.console.tile.spotlight'|trans,
+        video_spotlight_title: 'online_rounds.console.spotlight.title'|trans,
+        video_spotlight_close: 'online_rounds.console.spotlight.close'|trans,
+        video_spotlight_previous: 'online_rounds.console.spotlight.previous'|trans,
+        video_spotlight_next: 'online_rounds.console.spotlight.next'|trans,
+        video_spotlight_keys: 'online_rounds.console.spotlight.keys'|trans,
+        video_pager_label: 'online_rounds.console.pager.label'|trans,
+        video_pager_previous: 'online_rounds.console.pager.previous'|trans,
+        video_pager_next: 'online_rounds.console.pager.next'|trans,
+        video_pager_page: 'online_rounds.console.pager.page'|trans,
+        video_pager_range: 'online_rounds.console.pager.range'|trans,
+        video_talk_enable: 'online_rounds.console.talk.enable'|trans,
+        video_talk_starting: 'online_rounds.console.talk.starting'|trans,
+        video_talk_latch: 'online_rounds.console.talk.latch'|trans,
+        video_talk_latch_on: 'online_rounds.console.talk.latch_on'|trans,
+        video_talk_others: 'online_rounds.console.talk.others'|trans,
+        video_talk_error_mic_denied: 'online_rounds.console.talk.error.mic_denied'|trans,
+        video_talk_error_mic_missing: 'online_rounds.console.talk.error.mic_missing'|trans,
+        video_talk_error_mic_failed: 'online_rounds.console.talk.error.mic_failed'|trans,
+        video_talk_error_not_connected: 'online_rounds.console.talk.error.not_connected'|trans,
+        video_studio_invite: 'online_rounds.console.studio.invite'|trans,
+        video_studio_invite_again: 'online_rounds.console.studio.invite_again'|trans,
+        video_studio_withdraw: 'online_rounds.console.studio.withdraw'|trans,
+        video_studio_thank_you: 'online_rounds.console.studio.thank_you'|trans,
+        video_studio_working: 'online_rounds.console.studio.working'|trans,
+        video_studio_invited: 'online_rounds.console.studio.invited'|trans,
+        video_studio_joined: 'online_rounds.console.studio.joined'|trans,
+        video_studio_on_air: 'online_rounds.console.studio.on_air'|trans,
+        video_studio_declined: 'online_rounds.console.studio.declined'|trans,
+        video_studio_expired: 'online_rounds.console.studio.expired'|trans,
+        video_studio_ended: 'online_rounds.console.studio.ended'|trans,
+        video_studio_withdrawn: 'online_rounds.console.studio.withdrawn'|trans,
+        video_studio_error_already_invited: 'online_rounds.console.studio.error.already_invited'|trans,
+        video_studio_error_not_entered: 'online_rounds.console.studio.error.not_entered'|trans,
+        video_studio_error_participant_not_found: 'online_rounds.console.studio.error.participant_not_found'|trans,
+        video_studio_error_video_unavailable: 'online_rounds.console.studio.error.video_unavailable'|trans,
+        video_studio_error_invite_not_found: 'online_rounds.console.studio.error.invite_not_found'|trans,
+        video_studio_error_round_not_online: 'online_rounds.console.studio.error.round_not_online'|trans,
+        video_studio_error_sign_in: 'online_rounds.console.studio.error.sign_in'|trans,
+        video_studio_error_forbidden: 'online_rounds.console.studio.error.forbidden'|trans,
+        video_studio_error_offline: 'online_rounds.console.studio.error.offline'|trans,
+        video_studio_error_failed: 'online_rounds.console.studio.error.failed'|trans,
+    }) -%}
+{%- endif -%}
+{{- texts|json_encode|raw -}}

@@ -6,6 +6,8 @@ namespace SpeedPuzzling\Web\Controller\Compete;
 
 use Psr\Log\LoggerInterface;
 use SpeedPuzzling\Web\Exceptions\OnlineLinkNotFound;
+use SpeedPuzzling\Web\Services\LiveKit\LiveKitSettings;
+use SpeedPuzzling\Web\Services\LiveKit\StudioInviteSignal;
 use SpeedPuzzling\Web\Services\OnlineRounds\OnlineAccessLight;
 use SpeedPuzzling\Web\Services\OnlineRounds\OnlineParticipantApi;
 use SpeedPuzzling\Web\Services\OnlineRounds\OnlinePresence;
@@ -17,11 +19,18 @@ use Symfony\Component\Routing\Attribute\Route;
 
 /**
  * A participant's phone's heartbeat, every 15 s (docs/features/online-competitions/README.md §5.3, §5.6):
- * - the beat goes to the presence of their current round (OnlinePresence, redis-state) when they are entered in it;
+ * - the beat goes to the presence of their current round (OnlinePresence, redis-state) when they are entered in it -
+ *   as the participant's presence only from the device holding the entry (or any while none holds it): another
+ *   device's beat (a second phone, a laptop that never agreed to the photos) is kept apart, never over it;
  * - the answer `{serverNowMs, stateHash, roundId, takenOverBy}` is a clock sample, the hint to fetch the state again
  *   (the round clock's hash or the round itself differ from what the phone holds - RoundClock::stateHash() has no
  *   round id, so both are sent), and `takenOverBy` = the device holding the entry when it is another one (the last
  *   to send `device.ready`).
+ *
+ * While live video is available (LiveKitSettings) the answer also carries `studioInviteId` - the participant's
+ * invitation to the studio that waits for their answer, or null (contract phase-1b.md §4): a data message the phone
+ * missed costs nothing. It comes from redis-state (StudioInviteSignal), never from Postgres; without a media server the
+ * answer stays exactly as it was before live video.
  *
  * Postgres is not asked on the way: the link comes from OnlineAccessLight's cache (one lookup a minute per link) and
  * the hash from its per-round cache - pinned by the heartbeat's query budget test. A presence store that is down
@@ -33,6 +42,8 @@ final class ApiHeartbeatController extends AbstractController
         private readonly OnlineParticipantApi $api,
         private readonly OnlineAccessLight $onlineAccessLight,
         private readonly OnlinePresence $onlinePresence,
+        private readonly LiveKitSettings $liveKitSettings,
+        private readonly StudioInviteSignal $studioInviteSignal,
         private readonly LoggerInterface $logger,
     ) {
     }
@@ -66,7 +77,8 @@ final class ApiHeartbeatController extends AbstractController
 
         if ($access->roundId !== null && $access->entryId !== null) {
             try {
-                $this->onlinePresence->beat($access->roundId, $access->participantId, $heartbeat->telemetry, $this->api->nowMs());
+                $holdsEntry = $access->activeDeviceId === null || $access->activeDeviceId === $heartbeat->deviceId;
+                $this->onlinePresence->beat($access->roundId, $access->participantId, $heartbeat->telemetry, $this->api->nowMs(), $holdsEntry);
             } catch (\Throwable $e) {
                 $this->logger->warning('Recording an online heartbeat failed', [
                     'round_id' => $access->roundId,
@@ -79,10 +91,18 @@ final class ApiHeartbeatController extends AbstractController
             ? $access->activeDeviceId
             : null;
 
-        return $this->api->json([
+        $answer = [
             'stateHash' => $access->roundId === null ? null : $this->onlineAccessLight->roundStateHash($access->roundId),
             'roundId' => $access->roundId,
             'takenOverBy' => $takenOverBy,
-        ]);
+        ];
+
+        if ($this->liveKitSettings->isAvailable()) {
+            $answer['studioInviteId'] = $access->roundId === null || $access->entryId === null
+                ? null
+                : $this->studioInviteSignal->open($access->roundId, $access->participantId);
+        }
+
+        return $this->api->json($answer);
     }
 }

@@ -87,6 +87,9 @@ use SpeedPuzzling\Web\Value\SkillTier;
  *     last_add_mode?: null|string,
  *     dismissed_navigation_hints?: null|string,
  *     organizes_events?: bool,
+ *     email_undeliverable?: bool,
+ *     email_undeliverable_sub_type?: null|string,
+ *     email_undeliverable_diagnostic?: null|string,
  *  }
  */
 readonly final class PlayerProfile
@@ -248,6 +251,11 @@ readonly final class PlayerProfile
          * navigation README §4.12, MENU-01). Its number is loaded later (menu_counts).
          */
         public bool $organizesEvents = false,
+        /**
+         * The signed-in player's own profile only: their address hard-bounced (email_suppression) - the banner asks
+         * for a working one (docs/features/mass-mailing/README.md)
+         */
+        public null|EmailUndeliverable $emailUndeliverable = null,
     ) {
     }
 
@@ -463,6 +471,9 @@ readonly final class PlayerProfile
             lastAddMode: PuzzleAddMode::tryFrom($row['last_add_mode'] ?? ''),
             dismissedNavigationHints: self::navigationHintsFromJson($row['dismissed_navigation_hints'] ?? null),
             organizesEvents: (bool) ($row['organizes_events'] ?? false),
+            emailUndeliverable: ($row['email_undeliverable'] ?? false) === true
+                ? new EmailUndeliverable($row['email_undeliverable_sub_type'] ?? null, $row['email_undeliverable_diagnostic'] ?? null)
+                : null,
         );
     }
 

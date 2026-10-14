@@ -790,7 +790,7 @@ export default class extends Controller {
 
         this.reportedTarget.textContent = reportedPieces === null
             ? this.t('reported_none')
-            : (measure === 'placed' ? this.t('reported_placed', { pieces: reportedPieces }) : this.t('reported_left', { pieces: reportedPieces }));
+            : (measure === 'placed' ? this.tc('reported_placed', reportedPieces) : this.tc('reported_left', reportedPieces));
 
         let pieces = null;
 
@@ -888,14 +888,16 @@ export default class extends Controller {
     }
 
     eventLabel(event) {
-        const key = `event_${String(event.type).replaceAll('.', '_')}`;
-        let label = this.textsValue[key] === undefined ? event.type : this.t(key);
-
+        // The pieces reported when time was up, said as on the result panel ("… 12 pieces left") - never the bare code
         if (event.type === 'timeup.pieces' && Number.isInteger(event.data?.pieces)) {
-            label += `: ${event.data.pieces} (${event.data.measure ?? ''})`.replace(' ()', '');
+            return (event.data.measure ?? this.detail?.round?.unfinishedMeasure) === 'placed'
+                ? this.tc('reported_placed', event.data.pieces)
+                : this.tc('reported_left', event.data.pieces);
         }
 
-        return label;
+        const key = `event_${String(event.type).replaceAll('.', '_')}`;
+
+        return this.textsValue[key] === undefined ? event.type : this.t(key);
     }
 
     timeText(atMs, start) {

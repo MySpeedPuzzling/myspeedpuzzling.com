@@ -31,6 +31,10 @@ const BACKOFF_MS = [5000, 10000, 20000, 30000];
  * - online_live every POLL_MS while the page is shown (none while hidden; back on the page = at once): the grid, the
  *   counts and the filters (review_control.js). A photo changes only when there is another one - every answer signs its
  *   URL again, so the URL itself always differs.
+ * - With live video (the `video` value, only when a media server is configured and the round's video is on) the grid
+ *   becomes the moderators' console - the puzzle cameras, a spotlight, paging, push-to-talk, the studio's invitations
+ *   (../online/console_video.js, its own chunk, loaded only then): it orders and pages the tiles (arrange()), decorates
+ *   and updates each tile (updateTile()) and follows every drawing (afterGrid()). Without it nothing here changes.
  */
 export default class extends Controller {
     static targets = ['initialState', 'statusBadge', 'clock', 'clockLine', 'startAt', 'notice', 'presence', 'counts', 'updated', 'grid', 'empty', 'endDialog', 'actionButton'];
@@ -41,6 +45,7 @@ export default class extends Controller {
         timezone: String,
         locale: String,
         texts: Object,
+        video: Object,
     };
 
     connect() {
@@ -80,10 +85,34 @@ export default class extends Controller {
         this.scheduleNextPoll(POLL_MS);
         this.renderTimer = window.setInterval(() => this.tick(), RENDER_MS);
         this.render();
+
+        // Live video: the moderators' console over the grid
+        this.video = null;
+
+        if (this.hasVideoValue) {
+            import(/* webpackChunkName: "online-console-video" */ '../online/console_video.js').then(({ ConsoleVideo }) => {
+                if (this.closed) {
+                    return;
+                }
+
+                this.video = new ConsoleVideo({
+                    element: this.element,
+                    grid: this.gridTarget,
+                    config: this.videoValue,
+                    t: (key, params) => this.t(key, params),
+                    serverNow: () => this.clock.serverNow(),
+                    render: () => this.renderGrid(),
+                });
+                this.video.start();
+                this.renderGrid();
+            }).catch(() => {});
+        }
     }
 
     disconnect() {
         this.closed = true;
+        this.video?.close();
+        this.video = null;
         window.clearInterval(this.renderTimer);
         window.clearTimeout(this.pollTimer);
         document.removeEventListener('visibilitychange', this.onVisibility);
@@ -379,7 +408,8 @@ export default class extends Controller {
         }
 
         let clock = formatClock(view.elapsedMs);
-        let line = this.tc('limit', Math.round((view.limitMs ?? 0) / 60000));
+        // A round without a time limit has no limit line - and a limit never reads as 0 minutes
+        let line = view.limitMs === null ? '' : this.tc('limit', Math.max(1, Math.round(view.limitMs / 60000)));
 
         if (screen === 'scheduled' || screen === 'countdown') {
             clock = formatClock(view.countdownMs, { ceil: true });
@@ -388,7 +418,7 @@ export default class extends Controller {
                 zone: this.timezoneValue,
             })}`;
         } else if (screen === 'running') {
-            line = this.t('left', { time: formatClock(view.remainingMs, { ceil: true }) });
+            line = view.remainingMs === null ? '' : this.t('left', { time: formatClock(view.remainingMs, { ceil: true }) });
         } else if (screen === 'ended') {
             const time = { time: formatClock(view.elapsedMs) };
             line = view.endedBy === 'stop' ? this.t('ended_by_stop', time) : this.t('ended_by_limit', time);
@@ -459,10 +489,12 @@ export default class extends Controller {
         this.renderCounts(countsOf(views.map((item) => item.view)));
 
         const shown = views.filter((item) => matchesFilter(item.view, this.filter));
+        // With live video: the console's order, one page of it
+        const drawn = this.video ? this.video.arrange(shown) : shown;
         const seen = new Set();
         let previous = null;
 
-        for (const { participant, view } of shown) {
+        for (const { participant, view } of drawn) {
             const id = participant.participantId;
             seen.add(id);
             let tile = this.tiles.get(id);
@@ -474,7 +506,7 @@ export default class extends Controller {
 
             this.updateTile(tile, participant, view);
 
-            // In the answer's order (by name) - moved only when out of place
+            // In the answer's order (by name; the console's with live video) - moved only when out of place
             const expected = previous === null ? this.gridTarget.firstElementChild : previous.element.nextElementSibling;
 
             if (expected !== tile.element) {
@@ -486,10 +518,13 @@ export default class extends Controller {
 
         for (const [id, tile] of this.tiles) {
             if (!seen.has(id)) {
+                this.video?.dropTile(tile);
                 tile.element.remove();
                 this.tiles.delete(id);
             }
         }
+
+        this.video?.afterGrid();
 
         const empty = shown.length === 0;
         this.emptyTarget.hidden = !empty;
@@ -568,6 +603,8 @@ export default class extends Controller {
     }
 
     updateTile(tile, participant, view) {
+        this.video?.updateTile(tile, participant, view);
+
         if (photoChanged(tile.photo, participant.photo)) {
             tile.photo = { mediaId: participant.photo.mediaId, failed: false };
             tile.image.src = participant.photo.url;
@@ -614,8 +651,9 @@ export default class extends Controller {
                 : this.t('tile_finished', { time: view.finishElapsedMs === null ? '' : formatClock(view.finishElapsedMs) });
             finishKind = view.finishAfterEnd ? 'warn' : 'ok';
         } else if (view.reported) {
-            const pieces = { pieces: view.reported.pieces };
-            finish = view.reported.measure === 'placed' ? this.t('tile_reported_placed', pieces) : this.t('tile_reported_left', pieces);
+            finish = view.reported.measure === 'placed'
+                ? this.tc('tile_reported_placed', view.reported.pieces)
+                : this.tc('tile_reported_left', view.reported.pieces);
             finishKind = 'info';
         }
 

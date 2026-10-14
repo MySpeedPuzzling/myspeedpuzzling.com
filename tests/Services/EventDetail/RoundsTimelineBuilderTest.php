@@ -15,6 +15,7 @@ use SpeedPuzzling\Web\Results\EventDetail\TimelineRound;
 use SpeedPuzzling\Web\Results\EventsPage\DateLeaf;
 use SpeedPuzzling\Web\Results\EventsPage\WhenLabel;
 use SpeedPuzzling\Web\Services\EventDetail\RoundsTimelineBuilder;
+use SpeedPuzzling\Web\Services\LiveKit\LiveKitSettings;
 use SpeedPuzzling\Web\Value\RoundCategory;
 use SpeedPuzzling\Web\Value\RoundStatus;
 
@@ -213,6 +214,36 @@ final class RoundsTimelineBuilderTest extends TestCase
     }
 
     /**
+     * "Watch live" (docs/features/online-competitions/contracts/phase-1b.md §5 `online_watch`): a round whose online
+     * timing has live video on, on a public page, with a media server configured - before the round, while it runs and
+     * three hours after its time limit (the studio may go on with the finishers), never on an older round's row
+     */
+    public function testTheStudioIsWatchedLiveFromTheRoundsWithLiveVideoOn(): void
+    {
+        $rounds = [
+            // 13:00 - 14:00 in New York: over just now (18:00 UTC), its studio may still be on
+            self::round('ended-now', '2026-06-10 13:00', onlineVideo: true),
+            // 09:00 - 10:00 in New York: over four hours ago
+            self::round('ended-earlier', '2026-06-10 09:00', onlineVideo: true),
+            self::round('running', '2026-06-10 13:30', onlineVideo: true),
+            self::round('coming', '2026-06-17 22:00', onlineVideo: true),
+            self::round('no-video', '2026-06-17 23:00'),
+        ];
+
+        $urls = static fn (RoundsTimeline $timeline): array => array_map(static fn (TimelineRound $round): null|string => $round->watchUrl, $timeline->rounds);
+
+        self::assertSame(
+            ['/online_watch/ended-now', null, '/online_watch/running', '/online_watch/coming', null],
+            $urls($this->build($rounds, mediaServer: true)),
+        );
+
+        // Not public (a draft or a pending event its editors look at): no watch page to link
+        self::assertSame([null, null, null, null, null], $urls($this->build($rounds, isPublic: false, mediaServer: true)));
+        // No media server (LIVEKIT_* empty - production until ADR D78): none either
+        self::assertSame([null, null, null, null, null], $urls($this->build($rounds)));
+    }
+
+    /**
      * @param list<EditionRoundDetail> $rounds
      * @param array<string, int> $resultsPerRound
      */
@@ -225,8 +256,13 @@ final class RoundsTimelineBuilderTest extends TestCase
         bool $canAddTime = false,
         null|DateTimeImmutable $dateFrom = null,
         null|DateTimeImmutable $dateTo = null,
+        bool $mediaServer = false,
     ): RoundsTimeline {
-        return new RoundsTimelineBuilder(new PathUrlGenerator())->build(
+        $liveKitSettings = $mediaServer
+            ? new LiveKitSettings('http://livekit.test:7880', 'wss://livekit.test', 'key', str_repeat('s', LiveKitSettings::MIN_SECRET_LENGTH))
+            : new LiveKitSettings('', '', '', '');
+
+        return new RoundsTimelineBuilder(new PathUrlGenerator(), $liveKitSettings)->build(
             $event ?? new CompetitionReference('Spring Open', 'spring-open'),
             'c-1',
             $rounds,
@@ -252,6 +288,7 @@ final class RoundsTimelineBuilderTest extends TestCase
         null|string $slug = null,
         bool $resultsPublished = false,
         array $puzzles = [],
+        bool $onlineVideo = false,
     ): EditionRoundDetail {
         return new EditionRoundDetail(
             id: $id,
@@ -267,6 +304,7 @@ final class RoundsTimelineBuilderTest extends TestCase
             slug: $slug,
             timezone: $zone,
             resultsPublished: $resultsPublished,
+            onlineVideo: $onlineVideo,
         );
     }
 

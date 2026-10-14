@@ -25,9 +25,8 @@ The living record of where the prototype stands and what comes next. Updated by 
 ## Next
 
 1. **P3F - the completeness worker's review fixes** (running): decoded images bounded by the compute slot (memory under load), a truncated download refused, no second check on a re-verified photo, the HTTP call outside the transaction, the hosts allowlist for a virtual-hosted store / explicit ports, a socket timeout, 401/403 as "try again".
-2. **PL - plural texts without a form for 0** (running, site-wide, not online-only): every plural message renders for every count in every locale, the guard test widened to the whole catalogue.
-3. Self-host the MediaPipe files before the detection cup (`docs/TODO.md`), the footage day (S1) - tuning the detector and the completeness check waits for real footage.
-4. Merging recipe: every stream through `.claude/worktrees/oc-integrate` (`git checkout -B oc-integrate origin/main` → cherry-pick, or the net diff when a branch merged main → PHPStan + full paratest + schema validate → `git push origin HEAD:main` → `git merge --ff-only origin/main` in the shared checkout) → remove the stream's worktree (only after `git cherry` shows no `+`, or the content is verified) + its `speedpuzzling_<name>_test*` databases. A read-only review agent runs on every big stream while the gates run. Briefs and `run.sh` / `heavy.sh` in `.claude/worktrees/online-delivery/` (local).
+2. Self-host the MediaPipe files before the detection cup (`docs/TODO.md`), the footage day (S1) - tuning the detector and the completeness check waits for real footage.
+3. Merging recipe: every stream through `.claude/worktrees/oc-integrate` (`git checkout -B oc-integrate origin/main` → cherry-pick, or the net diff when a branch merged main → PHPStan + full paratest + schema validate → `git push origin HEAD:main` → `git merge --ff-only origin/main` in the shared checkout) → remove the stream's worktree (only after `git cherry` shows no `+`, or the content is verified) + its `speedpuzzling_<name>_test*` databases. A read-only review agent runs on every big stream while the gates run. Briefs and `run.sh` / `heavy.sh` in `.claude/worktrees/online-delivery/` (local).
 
 ## Waiting for Jan
 
@@ -83,6 +82,7 @@ The living record of where the prototype stands and what comes next. Updated by 
 
 | Date | What |
 |---|---|
+| 2026-10-14 | Plural texts site-wide (PL): 382 messages in 6 locales got a form for 0 (none reachable in normal use; two in a race: the delete-round confirmation, the weekly digest's preheader), `tests/PluralMessagesTest.php` guards every domain and root; full suite 10,532 green |
 | 2026-10-14 | Phase 3 merged (P3): the advisory completeness check, off in production; its texts in 6 locales (759 online keys each); full suite 10,529 green. P3F + PL (site-wide plural texts) started |
 | 2026-10-14 | Settings reach open phones (SP, 931026fd) + its texts in 6 locales (741 online keys each); full suite 10,486 green |
 | 2026-10-14 | Review fixes merged (P2F, 08d8d4f4) + all detection texts in 6 locales (a6e6c703, 736 online keys each); full suite 10,472 green. SP (settings reach open phones) started |

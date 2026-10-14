@@ -258,7 +258,7 @@ final class OnlineAccuracyControllerTest extends WebTestCase
             static fn (string $line): array => str_getcsv($line, ',', '"', ''),
             array_values(array_filter(explode("\n", substr((string) $browser->getResponse()->getContent(), 3)), static fn (string $line): bool => $line !== '')),
         );
-        $columns = array_flip($lines[0]);
+        $columns = array_flip(OnlineAccuracyController::CSV_COLUMNS);
         $rows = array_column(array_slice($lines, 1), null, 0);
         self::assertSame('', $rows['Quinn Unfinished'][$columns['source']]);
         self::assertSame('reviewer', $rows['Olivia Online'][$columns['source']]);
@@ -266,11 +266,12 @@ final class OnlineAccuracyControllerTest extends WebTestCase
         // The review's own line ("Confirmed from …") reads the same field
         $browser->request('GET', '/en/online-rounds/' . self::ROUND . '/review/' . $quinnId, server: ['HTTP_ACCEPT' => 'application/json']);
         self::assertResponseIsSuccessful();
-        /** @var array{entry: array{status: string, confirmed: null|array{momentMs: null|int, source: null|string}}} $detail */
+        /** @var array{entry: array{status: string, confirmed: mixed}} $detail */
         $detail = json_decode((string) $browser->getResponse()->getContent(), true, flags: JSON_THROW_ON_ERROR);
         self::assertSame('confirmed', $detail['entry']['status']);
         $confirmed = $detail['entry']['confirmed'];
         self::assertIsArray($confirmed);
+        self::assertArrayHasKey('momentMs', $confirmed);
         self::assertArrayHasKey('source', $confirmed);
         self::assertNull($confirmed['momentMs']);
         self::assertNull($confirmed['source']);

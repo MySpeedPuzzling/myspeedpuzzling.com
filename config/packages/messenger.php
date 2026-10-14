@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
 use SpeedPuzzling\Web\Message\DeleteObsoletePuzzleImage;
+use SpeedPuzzling\Web\Message\DeleteOnlineReferenceImage;
 use SpeedPuzzling\Web\Message\DeletePageSectionImages;
 use SpeedPuzzling\Web\Message\AwardXpForSolvingTime;
 use SpeedPuzzling\Web\Message\CheckOnlineFinishPhoto;
@@ -90,6 +91,8 @@ return App::config([
                 DeletePlayerStoredFiles::class => 'async',
                 DeleteObsoletePuzzleImage::class => 'async',
                 DeletePageSectionImages::class => 'async',
+                // An online round's replaced or removed reference image, after the commit (OnlineReferenceImages)
+                DeleteOnlineReferenceImage::class => 'async',
                 RecalculateBadgesForPlayer::class => 'async',
                 RecalculateXpForPlayer::class => 'async',
                 // Karma after a moderation decision - never in the way of the decision (docs/features/karma.md)

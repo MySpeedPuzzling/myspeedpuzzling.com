@@ -7,16 +7,23 @@ namespace SpeedPuzzling\Web\Controller\OnlineRounds;
 use SpeedPuzzling\Web\Controller\FirstTry\FirstTryConflictsController;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Exceptions\OnlineDetectionModeLocked;
+use SpeedPuzzling\Web\Exceptions\OnlineReferenceImageUnreadable;
 use SpeedPuzzling\Web\Exceptions\OnlineTimingNotAvailable;
+use SpeedPuzzling\Web\FormData\OnlineRoundReferenceImageFormData;
 use SpeedPuzzling\Web\FormData\OnlineRoundSettingsFormData;
+use SpeedPuzzling\Web\FormType\OnlineRoundReferenceImageFormType;
 use SpeedPuzzling\Web\FormType\OnlineRoundSettingsFormType;
 use SpeedPuzzling\Web\Message\EnableOnlineRound;
+use SpeedPuzzling\Web\Message\SetOnlineRoundReferenceImage;
 use SpeedPuzzling\Web\Message\UpdateOnlineRoundSettings;
 use SpeedPuzzling\Web\Query\GetOnlineRoundSetup;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
+use SpeedPuzzling\Web\Repository\OnlineEntryMediaRepository;
 use SpeedPuzzling\Web\Repository\OnlineRoundRepository;
 use SpeedPuzzling\Web\Security\OnlineRoundsVoter;
 use SpeedPuzzling\Web\Services\LiveKit\LiveKitSettings;
+use SpeedPuzzling\Web\Services\OnlineRounds\OnlineCvSettings;
+use SpeedPuzzling\Web\Services\OnlineRounds\OnlineReferenceImages;
 use SpeedPuzzling\Web\Services\OnlineRounds\OnlineRoundSettingsLiveUpdates;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use SpeedPuzzling\Web\Value\OnlineDetectionMode;
@@ -46,6 +53,12 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * (OnlineRound::detectionModeLockedAt()): the field is disabled with the reason then, and a page opened before the
  * start that still sends another mode is refused (OnlineDetectionModeLocked, the form says so) - never dropped
  * silently while the other settings save.
+ *
+ * While the completeness check is on (ONLINE_CV_URL, docs/features/online-competitions/README.md §5.8) the page also
+ * holds the round's reference image: its own upload form (SetOnlineRoundReferenceImage - a damaged picture is said,
+ * 422), a short presigned preview (OnlineReferenceImages, the images proxy never serves `online/`), "Remove"
+ * (RemoveOnlineRoundReferenceImageController) and, once the round has finish photos, "Check them again"
+ * (RecheckOnlineRoundFinishPhotosController). Off: nothing of it.
  */
 #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
 final class OnlineRoundSettingsController extends AbstractController
@@ -65,6 +78,9 @@ final class OnlineRoundSettingsController extends AbstractController
         private readonly LiveKitSettings $liveKitSettings,
         private readonly OnlineRoundSettingsLiveUpdates $settingsLiveUpdates,
         private readonly ClockInterface $clock,
+        private readonly OnlineCvSettings $onlineCvSettings,
+        private readonly OnlineReferenceImages $referenceImages,
+        private readonly OnlineEntryMediaRepository $onlineEntryMediaRepository,
     ) {
     }
 
@@ -172,6 +188,40 @@ final class OnlineRoundSettingsController extends AbstractController
             }
         }
 
+        // The completeness check's reference image (only while the check is on)
+        $referenceForm = null;
+        $referencePreviewUrl = null;
+        $finishPhotos = 0;
+        $completenessCheck = $onlineRound !== null && $this->onlineCvSettings->isOn();
+
+        if ($onlineRound !== null && $completenessCheck) {
+            $referenceForm = $this->createForm(OnlineRoundReferenceImageFormType::class, new OnlineRoundReferenceImageFormData(), [
+                'action' => $pageUrl,
+            ]);
+            $referenceForm->handleRequest($request);
+
+            if ($referenceForm->isSubmitted()) {
+                $image = $referenceForm->getData()->image;
+
+                if ($image === null) {
+                    $referenceForm->get('image')->addError(new FormError($this->translator->trans('online_rounds.settings.reference.choose')));
+                } elseif ($referenceForm->isValid()) {
+                    try {
+                        $this->messageBus->dispatch(new SetOnlineRoundReferenceImage($roundId, $image));
+
+                        $this->addFlash('success', $this->translator->trans('online_rounds.settings.reference.flash.saved'));
+
+                        return $this->redirect($pageUrl . '#online-reference-image', Response::HTTP_SEE_OTHER);
+                    } catch (OnlineReferenceImageUnreadable) {
+                        $referenceForm->get('image')->addError(new FormError($this->translator->trans(OnlineReferenceImageUnreadable::TRANSLATION_KEY)));
+                    }
+                }
+            }
+
+            $referencePreviewUrl = $onlineRound->referenceImage === null ? null : $this->referenceImages->previewUrl($onlineRound->referenceImage);
+            $finishPhotos = count($this->onlineEntryMediaRepository->finishPhotoIdsOfRound($roundId, withoutVerdictOnly: false));
+        }
+
         $response = $this->render('online_rounds/settings.html.twig', [
             'competition' => $competition,
             'round' => $round,
@@ -184,6 +234,11 @@ final class OnlineRoundSettingsController extends AbstractController
             'csrf_token_id' => self::CSRF_TOKEN_ID,
             'enable_field' => self::ENABLE_FIELD,
             'detection_locked' => $detectionLocked,
+            'completeness_check' => $completenessCheck,
+            'reference_form' => $referenceForm,
+            'reference_preview_url' => $referencePreviewUrl,
+            'finish_photos' => $finishPhotos,
+            'back' => $back,
         ]);
 
         // A POST that changed nothing (an expired page, a refusal, a form for a round without online timing) - 422 like

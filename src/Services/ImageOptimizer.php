@@ -154,6 +154,54 @@ final readonly class ImageOptimizer
         }
     }
 
+    /**
+     * A JPEG of the image for a machine to read - the completeness check's reference image of an online round
+     * (OnlineReferenceImages, docs/features/online-competitions/README.md §5.8): any format Imagick reads (HEIC
+     * included), its first frame, the EXIF orientation applied to the pixels, its longer side at most $maxDimension
+     * (never enlarged), CMYK turned into sRGB, transparency laid on white, and - like every stored upload - no metadata
+     * but the colour profile (ImageMetadata). Answers the JPEG's bytes; the file itself is left as it is.
+     *
+     * @throws ImagickException when the file is no image Imagick can read
+     */
+    public function toJpeg(string $filePath, int $maxDimension, int $quality): string
+    {
+        $imagick = new Imagick();
+
+        try {
+            // The size hint as in optimize(): a big JPEG decoded at a fraction of its size, never enlarged
+            if ($this->shorterSide($filePath) >= $maxDimension) {
+                $imagick->setOption('jpeg:size', $maxDimension . 'x' . $maxDimension);
+            }
+
+            // The first frame only - an animation or a HEIC's other images are not the picture
+            $imagick->readImage($filePath . '[0]');
+            $imagick->autoOrient();
+
+            if ($imagick->getImageColorspace() === Imagick::COLORSPACE_CMYK) {
+                $imagick->transformImageColorspace(Imagick::COLORSPACE_SRGB);
+            }
+
+            if ($imagick->getImageAlphaChannel()) {
+                $imagick->setImageBackgroundColor('white');
+                $imagick->setImageAlphaChannel(Imagick::ALPHACHANNEL_REMOVE);
+            }
+
+            if (max($imagick->getImageWidth(), $imagick->getImageHeight()) > $maxDimension) {
+                $imagick->scaleImage($maxDimension, $maxDimension, true);
+            }
+
+            ImageMetadata::strip($imagick);
+            $imagick->setImageFormat('jpeg');
+            $imagick->setImageDepth(8);
+            $imagick->setImageCompressionQuality($quality);
+
+            return $imagick->getImageBlob();
+        } finally {
+            $imagick->clear();
+            $imagick->destroy();
+        }
+    }
+
     private function shorterSide(string $filePath): int
     {
         $imagick = new Imagick();

@@ -18,7 +18,8 @@ use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 /**
  * One page of a store's `online/` objects (PAGE_SIZE keys, in key order): those older than MIN_AGE_SECONDS without
- * an evidence row are deleted in one request. Where the listing stopped is kept in the shared cache, so the next page -
+ * their row are deleted in one request - an evidence object without its evidence row, a round's reference image no
+ * online round holds any more (GetOnlineMediaObjectKeys: a held reference image is never an orphan). Where the listing stopped is kept in the shared cache, so the next page -
  * in this run or the next one - goes on from there, and a big bucket is covered over several runs; a complete listing
  * starts over. Losing that marker only means starting over.
  *

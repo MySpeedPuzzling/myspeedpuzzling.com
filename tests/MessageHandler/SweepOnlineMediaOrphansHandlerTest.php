@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
 use DateTimeImmutable;
+use Doctrine\DBAL\Connection;
 use Psr\Cache\CacheItemPoolInterface;
 use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
@@ -17,6 +18,7 @@ use SpeedPuzzling\Web\Results\SweptOnlineMediaOrphans;
 use SpeedPuzzling\Web\Services\OnlineRounds\FakeOnlineMediaStorage;
 use SpeedPuzzling\Web\Services\OnlineRounds\OnlineMediaStorage;
 use SpeedPuzzling\Web\Services\OnlineRounds\OnlineMediaStores;
+use SpeedPuzzling\Web\Services\OnlineRounds\OnlineReferenceImages;
 use SpeedPuzzling\Web\Tests\DataFixtures\OnlineRoundsFixture;
 use SpeedPuzzling\Web\Tests\TestDouble\InMemoryLogger;
 use SpeedPuzzling\Web\Value\OnlineMediaObject;
@@ -62,6 +64,35 @@ final class SweepOnlineMediaOrphansHandlerTest extends KernelTestCase
         self::assertSame(1, $swept->deleted);
         self::assertFalse($swept->hasMore);
         self::assertSame(['primary/' . $orphan], $this->storage->deleted());
+    }
+
+    /**
+     * A round's reference image (OnlineReferenceImages) is no evidence: the sweep keeps it as long as an online round
+     * holds it, however old - and takes it once none does (the round or its event deleted, an upload rolled back)
+     */
+    public function testAReferenceImageIsKeptWhileARoundHoldsIt(): void
+    {
+        $old = new DateTimeImmutable('-400 days');
+        $held = OnlineReferenceImages::objectKey(OnlineRoundsFixture::COMPETITION_ONLINE_TEST_CUP, OnlineRoundsFixture::ROUND_ONLINE_SOLO, Uuid::uuid7()->toString());
+        $replacedLongAgo = OnlineReferenceImages::objectKey(OnlineRoundsFixture::COMPETITION_ONLINE_TEST_CUP, OnlineRoundsFixture::ROUND_ONLINE_SOLO, Uuid::uuid7()->toString());
+        $ofADeletedRound = OnlineReferenceImages::objectKey(Uuid::uuid7()->toString(), Uuid::uuid7()->toString(), Uuid::uuid7()->toString());
+        $justUploaded = OnlineReferenceImages::objectKey(Uuid::uuid7()->toString(), Uuid::uuid7()->toString(), Uuid::uuid7()->toString());
+        self::getContainer()->get(Connection::class)->executeStatement(
+            'UPDATE online_round SET reference_image = :key WHERE id = :id',
+            ['key' => $held, 'id' => OnlineRoundsFixture::ONLINE_ROUND_SOLO],
+        );
+
+        $this->storage->put(OnlineMediaStore::Primary, $held, 2_000_000, modifiedAt: $old);
+        $this->storage->put(OnlineMediaStore::Primary, $replacedLongAgo, 2_000_000, modifiedAt: $old);
+        $this->storage->put(OnlineMediaStore::Primary, $ofADeletedRound, 2_000_000, modifiedAt: $old);
+        // Its save may still be committing - a day keeps far away from it
+        $this->storage->put(OnlineMediaStore::Primary, $justUploaded, 2_000_000, modifiedAt: new DateTimeImmutable('-2 hours'));
+
+        $swept = $this->sweep(OnlineMediaStore::Primary);
+
+        self::assertSame(4, $swept->listed);
+        self::assertSame(2, $swept->deleted);
+        self::assertEqualsCanonicalizing(['primary/' . $replacedLongAgo, 'primary/' . $ofADeletedRound], $this->storage->deleted());
     }
 
     public function testABigStoreIsSweptPageByPage(): void

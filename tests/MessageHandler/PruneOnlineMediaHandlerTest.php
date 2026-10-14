@@ -18,6 +18,7 @@ use SpeedPuzzling\Web\Results\PrunedOnlineMedia;
 use SpeedPuzzling\Web\Services\OnlineRounds\FakeOnlineMediaStorage;
 use SpeedPuzzling\Web\Services\OnlineRounds\OnlineMediaStorage;
 use SpeedPuzzling\Web\Services\OnlineRounds\OnlineMediaStores;
+use SpeedPuzzling\Web\Services\OnlineRounds\OnlineReferenceImages;
 use SpeedPuzzling\Web\Tests\DataFixtures\OnlineRoundsFixture;
 use SpeedPuzzling\Web\Tests\TestDouble\InMemoryLogger;
 use SpeedPuzzling\Web\Value\OnlineMediaKind;
@@ -72,6 +73,27 @@ final class PruneOnlineMediaHandlerTest extends KernelTestCase
         // Nothing else to do
         $again = $this->prune(new PruneOnlineMedia(30));
         self::assertSame(0, $again->periodic + $again->evidence);
+    }
+
+    /**
+     * A round's reference image (OnlineReferenceImages) is no evidence - the prune works on evidence rows only, so it
+     * never deletes one, however old (the orphan sweep keeps it while a round holds it: SweepOnlineMediaOrphansHandlerTest)
+     */
+    public function testAReferenceImageIsNeverPruned(): void
+    {
+        $reference = OnlineReferenceImages::objectKey(OnlineRoundsFixture::COMPETITION_ONLINE_TEST_CUP, OnlineRoundsFixture::ROUND_ONLINE_SOLO, Uuid::uuid7()->toString());
+        $this->connection->executeStatement(
+            'UPDATE online_round SET reference_image = :key WHERE id = :id',
+            ['key' => $reference, 'id' => OnlineRoundsFixture::ONLINE_ROUND_SOLO],
+        );
+        $this->storage->put(OnlineMediaStore::Primary, $reference, 2_000_000, modifiedAt: new DateTimeImmutable('-800 days'));
+        $oldPhoto = $this->media(OnlineMediaKind::Button, '-400 days');
+
+        $pruned = $this->prune(new PruneOnlineMedia(1));
+
+        self::assertSame(1, $pruned->evidence);
+        self::assertSame(['primary/' . $oldPhoto->objectKey], $this->storage->deleted());
+        self::assertSame($reference, $this->connection->fetchOne('SELECT reference_image FROM online_round WHERE id = :id', ['id' => OnlineRoundsFixture::ONLINE_ROUND_SOLO]));
     }
 
     /**

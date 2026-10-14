@@ -1017,6 +1017,10 @@ Phase 1 shipped 2026-09-29: [`features/auth-ux-redesign.md`](features/auth-ux-re
 - [ ] Watch `auth_audit_log` sign-in-link use rate before demoting "Email me a sign-in link instead" to a text link (D7)
 - [ ] 16px inputs site-wide, then drop `maximum-scale=1` - [#216](https://github.com/MySpeedPuzzling/myspeedpuzzling.com/issues/216)
 - [ ] `/welcome?return=` (spec §5.4) - not built; registration still ends on the welcome page
+- [ ] `last_sign_in_controller.js` is lazy: a sign-in form submitted before its chunk arrives logs "Action
+      submit->last-sign-in#remember references undefined method" and "Last used" is not remembered (seen 2026-10-13/14
+      by the navigation checks' scripted submits, right after a Turbo visit to `/login`). Load it eagerly, or record the
+      method from the page's own inline script, if a person is ever seen hitting it (a password manager's instant submit)
 
 ## Difficulty on puzzle lists and thumbnails
 

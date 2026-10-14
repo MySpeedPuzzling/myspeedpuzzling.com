@@ -19,11 +19,16 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
  *   reach them - production's Hetzner endpoint is both, a local MinIO is `minio:9000` inside and the host port outside.
  * - secondary = an optional self-hosted S3-compatible store (Garage / SeaweedFS) taking uploads while the primary is
  *   down (ONLINE_MEDIA_SECONDARY_*; no endpoint = none). One endpoint for both: it is public.
+ * - serverLocation(): where a service inside the network reads an object by a presigned URL - the CV worker of the
+ *   completeness check (Phase 3, OnlineCvInputs): the primary's own endpoint (S3_ENDPOINT, `minio:9000` locally - the
+ *   browser's host port means nothing inside the network), the secondary's one endpoint; serverHosts() = their hosts,
+ *   the only ones a URL handed to the worker may name (the worker's own allowlist, ONLINE_CV_ALLOWED_HOSTS, is the same).
  * Configuration only - no request is made here.
  */
 final readonly class OnlineMediaStores
 {
     private OnlineMediaStoreLocation $primaryPublic;
+    private OnlineMediaStoreLocation $primaryServer;
     private null|OnlineMediaStoreLocation $secondary;
     private null|S3Client $secondaryClient;
 
@@ -44,9 +49,18 @@ final readonly class OnlineMediaStores
         bool $secondaryPathStyle,
         HttpClientInterface $httpClient,
         LoggerInterface $logger,
+        // How the server reaches the primary (S3_ENDPOINT) - empty: the public endpoint (production: one for both)
+        string $primaryServerEndpoint = '',
     ) {
         $this->primaryPublic = new OnlineMediaStoreLocation(
             endpoint: $primaryPublicEndpoint,
+            region: $primaryRegion,
+            bucket: $primaryBucket,
+            accessKey: $primaryAccessKey,
+            secretKey: $primarySecretKey,
+        );
+        $this->primaryServer = trim($primaryServerEndpoint) === '' ? $this->primaryPublic : new OnlineMediaStoreLocation(
+            endpoint: trim($primaryServerEndpoint),
             region: $primaryRegion,
             bucket: $primaryBucket,
             accessKey: $primaryAccessKey,
@@ -93,6 +107,52 @@ final readonly class OnlineMediaStores
             OnlineMediaStore::Primary => $this->primaryPublic,
             OnlineMediaStore::Secondary => $this->secondary ?? throw new LogicException('No second store for online media is configured.'),
         };
+    }
+
+    /**
+     * Where a service inside the network (the CV worker) reaches the store - what its presigned URLs are made for
+     */
+    public function serverLocation(OnlineMediaStore $store): OnlineMediaStoreLocation
+    {
+        return match ($store) {
+            OnlineMediaStore::Primary => $this->primaryServer,
+            OnlineMediaStore::Secondary => $this->secondary ?? throw new LogicException('No second store for online media is configured.'),
+        };
+    }
+
+    /**
+     * The `host[:port]` of every configured store as serverLocation() names it (lower case, the port only when the URL
+     * names one) - the only hosts a URL handed to the CV worker may have
+     *
+     * @return list<string>
+     */
+    public function serverHosts(): array
+    {
+        $hosts = [];
+
+        foreach ([$this->primaryServer, $this->secondary] as $location) {
+            $host = $location === null ? null : self::hostOf($location->endpoint);
+
+            if ($host !== null && !in_array($host, $hosts, true)) {
+                $hosts[] = $host;
+            }
+        }
+
+        return $hosts;
+    }
+
+    /**
+     * `host[:port]` of a URL, lower case - null when it is no URL
+     */
+    public static function hostOf(string $url): null|string
+    {
+        $parts = parse_url($url);
+
+        if ($parts === false || !isset($parts['host']) || $parts['host'] === '') {
+            return null;
+        }
+
+        return strtolower($parts['host']) . (isset($parts['port']) ? ':' . $parts['port'] : '');
     }
 
     /**

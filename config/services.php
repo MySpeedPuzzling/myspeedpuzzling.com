@@ -515,6 +515,8 @@ return static function (ContainerConfigurator $configurator): void {
             '$secondaryPathStyle' => env('ONLINE_MEDIA_SECONDARY_PATH_STYLE')->bool(),
             '$httpClient' => service('app.storage.s3_http_client'),
             '$logger' => service('monolog.logger.object_storage'),
+            // The CV worker of the completeness check reads by URLs made for this one (OnlineCvInputs)
+            '$primaryServerEndpoint' => env('S3_ENDPOINT'),
         ]);
     $services->alias(OnlineMediaStorage::class, S3OnlineMediaStorage::class);
 

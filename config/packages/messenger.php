@@ -7,6 +7,7 @@ namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 use SpeedPuzzling\Web\Message\DeleteObsoletePuzzleImage;
 use SpeedPuzzling\Web\Message\DeletePageSectionImages;
 use SpeedPuzzling\Web\Message\AwardXpForSolvingTime;
+use SpeedPuzzling\Web\Message\CheckOnlineFinishPhoto;
 use SpeedPuzzling\Web\Message\CompensateXpForDeletedSolve;
 use SpeedPuzzling\Web\Message\DeletePlayerStoredFiles;
 use SpeedPuzzling\Web\Message\PrepareDigestEmailForPlayer;
@@ -98,6 +99,9 @@ return App::config([
                 // A HEAD request to object storage after a phone reported an evidence upload - never in the phone's
                 // request; a missing object is tried again by the transport (docs/features/online-competitions/)
                 VerifyOnlineMedia::class => 'async',
+                // The completeness check of a finish photo: the CV worker downloads and checks it - seconds, never in a
+                // request; a busy worker is asked again by a delayed message of the handler's own (Phase 3)
+                CheckOnlineFinishPhoto::class => 'async',
                 SendPlayerContentDigest::class => 'content_digest_emails',
                 // Events that must run synchronously for immediate UI updates (Turbo Streams)
                 'SpeedPuzzling\Web\Events\PuzzleBorrowed' => 'sync',

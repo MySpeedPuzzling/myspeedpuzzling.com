@@ -72,6 +72,14 @@ that would otherwise be forgotten. Newest section on top.
 - [ ] A phone that reloads for finish detection (the banner of stream SP) after "I'm ready" lands on the waiting screen and detects untested with the default `angled` view - offer the set-up test ("raise both hands") on the waiting screen while the round has not started.
 - [ ] The set-up test keeps the first view whose hold completes - an incidental raise during the automatic test can pick `topDown` for an angled phone. Revisit with the footage.
 
+## Online competitions - the completeness check (stream P3, README §5.8, `tools/online-cv/`)
+
+- [ ] Production: the CV worker on lily.srv (Jan's yes - a box change): the `online-cv` image built from `tools/online-cv/` (CI or the box), a service with **no published port** and `read_only`, on the app's network, `ONLINE_CV_ALLOWED_HOSTS` = the stores' hosts as the app names them (`myspeedpuzzling:online-cv:check-round` prints them - the Hetzner endpoint, and the Garage one once it exists), `ONLINE_CV_THREADS` / `ONLINE_CV_WORKERS` sized so an event's finishes never compete with the site, the service in `deploy.sh`'s list; then `ONLINE_CV_URL=http://online-cv:8000` in the app's env. Until then the check is off and the review is as before.
+- [ ] An organiser-uploaded reference image per round (a clean motif - box photos carry borders, logos and text, and a HEIC catalogue image is not read by OpenCV at all: the check then runs without its grid half). Today the reference is the round puzzle's catalogue image only (`OnlineCvInputs`).
+- [ ] WP 3.5 - the dataset: a consented export of the finish photos + bursts + the reviewer's verdicts (incl. the `G` per candidate - see the detection section) + the check's verdicts (`online_media_check`, every worker version), outside the repository, for training our own model.
+- [ ] Tune the checks on real photos (spikes.md S1 footage, the first test cups): the thresholds of `tools/online-cv/completeness.py`; whether a grid check that cannot place a box-photo reference should leave the holes check to decide alone (today both must say complete); the expected shape of the puzzle (unplaced pieces kept out of the frame leave a smaller clean rectangle the holes check passes - the loose-pieces rule covers only pieces lying next to it); objects put on the mat after its empty photo make every check `unsure`. A changed rule bumps `completeness.VERSION` and `check-round --force` adds the new verdicts next to the old ones.
+- [ ] `online_entry_media.verdict` (jsonb, reserved by Phase 1 for this) stays unused - the verdicts are rows of `online_media_check` (one per worker version). Drop the column in a later migration.
+
 ## Plural texts without a form for 0 (found 2026-10-13 by the online translations' render check)
 
 - [ ] About 55 plural messages per locale outside the online pages are written `{1}…|]1,Inf[…` (or with too few

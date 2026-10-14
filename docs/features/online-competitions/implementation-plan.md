@@ -250,6 +250,8 @@ The stopwatch forms get a stateless CSRF token (today they post without one). | 
 | 3.4 Review integration | verdict badges, suspected holes drawn over the photo, the queue ordered by "needs a look" first |
 | 3.5 Dataset | consented export of candidate photos + bursts + reviewer verdicts (outside the repo) for training our own model later |
 
+**State (stream P3, 2026-10-14):** 3.1-3.4 **built, switched off** (`ONLINE_CV_URL` empty) - README §5.8 "Built (stream P3)". 3.1: the worker `tools/online-cv/` (HTTP, host allowlist, bounded queue, read-only container; no ONNX yet - no model to run), `CheckOnlineFinishPhoto` → `online_media_check` (a table of its own, one row per photo per worker version - the reserved `online_entry_media.verdict` column stays unused), `myspeedpuzzling:online-cv:check-round`. 3.2: the empty mat = the entry's `empty_mat` photo, the reference = the round puzzle's catalogue image; an organiser upload is a TODO. 3.3: the bench's holes + grid unchanged, plus loose pieces next to the puzzle → `unsure`; thresholds untuned (real photos). 3.4: badges, gap boxes, "needs a look" first, the accuracy report's line. 3.5 and the production deployment (a box change): docs/TODO.md.
+
 ### Phase 4 - scale and the public event
 
 | WP | Content |

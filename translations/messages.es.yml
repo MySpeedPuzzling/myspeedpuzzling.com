@@ -9556,6 +9556,8 @@ online_rounds:
                 network_offline: "Sin conexión"
                 network_online: "Conexión recuperada"
                 timeup_pieces: "Indicó sus piezas"
+                detector_changed: "La detección del final se detuvo: solo el botón «Terminado»"
+                detector_running: "Detección del final activa"
             photo:
                 periodic: "Foto"
                 empty_mat: "Tapete vacío"
@@ -9582,6 +9584,7 @@ online_rounds:
             moment_before_start: "Este momento es anterior al inicio."
             moment_after_end: "Este momento es posterior al fin de la ronda: terminar después del fin no cuenta."
             moment_not_recorded: "El móvil del participante no registró este momento: elige su toque o un fotograma de alrededor."
+            detection_not_shown: "En esta ronda no cuentan las manos levantadas, sino el toque de «Terminado». Confirma el toque o un fotograma de alrededor."
         error:
             sign_in: "Se cerró tu sesión: vuelve a iniciar sesión y recarga la página."
             forbidden: "Ya no puedes revisar esta ronda."
@@ -9599,6 +9602,7 @@ online_rounds:
             median: "Mediana"
             iqr: "Dispersión de la mitad central (IQR)"
             quartiles: "De %q1% a %q3%"
+            not_running: "Finales en un móvil cuya detección no estaba activa (no cuentan como finales sin detectar): %count%"
         col:
             participant: "Participante"
             status: "Estado"
@@ -9615,7 +9619,7 @@ online_rounds:
             view: "Vista de la cámara"
             device: "Móvil"
         empty: "No hay nadie inscrito en esta ronda."
-        intro_detection: "Lo buena que es la detección del final. El error de detección es el momento confirmado menos el momento en que el móvil vio las manos levantadas; el retraso del toque, el toque de «Terminado» menos ese momento, y el ajuste, el momento confirmado menos el toque. Un final sin detectar es un toque sin ninguna detección a menos de 10 segundos; una detección falsa, una detección que no fue el final y sin ningún toque cerca."
+        intro_detection: "Lo buena que es la detección del final. El error de detección es el momento confirmado menos el momento en que el móvil vio las manos levantadas; el retraso del toque, el toque de «Terminado» menos ese momento, y el ajuste, el momento confirmado menos el toque. Un final sin detectar es un toque sin ninguna detección a menos de 10 segundos en un móvil con la detección activa; una detección falsa, una detección que no fue el final y sin ningún toque cerca."
         mode:
             "off": "La detección del final está desactivada en esta ronda. Aun así, los móviles registraron las detecciones de abajo."
             shadow: "La detección del final funcionó de fondo: los participantes no la vieron y el toque de «Terminado» fue el momento oficial."
@@ -9629,6 +9633,7 @@ online_rounds:
             help: "Toque de «Terminado» menos momento detectado: cuánto se tardó en llegar al botón."
             count: "{0}Aún no hay ningún final con toque y detección|{1}1 final con toque y detección|]1,Inf[%count% finales con toque y detección"
         misses: "%missed% sin detectar / %false% falsas"
+        not_running: "Detección no activa"
         view:
             angled: "En ángulo (cuerpo)"
             top_down: "Desde arriba (manos)"
@@ -9641,6 +9646,7 @@ online_rounds:
             detected: "Detectados"
             missed: "Finales sin detectar"
             "false": "Detecciones falsas"
+            not_running: "Detección no activa"
             median_error: "Mediana del error de detección"
             median_delta: "Mediana del retraso del toque"
             unknown: "Desconocido"

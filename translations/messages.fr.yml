@@ -9575,6 +9575,8 @@ online_rounds:
                 network_offline: "Hors ligne"
                 network_online: "De nouveau en ligne"
                 timeup_pieces: "A déclaré ses pièces"
+                detector_changed: "Détection de l'arrivée arrêtée – bouton « Terminé » uniquement"
+                detector_running: "Détection de l'arrivée active"
             photo:
                 periodic: "Photo"
                 empty_mat: "Tapis vide"
@@ -9601,6 +9603,7 @@ online_rounds:
             moment_before_start: "Ce moment se situe avant le départ."
             moment_after_end: "Ce moment se situe après la fin de la manche – une arrivée après la fin ne compte pas."
             moment_not_recorded: "Le téléphone du participant n'a pas enregistré ce moment – choisissez son appui ou une image autour."
+            detection_not_shown: "Les mains levées ne comptent pas dans cette manche – c'est l'appui sur « Terminé » qui compte. Confirmez l'appui ou une image autour."
         error:
             sign_in: "Vous avez été déconnecté(e) – reconnectez-vous et rechargez la page."
             forbidden: "Vous ne pouvez plus vérifier cette manche."
@@ -9618,6 +9621,7 @@ online_rounds:
             median: "Médiane"
             iqr: "Dispersion de la moitié centrale (écart interquartile)"
             quartiles: "De %q1% à %q3%"
+            not_running: "Arrivées sur un téléphone dont la détection ne tournait pas (non comptées comme levées manquées) : %count%"
         col:
             participant: "Participant"
             status: "Statut"
@@ -9634,7 +9638,7 @@ online_rounds:
             view: "Angle de caméra"
             device: "Téléphone"
         empty: "Personne n'est dans cette manche."
-        intro_detection: "La qualité de la détection de l'arrivée. L'erreur de détection est le moment confirmé moins le moment où le téléphone a vu les mains levées, le délai d'appui est l'appui sur « Terminé » moins ce moment, et l'ajustement est le moment confirmé moins l'appui. Une levée manquée est un appui sans détection dans les 10 secondes, une fausse levée une détection qui n'était pas l'arrivée et sans appui à proximité."
+        intro_detection: "La qualité de la détection de l'arrivée. L'erreur de détection est le moment confirmé moins le moment où le téléphone a vu les mains levées, le délai d'appui est l'appui sur « Terminé » moins ce moment, et l'ajustement est le moment confirmé moins l'appui. Une levée manquée est un appui sans détection dans les 10 secondes sur un téléphone dont la détection tournait, une fausse levée une détection qui n'était pas l'arrivée et sans appui à proximité."
         mode:
             "off": "La détection de l'arrivée est désactivée pour cette manche. Les téléphones ont tout de même enregistré les détections ci-dessous."
             shadow: "La détection de l'arrivée était en observation, en arrière-plan – les participants ne la voyaient pas ; l'appui sur « Terminé » était le moment officiel."
@@ -9648,6 +9652,7 @@ online_rounds:
             help: "Appui sur « Terminé » moins le moment détecté – le temps qu'il a fallu pour atteindre le bouton."
             count: "{0}Pas encore d'arrivée avec à la fois un appui et une détection|{1}1 arrivée avec à la fois un appui et une détection|]1,Inf[%count% arrivées avec à la fois un appui et une détection"
         misses: "%missed% manquée(s) / %false% fausse(s)"
+        not_running: "Détection inactive"
         view:
             angled: "De biais (buste)"
             top_down: "Au-dessus (mains)"
@@ -9660,6 +9665,7 @@ online_rounds:
             detected: "Détectées"
             missed: "Levées manquées"
             "false": "Fausses levées"
+            not_running: "Détection inactive"
             median_error: "Erreur de détection médiane"
             median_delta: "Délai d'appui médian"
             unknown: "Inconnu"

@@ -9582,6 +9582,8 @@ online_rounds:
                 network_offline: "Offline"
                 network_online: "Zpět online"
                 timeup_pieces: "Nahlášené dílky"
+                detector_changed: "Rozpoznávání dokončení se zastavilo - jen tlačítko Hotovo"
+                detector_running: "Rozpoznávání dokončení běží"
             photo:
                 periodic: "Fotka"
                 empty_mat: "Prázdná podložka"
@@ -9608,6 +9610,7 @@ online_rounds:
             moment_before_start: "Tento okamžik je před startem."
             moment_after_end: "Tento okamžik je po konci kola - dokončení po konci se nepočítá."
             moment_not_recorded: "Telefon účastníka tento okamžik nezaznamenal - vyberte jeho klepnutí nebo snímek kolem něj."
+            detection_not_shown: "Zvednuté ruce se v tomto kole nepočítají - počítá se klepnutí na Hotovo. Potvrďte klepnutí nebo snímek kolem něj."
         error:
             sign_in: "Byli jste odhlášeni - přihlaste se a stránku načtěte znovu."
             forbidden: "Toto kolo už nemůžete kontrolovat."
@@ -9625,6 +9628,7 @@ online_rounds:
             median: "Medián"
             iqr: "Rozpětí prostřední poloviny (IQR)"
             quartiles: "Od %q1% do %q3%"
+            not_running: "Dokončení na telefonu, kde rozpoznávání neběželo (nepočítají se jako přehlédnutá zvednutí): %count%"
         col:
             participant: "Účastník"
             status: "Stav"
@@ -9641,7 +9645,7 @@ online_rounds:
             view: "Záběr kamery"
             device: "Telefon"
         empty: "V tomto kole není nikdo zařazen."
-        intro_detection: "Jak dobře funguje rozpoznávání dokončení. Chyba rozpoznání je potvrzený okamžik minus okamžik, kdy telefon rozpoznal zvednuté ruce, prodleva klepnutí je klepnutí na Hotovo minus tento okamžik a úprava je potvrzený okamžik minus klepnutí. Přehlédnuté zvednutí je klepnutí bez rozpoznání v rozmezí 10 sekund, falešné zvednutí je rozpoznání, které nebylo dokončením a nemá poblíž žádné klepnutí."
+        intro_detection: "Jak dobře funguje rozpoznávání dokončení. Chyba rozpoznání je potvrzený okamžik minus okamžik, kdy telefon rozpoznal zvednuté ruce, prodleva klepnutí je klepnutí na Hotovo minus tento okamžik a úprava je potvrzený okamžik minus klepnutí. Přehlédnuté zvednutí je klepnutí bez rozpoznání v rozmezí 10 sekund na telefonu, kde rozpoznávání běželo, falešné zvednutí je rozpoznání, které nebylo dokončením a nemá poblíž žádné klepnutí."
         mode:
             "off": "Rozpoznávání dokončení je v tomto kole vypnuté. Telefony přesto zaznamenaly níže uvedená rozpoznání."
             shadow: "Rozpoznávání dokončení běželo na pozadí - účastníci ho neviděli, oficiálním okamžikem bylo klepnutí na Hotovo."
@@ -9655,6 +9659,7 @@ online_rounds:
             help: "Klepnutí na Hotovo minus rozpoznaný okamžik - jak dlouho trvalo dostat se k tlačítku."
             count: "{0}Zatím žádné dokončení s klepnutím i rozpoznáním|{1}1 dokončení s klepnutím i rozpoznáním|[2,4]%count% dokončení s klepnutím i rozpoznáním|[5,Inf[%count% dokončení s klepnutím i rozpoznáním"
         misses: "přehlédnutá: %missed% / falešná: %false%"
+        not_running: "Rozpoznávání neběželo"
         view:
             angled: "Šikmo (tělo)"
             top_down: "Shora (ruce)"
@@ -9667,6 +9672,7 @@ online_rounds:
             detected: "Rozpoznáno"
             missed: "Přehlédnutá zvednutí"
             "false": "Falešná zvednutí"
+            not_running: "Rozpoznávání neběželo"
             median_error: "Medián chyby rozpoznání"
             median_delta: "Medián prodlevy klepnutí"
             unknown: "Neznámé"

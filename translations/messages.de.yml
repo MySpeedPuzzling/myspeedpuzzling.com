@@ -9555,6 +9555,8 @@ online_rounds:
                 network_offline: "Offline"
                 network_online: "Wieder online"
                 timeup_pieces: "Teile gemeldet"
+                detector_changed: "Zielerkennung gestoppt – nur „Fertig“-Button"
+                detector_running: "Zielerkennung aktiv"
             photo:
                 periodic: "Foto"
                 empty_mat: "Leere Unterlage"
@@ -9581,6 +9583,7 @@ online_rounds:
             moment_before_start: "Dieser Moment liegt vor dem Start."
             moment_after_end: "Dieser Moment liegt nach dem Ende der Runde – eine Zielzeit nach dem Ende zählt nicht."
             moment_not_recorded: "Das Handy des Teilnehmers hat diesen Moment nicht aufgezeichnet – wählen Sie seinen Tipp oder ein Bild rund um den Tipp."
+            detection_not_shown: "Erhobene Hände zählen in dieser Runde nicht – der Tipp auf „Fertig“ zählt. Bestätigen Sie den Tipp oder ein Bild rund um den Tipp."
         error:
             sign_in: "Sie wurden abgemeldet – melden Sie sich erneut an und laden Sie die Seite neu."
             forbidden: "Sie können diese Runde nicht mehr prüfen."
@@ -9598,6 +9601,7 @@ online_rounds:
             median: "Median"
             iqr: "Streuung der mittleren Hälfte (IQR)"
             quartiles: "Von %q1% bis %q3%"
+            not_running: "Zielzeiten auf einem Handy ohne laufende Erkennung (nicht als verpasste Handzeichen gezählt): %count%"
         col:
             participant: "Teilnehmer"
             status: "Status"
@@ -9614,7 +9618,7 @@ online_rounds:
             view: "Kameraansicht"
             device: "Handy"
         empty: "In dieser Runde ist niemand eingetragen."
-        intro_detection: "Wie gut die Zielerkennung ist. Der Erkennungsfehler ist der bestätigte Moment minus der Moment, in dem das Handy erhobene Hände erkannt hat, die Tipp-Verzögerung ist der Tipp auf „Fertig“ minus diesen Moment, und die Korrektur ist der bestätigte Moment minus der Tipp. Ein verpasstes Handzeichen ist ein Tipp ohne Erkennung innerhalb von 10 Sekunden, ein falsches Handzeichen eine Erkennung, die nicht die Zielzeit war und keinen Tipp in der Nähe hat."
+        intro_detection: "Wie gut die Zielerkennung ist. Der Erkennungsfehler ist der bestätigte Moment minus der Moment, in dem das Handy erhobene Hände erkannt hat, die Tipp-Verzögerung ist der Tipp auf „Fertig“ minus diesen Moment, und die Korrektur ist der bestätigte Moment minus der Tipp. Ein verpasstes Handzeichen ist ein Tipp ohne Erkennung innerhalb von 10 Sekunden auf einem Handy mit laufender Erkennung, ein falsches Handzeichen eine Erkennung, die nicht die Zielzeit war und keinen Tipp in der Nähe hat."
         mode:
             "off": "Die Zielerkennung ist für diese Runde ausgeschaltet. Die Handys haben die Erkennungen unten trotzdem aufgezeichnet."
             shadow: "Die Zielerkennung lief im Hintergrund mit – die Teilnehmer haben sie nicht gesehen, der Tipp auf „Fertig“ war der offizielle Moment."
@@ -9628,6 +9632,7 @@ online_rounds:
             help: "Tipp auf „Fertig“ minus erkannter Moment – wie lange es bis zum Button gedauert hat."
             count: "{0}Noch keine Zielzeit mit Tipp und Erkennung|{1}1 Zielzeit mit Tipp und Erkennung|]1,Inf[%count% Zielzeiten mit Tipp und Erkennung"
         misses: "%missed% verpasst / %false% falsch"
+        not_running: "Erkennung lief nicht"
         view:
             angled: "Schräg (Oberkörper)"
             top_down: "Von oben (Hände)"
@@ -9640,6 +9645,7 @@ online_rounds:
             detected: "Erkannt"
             missed: "Verpasste Handzeichen"
             "false": "Falsche Handzeichen"
+            not_running: "Erkennung lief nicht"
             median_error: "Median des Erkennungsfehlers"
             median_delta: "Median der Tipp-Verzögerung"
             unknown: "Unbekannt"

@@ -17,4 +17,13 @@ enum OnlineMediaKind: string
     case Button = 'button';
     case Burst = 'burst';
     case End = 'end';
+
+    /**
+     * A photo of the finished (or, at time-up, unfinished) puzzle - what the completeness check judges (README §5.8,
+     * Phase 3): a finish candidate's, a Finished tap's, the end photo
+     */
+    public function isFinishPhoto(): bool
+    {
+        return $this === self::Candidate || $this === self::Button || $this === self::End;
+    }
 }

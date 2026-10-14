@@ -9859,6 +9859,8 @@ compete:
         button_only: "Tap Finished when your puzzle is complete."
         timeup_text: "Was your puzzle complete then? If a piece was missing, tell us below how far you got."
         timeup_complete: "My puzzle is complete"
+        turned_on: "The organiser turned on finish detection - reload the page to use it."
+        turned_on_reload: "Reload"
 
 # Online competitions: the organiser's pages (docs/features/online-competitions/)
 online_rounds:
@@ -9880,11 +9882,12 @@ online_rounds:
             since_by: "Turned on %date% by %name%."
         detection:
             label: "Finish"
-            help: "Detecting raised hands arrives in a later version - until then, every finish is a tap on Finished."
             how: "Detection: participants raise both hands when their puzzle is complete - their phone records the moment with a photo and the seconds around it; you confirm it in the review. The Finished button always works too. A round with detection asks each phone for a quick test during the set-up."
             "off": "Finished button - participants tap Finished when their puzzle is done"
             shadow: "Finished button, detection watching - the tap counts; the camera's detection is only recorded, to measure it"
             "on": "Detection - raised hands mark the finish, the Finished button is the fallback"
+            locked: "Locked from the round's start until a Reset - the phones already use it."
+            locked_refused: "The round has started (or its start is set), so finish detection can't change any more. Reset the round's stopwatch to change it - nothing was saved."
         unfinished:
             label: "When time is up"
             help: "What participants who did not finish report, together with a photo of their puzzle."
@@ -9901,6 +9904,7 @@ online_rounds:
             enabled_help: "The participants' phones show their puzzle camera live in the control room. The host can talk to everybody and invite finishers to the studio."
             see_each_other: "Participants see each other"
             see_each_other_help: "With live video on, participants can also watch each other's puzzle cameras, like in a video call. Off: only the moderators see them."
+        live_note: "Participants' phones that are open pick up a change within seconds."
         save: "Save settings"
         participants:
             title: "Participants"
@@ -10194,6 +10198,8 @@ online_rounds:
                 network_offline: "Offline"
                 network_online: "Back online"
                 timeup_pieces: "Reported pieces"
+                detector_changed: "Finish detection stopped - Finished button only"
+                detector_running: "Finish detection watching"
             photo:
                 periodic: "Photo"
                 empty_mat: "Empty mat"
@@ -10220,12 +10226,24 @@ online_rounds:
             moment_before_start: "This moment lies before the start."
             moment_after_end: "This moment lies after the end of the round - a finish after the end does not count."
             moment_not_recorded: "The participant's phone did not record this moment - pick their tap or a frame around it."
+            detection_not_shown: "Raised hands do not count in this round - the Finished tap does. Confirm the tap or a frame around it."
         error:
             sign_in: "You were signed out - sign in again and reload the page."
             forbidden: "You can no longer review this round."
             offline: "No connection - nothing was confirmed. Try again once you are online."
             failed: "That did not work - nothing was confirmed. Try again."
             gone: "This round no longer uses online timing."
+        check:
+            complete: "Looks complete"
+            gaps: "Gap?"
+            unsure: "Not sure"
+            pending: "Not checked"
+            title: "Automatic completeness check - advisory, you decide"
+            pending_title: "The automatic completeness check has not looked at this photo yet"
+            failed_title: "The automatic completeness check could not run on this photo"
+            reason: "It says: %reason%"
+            show_gaps: "Show suspected gaps"
+            gap_box: "Suspected gap"
     accuracy:
         title: "Timing accuracy"
         intro: "How far each Finished tap was from the moment a reviewer confirmed - the reviewer's adjustment, confirmed minus tap. The detection of raised hands joins this report when it arrives."
@@ -10237,6 +10255,7 @@ online_rounds:
             median: "Median"
             iqr: "Spread of the middle half (IQR)"
             quartiles: "From %q1% to %q3%"
+            not_running: "Finishes on a phone whose detector was not running (not counted as missed raises): %count%"
         col:
             participant: "Participant"
             status: "Status"
@@ -10252,8 +10271,17 @@ online_rounds:
             misses: "Missed / false"
             view: "Camera view"
             device: "Phone"
+            completeness: "Completeness check"
         empty: "Nobody is entered in this round."
-        intro_detection: "How good the finish detection is. The detection error is the confirmed moment minus the moment the phone saw raised hands, the tap delay is the Finished tap minus that moment, and the adjustment is the confirmed moment minus the tap. A missed raise is a tap without a detection within 10 seconds, a false raise a detection that was not the finish and has no tap near it."
+        completeness:
+            title: "Completeness check - the automatic verdict against the review"
+            help: "For every confirmed participant: what the automatic check said about the photo the reviewer confirmed. A confirmed finish should look complete, a confirmed unfinished puzzle should not. A false complete - a missing piece passed - is the error that matters."
+            agree: "Agrees"
+            false_complete: "False complete"
+            false_gap: "False gap"
+            unsure: "Not sure"
+            not_checked: "Not checked"
+        intro_detection: "How good the finish detection is. The detection error is the confirmed moment minus the moment the phone saw raised hands, the tap delay is the Finished tap minus that moment, and the adjustment is the confirmed moment minus the tap. A missed raise is a tap without a detection within 10 seconds on a phone whose detector was running, a false raise a detection that was not the finish and has no tap near it."
         mode:
             "off": "Finish detection is off for this round. Phones still recorded the detections below."
             shadow: "Finish detection watched in the background - participants did not see it, the Finished tap was the official moment."
@@ -10267,6 +10295,7 @@ online_rounds:
             help: "Finished tap minus the detected moment - how long it took to reach the button."
             count: "{0}No finish with both a tap and a detection yet|{1}1 finish with both a tap and a detection|]1,Inf[%count% finishes with both a tap and a detection"
         misses: "%missed% missed / %false% false"
+        not_running: "Detector not running"
         view:
             angled: "Angled (body)"
             top_down: "Top-down (hands)"
@@ -10279,6 +10308,7 @@ online_rounds:
             detected: "Detected"
             missed: "Missed raises"
             "false": "False raises"
+            not_running: "Detector not running"
             median_error: "Median detection error"
             median_delta: "Median tap delay"
             unknown: "Not known"

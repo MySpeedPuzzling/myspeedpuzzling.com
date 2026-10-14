@@ -4,21 +4,32 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller\OnlineRounds;
 
+use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
+use SpeedPuzzling\Web\Repository\OnlineRoundRepository;
+use SpeedPuzzling\Web\Services\OfficialResultsSubscription;
+use SpeedPuzzling\Web\Services\OnlineRounds\OnlineAccessLight;
+use SpeedPuzzling\Web\Services\OnlineRounds\OnlineRoundSettingsLiveUpdates;
 use SpeedPuzzling\Web\Tests\DataFixtures\OfficialResultsFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\OnlineRoundsFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\LiveVideoTesting;
 use SpeedPuzzling\Web\Tests\OverridesFeatureFlagEnv;
+use SpeedPuzzling\Web\Tests\TestDouble\NullMercureHub;
 use SpeedPuzzling\Web\Tests\TestingLogin;
+use SpeedPuzzling\Web\Value\OnlineParticipantSettings;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+use Symfony\Contracts\Cache\CacheInterface;
+use Symfony\Contracts\Cache\ItemInterface;
 
 /**
  * "Online timing" of a round (online_round_settings, docs/features/online-competitions/, stream C1): who may open it
  * (ONLINE_ROUNDS_MANAGE - admins always, organisers with ONLINE_ROUNDS_FOR_ORGANISERS), turning it on, the settings
- * form's round trip (redirect / 422), the rounds that cannot use it and the participants not entered in the round.
+ * form's round trip (redirect / 422), the rounds that cannot use it and the participants not entered in the round. Stream
+ * SP: a save tells the open participant pages (Mercure after the commit, a hub that is down never fails it), finish
+ * detection is locked from the round's start until a Reset.
  */
 final class OnlineRoundSettingsControllerTest extends WebTestCase
 {
@@ -277,6 +288,138 @@ final class OnlineRoundSettingsControllerTest extends WebTestCase
         self::assertResponseRedirects(self::url(self::ROUND), 303);
         self::assertSame(['shadow', 'left', 'complete_required'], $this->settings(self::ROUND));
         self::assertSame([true, true], $this->videoSettings(self::ROUND));
+    }
+
+    /**
+     * Stream SP: a save tells the open participant pages at once - after the commit, on the round's stopwatch topic, the
+     * settings hash the phones compare (their next state carries the same one); the page says phones pick it up
+     */
+    public function testASaveTellsTheOpenPhonesAtOnce(): void
+    {
+        $browser = $this->signedIn(PlayerFixture::PLAYER_ADMIN);
+        $browser->disableReboot();
+        $hub = self::hubOf($browser);
+
+        $crawler = $browser->request('GET', self::url(self::ROUND));
+        self::assertSame('Participants\' phones that are open pick up a change within seconds.', trim($crawler->filter('[data-online-settings-live]')->text()));
+        self::assertCount(0, $hub->getPublishedUpdates(), 'opening the page tells nobody');
+
+        $browser->submitForm('Save settings', [
+            'online_round_settings_form[detectionMode]' => 'shadow',
+            'online_round_settings_form[videoEnabled]' => true,
+        ]);
+        self::assertResponseRedirects(self::url(self::ROUND), 303);
+
+        $updates = self::hubOf($browser)->getPublishedUpdates();
+        self::assertCount(1, $updates);
+        self::assertSame([OfficialResultsSubscription::stopwatchTopic(self::ROUND)], $updates[0]->getTopics());
+        self::assertFalse($updates[0]->isPrivate(), 'the topic the phones already follow');
+        $expected = OnlineParticipantSettings::of($browser->getContainer()->get(OnlineRoundRepository::class)->get(OnlineRoundsFixture::ONLINE_ROUND_SOLO))->hash();
+        self::assertSame(
+            ['type' => OnlineRoundSettingsLiveUpdates::MESSAGE_TYPE, 'roundId' => self::ROUND, 'settingsHash' => $expected],
+            json_decode($updates[0]->getData(), true, flags: JSON_THROW_ON_ERROR),
+        );
+        self::assertSame(['shadow', 'left', 'complete_required'], $this->settings(self::ROUND));
+
+        // The heartbeat's hashes of the round were forgotten - the next beat reads the new ones
+        $peek = $browser->getContainer()->get(CacheInterface::class)->get(OnlineAccessLight::roundHashKey(self::ROUND), static function (ItemInterface $item, bool &$save): string {
+            $save = false;
+
+            return 'nothing cached';
+        });
+        self::assertSame('nothing cached', $peek);
+    }
+
+    /**
+     * A hub that is down never fails the save - the phones learn it from their next heartbeat
+     */
+    public function testASaveSucceedsWhenTheHubIsDown(): void
+    {
+        $browser = $this->signedIn(PlayerFixture::PLAYER_ADMIN);
+        $browser->disableReboot();
+        $browser->request('GET', self::url(self::ROUND));
+        $hub = self::hubOf($browser);
+        $hub->failWith(new \RuntimeException('The Mercure hub is down'));
+
+        $browser->submitForm('Save settings', ['online_round_settings_form[detectionMode]' => 'on']);
+
+        self::assertResponseRedirects(self::url(self::ROUND), 303);
+        self::assertSame(['on', 'left', 'complete_required'], $this->settings(self::ROUND));
+        self::assertSame([], $hub->getPublishedUpdates());
+        $hub->failWith(null);
+        $crawler = $browser->followRedirect();
+        self::assertStringContainsString('The online timing settings of Online Round are saved.', $crawler->filter('.alert-success')->text());
+    }
+
+    /**
+     * Finish detection is fixed from the round's start - a scheduled start, the countdown, the round running or over -
+     * until a Reset: the field is disabled with the reason, the other settings still save, and a page opened before the
+     * start that sends another mode is refused (422, said, nothing saved, nobody told)
+     */
+    public function testFinishDetectionIsLockedFromTheStartUntilAReset(): void
+    {
+        $browser = $this->signedIn(PlayerFixture::PLAYER_ADMIN);
+
+        // Opened while the round waits: the field is free
+        $crawler = $browser->request('GET', self::url(self::ROUND));
+        self::assertCount(0, $crawler->filter('input[name="online_round_settings_form[detectionMode]"][disabled]'));
+        self::assertCount(0, $crawler->filter('[data-detection-locked]'));
+        $stale = $crawler->selectButton('Save settings')->form();
+        $stale['online_round_settings_form[detectionMode]'] = 'on';
+        $stale['online_round_settings_form[unfinishedMeasure]'] = 'placed';
+
+        // ... the organiser starts the round in another tab, then this page is sent
+        self::setStopwatch($this->connection($browser), 'running', '-5 minutes');
+        $crawler = $browser->submit($stale);
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertStringContainsString('The round has started (or its start is set), so finish detection can\'t change any more.', $crawler->filter('[data-online-timing-on]')->text());
+        self::assertSame(['off', 'left', 'complete_required'], $this->settings(self::ROUND), 'nothing saved - not the other settings either');
+        self::assertCount(3, $crawler->filter('input[name="online_round_settings_form[detectionMode]"][disabled]'));
+
+        foreach (['scheduled' => ['scheduled', '+1 hour', null], 'running' => ['running', '-5 minutes', null], 'ended' => ['stopped', '-90 minutes', '-30 minutes']] as $case => [$status, $startedAt, $stoppedAt]) {
+            self::setStopwatch($this->connection($browser), $status, $startedAt, $stoppedAt);
+            $crawler = $browser->request('GET', self::url(self::ROUND));
+
+            self::assertCount(3, $crawler->filter('input[name="online_round_settings_form[detectionMode]"][disabled]'), $case);
+            self::assertSame('off', $crawler->filter('input[name="online_round_settings_form[detectionMode]"][checked]')->attr('value'), $case);
+            self::assertStringContainsString('Locked from the round\'s start until a Reset', $crawler->filter('[data-detection-locked]')->text(), $case);
+        }
+
+        // The rest of the settings save from a locked page; the detection stays
+        $browser->submitForm('Save settings', ['online_round_settings_form[unfinishedMeasure]' => 'placed']);
+        self::assertResponseRedirects(self::url(self::ROUND), 303);
+        self::assertSame(['off', 'placed', 'complete_required'], $this->settings(self::ROUND));
+
+        // Reset: the round waits again - the detection is free
+        self::setStopwatch($this->connection($browser), null, null);
+        $crawler = $browser->request('GET', self::url(self::ROUND));
+        self::assertCount(0, $crawler->filter('input[name="online_round_settings_form[detectionMode]"][disabled]'));
+        self::assertCount(0, $crawler->filter('[data-detection-locked]'));
+        $browser->submitForm('Save settings', ['online_round_settings_form[detectionMode]' => 'on']);
+        self::assertResponseRedirects(self::url(self::ROUND), 303);
+        self::assertSame(['on', 'placed', 'complete_required'], $this->settings(self::ROUND));
+    }
+
+    private static function hubOf(KernelBrowser $browser): NullMercureHub
+    {
+        $hub = $browser->getContainer()->get(NullMercureHub::class); // @phpstan-ignore symfonyContainer.serviceNotFound
+        assert($hub instanceof NullMercureHub);
+
+        return $hub;
+    }
+
+    /**
+     * The round's stopwatch as stored - `startedAt` / `stoppedAt` relative to now
+     */
+    private static function setStopwatch(Connection $connection, null|string $status, null|string $startedAt, null|string $stoppedAt = null): void
+    {
+        $moment = static fn (null|string $relative): null|string => $relative === null ? null : (new DateTimeImmutable($relative))->format('Y-m-d H:i:s');
+
+        $connection->executeStatement(
+            'UPDATE competition_round SET stopwatch_status = :status, stopwatch_started_at = :startedAt, stopwatch_stopped_at = :stoppedAt WHERE id = :id',
+            ['status' => $status, 'startedAt' => $moment($startedAt), 'stoppedAt' => $moment($stoppedAt), 'id' => self::ROUND],
+        );
     }
 
     private static function url(string $roundId): string

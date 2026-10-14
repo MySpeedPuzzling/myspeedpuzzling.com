@@ -1,0 +1,4 @@
+# The CV worker of the online competitions (README.md) and the bench's completeness checks (tools/online-bench) -
+# Python 3.12. OpenCV 4.x (Apache-2.0): the mature line; 5.0 changed the module layout. Exact pins, one place.
+numpy==2.5.3
+opencv-python-headless==4.14.0.94

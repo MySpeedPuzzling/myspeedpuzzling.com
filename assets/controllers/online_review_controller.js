@@ -16,6 +16,7 @@ import {
     reviewKey,
     stepIndex,
 } from '../online/review_logic.js';
+import { checkBadge, gapBoxes, reviewOrder } from '../online/review_check.js';
 import { OfficialResultsEvents } from '../official_results_events.js';
 import { officialResultsRequest } from '../official_results_api.js';
 import { chooseTranslation } from '../translation_choice.js';
@@ -51,6 +52,9 @@ const TAP_MEDIA = ['button', 'candidate', 'burst'];
  * - C confirms the finish (a candidate's own moment = source `detection`, a tap's = `button`, a frame = `reviewer`), U
  *   confirms unfinished with the pieces placed (online_review_confirm); the answer replaces the row, the next
  *   participant to look at follows. A refusal is shown with its reason - never silently.
+ * - Phase 3, only while the completeness check is on (`round.completenessCheck` - off, none of it): every finish photo
+ *   carries the automatic check's badge and its suspected gaps drawn over it (review_check.js; the switch hides them),
+ *   and the list puts "needs a look" first (reviewOrder()). Advisory: nothing here reads it to suggest or confirm.
  */
 export default class extends Controller {
     static targets = [
@@ -60,6 +64,8 @@ export default class extends Controller {
         'tapPhotoPending', 'momentBox', 'momentTime', 'momentLine', 'confirmFinishButton', 'unfinishedPanel', 'reported',
         'pieces', 'piecesOf', 'piecesError', 'confirmUnfinishedButton', 'endPhotoBox', 'endPhotoLink', 'endPhoto', 'timeline',
         'burstCaption', 'photoCaption', 'toMomentButton', 'gapButton',
+        // The completeness check (Phase 3) - rendered only while it is on
+        'tapPhotoCheckLine', 'tapPhotoCheck', 'tapPhotoBoxes', 'showGaps', 'showGapsSwitch', 'endPhotoCheck', 'endPhotoBoxes',
     ];
 
     static values = {
@@ -195,9 +201,17 @@ export default class extends Controller {
     // ---------------------------------------------------------------- the list
 
     rows() {
-        const entries = Array.isArray(this.list.entries) ? this.list.entries : [];
+        // "Needs a look" first while the completeness check is on - else as listed (by name)
+        const entries = reviewOrder(Array.isArray(this.list.entries) ? this.list.entries : [], this.checkOn());
 
         return this.filter === 'all' ? entries : entries.filter((entry) => entry.status === this.filter);
+    }
+
+    /**
+     * The completeness check is on for this round's review (Phase 3) - the server says so only then
+     */
+    checkOn() {
+        return this.list?.round?.completenessCheck === true;
     }
 
     entry(participantId) {
@@ -249,6 +263,15 @@ export default class extends Controller {
         const name = document.createElement('span');
         name.className = 'online-review-row-name';
         name.append(...flagNodes(entry.country), document.createTextNode(entry.name));
+
+        // Why it is where it is in the list: the check of the photo the review opens on - until it is confirmed
+        if (this.checkOn() && entry.status !== 'confirmed') {
+            const badge = this.checkBadgeElement(entry.check ?? null);
+
+            if (badge !== null) {
+                name.append(document.createTextNode(' '), badge);
+            }
+        }
 
         const time = document.createElement('span');
         time.className = 'online-review-row-time font-monospace';
@@ -525,6 +548,7 @@ export default class extends Controller {
         this.momentBoxTarget.hidden = moment === null;
 
         if (moment === null) {
+            this.renderPhotoCheck(null, 'tap');
             this.renderMoment();
 
             return;
@@ -538,6 +562,7 @@ export default class extends Controller {
         const media = this.detail.media ?? [];
         const photo = this.tapMedia(media, detected ? 'candidate' : 'button', moment.id);
         this.showPhoto(this.tapPhotoLinkTarget, this.tapPhotoTarget, photo);
+        this.renderPhotoCheck(photo, 'tap');
         // Registered but not uploaded yet (the phone was offline, a store outage) - said, never hidden; one that never
         // arrived (the phone gave its URL up, nothing came later) says so
         this.tapPhotoPendingTarget.hidden = !(photo !== null && photo.url === null);
@@ -589,7 +614,8 @@ export default class extends Controller {
         if (moments.length === 0) {
             const none = document.createElement('p');
             none.className = 'small text-body-secondary mb-0';
-            none.textContent = this.t(detection === 'off' ? 'no_taps' : 'no_moments');
+            // `shadow` shows no raised hands (the server sends none): taps only, as with detection off
+            none.textContent = this.t(detection === 'on' ? 'no_moments' : 'no_taps');
             this.tapsTarget.replaceChildren(none);
 
             return;
@@ -914,6 +940,89 @@ export default class extends Controller {
         const end = (this.detail.media ?? []).filter((item) => item.kind === 'end').pop() ?? null;
         this.endPhotoBoxTarget.hidden = end === null;
         this.showPhoto(this.endPhotoLinkTarget, this.endPhotoTarget, end);
+        this.renderPhotoCheck(end, 'end');
+    }
+
+    // ---------------------------------------------------------------- the completeness check (Phase 3)
+
+    /**
+     * A photo's check badge - "Looks complete" / "Gap?" / "Not sure" / "Not checked", the reason in its title; null
+     * without a check
+     */
+    checkBadgeElement(check) {
+        const badge = checkBadge(check);
+
+        if (badge === null) {
+            return null;
+        }
+
+        const element = document.createElement('span');
+        element.className = `badge online-check-badge online-check-badge--${badge.tone}`;
+        element.dataset.check = badge.state;
+        element.textContent = this.t(badge.text);
+        const reason = typeof check?.reason === 'string' && check.reason !== '' ? this.t('check_reason', { reason: check.reason }) : null;
+        element.title = reason === null ? this.t(badge.title) : `${this.t(badge.title)}\n${reason}`;
+
+        return element;
+    }
+
+    /**
+     * The check of the photo shown at the moment (`tap` - a tap's or a candidate's photo) or at time-up (`end`): its
+     * badge and its suspected gaps over it, scaled with the photo (percentages of the size the check measured, else of
+     * the image's own). Nothing while the check is off - the page has no place for it then.
+     */
+    renderPhotoCheck(media, which) {
+        const slot = which === 'tap' ? (this.hasTapPhotoCheckTarget ? this.tapPhotoCheckTarget : null) : (this.hasEndPhotoCheckTarget ? this.endPhotoCheckTarget : null);
+        const layer = which === 'tap' ? (this.hasTapPhotoBoxesTarget ? this.tapPhotoBoxesTarget : null) : (this.hasEndPhotoBoxesTarget ? this.endPhotoBoxesTarget : null);
+
+        if (slot === null || layer === null) {
+            return;
+        }
+
+        const check = media?.check ?? null;
+        const badge = this.checkBadgeElement(check);
+        slot.replaceChildren(...(badge === null ? [] : [badge]));
+
+        if (which === 'tap' && this.hasTapPhotoCheckLineTarget) {
+            this.tapPhotoCheckLineTarget.hidden = badge === null;
+        }
+
+        const image = which === 'tap' ? this.tapPhotoTarget : this.endPhotoTarget;
+        const draw = () => {
+            const boxes = gapBoxes(check, image.naturalWidth || null, image.naturalHeight || null);
+
+            // The switch only next to a photo with suspected gaps
+            if (which === 'tap' && this.hasShowGapsSwitchTarget) {
+                this.showGapsSwitchTarget.hidden = boxes.length === 0;
+            }
+
+            layer.replaceChildren(...boxes.map((box) => {
+                // Placed by its middle: the stylesheet keeps a small gap's box large enough to be seen
+                const element = document.createElement('span');
+                element.className = 'online-check-box';
+                element.style.left = `${box.centerX}%`;
+                element.style.top = `${box.centerY}%`;
+                element.style.width = `${box.width}%`;
+                element.style.height = `${box.height}%`;
+                element.title = this.t('check_gap_box');
+
+                return element;
+            }));
+        };
+
+        draw();
+
+        // Without the size from the check the boxes wait for the image's own
+        if (check?.state === 'gaps' && !(check.imageWidth > 0) && !image.complete) {
+            image.addEventListener('load', draw, { once: true });
+        }
+    }
+
+    /**
+     * The switch next to the photo: the suspected gaps shown or not (every photo of the page)
+     */
+    toggleGaps() {
+        this.element.classList.toggle('online-review--gaps-hidden', this.hasShowGapsTarget && !this.showGapsTarget.checked);
     }
 
     showPhoto(link, image, media) {
@@ -998,6 +1107,11 @@ export default class extends Controller {
             return (event.data.measure ?? this.detail?.round?.unfinishedMeasure) === 'placed'
                 ? this.tc('reported_placed', event.data.pieces)
                 : this.tc('reported_left', event.data.pieces);
+        }
+
+        // The phone's detector started watching (again) - or stopped: Finished button only (stream P2F)
+        if (event.type === 'detector.changed' && event.data?.running === true) {
+            return this.t('event_detector_running');
         }
 
         const key = `event_${String(event.type).replaceAll('.', '_')}`;
@@ -1192,7 +1306,8 @@ export default class extends Controller {
         const index = entries.findIndex((candidate) => candidate.participantId === entry.participantId);
 
         if (index >= 0) {
-            entries[index] = entry;
+            // A confirmation's answer carries no completeness check - the row keeps the one it had until the next read
+            entries[index] = entry.check === undefined && entries[index].check !== undefined ? { ...entry, check: entries[index].check } : entry;
         }
     }
 

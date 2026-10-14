@@ -18,6 +18,10 @@ use SpeedPuzzling\Web\Value\RoundEntryResult;
  * the tap), the detection error (confirmed − detected) and the delta (tap − the candidate nearest to it), the missed
  * raises (taps without a candidate) and false raises (candidates neither the finish nor near a tap) - null while the
  * round's detection is off -, the camera view the phone's detector used and the phone (OnlineDeviceLabel).
+ *
+ * Phase 3 - the completeness check (README §5.8, OnlineAccuracy): its verdict on the confirmed photo (complete / gaps /
+ * unsure / failed / pending) and how it compares with the reviewer's outcome (OnlineAccuracy::OUTCOME_*) - null while
+ * the check is off, before a confirmation, or without a photo to compare.
  */
 readonly final class OnlineAccuracyRow
 {
@@ -46,6 +50,10 @@ readonly final class OnlineAccuracyRow
         public null|string $view = null,
         public null|string $device = null,
         public null|string $browser = null,
+        // Finishes without a detection on a phone whose detector did not watch (stream P2F) - never a missed raise
+        public null|int $detectorNotRunning = null,
+        public null|string $completenessVerdict = null,
+        public null|string $completenessOutcome = null,
     ) {
     }
 }

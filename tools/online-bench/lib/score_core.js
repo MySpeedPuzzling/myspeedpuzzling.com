@@ -267,7 +267,7 @@ export function combinations(grid) {
     return rows;
 }
 
-const RULE_KEYS = ['holdMs', 'minScore', 'maxDropFrames', 'maxDropMs', 'maxGapMs', 'cooldownMs', 'gapPolicy', 'straddle', 'cooldownFrom'];
+const RULE_KEYS = ['holdMs', 'minScore', 'maxDropFrames', 'maxDropMs', 'maxGapMs', 'cooldownMs', 'gapPolicy', 'straddle', 'cooldownFrom', 'armMs', 'armFrames'];
 const POSE_KEYS = ['minVisibility', 'minShoulderVisibility', 'minLift', 'fullLift'];
 const GESTURE_KEYS = ['minGestureScore', 'minHandSeparation'];
 
@@ -451,7 +451,8 @@ export function summaryMarkdown({ results, sweepEntries = [], rules = DEFAULT_RU
 
     lines.push(
         `Rules: hold ${rules.holdMs} ms, cooldown ${rules.cooldownMs} ms, minScore ${rules.minScore}, `
-            + `maxDropFrames ${rules.maxDropFrames}, maxDropMs ${rules.maxDropMs}, maxGapMs ${rules.maxGapMs}, gap ${rules.gapPolicy}, straddle ${rules.straddle}.`,
+            + `maxDropFrames ${rules.maxDropFrames}, maxDropMs ${rules.maxDropMs}, maxGapMs ${rules.maxGapMs}, gap ${rules.gapPolicy}, straddle ${rules.straddle}`
+            + `, armed after ${rules.armMs ?? 0} ms / ${rules.armFrames ?? 0} frames down.`,
         '',
         '| Video | Raises (complete) | Candidates | Detected | Within 1 s | Missed (in a cooldown) | False raises | Finish | Finish error | Errors |',
         '|---|---|---|---|---|---|---|---|---|---|',

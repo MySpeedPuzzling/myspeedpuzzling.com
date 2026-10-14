@@ -8,6 +8,11 @@
  *   `wants(perf)` (detector_pacing.js: one in flight, 4-5 fps) and makes a DETECTOR_SIDE px (longer side) ImageBitmap
  *   for the worker, transferable - one at a time. The ring buffer's loop, the photos and the live video read the same
  *   <video> undisturbed; nothing here opens, stops or reconfigures the camera.
+ *   **Only frames the camera really presented anew** (stream P2F): a frame callback's `presentedFrames` changed - or,
+ *   on the grabber's 250 ms fallback tick (no frame callback came), the video's `currentTime` changed. A frozen camera
+ *   presents nothing: no frames reach the detector (a gap - the finish machine unarms; the thaw is safe), never the
+ *   same picture again and again as if it were fresh. `onFresh(perf)` hears of every fresh frame (the page's watch -
+ *   a detector that hangs while the camera gives frames), before the one-bitmap-at-a-time rule.
  * - laplacianVariance() / canvasSharpness(): how sharp a still is - the frame grabber's `still({judge})` asks it of the
  *   full-resolution canvas before it is encoded (compete_detection.js sharpestStill() keeps the sharpest).
  *
@@ -114,17 +119,22 @@ export class DetectorFeed {
         // The browser resizes in createImageBitmap() - until it refuses the options once (then a small canvas does)
         this.resizeInBitmap = true;
         this.fed = 0;
+        // The last frame seen: its presentedFrames (frame callbacks) and the video's currentTime then - kept across feeds
+        // (a camera frozen stays frozen)
+        this.lastPresented = null;
+        this.lastTime = null;
+        this.repeated = 0;
     }
 
     /**
-     * Frames to `onBitmap(bitmap, perf)` (it owns the bitmap: transfers it or closes it) whenever `wants(perf)` says so.
-     * A second start() replaces the first.
+     * Frames to `onBitmap(bitmap, perf)` (it owns the bitmap: transfers it or closes it) whenever `wants(perf)` says so;
+     * `onFresh(perf)` hears of every fresh frame first. A second start() replaces the first.
      *
-     * @param {{wants: function(number): boolean, onBitmap: function(ImageBitmap, number): void, side?: number}} handlers
+     * @param {{wants: function(number): boolean, onBitmap: function(ImageBitmap, number): void, onFresh?: function(number): void, side?: number}} handlers
      */
-    startFeed({ wants = () => true, onBitmap, side = DETECTOR_SIDE }) {
+    startFeed({ wants = () => true, onBitmap, onFresh = () => {}, side = DETECTOR_SIDE }) {
         this.stopFeed();
-        this.feed = { wants, onBitmap, side, busy: false, waiting: null };
+        this.feed = { wants, onBitmap, onFresh, side, busy: false, waiting: null };
         this.wait(this.feed);
     }
 
@@ -148,15 +158,31 @@ export class DetectorFeed {
             return;
         }
 
-        feed.waiting = this.grabber.nextFrame((perf) => {
+        feed.waiting = this.grabber.nextFrame((perf, how) => {
             feed.waiting = null;
-            this.arrived(feed, perf);
+            this.arrived(feed, perf, how);
             this.wait(feed);
         });
     }
 
-    arrived(feed, perf) {
-        if (this.feed !== feed || feed.busy || !this.grabber.hasFrames()) {
+    arrived(feed, perf, how = null) {
+        if (this.feed !== feed || !this.grabber.hasFrames()) {
+            return;
+        }
+
+        if (!this.isFresh(how)) {
+            this.repeated += 1;
+
+            return;
+        }
+
+        try {
+            feed.onFresh(perf);
+        } catch (e) {
+            // The page's handler must never stop the feed
+        }
+
+        if (this.feed !== feed || feed.busy) {
             return;
         }
 
@@ -198,6 +224,32 @@ export class DetectorFeed {
                 closeBitmap(bitmap);
             }
         });
+    }
+
+    /**
+     * Did the camera present a new frame? A frame callback: its presentedFrames changed (a new stream may count from
+     * anywhere - changed, not grown); the fallback tick or an animation frame: the video's currentTime changed. Neither
+     * known (an old browser): fresh. Remembered either way it is fresh.
+     *
+     * @param {null|{source?: string, presentedFrames?: number|null}} how   frame_grabber.js nextFrame()'s second argument
+     */
+    isFresh(how) {
+        const presented = how?.presentedFrames;
+        const time = this.grabber.video?.currentTime;
+        let fresh = true;
+
+        if (how?.source === 'frame' && Number.isFinite(presented)) {
+            fresh = presented !== this.lastPresented;
+        } else if (Number.isFinite(time)) {
+            fresh = time !== this.lastTime;
+        }
+
+        if (fresh) {
+            this.lastPresented = Number.isFinite(presented) ? presented : this.lastPresented;
+            this.lastTime = Number.isFinite(time) ? time : this.lastTime;
+        }
+
+        return fresh;
     }
 
     /**

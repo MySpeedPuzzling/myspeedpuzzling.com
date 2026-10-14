@@ -4,13 +4,18 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Services\OnlineRounds;
 
+use DateTimeImmutable;
 use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Entity\CompetitionRound;
+use SpeedPuzzling\Web\Entity\OnlineRound;
 use SpeedPuzzling\Web\Exceptions\CompetitionRoundNotFound;
 use SpeedPuzzling\Web\Exceptions\OnlineLinkNotFound;
 use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use SpeedPuzzling\Web\Repository\OnlineEntryRepository;
+use SpeedPuzzling\Web\Repository\OnlineRoundRepository;
 use SpeedPuzzling\Web\Value\OnlineAccessLightContext;
+use SpeedPuzzling\Web\Value\OnlineParticipantSettings;
 use SpeedPuzzling\Web\Value\OnlineToken;
 use SpeedPuzzling\Web\Value\RoundClock;
 use Symfony\Contracts\Cache\CacheInterface;
@@ -30,9 +35,14 @@ use Symfony\Contracts\Cache\ItemInterface;
  *   heartbeat that read the link while another device's `device.ready` was committing writes its (old) answer only
  *   after forget() deleted the key - without the generation that stale answer would stay for TTL_SECONDS and the newly
  *   claiming device would be told to give way. Costs one cache read per heartbeat, never a statement.
- * - per round, for ROUND_HASH_TTL_SECONDS: the round clock's state hash (RoundClock::stateHash()), shared by every phone
- *   of the round - the heartbeat's hint to fetch the state again is at most that much late, and the round's row is
- *   read once per that time whatever the number of phones.
+ * - per round, for ROUND_HASH_TTL_SECONDS: the round clock's state hash (RoundClock::stateHash()) and the hash of its
+ *   online timing settings the phones use (OnlineParticipantSettings::hash()), shared by every phone of the round - the
+ *   heartbeat's hint to fetch the state again is at most that much late, and the round's rows are read once per that
+ *   time whatever the number of phones (a link looked up anew fills it from what it read anyway). A saved settings
+ *   change deletes it once committed (forgetRound(), OnlineRoundSettingsLiveUpdates) - the next heartbeat names the new
+ *   hash. A lookup that read the rows before the commit and stores its hashes after the delete keeps the old ones for at
+ *   most ROUND_HASH_TTL_SECONDS: a phone that already read the new state fetches it once more, one that did not hears of
+ *   the change from the push (or its next heartbeat) - never a wrong state, so no generation as for the links.
  * - per unknown token, for UNKNOWN_TTL_SECONDS: that a lookup found nothing (isUnknown() / rememberUnknown(), also
  *   used by OnlineParticipantApi for the other endpoints) - a link asked for again and again costs no statement.
  */
@@ -40,7 +50,9 @@ final readonly class OnlineAccessLight
 {
     public const string CACHE_KEY_PREFIX = 'online_access_light.';
     public const int TTL_SECONDS = 60;
-    public const string ROUND_HASH_KEY_PREFIX = 'online_round_state_hash.';
+    // Both hashes of a round ({stateHash, settingsHash}) - not the old key of the state hash alone: during a blue-green
+    // deploy the previous release still reads that one as a string
+    public const string ROUND_HASH_KEY_PREFIX = 'online_round_hashes.';
     public const int ROUND_HASH_TTL_SECONDS = 2;
     // A token a lookup found nothing for: answered without the database for a few seconds (every endpoint)
     public const string UNKNOWN_KEY_PREFIX = 'online_access_unknown.';
@@ -54,6 +66,7 @@ final readonly class OnlineAccessLight
         private OnlineAccess $onlineAccess,
         private OnlineEntryRepository $onlineEntryRepository,
         private CompetitionRoundRepository $competitionRoundRepository,
+        private OnlineRoundRepository $onlineRoundRepository,
         private ClockInterface $clock,
     ) {
     }
@@ -159,21 +172,86 @@ final readonly class OnlineAccessLight
     }
 
     /**
-     * The round clock's state hash, at most ROUND_HASH_TTL_SECONDS old - null for a round deleted meanwhile
+     * The round clock's state hash and its settings hash, at most ROUND_HASH_TTL_SECONDS old - null for a round deleted
+     * meanwhile; `settingsHash` null for a round without online timing
+     *
+     * @return null|array{stateHash: string, settingsHash: null|string}
      */
-    public function roundStateHash(string $roundId): null|string
+    public function roundHashes(string $roundId): null|array
     {
-        try {
-            $hash = $this->cache->get(self::ROUND_HASH_KEY_PREFIX . strtolower($roundId), function (ItemInterface $item) use ($roundId): string {
-                $item->expiresAfter(self::ROUND_HASH_TTL_SECONDS);
+        $key = self::roundHashKey($roundId);
 
-                return RoundClock::fromRound($this->competitionRoundRepository->get($roundId), $this->clock->now())->stateHash();
-            });
+        try {
+            $hashes = self::readHashes($this->cache->get($key, $this->computeHashes($roundId)));
+
+            if ($hashes === null) {
+                // Written by another version of this code - read again
+                $this->cache->delete($key);
+                $hashes = self::readHashes($this->cache->get($key, $this->computeHashes($roundId)));
+            }
         } catch (CompetitionRoundNotFound) {
             return null;
         }
 
-        return $hash;
+        return $hashes;
+    }
+
+    /**
+     * The next heartbeat of the round's phones reads its hashes again - called once a change of its settings is
+     * committed (OnlineRoundSettingsLiveUpdates)
+     */
+    public function forgetRound(string $roundId): void
+    {
+        $this->cache->delete(self::roundHashKey($roundId));
+    }
+
+    public static function roundHashKey(string $roundId): string
+    {
+        return self::ROUND_HASH_KEY_PREFIX . strtolower($roundId);
+    }
+
+    /**
+     * @return callable(ItemInterface): array{stateHash: string, settingsHash: null|string}
+     */
+    private function computeHashes(string $roundId): callable
+    {
+        return function (ItemInterface $item) use ($roundId): array {
+            $item->expiresAfter(self::ROUND_HASH_TTL_SECONDS);
+            // One statement: the online round with its round
+            $onlineRound = $this->onlineRoundRepository->ofRound($roundId);
+
+            if ($onlineRound !== null) {
+                return self::hashes($onlineRound->round, $onlineRound, $this->clock->now());
+            }
+
+            return self::hashes($this->competitionRoundRepository->get($roundId), null, $this->clock->now());
+        };
+    }
+
+    /**
+     * @return null|array{stateHash: string, settingsHash: null|string}
+     */
+    private static function readHashes(mixed $cached): null|array
+    {
+        if (!is_array($cached) || !is_string($cached['stateHash'] ?? null)) {
+            return null;
+        }
+
+        $settingsHash = $cached['settingsHash'] ?? null;
+
+        return ['stateHash' => $cached['stateHash'], 'settingsHash' => is_string($settingsHash) ? $settingsHash : null];
+    }
+
+    /**
+     * @return array{stateHash: string, settingsHash: null|string}
+     */
+    private static function hashes(CompetitionRound $round, null|OnlineRound $onlineRound, DateTimeImmutable $now): array
+    {
+        return [
+            // Of the stored values only - the moment does not change it (RoundClock::stateHash())
+            'stateHash' => RoundClock::fromRound($round, $now)->stateHash(),
+            'settingsHash' => $onlineRound === null ? null : OnlineParticipantSettings::of($onlineRound)->hash(),
+        ];
     }
 
     /**
@@ -191,6 +269,18 @@ final readonly class OnlineAccessLight
 
             $access = $this->onlineAccess->forToken($token);
             $onlineEntry = $access->entry === null ? null : $this->onlineEntryRepository->ofEntry($access->entry->id->toString());
+
+            // The round's hashes from the rows just read - the heartbeat asking for them next costs no statement
+            if ($access->round !== null && $access->onlineRound !== null) {
+                $round = $access->round;
+                $onlineRound = $access->onlineRound;
+                $now = $this->clock->now();
+                $this->cache->get(self::roundHashKey($round->id->toString()), static function (ItemInterface $item) use ($round, $onlineRound, $now): array {
+                    $item->expiresAfter(self::ROUND_HASH_TTL_SECONDS);
+
+                    return self::hashes($round, $onlineRound, $now);
+                });
+            }
 
             return (new OnlineAccessLightContext(
                 participantId: $access->participant->id->toString(),

@@ -14,7 +14,8 @@
     Finish detection (Phase 2, stream P2I): only when the round's detection is not off (`detection` not null - the
     detector's pinned assets, OnlineDetectorAssets) does the page carry its detection parts: the checklist's row, the
     running screen's "Finish recorded", time's up after a detected finish, the green flash - the same way without
-    trace otherwise.
+    trace otherwise, but for the two texts of the "reload the page to use it" banner the script builds when the organiser
+    turns detection on while this page is open (stream SP, _texts.html.twig).
 #}
 
 {% set hide_comparison_launcher = true %}

@@ -925,6 +925,54 @@ const scenarios = {
         grabber.stop();
     },
 
+    async 'the detector feed takes only frames the camera presented anew - a frozen camera gives the detector nothing'() {
+        const video = fakeVideo();
+        video.currentTime = 10;
+        const paint = canvases();
+        const clock = timers();
+        const grabber = new FrameGrabber({ video, toServerMs: (perf) => START + perf, createCanvas: paint.create, now: clock.now, schedule: clock.schedule, cancel: clock.cancel });
+        const feed = new DetectorFeed({ grabber, createImageBitmap: () => Promise.resolve({ width: 320, height: 180, close() {} }) });
+        const fresh = [];
+        const bitmaps = [];
+        feed.startFeed({ wants: () => true, onBitmap: (bitmap, perf) => bitmaps.push(perf), onFresh: (perf) => fresh.push(perf) });
+
+        // A frame callback with a new presentedFrames count: fresh
+        video.present(1_010, { captureTime: 1_000, presentedFrames: 30 });
+        await settle();
+        assert.deepEqual([fresh, bitmaps], [[1_000], [1_000]]);
+
+        // The same count again (the same picture): nothing
+        video.present(1_043, { captureTime: 1_033, presentedFrames: 30 });
+        await settle();
+        assert.deepEqual(bitmaps, [1_000]);
+        assert.equal(feed.repeated, 1);
+
+        // Frozen: no frame callback - the 250 ms fallback tick finds the same currentTime, again and again
+        await clock.advance(FRAME_FALLBACK_MS);
+        await clock.advance(FRAME_FALLBACK_MS);
+        await clock.advance(FRAME_FALLBACK_MS);
+        assert.deepEqual(bitmaps, [1_000], 'a frozen camera is never analysed as fresh frames');
+        assert.equal(feed.repeated, 4);
+        assert.deepEqual(fresh, [1_000], 'nothing fresh to count - no stall either');
+
+        // The fallback tick with the video moving on (a browser whose frame callbacks stay silent): fresh
+        video.currentTime = 10.5;
+        await clock.advance(FRAME_FALLBACK_MS);
+        assert.equal(bitmaps.length, 2);
+
+        // A new stream counts its frames from anywhere - changed is fresh, not only grown
+        video.present(4_010, { captureTime: 4_000, presentedFrames: 2 });
+        await settle();
+        assert.equal(bitmaps.length, 3);
+        assert.equal(bitmaps[2], 4_000);
+
+        // An old browser saying neither: fresh (nothing to tell them apart)
+        const plain = new DetectorFeed({ grabber: { video: {}, hasFrames: () => true }, createImageBitmap: () => Promise.resolve(null) });
+        assert.equal(plain.isFresh(null), true);
+        assert.equal(plain.isFresh({ source: 'timer' }), true);
+        feed.stopFeed();
+    },
+
     async 'the detector feed falls back to a small canvas where createImageBitmap refuses its resize options; a portrait frame stays portrait'() {
         const video = fakeVideo({ width: 1080, height: 1920 });
         const paint = canvases();

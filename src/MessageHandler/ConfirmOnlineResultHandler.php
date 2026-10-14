@@ -20,6 +20,7 @@ use SpeedPuzzling\Web\Repository\OnlineRoundRepository;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Results\ConfirmedOnlineResult;
 use SpeedPuzzling\Web\Value\OnlineConfirmedSource;
+use SpeedPuzzling\Web\Value\OnlineDetectionMode;
 use SpeedPuzzling\Web\Value\OnlineReviewStatus;
 use SpeedPuzzling\Web\Value\RoundClock;
 use SpeedPuzzling\Web\Value\RoundEntryResult;
@@ -38,7 +39,9 @@ use Symfony\Component\Messenger\Attribute\AsMessageHandler;
  *    its result goes through the results desk), exactly one of a moment and pieces, the round has started. A finish
  *    moment must lie between the round's start and its end and be a moment the phone recorded
  *    (GetOnlineEntryRecordedMoments - "the review only chooses between recorded moments", README §1 P2); its official
- *    time is floor((moment − start) / 1000) seconds. Unfinished: the pieces placed, the reviewer's own count (from the
+ *    time is floor((moment − start) / 1000) seconds. A detected moment (source `detection`) only in a round whose
+ *    detection is not `shadow` (stream P2F: there the detection is never shown - to the participant or the reviewer;
+ *    the Finished tap is the official moment). Unfinished: the pieces placed, the reviewer's own count (from the
  *    participant's report and the end photo).
  * 2. The official result goes through the one write path - RecordRoundResultsHandler, called directly (same
  *    transaction, same lock, no second dispatch) with one change: a new UUIDv7, `participant_round:<id>`, `result`,
@@ -87,7 +90,7 @@ readonly final class ConfirmOnlineResultHandler
         $reviewer = $this->playerRepository->get($message->actingPlayerId);
         $now = $this->clock->now();
 
-        [$result, $momentMs, $source] = $this->decision($message, $round, $onlineEntry, $now);
+        [$result, $momentMs, $source] = $this->decision($message, $round, $onlineEntry, $now, $onlineRound->detectionMode);
 
         $recorded = ($this->recordRoundResultsHandler)(new RecordRoundResults(
             competitionId: $message->competitionId,
@@ -147,9 +150,14 @@ readonly final class ConfirmOnlineResultHandler
      * @return array{RoundEntryResult, null|int, OnlineConfirmedSource} the official result, the moment, its source
      * @throws OnlineResultRefused
      */
-    private function decision(ConfirmOnlineResult $message, CompetitionRound $round, OnlineEntry $onlineEntry, DateTimeImmutable $now): array
+    private function decision(ConfirmOnlineResult $message, CompetitionRound $round, OnlineEntry $onlineEntry, DateTimeImmutable $now, OnlineDetectionMode $detection): array
     {
         $momentMs = $message->momentMs;
+
+        // `shadow`: the detection is never shown - the review offers no detected moment, and none is taken
+        if ($message->source === OnlineConfirmedSource::Detection && $detection === OnlineDetectionMode::Shadow) {
+            throw OnlineResultRefused::because(OnlineResultRefused::DETECTION_NOT_SHOWN);
+        }
 
         // Exactly one of them: a finish moment, or the pieces placed of an unfinished puzzle
         if (($momentMs === null) === ($message->pieces === null)) {

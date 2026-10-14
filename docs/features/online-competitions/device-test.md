@@ -3,7 +3,8 @@
 The camera, the wake lock, sounds and the browsers' background rules cannot be tested in CI (README §5.5 "Browser
 realities"). Run this on real phones before every test cup and after any change to `assets/controllers/compete_controller.js`
 or `assets/online/{camera,wake_lock,beeps,frame_grabber}.js`. Takes about 45 minutes (live video, steps 25-37: about 25 more;
-finish detection, steps 38-52: about 60 more, half of it the 30-minute endurance run).
+finish detection, steps 38-52: about 60 more, half of it the 30-minute endurance run; settings changed while the phones
+are open, steps 57-65: about 15 more).
 
 ## Set-up
 
@@ -79,13 +80,13 @@ studio page as the host. Headphones on the host. After any change to `assets/onl
 | 34 | During a running round, stop the media server (or block it on the phone's network) for a minute, tap Finished meanwhile | The bar says "Video: reconnecting" - no banner, nothing else changes: the clock, Finished (time, photo, burst on the server), the photos. Once the server is back the phone is "Video on" again by itself within ~30 s, never reloading |
 | 35 | Open a phone's link on the laptop while the phone is ready | The checklist says the link is in use on another device and offers "Use as a second screen"; there: the round's clock, the host's voice, the others (not while still puzzling), "Watch the studio" opens the watch page, **no Finished**. "Use this device for the camera instead" goes back to the checklist |
 | 36 | "I'm ready" on the laptop (takeover) | The phone's bar says "Video off" at once, "Opened on another device" within ~15 s, and its camera leaves the hall (the control room shows the laptop's camera instead) |
-| 37 | Organiser switches "See each other" or "Live video" off and back on (online timing page) | The phones follow at their next state fetch (open the page again, or a start): the strip goes / the phone leaves the hall and competes on, then comes back - see the open question in spikes.md S6 |
+| 37 | Organiser switches "See each other" or "Live video" off and back on (online timing page) during the round | Within ~1 s of the save (the push; steps 57-65): the strip goes / the phone leaves the hall and competes on - the clock, Finished and the photos unchanged, the preview never blinks - then comes back |
 
 ## Finish detection (rounds with "Finish: Detection" or "detection watching")
 
 The phone detects raised hands itself (README §5.7, stream P2I): MediaPipe from the pinned CDN URLs (OnlineDetectorAssets),
 a worker on the page's own camera frames, the set-up test on the checklist, candidates with a photo and a ±5 s burst.
-Set the round's "Finish" to **Detection** (`on`) for steps 38-49, to **detection watching** (`shadow`) for 50-51. Devices:
+Set the round's "Finish" to **Detection** (`on`) for steps 38-49 and 53-56, to **detection watching** (`shadow`) for 50-51. Devices:
 an **iPhone in Safari** and an **Android phone in Chrome** (one older / mid-range one if there is one), each on a stand -
 once **angled** (3-4 ft away, ≥ 12" above the table, upper body in view) and once **top-down** (only the table). After any
 change to `assets/online/compete_detection*.js`, `detector_feed.js`, `detector_pacing.js`, `finish_machine.js`,
@@ -101,11 +102,13 @@ FROM online_entry_event e JOIN online_entry o ON o.id = e.online_entry_id
 JOIN competition_participant_round r ON r.id = o.entry_id
 WHERE r.participant_id = :participant AND e.type = 'finish.candidate' ORDER BY e.client_ms;
 
--- The detector as the phone reported it when it said "I'm ready" (state, view, the set-up test, load time)
-SELECT e.device_id, e.payload->'detector' AS detector, e.payload->>'userAgent' AS browser
+-- The detector as the phone reported it when it said "I'm ready" (state, view, the set-up test, load time) - and every
+-- change after it (detector.changed: running or not, and why - slow, stalled, error, loading, ...)
+SELECT to_timestamp(e.client_ms / 1000.0) AS at, e.type, e.device_id,
+       coalesce(e.payload->'detector', e.payload) AS detector, e.payload->>'userAgent' AS browser
 FROM online_entry_event e JOIN online_entry o ON o.id = e.online_entry_id
 JOIN competition_participant_round r ON r.id = o.entry_id
-WHERE r.participant_id = :participant AND e.type = 'device.ready' ORDER BY e.client_ms;
+WHERE r.participant_id = :participant AND e.type IN ('device.ready', 'detector.changed') ORDER BY e.client_ms;
 ```
 
 | # | Do | Must happen |
@@ -119,12 +122,35 @@ WHERE r.participant_id = :participant AND e.type = 'device.ready' ORDER BY e.cli
 | 44 | Wait 15 s, raise again | A second candidate (a later raise after the cooldown is a new one); the screen shows its time |
 | 45 | A **premature** raise: raise at 1:00, keep puzzling, raise again at 2:00, tap Finished at 2:03 | Two candidates and a tap. Review: the suggestion is the first candidate; `G` moves to the second, `C` confirms it as "Confirmed from the detection"; the accuracy report shows the detection error, the delta (tap − candidate ≈ 3 s) and one false raise |
 | 46 | Gestures that are not a finish: scratch your head, adjust glasses, stretch one arm, wave one hand, put both hands on the table edge | No candidate. Note every false one (with the burst - it is the bench's material) |
-| 47 | Lock the phone while holding a raise, unlock | No candidate from before the lock carries over; the gap is in the events (`page.hidden`); a new raise after unlocking is detected |
+| 47 | Lock the phone while holding a raise, unlock | No candidate from before the lock carries over; the gap is in the events (`page.hidden`); a new raise after unlocking - once the hands were down for a moment - is detected |
 | 48 | **Endurance:** let the round run 30 minutes with detection on (and live video on, if the media server is there), charger connected | The detector keeps running (the control room's chip stays "Detection ready", its fps in live.json ≥ 2); note **heat** (by hand: cool / warm / hot), **battery %** at start and end (charger off for this one if possible), the phone's own slowdowns, and the **inference ms + fps** from live.json every 5 minutes (`presence.detector`) |
 | 49 | Time's up after a detected finish (no tap) | "Time's up" with "Finish recorded at MM:SS - Was your puzzle complete then?" and "My puzzle is complete"; tapping it ends with "Your time MM:SS - being verified"; the pieces question still works for a phone whose puzzle was not complete |
-| 50 | Round set to **detection watching** (`shadow`): repeat 42 and tap Finished 2 s after the raise | **Nothing is shown** - no flash, no chime, no "Finish recorded"; the Finished tap is the finish. Server: the candidate with its photo and burst all the same; the control room shows only the tap |
-| 51 | Review the shadow round | The suggestion is the tap ("Confirmed from the Finished button" after `C`); the candidate is listed next to it with its photo and burst; the accuracy report lists the delta |
-| 52 | A phone without the detector (iOS 16 or older, or a browser in which the row says "This phone can't detect raised hands") | Button-only, said in the row; "I'm ready" works at once; the control room's chip says "Button only" |
+| 50 | Round set to **detection watching** (`shadow`), on a slow connection (or the first visit): "I'm ready" at once, then repeat 42 and tap Finished 2 s after the raise | "I'm ready" never waits for the detector (no "Skip"); it loads in the background and watches from GO once loaded. **Nothing is shown** - no flash, no chime, no "Finish recorded"; the Finished tap is the finish. Server: the candidate with its photo and burst all the same (and a `detector.changed` "running" if it loaded after "I'm ready"); the control room shows only the tap |
+| 51 | Review the shadow round | The review shows **the tap only** - no raised hands among the moments, no candidate photo or burst, `G` steps through taps; the suggestion is the tap ("Confirmed from the Finished button" after `C`). The accuracy report lists the candidate and the delta |
+| 52 | A phone without the detector (iOS 16 or older, or a browser in which the row says "This phone can't detect raised hands") | Button-only, said in the row; "I'm ready" works at once; the control room's chip says "Button only"; a finish there is "Detector not running" in the accuracy report, not a missed raise |
+| 53 | **Hands up at GO:** raise both hands during the countdown and keep them up through GO and 5 s after it, lower them, puzzle 30 s, raise again | **No candidate at 0:01** - nothing shown, no `finish.candidate` near GO; the later raise is a candidate at its own first raised frame (the review's burst). Stream P2F's arming rule |
+| 54 | **Hidden with hands up:** with the hands up, switch to another app (or lock) for 5 s, come back still holding them up, keep holding 5 s; then lower, wait 2 s, raise | No candidate while the hands stay up after coming back (the page saw no raise begin); the raise after lowering is a candidate. `page.hidden` / `page.visible` in the events |
+| 55 | **A slow phone** (if one is at hand): the oldest phone, or one made busy (battery saver, a video call in another app) until live.json's `presence.detector.inferenceMs` stays above ~1,500 ms (the reported fps never goes below 1 - the pacing's floor) | Within ~10 s the running screen says **"Tap Finished when your puzzle is complete."** (no more "Raise both hands"), the control room's chip **"Button only"**, one `detector.changed` with `reason: slow` (query above); a finish there is "Detector not running" in the accuracy report. Note the phone and its fps / inference ms |
+| 56 | **A frozen camera:** cover nothing - make the camera stop delivering frames without the page noticing (on Android: open the camera in a split-screen app; on a laptop with a USB camera: unplug it for 5 s, plug it back) while holding the hands up, then lower and raise | While it delivers no frames the hint becomes "Tap Finished when your puzzle is complete." (never a candidate from the frozen picture); when frames come again the hint returns, the hands still up give no candidate, a raise after lowering does. Note how the browser behaved (camera.lost? frames frozen?) |
+
+## Settings changed while the phones are open (stream SP)
+
+The organiser changes the round's online timing settings while the participants' pages are open (README §5.3 "The
+organiser's settings reach open pages"). Two phones (iPhone Safari, Android Chrome), the organiser's laptop on the
+online timing page (`/en/online-rounds/{round}/settings`) and the control room. Time each change from the click on
+"Save settings" to the phone showing it (a phone filmed next to the laptop, or the screen recordings side by side).
+
+| # | Do | Must happen |
+|---|----|-------------|
+| 57 | Both phones ready on the waiting screen, the round's "Live video" off: turn it **on** and save | Within ~1 s "Video on" in both bars, the control room shows both cameras; the camera preview never blinks, the camera is not asked for again |
+| 58 | "Participants see each other" on, save; then off, save | The strip of the other camera appears on both waiting screens within ~1 s / goes within ~1 s |
+| 59 | During the round (both puzzling): "Live video" off, save; after 30 s on again | The phones leave the hall (control room: cameras gone) and compete on - clock, Finished (tap one: time, photo, burst), photos every 30 s; back in the hall within ~1 s of the second save |
+| 60 | A round whose Finish is the **Finished button** (`off`), one phone on the checklist, one on the waiting screen: set Finish to **Detection** and save | Within ~1 s a calm blue banner on both: "The organiser turned on finish detection - reload the page to use it." with **Reload**. Nothing reloads by itself. Reload on one phone: the page comes back on the same screen (consent and "I'm ready" kept), the checklist's "Finish detection" row / the detector loads. The other phone, not reloaded: the round runs with the Finished button, the control room's chip says "Button only" |
+| 61 | On a phone loaded with Finish = Detection (on the checklist, the detector still loading): switch Finish to **detection watching** (`shadow`), save; then back to Detection | `shadow`: "I'm ready" is enabled at once (no wait, no "Skip"); Detection again: "I'm ready" waits for the detector, "Skip" after 15 s - each within ~1 s of the save |
+| 62 | Same phone: switch Finish to **Finished button** (`off`) before the start | Within ~1 s the checklist's "Finish detection" row disappears and a running set-up test stops (never "Detection may miss your finish"); the control room's chip goes; live.json `presence.detector.state` = `off` at the next heartbeat. Switched back to Detection: the row and the detector come back (loading again) |
+| 63 | Start the round (or schedule it), then open the online timing page | The Finish choices are greyed out: "Fixed from the round's start until a Reset - …"; the other settings still save. A page opened before the start that changes Finish says "The round has started …" and saves nothing. Reset on the stopwatch page: the choices are free again |
+| 64 | Stop Mercure for a moment (or block the hub's address on one phone's network), repeat 57 or 58 | The change arrives with the phone's next heartbeat - within ~17 s (15 s + the round's 2 s cache); nothing else differs |
+| 65 | Before the end: "When time is up" from **Pieces left** to **Pieces placed**, save; let the round run out | The time's up screen asks how many pieces are **placed** |
 
 ## Known platform limits to note, not to fail
 

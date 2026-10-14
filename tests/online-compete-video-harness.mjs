@@ -1162,6 +1162,117 @@ const scenarios = {
         assert.equal(page.notices.length, 1, 'never twice');
     },
 
+    'the organiser\'s switches reach an open page with its next state: video and "see each other" before, during and after the round - the same camera (stream SP)'() {
+        const page = videoPage();
+        const camera = new FakeTrack();
+        // The page's input on a screen, with the round's switches as the newest state says
+        const on = (screen, { video = true, seeEachOther = false, startedAtMs = null, stoppedAtMs = null, now = START - MINUTE } = {}) => {
+            const s = state({ video, seeEachOther, startedAtMs, stoppedAtMs });
+            page.clock = now;
+
+            return { ...pageInput(), state: s, screen, view: deriveView(s, now), serverNowMs: now, cameraTrack: camera };
+        };
+        const step = (input) => {
+            const holds = page.page.plan(input);
+            page.page.tick();
+
+            return { holds, applied: page.applied.at(-1) };
+        };
+
+        // Before the round (waiting): in the hall; "see each other" on - everybody may watch, the strip shows; off again
+        let now = step(on('waiting'));
+        assert.equal(now.applied.hall, 'camera');
+        assert.equal(now.applied.camera, camera);
+        now = step(on('waiting', { seeEachOther: true }));
+        assert.equal(now.applied.subscribers, 'all');
+        assert.equal(now.applied.strip, true);
+        assert.equal(page.shown.get('videoStrip'), true);
+        now = step(on('waiting', { seeEachOther: false }));
+        assert.equal(now.applied.subscribers, 'moderators');
+        assert.equal(now.applied.strip, false);
+        assert.equal(page.shown.get('videoStrip'), false);
+
+        // Video off: out of the hall, the quiet line empty - on again: back with the very same track
+        now = step(on('waiting', { video: false }));
+        assert.equal(now.applied.hall, null);
+        assert.equal(now.applied.publish, false);
+        assert.equal(page.fields.get('videoStatus'), '');
+        now = step(on('waiting'));
+        assert.equal(now.applied.hall, 'camera');
+        assert.equal(now.applied.camera, camera);
+
+        // During the solve: off and on again - the strip never shows while puzzling, the screen holds the camera itself
+        const running = { startedAtMs: START, now: START + MINUTE };
+        now = step(on('running', { ...running, seeEachOther: true }));
+        assert.equal(now.applied.hall, 'camera');
+        assert.equal(now.applied.strip, false, 'never during the solve');
+        assert.equal(now.holds, false);
+        now = step(on('running', { ...running, video: false }));
+        assert.equal(now.applied.hall, null);
+        assert.equal(now.holds, false, 'the round screens keep the camera without video');
+        now = step(on('running', running));
+        assert.equal(now.applied.hall, 'camera');
+
+        // After the round: video holds the camera for the hall - switched off, the camera is let go as without video
+        const after = { startedAtMs: START, stoppedAtMs: START + 2 * MINUTE, now: START + 3 * MINUTE };
+        now = step(on('after', after));
+        assert.equal(now.holds, true);
+        assert.equal(now.applied.publish, true);
+        now = step(on('after', { ...after, video: false }));
+        assert.equal(now.holds, false);
+        assert.equal(now.applied.hall, null);
+
+        assert.equal(camera.stops, 0, 'the page\'s camera track is never stopped by video');
+        assert.deepEqual(page.notices, []);
+    },
+
+    async 'video switched off while on air in the studio: the studio ends - switched on again, the phone is back in the hall (stream SP)'() {
+        const page = videoPage();
+        const finished = { ...pageInput(), screen: 'finished' };
+        page.page.plan(finished);
+        page.page.heartbeat({ studioInviteId: INVITE }, page.now());
+        page.page.plan(finished);
+        page.page.tick();
+        await page.page.join();
+        page.events.onStudio({ type: 'connected' });
+        page.page.plan(finished);
+        page.page.tick();
+        assert.equal(page.data.get('studio'), 'on_air');
+
+        const off = state({ video: false, startedAtMs: START });
+        page.page.plan({ ...finished, state: off });
+        page.page.tick();
+        assert.equal(page.applied.at(-1).studio, false, 'the studio is left');
+        assert.equal(page.applied.at(-1).hall, null);
+        assert.equal(page.page.studio.outcome, 'unavailable');
+
+        page.page.plan(finished);
+        page.page.tick();
+        assert.equal(page.applied.at(-1).hall, 'camera');
+        assert.equal(page.applied.at(-1).studio, false, 'never back on air by itself');
+    },
+
+    async 'the runtime: the hall left when video goes off and joined again when it comes back - the camera track the same, never stopped (stream SP)'() {
+        const { video, livekit, server } = runtime();
+        const camera = new FakeTrack();
+
+        video.apply({ ...HALL_CAMERA, camera });
+        await settle();
+        video.apply({ ...HALL_CAMERA, camera, hall: null, publish: false });
+        await settle();
+        assert.equal(livekit.sessions[0].left, true);
+        assert.equal(video.snapshot().hall, 'off');
+
+        video.apply({ ...HALL_CAMERA, camera, subscribers: 'all' });
+        await settle();
+        assert.equal(livekit.sessions.length, 2, 'a new connection');
+        assert.deepEqual(server.requests, [{ room: 'hall', role: 'camera' }, { room: 'hall', role: 'camera' }]);
+        assert.equal(livekit.sessions[1].options.allowSubscribers, 'all', 'joins with the newest "see each other"');
+        assert.deepEqual(livekit.sessions[1].published(), [{ track: camera, source: 'camera' }]);
+        assert.equal(camera.stops, 0);
+        assert.equal(camera.readyState, 'live');
+    },
+
     'the page: an invitation never shown (the participant was solving) ends without a word'() {
         const page = videoPage();
         const running = { ...pageInput(), screen: 'running' };

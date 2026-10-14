@@ -9,15 +9,25 @@
 // - one worker per page session: init with both models, never a second worker (a failed init may be tried again in the
 //   same one), configure to the device's view for the round; no Worker / createImageBitmap / OffscreenCanvas, no WebGL2
 //   in the worker (NotSupportedError), a broken worker or 8 frame errors in a row = button-only, never blocked;
-// - the detector looks during the set-up test and from GO (running / finished) until the result is confirmed - never on
-//   a hidden page, without the camera, in a practice, a preview, on a second screen;
+// - the detector looks during the set-up test and from GO (running - not `finished`: stream P2F) until the result is
+//   confirmed - never on a hidden page, without the camera, in a practice, a preview, on a second screen; a Finished tap
+//   stops it and interrupts the machine (unarmed - undoing the tap brings it back, a raise held through it is never a
+//   candidate);
 // - the set-up test: both views watch, the first candidate decides the view (both on one frame = angled), 20 s without
 //   one = failed → button-only on this device until a test passes; kept on the device;
 // - a candidate = the event (its moment the first raised frame's), the ±5 s burst, the sharpest still taken while the
-//   hands were up as the candidate photo; `on` shows it (flash, chime, "Finish recorded"), `shadow` records silently.
+//   hands were up as the candidate photo; `on` shows it (flash, chime, "Finish recorded"), `shadow` records silently;
+// - stream P2F: the stills are let go once the photo is chosen (20 candidates hold none), a mode switch cancels every
+//   photo timer; `shadow` never holds "I'm ready" and starts looking once loaded; slow / stalled / broken detectors
+//   become button-only (said, reported, one `detector.changed`), "Try again" starts ONE new worker; the hint to raise
+//   both hands only while the detector watches.
+// - stream SP: the organiser's mode reaches an open page - `shadow` <-> `on` before GO switch the machine, the hold on
+//   "I'm ready" and the hints at once; `off` stops the detector (the worker terminated, the set-up test never counted
+//   as failed, nothing shown, `detector.changed` off) and ONE new worker starts when it comes back; a page without the
+//   detection parts offers "reload to use it" before the start only.
 
 import assert from 'node:assert/strict';
-import { detectionLoadWanted, detectionMode, LOAD_RETRY_MS } from '../assets/online/compete_detection_basics.js';
+import { detectionLoadWanted, detectionMode, LOAD_RETRY_MS, reloadForDetection } from '../assets/online/compete_detection_basics.js';
 import {
     browserSupportsDetector,
     buttonOnly,
@@ -25,9 +35,12 @@ import {
     CANDIDATE_STILLS,
     CHECK_CODES,
     checklistRow,
+    createDetectorWatch,
     createSetUpTest,
     DEFAULT_VIEW,
+    DETECTOR_REASONS,
     detectorRun,
+    detectorUsage,
     feedback,
     FLASH_MS,
     holdsReady,
@@ -40,11 +53,14 @@ import {
     saveDetectorChoice,
     SETUP_TEST_MS,
     sharpestStill,
+    SLOW_FOR_MS,
     stateAfterInit,
+    STALL_FOR_MS,
     STILL_SPACING_MS,
     STORAGE_DETECTOR,
     telemetry,
     viewSignals,
+    WATCH_STALE_MS,
 } from '../assets/online/compete_detection.js';
 import { CompeteDetectionPage, DETECTION_CHUNK_NAME } from '../assets/online/compete_detection_page.js';
 import { FINISH_MACHINE_VERSION } from '../assets/online/finish_machine.js';
@@ -161,7 +177,14 @@ function fakeGrabber() {
         }),
         createCanvas: () => ({ width: 0, height: 0, getContext: () => null }),
         // A camera frame captured at `perf`: asked, then a bitmap handed over
+        // (the feed tells the page of every fresh frame first - detector_feed.js onFresh)
         frame(perf) {
+            if (grabber.feed === null) {
+                return null;
+            }
+
+            grabber.feed.onFresh?.(perf);
+
             if (grabber.feed === null || !grabber.feed.wants(perf)) {
                 return null;
             }
@@ -198,7 +221,7 @@ function paintRecorder() {
 /**
  * A detection page wired to fakes, with what it recorded.
  */
-function page({ supported = true, store = storage(), visible = () => true, createWorker = null } = {}) {
+function page({ supported = true, store = storage(), visible = () => true, createWorker = null, recording = true } = {}) {
     const clock = timers();
     const grabber = fakeGrabber();
     const paint = paintRecorder();
@@ -208,6 +231,7 @@ function page({ supported = true, store = storage(), visible = () => true, creat
     const photos = [];
     const detections = [];
     const chimes = [];
+    const usages = [];
     let nextEvent = 1;
 
     const detection = new CompeteDetectionPage({
@@ -228,6 +252,15 @@ function page({ supported = true, store = storage(), visible = () => true, creat
         captureBurst: (eventId, momentMs) => bursts.push({ eventId, momentMs }),
         capturePhoto: (eventId, still) => photos.push({ eventId, still }),
         onDetection: (detected) => detections.push(detected),
+        recordDetector: (usage) => {
+            if (!recording) {
+                return null;
+            }
+
+            usages.push(usage);
+
+            return { id: `detector-${usages.length}` };
+        },
         beeps: { chime: () => chimes.push(clock.now()) },
         serverNow: () => OFFSET + clock.now(),
         requestRender: () => {},
@@ -244,7 +277,7 @@ function page({ supported = true, store = storage(), visible = () => true, creat
         isVisible: visible,
     });
 
-    return { detection, clock, grabber, paint, workers, recorded, bursts, photos, detections, chimes, store };
+    return { detection, clock, grabber, paint, workers, recorded, bursts, photos, detections, chimes, store, usages };
 }
 
 function input(overrides = {}) {
@@ -308,6 +341,26 @@ async function readyDetector(t, view = 'any') {
     t.workers[0].answer({ type: 'ready', view, models: ['pose', 'gesture'], worker: 'classic', loadMs: 840 });
 }
 
+/**
+ * A device that passed its test (angled), the round running from `at`, the worker configured.
+ */
+async function running(t, { mode = 'on', at = 0 } = {}) {
+    await readyDetector(t);
+    t.detection.choice = { view: 'angled', test: 'passed', atMs: null };
+    t.clock.set(at);
+    t.detection.plan(input({ mode, screen: 'running', ready: true }));
+    t.workers.at(-1).answer({ type: 'configured', view: 'angled' });
+}
+
+/**
+ * A worker answer to the last frame of the page's current worker.
+ */
+function answerLast(t, angled, { inferenceMs = 60 } = {}) {
+    const worker = t.workers.at(-1);
+    const frame = worker.of('frame').at(-1).message;
+    worker.answer({ type: 'result', frameId: frame.frameId, captureTimeMs: frame.captureTimeMs, inferenceMs, signal: { view: 'angled', angled: { raised: angled > 0, score: angled } } });
+}
+
 const scenarios = {
     async 'the chunk loads from the checklist on - with the parts, the mode not off, consent, on a device that competes'() {
         const on = { round: { settings: { detection: 'on' } } };
@@ -341,10 +394,11 @@ const scenarios = {
         const base = { mode: 'on', state: 'ready', test: null, testActive: false, screen: 'running', ready: true, visible: true, cameraLive: true };
 
         assert.equal(detectorRun(base), 'round');
-        assert.equal(detectorRun({ ...base, screen: 'finished' }), 'round', 'a tap does not stop it - a later raise is evidence too');
+        assert.equal(detectorRun({ ...base, screen: 'finished' }), 'off', 'the participant tapped Finished: nothing after it is a candidate');
         assert.equal(detectorRun({ ...base, mode: 'shadow' }), 'round');
+        assert.equal(detectorRun({ ...base, stopped: 'slow' }), 'off', 'stopped during the round: button-only');
 
-        for (const screen of ['waiting', 'countdown', 'timeup', 'after', 'checklist']) {
+        for (const screen of ['waiting', 'countdown', 'finished', 'timeup', 'after', 'checklist']) {
             assert.equal(detectorRun({ ...base, screen }), 'off', screen);
         }
 
@@ -384,6 +438,8 @@ const scenarios = {
         assert.equal(buttonOnly({ state: 'error', test: null }), true);
         assert.equal(buttonOnly({ state: 'ready', test: 'failed' }), true);
         assert.equal(buttonOnly({ state: 'ready', test: 'skipped' }), true);
+        assert.equal(buttonOnly({ state: 'ready', test: 'passed', stopped: 'slow' }), true, 'stopped during the round');
+        assert.equal(buttonOnly({ state: 'ready', test: 'passed', stopped: null }), false);
 
         // The heartbeat: a detector not used reports `off`, never a fps it does not run at
         const stats = { fps: 4.8, inferenceMs: 61.2 };
@@ -391,13 +447,28 @@ const scenarios = {
         assert.deepEqual(telemetry({ mode: 'on', state: 'ready', test: 'failed', view: 'angled', stats }), { ok: false, fps: null, mode: 'on', state: 'off', inferenceMs: null, view: null });
         assert.deepEqual(telemetry({ mode: 'shadow', state: 'unsupported', test: null, view: 'angled', stats }), { ok: false, fps: null, mode: 'shadow', state: 'unsupported', inferenceMs: null, view: null });
         assert.deepEqual(telemetry({ mode: 'on', state: 'loading', test: null, view: 'angled' }), { ok: false, fps: null, mode: 'on', state: 'loading', inferenceMs: null, view: null });
+        assert.deepEqual(telemetry({ mode: 'on', state: 'ready', test: 'passed', view: 'angled', stats, stopped: 'slow' }), { ok: false, fps: null, mode: 'on', state: 'off', inferenceMs: null, view: null }, 'slow: the control room\'s "Button only"');
+
+        // detector.changed: does it watch the round here - else why not
+        assert.deepEqual(detectorUsage({ mode: 'on', state: 'ready', test: 'passed', view: 'topDown' }), { state: 'ready', running: true, reason: null, view: 'topDown' });
+        assert.deepEqual(detectorUsage({ mode: 'shadow', state: 'ready', test: null, view: 'sideways' }), { state: 'ready', running: true, reason: null, view: 'angled' }, 'untested: the default view');
+        assert.deepEqual(detectorUsage({ mode: 'on', state: 'ready', test: 'passed', view: 'angled', stopped: 'slow' }), { state: 'ready', running: false, reason: 'slow', view: null });
+        assert.deepEqual(detectorUsage({ mode: 'on', state: 'error', test: null, view: 'angled', stopped: 'stalled' }).reason, 'stalled');
+        assert.deepEqual(detectorUsage({ mode: 'on', state: 'loading', test: null, view: 'angled' }).reason, 'loading');
+        assert.deepEqual(detectorUsage({ mode: 'on', state: 'unsupported', test: null, view: 'angled' }).reason, 'unsupported');
+        assert.deepEqual(detectorUsage({ mode: 'on', state: 'ready', test: 'failed', view: 'angled' }).reason, 'failed');
+        assert.deepEqual(detectorUsage({ mode: 'on', state: 'ready', test: 'skipped', view: 'angled' }).reason, 'skipped');
+        assert.deepEqual(detectorUsage({ mode: 'off', state: 'ready', test: 'passed', view: 'angled' }).reason, 'off');
+        assert.deepEqual(DETECTOR_REASONS, ['off', 'loading', 'unsupported', 'error', 'stalled', 'slow', 'failed', 'skipped']);
 
         assert.deepEqual(readyDetails({ state: 'ready', test: 'passed', view: 'topDown', loadMs: 1234.6 }), { state: 'ready', view: 'topDown', setupTest: 'passed', loadMs: 1235 });
         assert.deepEqual(readyDetails({ state: 'error', test: null, view: 'angled' }), { state: 'error', view: null, setupTest: null, loadMs: null });
 
-        // "I'm ready" waits only while it loads - a skip, a failure, an unsupported phone never hold anybody up
+        // "I'm ready" waits only while it loads in `on` mode - `shadow`, a skip, a failure, an unsupported phone never
+        // hold anybody up
         assert.equal(holdsReady({ mode: 'on', state: 'loading', test: null }), true);
-        assert.equal(holdsReady({ mode: 'shadow', state: 'loading', test: 'failed' }), true);
+        assert.equal(holdsReady({ mode: 'on', state: 'loading', test: 'failed' }), true);
+        assert.equal(holdsReady({ mode: 'shadow', state: 'loading', test: null }), false, 'shadow loads in the background');
         assert.equal(holdsReady({ mode: 'on', state: 'loading', test: 'skipped' }), false);
         assert.equal(holdsReady({ mode: 'on', state: 'unsupported', test: null }), false);
         assert.equal(holdsReady({ mode: 'on', state: 'error', test: null }), false);
@@ -430,18 +501,54 @@ const scenarios = {
             signal: { view: 'any', angled: { raised: angled, score: angled ? 0.9 : 0 }, topDown: { raised: topDown, score: topDown ? 0.8 : 0 } },
         });
 
-        // Gestures see the open palms (a top-down mount): topDown
+        // Gestures see the open palms (a top-down mount): topDown - once the hands were seen down (the machines arm like
+        // the round's: the test proves the whole cycle)
         const top = createSetUpTest({ startedAtMs: 1_000 });
-        assert.equal(top.push(result(1_200, false, true)), 'running');
+        for (const at of [1_000, 1_300, 1_600]) {
+            assert.equal(top.push(result(at, false, false)), 'running');
+        }
+
+        assert.equal(top.push(result(1_800, false, true)), 'running');
         assert.equal(top.holding(), true);
-        assert.equal(top.push(result(1_400, false, true)), 'running');
-        assert.equal(top.push(result(1_700, false, true)), 'passed', 'held 0.5 s');
+        assert.equal(top.push(result(2_000, false, true)), 'running');
+        assert.equal(top.push(result(2_300, false, true)), 'passed', 'held 0.5 s');
         assert.equal(top.view, 'topDown');
-        assert.equal(top.push(result(1_900, true, true)), 'passed', 'decided once');
+        assert.equal(top.push(result(2_500, true, true)), 'passed', 'decided once');
+
+        // Hands already up when the test starts: not even "holding" - lowered and raised again, it passes
+        const early = createSetUpTest({ startedAtMs: 0 });
+        for (const at of [0, 200, 400, 700]) {
+            early.push(result(at, true, false));
+        }
+
+        assert.equal(early.status, 'running');
+        assert.equal(early.holding(), false);
+        for (const at of [900, 1_200, 1_500]) {
+            early.push(result(at, false, false));
+        }
+
+        for (const at of [1_700, 1_900, 2_200]) {
+            early.push(result(at, true, false));
+        }
+
+        assert.equal(early.status, 'passed');
+
+        // A detector that reads "raised" on every frame (a poster, an odd pose) fails the test - it would never arm in
+        // the round
+        const stuck = createSetUpTest({ startedAtMs: 0 });
+        for (let at = 0; at <= SETUP_TEST_MS; at += 250) {
+            stuck.push(result(at, true, false));
+        }
+
+        assert.equal(stuck.push(result(SETUP_TEST_MS + 1, true, false)), 'failed');
 
         // Both models see it on the same frame: angled
         const both = createSetUpTest({ startedAtMs: 0 });
-        for (const at of [200, 400, 700]) {
+        for (const at of [0, 300, 600]) {
+            both.push(result(at, false, false));
+        }
+
+        for (const at of [800, 1_000, 1_300]) {
             both.push(result(at, true, true));
         }
 
@@ -531,6 +638,11 @@ const scenarios = {
         assert.equal(feedback({ mode: 'on', detections, startedAtMs: START, serverNowMs: START, screen: 'timeup' }).detected, true, 'time\'s up says it too');
         assert.equal(feedback({ mode: 'on', detections, startedAtMs: START, serverNowMs: START, screen: 'waiting' }).detected, false);
         assert.deepEqual(feedback({ mode: 'on', detections, startedAtMs: START, serverNowMs: START, buttonOnly: true, screen: 'running' }).buttonOnly, true);
+        // A finish recorded stays shown when the detector stopped later; the hint never asks for a raise nobody sees
+        assert.equal(feedback({ mode: 'on', detections, startedAtMs: START, serverNowMs: START, buttonOnly: true, screen: 'running' }).detected, true);
+        const blind = feedback({ mode: 'on', detections: [], startedAtMs: START, serverNowMs: START, suppressedUntilMs: START + 1, watching: false, screen: 'running' });
+        assert.deepEqual([blind.hint, blind.suppressed, blind.buttonOnly], [false, false, true], 'not watching (a frozen camera, still loading): "Tap Finished"');
+        assert.equal(feedback({ mode: 'on', detections: [], startedAtMs: START, serverNowMs: START, watching: false, screen: 'finished' }).buttonOnly, false);
 
         const silent = feedback({ mode: 'shadow', detections, startedAtMs: START, serverNowMs: START + 2_846_000, flashUntilMs: START + 2_846_500, screen: 'running' });
         assert.deepEqual(silent, { detected: false, momentMs: null, elapsedMs: null, flash: false, suppressed: false, hint: false, buttonOnly: false }, 'shadow shows nothing');
@@ -556,8 +668,15 @@ const scenarios = {
         assert.deepEqual(checklistRow(ready), { level: 'info', code: 'untested', skip: false, retry: false, test: true });
 
         const holding = createSetUpTest({ startedAtMs: 0 });
-        holding.push({ captureTimeMs: 100, signal: { view: 'any', angled: { raised: true, score: 0.9 }, topDown: { raised: false, score: 0 } } });
+        for (const at of [100, 400, 700]) {
+            holding.push({ captureTimeMs: at, signal: { view: 'any', angled: { raised: false, score: 0 }, topDown: { raised: false, score: 0 } } });
+        }
+
+        holding.push({ captureTimeMs: 900, signal: { view: 'any', angled: { raised: true, score: 0.9 }, topDown: { raised: false, score: 0 } } });
         assert.equal(checklistRow({ ...ready, setUp: holding }).code, 'holding');
+
+        // `shadow` never holds "I'm ready": no "still preparing", no skip
+        assert.deepEqual(checklistRow({ ...ready, state: 'loading', loadingForMs: LOAD_SKIP_AFTER_MS * 2, mode: 'shadow' }), { level: 'warn', code: 'loading', skip: false, retry: false, test: false });
 
         for (const code of ['loading', 'loading_slow', 'testing', 'holding', 'passed_angled', 'passed_topDown', 'untested', 'failed', 'skipped', 'unsupported', 'error']) {
             assert.ok(CHECK_CODES.includes(code), code);
@@ -609,7 +728,7 @@ const scenarios = {
         t.clock.set(1_000);
         t.detection.plan(input());
 
-        await frames(t, 1_000, 2_400, (at) => ({ angled: 0, topDown: at >= 1_600 ? 0.85 : 0 }));
+        await frames(t, 1_000, 2_400, (at) => ({ angled: 0, topDown: at >= 1_800 ? 0.85 : 0 }));
         assert.equal(t.detection.setUp, null);
         assert.deepEqual(loadDetectorChoice(t.store, 'p1').view, 'topDown');
         assert.equal(loadDetectorChoice(t.store, 'p1').test, 'passed');
@@ -679,7 +798,7 @@ const scenarios = {
         t.detection.plan(input());
         assert.equal(t.detection.run, 'setup', 'a failed device may try again');
         t.clock.set(40_000);
-        await frames(t, 40_000, 41_000, () => ({ angled: 0.9, topDown: 0 }));
+        await frames(t, 40_000, 41_600, (at) => ({ angled: at >= 40_800 ? 0.9 : 0, topDown: 0 }));
         assert.equal(loadDetectorChoice(t.store, 'p1').test, 'passed');
         assert.equal(t.detection.isButtonOnly(), false);
     },
@@ -742,13 +861,22 @@ const scenarios = {
         assert.equal(failed.workers[0].of('init').length, 2);
         assert.equal(failed.detection.state, 'loading');
 
-        // The worker itself breaks: error, and it stays so
+        // The worker itself breaks: error, terminated at once - "Try again" starts ONE new worker (never two alive), the
+        // old one is not listened to any more
         failed.workers[0].fail();
         assert.equal(failed.detection.state, 'error');
+        assert.equal(failed.workers[0].terminated, true);
         failed.detection.retry();
         failed.detection.plan(input());
-        assert.equal(failed.workers.length, 1);
-        assert.equal(failed.workers[0].of('init').length, 2, 'a broken worker is not asked again');
+        assert.equal(failed.workers.length, 2);
+        assert.equal(failed.workers[0].of('init').length, 2, 'the broken worker is not asked again');
+        assert.equal(failed.workers[1].of('init').length, 1);
+        assert.equal(failed.detection.state, 'loading');
+        failed.workers[0].answer({ type: 'ready', view: 'any', models: ['pose'], worker: 'classic', loadMs: 1 });
+        assert.equal(failed.detection.state, 'loading', 'the old worker\'s answer is ignored');
+        failed.workers[1].answer({ type: 'ready', view: 'any', models: ['pose', 'gesture'], worker: 'classic', loadMs: 900 });
+        assert.equal(failed.detection.state, 'ready');
+        assert.equal(failed.workers.filter((worker) => !worker.terminated).length, 1);
 
         // A worker that can not even be made
         const refused = page({ createWorker: () => { throw new Error('blocked'); } });
@@ -792,6 +920,21 @@ const scenarios = {
         assert.equal(t.detection.state, 'error');
         assert.equal(t.grabber.isFeeding(), false);
         assert.equal(t.detection.telemetry().state, 'error');
+        assert.equal(t.workers[0].terminated, true, 'a broken worker is let go at once');
+        t.detection.plan(input({ screen: 'running', ready: true }));
+        assert.deepEqual(t.usages.at(-1), { state: 'error', running: false, reason: 'error', view: null }, 'one detector.changed records it');
+
+        // "Try again" works afterwards: ONE new worker, init with both models - never two alive
+        t.detection.retry();
+        assert.equal(t.workers.length, 2);
+        assert.equal(t.workers[1].of('init').length, 1);
+        assert.equal(t.detection.state, 'loading');
+        t.workers[1].answer({ type: 'ready', view: 'any', models: ['pose', 'gesture'], worker: 'classic', loadMs: 700 });
+        t.detection.plan(input({ screen: 'running', ready: true }));
+        assert.equal(t.detection.run, 'round');
+        assert.equal(t.detection.isButtonOnly(), false);
+        t.detection.retry();
+        assert.equal(t.workers.length, 2, 'nothing to try again while it works');
     },
 
     async 'a raise in `on` mode: the event at the first raised frame, the burst, the sharpest still, the flash and the chime'() {
@@ -857,7 +1000,7 @@ const scenarios = {
         t.detection.plan(input({ screen: 'running', ready: true }));
         t.workers[0].answer({ type: 'configured', view: 'angled' });
 
-        await frames(t, 1_000, 1_600, (at) => ({ angled: at >= 1_000 ? 0.8 : 0 }));
+        await frames(t, 200, 1_600, (at) => ({ angled: at >= 1_000 ? 0.8 : 0 }));
         assert.equal(t.recorded.length, 1);
         // Down at once: the second still is never taken - the hands are on the puzzle again
         await frames(t, 1_800, 2_200, () => ({ angled: 0 }));
@@ -866,8 +1009,8 @@ const scenarios = {
         assert.equal(t.grabber.stills.length, 1);
         assert.equal(t.photos.length, 1);
 
-        // Up again 3 s later, held - inside the cooldown
-        await frames(t, 4_000, 5_000, () => ({ angled: 0.9 }));
+        // Up again 2 s later, held - inside the cooldown (the frames go on meanwhile: a gap would unarm the machine)
+        await frames(t, 2_600, 5_000, (at) => ({ angled: at >= 4_000 ? 0.9 : 0 }));
         assert.equal(t.recorded.length, 1);
         t.detection.plan(input({ screen: 'running', ready: true, serverNowMs: OFFSET + 5_000 }));
         t.detection.tick();
@@ -881,7 +1024,7 @@ const scenarios = {
         t.detection.plan(input({ mode: 'shadow', screen: 'running', ready: true }));
         t.workers[0].answer({ type: 'configured', view: 'angled' });
 
-        await frames(t, 1_000, 1_800, () => ({ angled: 0.8 }));
+        await frames(t, 200, 1_800, (at) => ({ angled: at >= 1_000 ? 0.8 : 0 }));
         assert.equal(t.recorded.length, 1);
         assert.equal(t.recorded[0].data.mode, 'shadow');
         assert.equal(t.bursts.length, 1);
@@ -906,10 +1049,10 @@ const scenarios = {
         t.workers[0].answer({ type: 'configured', view: 'angled' });
 
         visible = false;
-        assert.equal(t.grabber.frame(1_000), null, 'hidden: its timers fire, nothing goes out');
+        assert.equal(t.grabber.frame(100), null, 'hidden: its timers fire, nothing goes out');
         visible = true;
 
-        await frames(t, 1_200, 1_600, () => ({ angled: 0.8 }));
+        await frames(t, 200, 1_600, (at) => ({ angled: at >= 1_200 ? 0.8 : 0 }));
         const machine = t.detection.machine;
         assert.equal(machine.state().phase, 'holding');
 
@@ -929,6 +1072,445 @@ const scenarios = {
         t.detection.close();
         assert.deepEqual(t.workers[0].posted.at(-1).message, { type: 'dispose' });
         assert.equal(t.workers[0].terminated, true);
+    },
+
+    async 'hands up at GO are never a candidate: the round\'s machine arms on hands seen down - the real raise later is one'() {
+        const t = page();
+        await running(t, { at: 1_500 });
+
+        // GO + 1.5 s: the hands are up already (and stay up for 3 s)
+        await frames(t, 1_600, 4_600, () => ({ angled: 0.9 }));
+        assert.equal(t.recorded.length, 0, 'no candidate at 0:01');
+        assert.equal(t.detection.machine.state().armed, false);
+        t.detection.plan(input({ screen: 'running', ready: true, serverNowMs: OFFSET + 4_600 }));
+        t.detection.tick();
+        assert.equal(t.paint.shown.get('detectionHint'), true, 'it watches - "Done? Raise both hands"');
+
+        await frames(t, 4_800, 9_000, (at) => ({ angled: at >= 7_000 ? 0.9 : 0 }));
+        assert.equal(t.recorded.length, 1);
+        assert.equal(t.recorded[0].clientMs, OFFSET + 7_000, 'the real raise - its first raised frame');
+        assert.equal(t.recorded[0].data.machineVersion, 2);
+    },
+
+    async 'Finished stops the detector: no candidate after the tap; "I tapped by mistake" brings it back unarmed'() {
+        const t = page();
+        await running(t);
+
+        // Hands down, then up and holding when the participant taps Finished (a frame in flight)
+        await frames(t, 200, 1_400, (at) => ({ angled: at >= 1_200 ? 0.9 : 0 }));
+        assert.equal(t.detection.machine.state().phase, 'holding');
+        t.clock.set(1_600);
+        assert.notEqual(t.grabber.frame(1_600), null);
+
+        t.detection.plan(input({ screen: 'finished', ready: true }));
+        assert.equal(t.detection.run, 'off');
+        assert.equal(t.grabber.isFeeding(), false, 'the finished screen runs the detector off');
+        assert.equal(t.detection.machine.state().armed, false, 'interrupted: unarmed');
+        assert.equal(t.detection.machine.state().phase, 'idle');
+        answerLast(t, 0.9);
+        assert.equal(t.recorded.length, 0, 'the frame in flight completes no hold');
+
+        // Undone: running again - hands still up = nothing; down, then up = a candidate
+        t.clock.set(3_000);
+        t.detection.plan(input({ screen: 'running', ready: true }));
+        assert.equal(t.detection.run, 'round');
+        await frames(t, 3_000, 4_000, () => ({ angled: 0.9 }));
+        assert.equal(t.recorded.length, 0);
+        await frames(t, 4_200, 6_600, (at) => ({ angled: at >= 5_600 ? 0.9 : 0 }));
+        assert.deepEqual(t.recorded.map((event) => event.clientMs), [OFFSET + 5_600]);
+    },
+
+    async 'an answer captured before the detector began to look (a pause, a reset) never reaches the round\'s machine'() {
+        const t = page();
+        await running(t);
+        await frames(t, 200, 1_000, () => ({ angled: 0 }));
+        t.clock.set(1_200);
+        assert.notEqual(t.grabber.frame(1_200), null);
+
+        // The camera drops out and comes back: the detector stops looking, then looks again from 1 500
+        t.detection.plan(input({ screen: 'running', ready: true, cameraLive: false }));
+        t.clock.set(1_500);
+        t.detection.plan(input({ screen: 'running', ready: true }));
+        answerLast(t, 0);
+        assert.equal(t.detection.counts.stale, 1);
+        assert.equal(t.detection.machine.state().frames, 5, 'only the frames before the pause');
+    },
+
+    async '20 candidates hold no stills afterwards - each session lets its stills go once the photo is chosen'() {
+        const t = page();
+        await running(t);
+        const sessions = [];
+        let at = 200;
+
+        for (let cycle = 0; cycle < 20; cycle++) {
+            // Down 1 s, up 1 s (a candidate), down past the cooldown
+            const raiseAt = at + 1_000;
+            await frames(t, at, raiseAt + 1_000, (moment) => ({ angled: moment >= raiseAt ? 0.9 : 0 }));
+            assert.equal(t.recorded.length, cycle + 1, `candidate ${cycle + 1}`);
+            sessions.push(...t.detection.sessions.values());
+
+            for (let still = 0; still < CANDIDATE_STILLS; still++) {
+                const resolve = t.grabber.stills.at(-1);
+                resolve({ blob: { size: 2_000_000 }, captureMs: OFFSET + raiseAt + 700 + still * STILL_SPACING_MS, sharpness: still });
+                await t.clock.advance(STILL_SPACING_MS);
+            }
+
+            at = raiseAt + 10_400;
+        }
+
+        assert.equal(t.photos.length, 20);
+        assert.equal(t.detection.sessions.size, 0, 'no session kept');
+        assert.equal(new Set(sessions).size, 20);
+        assert.ok(sessions.every((session) => session.done && session.stills.length === 0), 'no session holds a still');
+    },
+
+    async 'a mode switch ends every photo session: its timers cancelled, the best still so far is the photo'() {
+        const t = page();
+        await running(t);
+        const scheduled = [];
+        const schedule = t.detection.schedule;
+        t.detection.schedule = (task, ms) => {
+            const timer = schedule(task, ms);
+            scheduled.push(timer);
+
+            return timer;
+        };
+
+        await frames(t, 200, 1_600, (at) => ({ angled: at >= 1_000 ? 0.9 : 0 }));
+        assert.equal(t.recorded.length, 1);
+        t.grabber.stills[0]({ blob: { size: 1 }, captureMs: OFFSET + 1_640, sharpness: 9 });
+        await settle();
+        assert.equal(scheduled.filter((timer) => !timer.cancelled).length, 1, 'the next still is due');
+
+        // The organiser switches on → shadow while the hands are still up
+        t.detection.plan(input({ mode: 'shadow', screen: 'running', ready: true }));
+        assert.equal(scheduled.filter((timer) => !timer.cancelled).length, 0, 'no timer left running');
+        assert.equal(t.detection.sessions.size, 0);
+        assert.equal(t.photos.length, 1, 'the still taken so far is the photo');
+        assert.equal(t.photos[0].still.sharpness, 9);
+    },
+
+    async 'a bitmap the worker could not take (postMessage threw) is closed - it holds its pixels until then'() {
+        const t = page();
+        await running(t);
+        t.workers[0].postMessage = () => {
+            throw new Error('DataCloneError');
+        };
+        t.clock.set(200);
+        const bitmap = t.grabber.frame(200);
+        assert.notEqual(bitmap, null);
+        assert.equal(bitmap.closed, true);
+        assert.equal(t.detection.pacing.stats().inFlight, false, 'the next frame may go');
+    },
+
+    async '`shadow` never holds "I\'m ready": ready while it loads - once loaded it looks (angled, untested), detector.changed says so'() {
+        const t = page();
+        t.detection.plan(input({ mode: 'shadow' }));
+        assert.equal(t.detection.state, 'loading');
+        assert.equal(t.detection.blocksReady(), false, 'no wait, no skip button');
+        t.clock.set(LOAD_SKIP_AFTER_MS + 1);
+        t.detection.tick();
+        assert.equal(t.paint.shown.get('detectionSkip'), false);
+        assert.equal(t.paint.fields.get('detectionCheck'), 'detection_check_loading{"seconds":0}');
+
+        // "I'm ready" now: device.ready says loading
+        assert.equal(t.detection.readyDetails().state, 'loading');
+        t.detection.plan(input({ mode: 'shadow', screen: 'waiting', ready: true }));
+        assert.deepEqual(t.usages, [], 'device.ready told it already');
+
+        // Loaded during the wait: no test by itself (not on the checklist), the round looks with the default view
+        t.workers[0].answer({ type: 'ready', view: 'any', models: ['pose', 'gesture'], worker: 'classic', loadMs: 30_000 });
+        t.detection.plan(input({ mode: 'shadow', screen: 'waiting', ready: true }));
+        assert.equal(t.detection.setUp, null);
+        assert.deepEqual(t.usages, [{ state: 'ready', running: true, reason: null, view: 'angled' }], 'the server learns it watches now');
+        t.detection.plan(input({ mode: 'shadow', screen: 'running', ready: true }));
+        assert.equal(t.detection.run, 'round');
+        assert.deepEqual(t.workers[0].of('configure').at(-1).message, { type: 'configure', view: DEFAULT_VIEW });
+        assert.equal(t.usages.length, 1, 'once per change');
+    },
+
+    async 'a reload of a ready page: what the detector does is told once it is known - loading, then watching'() {
+        const t = page();
+        t.detection.plan(input({ screen: 'waiting', ready: true }));
+        assert.deepEqual(t.usages.map((usage) => usage.reason), ['loading']);
+        t.workers[0].answer({ type: 'ready', view: 'any', models: ['pose', 'gesture'], worker: 'classic', loadMs: 500 });
+        t.detection.plan(input({ screen: 'waiting', ready: true }));
+        assert.deepEqual(t.usages.map((usage) => usage.running), [false, true]);
+
+        // Nothing recorded (no consent yet on this page, a preview): asked again on the next plan
+        const silent = page({ recording: false });
+        silent.detection.plan(input({ screen: 'waiting', ready: true }));
+        silent.detection.plan(input({ screen: 'waiting', ready: true }));
+        assert.equal(silent.detection.reportedUsage, null);
+    },
+
+    async 'a detector too slow to ever hold a raise: button-only (`slow`) - said, reported, one detector.changed'() {
+        const t = page();
+        await running(t);
+        await frames(t, 200, 1_000, () => ({ angled: 0 }));
+        t.detection.plan(input({ screen: 'running', ready: true }));
+        t.detection.tick();
+        assert.equal(t.paint.shown.get('detectionHint'), true);
+
+        // Answers 2 s apart from here on (inference ~2 s)
+        let at = 1_000;
+        while (t.detection.stopped === null && at < 1_000 + SLOW_FOR_MS * 2) {
+            at += 2_000;
+            t.clock.set(at);
+            assert.notEqual(t.grabber.frame(at), null, `frame at ${at}`);
+            answerLast(t, 0, { inferenceMs: 1_950 });
+            t.detection.plan(input({ screen: 'running', ready: true }));
+        }
+
+        assert.equal(t.detection.stopped, 'slow');
+        assert.ok(at - 1_000 >= SLOW_FOR_MS && at - 1_000 <= SLOW_FOR_MS + 2_000, `after ~10 s (${at - 1_000} ms)`);
+        assert.equal(t.detection.run, 'off');
+        assert.equal(t.grabber.isFeeding(), false);
+        assert.equal(t.workers[0].terminated, false, 'a slow worker works - it is kept, nothing more is sent');
+        assert.deepEqual(t.detection.telemetry(), { ok: false, fps: null, mode: 'on', state: 'off', inferenceMs: null, view: null });
+        // (this page was ready without device.ready - its first plan told the server it watches)
+        assert.deepEqual(t.usages, [{ state: 'ready', running: true, reason: null, view: 'angled' }, { state: 'ready', running: false, reason: 'slow', view: null }]);
+        t.detection.tick();
+        assert.equal(t.paint.shown.get('detectionHint'), false);
+        assert.equal(t.paint.shown.get('detectionButtonOnly'), true, '"Tap Finished when your puzzle is complete."');
+        t.detection.plan(input({ screen: 'running', ready: true }));
+        assert.equal(t.usages.length, 2, 'once');
+    },
+
+    async 'a detector that hangs while the camera gives frames: button-only (`stalled`), the worker terminated'() {
+        const t = page();
+        await running(t);
+        await frames(t, 200, 600, () => ({ angled: 0 }));
+
+        // Fresh frames every 100 ms, the worker never answers
+        let at = 600;
+
+        while (t.detection.stopped === null && at < 600 + STALL_FOR_MS * 2) {
+            at += 100;
+            t.clock.set(at);
+            t.grabber.frame(at);
+        }
+
+        assert.equal(t.detection.stopped, 'stalled');
+        assert.ok(at - 700 >= STALL_FOR_MS && at - 700 < STALL_FOR_MS + 200, `after ~10 s of frames (${at - 700} ms)`);
+        assert.equal(t.workers[0].terminated, true);
+        assert.equal(t.detection.state, 'error');
+        t.detection.plan(input({ screen: 'running', ready: true }));
+        assert.equal(t.usages.at(-1).reason, 'stalled');
+        assert.equal(t.detection.telemetry().state, 'error');
+    },
+
+    async 'a frozen camera (no fresh frames) is no stall: the hint becomes "Tap Finished" while nothing is seen, then back'() {
+        const t = page();
+        await running(t);
+        await frames(t, 200, 1_000, () => ({ angled: 0 }));
+
+        // 20 s without a fresh frame (the page drawn every 50 ms meanwhile): nothing offered, nothing stalls
+        for (let at = 1_050; at <= 1_000 + WATCH_STALE_MS + 50; at += 50) {
+            t.clock.set(at);
+            t.detection.plan(input({ screen: 'running', ready: true }));
+        }
+
+        t.detection.tick();
+        assert.equal(t.paint.shown.get('detectionHint'), false);
+        assert.equal(t.paint.shown.get('detectionButtonOnly'), true, 'not watching: the button');
+
+        for (let at = 4_100; at <= 21_000; at += 50) {
+            t.clock.set(at);
+            t.detection.plan(input({ screen: 'running', ready: true }));
+        }
+
+        assert.equal(t.detection.stopped, null, 'a frozen camera is not a broken detector');
+
+        // It thaws: answers again - the hint is back; the machine saw a gap (unarmed: hands up now are no candidate)
+        await frames(t, 21_000, 22_000, () => ({ angled: 0.9 }));
+        t.detection.plan(input({ screen: 'running', ready: true }));
+        t.detection.tick();
+        assert.equal(t.paint.shown.get('detectionHint'), true);
+        assert.equal(t.detection.machine.state().armed, false);
+        assert.equal(t.recorded.length, 0);
+    },
+
+    async 'the organiser switches `shadow` <-> `on` before GO: the hold on "I\'m ready", the machine and the hints follow at once (stream SP)'() {
+        const t = page();
+        t.detection.plan(input({ mode: 'shadow' }));
+        assert.equal(t.detection.state, 'loading');
+        assert.equal(t.detection.blocksReady(), false, '`shadow` never holds anybody up');
+
+        t.detection.plan(input({ mode: 'on' }));
+        assert.equal(t.detection.blocksReady(), true, '`on`: "I\'m ready" waits for the detector');
+        assert.equal(t.workers.length, 1, 'the same worker - nothing loads twice');
+        t.clock.set(LOAD_SKIP_AFTER_MS + 1);
+        t.detection.tick();
+        assert.equal(t.paint.shown.get('detectionSkip'), true, '`on` offers the skip after a while');
+
+        t.detection.plan(input({ mode: 'shadow' }));
+        t.detection.tick();
+        assert.equal(t.paint.shown.get('detectionSkip'), false);
+        assert.equal(t.detection.blocksReady(), false);
+
+        // Loaded and tested; "I'm ready" tapped - the waiting screen
+        t.workers[0].answer({ type: 'ready', view: 'any', models: ['pose', 'gesture'], worker: 'classic', loadMs: 900 });
+        t.detection.choice = { view: 'angled', test: 'passed', atMs: null };
+        t.detection.plan(input({ mode: 'shadow', screen: 'waiting', ready: true }));
+        const shadowMachine = t.detection.machine;
+        assert.equal(shadowMachine.rules.mode, 'shadow');
+        t.detection.plan(input({ mode: 'on', screen: 'waiting', ready: true }));
+        assert.notEqual(t.detection.machine, shadowMachine, 'another mode: a new machine');
+        assert.equal(t.detection.machine.rules.mode, 'on');
+        assert.equal(t.workers.length, 1);
+
+        // GO in `on`: the hint to raise both hands
+        t.clock.set(20_000);
+        t.detection.plan(input({ mode: 'on', screen: 'running', ready: true }));
+        t.workers[0].answer({ type: 'configured', view: 'angled' });
+        t.detection.tick();
+        assert.equal(t.paint.shown.get('detectionHint'), true, '"Done? Raise both hands - or tap Finished."');
+        assert.equal(t.detection.telemetry().mode, 'on');
+
+        // Another page switched back to `shadow` before GO: nothing shown in the round, the detector still watches
+        const quiet = page();
+        await running(quiet, { mode: 'on' });
+        quiet.detection.plan(input({ mode: 'shadow', screen: 'waiting', ready: true }));
+        quiet.detection.plan(input({ mode: 'shadow', screen: 'running', ready: true }));
+        quiet.detection.tick();
+        assert.equal(quiet.paint.shown.get('detectionHint'), false);
+        assert.equal(quiet.paint.shown.get('detectionButtonOnly'), false);
+        assert.equal(quiet.detection.machine.rules.mode, 'shadow');
+        assert.equal(quiet.detection.run, 'round', '`shadow` still watches - silently');
+    },
+
+    async '`off` before GO stops the detector: the worker goes, the set-up test never fails, nothing shown - on again: ONE new worker (stream SP)'() {
+        const t = page();
+        await readyDetector(t);
+        t.detection.plan(input());
+        assert.notEqual(t.detection.setUp, null, 'the set-up test watches');
+        assert.equal(t.grabber.isFeeding(), true);
+        await frames(t, 200, 600, () => ({ angled: 0, topDown: 0 }));
+
+        t.detection.plan(input({ mode: 'off' }));
+        assert.equal(t.detection.setUp, null, 'the test stops - untested');
+        assert.equal(t.grabber.isFeeding(), false, 'no frame goes anywhere');
+        assert.equal(t.workers[0].terminated, true, 'the worker and its memory go');
+        assert.deepEqual(t.workers[0].posted.at(-1).message, { type: 'dispose' });
+        assert.equal(t.detection.state, 'off');
+        assert.equal(t.detection.blocksReady(), false);
+        assert.deepEqual(t.detection.telemetry(), { ok: false, fps: null, mode: 'off', state: 'off', inferenceMs: null, view: null });
+
+        // Long past the test's window: still untested, never failed (nobody could pass it)
+        await t.clock.advance(SETUP_TEST_MS + 1_000);
+        t.detection.plan(input({ mode: 'off' }));
+        assert.equal(t.detection.choice.test, null);
+        assert.equal(loadDetectorChoice(t.store, 'p1').test, null);
+        assert.equal(t.workers.length, 1, 'nothing starts while it is off');
+
+        // "I'm ready" and the round in `off`: nothing shown, the server told the detector is not used
+        t.detection.plan(input({ mode: 'off', screen: 'waiting', ready: true }));
+        assert.deepEqual(t.usages.at(-1), { state: 'off', running: false, reason: 'off', view: null });
+        t.detection.plan(input({ mode: 'off', screen: 'running', ready: true }));
+        t.detection.tick();
+
+        for (const part of ['detectionDetected', 'detectionTimeUp', 'detectionHint', 'detectionSuppressed', 'detectionButtonOnly']) {
+            assert.equal(t.paint.shown.get(part), false, part);
+        }
+
+        assert.equal(t.detection.detectedMoment(), null);
+
+        // On again (before GO - a Reset made the round wait again): ONE new worker, loaded like on a fresh page
+        t.detection.plan(input({ mode: 'on', screen: 'waiting', ready: true }));
+        assert.equal(t.workers.length, 2);
+        assert.equal(t.workers[1].terminated, false);
+        assert.equal(t.workers[1].of('init').length, 1);
+        assert.equal(t.detection.state, 'loading');
+        t.detection.plan(input({ mode: 'on', screen: 'waiting', ready: true }));
+        assert.equal(t.workers.length, 2, 'never a third');
+        t.workers[1].answer({ type: 'ready', view: 'any', models: ['pose', 'gesture'], worker: 'classic', loadMs: 700 });
+        t.detection.plan(input({ mode: 'on', screen: 'waiting', ready: true }));
+        assert.deepEqual(t.usages.at(-1), { state: 'ready', running: true, reason: null, view: 'angled' });
+
+        // A message of the terminated worker is not listened to
+        t.workers[0].answer({ type: 'error', message: 'late' });
+        assert.equal(t.detection.state, 'ready');
+    },
+
+    async 'a page without the detection parts: "reload to use it" when the organiser turns detection on - before the start only (stream SP)'() {
+        const on = { round: { settings: { detection: 'on' } } };
+        const base = { hasParts: false, state: on, screen: 'checklist', view: { screen: 'waiting' } };
+
+        assert.equal(reloadForDetection(base), true);
+        assert.equal(reloadForDetection({ ...base, state: { round: { settings: { detection: 'shadow' } } } }), true, '`shadow` needs the parts too');
+        assert.equal(reloadForDetection({ ...base, screen: 'welcome' }), true);
+        assert.equal(reloadForDetection({ ...base, screen: 'waiting' }), true);
+        assert.equal(reloadForDetection({ ...base, screen: 'waiting', view: { screen: 'scheduled' } }), true, 'a start set, minutes away');
+
+        assert.equal(reloadForDetection({ ...base, hasParts: true }), false, 'a page with the parts applies it live');
+        assert.equal(reloadForDetection({ ...base, state: { round: { settings: { detection: 'off' } } } }), false);
+        assert.equal(reloadForDetection({ ...base, state: null }), false);
+
+        for (const view of ['countdown', 'running', 'ended']) {
+            assert.equal(reloadForDetection({ ...base, view: { screen: view } }), false, view);
+            assert.equal(reloadForDetection({ ...base, screen: 'waiting', view: { screen: view } }), false, view);
+        }
+
+        for (const screen of ['countdown', 'running', 'finished', 'timeup', 'after', 'no_round', 'not_entered', 'taken_over', 'dead_link', 'second_screen']) {
+            assert.equal(reloadForDetection({ ...base, screen }), false, screen);
+        }
+
+        assert.equal(reloadForDetection({ ...base, practice: true }), false, 'not in the middle of a practice');
+        assert.equal(reloadForDetection({ ...base, preview: true }), false);
+        assert.equal(reloadForDetection({ ...base, secondScreen: true }), false);
+        assert.equal(reloadForDetection({ ...base, linkDead: true }), false);
+        assert.equal(reloadForDetection({ ...base, view: null }), false);
+    },
+
+    async 'the watch: slow needs a sustained stretch, one long interval is a gap; the stall counts only frames offered'() {
+        const watch = createDetectorWatch();
+        watch.start(0);
+        assert.equal(watch.watching(100), true, 'just began to look');
+        assert.equal(watch.watching(WATCH_STALE_MS), false);
+
+        // A freeze: one interval of 12 s, then normal - not slow
+        assert.equal(watch.answer(1_000, 1_100), null);
+        assert.equal(watch.answer(13_000, 13_100), null);
+        assert.equal(watch.answer(13_200, 13_300), null);
+
+        // Every answer 1.6 s after the last: slow once 10 s of them (at least 3) passed
+        let capture = 13_200;
+        let verdict = null;
+        let count = 0;
+
+        while (verdict === null) {
+            capture += 1_600;
+            count += 1;
+            verdict = watch.answer(capture, capture + 1_500);
+        }
+
+        assert.equal(verdict, 'slow');
+        assert.equal(count, 7, '7 × 1.6 s = 11.2 s');
+
+        // The stall: fresh frames for 10 s without an answer; a pause in the frames (a hidden page) starts it again
+        const stall = createDetectorWatch();
+        stall.start(0);
+
+        for (let at = 0; at < 6_000; at += 100) {
+            stall.frame(at);
+        }
+
+        assert.equal(stall.check(6_000), null);
+
+        for (let at = 6_000 + WATCH_STALE_MS + 1; at < 16_000; at += 100) {
+            stall.frame(at);
+        }
+
+        assert.equal(stall.check(16_000), null, 'counted from after the pause (9 001)');
+
+        for (let at = 16_001; at <= 19_001; at += 100) {
+            stall.frame(at);
+        }
+
+        assert.equal(stall.check(19_001), 'stalled');
+        stall.answer(19_000, 19_200);
+        assert.equal(stall.check(19_200), null, 'an answer clears it');
     },
 };
 

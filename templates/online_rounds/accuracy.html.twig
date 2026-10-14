@@ -9,7 +9,9 @@
     breakdown groups the participants by phone and by camera view. A round with detection off shows the Phase 1 report.
     Variables: competition, round (CompetitionRound), online_round, rows (list of OnlineAccuracyRow), summaries
     (measure => AccuracySummary), started_at_ms, detection, detection_shown, by_device / by_view (lists of
-    OnlineAccuracyGroup)
+    OnlineAccuracyGroup), detector_not_running (finishes on a phone whose detector did not watch - never a missed raise,
+    stream P2F), completeness (Phase 3: OnlineAccuracy::OUTCOMES => count + `compared` - null while the completeness
+    check is off, and nothing of it is shown then)
 #}
 
 {% set hide_comparison_launcher = true %}
@@ -52,6 +54,7 @@
                         <th scope="col" class="text-end">{{ 'online_rounds.accuracy.breakdown.detected'|trans }}</th>
                         <th scope="col" class="text-end">{{ 'online_rounds.accuracy.breakdown.missed'|trans }}</th>
                         <th scope="col" class="text-end">{{ 'online_rounds.accuracy.breakdown.false'|trans }}</th>
+                        <th scope="col" class="text-end">{{ 'online_rounds.accuracy.breakdown.not_running'|trans }}</th>
                         <th scope="col" class="text-end">{{ 'online_rounds.accuracy.breakdown.median_error'|trans }}</th>
                         <th scope="col" class="text-end">{{ 'online_rounds.accuracy.breakdown.median_delta'|trans }}</th>
                     </tr>
@@ -73,6 +76,7 @@
                             <td class="text-end">{{ group.detected }}</td>
                             <td class="text-end">{{ group.missedRaises }}</td>
                             <td class="text-end">{{ group.falseRaises }}</td>
+                            <td class="text-end" data-accuracy-group-not-running>{{ group.detectorNotRunning }}</td>
                             <td class="text-end font-monospace">{{ _self.adjustment(group.detectionError.median) }}</td>
                             <td class="text-end font-monospace">{{ _self.adjustment(group.delta.median) }}</td>
                         </tr>
@@ -160,7 +164,30 @@
             </div>
         </section>
 
+        {% if completeness is not null %}
+            {# The automatic completeness check's verdict on the confirmed photo against the reviewer (Phase 3, advisory) #}
+            <section class="card shadow-sm mb-4" aria-labelledby="online-accuracy-completeness-title" data-accuracy-completeness="{{ completeness.compared }}">
+                <div class="card-body">
+                    <h2 class="h6" id="online-accuracy-completeness-title">{{ 'online_rounds.accuracy.completeness.title'|trans }}</h2>
+                    <p class="small text-body-secondary mb-2">{{ 'online_rounds.accuracy.completeness.help'|trans }}</p>
+                    <dl class="online-accuracy-summary mb-0">
+                        {% for outcome in ['agree', 'false_complete', 'false_gap', 'unsure', 'not_checked'] %}
+                            {% set alarm = outcome == 'false_complete' and completeness[outcome] > 0 %}
+                            <div class="{{ alarm ? 'text-danger' }}" data-completeness-outcome="{{ outcome }}">
+                                <dt class="{{ alarm ? 'text-danger fw-semibold' }}">
+                                    {%- if alarm %}<i class="bi bi-exclamation-octagon-fill me-1" aria-hidden="true"></i>{% endif -%}
+                                    {{- ('online_rounds.accuracy.completeness.' ~ outcome)|trans -}}
+                                </dt>
+                                <dd class="font-monospace">{{ completeness[outcome] }}</dd>
+                            </div>
+                        {% endfor %}
+                    </dl>
+                </div>
+            </section>
+        {% endif %}
+
         {% if detection_shown %}
+            <p class="small mb-4" data-accuracy-not-running="{{ detector_not_running }}">{{ 'online_rounds.accuracy.summary.not_running'|trans({'%count%': detector_not_running}) }}</p>
             <div class="online-accuracy-measures">
                 {{ _self.measure_card(summaries.detection_error, 'detection_error') }}
                 {{ _self.measure_card(summaries.delta, 'delta') }}
@@ -190,11 +217,14 @@
                             <th scope="col">{{ 'online_rounds.accuracy.col.source'|trans }}</th>
                             <th scope="col" class="text-end">{{ 'online_rounds.accuracy.col.late'|trans }}</th>
                             <th scope="col" class="text-end">{{ 'online_rounds.accuracy.col.result'|trans }}</th>
+                            {% if completeness is not null %}
+                                <th scope="col">{{ 'online_rounds.accuracy.col.completeness'|trans }}</th>
+                            {% endif %}
                         </tr>
                     </thead>
                     <tbody>
                         {% for row in rows %}
-                            <tr data-accuracy-row="{{ row.participantId }}">
+                            <tr data-accuracy-row="{{ row.participantId }}"{% if row.completenessOutcome == 'false_complete' %} class="table-danger"{% endif %}>
                                 <td>{{ row.name }}</td>
                                 <td>{{ ('online_rounds.review.status.' ~ row.status)|trans }}</td>
                                 <td class="text-end font-monospace">{{ _self.elapsed(row.tapElapsedMs) }}</td>
@@ -204,7 +234,10 @@
                                     <td class="text-end font-monospace" data-accuracy-detected>{{ _self.elapsed(row.detectedElapsedMs) }}</td>
                                     <td class="text-end font-monospace" data-accuracy-detection-error>{{ _self.adjustment(row.detectionErrorMs) }}</td>
                                     <td class="text-end font-monospace" data-accuracy-delta>{{ _self.adjustment(row.deltaMs) }}</td>
-                                    <td class="text-end" data-accuracy-misses>{{ row.missedRaises is not null ? 'online_rounds.accuracy.misses'|trans({'%missed%': row.missedRaises, '%false%': row.falseRaises ?? 0}) }}</td>
+                                    <td class="text-end" data-accuracy-misses>
+                                        {{- row.missedRaises is not null ? 'online_rounds.accuracy.misses'|trans({'%missed%': row.missedRaises, '%false%': row.falseRaises ?? 0}) -}}
+                                        {%- if row.detectorNotRunning > 0 %}<br><span class="small text-body-secondary" data-accuracy-not-running-row>{{ 'online_rounds.accuracy.not_running'|trans }}</span>{% endif -%}
+                                    </td>
                                     <td data-accuracy-view>{{ row.view is not null ? ('online_rounds.accuracy.view.' ~ (view_keys[row.view] ?? 'angled'))|trans }}</td>
                                     <td class="small" data-accuracy-device>{{ row.device is not null ? row.device ~ ' · ' ~ row.browser }}</td>
                                 {% endif %}
@@ -219,6 +252,11 @@
                                         {{- 'online_rounds.review.result.did_not_start'|trans -}}
                                     {%- endif -%}
                                 </td>
+                                {% if completeness is not null %}
+                                    <td class="{{ row.completenessOutcome == 'false_complete' ? 'text-danger fw-semibold' }}" data-accuracy-completeness-outcome="{{ row.completenessOutcome ?? '' }}">
+                                        {{- row.completenessOutcome is not null ? ('online_rounds.accuracy.completeness.' ~ row.completenessOutcome)|trans -}}
+                                    </td>
+                                {% endif %}
                             </tr>
                         {% endfor %}
                     </tbody>

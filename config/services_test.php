@@ -68,6 +68,13 @@ return static function (ContainerConfigurator $configurator): void {
     $services->set(\SpeedPuzzling\Web\Tests\TestDouble\InMemoryStudioInviteSignal::class);
     $services->alias(\SpeedPuzzling\Web\Services\LiveKit\StudioInviteSignal::class, \SpeedPuzzling\Web\Tests\TestDouble\InMemoryStudioInviteSignal::class);
 
+    // The completeness check's CV worker (Phase 3, tools/online-cv/) answers from a static MockHttpClient that records
+    // every request - no test talks to a real worker (it survives the browser's kernel reboots, like LiveKit's)
+    $services->set('online_cv.test_http_client', \Symfony\Component\HttpClient\MockHttpClient::class)
+        ->factory([\SpeedPuzzling\Web\Tests\TestDouble\OnlineCvHttpMock::class, 'client']);
+    $services->set(\SpeedPuzzling\Web\Services\OnlineRounds\OnlineCvClient::class)
+        ->arg('$httpClient', service('online_cv.test_http_client'));
+
     // The participant API's rate limits without Redis: the framework limiters of config/packages/test/rate_limiter.php
     // (RedisSlidingWindowLimiterTest covers the production limiter against a real Redis)
     foreach (['online_participant_ip', 'online_participant', 'online_participant_events', 'online_participant_media'] as $name) {

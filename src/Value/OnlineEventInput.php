@@ -17,7 +17,8 @@ namespace SpeedPuzzling\Web\Value;
  *   apart: at most OnlineEntryQuota::MAX_MANIFEST_FRAMES frames), no NUL in any key or text (Postgres refuses it), with
  *   what its type needs: `timeup.pieces` a piece count (`pieces`, optional `measure` left / placed), `media.uploaded`
  *   the media id (`mediaId`, optional `bytes` and a burst's `manifest` of frames), `finish.*` optional photo / burst
- *   media ids, `finish.candidate` (Phase 2) its finish machine's numbers, view and mode (isCandidate()).
+ *   media ids, `finish.candidate` (Phase 2) its finish machine's numbers, view and mode (isCandidate()),
+ *   `detector.changed` (stream P2F) whether the detector watches the round and why not (isDetectorChange()).
  * Anything else wrong is `invalid_fields`. RecordOnlineEntryEventsHandler decides the rest (seen before, the round, the
  * participant's entry, the caps, the side effects).
  */
@@ -39,6 +40,8 @@ final readonly class OnlineEventInput
     ];
     public const array CANDIDATE_VIEWS = ['angled', 'topDown'];
     public const array CANDIDATE_MODES = ['off', 'shadow', 'on'];
+    // Why a phone's finish detector does not watch the round (assets/online/compete_detection.js DETECTOR_REASONS)
+    public const array DETECTOR_REASONS = ['off', 'loading', 'unsupported', 'error', 'stalled', 'slow', 'failed', 'skipped'];
 
     /**
      * @param array<string, mixed> $data
@@ -183,6 +186,7 @@ final readonly class OnlineEventInput
             OnlineEventType::FinishCandidate => self::isOptionalUuid($data['photoMediaId'] ?? null)
                 && self::isOptionalUuid($data['burstMediaId'] ?? null)
                 && self::isCandidate($data),
+            OnlineEventType::DetectorChanged => self::isDetectorChange($data),
             default => true,
         };
 
@@ -211,6 +215,24 @@ final readonly class OnlineEventInput
         return ($straddled === null || is_bool($straddled))
             && ($view === null || in_array($view, self::CANDIDATE_VIEWS, true))
             && ($mode === null || in_array($mode, self::CANDIDATE_MODES, true));
+    }
+
+    /**
+     * `detector.changed` (stream P2F, assets/online/compete_detection.js detectorUsage()): `running` a boolean, `state`
+     * one of OnlineHeartbeat::DETECTOR_STATES; `reason` (null while it runs) one of DETECTOR_REASONS, `view` (null when
+     * it does not run) one of CANDIDATE_VIEWS
+     *
+     * @param array<string, mixed> $data
+     */
+    private static function isDetectorChange(array $data): bool
+    {
+        $reason = $data['reason'] ?? null;
+        $view = $data['view'] ?? null;
+
+        return is_bool($data['running'] ?? null)
+            && in_array($data['state'] ?? null, OnlineHeartbeat::DETECTOR_STATES, true)
+            && ($reason === null || in_array($reason, self::DETECTOR_REASONS, true))
+            && ($view === null || in_array($view, self::CANDIDATE_VIEWS, true));
     }
 
     /**

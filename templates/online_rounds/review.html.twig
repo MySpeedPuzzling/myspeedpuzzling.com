@@ -8,12 +8,17 @@
     below, the participant's evidence (online_review_entry) and the confirmations (online_review_confirm).
     Variables: competition, round (CompetitionRound), online_round, state (OnlineReview::list()), selected (a
     participant id or null), participant_placeholder
+    Phase 3 - the completeness check (README §5.8, advisory), only while it is on (state.round.completenessCheck): a
+    badge on each finish photo, its suspected gaps drawn over it (a switch hides them), the list "needs a look" first.
+    Off: nothing of it on the page.
 #}
 
 {% set hide_comparison_launcher = true %}
 {% set round_id = round.id.toString %}
-{# Phase 2: with the finish detection on (shadow / on) the moments are taps and raised hands, G moves on #}
-{% set detection_on = online_round.detectionMode.value != 'off' %}
+{# Phase 2: with the finish detection `on` the moments are taps and raised hands, G moves on. `shadow` (stream P2F):
+   the detection stays invisible to the reviewer too - taps only, as with detection off (OnlineReview) #}
+{% set detection_on = online_round.detectionMode.value == 'on' %}
+{% set completeness_check = state.round.completenessCheck is defined and state.round.completenessCheck %}
 
 {% block title %}{{ 'online_rounds.review.title'|trans }} - {{ round.name }}{% endblock %}
 
@@ -130,7 +135,20 @@
                                 </figure>
                                 <figure class="online-review-photo mb-0">
                                     <figcaption class="small fw-semibold mb-1" data-online-review-target="photoCaption">{{ 'online_rounds.review.detail.photo'|trans }}</figcaption>
-                                    <a href="#" target="_blank" rel="noopener" data-online-review-target="tapPhotoLink" hidden><img class="online-review-photo-image" alt="{{ 'online_rounds.review.detail.photo'|trans }}" data-online-review-target="tapPhoto"></a>
+                                    {%- if completeness_check %}
+                                        {# The automatic check's verdict on this photo - advisory, the reviewer decides #}
+                                        {# `hidden` on a plain wrapper - a display utility would win over it #}
+                                        <div data-online-review-target="tapPhotoCheckLine" hidden>
+                                            <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+                                                <span data-online-review-target="tapPhotoCheck"></span>
+                                                <div class="form-check form-switch mb-0 small" data-online-review-target="showGapsSwitch" hidden>
+                                                    <input class="form-check-input" type="checkbox" role="switch" id="online-review-show-gaps" checked data-action="online-review#toggleGaps" data-online-review-target="showGaps">
+                                                    <label class="form-check-label" for="online-review-show-gaps">{{ 'online_rounds.review.check.show_gaps'|trans }}</label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    {% endif %}
+                                    <a href="#" target="_blank" rel="noopener" {% if completeness_check %}class="online-check-photo" {% endif %}data-online-review-target="tapPhotoLink" hidden><img class="online-review-photo-image" alt="{{ 'online_rounds.review.detail.photo'|trans }}" data-online-review-target="tapPhoto">{% if completeness_check %}<span class="online-check-boxes" aria-hidden="true" data-online-review-target="tapPhotoBoxes"></span>{% endif %}</a>
                                     <p class="small text-body-secondary" data-online-review-target="tapPhotoPending" hidden>{{ 'online_rounds.review.detail.pending'|trans }}</p>
                                 </figure>
                             </div>
@@ -172,7 +190,10 @@
                             <p class="small text-danger mt-1 mb-0" id="online-review-pieces-error" data-online-review-target="piecesError" hidden>{{ 'online_rounds.review.detail.pieces_invalid'|trans }}</p>
                             <figure class="online-review-end-photo mt-2 mb-0" data-online-review-target="endPhotoBox" hidden>
                                 <figcaption class="small fw-semibold mb-1">{{ 'online_rounds.review.detail.end_photo'|trans }}</figcaption>
-                                <a href="#" target="_blank" rel="noopener" data-online-review-target="endPhotoLink"><img class="online-review-photo-image" alt="{{ 'online_rounds.review.detail.end_photo'|trans }}" data-online-review-target="endPhoto"></a>
+                                {%- if completeness_check %}
+                                    <div class="mb-1" data-online-review-target="endPhotoCheck"></div>
+                                {% endif %}
+                                <a href="#" target="_blank" rel="noopener" {% if completeness_check %}class="online-check-photo" {% endif %}data-online-review-target="endPhotoLink"><img class="online-review-photo-image" alt="{{ 'online_rounds.review.detail.end_photo'|trans }}" data-online-review-target="endPhoto">{% if completeness_check %}<span class="online-check-boxes" aria-hidden="true" data-online-review-target="endPhotoBoxes"></span>{% endif %}</a>
                             </figure>
                         </div>
 

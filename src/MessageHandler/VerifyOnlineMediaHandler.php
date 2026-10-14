@@ -8,19 +8,25 @@ use Psr\Log\LoggerInterface;
 use SpeedPuzzling\Web\Entity\OnlineEntryMedia;
 use SpeedPuzzling\Web\Exceptions\OnlineEntryMediaNotFound;
 use SpeedPuzzling\Web\Exceptions\OnlineMediaObjectMissing;
+use SpeedPuzzling\Web\Message\CheckOnlineFinishPhoto;
 use SpeedPuzzling\Web\Message\VerifyOnlineMedia;
 use SpeedPuzzling\Web\Repository\OnlineEntryMediaRepository;
+use SpeedPuzzling\Web\Services\OnlineRounds\OnlineCvSettings;
 use SpeedPuzzling\Web\Services\OnlineRounds\OnlineMediaStorage;
 use SpeedPuzzling\Web\Services\OnlineRounds\OnlineStoreBreaker;
 use SpeedPuzzling\Web\Value\OnlineEntryQuota;
 use SpeedPuzzling\Web\Value\OnlineMediaObject;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
+use Symfony\Component\Messenger\MessageBusInterface;
+use Symfony\Component\Messenger\Stamp\DispatchAfterCurrentBusStamp;
 
 /**
  * After a phone reported an evidence object uploaded (`media.uploaded`): is it really in its store, and is it what was
  * declared - the review uses only what was checked (README §5.11). Async (config/packages/messenger.php): a HEAD
  * request to object storage never holds up the phone's request.
- * - As declared (the size, the content type, within OnlineEntryQuota::MAX_MEDIA_BYTES) → verifiedBytes.
+ * - As declared (the size, the content type, within OnlineEntryQuota::MAX_MEDIA_BYTES) → verifiedBytes; a finish photo
+ *   (`candidate`, `button`, `end`) then goes to the completeness check while it is on (CheckOnlineFinishPhoto, Phase 3 -
+ *   after the commit, async).
  * - Anything else is deleted from the store and stays unverified, with a warning: the presigned URL is signed for the
  *   declared type and length, so only a store that does not check signed headers lets it through.
  * - A missing object fails the message (OnlineMediaObjectMissing), so the async transport tries again later.
@@ -35,6 +41,8 @@ readonly final class VerifyOnlineMediaHandler
         private OnlineMediaStorage $onlineMediaStorage,
         private OnlineStoreBreaker $onlineStoreBreaker,
         private LoggerInterface $logger,
+        private MessageBusInterface $messageBus,
+        private OnlineCvSettings $onlineCvSettings,
     ) {
     }
 
@@ -65,6 +73,10 @@ readonly final class VerifyOnlineMediaHandler
 
         if ($problem === null) {
             $media->markVerified($object->bytes);
+
+            if ($media->kind->isFinishPhoto() && $this->onlineCvSettings->isOn()) {
+                $this->messageBus->dispatch(new CheckOnlineFinishPhoto($media->id->toString()), [new DispatchAfterCurrentBusStamp()]);
+            }
 
             return;
         }

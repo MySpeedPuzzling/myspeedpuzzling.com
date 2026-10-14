@@ -21,6 +21,18 @@
  *
  * Decided here - each a tunable, with its reason:
  *
+ * - **Arming** (stream P2F): a raise that was already going on when the machine began to look is never a candidate -
+ *   nobody saw the hands go up, so nobody knows when they did. The machine starts **unarmed** (construction, reset())
+ *   and is unarmed again after every gap (the frame that ended the gap included) and after interrupt() (the page
+ *   stopped looking - a Finished tap, a paused run); while unarmed a raised frame is ignored (counted: `unarmed`) and
+ *   no raise starts. It **arms** once the hands were seen down for at least `armMs` (600 ms) of consecutive frames
+ *   that are not raised, and at least `armFrames` (3) of them: a hold is 0.5 s, so "down" must be at least as sure as
+ *   "up" - at 4-5 fps that is 4 frames, at 1 fps 3 frames over 2 s; a single frame between two raised ones (a
+ *   flicker, the lowest point of a wave) never arms it. One rule covers GO (the page feeds frames from GO + 1.5 s, the
+ *   hands may be up already), a hidden page shown again, a camera restarted or taken over, a stale frame answered
+ *   after a reset and the set-up test right before GO. Once armed it stays armed through raises and cooldowns; a raise
+ *   kept across a gap (`gapPolicy: 'bridge'`) keeps it armed - that raise began armed. `armMs: 0, armFrames: 0` = armed
+ *   from the start (the bench's comparison - the P2I machine).
  * - **A gap** (two frames more than `maxGapMs` = 1.5 s apart): the pacing never goes below 1 fps (detector_pacing.js),
  *   so a longer silence is not the detector backing off but the page not looking - the tab hidden, the camera muted
  *   (iOS), the worker stalled. Nobody saw what the hands did meanwhile, so a raise that was **holding** restarts
@@ -49,10 +61,12 @@
  * Events (each a plain object with `type`):
  * - `candidate` {id, atMs, detectedAtMs, heldMs, windowFromMs, windowToMs, upFrames, droppedFrames, score (mean),
  *   minScore, peakScore, straddled, mode, shadow, version}
- * - `raise_end` {candidateId, windowFromMs, windowToMs, upFrames, droppedFrames, endReason: 'lowered' | 'gap'}
+ * - `raise_end` {candidateId, windowFromMs, windowToMs, upFrames, droppedFrames, endReason: 'lowered' | 'gap' |
+ *   'interrupted'}
  * - `raise_short` {atMs, toMs, heldMs, upFrames, endReason} - a raise that ended before it was held long enough
  * - `raise_suppressed` {atMs, untilMs, reason: 'cooldown'} - once per raise held during the cooldown
  * - `gap` {fromMs, toMs, gapMs}
+ * - `armed` {atMs, downFromMs} - the hands were seen down long enough: from here on a raise may become a candidate
  *
  * Pure - pinned by tests/online-finish-machine-harness.mjs; scored on footage by tools/online-bench/score.mjs.
  */
@@ -63,8 +77,8 @@ export const MODE_ON = 'on';
 export const MODES = [MODE_OFF, MODE_SHADOW, MODE_ON];
 
 // Bumped whenever the rules change what a candidate is - stored with every candidate, so the accuracy report can tell
-// detector generations apart
-export const FINISH_MACHINE_VERSION = 1;
+// detector generations apart. 2 = arming (stream P2F): a raise going on when the machine began to look is never one
+export const FINISH_MACHINE_VERSION = 2;
 
 export const HOLD_MS = 500;
 export const COOLDOWN_MS = 10_000;
@@ -72,6 +86,8 @@ export const MAX_GAP_MS = 1500;
 export const MAX_DROP_FRAMES = 1;
 export const MAX_DROP_MS = 700;
 export const MIN_SCORE = 0;
+export const ARM_MS = 600;
+export const ARM_FRAMES = 3;
 
 export const GAP_RESTART = 'restart';
 export const GAP_BRIDGE = 'bridge';
@@ -96,6 +112,8 @@ export const DEFAULT_RULES = Object.freeze({
     maxDropMs: MAX_DROP_MS,
     minScore: MIN_SCORE,
     straddle: STRADDLE_WHOLE,
+    armMs: ARM_MS,
+    armFrames: ARM_FRAMES,
 });
 
 /**
@@ -126,6 +144,8 @@ export function resolveRules(options = {}) {
         maxDropMs: number(o.maxDropMs, MAX_DROP_MS),
         minScore: number(o.minScore, MIN_SCORE),
         straddle: choice(o.straddle, [STRADDLE_WHOLE, STRADDLE_FROM_END, STRADDLE_SUPPRESS], STRADDLE_WHOLE),
+        armMs: number(o.armMs, ARM_MS),
+        armFrames: number(o.armFrames, ARM_FRAMES, { integer: true }),
     });
 }
 
@@ -136,7 +156,7 @@ export class FinishMachine {
     }
 
     /**
-     * Back to the start: no raise, no cooldown, no candidates (a new round, the practice run again).
+     * Back to the start: no raise, no cooldown, no candidates, unarmed (a new round, the practice run again).
      */
     reset() {
         this.lastMs = null;
@@ -144,7 +164,31 @@ export class FinishMachine {
         this.cooldownUntilMs = null;
         this.lastCandidate = null;
         this.nextId = 1;
-        this.counts = { frames: 0, upFrames: 0, gaps: 0, candidates: 0, ignored: 0 };
+        this.disarm();
+        this.counts = { frames: 0, upFrames: 0, gaps: 0, candidates: 0, ignored: 0, unarmed: 0 };
+    }
+
+    /**
+     * The page stopped looking for a while (a Finished tap, the round's detector paused): a raise going on ends
+     * (`endReason: 'interrupted'`) and the machine is unarmed until the hands are seen down again - the cooldown, the
+     * candidates and their ids stay. Returns the events (a `raise_end` closes the candidate's photo window).
+     *
+     * @returns {object[]}
+     */
+    interrupt() {
+        if (this.rules.mode === MODE_OFF) {
+            return [];
+        }
+
+        const events = [];
+
+        if (this.raise !== null) {
+            this.endRaise(events, 'interrupted');
+        }
+
+        this.disarm();
+
+        return events;
     }
 
     /**
@@ -175,12 +219,24 @@ export class FinishMachine {
             if (this.raise !== null && (this.raise.candidate !== null || this.rules.gapPolicy === GAP_RESTART)) {
                 this.endRaise(events, 'gap');
             }
+
+            // Nobody saw the hands meanwhile: unarmed - this frame included (a raise kept across the gap began armed)
+            if (this.raise === null) {
+                this.disarm();
+            }
         }
 
         this.lastMs = t;
         this.counts.frames += 1;
+        const raised = signal.raised === true && scoreOf(signal) >= this.rules.minScore;
 
-        if (signal.raised === true && scoreOf(signal) >= this.rules.minScore) {
+        if (this.raise === null && !this.armed) {
+            this.arming(events, t, raised);
+
+            return events;
+        }
+
+        if (raised) {
             this.counts.upFrames += 1;
             this.up(events, t, scoreOf(signal));
         } else {
@@ -200,6 +256,9 @@ export class FinishMachine {
         return {
             mode: this.rules.mode,
             version: FINISH_MACHINE_VERSION,
+            armed: this.armed,
+            // The hands seen down since (null: armed, or not seen down yet)
+            armingFromMs: this.armRun?.fromMs ?? null,
             phase: raise === null ? PHASE_IDLE : (raise.candidate !== null ? PHASE_RAISED : PHASE_HOLDING),
             holdFromMs: raise?.fromMs ?? null,
             heldMs: raise === null ? 0 : raise.lastUpMs - raise.fromMs,
@@ -212,6 +271,39 @@ export class FinishMachine {
     }
 
     // ---- internals
+
+    /**
+     * Unarmed: frames down count towards arming (armMs and armFrames of them in a row), a raised one starts the count
+     * again and is ignored - no raise starts.
+     */
+    arming(events, t, raised) {
+        if (raised) {
+            this.counts.unarmed += 1;
+            this.armRun = null;
+
+            return;
+        }
+
+        if (this.armRun === null) {
+            this.armRun = { fromMs: t, frames: 0 };
+        }
+
+        this.armRun.frames += 1;
+
+        if (t - this.armRun.fromMs >= this.rules.armMs && this.armRun.frames >= this.rules.armFrames) {
+            events.push({ type: 'armed', atMs: t, downFromMs: this.armRun.fromMs });
+            this.armed = true;
+            this.armRun = null;
+        }
+    }
+
+    /**
+     * Unarmed until the hands are seen down again - unless the rules arm at once (armMs and armFrames 0).
+     */
+    disarm() {
+        this.armed = this.rules.armMs <= 0 && this.rules.armFrames <= 0;
+        this.armRun = null;
+    }
 
     up(events, t, score) {
         let raise = this.raise;

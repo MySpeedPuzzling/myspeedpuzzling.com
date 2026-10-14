@@ -1,0 +1,5 @@
+# The image carries completeness.py, server.py and the pinned requirements - nothing else
+*
+!requirements.txt
+!completeness.py
+!server.py

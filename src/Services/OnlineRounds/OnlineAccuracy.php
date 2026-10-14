@@ -7,12 +7,16 @@ namespace SpeedPuzzling\Web\Services\OnlineRounds;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Entity\CompetitionRound;
 use SpeedPuzzling\Web\Entity\OnlineRound;
+use SpeedPuzzling\Web\Query\GetOnlineFinishPhotoChecks;
 use SpeedPuzzling\Web\Results\OnlineAccuracyGroup;
 use SpeedPuzzling\Web\Results\OnlineAccuracyRow;
+use SpeedPuzzling\Web\Results\OnlineReviewEntry;
 use SpeedPuzzling\Web\Value\AccuracySummary;
 use SpeedPuzzling\Web\Value\OnlineDetectionMode;
 use SpeedPuzzling\Web\Value\OnlineDeviceLabel;
 use SpeedPuzzling\Web\Value\OnlineEventType;
+use SpeedPuzzling\Web\Value\OnlineFinishCheckVerdict;
+use SpeedPuzzling\Web\Value\OnlineMediaKind;
 use SpeedPuzzling\Web\Value\OnlineReviewAssessment;
 use SpeedPuzzling\Web\Value\RoundClock;
 
@@ -24,13 +28,24 @@ use SpeedPuzzling\Web\Value\RoundClock;
  * the report and the review never disagree.
  *
  * Phase 2 - the detection of raised hands (OnlineReviewAssessment "Detection"): the detected moment, the detection error
- * (confirmed − detected), the delta (tap − detected), the missed and the false raises; MEASURES names the distributions
+ * (confirmed − detected), the delta (tap − detected), the missed and the false raises - and (stream P2F) the finishes on a
+ * phone whose detector did not watch the round (`detectorNotRunning`: it could not run, broke, was skipped, failed its
+ * test, stopped as too slow, or the page was loaded before detection was switched on - from the phone's own
+ * `device.ready` / `detector.changed`), counted apart, never as missed raises; MEASURES names the distributions
  * (one summary each). The breakdown groups the participants by their phone (OnlineDeviceLabel, from the User-Agent of
  * the holding device's latest `device.ready`) and by the camera view their detector used (the candidates' own `view`,
  * else the one `device.ready` reported) - "autodetection reliability is the key to success" (Jan): this is what every
  * detector change is judged by.
  *
+ * Phase 3 - the completeness check (README §5.8, advisory), only while it is on: per confirmed participant its verdict
+ * on the confirmed photo against the reviewer's outcome (completenessOf()) - the photo of the finish moment the
+ * reviewer confirmed (the tap or candidate nearest to the confirmed moment, as the review opens it; in a `shadow` round
+ * the taps only) for a confirmed finish (truth: complete), the photo of the last finish moment - else the end photo -
+ * for a confirmed unfinished puzzle (truth: not complete). Outcomes: agree, false complete (a missing piece passed -
+ * the one error that matters), false gap, unsure, not checked (pending, or the check failed).
+ *
  * @phpstan-import-type OnlineReviewEventRow from \SpeedPuzzling\Web\Query\GetOnlineReviewData
+ * @phpstan-import-type OnlineFinishPhotoRow from GetOnlineFinishPhotoChecks
  */
 readonly final class OnlineAccuracy
 {
@@ -41,14 +56,24 @@ readonly final class OnlineAccuracy
     // The distributions the report measures, in order
     public const array MEASURES = [self::ADJUSTMENT, self::DETECTION_ERROR, self::DELTA];
 
+    // The completeness check's verdict on the confirmed photo against the reviewer's outcome (Phase 3)
+    public const string OUTCOME_AGREE = 'agree';
+    public const string OUTCOME_FALSE_COMPLETE = 'false_complete';
+    public const string OUTCOME_FALSE_GAP = 'false_gap';
+    public const string OUTCOME_UNSURE = 'unsure';
+    public const string OUTCOME_NOT_CHECKED = 'not_checked';
+    public const array OUTCOMES = [self::OUTCOME_AGREE, self::OUTCOME_FALSE_COMPLETE, self::OUTCOME_FALSE_GAP, self::OUTCOME_UNSURE, self::OUTCOME_NOT_CHECKED];
+
     public function __construct(
         private OnlineReview $onlineReview,
         private ClockInterface $clock,
+        private OnlineCvSettings $onlineCvSettings,
+        private GetOnlineFinishPhotoChecks $getOnlineFinishPhotoChecks,
     ) {
     }
 
     /**
-     * @return array{rows: list<OnlineAccuracyRow>, summaries: array<string, AccuracySummary>, startedAtMs: null|int, detection: string, detectionShown: bool, byDevice: list<OnlineAccuracyGroup>, byView: list<OnlineAccuracyGroup>}
+     * @return array{rows: list<OnlineAccuracyRow>, summaries: array<string, AccuracySummary>, startedAtMs: null|int, detection: string, detectionShown: bool, byDevice: list<OnlineAccuracyGroup>, byView: list<OnlineAccuracyGroup>, detectorNotRunning: int, completeness: null|array<string, int>}
      */
     public function forRound(CompetitionRound $round, OnlineRound $onlineRound): array
     {
@@ -58,6 +83,8 @@ readonly final class OnlineAccuracy
         $detection = $onlineRound->detectionMode;
         $rows = [];
         $anyCandidate = false;
+        $checkOn = $this->onlineCvSettings->isOn();
+        $photos = $checkOn ? $this->getOnlineFinishPhotoChecks->forRound($round->id->toString()) : [];
 
         foreach ($this->onlineReview->assessed($round, $detection, $clock, RoundClock::milliseconds($now)) as $assessed) {
             $entry = $assessed['entry'];
@@ -67,6 +94,9 @@ readonly final class OnlineAccuracy
             $anyCandidate = $anyCandidate || $assessment->candidates !== [];
             [$userAgent, $readyView] = self::deviceReady($assessed['events'], $assessed['activeDeviceId']);
             $label = $userAgent === null ? null : OnlineDeviceLabel::fromUserAgent($userAgent);
+            [$completenessVerdict, $completenessOutcome] = $checkOn
+                ? self::completenessOf($entry, $assessment, $photos[$entry->onlineEntryId ?? ''] ?? [], $detection)
+                : [null, null];
 
             $rows[] = new OnlineAccuracyRow(
                 participantId: $entry->participantId,
@@ -89,6 +119,9 @@ readonly final class OnlineAccuracy
                 view: self::viewOf($assessment) ?? $readyView,
                 device: $label?->device,
                 browser: $label?->browser,
+                detectorNotRunning: $assessment->detectorNotRunning,
+                completenessVerdict: $completenessVerdict,
+                completenessOutcome: $completenessOutcome,
             );
         }
 
@@ -108,7 +141,102 @@ readonly final class OnlineAccuracy
             'detectionShown' => $detection !== OnlineDetectionMode::Off || $anyCandidate,
             'byDevice' => self::groups($rows, static fn (OnlineAccuracyRow $row): null|string => $row->device === null ? null : $row->device . ' · ' . $row->browser),
             'byView' => self::groups($rows, static fn (OnlineAccuracyRow $row): null|string => $row->view),
+            'detectorNotRunning' => array_sum(array_map(static fn (OnlineAccuracyRow $row): int => $row->detectorNotRunning ?? 0, $rows)),
+            'completeness' => $checkOn ? self::completenessCounts($rows) : null,
         ];
+    }
+
+    /**
+     * How many confirmed participants' photos the check got right, passed falsely as complete, flagged falsely, was not
+     * sure about, or did not check - `compared` = all of them
+     *
+     * @param list<OnlineAccuracyRow> $rows
+     * @return array<string, int>
+     */
+    private static function completenessCounts(array $rows): array
+    {
+        $counts = array_fill_keys(self::OUTCOMES, 0);
+
+        foreach ($rows as $row) {
+            if ($row->completenessOutcome !== null) {
+                $counts[$row->completenessOutcome]++;
+            }
+        }
+
+        $counts['compared'] = array_sum($counts);
+
+        return $counts;
+    }
+
+    /**
+     * The check's verdict on the confirmed photo and the outcome against the reviewer's decision - [null, null] before
+     * a confirmation, for a participant who did not start, or without a photo
+     *
+     * @param list<OnlineFinishPhotoRow> $photos
+     * @return array{0: null|string, 1: null|string}
+     */
+    private static function completenessOf(OnlineReviewEntry $entry, OnlineReviewAssessment $assessment, array $photos, OnlineDetectionMode $detection): array
+    {
+        if ($entry->status !== OnlineReviewAssessment::STATUS_CONFIRMED) {
+            return [null, null];
+        }
+
+        // The finish moments the reviewer saw - a `shadow` round shows the taps only
+        $moments = [];
+
+        if ($detection !== OnlineDetectionMode::Shadow) {
+            foreach ($assessment->candidates as $candidate) {
+                $moments[] = ['kind' => OnlineMediaKind::Candidate, 'eventId' => $candidate->eventId, 'momentMs' => $candidate->momentMs];
+            }
+        }
+
+        foreach ($assessment->taps as $tap) {
+            $moments[] = ['kind' => OnlineMediaKind::Button, 'eventId' => $tap->eventId, 'momentMs' => $tap->momentMs];
+        }
+
+        // In time, a candidate before a tap of the same moment (review_logic.js finishMoments())
+        usort($moments, static fn (array $a, array $b): int => [$a['momentMs'], $a['kind'] === OnlineMediaKind::Candidate ? 0 : 1] <=> [$b['momentMs'], $b['kind'] === OnlineMediaKind::Candidate ? 0 : 1]);
+
+        if ($entry->official->seconds !== null) {
+            $truthComplete = true;
+            $moment = null;
+
+            if ($entry->confirmedMomentMs !== null) {
+                foreach ($moments as $finishMoment) {
+                    if ($moment === null || abs($finishMoment['momentMs'] - $entry->confirmedMomentMs) < abs($moment['momentMs'] - $entry->confirmedMomentMs)) {
+                        $moment = $finishMoment;
+                    }
+                }
+            }
+
+            $photo = $moment === null ? null : GetOnlineFinishPhotoChecks::photoOf($photos, $moment['kind'], $moment['eventId']);
+        } elseif ($entry->official->piecesPlaced !== null) {
+            $truthComplete = false;
+            $last = $moments === [] ? null : $moments[count($moments) - 1];
+            $photo = $last === null ? null : GetOnlineFinishPhotoChecks::photoOf($photos, $last['kind'], $last['eventId']);
+
+            if ($photo === null) {
+                $ends = array_values(array_filter($photos, static fn (array $item): bool => $item['kind'] === OnlineMediaKind::End->value));
+                $arrived = array_values(array_filter($ends, static fn (array $item): bool => $item['uploaded']));
+                $photo = $arrived[count($arrived) - 1] ?? $ends[count($ends) - 1] ?? null;
+            }
+        } else {
+            return [null, null];
+        }
+
+        if ($photo === null || $photo['check'] === null) {
+            return [null, null];
+        }
+
+        $state = $photo['check']->state;
+        $outcome = match ($state) {
+            OnlineFinishCheckVerdict::Complete->value => $truthComplete ? self::OUTCOME_AGREE : self::OUTCOME_FALSE_COMPLETE,
+            OnlineFinishCheckVerdict::Gaps->value => $truthComplete ? self::OUTCOME_FALSE_GAP : self::OUTCOME_AGREE,
+            OnlineFinishCheckVerdict::Unsure->value => self::OUTCOME_UNSURE,
+            default => self::OUTCOME_NOT_CHECKED,
+        };
+
+        return [$state, $outcome];
     }
 
     /**
@@ -156,6 +284,7 @@ readonly final class OnlineAccuracy
                 falseRaises: array_sum(array_map(static fn (OnlineAccuracyRow $row): int => $row->falseRaises ?? 0, $members)),
                 detectionError: self::summary($members, static fn (OnlineAccuracyRow $row): null|int => $row->detectionErrorMs),
                 delta: self::summary($members, static fn (OnlineAccuracyRow $row): null|int => $row->deltaMs),
+                detectorNotRunning: array_sum(array_map(static fn (OnlineAccuracyRow $row): int => $row->detectorNotRunning ?? 0, $members)),
             );
         }
 

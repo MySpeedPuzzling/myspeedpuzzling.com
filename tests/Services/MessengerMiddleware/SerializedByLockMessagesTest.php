@@ -37,6 +37,7 @@ use SpeedPuzzling\Web\Message\ChangeCompetitionRegistrationSettings;
 use SpeedPuzzling\Web\Message\ChangeRoundPuzzleReveal;
 use SpeedPuzzling\Web\Message\ChangeRoundTableNumbersUsage;
 use SpeedPuzzling\Web\Message\CheckInParticipant;
+use SpeedPuzzling\Web\Message\CheckOnlineRoundFinishPhotos;
 use SpeedPuzzling\Web\Message\ClearComparisonLineUp;
 use SpeedPuzzling\Web\Message\ConfirmOnlineResult;
 use SpeedPuzzling\Web\Message\ConvertCompetitionToSeries;
@@ -256,6 +257,7 @@ final class SerializedByLockMessagesTest extends TestCase
         UnpublishRoundResults::class => 'takes the results off the public page - writes only the round\'s published state, nothing recorded changes',
         RecordOnlineEntryEvents::class => 'a participant\'s phone\'s events on their own online entry (online_entry*) - reads the round entry, never writes entries, teams or official results',
         RegisterOnlineMedia::class => 'an evidence row on the participant\'s own online entry (online_entry*) - reads the round entry, never writes entries, teams or official results',
+        CheckOnlineRoundFinishPhotos::class => 'sends a round\'s finish photos to the completeness check (Phase 3) - reads the round, writes nothing but queued messages; the checks write online_media_check only',
         ScheduleRoundStart::class => 'the round\'s stopwatch only - a start ahead (the countdown)',
         StartRoundStopwatch::class => 'the round\'s stopwatch only',
         StopRoundStopwatch::class => 'the round\'s stopwatch only',

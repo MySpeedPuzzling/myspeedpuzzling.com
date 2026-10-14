@@ -292,6 +292,65 @@ final class OnlineReviewControllerTest extends WebTestCase
         self::assertStringContainsString('Finish - raised hands and taps', $crawler->filter('[data-online-review-target="finishPanel"] h3')->text());
     }
 
+    /**
+     * `shadow` (stream P2F, README §5.7): the detection stays invisible to the reviewer as to the participant - the
+     * detail lists taps only (no candidate, no candidate photo or burst, no detector report), the row has no detection
+     * error, G steps through the taps as in `off`, a detected moment is refused; the accuracy report still has it all
+     */
+    public function testInAShadowRoundTheReviewerSeesTheTapsOnly(): void
+    {
+        $browser = $this->signedIn(PlayerFixture::PLAYER_ADMIN);
+        $this->detectionMode(OnlineDetectionMode::Shadow);
+        $startMs = $this->startOnlineRound();
+        $olivia = $this->onlineEntryOf(OnlineRoundsFixture::ENTRY_CONNECTED);
+        $raiseMs = $startMs + 1_000_345;
+        $raiseId = $this->finishCandidate($olivia, $raiseMs, ['mode' => 'shadow']);
+        $this->evidence($olivia, OnlineMediaKind::Candidate, $raiseMs + 300, $raiseId);
+        $this->evidence($olivia, OnlineMediaKind::Burst, $raiseMs, $raiseId, self::burstManifest($raiseMs));
+        $detectorId = $this->phoneEvent($olivia, OnlineEventType::DetectorChanged, $startMs + 5_000, ['state' => 'ready', 'running' => true, 'reason' => null, 'view' => 'angled']);
+        $tapMs = $raiseMs + 2_100;
+        $tapId = $this->finishTap($olivia, $tapMs);
+        $tapBurst = $this->evidence($olivia, OnlineMediaKind::Burst, $tapMs, $tapId, self::burstManifest($tapMs));
+
+        $browser->request('GET', self::ENTRY, server: ['HTTP_ACCEPT' => 'application/json']);
+
+        self::assertResponseIsSuccessful();
+        $detail = $this->json($browser);
+        self::assertIsArray($detail['round']);
+        self::assertSame('shadow', $detail['round']['detection'] ?? null);
+        self::assertSame([], $detail['candidates']);
+        self::assertIsArray($detail['entry']);
+        self::assertSame(0, $detail['entry']['candidates']);
+        self::assertSame(['tapEventId' => $tapId, 'source' => 'button', 'candidateEventId' => null], array_intersect_key((array) $detail['entry']['suggestion'], array_flip(['tapEventId', 'source', 'candidateEventId'])));
+        self::assertIsArray($detail['events']);
+        $eventIds = array_column($detail['events'], 'id');
+        self::assertContains($tapId, $eventIds);
+        self::assertNotContains($raiseId, $eventIds);
+        self::assertNotContains($detectorId, $eventIds);
+        self::assertIsArray($detail['media']);
+        self::assertSame([], array_values(array_filter($detail['media'], static fn (mixed $media): bool => is_array($media) && (($media['relatedEventId'] ?? null) === $raiseId || $media['kind'] === 'candidate'))));
+        self::assertContains($tapBurst->id->toString(), array_column($detail['media'], 'id'), 'the tap\'s burst stays');
+
+        // A detected moment can not be confirmed; the tap can
+        $this->post($browser, self::CONFIRM, ['momentMs' => $raiseMs, 'source' => 'detection', 'pieces' => null, 'seenResult' => null]);
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame('detection_not_shown', $this->json($browser)['error']);
+        $this->post($browser, self::CONFIRM, ['momentMs' => $tapMs, 'source' => 'button', 'pieces' => null, 'seenResult' => null]);
+        self::assertResponseIsSuccessful();
+        $answer = $this->json($browser);
+        self::assertIsArray($answer['entry']);
+        self::assertIsArray($answer['entry']['confirmed']);
+        self::assertNull($answer['entry']['confirmed']['detectionErrorMs'], 'the row says nothing of the detection');
+        self::assertSame(0, $answer['entry']['candidates']);
+
+        // The page: taps only, G as in `off`
+        $crawler = $browser->request('GET', self::PAGE);
+        self::assertResponseIsSuccessful();
+        self::assertCount(0, $crawler->filter('[data-online-review-target="gapButton"]'));
+        self::assertStringNotContainsString('G the photo shows a gap', $crawler->filter('.online-review')->text());
+        self::assertStringContainsString('Finished taps', $crawler->filter('[data-online-review-target="finishPanel"] h3')->text());
+    }
+
     public function testTheEntryAddressOpenedAsAPageLeadsToTheReview(): void
     {
         $browser = $this->signedIn(PlayerFixture::PLAYER_ADMIN);

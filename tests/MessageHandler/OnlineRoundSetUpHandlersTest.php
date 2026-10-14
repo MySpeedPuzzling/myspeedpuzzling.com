@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
+use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use SpeedPuzzling\Web\Exceptions\CompetitionParticipantNotFound;
 use SpeedPuzzling\Web\Exceptions\CompetitionRoundNotFound;
+use SpeedPuzzling\Web\Exceptions\OnlineDetectionModeLocked;
 use SpeedPuzzling\Web\Exceptions\OnlineLinkNotFound;
 use SpeedPuzzling\Web\Exceptions\OnlineRoundNotFound;
 use SpeedPuzzling\Web\Exceptions\OnlineTimingNotAvailable;
@@ -16,6 +18,7 @@ use SpeedPuzzling\Web\Exceptions\ParticipantIsWaitlisted;
 use SpeedPuzzling\Web\Message\EnableOnlineRound;
 use SpeedPuzzling\Web\Message\GenerateOnlineTokens;
 use SpeedPuzzling\Web\Message\RegenerateOnlineToken;
+use SpeedPuzzling\Web\Message\ResetRoundStopwatch;
 use SpeedPuzzling\Web\Message\UpdateOnlineRoundSettings;
 use SpeedPuzzling\Web\Repository\CompetitionParticipantRepository;
 use SpeedPuzzling\Web\Tests\DataFixtures\OfficialResultsFixture;
@@ -309,6 +312,77 @@ final class OnlineRoundSetUpHandlersTest extends KernelTestCase
         self::assertNull($tokens[self::REMOVED]);
         self::assertNull($tokens[self::WAITLISTED]);
         self::assertSame(OnlineRoundsFixture::TOKEN_CONNECTED, $tokens[OnlineRoundsFixture::PARTICIPANT_CONNECTED]);
+    }
+
+    /**
+     * Stream SP: finish detection is fixed from the round's start - a scheduled start, running, over - until a Reset;
+     * another mode is refused before anything changes, the same mode with other settings is saved
+     */
+    public function testFinishDetectionIsFixedFromTheStartUntilAReset(): void
+    {
+        foreach (['scheduled' => ['scheduled', '+1 hour', null], 'running' => ['running', '-5 minutes', null], 'ended' => ['stopped', '-90 minutes', '-30 minutes']] as $case => [$status, $startedAt, $stoppedAt]) {
+            $this->setStopwatch($status, $startedAt, $stoppedAt);
+
+            try {
+                $this->updateSettings(OnlineDetectionMode::On, videoEnabled: true);
+                self::fail('Another finish detection while the round is ' . $case);
+            } catch (OnlineDetectionModeLocked $refused) {
+                self::assertSame(409, $refused->getStatusCode());
+            }
+
+            self::assertSame(['off', false], $this->detectionAndVideo(), $case . ': nothing changed');
+        }
+
+        // The same mode: the other settings are saved
+        $this->updateSettings(OnlineDetectionMode::Off, videoEnabled: true);
+        self::assertSame(['off', true], $this->detectionAndVideo());
+
+        // Reset: the round waits for its start again - free to change
+        self::getContainer()->get(EntityManagerInterface::class)->clear();
+        $this->messageBus->dispatch(new ResetRoundStopwatch(OnlineRoundsFixture::ROUND_ONLINE_SOLO, self::COMPETITION));
+        $this->updateSettings(OnlineDetectionMode::On, videoEnabled: true);
+        self::assertSame(['on', true], $this->detectionAndVideo());
+    }
+
+    private function setStopwatch(string $status, string $startedAt, null|string $stoppedAt): void
+    {
+        $this->database->executeStatement(
+            'UPDATE competition_round SET stopwatch_status = :status, stopwatch_started_at = :startedAt, stopwatch_stopped_at = :stoppedAt WHERE id = :id',
+            [
+                'status' => $status,
+                'startedAt' => (new DateTimeImmutable($startedAt))->format('Y-m-d H:i:s'),
+                'stoppedAt' => $stoppedAt === null ? null : (new DateTimeImmutable($stoppedAt))->format('Y-m-d H:i:s'),
+                'id' => OnlineRoundsFixture::ROUND_ONLINE_SOLO,
+            ],
+        );
+        // The handler reads the round as a new request would
+        self::getContainer()->get(EntityManagerInterface::class)->clear();
+    }
+
+    private function updateSettings(OnlineDetectionMode $detectionMode, bool $videoEnabled): void
+    {
+        $this->messageBus->dispatch(new UpdateOnlineRoundSettings(
+            roundId: OnlineRoundsFixture::ROUND_ONLINE_SOLO,
+            detectionMode: $detectionMode,
+            videoEnabled: $videoEnabled,
+            participantsSeeEachOther: false,
+            studioEnabled: false,
+            recordingEnabled: false,
+            unfinishedMeasure: OnlineUnfinishedMeasure::PiecesLeft,
+            missingPieceRule: OnlineMissingPieceRule::CompleteRequired,
+        ));
+    }
+
+    /**
+     * @return array{string, bool}
+     */
+    private function detectionAndVideo(): array
+    {
+        $row = $this->database->fetchAssociative('SELECT detection_mode, video_enabled FROM online_round WHERE id = :id', ['id' => OnlineRoundsFixture::ONLINE_ROUND_SOLO]);
+        self::assertIsArray($row);
+        self::assertIsString($row['detection_mode']);
+
+        return [$row['detection_mode'], (bool) $row['video_enabled']];
     }
 
     private function enable(string $roundId, string $competitionId = self::COMPETITION): int

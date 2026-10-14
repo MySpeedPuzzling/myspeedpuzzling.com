@@ -9,12 +9,16 @@ use Psr\Log\LoggerInterface;
 use SpeedPuzzling\Web\Entity\CompetitionRound;
 use SpeedPuzzling\Web\Entity\OnlineEntryMedia;
 use SpeedPuzzling\Web\Entity\OnlineRound;
+use SpeedPuzzling\Web\Query\GetOnlineFinishPhotoChecks;
 use SpeedPuzzling\Web\Query\GetOnlineReviewData;
+use SpeedPuzzling\Web\Results\OnlineFinishPhotoCheck;
 use SpeedPuzzling\Web\Results\OnlineReviewCandidate;
 use SpeedPuzzling\Web\Results\OnlineReviewEntry;
 use SpeedPuzzling\Web\Results\OnlineReviewTap;
 use SpeedPuzzling\Web\Services\OfficialResultsSubscription;
 use SpeedPuzzling\Web\Value\OnlineDetectionMode;
+use SpeedPuzzling\Web\Value\OnlineEventType;
+use SpeedPuzzling\Web\Value\OnlineMediaKind;
 use SpeedPuzzling\Web\Value\OnlineReviewAssessment;
 use SpeedPuzzling\Web\Value\OnlineReviewStatus;
 use SpeedPuzzling\Web\Value\RoundClock;
@@ -32,7 +36,16 @@ use SpeedPuzzling\Web\Value\RoundEntryResult;
  *   phone has not uploaded yet is listed as pending, never hidden (README §5.11), one that never arrived and never will
  *   (OnlineEntryMedia::$abandonedAt) as abandoned;
  * - assessed(): the rows with their OnlineReviewAssessment - the accuracy report.
- * The round's detection mode decides the suggestion (OnlineReviewAssessment: `on` = the first candidate) - `round.detection`.
+ * Phase 3 - the completeness check (README §5.8, advisory), only while it is on (OnlineCvSettings; off = no key of it in
+ * either answer, the page as before): `round.completenessCheck`, each row's `check` = the check of the photo the review
+ * opens on (the suggested candidate's or tap's - the page orders the list by it: gaps, unsure, not checked, complete),
+ * each finish photo's own `check` in the detail (GetOnlineFinishPhotoChecks - one statement more each). Nothing else
+ * reads it: not the suggestion, not a confirmation, not the official time.
+ * The round's detection mode decides the suggestion (OnlineReviewAssessment: `on` = the first candidate, unless a tap
+ * came first) - `round.detection`. In a `shadow` round the reviewer never sees the detection (stream P2F, README §5.7:
+ * the button is the official moment there - the cleanest delta data): the row, the detail, its events and its evidence
+ * carry no candidate, nothing of the phone's detector (forReviewer()) - the reviewer steps through the taps only, as in
+ * `off`; the accuracy report (assessed()) has them all.
  *
  * @phpstan-import-type OnlineReviewEntryRow from GetOnlineReviewData
  * @phpstan-import-type OnlineReviewEventRow from GetOnlineReviewData
@@ -47,6 +60,8 @@ readonly final class OnlineReview
         private OfficialResultsSubscription $officialResultsSubscription,
         private ClockInterface $clock,
         private LoggerInterface $logger,
+        private OnlineCvSettings $onlineCvSettings,
+        private GetOnlineFinishPhotoChecks $getOnlineFinishPhotoChecks,
     ) {
     }
 
@@ -60,16 +75,27 @@ readonly final class OnlineReview
         $clock = RoundClock::fromRound($round, $asOf);
         $piecesTotal = $round->singlePuzzlePiecesCount();
         $entries = array_map(
-            static fn (array $assessed): OnlineReviewEntry => $assessed['entry'],
+            static fn (array $assessed): OnlineReviewEntry => self::forReviewer($assessed['entry'], $onlineRound->detectionMode),
             $this->assessed($round, $onlineRound->detectionMode, $clock, $asOfMs, $piecesTotal),
         );
+        $roundData = self::round($round, $onlineRound, $clock, $piecesTotal);
+
+        if ($this->onlineCvSettings->isOn()) {
+            $photos = $this->getOnlineFinishPhotoChecks->forRound($round->id->toString());
+            $entries = array_map(
+                static fn (OnlineReviewEntry $entry): OnlineReviewEntry => $entry->withCheck(self::suggestedPhotoCheck($entry, $photos[$entry->onlineEntryId ?? ''] ?? [])),
+                $entries,
+            );
+            $roundData['completenessCheck'] = true;
+        }
+
         $mercure = $this->officialResultsSubscription->forRound($round->id->toString());
 
         return [
             // Taken once everything is read - every answer is also a clock sample for the page
             'serverNowMs' => RoundClock::milliseconds($this->clock->now()),
             'asOfMs' => $asOfMs,
-            'round' => self::round($round, $onlineRound, $clock, $piecesTotal),
+            'round' => $roundData,
             'entries' => $entries,
             'mercure' => $mercure,
         ];
@@ -94,16 +120,26 @@ readonly final class OnlineReview
         $onlineEntryId = $row['online_entry_id'];
         $events = $onlineEntryId === null ? [] : $this->getOnlineReviewData->events($roundId, $onlineEntryId);
         $piecesTotal = $round->singlePuzzlePiecesCount();
-        [$entry, $assessment] = self::entry($row, $events, $clock, $asOfMs, $piecesTotal, $onlineRound->detectionMode);
-        $media = $onlineEntryId === null ? [] : array_map($this->media(...), $this->getOnlineReviewData->media($onlineEntryId));
+        $detection = $onlineRound->detectionMode;
+        [$entry, $assessment] = self::entry($row, $events, $clock, $asOfMs, $piecesTotal, $detection);
+        $media = $onlineEntryId === null ? [] : $this->getOnlineReviewData->media($onlineEntryId);
+        $hidden = self::hiddenFromReviewer($detection, $events);
+        $roundData = self::round($round, $onlineRound, $clock, $piecesTotal);
+        // The completeness check of each finish photo - false: the check is off, no key of it anywhere
+        $checks = false;
+
+        if ($this->onlineCvSettings->isOn()) {
+            $checks = $onlineEntryId === null ? [] : $this->getOnlineFinishPhotoChecks->forEntry($onlineEntryId);
+            $roundData['completenessCheck'] = true;
+        }
 
         return [
             'serverNowMs' => RoundClock::milliseconds($this->clock->now()),
             'asOfMs' => $asOfMs,
-            'round' => self::round($round, $onlineRound, $clock, $piecesTotal),
-            'entry' => $entry,
+            'round' => $roundData,
+            'entry' => self::forReviewer($entry, $detection),
             'taps' => $assessment->taps,
-            'candidates' => $assessment->candidates,
+            'candidates' => $detection === OnlineDetectionMode::Shadow ? [] : $assessment->candidates,
             'events' => array_map(static fn (array $event): array => [
                 'id' => $event['id'],
                 'type' => $event['type'],
@@ -112,9 +148,68 @@ readonly final class OnlineReview
                 'deviceId' => $event['device_id'],
                 // Always a JSON object, an empty one too
                 'data' => $event['payload'] === [] ? new \stdClass() : $event['payload'],
-            ], $events),
-            'media' => $media,
+            ], array_values(array_filter($events, static fn (array $event): bool => !isset($hidden['events'][strtolower($event['id'])])))),
+            'media' => array_map(
+                fn (OnlineEntryMedia $item): array => $this->media($item, $checks),
+                array_values(array_filter(
+                    $media,
+                    static fn (OnlineEntryMedia $item): bool => !($detection === OnlineDetectionMode::Shadow && $item->kind === OnlineMediaKind::Candidate)
+                        && !isset($hidden['events'][strtolower($item->relatedEventId?->toString() ?? '')]),
+                )),
+            ),
         ];
+    }
+
+    /**
+     * What a `shadow` round hides from the reviewer: the candidates' events (and with them their photos and bursts) and
+     * the detector's own reports (`detector.changed`)
+     *
+     * @param list<OnlineReviewEventRow> $events
+     * @return array{events: array<string, true>}
+     */
+    private static function hiddenFromReviewer(OnlineDetectionMode $detection, array $events): array
+    {
+        $hidden = [];
+
+        if ($detection === OnlineDetectionMode::Shadow) {
+            foreach ($events as $event) {
+                if ($event['type'] === OnlineEventType::FinishCandidate->value || $event['type'] === OnlineEventType::DetectorChanged->value) {
+                    $hidden[strtolower($event['id'])] = true;
+                }
+            }
+        }
+
+        return ['events' => $hidden];
+    }
+
+    /**
+     * The row as the reviewer sees it - in a `shadow` round without the detection (no candidates, no detection error)
+     */
+    private static function forReviewer(OnlineReviewEntry $entry, OnlineDetectionMode $detection): OnlineReviewEntry
+    {
+        if ($detection !== OnlineDetectionMode::Shadow) {
+            return $entry;
+        }
+
+        return new OnlineReviewEntry(
+            participantId: $entry->participantId,
+            entryId: $entry->entryId,
+            onlineEntryId: $entry->onlineEntryId,
+            name: $entry->name,
+            country: $entry->country,
+            status: $entry->status,
+            suggestion: $entry->suggestion,
+            official: $entry->official,
+            confirmedMomentMs: $entry->confirmedMomentMs,
+            confirmedSource: $entry->confirmedSource,
+            reviewedAtMs: $entry->reviewedAtMs,
+            adjustmentMs: $entry->adjustmentMs,
+            flags: $entry->flags,
+            taps: $entry->taps,
+            readyAtMs: $entry->readyAtMs,
+            candidates: 0,
+            detectionErrorMs: null,
+        );
     }
 
     /**
@@ -134,7 +229,7 @@ readonly final class OnlineReview
         $events = $row['online_entry_id'] === null ? [] : $this->getOnlineReviewData->events($roundId, $row['online_entry_id']);
         [$entry] = self::entry($row, $events, RoundClock::fromRound($round, $now), RoundClock::milliseconds($now), $round->singlePuzzlePiecesCount(), $detection);
 
-        return $entry;
+        return self::forReviewer($entry, $detection);
     }
 
     /**
@@ -231,9 +326,30 @@ readonly final class OnlineReview
     }
 
     /**
+     * The completeness check of the photo the review opens on: the suggested candidate's photo, else the suggested
+     * tap's - null without such a photo (a participant without a finish, unfinished at time-up)
+     *
+     * @param list<array{media_id: string, online_entry_id: string, kind: string, related_event_id: null|string, taken_ms: int, uploaded: bool, check: null|OnlineFinishPhotoCheck}> $photos
+     */
+    private static function suggestedPhotoCheck(OnlineReviewEntry $entry, array $photos): null|OnlineFinishPhotoCheck
+    {
+        $suggestion = $entry->suggestion;
+        $photo = null;
+
+        if ($suggestion->candidateEventId !== null) {
+            $photo = GetOnlineFinishPhotoChecks::photoOf($photos, OnlineMediaKind::Candidate, $suggestion->candidateEventId);
+        } elseif ($suggestion->tapEventId !== null) {
+            $photo = GetOnlineFinishPhotoChecks::photoOf($photos, OnlineMediaKind::Button, $suggestion->tapEventId);
+        }
+
+        return $photo === null ? null : $photo['check'];
+    }
+
+    /**
+     * @param false|array<string, OnlineFinishPhotoCheck> $checks the completeness checks by media id - false: the check is off
      * @return array<string, mixed>
      */
-    private function media(OnlineEntryMedia $media): array
+    private function media(OnlineEntryMedia $media, false|array $checks = false): array
     {
         $url = null;
 
@@ -260,6 +376,10 @@ readonly final class OnlineReview
             'url' => $url,
             'bytes' => $media->verifiedBytes ?? $media->declaredBytes,
             'manifest' => $media->manifest,
+            // Phase 3: a finish photo's completeness check, only while the check is on (pending until it comes)
+            ...($checks !== false && $media->kind->isFinishPhoto()
+                ? ['check' => $checks[$media->id->toString()] ?? ($media->abandonedAt === null ? OnlineFinishPhotoCheck::pending() : null)]
+                : []),
         ];
     }
 }

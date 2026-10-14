@@ -7,9 +7,11 @@ import {
     countdownDigit,
     deriveView,
     formatClock,
+    needsStateFetch,
     nextStateCheckAt,
     readClock,
     resultSeconds,
+    SETTINGS_MESSAGE,
 } from '../online/round_state.js';
 import { createBeforeUnloadHandler, openEventOutbox, uuidv7 } from '../online/event_outbox.js';
 import { openMediaOutbox } from '../online/media_outbox.js';
@@ -56,7 +58,14 @@ import {
     wakeTapNeeded,
 } from '../online/compete_flow.js';
 import { LOAD_RETRY_MS as VIDEO_RETRY_MS, loadSecondScreen, saveSecondScreen, videoOn } from '../online/compete_video_basics.js';
-import { detectionLoadWanted, detectionMode, LOAD_RETRY_MS as DETECTION_RETRY_MS, MODE_OFF } from '../online/compete_detection_basics.js';
+import {
+    detectionLoadWanted,
+    detectionMode,
+    LOAD_RETRY_MS as DETECTION_RETRY_MS,
+    MODE_OFF,
+    MODE_ON,
+    reloadForDetection,
+} from '../online/compete_detection_basics.js';
 import { OfficialResultsEvents } from '../official_results_events.js';
 import { chooseTranslation } from '../translation_choice.js';
 
@@ -67,8 +76,13 @@ import { chooseTranslation } from '../translation_choice.js';
  * - clock: the server's time (clock_sync.js) from `/-/time` and every API answer; synced at load, on every return to
  *   the page, when a start is learned and right after it;
  * - state: the first one from the page, then the round's Mercure stream (official_results_events.js) and fetches - on
- *   (re)connect, on return, 2 s before / 1 s after the start, and whenever a heartbeat's hash or round differs; the
- *   newest wins by asOfMs (round_state.js adoptState / adoptRoundClock);
+ *   (re)connect, on return, 2 s before / 1 s after the start, whenever a heartbeat's hashes (the round clock's, the
+ *   online timing settings') or round differ, and within a second of the organiser saving the settings (the
+ *   `online.settings` push - round_state.js needsStateFetch()); the newest wins by asOfMs (round_state.js adoptState /
+ *   adoptRoundClock). New settings apply as the state changes: live video, see each other and the studio at once
+ *   (compete_video_page.js plans by the state), time's up asks by the newest measure, finish detection switches between
+ *   `shadow` and `on` before GO (the organiser can't change it after) and `off` stops the detector - a page without the
+ *   detection parts offers a reload instead (compete_detection_basics.js reloadForDetection());
  * - heartbeat every 15 s: device, camera, clock quality, visibility, outbox counts; `takenOverBy` = another device -
  *   this one gives way once its own claim is older (compete_flow.js takeoverVerdict());
  * - events through the event outbox and photos through the media outbox (stored on the phone first, sent until
@@ -86,7 +100,8 @@ import { chooseTranslation } from '../translation_choice.js';
  *   `data-compete-detection-value`, Phase 2 stream P2I): compete_detection_page.js (a chunk of its own, loaded from the
  *   checklist on) runs the detector worker on the frame grabber's frames - the set-up test, then the round's finish
  *   machine; a candidate is recorded like a Finished tap (`finish.candidate` + its photo + its burst), shown in `on`
- *   mode. The Finished button stays; a failure there is button-only, never a blocked page.
+ *   mode - only while the running screen is up (never after the participant's own Finished tap). The Finished button
+ *   stays; a failure there is button-only, never a blocked page - said, and recorded as `detector.changed`.
  *
  * One document for the whole session: no Turbo visit, no history change (iOS mutes the camera on them, README §5.5).
  */
@@ -106,6 +121,8 @@ const HIDDEN_WARNING_MS = 3000;
 const START_PHOTO_WITHIN_MS = 3000;
 // A push without asOfMs (an older payload) - the state is fetched, spread over this much time
 const REFRESH_JITTER_MS = 2000;
+// The organiser saved the online timing settings: every open page fetches its state - spread over this much time
+const SETTINGS_REFRESH_JITTER_MS = 1000;
 const NOTICE_MS = 7000;
 // The API answers that are clock samples besides /-/time
 const CLOCK_SAMPLE_REQUESTS = ['heartbeat', 'state'];
@@ -741,6 +758,15 @@ export default class extends Controller {
             return;
         }
 
+        // Not a clock: the organiser saved the online timing settings - fetched when they differ from the ones held
+        if (typeof data?.type === 'string') {
+            if (data.type === SETTINGS_MESSAGE && needsStateFetch(this.state, data)) {
+                this.refreshSoon(SETTINGS_REFRESH_JITTER_MS);
+            }
+
+            return;
+        }
+
         const previous = this.state;
         const next = adoptRoundClock(previous, data);
 
@@ -757,7 +783,7 @@ export default class extends Controller {
         }
     }
 
-    refreshSoon() {
+    refreshSoon(jitterMs = REFRESH_JITTER_MS) {
         if (this.refreshTimer) {
             return;
         }
@@ -765,7 +791,7 @@ export default class extends Controller {
         this.refreshTimer = window.setTimeout(() => {
             this.refreshTimer = null;
             this.refreshState();
-        }, Math.random() * REFRESH_JITTER_MS);
+        }, Math.random() * jitterMs);
     }
 
     /**
@@ -952,12 +978,9 @@ export default class extends Controller {
             }
 
             const data = answer.data;
-            const roundId = this.state?.round?.id ?? '';
-            // The hash has no round in it - the round is compared on its own (two waiting rounds hash alike)
-            const otherRound = typeof data.roundId === 'string' && data.roundId.toLowerCase() !== roundId.toLowerCase();
-            const otherHash = typeof data.stateHash === 'string' && data.stateHash !== this.state?.round?.stateHash;
 
-            if (otherRound || otherHash) {
+            // Another round, round clock or online timing settings than the state held
+            if (needsStateFetch(this.state, data)) {
                 this.refreshState();
             }
 
@@ -1766,6 +1789,7 @@ export default class extends Controller {
         this.setShown('otherDevice', screen === 'checklist' && this.otherDeviceActive);
         this.setShown('keepOpen', competing && live);
         this.setShown('afterPending', screen === 'after' && this.hasUnsent());
+        this.paintDetectionReload(screen, view);
         this.setShown('wakeTap', !this.preview && wakeTapNeeded({
             ready,
             screen,
@@ -1774,6 +1798,44 @@ export default class extends Controller {
             soundLocked: !this.beeps.isUnlocked(),
             wakeLock: this.wakeLock.state,
         }));
+    }
+
+    /**
+     * A page without the detection parts whose round turned detection on: "reload to use it" before the start - built
+     * only then (the page of a round without detection carries no trace of it), never a reload by itself.
+     */
+    paintDetectionReload(screen, view) {
+        const wanted = reloadForDetection({
+            hasParts: this.detectionConfig !== null,
+            state: this.state,
+            screen,
+            view,
+            practice: this.practice !== null,
+            preview: this.preview,
+            secondScreen: this.secondScreen,
+            linkDead: this.linkDead,
+        });
+
+        if (wanted && !this.reloadBanner) {
+            const banner = document.createElement('div');
+            banner.className = 'compete-banner compete-banner--reload';
+            banner.setAttribute('role', 'status');
+            banner.dataset.competeReload = 'detection';
+            const text = document.createElement('span');
+            text.textContent = this.t('detection_turned_on');
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'btn btn-sm btn-light';
+            button.textContent = this.t('detection_turned_on_reload');
+            button.addEventListener('click', () => window.location.reload());
+            banner.append(text, button);
+            this.noticeTarget.before(banner);
+            this.reloadBanner = banner;
+        }
+
+        if (this.reloadBanner && this.reloadBanner.hidden === wanted) {
+            this.reloadBanner.hidden = !wanted;
+        }
     }
 
     paintStatus() {
@@ -2142,6 +2204,8 @@ export default class extends Controller {
         this.detectionLoadTimer = null;
         // The chunk itself would not load (offline, a deploy in between) for this long: button-only, said so
         this.detectionUnavailable = false;
+        // "Reload to use it" - built once the round turns detection on while this page has no detection parts
+        this.reloadBanner = null;
     }
 
     /**
@@ -2150,6 +2214,14 @@ export default class extends Controller {
     planDetection(screen, view, serverNow) {
         if (this.detectionConfig === null) {
             return;
+        }
+
+        // The checklist's detection row goes with the mode - the organiser may switch detection off before GO
+        const row = this.detectionParts.get('check');
+        const rowHidden = detectionMode(this.state) === MODE_OFF;
+
+        if (row && row.hidden !== rowHidden) {
+            row.hidden = rowHidden;
         }
 
         if (this.detectionPage === null) {
@@ -2194,7 +2266,12 @@ export default class extends Controller {
 
     detectionTick() {
         try {
-            this.detectionPage?.tick();
+            if (this.detectionPage !== null) {
+                this.detectionPage.tick();
+            } else if (this.detectionConfig !== null) {
+                // The detection's chunk is not there (yet, or it would not load): nothing watches - `on` says so
+                this.setShown('detectionButtonOnly', this.screen === 'running' && detectionMode(this.state) === MODE_ON);
+            }
         } catch (e) {
             console.error(e);
         }
@@ -2235,6 +2312,7 @@ export default class extends Controller {
                     this.progress.detections = [...(this.progress.detections ?? []), detection];
                     this.saveProgress();
                 },
+                recordDetector: (usage) => this.record('detector.changed', usage),
                 beeps: this.beeps,
                 serverNow: () => this.clock.serverNow(),
                 requestRender: () => this.requestRender(),
@@ -2253,10 +2331,11 @@ export default class extends Controller {
     }
 
     /**
-     * "I'm ready" waits while the detector loads - the chunk itself too, until it failed to load twice.
+     * "I'm ready" waits while the detector loads - the chunk itself too, until it failed to load twice. Only in `on`
+     * mode: `shadow` loads in the background and never holds anybody up.
      */
     detectionBlocksReady() {
-        if (this.detectionConfig === null || detectionMode(this.state) === MODE_OFF || this.preview) {
+        if (this.detectionConfig === null || detectionMode(this.state) !== MODE_ON || this.preview) {
             return false;
         }
 
@@ -2268,13 +2347,15 @@ export default class extends Controller {
     }
 
     /**
-     * The heartbeat's detector - Phase 1's shape on a page without detection.
+     * The heartbeat's detector - Phase 1's shape on a page without detection (`state: off` once the organiser turned it
+     * on: this page is button-only until reloaded - the control room's "Button only").
      */
     detectorTelemetry() {
         const mode = this.state?.round?.settings?.detection ?? 'off';
 
         if (this.detectionConfig === null) {
-            return { ok: false, fps: null, mode };
+            // Detection turned on after this page loaded: button-only until it is reloaded - the control room says so
+            return mode === MODE_OFF ? { ok: false, fps: null, mode } : { ok: false, fps: null, mode, state: 'off', inferenceMs: null, view: null };
         }
 
         if (this.detectionPage === null) {
@@ -2307,10 +2388,11 @@ export default class extends Controller {
 
     /**
      * A finish candidate as an event - its moment the first raised frame's capture time (on performance.now()'s clock,
-     * stamped on the synced one). Only while a Finished tap would count (README §5.7: the candidate is a finish).
+     * stamped on the synced one). Only while a Finished tap would count (README §5.7: the candidate is a finish) - and
+     * never after the participant's own tap (the `finished` screen: the detector does not look there).
      */
     recordCandidate(data, perfMoment) {
-        if (!['running', 'finished'].includes(this.screen)) {
+        if (this.screen !== 'running') {
             return null;
         }
 

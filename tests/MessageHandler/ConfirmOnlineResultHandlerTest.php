@@ -18,6 +18,7 @@ use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\OnlineReviewSeeding;
 use SpeedPuzzling\Web\Value\CompetitionParticipantsLock;
 use SpeedPuzzling\Web\Value\OnlineConfirmedSource;
+use SpeedPuzzling\Web\Value\OnlineDetectionMode;
 use SpeedPuzzling\Web\Value\OnlineMediaKind;
 use SpeedPuzzling\Web\Value\RoundEntryRef;
 use SpeedPuzzling\Web\Value\RoundEntryResult;
@@ -252,6 +253,31 @@ final class ConfirmOnlineResultHandlerTest extends KernelTestCase
 
         self::assertNull($this->officialRow()['result_seconds']);
         self::assertSame(0, $this->receipts());
+    }
+
+    /**
+     * `shadow` (stream P2F): the detection is never shown - the review offers no detected moment, and none is taken; the
+     * tap and the frames around the candidate stay the reviewer's to confirm. `on` takes it.
+     */
+    public function testADetectedMomentIsRefusedInARoundWhoseDetectionOnlyWatches(): void
+    {
+        $startMs = $this->startOnlineRound();
+        $raiseMs = $startMs + 600_000;
+        $onlineEntry = $this->onlineEntryOf(OnlineRoundsFixture::ENTRY_CONNECTED);
+        $this->finishCandidate($onlineEntry, $raiseMs, ['mode' => 'shadow']);
+        $tapMs = $raiseMs + 2_000;
+        $this->finishTap($onlineEntry, $tapMs);
+        $this->detectionMode(OnlineDetectionMode::Shadow);
+
+        $this->assertRefused(OnlineResultRefused::DETECTION_NOT_SHOWN, 422, fn () => $this->confirm($raiseMs, OnlineConfirmedSource::Detection));
+        self::assertNull($this->officialRow()['result_seconds']);
+        self::assertSame(0, $this->receipts());
+        self::assertSame('online_rounds.review.reason.detection_not_shown', OnlineResultRefused::because(OnlineResultRefused::DETECTION_NOT_SHOWN)->translationKey());
+
+        self::assertSame(602, $this->confirm($tapMs, OnlineConfirmedSource::Button)->result->seconds, 'the tap is the official moment');
+
+        $this->detectionMode(OnlineDetectionMode::On);
+        self::assertSame(600, $this->confirm($raiseMs, OnlineConfirmedSource::Detection, seen: RoundEntryResult::finished(602))->result->seconds);
     }
 
     public function testAMomentOutsideTheRoundIsRefused(): void

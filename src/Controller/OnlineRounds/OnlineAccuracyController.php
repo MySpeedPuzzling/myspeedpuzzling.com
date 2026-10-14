@@ -27,7 +27,9 @@ use Symfony\Component\String\Slugger\AsciiSlugger;
  * source and how late the tap arrived, with the adjustment's distribution; Phase 2 adds the detection of raised hands
  * (the detected moment, the detection error, the delta, missed and false raises, the camera view, the phone) and a
  * breakdown by phone and by view - as a page, or with `?format=csv` as CSV (CSV_COLUMNS - stable names, for the bench
- * and spreadsheets; every cell through SpreadsheetSafeValue: names are typed by people, User-Agents by phones).
+ * and spreadsheets; every cell through SpreadsheetSafeValue: names are typed by people, User-Agents by phones). Phase 3
+ * adds the completeness check's verdict on the confirmed photo against the reviewer's outcome - the page's line only
+ * while the check is on, the CSV's two columns always (empty while it is off: the header never depends on a setting).
  * Organisers of the event for whom online rounds are on (COMPETITION_EDIT + ONLINE_ROUNDS_MANAGE).
  */
 #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
@@ -55,6 +57,12 @@ final class OnlineAccuracyController extends AbstractController
         'view',
         'device',
         'browser',
+        // Stream P2F: finishes on a phone whose detector did not watch - never counted in missed_raises
+        'detector_not_running',
+        // Phase 3: the completeness check's verdict on the confirmed photo, and agree / false_complete / false_gap /
+        // unsure / not_checked against the reviewer's outcome (OnlineAccuracy::OUTCOMES)
+        'completeness_verdict',
+        'completeness_outcome',
     ];
 
     public function __construct(
@@ -112,6 +120,8 @@ final class OnlineAccuracyController extends AbstractController
             'detection_shown' => $report['detectionShown'],
             'by_device' => $report['byDevice'],
             'by_view' => $report['byView'],
+            'detector_not_running' => $report['detectorNotRunning'],
+            'completeness' => $report['completeness'],
         ]);
         $response->headers->set('Cache-Control', 'private, no-store');
 
@@ -151,6 +161,9 @@ final class OnlineAccuracyController extends AbstractController
                 $row->view,
                 $row->device,
                 $row->browser,
+                $row->detectorNotRunning,
+                $row->completenessVerdict,
+                $row->completenessOutcome,
             ]), ',', '"', '');
         }
 

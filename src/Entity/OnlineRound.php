@@ -18,6 +18,7 @@ use Ramsey\Uuid\UuidInterface;
 use SpeedPuzzling\Web\Value\OnlineDetectionMode;
 use SpeedPuzzling\Web\Value\OnlineMissingPieceRule;
 use SpeedPuzzling\Web\Value\OnlineUnfinishedMeasure;
+use SpeedPuzzling\Web\Value\RoundClock;
 
 /**
  * A round that uses online timing (docs/features/online-competitions/README.md): participants compete at home on
@@ -85,6 +86,17 @@ class OnlineRound
         $youtubeUrl = trim($youtubeUrl ?? '');
 
         $this->youtubeUrl = $youtubeUrl === '' ? null : $youtubeUrl;
+    }
+
+    /**
+     * Finish detection is fixed from the round's start until a Reset (docs/features/online-competitions/README.md §5.7):
+     * once a start is set - scheduled, counting down, running or over - the phones decided what they do with raised
+     * hands, the review reads them by the same rule. Only a round waiting for its start (never started, or Reset) may
+     * change it. The one rule - the settings form (the field disabled) and UpdateOnlineRoundSettingsHandler (a refusal).
+     */
+    public function detectionModeLockedAt(DateTimeImmutable $now): bool
+    {
+        return RoundClock::fromRound($this->round, $now)->isWaiting() === false;
     }
 
     /**

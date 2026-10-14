@@ -18,7 +18,11 @@ Every verdict: {"verdict": "complete" | "gaps" | "unsure", "confidence": 0-1, "g
 in the finish photo's pixels), "reason": "...", "details": {...}}. The measure that matters is a false "complete" (a
 missing piece passed): every doubt becomes "unsure" - a person looks - never "complete".
 
-OpenCV + numpy only (requirements.txt). No I/O here: check.py reads files, selftest.py makes synthetic puzzles.
+check_photo() is what the CV worker (server.py, docs/features/online-competitions/README.md §5.8) answers with: the
+checks the inputs allow - both combined, one alone, or none (unsure).
+
+OpenCV + numpy only (requirements.txt). No I/O here: the bench's check.py reads files, its selftest.py makes synthetic
+puzzles, server.py downloads photos - the one implementation for all three (tools/online-bench imports it from here).
 """
 
 from __future__ import annotations
@@ -28,6 +32,10 @@ from dataclasses import dataclass, field
 
 import cv2
 import numpy as np
+
+# Bump when a threshold or a rule changes - the app stores one verdict per media per version, so a re-check with a new
+# version adds a row
+VERSION = 1
 
 COMPLETE = "complete"
 GAPS = "gaps"
@@ -58,6 +66,12 @@ class HolesOptions:
     max_holes: int = 4
     # The outline is shrunk by this share of a piece's edge before holes are looked for (seams, edge shadow)
     edge_margin: float = 0.25
+    # Something not the mat outside the outline at least this share of a piece, both its sides at least `loose_min_side`
+    # of a piece's edge (a sliver along the mat's edge from a bumped phone is no piece), is a loose piece: an unfinished
+    # puzzle - a band missing along an edge leaves a smaller clean rectangle every rule above passes - or anything put on
+    # the mat after its empty photo (the box, a phone) → unsure, never complete
+    loose_area: float = 0.35
+    loose_min_side: float = 0.3
 
 
 @dataclass
@@ -214,12 +228,13 @@ def check_holes(mat_bgr: np.ndarray, finish_bgr: np.ndarray, pieces: int, option
 
     not_mat = 1 - is_mat
     not_mat = cv2.morphologyEx(not_mat, cv2.MORPH_OPEN, np.ones((3, 3), np.uint8))
-    count, labels, stats, _ = cv2.connectedComponentsWithStats(not_mat, connectivity=8)
+    count, labels, stats, centroids = cv2.connectedComponentsWithStats(not_mat, connectivity=8)
 
     if count <= 1:
         return Verdict(UNSURE, 0.0, "no puzzle found - nothing differs from the empty mat", details=light)
 
     largest = 1 + int(np.argmax(stats[1:, cv2.CC_STAT_AREA]))
+    outside = [(stats[index], centroids[index]) for index in range(1, count) if index != largest]
     region = (labels == largest).astype(np.uint8)
     contours, _ = cv2.findContours(region, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     contour = max(contours, key=cv2.contourArea)
@@ -280,6 +295,13 @@ def check_holes(mat_bgr: np.ndarray, finish_bgr: np.ndarray, pieces: int, option
 
     # Mat-coloured pixels inside the puzzle that are no hole: the motif in the mat's colour
     scattered = float(int(holes_mask.sum()) - gap_pixels) / max(1.0, float(inside.sum()))
+    # Loose pieces: what is not the mat outside the outline, as large as a part of a piece and not a sliver
+    loose = sum(
+        1 for component, centre in outside
+        if component[cv2.CC_STAT_AREA] >= o.loose_area * piece_area
+        and min(component[cv2.CC_STAT_WIDTH], component[cv2.CC_STAT_HEIGHT]) >= o.loose_min_side * piece_edge
+        and cv2.pointPolygonTest(quad.reshape(-1, 1, 2), (float(centre[0]), float(centre[1])), False) < 0
+    )
     details = {
         **light,
         "quad": [[round(float(x) / scale), round(float(y) / scale)] for x, y in quad],
@@ -289,6 +311,7 @@ def check_holes(mat_bgr: np.ndarray, finish_bgr: np.ndarray, pieces: int, option
         "largestHoleShare": round(largest_share, 3),
         "doubts": doubts,
         "scatteredMat": round(scattered, 4),
+        "loose": loose,
     }
 
     if any(g["pieces"] > o.max_hole_pieces for g in gaps):
@@ -301,6 +324,10 @@ def check_holes(mat_bgr: np.ndarray, finish_bgr: np.ndarray, pieces: int, option
     if gaps:
         return Verdict(GAPS, min(1.0, 0.5 + 0.5 * min(g["pieces"] for g in gaps)), f"{len(gaps)} hole(s) the colour of the mat",
                        gaps=gaps, details=details)
+
+    if loose > 0:
+        return Verdict(UNSURE, 0.3, f"{loose} thing(s) next to the puzzle - loose pieces of an unfinished puzzle, the box?",
+                       details=details)
 
     if doubts > 0:
         return Verdict(UNSURE, 0.4, f"{doubts} small mat-coloured spot(s) inside the puzzle", details=details)
@@ -523,3 +550,73 @@ def combine(holes: Verdict, grid: Verdict) -> Verdict:
         return Verdict(COMPLETE, min(holes.confidence, grid.confidence), "both checks find every piece")
 
     return Verdict(UNSURE, 0.3, "holes: " + holes.reason + " / grid: " + grid.reason)
+
+
+def _merge_overlapping(boxes: list[dict]) -> list[dict]:
+    """Boxes that overlap (one holds the other's centre) as one box around both - the same hole seen by both checks"""
+    merged: list[dict] = []
+
+    for box in boxes:
+        box = {key: box[key] for key in ("x", "y", "w", "h")}
+
+        for other in merged:
+            def holds(outer: dict, inner: dict) -> bool:
+                cx, cy = inner["x"] + inner["w"] / 2, inner["y"] + inner["h"] / 2
+
+                return outer["x"] <= cx <= outer["x"] + outer["w"] and outer["y"] <= cy <= outer["y"] + outer["h"]
+
+            if holds(other, box) or holds(box, other):
+                x0, y0 = min(other["x"], box["x"]), min(other["y"], box["y"])
+                x1, y1 = max(other["x"] + other["w"], box["x"] + box["w"]), max(other["y"] + other["h"], box["y"] + box["h"])
+                other.update({"x": x0, "y": y0, "w": x1 - x0, "h": y1 - y0})
+                break
+        else:
+            merged.append(box)
+
+    return merged
+
+
+def check_photo(finish_bgr: np.ndarray, mat_bgr: np.ndarray | None = None, reference_bgr: np.ndarray | None = None,
+                pieces: int | None = None) -> tuple[Verdict, str, dict]:
+    """
+    The checks the inputs allow, as the CV worker answers (README §5.8): background holes with the empty-mat photo,
+    reference-grid matching with the reference image, both combined (complete only when both say so) - one alone when
+    only its input is there. Without the piece count (a round of several puzzles) or without either input: unsure.
+
+    Returns (verdict, method, details): method "holes+grid" | "holes" | "grid" | "none"; details = each check's own
+    verdict (as_dict, with its details) or None when it did not run.
+    """
+    details: dict = {"holes": None, "grid": None}
+
+    if finish_bgr is None:
+        return Verdict(UNSURE, 0.0, "no finish photo"), "none", details
+
+    if pieces is None or pieces <= 1:
+        return Verdict(UNSURE, 0.0, "the piece count is not known - nothing to compare the holes with"), "none", details
+
+    holes = check_holes(mat_bgr, finish_bgr, pieces) if mat_bgr is not None else None
+    grid = None
+
+    if reference_bgr is not None:
+        rows, columns = grid_shape(pieces, reference_bgr.shape[1] / reference_bgr.shape[0])
+        grid = check_grid(reference_bgr, finish_bgr, rows, columns, mat_bgr=mat_bgr)
+
+    details = {
+        "holes": holes.as_dict() if holes is not None else None,
+        "grid": grid.as_dict() if grid is not None else None,
+    }
+
+    if holes is not None and grid is not None:
+        both = combine(holes, grid)
+        # Both checks found the same hole: one box for it (the review draws each box over the photo)
+        both.gaps = _merge_overlapping(both.gaps)
+
+        return both, "holes+grid", details
+
+    if holes is not None:
+        return holes, "holes", details
+
+    if grid is not None:
+        return grid, "grid", details
+
+    return Verdict(UNSURE, 0.0, "no empty-mat photo and no reference image - nothing to check against"), "none", details

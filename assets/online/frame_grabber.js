@@ -242,7 +242,10 @@ export class FrameGrabber {
 
     /**
      * Calls back with the next frame's capture time (performance.now() clock): the frame callback, or the frame on
-     * screen when none came within FRAME_FALLBACK_MS. Returns a cancel handle.
+     * screen when none came within FRAME_FALLBACK_MS. The second argument says how it came - `{source: 'frame',
+     * presentedFrames}` (requestVideoFrameCallback and its count of frames presented), `{source: 'animation'}` (no
+     * frame callbacks in this browser) or `{source: 'timer'}` (the fallback: maybe the same frame again - a frozen
+     * camera presents none; detector_feed.js tells them apart). Returns a cancel handle.
      */
     nextFrame(callback) {
         const video = this.video;
@@ -250,7 +253,7 @@ export class FrameGrabber {
         let handle = null;
         let timer = null;
 
-        const finish = (perf) => {
+        const finish = (perf, how) => {
             if (done) {
                 return;
             }
@@ -269,21 +272,21 @@ export class FrameGrabber {
                 }
             }
 
-            callback(perf);
+            callback(perf, how);
         };
 
         if (typeof video?.requestVideoFrameCallback === 'function') {
             handle = video.requestVideoFrameCallback((now, metadata) => {
                 handle = null;
-                finish(captureTimeOf(Number.isFinite(now) ? now : this.now(), metadata));
+                finish(captureTimeOf(Number.isFinite(now) ? now : this.now(), metadata), { source: 'frame', presentedFrames: metadata?.presentedFrames ?? null });
             });
         } else {
-            this.requestAnimationFrame(() => finish(this.now()));
+            this.requestAnimationFrame(() => finish(this.now(), { source: 'animation' }));
         }
 
         timer = this.schedule(() => {
             timer = null;
-            finish(this.now());
+            finish(this.now(), { source: 'timer' });
         }, FRAME_FALLBACK_MS);
 
         return {

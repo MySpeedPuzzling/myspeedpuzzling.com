@@ -16,6 +16,7 @@ use SpeedPuzzling\Web\Message\VerifyOnlineMedia;
 use SpeedPuzzling\Web\MessageHandler\VerifyOnlineMediaHandler;
 use SpeedPuzzling\Web\Repository\OnlineEntryMediaRepository;
 use SpeedPuzzling\Web\Services\OnlineRounds\FakeOnlineMediaStorage;
+use SpeedPuzzling\Web\Services\OnlineRounds\OnlineCvSettings;
 use SpeedPuzzling\Web\Services\OnlineRounds\OnlineStoreBreaker;
 use SpeedPuzzling\Web\Tests\DataFixtures\OnlineRoundsFixture;
 use SpeedPuzzling\Web\Tests\TestDouble\InMemoryLogger;
@@ -23,6 +24,7 @@ use SpeedPuzzling\Web\Value\OnlineEntryQuota;
 use SpeedPuzzling\Web\Value\OnlineMediaKind;
 use SpeedPuzzling\Web\Value\OnlineMediaStore;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
+use Symfony\Component\Messenger\MessageBusInterface;
 
 /**
  * The async check of an upload a phone reported (VerifyOnlineMediaHandler): the object's size from its store, or a
@@ -80,6 +82,8 @@ final class VerifyOnlineMediaHandlerTest extends KernelTestCase
             $this->storage,
             $container->get(OnlineStoreBreaker::class),
             $logger,
+            $container->get(MessageBusInterface::class),
+            $container->get(OnlineCvSettings::class),
         );
 
         $handler(new VerifyOnlineMedia($media->id->toString()));

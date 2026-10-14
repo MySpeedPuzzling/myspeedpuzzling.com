@@ -208,6 +208,8 @@ final class NavigationPlaceMap
         'online_links_qr_sheet' => 'community/events',
         'online_link_regenerate' => 'community/events',
         'online_round_settings' => 'community/events',
+        'online_round_recheck_finish_photos' => 'community/events',
+        'online_round_reference_image_remove' => 'community/events',
         'online_control_room' => 'community/events',
         'online_review' => 'community/events',
         'online_accuracy' => 'community/events',
@@ -341,12 +343,13 @@ final class NavigationPlaceMap
         'photo_stash_preview' => 'none',
         'competition_picker_editions' => 'none',
         'competition_picker_series_preview' => 'none',
-        // JSON of online rounds: the control room's live feed, the review's entries and confirmations, a participant's
-        // "This is me", the clock the participant page syncs to, the live video's tokens (moderator, spectator) and the
-        // studio's invitations
+        // JSON of online rounds: the control room's live feed, the review's entries, confirmations and gap marks, a
+        // participant's "This is me", the clock the participant page syncs to, the live video's tokens (moderator,
+        // spectator) and the studio's invitations
         'online_live' => 'none',
         'online_review_entry' => 'none',
         'online_review_confirm' => 'none',
+        'online_review_gap' => 'none',
         'compete_connect' => 'none',
         // The participant's link without a language: a redirect to compete_page in their own language
         'compete_link' => 'none',

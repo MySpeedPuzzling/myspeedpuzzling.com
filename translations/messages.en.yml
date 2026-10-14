@@ -9494,6 +9494,8 @@ compete:
         button_only: "Tap Finished when your puzzle is complete."
         timeup_text: "Was your puzzle complete then? If a piece was missing, tell us below how far you got."
         timeup_complete: "My puzzle is complete"
+        turned_on: "The organiser turned on finish detection - reload the page to use it."
+        turned_on_reload: "Reload"
 
 # Online competitions: the organiser's pages (docs/features/online-competitions/)
 online_rounds:
@@ -9519,6 +9521,8 @@ online_rounds:
             "off": "Finished button - participants tap Finished when their puzzle is done"
             shadow: "Finished button, detection watching - the tap counts; the camera's detection is only recorded, to measure it"
             "on": "Detection - raised hands mark the finish, the Finished button is the fallback"
+            locked: "Fixed from the round's start until a Reset - the phones already know how this round finishes."
+            locked_refused: "The round has started (or its start is set), so the finish can't change any more. Reset the round's stopwatch to change it - nothing was saved."
         unfinished:
             label: "When time is up"
             help: "What participants who did not finish report, together with a photo of their puzzle."
@@ -9535,6 +9539,7 @@ online_rounds:
             enabled_help: "The participants' phones show their puzzle camera live in the control room. The host can talk to everybody and invite finishers to the studio."
             see_each_other: "Participants see each other"
             see_each_other_help: "With live video on, participants can also watch each other's puzzle cameras, like in a video call. Off: only the moderators see them."
+        live_note: "Participants' phones that are open pick up a change within seconds."
         save: "Save settings"
         participants:
             title: "Participants"

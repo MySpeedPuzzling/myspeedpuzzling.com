@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Repository\OnlineEntryRepository;
 use SpeedPuzzling\Web\Services\OfficialResultsSubscription;
 use SpeedPuzzling\Web\Value\OnlineAccessContext;
 use SpeedPuzzling\Web\Value\OnlineEventType;
+use SpeedPuzzling\Web\Value\OnlineParticipantSettings;
 use SpeedPuzzling\Web\Value\OnlineReviewStatus;
 use SpeedPuzzling\Web\Value\PuzzleHideMode;
 use SpeedPuzzling\Web\Value\RoundClock;
@@ -24,7 +25,9 @@ use SpeedPuzzling\Web\Value\RoundClock;
  * - `asOfMs` is when the rows were read, `serverNowMs` when the answer was made - the page keeps whichever state is
  *   newest by `asOfMs`, so a slow answer never overwrites a newer push.
  * - `round` is null while the competition has no round with online timing; its clock fields are RoundClock's
- *   (`status`, `startedAtMs`, `stoppedAtMs`, `endsAtMs`, `minutesLimit`, `stateHash`).
+ *   (`status`, `startedAtMs`, `stoppedAtMs`, `endsAtMs`, `minutesLimit`, `stateHash`), its `settings` the online timing
+ *   settings the phone uses and `settingsHash` their hash (OnlineParticipantSettings) - a heartbeat answer naming
+ *   another one sends the phone to fetch the state again, like another `stateHash`.
  * - `piecesTotal` is the piece count of the round's one puzzle - null with several puzzles, or while it is kept secret
  *   entirely until the round starts.
  * - `entry` is null when the participant is not entered in the round; before their phone's first contact it holds the
@@ -44,6 +47,7 @@ use SpeedPuzzling\Web\Value\RoundClock;
  *     endsAtMs: null|int,
  *     stateHash: string,
  *     settings: array{detection: string, video: bool, seeEachOther: bool, studio: bool, unfinishedMeasure: string},
+ *     settingsHash: string,
  * }
  * @phpstan-type OnlineStateEntry array{
  *     confirmedMomentMs: null|int,
@@ -119,6 +123,8 @@ readonly final class OnlineRoundState
             return null;
         }
 
+        $settings = OnlineParticipantSettings::of($onlineRound);
+
         return [
             'id' => $round->id->toString(),
             'name' => $round->name,
@@ -129,13 +135,8 @@ readonly final class OnlineRoundState
             'stoppedAtMs' => $clock->stoppedAtMs,
             'endsAtMs' => $clock->endsAtMs,
             'stateHash' => $clock->stateHash(),
-            'settings' => [
-                'detection' => $onlineRound->detectionMode->value,
-                'video' => $onlineRound->videoEnabled,
-                'seeEachOther' => $onlineRound->participantsSeeEachOther,
-                'studio' => $onlineRound->studioEnabled,
-                'unfinishedMeasure' => $onlineRound->unfinishedMeasure->value,
-            ],
+            'settings' => $settings->toArray(),
+            'settingsHash' => $settings->hash(),
         ];
     }
 

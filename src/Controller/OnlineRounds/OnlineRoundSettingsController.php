@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller\OnlineRounds;
 
 use SpeedPuzzling\Web\Controller\FirstTry\FirstTryConflictsController;
+use Psr\Clock\ClockInterface;
+use SpeedPuzzling\Web\Exceptions\OnlineDetectionModeLocked;
 use SpeedPuzzling\Web\Exceptions\OnlineTimingNotAvailable;
 use SpeedPuzzling\Web\FormData\OnlineRoundSettingsFormData;
 use SpeedPuzzling\Web\FormType\OnlineRoundSettingsFormType;
@@ -15,8 +17,11 @@ use SpeedPuzzling\Web\Repository\CompetitionRoundRepository;
 use SpeedPuzzling\Web\Repository\OnlineRoundRepository;
 use SpeedPuzzling\Web\Security\OnlineRoundsVoter;
 use SpeedPuzzling\Web\Services\LiveKit\LiveKitSettings;
+use SpeedPuzzling\Web\Services\OnlineRounds\OnlineRoundSettingsLiveUpdates;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
+use SpeedPuzzling\Web\Value\OnlineDetectionMode;
 use SpeedPuzzling\Web\Value\OnlineTimingAvailability;
+use Symfony\Component\Form\FormError;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -35,6 +40,12 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  *
  * Every POST either redirects (done - back to this page) or answers 422 (an invalid form, a refusal, an expired page):
  * Turbo Drive drops a 200 answer to a form. Never cached - the page leads to the personal links.
+ *
+ * Open participant pages pick a saved change up within a second (OnlineRoundSettingsLiveUpdates, after the commit;
+ * without Mercure at their next heartbeat). Finish detection is fixed from the round's start until a Reset
+ * (OnlineRound::detectionModeLockedAt()): the field is disabled with the reason then, and a page opened before the
+ * start that still sends another mode is refused (OnlineDetectionModeLocked, the form says so) - never dropped
+ * silently while the other settings save.
  */
 #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
 final class OnlineRoundSettingsController extends AbstractController
@@ -52,6 +63,8 @@ final class OnlineRoundSettingsController extends AbstractController
         private readonly MessageBusInterface $messageBus,
         private readonly TranslatorInterface $translator,
         private readonly LiveKitSettings $liveKitSettings,
+        private readonly OnlineRoundSettingsLiveUpdates $settingsLiveUpdates,
+        private readonly ClockInterface $clock,
     ) {
     }
 
@@ -119,11 +132,13 @@ final class OnlineRoundSettingsController extends AbstractController
         $form = null;
         // The live video switches only while a media server is configured - without one they keep their values
         $videoAvailable = $this->liveKitSettings->isAvailable();
+        $detectionLocked = $onlineRound?->detectionModeLockedAt($this->clock->now()) === true;
 
         if ($onlineRound !== null) {
             $form = $this->createForm(OnlineRoundSettingsFormType::class, OnlineRoundSettingsFormData::fromOnlineRound($onlineRound), [
                 'action' => $pageUrl,
                 'video_available' => $videoAvailable,
+                'detection_locked' => $detectionLocked,
             ]);
             $form->handleRequest($request);
 
@@ -131,21 +146,29 @@ final class OnlineRoundSettingsController extends AbstractController
                 $data = $form->getData();
                 assert($data->detectionMode !== null && $data->unfinishedMeasure !== null && $data->missingPieceRule !== null);
 
-                $this->messageBus->dispatch(new UpdateOnlineRoundSettings(
-                    roundId: $roundId,
-                    detectionMode: $data->detectionMode,
-                    videoEnabled: $videoAvailable ? $data->videoEnabled : $onlineRound->videoEnabled,
-                    participantsSeeEachOther: $videoAvailable ? $data->participantsSeeEachOther : $onlineRound->participantsSeeEachOther,
-                    // Not in the form - kept as they are
-                    studioEnabled: $onlineRound->studioEnabled,
-                    recordingEnabled: $onlineRound->recordingEnabled,
-                    unfinishedMeasure: $data->unfinishedMeasure,
-                    missingPieceRule: $data->missingPieceRule,
-                ));
+                try {
+                    $this->messageBus->dispatch(new UpdateOnlineRoundSettings(
+                        roundId: $roundId,
+                        detectionMode: $detectionLocked ? $this->submittedDetectionMode($request, $form->getName()) ?? $data->detectionMode : $data->detectionMode,
+                        videoEnabled: $videoAvailable ? $data->videoEnabled : $onlineRound->videoEnabled,
+                        participantsSeeEachOther: $videoAvailable ? $data->participantsSeeEachOther : $onlineRound->participantsSeeEachOther,
+                        // Not in the form - kept as they are
+                        studioEnabled: $onlineRound->studioEnabled,
+                        recordingEnabled: $onlineRound->recordingEnabled,
+                        unfinishedMeasure: $data->unfinishedMeasure,
+                        missingPieceRule: $data->missingPieceRule,
+                    ));
 
-                $this->addFlash('success', $this->translator->trans('online_rounds.settings.flash.saved', ['%round%' => $round->name]));
+                    // After the commit: the open participant pages fetch the settings (a Mercure failure is only logged)
+                    $this->settingsLiveUpdates->settingsChanged($roundId);
 
-                return $this->redirect($pageUrl, Response::HTTP_SEE_OTHER);
+                    $this->addFlash('success', $this->translator->trans('online_rounds.settings.flash.saved', ['%round%' => $round->name]));
+
+                    return $this->redirect($pageUrl, Response::HTTP_SEE_OTHER);
+                } catch (OnlineDetectionModeLocked) {
+                    // Nothing saved - the form says why (422: an invalid form)
+                    $form->get('detectionMode')->addError(new FormError($this->translator->trans(OnlineDetectionModeLocked::TRANSLATION_KEY)));
+                }
             }
         }
 
@@ -160,6 +183,7 @@ final class OnlineRoundSettingsController extends AbstractController
             'page_url' => $pageUrl,
             'csrf_token_id' => self::CSRF_TOKEN_ID,
             'enable_field' => self::ENABLE_FIELD,
+            'detection_locked' => $detectionLocked,
         ]);
 
         // A POST that changed nothing (an expired page, a refusal, a form for a round without online timing) - 422 like
@@ -171,5 +195,17 @@ final class OnlineRoundSettingsController extends AbstractController
         $response->headers->set('Cache-Control', 'private, no-store');
 
         return $response;
+    }
+
+    /**
+     * The finish detection a page sent while the field is locked (disabled fields are not read by the form): only a
+     * page opened before the round's start sends one - passed on, so the handler refuses a change instead of the save
+     * dropping it while the other settings go through.
+     */
+    private function submittedDetectionMode(Request $request, string $formName): null|OnlineDetectionMode
+    {
+        $submitted = $request->request->all($formName)['detectionMode'] ?? null;
+
+        return is_string($submitted) ? OnlineDetectionMode::tryFrom($submitted) : null;
     }
 }

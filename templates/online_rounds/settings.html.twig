@@ -5,7 +5,8 @@
     the button turning it on, its settings, and whether the event's participants are entered in the round.
     Variables: competition, round (CompetitionRound), online_round (null = off), availability (OnlineTimingAvailability),
     setup (OnlineRoundSetup), form (null while off; its live video switches only while a media server is configured),
-    enable_error (a translation key or null), page_url, csrf_token_id, enable_field
+    enable_error (a translation key or null), page_url, csrf_token_id, enable_field, detection_locked (finish detection
+    fixed from the round's start until a Reset - its field disabled, the reason under it)
 #}
 
 {% set hide_comparison_launcher = true %}
@@ -94,6 +95,9 @@
                     {{ form_start(form, {action: page_url}) }}
                         <div class="online-rounds-settings">
                             {{ form_row(form.detectionMode) }}
+                            {% if detection_locked %}
+                                <p class="small text-body-secondary" data-detection-locked><i class="bi bi-lock me-1" aria-hidden="true"></i>{{ 'online_rounds.settings.detection.locked'|trans }}</p>
+                            {% endif %}
                             {{ form_row(form.unfinishedMeasure) }}
                             {{ form_row(form.missingPieceRule) }}
                         </div>
@@ -105,6 +109,8 @@
                                 {{ form_row(form.participantsSeeEachOther) }}
                             </fieldset>
                         {% endif %}
+                        {# OnlineRoundSettingsLiveUpdates: a push after the save, the heartbeat's settings hash without it #}
+                        <p class="small text-body-secondary" data-online-settings-live><i class="bi bi-phone me-1" aria-hidden="true"></i>{{ 'online_rounds.settings.live_note'|trans }}</p>
                         <button type="submit" class="btn btn-primary">{{ 'online_rounds.settings.save'|trans }}</button>
                     {{ form_end(form) }}
                 </div>

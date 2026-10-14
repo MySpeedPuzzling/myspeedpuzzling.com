@@ -8,13 +8,21 @@ use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use SpeedPuzzling\Web\Entity\CompetitionParticipant;
 use SpeedPuzzling\Web\Entity\CompetitionRound;
+use SpeedPuzzling\Web\Message\UpdateOnlineRoundSettings;
+use SpeedPuzzling\Web\Repository\OnlineRoundRepository;
 use SpeedPuzzling\Web\Services\OnlineRounds\InMemoryOnlinePresence;
 use SpeedPuzzling\Web\Services\OnlineRounds\OnlineAccessLight;
+use SpeedPuzzling\Web\Services\OnlineRounds\OnlineRoundSettingsLiveUpdates;
 use SpeedPuzzling\Web\Tests\DataFixtures\OnlineRoundsFixture;
 use SpeedPuzzling\Web\Tests\LiveVideoTesting;
 use SpeedPuzzling\Web\Tests\QueryCountAssertions;
 use SpeedPuzzling\Web\Tests\TestDouble\InMemoryStudioInviteSignal;
+use SpeedPuzzling\Web\Value\OnlineDetectionMode;
+use SpeedPuzzling\Web\Value\OnlineMissingPieceRule;
+use SpeedPuzzling\Web\Value\OnlineParticipantSettings;
+use SpeedPuzzling\Web\Value\OnlineUnfinishedMeasure;
 use SpeedPuzzling\Web\Value\RoundClock;
+use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Contracts\Cache\CacheInterface;
@@ -22,7 +30,8 @@ use Symfony\Contracts\Cache\CacheInterface;
 /**
  * `POST /api/compete/{token}/heartbeat` - presence, a clock sample, the hint to fetch the state again, the takeover
  * (README §5.3, §5.4, §5.6) and, while live video is available, the open invitation to the studio (contract
- * phase-1b.md §4). Never Postgres once the link is cached.
+ * phase-1b.md §4). The hint has two hashes: the round clock's and the round's online timing settings' (stream SP) - a
+ * saved change shows in the next beat. Never Postgres once the link is cached.
  */
 final class ApiHeartbeatControllerTest extends WebTestCase
 {
@@ -58,10 +67,11 @@ final class ApiHeartbeatControllerTest extends WebTestCase
         self::assertNoCookie($this->browser);
 
         $answer = self::json($this->browser);
-        self::assertSame(['serverNowMs', 'stateHash', 'roundId', 'takenOverBy', 'studioInviteId'], array_keys($answer));
+        self::assertSame(['serverNowMs', 'stateHash', 'settingsHash', 'roundId', 'takenOverBy', 'studioInviteId'], array_keys($answer));
         self::assertIsInt($answer['serverNowMs']);
         self::assertGreaterThanOrEqual($before, $answer['serverNowMs']);
         self::assertSame($this->roundStateHash(), $answer['stateHash']);
+        self::assertSame($this->settingsHash(), $answer['settingsHash']);
         self::assertSame(OnlineRoundsFixture::ROUND_ONLINE_SOLO, $answer['roundId']);
         // The device holding the entry itself
         self::assertNull($answer['takenOverBy']);
@@ -167,6 +177,36 @@ final class ApiHeartbeatControllerTest extends WebTestCase
     }
 
     /**
+     * The organiser saves the round's online timing settings: once the save is told (OnlineRoundSettingsLiveUpdates,
+     * after the commit) the next beat names the new settings hash - the one the state carries - and the clock's hash
+     * stays. A setting no phone uses changes nothing.
+     */
+    public function testTheSettingsHashFollowsASavedChange(): void
+    {
+        $this->browser->disableReboot();
+        self::postJson($this->browser, self::api(OnlineRoundsFixture::TOKEN_ANONYMOUS, 'heartbeat'), self::beat('phone-a'));
+        $before = self::json($this->browser);
+
+        $this->saveSettings(videoEnabled: true, detectionMode: OnlineDetectionMode::Shadow);
+        self::postJson($this->browser, self::api(OnlineRoundsFixture::TOKEN_ANONYMOUS, 'heartbeat'), self::beat('phone-a'));
+        $after = self::json($this->browser);
+
+        self::assertSame($before['stateHash'], $after['stateHash'], 'the clock did not change');
+        self::assertIsString($after['settingsHash']);
+        self::assertNotSame($before['settingsHash'], $after['settingsHash']);
+
+        $this->browser->request('GET', self::api(OnlineRoundsFixture::TOKEN_ANONYMOUS, 'state'));
+        $round = self::json($this->browser)['round'];
+        self::assertIsArray($round);
+        self::assertSame($after['settingsHash'], $round['settingsHash'], 'the phone that fetched its state holds the same hash');
+
+        // The missing-piece rule: nothing a phone shows - the same hash
+        $this->saveSettings(videoEnabled: true, detectionMode: OnlineDetectionMode::Shadow, missingPieceRule: OnlineMissingPieceRule::PenaltyFiveSeconds);
+        self::postJson($this->browser, self::api(OnlineRoundsFixture::TOKEN_ANONYMOUS, 'heartbeat'), self::beat('phone-a'));
+        self::assertSame($after['settingsHash'], self::json($this->browser)['settingsHash']);
+    }
+
+    /**
      * Postgres is asked once a minute per link at most - a heartbeat of a cached link costs no statement, with an
      * invitation to the studio open too (its signal is in redis-state)
      */
@@ -221,7 +261,7 @@ final class ApiHeartbeatControllerTest extends WebTestCase
         self::postJson($this->browser, self::api(OnlineRoundsFixture::TOKEN_CONNECTED, 'heartbeat'), self::beat(OnlineRoundsFixture::DEVICE_CONNECTED));
 
         self::assertResponseIsSuccessful();
-        self::assertSame(['serverNowMs', 'stateHash', 'roundId', 'takenOverBy'], array_keys(self::json($this->browser)));
+        self::assertSame(['serverNowMs', 'stateHash', 'settingsHash', 'roundId', 'takenOverBy'], array_keys(self::json($this->browser)));
     }
 
     public function testRefusals(): void
@@ -263,6 +303,28 @@ final class ApiHeartbeatControllerTest extends WebTestCase
         $presence = $this->browser->getContainer()->get(InMemoryOnlinePresence::class);
 
         return $presence->forRound(OnlineRoundsFixture::ROUND_ONLINE_SOLO);
+    }
+
+    private function saveSettings(bool $videoEnabled, OnlineDetectionMode $detectionMode, OnlineMissingPieceRule $missingPieceRule = OnlineMissingPieceRule::CompleteRequired): void
+    {
+        $container = $this->browser->getContainer();
+        $container->get(MessageBusInterface::class)->dispatch(new UpdateOnlineRoundSettings(
+            roundId: OnlineRoundsFixture::ROUND_ONLINE_SOLO,
+            detectionMode: $detectionMode,
+            videoEnabled: $videoEnabled,
+            participantsSeeEachOther: false,
+            studioEnabled: false,
+            recordingEnabled: false,
+            unfinishedMeasure: OnlineUnfinishedMeasure::PiecesLeft,
+            missingPieceRule: $missingPieceRule,
+        ));
+        // What the settings page does once the dispatch returned
+        $container->get(OnlineRoundSettingsLiveUpdates::class)->settingsChanged(OnlineRoundsFixture::ROUND_ONLINE_SOLO);
+    }
+
+    private function settingsHash(): string
+    {
+        return OnlineParticipantSettings::of($this->browser->getContainer()->get(OnlineRoundRepository::class)->get(OnlineRoundsFixture::ONLINE_ROUND_SOLO))->hash();
     }
 
     private function roundStateHash(): string

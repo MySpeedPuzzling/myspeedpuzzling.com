@@ -15,8 +15,16 @@ final class NullMercureHub implements HubInterface, ResetInterface
     /** @var Update[] */
     private array $publishedUpdates = [];
 
+    // Set: every publish throws it (a hub that is down) - until failWith(null); the reset between a test's requests keeps
+    // it, so a test can make the hub fail for its next request (each test's kernel has a hub of its own)
+    private null|\Throwable $failure = null;
+
     public function publish(Update $update): string
     {
+        if ($this->failure !== null) {
+            throw $this->failure;
+        }
+
         $this->publishedUpdates[] = $update;
 
         return 'test-id';
@@ -46,6 +54,11 @@ final class NullMercureHub implements HubInterface, ResetInterface
     public function getPublishedUpdates(): array
     {
         return $this->publishedUpdates;
+    }
+
+    public function failWith(null|\Throwable $failure): void
+    {
+        $this->failure = $failure;
     }
 
     public function reset(): void

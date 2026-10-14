@@ -18,7 +18,8 @@ use Symfony\Component\OptionsResolver\OptionsResolver;
  * A round's online timing settings (online_round_settings, docs/features/online-competitions/): finish detection, what
  * participants report when time is up, the missing-piece rule - every choice a radio list, the organiser reads all of
  * them before choosing - and, with `video_available` (a media server is configured, LiveKitSettings), the live video
- * switches: the puzzle cameras live, and participants seeing each other.
+ * switches: the puzzle cameras live, and participants seeing each other. With `detection_locked` (the round has a start -
+ * OnlineRound::detectionModeLockedAt()) the finish detection is shown disabled: it keeps its value until a Reset.
  *
  * @extends AbstractType<OnlineRoundSettingsFormData>
  */
@@ -35,6 +36,7 @@ final class OnlineRoundSettingsFormType extends AbstractType
             'label' => 'online_rounds.settings.detection.label',
             'help' => 'online_rounds.settings.detection.how',
             'choice_label' => static fn (OnlineDetectionMode $mode): string => 'online_rounds.settings.detection.' . $mode->value,
+            'disabled' => $options['detection_locked'] === true,
         ]);
 
         $builder->add('unfinishedMeasure', EnumType::class, [
@@ -75,8 +77,10 @@ final class OnlineRoundSettingsFormType extends AbstractType
         $resolver->setDefaults([
             'data_class' => OnlineRoundSettingsFormData::class,
             'video_available' => false,
+            'detection_locked' => false,
         ]);
 
         $resolver->setAllowedTypes('video_available', 'bool');
+        $resolver->setAllowedTypes('detection_locked', 'bool');
     }
 }

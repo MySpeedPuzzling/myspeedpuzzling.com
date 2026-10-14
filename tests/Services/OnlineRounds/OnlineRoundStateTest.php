@@ -91,6 +91,8 @@ final class OnlineRoundStateTest extends KernelTestCase
                     'studio' => false,
                     'unfinishedMeasure' => 'left',
                 ],
+                // OnlineParticipantSettings::hash() of exactly these - what the heartbeat answers carry too
+                'settingsHash' => substr(sha1('{"detection":"off","video":false,"seeEachOther":false,"studio":false,"unfinishedMeasure":"left"}'), 0, 12),
             ],
             'entry' => [
                 'confirmedMomentMs' => null,

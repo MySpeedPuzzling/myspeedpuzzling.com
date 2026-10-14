@@ -9136,9 +9136,42 @@ where_did_it_go:
     title: "Kam se to přesunulo?"
     meta_description: "Kde teď najdeš každou položku původních menu, horní lišty a patičky MySpeedPuzzling."
     intro: "Přestavěli jsme navigaci. Tady uvidíš, kam se přesunula každá položka původních menu, horní lišty a patičky."
-    placeholder: "Brzy tu bude celý seznam původních položek a jejich nových míst."
+    surface:
+        topbar: "Úzký proužek nad hlavičkou"
+        admin_key: "Menu s klíčem (správa)"
+        toolbar: "Ikony v hlavičce"
+        account_dropdown: "Menu Můj profil"
+        hamburger: "Hlavní menu"
+        footer: "Patička"
+    was: "Dříve"
+    now: "Teď"
+    members: "Pro členy"
+    after_sign_in: "Po přihlášení:"
+    filter_label: "Najdi původní položku"
+    filter_placeholder: "např. Statistiky"
+    no_match: "Nic neodpovídá. Zkus jiné slovo, nebo se podívej do ☰ Menu."
+    bottom_bar: "Spodní lišta"
+    left_menu: "Levé menu"
+    top_bar: "Horní lišta"
+    account_menu: "Menu účtu (tvoje fotka)"
+    logo: "Logo (domů)"
 
 nav:
+    launch:
+        what_moved:
+            title: "Trochu jsme to přestavěli"
+            lead: "Všechno najdeš v ☰ Menu vpravo nahoře, kde ☰ bylo vždycky."
+            lead_desktop: "Všechno najdeš v ☰ Menu vlevo."
+            line_tabs: "Domů, Puzzle, Přidat, Komunitu a svůj Profil máš vždy po ruce."
+            line_search: "Hledání najde puzzle, puzzlery i stránky – i pod jejich starými názvy."
+            line_help: "Něco ti chybí? Pošli nám zpětnou vazbu – čteme každou zprávu."
+            got_it: "Rozumím"
+            where_did_it_go: "Kam se to přesunulo?"
+        pointer:
+            hub: "Přestavěli jsme navigaci – všechno najdeš v ☰ Menu."
+            menu: "Nová navigace: všechno najdeš v tomto menu."
+            link: "Kam se to přesunulo?"
+            dismiss: "Skrýt upozornění"
     bar:
         places: "Hlavní sekce"
         home: "Domů"

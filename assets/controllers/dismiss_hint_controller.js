@@ -13,6 +13,14 @@ export default class extends Controller {
             body: `type=${this.typeValue}`,
         });
 
+        // One dismissal hides every copy of the hint on the page - the navigation launch's pointer is on the Hub and at
+        // the top of the Menu at once (docs/features/navigation decision 52)
+        document.querySelectorAll('[data-controller~="dismiss-hint"]').forEach((element) => {
+            if (element !== this.element && element.getAttribute('data-dismiss-hint-type-value') === this.typeValue) {
+                element.remove();
+            }
+        });
+
         this.element.remove();
     }
 }

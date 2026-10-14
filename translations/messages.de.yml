@@ -9109,9 +9109,42 @@ where_did_it_go:
     title: "Wo ist es jetzt?"
     meta_description: "Wo Sie jeden Eintrag der bisherigen Menüs, der oberen Leiste und der Fußzeile von MySpeedPuzzling jetzt finden."
     intro: "Wir haben die Navigation neu geordnet. Hier sehen Sie, wo jeder Eintrag der bisherigen Menüs, der oberen Leiste und der Fußzeile jetzt zu finden ist."
-    placeholder: "Hier erscheint bald die vollständige Liste der bisherigen Einträge und ihrer neuen Orte."
+    surface:
+        topbar: "Schmale Leiste über dem Kopfbereich"
+        admin_key: "Schlüssel-Menü (Verwaltung)"
+        toolbar: "Symbole im Kopfbereich"
+        account_dropdown: "Menü „Mein Profil“"
+        hamburger: "Hauptmenü"
+        footer: "Fußzeile"
+    was: "Vorher"
+    now: "Jetzt"
+    members: "Mitglieder"
+    after_sign_in: "Nach der Anmeldung:"
+    filter_label: "Alten Eintrag finden"
+    filter_placeholder: "z. B. Statistiken"
+    no_match: "Keine Treffer. Versuchen Sie ein anderes Wort oder schauen Sie ins ☰ Menü."
+    bottom_bar: "Untere Leiste"
+    left_menu: "Linkes Menü"
+    top_bar: "Obere Leiste"
+    account_menu: "Kontomenü (Ihr Bild)"
+    logo: "Logo (Start)"
 
 nav:
+    launch:
+        what_moved:
+            title: "Wir haben umgeräumt"
+            lead: "Alles finden Sie im ☰ Menü oben rechts, wo das ☰ schon immer war."
+            lead_desktop: "Alles finden Sie im ☰ Menü links."
+            line_tabs: "Start, Puzzles, Eintragen, Community und Ihr Profil sind immer griffbereit."
+            line_search: "Die Suche findet Puzzles, Puzzler und Seiten – auch unter ihren alten Namen."
+            line_help: "Fehlt Ihnen etwas? Schicken Sie uns Feedback – wir lesen jede Nachricht."
+            got_it: "Verstanden"
+            where_did_it_go: "Wo ist es jetzt?"
+        pointer:
+            hub: "Wir haben die Navigation neu geordnet – alles finden Sie im ☰ Menü."
+            menu: "Neue Navigation: Alles finden Sie in diesem Menü."
+            link: "Wo ist es jetzt?"
+            dismiss: "Hinweis ausblenden"
     bar:
         places: "Hauptbereiche"
         home: "Start"

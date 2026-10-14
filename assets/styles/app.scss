@@ -96,6 +96,8 @@
 @import 'player-results';
 // A player's Overview, the profile page: bests, numbers, latest results, About (docs/features/navigation PROF-03)
 @import 'player-overview';
+// The navigation's launch: "What moved", "Where did it go?" and the 30-day pointers (docs/features/navigation LAUNCH-01…03)
+@import 'navigation-launch';
 
 // Marketplace at events (docs/features/marketplace/11-events.md)
 @import 'marketplace-events-card';

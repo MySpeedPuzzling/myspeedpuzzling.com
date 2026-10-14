@@ -9110,9 +9110,42 @@ where_did_it_go:
     title: "¿Dónde está ahora?"
     meta_description: "Dónde encontrar ahora cada elemento de los antiguos menús, la barra superior y el pie de página de MySpeedPuzzling."
     intro: "Hemos reorganizado la navegación. Aquí puedes ver dónde está ahora cada elemento de los antiguos menús, la barra superior y el pie de página."
-    placeholder: "Pronto aparecerá aquí la lista completa de los elementos antiguos y sus nuevos lugares."
+    surface:
+        topbar: "Franja fina sobre la cabecera"
+        admin_key: "Menú de la llave (administración)"
+        toolbar: "Iconos de la cabecera"
+        account_dropdown: "Menú Mi perfil"
+        hamburger: "Menú principal"
+        footer: "Pie de página"
+    was: "Antes"
+    now: "Ahora"
+    members: "Miembros"
+    after_sign_in: "Tras iniciar sesión:"
+    filter_label: "Busca un elemento antiguo"
+    filter_placeholder: "p. ej. Estadísticas"
+    no_match: "No hay coincidencias. Prueba otra palabra o mira en el ☰ Menú."
+    bottom_bar: "Barra inferior"
+    left_menu: "Menú izquierdo"
+    top_bar: "Barra superior"
+    account_menu: "Menú de cuenta (tu foto)"
+    logo: "Logo (inicio)"
 
 nav:
+    launch:
+        what_moved:
+            title: "Hemos reorganizado todo"
+            lead: "Todo está en el ☰ Menú, arriba a la derecha, donde siempre estuvo el ☰."
+            lead_desktop: "Todo está en el ☰ Menú, a la izquierda."
+            line_tabs: "Inicio, Puzzles, Añadir, Comunidad y tu Perfil, siempre a mano."
+            line_search: "La búsqueda encuentra puzzles, puzzleros y páginas, incluso por sus nombres antiguos."
+            line_help: "¿Te falta algo? Envíanos tus comentarios: leemos cada mensaje."
+            got_it: "Entendido"
+            where_did_it_go: "¿Dónde está ahora?"
+        pointer:
+            hub: "Hemos reorganizado la navegación: todo está en el ☰ Menú."
+            menu: "Nueva navegación: todo está en este menú."
+            link: "¿Dónde está ahora?"
+            dismiss: "Ocultar este aviso"
     bar:
         places: "Secciones principales"
         home: "Inicio"

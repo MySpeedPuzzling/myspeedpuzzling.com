@@ -9382,9 +9382,42 @@ where_did_it_go:
     title: "Where did it go?"
     meta_description: "Where every item of the old MySpeedPuzzling menus, top bar and footer is now."
     intro: "We rearranged the navigation. Here you can see where every item of the old menus, top bar and footer is now."
-    placeholder: "The full list of the old items and their new places will appear here."
+    surface:
+        topbar: "Thin strip above the header"
+        admin_key: "Admin key menu"
+        toolbar: "Header icons"
+        account_dropdown: "My profile menu"
+        hamburger: "Main menu"
+        footer: "Footer"
+    was: "Before"
+    now: "Now"
+    members: "Members"
+    after_sign_in: "After signing in:"
+    filter_label: "Find an old item"
+    filter_placeholder: "e.g. Statistics"
+    no_match: "Nothing matches. Try another word, or look in ☰ Menu."
+    bottom_bar: "Bottom bar"
+    left_menu: "Left menu"
+    top_bar: "Top bar"
+    account_menu: "Account menu (your picture)"
+    logo: "Logo (home)"
 
 nav:
+    launch:
+        what_moved:
+            title: "We moved things around"
+            lead: "Everything is in ☰ Menu, top right, where the ☰ always was."
+            lead_desktop: "Everything is in the ☰ Menu on the left."
+            line_tabs: "Home, Puzzles, Add, Community and your Profile are always at hand."
+            line_search: "Search finds puzzles, puzzlers and pages - even under their old names."
+            line_help: "Missing something? Send us feedback - we read every message."
+            got_it: "Got it"
+            where_did_it_go: "Where did it go?"
+        pointer:
+            hub: "We rearranged the navigation - everything is in the ☰ Menu."
+            menu: "New navigation: everything is in this Menu."
+            link: "Where did it go?"
+            dismiss: "Hide this note"
     bar:
         places: "Main sections"
         home: "Home"

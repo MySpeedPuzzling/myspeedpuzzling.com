@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\Controller;
 
 use Doctrine\DBAL\Connection;
+use SpeedPuzzling\Web\Navigation\NavigationLaunch;
 use SpeedPuzzling\Web\Services\AnnouncementModals\ResolveAnnouncementModal;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
@@ -12,12 +13,15 @@ use SpeedPuzzling\Web\Tests\FreeTrialConditions;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\Clock\MockClock;
 use Symfony\Component\Routing\RouterInterface;
 
 /**
- * The one-time announcement modals (docs/features/announcement-modals.md) - "try membership for free" and the XP
- * launch reveal: the right audience, the right pages, and never a second time. Every fixture player has seen the XP
- * launch modal long ago (XpLaunchRevealSeenFixture); its tests take that back first.
+ * The one-time announcement modals (docs/features/announcement-modals.md) - "try membership for free", the XP
+ * launch reveal and the navigation's "What moved": the right audience, the right pages, and never a second time. Every
+ * fixture player has seen the XP launch modal long ago (XpLaunchRevealSeenFixture); its tests take that back first.
+ * "What moved" needs NavigationLaunch::DATE, null in the code: its tests replace the launch service with a date and a
+ * MockClock (decision R5).
  */
 final class AnnouncementModalTest extends WebTestCase
 {
@@ -25,6 +29,12 @@ final class AnnouncementModalTest extends WebTestCase
 
     private const string MODAL = '#announcement-modal';
     private const string ORDINARY_PAGE = '/en/faq';
+    private const string WHAT_MOVED = self::MODAL . '[data-autoshow-modal-name-value="navigation_what_moved"]';
+    private const string LAUNCH_DAY = '2026-11-02';
+    // A week after the launch day (Prague)
+    private const string AFTER_THE_LAUNCH = '2026-11-09 12:00:00';
+    // Long before the launch day (UTC, as registered_at is stored)
+    private const string OLD_ACCOUNT = '2025-05-01 10:00:00';
 
     public function testEstablishedPlayerWithoutMembershipSeesItExactlyOnce(): void
     {
@@ -279,6 +289,121 @@ final class AnnouncementModalTest extends WebTestCase
         $crawler = $browser->request('GET', self::ORDINARY_PAGE);
 
         self::assertCount(0, $crawler->filter(self::MODAL));
+    }
+
+    public function testWhatMovedShowsOnceToAnAccountThatKnewTheOldNavigation(): void
+    {
+        // A member: no free trial offer in the way
+        $browser = $this->signedInAfterTheLaunch(PlayerFixture::PLAYER_WITH_STRIPE, self::LAUNCH_DAY, self::AFTER_THE_LAUNCH, self::OLD_ACCOUNT);
+
+        $crawler = $browser->request('GET', self::ORDINARY_PAGE);
+        $this->assertResponseIsSuccessful();
+        self::assertCount(1, $crawler->filter(self::WHAT_MOVED));
+        self::assertStringContainsString('Everything is in ☰ Menu, top right, where the ☰ always was.', $crawler->filter(self::WHAT_MOVED . ' .wm-lead--phone')->text());
+        self::assertStringContainsString('Everything is in the ☰ Menu on the left.', $crawler->filter(self::WHAT_MOVED . ' .wm-lead--desktop')->text());
+        // At most five lines: the lead and three more
+        self::assertCount(3, $crawler->filter(self::WHAT_MOVED . ' .wm-lines li'));
+        self::assertCount(1, $crawler->filter(self::WHAT_MOVED . ' button[data-bs-dismiss="modal"].btn-primary'), 'Got it');
+        self::assertSame('Where did it go?', $crawler->filter(self::WHAT_MOVED . ' a[href="/en/where-did-it-go"]')->text());
+        // Schematics, never a screenshot: the bars' own sprite icons and labels, the phone's and the column's picture
+        self::assertCount(0, $crawler->filter(self::WHAT_MOVED . ' img'));
+        self::assertCount(1, $crawler->filter(self::WHAT_MOVED . ' .wm-pic--phone[aria-hidden="true"] .wm-mark use[href="#nav-i-list"]'), 'The ☰ is marked');
+        self::assertSame(['Home', 'Puzzles', 'Add', 'Community', 'Profile'], $crawler->filter(self::WHAT_MOVED . ' .wm-pic--phone .wm-tab .wm-text')->each(static fn ($label): string => $label->text()));
+        self::assertCount(1, $crawler->filter(self::WHAT_MOVED . ' .wm-pic--desktop[aria-hidden="true"] .wm-column.wm-mark'), 'The docked column is marked');
+
+        foreach ([self::ORDINARY_PAGE, '/en/hub'] as $laterPage) {
+            $crawler = $browser->request('GET', $laterPage);
+            self::assertCount(0, $crawler->filter(self::MODAL), "Never again, not even on {$laterPage}");
+        }
+
+        self::assertSame(1, $this->impressions($browser, PlayerFixture::PLAYER_WITH_STRIPE, 'navigation_what_moved'));
+    }
+
+    public function testNoWhatMovedWhileTheLaunchDateIsNotSet(): void
+    {
+        $browser = $this->signedInAfterTheLaunch(PlayerFixture::PLAYER_WITH_STRIPE, null, self::AFTER_THE_LAUNCH, self::OLD_ACCOUNT);
+
+        $crawler = $browser->request('GET', self::ORDINARY_PAGE);
+
+        $this->assertResponseIsSuccessful();
+        self::assertCount(0, $crawler->filter(self::MODAL));
+        self::assertSame(0, $this->impressions($browser, PlayerFixture::PLAYER_WITH_STRIPE, 'navigation_what_moved'));
+    }
+
+    public function testNoWhatMovedBeforeTheLaunchDay(): void
+    {
+        $browser = $this->signedInAfterTheLaunch(PlayerFixture::PLAYER_WITH_STRIPE, self::LAUNCH_DAY, '2026-11-01 23:59:59', self::OLD_ACCOUNT);
+
+        $crawler = $browser->request('GET', self::ORDINARY_PAGE);
+
+        self::assertCount(0, $crawler->filter(self::MODAL));
+        self::assertSame(0, $this->impressions($browser, PlayerFixture::PLAYER_WITH_STRIPE, 'navigation_what_moved'), 'Nothing is used up - it comes on the launch day');
+    }
+
+    public function testNoWhatMovedForAnAccountCreatedAfterTheLaunch(): void
+    {
+        $browser = $this->signedInAfterTheLaunch(PlayerFixture::PLAYER_WITH_STRIPE, self::LAUNCH_DAY, self::AFTER_THE_LAUNCH, '2026-11-05 09:00:00');
+
+        $crawler = $browser->request('GET', self::ORDINARY_PAGE);
+
+        self::assertCount(0, $crawler->filter(self::MODAL));
+        self::assertSame(0, $this->impressions($browser, PlayerFixture::PLAYER_WITH_STRIPE, 'navigation_what_moved'));
+    }
+
+    /**
+     * Decision 57: the XP launch reveal first, "What moved" on the next page (both ignore the pause), then the free trial
+     * offer waits for the pause after them.
+     */
+    public function testWhatMovedComesAfterTheXpRevealAndBeforeTheFreeTrial(): void
+    {
+        // Not a member, old enough for the free trial, with solving times for the XP reveal
+        $browser = $this->signedInAfterTheLaunch(PlayerFixture::PLAYER_REGULAR, self::LAUNCH_DAY, self::AFTER_THE_LAUNCH, self::OLD_ACCOUNT);
+        $this->launchRevealNotSeenYet($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $crawler = $browser->request('GET', self::ORDINARY_PAGE);
+        self::assertCount(1, $crawler->filter(self::MODAL . '[data-autoshow-modal-name-value="xp_launch_reveal"]'), 'The XP reveal goes first');
+
+        $crawler = $browser->request('GET', '/en/hub');
+        self::assertCount(1, $crawler->filter(self::WHAT_MOVED), 'The pause after the XP reveal does not hold it back');
+
+        $crawler = $browser->request('GET', '/en/ladder');
+        self::assertCount(0, $crawler->filter(self::MODAL), 'The free trial offer waits for the pause');
+
+        self::assertSame(1, $this->impressions($browser, PlayerFixture::PLAYER_REGULAR, 'xp_launch_reveal'));
+        self::assertSame(1, $this->impressions($browser, PlayerFixture::PLAYER_REGULAR, 'navigation_what_moved'));
+        self::assertSame(0, $this->impressions($browser, PlayerFixture::PLAYER_REGULAR));
+    }
+
+    public function testWhatMovedWaitsOutHelpAndWhereDidItGo(): void
+    {
+        $browser = $this->signedInAfterTheLaunch(PlayerFixture::PLAYER_WITH_STRIPE, self::LAUNCH_DAY, self::AFTER_THE_LAUNCH, self::OLD_ACCOUNT);
+
+        foreach (['/en/help', '/en/where-did-it-go'] as $quietPage) {
+            $crawler = $browser->request('GET', $quietPage);
+            $this->assertResponseIsSuccessful();
+            self::assertCount(0, $crawler->filter(self::MODAL), "No modal on {$quietPage}");
+        }
+
+        self::assertSame(0, $this->impressions($browser, PlayerFixture::PLAYER_WITH_STRIPE, 'navigation_what_moved'));
+
+        $crawler = $browser->request('GET', self::ORDINARY_PAGE);
+        self::assertCount(1, $crawler->filter(self::WHAT_MOVED), 'It waited for a page that can take it');
+    }
+
+    /**
+     * Signed in with the launch service replaced (a date or null, and a clock) and the account's registration date set.
+     */
+    private function signedInAfterTheLaunch(string $playerId, null|string $launchDay, string $now, string $registeredAt): KernelBrowser
+    {
+        $browser = self::createClient();
+        // One container for the whole test, so every request asks the replaced launch service
+        $browser->disableReboot();
+        self::getContainer()->set(NavigationLaunch::class, new NavigationLaunch(new MockClock($now, 'Europe/Prague'), $launchDay));
+        self::getContainer()->get(Connection::class)->executeStatement('UPDATE player SET registered_at = :at WHERE id = :id', ['at' => $registeredAt, 'id' => $playerId]);
+
+        TestingLogin::asPlayer($browser, $playerId);
+
+        return $browser;
     }
 
     private function launchRevealNotSeenYet(KernelBrowser $browser, string $playerId): void

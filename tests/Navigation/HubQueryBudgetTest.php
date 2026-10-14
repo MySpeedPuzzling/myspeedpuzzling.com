@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Navigation;
 
+use Doctrine\DBAL\Connection;
 use PHPUnit\Framework\Attributes\DataProvider;
+use SpeedPuzzling\Web\Navigation\NavigationLaunch;
 use SpeedPuzzling\Web\Tests\QueryCountAssertions;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\Clock\MockClock;
 
 /**
  * What /en/hub costs in statements per viewer, chrome included. The eagerly rendered RecentActivity feed is part of
@@ -75,6 +78,39 @@ final class HubQueryBudgetTest extends WebTestCase
 
         if ($role === NavigationViewer::GUEST) {
             // Guest HTML stays shared-cacheable (requirements, Conventions)
+            self::assertTrue($browser->getResponse()->headers->hasCacheControlDirective('public'), (string) $browser->getResponse()->headers->get('Cache-Control'));
+        }
+    }
+
+    /**
+     * LAUNCH-03: with the launch date set, inside its 30 days, every account older than it gets the Hub banner and the
+     * Menu line - from the profile row (its registration date, its navigation dismissals): the same pins. A guest gets
+     * neither and stays shared-cacheable. The first request claims "What moved" (LAUNCH-01), the counted one nothing.
+     */
+    #[DataProvider('provideViewers')]
+    public function testTheHubCostWithTheLaunchPointer(string $role, int $statements): void
+    {
+        $browser = self::createClient();
+        // One container for the whole test, so every request asks the replaced launch service (decision R5)
+        $browser->disableReboot();
+        self::getContainer()->set(NavigationLaunch::class, new NavigationLaunch(new MockClock('2026-11-10 12:00:00', 'Europe/Prague'), '2026-11-02'));
+
+        if ($role !== NavigationViewer::GUEST) {
+            // An account the old navigation knew, whenever the fixtures were loaded
+            self::getContainer()->get(Connection::class)->executeStatement("UPDATE player SET registered_at = '2025-05-01 10:00:00' WHERE id = :id", ['id' => NavigationViewer::playerId($role)]);
+        }
+
+        NavigationViewer::signIn($browser, $role);
+
+        $browser->request('GET', '/en/hub');
+        $this->startCountingQueries($browser);
+        $crawler = $browser->request('GET', '/en/hub');
+        self::assertResponseIsSuccessful();
+
+        self::assertCount($role === NavigationViewer::GUEST ? 0 : 1, $crawler->filter('main .nav-pointer--hub'), $role);
+        self::assertSame($statements, $this->queryCount($browser), $role . " /en/hub ran:\n" . implode("\n", $this->executedSql($browser)));
+
+        if ($role === NavigationViewer::GUEST) {
             self::assertTrue($browser->getResponse()->headers->hasCacheControlDirective('public'), (string) $browser->getResponse()->headers->get('Cache-Control'));
         }
     }

@@ -20,6 +20,9 @@
         {% endif %}
     </h1>
 
+    {# The navigation launch's 30-day pointer (docs/features/navigation LAUNCH-03) - nothing while NavigationLaunch::DATE is null #}
+    {{ include('navigation/_launch_pointer.html.twig', {variant: 'hub'}) }}
+
     {% if review_counts is not null and not review_counts.isEmpty %}
         <div class="mt-3">{{ include('review_results/_banner.html.twig', {review_counts: review_counts}) }}</div>
     {% endif %}

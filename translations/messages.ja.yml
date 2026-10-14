@@ -9098,9 +9098,42 @@ where_did_it_go:
     title: "どこに移動しましたか？"
     meta_description: "以前のMySpeedPuzzlingのメニュー、上部バー、フッターの各項目が今どこにあるかをご案内します。"
     intro: "ナビゲーションを再構成しました。以前のメニュー、上部バー、フッターの各項目が今どこにあるかをこのページでご確認いただけます。"
-    placeholder: "以前の項目と新しい場所の一覧がここに表示されます。"
+    surface:
+        topbar: "ヘッダー上部の細いバー"
+        admin_key: "鍵メニュー（管理）"
+        toolbar: "ヘッダーのアイコン"
+        account_dropdown: "マイプロフィールメニュー"
+        hamburger: "メインメニュー"
+        footer: "フッター"
+    was: "以前"
+    now: "現在"
+    members: "メンバー"
+    after_sign_in: "サインイン後："
+    filter_label: "以前の項目を探す"
+    filter_placeholder: "例：統計"
+    no_match: "一致する項目がありません。別の言葉で試すか、☰ メニューをご覧ください。"
+    bottom_bar: "下部バー"
+    left_menu: "左側のメニュー"
+    top_bar: "上部バー"
+    account_menu: "アカウントメニュー（プロフィール画像）"
+    logo: "ロゴ（ホーム）"
 
 nav:
+    launch:
+        what_moved:
+            title: "ナビゲーションが新しくなりました"
+            lead: "すべては右上の ☰ メニューにあります。☰ はいつもと同じ場所です。"
+            lead_desktop: "すべては左側の ☰ メニューにあります。"
+            line_tabs: "ホーム、パズル、追加、コミュニティ、マイページにいつでもすぐ移動できます。"
+            line_search: "検索でパズル、パズラー、ページが見つかります。以前の名前でも検索できます。"
+            line_help: "見つからないものがありますか？フィードバックをお送りください。すべて読んでいます。"
+            got_it: "了解しました"
+            where_did_it_go: "どこに移動しましたか？"
+        pointer:
+            hub: "ナビゲーションを再構成しました。すべては ☰ メニューにあります。"
+            menu: "新しいナビゲーション：すべてこのメニューにあります。"
+            link: "どこに移動しましたか？"
+            dismiss: "このお知らせを閉じる"
     bar:
         places: "主なセクション"
         home: "ホーム"

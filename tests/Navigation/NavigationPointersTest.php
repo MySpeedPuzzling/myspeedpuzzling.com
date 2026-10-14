@@ -18,7 +18,7 @@ use Symfony\Component\Clock\MockClock;
 use Twig\Environment;
 
 /**
- * The navigation pointers' one rule (INB-05; LAUNCH-03 adds its pointer): shown iff the launch date is set, now is
+ * The navigation pointers' one rule (INB-05; LAUNCH-03's launch pointer): shown iff the launch date is set, now is
  * inside [date, date + 30 days), the account was created before the date, the pointer is not dismissed and - for the
  * Inbox pointer - the viewer follows somebody. Never for a guest, nothing while the date is null.
  */
@@ -91,9 +91,30 @@ final class NavigationPointersTest extends KernelTestCase
         self::assertFalse($this->pointers(self::INSIDE)->isActive(null, HintType::NavigationInboxPointer));
     }
 
+    /**
+     * LAUNCH-03: the launch pointer (Hub banner + Menu line) has no audience of its own - every old account, whether it
+     * follows somebody or not - and its own dismissal, apart from the Inbox pointer's (decision 52: one dismissal hides
+     * both of ITS places).
+     */
+    public function testTheLaunchPointer(): void
+    {
+        $pointers = $this->pointers(self::INSIDE);
+
+        self::assertTrue($pointers->isActive($this->viewer(favorites: []), HintType::NavigationLaunchPointer));
+        self::assertTrue($pointers->isActive($this->viewer(dismissed: [HintType::NavigationInboxPointer]), HintType::NavigationLaunchPointer));
+        self::assertFalse($pointers->isActive($this->viewer(dismissed: [HintType::NavigationLaunchPointer]), HintType::NavigationLaunchPointer));
+        self::assertTrue($pointers->isActive($this->viewer(dismissed: [HintType::NavigationLaunchPointer]), HintType::NavigationInboxPointer));
+        self::assertFalse($pointers->isActive($this->viewer(registeredAt: new DateTimeImmutable('2026-11-05 09:00:00')), HintType::NavigationLaunchPointer));
+        self::assertFalse($this->pointers('2026-12-02 00:00:00')->isActive($this->viewer(), HintType::NavigationLaunchPointer));
+        self::assertFalse($pointers->isActive(null, HintType::NavigationLaunchPointer));
+        self::assertFalse((new NavigationPointers(new NavigationLaunch(new MockClock(self::INSIDE, 'Europe/Prague'), null)))->isActive($this->viewer(), HintType::NavigationLaunchPointer));
+        self::assertTrue(HintType::NavigationLaunchPointer->isNavigationPointer());
+    }
+
     public function testTheTwigNames(): void
     {
         self::assertSame(HintType::NavigationInboxPointer, NavigationPointers::byName('inbox'));
+        self::assertSame(HintType::NavigationLaunchPointer, NavigationPointers::byName('launch'));
 
         $this->expectException(\InvalidArgumentException::class);
         NavigationPointers::byName('marketplace');

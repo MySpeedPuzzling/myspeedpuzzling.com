@@ -1,0 +1,98 @@
+{# Announcement modal "navigation_what_moved" (docs/features/announcement-modals.md, docs/features/navigation README §8,
+   LAUNCH-01). Stays in the code for good - NavigationWhatMovedRule decides who gets it (accounts created before
+   NavigationLaunch::DATE, once it has passed; never while it is null) and ResolveAnnouncementModal that nobody gets it
+   twice. Web only like every announcement modal (the resolver steps aside in the app) - it talks about the web's bars.
+   One screen: a picture, the lead "Everything is in ☰ Menu, …" and three lines, "Got it" and "Where did it go?".
+   The pictures are schematics drawn from the bars' own tokens (--nav-*, critical CSS), their sprite icons
+   (navigation/_icons.html.twig: only symbols every signed-in page carries) and their labels (the places of nav_places()) -
+   never a screenshot, no names, no numbers. Phone picture and lead below the desktop media query, the docked column's
+   picture and lead above it (_navigation-launch.scss). #}
+<div
+    class="modal fade"
+    tabindex="-1"
+    role="dialog"
+    id="announcement-modal"
+    aria-labelledby="announcement-modal-title"
+    data-controller="autoshow-modal"
+    data-autoshow-modal-seen-url-value="{{ path('announcement_modal_seen') }}"
+    data-autoshow-modal-name-value="{{ announcement.value }}"
+>
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header border-0 pb-0">
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ 'forms.close'|trans }}"></button>
+            </div>
+
+            <div class="modal-body text-center pt-0 px-4 pb-4">
+                {%- set places = nav_places(nav_location(), 'bar') -%}
+                {%- set menu_label = 'nav.bar.menu'|trans -%}
+
+                {#- Phones: the top bar with ☰ last at the right edge (marked), the bottom bar's five places -#}
+                <div class="wm-pic wm-pic--phone" aria-hidden="true">
+                    <div class="wm-phone">
+                        <div class="wm-top">
+                            <span class="wm-logo"></span>
+                            <span class="wm-search"><svg class="wm-i"><use href="#nav-i-search"/></svg><span class="wm-text">{{ 'nav.bar.search_placeholder'|trans }}</span></span>
+                            <span class="wm-tool"><svg class="wm-i"><use href="#nav-i-question-circle"/></svg></span>
+                            <span class="wm-tool"><svg class="wm-i"><use href="#nav-i-inbox"/></svg></span>
+                            <span class="wm-tool wm-mark"><svg class="wm-i"><use href="#nav-i-list"/></svg><span class="wm-callout">{{ menu_label }}</span></span>
+                        </div>
+                        <div class="wm-page"><span></span><span></span><span></span><span></span></div>
+                        <div class="wm-tabs">
+                            {%- for place in places -%}
+                                <span class="wm-tab wm-tab--{{ place.place.value }}">
+                                    {%- if place.avatar is not null -%}<span class="wm-avatar"></span>{%- else -%}<svg class="wm-i"><use href="#{{ place.symbol }}"/></svg>{%- endif -%}
+                                    <span class="wm-text">{{ place.label|trans }}</span>
+                                </span>
+                            {%- endfor -%}
+                        </div>
+                    </div>
+                </div>
+
+                {#- Desktop: ☰ at the left of the top bar and the Menu docked as a column under it (marked) -#}
+                <div class="wm-pic wm-pic--desktop" aria-hidden="true">
+                    <div class="wm-desk">
+                        <div class="wm-top">
+                            <span class="wm-tool wm-mark"><svg class="wm-i"><use href="#nav-i-list"/></svg></span>
+                            <span class="wm-logo"></span>
+                            <span class="wm-search"><svg class="wm-i"><use href="#nav-i-search"/></svg><span class="wm-text">{{ 'nav.bar.search_placeholder'|trans }}</span></span>
+                            <span class="wm-add"><svg class="wm-i"><use href="#nav-i-plus-lg"/></svg><span class="wm-text">{{ 'nav.bar.add'|trans }}</span></span>
+                            <span class="wm-tool"><svg class="wm-i"><use href="#nav-i-chat-square-text"/></svg></span>
+                            <span class="wm-tool"><svg class="wm-i"><use href="#nav-i-inbox"/></svg></span>
+                            <span class="wm-avatar"></span>
+                        </div>
+                        <div class="wm-desk-body">
+                            <div class="wm-column wm-mark">
+                                <span class="wm-callout">{{ menu_label }}</span>
+                                {%- for place in places|filter(place => place.place.value != 'add') -%}
+                                    <span class="wm-row">
+                                        {%- if place.avatar is not null -%}<span class="wm-avatar"></span>{%- else -%}<svg class="wm-i"><use href="#{{ place.symbol }}"/></svg>{%- endif -%}
+                                        <span class="wm-text">{{ place.label|trans }}</span>
+                                    </span>
+                                {%- endfor -%}
+                                <span class="wm-row wm-row--more"></span><span class="wm-row wm-row--more"></span><span class="wm-row wm-row--more"></span>
+                            </div>
+                            <div class="wm-page"><span></span><span></span><span></span><span></span><span></span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <h5 class="modal-title h4 mb-2" id="announcement-modal-title">{{ 'nav.launch.what_moved.title'|trans }}</h5>
+
+                <p class="wm-lead wm-lead--phone fw-medium mb-2">{{ 'nav.launch.what_moved.lead'|trans }}</p>
+                <p class="wm-lead wm-lead--desktop fw-medium mb-2">{{ 'nav.launch.what_moved.lead_desktop'|trans }}</p>
+
+                <ul class="wm-lines list-unstyled text-start mx-auto mb-4">
+                    <li>{{ 'nav.launch.what_moved.line_tabs'|trans }}</li>
+                    <li>{{ 'nav.launch.what_moved.line_search'|trans }}</li>
+                    <li>{{ 'nav.launch.what_moved.line_help'|trans }}</li>
+                </ul>
+
+                <div class="d-flex flex-column align-items-center gap-2">
+                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal" data-nav="page/none/what_moved_got_it">{{ 'nav.launch.what_moved.got_it'|trans }}</button>
+                    <a href="{{ path('where_did_it_go') }}" class="btn btn-link btn-sm" data-nav="page/none/what_moved_where">{{ 'nav.launch.what_moved.where_did_it_go'|trans }}</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

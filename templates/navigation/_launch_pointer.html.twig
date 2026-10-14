@@ -1,0 +1,23 @@
+{#- The navigation launch's 30-day pointer (docs/features/navigation README §8, LAUNCH-03): "We rearranged the
+    navigation" + "Where did it go?" + a × that dismisses it for good (dismiss-hint, HintType::NavigationLaunchPointer).
+    One pointer in two places - the Hub banner (variant 'hub', at the top of hub.html.twig) and the line at the top of
+    the Menu (variant 'menu', _menu.html.twig: the phone panel, the docked column, the overlay, the `menu` page): one
+    dismissal hides both (decision 52; dismiss-hint removes every hint of its type on the page).
+    navigation_pointer('launch') decides (NavigationPointers): the launch date set and at most 30 days old, an account
+    created before it, not dismissed - never a guest, so guest HTML stays shared. Nothing while NavigationLaunch::DATE is
+    null. No query: the dismissal rides on the viewer's profile row. Web only - it talks about the web's bars.
+    `variant`: hub | menu -#}
+{%- if is_web() and navigation_pointer('launch') -%}
+    {%- set nav = variant == 'menu' ? 'menu/none/launch_pointer' : 'page/home/launch_pointer' -%}
+    <div class="nav-pointer nav-pointer--{{ variant }}" {{ stimulus_controller('dismiss-hint', {
+        url: path('dismiss_hint'),
+        type: constant('SpeedPuzzling\\Web\\Value\\HintType::NavigationLaunchPointer').value,
+    }) }}>
+        <p class="nav-pointer-text">
+            {{- ('nav.launch.pointer.' ~ variant)|trans }} <a href="{{ path('where_did_it_go') }}" class="nav-pointer-link" data-nav="{{ nav }}">{{ 'nav.launch.pointer.link'|trans }}</a>
+        </p>
+        <button type="button" class="nav-pointer-dismiss" aria-label="{{ 'nav.launch.pointer.dismiss'|trans }}" title="{{ 'nav.launch.pointer.dismiss'|trans }}" data-nav="{{ nav }}_dismiss" {{ stimulus_action('dismiss-hint', 'dismiss') }}>
+            <i class="ci-close" aria-hidden="true"></i>
+        </button>
+    </div>
+{%- endif -%}

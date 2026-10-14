@@ -1,8 +1,13 @@
 {% extends 'base.html.twig' %}
 
 {#
-    "Where did it go?" (docs/features/navigation README §8): every item of the old navigation and where it is now.
-    Skeleton (LAUNCH-02a): the mapping table arrives with LAUNCH-02. Public, not for the index, in no sitemap.
+    "Where did it go?" (docs/features/navigation README §8, LAUNCH-02): every item of the old navigation and where it is
+    now - one table per old surface (FormerNavigation, for the viewer by WhereDidItGoBuilder). The old name links its
+    page; "Now" is its place in the Menu (linking its row on the `menu` page) or on the bars - the phone's and the
+    computer's when they differ, shown by the desktop media query (_navigation-launch.scss). Members-only rows carry a
+    lock (no modal), a guest's rows that need an account say so. The filter box (where_did_it_go_controller.js) appears
+    with JavaScript and searches each row's data-search (folded like SearchText::fold()); without it every row shows.
+    Public, not for the index, in no sitemap.
 #}
 
 {% block title %}{{ 'where_did_it_go.title'|trans }}{% endblock %}
@@ -10,12 +15,51 @@
 {% block robots %}<meta name="robots" content="noindex, follow">{% endblock %}
 
 {% block content %}
-    <div class="where-did-it-go mx-auto" style="max-width: 48rem;">
+    <div class="wdig mx-auto" data-controller="where-did-it-go">
         <h1 class="mb-2">{{ 'where_did_it_go.title'|trans }}</h1>
         <p class="lead mb-4">{{ 'where_did_it_go.intro'|trans }}</p>
 
-        <div class="where-did-it-go-mapping" data-where-did-it-go-mapping>
-            <p class="text-muted mb-0">{{ 'where_did_it_go.placeholder'|trans }}</p>
+        <div class="wdig-filter mb-4" role="search" data-where-did-it-go-target="bar" hidden>
+            <label class="form-label" for="wdig-filter">{{ 'where_did_it_go.filter_label'|trans }}</label>
+            <input type="search" id="wdig-filter" class="form-control" autocomplete="off" enterkeyhint="search"
+                   placeholder="{{ 'where_did_it_go.filter_placeholder'|trans }}"
+                   data-where-did-it-go-target="input" data-action="input->where-did-it-go#filter keydown.enter->where-did-it-go#keepEnter">
+        </div>
+
+        <p class="wdig-none text-muted" data-where-did-it-go-target="none" role="status" hidden>{{ 'where_did_it_go.no_match'|trans }}</p>
+
+        <div class="wdig-mapping" data-where-did-it-go-mapping>
+            {% for section in sections %}
+                {% set heading_id = 'wdig-h-' ~ section.surface.value|replace({'_': '-'}) %}
+                <section class="wdig-section mb-4" aria-labelledby="{{ heading_id }}" data-where-did-it-go-target="section">
+                    <h2 class="h5 mb-2" id="{{ heading_id }}">{{ section.surface.titleKey|trans }}</h2>
+                    <table class="table wdig-table mb-0">
+                        <thead>
+                            <tr>
+                                <th scope="col">{{ 'where_did_it_go.was'|trans }}</th>
+                                <th scope="col">{{ 'where_did_it_go.now'|trans }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in section.rows %}
+                                <tr id="{{ row.id }}" class="wdig-row" data-search="{{ row.search }}" data-where-did-it-go-target="row">
+                                    <th scope="row" class="wdig-old">
+                                        <a href="{{ row.href }}">{{ row.oldName }}</a>
+                                        {%- if row.members %} <span class="wdig-members"><i class="bi bi-lock-fill" aria-hidden="true"></i> {{ 'where_did_it_go.members'|trans }}</span>{% endif %}
+                                    </th>
+                                    <td class="wdig-new">
+                                        {%- if row.afterSignIn %}<span class="wdig-after">{{ 'where_did_it_go.after_sign_in'|trans }}</span> {% endif -%}
+                                        {%- if row.nowHref is not null %}<a href="{{ row.nowHref }}">{% endif -%}
+                                        <span class="wdig-now{{ row.nowDesktop is not null ? ' wdig-now--phone' }}">{{ row.now }}</span>
+                                        {%- if row.nowDesktop is not null %}<span class="wdig-now wdig-now--desktop">{{ row.nowDesktop }}</span>{% endif -%}
+                                        {%- if row.nowHref is not null %}</a>{% endif -%}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </section>
+            {% endfor %}
         </div>
     </div>
 {% endblock %}

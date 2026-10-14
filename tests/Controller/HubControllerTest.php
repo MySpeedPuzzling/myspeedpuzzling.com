@@ -8,6 +8,7 @@ use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\TestingLogin;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
@@ -296,5 +297,12 @@ final class HubControllerTest extends WebTestCase
         self::assertCount(1, $hub);
         self::assertSame('/en/hub', $hub[0]['u']);
         self::assertSame('guest', $hub[0]['a']);
+
+        // "Where did it go?" (LAUNCH-02, F24): the old main menu's Hub link still leads guests to the Hub
+        $crawler = $browser->request('GET', '/en/where-did-it-go');
+        self::assertResponseIsSuccessful();
+        $hubRow = $crawler->filter('#wdig-h-hamburger + table .wdig-row')->reduce(static fn (Crawler $row): bool => trim($row->filter('.wdig-old a')->text()) === 'Hub');
+        self::assertCount(1, $hubRow);
+        self::assertSame('/en/hub', $hubRow->filter('.wdig-old a')->attr('href'));
     }
 }

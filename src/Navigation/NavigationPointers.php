@@ -9,9 +9,10 @@ use SpeedPuzzling\Web\Value\HintType;
 
 /**
  * The navigation redesign's 30-day pointers (docs/features/navigation README §8): the Inbox note "Your favorites' new
- * times are now on Home › Favorites" (INB-05) and, later, the Hub banner and the Menu line (LAUNCH-03, one shared
- * dismissal). One rule for all of them, no query: the launch date and the clock come from NavigationLaunch (tests
- * replace that service with a MockClock and a date), the dismissals and favorites from the viewer's profile row.
+ * times are now on Home › Favorites" (INB-05) and the Hub banner and the Menu line "We rearranged the navigation"
+ * (LAUNCH-03, one pointer: one dismissal hides both). One rule for all of them, no query: the launch date and the
+ * clock come from NavigationLaunch (tests replace that service with a MockClock and a date), the dismissals and
+ * favorites from the viewer's profile row.
  *
  * A pointer shows iff the launch date is set, now is inside [date, date + 30 days), the account was created before the
  * date, the viewer has not dismissed it and the pointer's own audience holds (INB-05: the viewer follows somebody).
@@ -31,6 +32,8 @@ final readonly class NavigationPointers
     {
         return match ($name) {
             'inbox' => HintType::NavigationInboxPointer,
+            // The Hub banner and the Menu line (LAUNCH-03): one pointer, one dismissal
+            'launch' => HintType::NavigationLaunchPointer,
             default => throw new \InvalidArgumentException(sprintf('"%s" is not a navigation pointer', $name)),
         };
     }

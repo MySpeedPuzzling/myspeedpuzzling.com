@@ -9129,9 +9129,42 @@ where_did_it_go:
     title: "Où est-ce passé ?"
     meta_description: "Où trouver désormais chaque élément des anciens menus, de la barre du haut et du pied de page de MySpeedPuzzling."
     intro: "Nous avons réorganisé la navigation. Vous voyez ici où se trouve désormais chaque élément des anciens menus, de la barre du haut et du pied de page."
-    placeholder: "La liste complète des anciens éléments et de leur nouvel emplacement apparaîtra bientôt ici."
+    surface:
+        topbar: "Fine bande au-dessus de l’en-tête"
+        admin_key: "Menu de la clé (administration)"
+        toolbar: "Icônes de l’en-tête"
+        account_dropdown: "Menu Mon profil"
+        hamburger: "Menu principal"
+        footer: "Pied de page"
+    was: "Avant"
+    now: "Maintenant"
+    members: "Membres"
+    after_sign_in: "Après connexion :"
+    filter_label: "Trouver un ancien élément"
+    filter_placeholder: "p. ex. Statistiques"
+    no_match: "Aucun résultat. Essayez un autre mot ou regardez dans le ☰ Menu."
+    bottom_bar: "Barre du bas"
+    left_menu: "Menu de gauche"
+    top_bar: "Barre du haut"
+    account_menu: "Menu du compte (votre photo)"
+    logo: "Logo (accueil)"
 
 nav:
+    launch:
+        what_moved:
+            title: "Nous avons tout réorganisé"
+            lead: "Tout est dans le ☰ Menu, en haut à droite, là où le ☰ a toujours été."
+            lead_desktop: "Tout est dans le ☰ Menu, à gauche."
+            line_tabs: "Accueil, Puzzles, Ajouter, Communauté et votre Profil sont toujours à portée de main."
+            line_search: "La recherche trouve puzzles, puzzleurs et pages, même sous leurs anciens noms."
+            line_help: "Il vous manque quelque chose ? Envoyez-nous vos commentaires – nous lisons chaque message."
+            got_it: "Compris"
+            where_did_it_go: "Où est-ce passé ?"
+        pointer:
+            hub: "Nous avons réorganisé la navigation – tout est dans le ☰ Menu."
+            menu: "Nouvelle navigation : tout est dans ce menu."
+            link: "Où est-ce passé ?"
+            dismiss: "Masquer ce message"
     bar:
         places: "Sections principales"
         home: "Accueil"

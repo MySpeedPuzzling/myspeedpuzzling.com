@@ -15,6 +15,9 @@
     {#- The page search's moderator / admin entries, for those viewers only - never in the public nav-search.json (MENU-03) -#}
     {%- set search_private = nav_search_private() -%}
     {%- if search_private is not null -%}<script type="application/json" id="nav-search-private">{{ search_private|raw }}</script>{%- endif -%}
+    {#- The launch's 30-day pointer line (LAUNCH-03): accounts older than the launch, until dismissed - nothing while
+        NavigationLaunch::DATE is null, never for guests. Not a group: the phone panel's reordering never moves it -#}
+    {{- include('navigation/_launch_pointer.html.twig', {variant: 'menu'}, with_context = false) -}}
     {%- for group in menu.groups -%}
         {{- include('navigation/_menu_group.html.twig', {group: group, viewer: menu.viewer, surface: menu.surface}, with_context = false) -}}
     {%- endfor -%}

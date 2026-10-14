@@ -26,6 +26,9 @@ enum HintType: string
     // NavigationPointers - never through IsHintDismissed
     // "Your favorites' new times are now on Home › Favorites" on the Inbox's For you tab (INB-05)
     case NavigationInboxPointer = 'navigation_inbox_pointer';
+    // "We rearranged the navigation" - the Hub banner and the line at the top of the Menu: one dismissal hides both
+    // (LAUNCH-03, decision 52)
+    case NavigationLaunchPointer = 'navigation_launch_pointer';
 
     public const string NAVIGATION_PREFIX = 'navigation_';
 

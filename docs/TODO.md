@@ -42,19 +42,6 @@ that would otherwise be forgotten. Newest section on top.
       ONLINE_ROUNDS_MANAGE besides COMPETITION_RESULTS_ENTRY) - decide before public use; letting them in is one
       condition in `OnlineOrganiserApi` and the review pages' voters.
 
-## Online competitions - after the end-to-end fixes (`docs/features/online-competitions/`, stream P1F)
-
-- [x] Start after "End now" on an online round still resumes the in-person way: the start moves and the earlier taps
-      stop counting. Refuse Start on a stopped online round (a Reset is the way to run it again) - decide with the
-      control room's buttons. Done (stream P1G): Start / "Start in 10 s" / "Start at" on an ended online round are
-      refused (`ended_use_reset`), the stopwatch pages show only Reset while it is stopped; in person unchanged.
-- [ ] Rare race: a link lookup computed while another device's claim commits can stay in `OnlineAccessLight`'s cache
-      for up to 60 s, so the newly claiming device wrongly gives way; tapping "I'm ready" again fixes it. Clear the
-      link's cache entry after a `device.ready` commit if it shows up on phones.
-- [x] The control room's live JSON carries `otherDevice` (a second device open on a link that isn't the one holding
-      the entry) but no tile shows it yet - one text in `online_rounds.control` + the chip. Done (stream P1G): the chip
-      "Also open on another device" while that device beats.
-
 ## Online competitions - load and storage failover (`tools/online-load/README.md`, `spikes.md` S5, stream LT)
 
 - [ ] lily.srv (Jan's yes): route `/api/compete/*` and `/-/time` like `/api/v` - past the bot-blocker (90/min per IP +

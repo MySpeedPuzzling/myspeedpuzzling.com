@@ -28,8 +28,10 @@ use Symfony\Component\Routing\Attribute\Route;
  *
  * Two requests storing the same new event at once (a phone sending again while its first request still runs): the
  * later commit fails on the primary key - answered 503 `retry` with `Retry-After`, the phone sends again and hears the
- * ack. A `device.ready` handing the entry to another device clears the heartbeat's cached lookup, so the old device
- * learns it was taken over on its next beat.
+ * ack. A `device.ready` handing the entry to another device clears the heartbeat's cached lookup once the dispatch
+ * returned (committed - OnlineAccessLight::forget(), a new generation: a heartbeat that read the link before the claim
+ * and writes it to the cache after this is read again), so the old device learns it was taken over on its next beat and
+ * the new one is never told to give way.
  */
 final class ApiEventsController extends AbstractController
 {

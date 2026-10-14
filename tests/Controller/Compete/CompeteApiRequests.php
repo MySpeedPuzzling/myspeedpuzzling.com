@@ -80,6 +80,7 @@ trait CompeteApiRequests
 
         foreach ([OnlineRoundsFixture::TOKEN_CONNECTED, OnlineRoundsFixture::TOKEN_ANONYMOUS, ...$tokens] as $token) {
             $cache->delete(OnlineAccessLight::cacheKey($token));
+            $cache->delete(OnlineAccessLight::GENERATION_KEY_PREFIX . $token);
             $cache->delete(OnlineAccessLight::UNKNOWN_KEY_PREFIX . $token);
         }
 

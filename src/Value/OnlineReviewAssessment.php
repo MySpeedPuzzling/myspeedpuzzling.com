@@ -52,6 +52,16 @@ use SpeedPuzzling\Web\Results\OnlineReviewTap;
  *   are not the finish (the confirmed one; before a confirmation the suggested one), lie outside the window of every
  *   counting tap and - once confirmed - outside the window of the confirmed moment (a candidate that close is that
  *   finish's, wherever the reviewer moved the moment).
+ * - **The reviewer's gap marks** (stream RG - the G key stored, OnlineReviewMomentVerdict; `gaps` = the event ids
+ *   marked): they split the raises that are not the finish. **Premature raises** = counting candidates the reviewer
+ *   marked as a gap (the participant raised too early - the detector was right), a tap near them or not; **false
+ *   detections** = counting candidates not marked, neither the finish nor near a counting tap - the detector's own
+ *   mistakes. A marked candidate is never presumed the finish before a confirmation (the suggested one marked: none is);
+ *   once confirmed, one within the window of the confirmed moment stays that finish's (the rule above - the window
+ *   wins). `falseRaises` keeps its definition (the CSV's `false_raises`): the false detections plus the premature
+ *   raises without a tap near them. **Premature taps** = counting taps marked as a gap, but the one at the very moment
+ *   the reviewer confirmed (a confirmation wins over a mark) - null without a counting tap; counted whatever the
+ *   detection. Nothing else reads the marks: not the suggestion, the status, the detection error or the delta.
  *
  * @phpstan-import-type OnlineReviewEventRow from \SpeedPuzzling\Web\Query\GetOnlineReviewData
  */
@@ -98,12 +108,18 @@ final readonly class OnlineReviewAssessment
         public null|int $falseRaises = null,
         // Counting taps without a candidate on a device whose detector did not watch the round - null while it is off
         public null|int $detectorNotRunning = null,
+        // The reviewer's gap marks (stream RG): the raises marked as a gap, the others that are neither the finish nor
+        // near a tap - null while the detection is off -, and the taps marked as a gap (null without a counting tap)
+        public null|int $prematureRaises = null,
+        public null|int $falseDetections = null,
+        public null|int $prematureTaps = null,
     ) {
     }
 
     /**
      * @param list<OnlineReviewEventRow> $events the entry's events (any order)
      * @param list<string> $storedFlags OnlineEntry::$flags
+     * @param list<string> $gaps the event ids of the moments a reviewer marked as a gap (GetOnlineMomentVerdicts)
      */
     public static function of(
         RoundClock $clock,
@@ -116,7 +132,10 @@ final readonly class OnlineReviewAssessment
         array $events,
         array $storedFlags = [],
         OnlineDetectionMode $detection = OnlineDetectionMode::Off,
+        array $gaps = [],
     ): self {
+        $marked = array_fill_keys(array_map(strtolower(...), $gaps), true);
+        $isGap = static fn (string $eventId): bool => isset($marked[strtolower($eventId)]);
         usort($events, static fn (array $a, array $b): int => [$a['client_ms'], $a['id']] <=> [$b['client_ms'], $b['id']]);
 
         $taps = self::taps($clock, $events);
@@ -178,6 +197,8 @@ final readonly class OnlineReviewAssessment
         $missedRaises = null;
         $falseRaises = null;
         $detectorNotRunning = null;
+        $prematureRaises = null;
+        $falseDetections = null;
 
         if ($detection !== OnlineDetectionMode::Off) {
             $missedRaises = 0;
@@ -195,15 +216,32 @@ final readonly class OnlineReviewAssessment
                 }
             }
 
-            // The finish: the confirmed one - before a confirmation the suggested one is presumed it
-            $finish = $confirmedMoment !== null ? $detectedCandidate : $suggested;
-            $falseRaises = count(array_filter(
+            // The finish: the confirmed one - before a confirmation the suggested one is presumed it, unless the reviewer
+            // marked its photo as a gap
+            $finish = $confirmedMoment !== null
+                ? $detectedCandidate
+                : ($suggested !== null && $isGap($suggested->eventId) === false ? $suggested : null);
+            // Not the finish, and - once confirmed - not near the confirmed moment (that close it is that finish's)
+            $notTheFinish = array_values(array_filter(
                 $countingCandidates,
                 static fn (OnlineReviewCandidate $candidate): bool => $candidate !== $finish
-                    && self::nearestTap($counting, $candidate->momentMs) === null
                     && ($confirmedMoment === null || abs($candidate->momentMs - $confirmedMoment) > self::MATCH_WINDOW_MS),
             ));
+            $withoutTap = array_values(array_filter(
+                $notTheFinish,
+                static fn (OnlineReviewCandidate $candidate): bool => self::nearestTap($counting, $candidate->momentMs) === null,
+            ));
+            $falseRaises = count($withoutTap);
+            $prematureRaises = count(array_filter($notTheFinish, static fn (OnlineReviewCandidate $candidate): bool => $isGap($candidate->eventId)));
+            $falseDetections = count(array_filter($withoutTap, static fn (OnlineReviewCandidate $candidate): bool => $isGap($candidate->eventId) === false));
         }
+
+        // A tap marked as a gap - the participant tapped too early; the one the reviewer confirmed at its own moment is
+        // the finish all the same
+        $prematureTaps = $counting === [] ? null : count(array_filter(
+            $counting,
+            static fn (OnlineReviewTap $tap): bool => $isGap($tap->eventId) && $tap->momentMs !== $confirmedMoment,
+        ));
 
         return new self(
             taps: $taps,
@@ -221,6 +259,9 @@ final readonly class OnlineReviewAssessment
             missedRaises: $missedRaises,
             falseRaises: $falseRaises,
             detectorNotRunning: $detectorNotRunning,
+            prematureRaises: $prematureRaises,
+            falseDetections: $falseDetections,
+            prematureTaps: $prematureTaps,
         );
     }
 

@@ -48,6 +48,7 @@ final class OnlineReviewControllerTest extends WebTestCase
     private const string PAGE = '/en/online-rounds/' . self::ROUND . '/review';
     private const string ENTRY = '/en/online-rounds/' . self::ROUND . '/review/' . self::OLIVIA;
     private const string CONFIRM = '/en/online-rounds/' . self::ROUND . '/review/' . self::OLIVIA . '/confirm';
+    private const string GAP = '/en/online-rounds/' . self::ROUND . '/review/' . self::OLIVIA . '/gap';
     private const string ORGANISER = PlayerFixture::PLAYER_WITH_STRIPE;
     private const string REFEREE = PlayerFixture::PLAYER_WITH_FAVORITES;
 
@@ -94,6 +95,10 @@ final class OnlineReviewControllerTest extends WebTestCase
 
         $this->post($browser, self::CONFIRM, ['momentMs' => null, 'source' => 'reviewer', 'pieces' => 100, 'seenResult' => null]);
         self::assertSame($jsonStatus === 200 ? 422 : $jsonStatus, $browser->getResponse()->getStatusCode(), 'nothing to confirm before the start - but only those who may are told so');
+
+        // The G key's mark (stream RG): the same rights as a confirmation
+        $this->post($browser, self::GAP, ['eventId' => Uuid::uuid7()->toString(), 'gap' => true]);
+        self::assertSame($jsonStatus === 200 ? 422 : $jsonStatus, $browser->getResponse()->getStatusCode(), 'no such moment - but only those who may are told so');
     }
 
     public function testThePageCarriesTheListAndItsAddresses(): void
@@ -112,6 +117,7 @@ final class OnlineReviewControllerTest extends WebTestCase
         $urls = json_decode((string) $root->attr('data-online-review-urls-value'), true, flags: JSON_THROW_ON_ERROR);
         self::assertIsArray($urls);
         self::assertSame('/en/online-rounds/' . self::ROUND . '/review/' . Uuid::NIL . '/confirm', $urls['confirm'] ?? null);
+        self::assertSame('/en/online-rounds/' . self::ROUND . '/review/' . Uuid::NIL . '/gap', $urls['gap'] ?? null);
 
         $state = json_decode($crawler->filter('[data-online-review-target="initialState"]')->text(), true, flags: JSON_THROW_ON_ERROR);
         self::assertIsArray($state);
@@ -125,6 +131,11 @@ final class OnlineReviewControllerTest extends WebTestCase
         self::assertSame('off', $state['round']['detection'] ?? null);
         self::assertCount(0, $crawler->filter('[data-online-review-target="gapButton"]'));
         self::assertSame('Finished taps', $crawler->filter('[data-online-review-target="finishPanel"] h3')->text());
+        // G marks taps in every round - "Not a gap" is there, hidden until a marked moment is shown
+        $notGap = $crawler->filter('[data-online-review-target="notGapButton"]');
+        self::assertCount(1, $notGap);
+        self::assertNotNull($notGap->attr('hidden'));
+        self::assertSame('Not a gap', $notGap->text());
     }
 
     public function testTheListSaysWhatToLookAt(): void
@@ -346,12 +357,116 @@ final class OnlineReviewControllerTest extends WebTestCase
         self::assertNull($answer['entry']['confirmed']['detectionErrorMs'], 'the row says nothing of the detection');
         self::assertSame(0, $answer['entry']['candidates']);
 
+        // G (stream RG): the tap is marked, the hidden raise answers as unknown - a mark on it (an earlier run with
+        // detection on) is never listed either
+        $this->post($browser, self::GAP, ['eventId' => $raiseId, 'gap' => true]);
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame('moment_not_found', $this->json($browser)['error']);
+        $this->post($browser, self::GAP, ['eventId' => $tapId, 'gap' => true]);
+        self::assertResponseIsSuccessful();
+        self::assertSame([$tapId], $this->json($browser)['gaps']);
+        $browser->getContainer()->get(Connection::class)->insert('online_review_moment_verdict', [
+            'id' => Uuid::uuid7()->toString(),
+            'online_entry_id' => $olivia->id->toString(),
+            'event_id' => $raiseId,
+            'verdict' => 'gap',
+            'marked_at' => '2026-10-14 10:00:00',
+        ]);
+        $browser->request('GET', self::ENTRY, server: ['HTTP_ACCEPT' => 'application/json']);
+        self::assertSame([$tapId], $this->json($browser)['gaps']);
+        $this->post($browser, self::GAP, ['eventId' => $tapId, 'gap' => false]);
+        self::assertSame([], $this->json($browser)['gaps']);
+
         // The page: taps only, G as in `off`
         $crawler = $browser->request('GET', self::PAGE);
         self::assertResponseIsSuccessful();
         self::assertCount(0, $crawler->filter('[data-online-review-target="gapButton"]'));
         self::assertStringNotContainsString('G the photo shows a gap', $crawler->filter('.online-review')->text());
         self::assertStringContainsString('Finished taps', $crawler->filter('[data-online-review-target="finishPanel"] h3')->text());
+    }
+
+    /**
+     * Stream RG - G stored: the moment G leaves is marked (once, whoever presses it again), the detail lists the marks
+     * after a reload, "Not a gap" takes one back; only the participant's own moments - every refusal with its reason
+     */
+    public function testGMarksTheMomentAndTheDetailListsTheMarks(): void
+    {
+        $browser = $this->signedIn(PlayerFixture::PLAYER_ADMIN);
+        $this->detectionMode(OnlineDetectionMode::On);
+        $startMs = $this->startOnlineRound();
+        $olivia = $this->onlineEntryOf(OnlineRoundsFixture::ENTRY_CONNECTED);
+        $earlyId = $this->finishCandidate($olivia, $startMs + 900_000);
+        $raiseId = $this->finishCandidate($olivia, $startMs + 1_000_000);
+        $tapId = $this->finishTap($olivia, $startMs + 1_001_500);
+        $arthurTap = $this->finishTap($this->onlineEntryOf(OnlineRoundsFixture::ENTRY_ANONYMOUS), $startMs + 1_200_000);
+
+        $browser->request('GET', self::ENTRY, server: ['HTTP_ACCEPT' => 'application/json']);
+        self::assertSame([], $this->json($browser)['gaps']);
+
+        $this->post($browser, self::GAP, ['eventId' => strtoupper($earlyId), 'gap' => true]);
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString('no-store', (string) $browser->getResponse()->headers->get('Cache-Control'));
+        self::assertSame(['status' => 'marked', 'eventId' => $earlyId, 'gap' => true, 'gaps' => [$earlyId]], $this->json($browser));
+
+        // Again (a lost answer, a second G): nothing changes
+        $this->post($browser, self::GAP, ['eventId' => $earlyId, 'gap' => true]);
+        self::assertSame(['status' => 'unchanged', 'eventId' => $earlyId, 'gap' => true, 'gaps' => [$earlyId]], $this->json($browser));
+
+        $this->post($browser, self::GAP, ['eventId' => $tapId, 'gap' => true]);
+        self::assertSame([$earlyId, $tapId], $this->json($browser)['gaps']);
+
+        // A reload: the detail lists them, in time; nothing else of the participant changed
+        $browser->request('GET', self::ENTRY, server: ['HTTP_ACCEPT' => 'application/json']);
+        $detail = $this->json($browser);
+        self::assertSame([$earlyId, $tapId], $detail['gaps']);
+        self::assertIsArray($detail['entry']);
+        self::assertSame('needs_look', $detail['entry']['status']);
+        self::assertIsArray($detail['entry']['suggestion']);
+        self::assertSame($earlyId, $detail['entry']['suggestion']['candidateEventId'], 'a mark never changes the suggestion');
+        self::assertNull($detail['entry']['official']);
+
+        // "Not a gap"
+        $this->post($browser, self::GAP, ['eventId' => $tapId, 'gap' => false]);
+        self::assertSame(['status' => 'unmarked', 'eventId' => $tapId, 'gap' => false, 'gaps' => [$earlyId]], $this->json($browser));
+        $this->post($browser, self::GAP, ['eventId' => $raiseId, 'gap' => false]);
+        self::assertSame('unchanged', $this->json($browser)['status']);
+
+        // Refused: another participant's moment, no moment at all, a body it cannot read
+        foreach ([$arthurTap, Uuid::uuid7()->toString(), OnlineRoundsFixture::EVENT_READY_CONNECTED] as $eventId) {
+            $this->post($browser, self::GAP, ['eventId' => $eventId, 'gap' => true]);
+            self::assertResponseStatusCodeSame(422);
+            self::assertSame(['error' => 'moment_not_found', 'message' => 'This is not one of the participant\'s raised hands or Finished taps - reload the page.'], $this->json($browser));
+        }
+
+        foreach ([['eventId' => $tapId], ['eventId' => $tapId, 'gap' => 'yes'], ['eventId' => 12, 'gap' => true]] as $body) {
+            $this->post($browser, self::GAP, $body);
+            self::assertResponseStatusCodeSame(422);
+            self::assertSame('invalid_verdict', $this->json($browser)['error']);
+        }
+
+        $browser->request('GET', self::ENTRY, server: ['HTTP_ACCEPT' => 'application/json']);
+        self::assertSame([$earlyId], $this->json($browser)['gaps']);
+    }
+
+    public function testAGapMarkNeedsJsonAndTheCsrfHeader(): void
+    {
+        $browser = $this->signedIn(PlayerFixture::PLAYER_ADMIN);
+        $startMs = $this->startOnlineRound();
+        $tapId = $this->finishTap($this->onlineEntryOf(OnlineRoundsFixture::ENTRY_CONNECTED), $startMs + 600_000);
+
+        $browser->request('POST', self::GAP, ['eventId' => $tapId, 'gap' => '1'], server: ['HTTP_ACCEPT' => 'application/json', 'HTTP_ORIGIN' => 'http://localhost', 'HTTP_X_CSRF_TOKEN' => 'csrf-token']);
+        self::assertResponseStatusCodeSame(415);
+        self::assertSame(['error' => 'json_required'], $this->json($browser));
+
+        $this->post($browser, self::GAP, ['eventId' => $tapId, 'gap' => true], origin: 'https://elsewhere.example');
+        self::assertResponseStatusCodeSame(403);
+        self::assertSame(['error' => 'invalid_csrf_token'], $this->json($browser));
+
+        $browser->request('POST', self::GAP, server: ['CONTENT_TYPE' => 'application/json', 'HTTP_ACCEPT' => 'application/json', 'HTTP_ORIGIN' => 'http://localhost', 'HTTP_REFERER' => 'http://localhost/'], content: json_encode(['eventId' => $tapId, 'gap' => true], JSON_THROW_ON_ERROR));
+        self::assertResponseStatusCodeSame(403);
+        self::assertSame(['error' => 'invalid_csrf_token'], $this->json($browser));
+
+        self::assertFalse($browser->getContainer()->get(Connection::class)->fetchOne('SELECT 1 FROM online_review_moment_verdict LIMIT 1'), 'nothing was marked');
     }
 
     public function testTheEntryAddressOpenedAsAPageLeadsToTheReview(): void

@@ -29,6 +29,7 @@ import {
     participantView,
     photoChanged,
 } from '../assets/online/review_control.js';
+import { gapMark, GapMarks } from '../assets/online/review_gaps.js';
 
 // The start on a whole second
 const START = 1_792_000_000_000;
@@ -433,6 +434,153 @@ const scenarios = {
         assert.equal(photoChanged(shown, { mediaId: 'm-2', url: 'https://store/m-2?sig=1' }), true, 'a newer photo');
         assert.equal(photoChanged({ ...shown, failed: true }, { mediaId: 'm-1', url: 'https://store/m-1?sig=2' }), true, 'it failed to load - a fresh URL');
         assert.equal(photoChanged(shown, null), false, 'no photo this time - the shown one stays');
+    },
+
+    async 'G stores the mark: shown at once, the request made, marking again sends nothing'() {
+        const sent = [];
+        let changes = 0;
+        const marks = new GapMarks({
+            send: async (request) => {
+                sent.push(request);
+
+                return { kind: 'ok', status: 200, data: { status: 'marked', eventId: request.eventId, gap: true, gaps: ['raise-1'] } };
+            },
+            changed: () => {
+                changes += 1;
+            },
+        });
+        marks.load('p-1', []);
+
+        assert.equal(marks.set('p-1', 'RAISE-1', true), true);
+        assert.equal(marks.isGap('p-1', 'raise-1'), true, 'shown before the answer');
+        assert.equal(marks.isUnsaved('p-1', 'raise-1'), true);
+        assert.deepEqual(gapMark(marks, 'p-1', 'raise-1'), { text: 'gap_mark', title: 'gap_mark_unsaved', unsaved: true });
+
+        await marks.flush();
+
+        assert.deepEqual(sent, [{ participantId: 'p-1', eventId: 'raise-1', gap: true }]);
+        assert.equal(marks.isGap('p-1', 'raise-1'), true);
+        assert.equal(marks.isUnsaved('p-1', 'raise-1'), false, 'saved');
+        assert.deepEqual(gapMark(marks, 'p-1', 'raise-1'), { text: 'gap_mark', title: 'gap_mark_title', unsaved: false });
+        assert.ok(changes >= 2, 'the page re-renders when shown and when saved');
+
+        assert.equal(marks.set('p-1', 'raise-1', true), false, 'G again: nothing to do');
+        await marks.flush();
+        assert.equal(sent.length, 1);
+        assert.equal(gapMark(marks, 'p-1', 'tap-1'), null, 'a moment without a mark has none');
+        assert.equal(marks.isGap('p-2', 'raise-1'), false, 'marks are per participant');
+    },
+
+    async 'offline: the mark stays on the page, is said once, and is sent when back online'() {
+        const reports = [];
+        let online = false;
+        const sent = [];
+        const marks = new GapMarks({
+            send: async (request) => {
+                sent.push(request);
+
+                return online ? { kind: 'ok', status: 200, data: { gaps: sent.filter((item) => item.gap).map((item) => item.eventId) } } : { kind: 'offline' };
+            },
+            report: (report) => reports.push(report.kind),
+        });
+        marks.load('p-1', []);
+
+        marks.set('p-1', 'raise-1', true);
+        await marks.flush();
+        assert.equal(marks.isGap('p-1', 'raise-1'), true, 'still shown - G moved on locally');
+        assert.equal(marks.isUnsaved('p-1', 'raise-1'), true);
+        assert.deepEqual(reports, ['offline']);
+
+        // A second G while offline is not said again; a retry while offline neither
+        marks.set('p-1', 'tap-1', true);
+        await marks.flush();
+        await marks.retry();
+        assert.deepEqual(reports, ['offline']);
+
+        // A reload of the detail meanwhile (the server has nothing yet): the wishes still show
+        marks.load('p-1', []);
+        assert.equal(marks.isGap('p-1', 'tap-1'), true);
+
+        online = true;
+        await marks.retry();
+        assert.deepEqual(reports, ['offline', 'saved']);
+        assert.equal(marks.isUnsaved('p-1', 'raise-1'), false);
+        assert.equal(marks.isUnsaved('p-1', 'tap-1'), false);
+        assert.equal(marks.isGap('p-1', 'raise-1') && marks.isGap('p-1', 'tap-1'), true);
+        assert.deepEqual(sent.slice(-2).map((item) => item.eventId), ['raise-1', 'tap-1'], 'both sent again, in order');
+
+        // Signed out: kept as well, said as such
+        const signedOut = new GapMarks({ send: async () => ({ kind: 'auth', status: 401 }), report: (report) => reports.push(report.kind) });
+        signedOut.set('p-1', 'tap-2', true);
+        await signedOut.flush();
+        assert.equal(signedOut.isUnsaved('p-1', 'tap-2'), true);
+        assert.equal(reports.at(-1), 'auth');
+    },
+
+    async 'a refused mark is dropped and said with the answer'() {
+        const reports = [];
+        const refusal = { kind: 'client', status: 422, data: { error: 'moment_not_found', message: 'reload' } };
+        const marks = new GapMarks({ send: async () => refusal, report: (report) => reports.push(report) });
+        marks.load('p-1', []);
+
+        marks.set('p-1', 'gone', true);
+        await marks.flush();
+
+        assert.equal(marks.isGap('p-1', 'gone'), false);
+        assert.equal(marks.isUnsaved('p-1', 'gone'), false);
+        assert.deepEqual(reports, [{ kind: 'refused', answer: refusal }]);
+    },
+
+    async 'Not a gap takes the mark back - the latest wish wins, a mark after a reload included'() {
+        const sent = [];
+        let release = null;
+        const marks = new GapMarks({
+            send: (request) => {
+                sent.push(request);
+
+                // The first answer waits until released - the reviewer changes their mind meanwhile
+                if (sent.length === 1) {
+                    return new Promise((resolve) => {
+                        release = () => resolve({ kind: 'ok', status: 200, data: { gaps: ['raise-1'] } });
+                    });
+                }
+
+                return Promise.resolve({ kind: 'ok', status: 200, data: { gaps: request.gap ? [request.eventId] : [] } });
+            },
+        });
+        marks.load('p-1', []);
+
+        marks.set('p-1', 'raise-1', true);
+        const run = marks.flush();
+        assert.equal(marks.set('p-1', 'raise-1', false), true, 'Not a gap while the mark is on its way');
+        assert.equal(marks.isGap('p-1', 'raise-1'), false);
+        release();
+        await run;
+        await marks.flush();
+
+        assert.deepEqual(sent.map((item) => item.gap), [true, false], 'the mark, then its undo');
+        assert.equal(marks.isGap('p-1', 'raise-1'), false);
+        assert.equal(marks.isUnsaved('p-1', 'raise-1'), false);
+
+        // A mark the detail brought (a reload): Not a gap sends its removal
+        marks.load('p-1', ['tap-1']);
+        assert.equal(marks.isGap('p-1', 'tap-1'), true);
+        assert.deepEqual(gapMark(marks, 'p-1', 'tap-1'), { text: 'gap_mark', title: 'gap_mark_title', unsaved: false });
+        marks.set('p-1', 'tap-1', false);
+        await marks.flush();
+        assert.deepEqual(sent.at(-1), { participantId: 'p-1', eventId: 'tap-1', gap: false });
+        assert.equal(gapMark(marks, 'p-1', 'tap-1'), null);
+
+        // A wish taken back before it could be sent (offline) needs no request at all
+        const offline = [];
+        const quiet = new GapMarks({ send: async (request) => { offline.push(request); return { kind: 'offline' }; } });
+        quiet.load('p-1', []);
+        quiet.set('p-1', 'tap-9', true);
+        await quiet.flush();
+        quiet.set('p-1', 'tap-9', false);
+        await quiet.flush();
+        assert.equal(quiet.isUnsaved('p-1', 'tap-9'), false);
+        assert.equal(offline.length, 1, 'back to what the server has - nothing to send');
     },
 };
 

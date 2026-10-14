@@ -421,6 +421,73 @@ final class OnlineReviewAssessmentTest extends TestCase
     }
 
     /**
+     * Stream RG - the reviewer's G stored: a raise whose photo the reviewer marked as a gap is a premature raise (the
+     * participant raised too early - the detector was right), a raise neither the finish, nor marked, nor near a tap a
+     * false detection (the detector's own); a tap marked as a gap is a premature tap
+     */
+    public function testTheReviewersGapMarksSplitTheRaisesThatWereNotTheFinish(): void
+    {
+        $raiseMs = self::START + 47 * self::MINUTE + 12_000;
+        $tapMs = $raiseMs + 1_800;
+        $events = [
+            self::event('device.ready', self::START - self::MINUTE, ['detector' => ['state' => 'ready', 'view' => 'angled', 'setupTest' => 'passed', 'loadMs' => 900]]),
+            // Nobody raised their hands - the detector fired
+            self::candidate(self::START + 30 * self::MINUTE, id: 'stray'),
+            // Raised and tapped too early, a piece was missing - both marked by the reviewer
+            self::candidate(self::START + 35 * self::MINUTE, id: 'with-tap'),
+            self::event('finish.button', self::START + 35 * self::MINUTE + 1_000, id: 'early-tap'),
+            // Raised too early, no tap - marked
+            self::candidate(self::START + 40 * self::MINUTE, id: 'premature'),
+            // The finish
+            self::candidate($raiseMs, id: 'raise'),
+            self::event('finish.button', $tapMs, id: 'tap'),
+        ];
+        $marked = ['with-tap', 'early-tap', 'PREMATURE'];
+
+        $confirmed = self::assess($events, confirmed: true, confirmedMomentMs: $raiseMs + 400, detection: OnlineDetectionMode::On, gaps: $marked);
+        self::assertSame('raise', $confirmed->detectedCandidate?->eventId);
+        self::assertSame(400, $confirmed->detectionErrorMs, 'the marks change no measure');
+        self::assertSame(2, $confirmed->prematureRaises, 'the marked raises - a tap near one or not');
+        self::assertSame(1, $confirmed->falseDetections, 'the stray one');
+        self::assertSame(2, $confirmed->falseRaises, 'the old count stays: not the finish and no tap near (stray, premature)');
+        self::assertSame(1, $confirmed->prematureTaps);
+        self::assertSame(0, $confirmed->missedRaises);
+
+        // Without marks: no premature raise, every false raise is a false detection, no premature tap
+        $unmarked = self::assess($events, confirmed: true, confirmedMomentMs: $raiseMs + 400, detection: OnlineDetectionMode::On);
+        self::assertSame([0, 2, 2, 0], [$unmarked->prematureRaises, $unmarked->falseDetections, $unmarked->falseRaises, $unmarked->prematureTaps]);
+
+        // Before a confirmation the suggested raise (the stray one, the earliest moment) is presumed the finish ...
+        $pending = self::assess($events, detection: OnlineDetectionMode::On, gaps: $marked);
+        self::assertSame('stray', $pending->suggestion->candidateEventId);
+        self::assertSame([2, 0], [$pending->prematureRaises, $pending->falseDetections]);
+        // ... unless it is marked: then none is - a mark never changes the suggestion itself
+        $suggestedMarked = self::assess($events, detection: OnlineDetectionMode::On, gaps: [...$marked, 'stray']);
+        self::assertSame('stray', $suggestedMarked->suggestion->candidateEventId);
+        self::assertSame([3, 0], [$suggestedMarked->prematureRaises, $suggestedMarked->falseDetections]);
+
+        // A marked raise within 10 s of the confirmed moment stays that finish's (the window wins)
+        $markedFinish = self::assess($events, confirmed: true, confirmedMomentMs: $raiseMs + 400, detection: OnlineDetectionMode::On, gaps: [...$marked, 'raise']);
+        self::assertSame('raise', $markedFinish->detectedCandidate?->eventId);
+        self::assertSame(2, $markedFinish->prematureRaises);
+
+        // A marked tap the reviewer confirmed at its own moment is the finish all the same
+        $tapConfirmed = self::assess($events, confirmed: true, confirmedMomentMs: $tapMs, detection: OnlineDetectionMode::On, gaps: [...$marked, 'tap']);
+        self::assertSame(1, $tapConfirmed->prematureTaps);
+
+        // Shadow: the same split (the report has every raise)
+        $shadow = self::assess($events, confirmed: true, confirmedMomentMs: $tapMs, detection: OnlineDetectionMode::Shadow, gaps: $marked);
+        self::assertSame([2, 1, 1], [$shadow->prematureRaises, $shadow->falseDetections, $shadow->prematureTaps]);
+
+        // Detection off: no raises counted - the premature taps are
+        $off = self::assess($events, confirmed: true, confirmedMomentMs: $tapMs, gaps: $marked);
+        self::assertSame([null, null, 1], [$off->prematureRaises, $off->falseDetections, $off->prematureTaps]);
+
+        // Without a tap that counts there is nothing to count
+        self::assertNull(self::assess([self::candidate(self::START + self::MINUTE, id: 'only')], detection: OnlineDetectionMode::On, gaps: ['only'])->prematureTaps);
+    }
+
+    /**
      * @param array<string, mixed> $payload
      * @return array{online_entry_id: string, id: string, type: string, device_id: string, client_ms: int, received_at_ms: int, payload: array<string, mixed>, heard_meanwhile: bool}
      */
@@ -432,6 +499,7 @@ final class OnlineReviewAssessmentTest extends TestCase
     /**
      * @param list<array{online_entry_id: string, id: string, type: string, device_id: string, client_ms: int, received_at_ms: int, payload: array<string, mixed>, heard_meanwhile: bool}> $events
      * @param list<string> $storedFlags
+     * @param list<string> $gaps
      */
     private static function assess(
         array $events,
@@ -444,6 +512,7 @@ final class OnlineReviewAssessmentTest extends TestCase
         null|int $piecesTotal = 3000,
         array $storedFlags = [],
         OnlineDetectionMode $detection = OnlineDetectionMode::Off,
+        array $gaps = [],
     ): OnlineReviewAssessment {
         $nowMs ??= self::START + 59 * self::MINUTE;
 
@@ -458,6 +527,7 @@ final class OnlineReviewAssessmentTest extends TestCase
             events: $events,
             storedFlags: $storedFlags,
             detection: $detection,
+            gaps: $gaps,
         );
     }
 

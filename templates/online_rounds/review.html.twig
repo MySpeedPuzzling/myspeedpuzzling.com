@@ -5,7 +5,8 @@
     the participants on the left, the selected one's evidence on the right - the Finished taps, the frames around each
     tap to scrub to the exact moment, the photo at the tap, the reported pieces with the photo when time was up, the
     timeline. Keyboard first (↑/↓, ←/→, C, U). Drawn by assets/controllers/online_review_controller.js from the state
-    below, the participant's evidence (online_review_entry) and the confirmations (online_review_confirm).
+    below, the participant's evidence (online_review_entry) and the confirmations (online_review_confirm); G marks the
+    moment's photo as showing a gap and "Not a gap" takes it back (online_review_gap, stream RG).
     Variables: competition, round (CompetitionRound), online_round, state (OnlineReview::list()), selected (a
     participant id or null), participant_placeholder
     Phase 3 - the completeness check (README §5.8, advisory), only while it is on (state.round.completenessCheck): a
@@ -41,6 +42,7 @@
              list: path('online_review', {roundId: round_id}),
              entry: path('online_review_entry', {roundId: round_id, participantId: participant_placeholder}),
              confirm: path('online_review_confirm', {roundId: round_id, participantId: participant_placeholder}),
+             gap: path('online_review_gap', {roundId: round_id, participantId: participant_placeholder}),
          }|json_encode|e('html_attr') }}"
          data-online-review-placeholder-value="{{ participant_placeholder }}"
          data-online-review-selected-value="{{ selected ?? '' }}"
@@ -165,11 +167,15 @@
                                         <i class="bi bi-check2-circle me-1" aria-hidden="true"></i>{{ 'online_rounds.review.detail.confirm'|trans }} <kbd class="ms-1">C</kbd>
                                     </button>
                                     {% if detection_on %}
-                                        {# The photo shows a gap - on to the next raise or tap (README §5.9) #}
+                                        {# The photo shows a gap - marked (stream RG), on to the next raise or tap (README §5.9) #}
                                         <button type="button" class="btn btn-outline-secondary" data-action="online-review#gapNext" data-online-review-target="gapButton" disabled>
                                             <i class="bi bi-skip-forward me-1" aria-hidden="true"></i>{{ 'online_rounds.review.detail.gap'|trans }} <kbd class="ms-1">G</kbd>
                                         </button>
                                     {% endif %}
+                                    {# The G mark on this moment taken back - shown only on a marked moment (G marks taps in every round) #}
+                                    <button type="button" class="btn btn-sm btn-link" data-action="online-review#notGap" data-online-review-target="notGapButton" hidden>
+                                        <i class="bi bi-arrow-counterclockwise me-1" aria-hidden="true"></i>{{ 'online_rounds.review.detail.not_gap'|trans }}
+                                    </button>
                                 </div>
                             </div>
                         </div>

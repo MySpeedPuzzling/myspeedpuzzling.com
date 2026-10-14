@@ -17,7 +17,9 @@ use SpeedPuzzling\Web\Value\RoundEntryResult;
  * by - nearest to the confirmed moment within 10 s; before a confirmation the suggested one, else the one nearest to
  * the tap), the detection error (confirmed − detected) and the delta (tap − the candidate nearest to it), the missed
  * raises (taps without a candidate) and false raises (candidates neither the finish nor near a tap) - null while the
- * round's detection is off -, the camera view the phone's detector used and the phone (OnlineDeviceLabel).
+ * round's detection is off -, the camera view the phone's detector used and the phone (OnlineDeviceLabel). The
+ * reviewer's gap marks split the raises that were not the finish (stream RG, OnlineReviewAssessment): premature raises
+ * (marked as a gap) and false detections (not marked, no tap near) - and count the premature taps.
  *
  * Phase 3 - the completeness check (README §5.8, OnlineAccuracy): its verdict on the confirmed photo (complete / gaps /
  * unsure / failed / pending) and how it compares with the reviewer's outcome (OnlineAccuracy::OUTCOME_*) - null while
@@ -54,6 +56,12 @@ readonly final class OnlineAccuracyRow
         public null|int $detectorNotRunning = null,
         public null|string $completenessVerdict = null,
         public null|string $completenessOutcome = null,
+        // The reviewer's gap marks (stream RG): raises marked as a gap - the participant raised too early -, raises
+        // neither the finish, nor marked, nor near a tap - the detector's own - (both null while the detection is off),
+        // and taps marked as a gap (null without a tap)
+        public null|int $prematureRaises = null,
+        public null|int $falseDetections = null,
+        public null|int $prematureTaps = null,
     ) {
     }
 }

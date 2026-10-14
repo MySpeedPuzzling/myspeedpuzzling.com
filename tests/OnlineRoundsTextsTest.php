@@ -120,6 +120,11 @@ final class OnlineRoundsTextsTest extends KernelTestCase
             $used[] = $key;
         }
 
+        // A moment's gap mark (stream RG, assets/online/review_gaps.js gapMark()): its text and its title
+        foreach (['gap_mark', 'gap_mark_title', 'gap_mark_unsaved'] as $key) {
+            $used[] = $key;
+        }
+
         $missing = array_values(array_diff(array_unique($used), array_keys($texts)));
 
         self::assertSame([], $missing, 'texts the review uses but review_texts.html.twig does not have');

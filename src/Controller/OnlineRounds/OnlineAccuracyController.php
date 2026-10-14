@@ -30,6 +30,8 @@ use Symfony\Component\String\Slugger\AsciiSlugger;
  * and spreadsheets; every cell through SpreadsheetSafeValue: names are typed by people, User-Agents by phones). Phase 3
  * adds the completeness check's verdict on the confirmed photo against the reviewer's outcome - the page's line only
  * while the check is on, the CSV's two columns always (empty while it is off: the header never depends on a setting).
+ * Stream RG: the reviewer's gap marks (the G key) split the raises that were not the finish into premature raises and
+ * false detections, and count the premature taps - on the page and in three columns appended to the CSV.
  * Organisers of the event for whom online rounds are on (COMPETITION_EDIT + ONLINE_ROUNDS_MANAGE).
  */
 #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
@@ -63,6 +65,12 @@ final class OnlineAccuracyController extends AbstractController
         // unsure / not_checked against the reviewer's outcome (OnlineAccuracy::OUTCOMES)
         'completeness_verdict',
         'completeness_outcome',
+        // Stream RG: the reviewer's gap marks - raises marked as a gap (raised too early), raises neither the finish,
+        // nor marked, nor near a tap (the detector's own), taps marked as a gap. `false_raises` keeps its meaning: the
+        // false detections plus the premature raises without a tap near them
+        'premature_raises',
+        'false_detections',
+        'premature_taps',
     ];
 
     public function __construct(
@@ -122,6 +130,8 @@ final class OnlineAccuracyController extends AbstractController
             'by_view' => $report['byView'],
             'detector_not_running' => $report['detectorNotRunning'],
             'completeness' => $report['completeness'],
+            'raises' => $report['raises'],
+            'premature_taps' => $report['prematureTaps'],
         ]);
         $response->headers->set('Cache-Control', 'private, no-store');
 
@@ -164,6 +174,9 @@ final class OnlineAccuracyController extends AbstractController
                 $row->detectorNotRunning,
                 $row->completenessVerdict,
                 $row->completenessOutcome,
+                $row->prematureRaises,
+                $row->falseDetections,
+                $row->prematureTaps,
             ]), ',', '"', '');
         }
 

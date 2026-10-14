@@ -10,6 +10,7 @@ use SpeedPuzzling\Web\Entity\CompetitionRound;
 use SpeedPuzzling\Web\Entity\OnlineEntryMedia;
 use SpeedPuzzling\Web\Entity\OnlineRound;
 use SpeedPuzzling\Web\Query\GetOnlineFinishPhotoChecks;
+use SpeedPuzzling\Web\Query\GetOnlineMomentVerdicts;
 use SpeedPuzzling\Web\Query\GetOnlineReviewData;
 use SpeedPuzzling\Web\Results\OnlineFinishPhotoCheck;
 use SpeedPuzzling\Web\Results\OnlineReviewCandidate;
@@ -34,8 +35,9 @@ use SpeedPuzzling\Web\Value\RoundEntryResult;
  *   the phone's detector held), the events in order and the evidence with short-lived URLs (MEDIA_URL_SECONDS: the
  *   reviewer looks at a participant for a few minutes; the page asks again when it comes back) - a photo or a burst the
  *   phone has not uploaded yet is listed as pending, never hidden (README §5.11), one that never arrived and never will
- *   (OnlineEntryMedia::$abandonedAt) as abandoned;
- * - assessed(): the rows with their OnlineReviewAssessment - the accuracy report.
+ *   (OnlineEntryMedia::$abandonedAt) as abandoned; and the moments a reviewer marked as showing a gap (`gaps` - the G
+ *   key stored, stream RG; one statement more);
+ * - assessed(): the rows with their OnlineReviewAssessment - the accuracy report (with the round's gap marks).
  * Phase 3 - the completeness check (README §5.8, advisory), only while it is on (OnlineCvSettings; off = no key of it in
  * either answer, the page as before): `round.completenessCheck`, each row's `check` = the check of the photo the review
  * opens on (the suggested candidate's or tap's - the page orders the list by it: gaps, unsure, not checked, complete),
@@ -62,6 +64,7 @@ readonly final class OnlineReview
         private LoggerInterface $logger,
         private OnlineCvSettings $onlineCvSettings,
         private GetOnlineFinishPhotoChecks $getOnlineFinishPhotoChecks,
+        private GetOnlineMomentVerdicts $getOnlineMomentVerdicts,
     ) {
     }
 
@@ -102,7 +105,7 @@ readonly final class OnlineReview
     }
 
     /**
-     * @return null|array{serverNowMs: int, asOfMs: int, round: array<string, mixed>, entry: OnlineReviewEntry, taps: list<OnlineReviewTap>, candidates: list<OnlineReviewCandidate>, events: list<array<string, mixed>>, media: list<array<string, mixed>>}
+     * @return null|array{serverNowMs: int, asOfMs: int, round: array<string, mixed>, entry: OnlineReviewEntry, taps: list<OnlineReviewTap>, candidates: list<OnlineReviewCandidate>, gaps: list<string>, events: list<array<string, mixed>>, media: list<array<string, mixed>>}
      *              null: the participant is not entered in the round (or not going)
      */
     public function detail(CompetitionRound $round, OnlineRound $onlineRound, string $participantId): null|array
@@ -140,6 +143,8 @@ readonly final class OnlineReview
             'entry' => self::forReviewer($entry, $detection),
             'taps' => $assessment->taps,
             'candidates' => $detection === OnlineDetectionMode::Shadow ? [] : $assessment->candidates,
+            // The moments the reviewers marked as showing a gap (the G key) - of those shown here only
+            'gaps' => $onlineEntryId === null ? [] : $this->gaps($onlineEntryId, $detection),
             'events' => array_map(static fn (array $event): array => [
                 'id' => $event['id'],
                 'type' => $event['type'],
@@ -158,6 +163,17 @@ readonly final class OnlineReview
                 )),
             ),
         ];
+    }
+
+    /**
+     * The event ids of the entry's finish moments marked as showing a gap (the reviewer's G, stream RG) - of the
+     * moments the review shows: in a `shadow` round the taps' only
+     *
+     * @return list<string>
+     */
+    public function gaps(string $onlineEntryId, OnlineDetectionMode $detection): array
+    {
+        return $this->getOnlineMomentVerdicts->gapsOfEntry($onlineEntryId, candidates: $detection !== OnlineDetectionMode::Shadow);
     }
 
     /**
@@ -233,8 +249,10 @@ readonly final class OnlineReview
     }
 
     /**
-     * Every participant's row with its assessment and its events (by moment), by name
+     * Every participant's row with its assessment and its events (by moment), by name - with the reviewers' gap marks
+     * when given (the accuracy report: GetOnlineMomentVerdicts::gapsOfRound(), online entry id => event ids)
      *
+     * @param array<string, list<string>> $gaps
      * @return list<array{entry: OnlineReviewEntry, assessment: OnlineReviewAssessment, events: list<OnlineReviewEventRow>, activeDeviceId: null|string}>
      */
     public function assessed(
@@ -243,6 +261,7 @@ readonly final class OnlineReview
         null|RoundClock $clock = null,
         null|int $nowMs = null,
         null|int $piecesTotal = null,
+        array $gaps = [],
     ): array {
         $now = $this->clock->now();
         $nowMs ??= RoundClock::milliseconds($now);
@@ -260,7 +279,8 @@ readonly final class OnlineReview
 
         foreach ($rows as $row) {
             $events = $row['online_entry_id'] === null ? [] : ($eventsByEntry[$row['online_entry_id']] ?? []);
-            [$entry, $assessment] = self::entry($row, $events, $clock, $nowMs, $piecesTotal, $detection);
+            $entryGaps = $row['online_entry_id'] === null ? [] : ($gaps[$row['online_entry_id']] ?? []);
+            [$entry, $assessment] = self::entry($row, $events, $clock, $nowMs, $piecesTotal, $detection, $entryGaps);
             $assessed[] = ['entry' => $entry, 'assessment' => $assessment, 'events' => $events, 'activeDeviceId' => $row['active_device_id']];
         }
 
@@ -287,9 +307,10 @@ readonly final class OnlineReview
     /**
      * @param OnlineReviewEntryRow $row
      * @param list<OnlineReviewEventRow> $events
+     * @param list<string> $gaps the event ids of the entry's moments marked as a gap
      * @return array{OnlineReviewEntry, OnlineReviewAssessment}
      */
-    private static function entry(array $row, array $events, RoundClock $clock, int $nowMs, null|int $piecesTotal, OnlineDetectionMode $detection): array
+    private static function entry(array $row, array $events, RoundClock $clock, int $nowMs, null|int $piecesTotal, OnlineDetectionMode $detection, array $gaps = []): array
     {
         $assessment = OnlineReviewAssessment::of(
             clock: $clock,
@@ -302,6 +323,7 @@ readonly final class OnlineReview
             events: $events,
             storedFlags: $row['flags'],
             detection: $detection,
+            gaps: $gaps,
         );
 
         return [new OnlineReviewEntry(

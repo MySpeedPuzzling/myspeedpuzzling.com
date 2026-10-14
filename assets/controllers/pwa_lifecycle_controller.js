@@ -206,10 +206,17 @@ export default class extends Controller {
             return;
         }
 
+        // A second finger landing on a pull (it turns into a pinch-zoom): the gesture starts again as no pull, so the
+        // indicator goes back now - its touchmoves and touchend no longer see a pull (GEST review F8)
+        if (this._gesture.pulling) {
+            this._resetIndicator();
+        }
+
         this._gesture.start(touch.clientX, touch.clientY, canStartPull(event.target, {
             scrollY: window.scrollY,
             overlayOpen: this._overlayOpen(event.target),
             styleOf: (element) => window.getComputedStyle(element),
+            hasFormInput: () => this._hasActiveFormInput(),
         }), event.touches.length);
     }
 

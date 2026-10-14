@@ -20,7 +20,8 @@ use Symfony\Component\Process\Process;
  * could never be scrolled back up, and a sideways swipe over a table drifting a little downwards lost its scroll.
  * GEST-06 (docs/features/navigation README §4.13 G6): only in the installed web app - never in a browser tab, never
  * inside the Hotwire Native app (NAV-14) -, never under a layer holding a history entry (the Menu panel, the player
- * card, the search view), and about 128 px of finger travel refreshes (it was about 256 px).
+ * card, the search view), never while the page holds typed form input (GEST review Q2), and about 128 px of finger
+ * travel refreshes (it was about 256 px).
  * Runs the real module under node.
  */
 final class PullToRefreshGestureTest extends TestCase
@@ -48,6 +49,18 @@ final class PullToRefreshGestureTest extends TestCase
         yield 'inside a wide box that does not scroll' => [['path' => [['tag' => 'TD'], ['scrollWidth' => 900, 'clientWidth' => 340, 'overflowX' => 'hidden']]], true];
         yield 'inside an element that opts out' => [['path' => [['tag' => 'CANVAS'], ['attributes' => ['data-ptr-ignore']]]], false];
         yield 'inside a scroll box still at its top' => [['path' => [['tag' => 'LI'], ['scrollTop' => 0, 'overflowX' => 'hidden']]], true];
+        // GEST review Q2: a reload would throw a half-filled form away ("Add never reloads")
+        yield 'page at its top holding typed form input' => [['formInput' => true, 'path' => [['tag' => 'P'], ['tag' => 'MAIN']]], false];
+        yield 'page at its top, its forms untouched' => [['formInput' => false, 'path' => [['tag' => 'P'], ['tag' => 'MAIN']]], true];
+    }
+
+    /** The form input is read last - it walks every form of the page, so only for a touch that could pull at all */
+    public function testTheFormInputIsAskedOnlyWhereAPullCouldStart(): void
+    {
+        self::assertSame(1, $this->gesture(['formInput' => false, 'path' => [['tag' => 'P']]])['formInputAsked']);
+        self::assertSame(0, $this->gesture(['formInput' => true, 'scrollY' => 120, 'path' => [['tag' => 'P']]])['formInputAsked']);
+        self::assertSame(0, $this->gesture(['formInput' => true, 'overlayOpen' => true, 'path' => [['tag' => 'P']]])['formInputAsked']);
+        self::assertSame(0, $this->gesture(['formInput' => true, 'path' => [['tag' => 'P'], ['attributes' => ['data-ptr-ignore']]]])['formInputAsked']);
     }
 
     /**
@@ -214,6 +227,10 @@ final class PullToRefreshGestureTest extends TestCase
         self::assertStringContainsString('pullEnabled({ standalone: this._isPwa, nativeApp: isNativeApp() })', $controller);
         self::assertStringContainsString('this._isPwa = isStandalone();', $controller);
         self::assertStringContainsString('layer: layers.current(),', $controller);
+        // GEST review Q2: never armed over typed form input - the 15-minute reload's own rule
+        self::assertStringContainsString('hasFormInput: () => this._hasActiveFormInput(),', $controller);
+        // GEST review F8: a second finger on a pull sends the indicator back before the gesture starts again
+        self::assertMatchesRegularExpression('~if \(this\._gesture\.pulling\) \{\s*this\._resetIndicator\(\);\s*\}\s*this\._gesture\.start\(~', $controller);
         self::assertStringContainsString('pastThreshold(this._gesture.end())', $controller);
         self::assertStringContainsString('top: var(--topbar-h, 0px);', $controller);
         self::assertStringNotContainsString('display-mode', $controller);
@@ -277,11 +294,11 @@ final class PullToRefreshGestureTest extends TestCase
      * finger moves from there (`moves`: [dx, dy, page?]).
      *
      * @param array<string, mixed> $case
-     * @return array{allowed: bool, prevented: list<bool>, distance: int|float}
+     * @return array{allowed: bool, prevented: list<bool>, distance: int|float, formInputAsked: int}
      */
     private function gesture(array $case): array
     {
-        /** @var list<array{allowed: bool, prevented: list<bool>, distance: int|float}> $results */
+        /** @var list<array{allowed: bool, prevented: list<bool>, distance: int|float, formInputAsked: int}> $results */
         $results = $this->harness([$case + ['moves' => []]]);
 
         return $results[0];

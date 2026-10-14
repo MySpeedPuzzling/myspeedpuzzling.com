@@ -47,6 +47,15 @@ final class TouchActionRulesTest extends TestCase
         ],
     ];
 
+    /**
+     * The only touch-action values besides `none` that take pinch-zoom away (no `pinch-zoom` in the list, not `auto` or
+     * `manipulation`): file => selector => value
+     */
+    private const array PAN_ONLY_ALLOWED = [
+        // Decision 59: the chart canvas (KEPT below)
+        'assets/styles/app.scss' => ['canvas' => 'pan-y'],
+    ];
+
     /** Known exceptions, kept as they are: file => selector => declaration */
     private const array KEPT = [
         // Decision 59: the charts (Chart.js canvases) scroll the page vertically and nothing else - it also keeps the
@@ -145,6 +154,48 @@ final class TouchActionRulesTest extends TestCase
         }
     }
 
+    /**
+     * Pinch-zoom everywhere (README §4.13 G5; WCAG 1.4.4, 1.4.10): any touch-action without `pinch-zoom` - `none`, but
+     * just as well `pan-x`, `pan-y` or `pan-x pan-y` - takes it away under the finger (GEST review F9). Only the drag
+     * handles and the chart canvas listed above may - in every stylesheet; no inline style or script takes it away
+     */
+    public function testOnlyTheListedRulesTakePinchZoomAway(): void
+    {
+        $found = [];
+
+        foreach ($this->files('assets/styles', ['scss', 'css']) as $path => $code) {
+            foreach (ScssReader::rules($code) as $selector => $declarations) {
+                preg_match_all('~(?:^|;)touch-action:([^;]+)~', $this->compact($declarations), $matches);
+
+                foreach ($matches[1] as $value) {
+                    $value = trim(str_replace('!important', '', $value));
+
+                    if (!self::keepsPinchZoom($value)) {
+                        $found[$path][$selector] = $value;
+                    }
+                }
+            }
+        }
+
+        $allowed = array_map(static fn (array $selectors): array => array_fill_keys(array_keys($selectors), 'none'), self::NONE_ALLOWED);
+
+        foreach (self::PAN_ONLY_ALLOWED as $path => $selectors) {
+            $allowed[$path] = ($allowed[$path] ?? []) + $selectors;
+        }
+
+        self::assertSame(self::sorted($allowed), self::sorted($found), 'a touch-action without pinch-zoom takes the zoom away (README §4.13 G5) - only on drag handles and the chart canvas; list a new one with its reason');
+
+        foreach ([...$this->files('templates', ['twig']), ...$this->files('assets', ['js', 'mjs'])] as $path => $code) {
+            $code = ScssReader::withoutComments($code);
+            preg_match_all('~touch-action\s*:\s*([a-z][a-z -]*)~i', $code, $inline);
+            preg_match_all('~touchAction\s*=\s*[\'"]([^\'"]*)~', $code, $scripted);
+
+            foreach ([...$inline[1], ...$scripted[1]] as $value) {
+                self::assertTrue(self::keepsPinchZoom($value), $path . ': touch-action ' . $value);
+            }
+        }
+    }
+
     public function testTheKnownExceptionsStayAsTheyAre(): void
     {
         foreach (self::KEPT as $file => $rules) {
@@ -164,6 +215,29 @@ final class TouchActionRulesTest extends TestCase
             self::assertStringNotContainsString('maximum-scale', $code, $path);
             self::assertStringNotContainsString('user-scalable', $code, $path);
         }
+    }
+
+    /**
+     * @param array<string, array<string, string>> $rules
+     * @return array<string, array<string, string>>
+     */
+    private static function sorted(array $rules): array
+    {
+        ksort($rules);
+
+        return array_map(static function (array $selectors): array {
+            ksort($selectors);
+
+            return $selectors;
+        }, $rules);
+    }
+
+    /** auto, manipulation, or a list that keeps pinch-zoom */
+    private static function keepsPinchZoom(string $value): bool
+    {
+        $value = strtolower(trim($value));
+
+        return in_array($value, ['auto', 'manipulation'], true) || str_contains($value, 'pinch-zoom');
     }
 
     private function partialPath(string $import): null|string

@@ -59,6 +59,13 @@ final class NavLayoutTest extends WebTestCase
         self::assertSame(['home', 'puzzles', 'community'], array_slice($dockOrder, 0, 3));
         self::assertCount(1, $crawler->filter('#site-menu [data-menu-group="home"] a.mr.mr--place[data-nav="menu/home/home"]'));
 
+        // A tap on the current place's row reselects its place (GEST-03): tab_gestures_controller.js reads the place from
+        // the row id of data-nav (<place> or <place>_place, tab_reselect.js placeOfNav()) - no data-nav-place of their
+        // own but the Puzzles row's, a Puzzles place link (PUZ-01; the chrome's weight, GEST review Q3)
+        $places = $crawler->filter('#site-menu a.mr--place')->each(static fn (Crawler $row): string => (string) preg_replace('~_place$~', '', explode('/', (string) $row->attr('data-nav'))[2] ?? ''));
+        self::assertSame(['home', 'puzzles', 'community', 'profile'], $places);
+        self::assertSame(['puzzles'], $crawler->filter('#site-menu [data-nav-place]')->each(static fn (Crawler $row): string => (string) $row->attr('data-nav-place')));
+
         // Group headings are disclosure buttons (expanded server-side - the client marks the folded ones before paint),
         // never on the place groups (decision 30); Your puzzling is headed by its Profile row in the column
         $disclosures = $crawler->filter('#site-menu .menu-disclosure');

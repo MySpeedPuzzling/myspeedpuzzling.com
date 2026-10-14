@@ -1,11 +1,12 @@
 // Pressed states within 100 ms (docs/features/navigation README §4.13 G4, D22; implementation plan GEST-04, decision 58
 // D-6) - on every platform.
 //
-// While the finger or the button is down (:active) a 10 % state layer (--nav-pressed-pill) lies over the target, drawn at
-// once (transition: none), and fades out in 150 ms after the release; the browser's own tap highlight is off on the same
-// targets. iOS applies :active only to elements with a touch listener above them: assets/app.js registers one empty,
-// passive touchstart listener on the document (WebKit bug 138816). Android's ripple from the touch point comes on top
-// (GEST-11, assets/press_feedback.js - the same markers); desktop keeps its hover states as they are.
+// While the finger or the button is down (:active) a state layer lies over the target in the press ink
+// (--nav-press-ink: the 10 % --nav-pressed-pill, a dark ink on coral surfaces), drawn at once (transition: none), and
+// fades out in 150 ms after the release; the browser's own tap highlight is off on the same targets. iOS applies :active
+// only to elements with a touch listener above them: assets/app.js registers one empty, passive touchstart listener on
+// the document (WebKit bug 138816). Android's ripple from the touch point comes on top (GEST-11, assets/press_feedback.js
+// - the same markers, the same ink); desktop keeps its hover states as they are.
 //
 // The targets, by marker (the markup's, decision 58 D-6):
 // - data-press="fixed" - the bars' controls: the tabs (tab bar, rail, the 768-1023 px top bar's places), the top bar's
@@ -13,13 +14,15 @@
 // - data-press - in the page: Menu rows, sheet rows (Help, the player card's pages), chips, link rows;
 // - data-press="layer" - cards (catalogue, library, search): the layer only, never a ripple. A card holds several links
 //   and buttons of its own, so it shows while one of its links is pressed;
-// - .row-link - table rows that open their link (row_link_controller.js adds the class): the layer on their cells.
+// - table rows that open their link (data-controller="row-link"; row_link_controller.js adds .row-link, which a Live
+//   Component re-render takes away again - both match): the layer on their cells.
 //
 // The layer never replaces a background (white chips and cards, the coral + Add, the current tab's pill): it is a
 // gradient of one colour over the element's own background - or, where the visible shape is an inner pill (a tab's 56 × 32
-// indicator, the ⏱ pill's body), an inset shadow of that pill. The colour is a registered custom property, so it can
-// fade; a browser without @property shows and drops the layer at once. An element's own :active background (+ Add's
-// darker coral, Sign in) still wins where its rule is the stronger one.
+// indicator, the ⏱ pill's body), an inset shadow of that pill; on table cells a second inset shadow over Bootstrap's
+// accent shadow (stripes, hover, the own row's colour), which paints above every background. The colour is a registered
+// custom property, so it can fade; a browser without @property shows and drops the layer at once. An element's own
+// :active background (+ Add's darker coral, Sign in) still wins where its rule is the stronger one.
 
 @property --nav-press-layer {
     syntax: "<color>";
@@ -27,17 +30,35 @@
     initial-value: transparent;
 }
 
+// The press ink: the layer's colour (and GEST-11's ripple's) - 10 % coral on the page's light surfaces
+[data-press],
+:is(.row-link, [data-controller~="row-link"]) {
+    --nav-press-ink: var(--nav-pressed-pill, rgba(254, 105, 106, .1));
+}
+
+// Coral surfaces (the Add tile, + Add, the guest card's Sign in): 10 % coral on coral is invisible (contrast ≈ 1.01 over
+// the tile's #ec4f52) - a dark ink there (≈ 1.23, PressStatesCssTest computes it). Add stays "never styled selected"
+.nav-tab--add[data-press],
+.site-header-add[data-press],
+.menu-guest-btn--primary[data-press] {
+    --nav-press-ink: rgba(43, 52, 69, .16);
+}
+
 // The browser's own grey flash would sit on top of ours
 [data-press],
 [data-press="layer"] a,
-.row-link {
+:is(.row-link, [data-controller~="row-link"]) {
     -webkit-tap-highlight-color: transparent;
 }
 
 // The layer: transparent at rest
-[data-press]:not(.nav-tab, .stopwatch-pill),
-.row-link > * {
+[data-press]:not(.nav-tab, .stopwatch-pill) {
     background-image: linear-gradient(var(--nav-press-layer), var(--nav-press-layer));
+}
+
+// Table cells: over Bootstrap's accent (.table > :not(caption) > * > * - this selector weighs the same and comes later)
+tr:is(.row-link, [data-controller~="row-link"]) > * {
+    box-shadow: inset 0 0 0 9999px var(--nav-press-layer), inset 0 0 0 9999px var(--#{$prefix}table-accent-bg, transparent);
 }
 
 .nav-tab[data-press] .nav-tab-icon,
@@ -60,7 +81,7 @@
 
 // The release: it fades out in 150 ms. :where() weighs nothing - an element's own transition wins (the layer then goes
 // at once)
-:where([data-press]:not(.nav-tab, .stopwatch-pill), .row-link > *, .nav-tab[data-press] .nav-tab-icon, .stopwatch-pill[data-press] .stopwatch-pill-body) {
+:where([data-press]:not(.nav-tab, .stopwatch-pill), tr:is(.row-link, [data-controller~="row-link"]) > *, .nav-tab[data-press] .nav-tab-icon, .stopwatch-pill[data-press] .stopwatch-pill-body) {
     transition: --nav-press-layer .15s ease-out;
 }
 
@@ -70,12 +91,14 @@ a:where([data-press]:not(.nav-tab, .stopwatch-pill)) {
     transition: $link-transition, --nav-press-layer .15s ease-out;
 }
 
-// Pressed: at once
+// Pressed: at once. Add's tile also while GEST-04 marks it pending - from the pointerdown, where Chromium applies :active
+// to a touch only at the tap (Add gets no pill: an action, never selected)
 [data-press]:not(.nav-tab, .stopwatch-pill, [data-press="layer"]):active,
 [data-press="layer"]:has(a[href]:active),
-.row-link:active > *,
+tr:is(.row-link, [data-controller~="row-link"]):active > *,
 .nav-tab[data-press]:active .nav-tab-icon,
+.nav-tab--add[data-press].is-pending .nav-tab-icon,
 .stopwatch-pill[data-press]:active .stopwatch-pill-body {
-    --nav-press-layer: var(--nav-pressed-pill, rgba(254, 105, 106, .1));
+    --nav-press-layer: var(--nav-press-ink);
     transition: none;
 }

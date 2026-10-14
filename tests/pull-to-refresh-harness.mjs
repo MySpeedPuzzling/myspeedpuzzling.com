@@ -81,11 +81,23 @@ function elementChain(path) {
 }
 
 process.stdout.write(JSON.stringify(cases.map((testCase) => {
-    const allowed = canStartPull(elementChain(testCase.path ?? []), {
+    let formInputAsked = 0;
+    const page = {
         scrollY: testCase.scrollY ?? 0,
         overlayOpen: testCase.overlayOpen ?? false,
         styleOf: (element) => ({ overflowX: element.overflowX }),
-    });
+    };
+
+    // `formInput`: the page holds typed form input (the controller's _hasActiveFormInput()); absent = not handed in
+    if ('formInput' in testCase) {
+        page.hasFormInput = () => {
+            formInputAsked += 1;
+
+            return testCase.formInput;
+        };
+    }
+
+    const allowed = canStartPull(elementChain(testCase.path ?? []), page);
 
     const gesture = new PullGesture();
     gesture.start(0, 0, allowed, testCase.touches ?? 1);
@@ -95,5 +107,5 @@ process.stdout.write(JSON.stringify(cases.map((testCase) => {
         cancelable: page.cancelable ?? true,
     }));
 
-    return { allowed, prevented, distance: gesture.end() };
+    return { allowed, prevented, distance: gesture.end(), formInputAsked };
 })));

@@ -4,7 +4,7 @@
 // Add /en/puzzle-add, Community /en/community, Profile /en/player-profile/p1.
 
 import {
-    CLOSE_MENU,
+    CLOSE_LAYER,
     decide,
     decideFor,
     FEED_REFRESH_EVENT,
@@ -12,6 +12,7 @@ import {
     NAVIGATE,
     NONE,
     normalizePath,
+    placeOfNav,
     REFRESH_FEED,
     SCROLL_TOP,
     scrollBehavior,
@@ -34,12 +35,17 @@ function root(nativeApp) {
 }
 
 const results = Object.fromEntries([
-    run('constants', () => ({ CLOSE_MENU, NAVIGATE, SCROLL_TOP, REFRESH_FEED, NONE, FEED_REFRESH_EVENT })),
+    run('constants', () => ({ CLOSE_LAYER, NAVIGATE, SCROLL_TOP, REFRESH_FEED, NONE, FEED_REFRESH_EVENT })),
 
-    // 1. The Menu panel is open
-    run('Menu open, the current place\'s tab → close the Menu', () => decide({ ...HUB, menuOpen: true, scrollY: 800 })),
-    run('Menu open, the current place\'s tab on a deeper page → still only closes', () => decide({ ...HUB, currentPath: '/en/recent-activity', menuOpen: true })),
-    run('Menu open, another tab → navigate (a replace visit)', () => decide({ ...HUB, tabPlace: 'community', tabPath: '/en/community', menuOpen: true })),
+    // 1. A layer holds the history entry (GEST review Q1: any layer, the Menu panel one of them)
+    run('Menu open, the current place\'s tab → close the Menu', () => decide({ ...HUB, layer: 'menu', scrollY: 800 })),
+    run('Menu open, the current place\'s tab on a deeper page → still only closes', () => decide({ ...HUB, currentPath: '/en/recent-activity', layer: 'menu' })),
+    run('Menu open, another tab → navigate (a replace visit)', () => decide({ ...HUB, tabPlace: 'community', tabPath: '/en/community', layer: 'menu' })),
+    run('the player card open on the scrolled Hub, Home → close the card (no glide behind it)', () => decide({ ...HUB, layer: 'player-card', scrollY: 800 })),
+    run('a sheet open at the top of the Hub, Home → close the sheet (no feed refresh behind it)', () => decide({ ...HUB, layer: 'modal', scrollY: 0 })),
+    run('the search view open on the add form, Add → close the search view', () => decide({ ...ADD, layer: 'search', scrollY: 0 })),
+    run('the player card open, another tab → navigate (a replace visit)', () => decide({ ...HUB, tabPlace: 'community', tabPath: '/en/community', layer: 'player-card' })),
+    run('no layer (null or empty) → the page rules', () => [decide({ ...HUB, layer: null, scrollY: 800 }), decide({ ...HUB, layer: '', scrollY: 800 })]),
 
     // 2. Another place
     run('another place\'s tab → navigate', () => decide({ ...HUB, tabPlace: 'puzzles', tabPath: '/en/my-library/p1', scrollY: 800 })),
@@ -68,6 +74,17 @@ const results = Object.fromEntries([
     run('top of Community, Community → navigate (same URL)', () => decide({ tabPlace: 'community', currentPlace: 'community', tabPath: '/en/community', currentPath: '/en/community', scrollY: 0 })),
     run('top of the own profile, Profile → navigate (same URL)', () => decide({ tabPlace: 'profile', currentPlace: 'profile', tabPath: '/en/player-profile/p1', currentPath: '/en/player-profile/p1', scrollY: 0 })),
 
+    // The server's start page (GEST review F4): a Puzzles section root whose tab still links the default (storage blocked)
+    run('Marketplace scrolled, the Puzzles tab still on My library, the server says start page → scroll to the top', () => decide({ tabPlace: 'puzzles', currentPlace: 'puzzles', tabPath: '/en/my-library/p1', currentPath: '/en/marketplace', startPage: true, scrollY: 800 })),
+    run('the same without the server\'s word → navigate', () => decide({ tabPlace: 'puzzles', currentPlace: 'puzzles', tabPath: '/en/my-library/p1', currentPath: '/en/marketplace', startPage: false, scrollY: 800 })),
+
+    // A page showing the solving-time form is Add's start page (GEST review F3): the stopwatch's save form, the edit form
+    run('the stopwatch\'s save form at the top, Add → nothing', () => decide({ ...ADD, currentPath: '/en/save-stopwatch/s1', formShown: true, scrollY: 0 })),
+    run('the stopwatch\'s save form scrolled, Add → scroll to the top', () => decide({ ...ADD, currentPath: '/en/save-stopwatch/s1', formShown: true, scrollY: 500 })),
+    run('the stopwatch\'s save form without the form fact, Add → navigate', () => decide({ ...ADD, currentPath: '/en/save-stopwatch/s1', scrollY: 0 })),
+    run('the edit form at the top, Add → nothing', () => decide({ ...ADD, currentPath: '/en/edit-time/t1', formShown: true, scrollY: 0 })),
+    run('the form fact counts for Add only', () => decide({ tabPlace: 'community', currentPlace: 'community', tabPath: '/en/community', currentPath: '/en/events', formShown: true, scrollY: 0 })),
+
     // Start pages: the tab's href path (D-5); Add also its form with a chosen puzzle - nothing that only starts alike
     run('isStartPage', () => ({
         same: isStartPage('home', '/en/hub', '/en/hub'),
@@ -79,7 +96,14 @@ const results = Object.fromEntries([
         rootIsNoPrefix: isStartPage('add', '/', '/en/hub'),
         noTabPath: isStartPage('home', null, '/en/hub'),
         noCurrentPath: isStartPage('home', '/en/hub', ''),
+        serverSays: isStartPage('puzzles', '/en/my-library/p1', '/en/marketplace', { startPage: true }),
+        formShown: isStartPage('add', '/en/puzzle-add', '/en/save-stopwatch/s1', { formShown: true }),
+        formShownOtherPlace: isStartPage('profile', '/en/player-profile/p1', '/en/edit-time/t1', { formShown: true }),
+        truthyIsNotTrue: isStartPage('puzzles', '/en/my-library/p1', '/en/marketplace', { startPage: 'page', formShown: 1 }),
     })),
+    // The place of a link without data-nav-place (GEST review F1 + Q3): + Add and the docked column's place rows
+    run('placeOfNav', () => ['topbar/add/add', 'menu/home/home', 'menu/puzzles/puzzles_place', 'menu/community/community_place',
+        'menu/puzzling/profile', 'menu/puzzling/stats', 'topbar/none/search', 'tabbar/places/home', '', null, 42].map(placeOfNav)),
     run('normalizePath', () => ['/en/hub/', '/', '//', '/en', '', null, 42].map(normalizePath)),
     run('scrollBehavior', () => [scrollBehavior(false), scrollBehavior(true)]),
 
@@ -92,7 +116,7 @@ const results = Object.fromEntries([
     // Inside the Hotwire Native app: the link does what it says (there is no web tab bar)
     run('native app → navigate, whatever else', () => [
         decide({ ...HUB, scrollY: 800, nativeApp: true }),
-        decide({ ...HUB, menuOpen: true, nativeApp: true }),
+        decide({ ...HUB, layer: 'menu', nativeApp: true }),
         decide({ ...ADD, nativeApp: true }),
     ]),
     run('decideFor reads the app flag of <html>', () => ({

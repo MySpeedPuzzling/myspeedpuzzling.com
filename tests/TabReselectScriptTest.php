@@ -10,15 +10,18 @@ use Symfony\Component\Process\Process;
 
 /**
  * Tap the active tab (docs/features/navigation README §4.13 G3, requirement GEST-03): assets/tab_reselect.js decide()
- * run under node (tests/tab-reselect-harness.mjs), in the order of the requirement - the Menu panel open (the current
- * place's tab only closes it), another place, a deeper page (to the start page = the tab's href path, decision 58 D-5),
- * the start page scrolled (to the top, instant with reduced motion), the top of Home (the feed refreshes in place), the
- * top of Add (nothing - Add never reloads, also on its form with a chosen puzzle), the top of any other start page (a
- * visit). Inside the native app the link always navigates.
+ * run under node (tests/tab-reselect-harness.mjs), in the order of the requirement - a layer holding the history entry
+ * (the Menu panel, the player card, a sheet, the search view: the current place's tab only closes it - GEST review Q1),
+ * another place, a deeper page (to the start page = the tab's href path, decision 58 D-5, or the page the server marks
+ * aria-current="page" - GEST review F4), the start page scrolled (to the top, instant with reduced motion), the top of
+ * Home (the feed refreshes in place), the top of Add (nothing - Add never reloads, also on its form with a chosen puzzle
+ * and on every page showing the solving-time form - GEST review F3), the top of any other start page (a visit). Inside
+ * the native app the link always navigates. Links without data-nav-place (+ Add, the docked column's place rows) name
+ * their place in data-nav (GEST review F1, Q3).
  */
 final class TabReselectScriptTest extends TestCase
 {
-    private const array CLOSE_MENU = ['action' => 'close-menu'];
+    private const array CLOSE_MENU = ['action' => 'close-layer', 'layer' => 'menu'];
     private const array NAVIGATE = ['action' => 'navigate'];
     private const array SCROLL_SMOOTH = ['action' => 'scroll-top', 'behavior' => 'smooth'];
     private const array SCROLL_INSTANT = ['action' => 'scroll-top', 'behavior' => 'instant'];
@@ -38,7 +41,7 @@ final class TabReselectScriptTest extends TestCase
     public function testTheContract(): void
     {
         self::assertSame([
-            'CLOSE_MENU' => 'close-menu',
+            'CLOSE_LAYER' => 'close-layer',
             'NAVIGATE' => 'navigate',
             'SCROLL_TOP' => 'scroll-top',
             'REFRESH_FEED' => 'refresh-feed',
@@ -52,6 +55,16 @@ final class TabReselectScriptTest extends TestCase
         self::assertSame(self::CLOSE_MENU, self::results()['Menu open, the current place\'s tab → close the Menu']);
         self::assertSame(self::CLOSE_MENU, self::results()['Menu open, the current place\'s tab on a deeper page → still only closes']);
         self::assertSame(self::NAVIGATE, self::results()['Menu open, another tab → navigate (a replace visit)']);
+    }
+
+    /** GEST review Q1: any layer holding the history entry - the tap would otherwise act on the page hidden behind it */
+    public function testWhileAnyLayerIsOpenTheCurrentPlacesTabOnlyClosesIt(): void
+    {
+        self::assertSame(['action' => 'close-layer', 'layer' => 'player-card'], self::results()['the player card open on the scrolled Hub, Home → close the card (no glide behind it)']);
+        self::assertSame(['action' => 'close-layer', 'layer' => 'modal'], self::results()['a sheet open at the top of the Hub, Home → close the sheet (no feed refresh behind it)']);
+        self::assertSame(['action' => 'close-layer', 'layer' => 'search'], self::results()['the search view open on the add form, Add → close the search view']);
+        self::assertSame(self::NAVIGATE, self::results()['the player card open, another tab → navigate (a replace visit)']);
+        self::assertSame([self::SCROLL_SMOOTH, self::SCROLL_SMOOTH], self::results()['no layer (null or empty) → the page rules']);
     }
 
     public function testAnotherPlaceNavigates(): void
@@ -79,6 +92,29 @@ final class TabReselectScriptTest extends TestCase
         self::assertSame(['smooth', 'instant'], self::results()['scrollBehavior']);
     }
 
+    /** GEST review F4: the server's aria-current="page" is a start page whatever the tab's href (storage blocked) */
+    public function testTheServersStartPageCountsWithoutTheBrowsersStorage(): void
+    {
+        self::assertSame(self::SCROLL_SMOOTH, self::results()['Marketplace scrolled, the Puzzles tab still on My library, the server says start page → scroll to the top']);
+        self::assertSame(self::NAVIGATE, self::results()['the same without the server\'s word → navigate']);
+    }
+
+    /** GEST review F3: a page showing the solving-time form is Add's start page - its typed input survives a tap on Add */
+    public function testEveryPageShowingTheTimeFormIsAddsStartPage(): void
+    {
+        self::assertSame(self::NONE, self::results()['the stopwatch\'s save form at the top, Add → nothing']);
+        self::assertSame(self::SCROLL_SMOOTH, self::results()['the stopwatch\'s save form scrolled, Add → scroll to the top']);
+        self::assertSame(self::NAVIGATE, self::results()['the stopwatch\'s save form without the form fact, Add → navigate']);
+        self::assertSame(self::NONE, self::results()['the edit form at the top, Add → nothing']);
+        self::assertSame(self::NAVIGATE, self::results()['the form fact counts for Add only']);
+    }
+
+    /** GEST review F1 + Q3: + Add (topbar/add/add) and the docked column's place rows (menu/<group>/<place>[_place]) */
+    public function testALinkWithoutDataNavPlaceNamesItsPlaceInDataNav(): void
+    {
+        self::assertSame(['add', 'home', 'puzzles', 'community', 'profile', null, null, null, null, null, null], self::results()['placeOfNav']);
+    }
+
     public function testAtTheTopHomeRefreshesTheFeedAndAddNeverReloads(): void
     {
         self::assertSame(self::REFRESH_FEED, self::results()['top of the Hub, Home → refresh the feed']);
@@ -102,6 +138,10 @@ final class TabReselectScriptTest extends TestCase
             'rootIsNoPrefix' => false,
             'noTabPath' => false,
             'noCurrentPath' => false,
+            'serverSays' => true,
+            'formShown' => true,
+            'formShownOtherPlace' => false,
+            'truthyIsNotTrue' => false,
         ], self::results()['isStartPage']);
         self::assertSame(['/en/hub', '/', '/', '/en', null, null, null], self::results()['normalizePath']);
     }

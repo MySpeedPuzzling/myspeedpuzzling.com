@@ -11,6 +11,8 @@
 //    entry (assets/layer_history.js: the Menu panel, the player card, the phone search view, a sheet), or the finger
 //    starts in an element that is scrolled itself (moving down there scrolls it back up), that scrolls sideways (a
 //    table, a chip strip) or that says data-ptr-ignore (the bars, the section chips);
+//  - nor while the page holds typed form input (a focused field, a changed value): the reload would throw a
+//    half-filled form away - "Add never reloads" (GEST review Q2); the Help sheet's "Reload page" stays the explicit way;
 //  - one finger only, and the first few pixels decide the direction: only a clearly vertical downward move becomes a
 //    pull - sideways and diagonal swipes are left to the browser from their first pixel to their last.
 
@@ -94,7 +96,8 @@ const MAX_SIDEWAYS_RATIO = 0.5;
  * May a touch starting on `target` become a pull?
  *
  * @param {Element|null} target where the finger landed
- * @param {{scrollY: number, overlayOpen: boolean, styleOf: (element: Element) => {overflowX: string}}} page
+ * @param {{scrollY: number, overlayOpen: boolean, styleOf: (element: Element) => {overflowX: string},
+ *          hasFormInput?: () => boolean}} page - hasFormInput is asked last (it reads every form of the page)
  */
 export function canStartPull(target, page) {
     if (page.scrollY > 0 || page.overlayOpen) {
@@ -115,7 +118,7 @@ export function canStartPull(target, page) {
         }
     }
 
-    return true;
+    return !(typeof page.hasFormInput === 'function' && page.hasFormInput());
 }
 
 /**

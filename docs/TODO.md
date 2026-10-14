@@ -57,6 +57,7 @@ that would otherwise be forgotten. Newest section on top.
       uploads fails before it reopens). Done (stream P1G): a HEAD of a key nobody writes, one request at a time; no
       answer = open another 60 s.
 - [ ] The production load run at a quiet hour (Tue/Wed 05-07 Prague) with Jan's OK - plan in the README.
+- [ ] At ~1,000 open phones a settings save makes every phone fetch its state within ~1 s (the `online.settings` push only carries the hash) - put the phone's settings into the push itself before a large event (Phase 4).
 
 ## Online competitions - live video on the participant page (stream VP)
 
@@ -68,6 +69,7 @@ that would otherwise be forgotten. Newest section on top.
 - [ ] Serve the detector's files ourselves before the cup that turns detection on (Jan: open source **and self-hosted**): today the phone loads `@mediapipe/tasks-vision@1.1.0` (bundle + WASM) from `cdn.jsdelivr.net` and the pose / gesture models from `storage.googleapis.com` - no SRI, and the bundle runs in the worker that sees the camera frames. Copy the pinned files (checksums) to a versioned path of our own - object storage with immutable caching (needs the bucket CORS rule) or a static path outside `/build/` - and change only the `onlineDetectorAssets` parameter (`config/services.php`, `OnlineDetectorAssets`).
 - [ ] The reviewer's "G - the photo shows a gap" is not stored: keep it per candidate (a participant's premature raise vs a detector's false raise) - the accuracy report's "false raises" count both today, and the Phase 3.5 dataset needs the verdicts.
 - [ ] Older iPhones: the worker keeps both models (pose + gesture) loaded all session so "Test again" works - measure memory / reloads on the real-device pass (`device-test.md` 38-52); load only the chosen view's model if it hurts.
+- [ ] A phone that reloads for finish detection (the banner of stream SP) after "I'm ready" lands on the waiting screen and detects untested with the default `angled` view - offer the set-up test ("raise both hands") on the waiting screen while the round has not started.
 - [ ] The set-up test keeps the first view whose hold completes - an incidental raise during the automatic test can pick `topDown` for an angled phone. Revisit with the footage.
 
 ## Plural texts without a form for 0 (found 2026-10-13 by the online translations' render check)

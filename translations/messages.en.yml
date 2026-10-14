@@ -9883,14 +9883,14 @@ online_rounds:
             result: "Official result"
             detected: "Detected"
             detection_error: "Detection error"
-            delta: "Delta"
+            delta: "Tap delay"
             misses: "Missed / false"
             view: "Camera view"
             device: "Phone"
         empty: "Nobody is entered in this round."
-        intro_detection: "How good the finish detection is. The detection error is the confirmed moment minus the moment the phone saw raised hands, the delta is the Finished tap minus that moment, and the adjustment is the confirmed moment minus the tap. A missed raise is a tap without a detection within 10 seconds, a false raise a detection that was not the finish and has no tap near it."
+        intro_detection: "How good the finish detection is. The detection error is the confirmed moment minus the moment the phone saw raised hands, the tap delay is the Finished tap minus that moment, and the adjustment is the confirmed moment minus the tap. A missed raise is a tap without a detection within 10 seconds, a false raise a detection that was not the finish and has no tap near it."
         mode:
-            "off": "Finish detection is off for this round - the detections below came from phones all the same."
+            "off": "Finish detection is off for this round. Phones still recorded the detections below."
             shadow: "Finish detection watched in the background - participants did not see it, the Finished tap was the official moment."
             "on": "Finish detection was on - raised hands marked the finish, the Finished button was the fallback."
         detection_error:
@@ -9898,8 +9898,8 @@ online_rounds:
             help: "Confirmed moment minus detected moment - positive when the detection came too early."
             count: "{0}No confirmed finish with a detection yet|{1}1 confirmed finish with a detection|]1,Inf[%count% confirmed finishes with a detection"
         delta:
-            title: "Delta - tap after detection"
-            help: "Finished tap minus detected moment - how much later the hand reached the button."
+            title: "Tap delay - the Finished tap after the raised hands"
+            help: "Finished tap minus the detected moment - how long it took to reach the button."
             count: "{0}No finish with both a tap and a detection yet|{1}1 finish with both a tap and a detection|]1,Inf[%count% finishes with both a tap and a detection"
         misses: "%missed% missed / %false% false"
         view:
@@ -9915,7 +9915,7 @@ online_rounds:
             missed: "Missed raises"
             "false": "False raises"
             median_error: "Median detection error"
-            median_delta: "Median delta"
+            median_delta: "Median tap delay"
             unknown: "Not known"
     console:
         title: "Video"

@@ -25,6 +25,9 @@
 //   "I'm ready" and the hints at once; `off` stops the detector (the worker terminated, the set-up test never counted
 //   as failed, nothing shown, `detector.changed` off) and ONE new worker starts when it comes back; a page without the
 //   detection parts offers "reload to use it" before the start only.
+// - stream RP: the waiting screen offers the set-up test ("Test", never by itself) to a ready device that never passed
+//   one while the round has not started and the test fits before the countdown - a page reloaded for detection lands
+//   there untested; a test ends untested when its screen goes (the countdown) or a practice begins.
 
 import assert from 'node:assert/strict';
 import { detectionLoadWanted, detectionMode, LOAD_RETRY_MS, reloadForDetection } from '../assets/online/compete_detection_basics.js';
@@ -60,6 +63,7 @@ import {
     STORAGE_DETECTOR,
     telemetry,
     viewSignals,
+    waitingOffer,
     WATCH_STALE_MS,
 } from '../assets/online/compete_detection.js';
 import { CompeteDetectionPage, DETECTION_CHUNK_NAME } from '../assets/online/compete_detection_page.js';
@@ -417,10 +421,15 @@ const scenarios = {
         assert.equal(detectorRun({ ...base, test: 'skipped' }), 'off');
         assert.equal(detectorRun({ ...base, test: 'passed' }), 'round');
 
-        // The set-up test watches on the checklist only - a failed or skipped test may be tried again there
+        // The set-up test watches on the checklist - a failed or skipped test may be tried again there - and, asked for,
+        // on the waiting screen (stream RP: waitingOffer()); never once the round starts
         assert.equal(detectorRun({ ...base, screen: 'checklist', testActive: true, ready: false }), 'setup');
         assert.equal(detectorRun({ ...base, screen: 'checklist', testActive: true, test: 'failed' }), 'setup');
-        assert.equal(detectorRun({ ...base, screen: 'waiting', testActive: true }), 'off');
+        assert.equal(detectorRun({ ...base, screen: 'waiting', testActive: true }), 'setup');
+
+        for (const screen of ['countdown', 'running', 'finished', 'timeup']) {
+            assert.equal(detectorRun({ ...base, screen, testActive: true }), 'off', `a test on ${screen}`);
+        }
     },
 
     async 'button-only: no detector here, a broken one, a failed or skipped test - said by state and reported as such'() {
@@ -1242,6 +1251,85 @@ const scenarios = {
         silent.detection.plan(input({ screen: 'waiting', ready: true }));
         silent.detection.plan(input({ screen: 'waiting', ready: true }));
         assert.equal(silent.detection.reportedUsage, null);
+    },
+
+    async 'the waiting screen offers the set-up test to a device that never passed one - a page reloaded for detection (stream RP)'() {
+        const ready = { mode: 'on', state: 'ready', test: null, view: 'angled', setUp: null, testedHere: false, roundView: { screen: 'waiting' } };
+        assert.deepEqual(waitingOffer(ready), { level: 'info', code: 'untested', skip: false, retry: false, test: true });
+        assert.deepEqual(waitingOffer({ ...ready, mode: 'shadow' }), { level: 'info', code: 'untested', skip: false, retry: false, test: true });
+        assert.deepEqual(waitingOffer({ ...ready, test: 'failed' }), { level: 'warn', code: 'failed', skip: false, retry: false, test: true }, 'a failed device may try again');
+        assert.equal(waitingOffer({ ...ready, test: 'passed' }), null, 'passed on the checklist - nothing to offer');
+        assert.equal(waitingOffer({ ...ready, test: 'skipped' }), null, 'skipped - the participant chose the button');
+        assert.deepEqual(waitingOffer({ ...ready, test: 'passed', view: 'topDown', testedHere: true }), { level: 'ok', code: 'passed_topDown', skip: false, retry: false, test: true }, 'passed here: its result and "Test again"');
+
+        // Only while the round has not started and the test (20 s) fits before the countdown (10 s)
+        assert.notEqual(waitingOffer({ ...ready, roundView: { screen: 'scheduled', countdownMs: SETUP_TEST_MS + 10_001 } }), null);
+
+        for (const roundView of [{ screen: 'scheduled', countdownMs: SETUP_TEST_MS + 10_000 }, { screen: 'countdown', countdownMs: 5_000 }, { screen: 'running' }, { screen: 'ended' }, null]) {
+            assert.equal(waitingOffer({ ...ready, roundView }), null, JSON.stringify(roundView));
+        }
+
+        // A test running is shown to its end - without "Test"
+        const setUp = createSetUpTest({ startedAtMs: 0 });
+        assert.deepEqual(waitingOffer({ ...ready, setUp, roundView: { screen: 'scheduled', countdownMs: 15_000 } }), { level: 'info', code: 'testing', skip: false, retry: false, test: false });
+
+        for (const over of [{ mode: 'off' }, { state: 'loading' }, { state: 'unsupported' }, { state: 'error' }]) {
+            assert.equal(waitingOffer({ ...ready, ...over }), null, JSON.stringify(over));
+        }
+
+        assert.equal(detectorRun({ mode: 'on', state: 'ready', test: null, testActive: true, screen: 'waiting', ready: true, visible: true, cameraLive: true }), 'setup');
+        assert.equal(detectorRun({ mode: 'on', state: 'ready', test: null, testActive: true, screen: 'countdown', ready: true, visible: true, cameraLive: true }), 'off');
+
+        // The page: reloaded after "I'm ready" onto the waiting screen, untested - offered, never started by itself
+        const t = page();
+        const waiting = (overrides = {}) => input({ screen: 'waiting', ready: true, roundView: { screen: 'waiting' }, ...overrides });
+        t.detection.plan(waiting());
+        t.workers[0].answer({ type: 'ready', view: 'any', models: ['pose', 'gesture'], worker: 'classic', loadMs: 500 });
+        t.detection.plan(waiting());
+        assert.equal(t.detection.setUp, null, 'never by itself on the waiting screen');
+        assert.equal(t.detection.run, 'off');
+        t.detection.tick();
+        assert.equal(t.paint.shown.get('detectionWaiting'), true);
+        assert.equal(t.paint.fields.get('detectionCheck'), 'detection_check_untested{"seconds":0}');
+        assert.equal(t.paint.shown.get('detectionTest'), true);
+        assert.equal(t.paint.shown.get('detectionSkip'), false);
+
+        // "Test": the checklist's test machine - both views watch, the first candidate decides
+        t.clock.set(1_000);
+        t.detection.startTest();
+        t.detection.plan(waiting());
+        assert.equal(t.detection.run, 'setup');
+        t.detection.tick();
+        assert.equal(t.paint.fields.get('detectionCheck'), 'detection_check_testing{"seconds":20}');
+        assert.equal(t.paint.shown.get('detectionTest'), false);
+        await frames(t, 1_000, 2_400, (at) => ({ angled: 0, topDown: at >= 1_800 ? 0.85 : 0 }));
+        assert.equal(loadDetectorChoice(t.store, 'p1').view, 'topDown');
+        assert.equal(loadDetectorChoice(t.store, 'p1').test, 'passed');
+        t.detection.plan(waiting());
+        t.detection.tick();
+        assert.equal(t.paint.shown.get('detectionWaiting'), true, 'its result stays');
+        assert.equal(t.paint.fields.get('detectionCheck'), 'detection_check_passed_topDown{"seconds":0}');
+        assert.equal(t.paint.fields.get('detectionTestLabel'), 'detection_test_again');
+        assert.equal(t.usages.at(-1).running, true, 'detector.changed: the round runs the view that passed');
+        assert.equal(t.usages.at(-1).view, 'topDown');
+
+        // A test the countdown cuts ends untested, not failed - and so does a practice
+        t.detection.startTest();
+        t.detection.plan(waiting());
+        assert.notEqual(t.detection.setUp, null);
+        t.detection.plan(input({ screen: 'countdown', ready: true, roundView: { screen: 'countdown', countdownMs: 4_000 } }));
+        assert.equal(t.detection.setUp, null);
+        assert.equal(loadDetectorChoice(t.store, 'p1').test, 'passed');
+        t.detection.plan(waiting());
+        t.detection.startTest();
+        t.detection.plan(waiting({ practice: true }));
+        assert.equal(t.detection.setUp, null);
+        assert.equal(loadDetectorChoice(t.store, 'p1').test, 'passed');
+
+        // The round about to start: nothing offered any more
+        t.detection.plan(waiting({ roundView: { screen: 'scheduled', countdownMs: 15_000 } }));
+        t.detection.tick();
+        assert.equal(t.paint.shown.get('detectionWaiting'), false);
     },
 
     async 'a detector too slow to ever hold a raise: button-only (`slow`) - said, reported, one detector.changed'() {

@@ -6,6 +6,7 @@
 #   ./aws-setup.sh identities   # domain identities + DKIM + MAIL FROM; prints the DNS records
 #   ./aws-setup.sh streams      # configuration sets, SNS topics, event destinations, suppression
 #   ./aws-setup.sh subscribe    # SNS → https://myspeedpuzzling.com/-/ses-events (+ Listmonk)
+#   ./aws-setup.sh alarms       # bounce/complaint rate alarms → e-mail (the address confirms the subscription)
 #   ./aws-setup.sh show         # what exists now
 #
 # "subscribe" only after a deploy with SES_EVENTS_TOPIC_ARNS set to the two topic ARNs "streams" printed - the
@@ -22,6 +23,8 @@ APP_STREAMS=("transactional" "notifications")
 NEWSLETTER_STREAM="newsletter"
 EVENTS_TOPIC="ses-events-app"           # configuration sets transactional + notifications
 NEWSLETTER_TOPIC="ses-events-newsletter" # news. identity feedback (Bounce + Complaint) - app and Listmonk
+ALARMS_TOPIC="ses-alarms"
+ALARMS_EMAIL="j.mikes@me.com"
 
 aws() { command aws --region "$REGION" --no-cli-pager "$@"; }
 account_id() { aws sts get-caller-identity --query Account --output text; }
@@ -100,6 +103,23 @@ subscribe() {
         --notification-endpoint "$LISTMONK_ENDPOINT"
 }
 
+# AWS reviews an account at 5 % bounces / 0.1 % complaints and pauses it at 10 % / 0.5 % - warn before the review
+alarm() {
+    aws cloudwatch put-metric-alarm --alarm-name "$1" --alarm-description "$2" \
+        --namespace AWS/SES --metric-name "$3" --statistic Maximum --period 3600 --evaluation-periods 1 \
+        --threshold "$4" --comparison-operator GreaterThanOrEqualToThreshold --treat-missing-data notBreaching \
+        --alarm-actions "$(topic_arn "$ALARMS_TOPIC")" --ok-actions "$(topic_arn "$ALARMS_TOPIC")"
+}
+
+alarms() {
+    aws sns create-topic --name "$ALARMS_TOPIC" >/dev/null
+    aws sns subscribe --topic-arn "$(topic_arn "$ALARMS_TOPIC")" --protocol email --notification-endpoint "$ALARMS_EMAIL"
+    alarm ses-bounce-rate-4pct "SES account bounce rate >= 4 % (AWS reviews at 5 %, pauses at 10 %)" \
+        Reputation.BounceRate 0.04
+    alarm ses-complaint-rate-0.08pct "SES account complaint rate >= 0.08 % (AWS reviews at 0.1 %, pauses at 0.5 %)" \
+        Reputation.ComplaintRate 0.0008
+}
+
 show() {
     aws sesv2 get-account --query '{production:ProductionAccessEnabled,quota:SendQuota,suppression:SuppressionAttributes}'
     aws sesv2 list-email-identities --query 'EmailIdentities[].[IdentityName,VerificationStatus]' --output table
@@ -108,9 +128,10 @@ show() {
         aws sns list-subscriptions-by-topic --topic-arn "$(topic_arn "$topic")" \
             --query 'Subscriptions[].[Endpoint,SubscriptionArn]' --output table
     done
+    aws cloudwatch describe-alarms --alarm-name-prefix ses- --query 'MetricAlarms[].[AlarmName,StateValue]' --output table
 }
 
 case "${1:-}" in
-    identities|streams|subscribe|show) "$1" ;;
-    *) sed -n '2,12p' "$0"; exit 1 ;;
+    identities|streams|subscribe|alarms|show) "$1" ;;
+    *) sed -n '2,13p' "$0"; exit 1 ;;
 esac

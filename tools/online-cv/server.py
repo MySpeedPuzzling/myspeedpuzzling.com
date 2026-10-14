@@ -14,17 +14,23 @@ passed) is the one error that matters - every doubt answers "unsure".
 
 Rules (an internal service fetching URLs it is handed is an SSRF risk):
 - only http(s) URLs of the allowed hosts (ONLINE_CV_ALLOWED_HOSTS - the object stores' hosts; empty = every URL
-  refused), no user info; checked for all three inputs before anything is downloaded (403 url_not_allowed);
+  refused), printable ASCII, no user info; checked for all three inputs before anything is downloaded (403
+  url_not_allowed);
 - no redirect is followed, no proxy from the environment is used (http.client, never urllib's opener);
-- every download is size-capped while it is read and has one deadline for the whole of it; photos are read into
-  memory and decoded there - nothing is written to disk, nothing is kept after the answer (the container runs with a
-  read-only file system);
+- every download is size-capped while it is read and has one deadline for the whole of it; a body shorter than its
+  Content-Length, or a JPEG / PNG cut short (no end marker), is a failed download (502, try again) - never an
+  unreadable photo given up or an input dropped; photos are read into memory and decoded there - nothing is written to
+  disk, nothing is kept after the answer (the container runs with a read-only file system);
 - at most ONLINE_CV_WORKERS checks run at once and ONLINE_CV_QUEUE more wait; beyond that the answer is 503 busy at
-  once (the app tries again later).
+  once (the app tries again later). A waiting request holds no photo: a check takes its slot before it downloads
+  anything, so only the running checks' photos are in memory;
+- every read and write of a client's connection has REQUEST_TIMEOUT_SECONDS (a body shorter than its Content-Length
+  never holds a thread for good).
 
 A finish photo the store no longer has (4xx) is a permanent 422; the store failing or not answering is a 502 the app
 retries. The empty mat and the reference are optional: gone or unreadable (a HEIC catalogue image OpenCV cannot read)
-- the check runs without it and `inputs` says why; the store failing - 502 too, never a weaker verdict for a hiccup.
+- the check runs without it and `inputs` says why; the store failing, or refusing the URL's signature (401 / 403) - a
+502 too, never a weaker verdict for a hiccup.
 
 Logs: one JSON line per request on stdout - never a URL (presigned URLs carry signatures).
 """
@@ -35,6 +41,7 @@ import http.client
 import json
 import math
 import os
+import re
 import signal
 import socket
 import sys
@@ -55,6 +62,10 @@ DEFAULT_PORTS = {"http": 80, "https": 443}
 # The request's field and the name the answers use for each input
 INPUTS = (("finishUrl", "finish"), ("emptyMatUrl", "emptyMat"), ("referenceUrl", "reference"))
 READ_CHUNK = 64 * 1024
+# Every read and write of a client's connection - the app's request is a few hundred bytes on the internal network
+REQUEST_TIMEOUT_SECONDS = 10
+# A store refusing the URL's signature: for the optional inputs a failure to try again, never a photo to do without
+SIGNATURE_STATUSES = (401, 403)
 
 # OpenCV reads its decode limit from the environment - set before cv2 decodes anything (the Dockerfile sets it too)
 os.environ.setdefault("OPENCV_IO_MAX_IMAGE_PIXELS", os.environ.get("ONLINE_CV_MAX_PIXELS", "50000000"))
@@ -150,7 +161,8 @@ def url_allowed(url: object, allowed: frozenset) -> bool:
     if not isinstance(url, str) or url == "" or len(url) > MAX_URL_LENGTH:
         return False
 
-    if any(ord(character) <= 32 or ord(character) == 127 for character in url):
+    # Printable ASCII only: a presigned URL is percent-encoded - anything else is no URL of ours (nor a request line)
+    if any(ord(character) <= 32 or ord(character) >= 127 for character in url):
         return False
 
     try:
@@ -191,10 +203,12 @@ class FetchError(Exception):
         return self.reason
 
 
-def fetch(url: str, max_bytes: int, timeout: float) -> bytes:
+def fetch(url: str, max_bytes: int, timeout: float) -> bytes | bytearray:
     """
     One GET into memory: no redirect followed (http.client never follows one), no proxy, the size capped while
-    reading, one deadline for the connect and every read.
+    reading, one deadline for the connect and every read. A declared Content-Length is read into one buffer of that
+    size (an object store always declares it) - never chunks and their joined copy at once; a body that ends before it
+    is a failed download (`truncated`, try again later).
     """
     parts = urlsplit(url)
     deadline = time.monotonic() + timeout
@@ -223,11 +237,13 @@ def fetch(url: str, max_bytes: int, timeout: float) -> bytes:
             raise FetchError("status", status=response.status, transient=transient)
 
         declared = response.getheader("Content-Length")
+        expected = int(declared) if declared is not None and declared.strip().isdigit() else None
 
-        if declared is not None and declared.isdigit() and int(declared) > max_bytes:
+        if expected is not None and expected > max_bytes:
             raise FetchError("too_large")
 
         chunks = []
+        body = None if expected is None else bytearray(expected)
         total = 0
 
         while True:
@@ -243,14 +259,21 @@ def fetch(url: str, max_bytes: int, timeout: float) -> bytes:
             if not chunk:
                 break
 
-            total += len(chunk)
-
-            if total > max_bytes:
+            if total + len(chunk) > max_bytes:
                 raise FetchError("too_large")
 
-            chunks.append(chunk)
+            if body is None:
+                chunks.append(chunk)
+            else:
+                body[total:total + len(chunk)] = chunk
 
-        return b"".join(chunks)
+            total += len(chunk)
+
+        # The connection ended before the declared length - read1() answers b"" for it without raising
+        if expected is not None and total != expected:
+            raise FetchError("truncated", transient=True)
+
+        return b"".join(chunks) if body is None else body
     except FetchError:
         raise
     except (socket.timeout, TimeoutError):
@@ -261,8 +284,85 @@ def fetch(url: str, max_bytes: int, timeout: float) -> bytes:
         connection.close()
 
 
-def decode(data: bytes, max_pixels: int) -> np.ndarray:
-    """A photo decoded in memory - FetchError `unreadable` / `too_large` when it can not be used."""
+# A JPEG marker: 0xFF (fill bytes allowed) and its code - 0xFF00 inside a scan is a stuffed data byte, no marker
+JPEG_MARKER = re.compile(rb"\xff+([^\x00\xff])")
+# Markers without a length: RST0-7 and TEM (SOI is skipped, EOI ends the walk)
+JPEG_STANDALONE = frozenset(range(0xD0, 0xD8)) | {0x01}
+PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
+
+
+def jpeg_complete(data: bytes | bytearray) -> bool:
+    """
+    Does the JPEG reach its end-of-image marker? The segments are walked by their lengths (an EXIF thumbnail's own end
+    marker lies inside one and is skipped), a scan to the next real marker. Whatever follows the end marker (a phone's
+    trailer) is left alone. A file cut short ends inside a segment or a scan.
+    """
+    position = 2
+    size = len(data)
+
+    while True:
+        match = JPEG_MARKER.search(data, position)
+
+        if match is None:
+            return False
+
+        marker = match.group(1)[0]
+        position = match.end()
+
+        if marker == 0xD9:
+            return True
+
+        if marker in JPEG_STANDALONE:
+            continue
+
+        if position + 2 > size:
+            return False
+
+        position += int.from_bytes(data[position:position + 2], "big")
+
+        if position > size:
+            return False
+
+
+def png_complete(data: bytes | bytearray) -> bool:
+    """Does the PNG reach its IEND chunk? The chunks are walked by their lengths."""
+    position = len(PNG_SIGNATURE)
+    size = len(data)
+
+    while position + 8 <= size:
+        length = int.from_bytes(data[position:position + 4], "big")
+        kind = data[position + 4:position + 8]
+        position += 12 + length
+
+        if kind == b"IEND":
+            return position <= size
+
+    return False
+
+
+def complete(data: bytes | bytearray) -> bool:
+    """
+    False for a JPEG or PNG cut short (a store's connection dropped while no Content-Length told the length). OpenCV
+    4.14 refuses such a file - `unreadable` would give a finish photo up for good and drop an empty mat or a reference
+    from the check (a weaker verdict); other decoders fill the rest grey. Other formats are left to the decoder.
+    """
+    if data.startswith(b"\xff\xd8"):
+        return jpeg_complete(data)
+
+    if data.startswith(PNG_SIGNATURE):
+        return png_complete(data)
+
+    return True
+
+
+def decode(data: bytes | bytearray, max_pixels: int) -> np.ndarray:
+    """
+    A photo decoded in memory - FetchError `unreadable` / `too_large` when it can not be used, `truncated` (a failed
+    download - try again later) when it is cut short.
+    """
+    if not complete(data):
+        raise FetchError("truncated", transient=True)
+
     try:
         image = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR)
     except cv2.error:
@@ -341,7 +441,11 @@ def json_safe(value):
 
 
 class Worker:
-    """The admission (running + waiting), the compute slots and the check itself - shared by the request threads."""
+    """
+    The admission (running + waiting), the compute slots and the check itself - shared by the request threads. A check
+    takes its compute slot before it downloads anything: decoded photos (three of up to 50 MP, 150 MB each) exist only
+    for the checks that run, never for the requests waiting their turn.
+    """
 
     def __init__(self, config: Config):
         self.config = config
@@ -379,7 +483,8 @@ class Worker:
             raise Refusal(503, {"error": "busy"}, {"Retry-After": "5"})
 
         try:
-            return self._check(request, started)
+            with self._compute:
+                return self._check(request, started)
         finally:
             self.release()
 
@@ -390,7 +495,7 @@ class Worker:
             finish = decode(fetch(request["finishUrl"], config.max_bytes, config.fetch_timeout), config.max_pixels)
         except FetchError as error:
             if error.transient:
-                raise Refusal(502, {"error": "download_failed", "input": "finish", "status": error.status})
+                raise Refusal(502, {"error": "download_failed", "input": "finish", "status": error.status, "reason": error.reason})
 
             if error.reason == "status":
                 raise Refusal(422, {"error": "finish_unavailable", "status": error.status})
@@ -410,16 +515,16 @@ class Worker:
                 images[name] = decode(fetch(request[field_name], config.max_bytes, config.fetch_timeout), config.max_pixels)
                 inputs[name] = "used"
             except FetchError as error:
-                if error.transient:
-                    raise Refusal(502, {"error": "download_failed", "input": name, "status": error.status})
+                # A store refusing the signature has not lost the photo - the verdict must not go on without it
+                if error.transient or error.status in SIGNATURE_STATUSES:
+                    raise Refusal(502, {"error": "download_failed", "input": name, "status": error.status, "reason": error.reason})
 
                 images[name] = None
                 inputs[name] = error.describe()
 
-        with self._compute:
-            computing = time.monotonic()
-            verdict, method, details = completeness.check_photo(finish, images["emptyMat"], images["reference"], request["pieceCount"])
-            check_ms = round((time.monotonic() - computing) * 1000)
+        computing = time.monotonic()
+        verdict, method, details = completeness.check_photo(finish, images["emptyMat"], images["reference"], request["pieceCount"])
+        check_ms = round((time.monotonic() - computing) * 1000)
 
         return {
             "verdict": verdict.verdict,
@@ -441,6 +546,9 @@ class Worker:
 class Handler(BaseHTTPRequestHandler):
     server_version = f"msp-online-cv/{VERSION}"
     sys_version = ""
+    # The socket's timeout for every read and write (StreamRequestHandler.setup()): a client sending less than its
+    # Content-Length, or nothing at all, gives its thread back after this
+    timeout = REQUEST_TIMEOUT_SECONDS
 
     def log_message(self, format, *args):  # noqa: A002 - the base class's name
         # One JSON line per request instead (log())
@@ -505,7 +613,7 @@ class Handler(BaseHTTPRequestHandler):
             result = worker.check(request)
         except Refusal as refusal:
             self.answer(refusal.status, refusal.body, refusal.headers)
-            self.log(refusal.status, started, error=refusal.body.get("error"), input=refusal.body.get("input"))
+            self.log(refusal.status, started, error=refusal.body.get("error"), input=refusal.body.get("input"), reason=refusal.body.get("reason"))
 
             return
         except Exception:  # noqa: BLE001 - a bug in a check answers 500, the worker stays up
@@ -529,7 +637,17 @@ class Handler(BaseHTTPRequestHandler):
             self.close_connection = True
             raise Refusal(413, {"error": "payload_too_large"})
 
-        body = self.rfile.read(int(length))
+        try:
+            body = self.rfile.read(int(length))
+        except (socket.timeout, TimeoutError):
+            # Less than the Content-Length within REQUEST_TIMEOUT_SECONDS - the connection closes with the answer
+            self.close_connection = True
+            raise Refusal(408, {"error": "request_timeout"})
+
+        if len(body) != int(length):
+            # The client closed its side early
+            self.close_connection = True
+            raise Refusal(400, {"error": "invalid_request", "message": "the body is shorter than its Content-Length"})
 
         try:
             return json.loads(body)

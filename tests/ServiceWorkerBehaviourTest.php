@@ -33,6 +33,7 @@ final class ServiceWorkerBehaviourTest extends TestCase
     private const string TURBO_VISIT_ACCEPT = 'text/html, application/xhtml+xml';
     private const string CHROME_IMAGE_ACCEPT = 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8';
     private const string NAVIGATION_FAILURE_REPORT = 'https://myspeedpuzzling.com/-/navigation-fetch-failure';
+    private const string FINISH_DETECTOR = '/online-detector/1.1.0-pose-lite-1-gesture-1';
 
     /** @var null|array<string, array{name: string, intercepted: bool, body: null|string, cacheReads: list<string>, cacheWrites: list<string>, networkFetches: list<string>, reports: list<array{url: string, credentials: string, body: array<string, mixed>}>, delays: list<int>}> */
     private static null|array $results = null;
@@ -198,6 +199,35 @@ final class ServiceWorkerBehaviourTest extends TestCase
     }
 
     /**
+     * The finish detector's files (README §5.7 "Downloads" of the online
+     * competitions): the worker's import() of the bundle, its importScripts()
+     * of the WASM loader, its fetch() of the WASM and of the models - ~18 MB
+     * the browser's HTTP cache keeps (immutable, versioned path). Requests of a
+     * page's worker go through the page's service worker; buffering them in a
+     * cache of its own is exactly what README §5.7 rules out.
+     *
+     * @return iterable<string, array{string}>
+     */
+    public static function provideFinishDetectorFiles(): iterable
+    {
+        foreach (self::scenarios() as $scenario) {
+            if (str_starts_with($scenario['name'], 'finish detector')) {
+                yield $scenario['name'] => [$scenario['name']];
+            }
+        }
+    }
+
+    #[DataProvider('provideFinishDetectorFiles')]
+    public function testTheFinishDetectorsFilesAreNotIntercepted(string $scenario): void
+    {
+        $result = self::answerTo($scenario);
+
+        self::assertFalse($result['intercepted']);
+        self::assertSame([], $result['cacheReads']);
+        self::assertSame([], $result['cacheWrites']);
+    }
+
+    /**
      * Second line of defence: even if routing regresses and a document reaches
      * the image strategy, its HTML must not be stored.
      */
@@ -229,6 +259,10 @@ final class ServiceWorkerBehaviourTest extends TestCase
             ['name' => 'navigation while the device knows it is offline', 'expect' => 'offline', 'path' => '/en/hub', 'mode' => 'navigate', 'destination' => 'document', 'accept' => self::SAFARI_NAVIGATION_ACCEPT, 'offline' => true, 'onLine' => false],
             ['name' => 'abandoned navigation', 'expect' => 'offline', 'path' => '/en/hub', 'mode' => 'navigate', 'destination' => 'document', 'accept' => self::CHROME_NAVIGATION_ACCEPT, 'offline' => true, 'aborted' => true],
             ['name' => 'image answered with html', 'expect' => 'not-stored', 'path' => '/img/missing.png', 'mode' => 'no-cors', 'destination' => 'image', 'accept' => self::CHROME_IMAGE_ACCEPT, 'cachedContentType' => 'image/png'],
+            ['name' => 'finish detector bundle, import()', 'expect' => 'not-intercepted', 'path' => self::FINISH_DETECTOR . '/vision_bundle.mjs', 'mode' => 'cors', 'destination' => 'script', 'accept' => '*/*'],
+            ['name' => 'finish detector WASM loader, importScripts()', 'expect' => 'not-intercepted', 'path' => self::FINISH_DETECTOR . '/wasm/vision_wasm_internal.js', 'mode' => 'no-cors', 'destination' => 'script', 'accept' => '*/*'],
+            ['name' => 'finish detector WASM, fetch()', 'expect' => 'not-intercepted', 'path' => self::FINISH_DETECTOR . '/wasm/vision_wasm_internal.wasm', 'mode' => 'cors', 'destination' => '', 'accept' => '*/*'],
+            ['name' => 'finish detector model, fetch()', 'expect' => 'not-intercepted', 'path' => self::FINISH_DETECTOR . '/pose_landmarker_lite.task', 'mode' => 'cors', 'destination' => '', 'accept' => '*/*'],
         ];
     }
 

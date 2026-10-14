@@ -1,0 +1,15 @@
+{#
+    Finish detection on the waiting screen (stream RP, docs/TODO.md "hands-up detection"): a page loaded again after
+    "I'm ready" - a reload for detection (stream SP's banner) - lands here untested; while the round has not started it
+    offers the checklist's set-up test ("Test" - never by itself, never blocking), and shows how it went. Only on a page
+    whose round detects raised hands. Painted by assets/online/compete_detection_page.js (compete_detection.js
+    waitingOffer()).
+#}
+<div class="compete-check compete-detection-waiting" data-compete-detection="waiting" data-compete-show="detectionWaiting" data-level="info" hidden>
+    <i class="bi bi-person-raised-hand compete-check-icon" aria-hidden="true"></i>
+    <div class="compete-check-body">
+        <span class="compete-check-label">{{ 'compete.detection.row'|trans }}</span>
+        <span class="compete-check-detail" data-compete-field="detectionCheck" aria-live="polite"></span>
+        <span class="compete-check-actions"><button type="button" class="btn btn-sm btn-outline-primary" data-compete-show="detectionTest" data-action="compete#detectionTest" hidden><i class="bi bi-person-raised-hand me-1" aria-hidden="true"></i><span data-compete-field="detectionTestLabel">{{ 'compete.detection.test'|trans }}</span></button></span>
+    </div>
+</div>

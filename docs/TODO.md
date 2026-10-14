@@ -57,12 +57,12 @@ that would otherwise be forgotten. Newest section on top.
 
 - [x] lily.srv: a daily cron row for `myspeedpuzzling:prune-online-media` (periodic photos after 30 days, the rest - added 2026-10-13 (lily.srv a1f9fb6), the command verified on production
       after 365, then the orphan sweep of `online/`) - the orchestrator adds it with the deploy.
-- [ ] Before Test Cup #1, with Jan's OK: `myspeedpuzzling:online-media:cors --apply` on production (the bucket CORS
+- [x] Before Test Cup #1, with Jan's OK: `myspeedpuzzling:online-media:cors --apply` on production (the bucket CORS
       rule for the phones' PUT + the review's GET from the site's origin; keeps the bucket's other rules - run it
-      without `--apply` first to see the rule).
-- [ ] The images proxy (`img.*/original/<key>` through imgproxy) can fetch ANY key of the bucket, `online/…` evidence
+      without `--apply` first to see the rule). Done 2026-10-14 (Jan's OK): applied; a preflight from the site's origin answers 200 with the headers, another origin 403.
+- [x] The images proxy (`img.*/original/<key>` through imgproxy) can fetch ANY key of the bucket, `online/…` evidence
       included. The keys are unguessable (UUIDv7 in the path), but before any public use deny the `online/` prefix in
-      the images nginx (lily.srv) - or move the evidence to a bucket of its own.
+      the images nginx (lily.srv) - or move the evidence to a bucket of its own. Done 2026-10-14 (lily.srv `2b90668`): `online/` refused under `/original/`, `/puzzle/` and any `plain/` source, and only `plain/` sources accepted (the base64 form would bypass a path rule) - verified on production (404).
 - [ ] Spike S5 (`spikes.md`): does Hetzner Object Storage enforce a signed `Content-Length` / `Content-Type` in a
       presigned PUT (MinIO does: another length or type is 403 SignatureDoesNotMatch)? If not, VerifyOnlineMedia's
       size/type check is the only guard - it deletes what was not declared.
@@ -71,9 +71,9 @@ that would otherwise be forgotten. Newest section on top.
       not uploaded (stream P1F) - but a backlog delays the review's checked sizes and the deletion of objects that are
       not as declared. Expect ~3.3 checks/s per 100 participants (a periodic photo every 30 s), ~10/s in the 3 minutes
       before GO; watch the `async` queue depth during the cup and add a consumer (or a transport of its own) if it lags.
-- [ ] Traefik's access log (lily.srv) writes the full path, so the personal links' tokens of `/api/compete/<token>`
+- [x] Traefik's access log (lily.srv) writes the full path, so the personal links' tokens of `/api/compete/<token>`
       and `/<locale>/compete/<token>` (`/soutezit/<token>`) land there - redact them in the access log config (the app
-      redacts its own logs and Sentry: OnlineTokenRedactor).
+      redacts its own logs and Sentry: OnlineTokenRedactor). Done 2026-10-14 for Loki (lily.srv Alloy `stage.replace` - verified `/api/compete/[redacted]/state`); the raw access-log file on the box keeps paths (CrowdSec reads it) and is not rotated - lily.srv backlog.
 
 ## Online competitions - control room and review (`docs/features/online-competitions/`, stream C2)
 
@@ -83,8 +83,8 @@ that would otherwise be forgotten. Newest section on top.
 
 ## Online competitions - load and storage failover (`tools/online-load/README.md`, `spikes.md` S5, stream LT)
 
-- [ ] lily.srv (Jan's yes): route `/api/compete/*` and `/-/time` like `/api/v` - past the bot-blocker (90/min per IP +
-      browser) and out of CrowdSec's captcha, before the first online event (a club on one Wi-Fi would be blocked).
+- [x] lily.srv (Jan's yes): route `/api/compete/*` and `/-/time` like `/api/v` - past the bot-blocker (90/min per IP +
+      browser) and out of CrowdSec's captcha, before the first online event (a club on one Wi-Fi would be blocked). Done 2026-10-14 (lily.srv `2b90668`, router `myspeedpuzzling-compete-api`, `myspeedpuzzling-api-edge`, on the web service): 120 × `/-/time` in < 1 min from one IP + iPhone UA = 120 × 200.
 - [x] A timeout on the phone's upload request (a hanging store took 41 s to switch to the second store - each phone
       waited for its connection timeout). Done (stream P1G): `media_outbox.js` aborts a PUT after 15 s + its body at
       32 KB/s and reports it like "no answer" with a fresh URL at once - a hanging store is left in ~17 s (harness).
@@ -105,39 +105,54 @@ that would otherwise be forgotten. Newest section on top.
 
 ## Online competitions - hands-up detection on the participant page (stream P2I, README §5.7)
 
-- [ ] Serve the detector's files ourselves before the cup that turns detection on (Jan: open source **and self-hosted**): today the phone loads `@mediapipe/tasks-vision@1.1.0` (bundle + WASM) from `cdn.jsdelivr.net` and the pose / gesture models from `storage.googleapis.com` - no SRI, and the bundle runs in the worker that sees the camera frames. Copy the pinned files (checksums) to a versioned path of our own - object storage with immutable caching (needs the bucket CORS rule) or a static path outside `/build/` - and change only the `onlineDetectorAssets` parameter (`config/services.php`, `OnlineDetectorAssets`).
+- [x] Serve the detector's files ourselves before the cup that turns detection on (Jan: open source **and self-hosted**) - stream MH, 2026-10-14: the production image carries `/online-detector/1.1.0-pose-lite-1-gesture-1/` (the npm tarball + the models, checksums verified at build, immutable, brotli), `ONLINE_DETECTOR_BASE_URL` switches (README §5.7 "Downloads").
+- [ ] Not online-specific (found by stream MH, 2026-10-14): the production image carries npm's download cache (`/root/.npm`, ~113 MB) from the asset build - `npm install` + `npm run build` then `npm cache clean --force` in the same `RUN` (or a cache mount) would drop it (`docs/ci-pipeline.md`, image tuning).
+- [ ] The detector's Caddy rule is a site block for a path (`:8080/online-detector/*`), because the base image imports `Caddyfile.d` outside its `:8080` block - Caddy calls a path in a site address deprecated. Move the import inside the block in MySpeedPuzzling/Docker, then make the rule a `handle` (`OnlineDetectorCaddyRuleTest` catches a Caddy that drops it).
 - [ ] The reviewer's "G - the photo shows a gap" is not stored: keep it per candidate (a participant's premature raise vs a detector's false raise) - the accuracy report's "false raises" count both today, and the Phase 3.5 dataset needs the verdicts.
 - [ ] Older iPhones: the worker keeps both models (pose + gesture) loaded all session so "Test again" works - measure memory / reloads on the real-device pass (`device-test.md` 38-52); load only the chosen view's model if it hurts.
-- [ ] A phone that reloads for finish detection (the banner of stream SP) after "I'm ready" lands on the waiting screen and detects untested with the default `angled` view - offer the set-up test ("raise both hands") on the waiting screen while the round has not started.
+- [x] A phone that reloads for finish detection (the banner of stream SP) after "I'm ready" lands on the waiting screen and detects untested with the default `angled` view - offer the set-up test ("raise both hands") on the waiting screen while the round has not started. Done 2026-10-14 (stream RP): the waiting screen shows the checklist's "Finish detection" row with **Test** for a device that never passed (untested / failed - a skip stays the participant's choice) while the round has not started and the test fits before the countdown; never started by itself, never blocking; the countdown or a practice ends a test untested (`compete_detection.js` `waitingOffer()`).
 - [ ] The set-up test keeps the first view whose hold completes - an incidental raise during the automatic test can pick `topDown` for an angled phone. Revisit with the footage.
 
 ## Online competitions - the completeness check (stream P3, README §5.8, `tools/online-cv/`)
 
-- [ ] Production: the CV worker on lily.srv (Jan's yes - a box change): the `online-cv` image built from `tools/online-cv/` (CI or the box), a service with **no published port** and `read_only`, on the app's network, `ONLINE_CV_ALLOWED_HOSTS` = the stores' hosts as the app names them (`myspeedpuzzling:online-cv:check-round` prints them - the Hetzner endpoint, and the Garage one once it exists), `ONLINE_CV_THREADS` / `ONLINE_CV_WORKERS` sized so an event's finishes never compete with the site, the service in `deploy.sh`'s list; then `ONLINE_CV_URL=http://online-cv:8000` in the app's env. Until then the check is off and the review is as before.
+- [x] Production: the CV worker on lily.srv (Jan's yes - a box change): the `online-cv` image built from `tools/online-cv/` (CI or the box), a service with **no published port**, `read_only`, `mem_limit` (~1 GB per `ONLINE_CV_WORKERS` + headroom - 1.5 GB for one; three 50 MP photos peak at 0.88 GB, `tools/online-cv/README.md` "Memory"), `cap_drop: [ALL]` and `no-new-privileges` (as compose runs it), on the app's network, `ONLINE_CV_ALLOWED_HOSTS` = the stores' hosts as the app names them (`myspeedpuzzling:online-cv:check-round` prints them - the Hetzner endpoint, and the Garage one once it exists), `ONLINE_CV_THREADS` / `ONLINE_CV_WORKERS` sized so an event's finishes never compete with the site, the service in `deploy.sh`'s list; then `ONLINE_CV_URL=http://online-cv:8000` in the app's env. Until then the check is off and the review is as before. Done 2026-10-14 (Jan's yes, lily.srv `2b90668`): `ghcr.io/myspeedpuzzling/online-cv:sha-7c03b5f` (this repo's `.github/workflows/online-cv.yml`), `ONLINE_CV_URL` on web / api / messenger-consumer - the check is ON in production; a new worker = bump the sha tag in lily.srv `apps/myspeedpuzzling/compose.yaml`.
 - [ ] An organiser-uploaded reference image per round (a clean motif - box photos carry borders, logos and text, and a HEIC catalogue image is not read by OpenCV at all: the check then runs without its grid half). Today the reference is the round puzzle's catalogue image only (`OnlineCvInputs`).
 - [ ] WP 3.5 - the dataset: a consented export of the finish photos + bursts + the reviewer's verdicts (incl. the `G` per candidate - see the detection section) + the check's verdicts (`online_media_check`, every worker version), outside the repository, for training our own model.
 - [ ] Tune the checks on real photos (spikes.md S1 footage, the first test cups): the thresholds of `tools/online-cv/completeness.py`; whether a grid check that cannot place a box-photo reference should leave the holes check to decide alone (today both must say complete); the expected shape of the puzzle (unplaced pieces kept out of the frame leave a smaller clean rectangle the holes check passes - the loose-pieces rule covers only pieces lying next to it); objects put on the mat after its empty photo make every check `unsure`; a catalogue piece count far too low scales the hole thresholds up (a single hole could fall below the doubt line) - check the count against the outline. The accuracy report could also count a finish's earlier photos (before the confirmed moment) as "incomplete" samples - more data on false completes. A changed rule bumps `completeness.VERSION` and `check-round --force` adds the new verdicts next to the old ones.
+- [ ] `VerifyOnlineMediaHandler` asks the store (HEAD) inside its transaction - ~200 ms idle in transaction per uploaded photo (seen in P3F's end-to-end run); at event scale make it `HandledOutsideTransaction` like `CheckOnlineFinishPhoto` (read + HEAD outside, the write a message of its own).
 - [ ] `online_entry_media.verdict` (jsonb, reserved by Phase 1 for this) stays unused - the verdicts are rows of `online_media_check` (one per worker version). Drop the column in a later migration.
 
 ## Plural texts without a form for 0 (found 2026-10-13 by the online translations' render check)
 
-- [ ] About 55 plural messages per locale outside the online pages are written `{1}…|]1,Inf[…` (or with too few
+- [x] About 55 plural messages per locale outside the online pages are written `{1}…|]1,Inf[…` (or with too few
       standard forms) and have no form for 0: Symfony throws `InvalidArgumentException` (a 500) and the browser's
       `translation_choice.js` shows the bare number. English has them too (e.g. `live_results.sync.waiting`,
       `badges.reveals.invite`, `multiscan.recap.*`, `competition.participants.import.plan.blocker.*`). Most call sites
       never pass 0 (checked: `free_trial.status.days_left` rounds up while the trial runs) - go through each call site,
       add a `{0}` / `[0,Inf[` part where 0 can reach it, then widen `tests/OnlinePluralMessagesTest.php` (stream TX,
       online roots only) to every root with an allowlist of the keys whose callers never pass 0.
+      Done 2026-10-14 (stream PL): a form for 0 in 382 messages (messages cs 55 / de 54 / en 56 / es 55 / fr 53 / ja 36,
+      emails cs + en 12 / others 8, time cs 17), other counts unchanged; live only as races: `official_results.delete_round.intro`
+      (own `{0}`) and `activity_digest.preheader.numbers`; guard `tests/PluralMessagesTest.php` (every domain and root).
 
 ## Mass mailing on Amazon SES (`docs/features/mass-mailing/README.md`, built switched off 2026-10-12)
 
-- [ ] Rollout steps 0-8 of the README, one at a time (AWS account first - Jan).
-- [ ] Privacy policy: list AWS (SES) as a sub-processor before the first stream switches.
-- [ ] Metrics per stream (sent / delivered / bounced / complained a day) + an alert on the complaint rate; a paused
+- [x] Rollout done 2026-10-14: notifications, Listmonk and transactional on SES (failover to Seznam), test mode off.
+- [ ] Delete the deactivated old access key of IAM user `ses-smtp-app` after a clean day (rotated 2026-10-14).
+- [ ] Monday 2026-10-19: the first weekly digest through SES (~1.9k) - delivered / bounced / complained counts,
+      Sentry "E-mail hard bounced" issue, the CloudWatch alarms' state.
+- [x] Privacy policy: AWS listed (0a01bd8d, 2026-10-14).
+- [x] Google Postmaster Tools: the three domains were already there (Jan, 2026-10-14).
+- [x] CloudWatch alarms bounce rate >= 4 % / complaint rate >= 0.08 % → e-mail to Jan (`aws-setup.sh alarms`,
+      2026-10-14); hard bounces and complaints are Sentry warnings (30d1f880).
+- [ ] Research first-party open/click tracking (links on our own domain, e.g. a redirect on myspeedpuzzling.com)
+      - SES tracking was left off on purpose: `awstrack.me` links are a spam signal (Jan: no spam-score cost).
+- [ ] Metrics per stream (sent / delivered / bounced / complained a day); a paused
       Listmonk campaign alert that does not go by e-mail.
 - [ ] Un-suppress an address (admin action + removal from the SES suppression list) for "my mailbox works again".
-- [ ] After the switch: rotate/delete the Seznam `newsletter@news` mailbox (its password was printed in a session
-      transcript on 2026-10-12) and switch Listmonk's POP bounce scanner off.
+- [ ] Rotate/delete the Seznam `newsletter@news` mailbox password (it was printed in a session transcript on
+      2026-10-12) - Listmonk no longer uses it (SMTP disabled, POP scanner off 2026-10-14); keep the mailbox itself,
+      it receives replies.
 
 ## Anti-farming (`docs/features/xp-levels/README.md` §Anti-farming, workstream G 2026-10-11)
 

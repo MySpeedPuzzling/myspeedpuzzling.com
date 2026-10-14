@@ -33,6 +33,9 @@ use Symfony\Component\Messenger\MessageBusInterface;
  * - complaint → only the kind of e-mail complained about is switched off: newsletter, activity digest ("We miss
  *   you" included), unread-messages digest or "Your results". A complaint about a transactional e-mail changes nothing.
  *
+ * Every hard bounce and every complaint is a warning (→ Sentry, grouped by stream): Jan wants to know when one
+ * appears (2026-10-14). Addresses stay out of the log - the audit row id leads to them.
+ *
  * Events can arrive twice and out of order; everything here is idempotent.
  */
 #[AsMessageHandler]
@@ -41,6 +44,7 @@ readonly final class ProcessSesEventHandler
     private const array ACTIVITY_DIGEST_EMAIL_TYPES = ['content_digest_activity', 'content_digest_miss_you'];
     private const string UNREAD_DIGEST_EMAIL_TYPE = 'unread_digest';
     private const string RESULT_REVIEW_EMAIL_TYPE = 'result_review';
+    private const string TOPIC_VALIDATION_MESSAGE = 'Successfully validated SNS topic for Amazon SES event publishing';
 
     public function __construct(
         private EmailAuditLogRepository $emailAuditLogRepository,
@@ -55,6 +59,15 @@ readonly final class ProcessSesEventHandler
 
     public function __invoke(ProcessSesEvent $message): void
     {
+        // SES posts this plain text (no JSON) whenever an event destination is created or changed
+        if (str_starts_with($message->eventJson, self::TOPIC_VALIDATION_MESSAGE)) {
+            $this->logger->info('SES validated the SNS topic of an event destination', [
+                'sns_message_id' => $message->snsMessageId,
+            ]);
+
+            return;
+        }
+
         try {
             $event = SesEvent::fromJson($message->eventJson);
         } catch (\JsonException | \InvalidArgumentException $exception) {
@@ -91,6 +104,14 @@ readonly final class ProcessSesEventHandler
 
                 if ($event->isPermanentBounce()) {
                     $this->suppress($event, $auditLog);
+                    $this->logger->warning('E-mail hard bounced', [
+                        'stream' => $event->stream?->value,
+                        'email_type' => $this->emailType($event, $auditLog),
+                        'bounce_sub_type' => $event->bounceSubType,
+                        // Receiving servers often quote the address in their answer
+                        'diagnostic_code' => $event->diagnosticCode === null ? null : preg_replace('/[^\s<>"\'(),;:\[\]]+@[^\s<>"\'(),;:\[\]]+/', '<address>', $event->diagnosticCode),
+                        'audit_log_id' => $event->auditLogId,
+                    ]);
                 }
                 break;
 
@@ -119,9 +140,14 @@ readonly final class ProcessSesEventHandler
         return $this->emailAuditLogRepository->find(Uuid::fromString($event->auditLogId));
     }
 
+    private function emailType(SesEvent $event, null|EmailAuditLog $auditLog): null|string
+    {
+        return $event->stream === MailStream::Newsletter ? 'newsletter' : ($event->emailType ?? $auditLog?->emailType);
+    }
+
     private function suppress(SesEvent $event, null|EmailAuditLog $auditLog): void
     {
-        $emailType = $event->stream === MailStream::Newsletter ? 'newsletter' : ($event->emailType ?? $auditLog?->emailType);
+        $emailType = $this->emailType($event, $auditLog);
 
         foreach ($event->recipients as $recipient) {
             $suppression = $this->emailSuppressionRepository->findByEmail($recipient);
@@ -169,8 +195,9 @@ readonly final class ProcessSesEventHandler
             }
         }
 
-        $this->logger->info('Spam complaint about an e-mail', [
-            'email_type' => $event->stream === MailStream::Newsletter ? 'newsletter' : $emailType,
+        $this->logger->warning('E-mail marked as spam', [
+            'stream' => $event->stream?->value,
+            'email_type' => $this->emailType($event, $auditLog),
             'audit_log_id' => $event->auditLogId,
         ]);
     }

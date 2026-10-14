@@ -314,7 +314,9 @@ readonly final class OnlineReview
             suggestion: $assessment->suggestion,
             official: RoundEntryResult::fromColumns($row['result_seconds'], $row['result_pieces_placed'], $row['result_did_not_start']),
             confirmedMomentMs: $row['confirmed_moment_ms'],
-            confirmedSource: $row['confirmed_source'],
+            // Where the confirmed moment came from - an unfinished confirmation has no moment, so no source to show (it is
+            // stored as `reviewer`, the one who decided - shown as "a frame picked in the review" it read wrong)
+            confirmedSource: $row['confirmed_moment_ms'] === null ? null : $row['confirmed_source'],
             reviewedAtMs: $row['reviewed_at_ms'],
             adjustmentMs: $assessment->adjustmentMs,
             flags: $assessment->flags,

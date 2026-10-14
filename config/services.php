@@ -133,15 +133,19 @@ return static function (ContainerConfigurator $configurator): void {
 
     // Online competitions' finish detection (docs/features/online-competitions/README.md §5.7, implementation-plan.md
     // WP 2.1): where the participant's page loads MediaPipe and its models from - the one place (OnlineDetectorAssets →
-    // the page's config). Pinned versions, never `latest`: the prototype loads them from these CDNs; hosting them
-    // ourselves later = new URLs here. The bench pins the same ones (assets/online/hands_up_signal.js DETECTOR_ASSETS) -
-    // OnlineDetectorAssetsTest keeps both equal.
+    // the page's config). Pinned versions on their CDNs, never `latest`; the bench pins the same ones
+    // (assets/online/hands_up_signal.js DETECTOR_ASSETS) and bin/fetch-online-detector.mjs copies exactly these files -
+    // OnlineDetectorAssetsTest keeps all of them equal.
     $parameters->set('onlineDetectorAssets', [
         'tasksVisionUrl' => 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.1.0/vision_bundle.mjs',
         'wasmBaseUrl' => 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.1.0/wasm',
         'poseModelUrl' => 'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task',
         'gestureModelUrl' => 'https://storage.googleapis.com/mediapipe-models/gesture_recognizer/gesture_recognizer/float16/1/gesture_recognizer.task',
     ]);
+    // Our own copy of those files (README §5.7 "Downloads"): empty = the CDNs above (dev, tests); the production image
+    // serves them itself and sets /online-detector/<version>-<models> (Dockerfile) - an env on the box still overrides it
+    $parameters->set('env(ONLINE_DETECTOR_BASE_URL)', '');
+    $parameters->set('onlineDetectorBaseUrl', '%env(trim:string:ONLINE_DETECTOR_BASE_URL)%');
 
     $services = $configurator->services();
 
@@ -259,6 +263,11 @@ return static function (ContainerConfigurator $configurator): void {
 
     $services->set(\SpeedPuzzling\Web\Services\TimesBoardGuestCache::class)
         ->arg('$enabled', '%env(bool:TIMES_BOARD_GUEST_CACHE)%');
+
+    // The bus's transaction (config/packages/messenger.php): Symfony's doctrine_transaction for every message but a
+    // HandledOutsideTransaction one
+    $services->set(\SpeedPuzzling\Web\Services\MessengerMiddleware\TransactionMiddleware::class)
+        ->arg('$transaction', inline_service(\Symfony\Bridge\Doctrine\Messenger\DoctrineTransactionMiddleware::class)->args([service('doctrine')]));
 
     $services->load('SpeedPuzzling\\Web\\Query\\', __DIR__ . '/../src/Query/**/{*.php}');
     $services->load('SpeedPuzzling\\Web\\BadgeConditions\\', __DIR__ . '/../src/BadgeConditions/**/{*.php}');

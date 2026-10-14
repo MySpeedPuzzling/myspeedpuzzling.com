@@ -137,6 +137,33 @@ final class ApiEventsControllerTest extends WebTestCase
         ));
     }
 
+    /**
+     * Stream RP: a page (re)opened during the round says so - stored like any event; a reload whose gone time is no
+     * whole number from 0 is refused, the rest of the batch stored
+     */
+    public function testAReloadIsStoredAndAWrongOneRefused(): void
+    {
+        $now = self::nowMs();
+        $reload = self::event('page.reloaded', $now, ['goneMs' => 4_200, 'screen' => 'running']);
+        $untimed = self::event('page.reloaded', $now + 1, ['goneMs' => null, 'screen' => 'finished']);
+        $wrong = self::event('page.reloaded', $now + 2, ['goneMs' => -5]);
+
+        self::postJson($this->browser, self::api(OnlineRoundsFixture::TOKEN_ANONYMOUS, 'events'), ['deviceId' => 'phone-a', 'events' => [$reload, $untimed, $wrong]]);
+
+        self::assertResponseIsSuccessful();
+        $answer = self::json($this->browser);
+        self::assertSame([$reload['id'], $untimed['id']], $answer['acks']);
+        self::assertSame([['id' => $wrong['id'], 'reason' => 'invalid_fields']], $answer['refused']);
+
+        $stored = $this->connection()->fetchAllAssociative(
+            "SELECT payload FROM online_entry_event e JOIN online_entry o ON o.id = e.online_entry_id WHERE o.entry_id = :entry AND e.type = 'page.reloaded' ORDER BY e.client_ms",
+            ['entry' => OnlineRoundsFixture::ENTRY_ANONYMOUS],
+        );
+        self::assertCount(2, $stored);
+        self::assertIsString($stored[0]['payload']);
+        self::assertEquals(['goneMs' => 4_200, 'screen' => 'running'], json_decode($stored[0]['payload'], true));
+    }
+
     public function testTheLatestTimeUpReportOnThePhonesClockWins(): void
     {
         // The round ran (a report is about the round's current run - from its start on)

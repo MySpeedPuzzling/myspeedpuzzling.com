@@ -18,7 +18,7 @@ use Symfony\Component\Messenger\Transport\InMemory\InMemoryTransport;
 
 /**
  * A finish photo verified in its store goes to the completeness check (VerifyOnlineMediaHandler → CheckOnlineFinishPhoto,
- * Phase 3) - async, only a `candidate` / `button` / `end` photo, only while the check is on.
+ * Phase 3) - async, only a `candidate` / `button` / `end` photo, only while the check is on, only once.
  */
 final class VerifyOnlineMediaCompletenessCheckTest extends KernelTestCase
 {
@@ -47,6 +47,26 @@ final class VerifyOnlineMediaCompletenessCheckTest extends KernelTestCase
         $messages = array_map(static fn ($envelope): object => $envelope->getMessage(), $this->transport()->getSent());
         self::assertContainsOnlyInstancesOf(CheckOnlineFinishPhoto::class, $messages);
         self::assertSame($sent, array_map(static fn (CheckOnlineFinishPhoto $message): string => $message->mediaId, $messages));
+    }
+
+    /**
+     * The phone reported the upload again, the transport delivered the message twice: the photo was sent to the check
+     * when it was verified - never a second time
+     */
+    public function testAPhotoVerifiedAgainIsNotSentAgain(): void
+    {
+        $this->turnCompletenessCheckOn();
+        self::bootKernel();
+
+        $photo = $this->verify(OnlineMediaKind::Button);
+        self::getContainer()->get(VerifyOnlineMediaHandler::class)(new VerifyOnlineMedia($photo->id->toString()));
+        $this->entityManager()->flush();
+
+        $messages = array_map(static fn ($envelope): object => $envelope->getMessage(), $this->transport()->getSent());
+        self::assertCount(1, $messages);
+        self::assertInstanceOf(CheckOnlineFinishPhoto::class, $messages[0]);
+        self::assertSame($photo->id->toString(), $messages[0]->mediaId);
+        self::assertNotNull($photo->verifiedBytes);
     }
 
     public function testOtherEvidenceIsNotChecked(): void

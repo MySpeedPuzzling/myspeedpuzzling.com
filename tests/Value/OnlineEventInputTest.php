@@ -251,4 +251,46 @@ final class OnlineEventInputTest extends TestCase
             );
         }
     }
+
+    public function testAReloadAsThePageSendsIt(): void
+    {
+        // Stream RP: assets/controllers/compete_controller.js noteReload() - how long the page was gone, when known
+        $reload = ['goneMs' => 12_345, 'screen' => 'running'];
+        $input = OnlineEventInput::read(['id' => self::ID, 'type' => 'page.reloaded', 'clientMs' => 1_792_002_832_345, 'data' => $reload], self::ROUND);
+
+        self::assertInstanceOf(OnlineEventInput::class, $input);
+        self::assertSame(OnlineEventType::PageReloaded, $input->type);
+        self::assertSame($reload, $input->data);
+
+        $fine = [
+            'gone for an unknown time' => ['goneMs' => null, 'screen' => 'finished'],
+            'gone for no time at all' => ['goneMs' => 0],
+            'JSON carrying a whole number as 12.0' => ['goneMs' => 12.0],
+            'nothing known' => [],
+        ];
+
+        foreach ($fine as $case => $data) {
+            self::assertInstanceOf(
+                OnlineEventInput::class,
+                OnlineEventInput::read(['id' => self::ID, 'type' => 'page.reloaded', 'clientMs' => 1_792_002_832_345, 'data' => $data], self::ROUND),
+                $case,
+            );
+        }
+
+        $wrongs = [
+            'gone for less than nothing' => ['goneMs' => -1],
+            'gone for a fraction' => ['goneMs' => 12.5],
+            'gone as text' => ['goneMs' => '12345'],
+            'gone as yes' => ['goneMs' => true],
+            'a screen that is no text' => ['goneMs' => 1, 'screen' => ['running']],
+        ];
+
+        foreach ($wrongs as $case => $wrong) {
+            self::assertSame(
+                ['id' => strtolower(self::ID), 'reason' => OnlineEventInput::INVALID_FIELDS],
+                OnlineEventInput::read(['id' => self::ID, 'type' => 'page.reloaded', 'clientMs' => 1_792_002_832_345, 'data' => $wrong], self::ROUND),
+                $case,
+            );
+        }
+    }
 }

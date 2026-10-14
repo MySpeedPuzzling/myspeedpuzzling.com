@@ -103,6 +103,9 @@ final class OnlineRoundsTextsTest extends KernelTestCase
             $used[] = 'photo_' . $kind->value;
         }
 
+        // A reload with the time the page was gone (assets/online/review_logic.js reloadedLine(), stream RP)
+        $used[] = 'event_page_reloaded_gone';
+
         foreach (['button', 'reviewer', 'detection'] as $source) {
             $used[] = 'source_' . $source;
         }
@@ -121,8 +124,12 @@ final class OnlineRoundsTextsTest extends KernelTestCase
 
         self::assertSame([], $missing, 'texts the review uses but review_texts.html.twig does not have');
         self::assertGreaterThan(50, count(array_unique($used)));
-        self::assertTexts($texts, ['flag_camera_lost', 'flag_page_hidden', 'flag_offline', 'result_pieces', 'reported_left', 'reported_placed']);
+        self::assertTexts($texts, ['flag_camera_lost', 'flag_page_hidden', 'flag_offline', 'flag_page_reloaded', 'result_pieces', 'reported_left', 'reported_placed']);
         self::assertSame('Finished tap reached us %seconds% s late, though the phone was online the whole time', $texts['flag_arrived_late'] ?? null);
+        // Stream RP: a page (re)opened during the round - the flag and the timeline's line
+        self::assertSame(['message' => '{1}Page reloaded once|[0,Inf[Page reloaded %count% times', 'locale' => 'en'], $texts['flag_page_reloaded'] ?? null);
+        self::assertSame('Page reloaded', $texts['event_page_reloaded'] ?? null);
+        self::assertSame('Page reloaded - gone for %time%', $texts['event_page_reloaded_gone'] ?? null);
 
         // Off, the review's texts are what they were before the check existed
         $off = $this->render('online_rounds/review_texts.html.twig');

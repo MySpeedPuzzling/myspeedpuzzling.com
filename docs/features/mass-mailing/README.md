@@ -23,13 +23,45 @@ complaint → `complained_at`. Every other recipient stayed on Seznam (12 player
 179192073900182, mail type Marketing, still on the Free plan): 50,000 / 24 h at 14 messages/s. Listmonk at step 7:
 stay near 8/s so the app keeps room. Before step 5: the Paid plan (the Free plan stops the account when the credits
 or the 6 months - 13 Apr 2027 - run out).
+**2026-10-14 (Paid plan since this morning):**
+- Configuration sets: TLS **OPTIONAL** on all three (REQUIRE would silently drop mail to the rare server without
+  TLS; Seznam delivered opportunistically too). **No SES open/click tracking** (Jan: deliverability first) - the
+  `notifications` event destination carries SEND, REJECT, BOUNCE, COMPLAINT, DELIVERY, DELIVERY_DELAY,
+  RENDERING_FAILURE only; SES would otherwise rewrite every link to `awstrack.me`. Own first-party tracking = a
+  TODO to research.
+- Authentication verified with Port25 (`check-auth@verifier.port25.com`) for `notify.`, `mail.` and `news.`: SPF
+  pass on `bounce.<domain>`, DKIM pass with `d=<domain>` (aligned → DMARC pass), iprev pass. A second DKIM
+  signature `d=amazonses.com` is normal. List-Unsubscribe headers arrive intact and are DKIM-signed. Seznam files
+  notification mail under "Newsletters", as before.
+- Privacy policy lists Amazon Web Services EMEA SARL (sections 13 + 15, 6 locales, 0a01bd8d).
+- **Listmonk on SES (step 7 done):** second SMTP server "Amazon SES" (IAM user `ses-smtp-listmonk`, From
+  `@news.` only, key also in Infisical `SES_SMTP_LISTMONK_*`), header `X-SES-CONFIGURATION-SET: newsletter`,
+  `max_conns` 4, HELO `news.myspeedpuzzling.com`; the Seznam server kept but **disabled** (rollback = enable it,
+  disable SES, reload). Speed: concurrency 2 × `message_rate` 2, sliding window **1,500 / 10 min** (~2.5/s,
+  11k in ~75 min, the app keeps ≥ 10/s of the 14/s quota). Bounces: `bounce.ses_enabled` + `webhooks_enabled`
+  on, SNS topic `ses-events-newsletter` → `https://listmonk.myspeedpuzzling.com/webhooks/service/ses`
+  (confirmed), the Seznam POP scanner **off** (it also deleted human replies). Written via the DB + `POST
+  /api/admin/reload`, never a settings PUT; backup `/root/listmonk-smtp-settings-backup-2026-10-14.json`.
+  Test campaign 32 to the test list: 6 sent, simulator bounce → hard + blocklisted, complaint → blocklisted
+  (source `ses`). Port25's report is a reply to the Return-Path, so SES/Listmonk count it as a soft bounce.
+- SES also forwards bounce/complaint mails to the From mailboxes (email feedback forwarding) - harmless extra
+  copies in notify@ / robot@ / newsletter@.
+- **Notifications (step 6) LIVE 2026-10-14:** `MAILER_NOTIFICATIONS_DSN` = `failover(SES, Seznam notify@)` in web + both queue workers; the first real "Your results" mail went through SES and came back delivered.
+- **Transactional (step 5) LIVE 2026-10-14 08:28 UTC:** `MAILER_TRANSACTIONAL_DSN` = `failover(SES, Seznam robot@)`
+  (Jan: earlier than planned, the same pipeline as notifications). First real mail (password reset, 08:44) delivered.
+  The Seznam DSNs before the switch are kept in Infisical as `MAILER_TRANSACTIONAL_DSN_SEZNAM` /
+  `MAILER_NOTIFICATIONS_DSN_SEZNAM` - **rollback** = copy one back, re-run the `deploy` job, recreate the workers.
+- **Step 8 done:** `MAILER_SES_DSN` = `null://null` (test mode off; Infisical refuses an empty value, so the inert
+  `SES_TEST_RECIPIENTS` list stays). The app's SES SMTP key was rotated the same day (new key in both DSNs and
+  `SES_SMTP_USERNAME`/`_PASSWORD`; the old one deactivated - delete it after a clean day).
+- **Alerts:** every hard bounce / complaint = Sentry warning (30d1f880, see Rules); CloudWatch alarms
+  `ses-bounce-rate-4pct` and `ses-complaint-rate-0.08pct` → SNS `ses-alarms` → e-mail to Jan (`aws-setup.sh alarms`).
 **Gotcha:** an env change needs a redeploy (re-run the `deploy` job: `dump_secrets` renders `/srv/myspeedpuzzling/.env`)
 **and** `docker compose up -d --no-deps --force-recreate messenger-consumer digest-consumer` - the same-image redeploy
 recreates only the web containers, the queue workers keep the old env.
 
-**State (2026-10-12): built, switched off.** Every stream still goes through Seznam. Nothing changes until the env
-values below are set. The order is **slow and careful** (Jan): AWS account → tests with verified addresses only →
-production access → one stream at a time.
+**State (2026-10-14): every stream on SES**, Seznam behind the app's two streams as failover, Listmonk's Seznam server
+kept disabled for rollback. (Built switched off 2026-10-12, moved one stream at a time.)
 
 ## How it works
 
@@ -111,6 +143,11 @@ but they need warm-up and steady volume we don't have. Every stream stays on SES
 | Complaint, `result_review` | `result_emails_enabled = false` |
 | Complaint, anything transactional | `complained_at` only |
 | Reject / Rendering Failure | warning (→ Sentry) |
+
+**Every hard bounce and every complaint is also a warning** (→ Sentry: "E-mail hard bounced" / "E-mail marked as
+spam", context `stream`, `email_type`, `audit_log_id`; addresses are cut out of the server's answer). Jan wants to
+know when one appears (2026-10-14). Sentry groups them, so a campaign's bounces are one issue with a count. A newsletter
+bounce can arrive twice (configuration set event + `news.` identity feedback).
 
 Events can arrive twice or out of order, so every action is idempotent. An event for an audit row that was already
 pruned only applies the rules.

@@ -99,6 +99,40 @@ final class CompetePageControllerTest extends WebTestCase
         self::assertSame('Waiting for the organiser', self::jsonValue($root, 'data-compete-texts-value')['waiting'] ?? null);
     }
 
+    /**
+     * Stream RP (the rehearsal of Test Cup #1): "Tap here once" carries both of its texts - the start before GO, time's
+     * up while the round runs (the script shows one, compete_flow.js wakeTapText()); the practice is offered on the
+     * after screen without "any time before the round"
+     */
+    public function testTheWakeBannerAndThePracticeSayWhatFitsTheRound(): void
+    {
+        $browser = self::createClient();
+        $crawler = $browser->request('GET', self::PAGE . OnlineRoundsFixture::TOKEN_ANONYMOUS);
+        self::assertResponseIsSuccessful();
+
+        $banner = $crawler->filter('.compete-banners [data-compete-show="wakeTap"]');
+        self::assertCount(1, $banner);
+        self::assertSame('compete#wakeUp', $banner->attr('data-action'));
+        self::assertSame('Tap here once - so you hear the start and the screen stays on', $banner->filter('[data-compete-show="wakeTapStart"]')->text());
+        self::assertNull($banner->filter('[data-compete-show="wakeTapStart"]')->attr('hidden'));
+        self::assertSame("Tap here once - so you hear time's up and the screen stays on", $banner->filter('[data-compete-show="wakeTapTimeUp"]')->text());
+        self::assertNotNull($banner->filter('[data-compete-show="wakeTapTimeUp"]')->attr('hidden'));
+
+        $hint = 'Try the set-up on your own any time before the round - nothing is sent.';
+
+        foreach (['checklist', 'waiting'] as $screen) {
+            $practice = $crawler->filter(sprintf('[data-compete-screen="%s"] .compete-practice-entry', $screen));
+            self::assertCount(1, $practice, $screen);
+            self::assertStringContainsString($hint, $practice->text(), $screen);
+        }
+
+        $after = $crawler->filter('[data-compete-screen="after"] .compete-practice-entry');
+        self::assertCount(1, $after);
+        self::assertSame('compete#startPractice', $after->filter('button')->attr('data-action'), 'the practice is still there after the round');
+        self::assertStringNotContainsString($hint, $after->text());
+        self::assertCount(0, $after->filter('p'));
+    }
+
     public function testThePageIsNeverStoredIndexedOrPassedOnAndNeverNavigatesWithTurbo(): void
     {
         $browser = self::createClient();

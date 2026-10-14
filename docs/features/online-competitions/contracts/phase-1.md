@@ -34,7 +34,7 @@ Enums in `src/Value/` (string-backed):
 | `OnlineDetectionMode` | `Off` (off), `Shadow` (shadow), `On` (on) |
 | `OnlineUnfinishedMeasure` | `PiecesLeft` (left), `PiecesPlaced` (placed) |
 | `OnlineMissingPieceRule` | `CompleteRequired` (complete_required), `PenaltyFiveSeconds` (penalty_5s) |
-| `OnlineEventType` | `ConsentGiven` (consent.given), `DeviceReady` (device.ready), `CountdownSeen` (countdown.seen), `StartSeen` (start.seen), `FinishCandidate` (finish.candidate), `FinishButton` (finish.button), `FinishButtonUndone` (finish.button.undone), `CameraLost` (camera.lost), `CameraBack` (camera.back), `PageHidden` (page.hidden), `PageVisible` (page.visible), `NetworkOffline` (network.offline), `NetworkOnline` (network.online), `TimeUpPieces` (timeup.pieces), `MediaUploaded` (media.uploaded) |
+| `OnlineEventType` | `ConsentGiven` (consent.given), `DeviceReady` (device.ready), `CountdownSeen` (countdown.seen), `StartSeen` (start.seen), `FinishCandidate` (finish.candidate), `FinishButton` (finish.button), `FinishButtonUndone` (finish.button.undone), `CameraLost` (camera.lost), `CameraBack` (camera.back), `PageHidden` (page.hidden), `PageVisible` (page.visible), `NetworkOffline` (network.offline), `NetworkOnline` (network.online), `TimeUpPieces` (timeup.pieces), `MediaUploaded` (media.uploaded); additive: `DetectorChanged` (detector.changed, stream P2F), `PageReloaded` (page.reloaded, stream RP - data `{goneMs: int ≥ 0 or null, screen}`: a page (re)opened while the round runs on a device that was ready; review flag `page_reloaded`, and the return of that device's `page.hidden`) |
 | `OnlineMediaKind` | `Periodic` (periodic), `EmptyMat` (empty_mat), `Start` (start), `Candidate` (candidate), `Button` (button), `Burst` (burst), `End` (end) |
 | `OnlineMediaStore` | `Primary` (primary), `Secondary` (secondary) |
 | `OnlineConfirmedSource` | `Detection` (detection), `Button` (button), `Reviewer` (reviewer) |
@@ -117,6 +117,7 @@ Repositories (`get()` / `save()` / `delete()` + the finders named here): `Online
 |---|---|---|
 | `online_time` | GET `/-/time` | A |
 | `compete_page` | GET `/en/compete/{token}` (locale map) | B |
+| `compete_link` | GET `/compete/{token}` - additive (stream RP): 302 to `compete_page` in the signed-in player's profile language, else the browser's, else English; what the links CSV hands out | RP |
 | `compete_connect` | POST `/en/compete/{token}/connect` | A |
 | `compete_api_state` | GET `/api/compete/{token}/state` | A |
 | `compete_api_heartbeat` | POST `/api/compete/{token}/heartbeat` | A |

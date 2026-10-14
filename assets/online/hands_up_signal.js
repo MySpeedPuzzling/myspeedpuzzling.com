@@ -25,7 +25,8 @@
 
 // The models these thresholds were made for, pinned - never `latest` (README §5.7): MediaPipe tasks-vision from
 // jsDelivr (its ESM bundle + the WASM base the worker hands to FilesetResolver), the models at their numbered version
-// path in Google's bucket. The prototype may load them from these CDNs; Phase 2 hosts them itself (WP 2.1).
+// path in Google's bucket. The bench loads them from these CDNs, so do dev and the tests; production serves the very
+// same files itself (bin/fetch-online-detector.mjs, README §5.7 "Downloads").
 export const TASKS_VISION_VERSION = '1.1.0';
 export const DETECTOR_ASSETS = Object.freeze({
     tasksVisionUrl: `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${TASKS_VISION_VERSION}/vision_bundle.mjs`,

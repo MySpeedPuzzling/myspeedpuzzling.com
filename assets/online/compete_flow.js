@@ -24,6 +24,11 @@ export const SCREENS = [
 export const GO_SHOWN_MS = 1500;
 // "I tapped by mistake" is offered this long after a Finished tap
 export const UNDO_WINDOW_MS = 10000;
+// A phone turns the Finished tap into a click too, after the finger lifts - delivered to whatever is under the finger
+// then. The tap has already switched to the "Finish recorded" screen, and on a short screen "I tapped by mistake" lies
+// right there (the rehearsal of 2026-10-14: 375 × 667 and 360 × 740 undid every tap within 0.1 s). An undo this soon
+// after the tap is that click, never the participant's
+export const UNDO_GUARD_MS = 1500;
 // Periodic photos (README §5.6): every 30 s, every 10 s in the last 3 minutes before GO (the unwrapping on camera)
 export const PERIODIC_EVERY_MS = 30000;
 export const PERIODIC_UNWRAP_EVERY_MS = 10000;
@@ -101,6 +106,14 @@ export function undoLeftMs(finish, serverNowMs) {
     }
 
     return Math.max(0, finish.momentMs + UNDO_WINDOW_MS - serverNowMs);
+}
+
+/**
+ * Whether "I tapped by mistake" undoes the tap now: within the undo window, and not the click the phone made of the
+ * Finished tap itself (UNDO_GUARD_MS).
+ */
+export function undoAccepted(finish, serverNowMs) {
+    return undoLeftMs(finish, serverNowMs) > 0 && serverNowMs - finish.momentMs >= UNDO_GUARD_MS;
 }
 
 function hasRound(state) {
@@ -325,6 +338,56 @@ export function wakeTapNeeded({ ready, screen, practice = false, touched, soundL
 
     // Held, being asked for, or impossible on this browser: a tap would not change the lock
     return soundLocked || !['active', 'pending', 'unsupported'].includes(wakeLock);
+}
+
+/**
+ * What "Tap here once" promises, by the round (stream RP): before GO the start (`start`), while it runs time's up
+ * (`timeup`) - after the end nothing (null): the page then shows time's up or the after screen, where no sound is left
+ * to wait for and the screen may lock, so wakeTapNeeded() never asks there.
+ *
+ * @param {object} view   round_state.js deriveView()
+ * @returns {'start'|'timeup'|null}
+ */
+export function wakeTapText(view) {
+    if (view?.screen === 'ended') {
+        return null;
+    }
+
+    return view?.screen === 'running' ? 'timeup' : 'start';
+}
+
+// A page (re)opened during the round (stream RP, `page.reloaded`): it waits this long for a synced clock before it
+// judges by the phone's own; the gone time of a mark older than RELOAD_GONE_MAX_MS is not known
+export const RELOAD_DECIDE_WITHIN_MS = 10000;
+export const RELOAD_GONE_MAX_MS = 24 * 60 * 60 * 1000;
+const ALIVE_PREFIX = 'msp-compete-alive:';
+
+/**
+ * Whether a page that loaded while the round's clock said `view` (at the load moment) reports `page.reloaded`: a
+ * device that was ready (the progress survives a reload), the round running - never an organiser's preview, a second
+ * screen or a practice (which records nothing).
+ */
+export function reloadReported({ ready, view, preview = false, secondScreen = false, practice = false }) {
+    return ready === true && !preview && !secondScreen && !practice && view?.screen === 'running';
+}
+
+/**
+ * The page is alive in this round on this device at `atMs` (Date.now()) - kept at every heartbeat, when it goes hidden
+ * and when it goes away (pagehide): the next page of the round reads how long it was gone (goneSince()).
+ */
+export function markAlive(storage, participantId, roundId, atMs) {
+    return roundId ? write(storage, ALIVE_PREFIX + participantId, { roundId, atMs }) : false;
+}
+
+/**
+ * How long the page of this round was gone before this one loaded (ms) - null when the device does not know (no mark,
+ * another round's, a clock that went back, older than RELOAD_GONE_MAX_MS).
+ */
+export function goneSince(storage, participantId, roundId, nowMs) {
+    const mark = read(storage, ALIVE_PREFIX + participantId);
+    const goneMs = Number.isFinite(mark?.atMs) ? nowMs - mark.atMs : NaN;
+
+    return mark?.roundId === roundId && goneMs >= 0 && goneMs <= RELOAD_GONE_MAX_MS ? Math.round(goneMs) : null;
 }
 
 /**

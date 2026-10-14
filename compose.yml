@@ -110,12 +110,18 @@ services:
     # reaches it on this network; the messenger consumer runs the checks). No published port on purpose (an internal
     # service fetching URLs): ask it from the web container - `docker compose exec web curl -s http://online-cv:8000/health`.
     # It fetches only from the allowed hosts - MinIO as the app's presigned URLs name it (S3_ENDPOINT).
+    # Memory: one check at a time holds its three photos decoded - measured at most ~0.9 GB for three of 50 MP (the
+    # pixel cap), the same with nine requests waiting (tools/online-cv/README.md "Memory"); 1.5 GB = one check + headroom.
+    # Raising ONLINE_CV_WORKERS needs ~1 GB more per worker. No capabilities, no privilege escalation - it needs neither.
     online-cv:
         build: tools/online-cv
         image: msp-online-cv:dev
         profiles: ["cv"]
         restart: unless-stopped
         read_only: true
+        mem_limit: 1536m
+        cap_drop: [ALL]
+        security_opt: ["no-new-privileges:true"]
         environment:
             ONLINE_CV_ALLOWED_HOSTS: "minio:9000"
 

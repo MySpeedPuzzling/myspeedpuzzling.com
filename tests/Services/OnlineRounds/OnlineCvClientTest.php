@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\Services\OnlineRounds;
 
 use AsyncAws\Core\Configuration;
+use DateTimeImmutable;
 use AsyncAws\S3\S3Client;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -12,6 +13,7 @@ use Psr\Log\NullLogger;
 use SpeedPuzzling\Web\Services\OnlineRounds\OnlineCvClient;
 use SpeedPuzzling\Web\Services\OnlineRounds\OnlineCvSettings;
 use SpeedPuzzling\Web\Services\OnlineRounds\OnlineMediaStores;
+use SpeedPuzzling\Web\Services\OnlineRounds\S3QueryPresigner;
 use SpeedPuzzling\Web\Value\OnlineCvAnswer;
 use SpeedPuzzling\Web\Value\OnlineCvRequest;
 use SpeedPuzzling\Web\Value\OnlineFinishCheckVerdict;
@@ -47,6 +49,41 @@ final class OnlineCvClientTest extends TestCase
     public function testWithoutAServerEndpointThePublicOneIsUsed(): void
     {
         self::assertSame(['localhost:19000'], self::stores(serverEndpoint: '', secondary: false)->serverHosts());
+    }
+
+    /**
+     * The hosts are those the presigned URLs name: a store addressed by host (`bucket.host`) and an endpoint written
+     * with its scheme's own port (`:443`) - the URLs made for them reach the worker (refused for a spelling before)
+     */
+    public function testAStoreAddressedByHostAndAnEndpointWithItsOwnPortAreTheHostsTheUrlsName(): void
+    {
+        $stores = self::stores(serverEndpoint: 'https://s3.example.com:443', secondaryEndpoint: 'https://Garage.example.org:443', secondaryPathStyle: false);
+
+        self::assertSame(['s3.example.com', 'evidence.garage.example.org'], $stores->serverHosts());
+
+        $presigner = new S3QueryPresigner();
+        $now = new DateTimeImmutable('2026-10-14 08:00:00');
+        $primary = $presigner->presign($stores->serverLocation(OnlineMediaStore::Primary), 'GET', 'online/a.jpg', [], $now, 300);
+        $secondary = $presigner->presign($stores->serverLocation(OnlineMediaStore::Secondary), 'GET', 'online/b.jpg', [], $now, 300);
+        self::assertStringStartsWith('https://s3.example.com/puzzle/online/a.jpg?', $primary);
+        self::assertStringStartsWith('https://evidence.garage.example.org/online/b.jpg?', $secondary);
+
+        $answer = $this->client(new MockResponse((string) json_encode(['verdict' => 'complete', 'version' => 'w1-c1'])), $stores)
+            ->check(new OnlineCvRequest($primary, $secondary, null, 1000));
+
+        self::assertSame(OnlineCvAnswer::VERDICT, $answer->kind);
+        self::assertCount(1, $this->requests);
+    }
+
+    public function testAUrlsHostIsReadWithoutItsSchemesOwnPort(): void
+    {
+        self::assertSame('minio', OnlineMediaStores::hostOf('http://MINIO:80/puzzle/a.jpg'));
+        self::assertSame('minio:9000', OnlineMediaStores::hostOf('http://minio:9000/puzzle/a.jpg'));
+        self::assertSame('s3.example.com', OnlineMediaStores::hostOf('https://s3.example.com:443/a.jpg'));
+        self::assertSame('s3.example.com', OnlineMediaStores::hostOf('https://s3.example.com/a.jpg'));
+        self::assertSame('s3.example.com:80', OnlineMediaStores::hostOf('https://s3.example.com:80/a.jpg'));
+        self::assertSame('s3.example.com:443', OnlineMediaStores::hostOf('http://s3.example.com:443/a.jpg'));
+        self::assertNull(OnlineMediaStores::hostOf('not a url'));
     }
 
     public function testAVerdictIsRead(): void
@@ -160,11 +197,11 @@ final class OnlineCvClientTest extends TestCase
         self::assertSame([], $this->requests, 'nothing reached the worker');
     }
 
-    private function client(MockResponse $response): OnlineCvClient
+    private function client(MockResponse $response, null|OnlineMediaStores $stores = null): OnlineCvClient
     {
         return new OnlineCvClient(
             new OnlineCvSettings(' http://online-cv.test:8000/ '),
-            self::stores(),
+            $stores ?? self::stores(),
             new MockHttpClient(function (string $method, string $url, array $options) use ($response): MockResponse {
                 $body = $options['body'] ?? '';
                 $this->requests[] = ['method' => $method, 'url' => $url, 'body' => is_string($body) ? $body : ''];
@@ -179,8 +216,12 @@ final class OnlineCvClientTest extends TestCase
         return new OnlineCvRequest($finishUrl, $emptyMatUrl, $referenceUrl, 1000);
     }
 
-    private static function stores(string $serverEndpoint = 'http://minio.internal:9000', bool $secondary = true): OnlineMediaStores
-    {
+    private static function stores(
+        string $serverEndpoint = 'http://minio.internal:9000',
+        bool $secondary = true,
+        string $secondaryEndpoint = 'https://garage.example.org',
+        bool $secondaryPathStyle = true,
+    ): OnlineMediaStores {
         return new OnlineMediaStores(
             primaryClient: new S3Client([
                 Configuration::OPTION_REGION => 'eu-central',
@@ -194,12 +235,12 @@ final class OnlineCvClientTest extends TestCase
             primaryAccessKey: 'primary-key',
             primarySecretKey: 'primary-secret',
             primaryPublicEndpoint: 'http://localhost:19000',
-            secondaryEndpoint: $secondary ? 'https://garage.example.org' : '',
+            secondaryEndpoint: $secondary ? $secondaryEndpoint : '',
             secondaryRegion: 'garage',
             secondaryBucket: 'evidence',
             secondaryAccessKey: 'second-key',
             secondarySecretKey: 'second-secret',
-            secondaryPathStyle: true,
+            secondaryPathStyle: $secondaryPathStyle,
             httpClient: new MockHttpClient(),
             logger: new NullLogger(),
             primaryServerEndpoint: $serverEndpoint,

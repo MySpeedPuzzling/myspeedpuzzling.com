@@ -101,7 +101,7 @@ final class SendPlayerContentDigestHandlerTest extends KernelTestCase
         self::assertStringContainsString('/en/email-preferences/', $html, 'Settings = the token preferences page, no sign-in');
         self::assertStringContainsString('/activity-digest/unsubscribe/' . self::MEMBER, $html);
         self::assertMatchesRegularExpression('/4\s*–\s*10 March/u', html_entity_decode($html), 'The period, in the e-mail\'s locale');
-        self::assertStringNotContainsString(']1,Inf[', $html, 'A plural message rendered raw');
+        self::assertStringNotContainsString(',Inf[', $html, 'A plural message rendered raw');
 
         self::assertStringContainsString('/en/my/activity/2030-W10', $text);
         self::assertStringContainsString('/en/email-preferences/', $text);

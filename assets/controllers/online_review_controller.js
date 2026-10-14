@@ -12,6 +12,7 @@ import {
     nextToReview,
     piecesConfirmation,
     piecesPlaced,
+    reloadedLine,
     resultSeconds,
     reviewKey,
     stepIndex,
@@ -1112,6 +1113,13 @@ export default class extends Controller {
         // The phone's detector started watching (again) - or stopped: Finished button only (stream P2F)
         if (event.type === 'detector.changed' && event.data?.running === true) {
             return this.t('event_detector_running');
+        }
+
+        // A page (re)opened during the round, with how long it was gone when the phone knew (stream RP)
+        if (event.type === 'page.reloaded') {
+            const line = reloadedLine(event.data);
+
+            return this.t(line.key, line.params);
         }
 
         const key = `event_${String(event.type).replaceAll('.', '_')}`;

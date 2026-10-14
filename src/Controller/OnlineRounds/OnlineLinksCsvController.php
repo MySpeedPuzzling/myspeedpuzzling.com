@@ -23,8 +23,10 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * The personal links as CSV (docs/features/online-competitions/README.md §5.4, contract §5 `online_links_csv`) - name and
- * link of everybody going, for the organiser's own mailing. The names are typed by people: every cell goes through
- * SpreadsheetSafeValue (text never becomes a formula). The links are secrets: never stored by a browser or a proxy.
+ * link of everybody going, for the organiser's own mailing. The links carry no language (`compete_link`, stream RP):
+ * each participant's page opens in their own profile's or browser's language, never in the one of the organiser's
+ * page the CSV came from. The names are typed by people: every cell goes through SpreadsheetSafeValue (text never
+ * becomes a formula). The links are secrets: never stored by a browser or a proxy.
  */
 #[IsGranted('IS_AUTHENTICATED_REMEMBERED')]
 final class OnlineLinksCsvController extends AbstractController
@@ -68,7 +70,7 @@ final class OnlineLinksCsvController extends AbstractController
         foreach ($this->onlineLinkList->forCompetition($competitionId, $this->retrieveLoggedUserProfile->getProfile()?->playerId, $usesOnlineTiming) as $row) {
             if ($this->hasLink($row)) {
                 assert($row->token !== null);
-                $lines[] = [$row->name, $this->onlineLinkUrl->of($row->token)];
+                $lines[] = [$row->name, $this->onlineLinkUrl->neutral($row->token)];
             }
         }
 

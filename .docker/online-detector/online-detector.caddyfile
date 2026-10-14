@@ -1,0 +1,26 @@
+# The finish detector's files (docs/features/online-competitions/README.md §5.7 "Downloads"): MediaPipe tasks-vision
+# and the pose + gesture models, put into the image under a versioned path by the Dockerfile's `online-detector` stage
+# (bin/fetch-online-detector.mjs). A path never changes its bytes - a new version is a new path - so they are immutable
+# for a year, served from the .br / .gz siblings made at build time, and never reach PHP.
+#
+# The base image's Caddyfile imports this file outside its `:8080` block, so it is a site block of its own for a path of
+# the same address: Caddy tries the site with the longer path first, the base block's php_server never sees these.
+:8080/online-detector/* {
+	root * /app/public
+
+	# Existing files only - a 404 must never be pinned for a year (the base Caddyfile's /build/* rule)
+	@file file
+	header @file Cache-Control "public, max-age=31536000, immutable"
+
+	@missing not file
+	header @missing Cache-Control "no-store"
+
+	# The file server sends no Content-Type for an extension it does not know (.wasm and .mjs it knows from
+	# /etc/mime.types) - the models get theirs once it has answered
+	@model path *.task
+	header @model >Content-Type application/octet-stream
+
+	file_server {
+		precompressed br gzip
+	}
+}

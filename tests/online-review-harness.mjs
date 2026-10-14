@@ -14,6 +14,7 @@ import {
     nextToReview,
     piecesConfirmation,
     piecesPlaced,
+    reloadedLine,
     resultSeconds,
     reviewKey,
     stepIndex,
@@ -172,6 +173,18 @@ const scenarios = {
         assert.equal(formatElapsed(3_600_000 + 99), '01:00:00.0');
         assert.equal(formatElapsed(-1500), '-00:00:01.5');
         assert.equal(formatElapsed(null), '');
+    },
+
+    async 'a reload in the timeline says how long the page was gone when the phone knew (stream RP)'() {
+        // With tenths, like the timeline's moments
+        assert.deepEqual(reloadedLine({ goneMs: 12_345, screen: 'running' }), { key: 'event_page_reloaded_gone', params: { time: '00:00:12.3' } });
+        assert.deepEqual(reloadedLine({ goneMs: 2 * 3_600_000 + 61_000 }), { key: 'event_page_reloaded_gone', params: { time: '02:01:01.0' } });
+        assert.deepEqual(reloadedLine({ goneMs: 37 }), { key: 'event_page_reloaded_gone', params: { time: '00:00:00.0' } });
+
+        // Not known (a private window keeps nothing, a mark of another round) - the plain line
+        for (const data of [{ goneMs: null }, {}, null, { goneMs: -1 }, { goneMs: '12' }]) {
+            assert.deepEqual(reloadedLine(data), { key: 'event_page_reloaded', params: {} }, JSON.stringify(data));
+        }
     },
 
     async 'the adjustment reads with a sign and a tenth of a second'() {

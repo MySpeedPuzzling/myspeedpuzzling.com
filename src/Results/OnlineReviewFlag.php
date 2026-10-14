@@ -16,6 +16,8 @@ readonly final class OnlineReviewFlag implements \JsonSerializable
     public const string CAMERA_LOST = 'camera_lost';
     public const string PAGE_HIDDEN = 'page_hidden';
     public const string OFFLINE = 'offline';
+    // The page was (re)opened while the round ran on a device that was ready (stream RP, `page.reloaded`)
+    public const string PAGE_RELOADED = 'page_reloaded';
     // More than one device sent for the entry
     public const string TAKEOVER = 'takeover';
     public const string SEVERAL_TAPS = 'several_taps';

@@ -8,7 +8,12 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
     # OpenCV refuses to decode a photo larger than this (server.py checks it again)
-    OPENCV_IO_MAX_IMAGE_PIXELS=50000000
+    OPENCV_IO_MAX_IMAGE_PIXELS=50000000 \
+    # glibc's allocator: two shared arenas, and every buffer from 1 MiB up mapped on its own - a freed photo goes back
+    # to the system at once instead of staying in the arena of the request thread that held it (tests/test_server.py
+    # LoadTest: nine requests at once with 24 MP photos +2..15 MB over one check like this, +50..140 MB without)
+    MALLOC_ARENA_MAX=2 \
+    MALLOC_MMAP_THRESHOLD_=1048576
 
 WORKDIR /app
 

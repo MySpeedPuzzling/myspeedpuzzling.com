@@ -42,6 +42,10 @@
  *   raise your hands again", a green flash and a chime, the running clock small; `shadow` - nothing at all.
  * - **"I'm ready"** (holdsReady()) waits for a loading detector in `on` mode only - `shadow` never holds anybody up (the
  *   participant does not use it; it loads in the background and starts looking once loaded).
+ * - **The set-up test on the waiting screen** (waitingOffer(), stream RP): a page loaded again after "I'm ready" (a
+ *   reload for detection - stream SP's banner) lands on the waiting screen untested; while the round has not started -
+ *   and the test still fits before its countdown - the waiting screen offers the same test ("Test", never by itself,
+ *   never blocking), for a device that never passed one (untested or failed - a skip was the participant's choice).
  * - **The checklist row** (checklistRow()), **the heartbeat** (telemetry()), **device.ready** (readyDetails()) and
  *   **`detector.changed`** (detectorUsage(): whether the detector watches this device's round, else why not - stored
  *   whenever that changes after "I'm ready", so the accuracy report never counts a finish on a phone whose detector did
@@ -247,8 +251,9 @@ export function detectorRun({
         return 'off';
     }
 
+    // The set-up test: on the checklist, or asked for on the waiting screen (waitingOffer())
     if (testActive) {
-        return screen === 'checklist' ? 'setup' : 'off';
+        return screen === 'checklist' || screen === 'waiting' ? 'setup' : 'off';
     }
 
     if (buttonOnly({ state, test, stopped }) || !ready || entryConfirmed) {
@@ -680,6 +685,38 @@ export function checklistRow({ state, test, view, setUp = null, loadingForMs = n
     }
 
     return { level: 'info', code: 'untested', skip: false, retry: false, test: true };
+}
+
+// A start this close leaves no room for a set-up test on the waiting screen: the test's window and the countdown
+const WAITING_TEST_ROOM_MS = SETUP_TEST_MS + 10000;
+
+/**
+ * The set-up test offered on the waiting screen (stream RP, docs/TODO.md): the detection's row - its line and "Test" -
+ * or null. Shown while a test runs there (to its end), after one ran there (its result, "Test again"), or for a device
+ * that never passed one (untested, failed); "Test" only while the round has not started and the test fits before the
+ * countdown. Never while the detector can not run or loads, never for a skip (the participant chose the button).
+ *
+ * @param {object} input
+ * @param {string} input.mode               the round's detection mode
+ * @param {string} input.state              the detector's state
+ * @param {null|string} input.test          the device's test result
+ * @param {string} input.view               the device's camera view
+ * @param {object|null} input.setUp         the set-up test watching on this screen
+ * @param {boolean} input.testedHere        a test ran on this screen on this page
+ * @param {object} input.roundView          round_state.js deriveView()
+ * @returns {null|{level: string, code: string, skip: boolean, retry: boolean, test: boolean}}
+ */
+export function waitingOffer({ mode, state, test, view, setUp = null, testedHere = false, roundView }) {
+    const running = setUp !== null && setUp.status === 'running';
+    const room = roundView?.screen === 'waiting' || (roundView?.screen === 'scheduled' && roundView.countdownMs > WAITING_TEST_ROOM_MS);
+
+    if (mode === MODE_OFF || state !== STATE_READY || (!running && (!room || (!testedHere && (test === TEST_PASSED || test === TEST_SKIPPED))))) {
+        return null;
+    }
+
+    const row = checklistRow({ state, test, view, setUp, mode });
+
+    return { level: row.level, code: row.code, skip: false, retry: false, test: row.test && room };
 }
 
 /**

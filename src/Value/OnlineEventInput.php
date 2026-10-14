@@ -18,7 +18,9 @@ namespace SpeedPuzzling\Web\Value;
  *   what its type needs: `timeup.pieces` a piece count (`pieces`, optional `measure` left / placed), `media.uploaded`
  *   the media id (`mediaId`, optional `bytes` and a burst's `manifest` of frames), `finish.*` optional photo / burst
  *   media ids, `finish.candidate` (Phase 2) its finish machine's numbers, view and mode (isCandidate()),
- *   `detector.changed` (stream P2F) whether the detector watches the round and why not (isDetectorChange()).
+ *   `detector.changed` (stream P2F) whether the detector watches the round and why not (isDetectorChange()),
+ *   `page.reloaded` (stream RP) how long the page was gone - whole milliseconds, null when the device does not know
+ *   (isReload()).
  * Anything else wrong is `invalid_fields`. RecordOnlineEntryEventsHandler decides the rest (seen before, the round, the
  * participant's entry, the caps, the side effects).
  */
@@ -187,6 +189,7 @@ final readonly class OnlineEventInput
                 && self::isOptionalUuid($data['burstMediaId'] ?? null)
                 && self::isCandidate($data),
             OnlineEventType::DetectorChanged => self::isDetectorChange($data),
+            OnlineEventType::PageReloaded => self::isReload($data),
             default => true,
         };
 
@@ -233,6 +236,22 @@ final readonly class OnlineEventInput
             && in_array($data['state'] ?? null, OnlineHeartbeat::DETECTOR_STATES, true)
             && ($reason === null || in_array($reason, self::DETECTOR_REASONS, true))
             && ($view === null || in_array($view, self::CANDIDATE_VIEWS, true));
+    }
+
+    /**
+     * `page.reloaded` (stream RP, assets/online/compete_flow.js goneSince()): `goneMs` - how long the page was gone, a
+     * whole number of milliseconds from 0, or null when the device does not know; `screen` - the screen it came back
+     * to, a text
+     *
+     * @param array<string, mixed> $data
+     */
+    private static function isReload(array $data): bool
+    {
+        $goneMs = $data['goneMs'] ?? null;
+        $screen = $data['screen'] ?? null;
+
+        return ($goneMs === null || (self::integer($goneMs) ?? -1) >= 0)
+            && ($screen === null || is_string($screen));
     }
 
     /**

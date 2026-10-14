@@ -27,4 +27,7 @@ enum OnlineEventType: string
     case MediaUploaded = 'media.uploaded';
     // Phase 2 (stream P2F): after "I'm ready" the phone's finish detector started or stopped watching the round
     case DetectorChanged = 'detector.changed';
+    // Stream RP: the page was (re)opened while the round ran, on a device that was ready - a reload, a tab the
+    // browser brought back, the link opened again; `goneMs` = how long the page was gone, when the device knows
+    case PageReloaded = 'page.reloaded';
 }

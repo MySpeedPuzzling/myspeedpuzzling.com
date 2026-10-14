@@ -60,8 +60,15 @@ that would otherwise be forgotten. Newest section on top.
 
 ## Online competitions - live video on the participant page (stream VP)
 
-- [ ] Changing "Live video" / "Participants see each other" on the online timing page reaches a phone only at its next state fetch (start, return to the page, reload) - bump the round's state hash / publish on the stopwatch topic when the settings change.
+- [ ] Changing "Live video" / "Participants see each other" / the detection mode on the online timing page reaches a phone only at its next state fetch (start, return to the page, reload) - bump the round's state hash / publish on the stopwatch topic when the settings change. Detection also needs its parts on the page: a page rendered with detection `off` stays button-only until reloaded - tell the participant to reload (before GO) or render the detection parts for every online round.
 - [ ] Real phones (`device-test.md` steps 25-37): the host's voice on iOS Safari waits for "Tap here once", the ducking around the beeps, the studio microphone added while the camera is open (earpiece vs speaker), mobile data + strict networks (TURN) once LiveKit runs on a server.
+
+## Online competitions - hands-up detection on the participant page (stream P2I, README §5.7)
+
+- [ ] Serve the detector's files ourselves before the cup that turns detection on (Jan: open source **and self-hosted**): today the phone loads `@mediapipe/tasks-vision@1.1.0` (bundle + WASM) from `cdn.jsdelivr.net` and the pose / gesture models from `storage.googleapis.com` - no SRI, and the bundle runs in the worker that sees the camera frames. Copy the pinned files (checksums) to a versioned path of our own - object storage with immutable caching (needs the bucket CORS rule) or a static path outside `/build/` - and change only the `onlineDetectorAssets` parameter (`config/services.php`, `OnlineDetectorAssets`).
+- [ ] The reviewer's "G - the photo shows a gap" is not stored: keep it per candidate (a participant's premature raise vs a detector's false raise) - the accuracy report's "false raises" count both today, and the Phase 3.5 dataset needs the verdicts.
+- [ ] Older iPhones: the worker keeps both models (pose + gesture) loaded all session so "Test again" works - measure memory / reloads on the real-device pass (`device-test.md` 38-52); load only the chosen view's model if it hurts.
+- [ ] The set-up test keeps the first view whose hold completes - an incidental raise during the automatic test can pick `topDown` for an angled phone. Revisit with the footage.
 
 ## Plural texts without a form for 0 (found 2026-10-13 by the online translations' render check)
 

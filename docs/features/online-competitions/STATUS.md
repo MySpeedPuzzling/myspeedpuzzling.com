@@ -18,20 +18,21 @@ The living record of where the prototype stands and what comes next. Updated by 
 
 | | |
 |---|---|
-| **Phase** | 1 built (6 locales, end-to-end tested + fixed, follow-ups done); **1B complete** (foundation, moderator console + studio, spectator page, participant video - proven against a local LiveKit; production waits for ADR D78); Phase 2 groundwork merged |
+| **Phase** | 1 built (6 locales, end-to-end tested + fixed, follow-ups done); **1B complete** (foundation, moderator console + studio, spectator page, participant video - proven against a local LiveKit; production waits for ADR D78); **Phase 2 integrated** (the detector on the participant page, control room, review, accuracy report) - review fixes (P2F) and translations running |
 | **Resumed** | 2026-10-14 after the pause of 2026-10-13 |
 | **Next milestone** | M1 → Test Cup #1 (target Tue 2026-11-10) - runbook [test-cup-1.md](test-cup-1.md) |
 
 ## Next
 
-1. Translations of the participant page's video texts (`compete.video`, 46 keys) into cs, de, es, fr, ja - running.
-2. **Phase 2 integration** - the detector on the participant page: model hosting (pinned CDN URLs for the prototype), `detector.worker.js` + pacing fed by `frame_grabber.js`, `finish_machine.js` candidates → sharp photo + burst + a `finish.candidate` event, the set-up test "raise both hands", modes off / shadow / on per round, detection error in the accuracy report. Tuning waits for S1 footage.
-3. Settings changes (live video, see each other) reach phones only at their next state fetch - publish a state-hash bump when the online timing settings change (`docs/TODO.md`).
-4. Merging recipe: every stream through `.claude/worktrees/oc-integrate` (`git checkout -B oc-integrate origin/main` → cherry-pick, or the net diff when a branch merged main → PHPStan + full paratest + schema validate → `git push origin HEAD:main` → `git merge --ff-only origin/main` in the shared checkout) → remove the stream's worktree + its `speedpuzzling_<name>_test*` databases. Briefs and `run.sh` / `heavy.sh` in `.claude/worktrees/online-delivery/` (local).
+1. **P2F - fixes from the code review of the detection** (running): hands must be seen down before a raise counts (arming - a raise held through GO, a hidden page or a camera restart is never a candidate), no detection after the Finished tap and the `on` suggestion = the earlier of the first detection and the first tap, the candidate stills' memory, a `shadow` round shows the reviewer no detections and never holds "I'm ready", phones whose detector did not run are not "missed raises", a slow phone / frozen camera / dead worker turns into a visible "Button only".
+2. Translations of the detection texts (79 keys) into cs, de, es, fr, ja - running; P2F's few new English keys follow (orchestrator).
+3. Settings changes (live video, see each other, **detection mode**) reach phones only at their next state fetch, and a page loaded with detection `off` stays button-only until reloaded - publish a state-hash bump when the online timing settings change (`docs/TODO.md`).
+4. Phase 3 (the OpenCV completeness advisory) and the footage day (S1) - tuning the detector waits for real footage.
+5. Merging recipe: every stream through `.claude/worktrees/oc-integrate` (`git checkout -B oc-integrate origin/main` → cherry-pick, or the net diff when a branch merged main → PHPStan + full paratest + schema validate → `git push origin HEAD:main` → `git merge --ff-only origin/main` in the shared checkout) → remove the stream's worktree + its `speedpuzzling_<name>_test*` databases. Briefs and `run.sh` / `heavy.sh` in `.claude/worktrees/online-delivery/` (local).
 
 ## Waiting for Jan
 
-- Before Test Cup #1: the real-device pass on phones (`device-test.md`, now 24 steps), volunteers, the OK to apply the bucket CORS rule (`myspeedpuzzling:online-media:cors --apply`) and to deny `online/` in the images proxy, Traefik access-log redaction of the personal links, a deploy freeze on the day.
+- Before Test Cup #1: the real-device pass on phones (`device-test.md`, now 52 steps - 1-24 for this cup), volunteers, the OK to apply the bucket CORS rule (`myspeedpuzzling:online-media:cors --apply`) and to deny `online/` in the images proxy, Traefik access-log redaction of the personal links, a deploy freeze on the day.
 - **Before any online event (found by LT):** `/api/compete/*` and `/-/time` pass lily.srv's bot-blocker today (90 requests a minute per IP + browser) - six phones on one club Wi-Fi would be blocked in the minutes before GO, and a CrowdSec captcha in front of the JSON API cannot be solved by the page. Route both like `/api/v` (a lily.srv change - needs Jan's yes).
 - For Test Cup #2: the OK for ADR D78 (LiveKit on lily.srv: one UDP port + TURN/TLS on 443 through Traefik), the production load run at a quiet hour (`tools/online-load/README.md`: a draft event with made-up participants, generators allowlisted in CrowdSec, stop rules).
 - S1 footage (spikes.md) - the bench scores it the same day.
@@ -43,8 +44,8 @@ The living record of where the prototype stands and what comes next. Updated by 
 |---|---|---|
 | 0 - spikes | in progress | S1 footage protocol ready for Jan (spikes.md, with the label list form for several raises); S2 bench tools **built** (`tools/online-bench/`); S6 local run done (VF); S3-S5 follow |
 | 1 - remote stopwatch | **built**, translated, end-to-end tested + fixed | real-device pass on phones pending (`device-test.md`) |
-| 1B - live room + studio | **complete** (VF, VM, VS, VP merged, translated except `compete.video` - running) | everything proven against a local LiveKit 1.13.9 (spikes.md S6); production needs ADR D78 on lily.srv (Jan's OK); real phones: `device-test.md` steps 25-37 |
-| 2 - hands-up detection | groundwork **merged** (stream DB); integration next | the finish rule, the hands-up signal, the detector worker + pacing, the bench; tuning waits for S1 footage |
+| 1B - live room + studio | **complete** (VF, VM, VS, VP merged, translated) | everything proven against a local LiveKit 1.13.9 (spikes.md S6); production needs ADR D78 on lily.srv (Jan's OK); real phones: `device-test.md` steps 25-37 |
+| 2 - hands-up detection | **integrated** (DB + P2I merged); review fixes P2F running | the detector runs on the phone (one worker, ~4 fps, button-only when it can't), the set-up test picks the view, candidates with photo + burst, `off` / `shadow` / `on`, control room chip, review candidates confirmed as `detection`, accuracy report (detection error, tap delay, misses); real phones: `device-test.md` 38-52; the MediaPipe files still come from jsDelivr + Google (self-host before the detection cup - TODO); tuning waits for S1 footage |
 | 3 - completeness check | not started | the bench's OpenCV self-test comes with DB |
 | 4 - scale + public event | not started | |
 
@@ -60,7 +61,7 @@ The living record of where the prototype stands and what comes next. Updated by 
 | C1 - organiser set-up (online timing settings, personal links + CSV + QR sheet, sheet column, event-page button, menus) | **merged** - reviewed; the event page hands a link only to a player who showed they hold it | see the log |
 | C2 - control room (live grid, Start in 10 s / at / cancel / end) + review (frame-burst scrubber, confirm into the official results) + accuracy report | **merged** - a result entered meanwhile at the desk is a conflict, never overwritten | see the log |
 
-## Phase 1B and Phase 2 groundwork streams
+## Phase 1B and Phase 2 streams
 
 | Stream | State |
 |---|---|
@@ -72,16 +73,14 @@ The living record of where the prototype stands and what comes next. Updated by 
 | LT - load tooling (k6 + SSE, `tools/online-load/`) + local storage failover drill (Garage as the second store) | **merged** - 100 phones locally: 35 req/s, p95 ≤ 140 ms (234 ms in the start burst), ~0.1 core, 0 errors, GO p95 4 ms late, Mercure updates 20-41 ms; the drill found and fixed a breaker that never opened for a store that gives no answer (now: uploads on Garage 3.3 s after the primary died, all retried); numbers in `spikes.md` S5 |
 | DB - detection bench (finish rule, hands-up signal, detector worker, bench page + scorer, OpenCV completeness self-test) | **merged** - end-to-end on a public-domain clip (candidate +33 ms, no false raise); completeness self-test: no missing piece ever passed as complete (90 synthetic photos); open questions for the footage day in `spikes.md` S2 |
 | TX - online texts: every plural renders for 0, "1 pieces", clearer wording, unused keys, a guard test over all 6 locales | **merged** (`OnlinePluralMessagesTest`) |
+| P2I - detection on the participant page (prefetch during the checklist, one worker fed by the frame grabber, the set-up test, candidates + photo + burst, modes, telemetry + control room chip, review candidates, accuracy report + CSV) | **merged** - local run with a fake camera: detector ready 1.2-1.7 s, test passed 0.6-0.8 s after the raise, inference median 20-35 ms (41 ms with live video), 4.3 fps, candidate 0-100 ms after the clip's raise; page CPU off 60 % / shadow 70 % / on 93 % of a core; with detection off the page is byte-identical. A code review found no blocker and 6 should-fix items → P2F |
 | P1F - fixes from the end-to-end pass: a Reset starts a fresh run, the limiters under concurrency, End never before the click, take-back in seconds, smaller ones | **merged** - the online limiters are an atomic Redis counter now (exactly 300 of 320 parallel requests, +0.05 ms); take-back 2-15 s (was ~45 s); "End now" rounds up for online rounds only |
-
-## Next steps
-
-See "Resume here" above.
 
 ## Log
 
 | Date | What |
 |---|---|
+| 2026-10-14 | Phase 2 integrated (P2I, 843a27d6): hands-up detection on the participant page through to the review and the accuracy report; full suite 10,466 green. "Delta" became "Tap delay". Code review → P2F fixes + translations started |
 | 2026-10-14 | Resumed. Participant video (VP) merged - Phase 1B complete; Phase 1 follow-ups (P1G) merged; the console / studio / watch texts translated into 5 locales (146 keys each) |
 | 2026-10-13 | Load tooling + storage failover drill merged (LT): k6 with SSE, a production-like local stack (FrankenPHP worker mode, Mercure, MinIO + Garage). 100 local phones cost ~0.1 core with 0 errors; the drill found that a store giving no readable answer never opened the circuit breaker - fixed (phone reports "no answer" as a store failure, fresh upload URL after the second failure; server counts it) |
 | 2026-10-13 | Moderator console + studio (VM) and the spectator watch page (VS) merged (migration `Version20261013170851`: `online_round.youtube_url`, nullable). Paused at Jan's request after every running stream finished - resume from "Resume here" |

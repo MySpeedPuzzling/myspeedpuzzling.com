@@ -18,17 +18,16 @@ The living record of where the prototype stands and what comes next. Updated by 
 
 | | |
 |---|---|
-| **Phase** | 1 built (6 locales, end-to-end tested + fixed, follow-ups done); **1B complete** (foundation, moderator console + studio, spectator page, participant video - proven against a local LiveKit; production waits for ADR D78); **Phase 2 integrated** (the detector on the participant page, control room, review, accuracy report) - review fixes (P2F) and translations running |
+| **Phase** | 1 built (6 locales, end-to-end tested + fixed, follow-ups done); **1B complete** (foundation, moderator console + studio, spectator page, participant video - proven against a local LiveKit; production waits for ADR D78); **Phase 2 integrated + reviewed** (the detector on the participant page, control room, review, accuracy report; the review's fixes merged; 6 locales) |
 | **Resumed** | 2026-10-14 after the pause of 2026-10-13 |
 | **Next milestone** | M1 → Test Cup #1 (target Tue 2026-11-10) - runbook [test-cup-1.md](test-cup-1.md) |
 
 ## Next
 
-1. **P2F - fixes from the code review of the detection** (running): hands must be seen down before a raise counts (arming - a raise held through GO, a hidden page or a camera restart is never a candidate), no detection after the Finished tap and the `on` suggestion = the earlier of the first detection and the first tap, the candidate stills' memory, a `shadow` round shows the reviewer no detections and never holds "I'm ready", phones whose detector did not run are not "missed raises", a slow phone / frozen camera / dead worker turns into a visible "Button only".
-2. Translations of the detection texts (79 keys) into cs, de, es, fr, ja - running; P2F's few new English keys follow (orchestrator).
-3. Settings changes (live video, see each other, **detection mode**) reach phones only at their next state fetch, and a page loaded with detection `off` stays button-only until reloaded - publish a state-hash bump when the online timing settings change (`docs/TODO.md`).
-4. Phase 3 (the OpenCV completeness advisory) and the footage day (S1) - tuning the detector waits for real footage.
-5. Merging recipe: every stream through `.claude/worktrees/oc-integrate` (`git checkout -B oc-integrate origin/main` → cherry-pick, or the net diff when a branch merged main → PHPStan + full paratest + schema validate → `git push origin HEAD:main` → `git merge --ff-only origin/main` in the shared checkout) → remove the stream's worktree + its `speedpuzzling_<name>_test*` databases. Briefs and `run.sh` / `heavy.sh` in `.claude/worktrees/online-delivery/` (local).
+1. **SP - settings reach open phones** (running): a `settingsHash` next to the stopwatch's `stateHash` in the state + heartbeat, a Mercure publish after a settings save, live video switches applied at once, the detection mode locked from GO until a Reset, a reload banner for a page opened while detection was off.
+2. **P3 - the completeness check, advisory** (running): an internal Python + OpenCV worker (compose profile `cv`, no public port, `ONLINE_CV_URL` empty = off - production waits for Jan's yes) checks every finish photo against the empty mat and the puzzle's image (the bench's `completeness.py`); the review shows "Looks complete / Gap? / Not sure" with boxes and puts doubtful finishes first - it never decides.
+3. Self-host the MediaPipe files before the detection cup (`docs/TODO.md`), the footage day (S1) - tuning the detector waits for real footage.
+4. Merging recipe: every stream through `.claude/worktrees/oc-integrate` (`git checkout -B oc-integrate origin/main` → cherry-pick, or the net diff when a branch merged main → PHPStan + full paratest + schema validate → `git push origin HEAD:main` → `git merge --ff-only origin/main` in the shared checkout) → remove the stream's worktree (only after `git cherry` shows no `+`, or the content is verified) + its `speedpuzzling_<name>_test*` databases. A read-only review agent runs on every big stream while the gates run. Briefs and `run.sh` / `heavy.sh` in `.claude/worktrees/online-delivery/` (local).
 
 ## Waiting for Jan
 
@@ -45,8 +44,8 @@ The living record of where the prototype stands and what comes next. Updated by 
 | 0 - spikes | in progress | S1 footage protocol ready for Jan (spikes.md, with the label list form for several raises); S2 bench tools **built** (`tools/online-bench/`); S6 local run done (VF); S3-S5 follow |
 | 1 - remote stopwatch | **built**, translated, end-to-end tested + fixed | real-device pass on phones pending (`device-test.md`) |
 | 1B - live room + studio | **complete** (VF, VM, VS, VP merged, translated) | everything proven against a local LiveKit 1.13.9 (spikes.md S6); production needs ADR D78 on lily.srv (Jan's OK); real phones: `device-test.md` steps 25-37 |
-| 2 - hands-up detection | **integrated** (DB + P2I merged); review fixes P2F running | the detector runs on the phone (one worker, ~4 fps, button-only when it can't), the set-up test picks the view, candidates with photo + burst, `off` / `shadow` / `on`, control room chip, review candidates confirmed as `detection`, accuracy report (detection error, tap delay, misses); real phones: `device-test.md` 38-52; the MediaPipe files still come from jsDelivr + Google (self-host before the detection cup - TODO); tuning waits for S1 footage |
-| 3 - completeness check | not started | the bench's OpenCV self-test comes with DB |
+| 2 - hands-up detection | **integrated + reviewed** (DB, P2I, P2F merged; 6 locales) | the detector runs on the phone (one worker, ~4 fps, button-only when it can't), the set-up test picks the view, candidates with photo + burst, `off` / `shadow` / `on`, control room chip, review candidates confirmed as `detection`, accuracy report (detection error, tap delay, misses); real phones: `device-test.md` 38-52; the MediaPipe files still come from jsDelivr + Google (self-host before the detection cup - TODO); tuning waits for S1 footage |
+| 3 - completeness check | **in progress** (stream P3) | the algorithms + their synthetic self-test came with DB (no missing piece ever passed as complete); P3 = the worker, the async check, the review badges + ordering, the accuracy line |
 | 4 - scale + public event | not started | |
 
 ## Phase 1 streams
@@ -74,12 +73,14 @@ The living record of where the prototype stands and what comes next. Updated by 
 | DB - detection bench (finish rule, hands-up signal, detector worker, bench page + scorer, OpenCV completeness self-test) | **merged** - end-to-end on a public-domain clip (candidate +33 ms, no false raise); completeness self-test: no missing piece ever passed as complete (90 synthetic photos); open questions for the footage day in `spikes.md` S2 |
 | TX - online texts: every plural renders for 0, "1 pieces", clearer wording, unused keys, a guard test over all 6 locales | **merged** (`OnlinePluralMessagesTest`) |
 | P2I - detection on the participant page (prefetch during the checklist, one worker fed by the frame grabber, the set-up test, candidates + photo + burst, modes, telemetry + control room chip, review candidates, accuracy report + CSV) | **merged** - local run with a fake camera: detector ready 1.2-1.7 s, test passed 0.6-0.8 s after the raise, inference median 20-35 ms (41 ms with live video), 4.3 fps, candidate 0-100 ms after the clip's raise; page CPU off 60 % / shadow 70 % / on 93 % of a core; with detection off the page is byte-identical. A code review found no blocker and 6 should-fix items → P2F |
+| P2F - the review's fixes: arming (hands seen down ≥ 600 ms / 3 frames before a raise counts - GO, a hidden page, a camera restart), nothing detected after Finished, the `on` suggestion = the earlier of the first detection and the first tap, stills let go, `shadow` invisible to the reviewer (a `detection` confirmation refused) and never holding "I'm ready", "detector not running" apart from missed raises (`detector.changed` event), slow / stalled / broken detectors and frozen cameras become a visible "Button only" | **merged** - local run: hands up at GO gave no candidate (first one on the real raise at 0:19.27), nothing on the Finished screen, `shadow` review showed taps only; `FINISH_MACHINE_VERSION` 2; +94 B gzipped on the compete chunk |
 | P1F - fixes from the end-to-end pass: a Reset starts a fresh run, the limiters under concurrency, End never before the click, take-back in seconds, smaller ones | **merged** - the online limiters are an atomic Redis counter now (exactly 300 of 320 parallel requests, +0.05 ms); take-back 2-15 s (was ~45 s); "End now" rounds up for online rounds only |
 
 ## Log
 
 | Date | What |
 |---|---|
+| 2026-10-14 | Review fixes merged (P2F, 08d8d4f4) + all detection texts in 6 locales (a6e6c703, 736 online keys each); full suite 10,472 green. SP (settings reach open phones) started |
 | 2026-10-14 | Phase 2 integrated (P2I, 843a27d6): hands-up detection on the participant page through to the review and the accuracy report; full suite 10,466 green. "Delta" became "Tap delay". Code review → P2F fixes + translations started |
 | 2026-10-14 | Resumed. Participant video (VP) merged - Phase 1B complete; Phase 1 follow-ups (P1G) merged; the console / studio / watch texts translated into 5 locales (146 keys each) |
 | 2026-10-13 | Load tooling + storage failover drill merged (LT): k6 with SSE, a production-like local stack (FrankenPHP worker mode, Mercure, MinIO + Garage). 100 local phones cost ~0.1 core with 0 errors; the drill found that a store giving no readable answer never opened the circuit breaker - fixed (phone reports "no answer" as a store failure, fresh upload URL after the second failure; server counts it) |

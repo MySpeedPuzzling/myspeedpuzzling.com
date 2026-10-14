@@ -54,7 +54,7 @@ import {
     wakeTapNeeded,
 } from '../online/compete_flow.js';
 import { LOAD_RETRY_MS as VIDEO_RETRY_MS, loadSecondScreen, saveSecondScreen, videoOn } from '../online/compete_video_basics.js';
-import { detectionLoadWanted, detectionMode, LOAD_RETRY_MS as DETECTION_RETRY_MS, MODE_OFF } from '../online/compete_detection_basics.js';
+import { detectionLoadWanted, detectionMode, LOAD_RETRY_MS as DETECTION_RETRY_MS, MODE_OFF, MODE_ON } from '../online/compete_detection_basics.js';
 import { OfficialResultsEvents } from '../official_results_events.js';
 import { chooseTranslation } from '../translation_choice.js';
 
@@ -84,7 +84,8 @@ import { chooseTranslation } from '../translation_choice.js';
  *   `data-compete-detection-value`, Phase 2 stream P2I): compete_detection_page.js (a chunk of its own, loaded from the
  *   checklist on) runs the detector worker on the frame grabber's frames - the set-up test, then the round's finish
  *   machine; a candidate is recorded like a Finished tap (`finish.candidate` + its photo + its burst), shown in `on`
- *   mode. The Finished button stays; a failure there is button-only, never a blocked page.
+ *   mode - only while the running screen is up (never after the participant's own Finished tap). The Finished button
+ *   stays; a failure there is button-only, never a blocked page - said, and recorded as `detector.changed`.
  *
  * One document for the whole session: no Turbo visit, no history change (iOS mutes the camera on them, README §5.5).
  */
@@ -2192,7 +2193,12 @@ export default class extends Controller {
 
     detectionTick() {
         try {
-            this.detectionPage?.tick();
+            if (this.detectionPage !== null) {
+                this.detectionPage.tick();
+            } else if (this.detectionConfig !== null) {
+                // The detection's chunk is not there (yet, or it would not load): nothing watches - `on` says so
+                this.setShown('detectionButtonOnly', this.screen === 'running' && detectionMode(this.state) === MODE_ON);
+            }
         } catch (e) {
             console.error(e);
         }
@@ -2233,6 +2239,7 @@ export default class extends Controller {
                     this.progress.detections = [...(this.progress.detections ?? []), detection];
                     this.saveProgress();
                 },
+                recordDetector: (usage) => this.record('detector.changed', usage),
                 beeps: this.beeps,
                 serverNow: () => this.clock.serverNow(),
                 requestRender: () => this.requestRender(),
@@ -2251,10 +2258,11 @@ export default class extends Controller {
     }
 
     /**
-     * "I'm ready" waits while the detector loads - the chunk itself too, until it failed to load twice.
+     * "I'm ready" waits while the detector loads - the chunk itself too, until it failed to load twice. Only in `on`
+     * mode: `shadow` loads in the background and never holds anybody up.
      */
     detectionBlocksReady() {
-        if (this.detectionConfig === null || detectionMode(this.state) === MODE_OFF || this.preview) {
+        if (this.detectionConfig === null || detectionMode(this.state) !== MODE_ON || this.preview) {
             return false;
         }
 
@@ -2305,10 +2313,11 @@ export default class extends Controller {
 
     /**
      * A finish candidate as an event - its moment the first raised frame's capture time (on performance.now()'s clock,
-     * stamped on the synced one). Only while a Finished tap would count (README §5.7: the candidate is a finish).
+     * stamped on the synced one). Only while a Finished tap would count (README §5.7: the candidate is a finish) - and
+     * never after the participant's own tap (the `finished` screen: the detector does not look there).
      */
     recordCandidate(data, perfMoment) {
-        if (!['running', 'finished'].includes(this.screen)) {
+        if (this.screen !== 'running') {
             return null;
         }
 

@@ -4,20 +4,35 @@
  * tests/online-detection-harness.mjs. compete_detection_page.js runs them (the worker, the frames, the evidence).
  *
  * - **When the detector looks** (detectorRun()): the set-up test on the checklist, and the round from GO until this
- *   participant's result is confirmed or the time is up - never on a hidden page (the finish machine treats the gap per
- *   its maxGapMs), never without the camera, never in a preview, on a second screen or in a practice; and never on a
- *   device that competes button-only.
+ *   participant taps Finished (stream P2F: the `finished` screen looks at nothing - a raise after the participant's own
+ *   tap is never a candidate; "I tapped by mistake" / "Keep puzzling" brings the running screen and the detector back,
+ *   its machine unarmed), their result is confirmed or the time is up - never on a hidden page (the finish machine
+ *   treats the gap per its maxGapMs and unarms), never without the camera, never in a preview, on a second screen or in
+ *   a practice; and never on a device that competes button-only.
  * - **Button-only** (buttonOnly()): no detector in this browser (no Worker / createImageBitmap / WebGL2 - `unsupported`),
- *   a detector that failed (`error`), a set-up test that failed or was skipped on this device. Never a blocker: the
- *   Finished button is always there; the page says so and reports it (heartbeat, device.ready).
+ *   a detector that failed (`error`), a set-up test that failed or was skipped on this device - and (stream P2F) a
+ *   detector that stopped during the round (`stopped`: `slow` - its frames came too far apart to ever hold a raise,
+ *   `stalled` - no answer while the camera gave frames, `error` - frame errors or a crash). Never a blocker: the
+ *   Finished button is always there; the page says so ("Tap Finished when your puzzle is complete.") and reports it
+ *   (heartbeat → the control room's "Button only", device.ready, `detector.changed` - detectorUsage()).
+ * - **The detector's watch** (DetectorWatch, stream P2F): `slow` = the intervals between its answers stayed above the
+ *   finish machine's maxGapMs for SLOW_FOR_MS (at least SLOW_MIN_INTERVALS of them - one freeze of the camera is a
+ *   gap, not a slow phone); `stalled` = STALL_FOR_MS of fresh camera frames offered without one answer; `watching` =
+ *   an answer (or the start of looking) within WATCH_STALE_MS - the hint to raise both hands is shown only then, else
+ *   the button-only line (a frozen camera, a camera restarting, a detector still loading: nothing looks, so the page
+ *   never asks for a raise it can not see).
  * - **The set-up test** (createSetUpTest()): "Raise both hands for a second" - both views watch the same frames (the
  *   worker runs both models while the set-up is open), each with a finish machine of its own; the first view whose
  *   machine makes a candidate is the camera placement (README §5.7: angled = pose, topDown = gestures; both on one
- *   frame = angled, the framing organisers ask for). No candidate within SETUP_TEST_MS = failed → button-only on this
+ *   frame = angled, the framing organisers ask for). Its machines arm like the round's (finish_machine.js): the test
+ *   proves the whole cycle the round needs - hands seen down, then raised and held - and a detector that reads
+ *   "raised" all the time (a poster, an odd pose) fails it instead of passing at once and never arming in the round.
+ *   No candidate within SETUP_TEST_MS = failed → button-only on this
  *   device until a test passes - except a test the page started by itself (once the detector is ready) in which no
  *   hands were seen up at all: nobody tried, it `expired` - untested, the device keeps its view. The choice is kept on
  *   the device (loadDetectorChoice() / saveDetectorChoice()), so a reload competes with it; a device that never tested
- *   competes `angled`.
+ *   competes `angled` (DEFAULT_VIEW) - also a `shadow` participant who said "I'm ready" while the detector still
+ *   loaded: it starts looking with that view once loaded.
  * - **Candidates** (candidateData()): the finish machine's candidate as the `finish.candidate` event's data - moments on
  *   the synced clock (the event's clientMs is the first raised frame's), the window for the photo, the scores, the view,
  *   the mode, the machine's version, the detector's cadence then.
@@ -25,10 +40,15 @@
  *   from the puzzle).
  * - **What the participant sees** (feedback()): `on` - "Finish recorded at 47:12 - if a piece is missing, keep going and
  *   raise your hands again", a green flash and a chime, the running clock small; `shadow` - nothing at all.
- * - **The checklist row** (checklistRow()), **the heartbeat** (telemetry()) and **device.ready** (readyDetails()).
+ * - **"I'm ready"** (holdsReady()) waits for a loading detector in `on` mode only - `shadow` never holds anybody up (the
+ *   participant does not use it; it loads in the background and starts looking once loaded).
+ * - **The checklist row** (checklistRow()), **the heartbeat** (telemetry()), **device.ready** (readyDetails()) and
+ *   **`detector.changed`** (detectorUsage(): whether the detector watches this device's round, else why not - stored
+ *   whenever that changes after "I'm ready", so the accuracy report never counts a finish on a phone whose detector did
+ *   not run as a missed raise).
  */
 
-import { createFinishMachine, FINISH_MACHINE_VERSION, MODE_ON } from './finish_machine.js';
+import { createFinishMachine, FINISH_MACHINE_VERSION, MAX_GAP_MS, MODE_ON } from './finish_machine.js';
 import { MODE_OFF, MODE_SHADOW } from './compete_detection_basics.js';
 
 export { MODE_OFF, MODE_ON, MODE_SHADOW };
@@ -51,6 +71,13 @@ export const TEST_PASSED = 'passed';
 export const TEST_FAILED = 'failed';
 export const TEST_SKIPPED = 'skipped';
 
+// Why a detector stopped during the round (the page's `stopped`)
+export const STOP_SLOW = 'slow';
+export const STOP_STALLED = 'stalled';
+export const STOP_ERROR = 'error';
+// Why a detector does not watch this device's round (detector.changed `reason` - OnlineEventInput DETECTOR_REASONS)
+export const DETECTOR_REASONS = ['off', 'loading', 'unsupported', 'error', STOP_STALLED, STOP_SLOW, TEST_FAILED, TEST_SKIPPED];
+
 // How long the set-up test watches for the raise
 export const SETUP_TEST_MS = 20000;
 // The checklist offers "Skip - use the Finished button" once the detector has been loading this long
@@ -60,6 +87,15 @@ export const MAX_FRAME_ERRORS = 8;
 // The candidate's photo: stills taken this far apart while the hands are up, at most this many
 export const CANDIDATE_STILLS = 3;
 export const STILL_SPACING_MS = 300;
+// A detector whose answers came more than the machine's maxGapMs apart for this long - at least this many intervals in
+// a row - can never hold a raise: button-only (`slow`). One long interval is a frozen camera or a hidden page (a gap)
+export const SLOW_FOR_MS = 10000;
+export const SLOW_MIN_INTERVALS = 3;
+// Fresh camera frames offered this long - at least this many - without one answer: the detector hangs (`stalled`)
+export const STALL_FOR_MS = 10000;
+export const STALL_MIN_FRAMES = 5;
+// The detector watches while an answer (or the start of looking) is this recent - the hint to raise both hands only then
+export const WATCH_STALE_MS = 3000;
 // The green flash after a candidate
 export const FLASH_MS = 1500;
 // "Raise again in a moment" stays this long after a raise the cooldown held back
@@ -131,13 +167,42 @@ export function saveDetectorChoice(storage, participantId, choice) {
 }
 
 /**
- * This device competes with the Finished button only: the detector can not run here, or the participant's set-up test
- * failed / was skipped (until a test passes).
+ * This device competes with the Finished button only: the detector can not run here, the participant's set-up test
+ * failed / was skipped (until a test passes), or it stopped during the round (`stopped`: slow, stalled, error).
  *
- * @param {{state: string, test: null|string}} input
+ * @param {{state: string, test: null|string, stopped?: null|string}} input
  */
-export function buttonOnly({ state, test }) {
-    return state === STATE_UNSUPPORTED || state === STATE_ERROR || test === TEST_FAILED || test === TEST_SKIPPED;
+export function buttonOnly({ state, test, stopped = null }) {
+    return state === STATE_UNSUPPORTED || state === STATE_ERROR || test === TEST_FAILED || test === TEST_SKIPPED
+        || (stopped !== null && stopped !== undefined);
+}
+
+/**
+ * Does the detector watch this device's round - and if not, why (detector.changed, device.ready's counterpart)?
+ *
+ * @returns {{state: string, running: boolean, reason: null|string, view: null|string}}
+ */
+export function detectorUsage({ mode, state, test, stopped = null, view }) {
+    const reported = DETECTOR_STATES.includes(state) ? state : STATE_OFF;
+    const off = (reason) => ({ state: reported, running: false, reason, view: null });
+
+    if (mode !== MODE_ON && mode !== MODE_SHADOW) {
+        return off(STATE_OFF);
+    }
+
+    if (stopped !== null && stopped !== undefined) {
+        return off(DETECTOR_REASONS.includes(stopped) ? stopped : STOP_ERROR);
+    }
+
+    if (reported !== STATE_READY) {
+        return off(reported);
+    }
+
+    if (test === TEST_FAILED || test === TEST_SKIPPED) {
+        return off(test);
+    }
+
+    return { state: reported, running: true, reason: null, view: VIEWS.includes(view) ? view : DEFAULT_VIEW };
 }
 
 /**
@@ -158,6 +223,7 @@ export function buttonOnly({ state, test }) {
  * @param {boolean} [input.takenOver]
  * @param {boolean} [input.linkDead]
  * @param {boolean} [input.entryConfirmed]   the review confirmed this participant's result
+ * @param {null|string} [input.stopped]      the detector stopped during the round (button-only)
  * @returns {'off'|'setup'|'round'}
  */
 export function detectorRun({
@@ -175,6 +241,7 @@ export function detectorRun({
     takenOver = false,
     linkDead = false,
     entryConfirmed = false,
+    stopped = null,
 }) {
     if (mode === MODE_OFF || state !== STATE_READY || !visible || !cameraLive || practice || preview || secondScreen || takenOver || linkDead) {
         return 'off';
@@ -184,11 +251,123 @@ export function detectorRun({
         return screen === 'checklist' ? 'setup' : 'off';
     }
 
-    if (buttonOnly({ state, test }) || !ready || entryConfirmed) {
+    if (buttonOnly({ state, test, stopped }) || !ready || entryConfirmed) {
         return 'off';
     }
 
-    return screen === 'running' || screen === 'finished' ? 'round' : 'off';
+    // Not on `finished`: once the participant tapped Finished nothing is detected - undoing the tap brings it back
+    return screen === 'running' ? 'round' : 'off';
+}
+
+/**
+ * The detector's watch during the round (stream P2F): is it too slow to ever hold a raise, does it hang, is it
+ * watching right now. All times on performance.now()'s clock; pure - pinned by tests/online-detection-harness.mjs.
+ */
+export function createDetectorWatch(options = {}) {
+    return new DetectorWatch(options);
+}
+
+export class DetectorWatch {
+    constructor({
+        maxGapMs = MAX_GAP_MS,
+        slowForMs = SLOW_FOR_MS,
+        slowMinIntervals = SLOW_MIN_INTERVALS,
+        stallForMs = STALL_FOR_MS,
+        stallMinFrames = STALL_MIN_FRAMES,
+        staleMs = WATCH_STALE_MS,
+    } = {}) {
+        this.maxGapMs = maxGapMs;
+        this.slowForMs = slowForMs;
+        this.slowMinIntervals = slowMinIntervals;
+        this.stallForMs = stallForMs;
+        this.stallMinFrames = stallMinFrames;
+        this.staleMs = staleMs;
+        this.startedAtMs = null;
+        this.start(null);
+    }
+
+    /**
+     * The round's detector starts looking (again - after a pause, a hidden page) at `nowMs`: nothing before counts.
+     */
+    start(nowMs) {
+        this.startedAtMs = Number.isFinite(nowMs) ? nowMs : null;
+        this.lastAnswerAtMs = null;
+        this.lastCaptureMs = null;
+        this.slowRun = null;
+        this.lastFrameAtMs = null;
+        this.stallFromMs = null;
+        this.framesSinceAnswer = 0;
+    }
+
+    /**
+     * A fresh camera frame was there for the detector (asked of the pacing - sent or not).
+     */
+    frame(nowMs) {
+        if (this.lastFrameAtMs !== null && nowMs - this.lastFrameAtMs > this.staleMs) {
+            // Frames stopped for a while (a hidden page, a frozen camera): the stall counts from now on
+            this.stallFromMs = null;
+            this.framesSinceAnswer = 0;
+        }
+
+        this.lastFrameAtMs = nowMs;
+
+        if (this.stallFromMs === null) {
+            this.stallFromMs = nowMs;
+        }
+
+        this.framesSinceAnswer += 1;
+    }
+
+    /**
+     * The detector answered a frame captured at `captureMs`. → `slow` once its answers stayed too far apart.
+     *
+     * @returns {null|'slow'}
+     */
+    answer(captureMs, nowMs) {
+        this.lastAnswerAtMs = nowMs;
+        this.stallFromMs = null;
+        this.framesSinceAnswer = 0;
+
+        if (!Number.isFinite(captureMs)) {
+            return null;
+        }
+
+        let slow = false;
+
+        if (this.lastCaptureMs !== null && captureMs > this.lastCaptureMs) {
+            if (captureMs - this.lastCaptureMs > this.maxGapMs) {
+                this.slowRun ??= { fromMs: this.lastCaptureMs, intervals: 0 };
+                this.slowRun.intervals += 1;
+                slow = captureMs - this.slowRun.fromMs >= this.slowForMs && this.slowRun.intervals >= this.slowMinIntervals;
+            } else {
+                this.slowRun = null;
+            }
+        }
+
+        this.lastCaptureMs = Math.max(captureMs, this.lastCaptureMs ?? captureMs);
+
+        return slow ? STOP_SLOW : null;
+    }
+
+    /**
+     * → `stalled` when fresh frames were offered for stallForMs (at least stallMinFrames) and no answer came.
+     *
+     * @returns {null|'stalled'}
+     */
+    check(nowMs) {
+        return this.stallFromMs !== null && nowMs - this.stallFromMs >= this.stallForMs && this.framesSinceAnswer >= this.stallMinFrames
+            ? STOP_STALLED
+            : null;
+    }
+
+    /**
+     * An answer - or the start of looking - within staleMs.
+     */
+    watching(nowMs) {
+        const since = this.lastAnswerAtMs ?? this.startedAtMs;
+
+        return since !== null && Number.isFinite(nowMs) && nowMs - since < this.staleMs;
+    }
 }
 
 /**
@@ -418,30 +597,30 @@ export function sharpestStill(stills, untilMs = null) {
  * @param {number|null} [input.flashUntilMs]
  * @param {number|null} [input.suppressedUntilMs]
  * @param {boolean} [input.buttonOnly]
+ * @param {boolean} [input.watching]   the detector looks right now (DetectorWatch) - else nothing can see a raise
  * @param {string} input.screen
  */
-export function feedback({ mode, detections = [], startedAtMs, serverNowMs, flashUntilMs = null, suppressedUntilMs = null, buttonOnly: onlyButton = false, screen }) {
+export function feedback({ mode, detections = [], startedAtMs, serverNowMs, flashUntilMs = null, suppressedUntilMs = null, buttonOnly: onlyButton = false, watching = true, screen }) {
     const none = { detected: false, momentMs: null, elapsedMs: null, flash: false, suppressed: false, hint: false, buttonOnly: false };
 
     if (mode !== MODE_ON || !['running', 'finished', 'timeup', 'after'].includes(screen)) {
         return none;
     }
 
-    if (onlyButton) {
-        return { ...none, buttonOnly: screen === 'running' };
-    }
-
     const latest = latestDetection(detections, startedAtMs);
     const elapsedMs = latest !== null && Number.isFinite(startedAtMs) ? latest.momentMs - startedAtMs : null;
+    // Nothing looks (button-only, or not watching right now): the page never asks for a raise it can not see - and a
+    // finish already recorded stays shown
+    const looking = !onlyButton && watching;
 
     return {
         detected: latest !== null,
         momentMs: latest?.momentMs ?? null,
         elapsedMs,
         flash: Number.isFinite(flashUntilMs) && serverNowMs < flashUntilMs && screen === 'running',
-        suppressed: Number.isFinite(suppressedUntilMs) && serverNowMs < suppressedUntilMs && screen === 'running',
-        hint: latest === null && screen === 'running',
-        buttonOnly: false,
+        suppressed: looking && Number.isFinite(suppressedUntilMs) && serverNowMs < suppressedUntilMs && screen === 'running',
+        hint: looking && latest === null && screen === 'running',
+        buttonOnly: !looking && screen === 'running',
     };
 }
 
@@ -467,8 +646,9 @@ export const CHECK_CODES = ['loading', 'loading_slow', 'testing', 'holding', 'pa
  * @param {string} input.view
  * @param {null|SetUpTest} input.setUp         a test watching now
  * @param {number|null} input.loadingForMs     how long the detector has been loading
+ * @param {string} [input.mode]                `shadow` never holds "I'm ready": no skip, no "still preparing"
  */
-export function checklistRow({ state, test, view, setUp = null, loadingForMs = null }) {
+export function checklistRow({ state, test, view, setUp = null, loadingForMs = null, mode = MODE_ON }) {
     if (state === STATE_UNSUPPORTED) {
         return { level: 'warn', code: 'unsupported', skip: false, retry: false, test: false };
     }
@@ -482,7 +662,7 @@ export function checklistRow({ state, test, view, setUp = null, loadingForMs = n
     }
 
     if (state !== STATE_READY) {
-        const slow = Number.isFinite(loadingForMs) && loadingForMs >= LOAD_SKIP_AFTER_MS;
+        const slow = mode === MODE_ON && Number.isFinite(loadingForMs) && loadingForMs >= LOAD_SKIP_AFTER_MS;
 
         return { level: 'warn', code: slow ? 'loading_slow' : 'loading', skip: slow, retry: false, test: false };
     }
@@ -503,20 +683,21 @@ export function checklistRow({ state, test, view, setUp = null, loadingForMs = n
 }
 
 /**
- * "I'm ready" waits for the detector (README §5.5 "detector loaded") - while it loads and the participant has not
- * skipped it. A detector that can not run, failed or was skipped never holds anybody up.
+ * "I'm ready" waits for the detector (README §5.5 "detector loaded") - in `on` mode, while it loads and the participant
+ * has not skipped it. `shadow` never waits (stream P2F: the participant does not use it - it loads in the background
+ * and starts looking once loaded). A detector that can not run, failed or was skipped never holds anybody up.
  */
 export function holdsReady({ mode, state, test }) {
-    return mode !== MODE_OFF && state === STATE_LOADING && test !== TEST_SKIPPED;
+    return mode === MODE_ON && state === STATE_LOADING && test !== TEST_SKIPPED;
 }
 
 /**
  * The heartbeat's `detector` (implementation-plan.md §3.1, additive: `state`, `inferenceMs`, `view`). A device that
- * competes button-only by its own test - or a round whose detection was switched off - reports `off`: the detector is
- * not used.
+ * competes button-only by its own test or a stop during the round - or a round whose detection was switched off -
+ * reports `off`: the detector is not used (the control room's "Button only").
  */
-export function telemetry({ mode, state, test, view, stats = null }) {
-    const used = mode !== MODE_OFF && state === STATE_READY && !buttonOnly({ state, test });
+export function telemetry({ mode, state, test, view, stats = null, stopped = null }) {
+    const used = mode !== MODE_OFF && state === STATE_READY && !buttonOnly({ state, test, stopped });
     const reported = state === STATE_READY && !used ? STATE_OFF : state;
 
     return {

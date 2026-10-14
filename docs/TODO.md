@@ -82,13 +82,16 @@ that would otherwise be forgotten. Newest section on top.
 
 ## Plural texts without a form for 0 (found 2026-10-13 by the online translations' render check)
 
-- [ ] About 55 plural messages per locale outside the online pages are written `{1}…|]1,Inf[…` (or with too few
+- [x] About 55 plural messages per locale outside the online pages are written `{1}…|]1,Inf[…` (or with too few
       standard forms) and have no form for 0: Symfony throws `InvalidArgumentException` (a 500) and the browser's
       `translation_choice.js` shows the bare number. English has them too (e.g. `live_results.sync.waiting`,
       `badges.reveals.invite`, `multiscan.recap.*`, `competition.participants.import.plan.blocker.*`). Most call sites
       never pass 0 (checked: `free_trial.status.days_left` rounds up while the trial runs) - go through each call site,
       add a `{0}` / `[0,Inf[` part where 0 can reach it, then widen `tests/OnlinePluralMessagesTest.php` (stream TX,
       online roots only) to every root with an allowlist of the keys whose callers never pass 0.
+      Done 2026-10-14 (stream PL): a form for 0 in 382 messages (messages cs 55 / de 54 / en 56 / es 55 / fr 53 / ja 36,
+      emails cs + en 12 / others 8, time cs 17), other counts unchanged; live only as races: `official_results.delete_round.intro`
+      (own `{0}`) and `activity_digest.preheader.numbers`; guard `tests/PluralMessagesTest.php` (every domain and root).
 
 ## Mass mailing on Amazon SES (`docs/features/mass-mailing/README.md`, built switched off 2026-10-12)
 

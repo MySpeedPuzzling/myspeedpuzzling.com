@@ -47,13 +47,21 @@ or the 6 months - 13 Apr 2027 - run out).
 - SES also forwards bounce/complaint mails to the From mailboxes (email feedback forwarding) - harmless extra
   copies in notify@ / robot@ / newsletter@.
 - **Notifications (step 6) LIVE 2026-10-14:** `MAILER_NOTIFICATIONS_DSN` = `failover(SES, Seznam notify@)` in web + both queue workers; the first real "Your results" mail went through SES and came back delivered.
+- **Transactional (step 5) LIVE 2026-10-14 08:28 UTC:** `MAILER_TRANSACTIONAL_DSN` = `failover(SES, Seznam robot@)`
+  (Jan: earlier than planned, the same pipeline as notifications). First real mail (password reset, 08:44) delivered.
+  The Seznam DSNs before the switch are kept in Infisical as `MAILER_TRANSACTIONAL_DSN_SEZNAM` /
+  `MAILER_NOTIFICATIONS_DSN_SEZNAM` - **rollback** = copy one back, re-run the `deploy` job, recreate the workers.
+- **Step 8 done:** `MAILER_SES_DSN` = `null://null` (test mode off; Infisical refuses an empty value, so the inert
+  `SES_TEST_RECIPIENTS` list stays). The app's SES SMTP key was rotated the same day (new key in both DSNs and
+  `SES_SMTP_USERNAME`/`_PASSWORD`; the old one deactivated - delete it after a clean day).
+- **Alerts:** every hard bounce / complaint = Sentry warning (30d1f880, see Rules); CloudWatch alarms
+  `ses-bounce-rate-4pct` and `ses-complaint-rate-0.08pct` → SNS `ses-alarms` → e-mail to Jan (`aws-setup.sh alarms`).
 **Gotcha:** an env change needs a redeploy (re-run the `deploy` job: `dump_secrets` renders `/srv/myspeedpuzzling/.env`)
 **and** `docker compose up -d --no-deps --force-recreate messenger-consumer digest-consumer` - the same-image redeploy
 recreates only the web containers, the queue workers keep the old env.
 
-**State (2026-10-12): built, switched off.** Every stream still goes through Seznam. Nothing changes until the env
-values below are set. The order is **slow and careful** (Jan): AWS account → tests with verified addresses only →
-production access → one stream at a time.
+**State (2026-10-14): every stream on SES**, Seznam behind the app's two streams as failover, Listmonk's Seznam server
+kept disabled for rollback. (Built switched off 2026-10-12, moved one stream at a time.)
 
 ## How it works
 

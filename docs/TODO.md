@@ -96,13 +96,22 @@ that would otherwise be forgotten. Newest section on top.
 
 ## Mass mailing on Amazon SES (`docs/features/mass-mailing/README.md`, built switched off 2026-10-12)
 
-- [ ] Rollout steps 0-8 of the README, one at a time (AWS account first - Jan).
-- [ ] Privacy policy: list AWS (SES) as a sub-processor before the first stream switches.
+- [ ] Rollout: steps 0-4 + 7 (Listmonk) done 2026-10-13/14, step 6 (notifications) switching 2026-10-14; step 5
+      (transactional = `failover(SES, Seznam robot@)`) last, after a few clean days of notifications and newsletter
+      #4; step 8 cleanup (`SES_TEST_RECIPIENTS` / `MAILER_SES_DSN`).
+- [x] Privacy policy: AWS listed (0a01bd8d, 2026-10-14).
+- [ ] Google Postmaster Tools for `notify.` / `news.` / `mail.myspeedpuzzling.com` (Jan adds the domains with his
+      Google account; Claude adds the TXT verification records in Cloudflare).
+- [ ] CloudWatch alarms on the SES account's `Reputation.BounceRate` (> 4 %) and `Reputation.ComplaintRate`
+      (> 0.08 %) → e-mail to Jan - AWS reviews/pauses an account at 5 % / 0.1 % and 10 % / 0.5 %.
+- [ ] Research first-party open/click tracking (links on our own domain, e.g. a redirect on myspeedpuzzling.com)
+      - SES tracking was left off on purpose: `awstrack.me` links are a spam signal (Jan: no spam-score cost).
 - [ ] Metrics per stream (sent / delivered / bounced / complained a day) + an alert on the complaint rate; a paused
       Listmonk campaign alert that does not go by e-mail.
 - [ ] Un-suppress an address (admin action + removal from the SES suppression list) for "my mailbox works again".
-- [ ] After the switch: rotate/delete the Seznam `newsletter@news` mailbox (its password was printed in a session
-      transcript on 2026-10-12) and switch Listmonk's POP bounce scanner off.
+- [ ] Rotate/delete the Seznam `newsletter@news` mailbox password (it was printed in a session transcript on
+      2026-10-12) - Listmonk no longer uses it (SMTP disabled, POP scanner off 2026-10-14); keep the mailbox itself,
+      it receives replies.
 
 ## Anti-farming (`docs/features/xp-levels/README.md` §Anti-farming, workstream G 2026-10-11)
 

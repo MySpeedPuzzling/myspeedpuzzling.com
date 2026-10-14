@@ -117,6 +117,7 @@ Repositories (`get()` / `save()` / `delete()` + the finders named here): `Online
 |---|---|---|
 | `online_time` | GET `/-/time` | A |
 | `compete_page` | GET `/en/compete/{token}` (locale map) | B |
+| `compete_link` | GET `/compete/{token}` - additive (stream RP): 302 to `compete_page` in the signed-in player's profile language, else the browser's, else English; what the links CSV hands out | RP |
 | `compete_connect` | POST `/en/compete/{token}/connect` | A |
 | `compete_api_state` | GET `/api/compete/{token}/state` | A |
 | `compete_api_heartbeat` | POST `/api/compete/{token}/heartbeat` | A |

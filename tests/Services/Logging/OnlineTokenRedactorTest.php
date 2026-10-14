@@ -26,6 +26,8 @@ final class OnlineTokenRedactorTest extends TestCase
         yield 'the page' => ['/en/compete/' . self::TOKEN, '/en/compete/[redacted]'];
         yield 'the page with a query' => ['/de/compete/' . self::TOKEN . '?x=1', '/de/compete/[redacted]?x=1'];
         yield 'the Czech page' => ['https://myspeedpuzzling.com/soutezit/' . self::TOKEN, 'https://myspeedpuzzling.com/soutezit/[redacted]'];
+        yield 'the link without a language' => ['https://myspeedpuzzling.com/compete/' . self::TOKEN, 'https://myspeedpuzzling.com/compete/[redacted]'];
+        yield 'the link without a language, URL-encoded' => ['/login?return=%2Fcompete%2F' . self::TOKEN, '/login?return=%2Fcompete%2F[redacted]'];
         yield 'the connect' => ['/cs/compete/' . self::TOKEN . '/connect', '/cs/compete/[redacted]/connect'];
         yield 'JSON-escaped' => ['{"url":"https:\/\/x\/api\/compete\/' . self::TOKEN . '\/state"}', '{"url":"https:\/\/x\/api\/compete\/[redacted]\/state"}'];
         yield 'URL-encoded' => ['/login?return=%2Fen%2Fcompete%2F' . self::TOKEN, '/login?return=%2Fen%2Fcompete%2F[redacted]'];

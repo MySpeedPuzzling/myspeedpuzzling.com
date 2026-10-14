@@ -204,13 +204,20 @@ final class OnlineLinksControllerTest extends WebTestCase
         $nora = $this->token($browser, OnlineRoundsFixture::PARTICIPANT_WITHOUT_TOKEN);
         self::assertNotNull($nora, 'the CSV gives the missing links too');
 
+        // Links without a language (stream RP): each participant's page speaks their own, never the organiser's page's
         self::assertSame([
             ['Name', 'Personal link'],
             // Text, never a formula
-            ['\'=HYPERLINK("http://example.com","Arthur")', 'http://localhost/en/compete/' . OnlineRoundsFixture::TOKEN_ANONYMOUS],
-            ['Nora Notoken', 'http://localhost/en/compete/' . $nora],
-            ['Olivia Online', 'http://localhost/en/compete/' . OnlineRoundsFixture::TOKEN_CONNECTED],
+            ['\'=HYPERLINK("http://example.com","Arthur")', 'http://localhost/compete/' . OnlineRoundsFixture::TOKEN_ANONYMOUS],
+            ['Nora Notoken', 'http://localhost/compete/' . $nora],
+            ['Olivia Online', 'http://localhost/compete/' . OnlineRoundsFixture::TOKEN_CONNECTED],
         ], $lines);
+
+        // The same from the Czech links page
+        $browser->request('GET', '/online-souteze/' . self::COMPETITION . '/odkazy.csv');
+        self::assertResponseIsSuccessful();
+        self::assertStringContainsString('http://localhost/compete/' . OnlineRoundsFixture::TOKEN_CONNECTED, (string) $browser->getResponse()->getContent());
+        self::assertStringNotContainsString('/soutezit/', (string) $browser->getResponse()->getContent());
     }
 
     public function testTheQrSheetHasACardForEverybodyGoing(): void

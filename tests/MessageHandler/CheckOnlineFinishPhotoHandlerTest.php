@@ -6,7 +6,6 @@ namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
 use Doctrine\DBAL\Connection;
 use PHPUnit\Framework\Attributes\DataProvider;
-use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Entity\OnlineEntryMedia;
 use SpeedPuzzling\Web\Entity\OnlineMediaCheck;
 use SpeedPuzzling\Web\Entity\Puzzle;
@@ -24,10 +23,12 @@ use SpeedPuzzling\Web\Tests\OnlineReviewSeeding;
 use SpeedPuzzling\Web\Tests\TestDouble\InMemoryLogger;
 use SpeedPuzzling\Web\Tests\TestDouble\OnlineCvHttpMock;
 use SpeedPuzzling\Web\Value\OnlineMediaKind;
+use SpeedPuzzling\Web\Value\OnlineMediaStore;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\HttpClient\Response\MockResponse;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\DelayStamp;
+use Symfony\Component\Messenger\Stamp\ReceivedStamp;
 use Symfony\Component\Messenger\Transport\InMemory\InMemoryTransport;
 
 /**
@@ -218,6 +219,49 @@ final class CheckOnlineFinishPhotoHandlerTest extends KernelTestCase
         self::assertTrue($this->logger->hasRecord('info', 'could not run'));
     }
 
+    /**
+     * The worker takes up to a minute: as the consumer runs the message (through the bus, received from the queue), no
+     * transaction is open while the app waits for it - CheckOnlineFinishPhoto is HandledOutsideTransaction; the answer is
+     * written by RecordOnlineMediaCheck, in a transaction of its own
+     */
+    public function testTheWorkerIsAskedWithNoTransactionOpen(): void
+    {
+        $photo = $this->finishPhoto();
+        $connection = self::getContainer()->get(Connection::class);
+        self::assertFalse($connection->isTransactionActive());
+        /** @var list<bool> $whileWorking */
+        $whileWorking = [];
+        OnlineCvHttpMock::whileWorking(static function () use ($connection, &$whileWorking): void {
+            $whileWorking[] = $connection->isTransactionActive();
+        });
+
+        self::getContainer()->get(MessageBusInterface::class)->dispatch(new CheckOnlineFinishPhoto($photo->id->toString()), [new ReceivedStamp('async')]);
+
+        self::assertSame([false], $whileWorking);
+        self::assertFalse($connection->isTransactionActive());
+        self::assertSame([OnlineCvHttpMock::VERSION => 'complete'], array_column($this->rows($photo), 'verdict', 'worker_version'));
+    }
+
+    /**
+     * A store that is no longer configured (the second one took the upload and was removed since - none in tests): the
+     * check could not run, recorded with the reason and the exception logged; nothing reaches the worker
+     */
+    public function testAPhotoInAStoreNoLongerConfiguredIsRecordedAsFailed(): void
+    {
+        $photo = $this->finishPhoto();
+        $photo->store = OnlineMediaStore::Secondary;
+        $this->entityManager()->flush();
+
+        $this->check($photo);
+
+        self::assertSame([], OnlineCvHttpMock::requests());
+        $rows = $this->rows($photo);
+        self::assertSame([[OnlineMediaCheck::NO_VERSION, 'failed', 'inputs_unavailable']], array_map(static fn (array $row): array => [$row['worker_version'], $row['verdict'], $row['error']], $rows));
+        $warnings = array_values(array_filter($this->logger->records, static fn (array $record): bool => $record['level'] === 'warning'));
+        self::assertCount(1, $warnings);
+        self::assertInstanceOf(\LogicException::class, $warnings[0]['context']['exception'] ?? null);
+    }
+
     public function testAVerdictAfterAFailureAddsItsRowAndTheFailureStays(): void
     {
         $photo = $this->finishPhoto();
@@ -263,7 +307,6 @@ final class CheckOnlineFinishPhotoHandlerTest extends KernelTestCase
             $container->get(OnlineCvInputs::class),
             $container->get(OnlineCvClient::class),
             $container->get(MessageBusInterface::class),
-            $container->get(ClockInterface::class),
             $this->logger,
         );
     }

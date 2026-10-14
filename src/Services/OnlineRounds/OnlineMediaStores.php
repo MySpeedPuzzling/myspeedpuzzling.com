@@ -21,8 +21,9 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
  *   down (ONLINE_MEDIA_SECONDARY_*; no endpoint = none). One endpoint for both: it is public.
  * - serverLocation(): where a service inside the network reads an object by a presigned URL - the CV worker of the
  *   completeness check (Phase 3, OnlineCvInputs): the primary's own endpoint (S3_ENDPOINT, `minio:9000` locally - the
- *   browser's host port means nothing inside the network), the secondary's one endpoint; serverHosts() = their hosts,
- *   the only ones a URL handed to the worker may name (the worker's own allowlist, ONLINE_CV_ALLOWED_HOSTS, is the same).
+ *   browser's host port means nothing inside the network), the secondary's one endpoint; serverHosts() = their hosts as
+ *   the presigned URLs name them (`bucket.host` for a store addressed by host, no `:443` / `:80`), the only ones a URL
+ *   handed to the worker may name (the worker's own allowlist, ONLINE_CV_ALLOWED_HOSTS, is the same).
  * Configuration only - no request is made here.
  */
 final readonly class OnlineMediaStores
@@ -121,8 +122,9 @@ final readonly class OnlineMediaStores
     }
 
     /**
-     * The `host[:port]` of every configured store as serverLocation() names it (lower case, the port only when the URL
-     * names one) - the only hosts a URL handed to the CV worker may have
+     * The `host[:port]` of every configured store as its presigned URLs for serverLocation() name it
+     * (OnlineMediaStoreLocation::urlHost(): lower case, no port of the scheme's own, `bucket.host` for a store addressed
+     * by host) - the only hosts a URL handed to the CV worker may have, and what its ONLINE_CV_ALLOWED_HOSTS must hold
      *
      * @return list<string>
      */
@@ -131,7 +133,8 @@ final readonly class OnlineMediaStores
         $hosts = [];
 
         foreach ([$this->primaryServer, $this->secondary] as $location) {
-            $host = $location === null ? null : self::hostOf($location->endpoint);
+            $host = $location?->urlHost();
+            $host = $host === null ? null : strtolower($host);
 
             if ($host !== null && !in_array($host, $hosts, true)) {
                 $hosts[] = $host;
@@ -142,7 +145,8 @@ final readonly class OnlineMediaStores
     }
 
     /**
-     * `host[:port]` of a URL, lower case - null when it is no URL
+     * `host[:port]` of a URL, lower case, the port only when it is not the scheme's own (`https://host:443/…` is
+     * `host`, like the presigned URLs name it) - null when it is no URL
      */
     public static function hostOf(string $url): null|string
     {
@@ -152,7 +156,14 @@ final readonly class OnlineMediaStores
             return null;
         }
 
-        return strtolower($parts['host']) . (isset($parts['port']) ? ':' . $parts['port'] : '');
+        $scheme = strtolower($parts['scheme'] ?? '');
+        $port = $parts['port'] ?? null;
+
+        if ($port === null || ($scheme === 'https' && $port === 443) || ($scheme === 'http' && $port === 80)) {
+            return strtolower($parts['host']);
+        }
+
+        return strtolower($parts['host']) . ':' . $port;
     }
 
     /**

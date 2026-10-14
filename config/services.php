@@ -242,6 +242,11 @@ return static function (ContainerConfigurator $configurator): void {
     $services->set(\SpeedPuzzling\Web\Services\TimesBoardGuestCache::class)
         ->arg('$enabled', '%env(bool:TIMES_BOARD_GUEST_CACHE)%');
 
+    // The bus's transaction (config/packages/messenger.php): Symfony's doctrine_transaction for every message but a
+    // HandledOutsideTransaction one
+    $services->set(\SpeedPuzzling\Web\Services\MessengerMiddleware\TransactionMiddleware::class)
+        ->arg('$transaction', inline_service(\Symfony\Bridge\Doctrine\Messenger\DoctrineTransactionMiddleware::class)->args([service('doctrine')]));
+
     $services->load('SpeedPuzzling\\Web\\Query\\', __DIR__ . '/../src/Query/**/{*.php}');
     $services->load('SpeedPuzzling\\Web\\BadgeConditions\\', __DIR__ . '/../src/BadgeConditions/**/{*.php}');
     $services->load('SpeedPuzzling\\Web\\Security\\', __DIR__ . '/../src/Security/**/{*.php}')

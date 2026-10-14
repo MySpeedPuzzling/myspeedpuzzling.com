@@ -32,11 +32,12 @@ POST /check   {"finishUrl": "...", "emptyMatUrl": "..." | null, "referenceUrl": 
 | Answer | When | The app |
 |---|---|---|
 | 400 `invalid_request` | not a JSON object, `finishUrl` missing, a URL not a string, `pieceCount` not 2-100 000 | gives up (a bug) |
-| 403 `url_not_allowed` + `input` | a URL that is not http(s) on an allowed host, or carries user info - checked for all three before any download | gives up (a misconfiguration) |
+| 408 `request_timeout` | the request's body did not arrive within 10 s (`REQUEST_TIMEOUT_SECONDS` - every read and write of a connection) | gives up |
+| 403 `url_not_allowed` + `input` | a URL that is not http(s) on an allowed host, carries user info or anything but printable ASCII - checked for all three before any download | gives up (a misconfiguration) |
 | 413 `payload_too_large` | a body over 64 KB | gives up |
 | 422 `finish_unavailable` + `status` | the store answers the finish photo with a 4xx (gone, refused) or a redirect | gives up |
 | 422 `finish_too_large` / `finish_unreadable` | over the size or pixel cap / not an image OpenCV decodes | gives up |
-| 502 `download_failed` + `input`, `status` | the store failing (5xx, 408, 429), not answering in time, refusing the connection - for any input | tries again later |
+| 502 `download_failed` + `input`, `status`, `reason` | the store failing (5xx, 408, 429), not answering in time, refusing the connection, a body cut short (shorter than its Content-Length, or a JPEG / PNG without its end marker) - for any input; for the empty mat and the reference also 401 / 403 (the store refusing the signature - the photo is not gone). `reason`: `status`, `timeout`, `connection`, `truncated` | tries again later |
 | 503 `busy` + `Retry-After: 5` | the queue is full | tries again later |
 | 500 `check_failed` | a check broke (traceback on stderr) | gives up |
 
@@ -51,12 +52,20 @@ one: that check alone; with neither, or without the piece count (a round of seve
 An internal service that fetches the URLs it is handed is an SSRF risk, so:
 
 - **Allowlist** (`ONLINE_CV_ALLOWED_HOSTS`, comma separated `host` or `host:port`, an IPv6 address in brackets): the
-  object stores' hosts as the app's presigned URLs name them (path-style: `minio:9000`, `fsn1.your-objectstorage.com`).
-  An entry without a port allows only the scheme's default port. **Empty = every URL refused.**
+  object stores' hosts as the app's presigned URLs name them (path-style: `minio:9000`, `fsn1.your-objectstorage.com`;
+  a store addressed by host: `bucket.host`) - `myspeedpuzzling:online-cv:check-round` prints them. An entry without a
+  port allows only the scheme's default port. **Empty = every URL refused.**
 - No redirect is followed (`http.client`, never urllib's opener), no proxy from the environment, http(s) only.
 - Every download: size cap while reading (`ONLINE_CV_MAX_BYTES`), one deadline for connect + all reads
-  (`ONLINE_CV_FETCH_TIMEOUT`), decoded in memory, at most `ONLINE_CV_MAX_PIXELS`. **Nothing is written to disk** (the
-  container runs `read_only`) and nothing is kept after the answer.
+  (`ONLINE_CV_FETCH_TIMEOUT`), decoded in memory, at most `ONLINE_CV_MAX_PIXELS`. A body shorter than its declared
+  Content-Length, or a JPEG / PNG cut short (no end marker - the segments and chunks walked by their lengths), is a failed
+  download (502): OpenCV 4.14 refuses such a file, so it would have been "unreadable" - a finish photo given up, an
+  empty mat or a reference dropped from the check. **Nothing is written to disk** (the container runs `read_only`) and
+  nothing is kept after the answer.
+- A check takes its slot (`ONLINE_CV_WORKERS`) **before** it downloads anything: a request waiting in the queue holds no
+  photo (see Memory).
+- Every read and write of a client's connection has 10 s (`REQUEST_TIMEOUT_SECONDS`): a body shorter than its
+  Content-Length, or a connection that sends nothing, gives its thread back.
 - No public port: the app reaches it on the Docker network. Logs: one JSON line per request - never a URL (presigned
   URLs carry signatures).
 
@@ -74,9 +83,31 @@ An internal service that fetches the URLs it is handed is an SSRF risk, so:
 ## The app
 
 `ONLINE_CV_URL` (empty = the check is off - production until Jan's yes; docs/features/feature_flags.md). Locally: the
-compose service `online-cv` in the profile `cv` (built from this folder, no published port, `read_only`,
-`ONLINE_CV_ALLOWED_HOSTS: "minio:9000"`): `docker compose --profile cv up -d online-cv`, `ONLINE_CV_URL` set in
-`.env.local`. From the host: `docker compose exec web curl -s http://online-cv:8000/health`.
+compose service `online-cv` in the profile `cv` (built from this folder, no published port, `read_only`, `mem_limit:
+1536m`, `cap_drop: [ALL]`, `no-new-privileges`, `ONLINE_CV_ALLOWED_HOSTS: "minio:9000"`): `docker compose --profile cv
+up -d online-cv`, `ONLINE_CV_URL` set in `.env.local`. From the host: `docker compose exec web curl -s
+http://online-cv:8000/health`. Production runs it the same way (docs/TODO.md).
+
+The app waits for the worker (up to 60 s) outside any database transaction - `CheckOnlineFinishPhoto` is
+`HandledOutsideTransaction`; the answer is written by `RecordOnlineMediaCheck` in a transaction of its own, under the
+photo's lock (two answers for one photo: the second finds the first's row).
+
+## Memory
+
+One check holds its three photos decoded (3 bytes a pixel: 150 MB for a 50 MP photo) plus the checks' working set;
+the photos of the requests waiting in the queue are not downloaded yet. Measured (`tests/test_server.py` LoadTest - the
+worker as a process of its own, its peak RSS from `/proc`; `ONLINE_CV_WORKERS=1`, queue 8):
+
+| | one check | 9 requests at once |
+|---|---|---|
+| three 24 MP photos, before (downloads at admission) | +561 MB | +2142 MB |
+| three 24 MP photos, now | +430 MB | +435 MB |
+| three 49.9 MP photos (the pixel cap), now - absolute peak RSS | 879 MB | 884 MB |
+
+The image sets `MALLOC_ARENA_MAX=2` and `MALLOC_MMAP_THRESHOLD_=1048576`: without them every request thread keeps the
+buffers it freed in an allocator arena of its own (+50 to +140 MB over one check with nine at once); with them a freed
+photo goes back to the system at once - for about 50 ms more per check (the HTTP self-test: median 481 ms instead of
+426 with both inputs). **Memory limit:** ~1 GB per `ONLINE_CV_WORKERS` + headroom - compose sets 1.5 GB for one.
 
 ## Run
 

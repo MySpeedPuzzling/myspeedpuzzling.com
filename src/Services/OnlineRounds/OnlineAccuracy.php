@@ -211,6 +211,8 @@ readonly final class OnlineAccuracy
 
             $photo = $moment === null ? null : GetOnlineFinishPhotoChecks::photoOf($photos, $moment['kind'], $moment['eventId']);
         } elseif ($entry->official->piecesPlaced !== null) {
+            // Never a complete puzzle: pieces placed stay below the round puzzle's piece count - RecordRoundResults
+            // refuses the full count (`invalid_pieces_placed`), a puzzle finished at the buzzer is confirmed as a time
             $truthComplete = false;
             $last = $moments === [] ? null : $moments[count($moments) - 1];
             $photo = $last === null ? null : GetOnlineFinishPhotoChecks::photoOf($photos, $last['kind'], $last['eventId']);

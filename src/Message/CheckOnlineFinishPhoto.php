@@ -4,14 +4,19 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Message;
 
+use SpeedPuzzling\Web\Services\MessengerMiddleware\HandledOutsideTransaction;
+
 /**
  * The automated completeness check of one finish photo (docs/features/online-competitions/README.md §5.8, Phase 3 -
  * advisory): async, sent once the photo is verified (VerifyOnlineMediaHandler) while the check is on, and by
  * `myspeedpuzzling:online-cv:check-round`. `attempt` counts the tries of a busy or unreachable worker
  * (CheckOnlineFinishPhotoHandler sends the next one itself, later); `force` checks a photo that has a verdict already
  * again (the same worker version replaces its row, a newer one adds its own).
+ *
+ * Handled outside a transaction: the handler waits for the worker (up to OnlineCvClient::TIMEOUT_SECONDS) and only
+ * reads - the answer is written by RecordOnlineMediaCheck.
  */
-readonly final class CheckOnlineFinishPhoto
+readonly final class CheckOnlineFinishPhoto implements HandledOutsideTransaction
 {
     public function __construct(
         public string $mediaId,

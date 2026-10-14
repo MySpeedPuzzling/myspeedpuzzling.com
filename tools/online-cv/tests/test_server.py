@@ -8,7 +8,9 @@ from __future__ import annotations
 
 import http.client
 import json
+import os
 import socket
+import subprocess
 import sys
 import threading
 import time
@@ -18,6 +20,7 @@ from pathlib import Path
 from unittest import mock
 
 import cv2
+import numpy as np
 
 HERE = Path(__file__).resolve()
 sys.path.insert(0, str(HERE.parents[1]))
@@ -78,7 +81,12 @@ class Fixtures:
                 self.end_headers()
 
                 try:
-                    if "dribble" in route:
+                    if "cut" in route:
+                        # The whole body's length declared, only its start sent - then the connection closes
+                        self.wfile.write(body[:route["cut"]])
+                        self.wfile.flush()
+                        self.close_connection = True
+                    elif "dribble" in route:
                         for index in range(len(body)):
                             self.wfile.write(body[index:index + 1])
                             self.wfile.flush()
@@ -187,6 +195,12 @@ class AllowlistTest(unittest.TestCase):
             "http://evil.example/a.jpg": False,
             "http://minio.evil.example:9000/a.jpg": False,
             "//minio:9000/a.jpg": False,
+            "http://minio:9000/a\x7f.jpg": False,
+            # Printable ASCII only: http.client could not even send these (a 500 before)
+            "http://minio:9000/puzzle/café.jpg": False,
+            "http://mínio:9000/a.jpg": False,
+            "http://minio:9000/a.jpg?sig=☃": False,
+            "http://minio:9000/puzzle/caf%C3%A9.jpg": True,
             "": False,
             None: False,
         }
@@ -197,6 +211,50 @@ class AllowlistTest(unittest.TestCase):
     def test_nothing_is_allowed_by_default(self):
         self.assertFalse(server.url_allowed("http://minio:9000/a.jpg", server.parse_allowed_hosts("")))
         self.assertEqual(server.Config.from_env({}).allowed_hosts, frozenset())
+
+
+class CutShortTest(unittest.TestCase):
+    """
+    A photo cut short is told by its own structure (server.complete()), before the decoder: OpenCV 4.14 refuses it
+    (None - "unreadable": a finish photo given up for good, an empty mat or a reference dropped from the check), other
+    decoders fill the rest grey - either way not the photo that was taken, and a download to try again.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        image = cv2.imdecode(np.frombuffer(case(0, "texture", 0)["finish"], np.uint8), cv2.IMREAD_COLOR)
+        cls.jpegs = {
+            "baseline": cv2.imencode(".jpg", image, [cv2.IMWRITE_JPEG_QUALITY, 90])[1].tobytes(),
+            "progressive": cv2.imencode(".jpg", image, [cv2.IMWRITE_JPEG_PROGRESSIVE, 1])[1].tobytes(),
+            "restart markers": cv2.imencode(".jpg", image, [cv2.IMWRITE_JPEG_RST_INTERVAL, 4])[1].tobytes(),
+        }
+        cls.png = cv2.imencode(".png", image)[1].tobytes()
+
+    def test_a_whole_photo_is_complete(self):
+        for name, data in self.jpegs.items():
+            self.assertTrue(server.complete(data), name)
+            # A phone's trailer after the end marker (a motion photo's video) changes nothing
+            self.assertTrue(server.complete(data + b"\x00\x00\x00\x18ftypmp42" + bytes(range(256)) * 40), name)
+
+        self.assertTrue(server.complete(self.png))
+        self.assertTrue(server.complete(b"\x00\x00\x00\x18ftypheic" + b"\x00" * 200), "other formats are the decoder's")
+
+    def test_a_photo_cut_anywhere_is_not(self):
+        for name, data in [*self.jpegs.items(), ("png", self.png)]:
+            for share in (0.001, 0.05, 0.3, 0.5, 0.9, 0.999):
+                self.assertFalse(server.complete(data[:max(3, int(len(data) * share))]), f"{name} cut at {share}")
+
+            self.assertFalse(server.complete(data[:-1]), f"{name} without its last byte")
+
+    def test_an_end_marker_inside_a_segment_is_not_the_end(self):
+        # An EXIF thumbnail ends with its own end marker - inside the APP1 segment, before the photo's scan
+        thumbnail = cv2.imencode(".jpg", np.zeros((16, 16, 3), np.uint8))[1].tobytes()
+        payload = b"Exif\x00\x00" + thumbnail
+        app1 = b"\xff\xe1" + (len(payload) + 2).to_bytes(2, "big") + payload
+        data = self.jpegs["baseline"][:2] + app1 + self.jpegs["baseline"][2:]
+
+        self.assertTrue(server.complete(data))
+        self.assertFalse(server.complete(data[:len(data) - len(self.jpegs["baseline"]) // 2]))
 
 
 class RequestTest(WorkerTestCase):
@@ -286,7 +344,7 @@ class RequestTest(WorkerTestCase):
 
         status, answer, _ = self.check(finishUrl=url, pieceCount=500)
 
-        self.assertEqual((status, answer), (502, {"error": "download_failed", "input": "finish", "status": None}))
+        self.assertEqual((status, answer), (502, {"error": "download_failed", "input": "finish", "status": None, "reason": "timeout"}))
         self.assertLess(time.monotonic() - started, 2.0)
 
     def test_a_store_that_never_answers_ends_at_the_deadline(self):
@@ -342,13 +400,13 @@ class RequestTest(WorkerTestCase):
 
         self.assertEqual(self.check(finishUrl=gone, pieceCount=500)[:2], (422, {"error": "finish_unavailable", "status": 404}))
         self.assertEqual(self.check(finishUrl=refused, pieceCount=500)[:2], (422, {"error": "finish_unavailable", "status": 403}))
-        self.assertEqual(self.check(finishUrl=failing, pieceCount=500)[:2], (502, {"error": "download_failed", "input": "finish", "status": 500}))
-        self.assertEqual(self.check(finishUrl=throttled, pieceCount=500)[:2], (502, {"error": "download_failed", "input": "finish", "status": 503}))
+        self.assertEqual(self.check(finishUrl=failing, pieceCount=500)[:2], (502, {"error": "download_failed", "input": "finish", "status": 500, "reason": "status"}))
+        self.assertEqual(self.check(finishUrl=throttled, pieceCount=500)[:2], (502, {"error": "download_failed", "input": "finish", "status": 503, "reason": "status"}))
         self.assertEqual(self.check(finishUrl=garbage, pieceCount=500)[:2], (422, {"error": "finish_unreadable"}))
 
         self.restart(allowed_hosts=server.parse_allowed_hosts(f"127.0.0.1:{self.fixtures.port},127.0.0.1:{closed_port}"))
         status, answer, _ = self.check(finishUrl=f"http://127.0.0.1:{closed_port}/a.jpg", pieceCount=500)
-        self.assertEqual((status, answer), (502, {"error": "download_failed", "input": "finish", "status": None}))
+        self.assertEqual((status, answer), (502, {"error": "download_failed", "input": "finish", "status": None, "reason": "connection"}))
 
     def test_an_optional_input_gone_or_unreadable_leaves_the_check_without_it(self):
         puzzle = case(0, "texture", 0)
@@ -370,7 +428,128 @@ class RequestTest(WorkerTestCase):
 
         status, answer, _ = self.check(finishUrl=finish, emptyMatUrl=mat, pieceCount=puzzle["pieces"])
 
-        self.assertEqual((status, answer), (502, {"error": "download_failed", "input": "emptyMat", "status": 503}))
+        self.assertEqual((status, answer), (502, {"error": "download_failed", "input": "emptyMat", "status": 503, "reason": "status"}))
+
+    def test_an_optional_input_whose_signature_the_store_refuses_is_tried_again_later(self):
+        # A clock or key problem, an expired URL - the photo is not gone; going on without it would weaken the verdict
+        puzzle = case(0, "texture", 0)
+        finish = self.serve("/finish.jpg", body=puzzle["finish"])
+        mat = self.serve("/mat.jpg", body=puzzle["mat"])
+
+        for status_code in server.SIGNATURE_STATUSES:
+            refused = self.serve(f"/refused-{status_code}.jpg", status=status_code, body=b"SignatureDoesNotMatch")
+
+            status, answer, _ = self.check(finishUrl=finish, emptyMatUrl=refused, pieceCount=puzzle["pieces"])
+            self.assertEqual((status, answer), (502, {"error": "download_failed", "input": "emptyMat", "status": status_code, "reason": "status"}))
+
+            status, answer, _ = self.check(finishUrl=finish, emptyMatUrl=mat, referenceUrl=refused, pieceCount=puzzle["pieces"])
+            self.assertEqual((status, answer), (502, {"error": "download_failed", "input": "reference", "status": status_code, "reason": "status"}))
+
+    def test_a_download_cut_short_is_tried_again_later(self):
+        puzzle = case(0, "texture", 0)
+        finish = self.serve("/finish.jpg", body=puzzle["finish"])
+
+        # The whole length declared, half of it sent - the store's connection dropped
+        for field_name, name, photo in (("finishUrl", "finish", "finish"), ("emptyMatUrl", "emptyMat", "mat"), ("referenceUrl", "reference", "reference")):
+            cut = self.serve(f"/cut-{name}.png", body=puzzle[photo], cut=len(puzzle[photo]) // 2)
+            body = {"finishUrl": finish, "emptyMatUrl": None, "referenceUrl": None, "pieceCount": puzzle["pieces"], field_name: cut}
+
+            status, answer, _ = self.check(**body)
+            self.assertEqual((status, answer), (502, {"error": "download_failed", "input": name, "status": None, "reason": "truncated"}), name)
+
+        # No length declared (the connection's end is the body's end): the photo itself tells - a JPEG without its end
+        # marker, a PNG without its IEND
+        jpeg = cv2.imencode(".jpg", cv2.imdecode(np.frombuffer(puzzle["finish"], np.uint8), cv2.IMREAD_COLOR))[1].tobytes()
+        self.assertEqual(self.check(finishUrl=self.serve("/whole.jpg", body=jpeg, length=False), pieceCount=puzzle["pieces"])[0], 200)
+
+        for path, data in (("/short.jpg", jpeg[:len(jpeg) * 2 // 3]), ("/short.png", puzzle["finish"][:len(puzzle["finish"]) * 2 // 3])):
+            status, answer, _ = self.check(finishUrl=self.serve(path, body=data, length=False), pieceCount=puzzle["pieces"])
+            self.assertEqual((status, answer), (502, {"error": "download_failed", "input": "finish", "status": None, "reason": "truncated"}), path)
+
+    def test_a_waiting_request_downloads_nothing_before_its_turn(self):
+        self.restart(workers=1, queue=1)
+        puzzle = case(0, "texture", 0)
+        first = self.serve("/first.jpg", body=puzzle["finish"], delay=1.0)
+        second = self.serve("/second.jpg", body=puzzle["finish"])
+        answers = {}
+
+        def call(name, url):
+            answers[name] = self.check(finishUrl=url, pieceCount=puzzle["pieces"])[0]
+
+        threads = [threading.Thread(target=call, args=("first", first))]
+        threads[0].start()
+
+        for _ in range(100):
+            if self.fixtures.requests == ["/first.jpg"]:
+                break
+
+            time.sleep(0.01)
+
+        threads.append(threading.Thread(target=call, args=("second", second)))
+        threads[1].start()
+
+        for _ in range(100):
+            if self.worker.worker.busy == 2:
+                break
+
+            time.sleep(0.01)
+
+        time.sleep(0.2)
+        self.assertEqual(self.worker.worker.busy, 2)
+        # Admitted and waiting - nothing of its own downloaded, nothing decoded
+        self.assertEqual(self.fixtures.requests, ["/first.jpg"])
+
+        for thread in threads:
+            thread.join()
+
+        self.assertEqual(answers, {"first": 200, "second": 200})
+        self.assertEqual(self.fixtures.requests, ["/first.jpg", "/second.jpg"])
+
+    def test_a_url_with_other_than_ascii_is_refused_not_a_500(self):
+        finish = self.serve("/finish.jpg", body=case(0, "texture", 0)["finish"])
+
+        status, answer, _ = self.check(finishUrl=finish, referenceUrl=f"http://127.0.0.1:{self.fixtures.port}/café.jpg", pieceCount=500)
+
+        self.assertEqual((status, answer), (403, {"error": "url_not_allowed", "input": "reference"}))
+        self.assertEqual(self.fixtures.requests, [])
+
+    def test_a_body_shorter_than_its_length_gives_the_thread_back(self):
+        port = self.worker.server_address[1]
+
+        def answer(client: socket.socket) -> bytes:
+            # Everything until the worker closes the connection
+            received = b""
+
+            while chunk := client.recv(4096):
+                received += chunk
+
+            return received
+
+        with mock.patch.object(server.Handler, "timeout", 0.5):
+            # Fewer bytes than declared, the connection held open: 408 after the timeout, the connection closed
+            with socket.create_connection(("127.0.0.1", port), timeout=5) as client:
+                client.sendall(b"POST /check HTTP/1.1\r\nHost: cv\r\nContent-Type: application/json\r\nContent-Length: 100\r\n\r\n{\"finishUrl\"")
+                started = time.monotonic()
+                received = answer(client)
+
+            self.assertTrue(received.startswith(b"HTTP/1.0 408 "), received)
+            self.assertTrue(received.endswith(b'{"error": "request_timeout"}'), received)
+            self.assertLess(time.monotonic() - started, 3.0)
+
+            # Fewer bytes than declared, the client's side closed: 400 at once
+            with socket.create_connection(("127.0.0.1", port), timeout=5) as client:
+                client.sendall(b"POST /check HTTP/1.1\r\nHost: cv\r\nContent-Length: 100\r\n\r\n{}")
+                client.shutdown(socket.SHUT_WR)
+                received = answer(client)
+
+            self.assertTrue(received.startswith(b"HTTP/1.0 400 "), received)
+
+            # Nothing at all after connecting: the thread gives up too
+            with socket.create_connection(("127.0.0.1", port), timeout=5) as client:
+                self.assertEqual(answer(client), b"")
+
+        self.assertEqual(self.call("GET", "/health")[1]["busy"], 0)
+        self.assertEqual(self.fixtures.requests, [])
 
     def test_a_check_that_breaks_answers_500_and_the_worker_stays_up(self):
         finish = self.serve("/finish.jpg", body=case(0, "texture", 0)["finish"])
@@ -447,6 +626,147 @@ class CheckTest(WorkerTestCase):
 
         self.assertEqual(status, 200)
         self.assertEqual((answer["verdict"], answer["method"], answer["confidence"]), ("unsure", "none", 0.0))
+
+
+def free_port() -> int:
+    with socket.socket() as probe:
+        probe.bind(("127.0.0.1", 0))
+
+        return probe.getsockname()[1]
+
+
+def process_memory_kb(pid: int) -> dict:
+    """VmRSS (now) and VmHWM (the peak so far) of a process, in kB - Linux only"""
+    values = {}
+
+    for line in Path(f"/proc/{pid}/status").read_text().splitlines():
+        name, _, value = line.partition(":")
+
+        if name in ("VmRSS", "VmHWM"):
+            values[name] = int(value.split()[0])
+
+    return values
+
+
+class LoadTest(unittest.TestCase):
+    """
+    Memory under load: a waiting request holds no photo - the compute slot is taken before anything is downloaded, so
+    nine requests at once with three large photos each (24 MP, 72 MB decoded) hold about one check's photos at the
+    peak, never nine. The worker runs as a process of its own (its peak RSS from /proc); one check alone first, then
+    nine at once in a fresh process.
+    """
+
+    WIDTH, HEIGHT = 6000, 4000
+    REQUESTS = 9
+
+    @classmethod
+    def setUpClass(cls):
+        if not Path("/proc/self/status").exists():
+            raise unittest.SkipTest("reads the worker's memory from /proc (Linux)")
+
+        puzzle = case(0, "texture", 0)
+        cls.photos = {}
+
+        for name in ("finish", "mat", "reference"):
+            image = cv2.imdecode(np.frombuffer(puzzle[name], np.uint8), cv2.IMREAD_COLOR)
+            large = cv2.resize(image, (cls.WIDTH, cls.HEIGHT), interpolation=cv2.INTER_CUBIC)
+            cls.photos[name] = cv2.imencode(".jpg", large, [cv2.IMWRITE_JPEG_QUALITY, 90])[1].tobytes()
+
+        cls.pieces = puzzle["pieces"]
+
+    def setUp(self):
+        self.fixtures = Fixtures()
+        self.processes = []
+
+        for name, body in self.photos.items():
+            self.fixtures.routes[f"/{name}.jpg"] = {"body": body}
+
+    def tearDown(self):
+        for process in self.processes:
+            process.kill()
+            process.wait()
+
+        self.fixtures.close()
+
+    def spawn(self) -> tuple[subprocess.Popen, int]:
+        port = free_port()
+        process = subprocess.Popen(
+            [sys.executable, str(HERE.parents[1] / "server.py")],
+            env={
+                **os.environ,
+                "ONLINE_CV_LISTEN": f"127.0.0.1:{port}",
+                "ONLINE_CV_ALLOWED_HOSTS": f"127.0.0.1:{self.fixtures.port}",
+                "ONLINE_CV_WORKERS": "1",
+                "ONLINE_CV_QUEUE": str(self.REQUESTS - 1),
+                "ONLINE_CV_FETCH_TIMEOUT": "60",
+                # As the image runs it (Dockerfile): glibc's allocator gives a freed photo back to the system at once
+                # instead of keeping it in the arena of the request thread that held it
+                "MALLOC_ARENA_MAX": "2",
+                "MALLOC_MMAP_THRESHOLD_": "1048576",
+            },
+            stdout=subprocess.DEVNULL,
+        )
+        self.processes.append(process)
+
+        for _ in range(300):
+            try:
+                connection = http.client.HTTPConnection("127.0.0.1", port, timeout=1)
+                connection.request("GET", "/health")
+
+                if connection.getresponse().status == 200:
+                    connection.close()
+
+                    return process, port
+            except OSError:
+                time.sleep(0.1)
+
+        self.fail("the worker did not start")
+
+    def run_checks(self, port: int, count: int) -> list:
+        body = json.dumps({
+            "finishUrl": self.fixtures.url("/finish.jpg"),
+            "emptyMatUrl": self.fixtures.url("/mat.jpg"),
+            "referenceUrl": self.fixtures.url("/reference.jpg"),
+            "pieceCount": self.pieces,
+        }).encode()
+        answers = [None] * count
+
+        def call(index: int):
+            connection = http.client.HTTPConnection("127.0.0.1", port, timeout=300)
+            connection.request("POST", "/check", body=body, headers={"Content-Type": "application/json"})
+            response = connection.getresponse()
+            answers[index] = (response.status, json.loads(response.read()))
+            connection.close()
+
+        threads = [threading.Thread(target=call, args=(index,)) for index in range(count)]
+
+        for thread in threads:
+            thread.start()
+
+        for thread in threads:
+            thread.join()
+
+        return answers
+
+    def peak_growth_mb(self, count: int) -> tuple[float, list]:
+        process, port = self.spawn()
+        baseline = process_memory_kb(process.pid)["VmRSS"]
+        answers = self.run_checks(port, count)
+        peak = process_memory_kb(process.pid)["VmHWM"]
+
+        return (peak - baseline) / 1024, answers
+
+    def test_nine_requests_at_once_hold_about_one_checks_photos(self):
+        one, answers = self.peak_growth_mb(1)
+        self.assertEqual([status for status, _ in answers], [200])
+        nine, answers = self.peak_growth_mb(self.REQUESTS)
+        self.assertEqual([status for status, _ in answers], [200] * self.REQUESTS)
+        decoded = 3 * self.WIDTH * self.HEIGHT * 3 / 1024 / 1024
+        print(f"\n  peak RSS growth: one check {one:.0f} MB, {self.REQUESTS} at once {nine:.0f} MB (one check's photos decoded: {decoded:.0f} MB)", file=sys.stderr)
+
+        # One check at a time (ONLINE_CV_WORKERS=1): the waiting eight hold nothing - allocator slack, never another
+        # check's photos
+        self.assertLess(nine, one + decoded * 0.5)
 
 
 class MergedBoxesTest(unittest.TestCase):

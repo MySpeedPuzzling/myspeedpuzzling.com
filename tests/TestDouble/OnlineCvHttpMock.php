@@ -23,6 +23,9 @@ final class OnlineCvHttpMock
     /** @var list<MockResponse> */
     private static array $queued = [];
 
+    /** @var null|\Closure(): void called while the worker "works" on a request (whileWorking()) */
+    private static null|\Closure $whileWorking = null;
+
     public static function client(): MockHttpClient
     {
         return new MockHttpClient(static function (string $method, string $url, array $options): MockResponse {
@@ -33,8 +36,22 @@ final class OnlineCvHttpMock
                 'body' => is_string($body) ? $body : '',
             ];
 
+            if (self::$whileWorking !== null) {
+                (self::$whileWorking)();
+            }
+
             return array_shift(self::$queued) ?? self::verdict();
         });
+    }
+
+    /**
+     * Something to look at while the app waits for the worker's answer (the open transactions of its connection)
+     *
+     * @param \Closure(): void $hook
+     */
+    public static function whileWorking(\Closure $hook): void
+    {
+        self::$whileWorking = $hook;
     }
 
     /**
@@ -128,5 +145,6 @@ final class OnlineCvHttpMock
     {
         self::$requests = [];
         self::$queued = [];
+        self::$whileWorking = null;
     }
 }

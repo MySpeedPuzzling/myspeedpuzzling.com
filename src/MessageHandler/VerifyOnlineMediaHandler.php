@@ -25,8 +25,8 @@ use Symfony\Component\Messenger\Stamp\DispatchAfterCurrentBusStamp;
  * declared - the review uses only what was checked (README §5.11). Async (config/packages/messenger.php): a HEAD
  * request to object storage never holds up the phone's request.
  * - As declared (the size, the content type, within OnlineEntryQuota::MAX_MEDIA_BYTES) → verifiedBytes; a finish photo
- *   (`candidate`, `button`, `end`) then goes to the completeness check while it is on (CheckOnlineFinishPhoto, Phase 3 -
- *   after the commit, async).
+ *   (`candidate`, `button`, `end`) verified by this call - not before - then goes to the completeness check while it is
+ *   on (CheckOnlineFinishPhoto, Phase 3 - after the commit, async).
  * - Anything else is deleted from the store and stays unverified, with a warning: the presigned URL is signed for the
  *   declared type and length, so only a store that does not check signed headers lets it through.
  * - A missing object fails the message (OnlineMediaObjectMissing), so the async transport tries again later.
@@ -72,9 +72,12 @@ readonly final class VerifyOnlineMediaHandler
         $problem = self::problem($media, $object);
 
         if ($problem === null) {
+            // Verified before (the phone reported the upload again, the transport delivered this twice): the check was
+            // sent then - `check-round` sends what still has none
+            $newlyVerified = $media->verifiedBytes === null;
             $media->markVerified($object->bytes);
 
-            if ($media->kind->isFinishPhoto() && $this->onlineCvSettings->isOn()) {
+            if ($newlyVerified && $media->kind->isFinishPhoto() && $this->onlineCvSettings->isOn()) {
                 $this->messageBus->dispatch(new CheckOnlineFinishPhoto($media->id->toString()), [new DispatchAfterCurrentBusStamp()]);
             }
 

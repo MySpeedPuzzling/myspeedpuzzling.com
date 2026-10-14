@@ -4,20 +4,18 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\MessageHandler;
 
-use Psr\Clock\ClockInterface;
+use LogicException;
 use Psr\Log\LoggerInterface;
-use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\OnlineEntryMedia;
-use SpeedPuzzling\Web\Entity\OnlineMediaCheck;
 use SpeedPuzzling\Web\Exceptions\OnlineEntryMediaNotFound;
 use SpeedPuzzling\Web\Message\CheckOnlineFinishPhoto;
+use SpeedPuzzling\Web\Message\RecordOnlineMediaCheck;
 use SpeedPuzzling\Web\Repository\OnlineEntryMediaRepository;
 use SpeedPuzzling\Web\Repository\OnlineMediaCheckRepository;
 use SpeedPuzzling\Web\Services\OnlineRounds\OnlineCvClient;
 use SpeedPuzzling\Web\Services\OnlineRounds\OnlineCvInputs;
 use SpeedPuzzling\Web\Services\OnlineRounds\OnlineCvSettings;
 use SpeedPuzzling\Web\Value\OnlineCvAnswer;
-use SpeedPuzzling\Web\Value\OnlineFinishCheckVerdict;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\DelayStamp;
@@ -27,7 +25,10 @@ use Symfony\Component\Messenger\Stamp\DelayStamp;
  * advisory: the review shows the verdict and orders its queue by it; nothing else reads it). Async: the CV worker
  * (tools/online-cv/) downloads the photo, the entry's empty mat and the round puzzle's catalogue image by presigned URLs
  * (OnlineCvInputs) and answers a verdict (OnlineCvClient) - stored as the photo's OnlineMediaCheck for the worker's
- * version.
+ * version by RecordOnlineMediaCheck.
+ * - Outside any transaction (CheckOnlineFinishPhoto is HandledOutsideTransaction): the worker takes up to
+ *   OnlineCvClient::TIMEOUT_SECONDS - this handler only reads and asks; the answer is written by RecordOnlineMediaCheck
+ *   (handled at once, its own transaction, under the photo's lock - a duplicate answer finds the row there).
  * - Only while the check is on (ONLINE_CV_URL), only for a finish photo (`candidate`, `button`, `end`) the server
  *   verified; a photo with a verdict already is left alone unless forced (the same version then replaces its row, a newer
  *   one adds its own).
@@ -51,7 +52,6 @@ readonly final class CheckOnlineFinishPhotoHandler
         private OnlineCvInputs $inputs,
         private OnlineCvClient $client,
         private MessageBusInterface $messageBus,
-        private ClockInterface $clock,
         private LoggerInterface $logger,
     ) {
     }
@@ -79,9 +79,10 @@ readonly final class CheckOnlineFinishPhotoHandler
 
         try {
             $request = $this->inputs->for($media);
-        } catch (\Throwable $e) {
-            // A store no longer configured (the second one removed) - nothing the worker could read
-            $this->recordFailure($media, 'inputs_unavailable', $message->attempt, $e);
+        } catch (LogicException $e) {
+            // A store no longer configured (the second one removed - OnlineMediaStores::serverLocation()), an endpoint
+            // that is no URL - nothing the worker could read. Anything else (the database) fails the message as ever.
+            $this->recordFailure($media, 'inputs_unavailable', $message, $e);
 
             return;
         }
@@ -89,7 +90,13 @@ readonly final class CheckOnlineFinishPhotoHandler
         $answer = $this->client->check($request);
 
         if ($answer->kind === OnlineCvAnswer::VERDICT) {
-            $this->recordVerdict($media, $answer, $message);
+            $this->messageBus->dispatch(new RecordOnlineMediaCheck($message->mediaId, $answer, $message->attempt, $message->force));
+            $this->logger->info('An online finish photo was checked for completeness', [
+                'media_id' => $message->mediaId,
+                'verdict' => $answer->verdict?->value,
+                'method' => $answer->method,
+                'ms' => $answer->ms,
+            ]);
 
             return;
         }
@@ -108,87 +115,21 @@ readonly final class CheckOnlineFinishPhotoHandler
             return;
         }
 
-        $this->recordFailure($media, $answer->error ?? 'failed', $message->attempt);
+        $this->recordFailure($media, $answer->error ?? 'failed', $message);
     }
 
-    private function recordVerdict(OnlineEntryMedia $media, OnlineCvAnswer $answer, CheckOnlineFinishPhoto $message): void
+    private function recordFailure(OnlineEntryMedia $media, string $error, CheckOnlineFinishPhoto $message, null|LogicException $exception = null): void
     {
-        assert($answer->verdict !== null && $answer->version !== null);
-        $now = $this->clock->now();
-        $existing = $this->onlineMediaCheckRepository->ofMedia($message->mediaId, $answer->version);
-
-        if ($existing !== null) {
-            // This version's verdict stays - unless a re-check was asked for
-            if ($message->force) {
-                $existing->checkedAgain(
-                    verdict: $answer->verdict,
-                    checkedAt: $now,
-                    confidence: $answer->confidence,
-                    gaps: $answer->gaps,
-                    reason: $answer->reason,
-                    method: $answer->method,
-                    ms: $answer->ms,
-                    imageWidth: $answer->imageWidth,
-                    imageHeight: $answer->imageHeight,
-                    details: $answer->details,
-                    attempts: $message->attempt,
-                );
-            }
-
-            return;
-        }
-
-        $this->onlineMediaCheckRepository->save(new OnlineMediaCheck(
-            id: Uuid::uuid7(),
-            media: $media,
-            workerVersion: $answer->version,
-            verdict: $answer->verdict,
-            checkedAt: $now,
-            confidence: $answer->confidence,
-            gaps: $answer->gaps,
-            reason: $answer->reason,
-            method: $answer->method,
-            ms: $answer->ms,
-            imageWidth: $answer->imageWidth,
-            imageHeight: $answer->imageHeight,
-            details: $answer->details,
-            attempts: $message->attempt,
-        ));
-
-        $this->logger->info('An online finish photo was checked for completeness', [
-            'media_id' => $message->mediaId,
-            'verdict' => $answer->verdict->value,
-            'method' => $answer->method,
-            'ms' => $answer->ms,
-        ]);
-    }
-
-    private function recordFailure(OnlineEntryMedia $media, string $error, int $attempts, null|\Throwable $exception = null): void
-    {
-        $now = $this->clock->now();
         // Said once per round: the first failure is for a person to look at, the rest are the same story
         $firstOfRound = $this->onlineMediaCheckRepository->roundHasFailure($media) === false;
-        $existing = $this->onlineMediaCheckRepository->ofMedia($media->id->toString(), OnlineMediaCheck::NO_VERSION);
 
-        if ($existing !== null) {
-            $existing->failedAgain($error, $now, $attempts);
-        } else {
-            $this->onlineMediaCheckRepository->save(new OnlineMediaCheck(
-                id: Uuid::uuid7(),
-                media: $media,
-                workerVersion: OnlineMediaCheck::NO_VERSION,
-                verdict: OnlineFinishCheckVerdict::Failed,
-                checkedAt: $now,
-                error: mb_substr($error, 0, 255),
-                attempts: $attempts,
-            ));
-        }
+        $this->messageBus->dispatch(new RecordOnlineMediaCheck($message->mediaId, OnlineCvAnswer::failed($error), $message->attempt));
 
         $context = [
-            'media_id' => $media->id->toString(),
+            'media_id' => $message->mediaId,
             'round_id' => $media->onlineEntry->entry->round->id->toString(),
             'error' => $error,
-            'attempts' => $attempts,
+            'attempts' => $message->attempt,
         ];
 
         if ($exception !== null) {

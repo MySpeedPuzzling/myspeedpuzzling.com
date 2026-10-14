@@ -40,7 +40,9 @@ return App::config([
                         // Outside doctrine_transaction on purpose: the per-key lock of a
                         // SerializedByLock message is released only after the commit.
                         'SpeedPuzzling\Web\Services\MessengerMiddleware\LockUntilCommittedMiddleware',
-                        'doctrine_transaction',
+                        // doctrine_transaction for every message but a HandledOutsideTransaction one (its handler
+                        // waits for a slow external call - its write is a message of its own)
+                        'SpeedPuzzling\Web\Services\MessengerMiddleware\TransactionMiddleware',
                     ],
                 ],
             ],
@@ -100,7 +102,9 @@ return App::config([
                 // request; a missing object is tried again by the transport (docs/features/online-competitions/)
                 VerifyOnlineMedia::class => 'async',
                 // The completeness check of a finish photo: the CV worker downloads and checks it - seconds, never in a
-                // request; a busy worker is asked again by a delayed message of the handler's own (Phase 3)
+                // request, nor in a transaction (HandledOutsideTransaction - its row is written by RecordOnlineMediaCheck,
+                // not routed: handled at once); a busy worker is asked again by a delayed message of the handler's own
+                // (Phase 3)
                 CheckOnlineFinishPhoto::class => 'async',
                 SendPlayerContentDigest::class => 'content_digest_emails',
                 // Events that must run synchronously for immediate UI updates (Turbo Streams)

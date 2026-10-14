@@ -45,30 +45,22 @@ final readonly class S3QueryPresigner
         }
 
         $endpoint = parse_url($location->endpoint);
+        // The Host header a browser sends: the port only when it is not the scheme's own, `bucket.host` for a store
+        // addressed by host - the one rule, also for the hosts the CV worker may fetch from (OnlineMediaStores::serverHosts())
+        $host = $location->urlHost();
 
-        if ($endpoint === false || !isset($endpoint['scheme'], $endpoint['host'])) {
+        if ($endpoint === false || !isset($endpoint['scheme']) || $host === null) {
             throw new InvalidArgumentException(sprintf('The object storage endpoint "%s" is not a URL.', $location->endpoint));
         }
 
         $scheme = strtolower($endpoint['scheme']);
-        $host = strtolower($endpoint['host']);
-        $port = $endpoint['port'] ?? null;
-
-        // The Host header a browser sends: the port only when it is not the scheme's own
-        if ($port !== null && !($scheme === 'https' && $port === 443) && !($scheme === 'http' && $port === 80)) {
-            $host .= ':' . $port;
-        }
 
         // S3 does not double-encode the path: every segment encoded once, the slashes kept
         $basePath = rtrim($endpoint['path'] ?? '', '/');
         $encodedKey = implode('/', array_map(rawurlencode(...), explode('/', ltrim($key, '/'))));
-
-        if ($location->pathStyle) {
-            $path = $basePath . '/' . rawurlencode($location->bucket) . '/' . $encodedKey;
-        } else {
-            $host = $location->bucket . '.' . $host;
-            $path = $basePath . '/' . $encodedKey;
-        }
+        $path = $location->pathStyle
+            ? $basePath . '/' . rawurlencode($location->bucket) . '/' . $encodedKey
+            : $basePath . '/' . $encodedKey;
 
         $utc = $now->setTimezone(new DateTimeZone('UTC'));
         $amzDate = $utc->format('Ymd\THis\Z');

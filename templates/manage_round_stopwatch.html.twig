@@ -40,6 +40,7 @@
         </div>
 
         <div class="card mt-4"
+             data-bfcache-reload
              data-controller="round-stopwatch"
              data-round-stopwatch-state-value="{{ stopwatch|json_encode|e('html_attr') }}"
              data-round-stopwatch-server-now-ms-value="{{ server_now_ms }}"

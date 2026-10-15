@@ -8,7 +8,9 @@
     Signed in: a GET form to the one-tap action's confirmation view (post_action_confirm, PostAction::Follow / Unfollow -
     never a POST form: the events pages may be restored from Turbo's cache, GEST-15 decision 99). event_follow_controller.js
     sends the follow / unfollow POST with fetch (the stateless CSRF token from data-token) and flips every star of the same
-    target in place; without JavaScript the view's single button posts it and the controller redirects back with a flash.
+    target in place - the form's action with it, between the two confirmation views (data-follow-view / data-unfollow-view,
+    GET routes: a submit before the controller connected never reaches a POST-only route); without JavaScript the view's
+    single button posts it and the controller redirects back with a flash.
     Guests: a link to sign in (and back); with JavaScript it shows "Sign in to follow…" under the row instead
     (the note's template is in event_parts/_manage_menu_host.html.twig).
 #}
@@ -29,6 +31,8 @@
           data-action="submit->event-follow#submit"
           data-follow-url="{{ path('event_follow') }}"
           data-unfollow-url="{{ path('event_unfollow') }}"
+          data-follow-view="{{ path('post_action_confirm', {action: 'follow'}) }}"
+          data-unfollow-view="{{ path('post_action_confirm', {action: 'unfollow'}) }}"
           data-token="{{ csrf_token('event_follow') }}"
           data-error="{{ 'events_organizer.follow.try_again'|trans }}">
         <input type="hidden" name="target" value="{{ target }}">

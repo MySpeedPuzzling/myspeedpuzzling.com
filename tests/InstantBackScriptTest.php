@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests;
 
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\Finder\Finder;
 use Symfony\Component\Process\ExecutableFinder;
 use Symfony\Component\Process\Process;
 
@@ -63,6 +64,13 @@ final class InstantBackScriptTest extends TestCase
             'NO_CACHE' => 'no-cache',
             'NO_PREVIEW' => 'no-preview',
             'BODY_LAYER_CLASSES' => ['modal-open', 'global-search-shown'],
+            'CACHE_CONTROL_META' => 'turbo-cache-control',
+            // F11: ~16 ms of Turbo's clone at 4x CPU throttling - an element ~2.7 µs, a picture ~125 µs (measured)
+            'CLONE_BUDGET_UNITS' => 6000,
+            'PICTURE_UNITS' => 48,
+            'SCRIPT_BUILT_LAYERS' => '.ev-menu-layer, .ev-follow-note',
+            'REBUILT_ON_CONNECT' => '.pwa-ptr-indicator, #imageEditorModal',
+            'MODAL_FRAME_ID' => 'modal-frame',
         ], self::results()['constants']);
     }
 
@@ -107,7 +115,91 @@ final class InstantBackScriptTest extends TestCase
             'reverted' => 'reload',
             'nativeApp' => 'leave',
             'nativeAppReverted' => 'leave',
+            // F3: the viewer of the last page this browser loaded (any tab) is not the copy's - signed out, in or as
+            // somebody else elsewhere
+            'signedOutElsewhere' => 'reload',
+            'otherAccountElsewhere' => 'reload',
+            'sameViewerStored' => 'snapshot',
+            'storedViewerUnknown' => 'snapshot',
+            'guestCopySignedInElsewhere' => 'reload',
         ], self::results()['restore decision']);
+    }
+
+    /** F1 / F11: the page a visit leaves keeps no copy when a write starts the visit or the page is too large to copy */
+    public function testWhichPagesKeepNoCopy(): void
+    {
+        self::assertSame([
+            'plainVisit' => false,
+            'byWrite' => true,
+            'frameVisitByWrite' => false,
+            'largeByElements' => true,
+            'atTheBudget' => false,
+            'largeByPictures' => true,
+            'largeFrameVisit' => false,
+            'units' => [3543, 8821, 0, 0],
+        ], self::results()['pages kept out of the cache']);
+    }
+
+    /**
+     * Instant Back review F1: a page left through a write - a [data-clears-snapshots] link (Favorite, redirected back to
+     * the same address: review S1), a visit a script starts while a write is unrendered (a Live action's redirect), a
+     * click that wrote on its way (a beacon), a write landing while the visit was on its way - never comes back from a
+     * copy taken before or around the write: its live turbo-cache-control says no-cache at turbo:visit, and the write is
+     * noted again after the visit's page rendered (even a copy Turbo took anyway is outdated). A write in place followed
+     * by the user's own link or GET form keeps the copy taken after it. Sign-out is a write every tab learns of.
+     */
+    public function testAPageLeftThroughAWriteNeverComesBackFromItsCopy(): void
+    {
+        self::assertSame([
+            'favoriteThenBack' => [
+                'cacheControlAtVisit' => 'no-cache',
+                'recordedAroundTheWrite' => 1,
+                'ledgerAfterTheVisit' => null,
+                'writeStampedAfterTheCopy' => true,
+                'back' => 'reload',
+                'assigned' => 1,
+            ],
+            'scriptVisitAfterAWrite' => ['cacheControlAtVisit' => 'no-cache', 'back' => 'reload'],
+            'userLinkAfterAWriteInPlace' => ['cacheControlAtVisit' => 'no-preview', 'back' => 'snapshot'],
+            'writeDuringTheVisit' => ['recorded' => 0, 'back' => 'reload'],
+            'clickThatWrote' => ['cacheControlAtVisit' => 'no-cache'],
+            'frameClickThenAWrite' => ['cacheControlAtVisit' => 'no-cache'],
+            'getFormAfterAWrite' => ['cacheControlAtVisit' => 'no-preview'],
+            'signOutLink' => ['lastWrite' => true, 'ledger' => 0, 'bfcache' => 'reload'],
+        ], self::results()['a page left through a write']);
+    }
+
+    /**
+     * Instant Back review F11: a page whose clone would cost more than a frame (elements + PICTURE_UNITS per picture over
+     * CLONE_BUDGET_UNITS) leaves through the full-load path - by a visit or by Back; within the budget it is copied; a
+     * frame visit never changes the page
+     */
+    public function testAPageTooLargeToCopyLeavesThroughTheFullLoadPath(): void
+    {
+        self::assertSame([
+            'overByElements' => 'no-cache',
+            'overByPictures' => 'no-cache',
+            'withinTheBudget' => ['cacheControl' => 'no-preview', 'recorded' => 1],
+            'leftByBack' => 'no-cache',
+            'frameVisit' => 'no-preview',
+        ], self::results()['a page too large to copy']);
+    }
+
+    /**
+     * Instant Back review F3: a sign-out in another tab - Back here never shows the signed-in copy (the stored viewer is
+     * compared); another tab's write or viewer change drops this tab's copies at once (the storage event)
+     */
+    public function testAViewerChangeElsewhereOutdatesTheCopies(): void
+    {
+        self::assertSame([
+            'signedOutInAnotherTab' => ['back' => 'reload', 'assigned' => 1],
+            'sameViewer' => ['back' => 'snapshot'],
+            'storageEvents' => [
+                'afterOtherKey' => ['ledger' => 1, 'clears' => 0],
+                'afterWrite' => ['ledger' => 0, 'clears' => 1],
+                'afterViewer' => ['ledger' => 0, 'clears' => 2],
+            ],
+        ], self::results()['the viewer changed elsewhere']);
     }
 
     public function testTheCacheWorkWaitsForAViewTransitionOnly(): void
@@ -166,10 +258,24 @@ final class InstantBackScriptTest extends TestCase
             'cardDialogs' => 0,
             'menuShell' => 'menu-layer',
             'siteMenuInSlot' => 'menu-slot',
+            // F2 / F7: the events ⋯ menu layer (on <body>) and a guest's "Sign in to follow" note
+            'scriptLayers' => 0,
         ];
 
-        self::assertSame([...$clean, 'menuOrdered' => ['site-menu']], self::results()['sanitize live body']);
-        self::assertSame([...$clean, 'liveUntouched' => 1], self::results()['sanitize detached copy']);
+        self::assertSame([
+            ...$clean,
+            // The live page keeps what its controllers own (a failed visit leaves it as it was)
+            'rebuiltOnConnect' => 2,
+            'modalFrame' => ['children' => 1, 'src' => '/en/edit-time/1', 'complete' => true, 'dataTarget' => 'frame'],
+            'menuOrdered' => ['site-menu'],
+        ], self::results()['sanitize live body']);
+        self::assertSame([
+            ...$clean,
+            // A copy about to be shown: what its controllers build again goes, the modal frame as the server renders it
+            'rebuiltOnConnect' => 0,
+            'modalFrame' => ['children' => 0, 'src' => null, 'complete' => false, 'dataTarget' => 'frame'],
+            'liveUntouched' => 1,
+        ], self::results()['sanitize detached copy']);
         self::assertSame('ok', self::results()['sanitize never throws']);
     }
 
@@ -237,7 +343,8 @@ final class InstantBackScriptTest extends TestCase
             'afterGet' => ['recorded' => 1, 'clears' => 0],
             'afterRefusedPost' => ['recorded' => 1, 'clears' => 0],
             'afterPost' => ['recorded' => 0, 'clears' => 1],
-            'afterFavorite' => ['recorded' => 0, 'clears' => 2],
+            // The visit after the POST is the write's: noted again once its page rendered (F1), then the click itself
+            'afterFavorite' => ['recorded' => 0, 'clears' => 3],
             'cleared' => 0,
         ], self::results()['staleness']);
     }
@@ -359,6 +466,70 @@ final class InstantBackScriptTest extends TestCase
             'readsAfterSettled' => 0,
             'noFonts' => false,
         ], self::results()['fonts asked while they load only']);
+    }
+
+    /**
+     * Every module that puts DOM on <body> (outside its controller's element - Turbo's copy holds it, a restored copy's
+     * controllers never knew it) and how that DOM stays out of a restored page (Instant Back review F2): torn down on
+     * `msp:before-cache`, removed by sanitizeSnapshot(), reused by id, or never on a page that opts in
+     */
+    private const array BODY_APPENDERS = [
+        'assets/player_card_layer.js' => ['before-cache', 'dialog.player-card-layer'],
+        'assets/controllers/event_manage_menu_controller.js' => ['before-cache', '.ev-menu-layer'],
+        'assets/controllers/pwa_lifecycle_controller.js' => ['rebuilt', '.pwa-ptr-indicator'],
+        'assets/controllers/image_editor_controller.js' => ['rebuilt', '#imageEditorModal'],
+        'assets/controllers/tab_gestures_controller.js' => ['turbo:before-cache', 'endLongPress'],
+        'assets/controllers/leaderboard_window_controller.js' => ['reused by id', 'LIVE_REGION_ID'],
+        'assets/last_piece_reveal/confetti.js' => ['not opted in', 'last-piece-reveal'],
+        'assets/participants_sheet/views/people_view.js' => ['not opted in', 'participants-sheet'],
+    ];
+
+    public function testEveryModuleThatBuildsOnTheBodyKeepsItOutOfARestoredPage(): void
+    {
+        $root = dirname(__DIR__) . '/';
+        $found = [];
+
+        foreach (new Finder()->files()->in($root . 'assets')->exclude('vendor')->name('*.js') as $file) {
+            if (preg_match('~document\.body\)?\.(?:append|appendChild|prepend|insertAdjacentHTML|insertAdjacentElement)\(~', $file->getContents()) === 1) {
+                $found[] = 'assets/' . str_replace('\\', '/', $file->getRelativePathname());
+            }
+        }
+
+        sort($found);
+        $listed = array_keys(self::BODY_APPENDERS);
+        sort($listed);
+        self::assertSame($listed, $found, 'a module building on <body> names how its DOM stays out of a restored page');
+
+        $instantBack = (string) file_get_contents($root . 'assets/instant_back.js');
+        $constants = self::results()['constants'];
+        self::assertIsArray($constants);
+        $rebuiltOnConnect = $constants['REBUILT_ON_CONNECT'] ?? null;
+        self::assertIsString($rebuiltOnConnect);
+        $optedInScope = '';
+
+        foreach (TurboCacheControlOptInTest::OPTED_IN_TEMPLATES as $template) {
+            $optedInScope .= implode("\n", TurboCacheControlOptInTest::scope($template));
+        }
+
+        foreach (self::BODY_APPENDERS as $module => [$how, $what]) {
+            $source = (string) file_get_contents($root . $module);
+
+            match ($how) {
+                // The owner listens to msp:before-cache, and sanitizeSnapshot() removes what a copy still holds
+                'before-cache' => self::assertTrue(
+                    preg_match('~import \\{[^}]*\\bBEFORE_CACHE_EVENT\\b[^}]*\\} from \'\\.\\.?/(?:\\.\\./)?instant_back\\.js\';~', $source) === 1
+                        && preg_match('~document\\.addEventListener\\(BEFORE_CACHE_EVENT,~', $source) === 1
+                        && str_contains($instantBack, $what),
+                    $module,
+                ),
+                // Removed from a copy about to be shown; its controller builds it again
+                'rebuilt' => self::assertStringContainsString($what, $rebuiltOnConnect, $module),
+                'turbo:before-cache' => self::assertMatchesRegularExpression('~turbo:before-cache\',\s*this\.' . $what . '~', $source, $module),
+                'reused by id' => self::assertStringContainsString('getElementById(' . $what . ')', $source, $module),
+                // Its controller is on no page that opts in to Turbo's restore cache
+                'not opted in' => self::assertStringNotContainsString($what, $optedInScope, $module),
+            };
+        }
     }
 
     /**

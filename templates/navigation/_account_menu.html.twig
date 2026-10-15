@@ -37,7 +37,7 @@
                 {{- include('_language_menu.html.twig', {nav_surface: 'account', list_class: 'nav-account-languages'}, with_context = false) -}}
             {#- -#}</details></li>
             <li class="nav-account-divider" role="separator"></li>
-            <li><a class="dropdown-item nav-account-logout" href="{{ path('logout') }}" data-turbo="false" data-nav="account/links/logout"><i class="bi bi-box-arrow-right" aria-hidden="true"></i>{{ 'nav.account.logout'|trans }}</a></li>
+            <li><a class="dropdown-item nav-account-logout" href="{{ path('logout') }}" data-turbo="false" data-clears-snapshots data-nav="account/links/logout"><i class="bi bi-box-arrow-right" aria-hidden="true"></i>{{ 'nav.account.logout'|trans }}</a></li>
         {#- -#}</ul>
     {#- -#}</div>
 {#- -#}</div>

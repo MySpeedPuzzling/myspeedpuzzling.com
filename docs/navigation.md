@@ -326,7 +326,7 @@ Linked by a navigation surface, but not a Menu destination - each with why.
 | `menu` | Menu | `menu` | everyone | Q5 | Is the Menu: the page behind ☰ and the footer's All pages (no JS, a new tab, the native app) |
 | `help` | Help & feedback | `help` | everyone | Q5 | The ? / Feedback tool of the top bar; its Menu row is send_feedback |
 | `feedback` | Send feedback | `feedback` | signed_in | Q1 | Help sheet form endpoint: the feedback box posts here (decision 76) |
-| `post_action_confirm` | Confirm | `post_action_confirm` | signed_in | Q1 | Confirmation view of a one-tap action of a browse page (GEST-15, PostAction): what its link opens without JavaScript, in a new tab or inside the app; Block and Publish ask there, in the modal frame |
+| `post_action_confirm` | Confirm | `post_action_confirm` | signed_in | Q1 | Confirmation view of a one-tap action of a browse page (GEST-15, PostAction): what its link opens without JavaScript, in a new tab or inside the app; Block asks there, in the modal frame (Publish stays one tap) |
 | `suggest_correction` | Suggest a correction to this puzzle | `puzzle_suggest_change` | everyone | Q1 | Action on a puzzle page; the Help sheet offers it first there |
 | `my_profile` | My profile | `my_profile` | everyone | Q8 | Legacy redirect (your profile, or sign in for guests); the Profile tab and the You card link player_profile directly (D9) |
 | `player_page` | Profile | `player_profile` | everyone | Q2 | Object page: others' profiles are reached from lists, search and the player card |

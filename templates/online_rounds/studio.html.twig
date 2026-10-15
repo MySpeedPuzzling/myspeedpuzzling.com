@@ -30,6 +30,7 @@
 
     {% if video_missing is null %}
         <div class="online-rounds-page online-studio pb-5"
+             data-bfcache-reload
              data-controller="online-studio"
              data-online-studio-urls-value="{{ {
                  token: path('online_video_token', {roundId: round_id}),

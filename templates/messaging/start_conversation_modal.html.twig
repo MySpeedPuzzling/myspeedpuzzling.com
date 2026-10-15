@@ -12,7 +12,7 @@
 
     {% if conversation is defined and conversation is not null %}
         {# Existing conversation - show chat history #}
-        <div class="modal-body p-0" data-controller="messaging conversation-realtime"
+        <div class="modal-body p-0" data-bfcache-reload data-controller="messaging conversation-realtime"
              data-conversation-realtime-conversation-id-value="{{ conversation.id }}"
              data-conversation-realtime-player-id-value="{{ logged_user.profile.playerId }}"
              data-conversation-realtime-typing-url-value="{{ path('typing_indicator', {conversationId: conversation.id}) }}"

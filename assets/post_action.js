@@ -62,6 +62,27 @@ export function outcomeOf({ status, ok, redirected, url, contentType, currentUrl
     return { kind: 'refresh' };
 }
 
+/**
+ * The one-tap links were buttons (Instant Back review F9): they say role="button" and Space activates them as it does a
+ * button - its keydown only stops the page from scrolling ('prevent'), its keyup taps ('activate'); Enter is the link's
+ * own. A Space with a modifier, held down (repeat) or in an editable field is left alone (null).
+ */
+export function spaceActivation(event) {
+    if (!event || (event.key !== ' ' && event.key !== 'Spacebar')) {
+        return null;
+    }
+
+    if (event.ctrlKey || event.metaKey || event.altKey || event.shiftKey || event.isComposing) {
+        return null;
+    }
+
+    if (event.type === 'keydown') {
+        return 'prevent';
+    }
+
+    return event.type === 'keyup' ? 'activate' : null;
+}
+
 /** The form body: the link's fields, a GET form's own fields (the nudge's country), the CSRF token */
 export function bodyEntries(fields = {}, formEntries = [], token = '') {
     const entries = [];

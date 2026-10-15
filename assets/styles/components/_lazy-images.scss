@@ -7,10 +7,6 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;      // Center horizontally
-  // Not on the text baseline: an inline-flex box's baseline is its image's bottom edge, which moves while the image
-  // loads (and with its shape) - the line, and so the row or card, changed height with it. A Back that restores a long
-  // list from Turbo's snapshot found the rows above shifted by the images' load state (GEST-15, PROF-05c)
-  vertical-align: top;
   background-color: #e9ecef;    // Placeholder background
 
   // Size variants

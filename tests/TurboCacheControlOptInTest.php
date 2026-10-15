@@ -82,7 +82,90 @@ final class TurboCacheControlOptInTest extends WebTestCase
     {
         $base = (string) file_get_contents(self::TEMPLATES . 'base.html.twig');
 
-        self::assertStringContainsString('<meta name="turbo-cache-control" content="{% block turbo_cache_control %}no-cache{% endblock %}">', $base);
+        // Inside the Hotwire Native app always no-cache (NAV-14, Instant Back review Q4) - the block is the web's
+        self::assertStringContainsString('<meta name="turbo-cache-control" content="{% if is_native_app() %}no-cache{% else %}{% block turbo_cache_control %}no-cache{% endblock %}{% endif %}">', $base);
+    }
+
+    /**
+     * Instant Back review F10 / Q4: inside the Hotwire Native app no page is kept for a restore (the app's Back would
+     * skip the 10-minute and viewer rules) - an opted-in page says no-cache there, the same page says no-preview on the
+     * web
+     *
+     * @return iterable<string, array{string, null|string}>
+     */
+    public static function appPages(): iterable
+    {
+        yield 'catalogue (guest)' => ['/en/puzzle', null];
+        yield 'Hub (member)' => ['/en/hub', PlayerFixture::PLAYER_REGULAR];
+        yield 'profile (visitor)' => ['/en/player-profile/' . PlayerFixture::PLAYER_REGULAR, PlayerFixture::PLAYER_WITH_FAVORITES];
+    }
+
+    #[DataProvider('appPages')]
+    public function testTheNativeAppKeepsNoCopy(string $url, null|string $player): void
+    {
+        foreach (['Hotwire Native Android; Turbo Native Android' => 'no-cache', 'Hotwire Native iOS; Turbo Native iOS' => 'no-cache', 'Mozilla/5.0 (Linux; Android 14; Pixel 7) Mobile Safari/537.36' => 'no-preview'] as $userAgent => $expected) {
+            self::ensureKernelShutdown();
+            $browser = self::createClient(server: ['HTTP_USER_AGENT' => $userAgent]);
+
+            if ($player !== null) {
+                TestingLogin::asPlayer($browser, $player);
+            }
+
+            $crawler = $browser->request('GET', $url);
+            self::assertResponseIsSuccessful();
+            self::assertSame($expected, $crawler->filter('head meta[name="turbo-cache-control"]')->attr('content'), $userAgent);
+        }
+    }
+
+    /**
+     * Staleness (decision 65, Instant Back review F4): every GET link that writes - the Favorite toggles wherever they
+     * are (header, ⋯ menu, the player card, "Suggested for you"), a delete link, a collection's delete - clears the
+     * snapshots (data-clears-snapshots on the tag); signed-in viewers only where the template also serves guests
+     */
+    public function testEveryGetLinkThatWritesClearsTheSnapshots(): void
+    {
+        $routes = ['add_player_to_favorite', 'remove_player_from_favorite', 'delete_time', 'delete_collection'];
+        $found = 0;
+        $missing = [];
+
+        foreach (new Finder()->files()->in(self::TEMPLATES)->name('*.twig') as $file) {
+            preg_match_all('~<a\b(?:[^>{]|\{\{.*?\}\}|\{%.*?%\})*>~s', $file->getContents(), $tags);
+
+            foreach ($tags[0] as $tag) {
+                foreach ($routes as $route) {
+                    if (str_contains($tag, "path('" . $route . "'")) {
+                        $found++;
+
+                        if (!str_contains($tag, 'data-clears-snapshots')) {
+                            $missing[] = $file->getRelativePathname() . ': ' . $route;
+                        }
+                    }
+                }
+            }
+        }
+
+        self::assertGreaterThanOrEqual(9, $found, 'the guard sees the links');
+        self::assertSame([], $missing);
+    }
+
+    /**
+     * Instant Back review F3: signing out is a write every tab learns of at the click (the Menu's and the account menu's
+     * sign-out links say data-clears-snapshots); a guest's page has neither the link nor the attribute
+     */
+    public function testSigningOutClearsTheSnapshots(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+        $crawler = $browser->request('GET', '/en/puzzle');
+        self::assertResponseIsSuccessful();
+
+        $signOut = $crawler->filter('a[href$="/logout"]');
+        self::assertGreaterThan(0, $signOut->count());
+        self::assertCount($signOut->count(), $crawler->filter('a[href$="/logout"][data-clears-snapshots][data-turbo="false"]'));
+
+        self::ensureKernelShutdown();
+        $guest = self::createClient()->request('GET', '/en/puzzle');
+        self::assertCount(0, $guest->filter('[data-clears-snapshots]'));
     }
 
     /**

@@ -6,6 +6,8 @@ namespace SpeedPuzzling\Web\Twig;
 
 use SpeedPuzzling\Web\Services\PlatformDetector;
 use SpeedPuzzling\Web\Value\PostAction;
+use SpeedPuzzling\Web\Value\ReturnUrl;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
@@ -19,10 +21,12 @@ use Twig\TwigFunction;
  *   <a {{ post_action_attributes('wishlist_remove', {puzzleId: id}, {context: 'detail'}) }} class="…">…</a>
  *
  * renders the link's href - the confirmation view `post_action_confirm` with the values, and `back` (the page it was
- * on) - and what post_action_controller.js needs to post it in one tap: the route's URL, the fields, the CSRF token, the
- * text of a failure. The action that asks first (Block) opens the view in the modal frame instead (`_top` inside
- * the app) and carries no controller. Values of the wrong shape never reach a link (PostAction validates them - a
- * template passing one fails loudly).
+ * on: the page's own address, also when a Live component re-renders the link - backUrl()) - and what
+ * post_action_controller.js needs to post it in one tap: the route's URL, the fields, the CSRF token, the text of a
+ * failure. The links were buttons: role="button" (post_action_controller.js taps them on Space, Instant Back review F9).
+ * The action that asks first (Block) opens the view in the modal frame instead (`_top` inside the app), its controller
+ * there for Space only. Values of the wrong shape never reach a link (PostAction validates them - a template passing one
+ * fails loudly).
  */
 final class PostActionTwigExtension extends AbstractExtension
 {
@@ -57,13 +61,53 @@ final class PostActionTwigExtension extends AbstractExtension
         $this->validate($postAction, $routeParameters, $fields);
 
         $query = ['action' => $postAction->value, ...$routeParameters, ...$fields];
-        $back = $this->requestStack->getCurrentRequest()?->getRequestUri();
+        $back = $this->backUrl();
 
-        if ($back !== null && $back !== '') {
+        if ($back !== null) {
             $query['back'] = $back;
         }
 
         return $this->urlGenerator->generate('post_action_confirm', $query);
+    }
+
+    /**
+     * The page the link is on (the view's Cancel goes back there). A Live component's re-render is a request of its own
+     * (`/_components/<Name>`, props in its query): the page is the one Live names in X-Live-Url, else the Referer's
+     * path - each only when ReturnUrl accepts it; without either the link carries no `back` (Instant Back review F8)
+     */
+    private function backUrl(): null|string
+    {
+        $request = $this->requestStack->getMainRequest();
+
+        if ($request === null) {
+            return null;
+        }
+
+        if (!self::isLiveComponentRequest($request)) {
+            $uri = $request->getRequestUri();
+
+            return $uri !== '' ? $uri : null;
+        }
+
+        $live = ReturnUrl::tryFrom($request->headers->get('X-Live-Url'));
+
+        if ($live !== null) {
+            return $live->path;
+        }
+
+        $referer = $request->headers->get('Referer');
+        $parts = is_string($referer) ? parse_url($referer) : false;
+
+        if (!is_array($parts) || !isset($parts['path']) || (isset($parts['host']) && $parts['host'] !== $request->getHost())) {
+            return null;
+        }
+
+        return ReturnUrl::tryFrom($parts['path'] . (isset($parts['query']) ? '?' . $parts['query'] : ''))?->path;
+    }
+
+    private static function isLiveComponentRequest(Request $request): bool
+    {
+        return $request->attributes->has('_live_component') || str_contains($request->getPathInfo(), '/_components/');
     }
 
     /**
@@ -77,13 +121,13 @@ final class PostActionTwigExtension extends AbstractExtension
 
         if ($postAction->confirmsInFrame()) {
             return sprintf(
-                'href="%s" rel="nofollow" data-turbo-frame="%s"',
+                'href="%s" rel="nofollow" role="button" data-turbo-frame="%s" data-controller="post-action"',
                 self::escape($href),
                 $this->platformDetector->isNativeApp() ? '_top' : 'modal-frame',
             );
         }
 
-        return sprintf('href="%s" rel="nofollow" ', self::escape($href)) . $this->dataAttributes($action, $routeParameters, $fields);
+        return sprintf('href="%s" rel="nofollow" role="button" ', self::escape($href)) . $this->dataAttributes($action, $routeParameters, $fields);
     }
 
     /**

@@ -12,7 +12,7 @@
     {% endblock %}
 {% endembed %}
 
-<div data-controller="conversation-list"
+<div data-bfcache-reload data-controller="conversation-list"
      data-conversation-list-refresh-url-value="{{ path('conversations_list_tab') }}"
      data-conversation-list-active-tab-value="{{ active_tab }}">
     <div data-conversation-list-target="tabContent">

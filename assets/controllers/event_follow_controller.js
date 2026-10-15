@@ -1,6 +1,6 @@
 /* stimulusFetch: 'lazy' */
 import { Controller } from '@hotwired/stimulus';
-import { clearSnapshots, notePost } from '../instant_back.js';
+import { BEFORE_CACHE_EVENT, clearSnapshots, notePost } from '../instant_back.js';
 
 /**
  * The follow star of the events page and the detail pages' headers (docs/features/events-page/README.md, "Follow";
@@ -12,8 +12,13 @@ import { clearSnapshots, notePost } from '../instant_back.js';
  * to the one-tap action's confirmation view (GEST-15, decision 99: no POST form on a page Turbo may restore from its
  * cache) - without JavaScript that view's single button posts it and the server redirects back with a flash.
  *
+ * The form's action is always the confirmation view of what a submit would do now (data-follow-view /
+ * data-unfollow-view): a submit before this controller connected - a page restored from Turbo's cache and tapped at once -
+ * opens that view, never the POST-only route (Instant Back review F6).
+ *
  * Guests (on the star's sign-in link): the tap shows "Sign in to follow events and series." under the row, with a link
- * to sign in and come back; a second tap hides it. Without JavaScript the star is that sign-in link.
+ * to sign in and come back; a second tap hides it - also a note a restored page still shows. Without JavaScript the star
+ * is that sign-in link. A note never goes into Turbo's copy of the page (`msp:before-cache`, Instant Back review F7).
  */
 const NOTE_CLASS = 'ev-follow-note';
 const pending = new Set();
@@ -26,6 +31,10 @@ const noteHostOf = (row) => (row.matches('.ev-detail-actions') ? row : row.query
 const currentUrl = () => window.location.pathname + window.location.search;
 
 export default class extends Controller {
+    connect() {
+        this.onBeforeCache = () => this.removeNote();
+    }
+
     disconnect() {
         this.removeNote();
     }
@@ -105,7 +114,11 @@ export default class extends Controller {
 
         event.preventDefault();
 
-        if (this.note && this.note.isConnected) {
+        // Shown by this controller, or still on a page Turbo restored (its note is no stranger: a second tap hides it)
+        const shown = this.note && this.note.isConnected ? this.note : noteHostOf(rowOf(this.element)).querySelector(`:scope > .${NOTE_CLASS}`);
+
+        if (shown) {
+            this.note = shown;
             this.removeNote();
             return;
         }
@@ -135,10 +148,12 @@ export default class extends Controller {
                 text.textContent = following ? star.dataset.textFollowing : star.dataset.textFollow;
             }
 
+            // The confirmation view of what the next submit does (a GET route - F6), never the POST route itself
             const form = star.closest('form');
+            const view = form === null ? undefined : following ? form.dataset.unfollowView : form.dataset.followView;
 
-            if (form !== null) {
-                form.action = following ? form.dataset.unfollowUrl : form.dataset.followUrl;
+            if (view) {
+                form.action = view;
             }
         });
     }
@@ -177,9 +192,11 @@ export default class extends Controller {
         note.classList.add(NOTE_CLASS);
         noteHostOf(rowOf(this.element)).appendChild(note);
         this.note = note;
+        document.addEventListener(BEFORE_CACHE_EVENT, this.onBeforeCache);
     }
 
     removeNote() {
+        document.removeEventListener(BEFORE_CACHE_EVENT, this.onBeforeCache);
         this.note?.remove();
         this.note = null;
 

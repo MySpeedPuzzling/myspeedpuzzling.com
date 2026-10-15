@@ -17,6 +17,7 @@
     {% set overview_url = path('competition_results_overview', {competitionId: competition.id}) %}
 
     <div class="pb-5"
+         data-bfcache-reload
          data-controller="results-overview"
          data-results-overview-state-url-value="{{ path('official_results_competition_state', {competitionId: competition.id}) }}"
          data-results-overview-mercure-value="{{ (mercure ?? {})|json_encode|e('html_attr') }}"

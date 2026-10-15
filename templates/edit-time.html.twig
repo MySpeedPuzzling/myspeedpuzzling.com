@@ -81,7 +81,7 @@
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">{{ 'edit_time.delete_modal_discard_button'|trans }}</button>
-                        <a data-turbo-prefetch="false" href="{{ path('delete_time', {timeId: solved_puzzle.timeId, context: return_context}) }}" class="btn btn-primary btn-sm">{{ 'edit_time.delete_modal_confirm_button'|trans }}</a>
+                        <a data-turbo-prefetch="false" data-clears-snapshots href="{{ path('delete_time', {timeId: solved_puzzle.timeId, context: return_context}) }}" class="btn btn-primary btn-sm">{{ 'edit_time.delete_modal_confirm_button'|trans }}</a>
                     </div>
                 </div>
             </div>

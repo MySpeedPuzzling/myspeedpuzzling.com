@@ -37,6 +37,7 @@
     {{ include('_return_back_button.html.twig', {fallbackUrl: path('manage_competition_rounds', {competitionId: competition.id}), fallbackTitle: 'competition.manage_rounds'|trans}) }}
 
     <div class="online-rounds-page online-review pb-5"
+         data-bfcache-reload
          data-controller="online-review"
          data-online-review-urls-value="{{ {
              list: path('online_review', {roundId: round_id}),

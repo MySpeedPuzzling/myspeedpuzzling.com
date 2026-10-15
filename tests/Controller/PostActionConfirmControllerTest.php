@@ -234,6 +234,10 @@ final class PostActionConfirmControllerTest extends WebTestCase
         foreach ($links as $link) {
             self::assertInstanceOf(\DOMElement::class, $link);
             self::assertContains('nofollow', explode(' ', $link->getAttribute('rel')), $link->getAttribute('href'));
+            // Instant Back review F9: they were <button>s - a screen reader still hears a button, Space still taps it
+            // (post_action_controller.js on every one, Block's for Space only)
+            self::assertSame('button', $link->getAttribute('role'), $link->getAttribute('href'));
+            self::assertContains('post-action', explode(' ', $link->getAttribute('data-controller')), $link->getAttribute('href'));
         }
     }
 
@@ -291,6 +295,43 @@ final class PostActionConfirmControllerTest extends WebTestCase
             'SELECT COUNT(*) FROM followed_competition WHERE player_id = :player AND series_id = :series',
             ['player' => PlayerFixture::PLAYER_REGULAR, 'series' => OrganizationFixture::SERIES_LANTERN_NIGHTS],
         ));
+    }
+
+    /**
+     * Instant Back review F6: the follow star's GET form always points at the confirmation view of what a submit does
+     * now - rendered so, and event_follow_controller.js flips it between the two views (data-follow-view /
+     * data-unfollow-view, GET routes), never to the POST-only routes: a submit before the controller connected (a page
+     * restored from Turbo's copy, tapped at once) opens the view, never a 405
+     */
+    public function testTheFollowStarAlwaysPointsAtAView(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+        $crawler = $browser->request('GET', '/en/events');
+        self::assertResponseIsSuccessful();
+
+        $stars = $crawler->filter('form.ev-star-form');
+        self::assertGreaterThan(0, $stars->count());
+
+        foreach ($stars as $star) {
+            self::assertInstanceOf(\DOMElement::class, $star);
+            self::assertSame('get', $star->getAttribute('method'));
+            self::assertSame('/en/action/follow', $star->getAttribute('data-follow-view'));
+            self::assertSame('/en/action/unfollow', $star->getAttribute('data-unfollow-view'));
+            $following = $star->getElementsByTagName('button')->item(0)?->getAttribute('aria-pressed') === 'true';
+            self::assertSame($following ? '/en/action/unfollow' : '/en/action/follow', $star->getAttribute('action'));
+        }
+
+        // Both views answer a GET (what a submit without the controller sends)
+        foreach (['follow', 'unfollow'] as $action) {
+            $browser->request('GET', '/en/action/' . $action . '?target=series:' . OrganizationFixture::SERIES_LANTERN_NIGHTS . '&return=/en/events');
+            self::assertResponseIsSuccessful();
+        }
+
+        // The controller flips the action between those views only
+        $controller = (string) file_get_contents(__DIR__ . '/../../assets/controllers/event_follow_controller.js');
+        self::assertStringContainsString('form.dataset.unfollowView : form.dataset.followView', $controller);
+        self::assertDoesNotMatchRegularExpression('~form\.action\s*=\s*[^;]*(followUrl|unfollowUrl)~', $controller);
     }
 
     public function testSettingTheCountryNamesItAndWorksThroughTheView(): void

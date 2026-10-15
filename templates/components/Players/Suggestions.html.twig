@@ -43,7 +43,7 @@
                     <div class="players-suggestion-actions">
                         <a class="btn btn-sm btn-outline-primary"
                            href="{{ path('add_player_to_favorite', {playerId: suggestion.playerId, return: return_path}) }}"
-                           data-turbo-prefetch="false"
+                           data-turbo-prefetch="false"{{ app.user is not null ? ' data-clears-snapshots' }}
                            rel="nofollow"
                         >
                             <i class="bi bi-star me-1" aria-hidden="true"></i>{{ 'players.suggestions.favorite'|trans }}

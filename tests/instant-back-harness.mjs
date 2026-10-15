@@ -7,27 +7,35 @@ import {
     BEFORE_CACHE_EVENT,
     BFCACHE_RELOAD_ATTRIBUTE,
     BODY_LAYER_CLASSES,
+    CACHE_CONTROL_META,
     CLEARS_SNAPSHOTS_ATTRIBUTE,
+    CLONE_BUDGET_UNITS,
     CLEARS_SNAPSHOTS_META,
     LAST_WRITE_KEY,
     INSTANT_BACK,
     INSTANT_BACK_IOS,
     KEEP_BFCACHE,
     MAX_AGE_MS,
+    MODAL_FRAME_ID,
     NO_CACHE,
     NO_PREVIEW,
     PAGEHIDE_KEY_PREFIX,
+    PICTURE_UNITS,
+    REBUILT_ON_CONNECT,
     RESTORE_DECIDED_EVENT,
     RESTORE_RELOAD_KEY,
+    SCRIPT_BUILT_LAYERS,
     SNAPSHOT_LIMIT,
     SNAPSHOT_RESTORES,
     VIEWER_KEY,
     VIEWER_META,
     bfcacheVerdict,
     cacheWorkTiming,
+    cloneUnits,
     createInstantBack,
     createSnapshotLedger,
     isWriteRequest,
+    keepsNoCopy,
     restoreDecision,
     sanitizeSnapshot,
     snapshotKey,
@@ -97,6 +105,12 @@ await run('constants', () => ({
     NO_CACHE,
     NO_PREVIEW,
     BODY_LAYER_CLASSES,
+    CACHE_CONTROL_META,
+    CLONE_BUDGET_UNITS,
+    PICTURE_UNITS,
+    SCRIPT_BUILT_LAYERS,
+    REBUILT_ON_CONNECT,
+    MODAL_FRAME_ID,
 }));
 
 // ---- GEST-14: the back/forward cache verdict ------------------------------------------------------------------------
@@ -147,8 +161,27 @@ await run('restore decision', () => {
         reverted: restoreDecision({ ...base, instantBack: false }),
         nativeApp: restoreDecision({ ...base, native: true }),
         nativeAppReverted: restoreDecision({ ...base, native: true, instantBack: false }),
+        // F3: the viewer this browser's last page was rendered for (any tab) - a sign-out elsewhere
+        signedOutElsewhere: restoreDecision({ ...base, storedViewer: '' }),
+        otherAccountElsewhere: restoreDecision({ ...base, storedViewer: 'v2' }),
+        sameViewerStored: restoreDecision({ ...base, storedViewer: 'v1' }),
+        storedViewerUnknown: restoreDecision({ ...base, storedViewer: null }),
+        guestCopySignedInElsewhere: restoreDecision({ ...base, entry: { cachedAt: now - 1, viewer: '' }, viewer: '', storedViewer: 'v2' }),
     };
 });
+
+// F1 / F11: which page left keeps no copy - a visit by a write, a page too large to copy within a frame; never a visit
+// that renders nothing of the page
+await run('pages kept out of the cache', () => ({
+    plainVisit: keepsNoCopy({ willRender: true, byWrite: false, elements: 2400, pictures: 23 }),
+    byWrite: keepsNoCopy({ willRender: true, byWrite: true, elements: 10, pictures: 0 }),
+    frameVisitByWrite: keepsNoCopy({ willRender: false, byWrite: true }),
+    largeByElements: keepsNoCopy({ elements: CLONE_BUDGET_UNITS + 1, pictures: 0 }),
+    atTheBudget: keepsNoCopy({ elements: CLONE_BUDGET_UNITS, pictures: 0 }),
+    largeByPictures: keepsNoCopy({ elements: 1000, pictures: 110 }),
+    largeFrameVisit: keepsNoCopy({ willRender: false, elements: 100000, pictures: 1000 }),
+    units: [cloneUnits({ elements: 2439, pictures: 23 }), cloneUnits({ elements: 3781, pictures: 105 }), cloneUnits({}), cloneUnits({ elements: -5, pictures: NaN })],
+}));
 
 await run('cache work timing', () => ({
     androidPlaceSwitch: cacheWorkTiming({ viewTransition: viewTransitionExpected({ meta: 'same-origin', available: true, reducedMotion: false, native: false }) }),
@@ -200,10 +233,14 @@ const DIRTY = `<!doctype html><html><head><meta name="${VIEWER_META}" content="v
     <div id="recap" class="is-celebrating is-leveled" data-controller="recap-celebration"></div>
     <span class="puzzle-picker-confetti-host"></span>
     <div class="fixed-top" data-bs-padding-right="4px" style="padding-right: 19px;"></div>
+    <div class="ev-row"><p class="ev-signin-note ev-follow-note" role="alert">Sign in to follow</p></div>
   </main>
+  <div class="ev-menu-layer is-sheet"><div class="ev-menu-scrim"></div><div class="ev-menu-dialog" role="dialog"><turbo-frame id="event-manage-menu" src="/en/events/x/menu" complete><form method="post"></form></turbo-frame></div></div>
+  <div class="pwa-ptr-indicator"></div>
+  <div class="modal fade" id="imageEditorModal" tabindex="-1" aria-hidden="true"></div>
   <div id="toast-container"><div class="toast show">Saved</div></div>
   <div class="modal fade show" id="announcement" style="display: block;" aria-modal="true" role="dialog" data-controller="autoshow-modal"></div>
-  <div class="modal fade show" id="dynamic-modal-container" style="display: block;" aria-modal="true" role="dialog"></div>
+  <div class="modal fade show" id="dynamic-modal-container" style="display: block;" aria-modal="true" role="dialog"><turbo-frame id="modal-frame" data-dynamic-modal-target="frame" src="/en/edit-time/1" complete><form method="post" action="/en/x"></form></turbo-frame></div>
   <div class="modal-backdrop fade show"></div>
   <dialog id="menu-layer" class="menu-layer is-closing menu-layer--overlay is-searching" open><div class="menu-layer-body"><nav id="site-menu"><a>Row</a></nav></div></dialog>
   <dialog class="player-card-layer" open></dialog>
@@ -237,6 +274,11 @@ function cleaned(dom) {
         cardDialogs: doc.querySelectorAll('dialog.player-card-layer').length,
         menuShell: doc.getElementById('menu-layer').className,
         siteMenuInSlot: doc.getElementById('site-menu').parentElement.id,
+        // F2 / F7: the ⋯ menu layer and the guest's note never stay
+        scriptLayers: doc.querySelectorAll(SCRIPT_BUILT_LAYERS).length,
+        // Built again on connect: gone from a copy about to be shown only (the live page keeps its own)
+        rebuiltOnConnect: doc.querySelectorAll(REBUILT_ON_CONNECT).length,
+        modalFrame: (() => { const f = doc.getElementById(MODAL_FRAME_ID); return { children: f.children.length, src: f.getAttribute('src'), complete: f.hasAttribute('complete'), dataTarget: f.getAttribute('data-dynamic-modal-target') }; })(),
     };
 }
 
@@ -290,7 +332,7 @@ function browser({ os = 'android', native = false, viewTransitions = false, meta
     const viewerMeta = viewer === null ? '' : `<meta name="${VIEWER_META}" content="${viewer}">`;
     const dom = new JSDOM(`<!doctype html><html data-os="${os}"${native ? ' data-native-app="android"' : ''}><head>
         <meta name="turbo-cache-control" content="no-preview">${viewerMeta}<meta name="view-transition" content="${meta}">
-        </head><body data-viewer-audience="${audience}"><main><a id="fav" href="/en/fav" ${CLEARS_SNAPSHOTS_ATTRIBUTE}>Favorite</a><form id="post-form" method="post" action="/en/x"><button>Go</button></form></main></body></html>`,
+        </head><body data-viewer-audience="${audience}"><main><a id="fav" href="/en/fav" ${CLEARS_SNAPSHOTS_ATTRIBUTE}>Favorite</a><a id="plain" href="/en/ladder">Ladder</a><a id="logout" href="/logout" data-turbo="false" ${CLEARS_SNAPSHOTS_ATTRIBUTE}>Sign out</a><form id="post-form" method="post" action="/en/x"><button>Go</button></form></main></body></html>`,
     { url: `${ORIGIN}/en/hub`, pretendToBeVisual: true });
     const { window } = dom;
     const document = window.document;
@@ -520,7 +562,9 @@ await run('staleness', () => {
     leave(b);
     b.fire('turbo:load');
     const link = b.document.getElementById('fav');
-    link.dispatchEvent(new b.window.CustomEvent('turbo:click', { bubbles: true, detail: { url: link.href } }));
+    // The click itself (capture phase - a link Turbo does not follow, a new tab, sign-out alike): not turbo:click
+    link.addEventListener('click', (event) => event.preventDefault());
+    link.dispatchEvent(new b.window.MouseEvent('click', { bubbles: true, cancelable: true }));
     const afterFavorite = { recorded: b.instance.ledger.size(), clears: b.cacheClears.length };
 
     b.instance.clearSnapshots();
@@ -749,6 +793,267 @@ await run('writes elsewhere', () => {
         meta.remove();
         b.fire('turbo:render');
         answers.pageThatDidNot = { clears: b.cacheClears.length };
+    }
+
+    return answers;
+});
+
+// ---- F1: a page left through a write never comes back from a copy taken before or around it -------------------------
+
+const cacheControl = (b) => b.document.head.querySelector(`meta[name="${CACHE_CONTROL_META}"]`).getAttribute('content');
+
+/** The user's click on a link of the page: the click (capture phase first), then Turbo's turbo:click for it */
+function tap(b, id, { turboFollows = true } = {}) {
+    const element = b.document.getElementById(id);
+    element.addEventListener('click', (event) => event.preventDefault(), { once: true });
+    element.dispatchEvent(new b.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+
+    if (turboFollows) {
+        element.dispatchEvent(new b.window.CustomEvent('turbo:click', { bubbles: true, detail: { url: element.href } }));
+    }
+}
+
+const writeFetch = (input) => Promise.resolve({ ok: !String(input && input.url ? input.url : input).includes('refused') });
+const settled = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+await run('a page left through a write', async () => {
+    const answers = {};
+
+    {
+        // Review S1: the profile (reached by a visit) → Favorite (a GET link that writes, redirected back to the same
+        // address: Turbo renders it, then its replace visit that renders nothing) → Back to the entry below
+        const b = browser({ os: 'other' });
+        b.fire('turbo:load');
+        b.tick(1000);
+        tap(b, 'fav');
+        b.fire('turbo:visit', { url: `${ORIGIN}/en/add-player-to-favorites/1`, action: 'advance' });
+        const atVisit = cacheControl(b);
+        // The worst case: Turbo copies the page anyway (a meta it never read) - the copy is not trusted
+        b.fire('turbo:before-cache');
+        const copiedAt = b.now();
+        const recordedAroundTheWrite = b.instance.ledger.size();
+        b.tick(400);
+        b.fire('turbo:render');
+        b.currentVisit.willRender = false;
+        b.fire('turbo:visit', { url: `${ORIGIN}/en/hub`, action: 'replace' });
+        b.currentVisit.willRender = true;
+        b.fire('turbo:load');
+        const stamped = Number(b.localStore.values[LAST_WRITE_KEY]);
+        b.tick(2000);
+        b.fire('turbo:visit', { url: `${ORIGIN}/en/hub`, action: 'restore' });
+        answers.favoriteThenBack = {
+            cacheControlAtVisit: atVisit,
+            recordedAroundTheWrite,
+            ledgerAfterTheVisit: b.instance.ledger.entry(`${ORIGIN}/en/hub`),
+            writeStampedAfterTheCopy: stamped >= copiedAt,
+            back: b.instance.lastRestoreKind(),
+            assigned: b.assigned.length,
+        };
+    }
+
+    {
+        // A write by fetch (a Live action) whose answer starts a visit by script (Live's redirect): no click of the user
+        const b = browser({ os: 'other', fetchImpl: writeFetch });
+        b.fire('turbo:load');
+        await b.window.fetch('/en/_components/PuzzleTimes/save', { method: 'POST' });
+        await settled();
+        b.fire('turbo:visit', { url: `${ORIGIN}/en/puzzle/1`, action: 'advance' });
+        const atVisit = cacheControl(b);
+        b.fire('turbo:render');
+        b.fire('turbo:load');
+        b.tick(1000);
+        b.fire('turbo:visit', { url: `${ORIGIN}/en/hub`, action: 'restore' });
+        answers.scriptVisitAfterAWrite = { cacheControlAtVisit: atVisit, back: b.instance.lastRestoreKind() };
+    }
+
+    {
+        // A write in place (the page shows its result), then the user's own link: the copy is taken after it - kept
+        const b = browser({ os: 'other', fetchImpl: writeFetch });
+        b.fire('turbo:load');
+        await b.window.fetch('/en/_components/MarketplaceListing/loadMore', { method: 'POST' });
+        await settled();
+        b.tick(1000);
+        tap(b, 'plain');
+        b.fire('turbo:visit', { url: `${ORIGIN}/en/ladder`, action: 'advance' });
+        const atVisit = cacheControl(b);
+        b.fire('turbo:before-cache');
+        b.fire('turbo:render');
+        b.fire('turbo:load');
+        b.tick(60_000);
+        b.fire('turbo:visit', { url: `${ORIGIN}/en/hub`, action: 'restore' });
+        answers.userLinkAfterAWriteInPlace = { cacheControlAtVisit: atVisit, back: b.instance.lastRestoreKind() };
+    }
+
+    {
+        // A write that lands while the user's visit is on its way (a Live action answered late): the copy taken then is
+        // not trusted
+        let resolveWrite;
+        const late = () => new Promise((resolve) => { resolveWrite = () => resolve({ ok: true }); });
+        const b = browser({ os: 'other', fetchImpl: late });
+        b.fire('turbo:load');
+        const pending = b.window.fetch('/en/_components/PuzzleTimes/save', { method: 'POST' });
+        tap(b, 'plain');
+        b.fire('turbo:visit', { url: `${ORIGIN}/en/ladder`, action: 'advance' });
+        resolveWrite();
+        await pending;
+        await settled();
+        b.fire('turbo:before-cache');
+        const recorded = b.instance.ledger.size();
+        b.fire('turbo:render');
+        b.fire('turbo:load');
+        b.tick(1000);
+        b.fire('turbo:visit', { url: `${ORIGIN}/en/hub`, action: 'restore' });
+        answers.writeDuringTheVisit = { recorded, back: b.instance.lastRestoreKind() };
+    }
+
+    {
+        // A link whose click writes on its way (the guide's beacon) - no data-clears-snapshots on it
+        const b = browser({ os: 'other' });
+        b.fire('turbo:load');
+        b.document.getElementById('plain').addEventListener('click', () => b.instance.clearSnapshots());
+        tap(b, 'plain');
+        b.fire('turbo:visit', { url: `${ORIGIN}/en/ladder`, action: 'advance' });
+        answers.clickThatWrote = { cacheControlAtVisit: cacheControl(b) };
+    }
+
+    {
+        // A click that only steered a frame (no visit), then a write, then a visit by script: the write's
+        const b = browser({ os: 'other', fetchImpl: writeFetch });
+        b.fire('turbo:load');
+        tap(b, 'plain');
+        await b.window.fetch('/en/_components/PuzzleTimes/save', { method: 'POST' });
+        await settled();
+        b.fire('turbo:visit', { url: `${ORIGIN}/en/puzzle/1`, action: 'advance' });
+        answers.frameClickThenAWrite = { cacheControlAtVisit: cacheControl(b) };
+    }
+
+    {
+        // The user's GET form (a search) after a write in place: the user's visit - the copy is kept
+        const b = browser({ os: 'other', fetchImpl: writeFetch });
+        b.fire('turbo:load');
+        await b.window.fetch('/en/_components/PuzzleTimes/save', { method: 'POST' });
+        await settled();
+        b.fire('turbo:submit-start', { formSubmission: { method: 'get' } });
+        b.fire('turbo:visit', { url: `${ORIGIN}/en/puzzle?search=sea`, action: 'advance' });
+        answers.getFormAfterAWrite = { cacheControlAtVisit: cacheControl(b) };
+    }
+
+    {
+        // Sign-out (data-turbo="false", data-clears-snapshots): a write every tab learns of at the click
+        const b = browser({ os: 'android' });
+        leave(b);
+        b.fire('turbo:load');
+        b.tick(500);
+        tap(b, 'logout', { turboFollows: false });
+        b.instance.stampPageHide();
+        answers.signOutLink = {
+            lastWrite: b.localStore.values[LAST_WRITE_KEY] === String(b.now()),
+            ledger: b.instance.ledger.size(),
+            bfcache: b.instance.bfcacheVerdictFor({ persisted: true }),
+        };
+    }
+
+    return answers;
+});
+
+// ---- F11: a page too large to copy within a frame leaves through the full-load path ------------------------------------
+
+await run('a page too large to copy', () => {
+    const answers = {};
+    const grow = (b, elements, pictures = 0) => {
+        const main = b.document.querySelector('main');
+        main.insertAdjacentHTML('beforeend', '<div></div>'.repeat(elements) + '<img alt="">'.repeat(pictures));
+    };
+
+    {
+        const b = browser({ os: 'other' });
+        grow(b, CLONE_BUDGET_UNITS);
+        b.fire('turbo:visit', { url: `${ORIGIN}/en/ladder`, action: 'advance' });
+        answers.overByElements = cacheControl(b);
+    }
+
+    {
+        const b = browser({ os: 'other' });
+        grow(b, 1000, Math.ceil((CLONE_BUDGET_UNITS - 1000) / PICTURE_UNITS) + 1);
+        b.fire('turbo:visit', { url: `${ORIGIN}/en/ladder`, action: 'advance' });
+        answers.overByPictures = cacheControl(b);
+    }
+
+    {
+        const b = browser({ os: 'other' });
+        grow(b, 1000, 20);
+        b.fire('turbo:visit', { url: `${ORIGIN}/en/ladder`, action: 'advance' });
+        b.fire('turbo:before-cache');
+        answers.withinTheBudget = { cacheControl: cacheControl(b), recorded: b.instance.ledger.size() };
+    }
+
+    {
+        // Left by Back too (Turbo copies the page a restore leaves, for Forward)
+        const b = browser({ os: 'other' });
+        leave(b);
+        b.fire('turbo:load');
+        grow(b, CLONE_BUDGET_UNITS);
+        b.fire('turbo:visit', { url: `${ORIGIN}/en/hub`, action: 'restore' });
+        answers.leftByBack = cacheControl(b);
+    }
+
+    {
+        // A frame visit promoted to the address bar renders nothing of the page: the page stays as it is
+        const b = browser({ os: 'other' });
+        grow(b, CLONE_BUDGET_UNITS * 2);
+        b.currentVisit.willRender = false;
+        b.fire('turbo:visit', { url: `${ORIGIN}/en/hub?page=2`, action: 'advance' });
+        answers.frameVisit = cacheControl(b);
+    }
+
+    return answers;
+});
+
+// ---- F3: a sign-out (or in) elsewhere - Back never shows the other viewer's copy ----------------------------------------
+
+await run('the viewer changed elsewhere', () => {
+    const answers = {};
+
+    {
+        // Tab A cached its pages signed in; tab B signed out (its next page stored the guest); Back in tab A
+        const b = browser({ os: 'other', viewer: 'v1' });
+        leave(b);
+        b.fire('turbo:load');
+        b.tick(1000);
+        b.localStore.values[VIEWER_KEY] = '';
+        b.fire('turbo:visit', { url: `${ORIGIN}/en/hub`, action: 'restore' });
+        answers.signedOutInAnotherTab = { back: b.instance.lastRestoreKind(), assigned: b.assigned.length };
+    }
+
+    {
+        // The same, but nobody changed: the copy
+        const b = browser({ os: 'other', viewer: 'v1' });
+        leave(b);
+        b.fire('turbo:load');
+        b.tick(1000);
+        b.fire('turbo:visit', { url: `${ORIGIN}/en/hub`, action: 'restore' });
+        answers.sameViewer = { back: b.instance.lastRestoreKind() };
+    }
+
+    {
+        // Another tab wrote or changed the viewer: this tab drops its copies at once (the storage event); anything else
+        // stored there changes nothing
+        const b = browser({ os: 'other' });
+        leave(b);
+        b.fire('turbo:load');
+        const storage = (key) => {
+            const event = new b.window.Event('storage');
+            Object.defineProperty(event, 'key', { value: key });
+            b.window.dispatchEvent(event);
+        };
+        storage('something-else');
+        const afterOtherKey = { ledger: b.instance.ledger.size(), clears: b.cacheClears.length };
+        storage(LAST_WRITE_KEY);
+        const afterWrite = { ledger: b.instance.ledger.size(), clears: b.cacheClears.length };
+        leave(b);
+        b.fire('turbo:load');
+        storage(VIEWER_KEY);
+        answers.storageEvents = { afterOtherKey, afterWrite, afterViewer: { ledger: b.instance.ledger.size(), clears: b.cacheClears.length } };
     }
 
     return answers;

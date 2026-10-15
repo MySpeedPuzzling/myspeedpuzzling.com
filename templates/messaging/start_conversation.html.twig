@@ -17,7 +17,7 @@
     {# Existing conversation - show chat #}
     <div class="row justify-content-center">
         <div class="col-lg-8">
-            <div class="card" data-controller="messaging conversation-realtime"
+            <div class="card" data-bfcache-reload data-controller="messaging conversation-realtime"
                  data-conversation-realtime-conversation-id-value="{{ conversation.id }}"
                  data-conversation-realtime-player-id-value="{{ logged_user.profile.playerId }}"
                  data-conversation-realtime-typing-url-value="{{ path('typing_indicator', {conversationId: conversation.id}) }}">

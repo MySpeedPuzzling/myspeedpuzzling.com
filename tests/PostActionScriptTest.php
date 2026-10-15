@@ -134,6 +134,26 @@ final class PostActionScriptTest extends TestCase
     }
 
     /**
+     * Instant Back review F9: the fourteen actions were <button>s - their links say role="button" and Space taps them as
+     * it does a button (post_action_controller.js), never anything else
+     */
+    public function testSpaceTapsTheLinkAsItDidTheButton(): void
+    {
+        self::assertSame([
+            'keydown' => 'prevent',
+            'keyup' => 'activate',
+            'oldSpacebar' => 'activate',
+            'enter' => null,
+            'letter' => null,
+            'withShift' => null,
+            'withCtrl' => null,
+            'composing' => null,
+            'keypress' => null,
+            'nothing' => null,
+        ], self::results()['space activates']);
+    }
+
+    /**
      * @return array<string, mixed>
      */
     private static function results(): array

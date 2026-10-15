@@ -1,5 +1,6 @@
 /* stimulusFetch: 'lazy' */
 import { Controller } from '@hotwired/stimulus';
+import { BEFORE_CACHE_EVENT } from '../instant_back.js';
 
 /**
  * The ⋯ menus of the events page (docs/features/events-page/README.md, "The ⋯ menu"). Sits on the page's menu host
@@ -13,7 +14,9 @@ import { Controller } from '@hotwired/stimulus';
  * Ctrl/Cmd/Shift/Alt-click and the middle button keep opening the menu's page.
  *
  * The layer lives on <body> (no ancestor can clip or transform it, the rows clone into the calendar) and goes with the
- * page on a Turbo visit. Motion is CSS only, off under prefers-reduced-motion (assets/styles/_events-organizer.scss).
+ * page on a Turbo visit - and never into Turbo's copy of the page (GEST-15, `msp:before-cache` of assets/instant_back.js:
+ * closed and removed - a restored copy's controller would not know it, Instant Back review F2). Motion is CSS only, off
+ * under prefers-reduced-motion (assets/styles/_events-organizer.scss).
  */
 const FRAME_ID = 'event-manage-menu';
 const POPOVER_MEDIA = '(min-width: 992px)';
@@ -48,17 +51,28 @@ export default class extends Controller {
         this.onFrameLoad = this.onFrameLoad.bind(this);
         this.onFrameMissing = this.onFrameMissing.bind(this);
         this.onFetchError = this.onFetchError.bind(this);
+        this.onBeforeCache = this.teardown.bind(this);
 
         // The ⋯ links are rows outside this element: listen on the document
         document.addEventListener('click', this.onOpenerClick);
+        document.addEventListener(BEFORE_CACHE_EVENT, this.onBeforeCache);
     }
 
     disconnect() {
         document.removeEventListener('click', this.onOpenerClick);
+        document.removeEventListener(BEFORE_CACHE_EVENT, this.onBeforeCache);
+        this.teardown();
+    }
+
+    /** No layer left behind: the page goes (disconnect) or Turbo copies it (msp:before-cache) */
+    teardown() {
         this.close({ restoreFocus: false });
+        this.resizeObserver?.disconnect();
+        this.resizeObserver = null;
         this.layer?.remove();
         this.layer = null;
         this.dialog = null;
+        this.body = null;
     }
 
     onOpenerClick(event) {

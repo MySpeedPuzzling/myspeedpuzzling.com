@@ -27,10 +27,11 @@
             the line break after a tag or a comment, ChromeWhitespace turns the rest into one line break.
             msp-clears-snapshots: this page's GET wrote (notifications marked read, a conversation read, a stopwatch
             started or stopped - `clears_snapshots` or the block): the copies of the pages before it are stale
-            (assets/instant_back.js) - signed-in pages only.
+            (assets/instant_back.js) - signed-in pages only. Inside the Hotwire Native app every page says no-cache (NAV-14,
+            Instant Back review Q4: no snapshot restores there until the app decides its own Back).
         #}
 
-        <meta name="turbo-cache-control" content="{% block turbo_cache_control %}no-cache{% endblock %}">
+        <meta name="turbo-cache-control" content="{% if is_native_app() %}no-cache{% else %}{% block turbo_cache_control %}no-cache{% endblock %}{% endif %}">
         {%- set msp_viewer = viewer_marker() %}
         {%- if msp_viewer != '' %}
 

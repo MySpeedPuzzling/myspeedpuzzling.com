@@ -68,6 +68,16 @@ that would otherwise be forgotten. Newest section on top.
 - [ ] `_tom-select.scss`: `.ts-dropdown-content { scroll-behavior: smooth }` has no reduced-motion guard (README §4.13 G8)
 - [ ] The navigation's critical CSS (`templates/navigation/_critical_css.html.twig`, ~13 KB of the member's chrome
       growth on `/en/faq`) repeats `app.css` box rules - trim it to what the first paint needs
+- [ ] The ☰ menu on a result's picture (`_time_actions_menu.html.twig`: Hub, recent activity, profile results) deletes
+      the time with one GET tap, no confirmation and no undo (found by the Instant Back review fixes, which only made the
+      link clear the snapshots): a POST with an in-page confirmation (GEST-13), like the edit form's delete
+- [ ] A row's thumbnail sits on the text baseline (`.lazy-img-wrapper`, `.diff-corner-host`): a picture whose shape is
+      not its stored ratio changes its row's height when it loads (in production only a picture whose ratio is wrong; in
+      a local clone every picture is one square placeholder). `vertical-align: top` removes that but makes every
+      thumbnail row ~6 px shorter (measured 2026-10-15), so the Instant Back review fixes reverted it - a design call:
+      denser rows everywhere, or keep the baseline
+- [ ] Instant Back on a real phone (QA-06 device session): INP of the first interaction after leaving a large list, to
+      confirm the clone budget (`CLONE_BUDGET_UNITS` 6000 ≈ 16 ms at 4× CPU throttling, measured in Chromium only)
 
 ## Navigation redesign - player card (`docs/features/navigation/`, CARD-02, CARD-07)
 
@@ -930,9 +940,11 @@ Shipped: [`features/live-activity-feed.md`](features/live-activity-feed.md).
       Thu 12–24 UTC, 91 % from tabs open 3+ hours)
 - [ ] Report upstream (symfony/ux): a re-render whose `fetch` rejects leaves `Component::backendRequest` set, so the
       component ignores every later render on that page; drop the workaround in `live_refresh_controller.js` once fixed
+- [x] `mercure_hub_controller.js` closes the stream on `pagehide` and opens it again on `pageshow` (persisted): signed-in
+      pages enter Chrome's back/forward cache (navigation GEST-14, Instant Back)
 - [ ] `mercure_hub_controller.js` (unread counts, chat) has no recovery: on iOS 18 the stream can stay "open" but dead
-      after resume, a non-200 answer closes it for good, and the open stream keeps signed-in pages out of Chrome's
-      back/forward cache - close on `pagehide`, reopen on `pageshow` / visible, reconnect with backoff (§10 of the doc)
+      after resume and a non-200 answer closes it for good - reopen when the page turns visible, reconnect with backoff
+      (§10 of the doc)
 - [ ] Before a competition with thousands watching: push rows rendered once per locale through Mercure instead of
       per-viewer refreshes, after a load test through Traefik (§6.1 of the doc)
 

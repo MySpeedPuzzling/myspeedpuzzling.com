@@ -34,7 +34,15 @@ import { isNativeApp, os } from './platform.js';
  *
  * Staleness (decision 65): a successful non-GET form submission (turbo:submit-end), any other successful same-origin
  * write made with fetch() (a Live component action, a dismissed hint, a post_action - isWriteRequest()) and a click on a
- * [data-clears-snapshots] link (GET mutations: the Favorite toggles) clear Turbo's cache and the ledger.
+ * [data-clears-snapshots] link (GET mutations: the Favorite toggles, a delete link, sign-out) clear Turbo's cache and the
+ * ledger, and tell every tab (localStorage `msp:last-write`; other tabs drop their copies on its `storage` event).
+ * A page left *through* a write is never cached (Instant Back review F1): a visit started by a write - a
+ * [data-clears-snapshots] link, a click that wrote on its way (a beacon), or a visit no user click started while a write
+ * is still unrendered (a Live action's redirect, a modal form answered with a page, a post_action) - switches the page's
+ * own `turbo-cache-control` to `no-cache` before Turbo would copy it, and the write is noted again once that visit's
+ * page rendered: no copy taken before or around the write survives. A restore also reloads when the viewer stored by
+ * the last page this browser loaded (any tab: a sign-out elsewhere) is not the copy's (F3).
+ * A page too large to copy within a frame (CLONE_BUDGET_UNITS, F11) leaves through the full-load path the same way.
  * Ages use Date.now() only (the restore check can be tested by shifting Date.now).
  *
  * Pure decisions (bfcacheVerdict, restoreDecision, cacheWorkTiming, viewTransitionExpected, createSnapshotLedger,
@@ -94,14 +102,38 @@ export const RESTORE_DECIDED_EVENT = 'msp:restore-decided';
 export const BEFORE_CACHE_EVENT = 'msp:before-cache';
 
 /** Turbo's cache-control values (<meta name="turbo-cache-control">) */
+export const CACHE_CONTROL_META = 'turbo-cache-control';
 export const NO_CACHE = 'no-cache';
 export const NO_PREVIEW = 'no-preview';
+
+/**
+ * A page too large to copy within a frame is never copied for a restore (Instant Back review F11): Turbo's clone of it
+ * would be one long task right when the next page starts. Measured at 4x CPU throttling (Pixel 360, every opted-in page
+ * in its largest realistic state - docs/features/navigation README §12 "Instant Back as built"): body.cloneNode(true)
+ * costs ~2.7 µs per element and ~125 µs per picture (a cloned <img> looks its image up again), so a page weighs its
+ * elements plus PICTURE_UNITS per picture, and over CLONE_BUDGET_UNITS (≈ 16 ms, one frame) it leaves through the
+ * full-load path: its live meta says no-cache at turbo:visit (PROF-05c brings the Results rows and scroll back).
+ */
+export const CLONE_BUDGET_UNITS = 6000;
+export const PICTURE_UNITS = 48;
 
 /** Opened <details> menus closed for the cache (the language menus, the card's "More", the in-place confirmations) */
 export const MENU_DETAILS_SELECTOR = 'details.nav-account-language[open], details.menu-language[open], details.site-header-language[open], details.players-card-more[open], details.ev-confirm[open]';
 
 /** Classes the layers put on <body> while open */
 export const BODY_LAYER_CLASSES = ['modal-open', 'global-search-shown'];
+
+/** Layers and notes script builds into the page that a restored copy's controllers would not know (F2, F7) */
+export const SCRIPT_BUILT_LAYERS = '.ev-menu-layer, .ev-follow-note';
+
+/**
+ * Built on <body> again by their controllers when a copy is shown (or never needed by it): removed from the copy, never
+ * from the live page - the pull-to-refresh indicator (pwa_lifecycle_controller.js), the photo editor's modal (made by
+ * image_editor_controller.js in an edit form of the modal frame, which a shown copy holds empty)
+ */
+export const REBUILT_ON_CONNECT = '.pwa-ptr-indicator, #imageEditorModal';
+
+export const MODAL_FRAME_ID = 'modal-frame';
 
 /** What celebrations leave on the page */
 const CELEBRATION_CLASSES = ['is-celebrating', 'is-leveled'];
@@ -161,7 +193,8 @@ export function pagehideKey(documentId) {
  * copy) or 'reload' (today's full load).
  *
  * facts: {native, instantBack?, instantBackIos?, os, entry ({cachedAt, viewer} | null), now, viewer, turboHasSnapshot?,
- *         lastWriteAt (when this browser last wrote, any tab - null: never), maxAgeMs?}
+ *         lastWriteAt (when this browser last wrote, any tab - null: never), storedViewer (the viewer of the last page
+ *         this browser loaded, any tab - null: unknown), maxAgeMs?}
  */
 export function restoreDecision(facts = {}) {
     const {
@@ -174,6 +207,7 @@ export function restoreDecision(facts = {}) {
         viewer,
         turboHasSnapshot = true,
         lastWriteAt = null,
+        storedViewer = null,
         maxAgeMs = MAX_AGE_MS,
     } = facts || {};
 
@@ -200,6 +234,11 @@ export function restoreDecision(facts = {}) {
         return 'reload';
     }
 
+    // Signed out, in or as somebody else since - in another tab too (the page shown here still says the old viewer)
+    if (typeof storedViewer === 'string' && storedViewer !== (entry.viewer || '')) {
+        return 'reload';
+    }
+
     return (entry.viewer || '') === (viewer || '') ? 'snapshot' : 'reload';
 }
 
@@ -211,6 +250,30 @@ export function viewTransitionExpected({ meta, available, reducedMotion, native 
 /** When the cache work runs: 'now' (nothing will capture the page) or 'after-capture' (the task after turbo:before-cache) */
 export function cacheWorkTiming({ viewTransition } = {}) {
     return viewTransition === true ? 'after-capture' : 'now';
+}
+
+/** What copying the page costs, in elements (CLONE_BUDGET_UNITS): its elements, a picture PICTURE_UNITS of them */
+export function cloneUnits({ elements = 0, pictures = 0 } = {}) {
+    const count = (value) => (typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : 0);
+
+    return count(elements) + PICTURE_UNITS * count(pictures);
+}
+
+/**
+ * Is the page left kept out of Turbo's cache (its live meta switched to no-cache before Turbo would copy it)? When the
+ * visit leaves it through a write (F1: a copy from before or around the write must never come back) or it is too large
+ * to copy within a frame (F11). A visit that renders nothing of the page (a frame visit) never changes it.
+ *
+ * facts: {willRender, byWrite, elements, pictures (the page's element and picture counts), limit?}
+ */
+export function keepsNoCopy(facts = {}) {
+    const { willRender = true, byWrite = false, elements = 0, pictures = 0, limit = CLONE_BUDGET_UNITS } = facts || {};
+
+    if (willRender === false) {
+        return false;
+    }
+
+    return byWrite === true || cloneUnits({ elements, pictures }) > limit;
 }
 
 /**
@@ -447,8 +510,21 @@ export function sanitizeSnapshot(body, { menuOrder = null } = {}) {
         // LAUNCH review Q2: an announcement modal shows once - a restored page never shows it again
         removeAll(all('[data-controller~="autoshow-modal"]'));
 
-        // The player card's dialog is built by script per open (player_card_layer.js)
-        removeAll(all('dialog.player-card-layer'));
+        // The player card's dialog is built by script per open (player_card_layer.js); the events page's ⋯ menu layer
+        // (event_manage_menu_controller.js, on <body> - Instant Back review F2) and a guest's "Sign in to follow" note
+        // (event_follow_controller.js, F7): the controllers of a restored copy never knew them
+        removeAll(all('dialog.player-card-layer, ' + SCRIPT_BUILT_LAYERS));
+
+        if (!body.isConnected) {
+            // A copy about to be shown (a restore's new body): what its controllers build again when they connect goes
+            // (REBUILT_ON_CONNECT), and the modal frame is as the server renders it, empty (a closed modal empties it;
+            // its content was the page left's)
+            removeAll(all(REBUILT_ON_CONNECT));
+            all('turbo-frame#' + MODAL_FRAME_ID).forEach((frame) => {
+                frame.replaceChildren();
+                ['src', 'complete', 'busy', 'aria-busy'].forEach((name) => frame.removeAttribute(name));
+            });
+        }
 
         // Open dialogs: the Menu shell, the desktop overlay, the in-page confirmation
         all('dialog[open]').forEach((dialog) => {
@@ -630,6 +706,15 @@ export function createInstantBack(env) {
     /** The scroll a snapshot restore comes back to, taken at its turbo:visit: {history, id, position} (heldRestorePosition) */
     let heldRestore = null;
     let installed = false;
+    // F1 - writes and the visits they start. writeCount: writes noted in this document; pendingWrite: one was noted
+    // since the page shown rendered (turbo:load); clickWrites: writeCount when the click being dispatched began;
+    // visitIntent: what the user's click or GET form starting the next visit was ({byWrite}); stampAfterLoad: the visit
+    // in progress left its page through a write - note it again once the next page rendered
+    let writeCount = 0;
+    let pendingWrite = false;
+    let clickWrites = null;
+    let visitIntent = null;
+    let stampAfterLoad = false;
 
     function turbo() {
         try {
@@ -776,11 +861,57 @@ export function createInstantBack(env) {
         }
     }
 
-    /** A write: the copies go, the document counts as having posted, and every tab learns when (LAST_WRITE_KEY) */
+    /**
+     * A write: the copies go, the document counts as having posted, and every tab learns when (LAST_WRITE_KEY). Until a
+     * page renders after it, a visit no user click started is taken for one the write started (a Live action's redirect,
+     * a modal form answered with a page) - the page it leaves keeps no copy (F1)
+     */
     function noteWrite() {
+        writeCount++;
+        pendingWrite = true;
+
+        // A click that only steered a frame (no visit came of it) no longer speaks for the next visit
+        if (visitIntent !== null && visitIntent.byWrite !== true) {
+            visitIntent = null;
+        }
+
+        stampWrite();
+    }
+
+    /** The write noted again once the page it led to rendered (F1): nothing cached around it survives */
+    function stampWrite() {
         posted = true;
         clearSnapshots();
         rememberWriteTime();
+    }
+
+    /** The page's own turbo-cache-control: no-cache - Turbo neither copies nor keeps it (F1, F11) */
+    function keepNoCopy() {
+        try {
+            const meta = document.head ? document.head.querySelector(`meta[name="${CACHE_CONTROL_META}"]`) : null;
+
+            if (meta && meta.getAttribute('content') !== NO_CACHE) {
+                meta.setAttribute('content', NO_CACHE);
+            }
+        } catch (e) {
+            // Turbo copies the page: a write's visit notes the write again after it (stampAfterLoad), a large page costs
+            // its clone once
+        }
+    }
+
+    /** What the page left weighs (cloneUnits) - counted only for a page Turbo would copy */
+    function pageSize() {
+        try {
+            const meta = document.head ? document.head.querySelector(`meta[name="${CACHE_CONTROL_META}"]`) : null;
+
+            if (!document.body || (meta && meta.getAttribute('content') === NO_CACHE)) {
+                return { elements: 0, pictures: 0 };
+            }
+
+            return { elements: document.body.getElementsByTagName('*').length, pictures: document.body.getElementsByTagName('img').length };
+        } catch (e) {
+            return { elements: 0, pictures: 0 };
+        }
     }
 
     function rememberWriteTime() {
@@ -947,11 +1078,40 @@ export function createInstantBack(env) {
         }
     }
 
+    /**
+     * The page this visit leaves keeps no copy when the visit leaves it through a write or it is too large to copy
+     * (keepsNoCopy(), F1 / F11): its live meta says no-cache before Turbo would copy it (Turbo copies after the answer
+     * or, on a restore, a frame after this event). A visit a write started notes it again once its page rendered (a
+     * restore is no write's visit: it only keeps no copy of a page written on in place a moment ago).
+     */
+    function leaveWithoutCopyIf(byWrite, restore) {
+        const s = session();
+        const visit = s && s.navigator ? s.navigator.currentVisit : null;
+        const willRender = !(visit && visit.willRender === false);
+
+        if (willRender && byWrite && !restore) {
+            stampAfterLoad = true;
+        }
+
+        if (keepsNoCopy({ willRender, byWrite, ...(willRender && !byWrite ? pageSize() : {}) })) {
+            keepNoCopy();
+        }
+    }
+
     function onTurboVisit(event) {
         const detail = (event && event.detail) || {};
         visiting = true;
         heldRestore = null;
         restoreReload.visited();
+
+        // Started by the user's own click or GET form (its intent says whether that wrote), else by script: by a write
+        // when one is still unrendered (a Live action's redirect, a modal form answered with a page, a post_action)
+        const intent = visitIntent;
+        visitIntent = null;
+        const byWrite = intent !== null && detail.action !== 'restore' ? intent.byWrite === true : pendingWrite;
+        // A write from now on happens during this visit (onBeforeCache)
+        pendingWrite = false;
+        leaveWithoutCopyIf(byWrite, detail.action === 'restore');
 
         if (detail.action !== 'restore') {
             shown = null;
@@ -971,6 +1131,7 @@ export function createInstantBack(env) {
             viewer: pageViewer() || '',
             turboHasSnapshot: entry ? turboHasSnapshot(key) : true,
             lastWriteAt: lastWriteAt(),
+            storedViewer: storedViewer(),
         });
 
         if (kind === 'leave') {
@@ -1022,6 +1183,17 @@ export function createInstantBack(env) {
         visiting = false;
         restoreRendering = false;
         heldRestore = null;
+        visitIntent = null;
+
+        // The page of a visit that left its page through a write rendered: the write is noted again, after anything
+        // Turbo may have copied around it (F1)
+        if (stampAfterLoad) {
+            stampAfterLoad = false;
+            stampWrite();
+        }
+
+        // The page shown was rendered after every write noted so far
+        pendingWrite = false;
         rememberViewer();
 
         charts.forEach((chart) => {
@@ -1099,7 +1271,14 @@ export function createInstantBack(env) {
         }
 
         followOwnAddress();
-        ledger.record(renderedKey(), { cachedAt: now(), viewer: pageViewer() || '' });
+
+        if (pendingWrite) {
+            // A write landed while this visit was on its way: the page left may show the state before it - its copy is
+            // never restored (not in the ledger), and the write is noted again once the next page rendered (F1)
+            stampAfterLoad = true;
+        } else {
+            ledger.record(renderedKey(), { cachedAt: now(), viewer: pageViewer() || '' });
+        }
 
         const body = document.body;
         const timing = cacheWorkTiming({
@@ -1186,12 +1365,45 @@ export function createInstantBack(env) {
         }
     }
 
-    function onClick(event) {
-        const target = event && event.target;
-        const link = target && typeof target.closest === 'function' ? target.closest(`[${CLEARS_SNAPSHOTS_ATTRIBUTE}]`) : null;
+    function clearsSnapshots(target) {
+        return Boolean(target && typeof target.closest === 'function' && target.closest(`[${CLEARS_SNAPSHOTS_ATTRIBUTE}]`));
+    }
 
-        if (link) {
+    /**
+     * Every click, before anything handles it (capture): a [data-clears-snapshots] element is a write - a Turbo link, a
+     * link Turbo leaves alone (sign-out: data-turbo="false") or a modified click opening a new tab alike (F1, F3)
+     */
+    function onClickCapture(event) {
+        clickWrites = writeCount;
+
+        if (clearsSnapshots(event && event.target)) {
             noteWrite();
+        }
+    }
+
+    /** Turbo follows a link: the visit it starts is the user's - by a write when the link is one or its click wrote */
+    function onTurboClick(event) {
+        const byWrite = clearsSnapshots(event && event.target) || (clickWrites !== null && writeCount > clickWrites);
+        clickWrites = null;
+        visitIntent = { byWrite };
+    }
+
+    /** A form Turbo submits: a GET form's visit is the user's (a POST's own visit never caches the page it leaves) */
+    function onSubmitStart(event) {
+        const submission = event && event.detail ? event.detail.formSubmission : null;
+        const method = submission && submission.method ? String(submission.method).toLowerCase() : 'get';
+
+        if (method === 'get') {
+            visitIntent = { byWrite: false };
+        }
+    }
+
+    /** Another tab wrote, signed out or in (localStorage): the copies of this one go at once */
+    function onStorage(event) {
+        const key = event ? event.key : undefined;
+
+        if (key === null || key === LAST_WRITE_KEY || key === VIEWER_KEY) {
+            clearSnapshots();
         }
     }
 
@@ -1289,16 +1501,25 @@ export function createInstantBack(env) {
             installed = true;
             rememberViewer();
             notePageWrites();
+            // The page shown wrote on its GET and shows the state after it
+            pendingWrite = false;
 
             document.addEventListener('turbo:visit', onTurboVisit);
             document.addEventListener('turbo:before-render', onBeforeRender);
             document.addEventListener('turbo:render', onTurboRender);
             document.addEventListener('turbo:load', onTurboLoad);
             document.addEventListener('turbo:before-cache', onBeforeCache);
+            document.addEventListener('turbo:submit-start', onSubmitStart);
             document.addEventListener('turbo:submit-end', onSubmitEnd);
-            document.addEventListener('turbo:click', onClick);
+            document.addEventListener('turbo:click', onTurboClick);
+            document.addEventListener('click', onClickCapture, true);
             document.addEventListener('submit', onSubmitCapture, true);
             document.addEventListener('chartjs:connect', onChartConnect);
+
+            if (window && typeof window.addEventListener === 'function') {
+                window.addEventListener('storage', onStorage);
+            }
+
             watchFetchWrites();
 
             return api;

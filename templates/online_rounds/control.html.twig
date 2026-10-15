@@ -31,6 +31,7 @@
     {{ include('_return_back_button.html.twig', {fallbackUrl: path('manage_competition_rounds', {competitionId: competition.id}), fallbackTitle: 'competition.manage_rounds'|trans}) }}
 
     <div class="online-rounds-page online-control pb-5"
+         data-bfcache-reload
          data-controller="online-control"
          data-online-control-urls-value="{{ {
              live: path('online_live', {roundId: round_id}),

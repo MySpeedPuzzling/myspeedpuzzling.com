@@ -1,7 +1,7 @@
 // Runs assets/post_action.js (docs/features/navigation GEST-15, decision 99: the one-tap actions of the browse pages)
 // through the cases tests/PostActionScriptTest.php asks for and prints one JSON object {case: answer}.
 
-import { ACCEPT, STREAM_TYPE, TOKEN_FIELD, bodyEntries, createPostAction, outcomeOf } from '../assets/post_action.js';
+import { ACCEPT, STREAM_TYPE, TOKEN_FIELD, bodyEntries, createPostAction, outcomeOf, spaceActivation } from '../assets/post_action.js';
 
 const ORIGIN = 'https://msp.test';
 const results = {};
@@ -129,5 +129,20 @@ await run('one request at a time', async () => {
 
     return { second, firstKind, third: await third, fetches: calls.fetch.length };
 });
+
+// Instant Back review F9: the links were buttons - Space taps them as it does a button (keydown keeps the page still,
+// keyup taps); Enter stays the link's own; a modified, composed or other key is never taken
+await run('space activates', () => ({
+    keydown: spaceActivation({ type: 'keydown', key: ' ' }),
+    keyup: spaceActivation({ type: 'keyup', key: ' ' }),
+    oldSpacebar: spaceActivation({ type: 'keyup', key: 'Spacebar' }),
+    enter: spaceActivation({ type: 'keydown', key: 'Enter' }),
+    letter: spaceActivation({ type: 'keyup', key: 'a' }),
+    withShift: spaceActivation({ type: 'keyup', key: ' ', shiftKey: true }),
+    withCtrl: spaceActivation({ type: 'keydown', key: ' ', ctrlKey: true }),
+    composing: spaceActivation({ type: 'keyup', key: ' ', isComposing: true }),
+    keypress: spaceActivation({ type: 'keypress', key: ' ' }),
+    nothing: spaceActivation(null),
+}));
 
 process.stdout.write(JSON.stringify(results));

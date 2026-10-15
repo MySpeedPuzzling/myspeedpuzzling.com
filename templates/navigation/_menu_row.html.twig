@@ -38,7 +38,7 @@
         {%- if row.current %} aria-current="page"{% endif %}
         {%- if row.nofollow %} rel="nofollow"{% endif %}
         {%- if kind == 'help_sheet' %} {{ help_opener_attrs() }}{% endif %}
-        {%- if kind == 'logout' %} data-turbo="false"{% endif %}
+        {%- if kind == 'logout' %} data-turbo="false" data-clears-snapshots{% endif %}
         {%- if entry.id == 'puzzles_place' %} data-nav-place="puzzles"{% if nav_puzzles_sections_carrier() %} data-puzzles-sections={{ nav_puzzles_sections()|json_attribute }}{% endif %}{% endif %}>
         {#- -#}<i class="bi {{ entry.icon }}" aria-hidden="true"></i><span class="mr-l">{{ entry.label|trans }}
         {%- if stopwatch is not null -%}

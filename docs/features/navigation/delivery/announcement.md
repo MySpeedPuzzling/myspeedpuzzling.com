@@ -4,7 +4,7 @@ Drafts for the launch post and the weekly "You said, we changed" notes. **Not pu
 
 Rules for every text here: plain and friendly; never blame the player ("was hard to find", never "you couldn't find"); no player names, no numbers about people, no business numbers; never "rival", never "suspicious". Pictures: the "What moved" schematics or screenshots of a demo account, never a real player's page.
 
-**Ship check.** Lines marked *(ship check: ID)* describe items that were not verified when this draft was written (2026-10-14). Before publishing, look the ID up in `state.md`: keep the line when the item is `verified` and switched on in production, otherwise delete it. §5 lists them.
+**Ship check.** This draft was written on 2026-10-14, before every item it names was verified; by 2026-10-15 all of them are (`state.md`), so their markers are gone. One line keeps a marker *(ship check: …)*: it depends on a switch the owner's device check decides (`INSTANT_BACK_IOS`). Before publishing, re-check §5 against `state.md` on publish day: keep a line when its item is `verified` and switched on in production, otherwise delete it.
 
 ---
 
@@ -56,19 +56,19 @@ On phones, almost everything on MySpeedPuzzling sat behind one menu button, and 
 - Pinch-to-zoom works on every page.
 - "Are you sure?" questions are now our own dialogs, so they also show on iPhones after you went Back.
 - In the installed app, pull-to-refresh needs a shorter pull.
-- On Android: a ripple under your finger, and a short vibration when a time is saved, a box is scanned or something fails — you can turn it off in Settings › Preferences › Vibration *(ship check: GEST-10, GEST-11)*. On iPhone, switches feel like iOS's own.
-- Pressing and holding a tab whose name is hidden shows the name *(ship check: GEST-18)*.
-- Going Back now brings you to the same place instantly, without loading the page again *(ship check: GEST-14, GEST-15 — on iPhones only when `INSTANT_BACK_IOS` is on)*.
-- On Android, places fade into each other *(ship check: GEST-12)*.
-- On phones, swipe sideways on Home between Favorites and Everyone *(ship check: GEST-16)*.
-- On phones, a puzzle's picture grows into its page when you open it from a list *(ship check: GEST-17)*.
-- The pull-to-refresh spinner in the installed app looks like your phone's own *(ship check: GEST-19)*.
+- On Android: a ripple under your finger, and a short vibration when a time is saved, a box is scanned or something fails — you can turn it off in Settings › Preferences › Vibration. On iPhone, switches feel like iOS's own.
+- Pressing and holding a tab whose name is hidden shows the name.
+- Going Back now brings you to the same place instantly, without loading the page again *(ship check: `INSTANT_BACK_IOS` is `true` since 2026-10-15, decision Q1; if the iPhone device check DC1/DC6/DC7 fails, it ships `false` - then add "on Android and on computers")*.
+- On Android, places fade into each other.
+- On phones, swipe sideways on Home between Favorites and Everyone.
+- On phones, a puzzle's picture grows into its page when you open it from a list.
+- The pull-to-refresh spinner in the installed app looks like your phone's own.
 
 **Footer and "All pages".** The footer looks the same on every page, in four columns: Puzzles · Community · Learn · MySpeedPuzzling. Every link it had before is still there; new pages carry a "New" label for two weeks. "All pages" at the bottom opens the Menu.
 
 **Pages that need the whole screen.** A running stopwatch, the organisers' participants spreadsheet, the round stopwatch, live results entry and print pages show no bars. Sign-in pages show only the logo and the language switch.
 
-**Where did it go?** A permanent page lists every item of the old menus, top bar and footer and where it is now — for example "☰ Menu › Account › Your data" — each one a working link, with a filter box. Signed-in players reach it from the Help sheet, the Menu, the search and the footer; the page itself is open to everyone. If you had an account before the change, a short "What moved" note explains it once, the first time you visit after it, starting with "Everything is in ☰ Menu, top right, where the ☰ always was" (on a computer: "Everything is in the ☰ Menu on the left"). For the first month, a line on Home and at the top of the Menu points there too *(ship check: LAUNCH-01, LAUNCH-02, LAUNCH-03)*.
+**Where did it go?** A permanent page lists every item of the old menus, top bar and footer and where it is now — for example "☰ Menu › Account › Your data" — each one a working link, with a filter box. Signed-in players reach it from the Help sheet, the Menu, the search and the footer; the page itself is open to everyone. If you had an account before the change, a short "What moved" note explains it once, the first time you visit after it, starting with "Everything is in ☰ Menu, top right, where the ☰ always was" (on a computer: "Everything is in the ☰ Menu on the left"). For the first month, a line on Home and at the top of the Menu points there too.
 
 ### How to give feedback
 
@@ -150,7 +150,7 @@ Every README §4 surface, plus the other changes the implementation plan lists f
 | §4.10 | Pages without bars, auth layout, keyboard | "Pages that need the whole screen" | keyboard hiding the bar not mentioned (expected behaviour) |
 | §4.11 | Footer + "All pages" + "New" labels | "Footer and 'All pages'" | |
 | §4.12 | The Menu (groups, roles, counts, ☰ dot, Menu search, pages & settings search) | "☰ Menu: every page in one place" + "One slim bar at the top" (search) | |
-| §4.13 | Gestures and platform feel (G1–G17) | "Back, gestures and the feel of it" | G9, G12, G14, G15, G17 lines carry ship checks |
+| §4.13 | Gestures and platform feel (G1–G17) | "Back, gestures and the feel of it" | the G9 line (Instant Back) carries the iPhone ship check |
 | §4.14 | Native-ready navigation | — **deliberately not announced** | no visible change on the web; mentioning it would promise an app that is out of scope (README §9) |
 | D5 | Home = Hub for signed-in players | "Home" | |
 | D6 | Puzzles sections (no §4 subsection) | "Puzzles" | |
@@ -160,18 +160,19 @@ Every README §4 surface, plus the other changes the implementation plan lists f
 
 ## 5. Ship checks before publishing
 
-State on 2026-10-14 (`state.md`); re-check each on publish day.
+State on 2026-10-15 (`state.md`: every item verified except QA); re-check each on publish day.
 
-| ID | Line in §1 | State then | If not shipped |
+| ID | Line in §1 | State now | If not shipped |
 |---|---|---|---|
-| GEST-10, GEST-11 | Android ripple and vibration, Settings › Preferences › Vibration | implemented, verify-after the Platform feel gate | delete the Android line |
-| GEST-18 | press and hold a tab to see its name (also in "Five places") | implemented, verify-after the Platform feel gate | delete both mentions |
-| GEST-14, GEST-15 | Back brings you to the same place instantly | todo | delete the line; on iPhones keep it only when `INSTANT_BACK_IOS` is true |
-| GEST-12 | Android places fade into each other | in progress | delete the line |
-| GEST-16 | swipe between Favorites and Everyone | in progress | delete the line |
-| GEST-17 | the puzzle picture grows into its page | in progress | delete the line |
-| GEST-19 | installed-app pull-to-refresh spinner | in progress | delete the line |
-| LAUNCH-01, LAUNCH-02, LAUNCH-03 | "What moved" note, Where did it go? content, pointers | in progress | rewrite the paragraph to what exists; channels 1–3 in §3 |
+| GEST-10, GEST-11 | Android ripple and vibration, Settings › Preferences › Vibration | verified | delete the Android line |
+| GEST-18 | press and hold a tab to see its name (also in "Five places") | verified | delete both mentions |
+| GEST-14, GEST-15 | Back brings you to the same place instantly | verified; `INSTANT_BACK_IOS` = `true` (decision 2026-10-15 Q1: the iPhone device checks DC1/DC6/DC7 of QA-06 decide before the launch) | `INSTANT_BACK` off: delete the line; `INSTANT_BACK_IOS` shipped `false` after the device check: keep the line and add "on Android and on computers" |
+| GEST-12 | Android places fade into each other | verified | delete the line |
+| GEST-16 | swipe between Favorites and Everyone | verified | delete the line |
+| GEST-17 | the puzzle picture grows into its page | verified | delete the line |
+| GEST-19 | installed-app pull-to-refresh spinner | verified | delete the line |
+| LAUNCH-01, LAUNCH-02, LAUNCH-03 | "What moved" note, Where did it go? content, pointers | verified | rewrite the paragraph to what exists; channels 1–3 in §3 |
+| QA-01 … QA-06 | any line (a fix after a QA finding can change a page or a label) | QA-03 in progress, QA-06 blocked: owner (the device check), the others todo | re-read the lines the fix touched |
 | owner | `NavigationLaunch::DATE` set | `null` | without it there is no modal and no pointers: hold the post |
 
 Also before publishing: the newest Decisions log rows of `state.md` (a later decision can move a page or rename a label), the six-locale screenshots of QA-01 for the picture, and the names in any picture (demo account only).

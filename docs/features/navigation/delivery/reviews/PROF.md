@@ -142,7 +142,7 @@ window.fetch = (u, o) => String(u).includes('fragment=more') ? new Promise((r) =
 - One screen can say "Pairs (5)" and "7 of 9". The old footer already counted rows; the chip line is new. Intended?
 
 **Q5 (`?page` renders up to every row for anybody).**
-- `?page=10000` is clamped to the last page and renders rows 1…all: the heaviest clone history is ≈ 44 pages, a size at which the old profile list rendered ~6 MB in ~1 s.
+- `?page=10000` is clamped to the last page and renders rows 1…all: the heaviest clone history is large enough that the old profile list rendered megabytes of HTML for it and took noticeably long.
 - Any extra parameter bypasses the 60 s edge cache, so one anonymous GET costs that much.
 - The plan's risk names only the crawl of cumulative pages (LAUNCH-05 watch, `rel="nofollow"` fallback). Is the cost of a hand-made URL accepted, or should the full render be capped (e.g. beyond Show all's 300 rows only for the owner)?
 

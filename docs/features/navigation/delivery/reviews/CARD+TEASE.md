@@ -48,7 +48,7 @@
 - Scenario: an iPhone on `/en/ladder/solo/500-pieces` taps a name, reads the card, and swipes it away. The result is two card requests: each costs 3–6 statements (`PlayerCardQueryBudgetTest`), and each runs the Times-board `BestTimes` aggregate (116–165 ms per run on the clone, `state.md` CARD-02 EXPLAIN).
 
 **Why it matters.**
-- README §4.8 and CARD-06 say "≤ 4 statements per open". In practice an open costs two requests (≤ 8) on iOS, the largest phone audience. The waste is the most expensive context there is: `docs/TODO.md` already flags the Times-board cost per open.
+- README §4.8 and CARD-06 say "≤ 4 statements per open". In practice an open costs two requests (≤ 8) on iOS. The waste is the most expensive context there is: `docs/TODO.md` already flags the Times-board cost per open.
 - `PlayerCardQueryBudgetTest` measures one request, and the node harness fakes the layer, so nothing can see it.
 
 **Fix.** Make the layer ignore the prefetch its own focus return causes.

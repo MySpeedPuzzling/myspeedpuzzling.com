@@ -386,6 +386,30 @@ final class NavInstrumentationScriptTest extends TestCase
         self::assertSame([['load', 'back', null]], self::historyLines($did));
     }
 
+    /**
+     * Chromium: once Turbo replaced the history entry at start, the activation's entry reads index -1 - the current
+     * entry is the same place then (a Back must not become "unknown").
+     */
+    public function testATraverseWhoseActivationEntryWasReplacedStillKnowsItsDirection(): void
+    {
+        $did = $this->scenario(['steps' => [
+            ['do' => 'load', 'index' => 2, 'activation' => ['navigationType' => 'traverse', 'from' => ['index' => 3], 'entry' => ['index' => -1]]],
+            ['do' => 'load', 'index' => 4, 'activation' => ['navigationType' => 'traverse', 'from' => ['index' => 3], 'entry' => ['index' => -1]]],
+        ]]);
+
+        self::assertSame([['load', 'back', null], ['load', 'forward', null]], self::historyLines($did));
+    }
+
+    public function testABackForwardCacheRestoreWhoseActivationEntryWasReplacedStillKnowsItsDirection(): void
+    {
+        $did = $this->scenario(['steps' => [
+            ['do' => 'load', 'index' => 3],
+            ['do' => 'pageshow', 'persisted' => true, 'activation' => ['navigationType' => 'traverse', 'from' => ['index' => 4], 'entry' => ['index' => -1]]],
+        ]]);
+
+        self::assertSame([['bfcache', 'back', null]], self::historyLines($did));
+    }
+
     public function testABackForwardLoadWithoutTheNavigationApi(): void
     {
         $did = $this->scenario(['steps' => [

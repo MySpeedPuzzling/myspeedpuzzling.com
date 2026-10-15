@@ -122,8 +122,25 @@ function direction(from, to) {
     return to < from ? 'back' : 'forward';
 }
 
-function activationDirection(activation) {
-    return direction(activation.from ? activation.from.index : null, activation.entry ? activation.entry.index : null);
+/**
+ * Back or Forward of a document's load or back/forward-cache restore: from the entry left to the entry shown. The
+ * activation's `entry` reads index -1 once the page replaced it (Turbo's history.replaceState when it starts - measured
+ * in Chromium): the current entry, passed as currentIndex, is that same place then.
+ */
+function activationDirection(activation, currentIndex = null) {
+    const entry = activation.entry && typeof activation.entry.index === 'number' && activation.entry.index >= 0 ? activation.entry.index : currentIndex;
+
+    return direction(activation.from ? activation.from.index : null, entry);
+}
+
+function currentEntryIndex(window) {
+    try {
+        const entry = window.navigation && window.navigation.currentEntry;
+
+        return entry && typeof entry.index === 'number' ? entry.index : null;
+    } catch (e) {
+        return null;
+    }
 }
 
 export function createNavInstrumentation(env) {
@@ -235,7 +252,7 @@ export function createNavInstrumentation(env) {
 
             if (activation && typeof activation.navigationType === 'string') {
                 if (activation.navigationType === 'traverse') {
-                    send({ k: 'history', via: 'load', dir: activationDirection(activation), uaTransition: null });
+                    send({ k: 'history', via: 'load', dir: activationDirection(activation, currentEntryIndex(window)), uaTransition: null });
                 }
 
                 return;
@@ -278,7 +295,7 @@ export function createNavInstrumentation(env) {
 
         try {
             const activation = window.navigation && window.navigation.activation;
-            dir = activation ? activationDirection(activation) : 'unknown';
+            dir = activation ? activationDirection(activation, currentEntryIndex(window)) : 'unknown';
         } catch (e) {
             // unknown
         }

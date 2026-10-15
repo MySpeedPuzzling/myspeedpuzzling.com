@@ -155,3 +155,59 @@ Montages were built from the full QA-01 run at `fe4a8d930`: en/de/ja member at 3
   - Inbox tabs and counts, with For you at 0 on the notifications page and Messages kept.
   - Results chips, tabs and sort; Overview bests above the fold; the guest Menu card (Sign in · Join free), groups and About row.
   - No broken icons and no untranslated chrome labels.
+
+## Second pass
+
+- **Reviewed:** HEAD `77c350d08`, fixes `aae29aa45` (code, translations), `94d0be1f6` + `9ffc05cf8` (docs, R19) and `77c350d08` (statuses, doc follow-ups); the decisions log rows of 2026-10-15.
+- **Method:**
+  - Read every fix's diff and its test, and judged whether the test would fail on the old code.
+  - Curled `http://127.0.0.1:18080`. It serves HEAD's build: the served `app.css` holds the new scrim, `.lb-row-empty`, `cmp-subject-link`, `[aria-busy=true]` and fr tracking rules. The guest `/en/where-did-it-go` links no Menu row missing from the guest `/en/menu` (36 links, 0 missing). `?context[]=` on the card answers 200. The Menu field's placeholders are "Search pages & puzzles" (en) and "Chercher pages et puzzles" (fr).
+  - No browser was used. The QA-01 re-run at `77c350d08` was in progress (117 shots so far), so fit-in-the-browser claims rest on the re-run.
+- **Result:** 31 confirmed, 1 reopened (R19), 2 new (R33, R34; both minor).
+
+| ID | Second pass |
+|---|---|
+| R01 | **confirmed.** The backdrop goes to `100vh`, and the Help scrim and Menu shell go to `bottom: 0`, under the same `:has(:focus)` rule that hides the bar (`_nav-bars.scss`). It is phones only, and the `.modal` keeps its height. No test guards it → R34. |
+| R02 | **confirmed.** Player subjects' names on the page (line-up, league, head-to-head) are triggers via `comparison/_subject_name.html.twig`; pairs/teams and unavailable subjects stay text. The add sheet's link is plain. `PlayerCardSurfacesTest` gains comparison rows plus a "no trigger inside `.modal`" test, which fails on the old markup. |
+| R03 | **confirmed.** `post_action.js` calls `progress('start')` before the fetch and `progress('end')` in `finally`; a busy second tap is ignored. The controller drives Turbo's adapter form-submission hooks. `PostActionScriptTest` asserts the order for stream, redirect, refused and failure, and fails without the hooks. |
+| R04 | **confirmed.** cs `vibration_help` is now "vašem". `NavigationTranslationsTest::testEveryTextKeepsThePagesTone` pins it (fails on "tvém"). |
+| R05 | **confirmed.** With fr tracking, every locale stays at step 2 or lower at ≥ 320 px (`NavLabelStepsTableTest` asserts `5 × (tracked width + safety + padding) < 320` per locale, which fails on the old fr width). Below that, a place-less bar keeps all labels (`:has()` rule). |
+| R06 | **confirmed.** fr step-2 tracking is −0.05em (re-measured table, bounded by the test). "Communauté" now fits a 64 px tab at 320. |
+| R07 | **confirmed** for the text and key: `nav.menu.search_placeholder` in 6 locales, used only by the Menu instance, pinned in `MenuLayerTest`. That it fits at 320 in fr/ja is for the QA-01 re-run (MENU-03 check) to show. |
+| R08 | **confirmed.** The Help/Menu rows use their own `nav.row.progression` / `nav.row.your_week` (de "Ihr", "Ihre"), with the old keys kept as legacy search labels. The tone test scans every navigation key in German for du-forms. |
+| R09 | **confirmed.** `post_action_controller.js` is eager; `StimulusControllerLoadingTest::testTheOneTapActionsLoadEagerly` fails on the `lazy` marker. |
+| R10 | **confirmed.** "View profile" `aria-current` now comes from `nav_location()`. `AccountMenuTest` covers an upper-case-id URL, which failed before. |
+| R11 | **confirmed.** `data-bar-action`/`data-bar-count` render only for `surface == 'topbar'`, and `inbox_badge.js` only updates a link that carries the count. Page-wide uniqueness is asserted in `TopBarTest` and `InboxTest`, and the node harness checks the Menu row has no tool ids. |
+| R12 | **confirmed.** The context is read via `query->all()`. `PlayerCardContextTest::testAnArrayContextIsNoBlockAndNoError` covers three array shapes and the full page; it was a 400 before. Live curl: 200. |
+| R13 | **confirmed.** "Now" links a Menu anchor only when the viewer's own `menu` page has that row; otherwise a guest gets "after signing in". The per-role test compares every link with that role's `/en/menu` anchors. Live guest page: 0 missing anchors. |
+| R14 | **confirmed.** `MembersPlacement::ResultsFilters` / `ResultsSort` are on both locks. The test asserts no unplaced lock under `main`. |
+| R15 | **confirmed.** Both footer partials are in `NO_TEASER_TEMPLATES`, and a new `_footer*.html.twig` must join the list (asserted). |
+| R16 | **confirmed.** es "puzzlero", fr "puzzleur". |
+| R17 | **confirmed** (decision 2026-10-15). The Inbox tab and pointer are formal and pinned by the tone test. The Inbox now matches the formal `notifications.*` and `messaging.*`; the informal cs Menu (`nav.*`) remains chrome on every page, which the decision accepts. |
+| R18 | **confirmed** (decision 2026-10-15). Empty slots keep the row cells (same height), show only `&nbsp;`, `visibility: hidden` with transparent borders. `MostActiveSoloPlayersShapeTest` asserts empty text, cells and `aria-hidden` (it fails on the old numbered slots). |
+| R19 | **reopened (minor).** README §1/D9 are reworded without figures, and `9ffc05cf8` cleaned two delivery notes. But `delivery/state.md:242` (decisions log, 2026-10-13 PROF review, reason of Q5) still quotes the biggest profile's rough history length and page weight, the kind of figure decision 2026-10-15 R19 says to remove. Borderline: `delivery/baseline.md` §2 records the HTML byte sizes of the biggest and a ~100-result clone profile (a P0-02 deliverable, measured on paged pages); keep or round them by the same decision. History on `navigation-rework` keeps the old figures either way, so the squash merge stays needed. |
+| R20 | **confirmed** for the runner: `run.py` asserts `innerWidth` before every shot and opens a session per phone width. Its 06:56 run at `fe4a8d930` had 0 failures. The shots must be re-taken at `77c350d08` (templates/CSS changed), which is in progress. See R33 for the label check. |
+| R21 | **confirmed.** The camera spinner uses `'loading'|trans` (6 locales); `SearchCameraScriptTest` expects "Loading". |
+| R22 | **confirmed** (decision 2026-10-15). hreflang only when indexable. `PlayerResultsSeoTest` expects 0 alternates at the threshold and 7 above it, for `''` and `?page=1`; it fails on the old 7-always. |
+| R23 | **confirmed.** `PlayerCardQueryBudgetTest::testThePageACardOpensOnPaysNothingForIt` checks, for a member and a guest, that none of the card's statements run on the puzzle page whose names are triggers. No code change was needed; the test closes the gap. |
+| R24 | **confirmed.** README §12 now states that inside the app `restoreDecision()` answers `leave`, Turbo fetches and renders, and main differed. The 2026-10-15 Q4 decisions-log row still gives "keeps today's behaviour" as its reason; it is historical, and README §12 is now the record. |
+| R25 | **confirmed.** README §4.4/§12 and requirements INB-02 name `notifyInboxBadgeChanged()` and the numbers-only stream with its tests. |
+| R26 | **confirmed.** §4.12 quotes the shipped descriptions, and §12 records why. |
+| R27 | **confirmed.** README/requirements carry the guest audience value the pages render. |
+| R28 | **confirmed.** `forPuzzles()` for the rows shown, `allForPlayer()` for the Best rank sort, one statement. |
+| R29 | **confirmed.** |
+| R30 | **confirmed.** `feature_flags.md` lists every gated file with the grep; `nav_launched` is gone from it. |
+| R31 | **confirmed.** The Twig function is removed, and its test now covers `nav_new_badges_shown()` only; no reference is left outside the review and the plan's note. |
+| R32 | **confirmed.** The "State then" column is refreshed; the one ship-check marker left (`INSTANT_BACK_IOS`) is deliberate. |
+
+### New findings (second pass)
+
+| ID | Severity | Requirement | Evidence | Suggested fix | Status |
+|---|---|---|---|---|---|
+| R33 | minor | QA-01 (evidence for NAV-02 / R05) | The QA-01 runner's label check now exempts "step 3 on a page without a current tab: every bar label hidden by design" (`var/navigation-delivery/scripts/qa01/run.py:475-478`, changed 06:56). That is the R05 icon-only bar, which decision R05/D14 says never happens. The fix makes it unreachable at ≥ 320 px in every locale, but with this exemption a regression would pass QA-01 silently. (The other exemption, a current-tab label wider than its own tab inside the bar at step 3, matches the CSS comment and is fine.) | Drop `no_label_by_design`: a visible bar with 0 measured labels fails again. | |
+| R34 | minor | HELP-01b / NAV-08 (R01) | The R01 fix is CSS only (`_nav-bars.scss`: backdrop `100vh`, scrim and Menu shell `bottom: 0` under the keyboard rule), and no test pins it. `NavLayoutCssTest` still asserts the scrim's resting `bottom` only. A later edit of either rule would bring back the live strip under the Help sheet without any test failing. | A `NavLayoutCssTest` row: the keyboard `:has(...)` rule reaches `.modal-backdrop`, `.dynamic-modal-scrim` and `.menu-layer` with the full-height values. Optionally, in QA-06 row 5, say "with the Help box focused". | |
+
+### Orchestrator, after the second pass
+- R19 (reopened): `state.md`'s PROF review Q5 reason worded without the history's length and weight. `baseline.md` §2 keeps its HTML byte sizes of clone renders: they are the page-weight baseline the "< 400 KB" checks reuse and say nothing about usage (main's own `PlayerSolvedPuzzles` comment states the heaviest render's size) - won't fix. The squash merge stays recommended.
+- R33: fixed - `scripts/qa01/run.py` has no icon-only exception any more; the final QA-01 run is checked for any shot with a shown bar and no measured label.
+- R34: fixed - `NavLayoutCssTest::testScrimsReachTheBottomEdgeWhileTheBarIsAway` pins the rule (it fails with the scrims' `bottom: 0` removed; checked and restored).

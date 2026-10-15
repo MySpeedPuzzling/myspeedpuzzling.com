@@ -239,6 +239,38 @@ final class NavLayoutCssTest extends TestCase
     }
 
     /**
+     * While a focused text field sends the bottom bar away, every scrim reaches the bottom edge (QA-04 R01): the Help
+     * sheet focuses its message on phones, and the strip the bar left must be dimmed scrim, never live page that takes
+     * taps. The same field selector hides the bar and grows the scrims; only the scrims grow, never a `.modal` box.
+     */
+    public function testScrimsReachTheBottomEdgeWhileTheBarIsAway(): void
+    {
+        $code = (string) file_get_contents($this->root() . '/assets/styles/_nav-bars.scss');
+        $rules = $this->rules($code);
+        $field = 'html:has(#{$nav-keyboard-field})';
+
+        $hidesTheBar = array_filter(array_keys($rules), static fn (string $selector): bool => str_contains($selector, $field) && str_contains($selector, '.bottom-nav'));
+        self::assertNotSame([], $hidesTheBar, 'The bar hides for the same field selector that grows the scrims');
+
+        $declarations = static function (string $part) use ($rules, $field): string {
+            $found = '';
+
+            foreach ($rules as $selector => $own) {
+                if (str_contains($selector, $field) && preg_match('~(?<![\w-])' . preg_quote($part, '~') . '(?![\w-])~', $selector) === 1) {
+                    $found .= $own;
+                }
+            }
+
+            return $found;
+        };
+
+        self::assertMatchesRegularExpression('~(?<![\w-])height\s*:\s*100vh~', $declarations('.modal-backdrop'), 'Bootstrap\'s backdrop reaches the bottom edge');
+        self::assertMatchesRegularExpression('~(?<![\w-])bottom\s*:\s*0\b~', $declarations('.dynamic-modal-scrim'), 'The Help sheet\'s own scrim reaches the bottom edge');
+        self::assertMatchesRegularExpression('~(?<![\w-])bottom\s*:\s*0\b~', $declarations('.menu-layer'), 'The Menu panel reaches the bottom edge');
+        self::assertDoesNotMatchRegularExpression('~(?<![\w-])(height|bottom|inset)\s*:~', $declarations('.modal'), 'No dialog box moves under the finger');
+    }
+
+    /**
      * The Help sheet's own scrim (HELP-01b, implementation plan §7, F-03 z-index scale): at the backdrop's layer, under
      * the .modal that takes the taps outside the dialog; the sent sheet (release()) lets taps through to the page except
      * on its dialog

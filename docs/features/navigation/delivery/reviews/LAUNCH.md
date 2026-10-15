@@ -91,6 +91,7 @@ Scenario:
 **Test.** `WhereDidItGoControllerTest`, as a member: the account-dropdown row "Log out" has no `a[href="/logout"]`.
 
 ### F4 · minor · `src/Navigation/FormerNavigation.php:84-85`; `src/Navigation/WhereDidItGoBuilder.php:31, 80-96`
+_Superseded at QA-04 (R13): a "Now" row links a Menu anchor only when the viewer's own Menu has that row; a guest sees "After signing in" there._
 **Problem.** Some rows describe a place the viewer does not have.
 - **Signed-in viewers**, the page's audience (R2), get:
   - "Sign in → ☰ › Sign in", linking `/login`;

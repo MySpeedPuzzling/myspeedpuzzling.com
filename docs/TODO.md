@@ -78,6 +78,21 @@ that would otherwise be forgotten. Newest section on top.
       denser rows everywhere, or keep the baseline
 - [ ] Instant Back on a real phone (QA-06 device session): INP of the first interaction after leaving a large list, to
       confirm the clone budget (`CLONE_BUDGET_UNITS` 6000 ≈ 16 ms at 4× CPU throttling, measured in Chromium only)
+- [ ] "* Required" is English in every locale: a CSS `content` rule (`assets/styles/app.scss` ~250) on required labels -
+      the add forms and the Help sheet show it (QA-01) - a translated marker in the markup instead
+- [ ] At 320/360 px, ja/de: the player header's owner buttons wrap ("共有" one character per line, "プロフィール編集" and
+      "Profil bearbeiten" split) and the Add page's mode buttons break mid-word ("スピードパ/ズリング") - `word-break:
+      keep-all` for ja and a layout that fits (QA-01; unchanged since main)
+- [ ] de puzzle page at 320 px: the leaderboard's Average label is clipped ("Durchschnit", `.lb-stat*` in `PuzzleTimes`;
+      unchanged since main)
+- [ ] The Hub at 320 px: ~50 px of empty band between the Favorites | Everyone tabs and the first row (the tab markup is
+      main's; the Hub rework, README G14)
+- [ ] The Menu's moderator queue rows: the server-rendered "Time verification" count shows a green "0" (pinned by
+      `GetAdminQueueCountsTest`, as main's admin menu did), while the Menu's lazily loaded counts show nothing at 0 - one
+      rule for both
+- [ ] Lighthouse at QA-03 (simulated mobile, clone): FCP ~1 s faster on Hub and puzzle page, but TBT +20 to +105 ms and
+      LCP +150 to +530 ms against P0-02 - look at what the app bundle's growth (navigation controllers, Instant Back,
+      the eager one-tap controller) costs on first load and split what can wait
 
 ## Navigation redesign - player card (`docs/features/navigation/`, CARD-02, CARD-07)
 

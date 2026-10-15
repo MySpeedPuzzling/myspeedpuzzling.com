@@ -40,17 +40,19 @@
                     {% for most_active_player in this.players %}
                         {{ include('_most_active_player_row.html.twig', {player: most_active_player, rank: loop.index, hidden: this.showLimit > 0 and loop.index > this.showLimit}) }}
                     {% endfor %}
-                    {#- Fewer puzzlers than the rows the placeholder draws (a month just begun, a quiet one): numbered empty slots
-                        up to showLimit, so the lazy swap of the placeholder moves nothing under it - the Hub loads without a
-                        layout shift (docs/features/navigation GEST-16, checks/GEST-16.py) -#}
+                    {#- Fewer puzzlers than the rows the placeholder draws (a month just begun, a quiet one): empty slots up to
+                        showLimit, so the lazy swap of the placeholder moves nothing under it - the Hub loads without a
+                        layout shift (docs/features/navigation GEST-16, checks/GEST-16.py). A row's height and nothing else:
+                        no number, no dash, nothing painted (.lb-row-empty) - numbered empty rows read as missing data
+                        (QA-04 R18, decision 2026-10-15) -#}
                     {% if this.showLimit > 0 and this.players|length < this.showLimit %}
                         {% for rank in (this.players|length + 1)..this.showLimit %}
                             <tr class="lb-row-empty" aria-hidden="true">
-                                <td class="rank"><span class="lb-rank">{{ rank }}</span></td>
+                                <td class="rank"><span class="lb-rank">&nbsp;</span></td>
                                 <td class="lb-solver">
                                     <span class="lb-player">
                                         <span class="lb-avatar"><span class="lb-avatar-img lb-tint-guest"></span></span>
-                                        <span class="lb-name lb-name-guest">–</span>
+                                        <span class="lb-name lb-name-guest">&nbsp;</span>
                                     </span>
                                 </td>
                                 <td class="lb-time">

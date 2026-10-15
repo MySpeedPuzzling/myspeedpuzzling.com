@@ -23,8 +23,9 @@ use Symfony\UX\LiveComponent\Test\InteractsWithLiveComponents;
  * page already has: no statement). No triggers inside a modal (the result detail's), and guest pages stay
  * shared-cacheable (the triggers are the same for every visitor).
  *
- * "Someone at your speed" on the compare page is covered by tests/Component/ComparisonSimilarSpeedTest.php (a member's
- * roll), the Players page lists by the Players tests (tests/Component/Players/*, PlayersDirectoryControllerTest,
+ * The compare page's subject names (line-up chips, league table, head-to-head) open the card; its add sheet is a modal:
+ * "Someone at your speed" there links the profile without a trigger (tests/Component/ComparisonSimilarSpeedTest.php).
+ * The Players page lists by the Players tests (tests/Component/Players/*, PlayersDirectoryControllerTest,
  * PlayersPerCountryControllerTest).
  */
 final class PlayerCardSurfacesTest extends WebTestCase
@@ -61,6 +62,24 @@ final class PlayerCardSurfacesTest extends WebTestCase
         yield 'achievement holders' => [null, '/en/achievements/zen_puzzler', '#tier-1', null, 'holder'];
         yield 'players page directory' => [null, '/en/puzzlers/all', '.players-directory-grid', null, null];
         yield 'community landing' => [null, '/en/community', 'main', null, null];
+        // QA-04 R02: the line-up of the solo comparison (you, Anna, Regular - the league table) and the subject names
+        yield 'comparison line-up' => [PlayerFixture::PLAYER_WITH_STRIPE, '/en/compare?kind=solo', '[data-testid="comparison-line-up"]', null, null];
+        yield 'comparison league' => [PlayerFixture::PLAYER_WITH_STRIPE, '/en/compare?kind=solo', '[data-testid="comparison-league"]', null, null];
+    }
+
+    /**
+     * The compare page's modals - the add sheet, the swap modal - carry no trigger (CARD-01a), the page's names do
+     */
+    public function testTheComparisonsModalsHaveNoTriggers(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
+
+        $crawler = $browser->request('GET', '/en/compare?kind=solo');
+        self::assertResponseIsSuccessful();
+
+        self::assertGreaterThan(0, $crawler->filter('main [data-player-card]')->count());
+        self::assertCount(0, $crawler->filter('.modal [data-player-card], .modal [aria-haspopup="dialog"]'));
     }
 
     #[DataProvider('surfaces')]

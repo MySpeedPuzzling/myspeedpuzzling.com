@@ -785,7 +785,9 @@ final readonly class NavigationRegistry
             new NavEntry(
                 id: 'your_week',
                 target: RouteTarget::route('my_activity'),
-                label: 'my_activity.title.week',
+                // Its own navigation label: the page's title key is the informal German "Deine Woche" - next to the
+                // Menu's formal texts (QA-04 R08); the title key stays its legacy label (search finds the old name)
+                label: 'nav.row.your_week',
                 icon: 'bi-calendar-week',
                 place: NavPlace::Profile,
                 phone: $row(110),
@@ -794,6 +796,7 @@ final readonly class NavigationRegistry
                 rule: RulebookQuestion::Q8,
                 reason: 'Owner-only view of your own week (XP gate)',
                 since: self::SINCE,
+                legacyLabels: ['my_activity.title.week'],
             ),
         ];
     }
@@ -1296,12 +1299,14 @@ final readonly class NavigationRegistry
             $this->helpRow('methodology', 'methodology', 'nav.row.methodology', 'bi-rulers', 20, legacyLabel: 'footer.methodology', footer: new FooterPlacement(FooterColumn::Learn, 60, nav: 'learn/methodology')),
             // Help sheet positions (README §4.5, HELP-02): Ideas & feature requests · FAQ · Getting started · How progress
             // works · Where did it go? - after the feedback box and the puzzle correction, before Language and Reload
-            // (HelpSheetBuilder::items())
+            // (HelpSheetBuilder::items()). "How progress works" has its own navigation label: the XP pages' key is the
+            // informal German "dein" - next to the sheet's formal texts (QA-04 R08); the XP key stays its legacy label
+            // (search finds the old name)
             $this->helpRow('feature_requests', 'feature_requests', 'nav.row.feature_requests', 'bi-lightbulb', 30, ['feature_request_detail', 'feature_request_edit'], helpSheet: 30, legacyLabel: 'menu.feature_requests', footer: new FooterPlacement(FooterColumn::MySpeedPuzzling, 40, nav: 'myspeedpuzzling/feature_requests')),
             $this->helpRow('getting_started', 'getting_started', 'onboarding.guide.link', 'bi-signpost-2', 40, helpSheet: 50, footer: new FooterPlacement(FooterColumn::Learn, 10, nav: 'learn/getting_started')),
             $this->helpRow('faq', 'faq', 'menu.faq', 'bi-patch-question', 50, helpSheet: 40, footer: new FooterPlacement(FooterColumn::Learn, 40, nav: 'learn/faq')),
             $this->helpRow('guides', 'guides', 'footer.guides', 'bi-book', 60, $guides, footer: new FooterPlacement(FooterColumn::Learn, 50, nav: 'learn/guides')),
-            $this->helpRow('progression', 'progression_hub', 'progression_hub.menu_label', 'bi-question-circle', 70, [], NavVisibility::XpVisible, helpSheet: 60, footer: new FooterPlacement(FooterColumn::Learn, 20, newBadge: true, nav: 'learn/progression_hub', visibility: NavVisibility::XpVisible)),
+            $this->helpRow('progression', 'progression_hub', 'nav.row.progression', 'bi-question-circle', 70, [], NavVisibility::XpVisible, helpSheet: 60, legacyLabel: 'progression_hub.menu_label', footer: new FooterPlacement(FooterColumn::Learn, 20, newBadge: true, nav: 'learn/progression_hub', visibility: NavVisibility::XpVisible)),
             // A public page, linked for signed-in players only: guests never had the old menus (R2, README §4.12)
             new NavEntry(
                 id: 'where_did_it_go',

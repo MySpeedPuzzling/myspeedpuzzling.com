@@ -23,7 +23,7 @@
                     <td class="text-start cmp-league__subject">
                         <span class="cmp-league__who">
                             {{ include('comparison/_subject_avatar.html.twig', {subject: this.subjectOf(row.subject), label: label, role: this.roleOf(row.subject), size: 'sm'}) }}
-                            <span class="cmp-league__name">{{ label }}</span>
+                            {{ include('comparison/_subject_name.html.twig', {subject: this.subjectOf(row.subject), label: label, class: 'cmp-league__name'}, with_context = false) }}
                         </span>
                     </td>
                     <td class="cmp-league__wins">{{ row.wins }}</td>

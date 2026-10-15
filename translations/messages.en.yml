@@ -9453,6 +9453,7 @@ nav:
         logout: "Log out"
     menu:
         title: "Menu"
+        search_placeholder: "Search pages & puzzles"
         page_intro: "Every page and setting of MySpeedPuzzling in one place."
         close: "Close menu"
         view_profile: "View your profile"
@@ -9486,6 +9487,8 @@ nav:
         settings: "Settings"
         your_data: "Your data"
         methodology: "Difficulty & ratings"
+        progression: "How progress works"
+        your_week: "Your week"
         feature_requests: "Ideas & feature requests"
         wjpc: "World championship"
         legal_terms: "Terms"

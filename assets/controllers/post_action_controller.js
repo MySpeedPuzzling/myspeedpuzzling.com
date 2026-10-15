@@ -1,6 +1,5 @@
-/* stimulusFetch: 'lazy' */
 import { Controller } from '@hotwired/stimulus';
-import { renderStreamMessage } from '@hotwired/turbo';
+import { renderStreamMessage, session } from '@hotwired/turbo';
 import { haptic } from '../haptics.js';
 import { clearSnapshots, notePost } from '../instant_back.js';
 import layers from '../layer_history.js';
@@ -17,7 +16,26 @@ const postAction = createPostAction({
     haptic: (name) => haptic(name),
     toast: (message) => document.dispatchEvent(new CustomEvent('toast:show', { detail: { message, type: 'error' } })),
     currentUrl: () => window.location.href,
+    progress: (state) => formProgress(state),
 });
+
+/**
+ * Turbo's own progress bar, as for the form this link replaced (QA-04 R03): the session adapter's form-submission hooks
+ * - shown at once (progressBarDelay 0, app.js), hidden when the answer is in; a visit that follows brings its own. The
+ * argument stands in for Turbo's FormSubmission: the web adapter ignores it, the native app's reads its location.
+ */
+function formProgress(state) {
+    const adapter = session.adapter;
+    const hook = state === 'start' ? 'formSubmissionStarted' : 'formSubmissionFinished';
+
+    try {
+        if (adapter && typeof adapter[hook] === 'function') {
+            adapter[hook]({ location: new URL(window.location.href) });
+        }
+    } catch (error) {
+        // A progress bar never stops the action
+    }
+}
 
 /**
  * A one-tap action of a browse page (docs/features/navigation GEST-15, decision 99; assets/post_action.js): on a link
@@ -29,6 +47,10 @@ const postAction = createPostAction({
  * The links were buttons (Instant Back review F9): role="button" (rendered), and Space taps them as it does a button
  * (spaceActivation()). The action that asks first (Block) carries this controller for Space only - no URL: its tap is
  * Turbo's, opening the confirmation view in the modal frame.
+ *
+ * Eager, not lazy (QA-04 R09): a tap in the first moments after a load, before a lazy chunk had arrived, followed the
+ * link to the confirmation view - one tap more than the form it replaced. While the request runs the link is
+ * aria-busy (a second tap is ignored) and Turbo's progress bar shows.
  */
 export default class extends Controller {
     static values = {

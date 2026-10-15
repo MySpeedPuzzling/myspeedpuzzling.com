@@ -83,8 +83,9 @@ final class PlayerCardController extends AbstractController
         }
 
         // The context block (CARD-02) - only after the gate above, and never a status of its own: a context that does
-        // not apply is no block
-        $context = PlayerCardContext::tryFrom($request->query->get('context'));
+        // not apply is no block. Read raw: get() throws (400) on an array (?context[]=…), which is no context too
+        // (QA-04 R12) - tryFrom() takes strings only
+        $context = PlayerCardContext::tryFrom($request->query->all()['context'] ?? null);
 
         $response = $this->render($inFrame ? 'players/_card_frame.html.twig' : 'players/card.html.twig', [
             'player' => $player,

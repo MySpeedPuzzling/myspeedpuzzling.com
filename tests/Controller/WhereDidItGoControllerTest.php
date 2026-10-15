@@ -270,10 +270,25 @@ final class WhereDidItGoControllerTest extends WebTestCase
         self::assertCount(0, $this->row($crawler, 'hamburger', 'FAQ')->filter('.wdig-after'));
         self::assertCount(0, $this->row($crawler, 'footer', 'Puzzle database')->filter('.wdig-after, .wdig-members'));
 
-        // Pages that open for guests, though the Menu row is the players' (LAUNCH review F4; SRCH+FOOT review F1/F2): no
-        // "after signing in" - What next?'s landing, the Help sheet's page
-        foreach ([['account-dropdown', 'What next?'], ['footer', 'What should I solve next?'], ['topbar', 'Send feedback'], ['footer', 'Send feedback']] as [$surface, $oldName]) {
+        // The Help sheet's page opens for guests and its new place - the top bar's ? - is theirs too (LAUNCH review F4;
+        // SRCH+FOOT review F1/F2): no "after signing in"
+        foreach ([['topbar', 'Send feedback'], ['footer', 'Send feedback']] as [$surface, $oldName]) {
             self::assertCount(0, $this->row($crawler, $surface, $oldName)->filter('.wdig-after, .wdig-members'), $surface . ': ' . $oldName);
+        }
+
+        // What next?'s landing opens for guests - the old name links it - but its new place is a Menu row only players
+        // have (QA-04 R13): the new place says "after signing in" and links no row a guest's Menu does not have; so do
+        // Log out (its old name signs in) and the old footer's Achievements (the public overview)
+        foreach ([['account-dropdown', 'What next?', '/en/what-to-solve-next'], ['footer', 'What should I solve next?', '/en/what-to-solve-next'], ['footer', 'Achievements', '/en/achievements'], ['account-dropdown', 'Log out', null]] as [$surface, $oldName, $oldHref]) {
+            $row = $this->row($crawler, $surface, $oldName);
+            self::assertSame('After signing in:', $row->filter('.wdig-after')->text(), $surface . ': ' . $oldName);
+            self::assertCount(0, $row->filter('.wdig-new a'), $surface . ': ' . $oldName);
+
+            if ($oldHref !== null) {
+                self::assertSame($oldHref, $row->filter('.wdig-old a')->attr('href'), $surface . ': ' . $oldName);
+            } else {
+                self::assertStringStartsWith('/login', (string) $row->filter('.wdig-old a')->attr('href'));
+            }
         }
 
         // The membership page asks a guest to sign in (#[IsGranted] on MembershipController): the same rule as the page
@@ -285,6 +300,35 @@ final class WhereDidItGoControllerTest extends WebTestCase
         // The guest card's Sign in and Join free: a guest's rows
         self::assertSame('☰ › Sign in', $this->row($crawler, 'toolbar', 'Sign in')->filter('.wdig-now')->text());
         self::assertSame('☰ › Join free', $this->row($crawler, 'toolbar', 'Register')->filter('.wdig-now')->text());
+    }
+
+    /**
+     * QA-04 R13: a "Now" links a row of the `menu` page only where the viewer's own Menu has that row - a guest's Menu has
+     * no signed-in rows, a non-member's no members' rows. Every row of every viewer is checked against their Menu page.
+     */
+    #[DataProvider('provideRoles')]
+    public function testNowLinksOnlyRowsOfTheViewersOwnMenu(string $role): void
+    {
+        self::ensureKernelShutdown();
+        $browser = self::createClient();
+        NavigationViewer::signIn($browser, $role);
+
+        $menu = $browser->request('GET', '/en/menu');
+        self::assertResponseIsSuccessful();
+        $anchors = $menu->filter('main [id^="menu-row-"]')->each(static fn (Crawler $row): string => (string) $row->attr('id'));
+        self::assertNotSame([], $anchors);
+
+        $crawler = $this->request($browser);
+        $linked = 0;
+
+        foreach ($crawler->filter(self::ROWS)->filter('a[href*="#menu-row-"]') as $link) {
+            assert($link instanceof DOMElement);
+            $anchor = (string) parse_url($link->getAttribute('href'), PHP_URL_FRAGMENT);
+            self::assertContains($anchor, $anchors, sprintf('%s: %s links a row their Menu does not have', $role, $link->getAttribute('href')));
+            $linked++;
+        }
+
+        self::assertGreaterThan(0, $linked, $role);
     }
 
     /**

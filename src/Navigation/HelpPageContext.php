@@ -49,6 +49,25 @@ final readonly class HelpPageContext
         return $this->path ?? $this->privateLinkPath;
     }
 
+    /**
+     * The attached page as a person reads it (QA-04 review, item Q-a): the path percent-decoded - a Japanese page
+     * reads "/ja/ハブ", not "/ja/%E3%83%8F%E3%83%96". Display only (Twig escapes it): the form still sends
+     * attachedPath(). A path that does not decode to valid UTF-8, or would decode into control characters, stays as it
+     * is.
+     */
+    public function attachedPathForDisplay(): null|string
+    {
+        $path = $this->attachedPath();
+
+        if ($path === null) {
+            return null;
+        }
+
+        $decoded = rawurldecode($path);
+
+        return mb_check_encoding($decoded, 'UTF-8') && preg_match('~[\x00-\x1F\x7F]~', $decoded) !== 1 ? $decoded : $path;
+    }
+
     public function isEmpty(): bool
     {
         return $this->path === null;

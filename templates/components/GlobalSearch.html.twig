@@ -40,7 +40,7 @@
     <div data-controller="barcode-scanner" data-barcode-scanner-no-camera-value="{{ 'barcode_scanner.no_camera'|trans }}"{% if member %} data-barcode-scanner-camera-value="search-camera"{% if menu %} data-barcode-scanner-hud-nav-value="menu/search"{% endif %}{% endif %}{% if not menu %} class="site-search-box"{% endif %}>
         {% if menu %}
         <div class="input-group global-search-field">
-            <input type="search" data-model="debounce(150)|query" class="form-control" autocomplete="off" aria-label="{{ 'menu.search'|trans }}" data-barcode-scanner-target="input" data-global-search-target="searchInput" data-nav-search-target="input" placeholder="{{ 'forms.global_search_placeholder'|trans }}">
+            <input type="search" data-model="debounce(150)|query" class="form-control" autocomplete="off" aria-label="{{ 'menu.search'|trans }}" data-barcode-scanner-target="input" data-global-search-target="searchInput" data-nav-search-target="input" placeholder="{{ 'nav.menu.search_placeholder'|trans }}">
             {% if member %}
                 <button
                     class="btn btn-secondary border-0 px-3 fs-6"

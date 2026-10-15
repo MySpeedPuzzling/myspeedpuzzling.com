@@ -13,10 +13,13 @@
  *   show the state before the tap) and marks the document as having posted (its back/forward-cache copy reloads);
  * - a refusal (422) or a failure: the reject haptic (Android) and a toast with the link's failure text; nothing else
  *   changes - the link still opens the confirmation view.
+ * While the request runs, the page shows it as it did for the form (QA-04 R03): progress('start') before the request -
+ * Turbo's progress bar, shown at once (progressBarDelay 0) - and progress('end') once the answer is applied or refused.
+ * A second tap on the same action meanwhile is ignored ('busy').
  *
  * Pure: everything comes in through `env` ({fetch, renderStream(html), visit(url, options), clearSnapshots(),
- * notePost(), haptic(name), toast(message), currentUrl()}) - tests/post-action-harness.mjs drives it under node; the
- * Stimulus controller assets/controllers/post_action_controller.js is the browser's wiring.
+ * notePost(), haptic(name), toast(message), currentUrl(), progress(state)}) - tests/post-action-harness.mjs drives it
+ * under node; the Stimulus controller assets/controllers/post_action_controller.js is the browser's wiring.
  */
 
 export const STREAM_TYPE = 'text/vnd.turbo-stream.html';
@@ -125,6 +128,10 @@ export function createPostAction(env) {
 
             let outcome;
 
+            if (typeof env.progress === 'function') {
+                env.progress('start');
+            }
+
             try {
                 const body = new env.FormData();
                 bodyEntries(fields, formEntries, token).forEach(([name, value]) => body.append(name, value));
@@ -166,6 +173,10 @@ export function createPostAction(env) {
                 outcome = { kind: 'failed' };
             } finally {
                 pending.delete(id);
+
+                if (typeof env.progress === 'function') {
+                    env.progress('end');
+                }
             }
 
             if (outcome.kind === 'refused' || outcome.kind === 'failed') {

@@ -7,7 +7,7 @@
     (_topbar.html.twig): every page with a page search has it. -#}
 <template id="search-camera">
     <div class="spinner spinner-border text-primary" role="status">
-        <span class="visually-hidden">Loading...</span>
+        <span class="visually-hidden">{{ 'loading'|trans }}</span>
     </div>
     <video class="barcode-scanner-video" data-barcode-scanner-target="video" muted autoplay playsinline></video>
     <canvas data-barcode-scanner-target="overlay" class="position-absolute top-0 start-0 w-100"></canvas>

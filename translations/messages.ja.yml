@@ -9169,6 +9169,7 @@ nav:
         logout: "ログアウト"
     menu:
         title: "メニュー"
+        search_placeholder: "ページやパズルを検索"
         page_intro: "MySpeedPuzzlingのすべてのページと設定をひとつの場所に。"
         close: "メニューを閉じる"
         view_profile: "プロフィールを見る"
@@ -9202,6 +9203,8 @@ nav:
         settings: "設定"
         your_data: "あなたのデータ"
         methodology: "難易度とレーティング"
+        progression: "成長の仕組み"
+        your_week: "あなたの1週間"
         feature_requests: "アイデアと機能リクエスト"
         wjpc: "世界選手権"
         legal_terms: "利用規約"
@@ -9352,7 +9355,7 @@ barcode_scanner:
     "title": "%name% – パズルの記録"
     "description": "%name%のすべてのパズル記録：ソロ・ペア・チームのタイムをMySpeedPuzzlingで検索・並べ替え。"
   "search_label": "記録を検索"
-  "search_placeholder": "名前・EAN・ブランドコード"
+  "search_placeholder": "名前/EAN/ブランドコード"
   "search_submit": "検索"
   "view":
     "label": "表示"

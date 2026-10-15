@@ -82,3 +82,9 @@
         opacity: 1;
     }
 }
+
+// A one-tap action on its way (post_action_controller.js, GEST-15, QA-04 R03): Turbo's progress bar shows it, the
+// pointer says so too, and a second tap is ignored by the controller
+[data-controller~="post-action"][aria-busy="true"] {
+    cursor: progress;
+}

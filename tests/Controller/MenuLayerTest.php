@@ -115,6 +115,8 @@ final class MenuLayerTest extends WebTestCase
         self::assertCount(1, $shell->filter('.menu-layer-body[data-menu-layer-target="body"] > [data-menu-layer-search] > [data-live-name-value="GlobalSearch"][data-global-search-mode-value="menu"]'));
         self::assertCount(1, $shell->filter('[data-menu-layer-search] [data-nav-search-results][data-live-ignore][hidden]'));
         self::assertCount(1, $shell->filter('[data-menu-layer-search] input[type="search"]'));
+        // QA-04 R07: its own placeholder names what it finds first - pages - and fits a 320 px panel (MENU-03 check)
+        self::assertSame('Search pages & puzzles', $shell->filter('[data-menu-layer-search] input[type="search"]')->attr('placeholder'));
 
         $last = $crawler->filter('body > *')->last();
         self::assertSame('menu-layer', $last->attr('id'));

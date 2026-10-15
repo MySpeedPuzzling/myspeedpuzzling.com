@@ -138,6 +138,14 @@ final class TopBarTest extends WebTestCase
             self::assertNotSame('', $tool->getAttribute('href'), $tool->getAttribute('data-bar-action') . ' has no plain URL');
         }
 
+        // The tool ids are the top bar's: exactly one of each per page - the Menu's Inbox row carries none (QA-04 R11)
+        foreach ($cases as $case) {
+            self::assertCount($case === 'menu' ? 2 : 1, $crawler->filter('[data-bar-action="' . $case . '"]'), $case);
+        }
+
+        self::assertCount(1, $crawler->filter('[data-bar-count]'));
+        self::assertGreaterThan(1, $crawler->filter('a[data-inbox-link]')->count(), 'The Menu has an Inbox row too');
+
         // The Inbox tool also tells its count
         self::assertMatchesRegularExpression('~^\d+$~', (string) $header->filter('[data-bar-action="inbox"]')->attr('data-bar-count'));
         // ... and shows it as one badge of the total on the icon (the link's own classes never leak into it)

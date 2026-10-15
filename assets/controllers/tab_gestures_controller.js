@@ -392,7 +392,8 @@ export default class extends Controller {
 
         return isTruncated({
             step: this.element.getAttribute('data-label-step-override') || this.element.getAttribute('data-label-step'),
-            current: tab.matches(CURRENT_LOOK),
+            // A bar without a current place keeps every label at step 3 (_nav-bars.scss, QA-04 R05): each counts as shown
+            current: tab.matches(CURRENT_LOOK) || this.element.querySelector('.nav-tab[aria-current]') === null,
             scrollWidth: label.scrollWidth,
             clientWidth: label.clientWidth,
         });

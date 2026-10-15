@@ -174,6 +174,26 @@ final class PlayerCardContextTest extends WebTestCase
         self::assertCount(0, $crawler->filter('.players-card-context'));
     }
 
+    /**
+     * QA-04 R12: a context sent as an array (?context[]=…) is no context like any other invalid one - never a 400
+     */
+    public function testAnArrayContextIsNoBlockAndNoError(): void
+    {
+        $browser = $this->browser(PlayerFixture::PLAYER_ADMIN);
+
+        foreach (['?context[]=' . rawurlencode('puzzle:' . PuzzleFixture::PUZZLE_500_02), '?context[puzzle]=x', '?context[]=a&context[]=b'] as $query) {
+            $crawler = $browser->request('GET', '/en/puzzler-card/' . PlayerFixture::PLAYER_REGULAR . $query, server: ['HTTP_TURBO_FRAME' => self::FRAME]);
+
+            self::assertResponseIsSuccessful($query);
+            self::assertCount(1, $crawler->filter('.players-card'), $query);
+            self::assertCount(0, $crawler->filter('.players-card-context'), $query);
+        }
+
+        // ... and on the full page
+        $browser->request('GET', '/en/puzzler-card/' . PlayerFixture::PLAYER_REGULAR . '?context[]=bogus');
+        self::assertResponseIsSuccessful();
+    }
+
     public function testASecretPuzzleIsNoBlock(): void
     {
         $browser = $this->browser(PlayerFixture::PLAYER_ADMIN);

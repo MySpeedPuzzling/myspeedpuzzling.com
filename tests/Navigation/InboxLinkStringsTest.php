@@ -76,7 +76,7 @@ final class InboxLinkStringsTest extends WebTestCase
             self::assertCount(1, (new Crawler($link))->filter('.inbox-badge'), $link->getAttribute('data-nav'));
         }
 
-        /** @var list<array<string, list<list<array{nav: string, href: string, label: string, count: string}>>>> $pages */
+        /** @var list<array<string, list<list<array{nav: string, href: string, label: string, count: null|string, barAction: null|string}>>>> $pages */
         $pages = InboxBadgeScriptTest::runInNode(['pages' => [['html' => (string) $browser->getResponse()->getContent(), 'pushes' => self::PUSHES]]])['pages'];
         $results = $pages[0];
 
@@ -97,11 +97,14 @@ final class InboxLinkStringsTest extends WebTestCase
                 self::assertSame($navs, $seen, $placement . ': every Inbox link of the page');
 
                 foreach ($after as $link) {
+                    // The count is the top-bar tool's (NAV-14 (d)); the Menu's row never gains the tool ids (QA-04 R11)
+                    $topBar = str_starts_with($link['nav'], 'topbar/');
                     self::assertSame(
-                        $expected[$index],
+                        $topBar ? $expected[$index] : [...$expected[$index], 'count' => null],
                         ['href' => $link['href'], 'label' => $link['label'], 'count' => $link['count']],
                         $placement . ', push ' . ($index + 1) . ': ' . $link['nav'],
                     );
+                    self::assertSame($topBar ? 'inbox' : null, $link['barAction'], $link['nav']);
                 }
             }
         }

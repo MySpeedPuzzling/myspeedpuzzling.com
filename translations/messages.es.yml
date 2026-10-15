@@ -1278,7 +1278,7 @@ competition_referees:
         "result_best": "%time% · mejor aquí %best%, puesto %rank% de %total%"
         "result_relax": "Relax, sin tiempo"
         "round_official": "Resultado oficial: puesto %rank% · %result%"
-        "round_unofficial": "%result% · añadido por el puzzler, no oficial"
+        "round_unofficial": "%result% · añadido por el puzzlero, no oficial"
         "board":
             "times": "Tiempos individuales más rápidos · %pieces% piezas"
             "msp": "MSP Rating · %pieces% piezas"
@@ -9181,6 +9181,7 @@ nav:
         logout: "Cerrar sesión"
     menu:
         title: "Menú"
+        search_placeholder: "Buscar páginas y puzzles"
         page_intro: "Todas las páginas y ajustes de MySpeedPuzzling en un solo lugar."
         close: "Cerrar menú"
         view_profile: "Ver tu perfil"
@@ -9214,6 +9215,8 @@ nav:
         settings: "Ajustes"
         your_data: "Tus datos"
         methodology: "Dificultad y ratings"
+        progression: "Cómo funciona el progreso"
+        your_week: "Tu semana"
         feature_requests: "Ideas y sugerencias"
         wjpc: "Campeonato mundial"
         legal_terms: "Términos"
@@ -9364,7 +9367,7 @@ barcode_scanner:
     "title": "%name% – Resultados de puzzles"
     "description": "Todos los resultados de %name%: tiempos individuales, en pareja y en equipo, con búsqueda y orden en MySpeedPuzzling."
   "search_label": "Buscar en los resultados"
-  "search_placeholder": "Nombre, EAN o cód. de marca"
+  "search_placeholder": "Nombre, EAN, cód. marca"
   "search_submit": "Buscar"
   "view":
     "label": "Mostrar"

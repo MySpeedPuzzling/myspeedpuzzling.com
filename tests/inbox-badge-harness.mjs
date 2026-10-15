@@ -94,7 +94,8 @@ if (input.pages !== undefined) {
                     nav: link.dataset.nav,
                     href: link.getAttribute('href'),
                     label: link.getAttribute('aria-label'),
-                    count: link.dataset.barCount,
+                    count: link.dataset.barCount ?? null,
+                    barAction: link.dataset.barAction ?? null,
                 }));
             });
         }

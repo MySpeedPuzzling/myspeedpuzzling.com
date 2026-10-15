@@ -9180,6 +9180,7 @@ nav:
         logout: "Abmelden"
     menu:
         title: "Menü"
+        search_placeholder: "Seiten & Puzzles suchen"
         page_intro: "Alle Seiten und Einstellungen von MySpeedPuzzling an einem Ort."
         close: "Menü schließen"
         view_profile: "Ihr Profil ansehen"
@@ -9213,6 +9214,8 @@ nav:
         settings: "Einstellungen"
         your_data: "Ihre Daten"
         methodology: "Schwierigkeit & Ratings"
+        progression: "So funktioniert Ihr Fortschritt"
+        your_week: "Ihre Woche"
         feature_requests: "Ideen & Feature-Vorschläge"
         wjpc: "Weltmeisterschaft"
         legal_terms: "Bedingungen"
@@ -9363,7 +9366,7 @@ barcode_scanner:
     "title": "%name% – Puzzle-Ergebnisse"
     "description": "Alle Puzzle-Ergebnisse von %name%: Einzel-, Paar- und Teamzeiten, durchsuchbar und sortierbar auf MySpeedPuzzling."
   "search_label": "Ergebnisse durchsuchen"
-  "search_placeholder": "Name, EAN oder Markencode"
+  "search_placeholder": "Name, EAN, Markencode"
   "search_submit": "Suchen"
   "view":
     "label": "Anzeigen"

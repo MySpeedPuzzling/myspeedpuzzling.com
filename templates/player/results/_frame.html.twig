@@ -104,7 +104,7 @@
                     {% if sort.appliesTo(results.category, results.view) %}
                         {% if sort.value in ['fastest_ppm', 'name', 'easiest'] %}<div class="dropdown-divider"></div>{% endif %}
                         {% if sort.membersOnly and not is_member %}
-                            <button type="button" class="dropdown-item d-flex align-items-center gap-2 text-muted" data-bs-toggle="modal" data-bs-target="#membersExclusiveModal" data-results-sort-locked="{{ sort.value }}">
+                            <button type="button" class="dropdown-item d-flex align-items-center gap-2 text-muted" data-bs-toggle="modal" data-bs-target="#membersExclusiveModal" data-members-placement="results.sort" data-results-sort-locked="{{ sort.value }}">
                                 <i class="ci-locked" aria-hidden="true"></i>{{ sort.translationKey|trans }}
                                 <span class="badge bg-primary ms-auto">{{ 'membership.members_exclusive_short'|trans }}</span>
                             </button>

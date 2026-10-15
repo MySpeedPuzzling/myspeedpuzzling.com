@@ -190,7 +190,8 @@ final class SearchCameraScriptTest extends WebTestCase
         $expected = [];
 
         foreach (['topbar', 'menu'] as $surface) {
-            $expected[$surface] = '<div class="spinner spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div>'
+            // The spinner's text is translated (QA-04 R21) - "Loading" in English
+            $expected[$surface] = '<div class="spinner spinner-border text-primary" role="status"><span class="visually-hidden">Loading</span></div>'
                 . '<video class="barcode-scanner-video" data-barcode-scanner-target="video" muted autoplay playsinline></video>'
                 . '<canvas data-barcode-scanner-target="overlay" class="position-absolute top-0 start-0 w-100"></canvas>'
                 . $twig->render('_barcode_scanner_hud.html.twig', ['hud_nav' => $surface . '/search']);

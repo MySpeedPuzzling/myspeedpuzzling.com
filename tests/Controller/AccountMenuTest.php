@@ -140,6 +140,12 @@ final class AccountMenuTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertSame(['account/links/settings'], $crawler->filter('.site-header .nav-account-menu [aria-current="page"]')->each(static fn (Crawler $link): string => (string) $link->attr('data-nav')));
 
+        // The resolver decides (QA-04 R10): your own profile under an upper-case id is yours too, as for the Profile tab
+        $crawler = $browser->request('GET', $router->generate('player_profile', ['playerId' => strtoupper($playerId)]));
+        self::assertResponseIsSuccessful();
+        self::assertSame(['account/links/view_profile'], $crawler->filter('.site-header .nav-account-menu [aria-current="page"]')->each(static fn (Crawler $link): string => (string) $link->attr('data-nav')));
+        self::assertCount(1, $crawler->filter('#bottom-nav a.nav-tab[data-nav-place="profile"][aria-current]'));
+
         // Somebody else's profile is not yours
         $crawler = $browser->request('GET', $router->generate('player_profile', ['playerId' => NavigationViewer::playerId(NavigationViewer::ADMIN)]));
         self::assertResponseIsSuccessful();

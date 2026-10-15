@@ -188,16 +188,34 @@ $nav-label-safety: .5px;
 // no keyboard. Only a transform: the bar keeps its room (--bottom-nav-height), so nothing moves under the finger while
 // typing; visibility: hidden once it is away - nothing in it is reachable behind the keyboard. Under reduced motion it
 // only fades. Desktop (the rail, NAV-13) never hides.
+//
+// Every backdrop ends above the bar (decision 18, _dynamic-modal.scss). While the bar is away they reach the bottom
+// edge instead: a field focused inside a sheet (the Help sheet focuses its message) must leave dimmed scrim where the bar
+// was, never a strip of the live page that takes taps (QA-04 R01) - also where the focus raises no keyboard (iOS after
+// the frame's async load). Only the scrims grow: the .modal keeps its height, so no dialog moves under the finger. The
+// Menu panel (its own search field) is top-anchored and simply reaches down too. The search view's scrim is full height.
+$nav-keyboard-field: ':is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="button"], [type="submit"], [type="file"]), textarea, [contenteditable]):focus';
 
 @include nav-phone {
     .bottom-nav {
         transition: transform var(--nav-hide-dur, 200ms) var(--nav-ease, ease), visibility 0s linear 0s;
     }
 
-    html:has(:is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="button"], [type="submit"], [type="file"]), textarea, [contenteditable]):focus) .bottom-nav {
+    html:has(#{$nav-keyboard-field}) .bottom-nav {
         transform: translateY(110%);
         visibility: hidden;
         transition: transform var(--nav-hide-dur, 200ms) var(--nav-ease, ease), visibility 0s linear var(--nav-hide-dur, 200ms);
+    }
+
+    html:has(#{$nav-keyboard-field}) {
+        .modal-backdrop {
+            height: 100vh;
+        }
+
+        .dynamic-modal-scrim,
+        .menu-layer {
+            bottom: 0;
+        }
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -206,7 +224,7 @@ $nav-label-safety: .5px;
         }
 
         // Fades out, then steps away without moving (the transform has no duration)
-        html:has(:is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="button"], [type="submit"], [type="file"]), textarea, [contenteditable]):focus) .bottom-nav {
+        html:has(#{$nav-keyboard-field}) .bottom-nav {
             opacity: 0;
             transition: opacity var(--nav-hide-dur, 200ms) linear, transform 0s linear var(--nav-hide-dur, 200ms), visibility 0s linear var(--nav-hide-dur, 200ms);
         }
@@ -230,16 +248,23 @@ $nav-label-safety: .5px;
 
 // ---- Label steps (NAV-02) -------------------------------------------------------------------------------------------
 
-@mixin nav-label-step($step) {
+// $tracking: the locale's step-2 letter-spacing from the measured table (_nav-label-steps.scss), null for none
+@mixin nav-label-step($step, $tracking: null) {
     @if $step >= 2 {
         .nav-tab-label {
             font-size: .625rem;
+
+            @if $tracking {
+                letter-spacing: $tracking;
+            }
         }
     }
 
     @if $step >= 3 {
-        // Only the current tab keeps its label on screen - wider than its tab if it must: the neighbours show icons only
-        .nav-tab:not(:is([aria-current]:not(.is-leaving), .is-pending)) .nav-tab-label {
+        // Only the current tab keeps its label on screen - wider than its tab if it must: the neighbours show icons only.
+        // A page without a place (Inbox, the help page) has no current tab: it keeps every label - a bar is never
+        // icon-only (D14, QA-04 R05) - each one as wide as its word; the tracked step 2 already fits every locale at 320 px
+        &:has(.nav-tab[aria-current]) .nav-tab:not(:is([aria-current]:not(.is-leaving), .is-pending)) .nav-tab-label {
             position: absolute;
             width: 1px;
             height: 1px;
@@ -251,7 +276,8 @@ $nav-label-safety: .5px;
             border: 0;
         }
 
-        .nav-tab:is([aria-current]:not(.is-leaving), .is-pending) .nav-tab-label {
+        .nav-tab:is([aria-current]:not(.is-leaving), .is-pending) .nav-tab-label,
+        &:not(:has(.nav-tab[aria-current])) .nav-tab-label {
             max-width: none;
         }
     }

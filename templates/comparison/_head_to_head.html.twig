@@ -15,7 +15,7 @@
             {% for side in [{ref: h2h.a, label: label_a, wins: h2h.winsA, role: 'a'}, {ref: h2h.b, label: label_b, wins: h2h.winsB, role: 'b'}] %}
                 <div class="cmp-h2h__side">
                     {{ include('comparison/_subject_avatar.html.twig', {subject: this.subjectOf(side.ref), label: side.label, role: side.role, size: 'lg'}) }}
-                    <span class="cmp-h2h__name">{{ side.label }}</span>
+                    {{ include('comparison/_subject_name.html.twig', {subject: this.subjectOf(side.ref), label: side.label, class: 'cmp-h2h__name'}, with_context = false) }}
                     <span class="cmp-h2h__wins" data-testid="comparison-h2h-wins-{{ side.role }}">{{ side.wins }}</span>
                 </div>
                 {% if loop.first %}

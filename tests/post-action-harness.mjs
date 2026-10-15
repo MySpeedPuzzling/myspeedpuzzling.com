@@ -25,7 +25,7 @@ class FakeFormData {
 }
 
 function env(answer) {
-    const calls = { fetch: [], streams: [], visits: [], clears: 0, posts: 0, haptics: [], toasts: [] };
+    const calls = { fetch: [], streams: [], visits: [], clears: 0, posts: 0, haptics: [], toasts: [], progress: [] };
 
     return {
         calls,
@@ -54,6 +54,8 @@ function env(answer) {
             haptic: (name) => calls.haptics.push(name),
             toast: (message) => calls.toasts.push(message),
             currentUrl: () => `${ORIGIN}/en/puzzle?brand=x#top`,
+            // What had happened when the progress changed: requests sent, streams applied, visits started, toasts
+            progress: (state) => calls.progress.push([state, calls.fetch.length, calls.streams.length, calls.visits.length, calls.toasts.length]),
         },
     };
 }
@@ -127,7 +129,28 @@ await run('one request at a time', async () => {
     const third = action.run({ key: 'k', url: '/en/x', fields: {} });
     release();
 
-    return { second, firstKind, third: await third, fetches: calls.fetch.length };
+    return { second, firstKind, third: await third, fetches: calls.fetch.length, progress: calls.progress };
+});
+
+// QA-04 R03: the progress shows while the request runs, as Turbo's form submission showed it - before the request,
+// and only after the answer was applied (stream rendered, visit started), refused or failed
+await run('progress while it runs', async () => {
+    let shownBeforeAnswer = null;
+    const { calls, env: e } = env({ status: 200, type: 'text/vnd.turbo-stream.html', body: '<turbo-stream></turbo-stream>' });
+    const answer = e.fetch;
+    e.fetch = (...args) => { shownBeforeAnswer = calls.progress.map(([state]) => state); return answer(...args); };
+    await createPostAction(e).run({ url: '/en/x', fields: {} });
+
+    const redirect = env({ status: 200, redirected: true, url: `${ORIGIN}/en/compare`, body: '<html></html>' });
+    await createPostAction(redirect.env).run({ url: '/en/compare/add', fields: {} });
+
+    const refused = env({ status: 422 });
+    await createPostAction(refused.env).run({ url: '/en/x', fields: {}, failedText: 'No' });
+
+    const failure = env(new TypeError('Failed to fetch'));
+    await createPostAction(failure.env).run({ url: '/en/x', fields: {} });
+
+    return { shownBeforeAnswer, stream: calls.progress, redirect: redirect.calls.progress, refused: refused.calls.progress, failure: failure.calls.progress };
 });
 
 // Instant Back review F9: the links were buttons - Space taps them as it does a button (keydown keeps the page still,

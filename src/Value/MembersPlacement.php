@@ -20,4 +20,10 @@ enum MembersPlacement: string
 
     // The locked tier chip in the player header (components/PlayerHeader.html.twig)
     case ProfileTier = 'profile.tier';
+
+    // The locked members filters of a player's Results (player/results/_filters.html.twig, QA-04 R14)
+    case ResultsFilters = 'results.filters';
+
+    // A locked members sort of a player's Results (player/results/_frame.html.twig, QA-04 R14)
+    case ResultsSort = 'results.sort';
 }

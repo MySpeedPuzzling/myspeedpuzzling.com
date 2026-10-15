@@ -1,0 +1,15 @@
+{#
+    A compared subject's name (docs/features/navigation CARD-01b, QA-04 R02): a player is a link to the profile that opens
+    the player card (data-player-card - the card decides what this viewer may see, the profile link is the way without
+    JavaScript, in a new tab and in the app); a pair/team or a subject no longer available stays text. Used on the page
+    only - the line-up chips, the league table, the head-to-head - never inside the add sheet or the swap modal (no
+    card triggers inside modals, CARD-01a).
+
+    Inputs: subject (ComparisonSubject), label (string), class (the name's own class)
+#}
+{%- set player_id = subject.isAvailable ? subject.playerId : null -%}
+{%- if player_id is not null -%}
+    <a class="{{ class }} cmp-subject-link" href="{{ path('player_profile', {playerId: player_id}) }}" data-player-card aria-haspopup="dialog">{{ label }}</a>
+{%- else -%}
+    <span class="{{ class }}">{{ label }}</span>
+{%- endif -%}

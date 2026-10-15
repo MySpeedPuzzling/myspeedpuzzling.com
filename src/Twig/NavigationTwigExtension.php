@@ -27,7 +27,8 @@ use Twig\TwigFunction;
  * - nav_location(): where the current page sits (place, section, Menu row, start page) - resolved once per request
  *   and kept on the request (attribute _nav_location), so the service holds no state between requests;
  * - bar_action(id): the data-bar-action value of a top-bar tool, checked against BarAction (a typo fails at render);
- * - nav_launched() / nav_new_badges_shown(): the launch date's switches (NavigationLaunch);
+ * - nav_new_badges_shown(): the launch date's switch for the "New" badges (NavigationLaunch; nothing in a template
+ *   needs "launched?" itself - the launch's consumers ask the service, QA-04 R31);
  * - navigation_pointer(name): whether the signed-in viewer gets that 30-day pointer (NavigationPointers; 'inbox' =
  *   INB-05) - read from the profile row, no query;
  * - nav_menu(surface): the Menu for the viewer ('slot' = the page's one #site-menu, 'page' = the `menu` page; MENU-01);
@@ -75,7 +76,6 @@ final class NavigationTwigExtension extends AbstractExtension
             new TwigFunction('nav_location', $this->navLocation(...)),
             new TwigFunction('player_card_direct', NavigationRegistry::playerCardDirect(...)),
             new TwigFunction('bar_action', $this->barAction(...)),
-            new TwigFunction('nav_launched', $this->navigationLaunch->hasLaunched(...)),
             new TwigFunction('nav_new_badges_shown', $this->navigationLaunch->newBadgesVisible(...)),
             new TwigFunction('navigation_pointer', $this->navigationPointer(...)),
             new TwigFunction('nav_menu', $this->menu(...)),

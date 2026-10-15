@@ -113,7 +113,7 @@
             <div class="position-relative mt-3 prs-members-filters">
                 {% if not is_member %}
                     <div class="prs-members-lock position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center">
-                        <button type="button" class="btn btn-outline-primary btn-sm bg-white" data-bs-toggle="modal" data-bs-target="#membersExclusiveModal" data-testid="results-members-lock">
+                        <button type="button" class="btn btn-outline-primary btn-sm bg-white" data-bs-toggle="modal" data-bs-target="#membersExclusiveModal" data-members-placement="results.filters" data-testid="results-members-lock">
                             <i class="ci-locked me-1" aria-hidden="true"></i>{{ 'membership.members_exclusive_button'|trans }}
                         </button>
                     </div>

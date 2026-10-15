@@ -1666,3 +1666,16 @@ $cmp-bleed: 1rem;
         font-size: .875rem;
     }
 }
+
+// A player's name opens the player card (comparison/_subject_name.html.twig, CARD-01b, QA-04 R02): it reads as the name,
+// not as a link - underlined on hover and keyboard focus
+.cmp-subject-link {
+    color: inherit;
+    text-decoration: none;
+
+    &:hover,
+    &:focus-visible {
+        color: inherit;
+        text-decoration: underline;
+    }
+}

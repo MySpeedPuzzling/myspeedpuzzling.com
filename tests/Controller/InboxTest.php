@@ -221,10 +221,15 @@ final class InboxTest extends WebTestCase
             $link = $crawler->filter($selector);
             self::assertCount(1, $link, $selector);
             self::assertSame($href, $link->attr('href'), $selector);
-            self::assertSame('inbox', $link->attr('data-bar-action'), $selector);
-            self::assertSame($total, $link->attr('data-bar-count'), $selector);
             self::assertSame($total, $link->filter('.inbox-badge[data-inbox-part="total"]')->text(), $selector);
         }
+
+        // The tool ids are the top bar's (NAV-14 (d)): one per page, never on the Menu's row (QA-04 R11)
+        self::assertSame('inbox', $crawler->filter(self::INBOX_LINK)->attr('data-bar-action'));
+        self::assertSame($total, $crawler->filter(self::INBOX_LINK)->attr('data-bar-count'));
+        self::assertNull($crawler->filter(self::MENU_INBOX_LINK)->attr('data-bar-action'));
+        self::assertNull($crawler->filter(self::MENU_INBOX_LINK)->attr('data-bar-count'));
+        self::assertCount(1, $crawler->filter('[data-bar-action="inbox"]'));
 
         // The link opens the Inbox on that tab; its tabs show the parts (the For you page marks what it lists as read)
         $crawler = $browser->request('GET', $href);

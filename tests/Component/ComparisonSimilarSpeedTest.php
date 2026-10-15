@@ -78,9 +78,10 @@ final class ComparisonSimilarSpeedTest extends WebTestCase
         self::assertCount(1, $crawler->filter('[data-testid="comparison-similar-add"]'));
         self::assertCount(1, $crawler->filter('[data-testid="comparison-similar-roll-again"]'));
         self::assertStringContainsString($this->candidate, (string) $crawler->filter('a.cmp-similar-profile')->attr('href'));
-        // The profile link opens the player card (docs/features/navigation CARD-01b)
-        self::assertNotNull($crawler->filter('a.cmp-similar-profile')->attr('data-player-card'));
-        self::assertSame('dialog', $crawler->filter('a.cmp-similar-profile')->attr('aria-haspopup'));
+        // The add sheet is a modal: its profile link is a plain link - no card trigger inside a modal, nor a dialog it
+        // would announce (CARD-01a, QA-04 R02); the card opens from the names on the page (PlayerCardSurfacesTest)
+        self::assertNull($crawler->filter('a.cmp-similar-profile')->attr('data-player-card'));
+        self::assertNull($crawler->filter('a.cmp-similar-profile')->attr('aria-haspopup'));
         self::assertStringContainsString('Picked from players with public profiles who take part in rankings.', $crawler->text());
     }
 

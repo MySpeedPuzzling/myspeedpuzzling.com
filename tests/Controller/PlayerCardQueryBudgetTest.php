@@ -121,4 +121,49 @@ final class PlayerCardQueryBudgetTest extends WebTestCase
             self::assertSame($empty, array_slice($executed, 0, count($empty)), 'The same user refresh and profile row first');
         }
     }
+
+    /**
+     * QA-04 R23: the page a card opens on pays 0 statements for it - its triggers are server-rendered attributes, the
+     * card's own statements (the card with its latest puzzles, the context block) run only when it opens. Pinned here on
+     * a surface page itself, not only through the pages' own budget tests: the puzzle page's leaderboard, whose names are
+     * triggers with the puzzle context, for a member and a guest.
+     */
+    public function testThePageACardOpensOnPaysNothingForIt(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, self::MEMBER);
+        $empty = $this->emptySignedInEndpointStatements($browser);
+        $context = 'puzzle:' . PuzzleFixture::PUZZLE_500_02;
+
+        // The card's own statements: an open from that very list (after the user refresh, the viewer's profile row and
+        // the card player's profile row - the same statement as the viewer's, run by every page)
+        $url = '/en/puzzler-card/' . self::PLAYER . '?context=' . rawurlencode($context);
+        $browser->request('GET', $url, server: ['HTTP_TURBO_FRAME' => 'player-card']);
+        $this->startCountingQueries($browser);
+        $browser->request('GET', $url, server: ['HTTP_TURBO_FRAME' => 'player-card']);
+        self::assertResponseIsSuccessful();
+        $card = array_slice($this->executedSql($browser), count($empty) + 1);
+        self::assertCount(2, $card, 'The card and its context block');
+
+        foreach (['member' => true, 'guest' => false] as $who => $signedIn) {
+            if (!$signedIn) {
+                $browser->getCookieJar()->clear();
+            }
+
+            $page = '/en/puzzle/' . PuzzleFixture::PUZZLE_500_02;
+            $browser->request('GET', $page);
+            $this->startCountingQueries($browser);
+            $crawler = $browser->request('GET', $page);
+            self::assertResponseIsSuccessful();
+
+            $triggers = $crawler->filter('table[data-player-card-context="' . $context . '"] a[data-player-card][href="/en/player-profile/' . self::PLAYER . '"]');
+            self::assertGreaterThan(0, $triggers->count(), $who . ': the card\'s player is a trigger on the page');
+
+            $executed = $this->executedSql($browser);
+
+            foreach ($card as $statement) {
+                self::assertNotContains($statement, $executed, $who . ': the page ran a statement of the card');
+            }
+        }
+    }
 }

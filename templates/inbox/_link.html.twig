@@ -10,7 +10,8 @@
     Menu's Inbox row - MENU-01); press = the pressed-state marker (GEST-04: 'fixed' in a bar, '' in the Menu; none by
     default). Renders nothing for guests.
     Embed it and override block `content` for a surface's own icon and badge markup (the badge stays an include of
-    inbox/_badge.html.twig with `parts`). -#}
+    inbox/_badge.html.twig with `parts`). The top-bar tool ids (data-bar-action + data-bar-count, NAV-14 (d)) ride on
+    the top bar's link only - one per page (QA-04 R11); the Menu's Inbox row is a row, not a tool. -#}
 {%- set parts = parts ?? inbox_badge() -%}
 {%- if parts is not null -%}
     {%- set inbox_target = parts.target() -%}
@@ -21,8 +22,10 @@
        data-nav="{{ nav }}"
        {%- if (press ?? null) is not null %} data-press{% if press != '' %}="{{ press }}"{% endif %}{% endif %}
        {%- if current ?? false %} aria-current="page"{% endif %}
+       {%- if (surface ?? '') == 'topbar' %}
        data-bar-action="{{ bar_action('inbox') }}"
        data-bar-count="{{ parts.total() }}"
+       {%- endif %}
        aria-label="{{ ('inbox.badge.name.' ~ parts.labelKind())|trans({'%count%': parts.labelCount()}) }}"
        {%- if inbox_link_strings() %}
        data-inbox-hrefs={{ {for_you: path('notifications'), messages: path('conversations_list'), requests: path('conversations_list', {tab: 'requests'})}|json_attribute }}

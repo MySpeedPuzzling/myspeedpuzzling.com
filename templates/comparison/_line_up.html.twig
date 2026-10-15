@@ -16,7 +16,7 @@
             {% if subject.isAvailable %}
                 <span class="cmp-chip{{ subject.isSelf ? ' cmp-chip--self' }}" data-testid="comparison-chip">
                     {{ include('comparison/_subject_avatar.html.twig', {subject: subject, label: label, role: this.roleOf(subject.ref)}) }}
-                    <span class="cmp-chip__name">{{ label }}</span>
+                    {{ include('comparison/_subject_name.html.twig', {subject: subject, label: label, class: 'cmp-chip__name'}, with_context = false) }}
                     {% if subject.isTeam and subject.includesViewer %}
                         <span class="cmp-tag">{{ 'comparison.youre_in_it'|trans }}</span>
                     {% endif %}

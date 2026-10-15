@@ -91,14 +91,14 @@ final class NavigationLaunchTest extends KernelTestCase
         new NavigationLaunch(new MockClock(), '2026-13-45');
     }
 
-    public function testTwigFunctionsFollowTheService(): void
+    public function testTheNewBadgesTwigFunctionFollowsTheService(): void
     {
         $container = self::getContainer();
         $container->set(NavigationLaunch::class, new NavigationLaunch(new MockClock('2026-11-20 12:00:00', 'Europe/Prague'), self::LAUNCH_DAY));
 
-        $template = $container->get(Environment::class)->createTemplate("{{ nav_launched() ? 'launched' : 'waiting' }} {{ nav_new_badges_shown() ? 'badges' : 'no-badges' }}");
+        $template = $container->get(Environment::class)->createTemplate("{{ nav_new_badges_shown() ? 'badges' : 'no-badges' }}");
 
-        self::assertSame('launched no-badges', $template->render());
+        self::assertSame('no-badges', $template->render());
     }
 
     private function profile(null|DateTimeImmutable $registeredAt): PlayerProfile

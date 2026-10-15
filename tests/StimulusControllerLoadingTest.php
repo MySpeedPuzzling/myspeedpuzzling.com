@@ -39,4 +39,18 @@ final class StimulusControllerLoadingTest extends TestCase
         self::assertContains('leaderboard_chart_controller.js', $listeners);
         self::assertContains('time_chart_controller.js', $listeners);
     }
+
+    /**
+     * The one-tap actions (docs/features/navigation GEST-15, QA-04 R09) and the in-page confirmation (GEST-13) replaced
+     * forms that posted in one tap without any controller. A lazy chunk not yet arrived made the first tap after a load
+     * follow the link to the confirmation view instead - one tap more than before. They load with the page.
+     */
+    public function testTheOneTapActionsLoadEagerly(): void
+    {
+        foreach (['post_action_controller.js', 'confirm_action_controller.js'] as $controller) {
+            $source = file_get_contents(__DIR__ . '/../assets/controllers/' . $controller);
+            self::assertIsString($source, $controller);
+            self::assertDoesNotMatchRegularExpression('/stimulusFetch\s*:\s*[\'"]lazy[\'"]/', $source, $controller . ' must load eagerly');
+        }
+    }
 }

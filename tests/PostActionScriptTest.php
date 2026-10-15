@@ -76,6 +76,8 @@ final class PostActionScriptTest extends TestCase
             'posts' => 1,
             'haptics' => [],
             'toasts' => [],
+            // Turbo's progress bar: on before the request, off once the stream is applied
+            'progress' => [['start', 0, 0, 0, 0], ['end', 1, 1, 0, 0]],
         ], self::results()['stream answer']);
     }
 
@@ -118,6 +120,7 @@ final class PostActionScriptTest extends TestCase
             'posts' => 0,
             'haptics' => ['reject'],
             'toasts' => ['That did not work.'],
+            'progress' => [['start', 0, 0, 0, 0], ['end', 1, 0, 0, 0]],
         ], self::results()['refused']);
 
         self::assertSame([
@@ -130,7 +133,30 @@ final class PostActionScriptTest extends TestCase
 
     public function testOneRequestPerActionAtATime(): void
     {
-        self::assertSame(['second' => 'busy', 'firstKind' => 'stream', 'third' => 'stream', 'fetches' => 2], self::results()['one request at a time']);
+        self::assertSame([
+            'second' => 'busy',
+            'firstKind' => 'stream',
+            'third' => 'stream',
+            'fetches' => 2,
+            // The ignored second tap neither shows nor hides the progress
+            'progress' => [['start', 0, 0, 0, 0], ['end', 1, 1, 0, 0], ['start', 1, 1, 0, 0], ['end', 2, 2, 0, 0]],
+        ], self::results()['one request at a time']);
+    }
+
+    /**
+     * QA-04 R03: the one-tap links replaced Turbo form submissions, whose progress bar showed at once (progressBarDelay
+     * 0) - the link shows it the same way: on before the request, off only once the answer is applied (the stream
+     * rendered, the visit started - which brings its own) or the request refused or failed
+     */
+    public function testTheProgressShowsWhileTheRequestRuns(): void
+    {
+        self::assertSame([
+            'shownBeforeAnswer' => ['start'],
+            'stream' => [['start', 0, 0, 0, 0], ['end', 1, 1, 0, 0]],
+            'redirect' => [['start', 0, 0, 0, 0], ['end', 1, 0, 1, 0]],
+            'refused' => [['start', 0, 0, 0, 0], ['end', 1, 0, 0, 0]],
+            'failure' => [['start', 0, 0, 0, 0], ['end', 1, 0, 0, 0]],
+        ], self::results()['progress while it runs']);
     }
 
     /**

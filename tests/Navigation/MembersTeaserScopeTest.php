@@ -14,7 +14,8 @@ use Symfony\Component\Finder\Finder;
 /**
  * Members-only teasers in this release (docs/features/navigation README §6, D13, TEASE-01): the card's locked tier chip
  * and the profile header's, both passive and carrying their placement (data-members-placement, MembersPlacement) for
- * the members modal; never a teaser in the navigation's partials, in notifications or in e-mails. Dismissable teasers
+ * the members modal - as do the Results page's members locks (filters, sorts; QA-04 R14); never a teaser in the
+ * navigation's partials, the footer, in notifications or in e-mails. Dismissable teasers
  * are a rule only (README §6 rule 3, docs/TODO.md).
  */
 final class MembersTeaserScopeTest extends WebTestCase
@@ -25,6 +26,9 @@ final class MembersTeaserScopeTest extends WebTestCase
         'inbox',
         'emails',
         'notifications.html.twig',
+        // The footer and its newsletter band, included from base on every page (QA-04 R15)
+        '_footer.html.twig',
+        '_footer_newsletter.html.twig',
     ];
 
     public function testNoTeaserInTheNavigationNotificationsOrEmails(): void
@@ -47,6 +51,14 @@ final class MembersTeaserScopeTest extends WebTestCase
         }
 
         self::assertGreaterThan(40, $checked, 'The guard reads the templates it means');
+
+        // Every footer partial base includes is guarded - a new one joins the list
+        $footers = array_map(
+            static fn ($file): string => $file->getFilename(),
+            iterator_to_array(new Finder()->files()->in($templates)->depth(0)->name('_footer*.html.twig'), false),
+        );
+        sort($footers);
+        self::assertSame($footers, array_values(array_filter(self::NO_TEASER_TEMPLATES, static fn (string $path): bool => str_starts_with($path, '_footer'))));
     }
 
     /**
@@ -99,5 +111,22 @@ final class MembersTeaserScopeTest extends WebTestCase
                 self::assertCount(0, $teasers, $chrome);
             }
         }
+    }
+
+    /**
+     * QA-04 R14: the Results page's members locks - the filters' and each locked sort's - say which teaser opened the
+     * modal, like the tier chips; every lock on the page carries a placement
+     */
+    public function testTheResultsLocksCarryTheirPlacements(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_REGULAR);
+
+        $crawler = $browser->request('GET', '/en/player-results/' . PlayerFixture::PLAYER_WITH_STRIPE);
+        self::assertResponseIsSuccessful();
+
+        self::assertCount(1, $crawler->filter('[data-testid="results-members-lock"][data-members-placement="results.filters"]'));
+        self::assertGreaterThan(0, $crawler->filter('[data-results-sort-locked][data-members-placement="results.sort"]')->count());
+        self::assertCount(0, $crawler->filter('main [data-bs-target="#membersExclusiveModal"]:not([data-members-placement])'));
     }
 }

@@ -16,7 +16,8 @@ use Symfony\Component\DomCrawler\Crawler;
 
 /**
  * What search engines read on a player's Results (docs/features/navigation README §4.7 SEO, PROF-07): the list's own
- * URL is indexable (canonical + hreflang) once the player has more results than the Overview shows; `?page=N` is
+ * URL is indexable (canonical + hreflang) once the player has more results than the Overview shows - before that it
+ * has its canonical, no hreflang (QA-04 R22: alternates only where the page is indexable); `?page=N` is
  * followed, never indexed, with its own canonical; every filtered or sorted variant points at the list; a private
  * profile is neither indexed nor followed. The head names the player the way the profile does - masked by the player's
  * own setting - and the profile's own title and description stay as they were.
@@ -61,25 +62,29 @@ final class PlayerResultsSeoTest extends WebTestCase
     }
 
     /**
-     * @return iterable<string, array{int, string}>
+     * @return iterable<string, array{int, string, int}>
      */
     public static function provideTheThreshold(): iterable
     {
-        yield 'as many results as the Overview shows' => [PlayerOverview::LATEST_RESULTS, 'noindex, follow'];
-        yield 'one more' => [PlayerOverview::LATEST_RESULTS + 1, 'index, follow'];
+        // Not indexable: the canonical, no alternates (decision 2026-10-15, QA-04 R22: README §4.7 read literally)
+        yield 'as many results as the Overview shows' => [PlayerOverview::LATEST_RESULTS, 'noindex, follow', 0];
+        // Indexable: the canonical and the 7 alternates (6 languages + x-default)
+        yield 'one more' => [PlayerOverview::LATEST_RESULTS + 1, 'index, follow', 7];
     }
 
     #[DataProvider('provideTheThreshold')]
-    public function testAPlayerWithNoMoreResultsThanTheOverviewShowsStaysOutOfTheIndex(int $results, string $robots): void
+    public function testAPlayerWithNoMoreResultsThanTheOverviewShowsStaysOutOfTheIndex(int $results, string $robots, int $alternates): void
     {
         $this->browser();
         $playerId = $this->seedPlayerWithSoloResults($results);
 
-        $crawler = $this->page($playerId, '');
+        foreach (['', '?page=1'] as $query) {
+            $crawler = $this->page($playerId, $query);
 
-        self::assertSame($robots, $this->robots($crawler));
-        self::assertSame(self::BASE . $playerId, $this->canonical($crawler));
-        self::assertCount(7, $this->hreflang($crawler), 'Still the list\'s own URL');
+            self::assertSame($robots, $this->robots($crawler), $query);
+            self::assertSame(self::BASE . $playerId, $this->canonical($crawler), $query);
+            self::assertCount($alternates, $this->hreflang($crawler), $query);
+        }
     }
 
     public function testAPageIsFollowedNeverIndexedWithItsOwnCanonical(): void

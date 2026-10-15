@@ -107,6 +107,27 @@ final class FeedbackControllerTest extends WebTestCase
         self::assertStringNotContainsString('S3cretT0kenValue', $html);
     }
 
+    /**
+     * QA-04 review, item Q-a: the attached page reads as a person types it - a Japanese path decoded, a query's text
+     * escaped - while the form still sends the path exactly as it was
+     */
+    public function testTheAttachedPageIsShownDecodedAndSentAsItIs(): void
+    {
+        $browser = $this->signedIn();
+
+        $crawler = $browser->request('GET', '/en/help?url=' . rawurlencode('/ja/%E3%83%8F%E3%83%96'), server: self::FRAME);
+        self::assertResponseIsSuccessful();
+        $form = $crawler->filter('form[name="feedback_form"]');
+        self::assertSame('/ja/ハブ', trim($form->filter('.help-feedback-page')->text()));
+        self::assertSame('/ja/%E3%83%8F%E3%83%96', $form->filter('input[name="feedback_form[url]"]')->attr('value'));
+
+        $crawler = $browser->request('GET', '/en/help?url=' . rawurlencode('/en/puzzle?search=%3Cb%3Ehi%3C%2Fb%3E'), server: self::FRAME);
+        self::assertResponseIsSuccessful();
+        $form = $crawler->filter('form[name="feedback_form"]');
+        self::assertSame('/en/puzzle?search=<b>hi</b>', trim($form->filter('.help-feedback-page')->text()));
+        self::assertCount(0, $form->filter('.help-feedback-page b'), 'Escaped, never markup');
+    }
+
     public function testWithoutAPageNothingIsSaidToBeAttached(): void
     {
         $browser = $this->signedIn();

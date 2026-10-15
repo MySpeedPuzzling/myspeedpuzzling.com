@@ -103,8 +103,9 @@ final class PlayerResultsController extends AbstractController
     /**
      * Search engines (README §4.7 SEO, PROF-07):
      * - a private profile (the player's own setting, whoever looks): noindex, nofollow
-     * - the list's own URL (and `?page=1`): canonical + hreflang; indexed only when the player has more results than the
-     *   Overview shows (PlayerOverview::LATEST_RESULTS) - else it would duplicate the profile
+     * - the list's own URL (and `?page=1`): canonical; indexed - and only then with hreflang (alternates on a noindex
+     *   page are a conflicting signal, README §4.7, QA-04 R22) - when the player has more results than the Overview
+     *   shows (PlayerOverview::LATEST_RESULTS) - else it would duplicate the profile
      * - `?page=N` alone (N ≥ 2, the rows 1…50·N): followed, never indexed, its own canonical (the page it really
      *   shows - beyond the end the last one), no hreflang
      * - any filter, sort, view or tab (with or without a page): followed, never indexed, canonical = the list
@@ -122,10 +123,12 @@ final class PlayerResultsController extends AbstractController
         $parameters = array_values(array_diff(array_map(strval(...), array_keys($request->query->all())), self::RETURN_PARAMETERS));
 
         if ($parameters === [] || ($parameters === ['page'] && $results->criteria->page === 1)) {
+            $indexable = $results->resultsCount > PlayerOverview::LATEST_RESULTS;
+
             return [
-                'robots' => $results->resultsCount > PlayerOverview::LATEST_RESULTS ? 'index, follow' : 'noindex, follow',
+                'robots' => $indexable ? 'index, follow' : 'noindex, follow',
                 'canonical' => $list,
-                'hreflang' => true,
+                'hreflang' => $indexable,
             ];
         }
 

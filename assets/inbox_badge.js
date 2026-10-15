@@ -132,7 +132,10 @@ function applyToLink(link, state) {
         link.setAttribute('aria-label', text);
     }
 
-    link.dataset.barCount = String(state.parts.total);
+    // The top-bar tool's count (NAV-14 (d)): only the link that carries it - the Menu's row has no tool ids (QA-04 R11)
+    if (link.hasAttribute('data-bar-count')) {
+        link.dataset.barCount = String(state.parts.total);
+    }
 }
 
 function readJson(value) {

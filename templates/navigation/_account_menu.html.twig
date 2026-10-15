@@ -9,6 +9,8 @@
       the auth pages' header share - language_switch_urls(), data-nav account/language/<locale>) · Log out (outside Turbo - the
       session ends, the page must load anew).
     - No role links: Your roles and their queue counts live in the Menu (MENU-01).
+    - aria-current: View profile from the resolver (nav_location(): the own profile's Menu row - the Profile place, ids
+      compared as the resolver does, QA-04 R10), Settings and Membership by their routes.
     data-bs-auto-close="outside": opening the Language <details> keeps the menu open; data-bs-display="static": placed by
     CSS under the trigger, right-aligned (no Popper). Never .more-menu (PuzzleDetailControllerTest counts those).
     Chrome markup rules (implementation plan §3.2): no heading, no form, own prefixes; data-nav on every link and button. -#}
@@ -29,7 +31,7 @@
             <span class="nav-account-code">#{{ profile.code|upper }}</span>
         {#- -#}</p>
         {#- -#}<ul class="nav-account-list">
-            <li><a class="dropdown-item" href="{{ own_profile_href }}" data-nav="account/links/view_profile"{% if route == 'player_profile' and app.request.attributes.get('playerId') == profile.playerId %} aria-current="page"{% endif %}><i class="bi bi-person" aria-hidden="true"></i>{{ 'nav.account.view_profile'|trans }}</a></li>
+            <li><a class="dropdown-item" href="{{ own_profile_href }}" data-nav="account/links/view_profile"{% if nav_location().menuRowId in ['profile', 'you_card'] %} aria-current="page"{% endif %}><i class="bi bi-person" aria-hidden="true"></i>{{ 'nav.account.view_profile'|trans }}</a></li>
             <li><a class="dropdown-item" href="{{ path('edit_profile') }}" data-nav="account/links/settings"{% if route == 'edit_profile' %} aria-current="page"{% endif %}><i class="bi bi-gear" aria-hidden="true"></i>{{ 'nav.account.settings'|trans }}</a></li>
             <li><a class="dropdown-item nav-account-membership" href="{{ path('membership') }}" data-nav="account/links/membership"{% if route == 'membership' %} aria-current="page"{% endif %}><i class="bi bi-gem" aria-hidden="true"></i><span class="nav-account-item-text">{{ 'nav.account.membership'|trans }}<span class="nav-account-status">{{ include('navigation/_membership_status.html.twig', {profile: profile}, with_context = false) }}</span></span></a></li>
             <li><details class="nav-account-language">

@@ -137,7 +137,9 @@
                     </button>
                 </div>
 
-                <a class="cmp-similar-profile" href="{{ path('player_profile', {playerId: candidate.playerId}) }}" data-turbo-frame="_top" data-player-card aria-haspopup="dialog">
+                {#- Inside the add sheet (a Bootstrap modal): a plain profile link - no card triggers inside modals (CARD-01a,
+                    QA-04 R02); the card opens from the names on the page -#}
+                <a class="cmp-similar-profile" href="{{ path('player_profile', {playerId: candidate.playerId}) }}" data-turbo-frame="_top">
                     {{ 'comparison_similar.view_profile'|trans }}
                 </a>
             {% endif %}

@@ -114,6 +114,35 @@ final class NavigationTranslationsTest extends KernelTestCase
         }
     }
 
+    /**
+     * One tone per page (QA-04 R04, R08, R17): German speaks formally ("Sie") in every navigation text - the Help sheet
+     * and the Menu sit next to each other, so a reused informal XP key ("dein Fortschritt") got its own navigation label.
+     * Czech follows the surrounding keys (requirements, conventions): the Settings page, the Inbox on the notifications
+     * page and the camera notice of the add form are formal ("vy").
+     */
+    public function testEveryTextKeepsThePagesTone(): void
+    {
+        $translator = self::translator();
+        $german = $translator->getCatalogue('de');
+        $informal = [];
+
+        foreach (self::navigationKeys() as $key) {
+            if ($german->defines($key, self::DOMAIN) && preg_match('~\b(du|dein|deine|deinen|deinem|deiner|deines|dir|dich)\b~iu', $german->get($key, self::DOMAIN)) === 1) {
+                $informal[] = $key . ': ' . $german->get($key, self::DOMAIN);
+            }
+        }
+
+        self::assertSame([], $informal, 'German navigation texts say "Sie"');
+
+        $czech = $translator->getCatalogue('cs');
+
+        foreach (['edit_profile.preferences.vibration_help', 'inbox.tab.for_you', 'inbox.pointer.favorites_moved', 'barcode_scanner.no_camera'] as $key) {
+            $text = $czech->get($key, self::DOMAIN);
+            self::assertMatchesRegularExpression('~\b(vás|vašem|vašich|najdete|Zkuste)\b~u', $text, $key);
+            self::assertDoesNotMatchRegularExpression('~\b(tebe|tvém|tvých|najdeš|Zkus)\b~u', $text, $key);
+        }
+    }
+
     public function testEveryEntryOfTheSameAsEnglishListNamesAnExistingKey(): void
     {
         $english = self::translator()->getCatalogue('en');

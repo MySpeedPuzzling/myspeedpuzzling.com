@@ -73,9 +73,15 @@ $lb-tints: (
     }
 }
 
-// A numbered empty slot of a short list (MostActiveSoloPlayers keeps its placeholder's rows - no shift at load)
-.lb-row-empty .lb-rank {
-    color: $lb-secondary;
+// An empty slot of a short list (MostActiveSoloPlayers keeps its placeholder's rows - no shift at load): its height,
+// nothing painted - no number, avatar, line or hover (QA-04 R18). Collapsed table borders are drawn whatever the
+// visibility, so the slots' own lines go transparent too (the last puzzler's line stays: the upper cell wins)
+.lb-row-empty {
+    visibility: hidden;
+
+    > td {
+        border-color: transparent;
+    }
 }
 
 .lb-row {

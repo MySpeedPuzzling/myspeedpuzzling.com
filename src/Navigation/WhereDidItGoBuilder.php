@@ -18,9 +18,10 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  *
  * Who gets which row (standing()): moderator and admin rows only those viewers (as the Menu); a members-only row is
  * marked Members (lock, no modal) for whoever is no member; a guest gets every other row, marked "after signing in"
- * where following it needs an account - the same rows for every guest, so guest HTML stays shared-cacheable. Rows
- * behind an audience the viewer is not in otherwise (the XP pages of a player who switched XP off, the guests' Sign in
- * for a player) are left out, as the Menu leaves them out.
+ * where following it needs an account or its new place is a Menu row only signed-in players have (the "Now" then
+ * links nothing - a Menu anchor links only rows the viewer's own Menu has) - the same rows for every guest, so guest
+ * HTML stays shared-cacheable. Rows behind an audience the viewer is not in otherwise (the XP pages of a player who
+ * switched XP off, the guests' Sign in for a player) are left out, as the Menu leaves them out.
  *
  * No statement: the registry, the viewer from the profile row, the router. Holds nothing between requests.
  */
@@ -28,6 +29,8 @@ final readonly class WhereDidItGoBuilder
 {
     public const string SEPARATOR = ' › ';
     private const string MENU = '☰';
+    // A row's anchor on the `menu` page (MenuRowView::anchorId())
+    private const string ROW_ANCHOR = 'menu-row-';
 
     // A members-only audience: shown to whoever is no member with the Members mark instead of being left out
     private const array MEMBERS = [NavVisibility::Member, NavVisibility::MemberOrReferral, NavVisibility::PrivateMember];
@@ -60,6 +63,8 @@ final readonly class WhereDidItGoBuilder
     {
         $viewer = $this->viewerFactory->current();
         $locale = $this->requestStack->getCurrentRequest()?->getLocale() ?? 'en';
+        // The rows of this viewer's `menu` page: the only Menu anchors a row may link (QA-04 R13)
+        $menuRows = $this->menuBuilder->build(MenuView::SURFACE_PAGE, null)->rowIds();
         $rows = [];
         $positions = [];
 
@@ -67,7 +72,7 @@ final readonly class WhereDidItGoBuilder
             $surface = $item->surface->value;
             // Stable per item, whoever looks
             $positions[$surface] = ($positions[$surface] ?? 0) + 1;
-            $row = $this->row($item, 'wdig-' . str_replace('_', '-', $surface) . '-' . $positions[$surface], $viewer, $locale);
+            $row = $this->row($item, 'wdig-' . str_replace('_', '-', $surface) . '-' . $positions[$surface], $viewer, $locale, $menuRows);
 
             if ($row !== null) {
                 $rows[$surface][] = $row;
@@ -105,7 +110,10 @@ final readonly class WhereDidItGoBuilder
         };
     }
 
-    private function row(FormerNavigationItem $item, string $id, NavigationViewer $viewer, string $locale): null|WhereDidItGoRow
+    /**
+     * @param list<string> $menuRows the row ids of the viewer's `menu` page
+     */
+    private function row(FormerNavigationItem $item, string $id, NavigationViewer $viewer, string $locale, array $menuRows): null|WhereDidItGoRow
     {
         $entry = $this->entry($item->entry);
         $link = $this->entry($item->linkEntry());
@@ -134,9 +142,19 @@ final readonly class WhereDidItGoBuilder
 
         [$now, $nowTablet, $nowDesktop, $nowHref, $menuPaths] = $this->now($item, $entry, $locale);
 
-        // An action (Log out) links its place, never the action itself (LAUNCH review F3)
+        // "Now" links a Menu row only where this viewer's Menu has it (QA-04 R13): a guest's Menu has no signed-in rows
+        // (Log out, Your puzzling's rows, What next?), a non-member's none of the members' - for a guest that place is
+        // there after signing in, and the row says so; the old name still opens the page where it opens for guests
+        $anchor = $nowHref !== null ? parse_url($nowHref, PHP_URL_FRAGMENT) : null;
+
+        if (is_string($anchor) && str_starts_with($anchor, self::ROW_ANCHOR) && !in_array(substr($anchor, strlen(self::ROW_ANCHOR)), $menuRows, true)) {
+            $nowHref = null;
+            $afterSignIn = $afterSignIn || $viewer->isGuest();
+        }
+
+        // An action (Log out) links its place, never the action itself (LAUNCH review F3) - for a guest the sign-in
         $href = $link->kind->isAction()
-            ? ($nowHref ?? $this->urlGenerator->generate('menu'))
+            ? ($nowHref ?? ($afterSignIn ? SignInLink::href($this->urlGenerator, $this->requestStack->getMainRequest()) : $this->urlGenerator->generate('menu')))
             : ($url
                 ?? ($afterSignIn ? SignInLink::href($this->urlGenerator, $this->requestStack->getMainRequest()) : null)
                 ?? $nowHref
@@ -262,7 +280,7 @@ final readonly class WhereDidItGoBuilder
 
     private function anchor(NavEntry $entry): string
     {
-        return $this->urlGenerator->generate('menu') . '#menu-row-' . ($entry->kind === RowKind::Legal ? 'legal' : $entry->id);
+        return $this->urlGenerator->generate('menu') . '#' . self::ROW_ANCHOR . ($entry->kind === RowKind::Legal ? 'legal' : $entry->id);
     }
 
     private function entry(string $id): NavEntry

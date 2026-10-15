@@ -48,15 +48,19 @@ function storage(values = {}) {
     };
 }
 
-/** A document of the browser: {window, document, lines, events, clock} */
-function page({ store = storage(), index = 3, activation = { navigationType: 'push', from: null, entry: { index } }, restorations = [], navigationApi = true, timingType = null } = {}) {
+/**
+ * A document of the browser: {window, document, lines, events, clock}. `before(window, document)` adds listeners before
+ * the module installs - a window's listeners run in the order they were added (Chromium, capture or not), as Turbo's
+ * popstate listener does. `turboIndex: false` = entries without Turbo's restoration index.
+ */
+function page({ store = storage(), index = 3, activation = { navigationType: 'push', from: null, entry: { index } }, restorations = [], navigationApi = true, timingType = null, turboIndex = true, before = null } = {}) {
     const window = new Target();
     const document = new Target();
     const lines = [];
     const events = [];
     const clock = { epoch: 1_700_000_000_000, perf: 1000 };
-    window.navigation = navigationApi ? { currentEntry: { index }, activation } : null;
-    window.history = { state: { turbo: { restorationIndex: index } } };
+    window.navigation = navigationApi ? Object.assign(new Target(), { currentEntry: { index }, activation }) : null;
+    window.history = { state: turboIndex ? { turbo: { restorationIndex: index } } : null };
     window.performance = {
         now: () => clock.perf,
         getEntriesByType: (type) => (type === 'back-forward-cache-restoration' ? restorations : (timingType ? [{ type: timingType }] : [])),
@@ -65,14 +69,61 @@ function page({ store = storage(), index = 3, activation = { navigationType: 'pu
     document.defaultView = window;
     document.addEventListener(BACK_EVENT, (event) => events.push(event.detail));
 
+    if (before) {
+        before(window, document);
+    }
+
     createBackMeasurement({ window, document, storage: store, now: () => clock.epoch, perfNow: () => clock.perf, send: (line) => lines.push(line) }).install();
 
+    const fire = (target, type, extra = {}) => target.dispatchEvent(Object.assign(new FakeCustomEvent(type, { detail: extra.detail }), extra));
+    const at = (newIndex) => { if (window.navigation) window.navigation.currentEntry = { index: newIndex }; window.history.state = turboIndex ? { turbo: { restorationIndex: newIndex } } : null; };
+
     return {
-        window, document, lines, events, clock, store,
-        at: (newIndex) => { if (window.navigation) window.navigation.currentEntry = { index: newIndex }; window.history.state = { turbo: { restorationIndex: newIndex } }; },
-        fire: (target, type, extra = {}) => target.dispatchEvent(Object.assign(new FakeCustomEvent(type, { detail: extra.detail }), extra)),
+        window, document, lines, events, clock, store, at, fire,
         tick: (ms) => { clock.epoch += ms; clock.perf += ms; },
+        /**
+         * A traversal the way the browser runs it: the Navigation API's navigate event (from the entry shown), the
+         * history moves, then popstate - unless layer_history stops it (`popstate: false`)
+         */
+        traverse: (toIndex, { ua = null, popstate = true } = {}) => {
+            if (window.navigation) {
+                fire(window.navigation, 'navigate', { navigationType: 'traverse', destination: { index: toIndex }, hasUAVisualTransition: ua });
+            }
+
+            at(toIndex);
+
+            if (popstate) {
+                fire(window, 'popstate', ua === null ? {} : { hasUAVisualTransition: ua });
+            }
+        },
     };
+}
+
+/** Turbo's popstate listener, added when Turbo starts (before the app's): the restore is decided inside it */
+function turboFirst(options = {}) {
+    const decide = { kind: null };
+    const p = page({
+        ...options,
+        before: (window, document) => window.addEventListener('popstate', () => {
+            if (decide.kind !== null) {
+                document.dispatchEvent(new FakeCustomEvent(RESTORE_DECIDED_EVENT, { detail: { kind: decide.kind, url: '/en/hub' } }));
+            }
+        }),
+    });
+
+    return { p, decide };
+}
+
+/** A Back / Forward Turbo restores from its snapshot - the line, or a full load - the mark the next document reads */
+function restoreBy(kind, { navigationApi = true, from = 3, to = 2, ua = null } = {}) {
+    const store = storage();
+    const { p, decide } = turboFirst({ store, index: from, navigationApi });
+    decide.kind = kind;
+    p.traverse(to, { ua });
+    p.tick(40);
+    p.fire(p.document, 'turbo:load');
+
+    return kind === 'snapshot' ? p.lines : (({ kind: k, dir, uaTransition }) => ({ kind: k, dir, uaTransition }))(JSON.parse(store.values[BACK_PENDING_KEY]));
 }
 
 run('contract', () => ({ BACK_PENDING_KEY, BACK_EVENT, KINDS }));
@@ -157,6 +208,90 @@ run('a back/forward load without us', () => {
     normal.fire(normal.document, 'turbo:load');
 
     return { traverse: p.lines, timingOnly: old.lines, normal: normal.lines };
+});
+
+run('Turbo decides the restore before our popstate listener', () => ({
+    // Chromium: Turbo's popstate listener (added first) decides the restore before this module's capture listener runs
+    snapshotBack: restoreBy('snapshot', { from: 3, to: 2, ua: true }),
+    snapshotForward: restoreBy('snapshot', { from: 2, to: 3, ua: false }),
+    reloadBack: restoreBy('reload', { from: 5, to: 4, ua: true }),
+    reloadForward: restoreBy('reload', { from: 4, to: 5 }),
+}));
+
+run('without the Navigation API: Turbo\'s restoration index', () => {
+    // A Back and a Forward after a snapshot restore in the same document: the index shown follows each one
+    const { p, decide } = turboFirst({ index: 3, navigationApi: false });
+    decide.kind = 'snapshot';
+    p.traverse(2, { ua: false });
+    p.tick(30);
+    p.fire(p.document, 'turbo:load');
+    p.traverse(3);
+    p.tick(20);
+    p.fire(p.document, 'turbo:load');
+
+    return {
+        snapshots: p.lines,
+        reloadBack: restoreBy('reload', { navigationApi: false, from: 6, to: 5, ua: true }),
+        reloadForward: restoreBy('reload', { navigationApi: false, from: 5, to: 6 }),
+    };
+});
+
+run('a pop layer_history stops and restores itself', () => {
+    // The Results page (a page owner) at 3 pushed its own entries 4 and 5; a Back to 4 is its own (no restore), the Back
+    // from 4 to 2 leaves the page: layer_history stops that popstate and starts the restore - no popstate reaches us
+    const run = (navigationApi) => {
+        const p = page({ index: 3, navigationApi });
+        p.at(5);
+        p.traverse(4, { ua: false });
+        p.tick(5000);
+        p.traverse(2, { ua: true, popstate: false });
+        p.fire(p.document, RESTORE_DECIDED_EVENT, { detail: { kind: 'snapshot', url: '/en/hub' } });
+        p.tick(45);
+        p.fire(p.document, 'turbo:load');
+
+        return p.lines;
+    };
+
+    return { navigationApi: run(true), turboIndex: run(false) };
+});
+
+run('a traversal whose activation entry Turbo replaced', () => {
+    // Turbo's history.replaceState at start replaces the entry navigation.activation.entry points at: index -1
+    const replaced = (from) => ({ navigationType: 'traverse', from: { index: from }, entry: { index: -1 } });
+    const load = page({ index: 1, activation: replaced(2) });
+    load.clock.perf = 610;
+    load.fire(load.document, 'turbo:load');
+
+    const forward = page({ index: 4, activation: replaced(3) });
+    forward.clock.perf = 420;
+    forward.fire(forward.document, 'turbo:load');
+
+    const kept = page({ index: 6, restorations: [{ startTime: 100, pageshowEventStart: 102 }] });
+    kept.window.navigation.activation = replaced(7);
+    kept.fire(kept.window, BFCACHE_RESTORE_EVENT);
+
+    const store = storage();
+    const old = page({ store, index: 2 });
+    old.window.navigation.activation = replaced(1);
+    old.fire(old.window, BFCACHE_RELOAD_EVENT);
+    const pending = JSON.parse(store.values[BACK_PENDING_KEY]);
+
+    return { load: load.lines, forward: forward.lines, bfcache: kept.lines, bfcacheReload: pending.dir };
+});
+
+run('a direction nobody can know', () => {
+    // No Navigation API and no Turbo restoration index on the entries: unknown, never a guess
+    const { p, decide } = turboFirst({ index: 3, navigationApi: false, turboIndex: false });
+    decide.kind = 'snapshot';
+    p.traverse(2);
+    p.tick(10);
+    p.fire(p.document, 'turbo:load');
+
+    // A back/forward-cache restore without the Navigation API
+    const kept = page({ index: 1, navigationApi: false });
+    kept.fire(kept.window, BFCACHE_RESTORE_EVENT);
+
+    return { snapshot: p.lines, bfcache: kept.lines };
 });
 
 run('blocked storage', () => {

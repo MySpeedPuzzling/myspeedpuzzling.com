@@ -68,7 +68,7 @@ So **`DATE` and `<D>` differ on purpose**: `DATE` = the deploy day (the safeguar
 | 11 | Membership page visits | GA4 views of the membership page ÷ sessions; Loki membership clicks | G4, L3 | r_i + 7-day sums | week < 0.85 → check the account menu, the Menu's You card and Account row |
 | 12 | Trial starts | Postgres `membership.trial_started_at` (+ `trial_source`); Loki `trial_start` lines | Q2, L11 | 7-day sums (small numbers: no per-day alarm) of the trials with `trial_source <> 'offer_modal'` during L - the offer modal waits 14 days behind "What moved" (§2.3); its own column from `<D+14>` | week < 0.80 → look at the members modal opens and their placements (L11) |
 | 13 | Checkout starts | Stripe Checkout Sessions (mode `subscription`); Tempo 303s of `buy_membership` | S1, T2 | 7-day sums | week < 0.80 → check the membership page path (#11) and the checkout redirect |
-| 14 | Back restores by kind and `ms_to_load` | Loki `history` lines before; Loki `back` lines from GEST-08 | L9 | share of Backs that reload the page: before vs after; `ms_to_load` per kind after | by `<D+3>` the reload share on browse pages is not clearly lower → check `INSTANT_BACK` / `INSTANT_BACK_IOS`; snapshot median `ms_to_load` > 100 ms → look; a Sentry issue on a restored page → set `INSTANT_BACK = false` (one constant, `assets/instant_back.js`) |
+| 14 | Back restores by kind and `ms_to_load` | Loki `history` lines before; Loki `back` lines from GEST-08 (the launch build sends no `history` line) | L9 | share of Back/Forward lines that end in a page load: before vs after (all directions, then Backs only); `ms_to_load` per kind after | by `<D+3>` the reload share on browse pages is not clearly lower → check `INSTANT_BACK` / `INSTANT_BACK_IOS`; snapshot median `ms_to_load` > 100 ms → look; a Sentry issue on a restored page → set `INSTANT_BACK = false` (one constant, `assets/instant_back.js`) |
 | 15 | `dialog_suppressed` from iPhones | Loki `dialog_suppressed` (sent only on `data-os="ios"`) | L10 | absolute | any line on a page outside `/admin` → a native dialog is left on a player page: fix it (GEST-13) |
 | 16 | Search Console: indexed puzzle pages, crawl stats per template (8 weeks) | GSC Pages + Crawl stats; Tempo Googlebot spans per template | C1, C2, T3 | weekly, 8 weeks after vs the 4 weeks before | indexed puzzle pages −5 % week over week → look; crawl requests −20 % or average response time +30 % → look |
 | 17 | `nav_click` counts | Loki `click` lines (record) + GA4 `nav_click` (cross-check) | L2, G5 | clicks per tab session by surface; destinations through the old → new mapping (L3) | a surface with 0 lines for a whole Prague day → instrumentation broken, fix; GA4 and Loki trends diverging → check P2/P3 |
@@ -190,7 +190,7 @@ GROUP BY 1, 2 ORDER BY 2, 1;
 |---|---|---|---|
 | `click` | Navigation click | `nav` (`<surface>/<place>/<item>`), `surface`, `place`, `item` | P0-03 |
 | `viewport` | Navigation viewport | `bucket` (`lt768`, `768_1023`, `1024_1279`, `1280_1439`, `1440_1919`, `gte1920`), `pointer` (`coarse`/`fine`/`none`), `standalone`, `dock` (`docked`/`rail`/`none`, the state the tab session started in - NAV-13) | P0-03 (`dock` NAV-13) |
-| `history` | Navigation history | `via` (`turbo_restore`/`load`/`bfcache`), `direction` (`back`/`forward`/`unknown`), `ua_visual_transition` | P0-03 |
+| `history` | Navigation history | `via` (`turbo_restore`/`load`/`bfcache`), `direction` (`back`/`forward`/`unknown`), `ua_visual_transition` | P0-03 - the baseline; the launch build sends `back` instead (L9) |
 | `menu_open` | Navigation menu open | `surface` (`panel` phone / `overlay` desktop < 1280 px), `place` (the page's place) | MENU-02b, NAV-13 |
 | `search_zero` | Navigation search without results | `surface` (`menu`/`topbar`; `wdig` = the filter of Where did it go? left nothing), `query` (folded, ≤ 40 characters) | MENU-03, SRCH-01 (`wdig`: LAUNCH review Q3) |
 | `layout` | Navigation layout | `state` (`docked`/`rail` - the ☰ switched it), `bucket` | NAV-13 |
@@ -199,7 +199,7 @@ GROUP BY 1, 2 ORDER BY 2, 1;
 | `members_modal` | Navigation members modal | `placement` (`card.tier`, `profile.tier`, `none`) | TEASE-01 |
 | `dialog_suppressed` | Navigation dialog suppressed | `after_layer_back`, `after_restore` | GEST-13 |
 | `trial_start` | Free trial started from a members teaser | `placement`, `source` - **no** `page`, `layout`, `webdriver` (written by `StartFreeTrialController`) | TEASE-01 |
-| `back` | (GEST-08, not built yet) | planned: `restore` (`snapshot`/`reload`/`bfcache`/`bfcache-reload`), `ms_to_load` | GEST-08 |
+| `back` | Navigation back | `restore` (`snapshot`/`reload`/`bfcache`/`bfcache-reload`), `ms_to_load` (whole ms, null when unknown or over 10 minutes), `direction` (`back`/`forward`/`unknown`), `ua_visual_transition` (`true`/`false`, null when the browser does not say) | GEST-08 |
 
 Every beacon line also carries `context_page` (path only, secret segments masked as `{token}`), `context_layout` (`phone`/`desktop`) and `context_webdriver`. Never export `page`-level breakdowns beyond the watch folder: paths hold player ids.
 
@@ -275,17 +275,28 @@ sum by (context_context, context_input) (count_over_time({app="myspeedpuzzling"}
 ```
 Revert rule (`NavigationRegistry::PLAYER_CARD_REVERT_RULE`): per cell ≥ 300 `card_open` over ≥ 14 days; of its `card_outcome` lines (the base of both shares - an open without an outcome counts in neither) ≥ 70 % `continue` within 30 s and < 5 % `deep` + `puzzle` + `action`. `card_bypass` counts the same way (`context_kind="card_bypass"`).
 
-**L9 Back and Forward** (#14) - before GEST-08 (and the baseline):
+**L9 Back and Forward** (#14). One line per Back or Forward on both sides of the launch, a different kind on each:
+
+- **Before (the baseline, P0-03):** `history` lines - `via="turbo_restore"` (every Back after a Turbo visit: Turbo's restore, turned into a full load that is not counted again), `load` (a page the browser loaded by a traverse), `bfcache` (a back/forward cache restore; the old code reloaded every one of them, no second line).
+- **After (the launch build, GEST-08):** `back` lines only - `assets/app.js` starts the P0-03 instrumentation with `history: false`, so no `history` line is sent for any traversal, the ones Instant Back does not handle included: `assets/back_measurement.js` sends them all as `back` lines - `restore="snapshot"` (Turbo's snapshot), `reload` (Instant Back's full load **and** the browser's own back/forward load - one kind, they cannot be told apart), `bfcache` (kept), `bfcache-reload`. A `history` line after `<D>` comes only from a tab still running a script from before the deploy (until it loads a page again); it still counts as one Back.
+- **Fields:** `restore`, `ms_to_load`, `direction`, `ua_visual_transition` (§4.2). `ms_to_load`: snapshot = from the Back to the snapshot's `turbo:load`; `reload` = from the Back to the next document's `turbo:load` (the browser's own load: from that document's navigation start); `bfcache` = the browser's restoration entry (0 without one); `bfcache-reload` = from the restore to the reloaded document's `turbo:load`.
+- **Direction:** the `back` line carries `back`/`forward` on every path (snapshot, reload, bfcache, bfcache-reload; after a plain Turbo visit and after a layer's replace visit; with or without the Navigation API) - `unknown` only without the Navigation API for a page the browser loaded or kept itself (older iPhones). Measured on dev (Chromium, 2026-10-15): the P0-03 commit `62c99662` (the one P1 deploys) reads the direction of a `load` line from `navigation.activation.entry`, whose index is -1 once Turbo replaced that entry at start - its `load` lines read `unknown`, unless P1 takes `activationDirection(activation, currentIndex)` from `assets/nav_instrumentation.js` of the delivery branch along; its `turbo_restore` and `bfcache` lines carry the direction. Check the baseline's `unknown` share in the first query below before comparing Backs only.
+
+Baseline (and the stragglers after `<D>`):
 ```logql
 sum by (context_via, context_direction) (count_over_time({app="myspeedpuzzling"} |= `"channel":"navigation"` | json | context_webdriver="false" | context_kind="history" [1h]))
 ```
-Today every Back after a Turbo visit reloads the page (`via="turbo_restore"`, the reload is not counted again), `load` is a page loaded by a traverse, `bfcache` a back/forward cache restore. After GEST-08 (field names from the plan - confirm when it lands):
+After `<D>`:
 ```logql
-sum by (context_restore, context_layout) (count_over_time({app="myspeedpuzzling"} |= `"channel":"navigation"` | json | context_webdriver="false" | context_kind="back" [1h]))
+sum by (context_restore, context_direction, context_layout) (count_over_time({app="myspeedpuzzling"} |= `"channel":"navigation"` | json | context_webdriver="false" | context_kind="back" [1h]))
 
 quantile_over_time(0.5, {app="myspeedpuzzling"} |= `"channel":"navigation"` | json | context_webdriver="false" | context_kind="back" | unwrap context_ms_to_load | __error__="" [1d]) by (context_restore)
 ```
-(also 0.75). Compare the share of Backs that end in a page load (before: `turbo_restore` + `load`; after: `reload` + `bfcache-reload`) of all Backs, by `layout`; `ms_to_load` has no baseline.
+(also 0.75). Backs across the launch - one series per kind, the same query on both sides:
+```logql
+sum by (context_kind, context_layout) (count_over_time({app="myspeedpuzzling"} |= `"channel":"navigation"` | json | context_webdriver="false" | context_kind=~"history|back" | context_direction="back" [1h]))
+```
+Backs before = `history` lines with `direction="back"`; Backs after = `back` lines with `direction="back"` + any `history` lines with `direction="back"` still sent. Compare the share that ends in a page load - before: `turbo_restore` + `load`; after: `reload` + `bfcache-reload` - by `layout`, first over all directions (every line, both sides complete), then Backs only (the baseline's Backs miss its `unknown` `load` lines, so their page-load share reads low). `ms_to_load` has no baseline.
 
 **L10 Native dialogs refused on iPhones** (#15)
 ```logql
@@ -416,7 +427,7 @@ Three Prague days in a row with r_i < 0.90 for times logged:
 ## 7. Not confirmed from the code - confirm during the baseline
 
 - **Loki stream selector** `{app="myspeedpuzzling"}` and that the stored line is still Monolog's JSON (the line filter `"channel":"navigation"` and the `json` stage rely on it; if the log pipeline promotes `channel` to a label, the line filter can become a label matcher).
-- **GEST-08 is not built yet:** the `back` kind is reserved in `NavClickController`, but its field names (`restore`, `ms_to_load`) come from the plan, and whether `history` lines continue after it lands is open. Until then #14 has only the `history` baseline.
+- **The baseline's Back direction:** P0-03's `history` `via="load"` lines read `direction="unknown"` when `62c99662` is deployed as it is (measured on dev in Chromium, L9) - the current entry stands in for the replaced activation entry only in the delivery branch's `activationDirection()`; confirm the share with L9's baseline query before #14 compares Backs only. (GEST-08's `back` line and its fields are built and checked - L9; the launch build sends no `history` line.)
 - **`menu_row`** (README §4.12) was built as `click` lines `menu/<group>/<entry id>`: no position field (positions are fixed per surface in `docs/navigation.md`), and the desktop column and overlay share their data-nav (`layout` = `desktop` for both; overlay clicks follow a `menu_open` with `surface="overlay"`).
 - **Searches** have no event of their own; T1 counts Live requests. If Tempo turns out too heavy to query every day, a `search` beacon (first query typed into a search field per page view) on the same channel would be a small follow-up.
 - **GA4 settings** P2–P5 (custom dimensions, history page views, time zone, Japanese path form), and whether GA4 accepts the longer regexes in one condition.

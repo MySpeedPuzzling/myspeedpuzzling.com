@@ -15,6 +15,12 @@ use Symfony\Component\Process\Process;
  * mark; or a back/forward load the browser made by itself), bfcache (ms from the restoration entry), bfcache-reload -
  * the direction and whether the browser animated it; each line also an `msp:back` event. A layer's Back is no line
  * (layer_history.js stops its popstate first); a normal load and a visit are none either; blocked storage never throws.
+ *
+ * The direction holds whatever runs first: Chromium calls a window's popstate listeners in the order they were added,
+ * and Turbo's - added when Turbo starts - decides the restore before this module's listener sees the popstate (measured
+ * in the P0-03 browser check: every Back after a plain Turbo visit was logged `unknown`). It comes from the Navigation
+ * API's navigate event, else from Turbo's restoration index; a traversal's activation entry that Turbo replaced at start
+ * (index -1) gives way to the current entry. `unknown` only where the browser cannot know it.
  */
 final class BackMeasurementScriptTest extends TestCase
 {
@@ -81,6 +87,55 @@ final class BackMeasurementScriptTest extends TestCase
             'timingOnly' => [['restore' => 'reload', 'ms' => 500, 'dir' => 'unknown', 'uaTransition' => null]],
             'normal' => [],
         ], self::results()['a back/forward load without us']);
+    }
+
+    public function testTheDirectionHoldsWhenTurboDecidesTheRestoreFirst(): void
+    {
+        self::assertSame([
+            'snapshotBack' => [['restore' => 'snapshot', 'ms' => 40, 'dir' => 'back', 'uaTransition' => true]],
+            'snapshotForward' => [['restore' => 'snapshot', 'ms' => 40, 'dir' => 'forward', 'uaTransition' => false]],
+            'reloadBack' => ['kind' => 'reload', 'dir' => 'back', 'uaTransition' => true],
+            'reloadForward' => ['kind' => 'reload', 'dir' => 'forward', 'uaTransition' => null],
+        ], self::results()['Turbo decides the restore before our popstate listener']);
+    }
+
+    public function testWithoutTheNavigationApiTurbosRestorationIndexTellsTheDirection(): void
+    {
+        self::assertSame([
+            'snapshots' => [
+                ['restore' => 'snapshot', 'ms' => 30, 'dir' => 'back', 'uaTransition' => false],
+                ['restore' => 'snapshot', 'ms' => 20, 'dir' => 'forward', 'uaTransition' => null],
+            ],
+            'reloadBack' => ['kind' => 'reload', 'dir' => 'back', 'uaTransition' => true],
+            'reloadForward' => ['kind' => 'reload', 'dir' => 'forward', 'uaTransition' => null],
+        ], self::results()["without the Navigation API: Turbo's restoration index"]);
+    }
+
+    public function testAPopLayerHistoryStopsIsMeasuredFromItsOwnTraversal(): void
+    {
+        // Not the page owner's earlier pop (its direction and its start 5 s before)
+        self::assertSame([
+            'navigationApi' => [['restore' => 'snapshot', 'ms' => 45, 'dir' => 'back', 'uaTransition' => true]],
+            'turboIndex' => [['restore' => 'snapshot', 'ms' => 45, 'dir' => 'back', 'uaTransition' => null]],
+        ], self::results()['a pop layer_history stops and restores itself']);
+    }
+
+    public function testAnActivationEntryTurboReplacedGivesWayToTheCurrentEntry(): void
+    {
+        self::assertSame([
+            'load' => [['restore' => 'reload', 'ms' => 610, 'dir' => 'back', 'uaTransition' => null]],
+            'forward' => [['restore' => 'reload', 'ms' => 420, 'dir' => 'forward', 'uaTransition' => null]],
+            'bfcache' => [['restore' => 'bfcache', 'ms' => 2, 'dir' => 'back', 'uaTransition' => null]],
+            'bfcacheReload' => 'forward',
+        ], self::results()['a traversal whose activation entry Turbo replaced']);
+    }
+
+    public function testADirectionNobodyCanKnowStaysUnknown(): void
+    {
+        self::assertSame([
+            'snapshot' => [['restore' => 'snapshot', 'ms' => 10, 'dir' => 'unknown', 'uaTransition' => null]],
+            'bfcache' => [['restore' => 'bfcache', 'ms' => 0, 'dir' => 'unknown', 'uaTransition' => null]],
+        ], self::results()['a direction nobody can know']);
     }
 
     public function testBlockedStorageNeverThrows(): void

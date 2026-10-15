@@ -218,8 +218,25 @@ export function direction(from, to) {
     return to < from ? 'back' : 'forward';
 }
 
-export function activationDirection(activation) {
-    return direction(activation.from ? activation.from.index : null, activation.entry ? activation.entry.index : null);
+/**
+ * Back or Forward of a document's load or back/forward-cache restore: from the entry left to the entry shown. The
+ * activation's `entry` reads index -1 once the page replaced it (Turbo's history.replaceState when it starts - measured
+ * in Chromium): the current entry, passed as currentIndex, is that same place then.
+ */
+export function activationDirection(activation, currentIndex = null) {
+    const entry = activation.entry && typeof activation.entry.index === 'number' && activation.entry.index >= 0 ? activation.entry.index : currentIndex;
+
+    return direction(activation.from ? activation.from.index : null, entry);
+}
+
+function currentEntryIndex(window) {
+    try {
+        const entry = window.navigation && window.navigation.currentEntry;
+
+        return entry && typeof entry.index === 'number' ? entry.index : null;
+    } catch (e) {
+        return null;
+    }
 }
 
 export function createNavInstrumentation(env) {
@@ -334,7 +351,7 @@ export function createNavInstrumentation(env) {
 
             if (activation && typeof activation.navigationType === 'string') {
                 if (activation.navigationType === 'traverse') {
-                    send({ k: 'history', via: 'load', dir: activationDirection(activation), uaTransition: null });
+                    send({ k: 'history', via: 'load', dir: activationDirection(activation, currentEntryIndex(window)), uaTransition: null });
                 }
 
                 return;
@@ -377,7 +394,7 @@ export function createNavInstrumentation(env) {
 
         try {
             const activation = window.navigation && window.navigation.activation;
-            dir = activation ? activationDirection(activation) : 'unknown';
+            dir = activation ? activationDirection(activation, currentEntryIndex(window)) : 'unknown';
         } catch (e) {
             // unknown
         }
@@ -570,7 +587,8 @@ export function createNavInstrumentation(env) {
             document.addEventListener(CARD_OUTCOME_EVENT, onCardOutcome);
             document.addEventListener(CARD_BYPASS_EVENT, onCardBypass);
             document.addEventListener(MEMBERS_MODAL_EVENT, onMembersModal);
-            // Capture: at the window, capture listeners run before Turbo's popstate listener starts the restore
+            // Capture at the window - which in Chromium is not before Turbo's own listener (a window's listeners run in the
+            // order they were added, and Turbo adds its own when it starts): the Navigation API's navigate event comes first
             window.addEventListener('popstate', rememberTraverse, { capture: true });
             window.addEventListener('pageshow', onPageShow);
             document.addEventListener('turbo:load', onTurboLoad);

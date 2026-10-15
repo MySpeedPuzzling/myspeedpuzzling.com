@@ -17,6 +17,17 @@ import { BFCACHE_RELOAD_EVENT, BFCACHE_RESTORE_EVENT, RESTORE_DECIDED_EVENT } fr
  * layer_history.js stops that popstate before this module sees it. Each line is also dispatched as `msp:back` on the
  * document (detail = the line) - what the browser check counts.
  *
+ * Direction (`dir` back | forward): the restore is often decided before this module's popstate listener runs - Chromium
+ * calls a window's popstate listeners in the order they were added, capture or not, and Turbo adds its own when it
+ * starts, before the app's (only a layer's or page owner's pause re-adds it after them); layer_history.js starts the
+ * restore itself after a pop it stops (a page owner's page left). So the traversal begins with whichever comes first -
+ * our popstate listener or the restore decision (current()) - and takes its direction from the Navigation API's
+ * `navigate` event (it fires before every popstate listener: the destination's index against the entry left), else
+ * from the history index now against the one last shown (Turbo's restoration index without the Navigation API). A
+ * document loaded or restored by a traverse reads it from navigation.activation; its `entry` reads index -1 once Turbo
+ * replaced that entry at start, so the current entry stands in. Only without the Navigation API does a load or a
+ * back/forward-cache restore stay `unknown` (Turbo's index starts again in every document).
+ *
  * buildBackPayload() is pure; createBackMeasurement(env) takes {window, document, storage?, now? (epoch ms),
  * perfNow?, send(payload)} so tests/back-measurement-harness.mjs drives it under node.
  */
@@ -55,9 +66,13 @@ export function createBackMeasurement(env) {
         }
     }
 
-    // Where the page was last shown (turbo:load), to tell Back from Forward
+    // Where the page was last shown (turbo:load, or a popstate this module saw), to tell Back from Forward
     let lastIndex = historyIndex(window);
-    // The traversal under way: {t0 (perf), at (epoch), uaTransition, dir}
+    // What the Navigation API's navigate event said about the traversal under way: {index (the destination's), dir,
+    // uaTransition}
+    let announced = null;
+    // The traversal under way: {index (the history index it landed on), t0 (perf), at (epoch), uaTransition, dir,
+    // pending (the kind of the mark written for the next document)}
     let traversal = null;
     // A snapshot restore waiting for its turbo:load
     let snapshot = null;
@@ -105,22 +120,37 @@ export function createBackMeasurement(env) {
         }
     }
 
-    function writePending(kind) {
-        const current = traversal || {};
-
+    function writePending(kind, going) {
         try {
             const store = storage();
 
             if (store) {
                 store.setItem(BACK_PENDING_KEY, JSON.stringify({
                     kind,
-                    at: typeof current.at === 'number' ? current.at : now(),
-                    dir: current.dir || 'unknown',
-                    uaTransition: typeof current.uaTransition === 'boolean' ? current.uaTransition : null,
+                    at: typeof going.at === 'number' ? going.at : now(),
+                    dir: going.dir || 'unknown',
+                    uaTransition: typeof going.uaTransition === 'boolean' ? going.uaTransition : null,
                 }));
             }
         } catch (e) {
             // the next document does not know it came back: no line
+        }
+    }
+
+    function currentEntryIndex() {
+        const entry = window.navigation && window.navigation.currentEntry;
+
+        return entry && typeof entry.index === 'number' ? entry.index : null;
+    }
+
+    /** Back or Forward of this document's load or back/forward-cache restore - 'unknown' without the Navigation API */
+    function activated() {
+        try {
+            const activation = window.navigation && window.navigation.activation;
+
+            return activation ? activationDirection(activation, currentEntryIndex()) : 'unknown';
+        } catch (e) {
+            return 'unknown';
         }
     }
 
@@ -129,7 +159,7 @@ export function createBackMeasurement(env) {
             const activation = window.navigation && window.navigation.activation;
 
             if (activation && typeof activation.navigationType === 'string') {
-                return activation.navigationType === 'traverse' ? { dir: activationDirection(activation) } : null;
+                return activation.navigationType === 'traverse' ? { dir: activated() } : null;
             }
 
             const entries = window.performance && window.performance.getEntriesByType ? window.performance.getEntriesByType('navigation') : [];
@@ -140,20 +170,76 @@ export function createBackMeasurement(env) {
         }
     }
 
-    function onPopState(event) {
-        const index = historyIndex(window);
-        const uaTransition = event && typeof event.hasUAVisualTransition === 'boolean' ? event.hasUAVisualTransition : null;
+    function uaTransitionOf(event) {
+        return event && typeof event.hasUAVisualTransition === 'boolean' ? event.hasUAVisualTransition : null;
+    }
 
-        traversal = { t0: perfNow(), at: now(), uaTransition, dir: direction(lastIndex, index) };
+    /** The Navigation API announces every traversal before any popstate listener runs (and also one a layer stops) */
+    function onNavigate(event) {
+        if (!event || event.navigationType !== 'traverse') {
+            return;
+        }
+
+        // A new traversal: whatever an earlier pop began is over (a page owner's own entry ends in no restore)
+        traversal = null;
+
+        try {
+            const index = event.destination && typeof event.destination.index === 'number' ? event.destination.index : null;
+
+            announced = { index, dir: direction(currentEntryIndex(), index), uaTransition: uaTransitionOf(event) };
+        } catch (e) {
+            announced = null;
+        }
+    }
+
+    /**
+     * The traversal that landed on the history entry shown now, begun by whichever sees it first: our popstate listener,
+     * or the restore decision when Turbo's popstate listener (or layer_history.js) started the restore before it
+     */
+    function current(event) {
+        const index = historyIndex(window);
+
+        if (traversal !== null && traversal.index === index) {
+            // The popstate after Turbo's decision still says whether the browser animated it
+            if (traversal.uaTransition === null && uaTransitionOf(event) !== null) {
+                traversal.uaTransition = uaTransitionOf(event);
+
+                if (traversal.pending) {
+                    writePending(traversal.pending, traversal);
+                }
+            }
+
+            return traversal;
+        }
+
+        const word = announced !== null && announced.index === index ? announced : null;
+        const uaTransition = uaTransitionOf(event);
+
+        traversal = {
+            index,
+            t0: perfNow(),
+            at: now(),
+            uaTransition: uaTransition !== null ? uaTransition : (word ? word.uaTransition : null),
+            dir: word && word.dir !== 'unknown' ? word.dir : direction(lastIndex, index),
+        };
+
+        return traversal;
+    }
+
+    function onPopState(event) {
+        // A page owner's own entries (Results) change the index without a turbo:load: follow every pop seen
+        lastIndex = current(event).index;
     }
 
     function onRestoreDecided(event) {
         const kind = event && event.detail ? event.detail.kind : null;
 
         if (kind === 'snapshot') {
-            snapshot = traversal ? { ...traversal } : { t0: perfNow(), at: now(), uaTransition: null, dir: 'unknown' };
+            snapshot = current(null);
         } else if (kind === 'reload') {
-            writePending('reload');
+            const going = current(null);
+            going.pending = 'reload';
+            writePending('reload', going);
         }
     }
 
@@ -169,12 +255,12 @@ export function createBackMeasurement(env) {
         }
 
         traversal = null;
+        announced = null;
         lastIndex = historyIndex(window);
     }
 
     function onBfcacheRestore() {
         let ms = 0;
-        let dir = 'unknown';
 
         try {
             const entries = window.performance && window.performance.getEntriesByType ? window.performance.getEntriesByType('back-forward-cache-restoration') : [];
@@ -183,29 +269,19 @@ export function createBackMeasurement(env) {
             if (entry && typeof entry.pageshowEventStart === 'number' && typeof entry.startTime === 'number') {
                 ms = Math.max(0, entry.pageshowEventStart - entry.startTime);
             }
-
-            const activation = window.navigation && window.navigation.activation;
-            dir = activation ? activationDirection(activation) : 'unknown';
         } catch (e) {
-            // 0 ms, direction unknown
+            // 0 ms
         }
 
-        emit(buildBackPayload({ kind: 'bfcache', msToLoad: ms, uaTransition: null, dir }));
+        emit(buildBackPayload({ kind: 'bfcache', msToLoad: ms, uaTransition: null, dir: activated() }));
+        traversal = null;
+        announced = null;
         lastIndex = historyIndex(window);
     }
 
     function onBfcacheReload() {
-        let dir = 'unknown';
-
-        try {
-            const activation = window.navigation && window.navigation.activation;
-            dir = activation ? activationDirection(activation) : 'unknown';
-        } catch (e) {
-            // unknown
-        }
-
-        traversal = { t0: perfNow(), at: now(), uaTransition: null, dir };
-        writePending('bfcache-reload');
+        traversal = { index: historyIndex(window), t0: perfNow(), at: now(), uaTransition: null, dir: activated() };
+        writePending('bfcache-reload', traversal);
     }
 
     const api = {
@@ -229,8 +305,18 @@ export function createBackMeasurement(env) {
                 }
             }
 
-            // Capture at the window: before Turbo starts the restore (layer_history stops a layer's pop before this)
+            // Capture at the window, yet not before Turbo's own listener in Chromium (see Direction above); layer_history
+            // stops a layer's pop before this
             window.addEventListener('popstate', onPopState, { capture: true });
+
+            try {
+                if (window.navigation && typeof window.navigation.addEventListener === 'function') {
+                    window.navigation.addEventListener('navigate', onNavigate);
+                }
+            } catch (e) {
+                // no Navigation API: the history index alone
+            }
+
             window.addEventListener(BFCACHE_RESTORE_EVENT, onBfcacheRestore);
             window.addEventListener(BFCACHE_RELOAD_EVENT, onBfcacheReload);
             document.addEventListener(RESTORE_DECIDED_EVENT, onRestoreDecided);

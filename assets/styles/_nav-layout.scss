@@ -105,17 +105,32 @@ $nav-collapsible-groups: roles, puzzling, library, add, account, help, about;
 // hide the phone-only ones (the You card, Inbox, Log out, the group headings the place rows replace); group headings are
 // disclosure buttons.
 //
-// Two tiers, so ~60 rows read as a few sections (owner, 2026-10-16 - "bloated, sections not differentiated"):
-// - the places (Home, Puzzles, Community, Profile) are the column's headings: 36 px, icon, semibold; their pages hang
-//   under them as a tree - indented to the place's label, a guide line, no icon of their own, 30 px;
-// - the other groups (Your roles, Your puzzles, Add & track, Account, Help & learn, About) are sections under a hairline:
-//   small caps heading under one hairline, rows with their icon. Most start folded (assets/head/nav_layout.js); the group holding the
-//   current page always shows.
-// A sidebar link opens a page, so no chevrons; descriptions (and the membership line) stay for screen readers only -
-// the phone panel shows them. Text one step smaller than the page's.
+// Two tiers, so ~60 rows read as nine items (owner, 2026-10-16 - "bloated, sections not differentiated"):
+// - top level, 36 px, icon + semibold label: the places (Home, Puzzles, Community, Profile - links) and the other
+//   groups' headings (Your roles, Your puzzles, Add & track, Account, Help & learn, About - disclosure buttons, their
+//   icon drawn by CSS from $nav-dock-group-icons), one hairline between the two kinds;
+// - their pages hang under them as a tree: indented to the label, a guide line under the icon, no icon of their own,
+//   30 px, quieter ink; the current page's row is a pill against the guide line, which turns coral beside it.
+// Most groups start folded (assets/head/nav_layout.js); the group holding the current page always shows. A sidebar link
+// opens a page, so no chevrons; descriptions (and the membership line) stay for screen readers only - the phone panel
+// shows them. Text one step smaller than the page's.
 
-$nav-dock-place-groups: puzzles, community, puzzling;
-$nav-dock-section-groups: roles, library, add, account, help, about;
+// The groups' heading icons (Bootstrap Icons code points: shield-check, box-seam, plus-circle, person-gear,
+// question-circle, info-circle) - drawn, so the chrome carries no extra markup
+$nav-dock-group-icons: (
+    roles: "\f52f",
+    library: "\f1c7",
+    add: "\f4fa",
+    account: "\f8a7",
+    help: "\f505",
+    about: "\f431",
+);
+
+// The label's start: the row's padding + the icon box + the gap
+$nav-dock-pad: .5rem;
+$nav-dock-icon: 1.25rem;
+$nav-dock-gap: .625rem;
+$nav-dock-label-x: $nav-dock-pad + $nav-dock-icon + $nav-dock-gap;
 
 @mixin nav-dock-menu {
     padding: .5rem .5rem 1.5rem;
@@ -126,23 +141,48 @@ $nav-dock-section-groups: roles, library, add, account, help, about;
         position: relative;
         display: grid;
         grid-template-columns: minmax(0, 1fr);
-        margin: 0;
+        margin: .25rem 0 0;
     }
 
     li.menu-only-dock {
         display: list-item;
     }
 
-    // The heading and its disclosure button share the first cell: the button lies over the heading
+    // A group's heading: a top-level item like a place row - its icon, its label; the disclosure button lies over it
     .menu-group-title {
         grid-area: 1 / 1;
         display: flex;
         align-items: center;
-        min-height: 30px;
-        margin: .25rem 0 0;
-        padding: 0 2.25rem 0 .5rem;
-        font-size: .6875rem;
+        gap: $nav-dock-gap;
+        min-height: 36px;
+        margin: 0;
+        padding: 0 2.25rem 0 $nav-dock-pad;
+        font-size: .875rem;
+        font-weight: 600;
         line-height: 1.2;
+        letter-spacing: 0;
+        text-transform: none;
+        color: var(--nav-ink, #4b566b);
+
+        // The icon box of a row (menu-row-icon): its own size, the glyph centred - no shift when the font arrives
+        &::before {
+            flex: 0 0 $nav-dock-icon;
+            width: $nav-dock-icon;
+            height: $nav-dock-icon;
+            overflow: hidden;
+            font-family: bootstrap-icons;
+            font-size: 1.0625rem;
+            font-weight: 400;
+            line-height: $nav-dock-icon;
+            text-align: center;
+            color: var(--nav-label, #5f6b80);
+        }
+    }
+
+    @each $group, $glyph in $nav-dock-group-icons {
+        [data-menu-group="#{$group}"] > .menu-group-title::before {
+            content: $glyph;
+        }
     }
 
     .menu-group > :where(ul) {
@@ -154,11 +194,11 @@ $nav-dock-section-groups: roles, library, add, account, help, about;
         position: relative;
         display: block;
         width: 100%;
-        min-height: 30px;
-        margin: .25rem 0 0;
+        min-height: 36px;
+        margin: 0;
         padding: 0;
         border: 0;
-        border-radius: .375rem;
+        border-radius: .5rem;
         color: var(--nav-label, #5f6b80);
         background: transparent;
         cursor: pointer;
@@ -185,7 +225,7 @@ $nav-dock-section-groups: roles, library, add, account, help, about;
         }
 
         &:hover {
-            background: var(--nav-pressed-pill, rgba(254, 105, 106, .1));
+            background: var(--nav-hover, rgba(43, 52, 69, .05));
         }
 
         &:focus-visible {
@@ -206,7 +246,6 @@ $nav-dock-section-groups: roles, library, add, account, help, about;
         justify-self: end;
         align-self: start;
         width: 36px;
-        min-height: 36px;
         margin: 0;
     }
 
@@ -214,20 +253,29 @@ $nav-dock-section-groups: roles, library, add, account, help, about;
         padding-right: 40px;
     }
 
-    // Rows: 30 px pages, 36 px places
+    // Rows
     .mr {
-        gap: .625rem;
+        gap: $nav-dock-gap;
         min-height: 30px;
-        padding: .25rem .5rem;
-        border-radius: .375rem;
+        padding: .25rem $nav-dock-pad;
+        border-radius: .5rem;
         font-size: inherit;
 
         > .bi {
-            @include menu-row-icon(1.25rem, 1rem);
+            @include menu-row-icon($nav-dock-icon, 1.0625rem);
         }
 
         &::after {
             display: none;
+        }
+
+        &:hover,
+        &:focus {
+            background: var(--nav-hover, rgba(43, 52, 69, .05));
+        }
+
+        &[aria-current="page"] {
+            background: var(--nav-active-pill, #ffe8e8);
         }
     }
 
@@ -238,57 +286,64 @@ $nav-dock-section-groups: roles, library, add, account, help, about;
         color: var(--nav-ink-strong, #373f50);
 
         > .bi {
-            font-size: 1.125rem;
             color: var(--nav-ink-strong, #373f50);
         }
     }
 
-    // The places' pages: a tree under the place - label under the place's label, a guide line under its icon
-    @each $group in $nav-dock-place-groups {
-        [data-menu-group="#{$group}"] > ul > li:not(.menu-only-dock) {
-            position: relative;
-            padding-left: 1.375rem;
+    // Every group's pages: a tree under its place or heading - the label under the top level's label, the guide line
+    // under its icon; the current row's pill starts at the line
+    .menu-group:not([data-menu-group="home"]):not([data-menu-group="you"]) > ul > li:not(.menu-only-dock) {
+        position: relative;
+        padding-left: calc(#{$nav-dock-pad + $nav-dock-icon * .5} + 1px);
 
-            &::before {
-                content: "";
-                position: absolute;
-                top: 0;
-                bottom: 0;
-                left: 1.125rem;
-                border-left: 1px solid var(--nav-hairline, rgba(43, 52, 69, .1));
+        &::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: $nav-dock-pad + $nav-dock-icon * .5;
+            border-left: 1px solid var(--nav-hairline, rgba(43, 52, 69, .1));
+        }
+
+        &:has(> [aria-current="page"])::before {
+            left: calc(#{$nav-dock-pad + $nav-dock-icon * .5} - .5px);
+            border-left: 2px solid var(--nav-active-ink, #c8323a);
+        }
+
+        > .mr,
+        > details > .mr,
+        &.mr-legal {
+            padding-left: calc(#{$nav-dock-label-x - $nav-dock-pad - $nav-dock-icon * .5} - 1px);
+            border-radius: 0 .5rem .5rem 0;
+            color: var(--nav-label, #5f6b80);
+
+            > .bi {
+                display: none;
             }
 
-            &:has(> [aria-current="page"])::before {
-                border-left: 2px solid var(--nav-active-ink, #c8323a);
+            &:hover,
+            &:focus {
+                color: var(--nav-ink, #4b566b);
             }
 
-            > .mr {
-                padding-left: .5rem;
-
-                > .bi {
-                    display: none;
-                }
+            &[aria-current="page"] {
+                color: var(--nav-active-ink, #c8323a);
             }
         }
 
-        [data-menu-group="#{$group}"] {
-            margin-top: .25rem;
+        // The legal row's links carry the ink themselves
+        &.mr-legal {
+            padding-left: calc(#{$nav-dock-pad + $nav-dock-icon * .5} + 1px + #{$nav-dock-label-x - $nav-dock-pad - $nav-dock-icon * .5} - 1px);
         }
     }
 
-    // The other groups: sections under one hairline where they start after the places' trees (Your roles sits between
-    // Community and Profile for the few who have one: a hairline on each side of it)
-    @each $group in $nav-dock-section-groups {
-        [data-menu-group="#{$group}"] {
-            margin-top: .125rem;
-        }
-    }
-
+    // One hairline where the groups' headings start after the places (Your roles sits between Community and Profile
+    // for the few who have one: a hairline on each side of it)
     [data-menu-group="roles"],
     [data-menu-group="roles"] + [data-menu-group="puzzling"],
     [data-menu-group="library"] {
-        margin-top: .625rem;
-        padding-top: .375rem;
+        margin-top: .5rem;
+        padding-top: .5rem;
         border-top: 1px solid var(--nav-hairline, rgba(43, 52, 69, .1));
     }
 
@@ -310,6 +365,23 @@ $nav-dock-section-groups: roles, library, add, account, help, about;
         border: 0;
     }
 
+    // ...but the language row names the current language after its label
+    .menu-language > summary .mr-d {
+        position: static;
+        display: inline;
+        width: auto;
+        height: auto;
+        margin: 0;
+        overflow: visible;
+        clip: auto;
+        font-size: inherit;
+        opacity: .8;
+
+        &::before {
+            content: " · ";
+        }
+    }
+
     .mr-running {
         font-size: .75rem;
     }
@@ -321,16 +393,25 @@ $nav-dock-section-groups: roles, library, add, account, help, about;
     .mr-legal {
         gap: .625rem;
         min-height: 30px;
-        padding: .25rem .5rem;
+        padding: .25rem $nav-dock-pad;
 
         > .bi {
-            @include menu-row-icon(1.25rem, 1rem);
+            @include menu-row-icon($nav-dock-icon, 1.0625rem);
         }
     }
 
     .mr-links {
         column-gap: .75rem;
         font-size: .75rem;
+
+        a {
+            color: var(--nav-label, #5f6b80);
+        }
+
+        // The separator in the middle of the narrower gap
+        a + a::before {
+            left: -.375rem;
+        }
     }
 
     .mr-links a,
@@ -339,7 +420,7 @@ $nav-dock-section-groups: roles, library, add, account, help, about;
     }
 
     .menu-language-list {
-        padding-left: 2.375rem;
+        padding-left: $nav-dock-label-x;
     }
 
     // The guests' Sign in · Join free card follows the places (decision 31)

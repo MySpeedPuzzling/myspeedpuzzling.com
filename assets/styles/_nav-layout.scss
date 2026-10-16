@@ -102,12 +102,24 @@ $nav-collapsible-groups: roles, puzzling, library, add, account, help, about;
 // ---- The docked column and the overlay: the same Menu, the same rows (README §4.3) -----------------------------------
 // The column = #site-menu in #menu-slot (shown only where it is docked); the overlay = #site-menu moved into the shell
 // .menu-layer--overlay. Both show the dock-only parts (Home, the place rows, the "Profile" row heading Your puzzling) and
-// hide the phone-only ones (the You card, Inbox, Log out, the group headings the place rows replace); rows 40 px for
-// places, 32 px for sections; group headings are disclosure buttons.
+// hide the phone-only ones (the You card, Inbox, Log out, the group headings the place rows replace); group headings are
+// disclosure buttons.
+//
+// Two tiers, so ~60 rows read as a few sections (owner, 2026-10-16 - "bloated, sections not differentiated"):
+// - the places (Home, Puzzles, Community, Profile) are the column's headings: 36 px, icon, semibold; their pages hang
+//   under them as a tree - indented to the place's label, a guide line, no icon of their own, 30 px;
+// - the other groups (Your roles, Your puzzles, Add & track, Account, Help & learn, About) are sections under a hairline:
+//   small caps heading under one hairline, rows with their icon. Most start folded (assets/head/nav_layout.js); the group holding the
+//   current page always shows.
+// A sidebar link opens a page, so no chevrons; descriptions (and the membership line) stay for screen readers only -
+// the phone panel shows them. Text one step smaller than the page's.
+
+$nav-dock-place-groups: puzzles, community, puzzling;
+$nav-dock-section-groups: roles, library, add, account, help, about;
 
 @mixin nav-dock-menu {
     padding: .5rem .5rem 1.5rem;
-    font-size: .875rem;
+    font-size: .8125rem;
     scrollbar-width: thin;
 
     .menu-group {
@@ -126,8 +138,8 @@ $nav-collapsible-groups: roles, puzzling, library, add, account, help, about;
         grid-area: 1 / 1;
         display: flex;
         align-items: center;
-        min-height: 32px;
-        margin: .75rem 0 0;
+        min-height: 30px;
+        margin: .25rem 0 0;
         padding: 0 2.25rem 0 .5rem;
         font-size: .6875rem;
         line-height: 1.2;
@@ -142,11 +154,11 @@ $nav-collapsible-groups: roles, puzzling, library, add, account, help, about;
         position: relative;
         display: block;
         width: 100%;
-        min-height: 32px;
-        margin: .75rem 0 0;
+        min-height: 30px;
+        margin: .25rem 0 0;
         padding: 0;
         border: 0;
-        border-radius: .5rem;
+        border-radius: .375rem;
         color: var(--nav-label, #5f6b80);
         background: transparent;
         cursor: pointer;
@@ -159,16 +171,16 @@ $nav-collapsible-groups: roles, puzzling, library, add, account, help, about;
             position: absolute;
             top: 50%;
             right: .875rem;
-            width: .4375rem;
-            height: .4375rem;
-            margin-top: -.3125rem;
-            border-right: 2px solid currentColor;
-            border-bottom: 2px solid currentColor;
+            width: .375rem;
+            height: .375rem;
+            margin-top: -.28125rem;
+            border-right: 1.5px solid currentColor;
+            border-bottom: 1.5px solid currentColor;
             transform: rotate(45deg);
         }
 
         &[aria-expanded="false"]::after {
-            margin-top: -.21875rem;
+            margin-top: -.1875rem;
             transform: rotate(-45deg);
         }
 
@@ -182,51 +194,102 @@ $nav-collapsible-groups: roles, puzzling, library, add, account, help, about;
         }
     }
 
+    // The group holding the current page always shows (the fold rule leaves it out): nothing to fold there
+    .menu-group:has([aria-current="page"]) > .menu-disclosure {
+        display: none;
+    }
+
     // A group the column heads with its place row (Your puzzling: "Profile"): the button sits at that row's end
     .menu-group--by-place .menu-disclosure {
         grid-area: 2 / 1;
         z-index: 1;
         justify-self: end;
         align-self: start;
-        width: 40px;
-        min-height: 40px;
+        width: 36px;
+        min-height: 36px;
         margin: 0;
     }
 
     .menu-group--by-place .mr--place {
-        padding-right: 44px;
+        padding-right: 40px;
     }
 
-    // Rows: 32 px sections, 40 px places
+    // Rows: 30 px pages, 36 px places
     .mr {
         gap: .625rem;
-        min-height: 32px;
+        min-height: 30px;
         padding: .25rem .5rem;
+        border-radius: .375rem;
         font-size: inherit;
 
         > .bi {
-            @include menu-row-icon(1.25rem, 1.0625rem);
+            @include menu-row-icon(1.25rem, 1rem);
         }
 
         &::after {
-            width: .375rem;
-            height: .375rem;
-            opacity: .35;
+            display: none;
         }
     }
 
     .mr--place {
-        min-height: 40px;
-        font-weight: 500;
+        min-height: 36px;
+        font-size: .875rem;
+        font-weight: 600;
+        color: var(--nav-ink-strong, #373f50);
 
         > .bi {
-            font-size: 1.1875rem;
+            font-size: 1.125rem;
+            color: var(--nav-ink-strong, #373f50);
+        }
+    }
+
+    // The places' pages: a tree under the place - label under the place's label, a guide line under its icon
+    @each $group in $nav-dock-place-groups {
+        [data-menu-group="#{$group}"] > ul > li:not(.menu-only-dock) {
+            position: relative;
+            padding-left: 1.375rem;
+
+            &::before {
+                content: "";
+                position: absolute;
+                top: 0;
+                bottom: 0;
+                left: 1.125rem;
+                border-left: 1px solid var(--nav-hairline, rgba(43, 52, 69, .1));
+            }
+
+            &:has(> [aria-current="page"])::before {
+                border-left: 2px solid var(--nav-active-ink, #c8323a);
+            }
+
+            > .mr {
+                padding-left: .5rem;
+
+                > .bi {
+                    display: none;
+                }
+            }
         }
 
-        // A place is not a page among others: no chevron (the rail's places have none either)
-        &::after {
-            display: none;
+        [data-menu-group="#{$group}"] {
+            margin-top: .25rem;
         }
+    }
+
+    // The other groups: sections under one hairline where they start after the places' trees (Your roles sits between
+    // Community and Profile for the few who have one: a hairline on each side of it)
+    @each $group in $nav-dock-section-groups {
+        [data-menu-group="#{$group}"] {
+            margin-top: .125rem;
+        }
+    }
+
+    [data-menu-group="roles"],
+    [data-menu-group="roles"] + [data-menu-group="puzzling"],
+    [data-menu-group="library"] {
+        margin-top: .625rem;
+        padding-top: .375rem;
+        border-top: 1px solid var(--nav-hairline, rgba(43, 52, 69, .1));
     }
 
     // 256 px: a long compound word (de "Empfehlungsprogramm") breaks at a hyphen of the page's language, not mid-letter
@@ -234,23 +297,45 @@ $nav-collapsible-groups: roles, puzzling, library, add, account, help, about;
         hyphens: auto;
     }
 
-    .mr-d {
+    // Descriptions and the membership line: for screen readers only here (the running stopwatch stays in sight)
+    .mr-d:not(.mr-running) {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        margin: -1px;
+        padding: 0;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+    }
+
+    .mr-running {
         font-size: .75rem;
+    }
+
+    .mr-c {
+        font-size: .6875rem;
     }
 
     .mr-legal {
         gap: .625rem;
-        min-height: 32px;
+        min-height: 30px;
         padding: .25rem .5rem;
 
         > .bi {
-            @include menu-row-icon(1.25rem, 1.0625rem);
+            @include menu-row-icon(1.25rem, 1rem);
         }
+    }
+
+    .mr-links {
+        column-gap: .75rem;
+        font-size: .75rem;
     }
 
     .mr-links a,
     .menu-language-list a {
-        min-height: 32px;
+        min-height: 28px;
     }
 
     .menu-language-list {
@@ -280,10 +365,10 @@ $nav-collapsible-groups: roles, puzzling, library, add, account, help, about;
         display: none;
     }
 
-    // Folded groups: their rows are hidden - the place row heading a group stays (critical CSS does the column before
-    // first paint)
+    // Folded groups: their rows are hidden - the place row heading a group stays, the group holding the current page
+    // shows (critical CSS does the column before first paint)
     @each $group in $nav-collapsible-groups {
-        :root[data-nav-collapsed~="#{$group}"] & [data-menu-group="#{$group}"] > ul > li:not(.menu-only-dock) {
+        :root[data-nav-collapsed~="#{$group}"] & [data-menu-group="#{$group}"]:not(:has([aria-current="page"])) > ul > li:not(.menu-only-dock) {
             display: none;
         }
     }

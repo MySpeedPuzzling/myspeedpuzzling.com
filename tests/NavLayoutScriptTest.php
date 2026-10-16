@@ -38,13 +38,15 @@ final class NavLayoutScriptTest extends TestCase
     public function testTheHeadScriptAppliesOnlyValidChoicesBeforePaint(): void
     {
         $layout = ['data-nav-layout' => 'docked'];
+        $defaultFolds = ['data-nav-collapsed' => 'puzzling library add account help about'];
 
         self::assertSame([
-            'nothing' => [],
-            'docked' => $layout,
-            'rail' => ['data-nav-layout' => 'rail'],
-            'junkLayout' => [],
-            'upperCase' => [],
+            // Nothing stored = the column's default folds (owner, 2026-10-16); 'empty' (a stored "") = all unfolded
+            'nothing' => $defaultFolds,
+            'docked' => $layout + $defaultFolds,
+            'rail' => ['data-nav-layout' => 'rail'] + $defaultFolds,
+            'junkLayout' => $defaultFolds,
+            'upperCase' => $defaultFolds,
             'folded' => ['data-nav-collapsed' => 'roles help'],
             'foldedAndRail' => ['data-nav-layout' => 'rail', 'data-nav-collapsed' => 'about'],
             'onlySpaces' => [],

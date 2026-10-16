@@ -35,8 +35,9 @@
     Under html[data-native-app] every reserved chrome size is 0 (plan §3.5 item 7).
     .menu-slot       the docked-column slot of the page's one #site-menu (MENU-01): hidden wherever there is no docked
                      column, shown where there is one - the column itself is #site-menu in it, fixed under the top bar,
-                     256 px, its own scroller. Its groups folded by the player (html[data-nav-collapsed], disclosure
-                     buttons) are hidden before paint; the place row heading a group stays.
+                     256 px, its own scroller. Its folded groups (html[data-nav-collapsed]: the player's disclosure
+                     buttons, else the default folds of assets/head/nav_layout.js) are hidden before paint - not the
+                     one holding the current page; the place row heading a group stays.
                      The rail (NAV-13, R9) is .bottom-nav itself from 1024 px wherever the column is not docked: 88 px,
                      fixed under the top bar - one under it on the z-scale (1029: the bar's search panel and menus
                      overlap the column).
@@ -105,7 +106,7 @@ body{padding-bottom:var(--bottom-nav-height)}
 @media (min-width:1024px) and (min-height:501px),(min-width:1024px) and (pointer:fine){body.no-nav-column{--nav-left:var(--nav-rail-w)}}
 :root[data-native-app],body.no-nav-chrome{--nav-left:0px}
 .menu-slot>.site-menu{position:fixed;top:var(--desk-topbar-h);bottom:0;left:0;z-index:1029;width:var(--nav-col-w);overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;background:var(--nav-bg);border-right:1px solid var(--nav-hairline)}
-:root[data-nav-collapsed~=roles] .menu-slot [data-menu-group=roles]>ul>li:not(.menu-only-dock),:root[data-nav-collapsed~=puzzling] .menu-slot [data-menu-group=puzzling]>ul>li:not(.menu-only-dock),:root[data-nav-collapsed~=library] .menu-slot [data-menu-group=library]>ul>li:not(.menu-only-dock),:root[data-nav-collapsed~=add] .menu-slot [data-menu-group=add]>ul>li:not(.menu-only-dock),:root[data-nav-collapsed~=account] .menu-slot [data-menu-group=account]>ul>li:not(.menu-only-dock),:root[data-nav-collapsed~=help] .menu-slot [data-menu-group=help]>ul>li:not(.menu-only-dock),:root[data-nav-collapsed~=about] .menu-slot [data-menu-group=about]>ul>li:not(.menu-only-dock){display:none}
+:root[data-nav-collapsed~=roles] .menu-slot [data-menu-group=roles]:not(:has([aria-current=page]))>ul>li:not(.menu-only-dock),:root[data-nav-collapsed~=puzzling] .menu-slot [data-menu-group=puzzling]:not(:has([aria-current=page]))>ul>li:not(.menu-only-dock),:root[data-nav-collapsed~=library] .menu-slot [data-menu-group=library]:not(:has([aria-current=page]))>ul>li:not(.menu-only-dock),:root[data-nav-collapsed~=add] .menu-slot [data-menu-group=add]:not(:has([aria-current=page]))>ul>li:not(.menu-only-dock),:root[data-nav-collapsed~=account] .menu-slot [data-menu-group=account]:not(:has([aria-current=page]))>ul>li:not(.menu-only-dock),:root[data-nav-collapsed~=help] .menu-slot [data-menu-group=help]:not(:has([aria-current=page]))>ul>li:not(.menu-only-dock),:root[data-nav-collapsed~=about] .menu-slot [data-menu-group=about]:not(:has([aria-current=page]))>ul>li:not(.menu-only-dock){display:none}
 body>main,body>.site-footer{margin-inline-start:var(--nav-left)}
 @media print{body{--nav-left:0px!important}.bottom-nav,.menu-slot{display:none!important}}
 .nav-sprite,.nav-rail-label{display:none}

@@ -383,3 +383,39 @@ $footer-lg:            62em;
   text-decoration: underline;
   text-decoration-color: rgba($white, .3);
 }
+
+// Where the Menu is docked as the desktop column (the critical CSS's two conditions, NAV-13), it already lists every
+// link of the four columns beside the footer - the footer keeps the brand line, Popular searches, the newsletter and
+// the bottom bar (owner, 2026-10-16). Hidden, not left out: the markup is the same for every width (shared-cacheable),
+// so crawlers still read the links.
+@mixin footer-beside-docked-menu {
+  .footer-columns { display: none; }
+
+  .footer-main {
+    grid-template-columns: minmax(0, 1fr);
+    padding-top: 1.5rem;
+    padding-bottom: 1.5rem;
+  }
+
+  .footer-brand {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .5rem 1.5rem;
+  }
+
+  .footer-tagline,
+  .footer-social { margin: 0; }
+}
+
+@media (min-width: 1280px) and (min-height: 501px), (min-width: 1280px) and (pointer: fine) {
+  :root[data-nav-layout="docked"] body:not(.no-nav-column) > .site-footer {
+    @include footer-beside-docked-menu;
+  }
+}
+
+@media (min-width: 1440px) and (min-height: 501px), (min-width: 1440px) and (pointer: fine) {
+  :root:not([data-nav-layout="rail"]) body:not(.no-nav-column) > .site-footer {
+    @include footer-beside-docked-menu;
+  }
+}

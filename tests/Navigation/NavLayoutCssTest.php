@@ -674,7 +674,8 @@ final class NavLayoutCssTest extends TestCase
         }
 
         self::assertSame(['roles', 'puzzling', 'library', 'add', 'account', 'help', 'about'], $collapsible);
-        preg_match_all('#:root\[data-nav-collapsed~=([a-z_]+)\] \.menu-slot \[data-menu-group=\1\]>ul>li:not\(\.menu-only-dock\)#', $css, $folded);
+        // A folded group holding the current page stays open (owner, 2026-10-16: groups start folded)
+        preg_match_all('#:root\[data-nav-collapsed~=([a-z_]+)\] \.menu-slot \[data-menu-group=\1\]:not\(:has\(\[aria-current=page\]\)\)>ul>li:not\(\.menu-only-dock\)#', $css, $folded);
         self::assertSame($collapsible, $folded[1]);
         self::assertSame(1, preg_match('~^\$nav-collapsible-groups:\s*([a-z_, ]+);~m', (string) file_get_contents($this->root() . '/assets/styles/_nav-layout.scss'), $scss));
         self::assertSame($collapsible, array_map('trim', explode(',', $scss[1])));

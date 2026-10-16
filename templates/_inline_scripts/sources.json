@@ -11,8 +11,8 @@
     },
     "nav_layout.js": {
         "source": "assets/head/nav_layout.js",
-        "sha256": "bc550c3e0e99f5f6c6f494f79a6a449292d8eedd5c86993c7837a02f4c45c58d",
-        "build_sha256": "5a1d0641d0a1fadb623f70c598462a72523f0734404a5eb44da4ce85604db014"
+        "sha256": "eaccccfb9bf47d17f8b426b15380a8cb14a0fec82d5527c91ceb3d5e85678cab",
+        "build_sha256": "0c19bd8605ee639a2fd879851d0b093fce037b4d0eb1a93439f7f5e1719b38cb"
     },
     "asset_failure.js": {
         "source": "assets/inline/asset_failure.js",

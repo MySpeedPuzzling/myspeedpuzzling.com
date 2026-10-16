@@ -188,19 +188,16 @@
 // The installed app's pull indicator per platform (GEST-19; the controller injected it as a <style> before)
 @import "pull-to-refresh";
 
-// Text grows one step on tablets and one more on desktops - there is the room, and people sit further from the screen
-// (user feedback: desktop needed 133 % zoom). Percentages, never px, so a visitor's own browser text size still applies.
-// Everything sized in rem follows; images, avatars and layout widths (px) stay. Mirrored in the critical CSS
-// of base.html.twig, so the first paint has the same size.
+// Text grows one step from tablets up - there is the room, and people sit further from the screen (user feedback:
+// desktop needed 133 % zoom). Desktops had a second step (18 px) until the navigation redesign: with the docked Menu
+// column it read too big (owner, 2026-10-16), so they share the tablets' 17 px. Percentages, never px, so a visitor's
+// own browser text size still applies. Everything sized in rem follows; images, avatars and layout widths (px) stay.
+// Mirrored in the critical CSS of base.html.twig, so the first paint has the same size.
 html {
     font-size: 100%;
 
     @media (min-width: 768px) {
         font-size: 106.25%;
-    }
-
-    @media (min-width: 1200px) {
-        font-size: 112.5%;
     }
 }
 

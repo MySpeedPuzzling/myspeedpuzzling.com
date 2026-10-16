@@ -11,7 +11,7 @@ Its link columns were rebuilt by the navigation redesign (FOOT-01, `docs/feature
 - **The "New" badges stay** next to their links.
 - **Phones show the brand block after the link columns.** It is after them in the markup; from `lg` up, CSS grid moves it to the left column.
 - **Players get the same columns as guests.** Option C, a slim strip for players, was not chosen.
-- **Beside the docked desktop Menu the link columns are hidden** (Jan, 2026-10-16, navigation redesign): the column next to the page lists every one of their links. The brand line, Popular searches, the newsletter band and the bottom bar stay; the markup is the same for every width.
+- **Beside the docked desktop Menu and on phones the link columns are hidden** (Jan, 2026-10-16, navigation redesign): the Menu lists every one of their links - next to the page, or one tap away under ☰ on phones (pages without the bars keep them). The brand line, Popular searches, the newsletter band and the bottom bar stay; the markup is the same for every width.
 
 ## Structure
 

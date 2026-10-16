@@ -1,6 +1,6 @@
 // The Menu (docs/features/navigation README §4.12 / D21, MENU-01; templates/navigation/_menu*.html.twig): the page's
-// one #site-menu. Rows: icon · label (+ a one-line description) · count or status · chevron, ≥ 44 px on phones, 15 px
-// text (owner, 2026-10-16: 48 px rows with 16 px text read too big); labels
+// one #site-menu. Rows: icon · label (+ a one-line description) · count or status · chevron, ≥ 44 px on phones, 14 px
+// text (owner, 2026-10-16: 48 px rows with 16 px text read too big, 15 px still did); labels
 // wrap, never truncate (README §4.12, checked at 320 px in 6 locales). Colours from the README §5 tokens.
 //
 // Surfaces: the slot (`.menu-slot`, shown by critical CSS only where the Menu is docked as the desktop column, NAV-13),
@@ -19,7 +19,7 @@
 
 .site-menu {
     color: var(--nav-ink, #4b566b);
-    font-size: .9375rem;
+    font-size: .875rem;
 
     .menu-only-dock,
     .menu-disclosure {

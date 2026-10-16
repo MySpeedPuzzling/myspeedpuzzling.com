@@ -302,6 +302,17 @@ $footer-lg:            62em;
   font-size: $font-size-ms;
 }
 
+// The room body keeps for the phone tab bar (padding-bottom: --bottom-nav-height) is the footer bar's colour, not a white
+// strip: the bar sits over it, and where it steps aside (the keyboard) the page still ends dark. 0 wherever there is no
+// tab bar.
+.site-footer {
+  margin-bottom: calc(-1 * var(--bottom-nav-height, 0px));
+}
+
+.footer-bar {
+  padding-bottom: var(--bottom-nav-height, 0px);
+}
+
 .footer-bar-inner {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -384,10 +395,11 @@ $footer-lg:            62em;
   text-decoration-color: rgba($white, .3);
 }
 
-// Where the Menu is docked as the desktop column (the critical CSS's two conditions, NAV-13), it already lists every
-// link of the four columns beside the footer - the footer keeps the brand line, Popular searches, the newsletter and
-// the bottom bar (owner, 2026-10-16). Hidden, not left out: the markup is the same for every width (shared-cacheable),
-// so crawlers still read the links.
+// Where the Menu is docked as the desktop column (the critical CSS's two conditions, NAV-13) it already lists every
+// link of the four columns beside the footer, and on phones it is one tap away (☰ in the top bar) - there the footer
+// keeps the brand line, Popular searches, the newsletter and the bottom bar (owner, 2026-10-16). Pages without the bars
+// (body.no-nav-chrome: no ☰) keep the columns. Hidden, not left out: the markup is the same for every width
+// (shared-cacheable), so crawlers still read the links.
 @mixin footer-beside-docked-menu {
   .footer-columns { display: none; }
 
@@ -416,6 +428,12 @@ $footer-lg:            62em;
 
 @media (min-width: 1440px) and (min-height: 501px), (min-width: 1440px) and (pointer: fine) {
   :root:not([data-nav-layout="rail"]) body:not(.no-nav-column) > .site-footer {
+    @include footer-beside-docked-menu;
+  }
+}
+
+@include nav-phone {
+  body:not(.no-nav-chrome) > .site-footer {
     @include footer-beside-docked-menu;
   }
 }

@@ -18,9 +18,16 @@ const PHONE_QUERY = '(max-width: 767.98px), (max-height: 500.98px) and (pointer:
 const STUCK = 'data-topbar-stuck';
 
 /**
+ * Whether the phone top bar hides while the page scrolls down. Off (owner, 2026-10-16): both bars stay on screen all
+ * the time - predictable, and search and Inbox always one tap away. The rules below stay (assets/topbar_scroll.js, its
+ * tests): true brings the hiding back; the shadow once scrolled works either way.
+ */
+export const TOPBAR_HIDES_ON_SCROLL = false;
+
+/**
  * The top bar (templates/navigation/_topbar.html.twig; docs/features/navigation README §4.1, NAV-03, decision 20).
  *
- * Hide on scroll, phones only: a passive scroll listener reads window.scrollY once per frame and sets
+ * Hide on scroll, phones only - switched off by TOPBAR_HIDES_ON_SCROLL (both bars stay): a passive scroll listener reads window.scrollY once per frame and sets
  * <html data-topbar="hidden|shown"> (+ data-topbar-scrolled: the shadow) - the rules are assets/topbar_scroll.js's.
  * CSS does the rest: the sticky bar slides up by its own height (200 ms away, 280 ms back, a fade under reduced
  * motion), critical CSS sets --topbar-h 0 and --topbar-shift the bar's height, and the sub-bars that follow it
@@ -93,6 +100,10 @@ export default class extends Controller {
     }
 
     mayHide() {
+        if (!TOPBAR_HIDES_ON_SCROLL) {
+            return false;
+        }
+
         const active = document.activeElement;
 
         return topbarMayHide(isNativeApp(this.root), {

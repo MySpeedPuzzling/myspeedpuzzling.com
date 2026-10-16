@@ -175,8 +175,8 @@ final class NavInstrumentationMarkupTest extends WebTestCase
             'menu/logout/logout',
         ], PlayerFixture::PLAYER_PRIVATE];
         // The Menu shell of the phone panel (MENU-02b): its header - the Menu itself is moved in when it opens
-        yield 'menu shell (guest)' => ['/en/faq', [], '#menu-layer', ['menu/none/close', 'menu/none/logo']];
-        yield 'menu shell (player)' => ['/en/hub', [], '#menu-layer', ['menu/none/close', 'menu/none/logo'], PlayerFixture::PLAYER_REGULAR];
+        yield 'menu shell (guest)' => ['/en/faq', [], '#menu-layer', ['menu/none/logo', 'menu/none/close']];
+        yield 'menu shell (player)' => ['/en/hub', [], '#menu-layer', ['menu/none/logo', 'menu/none/close'], PlayerFixture::PLAYER_REGULAR];
         // The phone bottom bar (NAV-01): the five places, for guests and players alike
         $places = ['tabbar/places/home', 'tabbar/places/puzzles', 'tabbar/places/add', 'tabbar/places/community', 'tabbar/places/profile'];
         yield 'bottom bar (guest)' => ['/en/faq', [], '#bottom-nav', $places];

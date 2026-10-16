@@ -465,7 +465,7 @@ $nav-dock-label-x: $nav-dock-pad + $nav-dock-icon + $nav-dock-gap;
 
 // ---- The overlay (768-1279 px, and a link to `menu` in the rail state) -------------------------------------------------
 // The shell <dialog id="menu-layer"> opened with showModal() as .menu-layer--overlay: a sheet from the left,
-// min(320 px, 85vw), its own 64 px header (× · logo), a scrim; slides in and out in 200 ms, none with reduced motion.
+// min(320 px, 85vw), its own 64 px header (× · logo, × first by CSS order), a scrim; slides in and out in 200 ms, none with reduced motion.
 
 .menu-layer.menu-layer--overlay {
     top: 0;
@@ -501,6 +501,11 @@ $nav-dock-label-x: $nav-dock-pad + $nav-dock-icon + $nav-dock-gap;
         min-height: 0;
         padding: 0 12px;
         gap: .5rem;
+    }
+
+    // × where the top bar's ☰ that opened the sheet is, then the logo - like the bar's ☰ · logo
+    .menu-layer-close {
+        order: -1;
     }
 
     // "Menu" still names the dialog (aria-labelledby) - the header shows × and the logo, like the top bar's ☰ and logo

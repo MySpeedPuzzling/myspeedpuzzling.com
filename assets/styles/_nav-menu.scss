@@ -1,5 +1,6 @@
 // The Menu (docs/features/navigation README §4.12 / D21, MENU-01; templates/navigation/_menu*.html.twig): the page's
-// one #site-menu. Rows: icon · label (+ a one-line description) · count or status · chevron, ≥ 48 px on phones; labels
+// one #site-menu. Rows: icon · label (+ a one-line description) · count or status · chevron, ≥ 44 px on phones, 15 px
+// text (owner, 2026-10-16: 48 px rows with 16 px text read too big); labels
 // wrap, never truncate (README §4.12, checked at 320 px in 6 locales). Colours from the README §5 tokens.
 //
 // Surfaces: the slot (`.menu-slot`, shown by critical CSS only where the Menu is docked as the desktop column, NAV-13),
@@ -18,6 +19,7 @@
 
 .site-menu {
     color: var(--nav-ink, #4b566b);
+    font-size: .9375rem;
 
     .menu-only-dock,
     .menu-disclosure {
@@ -76,8 +78,8 @@
     display: flex;
     align-items: center;
     gap: .75rem;
-    min-height: 48px;
-    padding: .375rem .5rem;
+    min-height: 44px;
+    padding: .25rem .5rem;
     border-radius: .5rem;
     color: var(--nav-ink, #4b566b);
     font-weight: 400;
@@ -87,7 +89,7 @@
     -webkit-tap-highlight-color: transparent;
 
     > .bi {
-        @include menu-row-icon(1.5rem, 1.25rem);
+        @include menu-row-icon(1.375rem, 1.125rem);
         color: var(--nav-label, #5f6b80);
     }
 
@@ -95,11 +97,11 @@
     &::after {
         content: "";
         flex: 0 0 auto;
-        width: .4375rem;
-        height: .4375rem;
+        width: .375rem;
+        height: .375rem;
         margin: 0 .25rem 0 .125rem;
-        border-top: 2px solid currentColor;
-        border-right: 2px solid currentColor;
+        border-top: 1.5px solid currentColor;
+        border-right: 1.5px solid currentColor;
         opacity: .45;
         transform: rotate(45deg);
     }
@@ -141,7 +143,7 @@
 .mr-d {
     display: block;
     margin-top: .0625rem;
-    font-size: .8125rem;
+    font-size: .75rem;
     font-weight: 400;
     line-height: 1.25;
     color: var(--nav-label, #5f6b80);
@@ -360,7 +362,7 @@
     flex-wrap: wrap;
     gap: .25rem;
     margin: 0;
-    padding: 0 .5rem .5rem 2.75rem;
+    padding: 0 .5rem .5rem 2.625rem;
     list-style: none;
 
     a {
@@ -384,11 +386,11 @@
     display: flex;
     align-items: center;
     gap: .75rem;
-    min-height: 48px;
-    padding: .375rem .5rem;
+    min-height: 44px;
+    padding: .25rem .5rem;
 
     > .bi {
-        @include menu-row-icon(1.5rem, 1.25rem);
+        @include menu-row-icon(1.375rem, 1.125rem);
         color: var(--nav-label, #5f6b80);
     }
 }
@@ -497,14 +499,15 @@
     overflow: hidden;
 }
 
-// Sticky header: × · "Menu" · logo; the search field sticks right under it at the top of the body (MENU-03)
+// Sticky header: logo · "Menu" · × (× where the phone ☰ is); the search field sticks right under it at the top of the
+// body (MENU-03)
 .menu-layer-header {
     flex: 0 0 auto;
     display: flex;
     align-items: center;
     gap: .25rem;
     min-height: 56px;
-    padding: 4px 8px 4px 4px;
+    padding: 4px 4px 4px 8px;
     padding-top: calc(4px + env(safe-area-inset-top, 0px));
     border-bottom: 1px solid var(--nav-hairline, rgba(43, 52, 69, .1));
     background: var(--nav-bg, #fff);

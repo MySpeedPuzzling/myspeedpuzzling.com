@@ -681,8 +681,11 @@ answers 404 again). An explicit slug change (`PATCH`) writes no redirect.
 | `kind` | `association`, `club`, `organizer` (runs events and competitions as its main activity), `shop`, `venue`, `community`, `other` - or `null` |
 | `maintainerIds` | The team besides its creator, at most 10 - a list replaces it, `[]` empties it, left out or `null` keeps it; an unknown player id is a `404` |
 | `draft` | See Drafts |
+| `logoFromCompetitionId`, `logoFromSeriesId` | The organization shows the logo that event (or edition) or series already has - its stored file is shared, nothing is copied (logos are never deleted when replaced, like an organization made from a series shares the series' logo). An event without a logo or an unknown id is a `400` |
+| `logoBase64` | The image itself, base64 (a `data:image/...;base64,` prefix is allowed): JPEG, PNG, GIF or WebP, at most 5 MB - the web form's rule; stored like the form's upload. Download a logo from a website yourself and send it here - the server never fetches a URL |
 
-The logo is uploaded in the UI. The organization answer: `organizationId`, `name`, `shortName`, `slug`, `logo`,
+One logo field per request (two are a `400`); left out, the logo stays. There is no way to remove a logo here. The
+organization answer: `organizationId`, `name`, `shortName`, `slug`, `logo`,
 `about`, `website`, `socialLinks`, `countryCode`, `region`, `kind`, `status`, `draft`, `approvedAt`,
 `approvedByPlayerId`, `rejectedAt`, `rejectionReason`, `publiclyVisible`, `createdAt`, `addedByPlayerId` (its creator),
 `addedByPlayerName`, `seriesCount`, `eventsCount`, `maintainers` (`playerId`, `name`, `code`), `series` (the series

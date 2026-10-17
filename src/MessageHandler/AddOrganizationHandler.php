@@ -77,6 +77,8 @@ readonly final class AddOrganizationHandler
             if (is_resource($stream)) {
                 fclose($stream);
             }
+        } elseif ($message->storedLogo !== null) {
+            $logoPath = $message->storedLogo;
         }
 
         $organization = new Organization(

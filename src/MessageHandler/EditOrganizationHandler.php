@@ -76,6 +76,8 @@ readonly final class EditOrganizationHandler
             if (is_resource($stream)) {
                 fclose($stream);
             }
+        } elseif ($message->storedLogo !== null) {
+            $logoPath = $message->storedLogo;
         }
 
         $organization->edit(

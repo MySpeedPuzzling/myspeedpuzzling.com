@@ -36,6 +36,8 @@ readonly final class AddOrganization
         public bool $isDraft = false,
         // Approved by its creator at once, no admin e-mail - the internal API (its reviewer is an admin)
         public bool $approve = false,
+        // A logo already in the storage (an event's or a series' - the internal API's logoFrom…), used when no file is uploaded
+        public null|string $storedLogo = null,
     ) {
     }
 }

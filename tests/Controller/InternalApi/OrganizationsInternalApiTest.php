@@ -403,6 +403,67 @@ final class OrganizationsInternalApiTest extends WebTestCase
         self::assertResponseStatusCodeSame(400);
     }
 
+    public function testTheLogoComesFromAnEventOrASeries(): void
+    {
+        $browser = self::createClient();
+        $database = self::getContainer()->get(Connection::class);
+        $database->executeStatement("UPDATE competition SET logo = 'logo/test-event-logo.png' WHERE id = :id", ['id' => CompetitionFixture::COMPETITION_WJPC_2024]);
+        $database->executeStatement("UPDATE competition_series SET logo = 'logo/test-series-logo.png' WHERE id = :id", ['id' => OrganizationFixture::SERIES_LANTERN_NIGHTS]);
+        $uri = '/internal-api/organizations/' . OrganizationFixture::ORGANIZATION_RIVERBEND;
+
+        // The stored path is shared - nothing is copied
+        $answer = self::callInternalApi($browser, 'PATCH', $uri, ['logoFromCompetitionId' => CompetitionFixture::COMPETITION_WJPC_2024]);
+        self::assertResponseIsSuccessful();
+        self::assertSame('logo/test-event-logo.png', $answer['logo']);
+        // Nothing else changed
+        self::assertSame('RJA', $answer['shortName']);
+
+        $answer = self::callInternalApi($browser, 'PATCH', $uri, ['logoFromSeriesId' => OrganizationFixture::SERIES_LANTERN_NIGHTS]);
+        self::assertSame('logo/test-series-logo.png', $answer['logo']);
+
+        $created = self::callInternalApi($browser, 'POST', '/internal-api/organizations', [
+            'name' => 'Logo From Event Club',
+            'logoFromCompetitionId' => CompetitionFixture::COMPETITION_WJPC_2024,
+        ]);
+        self::assertResponseStatusCodeSame(201);
+        self::assertSame('logo/test-event-logo.png', $created['logo']);
+
+        // An event without a logo, an unknown one, or two sources at once: refused, nothing changes
+        foreach (
+            [
+            ['logoFromCompetitionId' => CompetitionFixture::COMPETITION_CZECH_NATIONALS_2024],
+            ['logoFromCompetitionId' => '018d0004-0000-0000-0000-00000000ffff'],
+            ['logoFromCompetitionId' => CompetitionFixture::COMPETITION_WJPC_2024, 'logoFromSeriesId' => OrganizationFixture::SERIES_LANTERN_NIGHTS],
+            ] as $body
+        ) {
+            $refused = self::callInternalApi($browser, 'PATCH', $uri, $body);
+            self::assertResponseStatusCodeSame(400);
+            self::assertIsArray($refused['errors']);
+        }
+
+        self::assertSame('logo/test-series-logo.png', self::callInternalApi($browser, 'GET', $uri)['logo']);
+    }
+
+    public function testTheLogoComesAsBase64(): void
+    {
+        $browser = self::createClient();
+        $uri = '/internal-api/organizations/' . OrganizationFixture::ORGANIZATION_RIVERBEND;
+        // A 1x1 PNG
+        $png = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+
+        $answer = self::callInternalApi($browser, 'PATCH', $uri, ['logoBase64' => 'data:image/png;base64,' . $png]);
+        self::assertResponseIsSuccessful();
+        self::assertIsString($answer['logo']);
+        self::assertMatchesRegularExpression('#^organizations/' . OrganizationFixture::ORGANIZATION_RIVERBEND . '-\d+\.png$#', $answer['logo']);
+
+        foreach (['not base64 at all!', base64_encode('plain text, not an image')] as $logo) {
+            $refused = self::callInternalApi($browser, 'PATCH', $uri, ['logoBase64' => $logo]);
+            self::assertResponseStatusCodeSame(400);
+            self::assertIsArray($refused['errors']);
+            self::assertArrayHasKey('logoBase64', $refused['errors']);
+        }
+    }
+
     private static function recordAuditLog(): TestHandler
     {
         $auditLog = new TestHandler();

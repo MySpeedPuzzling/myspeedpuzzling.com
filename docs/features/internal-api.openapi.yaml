@@ -1136,7 +1136,8 @@ paths:
         Like "Add organization", created by the reviewer player and **approved at
         once** (an admin creates it; no e-mail). `"draft": true` keeps it a draft (its
         page answers 404 to everyone but its team). Validated by the web form's rules
-        (`OrganizationFormData`). The logo is uploaded in the UI.
+        (`OrganizationFormData`). The logo comes from an event or a series
+        (`logoFromCompetitionId` / `logoFromSeriesId`) or as `logoBase64`.
 
         Requires `INTERNAL_API_REVIEWER_PLAYER_ID` to be configured.
       requestBody:
@@ -2218,6 +2219,17 @@ components:
           items:
             type: string
             format: uuid
+        logoFromCompetitionId:
+          type: string
+          format: uuid
+          description: The organization shows the logo this event or edition has (its stored file is shared, nothing is copied). An event without a logo or an unknown id is a 400. Only one of the three logo fields per request; left out, the logo stays.
+        logoFromSeriesId:
+          type: string
+          format: uuid
+          description: As `logoFromCompetitionId`, the logo of a series.
+        logoBase64:
+          type: string
+          description: The image itself, base64-encoded (a `data:image/...;base64,` prefix is allowed) - JPEG, PNG, GIF or WebP, at most 5 MB, the web form's rule. Stored like an upload in the UI (`organizations/{id}-{timestamp}.{ext}`).
 
     Organization:
       type: object

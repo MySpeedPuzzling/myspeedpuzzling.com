@@ -27,6 +27,8 @@ readonly final class EditOrganization
         public array $maintainerIds,
         // An explicitly chosen slug (validated, unique among organizations) - null keeps the slug, also on a rename
         public null|string $slug = null,
+        // A logo already in the storage (an event's or a series' - the internal API's logoFrom…), used when no file is uploaded
+        public null|string $storedLogo = null,
     ) {
     }
 }

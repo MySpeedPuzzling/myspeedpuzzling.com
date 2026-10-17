@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Message\PublishOrganization;
 use SpeedPuzzling\Web\Message\UnpublishOrganization;
 use SpeedPuzzling\Web\Query\GetAdminOrganizations;
 use SpeedPuzzling\Web\Repository\OrganizationRepository;
+use SpeedPuzzling\Web\Services\InternalApi\OrganizationLogoInput;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -23,7 +24,8 @@ use Symfony\Component\Validator\Validator\ValidatorInterface;
  * (`[]` / null removes every link), `maintainerIds` the whole team besides the creator (left out or null keeps it).
  * **A rename keeps the slug**; only an explicit `slug` changes it (unique among organizations, else 409; no redirect).
  * `draft` publishes (false) or takes it back to draft (true - always allowed: a draft organization hides only its
- * own page, directory entry and "Organized by" links).
+ * own page, directory entry and "Organized by" links). The logo comes from an event or a series (`logoFromCompetitionId` /
+ * `logoFromSeriesId`) or as `logoBase64` (OrganizationLogoInput); left out, the logo stays.
  */
 final class UpdateOrganizationController extends AbstractController
 {
@@ -32,6 +34,7 @@ final class UpdateOrganizationController extends AbstractController
         private readonly ValidatorInterface $validator,
         private readonly OrganizationRepository $organizationRepository,
         private readonly GetAdminOrganizations $getAdminOrganizations,
+        private readonly OrganizationLogoInput $organizationLogoInput,
     ) {
     }
 
@@ -43,7 +46,7 @@ final class UpdateOrganizationController extends AbstractController
     public function __invoke(string $organizationId, Request $request): JsonResponse
     {
         $organization = $this->organizationRepository->get($organizationId);
-        $input = InternalApiInput::fromRequest($request, [...OrganizationInput::FIELDS, 'draft']);
+        $input = InternalApiInput::fromRequest($request, [...OrganizationInput::FIELDS, ...OrganizationLogoInput::FIELDS, 'draft']);
 
         $data = OrganizationFormData::fromOrganization($organization);
         ['slug' => $slug, 'maintainerIds' => $maintainerIds] = OrganizationInput::applyTo($input, $data, $organization->addedByPlayer?->id->toString());
@@ -53,29 +56,37 @@ final class UpdateOrganizationController extends AbstractController
         }
 
         $draft = $input->bool('draft');
-        $editsFields = array_any(OrganizationInput::FIELDS, static fn (string $field): bool => $input->has($field));
+        $editsFields = array_any([...OrganizationInput::FIELDS, ...OrganizationLogoInput::FIELDS], static fn (string $field): bool => $input->has($field));
+        ['storedLogo' => $storedLogo, 'uploadedLogo' => $uploadedLogo] = $this->organizationLogoInput->read($input);
 
         if ($editsFields) {
             $input->addViolations($this->validator->validate($data));
         }
 
-        $input->throwIfInvalid();
+        try {
+            $input->throwIfInvalid();
 
-        if ($editsFields) {
-            $this->messageBus->dispatch(new EditOrganization(
-                organizationId: $organization->id->toString(),
-                name: $data->name ?? $organization->name,
-                shortName: $data->shortName,
-                about: $data->about,
-                website: $data->website,
-                socialLinks: $data->socialLinks,
-                countryCode: $data->countryCode,
-                region: $data->region,
-                kind: $data->kind,
-                logo: null,
-                maintainerIds: $maintainerIds ?? $data->maintainers,
-                slug: $slug !== $organization->slug ? $slug : null,
-            ));
+            if ($editsFields) {
+                $this->messageBus->dispatch(new EditOrganization(
+                    organizationId: $organization->id->toString(),
+                    name: $data->name ?? $organization->name,
+                    shortName: $data->shortName,
+                    about: $data->about,
+                    website: $data->website,
+                    socialLinks: $data->socialLinks,
+                    countryCode: $data->countryCode,
+                    region: $data->region,
+                    kind: $data->kind,
+                    logo: $uploadedLogo,
+                    maintainerIds: $maintainerIds ?? $data->maintainers,
+                    slug: $slug !== $organization->slug ? $slug : null,
+                    storedLogo: $storedLogo,
+                ));
+            }
+        } finally {
+            if ($uploadedLogo !== null && is_file($uploadedLogo->getPathname())) {
+                unlink($uploadedLogo->getPathname());
+            }
         }
 
         if ($draft !== null && $draft !== $organization->isDraft) {

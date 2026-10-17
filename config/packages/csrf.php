@@ -31,6 +31,8 @@ return App::config([
                 // The newsletter signup form sits in the footer of EVERY anonymous
                 // page - a session-backed token would kill shared caching site-wide
                 'newsletter-subscribe',
+                // "Yes, subscribe me" on the page the confirmation e-mail's link opens, always anonymous
+                'newsletter-confirm',
                 // Unsubscribe landing page is reached from e-mail links, always
                 // anonymous
                 'newsletter-unsubscribe',

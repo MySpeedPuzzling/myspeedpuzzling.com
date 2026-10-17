@@ -330,6 +330,11 @@ return static function (ContainerConfigurator $configurator): void {
         ->factory([HttpClient::class, 'create'])
         ->args([['timeout' => 5, 'max_redirects' => 0]]);
 
+    // Cloudflare's siteverify for the Turnstile check (tests swap it, config/services_test.php)
+    $services->set('turnstile.http_client', HttpClientInterface::class)
+        ->factory([HttpClient::class, 'create'])
+        ->args([['max_redirects' => 0]]);
+
     $services->set(SnsMessageVerifier::class)
         ->args([
             '$httpClient' => service('ses_events.http_client'),

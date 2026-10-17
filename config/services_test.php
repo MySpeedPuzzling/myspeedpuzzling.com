@@ -98,6 +98,10 @@ return static function (ContainerConfigurator $configurator): void {
     $services->set('ses_events.http_client', \Symfony\Component\HttpClient\MockHttpClient::class)
         ->factory([\SpeedPuzzling\Web\Tests\TestDouble\SnsHttpMock::class, 'client']);
 
+    // Cloudflare's siteverify for the Turnstile check never leaves the process (static, like the SNS mock)
+    $services->set('turnstile.http_client', \Symfony\Component\HttpClient\MockHttpClient::class)
+        ->factory([\SpeedPuzzling\Web\Tests\TestDouble\TurnstileHttpMock::class, 'client']);
+
     // S3 failover: the real FailoverS3Adapter stays wired (see
     // config/packages/test/oneup_flysystem.php), only the raw S3 adapter and
     // the local spool are swapped for in-memory doubles. setFailing(true) on

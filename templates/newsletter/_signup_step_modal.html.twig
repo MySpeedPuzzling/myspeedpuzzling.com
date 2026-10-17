@@ -1,0 +1,11 @@
+<turbo-frame id="modal-frame">
+    <div data-modal-size="">
+        <div class="modal-header">
+            <h5 class="modal-title">{{ 'newsletter.signup.title'|trans }}</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ 'forms.close'|trans }}"></button>
+        </div>
+        <div class="modal-body">
+            {% include 'newsletter/_signup_step_form.html.twig' with {in_modal: true} %}
+        </div>
+    </div>
+</turbo-frame>

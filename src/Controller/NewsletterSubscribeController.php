@@ -4,32 +4,36 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller;
 
-use SpeedPuzzling\Web\Message\SubscribeToNewsletter;
+use Psr\Log\LoggerInterface;
+use SpeedPuzzling\Web\Services\NewsletterSignupTicket;
+use SpeedPuzzling\Web\Services\Turnstile\TurnstileVerifier;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\RateLimiter\RateLimiterFactoryInterface;
 use Symfony\Component\Routing\Attribute\Route;
-use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Validator\Constraints\Email;
 use Symfony\Component\Validator\Constraints\NotBlank;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
-use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
- * Public newsletter signup from the site footer (guests, double opt-in).
+ * Public newsletter signup from the site footer (guests, double opt-in), step 1 of 2: sends nothing. It answers
+ * the "Send the confirmation e-mail to …?" step - a modal (the footer form targets `modal-frame`), a page without
+ * JavaScript - and only that step's form (NewsletterSubscribeSendController) mails anybody.
+ *
+ * Bots typed other people's addresses into the footer form (docs/features/newsletter/README.md "Bots"): every
+ * confirmation to an address that never asked for it is a bounce or a spam complaint against our sending
+ * reputation. A filled honeypot is answered like a success, so a bot learns nothing.
  */
 final class NewsletterSubscribeController extends AbstractController
 {
-    private const string CSRF_TOKEN_ID = 'newsletter-subscribe';
+    public const string CSRF_TOKEN_ID = 'newsletter-subscribe';
+    public const string HONEYPOT_FIELD = 'homepage';
 
     public function __construct(
-        private readonly MessageBusInterface $messageBus,
         private readonly ValidatorInterface $validator,
-        private readonly TranslatorInterface $translator,
-        private readonly RateLimiterFactoryInterface $newsletterSubscribeEmailLimiter,
-        private readonly RateLimiterFactoryInterface $newsletterSubscribeIpLimiter,
+        private readonly NewsletterSignupTicket $signupTicket,
+        private readonly TurnstileVerifier $turnstile,
+        private readonly LoggerInterface $logger,
     ) {
     }
 
@@ -47,48 +51,28 @@ final class NewsletterSubscribeController extends AbstractController
     )]
     public function __invoke(Request $request): Response
     {
-        if (!$this->isCsrfTokenValid(self::CSRF_TOKEN_ID, (string) $request->request->get('_token'))) {
-            $this->addFlash('warning', $this->translator->trans('newsletter.flash.try_again'));
+        if ((string) $request->request->get(self::HONEYPOT_FIELD) !== '') {
+            $this->logger->info('Newsletter signup refused: honeypot filled', ['step' => 'footer']);
 
-            return $this->redirectBack($request);
+            return $this->redirectToRoute('newsletter_check_inbox', status: Response::HTTP_SEE_OTHER);
         }
 
         $email = trim((string) $request->request->get('email'));
+        $error = null;
 
-        $violations = $this->validator->validate($email, [new NotBlank(), new Email()]);
-
-        if (count($violations) > 0) {
-            $this->addFlash('warning', $this->translator->trans('newsletter.flash.invalid_email'));
-
-            return $this->redirectBack($request);
+        if (!$this->isCsrfTokenValid(self::CSRF_TOKEN_ID, (string) $request->request->get('_token'))) {
+            $error = 'newsletter.flash.try_again';
+        } elseif (count($this->validator->validate($email, [new NotBlank(), new Email()])) > 0) {
+            $error = 'newsletter.flash.invalid_email';
         }
 
-        $emailLimit = $this->newsletterSubscribeEmailLimiter->create(mb_strtolower($email))->consume();
-        $ipLimit = $this->newsletterSubscribeIpLimiter->create($request->getClientIp() ?? 'unknown')->consume();
+        $isModal = $request->headers->get('Turbo-Frame') === 'modal-frame';
 
-        if ($emailLimit->isAccepted() === false || $ipLimit->isAccepted() === false) {
-            $this->addFlash('warning', $this->translator->trans('newsletter.flash.too_many_attempts'));
-
-            return $this->redirectBack($request);
-        }
-
-        $this->messageBus->dispatch(new SubscribeToNewsletter(
-            email: $email,
-            locale: $request->getLocale(),
-            ipAddress: $request->getClientIp(),
-        ));
-
-        return $this->redirectToRoute('newsletter_check_inbox');
-    }
-
-    private function redirectBack(Request $request): RedirectResponse
-    {
-        $referer = $request->headers->get('referer');
-
-        if ($referer !== null && str_starts_with($referer, $request->getSchemeAndHttpHost() . '/')) {
-            return $this->redirect($referer);
-        }
-
-        return $this->redirectToRoute('homepage');
+        return $this->render($isModal ? 'newsletter/_signup_step_modal.html.twig' : 'newsletter/signup-step.html.twig', [
+            'email' => $email,
+            'ticket' => $this->signupTicket->issue(),
+            'turnstileSiteKey' => $this->turnstile->isOn() ? $this->turnstile->siteKey() : null,
+            'error' => $error,
+        ]);
     }
 }

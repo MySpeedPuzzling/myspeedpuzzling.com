@@ -53,8 +53,28 @@ Standalone, token-authenticated page at `/{locale}/email-preferences/{token}` �
 
 ## Public signup (footer)
 
-- Guests: e-mail form → `POST newsletter_subscribe` (stateless CSRF `newsletter-subscribe` — the form is on every anonymous page, a session-backed token would kill shared caching; see `config/packages/csrf.php`), rate-limited per address (3/15min) and IP (20/h), → confirmation e-mail (`emails/newsletter_confirmation.html.twig`, transactional transport) → `newsletter_confirm` → confirmed + pushed to Listmonk.
+- Guests, two steps; **only the second one mails anybody**:
+  1. Footer form → `POST newsletter_subscribe` (`NewsletterSubscribeController`, stateless CSRF `newsletter-subscribe` - the form is on every anonymous page, a session-backed token would kill shared caching; see `config/packages/csrf.php`). Sends nothing: answers the "Almost there - send the confirmation e-mail?" step, in the modal (the form targets `modal-frame`), as a page without JavaScript. The address stays editable there (typos).
+  2. The step's form → `POST newsletter_subscribe_send` (`NewsletterSubscribeSendController`, native post): honeypot, the step's ticket, Turnstile, then the limits per address (**2 a day**) and IP (20/h) - consumed only after the checks, so a bot never uses up a real person's attempts - → confirmation e-mail (`emails/newsletter_confirmation.html.twig`, transactional stream) → `check-your-inbox`.
+- The e-mail's link `newsletter_confirm` only **shows** the address and a "Yes, subscribe me" button; the button (`newsletter_confirm_submit`, stateless CSRF `newsletter-confirm`) confirms + pushes to Listmonk and redirects to `newsletter_confirmed` (`…/{token}/done`). Mail security scanners open every link of an incoming e-mail - on GET they confirmed addresses nobody had asked for. Links in confirmation e-mails sent before this change keep working (they now open the button page).
 - Logged-in players see a link to notification settings instead of the form.
+
+### Bots
+
+Bots typed other people's addresses into the footer form ("subscription bombing" - burying a victim's inbox under sign-up mails). Found 2026-10-17 from the first hard bounces on SES (Sentry WEB-DK): all 3 hard and all 9 soft bounces since the move to SES were `newsletter_confirmation`; **68 of 75 guest signups were never confirmed**, from rotating datacenter IPs (at most 5 per IP, so the IP limit never tripped), addresses from old leaked lists (adelphia.net - an ISP gone since 2006 -, roadrunner.com, frontier.com), law firms, a state agency, `formtests.info`; one Gmail address got 6 confirmations in 10 hours and its provider answered "receiving mail too quickly". One bot-entered business address got *confirmed* 6 minutes after the signup - a link scanner, since the link confirmed on GET. Every confirmation to an address that never asked is a bounce or a complaint against the SES reputation of **all** our mail.
+
+What stops them now, in order (`NewsletterSubscribeSendController`):
+
+| Check | Where | A failing request |
+|---|---|---|
+| Honeypot `homepage` (`newsletter/_honeypot.html.twig`, hidden, `tabindex=-1`) | both steps | answered like a success (redirect to check-your-inbox), nothing sent, `info` log |
+| Ticket (`NewsletterSignupTicket`: HMAC-signed time the step was shown) at least **3 s** and at most 1 h old | send | the step again (422) with a fresh ticket |
+| **Cloudflare Turnstile** (`TurnstileVerifier`, action `newsletter`, our hostname, single-use token) | send | the step again (422); siteverify not answering = refused too (fails closed) + `warning` |
+| Limits: per address 2 a day, per IP 20/h | send | the step again (422) |
+
+Turnstile reuses the edge's widget (lily.srv D48 - the bot-blocker's and CrowdSec's challenge pages): `TURNSTILE_SITE_KEY` / `TURNSTILE_SECRET_KEY`, already rendered into the web container's `.env` from Infisical. Either empty = Turnstile off (dev, CI), the other checks still apply. Its script (`turnstile_controller.js`, explicit render) loads **only when the step is shown** - never site-wide; the send button stays disabled until the check passed. Cloudflare's test keys (`.env` comment) pass locally: their answer carries `metadata.result_with_testing_key`, which a real secret never returns, so the action/hostname check is skipped only for them.
+
+Measuring it: `newsletter_subscriber` rows created vs confirmed per day, and `email_audit_log` bounces with `email_type = 'newsletter_confirmation'` (queries in the 2026-10-17 analysis: per-day mails/bounces, repeated addresses, signups per IP).
 
 ## Configuration
 

@@ -5587,6 +5587,22 @@ newsletter:
         register_pitch: "Lust auf mehr als Neuigkeiten? Erstellen Sie ein kostenloses Konto, um Ihre Legezeiten zu erfassen, Ihre Puzzle-Sammlung aufzubauen und sich mit Puzzlern aus aller Welt zu vergleichen."
         cta_register: "Kostenloses Konto erstellen"
         cta_homepage: "MySpeedPuzzling entdecken"
+    signup:
+        title: "Fast geschafft"
+        text: "Wir schicken eine Bestätigungs-E-Mail an diese Adresse. Klicken Sie auf den Link darin und der Newsletter gehört Ihnen."
+        email_label: "Ihre E-Mail-Adresse"
+        send_button: "Bestätigungs-E-Mail senden"
+        cancel_button: "Abbrechen"
+        honeypot_label: "Dieses Feld leer lassen"
+        check_not_loaded: "Die kurze Prüfung, die Bots fernhält, wurde nicht geladen. Bitte erlauben Sie challenges.cloudflare.com in Ihrem Inhaltsblocker oder versuchen Sie es später erneut."
+        needs_javascript: "Bitte aktivieren Sie JavaScript - eine kurze Prüfung hält Bots vom Newsletter fern."
+        error_confirm_again: "Bitte prüfen Sie die Adresse und senden Sie sie noch einmal."
+        error_check_failed: "Die kurze Prüfung hat nicht geklappt. Bitte versuchen Sie es noch einmal."
+        error_check_unavailable: "Die kurze Prüfung antwortet gerade nicht. Bitte versuchen Sie es in ein paar Minuten erneut."
+    confirm_page:
+        headline: "Abo bestätigen"
+        text: "Ein Klick und der MySpeedPuzzling-Newsletter kommt an <strong>%email%</strong>."
+        confirm_button: "Ja, ich möchte ihn abonnieren"
     unsubscribe:
         headline: "Newsletter abbestellen?"
         text: "Damit erhält <strong>%email%</strong> keinen MySpeedPuzzling-Newsletter mehr."

@@ -1,0 +1,7 @@
+{# Bots fill every field they find; people never see this one. Filled = answered like a success, nothing sent
+   (NewsletterSubscribeController::HONEYPOT_FIELD) #}
+<div class="visually-hidden" aria-hidden="true">
+    <label>{{ 'newsletter.signup.honeypot_label'|trans }}
+        <input type="text" name="homepage" value="" tabindex="-1" autocomplete="off">
+    </label>
+</div>

@@ -6139,6 +6139,22 @@ newsletter:
         register_pitch: "Want more than news? Create a free account to track your solving times, build your puzzle collection and compare with puzzlers worldwide."
         cta_register: "Create a free account"
         cta_homepage: "Explore MySpeedPuzzling"
+    signup:
+        title: "Almost there"
+        text: "We'll send a confirmation e-mail to this address. Click the link inside and the newsletter is yours."
+        email_label: "Your e-mail address"
+        send_button: "Send the confirmation e-mail"
+        cancel_button: "Cancel"
+        honeypot_label: "Leave this field empty"
+        check_not_loaded: "The quick check that keeps bots out didn't load. Please allow challenges.cloudflare.com in your content blocker, or try again later."
+        needs_javascript: "Please turn on JavaScript - a quick check keeps bots out of the newsletter."
+        error_confirm_again: "Please check the address and send it once more."
+        error_check_failed: "The quick check didn't go through. Please try once more."
+        error_check_unavailable: "The quick check isn't answering right now. Please try again in a few minutes."
+    confirm_page:
+        headline: "Confirm your subscription"
+        text: "One click and the MySpeedPuzzling newsletter starts coming to <strong>%email%</strong>."
+        confirm_button: "Yes, subscribe me"
     unsubscribe:
         headline: "Unsubscribe from the newsletter?"
         text: "This will stop the MySpeedPuzzling newsletter for <strong>%email%</strong>."

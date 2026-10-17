@@ -1,0 +1,26 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'newsletter.confirm_page.headline'|trans }}{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+    <div class="row gy-3 pb-4">
+        <div class="col-lg-6 col-md-8">
+            <h1 class="h2">{{ 'newsletter.confirm_page.headline'|trans }}</h1>
+
+            <p>{{ 'newsletter.confirm_page.text'|trans({'%email%': email|e})|raw }}</p>
+
+            {# A button, never the e-mail link itself: mail scanners open every link of an incoming e-mail #}
+            <form action="{{ path('newsletter_confirm_submit', {'token': token}) }}" method="post" class="mb-3">
+                <input type="hidden" name="_token" value="{{ csrf_token('newsletter-confirm') }}">
+                <button type="submit" class="btn btn-primary">
+                    {{ 'newsletter.confirm_page.confirm_button'|trans }}
+                </button>
+            </form>
+        </div>
+
+        <div class="col-lg-5 offset-lg-1 col-md-4 text-center d-none d-md-block">
+            <img class="img-fluid" src="{{ asset('img/puzzlie-1.png') }}" alt="" width="1000" height="949">
+        </div>
+    </div>
+{% endblock %}

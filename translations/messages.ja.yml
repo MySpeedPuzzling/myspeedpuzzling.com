@@ -5577,6 +5577,22 @@ newsletter:
         register_pitch: "ニュースだけでは物足りませんか？無料アカウントを作成すると、タイムの記録、パズルコレクションの管理、世界中のパズラーとの比較ができます。"
         cta_register: "無料アカウントを作成"
         cta_homepage: "MySpeedPuzzlingを見てみる"
+    signup:
+        title: "あと少しです"
+        text: "このアドレスに確認メールをお送りします。メール内のリンクをクリックすると、ニュースレターの登録が完了します。"
+        email_label: "メールアドレス"
+        send_button: "確認メールを送信"
+        cancel_button: "キャンセル"
+        honeypot_label: "この欄は空のままにしてください"
+        check_not_loaded: "ボットを防ぐための簡単なチェックを読み込めませんでした。コンテンツブロッカーで challenges.cloudflare.com を許可するか、後でもう一度お試しください。"
+        needs_javascript: "JavaScriptを有効にしてください。ボットを防ぐための簡単なチェックがあります。"
+        error_confirm_again: "アドレスを確認して、もう一度送信してください。"
+        error_check_failed: "簡単なチェックを完了できませんでした。もう一度お試しください。"
+        error_check_unavailable: "簡単なチェックが現在応答していません。数分後にもう一度お試しください。"
+    confirm_page:
+        headline: "登録の確認"
+        text: "ワンクリックで、MySpeedPuzzlingニュースレターが <strong>%email%</strong> に届くようになります。"
+        confirm_button: "はい、登録します"
     unsubscribe:
         headline: "ニュースレターの配信を停止しますか？"
         text: "<strong>%email%</strong>宛てのMySpeedPuzzlingニュースレターの配信を停止します。"

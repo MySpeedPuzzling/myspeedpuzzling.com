@@ -27,6 +27,7 @@ final readonly class SilentFormSubmissionGuard implements EventSubscriberInterfa
      */
     private const array NATIVE_FORM_ROUTES = [
         'confirm_account_deletion' => 'data-turbo="false": the deletion POST must be a full, native navigation',
+        'newsletter_subscribe' => 'the footer form targets modal-frame; a page answers only a native post without JavaScript',
     ];
 
     /**

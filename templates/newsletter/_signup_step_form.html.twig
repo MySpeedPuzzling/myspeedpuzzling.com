@@ -1,0 +1,42 @@
+{# "Send the confirmation e-mail" step of the newsletter signup (NewsletterSubscribeSendController).
+   A native post (data-turbo=false): the answer is a whole page, and a new page renders a new single-use
+   Turnstile widget. The send button stays disabled until the Turnstile check passed. #}
+<form action="{{ path('newsletter_subscribe_send') }}" method="post" data-turbo="false"
+      {% if turnstileSiteKey %}
+          data-controller="turnstile"
+          data-turnstile-site-key-value="{{ turnstileSiteKey }}"
+          data-turnstile-action-value="newsletter"
+          data-turnstile-language-value="{{ app.request.locale }}"
+      {% endif %}>
+    <input type="hidden" name="_token" value="{{ csrf_token('newsletter-subscribe') }}">
+    <input type="hidden" name="ticket" value="{{ ticket }}">
+    {% include 'newsletter/_honeypot.html.twig' %}
+
+    {% if error %}
+        <div class="alert alert-warning" role="alert">{{ error|trans }}</div>
+    {% endif %}
+
+    <p>{{ 'newsletter.signup.text'|trans }}</p>
+
+    <label class="form-label" for="newsletter-signup-email">{{ 'newsletter.signup.email_label'|trans }}</label>
+    <input type="email" class="form-control mb-3" id="newsletter-signup-email" name="email" value="{{ email }}"
+           required autocomplete="email">
+
+    {% if turnstileSiteKey %}
+        {# 65 px = the widget's height, kept free so nothing jumps when it appears #}
+        <div class="mb-3" style="min-height: 65px" data-turnstile-target="widget"></div>
+        <p class="fs-sm text-danger" data-turnstile-target="unavailable" hidden>{{ 'newsletter.signup.check_not_loaded'|trans }}</p>
+        <noscript><p class="fs-sm text-danger">{{ 'newsletter.signup.needs_javascript'|trans }}</p></noscript>
+    {% endif %}
+
+    <div class="d-flex flex-wrap gap-2 justify-content-end">
+        {% if in_modal|default(false) %}
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{{ 'newsletter.signup.cancel_button'|trans }}</button>
+        {% endif %}
+        <button type="submit" class="btn btn-primary" {% if turnstileSiteKey %}data-turnstile-target="submit"{% endif %}>
+            {{ 'newsletter.signup.send_button'|trans }}
+        </button>
+    </div>
+
+    <p class="fs-xs text-muted mt-3 mb-0">{{ 'newsletter.footer.consent'|trans({'%privacyUrl%': path('privacy_policy')})|raw }}</p>
+</form>

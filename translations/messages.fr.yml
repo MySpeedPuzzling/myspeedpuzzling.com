@@ -5681,6 +5681,22 @@ newsletter:
         register_pitch: "Envie de plus que des nouveautés ? Créez un compte gratuit pour suivre vos temps de résolution, constituer votre collection de puzzles et vous comparer aux puzzleurs du monde entier."
         cta_register: "Créer un compte gratuit"
         cta_homepage: "Explorer MySpeedPuzzling"
+    signup:
+        title: "Presque fini"
+        text: "Nous allons envoyer un e-mail de confirmation à cette adresse. Cliquez sur le lien qu'il contient et la newsletter est à vous."
+        email_label: "Votre adresse e-mail"
+        send_button: "Envoyer l'e-mail de confirmation"
+        cancel_button: "Annuler"
+        honeypot_label: "Laissez ce champ vide"
+        check_not_loaded: "La vérification rapide qui tient les robots à l'écart ne s'est pas chargée. Autorisez challenges.cloudflare.com dans votre bloqueur de contenu, ou réessayez plus tard."
+        needs_javascript: "Veuillez activer JavaScript : une vérification rapide tient les robots à l'écart de la newsletter."
+        error_confirm_again: "Vérifiez l'adresse et envoyez-la une nouvelle fois."
+        error_check_failed: "La vérification rapide n'a pas abouti. Veuillez réessayer."
+        error_check_unavailable: "La vérification rapide ne répond pas pour le moment. Réessayez dans quelques minutes."
+    confirm_page:
+        headline: "Confirmez votre abonnement"
+        text: "Un clic et la newsletter MySpeedPuzzling arrivera à <strong>%email%</strong>."
+        confirm_button: "Oui, je m'abonne"
     unsubscribe:
         headline: "Se désabonner de la newsletter ?"
         text: "La newsletter MySpeedPuzzling ne sera plus envoyée à <strong>%email%</strong>."

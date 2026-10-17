@@ -5688,6 +5688,22 @@ newsletter:
         register_pitch: "Chcete víc než novinky? Založte si zdarma účet — měřte si časy skládání, budujte sbírku puzzlí a porovnávejte se s puzzlaři z celého světa."
         cta_register: "Založit účet zdarma"
         cta_homepage: "Prozkoumat MySpeedPuzzling"
+    signup:
+        title: "Už jen krůček"
+        text: "Na tuto adresu pošleme potvrzovací e-mail. Stačí kliknout na odkaz v něm a newsletter je váš."
+        email_label: "Váš e-mail"
+        send_button: "Poslat potvrzovací e-mail"
+        cancel_button: "Zrušit"
+        honeypot_label: "Toto pole nechte prázdné"
+        check_not_loaded: "Rychlá kontrola, která drží roboty venku, se nenačetla. Povolte prosím challenges.cloudflare.com v blokátoru obsahu, nebo to zkuste později."
+        needs_javascript: "Zapněte prosím JavaScript - rychlá kontrola drží roboty mimo newsletter."
+        error_confirm_again: "Zkontrolujte prosím adresu a odešlete ji ještě jednou."
+        error_check_failed: "Rychlá kontrola neprošla. Zkuste to prosím ještě jednou."
+        error_check_unavailable: "Rychlá kontrola teď neodpovídá. Zkuste to prosím za pár minut."
+    confirm_page:
+        headline: "Potvrďte odběr"
+        text: "Jedno kliknutí a newsletter MySpeedPuzzling začne chodit na <strong>%email%</strong>."
+        confirm_button: "Ano, chci odebírat"
     unsubscribe:
         headline: "Odhlásit odběr newsletteru?"
         text: "Tímto přestane chodit newsletter MySpeedPuzzling na adresu <strong>%email%</strong>."

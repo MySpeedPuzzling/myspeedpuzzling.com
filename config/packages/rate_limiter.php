@@ -95,11 +95,13 @@ return App::config([
             ],
             // The public newsletter signup form mails an address the caller picks
             // (double opt-in confirmation) - same hazard class as the sign-in link.
-            // Per address: enough for "it did not arrive, send another", no more.
+            // Per address: enough for "it did not arrive, send another", no more - bots typing
+            // someone's address in sent them 6 confirmations in 10 hours (2026-10-15), and every
+            // one more to a flooded inbox is a soft bounce or a complaint against our sending.
             'newsletter_subscribe_email' => [
                 'policy' => 'sliding_window',
-                'limit' => 3,
-                'interval' => '15 minutes',
+                'limit' => 2,
+                'interval' => '1 day',
             ],
             'newsletter_subscribe_ip' => [
                 'policy' => 'sliding_window',

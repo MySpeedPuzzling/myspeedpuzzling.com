@@ -373,6 +373,9 @@ What a reply to a player promised to build. Each has an MSP Mailer follow-up: te
       picker while typing: keep the server's date order (live, recent past, upcoming) instead of TomSelect's text score,
       and fix the option row that breaks when the highlighted name wraps. Promised to Allison (MSP #270, follow-up
       F115).
+- [ ] Never refuse a new puzzle whose EAN is already in the database (multiscan quick-add, add form, collection mode):
+      show the existing puzzle(s) and ask 'Is it one of these?', and create the new puzzle with the same EAN once the
+      player confirms it is a different one. Promised to Lior (MSP #282, follow-up F124).
 
 ## Participants spreadsheet (`docs/features/competitions-management/participants-spreadsheet.md` §13)
 

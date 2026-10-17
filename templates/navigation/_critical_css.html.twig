@@ -44,6 +44,11 @@
     .bottom-nav      the phone bottom bar's box (NAV-01, README §4.2): fixed, 56 px + the safe area (Chrome 135+ fast
                      path: bottom = inset - max inset, padding = max inset), none on desktop; <body> keeps its height
                      free at the end of the page. Its look and the label steps live in _nav-bars.scss.
+                     iOS browsers: while their toolbar is folded (scrolled), a tap in the strip it frees at the bottom
+                     only brings the toolbar back - the bar's first tap was lost (owner, 2026-10-17). There the bar
+                     sits on the screen's edge and its padding is that strip (100dvh - 100svh: 0 while the toolbar
+                     shows), at least the safe area - its tabs stay where they are with the toolbar shown, above the
+                     strip. Not inside the app, not installed (no toolbar: dvh = svh).
     .nav-sprite      the icon sprite (_icons.html.twig) never takes room.
     .site-header     the top bar (NAV-03, README §4.1): sticky (decision 20), 52 px phones / 64 px desktop, static on
                      phones under 480 px tall; its tools 44 × 44 and 4 px apart; the search field fills the room.
@@ -97,6 +102,7 @@ body.no-nav-chrome,body.no-tab-bar{--bottom-nav-height:0px}
 .global-search-overlay,.site-search-panel,.site-search-close,.site-search-scan{display:none}
 .menu-slot{display:none}
 .bottom-nav{position:fixed;right:0;bottom:calc(env(safe-area-inset-bottom,0px) - var(--safe-bottom-max));left:0;z-index:1030;display:flex;height:calc(var(--tabbar-h) + var(--safe-bottom-max));padding:0 env(safe-area-inset-right,0px) var(--safe-bottom-max) env(safe-area-inset-left,0px);background:var(--nav-bg);border-top:1px solid var(--nav-hairline)}
+@supports (height:1dvh){@media (max-width:767.98px),(max-height:500.98px) and (pointer:coarse){:root[data-os=ios]:not([data-native-app]){--safe-bottom-max:max(env(safe-area-inset-bottom,0px),calc(100dvh - 100svh))}:root[data-os=ios]:not([data-native-app]) .bottom-nav{bottom:0}}}
 .bottom-nav[hidden]{display:none}
 @media (min-width:768px) and (min-height:501px),(min-width:768px) and (pointer:fine){.bottom-nav{display:none}}
 body{padding-bottom:var(--bottom-nav-height)}

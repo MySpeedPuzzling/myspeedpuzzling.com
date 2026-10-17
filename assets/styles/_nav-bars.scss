@@ -231,6 +231,20 @@ $nav-keyboard-field: ':is(input:not([type="checkbox"], [type="radio"], [type="ra
     }
 }
 
+// iOS: the bar's padding follows the room a folded toolbar frees (critical CSS, --safe-bottom-max). Safari updates it
+// only once its toolbar stopped moving - a glide instead of a jump; the keyboard rule above keeps its own timing.
+@include nav-phone {
+    :root[data-os="ios"]:not([data-native-app]):not(:has(#{$nav-keyboard-field})) .bottom-nav {
+        transition: transform var(--nav-hide-dur, 200ms) var(--nav-ease, ease), visibility 0s linear 0s, height 220ms var(--nav-ease, ease), padding-bottom 220ms var(--nav-ease, ease);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        :root[data-os="ios"]:not([data-native-app]):not(:has(#{$nav-keyboard-field})) .bottom-nav {
+            transition: opacity var(--nav-hide-dur, 200ms) linear, visibility 0s linear 0s;
+        }
+    }
+}
+
 // Windows high contrast: the pill's background is gone - the current tab is marked by the system's highlight
 @media (forced-colors: active) {
     .nav-tab:is([aria-current]:not(.is-leaving), .is-pending):not(.nav-tab--add) {

@@ -3,8 +3,8 @@ import base64
 import httpx
 import pytest
 
-from puzzle_vision.api import (AlreadyProposed, ApiError, Conflict, NotFound, PendingProposal, AnalysisResult, BadRequest, InternalApi, StaleFingerprint, Unauthorized,
-                               uuid_before)
+from puzzle_vision.api import (AlreadyProposed, ApiError, Conflict, NotFound, PendingProposal, AnalysisResult, BadRequest, DifficultyEstimate,
+                               DifficultyModelRecord, Invalid, InternalApi, StaleFingerprint, Unauthorized, uuid_before)
 
 from .conftest import BASE, TOKEN, pid
 
@@ -176,6 +176,84 @@ def test_list_without_change_requests_key_is_a_contract_error(api, server):
         api.change_requests_page()
 
 
-def test_endpoint_probe(api):
+def test_endpoint_probe(api, server):
     assert api.endpoint_exists("/internal-api/puzzle-images")
+    assert api.endpoint_exists("/internal-api/puzzle-difficulty-labels")
+    assert not api.endpoint_exists("/internal-api/no-such-thing")
+    server.phase5 = False  # a production without the Phase 5 endpoints
     assert not api.endpoint_exists("/internal-api/puzzle-difficulty-labels")
+
+
+# Phase 5: difficulty labels, estimates, model record (docs/features/internal-api.md § "Puzzle difficulty labels and estimates")
+
+def _estimate(server, p, **kw):
+    d = dict(puzzle_id=p, model="ridge-siglip2-dinov2", model_version="1.0.0", log_difficulty=0.1, log_p10=-0.2, log_p90=0.35,
+             out_of_fold=True, training_size=4979, fingerprint=server.puzzles[p]["imageFingerprint"])
+    d.update(kw)
+    return DifficultyEstimate(**d)
+
+
+def test_difficulty_labels_follow_next_cursor_and_skip_secret_puzzles(api, server):
+    for i in range(5):
+        server.label(pid(i), 0.05 * i, index_count=i + 1)
+    server.hidden.add(pid(2))
+    labels = list(api.iter_difficulty_labels(limit=2))
+    assert [x.puzzle_id for x in labels] == [pid(0), pid(1), pid(3), pid(4)]
+    assert [r["params"].get("after") for r in server.requests] == [None, pid(1), pid(4)]
+    last = labels[-1]
+    assert last.index_count == 5 and last.label_source == "median" and last.pieces_count == 500
+    assert last.log_difficulty == pytest.approx(0.2) and last.fingerprint == server.puzzles[pid(4)]["imageFingerprint"]
+    assert labels[0].label_source == "mean_log" and labels[0].manufacturer_id == pid(900)
+    assert set(labels[0].raw) == {"puzzleId", "logDifficulty", "labelSource", "meanLogIndex", "indexCount", "piecesCount",
+                                  "manufacturerId", "addedAt", "imageFingerprint"}
+
+
+def test_difficulty_labels_page_clamps_the_limit_and_needs_the_labels_list(api, server):
+    api.difficulty_labels_page(limit=99999)
+    assert server.requests[-1]["params"]["limit"] == "5000"
+    server.fail_next["GET /internal-api/puzzle-difficulty-labels"] = [httpx.Response(200, json={"items": []})]
+    with pytest.raises(ApiError, match="labels"):
+        api.difficulty_labels_page()
+
+
+def test_store_estimates_in_batches_of_500_with_an_outcome_each(api, server):
+    for i in range(5, 1100):
+        server.add_puzzle(i)
+    server.hidden.add(pid(1))
+    server.change_picture(pid(2), "f" * 16)
+    estimates = [_estimate(server, pid(i)) for i in range(5, 1100)]
+    estimates += [_estimate(server, pid(1)), _estimate(server, pid(2), fingerprint="0" * 16),
+                  _estimate(server, pid(3), log_p10=0.5), _estimate(server, pid(4), puzzle_id=pid(99999))]
+    outcomes = api.store_difficulty_estimates(estimates)
+    puts = [r for r in server.requests if r["method"] == "PUT"]
+    assert [len(r["json"]["items"]) for r in puts] == [500, 500, 99]
+    assert [o.status for o in outcomes[-4:]] == ["hidden", "stale_fingerprint", "invalid", "unknown_puzzle"]
+    assert outcomes[-3].current_fingerprint == "f" * 16 and "logP10" in outcomes[-2].errors
+    assert all(o.status == "stored" for o in outcomes[:-4]) and len(server.estimates) == 1095
+    sent = puts[0]["json"]["items"][0]
+    assert sent == {"puzzleId": pid(5), "model": "ridge-siglip2-dinov2", "modelVersion": "1.0.0", "logDifficulty": 0.1, "logP10": -0.2,
+                    "logP90": 0.35, "outOfFold": True, "trainingSize": 4979, "imageFingerprint": server.puzzles[pid(5)]["imageFingerprint"]}
+
+
+def test_storing_estimates_again_is_idempotent(api, server):
+    batch = [_estimate(server, pid(0), computed_at="2026-10-19T03:00:00Z")]
+    assert [o.status for o in api.store_difficulty_estimates(batch)] == ["stored"]
+    assert [o.status for o in api.store_difficulty_estimates(batch)] == ["stored"]
+    assert len(server.estimates) == 1 and server.estimates[pid(0)]["computedAt"] == "2026-10-19T03:00:00Z"
+
+
+def test_model_record_round_trip_for_the_push_guard(api, server):
+    assert api.current_difficulty_model() is None
+    evaluation = {"overall": {"spearman": 0.72}, "groups": [{"sizeGroup": "500", "imageKind": "flat", "spearman": 0.74, "count": 300}],
+                  "holdouts": {"newerFromOlder": {"spearman": 0.74}}}
+    stored = api.record_difficulty_model(DifficultyModelRecord("ridge-siglip2-dinov2", "1.0.0", 4979, 0.74, evaluation))
+    assert stored["id"] and stored["holdoutSpearman"] == 0.74
+    assert server.requests[-1]["json"] == {"model": "ridge-siglip2-dinov2", "modelVersion": "1.0.0", "trainingSize": 4979,
+                                           "holdoutSpearman": 0.74, "evaluation": evaluation}
+    api.record_difficulty_model(DifficultyModelRecord("ridge-pieces-only", "0.1.0", 4979, 0.3, {"overall": {"spearman": 0.3}}))
+    assert api.current_difficulty_model()["model"] == "ridge-pieces-only"
+    assert api.current_difficulty_model("ridge-siglip2-dinov2")["id"] == stored["id"]
+    assert server.requests[-1]["params"] == {"model": "ridge-siglip2-dinov2"}
+    with pytest.raises(Invalid) as e:
+        api.record_difficulty_model(DifficultyModelRecord("ridge", "1", 10, 1.5, {}))
+    assert set(e.value.body["errors"]) == {"holdoutSpearman", "evaluation"}

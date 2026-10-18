@@ -30,6 +30,7 @@ final class PuzzleMergeForeignKeyCoverageTest extends KernelTestCase
         'lent_puzzle_transfer.puzzle_id' => 'moved onto the survivor (bulk, ids recorded in the audit first)',
         'puzzle_change_request.puzzle_id' => 'moved onto the survivor (PuzzleChangeRequest::puzzleMergedInto()), then closed when already applied',
         'puzzle_difficulty.puzzle_id' => 'deleted with the puzzle - recomputed for the survivor by the insights batch',
+        'puzzle_difficulty_estimate.puzzle_id' => 'deleted with the puzzle - an estimate of its picture; the survivor keeps its own (stale when it takes the merged puzzle\'s image, so the next derive run estimates it again)',
         'puzzle_image_analysis.puzzle_id' => 'deleted with the puzzle - they describe its picture; the survivor keeps its own analyses (stale when it takes the merged puzzle\'s image, so the pipeline analyses it again)',
         'puzzle_image_analysis_claim.puzzle_id' => 'deleted with the puzzle - a worker\'s lease on its image; the survivor\'s own claims stay',
         'puzzle_merge_request.source_puzzle_id' => 'set to null - the reported ids and the stored name stay (MergeRequestPuzzles)',

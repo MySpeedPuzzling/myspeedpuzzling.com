@@ -507,6 +507,95 @@ curl -s -X PUT -H "Authorization: Bearer $INTERNAL_API_TOKEN" -H 'Content-Type: 
 #    "corrections": [{"key": "style.photo", "verdict": "remove", "note": "A painting, not a photo", "decidedById": "…", …}]}
 ```
 
+### Puzzle difficulty labels and estimates
+
+The image pipeline's `difficulty_prior` step (on Jan's Mac, [`insights/implementation-plan.md`](./insights/implementation-plan.md)
+§5.3) trains a ridge model nightly: picture embeddings + pieces → the puzzle's measured difficulty. It reads its
+training labels here and pushes back one **estimate** per puzzle plus a **model record** of the run. Stored, not
+shown: the app uses the estimates as the prior of its predictions (§5.4, stream 5d). No reviewer needed.
+
+| Method | Path | Purpose |
+|---|---|---|
+| `GET` | `/internal-api/puzzle-difficulty-labels` | Training labels, a page at a time (aggregates only) |
+| `PUT` | `/internal-api/puzzle-difficulty-estimates` | Store up to 500 estimates → `200` with an outcome per item |
+| `POST` | `/internal-api/puzzle-difficulty-estimates/model` | Record a run of the model with its evaluation → `201` with the record |
+| `GET` | `/internal-api/puzzle-difficulty-estimates/model` | The current model record (`?model=` one model name) → `{"current": … \| null}` |
+
+- **Labels** `?limit=1..5000 (1000)&after=<puzzleId>`, in puzzle id order (`GetPuzzleDifficultyLabels`, keyset over
+  `puzzle_difficulty`'s primary key): every puzzle with **at least one as-of difficulty index** - each index is a
+  solver's first attempt ÷ that solver's pace just before it (`player_pace_history`, puzzle-intelligence README "Pace
+  history"), so old solves are not judged by today's pace. A row the batch has not yet computed that way
+  (`sum_log_indices` NULL) is no label. Each label: `puzzleId`, `logDifficulty`, `labelSource`, `meanLogIndex`,
+  `indexCount` (k), `piecesCount`, `manufacturerId`, `addedAt` (for the newer-from-older holdout), `imageFingerprint`
+  (the puzzle's current picture - join the embeddings of that picture on it; null = no picture). `nextCursor` = the
+  next page's `after`, null on the last page. Unknown parameters or bad values: `400` with `errors`.
+  **Aggregates only** - no player id, no time, no single index leaves production. **Secret puzzles**
+  (`hide_until` / `hide_image_until` ahead) are never listed: no training row for them.
+- **Which number is the label** - `logDifficulty` is ln of the puzzle's as-of difficulty:
+  - with ≥ 5 indices, **ln of the stored median index** (`difficulty_score`, `labelSource: "median"`) - what the
+    research labelled with (as-of medians, reliability 0.96 at ≥ 10 solves, `prediction-research.md` Q3), the number
+    the puzzle's tier comes from (the gates compare tiers), and robust to the one solver who took a break: the batch
+    caps an index at 5.0 but a few such solves still pull a mean;
+  - with 1-4 indices the batch keeps no median, so **the mean ln index** (`sum_log_indices ÷ k`, `labelSource:
+    "mean_log"`) - for 1-2 indices it is the median of the ln indices anyway; the plan trains on k ≥ 3, weighted
+    n/(n+10), so these rows weigh little.
+  - `meanLogIndex` (sum ÷ k) comes with every label: the shrinkage of stream 5d combines `sum_log_indices` with the
+    prior, so the derive step can check how far the two estimators part.
+- **Estimates** `PUT` `{"items": [{puzzleId, model, modelVersion, logDifficulty, logP10, logP90, outOfFold,
+  trainingSize, imageFingerprint, computedAt?}, …]}` (1-500 items, else `422`) into `puzzle_difficulty_estimate`
+  (one row per puzzle - **the current value only**, a newer push replaces it whole). Log space like the label:
+  `logDifficulty`, `logP10`, `logP90` (its 80 % interval) numbers within ±5 with `logP10 ≤ logDifficulty ≤ logP90`;
+  `outOfFold` = a labelled puzzle estimated by a model that did not see it (5-fold cross-fitted) - the only kind a
+  reconstructed prediction may use; `model` / `modelVersion` ≤ 50 characters; `trainingSize` ≥ 1; `computedAt`
+  ISO 8601 (UTC without an offset; absent = the moment of the push). One transaction, under one advisory lock
+  (`SerializedByLock`, `RecordPuzzleDifficultyEstimates`); a refused item never fails the others. Answers `counts`
+  per outcome and `items` in order: `{index, puzzleId, status, message?, currentFingerprint?, errors?}`, `status`
+  `stored`, `stale_fingerprint` (made from another picture - `currentFingerprint` = the picture now, absent when the
+  puzzle has none), `hidden` (a secret puzzle or picture - it never gets an estimate), `unknown_puzzle` or `invalid`
+  (`errors` by field, unknown fields too). **Idempotent**: the same batch again stores the same values. The same
+  puzzle twice in one batch: the later item wins. The audit log gets the counts, never the values.
+- **Model record** `POST` `{model, modelVersion, trainingSize, holdoutSpearman, evaluation, createdAt?}` → `201`
+  with the record (`id`, …, `receivedAt`); invalid fields `422` with `errors`. Append-only
+  (`puzzle_difficulty_estimate_model`): **the current record = the latest received** (`GET`, `?model=<name>` for one
+  model name), the older rows are its history. `holdoutSpearman` (-1..1) is the number of the **push guard**: the
+  Mac reads the current record first and pushes nothing when its new holdout Spearman (newer puzzles predicted from
+  older ones) is more than 0.05 below it. `evaluation` = the run's other numbers as the pipeline sends them, a JSON
+  object ≤ 256 KB stored as it came - recommended shape `overall` `{spearman, mae, tierExact, tierWithinOne,
+  window50Hit, window80Hit, count}`, `groups` `[{sizeGroup, imageKind, …the same numbers}]`, `holdouts`
+  `{brands, newerFromOlder}`. Push order: record the model, then its estimates. It is not the **gate record** - that
+  one measures the app's own stored predictions (`myspeedpuzzling:evaluate-image-estimates`, stream 5d).
+- **Reading them in the app**: `GetPuzzleDifficultyEstimates::forPuzzles($puzzleIds)` - one statement, keyed by puzzle;
+  only an estimate of the picture the puzzle has now, never one of a secret puzzle or picture (whatever is stored).
+- **Merges** delete the merged puzzle's estimate with it (FK cascade); the survivor keeps its own.
+
+```bash
+# Every label, 5000 at a time
+curl -s -H "Authorization: Bearer $INTERNAL_API_TOKEN" \
+  "https://myspeedpuzzling.com/internal-api/puzzle-difficulty-labels?limit=5000&after=<nextCursor>"
+# → {"labels": [{"puzzleId": "018d…", "logDifficulty": 0.182322, "labelSource": "median", "meanLogIndex": 0.17311,
+#     "indexCount": 14, "piecesCount": 500, "manufacturerId": "018d…", "addedAt": "2025-03-02T10:11:12+00:00",
+#     "imageFingerprint": "3f2a9c0d4b1e7a65"}], "nextCursor": "018d…"}
+
+# The push guard's baseline
+curl -s -H "Authorization: Bearer $INTERNAL_API_TOKEN" \
+  "https://myspeedpuzzling.com/internal-api/puzzle-difficulty-estimates/model?model=ridge-siglip2-dinov2"
+# → {"current": {"id": "019a…", "model": "ridge-siglip2-dinov2", "modelVersion": "1.0.0", "holdoutSpearman": 0.74, …}}
+
+# Record tonight's run, then its estimates
+curl -s -X POST -H "Authorization: Bearer $INTERNAL_API_TOKEN" -H 'Content-Type: application/json' \
+  -d '{"model": "ridge-siglip2-dinov2", "modelVersion": "1.1.0", "trainingSize": 5120, "holdoutSpearman": 0.75,
+       "evaluation": {"overall": {"spearman": 0.73, "mae": 0.11, "tierExact": 0.58, "tierWithinOne": 0.9},
+                      "groups": [{"sizeGroup": "500", "imageKind": "flat", "spearman": 0.76, "count": 310}]}}' \
+  https://myspeedpuzzling.com/internal-api/puzzle-difficulty-estimates/model
+curl -s -X PUT -H "Authorization: Bearer $INTERNAL_API_TOKEN" -H 'Content-Type: application/json' \
+  -d '{"items": [{"puzzleId": "<puzzleId>", "model": "ridge-siglip2-dinov2", "modelVersion": "1.1.0",
+                  "logDifficulty": 0.12, "logP10": -0.15, "logP90": 0.4, "outOfFold": true, "trainingSize": 5120,
+                  "imageFingerprint": "3f2a9c0d4b1e7a65", "computedAt": "2026-10-19T03:00:00Z"}]}' \
+  https://myspeedpuzzling.com/internal-api/puzzle-difficulty-estimates
+# → {"counts": {"stored": 1, "stale_fingerprint": 0, "hidden": 0, "unknown_puzzle": 0, "invalid": 0},
+#    "items": [{"index": 0, "puzzleId": "…", "status": "stored"}]}
+```
+
 ### Competitions and events
 
 Create and edit competitions (events), their rounds and puzzles without the admin UI - e.g. set an event's links, move
@@ -1376,6 +1465,9 @@ the `fingers_crossed` one that drops info records of requests without a warning.
 | `404 Not Found` | An image analysis for an unknown puzzle or a hidden image | `{"error": "..."}` |
 | `409 Conflict` | An image analysis of a picture the puzzle no longer has (`imageFingerprint`) | `{"error": "...", "code": "image_changed"}` |
 | `422 Unprocessable Entity` | An invalid image analysis (an unknown analyzer, a `result` that is no object or over 64 KB, a bad `bbox`/`corners`), a batch that is no list of 1-200 items | `{"error": "...", "errors": {"field": "what is wrong"}}` |
+| `200 OK` | Difficulty labels, a batch of difficulty estimates (an outcome per item), the current model record | `{"labels", "nextCursor"}` / `{"counts", "items"}` / `{"current"}` |
+| `201 Created` | A model record of the difficulty model | the record |
+| `422 Unprocessable Entity` | An invalid model record, an estimate batch that is no list of 1-500 items | `{"error": "...", "errors": {"field": "what is wrong"}}` |
 
 Every refusal is JSON, whatever the client accepts: `InternalApiErrorResponseSubscriber` renders each 4xx HTTP
 exception under `/internal-api/` (from a controller, a handler or the firewall) as `{"error": "…"}` with its status -
@@ -1441,6 +1533,7 @@ The public Swagger UI at `/api/docs` is generated by API Platform from resources
 - `src/Message/RecordPuzzleImageAnalysis.php`, `RecordPuzzleImageAnalyses.php` (+ handlers), `src/Services/PuzzleImageAnalysisRecorder.php` — storing them (one rule for both)
 - `src/Query/GetPuzzleImagesForAnalysis.php` (the work list), `src/Query/GetPuzzleImageAnalyses.php` (reading them back, for later pages too)
 - `src/Controller/InternalApi/*PuzzleTag*Controller.php` + `PuzzleTagsJson.php`, `src/Query/GetPuzzleTags.php`, `src/Message/CorrectPuzzleTag.php` / `RemovePuzzleTagCorrection.php` / `RefreshPuzzleTags.php` (+ handlers), `src/Services/PuzzleTags/PuzzleTagWriter.php` - puzzle tags and their corrections; `tests/Controller/InternalApi/PuzzleTagsInternalApiTest.php`
+- `src/Entity/PuzzleDifficultyEstimate.php`, `PuzzleDifficultyEstimateModel.php`, `src/Value/PuzzleDifficultyEstimateInput.php`, `PuzzleDifficultyEstimateModelInput.php`, `PuzzleDifficultyEstimateOutcome.php`, `src/Message/RecordPuzzleDifficultyEstimates.php`, `RecordPuzzleDifficultyEstimateModel.php` (+ handlers), `src/Query/GetPuzzleDifficultyLabels.php`, `GetPuzzleDifficultyEstimates.php` (the app's read side), `GetPuzzleDifficultyEstimateModel.php` — difficulty labels, estimates and the model record; `tests/Controller/InternalApi/PuzzleDifficultyEstimatesInternalApiTest.php`, `tests/Query/GetPuzzleDifficultyEstimatesTest.php`
 - `src/Entity/PuzzleImageAnalysisClaim.php`, `src/Message/ClaimPuzzleImages.php`, `ReleasePuzzleImageClaims.php` (+ handlers) — the workers' claims
 - `src/Value/PuzzleChangeRequestSource.php`, `src/Services/ImagePipelineProposalRules.php`, `src/Services/InternalApi/ProposedPuzzleImageInput.php` — change proposals with a picture and the image pipeline's metadata
 - `src/Query/GetChangeRequestsForInternalApi.php` + `src/Controller/InternalApi/ListPuzzleChangeRequestsController.php` — the change request list

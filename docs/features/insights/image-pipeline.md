@@ -205,9 +205,23 @@ uv run --extra ml puzzle-vision derive --profile m3-max --only tags --dry-run
 
 Reads the stored raw results (bulk endpoint, `onlyCurrent=1`), recomputes, and pushes only rows that changed (another
 version, picture or content). `zeroshot` loads the SigLIP 2 text encoder once under the model lock (prompt features
-cached per prompt bank). `difficulty_prior` (`--only difficulty_prior`) is a **stub until Phase 5**: it refuses while
-`/internal-api/puzzle-difficulty-labels` does not exist (contract in `derive/difficulty_prior.py`, plan §5.3). A new
-taxonomy or prompt bank = bump `zeroshot` / `tags` and run `derive` - no image is touched.
+cached per prompt bank). `difficulty_prior` (`--only difficulty_prior`) is a **stub until stream 5c**: it refuses while
+`/internal-api/puzzle-difficulty-labels` does not exist, and after that as long as the step is not implemented
+(contract in `derive/difficulty_prior.py`, plan §5.3). A new taxonomy or prompt bank = bump `zeroshot` / `tags` and
+run `derive` - no image is touched.
+
+### The `difficulty_prior` server contract
+
+The server side is built ([`../internal-api.md`](../internal-api.md) § "Puzzle difficulty labels and estimates"); the
+client methods are in `puzzle_vision/api.py`, the fake server for tests in `tests/conftest.py`.
+
+| Step | Client call | Endpoint | Notes |
+|---|---|---|---|
+| 1. Labels | `api.iter_difficulty_labels()` → `DifficultyLabel` | `GET /internal-api/puzzle-difficulty-labels?limit=..5000&after=` | as-of `logDifficulty` (ln median index from 5 indices, else the mean ln index - `labelSource`), `indexCount`, `piecesCount`, `manufacturerId`, `addedAt`, `imageFingerprint`; aggregates only, secret puzzles never listed |
+| 2. Features | `api.iter_analyses("embed_siglip2" / "embed_siglip2_full" / "embed_dinov2")` | bulk read, `onlyCurrent=1` | join on (puzzleId, imageFingerprint): a label whose fingerprint differs from the embedding's (or is null) has no usable picture |
+| 3. Guard | `api.current_difficulty_model(model)` | `GET /internal-api/puzzle-difficulty-estimates/model` | `None` = first run; block the push when the new holdout Spearman is > 0.05 below `current["holdoutSpearman"]` |
+| 4. Record the run | `api.record_difficulty_model(DifficultyModelRecord(…))` | `POST …/puzzle-difficulty-estimates/model` | `holdoutSpearman` + `evaluation` (overall, groups per size group × image kind, holdouts) - append-only, latest = current |
+| 5. Estimates | `api.store_difficulty_estimates([DifficultyEstimate(…)])` | `PUT /internal-api/puzzle-difficulty-estimates` (≤ 500 a call, chunked) | log values within ±5, `logP10 ≤ logDifficulty ≤ logP90`, `outOfFold` for cross-fitted labelled puzzles; outcomes `stored` / `stale_fingerprint` / `hidden` / `unknown_puzzle` (skip, nothing stored) / `invalid` (our bug); idempotent upsert of the current value |
 
 **On the server**, two daily crons turn the pushed derived results into app data: `myspeedpuzzling:refresh-puzzle-tags`
 writes `puzzle_tag` from `tags` (+ the moderators' corrections) - [`tags.md`](./tags.md) - and

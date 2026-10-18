@@ -11,8 +11,9 @@ use SpeedPuzzling\Web\Value\ImageAnalyzer;
  * A worker of the image analysis pipeline takes up to `limit` puzzles whose image is still to be analysed by the
  * analyzer (missing, another picture, or another `version`) and that no other worker holds - for `leaseSeconds`
  * (docs/features/internal-api.md, "Puzzle image analysis" - claims). Its own claims are taken again, the lease
- * extended when there is not enough fresh work (fresh work comes first). The handler answers the claimed puzzle ids
- * (list<string>, in id order).
+ * extended when there is not enough fresh work (fresh work comes first). `requires` hands out only puzzles whose
+ * current picture already has a result of each of those analyzers, any version (RequiredImageAnalyses - e.g. the crop
+ * analyzers wait for `artwork`). The handler answers the claimed puzzle ids (list<string>, in id order).
  *
  * Under the lock every image analysis write takes - two claims, or a claim and a store, never interleave; the
  * statement's ON CONFLICT guard is the backstop (ClaimPuzzleImagesHandler).
@@ -29,12 +30,16 @@ readonly final class ClaimPuzzleImages implements SerializedByLock
 
     public const int MAX_LEASE_SECONDS = 7200;
 
+    /**
+     * @param list<ImageAnalyzer> $requires
+     */
     public function __construct(
         public ImageAnalyzer $analyzer,
         public string $version,
         public string $worker,
         public int $limit = self::DEFAULT_LIMIT,
         public int $leaseSeconds = self::DEFAULT_LEASE_SECONDS,
+        public array $requires = [],
     ) {
     }
 

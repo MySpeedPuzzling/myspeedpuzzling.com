@@ -384,6 +384,121 @@ final class PuzzleImageAnalysisInternalApiTest extends WebTestCase
         self::assertResponseStatusCodeSame(400);
     }
 
+    /**
+     * `requires`: only puzzles whose current picture already has a result of every required analyzer (any version) -
+     * for the list (with every status and paging) and for claims
+     */
+    public function testRequiresFiltersTheListAndTheClaims(): void
+    {
+        $browser = self::createClient();
+        $this->giveImages();
+
+        // artwork: 500_01 (old version), 500_02 (then a new picture), 500_03; ocr: 500_01 and 500_03; colors: 500_03
+        foreach ([PuzzleFixture::PUZZLE_500_01 => 'artwork-0.9', PuzzleFixture::PUZZLE_500_02 => 'artwork-1.0', PuzzleFixture::PUZZLE_500_03 => 'artwork-1.0'] as $puzzleId => $version) {
+            self::callInternalApi($browser, 'PUT', $this->putUri($puzzleId, 'artwork'), [
+                'analyzerVersion' => $version,
+                'imageFingerprint' => PuzzleImageFingerprint::of(self::IMAGES[$puzzleId]),
+                'result' => ['bbox' => ['x' => 0.1, 'y' => 0.1, 'w' => 0.8, 'h' => 0.8]],
+            ]);
+            self::assertResponseIsSuccessful();
+        }
+
+        foreach ([PuzzleFixture::PUZZLE_500_01, PuzzleFixture::PUZZLE_500_03] as $puzzleId) {
+            self::callInternalApi($browser, 'PUT', $this->putUri($puzzleId, 'ocr'), self::body($puzzleId, 'ocr-1'));
+            self::assertResponseIsSuccessful();
+        }
+
+        self::callInternalApi($browser, 'PUT', $this->putUri(PuzzleFixture::PUZZLE_500_03, 'colors'), self::body(PuzzleFixture::PUZZLE_500_03, 'v1'));
+        self::assertResponseIsSuccessful();
+        $this->database()->executeStatement('UPDATE puzzle SET image = :image WHERE id = :id', ['image' => 'box-500-02-new.jpg', 'id' => PuzzleFixture::PUZZLE_500_02]);
+
+        $withArtwork = [PuzzleFixture::PUZZLE_500_01, PuzzleFixture::PUZZLE_500_03];
+        self::assertSame($withArtwork, $this->listedIds($browser, 'requires=artwork'), 'any version counts, an older picture does not');
+        self::assertSame($withArtwork, $this->listedIds($browser, 'requires=artwork,%20ocr,artwork'));
+        self::assertSame([PuzzleFixture::PUZZLE_500_01], $this->listedIds($browser, 'analyzer=colors&status=missing&requires=artwork'));
+        self::assertSame([PuzzleFixture::PUZZLE_500_01], $this->listedIds($browser, 'analyzer=colors&version=v1&status=stale&requires=artwork,ocr'));
+        self::assertSame($withArtwork, $this->listedIds($browser, 'analyzer=colors&version=v2&status=stale&requires=artwork'));
+
+        // Keyset paging over the filtered list
+        $first = self::callInternalApi($browser, 'GET', '/internal-api/puzzle-images?requires=artwork&limit=1');
+        self::assertIsArray($first['puzzles']);
+        self::assertCount(1, $first['puzzles']);
+        self::assertIsArray($first['puzzles'][0]);
+        self::assertSame(PuzzleFixture::PUZZLE_500_01, $first['puzzles'][0]['puzzleId']);
+        self::assertSame(PuzzleFixture::PUZZLE_500_01, $first['nextCursor']);
+        $second = self::callInternalApi($browser, 'GET', '/internal-api/puzzle-images?requires=artwork&limit=1&after=' . PuzzleFixture::PUZZLE_500_01);
+        self::assertIsArray($second['puzzles']);
+        self::assertIsArray($second['puzzles'][0]);
+        self::assertSame(PuzzleFixture::PUZZLE_500_03, $second['puzzles'][0]['puzzleId']);
+        $third = self::callInternalApi($browser, 'GET', '/internal-api/puzzle-images?requires=artwork&limit=1&after=' . PuzzleFixture::PUZZLE_500_03);
+        self::assertSame([], $third['puzzles']);
+        self::assertNull($third['nextCursor']);
+
+        // Claims: describe waits for artwork and ocr
+        $claimed = self::callInternalApi($browser, 'POST', '/internal-api/puzzle-image-claims', [
+            'analyzer' => 'describe',
+            'version' => '1.0.0+qwen35-9b-4bit',
+            'worker' => 'mac-studio',
+            'requires' => ['artwork', 'ocr'],
+        ]);
+        self::assertResponseIsSuccessful();
+        self::assertIsArray($claimed['puzzles']);
+        self::assertSame(
+            $withArtwork,
+            array_map(static fn (mixed $puzzle): mixed => is_array($puzzle) ? $puzzle['puzzleId'] : null, $claimed['puzzles']),
+        );
+
+        // An empty list is no filter
+        $everything = self::callInternalApi($browser, 'POST', '/internal-api/puzzle-image-claims', [
+            'analyzer' => 'barcode',
+            'version' => '1',
+            'worker' => 'mac-air',
+            'limit' => 200,
+            'requires' => [],
+        ]);
+        self::assertResponseIsSuccessful();
+        self::assertIsArray($everything['puzzles']);
+        self::assertGreaterThan(2, count($everything['puzzles']));
+    }
+
+    public function testRefusesAnUnknownOrSelfRequiredAnalyzer(): void
+    {
+        $browser = self::createClient();
+
+        $answer = self::callInternalApi($browser, 'POST', '/internal-api/puzzle-image-claims', [
+            'analyzer' => 'describe',
+            'version' => '1',
+            'worker' => 'mac-studio',
+            'requires' => ['artwork', 'crop'],
+        ]);
+        self::assertResponseStatusCodeSame(400);
+        self::assertIsArray($answer['errors']);
+        self::assertSame(['requires'], self::sortedKeys($answer['errors']));
+        self::assertIsString($answer['errors']['requires']);
+        self::assertStringContainsString('crop', $answer['errors']['requires']);
+
+        foreach ([['describe', 'ocr', 'describe'], ['describe', 'artwork', 'nope'], ['describe', 'artwork', 7]] as [$analyzer, $first, $second]) {
+            $answer = self::callInternalApi($browser, 'POST', '/internal-api/puzzle-image-claims', [
+                'analyzer' => $analyzer,
+                'version' => '1',
+                'worker' => 'mac-studio',
+                'requires' => [$first, $second],
+            ]);
+            self::assertResponseStatusCodeSame(400);
+            self::assertIsArray($answer['errors']);
+            self::assertSame(['requires'], self::sortedKeys($answer['errors']));
+        }
+
+        foreach (['analyzer=describe&status=stale&requires=artwork,describe', 'requires=artwork,crop', 'requires[]=artwork'] as $query) {
+            $answer = self::callInternalApi($browser, 'GET', '/internal-api/puzzle-images?' . $query);
+            self::assertResponseStatusCodeSame(400, $query);
+            self::assertIsArray($answer['errors']);
+            self::assertSame(['requires'], self::sortedKeys($answer['errors']), $query);
+        }
+
+        self::assertSame(0, $this->database()->fetchOne('SELECT COUNT(*) FROM puzzle_image_analysis_claim'));
+    }
+
     public function testReadsStoredResultsInBulk(): void
     {
         $browser = self::createClient();

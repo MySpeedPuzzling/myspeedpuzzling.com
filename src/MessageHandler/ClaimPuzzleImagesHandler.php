@@ -9,6 +9,7 @@ use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Message\ClaimPuzzleImages;
 use SpeedPuzzling\Web\Value\PuzzleImageFingerprint;
+use SpeedPuzzling\Web\Value\RequiredImageAnalyses;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 /**
@@ -29,6 +30,9 @@ use Symfony\Component\Messenger\Attribute\AsMessageHandler;
  * Order: fresh work first (puzzle id order), this worker's own unexpired claims after it - a worker that skipped or
  * failed images it still holds keeps advancing instead of getting the same ones back first; its own claims come back
  * (and are extended) only when there is not enough fresh work to fill `limit`.
+ *
+ * `requires` (RequiredImageAnalyses): one EXISTS per required analyzer on the unique (analyzer, puzzle_id) index, at the
+ * puzzle's current fingerprint - an extra filter of the candidates, nothing else of the statement changes.
  *
  * Ids are uuid7 from PHP, one per candidate (paired by position); a re-claimed row keeps its id.
  */
@@ -55,6 +59,8 @@ readonly final class ClaimPuzzleImagesHandler
         }
 
         $fingerprint = PuzzleImageFingerprint::sql('p.image');
+        $requires = RequiredImageAnalyses::of($message->requires);
+        $requiresCondition = $requires->isEmpty() ? '' : 'AND ' . $requires->sqlCondition('p');
 
         $claimed = $this->database->executeQuery(
             <<<SQL
@@ -68,6 +74,7 @@ WITH candidates AS (
         AND (p.hide_image_until IS NULL OR p.hide_image_until <= :now)
         AND (a.id IS NULL OR a.image_fingerprint <> {$fingerprint} OR a.analyzer_version <> :version)
         AND (c.id IS NULL OR c.expires_at <= :now OR c.worker = :worker)
+        {$requiresCondition}
     ORDER BY (c.id IS NOT NULL AND c.worker = :worker AND c.expires_at > :now), p.id
     LIMIT :limit
     FOR NO KEY UPDATE OF p SKIP LOCKED
@@ -95,6 +102,7 @@ SQL,
                 'expiresAt' => $now->modify(sprintf('+%d seconds', $message->leaseSeconds))->format('Y-m-d H:i:s'),
                 'limit' => $limit,
                 'ids' => '{' . implode(',', $ids) . '}',
+                ...$requires->parameters(),
             ],
         )->fetchFirstColumn();
 

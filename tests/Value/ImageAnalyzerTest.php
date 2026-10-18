@@ -23,6 +23,7 @@ final class ImageAnalyzerTest extends TestCase
             'barcode',
             'vision_labels',
             'embed_siglip2',
+            'embed_siglip2_full',
             'embed_dinov2',
             'segmentation',
             'describe',

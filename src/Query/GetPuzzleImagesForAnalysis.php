@@ -13,6 +13,7 @@ use SpeedPuzzling\Web\Results\PuzzleImageForAnalysis;
 use SpeedPuzzling\Web\Value\ImageAnalyzer;
 use SpeedPuzzling\Web\Value\PuzzleImageAnalysisStatus;
 use SpeedPuzzling\Web\Value\PuzzleImageFingerprint;
+use SpeedPuzzling\Web\Value\RequiredImageAnalyses;
 
 /**
  * The image analysis pipeline's work list (GET /internal-api/puzzle-images, docs/features/internal-api.md "Puzzle
@@ -24,6 +25,8 @@ use SpeedPuzzling\Web\Value\PuzzleImageFingerprint;
  * The plan is a merge join of the puzzle primary key with the analyses' puzzle_id index, stopping at `limit` matches
  * (measured 2026-10-18 on 41k puzzles × 4 analyzers: a full page of `all` < 1 ms, of `stale` with 2 % to do ~100 ms,
  * the last, empty page of `stale` - every puzzle read once - ~350 ms). Once a day for one pipeline: no index of its own.
+ * `requires` (RequiredImageAnalyses) adds one EXISTS per required analyzer - a probe of the unique (analyzer,
+ * puzzle_id) index per puzzle walked, so the same shape with a few more index lookups.
  */
 readonly final class GetPuzzleImagesForAnalysis
 {
@@ -40,6 +43,7 @@ readonly final class GetPuzzleImagesForAnalysis
     /**
      * @param null|ImageAnalyzer $analyzer required for `missing` and `stale`
      * @param null|string $version for `stale`: an analysis of another analyzer version is stale too
+     * @param null|RequiredImageAnalyses $requires only puzzles whose current picture has a result of each of these
      *
      * @return array{items: list<PuzzleImageForAnalysis>, nextCursor: null|string}
      */
@@ -49,6 +53,7 @@ readonly final class GetPuzzleImagesForAnalysis
         null|string $version,
         int $limit,
         null|string $after,
+        null|RequiredImageAnalyses $requires = null,
     ): array {
         $fingerprint = PuzzleImageFingerprint::sql('p.image');
         $parameters = [
@@ -75,6 +80,11 @@ readonly final class GetPuzzleImagesForAnalysis
             } else {
                 $conditions[] = "(a.id IS NULL OR a.image_fingerprint <> {$fingerprint})";
             }
+        }
+
+        if ($requires !== null && $requires->isEmpty() === false) {
+            $conditions[] = $requires->sqlCondition('p');
+            $parameters = [...$parameters, ...$requires->parameters()];
         }
 
         $where = $conditions !== [] ? 'AND ' . implode(' AND ', $conditions) : '';

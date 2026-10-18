@@ -245,7 +245,7 @@ Covers:
 - `/image-pipeline-status` shows them.
 - Unit tests pass (`uv run pytest`); CI may skip the Python tests.
 - Runbook and skills committed; Phase 1 deployed.
-- **Then tell Jan to start the backfill sessions (§9) and hand him those two prompts.**
+- **Then the orchestrator tells Jan to start the backfill sessions and hands him the prompts of §9.2 and §9.3.**
 
 ---
 
@@ -493,35 +493,56 @@ Goal: every number the page shows, computed and tested, within the performance b
 
 ## 9. Prompts
 
-### 9.1 Implementation session (give this to a fresh Claude Code session in the repo on the M3 Max)
+### 9.1 Orchestrator session (give this to a fresh Claude Code session in the repo on the M3 Max)
 
 ```text
-You are implementing the MySpeedPuzzling "Insights" feature end to end, phase by phase.
+You are the ORCHESTRATOR delivering the MySpeedPuzzling "Insights" feature end to end: every phase of
+docs/features/insights/implementation-plan.md, including Phase 6 behind the INSIGHTS_PUBLIC feature flag (documented in
+docs/features/feature_flags.md), waiting for the image backfill, and - after Jan confirms - removing the flag (§8).
 
-Read first, completely: docs/features/insights/README.md (decisions - all Jan's, do not re-ask them),
-docs/features/insights/implementation-plan.md (this is your plan; follow its phases, tasks and acceptance criteria),
-then the research it links (prediction-research.md, image-taxonomy.md §11/§18/§19, vision-analysis.md) when a phase
-needs it. prototype.html is the visual reference for the page and the estimate display. CLAUDE.md applies in full.
+Read first, completely: docs/features/insights/README.md (decisions - all Jan's, never re-ask them),
+docs/features/insights/implementation-plan.md (the plan: phases, tasks, acceptance criteria, prompts),
+docs/features/insights/STATUS.md, and CLAUDE.md. The research files (prediction-research.md, image-taxonomy.md
+§11/§18/§19, vision-analysis.md) and prototype.html are for the subagents of the phases that need them.
 
-Rules:
-- Order: Phase 1 → Phase 2 (they unblock the image backfill) → Phase 3 → 4 → 5 → 6. Phase 3 may run in parallel with
-  Phase 2. After Phases 1 + 2 are merged and deployed, tell Jan the backfill can start and give him the two prompts in
-  implementation-plan.md §9.2 and §9.3 verbatim. Do not wait for the backfill; only the launch (§8) waits for it.
-- One PR per phase (stacked PRs for big ones), from a git worktree off origin/main. Parallel sessions share the main
-  checkout: stage only your own paths, `git commit -- <paths>`, never `git add -A`.
-- Jan delegated review, translation check and merge to you: merge when CI is green, the phase's acceptance criteria are
-  met and every new translation key exists in all 6 locales. Deploy is automatic; afterwards verify production.
-- The M3 Max runs large models during the backfill: never run the full test suite locally (single test files only),
-  check `memory_pressure` before heavy Docker work, never load ML models yourself. CI is the gate.
-- Migrations: always generated against a scratch DB built from committed migrations; never run
-  doctrine:migrations:migrate on the dev DB without asking; never drop the dev DB `speedpuzzling`.
-- Keep docs/features/insights/STATUS.md current (phase, PR, merged, deployed, deviations and why, follow-ups). If the
-  plan turns out wrong somewhere, decide with the plan's principles, record why in STATUS.md, and ask Jan only for a
-  real product decision.
-- Use subagents for independent streams when it helps (e.g. Phase 2 pipeline vs Phase 3 predictions), each in its own
-  worktree; review their work before merging (translations, CI, acceptance).
+How you work:
+- Jan works on this repository in parallel in the main checkout. Never touch it: you and every subagent work only in
+  git worktrees created from origin/main (one worktree per stream/branch, e.g. .claude/worktrees/insights-phase-3).
+  Never `git add -A`; stage explicit paths. Remove a worktree when its branch is merged.
+- You do not write feature code yourself. You plan each phase, split it into streams, spawn subagents (one per stream,
+  each in its own worktree with a precise brief: the plan section, files, acceptance criteria, the project rules below),
+  review what they deliver (read the diff, run the relevant single tests, check translations in all 6 locales, check
+  migrations were generated against a scratch DB), send them back with concrete fixes when needed, then open/finish the
+  PR, wait for CI and merge. Use a fresh subagent for an independent review of each phase before merging.
+- Order: Phase 1 and Phase 2 first (they unblock the image backfill; Phase 3 may run in parallel with Phase 2), then
+  Phase 3 → 4 → 5 → 6. As soon as Phases 1 + 2 are merged and deployed, tell Jan the backfill can start and give him the
+  two prompts in implementation-plan.md §9.2 and §9.3 verbatim. Never wait for the backfill with Phases 3-6.
+- One PR per phase (stacked PRs for big ones). Jan delegated review, translation check and merge to you: merge when CI
+  is green, the phase's acceptance criteria are met and every new translation key exists in all 6 locales (cs, de, en,
+  es, fr, ja). Deploy is automatic; after each deploy verify production (liveness, new endpoints, cron output) and
+  record it.
+- Phase 6 ships behind INSIGHTS_PUBLIC (default 0, admins always see it): document it in docs/features/feature_flags.md
+  (flag, decision point, gated files, tests, remove-when) in the same PR. After deploy, tell Jan the admin-visible page
+  is ready to look at.
+- Launch (§8): when only the launch is left, check the backfill regularly (`/image-pipeline-status` or the internal API
+  coverage) - e.g. every few hours with a scheduled wake-up or a background monitor - and keep STATUS.md current so the
+  work can be resumed with "continue the Insights delivery" if this session ends. When coverage is complete, ask Jan
+  (or check STATUS.md for his answer) to confirm the M3 session ran the final derive; then run
+  `myspeedpuzzling:evaluate-image-estimates` on production, report the gate results, and ASK JAN FOR CONFIRMATION before
+  removing the flag. Only after his explicit yes: a PR that removes the flag (code, .env, feature_flags.md → "Retired"),
+  adds the CLAUDE.md "Feature Planning" entry, and asks Jan whether an announcement modal is wanted.
+- Machine limits: Jan's M3 Max runs large models during the backfill. Never run the full test suite locally (single
+  test files only; CI is the gate), check `memory_pressure` before heavy Docker work, never load ML models, keep at most
+  ~3 subagents busy at once.
+- Project rules every brief must repeat: CLAUDE.md in full; migrations always generated against a scratch DB built from
+  committed migrations, never `doctrine:migrations:migrate` on the dev DB without asking Jan, never drop the dev DB
+  `speedpuzzling`; FrankenPHP worker mode (no state in services); repositories never flush; secret puzzles
+  (hide_until / hide_image_until) never leak; no player names in the public repo; Docker always `--rm`.
+- STATUS.md is the source of truth: before each phase write its stream plan (streams, files, migration, tests), after
+  each merge the PR, merge and deploy dates, deviations from the plan and why, follow-ups. If the plan is wrong
+  somewhere, decide with its principles and record why; ask Jan only for real product decisions.
 
-Start with Phase 1. Before coding, write a short phase plan into STATUS.md (files you will touch, the migration, tests).
+Start: read the files above, write the Phase 1 + Phase 2 stream plan into STATUS.md, then spawn the subagents.
 ```
 
 ### 9.2 M3 Max backfill session (Jan starts it after Phases 1 + 2 are deployed)

@@ -28,6 +28,14 @@ return static function (ContainerConfigurator $configurator): void {
             __DIR__ . '/../src/Services/PuzzleIntelligence/RatingEntriesSync.php',
         ]);
 
+    // Insights builders and their read models (public for testing; nothing outside the tests uses them before Phase 6)
+    $services->load('SpeedPuzzling\\Web\\Services\\Insights\\', __DIR__ . '/../src/Services/Insights/{*.php}');
+    $services->set(\SpeedPuzzling\Web\Query\GetInsightsGroupResults::class)->public();
+    $services->set(\SpeedPuzzling\Web\Query\GetInsightsRatingInputs::class)->public();
+    $services->set(\SpeedPuzzling\Web\Query\GetInsightsShelf::class)->public();
+    $services->set(\SpeedPuzzling\Web\Query\GetInsightsPaceHistory::class)->public();
+    $services->set(\SpeedPuzzling\Web\Query\GetInsightsFingerprint::class)->public();
+
     // Competition participant services (public for testing)
     $services->set(\SpeedPuzzling\Web\Services\CompetitionParticipantImporter::class)->public();
     $services->set(\SpeedPuzzling\Web\Services\CompetitionParticipantExporter::class)->public();

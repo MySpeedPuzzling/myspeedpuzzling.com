@@ -65,6 +65,10 @@ return App::config([
                 'online_watch_spectators' => [
                     'adapters' => ['cache.adapter.array'],
                 ],
+                // Built from the rows a test seeds and DAMA rolls back - never what an earlier test computed
+                'insights_cache' => [
+                    'adapters' => ['cache.adapter.array'],
+                ],
                 // Every test run signs with a fresh key under the same certificate URL
                 'sns_certificate_cache' => [
                     'adapters' => ['cache.adapter.array'],

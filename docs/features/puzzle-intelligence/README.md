@@ -736,6 +736,11 @@ Cron (every 15 minutes):
 */15 * * * * docker compose exec web php bin/console myspeedpuzzling:recalculate-puzzle-intelligence
 ```
 
+Daily (Insights: coordination constants + profile cards, ~2.5 s):
+```
+40 4 * * * docker compose exec web php bin/console myspeedpuzzling:recalculate-insights-daily
+```
+
 ### Execution Order
 
 1. Recompute all player baselines
@@ -744,8 +749,13 @@ Cron (every 15 minutes):
 4. Recompute all puzzle difficulty scores (as-of indices)
 5. Recompute derived metrics
 6. Recompute all player skill scores + percentiles
-7. Recompute MSP-ELO ratings
+7. Recompute MSP-ELO ratings - and store, for Insights, every entry behind them (`player_rating_entry`) and the
+   sorted times of every rated and nearly rated puzzle (`puzzle_rating_times`)
 8. Record skill history and rating snapshots
+9. Move the insights generation on (`insights_generation`; caches of batch data key on it)
+
+Steps 7 (the Insights part) and 9 and the daily `myspeedpuzzling:recalculate-insights-daily` (pair/team coordination
+constants, the puzzler profile cards): [`../insights/computation.md`](../insights/computation.md).
 
 With `-v` the command prints the seconds of every step. Measured 2026-10-18 on a copy of the production data (solves
 to 2026-10-11) on a laptop, where a steady-state run takes ~13 s (production ~11 s): pace history 0.7 s when nothing

@@ -22,17 +22,31 @@ readonly final class PaceHistoryReadiness
 
     public function isBuilt(): bool
     {
-        return (bool) $this->connection->fetchOne('SELECT EXISTS (SELECT 1 FROM pace_history_build)');
+        return $this->scalingExponent() !== null;
     }
 
     /**
-     * After a sync of every player. Written once - later runs leave the row (and the WAL) alone.
+     * The scaling exponent of the last full sync; null = the history is not built yet.
      */
-    public function markBuilt(): void
+    public function scalingExponent(): null|float
+    {
+        /** @var false|float|int|string $exponent */
+        $exponent = $this->connection->fetchOne('SELECT COALESCE(scaling_exponent, ' . PlayerBaselineCalculator::SCALING_EXPONENT_DEFAULT . ') FROM pace_history_build WHERE id = 1');
+
+        return $exponent === false ? null : (float) $exponent;
+    }
+
+    /**
+     * After a sync of every player, with the baselines' scaling exponent of that moment. The row is
+     * inserted once; later runs write only a changed exponent (no WAL otherwise).
+     */
+    public function markBuilt(float $scalingExponent): void
     {
         $this->connection->executeStatement(
-            'INSERT INTO pace_history_build (id, version, built_at) VALUES (1, :version, NOW()) ON CONFLICT (id) DO NOTHING',
-            ['version' => PlayerPaceHistoryCalculator::VERSION],
+            'INSERT INTO pace_history_build (id, version, built_at, scaling_exponent) VALUES (1, :version, NOW(), :exponent)
+            ON CONFLICT (id) DO UPDATE SET scaling_exponent = EXCLUDED.scaling_exponent
+            WHERE pace_history_build.scaling_exponent IS DISTINCT FROM EXCLUDED.scaling_exponent',
+            ['version' => PlayerPaceHistoryCalculator::VERSION, 'exponent' => $scalingExponent],
         );
     }
 }

@@ -10,7 +10,7 @@ use Doctrine\Migrations\AbstractMigration;
 /**
  * Auto-generated Migration: Please modify to your needs!
  */
-final class Version20261018211714 extends AbstractMigration
+final class Version20261018214010 extends AbstractMigration
 {
     public function getDescription(): string
     {
@@ -20,7 +20,7 @@ final class Version20261018211714 extends AbstractMigration
     public function up(Schema $schema): void
     {
         // this up() migration is auto-generated, please modify it to your needs
-        $this->addSql('CREATE TABLE pace_history_build (id INT NOT NULL, version INT NOT NULL, built_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL, PRIMARY KEY (id))');
+        $this->addSql('CREATE TABLE pace_history_build (id INT NOT NULL, version INT NOT NULL, built_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL, scaling_exponent DOUBLE PRECISION DEFAULT NULL, PRIMARY KEY (id))');
         $this->addSql('CREATE TABLE player_pace_history (id UUID NOT NULL, pieces_count INT NOT NULL, valid_from TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL, valid_from_tracked_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL, baseline_seconds INT NOT NULL, qualifying_count INT NOT NULL, step DOUBLE PRECISION DEFAULT NULL, drift DOUBLE PRECISION DEFAULT NULL, inputs_checksum BIGINT NOT NULL, player_id UUID NOT NULL, time_id UUID NOT NULL, PRIMARY KEY (id))');
         $this->addSql('CREATE INDEX IDX_540C6B8699E6F5DF ON player_pace_history (player_id)');
         $this->addSql('CREATE INDEX IDX_540C6B865EEADD3B ON player_pace_history (time_id)');

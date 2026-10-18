@@ -15,7 +15,7 @@ final class PlayerBaselineCalculator implements ResetInterface
     private const float DECAY_PLATEAU_MONTHS = 3.0;
     private const float DECAY_HALF_LIFE_MONTHS = 13.5;
     private const int SCALING_EXPONENT_MIN_PLAYERS = 50;
-    private const float SCALING_EXPONENT_DEFAULT = 1.3;
+    public const float SCALING_EXPONENT_DEFAULT = 1.3;
 
     /** @var array<string, array<int, list<array{seconds_to_solve: int|string, solve_date: string}>>>|null */
     private null|array $firstAttemptsCache = null;

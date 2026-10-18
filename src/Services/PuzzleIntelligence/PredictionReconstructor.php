@@ -93,7 +93,10 @@ final class PredictionReconstructor implements ResetInterface
         $statisticalPuzzleIds = [];
         // Before the pace history is built a statistical prediction would find no difficulty indices:
         // those times stay pending (not "not predictable") and the daily backfill comes back to them
-        $paceHistoryBuilt = $this->paceHistoryReadiness->isBuilt();
+        // ... and with it the batch's scaling exponent, so interpolations agree with the live tables
+        $storedScalingExponent = $this->paceHistoryReadiness->scalingExponent();
+        $paceHistoryBuilt = $storedScalingExponent !== null;
+        $this->scalingExponent ??= $storedScalingExponent;
 
         foreach ($targets as $index => $target) {
             $prior = self::solvesBefore($qualifyingByPuzzle[$target->puzzleId] ?? [], $target);

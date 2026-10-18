@@ -54,21 +54,23 @@ readonly final class PaceTimelineLoader
 
     /**
      * The qualifying first attempts of one puzzle with just enough pace rows for their lookups to come
-     * out as on the whole timeline - in one statement with the solves: the row valid just before each
-     * solve at the puzzle's piece count (one index step each); plus every row of the solvers without
-     * one (they need their other piece counts or their first pace - a few, usually). The incremental
-     * handler runs this on every added time.
+     * out as on the whole timeline - all in one statement (the incremental handler runs it on every
+     * added time): whether the history is built at all (pace_history_build, and the batch's scaling
+     * exponent), the row valid just before each solve at the puzzle's piece count (one index step
+     * each), and every row of a solver without one (they need their other piece counts or their
+     * first pace - a few, usually; aggregated per solver).
      *
-     * @return array{0: list<array{player_id: string, pieces_count: int|string, seconds_to_solve: int|string, solved_ts: float|int|string, tracked_ts: float|int|string, pace_solved_ts: null|float|int|string, pace_tracked_ts: null|float|int|string, pace_baseline_seconds: null|int|string}>, 1: PaceTimeline}
+     * @return null|array{0: list<array{player_id: string, pieces_count: int|string, seconds_to_solve: int|string, solved_ts: float|int|string, tracked_ts: float|int|string}>, 1: PaceTimeline} null = the history is not built yet
      */
-    public function forPuzzleFirstAttempts(string $puzzleId): array
+    public function forPuzzleFirstAttempts(string $puzzleId): null|array
     {
-        $timeline = new PaceTimeline($this->baselineCalculator);
         [$qualifying, $params, $types] = $this->baselineCalculator->qualifyingFirstAttemptsQuery(puzzleId: $puzzleId);
 
-        /** @var list<array{player_id: string, pieces_count: int|string, seconds_to_solve: int|string, solved_ts: float|int|string, tracked_ts: float|int|string, pace_solved_ts: null|float|int|string, pace_tracked_ts: null|float|int|string, pace_baseline_seconds: null|int|string}> $rows */
+        /** @var list<array{scaling_exponent: null|float|string, built: bool, player_id: null|string, pieces_count: null|int|string, seconds_to_solve: null|int|string, solved_ts: null|float|int|string, tracked_ts: null|float|int|string, pace_solved_ts: null|float|int|string, pace_tracked_ts: null|float|int|string, pace_baseline_seconds: null|int|string, all_rows: null|string}> $rows */
         $rows = $this->connection->fetchAllAssociative("
             SELECT
+                b.id IS NOT NULL AS built,
+                COALESCE(b.scaling_exponent, " . PlayerBaselineCalculator::SCALING_EXPONENT_DEFAULT . ") AS scaling_exponent,
                 q.player_id,
                 q.pieces_count,
                 q.seconds_to_solve,
@@ -76,8 +78,11 @@ readonly final class PaceTimelineLoader
                 EXTRACT(EPOCH FROM q.tracked_at) AS tracked_ts,
                 EXTRACT(EPOCH FROM h.valid_from) AS pace_solved_ts,
                 EXTRACT(EPOCH FROM h.valid_from_tracked_at) AS pace_tracked_ts,
-                h.baseline_seconds AS pace_baseline_seconds
-            FROM ({$qualifying}) q
+                h.baseline_seconds AS pace_baseline_seconds,
+                every_row.all_rows
+            FROM (SELECT 1) AS one
+            LEFT JOIN pace_history_build b ON b.id = 1
+            LEFT JOIN ({$qualifying}) q ON b.id IS NOT NULL
             LEFT JOIN LATERAL (
                 SELECT row_before.valid_from, row_before.valid_from_tracked_at, row_before.baseline_seconds
                 FROM player_pace_history row_before
@@ -87,26 +92,52 @@ readonly final class PaceTimelineLoader
                 ORDER BY row_before.valid_from DESC, row_before.valid_from_tracked_at DESC, row_before.qualifying_count DESC
                 LIMIT 1
             ) h ON true
+            LEFT JOIN LATERAL (
+                SELECT json_agg(
+                    json_build_array(r.pieces_count, EXTRACT(EPOCH FROM r.valid_from), EXTRACT(EPOCH FROM r.valid_from_tracked_at), r.baseline_seconds)
+                    ORDER BY r.pieces_count, r.valid_from, r.valid_from_tracked_at, r.qualifying_count
+                ) AS all_rows
+                FROM player_pace_history r
+                WHERE h.baseline_seconds IS NULL
+                    AND r.player_id = q.player_id
+            ) every_row ON true
         ", $params, $types);
 
-        $without = [];
-
-        foreach ($rows as $row) {
-            if ($row['pace_baseline_seconds'] === null) {
-                $without[$row['player_id']] = true;
-            }
+        if ($rows === [] || $rows[0]['built'] === false) {
+            return null;
         }
 
-        // One first attempt per solver: a solver with a row before it needs nothing else of theirs
+        $timeline = new PaceTimeline($this->baselineCalculator, (float) $rows[0]['scaling_exponent']);
+        $firstAttempts = [];
+
         foreach ($rows as $row) {
-            if ($row['pace_baseline_seconds'] !== null && !isset($without[$row['player_id']])) {
+            if ($row['player_id'] === null || $row['pieces_count'] === null || $row['seconds_to_solve'] === null || $row['solved_ts'] === null || $row['tracked_ts'] === null) {
+                continue; // built, but the puzzle has no qualifying first attempt
+            }
+
+            $firstAttempts[] = [
+                'player_id' => $row['player_id'],
+                'pieces_count' => $row['pieces_count'],
+                'seconds_to_solve' => $row['seconds_to_solve'],
+                'solved_ts' => $row['solved_ts'],
+                'tracked_ts' => $row['tracked_ts'],
+            ];
+
+            if ($row['pace_baseline_seconds'] !== null && $row['pace_solved_ts'] !== null && $row['pace_tracked_ts'] !== null) {
                 $timeline->add($row['player_id'], (int) $row['pieces_count'], (float) $row['pace_solved_ts'], (float) $row['pace_tracked_ts'], (int) $row['pace_baseline_seconds']);
+
+                continue;
+            }
+
+            /** @var list<array{0: int, 1: float|int, 2: float|int, 3: int}> $everyRow */
+            $everyRow = $row['all_rows'] !== null ? json_decode($row['all_rows'], true, flags: JSON_THROW_ON_ERROR) : [];
+
+            foreach ($everyRow as [$piecesCount, $solved, $tracked, $baseline]) {
+                $timeline->add($row['player_id'], (int) $piecesCount, (float) $solved, (float) $tracked, (int) $baseline);
             }
         }
 
-        $this->addRowsOfPlayers($timeline, array_keys($without));
-
-        return [$rows, $timeline];
+        return [$firstAttempts, $timeline];
     }
 
     /**

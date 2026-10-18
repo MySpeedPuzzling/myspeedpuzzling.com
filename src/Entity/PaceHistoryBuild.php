@@ -30,6 +30,11 @@ class PaceHistoryBuild
         #[Immutable]
         #[Column]
         public DateTimeImmutable $builtAt,
+        // The baselines' scaling exponent of the last full sync - what the incremental path and the
+        // reconstructor interpolate with, so they agree with the batch without computing it again
+        #[Immutable]
+        #[Column(nullable: true)]
+        public null|float $scalingExponent = null,
     ) {
     }
 }

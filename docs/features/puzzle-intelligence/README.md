@@ -171,8 +171,10 @@ their next few solves), so it carries no age bias; today's code divided them by 
 
 `PaceTimelineLoader` builds the timeline: every row (the batch: 232k rows, ~10 MB in packed arrays, one query), every
 row of some players (`PredictionReconstructor`: the solvers of the puzzles it predicts statistically), or just what a
-few lookups need (one puzzle - `RecalculateIncrementalPuzzleIntelligenceOnSolvingTimeChange` on every added time: one
-index step per solver at the puzzle's piece count, every row only of solvers without such a row).
+few lookups need (one puzzle - `RecalculateIncrementalPuzzleIntelligenceOnSolvingTimeChange` on every added time:
+`forPuzzleFirstAttempts()`, **one statement** with the puzzle's qualifying first attempts, the marker below, one index
+step per solver at the puzzle's piece count and, aggregated, every row only of solvers without such a row - as many
+statements as the old baseline join, so the add path's query budgets are unchanged).
 
 ### Writing it: the 15-minute batch, change detection
 
@@ -230,7 +232,9 @@ run's `sync()` or the backfill's walk over every player) and never removed. Unti
 - `PredictionReconstructor` leaves statistical targets **pending** (NULL, not `false`): the self-healing prediction
   backfill cron picks them up once the history is there.
 
-Pinned by `PaceHistoryRolloutTest` (mutation-checked). The check is one primary-key read per incremental run.
+Pinned by `PaceHistoryRolloutTest` (mutation-checked). The marker also holds the baselines' scaling exponent of the
+last full sync, which the incremental path and the reconstructor interpolate with (the batch's own value, not
+recomputed). On the add path the marker costs nothing extra: it is read in the same statement as the puzzle's solves.
 
 ## Step 2: Difficulty Index (Per Solve)
 

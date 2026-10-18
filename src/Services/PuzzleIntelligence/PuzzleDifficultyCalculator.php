@@ -68,7 +68,28 @@ final class PuzzleDifficultyCalculator implements ResetInterface
      */
     public function calculateForPuzzle(string $puzzleId): array
     {
-        return $this->calculateFromSolves($this->fetchFirstAttemptsWithBaselines($puzzleId));
+        return $this->calculateFromSolves($this->fetchFirstAttemptsWithBaselines($puzzleId) ?? []);
+    }
+
+    /**
+     * calculateForPuzzle(), or null while the pace history is not built (PaceHistoryReadiness) - the
+     * incremental handler's way: the readiness comes with the solves, in the same statement.
+     *
+     * @return null|array{
+     *     difficulty_score: float|null,
+     *     difficulty_tier: DifficultyTier|null,
+     *     confidence: MetricConfidence,
+     *     sample_size: int,
+     *     indices_p25: float|null,
+     *     indices_p75: float|null,
+     *     sum_log_indices: float,
+     * }
+     */
+    public function calculateForPuzzleOnBuiltPaceHistory(string $puzzleId): null|array
+    {
+        $solves = $this->fetchFirstAttemptsWithBaselines($puzzleId);
+
+        return $solves !== null ? $this->calculateFromSolves($solves) : null;
     }
 
     /**
@@ -126,17 +147,24 @@ final class PuzzleDifficultyCalculator implements ResetInterface
     }
 
     /**
-     * First attempt of every qualifying player of a puzzle, with the player's pace as of that solve.
+     * First attempt of every qualifying player of a puzzle, with the player's pace as of that solve;
+     * null while the pace history is not built (never with preloaded data - the batch builds it first).
      *
-     * @return list<array{seconds_to_solve: int|string, baseline_seconds: int|string}>
+     * @return null|list<array{seconds_to_solve: int|string, baseline_seconds: int|string}>
      */
-    private function fetchFirstAttemptsWithBaselines(string $puzzleId): array
+    private function fetchFirstAttemptsWithBaselines(string $puzzleId): null|array
     {
         if ($this->indicesCache !== null) {
             return $this->indicesCache[$puzzleId] ?? [];
         }
 
-        [$firstAttempts, $timeline] = $this->paceTimelineLoader->forPuzzleFirstAttempts($puzzleId);
+        $loaded = $this->paceTimelineLoader->forPuzzleFirstAttempts($puzzleId);
+
+        if ($loaded === null) {
+            return null;
+        }
+
+        [$firstAttempts, $timeline] = $loaded;
 
         $solves = [];
 

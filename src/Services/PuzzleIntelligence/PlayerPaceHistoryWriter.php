@@ -131,7 +131,7 @@ final readonly class PlayerPaceHistoryWriter
 
         // Every player is in: from now on the as-of difficulty may be computed from the history
         if ($playerIds === null) {
-            $this->readiness->markBuilt();
+            $this->markBuilt();
         }
 
         return $result;
@@ -142,7 +142,7 @@ final readonly class PlayerPaceHistoryWriter
      */
     public function markBuilt(): void
     {
-        $this->readiness->markBuilt();
+        $this->readiness->markBuilt($this->baselineCalculator->computeScalingExponent());
     }
 
     /**

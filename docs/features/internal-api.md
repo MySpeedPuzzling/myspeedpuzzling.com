@@ -242,6 +242,144 @@ curl -s -X POST -H "Authorization: Bearer $INTERNAL_API_TOKEN" -H 'Content-Type:
   https://myspeedpuzzling.com/internal-api/solving-times/<timeId>/mark-suspicious
 ```
 
+### Puzzle image analysis
+
+A pipeline outside the app (Jan's Mac, local open models) analyses every puzzle box image - finds and crops the
+artwork (many images are photos of the box), computes colour and structure features, tags theme and style - and pushes
+the results here daily. They feed later pages (a personal Insights page); nothing shows them yet. Storage is generic:
+one current row per puzzle and **analyzer** (`puzzle_image_analysis`, unique `(analyzer, puzzle_id)`), the payload
+(`result`) stored as it came, versioned by `analyzerVersion` - no history, a newer push replaces the row. No reviewer
+needed.
+
+| Method | Path | Purpose |
+|---|---|---|
+| `GET` | `/internal-api/puzzle-images` | The work list: puzzles with a shown image, a page at a time |
+| `PUT` | `/internal-api/puzzles/{puzzleId}/image-analysis/{analyzer}` | Store one analysis → `200` with the stored row |
+| `POST` | `/internal-api/puzzle-image-analyses` | Store up to 200 analyses → `200` with an outcome per item |
+| `GET` | `/internal-api/puzzles/{puzzleId}/image-analysis` | Every stored analysis of a puzzle, payloads included (debugging) |
+| `POST` | `/internal-api/puzzle-image-claims` | A worker claims its next images (lease) → the work list's items |
+| `POST` | `/internal-api/puzzle-image-claims/release` | A worker releases its claims → `{"released": n}` |
+| `GET` | `/internal-api/puzzle-image-analyses` | Stored results of one analyzer in bulk, payloads included |
+
+- **Analyzers** (`ImageAnalyzer`, a backed enum - a new kind of analysis is one new case there; payload schemas in
+  [`insights/image-taxonomy.md`](./insights/image-taxonomy.md) §11): raw, from the image - `artwork`, `colors`,
+  `traits`, `ocr`, `barcode`, `vision_labels`, `embed_siglip2`, `embed_dinov2` (embeddings as base64 float16 inside
+  the JSON, ~3 KB a vector), `segmentation`, `describe`; derived on the Mac from those - `box_text`, `zeroshot`,
+  `neighbours`, `tags`. The largest expected payload (`ocr`, capped at 400 lines) is ~16 KB. What part of the image an analyzer looks at (the cropped artwork, the whole photo) is its own
+  business - the fingerprint always names the source image.
+- **imageFingerprint** - which picture an analysis describes: the first 16 hex characters of `md5(puzzle.image)`
+  (`PuzzleImageFingerprint`, computed the same in SQL). A new picture always gets a file name never written before
+  (`PuzzleImageNamer`, since 2026-10-07 - the image caches key on the name), so the path names the picture and nothing
+  is stored on the puzzle. A secret puzzle's picture renamed by `SecretPuzzleHides` gets a new fingerprint for the same
+  picture - analysed once more, never wrong. Send back exactly the `imageFingerprint` the list gave.
+- **Hidden images** (`hide_until` or `hide_image_until` in the future - secret competition puzzles, placeholders before
+  their reveal) are never listed, read or accepted: they answer like an unknown puzzle (`404` / `not_found`).
+- **List** `?analyzer=&version=&status=missing|stale|all&limit=1..1000 (500)&after=<puzzleId>`, in puzzle id order:
+  `missing` = no row for the analyzer; `stale` = no row, or one of another picture (fingerprint), or - when `version`
+  is given - of another `analyzerVersion`; `all` (default) = every puzzle with a shown image. `analyzer` is required for
+  `missing` and `stale`. Each puzzle: `puzzleId`, `name`, `piecesCount`, `manufacturer` `{id, name}` (or null),
+  `imageUrl` (the full-size original, `{NGINX_PROXY_BASE_URL}/original/<path>` - downloadable from anywhere),
+  `imageFingerprint`, `imageRatio`, `analyses` `{<analyzer>: {analyzerVersion, imageFingerprint, analyzedAt,
+  receivedAt}}` (an object, `{}` when none). `nextCursor` is the next page's `after`, null on the last page. Unknown
+  parameters or bad values: `400` with `errors`. The last, empty page of a `stale` walk reads every puzzle once
+  (~0.35 s measured on 41k × 4 analyzers) - fine once a day.
+- **PUT body**: `analyzerVersion` (≤ 50 characters), `imageFingerprint`, `analyzedAt` (optional, ISO 8601, UTC without
+  an offset - stored in UTC), `result` (a JSON object with at least one field, at most 64 KB JSON-encoded - the limit is
+  per analyzer, `ImageAnalyzer::maxResultBytes()`). Only `artwork` payloads are looked into: `bbox` `{x, y, w, h}` and
+  `corners` (4 points, `{x, y}` or `[x, y]`), when present and not null, are fractions 0..1 of the image, `w`/`h` above 0,
+  `x + w ≤ 1`, `y + h ≤ 1` (a model's rounding of 1e-6 tolerated). Answers the stored row: `puzzleId`, `analyzer`,
+  `analyzerVersion`, `imageFingerprint`, `current` (it describes the puzzle's present picture), `analyzedAt`,
+  `receivedAt` (ISO 8601) and `result`. `404` unknown puzzle or hidden image, `409` the picture changed since it was
+  listed (the error names the current fingerprint), `422` an invalid analysis or an unknown analyzer
+  (`{"error", "errors": {"field": "…"}}`, e.g. `result.bbox`; a NUL character anywhere in `result` - keys too - or in
+  `analyzerVersion` / `imageFingerprint` is one: Postgres refuses it), `400` malformed JSON.
+- **Batch** `{"items": [{puzzleId, analyzer, analyzerVersion, imageFingerprint, analyzedAt?, result}, …]}` (1-200
+  items, else `422`): one transaction, a refused item never fails the others. Answers `counts` per outcome and `items`
+  in order: `{index, puzzleId, analyzer, status, message?, currentFingerprint?, errors?}` with `status` `stored`,
+  `stale_fingerprint` (`currentFingerprint` = the puzzle's picture now, absent when it has none), `not_found` or
+  `invalid` (`errors` by field). The same puzzle and analyzer twice in one batch: the later item wins. The audit log
+  gets the counts (`summary`), never the payloads.
+- **Payload notes**: `result` is jsonb - the values are kept, the **order of keys is not**. The app decodes JSON
+  objects into PHP arrays, so an empty object comes back as `[]` and **a map with numeric keys** (`{"0": …, "1": …}`)
+  **comes back as a list** - use string keys that are not numbers, send null or leave an empty map out. Puzzle merges
+  delete the merged puzzle's rows (the survivor keeps its own, stale if it takes the merged puzzle's image).
+- **Versions are compared for equality**, never ordered: a push of `1.0.0` replaces a stored `1.1.0`, and `stale` /
+  claims for one version treat every other version as to-do. **Run one version per analyzer at a time** - a worker on
+  an older version would overwrite the newer results.
+- **Derived analyzers name other puzzles** (`neighbours`, `zeroshot`/`tags` built from them): a puzzle they name may
+  have become secret since (hide_until / hide_image_until set later). Consumers re-check every referenced id against
+  the hidden-image condition before showing it - only the analysed puzzle itself is filtered by the API.
+- **Claims (several machines in parallel)**: a worker never works from the plain list - it claims.
+  `POST /internal-api/puzzle-image-claims` `{analyzer, version, worker (≤ 64), limit (1-200, 50), leaseSeconds
+  (60-7200, 1800)}` takes up to `limit` puzzles that are still to do for the analyzer (no analysis, another picture or
+  another `version`) and that no **other** worker holds (no claim, an expired one, or this worker's own), and answers
+  them as `{"puzzles": [...]}` in the list's item shape (`claims.<analyzer>` = `{worker, expiresAt}`). **Fresh work
+  comes first** (puzzle id order); this worker's own unexpired claims come after it - they are returned, and their
+  lease extended, only when there is not enough fresh work to fill `limit`. So a worker keeps advancing past images it
+  holds but skipped, and **pre-fetching the next batch while working on one is a plain second claim** - the first
+  batch's claims stay valid, nothing has to be re-claimed; pick `leaseSeconds` to cover a batch. **Release the images
+  a worker failed on or skips** (below), so another worker or a later run takes them instead of waiting for the lease.
+  Two machines never get the same image: claims and stores take one advisory lock (`SerializedByLock`, held until the
+  commit) - the real guarantee; the one statement is a backstop on its own (candidates `FOR NO KEY UPDATE SKIP LOCKED`,
+  then `INSERT … ON CONFLICT (analyzer, puzzle_id) DO UPDATE … WHERE` the claim is expired or this worker's, `RETURNING`
+  what was really taken - `ClaimPuzzleImagesHandler`, table `puzzle_image_analysis_claim`).
+  **Storing a result (PUT or batch) deletes that puzzle's claim for the analyzer** in the same transaction - whichever
+  worker held it. `POST /internal-api/puzzle-image-claims/release` `{worker, analyzer?, puzzleIds?}` lets go of a
+  worker's own claims (on shutdown, or images it gave up on). A crashed worker's claims simply expire. The plain list
+  stays read-only and ignores claims; its items show the claims held now (`claims`, `{}` when none). `400` with
+  `errors` for invalid fields.
+- **Bulk read**: `GET /internal-api/puzzle-image-analyses?analyzer=<a>&limit=1..1000 (500)&after=<puzzleId>&onlyCurrent=1`
+  - every stored analysis of one analyzer, in puzzle id order, hidden images left out: `{"analyzer", "items": [{puzzleId,
+  analyzer, analyzerVersion, imageFingerprint, current, analyzedAt, receivedAt, result}], "nextCursor"}`. `current` =
+  it describes the picture the puzzle has now; `onlyCurrent=1` returns only those. A page ends after `limit` rows or
+  once its results pass ~8 MB (`GetPuzzleImageAnalyses::MAX_PAGE_BYTES`, the row crossing it is the last one) - follow
+  `nextCursor` until it is null, a short page is not the end. An embedding row is ~3-6 KB, so 500-1000 rows of
+  `embed_*` is ~3-6 MB.
+- **Reading them in the app**: `GetPuzzleImageAnalyses::forPuzzles($puzzleIds, onlyCurrent: true)` - decoded results
+  keyed by puzzle and analyzer, one statement, hidden images left out.
+
+```bash
+# What is still to do for the colour analyzer v2 (missing, another picture, or an older version)?
+curl -s -H "Authorization: Bearer $INTERNAL_API_TOKEN" \
+  "https://myspeedpuzzling.com/internal-api/puzzle-images?analyzer=colors&version=colors-v2&status=stale&limit=500" | jq
+# → {"puzzles": [{"puzzleId": "018d…", "name": "…", "piecesCount": 1000, "manufacturer": {"id": "…", "name": "Ravensburger"},
+#     "imageUrl": "https://img.myspeedpuzzling.com/original/ravensburger-….jpg", "imageFingerprint": "3f2a9c0d4b1e7a65",
+#     "imageRatio": 1.38, "analyses": {"artwork": {"analyzerVersion": "crop-v1", "imageFingerprint": "3f2a9c0d4b1e7a65",
+#     "analyzedAt": "2026-10-18T05:12:00+00:00", "receivedAt": "2026-10-18T06:00:03+00:00"}}}], "nextCursor": "018d…"}
+
+# Store one
+curl -s -X PUT -H "Authorization: Bearer $INTERNAL_API_TOKEN" -H 'Content-Type: application/json' \
+  -d '{"analyzerVersion": "crop-v1", "imageFingerprint": "3f2a9c0d4b1e7a65", "analyzedAt": "2026-10-18T05:12:00Z",
+       "result": {"bbox": {"x": 0.04, "y": 0.11, "w": 0.92, "h": 0.71}, "isPhoto": true}}' \
+  https://myspeedpuzzling.com/internal-api/puzzles/<puzzleId>/image-analysis/artwork
+
+# A worker takes its next 50 images for the caption model (another Mac calling at the same moment gets others)
+curl -s -X POST -H "Authorization: Bearer $INTERNAL_API_TOKEN" -H 'Content-Type: application/json' \
+  -d '{"analyzer": "describe", "version": "1.0.0+qwen3vl8b-4bit", "worker": "mac-mini", "limit": 50, "leaseSeconds": 1800}' \
+  https://myspeedpuzzling.com/internal-api/puzzle-image-claims
+# → {"puzzles": [{"puzzleId": "…", "imageUrl": "…", "imageFingerprint": "…", …,
+#     "claims": {"describe": {"worker": "mac-mini", "expiresAt": "2026-10-18T15:30:00+00:00"}}}]}
+
+# Shutting down - let the other Mac have the rest
+curl -s -X POST -H "Authorization: Bearer $INTERNAL_API_TOKEN" -H 'Content-Type: application/json' \
+  -d '{"worker": "mac-mini"}' https://myspeedpuzzling.com/internal-api/puzzle-image-claims/release
+# → {"released": 37}
+
+# Every current DINOv2 embedding, 500 at a time (to compute neighbours)
+curl -s -H "Authorization: Bearer $INTERNAL_API_TOKEN" \
+  "https://myspeedpuzzling.com/internal-api/puzzle-image-analyses?analyzer=embed_dinov2&onlyCurrent=1&limit=500&after=<nextCursor>"
+# → {"analyzer": "embed_dinov2", "items": [{"puzzleId": "…", "analyzerVersion": "1.0.0+dinov2-l", "current": true,
+#     "result": {"dim": 1024, "dtype": "f16", "cls": "<base64>"}, …}], "nextCursor": "…"}
+
+# Store a batch
+curl -s -X POST -H "Authorization: Bearer $INTERNAL_API_TOKEN" -H 'Content-Type: application/json' \
+  -d '{"items": [{"puzzleId": "<puzzleId>", "analyzer": "tags", "analyzerVersion": "tags-v1",
+                  "imageFingerprint": "3f2a9c0d4b1e7a65", "result": {"tags": ["animals", "watercolour"]}}]}' \
+  https://myspeedpuzzling.com/internal-api/puzzle-image-analyses
+# → {"counts": {"stored": 1, "stale_fingerprint": 0, "not_found": 0, "invalid": 0},
+#    "items": [{"index": 0, "puzzleId": "…", "analyzer": "tags", "status": "stored"}]}
+```
+
 ### Competitions and events
 
 Create and edit competitions (events), their rounds and puzzles without the admin UI - e.g. set an event's links, move
@@ -1008,6 +1146,10 @@ the `fingers_crossed` one that drops info records of requests without a warning.
 | `409 Conflict` | A puzzle changed since the `recordVersion(s)` sent with a merge / change-request approve; a change proposal for a puzzle with a pending one | `{"error": "..."}` |
 | `409 Conflict` | A round change, a round delete or a puzzle removal that would reveal secret puzzles earlier than planned, sent without `"confirmReveal": true` | `{"error": "...", "revealedPuzzles": [...]}` |
 | `422 Unprocessable Entity` | A brand merge that cannot be done (survivor in its own list) | `{"error": "..."}` |
+| `200 OK` | An image analysis stored (`PUT`), a batch of them (`POST`, an outcome per item), the image list | the analysis / `{"counts", "items"}` / `{"puzzles", "nextCursor"}` |
+| `404 Not Found` | An image analysis for an unknown puzzle or a hidden image | `{"error": "..."}` |
+| `409 Conflict` | An image analysis of a picture the puzzle no longer has (`imageFingerprint`) | `{"error": "..."}` |
+| `422 Unprocessable Entity` | An invalid image analysis (an unknown analyzer, a `result` that is no object or over 64 KB, a bad `bbox`/`corners`), a batch that is no list of 1-200 items | `{"error": "...", "errors": {"field": "what is wrong"}}` |
 
 Every refusal is JSON, whatever the client accepts: `InternalApiErrorResponseSubscriber` renders each 4xx HTTP
 exception under `/internal-api/` (from a controller, a handler or the firewall) as `{"error": "…"}` with its status.
@@ -1067,3 +1209,7 @@ The public Swagger UI at `/api/docs` is generated by API Platform from resources
 - `src/Message/MoveEditionToSeries.php`, `MoveRoundToCompetition.php`, `CreateOrganizationFromSeries.php` (+ handlers) — the restructuring tools (also the web pages `move_edition`, `move_competition_round`, `create_organization_from_series`)
 - `src/Services/Restructuring/EventUrlRedirects.php`, `src/Query/GetEventUrlRedirect.php`, `src/EventSubscriber/EventUrlRedirectSubscriber.php` — old event addresses answer 301 after a move
 - `src/EventSubscriber/ManufacturerSlugRedirectSubscriber.php` — merged slugs answer 301
+- `src/Entity/PuzzleImageAnalysis.php`, `src/Value/ImageAnalyzer.php`, `src/Value/PuzzleImageFingerprint.php`, `src/Value/PuzzleImageAnalysisInput.php` — image analyses: storage, analyzers, which picture, the checks of a push
+- `src/Message/RecordPuzzleImageAnalysis.php`, `RecordPuzzleImageAnalyses.php` (+ handlers), `src/Services/PuzzleImageAnalysisRecorder.php` — storing them (one rule for both)
+- `src/Query/GetPuzzleImagesForAnalysis.php` (the work list), `src/Query/GetPuzzleImageAnalyses.php` (reading them back, for later pages too)
+- `src/Entity/PuzzleImageAnalysisClaim.php`, `src/Message/ClaimPuzzleImages.php`, `ReleasePuzzleImageClaims.php` (+ handlers) — the workers' claims

@@ -18,6 +18,8 @@ use SpeedPuzzling\Web\Exceptions\CompetitionSlugAmbiguous;
 use SpeedPuzzling\Web\Exceptions\CompetitionSlugTaken;
 use SpeedPuzzling\Web\Exceptions\CompetitionTagShared;
 use SpeedPuzzling\Web\Exceptions\InternalApiInvalidInput;
+use SpeedPuzzling\Web\Exceptions\InvalidPuzzleImageAnalysis;
+use SpeedPuzzling\Web\Exceptions\PuzzleImageChangedMeanwhile;
 use SpeedPuzzling\Web\Exceptions\PuzzleChangedMeanwhile;
 use SpeedPuzzling\Web\Exceptions\PuzzleChangeRequestAlreadyReviewed;
 use SpeedPuzzling\Web\Exceptions\PuzzleEanAlreadyInCatalogue;
@@ -103,6 +105,8 @@ final class ClientErrorLogLevelTest extends KernelTestCase
         yield '409 internal API round puzzles not attachable' => [new RoundPuzzlesNotAttachable('Hidden puzzles cannot be attached.'), LogLevel::INFO];
         yield '409 personal record before the reveal' => [new PuzzleNotRevealedYet('x', null, 'Europe/Prague'), LogLevel::INFO];
         yield '400 invalid internal API input' => [new InternalApiInvalidInput(['name' => 'is required.']), LogLevel::INFO];
+        yield '422 invalid image analysis' => [new InvalidPuzzleImageAnalysis(['result' => 'is required.']), LogLevel::INFO];
+        yield '409 image changed since it was analysed' => [new PuzzleImageChangedMeanwhile('0123456789abcdef'), LogLevel::INFO];
         yield '409 conflict stays visible' => [new ConflictHttpException('A team with results cannot be deleted.'), LogLevel::ERROR];
         yield 'a bug stays critical' => [new RuntimeException('A new entity was found'), LogLevel::CRITICAL];
     }

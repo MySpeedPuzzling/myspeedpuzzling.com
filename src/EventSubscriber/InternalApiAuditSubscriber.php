@@ -26,6 +26,9 @@ final readonly class InternalApiAuditSubscriber implements EventSubscriberInterf
     /** Set by a controller that creates something, so the log names it */
     public const string CREATED_ID_ATTRIBUTE = '_internal_api_created_id';
 
+    /** Set by a controller writing many things at once (a batch), so the log says how many - counts, never payloads */
+    public const string SUMMARY_ATTRIBUTE = '_internal_api_summary';
+
     public function __construct(
         #[Autowire(service: 'monolog.logger.internal_api_audit')]
         private LoggerInterface $logger,
@@ -65,6 +68,7 @@ final readonly class InternalApiAuditSubscriber implements EventSubscriberInterf
         /** @var array<string, mixed> $routeParameters */
         $routeParameters = $request->attributes->get('_route_params', []);
         $createdId = $request->attributes->get(self::CREATED_ID_ATTRIBUTE);
+        $summary = $request->attributes->get(self::SUMMARY_ATTRIBUTE);
 
         $this->logger->info('Internal API write: {method} {path} answered {status}', [
             'method' => $request->getMethod(),
@@ -74,6 +78,6 @@ final readonly class InternalApiAuditSubscriber implements EventSubscriberInterf
             'actingPlayerId' => $this->actingPlayerId !== '' ? $this->actingPlayerId : null,
             'targetIds' => array_filter($routeParameters, is_string(...)),
             'createdId' => is_string($createdId) ? $createdId : null,
-        ]);
+        ] + (is_array($summary) ? ['summary' => $summary] : []));
     }
 }

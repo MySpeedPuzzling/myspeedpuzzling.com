@@ -1899,6 +1899,341 @@ paths:
         "409":
           $ref: "#/components/responses/Conflict"
 
+  /internal-api/puzzle-images:
+    get:
+      summary: The image analysis pipeline's work list
+      operationId: listPuzzleImages
+      description: |
+        Puzzles with an image that is shown now (never one hidden by `hide_until` /
+        `hide_image_until`), in puzzle id order, a page at a time (keyset: `after` =
+        the previous page's `nextCursor`). See internal-api.md "Puzzle image analysis".
+      parameters:
+        - name: analyzer
+          in: query
+          required: false
+          description: Required for `missing` and `stale`.
+          schema:
+            $ref: "#/components/schemas/ImageAnalyzer"
+        - name: version
+          in: query
+          required: false
+          description: For `stale` - an analysis of another analyzerVersion is stale too.
+          schema:
+            type: string
+            maxLength: 50
+        - name: status
+          in: query
+          required: false
+          description: |
+            `missing` = no analysis of the analyzer; `stale` = none, or one of another
+            picture (imageFingerprint), or of another version (when `version` is given);
+            `all` = every puzzle with a shown image.
+          schema:
+            type: string
+            enum: [missing, stale, all]
+            default: all
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 1000
+            default: 500
+        - name: after
+          in: query
+          required: false
+          description: The `nextCursor` of the previous page.
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: A page of puzzles
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [puzzles, nextCursor]
+                properties:
+                  puzzles:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/PuzzleImageForAnalysis"
+                  nextCursor:
+                    type: [string, "null"]
+                    format: uuid
+                    description: The `after` of the next page, null on the last one.
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /internal-api/puzzles/{puzzleId}/image-analysis/{analyzer}:
+    parameters:
+      - $ref: "#/components/parameters/PuzzleImageAnalysisPuzzleId"
+      - name: analyzer
+        in: path
+        required: true
+        description: An unknown analyzer is a 422.
+        schema:
+          $ref: "#/components/schemas/ImageAnalyzer"
+    put:
+      summary: Store one analysis of a puzzle's box image
+      operationId: putPuzzleImageAnalysis
+      description: |
+        Creates or replaces the puzzle's current analysis by the analyzer. Only for
+        the puzzle's current picture (`imageFingerprint` from the list) and never for
+        a hidden image.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PuzzleImageAnalysisBody"
+      responses:
+        "200":
+          description: The stored analysis
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PuzzleImageAnalysis"
+        "400":
+          $ref: "#/components/responses/InvalidJson"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: The puzzle's image changed since it was listed (the error names its current fingerprint) - nothing stored
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "422":
+          $ref: "#/components/responses/InvalidImageAnalysis"
+
+  /internal-api/puzzle-image-claims:
+    post:
+      summary: A worker claims its next images (lease)
+      operationId: claimPuzzleImages
+      description: |
+        Takes up to `limit` puzzles still to do for the analyzer (no analysis, another
+        picture or another version) that no other worker holds - this worker's own
+        claims are taken again and extended - in puzzle id order. Race-safe for several
+        machines at once (an advisory lock, the statement's ON CONFLICT guard as backstop).
+        Fresh work first; this worker's own unexpired claims only when there is not
+        enough fresh work (then extended). Storing a result deletes its claim; release
+        images a worker failed on.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [analyzer, version, worker]
+              properties:
+                analyzer: { $ref: "#/components/schemas/ImageAnalyzer" }
+                version: { type: string, maxLength: 50 }
+                worker: { type: string, maxLength: 64 }
+                limit: { type: integer, minimum: 1, maximum: 200, default: 50 }
+                leaseSeconds: { type: integer, minimum: 60, maximum: 7200, default: 1800 }
+      responses:
+        "200":
+          description: The claimed puzzles, in the work list's shape
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [puzzles]
+                properties:
+                  puzzles:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/PuzzleImageForAnalysis"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /internal-api/puzzle-image-claims/release:
+    post:
+      summary: A worker releases its claims
+      operationId: releasePuzzleImageClaims
+      description: Only this worker's claims - all, or those of an analyzer and/or of the listed puzzles.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [worker]
+              properties:
+                worker: { type: string, maxLength: 64 }
+                analyzer: { $ref: "#/components/schemas/ImageAnalyzer" }
+                puzzleIds:
+                  type: array
+                  items: { type: string, format: uuid }
+      responses:
+        "200":
+          description: How many claims were released
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [released]
+                properties:
+                  released: { type: integer }
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /internal-api/puzzle-image-analyses:
+    get:
+      summary: Stored results of one analyzer in bulk
+      operationId: listPuzzleImageAnalyses
+      description: |
+        Every stored analysis of the analyzer, payloads included, in puzzle id order,
+        hidden images left out. A page ends after `limit` rows or once its results pass
+        ~8 MB (the row crossing it is the last) - follow `nextCursor` until it is null.
+      parameters:
+        - name: analyzer
+          in: query
+          required: true
+          schema:
+            $ref: "#/components/schemas/ImageAnalyzer"
+        - name: limit
+          in: query
+          required: false
+          schema: { type: integer, minimum: 1, maximum: 1000, default: 500 }
+        - name: after
+          in: query
+          required: false
+          description: The `nextCursor` of the previous page.
+          schema: { type: string, format: uuid }
+        - name: onlyCurrent
+          in: query
+          required: false
+          description: 1 = only analyses of the picture each puzzle has now.
+          schema: { type: string, enum: ["0", "1"], default: "0" }
+      responses:
+        "200":
+          description: A page of analyses
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [analyzer, items, nextCursor]
+                properties:
+                  analyzer: { $ref: "#/components/schemas/ImageAnalyzer" }
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/PuzzleImageAnalysis"
+                  nextCursor:
+                    type: [string, "null"]
+                    format: uuid
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    post:
+      summary: Store up to 200 image analyses at once
+      operationId: recordPuzzleImageAnalyses
+      description: |
+        One transaction; a refused item never fails the others - every item gets its
+        outcome, in order. The same puzzle and analyzer twice: the later item wins.
+        Versions are compared for equality: run one version per analyzer at a time.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [items]
+              properties:
+                items:
+                  type: array
+                  minItems: 1
+                  maxItems: 200
+                  items:
+                    allOf:
+                      - $ref: "#/components/schemas/PuzzleImageAnalysisBody"
+                      - type: object
+                        required: [puzzleId, analyzer]
+                        properties:
+                          puzzleId: { type: string, format: uuid }
+                          analyzer: { $ref: "#/components/schemas/ImageAnalyzer" }
+      responses:
+        "200":
+          description: Every item's outcome
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [counts, items]
+                properties:
+                  counts:
+                    type: object
+                    required: [stored, stale_fingerprint, not_found, invalid]
+                    additionalProperties:
+                      type: integer
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      required: [index, status]
+                      properties:
+                        index: { type: integer, description: The item's position in the request }
+                        puzzleId: { type: string }
+                        analyzer: { type: string }
+                        status:
+                          type: string
+                          enum: [stored, stale_fingerprint, not_found, invalid]
+                        message: { type: string }
+                        currentFingerprint:
+                          type: string
+                          description: stale_fingerprint only - the puzzle's picture now (absent when it has none)
+                        errors:
+                          type: object
+                          description: invalid only - field => what is wrong
+                          additionalProperties: { type: string }
+        "400":
+          $ref: "#/components/responses/InvalidJson"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "422":
+          $ref: "#/components/responses/InvalidImageAnalysis"
+
+  /internal-api/puzzles/{puzzleId}/image-analysis:
+    parameters:
+      - $ref: "#/components/parameters/PuzzleImageAnalysisPuzzleId"
+    get:
+      summary: Every stored analysis of a puzzle's box image (debugging)
+      operationId: getPuzzleImageAnalyses
+      responses:
+        "200":
+          description: The analyses, keyed by analyzer
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [puzzleId, analyses]
+                properties:
+                  puzzleId: { type: string, format: uuid }
+                  analyses:
+                    type: object
+                    additionalProperties:
+                      $ref: "#/components/schemas/PuzzleImageAnalysis"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
 components:
   securitySchemes:
     InternalApiBearer:
@@ -1989,6 +2324,14 @@ components:
         type: string
         format: uuid
 
+    PuzzleImageAnalysisPuzzleId:
+      name: puzzleId
+      in: path
+      required: true
+      description: UUID of the puzzle. Unknown, or with its image hidden now, is a 404.
+      schema:
+        type: string
+        format: uuid
     SolvingTimeId:
       name: timeId
       in: path
@@ -3078,6 +3421,90 @@ components:
           minLength: 1
           description: Shown to the player who proposed the change, as a notification.
 
+    ImageAnalyzer:
+      type: string
+      enum: [artwork, colors, traits, ocr, barcode, vision_labels, embed_siglip2, embed_dinov2, segmentation, describe, box_text, zeroshot, neighbours, tags]
+      description: What an image analysis is about (ImageAnalyzer - one new case per new kind of analysis; payload schemas in docs/features/insights/image-taxonomy.md section 11).
+
+    PuzzleImageAnalysisBody:
+      type: object
+      required: [analyzerVersion, imageFingerprint, result]
+      properties:
+        analyzerVersion:
+          type: string
+          maxLength: 50
+        imageFingerprint:
+          type: string
+          maxLength: 64
+          description: Exactly the `imageFingerprint` the list gave for the picture analysed.
+        analyzedAt:
+          type: [string, "null"]
+          format: date-time
+          description: ISO 8601; without an offset it is UTC. Stored in UTC.
+        result:
+          type: object
+          minProperties: 1
+          description: |
+            The analyzer's payload, at most 64 KB JSON-encoded (per analyzer). Stored as
+            jsonb: key order is not kept, an empty nested object reads back as []. For
+            `artwork`, `bbox` {x, y, w, h} and `corners` (4 points {x, y} or [x, y]), when
+            present, are fractions 0..1 of the image with x + w <= 1, y + h <= 1.
+
+    PuzzleImageAnalysis:
+      type: object
+      required: [puzzleId, analyzer, analyzerVersion, imageFingerprint, current, analyzedAt, receivedAt, result]
+      properties:
+        puzzleId: { type: string, format: uuid }
+        analyzer: { $ref: "#/components/schemas/ImageAnalyzer" }
+        analyzerVersion: { type: string }
+        imageFingerprint: { type: string }
+        current:
+          type: boolean
+          description: It describes the picture the puzzle has now.
+        analyzedAt: { type: [string, "null"], format: date-time }
+        receivedAt: { type: string, format: date-time }
+        result: { type: object }
+
+    PuzzleImageForAnalysis:
+      type: object
+      required: [puzzleId, name, piecesCount, manufacturer, imageUrl, imageFingerprint, imageRatio, analyses, claims]
+      properties:
+        puzzleId: { type: string, format: uuid }
+        name: { type: string }
+        piecesCount: { type: integer }
+        manufacturer:
+          type: [object, "null"]
+          properties:
+            id: { type: string, format: uuid }
+            name: { type: string }
+        imageUrl:
+          type: string
+          description: The full-size original, downloadable from anywhere.
+        imageFingerprint:
+          type: string
+          description: Which picture it is - the first 16 hex characters of md5 of the stored image path.
+        imageRatio: { type: [number, "null"] }
+        analyses:
+          type: object
+          description: What is stored per analyzer (an object, {} when nothing).
+          additionalProperties:
+            type: object
+            required: [analyzerVersion, imageFingerprint, analyzedAt, receivedAt]
+            properties:
+              analyzerVersion: { type: string }
+              imageFingerprint: { type: string }
+              analyzedAt: { type: [string, "null"], format: date-time }
+              receivedAt: { type: string, format: date-time }
+        claims:
+          type: object
+          description: The claims held now (not expired), per analyzer ({} when none).
+          additionalProperties:
+            type: object
+            required: [worker, expiresAt]
+            properties:
+              worker: { type: string }
+              expiresAt: { type: string, format: date-time }
+
     Error:
       type: object
       additionalProperties: false
@@ -3185,6 +3612,12 @@ components:
   responses:
     InvalidJson:
       description: Request body was present but not a valid JSON object
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    InvalidImageAnalysis:
+      description: An invalid image analysis (unknown analyzer, a result that is no object or too big, a bad bbox/corners, unknown fields) or a batch that is no list of 1-200 items
       content:
         application/json:
           schema:

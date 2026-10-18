@@ -25,6 +25,12 @@ files in its reviewer's name (`INTERNAL_API_REVIEWER_PLAYER_ID`) included, by Ja
 introduced ~1,100 for the reviewer and ~3,350 (mostly moderation decisions) for the other admin. Declined work never
 subtracts; there is no negative karma.
 
+**The image pipeline's proposals earn no proposer karma** (`puzzle_change_request.source = 'image_pipeline'`, orchestrator
+2026-10-18 on the rule "1 karma per a person's accepted contribution"): a machine's proposal filed in the reviewer
+player's name is nobody's contribution. A moderator deciding one in the web review earns the decision as for any request
+(also the reviewer player - the "1 in total" rule does not apply, the proposal counts for nothing); decided through the
+internal API, nobody earns anything (`KarmaDerivation::itemsCte()`).
+
 **Kudos:** the players in `KARMA_INFINITE_PLAYER_IDS` (comma-separated, set in the lily.srv compose file - never in this
 public repository) show "∞ karma", golden and glowing, on the profile chip, the karma list and their own karma pages
 (`InfiniteKarma`, Twig `karma_infinite()`). Display only - their karma is derived and ranked by the real number.

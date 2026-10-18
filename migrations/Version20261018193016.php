@@ -15,8 +15,8 @@ use Ramsey\Uuid\Uuid;
  * Backfill of `source` (by hand): nothing stored tells the two apart, so the rule is the one way the internal API files -
  * in the name of INTERNAL_API_REVIEWER_PLAYER_ID, only since the endpoint shipped (2026-10-04), never with a photo.
  * Such rows become `internal_api`, every other row `player`. Without the variable (dev, tests) every row is `player`.
- * A web proposal the reviewer player made himself since then would read as `internal_api` - none is expected (the
- * reviewer is an admin, who edits a puzzle directly).
+ * A web proposal filed through the reviewer player's own account since then would read as `internal_api` - none is
+ * expected (the reviewer player is an admin account, and admins edit a puzzle directly).
  */
 final class Version20261018193016 extends AbstractMigration
 {

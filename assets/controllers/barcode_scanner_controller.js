@@ -95,6 +95,12 @@ export default class extends Controller {
         this._boundPageHide = () => this._reportSession();
         window.addEventListener('pagehide', this._boundPageHide);
 
+        // The camera is released while the page is hidden and taken again when it is back (README §5.10): an iPhone
+        // gives the camera to one page at a time, and a page that lost it (another tab, the PWA, an app) kept a muted
+        // track - a black picture until reload (2026-10-19). Hidden, it would only cost battery anyway.
+        this._boundVisibility = () => this._visibilityChanged();
+        document.addEventListener('visibilitychange', this._boundVisibility);
+
         this._boundPause = () => this.pause();
         this._boundResume = () => this.resume();
         window.addEventListener('barcode-scan:pause', this._boundPause);
@@ -126,6 +132,8 @@ export default class extends Controller {
         this.stopScanning();
         window.removeEventListener('barcode-scan:close', this._boundStopScanning);
         window.removeEventListener('pagehide', this._boundPageHide);
+        document.removeEventListener('visibilitychange', this._boundVisibility);
+        window.clearTimeout(this.cameraRestartTimer);
         window.removeEventListener('barcode-scan:pause', this._boundPause);
         window.removeEventListener('barcode-scan:resume', this._boundResume);
         this.wrapperTarget.removeEventListener('click', this._boundTap);
@@ -181,6 +189,42 @@ export default class extends Controller {
         this._startCamera();
     }
 
+    _visibilityChanged() {
+        if (document.hidden) {
+            if (this.scanning) {
+                this.resumeWhenVisible = true;
+                this.stopScanning();
+            }
+            return;
+        }
+
+        if (this.resumeWhenVisible) {
+            this.resumeWhenVisible = false;
+            this.initCamera();
+        }
+    }
+
+    /**
+     * Stop and start the camera again - at most 3 times a minute, so a camera another app keeps taking cannot loop
+     */
+    _restartCamera(reason) {
+        const now = Date.now();
+        this.cameraRestarts = (this.cameraRestarts || []).filter(at => now - at < 60000);
+        if (this.cameraRestarts.length >= 3) {
+            console.error(`Barcode scanner: the camera ${reason} again - not restarting`);
+            return;
+        }
+        this.cameraRestarts.push(now);
+
+        this.stopScanning();
+        window.clearTimeout(this.cameraRestartTimer);
+        this.cameraRestartTimer = window.setTimeout(() => {
+            if (!document.hidden && !this.scanning) {
+                this.initCamera();
+            }
+        }, 500);
+    }
+
     // --- Camera ---
 
     async _startCamera() {
@@ -213,8 +257,25 @@ export default class extends Controller {
             return;
         }
 
+        // Hidden while the camera was opening: give it back, take it again when the page is shown
+        if (document.hidden) {
+            opened.stream.getTracks().forEach(track => track.stop());
+            this.resumeWhenVisible = true;
+            this.stopScanning();
+            return;
+        }
+
         this.cameraPick = opened.pick;
         this.videoTrack = opened.stream.getVideoTracks()[0] || null;
+        if (this.videoTrack) {
+            // Taken away while the page is shown (another tab or app opened the camera): take it back once in a while
+            const track = this.videoTrack;
+            track.addEventListener('ended', () => {
+                if (track === this.videoTrack && this.scanning) {
+                    this._restartCamera('ended');
+                }
+            });
+        }
         this.trackCapabilities = this._capabilities(this.videoTrack);
         this.videoTarget.srcObject = opened.stream;
         this.videoTarget.play().catch(err => console.error('Video play failed:', err));

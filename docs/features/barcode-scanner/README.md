@@ -609,6 +609,23 @@ Tested in Chrome (fake camera, our files served by the dev stack): ours works �
 reads; our `.wasm` blocked → `cdn`, reads; both blocked → zbar unavailable (iOS-like: no reader; Android: Google's
 reader alone, reads); our scripts ran but the `.wasm` failed afterwards → no second copy, unavailable.
 
+### 5.10 The camera is let go while the page is hidden (2026-10-19)
+
+Jan's iPhone (Safari + the PWA, 2026-10-19 00:46): multiscan showed a black picture with the spinner and never read,
+until a reload. The reports: those sessions ran the current code (`zbar_source: self`) and decoded frames, but several
+camera sessions of that phone overlapped (the Hub's global search for 58 s, multiscan pages next to each other). An
+iPhone gives the camera to one page at a time; a page that loses it - to another tab, the PWA or an app - keeps a muted
+track, a black picture until reload. Nothing ever let go of the camera while its page was in the background.
+
+Now (`_visibilityChanged()`, `_restartCamera()`):
+- **page hidden** → the camera stops (its session is reported) and is released; shown again → it starts again if it
+  was running. A camera still opening when the page is hidden is given back at once;
+- **the camera taken away while the page is shown** (the track `ended`) → stopped and started again after 500 ms, at
+  most 3 times a minute, so a camera another app keeps taking cannot loop.
+
+Tested in Chrome: hidden → no live track; shown → a new one, reads; `ended` → restarted, the 4th within a minute is
+not. Also less battery: a scanner left open in a background tab no longer runs at all.
+
 ## 6. Open questions for Jan
 
 1. OK to restore Google's detector on Android right away (§5.0), until our own decoder replaces it (§5.4)?

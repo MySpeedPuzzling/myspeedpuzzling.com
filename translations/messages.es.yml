@@ -2076,9 +2076,6 @@ badges:
   "performance":
     "your_time": "Tu Tiempo"
     "ppm": "%ppm% piezas por minuto"
-    "faster_than_predicted": "¡%percent%% más rápido de lo predicho!"
-    "slower_than_predicted": "%percent%% más lento de lo predicho"
-    "on_target": "¡Justo en el objetivo!"
     "prediction_unavailable_baseline": "Completa más resoluciones de primer intento en puzzles de %pieces% piezas para desbloquear predicciones de tiempo."
     "prediction_unavailable_difficulty": "Aún no hay suficientes resolutores que hayan completado este puzzle para generar predicciones."
     "prediction_unavailable_opted_out": "La clasificación está desactivada en los ajustes de tu perfil."
@@ -3680,7 +3677,13 @@ puzzle_intelligence:
     prediction:
         title: "Tu Predicción"
         estimated_time: "Tiempo estimado"
-        range: "%low% - %high%"
+        window:
+            likely: "Probablemente %range%"
+            likely_half: "Probablemente %range% · la mitad de las resoluciones caen aquí"
+            hit: "Dentro de tu rango probable: solo la mitad de las resoluciones lo logran"
+            faster: "%margin% más rápido de lo probable"
+            slower: "%margin% más lento de lo probable"
+            first_try_faster: "Tu margen: %margin% más rápido de lo probable"
         explanation: "Basado en tu historial personal de resolución y la dificultad de este puzzle, aquí está nuestra estimación."
         not_available: "Resuelve %count% puzzles más de %pieces% piezas para desbloquear predicciones"
         predicted_label: "Predicción"

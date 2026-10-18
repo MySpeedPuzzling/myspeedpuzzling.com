@@ -2155,9 +2155,6 @@ badges:
   "performance":
     "your_time": "あなたのタイム"
     "ppm": "%ppm%ピース/分"
-    "faster_than_predicted": "予測より%percent%%速い！"
-    "slower_than_predicted": "予測より%percent%%遅い"
-    "on_target": "予測通り！"
     "prediction_unavailable_baseline": "%pieces%ピースパズルの初回ソロ完成をもっと増やすと、タイム予測が利用可能になります。"
     "prediction_unavailable_difficulty": "まだこのパズルの完成者が少なく、予測を生成できません。"
     "prediction_unavailable_opted_out": "プロフィール設定でランキングが無効になっています。"
@@ -3669,7 +3666,13 @@ puzzle_intelligence:
     prediction:
         title: "あなたの予測"
         estimated_time: "推定タイム"
-        range: "%low% - %high%"
+        window:
+            likely: "見込み %range%"
+            likely_half: "見込み %range% · 完成の半分がこの範囲に入ります"
+            hit: "見込み範囲内 – この範囲に入るのは完成の半分だけです"
+            faster: "見込みより%margin%速い"
+            slower: "見込みより%margin%遅い"
+            first_try_faster: "あなたのマージン: 見込みより%margin%速い"
         explanation: "あなたの個人的な完成履歴とこのパズルの難易度に基づく推定です。"
         not_available: "予測を解除するには、あと%count%個の%pieces%pcパズルを解いてください"
         predicted_label: "予測"

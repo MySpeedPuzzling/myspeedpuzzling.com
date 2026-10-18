@@ -2106,9 +2106,6 @@ competition_referees:
   "performance":
     "your_time": "Votre temps"
     "ppm": "%ppm% pièces par minute"
-    "faster_than_predicted": "%percent%% plus rapide que prévu !"
-    "slower_than_predicted": "%percent%% plus lent que prévu"
-    "on_target": "Pile dans le mille !"
     "prediction_unavailable_baseline": "Complétez davantage de premières tentatives sur des puzzles de %pieces% pièces pour débloquer les prédictions de temps."
     "prediction_unavailable_difficulty": "Pas assez de joueurs ont complété ce puzzle pour générer des prédictions."
     "prediction_unavailable_opted_out": "Le classement est désactivé dans les paramètres de votre profil."
@@ -3772,7 +3769,13 @@ puzzle_intelligence:
     prediction:
         title: "Votre prédiction"
         estimated_time: "Temps estimé"
-        range: "%low% - %high%"
+        window:
+            likely: "Probablement %range%"
+            likely_half: "Probablement %range% · la moitié des résolutions tombent dans cette fourchette"
+            hit: "Dans votre fourchette probable – seule la moitié des résolutions y parviennent"
+            faster: "%margin% plus rapide que la fourchette probable"
+            slower: "%margin% plus lent que la fourchette probable"
+            first_try_faster: "Votre marge : %margin% plus rapide que la fourchette probable"
         explanation: "Basé sur votre historique personnel de résolution et la difficulté de ce puzzle, voici notre estimation."
         not_available: "Résolvez %count% puzzles de %pieces% pièces supplémentaires pour débloquer les prédictions"
         predicted_label: "Prédiction"

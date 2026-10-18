@@ -53,12 +53,6 @@
                             </div>
                             <div class="d-flex align-items-center gap-2 flex-wrap">
                                 <small class="text-muted">{{ 'puzzle_intelligence.prediction.predicted_label'|trans }}:</small>
-                                <small class="text-muted">
-                                    {{ 'puzzle_intelligence.prediction.range'|trans({
-                                        '%low%': time_prediction.rangeLowSeconds|compactTime,
-                                        '%high%': time_prediction.rangeHighSeconds|compactTime,
-                                    }) }}
-                                </small>
                                 <span class="fw-bold">~{{ time_prediction.predictedSeconds|compactTime }}</span>
                                 {% set delta_seconds = time_prediction.lastTimeSeconds - time_prediction.predictedSeconds %}
                                 {% set improvement_percent = ((delta_seconds / time_prediction.lastTimeSeconds) * 100)|round %}
@@ -69,16 +63,14 @@
                                 {% endif %}
                             </div>
                         {% else %}
-                            <div class="d-flex align-items-center gap-2">
+                            <div>
                                 <span class="fw-bold">~{{ time_prediction.predictedSeconds|compactTime }}</span>
-                                <small class="text-muted">
-                                    {{ 'puzzle_intelligence.prediction.range'|trans({
-                                        '%low%': time_prediction.rangeLowSeconds|compactTime,
-                                        '%high%': time_prediction.rangeHighSeconds|compactTime,
-                                    }) }}
-                                </small>
                             </div>
                         {% endif %}
+                        {# The calibrated 50 % "likely" window, rounded (PredictionWindow) - docs/features/insights/README.md §3 #}
+                        <div class="prediction-window">
+                            <small class="text-muted">{{ 'puzzle_intelligence.prediction.window.likely_half'|trans({'%range%': prediction_window(time_prediction)|prediction_window_range}) }}</small>
+                        </div>
                         <div>
                             {% if time_prediction.isPersonalized and time_prediction.predictedAttemptNumber is not null %}
                                 <small class="text-muted">{{ 'puzzle_intelligence.prediction.personal_attempt_explanation'|trans({'%attempt%': time_prediction.predictedAttemptNumber, '%count%': time_prediction.personalSolveCount}) }}</small>

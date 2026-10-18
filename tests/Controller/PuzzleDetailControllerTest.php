@@ -11,6 +11,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\PuzzleRedirect;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\PuzzleIntelligenceRecalculator;
 use SpeedPuzzling\Web\Tests\CatalogueTestData;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionRoundFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\EventsPageFixture;
@@ -206,6 +207,21 @@ final class PuzzleDetailControllerTest extends WebTestCase
         self::assertNotNull($crawler->filter('#puzzleInsights')->closest('div[data-nosnippet]'));
         self::assertCount(0, $crawler->filter('#puzzleInsights .placeholder'));
         self::assertCount(0, $crawler->filter('#puzzleInsights button[data-bs-target="#membersExclusiveModal"]'));
+    }
+
+    public function testMemberSeesTheirLikelyWindow(): void
+    {
+        $browser = self::createClient();
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
+        $browser->getContainer()->get(PuzzleIntelligenceRecalculator::class)->recalculate();
+
+        // PUZZLE_500_01: scored, solved once by PLAYER_WITH_STRIPE -> a personal prediction
+        $crawler = $browser->request('GET', '/en/puzzle/' . PuzzleFixture::PUZZLE_500_01);
+
+        $this->assertResponseIsSuccessful();
+        $window = $crawler->filter('#puzzleInsights .prediction-window');
+        self::assertCount(1, $window);
+        self::assertMatchesRegularExpression('/^Likely .+ · half of solves land inside$/u', $window->text());
     }
 
     public function testActionMenuReturnButtonAndApprovalNoticeAreKeptOutOfSnippets(): void

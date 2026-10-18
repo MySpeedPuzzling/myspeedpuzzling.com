@@ -639,7 +639,7 @@ bounds     = centre × exp(q × sigma)      q = quantiles 10 / 25 / 75 / 90 % of
 - Asymmetric: the slow tail is longer (q90 ≈ +1.2 vs q10 ≈ −1.2, but q25 ≈ −0.6 vs q75 ≈ +0.6 around a centre that
   already carries the drift). The inner window is never wider than the outer one; bounds ≥ 1 s.
 - Stored: `predicted_range_low/high_seconds` = the 50 % window, `predicted_range80_low/high_seconds` = the 80 % range.
-  Rounding and wording are the display's (Insights stream 3c), never outward.
+  Rounding and wording are the display's (Insights stream 3c, "How windows are shown" below), never outward.
 
 ### The model's batch step and its daily fit (`PredictionModelRecalculator`)
 
@@ -721,7 +721,16 @@ samples more than 3 points from its target is a **warning** (Sentry): the nightl
 ```
 Predicted time: 65 × 0.87 = 56.55 → ~57 minutes
 Likely window (50 %): 57 × exp(q25 σ) … 57 × exp(q75 σ), σ from the player's repeat spread
+Display: "Attempt #2 (based on 1 prior solve): ~57 minutes · Likely 54–61 min · half of solves land inside"
 ```
+
+### How windows are shown
+
+Never raw: `Value\PredictionWindow` rounds the ends (nearest minute when the window is under 20 min wide, else the
+nearest 5 min under 1 h / 10 min from 1 h on; ties inward, at least one step, never outward), `PredictionWindowFormatter`
+writes "57–64 min", and the wording is "Likely … · half of solves land inside"; after a solve the recap says "Inside
+your likely window – only half of solves do" or the side + margin ("3 min faster than likely"). The full rule,
+examples and every surface: [prediction-history.md](prediction-history.md) "How windows are shown".
 
 ---
 

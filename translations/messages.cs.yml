@@ -2112,9 +2112,6 @@ badges:
   "performance":
     "your_time": "Váš čas"
     "ppm": "%ppm% dílků za minutu"
-    "faster_than_predicted": "O %percent%% rychlejší než předpověď!"
-    "slower_than_predicted": "O %percent%% pomalejší než předpověď"
-    "on_target": "Přesně v cíli!"
     "prediction_unavailable_baseline": "Složte více prvních pokusů na %pieces%-dílkových puzzlích pro odemknutí predikcí časů."
     "prediction_unavailable_difficulty": "Toto puzzle zatím nesložilo dostatek hráčů pro generování predikcí."
     "prediction_unavailable_opted_out": "Hodnocení je vypnuté v nastavení vašeho profilu."
@@ -3710,7 +3707,13 @@ puzzle_intelligence:
     prediction:
         title: "Vaše predikce"
         estimated_time: "Odhadovaný čas"
-        range: "%low% - %high%"
+        window:
+            likely: "Pravděpodobně %range%"
+            likely_half: "Pravděpodobně %range% · vejde se sem polovina složení"
+            hit: "Ve vašem pravděpodobném rozmezí – to se podaří jen polovině složení"
+            faster: "O %margin% rychleji, než je pravděpodobné"
+            slower: "O %margin% pomaleji, než je pravděpodobné"
+            first_try_faster: "Vaše rezerva: o %margin% rychleji, než je pravděpodobné"
         explanation: "Na základě vaší historie skládání a obtížnosti tohoto puzzle je zde náš odhad."
         not_available: "Složte ještě %count% %pieces%-dílkových puzzlí pro odemknutí predikcí"
         predicted_label: "Predikce"

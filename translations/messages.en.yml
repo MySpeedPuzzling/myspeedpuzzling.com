@@ -2586,9 +2586,6 @@ added_time_recap:
     performance:
         your_time: "Your Time"
         ppm: "%ppm% pieces per minute"
-        faster_than_predicted: "%percent%% faster than predicted!"
-        slower_than_predicted: "%percent%% slower than predicted"
-        on_target: "Right on target!"
         prediction_unavailable_baseline: "Complete more first-attempt solves on %pieces%-piece puzzles to unlock time predictions."
         prediction_unavailable_difficulty: "Not enough solvers have completed this puzzle yet to generate predictions."
         prediction_unavailable_opted_out: "Ranking is disabled in your profile settings."
@@ -4155,7 +4152,13 @@ puzzle_intelligence:
     prediction:
         title: "Your Prediction"
         estimated_time: "Estimated time"
-        range: "%low% - %high%"
+        window:
+            likely: "Likely %range%"
+            likely_half: "Likely %range% · half of solves land inside"
+            hit: "Inside your likely window – only half of solves do"
+            faster: "%margin% faster than likely"
+            slower: "%margin% slower than likely"
+            first_try_faster: "Your margin: %margin% faster than likely"
         difficulty_for_you: "Difficulty for your level"
         explanation: "Based on your personal solving history and this puzzle's difficulty, here's our estimate."
         personal_explanation: "Based on your %count% previous solves of this puzzle."

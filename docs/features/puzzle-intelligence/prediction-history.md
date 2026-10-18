@@ -162,6 +162,38 @@ minus one, the handler records nothing and dispatches `BackfillSolvingTimePredic
 very same message the backfill uses - and the row gets a `reconstructed` prediction a few seconds later.
 `live` therefore always means "solved today or yesterday, predicted from the state the site had right then".
 
+## How windows are shown
+
+The stored (and the live) `range_low/high` is the window players see - since Insights Phase 3 the calibrated **50 %
+"likely" window** (`docs/features/insights/README.md` §3 "Prediction windows"). It is never shown raw:
+
+- **Rounding** - `Value\PredictionWindow::rounded(low, high, centre)`, the one rule:
+  - step: 10 s when the prediction is under 3 min; else 1 min when the raw window is under 20 min wide; else 5 min
+    when the prediction is under 1 h, 10 min from 1 h on (one step for both ends, chosen by the centre - like
+    `prediction-research.md` §12 measured it);
+  - each end to the **nearest** step, a tie goes inward (low up, high down). "Never outward" = never floor the low
+    end and ceil the high end (that turned the 50 % window into a 76 % one); nearest keeps it at 51 %;
+  - at least one step wide (a window that rounds to nothing becomes the step holding its midpoint) and the low end
+    is never 0. Examples in the class docblock, edge cases in `PredictionWindowTest` (incl. a sweep proving no end
+    moves more than half a step outward).
+- **Text** - `Services\PredictionWindowFormatter` (Twig: `prediction_window(prediction)|prediction_window_range`,
+  `seconds|prediction_margin`): "57–64 min" when the window starts under an hour (also past it: "50–70 min"),
+  "1h 50min – 2h 20min" from an hour on, "30s – 1min" on the 10-second grid; margins "20s" / "3 min" / "1h 5min".
+- **Wording** (`puzzle_intelligence.prediction.window.*`, all 6 locales, `PredictionWindowMessagesTest`):
+  "Likely 57–64 min · half of solves land inside" (`likely_half`; cards: `likely` = "Likely 57–64 min").
+- **Outcome** (recap) - read against the **shown** window, so "inside" agrees with the numbers on the card:
+  inside = "Inside your likely window – only half of solves do"; outside = side + margin to the nearer shown end,
+  "3 min faster than likely" / "5 min slower than likely" - never failure wording. A first try (statistical
+  prediction) beating the window is framed as the player's margin: "Your margin: 3 min faster than likely" (README
+  §3 "First-try predictions"). The old "12 % faster than predicted" / "Right on target!" lines are gone.
+- **Surfaces**: the add-time recap (`added_time_recap/_performance_summary.html.twig`, stored prediction + outcome),
+  the puzzle page Insights (`puzzle/_difficulty_section.html.twig`, live), the Puzzle Picker card
+  (`puzzle_picker/_card.html.twig`), the collections "+ predictions" pill tooltip (`_puzzle_library_item.html.twig`).
+  The add-time pace check shows a point "usual time" only, the result detail no prediction. API v1 keeps the raw
+  seconds (`rangeLowSeconds` / `rangeHighSeconds` = the 50 % window). The point estimate keeps its existing format
+  (`~57min 23s`, `compactTime`, not rounded). The 80 % range is not shown yet - it belongs in the Insights detail
+  sheet (Phase 6).
+
 ## Backfill
 
 ### Command + message (the house pattern)

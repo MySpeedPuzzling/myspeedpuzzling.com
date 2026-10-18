@@ -36,6 +36,15 @@ def png(w: int = 64, h: int = 48, color: tuple[int, int, int] = (200, 30, 30)) -
     return buf.getvalue()
 
 
+def php(value: Any) -> Any:
+    """What the app answers for a stored payload: JSON objects are decoded into PHP arrays, so an empty map comes back as []."""
+    if isinstance(value, dict):
+        return {k: php(v) for k, v in value.items()} if value else []
+    if isinstance(value, list):
+        return [php(v) for v in value]
+    return value
+
+
 class FakeServer:
     def __init__(self, n: int = 5) -> None:
         self.now = time.time
@@ -91,6 +100,7 @@ class FakeServer:
 
     def _row(self, r: dict[str, Any]) -> dict[str, Any]:
         out = dict(r)
+        out["result"] = php(r["result"])
         out["current"] = r["imageFingerprint"] == self.puzzles[r["puzzleId"]]["imageFingerprint"]
         return out
 
@@ -273,7 +283,8 @@ class FakeServer:
                 rejected = action == "reject"
                 c["decision"] = {"outcome": c["status"], "decidedAt": "2026-10-18T10:00:00+00:00",
                                  "decidedBy": {"playerId": pid(999), "name": "Reviewer"}, "source": "internal_api",
-                                 "note": b.get("decisionNote"), "rejectionReason": b.get("rejectionReason") if rejected else None}
+                                 "note": b.get("decisionNote"), "rejectionReason": b.get("rejectionReason") if rejected else None,
+                                 "image": None if rejected else ("proposed" if "image" in b.get("selectedFields", []) else "keep")}
                 if rejected:
                     c["proposedImageUrl"] = None
                 c["_body"] = b

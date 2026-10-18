@@ -31,9 +31,18 @@ class AnalyzerSettings:
     workers: int = 1
 
     def lease_seconds(self) -> int:
-        """Covers the batch in hand plus the pre-fetched one, with room for slow images; the API takes 60-7200."""
-        est = int(self.claim_limit * self.seconds_per_image * 2 * 1.5) + 120
+        """A claimed batch is worked on after the last ~20 % of the batch before it (the pre-fetch) and may run up to
+        2-3× slower than measured (Jan uses the M3 meanwhile): 3× the batch's measured time, plus the store interval
+        and a margin. The API takes 60-7200 s."""
+        from .worker import FLUSH_SECONDS
+
+        est = int(self.claim_limit * self.seconds_per_image * 3) + int(FLUSH_SECONDS) + 120
         return max(60, min(7200, est))
+
+    @property
+    def slow(self) -> bool:
+        """Slow stages (> 5 s an image) store every result at once - a crash or an expired lease loses nothing."""
+        return self.seconds_per_image > 5
 
 
 @dataclass(frozen=True)

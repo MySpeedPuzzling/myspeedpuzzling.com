@@ -10,8 +10,14 @@
   rejected. Decisions through the internal API (`source "internal_api"`: this plan's `auto:` notes, Claude Code's
   `claude-review:` notes, anything else filed by a script) and `outdated` closures (`source "automatic"`) never earn
   or check the threshold - only people's decisions count toward the ~300 and the precision.
+- **Success = the crop was taken:** approved with `decision.image == "proposed"`. Approved while keeping the old
+  picture or uploading another (`keep` / `upload`) and rejected both count as failures.
+- **Per model version:** only decisions on the current `modelVersion` (the newest proposal's, or the one asked for)
+  earn and check the threshold - a new crop model starts over.
+- The audit precision is measured on the most recent `AUDIT_WINDOW` decided audit items, so drift shows up.
 - Middle band (propose threshold .. auto threshold): listed with the before / after URLs for an optional look;
-  anything unsure stays for moderators.
+  anything unsure stays for moderators. Before the threshold is earned, approvals by eye are capped per day
+  (`CLAUDE_DAILY_CAP`).
 """
 
 from __future__ import annotations
@@ -28,6 +34,9 @@ STOP_BELOW = 0.98
 MIN_BAND_N = 50
 MIN_AUDIT_N = 20
 PROPOSE_THRESHOLD = 0.6
+AUDIT_WINDOW = 200
+CLAUDE_DAILY_CAP = 20
+IMAGE_CHOICES = ("proposed", "keep", "upload", None)
 AUTO_PREFIX = "auto:"
 CLAUDE_PREFIX = "claude-review:"
 
@@ -68,6 +77,8 @@ class Item:
     original_url: str | None
     proposed_url: str | None
     decided_at: str | None
+    image: str | None = None  # an approval's picture choice: proposed | keep | upload
+    created_at: str | None = None
 
     @property
     def decided(self) -> bool:
@@ -87,7 +98,8 @@ class Item:
 
     @property
     def approved(self) -> bool:
-        return self.status == "approved"
+        """The crop was taken - an approval that kept the old picture or took another upload is not."""
+        return self.status == "approved" and self.image == "proposed"
 
 
 def parse_item(d: dict[str, Any]) -> Item:
@@ -101,8 +113,10 @@ def parse_item(d: dict[str, Any]) -> Item:
     decision = d["decision"]
     if status == "pending":
         decision = None
-    elif not isinstance(decision, dict) or "source" not in decision or "note" not in decision:
-        raise ContractError(f"decided change request {d['id']} without decision.source / decision.note")
+    elif not isinstance(decision, dict) or any(k not in decision for k in ("source", "note", "image")):
+        raise ContractError(f"decided change request {d['id']} without decision.source / decision.note / decision.image")
+    if decision and decision.get("image") not in IMAGE_CHOICES:
+        raise ContractError(f"unknown decision.image {decision.get('image')!r}")
     return Item(
         id=str(d["id"]),
         puzzle_id=str(d["puzzleId"]),
@@ -114,11 +128,14 @@ def parse_item(d: dict[str, Any]) -> Item:
         original_url=d.get("originalImageUrl"),
         proposed_url=d.get("proposedImageUrl"),
         decided_at=(decision or {}).get("decidedAt"),
+        image=(decision or {}).get("image"),
+        created_at=d.get("createdAt"),
     )
 
 
 @dataclass
 class Plan:
+    model_version: str | None
     human_decisions: int
     human_approved: int
     earned: bool
@@ -160,6 +177,11 @@ def decision_note(item: Item, threshold: float, lower_bound: float, n: int) -> s
             f"{lower_bound:.3f}, n {n}), model {item.model_version}")
 
 
+def claude_approvals_on(items: list[Item], day: str) -> int:
+    """Approvals by eye (claude-review notes) decided on a UTC day (YYYY-MM-DD)."""
+    return sum(1 for i in items if i.claude and (i.decided_at or "").startswith(day))
+
+
 def claude_note(item: Item) -> str:
     return f"{CLAUDE_PREFIX} confidence {item.confidence:.3f}, before/after checked by Claude Code, model {item.model_version}"
 
@@ -184,13 +206,21 @@ def bands(items: list[Item], width: float = 0.05, start: float = PROPOSE_THRESHO
     return out
 
 
+def current_model_version(items: list[Item]) -> str | None:
+    """The modelVersion of the newest proposal (proposals are listed in filing order)."""
+    newest = max((i for i in items if i.model_version), key=lambda i: (i.created_at or "", i.id), default=None)
+    return newest.model_version if newest else None
+
+
 def plan(raw_items: list[dict[str, Any]], min_human: int = MIN_HUMAN_DECISIONS, target: float = TARGET_LOWER_BOUND,
          audit_share: float = AUDIT_SHARE, stop_below: float = STOP_BELOW, min_band_n: int = MIN_BAND_N,
-         propose_threshold: float = PROPOSE_THRESHOLD) -> Plan:
-    items = [i for i in (parse_item(d) for d in raw_items) if i.confidence >= 0]  # no confidence = not a pipeline crop
+         propose_threshold: float = PROPOSE_THRESHOLD, model_version: str | None = None) -> Plan:
+    parsed = [i for i in (parse_item(d) for d in raw_items) if i.confidence >= 0]  # no confidence = not a pipeline crop
+    model_version = model_version or current_model_version(parsed)
+    items = [i for i in parsed if i.model_version == model_version]
     human = [i for i in items if i.human]
     k_all = sum(1 for i in human if i.approved)
-    p = Plan(human_decisions=len(human), human_approved=k_all, earned=False, threshold=None, threshold_n=0,
+    p = Plan(model_version=model_version, human_decisions=len(human), human_approved=k_all, earned=False, threshold=None, threshold_n=0,
              threshold_precision=None, threshold_lower_bound=None, audit_decided=0, audit_precision=None,
              auto_stopped=False, reason="", bands=bands(items, start=propose_threshold))
     pending = sorted((i for i in items if i.status == "pending"), key=lambda i: -i.confidence)
@@ -205,7 +235,8 @@ def plan(raw_items: list[dict[str, Any]], min_human: int = MIN_HUMAN_DECISIONS, 
             p.threshold, p.threshold_n = t, n
             p.threshold_precision = round(k / n, 4)
             p.threshold_lower_bound = round(wilson_lower(k, n), 4)
-            audit = [i for i in human if i.confidence >= t and is_audit(i.id, audit_share)]
+            audit = sorted((i for i in human if i.confidence >= t and is_audit(i.id, audit_share)),
+                           key=lambda i: i.decided_at or "")[-AUDIT_WINDOW:]  # the most recent ones: drift shows up
             p.audit_decided = len(audit)
             if audit:
                 p.audit_precision = round(sum(1 for i in audit if i.approved) / len(audit), 4)

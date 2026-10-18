@@ -31,6 +31,11 @@ def parity_targets(api: InternalApi, version: str, limit: int) -> list[tuple[Wor
             continue
         page = api.list_images(status="all", after=uuid_before(row["puzzleId"]), limit=1)
         items = [i for i in page["puzzles"] if i.puzzle_id == row["puzzleId"] and i.fingerprint == row["imageFingerprint"]]
+        result = row.get("result") if isinstance(row.get("result"), dict) else {}
+        # the catalogue title is part of the prompt: a puzzle renamed since its description would differ for a
+        # reason that is not the machine
+        if items and "title" in result and result["title"] != (items[0].name or None):
+            continue
         if items:
             out.append((items[0], row["result"]))
         if len(out) >= limit:

@@ -39,6 +39,10 @@ CREATE TABLE IF NOT EXISTS gate (
     fingerprint TEXT NOT NULL, gate_version TEXT NOT NULL, scores TEXT NOT NULL, flat INTEGER NOT NULL, at REAL NOT NULL,
     PRIMARY KEY (fingerprint, gate_version)
 );
+CREATE TABLE IF NOT EXISTS crop_scores (
+    puzzle_id TEXT NOT NULL, fingerprint TEXT NOT NULL, version TEXT NOT NULL, confidence REAL, outcome TEXT NOT NULL, at REAL NOT NULL,
+    PRIMARY KEY (puzzle_id, fingerprint, version)
+);
 CREATE TABLE IF NOT EXISTS markers (key TEXT PRIMARY KEY, value TEXT NOT NULL, at REAL NOT NULL);
 """
 
@@ -151,6 +155,14 @@ class WorkState:
         if not rows:
             return None
         return {"scores": json.loads(rows[0][0]), "flat": bool(rows[0][1])}
+
+    # crop proposals ------------------------------------------------------------------------------------------------
+    def put_crop_score(self, puzzle_id: str, fingerprint: str, version: str, confidence: float | None, outcome: str) -> None:
+        self._exec("INSERT OR REPLACE INTO crop_scores VALUES (?,?,?,?,?,?)", [puzzle_id, fingerprint, version, confidence, outcome, time.time()])
+
+    def crop_score(self, puzzle_id: str, fingerprint: str, version: str) -> dict[str, Any] | None:
+        rows = self._all("SELECT confidence, outcome FROM crop_scores WHERE puzzle_id=? AND fingerprint=? AND version=?", [puzzle_id, fingerprint, version])
+        return {"confidence": rows[0][0], "outcome": rows[0][1]} if rows else None
 
     # markers ---------------------------------------------------------------------------------------------------------
     def set_marker(self, key: str, value: Any) -> None:

@@ -450,7 +450,11 @@ the puzzle's **real** piece count, `regularity`) plus the extract-once additions
  "truncated":false,"textAreaShareInArtwork":0.031}
 ```
 `b` = x, y, w, h as fractions with the origin top-left (convert from Vision's bottom-left); `inArtwork` = the line's
-centre lies inside the `artwork` crop. Cap 400 lines, sorted by area.
+centre lies inside the `artwork` crop. Cap 400 lines, sorted by area; lines cut at 200 characters and the smallest
+dropped while the payload would pass ~60 KB (`truncated: true`). **`inArtwork` and `textAreaShareInArtwork` are null
+when OCR ran before `artwork` existed** (the M1's phase A runs OCR first) - consumers (`describe`, `tags`) compute
+"inside the crop" from `b` and the `artwork` bbox. Empty maps are sent as null in every payload (the app returns `{}`
+as `[]`).
 
 `barcode` (full image): `{"codes":[{"sym":"EAN13","v":"4005556173709","b":[…],"checksumOk":true,"reader":"apple"}]}`.
 
@@ -477,14 +481,14 @@ comparable (full vs crop of the same box).
  "people":"none","textInArtwork":"none","counts":{"distinctObjects":0,"animals":0,"people":0},
  "areas":{"sky":30,"water":25,"foliageGrass":35,"buildings":0,"plainBackground":10},
  "collageGrid":false,"seekAndFind":false,"extraTags":["alpine","glacier lake"],
- "promptVersion":"v2.1","titleContext":true,"ocrLines":2,"tokens":{"prompt":1230,"generation":305}}
+ "promptVersion":"v2.1","titleContext":true,"title":"Moraine Lake","ocrLines":2,"tokens":{"prompt":1230,"generation":305}}
 ```
 Values are restricted to the Appendix A vocabularies by the JSON schema (`none` added to `time` / `weather`);
 `subjects` (lowercased, singular, de-duplicated after decoding), `place`, `characters` (a list, ≤ 6), `artistSignature`
 and `extraTags` (≤ 8) are free text - `"none"` / `"null"` in `place` / `artistSignature` become null. No
 `specialHints` (§18 finding 6: `special` comes from box text and the catalogue). `promptVersion` "v2.1" = the §18
-system prompt v2 plus "never the puzzle brand or publisher" on the artistSignature line; `titleContext` = the catalogue
-title was in the user message; `ocrLines` = how many OCR lines inside the crop went in (≤ 12); `tokens` = prompt /
+system prompt v2 plus "never the puzzle brand or publisher" on the artistSignature line; `titleContext` / `title` = the
+catalogue title in the user message; `ocrLines` = how many OCR lines inside the crop went in (≤ 12); `tokens` = prompt /
 generated token counts.
 
 `segmentation` and the embeddings above are sent exactly as described.

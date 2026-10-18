@@ -24,10 +24,14 @@ It reads every pipeline crop request (pending and decided) and applies the rules
   internal API (`auto:` notes from this plan, `claude-review:` notes from you, anything scripted) and `outdated`
   closures never count toward the 300 or the precision. A list item missing a field the plan relies on stops it with a
   contract error - report it, do not work around it.
+- A crop is **right only when it was taken**: approved with `decision.image == "proposed"`. Approved while keeping the
+  old picture or uploading another (`keep` / `upload`) counts as wrong, like a rejection.
+- **Per crop model version:** only decisions on the current `modelVersion` (the newest proposal's; `--model-version`
+  to pick another) count - a new crop model earns its threshold anew.
 - Then the auto band starts at the lowest confidence where the human precision of all decisions at or above it has a
   **Wilson lower bound ≥ 99 %** (≥ 50 decisions).
 - **Audit:** a deterministic 5 % of would-be-auto items stays pending for moderators (`audit_held`).
-- **Auto-stop:** human precision on decided audit items < 98 % (≥ 20 of them) → `AUTO-APPROVAL STOPPED`, exit code 2,
+- **Auto-stop:** human precision on the most recent 200 decided audit items < 98 % (≥ 20 of them) → `AUTO-APPROVAL STOPPED`, exit code 2,
   nothing is approved. **Report that to Jan immediately** and do not approve anything this run.
 
 ## 2. Apply the auto band
@@ -54,7 +58,9 @@ and better than the original:
 uv run puzzle-vision crop-review-approve --profile m3-max <changeRequestId> [<id> …]
 ```
 
-(note `claude-review: …`, decided through the internal API - these never count as human decisions). Anything unsure stays for moderators. Never reject:
+(note `claude-review: …`, decided through the internal API - these never count as human decisions). The command
+refuses audit-sample ids and anything outside the middle band, approves at most **20 a day** while the threshold is
+not earned, and skips a `409` (decided meanwhile). Anything unsure stays for moderators. Never reject:
 rejections are the moderators' (they teach the threshold).
 
 ## 4. Summary

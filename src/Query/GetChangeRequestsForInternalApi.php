@@ -179,9 +179,9 @@ SQL,
     }
 
     /**
-     * @param array{reviewed_at: null|string, rejection_reason: null|string, decision_action: null|string, decided_at: null|string, decided_by_id: null|string, decided_by_name: null|string, decision_source: null|string, decision_note: null|string, decision_details_note: null|string, ...} $row
+     * @param array{reviewed_at: null|string, rejection_reason: null|string, decision_action: null|string, decided_at: null|string, decided_by_id: null|string, decided_by_name: null|string, decision_source: null|string, decision_note: null|string, decision_details_note: null|string, decision_image: null|string, ...} $row
      *
-     * @return null|array{outcome: string, decidedAt: DateTimeImmutable, decidedById: null|string, decidedByName: null|string, source: null|string, note: null|string, rejectionReason: null|string}
+     * @return null|array{outcome: string, decidedAt: DateTimeImmutable, decidedById: null|string, decidedByName: null|string, source: null|string, note: null|string, rejectionReason: null|string, image: null|string}
      */
     private static function decision(PuzzleReportStatus $status, array $row): null|array
     {
@@ -212,6 +212,9 @@ SQL,
                 default => null,
             },
             'rejectionReason' => $rejected ? ($row['decision_note'] ?? $row['rejection_reason']) : null,
+            // What an approval did with the picture (PuzzleImageChoice: proposed / keep / upload) - an approval keeping
+            // the old picture or taking another upload did not accept the proposed one
+            'image' => $logged && $status === PuzzleReportStatus::Approved ? $row['decision_image'] : null,
         ];
     }
 }

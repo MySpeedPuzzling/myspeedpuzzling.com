@@ -15,7 +15,7 @@ import numpy as np
 
 from ..analyzers import DERIVED_INPUTS, schema_major
 from ..api import AnalysisResult, InternalApi, WorkItem
-from ..payload import b64_to_vector, check_size, envelope
+from ..payload import as_map, b64_to_vector, check_size, envelope, normalised
 from . import box_text, difficulty_prior, neighbours, tags, zeroshot
 
 log = logging.getLogger(__name__)
@@ -29,18 +29,19 @@ MODELS = {
 }
 
 
-def _content(result: dict[str, Any] | None) -> dict[str, Any]:
-    return {k: v for k, v in (result or {}).items() if k not in ("schema", "model", "sourceSha256", "crop", "runtimeMs", "corpusSize")}
+def _content(result: Any) -> Any:
+    """The payload without the envelope, normalised (an empty map ≡ [] ≡ null - the API returns `{}` as `[]`)."""
+    return normalised({k: v for k, v in as_map(result).items() if k not in ("schema", "model", "sourceSha256", "crop", "runtimeMs", "corpusSize")})
 
 
 def needs_push(analyzer: str, old: dict[str, Any] | None, version: str, fingerprint: str, new: dict[str, Any]) -> bool:
     if old is None or old.get("analyzerVersion") != version or old.get("imageFingerprint") != fingerprint:
         return True
-    old_result = old.get("result") or {}
+    old_result = as_map(old.get("result"))
     if analyzer == "neighbours":
         return neighbours.changed(old_result, new)
     if analyzer == "zeroshot":
-        a, b = old_result.get("scores") or {}, new.get("scores") or {}
+        a, b = as_map(old_result.get("scores")), as_map(new.get("scores"))
         if set(a) != set(b):
             return True
         return any(abs(float(a[k]) - float(b[k])) > 0.02 for k in b)
@@ -50,12 +51,14 @@ def needs_push(analyzer: str, old: dict[str, Any] | None, version: str, fingerpr
 class Deriver:
     def __init__(self, api: InternalApi, versions: dict[str, str], cache_dir: Any,
                  text_features: Callable[[list[str], list[str]], np.ndarray] | None = None,
-                 model_lock: Callable[[], Any] | None = None) -> None:
+                 model_lock: Callable[[], Any] | None = None, lock_stop: Any = None, lock_timeout: float | None = None) -> None:
         self.api = api
         self.versions = versions
         self.cache_dir = cache_dir
         self._text_features = text_features
         self._model_lock = model_lock
+        self._lock_stop = lock_stop
+        self._lock_timeout = lock_timeout
         self.meta: dict[str, WorkItem] = {}
         self.inputs: dict[str, dict[str, dict[str, Any]]] = {}
         self.summary: dict[str, Any] = {}
@@ -83,7 +86,7 @@ class Deriver:
         brands = sorted({(m.manufacturer or {}).get("name", "") for m in self.meta.values()} - {""})
         out = {}
         for pid, row in ocr.items():
-            out[pid] = box_text.from_payloads(row["result"], (barcode.get(pid) or {}).get("result"), brands)
+            out[pid] = box_text.from_payloads(as_map(row["result"]), as_map(as_map(barcode.get(pid)).get("result")), brands)
         return out
 
     def _siglip(self) -> tuple[list[str], np.ndarray, list[str]]:
@@ -110,7 +113,7 @@ class Deriver:
             lock = self._model_lock() if self._model_lock else None
             try:
                 if lock is not None:
-                    lock.acquire()
+                    lock.acquire(timeout=self._lock_timeout, stop=self._lock_stop)
                 text = zeroshot.text_features(keys, prompts, self.cache_dir)
             finally:
                 if lock is not None:
@@ -127,8 +130,8 @@ class Deriver:
     def compute_tags(self, fresh: dict[str, dict[str, dict[str, Any]]]) -> dict[str, dict[str, Any]]:
         raw_names = [a for a in DERIVED_INPUTS["tags"] if a not in ("zeroshot", "box_text")]
         raw = {a: self.load(a) for a in raw_names}
-        zs = fresh.get("zeroshot") or {pid: r["result"] for pid, r in self.load("zeroshot").items()}
-        bt = fresh.get("box_text") or {pid: r["result"] for pid, r in self.load("box_text").items()}
+        zs = fresh.get("zeroshot") or {pid: as_map(r["result"]) for pid, r in self.load("zeroshot").items()}
+        bt = fresh.get("box_text") or {pid: as_map(r["result"]) for pid, r in self.load("box_text").items()}
         pids = set().union(*[set(v) for v in raw.values()]) if raw else set()
         per = {pid: {a: (raw[a].get(pid) or {}).get("result") for a in raw_names} | {"zeroshot": zs.get(pid), "box_text": bt.get(pid)} for pid in pids}
         corpus = tags.Corpus.build([tags.trait_values(p) for p in per.values()])

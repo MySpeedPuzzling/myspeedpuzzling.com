@@ -26,7 +26,7 @@ from pathlib import Path
 from typing import Any
 
 from . import __version__
-from .config import DEFAULT_BASE_URL, Settings
+from .config import DEFAULT_BASE_URL, Settings, token_provider_for
 
 log = logging.getLogger("puzzle_vision")
 
@@ -40,7 +40,7 @@ class Context:
         if not name:
             raise SystemExit(f"which machine? pass --profile ({', '.join(profiles.available())}) or set PUZZLE_VISION_PROFILE")
         self.profile = profiles.load(name)
-        self.settings = Settings(base_url=args.base_url, profile_name=self.profile.name)
+        self.settings = Settings(base_url=args.base_url, profile_name=self.profile.name, token_provider=token_provider_for(args.base_url))
         self.settings.ensure_dirs()
         self._api = None
         self._ws = None
@@ -97,13 +97,25 @@ def cmd_setup_check(a: argparse.Namespace, ctx: Context) -> int:
     return 0 if ok else 1
 
 
+def pid_file(ctx: Context) -> Path:
+    return ctx.settings.state_dir / f"run-{ctx.profile.name}.pid"
+
+
 def cmd_run(a: argparse.Namespace, ctx: Context) -> int:
     from .runner import Runner, RunOptions
 
     opts = RunOptions(profile=ctx.profile, base_url=ctx.settings.base_url, hours=a.hours, phase=a.phase, follow=a.follow,
                       daily=a.daily, idle_minutes=a.idle_minutes, max_images=a.max_images)
-    rc = Runner(opts, ctx.api, ctx.workstate).run()
-    if a.daily and rc == 0:
+    pid = pid_file(ctx)
+    pid.write_text(str(os.getpid()))  # this python process - `kill $(cat …)` stops the run cleanly (not uv's pid)
+    try:
+        rc = Runner(opts, ctx.api, ctx.workstate).run()
+    finally:
+        pid.unlink(missing_ok=True)
+    if rc != 0:
+        log.info("run ended early (exit %d) - no derive / crop proposals after it", rc)
+        return rc
+    if a.daily:
         if ctx.profile.derive_after_daily:
             cmd_derive(argparse.Namespace(only=None, dry_run=False, json=False), ctx)
         if ctx.profile.propose_crops_daily:
@@ -112,10 +124,30 @@ def cmd_run(a: argparse.Namespace, ctx: Context) -> int:
 
 
 def _probe(ctx: Context, analyzer: str) -> bool:
-    """Read-only: is there anything to do (so a model is never loaded for nothing)?"""
-    s = ctx.profile.analyzers[analyzer]
-    page = ctx.api.list_images(analyzer=analyzer, version=s.version, status="stale", limit=1, requires=s.requires)
-    return bool(page["puzzles"])
+    """Read-only: anything this worker could claim and analyse (so a model is never loaded for nothing)."""
+    from .runner import usable_work
+
+    return usable_work(ctx.api, ctx.workstate, ctx.profile.analyzers[analyzer], ctx.settings.worker_id)
+
+
+class StopOnSignals:
+    """SIGTERM / Ctrl-C set an event (a clean stop); the previous handlers come back afterwards."""
+
+    def __init__(self) -> None:
+        self.event = threading.Event()
+        self._previous: dict[int, Any] = {}
+
+    def __enter__(self) -> threading.Event:
+        for sig in (signal.SIGTERM, signal.SIGINT):
+            self._previous[sig] = signal.signal(sig, lambda *_: self.event.set())
+        return self.event
+
+    def __exit__(self, *exc: object) -> None:
+        for sig, previous in self._previous.items():
+            signal.signal(sig, previous)
+
+
+LOCK_TIMEOUT_SECONDS = 3 * 3600
 
 
 def cmd_stage_worker(a: argparse.Namespace, ctx: Context) -> int:
@@ -123,9 +155,8 @@ def cmd_stage_worker(a: argparse.Namespace, ctx: Context) -> int:
     from .lock import LockTimeout, MemoryWatchdog, ModelLock
     from .worker import StageWorker
 
-    stop = threading.Event()
-    for sig in (signal.SIGTERM, signal.SIGINT):
-        signal.signal(sig, lambda *_: stop.set())
+    signals = StopOnSignals()
+    stop = signals.__enter__()
     watchdog = MemoryWatchdog(stop)
     watchdog.start()
     settings = ctx.profile.analyzers[a.analyzer]
@@ -140,18 +171,23 @@ def cmd_stage_worker(a: argparse.Namespace, ctx: Context) -> int:
             from .stages.artwork import run_gate
 
             lock = ModelLock("artwork-gate")
-            lock.acquire(stop=stop)
+            lock.acquire(timeout=LOCK_TIMEOUT_SECONDS, stop=stop)
             n = run_gate(ctx.api, ctx.downloader, ctx.workstate, settings.version, stop, deadline, a.max_images)
             result.update(gated=n, line=f"[artwork-gate] gated {n} pictures")
             return 0
         stage = stages.create(a.analyzer, settings.version, settings.workers, workstate=ctx.workstate)
-        if stage.needs_model_lock:
-            lock = ModelLock(a.analyzer)
-            lock.acquire(stop=stop)
-        stage.load()
+
+        def load() -> None:
+            # claimed first, then the lock + the model - only when the claim brought usable work
+            nonlocal lock
+            if stage.needs_model_lock:
+                lock = ModelLock(a.analyzer)
+                lock.acquire(timeout=LOCK_TIMEOUT_SECONDS, stop=stop)
+            stage.load()
+
         try:
             stats = StageWorker(stage, settings, ctx.api, ctx.downloader, ctx.workstate, ctx.settings.worker_id,
-                                stop=stop, max_images=a.max_images, deadline=deadline).run()
+                                stop=stop, max_images=a.max_images, deadline=deadline, loader=load).run()
         finally:
             stage.close()
         result.update(asdict(stats), line=stats.line(a.analyzer))
@@ -163,6 +199,7 @@ def cmd_stage_worker(a: argparse.Namespace, ctx: Context) -> int:
         if lock is not None:
             lock.release()
         stop.set()
+        signals.__exit__()
         if a.stats_file:
             Path(a.stats_file).write_text(json.dumps(result, default=str))
 
@@ -183,9 +220,11 @@ def cmd_derive(a: argparse.Namespace, ctx: Context) -> int:
     if not versions:
         print(f"profile {ctx.profile.name} names no derived versions")
         return 1
-    d = Deriver(ctx.api, versions, ctx.settings.cache_dir, model_lock=lambda: ModelLock("derive-zeroshot"))
-    only = [x.strip() for x in a.only.split(",")] if a.only else None
-    summary = d.run(only=only, dry_run=a.dry_run)
+    with StopOnSignals() as stop:
+        d = Deriver(ctx.api, versions, ctx.settings.cache_dir, model_lock=lambda: ModelLock("derive-zeroshot"),
+                    lock_stop=stop, lock_timeout=LOCK_TIMEOUT_SECONDS)
+        only = [x.strip() for x in a.only.split(",")] if a.only else None
+        summary = d.run(only=only, dry_run=a.dry_run)
     _print(summary, True)
     return 0
 
@@ -210,11 +249,13 @@ def cmd_propose_crops(a: argparse.Namespace, ctx: Context) -> int:
     from .proposals import crops
 
     lock = ModelLock("propose-crops")
-    lock.acquire()
+    with StopOnSignals() as stop:
+        lock.acquire(timeout=LOCK_TIMEOUT_SECONDS, stop=stop)
     try:
         summary = crops.propose(ctx.api, lambda url: ctx.downloader.original(url)[0], _gate_margin_fn(),
                                 ctx.profile.version("artwork"), a.limit, dry_run=a.dry_run,
-                                threshold=a.threshold if a.threshold is not None else crops.PROPOSE_THRESHOLD)
+                                threshold=a.threshold if a.threshold is not None else crops.PROPOSE_THRESHOLD,
+                                workstate=ctx.workstate)
     finally:
         lock.release()
     _print(summary, True)
@@ -231,7 +272,8 @@ def cmd_crop_review_plan(a: argparse.Namespace, ctx: Context) -> int:
     from .api import ApiError
     from .proposals import review
 
-    p = review.plan(_crop_requests(ctx), min_human=a.min_human, target=a.target, audit_share=a.audit_share, stop_below=a.stop_below)
+    p = review.plan(_crop_requests(ctx), min_human=a.min_human, target=a.target, audit_share=a.audit_share, stop_below=a.stop_below,
+                    model_version=a.model_version)
     out = p.to_dict()
     if a.apply and p.to_approve:
         applied, failed = [], []
@@ -246,7 +288,7 @@ def cmd_crop_review_plan(a: argparse.Namespace, ctx: Context) -> int:
     if a.json:
         _print(out, True)
     else:
-        print(f"human decisions: {p.human_decisions} ({p.human_approved} approved)")
+        print(f"model version: {p.model_version}; human decisions: {p.human_decisions} ({p.human_approved} crops taken)")
         print(p.reason)
         print(f"auto-approve now: {len(p.to_approve)}{' (applied)' if a.apply else ' (dry run - pass --apply)'}; "
               f"audit held for humans: {len(p.audit_held)}; middle band for a look: {len(p.middle_band)}")
@@ -261,9 +303,20 @@ def cmd_crop_review_plan(a: argparse.Namespace, ctx: Context) -> int:
 
 
 def cmd_crop_review_approve(a: argparse.Namespace, ctx: Context) -> int:
+    """Middle-band crops Claude Code checked by eye. Refuses audit-sample ids (they are the humans'), anything outside
+    the middle band, and - before the threshold is earned - more than CLAUDE_DAILY_CAP a day. A 409 (decided
+    meanwhile, picture changed) is skipped."""
+    from datetime import datetime, timezone
+
+    from .api import Conflict
     from .proposals import review
 
-    items = {review.parse_item(d).id: review.parse_item(d) for d in _crop_requests(ctx)}
+    raw = _crop_requests(ctx)
+    p = review.plan(raw, model_version=a.model_version)
+    items = {i.id: i for i in (review.parse_item(d) for d in raw)}
+    middle = {e["id"] for e in p.middle_band}
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    used = review.claude_approvals_on(list(items.values()), today)
     rc = 0
     for cid in a.ids:
         item = items.get(cid)
@@ -271,7 +324,24 @@ def cmd_crop_review_approve(a: argparse.Namespace, ctx: Context) -> int:
             print(f"{cid}: not a pending artwork_crop request - skipped")
             rc = 1
             continue
-        ctx.api.approve_change_request(cid, ["image"], review.claude_note(item))
+        if review.is_audit(cid):
+            print(f"{cid}: in the audit sample - left for the moderators")
+            rc = 1
+            continue
+        if cid not in middle:
+            print(f"{cid}: not in the middle band of model {p.model_version} - skipped")
+            rc = 1
+            continue
+        if not p.earned and used >= review.CLAUDE_DAILY_CAP:
+            print(f"{cid}: today's cap of {review.CLAUDE_DAILY_CAP} approvals by eye is reached (threshold not earned yet) - skipped")
+            rc = 1
+            continue
+        try:
+            ctx.api.approve_change_request(cid, ["image"], review.claude_note(item))
+        except Conflict as e:
+            print(f"{cid}: refused ({e}) - skipped")
+            continue
+        used += 1
         print(f"{cid}: approved ({review.claude_note(item)})")
     return rc
 
@@ -455,10 +525,12 @@ def parser() -> argparse.ArgumentParser:
     s.add_argument("--target", type=float, default=0.99)
     s.add_argument("--audit-share", type=float, default=0.05)
     s.add_argument("--stop-below", type=float, default=0.98)
+    s.add_argument("--model-version", help="the crop model the threshold is for (default: the newest proposal's)")
     s.set_defaults(fn=cmd_crop_review_plan)
 
     s = sub.add_parser("crop-review-approve", parents=[common])
     s.add_argument("ids", nargs="+")
+    s.add_argument("--model-version")
     s.set_defaults(fn=cmd_crop_review_approve)
 
     s = sub.add_parser("bench", parents=[common])

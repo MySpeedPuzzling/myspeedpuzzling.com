@@ -83,12 +83,23 @@ class ArtifactSource:
         self.api = api
         self.workstate = workstate
 
-    def get(self, analyzer: str, item: WorkItem) -> dict[str, Any] | None:
+    def _cached(self, analyzer: str, item: WorkItem) -> dict[str, Any] | None:
+        """The cached payload, only when it is the version the work list says is stored now (a re-run upstream, e.g.
+        a new artwork version, must never feed a stale crop)."""
         cached = self.workstate.artifact(analyzer, item.puzzle_id, item.fingerprint)
+        if cached is None:
+            return None
+        listed = item.analyses.get(analyzer) if isinstance(item.analyses, dict) else None
+        if isinstance(listed, dict) and listed.get("analyzerVersion") not in (None, cached["analyzerVersion"]):
+            return None
+        return cached
+
+    def get(self, analyzer: str, item: WorkItem) -> dict[str, Any] | None:
+        cached = self._cached(analyzer, item)
         return cached["result"] if cached else None
 
     def ensure(self, analyzer: str, items: list[WorkItem]) -> None:
-        missing = sorted({i.puzzle_id for i in items if self.workstate.artifact(analyzer, i.puzzle_id, i.fingerprint) is None})
+        missing = sorted({i.puzzle_id for i in items if self._cached(analyzer, i) is None})
         if not missing:
             return
         wanted = set(missing)

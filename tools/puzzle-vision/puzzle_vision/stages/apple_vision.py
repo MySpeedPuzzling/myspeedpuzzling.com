@@ -14,9 +14,12 @@ from typing import Any, Sequence
 import numpy as np
 
 from ..imaging import bbox_to_xyxy, to_png_bytes
+from ..payload import encoded_size
 from .base import Prepared, Stage
 
 OCR_MAX_LINES = 400
+OCR_MAX_LINE_CHARS = 200
+OCR_MAX_BYTES = 60_000  # under the API's 64 KB with the envelope
 LABELS_MAX = 40
 LABEL_MIN_CONFIDENCE = 0.1
 
@@ -56,22 +59,26 @@ def text_area_share(lines: list[dict[str, Any]], crop_xyxy: Sequence[float], cel
 def ocr_payload(lines: list[OcrLine], artwork: dict[str, Any] | None, languages: list[str]) -> dict[str, Any]:
     crop_xyxy = bbox_to_xyxy(artwork["bbox"]) if artwork and artwork.get("bbox") else None
     out = []
+    cut = False
     for line in lines:
         text = line.text.replace("\x00", "").strip()
         if not text:
             continue
+        if len(text) > OCR_MAX_LINE_CHARS:
+            text, cut = text[:OCR_MAX_LINE_CHARS], True
         b = to_top_left(line.box)
         out.append({"t": text, "c": round(float(line.confidence), 2), "b": b,
                     "inArtwork": centre_inside(b, crop_xyxy) if crop_xyxy else None})
     out.sort(key=lambda d: -(d["b"][2] * d["b"][3]))
-    truncated = len(out) > OCR_MAX_LINES
+    truncated = cut or len(out) > OCR_MAX_LINES
     out = out[:OCR_MAX_LINES]
-    return {
-        "languages": languages,
-        "lines": out,
-        "truncated": truncated,
-        "textAreaShareInArtwork": text_area_share(out, crop_xyxy) if crop_xyxy else None,
-    }
+    result = {"languages": languages, "lines": out, "truncated": truncated, "textAreaShareInArtwork": None}
+    # A dense page of small text can still pass 64 KB: drop the smallest lines until it fits (they are sorted by area)
+    while out and encoded_size(result) > OCR_MAX_BYTES:
+        del out[-max(1, len(out) // 20):]
+        result["truncated"] = True
+    result["textAreaShareInArtwork"] = text_area_share(out, crop_xyxy) if crop_xyxy else None
+    return result
 
 
 def gtin_ok(digits: str) -> bool:
@@ -80,6 +87,33 @@ def gtin_ok(digits: str) -> bool:
     body, check = digits[:-1], int(digits[-1])
     total = sum(int(d) * (3 if i % 2 == 0 else 1) for i, d in enumerate(reversed(body)))
     return (10 - total % 10) % 10 == check
+
+
+def upce_to_upca(digits: str) -> str | None:
+    """UPC-E (8 digits: number system, 6 digits, check digit) expanded to its UPC-A body + the same check digit."""
+    if len(digits) != 8 or not digits.isdigit() or digits[0] not in "01":
+        return None
+    ns, d, check = digits[0], digits[1:7], digits[7]
+    last = d[5]
+    if last in "012":
+        body = d[0:2] + last + "0000" + d[2:5]
+    elif last == "3":
+        body = d[0:3] + "00000" + d[3:5]
+    elif last == "4":
+        body = d[0:4] + "00000" + d[4]
+    else:
+        body = d[0:5] + "0000" + last
+    return ns + body + check
+
+
+def code_ok(sym: str, value: str) -> bool | None:
+    """Check digit of a GTIN-like code (UPC-E is checked on its UPC-A expansion); None for other symbologies."""
+    if sym == "UPCE":
+        upca = upce_to_upca(value)
+        return gtin_ok(upca) if upca else False
+    if sym in ("EAN13", "EAN8", "UPCA", "ITF14", "GTIN"):
+        return gtin_ok(value)
+    return None
 
 
 def barcode_payload(codes: list[tuple[str, str, Sequence[float]]]) -> dict[str, Any]:
@@ -92,8 +126,7 @@ def barcode_payload(codes: list[tuple[str, str, Sequence[float]]]) -> dict[str, 
         if not value or (sym, value) in seen:
             continue
         seen.add((sym, value))
-        is_gtin = sym in ("EAN13", "EAN8", "UPCE", "UPCA", "ITF14", "GTIN")
-        out.append({"sym": sym, "v": value, "b": to_top_left(box), "checksumOk": gtin_ok(value) if is_gtin else None, "reader": "apple"})
+        out.append({"sym": sym, "v": value, "b": to_top_left(box), "checksumOk": code_ok(sym, value), "reader": "apple"})
     return {"codes": out}
 
 

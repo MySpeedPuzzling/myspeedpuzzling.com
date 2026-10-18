@@ -32,6 +32,9 @@ from .workstate import WorkState
 log = logging.getLogger(__name__)
 
 PARITY_MARKER = "describe-parity"
+EXIT_STOPPED = 143  # SIGTERM / Ctrl-C
+EXIT_DEADLINE = 124  # --hours ran out (like timeout(1))
+PROBE_PAGES = 5
 
 
 @dataclass
@@ -68,6 +71,38 @@ def stage_command(profile: Profile, analyzer: str, base_url: str, stats_file: st
     return cmd
 
 
+def usable_work(api: InternalApi, workstate: WorkState, settings: Any, worker: str, pages: int = PROBE_PAGES) -> bool:
+    """Read-only: a picture this worker could claim and analyse now (stale, `requires` met, not given up here, not
+    held by another worker)."""
+    after = None
+    for _ in range(pages):
+        page = api.list_images(analyzer=settings.name, version=settings.version, status="stale", limit=200, after=after,
+                               requires=settings.requires)
+        for item in page["puzzles"]:
+            claim = item.claims.get(settings.name) if isinstance(item.claims, dict) else None
+            if isinstance(claim, dict) and claim.get("worker") not in (None, worker):
+                continue
+            if not workstate.given_up(settings.name, settings.version, item.puzzle_id, item.fingerprint):
+                return True
+        after = page["nextCursor"]
+        if not after:
+            break
+    return False
+
+
+def upstream_active(api: InternalApi, analyzer: str, version: str, pages: int = PROBE_PAGES) -> bool:
+    """Some worker is on the analyzer now: a stale picture of it is claimed (claims go to the lowest ids first)."""
+    after = None
+    for _ in range(pages):
+        page = api.list_images(analyzer=analyzer, version=version, status="stale", limit=200, after=after)
+        if any(isinstance(i.claims, dict) and i.claims.get(analyzer) for i in page["puzzles"]):
+            return True
+        after = page["nextCursor"]
+        if not after:
+            break
+    return False
+
+
 class Runner:
     def __init__(self, opts: RunOptions, api: InternalApi, workstate: WorkState) -> None:
         self.opts = opts
@@ -77,6 +112,7 @@ class Runner:
         self.children: list[subprocess.Popen] = []
         self.deadline = time.time() + opts.hours * 3600 if opts.hours else None
         self._tmp = tempfile.mkdtemp(prefix="puzzle-vision-")
+        self._previous_handlers: dict[int, Any] = {}
 
     # signals -----------------------------------------------------------------------------------------------------
     def install_signals(self) -> None:
@@ -90,8 +126,13 @@ class Runner:
                     except ProcessLookupError:
                         pass
 
-        signal.signal(signal.SIGTERM, handler)
-        signal.signal(signal.SIGINT, handler)
+        for sig in (signal.SIGTERM, signal.SIGINT):
+            self._previous_handlers[sig] = signal.signal(sig, handler)
+
+    def restore_signals(self) -> None:
+        for sig, previous in self._previous_handlers.items():
+            signal.signal(sig, previous)
+        self._previous_handlers = {}
 
     def caffeinate(self) -> subprocess.Popen | None:
         try:
@@ -151,23 +192,29 @@ class Runner:
     def _past_deadline(self) -> bool:
         return self.deadline is not None and time.time() >= self.deadline
 
-    def work_left(self, phases: list[Phase], max_pages: int = 5) -> bool:
-        """Any analyzer of these phases with a picture still to do that this machine has not given up on (failed 3
-        times for this version) - else a backfill would wait forever for pictures nobody can analyse."""
+    def work_left(self, phases: list[Phase]) -> bool:
+        """Anything this machine could still do or must wait for:
+        - a picture claimable now: stale for the analyzer, its `requires` there, not given up here (3 failures for
+          this version), not held by another worker; or
+        - an upstream analyzer still being worked on: some stale picture of a required analyzer is claimed by a worker
+          (the M3's artwork while the M1's phase B waits). An upstream nobody works on any more ends the wait - a
+          backfill never waits forever for pictures nobody can analyse."""
         for phase in phases:
             if not gate_open(phase.gate, self.opts.profile, self.workstate):
                 continue
             for analyzer in phase.stages + phase.sidecar:
-                version = self.opts.profile.version(analyzer)
-                after = None
-                for _ in range(max_pages):
-                    page = self.api.list_images(analyzer=analyzer, version=version, status="stale", limit=200, after=after)
-                    if any(not self.workstate.given_up(analyzer, version, i.puzzle_id, i.fingerprint) for i in page["puzzles"]):
+                if usable_work(self.api, self.workstate, self.opts.profile.analyzers[analyzer], self.worker_id):
+                    return True
+                for upstream in self.opts.profile.analyzers[analyzer].requires:
+                    if upstream_active(self.api, upstream, self.opts.profile.version(upstream)):
                         return True
-                    after = page["nextCursor"]
-                    if not after:
-                        break
         return False
+
+    @property
+    def worker_id(self) -> str:
+        from .config import worker_id
+
+        return worker_id(self.opts.profile.name)
 
     def selected_phases(self) -> list[Phase]:
         prof = self.opts.profile
@@ -178,6 +225,8 @@ class Runner:
         return list(prof.phases)
 
     def run(self) -> int:
+        """0 = done (or a daily pass completed); EXIT_STOPPED / EXIT_DEADLINE when it ended early - then the caller
+        runs no derive / crop proposals after it."""
         self.install_signals()
         caff = self.caffeinate()
         phases = self.selected_phases()
@@ -192,6 +241,10 @@ class Runner:
                         break
                     log.info("no claimable work right now - sleeping %.0f min", self.opts.idle_minutes)
                     self.stop.wait(self.opts.idle_minutes * 60)
+            if self.stop.is_set():
+                return EXIT_STOPPED
+            if self._past_deadline():
+                return EXIT_DEADLINE
             return 0
         finally:
             for c in self.children:
@@ -203,3 +256,4 @@ class Runner:
                         c.kill()
             if caff is not None:
                 caff.terminate()
+            self.restore_signals()

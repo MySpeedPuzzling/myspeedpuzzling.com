@@ -196,13 +196,17 @@ def already_proposed(api: InternalApi) -> set[tuple[str, str]]:
 
 
 def propose(api: InternalApi, fetch_original: Callable[[str], bytes], gate_margin: Callable[[np.ndarray], float],
-            artwork_version: str, limit: int, dry_run: bool = False, threshold: float = PROPOSE_THRESHOLD) -> dict[str, Any]:
+            artwork_version: str, limit: int, dry_run: bool = False, threshold: float = PROPOSE_THRESHOLD,
+            workstate: Any = None) -> dict[str, Any]:
+    """`workstate` remembers (puzzle, picture, crop model) -> confidence: a picture scored below the threshold or too
+    small is not downloaded and scored again every day (a new picture or a new crop model is)."""
+    version = model_version(artwork_version)
     done = already_proposed(api)
     meta = {i.puzzle_id: i for i in api.iter_images(status="all", limit=1000)}
     candidates: list[tuple[WorkItem, dict[str, Any]]] = []
     for row in api.iter_analyses("artwork", only_current=True, limit=1000):
         item = meta.get(row["puzzleId"])
-        r = row.get("result") or {}
+        r = row.get("result") if isinstance(row.get("result"), dict) else {}
         if item is None or row.get("imageFingerprint") != item.fingerprint:
             continue
         if r.get("kind") in (None, "flat") or r.get("method") == "trim" or not r.get("bbox"):
@@ -212,10 +216,14 @@ def propose(api: InternalApi, fetch_original: Callable[[str], bytes], gate_margi
         candidates.append((item, r))
     candidates.sort(key=lambda c: (-solve_count(c[0]), c[0].puzzle_id))
     summary: dict[str, Any] = {"candidates": len(candidates), "proposed": 0, "low_confidence": 0, "too_small": 0,
-                               "already_proposed": 0, "refused": 0, "failed": 0, "items": []}
+                               "already_proposed": 0, "refused": 0, "failed": 0, "remembered": 0, "items": []}
     for item, artwork in candidates:
         if summary["proposed"] >= limit:
             break
+        known = workstate.crop_score(item.puzzle_id, item.fingerprint, version) if workstate is not None else None
+        if known is not None and (known["outcome"] == "too_small" or (known["confidence"] or 0) < threshold):
+            summary["remembered"] += 1
+            continue
         try:
             prop = build(item, artwork, fetch_original(item.image_url), gate_margin)
         except Exception as e:  # noqa: BLE001 - one bad image never stops the run
@@ -224,7 +232,11 @@ def propose(api: InternalApi, fetch_original: Callable[[str], bytes], gate_margi
             continue
         if prop is None:
             summary["too_small"] += 1
+            if workstate is not None:
+                workstate.put_crop_score(item.puzzle_id, item.fingerprint, version, None, "too_small")
             continue
+        if workstate is not None and not dry_run:
+            workstate.put_crop_score(item.puzzle_id, item.fingerprint, version, prop.confidence, "scored")
         if prop.confidence < threshold:
             summary["low_confidence"] += 1
             continue
@@ -235,7 +247,7 @@ def propose(api: InternalApi, fetch_original: Callable[[str], bytes], gate_margi
             continue
         try:
             answer = api.propose_image_change(item.puzzle_id, prop.image, confidence=prop.confidence,
-                                              model_version=model_version(artwork_version),
+                                              model_version=version,
                                               source_image_fingerprint=item.fingerprint, tags=[TAG])
         except AlreadyProposed:
             summary["already_proposed"] += 1

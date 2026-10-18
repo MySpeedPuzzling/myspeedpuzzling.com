@@ -273,6 +273,7 @@ final class PuzzleChangeRequestPipelineInternalApiTest extends WebTestCase
         self::assertIsArray($approvedItem['decision']['decidedBy']);
         self::assertSame(PlayerFixture::PLAYER_ADMIN, $approvedItem['decision']['decidedBy']['playerId']);
         self::assertIsString($approvedItem['decision']['decidedAt']);
+        self::assertSame('proposed', $approvedItem['decision']['image']);
         // Once approved, the proposed picture is the puzzle's picture now
         $puzzleImage = $this->puzzles()->get(self::PUZZLE)->image;
         self::assertNotNull($puzzleImage);
@@ -284,6 +285,7 @@ final class PuzzleChangeRequestPipelineInternalApiTest extends WebTestCase
         self::assertSame('rejected', $rejectedItem['decision']['outcome']);
         self::assertSame('auto: confidence 0.31, below the review band', $rejectedItem['decision']['note']);
         self::assertSame('The crop cuts off the edge of the picture.', $rejectedItem['decision']['rejectionReason']);
+        self::assertNull($rejectedItem['decision']['image']);
         // The rejected proposal's file is deleted
         self::assertNull($rejectedItem['proposedImageUrl']);
 
@@ -295,6 +297,24 @@ final class PuzzleChangeRequestPipelineInternalApiTest extends WebTestCase
             self::assertIsString($answer['error']);
             self::assertStringContainsString('decisionNote', $answer['error']);
         }
+    }
+
+    public function testAnApprovalKeepingTheOldPictureIsListedAsSuch(): void
+    {
+        // Approved without the picture (a moderator kept the old one): not an accepted crop - the pipeline's precision
+        // must see the difference (decision.image)
+        $kept = $this->propose(self::OTHER_PUZZLE);
+        self::assertIsString($kept['changeRequestId']);
+
+        self::callInternalApi($this->browser, 'POST', '/internal-api/puzzle-change-requests/' . $kept['changeRequestId'] . '/approve', [
+            'selectedFields' => [],
+        ]);
+        self::assertResponseStatusCodeSame(204);
+
+        $item = $this->listed('source=image_pipeline&status=approved')[$kept['changeRequestId']];
+        self::assertIsArray($item['decision']);
+        self::assertSame('approved', $item['decision']['outcome']);
+        self::assertSame('keep', $item['decision']['image']);
     }
 
     public function testApprovingAPipelinePictureArchivesTheOriginalFirst(): void

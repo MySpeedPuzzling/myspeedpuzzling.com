@@ -175,8 +175,10 @@ puzzle whose picture is hidden now are never listed.** Each item: `id`, `puzzleI
 `proposedImageUrl` (the proposal's file while pending; once approved with the picture, the puzzle's new picture; null
 once rejected - a rejection deletes the proposal's file - or when it proposes no picture), `originalArchiveUrl` (below),
 `createdAt` and `decision`: null while pending, else `{outcome: approved|rejected|outdated, decidedAt, decidedBy:
-{playerId, name} | null, source: admin_ui|internal_api|automatic, note, rejectionReason}` from the decision log
-(`puzzle_moderation_decision`, its latest row of the request). The URLs are full-size originals
+{playerId, name} | null, source: admin_ui|internal_api|automatic, note, rejectionReason, image}` from the decision log
+(`puzzle_moderation_decision`, its latest row of the request). `image` is an approval's picture choice: `proposed`
+(the proposed picture was taken), `keep` or `upload` (approved without it - for the pipeline's precision that is **not**
+an accepted crop); null for rejections, `outdated` closures and approvals without a logged decision. The URLs are full-size originals
 (`{NGINX_PROXY_BASE_URL}/original/<path>`), downloadable from anywhere. One statement per page
 (`GetChangeRequestsForInternalApi`).
 

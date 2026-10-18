@@ -25,7 +25,8 @@ Run in the background so the session stays usable, with the log as the progress 
 ```sh
 cd tools/puzzle-vision
 nohup uv run --extra ml puzzle-vision run --profile <p> [--hours N] [--phase X] > ~/Library/Logs/puzzle-vision/run-$(date +%Y%m%d-%H%M).log 2>&1 &
-echo $! > ~/Library/Logs/puzzle-vision/run.pid
+# the run writes its own (python) pid - `$!` would be uv's
+cat "$HOME/Library/Application Support/puzzle-vision/run-<p>.pid"
 ```
 
 - Backfill (default): every phase until nothing is left; it sleeps and retries while it waits on the other Mac
@@ -41,5 +42,7 @@ one stage: read the log; fix only a clear pipeline bug (on a branch with a PR, t
 
 ## Stop
 
-`kill $(cat ~/Library/Logs/puzzle-vision/run.pid)` (SIGTERM) - every stage stores what it finished and releases its
-claims; confirm in the log ("released"). Resume = start again; production is the truth.
+`kill $(cat "$HOME/Library/Application Support/puzzle-vision/run-<p>.pid")` (SIGTERM to the python run, not uv) -
+every stage stores what it finished and releases its claims; the run exits 143 (124 when `--hours` ran out) and a
+`--daily` run then skips derive and crop proposals. Confirm in the log ("released"). Resume = start again; production
+is the truth.

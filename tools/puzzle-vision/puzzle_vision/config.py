@@ -45,6 +45,19 @@ def read_token(run: Callable[..., subprocess.CompletedProcess] = subprocess.run)
     return token
 
 
+def env_token_only() -> str:
+    token = os.environ.get(TOKEN_ENV, "").strip()
+    if not token:
+        raise TokenMissing(f"a --base-url other than {DEFAULT_BASE_URL} takes the token from {TOKEN_ENV} only - "
+                           "the production token in the Keychain is never sent anywhere else")
+    return token
+
+
+def token_provider_for(base_url: str) -> Callable[[], str]:
+    """The Keychain (production) token goes to production only; any other base URL (a local dev API) needs the env var."""
+    return read_token if base_url.rstrip("/") == DEFAULT_BASE_URL else env_token_only
+
+
 def token_present() -> bool:
     try:
         read_token()

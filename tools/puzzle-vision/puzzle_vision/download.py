@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import hashlib
 import logging
+import os
 import threading
 import time
 from dataclasses import dataclass
@@ -108,8 +109,14 @@ class Downloader:
         im = fit(normalise(raw), self.max_side)
         path = self.cache_dir / fingerprint[:2] / f"{fingerprint}.jpg"
         path.parent.mkdir(parents=True, exist_ok=True)
-        # JPEG q95 4:4:4: ~1 MB at 1600 px, deterministic for one Pillow version (both Macs pin the same one)
-        im.save(path, "JPEG", quality=95, subsampling=0)
+        # JPEG q95 4:4:4: ~1 MB at 1600 px, deterministic for one Pillow version (both Macs pin the same one).
+        # Written to a temporary name and moved in place: a crash or a parallel worker never leaves half a file
+        tmp = path.with_name(f"{path.name}.tmp-{os.getpid()}")
+        try:
+            im.save(tmp, "JPEG", quality=95, subsampling=0)
+            os.replace(tmp, path)
+        finally:
+            tmp.unlink(missing_ok=True)
         w, h = im.size
         self.workstate.record_download(fingerprint, puzzle_id, str(path), sha, w, h, ow, oh, path.stat().st_size)
         return LocalImage(puzzle_id, fingerprint, str(path), sha, w, h, ow, oh)

@@ -25,6 +25,8 @@ from .api import AnalysisResult, InternalApi, WorkItem
 from .download import Downloader, ImageGone, LocalImage
 from .imaging import UndecodableImage, artwork_crop, load_rgb
 from .payload import MAX_RESULT_BYTES, PayloadTooLarge, check_size, envelope
+from typing import Callable
+
 from .profiles import AnalyzerSettings
 from .stages.base import ArtifactSource, Defer, Prepared, Skip, Stage
 from .workstate import WorkState
@@ -32,6 +34,7 @@ from .workstate import WorkState
 log = logging.getLogger(__name__)
 
 FLUSH_SECONDS = 120.0
+PREFETCH_AT = 0.8  # the next claim goes out when this share of the batch in hand is done
 
 
 @dataclass
@@ -74,6 +77,7 @@ class StageWorker:
         deadline: float | None = None,
         download_threads: int = 4,
         flush_size: int = 200,
+        loader: Callable[[], None] | None = None,
     ) -> None:
         self.stage = stage
         self.settings = settings
@@ -84,7 +88,10 @@ class StageWorker:
         self.stop = stop or threading.Event()
         self.max_images = max_images
         self.deadline = deadline
-        self.flush_size = min(200, flush_size)
+        self.flush_size = 1 if settings.slow else min(200, flush_size)
+        self._loader = loader  # takes the model lock and loads the model - only once there is usable work
+        self._loaded = loader is None
+        self._upcoming: Future | None = None
         self.artifacts = ArtifactSource(api, workstate)
         self.stats = WorkerStats()
         self._pool = ThreadPoolExecutor(max_workers=download_threads, thread_name_prefix="download")
@@ -108,6 +115,8 @@ class StageWorker:
         return items
 
     def _claim_and_download(self) -> tuple[list[WorkItem], dict[str, Future]]:
+        if self._should_stop():  # never claim what will not be worked on
+            return [], {}
         items = self._claim()
         fresh = [i for i in items if i.puzzle_id not in self._seen]
         return items, {i.puzzle_id: self._pool.submit(self.downloader.get, i.puzzle_id, i.fingerprint, i.image_url) for i in fresh}
@@ -135,14 +144,15 @@ class StageWorker:
                     self.stats.stop_reason = self.stats.stop_reason or "no more work"
                     break
                 self._seen.update(i.puzzle_id for i in fresh)
-                upcoming: Future | None = None
-                if self.max_images is None or self._done + len(fresh) < self.max_images:
-                    upcoming = self._pool.submit(self._claim_and_download)
-                self._work(fresh, downloads)
-                if upcoming is None:
+                self._upcoming = None
+                more = self.max_images is None or self._done + len(fresh) < self.max_images
+                self._work(fresh, downloads, prefetch_at=max(1, int(len(fresh) * PREFETCH_AT + 0.999)) if more else None)
+                if not more:
                     self.stats.stop_reason = self.stats.stop_reason or "image limit reached"
                     break
-                batch, downloads = upcoming.result()
+                if self._upcoming is None:  # the batch ended before the pre-fetch point (skips, failures)
+                    self._upcoming = self._pool.submit(self._claim_and_download)
+                batch, downloads = self._upcoming.result()
         finally:
             try:
                 self.flush(force=True)
@@ -157,21 +167,32 @@ class StageWorker:
             log.info(self.stats.line(self.analyzer))
         return self.stats
 
-    def _work(self, items: list[WorkItem], downloads: dict[str, Future]) -> None:
+    def _maybe_prefetch(self, processed: int, prefetch_at: int | None) -> None:
+        if prefetch_at is not None and processed >= prefetch_at and self._upcoming is None:
+            self._upcoming = self._pool.submit(self._claim_and_download)
+
+    def _work(self, items: list[WorkItem], downloads: dict[str, Future], prefetch_at: int | None = None) -> None:
         for upstream in self.stage.upstream:
             self.artifacts.ensure(upstream, items)
         size = max(1, self.stage.batch_size)
+        processed = 0
         for start in range(0, len(items), size):
             if self._should_stop():
                 return
             chunk = items[start:start + size]
+            processed += len(chunk)
             prepared: list[Prepared] = []
             for item in chunk:
                 p = self._prepare(item, downloads.get(item.puzzle_id))
                 if p is not None:
                     prepared.append(p)
             if not prepared:
+                self._maybe_prefetch(processed, prefetch_at)
                 continue
+            if not self._loaded:
+                assert self._loader is not None
+                self._loader()  # the model lock + the model, only now that there is usable work
+                self._loaded = True
             t = time.monotonic()
             results = self.stage.analyse_batch(prepared)
             elapsed = time.monotonic() - t
@@ -190,6 +211,7 @@ class StageWorker:
                     continue
                 self._accept(p, result, per_image_ms)
             self.flush()
+            self._maybe_prefetch(processed, prefetch_at)
 
     def _prepare(self, item: WorkItem, download: Future | None) -> Prepared | None:
         if self.workstate.given_up(self.analyzer, self.settings.version, item.puzzle_id, item.fingerprint):
@@ -253,7 +275,12 @@ class StageWorker:
             return
         pending, self._pending = self._pending, []
         self._last_flush = time.monotonic()
-        for outcome, result in zip(self.api.store(pending), pending):
+        try:
+            outcomes = self.api.store(pending)
+        except Exception:
+            self._pending = pending + self._pending  # nothing is lost - the next flush (or the final one) tries again
+            raise
+        for outcome, result in zip(outcomes, pending):
             status = outcome.status
             self.workstate.record_progress(self.analyzer, self.settings.version, result.puzzle_id, result.fingerprint, status, self.worker_id)
             if status == "stored":

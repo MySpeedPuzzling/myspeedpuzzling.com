@@ -3,15 +3,16 @@ import pytest
 from puzzle_vision.proposals import review
 
 
-def item(i, conf, status="pending", note=None, source="admin_ui"):
+def item(i, conf, status="pending", note=None, source="admin_ui", image=None, model="artwork-crop 1.0.0"):
     """The item shape of GET /internal-api/puzzle-change-requests (ListPuzzleChangeRequestsController)."""
     return {"id": f"cr-{i:05d}", "puzzleId": f"p{i}", "puzzleName": "P", "status": status, "source": "image_pipeline",
-            "tags": ["artwork_crop"], "confidence": conf, "modelVersion": "artwork-crop 1.0.0", "sourceImageFingerprint": "0" * 16,
+            "tags": ["artwork_crop"], "confidence": conf, "modelVersion": model, "sourceImageFingerprint": "0" * 16,
             "originalImageUrl": f"https://img/o{i}", "proposedImageUrl": f"https://img/p{i}", "originalArchiveUrl": None,
             "createdAt": "2026-10-18T10:00:00+00:00",
             "decision": None if status == "pending" else {"outcome": status, "decidedAt": "2026-10-20T10:00:00+00:00",
                                                           "decidedBy": {"playerId": "x", "name": "Mod"}, "source": source,
-                                                          "note": note, "rejectionReason": "no" if status == "rejected" else None}}
+                                                          "note": note, "rejectionReason": "no" if status == "rejected" else None,
+                                                          "image": image or ("proposed" if status == "approved" else None)}}
 
 
 def test_wilson_lower_bound_known_values():
@@ -94,3 +95,38 @@ def test_bands_report():
     bands = {b["band"]: b for b in review.bands([review.parse_item(i) for i in items])}
     assert bands["0.60-0.65"]["humanApproved"] == 1 and bands["0.60-0.65"]["humanRejected"] == 1
     assert bands["0.95-1.00"]["auto"] == 1 and bands["0.95-1.00"]["pending"] == 1
+
+
+def test_an_approval_keeping_the_old_picture_is_a_failure():
+    items = [item(i, 0.99, "approved") for i in range(300)] + [item(400 + i, 0.99, "approved", image="keep") for i in range(20)]
+    p = review.plan(items)
+    assert p.human_decisions == 320 and p.human_approved == 300
+    with pytest.raises(review.ContractError):
+        review.plan([item(1, 0.9, "approved", image="sideways")])
+
+
+def test_the_threshold_is_per_crop_model_version():
+    old = [item(i, 0.99, "approved", model="artwork-crop 1.0.0") for i in range(500)]
+    new = [item(1000 + i, 0.99, "pending", model="artwork-crop 1.1.0") | {"createdAt": "2026-11-01T00:00:00+00:00"} for i in range(3)]
+    p = review.plan(old + new)
+    assert p.model_version == "artwork-crop 1.1.0" and p.human_decisions == 0 and not p.earned and p.to_approve == []
+    assert review.plan(old + new, model_version="artwork-crop 1.0.0").earned
+
+
+def test_audit_precision_is_measured_on_the_recent_window():
+    items = [item(i, 0.99, "approved") for i in range(3000)]
+    for it in items:
+        it["decision"]["decidedAt"] = "2026-09-01T00:00:00+00:00"  # long before the audited ones below
+    audit_ids = [i for i in range(3000, 200000) if review.is_audit(f"cr-{i:05d}")][:400]
+    for n, i in enumerate(audit_ids):  # the old 200 audited are right, the recent 200 often wrong
+        bad = n >= 200 and n % 10 == 0
+        items.append(item(i, 0.99, "rejected" if bad else "approved") | {"decision": {
+            "outcome": "rejected" if bad else "approved", "decidedAt": f"2026-10-{1 + n // 20:02d}T00:00:00+00:00",
+            "decidedBy": None, "source": "admin_ui", "note": None, "rejectionReason": None, "image": None if bad else "proposed"}})
+    p = review.plan(items)
+    assert p.audit_decided == 200 and p.audit_precision == 0.9 and p.auto_stopped
+
+
+def test_claude_approvals_are_counted_per_day():
+    items = [review.parse_item(item(i, 0.8, "approved", note="claude-review: x", source="internal_api")) for i in range(3)]
+    assert review.claude_approvals_on(items, "2026-10-20") == 3 and review.claude_approvals_on(items, "2026-10-21") == 0

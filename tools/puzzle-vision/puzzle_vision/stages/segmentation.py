@@ -35,7 +35,9 @@ def summarise(seg_ids: np.ndarray, segments: list[dict[str, Any]], id2label: dic
         if lid < THING_CLASSES:
             instances[name] = instances.get(name, 0) + 1
     classes = {k: round(v, 4) for k, v in sorted(shares.items(), key=lambda kv: -kv[1]) if v >= MIN_SHARE}
-    return {"classes": classes, "instances": dict(sorted(instances.items())), "grid16": grid16(class_map), "classList": "coco-panoptic-133"}
+    # an empty map is sent as null (it would come back from the API as a list)
+    return {"classes": classes or None, "instances": dict(sorted(instances.items())) or None, "grid16": grid16(class_map),
+            "classList": "coco-panoptic-133"}
 
 
 def grid16(class_map: np.ndarray) -> list[int]:

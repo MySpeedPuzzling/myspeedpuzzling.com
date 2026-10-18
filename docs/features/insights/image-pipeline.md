@@ -65,7 +65,8 @@ security add-generic-password -U -s msp-internal-api -a "$USER" -w     # prompts
 ```
 
 `MSP_INTERNAL_API_TOKEN=… uv run …` overrides it for one run. `--base-url http://localhost:8080` points at a local dev
-API (testing only; production is the default and the only real target).
+API (testing only; production is the default and the only real target) - **any other base URL takes the token from
+`MSP_INTERNAL_API_TOKEN` only**: the production token in the Keychain is never sent anywhere but production.
 
 **Models** - download only what the profile runs (Hugging Face cache `~/.cache/huggingface/hub/`; all Apache-2.0 / MIT):
 
@@ -106,16 +107,25 @@ uv run --extra ml puzzle-vision run --profile m3-max --daily         # one pass 
 - **One stage = one process = one model.** The runner starts each stage as its own process (memory goes back to the
   system between stages); the CPU sidecar stages run alongside in their own single-threaded workers
   (`OMP_NUM_THREADS=1`, `workers` per profile). `caffeinate -i` keeps the Mac awake while it runs.
-- Each stage first checks read-only whether there is anything to do (`status=stale` probe), so a model is never loaded
-  for nothing. Then it takes the **model lock** (below), loads its model and loops: claim → pre-fetch the next claim and
-  its downloads while working → analyse → store in batches of ≤ 200 → per-image failure: recorded + claim released →
-  at the end (or on SIGTERM / Ctrl-C / the memory watchdog / `--hours`) store what is done and release every own claim.
+- Each stage first checks read-only whether there is anything it could do (stale, `requires` met, not given up here,
+  not held by another worker). Then it claims, and only when the claim brings a usable picture does it take the
+  **model lock** (below) and load its model - a model is never loaded for nothing. It loops: claim → the next claim and
+  its downloads go out when ~80 % of the batch is done → analyse → store in batches of ≤ 200 (slow stages, > 5 s an
+  image like `describe`, store every result at once) → per-image failure: recorded + claim released → at the end (or
+  on SIGTERM / Ctrl-C / the memory watchdog / `--hours`) store what is done and release every own claim. A store that
+  fails keeps its results for the next try. Leases are 3× the batch's measured time + the store interval + 2 min
+  (the M3 runs up to 2-3× slower while Jan works on it).
 - `artwork` runs as two processes: the **gate** walks the stale list and scores every picture with SigLIP 2 (stored
   locally only), then the **VLM pass** claims: gate-flat pictures get the border trim (ms), the rest Qwen3-VL-4B + the
   quad snap. A picture the gate has not seen yet keeps its claim until the pass ends and is gated next round.
 - Backfill mode keeps going while the other Mac still produces what a stage requires (the M3's `describe` waits on the
-  M1's OCR): after a pass without claimable work it sleeps 10 min (`--idle-minutes`) and claims again, and ends when
-  no analyzer of its phases has stale work left.
+  M1's OCR): after a pass without claimable work it sleeps 10 min (`--idle-minutes`) and claims again. It ends when
+  nothing is claimable for it (stale, `requires` met, not given up, not held by another worker) **and** no required
+  upstream analyzer is being worked on (no claim on its stale pictures) - so it never waits forever for pictures
+  nobody can analyse.
+- Exit codes: 0 = done / the daily pass completed; 143 = stopped (SIGTERM / Ctrl-C); 124 = `--hours` ran out. After an
+  early end, `--daily` runs no derive and no crop proposals. The run writes its own pid (the python process, not
+  `uv`) to `~/Library/Application Support/puzzle-vision/run-<profile>.pid` - `kill $(cat …)` stops it cleanly.
 - Progress lines go to the terminal and `~/Library/Logs/puzzle-vision/<profile>.log`.
 
 ### Daily mode and launchd
@@ -167,7 +177,7 @@ command again: production is the truth, the local work state is only a cache.
   a large model while `describe` runs - the lock makes others wait.
 - **Image cache** `~/Library/Caches/puzzle-vision/images/` - each original once per fingerprint, EXIF-oriented, alpha
   flattened, long side ≤ 1600 px, JPEG q95 4:4:4 (~1 MB, ~40 GB for the catalogue; deterministic for the pinned
-  Pillow, so both Macs feed the models the same pixels). Downloads ≤ 4 requests/s with retries. After the backfill the
+  Pillow, so both Macs feed the models the same pixels), written to a temporary name and moved in place. Downloads ≤ 4 requests/s with retries. After the backfill the
   cache can be deleted (only new pictures are downloaded afterwards).
 - Work state `~/Library/Application Support/puzzle-vision/workstate.sqlite`; logs `~/Library/Logs/puzzle-vision/`.
   Nothing of it is ever in the repository (`.gitignore`).
@@ -183,7 +193,7 @@ uv run puzzle-vision status --profile m1-air --json
 One walk of the work list (~42 requests): per analyzer and version **done / stale / missing / waiting** (missing but
 its `requires` not there yet) **/ claimed** (and by which worker), results received in the last hour / 6 h / 24 h
 from every machine, an ETA from the last 6 h, and this machine's stored counts, failures and cache size.
-`uv run --extra ml puzzle-vision verify --end-to-end --limit 10` runs every stage of the profile for 10 images
+`uv run --extra ml puzzle-vision verify --profile <p> --end-to-end --limit 10` runs every stage of the profile for 10 images
 against production (real backfill work) and reports what each stored.
 
 ## 7. Derived analyzers
@@ -209,7 +219,8 @@ uv run puzzle-vision crop-review-approve --profile m3-max <id> …  # middle-ban
 ```
 
 - **Proposals:** box photos / renders / assembled puzzles (artwork kind ≠ flat), most-solved first (the work list's
-  `solvedCount`), then puzzle id. The perspective-corrected crop comes from the **full-resolution
+  `solvedCount`), then puzzle id. A picture scored below the threshold (or too small) is remembered per (puzzle,
+  picture, crop model) in the work state and not downloaded and scored again every day. The perspective-corrected crop comes from the **full-resolution
   original**. Confidence = weighted geometric mean of **agreement signals**, never a raw model score: VLM box vs
   snapped quad IoU, the flat-art gate on the crop, edge straightness (a strong edge exactly where the crop ends, all
   four sides), a plausible puzzle aspect ratio, and how much of the photo the artwork fills (and enough pixels,
@@ -228,6 +239,11 @@ uv run puzzle-vision crop-review-approve --profile m3-max <id> …  # middle-ban
   approved only when certain (`claude-review: …` note); anything unsure stays for moderators. Only people's decisions
   earn and check the threshold: **`decision.source == "admin_ui"`** (the moderators' web review). Everything decided
   through the internal API (`auto:`, `claude-review:` or a script) and `outdated` closures (`automatic`) never count.
+  A crop counts as **right only when it was taken** (`decision.image == "proposed"`); approved while keeping the old
+  picture or uploading another (`keep` / `upload`) counts like a rejection. Only decisions on the **current crop model
+  version** (the newest proposal's `modelVersion`) count - a new model earns its threshold anew. The audit precision is
+  measured on the last 200 decided audit items. Before the threshold is earned, Claude approves at most 20 by eye a
+  day; `crop-review-approve` refuses audit-sample ids and anything outside the middle band, and skips a `409`.
   The plan reads the list's documented item shape strictly and stops with an error when a field it relies on is missing.
 - Approving keeps the original (archived under `originals/`, "Restore original" on the puzzle history page).
 
@@ -250,7 +266,14 @@ pushed. Specifics beyond image-taxonomy.md §11:
   `embed_dinov2`: `cls`.
 - `describe`: the §18 schema (`none` in `time` / `weather`, `characters` a list, `extraTags`, no `specialHints`),
   post-processed subjects / place / artistSignature, plus `promptVersion` `"v2.1"` (= prompt v2 + "never the puzzle
-  brand or publisher" on the artistSignature line), `titleContext`, `ocrLines`, `tokens`.
+  brand or publisher" on the artistSignature line), `titleContext`, `title` (the catalogue title it was given -
+  `verify --describe-parity` skips puzzles renamed since), `ocrLines`, `tokens`.
+- `ocr`: lines capped at 200 characters; when a dense page would pass ~60 KB the smallest lines are dropped
+  (`truncated: true`). `inArtwork` / `textAreaShareInArtwork` are null when OCR ran before `artwork` existed (the M1's
+  phase A) - consumers compute "inside the crop" from the line boxes and the `artwork` bbox.
+- **No empty maps:** an empty map is sent as null (the app decodes `{}` into a PHP array and returns `[]`), and every
+  reader goes through `as_map()` - the derive step treats `{}`, `[]` and null as the same "nothing" when it decides
+  whether a row changed.
 - `segmentation`: `classes` (shares ≥ 0.002 by COCO panoptic label), `instances` (thing classes), `grid16`
   (dominant class id per cell, 255 = none), `classList`.
 
@@ -265,6 +288,8 @@ pushed. Specifics beyond image-taxonomy.md §11:
 | `409` rejecting / approving a decided request | Somebody decided it meanwhile - nothing changes, skip it. |
 | `400` with `errors.requires` | A profile names an unknown analyzer or one requiring itself - a bug in `profiles/*.toml`. |
 | `401` | Token missing or wrong: re-add it to the Keychain (§2). |
+| `artwork` failures "no usable kind / box" | The VLM's answer could not be parsed; the picture is retried (3 attempts for the version) instead of being stored as a guessed flat picture. |
+| Exit 143 / 124 | The run was stopped / its `--hours` ran out; a `--daily` run then skips derive and crop proposals. |
 | `invalid` outcomes | The server refused a payload (bad `bbox`, too big, NUL). A pipeline bug: read the error in the log / `status` failures. |
 | A stage waits forever "for the model lock" | Another process holds `/tmp/msp-model-lock` (ComfyUI, a lab, another stage) or memory is below 40 %. Check `ls -la /tmp/msp-model-lock`, `memory_pressure`. Never delete someone else's lock. |
 | `describe` claims nothing | It needs `artwork` and `ocr` of the current picture - the other Mac is still behind (`status` shows `waiting`). Backfill mode sleeps and retries. |

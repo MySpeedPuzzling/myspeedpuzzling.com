@@ -3594,7 +3594,7 @@ components:
         decision:
           type: [object, "null"]
           description: Null while pending.
-          required: [outcome, decidedAt, decidedBy, source, note, rejectionReason]
+          required: [outcome, decidedAt, decidedBy, source, note, rejectionReason, image]
           properties:
             outcome:
               type: string
@@ -3615,6 +3615,10 @@ components:
             rejectionReason:
               type: [string, "null"]
               description: The reason the player read - rejections only.
+            image:
+              type: [string, "null"]
+              enum: [proposed, keep, upload, null]
+              description: An approval's picture choice - `proposed` = the proposed picture was taken; `keep` / `upload` = approved without it. Null for rejections, closures and approvals logged before the decision log existed.
 
     ImageAnalyzer:
       type: string

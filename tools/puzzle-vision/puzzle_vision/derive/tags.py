@@ -21,6 +21,7 @@ from typing import Any
 import numpy as np
 
 from ..imaging import bbox_to_xyxy
+from ..payload import as_map
 from ..stages.apple_vision import text_area_share
 from .taxonomy import IMAGE_KINDS, LICENCE_WORDS, TAXONOMY_VERSION, THEMES
 
@@ -72,25 +73,28 @@ SKILL_WEIGHTS: dict[str, dict[str, float]] = {
 
 
 def _seg_share(seg: dict[str, Any] | None, words: tuple[str, ...]) -> float | None:
-    if not seg or not isinstance(seg.get("classes"), dict):
+    if not seg:
         return None
-    return round(sum(float(v) for k, v in seg["classes"].items() if any(w in k.lower() for w in words)), 4)
+    return round(sum(float(v) for k, v in as_map(seg.get("classes")).items() if any(w in k.lower() for w in words)), 4)
 
 
 def trait_values(p: dict[str, dict[str, Any]]) -> dict[str, float | None]:
     """The numeric source of every A.8 trait for one puzzle (None = input missing)."""
-    t, c, seg, d, vl = p.get("traits") or {}, p.get("colors") or {}, p.get("segmentation"), p.get("describe") or {}, p.get("vision_labels") or {}
-    ocr, art = p.get("ocr"), p.get("artwork")
+    t, c, d, vl = as_map(p.get("traits")), as_map(p.get("colors")), as_map(p.get("describe")), as_map(p.get("vision_labels"))
+    seg = p.get("segmentation") if isinstance(p.get("segmentation"), dict) else None
+    ocr = p.get("ocr") if isinstance(p.get("ocr"), dict) else None
+    art = p.get("artwork") if isinstance(p.get("artwork"), dict) else None
     text_share = None
     if ocr:
         text_share = ocr.get("textAreaShareInArtwork")
-        if text_share is None and art and art.get("bbox"):
+        if text_share is None and art and isinstance(art.get("bbox"), dict):
             text_share = text_area_share(ocr.get("lines") or [], bbox_to_xyxy(art["bbox"]))
     objects = None
-    if d.get("counts") or (seg and seg.get("instances")):
-        objects = max(float((d.get("counts") or {}).get("distinctObjects", 0)), float(sum((seg or {}).get("instances", {}).values())))
+    counts, instances = as_map(d.get("counts")), as_map((seg or {}).get("instances"))
+    if counts or instances:
+        objects = max(float(counts.get("distinctObjects", 0) or 0), float(sum(instances.values())))
     faces = vl.get("faces")
-    zs = (p.get("zeroshot") or {}).get("scores") or {}
+    zs = as_map(as_map(p.get("zeroshot")).get("scores"))
     collage = None
     if "collageGrid" in d:
         collage = 1.0 if d.get("collageGrid") and zs.get("theme.collage_collection.collage_grid", 0) >= 0.9 else 0.0
@@ -113,10 +117,10 @@ def trait_values(p: dict[str, dict[str, Any]]) -> dict[str, float | None]:
         "low_contrast": c.get("lightnessStd"),
         "text_heavy": text_share,
         "strong_lines": t.get("lineStrength"),
-        "faces_prominent": max((float(f.get("area", 0)) for f in faces), default=0.0) if isinstance(faces, list) else None,
+        "faces_prominent": max((float(as_map(f).get("area", 0) or 0) for f in faces), default=0.0) if isinstance(faces, list) else None,
         "many_objects": objects,
         "collage_grid": collage,
-        "uniform_border": (t.get("borderBand") or {}).get("uniformShare"),
+        "uniform_border": as_map(t.get("borderBand")).get("uniformShare"),
         "symmetric": t.get("symmetry"),
         "buildings": _seg_share(seg, ("building", "house", "roof", "bridge")),
         "map_style": (1.0 if d.get("style") == "map_cartographic" else 0.0) if d.get("style") else None,
@@ -148,8 +152,8 @@ def _assign(bucket: dict[str, Any], key: str, s: float, src: list[str], **extra:
 
 
 def fuse(p: dict[str, dict[str, Any]], corpus: Corpus, box_text: dict[str, Any] | None = None) -> dict[str, Any]:
-    d = p.get("describe") or {}
-    zs = (p.get("zeroshot") or {}).get("scores") or {}
+    d = as_map(p.get("describe"))
+    zs = as_map(as_map(p.get("zeroshot")).get("scores"))
     assigned: dict[str, Any] = {}
     candidates: dict[str, Any] = {}
 
@@ -199,20 +203,20 @@ def fuse(p: dict[str, dict[str, Any]], corpus: Corpus, box_text: dict[str, Any] 
         _assign(target, f"holiday.{hol}", z or 0.5, ["describe"] + (["zeroshot"] if z is not None and z >= ZS_AGREE else []))
 
     # people
-    vl = p.get("vision_labels") or {}
-    seg = p.get("segmentation") or {}
-    counts = [float((d.get("counts") or {}).get("people", 0) or 0), float(vl.get("humans", 0) or 0),
-              float((seg.get("instances") or {}).get("person", 0) or 0)]
+    vl = as_map(p.get("vision_labels"))
+    seg = as_map(p.get("segmentation"))
+    counts = [float(as_map(d.get("counts")).get("people", 0) or 0), float(vl.get("humans", 0) or 0),
+              float(as_map(seg.get("instances")).get("person", 0) or 0)]
     n_people = max(counts)
     bucket = "none" if n_people == 0 else "few" if n_people <= 3 else "many" if n_people <= 15 else "crowd"
     if d or vl or seg:
         _assign(assigned, f"people.{bucket}", 0.8, [s for s, c in zip(("describe", "vision_labels", "segmentation"), counts) if c == n_people])
-    faces = vl.get("faces") or []
-    if any(float(f.get("area", 0)) >= 0.05 for f in faces):
+    faces = vl.get("faces") if isinstance(vl.get("faces"), list) else []
+    if any(float(as_map(f).get("area", 0)) >= 0.05 for f in faces):
         _assign(assigned, "people.prominent_faces", 0.9, ["vision_labels"])
 
     # special
-    bt = box_text or p.get("box_text") or {}
+    bt = as_map(box_text) or as_map(p.get("box_text"))
     for sp in bt.get("specialMentions") or []:
         _assign(assigned, f"special.{sp}", 0.9, ["box_text"])
     if d.get("seekAndFind") and "special.seek_and_find" not in assigned:
@@ -220,7 +224,7 @@ def fuse(p: dict[str, dict[str, Any]], corpus: Corpus, box_text: dict[str, Any] 
 
     # licence
     char_text = " ".join(str(c).lower() for c in d.get("characters") or [])
-    ocr_text = " ".join(str(line.get("t", "")).lower() for line in (p.get("ocr") or {}).get("lines") or [])
+    ocr_text = " ".join(str(as_map(line).get("t", "")).lower() for line in (as_map(p.get("ocr")).get("lines") or []))
     for lic, ws in LICENCE_WORDS.items():
         sources = []
         if any(re.search(rf"(?<!\w){re.escape(w)}(?!\w)", char_text) for w in ws):
@@ -264,10 +268,10 @@ def fuse(p: dict[str, dict[str, Any]], corpus: Corpus, box_text: dict[str, Any] 
             skills[f"skill.{skill}"] = round(sum(pct[k] * w for k, w in have.items()) / total, 3)
 
     # image facet
-    art = p.get("artwork") or {}
+    art = as_map(p.get("artwork"))
     if art.get("kind") in IMAGE_KINDS:
         _assign(assigned, IMAGE_KINDS[art["kind"]], 0.9, ["artwork"])
-        src, bb = art.get("source") or {}, art.get("bbox") or {}
+        src, bb = as_map(art.get("source")), as_map(art.get("bbox"))
         if src and bb and max(src.get("width", 0) * bb.get("w", 0), src.get("height", 0) * bb.get("h", 0)) < 600:
             _assign(assigned, "image.low_resolution", 0.9, ["artwork"])
 
@@ -277,5 +281,6 @@ def fuse(p: dict[str, dict[str, Any]], corpus: Corpus, box_text: dict[str, Any] 
         "characters": list(d.get("characters") or []),
         "artist": d.get("artistSignature"),
     }
-    return {"taxonomy": TAXONOMY_VERSION, "assigned": assigned, "candidates": candidates, "skills": skills,
-            "traits": traits, "entities": entities}
+    # empty maps are sent as null (they would come back from the API as lists)
+    return {"taxonomy": TAXONOMY_VERSION, "assigned": assigned or None, "candidates": candidates or None, "skills": skills or None,
+            "traits": traits or None, "entities": entities}

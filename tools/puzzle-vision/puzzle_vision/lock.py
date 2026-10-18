@@ -95,16 +95,24 @@ class ModelLock:
 
     def try_acquire(self) -> bool:
         self._clear_own_stale()
+        free = self.memory()  # measured before taking the lock: nothing to undo when memory is short
+        if free < self.min_free:
+            log.info("only %d %% memory free (need %d %%) - waiting", free, self.min_free)
+            return False
         try:
             self.lock_dir.mkdir()
         except FileExistsError:
             return False
-        free = self.memory()
-        if free < self.min_free:
-            log.info("model lock free but only %d %% memory free (need %d %%) - waiting", free, self.min_free)
-            self.lock_dir.rmdir()
-            return False
-        self._owner_path().write_text(json.dumps({"pid": os.getpid(), "host": socket.gethostname(), "stage": self.name, "since": time.time()}))
+        try:
+            self._owner_path().write_text(json.dumps({"pid": os.getpid(), "host": socket.gethostname(), "stage": self.name, "since": time.time()}))
+        except BaseException:
+            # never leave a lock without an owner file behind (nobody could ever tell it is stale)
+            self._owner_path().unlink(missing_ok=True)
+            try:
+                self.lock_dir.rmdir()
+            except OSError:
+                pass
+            raise
         self.held = True
         log.info("model lock acquired for %s (%d %% memory free)", self.name, free)
         return True

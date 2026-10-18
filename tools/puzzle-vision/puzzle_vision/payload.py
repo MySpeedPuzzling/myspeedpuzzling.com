@@ -17,14 +17,18 @@ class PayloadTooLarge(ValueError):
     pass
 
 
-def clean(value: Any) -> Any:
-    """Postgres refuses NUL characters anywhere in jsonb, and JSON has no NaN/Infinity: strip / null them."""
+def clean(value: Any, top: bool = True) -> Any:
+    """Postgres refuses NUL characters anywhere in jsonb, and JSON has no NaN/Infinity: strip / null them. An empty
+    map inside a payload becomes null: the app decodes JSON objects into PHP arrays, so `{}` would come back as `[]`
+    (internal-api.md "Payload notes") - readers then see one shape for "nothing"."""
     if isinstance(value, str):
         return value.replace("\x00", "")
     if isinstance(value, dict):
-        return {clean(str(k)): clean(v) for k, v in value.items()}
+        if not value and not top:
+            return None
+        return {clean(str(k)): clean(v, top=False) for k, v in value.items()}
     if isinstance(value, (list, tuple)):
-        return [clean(v) for v in value]
+        return [clean(v, top=False) for v in value]
     if isinstance(value, (np.floating,)):
         value = float(value)
     if isinstance(value, (np.integer,)):
@@ -95,3 +99,20 @@ def vector_to_b64(vector: Any) -> str:
 
 def b64_to_vector(data: str) -> np.ndarray:
     return np.frombuffer(base64.b64decode(data), dtype="<f2").astype(np.float32)
+
+
+def as_map(value: Any) -> dict[str, Any]:
+    """A map read back from the API: a PHP-decoded empty object arrives as `[]` and an empty map is sent as null -
+    every reader of a stored map goes through this."""
+    return value if isinstance(value, dict) else {}
+
+
+def normalised(value: Any) -> Any:
+    """For comparing stored and new payloads: an empty map, an empty list and null are the same "nothing"."""
+    if isinstance(value, dict):
+        out = {k: normalised(v) for k, v in value.items()}
+        out = {k: v for k, v in out.items() if v is not None}
+        return out or None
+    if isinstance(value, list):
+        return [normalised(v) for v in value] or None
+    return value

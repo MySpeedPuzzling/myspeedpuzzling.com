@@ -254,7 +254,7 @@ def build_payload(model_text: str, ocr_lines: list[str], title: str | None, toke
     if bad:
         raise ValueError("describe output outside the schema: " + ", ".join(bad[:5]))
     result = {k: obj[k] for k in KEYS}
-    result.update({"promptVersion": PROMPT_VERSION, "titleContext": bool(title), "ocrLines": len(ocr_lines)})
+    result.update({"promptVersion": PROMPT_VERSION, "titleContext": bool(title), "title": title, "ocrLines": len(ocr_lines)})
     if tokens:
         result["tokens"] = tokens
     return result

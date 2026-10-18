@@ -41,9 +41,9 @@ def compute(siglip_ids: list[str], siglip: np.ndarray, dino_ids: list[str], dino
 
 def changed(old: dict | None, new: dict) -> bool:
     """Push only when the named neighbours changed (scores move a little whenever the corpus grows)."""
-    if not old:
+    if not isinstance(old, dict) or not old:
         return True
     for key in ("siglip", "dinov2"):
-        if [x[0] for x in old.get(key) or []] != [x[0] for x in new.get(key) or []]:
+        if [x[0] for x in (old.get(key) or [])] != [x[0] for x in (new.get(key) or [])]:
             return True
     return False

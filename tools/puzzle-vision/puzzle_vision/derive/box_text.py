@@ -112,6 +112,9 @@ def parse(lines: list[str], barcodes: list[dict[str, Any]], brand_names: list[st
     }
 
 
-def from_payloads(ocr: dict[str, Any] | None, barcode: dict[str, Any] | None, brand_names: list[str]) -> dict[str, Any]:
-    lines = [str(line.get("t", "")) for line in (ocr or {}).get("lines") or [] if float(line.get("c", 0)) >= 0.3]
-    return parse(lines, (barcode or {}).get("codes") or [], brand_names, list((ocr or {}).get("languages") or []))
+def from_payloads(ocr: Any, barcode: Any, brand_names: list[str]) -> dict[str, Any]:
+    ocr = ocr if isinstance(ocr, dict) else {}
+    barcode = barcode if isinstance(barcode, dict) else {}
+    lines = [str(line.get("t", "")) for line in ocr.get("lines") or [] if isinstance(line, dict) and float(line.get("c", 0) or 0) >= 0.3]
+    codes = [c for c in barcode.get("codes") or [] if isinstance(c, dict)]
+    return parse(lines, codes, brand_names, list(ocr.get("languages") or []))

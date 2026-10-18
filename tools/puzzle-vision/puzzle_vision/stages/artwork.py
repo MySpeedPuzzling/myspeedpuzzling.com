@@ -326,7 +326,12 @@ class ArtworkStage(Stage):
         source = (p.image.width, p.image.height)
         if flat:
             return trim_payload(a, gate["scores"], margin, source)
-        vlm = parse_vlm(self._vlm_answer(p.rgb))
+        answer = self._vlm_answer(p.rgb)
+        vlm = parse_vlm(answer)
+        if vlm["kind"] is None or vlm["box"] is None:
+            # never store a guess ("flat" + the whole image) for a picture the gate called a photo: a failure is
+            # retried (3 attempts per version), then left for a later version
+            raise ValueError(f"the VLM answer has no usable kind / box: {answer[:200]!r}")
         h = hybrid(a, vlm)
         return payload(h["kind"], h["box"], h["quad"], h["method"], gate["scores"], margin, source, vlm, h["quadIou"])
 

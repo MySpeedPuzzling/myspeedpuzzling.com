@@ -136,8 +136,10 @@ via the test-only `Tests\TestDouble\DeletePlayerThenFail`). The message is route
   a message that did not come from a committed deletion;
 - deletes the listed paths **plus every object under `players/<id>/`** that no row
   references (`Query\GetStoredFileReferences` checks every storage-key column):
-  result share images (`players/<id>/results/…`, a cache regenerated on demand) and
-  finished photos replaced by an earlier edit;
+  finished photos replaced by an earlier edit and result share images from before
+  2026-10-18 (`players/<id>/results/…`, a cache regenerated on demand);
+- deletes the player's result share images kept on local disk (`ResultImageCache`,
+  48 hours, the same `players/<id>/` directory there);
 - goes through `FailoverS3Adapter`, so a file still waiting in the upload spool
   (S3 was down when it was uploaded) is dropped from the spool too and the drain
   cron never uploads it later; a delete S3 refuses is queued in the spool for retry;

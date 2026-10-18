@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Message\DeletePlayer;
 use SpeedPuzzling\Web\Message\DeletePlayerStoredFiles;
 use SpeedPuzzling\Web\MessageHandler\DeletePlayerStoredFilesHandler;
 use SpeedPuzzling\Web\Query\GetStoredFileReferences;
+use SpeedPuzzling\Web\Services\ResultImageCache;
 use SpeedPuzzling\Web\Services\Storage\UploadSpool;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
@@ -112,6 +113,21 @@ final class DeletePlayerStoredFilesHandlerTest extends KernelTestCase
         self::assertTrue($this->filesystem->fileExists($otherPlayersPhoto));
     }
 
+    public function testDeletesTheResultImagesKeptOnLocalDisk(): void
+    {
+        $cache = self::getContainer()->get(ResultImageCache::class);
+        $theirs = 'players/' . PlayerFixture::PLAYER_REGULAR . '/results/some-time.png';
+        $others = 'players/' . PlayerFixture::PLAYER_PRIVATE . '/results/other-time.png';
+        $cache->write($theirs, 'png');
+        $cache->write($others, 'png');
+
+        $this->messageBus->dispatch(new DeletePlayer(PlayerFixture::PLAYER_REGULAR));
+        $this->handler()($this->sentMessage());
+
+        self::assertNull($cache->read($theirs));
+        self::assertSame('png', $cache->read($others));
+    }
+
     public function testMissingObjectsAreFine(): void
     {
         $logger = new InMemoryLogger();
@@ -119,6 +135,7 @@ final class DeletePlayerStoredFilesHandlerTest extends KernelTestCase
             $this->filesystem,
             new GetStoredFileReferences($this->connection),
             $logger,
+            self::getContainer()->get(ResultImageCache::class),
         );
 
         $this->messageBus->dispatch(new DeletePlayer(PlayerFixture::PLAYER_REGULAR));
@@ -158,6 +175,7 @@ final class DeletePlayerStoredFilesHandlerTest extends KernelTestCase
             $filesystem,
             new GetStoredFileReferences($this->connection),
             $logger,
+            self::getContainer()->get(ResultImageCache::class),
         );
 
         $this->messageBus->dispatch(new DeletePlayer(PlayerFixture::PLAYER_REGULAR));

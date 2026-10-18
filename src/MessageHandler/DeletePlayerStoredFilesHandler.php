@@ -9,6 +9,7 @@ use League\Flysystem\StorageAttributes;
 use Psr\Log\LoggerInterface;
 use SpeedPuzzling\Web\Message\DeletePlayerStoredFiles;
 use SpeedPuzzling\Web\Query\GetStoredFileReferences;
+use SpeedPuzzling\Web\Services\ResultImageCache;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 /**
@@ -25,6 +26,7 @@ readonly final class DeletePlayerStoredFilesHandler
         private Filesystem $filesystem,
         private GetStoredFileReferences $getStoredFileReferences,
         private LoggerInterface $logger,
+        private ResultImageCache $resultImageCache,
     ) {
     }
 
@@ -39,6 +41,8 @@ readonly final class DeletePlayerStoredFilesHandler
 
             return;
         }
+
+        $this->resultImageCache->deleteOfPlayer($message->playerId);
 
         $candidates = $message->paths;
 
@@ -73,7 +77,8 @@ readonly final class DeletePlayerStoredFilesHandler
     }
 
     /**
-     * Finished-puzzle photos and result share images live under `players/<id>/`.
+     * Finished-puzzle photos live under `players/<id>/`, and so do the result share images stored in the bucket
+     * before they moved to local disk (ResultImageCache).
      *
      * @return list<string>
      */

@@ -7,6 +7,7 @@ namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 use AsyncAws\Core\Configuration;
 use AsyncAws\S3\S3Client;
 use League\Flysystem\AsyncAwsS3\AsyncAwsS3Adapter;
+use League\Flysystem\Filesystem;
 use League\Flysystem\Local\LocalFilesystemAdapter;
 use Monolog\Level;
 use Monolog\Processor\PsrLogMessageProcessor;
@@ -27,6 +28,7 @@ use SpeedPuzzling\Web\Services\OnlineRounds\OnlineStoreBreaker;
 use SpeedPuzzling\Web\Services\OnlineRounds\RedisOnlinePresence;
 use SpeedPuzzling\Web\Services\OnlineRounds\S3OnlineMediaStorage;
 use SpeedPuzzling\Web\Services\RateLimiting\RedisSlidingWindowLimiterFactory;
+use SpeedPuzzling\Web\Services\ResultImageCache;
 use SpeedPuzzling\Web\Services\Sentry\OnlineTokenSentryScrubber;
 use SpeedPuzzling\Web\Services\Mailer\MailStreamRouting;
 use SpeedPuzzling\Web\Services\Mailer\Sns\SnsMessageVerifier;
@@ -95,6 +97,9 @@ return static function (ContainerConfigurator $configurator): void {
     // named volume at this path (lily.srv compose.yaml) - without it the spool
     // dies with the container.
     $parameters->set('env(UPLOAD_SPOOL_DIR)', '%kernel.project_dir%/var/upload-spool');
+
+    // Result share images kept for 48 hours (ResultImageCache) - a shared volume in production (lily.srv compose.yaml)
+    $parameters->set('env(RESULT_IMAGES_DIR)', '%kernel.project_dir%/var/result-images');
 
     // Bot-blocker trust cookie secret (BotTrustCookieSigner). The committed
     // .env carries the empty default too; this container-level default is
@@ -379,6 +384,25 @@ return static function (ContainerConfigurator $configurator): void {
             null,
             true, // lazyRootCreation: dev/test must not require the dir upfront
         ]);
+
+    // Result share images (ResultImageCache) live on local disk, never in the bucket. Production mounts a volume
+    // shared by web, api and the cron containers here (lily.srv compose.yaml); without it each container keeps
+    // its own cards and the prune cron cannot reach them.
+    $services->set('app.storage.result_images_adapter', LocalFilesystemAdapter::class)
+        ->args([
+            env('RESULT_IMAGES_DIR'),
+            null,
+            \LOCK_EX,
+            LocalFilesystemAdapter::DISALLOW_LINKS,
+            null,
+            true, // lazyRootCreation
+        ]);
+
+    $services->set('app.storage.result_images', Filesystem::class)
+        ->args([service('app.storage.result_images_adapter')]);
+
+    $services->set(ResultImageCache::class)
+        ->arg('$filesystem', service('app.storage.result_images'));
 
     $services->set(UploadSpool::class)
         ->arg('$spoolAdapter', service('app.storage.spool_adapter'));

@@ -108,4 +108,5 @@ return static function (ContainerConfigurator $configurator): void {
     // the toggleable double simulates an object storage outage.
     $services->set('app.storage.s3_adapter', \SpeedPuzzling\Web\Tests\TestDouble\ToggleableFailingFilesystemAdapter::class);
     $services->set('app.storage.spool_adapter', \League\Flysystem\InMemory\InMemoryFilesystemAdapter::class);
+    $services->set('app.storage.result_images_adapter', \League\Flysystem\InMemory\InMemoryFilesystemAdapter::class);
 };

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Services;
 
+use AsyncAws\Core\Exception\Exception as AsyncAwsException;
 use Imagick;
 use Intervention\Image\Geometry\Factories\RectangleFactory;
 use Intervention\Image\ImageManager;
@@ -12,7 +13,6 @@ use Intervention\Image\Typography\FontFactory;
 use League\Flysystem\Filesystem;
 use League\Flysystem\FilesystemException;
 use Psr\Log\LoggerInterface;
-use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Exceptions\PuzzleSolvingTimeNotFound;
 use SpeedPuzzling\Web\Query\GetPlayerProfile;
 use SpeedPuzzling\Web\Query\GetPlayerSolvedPuzzles;
@@ -33,7 +33,7 @@ readonly final class GetResultImage
         private GetPlayerProfile $getPlayerProfile,
         private GetRanking $getRanking,
         private Filesystem $filesystem,
-        private ClockInterface $clock,
+        private ResultImageCache $resultImageCache,
         private PlayerRepository $playerRepository,
         private LoggerInterface $logger,
     ) {
@@ -41,15 +41,12 @@ readonly final class GetResultImage
 
     /**
      * @throws PuzzleSolvingTimeNotFound
-     * @throws \League\Flysystem\FilesystemException the cache lookup goes to object storage
-     * @throws \AsyncAws\Core\Exception\Exception fileExists() leaks raw AsyncAws exceptions on network failure
      */
     public function forSolvingTime(string $timeId): ResultImage
     {
         $solvingTime = $this->getPlayerSolvedPuzzles->byTimeId($timeId);
         $player = $this->getPlayerProfile->byId($solvingTime->playerId);
-        $noOlderThan = $this->clock->now()->modify('-1 month');
-        // A public, unauthenticated image that is cached in storage: it follows the player's own
+        // A public, unauthenticated image that is kept for a while (ResultImageCache): it follows the player's own
         // setting, never who is looking - allow-listed friends get the nameless one as well. The
         // separate path keeps a copy rendered while the profile was public from being served.
         $isPrivateProfile = $this->playerRepository->get($solvingTime->playerId)->isPrivate;
@@ -57,11 +54,10 @@ readonly final class GetResultImage
             ? "players/$player->playerId/results/$timeId-hidden.png"
             : "players/$player->playerId/results/$timeId.png";
 
-        if (
-            $this->filesystem->fileExists($path)
-            && $this->filesystem->lastModified($path) >= $noOlderThan->getTimestamp()
-        ) {
-            return new ResultImage($this->filesystem->read($path), withPlaceholder: false);
+        $kept = $this->resultImageCache->read($path);
+
+        if ($kept !== null) {
+            return new ResultImage($kept, withPlaceholder: false);
         }
 
         $rankingText = '';
@@ -186,7 +182,7 @@ readonly final class GetResultImage
 
         // A placeholder version is never stored: once the real photo is there, it is used
         if ($withPlaceholder === false) {
-            $this->filesystem->write($path, $fileContent);
+            $this->resultImageCache->write($path, $fileContent);
         }
 
         return new ResultImage($fileContent, $withPlaceholder);
@@ -222,7 +218,8 @@ readonly final class GetResultImage
 
         try {
             return [$this->filesystem->read($imagePath), false];
-        } catch (FilesystemException $exception) {
+        } catch (FilesystemException | AsyncAwsException $exception) {
+            // AsyncAws leaks its own exceptions on a network failure besides FilesystemException
             $this->logger->warning('Result image drawn with the placeholder - the photo could not be read from storage', $context + [
                 'exception' => $exception,
             ]);

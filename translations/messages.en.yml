@@ -3665,6 +3665,8 @@ admin:
         restore_picture_hidden: "The puzzle's picture is hidden for now - restore it after the reveal."
     puzzle_edit:
         saved: "Puzzle saved."
+    box_text_mismatches:
+        dismissed: "Dismissed - this mismatch will not come back while the box reads the same."
     puzzle_approval:
         approved: "Puzzle has been approved."
         already_approved: "This puzzle had already been approved or merged by someone else."
@@ -10237,3 +10239,14 @@ event_duplicate:
     button: "Duplicate"
     help: "Make a copy as a draft - details, rounds and page content, without participants, puzzles or results."
     flash: "A copy was created as a draft - change its dates and venue, then publish it."
+puzzle_tags:
+    trait:
+        large_uniform_areas: "Large single-colour areas"
+        smooth_gradients: "Smooth colour gradients"
+        busy_detail: "Busy, lots of detail"
+        collage_grid: "Collage of many small pictures"
+        text_heavy: "Lots of text"
+        dark: "Dark picture"
+    look:
+        photo: "Photo"
+        drawn: "Illustration or painting"

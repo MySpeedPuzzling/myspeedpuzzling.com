@@ -34,7 +34,7 @@ Endpoints that perform *moderation* (the puzzle merge queue and the brand endpoi
 INTERNAL_API_REVIEWER_PLAYER_ID=<player uuid>
 ```
 
-Also closed-by-default: while it is empty, the moderation endpoints return `400` and dispatch nothing. The feature-request endpoints do not need it. The competition endpoints need it to create a competition (its creator), approve one and create a puzzle (who added and approved it) - see [Competitions and events](#competitions-and-events). The organization and series endpoints need it to create an organization or a series, approve an organization, assign an organization (the `organization` PUTs and a `PATCH` changing `organizationId`), move an edition or a round and turn a series into an organization (the acting player - see [Organizations, series and drafts](#organizations-series-and-drafts)); publishing, unpublishing and a `PATCH` of only `draft` do not. The [time verification](#time-verification) endpoints credit their decisions to it. It is also the player the [audit log](#audit-log-of-every-write) names.
+Also closed-by-default: while it is empty, the moderation endpoints return `400` and dispatch nothing. The feature-request endpoints do not need it. The competition endpoints need it to create a competition (its creator), approve one and create a puzzle (who added and approved it) - see [Competitions and events](#competitions-and-events). The organization and series endpoints need it to create an organization or a series, approve an organization, assign an organization (the `organization` PUTs and a `PATCH` changing `organizationId`), move an edition or a round and turn a series into an organization (the acting player - see [Organizations, series and drafts](#organizations-series-and-drafts)); publishing, unpublishing and a `PATCH` of only `draft` do not. The [time verification](#time-verification) endpoints credit their decisions to it. A [tag correction](#puzzle-tags) (`PUT`) is credited to it; removing one does not need it. It is also the player the [audit log](#audit-log-of-every-write) names.
 
 ## Endpoints
 
@@ -473,6 +473,38 @@ curl -s -X POST -H "Authorization: Bearer $INTERNAL_API_TOKEN" -H 'Content-Type:
   https://myspeedpuzzling.com/internal-api/puzzle-image-analyses
 # → {"counts": {"stored": 1, "stale_fingerprint": 0, "not_found": 0, "invalid": 0},
 #    "items": [{"index": 0, "puzzleId": "…", "analyzer": "tags", "status": "stored"}]}
+```
+
+### Puzzle tags
+
+The tags of a puzzle's picture (`puzzle_tag`, [`insights/tags.md`](./insights/tags.md)) are derived by the app from the
+image pipeline's `tags` analysis of the puzzle's **current** picture, plus the corrections of admins and moderators -
+their own data, so a correction survives every re-run of the analysis. Stored, not shown publicly. No web UI for the
+corrections yet; these endpoints are the way in (one tag at a time - e.g. from a spot-check sheet).
+
+| Method | Path | Purpose |
+|---|---|---|
+| `GET` | `/internal-api/puzzles/{puzzleId}/tags` | The puzzle's tags (`key`, `score`, `uncertain`, `source` = `analysis` / `correction`, `analysisVersion`, `taxonomyVersion`, `labelKey` = the registry's translation key or null, `updatedAt`) and its corrections |
+| `PUT` | `/internal-api/puzzles/{puzzleId}/tag-corrections/{tagKey}` | Body `{"verdict": "add" \| "remove", "note": "…"}` (note optional, ≤ 500 characters) - replaces an earlier correction of the key; credited to `INTERNAL_API_REVIEWER_PLAYER_ID` (empty = `400`). Answers like the `GET` |
+| `DELETE` | `/internal-api/puzzles/{puzzleId}/tag-corrections/{tagKey}` | The analysis decides the key again. Idempotent. Answers like the `GET` |
+
+- `add` = the puzzle has the tag whatever the analysis says - on a key the analysis assigned it is a confirmation
+  (`source: correction`, the analysis' score kept); `remove` = it does not, whatever the next analysis says.
+- A write rewrites that puzzle's tags at once (`RefreshPuzzleTags` for the puzzle, its own transaction after the
+  correction's); the daily `myspeedpuzzling:refresh-puzzle-tags` notices corrections too.
+- `tagKey` = `<facet>.<key>` of the taxonomy (`trait.dark`, `theme.pets.cats`, lower case, digits, underscores, at
+  most 100 characters). A key of no known facet is a `422`; a key the app's registry has no label for yet is fine.
+- `404` for an unknown puzzle or one whose picture is hidden now (`hide_until` / `hide_image_until` ahead) - nothing is
+  stored for it.
+
+```bash
+curl -s -X PUT -H "Authorization: Bearer $INTERNAL_API_TOKEN" -H 'Content-Type: application/json' \
+  -d '{"verdict": "remove", "note": "A painting, not a photo"}' \
+  https://myspeedpuzzling.com/internal-api/puzzles/<puzzleId>/tag-corrections/style.photo
+# → {"puzzleId": "…", "taxonomyVersion": "1.0.0",
+#    "tags": [{"key": "trait.dark", "score": 0.8, "uncertain": false, "source": "analysis", "analysisVersion": "1.0.0+rules@tax1.0.0",
+#              "taxonomyVersion": "1.0.0", "labelKey": "puzzle_tags.trait.dark", "updatedAt": "…"}],
+#    "corrections": [{"key": "style.photo", "verdict": "remove", "note": "A painting, not a photo", "decidedById": "…", …}]}
 ```
 
 ### Competitions and events
@@ -1408,6 +1440,7 @@ The public Swagger UI at `/api/docs` is generated by API Platform from resources
 - `src/Entity/PuzzleImageAnalysis.php`, `src/Value/ImageAnalyzer.php`, `src/Value/PuzzleImageFingerprint.php`, `src/Value/PuzzleImageAnalysisInput.php` — image analyses: storage, analyzers, which picture, the checks of a push
 - `src/Message/RecordPuzzleImageAnalysis.php`, `RecordPuzzleImageAnalyses.php` (+ handlers), `src/Services/PuzzleImageAnalysisRecorder.php` — storing them (one rule for both)
 - `src/Query/GetPuzzleImagesForAnalysis.php` (the work list), `src/Query/GetPuzzleImageAnalyses.php` (reading them back, for later pages too)
+- `src/Controller/InternalApi/*PuzzleTag*Controller.php` + `PuzzleTagsJson.php`, `src/Query/GetPuzzleTags.php`, `src/Message/CorrectPuzzleTag.php` / `RemovePuzzleTagCorrection.php` / `RefreshPuzzleTags.php` (+ handlers), `src/Services/PuzzleTags/PuzzleTagWriter.php` - puzzle tags and their corrections; `tests/Controller/InternalApi/PuzzleTagsInternalApiTest.php`
 - `src/Entity/PuzzleImageAnalysisClaim.php`, `src/Message/ClaimPuzzleImages.php`, `ReleasePuzzleImageClaims.php` (+ handlers) — the workers' claims
 - `src/Value/PuzzleChangeRequestSource.php`, `src/Services/ImagePipelineProposalRules.php`, `src/Services/InternalApi/ProposedPuzzleImageInput.php` — change proposals with a picture and the image pipeline's metadata
 - `src/Query/GetChangeRequestsForInternalApi.php` + `src/Controller/InternalApi/ListPuzzleChangeRequestsController.php` — the change request list

@@ -9954,3 +9954,14 @@ event_duplicate:
     button: "複製"
     help: "下書きとしてコピーを作成します。詳細、ラウンド、ページの内容をコピーし、参加者、パズル、結果はコピーしません。"
     flash: "コピーを下書きとして作成しました。日程と会場を変更してから公開してください。"
+puzzle_tags:
+    trait:
+        large_uniform_areas: "大きな単色の部分"
+        smooth_gradients: "なめらかなグラデーション"
+        busy_detail: "細部が多い"
+        collage_grid: "小さな絵のコラージュ"
+        text_heavy: "文字が多い"
+        dark: "暗い絵柄"
+    look:
+        photo: "写真"
+        drawn: "イラスト・絵画"

@@ -209,6 +209,12 @@ cached per prompt bank). `difficulty_prior` (`--only difficulty_prior`) is a **s
 `/internal-api/puzzle-difficulty-labels` does not exist (contract in `derive/difficulty_prior.py`, plan §5.3). A new
 taxonomy or prompt bank = bump `zeroshot` / `tags` and run `derive` - no image is touched.
 
+**On the server**, two daily crons turn the pushed derived results into app data: `myspeedpuzzling:refresh-puzzle-tags`
+writes `puzzle_tag` from `tags` (+ the moderators' corrections) - [`tags.md`](./tags.md) - and
+`myspeedpuzzling:detect-box-text-mismatches` compares `box_text` with the catalogue for the moderators' list
+([`../puzzle-approvals.md`](../puzzle-approvals.md#box-text-mismatches)). Both read only analyses of the puzzle's
+current picture and skip secret puzzles.
+
 ## 8. Crop proposals and the review loop
 
 ```sh

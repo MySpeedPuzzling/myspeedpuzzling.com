@@ -22,7 +22,7 @@ use Symfony\Component\Messenger\MessageBusInterface;
 
 /**
  * A community moderator reaches the puzzle review queues, a puzzle's direct edit and
- * its history, the time verification queue, and nothing else under /admin - least of
+ * its history, the box-text mismatch list, the time verification queue, and nothing else under /admin - least of
  * all the page that appoints moderators.
  */
 final class ModeratorAccessTest extends WebTestCase
@@ -41,6 +41,7 @@ final class ModeratorAccessTest extends WebTestCase
         yield 'puzzle edit' => ['/admin/puzzles/' . PuzzleFixture::PUZZLE_500_01 . '/edit'];
         yield 'puzzle history' => ['/admin/puzzles/' . PuzzleFixture::PUZZLE_500_01 . '/history'];
         yield 'time verification' => ['/admin/time-verification'];
+        yield 'box-text mismatches' => ['/admin/box-text-mismatches'];
     }
 
     /**
@@ -135,6 +136,7 @@ final class ModeratorAccessTest extends WebTestCase
         self::assertCount(1, $crawler->filter('a[href="/admin/puzzle-merge-requests"]'));
         self::assertCount(1, $crawler->filter('a[href="/admin/puzzle-approvals"]'));
         self::assertCount(1, $crawler->filter('a[href="/admin/time-verification"]'));
+        self::assertCount(1, $crawler->filter('a[href="/admin/box-text-mismatches"]'));
         self::assertCount(0, $crawler->filter('a[href="/admin/moderators"]'));
         self::assertCount(0, $crawler->filter('a[href="/admin/vouchers"]'));
     }

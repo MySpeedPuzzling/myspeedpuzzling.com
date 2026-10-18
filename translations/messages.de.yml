@@ -9964,3 +9964,14 @@ event_duplicate:
     button: "Duplizieren"
     help: "Erstellt eine Kopie als Entwurf - Angaben, Runden und Seiteninhalt, ohne Teilnehmer, Puzzles und Ergebnisse."
     flash: "Eine Kopie wurde als Entwurf erstellt - ändern Sie Termin und Ort und veröffentlichen Sie sie dann."
+puzzle_tags:
+    trait:
+        large_uniform_areas: "Große einfarbige Flächen"
+        smooth_gradients: "Sanfte Farbverläufe"
+        busy_detail: "Viele Details"
+        collage_grid: "Collage aus vielen kleinen Bildern"
+        text_heavy: "Viel Text"
+        dark: "Dunkles Bild"
+    look:
+        photo: "Foto"
+        drawn: "Illustration oder Gemälde"

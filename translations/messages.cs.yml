@@ -9991,3 +9991,14 @@ event_duplicate:
     button: "Duplikovat"
     help: "Vytvoří kopii jako koncept - údaje, kola a obsah stránky, bez účastníků, puzzlí a výsledků."
     flash: "Kopie byla vytvořena jako koncept - změňte její termín a místo konání a pak ji zveřejněte."
+puzzle_tags:
+    trait:
+        large_uniform_areas: "Velké jednobarevné plochy"
+        smooth_gradients: "Plynulé barevné přechody"
+        busy_detail: "Spousta detailů"
+        collage_grid: "Koláž z mnoha malých obrázků"
+        text_heavy: "Hodně textu"
+        dark: "Tmavý obrázek"
+    look:
+        photo: "Fotografie"
+        drawn: "Ilustrace nebo malba"

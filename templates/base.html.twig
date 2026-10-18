@@ -525,6 +525,11 @@
                                             {% if queue_counts.puzzleApprovals is not null %}<span class="badge {{ queue_counts.puzzleApprovals > 0 ? 'bg-warning text-dark' : 'bg-success' }} ms-1" data-testid="queue-count-puzzle-approvals">{{ queue_counts.puzzleApprovals }}</span>{% endif %}
                                         </a>
                                     </li>
+                                    <li>
+                                        <a class="dropdown-item pb-1 {% if currentRoute == 'admin_box_text_mismatches' %}active{% endif %}" href="{{ path('admin_box_text_mismatches') }}">
+                                            Box-text mismatches
+                                        </a>
+                                    </li>
                                     {% if is_granted('REVIEW_SUSPICIOUS_TIMES') %}
                                     <li>
                                         <a class="dropdown-item pb-1 {% if currentRoute starts with 'admin_time_verification' %}active{% endif %}" href="{{ path('admin_time_verification') }}">

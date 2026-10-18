@@ -19,6 +19,8 @@ use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 final class PuzzleMergeForeignKeyCoverageTest extends KernelTestCase
 {
     private const array WHAT_A_MERGE_DOES = [
+        'box_text_mismatch.puzzle_id' => 'deleted with the puzzle - the next detection run compares the survivor\'s box with its merged record',
+        'box_text_mismatch_decision.puzzle_id' => 'deleted with the puzzle - a dismissal is about that box; the survivor keeps its own',
         'collection_item.puzzle_id' => 'moved onto the survivor, one already there for the same collection dropped',
         'competition_round_puzzle.puzzle_id' => 'moved onto the survivor, one already in the same round dropped',
         'conversation.puzzle_id' => 'moved onto the survivor',
@@ -33,6 +35,9 @@ final class PuzzleMergeForeignKeyCoverageTest extends KernelTestCase
         'puzzle_merge_request.source_puzzle_id' => 'set to null - the reported ids and the stored name stay (MergeRequestPuzzles)',
         'puzzle_solving_time.puzzle_id' => 'moved onto the survivor',
         'puzzle_statistics.puzzle_id' => 'deleted with the puzzle - recomputed for the survivor from the moved times',
+        'puzzle_tag.puzzle_id' => 'deleted with the puzzle - derived from its picture\'s analysis; the survivor keeps its own',
+        'puzzle_tag_correction.puzzle_id' => 'deleted with the puzzle - a word on that picture; the survivor keeps its own corrections',
+        'puzzle_tag_state.puzzle_id' => 'deleted with the puzzle - the tag writer\'s watermark of its tags',
         'sell_swap_list_item.puzzle_id' => 'moved onto the survivor, one the player offers already dropped',
         'sold_swapped_item.puzzle_id' => 'moved onto the survivor',
         'stopwatch.puzzle_id' => 'moved onto the survivor',

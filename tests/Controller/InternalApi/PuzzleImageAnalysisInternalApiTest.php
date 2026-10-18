@@ -259,6 +259,34 @@ final class PuzzleImageAnalysisInternalApiTest extends WebTestCase
         self::assertSame(2, $this->database()->fetchOne('SELECT COUNT(*) FROM puzzle_image_analysis'));
     }
 
+    /**
+     * Postgres refuses \u0000 in jsonb - found at the flush it would fail the whole batch with a 500
+     */
+    public function testANulCharacterIsRefusedBeforeItReachesTheDatabase(): void
+    {
+        $browser = self::createClient();
+        $this->giveImages();
+
+        $single = self::callInternalApi($browser, 'PUT', $this->putUri(PuzzleFixture::PUZZLE_500_01, 'ocr'), [
+            'result' => ['lines' => [['t' => "1000\0Teile"]]],
+        ] + self::body(PuzzleFixture::PUZZLE_500_01, 'v1'));
+        self::assertResponseStatusCodeSame(422);
+        self::assertIsArray($single['errors']);
+        self::assertSame('must not contain NUL characters.', $single['errors']['result']);
+
+        $batch = self::callInternalApi($browser, 'POST', '/internal-api/puzzle-image-analyses', ['items' => [
+            ['puzzleId' => PuzzleFixture::PUZZLE_500_01, 'analyzer' => 'ocr'] + self::body(PuzzleFixture::PUZZLE_500_01, 'v1'),
+            ['puzzleId' => PuzzleFixture::PUZZLE_500_02, 'analyzer' => 'ocr', 'result' => ["key\0" => 'x']] + self::body(PuzzleFixture::PUZZLE_500_02, 'v1'),
+            ['puzzleId' => PuzzleFixture::PUZZLE_500_03, 'analyzer' => 'ocr'] + self::body(PuzzleFixture::PUZZLE_500_03, 'v1'),
+        ]]);
+        self::assertResponseIsSuccessful();
+        self::assertSame(['stored' => 2, 'stale_fingerprint' => 0, 'not_found' => 0, 'invalid' => 1], $batch['counts']);
+        self::assertIsArray($batch['items']);
+        self::assertIsArray($batch['items'][1]);
+        self::assertSame('invalid', $batch['items'][1]['status']);
+        self::assertSame(2, $this->database()->fetchOne("SELECT COUNT(*) FROM puzzle_image_analysis WHERE analyzer = 'ocr'"));
+    }
+
     public function testABatchMustBeAListOfAtMost200(): void
     {
         $browser = self::createClient();

@@ -291,24 +291,38 @@ needed.
   `analyzerVersion`, `imageFingerprint`, `current` (it describes the puzzle's present picture), `analyzedAt`,
   `receivedAt` (ISO 8601) and `result`. `404` unknown puzzle or hidden image, `409` the picture changed since it was
   listed (the error names the current fingerprint), `422` an invalid analysis or an unknown analyzer
-  (`{"error", "errors": {"field": "…"}}`, e.g. `result.bbox`), `400` malformed JSON.
+  (`{"error", "errors": {"field": "…"}}`, e.g. `result.bbox`; a NUL character anywhere in `result` - keys too - or in
+  `analyzerVersion` / `imageFingerprint` is one: Postgres refuses it), `400` malformed JSON.
 - **Batch** `{"items": [{puzzleId, analyzer, analyzerVersion, imageFingerprint, analyzedAt?, result}, …]}` (1-200
   items, else `422`): one transaction, a refused item never fails the others. Answers `counts` per outcome and `items`
   in order: `{index, puzzleId, analyzer, status, message?, currentFingerprint?, errors?}` with `status` `stored`,
   `stale_fingerprint` (`currentFingerprint` = the puzzle's picture now, absent when it has none), `not_found` or
   `invalid` (`errors` by field). The same puzzle and analyzer twice in one batch: the later item wins. The audit log
   gets the counts (`summary`), never the payloads.
-- **Payload notes**: `result` is jsonb - the values are kept, the **order of keys is not**; an empty object nested
-  inside comes back as `[]` (send null or leave the key out). Puzzle merges delete the merged puzzle's rows (the
-  survivor keeps its own, stale if it takes the merged puzzle's image).
+- **Payload notes**: `result` is jsonb - the values are kept, the **order of keys is not**. The app decodes JSON
+  objects into PHP arrays, so an empty object comes back as `[]` and **a map with numeric keys** (`{"0": …, "1": …}`)
+  **comes back as a list** - use string keys that are not numbers, send null or leave an empty map out. Puzzle merges
+  delete the merged puzzle's rows (the survivor keeps its own, stale if it takes the merged puzzle's image).
+- **Versions are compared for equality**, never ordered: a push of `1.0.0` replaces a stored `1.1.0`, and `stale` /
+  claims for one version treat every other version as to-do. **Run one version per analyzer at a time** - a worker on
+  an older version would overwrite the newer results.
+- **Derived analyzers name other puzzles** (`neighbours`, `zeroshot`/`tags` built from them): a puzzle they name may
+  have become secret since (hide_until / hide_image_until set later). Consumers re-check every referenced id against
+  the hidden-image condition before showing it - only the analysed puzzle itself is filtered by the API.
 - **Claims (several machines in parallel)**: a worker never works from the plain list - it claims.
   `POST /internal-api/puzzle-image-claims` `{analyzer, version, worker (≤ 64), limit (1-200, 50), leaseSeconds
   (60-7200, 1800)}` takes up to `limit` puzzles that are still to do for the analyzer (no analysis, another picture or
-  another `version`) and that no **other** worker holds (no claim, an expired one, or this worker's own - re-claiming
-  extends the lease), in puzzle id order, and answers them as `{"puzzles": [...]}` in the list's item shape
-  (`claims.<analyzer>` = `{worker, expiresAt}`). Race-safe for two machines at once: one statement (candidates
-  `FOR UPDATE SKIP LOCKED`, then `INSERT … ON CONFLICT (analyzer, puzzle_id) DO UPDATE … WHERE` the claim is expired or
-  this worker's, `RETURNING` what was really taken - `ClaimPuzzleImagesHandler`, table `puzzle_image_analysis_claim`).
+  another `version`) and that no **other** worker holds (no claim, an expired one, or this worker's own), and answers
+  them as `{"puzzles": [...]}` in the list's item shape (`claims.<analyzer>` = `{worker, expiresAt}`). **Fresh work
+  comes first** (puzzle id order); this worker's own unexpired claims come after it - they are returned, and their
+  lease extended, only when there is not enough fresh work to fill `limit`. So a worker keeps advancing past images it
+  holds but skipped, and **pre-fetching the next batch while working on one is a plain second claim** - the first
+  batch's claims stay valid, nothing has to be re-claimed; pick `leaseSeconds` to cover a batch. **Release the images
+  a worker failed on or skips** (below), so another worker or a later run takes them instead of waiting for the lease.
+  Two machines never get the same image: claims and stores take one advisory lock (`SerializedByLock`, held until the
+  commit) - the real guarantee; the one statement is a backstop on its own (candidates `FOR NO KEY UPDATE SKIP LOCKED`,
+  then `INSERT … ON CONFLICT (analyzer, puzzle_id) DO UPDATE … WHERE` the claim is expired or this worker's, `RETURNING`
+  what was really taken - `ClaimPuzzleImagesHandler`, table `puzzle_image_analysis_claim`).
   **Storing a result (PUT or batch) deletes that puzzle's claim for the analyzer** in the same transaction - whichever
   worker held it. `POST /internal-api/puzzle-image-claims/release` `{worker, analyzer?, puzzleIds?}` lets go of a
   worker's own claims (on shutdown, or images it gave up on). A crashed worker's claims simply expire. The plain list
@@ -317,8 +331,10 @@ needed.
 - **Bulk read**: `GET /internal-api/puzzle-image-analyses?analyzer=<a>&limit=1..1000 (500)&after=<puzzleId>&onlyCurrent=1`
   - every stored analysis of one analyzer, in puzzle id order, hidden images left out: `{"analyzer", "items": [{puzzleId,
   analyzer, analyzerVersion, imageFingerprint, current, analyzedAt, receivedAt, result}], "nextCursor"}`. `current` =
-  it describes the picture the puzzle has now; `onlyCurrent=1` returns only those. **Mind the size**: an embedding row
-  is ~3-6 KB, so a page of 1000 is ~3-6 MB - ask for 200-500 at a time for `embed_*`.
+  it describes the picture the puzzle has now; `onlyCurrent=1` returns only those. A page ends after `limit` rows or
+  once its results pass ~8 MB (`GetPuzzleImageAnalyses::MAX_PAGE_BYTES`, the row crossing it is the last one) - follow
+  `nextCursor` until it is null, a short page is not the end. An embedding row is ~3-6 KB, so 500-1000 rows of
+  `embed_*` is ~3-6 MB.
 - **Reading them in the app**: `GetPuzzleImageAnalyses::forPuzzles($puzzleIds, onlyCurrent: true)` - decoded results
   keyed by puzzle and analyzer, one statement, hidden images left out.
 

@@ -166,6 +166,13 @@ final readonly class PuzzleImageAnalysisInput
             return null;
         }
 
+        // Postgres text refuses NUL - found only at the flush, it would fail the whole batch with a 500
+        if (str_contains($value, "\0")) {
+            $errors[$field] = 'must not contain NUL characters.';
+
+            return null;
+        }
+
         return $value;
     }
 
@@ -216,6 +223,13 @@ final readonly class PuzzleImageAnalysisInput
             return null;
         }
 
+        // Postgres jsonb refuses \u0000 - found only at the flush, it would fail the whole batch with a 500
+        if (self::containsNul($value)) {
+            $errors['result'] = 'must not contain NUL characters.';
+
+            return null;
+        }
+
         $encoded = json_encode($value, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRESERVE_ZERO_FRACTION);
 
         if ($encoded === false) {
@@ -232,6 +246,30 @@ final readonly class PuzzleImageAnalysisInput
 
         /** @var array<string, mixed> $value */
         return $value;
+    }
+
+    /**
+     * A NUL character in any key or string value, at any depth.
+     *
+     * @param array<mixed> $values
+     */
+    private static function containsNul(array $values): bool
+    {
+        foreach ($values as $key => $value) {
+            if (is_string($key) && str_contains($key, "\0")) {
+                return true;
+            }
+
+            if (is_string($value) && str_contains($value, "\0")) {
+                return true;
+            }
+
+            if (is_array($value) && self::containsNul($value)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

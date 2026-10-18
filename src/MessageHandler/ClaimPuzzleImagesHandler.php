@@ -12,16 +12,23 @@ use SpeedPuzzling\Web\Value\PuzzleImageFingerprint;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 /**
- * Claims images for a worker in ONE statement - a deliberate exception to "handlers change entities": a claim must be
- * taken atomically against another machine claiming at the same moment, which loading entities, checking and
- * persisting them cannot guarantee (two workers would read the same free puzzles and both insert). So:
+ * Claims images for a worker in ONE statement - a deliberate exception to "handlers change entities": candidates,
+ * inserts and lease extensions for up to 200 puzzles are one set-based write, where loading, checking and persisting
+ * entities would take hundreds of statements and leave room between the read and the insert.
  *
- * - candidates: puzzles with a shown image still to be analysed (no analysis, another picture or another version) and
- *   no claim held by another worker (none, expired, or this worker's own), in id order, locked FOR UPDATE SKIP LOCKED -
- *   a concurrent claim skips the rows this one is taking instead of returning the same ones;
- * - INSERT … ON CONFLICT (analyzer, puzzle_id) DO UPDATE only WHERE the existing claim is expired or this worker's:
- *   the final guard - the conflict check sees claims committed after this statement's snapshot, so a claim another
- *   worker committed meanwhile is never taken over; RETURNING gives exactly what this worker now holds.
+ * Serialisation: ClaimPuzzleImages is SerializedByLock under the key every image analysis write takes
+ * (LockUntilCommittedMiddleware holds it until the commit) - that is the guarantee two claims, or a claim and a store,
+ * never interleave. The statement stays safe without it, as a backstop:
+ * - candidates are locked FOR NO KEY UPDATE SKIP LOCKED: unlike FOR UPDATE it never blocks rows referencing the puzzle
+ *   being inserted (their foreign key checks take KEY SHARE); a puzzle edit at the same moment waits milliseconds, a
+ *   puzzle row an edit already holds is skipped;
+ * - INSERT … ON CONFLICT (analyzer, puzzle_id) DO UPDATE only WHERE the existing claim is expired or this worker's: the
+ *   conflict check sees claims committed after this statement's snapshot, so another worker's claim is never taken
+ *   over; RETURNING gives exactly what this worker now holds.
+ *
+ * Order: fresh work first (puzzle id order), this worker's own unexpired claims after it - a worker that skipped or
+ * failed images it still holds keeps advancing instead of getting the same ones back first; its own claims come back
+ * (and are extended) only when there is not enough fresh work to fill `limit`.
  *
  * Ids are uuid7 from PHP, one per candidate (paired by position); a re-claimed row keeps its id.
  */
@@ -61,9 +68,9 @@ WITH candidates AS (
         AND (p.hide_image_until IS NULL OR p.hide_image_until <= :now)
         AND (a.id IS NULL OR a.image_fingerprint <> {$fingerprint} OR a.analyzer_version <> :version)
         AND (c.id IS NULL OR c.expires_at <= :now OR c.worker = :worker)
-    ORDER BY p.id
+    ORDER BY (c.id IS NOT NULL AND c.worker = :worker AND c.expires_at > :now), p.id
     LIMIT :limit
-    FOR UPDATE OF p SKIP LOCKED
+    FOR NO KEY UPDATE OF p SKIP LOCKED
 ),
 numbered AS (
     SELECT id, row_number() OVER (ORDER BY id) AS position FROM candidates

@@ -67,7 +67,9 @@ final class ListPuzzleImagesController extends AbstractController
 
         $version = self::parameter($request, 'version');
 
-        if ($version !== null && mb_strlen($version) > PuzzleImageAnalysisInput::MAX_VERSION_LENGTH) {
+        if ($version !== null && str_contains($version, "\0")) {
+            $errors['version'] = 'must not contain NUL characters.';
+        } elseif ($version !== null && mb_strlen($version) > PuzzleImageAnalysisInput::MAX_VERSION_LENGTH) {
             $errors['version'] = sprintf('can be at most %d characters long.', PuzzleImageAnalysisInput::MAX_VERSION_LENGTH);
         }
 

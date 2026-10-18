@@ -65,15 +65,35 @@ final class ClaimPuzzleImagesHandlerTest extends KernelTestCase
         ));
     }
 
+    /**
+     * A worker that skipped or failed images it still holds keeps advancing: fresh work first, its own claims last
+     */
+    public function testFreshWorkComesBeforeTheWorkersOwnClaims(): void
+    {
+        $first = $this->claim('mac-studio', limit: 2);
+        $second = $this->claim('mac-studio', limit: 2);
+
+        self::assertCount(2, $first);
+        self::assertCount(2, $second);
+        self::assertSame([], array_intersect($first, $second), 'a second claim pre-fetches new images, not the held ones');
+
+        // Once fresh work runs out, the worker's own claims fill the rest
+        $everything = $this->claim('mac-studio', limit: 200);
+        foreach (array_merge($first, $second) as $held) {
+            self::assertContains($held, $everything);
+        }
+    }
+
     public function testAWorkerTakesItsOwnClaimsAgainAndExtendsThem(): void
     {
-        $first = $this->claim('mac-studio', limit: 3);
+        // Everything still to do is held by this worker - claiming again gives its own claims, extended
+        $first = $this->claim('mac-studio', limit: 200);
         $this->database()->executeStatement("UPDATE puzzle_image_analysis_claim SET expires_at = expires_at - INTERVAL '10 minutes'");
         $before = $this->database()->fetchOne('SELECT MIN(expires_at) FROM puzzle_image_analysis_claim');
 
-        self::assertSame($first, $this->claim('mac-studio', limit: 3));
+        self::assertSame($first, $this->claim('mac-studio', limit: 200));
         self::assertGreaterThan($before, $this->database()->fetchOne('SELECT MIN(expires_at) FROM puzzle_image_analysis_claim'));
-        self::assertSame(3, $this->database()->fetchOne('SELECT COUNT(*) FROM puzzle_image_analysis_claim'));
+        self::assertSame(count($first), $this->database()->fetchOne('SELECT COUNT(*) FROM puzzle_image_analysis_claim'));
     }
 
     public function testAnExpiredClaimIsAnybodys(): void

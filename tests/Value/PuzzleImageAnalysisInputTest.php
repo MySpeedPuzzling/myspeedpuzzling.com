@@ -88,6 +88,11 @@ final class PuzzleImageAnalysisInputTest extends TestCase
         yield 'bbox of no size' => ['artwork', ['result' => ['bbox' => ['x' => 0, 'y' => 0, 'w' => 0, 'h' => 1]]] + $valid, ['result.bbox']];
         yield 'three corners' => ['artwork', ['result' => ['corners' => [[0, 0], [1, 0], [1, 1]]]] + $valid, ['result.corners']];
         yield 'a corner outside' => ['artwork', ['result' => ['corners' => [[0, 0], [1.5, 0], [1, 1], [0, 1]]]] + $valid, ['result.corners']];
+        yield 'NUL in a result value' => ['ocr', ['result' => ['lines' => [['t' => "500\0PIECES"]]]] + $valid, ['result']];
+        yield 'NUL in a result key' => ['colors', ['result' => ['pal' . "\0" . 'ette' => []]] + $valid, ['result']];
+        yield 'NUL deep in a result' => ['describe', ['result' => ['a' => ['b' => ['c' => ["\0"]]]]] + $valid, ['result']];
+        yield 'NUL in the version' => ['colors', ['analyzerVersion' => 'v' . "\0" . '1'] + $valid, ['analyzerVersion']];
+        yield 'NUL in the fingerprint' => ['colors', ['imageFingerprint' => "ab\0c"] + $valid, ['imageFingerprint']];
         yield 'a corner of strings' => ['artwork', ['result' => ['corners' => [['0', '0'], [1, 0], [1, 1], [0, 1]]]] + $valid, ['result.corners']];
     }
 

@@ -2021,7 +2021,10 @@ paths:
         Takes up to `limit` puzzles still to do for the analyzer (no analysis, another
         picture or another version) that no other worker holds - this worker's own
         claims are taken again and extended - in puzzle id order. Race-safe for several
-        machines at once (one statement). Storing a result deletes its claim.
+        machines at once (an advisory lock, the statement's ON CONFLICT guard as backstop).
+        Fresh work first; this worker's own unexpired claims only when there is not
+        enough fresh work (then extended). Storing a result deletes its claim; release
+        images a worker failed on.
       requestBody:
         required: true
         content:
@@ -2094,8 +2097,8 @@ paths:
       operationId: listPuzzleImageAnalyses
       description: |
         Every stored analysis of the analyzer, payloads included, in puzzle id order,
-        hidden images left out. A page of embeddings is ~3-6 MB at 1000 rows - ask for
-        200-500 at a time for `embed_*`.
+        hidden images left out. A page ends after `limit` rows or once its results pass
+        ~8 MB (the row crossing it is the last) - follow `nextCursor` until it is null.
       parameters:
         - name: analyzer
           in: query
@@ -2143,6 +2146,7 @@ paths:
       description: |
         One transaction; a refused item never fails the others - every item gets its
         outcome, in order. The same puzzle and analyzer twice: the later item wins.
+        Versions are compared for equality: run one version per analyzer at a time.
       requestBody:
         required: true
         content:

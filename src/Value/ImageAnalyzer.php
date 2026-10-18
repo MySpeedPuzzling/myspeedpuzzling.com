@@ -40,7 +40,9 @@ enum ImageAnalyzer: string
     // A vision-language model's caption and structured description of the artwork
     case Describe = 'describe';
 
-    // Derived (computed from the raw analyses above, not from the image):
+    // Derived (computed from the raw analyses above, not from the image). `neighbours` (and anything else naming other
+    // puzzles) may name a puzzle that became secret after it was computed - a consumer re-checks every referenced id
+    // against hide_until / hide_image_until before showing it:
     // Facts parsed from `ocr` + `barcode` (pieces, EANs, product codes, brand mentions, ...)
     case BoxText = 'box_text';
     // Taxonomy key scores from the embeddings

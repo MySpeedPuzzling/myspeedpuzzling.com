@@ -23,8 +23,11 @@ readonly final class GetPuzzleImageAnalyses
 {
     public const int DEFAULT_PAGE_LIMIT = 500;
 
-    // An embedding row is ~3-6 KB of JSON, so a full page of them is ~3-6 MB - the most a page should carry
+    // Rows per page at most - an embedding row is ~3-6 KB of JSON
     public const int MAX_PAGE_LIMIT = 1000;
+
+    // Bytes of results per page at most (the row crossing it is the last one) - keeps a page of big payloads a few MB
+    public const int MAX_PAGE_BYTES = 8_000_000;
 
     public function __construct(
         private Connection $database,
@@ -132,12 +135,18 @@ SQL,
     /**
      * Every stored analysis of one analyzer, a page at a time in puzzle id order (keyset: `after` = the last puzzle id
      * of the previous page) - for the pipeline reading results back in bulk (all embeddings to compute neighbours).
-     * Walks the unique (analyzer, puzzle_id) index.
+     * Walks the unique (analyzer, puzzle_id) index. A page ends after `limit` rows or once its results pass $maxBytes,
+     * whichever comes first - `nextCursor` is set either way.
      *
      * @return array{items: list<PuzzleImageAnalysisResult>, nextCursor: null|string}
      */
-    public function page(ImageAnalyzer $analyzer, int $limit, null|string $after, bool $onlyCurrent): array
-    {
+    public function page(
+        ImageAnalyzer $analyzer,
+        int $limit,
+        null|string $after,
+        bool $onlyCurrent,
+        int $maxBytes = self::MAX_PAGE_BYTES,
+    ): array {
         $limit = max(1, min($limit, self::MAX_PAGE_LIMIT));
         $current = self::sqlCurrent();
         $conditions = $onlyCurrent ? "AND {$current}" : '';
@@ -145,6 +154,7 @@ SQL,
             'analyzer' => $analyzer->value,
             'now' => $this->clock->now()->format('Y-m-d H:i:s'),
             'limit' => $limit,
+            'maxBytes' => max(1, $maxBytes),
         ];
 
         if ($after !== null) {
@@ -152,31 +162,44 @@ SQL,
             $parameters['after'] = strtolower($after);
         }
 
+        // The page is cut by rows (limit) and by bytes: rows are added while the results before them sum to less than
+        // maxBytes (the first row always), so a page of big payloads stays a few MB. The running sum is taken over the
+        // `limit` rows only - never over the rest of the table.
         $rows = $this->database->executeQuery(
             <<<SQL
-SELECT
-    a.puzzle_id,
-    a.analyzer,
-    a.analyzer_version,
-    a.image_fingerprint,
-    {$current} AS current,
-    a.analyzed_at,
-    a.received_at,
-    a.result
-FROM puzzle_image_analysis a
-JOIN puzzle p ON p.id = a.puzzle_id
-WHERE a.analyzer = :analyzer
-    AND (p.hide_until IS NULL OR p.hide_until <= :now)
-    AND (p.hide_image_until IS NULL OR p.hide_image_until <= :now)
-    {$conditions}
-ORDER BY a.puzzle_id
-LIMIT :limit
+SELECT page.*
+FROM (
+    SELECT limited.*, SUM(limited.result_bytes) OVER (ORDER BY limited.puzzle_id) AS running_bytes
+    FROM (
+        SELECT
+            a.puzzle_id,
+            a.analyzer,
+            a.analyzer_version,
+            a.image_fingerprint,
+            {$current} AS current,
+            a.analyzed_at,
+            a.received_at,
+            a.result,
+            octet_length(a.result::text) AS result_bytes
+        FROM puzzle_image_analysis a
+        JOIN puzzle p ON p.id = a.puzzle_id
+        WHERE a.analyzer = :analyzer
+            AND (p.hide_until IS NULL OR p.hide_until <= :now)
+            AND (p.hide_image_until IS NULL OR p.hide_image_until <= :now)
+            {$conditions}
+        ORDER BY a.puzzle_id
+        LIMIT :limit
+    ) limited
+) page
+WHERE page.running_bytes - page.result_bytes < CAST(:maxBytes AS BIGINT)
+ORDER BY page.puzzle_id
 SQL,
             $parameters,
         )->fetchAllAssociative();
 
         $items = [];
         $lastPuzzleId = null;
+        $cutByBytes = false;
 
         foreach ($rows as $row) {
             $analysis = PuzzleImageAnalysisResult::fromDatabaseRow($row);
@@ -185,11 +208,13 @@ SQL,
                 $items[] = $analysis;
                 $lastPuzzleId = $analysis->puzzleId;
             }
+
+            $cutByBytes = is_numeric($row['running_bytes']) && (int) $row['running_bytes'] >= $parameters['maxBytes'];
         }
 
         return [
             'items' => $items,
-            'nextCursor' => count($rows) === $limit ? $lastPuzzleId : null,
+            'nextCursor' => count($rows) === $limit || $cutByBytes ? $lastPuzzleId : null,
         ];
     }
 

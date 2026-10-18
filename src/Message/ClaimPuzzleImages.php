@@ -11,10 +11,11 @@ use SpeedPuzzling\Web\Value\ImageAnalyzer;
  * A worker of the image analysis pipeline takes up to `limit` puzzles whose image is still to be analysed by the
  * analyzer (missing, another picture, or another `version`) and that no other worker holds - for `leaseSeconds`
  * (docs/features/internal-api.md, "Puzzle image analysis" - claims). Its own claims are taken again, the lease
- * extended. The handler answers the claimed puzzle ids (list<string>, in id order).
+ * extended when there is not enough fresh work (fresh work comes first). The handler answers the claimed puzzle ids
+ * (list<string>, in id order).
  *
- * The statement is race-safe on its own (ClaimPuzzleImagesHandler); the lock of the image analysis writes besides makes
- * a claim never interleave with a store of the same image.
+ * Under the lock every image analysis write takes - two claims, or a claim and a store, never interleave; the
+ * statement's ON CONFLICT guard is the backstop (ClaimPuzzleImagesHandler).
  */
 readonly final class ClaimPuzzleImages implements SerializedByLock
 {

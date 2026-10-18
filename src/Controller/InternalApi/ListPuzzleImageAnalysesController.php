@@ -18,7 +18,8 @@ use Symfony\Component\Routing\Attribute\Route;
  * The stored results of one analyzer in bulk, payloads included (docs/features/internal-api.md, "Puzzle image
  * analysis" - bulk read): `?analyzer=&limit=1..1000 (500)&after=<puzzleId>&onlyCurrent=1`, in puzzle id order,
  * hidden images left out. `onlyCurrent=1` gives only analyses of the picture each puzzle has now. `nextCursor` is the
- * `after` of the next page, null on the last one. Mind the size: a page of embeddings is ~3-6 MB.
+ * `after` of the next page, null on the last one - a page ends after `limit` rows or once its results pass ~8 MB
+ * (GetPuzzleImageAnalyses::MAX_PAGE_BYTES).
  */
 final class ListPuzzleImageAnalysesController extends AbstractController
 {

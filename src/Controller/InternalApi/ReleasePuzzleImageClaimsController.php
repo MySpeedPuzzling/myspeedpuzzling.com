@@ -35,6 +35,10 @@ final class ReleasePuzzleImageClaimsController extends AbstractController
     {
         $input = InternalApiInput::fromRequest($request, ['worker', 'analyzer', 'puzzleIds']);
         $worker = $input->string('worker', required: true, maxLength: PuzzleImageAnalysisClaim::MAX_WORKER_LENGTH);
+        if ($worker !== null && str_contains($worker, "\0")) {
+            $input->addError('worker', 'must not contain NUL characters.');
+        }
+
         $analyzerValue = $input->string('analyzer');
         $analyzer = $analyzerValue !== null ? ImageAnalyzer::tryFrom($analyzerValue) : null;
 

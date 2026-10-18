@@ -23,8 +23,8 @@ use Symfony\Component\Routing\Attribute\Route;
  * A worker of the image analysis pipeline takes its next images (docs/features/internal-api.md, "Puzzle image
  * analysis" - claims): body `{analyzer, version, worker, limit (1-200, 50), leaseSeconds (60-7200, 1800)}`. Up to
  * `limit` puzzles still to be analysed by the analyzer (missing, another picture or another version) that no other
- * worker holds are claimed for the lease - its own claims are taken again and extended - and answered in the work
- * list's shape (`claims.<analyzer>` = this worker, with the lease's end). Storing a result releases its claim. Two
+ * worker holds are claimed for the lease - fresh work first, its own unexpired claims (extended) only when there is
+ * not enough of it - and answered in the work list's shape (`claims.<analyzer>` = this worker, with the lease's end). Storing a result releases its claim. Two
  * machines claiming at the same moment never get the same image.
  */
 final class ClaimPuzzleImagesController extends AbstractController
@@ -53,6 +53,13 @@ final class ClaimPuzzleImagesController extends AbstractController
         $version = $input->string('version', required: true, maxLength: PuzzleImageAnalysisInput::MAX_VERSION_LENGTH);
         $worker = $input->string('worker', required: true, maxLength: PuzzleImageAnalysisClaim::MAX_WORKER_LENGTH);
         $limit = $input->int('limit', minimum: 1, maximum: ClaimPuzzleImages::MAX_LIMIT) ?? ClaimPuzzleImages::DEFAULT_LIMIT;
+        // Postgres text refuses NUL - a 500 instead of an answer
+        foreach (['version' => $version, 'worker' => $worker] as $field => $value) {
+            if ($value !== null && str_contains($value, "\0")) {
+                $input->addError($field, 'must not contain NUL characters.');
+            }
+        }
+
         $leaseSeconds = $input->int('leaseSeconds', minimum: ClaimPuzzleImages::MIN_LEASE_SECONDS, maximum: ClaimPuzzleImages::MAX_LEASE_SECONDS)
             ?? ClaimPuzzleImages::DEFAULT_LEASE_SECONDS;
         $input->throwIfInvalid();

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\EventSubscriber;
 
 use SpeedPuzzling\Web\Exceptions\InternalApiInvalidInput;
+use SpeedPuzzling\Web\Exceptions\InvalidPuzzleImageAnalysis;
 use SpeedPuzzling\Web\Exceptions\SecretPuzzlesWouldBeRevealed;
 use SpeedPuzzling\Web\Security\InternalApiAuthenticator;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
@@ -15,7 +16,7 @@ use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Symfony\Component\HttpKernel\KernelEvents;
 
 /**
- * Every refusal of the internal API is JSON: `{"error": "…"}` (plus `"errors": {"field": "…"}` for invalid fields,
+ * Every refusal of the internal API is JSON: `{"error": "…"}` (plus `"errors": {"field": "…"}` for invalid fields - a 400, or a 422 for an image analysis -
  * `"revealedPuzzles": […]` for a change that would reveal secret puzzles),
  * with the status of the HTTP exception - a 400, 401, 404 or 409 thrown by a controller, a handler (unwrapped by
  * UnwrapHttpExceptionMiddleware) or the firewall. Without this, Symfony renders its HTML error page for the
@@ -60,7 +61,7 @@ final readonly class InternalApiErrorResponseSubscriber implements EventSubscrib
             $body['revealedPuzzles'] = $exception->toArray();
         }
 
-        if ($exception instanceof InternalApiInvalidInput) {
+        if ($exception instanceof InternalApiInvalidInput || $exception instanceof InvalidPuzzleImageAnalysis) {
             $body['errors'] = $exception->errors;
         }
 

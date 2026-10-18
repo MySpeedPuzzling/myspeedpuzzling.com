@@ -69,6 +69,36 @@ readonly final class PuzzleRepository
     }
 
     /**
+     * The listed puzzles in one statement, keyed by the lower-case id - unknown or malformed ids are left out.
+     *
+     * @param list<string> $puzzleIds
+     *
+     * @return array<string, Puzzle>
+     */
+    public function findByIds(array $puzzleIds): array
+    {
+        $puzzleIds = array_values(array_unique(array_map(strtolower(...), array_filter($puzzleIds, Uuid::isValid(...)))));
+
+        if ($puzzleIds === []) {
+            return [];
+        }
+
+        /** @var list<Puzzle> $puzzles */
+        $puzzles = $this->entityManager
+            ->createQuery('SELECT puzzle FROM ' . Puzzle::class . ' puzzle WHERE puzzle.id IN (:ids)')
+            ->setParameter('ids', $puzzleIds)
+            ->getResult();
+
+        $byId = [];
+
+        foreach ($puzzles as $puzzle) {
+            $byId[strtolower($puzzle->id->toString())] = $puzzle;
+        }
+
+        return $byId;
+    }
+
+    /**
      * @return list<Puzzle>
      */
     public function findByManufacturer(Manufacturer $manufacturer): array

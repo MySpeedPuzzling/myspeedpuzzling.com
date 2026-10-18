@@ -181,8 +181,8 @@ final class PuzzleDifficultyCalculator implements ResetInterface
 
             $index = (int) $row['seconds_to_solve'] / $baselineSeconds;
 
-            // Apply outlier ceiling
-            if ($index > self::OUTLIER_CEILING) {
+            // Apply outlier ceiling; a 0-second time is no measurement (and has no log for sum_log_indices)
+            if ($index <= 0.0 || $index > self::OUTLIER_CEILING) {
                 continue;
             }
 

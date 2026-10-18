@@ -102,6 +102,36 @@ final class PaceTimelineTest extends TestCase
         self::assertSame(3000, $timeline->paceAt(self::PLAYER, 500, 12 * self::DAY, 12 * self::DAY, knownBefore: [12 * self::DAY, 13 * self::DAY]));
     }
 
+    public function testOfTwoRowsOfTheSameMomentTheLaterCounts(): void
+    {
+        // Two solves logged in the same second, loaded in qualifying_count order
+        $timeline = $this->timeline();
+        $timeline->add(self::PLAYER, 500, 10 * self::DAY, 10 * self::DAY, 3000);
+        $timeline->add(self::PLAYER, 500, 10 * self::DAY, 10 * self::DAY, 2900);
+
+        self::assertSame(2900, $timeline->paceAt(self::PLAYER, 500, 11 * self::DAY, 11 * self::DAY));
+
+        // ... also when they arrive out of order and get sorted
+        $timeline = $this->timeline();
+        $timeline->add(self::PLAYER, 500, 20 * self::DAY, 20 * self::DAY, 2500);
+        $timeline->add(self::PLAYER, 500, 10 * self::DAY, 10 * self::DAY, 3000);
+        $timeline->add(self::PLAYER, 500, 10 * self::DAY, 10 * self::DAY, 2900);
+
+        self::assertSame(2900, $timeline->paceAt(self::PLAYER, 500, 11 * self::DAY, 11 * self::DAY));
+    }
+
+    public function testAZeroPaceTakesNoPartInInterpolation(): void
+    {
+        $timeline = $this->timeline();
+        $timeline->add(self::PLAYER, 500, 10 * self::DAY, 10 * self::DAY, 0);
+        $timeline->add(self::PLAYER, 300, 10 * self::DAY, 10 * self::DAY + 60, 1800);
+
+        self::assertSame(
+            $this->baselineCalculator()->extrapolateBaseline(1000, 300, 1800, self::EXPONENT),
+            $timeline->paceAt(self::PLAYER, 1000, 20 * self::DAY, 20 * self::DAY),
+        );
+    }
+
     public function testAPlayerWithoutRowsHasNoPace(): void
     {
         $timeline = $this->timeline();

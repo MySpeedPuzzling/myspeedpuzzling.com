@@ -33,6 +33,7 @@ readonly final class PuzzleIntelligenceRecalculator
         private ClockInterface $clock,
         private PlayerBaselineCalculator $baselineCalculator,
         private PlayerPaceHistoryWriter $paceHistoryWriter,
+        private PaceHistoryReadiness $paceHistoryReadiness,
         private PuzzleDifficultyCalculator $difficultyCalculator,
         private PlayerSkillCalculator $skillCalculator,
         private DerivedMetricsCalculator $derivedMetricsCalculator,
@@ -231,6 +232,12 @@ readonly final class PuzzleIntelligenceRecalculator
 
     private function computePuzzleDifficulty(\DateTimeImmutable $now, null|string $specificPuzzle): int
     {
+        // A full run has just built the pace history; a --player run before the first full one has not -
+        // the stored difficulties stay until then
+        if ($this->paceHistoryReadiness->isBuilt() === false) {
+            return 0;
+        }
+
         if ($specificPuzzle === null) {
             $this->difficultyCalculator->preloadAllData();
         }

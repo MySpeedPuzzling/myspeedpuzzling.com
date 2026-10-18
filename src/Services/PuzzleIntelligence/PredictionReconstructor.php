@@ -49,6 +49,7 @@ final class PredictionReconstructor implements ResetInterface
         private readonly PlayerBaselineCalculator $baselineCalculator,
         private readonly PuzzleDifficultyCalculator $difficultyCalculator,
         private readonly PaceTimelineLoader $paceTimelineLoader,
+        private readonly PaceHistoryReadiness $paceHistoryReadiness,
         private readonly ImprovementRatioCalculator $improvementRatioCalculator,
         private readonly TimePredictionCalculator $calculator,
         private readonly CacheInterface $globalImprovementRatioSnapshotCache,
@@ -90,9 +91,19 @@ final class PredictionReconstructor implements ResetInterface
 
         $priorAttemptsOfTargets = [];
         $statisticalPuzzleIds = [];
+        // Before the pace history is built a statistical prediction would find no difficulty indices:
+        // those times stay pending (not "not predictable") and the daily backfill comes back to them
+        $paceHistoryBuilt = $this->paceHistoryReadiness->isBuilt();
 
-        foreach ($targets as $target) {
+        foreach ($targets as $index => $target) {
             $prior = self::solvesBefore($qualifyingByPuzzle[$target->puzzleId] ?? [], $target);
+
+            if ($prior === [] && $paceHistoryBuilt === false) {
+                unset($targets[$index]);
+
+                continue;
+            }
+
             $priorAttemptsOfTargets[$target->id] = $prior;
 
             if ($prior === []) {

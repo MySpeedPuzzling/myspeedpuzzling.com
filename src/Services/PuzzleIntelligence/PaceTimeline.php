@@ -11,6 +11,7 @@ namespace SpeedPuzzling\Web\Services\PuzzleIntelligence;
  *
  * The pace of a solver at a solve (paceAt()):
  * 1. the row of the solve's piece count valid just before it - strictly before in (solved, tracked);
+ *    of two rows of the very same moment the later one (qualifying_count) counts;
  * 2. else interpolated/extrapolated from the rows valid just before it at the solver's other piece
  *    counts (PlayerBaselineCalculator::gapBaseline(), the rule of the baselines' second pass);
  * 3. else - the solve came before the solver had any pace (one of their first first attempts) - their
@@ -42,7 +43,11 @@ final class PaceTimeline
             $order = ($solved <=> $pair['solved'][$last]) ?: ($tracked <=> $pair['tracked'][$last]);
 
             if ($order === 0) {
-                return; // the same row twice (several lookups loaded it)
+                // The same moment again: the same row loaded twice, or a later solve logged in the same
+                // second - rows come in qualifying_count order, so the later one is the pace after both
+                $pair['baseline'][$last] = $baselineSeconds;
+
+                return;
             }
 
             if ($order < 0) {
@@ -100,7 +105,8 @@ final class PaceTimeline
 
             $baseline = $this->latest($pair, $solved, $tracked, $inclusive);
 
-            if ($baseline !== null) {
+            // Interpolation works in logs: a zero baseline (0-second times) cannot take part
+            if ($baseline !== null && $baseline > 0) {
                 $others[$otherPiecesCount] = $baseline;
             }
         }
@@ -176,7 +182,11 @@ final class PaceTimeline
             foreach ($order as $index) {
                 $count = count($sorted['solved']);
 
+                // The same moment twice: the later one (the sort is stable) is the pace after both
                 if ($count > 0 && $sorted['solved'][$count - 1] === $pair['solved'][$index] && $sorted['tracked'][$count - 1] === $pair['tracked'][$index]) {
+                    array_pop($sorted['baseline']);
+                    $sorted['baseline'][] = $pair['baseline'][$index];
+
                     continue;
                 }
 

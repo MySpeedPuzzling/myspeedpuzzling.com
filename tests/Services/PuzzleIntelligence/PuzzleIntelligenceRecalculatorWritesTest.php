@@ -10,6 +10,7 @@ use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\DerivedMetricsCalculator;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\ImprovementRatioCalculator;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\MspRatingCalculator;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\PaceHistoryReadiness;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\PaceTimelineLoader;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\PlayerBaselineCalculator;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\PlayerPaceHistoryCalculator;
@@ -485,12 +486,14 @@ final class PuzzleIntelligenceRecalculatorWritesTest extends KernelTestCase
     {
         $clock = new MockClock($now);
         $baselineCalculator = new PlayerBaselineCalculator($this->connection, $clock);
+        $paceHistoryReadiness = new PaceHistoryReadiness($this->connection);
 
         (new PuzzleIntelligenceRecalculator(
             $this->connection,
             $clock,
             $baselineCalculator,
-            new PlayerPaceHistoryWriter($this->connection, $baselineCalculator, new PlayerPaceHistoryCalculator($baselineCalculator)),
+            new PlayerPaceHistoryWriter($this->connection, $baselineCalculator, new PlayerPaceHistoryCalculator($baselineCalculator), $paceHistoryReadiness),
+            $paceHistoryReadiness,
             new PuzzleDifficultyCalculator($baselineCalculator, new PaceTimelineLoader($this->connection, $baselineCalculator)),
             new PlayerSkillCalculator($this->connection, $clock),
             new DerivedMetricsCalculator($this->connection),

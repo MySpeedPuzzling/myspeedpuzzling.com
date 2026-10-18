@@ -35,7 +35,7 @@ readonly final class PaceTimelineLoader
         $timeline = new PaceTimeline($this->baselineCalculator, $scalingExponent);
 
         $this->addRows($timeline, $this->connection->executeQuery(
-            'SELECT ' . self::COLUMNS . ' FROM player_pace_history h ORDER BY h.player_id, h.pieces_count, h.valid_from, h.valid_from_tracked_at',
+            'SELECT ' . self::COLUMNS . ' FROM player_pace_history h ORDER BY h.player_id, h.pieces_count, h.valid_from, h.valid_from_tracked_at, h.qualifying_count',
         )->iterateAssociative());
 
         return $timeline;
@@ -81,7 +81,7 @@ readonly final class PaceTimelineLoader
                 WHERE row_before.player_id = l.player_id
                     AND row_before.pieces_count = l.pieces_count
                     AND (row_before.valid_from, row_before.valid_from_tracked_at) < (l.solved, l.tracked)
-                ORDER BY row_before.valid_from DESC, row_before.valid_from_tracked_at DESC
+                ORDER BY row_before.valid_from DESC, row_before.valid_from_tracked_at DESC, row_before.qualifying_count DESC
                 LIMIT 1
             ) h
         ', [
@@ -124,7 +124,7 @@ readonly final class PaceTimelineLoader
     {
         foreach (array_chunk($playerIds, self::PLAYER_CHUNK_SIZE) as $chunk) {
             $this->addRows($timeline, $this->connection->executeQuery(
-                'SELECT ' . self::COLUMNS . ' FROM player_pace_history h WHERE h.player_id IN (:playerIds) ORDER BY h.player_id, h.pieces_count, h.valid_from, h.valid_from_tracked_at',
+                'SELECT ' . self::COLUMNS . ' FROM player_pace_history h WHERE h.player_id IN (:playerIds) ORDER BY h.player_id, h.pieces_count, h.valid_from, h.valid_from_tracked_at, h.qualifying_count',
                 ['playerIds' => $chunk],
                 ['playerIds' => ArrayParameterType::STRING],
             )->iterateAssociative());

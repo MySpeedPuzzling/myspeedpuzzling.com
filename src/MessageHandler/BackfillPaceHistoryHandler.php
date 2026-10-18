@@ -37,6 +37,8 @@ readonly final class BackfillPaceHistoryHandler
             $after = $playerIds[array_key_last($playerIds)];
         }
 
+        $this->paceHistoryWriter->markBuilt();
+
         return $result;
     }
 }

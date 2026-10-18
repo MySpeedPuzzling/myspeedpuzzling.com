@@ -108,7 +108,8 @@ final readonly class PlayerPaceHistoryCalculator
                 'valid_from' => $solve['solve_date'],
                 'valid_from_tracked_at' => $solve['tracked_at'],
                 'baseline_seconds' => $baseline,
-                'step' => $previous !== null ? round(log($baseline / $previous), 6) : null,
+                // A zero baseline (a 0-second time) has no log: no step rather than a failed batch
+                'step' => $previous !== null && $previous > 0 && $baseline > 0 ? round(log($baseline / $previous), 6) : null,
                 'inputs_checksum' => $checksums[$position - 1],
             ];
 

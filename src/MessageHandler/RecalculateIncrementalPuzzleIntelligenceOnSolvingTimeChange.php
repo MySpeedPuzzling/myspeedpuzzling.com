@@ -13,6 +13,7 @@ use SpeedPuzzling\Web\Events\PuzzleSolvingTimeModified;
 use SpeedPuzzling\Web\Events\PuzzleSolvingTimeMovedToOtherPuzzle;
 use SpeedPuzzling\Web\Message\RecalculateDerivedMetricsForPuzzle;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\ImprovementRatioCalculator;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\PaceHistoryReadiness;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\PlayerBaselineCalculator;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\PuzzleDifficultyCalculator;
 use SpeedPuzzling\Web\Value\DifficultyTier;
@@ -29,6 +30,7 @@ readonly final class RecalculateIncrementalPuzzleIntelligenceOnSolvingTimeChange
         private ClockInterface $clock,
         private PlayerBaselineCalculator $baselineCalculator,
         private PuzzleDifficultyCalculator $difficultyCalculator,
+        private PaceHistoryReadiness $paceHistoryReadiness,
         private ImprovementRatioCalculator $improvementRatioCalculator,
         private MessageBusInterface $messageBus,
     ) {
@@ -75,9 +77,15 @@ readonly final class RecalculateIncrementalPuzzleIntelligenceOnSolvingTimeChange
             $this->upsertBaseline($playerId, $piecesCount, $baseline['baseline_seconds'], $baseline['qualifying_count'], $now);
         }
 
-        // Tier 1: Recalculate puzzle difficulty
-        $difficulty = $this->difficultyCalculator->calculateForPuzzle($puzzleId);
-        $this->upsertDifficulty($puzzleId, $difficulty, $now);
+        // Tier 1: Recalculate puzzle difficulty - from the pace history, so only once it is built: before
+        // that (right after the deploy) the stored difficulty stays, never replaced by an empty one
+        $difficulty = $this->paceHistoryReadiness->isBuilt()
+            ? $this->difficultyCalculator->calculateForPuzzle($puzzleId)
+            : null;
+
+        if ($difficulty !== null) {
+            $this->upsertDifficulty($puzzleId, $difficulty, $now);
+        }
 
         // Tier 1: Recalculate player improvement ratios (if player has repeat solves)
         $repeatSolveCount = $this->countPlayerSoloSolvesOnPuzzle($playerId, $puzzleId);
@@ -88,7 +96,7 @@ readonly final class RecalculateIncrementalPuzzleIntelligenceOnSolvingTimeChange
         }
 
         // Tier 2: Dispatch async derived metrics recalculation
-        if ($difficulty['difficulty_score'] !== null) {
+        if ($difficulty !== null && $difficulty['difficulty_score'] !== null) {
             $this->messageBus->dispatch(new RecalculateDerivedMetricsForPuzzle(Uuid::fromString($puzzleId)));
         }
     }

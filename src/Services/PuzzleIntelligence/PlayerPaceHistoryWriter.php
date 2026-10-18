@@ -35,6 +35,7 @@ final readonly class PlayerPaceHistoryWriter
         private Connection $connection,
         private PlayerBaselineCalculator $baselineCalculator,
         private PlayerPaceHistoryCalculator $calculator,
+        private PaceHistoryReadiness $readiness,
     ) {
     }
 
@@ -128,7 +129,20 @@ final readonly class PlayerPaceHistoryWriter
 
         $this->flush($writes);
 
+        // Every player is in: from now on the as-of difficulty may be computed from the history
+        if ($playerIds === null) {
+            $this->readiness->markBuilt();
+        }
+
         return $result;
+    }
+
+    /**
+     * Marks the history built after a walk over every player in batches (the backfill).
+     */
+    public function markBuilt(): void
+    {
+        $this->readiness->markBuilt();
     }
 
     /**

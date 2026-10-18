@@ -131,7 +131,7 @@ that moved it.
 | `time_id` | the solve that moved the pace (FK, `ON DELETE CASCADE`, see below) |
 | `qualifying_count` | the solve's position among the pair's qualifying first attempts (5 = first row); unique per pair |
 | `baseline_seconds` | `PlayerBaselineCalculator::weightedBaselineSeconds()` over solves 1..k, **ages measured to the k-th solve** - the one baseline rule, never re-implemented |
-| `step` | `ln(baseline_k / baseline_{k-1})`, rounded to 6 decimals; NULL on the pair's first row. Log, so steps add up and ±3 % reads the same both ways ("your biggest jumps") |
+| `step` | `ln(baseline_k / baseline_{k-1})`, rounded to 6 decimals; NULL on the pair's first row and when either baseline is 0 (0-second times). Log, so steps add up and ±3 % reads the same both ways ("your biggest jumps") |
 | `drift` | defined here, filled by the prediction model v2 (stream 3b): the improvement drift as of this row = the mean log residual `ln(actual / predicted)` of the player's last 10 first attempts at this piece count up to and including this row, shrunk toward 0 with few solves. NULL until then |
 | `inputs_checksum` | running sum of the hashes of the pair's qualifying solves up to this one (below) |
 
@@ -153,8 +153,9 @@ they agree.
 
 The pace of a solver at a solve `(solved, tracked)` of piece count S:
 
-1. the row of S valid **strictly before** the solve: the last row with `(valid_from, valid_from_tracked_at) < (solved, tracked)`.
-   The row a solve wrote itself is never its own pace;
+1. the row of S valid **strictly before** the solve: the last row with `(valid_from, valid_from_tracked_at) < (solved, tracked)`
+   (two rows of the very same moment - solves logged in the same second: the later `qualifying_count`). The row a solve
+   wrote itself is never its own pace;
 2. else interpolated/extrapolated from the solver's rows valid strictly before the solve at their other piece counts
    (`gapBaseline()` with the batch's scaling exponent) - e.g. a 1000-piece solve of a 500-piece regular;
 3. else - the solve came **before the solver had any pace at all** (one of their very first first attempts) - their
@@ -209,8 +210,27 @@ Batch and backfill take turns on an advisory lock (`PlayerPaceHistoryWriter::LOC
 player with a qualifying solve or stored rows in keyset batches of 300 (uuid order) through the same `sync()` - one
 transaction, holding the writer's lock until commit. Idempotent: run again, nothing is written. Measured on the
 production copy (523k times): 232,119 rows over 7,191 pairs in 22 s, 63 MB peak; a second run 2.1 s, nothing written;
-the table is 73 MB with its indexes (33 MB heap). It is not needed for correctness - the batch builds whatever is
-missing - but it fills the table before the first batch run after the deploy instead of inside it.
+the table is 73 MB with its indexes (33 MB heap).
+
+**Run it right after the deploy** (`docker compose exec -T web php bin/console myspeedpuzzling:backfill-pace-history`):
+the migration creates the table empty, and until the first complete sync - this backfill or the next full batch run,
+whichever finishes first - the as-of difficulty is switched off, so the sooner it runs the shorter that window.
+
+### Before the history is built (the rollout guard)
+
+The difficulty must never be computed from an empty or half-built history: a puzzle would get no indices, the stored
+difficulty would become NULL and the next add of the puzzle would be stored as "not predictable" - for good. So
+`PaceHistoryReadiness` keeps a marker row (`pace_history_build`), written at the end of a complete sync (a full batch
+run's `sync()` or the backfill's walk over every player) and never removed. Until it exists:
+
+- `RecalculateIncrementalPuzzleIntelligenceOnSolvingTimeChange` (sync on every added/edited time) updates the
+  baseline and the ratios as before but **keeps the stored difficulty** - so live predictions keep using it;
+- a `--player` batch run skips the difficulty step (a full run builds the history first, in the same run, so it never
+  has to);
+- `PredictionReconstructor` leaves statistical targets **pending** (NULL, not `false`): the self-healing prediction
+  backfill cron picks them up once the history is there.
+
+Pinned by `PaceHistoryRolloutTest` (mutation-checked). The check is one primary-key read per incremental run.
 
 ## Step 2: Difficulty Index (Per Solve)
 
@@ -228,7 +248,7 @@ difficulty_index = seconds_to_solve / solver's pace at the solve (PaceTimeline::
 - The solve is a first attempt (per the resolution rules above)
 - The solve is solo, non-suspicious, not unboxed, with `seconds_to_solve IS NOT NULL`
 - The solver has a pace for it (rules 1-3 of the lookup)
-- The resulting difficulty_index is <= 5.0 (outlier ceiling)
+- The resulting difficulty_index is <= 5.0 (outlier ceiling) and above 0 (a 0-second time measures nothing)
 
 Until 2026-10 the index divided by the solver's **current** `player_baseline`. Expected effect of the switch
 (research on the production copy): rated scores drop ~8 % at the median, ~46 % of well-rated puzzles move one tier

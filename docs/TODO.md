@@ -706,6 +706,10 @@ player lost the form. Shipped: limit 128M (`web-base-php85/php.ini`), photos up 
 - [ ] Check the rest mode in the reports (`frames` / `duration_ms` of long iOS sessions, ~10/s idle) and ask Allison
       whether her phone stays cooler - if it still gets hot, the 1080p camera itself is next (a lower resolution while
       resting would need a camera restart - measure first).
+- [ ] zbar download with no timeout: on iOS (zbar alone) a stalled jsdelivr leaves the camera on and nothing ever
+      reads - give it ~10 s, then say so in the scanner (texts in 6 locales); self-hosting zbar mostly removes it.
+- [ ] A camera that fails to open (permission denied, no camera) sends no `/-/scan-session` report - count them too
+      (outcome `camera-error` + the error name).
 - [ ] Labels without a quiet zone: Anatolian boxes (white label tight around the bars on a black box, e.g.
       `8698543136342`, `8698543135796`) barely read or not at all - zbar needs the white margin to find the start.
       A test case for Step 4's decoder (it fits geometry, needs no quiet zone); her photo is in MSP inbox:8800.

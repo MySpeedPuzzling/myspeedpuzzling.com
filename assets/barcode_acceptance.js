@@ -14,6 +14,8 @@
 // A read is accepted only while no other code was seen this recently
 export const COMPETING_CODE_MS = 2000;
 export const AGREEING_READS = 2;
+// Only reads this recent count: a misread repeated now and then over a minute must never add up to an acceptance
+export const READ_WINDOW_MS = 3000;
 const BUFFER = 30;
 
 /**
@@ -72,12 +74,12 @@ export class ReadAcceptance {
         }
 
         reader.seenAt.set(code, now);
-        reader.buffer.push(code);
+        reader.buffer.push({ code, at: now });
         if (reader.buffer.length > BUFFER) {
             reader.buffer.shift();
         }
 
-        const enough = this._count(reader, code) >= readsNeeded(name, code);
+        const enough = this._count(reader, code, now) >= readsNeeded(name, code);
 
         // When this reader alone would have accepted - next to the other one, for the reports (README §5.7)
         if (reader.soloMs === null && enough && !this._competing(code, now, [reader])) {
@@ -105,8 +107,8 @@ export class ReadAcceptance {
         return this.readers[name] ? this.readers[name].soloMs : null;
     }
 
-    _count(reader, code) {
-        return reader.buffer.filter(c => c === code).length;
+    _count(reader, code, now) {
+        return reader.buffer.filter(read => read.code === code && now - read.at < READ_WINDOW_MS).length;
     }
 
     // Another code seen by any of these readers in the last 2 s
@@ -133,7 +135,7 @@ export class ReadAcceptance {
             return false;
         }
 
-        const recent = (reader) => now - (reader.seenAt.get(code) ?? -Infinity) < COMPETING_CODE_MS && this._count(reader, code) >= AGREEING_READS;
+        const recent = (reader) => now - (reader.seenAt.get(code) ?? -Infinity) < COMPETING_CODE_MS && this._count(reader, code, now) >= AGREEING_READS;
         if (!recent(native) || !recent(zbar)) {
             return false;
         }

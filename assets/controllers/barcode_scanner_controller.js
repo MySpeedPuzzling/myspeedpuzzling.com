@@ -477,6 +477,8 @@ export default class extends Controller {
         this.engine = null;
         this.engines = {};
         this.zbarBudget = null;
+        this.zbarPlanned = false;
+        this.frameCounterMoves = false;
         this.lastFocusKick = null;
         this.nextFocusKickAt = 0;
         this.stats = { frames: 0, decodeMs: [], seen: new Map(), accepted: null, acceptedBy: null };
@@ -584,7 +586,7 @@ export default class extends Controller {
     _engineState(name, detector) {
         this.acceptance.addReader(name);
 
-        return { detector, frames: 0, decodeMs: [], region: null, lastDecodeAt: -Infinity };
+        return { detector, frames: 0, decodeMs: [], region: null, lastDecodeAt: -Infinity, lastFrameCount: undefined };
     }
 
     _engineName() {
@@ -641,13 +643,13 @@ export default class extends Controller {
         // One loop per reader, each at its own pace - waiting for both on every frame slowed a mid-range phone's
         // Google reader five times
         const loop = (name) => {
-            const step = async () => {
+            const step = async (fresh = true) => {
                 if (!current()) {
                     return;
                 }
 
                 try {
-                    await this._scanStep(name, primary, ctx, current);
+                    await this._scanStep(name, primary, ctx, current, fresh);
                 } catch (error) {
                     // One bad frame must never end the loop - the scanner would stop reading without a word
                     console.error('Barcode scan step failed:', error);
@@ -671,7 +673,7 @@ export default class extends Controller {
      * One frame of one reader's loop (scanLoop). `current` = this session is still the one running: checked again
      * after every wait, since a stop or a quick restart replaces the state this step works on.
      */
-    async _scanStep(name, primary, ctx, current) {
+    async _scanStep(name, primary, ctx, current, fresh) {
         const engine = this.engines[name];
         const isPrimary = name === primary;
         const video = this.videoTarget;
@@ -696,7 +698,7 @@ export default class extends Controller {
 
         const now = performance.now();
         const due = now - this.lastActivityAt < ACTIVE_FOR_MS || now - engine.lastDecodeAt >= RESTING_INTERVAL_MS;
-        if (!due || (!isPrimary && !this.zbarBudget.mayRun(now))) {
+        if (!due || (!isPrimary && !this.zbarBudget.mayRun(now)) || !this._newFrame(engine, fresh)) {
             return;
         }
 
@@ -724,7 +726,8 @@ export default class extends Controller {
             this.zbarBudget.helperRan(cost, performance.now());
         }
 
-        if (barcodes.length > 0) {
+        // Paused meanwhile: multiscan is showing the last result
+        if (barcodes.length > 0 && !this.paused) {
             this._handleBarcodes(name, barcodes, frame, ctx);
         }
     }
@@ -836,8 +839,14 @@ export default class extends Controller {
     // canvas the phone composites again after every change
     _refreshOverlay(ctx) {
         const resized = this._sizeOverlay();
-        const band = this._horizontalBand(this._visibleRect());
-        const guide = `${band.x},${band.y},${band.w},${band.h}`;
+        // Where the guide belongs reads the layout - not on every frame, twice a second is enough for a rotation
+        const now = performance.now();
+        let guide = this.overlayGuide;
+        if (resized || guide === null || guide === undefined || now - (this.overlayGuideAt || 0) >= 500) {
+            const band = this._horizontalBand(this._visibleRect());
+            guide = `${band.x},${band.y},${band.w},${band.h}`;
+            this.overlayGuideAt = now;
+        }
         if (!resized && !this.overlayMarked && guide === this.overlayGuide) {
             return;
         }
@@ -944,26 +953,51 @@ export default class extends Controller {
         const video = this.videoTarget;
 
         if (typeof video.requestVideoFrameCallback !== 'function') {
-            requestAnimationFrame(callback);
+            requestAnimationFrame(() => callback(false));
             return;
         }
 
         let called = false;
-        const run = () => {
+        let timer = null;
+        const run = (fresh) => {
             if (!called) {
                 called = true;
-                callback();
+                window.clearTimeout(timer);
+                callback(fresh);
             }
         };
-        const handle = video.requestVideoFrameCallback(run);
+        const handle = video.requestVideoFrameCallback(() => run(true));
 
-        // Never stall when a browser stops reporting frames - fall back to decoding what is on screen
-        window.setTimeout(() => {
+        // Never stall when a browser stops reporting frames - fall back to decoding what is on screen (only if it
+        // changed: `_newFrame()`)
+        timer = window.setTimeout(() => {
             if (!called) {
                 video.cancelVideoFrameCallback(handle);
-                run();
+                run(false);
             }
         }, 250);
+    }
+
+    /**
+     * Whether the video shows a frame this reader has not decoded yet. A frame the browser reported is new; without
+     * that report (the 250 ms fallback, requestAnimationFrame) the browser's frame counter decides - a stalled video
+     * decoded again and again would count one frame as many agreeing reads. A counter that never moves is not
+     * trusted (some browsers do not count camera frames), and the frame is decoded as before.
+     */
+    _newFrame(engine, fresh) {
+        let count = null;
+        try {
+            const quality = typeof this.videoTarget.getVideoPlaybackQuality === 'function' ? this.videoTarget.getVideoPlaybackQuality() : null;
+            count = quality && typeof quality.totalVideoFrames === 'number' ? quality.totalVideoFrames : null;
+        } catch (e) { /* not supported */ }
+
+        const last = engine.lastFrameCount;
+        engine.lastFrameCount = count;
+        if (count !== null && last !== undefined && last !== null && count !== last) {
+            this.frameCounterMoves = true;
+        }
+
+        return fresh || count === null || !this.frameCounterMoves || count !== last;
     }
 
     stopScanning() {

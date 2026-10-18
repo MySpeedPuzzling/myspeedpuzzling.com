@@ -554,6 +554,20 @@ Now:
   a second (`RESTING_INTERVAL_MS`). In multiscan a box taken within the cooldown, still in view, counts as nothing new;
 - the overlay (a full-size canvas) is redrawn only when the guide moved or a code's outline was drawn, not every frame.
 
+Hardening after an independent review (2026-10-19, `54d98f44` + the next commit):
+- every loop step runs in try/catch and always schedules the next frame - next to Google's reader, zbar's loop read a
+  property of a reader not yet downloaded once the first second passed without a code, and the error ended the loop
+  for the session (silently Google's reader alone again);
+- after every wait a step checks the session is still the one running (a stop or quick restart replaces its state),
+  and drops a result that arrives while multiscan is paused;
+- nothing is decoded while the tab is hidden, and a frame is decoded once: the 250 ms fallback (and
+  requestAnimationFrame) decode only when the browser's frame counter moved - a stalled camera decoded again and again
+  counted one frame as many agreeing reads;
+- only reads of the last 3 s count towards an acceptance (`READ_WINDOW_MS`) - a misread now and then over a long
+  session could add up before;
+- the 250 ms fallback timers are cleared when the frame arrives, the overlay's guide position is read from the layout
+  twice a second, not on every frame.
+
 Measured in Chrome with a fake camera: nothing in view 25-29 → 8-10 decodes a second; a box appearing after 4 s read
 0.2-0.3 s after it appeared (at most 0.1 s added to the first sight); multiscan with a box held in view re-reads it
 every ~2.7 s as before, at 10-15 decodes a second instead of ~30. The reports' `frames` / `duration_ms` show the

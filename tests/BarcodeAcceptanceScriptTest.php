@@ -148,6 +148,20 @@ final class BarcodeAcceptanceScriptTest extends TestCase
         self::assertSame([null, null, null, null], $this->accept(['native', 'zbar'], $reads)['results']);
     }
 
+    /**
+     * A misread now and then over a long session never adds up: only reads of the last 3 s count.
+     */
+    public function testReadsSpreadOverALongSessionNeverAddUp(): void
+    {
+        $reads = [];
+        for ($i = 0; $i < 12; $i++) {
+            $reads[] = ['reader' => 'native', 'code' => self::MISREAD, 'at' => $i * 2500];
+        }
+
+        self::assertSame(array_fill(0, 12, null), $this->accept(['native'], $reads)['results']);
+        self::assertSame(array_fill(0, 12, null), $this->accept(['zbar'], array_map(static fn (array $read): array => ['reader' => 'zbar', 'code' => self::RAVENSBURGER, 'quality' => 30, 'at' => $read['at']], $reads))['results']);
+    }
+
     public function testAnAcceptedCodeStartsCountingAgain(): void
     {
         $reads = [...self::reads('zbar', self::RAVENSBURGER, 4), ...self::reads('zbar', self::RAVENSBURGER, 4, startAt: 1000)];

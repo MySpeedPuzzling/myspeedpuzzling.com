@@ -201,7 +201,7 @@ The inputs are loaded **once per player** and everything else is PHP (`Predictio
 | Global improvement ratios | `ImprovementRatioCalculator::globalRatiosBefore()`: the batch's transition SQL with a cutoff, one query per calendar month ("transitions whose later attempt was before the 1st of the solve month"), memoised + cached | month granularity |
 | Player baseline for the piece count | the player's first attempts dated before the solve, weights relative to the solve date (not `now`), ≥ 5 → direct, else interpolated/extrapolated from the other piece counts' *as-of* direct baselines | exact |
 | Scaling exponent (extrapolation) | today's value, 1 query, memoised | approximation |
-| Puzzle difficulty | 1 query per player (chunks of 1000 puzzles), only for puzzles with a statistical target: every qualifying solve on them with its solver's baseline; per time each solver's first attempt before the solve → `PuzzleDifficultyCalculator::calculateFromSolves()` | the indices use **today's** baselines of those players (the live model does that too) |
+| Puzzle difficulty | 1 query per player (chunks of 1000 puzzles), only for puzzles with a statistical target: every qualifying solve on them; 1 query for those solvers' pace history (`PaceTimelineLoader::forPlayers()`); per time each solver's first attempt before the solve, divided by the solver's pace-history row just before *that* solve (`PaceTimeline::paceAt()`, the live difficulty's lookup) → `PuzzleDifficultyCalculator::calculateFromSolves()` | exact since 2026-10 (as-of indices, README "Pace history"): only rows dated before the predicted solve count, also for a solver's "first pace"; the rows themselves pick each solver's first attempts by today's flags |
 
 **"First attempt" as of the solve.** Baseline and difficulty pick a player's first attempt of a puzzle as
 "`first_attempt = true` first, else the oldest". Reconstructed, that choice is made **only among solves dated
@@ -212,8 +212,19 @@ before the solve being predicted** - otherwise a later solve flagged `first_atte
 back-dated solves still change it). The messenger worker resets services after every message, so an in-memory memo
 alone would rerun the query (~0.6 s each on the production copy) for every async back-dated add.
 
-The two approximations are documented and small; the one thing that matters - **nothing from the solve itself or
+The approximations are documented and small; the one thing that matters - **nothing from the solve itself or
 after it leaks in** - holds. Personal predictions (150k) are exact apart from the monthly global ratio.
+
+**Since 2026-10 (Insights stream 3a)** the difficulty indices no longer use the other players' baselines of today:
+each index divides by the solver's `player_pace_history` row valid just before that solver's solve, in the live batch
+and here alike, so "as of now" still equals live. The reconstruction passes the predicted solve as `knownBefore`: a
+solver's *first pace* (the fallback for solves made before they had any pace) counts only when its row is dated before
+the predicted solve. Pinned by `PredictionReconstructorTest::testAFirstPaceFormedAfterThePredictedSolveStaysOut`
+(mutation-checked). Two small leftovers: a pace row picks the solver's first attempts by today's `first_attempt` flags
+(the target player's own baseline is still built as of the solve, below), and its decay is measured to the row's own
+solve, not to the predicted one. `TimePredictionCalculator::MODEL_VERSION` is 2 from this change
+on (the statistical inputs changed), so accuracy statistics keep the two apart; stored predictions are not recomputed
+(frozen history, see the review table).
 
 The pure pieces are extracted, not copied, so live and reconstructed use one model:
 
@@ -258,8 +269,8 @@ statistical model looks biased slow on first attempts and its range too narrow -
 - `tests/MessageHandler/SolvingTimePredictionRecordingTest` - live personal = what the puzzle page showed before,
   not predictable, group untouched, yesterday live, back-dated queued, failing read keeps the time, edits.
 - `tests/Services/PuzzleIntelligence/PredictionReconstructorTest` - the two "as of now == live" guards, no leak
-  from later solves (personal, statistical, later `first_attempt` flag), same-day order, unboxed = predicted but
-  no input, first solve of a piece count = not predictable.
+  from later solves (personal, statistical, later `first_attempt` flag, a solver's first pace formed after the solve),
+  same-day order, unboxed = predicted but no input, first solve of a piece count = not predictable.
 - `tests/MessageHandler/BackfillSolvingTimePredictionsHandlerTest` - only pending rows, never a live one, no domain
   events, second run no-op, every fixture player backfillable.
 - `tests/Services/PuzzleIntelligence/ImprovementRatioCalculatorTest` - `globalRatiosBefore()` = batch ratios.

@@ -75,9 +75,13 @@ readonly final class RecalculateIncrementalPuzzleIntelligenceOnSolvingTimeChange
             $this->upsertBaseline($playerId, $piecesCount, $baseline['baseline_seconds'], $baseline['qualifying_count'], $now);
         }
 
-        // Tier 1: Recalculate puzzle difficulty
-        $difficulty = $this->difficultyCalculator->calculateForPuzzle($puzzleId);
-        $this->upsertDifficulty($puzzleId, $difficulty, $now);
+        // Tier 1: Recalculate puzzle difficulty - from the pace history, so only once it is built: before
+        // that (right after the deploy) the stored difficulty stays, never replaced by an empty one
+        $difficulty = $this->difficultyCalculator->calculateForPuzzleOnBuiltPaceHistory($puzzleId);
+
+        if ($difficulty !== null) {
+            $this->upsertDifficulty($puzzleId, $difficulty, $now);
+        }
 
         // Tier 1: Recalculate player improvement ratios (if player has repeat solves)
         $repeatSolveCount = $this->countPlayerSoloSolvesOnPuzzle($playerId, $puzzleId);
@@ -88,7 +92,7 @@ readonly final class RecalculateIncrementalPuzzleIntelligenceOnSolvingTimeChange
         }
 
         // Tier 2: Dispatch async derived metrics recalculation
-        if ($difficulty['difficulty_score'] !== null) {
+        if ($difficulty !== null && $difficulty['difficulty_score'] !== null) {
             $this->messageBus->dispatch(new RecalculateDerivedMetricsForPuzzle(Uuid::fromString($puzzleId)));
         }
     }
@@ -153,13 +157,13 @@ readonly final class RecalculateIncrementalPuzzleIntelligenceOnSolvingTimeChange
     }
 
     /**
-     * @param array{difficulty_score: float|null, difficulty_tier: DifficultyTier|null, confidence: MetricConfidence, sample_size: int, indices_p25: float|null, indices_p75: float|null} $result
+     * @param array{difficulty_score: float|null, difficulty_tier: DifficultyTier|null, confidence: MetricConfidence, sample_size: int, indices_p25: float|null, indices_p75: float|null, sum_log_indices: float} $result
      */
     private function upsertDifficulty(string $puzzleId, array $result, \DateTimeImmutable $now): void
     {
         $this->connection->executeStatement("
-            INSERT INTO puzzle_difficulty (puzzle_id, difficulty_score, difficulty_tier, confidence, sample_size, indices_p25, indices_p75, computed_at)
-            VALUES (:puzzleId, :score, :tier, :confidence, :sampleSize, :indicesP25, :indicesP75, :now)
+            INSERT INTO puzzle_difficulty (puzzle_id, difficulty_score, difficulty_tier, confidence, sample_size, indices_p25, indices_p75, sum_log_indices, computed_at)
+            VALUES (:puzzleId, :score, :tier, :confidence, :sampleSize, :indicesP25, :indicesP75, :sumLogIndices, :now)
             ON CONFLICT (puzzle_id) DO UPDATE SET
                 difficulty_score = EXCLUDED.difficulty_score,
                 difficulty_tier = EXCLUDED.difficulty_tier,
@@ -167,6 +171,7 @@ readonly final class RecalculateIncrementalPuzzleIntelligenceOnSolvingTimeChange
                 sample_size = EXCLUDED.sample_size,
                 indices_p25 = EXCLUDED.indices_p25,
                 indices_p75 = EXCLUDED.indices_p75,
+                sum_log_indices = EXCLUDED.sum_log_indices,
                 computed_at = EXCLUDED.computed_at
         ", [
             'puzzleId' => $puzzleId,
@@ -176,6 +181,7 @@ readonly final class RecalculateIncrementalPuzzleIntelligenceOnSolvingTimeChange
             'sampleSize' => $result['sample_size'],
             'indicesP25' => $result['indices_p25'],
             'indicesP75' => $result['indices_p75'],
+            'sumLogIndices' => $result['sum_log_indices'],
             'now' => $now->format('Y-m-d H:i:s'),
         ]);
     }

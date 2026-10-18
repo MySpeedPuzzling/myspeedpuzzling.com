@@ -40,10 +40,12 @@ final class RecalculatePuzzleIntelligenceConsoleCommand extends Command
         $result = $this->recalculator->recalculate($specificPlayer, $specificPuzzle);
 
         $io->success(sprintf(
-            "Puzzle insights recalculation complete:\n  %d direct baselines, %d interpolated (exponent: %.2f)\n  %d difficulties, %d metrics, %d improvement ratios\n  %d skills, %d ratings\n  %d history, %d snapshots",
+            "Puzzle insights recalculation complete:\n  %d direct baselines, %d interpolated (exponent: %.2f)\n  pace history: %d pairs changed, %d rows written\n  %d difficulties, %d metrics, %d improvement ratios\n  %d skills, %d ratings\n  %d history, %d snapshots",
             $result['baselines_direct'],
             $result['baselines_interpolated'],
             $result['scaling_exponent'],
+            $result['pace_history_changed_pairs'],
+            $result['pace_history_rows_written'],
             $result['difficulties'],
             $result['metrics'],
             $result['improvement_ratios'],
@@ -52,6 +54,14 @@ final class RecalculatePuzzleIntelligenceConsoleCommand extends Command
             $result['history'],
             $result['snapshots'],
         ));
+
+        if ($output->isVerbose()) {
+            $io->table(['Step', 'Seconds'], array_map(
+                static fn (string $step, float $seconds): array => [$step, $seconds],
+                array_keys($result['durations']),
+                $result['durations'],
+            ));
+        }
 
         return self::SUCCESS;
     }

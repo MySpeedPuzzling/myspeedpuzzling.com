@@ -709,6 +709,10 @@ player lost the form. Shipped: limit 128M (`web-base-php85/php.ini`), photos up 
       scanner and point to "Type a code" (texts in 6 locales).
 - [ ] A camera that fails to open (permission denied, no camera) sends no `/-/scan-session` report - count them too
       (outcome `camera-error` + the error name).
+- [x] 2026-10-19: zbar is no longer held up by its own one-off misreads (a competitor must be read twice in 2 s) -
+      Allison's Anatolian Route 66 was read from 0.8 s but accepted after 3.6-11.6 s, up to a minute before.
+- [ ] The debug panel's "Copy" text arrives URL-encoded from Chrome on iOS (Allison's paste, 2026-10-19: `engine:%20zbar…`)
+      - check `navigator.clipboard.writeText` there; readable after decoding, so low priority.
 - [ ] Labels without a quiet zone: Anatolian boxes (white label tight around the bars on a black box, e.g.
       `8698543136342`, `8698543135796`) barely read or not at all - zbar needs the white margin to find the start.
       A test case for Step 4's decoder (it fits geometry, needs no quiet zone); her photo is in MSP inbox:8800.

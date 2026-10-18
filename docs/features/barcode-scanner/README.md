@@ -502,9 +502,12 @@ Simulated in Chrome (Google's reader 350 ms slower while zbar ran in the last 30
 Google's reader stayed at 41 ms a frame (baseline 40) - before the budget it averaged 204 ms.
 
 **When a code is handed over** - `assets/barcode_acceptance.js`, pinned by `BarcodeAcceptanceScriptTest`:
-- **zbar** by its own rule (4 agreeing reads with quality ≥ 3, 8 for codes starting with `0` and EAN-8) while zbar saw
-  no other code in the last 2 s - exactly the rule it reads with alone on every iPhone. A code only Google's reader saw
-  does not stop it: in the browser run a reader repeating its misread on every frame blocked the right code forever.
+- **zbar** by its own rule (4 agreeing reads with quality ≥ 3, 8 for codes starting with `0` and EAN-8) while zbar read
+  no other code twice in the last 2 s, or with it in one frame - the rule it reads with alone on every iPhone. A code
+  only Google's reader saw does not stop it: in the browser run a reader repeating its misread on every frame blocked
+  the right code forever. A one-off zbar misread does not either (2026-10-19): on Allison's Anatolian box (a white
+  label tight around the bars) zbar read the right code from 0.8 s on, 390 times, but single misreads with quality
+  4-9 held it up for 2 s each - accepted after 3.6 s, 4.6 s and 11.6 s in her three tries.
 - **Google's reader** by its own rule (10 agreeing reads) while *neither* reader saw another code in the last 2 s - zbar
   contradicting it stops its misread.
 - **Both agreeing**: the same code read twice by each reader, each within the last 2 s, is accepted at once - unless both

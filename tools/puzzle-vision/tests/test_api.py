@@ -3,7 +3,7 @@ import base64
 import httpx
 import pytest
 
-from puzzle_vision.api import (AlreadyProposed, AnalysisResult, BadRequest, InternalApi, StaleFingerprint, Unauthorized,
+from puzzle_vision.api import (AlreadyProposed, ApiError, AnalysisResult, BadRequest, InternalApi, StaleFingerprint, Unauthorized,
                                uuid_before)
 
 from .conftest import BASE, TOKEN, pid
@@ -89,7 +89,7 @@ def test_429_without_retry_after_backs_off_long(api, server, sleeps):
 def test_gives_up_after_max_retries(server, sleeps):
     client = InternalApi(BASE, lambda: TOKEN, transport=httpx.MockTransport(server.handler), min_interval=0, max_retries=2, sleep=sleeps.append)
     server.fail_next["GET /internal-api/puzzle-images"] = [httpx.Response(500)] * 3
-    with pytest.raises(Exception):
+    with pytest.raises(ApiError, match="gave up"):
         client.list_images()
 
 

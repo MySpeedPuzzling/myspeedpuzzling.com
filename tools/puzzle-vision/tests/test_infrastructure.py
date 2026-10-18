@@ -10,7 +10,7 @@ from PIL import Image
 
 from puzzle_vision import config, launchd, profiles
 from puzzle_vision.download import Downloader, ImageGone, RateLimiter
-from puzzle_vision.lock import ModelLock, parse_memory_pressure
+from puzzle_vision.lock import LockTimeout, ModelLock, parse_memory_pressure
 from puzzle_vision.payload import PayloadTooLarge, check_size, clean, encoded_size
 from puzzle_vision.workstate import WorkState
 
@@ -66,7 +66,7 @@ def test_lock_needs_free_memory_and_never_removes_a_foreign_lock(tmp_path):
     d.mkdir()  # a shell script's lock (no owner file)
     sleeps = []
     foreign = ModelLock("z", lock_dir=d, memory=lambda: 80, poll_seconds=1, sleep=sleeps.append)
-    with pytest.raises(Exception):
+    with pytest.raises(LockTimeout):
         foreign.acquire(timeout=0)
     assert d.exists()
 

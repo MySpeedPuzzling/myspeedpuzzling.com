@@ -57,15 +57,18 @@ def model_downloaded(repo: str, cache: Path | None = None) -> bool:
     return False
 
 
-def profile_models(profile: Profile) -> list[str]:
-    runs = {a for ph in profile.phases for a in ph.stages + ph.sidecar}
+def profile_models(profile: Profile, gated: bool = True) -> list[str]:
+    """Model repos the profile's phases load; `gated=False` leaves out phases behind a gate (the M1's describe)."""
+    runs: list[str] = []
+    for ph in profile.phases:
+        if ph.gate and not gated:
+            continue
+        runs += [a for a in ph.stages + ph.sidecar if a not in runs]
     models: list[str] = []
-    for a in sorted(runs):
+    for a in runs:
         for m in INFO[a].models:
             if m not in models:
                 models.append(m)
-    if profile.derived_versions and "google/siglip2-so400m-patch14-384" not in models and profile.derive_after_daily:
-        models.append("google/siglip2-so400m-patch14-384")  # zeroshot's text encoder
     return models
 
 
@@ -79,9 +82,14 @@ def run_checks(profile: Profile, settings: Settings, api_factory: Callable[[], A
     out.append(Check("free disk", free_gb >= MIN_FREE_DISK_GB, f"{free_gb:.0f} GB free at {settings.cache_dir} (need {MIN_FREE_DISK_GB} GB for the image cache + models)"))
     missing_mods = [m for m in ML_MODULES if importlib.util.find_spec(m) is None]
     out.append(Check("ml extra", not missing_mods, "installed" if not missing_mods else f"missing {', '.join(missing_mods)} - run `uv sync --extra ml`"))
+    required = profile_models(profile, gated=False)
     for repo in profile_models(profile):
         ok = model_downloaded(repo, cache)
-        out.append(Check(f"model {repo}", ok, "downloaded" if ok else f"missing (~{MODEL_SIZES_GB.get(repo, '?')} GB): uv run --extra ml hf download {repo}"))
+        hint = f"missing (~{MODEL_SIZES_GB.get(repo, '?')} GB): uv run --extra ml hf download {repo}"
+        if not ok and repo not in required:
+            out.append(Check(f"model {repo}", True, f"not yet - needed only after the phase gate (describe parity); {hint}"))
+            continue
+        out.append(Check(f"model {repo}", ok, "downloaded" if ok else hint))
     try:
         settings.token_provider()
         out.append(Check("token", True, "present (Keychain msp-internal-api or MSP_INTERNAL_API_TOKEN)"))

@@ -1,0 +1,281 @@
+# Image pipeline - runbook
+
+The Mac pipeline `tools/puzzle-vision/` analyses every puzzle box image with self-hosted open models and pushes the
+results through the internal API. Decisions: [`README.md`](./README.md) §3 "Image intelligence"; plan:
+[`implementation-plan.md`](./implementation-plan.md) Phase 2; payload schemas: [`image-taxonomy.md`](./image-taxonomy.md)
+§11 + §18; measured resources and the machine split: `image-taxonomy.md` §19; the API:
+[`../internal-api.md`](../internal-api.md) § "Puzzle image analysis".
+
+- **Production is the master copy.** Every result goes through `/internal-api/puzzle-image-*` into
+  `puzzle_image_analysis`. The Macs keep only a temporary work state (SQLite + an image cache) - deleting it loses
+  nothing but time.
+- **Claims** (leases) guarantee two machines never take the same image for the same analyzer. `requires` hands out
+  only pictures whose *current* image already has the results a stage needs.
+- **Nothing is shown** from these results on day one; they feed Insights and the estimates. A cleaner catalogue
+  picture is only ever a **change request** (crop proposals, below) - the pipeline never changes a puzzle itself.
+
+Claude Code skills wrap everything here: `/image-pipeline-setup`, `/image-pipeline-run`, `/image-pipeline-status`,
+`/image-pipeline-derive`, `/image-pipeline-add-analyzer`, `/image-crop-review`.
+
+## 1. The two machines and why
+
+| Machine | Profile | Runs | Expected (41k images) |
+|---|---|---|---|
+| MacBook Pro **M3 Max** 36 GB | `m3-max` | phase `artwork` (SigLIP 2 gate, then Qwen3-VL-4B on the non-flat pictures + OpenCV quad snap), then phase `describe` (Qwen3.5-9B 4-bit) | artwork ~24 h, describe ~123 h (10.75 s/img idle; 20-50 % slower with other GPU work) |
+| MacBook Air **M1** 16 GB, fanless, nonstop | `m1-air` | phase `A`: `ocr`, `barcode`, `embed_siglip2_full`; phase `B` (needs artwork): `embed_siglip2`, `embed_dinov2`, `segmentation`, `vision_labels` + `colors`/`traits` in CPU workers alongside; then helps with `describe` after the parity check | A + B ≈ 2.4 days |
+
+Total ≈ **5.5 days** wall clock with both machines (≈ 6.1 without the Air on describe). Why this way round
+(§19): `describe` is ~80 % of all compute and must be one model for the whole catalogue - on the Air it is ~57 s/img,
+so the M3 owns it. `artwork` gates both `describe` and the Air's phase B, so the M3 does it first while the Air runs its
+dependency-free phase A. **Apple Vision never shares a machine with a GPU-saturating model** (0.13 → 14.8 s/img when it
+did), so all Apple Vision work is on the Air, and there in its own stage, never next to a GPU stage.
+
+### Dependency table (enforced by the profiles; the API filters claims with `requires`)
+
+| Analyzer | requires | Machine | Unit |
+|---|---|---|---|
+| `ocr`, `barcode` | - | M1 (phase A) | Apple Vision (Neural Engine) |
+| `embed_siglip2_full` | - | M1 (phase A) | GPU |
+| `artwork` | - | M3 | GPU |
+| `colors`, `traits` | `artwork` | M1 (phase B, CPU sidecar) | CPU, single-threaded workers |
+| `segmentation`, `embed_dinov2`, `embed_siglip2` | `artwork` | M1 (phase B) | GPU |
+| `vision_labels` | `artwork` | M1 (phase B, last) | Apple Vision |
+| `describe` | `artwork`, `ocr` | M3 (+ M1 after parity) | GPU |
+| `box_text`, `zeroshot`, `neighbours`, `tags` (derived) | their raw inputs, no image | M3 (`derive`) | CPU (+ SigLIP text encoder once) |
+
+`vision_labels` looks at the artwork crop, so it needs `artwork` and runs in phase B (§11 / plan §1.2), not in phase A
+as the first sketch of §2.3 had it. `ocr` runs on the full image before `artwork` exists; its lines' `inArtwork` is then
+null, and `describe` / `tags` compute "inside the crop" themselves from the line boxes and the `artwork` bbox.
+
+## 2. Setup on a new Mac
+
+Prerequisites: macOS on Apple Silicon, Homebrew, `brew install uv git`, ≥ 60 GB free disk (image cache ~40 GB + models).
+
+```sh
+git clone https://github.com/MySpeedPuzzling/myspeedpuzzling.com.git ~/msp   # or `git pull` in an existing checkout
+cd ~/msp/tools/puzzle-vision
+uv sync --extra ml          # Python 3.12 + the pinned model stack (uv.lock): mlx 0.32.4, mlx-vlm 0.7.8, torch 2.14.1, ...
+```
+
+**Token** - the internal API token goes into the Keychain; Jan pastes it at the prompt himself, it is never printed,
+logged or written to a file (the pipeline reads it at call time for every request):
+
+```sh
+security add-generic-password -U -s msp-internal-api -a "$USER" -w     # prompts for the token
+```
+
+`MSP_INTERNAL_API_TOKEN=… uv run …` overrides it for one run. `--base-url http://localhost:8080` points at a local dev
+API (testing only; production is the default and the only real target).
+
+**Models** - download only what the profile runs (Hugging Face cache `~/.cache/huggingface/hub/`; all Apache-2.0 / MIT):
+
+| Model | Size | Used by | m3-max | m1-air |
+|---|---|---|---|---|
+| `google/siglip2-so400m-patch14-384` | 4.5 GB | artwork gate, `embed_siglip2(_full)`, zero-shot text side, crop proposals | yes | yes |
+| `mlx-community/Qwen3-VL-4B-Instruct-4bit` | 3.1 GB | `artwork` (VLM box + corners) | yes | - |
+| `mlx-community/Qwen3.5-9B-MLX-4bit` | 6.0 GB | `describe` | yes | only to join describe |
+| `facebook/dinov2-large` | 1.2 GB (2.4 GB with both weight formats) | `embed_dinov2` | - | yes |
+| `tue-mps/coco_panoptic_eomt_large_640` | 1.3 GB | `segmentation` | - | yes |
+
+```sh
+uv run --extra ml hf download google/siglip2-so400m-patch14-384
+uv run --extra ml hf download mlx-community/Qwen3-VL-4B-Instruct-4bit        # M3
+uv run --extra ml hf download mlx-community/Qwen3.5-9B-MLX-4bit              # M3 (M1 only before joining describe)
+uv run --extra ml hf download facebook/dinov2-large                         # M1
+uv run --extra ml hf download tue-mps/coco_panoptic_eomt_large_640            # M1
+```
+
+Apple Vision (OCR, barcodes, labels) is part of macOS - nothing to download.
+
+**Check** - everything above in one go (models are looked up in the cache, never loaded):
+
+```sh
+uv run --extra ml puzzle-vision setup-check --profile m3-max     # or m1-air; PASS/FAIL per line
+```
+
+## 3. Running
+
+```sh
+uv run --extra ml puzzle-vision run --profile m3-max                 # backfill: every phase until nothing is left
+uv run --extra ml puzzle-vision run --profile m3-max --hours 6       # stop cleanly after 6 h (Jan needs the machine)
+uv run --extra ml puzzle-vision run --profile m1-air --phase A       # one phase
+uv run --extra ml puzzle-vision run --profile m1-air --follow        # never ends (launchd KeepAlive)
+uv run --extra ml puzzle-vision run --profile m3-max --daily         # one pass over new/stale images, then derive + crops
+```
+
+- **One stage = one process = one model.** The runner starts each stage as its own process (memory goes back to the
+  system between stages); the CPU sidecar stages run alongside in their own single-threaded workers
+  (`OMP_NUM_THREADS=1`, `workers` per profile). `caffeinate -i` keeps the Mac awake while it runs.
+- Each stage first checks read-only whether there is anything to do (`status=stale` probe), so a model is never loaded
+  for nothing. Then it takes the **model lock** (below), loads its model and loops: claim → pre-fetch the next claim and
+  its downloads while working → analyse → store in batches of ≤ 200 → per-image failure: recorded + claim released →
+  at the end (or on SIGTERM / Ctrl-C / the memory watchdog / `--hours`) store what is done and release every own claim.
+- `artwork` runs as two processes: the **gate** walks the stale list and scores every picture with SigLIP 2 (stored
+  locally only), then the **VLM pass** claims: gate-flat pictures get the border trim (ms), the rest Qwen3-VL-4B + the
+  quad snap. A picture the gate has not seen yet keeps its claim until the pass ends and is gated next round.
+- Backfill mode keeps going while the other Mac still produces what a stage requires (the M3's `describe` waits on the
+  M1's OCR): after a pass without claimable work it sleeps 10 min (`--idle-minutes`) and claims again, and ends when
+  no analyzer of its phases has stale work left.
+- Progress lines go to the terminal and `~/Library/Logs/puzzle-vision/<profile>.log`.
+
+### Daily mode and launchd
+
+After the backfill each machine keeps the catalogue current (~60 new images a day, p90 100):
+
+```sh
+uv run puzzle-vision launchd-plist --profile m1-air --install     # writes ~/Library/LaunchAgents/com.myspeedpuzzling.puzzle-vision.m1-air.plist
+launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.myspeedpuzzling.puzzle-vision.m1-air.plist
+launchctl bootout   gui/$(id -u) ~/Library/LaunchAgents/com.myspeedpuzzling.puzzle-vision.m1-air.plist   # stop / unload
+```
+
+- **M1:** `KeepAlive` + `run --follow` - claims whatever appears, nonstop.
+- **M3:** a nightly window (01:30, `run --daily --hours 6`): `artwork` + `describe` on new / stale images (~15-20 min),
+  then `derive` and up to 50 crop proposals.
+- Logs: `~/Library/Logs/puzzle-vision/<profile>.out.log` / `.err.log` (launchd) and `<profile>.log` (the pipeline).
+- The plist holds no token - the job reads the Keychain. Template: `tools/puzzle-vision/launchd/`.
+
+### Stop and resume
+
+Ctrl-C, `kill <pid>` or `launchctl bootout` → every stage stores what it finished and releases its claims; nothing
+else to do. A crash leaves claims that simply expire (lease = 2 batches + margin). Resuming is running the same
+command again: production is the truth, the local work state is only a cache.
+
+## 4. Versions and re-runs
+
+- `analyzerVersion` = `<schema major>.<minor>.<patch>+<model short id>` (image-taxonomy.md §11), e.g.
+  `artwork 1.0.0+siglip2-q3vl4b`, `describe 1.0.0+qwen35-9b-4bit`, `embed_siglip2 1.0.0+so400m-14-384`. Derived ones
+  carry `@tax<TAXONOMY_VERSION>` (`tags 1.0.0+fusion@tax1.0.0`). The versions live in `profiles/*.toml`; a test pins
+  that both machines name the same version for every analyzer.
+- **One version per analyzer at a time.** The API compares versions for equality, never order: a machine on an older
+  version would overwrite newer results. Bump on both profiles in one commit and `git pull` on both Macs.
+- A bump makes every row of that analyzer stale → the next run re-does them (claims hand out "another version" as
+  to-do). Major: meaning or schema changed, re-run all. Minor: new optional fields. Patch: a fix that changes values.
+  Crop-based analyzers (`colors`, `traits`, `segmentation`, `embed_dinov2`, `embed_siglip2`, `vision_labels`,
+  `describe`) do not see an `artwork` version change by themselves - when a new `artwork` version moves crops, bump
+  them too (the `/image-pipeline-add-analyzer` checklist says so).
+- A **new picture** always gets a new fingerprint (`PuzzleImageNamer`), so it is to-do for every analyzer at once.
+- A picture that failed 3 times for a version is skipped until the next version bump (work state `failures`).
+
+## 5. Disk and memory rules
+
+- **Model lock** `/tmp/msp-model-lock` (`mkdir` lease shared with ComfyUI, the labs and every local model user):
+  taken only with **≥ 40 % free memory** (`memory_pressure`); never removed when it is someone else's (a lock without
+  our owner file is never touched; our own lock of a crashed process is cleared). GPU and Apple Vision stages take it;
+  the CPU sidecar does not.
+- **Memory watchdog:** below 25 % free a stage stops, stores what it has and releases its claims.
+- Never two GPU stages at once on one machine; never Apple Vision next to a GPU stage (§19). Nothing else should load
+  a large model while `describe` runs - the lock makes others wait.
+- **Image cache** `~/Library/Caches/puzzle-vision/images/` - each original once per fingerprint, EXIF-oriented, alpha
+  flattened, long side ≤ 1600 px, JPEG q95 4:4:4 (~1 MB, ~40 GB for the catalogue; deterministic for the pinned
+  Pillow, so both Macs feed the models the same pixels). Downloads ≤ 4 requests/s with retries. After the backfill the
+  cache can be deleted (only new pictures are downloaded afterwards).
+- Work state `~/Library/Application Support/puzzle-vision/workstate.sqlite`; logs `~/Library/Logs/puzzle-vision/`.
+  Nothing of it is ever in the repository (`.gitignore`).
+
+## 6. Coverage and progress
+
+```sh
+uv run puzzle-vision status --profile m3-max            # this profile's analyzers
+uv run puzzle-vision status --profile m3-max --all      # every analyzer of both machines
+uv run puzzle-vision status --profile m1-air --json
+```
+
+One walk of the work list (~42 requests): per analyzer and version **done / stale / missing / waiting** (missing but
+its `requires` not there yet) **/ claimed** (and by which worker), results received in the last hour / 6 h / 24 h
+from every machine, an ETA from the last 6 h, and this machine's stored counts, failures and cache size.
+`uv run --extra ml puzzle-vision verify --end-to-end --limit 10` runs every stage of the profile for 10 images
+against production (real backfill work) and reports what each stored.
+
+## 7. Derived analyzers
+
+```sh
+uv run --extra ml puzzle-vision derive --profile m3-max                      # box_text, zeroshot, neighbours, tags
+uv run --extra ml puzzle-vision derive --profile m3-max --only tags --dry-run
+```
+
+Reads the stored raw results (bulk endpoint, `onlyCurrent=1`), recomputes, and pushes only rows that changed (another
+version, picture or content). `zeroshot` loads the SigLIP 2 text encoder once under the model lock (prompt features
+cached per prompt bank). `difficulty_prior` (`--only difficulty_prior`) is a **stub until Phase 5**: it refuses while
+`/internal-api/puzzle-difficulty-labels` does not exist (contract in `derive/difficulty_prior.py`, plan §5.3). A new
+taxonomy or prompt bank = bump `zeroshot` / `tags` and run `derive` - no image is touched.
+
+## 8. Crop proposals and the review loop
+
+```sh
+uv run --extra ml puzzle-vision propose-crops --profile m3-max --limit 50 [--dry-run]
+uv run puzzle-vision crop-review-plan --profile m3-max            # what would happen (dry run)
+uv run puzzle-vision crop-review-plan --profile m3-max --apply    # approve the earned auto band
+uv run puzzle-vision crop-review-approve --profile m3-max <id> …  # middle-band items Claude Code checked by eye
+```
+
+- **Proposals:** box photos / renders / assembled puzzles (artwork kind ≠ flat), most-solved first when the work list
+  carries a solve count (else puzzle id order). The perspective-corrected crop comes from the **full-resolution
+  original**. Confidence = weighted geometric mean of **agreement signals**, never a raw model score: VLM box vs
+  snapped quad IoU, the flat-art gate on the crop, edge straightness (a strong edge exactly where the crop ends, all
+  four sides), a plausible puzzle aspect ratio, and how much of the photo the artwork fills (and enough pixels,
+  ≥ 600 px). Below 0.6 nothing is proposed. Each proposal is a change request with the image, `source:
+  image_pipeline`, `tags: ["artwork_crop"]`, `confidence`, `modelVersion`, `sourceImageFingerprint`; `409
+  already_proposed` (any status - a rejected crop is remembered) is skipped. Start small (50 a day).
+- **Review** (`/image-crop-review`, daily): moderators decide in the before/after grid. Auto-approval is **earned**:
+  nothing below ~300 human decisions; then the lowest confidence band whose human precision has a **Wilson lower
+  bound ≥ 99 %** (≥ 50 decisions) is approved by Claude Code through the API with a `decisionNote`
+  (`auto: confidence 0.987, band >= 0.980 (human precision Wilson LB 0.991, n 412), model …`). A deterministic **5 %
+  audit** of would-be-auto items stays for humans; if their precision falls below **98 %** (≥ 20 audited), auto-approval
+  **stops** and the plan says so (exit code 2). The middle band may be looked at by Claude (before/after URLs) and
+  approved only when certain (`claude-review: …` note); anything unsure stays for moderators. Only people's decisions
+  (no `auto:` / `claude-review:` note) earn and check the threshold.
+- Approving keeps the original (archived under `originals/`, "Restore original" on the puzzle history page).
+
+## 9. Payload notes (what the stages store)
+
+Every payload carries the envelope `schema`, `model` (repo id + quantisation or tool + macOS version), `sourceSha256`
+(of the downloaded original), `crop` (`null` = full image, else the `artwork` bbox/corners used) and `runtimeMs`, and is
+checked against the 64 KB limit (measured like the server: compact JSON, unescaped slashes / unicode) before it is
+pushed. Specifics beyond image-taxonomy.md §11:
+
+- `artwork`: `bbox` `{x, y, w, h}` (the field the server validates - vision-analysis.md §9.1 called it `box`),
+  `corners` only when skewed, `method` `trim | vlm | vlm+quad`, `confidence` (gate margin / quad IoU / 0.5),
+  `kindScores`, `source` `{width, height}` (the ≤ 1600 px cached image), `signals` (`gateMargin`, `vlmKind`,
+  `vlmBbox`, `quadIou` - reused by the crop proposals).
+- `colors` / `traits`: vision-analysis.md §9.2 / §9.3 in camelCase, plus `grid16` (`flat`, `lightness` ×100,
+  `chroma` ×500, `gradient` ×500 - 4 × 256 small integers), `borderBand` (`uniformShare` of the outer ring of piece
+  cells vs `interiorUniformShare`), `pieceLevel` `{real, p500, p1000}` (string keys - numeric keys would come back as a
+  list), `regularity`, `symmetry`, `lineStrength`. `textShare` / `textChars` from Apple Vision fast text, CPU only.
+- `embed_siglip2` (crop) and `embed_siglip2_full` (whole image): the vector under `vector` (fixed 384 squash);
+  `embed_dinov2`: `cls`.
+- `describe`: the §18 schema (`none` in `time` / `weather`, `characters` a list, `extraTags`, no `specialHints`),
+  post-processed subjects / place / artistSignature, plus `promptVersion` `"v2.1"` (= prompt v2 + "never the puzzle
+  brand or publisher" on the artistSignature line), `titleContext`, `ocrLines`, `tokens`.
+- `segmentation`: `classes` (shares ≥ 0.002 by COCO panoptic label), `instances` (thing classes), `grid16`
+  (dominant class id per cell, 255 = none), `classList`.
+
+## 10. Troubleshooting
+
+| Symptom | Meaning / what to do |
+|---|---|
+| `stale_fingerprint` outcomes, `409` on a store | The picture changed since it was claimed. Fine - skipped; the next claim brings the new picture. |
+| `not_found` | The puzzle was merged, deleted or became secret (hidden images are never listed or accepted). Fine. |
+| `429` | Production asks to slow down. The client waits (`Retry-After`, else 30 s doubling) and retries; nothing to do. Many in a row: raise the pause between calls. |
+| `400` with `errors.requires` | A profile names an unknown analyzer or one requiring itself - a bug in `profiles/*.toml`. |
+| `401` | Token missing or wrong: re-add it to the Keychain (§2). |
+| `invalid` outcomes | The server refused a payload (bad `bbox`, too big, NUL). A pipeline bug: read the error in the log / `status` failures. |
+| A stage waits forever "for the model lock" | Another process holds `/tmp/msp-model-lock` (ComfyUI, a lab, another stage) or memory is below 40 %. Check `ls -la /tmp/msp-model-lock`, `memory_pressure`. Never delete someone else's lock. |
+| `describe` claims nothing | It needs `artwork` and `ocr` of the current picture - the other Mac is still behind (`status` shows `waiting`). Backfill mode sleeps and retries. |
+| M1 never runs `describe` | `verify --describe-parity` has not passed on this machine for the current describe version (20 images compared byte for byte with the M3's results). Run it after phase B; if it fails, the Air stays on its own analyzers. |
+| Throughput far below §19 | Other GPU work on the machine (20-50 % slower), the Air throttling (expected), or Apple Vision next to a GPU job. `bench --stage <s> --limit 20` compares with the measured numbers (±30 %). |
+| Images failing to decode | HEIC/AVIF are converted through `sips`; a picture failing 3 times is skipped until the next version (work state `failures`, `status`). |
+| `ml extra` FAIL in setup-check | `uv sync --extra ml`; run model commands as `uv run --extra ml …` (a plain `uv run` uses the light set). |
+
+## 11. Not verified before the backfill (first steps of the M3 session)
+
+The pipeline was built without loading any model (Jan's Mac was busy). Unit tests cover the pure parts against a fake
+of the API; the following is checked on the M3 at the start of the backfill session:
+
+- `uv sync --extra ml` installs on the machine; `setup-check` passes.
+- `bench --stage artwork-gate|artwork|describe --limit 20` within ±30 % of §19 (M1: `ocr`, `embed_siglip2`,
+  `segmentation`, `embed_dinov2`, `colors`, `traits`).
+- `verify --end-to-end --limit 10` stores 10 results for every analyzer of the profile, and `status` shows them.
+- The model glue that only runs with models: mlx-vlm generation with the JSON-schema logits processor, SigLIP 2 /
+  DINOv2 / EoMT through transformers 5.20, Apple Vision through pyobjc (incl. `usesCPUOnly` for the traits sidecar,
+  NaturalLanguage for OCR languages), the artwork VLM prompt answer parsing on real answers.
+- `verify --describe-parity` on the M1 after phase B.

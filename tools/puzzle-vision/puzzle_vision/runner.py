@@ -151,15 +151,22 @@ class Runner:
     def _past_deadline(self) -> bool:
         return self.deadline is not None and time.time() >= self.deadline
 
-    def work_left(self, phases: list[Phase]) -> bool:
-        """Any analyzer of these phases with a picture still to do (one-item probe of the stale list per analyzer)."""
+    def work_left(self, phases: list[Phase], max_pages: int = 5) -> bool:
+        """Any analyzer of these phases with a picture still to do that this machine has not given up on (failed 3
+        times for this version) - else a backfill would wait forever for pictures nobody can analyse."""
         for phase in phases:
             if not gate_open(phase.gate, self.opts.profile, self.workstate):
                 continue
             for analyzer in phase.stages + phase.sidecar:
-                page = self.api.list_images(analyzer=analyzer, version=self.opts.profile.version(analyzer), status="stale", limit=1)
-                if page["puzzles"]:
-                    return True
+                version = self.opts.profile.version(analyzer)
+                after = None
+                for _ in range(max_pages):
+                    page = self.api.list_images(analyzer=analyzer, version=version, status="stale", limit=200, after=after)
+                    if any(not self.workstate.given_up(analyzer, version, i.puzzle_id, i.fingerprint) for i in page["puzzles"]):
+                        return True
+                    after = page["nextCursor"]
+                    if not after:
+                        break
         return False
 
     def selected_phases(self) -> list[Phase]:

@@ -130,6 +130,14 @@ def _handler(png: bytes) -> Any:
     return Vision.VNImageRequestHandler.alloc().initWithData_options_(NSData.dataWithBytes_length_(png, len(png)), None)
 
 
+def _url_handler(path: str) -> Any:
+    """Full-image stages read the cached JPEG directly (no PNG re-encode; it is already EXIF-oriented)."""
+    import Vision  # type: ignore[import-not-found]
+    from Foundation import NSURL  # type: ignore[import-not-found]
+
+    return Vision.VNImageRequestHandler.alloc().initWithURL_options_(NSURL.fileURLWithPath_(path), None)
+
+
 def _box(o: Any) -> tuple[float, float, float, float]:
     b = o.boundingBox()
     return (float(b.origin.x), float(b.origin.y), float(b.size.width), float(b.size.height))
@@ -163,7 +171,7 @@ class OcrStage(Stage):
         req.setRecognitionLevel_(Vision.VNRequestTextRecognitionLevelAccurate)
         req.setUsesLanguageCorrection_(True)
         req.setAutomaticallyDetectsLanguage_(True)
-        _handler(to_png_bytes(p.rgb)).performRequests_error_([req], None)
+        _url_handler(p.image.path).performRequests_error_([req], None)
         lines = []
         for o in req.results() or []:
             cand = o.topCandidates_(1)
@@ -183,7 +191,7 @@ class BarcodeStage(Stage):
         import Vision  # type: ignore[import-not-found]
 
         req = Vision.VNDetectBarcodesRequest.alloc().init()
-        _handler(to_png_bytes(p.rgb)).performRequests_error_([req], None)
+        _url_handler(p.image.path).performRequests_error_([req], None)
         return barcode_payload([(str(o.symbology()), str(o.payloadStringValue() or ""), _box(o)) for o in req.results() or []])
 
 

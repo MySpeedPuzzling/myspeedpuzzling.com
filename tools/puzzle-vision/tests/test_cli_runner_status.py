@@ -65,8 +65,13 @@ def test_stage_command_and_gates(tmp_path):
 
 def test_work_left_probes_the_stale_list(api, server, tmp_path):
     prof = profiles.load("m3-max")
-    r = Runner(RunOptions(prof, "https://msp.test"), api, WorkState(tmp_path / "w.sqlite"))
+    ws = WorkState(tmp_path / "w.sqlite")
+    r = Runner(RunOptions(prof, "https://msp.test"), api, ws)
     assert r.work_left([prof.phase("artwork")])
+    for p in server.puzzles:  # pictures this machine gave up on do not keep a backfill waiting
+        for _ in range(3):
+            ws.record_failure("artwork", prof.version("artwork"), p, server.puzzles[p]["imageFingerprint"], "boom")
+    assert not r.work_left([prof.phase("artwork")])
     for p in server.puzzles:
         server.analyses[("artwork", p)] = {"puzzleId": p, "analyzer": "artwork", "analyzerVersion": prof.version("artwork"),
                                            "imageFingerprint": server.puzzles[p]["imageFingerprint"], "analyzedAt": None, "receivedAt": "x", "result": {"k": 1}}
@@ -107,7 +112,9 @@ def test_setup_check_model_lookup(tmp_path):
     assert model_downloaded("google/siglip2-so400m-patch14-384", tmp_path)
     assert profile_models(profiles.load("m3-max")) == ["google/siglip2-so400m-patch14-384", "mlx-community/Qwen3-VL-4B-Instruct-4bit",
                                                        "mlx-community/Qwen3.5-9B-MLX-4bit"]
-    assert "tue-mps/coco_panoptic_eomt_large_640" in profile_models(profiles.load("m1-air"))
+    m1 = profiles.load("m1-air")
+    assert "tue-mps/coco_panoptic_eomt_large_640" in profile_models(m1)
+    assert "mlx-community/Qwen3.5-9B-MLX-4bit" in profile_models(m1) and "mlx-community/Qwen3.5-9B-MLX-4bit" not in profile_models(m1, gated=False)
 
 
 def test_stage_worker_command_runs_a_stage_and_writes_its_stats(api, server, tmp_path, monkeypatch):
@@ -132,3 +139,18 @@ def test_stage_worker_command_runs_a_stage_and_writes_its_stats(api, server, tmp
     # nothing left: the next run does not even load the model
     assert cli.cmd_stage_worker(args, ctx) == 0
     assert json.loads(stats.read_text())["line"] == "[ocr] nothing to do"
+
+
+def test_setup_check_reports_without_loading_anything(tmp_path):
+    from puzzle_vision.checks import run_checks
+    from puzzle_vision.config import Settings, TokenMissing
+
+    def no_token():
+        raise TokenMissing("no internal API token: add it with security add-generic-password …")
+
+    s = Settings(cache_dir=tmp_path / "c", state_dir=tmp_path / "s", log_dir=tmp_path / "l", token_provider=no_token)
+    checks = {c.name: c for c in run_checks(profiles.load("m1-air"), s, api_factory=None, cache=tmp_path / "hub")}
+    assert not checks["token"].ok and "API" not in checks
+    assert not checks["model google/siglip2-so400m-patch14-384"].ok
+    assert checks["model mlx-community/Qwen3.5-9B-MLX-4bit"].ok  # behind the describe-parity gate
+    assert all(c.line().startswith(("PASS", "FAIL")) for c in checks.values())

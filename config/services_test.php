@@ -22,7 +22,11 @@ return static function (ContainerConfigurator $configurator): void {
     $services->load('SpeedPuzzling\\Web\\Tests\\DataFixtures\\', __DIR__ . '/../tests/DataFixtures/{*.php}');
 
     // Puzzle Intelligence services (public for testing)
-    $services->load('SpeedPuzzling\\Web\\Services\\PuzzleIntelligence\\', __DIR__ . '/../src/Services/PuzzleIntelligence/{*.php}');
+    $services->load('SpeedPuzzling\\Web\\Services\\PuzzleIntelligence\\', __DIR__ . '/../src/Services/PuzzleIntelligence/{*.php}')
+        ->exclude([
+            __DIR__ . '/../src/Services/PuzzleIntelligence/ChangedRowsSyncRun.php',
+            __DIR__ . '/../src/Services/PuzzleIntelligence/RatingEntriesSync.php',
+        ]);
 
     // Competition participant services (public for testing)
     $services->set(\SpeedPuzzling\Web\Services\CompetitionParticipantImporter::class)->public();

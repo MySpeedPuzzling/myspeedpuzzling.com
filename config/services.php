@@ -240,6 +240,9 @@ return static function (ContainerConfigurator $configurator): void {
             __DIR__ . '/../src/Services/SuspiciousTimes/SuspiciousTimeScanTally.php',
             // one key of a rate limit, made by its factory; the factories are set up per limit below (online_rate_limiter.*)
             __DIR__ . '/../src/Services/RateLimiting/',
+            // one sync of ChangedRowsSync / of the rating entries, opened per batch step - not services
+            __DIR__ . '/../src/Services/PuzzleIntelligence/ChangedRowsSyncRun.php',
+            __DIR__ . '/../src/Services/PuzzleIntelligence/RatingEntriesSync.php',
         ]);
 
     // framework.session.handler_id. After the Services load, which would otherwise

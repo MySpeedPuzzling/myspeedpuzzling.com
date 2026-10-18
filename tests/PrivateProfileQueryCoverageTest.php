@@ -50,6 +50,7 @@ final class PrivateProfileQueryCoverageTest extends TestCase
         'Services/PrivateProfileAccess.php' => 'The one place that decides.',
         'Services/PuzzleIntelligence/MspRatingCalculator.php' => self::BACKGROUND,
         'Services/PuzzleIntelligence/PuzzleIntelligenceRecalculator.php' => self::BACKGROUND,
+        'Services/PuzzleIntelligence/RatingEntriesSync.php' => self::BACKGROUND,
     ];
 
     public function testEveryReadOfTheRawColumnIsADecision(): void

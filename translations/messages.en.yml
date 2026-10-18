@@ -10223,3 +10223,7 @@ player_timezone:
         timezone_title: "Add your time zone"
         timezone_why: "So your times and reminders follow your local clock."
         dismiss: "Hide"
+event_duplicate:
+    button: "Duplicate"
+    help: "Make a copy as a draft - details, rounds and page content, without participants, puzzles or results."
+    flash: "A copy was created as a draft - change its dates and venue, then publish it."

@@ -44,6 +44,50 @@ Maintainers and admins can edit all competition fields. While unapproved, a warn
 
 The edit forms show the current logo above the file input ("Leave empty to keep the current logo") - the handlers keep the stored logo unless a new file is uploaded.
 
+### Duplicating an event
+
+Organisers run the same event again and again - a 6-week pairs league at three venues at once (three near-identical
+events with 6 weekly rounds each), a yearly championship. **"Duplicate"** (the ⋯ menu, "You organize" and the edit page
+of a one-time event or an edition; `DuplicateCompetitionController`, POST with the stateless CSRF token
+`competition_duplicate`) makes a copy and opens its edit page with "A copy was created as a draft - change its dates and
+venue, then publish it." One message, `DuplicateCompetition` (new id from the controller, source, acting player); the
+internal API has the same with optional overrides (`POST /internal-api/competitions/{id}/duplicate`,
+[internal-api.md](../internal-api.md#competitions-and-events)).
+
+**Copied** - what the organiser wrote and set up:
+
+- the name (unchanged - no "(copy)" in the data; the edit page tells them apart by the draft badge), shortcut,
+  description, website and registration links, location + country, online flag, "Who can enter", dates, the logo, the
+  organization (one-time events; an edition's copy is a new edition of the **same series** and has its series'),
+  maintainers (plus the source's creator when somebody else makes the copy - the people who ran it keep running it),
+  the managed-registration **settings** (on/off, capacity, window and its zone, entry fee text, payment instructions);
+- every round: name, start + zone, time limit, category, team size, reveal delay, badge colours, "no table numbers",
+  slug (unique per competition, so the same one);
+- the event's own page content sections (public-page.md) with their order and visibility. Every section type is
+  organiser text (nothing in them is people or results based); gallery photos and sponsor logos are copied to the copy's
+  own `competition-pages/<id>/` prefix, because a section only ever points at its own page's files
+  (`PageSectionContentSanitizer::uploadPath()`) - a picture missing from the storage is left out (warning in the log). An
+  edition's inherited series sections stay on the series.
+
+**Not copied** - what people did or what belongs to that one occasion: participants, entries, teams, waitlist, payments,
+check-ins, results (and their published state), the results link (event and rounds), referees, round puzzles and the
+event's own puzzles (its tag), table layouts and seating, online timing (`online_round`), stopwatch state, followers.
+
+**Always a draft with a fresh slug** (`CompetitionSlugGenerator::generateFree()` - the name's slug with a random suffix
+as long as it is taken, in the edition's series or among all events). The creator is the acting player; a one-time
+event's copy goes through `OrganizationApprovalPolicy` like every create (approved at once under an approved
+organization when the actor is on its team or an admin), otherwise it waits for approval - and, being a draft, nobody
+is e-mailed now: the admins hear about it on its first publish (`PublishCompetitionHandler`), like an event saved as a
+draft. An edition's approval is its series'. Who may duplicate: whoever may edit the source (`COMPETITION_EDIT` in the
+controller, `GetCompetitionPermissions` again in the handler - `CompetitionNotEditable`, 403).
+
+**The logo is shared, not copied**: no code deletes a competition logo (a new upload gets a new path), and every file
+deletion asks `GetStoredFileReferences`, which sees both rows.
+
+**A new first day moves everything dated** (internal API `dateFrom`, `DuplicateDateShift`): `dateTo` (unless sent),
+every round's start and the registration window move by the same number of calendar days, keeping their wall-clock
+time in their own zone. The web copy keeps the dates - the organiser changes them on the edit page.
+
 ### 4. Public Listing
 
 The events page (`/en/events`) is described in [../events-page/README.md](../events-page/README.md): one agenda of one-time events and series editions, a series directory, follow + "Your events", the calendar view, the year archive and the organiser tools ("You organize", the ⋯ menu). Only publicly visible competitions are listed (`IsCompetitionPubliclyVisible`); admins also see the ones waiting for approval, with Approve / Reject in the row's ⋯ menu - never drafts, which appear in no listing, admins included (their team finds them under "You organize"). External links (website, registration, results) automatically get `utm_source=myspeedpuzzling` appended. An online event never prints its location (older online events still carry location "Online" in the data - no migration): the events page, "You organize", the event page header and the admin approval queue show Online instead; the event page JSON-LD of an online event is a `VirtualLocation`, never a `Place`.

@@ -1083,6 +1083,46 @@ paths:
         "409":
           $ref: "#/components/responses/Conflict"
 
+  /internal-api/competitions/{competitionId}/duplicate:
+    post:
+      summary: Copy an event or edition as a draft
+      operationId: duplicateCompetition
+      description: |
+        `DuplicateCompetition` - the organisers' "Duplicate" (docs/features/competitions-management/README.md,
+        "Duplicating an event"). A new draft added by the reviewer player: the same name with a fresh slug, the
+        details (description, links except the results link, place, online flag, "Who can enter", dates, logo,
+        organization, maintainers, managed-registration settings), every round's settings and the event's own page
+        content sections. Never participants, entries, teams, results, results links, referees, round puzzles,
+        the event's own puzzles, tables or online timing. An edition's copy is a new edition of the same series.
+
+        The optional body overrides the name, the dates and the place (validated like a PATCH). A new `dateFrom`
+        moves `dateTo` (unless sent), every round's start and the registration window by the same number of days.
+        A one-time event's copy under an approved organization is approved at once; otherwise it waits for
+        approval. Publish it with `POST /internal-api/competitions/{competitionId}/publish`.
+
+        Requires `INTERNAL_API_REVIEWER_PLAYER_ID` to be configured. The audit log's `createdId` is the copy.
+      parameters:
+        - $ref: "#/components/parameters/CompetitionId"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CompetitionDuplicate"
+      responses:
+        "201":
+          description: The copy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompetitionDetail"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
   /internal-api/competitions/{competitionId}/convert-to-series:
     post:
       summary: Turn a one-time event into a series
@@ -2928,6 +2968,24 @@ components:
           type: string
           pattern: "^[a-z0-9]+(?:-[a-z0-9]+)*$"
           description: A new slug for the edition - only needed when its own is taken in the target series (409 otherwise).
+
+    CompetitionDuplicate:
+      type: object
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+          description: The copy's name - left out, the source's.
+        dateFrom:
+          type: string
+          format: date
+          description: The copy's first day - moves dateTo (unless sent), the rounds and the registration window by the same number of days.
+        dateTo:
+          type: string
+          format: date
+        location:
+          type: string
+          description: The copy's place (in-person events only - 400 for an online one).
 
     CompetitionToSeriesConversion:
       type: object

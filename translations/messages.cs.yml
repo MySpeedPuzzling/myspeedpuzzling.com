@@ -9977,3 +9977,7 @@ player_timezone:
         timezone_title: "Přidej své časové pásmo"
         timezone_why: "Aby se tvé časy a připomínky řídily tvými místními hodinami."
         dismiss: "Skrýt"
+event_duplicate:
+    button: "Duplikovat"
+    help: "Vytvoří kopii jako koncept - údaje, kola a obsah stránky, bez účastníků, puzzlí a výsledků."
+    flash: "Kopie byla vytvořena jako koncept - změňte její termín a místo konání a pak ji zveřejněte."

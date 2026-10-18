@@ -9951,3 +9951,7 @@ player_timezone:
         timezone_title: "Añade tu zona horaria"
         timezone_why: "Para que tus tiempos y recordatorios sigan tu hora local."
         dismiss: "Ocultar"
+event_duplicate:
+    button: "Duplicar"
+    help: "Crea una copia como borrador: datos, rondas y contenido de la página, sin participantes, puzles ni resultados."
+    flash: "Se ha creado una copia como borrador: cambia sus fechas y el lugar y luego publícala."

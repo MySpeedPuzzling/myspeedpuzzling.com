@@ -23,6 +23,8 @@
 {#- The routes of the item's own draft flag: {publish, unpublish, param} -#}
 {%- set draft_routes = null -%}
 {%- set publish_series = false -%}
+{#- "Duplicate" of a one-time event or an edition: a new draft (DuplicateCompetitionController) -#}
+{%- set duplicate = false -%}
 {%- if item.isOrganization -%}
     {%- if is_admin and item.awaitsApproval -%}
         {%- set approval = {
@@ -116,6 +118,7 @@
             {%- set links = links|merge([{label: 'organizer_tools.menu.move_edition', url: path('move_edition', {competitionId: item.id}|merge(back))}]) -%}
         {%- endif -%}
         {%- set draft_routes = {publish: 'publish_competition', unpublish: 'unpublish_competition', param: 'competitionId'} -%}
+        {%- set duplicate = true -%}
         {#- An edition of a draft series is published through its series -#}
         {%- set publish_series = item.seriesIsDraft and item.seriesId and is_granted('COMPETITION_SERIES_EDIT', item.seriesId) -%}
     {%- endif -%}
@@ -177,6 +180,14 @@
     {% for link in links %}
         <li><a class="ev-action" href="{{ link.url }}" data-turbo-frame="_top">{{ link.label|trans }}</a></li>
     {% endfor %}
+    {% if duplicate %}
+        <li>
+            <form method="post" action="{{ path('duplicate_competition', {competitionId: item.id}) }}" data-turbo-frame="_top">
+                <input type="hidden" name="_token" value="{{ csrf_token('competition_duplicate') }}">
+                <button type="submit" class="ev-action" data-duplicate>{{ 'event_duplicate.button'|trans }}</button>
+            </form>
+        </li>
+    {% endif %}
     {% if draft_routes and not item.isDraft %}
         <li>
             {% if blockers is not null and blockers is not empty %}

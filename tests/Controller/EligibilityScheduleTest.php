@@ -45,7 +45,7 @@ final class EligibilityScheduleTest extends WebTestCase
 
         TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
         $browser->request('GET', '/en/edit-event/' . OrganizationFixture::EDITION_LANTERN_1);
-        self::assertSelectorTextContains('form', "Leave empty to use the series' setting.");
+        self::assertSelectorTextContains('form[name="competition_form"]', "Leave empty to use the series' setting.");
         $browser->submitForm('Save Changes', ['competition_form[eligibility]' => '18+, ID at the door']);
         self::assertResponseRedirects();
 

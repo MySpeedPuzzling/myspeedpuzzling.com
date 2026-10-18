@@ -260,6 +260,26 @@ Development can overlap: Step 3 can be built while Step 2 is measured. The gates
 
 ### 5.1 Step 1, days 1-3: measure, and the server net. Nothing changes in how the scanner reads
 
+**Shipped 2026-10-18 (Jan: "build only what is definitely an improvement, checked and verified"):**
+- **Server net** = `Query\FindPuzzlesByScannedEan` (+ `Value\EanParityMisread`): `SearchPuzzle::allByEan()` first; when it
+  finds nothing for a code starting with 0, every code the read could be a parity misread of (first digit 1-9, each G
+  digit any digit one module away, check digit right - at most 68), one query on `search_codes` (11 ms worst case on the
+  dev copy of production), corrected only when **exactly one** of them is in the catalogue (hidden puzzles count, but are
+  never returned). Used by the add form / "Report duplicate" (`puzzle_by_ean_search`, answers `correctedEan`) and
+  multiscan (`GetMultiscanCandidates`); **API v1 keeps the exact lookup** and `FindPuzzlesByExactEan` (the write guard)
+  too. Checked on the production catalogue (24,471 codes, 2026-10-18): all 61,415 possible misreads of catalogue codes
+  lead back to the right code, 0 to a wrong one, 0 ambiguous; of the 6,558 genuine codes starting with 0 none would be
+  taken for another code if it were new (the 2 that would are themselves stored misreads, `45555018124`,
+  `45555020493`). Each correction is an info line "Scanned barcode corrected from a misread" on channel
+  `barcode_scanner`.
+- **Beacon** `POST /-/scan-session` (`ScanSessionController`): one report per camera session, sent with `sendBeacon`
+  when the camera stops or on `pagehide` - page (ids → `{id}`), engine / forced, outcome `read` / `no-read`, reads,
+  first read and duration in ms, frames and decode time, codes seen, camera label and pick, video size, zoom, focus
+  modes, torch, the phone model (client hints) and the user agent. Info line "Barcode scanner session" on channel
+  `barcode_scanner` (own prod handler, counted in Loki, never Sentry). "Typed by hand" is not reported.
+- Not built: the `EanList` generalisation (refusing codes needs its own check - the server net already keeps a
+  correctable misread from being offered as a new puzzle), the A/B switch (§5.5), change proposals for stored misreads.
+
 **One beacon per scanner session**, `POST /-/scan-session`, like `/-/asset-load-failure`. Logged at `info` on its own
 channel, kept out of Sentry. Fields:
 - page (multiscan / add form / search) and platform group;

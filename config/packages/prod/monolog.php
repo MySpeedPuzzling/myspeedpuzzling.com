@@ -31,8 +31,8 @@ return App::config([
                 'handler' => 'nested',
                 'excluded_http_codes' => [404, 405],
                 'buffer_size' => 50,
-                // internal_api_audit and service_worker have their own handlers below
-                'channels' => ['!sentry_sdk', '!internal_api_audit', '!service_worker'],
+                // internal_api_audit, service_worker and barcode_scanner have their own handlers below
+                'channels' => ['!sentry_sdk', '!internal_api_audit', '!service_worker', '!barcode_scanner'],
             ],
             'nested' => [
                 'type' => 'stream',
@@ -84,6 +84,15 @@ return App::config([
                 'path' => 'php://stderr',
                 'level' => 'info',
                 'channels' => ['service_worker'],
+                'formatter' => 'monolog.formatter.json',
+            ],
+            // Camera scanner sessions and corrected misreads (ScanSessionController,
+            // FindPuzzlesByScannedEan): info lines to count in Loki, written as they come
+            'barcode_scanner' => [
+                'type' => 'stream',
+                'path' => 'php://stderr',
+                'level' => 'info',
+                'channels' => ['barcode_scanner'],
                 'formatter' => 'monolog.formatter.json',
             ],
             // SDK send failures land in stderr logs only

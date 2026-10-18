@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Controller;
 
 use SpeedPuzzling\Web\Query\GetManufacturers;
-use SpeedPuzzling\Web\Query\SearchPuzzle;
+use SpeedPuzzling\Web\Query\FindPuzzlesByScannedEan;
 use SpeedPuzzling\Web\Services\PuzzleChoicesBuilder;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -15,7 +15,7 @@ use Symfony\Component\Routing\Attribute\Route;
 final class SearchPuzzleByEanController extends AbstractController
 {
     public function __construct(
-        readonly private SearchPuzzle $searchPuzzle,
+        readonly private FindPuzzlesByScannedEan $findPuzzlesByScannedEan,
         readonly private GetManufacturers $getManufacturers,
         readonly private PuzzleChoicesBuilder $puzzleChoicesBuilder,
     ) {
@@ -27,7 +27,9 @@ final class SearchPuzzleByEanController extends AbstractController
     )]
     public function __invoke(Request $request, string $ean): JsonResponse
     {
-        $puzzleResults = $this->searchPuzzle->allByEan($ean);
+        // A misread scan finds the puzzle of the code it was misread from (README §3.3)
+        $lookup = $this->findPuzzlesByScannedEan->byEan($ean);
+        $puzzleResults = $lookup->puzzles;
 
         if ($puzzleResults === []) {
             // No puzzles found - try to find manufacturers by EAN prefix
@@ -46,6 +48,7 @@ final class SearchPuzzleByEanController extends AbstractController
                 'puzzles' => [],
                 'brands' => $brands,
                 'ean' => $ean,
+                'correctedEan' => null,
             ]);
         }
 
@@ -81,6 +84,7 @@ final class SearchPuzzleByEanController extends AbstractController
             'puzzles' => $puzzles,
             'brands' => $brands,
             'ean' => $ean,
+            'correctedEan' => $lookup->correctedEan,
         ]);
     }
 }

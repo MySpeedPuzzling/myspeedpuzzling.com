@@ -64,6 +64,10 @@ export default class extends Controller {
         this._boundStopScanning = () => this.stopScanning();
         window.addEventListener('barcode-scan:close', this._boundStopScanning);
 
+        // A tab closed (or a page left) with the camera on still reports its session
+        this._boundPageHide = () => this._reportSession();
+        window.addEventListener('pagehide', this._boundPageHide);
+
         this._boundPause = () => this.pause();
         this._boundResume = () => this.resume();
         window.addEventListener('barcode-scan:pause', this._boundPause);
@@ -94,6 +98,7 @@ export default class extends Controller {
 
         this.stopScanning();
         window.removeEventListener('barcode-scan:close', this._boundStopScanning);
+        window.removeEventListener('pagehide', this._boundPageHide);
         window.removeEventListener('barcode-scan:pause', this._boundPause);
         window.removeEventListener('barcode-scan:resume', this._boundResume);
         this.wrapperTarget.removeEventListener('click', this._boundTap);
@@ -187,6 +192,8 @@ export default class extends Controller {
         this.videoTarget.play().catch(err => console.error('Video play failed:', err));
         this.scanning = true;
         this.startedAt = Date.now();
+        this.sessionReported = false;
+        this._loadDeviceModel();
         if (this.hasHintTarget) {
             this.hintTarget.classList.remove('d-none');
         }
@@ -824,6 +831,7 @@ export default class extends Controller {
             this.resultsTarget.classList.remove('d-none');
         }
 
+        this._reportSession();
         this.scanning = false;
         // A camera still opening is closed as soon as it arrives
         this.cameraSession = (this.cameraSession || 0) + 1;
@@ -891,6 +899,62 @@ export default class extends Controller {
         this.stats.accepted = { code, afterMs: first ? first.afterMs : now - this.startedAt, count: (first ? first.count : 0) + 1 };
     }
 
+    // The phone model, where the browser tells it (Chromium's client hints - user agents no longer carry it)
+    _loadDeviceModel() {
+        if (this.deviceModel !== undefined) return;
+        this.deviceModel = null;
+        if (navigator.userAgentData && typeof navigator.userAgentData.getHighEntropyValues === 'function') {
+            navigator.userAgentData.getHighEntropyValues(['model', 'platformVersion'])
+                .then(values => { this.deviceModel = [values.model, values.platform, values.platformVersion].filter(Boolean).join(' '); })
+                .catch(() => {});
+        }
+    }
+
+    /**
+     * One report per camera session (README §5.1): which phone, camera and reader, and whether a code was read -
+     * a scan that never reads leaves no other trace. Sent once, when the camera stops or the page goes away.
+     */
+    _reportSession() {
+        if (!this.scanning || this.sessionReported || typeof navigator.sendBeacon !== 'function') return;
+        this.sessionReported = true;
+
+        const settings = this._settings();
+        const caps = this.trackCapabilities || {};
+        const decode = this.stats.decodeMs;
+        const accepted = this.stats.accepted;
+        const video = this.videoTarget;
+
+        const report = {
+            page: window.location.pathname,
+            engine: this.engine || null,
+            forced: this.forcedEngine,
+            debug: this.debug,
+            continuous: this.continuousValue,
+            outcome: accepted ? 'read' : 'no-read',
+            reads: accepted ? accepted.count : 0,
+            firstReadMs: accepted ? Math.round(accepted.afterMs) : null,
+            durationMs: Date.now() - this.startedAt,
+            frames: this.stats.frames,
+            decodeMs: decode.length ? Math.round(decode.reduce((a, b) => a + b, 0) / decode.length) : null,
+            seenCodes: this.stats.seen.size,
+            camera: this.videoTrack ? this.videoTrack.label : null,
+            cameraPick: this.cameraPick,
+            video: video.videoWidth ? `${video.videoWidth}x${video.videoHeight}` : null,
+            zoom: this.zoomCapabilities ? this.currentZoom : null,
+            focusMode: settings.focusMode || null,
+            focusModes: caps.focusMode || [],
+            focusDistanceMin: caps.focusDistance && typeof caps.focusDistance.min === 'number' ? caps.focusDistance.min : null,
+            torch: this.torchSupported,
+            model: this.deviceModel || null,
+        };
+
+        try {
+            navigator.sendBeacon('/-/scan-session', JSON.stringify(report));
+        } catch (e) {
+            // Never let a report break the scanner
+        }
+    }
+
     _startDebug() {
         if (!this.debug) return;
 
@@ -908,15 +972,6 @@ export default class extends Controller {
             this.wrapperTarget.insertAdjacentElement('afterend', this.debugPanel);
         }
         this.debugPanel.classList.remove('d-none');
-
-        if (this.debugModel === undefined) {
-            this.debugModel = null;
-            if (navigator.userAgentData && typeof navigator.userAgentData.getHighEntropyValues === 'function') {
-                navigator.userAgentData.getHighEntropyValues(['model', 'platformVersion'])
-                    .then(values => { this.debugModel = [values.model, values.platform, values.platformVersion].filter(Boolean).join(' '); })
-                    .catch(() => {});
-            }
-        }
 
         // Labels are there once the camera is allowed - for every browser, not only Android's pick
         if (!this.cameraLabels && navigator.mediaDevices.enumerateDevices) {
@@ -957,7 +1012,7 @@ export default class extends Controller {
             `accepted: ${this.stats.accepted ? `${this.stats.accepted.code} (${this.stats.accepted.count}x), first after ${(this.stats.accepted.afterMs / 1000).toFixed(1)} s` : '-'}`,
             `seen: ${[...this.stats.seen].map(([code, s]) => `${code} x${s.count}${s.quality !== null ? ` q${s.quality}` : ''}`).join(', ') || '-'}`,
             `frames: ${this.stats.frames}, decode ${avg} ms, running ${((Date.now() - this.startedAt) / 1000).toFixed(0)} s`,
-            `device: ${this.debugModel || '-'}`,
+            `device: ${this.deviceModel || '-'}`,
             `camera: ${this.videoTrack ? this.videoTrack.label : '-'} (${this.cameraPick || '-'})`,
             `cameras: ${(this.cameraLabels || []).join(' | ') || '-'}`,
             `video: ${video.videoWidth}x${video.videoHeight}, settings ${settings.width}x${settings.height} @${round(settings.frameRate)} fps, max ${caps.width ? caps.width.max : '-'}x${caps.height ? caps.height.max : '-'}`,

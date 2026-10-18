@@ -657,6 +657,10 @@ player lost the form. Shipped: limit 128M (`web-base-php85/php.ini`), photos up 
       150-210/75-86 after Step 0 (back above the old 169), 160-230/84-95 after the camera fixes (no regression, no clear
       second jump; 10-17's 422 includes one IP with 159). iOS flat at 113-226. Tempo cannot tell what was read in
       multiscan (the code is in the Live POST body) - the beacon (Step 1) is still the only way to measure reads.
+- [x] Step 1 (2026-10-18): misread correction in the scanner lookups + `/-/scan-session` reports (README §5.1).
+- [ ] After ~5 days of `/-/scan-session` reports: read rate, time to first read and the models that never read, per
+      platform (Android Chrome, Samsung Internet, iOS) - Loki, log channel `barcode_scanner`. The baseline before any
+      default change (zbar on Android?) and the test-phone list.
 - [ ] *The World of Trolls* (`01947b9c-24c6-7359-972a-54f6a6d86402`) stores `045570100330`, most likely a misread of
       Ravensburger `4005556100330`. Check a box or a shop listing, then file a change proposal.
 

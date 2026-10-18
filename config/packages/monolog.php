@@ -14,6 +14,8 @@ return App::config([
         // (InternalApiAuditSubscriber) - kept apart so production writes it on its own
         // service_worker: navigations the service worker had to ask for twice
         // (NavigationFetchFailureController) - info lines meant to be counted
-        'channels' => ['sentry_sdk', 'object_storage', 'internal_api_audit', 'service_worker'],
+        // barcode_scanner: one line per camera scanner session (ScanSessionController) and per
+        // misread the barcode lookup corrected (FindPuzzlesByScannedEan) - info lines meant to be counted
+        'channels' => ['sentry_sdk', 'object_storage', 'internal_api_audit', 'service_worker', 'barcode_scanner'],
     ],
 ]);

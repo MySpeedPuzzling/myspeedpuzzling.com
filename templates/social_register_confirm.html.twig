@@ -15,6 +15,7 @@
         <form action="{{ path('social_register_confirm') }}" method="post" novalidate>
             {# The single-use parked token doubles as the CSRF guard #}
             <input type="hidden" name="token" value="{{ token }}">
+            {{ include('_timezone_detect_input.html.twig') }}
 
             {{ include('_registration_consents.html.twig', {id_prefix: 'social-register'}) }}
 

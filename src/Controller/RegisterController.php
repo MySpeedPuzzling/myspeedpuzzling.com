@@ -79,6 +79,7 @@ final class RegisterController extends AbstractController
                         name: $data->name,
                         newsletter: $data->newsletter,
                         termsAccepted: $data->termsAccepted,
+                        timezone: $data->timezone,
                     ),
                 );
             } catch (HandlerFailedException $exception) {

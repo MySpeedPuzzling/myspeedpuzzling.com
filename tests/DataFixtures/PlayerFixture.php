@@ -99,6 +99,8 @@ final class PlayerFixture extends Fixture
             stripeCustomerId: 'cus_test_123456789',
             puzzleCollectionVisibility: CollectionVisibility::Public,
         );
+        // The only fixture player with a time zone (docs/features/player-timezone.md) - the others have none
+        $playerWithStripe->changeTimezone('Europe/London');
         $manager->persist($playerWithStripe);
         $this->addReference(self::PLAYER_WITH_STRIPE, $playerWithStripe);
 

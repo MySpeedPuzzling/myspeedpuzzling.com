@@ -36,6 +36,8 @@
 
                 <div class="pt-2">
                     {{ form_row(form.city) }}
+                    {# Usually filled at sign-up already - here so the form never clears it (EditProfile carries it) #}
+                    {{ include('_timezone_field.html.twig', {field: form.timezone}) }}
                     {{ form_row(form.bio) }}
                     {{ form_row(form.facebook) }}
                     {{ form_row(form.instagram) }}

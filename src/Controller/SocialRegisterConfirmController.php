@@ -112,6 +112,9 @@ final class SocialRegisterConfirmController extends AbstractController
         $email = $parked->profile->email;
         assert($email !== null); // the resolver refuses to park email-less profiles
 
+        // Filled by the browser (timezone_detect_controller.js); the handler keeps only a listed zone
+        $timezone = $request->request->get('timezone');
+
         try {
             $envelope = $this->messageBus->dispatch(new RegisterWithOauthIdentity(
                 provider: $parked->profile->provider,
@@ -122,6 +125,7 @@ final class SocialRegisterConfirmController extends AbstractController
                 locale: $parked->locale,
                 newsletter: $request->request->getBoolean('newsletter'),
                 termsAccepted: true,
+                timezone: is_string($timezone) ? $timezone : null,
             ));
         } catch (HandlerFailedException $exception) {
             $reason = $exception->getPrevious();

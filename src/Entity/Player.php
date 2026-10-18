@@ -26,6 +26,7 @@ use SpeedPuzzling\Web\Value\CountryCode;
 use SpeedPuzzling\Web\Value\EmailNotificationFrequency;
 use SpeedPuzzling\Web\Value\LeaderboardChartView;
 use SpeedPuzzling\Web\Value\SellSwapListSettings;
+use SpeedPuzzling\Web\Value\TimezoneIdentifier;
 use DateTimeImmutable;
 
 #[Entity]
@@ -98,6 +99,15 @@ class Player
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(nullable: true)]
     public null|string $locale = null;
+
+    /**
+     * The player's IANA time zone (docs/features/player-timezone.md) - detected by the browser at sign-up or chosen in
+     * the profile settings; null = not known yet. Only ever a value TimezoneIdentifier lists. Private data: never on
+     * public pages nor in API v1.
+     */
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(length: 64, nullable: true)]
+    public null|string $timezone = null;
 
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(type: Types::STRING, enumType: CollectionVisibility::class, options: ['default' => 'private'])]
@@ -373,6 +383,34 @@ class Player
     public function changeLocale(string $locale): void
     {
         $this->locale = $locale;
+    }
+
+    /**
+     * The player's own choice (profile settings) - null clears it. Anything TimezoneIdentifier does not list is refused.
+     */
+    public function changeTimezone(null|string $timezone): void
+    {
+        if ($timezone !== null && TimezoneIdentifier::isListed($timezone) === false) {
+            throw new \InvalidArgumentException(sprintf('"%s" is not a listed time zone.', $timezone));
+        }
+
+        $this->timezone = $timezone;
+    }
+
+    /**
+     * What a browser detected: only fills an empty value, never overwrites what the player chose.
+     *
+     * @return bool whether the value was filled
+     */
+    public function fillDetectedTimezone(string $timezone): bool
+    {
+        if ($this->timezone !== null) {
+            return false;
+        }
+
+        $this->changeTimezone($timezone);
+
+        return true;
     }
 
     public function changeCode(string $code): void

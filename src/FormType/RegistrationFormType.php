@@ -9,6 +9,7 @@ use SpeedPuzzling\Web\Validator\StrongPassword;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\EmailType;
+use Symfony\Component\Form\Extension\Core\Type\HiddenType;
 use Symfony\Component\Form\Extension\Core\Type\PasswordType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
@@ -83,6 +84,13 @@ final class RegistrationFormType extends AbstractType
             ->add('newsletter', CheckboxType::class, [
                 'label' => 'auth.register.newsletter',
                 'required' => false,
+            ])
+            // The browser's time zone (docs/features/player-timezone.md) - filled by timezone_detect_controller.js
+            ->add('timezone', HiddenType::class, [
+                'required' => false,
+                'attr' => [
+                    'data-controller' => 'timezone-detect',
+                ],
             ]);
     }
 

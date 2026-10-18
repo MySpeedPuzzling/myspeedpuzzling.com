@@ -1,0 +1,45 @@
+{#
+    "Complete your profile" (docs/features/player-timezone.md): the owner's missing details, each a link anchored to its
+    field on the edit-profile page. The close button hides it for good (dismiss-hint, HintType::ProfileCompletion).
+#}
+{% if this.items is not empty %}
+    <section {{ attributes.defaults({class: 'profile-completion'}) }}
+        aria-labelledby="profile-completion-title"
+        {{ stimulus_controller('dismiss-hint', {
+            url: path('dismiss_hint'),
+            type: constant('SpeedPuzzling\\Web\\Value\\HintType::ProfileCompletion').value,
+        }) }}
+    >
+        <p class="profile-completion-intro">
+            <i class="bi bi-person-check-fill profile-completion-icon" aria-hidden="true"></i>
+            <span>
+                <strong id="profile-completion-title">{{ 'player_timezone.panel.title'|trans }}</strong>
+                {{ 'player_timezone.panel.text'|trans }}
+            </span>
+        </p>
+
+        <ul class="profile-completion-items">
+            {% for item in this.items %}
+                <li>
+                    <a class="profile-completion-item" href="{{ path('edit_profile') }}#{{ item.anchor }}">
+                        {% if item.key == 'timezone' %}
+                            <i class="bi bi-clock" aria-hidden="true"></i>
+                            <span>
+                                <span class="profile-completion-item-title">{{ 'player_timezone.panel.timezone_title'|trans }}</span>
+                                <span class="profile-completion-item-why">{{ 'player_timezone.panel.timezone_why'|trans }}</span>
+                            </span>
+                        {% endif %}
+                        <i class="ci-arrow-right ms-auto" aria-hidden="true"></i>
+                    </a>
+                </li>
+            {% endfor %}
+        </ul>
+
+        <button type="button"
+                class="btn-close profile-completion-close"
+                aria-label="{{ 'player_timezone.panel.dismiss'|trans }}"
+                title="{{ 'player_timezone.panel.dismiss'|trans }}"
+                {{ stimulus_action('dismiss-hint', 'dismiss') }}
+        ></button>
+    </section>
+{% endif %}

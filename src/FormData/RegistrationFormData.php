@@ -32,4 +32,10 @@ final class RegistrationFormData
      * a pre-ticked box is not consent (GDPR recital 32, CJEU C-673/17 Planet49)
      */
     public bool $newsletter = false;
+
+    /**
+     * Hidden, filled by the browser (timezone_detect_controller.js, docs/features/player-timezone.md). Never shown, never
+     * an error: the handler stores it only when it is a listed zone.
+     */
+    public null|string $timezone = null;
 }

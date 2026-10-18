@@ -56,6 +56,8 @@
     {% elseif is_own_profile %}
         {# "Add your country" while the player has none - a newcomer's checklist asks for it already (docs/features/players-page/README.md) #}
         <twig:Players:CountryNudge class="mb-3" />
+        {# "Complete your profile" (time zone, docs/features/player-timezone.md) - never next to the checklist above, and it waits while the country nudge asks #}
+        <twig:ProfileCompletion class="mb-3" />
     {% endif %}
 
     {# Near the top: the member's achievements, best first (the owner's free-account line otherwise) #}

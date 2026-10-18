@@ -282,7 +282,8 @@ edit ("Edit puzzle", back to the list), or **Dismiss**.
 - **Dismiss** = `DismissBoxTextMismatch` → `box_text_mismatch_decision` (puzzle, field, `value_key` = the box's values,
   canonical and sorted, joined; who, when). A dismissed mismatch never returns while the box reads the same; a value
   read later is a new mismatch. Dismissing twice changes nothing. Not a catalogue decision (no
-  `puzzle_moderation_decision` row, no karma) - the record does not change.
+  `puzzle_moderation_decision` row) and **no karma** - karma is for an accepted contribution that changes the puzzle
+  database, a dismissal changes nothing.
 - **The list**: undismissed rows, most solved first (or `?sort=newest` = latest analyses), filter `?field=pieces|ean|
   brand_code|brand`, 30 per page; each with the box picture, what the box says (with the printed text for piece
   counts), what the catalogue says now, links to the puzzle page, "Edit puzzle" and its history. Each row is

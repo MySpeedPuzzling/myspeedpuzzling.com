@@ -91,7 +91,7 @@ an analysis - so it survives every re-run.
   /internal-api/puzzles/{id}/tag-corrections/{tagKey}` - [`internal-api.md`](../internal-api.md#puzzle-tags). A write
   rewrites that puzzle's tags at once.
 - Messages `CorrectPuzzleTag` / `RemovePuzzleTagCorrection` (a secret puzzle is a 404, a key of no facet a 422).
-- Not a catalogue decision: no `puzzle_moderation_decision` row and no karma (yet - see "Later").
+- Not a catalogue decision: no `puzzle_moderation_decision` row and **no karma** (decided 2026-10-18: karma = an accepted contribution that changes the puzzle database; corrections are internal-API only today - revisit when a web UI for corrections exists).
 
 ## Reading
 
@@ -100,7 +100,7 @@ out; `ofPuzzle()` / `correctionsOf()` for one. Labels: `PuzzleTaxonomy::definiti
 
 ## Later
 
-- A moderator UI for corrections (puzzle page / admin) and karma for them (taxonomy §14: corrections are
-  contributions), bulk corrections from a spot-check sheet.
+- A moderator UI for corrections (puzzle page / admin) - then revisit karma for them (taxonomy §14); bulk corrections
+  from a spot-check sheet.
 - Corrections feeding the per-key threshold calibration (taxonomy §14).
 - Public surfaces (filters, theme pages) one at a time - each needs its keys' labels and moderated precision first.

@@ -20,7 +20,10 @@ uv run puzzle-vision crop-review-plan --profile m3-max --json     # to_approve, 
 
 It reads every pipeline crop request (pending and decided) and applies the rules:
 - **Earned threshold:** fewer than 300 human decisions → nothing is auto-approved (it says "threshold not earned yet").
-  Human = decided without an `auto:` / `claude-review:` decisionNote.
+  Human = approved / rejected by a moderator in the web review (`decision.source == "admin_ui"`). Decisions through the
+  internal API (`auto:` notes from this plan, `claude-review:` notes from you, anything scripted) and `outdated`
+  closures never count toward the 300 or the precision. A list item missing a field the plan relies on stops it with a
+  contract error - report it, do not work around it.
 - Then the auto band starts at the lowest confidence where the human precision of all decisions at or above it has a
   **Wilson lower bound ≥ 99 %** (≥ 50 decisions).
 - **Audit:** a deterministic 5 % of would-be-auto items stays pending for moderators (`audit_held`).
@@ -35,9 +38,10 @@ Only when the plan says the threshold is earned and not stopped:
 uv run puzzle-vision crop-review-plan --profile m3-max --apply
 ```
 
-Each approval carries `selectedFields: ["image"]`, the request's `recordVersion` and the decisionNote the tool built
+Each approval carries `selectedFields: ["image"]` and the decisionNote the tool built
 (`auto: confidence 0.987, band >= 0.980 (human precision Wilson LB 0.991, n 412), model artwork-crop 1.0.0 (…)`).
-A `409` (decided meanwhile / puzzle changed) is listed under `applyFailed` - fine, skip it.
+A `409` (decided meanwhile, `image_changed` = a crop of an older picture, `original_not_archived` = try again later) is
+listed under `applyFailed` - fine, skip it; an `image_changed` one is left for moderators to reject.
 
 ## 3. Middle band (optional, `--look`)
 
@@ -50,7 +54,7 @@ and better than the original:
 uv run puzzle-vision crop-review-approve --profile m3-max <changeRequestId> [<id> …]
 ```
 
-(note `claude-review: …` - these never count as human decisions). Anything unsure stays for moderators. Never reject:
+(note `claude-review: …`, decided through the internal API - these never count as human decisions). Anything unsure stays for moderators. Never reject:
 rejections are the moderators' (they teach the threshold).
 
 ## 4. Summary

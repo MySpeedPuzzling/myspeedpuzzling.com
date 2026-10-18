@@ -51,11 +51,22 @@ class Conflict(ApiError):
 
 
 class StaleFingerprint(Conflict):
-    """The puzzle's picture changed since it was listed - skip it, the next claim brings the new picture."""
+    """The puzzle's picture changed since it was listed (`409`; for change requests `code image_changed`) - skip it, the
+    next claim brings the new picture."""
 
 
 class AlreadyProposed(Conflict):
-    """A pipeline change request for this (puzzle, sourceImageFingerprint, tag) exists in some status - never twice."""
+    """`409 code already_proposed`: a pipeline change request for this (puzzle, sourceImageFingerprint, tag) exists in
+    some status (a rejected one is remembered) - never twice."""
+
+
+class PendingProposal(Conflict):
+    """`409 code pending_proposal`: the puzzle already has a pending change request of more than its names or a merge
+    request - one proposal at a time, try again another day."""
+
+
+class OriginalNotArchived(Conflict):
+    """`409 code original_not_archived` on approve: the original could not be copied first - nothing changed, retry later."""
 
 
 class Invalid(ApiError):
@@ -285,6 +296,9 @@ class InternalApi:
     # change requests (crop proposals) ----------------------------------------------------------------------------------
     def propose_image_change(self, puzzle_id: str, image: bytes, *, confidence: float, model_version: str,
                              source_image_fingerprint: str, tags: list[str]) -> dict[str, Any]:
+        """`201 {changeRequestId, recordVersion}`. `image` = plain base64 of the JPEG (<= 15 MB decoded; a bad image is a
+        422 `errors.image`). 404 = unknown puzzle or a hidden picture; 409 `already_proposed` / `image_changed` /
+        `pending_proposal`; 400 = bad metadata."""
         body = {
             "puzzleId": puzzle_id,
             "image": base64.b64encode(image).decode("ascii"),
@@ -306,7 +320,10 @@ class InternalApi:
         if after:
             params["after"] = after
         data = self._request("GET", "/internal-api/puzzle-change-requests", params=params).json()
-        return {"items": _first_list(data), "nextCursor": data.get("nextCursor") if isinstance(data, dict) else None}
+        items = data.get("changeRequests") if isinstance(data, dict) else None
+        if not isinstance(items, list):
+            raise ApiError(200, "GET /internal-api/puzzle-change-requests: no `changeRequests` list in the answer", data)
+        return {"items": items, "nextCursor": data.get("nextCursor")}
 
     def iter_change_requests(self, **kwargs: Any) -> Iterator[dict[str, Any]]:
         after = kwargs.pop("after", None)
@@ -319,12 +336,17 @@ class InternalApi:
 
     def approve_change_request(self, change_request_id: str, selected_fields: list[str], decision_note: str,
                                record_version: str | None = None) -> None:
+        """`decisionNote` (<= 500 characters) becomes the decision log's note, listed back as `decision.note`. 409 =
+        decided already / puzzle changed / `image_changed` (a crop of an older picture) / `original_not_archived`."""
+        if len(decision_note) > 500:
+            raise ValueError("decisionNote can be at most 500 characters")
         body: dict[str, Any] = {"selectedFields": selected_fields, "decisionNote": decision_note}
         if record_version:
             body["recordVersion"] = record_version
         self._request("POST", f"/internal-api/puzzle-change-requests/{change_request_id}/approve", json=body)
 
     def reject_change_request(self, change_request_id: str, rejection_reason: str, decision_note: str | None = None) -> None:
+        """Only a pending request: a decided one answers 409 (Conflict) and nothing changes."""
         body: dict[str, Any] = {"rejectionReason": rejection_reason}
         if decision_note:
             body["decisionNote"] = decision_note
@@ -337,18 +359,6 @@ class InternalApi:
         except NotFound:
             return False
         return True
-
-
-def _first_list(data: Any) -> list[dict[str, Any]]:
-    if isinstance(data, list):
-        return data
-    for key in ("items", "changeRequests", "requests"):
-        if isinstance(data.get(key), list):
-            return data[key]
-    for value in data.values():
-        if isinstance(value, list):
-            return value
-    return []
 
 
 def _body(resp: httpx.Response) -> Any:
@@ -371,7 +381,7 @@ def _retry_after(resp: httpx.Response) -> float | None:
 def _error(resp: httpx.Response, method: str, path: str) -> ApiError:
     body = _body(resp)
     message = body.get("error") if isinstance(body, dict) and isinstance(body.get("error"), str) else f"{method} {path}"
-    text = str(body).lower()
+    text = str(body.get("error", "") if isinstance(body, dict) else body).lower()
     status = resp.status_code
     if status == 400:
         return BadRequest(status, message, body)
@@ -381,9 +391,12 @@ def _error(resp: httpx.Response, method: str, path: str) -> ApiError:
         return NotFound(status, message, body)
     if status == 409:
         code = body.get("code") if isinstance(body, dict) else None
-        if code == "already_proposed" or "already_proposed" in text or "already proposed" in text:
-            return AlreadyProposed(status, message, body)
-        if "fingerprint" in text or "picture changed" in text or "image changed" in text:
+        coded = {"already_proposed": AlreadyProposed, "image_changed": StaleFingerprint, "pending_proposal": PendingProposal,
+                 "original_not_archived": OriginalNotArchived}
+        if code in coded:
+            return coded[code](status, message, body)
+        # the image analysis store answers a changed picture with a plain 409 naming the current fingerprint
+        if "fingerprint" in text:
             return StaleFingerprint(status, message, body)
         return Conflict(status, message, body)
     if status == 422:

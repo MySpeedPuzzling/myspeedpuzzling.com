@@ -237,7 +237,7 @@ def cmd_crop_review_plan(a: argparse.Namespace, ctx: Context) -> int:
         applied, failed = [], []
         for entry in p.to_approve:
             try:
-                ctx.api.approve_change_request(entry["id"], ["image"], entry["decisionNote"], entry.get("recordVersion"))
+                ctx.api.approve_change_request(entry["id"], ["image"], entry["decisionNote"])
                 applied.append(entry["id"])
             except ApiError as e:
                 failed.append({"id": entry["id"], "error": str(e)})
@@ -254,7 +254,7 @@ def cmd_crop_review_plan(a: argparse.Namespace, ctx: Context) -> int:
             print(f"audit precision {p.audit_precision:.1%} on {p.audit_decided} decided audit items")
         for b in p.bands:
             print(f"  {b['band']}: pending {b['pending']}, human +{b['humanApproved']} / -{b['humanRejected']}, "
-                  f"auto {b['auto']}, claude {b['claude']}, precision {b['humanPrecision'] if b['humanPrecision'] is not None else '-'}")
+                  f"auto {b['auto']}, claude {b['claude']}, outdated {b['outdated']}, precision {b['humanPrecision'] if b['humanPrecision'] is not None else '-'}")
         if "applied" in out:
             print(f"applied {len(out['applied'])}, failed {len(out['applyFailed'])}")
     return 2 if p.auto_stopped else 0
@@ -271,7 +271,7 @@ def cmd_crop_review_approve(a: argparse.Namespace, ctx: Context) -> int:
             print(f"{cid}: not a pending artwork_crop request - skipped")
             rc = 1
             continue
-        ctx.api.approve_change_request(cid, ["image"], review.claude_note(item), item.record_version)
+        ctx.api.approve_change_request(cid, ["image"], review.claude_note(item))
         print(f"{cid}: approved ({review.claude_note(item)})")
     return rc
 

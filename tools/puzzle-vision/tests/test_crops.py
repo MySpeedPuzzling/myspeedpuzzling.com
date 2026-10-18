@@ -70,7 +70,8 @@ def test_propose_files_change_requests_once(api, server):
     fetch = lambda url: server.images[url.rsplit("/", 1)[1]]  # noqa: E731
     out = crops.propose(api, fetch, lambda rgb: 0.08, "1.0.0+siglip2-q3vl4b", limit=10)
     assert out["candidates"] == 2 and out["proposed"] == 2
-    cr = server.change_requests[0]
+    assert [i["puzzleId"] for i in out["items"]] == [pid(1), pid(0)]  # most solved first (solvedCount 3 > 0)
+    cr = next(c for c in server.change_requests if c["puzzleId"] == pid(0))
     assert cr["source"] == "image_pipeline" and cr["tags"] == ["artwork_crop"] and cr["sourceImageFingerprint"] == server.puzzles[pid(0)]["imageFingerprint"]
     assert cr["modelVersion"] == "artwork-crop 1.0.0 (1.0.0+siglip2-q3vl4b)" and 0.6 <= cr["confidence"] <= 1
     again = crops.propose(api, fetch, lambda rgb: 0.08, "1.0.0+siglip2-q3vl4b", limit=10)

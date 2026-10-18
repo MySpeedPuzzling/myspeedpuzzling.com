@@ -6,8 +6,10 @@
 - **Audit:** a deterministic 5 % of would-be-auto items (by a hash of the change request id - any machine, any run
   picks the same ones) stays pending for humans. When the humans' precision on decided audit items drops below 98 %
   (on >= 20 of them), auto-approval stops and the plan says so.
-- Human decision = decided, and the decisionNote does not start with `auto:` (this plan) or `claude-review:`
-  (Claude Code looked at the middle band) - only people's decisions earn and check the threshold.
+- **Human decision = decided in the moderators' web review**: `decision.source == "admin_ui"` and outcome approved or
+  rejected. Decisions through the internal API (`source "internal_api"`: this plan's `auto:` notes, Claude Code's
+  `claude-review:` notes, anything else filed by a script) and `outdated` closures (`source "automatic"`) never earn
+  or check the threshold - only people's decisions count toward the ~300 and the precision.
 - Middle band (propose threshold .. auto threshold): listed with the before / after URLs for an optional look;
   anything unsure stays for moderators.
 """
@@ -46,11 +48,12 @@ def is_audit(change_request_id: str, share: float = AUDIT_SHARE) -> bool:
     return (h % 10000) < share * 10000
 
 
-def _get(d: dict[str, Any], *names: str) -> Any:
-    for n in names:
-        if n in d and d[n] is not None:
-            return d[n]
-    return None
+STATUSES = ("pending", "approved", "rejected", "outdated")
+HUMAN_SOURCE = "admin_ui"
+
+
+class ContractError(ValueError):
+    """An item of `GET /internal-api/puzzle-change-requests` without the fields the plan relies on."""
 
 
 @dataclass
@@ -58,10 +61,10 @@ class Item:
     id: str
     puzzle_id: str
     confidence: float
-    status: str  # pending | approved | rejected | (outdated, ...)
+    status: str  # pending | approved | rejected | outdated
+    decision_source: str | None  # admin_ui | internal_api | automatic
     note: str
     model_version: str
-    record_version: str | None
     original_url: str | None
     proposed_url: str | None
     decided_at: str | None
@@ -72,7 +75,15 @@ class Item:
 
     @property
     def human(self) -> bool:
-        return self.decided and not self.note.startswith((AUTO_PREFIX, CLAUDE_PREFIX))
+        return self.decided and self.decision_source == HUMAN_SOURCE
+
+    @property
+    def auto(self) -> bool:
+        return self.decided and self.decision_source == "internal_api" and self.note.startswith(AUTO_PREFIX)
+
+    @property
+    def claude(self) -> bool:
+        return self.decided and self.decision_source == "internal_api" and self.note.startswith(CLAUDE_PREFIX)
 
     @property
     def approved(self) -> bool:
@@ -80,19 +91,29 @@ class Item:
 
 
 def parse_item(d: dict[str, Any]) -> Item:
-    decision = d.get("decision") if isinstance(d.get("decision"), dict) else {}
-    status = str(_get(d, "status") or _get(decision, "outcome", "status") or "pending").lower()
+    """Strict: the fields of the list's documented item shape (docs/features/internal-api.md "Puzzle change requests")."""
+    for key in ("id", "puzzleId", "status", "confidence", "decision"):
+        if key not in d:
+            raise ContractError(f"change request item without `{key}`: {sorted(d)}")
+    status = d["status"]
+    if status not in STATUSES:
+        raise ContractError(f"unknown change request status {status!r}")
+    decision = d["decision"]
+    if status == "pending":
+        decision = None
+    elif not isinstance(decision, dict) or "source" not in decision or "note" not in decision:
+        raise ContractError(f"decided change request {d['id']} without decision.source / decision.note")
     return Item(
-        id=str(_get(d, "id", "changeRequestId")),
-        puzzle_id=str(_get(d, "puzzleId") or ""),
-        confidence=float(_get(d, "confidence") or 0.0),
+        id=str(d["id"]),
+        puzzle_id=str(d["puzzleId"]),
+        confidence=float(d["confidence"]) if d["confidence"] is not None else -1.0,
         status=status,
-        note=str(_get(decision, "note", "decisionNote") or _get(d, "decisionNote") or ""),
-        model_version=str(_get(d, "modelVersion") or ""),
-        record_version=_get(d, "recordVersion"),
-        original_url=_get(d, "originalImageUrl"),
-        proposed_url=_get(d, "proposedImageUrl"),
-        decided_at=_get(decision, "at", "decidedAt"),
+        decision_source=decision.get("source") if decision else None,
+        note=str((decision or {}).get("note") or ""),
+        model_version=str(d.get("modelVersion") or ""),
+        original_url=d.get("originalImageUrl"),
+        proposed_url=d.get("proposedImageUrl"),
+        decided_at=(decision or {}).get("decidedAt"),
     )
 
 
@@ -154,8 +175,9 @@ def bands(items: list[Item], width: float = 0.05, start: float = PROPOSE_THRESHO
         out.append({
             "band": f"{lo:.2f}-{hi:.2f}", "pending": sum(1 for i in inside if i.status == "pending"),
             "humanApproved": k, "humanRejected": len(human) - k,
-            "auto": sum(1 for i in inside if i.decided and i.note.startswith(AUTO_PREFIX)),
-            "claude": sum(1 for i in inside if i.decided and i.note.startswith(CLAUDE_PREFIX)),
+            "auto": sum(1 for i in inside if i.auto),
+            "claude": sum(1 for i in inside if i.claude),
+            "outdated": sum(1 for i in inside if i.status == "outdated"),
             "humanPrecision": round(k / len(human), 4) if human else None,
         })
         lo = hi
@@ -165,7 +187,7 @@ def bands(items: list[Item], width: float = 0.05, start: float = PROPOSE_THRESHO
 def plan(raw_items: list[dict[str, Any]], min_human: int = MIN_HUMAN_DECISIONS, target: float = TARGET_LOWER_BOUND,
          audit_share: float = AUDIT_SHARE, stop_below: float = STOP_BELOW, min_band_n: int = MIN_BAND_N,
          propose_threshold: float = PROPOSE_THRESHOLD) -> Plan:
-    items = [parse_item(d) for d in raw_items]
+    items = [i for i in (parse_item(d) for d in raw_items) if i.confidence >= 0]  # no confidence = not a pipeline crop
     human = [i for i in items if i.human]
     k_all = sum(1 for i in human if i.approved)
     p = Plan(human_decisions=len(human), human_approved=k_all, earned=False, threshold=None, threshold_n=0,
@@ -195,7 +217,7 @@ def plan(raw_items: list[dict[str, Any]], min_human: int = MIN_HUMAN_DECISIONS, 
                 p.reason = f"auto band >= {t:.3f}: human precision {p.threshold_precision:.1%}, Wilson LB {p.threshold_lower_bound:.1%}, n {n}"
     for i in pending:
         entry = {"id": i.id, "puzzleId": i.puzzle_id, "confidence": i.confidence, "modelVersion": i.model_version,
-                 "recordVersion": i.record_version, "originalImageUrl": i.original_url, "proposedImageUrl": i.proposed_url}
+                 "originalImageUrl": i.original_url, "proposedImageUrl": i.proposed_url}
         if p.earned and p.threshold is not None and i.confidence >= p.threshold:
             if is_audit(i.id, audit_share):
                 p.audit_held.append(entry)

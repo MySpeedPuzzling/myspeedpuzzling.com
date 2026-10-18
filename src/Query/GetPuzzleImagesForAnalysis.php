@@ -25,6 +25,8 @@ use SpeedPuzzling\Web\Value\RequiredImageAnalyses;
  * The plan is a merge join of the puzzle primary key with the analyses' puzzle_id index, stopping at `limit` matches
  * (measured 2026-10-18 on 41k puzzles × 4 analyzers: a full page of `all` < 1 ms, of `stale` with 2 % to do ~100 ms,
  * the last, empty page of `stale` - every puzzle read once - ~350 ms). Once a day for one pipeline: no index of its own.
+ * `solvedCount` comes from the same statement (a LEFT JOIN of puzzle_statistics on its puzzle_id, one row per puzzle):
+ * every counted result of the puzzle - solo, pairs and teams, suspicious ones left out, the catalogue's "Completed N×".
  * `requires` (RequiredImageAnalyses) adds one EXISTS per required analyzer - a probe of the unique (analyzer,
  * puzzle_id) index per puzzle walked, so the same shape with a few more index lookups.
  */
@@ -143,9 +145,11 @@ SELECT
     p.image_ratio,
     {$fingerprint} AS image_fingerprint,
     m.id AS manufacturer_id,
-    m.name AS manufacturer_name
+    m.name AS manufacturer_name,
+    COALESCE(ps.solved_times_count, 0) AS solved_count
 FROM puzzle p
 LEFT JOIN manufacturer m ON m.id = p.manufacturer_id
+LEFT JOIN puzzle_statistics ps ON ps.puzzle_id = p.id
 {$join}
 WHERE p.image IS NOT NULL
     AND (p.hide_until IS NULL OR p.hide_until <= :now)
@@ -169,7 +173,8 @@ SQL,
             $piecesCount = $row['pieces_count'];
             $image = $row['image'];
             $imageFingerprint = $row['image_fingerprint'];
-            assert(is_string($puzzleId) && is_string($name) && is_int($piecesCount) && is_string($image) && is_string($imageFingerprint));
+            $solvedCount = $row['solved_count'];
+            assert(is_string($puzzleId) && is_string($name) && is_int($piecesCount) && is_string($image) && is_string($imageFingerprint) && is_int($solvedCount));
 
             $items[] = new PuzzleImageForAnalysis(
                 puzzleId: $puzzleId,
@@ -180,6 +185,7 @@ SQL,
                 image: $image,
                 imageFingerprint: $imageFingerprint,
                 imageRatio: is_numeric($row['image_ratio']) ? (float) $row['image_ratio'] : null,
+                solvedCount: $solvedCount,
                 analyses: $analyses[$puzzleId] ?? [],
                 claims: $claims[$puzzleId] ?? [],
             );

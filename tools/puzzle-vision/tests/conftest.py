@@ -47,6 +47,7 @@ class FakeServer:
         self.requests: list[dict[str, Any]] = []
         self.fail_next: dict[str, list[httpx.Response]] = {}
         self.page_limit_cap: int | None = None
+        self.hidden: set[str] = set()
         for i in range(n):
             self.add_puzzle(i)
 
@@ -54,7 +55,8 @@ class FakeServer:
         p = pid(i)
         name = f"img-{i}.png"
         self.puzzles[p] = {"puzzleId": p, "name": f"Puzzle {i}", "piecesCount": 500, "manufacturer": {"id": pid(900), "name": "Brandy"},
-                           "imageUrl": f"{IMG}/{name}", "imageFingerprint": fp or f"{i:016x}", "imageRatio": 1.33}
+                           "imageUrl": f"{IMG}/{name}", "imageFingerprint": fp or f"{i:016x}", "imageRatio": 1.33,
+                           "solvedCount": i * 3}
         self.images[name] = png()
         return p
 
@@ -232,21 +234,26 @@ class FakeServer:
         return httpx.Response(200, json={"analyzer": a, "items": page, "nextCursor": page[-1]["puzzleId"] if len(rows) > limit else None})
 
     def propose(self, b: dict[str, Any]) -> httpx.Response:
+        """SubmitPuzzleChangeRequestController + ImagePipelineProposalRules (docs/features/internal-api.md)."""
         p = b["puzzleId"]
-        if p not in self.puzzles:
-            return httpx.Response(404, json={"error": "Puzzle not found"})
+        if p not in self.puzzles or p in self.hidden:
+            return httpx.Response(404, json={"error": "No such puzzle with an image to propose for."})
+        if b.get("source") == "image_pipeline" and (not b.get("tags") or not b.get("sourceImageFingerprint")):
+            return httpx.Response(400, json={"error": "Invalid fields", "errors": {"tags": "needs at least one tag"}})
         base64.b64decode(b["image"], validate=True)
         if b.get("sourceImageFingerprint") != self.puzzles[p]["imageFingerprint"]:
-            return httpx.Response(409, json={"error": "The puzzle's picture changed since (sourceImageFingerprint)"})
+            return httpx.Response(409, json={"error": "The puzzle's picture changed - it is now " + self.puzzles[p]["imageFingerprint"], "code": "image_changed"})
         for cr in self.change_requests:
-            if cr["puzzleId"] == p and cr["sourceImageFingerprint"] == b["sourceImageFingerprint"] and set(cr["tags"]) & set(b.get("tags", [])):
-                return httpx.Response(409, json={"error": "already_proposed"})
+            if cr["puzzleId"] == p and cr["source"] == "image_pipeline" and cr["sourceImageFingerprint"] == b["sourceImageFingerprint"] and set(cr["tags"]) & set(b.get("tags", [])):
+                return httpx.Response(409, json={"error": f"Proposed already: change request {cr['id']}", "code": "already_proposed"})
+        if any(cr["puzzleId"] == p and cr["status"] == "pending" for cr in self.change_requests):
+            return httpx.Response(409, json={"error": "The puzzle already has a pending change request.", "code": "pending_proposal"})
         cid = pid(5000 + len(self.change_requests))
-        self.change_requests.append({"id": cid, "puzzleId": p, "status": "pending", "source": b["source"], "tags": b["tags"],
-                                     "confidence": b["confidence"], "modelVersion": b["modelVersion"],
-                                     "sourceImageFingerprint": b["sourceImageFingerprint"], "recordVersion": "rv-" + p[-4:],
-                                     "originalImageUrl": self.puzzles[p]["imageUrl"], "proposedImageUrl": f"{IMG}/proposed-{cid}.jpg",
-                                     "decision": None, "_image": b["image"]})
+        self.change_requests.append({"id": cid, "puzzleId": p, "puzzleName": self.puzzles[p]["name"], "status": "pending", "source": b["source"],
+                                     "tags": b["tags"], "confidence": b["confidence"], "modelVersion": b["modelVersion"],
+                                     "sourceImageFingerprint": b["sourceImageFingerprint"], "originalImageUrl": self.puzzles[p]["imageUrl"],
+                                     "proposedImageUrl": f"{IMG}/proposal-{cid}.jpg", "originalArchiveUrl": None,
+                                     "createdAt": "2026-10-18T10:00:00+00:00", "decision": None, "_image": b["image"]})
         return httpx.Response(201, json={"changeRequestId": cid, "recordVersion": "rv-" + p[-4:]})
 
     def list_cr(self, q: dict[str, str]) -> httpx.Response:
@@ -260,10 +267,15 @@ class FakeServer:
     def decide(self, cid: str, action: str, b: dict[str, Any]) -> httpx.Response:
         for c in self.change_requests:
             if c["id"] == cid:
-                if action == "approve" and c["status"] != "pending":
-                    return httpx.Response(409, json={"error": "already decided"})
+                if c["status"] != "pending":  # approve and reject both check the status
+                    return httpx.Response(409, json={"error": "The change request was decided already."})
                 c["status"] = "approved" if action == "approve" else "rejected"
-                c["decision"] = {"by": "reviewer", "at": "2026-10-18T10:00:00+00:00", "outcome": c["status"], "note": b.get("decisionNote")}
+                rejected = action == "reject"
+                c["decision"] = {"outcome": c["status"], "decidedAt": "2026-10-18T10:00:00+00:00",
+                                 "decidedBy": {"playerId": pid(999), "name": "Reviewer"}, "source": "internal_api",
+                                 "note": b.get("decisionNote"), "rejectionReason": b.get("rejectionReason") if rejected else None}
+                if rejected:
+                    c["proposedImageUrl"] = None
                 c["_body"] = b
                 return httpx.Response(204)
         return httpx.Response(404, json={"error": "not found"})

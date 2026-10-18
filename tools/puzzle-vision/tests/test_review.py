@@ -3,10 +3,15 @@ import pytest
 from puzzle_vision.proposals import review
 
 
-def item(i, conf, status="pending", note=None):
-    return {"id": f"cr-{i:05d}", "puzzleId": f"p{i}", "confidence": conf, "status": status, "modelVersion": "artwork-crop 1.0.0",
-            "recordVersion": f"rv{i}", "originalImageUrl": f"https://img/o{i}", "proposedImageUrl": f"https://img/p{i}",
-            "decision": None if status == "pending" else {"by": "mod", "at": "2026-10-20T10:00:00+00:00", "outcome": status, "note": note}}
+def item(i, conf, status="pending", note=None, source="admin_ui"):
+    """The item shape of GET /internal-api/puzzle-change-requests (ListPuzzleChangeRequestsController)."""
+    return {"id": f"cr-{i:05d}", "puzzleId": f"p{i}", "puzzleName": "P", "status": status, "source": "image_pipeline",
+            "tags": ["artwork_crop"], "confidence": conf, "modelVersion": "artwork-crop 1.0.0", "sourceImageFingerprint": "0" * 16,
+            "originalImageUrl": f"https://img/o{i}", "proposedImageUrl": f"https://img/p{i}", "originalArchiveUrl": None,
+            "createdAt": "2026-10-18T10:00:00+00:00",
+            "decision": None if status == "pending" else {"outcome": status, "decidedAt": "2026-10-20T10:00:00+00:00",
+                                                          "decidedBy": {"playerId": "x", "name": "Mod"}, "source": source,
+                                                          "note": note, "rejectionReason": "no" if status == "rejected" else None}}
 
 
 def test_wilson_lower_bound_known_values():
@@ -23,10 +28,27 @@ def test_nothing_is_auto_approved_before_300_human_decisions():
     assert len(p.middle_band) == 10
 
 
-def test_auto_and_claude_decisions_never_earn_the_threshold():
-    items = [item(i, 0.99, "approved", note="auto: confidence 0.990") for i in range(400)]
-    items += [item(500 + i, 0.99, "approved", note="claude-review: confidence 0.990") for i in range(100)]
-    assert review.plan(items).human_decisions == 0
+def test_only_decisions_in_the_web_review_earn_the_threshold():
+    items = [item(i, 0.99, "approved", note="auto: confidence 0.990", source="internal_api") for i in range(400)]
+    items += [item(500 + i, 0.99, "approved", note="claude-review: confidence 0.990", source="internal_api") for i in range(100)]
+    items += [item(700 + i, 0.99, "approved", note=None, source="internal_api") for i in range(100)]  # a script, not a person
+    items += [item(900 + i, 0.99, "outdated", note=None, source="automatic") for i in range(100)]
+    p = review.plan(items)
+    assert p.human_decisions == 0 and not p.earned
+    bands = {b["band"]: b for b in p.bands}
+    assert bands["0.95-1.00"]["auto"] == 400 and bands["0.95-1.00"]["claude"] == 100 and bands["0.95-1.00"]["outdated"] == 100
+
+
+def test_the_list_contract_is_parsed_strictly():
+    with pytest.raises(review.ContractError):
+        review.plan([{"id": "x", "status": "pending"}])
+    with pytest.raises(review.ContractError):
+        review.plan([item(1, 0.9) | {"status": "weird"}])
+    broken = item(1, 0.9, "approved")
+    del broken["decision"]["source"]
+    with pytest.raises(review.ContractError):
+        review.plan([broken])
+    assert review.plan([item(1, None)]).middle_band == []  # no confidence = not a pipeline crop
 
 
 def test_threshold_is_the_lowest_band_with_a_99_percent_lower_bound():
@@ -68,7 +90,7 @@ def test_auto_stop_when_audited_precision_drops_below_98_percent():
 
 
 def test_bands_report():
-    items = [item(1, 0.62, "approved"), item(2, 0.63, "rejected"), item(3, 0.99, "approved", note="auto: x"), item(4, 0.97)]
+    items = [item(1, 0.62, "approved"), item(2, 0.63, "rejected"), item(3, 0.99, "approved", note="auto: x", source="internal_api"), item(4, 0.97)]
     bands = {b["band"]: b for b in review.bands([review.parse_item(i) for i in items])}
     assert bands["0.60-0.65"]["humanApproved"] == 1 and bands["0.60-0.65"]["humanRejected"] == 1
     assert bands["0.95-1.00"]["auto"] == 1 and bands["0.95-1.00"]["pending"] == 1

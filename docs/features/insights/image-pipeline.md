@@ -208,14 +208,17 @@ uv run puzzle-vision crop-review-plan --profile m3-max --apply    # approve the 
 uv run puzzle-vision crop-review-approve --profile m3-max <id> …  # middle-band items Claude Code checked by eye
 ```
 
-- **Proposals:** box photos / renders / assembled puzzles (artwork kind ≠ flat), most-solved first when the work list
-  carries a solve count (else puzzle id order). The perspective-corrected crop comes from the **full-resolution
+- **Proposals:** box photos / renders / assembled puzzles (artwork kind ≠ flat), most-solved first (the work list's
+  `solvedCount`), then puzzle id. The perspective-corrected crop comes from the **full-resolution
   original**. Confidence = weighted geometric mean of **agreement signals**, never a raw model score: VLM box vs
   snapped quad IoU, the flat-art gate on the crop, edge straightness (a strong edge exactly where the crop ends, all
   four sides), a plausible puzzle aspect ratio, and how much of the photo the artwork fills (and enough pixels,
   ≥ 600 px). Below 0.6 nothing is proposed. Each proposal is a change request with the image, `source:
-  image_pipeline`, `tags: ["artwork_crop"]`, `confidence`, `modelVersion`, `sourceImageFingerprint`; `409
-  already_proposed` (any status - a rejected crop is remembered) is skipped. Start small (50 a day).
+  image_pipeline`, `tags: ["artwork_crop"]`, `confidence`, `modelVersion`, `sourceImageFingerprint` (the JPEG as plain base64). Refusals are
+  skipped, never retried: `409` with `code` `already_proposed` (any status - a rejected crop is remembered),
+  `image_changed` (the picture changed - the next artwork run proposes the new one), `pending_proposal` (the puzzle has
+  another pending request); `404` = the picture is hidden now; `422 errors.image` = the server's photo rule refused the
+  image (a pipeline bug - counted as failed). Start small (50 a day).
 - **Review** (`/image-crop-review`, daily): moderators decide in the before/after grid. Auto-approval is **earned**:
   nothing below ~300 human decisions; then the lowest confidence band whose human precision has a **Wilson lower
   bound ≥ 99 %** (≥ 50 decisions) is approved by Claude Code through the API with a `decisionNote`
@@ -223,7 +226,9 @@ uv run puzzle-vision crop-review-approve --profile m3-max <id> …  # middle-ban
   audit** of would-be-auto items stays for humans; if their precision falls below **98 %** (≥ 20 audited), auto-approval
   **stops** and the plan says so (exit code 2). The middle band may be looked at by Claude (before/after URLs) and
   approved only when certain (`claude-review: …` note); anything unsure stays for moderators. Only people's decisions
-  (no `auto:` / `claude-review:` note) earn and check the threshold.
+  earn and check the threshold: **`decision.source == "admin_ui"`** (the moderators' web review). Everything decided
+  through the internal API (`auto:`, `claude-review:` or a script) and `outdated` closures (`automatic`) never count.
+  The plan reads the list's documented item shape strictly and stops with an error when a field it relies on is missing.
 - Approving keeps the original (archived under `originals/`, "Restore original" on the puzzle history page).
 
 ## 9. Payload notes (what the stages store)
@@ -256,6 +261,8 @@ pushed. Specifics beyond image-taxonomy.md §11:
 | `stale_fingerprint` outcomes, `409` on a store | The picture changed since it was claimed. Fine - skipped; the next claim brings the new picture. |
 | `not_found` | The puzzle was merged, deleted or became secret (hidden images are never listed or accepted). Fine. |
 | `429` | Production asks to slow down. The client waits (`Retry-After`, else 30 s doubling) and retries; nothing to do. Many in a row: raise the pause between calls. |
+| `409` on approve with `code` `image_changed` / `original_not_archived` | The crop was made from an older picture (reject it, the pipeline proposes the new picture) / the original could not be archived first (nothing changed, try again later). |
+| `409` rejecting / approving a decided request | Somebody decided it meanwhile - nothing changes, skip it. |
 | `400` with `errors.requires` | A profile names an unknown analyzer or one requiring itself - a bug in `profiles/*.toml`. |
 | `401` | Token missing or wrong: re-add it to the Keychain (§2). |
 | `invalid` outcomes | The server refused a payload (bad `bbox`, too big, NUL). A pipeline bug: read the error in the log / `status` failures. |

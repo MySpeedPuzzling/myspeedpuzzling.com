@@ -3,7 +3,7 @@ import base64
 import httpx
 import pytest
 
-from puzzle_vision.api import (AlreadyProposed, ApiError, AnalysisResult, BadRequest, InternalApi, StaleFingerprint, Unauthorized,
+from puzzle_vision.api import (AlreadyProposed, ApiError, Conflict, NotFound, PendingProposal, AnalysisResult, BadRequest, InternalApi, StaleFingerprint, Unauthorized,
                                uuid_before)
 
 from .conftest import BASE, TOKEN, pid
@@ -136,8 +136,13 @@ def test_propose_image_change_and_never_twice(api, server):
     assert body["sourceImageFingerprint"] == fp and body["modelVersion"] == "artwork-crop 1.0.0"
     with pytest.raises(AlreadyProposed):
         api.propose_image_change(p, b"x", confidence=0.9, model_version="m", source_image_fingerprint=fp, tags=["artwork_crop"])
-    with pytest.raises(StaleFingerprint):
+    with pytest.raises(StaleFingerprint):  # 409 code image_changed
         api.propose_image_change(pid(2), b"x", confidence=0.9, model_version="m", source_image_fingerprint="old", tags=["artwork_crop"])
+    with pytest.raises(PendingProposal):  # another tag, but the puzzle has a pending request
+        api.propose_image_change(p, b"x", confidence=0.9, model_version="m", source_image_fingerprint=fp, tags=["other"])
+    server.hidden.add(pid(3))
+    with pytest.raises(NotFound):
+        api.propose_image_change(pid(3), b"x", confidence=0.9, model_version="m", source_image_fingerprint=server.puzzles[pid(3)]["imageFingerprint"], tags=["artwork_crop"])
 
 
 def test_change_request_listing_pages_and_approve_carries_the_note(api, server):
@@ -152,11 +157,23 @@ def test_change_request_listing_pages_and_approve_carries_the_note(api, server):
     assert server.requests[-1]["json"] == {"selectedFields": ["image"], "decisionNote": "auto: confidence 0.900", "recordVersion": "rv"}
     api.reject_change_request(page["items"][1]["id"], "Not the picture", decision_note="checked")
     assert server.requests[-1]["json"] == {"rejectionReason": "Not the picture", "decisionNote": "checked"}
+    with pytest.raises(Conflict):  # a decided request is never decided twice
+        api.reject_change_request(cid, "again")
+    decided = {c["id"]: c for c in api.iter_change_requests(status="all")}
+    assert decided[cid]["decision"]["note"] == "auto: confidence 0.900" and decided[cid]["decision"]["source"] == "internal_api"
+    with pytest.raises(ValueError):
+        api.approve_change_request(page["items"][1]["id"], ["image"], "x" * 501)
 
 
 def test_uuid_before_is_an_exclusive_cursor_that_keeps_the_id():
     p = pid(7)
     assert uuid_before(p) < p and uuid_before(p) == pid(6)
+
+
+def test_list_without_change_requests_key_is_a_contract_error(api, server):
+    server.fail_next["GET /internal-api/puzzle-change-requests"] = [httpx.Response(200, json={"items": []})]
+    with pytest.raises(ApiError, match="changeRequests"):
+        api.change_requests_page()
 
 
 def test_endpoint_probe(api):

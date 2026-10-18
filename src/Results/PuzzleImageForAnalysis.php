@@ -15,6 +15,8 @@ readonly final class PuzzleImageForAnalysis
     /**
      * @param array<string, array{analyzerVersion: string, imageFingerprint: string, analyzedAt: null|DateTimeImmutable, receivedAt: DateTimeImmutable}> $analyses keyed by analyzer
      * @param array<string, array{worker: string, expiresAt: DateTimeImmutable}> $claims the claims held now, keyed by analyzer
+     * @param int $solvedCount every counted result of the puzzle (puzzle_statistics.solved_times_count: solo, pairs and
+     *   teams, suspicious left out) - the pipeline works on the most-solved puzzles first where order matters
      */
     public function __construct(
         public string $puzzleId,
@@ -25,6 +27,7 @@ readonly final class PuzzleImageForAnalysis
         public string $image,
         public string $imageFingerprint,
         public null|float $imageRatio,
+        public int $solvedCount,
         public array $analyses,
         public array $claims = [],
     ) {

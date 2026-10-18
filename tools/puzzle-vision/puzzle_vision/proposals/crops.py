@@ -2,7 +2,7 @@
 pipeline never changes a puzzle picture itself. The original stays (production archives it on approval).
 
 1. Candidates: current `artwork` results that are box photos / renders / assembled puzzles (kind != flat, method != trim),
-   most-solved first when the work list carries a solve count, else in puzzle id order.
+   most-solved first (the work list's `solvedCount`), then puzzle id.
 2. The perspective-corrected crop is rendered from the **full-resolution original**.
 3. Confidence from **agreement signals**, never a raw model score:
    - IoU of the VLM box vs the OpenCV-snapped quad,
@@ -26,7 +26,7 @@ import cv2
 import numpy as np
 from PIL import Image
 
-from ..api import AlreadyProposed, Conflict, InternalApi, NotFound, WorkItem
+from ..api import AlreadyProposed, Conflict, InternalApi, Invalid, NotFound, PendingProposal, StaleFingerprint, WorkItem
 from ..imaging import bbox_to_xyxy, crop, decode, normalise, to_jpeg_bytes
 
 log = logging.getLogger(__name__)
@@ -180,10 +180,9 @@ def build(item: WorkItem, artwork: dict[str, Any], original: bytes, gate_margin:
 
 
 def solve_count(item: WorkItem) -> int:
-    for key in ("solvedCount", "solveCount", "timesSolved", "solvedTimes"):
-        if isinstance(item.raw.get(key), int):
-            return int(item.raw[key])
-    return 0
+    """`solvedCount` of the work list: every counted result of the puzzle (solo, pairs, teams; suspicious left out)."""
+    value = item.raw.get("solvedCount")
+    return int(value) if isinstance(value, int) else 0
 
 
 def already_proposed(api: InternalApi) -> set[tuple[str, str]]:
@@ -241,7 +240,15 @@ def propose(api: InternalApi, fetch_original: Callable[[str], bytes], gate_margi
         except AlreadyProposed:
             summary["already_proposed"] += 1
             continue
-        except (Conflict, NotFound) as e:  # picture changed, a pending request, a hidden puzzle
+        except (StaleFingerprint, PendingProposal, NotFound) as e:  # picture changed, a pending request, hidden now
+            summary["refused"] += 1
+            log.info("[propose-crops] %s refused (%s): %s", item.puzzle_id, type(e).__name__, e)
+            continue
+        except Invalid as e:  # the server's photo rule refused the image (422 errors.image) - a pipeline bug
+            summary["failed"] += 1
+            log.warning("[propose-crops] %s image refused: %s", item.puzzle_id, e.body)
+            continue
+        except Conflict as e:
             summary["refused"] += 1
             log.info("[propose-crops] %s refused: %s", item.puzzle_id, e)
             continue

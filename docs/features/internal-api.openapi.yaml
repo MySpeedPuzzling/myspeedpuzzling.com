@@ -3662,7 +3662,7 @@ components:
 
     PuzzleImageForAnalysis:
       type: object
-      required: [puzzleId, name, piecesCount, manufacturer, imageUrl, imageFingerprint, imageRatio, analyses, claims]
+      required: [puzzleId, name, piecesCount, manufacturer, imageUrl, imageFingerprint, imageRatio, solvedCount, analyses, claims]
       properties:
         puzzleId: { type: string, format: uuid }
         name: { type: string }
@@ -3679,6 +3679,10 @@ components:
           type: string
           description: Which picture it is - the first 16 hex characters of md5 of the stored image path.
         imageRatio: { type: [number, "null"] }
+        solvedCount:
+          type: integer
+          minimum: 0
+          description: Every counted result of the puzzle (solo, pairs and teams; suspicious ones left out - puzzle_statistics.solved_times_count), 0 when nobody solved it.
         analyses:
           type: object
           description: What is stored per analyzer (an object, {} when nothing).

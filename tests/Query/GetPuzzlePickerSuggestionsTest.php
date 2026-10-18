@@ -11,14 +11,18 @@ use SpeedPuzzling\Web\Results\PuzzlePickerPick;
 use SpeedPuzzling\Web\Results\PuzzlePickerSuggestion;
 use SpeedPuzzling\Web\Entity\Collection;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\PuzzleIntelligenceRecalculator;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\TimePredictionCalculator;
 use SpeedPuzzling\Web\Tests\DataFixtures\CollectionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionApiFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\ManufacturerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleIntelligenceFixture;
+use SpeedPuzzling\Web\Value\DifficultySource;
 use SpeedPuzzling\Web\Value\DifficultyTier;
 use SpeedPuzzling\Web\Value\MetricConfidence;
+use SpeedPuzzling\Web\Value\PiecesGroup;
+use SpeedPuzzling\Web\Value\PredictionModelParameters;
 use SpeedPuzzling\Web\Value\PuzzlePickerCriteria;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\HttpFoundation\Request;
@@ -1079,6 +1083,56 @@ final class GetPuzzlePickerSuggestionsTest extends KernelTestCase
     private function memberCriteria(array $query): PuzzlePickerCriteria
     {
         return $this->criteria($query, member: true);
+    }
+
+    /**
+     * The picker's SQL statistical prediction (StatisticalInputsSql::centreSql()) is the calculator's: with every
+     * thin-size rule switched on (the fixture players have 500-piece paces only), every pre-LIMIT prediction equals
+     * GetPlayerPredictions - the shrunk ones of puzzles with 1-4 indices, and the 500-scaled ones at other sizes.
+     */
+    public function testTheSqlPredictionEqualsTheCalculatorAlsoForThinSizesAndShrunkDifficulty(): void
+    {
+        $this->recalculator->recalculate();
+        $rule = ['alpha' => 1.4, 'max_own_solves' => 1_000_000];
+        $parameters = PredictionModelParameters::defaults()->with(thinSizes: [
+            PiecesGroup::UpTo300->value => $rule,
+            PiecesGroup::Thousand->value => $rule,
+            PiecesGroup::From1500->value => ['alpha' => 1.5, 'max_own_solves' => 1_000_000],
+            PiecesGroup::Odd->value => $rule,
+        ]);
+        $this->database->executeStatement(
+            'INSERT INTO prediction_model_fit (model_version, fitted_at, parameters) VALUES (:version, NOW(), CAST(:parameters AS jsonb))
+            ON CONFLICT (model_version) DO UPDATE SET parameters = EXCLUDED.parameters',
+            ['version' => TimePredictionCalculator::MODEL_VERSION, 'parameters' => json_encode($parameters->toArray(), JSON_THROW_ON_ERROR)],
+        );
+        $this->getPlayerPredictions->reset();
+
+        $playerId = PlayerFixture::PLAYER_REGULAR;
+        // A gap order computes the predictions before the LIMIT for every candidate, with or without one
+        $pick = $this->pickAll(['source' => 'any', 'lent' => '1', 'order' => 'gap_slower'], $playerId, member: true);
+        $predictions = $this->getPlayerPredictions->forPuzzles($playerId, self::ids($pick));
+        $thin = 0;
+        $shrunk = 0;
+
+        foreach ($pick->suggestions as $suggestion) {
+            $prediction = $predictions[$suggestion->puzzleId] ?? null;
+            self::assertSame($prediction?->predictedSeconds, $suggestion->predictedSeconds, $suggestion->puzzleId);
+
+            if ($prediction === null) {
+                continue;
+            }
+
+            if ($prediction->isPersonalized === false && $suggestion->piecesCount !== 500) {
+                $thin++;
+            }
+
+            if ($prediction->difficultySource === DifficultySource::Shrunk) {
+                $shrunk++;
+            }
+        }
+
+        self::assertGreaterThan(0, $thin, 'Predictions from the 500-piece pace at other sizes');
+        self::assertGreaterThan(0, $shrunk, 'Predictions with a shrunk difficulty');
     }
 
     /**

@@ -9,17 +9,22 @@ use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Results\TimePredictionResult;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\PredictionModelParametersProvider;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\RepeatResiduals;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\StatisticalInputsSql;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\TimePredictionCalculator;
+use SpeedPuzzling\Web\Value\PredictionModelParameters;
 use Symfony\Contracts\Service\ResetInterface;
 
 /**
  * Time predictions of one player at list scale (puzzle picker cards and
  * filters, collection pages). Same math as GetPlayerPrediction::forPuzzle() —
  * both delegate to TimePredictionCalculator — but the inputs are loaded in bulk:
- * the player's attempts on every puzzle in one query, the two ratio tables in
- * one query each, and the statistical inputs (baseline × difficulty) for the
- * asked puzzle ids in one more. The per-player part is memoised for the request
- * (the picker query and the card rendering both need it), reset() clears it —
+ * the player's attempts on every puzzle in one query, the player's ratios with
+ * their repeat residuals and the fitted model parameters in one, the global
+ * ratios in one, and the statistical inputs (StatisticalInputsSql) for the asked
+ * puzzle ids in one more. The per-player part is memoised for the request (the
+ * picker query and the card rendering both need it), reset() clears it —
  * FrankenPHP worker mode keeps the service instance alive between requests.
  */
 final class GetPlayerPredictions implements ResetInterface
@@ -32,6 +37,13 @@ final class GetPlayerPredictions implements ResetInterface
      */
     private array $personalByPlayer = [];
 
+    /**
+     * The fitted model parameters, from the ratio statement of a personal pass.
+     *
+     * @var array<string, PredictionModelParameters>
+     */
+    private array $parametersByPlayer = [];
+
     public function __construct(
         private readonly Connection $database,
         private readonly ClockInterface $clock,
@@ -42,6 +54,18 @@ final class GetPlayerPredictions implements ResetInterface
     public function reset(): void
     {
         $this->personalByPlayer = [];
+        $this->parametersByPlayer = [];
+    }
+
+    /**
+     * The model parameters the player's predictions were made with - read by the personal pass; a player without
+     * any solo solve has no pace either, so nothing of theirs depends on them (defaults, no query).
+     */
+    public function modelParameters(string $playerId): PredictionModelParameters
+    {
+        $this->forAllSolvedPuzzles($playerId);
+
+        return $this->parametersByPlayer[$playerId] ?? PredictionModelParameters::defaults();
     }
 
     /**
@@ -71,7 +95,8 @@ final class GetPlayerPredictions implements ResetInterface
             }
         }
 
-        if ($missing !== []) {
+        // No solo solve = no pace at any piece count: nothing statistical to predict
+        if ($missing !== [] && $personal !== []) {
             foreach ($this->statisticalPredictions($playerId, $missing) as $puzzleId => $prediction) {
                 $predictions[$puzzleId] = $prediction;
             }
@@ -140,7 +165,8 @@ SQL;
             }
         }
 
-        $playerRatios = $this->playerRatios($playerId);
+        [$playerRatios, $repeatSpread, $parameters] = $this->playerRatiosAndRepeats($playerId);
+        $this->parametersByPlayer[$playerId] = $parameters;
         $globalRatios = $this->globalRatios(array_values(array_unique(array_column($attempts, 'pieces_count'))));
         $now = $this->clock->now();
         $predictions = [];
@@ -158,6 +184,9 @@ SQL;
             $predictions[$puzzleId] = $this->calculator->personal(
                 $attempt['times'],
                 TimePredictionCalculator::resolveRatio($playerRatio, $globalRatioForGap, $globalRatioAll),
+                $repeatSpread,
+                $attempt['pieces_count'],
+                $parameters,
             );
         }
 
@@ -165,23 +194,37 @@ SQL;
     }
 
     /**
-     * @return array<int, float> transition → median ratio
+     * The player's ratios, the spread of their stored repeat predictions and the fitted model parameters - one
+     * statement, one row.
+     *
+     * @return array{0: array<int, float>, 1: float, 2: PredictionModelParameters} transition → median ratio, spread, parameters
      */
-    private function playerRatios(string $playerId): array
+    private function playerRatiosAndRepeats(string $playerId): array
     {
-        /** @var list<array{from_attempt: int|string, median_ratio: float|string}> $rows */
-        $rows = $this->database->executeQuery(
-            'SELECT from_attempt, median_ratio FROM player_improvement_ratio WHERE player_id = :playerId',
-            ['playerId' => $playerId],
-        )->fetchAllAssociative();
+        $repeats = RepeatResiduals::sql(excludeTime: false, before: false);
+        $parameters = PredictionModelParametersProvider::SQL;
+
+        /** @var array{ratios: null|string, repeats: null|string, parameters: null|string} $row */
+        $row = $this->database->fetchAssociative("
+            SELECT
+                (SELECT json_object_agg(from_attempt, median_ratio) FROM player_improvement_ratio WHERE player_id = :playerId) AS ratios,
+                ({$repeats}) AS repeats,
+                ({$parameters}) AS parameters
+        ", ['playerId' => $playerId, 'modelVersion' => TimePredictionCalculator::MODEL_VERSION]);
 
         $ratios = [];
 
-        foreach ($rows as $row) {
-            $ratios[(int) $row['from_attempt']] = (float) $row['median_ratio'];
+        foreach ($row['ratios'] !== null ? (array) json_decode($row['ratios'], true, flags: JSON_THROW_ON_ERROR) : [] as $fromAttempt => $ratio) {
+            if (is_numeric($ratio)) {
+                $ratios[(int) $fromAttempt] = (float) $ratio;
+            }
         }
 
-        return $ratios;
+        return [
+            $ratios,
+            TimePredictionCalculator::playerSpread(RepeatResiduals::fromJson($row['repeats'])),
+            PredictionModelParametersProvider::fromJson($row['parameters']),
+        ];
     }
 
     /**
@@ -218,37 +261,26 @@ SQL;
      */
     private function statisticalPredictions(string $playerId, array $puzzleIds): array
     {
-        $query = <<<SQL
-SELECT
-    p.id AS puzzle_id,
-    pb.baseline_seconds,
-    pd.difficulty_score,
-    pd.indices_p25,
-    pd.indices_p75
-FROM puzzle p
-JOIN puzzle_difficulty pd ON pd.puzzle_id = p.id
-JOIN player_baseline pb ON pb.player_id = :playerId AND pb.pieces_count = p.pieces_count
-WHERE p.id IN (:puzzleIds)
-    AND pd.difficulty_score IS NOT NULL
-    AND pd.confidence != 'insufficient'
-SQL;
+        $cte = StatisticalInputsSql::ownPaceCte();
+        $columns = StatisticalInputsSql::COLUMNS;
+        $joins = StatisticalInputsSql::JOINS . StatisticalInputsSql::ownPaceCteJoins();
 
-        /** @var list<array{puzzle_id: string, baseline_seconds: int|string, difficulty_score: float|string, indices_p25: float|string|null, indices_p75: float|string|null}> $rows */
+        /** @var list<array<string, mixed>> $rows */
         $rows = $this->database->executeQuery(
-            $query,
+            "WITH {$cte} SELECT {$columns} FROM puzzle p {$joins} WHERE p.id IN (:puzzleIds)",
             ['playerId' => $playerId, 'puzzleIds' => $puzzleIds],
             ['puzzleIds' => ArrayParameterType::STRING],
         )->fetchAllAssociative();
 
+        $parameters = $this->modelParameters($playerId);
         $predictions = [];
 
         foreach ($rows as $row) {
-            $predictions[$row['puzzle_id']] = $this->calculator->statistical(
-                baselineSeconds: (int) $row['baseline_seconds'],
-                difficultyScore: (float) $row['difficulty_score'],
-                p25: $row['indices_p25'] !== null ? (float) $row['indices_p25'] : null,
-                p75: $row['indices_p75'] !== null ? (float) $row['indices_p75'] : null,
-            );
+            $prediction = $this->calculator->statistical(StatisticalInputsSql::hydrate($row), $parameters);
+
+            if ($prediction !== null && is_string($row['puzzle_id'])) {
+                $predictions[$row['puzzle_id']] = $prediction;
+            }
         }
 
         return $predictions;

@@ -20,19 +20,21 @@ namespace SpeedPuzzling\Web\Services\PuzzleIntelligence;
  */
 final class PaceTimeline
 {
-    /** @var array<string, array<int, array{solved: list<float>, tracked: list<float>, baseline: list<int>, sorted: bool}>> player => piece count => rows ascending */
+    /** @var array<string, array<int, array{solved: list<float>, tracked: list<float>, baseline: list<int>, drift: list<null|float>, spread: list<null|float>, sorted: bool}>> player => piece count => rows ascending */
     private array $rows = [];
 
     public function __construct(
         private readonly PlayerBaselineCalculator $baselineCalculator,
         private null|float $scalingExponent = null,
+        // Keep the rows' drift and spread (the reconstructor) - the batch computes its own and leaves them out
+        private readonly bool $withStates = true,
     ) {
     }
 
-    public function add(string $playerId, int $piecesCount, float $solved, float $tracked, int $baselineSeconds): void
+    public function add(string $playerId, int $piecesCount, float $solved, float $tracked, int $baselineSeconds, null|float $drift = null, null|float $spread = null): void
     {
         if (!isset($this->rows[$playerId][$piecesCount])) {
-            $this->rows[$playerId][$piecesCount] = ['solved' => [], 'tracked' => [], 'baseline' => [], 'sorted' => true];
+            $this->rows[$playerId][$piecesCount] = ['solved' => [], 'tracked' => [], 'baseline' => [], 'drift' => [], 'spread' => [], 'sorted' => true];
         }
 
         $pair = &$this->rows[$playerId][$piecesCount];
@@ -47,6 +49,11 @@ final class PaceTimeline
                 // second - rows come in qualifying_count order, so the later one is the pace after both
                 $pair['baseline'][$last] = $baselineSeconds;
 
+                if ($this->withStates) {
+                    $pair['drift'][$last] = $drift;
+                    $pair['spread'][$last] = $spread;
+                }
+
                 return;
             }
 
@@ -58,6 +65,11 @@ final class PaceTimeline
         $pair['solved'][] = $solved;
         $pair['tracked'][] = $tracked;
         $pair['baseline'][] = $baselineSeconds;
+
+        if ($this->withStates) {
+            $pair['drift'][] = $drift;
+            $pair['spread'][] = $spread;
+        }
     }
 
     /**
@@ -84,6 +96,77 @@ final class PaceTimeline
         }
 
         return $this->lookup($playerId, $piecesCount, $first[0], $first[1], inclusive: true);
+    }
+
+    /**
+     * paceAt() for every row known (the batch), with the moment from which that pace is known: the solve itself for
+     * rules 1 and 2, the solver's first row for their first pace (rule 3) - an index is part of a puzzle's
+     * difficulty only from then on (the as-of difficulty of PredictionEngine).
+     *
+     * @return null|array{0: int, 1: array{0: float, 1: float}}
+     */
+    public function paceWithKnownFrom(string $playerId, int $piecesCount, float $solved, float $tracked): null|array
+    {
+        if (!isset($this->rows[$playerId])) {
+            return null;
+        }
+
+        $this->sortPlayer($playerId);
+
+        $pace = $this->lookup($playerId, $piecesCount, $solved, $tracked, inclusive: false);
+
+        if ($pace !== null) {
+            return [$pace, [$solved, $tracked]];
+        }
+
+        $first = $this->firstMoment($playerId);
+        $pace = $this->lookup($playerId, $piecesCount, $first[0], $first[1], inclusive: true);
+
+        return $pace !== null ? [$pace, $first] : null;
+    }
+
+    /**
+     * Rules 1 and 2 only - the pace a prediction at that moment had (a player's first pace, rule 3, is known only
+     * later).
+     */
+    public function paceBefore(string $playerId, int $piecesCount, float $solved, float $tracked): null|int
+    {
+        if (!isset($this->rows[$playerId])) {
+            return null;
+        }
+
+        $this->sortPlayer($playerId);
+
+        return $this->lookup($playerId, $piecesCount, $solved, $tracked, inclusive: false);
+    }
+
+    /**
+     * The pair's own row valid strictly before the moment (rule 1 only), with its drift and spread - the pace a
+     * direct baseline and the drift of a prediction come from.
+     *
+     * @param null|array{0: float, 1: float} $knownBefore only rows before this moment count (the reconstructor)
+     * @return null|array{baseline: int, drift: null|float, spread: null|float}
+     */
+    public function directRowBefore(string $playerId, int $piecesCount, float $solved, float $tracked, null|array $knownBefore = null): null|array
+    {
+        if (!isset($this->rows[$playerId][$piecesCount])) {
+            return null;
+        }
+
+        $this->sortPlayer($playerId);
+
+        if ($knownBefore !== null && ([$solved, $tracked] <=> $knownBefore) > 0) {
+            [$solved, $tracked] = $knownBefore;
+        }
+
+        $pair = $this->rows[$playerId][$piecesCount];
+        $index = $this->latestIndex($pair, $solved, $tracked, inclusive: false);
+
+        if ($index === null) {
+            return null;
+        }
+
+        return ['baseline' => $pair['baseline'][$index], 'drift' => $pair['drift'][$index] ?? null, 'spread' => $pair['spread'][$index] ?? null];
     }
 
     private function lookup(string $playerId, int $piecesCount, float $solved, float $tracked, bool $inclusive): null|int
@@ -125,9 +208,19 @@ final class PaceTimeline
     /**
      * Baseline of the last row before (or at, when inclusive) the moment.
      *
-     * @param array{solved: list<float>, tracked: list<float>, baseline: list<int>, sorted: bool} $pair
+     * @param array{solved: list<float>, tracked: list<float>, baseline: list<int>, drift: list<null|float>, spread: list<null|float>, sorted: bool} $pair
      */
     private function latest(array $pair, float $solved, float $tracked, bool $inclusive): null|int
+    {
+        $index = $this->latestIndex($pair, $solved, $tracked, $inclusive);
+
+        return $index !== null ? $pair['baseline'][$index] : null;
+    }
+
+    /**
+     * @param array{solved: list<float>, tracked: list<float>, baseline: list<int>, drift: list<null|float>, spread: list<null|float>, sorted: bool} $pair
+     */
+    private function latestIndex(array $pair, float $solved, float $tracked, bool $inclusive): null|int
     {
         $low = 0;
         $high = count($pair['solved']);
@@ -144,7 +237,7 @@ final class PaceTimeline
             }
         }
 
-        return $low > 0 ? $pair['baseline'][$low - 1] : null;
+        return $low > 0 ? $low - 1 : null;
     }
 
     /**
@@ -177,7 +270,7 @@ final class PaceTimeline
             $order = array_keys($pair['solved']);
             usort($order, static fn (int $a, int $b): int => [$pair['solved'][$a], $pair['tracked'][$a]] <=> [$pair['solved'][$b], $pair['tracked'][$b]]);
 
-            $sorted = ['solved' => [], 'tracked' => [], 'baseline' => [], 'sorted' => true];
+            $sorted = ['solved' => [], 'tracked' => [], 'baseline' => [], 'drift' => [], 'spread' => [], 'sorted' => true];
 
             foreach ($order as $index) {
                 $count = count($sorted['solved']);
@@ -187,12 +280,24 @@ final class PaceTimeline
                     array_pop($sorted['baseline']);
                     $sorted['baseline'][] = $pair['baseline'][$index];
 
+                    if ($this->withStates) {
+                        array_pop($sorted['drift']);
+                        array_pop($sorted['spread']);
+                        $sorted['drift'][] = $pair['drift'][$index] ?? null;
+                        $sorted['spread'][] = $pair['spread'][$index] ?? null;
+                    }
+
                     continue;
                 }
 
                 $sorted['solved'][] = $pair['solved'][$index];
                 $sorted['tracked'][] = $pair['tracked'][$index];
                 $sorted['baseline'][] = $pair['baseline'][$index];
+
+                if ($this->withStates) {
+                    $sorted['drift'][] = $pair['drift'][$index] ?? null;
+                    $sorted['spread'][] = $pair['spread'][$index] ?? null;
+                }
             }
 
             $this->rows[$playerId][$piecesCount] = $sorted;

@@ -21,7 +21,9 @@ readonly final class PaceTimelineLoader
         h.pieces_count,
         EXTRACT(EPOCH FROM h.valid_from) AS solved_ts,
         EXTRACT(EPOCH FROM h.valid_from_tracked_at) AS tracked_ts,
-        h.baseline_seconds
+        h.baseline_seconds,
+        h.drift,
+        h.spread
     ';
 
     public function __construct(
@@ -30,12 +32,16 @@ readonly final class PaceTimelineLoader
     ) {
     }
 
+    /**
+     * Every row, without their drift and spread (the batch and the evaluation compute their own - PredictionEngine).
+     */
     public function all(null|float $scalingExponent = null): PaceTimeline
     {
-        $timeline = new PaceTimeline($this->baselineCalculator, $scalingExponent);
+        $timeline = new PaceTimeline($this->baselineCalculator, $scalingExponent, withStates: false);
 
         $this->addRows($timeline, $this->connection->executeQuery(
-            'SELECT ' . self::COLUMNS . ' FROM player_pace_history h ORDER BY h.player_id, h.pieces_count, h.valid_from, h.valid_from_tracked_at, h.qualifying_count',
+            'SELECT h.player_id, h.pieces_count, EXTRACT(EPOCH FROM h.valid_from) AS solved_ts, EXTRACT(EPOCH FROM h.valid_from_tracked_at) AS tracked_ts, h.baseline_seconds, NULL AS drift, NULL AS spread
+            FROM player_pace_history h ORDER BY h.player_id, h.pieces_count, h.valid_from, h.valid_from_tracked_at, h.qualifying_count',
         )->iterateAssociative());
 
         return $timeline;
@@ -160,8 +166,16 @@ readonly final class PaceTimelineLoader
     private function addRows(PaceTimeline $timeline, iterable $rows): void
     {
         foreach ($rows as $row) {
-            /** @var array{player_id: string, pieces_count: int|string, solved_ts: float|int|string, tracked_ts: float|int|string, baseline_seconds: int|string} $row */
-            $timeline->add($row['player_id'], (int) $row['pieces_count'], (float) $row['solved_ts'], (float) $row['tracked_ts'], (int) $row['baseline_seconds']);
+            /** @var array{player_id: string, pieces_count: int|string, solved_ts: float|int|string, tracked_ts: float|int|string, baseline_seconds: int|string, drift: null|float|string, spread: null|float|string} $row */
+            $timeline->add(
+                $row['player_id'],
+                (int) $row['pieces_count'],
+                (float) $row['solved_ts'],
+                (float) $row['tracked_ts'],
+                (int) $row['baseline_seconds'],
+                $row['drift'] !== null ? (float) $row['drift'] : null,
+                $row['spread'] !== null ? (float) $row['spread'] : null,
+            );
         }
     }
 }

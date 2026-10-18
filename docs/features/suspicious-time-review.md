@@ -76,7 +76,10 @@ results, 2026-09-25).
 For each solo time, the first available of:
 
 1. **`prediction`** - the stored prediction (`predictable = true`): baseline × difficulty × attempt, with no knowledge
-   of the solve itself. Repeat attempts always have one (the personal method).
+   of the solve itself. Repeat attempts always have one (the personal method). Since prediction model v3 (2026-10) a
+   first try's prediction counts only on a rated puzzle: one shrunk toward a prior from 1-4 indices
+   (`solving_time_prediction.difficulty_source = 'shrunk'`) is skipped by the scan and by the form check - the
+   expectations stay what they were (docs/TODO.md, "Time verification on shrunk predictions").
 2. **`baseline`** - the player's baseline for the piece count (`player_baseline`, direct or derived from other piece
    counts) × the puzzle's difficulty when it has one. These are first attempts without a prediction.
 3. **`pace`** - the player's pace on their other solo results within ±180 days of this one (≥ 5 results): each

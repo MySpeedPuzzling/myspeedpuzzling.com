@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Services\PuzzleIntelligence;
 use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Results\PaceHistorySyncResult;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\Model\FirstAttemptSet;
 use SpeedPuzzling\Web\Value\SkillTier;
 
 /**
@@ -39,13 +40,16 @@ readonly final class PuzzleIntelligenceRecalculator
         private DerivedMetricsCalculator $derivedMetricsCalculator,
         private MspRatingCalculator $ratingCalculator,
         private ImprovementRatioCalculator $improvementRatioCalculator,
+        private PaceTimelineLoader $paceTimelineLoader,
+        private PredictionModelRecalculator $predictionModelRecalculator,
     ) {
     }
 
     /**
-     * @return array{baselines_direct: int, baselines_interpolated: int, scaling_exponent: float, pace_history_changed_pairs: int, pace_history_rows_written: int, difficulties: int, metrics: int, improvement_ratios: int, skills: int, rating: int, history: int, snapshots: int, durations: array<string, float>}
+     * @param bool $refitPredictionModel fit the prediction model now, not only once a day (PredictionModelRecalculator)
+     * @return array{baselines_direct: int, baselines_interpolated: int, scaling_exponent: float, pace_history_changed_pairs: int, pace_history_rows_written: int, difficulties: int, prediction_model_fitted: bool, drift_rows_written: int, metrics: int, improvement_ratios: int, skills: int, rating: int, history: int, snapshots: int, durations: array<string, float>, peak_memory: array<string, int>}
      */
-    public function recalculate(null|string $specificPlayer = null, null|string $specificPuzzle = null): array
+    public function recalculate(null|string $specificPlayer = null, null|string $specificPuzzle = null, bool $refitPredictionModel = false): array
     {
         $now = $this->clock->now();
 
@@ -59,17 +63,24 @@ readonly final class PuzzleIntelligenceRecalculator
          *          Improvement ratios (independent — uses raw solve times only)
          * Level 3: Puzzle difficulty (indices = time ÷ the solver's pace-history row before the solve;
          *          interpolation/extrapolation uses the scaling exponent of the fresh baselines)
-         * Level 4: Global learning rate + derived metrics (uses difficulty)
+         *          Prediction model (full runs only): drift + spread on the pace history, once a day the fit
+         *          (priors, tau, thin sizes, windows) - uses the same in-memory first attempts as the difficulty
+         * Level 4: Global learning rate + derived metrics (uses difficulty; indices ÷ the as-of pace)
          * Level 5: Player skills + MSP Rating + personality metrics (use difficulty)
          * Level 6: Rating snapshots + skill history (uses skills + rating)
          */
 
-        // Seconds per step, printed by the command with -v (the batch's runtime budget)
+        // Seconds and the peak memory (MB) up to each step, printed by the command with -v (the batch's budget:
+        // it runs under PHP's 512 MB)
         $durations = [];
-        $step = static function (string $name, callable $run) use (&$durations): mixed {
+        $peakMemory = [];
+        $step = static function (string $name, callable $run) use (&$durations, &$peakMemory): mixed {
             $startedAt = microtime(true);
             $result = $run();
             $durations[$name] = round(microtime(true) - $startedAt, 2);
+            $peakMemory[$name] = (int) round(memory_get_peak_usage(true) / 1048576);
+            // Hand the step's freed memory back before the next one builds its own (the container has 512 MB)
+            gc_mem_caches();
 
             return $result;
         };
@@ -83,12 +94,24 @@ readonly final class PuzzleIntelligenceRecalculator
         $improvementRatios = $step('improvement_ratios', fn (): int => $this->computeImprovementRatios($now, $specificPlayer));
 
         // Level 3: Puzzle difficulty
-        /** @var int $difficulties */
-        $difficulties = $step('difficulty', fn (): int => $this->computePuzzleDifficulty($now, $specificPuzzle));
+        /** @var array{0: int, 1: null|FirstAttemptSet, 2: null|PaceTimeline} $difficulty */
+        $difficulty = $step('difficulty', fn (): array => $this->computePuzzleDifficulty($now, $specificPuzzle));
+        [$difficulties, $firstAttempts, $timeline] = $difficulty;
+
+        // Level 3: Prediction model - drift and spread for every pair, the daily fit
+        $predictionModel = ['fitted' => false, 'prior_groups' => 0, 'drift_rows_written' => 0];
+
+        if ($firstAttempts !== null && $timeline !== null && $specificPlayer === null && $specificPuzzle === null) {
+            /** @var array{fitted: bool, prior_groups: int, drift_rows_written: int} $predictionModel */
+            $predictionModel = $step('prediction_model', fn (): array => $this->predictionModelRecalculator->recalculate($firstAttempts, $timeline, $now, $refitPredictionModel));
+        }
+
+        unset($firstAttempts, $difficulty);
 
         // Level 4+5: Derived metrics, player skills, MSP Rating
         /** @var int $metrics */
-        $metrics = $step('derived_metrics', fn (): int => $this->computeDerivedMetrics($specificPuzzle));
+        $metrics = $step('derived_metrics', fn (): int => $this->computeDerivedMetrics($specificPuzzle, $timeline));
+        unset($timeline);
         /** @var int $skills */
         $skills = $step('skills', fn (): int => $this->computePlayerSkills($now, $specificPlayer));
         /** @var int $rating */
@@ -107,6 +130,8 @@ readonly final class PuzzleIntelligenceRecalculator
             'pace_history_changed_pairs' => $paceHistory->changedPairs,
             'pace_history_rows_written' => $paceHistory->deleted + $paceHistory->inserted,
             'difficulties' => $difficulties,
+            'prediction_model_fitted' => $predictionModel['fitted'],
+            'drift_rows_written' => $predictionModel['drift_rows_written'],
             'metrics' => $metrics,
             'improvement_ratios' => $improvementRatios,
             'skills' => $skills,
@@ -114,6 +139,7 @@ readonly final class PuzzleIntelligenceRecalculator
             'history' => $history,
             'snapshots' => $snapshots,
             'durations' => $durations,
+            'peak_memory' => $peakMemory,
         ];
     }
 
@@ -230,16 +256,24 @@ readonly final class PuzzleIntelligenceRecalculator
         ];
     }
 
-    private function computePuzzleDifficulty(\DateTimeImmutable $now, null|string $specificPuzzle): int
+    /**
+     * @return array{0: int, 1: null|FirstAttemptSet, 2: null|PaceTimeline} difficulties, and for a run over every puzzle the
+     *                                                                  first attempts and the pace timeline loaded for them
+     */
+    private function computePuzzleDifficulty(\DateTimeImmutable $now, null|string $specificPuzzle): array
     {
         // A full run has just built the pace history; a --player run before the first full one has not -
         // the stored difficulties stay until then
         if ($this->paceHistoryReadiness->isBuilt() === false) {
-            return 0;
+            return [0, null, null];
         }
 
+        $firstAttempts = null;
+        $timeline = null;
+
         if ($specificPuzzle === null) {
-            $this->difficultyCalculator->preloadAllData();
+            $timeline = $this->paceTimelineLoader->all();
+            $firstAttempts = $this->difficultyCalculator->preloadAllData($timeline);
         }
 
         $puzzleIds = $this->getPuzzlesWithSolves($specificPuzzle);
@@ -277,13 +311,13 @@ readonly final class PuzzleIntelligenceRecalculator
 
         $this->difficultyCalculator->clearPreloadedData();
 
-        return $count;
+        return [$count, $firstAttempts, $timeline];
     }
 
-    private function computeDerivedMetrics(null|string $specificPuzzle): int
+    private function computeDerivedMetrics(null|string $specificPuzzle, null|PaceTimeline $timeline): int
     {
         if ($specificPuzzle === null) {
-            $this->derivedMetricsCalculator->preloadAllData();
+            $this->derivedMetricsCalculator->preloadAllData($timeline);
         }
 
         $puzzleIds = $this->getPuzzlesWithDifficulty($specificPuzzle);

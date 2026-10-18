@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Message\BackfillSolvingTimePredictions;
 use SpeedPuzzling\Web\Query\GetPlayersWithPendingPredictions;
 use SpeedPuzzling\Web\Results\TimePredictionResult;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\PuzzleIntelligenceRecalculator;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\TimePredictionCalculator;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
 use SpeedPuzzling\Web\Value\SolvingTimePrediction;
@@ -98,6 +99,74 @@ final class BackfillSolvingTimePredictionsHandlerTest extends KernelTestCase
         self::assertSame(1234, $row['predicted_seconds']);
         self::assertSame('live', $row['prediction_source']);
         self::assertSame('2026-09-01 10:00:00', $row['prediction_computed_at']);
+    }
+
+    /**
+     * Every evaluated solo time also gets the statistical predictor's side-by-side row of the current model - the
+     * live one keeps its shown prediction and gets a reconstructed side row.
+     */
+    public function testWritesTheSideBySideRowOfEveryEvaluatedTime(): void
+    {
+        $this->backfill(PlayerFixture::PLAYER_REGULAR);
+
+        /** @var int|string $solo */
+        $solo = $this->database->fetchOne(
+            "SELECT COUNT(*) FROM puzzle_solving_time WHERE player_id = :player AND puzzling_type = 'solo' AND seconds_to_solve IS NOT NULL",
+            ['player' => PlayerFixture::PLAYER_REGULAR],
+        );
+        /** @var list<array{source: string, model_version: int, predictable: bool, shown_predictable: bool, shown_seconds: null|int, predicted_seconds: null|int, k_indices: null|int}> $rows */
+        $rows = $this->database->fetchAllAssociative("
+            SELECT r.source, r.model_version, r.predictable, pst.predictable AS shown_predictable, pst.predicted_seconds AS shown_seconds, r.predicted_seconds, r.k_indices
+            FROM solving_time_prediction r
+            JOIN puzzle_solving_time pst ON pst.id = r.time_id
+            WHERE pst.player_id = :player AND r.predictor = 'statistical'
+        ", ['player' => PlayerFixture::PLAYER_REGULAR]);
+
+        self::assertCount((int) $solo, $rows);
+
+        foreach ($rows as $row) {
+            self::assertSame('reconstructed', $row['source']);
+            self::assertSame(TimePredictionCalculator::MODEL_VERSION, $row['model_version']);
+
+            // The shown prediction is the side-by-side one, except a prior-only one (not shown)
+            if ($row['k_indices'] !== 0) {
+                self::assertSame($row['predictable'], $row['shown_predictable']);
+                self::assertSame($row['predicted_seconds'], $row['shown_seconds']);
+            }
+        }
+    }
+
+    /**
+     * --recompute-reconstructed: a shown prediction reconstructed by an older model is replaced, a live one never.
+     */
+    public function testRecomputingReplacesOnlyReconstructionsOfOlderModels(): void
+    {
+        $this->backfill(PlayerFixture::PLAYER_REGULAR);
+        $this->database->executeStatement(
+            "UPDATE puzzle_solving_time SET prediction_model_version = 2, predicted_seconds = 1234, prediction_source = 'reconstructed' WHERE id = :id",
+            ['id' => PuzzleSolvingTimeFixture::TIME_08],
+        );
+        $this->database->executeStatement(
+            "UPDATE puzzle_solving_time SET prediction_model_version = 2, predicted_seconds = 4321, prediction_source = 'live' WHERE id = :id",
+            ['id' => PuzzleSolvingTimeFixture::TIME_01],
+        );
+        // The command clears the entity manager after every player
+        self::getContainer()->get(EntityManagerInterface::class)->clear();
+
+        self::assertSame(0, $this->backfill(PlayerFixture::PLAYER_REGULAR), 'Without the option an older reconstruction stays');
+
+        $envelope = $this->messageBus->dispatch(new BackfillSolvingTimePredictions(PlayerFixture::PLAYER_REGULAR, recomputeReconstructed: true));
+        self::assertSame(1, $envelope->last(HandledStamp::class)?->getResult());
+
+        /** @var array<string, array{predicted_seconds: int, prediction_model_version: int, prediction_source: string}> $rows */
+        $rows = $this->database->fetchAllAssociativeIndexed(
+            'SELECT id, predicted_seconds, prediction_model_version, prediction_source FROM puzzle_solving_time WHERE id IN (:a, :b)',
+            ['a' => PuzzleSolvingTimeFixture::TIME_08, 'b' => PuzzleSolvingTimeFixture::TIME_01],
+        );
+        self::assertNotSame(1234, $rows[PuzzleSolvingTimeFixture::TIME_08]['predicted_seconds']);
+        self::assertSame(TimePredictionCalculator::MODEL_VERSION, $rows[PuzzleSolvingTimeFixture::TIME_08]['prediction_model_version']);
+        self::assertSame(4321, $rows[PuzzleSolvingTimeFixture::TIME_01]['predicted_seconds']);
+        self::assertSame('live', $rows[PuzzleSolvingTimeFixture::TIME_01]['prediction_source']);
     }
 
     /**

@@ -240,6 +240,15 @@ return static function (ContainerConfigurator $configurator): void {
             __DIR__ . '/../src/Services/SuspiciousTimes/SuspiciousTimeScanTally.php',
             // one key of a rate limit, made by its factory; the factories are set up per limit below (online_rate_limiter.*)
             __DIR__ . '/../src/Services/RateLimiting/',
+            // the prediction model's in-memory data of one batch run or evaluation, and the priors' values - not services
+            __DIR__ . '/../src/Services/PuzzleIntelligence/Model/FirstAttemptSet.php',
+            __DIR__ . '/../src/Services/PuzzleIntelligence/Model/PriorLookup.php',
+            __DIR__ . '/../src/Services/PuzzleIntelligence/Model/PredictionEngine.php',
+            __DIR__ . '/../src/Services/PuzzleIntelligence/Model/RepeatHistory.php',
+            __DIR__ . '/../src/Services/PuzzleIntelligence/Model/EvaluationGroups.php',
+            __DIR__ . '/../src/Services/PuzzleIntelligence/Model/NormalEquations.php',
+            __DIR__ . '/../src/Services/PuzzleIntelligence/Prior/PriorContext.php',
+            __DIR__ . '/../src/Services/PuzzleIntelligence/Prior/PriorEstimate.php',
         ]);
 
     // framework.session.handler_id. After the Services load, which would otherwise

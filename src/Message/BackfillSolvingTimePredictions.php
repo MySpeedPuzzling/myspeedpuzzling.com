@@ -5,7 +5,8 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Message;
 
 /**
- * Reconstructs the prediction of every pending solo time of one player, plus the listed times even
+ * Reconstructs the prediction of every pending solo time of one player and the side-by-side row of the
+ * current model (solving_time_prediction) of every solo time that has none, plus the listed times even
  * when they already carry one (an edit invalidated it, and a backfill that was already running may
  * have written a prediction for the time's old data in the meantime). Handled synchronously by the
  * backfill command (one message per player) and asynchronously after a back-dated add or an edit
@@ -21,6 +22,8 @@ readonly final class BackfillSolvingTimePredictions
         public string $playerId,
         /** @var list<string> */
         public array $reevaluateTimeIds = [],
+        // Also replace shown predictions reconstructed by an older model version (live ones are history, never)
+        public bool $recomputeReconstructed = false,
     ) {
     }
 }

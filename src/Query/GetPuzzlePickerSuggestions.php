@@ -10,6 +10,7 @@ use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Results\PuzzlePickerPick;
 use SpeedPuzzling\Web\Results\PuzzlePickerSuggestion;
 use SpeedPuzzling\Web\Results\TimePredictionResult;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\StatisticalInputsSql;
 use SpeedPuzzling\Web\Value\PuzzlePickerCriteria;
 use SpeedPuzzling\Web\Value\PuzzlePickerGap;
 use SpeedPuzzling\Web\Value\PuzzlePickerOrder;
@@ -42,9 +43,10 @@ use SpeedPuzzling\Web\Value\PuzzlePickerOrder;
  * Insights layer (members, design doc §6.4): only when an insights filter is
  * active are puzzle_difficulty / player_baseline / puzzle_statistics joined
  * *before* the LIMIT. My personal predictions (bulk GetPlayerPredictions, PHP)
- * are handed to SQL as unnest(ids, seconds); the statistical fallback
- * round(baseline × difficulty) is plain arithmetic, so one query still does the
- * filtering, the gap ordering and the sampling.
+ * are handed to SQL as unnest(ids, seconds); the statistical fallback is the
+ * calculator's centre in SQL (StatisticalInputsSql::centreSql(): pace × difficulty
+ * × drift, shrunk difficulty for 1-4 indices, the 500-scaled pace for thin sizes),
+ * so one query still does the filtering, the gap ordering and the sampling.
  */
 readonly final class GetPuzzlePickerSuggestions
 {
@@ -152,18 +154,27 @@ readonly final class GetPuzzlePickerSuggestions
             $insightsConditions .= "\n        AND " . $criteria->community->sqlCondition('ps.solved_times_solo_count');
         }
 
+        $predictionCte = '';
+
         if ($playerId !== null && $needsPredictions) {
             [$predictionIds, $predictionSeconds] = self::predictionArrays($this->getPlayerPredictions->forAllSolvedPuzzles($playerId));
+            // The statistical fallback is TimePredictionCalculator::statistical()'s centre in SQL (pinned equal by the tests)
+            [$centre, $centreParams] = StatisticalInputsSql::centreSql($this->getPlayerPredictions->modelParameters($playerId));
+            $params = [...$params, ...$centreParams];
+            $predictionCte = StatisticalInputsSql::ownPaceCte() . ',';
+            $paceJoins = StatisticalInputsSql::ownPaceCteJoins();
+            $notSecret = StatisticalInputsSql::NOT_SECRET;
 
             $insightsJoins .= <<<SQL
 
     LEFT JOIN player_baseline pb ON pb.player_id = :playerId AND pb.pieces_count = p.pieces_count
+    LEFT JOIN player_baseline pb500 ON pb500.player_id = :playerId AND pb500.pieces_count = 500 AND pb500.baseline_type = 'direct'
+    LEFT JOIN difficulty_prior_group g ON g.manufacturer_id = p.manufacturer_id AND g.pieces_count = p.pieces_count AND {$notSecret}
+    LEFT JOIN difficulty_prior_puzzle dpp ON dpp.puzzle_id = p.id
+    {$paceJoins}
     LEFT JOIN unnest(:predictionIds::uuid[], :predictionSeconds::int[]) AS pp(puzzle_id, predicted) ON pp.puzzle_id = p.id
     CROSS JOIN LATERAL (
-        SELECT COALESCE(
-            pp.predicted,
-            CASE WHEN pd.difficulty_score IS NOT NULL AND pd.confidence <> 'insufficient' THEN round(pb.baseline_seconds * pd.difficulty_score)::int END
-        ) AS predicted_seconds
+        SELECT COALESCE(pp.predicted, {$centre}) AS predicted_seconds
     ) pr
     CROSS JOIN LATERAL (
         SELECT CASE WHEN COALESCE(s.solve_count_solo, 0) > 0 THEN s.fastest_seconds - pr.predicted_seconds END AS gap_seconds
@@ -196,7 +207,7 @@ SQL;
         }
 
         $query = <<<SQL
-WITH my_solves AS (
+WITH {$predictionCte} my_solves AS (
     SELECT
         pst.puzzle_id,
         count(*) AS solve_count_any,

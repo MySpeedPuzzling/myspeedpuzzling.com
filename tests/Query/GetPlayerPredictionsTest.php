@@ -88,9 +88,9 @@ final class GetPlayerPredictionsTest extends KernelTestCase
         // Make sure the sweep exercised real cases, not an empty intersection
         self::assertGreaterThanOrEqual(20, $personalPairs);
         self::assertGreaterThan(0, $absentPairs);
-        // Every fixture player has solved every scored puzzle, so a statistical
-        // case never occurs naturally here - it is covered by the dedicated test
-        self::assertSame(0, $statisticalPairs);
+        // Every fixture player has solved every rated puzzle; the statistical cases here are
+        // the puzzles with 1-4 difficulty indices, predicted with a shrunk difficulty (model v3)
+        self::assertGreaterThan(0, $statisticalPairs);
     }
 
     public function testRegularPlayerOnPuzzle50002IsAPersonalPredictionFromThreeAttempts(): void

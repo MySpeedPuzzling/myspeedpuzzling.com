@@ -17,7 +17,11 @@ use SpeedPuzzling\Web\Services\PuzzleIntelligence\PlayerPaceHistoryCalculator;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\PlayerPaceHistoryWriter;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\PlayerSkillCalculator;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\PuzzleDifficultyCalculator;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\Model\PredictionModelFitter;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\PredictionModelParametersProvider;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\PredictionModelRecalculator;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\PuzzleIntelligenceRecalculator;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\TimePredictionCalculator;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Clock\MockClock;
@@ -487,6 +491,7 @@ final class PuzzleIntelligenceRecalculatorWritesTest extends KernelTestCase
         $clock = new MockClock($now);
         $baselineCalculator = new PlayerBaselineCalculator($this->connection, $clock);
         $paceHistoryReadiness = new PaceHistoryReadiness($this->connection);
+        $paceTimelineLoader = new PaceTimelineLoader($this->connection, $baselineCalculator);
 
         (new PuzzleIntelligenceRecalculator(
             $this->connection,
@@ -494,11 +499,18 @@ final class PuzzleIntelligenceRecalculatorWritesTest extends KernelTestCase
             $baselineCalculator,
             new PlayerPaceHistoryWriter($this->connection, $baselineCalculator, new PlayerPaceHistoryCalculator($baselineCalculator), $paceHistoryReadiness),
             $paceHistoryReadiness,
-            new PuzzleDifficultyCalculator($baselineCalculator, new PaceTimelineLoader($this->connection, $baselineCalculator)),
+            new PuzzleDifficultyCalculator($baselineCalculator, $paceTimelineLoader),
             new PlayerSkillCalculator($this->connection, $clock),
-            new DerivedMetricsCalculator($this->connection),
+            new DerivedMetricsCalculator($this->connection, $paceTimelineLoader, $paceHistoryReadiness),
             new MspRatingCalculator($this->connection, $clock),
             new ImprovementRatioCalculator($this->connection),
+            $paceTimelineLoader,
+            new PredictionModelRecalculator(
+                $this->connection,
+                new TimePredictionCalculator(),
+                new PredictionModelFitter(),
+                new PredictionModelParametersProvider($this->connection),
+            ),
         ))->recalculate();
     }
 

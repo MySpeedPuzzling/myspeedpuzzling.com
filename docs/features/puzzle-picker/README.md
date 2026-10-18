@@ -358,6 +358,12 @@ tables in one query, and runs the existing per-puzzle math in a loop — a parit
 gap/prediction filter is active: personal predictions for the player's solved puzzles are passed
 into the SQL as `unnest(:ids, :predictions)` so *one* query still does filtering, ordering and
 sampling; `predicted = COALESCE(pp.predicted, round(pb.baseline_seconds * pd.difficulty_score))`.
+**Since prediction model v3 (Insights 3b, 2026-10)** the statistical fallback is the calculator's centre in SQL,
+`StatisticalInputsSql::centreSql()`: pace (own, or the 500-scaled one of a thin-size rule) × difficulty (median from 5
+indices, shrunk toward the brand prior for 1-4) × the player's drift, with the player's latest pace rows read once per
+statement (a DISTINCT ON relation) and the fitted parameters from `GetPlayerPredictions::modelParameters()` (taken with
+the personal pass, no query of its own). Puzzles with 1-4 solves now get a prediction; one without any index does not.
+Pinned equal to `GetPlayerPredictions` by `GetPuzzlePickerSuggestionsTest`, thin sizes included.
 Collections use the same service for their visible items. Cache the per-player result for a few
 minutes (Symfony cache pool, keyed by player + latest solve id) so "5 more"/back navigation is free.
 

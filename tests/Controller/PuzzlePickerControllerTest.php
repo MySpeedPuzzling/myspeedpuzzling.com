@@ -264,7 +264,8 @@ final class PuzzlePickerControllerTest extends WebTestCase
         $this->recalculateIntelligence($browser);
 
         // PLAYER_WITH_STRIPE's 500-piece shelf: 500_01, 500_02 (scored, solved by her -> personal
-        // predictions), 500_04, 500_05 (no difficulty -> no prediction possible)
+        // predictions), 500_04 (a few difficulty indices -> a shrunk statistical prediction, model v3),
+        // 500_05 (no index -> no prediction shown)
         $crawler = $browser->request('GET', '/en/what-to-solve-next?pieces[]=500&seed=abcd1234');
 
         $this->assertResponseIsSuccessful();
@@ -273,8 +274,8 @@ final class PuzzlePickerControllerTest extends WebTestCase
         self::assertCount(4, $crawler->filter('.puzzle-picker-card'));
         self::assertCount(2, $crawler->filter('.puzzle-picker-card .puzzle-picker-difficulty'), 'Difficulty tier on the two scored puzzles');
         self::assertStringContainsString('Average', $crawler->filter('.puzzle-picker-difficulty')->first()->text());
-        self::assertCount(2, $crawler->filter('.puzzle-picker-card .puzzle-picker-prediction'), 'Prediction row on the two puzzles with a prediction');
-        self::assertCount(2, $crawler->filter('.puzzle-picker-card .puzzle-picker-prediction-unavailable'));
+        self::assertCount(3, $crawler->filter('.puzzle-picker-card .puzzle-picker-prediction'), 'Prediction row on the three puzzles with a prediction');
+        self::assertCount(1, $crawler->filter('.puzzle-picker-card .puzzle-picker-prediction-unavailable'));
         self::assertCount(2, $crawler->filter('.puzzle-picker-card .puzzle-picker-prediction-vs-best'), 'Both predicted puzzles have a personal best to compare with');
         self::assertCount(0, $crawler->filter('.puzzle-picker-prediction-locked'));
         self::assertCount(0, $crawler->filter('.puzzle-picker-prediction-opted-out'));

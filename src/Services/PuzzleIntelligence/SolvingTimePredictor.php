@@ -7,9 +7,13 @@ namespace SpeedPuzzling\Web\Services\PuzzleIntelligence;
 use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use Psr\Log\LoggerInterface;
+use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\PuzzleSolvingTime;
+use SpeedPuzzling\Web\Entity\SolvingTimePredictionRecord;
 use SpeedPuzzling\Web\Message\BackfillSolvingTimePredictions;
 use SpeedPuzzling\Web\Query\GetPlayerPrediction;
+use SpeedPuzzling\Web\Repository\SolvingTimePredictionRecordRepository;
+use SpeedPuzzling\Web\Value\PredictorKind;
 use SpeedPuzzling\Web\Value\SolveMoment;
 use SpeedPuzzling\Web\Value\SolvingTimePrediction;
 use SpeedPuzzling\Web\Value\TimePredictionSource;
@@ -26,6 +30,11 @@ use Throwable;
  * recalculation has not folded it in. A back-dated time would be predicted from tables that already
  * hold everything after its date, and an edited time is already in them itself - those two get a
  * reconstructed prediction from the async backfill message instead.
+ *
+ * Every live prediction is stored twice: as the shown prediction (the columns on the time, without prior-only
+ * predictions - SolvingTimePrediction::forDisplay()) and as the statistical predictor's side-by-side row of the
+ * current model version (solving_time_prediction, persisted with the time in the handler's flush - a plain insert of
+ * computed values; the reads that could fail ran inside the savepoint).
  */
 readonly final class SolvingTimePredictor
 {
@@ -35,6 +44,7 @@ readonly final class SolvingTimePredictor
         private ClockInterface $clock,
         private MessageBusInterface $messageBus,
         private LoggerInterface $logger,
+        private SolvingTimePredictionRecordRepository $recordRepository,
     ) {
     }
 
@@ -63,6 +73,7 @@ readonly final class SolvingTimePredictor
                 $time->puzzle->id->toString(),
                 excludeTimeId: $time->id->toString(),
                 before: SolveMoment::of($time->finishedAt, $time->trackedAt),
+                allowPriorOnly: true,
             );
 
             $this->connection->commit();
@@ -79,12 +90,13 @@ readonly final class SolvingTimePredictor
             return;
         }
 
-        $time->recordPrediction(
-            $result !== null
-                ? SolvingTimePrediction::predicted($result, TimePredictionSource::Live)
-                : SolvingTimePrediction::notPredictable(TimePredictionSource::Live),
-            $this->clock->now(),
-        );
+        $prediction = $result !== null
+            ? SolvingTimePrediction::predicted($result, TimePredictionSource::Live)
+            : SolvingTimePrediction::notPredictable(TimePredictionSource::Live);
+        $now = $this->clock->now();
+
+        $time->recordPrediction($prediction->forDisplay(), $now);
+        $this->recordRepository->save(new SolvingTimePredictionRecord(Uuid::uuid7(), $time, PredictorKind::Statistical, $prediction->modelVersion, $prediction, $now));
     }
 
     /**

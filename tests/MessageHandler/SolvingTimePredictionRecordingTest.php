@@ -16,6 +16,7 @@ use SpeedPuzzling\Web\Message\EditPuzzleSolvingTime;
 use SpeedPuzzling\Web\Query\GetPlayerPrediction;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\PuzzleIntelligenceRecalculator;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\TimePredictionCalculator;
+use SpeedPuzzling\Web\Tests\DataFixtures\CompetitionApiFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
@@ -77,6 +78,33 @@ final class SolvingTimePredictionRecordingTest extends KernelTestCase
         self::assertSame(1700, $row['prediction_last_time_seconds']);
         self::assertSame(TimePredictionCalculator::MODEL_VERSION, $row['prediction_model_version']);
         self::assertSame([], $this->queuedReconstructions());
+
+        // ... and side by side, as the statistical predictor's live row of the current model
+        $side = $this->sideRow($timeId);
+        self::assertSame('live', $side['source']);
+        self::assertTrue($side['predictable']);
+        self::assertSame('personal', $side['method']);
+        self::assertSame($shownBefore->predictedSeconds, $side['predicted_seconds']);
+        self::assertSame($shownBefore->rangeLowSeconds, $side['range50_low']);
+        self::assertSame($shownBefore->range80HighSeconds, $side['range80_high']);
+        self::assertNotNull($side['window_bucket']);
+    }
+
+    /**
+     * Nobody solved PUZZLE_HIDDEN_IMAGE (hidden only inside its competition round), its brand has enough indices at
+     * 500 pieces: the side-by-side row predicts it from the prior alone, the shown prediction says not predictable.
+     */
+    public function testAPriorOnlyPredictionIsStoredSideBySideButNotShown(): void
+    {
+        $timeId = $this->addSoloTime(CompetitionApiFixture::PUZZLE_HIDDEN_IMAGE, '00:40:00', finishedAt: null);
+
+        self::assertFalse($this->predictionRow($timeId)['predictable']);
+
+        $side = $this->sideRow($timeId);
+        self::assertTrue($side['predictable']);
+        self::assertSame(0, $side['k_indices']);
+        self::assertSame('shrunk', $side['difficulty_source']);
+        self::assertNotNull($side['prior_log']);
     }
 
     public function testAYesterdaySolveIsStillPredictedLive(): void
@@ -249,6 +277,22 @@ final class SolvingTimePredictionRecordingTest extends KernelTestCase
             ['id' => $timeId],
         );
         self::assertNotFalse($row);
+
+        return $row;
+    }
+
+    /**
+     * @return array{source: string, predictable: bool, method: null|string, predicted_seconds: null|int, range50_low: null|int, range80_high: null|int, k_indices: null|int, difficulty_source: null|string, prior_log: null|float, window_bucket: null|string}
+     */
+    private function sideRow(string $timeId): array
+    {
+        /** @var array{source: string, predictable: bool, method: null|string, predicted_seconds: null|int, range50_low: null|int, range80_high: null|int, k_indices: null|int, difficulty_source: null|string, prior_log: null|float, window_bucket: null|string}|false $row */
+        $row = $this->database->fetchAssociative(
+            "SELECT source, predictable, method, predicted_seconds, range50_low, range80_high, k_indices, difficulty_source, prior_log, window_bucket
+             FROM solving_time_prediction WHERE time_id = :id AND predictor = 'statistical' AND model_version = :version",
+            ['id' => $timeId, 'version' => TimePredictionCalculator::MODEL_VERSION],
+        );
+        self::assertNotFalse($row, 'The side-by-side row was written');
 
         return $row;
     }

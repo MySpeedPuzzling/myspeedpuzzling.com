@@ -12,8 +12,12 @@ use SpeedPuzzling\Web\Entity\CompetitionRound;
 use SpeedPuzzling\Web\Entity\CompetitionRoundPuzzle;
 use SpeedPuzzling\Web\Entity\PuzzleSolvingTime;
 use SpeedPuzzling\Web\Entity\PuzzlingTeamMember;
+use SpeedPuzzling\Web\Entity\SolvingTimePredictionRecord;
 use SpeedPuzzling\Web\Exceptions\PuzzleSolvingTimeNotFound;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\TimePredictionCalculator;
+use SpeedPuzzling\Web\Value\PredictorKind;
 use SpeedPuzzling\Web\Value\PuzzlingType;
+use SpeedPuzzling\Web\Value\TimePredictionSource;
 
 readonly final class PuzzleSolvingTimeRepository
 {
@@ -102,14 +106,15 @@ readonly final class PuzzleSolvingTimeRepository
     }
 
     /**
-     * Solo times with seconds of the player whose prediction was not evaluated yet, plus the listed ones.
-     * Locked for the rest of the transaction: an edit of one of them waits until the new predictions are
+     * Solo times with seconds of the player whose prediction was not evaluated yet or that have no side-by-side row of
+     * the current model version (solving_time_prediction), plus the listed ones - and with $recomputeReconstructed the
+     * ones whose shown prediction is a reconstruction of an older model. Locked for the rest of the transaction: an edit of one of them waits until the new predictions are
      * committed, and two reconstructions of one player never interleave.
      *
      * @param list<string> $alsoTimeIds
      * @return list<PuzzleSolvingTime>
      */
-    public function findForPredictionOfPlayer(string $playerId, array $alsoTimeIds = []): array
+    public function findForPredictionOfPlayer(string $playerId, array $alsoTimeIds = [], bool $recomputeReconstructed = false): array
     {
         $queryBuilder = $this->entityManager->createQueryBuilder()
             ->select('time')
@@ -118,15 +123,27 @@ readonly final class PuzzleSolvingTimeRepository
             ->andWhere('time.puzzlingType = :solo')
             ->andWhere('time.secondsToSolve IS NOT NULL')
             ->setParameter('playerId', $playerId)
-            ->setParameter('solo', PuzzlingType::Solo);
+            ->setParameter('solo', PuzzlingType::Solo)
+            ->setParameter('statistical', PredictorKind::Statistical)
+            ->setParameter('modelVersion', TimePredictionCalculator::MODEL_VERSION);
 
-        if ($alsoTimeIds === []) {
-            $queryBuilder->andWhere('time.predictable IS NULL');
-        } else {
-            $queryBuilder
-                ->andWhere('time.predictable IS NULL OR time.id IN (:alsoTimeIds)')
-                ->setParameter('alsoTimeIds', $alsoTimeIds);
+        // Pending, or without the current model's side-by-side row (solving_time_prediction)
+        $conditions = [
+            'time.predictable IS NULL',
+            'NOT EXISTS (SELECT 1 FROM ' . SolvingTimePredictionRecord::class . ' record WHERE record.time = time AND record.predictor = :statistical AND record.modelVersion = :modelVersion)',
+        ];
+
+        if ($alsoTimeIds !== []) {
+            $conditions[] = 'time.id IN (:alsoTimeIds)';
+            $queryBuilder->setParameter('alsoTimeIds', $alsoTimeIds);
         }
+
+        if ($recomputeReconstructed) {
+            $conditions[] = '(time.predictionSource = :reconstructed AND time.predictionModelVersion < :modelVersion)';
+            $queryBuilder->setParameter('reconstructed', TimePredictionSource::Reconstructed);
+        }
+
+        $queryBuilder->andWhere(implode(' OR ', $conditions));
 
         /** @var list<PuzzleSolvingTime> */
         return $queryBuilder

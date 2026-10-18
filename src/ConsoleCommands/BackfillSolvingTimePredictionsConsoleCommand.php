@@ -21,7 +21,7 @@ use Throwable;
 
 #[AsCommand(
     'myspeedpuzzling:backfill-solving-time-predictions',
-    'Reconstructs the prediction of every solo time that has none yet, one player at a time. Safe to interrupt and to run again; daily it heals whatever the live recording missed.',
+    'Reconstructs the prediction of every solo time that has none yet (shown, and side by side for the current model), one player at a time. Safe to interrupt and to run again; daily it heals whatever the live recording missed.',
 )]
 final class BackfillSolvingTimePredictionsConsoleCommand extends Command
 {
@@ -40,6 +40,7 @@ final class BackfillSolvingTimePredictionsConsoleCommand extends Command
     {
         $this->addOption('player', null, InputOption::VALUE_REQUIRED, 'Only this player (uuid)');
         $this->addOption('limit', null, InputOption::VALUE_REQUIRED, 'Stop after this many players');
+        $this->addOption('recompute-reconstructed', null, InputOption::VALUE_NONE, 'Also replace shown predictions reconstructed by an older model version (live ones stay)');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -51,7 +52,8 @@ final class BackfillSolvingTimePredictionsConsoleCommand extends Command
         /** @var null|string $limitOption */
         $limitOption = $input->getOption('limit');
 
-        $playerIds = $playerOption !== null ? [$playerOption] : $this->getPlayersWithPendingPredictions->all();
+        $recompute = (bool) $input->getOption('recompute-reconstructed');
+        $playerIds = $playerOption !== null ? [$playerOption] : $this->getPlayersWithPendingPredictions->all($recompute);
 
         if ($limitOption !== null) {
             $playerIds = array_slice($playerIds, 0, max(1, (int) $limitOption));
@@ -74,7 +76,7 @@ final class BackfillSolvingTimePredictionsConsoleCommand extends Command
 
         foreach ($playerIds as $index => $playerId) {
             try {
-                $envelope = $this->messageBus->dispatch(new BackfillSolvingTimePredictions($playerId));
+                $envelope = $this->messageBus->dispatch(new BackfillSolvingTimePredictions($playerId, recomputeReconstructed: $recompute));
 
                 /** @var int $recorded */
                 $recorded = $envelope->last(HandledStamp::class)?->getResult() ?? 0;

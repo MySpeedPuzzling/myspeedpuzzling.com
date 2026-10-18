@@ -11,8 +11,8 @@ state, PR, merge and deploy, deviations from the plan (and why), follow-ups.
 | 2 Mac pipeline | in progress | | | | stream below |
 | Backfill (M3 Max + M1 Air sessions) | not started | - | - | - | starts after 1 + 2 are deployed; ≈ 5.5 days |
 | 3 Prediction fix | in progress (3a) | | | | streams below |
-| 4 Insights computation | not started | | | | |
-| 5 Image intelligence on the server | not started | | | | |
+| 4 Insights computation | in progress (4a) | | | | streams below |
+| 5 Image intelligence on the server | in progress (5a) | | | | streams below |
 | 6 Display behind INSIGHTS_PUBLIC | not started | | | | |
 | Launch (flag removed) | not started | | | | waits for the backfill + gates |
 
@@ -42,6 +42,21 @@ Orchestrator session started 2026-10-18 (prompt: implementation-plan.md §9.1). 
 
 3a can merge alone (tier moves approved by Jan). 3b and 3c merge back to back (the new wording promises calibrated windows).
 §3.6 acceptance numbers are measured on a scratch copy of the dev DB (production copy) with the evaluation command, never on `speedpuzzling` itself.
+
+### Phase 4 + 5 stream plan (2026-10-18)
+
+Phases 4 and 5 are split so the parts that do not need the Phase 3 model start at once (deviation from the strict
+3 → 4 → 5 order, decided for throughput; nothing visible changes).
+
+| Stream | Branch | Scope (plan §) | Depends on | Migration |
+|---|---|---|---|---|
+| **4a** batch additions | `insights/phase-4a` | §4.1: run marker / generation, `player_rating_entry` (changed rows only), per-puzzle sorted time arrays, pair/team coordination constants, daily profile-card percentiles (7 axes), distinct solvers per puzzle | - | yes |
+| **4b** read models + core builders | `insights/phase-4b` | §4.2 (`GetInsightsSoloResults`, `GetInsightsGroupResults`, `GetCloseCalls` + parity, hydrate), §4.3 `InsightsCriteria`, `InsightsBuilder` (form, skill map, histogram, expected vs actual, learning curve, habits, consistency, accuracy, findings, profile card), §4.5 query budget + performance guard | 3a, 3b, 4a | maybe |
+| **4c** rating + extras builders, cache | `insights/phase-4c` | §4.3 `RatingOpportunities`, `RatingForecast`, `ResolveRadar`, `PairsTeamsSynergy`, `ImprovementCurve`, `RatingOverTime`, `ShelfPicks`; §4.4 cache `insights_cache` + monthly snapshot | 4a, 4b | yes (snapshot) |
+| **5a** tags + box-text list | `insights/phase-5a` | §5.5 taxonomy registry (6 locales), `puzzle_tag` from the `tags` analyzer (cron), `puzzle_tag_correction` (internal API first); §5.6 `/admin/box-text-mismatches` with Dismiss / Ignore, `box_text_mismatch_decision` | Phase 2 payloads | yes |
+| **5b** estimates storage + labels | `insights/phase-5b` | §5.1 labels endpoint (as-of, aggregates only), §5.2 `puzzle_difficulty_estimate` + `PUT` batch + model record endpoint | 3a | yes |
+| **5c** Mac `difficulty_prior` derive | `insights/phase-5c` | §5.3 ridge, out-of-fold, validation, push guard (Python, fakes only) | 5b | - |
+| **5d** image prior in the app + gates | `insights/phase-5d` | §5.4 `ImageEstimatePrior`, image / blend rows in `solving_time_prediction`, `myspeedpuzzling:evaluate-image-estimates`, `ImageEstimateGate`; §5.8 canary | 3b, 5b | maybe |
 
 Merge order: 1a → 1b → 1c → 2 (2 is built in parallel against the documented contract, merged after 1a/1b are on main).
 Phase 3 starts as soon as a subagent slot frees (1a is small).

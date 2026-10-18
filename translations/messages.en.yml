@@ -3078,6 +3078,10 @@ collections:
         solved_times: "Solved %count%×"
         fastest: "fastest %time%"
         latest: "latest %time%"
+        solo: "Solo:"
+        pair: "Pair:"
+        team: "Team:"
+        relax: "%count%× relax"
     meta:
         title: "Puzzle Library"
         description: "%name%'s puzzle library on MySpeedPuzzling: jigsaw puzzle collections, solved and unsolved puzzles, wish list and puzzles for sale or swap."
@@ -6540,7 +6544,6 @@ puzzle_picker:
         solved_times: "solved %count%×"
         last_solved: "last time %ago%"
         not_solved_yet: "You haven't solved this one yet"
-        no_solo_time: "No solo time yet – solved in a team"
         first_time: "First time:"
         community: "Community:"
         community_stats: "avg. %average% · %count% solo solves"

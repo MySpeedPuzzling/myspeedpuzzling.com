@@ -72,14 +72,12 @@
                         <span class="text-muted">· {{ 'puzzle_picker.card.last_solved'|trans({'%ago%': suggestion.myLastSolvedAt|ago}) }}</span>
                     {% endif %}
                 </div>
-                {% if suggestion.mySolveCountSolo == 0 %}
-                    <div class="text-muted">{{ 'puzzle_picker.card.no_solo_time'|trans }}</div>
-                {% elseif suggestion.mySolveCountSolo == 1 %}
+                {% if suggestion.mySolveCountSolo == 1 %}
                     <div>
                         <span class="text-muted">{{ 'puzzle_times.my_attempts.my_time'|trans }}</span>
                         <span class="tabular-nums">{{ suggestion.myFastestSeconds|puzzlingTime }}</span>
                     </div>
-                {% else %}
+                {% elseif suggestion.mySolveCountSolo > 1 %}
                     <div>
                         <span class="text-muted">{{ 'puzzle_times.my_attempts.fastest_time'|trans }}</span>
                         <span class="tabular-nums">{{ suggestion.myFastestSeconds|puzzlingTime }}</span>
@@ -98,6 +96,12 @@
                         <span class="tabular-nums">{{ suggestion.myFirstSeconds|puzzlingTime }}</span>
                     </div>
                 {% endif %}
+                {{ include('puzzle/_my_group_and_relax_times.html.twig', {
+                    pair_seconds: suggestion.myFastestPairSeconds,
+                    team_seconds: suggestion.myFastestTeamSeconds,
+                    relax_count: suggestion.myRelaxSolveCount,
+                    class_prefix: 'puzzle-picker-my-times',
+                }, with_context = false) }}
             {% endif %}
         {% else %}
             <div class="text-muted"><i class="bi bi-person me-1"></i>{{ 'puzzle_picker.card.sign_in_for_times'|trans }}</div>

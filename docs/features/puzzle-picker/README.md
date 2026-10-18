@@ -332,8 +332,10 @@ No new index is required; if the "any puzzle" pool ever gets hot, a covering ind
   index `custom_pst_team_puzzlers_gin`) — same meaning as the player's own "Unsolved puzzles" page
   (`GetUnsolvedPuzzles`, pinned by `tests/Query/GetUnsolvedPuzzlesTest.php`).
 - **Times (fastest / latest / first, gap, prediction)** use **solo, non-suspicious, timed** solves —
-  same as `GetPlayerPrediction` and the "my attempts" card. The card also shows "also solved 2× in a
-  team" when applicable.
+  same as `GetPlayerPrediction` and the "my attempts" card. Pair and team times are shown on their own
+  lines (fastest per kind, non-suspicious, never mixed with solo) and relax solves are counted
+  (untimed, not an unfinished competition result) - the card and the collection pages' "My times"
+  share `puzzle/_my_group_and_relax_times.html.twig` (#256).
 - **"When solved"** = `COALESCE(finished_at, tracked_at)` (house definition).
 - **Hidden puzzles**: `approved = true AND (hide_until IS NULL OR hide_until < now)`; the image
   respects `hide_image_until` (idiom from `GetPuzzleOverview`).

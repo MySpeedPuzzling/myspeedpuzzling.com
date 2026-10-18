@@ -2427,6 +2427,10 @@ badges:
     "solved_times": "%count%× gelegt"
     "fastest": "schnellste %time%"
     "latest": "zuletzt %time%"
+    "solo": "Solo:"
+    "pair": "Paar:"
+    "team": "Team:"
+    "relax": "%count%× Relax"
   "meta":
     "title": "Puzzlebibliothek"
     "description": "Die Puzzlebibliothek von %name% auf MySpeedPuzzling: Puzzle-Sammlungen, gelegte und ungelegte Puzzles, Wunschliste und Puzzles zum Verkauf oder Tausch."
@@ -5988,7 +5992,6 @@ puzzle_picker:
         solved_times: "%count%× gelegt"
         last_solved: "zuletzt %ago%"
         not_solved_yet: "Dieses Puzzle haben Sie noch nicht gelegt"
-        no_solo_time: "Noch keine Solo-Zeit – im Team gelegt"
         first_time: "Erste Zeit:"
         community: "Community:"
         community_stats: "Ø %average% · %count% Solo-Zeiten"

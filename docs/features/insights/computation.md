@@ -24,8 +24,16 @@ cost ~1 MB of WAL per run). `computed_at` is the moment a row's values last chan
 
 ## 2. Generation (`insights_generation`)
 
-One row (id 1): `generation` (bigint) moves on by one at the end of every 15-minute run and of every daily run;
-`advanced_at` is when. `InsightsGeneration::current()` is one primary-key lookup (0 = no run yet), `advance()` one
+One row (id 1): `generation` (bigint) moves on by one at the end of every 15-minute run, and at the end of a daily run
+that changed a coordination constant or a profile card (those two tables are written by the daily run only, so "nothing
+written" reliably means "nothing changed"); `advanced_at` is when.
+
+The 15-minute run moves it on **every time**, even when it wrote nothing: the page also reads data other writers change
+between runs - `puzzle_statistics` (medians, on every solve), `puzzle_difficulty` / `player_baseline` /
+`player_improvement_ratio` (the incremental handler on a solving-time change, so the next batch run may find nothing
+left to write), derived metrics, stored predictions. Knowing reliably that none of them changed would need every one of
+those writers to mark it; a bump every 15 minutes bounds their staleness in the cache to one run, as the plan assumed
+(a recompute costs ~60-80 ms). `InsightsGeneration::current()` is one primary-key lookup (0 = no run yet), `advance()` one
 upsert. The Insights page cache keys on it (player + generation + a fingerprint of the player's results - §4.4 of the
 plan), so nothing cached outlives the batch data it was built from. It survives restarts (a table row, not Redis).
 
@@ -135,7 +143,7 @@ that is **not secret** and has a median solo time from **≥ 5 solo times** (`pu
 - **learning factor** L(pieces, attempt) = the community's cumulative improvement to that attempt: 1.0 for attempt 1,
   then the product of `global_improvement_ratio` medians (gap bucket `all`, ≥ 30 transitions) of the transitions before
   it, attempts beyond 4 as 4; a piece count without enough transitions uses the 500-piece ratios, then 1.0;
-- **residual** = ratio ÷ form ÷ L - 1.0 = exactly your usual, 0.9 = 10 % faster. Repeats are not "strengths" just
+- **residual** = ratio ÷ form ÷ L (not minus 1: 1.0 = exactly your usual, 0.9 = 10 % faster). Repeats are not "strengths" just
   because everybody is faster on a second go.
 
 | Axis | Raw score | Results used | Min | Better |

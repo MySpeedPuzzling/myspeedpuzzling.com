@@ -13,7 +13,8 @@ use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 /**
  * Runs inside the doctrine_transaction middleware, like the community stats: readers see the previous constants and
- * profiles until the whole rebuild commits. Then the insights generation moves on, so cached pages pick them up.
+ * profiles until the whole rebuild commits. Then the insights generation moves on - only when a constant or a profile
+ * changed - so cached pages pick them up.
  */
 #[AsMessageHandler]
 readonly final class RecalculateInsightsDailyHandler
@@ -36,12 +37,15 @@ readonly final class RecalculateInsightsDailyHandler
         $coordination = $this->coordinationFitter->refit($now);
         $profiles = $this->profileRecalculator->recalculate($now);
 
+        // These two tables are written by this run only: nothing written = nothing a cached page read changed
+        $changed = $coordination['written'] + $coordination['deleted'] + $profiles['written'] + $profiles['deleted'] > 0;
+
         return [
             'coordination_written' => $coordination['written'],
             'profiles' => $profiles['players'],
             'profiles_written' => $profiles['written'],
             'profiles_deleted' => $profiles['deleted'],
-            'generation' => $this->generation->advance(),
+            'generation' => $changed ? $this->generation->advance() : $this->generation->current(),
         ];
     }
 }

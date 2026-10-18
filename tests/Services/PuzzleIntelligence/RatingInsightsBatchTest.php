@@ -111,6 +111,75 @@ final class RatingInsightsBatchTest extends KernelTestCase
         self::assertSame(0, $this->countRows('SELECT COUNT(*) FROM player_rating_entry WHERE player_id IN (:players)', ['players' => [self::ladderPlayer(23), self::ladderPlayer(24)]]));
     }
 
+    /**
+     * The public ratings must not move with the refactor: the stored player_elo and the new calculator give the very
+     * same floats as the calculator before 4a (LegacyMspRatingCalculator, a verbatim copy) - on a ladder with portfolios
+     * over the 100-entry cap, a nearly rated puzzle (now loaded, never counted), a secret puzzle, a suspicious time and
+     * private players.
+     */
+    public function testPublicRatingsAreExactlyThoseOfTheAlgorithmBefore4a(): void
+    {
+        $this->connection->executeStatement(
+            "INSERT INTO puzzle (id, pieces_count, name, approved, is_available, hide_until)
+            SELECT CAST('019b0001-0000-7000-8000-' || lpad(n::text, 12, '0') AS uuid), 500, 'Insights Puzzle ' || n, true, true,
+                CASE WHEN n = 103 THEN CAST(:future AS timestamp) END
+            FROM generate_series(56, 103) AS n",
+            ['future' => $this->now->modify('+1 year')->format('Y-m-d H:i:s')],
+        );
+        $this->seedSolves($this->connection, $this->now, [
+            // Players 1-15 pass the 100-entry cap
+            'SELECT p, z, 1500 + 60 * p + 23 * z + ((p * 37 + z * 11) % 50) * 9, 100 + (p * 7 + z * 13) % 500, true FROM generate_series(1, 15) AS p CROSS JOIN generate_series(56, 101) AS z',
+            // Puzzle 102: 10 solvers - nearly rated; puzzle 103: everybody, but secret
+            'SELECT p, 102, 2000 + 10 * p, 50, true FROM generate_series(1, 10) AS p',
+            'SELECT p, 103, 2100 + 7 * p, 40, true FROM generate_series(1, 24) AS p',
+            // Repeats on a few of the new puzzles
+            'SELECT p, z, 1400 + 50 * p, 20, false FROM generate_series(1, 6) AS p CROSS JOIN generate_series(60, 64) AS z',
+        ]);
+        $this->connection->executeStatement(
+            'UPDATE puzzle_solving_time SET suspicious = true WHERE player_id = :player AND puzzle_id = :puzzle',
+            ['player' => self::ladderPlayer(4), 'puzzle' => self::ladderPuzzle(2)],
+        );
+
+        $this->recalculate($this->now);
+
+        $clock = new MockClock($this->now);
+        $legacy = new LegacyMspRatingCalculator($this->connection, $clock);
+        $legacy->precomputePuzzleRankings(500);
+        $legacy->preloadAllPlayerSolves(500);
+        $current = $this->preloadedCalculator($this->now);
+
+        /** @var array<string, float|string> $stored */
+        $stored = $this->connection->fetchAllKeyValue('SELECT player_id, elo_rating FROM player_elo WHERE pieces_count = 500');
+        self::assertCount(22, $stored);
+
+        /** @var list<string> $players */
+        $players = $this->connection->fetchFirstColumn('SELECT DISTINCT pst.player_id FROM puzzle_solving_time pst JOIN player p ON p.id = pst.player_id WHERE pst.seconds_to_solve IS NOT NULL AND p.is_private = false');
+
+        foreach ($players as $playerId) {
+            $expected = $legacy->calculateForPlayer($playerId, 500);
+
+            self::assertSame($expected, $current->calculateForPlayer($playerId, 500), $playerId);
+            // player_elo is written as before (writeChangedRows binds the float as PHP prints it, ~14 digits): the
+            // legacy value through the same binding is the stored one
+            /** @var float|string $legacyStored */
+            $legacyStored = $this->connection->fetchOne('SELECT CAST(:rating AS double precision)', ['rating' => $expected]);
+            self::assertSame((float) $legacyStored, isset($stored[$playerId]) ? (float) $stored[$playerId] : 0.0, $playerId);
+        }
+
+        // The per-player path (no preload, --player runs) too
+        $legacyOnePlayer = new LegacyMspRatingCalculator($this->connection, $clock);
+        $legacyOnePlayer->precomputePuzzleRankings(500);
+        $currentOnePlayer = new MspRatingCalculator($this->connection, $clock);
+        $currentOnePlayer->precomputePuzzleRankings(500);
+
+        foreach ([1, 4, 15, 16, 22] as $number) {
+            self::assertSame(
+                $legacyOnePlayer->calculateForPlayer(self::ladderPlayer($number), 500),
+                $currentOnePlayer->calculateForPlayer(self::ladderPlayer($number), 500),
+            );
+        }
+    }
+
     public function testTheTop100IsMarked(): void
     {
         // 46 more puzzles for player 1: 101 first attempts, so one is left out of the counted 100

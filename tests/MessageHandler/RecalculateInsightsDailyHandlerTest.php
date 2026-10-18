@@ -78,6 +78,7 @@ final class RecalculateInsightsDailyHandlerTest extends KernelTestCase
         self::assertSame(0, $second['profiles_written']);
         self::assertSame(0, $second['profiles_deleted']);
         self::assertSame(0, $second['coordination_written']);
+        self::assertSame($result['generation'], $second['generation'], 'Nothing changed: cached pages stay valid');
     }
 
     public function testPercentilesShareTiesAndFollowTheAxisDirection(): void

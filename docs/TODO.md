@@ -646,16 +646,17 @@ player lost the form. Shipped: limit 128M (`web-base-php85/php.ini`), photos up 
 
 - [x] Step 0 (2026-10-06): the browser's own detector is back on Android. zbar alone had cost about half of the Android
       scans (add-form lookups 169 → 92 a day, iOS flat). The plan with Steps 1-4 is in the README.
-- [ ] Ask Vanja to scan her Ravensburger box again after the 2026-10-06 deploy.
-- [x] 2026-10-13: camera fixes in one release (README §5.6): 1080p, main lens on Android, 1.5× zoom, focus kicks, torch,
-      cropped zbar decoding, `?scan-debug=1`; the zoom pill no longer hides behind the video.
-- [ ] Reply to Stephanie (multiscan feedback 2026-10-13, blurry code + vanishing zoom box): the zoom buttons are fixed,
-      ask for a screenshot of `/en/multiscan?scan-debug=1` pointed at a box plus her phone model and browser. Send
-      Vanja the same link.
-- [ ] A few days after the 2026-10-13 deploy, re-run the Tempo count of `/puzzle-by-ean-search/` per platform (README
-      §1) - the camera fixes went out without the beacon or an A/B split.
-- [ ] A few days after the deploy, re-run the Tempo count of `/puzzle-by-ean-search/` per platform (README §1). Android
-      should be back near 169 a day.
+- [ ] Vanja: test request with `/en/multiscan?scan-debug=1` (+ `&scanner=zbar`) on her Christmas Town box
+      (`4005555011897`, the misread code) - MSP draft #293, follow-up F128. Send once the Copy button is live.
+- [x] 2026-10-13: camera fixes in one release (README §5.6): 1080p, main lens on Android, 1.5× default zoom, focus
+      kicks, torch, cropped zbar decoding, `?scan-debug=1`; the zoom pill no longer hides behind the video.
+- [x] Stephanie (Galaxy S24, Chrome, multiscan): both readers read her Ravensburger `4005556173501` after the fix,
+      the right puzzle every time we could reconstruct (Tempo body sizes), nothing misread stored. Her screenshot lost
+      the panel's end under the pinned action bar → read lines first + a Copy button (2026-10-18).
+- [x] Tempo recount 2026-10-18 (`/puzzle-by-ean-search/` per UTC day, requests / IPs): Android 79/52 on 10-05 →
+      150-210/75-86 after Step 0 (back above the old 169), 160-230/84-95 after the camera fixes (no regression, no clear
+      second jump; 10-17's 422 includes one IP with 159). iOS flat at 113-226. Tempo cannot tell what was read in
+      multiscan (the code is in the Live POST body) - the beacon (Step 1) is still the only way to measure reads.
 - [ ] *The World of Trolls* (`01947b9c-24c6-7359-972a-54f6a6d86402`) stores `045570100330`, most likely a misread of
       Ravensburger `4005556100330`. Check a box or a shop listing, then file a change proposal.
 

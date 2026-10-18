@@ -57,10 +57,6 @@ Phase 3 starts as soon as a subagent slot frees (1a is small).
   token. The code paths are unit-tested with a mocked API; `setup-check`, `bench` and `verify --end-to-end` are the
   first steps of the M3 backfill session (§9.2), which reports the numbers. Recorded here instead of blocking the merge.
 
-- Rejected crop images are deleted like any rejected proposal's file (decision + confidence stay, which is what the
-  threshold calibration needs). Revisit only if crop-model retraining needs the rejected crops.
-- API change-request rejects before 1b read `admin_ui` in the decision log (documented in puzzle-approvals.md).
-
 - **1b:** an `image_pipeline` proposal earns its reporter **no karma** (orchestrator, on the karma principle "a person's
   accepted contribution": it is a machine's proposal filed in the reviewer player's name); a moderator's web decision
   on it earns decision karma as usual. A reject's `decisionNote` lives in the decision's `details.decisionNote` (the
@@ -70,4 +66,7 @@ Phase 3 starts as soon as a subagent slot frees (1a is small).
 
 ## Follow-ups
 
-(none yet)
+- Rejected crop images are deleted like any rejected proposal's file (decision + confidence stay, which is what the
+  threshold calibration needs). Revisit only if crop-model retraining needs the rejected crops.
+- API change-request rejects before 1b read `admin_ui` in the decision log (documented in puzzle-approvals.md).
+

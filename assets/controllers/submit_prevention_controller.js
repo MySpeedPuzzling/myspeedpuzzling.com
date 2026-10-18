@@ -13,6 +13,7 @@ export default class extends Controller {
         maxRequestBytes: { type: Number, default: 0 },
         photoTooLargeText: { type: String, default: 'This photo is too large to upload (%size% MB).' },
         dropFileText: { type: String, default: '' },
+        saveFailedText: { type: String, default: '' },
     };
 
     connect() {
@@ -39,7 +40,7 @@ export default class extends Controller {
     // new form element starts unlocked anyway), a dropped connection, and modal/frame submits answered with a
     // stream or frame content, where the form stays on the page.
     submitEnded(event) {
-        const { success, fetchResponse } = event.detail ?? {};
+        const { success, fetchResponse, error } = event.detail ?? {};
 
         if (success && fetchResponse?.redirected) {
             // Turbo has just re-enabled the button it was submitted with - disable it again
@@ -48,6 +49,33 @@ export default class extends Controller {
         }
 
         this.reset();
+
+        // Turbo renders a failed answer only when it is HTML. A dropped connection (error) or the edge giving up on a
+        // slow upload (Traefik's plain-text 502/504 after 60 s) leaves the form as it was without a word - the player
+        // saw the progress bar fill and nothing happen (2026-10-14, 8 tries on a ~10 KB/s upload)
+        if (error || (fetchResponse && success === false && !fetchResponse.isHTML)) {
+            this.showSaveFailed();
+        }
+    }
+
+    showSaveFailed() {
+        if (this.saveFailedTextValue === '') {
+            return;
+        }
+
+        this.removeSaveFailed();
+
+        const note = document.createElement('div');
+        note.className = 'alert alert-danger mb-3';
+        note.setAttribute('data-save-failed', '');
+        note.setAttribute('role', 'alert');
+        note.textContent = this.saveFailedTextValue;
+        this.submitTarget.before(note);
+        note.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    removeSaveFailed() {
+        this.element.querySelectorAll('[data-save-failed]').forEach(note => note.remove());
     }
 
     preventDuplicateSubmission(event) {
@@ -55,6 +83,8 @@ export default class extends Controller {
             event.preventDefault();
             return;
         }
+
+        this.removeSaveFailed();
 
         if (this.compressImagesValue) {
             const fileInputs = this.element.querySelectorAll('.file-drop-input');

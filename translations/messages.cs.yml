@@ -449,6 +449,7 @@ puzzle_result:
   "saving": "Ukládání..."
   "compressing_images": "Komprimace fotek..."
   "photo_too_large": "Tahle fotka je na nahrání příliš velká (%size% MB), a proto jsme ji odebrali. Vyber menší fotku, nebo ulož bez ní - ostatní vyplněné údaje zůstávají."
+  "save_did_not_finish": "Uložení se nedokončilo - připojení bylo příliš pomalé nebo se přerušilo. Všechny vyplněné údaje tu zůstávají, zkus to prosím znovu. Pokud se to opakuje, zkus jiné připojení (Wi-Fi nebo mobilní data)."
   "removing": "Odebírání..."
   "drop_file": "Přetáhněte sem soubor pro nahrání"
   "choose_file": "Nebo vyberte soubor"

@@ -419,6 +419,7 @@
   "saving": "Speichern..."
   "compressing_images": "Bilder werden komprimiert..."
   "photo_too_large": "Dieses Foto ist zum Hochladen zu groß (%size% MB) und wurde entfernt. Wähle ein kleineres Foto oder speichere ohne - alles andere, was du ausgefüllt hast, bleibt erhalten."
+  "save_did_not_finish": "Das Speichern wurde nicht abgeschlossen - die Verbindung war zu langsam oder wurde unterbrochen. Alles, was du ausgefüllt hast, ist noch da, bitte versuche es noch einmal. Wenn es wieder passiert, probiere eine andere Verbindung (WLAN oder mobile Daten)."
   "removing": "Entfernen..."
   "add": "Hinzufügen"
   "back": "Zurück"

@@ -497,6 +497,7 @@ forms:
     saving: "Saving..."
     compressing_images: "Compressing images..."
     photo_too_large: "This photo is too large to upload (%size% MB) and was removed. Choose a smaller photo or save without it - everything else you filled in stays."
+    save_did_not_finish: "Saving didn't finish - the connection was too slow or was interrupted. Everything you filled in is still here, please try again. If it keeps happening, try another connection (Wi-Fi or mobile data)."
     search: "Search"
     submit: "Submit"
     update: "Update"

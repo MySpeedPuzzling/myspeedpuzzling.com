@@ -438,6 +438,7 @@
   "saving": "Guardando..."
   "compressing_images": "Comprimiendo imágenes..."
   "photo_too_large": "Esta foto es demasiado grande para subirla (%size% MB) y se ha quitado. Elige una foto más pequeña o guarda sin ella: todo lo demás que has rellenado se mantiene."
+  "save_did_not_finish": "No se ha podido terminar de guardar: la conexión era demasiado lenta o se cortó. Todo lo que has rellenado sigue aquí, inténtalo de nuevo. Si vuelve a pasar, prueba con otra conexión (wifi o datos móviles)."
   "search": "Buscar"
   "submit": "Enviar"
   "update": "Actualizar"

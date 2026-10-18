@@ -379,6 +379,10 @@ What a reply to a player promised to build. Each has an MSP Mailer follow-up: te
 - [ ] Saving the add/edit time form with photos survives slow and dropping mobile connections (background photo upload
       with progress and retry; the photo-upload hardening PR, docs/features/photo-uploads/). Promised to Gal (MSP #300,
       follow-up F129).
+- [ ] Organization collections: an organization page can have its own puzzle collection, managed (incl. lending) by
+      members of the organization's team; then move the Bucharest Jigsaw Puzzle Club's collection from the member's
+      account under their organization. Promised to Alex Roman (Bucharest Jigsaw Puzzle Club) (MSP #307, follow-up
+      F134).
 
 ## Participants spreadsheet (`docs/features/competitions-management/participants-spreadsheet.md` §13)
 

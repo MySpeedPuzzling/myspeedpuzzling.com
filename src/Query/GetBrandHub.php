@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Query;
 
-use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Controller\PiecesPuzzlesController;
@@ -12,6 +11,7 @@ use SpeedPuzzling\Web\Exceptions\ManufacturerNotFound;
 use SpeedPuzzling\Web\Results\BrandHubStats;
 use SpeedPuzzling\Web\Results\BrandPiecesHubStats;
 use SpeedPuzzling\Web\Results\PiecesMedian;
+use SpeedPuzzling\Web\Value\PiecesRange;
 
 readonly final class GetBrandHub
 {
@@ -84,10 +84,14 @@ SQL;
         // and, through the empty grouping set, the brand's total - a row that
         // comes even without a single solve. For Ravensburger (60 % of all
         // solves) that is half the time of two passes.
+        // Per piece-count class (504 counts as 500 - PiecesRange::CLASSES), like the brand × pieces pages list them
+        $piecesClass = PiecesRange::sqlClassOf('puzzle.pieces_count');
+        $withinPagesClasses = PiecesRange::sqlWithinClasses('puzzle.pieces_count', PiecesPuzzlesController::ALLOWED_PIECES);
+
         $solvesQuery = <<<SQL
 SELECT
-    puzzle.pieces_count,
-    GROUPING(puzzle.pieces_count) = 1 AS is_brand_total,
+    {$piecesClass} AS pieces_count,
+    GROUPING({$piecesClass}) = 1 AS is_brand_total,
     COUNT(*) AS solves_count,
     COUNT(*) FILTER (WHERE pst.puzzlers_count = 1) AS solo_solves_count,
     percentile_cont(0.5) WITHIN GROUP (ORDER BY pst.seconds_to_solve)
@@ -97,7 +101,7 @@ INNER JOIN puzzle ON puzzle.id = pst.puzzle_id
 WHERE puzzle.manufacturer_id = :brandId
     AND pst.seconds_to_solve IS NOT NULL
     AND pst.suspicious = false
-GROUP BY GROUPING SETS ((puzzle.pieces_count), ())
+GROUP BY GROUPING SETS (({$piecesClass}), ())
 SQL;
 
         /** @var list<array{pieces_count: null|int, is_brand_total: bool, solves_count: int, solo_solves_count: int, median_seconds: null|float|string}> $solvesRows */
@@ -129,14 +133,14 @@ SQL;
 
         $piecesPagesQuery = <<<SQL
 SELECT
-    puzzle.pieces_count,
+    {$piecesClass} AS pieces_count,
     COUNT(*) AS puzzles_count
 FROM puzzle
 WHERE puzzle.manufacturer_id = :brandId
     AND (puzzle.hide_until IS NULL OR puzzle.hide_until <= :now::timestamp)
-    AND puzzle.pieces_count IN (:allowedPieces)
-GROUP BY puzzle.pieces_count
-ORDER BY puzzle.pieces_count
+    AND {$withinPagesClasses}
+GROUP BY 1
+ORDER BY 1
 SQL;
 
         /** @var list<array{pieces_count: int, puzzles_count: int}> $puzzlesPerPieces */
@@ -144,9 +148,6 @@ SQL;
             ->executeQuery($piecesPagesQuery, [
                 'brandId' => $brand['brand_id'],
                 'now' => $this->clock->now()->format('Y-m-d H:i:s'),
-                'allowedPieces' => PiecesPuzzlesController::ALLOWED_PIECES,
-            ], [
-                'allowedPieces' => ArrayParameterType::INTEGER,
             ])
             ->fetchAllAssociative();
 

@@ -95,7 +95,8 @@ final class PiecesPuzzlesController extends AbstractController
             ], Response::HTTP_MOVED_PERMANENTLY);
         }
 
-        $piecesRange = PiecesRange::between($pieces, $pieces);
+        // The class, not the exact count: the 500 hub lists the 504-piece boxes too
+        $piecesRange = PiecesRange::ofClass($pieces);
 
         $pagination = new CataloguePagination(
             page: $page,

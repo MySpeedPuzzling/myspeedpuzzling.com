@@ -121,10 +121,37 @@ final class PiecesRangeTest extends TestCase
         self::assertSame('300-', PiecesRange::fromBounds(300, PiecesRange::MAX_PIECES + 1)?->toParam());
     }
 
+    public function testAClassTakesInTheCountsWithinOnePercent(): void
+    {
+        $class = PiecesRange::ofClass(500);
+        self::assertTrue($class->contains(495));
+        self::assertTrue($class->contains(504));
+        self::assertTrue($class->contains(505));
+        self::assertFalse($class->contains(506));
+        self::assertSame(500, $class->classCount());
+        self::assertSame('500', $class->label());
+
+        self::assertSame('198-202', PiecesRange::ofClass(200)->toParam());
+        self::assertSame('743-757', PiecesRange::ofClass(750)->toParam());
+        self::assertSame('990-1010', PiecesRange::ofClass(1000)->toParam());
+        // Below 200 a count is exact: 99 and 100 are pages of their own
+        self::assertSame('100', PiecesRange::ofClass(100)->toParam());
+        self::assertNull(PiecesRange::ofClass(100)->classCount());
+        self::assertSame('504', PiecesRange::ofClass(504)->toParam());
+
+        self::assertSame(500, PiecesRange::classOf(504));
+        self::assertSame(1000, PiecesRange::classOf(1008));
+        self::assertSame(506, PiecesRange::classOf(506));
+        self::assertSame(99, PiecesRange::classOf(99));
+
+        self::assertSame('(puzzle.pieces_count BETWEEN 99 AND 99 OR puzzle.pieces_count BETWEEN 495 AND 505)', PiecesRange::sqlWithinClasses('puzzle.pieces_count', [99, 500]));
+        self::assertStringContainsString('WHEN puzzle.pieces_count BETWEEN 495 AND 505 THEN 500', PiecesRange::sqlClassOf('puzzle.pieces_count'));
+    }
+
     public function testPresets(): void
     {
         self::assertSame(
-            array_map(strval(...), array_keys(PiecesRange::PRESETS)),
+            ['99-100', '198-202', '297-303', '495-505', '743-757', '990-1010', '1485-1515', '2000-'],
             array_map(static fn (PiecesRange $preset): string => $preset->toParam(), PiecesRange::presets()),
         );
         self::assertSame(

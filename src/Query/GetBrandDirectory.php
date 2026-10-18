@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Query;
 
-use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Controller\PiecesPuzzlesController;
 use SpeedPuzzling\Web\Results\BrandDirectoryEntry;
 use SpeedPuzzling\Web\Results\BrandHubStats;
 use SpeedPuzzling\Web\Results\BrandPiecesHubStats;
+use SpeedPuzzling\Web\Value\PiecesRange;
 
 /**
  * The indexable catalogue pages: brand hubs for the A–Z directory and the
@@ -97,6 +97,10 @@ SQL;
      */
     public function indexableBrandPiecesPages(): array
     {
+        // Per piece-count class (504 counts as 500 - PiecesRange::CLASSES), like the brand × pieces pages list them
+        $piecesClass = PiecesRange::sqlClassOf('puzzle.pieces_count');
+        $withinPagesClasses = PiecesRange::sqlWithinClasses('puzzle.pieces_count', PiecesPuzzlesController::ALLOWED_PIECES);
+
         $query = <<<SQL
 WITH brand_puzzles AS (
     SELECT puzzle.manufacturer_id, COUNT(*) AS puzzles_count
@@ -105,21 +109,21 @@ WITH brand_puzzles AS (
     GROUP BY puzzle.manufacturer_id
 ),
 combination_puzzles AS (
-    SELECT puzzle.manufacturer_id, puzzle.pieces_count, COUNT(*) AS puzzles_count
+    SELECT puzzle.manufacturer_id, {$piecesClass} AS pieces_count, COUNT(*) AS puzzles_count
     FROM puzzle
     WHERE (puzzle.hide_until IS NULL OR puzzle.hide_until <= :now::timestamp)
-        AND puzzle.pieces_count IN (:allowedPieces)
-    GROUP BY puzzle.manufacturer_id, puzzle.pieces_count
+        AND {$withinPagesClasses}
+    GROUP BY 1, 2
     HAVING COUNT(*) >= :minCombinationPuzzles
 ),
 combination_solves AS (
-    SELECT puzzle.manufacturer_id, puzzle.pieces_count, COUNT(*) AS solves_count
+    SELECT puzzle.manufacturer_id, {$piecesClass} AS pieces_count, COUNT(*) AS solves_count
     FROM puzzle_solving_time pst
     INNER JOIN puzzle ON puzzle.id = pst.puzzle_id
     WHERE pst.seconds_to_solve IS NOT NULL
         AND pst.suspicious = false
-        AND puzzle.pieces_count IN (:allowedPieces)
-    GROUP BY puzzle.manufacturer_id, puzzle.pieces_count
+        AND {$withinPagesClasses}
+    GROUP BY 1, 2
 )
 SELECT
     manufacturer.slug AS brand_slug,
@@ -143,10 +147,7 @@ SQL;
         $rows = $this->database
             ->executeQuery($query, [
                 'now' => $this->clock->now()->format('Y-m-d H:i:s'),
-                'allowedPieces' => PiecesPuzzlesController::ALLOWED_PIECES,
                 'minCombinationPuzzles' => BrandPiecesHubStats::MIN_INDEXABLE_PUZZLES,
-            ], [
-                'allowedPieces' => ArrayParameterType::INTEGER,
             ])
             ->fetchAllAssociative();
 

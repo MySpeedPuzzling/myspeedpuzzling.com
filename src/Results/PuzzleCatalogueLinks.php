@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Results;
 
 use SpeedPuzzling\Web\Controller\PiecesPuzzlesController;
+use SpeedPuzzling\Web\Value\PiecesRange;
 
 /**
  * Where a puzzle sits in the catalogue - the pages its breadcrumb, its piece
@@ -31,12 +32,15 @@ readonly final class PuzzleCatalogueLinks
      */
     public static function forPuzzle(PuzzleOverview $puzzle, null|BrandHubStats $brandHub): self
     {
+        // The pages of the puzzle's piece-count class: a 504-piece box links the 500 pages
+        $piecesCount = PiecesRange::classOf($puzzle->piecesCount);
+
         return new self(
             brandSlug: $puzzle->manufacturerSlug,
-            piecesCount: $puzzle->piecesCount,
+            piecesCount: $piecesCount,
             brandPiecesPageIndexable: $puzzle->manufacturerSlug !== null
-                && $brandHub?->hasIndexablePiecesPage($puzzle->piecesCount) === true,
-            piecesHubExists: in_array($puzzle->piecesCount, PiecesPuzzlesController::ALLOWED_PIECES, true),
+                && $brandHub?->hasIndexablePiecesPage($piecesCount) === true,
+            piecesHubExists: in_array($piecesCount, PiecesPuzzlesController::ALLOWED_PIECES, true),
         );
     }
 

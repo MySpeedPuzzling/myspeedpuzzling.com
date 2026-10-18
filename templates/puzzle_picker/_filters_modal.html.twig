@@ -95,11 +95,10 @@
                     <fieldset class="mb-3">
                         <legend class="fs-sm fw-bold mb-1">{{ 'puzzle_picker.filters.pieces.label'|trans }}</legend>
                         <div class="d-flex flex-wrap align-items-center gap-1">
-                            {% for chip in constant('SpeedPuzzling\\Web\\Value\\PuzzlePickerCriteria::PIECES_CHIPS') %}
-                                {% set chip_value = chip ~ '' %}
+                            {% for chip_value in criteria.piecesChipValues %}
                                 <div class="form-check form-option form-check-inline mb-0">
                                     <input type="checkbox" class="form-check-input" name="pieces[]" id="picker-pieces-{{ chip_value|replace({'-': 'plus'}) }}" value="{{ chip_value }}" {{ chip_value in pieces_values ? 'checked' }}>
-                                    <label class="form-option-label" for="picker-pieces-{{ chip_value|replace({'-': 'plus'}) }}">{{ chip_value|replace({'-': '+'}) }}</label>
+                                    <label class="form-option-label" for="picker-pieces-{{ chip_value|replace({'-': 'plus'}) }}">{{ pieces_label(chip_value) }}</label>
                                 </div>
                             {% endfor %}
                         </div>

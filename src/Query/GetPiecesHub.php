@@ -8,6 +8,7 @@ use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Results\PiecesHubBrand;
 use SpeedPuzzling\Web\Results\PiecesHubStats;
+use SpeedPuzzling\Web\Value\PiecesRange;
 
 readonly final class GetPiecesHub
 {
@@ -19,16 +20,20 @@ readonly final class GetPiecesHub
 
     public function stats(int $piecesCount): PiecesHubStats
     {
+        // The whole class (500 = 495-505), like the hub's puzzle list
+        $piecesClass = PiecesRange::ofClass($piecesCount);
+
         $puzzlesCountQuery = <<<SQL
 SELECT COUNT(*)
 FROM puzzle
-WHERE puzzle.pieces_count = :piecesCount
+WHERE puzzle.pieces_count BETWEEN :minPieces AND :maxPieces
     AND (puzzle.hide_until IS NULL OR puzzle.hide_until <= :now::timestamp)
 SQL;
 
         $puzzlesCount = $this->database
             ->executeQuery($puzzlesCountQuery, [
-                'piecesCount' => $piecesCount,
+                'minPieces' => $piecesClass->minPieces,
+                'maxPieces' => $piecesClass->maxPieces,
                 'now' => $this->clock->now()->format('Y-m-d H:i:s'),
             ])
             ->fetchOne();
@@ -44,7 +49,7 @@ SELECT
         FILTER (WHERE pst.puzzlers_count = 1) AS median_seconds
 FROM puzzle_solving_time pst
 INNER JOIN puzzle ON puzzle.id = pst.puzzle_id
-WHERE puzzle.pieces_count = :piecesCount
+WHERE puzzle.pieces_count BETWEEN :minPieces AND :maxPieces
     AND pst.seconds_to_solve IS NOT NULL
     AND pst.suspicious = false
 SQL;
@@ -52,7 +57,8 @@ SQL;
         /** @var array{solves_count: int, median_seconds: null|float|string} $solvesRow */
         $solvesRow = (array) $this->database
             ->executeQuery($solvesQuery, [
-                'piecesCount' => $piecesCount,
+                'minPieces' => $piecesClass->minPieces,
+                'maxPieces' => $piecesClass->maxPieces,
             ])
             ->fetchAssociative();
 
@@ -68,7 +74,7 @@ WITH top_brands AS (
     FROM puzzle_solving_time pst
     INNER JOIN puzzle ON puzzle.id = pst.puzzle_id
     INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
-    WHERE puzzle.pieces_count = :piecesCount
+    WHERE puzzle.pieces_count BETWEEN :minPieces AND :maxPieces
         AND pst.seconds_to_solve IS NOT NULL
         AND pst.suspicious = false
         AND manufacturer.approved = true
@@ -85,7 +91,7 @@ SELECT
         SELECT COUNT(*)
         FROM puzzle
         WHERE puzzle.manufacturer_id = top_brands.brand_id
-            AND puzzle.pieces_count = :piecesCount
+            AND puzzle.pieces_count BETWEEN :minPieces AND :maxPieces
             AND (puzzle.hide_until IS NULL OR puzzle.hide_until <= :now::timestamp)
     ) AS puzzles_count,
     (
@@ -101,7 +107,8 @@ SQL;
         /** @var list<array{brand_name: string, brand_slug: string, solves_count: int, puzzles_count: int, brand_puzzles_count: int}> $brandRows */
         $brandRows = $this->database
             ->executeQuery($topBrandsQuery, [
-                'piecesCount' => $piecesCount,
+                'minPieces' => $piecesClass->minPieces,
+                'maxPieces' => $piecesClass->maxPieces,
                 'now' => $this->clock->now()->format('Y-m-d H:i:s'),
             ])
             ->fetchAllAssociative();

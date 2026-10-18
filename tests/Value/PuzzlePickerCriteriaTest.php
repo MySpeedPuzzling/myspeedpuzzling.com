@@ -225,13 +225,13 @@ final class PuzzlePickerCriteriaTest extends TestCase
 
         // Chips + custom range together, duplicates collapse
         $criteria = PuzzlePickerCriteria::fromRequest(
-            new Request(['pieces' => ['500', '600-800'], 'pieces_min' => '600', 'pieces_max' => '800']),
+            new Request(['pieces' => ['495-505', '600-800'], 'pieces_min' => '600', 'pieces_max' => '800']),
             isAuthenticated: true,
         );
 
-        self::assertSame([[500, 500], [600, 800]], $criteria->pieces);
+        self::assertSame([[495, 505], [600, 800]], $criteria->pieces);
         self::assertSame([600, 800], $criteria->customPiecesRange());
-        self::assertNull(PuzzlePickerCriteria::fromRequest(new Request(['pieces' => ['500', '2000-']]), true)->customPiecesRange());
+        self::assertNull(PuzzlePickerCriteria::fromRequest(new Request(['pieces' => ['495-505', '198-202', '2000-']]), true)->customPiecesRange());
     }
 
     public function testListsAreCappedAndDeduplicated(): void

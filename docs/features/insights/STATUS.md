@@ -11,8 +11,8 @@ state, PR, merge and deploy, deviations from the plan (and why), follow-ups.
 | 2 Mac pipeline | **done** | #261 | 2026-10-18 | 2026-10-18 | `solvedCount` live on the work list; `bench` / `verify --end-to-end` run in the M3 session (see deviations) |
 | Backfill (M3 Max + M1 Air sessions) | **ready to start** (prompts handed to Jan 2026-10-18) | - | - | - | starts after 1 + 2 are deployed; ≈ 5.5 days |
 | 3 Prediction fix | in progress (3a done; 3b, then 3c) | #263 (3a) | 3a: 2026-10-18 | 3a: 2026-10-18 | 3a: backfill on prod 244,985 rows / 4,235 players in 33 s; first as-of batch 22 s (was 16-18 s; re-check steady state); tiers 1-6 = 249 / 1,838 / 2,956 / 891 / 400 / 225, 6,559 rated |
-| 4 Insights computation | in progress (4a) | | | | streams below |
-| 5 Image intelligence on the server | in progress (5a, 5b done; 5c, then 5d) | #265 (5a), #267 (5b) | 5a, 5b: 2026-10-18/19 | 5a, 5b: 2026-10-18/19 | 5a: crons `refresh-puzzle-tags` 07:40 + `detect-box-text-mismatches` 07:45 in lily.srv (0953a4b), both ran clean. 5b: labels endpoint answers with as-of labels (median / mean_log), model record `current: null` |
+| 4 Insights computation | in progress (4a done; 4b + 4c building) | #269 (4a) | 4a: 2026-10-19 | 4a: 2026-10-19 | 4a: first batch filled 310,209 rating entries + 2,687 time arrays (29 s first run); daily command 4.5 s, 3,808 profile cards, 6 constants; cron `recalculate-insights-daily` 04:41 in lily.srv (4a17f81) |
+| 5 Image intelligence on the server | in progress (5a, 5b, 5c done; 5d after 3b) | #265 (5a), #267 (5b), #268 (5c) | 2026-10-18/19 | 2026-10-18/19 | 5a: crons 07:40/07:45 (lily.srv 0953a4b), ran clean. 5b: labels endpoint live, model record empty until the first derive. 5c: Python only, 187 tests |
 | 6 Display behind INSIGHTS_PUBLIC | not started | | | | |
 | Launch (flag removed) | not started | | | | waits for the backfill + gates |
 
@@ -93,6 +93,20 @@ Phase 3 starts as soon as a subagent slot frees (1a is small).
   for corrections). Only `assigned` tags are stored. Admin flashes English only (convention of the admin pages).
 - **Order:** 5a and 3a merged before Phase 4/5 streams that need them; Phase 4/5 parts that don't need the Phase 3
   model started early (4a, 5a) - recorded in the Phase 4 + 5 plan above.
+
+- **4a:** `player_rating_entry` stores percentile / decay / points per entry as planned (~250 MB extra WAL a day;
+  accepted: lily backs up by pg_dump, no WAL archiving). Distinct solvers per puzzle not stored (viewer-dependent;
+  `GetRanking` has it). Coordination constants run daily, not every 15 min. The 15-min batch bumps the generation
+  every run (too many other writers to know "nothing changed"); the daily run only when something changed. Public
+  ratings pinned to the pre-4a algorithm by a reference-copy test.
+- **5c:** push guard compares only like with like (same holdout source + threshold, ≥ 100 test puzzles, training
+  size within 25 %), otherwise records with `guard.skipped`; near-duplicate artwork kept in one fold (cosine ≥ 0.95);
+  intervals never use a puzzle's own residual; fallback model `ridge-siglip2-full` (whole-image vector) with its own
+  record and guard. Open for 5d: `ridge-siglip2-full` estimates mostly have image kind "unknown", so per-kind gates
+  won't pass for them.
+- **3c (built, waits for 3b):** window ends follow the research rule (step by the point prediction; 10 s steps under
+  3 min); the point estimate stays unrounded as today (no 5/10-min rounding existed - kept, small puzzles would
+  suffer).
 
 ## Follow-ups
 

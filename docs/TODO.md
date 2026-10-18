@@ -383,6 +383,9 @@ What a reply to a player promised to build. Each has an MSP Mailer follow-up: te
       members of the organization's team; then move the Bucharest Jigsaw Puzzle Club's collection from the member's
       account under their organization. Promised to Alex Roman (Bucharest Jigsaw Puzzle Club) (MSP #307, follow-up
       F134).
+- [ ] Puzzle page: make Puzzle Insights easier to reach - the side-panel dropdown needs scrolling to see all data;
+      consider opening the insights in a full-screen popup/modal. Promised to HighMansWith_An_S (MSP #312, follow-up
+      F139).
 
 ## Participants spreadsheet (`docs/features/competitions-management/participants-spreadsheet.md` §13)
 

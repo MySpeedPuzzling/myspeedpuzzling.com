@@ -1049,11 +1049,9 @@ raw scan on the box in `/root/bucket-scan.csv` + `/root/db-image-refs.tsv`.
 - [x] New result share images live on local disk for 48 hours, never in the bucket (2026-10-18, `ResultImageCache`):
       lily.srv volume `result-images` shared by web/api/cron, hourly `myspeedpuzzling:prune-result-images`, ~1.3 GB in
       use; a deleted player's cards go with `DeletePlayerStoredFilesHandler`. Replaces steps 2-3 of the plan below
-- [ ] Delete the cards still in the bucket (`players/<id>/results/<id>.png`, 800×800): 490k objects ≈ 420 GB, nothing
-      reads them any more. ~5 % of them (≈ 23k, 141 in a 3,000 sample) still carry the finished photo's EXIF/GPS from
-      before 2026-09-30, reachable via `/original/<key>` - the key is built from public ids. Bulk DeleteObjects on
-      keys matching `players/*/results/*.png` (minutes); do it before copying the bucket to AWS S3, and leave them
-      out of that copy either way
+- [x] Deleted the cards still in the bucket (2026-10-18): 490k `players/<id>/results/<id>.png` ≈ 420 GB, with the
+      ~23k of them that still carried EXIF/GPS; nothing referenced them (checked every DB image column). rclone on
+      lily, log in `/root/prune-bucket-result-images.log`; a second pass found nothing left
 - [ ] Handlers never delete the previous object when a puzzle image / finished photo / logo is replaced or the time is
       deleted - 6,862 orphans ≈ 16 GB today (`3-orphaned-objects-not-referenced.csv`); delete the old key in the handler
 - [ ] One-off: delete the existing orphans after a spot check (avatars: `myspeedpuzzling:storage:delete-orphaned-avatars`,

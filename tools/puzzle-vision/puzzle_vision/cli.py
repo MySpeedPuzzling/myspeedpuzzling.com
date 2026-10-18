@@ -3,7 +3,7 @@
   setup-check        verify this Mac (python/uv, disk, ml extra, models, token, API, memory)
   run                run the profile (backfill until done / --follow nonstop / --daily), --hours N, --phase X
   status             coverage per analyzer and version, throughput, failures, ETA
-  derive             recompute box_text, zeroshot, neighbours, tags (+ difficulty_prior in Phase 5) - no image touched
+  derive             recompute box_text, zeroshot, neighbours, tags, then difficulty_prior - no image touched
   propose-crops      file artwork crop change requests (source image_pipeline, tag artwork_crop)
   crop-review-plan   the /image-crop-review arithmetic (earned threshold, Wilson bound, audit, auto-stop); --apply
   crop-review-approve  approve middle-band crops Claude Code checked by eye
@@ -117,7 +117,7 @@ def cmd_run(a: argparse.Namespace, ctx: Context) -> int:
         return rc
     if a.daily:
         if ctx.profile.derive_after_daily:
-            cmd_derive(argparse.Namespace(only=None, dry_run=False, json=False), ctx)
+            cmd_derive(argparse.Namespace(only=None, dry_run=False, json=False, force_model=False), ctx)
         if ctx.profile.propose_crops_daily:
             cmd_propose_crops(argparse.Namespace(limit=ctx.profile.propose_crops_daily, dry_run=False, json=False, threshold=None), ctx)
     return rc
@@ -222,11 +222,12 @@ def cmd_derive(a: argparse.Namespace, ctx: Context) -> int:
         return 1
     with StopOnSignals() as stop:
         d = Deriver(ctx.api, versions, ctx.settings.cache_dir, model_lock=lambda: ModelLock("derive-zeroshot"),
-                    lock_stop=stop, lock_timeout=LOCK_TIMEOUT_SECONDS)
+                    lock_stop=stop, lock_timeout=LOCK_TIMEOUT_SECONDS, report_dir=ctx.settings.state_dir)
         only = [x.strip() for x in a.only.split(",")] if a.only else None
-        summary = d.run(only=only, dry_run=a.dry_run)
+        summary = d.run(only=only, dry_run=a.dry_run, force_model=bool(getattr(a, "force_model", False)))
     _print(summary, True)
-    return 0
+    # a blocked difficulty_prior push is not a crash, but a manual run should not look like a clean success
+    return 3 if isinstance(summary.get("difficulty_prior"), dict) and summary["difficulty_prior"].get("blocked") else 0
 
 
 def _gate_margin_fn() -> Any:
@@ -508,6 +509,8 @@ def parser() -> argparse.ArgumentParser:
     s = sub.add_parser("derive", parents=[common])
     s.add_argument("--only", help="comma list: box_text,zeroshot,neighbours,tags,difficulty_prior")
     s.add_argument("--dry-run", action="store_true")
+    s.add_argument("--force-model", action="store_true",
+                   help="difficulty_prior: record + push although the holdout Spearman dropped > 0.05 (a human's decision)")
     s.add_argument("--json", action="store_true")
     s.set_defaults(fn=cmd_derive)
 

@@ -3020,6 +3020,13 @@ competition_referees:
     "original_not_archived": "L'image actuelle n'a pas pu être copiée dans l'archive, rien n'a donc été approuvé. Réessaie dans un instant."
     "rejected": "La demande de modification a été rejetée."
     "rejection_reason_required": "Le motif de rejet est requis."
+    "no_picture_proposed": "Cette demande ne propose aucune image – examinez-la sur sa propre page."
+  "puzzle_history":
+    "restored": "L'image est de retour, sous un nouveau nom de fichier. L'image qu'elle remplace reste dans l'historique."
+    "restore_picture_gone": "Cette image n'est plus stockée – il n'y a rien à restaurer."
+    "restore_nothing": "Cette ligne de l'historique n'a remplacé aucune image – il n'y a rien à restaurer."
+    "restore_already_current": "Le puzzle a déjà cette image."
+    "restore_picture_hidden": "L'image du puzzle est masquée pour l'instant – restaurez-la après la révélation."
   "puzzle_edit":
     "saved": "Puzzle enregistré."
   "puzzle_approval":

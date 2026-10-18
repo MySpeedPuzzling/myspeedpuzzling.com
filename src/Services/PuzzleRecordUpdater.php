@@ -81,6 +81,10 @@ readonly final class PuzzleRecordUpdater
             throw new InvalidPuzzleValues('Choose the image to upload.');
         }
 
+        if ($values->image === PuzzleImageChoice::Restored && $values->restoredImage === null) {
+            throw new InvalidPuzzleValues('No picture to restore.');
+        }
+
         // Only a growing list can break the cap - a merge may have left more names, editing or removing one must work
         $values->alternativeNames->assertFormLimits(loadedCount: $puzzle->alternativeNames()->count());
 
@@ -101,6 +105,10 @@ readonly final class PuzzleRecordUpdater
 
         if ($values->image === PuzzleImageChoice::Upload) {
             $this->puzzleImageStorage->storeUploaded($values->uploadedImage, $puzzle);
+        }
+
+        if ($values->image === PuzzleImageChoice::Restored) {
+            $this->puzzleImageStorage->useCopyOf($values->restoredImage, $values->restoredImageRatio, $puzzle);
         }
 
         return [

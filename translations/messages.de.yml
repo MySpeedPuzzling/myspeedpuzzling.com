@@ -2929,6 +2929,13 @@ badges:
     "already_reviewed": "Diese Änderungsanfrage wurde bereits von jemand anderem geprüft."
     "proposal_image_outdated": "Das Bild des Puzzles hat sich geändert, seit dieser Vorschlag daraus erstellt wurde – das vorgeschlagene Bild kann nicht mehr übernommen werden. Behalte das aktuelle Bild oder lehne den Vorschlag ab."
     "original_not_archived": "Das aktuelle Bild konnte nicht im Archiv gesichert werden, daher wurde nichts genehmigt. Versuche es gleich noch einmal."
+    "no_picture_proposed": "Diese Anfrage schlägt kein Bild vor – bitte prüfen Sie sie auf ihrer eigenen Seite."
+  "puzzle_history":
+    "restored": "Das Bild ist zurück, unter einem neuen Dateinamen. Das Bild, das es ersetzt hat, bleibt im Verlauf."
+    "restore_picture_gone": "Dieses Bild ist nicht mehr gespeichert – es gibt nichts wiederherzustellen."
+    "restore_nothing": "Diese Zeile des Verlaufs hat kein Bild ersetzt – es gibt nichts wiederherzustellen."
+    "restore_already_current": "Das Puzzle hat dieses Bild bereits."
+    "restore_picture_hidden": "Das Bild des Puzzles ist vorerst verborgen – stellen Sie es nach der Enthüllung wieder her."
   "puzzle_merge_request":
     "approved": "Zusammenführungsanfrage wurde genehmigt. Die Puzzles wurden zusammengeführt."
     "rejected": "Zusammenführungsanfrage wurde abgelehnt."

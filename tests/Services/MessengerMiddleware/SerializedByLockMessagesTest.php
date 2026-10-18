@@ -65,6 +65,7 @@ use SpeedPuzzling\Web\Message\RecordOnlineEntryEvents;
 use SpeedPuzzling\Web\Message\RegisterOnlineMedia;
 use SpeedPuzzling\Web\Message\RemovePuzzleFromCompetitionRound;
 use SpeedPuzzling\Web\Message\ResetRoundStopwatch;
+use SpeedPuzzling\Web\Message\RestorePuzzleImage;
 use SpeedPuzzling\Web\Message\RevealRoundPuzzleNow;
 use SpeedPuzzling\Web\Message\ScheduleRoundStart;
 use SpeedPuzzling\Web\Message\SetCompetitionRoundPuzzles;
@@ -137,6 +138,8 @@ final class SerializedByLockMessagesTest extends TestCase
         self::assertSame($key, (new RejectPuzzleChangeRequest('change-request', $puzzleId, 'reviewer', 'reason'))->lockKey());
         self::assertSame($key, (new ApprovePuzzleMergeRequest('merge-request', 'reviewer', $puzzleId, 'Puzzle', null, null, 500, null, null))->lockKey());
         self::assertSame($key, (new LinkEanToPuzzle($puzzleId, 'player', '4005556147090'))->lockKey());
+        // "Restore this picture" on the history - a direct edit of the picture
+        self::assertSame($key, (new RestorePuzzleImage($puzzleId, 'decision', 'moderator'))->lockKey());
         // An image pipeline proposal is checked against the puzzle's picture and the proposals before it
         self::assertSame($key, (new SubmitPuzzleChangeRequest('change-request', $puzzleId, 'player', 'Puzzle', null, 500, EanList::fromStored(null), BrandCodeList::fromStored(null), null, new PuzzleNames(), null))->lockKey());
         self::assertSame($key, (new AddPuzzle(

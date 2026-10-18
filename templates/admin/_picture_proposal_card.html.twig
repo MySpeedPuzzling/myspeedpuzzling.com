@@ -1,0 +1,122 @@
+{#
+    One card of the picture review (admin/puzzle_change_request_pictures.html.twig) - and what replaces it after a
+    decision (DecidePictureProposalController answers a Turbo Stream with this card).
+    Expects: request (PuzzleChangeRequestOverview), grid ({tag, source?, page?} - posted along so a fallback redirect
+    lands on the same grid page), message + message_type (optional, after a decision).
+    Phone width: the two pictures stack, the buttons are full width and 48 px tall.
+#}
+{% set message = message ?? null %}
+{% set message_type = message_type ?? 'success' %}
+{% set pending = request.status.value == 'pending' %}
+{% set picture_changed = request.pictureChangedSinceProposed() %}
+{% set decision_url = path('admin_puzzle_change_request_picture_decision', {id: request.id}) %}
+{% set request_url = path('admin_puzzle_change_request_detail', {id: request.id}) %}
+{% set grid_fields %}
+    <input type="hidden" name="_token" value="{{ csrf_token(constant('SpeedPuzzling\\Web\\Controller\\Admin\\DecidePictureProposalController::CSRF_TOKEN_ID')) }}">
+    <input type="hidden" name="record_version" value="{{ request.puzzleRecordVersion }}">
+    <input type="hidden" name="tag" value="{{ grid.tag }}">
+    {% if grid.source is defined and grid.source %}<input type="hidden" name="source" value="{{ grid.source }}">{% endif %}
+    {% if grid.page is defined and grid.page > 1 %}<input type="hidden" name="page" value="{{ grid.page }}">{% endif %}
+{% endset %}
+
+<article class="card h-100 shadow-sm picture-proposal {{ pending ? '' : 'picture-proposal-decided' }}"
+         id="picture-proposal-{{ request.id }}"
+         tabindex="0"
+         data-picture-review-target="card"
+         data-status="{{ request.status.value }}"
+         data-testid="picture-proposal"
+         aria-labelledby="picture-proposal-{{ request.id }}-title">
+    <div class="card-body p-3">
+        <div class="d-flex flex-wrap align-items-start justify-content-between gap-2 mb-2">
+            <div class="min-w-0">
+                <h2 class="h6 mb-0 text-break" id="picture-proposal-{{ request.id }}-title">
+                    <a href="{{ path('puzzle_detail', {puzzleId: request.puzzleId}) }}" target="_blank" rel="noopener">{{ request.puzzleName }}</a>
+                </h2>
+                <div class="small text-muted text-break">
+                    {{ request.puzzleManufacturerName ?? 'No brand' }} &bull; {{ request.puzzlePiecesCount }} pcs &bull; {{ request.submittedAt|ago }}
+                </div>
+            </div>
+            <div class="d-flex flex-wrap gap-1 align-items-center">
+                {% if not pending %}
+                    <span class="badge {{ request.status.value == 'approved' ? 'bg-success' : (request.status.value == 'rejected' ? 'bg-danger' : 'bg-secondary') }}" data-role="decided">
+                        {{ {approved: 'Approved', rejected: 'Rejected', outdated: 'Already done'}[request.status.value] ?? request.status.value }}
+                    </span>
+                {% endif %}
+                {{ include('admin/_change_request_source_badge.html.twig', {request: request}) }}
+            </div>
+        </div>
+
+        {% if message %}
+            <div class="alert alert-{{ message_type }} small py-2 mb-2" role="status" data-role="decision-message">{{ message }}</div>
+        {% endif %}
+
+        {% if pending %}
+            {% if picture_changed %}
+                <div class="alert alert-warning small py-2 mb-2" data-role="picture-changed">
+                    The puzzle has another picture now than the one this was made from - approving is off here. Reject it, or open the request.
+                </div>
+            {% endif %}
+
+            <div class="row g-2 mb-2">
+                {% for side in [
+                    {label: 'Now', path: request.puzzleImage, role: 'current-picture'},
+                    {label: 'Proposed', path: request.proposedImage, role: 'proposed-picture'},
+                ] %}
+                    <figure class="col-12 col-sm-6 mb-0" data-role="{{ side.role }}">
+                        <figcaption class="small text-muted mb-1">{{ side.label }}</figcaption>
+                        {% if side.path %}
+                            <a class="gallery-item d-block" href="{{ uploaded_asset(side.path) }}" target="_blank" rel="noopener" tabindex="-1">
+                                <img src="{{ side.path|puzzle_image('puzzle_medium') }}"
+                                     alt="{{ side.label }}: {{ request.puzzleName }}"
+                                     loading="lazy"
+                                     decoding="async"
+                                     class="picture-proposal-image w-100 rounded border bg-light">
+                            </a>
+                        {% else %}
+                            <div class="picture-proposal-image d-flex align-items-center justify-content-center rounded border bg-light text-muted small">No picture</div>
+                        {% endif %}
+                    </figure>
+                {% endfor %}
+            </div>
+
+            {% if request.modelVersion %}
+                <p class="small text-muted mb-2 text-break" data-role="model-version">{{ request.modelVersion }}</p>
+            {% endif %}
+
+            <div class="d-flex flex-column flex-sm-row gap-2">
+                <form method="post" action="{{ decision_url }}" class="flex-fill">
+                    {{ grid_fields }}
+                    <input type="hidden" name="decision" value="approve">
+                    <button type="submit" class="btn btn-success w-100 picture-proposal-button" data-picture-review-action="approve" {{ picture_changed ? 'disabled' }}>
+                        <i class="bi bi-check-lg me-1" aria-hidden="true"></i> Approve <kbd class="d-none d-md-inline ms-1">A</kbd>
+                    </button>
+                </form>
+                <form method="post" action="{{ decision_url }}" class="flex-fill">
+                    {{ grid_fields }}
+                    <input type="hidden" name="decision" value="reject">
+                    <button type="submit" class="btn btn-outline-danger w-100 picture-proposal-button" data-picture-review-action="reject">
+                        <i class="bi bi-x-lg me-1" aria-hidden="true"></i> Reject <kbd class="d-none d-md-inline ms-1">R</kbd>
+                    </button>
+                </form>
+            </div>
+
+            <details class="mt-2 small">
+                <summary class="text-muted">Reject with a reason of your own</summary>
+                <form method="post" action="{{ decision_url }}" class="mt-2">
+                    {{ grid_fields }}
+                    <input type="hidden" name="decision" value="reject">
+                    <label class="visually-hidden" for="picture-proposal-{{ request.id }}-reason">Reason the proposer reads</label>
+                    <textarea class="form-control form-control-sm" id="picture-proposal-{{ request.id }}-reason" name="rejection_reason" rows="2"
+                              maxlength="{{ constant('SpeedPuzzling\\Web\\Controller\\Admin\\DecidePictureProposalController::REJECTION_REASON_MAX_LENGTH') }}"
+                              placeholder="{{ constant('SpeedPuzzling\\Web\\Controller\\Admin\\DecidePictureProposalController::DEFAULT_REJECTION_REASON') }}"></textarea>
+                    <button type="submit" class="btn btn-outline-danger btn-sm mt-2 picture-proposal-button">Reject with this reason</button>
+                </form>
+            </details>
+        {% endif %}
+
+        <div class="small mt-2">
+            <a href="{{ request_url }}" target="_blank" rel="noopener">Open the request</a>
+            &bull; <a href="{{ path('admin_puzzle_history', {puzzleId: request.puzzleId}) }}" target="_blank" rel="noopener">History</a>
+        </div>
+    </div>
+</article>

@@ -3030,6 +3030,13 @@ recap_progress:
     "already_reviewed": "Tuto žádost o změnu už mezitím posoudil někdo jiný."
     "proposal_image_outdated": "Obrázek puzzle se změnil od chvíle, kdy z něj vznikl tento návrh, takže navržený obrázek už nelze použít. Ponech současný obrázek, nebo návrh zamítni."
     "original_not_archived": "Současný obrázek se nepodařilo uložit do archivu, proto se nic neschválilo. Zkus to za chvíli znovu."
+    "no_picture_proposed": "Tato žádost nenavrhuje žádný obrázek – posuďte ji na její vlastní stránce."
+  "puzzle_history":
+    "restored": "Obrázek je zpět, pod novým názvem souboru. Obrázek, který nahradil, zůstává v historii."
+    "restore_picture_gone": "Tento obrázek už není uložený – není co obnovit."
+    "restore_nothing": "Tento řádek historie nenahradil žádný obrázek – není co obnovit."
+    "restore_already_current": "Puzzle už tento obrázek má."
+    "restore_picture_hidden": "Obrázek puzzle je zatím skrytý – obnovte ho až po odhalení."
   "puzzle_merge_request":
     "approved": "Žádost o sloučení byla schválena. Puzzle byla sloučena."
     "rejected": "Žádost o sloučení byla zamítnuta."

@@ -1,0 +1,6 @@
+{# DecidePictureProposalController: the decided card - or the still pending one with what stopped it - in place of the old one #}
+<turbo-stream action="replace" target="picture-proposal-{{ request.id }}">
+    <template>
+        {{ include('admin/_picture_proposal_card.html.twig') }}
+    </template>
+</turbo-stream>

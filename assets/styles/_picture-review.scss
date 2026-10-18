@@ -1,0 +1,34 @@
+// The moderators' picture review (templates/admin/puzzle_change_request_pictures.html.twig, docs/features/puzzle-approvals.md
+// "Picture proposals"): the current picture and the proposed one side by side, decided card by card - from the keyboard
+// on a desktop, by thumb on a phone (the pictures stack, the buttons are full width and 48 px tall).
+
+.picture-proposal {
+  // The keyboard's place in the grid (J / K) - visible, not only the browser's thin ring
+  &:focus,
+  &:focus-visible {
+    outline: 3px solid $primary;
+    outline-offset: 2px;
+  }
+}
+
+// A decided card steps back - the eye goes to the next one
+.picture-proposal-decided {
+  opacity: .75;
+}
+
+.picture-proposal-image {
+  height: 240px;
+  object-fit: contain;
+
+  @include media-breakpoint-down(sm) {
+    height: 200px;
+  }
+}
+
+.picture-proposal-button {
+  min-height: 48px;
+}
+
+.picture-proposal-keys kbd {
+  font-size: .75em;
+}

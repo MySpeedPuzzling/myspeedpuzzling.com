@@ -16,4 +16,7 @@ enum PuzzleImageChoice: string
     case Proposed = 'proposed';
     // The moderator uploads a different image
     case Upload = 'upload';
+    // A picture the puzzle had before, put back from the history ("Restore this picture", RestorePuzzleImage) - copied
+    // under a new name, the old object stays
+    case Restored = 'restored';
 }

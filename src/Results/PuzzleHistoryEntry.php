@@ -42,6 +42,13 @@ readonly final class PuzzleHistoryEntry
         public null|string $brandName = null,
         public null|string $intoBrandName = null,
         public null|string $brandChoice = null,
+        // The decision log's row - what "Restore this picture" names (RestorePuzzleImage)
+        public null|string $decisionId = null,
+        // The picture this decision replaced - the one "Restore this picture" puts back; null when it replaced none
+        public null|string $previousImage = null,
+        // Its copy in the originals archive, when the approval of an image pipeline proposal kept one
+        // (PuzzleOriginalImageArchive) - restored from there first
+        public null|string $previousImageArchivePath = null,
     ) {
     }
 }

@@ -124,6 +124,9 @@
 // The moderators' time verification queue (docs/features/suspicious-time-review.md)
 @import "time-verification";
 
+// The moderators' picture review - proposed pictures side by side (docs/features/puzzle-approvals.md "Picture proposals")
+@import "picture-review";
+
 // The admin overview of duplicate results (docs/features/duplicate-results.md, "Admin overview")
 @import "duplicate-results";
 

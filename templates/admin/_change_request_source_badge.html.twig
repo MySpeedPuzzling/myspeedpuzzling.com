@@ -1,0 +1,13 @@
+{# Who filed a change request and, for the image pipeline, how sure it is - the queue rows and the picture review.
+   Expects: request (PuzzleChangeRequestOverview). A player's proposal shows nothing - it is the usual case. #}
+{% if request.source.value == 'image_pipeline' %}
+    <span class="badge bg-info text-dark" data-role="source-badge">Image pipeline</span>
+{% elseif request.source.value == 'internal_api' %}
+    <span class="badge bg-secondary" data-role="source-badge">Internal API</span>
+{% endif %}
+{% if request.confidence is not null %}
+    <span class="badge bg-light text-dark border" data-role="confidence" title="The pipeline's confidence{{ request.modelVersion ? ' - ' ~ request.modelVersion : '' }}">{{ (request.confidence * 100)|number_format(1) }} %</span>
+{% endif %}
+{% for tag in request.tags %}
+    <span class="badge bg-light text-muted border fw-normal">{{ tag }}</span>
+{% endfor %}

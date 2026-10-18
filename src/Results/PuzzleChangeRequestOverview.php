@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Results;
 
 use DateTimeImmutable;
+use SpeedPuzzling\Web\Value\PuzzleChangeRequestSource;
+use SpeedPuzzling\Web\Value\PuzzleImageFingerprint;
 use SpeedPuzzling\Web\Value\PuzzleName;
 use SpeedPuzzling\Web\Value\PuzzleNameLanguageChoices;
 use SpeedPuzzling\Web\Value\PuzzleNames;
@@ -15,6 +17,9 @@ use SpeedPuzzling\Web\Value\PuzzleReportStatus;
 
 readonly final class PuzzleChangeRequestOverview
 {
+    /**
+     * @param list<string> $tags
+     */
     public function __construct(
         public string $id,
         public PuzzleReportStatus $status,
@@ -73,6 +78,14 @@ readonly final class PuzzleChangeRequestOverview
         // Filed on another puzzle, merged into this one since (PuzzleChangeRequest::puzzleMergedInto()) - the original
         // values are that puzzle's
         public null|string $mergedFromPuzzleId = null,
+        // Who filed it - a row of the release before the column was a player's
+        public PuzzleChangeRequestSource $source = PuzzleChangeRequestSource::Player,
+        // The image pipeline's metadata (docs/features/insights/README.md "Artwork crops")
+        public array $tags = [],
+        public null|float $confidence = null,
+        public null|string $modelVersion = null,
+        // The puzzle's picture the proposal was made from (PuzzleImageFingerprint) - null for a player's
+        public null|string $sourceImageFingerprint = null,
     ) {
     }
 
@@ -161,7 +174,44 @@ readonly final class PuzzleChangeRequestOverview
             puzzleAddedByCode: is_string($row['puzzle_added_by_code'] ?? null) ? $row['puzzle_added_by_code'] : null,
             outdatedReason: is_string($row['outdated_reason'] ?? null) ? PuzzleReportOutdatedReason::tryFrom($row['outdated_reason']) : null,
             mergedFromPuzzleId: is_string($row['merged_from_puzzle_id'] ?? null) ? $row['merged_from_puzzle_id'] : null,
+            source: is_string($row['source'] ?? null) ? (PuzzleChangeRequestSource::tryFrom($row['source']) ?? PuzzleChangeRequestSource::Player) : PuzzleChangeRequestSource::Player,
+            tags: self::tags($row['tags'] ?? null),
+            confidence: is_numeric($row['confidence'] ?? null) ? (float) $row['confidence'] : null,
+            modelVersion: is_string($row['model_version'] ?? null) ? $row['model_version'] : null,
+            sourceImageFingerprint: is_string($row['source_image_fingerprint'] ?? null) ? $row['source_image_fingerprint'] : null,
         );
+    }
+
+    /**
+     * @return list<string>
+     */
+    private static function tags(mixed $value): array
+    {
+        if (is_string($value) === false) {
+            return [];
+        }
+
+        $decoded = json_decode($value, true);
+
+        return is_array($decoded) ? array_values(array_filter($decoded, is_string(...))) : [];
+    }
+
+    public function isFromImagePipeline(): bool
+    {
+        return $this->source === PuzzleChangeRequestSource::ImagePipeline;
+    }
+
+    /**
+     * The puzzle has another picture now than the one the proposal was made from - approving it would replace that
+     * newer picture. Known only for the image pipeline's proposals (they name the picture) and while the picture shows.
+     */
+    public function pictureChangedSinceProposed(): bool
+    {
+        if ($this->sourceImageFingerprint === null || $this->puzzleImage === null) {
+            return false;
+        }
+
+        return PuzzleImageFingerprint::of($this->puzzleImage) !== $this->sourceImageFingerprint;
     }
 
     public function hasNameChange(): bool

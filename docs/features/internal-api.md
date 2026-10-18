@@ -1220,6 +1220,53 @@ curl -X POST "$APP_URL/internal-api/puzzle-change-requests/019a0000-0000-7000-80
   -d '{"rejectionReason": "The crop cuts off part of the picture.", "decisionNote": "review: crop too tight"}'
 ```
 
+### Walkthrough: an artwork crop from the claim to "Restore"
+
+The whole path of one cleaner catalogue picture (docs/features/insights/README.md "Artwork crops",
+`insights/implementation-plan.md` §1.3-§1.5). `$APP_URL` is `https://myspeedpuzzling.com` (or a local dev URL); ids and
+fingerprints below are placeholders.
+
+```bash
+# 1. Claim work whose artwork box is known already - the crop embedding needs the box first ("requires")
+curl -s -X POST "$APP_URL/internal-api/puzzle-image-claims" \
+  -H "Authorization: Bearer $INTERNAL_API_TOKEN" -H 'Content-Type: application/json' \
+  -d '{"analyzer": "embed_siglip2", "version": "1.0.0+so400m-14-384", "worker": "m3-max", "limit": 20,
+       "leaseSeconds": 1800, "requires": ["artwork"]}'
+# → {"puzzles": [{"puzzleId": "018d…", "imageUrl": "https://img…/original/….jpg", "imageFingerprint": "3f2a9c0d4b1e7a65",
+#     "analyses": {"artwork": {…}}, "claims": {"embed_siglip2": {"worker": "m3-max", "expiresAt": "…"}}}, …]}
+
+# 2. Store the result for the picture it was made from (storing deletes the claim; another picture by now = 409)
+curl -s -X PUT "$APP_URL/internal-api/puzzles/018d…/image-analysis/embed_siglip2" \
+  -H "Authorization: Bearer $INTERNAL_API_TOKEN" -H 'Content-Type: application/json' \
+  -d '{"analyzerVersion": "1.0.0+so400m-14-384", "imageFingerprint": "3f2a9c0d4b1e7a65",
+       "analyzedAt": "2026-10-18T05:12:00Z", "result": {"dim": 1152, "dtype": "f16", "vector": "<base64>"}}'
+
+# 3. Propose the perspective-corrected crop of the same picture as a change request (base64, ≤ 15 MB)
+jq -n --arg image "$(base64 < crop.jpg)" '{
+    puzzleId: "018d…", source: "image_pipeline", image: $image, tags: ["artwork_crop"],
+    confidence: 0.987, modelVersion: "artwork-crop 1.0.0", sourceImageFingerprint: "3f2a9c0d4b1e7a65"}' \
+| curl -s -X POST "$APP_URL/internal-api/puzzle-change-requests" \
+  -H "Authorization: Bearer $INTERNAL_API_TOKEN" -H 'Content-Type: application/json' -d @-
+# → 201 {"changeRequestId": "019a…", "recordVersion": "…"} - the same picture + tag ever again → 409 already_proposed
+
+# 4. List what is pending (moderators see the same requests side by side at /admin/puzzle-change-requests/pictures)
+curl -s "$APP_URL/internal-api/puzzle-change-requests?source=image_pipeline&tag=artwork_crop&status=pending" \
+  -H "Authorization: Bearer $INTERNAL_API_TOKEN" | jq '.changeRequests[] | {id, confidence, proposedImageUrl}'
+
+# 5. Approve one with a note - the picture it replaces is copied to originals/<puzzleId>/<fingerprint>.<ext> first
+curl -s -X POST "$APP_URL/internal-api/puzzle-change-requests/019a…/approve" \
+  -H "Authorization: Bearer $INTERNAL_API_TOKEN" -H 'Content-Type: application/json' \
+  -d '{"selectedFields": ["image"], "decisionNote": "auto: confidence 0.987, band ≥ 0.98, model artwork-crop 1.0.0"}'
+# → 204; listed again it is "approved" with "originalArchiveUrl" and the decision (who, when, note)
+```
+
+**6. Restore - web only.** There is no internal API endpoint for it: a moderator opens the puzzle's history
+(`/admin/puzzles/<puzzleId>/history`) and uses **"Restore this picture"** under the approval's *Before* picture. The old
+picture comes back from the archive copy (else the old object) under a new file name - recorded as a direct edit
+("Picture restored"), nothing deleted - and the new fingerprint puts the puzzle back on the analyzers' work lists
+(docs/features/puzzle-approvals.md "Restoring a picture"). Restoring stays a person's decision: it is the safety net for
+a wrong automated approval, and it is one click.
+
 ## Audit trail
 
 Table `puzzle_merge_audit`, one row per approved merge, written by `ApprovePuzzleMergeRequestHandler` — for merges done through the admin UI as well as the API.

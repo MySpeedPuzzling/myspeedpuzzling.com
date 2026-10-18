@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\MessageHandler;
 
 use Doctrine\DBAL\Connection;
+use Doctrine\ORM\EntityManagerInterface;
 use SpeedPuzzling\Web\Message\ClaimPuzzleImages;
 use SpeedPuzzling\Web\Message\RecordPuzzleImageAnalysis;
 use SpeedPuzzling\Web\Message\ReleasePuzzleImageClaims;
@@ -155,11 +156,58 @@ final class ClaimPuzzleImagesHandlerTest extends KernelTestCase
     }
 
     /**
+     * `requires`: only puzzles whose current picture already has a result of every required analyzer, of any version
+     */
+    public function testRequiresHandsOutOnlyWhatTheCurrentPictureHasResultsFor(): void
+    {
+        // 500_01: artwork (an old version) + ocr; 500_02: artwork of its previous picture; 500_03: artwork only
+        $this->store(PuzzleFixture::PUZZLE_500_01, ImageAnalyzer::Artwork, 'artwork-0.9');
+        $this->store(PuzzleFixture::PUZZLE_500_01, ImageAnalyzer::Ocr);
+        $this->store(PuzzleFixture::PUZZLE_500_02, ImageAnalyzer::Artwork);
+        $this->store(PuzzleFixture::PUZZLE_500_03, ImageAnalyzer::Artwork);
+        $this->database()->executeStatement('UPDATE puzzle SET image = :image WHERE id = :id', ['image' => 'claim-500-02-new.jpg', 'id' => PuzzleFixture::PUZZLE_500_02]);
+        // The new picture, not the one the stores above left in the identity map
+        self::getContainer()->get(EntityManagerInterface::class)->clear();
+
+        self::assertSame(
+            [PuzzleFixture::PUZZLE_500_01, PuzzleFixture::PUZZLE_500_03],
+            $this->claim('mac-air', limit: 200, requires: [ImageAnalyzer::Artwork]),
+            'any version counts, a result of an older picture does not',
+        );
+        self::assertSame(
+            [PuzzleFixture::PUZZLE_500_01],
+            $this->claim('mac-studio', limit: 200, analyzer: ImageAnalyzer::Describe, requires: [ImageAnalyzer::Artwork, ImageAnalyzer::Ocr]),
+        );
+
+        // The rest is untouched: claims still exclude other workers' images, and an analysis of the new picture counts
+        self::assertSame([], $this->claim('mac-mini', limit: 200, requires: [ImageAnalyzer::Artwork]));
+        $this->store(PuzzleFixture::PUZZLE_500_02, ImageAnalyzer::Artwork, image: 'claim-500-02-new.jpg');
+        self::assertSame([PuzzleFixture::PUZZLE_500_02], $this->claim('mac-mini', limit: 200, requires: [ImageAnalyzer::Artwork]));
+
+        // Without requires everything still to do is handed out (backward compatible)
+        self::assertContains(PuzzleFixture::PUZZLE_500_01, $this->claim('mac-mini', limit: 200, analyzer: ImageAnalyzer::Barcode));
+    }
+
+    private function store(string $puzzleId, ImageAnalyzer $analyzer, string $version = 'v1', null|string $image = null): void
+    {
+        $this->bus()->dispatch(new RecordPuzzleImageAnalysis(new PuzzleImageAnalysisInput(
+            $puzzleId,
+            $analyzer,
+            $version,
+            PuzzleImageFingerprint::of($image ?? self::IMAGES[$puzzleId]),
+            null,
+            $analyzer === ImageAnalyzer::Artwork ? ['bbox' => ['x' => 0.1, 'y' => 0.1, 'w' => 0.8, 'h' => 0.8]] : ['lines' => []],
+        )));
+    }
+
+    /**
+     * @param list<ImageAnalyzer> $requires
+     *
      * @return list<string>
      */
-    private function claim(string $worker, int $limit, ImageAnalyzer $analyzer = ImageAnalyzer::Colors, string $version = 'v1'): array
+    private function claim(string $worker, int $limit, ImageAnalyzer $analyzer = ImageAnalyzer::Colors, string $version = 'v1', array $requires = []): array
     {
-        $handled = $this->bus()->dispatch(new ClaimPuzzleImages($analyzer, $version, $worker, $limit))->last(HandledStamp::class);
+        $handled = $this->bus()->dispatch(new ClaimPuzzleImages($analyzer, $version, $worker, $limit, requires: $requires))->last(HandledStamp::class);
         self::assertInstanceOf(HandledStamp::class, $handled);
 
         /** @var list<string> $puzzleIds */

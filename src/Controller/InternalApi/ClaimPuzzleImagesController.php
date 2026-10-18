@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Results\PuzzleImageForAnalysis;
 use SpeedPuzzling\Web\Services\UploaderHelper;
 use SpeedPuzzling\Web\Value\ImageAnalyzer;
 use SpeedPuzzling\Web\Value\PuzzleImageAnalysisInput;
+use SpeedPuzzling\Web\Value\RequiredImageAnalyses;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -21,11 +22,13 @@ use Symfony\Component\Routing\Attribute\Route;
 
 /**
  * A worker of the image analysis pipeline takes its next images (docs/features/internal-api.md, "Puzzle image
- * analysis" - claims): body `{analyzer, version, worker, limit (1-200, 50), leaseSeconds (60-7200, 1800)}`. Up to
+ * analysis" - claims): body `{analyzer, version, worker, limit (1-200, 50), leaseSeconds (60-7200, 1800), requires?}`. Up to
  * `limit` puzzles still to be analysed by the analyzer (missing, another picture or another version) that no other
  * worker holds are claimed for the lease - fresh work first, its own unexpired claims (extended) only when there is
- * not enough of it - and answered in the work list's shape (`claims.<analyzer>` = this worker, with the lease's end). Storing a result releases its claim. Two
- * machines claiming at the same moment never get the same image.
+ * not enough of it - and answered in the work list's shape (`claims.<analyzer>` = this worker, with the lease's end).
+ * `requires` (a list of analyzers) hands out only puzzles whose current picture already has a result of each of them
+ * (RequiredImageAnalyses). Storing a result releases its claim. Two machines claiming at the same moment never get the
+ * same image.
  */
 final class ClaimPuzzleImagesController extends AbstractController
 {
@@ -42,7 +45,7 @@ final class ClaimPuzzleImagesController extends AbstractController
     )]
     public function __invoke(Request $request): JsonResponse
     {
-        $input = InternalApiInput::fromRequest($request, ['analyzer', 'version', 'worker', 'limit', 'leaseSeconds']);
+        $input = InternalApiInput::fromRequest($request, ['analyzer', 'version', 'worker', 'limit', 'leaseSeconds', 'requires']);
         $analyzerValue = $input->string('analyzer', required: true);
         $analyzer = $analyzerValue !== null ? ImageAnalyzer::tryFrom($analyzerValue) : null;
 
@@ -60,12 +63,25 @@ final class ClaimPuzzleImagesController extends AbstractController
             }
         }
 
+        $requires = RequiredImageAnalyses::none();
+        $requiredValues = $input->stringList('requires');
+
+        if ($requiredValues !== null) {
+            $parsed = RequiredImageAnalyses::fromValues($requiredValues, $analyzer);
+
+            if (is_string($parsed)) {
+                $input->addError('requires', $parsed);
+            } else {
+                $requires = $parsed;
+            }
+        }
+
         $leaseSeconds = $input->int('leaseSeconds', minimum: ClaimPuzzleImages::MIN_LEASE_SECONDS, maximum: ClaimPuzzleImages::MAX_LEASE_SECONDS)
             ?? ClaimPuzzleImages::DEFAULT_LEASE_SECONDS;
         $input->throwIfInvalid();
         assert($analyzer !== null && $version !== null && $worker !== null);
 
-        $envelope = $this->messageBus->dispatch(new ClaimPuzzleImages($analyzer, $version, $worker, $limit, $leaseSeconds));
+        $envelope = $this->messageBus->dispatch(new ClaimPuzzleImages($analyzer, $version, $worker, $limit, $leaseSeconds, $requires->analyzers));
         $handled = $envelope->last(HandledStamp::class);
         assert($handled instanceof HandledStamp);
         /** @var list<string> $puzzleIds */
@@ -74,6 +90,7 @@ final class ClaimPuzzleImagesController extends AbstractController
         $request->attributes->set(InternalApiAuditSubscriber::SUMMARY_ATTRIBUTE, [
             'analyzer' => $analyzer->value,
             'worker' => $worker,
+            'requires' => $requires->values(),
             'claimed' => count($puzzleIds),
         ]);
 

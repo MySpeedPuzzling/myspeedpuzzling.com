@@ -20,7 +20,7 @@ store raw outputs that later categories can be computed from, instead of only th
 | 3 | `ocr` | Apple Vision `VNRecognizeTextRequest` (on-device) | **full image** | 0.14 s median (measured) |
 | 4 | `barcode` | Apple Vision `VNDetectBarcodesRequest` (+ zxing-cpp fallback) | **full image** | 0.03 s (measured) |
 | 5 | `vision_labels` | Apple Vision classifier (1,303 labels), faces, humans, saliency | crop | 0.03 s (measured) |
-| 6 | `embed_siglip2` | SigLIP 2 so400m/14 @384 (Apache-2.0), 1152-d, crop + full image | crop + full | 0.15-0.45 s (measured, contended) |
+| 6 | `embed_siglip2` + `embed_siglip2_full` | SigLIP 2 so400m/14 @384 (Apache-2.0), 1152-d - `embed_siglip2` = the crop, `embed_siglip2_full` = the whole image (two analyzers: the full-image one needs no crop) | crop / full | 0.15-0.45 s (measured, contended) |
 | 7 | `embed_dinov2` | DINOv2-L/14 with registers (Apache-2.0), 1024-d | crop | ~0.1 s (base measured 0.05 s) |
 | 8 | `segmentation` | EoMT-L COCO panoptic (MIT) - region shares + coarse map | crop | ~0.5 s (estimate, not measured) |
 | 9 | `describe` | **Qwen3.5-9B 4-bit** via mlx-vlm (Apache-2.0), JSON-schema constrained decoding, prompt v2 + catalogue title (bake-off §18) | crop (+ OCR text + title as context) | **10.75 s** (measured, idle M3 Max, unbatched) |
@@ -340,7 +340,7 @@ recognises same-art language editions (0.79-0.96), but **drops true pairs when o
 
 | Kind | Analyzers | Recompute when | Needs |
 |---|---|---|---|
-| Raw, image-bound | `artwork`, `colors`, `traits`, `ocr`, `barcode`, `vision_labels`, `embed_siglip2`, `embed_dinov2`, `segmentation`, `describe` | new image (fingerprint), new model, a formula bug | the image + a model |
+| Raw, image-bound | `artwork`, `colors`, `traits`, `ocr`, `barcode`, `vision_labels`, `embed_siglip2`, `embed_siglip2_full`, `embed_dinov2`, `segmentation`, `describe` | new image (fingerprint), new model, a formula bug | the image + a model |
 | Derived on the Mac (needs a text encoder or the whole corpus) | `zeroshot`, `neighbours`, `tags` (fusion) | taxonomy version, new prompt bank, new puzzles (neighbours) | stored embeddings / raw payloads only |
 | Derived on the server (pure rules, PHP) | `puzzle_tag` materialisation incl. corrections, catalogue checks (`box_text` vs current catalogue), numeric-threshold traits, theme counts | every push, every correction, catalogue edits | stored payloads only |
 
@@ -351,7 +351,7 @@ piece count), and the comparison must follow it.
 
 | Option | Size for 41k | Pros | Cons |
 |---|---|---|---|
-| **A. base64 float16 inside the analyzer JSON (recommended now)** | SigLIP 1152-d: 3,072 chars/row (crop + full = 6 KB) -> ~250 MB; DINOv2-L 1024-d: 2.7 KB -> ~110 MB | no new infrastructure, fits 64 KB, versioned like every analyzer | Postgres cannot search it; PHP decoding 41k × 1152 per request is too slow (fine for batch jobs) |
+| **A. base64 float16 inside the analyzer JSON (recommended now)** | SigLIP 1152-d: 3,072 chars/row (crop + full = 2 rows, 6 KB) -> ~250 MB; DINOv2-L 1024-d: 2.7 KB -> ~110 MB | no new infrastructure, fits 64 KB, versioned like every analyzer | Postgres cannot search it; PHP decoding 41k × 1152 per request is too slow (fine for batch jobs) |
 | B. dedicated table with `bytea` | ~95 MB SigLIP + 84 MB DINOv2 | compact | same search limitation, a second write path |
 | C. pgvector `halfvec(1152)` + HNSW (or exact scan - 41k rows scan in tens of ms) | ~100 MB | live "similar puzzles", live duplicate check on add, text search later | swap the production image to `pgvector/pgvector:0.8.7-pg16-bookworm` (digest-pinned, same Debian/libc, same major - a deliberate windowed `compose up`); `CREATE EXTENSION vector` in a migration. Not a trigger or function of ours - compatible with the "no DB triggers/functions" rule, like `pg_trgm` |
 
@@ -433,7 +433,12 @@ centre lies inside the `artwork` crop. Cap 400 lines, sorted by area.
 `vision_labels` (crop): `{"labels":[["sky",0.78],…≤40 with confidence ≥ 0.1],"faces":[{"area":0.012,"c":0.9}],
 "humans":3,"saliency":{"bbox":[…],"areaShare":0.42}}` - no face crops, no face embeddings, no landmarks.
 
-`embed_siglip2`: `{"dim":1152,"dtype":"f16","norm":"l2","crop":"<base64>","full":"<base64>","preprocess":"384 squash, siglip2 processor"}`.
+`embed_siglip2` (crop - needs `artwork`): `{"dim":1152,"dtype":"f16","norm":"l2","vector":"<base64>","preprocess":"384 squash, siglip2 processor"}`,
+envelope `crop` = the `artwork` bbox/corners used.
+`embed_siglip2_full` (full image, no dependency): the same shape, envelope `crop: null`. Two analyzers since 2026-10-18
+(plan §1.1; one analyzer with `crop` + `full` before): a worker computes the full-image embedding before `artwork`
+exists, and one analyzer = one payload = one push. Both use the same model and preprocessing, so the vectors are
+comparable (full vs crop of the same box).
 `embed_dinov2`: `{"dim":1024,"dtype":"f16","norm":"l2","cls":"<base64>","preprocess":"224 short side, centre"}` (crop only).
 
 `segmentation` (crop): `{"classes":{"sky":0.31,"tree":0.18,"grass":0.07,"sea":0.12,"building":0.05,"person":0.01,…≥0.002},
@@ -472,7 +477,7 @@ puzzles daily (and the new puzzle inserted into the lists of its neighbours, so 
 "candidates":{…below threshold, for moderation queues…},"skills":{"skill.shape_sorting":0.62,…},
 "traits":{"trait.large_uniform_areas":0.34,…}}`.
 
-The `ImageAnalyzer` enum therefore grows from 4 to 13 cases; every payload stays under 64 KB.
+The `ImageAnalyzer` enum therefore has 15 cases (`embed_siglip2_full` added 2026-10-18); every payload stays under 64 KB.
 
 ## 12. Run order and budget
 
@@ -484,7 +489,8 @@ for each analyzer A in pass order: GET /internal-api/puzzle-images?analyzer=A&ve
 pass 1 (small models resident together, ~6 GB):
   full image : ocr, barcode                      (Apple Vision, ANE/CPU)
   artwork    : crop + perspective                (vision PoC)
-  crop       : colors, traits (CPU pool), vision_labels, embed_siglip2 (crop + full), embed_dinov2, segmentation (GPU)
+  full image : embed_siglip2_full                (GPU, no dependency)
+  crop       : colors, traits (CPU pool), vision_labels, embed_siglip2 (crop), embed_dinov2, segmentation (GPU)
 pass 2 (VLM alone, ~8-9 GB, batch 8, grouped by crop shape):
   crop       : describe (with the crop's OCR lines as context)
 derive (no images): box_text, zeroshot, neighbours, tags
@@ -672,7 +678,7 @@ right backbone and carries **all raw and derived payloads, embeddings included**
 
 1. **New `ImageAnalyzer` cases**: `ocr`, `barcode`, `vision_labels`, `embed_siglip2`, `embed_dinov2`,
    `segmentation`, `describe`, `box_text`, `zeroshot`, `neighbours` (plus the existing `artwork`, `colors`,
-   `traits`, `tags`). No larger size limit needed (largest expected: OCR max ~16 KB with the 400-line cap).
+   `traits`, `tags`); `embed_siglip2_full` split off `embed_siglip2` on 2026-10-18 (§11.1). No larger size limit needed (largest expected: OCR max ~16 KB with the 400-line cap).
 2. **`puzzle_tag_correction` table + write path** (moderator UI later; internal API endpoint for bulk-confirming
    from a spot-check sheet).
 3. **Server-side materialisation `puzzle_tag`** (puzzle_id, key, score, source, taxonomy_version, corrected) with
@@ -945,14 +951,16 @@ Notes from the measurements:
   with GPU activity outside the lock (other agents / the Docker VM), so they say more about sharing the machine than
   about heat. For a days-long run, pin `caffeinate -i` and keep other GPU work off.
 
-**Ordering dependencies** (the claim API needs a `requires=` filter so a worker never claims what it cannot run yet):
+**Ordering dependencies** (the claim API's `requires` filter - built 2026-10-18, docs/features/internal-api.md
+"Puzzle image analysis" - so a worker never claims what it cannot run yet; the pipeline profiles enforce the table,
+the API only filters):
 
 | Analyzer | Needs first |
 |---|---|
 | `ocr`, `barcode` | nothing (full image) |
-| `embed_siglip2` (full-image half) | nothing |
+| `embed_siglip2_full` | nothing |
 | `artwork` | nothing (gate + VLM on the full image) |
-| `colors`, `traits`, `segmentation`, `embed_dinov2`, `embed_siglip2` (crop half), `vision_labels` | `artwork` (the crop) |
+| `colors`, `traits`, `segmentation`, `embed_dinov2`, `embed_siglip2` (crop), `vision_labels` | `artwork` (the crop) |
 | `describe` | `artwork` (crop) **and** `ocr` (the OCR lines inside the crop are prompt context) |
 | `box_text`, `zeroshot`, `neighbours`, `tags` (derived) | their raw inputs; no image |
 
@@ -964,7 +972,7 @@ image already has those results at the current fingerprint).
 | Machine | Claims | Order | Wall-clock for 41,266 images |
 |---|---|---|---|
 | **M3 Max** | `artwork` (gate + VLM), then `describe` | gate first (1.3 h), VLM on the non-flat ones (~23 h), then describe | artwork ~24 h + describe 41,266 × ~10.75 s ≈ 123 h → **≈ 6.1 days** alone (batching was not viable in the bake-off - memory) |
-| **M1 Air** | everything else: `ocr` + `barcode` (full), `embed_siglip2` (full + crop), `vision_labels`, `embed_dinov2`, `segmentation`, `colors` + `traits` | phase A without dependencies: OCR / barcode first (~3.5 h, so `describe` never waits on it), then SigLIP full-image (~14 h); phase B (`requires=artwork`): SigLIP crop + DINOv2-L + EoMT on the GPU (~3.6 s/img), with colors / traits in 4-6 CPU workers alongside | phase A ~17 h + phase B ~41 h ≈ **2.4 days** |
+| **M1 Air** | everything else: `ocr` + `barcode` (full), `embed_siglip2_full` + `embed_siglip2` (crop), `vision_labels`, `embed_dinov2`, `segmentation`, `colors` + `traits` | phase A without dependencies: OCR / barcode first (~3.5 h, so `describe` never waits on it), then SigLIP full-image (~14 h); phase B (`requires=artwork`): SigLIP crop + DINOv2-L + EoMT on the GPU (~3.6 s/img), with colors / traits in 4-6 CPU workers alongside | phase A ~17 h + phase B ~41 h ≈ **2.4 days** |
 
 Why this way round:
 - `describe` is ~80 % of all compute and has to be one model for the whole catalogue. On the Air it would take ~57 s/img,

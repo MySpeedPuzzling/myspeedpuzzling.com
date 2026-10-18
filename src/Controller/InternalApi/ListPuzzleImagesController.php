@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Services\UploaderHelper;
 use SpeedPuzzling\Web\Value\ImageAnalyzer;
 use SpeedPuzzling\Web\Value\PuzzleImageAnalysisInput;
 use SpeedPuzzling\Web\Value\PuzzleImageAnalysisStatus;
+use SpeedPuzzling\Web\Value\RequiredImageAnalyses;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -19,7 +20,8 @@ use Symfony\Component\Routing\Attribute\Route;
 
 /**
  * The image analysis pipeline's work list (docs/features/internal-api.md, "Puzzle image analysis"): puzzles with a
- * shown image, in id order, a page at a time - `?analyzer=&version=&status=missing|stale|all&limit=1..1000&after=`.
+ * shown image, in id order, a page at a time - `?analyzer=&version=&status=missing|stale|all&limit=1..1000&after=`
+ * `&requires=artwork,ocr` (only puzzles whose current picture already has a result of each - RequiredImageAnalyses).
  * Each with the full-size original's URL to download, the picture's `imageFingerprint` to send back with the result,
  * what is stored for it and the claims held on it, per analyzer (read-only: the list ignores claims - workers take
  * images through POST /internal-api/puzzle-image-claims). `nextCursor` is the `after` of the next page, null on the
@@ -27,7 +29,7 @@ use Symfony\Component\Routing\Attribute\Route;
  */
 final class ListPuzzleImagesController extends AbstractController
 {
-    private const array KNOWN_PARAMETERS = ['analyzer', 'version', 'status', 'limit', 'after'];
+    private const array KNOWN_PARAMETERS = ['analyzer', 'version', 'status', 'limit', 'after', 'requires'];
 
     public function __construct(
         private readonly GetPuzzleImagesForAnalysis $getPuzzleImagesForAnalysis,
@@ -91,11 +93,28 @@ final class ListPuzzleImagesController extends AbstractController
             $errors['after'] = 'must be a puzzle id (the nextCursor of the previous page).';
         }
 
+        $requires = RequiredImageAnalyses::none();
+        $requiresValue = self::parameter($request, 'requires');
+
+        if (is_array($request->query->all()['requires'] ?? null)) {
+            // requires[]=… would otherwise be dropped unnoticed - and the filter with it
+            $errors['requires'] = 'must be one comma-separated value, e.g. requires=artwork,ocr.';
+        } elseif ($requiresValue !== null) {
+            $values = array_values(array_filter(array_map(trim(...), explode(',', $requiresValue)), static fn (string $value): bool => $value !== ''));
+            $parsed = RequiredImageAnalyses::fromValues($values, $analyzer);
+
+            if (is_string($parsed)) {
+                $errors['requires'] = $parsed;
+            } else {
+                $requires = $parsed;
+            }
+        }
+
         if ($errors !== [] || $status === null) {
             throw new InternalApiInvalidInput($errors);
         }
 
-        $page = $this->getPuzzleImagesForAnalysis->page($status, $analyzer, $version, $limit, $after);
+        $page = $this->getPuzzleImagesForAnalysis->page($status, $analyzer, $version, $limit, $after, $requires);
 
         return new JsonResponse([
             'puzzles' => array_map(

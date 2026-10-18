@@ -31,8 +31,11 @@ enum ImageAnalyzer: string
     case Barcode = 'barcode';
     // Platform vision labels, face/human counts and saliency of the artwork - no face crops or embeddings
     case VisionLabels = 'vision_labels';
-    // SigLIP 2 image embeddings (crop + full), base64 float16
+    // SigLIP 2 image embedding of the artwork crop, base64 float16 (needs `artwork` first)
     case EmbedSiglip2 = 'embed_siglip2';
+    // SigLIP 2 image embedding of the whole image, base64 float16 - its own analyzer because it needs no crop: a
+    // worker computes it before `artwork` exists, one analyzer = one payload = one push
+    case EmbedSiglip2Full = 'embed_siglip2_full';
     // DINOv2 image embedding (crop), base64 float16
     case EmbedDinov2 = 'embed_dinov2';
     // Class shares, instance counts and a coarse class grid of the artwork

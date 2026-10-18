@@ -263,8 +263,9 @@ needed.
 
 - **Analyzers** (`ImageAnalyzer`, a backed enum - a new kind of analysis is one new case there; payload schemas in
   [`insights/image-taxonomy.md`](./insights/image-taxonomy.md) §11): raw, from the image - `artwork`, `colors`,
-  `traits`, `ocr`, `barcode`, `vision_labels`, `embed_siglip2`, `embed_dinov2` (embeddings as base64 float16 inside
-  the JSON, ~3 KB a vector), `segmentation`, `describe`; derived on the Mac from those - `box_text`, `zeroshot`,
+  `traits`, `ocr`, `barcode`, `vision_labels`, `embed_siglip2` (SigLIP 2 of the artwork crop), `embed_siglip2_full`
+  (SigLIP 2 of the whole image - its own analyzer since 2026-10-18, so it can run before `artwork` exists),
+  `embed_dinov2` (embeddings as base64 float16 inside the JSON, ~3 KB a vector), `segmentation`, `describe`; derived on the Mac from those - `box_text`, `zeroshot`,
   `neighbours`, `tags`. The largest expected payload (`ocr`, capped at 400 lines) is ~16 KB. What part of the image an analyzer looks at (the cropped artwork, the whole photo) is its own
   business - the fingerprint always names the source image.
 - **imageFingerprint** - which picture an analysis describes: the first 16 hex characters of `md5(puzzle.image)`
@@ -274,14 +275,16 @@ needed.
   picture - analysed once more, never wrong. Send back exactly the `imageFingerprint` the list gave.
 - **Hidden images** (`hide_until` or `hide_image_until` in the future - secret competition puzzles, placeholders before
   their reveal) are never listed, read or accepted: they answer like an unknown puzzle (`404` / `not_found`).
-- **List** `?analyzer=&version=&status=missing|stale|all&limit=1..1000 (500)&after=<puzzleId>`, in puzzle id order:
+- **List** `?analyzer=&version=&status=missing|stale|all&limit=1..1000 (500)&after=<puzzleId>&requires=<a>,<b>`, in
+  puzzle id order:
   `missing` = no row for the analyzer; `stale` = no row, or one of another picture (fingerprint), or - when `version`
   is given - of another `analyzerVersion`; `all` (default) = every puzzle with a shown image. `analyzer` is required for
   `missing` and `stale`. Each puzzle: `puzzleId`, `name`, `piecesCount`, `manufacturer` `{id, name}` (or null),
   `imageUrl` (the full-size original, `{NGINX_PROXY_BASE_URL}/original/<path>` - downloadable from anywhere),
   `imageFingerprint`, `imageRatio`, `analyses` `{<analyzer>: {analyzerVersion, imageFingerprint, analyzedAt,
-  receivedAt}}` (an object, `{}` when none). `nextCursor` is the next page's `after`, null on the last page. Unknown
-  parameters or bad values: `400` with `errors`. The last, empty page of a `stale` walk reads every puzzle once
+  receivedAt}}` (an object, `{}` when none). `nextCursor` is the next page's `after`, null on the last page. `requires`
+  narrows any status to puzzles whose picture already has results of those analyzers (below). Unknown parameters or
+  bad values: `400` with `errors`. The last, empty page of a `stale` walk reads every puzzle once
   (~0.35 s measured on 41k × 4 analyzers) - fine once a day.
 - **PUT body**: `analyzerVersion` (≤ 50 characters), `imageFingerprint`, `analyzedAt` (optional, ISO 8601, UTC without
   an offset - stored in UTC), `result` (a JSON object with at least one field, at most 64 KB JSON-encoded - the limit is
@@ -311,7 +314,7 @@ needed.
   the hidden-image condition before showing it - only the analysed puzzle itself is filtered by the API.
 - **Claims (several machines in parallel)**: a worker never works from the plain list - it claims.
   `POST /internal-api/puzzle-image-claims` `{analyzer, version, worker (≤ 64), limit (1-200, 50), leaseSeconds
-  (60-7200, 1800)}` takes up to `limit` puzzles that are still to do for the analyzer (no analysis, another picture or
+  (60-7200, 1800), requires? (list of analyzers)}` takes up to `limit` puzzles that are still to do for the analyzer (no analysis, another picture or
   another `version`) and that no **other** worker holds (no claim, an expired one, or this worker's own), and answers
   them as `{"puzzles": [...]}` in the list's item shape (`claims.<analyzer>` = `{worker, expiresAt}`). **Fresh work
   comes first** (puzzle id order); this worker's own unexpired claims come after it - they are returned, and their
@@ -328,6 +331,25 @@ needed.
   worker's own claims (on shutdown, or images it gave up on). A crashed worker's claims simply expire. The plain list
   stays read-only and ignores claims; its items show the claims held now (`claims`, `{}` when none). `400` with
   `errors` for invalid fields.
+- **`requires` - what must be done first** (claim body `"requires": ["artwork", "ocr"]`, list query
+  `requires=artwork,ocr`): only puzzles whose **current** picture already has a result of **every** listed analyzer,
+  of **any** `analyzerVersion`. A result made from an older picture (its `imageFingerprint` is not the puzzle's
+  current one) does not count - its crop or OCR lines describe a picture the puzzle no longer has. Absent or empty =
+  no filter (as before). An unknown analyzer, the claimed/listed `analyzer` itself, or anything but a list of strings
+  (claims) / one comma-separated value (list; `requires[]=` is refused, it would otherwise be dropped unnoticed) is a
+  `400` with `errors.requires`, like the endpoints' other invalid fields; duplicates are ignored. It is only a filter
+  of the candidates (`RequiredImageAnalyses`: one `EXISTS` per analyzer, a probe of the unique `(analyzer, puzzle_id)`
+  index) - the claims' lock, ordering and `ON CONFLICT` guard are unchanged. **The API does not know which analyzer
+  needs which**; the pipeline's profiles enforce it ([`insights/implementation-plan.md`](./insights/implementation-plan.md)
+  §1.2, `image-taxonomy.md` §19):
+
+  | Analyzer | requires |
+  |---|---|
+  | `ocr`, `barcode`, `embed_siglip2_full`, `artwork` | - |
+  | `colors`, `traits`, `segmentation`, `embed_dinov2`, `embed_siglip2`, `vision_labels` | `artwork` |
+  | `describe` | `artwork`, `ocr` |
+  | `box_text`, `zeroshot`, `neighbours`, `tags` (derived on the Mac) | their raw inputs (no image needed) |
+
 - **Bulk read**: `GET /internal-api/puzzle-image-analyses?analyzer=<a>&limit=1..1000 (500)&after=<puzzleId>&onlyCurrent=1`
   - every stored analysis of one analyzer, in puzzle id order, hidden images left out: `{"analyzer", "items": [{puzzleId,
   analyzer, analyzerVersion, imageFingerprint, current, analyzedAt, receivedAt, result}], "nextCursor"}`. `current` =
@@ -339,6 +361,10 @@ needed.
   keyed by puzzle and analyzer, one statement, hidden images left out.
 
 ```bash
+# How many images can the crop analyzers work on already? (stale for embed_dinov2 and the artwork crop is there)
+curl -s -H "Authorization: Bearer $INTERNAL_API_TOKEN" \
+  "https://myspeedpuzzling.com/internal-api/puzzle-images?analyzer=embed_dinov2&status=stale&requires=artwork&limit=1000" | jq '.puzzles | length'
+
 # What is still to do for the colour analyzer v2 (missing, another picture, or an older version)?
 curl -s -H "Authorization: Bearer $INTERNAL_API_TOKEN" \
   "https://myspeedpuzzling.com/internal-api/puzzle-images?analyzer=colors&version=colors-v2&status=stale&limit=500" | jq
@@ -353,9 +379,11 @@ curl -s -X PUT -H "Authorization: Bearer $INTERNAL_API_TOKEN" -H 'Content-Type: 
        "result": {"bbox": {"x": 0.04, "y": 0.11, "w": 0.92, "h": 0.71}, "isPhoto": true}}' \
   https://myspeedpuzzling.com/internal-api/puzzles/<puzzleId>/image-analysis/artwork
 
-# A worker takes its next 50 images for the caption model (another Mac calling at the same moment gets others)
+# A worker takes its next 50 images for the caption model - only those whose current picture already has its
+# artwork crop and OCR lines (another Mac calling at the same moment gets others)
 curl -s -X POST -H "Authorization: Bearer $INTERNAL_API_TOKEN" -H 'Content-Type: application/json' \
-  -d '{"analyzer": "describe", "version": "1.0.0+qwen3vl8b-4bit", "worker": "mac-mini", "limit": 50, "leaseSeconds": 1800}' \
+  -d '{"analyzer": "describe", "version": "1.0.0+qwen3vl8b-4bit", "worker": "mac-mini", "limit": 50, "leaseSeconds": 1800,
+       "requires": ["artwork", "ocr"]}' \
   https://myspeedpuzzling.com/internal-api/puzzle-image-claims
 # → {"puzzles": [{"puzzleId": "…", "imageUrl": "…", "imageFingerprint": "…", …,
 #     "claims": {"describe": {"worker": "mac-mini", "expiresAt": "2026-10-18T15:30:00+00:00"}}}]}

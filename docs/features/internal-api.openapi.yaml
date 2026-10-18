@@ -1947,6 +1947,17 @@ paths:
           schema:
             type: string
             format: uuid
+        - name: requires
+          in: query
+          required: false
+          description: |
+            Comma-separated analyzers (e.g. `artwork,ocr`): only puzzles whose current
+            picture (imageFingerprint) already has a result of every one of them, any
+            analyzerVersion - a result of an older picture does not count. Combines with
+            every status. An unknown analyzer, `analyzer` itself or `requires[]=` is a 400.
+          schema:
+            type: string
+          example: artwork,ocr
       responses:
         "200":
           description: A page of puzzles
@@ -2023,8 +2034,9 @@ paths:
         claims are taken again and extended - in puzzle id order. Race-safe for several
         machines at once (an advisory lock, the statement's ON CONFLICT guard as backstop).
         Fresh work first; this worker's own unexpired claims only when there is not
-        enough fresh work (then extended). Storing a result deletes its claim; release
-        images a worker failed on.
+        enough fresh work (then extended). `requires` limits the candidates to puzzles
+        whose current picture already has results of those analyzers. Storing a result
+        deletes its claim; release images a worker failed on.
       requestBody:
         required: true
         content:
@@ -2039,6 +2051,16 @@ paths:
                 worker: { type: string, maxLength: 64 }
                 limit: { type: integer, minimum: 1, maximum: 200, default: 50 }
                 leaseSeconds: { type: integer, minimum: 60, maximum: 7200, default: 1800 }
+                requires:
+                  type: array
+                  description: |
+                    Only puzzles whose current picture (imageFingerprint) already has a
+                    result of every listed analyzer, any analyzerVersion - a result of an
+                    older picture does not count. Absent or empty = no filter. An unknown
+                    analyzer or `analyzer` itself is a 400. Which analyzer needs which is
+                    the pipeline's business (internal-api.md, "requires").
+                  items: { $ref: "#/components/schemas/ImageAnalyzer" }
+                  example: [artwork, ocr]
       responses:
         "200":
           description: The claimed puzzles, in the work list's shape
@@ -3423,7 +3445,7 @@ components:
 
     ImageAnalyzer:
       type: string
-      enum: [artwork, colors, traits, ocr, barcode, vision_labels, embed_siglip2, embed_dinov2, segmentation, describe, box_text, zeroshot, neighbours, tags]
+      enum: [artwork, colors, traits, ocr, barcode, vision_labels, embed_siglip2, embed_siglip2_full, embed_dinov2, segmentation, describe, box_text, zeroshot, neighbours, tags]
       description: What an image analysis is about (ImageAnalyzer - one new case per new kind of analysis; payload schemas in docs/features/insights/image-taxonomy.md section 11).
 
     PuzzleImageAnalysisBody:

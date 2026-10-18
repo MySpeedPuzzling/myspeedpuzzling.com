@@ -10,6 +10,8 @@ namespace SpeedPuzzling\Web\Value;
 enum PuzzleHistoryEntryKind: string
 {
     case Edited = 'edited';
+    // A moderator put an earlier picture back from the history (a direct edit, details.restoredFromDecisionId)
+    case ImageRestored = 'image_restored';
     case ChangeRequestApproved = 'change_request_approved';
     case ChangeRequestRejected = 'change_request_rejected';
     // An EAN a player scanned for a puzzle without one - written at once, the approved change request is its record

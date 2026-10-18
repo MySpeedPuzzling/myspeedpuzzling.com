@@ -6,9 +6,12 @@
 
 {#
     Read only: every line comes from the append-only decision log (GetPuzzleHistory) - nothing here can be changed.
+    The one action is "Restore this picture" next to an image change (RestorePuzzleImageController): a new direct edit,
+    a new line - the old ones stay.
 #}
 {% set kinds = {
     edited: {title: 'Edited directly', verb: 'Edited by', icon: 'bi-pencil-square', color: 'text-accent'},
+    image_restored: {title: 'Picture restored', verb: 'Restored by', icon: 'bi-arrow-counterclockwise', color: 'text-accent'},
     change_request_approved: {title: 'Change request approved', verb: 'Approved by', icon: 'bi-check-circle', color: 'text-success'},
     change_request_rejected: {title: 'Change request rejected', verb: 'Rejected by', icon: 'bi-x-circle', color: 'text-danger'},
     ean_linked: {title: 'EAN added from a barcode scan', verb: 'Scanned by', icon: 'bi-upc-scan', color: 'text-success'},
@@ -163,7 +166,25 @@
                                         <tr>
                                             <th scope="row" class="fw-semibold text-nowrap">{{ change.label }}</th>
                                             {% if change.image %}
-                                                <td style="width: 40%;">{{ macros.thumbnail(change.before, 'Before', 80) }}</td>
+                                                <td style="width: 40%;">
+                                                    {{ macros.thumbnail(change.before, 'Before', 80) }}
+                                                    {# The picture this line replaced, back under a new name - not when the puzzle has it now #}
+                                                    {% if can_restore_images and entry.decisionId is not null and entry.previousImage is not null and change.before == entry.previousImage and entry.previousImage != puzzle.image %}
+                                                        <details class="mt-1" data-role="restore-picture" data-controller="inline-confirm" data-action="toggle->inline-confirm#toggled keydown.esc->inline-confirm#cancel">
+                                                            <summary class="small link-primary" data-inline-confirm-target="summary">
+                                                                <i class="bi bi-arrow-counterclockwise me-1" aria-hidden="true"></i>Restore this picture
+                                                            </summary>
+                                                            <form method="post" action="{{ path('admin_restore_puzzle_image', {puzzleId: puzzle_id, decisionId: entry.decisionId}) }}" class="mt-1">
+                                                                <input type="hidden" name="_token" value="{{ csrf_token(constant('SpeedPuzzling\\Web\\Controller\\Admin\\RestorePuzzleImageController::CSRF_TOKEN_ID')) }}">
+                                                                <p class="small text-muted mb-1">The puzzle gets this picture back as a new file; the current one stays in the history.</p>
+                                                                <div class="d-flex flex-wrap gap-1">
+                                                                    <button type="submit" class="btn btn-sm btn-primary" data-inline-confirm-target="focus">Restore</button>
+                                                                    <button type="button" class="btn btn-sm btn-link" data-inline-confirm-target="cancel" data-action="inline-confirm#cancel" hidden>Cancel</button>
+                                                                </div>
+                                                            </form>
+                                                        </details>
+                                                    {% endif %}
+                                                </td>
                                                 <td style="width: 40%;">{{ macros.thumbnail(change.after, 'After', 80) }}</td>
                                             {% else %}
                                                 <td class="text-break text-muted">{{ macros.shown(change.before) }}</td>
@@ -174,7 +195,7 @@
                                 </tbody>
                             </table>
                         </div>
-                    {% elseif entry.kind.value in ['edited', 'merge_approved', 'change_request_approved'] and entry.proposal is empty %}
+                    {% elseif entry.kind.value in ['edited', 'image_restored', 'merge_approved', 'change_request_approved'] and entry.proposal is empty %}
                         <p class="small text-muted mb-0">No field of this puzzle changed.</p>
                     {% endif %}
 

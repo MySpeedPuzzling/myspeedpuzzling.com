@@ -3652,6 +3652,14 @@ admin:
         original_not_archived: "The current picture could not be copied to the archive, so nothing was approved. Try again in a moment."
         rejected: "Change request has been rejected."
         rejection_reason_required: "Rejection reason is required."
+        no_picture_proposed: "This request proposes no picture - review it on its own page."
+        also_proposes_other_changes: "This request proposes more than a picture - decide it on its own page, so none of its changes is lost."
+    puzzle_history:
+        restored: "The picture is back, under a new file name. The picture it replaced stays in the history."
+        restore_picture_gone: "This picture is no longer stored - there is nothing to restore."
+        restore_nothing: "This line of the history replaced no picture - there is nothing to restore."
+        restore_already_current: "The puzzle already has this picture."
+        restore_picture_hidden: "The puzzle's picture is hidden for now - restore it after the reveal."
     puzzle_edit:
         saved: "Puzzle saved."
     puzzle_approval:

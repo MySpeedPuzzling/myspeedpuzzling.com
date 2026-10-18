@@ -28,6 +28,10 @@ readonly final class PuzzleRecordValues
         // The record the form was loaded with (PuzzleRecordVersion) - a save over a newer record is refused; null
         // checks nothing (the internal API, a form rendered before the version existed)
         public null|string $recordVersion = null,
+        // Required for PuzzleImageChoice::Restored: the stored picture to copy back (an earlier picture of the puzzle or
+        // its originals archive copy) and its ratio, null when it could not be read
+        public null|string $restoredImage = null,
+        public null|float $restoredImageRatio = null,
     ) {
     }
 }

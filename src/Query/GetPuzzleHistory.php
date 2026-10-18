@@ -127,6 +127,7 @@ SQL,
         // Decisions about the puzzle, plus the merge that folded it into another puzzle (that one names the survivor)
         $query = <<<SQL
 SELECT
+    d.id AS decision_id,
     d.action,
     d.decided_at,
     d.decided_by_id,
@@ -160,6 +161,7 @@ SELECT
     cr.original_identification_number,
     cr.original_alternative_names,
     cr.original_name_language,
+    cr.original_archive_path,
     mr.reporter_id AS merge_reporter_id,
     merge_reporter.name AS merge_reporter_name,
     merge_reporter.code AS merge_reporter_code,
@@ -236,11 +238,15 @@ SQL;
         $changes = is_array($details['before'] ?? null) && is_array($details['after'] ?? null)
             ? PuzzleHistoryChange::between($details['before'], $details['after'])
             : null;
+        $decisionId = self::string($row['decision_id'] ?? null);
+        // An approved image pipeline picture kept the one it replaced in the originals archive
+        $archivePath = self::string($details['originalArchivePath'] ?? null) ?? self::string($row['original_archive_path'] ?? null);
 
         switch ($row['action']) {
             case 'puzzle_edited':
                 return new PuzzleHistoryEntry(
-                    kind: PuzzleHistoryEntryKind::Edited,
+                    // "Restore this picture" is a direct edit that names the decision it went back from
+                    kind: isset($details['restoredFromDecisionId']) ? PuzzleHistoryEntryKind::ImageRestored : PuzzleHistoryEntryKind::Edited,
                     at: $at,
                     byId: $byId,
                     byName: $byName,
@@ -248,6 +254,8 @@ SQL;
                     viaInternalApi: $viaInternalApi,
                     note: $note,
                     changes: $changes ?? [],
+                    decisionId: $decisionId,
+                    previousImage: self::previousImage($changes ?? []),
                 );
 
             case 'change_request_approved':
@@ -276,10 +284,14 @@ SQL;
                     proposedById: self::string($row['change_reporter_id']),
                     proposedByName: self::string($row['change_reporter_name']),
                     proposedByCode: self::string($row['change_reporter_code']),
+                    decisionId: $decisionId,
+                    previousImage: $approved ? self::previousImage($changes ?? []) : null,
+                    previousImageArchivePath: $approved ? $archivePath : null,
                 );
 
             case 'merge_request_approved':
                 $mergedAway = self::string($row['puzzle_id']) !== $puzzleId;
+                $survivorChanges = $mergedAway ? [] : self::mergeChanges($row);
 
                 return new PuzzleHistoryEntry(
                     kind: $mergedAway ? PuzzleHistoryEntryKind::MergedAway : PuzzleHistoryEntryKind::MergeApproved,
@@ -289,7 +301,7 @@ SQL;
                     byCode: $byCode,
                     viaInternalApi: $viaInternalApi,
                     note: $note,
-                    changes: $mergedAway ? [] : self::mergeChanges($row),
+                    changes: $survivorChanges,
                     mergeRequestId: $mergeRequestId,
                     proposedById: self::string($row['merge_reporter_id']),
                     proposedByName: self::string($row['merge_reporter_name']),
@@ -298,6 +310,8 @@ SQL;
                         ? [new PuzzleHistoryPuzzle(self::string($row['puzzle_id']) ?? '', self::string($row['puzzle_name']))]
                         : self::mergedPuzzles($row, $details, $names),
                     movedRecords: $mergedAway ? [] : self::movedRecords($row),
+                    decisionId: $decisionId,
+                    previousImage: self::previousImage($survivorChanges),
                 );
 
             case 'merge_request_rejected':
@@ -369,6 +383,8 @@ SQL;
                     note: $note,
                     changes: $changes ?? [],
                     brandChoice: self::string($details['brandChoice'] ?? null),
+                    decisionId: $decisionId,
+                    previousImage: self::previousImage($changes ?? []),
                 );
 
             case 'brand_approved':
@@ -398,6 +414,23 @@ SQL;
                     brandName: self::string($details['mergedManufacturerName'] ?? null),
                     intoBrandName: self::string($details['intoManufacturerName'] ?? null),
                 );
+        }
+
+        return null;
+    }
+
+    /**
+     * The picture a decision replaced - what "Restore this picture" puts back. Null when it changed no picture or the
+     * puzzle had none before.
+     *
+     * @param list<PuzzleHistoryChange> $changes
+     */
+    private static function previousImage(array $changes): null|string
+    {
+        foreach ($changes as $change) {
+            if ($change->image && $change->before !== null) {
+                return $change->before;
+            }
         }
 
         return null;

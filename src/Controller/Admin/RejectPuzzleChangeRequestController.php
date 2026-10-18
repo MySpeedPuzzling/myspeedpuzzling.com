@@ -47,7 +47,7 @@ final class RejectPuzzleChangeRequestController extends AbstractController
         $rejectionReason = $request->request->getString('rejection_reason');
 
         if ($rejectionReason === '') {
-            $this->addFlash('error', $this->translator->trans('admin.puzzle_change_request.rejection_reason_required'));
+            $this->addFlash('danger', $this->translator->trans('admin.puzzle_change_request.rejection_reason_required'));
             return $this->redirectToRoute('admin_puzzle_change_request_detail', ['id' => $id]);
         }
 

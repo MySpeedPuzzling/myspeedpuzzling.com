@@ -33,6 +33,7 @@ final class ModeratorAccessTest extends WebTestCase
     public static function moderatorPages(): iterable
     {
         yield 'puzzle change requests' => ['/admin/puzzle-change-requests'];
+        yield 'picture proposals' => ['/admin/puzzle-change-requests/pictures'];
         yield 'puzzle merge requests' => ['/admin/puzzle-merge-requests'];
         yield 'puzzle approvals' => ['/admin/puzzle-approvals'];
         yield 'puzzle approval detail' => ['/admin/puzzle-approvals/' . PuzzleFixture::PUZZLE_UNAPPROVED];

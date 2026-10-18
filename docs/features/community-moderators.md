@@ -6,10 +6,10 @@ Trusted community members who help maintain the puzzle catalogue without being a
 
 | Area | Moderator | Admin |
 |------|-----------|-------|
-| Puzzle change requests — list, detail, approve, reject (`/admin/puzzle-change-requests*`) | yes | yes |
+| Puzzle change requests — list (filters by source / tag), detail, approve, reject, the picture review grid (`/admin/puzzle-change-requests*`) | yes | yes |
 | Puzzle merge requests — list, detail, approve, reject (`/admin/puzzle-merge-requests*`) | yes | yes |
 | Approving newly added puzzles, incl. brand approve / merge (`/admin/puzzle-approvals*`, [puzzle-approvals.md](puzzle-approvals.md)) | yes | yes |
-| Editing any puzzle directly + its read-only history (`/admin/puzzles/{id}/edit`, `/admin/puzzles/{id}/history`, [puzzle-approvals.md](puzzle-approvals.md)) | yes | yes |
+| Editing any puzzle directly + its history with "Restore this picture" (`/admin/puzzles/{id}/edit`, `/admin/puzzles/{id}/history*`, [puzzle-approvals.md](puzzle-approvals.md)) | yes | yes |
 | "Go to admin" links on a puzzle's pending proposals | yes | yes |
 | Everything else under `/admin` (vouchers, referrals, moderation, e-mail audit, OAuth2, competition approvals) | **no (403)** | yes |
 | Appointing / removing moderators (`/admin/moderators`) | **no (403)** | yes |

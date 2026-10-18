@@ -7,6 +7,7 @@ namespace SpeedPuzzling\Web\Query;
 use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Results\PuzzleChangeRequestOverview;
+use SpeedPuzzling\Web\Value\PuzzleChangeRequestFilter;
 use SpeedPuzzling\Web\Value\PuzzleReportStatus;
 use SpeedPuzzling\Web\Value\PuzzleSecrecy;
 
@@ -21,11 +22,13 @@ readonly final class GetPuzzleChangeRequests
     /**
      * @return array{pending: int, approved: int, rejected: int, outdated: int}
      */
-    public function countByStatus(bool $includeSecret = false): array
+    public function countByStatus(bool $includeSecret = false, null|PuzzleChangeRequestFilter $filter = null): array
     {
         // A secret competition puzzle is in the moderators' counts only after its reveal; admins, who may correct it,
         // count it (PuzzleSecrecy)
         $notSecret = $includeSecret ? 'true' : PuzzleSecrecy::sqlNotSecret('p');
+        $parameters = ['now' => $this->clock->now()->format('Y-m-d H:i:s')];
+        $filterCondition = self::filterCondition($filter, $parameters);
         $query = <<<SQL
 SELECT
     COUNT(*) FILTER (WHERE pcr.status = 'pending') as pending,
@@ -35,9 +38,10 @@ SELECT
 FROM puzzle_change_request pcr
 JOIN puzzle p ON p.id = pcr.puzzle_id
 WHERE {$notSecret}
+    {$filterCondition}
 SQL;
 
-        $row = $this->database->fetchAssociative($query, ['now' => $this->clock->now()->format('Y-m-d H:i:s')]);
+        $row = $this->database->fetchAssociative($query, $parameters);
 
         if ($row === false) {
             return ['pending' => 0, 'approved' => 0, 'rejected' => 0, 'outdated' => 0];
@@ -61,37 +65,126 @@ SQL;
     }
 
     /**
-     * @return array<PuzzleChangeRequestOverview>
+     * @return list<PuzzleChangeRequestOverview>
      */
-    public function allPending(bool $includeSecret = false): array
+    public function allPending(bool $includeSecret = false, null|PuzzleChangeRequestFilter $filter = null): array
     {
-        return $this->byStatus(PuzzleReportStatus::Pending, 'pcr.submitted_at DESC', $includeSecret);
+        return $this->byStatus(PuzzleReportStatus::Pending, 'pcr.submitted_at DESC', $includeSecret, $filter);
     }
 
     /**
-     * @return array<PuzzleChangeRequestOverview>
+     * @return list<PuzzleChangeRequestOverview>
      */
-    public function allApproved(bool $includeSecret = false): array
+    public function allApproved(bool $includeSecret = false, null|PuzzleChangeRequestFilter $filter = null): array
     {
-        return $this->byStatus(PuzzleReportStatus::Approved, 'pcr.reviewed_at DESC', $includeSecret);
+        return $this->byStatus(PuzzleReportStatus::Approved, 'pcr.reviewed_at DESC', $includeSecret, $filter);
     }
 
     /**
-     * @return array<PuzzleChangeRequestOverview>
+     * @return list<PuzzleChangeRequestOverview>
      */
-    public function allRejected(bool $includeSecret = false): array
+    public function allRejected(bool $includeSecret = false, null|PuzzleChangeRequestFilter $filter = null): array
     {
-        return $this->byStatus(PuzzleReportStatus::Rejected, 'pcr.reviewed_at DESC', $includeSecret);
+        return $this->byStatus(PuzzleReportStatus::Rejected, 'pcr.reviewed_at DESC', $includeSecret, $filter);
     }
 
     /**
      * Closed without a review - the puzzle had every proposed value already (PuzzleReportStatus::Outdated).
      *
-     * @return array<PuzzleChangeRequestOverview>
+     * @return list<PuzzleChangeRequestOverview>
      */
-    public function allOutdated(bool $includeSecret = false): array
+    public function allOutdated(bool $includeSecret = false, null|PuzzleChangeRequestFilter $filter = null): array
     {
-        return $this->byStatus(PuzzleReportStatus::Outdated, 'pcr.reviewed_at DESC', $includeSecret);
+        return $this->byStatus(PuzzleReportStatus::Outdated, 'pcr.reviewed_at DESC', $includeSecret, $filter);
+    }
+
+    /**
+     * Pending proposals of a new picture for the picture review (docs/features/puzzle-approvals.md "Picture
+     * proposals"), the pipeline's surest first: highest confidence first, proposals without one last, then by filing.
+     *
+     * @return list<PuzzleChangeRequestOverview>
+     */
+    public function pendingPictureProposals(
+        PuzzleChangeRequestFilter $filter,
+        int $limit,
+        int $offset,
+        bool $includeSecret = false,
+    ): array {
+        return $this->byStatus(
+            PuzzleReportStatus::Pending,
+            'pcr.confidence DESC NULLS LAST, pcr.submitted_at, pcr.id',
+            $includeSecret,
+            $filter,
+            onlyWithProposedImage: true,
+            limit: $limit,
+            offset: $offset,
+        );
+    }
+
+    public function countPendingPictureProposals(PuzzleChangeRequestFilter $filter, bool $includeSecret = false): int
+    {
+        $notSecret = $includeSecret ? 'true' : PuzzleSecrecy::sqlNotSecret('p');
+        $parameters = ['now' => $this->clock->now()->format('Y-m-d H:i:s')];
+        $filterCondition = self::filterCondition($filter, $parameters);
+
+        $count = $this->database->fetchOne(
+            <<<SQL
+SELECT COUNT(*)
+FROM puzzle_change_request pcr
+JOIN puzzle p ON p.id = pcr.puzzle_id
+WHERE pcr.status = 'pending'
+    AND pcr.proposed_image IS NOT NULL
+    AND {$notSecret}
+    {$filterCondition}
+SQL,
+            $parameters,
+        );
+
+        return is_numeric($count) ? (int) $count : 0;
+    }
+
+    /**
+     * Every tag a change request carries (e.g. "artwork_crop") - the queue's tag filter offers them.
+     *
+     * @return list<string>
+     */
+    public function knownTags(): array
+    {
+        $tags = $this->database->fetchFirstColumn(<<<SQL
+SELECT DISTINCT tag
+FROM puzzle_change_request pcr, jsonb_array_elements_text(pcr.tags) AS tag
+WHERE pcr.tags IS NOT NULL
+ORDER BY tag
+SQL);
+
+        return array_values(array_filter($tags, is_string(...)));
+    }
+
+    /**
+     * The queue's filters as SQL conditions (starting with AND), their values added to $parameters.
+     *
+     * @param array<string, mixed> $parameters
+     */
+    private static function filterCondition(null|PuzzleChangeRequestFilter $filter, array &$parameters): string
+    {
+        if ($filter === null) {
+            return '';
+        }
+
+        $conditions = [];
+
+        if ($filter->source !== null) {
+            // A row of the release before the column existed was filed by a player (PuzzleChangeRequestSource)
+            $conditions[] = "COALESCE(pcr.source, 'player') = :filterSource";
+            $parameters['filterSource'] = $filter->source->value;
+        }
+
+        if ($filter->tag !== null) {
+            $conditions[] = 'pcr.tags @> CAST(:filterTag AS jsonb)';
+            $parameters['filterTag'] = json_encode([$filter->tag], JSON_THROW_ON_ERROR);
+        }
+
+        return $conditions !== [] ? 'AND ' . implode(' AND ', $conditions) : '';
     }
 
     /**
@@ -169,6 +262,11 @@ SELECT
     pcr.original_image,
     pcr.original_alternative_names,
     pcr.original_name_language,
+    pcr.source,
+    pcr.tags,
+    pcr.confidence,
+    pcr.model_version,
+    pcr.source_image_fingerprint,
     p.id as puzzle_id,
     p.name as puzzle_name,
     p.name_language as puzzle_name_language,
@@ -219,12 +317,33 @@ SQL;
     }
 
     /**
-     * @return array<PuzzleChangeRequestOverview>
+     * @return list<PuzzleChangeRequestOverview>
      */
-    private function byStatus(PuzzleReportStatus $status, string $orderBy, bool $includeSecret = false): array
-    {
+    private function byStatus(
+        PuzzleReportStatus $status,
+        string $orderBy,
+        bool $includeSecret = false,
+        null|PuzzleChangeRequestFilter $filter = null,
+        bool $onlyWithProposedImage = false,
+        null|int $limit = null,
+        int $offset = 0,
+    ): array {
         // Admins correct a secret competition puzzle before its reveal; moderators never see it (PuzzleSecrecy)
         $notSecret = $includeSecret ? 'true' : PuzzleSecrecy::sqlNotSecret('p');
+        $parameters = [
+            'status' => $status->value,
+            'now' => $this->clock->now()->format('Y-m-d H:i:s'),
+        ];
+        $filterCondition = self::filterCondition($filter, $parameters);
+        $imageCondition = $onlyWithProposedImage ? 'AND pcr.proposed_image IS NOT NULL' : '';
+        $page = '';
+
+        if ($limit !== null) {
+            $page = 'LIMIT :limit OFFSET :offset';
+            $parameters['limit'] = $limit;
+            $parameters['offset'] = $offset;
+        }
+
         $query = <<<SQL
 SELECT
     pcr.id,
@@ -249,6 +368,11 @@ SELECT
     pcr.original_image,
     pcr.original_alternative_names,
     pcr.original_name_language,
+    pcr.source,
+    pcr.tags,
+    pcr.confidence,
+    pcr.model_version,
+    pcr.source_image_fingerprint,
     p.id as puzzle_id,
     p.name as puzzle_name,
     p.name_language as puzzle_name_language,
@@ -279,13 +403,13 @@ LEFT JOIN manufacturer proposed_m ON proposed_m.id = pcr.proposed_manufacturer_i
 LEFT JOIN manufacturer original_m ON original_m.id = pcr.original_manufacturer_id
 WHERE pcr.status = :status
     AND {$notSecret}
+    {$filterCondition}
+    {$imageCondition}
 ORDER BY {$orderBy}
+{$page}
 SQL;
 
-        $rows = $this->database->fetchAllAssociative($query, [
-            'status' => $status->value,
-            'now' => $this->clock->now()->format('Y-m-d H:i:s'),
-        ]);
+        $rows = $this->database->fetchAllAssociative($query, $parameters);
 
         return array_map(
             static fn(array $row): PuzzleChangeRequestOverview => PuzzleChangeRequestOverview::fromDatabaseRow($row),

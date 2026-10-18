@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller\Admin;
 
+use DateTimeImmutable;
+use Psr\Clock\ClockInterface;
+use SpeedPuzzling\Web\Results\PuzzleRecord;
 use SpeedPuzzling\Web\Services\SecretPuzzleAccess;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
@@ -25,6 +28,7 @@ final class PuzzleHistoryController extends AbstractController
         private readonly GetPuzzleRecord $getPuzzleRecord,
         private readonly GetPuzzleHistory $getPuzzleHistory,
         private readonly SecretPuzzleAccess $secretPuzzleAccess,
+        private readonly ClockInterface $clock,
     ) {
     }
 
@@ -56,6 +60,14 @@ final class PuzzleHistoryController extends AbstractController
             // A deleted puzzle is named as its history last saw it
             'puzzle_name' => $puzzle->name ?? ($this->getPuzzleHistory->knownNames([$puzzleId])[$puzzleId] ?? null),
             'entries' => $entries,
+            // "Restore this picture" (RestorePuzzleImageController) - never while the puzzle's picture is hidden
+            'can_restore_images' => $puzzle !== null && self::pictureShown($puzzle, $this->clock->now()),
         ]);
+    }
+
+    private static function pictureShown(PuzzleRecord $puzzle, DateTimeImmutable $now): bool
+    {
+        return ($puzzle->hideUntil === null || $puzzle->hideUntil <= $now)
+            && ($puzzle->hideImageUntil === null || $puzzle->hideImageUntil <= $now);
     }
 }

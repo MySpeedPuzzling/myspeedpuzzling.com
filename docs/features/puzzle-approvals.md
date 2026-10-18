@@ -14,6 +14,10 @@ moderators.
 | `POST …/{puzzleId}/merge` (`admin_merge_unapproved_puzzle`) | Files a merge request and opens the merge review (CSRF `merge-puzzle-{id}`) |
 | `GET/POST /admin/puzzles/{puzzleId}/edit` (`admin_edit_puzzle`) | A moderator's direct edit of any puzzle (below) |
 | `GET /admin/puzzles/{puzzleId}/history` (`admin_puzzle_history`) | The puzzle's history: every decision about it, read only (below) |
+| `GET /admin/puzzle-change-requests?source=&tag=` (`admin_puzzle_change_requests`) | The change request queue, filtered by who filed it and by tag (below) |
+| `GET /admin/puzzle-change-requests/pictures` (`admin_puzzle_change_request_pictures`) | The picture review: proposed pictures side by side, one decision per card (below) |
+| `POST /admin/puzzle-change-requests/{id}/picture-decision` (`admin_puzzle_change_request_picture_decision`) | Approve / reject one card of the picture review (CSRF `picture_proposal_decision`) |
+| `POST /admin/puzzles/{puzzleId}/history/{decisionId}/restore-image` (`admin_restore_puzzle_image`) | "Restore this picture" on the history (CSRF `restore_puzzle_image`, below) |
 
 Access: `PUZZLE_MODERATION_ACCESS` (admins + moderators), the same capability as change and merge requests -
 approving new puzzles is the same job of looking after the catalogue. The `access_control` rule
@@ -104,6 +108,45 @@ on the edit and approval forms; a save over a record somebody changed meanwhile 
 image choice, + `selectedFields` from the internal API). Every message changing a puzzle's record is
 `SerializedByLock` on `puzzle-<id>` (`PuzzleRecordVersion::lockKey()`), so two saves never check at the same moment.
 
+### Filters - who filed it, and tags
+
+The queue filters by `?source=player|internal_api|image_pipeline` (`puzzle_change_request.source`, a row from before the
+column counts as a player's) and by `?tag=` (one of `puzzle_change_request.tags`, e.g. `artwork_crop` - the select offers
+every tag stored), server-side in `GetPuzzleChangeRequests` (`PuzzleChangeRequestFilter`); the status tabs and their
+counts keep the filter, an unknown value switches it off. Rows filed by the image pipeline or the internal API carry a
+badge, the pipeline's confidence and its tags (`admin/_change_request_source_badge.html.twig`, the model version on hover).
+
+### Picture proposals - the picture review
+
+`/admin/puzzle-change-requests/pictures` (`PuzzleChangeRequestPicturesController`, linked from the queue as "Review
+pictures side by side" while there is any): every pending request proposing a picture, by default the image pipeline's
+artwork crops (`?tag=artwork_crop`; `?tag=all` = every proposed picture, `?source=` as the queue), **highest confidence
+first** (no confidence last, then by filing), 24 a page. Admins and moderators (`PUZZLE_MODERATION_ACCESS`, under the
+`^/admin/puzzle-…change-requests` rule); not behind the Insights flag. English like the other review pages.
+
+- **One card per request** (`admin/_picture_proposal_card.html.twig`): the puzzle's picture now and the proposed one side
+  by side (stacked below 576 px), `puzzle_medium` thumbnails, lazy-loaded, the lightbox for full size; the badge with the
+  confidence and the model version; Approve / Reject (48 px tall, full width on a phone); "Reject with a reason of your
+  own" folded underneath; links to the request and the puzzle's history.
+- **Decisions go through the existing messages and are recorded as today** (decision log, karma, notification):
+  approve = `ApprovePuzzleChangeRequest` with `selectedFields: ['image']` (the proposed picture only, everything else as
+  the puzzle has it now; the card's `PuzzleRecordVersion` - a puzzle saved since the grid loaded refuses it; the image
+  pipeline's picture is archived first, a crop of a picture the puzzle no longer has is refused - the card says so and
+  shows Approve disabled); reject = `RejectPuzzleChangeRequest` with the moderator's reason, or the default
+  "Thank you - the current picture stays." (`DecidePictureProposalController::DEFAULT_REJECTION_REASON`).
+- **A picture only.** A request that proposes more than a picture (a player's photo together with a name, pieces, EAN,
+  brand or brand code) shows "Also proposes: … - open the request" and no active buttons, and the decision endpoint
+  refuses it (`PuzzleChangeRequestOverview::proposesOnlyAPicture()`): approving here would apply only the picture and
+  rejecting would refuse the valid fixes with it.
+- **No page reload:** Turbo submits the card's form and the answer is a Turbo Stream replacing only that card (decided,
+  or still pending with what stopped it - 422). Without JavaScript it redirects back to the same grid page with a flash
+  (303). A decided card stays until the page is loaded again.
+- **Keys** (`picture_review_controller.js`, hints above the grid from 768 px): <kbd>J</kbd>/<kbd>→</kbd> next card,
+  <kbd>K</kbd>/<kbd>←</kbd> previous, <kbd>A</kbd> approve, <kbd>R</kbd> reject with the default reason, <kbd>O</kbd>
+  open the request. A and R act on the focused card and move the focus to the next pending one at once; a held key does
+  not repeat, a card whose decision is on its way is not decided again, nothing reacts while typing in a field or with a
+  modifier key, and up/down keep scrolling.
+
 ## Editing a puzzle directly
 
 Admins and moderators change any puzzle without the change request round: "Edit puzzle" on the puzzle page (a button
@@ -190,6 +233,30 @@ and when, newest first, **read only** (there is no write path to the log). Built
 
 Linked from the puzzle page, the edit page, the change request page and every puzzle of a merge review.
 
+### Restoring a picture
+
+Every line of the history that replaced a picture (a direct edit, an approved change request, an approval with a new
+photo, a merge that changed the survivor's picture, an earlier restore) offers **"Restore this picture"** under its
+*Before* thumbnail - unless the puzzle has that picture now, or its picture is hidden (`hide_until` /
+`hide_image_until` in the future: a secret competition puzzle never shows the history to moderators anyway, and a
+placeholder's restored file would get a name made from its public record). The action opens an in-place confirmation
+(`<details>`, works without JavaScript) and posts `RestorePuzzleImage` (CSRF, `SerializedByLock` on the puzzle like every
+record writer); the history comes back with a flash.
+
+`RestorePuzzleImageHandler` puts back exactly what the history line shows (`PuzzleHistoryEntry::$previousImage`, from
+`GetPuzzleHistory` - one rule for the button and the write): copied from the **originals archive** when that approval
+kept a copy (`originalArchivePath`, image pipeline approvals), else from the old object itself, to a **new file name**
+(`PuzzleImageStorage::useCopyOf()` - never a name written before: the image caches key on it, and the new fingerprint
+makes the image analyses run again). Nothing is deleted: the object it was copied from, the replaced picture and the
+archive copy all stay. Saved through `PuzzleRecordUpdater` as a moderator's direct edit (`PuzzleImageChoice::Restored`,
+every other field as the puzzle has it now; only an admin for a secret puzzle), logged as `puzzle_edited` with
+`details.image = restored`, `restoredFromDecisionId` and `restoredFrom` (the stored object copied) - the history shows
+it as **"Picture restored"** (`PuzzleHistoryEntryKind::ImageRestored`), itself restorable, and it counts as a direct
+edit for karma. Refused with nothing changed (`PuzzleImageNotRestorable`, a flash) when neither the object nor an archive
+copy exists any more, the line replaced no picture, or the puzzle's picture is hidden. Web only - the internal API has
+no restore endpoint. A restored picture has a new file name and so a new fingerprint: the image pipeline's "never twice"
+memory is per picture (fingerprint), so it may propose a crop of the restored picture again.
+
 ## Who decided - `puzzle_moderation_decision`
 
 Jan: "we must always know who approved/rejected merge request and change request and same for the approvals".
@@ -204,7 +271,7 @@ change request is deleted outright with its reporter (`ON DELETE CASCADE`).
 | `change_request_approved` / `change_request_rejected` | `ApprovePuzzleChangeRequestHandler` / `RejectPuzzleChangeRequestHandler` |
 | `merge_request_approved` / `merge_request_rejected` | `ApprovePuzzleMergeRequestHandler` / `RejectPuzzleMergeRequestHandler` |
 | `puzzle_approved`, `brand_approved`, `brand_merged` | `ApprovePuzzleHandler` |
-| `puzzle_edited` | `EditPuzzleHandler` (a moderator's direct edit) |
+| `puzzle_edited` | `EditPuzzleHandler` (a moderator's direct edit), `RestorePuzzleImageHandler` ("Restore this picture", `details.restoredFromDecisionId`) |
 | `merge_request_outdated` / `change_request_outdated` | `OutdatedPuzzleRequests` - no decider, `source = automatic` |
 
 - **No foreign keys**, on purpose: requests, puzzles and brands get deleted (merges, cascades) and so do players.
@@ -231,7 +298,9 @@ change request is deleted outright with its reporter (`ON DELETE CASCADE`).
 `tests/MessageHandler/PuzzleModerationDecisionLogTest.php`, the survivor-approval case in
 `ApprovePuzzleMergeRequestHandlerTest`, `tests/Query/GetPuzzleApprovalsTest.php`, and the approve + merge flows as a
 moderator in `tests/Controller/Admin/ModeratorAccessTest.php`. Direct edit + history: `EditPuzzleHandlerTest`,
-`tests/Query/GetPuzzleHistoryTest.php`, `tests/Controller/Admin/EditPuzzleControllerTest.php`; merge review page:
+`tests/Query/GetPuzzleHistoryTest.php`, `tests/Controller/Admin/EditPuzzleControllerTest.php`; filters + picture review:
+`tests/Controller/Admin/PictureProposalReviewControllerTest.php`; restore: `RestorePuzzleImageHandlerTest`,
+`tests/Controller/Admin/RestorePuzzleImageControllerTest.php`; merge review page:
 `PuzzleMergeRequestControllerTest`. Outdated requests: `tests/Services/OutdatedPuzzleRequestsTest.php`,
 `tests/Entity/PuzzleChangeRequestTest.php`, `tests/Value/MergeRequestPuzzlesTest.php`,
 `tests/PuzzleMergeForeignKeyCoverageTest.php`.

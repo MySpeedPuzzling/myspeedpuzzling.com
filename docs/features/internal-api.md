@@ -258,8 +258,11 @@ needed.
 | `POST` | `/internal-api/puzzle-image-analyses` | Store up to 200 analyses → `200` with an outcome per item |
 | `GET` | `/internal-api/puzzles/{puzzleId}/image-analysis` | Every stored analysis of a puzzle, payloads included (debugging) |
 
-- **Analyzers** (`ImageAnalyzer`, a backed enum - a new kind of analysis is one new case there): `artwork`, `colors`,
-  `traits`, `tags`. What part of the image an analyzer looks at (the cropped artwork, the whole photo) is its own
+- **Analyzers** (`ImageAnalyzer`, a backed enum - a new kind of analysis is one new case there; payload schemas in
+  [`insights/image-taxonomy.md`](./insights/image-taxonomy.md) §11): raw, from the image - `artwork`, `colors`,
+  `traits`, `ocr`, `barcode`, `vision_labels`, `embed_siglip2`, `embed_dinov2` (embeddings as base64 float16 inside
+  the JSON, ~3 KB a vector), `segmentation`, `describe`; derived on the Mac from those - `box_text`, `zeroshot`,
+  `neighbours`, `tags`. The largest expected payload (`ocr`, capped at 400 lines) is ~16 KB. What part of the image an analyzer looks at (the cropped artwork, the whole photo) is its own
   business - the fingerprint always names the source image.
 - **imageFingerprint** - which picture an analysis describes: the first 16 hex characters of `md5(puzzle.image)`
   (`PuzzleImageFingerprint`, computed the same in SQL). A new picture always gets a file name never written before

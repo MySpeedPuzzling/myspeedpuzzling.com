@@ -12,7 +12,9 @@ namespace SpeedPuzzling\Web\Value;
  * maxResultBytes() when its payloads are bigger.
  *
  * What part of the image an analyzer looks at (the cropped artwork, the whole photo) is its own business - the
- * imageFingerprint always names the source image the analysis was made from.
+ * imageFingerprint always names the source image the analysis was made from. The list and the payload schemas:
+ * docs/features/insights/image-taxonomy.md §11 (the largest expected payload, `ocr` capped at 400 lines, is ~16 KB, an
+ * embedding ~3 KB per vector - all within the default limit).
  */
 enum ImageAnalyzer: string
 {
@@ -23,7 +25,29 @@ enum ImageAnalyzer: string
     case Colors = 'colors';
     // Structure features of the artwork (edges, detail, contrast, ...)
     case Traits = 'traits';
-    // Theme / style tags
+    // Text on the box (full image): lines with boxes, languages
+    case Ocr = 'ocr';
+    // Barcodes read from the image (full image)
+    case Barcode = 'barcode';
+    // Platform vision labels, face/human counts and saliency of the artwork - no face crops or embeddings
+    case VisionLabels = 'vision_labels';
+    // SigLIP 2 image embeddings (crop + full), base64 float16
+    case EmbedSiglip2 = 'embed_siglip2';
+    // DINOv2 image embedding (crop), base64 float16
+    case EmbedDinov2 = 'embed_dinov2';
+    // Class shares, instance counts and a coarse class grid of the artwork
+    case Segmentation = 'segmentation';
+    // A vision-language model's caption and structured description of the artwork
+    case Describe = 'describe';
+
+    // Derived (computed from the raw analyses above, not from the image):
+    // Facts parsed from `ocr` + `barcode` (pieces, EANs, product codes, brand mentions, ...)
+    case BoxText = 'box_text';
+    // Taxonomy key scores from the embeddings
+    case Zeroshot = 'zeroshot';
+    // The most similar puzzles by embedding
+    case Neighbours = 'neighbours';
+    // Theme / style tags - the fusion of the analyses
     case Tags = 'tags';
 
     // The default size limit of a result, JSON-encoded

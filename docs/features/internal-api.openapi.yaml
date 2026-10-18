@@ -3296,8 +3296,8 @@ components:
 
     ImageAnalyzer:
       type: string
-      enum: [artwork, colors, traits, tags]
-      description: What an image analysis is about (ImageAnalyzer - one new case per new kind of analysis).
+      enum: [artwork, colors, traits, ocr, barcode, vision_labels, embed_siglip2, embed_dinov2, segmentation, describe, box_text, zeroshot, neighbours, tags]
+      description: What an image analysis is about (ImageAnalyzer - one new case per new kind of analysis; payload schemas in docs/features/insights/image-taxonomy.md section 11).
 
     PuzzleImageAnalysisBody:
       type: object

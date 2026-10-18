@@ -102,6 +102,23 @@ final class PuzzleImageAnalysisInputTest extends TestCase
         self::assertSame(['bbox' => ['x' => 100, 'y' => 200]], $input->result);
     }
 
+    public function testAnEmbeddingFitsAsBase64InsideTheJson(): void
+    {
+        // SigLIP 2: 1152 float16 values per vector, crop + full
+        $vector = base64_encode(random_bytes(1152 * 2));
+
+        $input = PuzzleImageAnalysisInput::fromItem([
+            'puzzleId' => self::PUZZLE,
+            'analyzer' => 'embed_siglip2',
+            'analyzerVersion' => '1.0.0+siglip2-so400m',
+            'imageFingerprint' => 'abc',
+            'result' => ['dim' => 1152, 'dtype' => 'f16', 'norm' => 'l2', 'crop' => $vector, 'full' => $vector],
+        ]);
+
+        self::assertSame(ImageAnalyzer::EmbedSiglip2, $input->analyzer);
+        self::assertSame($vector, $input->result['crop']);
+    }
+
     public function testRoundingOfAModelIsNotOutsideTheImage(): void
     {
         $input = PuzzleImageAnalysisInput::fromBody(self::PUZZLE, 'artwork', [

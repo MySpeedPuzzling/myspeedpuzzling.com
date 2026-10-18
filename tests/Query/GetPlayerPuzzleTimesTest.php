@@ -4,22 +4,33 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Query;
 
+use DateTimeImmutable;
+use Doctrine\ORM\EntityManagerInterface;
 use Psr\Clock\ClockInterface;
+use Ramsey\Uuid\Uuid;
+use SpeedPuzzling\Web\Entity\Player;
+use SpeedPuzzling\Web\Entity\Puzzle;
+use SpeedPuzzling\Web\Entity\PuzzleSolvingTime;
 use SpeedPuzzling\Web\Query\GetPlayerPuzzleTimes;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
+use SpeedPuzzling\Web\Value\Puzzler;
+use SpeedPuzzling\Web\Value\PuzzlersGroup;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 /**
  * The "My times" read model of collection pages must agree with the picker
  * card (same CTE semantics): every own solving time counts as a solve, team
- * participation counts too, the times themselves are solo only.
+ * participation counts too. Solo, pair and team times are kept apart (never
+ * mixed), relax solves (no time) are counted on their own.
  */
 final class GetPlayerPuzzleTimesTest extends KernelTestCase
 {
     private GetPlayerPuzzleTimes $query;
 
     private ClockInterface $clock;
+
+    private EntityManagerInterface $entityManager;
 
     protected function setUp(): void
     {
@@ -28,6 +39,7 @@ final class GetPlayerPuzzleTimesTest extends KernelTestCase
 
         $this->query = $container->get(GetPlayerPuzzleTimes::class);
         $this->clock = $container->get(ClockInterface::class);
+        $this->entityManager = $container->get(EntityManagerInterface::class);
     }
 
     public function testRepeatedlySolvedPuzzleWhereTheLatestIsTheFastest(): void
@@ -93,6 +105,70 @@ final class GetPlayerPuzzleTimesTest extends KernelTestCase
         self::assertNull($regular->fastestSeconds);
     }
 
+    public function testPairTimesAreTheirOwnWhetherIOwnTheRowOrTookPart(): void
+    {
+        // team-001 on PUZZLE_1000_01 (pair, 3600 s): PLAYER_REGULAR owns the row, PLAYER_PRIVATE took part
+        // and also has her own solo row (4200 s) - solo and pair stay apart
+        $regular = $this->query->forPuzzles(PlayerFixture::PLAYER_REGULAR, [PuzzleFixture::PUZZLE_1000_01])[PuzzleFixture::PUZZLE_1000_01];
+
+        self::assertNull($regular->fastestSeconds);
+        self::assertSame(3600, $regular->fastestPairSeconds);
+        self::assertNull($regular->fastestTeamSeconds);
+        self::assertSame(0, $regular->relaxSolveCount);
+
+        $private = $this->query->forPuzzles(PlayerFixture::PLAYER_PRIVATE, [PuzzleFixture::PUZZLE_1000_01, PuzzleFixture::PUZZLE_1000_03]);
+
+        self::assertSame(4200, $private[PuzzleFixture::PUZZLE_1000_01]->fastestSeconds);
+        self::assertSame(3600, $private[PuzzleFixture::PUZZLE_1000_01]->fastestPairSeconds);
+
+        // team-002 on PUZZLE_1000_03 (pair, 4000 s): PLAYER_PRIVATE only took part
+        self::assertNull($private[PuzzleFixture::PUZZLE_1000_03]->fastestSeconds);
+        self::assertSame(4000, $private[PuzzleFixture::PUZZLE_1000_03]->fastestPairSeconds);
+        self::assertNull($private[PuzzleFixture::PUZZLE_1000_03]->fastestTeamSeconds);
+    }
+
+    public function testTeamTimesAndRelaxSolvesAreKeptApartFromPairs(): void
+    {
+        $trio = [PlayerFixture::PLAYER_REGULAR, PlayerFixture::PLAYER_PRIVATE, PlayerFixture::PLAYER_ADMIN];
+        $this->seedSolve(PuzzleFixture::PUZZLE_9000, PlayerFixture::PLAYER_REGULAR, $trio, seconds: 36000);
+        $this->seedSolve(PuzzleFixture::PUZZLE_9000, PlayerFixture::PLAYER_REGULAR, $trio, seconds: 33000);
+        $this->seedSolve(PuzzleFixture::PUZZLE_9000, PlayerFixture::PLAYER_REGULAR, $trio, seconds: null);
+
+        foreach ([PlayerFixture::PLAYER_REGULAR, PlayerFixture::PLAYER_PRIVATE] as $playerId) {
+            $time = $this->query->forPuzzles($playerId, [PuzzleFixture::PUZZLE_9000])[PuzzleFixture::PUZZLE_9000];
+
+            self::assertSame(3, $time->solveCountAny, $playerId);
+            self::assertNull($time->fastestSeconds, $playerId);
+            self::assertNull($time->fastestPairSeconds, $playerId);
+            self::assertSame(33000, $time->fastestTeamSeconds, $playerId);
+            self::assertSame(1, $time->relaxSolveCount, 'An untimed team row is a relax solve, owner or not');
+        }
+
+        // PLAYER_REGULAR on PUZZLE_1000_02: two solo times and one untimed solo row
+        $regular = $this->query->forPuzzles(PlayerFixture::PLAYER_REGULAR, [PuzzleFixture::PUZZLE_1000_02])[PuzzleFixture::PUZZLE_1000_02];
+
+        self::assertSame(1, $regular->relaxSolveCount);
+        self::assertNull($regular->fastestPairSeconds);
+        self::assertNull($regular->fastestTeamSeconds);
+    }
+
+    public function testPairTimesAwaitingVerificationAreNeverShown(): void
+    {
+        $this->seedSolve(
+            PuzzleFixture::PUZZLE_1000_01,
+            PlayerFixture::PLAYER_REGULAR,
+            [PlayerFixture::PLAYER_REGULAR, PlayerFixture::PLAYER_PRIVATE],
+            seconds: 600,
+            suspicious: true,
+        );
+
+        $regular = $this->query->forPuzzles(PlayerFixture::PLAYER_REGULAR, [PuzzleFixture::PUZZLE_1000_01])[PuzzleFixture::PUZZLE_1000_01];
+
+        self::assertSame(2, $regular->solveCountAny, 'It still counts as solved');
+        self::assertSame(3600, $regular->fastestPairSeconds);
+        self::assertSame(0, $regular->relaxSolveCount);
+    }
+
     public function testNeverSolvedPuzzlesAreAbsentAndOnlyAskedPuzzlesAreReturned(): void
     {
         $times = $this->query->forPuzzles(PlayerFixture::PLAYER_REGULAR, [PuzzleFixture::PUZZLE_9000, PuzzleFixture::PUZZLE_500_02, PuzzleFixture::PUZZLE_500_02]);
@@ -100,5 +176,51 @@ final class GetPlayerPuzzleTimesTest extends KernelTestCase
         self::assertSame([PuzzleFixture::PUZZLE_500_02], array_keys($times));
         self::assertSame([], $this->query->forPuzzles(PlayerFixture::PLAYER_REGULAR, []));
         self::assertSame([], $this->query->forPuzzles('00000000-0000-0000-0000-000000000099', [PuzzleFixture::PUZZLE_500_02]));
+    }
+
+    /**
+     * @param non-empty-list<string> $participants
+     */
+    private function seedSolve(string $puzzleId, string $owner, array $participants, null|int $seconds, bool $suspicious = false): void
+    {
+        $puzzle = $this->entityManager->find(Puzzle::class, $puzzleId);
+        $ownerPlayer = $this->entityManager->find(Player::class, $owner);
+        self::assertNotNull($puzzle);
+        self::assertNotNull($ownerPlayer);
+
+        $puzzlers = [];
+
+        foreach ($participants as $participantId) {
+            $participant = $this->entityManager->find(Player::class, $participantId);
+            self::assertNotNull($participant);
+
+            $puzzlers[] = new Puzzler(
+                playerId: $participant->id->toString(),
+                playerName: $participant->name,
+                playerCode: $participant->code,
+                playerCountry: null,
+                isPrivate: false,
+            );
+        }
+
+        $solvedAt = new DateTimeImmutable('-1 day');
+
+        $this->entityManager->persist(new PuzzleSolvingTime(
+            id: Uuid::uuid7(),
+            secondsToSolve: $seconds,
+            player: $ownerPlayer,
+            puzzle: $puzzle,
+            trackedAt: $solvedAt,
+            verified: true,
+            team: new PuzzlersGroup(teamId: null, puzzlers: $puzzlers),
+            finishedAt: $solvedAt,
+            comment: null,
+            finishedPuzzlePhoto: null,
+            firstAttempt: false,
+            unboxed: false,
+            suspicious: $suspicious,
+        ));
+        $this->entityManager->flush();
+        $this->entityManager->clear();
     }
 }

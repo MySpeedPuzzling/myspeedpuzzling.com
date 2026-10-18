@@ -18,11 +18,28 @@ const FOCUS_KICK_EVERY_MS = 6000;
 const ACTIVE_FOR_MS = 1000;
 const RESTING_INTERVAL_MS = 100;
 const FORMATS = ['ean_8', 'ean_13'];
-const ZBAR_SCRIPTS = [
-    'https://cdn.jsdelivr.net/npm/@undecaf/zbar-wasm@0.9.15/dist/index.js',
-    // Depends on zbar-wasm, loaded second
-    'https://cdn.jsdelivr.net/npm/@undecaf/barcode-detector-polyfill@0.9.21/dist/index.js',
+// zbar from our own server first (README §5.9: the same npm bytes, immutable, no third party, no extra connection),
+// jsdelivr only when ours does not work. Each source: zbar-wasm, then the polyfill that depends on it.
+const ZBAR_SOURCES = [
+    {
+        name: 'self',
+        // Fetched first: a source whose .wasm does not arrive is skipped before any of its scripts runs
+        wasm: '/barcode-scanner/zbar-wasm-0.9.15/zbar.wasm',
+        scripts: [
+            '/barcode-scanner/zbar-wasm-0.9.15/zbar-wasm.js',
+            '/barcode-scanner/zbar-wasm-0.9.15/barcode-detector-polyfill.js',
+        ],
+    },
+    {
+        name: 'cdn',
+        scripts: [
+            'https://cdn.jsdelivr.net/npm/@undecaf/zbar-wasm@0.9.15/dist/index.js',
+            'https://cdn.jsdelivr.net/npm/@undecaf/barcode-detector-polyfill@0.9.21/dist/index.js',
+        ],
+    },
 ];
+// A source that has not answered by then is given up for the next one
+const ZBAR_SOURCE_TIMEOUT_MS = 8000;
 
 const STORAGE_CAMERA = 'msp-scan-camera';
 const STORAGE_ZOOM = 'msp-scan-zoom';
@@ -544,16 +561,17 @@ export default class extends Controller {
     _loadZbar() {
         if (!this._zbarPromise) {
             this._zbarPromise = (async () => {
-                try {
-                    for (const src of ZBAR_SCRIPTS) {
-                        await this._loadScript(src);
+                for (const source of ZBAR_SOURCES) {
+                    const result = await this._zbarFrom(source);
+                    if (result.Zbar) {
+                        this.zbarSource = source.name;
+                        return result.Zbar;
                     }
-                } catch (e) {
-                    console.error('Barcode decoder could not be loaded:', e);
-                }
-
-                if (typeof barcodeDetectorPolyfill !== 'undefined' && barcodeDetectorPolyfill.BarcodeDetectorPolyfill) {
-                    return barcodeDetectorPolyfill.BarcodeDetectorPolyfill;
+                    // Two copies of zbar in one page share its globals - the second one's detect() then never
+                    // answered (tested 2026-10-19). Once a source's scripts ran, no other source is tried.
+                    if (result.ran) {
+                        break;
+                    }
                 }
 
                 this._zbarPromise = null;
@@ -562,6 +580,62 @@ export default class extends Controller {
         }
 
         return this._zbarPromise;
+    }
+
+    /**
+     * Loads one source and proves it works: zbar's WebAssembly instance must start (it fetches zbar.wasm next to the
+     * script) - a script that loads with a .wasm that does not would fail on every frame, never falling back.
+     *
+     * @returns {Promise<{Zbar: Function|null, ran: boolean}>} ran = its scripts ran (another source is unsafe then)
+     */
+    async _zbarFrom(source) {
+        let timer = null;
+        let ran = false;
+        let downloading = false;
+        const timeout = new Promise((resolve, reject) => {
+            timer = window.setTimeout(() => reject(new Error(`timed out after ${ZBAR_SOURCE_TIMEOUT_MS} ms`)), ZBAR_SOURCE_TIMEOUT_MS);
+        });
+
+        try {
+            const Zbar = await Promise.race([timeout, (async () => {
+                if (source.wasm) {
+                    // The whole file, so zbar's own fetch of it is answered by the browser cache (immutable)
+                    const response = await fetch(source.wasm);
+                    if (!response.ok) {
+                        throw new Error(`${source.wasm}: HTTP ${response.status}`);
+                    }
+                    await response.arrayBuffer();
+                }
+
+                for (const src of source.scripts) {
+                    // A script still downloading when the time is up may still run later - as good as ran
+                    downloading = true;
+                    try {
+                        await this._loadScript(src);
+                    } finally {
+                        // An error event = the script never ran; only the time running out leaves it pending
+                        downloading = false;
+                    }
+                    ran = ran || typeof zbarWasm !== 'undefined';
+                }
+
+                if (typeof zbarWasm === 'undefined' || typeof barcodeDetectorPolyfill === 'undefined' || !barcodeDetectorPolyfill.BarcodeDetectorPolyfill) {
+                    throw new Error('the scripts define no decoder');
+                }
+                await zbarWasm.getInstance();
+
+                return barcodeDetectorPolyfill.BarcodeDetectorPolyfill;
+            })()]);
+
+            return { Zbar, ran: true };
+        } catch (e) {
+            console.error(`Barcode decoder (${source.name}) could not be loaded:`, e);
+            this.zbarFailures = (this.zbarFailures || []).concat(source.name);
+
+            return { Zbar: null, ran: ran || downloading || typeof zbarWasm !== 'undefined' };
+        } finally {
+            window.clearTimeout(timer);
+        }
     }
 
     _loadScript(src) {
@@ -1153,6 +1227,9 @@ export default class extends Controller {
             native: this._engineReport('native'),
             zbar: this._engineReport('zbar'),
             zbarMissing: !!this.zbarPlanned && !this.engines.zbar,
+            // Where zbar came from (README §5.9) and which sources failed before it
+            zbarSource: this.zbarSource || null,
+            zbarFailures: (this.zbarFailures || []).join(',') || null,
             seen: this._seenText().slice(0, 300),
             camera: this.videoTrack ? this.videoTrack.label : null,
             cameraPick: this.cameraPick,

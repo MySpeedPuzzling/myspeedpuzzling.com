@@ -573,6 +573,39 @@ Measured in Chrome with a fake camera: nothing in view 25-29 → 8-10 decodes a 
 every ~2.7 s as before, at 10-15 decodes a second instead of ~30. The reports' `frames` / `duration_ms` show the
 effect in the field.
 
+### 5.9 zbar from our own server (2026-10-19)
+
+Since §5.7 every Android session downloads zbar too, and every iPhone depends on it. jsdelivr is a reliable CDN
+(Cloudflare + Fastly, a year of cache), so this is not a rescue - what self-hosting buys:
+- no extra DNS + TLS connection to a third party on the first scan (~0.1-0.3 s on mobile);
+- works where jsdelivr is blocked (some company networks, countries, content blockers); visitors' IPs stay with us.
+
+**The files:** `public/barcode-scanner/zbar-wasm-0.9.15/` - `zbar-wasm.js` + `zbar.wasm` (@undecaf/zbar-wasm 0.9.15,
+LGPL-2.1+) and `barcode-detector-polyfill.js` (@undecaf/barcode-detector-polyfill 0.9.21, MIT), each package's
+LICENSE next to them. The exact bytes of the npm tarballs (sha512 = the registry's integrity), identical to what
+jsdelivr serves; `BarcodeScannerCaddyRuleTest` pins their sha256. zbar finds its `.wasm` next to the script that
+loaded it. About 264 KB, 169 KB over the wire (brotli). **A new version is a new directory, never new bytes here.**
+
+**Serving:** `.docker/barcode-scanner/barcode-scanner.caddyfile` (copied by the Dockerfile, like the finish
+detector's rule): `public, max-age=31536000, immutable` for existing files, `no-store` for a missing one, `encode zstd
+br gzip`, never PHP; `.wasm` gets `application/wasm` from /etc/mime.types. Checked with FrankenPHP of the base image.
+**The service worker never touches it** - it intercepts `/build/*`, `/fonts/*`, navigations and images only - so no
+`CACHE_VERSION` bump, now or for a new version (a new directory).
+
+**Loading** (`_loadZbar()` / `_zbarFrom()`): our copy first, jsdelivr only when ours does not work, each within 8 s:
+- our `.wasm` is fetched first - a source whose `.wasm` does not arrive is skipped before any of its scripts runs;
+- a source counts only once zbar's WebAssembly instance started (`zbarWasm.getInstance()`) - a script that loads with
+  a `.wasm` that does not would otherwise fail on every frame without falling back;
+- **two copies of zbar are never loaded into one page**: they share globals, and the second one's `detect()` never
+  answered (tested). Once a source's scripts ran - or were still downloading when the 8 s ran out - no other source is
+  tried; zbar is then unavailable for that page view, as when jsdelivr failed before.
+
+The reports carry `zbar_source` (`self` / `cdn`) and `zbar_failures` (the sources that failed before it).
+
+Tested in Chrome (fake camera, our files served by the dev stack): ours works → `self`; our script blocked → `cdn`,
+reads; our `.wasm` blocked → `cdn`, reads; both blocked → zbar unavailable (iOS-like: no reader; Android: Google's
+reader alone, reads); our scripts ran but the `.wasm` failed afterwards → no second copy, unavailable.
+
 ## 6. Open questions for Jan
 
 1. OK to restore Google's detector on Android right away (§5.0), until our own decoder replaces it (§5.4)?

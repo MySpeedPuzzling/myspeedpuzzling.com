@@ -57,6 +57,9 @@ final class ScanSessionController extends AbstractController
                 'native' => self::engine($payload, 'native'),
                 'zbar' => self::engine($payload, 'zbar'),
                 'zbar_missing' => ($payload['zbarMissing'] ?? null) === true,
+                // `self` = our copy, `cdn` = jsdelivr after ours failed (README §5.9)
+                'zbar_source' => self::text($payload, 'zbarSource', 10),
+                'zbar_failures' => self::text($payload, 'zbarFailures', 20),
                 'seen' => self::text($payload, 'seen', 300),
                 'camera' => self::text($payload, 'camera', 100),
                 'camera_pick' => self::text($payload, 'cameraPick', 50),

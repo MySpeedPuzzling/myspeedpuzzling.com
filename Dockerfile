@@ -41,6 +41,8 @@ COPY .docker/on-startup.sh /docker-entrypoint.d/
 # page loads them from here (OnlineDetectorAssets); a new version = a new path in bin/fetch-online-detector.mjs and
 # here - an env on the box can still point it elsewhere, or set it empty for the pinned CDNs
 COPY .docker/online-detector/online-detector.caddyfile /etc/frankenphp/Caddyfile.d/
+# The barcode scanner's zbar files (public/barcode-scanner/, committed) immutable for a year (README §5.9)
+COPY .docker/barcode-scanner/barcode-scanner.caddyfile /etc/frankenphp/Caddyfile.d/
 COPY --from=online-detector /online-detector public/online-detector
 ENV ONLINE_DETECTOR_BASE_URL=/online-detector/1.1.0-pose-lite-1-gesture-1
 

@@ -698,16 +698,15 @@ player lost the form. Shipped: limit 128M (`web-base-php85/php.ini`), photos up 
       read did zbar see the accepted code (`zbar.first_seen_ms` not null), how much later than Google's reader, which
       phone models only Google's reader read, and how often Google's reader saw another code (`seen`). Then decide:
       Android drops Google's reader (one path everywhere), or both stay until Step 4.
-- [ ] Self-host zbar (`@undecaf/zbar-wasm` + the polyfill through npm, cached by the service worker) instead of
-      jsdelivr - every Android session now downloads it too; a jsdelivr outage leaves Android on Google's reader alone
-      and iOS without a scanner (README §5.3 "Web Worker").
+- [x] 2026-10-19: zbar from our own server, jsdelivr as the fallback (README §5.9). Check `zbar_source` in the
+      reports: practically all `self`; `zbar_failures` = `self` would mean our copy fails somewhere.
 - [x] Scanner heat (Allison, iPhone Pro, multiscan, 2026-10-18 - MSP #321 / F143): every session decoded every frame
       nonstop; 2026-10-19 the scanner rests at ≤ 10 decodes/s while no code is in view (README §5.8).
 - [ ] Check the rest mode in the reports (`frames` / `duration_ms` of long iOS sessions, ~10/s idle) and ask Allison
       whether her phone stays cooler - if it still gets hot, the 1080p camera itself is next (a lower resolution while
       resting would need a camera restart - measure first).
-- [ ] zbar download with no timeout: on iOS (zbar alone) a stalled jsdelivr leaves the camera on and nothing ever
-      reads - give it ~10 s, then say so in the scanner (texts in 6 locales); self-hosting zbar mostly removes it.
+- [ ] When no zbar source loads (8 s each since README §5.9), iOS shows a camera that never reads - say so in the
+      scanner and point to "Type a code" (texts in 6 locales).
 - [ ] A camera that fails to open (permission denied, no camera) sends no `/-/scan-session` report - count them too
       (outcome `camera-error` + the error name).
 - [ ] Labels without a quiet zone: Anatolian boxes (white label tight around the bars on a black box, e.g.

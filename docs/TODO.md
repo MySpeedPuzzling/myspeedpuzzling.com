@@ -391,7 +391,7 @@ What a reply to a player promised to build. Each has an MSP Mailer follow-up: te
 - [ ] Never refuse a new puzzle whose EAN is already in the database (multiscan quick-add, add form, collection mode):
       show the existing puzzle(s) and ask 'Is it one of these?', and create the new puzzle with the same EAN once the
       player confirms it is a different one. Promised to Lior (MSP #282, follow-up F124).
-- [ ] Saving the add/edit time form with photos survives slow and dropping mobile connections (background photo upload
+- [x] Saving the add/edit time form with photos survives slow and dropping mobile connections (background photo upload
       with progress and retry; the photo-upload hardening PR, docs/features/photo-uploads/). Promised to Gal (MSP #300,
       follow-up F129).
 - [ ] Organization collections: an organization page can have its own puzzle collection, managed (incl. lending) by

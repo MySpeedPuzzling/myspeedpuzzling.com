@@ -12,7 +12,7 @@ state, PR, merge and deploy, deviations from the plan (and why), follow-ups.
 | Backfill (M3 Max + M1 Air sessions) | **ready to start** (prompts handed to Jan 2026-10-18) | - | - | - | starts after 1 + 2 are deployed; ≈ 5.5 days |
 | 3 Prediction fix | in progress (3a done; 3b, then 3c) | #263 (3a) | 3a: 2026-10-18 | 3a: 2026-10-18 | 3a: backfill on prod 244,985 rows / 4,235 players in 33 s; first as-of batch 22 s (was 16-18 s; re-check steady state); tiers 1-6 = 249 / 1,838 / 2,956 / 891 / 400 / 225, 6,559 rated |
 | 4 Insights computation | in progress (4a) | | | | streams below |
-| 5 Image intelligence on the server | in progress (5a done; 5b) | #265 (5a) | 5a: 2026-10-18 | 5a: 2026-10-18 | 5a: crons `refresh-puzzle-tags` 07:40 + `detect-box-text-mismatches` 07:45 in lily.srv (0953a4b), both ran clean on prod |
+| 5 Image intelligence on the server | in progress (5a, 5b done; 5c, then 5d) | #265 (5a), #267 (5b) | 5a, 5b: 2026-10-18/19 | 5a, 5b: 2026-10-18/19 | 5a: crons `refresh-puzzle-tags` 07:40 + `detect-box-text-mismatches` 07:45 in lily.srv (0953a4b), both ran clean. 5b: labels endpoint answers with as-of labels (median / mean_log), model record `current: null` |
 | 6 Display behind INSIGHTS_PUBLIC | not started | | | | |
 | Launch (flag removed) | not started | | | | waits for the backfill + gates |
 

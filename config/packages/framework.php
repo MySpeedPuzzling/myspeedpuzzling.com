@@ -12,6 +12,7 @@ use SpeedPuzzling\Web\Exceptions\CompetitionRoundHasResults;
 use SpeedPuzzling\Web\Exceptions\CompetitionSlugAmbiguous;
 use SpeedPuzzling\Web\Exceptions\CompetitionSlugTaken;
 use SpeedPuzzling\Web\Exceptions\CompetitionTagShared;
+use SpeedPuzzling\Web\Exceptions\InvalidPuzzleDifficultyEstimate;
 use SpeedPuzzling\Web\Exceptions\InvalidPuzzleImageAnalysis;
 use SpeedPuzzling\Web\Exceptions\PuzzleChangedMeanwhile;
 use SpeedPuzzling\Web\Exceptions\PuzzleChangeRequestAlreadyReviewed;
@@ -117,9 +118,11 @@ return App::config([
             NamePublicationNotConfirmed::class => ['log_level' => 'info'],
             PuzzleNotRevealedYet::class => ['log_level' => 'info'],
             RoundPuzzlesNotAttachable::class => ['log_level' => 'info'],
-            // The image analysis pipeline sending an invalid analysis, or one of a picture the puzzle no longer has -
-            // answered 422 / 409, nothing stored (docs/features/internal-api.md, Puzzle image analysis)
+            // The image analysis pipeline sending an invalid analysis / difficulty estimate / model record, or an analysis
+            // of a picture the puzzle no longer has - answered 422 / 409, nothing stored (docs/features/internal-api.md,
+            // Puzzle image analysis, Puzzle difficulty labels and estimates)
             InvalidPuzzleImageAnalysis::class => ['log_level' => 'info'],
+            InvalidPuzzleDifficultyEstimate::class => ['log_level' => 'info'],
             PuzzleImageChangedMeanwhile::class => ['log_level' => 'info'],
         ],
         'trusted_headers' => ['x-forwarded-for', 'x-forwarded-host', 'x-forwarded-proto', 'x-forwarded-port', 'x-forwarded-prefix'],

@@ -1,4 +1,5 @@
-"""Client of the internal API (docs/features/internal-api.md § "Puzzle image analysis", § "Puzzle change requests").
+"""Client of the internal API (docs/features/internal-api.md § "Puzzle image analysis", § "Puzzle change requests",
+§ "Puzzle difficulty labels and estimates").
 
 - Every request reads the token at call time (config.read_token) - it is never stored on the client or logged.
 - 429 = slow down (Retry-After, else a growing pause), 5xx / network errors = retry with backoff, other 4xx = typed
@@ -25,6 +26,8 @@ log = logging.getLogger(__name__)
 
 STORE_BATCH_MAX = 200
 CLAIM_LIMIT_MAX = 200
+ESTIMATE_BATCH_MAX = 500
+LABELS_LIMIT_MAX = 5000
 
 
 class ApiError(RuntimeError):
@@ -140,6 +143,110 @@ class StoreOutcome:
     message: str | None = None
     current_fingerprint: str | None = None
     errors: dict[str, Any] | None = None
+
+
+@dataclass
+class DifficultyLabel:
+    """A training label (`GET /internal-api/puzzle-difficulty-labels`) - aggregates of one puzzle, nothing of a player.
+
+    `log_difficulty` = ln of the puzzle's as-of difficulty: ln(median index) where the app keeps a median (>= 5 indices,
+    `label_source` "median"), else the mean ln index (1-4 indices, "mean_log"). `mean_log_index` = sum of ln indices / k
+    for every puzzle. `fingerprint` names the picture the label belongs to now (None = no picture) - join embeddings
+    on it (`current` results only). Weight a training row by `index_count` (n/(n+10), plan §5.3)."""
+
+    puzzle_id: str
+    log_difficulty: float
+    label_source: str
+    mean_log_index: float
+    index_count: int
+    pieces_count: int
+    manufacturer_id: str | None
+    added_at: str | None
+    fingerprint: str | None
+    raw: dict[str, Any] = field(default_factory=dict)
+
+    @classmethod
+    def from_api(cls, d: dict[str, Any]) -> "DifficultyLabel":
+        return cls(
+            puzzle_id=d["puzzleId"],
+            log_difficulty=float(d["logDifficulty"]),
+            label_source=d.get("labelSource") or "",
+            mean_log_index=float(d.get("meanLogIndex", d["logDifficulty"])),
+            index_count=int(d["indexCount"]),
+            pieces_count=int(d["piecesCount"]),
+            manufacturer_id=d.get("manufacturerId"),
+            added_at=d.get("addedAt"),
+            fingerprint=d.get("imageFingerprint"),
+            raw=d,
+        )
+
+
+@dataclass
+class DifficultyEstimate:
+    """One item of `PUT /internal-api/puzzle-difficulty-estimates` - log space like the label; log_p10 <= log_difficulty
+    <= log_p90 (|value| <= 5); `out_of_fold` = a labelled puzzle estimated by a model that did not see it."""
+
+    puzzle_id: str
+    model: str
+    model_version: str
+    log_difficulty: float
+    log_p10: float
+    log_p90: float
+    out_of_fold: bool
+    training_size: int
+    fingerprint: str
+    computed_at: str | None = None
+
+    def to_api(self) -> dict[str, Any]:
+        d: dict[str, Any] = {
+            "puzzleId": self.puzzle_id,
+            "model": self.model,
+            "modelVersion": self.model_version,
+            "logDifficulty": float(self.log_difficulty),
+            "logP10": float(self.log_p10),
+            "logP90": float(self.log_p90),
+            "outOfFold": bool(self.out_of_fold),
+            "trainingSize": int(self.training_size),
+            "imageFingerprint": self.fingerprint,
+        }
+        if self.computed_at:
+            d["computedAt"] = self.computed_at
+        return d
+
+
+@dataclass
+class EstimateOutcome:
+    puzzle_id: str
+    status: str  # stored | stale_fingerprint | hidden | unknown_puzzle | invalid
+    message: str | None = None
+    current_fingerprint: str | None = None
+    errors: dict[str, Any] | None = None
+
+
+@dataclass
+class DifficultyModelRecord:
+    """`POST /internal-api/puzzle-difficulty-estimates/model` - a run of the model with its evaluation.
+    `holdout_spearman` is the number the push guard compares (newer puzzles predicted from older ones); `evaluation`
+    holds the rest (overall, groups per size group x image kind, holdouts) - a JSON object <= 256 KB."""
+
+    model: str
+    model_version: str
+    training_size: int
+    holdout_spearman: float
+    evaluation: dict[str, Any]
+    created_at: str | None = None
+
+    def to_api(self) -> dict[str, Any]:
+        d: dict[str, Any] = {
+            "model": self.model,
+            "modelVersion": self.model_version,
+            "trainingSize": int(self.training_size),
+            "holdoutSpearman": float(self.holdout_spearman),
+            "evaluation": self.evaluation,
+        }
+        if self.created_at:
+            d["createdAt"] = self.created_at
+        return d
 
 
 def uuid_before(puzzle_id: str) -> str:
@@ -352,7 +459,56 @@ class InternalApi:
             body["decisionNote"] = decision_note
         self._request("POST", f"/internal-api/puzzle-change-requests/{change_request_id}/reject", json=body)
 
-    # Phase 5 (not deployed yet) -----------------------------------------------------------------------------------------
+    # difficulty labels, estimates, model record (Phase 5) ---------------------------------------------------------------
+    def difficulty_labels_page(self, after: str | None = None, limit: int = 1000) -> dict[str, Any]:
+        params: dict[str, Any] = {"limit": max(1, min(LABELS_LIMIT_MAX, limit))}
+        if after:
+            params["after"] = after
+        data = self._request("GET", "/internal-api/puzzle-difficulty-labels", params=params).json()
+        labels = data.get("labels") if isinstance(data, dict) else None
+        if not isinstance(labels, list):
+            raise ApiError(200, "GET /internal-api/puzzle-difficulty-labels: no `labels` list in the answer", data)
+        return {"labels": [DifficultyLabel.from_api(x) for x in labels], "nextCursor": data.get("nextCursor")}
+
+    def iter_difficulty_labels(self, limit: int = LABELS_LIMIT_MAX) -> Iterator[DifficultyLabel]:
+        """Every label, following nextCursor until it is null. Secret puzzles are never listed."""
+        after = None
+        while True:
+            page = self.difficulty_labels_page(after=after, limit=limit)
+            yield from page["labels"]
+            after = page["nextCursor"]
+            if not after:
+                return
+
+    def store_difficulty_estimates(self, estimates: list[DifficultyEstimate]) -> list[EstimateOutcome]:
+        """`PUT` in chunks of <= 500 (one transaction each, a refused item never fails the others). Idempotent: the
+        current value per puzzle is replaced. `hidden` / `stale_fingerprint` / `unknown_puzzle` = skip, nothing stored."""
+        outcomes: list[EstimateOutcome] = []
+        for start in range(0, len(estimates), ESTIMATE_BATCH_MAX):
+            chunk = estimates[start:start + ESTIMATE_BATCH_MAX]
+            data = self._request("PUT", "/internal-api/puzzle-difficulty-estimates", json={"items": [e.to_api() for e in chunk]}).json()
+            by_index = {int(i.get("index", n)): i for n, i in enumerate(data.get("items", []))}
+            for n, e in enumerate(chunk):
+                item = by_index.get(n, {})
+                outcomes.append(EstimateOutcome(
+                    puzzle_id=e.puzzle_id, status=item.get("status", "invalid"), message=item.get("message"),
+                    current_fingerprint=item.get("currentFingerprint"), errors=item.get("errors"),
+                ))
+        return outcomes
+
+    def record_difficulty_model(self, record: DifficultyModelRecord) -> dict[str, Any]:
+        """`201` with the stored record (`id`, `receivedAt`, ...) - it becomes the current one. 422 = invalid fields."""
+        return self._request("POST", "/internal-api/puzzle-difficulty-estimates/model", json=record.to_api()).json()
+
+    def current_difficulty_model(self, model: str | None = None) -> dict[str, Any] | None:
+        """The latest recorded run (of `model` when given), None before the first one - the push guard's baseline."""
+        params = {"model": model} if model else None
+        data = self._request("GET", "/internal-api/puzzle-difficulty-estimates/model", params=params).json()
+        if not isinstance(data, dict) or "current" not in data:
+            raise ApiError(200, "GET /internal-api/puzzle-difficulty-estimates/model: no `current` in the answer", data)
+        current = data["current"]
+        return current if isinstance(current, dict) else None
+
     def endpoint_exists(self, path: str) -> bool:
         try:
             self._request("GET", path, params={"limit": 1})

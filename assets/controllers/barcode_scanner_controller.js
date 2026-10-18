@@ -631,7 +631,6 @@ export default class extends Controller {
         }
 
         const ctx = this.overlayTarget.getContext('2d');
-        const video = this.videoTarget;
         // The reader that paces the session and draws the overlay: Google's where it runs, else zbar
         const primary = plan.native ? 'native' : 'zbar';
         // The first second at full pace: the player is just pointing the camera
@@ -647,48 +646,16 @@ export default class extends Controller {
                     return;
                 }
 
-                const engine = this.engines[name];
-                const isPrimary = name === primary;
-
-                if (!this.paused && isPrimary) {
-                    if (Date.now() >= this.nextFocusKickAt) {
-                        this.kickFocus();
-                    }
-                    this._refreshOverlay(ctx);
+                try {
+                    await this._scanStep(name, primary, ctx, current);
+                } catch (error) {
+                    // One bad frame must never end the loop - the scanner would stop reading without a word
+                    console.error('Barcode scan step failed:', error);
                 }
 
-                // zbar next to Google's reader may not be downloaded yet - this loop then only waits
-                const ready = engine && video.videoWidth && video.videoHeight;
-                const now = performance.now();
-                const due = now - this.lastActivityAt < ACTIVE_FOR_MS || now - engine.lastDecodeAt >= RESTING_INTERVAL_MS;
-                if (!this.paused && ready && due && (isPrimary || this.zbarBudget.mayRun(now))) {
-                    engine.lastDecodeAt = now;
-                    const start = performance.now();
-                    const frame = name === 'native'
-                        ? { source: video, x: 0, y: 0, w: video.videoWidth, h: video.videoHeight, vertical: false }
-                        : this._band(engine);
-                    const barcodes = await this._decode(name, engine, frame);
-                    const cost = performance.now() - start;
-
-                    if (isPrimary) {
-                        this.stats.frames++;
-                        this.stats.decodeMs.push(cost);
-                        if (this.stats.decodeMs.length > 30) {
-                            this.stats.decodeMs.shift();
-                        }
-                        if (this.zbarBudget) {
-                            this.zbarBudget.primaryDecoded(cost);
-                        }
-                    } else {
-                        this.zbarBudget.helperRan(cost, performance.now());
-                    }
-
-                    if (barcodes.length > 0 && current()) {
-                        this._handleBarcodes(name, barcodes, frame, ctx);
-                    }
+                if (current()) {
+                    this._onNextFrame(step);
                 }
-
-                this._onNextFrame(step);
             };
 
             step();
@@ -697,6 +664,68 @@ export default class extends Controller {
         loop(primary);
         if (this.zbarBudget) {
             loop('zbar');
+        }
+    }
+
+    /**
+     * One frame of one reader's loop (scanLoop). `current` = this session is still the one running: checked again
+     * after every wait, since a stop or a quick restart replaces the state this step works on.
+     */
+    async _scanStep(name, primary, ctx, current) {
+        const engine = this.engines[name];
+        const isPrimary = name === primary;
+        const video = this.videoTarget;
+
+        // Nothing to decode while paused (multiscan shows a result) or while the tab is hidden - the frame
+        // fallback timer would otherwise keep decoding in the background
+        if (this.paused || document.hidden) {
+            return;
+        }
+
+        if (isPrimary) {
+            if (Date.now() >= this.nextFocusKickAt) {
+                this.kickFocus();
+            }
+            this._refreshOverlay(ctx);
+        }
+
+        // zbar next to Google's reader may not be downloaded yet - this loop then only waits
+        if (!engine || !video.videoWidth || !video.videoHeight) {
+            return;
+        }
+
+        const now = performance.now();
+        const due = now - this.lastActivityAt < ACTIVE_FOR_MS || now - engine.lastDecodeAt >= RESTING_INTERVAL_MS;
+        if (!due || (!isPrimary && !this.zbarBudget.mayRun(now))) {
+            return;
+        }
+
+        engine.lastDecodeAt = now;
+        const frame = name === 'native'
+            ? { source: video, x: 0, y: 0, w: video.videoWidth, h: video.videoHeight, vertical: false }
+            : this._band(engine);
+        const barcodes = await this._decode(name, engine, frame);
+        const cost = performance.now() - now;
+
+        if (!current()) {
+            return;
+        }
+
+        if (isPrimary) {
+            this.stats.frames++;
+            this.stats.decodeMs.push(cost);
+            if (this.stats.decodeMs.length > 30) {
+                this.stats.decodeMs.shift();
+            }
+            if (this.zbarBudget) {
+                this.zbarBudget.primaryDecoded(cost);
+            }
+        } else {
+            this.zbarBudget.helperRan(cost, performance.now());
+        }
+
+        if (barcodes.length > 0) {
+            this._handleBarcodes(name, barcodes, frame, ctx);
         }
     }
 

@@ -8617,7 +8617,7 @@ organization_page:
         about_help: "Ce qu'est l'organisation et ce qu'elle fait – affiché sur sa page."
         website: "Site web"
         social_links: "Réseaux sociaux"
-        social_links_help: "Une adresse web par ligne – Instagram, Facebook, Discord… %limit% au maximum."
+        social_links_help: "Une adresse web par ligne – Instagram, Facebook, WhatsApp, Discord… %limit% au maximum."
         logo: "Logo"
         team: "Équipe"
         team_help: "Les joueurs qui peuvent modifier l'organisation et tout ce qui en dépend – ses séries et ses événements."

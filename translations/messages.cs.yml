@@ -8624,7 +8624,7 @@ organization_page:
         about_help: "Čím organizace je a co dělá – zobrazí se na její stránce."
         website: "Web"
         social_links: "Odkazy na sociální sítě"
-        social_links_help: "Jedna webová adresa na řádek – Instagram, Facebook, Discord… Nejvýše %limit%."
+        social_links_help: "Jedna webová adresa na řádek – Instagram, Facebook, WhatsApp, Discord… Nejvýše %limit%."
         logo: "Logo"
         team: "Tým"
         team_help: "Hráči, kteří mohou upravovat organizaci a vše pod ní – její série a události."

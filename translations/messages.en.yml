@@ -8872,7 +8872,7 @@ organization_page:
         about_help: "What the organization is and does - shown on its page."
         website: "Website"
         social_links: "Social links"
-        social_links_help: "One web address per line - Instagram, Facebook, Discord… At most %limit%."
+        social_links_help: "One web address per line - Instagram, Facebook, WhatsApp, Discord… At most %limit%."
         logo: "Logo"
         team: "Team"
         team_help: "Players who may edit the organization and everything under it - its series and events."

@@ -8509,7 +8509,7 @@ organization_page:
         about_help: "Qué es y qué hace la organización; se muestra en su página."
         website: "Sitio web"
         social_links: "Redes sociales"
-        social_links_help: "Una dirección web por línea: Instagram, Facebook, Discord… Como máximo %limit%."
+        social_links_help: "Una dirección web por línea: Instagram, Facebook, WhatsApp, Discord… Como máximo %limit%."
         logo: "Logo"
         team: "Equipo"
         team_help: "Jugadores que pueden editar la organización y todo lo que depende de ella: sus series y eventos."

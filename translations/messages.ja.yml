@@ -8498,7 +8498,7 @@ organization_page:
         about_help: "団体の概要と活動内容です。団体ページに表示されます。"
         website: "ウェブサイト"
         social_links: "SNSなどのリンク"
-        social_links_help: "1行に1つずつウェブアドレスを入力してください（Instagram、Facebook、Discordなど）。最大%limit%件です。"
+        social_links_help: "1行に1つずつウェブアドレスを入力してください（Instagram、Facebook、WhatsApp、Discordなど）。最大%limit%件です。"
         logo: "ロゴ"
         team: "チーム"
         team_help: "団体と、その配下のシリーズ・イベントを編集できるプレイヤーです。"

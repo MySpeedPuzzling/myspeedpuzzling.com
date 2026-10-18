@@ -10,7 +10,10 @@ use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\DerivedMetricsCalculator;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\ImprovementRatioCalculator;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\MspRatingCalculator;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\PaceTimelineLoader;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\PlayerBaselineCalculator;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\PlayerPaceHistoryCalculator;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\PlayerPaceHistoryWriter;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\PlayerSkillCalculator;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\PuzzleDifficultyCalculator;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\PuzzleIntelligenceRecalculator;
@@ -66,6 +69,7 @@ final class PuzzleIntelligenceRecalculatorWritesTest extends KernelTestCase
             'sample_size' => 'sample_size + 1',
             'indices_p25' => 'COALESCE(indices_p25, 0) + 0.5',
             'indices_p75' => 'COALESCE(indices_p75, 0) + 0.5',
+            'sum_log_indices' => 'COALESCE(sum_log_indices, 0) + 0.5',
             'memorability_score' => 'COALESCE(memorability_score, 0) + 0.5',
             'skill_sensitivity_score' => 'COALESCE(skill_sensitivity_score, 0) + 0.5',
             'predictability_score' => 'COALESCE(predictability_score, 0) + 0.5',
@@ -480,12 +484,14 @@ final class PuzzleIntelligenceRecalculatorWritesTest extends KernelTestCase
     private function recalculate(DateTimeImmutable $now): void
     {
         $clock = new MockClock($now);
+        $baselineCalculator = new PlayerBaselineCalculator($this->connection, $clock);
 
         (new PuzzleIntelligenceRecalculator(
             $this->connection,
             $clock,
-            new PlayerBaselineCalculator($this->connection, $clock),
-            new PuzzleDifficultyCalculator($this->connection),
+            $baselineCalculator,
+            new PlayerPaceHistoryWriter($this->connection, $baselineCalculator, new PlayerPaceHistoryCalculator($baselineCalculator)),
+            new PuzzleDifficultyCalculator($baselineCalculator, new PaceTimelineLoader($this->connection, $baselineCalculator)),
             new PlayerSkillCalculator($this->connection, $clock),
             new DerivedMetricsCalculator($this->connection),
             new MspRatingCalculator($this->connection, $clock),

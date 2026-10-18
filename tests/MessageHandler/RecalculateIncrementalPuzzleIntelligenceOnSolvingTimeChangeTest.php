@@ -15,6 +15,7 @@ use SpeedPuzzling\Web\Events\PuzzleSolvingTimeDeleted;
 use SpeedPuzzling\Web\Events\PuzzleSolvingTimeModified;
 use SpeedPuzzling\Web\MessageHandler\RecalculateIncrementalPuzzleIntelligenceOnSolvingTimeChange;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\PlayerBaselineCalculator;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\PlayerPaceHistoryWriter;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleIntelligenceFixture;
@@ -40,6 +41,11 @@ final class RecalculateIncrementalPuzzleIntelligenceOnSolvingTimeChangeTest exte
         $this->connection = $connection;
 
         $this->persistBaselines();
+
+        // The difficulty indices divide by the solvers' pace history, written by the batch
+        /** @var PlayerPaceHistoryWriter $paceHistoryWriter */
+        $paceHistoryWriter = $container->get(PlayerPaceHistoryWriter::class);
+        $paceHistoryWriter->sync();
     }
 
     public function testUpdatesBaselineOnPuzzleSolved(): void

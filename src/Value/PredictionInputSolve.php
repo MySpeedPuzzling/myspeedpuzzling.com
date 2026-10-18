@@ -23,8 +23,6 @@ final readonly class PredictionInputSolve
         public bool $qualifying,
         public float $solved,
         public float $tracked,
-        // Today's baseline of the solver for the piece count - only on other players' solves
-        public null|int $solverBaseline = null,
     ) {
     }
 

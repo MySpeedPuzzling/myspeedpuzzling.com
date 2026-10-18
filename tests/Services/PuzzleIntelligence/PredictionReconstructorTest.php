@@ -14,7 +14,9 @@ use SpeedPuzzling\Web\Entity\Puzzle;
 use SpeedPuzzling\Web\Entity\PuzzleSolvingTime;
 use SpeedPuzzling\Web\Query\GetPlayerPrediction;
 use SpeedPuzzling\Web\Results\TimePredictionResult;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\PlayerPaceHistoryWriter;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\PredictionReconstructor;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\PuzzleDifficultyCalculator;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\PuzzleIntelligenceRecalculator;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
@@ -71,7 +73,7 @@ final class PredictionReconstructorTest extends KernelTestCase
     /**
      * PLAYER_REGULAR's first solve of PUZZLE_500_04 right now: baseline × difficulty, both rebuilt from
      * raw solves, equal the live tables. Five other solvers make the puzzle scorable - only four other
-     * fixture players have a 500-piece baseline, so a fifth gets one.
+     * fixture players have a 500-piece pace, so a fifth gets one.
      */
     public function testStatisticalReconstructionAsOfNowEqualsTheLiveModel(): void
     {
@@ -121,9 +123,43 @@ final class PredictionReconstructorTest extends KernelTestCase
 
         $this->persistSoloTime(PlayerFixture::PLAYER_REGULAR, PuzzleFixture::PUZZLE_500_04, 700, $this->now()->modify('-18 days'));
         $this->persistSoloTime(PlayerFixture::PLAYER_REGULAR, PuzzleFixture::PUZZLE_500_05, 700, $this->now()->modify('-18 days'));
-        $this->persistSoloTime($this->playerWith500PieceBaseline(1500), PuzzleFixture::PUZZLE_500_02, 600, $this->now()->modify('-2 days'));
+        $this->persistSoloTime($this->playerWith500PiecePace(1500), PuzzleFixture::PUZZLE_500_02, 600, $this->now()->modify('-2 days'));
 
         self::assertEquals($before, $this->reconstructed(PlayerFixture::PLAYER_REGULAR, PuzzleSolvingTimeFixture::TIME_06));
+    }
+
+    /**
+     * The difficulty indices of a reconstruction use only pace rows that existed before the predicted
+     * solve. Five newcomers solved PUZZLE_500_04 as their very first puzzle 20 days ago and got their
+     * first pace from solves 4 to 1 days ago: today the puzzle has five indices (their first pace),
+     * PLAYER_REGULAR's solve of it 5 days ago knew none of them.
+     */
+    public function testAFirstPaceFormedAfterThePredictedSolveStaysOut(): void
+    {
+        $newcomers = [];
+
+        foreach ([1900, 2100, 2000, 2300, 1800] as $seconds) {
+            $playerId = $this->newPlayer();
+            $this->persistSoloTime($playerId, PuzzleFixture::PUZZLE_500_04, $seconds, $this->now()->modify('-20 days'), firstAttempt: true);
+
+            foreach ([PuzzleFixture::PUZZLE_500_01, PuzzleFixture::PUZZLE_500_02, PuzzleFixture::PUZZLE_500_03, PuzzleIntelligenceFixture::INTEL_PUZZLE_A] as $index => $puzzleId) {
+                $this->persistSoloTime($playerId, $puzzleId, $seconds, $this->now()->modify('-' . (4 - $index) . ' days'), firstAttempt: true);
+            }
+
+            $newcomers[] = $playerId;
+        }
+
+        /** @var PlayerPaceHistoryWriter $paceHistoryWriter */
+        $paceHistoryWriter = self::getContainer()->get(PlayerPaceHistoryWriter::class);
+        $paceHistoryWriter->sync($newcomers);
+
+        /** @var PuzzleDifficultyCalculator $difficultyCalculator */
+        $difficultyCalculator = self::getContainer()->get(PuzzleDifficultyCalculator::class);
+        self::assertSame(5, $difficultyCalculator->calculateForPuzzle(PuzzleFixture::PUZZLE_500_04)['sample_size'], 'Known today');
+
+        $targetId = $this->persistSoloTime(PlayerFixture::PLAYER_REGULAR, PuzzleFixture::PUZZLE_500_04, 2000, $this->now()->modify('-5 days'));
+
+        self::assertFalse($this->reconstructed(PlayerFixture::PLAYER_REGULAR, $targetId)->isPredictable());
     }
 
     /**
@@ -252,21 +288,28 @@ final class PredictionReconstructorTest extends KernelTestCase
                 PlayerFixture::PLAYER_ADMIN => 2050,
                 PlayerFixture::PLAYER_WITH_FAVORITES => 2950,
                 PlayerFixture::PLAYER_WITH_STRIPE => 2100,
-                $this->playerWith500PieceBaseline(2400) => 2300,
+                $this->playerWith500PiecePace(2400) => 2300,
             ] as $playerId => $seconds
         ) {
             $this->persistSoloTime($playerId, PuzzleFixture::PUZZLE_500_04, $seconds, $this->now()->modify('-30 days'), firstAttempt: true);
         }
     }
 
-    private function playerWith500PieceBaseline(int $baselineSeconds): string
+    /**
+     * A new player with five 500-piece first attempts 100 days ago (all at $paceSeconds): a pace
+     * history the difficulty indices of their later solves divide by.
+     */
+    private function playerWith500PiecePace(int $paceSeconds): string
     {
         $playerId = $this->newPlayer();
 
-        $this->database->executeStatement(
-            "INSERT INTO player_baseline (id, player_id, pieces_count, baseline_seconds, qualifying_solves_count, baseline_type, computed_at) VALUES (:id, :playerId, 500, :baseline, 5, 'direct', NOW())",
-            ['id' => Uuid::uuid7()->toString(), 'playerId' => $playerId, 'baseline' => $baselineSeconds],
-        );
+        foreach ([PuzzleFixture::PUZZLE_500_01, PuzzleFixture::PUZZLE_500_02, PuzzleFixture::PUZZLE_500_03, PuzzleIntelligenceFixture::INTEL_PUZZLE_A, PuzzleIntelligenceFixture::INTEL_PUZZLE_B] as $index => $puzzleId) {
+            $this->persistSoloTime($playerId, $puzzleId, $paceSeconds, $this->now()->modify('-' . (100 - $index) . ' days'), firstAttempt: true);
+        }
+
+        /** @var PlayerPaceHistoryWriter $paceHistoryWriter */
+        $paceHistoryWriter = self::getContainer()->get(PlayerPaceHistoryWriter::class);
+        $paceHistoryWriter->sync([$playerId]);
 
         return $playerId;
     }

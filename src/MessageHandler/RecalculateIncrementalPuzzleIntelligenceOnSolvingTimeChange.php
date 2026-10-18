@@ -153,13 +153,13 @@ readonly final class RecalculateIncrementalPuzzleIntelligenceOnSolvingTimeChange
     }
 
     /**
-     * @param array{difficulty_score: float|null, difficulty_tier: DifficultyTier|null, confidence: MetricConfidence, sample_size: int, indices_p25: float|null, indices_p75: float|null} $result
+     * @param array{difficulty_score: float|null, difficulty_tier: DifficultyTier|null, confidence: MetricConfidence, sample_size: int, indices_p25: float|null, indices_p75: float|null, sum_log_indices: float} $result
      */
     private function upsertDifficulty(string $puzzleId, array $result, \DateTimeImmutable $now): void
     {
         $this->connection->executeStatement("
-            INSERT INTO puzzle_difficulty (puzzle_id, difficulty_score, difficulty_tier, confidence, sample_size, indices_p25, indices_p75, computed_at)
-            VALUES (:puzzleId, :score, :tier, :confidence, :sampleSize, :indicesP25, :indicesP75, :now)
+            INSERT INTO puzzle_difficulty (puzzle_id, difficulty_score, difficulty_tier, confidence, sample_size, indices_p25, indices_p75, sum_log_indices, computed_at)
+            VALUES (:puzzleId, :score, :tier, :confidence, :sampleSize, :indicesP25, :indicesP75, :sumLogIndices, :now)
             ON CONFLICT (puzzle_id) DO UPDATE SET
                 difficulty_score = EXCLUDED.difficulty_score,
                 difficulty_tier = EXCLUDED.difficulty_tier,
@@ -167,6 +167,7 @@ readonly final class RecalculateIncrementalPuzzleIntelligenceOnSolvingTimeChange
                 sample_size = EXCLUDED.sample_size,
                 indices_p25 = EXCLUDED.indices_p25,
                 indices_p75 = EXCLUDED.indices_p75,
+                sum_log_indices = EXCLUDED.sum_log_indices,
                 computed_at = EXCLUDED.computed_at
         ", [
             'puzzleId' => $puzzleId,
@@ -176,6 +177,7 @@ readonly final class RecalculateIncrementalPuzzleIntelligenceOnSolvingTimeChange
             'sampleSize' => $result['sample_size'],
             'indicesP25' => $result['indices_p25'],
             'indicesP75' => $result['indices_p75'],
+            'sumLogIndices' => $result['sum_log_indices'],
             'now' => $now->format('Y-m-d H:i:s'),
         ]);
     }

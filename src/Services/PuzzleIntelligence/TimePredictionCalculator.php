@@ -24,8 +24,11 @@ final readonly class TimePredictionCalculator
      * Stored with every solving-time prediction. Bump it whenever a change here (or in the inputs:
      * baselines, difficulty, improvement ratios) changes what gets predicted, so accuracy
      * statistics never mix two models silently.
+     *
+     * 1 = 2026-09-30, difficulty indices divided by today's baselines; 2 = 2026-10, as-of difficulty
+     * indices (the solver's pace-history row before the solve, puzzle-intelligence README "Pace history").
      */
-    public const int MODEL_VERSION = 1;
+    public const int MODEL_VERSION = 2;
 
     public const float DEFAULT_IMPROVEMENT_RATIO = 0.90;
 

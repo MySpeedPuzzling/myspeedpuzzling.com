@@ -4,15 +4,8 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Services\PuzzleIntelligence;
 
-use Doctrine\DBAL\Connection;
-use Doctrine\ORM\EntityManagerInterface;
-use Psr\Clock\ClockInterface;
-use Ramsey\Uuid\Uuid;
-use SpeedPuzzling\Web\Entity\PlayerBaseline;
-use SpeedPuzzling\Web\Entity\Player;
-use SpeedPuzzling\Web\Services\PuzzleIntelligence\PlayerBaselineCalculator;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\PlayerPaceHistoryWriter;
 use SpeedPuzzling\Web\Services\PuzzleIntelligence\PuzzleDifficultyCalculator;
-use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleIntelligenceFixture;
 use SpeedPuzzling\Web\Value\MetricConfidence;
@@ -21,8 +14,6 @@ use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 final class PuzzleDifficultyCalculatorTest extends KernelTestCase
 {
     private PuzzleDifficultyCalculator $calculator;
-    private PlayerBaselineCalculator $baselineCalculator;
-    private Connection $connection;
 
     protected function setUp(): void
     {
@@ -31,15 +22,9 @@ final class PuzzleDifficultyCalculatorTest extends KernelTestCase
         /** @var PuzzleDifficultyCalculator $calculator */
         $calculator = $container->get(PuzzleDifficultyCalculator::class);
         $this->calculator = $calculator;
-        /** @var PlayerBaselineCalculator $baselineCalculator */
-        $baselineCalculator = $container->get(PlayerBaselineCalculator::class);
-        $this->baselineCalculator = $baselineCalculator;
-        /** @var Connection $connection */
-        $connection = $container->get(Connection::class);
-        $this->connection = $connection;
 
-        // First, compute and persist baselines for all players (required for difficulty calculation)
-        $this->persistBaselines();
+        // The indices divide by the solvers' pace history - written from the fixture solves first
+        $this->writePaceHistory();
     }
 
     public function testCalculatesDifficultyForPuzzleWithEnoughSolvers(): void
@@ -118,45 +103,10 @@ final class PuzzleDifficultyCalculatorTest extends KernelTestCase
         self::assertNotNull($resultA['difficulty_score']);
     }
 
-    private function persistBaselines(): void
+    private function writePaceHistory(): void
     {
-        /** @var ClockInterface $clock */
-        $clock = self::getContainer()->get(ClockInterface::class);
-        /** @var EntityManagerInterface $em */
-        $em = self::getContainer()->get(EntityManagerInterface::class);
-
-        $this->connection->executeStatement('DELETE FROM player_baseline');
-
-        $playerIds = [
-            PlayerFixture::PLAYER_REGULAR,
-            PlayerFixture::PLAYER_PRIVATE,
-            PlayerFixture::PLAYER_ADMIN,
-            PlayerFixture::PLAYER_WITH_FAVORITES,
-            PlayerFixture::PLAYER_WITH_STRIPE,
-        ];
-
-        foreach ($playerIds as $playerId) {
-            $result = $this->baselineCalculator->calculateForPlayer($playerId, 500);
-
-            if ($result === null) {
-                continue;
-            }
-
-            $player = $em->find(Player::class, Uuid::fromString($playerId));
-            assert($player instanceof Player);
-
-            $baseline = new PlayerBaseline(
-                id: Uuid::uuid7(),
-                player: $player,
-                piecesCount: 500,
-                baselineSeconds: $result['baseline_seconds'],
-                qualifyingSolvesCount: $result['qualifying_count'],
-                computedAt: $clock->now(),
-            );
-
-            $em->persist($baseline);
-        }
-
-        $em->flush();
+        /** @var PlayerPaceHistoryWriter $writer */
+        $writer = self::getContainer()->get(PlayerPaceHistoryWriter::class);
+        $writer->sync();
     }
 }

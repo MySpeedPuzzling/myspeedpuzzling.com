@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Services\PuzzleIntelligence;
 
+use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
 use Symfony\Contracts\Service\ResetInterface;
@@ -31,32 +32,9 @@ final class PlayerBaselineCalculator implements ResetInterface
      */
     public function preloadAllFirstAttempts(): void
     {
-        /** @var list<array{player_id: string, pieces_count: int|string, seconds_to_solve: int|string, solve_date: string}> $rows */
-        $rows = $this->connection->fetchAllAssociative("
-            SELECT player_id, pieces_count, seconds_to_solve, solve_date
-            FROM (
-                SELECT
-                    pst.player_id,
-                    p.pieces_count,
-                    pst.seconds_to_solve,
-                    COALESCE(pst.finished_at, pst.tracked_at) AS solve_date,
-                    ROW_NUMBER() OVER (
-                        PARTITION BY pst.player_id, pst.puzzle_id
-                        ORDER BY pst.first_attempt DESC, COALESCE(pst.finished_at, pst.tracked_at) ASC
-                    ) AS rn
-                FROM puzzle_solving_time pst
-                JOIN puzzle p ON p.id = pst.puzzle_id
-                WHERE pst.puzzling_type = 'solo'
-                    AND pst.suspicious = false
-                    AND pst.seconds_to_solve IS NOT NULL
-                    AND pst.unboxed = false
-            ) sub
-            WHERE rn = 1
-        ");
-
         $cache = [];
 
-        foreach ($rows as $row) {
+        foreach ($this->iterateQualifyingFirstAttempts() as $row) {
             $cache[$row['player_id']][(int) $row['pieces_count']][] = [
                 'seconds_to_solve' => $row['seconds_to_solve'],
                 'solve_date' => $row['solve_date'],
@@ -64,6 +42,94 @@ final class PlayerBaselineCalculator implements ResetInterface
         }
 
         $this->firstAttemptsCache = $cache;
+    }
+
+    /**
+     * The qualifying first attempts - the one rule of what a baseline counts, shared by the baselines,
+     * the pace history and the difficulty indices: per player and puzzle one solo solve with a time,
+     * not suspicious, not unboxed; the earliest flagged first_attempt, else the oldest ("eldest as
+     * proxy"), in the insights order (COALESCE(finished_at, tracked_at), tracked_at), the id breaking
+     * an exact tie. Timestamps come as strings and as epoch seconds (`solved_ts`, `tracked_ts`).
+     *
+     * @param null|list<string> $playerIds only these players (null = everybody)
+     * @param null|string $puzzleId only this puzzle
+     * @param null|int $piecesCount only this piece count
+     * @param bool $paceOrder ordered by player, piece count and the insights order - a pair's solves in a row
+     * @return iterable<array{id: string, player_id: string, puzzle_id: string, pieces_count: int|string, seconds_to_solve: int|string, solve_date: string, tracked_at: string, solved_ts: float|int|string, tracked_ts: float|int|string}>
+     */
+    public function iterateQualifyingFirstAttempts(null|array $playerIds = null, null|string $puzzleId = null, null|int $piecesCount = null, bool $paceOrder = false): iterable
+    {
+        if ($playerIds === []) {
+            return [];
+        }
+
+        [$sql, $params, $types] = $this->qualifyingFirstAttemptsQuery($playerIds, $puzzleId, $piecesCount);
+        $order = $paceOrder ? 'ORDER BY player_id, pieces_count, solve_date, tracked_at, id' : '';
+
+        /** @var iterable<array{id: string, player_id: string, puzzle_id: string, pieces_count: int|string, seconds_to_solve: int|string, solve_date: string, tracked_at: string, solved_ts: float|int|string, tracked_ts: float|int|string}> */
+        return $this->connection->executeQuery("
+            SELECT id, player_id, puzzle_id, pieces_count, seconds_to_solve, solve_date, tracked_at,
+                EXTRACT(EPOCH FROM solve_date) AS solved_ts,
+                EXTRACT(EPOCH FROM tracked_at) AS tracked_ts
+            FROM ({$sql}) first_attempts
+            {$order}
+        ", $params, $types)->iterateAssociative();
+    }
+
+    /**
+     * The qualifying first attempts as a subquery (columns id, player_id, puzzle_id, pieces_count,
+     * seconds_to_solve, solve_date, tracked_at) for statements that aggregate them.
+     *
+     * @param null|non-empty-list<string> $playerIds
+     * @return array{0: string, 1: array<string, mixed>, 2: array<string, ArrayParameterType>}
+     */
+    public function qualifyingFirstAttemptsQuery(null|array $playerIds = null, null|string $puzzleId = null, null|int $piecesCount = null): array
+    {
+        $conditions = '';
+        $params = [];
+        $types = [];
+
+        if ($playerIds !== null) {
+            $conditions .= ' AND pst.player_id IN (:playerIds)';
+            $params['playerIds'] = $playerIds;
+            $types['playerIds'] = ArrayParameterType::STRING;
+        }
+
+        if ($puzzleId !== null) {
+            $conditions .= ' AND pst.puzzle_id = :puzzleId';
+            $params['puzzleId'] = $puzzleId;
+        }
+
+        if ($piecesCount !== null) {
+            $conditions .= ' AND p.pieces_count = :piecesCount';
+            $params['piecesCount'] = $piecesCount;
+        }
+
+        return ["
+            SELECT id, player_id, puzzle_id, pieces_count, seconds_to_solve, solve_date, tracked_at
+            FROM (
+                SELECT
+                    pst.id,
+                    pst.player_id,
+                    pst.puzzle_id,
+                    p.pieces_count,
+                    pst.seconds_to_solve,
+                    COALESCE(pst.finished_at, pst.tracked_at) AS solve_date,
+                    pst.tracked_at,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY pst.player_id, pst.puzzle_id
+                        ORDER BY pst.first_attempt DESC, COALESCE(pst.finished_at, pst.tracked_at) ASC, pst.tracked_at ASC, pst.id ASC
+                    ) AS rn
+                FROM puzzle_solving_time pst
+                JOIN puzzle p ON p.id = pst.puzzle_id
+                WHERE pst.puzzling_type = 'solo'
+                    AND pst.suspicious = false
+                    AND pst.seconds_to_solve IS NOT NULL
+                    AND pst.unboxed = false
+                    {$conditions}
+            ) ranked
+            WHERE rn = 1
+        ", $params, $types];
     }
 
     public function clearPreloadedData(): void
@@ -337,32 +403,16 @@ final class PlayerBaselineCalculator implements ResetInterface
      */
     private function fetchFirstAttemptSolves(string $playerId, int $piecesCount): array
     {
-        $sql = "
-            WITH first_attempts AS (
-                SELECT DISTINCT ON (pst.puzzle_id)
-                    pst.seconds_to_solve,
-                    COALESCE(pst.finished_at, pst.tracked_at) AS solve_date
-                FROM puzzle_solving_time pst
-                JOIN puzzle p ON p.id = pst.puzzle_id
-                WHERE pst.player_id = :playerId
-                    AND p.pieces_count = :piecesCount
-                    AND pst.puzzling_type = 'solo'
-                    AND pst.suspicious = false
-                    AND pst.seconds_to_solve IS NOT NULL
-                    AND pst.unboxed = false
-                ORDER BY pst.puzzle_id,
-                    pst.first_attempt DESC,
-                    COALESCE(pst.finished_at, pst.tracked_at) ASC
-            )
-            SELECT seconds_to_solve, solve_date
-            FROM first_attempts
-        ";
+        $solves = [];
 
-        /** @var list<array{seconds_to_solve: int|string, solve_date: string}> */
-        return $this->connection->fetchAllAssociative($sql, [
-            'playerId' => $playerId,
-            'piecesCount' => $piecesCount,
-        ]);
+        foreach ($this->iterateQualifyingFirstAttempts([$playerId], piecesCount: $piecesCount) as $row) {
+            $solves[] = [
+                'seconds_to_solve' => $row['seconds_to_solve'],
+                'solve_date' => $row['solve_date'],
+            ];
+        }
+
+        return $solves;
     }
 
     /**

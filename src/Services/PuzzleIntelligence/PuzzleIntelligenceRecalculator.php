@@ -6,6 +6,7 @@ namespace SpeedPuzzling\Web\Services\PuzzleIntelligence;
 
 use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
+use SpeedPuzzling\Web\Results\PaceHistorySyncResult;
 use SpeedPuzzling\Web\Value\SkillTier;
 
 /**
@@ -31,6 +32,7 @@ readonly final class PuzzleIntelligenceRecalculator
         private Connection $connection,
         private ClockInterface $clock,
         private PlayerBaselineCalculator $baselineCalculator,
+        private PlayerPaceHistoryWriter $paceHistoryWriter,
         private PuzzleDifficultyCalculator $difficultyCalculator,
         private PlayerSkillCalculator $skillCalculator,
         private DerivedMetricsCalculator $derivedMetricsCalculator,
@@ -40,7 +42,7 @@ readonly final class PuzzleIntelligenceRecalculator
     }
 
     /**
-     * @return array{baselines_direct: int, baselines_interpolated: int, scaling_exponent: float, difficulties: int, metrics: int, improvement_ratios: int, skills: int, rating: int, history: int, snapshots: int}
+     * @return array{baselines_direct: int, baselines_interpolated: int, scaling_exponent: float, pace_history_changed_pairs: int, pace_history_rows_written: int, difficulties: int, metrics: int, improvement_ratios: int, skills: int, rating: int, history: int, snapshots: int, durations: array<string, float>}
      */
     public function recalculate(null|string $specificPlayer = null, null|string $specificPuzzle = null): array
     {
@@ -52,33 +54,57 @@ readonly final class PuzzleIntelligenceRecalculator
          *
          * Level 1: Global scaling exponent (computed within baselines)
          * Level 2: Player baselines (direct + interpolated/extrapolated)
+         *          Pace history (raw solve times only; only the pairs that changed are rewritten)
          *          Improvement ratios (independent — uses raw solve times only)
-         * Level 3: Puzzle difficulty (uses baselines for difficulty indices)
+         * Level 3: Puzzle difficulty (indices = time ÷ the solver's pace-history row before the solve;
+         *          interpolation/extrapolation uses the scaling exponent of the fresh baselines)
          * Level 4: Global learning rate + derived metrics (uses difficulty)
          * Level 5: Player skills + MSP Rating + personality metrics (use difficulty)
          * Level 6: Rating snapshots + skill history (uses skills + rating)
          */
 
-        // Level 1+2: Baselines + improvement ratios (independent)
-        $baselines = $this->computeBaselines($now, $specificPlayer);
-        $improvementRatios = $this->computeImprovementRatios($now, $specificPlayer);
+        // Seconds per step, printed by the command with -v (the batch's runtime budget)
+        $durations = [];
+        $step = static function (string $name, callable $run) use (&$durations): mixed {
+            $startedAt = microtime(true);
+            $result = $run();
+            $durations[$name] = round(microtime(true) - $startedAt, 2);
+
+            return $result;
+        };
+
+        // Level 1+2: Baselines, pace history, improvement ratios (independent)
+        /** @var array{direct: int, interpolated: int, scaling_exponent: float} $baselines */
+        $baselines = $step('baselines', fn (): array => $this->computeBaselines($now, $specificPlayer));
+        /** @var PaceHistorySyncResult $paceHistory */
+        $paceHistory = $step('pace_history', fn (): PaceHistorySyncResult => $this->paceHistoryWriter->sync($specificPlayer !== null ? [$specificPlayer] : null));
+        /** @var int $improvementRatios */
+        $improvementRatios = $step('improvement_ratios', fn (): int => $this->computeImprovementRatios($now, $specificPlayer));
 
         // Level 3: Puzzle difficulty
-        $difficulties = $this->computePuzzleDifficulty($now, $specificPuzzle);
+        /** @var int $difficulties */
+        $difficulties = $step('difficulty', fn (): int => $this->computePuzzleDifficulty($now, $specificPuzzle));
 
         // Level 4+5: Derived metrics, player skills, MSP Rating
-        $metrics = $this->computeDerivedMetrics($specificPuzzle);
-        $skills = $this->computePlayerSkills($now, $specificPlayer);
-        $rating = $this->computeRatings($now, $specificPlayer);
+        /** @var int $metrics */
+        $metrics = $step('derived_metrics', fn (): int => $this->computeDerivedMetrics($specificPuzzle));
+        /** @var int $skills */
+        $skills = $step('skills', fn (): int => $this->computePlayerSkills($now, $specificPlayer));
+        /** @var int $rating */
+        $rating = $step('ratings', fn (): int => $this->computeRatings($now, $specificPlayer));
 
         // Level 6: History + snapshots
-        $history = $this->recordSkillHistory($now);
-        $snapshots = $this->recordRatingSnapshots($now);
+        /** @var int $history */
+        $history = $step('skill_history', fn (): int => $this->recordSkillHistory($now));
+        /** @var int $snapshots */
+        $snapshots = $step('snapshots', fn (): int => $this->recordRatingSnapshots($now));
 
         return [
             'baselines_direct' => $baselines['direct'],
             'baselines_interpolated' => $baselines['interpolated'],
             'scaling_exponent' => $baselines['scaling_exponent'],
+            'pace_history_changed_pairs' => $paceHistory->changedPairs,
+            'pace_history_rows_written' => $paceHistory->deleted + $paceHistory->inserted,
             'difficulties' => $difficulties,
             'metrics' => $metrics,
             'improvement_ratios' => $improvementRatios,
@@ -86,6 +112,7 @@ readonly final class PuzzleIntelligenceRecalculator
             'rating' => $rating,
             'history' => $history,
             'snapshots' => $snapshots,
+            'durations' => $durations,
         ];
     }
 
@@ -223,6 +250,7 @@ readonly final class PuzzleIntelligenceRecalculator
                 'sample_size' => $result['sample_size'],
                 'indices_p25' => $result['indices_p25'],
                 'indices_p75' => $result['indices_p75'],
+                'sum_log_indices' => $result['sum_log_indices'],
                 'computed_at' => $now->format('Y-m-d H:i:s'),
             ];
 
@@ -912,7 +940,7 @@ readonly final class PuzzleIntelligenceRecalculator
     }
 
     /**
-     * @param list<array{puzzle_id: string, difficulty_score: float|null, difficulty_tier: int|null, confidence: string, sample_size: int, indices_p25: float|null, indices_p75: float|null, computed_at: string}> $rows
+     * @param list<array{puzzle_id: string, difficulty_score: float|null, difficulty_tier: int|null, confidence: string, sample_size: int, indices_p25: float|null, indices_p75: float|null, sum_log_indices: float, computed_at: string}> $rows
      */
     private function flushDifficultyBuffer(array $rows): void
     {
@@ -927,6 +955,7 @@ readonly final class PuzzleIntelligenceRecalculator
                 'sample_size' => 'integer',
                 'indices_p25' => 'double precision',
                 'indices_p75' => 'double precision',
+                'sum_log_indices' => 'double precision',
             ],
             $rows,
             generateId: false,

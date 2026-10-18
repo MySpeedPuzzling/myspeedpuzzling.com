@@ -4,7 +4,7 @@
 
 The Puzzle Insights System answers two core questions:
 
-1. **How difficult is this puzzle?** — A normalized 7-tier difficulty score based on how players perform relative to their own baseline.
+1. **How difficult is this puzzle?** — A normalized 6-tier difficulty score based on how players perform relative to their own pace at the time of the solve.
 2. **How skilled is this player?** — A difficulty-adjusted 7-tier skill rating that accounts for which puzzles a player solves.
 
 Additionally, the system provides:
@@ -29,8 +29,15 @@ All calculations use the following filters:
 
 A "first attempt" for a player-puzzle pair is determined as:
 1. If any solve has `first_attempt = true`, use the **earliest** one marked true
-2. Otherwise, use the **oldest** solve (by `tracked_at`) as proxy first attempt
+2. Otherwise, use the **oldest** solve as proxy first attempt
 3. Only one first attempt per player-puzzle pair ever counts
+
+"Earliest" / "oldest" is the insights order: the solve moment `COALESCE(finished_at, tracked_at)`, then `tracked_at`
+(`finished_at` is a date, so same-day solves are ordered by when they were logged), then the id for an exact tie.
+The rule lives in one place, `PlayerBaselineCalculator::qualifyingFirstAttemptsQuery()` - solo, with a time, not
+suspicious, not unboxed, one per player and puzzle - used by the baselines, the pace history and the difficulty
+indices alike. (Before 2026-10 the batch ordered by the solve moment only, so two same-day solves of one puzzle were
+picked in no defined order.)
 
 ---
 
@@ -40,7 +47,8 @@ The computation is sequential and non-circular:
 
 ```
 Step 1: Player Baselines       (independent — no puzzle data needed)
-Step 2: Difficulty Indices      (depends on Step 1)
+        + Pace history          (the baseline after every qualifying first attempt — same rule)
+Step 2: Difficulty Indices      (time ÷ the solver's pace-history row just before the solve)
 Step 3: Puzzle Difficulty       (depends on Step 2)
 Step 4: Derived Metrics         (depends on Step 3)
 Step 5: Player Skill            (depends on Steps 1 + 3)
@@ -102,12 +110,114 @@ Total weight: 4.740 — baseline computed (5 qualifying solves required, 7 prese
 
 ---
 
+## Pace history (`player_pace_history`)
+
+The baseline above is the player's pace **today**. Dividing a three-year-old time by today's (faster) pace makes
+the puzzle look harder than it was: the difficulty indices were inflated by +1.8 % (solves < 6 months old) up to
++24 % (3+ years), and statistical first-try predictions ran 9.9 % slow (`docs/features/insights/prediction-research.md`
+§2 Q1, §4). The pace history keeps the pace **as it was** after every solve that moved it.
+
+### Rows
+
+One row per player × piece count × **qualifying first attempt, from the 5th on** (the first one with a direct
+baseline). No collapsing per day: a row per solve keeps the lookup exact for same-day solves (`finished_at` is a
+date), costs ~20 % more rows than one per day (production copy: 232k rows vs ~179k), and ties every row to the solve
+that moved it.
+
+| Column | Meaning |
+|---|---|
+| `player_id`, `pieces_count` | the pair |
+| `valid_from`, `valid_from_tracked_at` | the solve moment `COALESCE(finished_at, tracked_at)` and its `tracked_at` - the row holds from this solve on |
+| `time_id` | the solve that moved the pace (FK, `ON DELETE CASCADE`, see below) |
+| `qualifying_count` | the solve's position among the pair's qualifying first attempts (5 = first row); unique per pair |
+| `baseline_seconds` | `PlayerBaselineCalculator::weightedBaselineSeconds()` over solves 1..k, **ages measured to the k-th solve** - the one baseline rule, never re-implemented |
+| `step` | `ln(baseline_k / baseline_{k-1})`, rounded to 6 decimals; NULL on the pair's first row. Log, so steps add up and ±3 % reads the same both ways ("your biggest jumps") |
+| `drift` | defined here, filled by the prediction model v2 (stream 3b): the improvement drift as of this row = the mean log residual `ln(actual / predicted)` of the player's last 10 first attempts at this piece count up to and including this row, shrunk toward 0 with few solves. NULL until then |
+| `inputs_checksum` | running sum of the hashes of the pair's qualifying solves up to this one (below) |
+
+Indexes: `(player_id, pieces_count, valid_from, valid_from_tracked_at)` for the as-of lookup (the plan's
+`(player_id, pieces_count, valid_from)` plus the tie-break, so "the row just before (solved, tracked)" is one index
+step), unique `(player_id, pieces_count, qualifying_count)` (the writer's key; two writers can never interleave
+silently), `time_id` for the cascade.
+
+**Only direct baselines are stored** - no interpolated/extrapolated rows. A change at 500 pieces would otherwise need
+a row for every other piece count the player ever solved (2,900 players have ~3.5 gap sizes each), and those rows would
+still be stale between events. The lookup derives them exactly from the direct rows instead (below), with the same
+`gapBaseline()` rule as the baselines' second pass. (The research prototype stored direct baselines only, too.)
+
+Between two rows of a pair only time decay changes the weighted median; the row keeps the value as of its own solve
+(ages measured to `valid_from`) - the research's "ignorable" option. Live and reconstructed use the same rows, so
+they agree.
+
+### The as-of lookup (`PaceTimeline::paceAt()`)
+
+The pace of a solver at a solve `(solved, tracked)` of piece count S:
+
+1. the row of S valid **strictly before** the solve: the last row with `(valid_from, valid_from_tracked_at) < (solved, tracked)`.
+   The row a solve wrote itself is never its own pace;
+2. else interpolated/extrapolated from the solver's rows valid strictly before the solve at their other piece counts
+   (`gapBaseline()` with the batch's scaling exponent) - e.g. a 1000-piece solve of a 500-piece regular;
+3. else - the solve came **before the solver had any pace at all** (one of their very first first attempts) - their
+   **first pace**: 1 and 2 at the moment of their earliest row, provided that row is known at the moment the
+   difficulty is computed for (the batch: always; the reconstructor: only rows before the predicted solve);
+4. else no index.
+
+Step 3 is a deliberate choice against simply dropping those indices (the research prototype dropped them): measured on
+the production copy, 36k of 261k direct-baseline indices (13.8 %) are among their solver's first five solves at that
+piece count, and dropping them would leave only ~5,500 of today's ~6,300 rated puzzles rated - mostly the lightly
+solved ones that newcomers solve. The first pace is the solver's pace closest in time to those solves (formed within
+their next few solves), so it carries no age bias; today's code divided them by today's pace, the most biased choice.
+
+`PaceTimelineLoader` builds the timeline: every row (the batch: 232k rows, ~10 MB in packed arrays, one query), every
+row of some players (`PredictionReconstructor`: the solvers of the puzzles it predicts statistically), or just what a
+few lookups need (one puzzle - `RecalculateIncrementalPuzzleIntelligenceOnSolvingTimeChange` on every added time: one
+index step per solver at the puzzle's piece count, every row only of solvers without such a row).
+
+### Writing it: the 15-minute batch, change detection
+
+`PlayerPaceHistoryWriter::sync()` runs as a step of `recalculate-puzzle-intelligence` (right after the baselines). The
+watermark is the data itself, not a timestamp - a time watermark misses deletions, back-dated adds, edits and
+suspicious flags set by SQL:
+
+- every row stores `inputs_checksum` = the sum of `md5`-based 48-bit hashes of the pair's qualifying solves up to it
+  (`PlayerPaceHistoryCalculator::solveHash()`: id, seconds, solve moment, tracked_at, the rule `VERSION`);
+- one aggregate statement sums the same hash in SQL (`sqlSolveHash()`, pinned equal to the PHP one by a test) over
+  every pair's qualifying solves as they are now; a pair whose count and sum equal its last stored row is unchanged
+  and is neither loaded nor written;
+- a changed pair is loaded; the first position whose running checksum differs from the stored row is the first
+  changed solve - rows from there on are deleted and written anew; a pair below five qualifying solves (or with none
+  left) loses its rows.
+
+So an incremental run ends exactly as a rebuild from scratch, and a run over unchanged data writes nothing (both
+pinned by `PlayerPaceHistoryTest`). Covered: new and back-dated adds, edits of seconds or dates, deletions,
+suspicious/unboxed flags (also set by SQL), a changed `first_attempt` flag, a puzzle's piece count, merges and moved
+owners. Bump `PlayerPaceHistoryCalculator::VERSION` whenever what a row holds changes for the same inputs - every pair
+is rewritten by the next run (~25 s once).
+
+**Deleted times:** the `time_id` FK cascades - the row goes with its time at once, and the next run rewrites the pair
+from that position (the checksums no longer match). Nothing ever points at a missing time. A merged puzzle's times keep
+their ids (moved to the survivor), so nothing cascades; a deleted player takes their rows with them.
+
+Between two runs a new solve has no row yet; the lookup for it does not need one (its pace is the row *before* it).
+Only a solve back-dated before other solves logged in the same 15 minutes is briefly looked up against one row too few.
+
+Batch and backfill take turns on an advisory lock (`PlayerPaceHistoryWriter::LOCK_KEY`).
+
+### Backfill
+
+`myspeedpuzzling:backfill-pace-history [--player=<uuid>]` dispatches `BackfillPaceHistory`; the handler walks every
+player with a qualifying solve or stored rows in keyset batches of 300 (uuid order) through the same `sync()` - one
+transaction, holding the writer's lock until commit. Idempotent: run again, nothing is written. Measured on the
+production copy (523k times): 232,119 rows over 7,191 pairs in 22 s, 63 MB peak; a second run 2.1 s, nothing written;
+the table is 73 MB with its indexes (33 MB heap). It is not needed for correctness - the batch builds whatever is
+missing - but it fills the table before the first batch run after the deploy instead of inside it.
+
 ## Step 2: Difficulty Index (Per Solve)
 
-For each qualifying solve of a puzzle:
+For each qualifying first attempt of a puzzle:
 
 ```
-difficulty_index = seconds_to_solve / player_baseline
+difficulty_index = seconds_to_solve / solver's pace at the solve (PaceTimeline::paceAt(), above)
 ```
 
 - Index < 1.0: puzzle was easier than average for this player
@@ -116,9 +226,20 @@ difficulty_index = seconds_to_solve / player_baseline
 
 **Qualification criteria:**
 - The solve is a first attempt (per the resolution rules above)
-- The solve is solo, non-suspicious, with `seconds_to_solve IS NOT NULL`
-- The solver has a valid baseline for this piece count
+- The solve is solo, non-suspicious, not unboxed, with `seconds_to_solve IS NOT NULL`
+- The solver has a pace for it (rules 1-3 of the lookup)
 - The resulting difficulty_index is <= 5.0 (outlier ceiling)
+
+Until 2026-10 the index divided by the solver's **current** `player_baseline`. Expected effect of the switch
+(research on the production copy): rated scores drop ~8 % at the median, ~46 % of well-rated puzzles move one tier
+easier (Jan: fine), the rank order barely changes (Spearman 0.97); the public hardest/easiest lists change
+accordingly, and statistical predictions lose their ~10 % slow bias. Measured on the copy of the production data
+after the switch: puzzles with ≥ 10 indices -7.2 % at the median, 42.8 % one tier (or more) easier, 0.3 % harder;
+6,284 puzzles rated instead of 6,285 (the first-pace rule keeps the newcomers' solves); tiers 1-6 went from
+71 / 892 / 3,032 / 1,281 / 652 / 357 to 238 / 1,763 / 2,832 / 861 / 371 / 219.
+
+The other per-solve indices of the batch - memorability, skill sensitivity, predictability, box dependence
+(`DerivedMetricsCalculator`) - still divide by the current baseline (a follow-up of the Insights plan).
 
 ---
 
@@ -128,21 +249,28 @@ difficulty_index = seconds_to_solve / player_baseline
 puzzle_difficulty = median(all qualifying difficulty indices for that puzzle)
 ```
 
+Stored next to it for a shrunk difficulty on read (prediction model v2): `sample_size` = k, the number of indices, and
+`sum_log_indices` = the sum of their natural logs (sorted before summing, so the same indices always give the same
+number; 0.0 for k = 0, NULL until the batch has written the row with as-of indices). Both are stored for every puzzle
+with a solve, also with fewer than 5 indices. (The plan named the count `index_count`; it is `sample_size`, which has
+always been exactly that count - one column, not two that could drift.)
+
 ### Minimum Threshold
 
 At least **5 qualifying difficulty indices** from different players are needed. Below this, no difficulty score is assigned.
 
 ### Difficulty Tiers
 
+Six tiers (`DifficultyTier::fromScore()`):
+
 | Tier | Score Range | Label |
 |------|------------|-------|
-| 1 | < 0.70 | Very Easy |
-| 2 | 0.70 - 0.85 | Easy |
-| 3 | 0.85 - 0.95 | Moderate |
-| 4 | 0.95 - 1.05 | Average |
-| 5 | 1.05 - 1.20 | Challenging |
-| 6 | 1.20 - 1.45 | Hard |
-| 7 | > 1.45 | Extreme |
+| 1 | < 0.75 | Very easy |
+| 2 | 0.75 - 0.90 | Easy |
+| 3 | 0.90 - 1.10 | Average |
+| 4 | 1.10 - 1.25 | Challenging |
+| 5 | 1.25 - 1.45 | Hard |
+| 6 | ≥ 1.45 | Very hard |
 
 ### Confidence Levels
 
@@ -161,7 +289,7 @@ Puzzle X (500pc) has 6 qualifying indices: 0.87, 0.92, 1.05, 1.12, 1.18, 1.25
 
 Median of [0.87, 0.92, 1.05, 1.12, 1.18, 1.25] = (1.05 + 1.12) / 2 = 1.085
 
-Difficulty score: **1.085** — Tier 5 (Challenging), Confidence: Low (6 indices)
+Difficulty score: **1.085** — Tier 3 (Average), Confidence: Low (6 indices)
 
 ---
 
@@ -277,7 +405,7 @@ Based on percentile rank among all players with valid skill scores for the same 
 | 4 | Top 30% | Advanced |
 | 5 | Top 15% | Expert |
 | 6 | Top 5% | Master |
-| 7 | Top 1% | Grandmaster |
+| 7 | Top 1% | Legend |
 
 ### Separate Skill Contexts
 
@@ -587,16 +715,23 @@ Cron (every 15 minutes):
 ### Execution Order
 
 1. Recompute all player baselines
-2. Recompute improvement ratios (global + player)
-3. Recompute all puzzle difficulty scores
-4. Recompute derived metrics
-5. Recompute all player skill scores + percentiles
-6. Recompute MSP-ELO ratings
-7. Record skill history snapshots
+2. Bring the pace history up to date (only the pairs whose solves changed)
+3. Recompute improvement ratios (global + player)
+4. Recompute all puzzle difficulty scores (as-of indices)
+5. Recompute derived metrics
+6. Recompute all player skill scores + percentiles
+7. Recompute MSP-ELO ratings
+8. Record skill history and rating snapshots
+
+With `-v` the command prints the seconds of every step. Measured 2026-10-18 on a copy of the production data (solves
+to 2026-10-11) on a laptop, where a steady-state run takes ~13 s (production ~11 s): pace history 0.7 s when nothing
+changed (one aggregate statement + one read of the pairs' last rows), the difficulty preload 1.25 s instead of 0.5 s
+(the solves plus the whole pace history and 290k lookups in PHP instead of one join) - about +1.5 s for the as-of
+indices in all; peak memory of the run ~390 MB.
 
 ### Options
 
-- `--player=UUID` — Recompute only for specific player
+- `--player=UUID` — Recompute only for specific player (pace history: only that player's pairs)
 - `--puzzle=UUID` — Recompute only for specific puzzle
 
 ### First-Time Setup
@@ -631,8 +766,10 @@ database's WAL - disk wear, not page latency.
 - **History and snapshots** keep one row per player, piece count and month (`player_skill_history`) or day
   (`player_rating_snapshot`), holding the latest values of that period. The first run of the period inserts the rows,
   later runs update the changed ones: the same rows with the same values as before. A snapshot's `computed_at` is when
-  its values were last written, not the last run of the day. Nothing reads the snapshots; the history's only reader
-  (`GetPlayerSkillHistory`) is not wired into any page at the moment.
+  its values were last written, not the last run of the day. The snapshots are read by the weekly digest
+  (`PlayerPeriodActivityReader`: rank and tier before and in the period) and stay as they are - Jan, 2026-10-18: they
+  become the "your rating over time" chart of Insights. The history's only reader (`GetPlayerSkillHistory`) is not
+  wired into any page at the moment.
 - **Concurrency** is as before: every statement commits on its own at the same point of the run, readers see the same
   values meanwhile (a rewrite with equal values was invisible to them), and far fewer rows are locked. The one
   difference is a millisecond race: when the incremental handler updates a row between a batch statement's snapshot

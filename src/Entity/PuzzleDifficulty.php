@@ -63,6 +63,12 @@ class PuzzleDifficulty
     #[Column(nullable: true)]
     public null|float $indicesP75 = null;
 
+    // Sum of the natural logs of the sample_size difficulty indices (k) - with k the input of a shrunk
+    // difficulty on read; null until the batch has computed the row with as-of indices
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(nullable: true)]
+    public null|float $sumLogIndices = null;
+
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column]
     public DateTimeImmutable $computedAt;
@@ -84,6 +90,7 @@ class PuzzleDifficulty
         DateTimeImmutable $computedAt,
         null|float $indicesP25 = null,
         null|float $indicesP75 = null,
+        null|float $sumLogIndices = null,
     ): void {
         $this->difficultyScore = $difficultyScore;
         $this->difficultyTier = $difficultyScore !== null ? DifficultyTier::fromScore($difficultyScore)->value : null;
@@ -91,6 +98,7 @@ class PuzzleDifficulty
         $this->sampleSize = $sampleSize;
         $this->indicesP25 = $indicesP25;
         $this->indicesP75 = $indicesP75;
+        $this->sumLogIndices = $sumLogIndices;
         $this->computedAt = $computedAt;
     }
 

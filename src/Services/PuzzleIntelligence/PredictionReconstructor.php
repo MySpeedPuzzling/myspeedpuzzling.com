@@ -23,12 +23,14 @@ use Symfony\Contracts\Service\ResetInterface;
  * "Before" is the insights order: (COALESCE(finished_at, tracked_at), tracked_at). Everything the
  * live model reads from its tables is rebuilt here as of the solve - earlier attempts, the gap, the
  * player's improvement ratios, the player's baseline, the puzzle's difficulty - with the same
- * calculator code. Two documented approximations: the global improvement ratios are a snapshot at
- * the start of the solve's month, and the difficulty indices use the other players' baselines of
- * today (as the live difficulty does). Nothing from the solve itself or after it is ever used.
+ * calculator code. The difficulty indices divide each solver's time by their pace-history row valid
+ * just before that solve - the lookup the live difficulty uses (PaceTimeline) - with only the rows
+ * that existed before the predicted solve. One documented approximation: the global improvement
+ * ratios are a snapshot at the start of the solve's month. Nothing from the solve itself or after it
+ * is ever used.
  *
- * Loads its inputs once per player: the player's solo times + the solves of the puzzles that need a
- * statistical prediction. The rest is PHP.
+ * Loads its inputs once per player: the player's solo times, the solves of the puzzles that need a
+ * statistical prediction and the pace history of their solvers. The rest is PHP.
  */
 final class PredictionReconstructor implements ResetInterface
 {
@@ -46,6 +48,7 @@ final class PredictionReconstructor implements ResetInterface
         private readonly Connection $connection,
         private readonly PlayerBaselineCalculator $baselineCalculator,
         private readonly PuzzleDifficultyCalculator $difficultyCalculator,
+        private readonly PaceTimelineLoader $paceTimelineLoader,
         private readonly ImprovementRatioCalculator $improvementRatioCalculator,
         private readonly TimePredictionCalculator $calculator,
         private readonly CacheInterface $globalImprovementRatioSnapshotCache,
@@ -100,6 +103,7 @@ final class PredictionReconstructor implements ResetInterface
         $playerTransitions = $this->playerTransitions($qualifyingByPuzzle);
         $firstAttemptCandidates = $this->firstAttemptCandidatesByPiecesCount($qualifyingByPuzzle);
         $puzzleFirstAttemptCandidates = $this->puzzleFirstAttemptCandidates(array_keys($statisticalPuzzleIds));
+        $solverPaces = $this->solverPaces($puzzleFirstAttemptCandidates);
 
         $predictions = [];
 
@@ -108,7 +112,7 @@ final class PredictionReconstructor implements ResetInterface
 
             $result = $prior !== []
                 ? $this->personalPrediction($prior, $target, $playerTransitions)
-                : $this->statisticalPrediction($target, $firstAttemptCandidates, $puzzleFirstAttemptCandidates[$target->puzzleId] ?? []);
+                : $this->statisticalPrediction($target, $firstAttemptCandidates, $puzzleFirstAttemptCandidates[$target->puzzleId] ?? [], $solverPaces);
 
             $predictions[$target->id] = $result !== null
                 ? SolvingTimePrediction::predicted($result, TimePredictionSource::Reconstructed)
@@ -167,7 +171,7 @@ final class PredictionReconstructor implements ResetInterface
      * @param array<int, array<string, list<PredictionInputSolve>>> $firstAttemptCandidates the player's, pieces count => puzzle => candidates
      * @param array<string, list<PredictionInputSolve>> $puzzleCandidates every solver of the target's puzzle, player => candidates
      */
-    private function statisticalPrediction(PredictionInputSolve $target, array $firstAttemptCandidates, array $puzzleCandidates): null|TimePredictionResult
+    private function statisticalPrediction(PredictionInputSolve $target, array $firstAttemptCandidates, array $puzzleCandidates, PaceTimeline $solverPaces): null|TimePredictionResult
     {
         $baseline = $this->baselineBefore($target, $firstAttemptCandidates);
 
@@ -177,11 +181,24 @@ final class PredictionReconstructor implements ResetInterface
 
         $firstAttempts = [];
 
-        foreach ($puzzleCandidates as $candidates) {
+        foreach ($puzzleCandidates as $solverId => $candidates) {
             $firstAttempt = self::firstBefore($candidates, $target);
 
-            if ($firstAttempt !== null && $firstAttempt->solverBaseline !== null) {
-                $firstAttempts[] = ['seconds_to_solve' => $firstAttempt->seconds, 'baseline_seconds' => $firstAttempt->solverBaseline];
+            if ($firstAttempt === null) {
+                continue;
+            }
+
+            // Only pace rows that existed before the predicted solve - also for a solver's first pace
+            $pace = $solverPaces->paceAt(
+                (string) $solverId,
+                $firstAttempt->piecesCount,
+                $firstAttempt->solved,
+                $firstAttempt->tracked,
+                knownBefore: [$target->solved, $target->tracked],
+            );
+
+            if ($pace !== null) {
+                $firstAttempts[] = ['seconds_to_solve' => $firstAttempt->seconds, 'baseline_seconds' => $pace];
             }
         }
 
@@ -336,8 +353,7 @@ final class PredictionReconstructor implements ResetInterface
     }
 
     /**
-     * Qualifying solves of every player on the given puzzles, with that player's baseline of
-     * today for the piece count (the live difficulty joins player_baseline the same way).
+     * Qualifying solves of every player on the given puzzles.
      *
      * @param list<string> $puzzleIds
      * @return array<string, array<string, list<PredictionInputSolve>>> puzzle => player => candidates in first-attempt preference order
@@ -347,7 +363,7 @@ final class PredictionReconstructor implements ResetInterface
         $byPuzzleAndPlayer = [];
 
         foreach (array_chunk($puzzleIds, self::PUZZLE_CHUNK_SIZE) as $chunk) {
-            /** @var list<array{id: string, puzzle_id: string, player_id: string, pieces_count: int|string, seconds_to_solve: int|string, first_attempt: bool, solved_ts: float|string, tracked_ts: float|string, baseline_seconds: int|string}> $rows */
+            /** @var list<array{id: string, puzzle_id: string, player_id: string, pieces_count: int|string, seconds_to_solve: int|string, first_attempt: bool, solved_ts: float|string, tracked_ts: float|string}> $rows */
             $rows = $this->connection->fetchAllAssociative(
                 <<<'SQL'
                 SELECT
@@ -358,11 +374,9 @@ final class PredictionReconstructor implements ResetInterface
                     pst.seconds_to_solve,
                     pst.first_attempt,
                     EXTRACT(EPOCH FROM COALESCE(pst.finished_at, pst.tracked_at)) AS solved_ts,
-                    EXTRACT(EPOCH FROM pst.tracked_at) AS tracked_ts,
-                    pb.baseline_seconds
+                    EXTRACT(EPOCH FROM pst.tracked_at) AS tracked_ts
                 FROM puzzle_solving_time pst
                 JOIN puzzle p ON p.id = pst.puzzle_id
-                JOIN player_baseline pb ON pb.player_id = pst.player_id AND pb.pieces_count = p.pieces_count
                 WHERE pst.puzzle_id IN (:puzzleIds)
                     AND pst.puzzling_type = 'solo'
                     AND pst.suspicious = false
@@ -383,7 +397,6 @@ final class PredictionReconstructor implements ResetInterface
                     qualifying: true,
                     solved: (float) $row['solved_ts'],
                     tracked: (float) $row['tracked_ts'],
-                    solverBaseline: (int) $row['baseline_seconds'],
                 );
             }
         }
@@ -397,6 +410,26 @@ final class PredictionReconstructor implements ResetInterface
         }
 
         return $candidates;
+    }
+
+    /**
+     * The pace history of every solver of the statistical targets' puzzles.
+     *
+     * @param array<string, array<string, list<PredictionInputSolve>>> $puzzleFirstAttemptCandidates puzzle => player => candidates
+     */
+    private function solverPaces(array $puzzleFirstAttemptCandidates): PaceTimeline
+    {
+        $solverIds = [];
+
+        foreach ($puzzleFirstAttemptCandidates as $byPlayer) {
+            foreach (array_keys($byPlayer) as $solverId) {
+                $solverIds[(string) $solverId] = true;
+            }
+        }
+
+        $this->scalingExponent ??= $this->baselineCalculator->computeScalingExponent();
+
+        return $this->paceTimelineLoader->forPlayers(array_keys($solverIds), $this->scalingExponent);
     }
 
     /**

@@ -12,9 +12,11 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Player;
 use SpeedPuzzling\Web\Entity\Puzzle;
 use SpeedPuzzling\Web\Entity\PuzzleSolvingTime;
+use SpeedPuzzling\Web\Services\PuzzleIntelligence\PlayerPaceHistoryWriter;
 use SpeedPuzzling\Web\Tests\DataFixtures\OAuth2ClientFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
+use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleIntelligenceFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleSolvingTimeFixture;
 use SpeedPuzzling\Web\Tests\OAuth2TestHelper;
 use SpeedPuzzling\Web\Tests\PatTestHelper;
@@ -158,13 +160,17 @@ final class CreateSolvingTimePredictionEndpointTest extends WebTestCase
     {
         $browser = self::createClient();
 
+        // The difficulty indices divide by the solvers' pace history - written before the puzzle's solves
+        $fifthSolver = $this->seedPlayerWith500PiecePace($browser, 2400);
+        $this->writePaceHistory($browser);
+
         foreach (
             [
             PlayerFixture::PLAYER_REGULAR => 1900,
             PlayerFixture::PLAYER_PRIVATE => 1650,
             PlayerFixture::PLAYER_ADMIN => 2050,
             PlayerFixture::PLAYER_WITH_FAVORITES => 2950,
-            $this->seedPlayerWith500PieceBaseline($browser, 2400) => 2300,
+            $fifthSolver => 2300,
             ] as $playerId => $seconds
         ) {
             $this->seedSoloSolve($browser, $playerId, PuzzleFixture::PUZZLE_500_04, $seconds);
@@ -380,7 +386,7 @@ final class CreateSolvingTimePredictionEndpointTest extends WebTestCase
         OAuth2TestHelper::addBearerToken($browser, $token);
     }
 
-    private function seedSoloSolve(KernelBrowser $browser, string $playerId, string $puzzleId, int $seconds): void
+    private function seedSoloSolve(KernelBrowser $browser, string $playerId, string $puzzleId, int $seconds, int $daysAgo = 30): void
     {
         $entityManager = $this->entityManager($browser);
 
@@ -389,7 +395,7 @@ final class CreateSolvingTimePredictionEndpointTest extends WebTestCase
         $puzzle = $entityManager->find(Puzzle::class, $puzzleId);
         $this->assertNotNull($puzzle);
 
-        $solvedAt = new DateTimeImmutable('-30 days');
+        $solvedAt = new DateTimeImmutable("-{$daysAgo} days");
 
         $entityManager->persist(new PuzzleSolvingTime(
             id: Uuid::uuid7(),
@@ -409,7 +415,10 @@ final class CreateSolvingTimePredictionEndpointTest extends WebTestCase
         $entityManager->clear();
     }
 
-    private function seedPlayerWith500PieceBaseline(KernelBrowser $browser, int $baselineSeconds): string
+    /**
+     * A new player with five 500-piece first attempts 100 days ago: a pace the indices of their later solves divide by.
+     */
+    private function seedPlayerWith500PiecePace(KernelBrowser $browser, int $paceSeconds): string
     {
         $entityManager = $this->entityManager($browser);
         $player = new Player(Uuid::uuid7(), 'pred' . bin2hex(random_bytes(3)), null, null, new DateTimeImmutable());
@@ -417,16 +426,20 @@ final class CreateSolvingTimePredictionEndpointTest extends WebTestCase
         $entityManager->flush();
         $entityManager->clear();
 
-        /** @var ContainerInterface $container */
-        $container = $browser->getContainer();
-        /** @var Connection $database */
-        $database = $container->get(Connection::class);
-        $database->executeStatement(
-            "INSERT INTO player_baseline (id, player_id, pieces_count, baseline_seconds, qualifying_solves_count, baseline_type, computed_at) VALUES (:id, :playerId, 500, :baseline, 5, 'direct', NOW())",
-            ['id' => Uuid::uuid7()->toString(), 'playerId' => $player->id->toString(), 'baseline' => $baselineSeconds],
-        );
+        foreach ([PuzzleFixture::PUZZLE_500_01, PuzzleFixture::PUZZLE_500_02, PuzzleFixture::PUZZLE_500_03, PuzzleIntelligenceFixture::INTEL_PUZZLE_A, PuzzleIntelligenceFixture::INTEL_PUZZLE_B] as $index => $puzzleId) {
+            $this->seedSoloSolve($browser, $player->id->toString(), $puzzleId, $paceSeconds, 100 - $index);
+        }
 
         return $player->id->toString();
+    }
+
+    private function writePaceHistory(KernelBrowser $browser): void
+    {
+        /** @var ContainerInterface $container */
+        $container = $browser->getContainer();
+        /** @var PlayerPaceHistoryWriter $writer */
+        $writer = $container->get(PlayerPaceHistoryWriter::class);
+        $writer->sync();
     }
 
     private function optOutOfTimePredictions(KernelBrowser $browser, string $playerId): void

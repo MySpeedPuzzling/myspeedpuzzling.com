@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Services\PuzzleIntelligence;
 
-use Doctrine\DBAL\Connection;
 use SpeedPuzzling\Web\Value\DifficultyTier;
 use SpeedPuzzling\Web\Value\MetricConfidence;
 use Symfony\Contracts\Service\ResetInterface;
@@ -18,46 +17,29 @@ final class PuzzleDifficultyCalculator implements ResetInterface
     private null|array $indicesCache = null;
 
     public function __construct(
-        private readonly Connection $connection,
+        private readonly PlayerBaselineCalculator $baselineCalculator,
+        private readonly PaceTimelineLoader $paceTimelineLoader,
     ) {
     }
 
     /**
-     * Bulk-load all first-attempt solves with baselines in one query.
+     * Bulk-load every qualifying first attempt with its solver's pace as of the solve: one query for
+     * the solves, one for the whole pace history, the lookups in PHP.
      */
     public function preloadAllData(): void
     {
-        /** @var list<array{puzzle_id: string, seconds_to_solve: int|string, baseline_seconds: int|string}> $rows */
-        $rows = $this->connection->fetchAllAssociative("
-            SELECT puzzle_id, seconds_to_solve, baseline_seconds
-            FROM (
-                SELECT
-                    pst.puzzle_id,
-                    pst.player_id,
-                    pst.seconds_to_solve,
-                    pb.baseline_seconds,
-                    ROW_NUMBER() OVER (
-                        PARTITION BY pst.puzzle_id, pst.player_id
-                        ORDER BY pst.first_attempt DESC, COALESCE(pst.finished_at, pst.tracked_at) ASC
-                    ) AS rn
-                FROM puzzle_solving_time pst
-                JOIN puzzle p ON p.id = pst.puzzle_id
-                JOIN player_baseline pb ON pb.player_id = pst.player_id AND pb.pieces_count = p.pieces_count
-                WHERE pst.puzzling_type = 'solo'
-                    AND pst.suspicious = false
-                    AND pst.seconds_to_solve IS NOT NULL
-                    AND pst.unboxed = false
-            ) sub
-            WHERE rn = 1
-        ");
-
+        $timeline = $this->paceTimelineLoader->all();
         $cache = [];
 
-        foreach ($rows as $row) {
-            $cache[$row['puzzle_id']][] = [
-                'seconds_to_solve' => $row['seconds_to_solve'],
-                'baseline_seconds' => $row['baseline_seconds'],
-            ];
+        foreach ($this->baselineCalculator->iterateQualifyingFirstAttempts() as $row) {
+            $pace = $timeline->paceAt($row['player_id'], (int) $row['pieces_count'], (float) $row['solved_ts'], (float) $row['tracked_ts']);
+
+            if ($pace !== null) {
+                $cache[$row['puzzle_id']][] = [
+                    'seconds_to_solve' => $row['seconds_to_solve'],
+                    'baseline_seconds' => $pace,
+                ];
+            }
         }
 
         $this->indicesCache = $cache;
@@ -81,6 +63,7 @@ final class PuzzleDifficultyCalculator implements ResetInterface
      *     sample_size: int,
      *     indices_p25: float|null,
      *     indices_p75: float|null,
+     *     sum_log_indices: float,
      * }
      */
     public function calculateForPuzzle(string $puzzleId): array
@@ -89,8 +72,12 @@ final class PuzzleDifficultyCalculator implements ResetInterface
     }
 
     /**
-     * Difficulty from the first attempts of a puzzle (one per player) and those players' baselines.
-     * Shared with PredictionReconstructor, which passes only the first attempts before a past solve.
+     * Difficulty from the first attempts of a puzzle (one per player), each with its solver's pace as
+     * of that solve (PaceTimeline::paceAt()). Shared with PredictionReconstructor, which passes only
+     * the first attempts before a past solve.
+     *
+     * sample_size is k, the number of indices; sum_log_indices is the sum of their natural logs - with
+     * k the input of a shrunk difficulty on read, also for k < 5 (0.0 for k = 0).
      *
      * @param list<array{seconds_to_solve: int|string, baseline_seconds: int|string}> $solves
      * @return array{
@@ -100,11 +87,17 @@ final class PuzzleDifficultyCalculator implements ResetInterface
      *     sample_size: int,
      *     indices_p25: float|null,
      *     indices_p75: float|null,
+     *     sum_log_indices: float,
      * }
      */
     public function calculateFromSolves(array $solves): array
     {
         $indices = $this->computeDifficultyIndices($solves);
+
+        // Sorted before summing: the same indices always give the same sum, whatever order they came in
+        sort($indices);
+
+        $sumLogIndices = round(array_sum(array_map(log(...), $indices)), 9);
 
         if (count($indices) < self::MINIMUM_INDICES) {
             return [
@@ -114,10 +107,9 @@ final class PuzzleDifficultyCalculator implements ResetInterface
                 'sample_size' => count($indices),
                 'indices_p25' => null,
                 'indices_p75' => null,
+                'sum_log_indices' => $sumLogIndices,
             ];
         }
-
-        sort($indices);
 
         $score = $this->computeMedianFromSorted($indices);
         $confidence = MetricConfidence::fromSampleSize(count($indices), self::MINIMUM_INDICES);
@@ -129,11 +121,12 @@ final class PuzzleDifficultyCalculator implements ResetInterface
             'sample_size' => count($indices),
             'indices_p25' => round($this->computePercentile($indices, 25), 4),
             'indices_p75' => round($this->computePercentile($indices, 75), 4),
+            'sum_log_indices' => $sumLogIndices,
         ];
     }
 
     /**
-     * First attempt of every qualifying player of a puzzle, with the player's baseline.
+     * First attempt of every qualifying player of a puzzle, with the player's pace as of that solve.
      *
      * @return list<array{seconds_to_solve: int|string, baseline_seconds: int|string}>
      */
@@ -143,33 +136,30 @@ final class PuzzleDifficultyCalculator implements ResetInterface
             return $this->indicesCache[$puzzleId] ?? [];
         }
 
-        $sql = "
-            WITH first_attempts AS (
-                SELECT DISTINCT ON (pst.player_id)
-                    pst.player_id,
-                    pst.seconds_to_solve
-                FROM puzzle_solving_time pst
-                WHERE pst.puzzle_id = :puzzleId
-                    AND pst.puzzling_type = 'solo'
-                    AND pst.suspicious = false
-                    AND pst.seconds_to_solve IS NOT NULL
-                    AND pst.unboxed = false
-                ORDER BY pst.player_id,
-                    pst.first_attempt DESC,
-                    COALESCE(pst.finished_at, pst.tracked_at) ASC
-            )
-            SELECT
-                fa.seconds_to_solve,
-                pb.baseline_seconds
-            FROM first_attempts fa
-            JOIN player_baseline pb ON pb.player_id = fa.player_id
-            JOIN puzzle p ON p.id = :puzzleId AND pb.pieces_count = p.pieces_count
-        ";
+        $firstAttempts = [];
 
-        /** @var list<array{seconds_to_solve: int|string, baseline_seconds: int|string}> */
-        return $this->connection->fetchAllAssociative($sql, [
-            'puzzleId' => $puzzleId,
-        ]);
+        foreach ($this->baselineCalculator->iterateQualifyingFirstAttempts(puzzleId: $puzzleId) as $row) {
+            $firstAttempts[] = $row;
+        }
+
+        $timeline = $this->paceTimelineLoader->forLookups(array_map(static fn (array $row): array => [
+            'player_id' => $row['player_id'],
+            'pieces_count' => (int) $row['pieces_count'],
+            'solve_date' => $row['solve_date'],
+            'tracked_at' => $row['tracked_at'],
+        ], $firstAttempts));
+
+        $solves = [];
+
+        foreach ($firstAttempts as $row) {
+            $pace = $timeline->paceAt($row['player_id'], (int) $row['pieces_count'], (float) $row['solved_ts'], (float) $row['tracked_ts']);
+
+            if ($pace !== null) {
+                $solves[] = ['seconds_to_solve' => $row['seconds_to_solve'], 'baseline_seconds' => $pace];
+            }
+        }
+
+        return $solves;
     }
 
     /**

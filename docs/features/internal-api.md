@@ -424,6 +424,7 @@ their own messages (`SetCompetitionRoundPuzzles`, `SetCompetitionPuzzles`, `AddA
 | `POST` | `/internal-api/competitions` | Create a standalone competition (`"approve": true` approves it at once) | `201` competition |
 | `PATCH` | `/internal-api/competitions/{competitionId}` | Change only the fields sent | `200` competition |
 | `DELETE` | `/internal-api/competitions/{competitionId}` | Delete an event or edition nobody has a result in (with its rounds, teams, participants) - `409` otherwise | `204` |
+| `POST` | `/internal-api/competitions/{competitionId}/duplicate` | Copy an event or edition as a draft (`{"name"?, "dateFrom"?, "dateTo"?, "location"?}`) - see below | `201` competition |
 | `POST` | `/internal-api/competitions/{competitionId}/approve` | Approve a pending competition | `204` |
 | `PUT` | `/internal-api/competitions/{competitionId}/puzzles` | Set the competition's own ("Competition puzzles") puzzles | `200` competition |
 | `POST` | `/internal-api/competitions/{competitionId}/rounds` | Add a round (optionally with its `puzzleIds`) | `201` round |
@@ -434,7 +435,23 @@ their own messages (`SetCompetitionRoundPuzzles`, `SetCompetitionPuzzles`, `AddA
 | `GET` | `/internal-api/puzzles?q=&ean=&brand=&limit=&offset=` | Find puzzles (name, EAN, brand code; by brand) | `200` list |
 | `POST` | `/internal-api/puzzles` | Create an approved puzzle without a photo | `201` puzzle |
 
-Creating a competition, approving it and creating a puzzle need `INTERNAL_API_REVIEWER_PLAYER_ID` (the player added as
+**Duplicating** (`POST …/competitions/{competitionId}/duplicate`, `DuplicateCompetition` - the organisers' "Duplicate",
+[competitions-management/README.md](./competitions-management/README.md#duplicating-an-event)): a new **draft** added by
+the reviewer player, same name, a fresh slug, the details, settings, rounds and page content - never participants,
+entries, teams, results, results links, referees, round puzzles, the event's own puzzles, tables or online timing. An
+edition's copy is a new edition of the same series. The optional body overrides `name`, `dateFrom`, `dateTo` and
+`location` (validated like a `PATCH`; `location` of an online event is a `400`); **a new `dateFrom` moves `dateTo`
+(unless sent), every round's start and the registration window by the same number of days**. Under an approved
+organization a one-time event's copy is approved at once (the reviewer player is an admin), else it waits for approval;
+publish it with `POST …/competitions/{id}/publish` or `PATCH {"draft": false}`.
+
+```bash
+# Next week's league night at the same venue - its rounds move with it
+curl -X POST -H "Authorization: Bearer $INTERNAL_API_TOKEN" -H 'Content-Type: application/json' \
+  -d '{"dateFrom": "2026-11-05"}' https://myspeedpuzzling.com/internal-api/competitions/<id>/duplicate
+```
+
+Creating a competition, duplicating one, approving it and creating a puzzle need `INTERNAL_API_REVIEWER_PLAYER_ID` (the player added as
 the competition's creator / the puzzle's adder, credited with the approval), and so do a `PATCH` changing
 `organizationId` and moving a round (the acting player); the other endpoints do not - a `PATCH` of only `draft`
 neither.

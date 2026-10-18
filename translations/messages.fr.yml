@@ -9960,3 +9960,7 @@ player_timezone:
         timezone_title: "Ajoute ton fuseau horaire"
         timezone_why: "Pour que tes temps et tes rappels suivent ton heure locale."
         dismiss: "Masquer"
+event_duplicate:
+    button: "Dupliquer"
+    help: "Crée une copie en brouillon : informations, manches et contenu de la page, sans participants, puzzles ni résultats."
+    flash: "Une copie a été créée en brouillon : modifiez ses dates et son lieu, puis publiez-la."

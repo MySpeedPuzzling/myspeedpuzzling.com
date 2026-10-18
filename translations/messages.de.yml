@@ -9940,3 +9940,7 @@ player_timezone:
         timezone_title: "Zeitzone hinzufügen"
         timezone_why: "Damit sich deine Zeiten und Erinnerungen nach deiner Ortszeit richten."
         dismiss: "Ausblenden"
+event_duplicate:
+    button: "Duplizieren"
+    help: "Erstellt eine Kopie als Entwurf - Angaben, Runden und Seiteninhalt, ohne Teilnehmer, Puzzles und Ergebnisse."
+    flash: "Eine Kopie wurde als Entwurf erstellt - ändern Sie Termin und Ort und veröffentlichen Sie sie dann."

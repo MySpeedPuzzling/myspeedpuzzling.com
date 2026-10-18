@@ -75,6 +75,9 @@ return App::config([
                 // "Connect to my profile" on a personal link of an online competition (CompeteConnectController): the
                 // participant page is session-free for everyone, and a phone keeps it open for a whole round
                 'compete_connect',
+                // "Duplicate" of an event (DuplicateCompetitionController): in every ⋯ menu, on "You organize" and the
+                // edit page
+                'competition_duplicate',
             ],
         ],
     ],

@@ -45,6 +45,23 @@ readonly final class CompetitionSlugGenerator
     }
 
     /**
+     * A slug from the name that no competition it would clash with holds (isTaken() - for an edition `$seriesId` is its
+     * series): a random suffix as long as it is taken. A copy (DuplicateCompetition) keeps its source's name, so its
+     * slug always needs one.
+     */
+    public function generateFree(string $name, null|string $seriesId): string
+    {
+        $base = (string) $this->slugger->slug(strtolower($name));
+        $slug = $base === '' ? bin2hex(random_bytes(3)) : $base;
+
+        while ($this->isTaken($slug, $seriesId)) {
+            $slug = ($base === '' ? '' : $base . '-') . bin2hex(random_bytes(3));
+        }
+
+        return $slug;
+    }
+
+    /**
      * What a person typed as a URL, made into a slug the way names are: "My New URL" → "my-new-url". Can be empty
      * (nothing sluggable typed) - check it with isValid().
      */

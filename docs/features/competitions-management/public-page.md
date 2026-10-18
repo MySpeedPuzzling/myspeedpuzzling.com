@@ -132,6 +132,13 @@ CASCADE`.
 | `ReorderPageSections(competitionId\|seriesId, sectionIds)` | own sections only, foreign id refuses everything; unnamed ones keep their order after the named |
 | `DeletePageSectionImages(paths)` | async, dispatched after commit (`DispatchAfterCurrentBusStamp`); deletes nothing still referenced (`GetStoredFileReferences` knows section pictures) |
 
+## Duplicating an event
+
+"Duplicate" (README.md "Duplicating an event") copies the event's own sections - every type is organiser text, nothing
+people or results based - in their order, hidden ones hidden. Gallery photos and sponsor logos are copied to the copy's
+`competition-pages/<copy id>/` prefix (a section only ever points at its own page's files); a picture missing from the
+storage is left out of the copy. An edition's inherited series sections are not copied (they stay on the series).
+
 ## Not done (docs/TODO.md)
 
 - Uploads of a form that is never saved stay in storage; pictures of a deleted competition/series (cascade) too - a prune

@@ -45,6 +45,7 @@ use SpeedPuzzling\Web\Message\CreateOrganizationFromSeries;
 use SpeedPuzzling\Web\Message\DeleteCompetitionRound;
 use SpeedPuzzling\Web\Message\DeleteCompetitionSeries;
 use SpeedPuzzling\Web\Message\DeletePlayer;
+use SpeedPuzzling\Web\Message\DuplicateCompetition;
 use SpeedPuzzling\Web\Message\EditCompetitionRound;
 use SpeedPuzzling\Web\Message\EditPuzzle;
 use SpeedPuzzling\Web\Message\EditPuzzleSolvingTime;
@@ -256,6 +257,7 @@ final class SerializedByLockMessagesTest extends TestCase
         CancelRoundStart::class => 'the round\'s stopwatch only - calls a countdown off',
         ChangeRoundTableNumbersUsage::class => 'a display switch of the round - the table numbers stay on the entries as they are',
         CreateOrganizationFromSeries::class => 'turns a series into an organization: writes the organization, follows and redirect rows for the old addresses of every edition and round (EventUrlRedirects reads their slugs) - several events in one message, and no spot, entry or result changes',
+        DuplicateCompetition::class => 'creates a new draft event with empty rounds - only reads the source\'s round settings, never its entries or results, and nobody can be entered in the copy before it exists',
         DeleteCompetitionSeries::class => 'deletes whole editions with everything they hold - several events in one message (one lock key per message), and nothing of theirs is meant to stay',
         DeletePlayer::class => 'account deletion only clears the player link on the rows of every event the player was in - an unbounded set of events; no spot, entry or result changes',
         OfficialRoundResultsPublished::class => 'the notification after a publish - reads only',

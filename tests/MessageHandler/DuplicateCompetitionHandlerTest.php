@@ -50,7 +50,7 @@ final class DuplicateCompetitionHandlerTest extends KernelTestCase
         self::assertSame('Results Cup', $row['name']);
         self::assertTrue($row['is_draft']);
         self::assertNotSame('results-cup', $row['slug']);
-        self::assertStringStartsWith('results-cup-', (string) $row['slug']);
+        self::assertStringStartsWith('results-cup-', self::text($row['slug']));
         self::assertSame('Bring a pen.', $row['description']);
         self::assertSame('https://example.com/register', $row['registration_link']);
         self::assertNull($row['results_link']);
@@ -80,7 +80,7 @@ final class DuplicateCompetitionHandlerTest extends KernelTestCase
         $first = $this->duplicate(OfficialResultsFixture::COMPETITION_RESULTS_CUP, PlayerFixture::PLAYER_WITH_STRIPE);
         $second = $this->duplicate(OfficialResultsFixture::COMPETITION_RESULTS_CUP, PlayerFixture::PLAYER_WITH_STRIPE);
 
-        $slugs = [$this->competition($first)['slug'], $this->competition($second)['slug'], 'results-cup'];
+        $slugs = [self::text($this->competition($first)['slug']), self::text($this->competition($second)['slug']), 'results-cup'];
         self::assertSame($slugs, array_values(array_unique($slugs)));
     }
 
@@ -140,7 +140,7 @@ final class DuplicateCompetitionHandlerTest extends KernelTestCase
     public function testANewFirstDayMovesTheRoundsAndTheLastDay(): void
     {
         $source = $this->competition(OfficialResultsFixture::COMPETITION_RESULTS_CUP);
-        $sourceFrom = new DateTimeImmutable((string) $source['date_from']);
+        $sourceFrom = new DateTimeImmutable(self::text($source['date_from']));
 
         $copy = $this->duplicate(
             OfficialResultsFixture::COMPETITION_RESULTS_CUP,
@@ -152,9 +152,9 @@ final class DuplicateCompetitionHandlerTest extends KernelTestCase
 
         $row = $this->competition($copy);
         self::assertSame('Results Cup Autumn', $row['name']);
-        self::assertStringStartsWith('results-cup-autumn', (string) $row['slug']);
+        self::assertStringStartsWith('results-cup-autumn', self::text($row['slug']));
         self::assertSame('Ostrava', $row['location']);
-        self::assertSame($sourceFrom->modify('+7 days')->format('Y-m-d'), (new DateTimeImmutable((string) $row['date_to']))->format('Y-m-d'));
+        self::assertSame($sourceFrom->modify('+7 days')->format('Y-m-d'), (new DateTimeImmutable(self::text($row['date_to'])))->format('Y-m-d'));
 
         $sourceStarts = $this->database->fetchFirstColumn('SELECT starts_at FROM competition_round WHERE competition_id = :id ORDER BY starts_at', ['id' => OfficialResultsFixture::COMPETITION_RESULTS_CUP]);
         $copyStarts = $this->database->fetchFirstColumn('SELECT starts_at FROM competition_round WHERE competition_id = :id ORDER BY starts_at', ['id' => $copy]);
@@ -162,8 +162,8 @@ final class DuplicateCompetitionHandlerTest extends KernelTestCase
 
         foreach ($sourceStarts as $index => $start) {
             self::assertSame(
-                (new DateTimeImmutable((string) $start))->modify('+7 days')->format('Y-m-d H:i'),
-                (new DateTimeImmutable((string) $copyStarts[$index]))->format('Y-m-d H:i'),
+                (new DateTimeImmutable(self::text($start)))->modify('+7 days')->format('Y-m-d H:i'),
+                (new DateTimeImmutable(self::text($copyStarts[$index])))->format('Y-m-d H:i'),
             );
         }
     }
@@ -248,6 +248,20 @@ final class DuplicateCompetitionHandlerTest extends KernelTestCase
 
     private function countRows(string $sql, string $id): int
     {
-        return (int) $this->database->fetchOne($sql, ['id' => $id]);
+        return self::number($this->database->fetchOne($sql, ['id' => $id]));
+    }
+
+    private static function text(mixed $value): string
+    {
+        self::assertIsString($value);
+
+        return $value;
+    }
+
+    private static function number(mixed $value): int
+    {
+        self::assertIsNumeric($value);
+
+        return (int) $value;
     }
 }

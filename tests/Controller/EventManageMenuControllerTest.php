@@ -56,7 +56,7 @@ final class EventManageMenuControllerTest extends WebTestCase
         self::assertStringNotContainsString('<html', (string) $browser->getResponse()->getContent());
         self::assertCount(1, $crawler->filter('turbo-frame#event-manage-menu'));
 
-        self::assertSame(['Edit event', 'Rounds & puzzles', 'Participants', 'Results', 'Page content', 'Delete'], $this->itemLabels($crawler));
+        self::assertSame(['Edit event', 'Rounds & puzzles', 'Participants', 'Results', 'Page content', 'Duplicate', 'Delete'], $this->itemLabels($crawler));
 
         // Every link leaves the frame and comes back to the page it was opened from
         $crawler->filter('.ev-actions a.ev-action')->each(static function (Crawler $link): void {
@@ -80,7 +80,7 @@ final class EventManageMenuControllerTest extends WebTestCase
         $crawler = $browser->request('GET', '/en/event-actions/competition/' . EventsPageFixture::COMPETITION_RIVERSIDE_OPEN, server: $this->frameHeader());
 
         self::assertResponseIsSuccessful();
-        self::assertSame(['Edit event', 'Rounds & puzzles', 'Participants', 'Page content', 'Delete'], $this->itemLabels($crawler));
+        self::assertSame(['Edit event', 'Rounds & puzzles', 'Participants', 'Page content', 'Duplicate', 'Delete'], $this->itemLabels($crawler));
     }
 
     public function testAMaintainerOfASingleEditionCannotDeleteItNorManageItsSeries(): void
@@ -93,7 +93,7 @@ final class EventManageMenuControllerTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         // Back to draft is for whoever edits it; moving it to another series only for its series' team
-        self::assertSame(['Edit event', 'Rounds & puzzles', 'Participants', 'Results', 'Page content', 'Unpublish…'], $this->itemLabels($crawler));
+        self::assertSame(['Edit event', 'Rounds & puzzles', 'Participants', 'Results', 'Page content', 'Duplicate', 'Unpublish…'], $this->itemLabels($crawler));
         self::assertCount(0, $crawler->filter('details[data-delete]'));
 
         $browser->request('GET', '/en/event-actions/series/' . EventsPageFixture::SERIES_HARBOR_NIGHTS, server: $this->frameHeader());
@@ -124,7 +124,7 @@ final class EventManageMenuControllerTest extends WebTestCase
         $crawler = $browser->request('GET', '/en/event-actions/competition/' . CompetitionFixture::COMPETITION_UNAPPROVED, server: $this->frameHeader());
 
         self::assertResponseIsSuccessful();
-        self::assertSame(['Approve event', 'Reject event…', 'Edit event', 'Rounds & puzzles', 'Participants', 'Page content', 'Unpublish…', 'Delete'], $this->itemLabels($crawler));
+        self::assertSame(['Approve event', 'Reject event…', 'Edit event', 'Rounds & puzzles', 'Participants', 'Page content', 'Duplicate', 'Unpublish…', 'Delete'], $this->itemLabels($crawler));
         self::assertStringContainsString('waiting for approval', $crawler->filter('.ev-menu-kind')->text());
         self::assertCount(1, $crawler->filter('form[action="/admin/competitions/' . CompetitionFixture::COMPETITION_UNAPPROVED . '/approve"]'));
         self::assertCount(1, $crawler->filter('form[action="/admin/competitions/' . CompetitionFixture::COMPETITION_UNAPPROVED . '/reject"] textarea[name="reason"][required]'));
@@ -199,7 +199,7 @@ final class EventManageMenuControllerTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         self::assertStringContainsString('Draft', $crawler->filter('.ev-menu-kind')->text());
-        self::assertSame(['Publish', 'Edit event', 'Rounds & puzzles', 'Participants', 'Results', 'Page content', 'Delete'], $this->itemLabels($crawler));
+        self::assertSame(['Publish', 'Edit event', 'Rounds & puzzles', 'Participants', 'Results', 'Page content', 'Duplicate', 'Delete'], $this->itemLabels($crawler));
 
         $publish = $crawler->filter('button[data-publish]')->closest('form');
         self::assertNotNull($publish);

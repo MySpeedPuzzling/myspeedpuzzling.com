@@ -51,10 +51,10 @@ final class DuplicateCompetitionInternalApiTest extends WebTestCase
 
         self::assertResponseStatusCodeSame(201);
         self::assertSame('Riverbend Autumn Open', $copy['name']);
-        self::assertStringStartsWith('riverbend-autumn-open', (string) $copy['slug']);
+        self::assertStringStartsWith('riverbend-autumn-open', self::text($copy['slug']));
         self::assertSame('Riverbend Library', $copy['location']);
-        self::assertStringStartsWith('2031-10-04', (string) $copy['dateFrom']);
-        self::assertStringStartsWith('2031-10-05', (string) $copy['dateTo']);
+        self::assertStringStartsWith('2031-10-04', self::text($copy['dateFrom']));
+        self::assertStringStartsWith('2031-10-05', self::text($copy['dateTo']));
         self::assertSame(OrganizationFixture::ORGANIZATION_RIVERBEND, $copy['organizationId']);
         self::assertTrue($copy['draft']);
     }
@@ -78,5 +78,12 @@ final class DuplicateCompetitionInternalApiTest extends WebTestCase
         self::callInternalApi($browser, 'POST', '/internal-api/competitions/018d0004-0000-0000-0000-0000000000ff/duplicate');
 
         self::assertResponseStatusCodeSame(404);
+    }
+
+    private static function text(mixed $value): string
+    {
+        self::assertIsString($value);
+
+        return $value;
     }
 }

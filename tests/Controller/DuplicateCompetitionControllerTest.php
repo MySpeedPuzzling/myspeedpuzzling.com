@@ -67,10 +67,10 @@ final class DuplicateCompetitionControllerTest extends WebTestCase
         self::assertResponseStatusCodeSame(303);
         self::assertSame($before + 1, $this->copies());
 
-        $copyId = (string) self::getContainer()->get(Connection::class)->fetchOne(
+        $copyId = self::text(self::getContainer()->get(Connection::class)->fetchOne(
             "SELECT id FROM competition WHERE name = 'Results Cup' AND id <> :id ORDER BY id DESC LIMIT 1",
             ['id' => OfficialResultsFixture::COMPETITION_RESULTS_CUP],
-        );
+        ));
         self::assertResponseRedirects('/en/edit-event/' . $copyId);
         self::assertSame([$this->trans('event_duplicate.flash')], $this->flashes($browser));
 
@@ -93,7 +93,7 @@ final class DuplicateCompetitionControllerTest extends WebTestCase
 
     private function copies(): int
     {
-        return (int) self::getContainer()->get(Connection::class)->fetchOne("SELECT COUNT(*) FROM competition WHERE name = 'Results Cup'");
+        return self::number(self::getContainer()->get(Connection::class)->fetchOne("SELECT COUNT(*) FROM competition WHERE name = 'Results Cup'"));
     }
 
     /**
@@ -110,5 +110,19 @@ final class DuplicateCompetitionControllerTest extends WebTestCase
     private function trans(string $key): string
     {
         return self::getContainer()->get(TranslatorInterface::class)->trans($key);
+    }
+
+    private static function text(mixed $value): string
+    {
+        self::assertIsString($value);
+
+        return $value;
+    }
+
+    private static function number(mixed $value): int
+    {
+        self::assertIsNumeric($value);
+
+        return (int) $value;
     }
 }

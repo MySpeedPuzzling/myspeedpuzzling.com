@@ -10,7 +10,7 @@ state, PR, merge and deploy, deviations from the plan (and why), follow-ups.
 | 1 Production API for the pipeline | in progress (1a, 1b, then 1c) | | | | streams below |
 | 2 Mac pipeline | in progress | | | | stream below |
 | Backfill (M3 Max + M1 Air sessions) | not started | - | - | - | starts after 1 + 2 are deployed; ≈ 5.5 days |
-| 3 Prediction fix | not started | | | | |
+| 3 Prediction fix | in progress (3a) | | | | streams below |
 | 4 Insights computation | not started | | | | |
 | 5 Image intelligence on the server | not started | | | | |
 | 6 Display behind INSIGHTS_PUBLIC | not started | | | | |
@@ -31,6 +31,17 @@ Orchestrator session started 2026-10-18 (prompt: implementation-plan.md §9.1). 
 | **1b** change requests from the pipeline (API + storage) | `insights/phase-1b` | §1.3 API part + §1.4 storage part: nullable columns `source` (backfilled player / internal_api), `tags` jsonb, `confidence`, `model_version`, `source_image_fingerprint`, `original_archive_path`; `POST /internal-api/puzzle-change-requests` with base64 `image` (same validation/storage as the web proposed photo) + metadata; 409 `already_proposed` (puzzle + fingerprint + tag, any status), 409 stale fingerprint, 404 secret; `GET /internal-api/puzzle-change-requests` (filters, keyset); `decisionNote` on approve/reject (stored on the moderation decision); archive copy `originals/<puzzleId>/<fingerprint>.<ext>` before an `image_pipeline` approval (failure = 409 + warning); test that an approved image change keeps the old object | yes - generated against a scratch DB from committed migrations | API tests per rule, archive test, old-object-kept test |
 | **1c** moderator web (stacked on 1b) | `insights/phase-1c` | §1.3 web part + §1.4 restore: review queue filter by source/tag, before/after grid for `artwork_crop` (keyboard-friendly, mobile usable, `PUZZLE_MODERATION_ACCESS`), "Restore original picture" on `/admin/puzzles/{id}/history` via `PuzzleRecordUpdater` (moderator direct edit, new file name, decision recorded); curl walkthrough in `internal-api.md` (§1.5); 6 locales | only if restore needs a column | controller tests, restore handler test |
 | **2** Mac pipeline | `insights/phase-2` | §2.1-2.7: `tools/puzzle-vision/` (uv, pinned lock), API client (claims with `requires`, batch store, release, bulk read, change requests), workstate, model lock, download, stages, derive (box_text, zeroshot, neighbours, tags; difficulty_prior stub for Phase 5), crop proposals, profiles, launchd templates, runbook `image-pipeline.md`, 6 skills in `.claude/skills/` | - | `uv run pytest` on generated tiny images + a mocked HTTP API (httpx MockTransport); **no model downloads or inference in this session** |
+
+### Phase 3 stream plan (2026-10-18)
+
+| Stream | Branch | Scope (plan §) | Migration | Tests |
+|---|---|---|---|---|
+| **3a** pace history + as-of difficulty | `insights/phase-3a` | §3.1, §3.2: `player_pace_history` (entity, index `(player_id, pieces_count, valid_from)`), incremental writer in the 15-min batch via `PlayerBaselineCalculator::weightedBaselineSeconds()`, `myspeedpuzzling:backfill-pace-history` → message → idempotent keyset handler; difficulty index = time ÷ pace row valid just before the solve; `sum_log_indices` + `index_count` on `puzzle_difficulty`; reconstructor uses the same lookup; puzzle-intelligence README fixes (snapshots read by the digest, 6 tiers) | yes | pace writer/backfill idempotency, as-of lookup (ties on `tracked_at`), live == reconstructed guards |
+| **3b** prediction model v2 (stacked on 3a) | `insights/phase-3b` | §3.3-3.5: drift, shrinkage behind `DifficultyPrior` (`BrandPiecesPrior`), thin sizes (500-scaled pace per size group when it wins on a time split), calibrated 50/80 % windows (bucket table refit nightly, small JSON row), repeats around Holt, `predicted_range80_*` columns, `solving_time_prediction` side by side (live in savepoint + reconstructed), `MODEL_VERSION` 2, `myspeedpuzzling:report-prediction-calibration` (daily, warning on > 3-point drift), a time-split evaluation command for §3.6 | yes | calculator unit tests, calibration, guards |
+| **3c** window display (stacked on 3b) | `insights/phase-3c` | §3.4 display rules: rounding (nearest minute < 20 min wide, else 5 / 10 min, ≥ one step, never outward), "Likely 57-64 min · half of solves land inside" + hit / miss wording on every surface (recap, add-time pace check, result detail, Picker, collections display mode), API v1 additive `predicted_range80_*` fields, 6 locales | no | formatter unit tests, surface tests |
+
+3a can merge alone (tier moves approved by Jan). 3b and 3c merge back to back (the new wording promises calibrated windows).
+§3.6 acceptance numbers are measured on a scratch copy of the dev DB (production copy) with the evaluation command, never on `speedpuzzling` itself.
 
 Merge order: 1a → 1b → 1c → 2 (2 is built in parallel against the documented contract, merged after 1a/1b are on main).
 Phase 3 starts as soon as a subagent slot frees (1a is small).

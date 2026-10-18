@@ -59,6 +59,7 @@ use SpeedPuzzling\Web\Value\PuzzleBoxPhoto;
 use SpeedPuzzling\Web\Value\PuzzleSearchCriteria;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\Request;
+use SpeedPuzzling\Web\Services\PhotoStash\PhotoStash;
 use Symfony\Component\Messenger\Exception\HandlerFailedException;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
@@ -202,6 +203,7 @@ final class MultiscanTray
         readonly private SecretPuzzleRefusalMessage $secretPuzzleRefusalMessage,
         readonly private SecretPuzzleAccess $secretPuzzleAccess,
         readonly private GetCurrentPuzzleIds $getCurrentPuzzleIds,
+        readonly private PhotoStash $photoStash,
     ) {
     }
 
@@ -719,8 +721,12 @@ final class MultiscanTray
         $this->closeResolveSheet();
     }
 
+    /**
+     * @param string $photoToken the box photo, uploaded by the browser in the background (DirectPhotoUpload,
+     *                           docs/features/photo-uploads/README.md) - used when no file comes with the request
+     */
     #[LiveAction]
-    public function createPuzzle(Request $request): void
+    public function createPuzzle(Request $request, #[LiveArg] string $photoToken = ''): void
     {
         $this->clearTransient();
         $profile = $this->requireMember();
@@ -802,6 +808,10 @@ final class MultiscanTray
 
         // Same rule as the add form: no new puzzle without a photo of its box
         $photo = $request->files->get('photo');
+
+        if (!$photo instanceof UploadedFile && $photoToken !== '') {
+            $photo = $this->photoStash->restore($photoToken, $profile->playerId);
+        }
 
         if (!$photo instanceof UploadedFile) {
             $this->resolveError = 'multiscan.resolve.error.photo_required';

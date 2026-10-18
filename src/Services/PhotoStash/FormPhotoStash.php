@@ -18,7 +18,12 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * 1. restore() before handleRequest(): an empty file input with a kept-photo token gets the photo back, so
  *    the form validates it like a fresh upload. A newly chosen file always wins over the token.
  * 2. keep() when the form comes back with an error: every photo that passed its own validation is kept.
- * 3. forget() after a successful save.
+ * 3. forget() after a successful save - except the add/edit-time form: a resend of it (the answer got lost, the automatic
+ *    retry) must find its photos again to be answered as the saved result, so they stay until they expire
+ *    (docs/features/photo-uploads/README.md).
+ *
+ * The add/edit-time form's photos usually arrive as tokens only: the browser uploaded them in the background
+ * (DirectPhotoUpload) and restore() treats them exactly like kept ones.
  */
 readonly final class FormPhotoStash
 {
@@ -117,8 +122,9 @@ readonly final class FormPhotoStash
             }
 
             $token = $restored[$field] ?? null;
+            // A photo uploaded straight from the browser (DirectPhotoUpload) gets its preview now, from the restored file
             $photo = $token !== null
-                ? $this->photoStash->describe($token, $playerId)
+                ? $this->photoStash->addPreview($token, $playerId, $file)
                 : $this->photoStash->keep($file, $playerId);
 
             if ($photo !== null) {

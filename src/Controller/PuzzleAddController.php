@@ -561,15 +561,14 @@ final class PuzzleAddController extends AbstractController
                     PuzzleAddMode::Collection => $this->handleCollection($data, $userProfile->playerId),
                 };
 
-                $this->formPhotoStash->forget($restoredPhotos, $userProfile->playerId);
+                // The photos stay until they expire: a resend of this form (the answer got lost, the automatic retry)
+                // must find them to be answered as the saved result (docs/features/photo-uploads/README.md)
 
                 return $response;
             } catch (HandlerFailedException $exception) {
                 $refusal = $exception->getPrevious();
 
                 if ($refusal instanceof SolvingTimeAlreadySaved) {
-                    $this->formPhotoStash->forget($restoredPhotos, $userProfile->playerId);
-
                     return $this->answerResend($refusal, $userProfile->playerId, $mode, $stopwatchId);
                 }
 

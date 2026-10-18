@@ -16,6 +16,21 @@ The free trial (`docs/features/free-trial/README.md`) shipped dark behind it for
 
 Meta App Review approved + app published (2026-09-30), so Facebook lost its flag and follows the credentials rule like Google, Microsoft and Apple: available and shown iff `FACEBOOK_APP_ID` + `FACEBOOK_APP_SECRET` are configured (`SocialLoginSettings::isAvailable()`; templates ask `social_login.isProviderAvailable('facebook')`). `isShown()` / `isProviderShown()` / `isAnyShown()` collapsed into `isAvailable()` / `isProviderAvailable()` / `isAnyAvailable()`. The review preview (`?facebook_preview=1`, the `msp_fb_preview` cookie set by `NativeAuthPageSubscriber`, `FacebookReviewPreviewTest`) is gone too - a leftover cookie in a browser is harmless, nothing reads it; so is a box `.env` / Infisical that still sets the flag. Kill switch = empty the credentials.
 
+## Background photo uploads (`DIRECT_PHOTO_UPLOADS`)
+
+- **Feature:** the add/edit-time form and multiscan quick-add upload each photo in the background, straight to object
+  storage, and save with a token (`docs/features/photo-uploads/README.md`)
+- **Flag:** env var `DIRECT_PHOTO_UPLOADS` → parameter `directPhotoUploads` (`config/services.php`), exposed as Twig global
+  `direct_photo_uploads`. Twig global — keep it resolvable in `.env` (see the operational note at the top).
+- **Default:** **ON** (`1`) from launch. It is the kill switch: `0` makes the pages stop asking (photos go with the form,
+  as before) and `PhotoUploadStartController` answer 404 `disabled` to a page still open from before. The browser also
+  falls back to the plain form by itself whenever an upload cannot work, so the switch is for "it works but misbehaves".
+- **Gated files:**
+  - `templates/_solving_time_form.html.twig` — the `submit-prevention` upload values
+  - `templates/multiscan/index.html.twig` — the `multiscan` upload values
+  - `src/Controller/PhotoUploadStartController.php` — 404 while off
+- **Remove when:** a few weeks of telemetry without trouble — then drop the flag, keep the code paths.
+
 ## Pairs & teams picker rollout (`PAIRS_TEAMS_PICKER_PUBLIC`)
 
 - **Feature:** the Solo / Pair / Team picker of the add/edit time form (`docs/features/pairs-and-teams/README.md`)

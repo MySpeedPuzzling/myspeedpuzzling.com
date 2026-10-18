@@ -361,6 +361,8 @@
                             <div class="multiscan-photo-working d-none small text-muted mt-1">
                                 <span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>{{ 'multiscan.resolve.photo.preparing'|trans }}
                             </div>
+                            {# The background upload's progress (multiscan_controller.js, docs/features/photo-uploads/README.md) #}
+                            <div class="multiscan-photo-upload small text-muted mt-1" role="status" aria-live="polite"></div>
                         </div>
                         <div class="d-flex gap-2 align-items-center">
                             {# Disabled only while saving - by the multiscan controller: the Live Component's data-loading never re-enables after a failed request #}

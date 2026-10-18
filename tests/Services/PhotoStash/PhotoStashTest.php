@@ -98,12 +98,12 @@ final class PhotoStashTest extends TestCase
         $first = $this->stash->keep($this->photo(), self::PLAYER);
         self::assertNotNull($first);
 
-        for ($i = 0; $i < 6; $i++) {
+        for ($i = 0; $i < 20; $i++) {
             $this->clock->modify('+1 second');
             $this->stash->keep($this->photo(), self::PLAYER);
         }
 
-        self::assertCount(6, array_filter($this->files(), static fn(string $path): bool => str_ends_with($path, '.json')));
+        self::assertCount(20, array_filter($this->files(), static fn(string $path): bool => str_ends_with($path, '.json')));
         self::assertNotNull($this->stash->keep($this->photo(), self::OTHER_PLAYER), 'Another player has their own room');
     }
 
@@ -128,6 +128,42 @@ final class PhotoStashTest extends TestCase
 
         self::assertSame(3, $this->stash->prune());
         self::assertSame([], $this->files());
+    }
+
+    public function testADirectUploadIsRestoredLikeAKeptPhoto(): void
+    {
+        $token = $this->stash->reserve(self::PLAYER, 'box.jpg', 'image/jpeg', 1234);
+        self::assertNotNull($token);
+        self::assertSame(1234, $this->stash->reservedBytes($token, self::PLAYER));
+        self::assertNull($this->stash->reservedBytes($token, self::OTHER_PLAYER), 'A reservation is only its player\'s');
+
+        // Nothing uploaded yet - nothing to restore
+        self::assertNull($this->stash->restore($token, self::PLAYER));
+
+        // The browser's PUT lands under the object key
+        self::assertSame('tmp-uploads/' . self::PLAYER . '/' . $token, $this->stash->objectKey(self::PLAYER, $token));
+        $this->filesystem->write($this->stash->objectKey(self::PLAYER, $token), (string) file_get_contents($this->photo()->getPathname()));
+
+        $restored = $this->stash->restore($token, self::PLAYER);
+        self::assertNotNull($restored);
+        self::assertSame('box.jpg', $restored->getClientOriginalName());
+        self::assertSame('image/jpeg', $restored->getMimeType());
+
+        // No preview until a refused form shows it again
+        self::assertNull($this->stash->previewStream($token, self::PLAYER));
+        $described = $this->stash->addPreview($token, self::PLAYER, $restored);
+        self::assertNotNull($described);
+        self::assertTrue($described->hasPreview);
+        self::assertIsResource($this->stash->previewStream($token, self::PLAYER));
+        self::assertSame(1234, $this->stash->reservedBytes($token, self::PLAYER), 'The preview keeps the reservation');
+    }
+
+    public function testAKeptPhotoIsNoReservation(): void
+    {
+        $photo = $this->stash->keep($this->photo(), self::PLAYER);
+        self::assertNotNull($photo);
+
+        self::assertNull($this->stash->reservedBytes($photo->token, self::PLAYER));
     }
 
     private function photo(): UploadedFile

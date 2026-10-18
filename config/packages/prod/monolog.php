@@ -31,8 +31,8 @@ return App::config([
                 'handler' => 'nested',
                 'excluded_http_codes' => [404, 405],
                 'buffer_size' => 50,
-                // internal_api_audit, service_worker and barcode_scanner have their own handlers below
-                'channels' => ['!sentry_sdk', '!internal_api_audit', '!service_worker', '!barcode_scanner'],
+                // internal_api_audit, service_worker, barcode_scanner and photo_upload have their own handlers below
+                'channels' => ['!sentry_sdk', '!internal_api_audit', '!service_worker', '!barcode_scanner', '!photo_upload'],
             ],
             'nested' => [
                 'type' => 'stream',
@@ -93,6 +93,16 @@ return App::config([
                 'path' => 'php://stderr',
                 'level' => 'info',
                 'channels' => ['barcode_scanner'],
+                'formatter' => 'monolog.formatter.json',
+            ],
+            // Background photo uploads and add/edit-time saves as the browser saw them (PhotoUploadReportController,
+            // docs/features/photo-uploads/README.md): info lines to count in Loki, written as they come. Its one
+            // warning (object storage refusing a signed upload) still reaches Sentry through the handlers above.
+            'photo_upload' => [
+                'type' => 'stream',
+                'path' => 'php://stderr',
+                'level' => 'info',
+                'channels' => ['photo_upload'],
                 'formatter' => 'monolog.formatter.json',
             ],
             // SDK send failures land in stderr logs only

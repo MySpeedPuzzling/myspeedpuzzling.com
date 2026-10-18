@@ -123,6 +123,9 @@ return static function (ContainerConfigurator $configurator): void {
     // Pairs & teams picker rollout (docs/features/feature_flags.md): admins only until flipped to 1.
     $parameters->set('pairsTeamsPickerPublic', '%env(bool:PAIRS_TEAMS_PICKER_PUBLIC)%');
 
+    // Background photo uploads straight to object storage (docs/features/feature_flags.md): the kill switch, on by default
+    $parameters->set('directPhotoUploads', '%env(bool:DIRECT_PHOTO_UPLOADS)%');
+
     // Online competitions (docs/features/feature_flags.md): organisers may set up online timing only while 1, admins always.
     $parameters->set('onlineRoundsForOrganisers', '%env(bool:ONLINE_ROUNDS_FOR_ORGANISERS)%');
 

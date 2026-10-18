@@ -24,6 +24,19 @@
              data-multiscan-restored-message-value="{{ 'multiscan.toast.restored'|trans }}"
              data-multiscan-create-failed-message-value="{{ 'multiscan.toast.create_failed'|trans }}"
              data-multiscan-storage-key-value="multiscan-tray:{{ logged_user.profile.playerId }}"
+             {% if direct_photo_uploads %}
+             data-multiscan-upload-url-value="{{ path('photo_upload_start') }}"
+             data-multiscan-upload-csrf-token-value="{{ csrf_token('photo_upload') }}"
+             data-multiscan-report-url-value="{{ path('photo_upload_report') }}"
+             data-multiscan-upload-texts-value="{{ {
+                 uploading: 'photo_upload.uploading'|trans,
+                 uploading_slow: 'photo_upload.uploading_slow'|trans,
+                 retrying: 'photo_upload.retrying'|trans,
+                 waiting: 'photo_upload.waiting'|trans,
+                 done: 'photo_upload.done'|trans,
+                 with_form: 'photo_upload.with_form'|trans,
+             }|json_encode }}"
+             {% endif %}
         >
             {{ include('multiscan/_scanner.html.twig') }}
 

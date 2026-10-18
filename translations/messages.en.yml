@@ -498,6 +498,9 @@ forms:
     compressing_images: "Compressing images..."
     photo_too_large: "This photo is too large to upload (%size% MB) and was removed. Choose a smaller photo or save without it - everything else you filled in stays."
     save_did_not_finish: "Saving didn't finish - the connection was too slow or was interrupted. Everything you filled in is still here, please try again. If it keeps happening, try another connection (Wi-Fi or mobile data)."
+    uploading_photos: "Uploading photos… %percent% %"
+    saving_again: "Saving… trying once more"
+    still_saving: "Saving takes longer than usual on this connection. Please keep this page open - everything you filled in stays here."
     search: "Search"
     submit: "Submit"
     update: "Update"
@@ -7264,6 +7267,13 @@ duplicate_check:
         with_viewer_team: "%name% already saved your team result with exactly %time% (%date%) – it is on your profile"
         teammate: "%name% already has exactly %time% on this puzzle from %date%"
         teammate_other_day: "%name% has %time% on this puzzle from %date%"
+photo_upload:
+    uploading: "Uploading the photo… %percent% %"
+    uploading_slow: "Slow connection - uploading the photo… %percent% %. You can keep filling in the form."
+    retrying: "The connection dropped - trying again in a moment…"
+    waiting: "No connection right now - the photo will upload as soon as it is back."
+    done: "Photo uploaded."
+    with_form: "The photo will be sent together with the form when you save."
 photo_stash:
     kept: "Your photo is still here, no need to choose it again."
     kept_logo: "Your logo is still here, no need to choose it again."

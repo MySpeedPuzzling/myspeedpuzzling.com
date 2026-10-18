@@ -439,6 +439,9 @@
   "compressing_images": "Comprimiendo imágenes..."
   "photo_too_large": "Esta foto es demasiado grande para subirla (%size% MB) y se ha quitado. Elige una foto más pequeña o guarda sin ella: todo lo demás que has rellenado se mantiene."
   "save_did_not_finish": "No se ha podido terminar de guardar: la conexión era demasiado lenta o se cortó. Todo lo que has rellenado sigue aquí, inténtalo de nuevo. Si vuelve a pasar, prueba con otra conexión (wifi o datos móviles)."
+  "uploading_photos": "Subiendo fotos… %percent% %"
+  "saving_again": "Guardando… lo intentamos otra vez"
+  "still_saving": "Guardar está tardando más de lo normal con esta conexión. Mantén esta página abierta: todo lo que has rellenado sigue aquí."
   "search": "Buscar"
   "submit": "Enviar"
   "update": "Actualizar"
@@ -6712,6 +6715,13 @@ duplicate_check:
         with_viewer_team: "%name% ya guardó vuestro resultado en equipo con exactamente %time% (%date%) – está en tu perfil"
         teammate: "%name% ya tiene exactamente %time% en este rompecabezas del %date%"
         teammate_other_day: "%name% tiene %time% en este rompecabezas del %date%"
+photo_upload:
+    uploading: "Subiendo la foto… %percent% %"
+    uploading_slow: "Conexión lenta: subiendo la foto… %percent% %. Puedes seguir rellenando el formulario."
+    retrying: "Se ha cortado la conexión: lo intentamos de nuevo en un momento…"
+    waiting: "Ahora mismo no hay conexión: la foto se subirá en cuanto vuelva."
+    done: "Foto subida."
+    with_form: "La foto se enviará junto con el formulario al guardar."
 photo_stash:
     kept: "Tu foto sigue aquí, no hace falta elegirla de nuevo."
     kept_logo: "Tu logo sigue aquí, no hace falta elegirlo de nuevo."

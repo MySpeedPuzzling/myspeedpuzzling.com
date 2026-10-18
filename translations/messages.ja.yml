@@ -442,6 +442,9 @@
   "compressing_images": "画像を圧縮中..."
   "photo_too_large": "この写真はアップロードするには大きすぎるため（%size% MB）、取り除きました。小さい写真を選ぶか、写真なしで保存してください。入力したほかの内容はそのまま残っています。"
   "save_did_not_finish": "保存が完了しませんでした。接続が遅すぎるか、途中で切れました。入力した内容はそのまま残っていますので、もう一度お試しください。繰り返し起こる場合は、別の接続（Wi-Fiまたはモバイルデータ）をお試しください。"
+  "uploading_photos": "写真をアップロード中… %percent% %"
+  "saving_again": "保存中… もう一度試しています"
+  "still_saving": "この接続では保存にいつもより時間がかかっています。このページを開いたままにしてください。入力した内容はそのまま残ります。"
   "removing": "削除中..."
   "add_puzzle_to_collection":
     "choose_collection": "- コレクションを選択 -"
@@ -6701,6 +6704,13 @@ duplicate_check:
         with_viewer_team: "%name%があなたとのチーム記録（ちょうど%time%、%date%）をすでに保存しています – あなたのプロフィールに載っています"
         teammate: "%name%はこのパズルで%date%のちょうど%time%をすでに持っています"
         teammate_other_day: "%name%はこのパズルで%date%の%time%を持っています"
+photo_upload:
+    uploading: "写真をアップロード中… %percent% %"
+    uploading_slow: "接続が遅いため、写真をアップロード中です… %percent% %。フォームの入力はそのまま続けられます。"
+    retrying: "接続が切れました。まもなく再試行します…"
+    waiting: "現在接続がありません。接続が戻りしだい写真をアップロードします。"
+    done: "写真をアップロードしました。"
+    with_form: "写真は保存時にフォームと一緒に送信されます。"
 photo_stash:
     kept: "写真はそのまま残っています。選び直す必要はありません。"
     kept_logo: "ロゴはそのまま残っています。選び直す必要はありません。"

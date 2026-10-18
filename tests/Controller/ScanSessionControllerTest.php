@@ -66,6 +66,10 @@ final class ScanSessionControllerTest extends WebTestCase
         self::assertFalse($logged[0]['context']['zbar_missing']);
         self::assertSame('cdn', $logged[0]['context']['zbar_source']);
         self::assertSame('self', $logged[0]['context']['zbar_failures']);
+        self::assertFalse($logged[0]['context']['video_paused']);
+        self::assertSame('390x520', $logged[0]['context']['video_shown']);
+        self::assertSame('NotAllowedError', $logged[0]['context']['play_error']);
+        self::assertSame(512, $logged[0]['context']['video_frames_total']);
         self::assertSame('4005555017585 native x3 zbar x4 q113', $logged[0]['context']['seen']);
     }
 
@@ -111,6 +115,12 @@ final class ScanSessionControllerTest extends WebTestCase
             'zbarMissing' => false,
             'zbarSource' => 'cdn',
             'zbarFailures' => 'self',
+            'videoPaused' => false,
+            'videoReadyState' => 4,
+            'videoConnected' => true,
+            'videoShown' => '390x520',
+            'playError' => 'NotAllowedError',
+            'videoFramesTotal' => 512,
             'seen' => '4005555017585 native x3 zbar x4 q113',
             'camera' => 'camera 0, facing back',
             'cameraPick' => 'main lens',

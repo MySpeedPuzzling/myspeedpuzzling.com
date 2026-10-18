@@ -189,6 +189,21 @@ export default class extends Controller {
         this._startCamera();
     }
 
+    _play() {
+        const video = this.videoTarget;
+        if (!video.paused) {
+            return;
+        }
+
+        const played = video.play();
+        if (played && typeof played.catch === 'function') {
+            played.catch(err => {
+                this.playError = err && err.name ? err.name : String(err);
+                console.error('Video play failed:', err);
+            });
+        }
+    }
+
     _visibilityChanged() {
         if (document.hidden) {
             if (this.scanning) {
@@ -277,8 +292,17 @@ export default class extends Controller {
             });
         }
         this.trackCapabilities = this._capabilities(this.videoTrack);
+        // A <video> that already showed a camera gets replaced by a fresh one: Safari did not paint the second stream
+        // in a reused element - the camera on, frames decoded, but a blank picture with the spinner (iPhone,
+        // 2026-10-19: global search after a read, and every restart of §5.10)
+        if (this.videoUsed) {
+            const fresh = this.videoTarget.cloneNode(false);
+            this.videoTarget.replaceWith(fresh);
+        }
+        this.videoUsed = true;
         this.videoTarget.srcObject = opened.stream;
-        this.videoTarget.play().catch(err => console.error('Video play failed:', err));
+        this.playError = null;
+        this._play();
         this.scanning = true;
         this.startedAt = Date.now();
         this.sessionReported = false;
@@ -288,7 +312,11 @@ export default class extends Controller {
         }
         this.nextFocusKickAt = this.startedAt + FOCUS_KICK_FIRST_MS;
 
-        this.videoTarget.addEventListener('loadedmetadata', () => this._sizeOverlay(), { once: true });
+        // iOS may refuse the first play() - it comes after the camera wait, outside the tap: again once the stream is there
+        this.videoTarget.addEventListener('loadedmetadata', () => {
+            this._sizeOverlay();
+            this._play();
+        }, { once: true });
 
         this._setupTrack();
         this._startDebug();
@@ -1119,6 +1147,15 @@ export default class extends Controller {
      * decoded again and again would count one frame as many agreeing reads. A counter that never moves is not
      * trusted (some browsers do not count camera frames), and the frame is decoded as before.
      */
+    _videoFramesTotal() {
+        try {
+            const quality = typeof this.videoTarget.getVideoPlaybackQuality === 'function' ? this.videoTarget.getVideoPlaybackQuality() : null;
+            return quality && typeof quality.totalVideoFrames === 'number' ? quality.totalVideoFrames : null;
+        } catch (e) {
+            return null;
+        }
+    }
+
     _newFrame(engine, fresh) {
         let count = null;
         try {
@@ -1154,10 +1191,9 @@ export default class extends Controller {
             stream.getTracks().forEach(track => track.stop());
         }
 
-        // Fully release video element resources
+        // Release the stream; the element itself is replaced on the next start (no load() - see _startCamera)
         this.videoTarget.pause();
         this.videoTarget.srcObject = null;
-        this.videoTarget.load(); // Forces browser to release video memory
 
         // Clear canvas and reset dimensions to release memory
         const ctx = this.overlayTarget.getContext('2d');
@@ -1300,6 +1336,13 @@ export default class extends Controller {
             focusModes: caps.focusMode || [],
             focusDistanceMin: caps.focusDistance && typeof caps.focusDistance.min === 'number' ? caps.focusDistance.min : null,
             torch: this.torchSupported,
+            // What the picture did (README §5.10): a camera on, frames decoded, yet nothing painted on an iPhone
+            videoPaused: video.paused,
+            videoReadyState: video.readyState,
+            videoConnected: video.isConnected,
+            videoShown: `${video.clientWidth}x${video.clientHeight}`,
+            playError: this.playError,
+            videoFramesTotal: this._videoFramesTotal(),
             model: this.deviceModel || null,
         };
 

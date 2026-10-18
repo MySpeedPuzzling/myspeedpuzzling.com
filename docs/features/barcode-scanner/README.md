@@ -623,6 +623,16 @@ Now (`_visibilityChanged()`, `_restartCamera()`):
 - **the camera taken away while the page is shown** (the track `ended`) → stopped and started again after 500 ms, at
   most 3 times a minute, so a camera another app keeps taking cannot loop.
 
+**Reopening (same night, 00:58):** in Safari the global search's scanner opened a second time (after a read) showed
+the spinner over a blank picture - the camera on, 72 frames decoded in 6.7 s, nothing painted. Neither Chrome nor
+Playwright's WebKit reproduces it (the old code paints every reopen there too), so two guards plus evidence:
+- every camera start after the first gets a **fresh `<video>`** (`cloneNode(false)`) instead of the reused one, and
+  stopping no longer calls `video.load()`;
+- `play()` is asked again once the stream's metadata arrives (iOS may refuse the first one, which comes after the
+  camera wait, outside the tap);
+- the session report says what the picture did: `video_paused`, `video_ready_state`, `video_connected`,
+  `video_shown` (on-screen size), `play_error`, `video_frames_total` - the next failing session shows which it was.
+
 Tested in Chrome: hidden → no live track; shown → a new one, reads; `ended` → restarted, the 4th within a minute is
 not. Also less battery: a scanner left open in a background tab no longer runs at all.
 

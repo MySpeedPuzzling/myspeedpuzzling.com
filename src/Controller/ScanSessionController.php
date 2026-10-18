@@ -60,6 +60,13 @@ final class ScanSessionController extends AbstractController
                 // `self` = our copy, `cdn` = jsdelivr after ours failed (README §5.9)
                 'zbar_source' => self::text($payload, 'zbarSource', 10),
                 'zbar_failures' => self::text($payload, 'zbarFailures', 20),
+                // What the picture did (README §5.10)
+                'video_paused' => is_bool($payload['videoPaused'] ?? null) ? $payload['videoPaused'] : null,
+                'video_ready_state' => self::number($payload, 'videoReadyState'),
+                'video_connected' => is_bool($payload['videoConnected'] ?? null) ? $payload['videoConnected'] : null,
+                'video_shown' => self::text($payload, 'videoShown', 20),
+                'play_error' => self::text($payload, 'playError', 40),
+                'video_frames_total' => self::number($payload, 'videoFramesTotal'),
                 'seen' => self::text($payload, 'seen', 300),
                 'camera' => self::text($payload, 'camera', 100),
                 'camera_pick' => self::text($payload, 'cameraPick', 50),

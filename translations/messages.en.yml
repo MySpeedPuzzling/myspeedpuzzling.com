@@ -10173,6 +10173,10 @@ online_rounds:
             text: "This round has no live video to watch. The event page has its schedule and, later, its results."
             back: "Back to the event"
 
+email_unverified:
+    text: "Please confirm your e-mail address %email% - just click the link we sent you."
+    resend: "Send the link again"
+    change_address: "Change address"
 email_undeliverable:
     title: "We can't deliver e-mails to %email%."
     paused: "We have paused notifications to this address. Important e-mails, like sign-in links, are still sent."

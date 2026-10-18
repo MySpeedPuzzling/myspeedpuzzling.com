@@ -7,7 +7,9 @@ namespace SpeedPuzzling\Web\Controller;
 use Psr\Log\LoggerInterface;
 use SpeedPuzzling\Web\Entity\UserAccount;
 use SpeedPuzzling\Web\Message\SendEmailVerificationLink;
+use SpeedPuzzling\Web\Value\ReturnUrl;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Messenger\Exception\HandlerFailedException;
@@ -49,7 +51,7 @@ final class ResendEmailVerificationController extends AbstractController
         if ($rateLimit->isAccepted() === false) {
             $this->addFlash('warning', $this->translator->trans('auth.verify_email.resend_too_many'));
 
-            return $this->redirectToRoute('edit_profile');
+            return $this->back($request);
         }
 
         try {
@@ -66,10 +68,24 @@ final class ResendEmailVerificationController extends AbstractController
 
             $this->addFlash('danger', $this->translator->trans('auth.verify_email.resend_failed'));
 
-            return $this->redirectToRoute('edit_profile');
+            return $this->back($request);
         }
 
         $this->addFlash('success', $this->translator->trans('auth.verify_email.resend_sent'));
+
+        return $this->back($request);
+    }
+
+    /**
+     * The banner on every page sends the page it was on, edit-profile sends nothing
+     */
+    private function back(Request $request): RedirectResponse
+    {
+        $returnUrl = ReturnUrl::tryFrom($request->request->getString('return'));
+
+        if ($returnUrl !== null) {
+            return $this->redirect((string) $returnUrl);
+        }
 
         return $this->redirectToRoute('edit_profile');
     }

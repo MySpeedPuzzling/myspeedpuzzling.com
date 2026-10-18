@@ -9901,6 +9901,10 @@ online_rounds:
             text: "Esta ronda no tiene vídeo en directo que ver. La página del evento tiene su programa y, más adelante, sus resultados."
             back: "Volver al evento"
 
+email_unverified:
+    text: "Confirma tu dirección de correo %email%: solo tienes que hacer clic en el enlace que te enviamos."
+    resend: "Enviar el enlace de nuevo"
+    change_address: "Cambiar la dirección"
 email_undeliverable:
     title: "No podemos entregar correos a %email%."
     paused: "Hemos pausado las notificaciones a esta dirección. Los correos importantes, como los enlaces de inicio de sesión, se siguen enviando."

@@ -10,12 +10,15 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\UserAccount;
 use SpeedPuzzling\Web\Exceptions\EmailVerificationTokenExpired;
 use SpeedPuzzling\Web\Exceptions\InvalidEmailVerificationToken;
+use SpeedPuzzling\Web\Message\PushNewsletterSubscriberToListmonk;
 use SpeedPuzzling\Web\Message\VerifyEmail;
 use SpeedPuzzling\Web\Repository\UserAccountRepository;
 use SpeedPuzzling\Web\Services\EmailVerificationTokenSigner;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
+use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\Exception\HandlerFailedException;
 use Symfony\Component\Messenger\MessageBusInterface;
+use Symfony\Component\Messenger\Transport\InMemory\InMemoryTransport;
 
 final class VerifyEmailHandlerTest extends KernelTestCase
 {
@@ -61,6 +64,22 @@ final class VerifyEmailHandlerTest extends KernelTestCase
         $verifiedAccount = $this->userAccountRepository->findByUserId('msp|verify2');
         self::assertNotNull($verifiedAccount);
         self::assertEquals($firstVerifiedAt, $verifiedAccount->emailVerifiedAt);
+    }
+
+    public function testFirstVerificationPushesTheAddressToListmonkOnce(): void
+    {
+        // Unverified addresses are no newsletter recipients, so verifying is what brings a subscribed player in
+        $userAccount = $this->createUserAccount('msp|verify6', 'verify.six@example.com');
+        $token = $this->tokenSigner->generate($userAccount, new DateTimeImmutable(EmailVerificationTokenSigner::LIFETIME));
+
+        $this->messageBus->dispatch(new VerifyEmail($token));
+        $this->messageBus->dispatch(new VerifyEmail($token));
+
+        $pushes = $this->listmonkPushes();
+        self::assertCount(1, $pushes);
+        $push = $pushes[0]->getMessage();
+        self::assertInstanceOf(PushNewsletterSubscriberToListmonk::class, $push);
+        self::assertSame('verify.six@example.com', $push->email);
     }
 
     public function testTamperedTokenIsRejected(): void
@@ -130,6 +149,20 @@ final class VerifyEmailHandlerTest extends KernelTestCase
         } catch (HandlerFailedException $e) {
             self::assertInstanceOf($expectedException, $e->getPrevious());
         }
+    }
+
+    /**
+     * @return list<Envelope>
+     */
+    private function listmonkPushes(): array
+    {
+        $transport = self::getContainer()->get('messenger.transport.async');
+        assert($transport instanceof InMemoryTransport);
+
+        return array_values(array_filter(
+            [...$transport->getSent()],
+            static fn (Envelope $envelope): bool => $envelope->getMessage() instanceof PushNewsletterSubscriberToListmonk,
+        ));
     }
 
     private function createUserAccount(string $userId, string $email): UserAccount

@@ -1,0 +1,14 @@
+{# The account e-mail is still not verified a few days after registering (PlayerProfile::$emailVerificationReminder):
+   a quiet reminder with a new link, on every page until the link is clicked. Not dismissable - verifying ends it.
+   Neutral wording: it is about the address, never the player. #}
+<div class="container mt-3">
+    <div class="alert alert-warning d-flex flex-wrap align-items-center gap-2 py-2 mb-0 fs-sm" role="status" data-email-unverified>
+        <span class="me-auto"><i class="bi bi-envelope-exclamation me-1" aria-hidden="true"></i>{{ 'email_unverified.text'|trans({'%email%': email}) }}</span>
+        <form action="{{ path('resend_email_verification') }}" method="post" class="d-flex flex-wrap align-items-center gap-2">
+            <input type="hidden" name="_token" value="{{ csrf_token(constant('SpeedPuzzling\\Web\\Controller\\ResendEmailVerificationController::CSRF_TOKEN_ID')) }}">
+            <input type="hidden" name="return" value="{{ app.request.requestUri }}">
+            <button type="submit" class="btn btn-sm btn-outline-dark text-wrap">{{ 'email_unverified.resend'|trans }}</button>
+            <a href="{{ path('change_account_email') }}" class="alert-link fw-normal">{{ 'email_unverified.change_address'|trans }}</a>
+        </form>
+    </div>
+</div>

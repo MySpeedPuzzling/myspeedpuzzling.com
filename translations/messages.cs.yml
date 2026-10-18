@@ -9927,6 +9927,10 @@ online_rounds:
             text: "Toto kolo nemá živé video ke sledování. Na stránce události najdete jeho program a později i výsledky."
             back: "Zpět na událost"
 
+email_unverified:
+    text: "Potvrďte prosím svou e-mailovou adresu %email% – stačí kliknout na odkaz, který jsme vám poslali."
+    resend: "Poslat odkaz znovu"
+    change_address: "Změnit adresu"
 email_undeliverable:
     title: "Na adresu %email% nelze doručit e-maily."
     paused: "Upozornění na tuto adresu jsme pozastavili. Důležité e-maily, jako odkazy pro přihlášení, posíláme dál."

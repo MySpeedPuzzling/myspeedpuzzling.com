@@ -11,6 +11,8 @@ Newsletters are sent from a self-hosted [Listmonk](https://listmonk.app) (produc
 
 One e-mail = one recipient. When an address belongs to both a player and a guest row, the player wins (`GetNewsletterRecipients`).
 
+**Only verified addresses are recipients** (since 2026-10-18). Registration asks for the newsletter with a checkbox and no double opt-in of its own; what proves the address is the verification link every native sign-up gets (social sign-ups with a provider-verified e-mail are verified at once). Until it is clicked the player is no recipient at all - left out, not sent as `unsubscribed`, because that Listmonk unsubscribe would be pulled back as the player's own once they verify. `VerifyEmailHandler` pushes the address on the first verification; a changed account e-mail is unverified again and waits the same way. A confirmed guest row for the same address still counts (its own link proved it). On 2026-10-18: 34 players had the newsletter on without a verified address (every one was sent the link, none bounced).
+
 ## Listmonk structure
 
 - **6 private, single opt-in lists**, one per locale: `Newsletter EN/CS/DE/ES/FR/JA` (`ListmonkNewsletterLists`). Looked up by name, auto-created when missing — no ids configured anywhere.

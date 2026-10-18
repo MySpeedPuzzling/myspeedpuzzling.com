@@ -9920,6 +9920,10 @@ online_rounds:
             text: "Cette manche n'a pas de vidéo en direct à regarder. La page de l'événement présente son programme et, plus tard, ses résultats."
             back: "Retour à l'événement"
 
+email_unverified:
+    text: "Veuillez confirmer votre adresse e-mail %email% : il suffit de cliquer sur le lien que nous vous avons envoyé."
+    resend: "Renvoyer le lien"
+    change_address: "Changer d'adresse"
 email_undeliverable:
     title: "Nous ne parvenons pas à délivrer d'e-mails à %email%."
     paused: "Nous avons suspendu les notifications vers cette adresse. Les e-mails importants, comme les liens de connexion, sont toujours envoyés."

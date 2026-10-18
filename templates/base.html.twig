@@ -899,6 +899,9 @@
             {# The player's address hard-bounced (docs/features/mass-mailing/README.md) - rides on their profile row #}
             {% if logged_user.profile is not null and logged_user.profile.emailUndeliverable is not null %}
                 {{ include('_email_undeliverable_banner.html.twig', {problem: logged_user.profile.emailUndeliverable, email: logged_user.profile.email}) }}
+            {% elseif logged_user.profile is not null and logged_user.profile.emailVerificationReminder %}
+                {# The verification link was never clicked - rides on the profile row too #}
+                {{ include('_email_unverified_banner.html.twig', {email: logged_user.profile.email}) }}
             {% endif %}
             {# "Kateřina added to your comparison" + the way there (AddComparisonSubjectController) #}
             {% for added in app.request.hasPreviousSession ? app.flashes(comparison_added_flash) : [] %}

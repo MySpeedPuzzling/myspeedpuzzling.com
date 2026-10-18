@@ -9900,6 +9900,10 @@ online_rounds:
             text: "Für diese Runde gibt es kein Live-Video. Auf der Veranstaltungsseite finden Sie den Zeitplan und später die Ergebnisse."
             back: "Zurück zur Veranstaltung"
 
+email_unverified:
+    text: "Bitte bestätigen Sie Ihre E-Mail-Adresse %email% – klicken Sie einfach auf den Link, den wir Ihnen geschickt haben."
+    resend: "Link erneut senden"
+    change_address: "Adresse ändern"
 email_undeliverable:
     title: "Wir können keine E-Mails an %email% zustellen."
     paused: "Benachrichtigungen an diese Adresse haben wir pausiert. Wichtige E-Mails wie Anmeldelinks senden wir weiterhin."

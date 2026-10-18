@@ -83,10 +83,16 @@ use SpeedPuzzling\Web\Value\SkillTier;
  *     email_undeliverable?: bool,
  *     email_undeliverable_sub_type?: null|string,
  *     email_undeliverable_diagnostic?: null|string,
+ *     email_unverified?: bool,
  *  }
  */
 readonly final class PlayerProfile
 {
+    /**
+     * A fresh sign-up has the link in their inbox and the welcome page asking for it - the banner comes only after
+     */
+    public const int EMAIL_VERIFICATION_REMINDER_AFTER_DAYS = 2;
+
     public function __construct(
         public string $playerId,
         public null|string $userId,
@@ -221,6 +227,12 @@ readonly final class PlayerProfile
          * for a working one (docs/features/mass-mailing/README.md)
          */
         public null|EmailUndeliverable $emailUndeliverable = null,
+        /**
+         * The signed-in player's own profile only: the account e-mail is still not verified
+         * EMAIL_VERIFICATION_REMINDER_AFTER_DAYS after registering (or after changing it) - the banner offers a new link.
+         * Never together with $emailUndeliverable: a new link would bounce too
+         */
+        public bool $emailVerificationReminder = false,
     ) {
     }
 
@@ -333,6 +345,15 @@ readonly final class PlayerProfile
             }
         }
 
+        $emailUndeliverable = ($row['email_undeliverable'] ?? false) === true
+            ? new EmailUndeliverable($row['email_undeliverable_sub_type'] ?? null, $row['email_undeliverable_diagnostic'] ?? null)
+            : null;
+
+        $emailVerificationReminder = $emailUndeliverable === null
+            && ($row['email_unverified'] ?? false) === true
+            && isset($row['registered_at'])
+            && new DateTimeImmutable($row['registered_at'])->modify('+' . self::EMAIL_VERIFICATION_REMINDER_AFTER_DAYS . ' days') <= $now;
+
         $freeTrialOldEnoughAt = null;
 
         if (isset($row['registered_at'])) {
@@ -431,9 +452,8 @@ readonly final class PlayerProfile
             achievementPoints: (int) ($row['achievement_points'] ?? 0),
             mspRatingRank: isset($row['msp_rating_rank']) ? (int) $row['msp_rating_rank'] : null,
             skillTier: isset($row['skill_tier']) ? SkillTier::tryFrom((int) $row['skill_tier']) : null,
-            emailUndeliverable: ($row['email_undeliverable'] ?? false) === true
-                ? new EmailUndeliverable($row['email_undeliverable_sub_type'] ?? null, $row['email_undeliverable_diagnostic'] ?? null)
-                : null,
+            emailUndeliverable: $emailUndeliverable,
+            emailVerificationReminder: $emailVerificationReminder,
         );
     }
 

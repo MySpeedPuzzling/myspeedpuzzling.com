@@ -10,8 +10,8 @@ use SpeedPuzzling\Web\Value\NewsletterAudience;
 use SpeedPuzzling\Web\Value\NewsletterSubscriberStatus;
 
 /**
- * The MySpeedPuzzling side of the newsletter audience: every player with an
- * e-mail (subscribed or not - unsubscribed players stay in Listmonk as
+ * The MySpeedPuzzling side of the newsletter audience: every player with a
+ * verified e-mail (subscribed or not - unsubscribed players stay in Listmonk as
  * suppressions) plus every non-pending guest subscriber. Exactly one recipient
  * per e-mail; players win over guests, a subscribed player wins over an
  * unsubscribed duplicate.
@@ -50,12 +50,17 @@ readonly final class GetNewsletterRecipients
     private function fetch(null|string $email): array
     {
         // The address is the account's (user_account.email is the single source of truth);
-        // a player without an account row has no address and is not a recipient
+        // a player without an account row has no address and is not a recipient.
+        // An unverified address is left out entirely, not sent as unsubscribed: whoever registered
+        // may have typed somebody else's address (registration has no double opt-in, the
+        // verification link proves it), and a Listmonk unsubscribe would be pulled back as the
+        // player's own once they verify. Verifying pushes them (VerifyEmailHandler)
         $playersQuery = <<<SQL
 SELECT player.id, LOWER(TRIM(user_account.email)) AS email, player.name, player.locale, player.newsletter_enabled
 FROM player
 INNER JOIN user_account ON user_account.user_id = player.user_id
 WHERE TRIM(user_account.email) != ''
+  AND user_account.email_verified_at IS NOT NULL
 SQL;
 
         $guestsQuery = <<<SQL

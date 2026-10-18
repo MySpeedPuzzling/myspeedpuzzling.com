@@ -1,4 +1,5 @@
 import { Controller } from '@hotwired/stimulus';
+import { ReadAcceptance, canonicalCode } from '../barcode_acceptance.js';
 
 // docs/features/barcode-scanner/README.md (§5.2 camera, §5.3 frames and acceptance)
 const DEFAULT_ZOOM = 1.5;
@@ -11,8 +12,12 @@ const FOCUS_KICK_DISTANCE_M = 0.25;
 const FOCUS_KICK_HOLD_MS = 250;
 const FOCUS_KICK_FIRST_MS = 2500;
 const FOCUS_KICK_EVERY_MS = 6000;
-// A read is accepted only while no other code was seen this recently
-const COMPETING_CODE_MS = 2000;
+const FORMATS = ['ean_8', 'ean_13'];
+const ZBAR_SCRIPTS = [
+    'https://cdn.jsdelivr.net/npm/@undecaf/zbar-wasm@0.9.15/dist/index.js',
+    // Depends on zbar-wasm, loaded second
+    'https://cdn.jsdelivr.net/npm/@undecaf/barcode-detector-polyfill@0.9.21/dist/index.js',
+];
 
 const STORAGE_CAMERA = 'msp-scan-camera';
 const STORAGE_ZOOM = 'msp-scan-zoom';
@@ -160,13 +165,14 @@ export default class extends Controller {
         // Read on every start from the page's own URL, never remembered: a tab that once had a test link must not
         // keep the panel or the forced decoder on other pages (README §5.6)
         this.debug = this._urlParam('scan-debug') === '1';
-        // ?scanner=zbar / ?scanner=native forces a decoder (support and testing, README §5.5)
+        // ?scanner=zbar / ?scanner=native forces one decoder (support and testing, README §5.5)
         const forced = this._urlParam('scanner');
         this.forcedEngine = forced === 'zbar' || forced === 'native' ? forced : null;
 
         this.wrapperTarget.classList.remove('d-none');
-        this.scanBuffer = [];
         const session = ++this.cameraSession;
+        // Download the decoders while the camera opens, not after
+        this._warmDecoders();
 
         let opened;
         try {
@@ -463,65 +469,91 @@ export default class extends Controller {
         this.torchSupported = false;
         this.torchOn = false;
         this.cameraPick = null;
-        this.scanBuffer = [];
-        this.codeSeenAt = new Map();
+        this.engine = null;
+        this.engines = {};
         this.lastFocusKick = null;
         this.nextFocusKickAt = 0;
-        this.stats = { frames: 0, decodeMs: [], seen: new Map(), accepted: null, region: null };
+        this.stats = { frames: 0, decodeMs: [], seen: new Map(), accepted: null, acceptedBy: null };
     }
 
     // --- Decoding ---
 
-    async _detectorClass() {
-        if (this._Detector !== undefined && this._detectorForced === this.forcedEngine) return this._Detector;
-        this._detectorForced = this.forcedEngine;
+    /**
+     * Which readers a session runs (README §5.7). Where the browser reads EAN-13 itself (Google's engine in Android
+     * Chrome and Samsung Internet, Apple's in Chrome on macOS) both its reader and our zbar run side by side: Google's
+     * reads blurrier frames, zbar never makes its misreads (4005555011897 read as 0045555011897), so either can read
+     * alone, both agreeing reads fastest, and a code one of them contradicts waits. zbar alone everywhere else (iOS,
+     * Firefox, Chrome on Windows/Linux). zbar alone on Android (2026-10-04 to 10-06) cost about half of the Android
+     * scans - at 640x480 from the wrong lens; Google's alone (to 2026-10-19) still misread a box at 1080p.
+     * A forced native reader where the browser has none falls back to zbar (the debug panel says so).
+     *
+     * @returns {Promise<{native: boolean, zbar: boolean}>}
+     */
+    async _enginePlan() {
+        const native = this.forcedEngine !== 'zbar' && await this._nativeReadsEan();
 
-        // The browser's own detector where it reads EAN-13 (Google's engine in Android Chrome and Samsung
-        // Internet, Apple's in Chrome on macOS), our zbar everywhere else (iOS, Firefox, Chrome on Windows/Linux).
-        // zbar on Android too (2026-10-04 to 10-06) cost about half of the Android scans: Chrome opens the
-        // camera at 640x480, often from the wrong lens, and zbar cannot read that at a distance the camera
-        // focuses on. Google's engine can, but it now and then returns another valid code (Ravensburger
-        // 4005555011897 as 0045555011897), which `EanList` refuses when a code is stored.
-        // The plan out of both: docs/features/barcode-scanner/README.md.
-        // A forced native detector where the browser has none falls back to zbar (the debug panel says so).
-        if (this.forcedEngine !== 'zbar' && await this._nativeReadsEan()) {
-            this._Detector = window.BarcodeDetector;
-            this.engine = 'native';
-            return this._Detector;
-        }
-
-        try {
-            // Load zbar-wasm first, then the polyfill that depends on it
-            await this._loadScript('https://cdn.jsdelivr.net/npm/@undecaf/zbar-wasm@0.9.15/dist/index.js');
-            await this._loadScript('https://cdn.jsdelivr.net/npm/@undecaf/barcode-detector-polyfill@0.9.21/dist/index.js');
-        } catch (e) {
-            console.error('Barcode decoder could not be loaded:', e);
-        }
-
-        if (typeof barcodeDetectorPolyfill !== 'undefined' && barcodeDetectorPolyfill.BarcodeDetectorPolyfill) {
-            this._Detector = barcodeDetectorPolyfill.BarcodeDetectorPolyfill;
-            this.engine = 'zbar';
-        } else {
-            this._Detector = null;
-            this.engine = 'none';
-        }
-
-        return this._Detector;
+        return { native, zbar: !native || this.forcedEngine !== 'native' };
     }
 
-    async _nativeReadsEan() {
-        if (!window.BarcodeDetector || typeof window.BarcodeDetector.getSupportedFormats !== 'function') {
-            return false;
+    _nativeReadsEan() {
+        if (!this._nativeReadsEanPromise) {
+            this._nativeReadsEanPromise = (async () => {
+                if (!window.BarcodeDetector || typeof window.BarcodeDetector.getSupportedFormats !== 'function') {
+                    return false;
+                }
+
+                try {
+                    // An empty list where the browser has the API but no engine behind it
+                    const formats = await window.BarcodeDetector.getSupportedFormats();
+
+                    return formats.indexOf('ean_13') !== -1;
+                } catch (e) {
+                    return false;
+                }
+            })();
         }
 
-        try {
-            // An empty list where the browser has the API but no engine behind it
-            const formats = await window.BarcodeDetector.getSupportedFormats();
+        return this._nativeReadsEanPromise;
+    }
 
-            return formats.indexOf('ean_13') !== -1;
-        } catch (e) {
-            return false;
+    _warmDecoders() {
+        this._loadBarcoder().catch(() => {});
+        this._enginePlan().then(plan => plan.zbar && this._loadZbar()).catch(() => {});
+    }
+
+    async _loadBarcoder() {
+        if (!this._Barcoder) {
+            const mod = await import('barcoder');
+            this._Barcoder = mod.default;
         }
+
+        return this._Barcoder;
+    }
+
+    /**
+     * @returns {Promise<Function|null>} zbar's BarcodeDetector, null when it could not be downloaded (tried again next time)
+     */
+    _loadZbar() {
+        if (!this._zbarPromise) {
+            this._zbarPromise = (async () => {
+                try {
+                    for (const src of ZBAR_SCRIPTS) {
+                        await this._loadScript(src);
+                    }
+                } catch (e) {
+                    console.error('Barcode decoder could not be loaded:', e);
+                }
+
+                if (typeof barcodeDetectorPolyfill !== 'undefined' && barcodeDetectorPolyfill.BarcodeDetectorPolyfill) {
+                    return barcodeDetectorPolyfill.BarcodeDetectorPolyfill;
+                }
+
+                this._zbarPromise = null;
+                return null;
+            })();
+        }
+
+        return this._zbarPromise;
     }
 
     _loadScript(src) {
@@ -534,30 +566,68 @@ export default class extends Controller {
             const script = document.createElement('script');
             script.src = src;
             script.onload = resolve;
-            script.onerror = reject;
+            script.onerror = (e) => {
+                // A failed tag would make the next try "already loaded"
+                script.remove();
+                reject(e);
+            };
             document.head.appendChild(script);
         });
     }
 
-    async scanLoop() {
-        if (!this._Barcoder) {
-            const mod = await import('barcoder');
-            this._Barcoder = mod.default;
-        }
-        const Detector = await this._detectorClass();
+    _engineState(name, detector) {
+        this.acceptance.addReader(name);
 
-        if (Detector === null) {
+        return { detector, frames: 0, decodeMs: [], nextAt: 0, region: null };
+    }
+
+    _engineName() {
+        const native = !!this.engines.native;
+        const zbar = !!this.engines.zbar;
+
+        return native && zbar ? 'dual' : (native ? 'native' : (zbar ? 'zbar' : 'none'));
+    }
+
+    async scanLoop() {
+        // A stop followed by a quick restart must not leave the old loop running next to the new one
+        const generation = this.scanGeneration = (this.scanGeneration || 0) + 1;
+        const current = () => this.scanning && generation === this.scanGeneration;
+
+        const [, plan] = await Promise.all([this._loadBarcoder(), this._enginePlan()]);
+        if (!current()) return;
+
+        this.engines = {};
+        this.acceptance = new ReadAcceptance(this.startedAt);
+        if (plan.native) {
+            this.engines.native = this._engineState('native', new window.BarcodeDetector({ formats: FORMATS }));
+        }
+        if (plan.zbar) {
+            const zbar = this._loadZbar().then(Zbar => {
+                if (current()) {
+                    if (Zbar) {
+                        this.engines.zbar = this._engineState('zbar', new Zbar({ formats: FORMATS }));
+                    }
+                    this.engine = this._engineName();
+                }
+            });
+            // Next to Google's reader zbar joins once downloaded; alone it is the reader, so wait for it
+            if (!plan.native) {
+                await zbar;
+                if (!current()) return;
+            }
+        }
+        this.engine = plan.native && plan.zbar && !this.engines.zbar ? 'native' : this._engineName();
+        this.zbarPlanned = plan.native && plan.zbar;
+
+        if (this.engine === 'none') {
             console.error('BarcodeDetector is not available');
             return;
         }
 
-        const barcodeDetector = new Detector({ formats: ['ean_8', 'ean_13'] });
         const ctx = this.overlayTarget.getContext('2d');
-        // A stop followed by a quick restart must not leave the old loop running next to the new one
-        const generation = this.scanGeneration = (this.scanGeneration || 0) + 1;
 
         const scanFrame = async () => {
-            if (!this.scanning || generation !== this.scanGeneration) {
+            if (!current()) {
                 return;
             }
 
@@ -576,19 +646,33 @@ export default class extends Controller {
             ctx.clearRect(0, 0, this.overlayTarget.width, this.overlayTarget.height);
             this._drawGuide(ctx);
 
-            try {
-                const frame = this._frame();
-                if (frame !== null) {
-                    const decodeStart = performance.now();
-                    const barcodes = await barcodeDetector.detect(frame.source);
-                    this._recordDecode(performance.now() - decodeStart, frame);
+            const video = this.videoTarget;
+            if (video.videoWidth && video.videoHeight) {
+                const native = this.engines.native;
+                const zbar = this.engines.zbar;
+                const start = performance.now();
+                // Google's reader works off the main thread, so zbar decodes meanwhile; next to it zbar takes at
+                // most every other frame's worth of time, so a slow phone keeps Google's pace
+                const jobs = [];
+                if (native) {
+                    jobs.push(this._decode('native', native, { source: video, x: 0, y: 0, w: video.videoWidth, h: video.videoHeight, vertical: false }));
+                }
+                if (zbar && (!native || start >= zbar.nextAt)) {
+                    jobs.push(this._decode('zbar', zbar, this._band(zbar)));
+                }
 
-                    if (barcodes.length > 0 && this.scanning && generation === this.scanGeneration) {
-                        this._handleBarcodes(barcodes, frame, ctx);
+                const results = await Promise.all(jobs);
+                this.stats.frames++;
+                this.stats.decodeMs.push(performance.now() - start);
+                if (this.stats.decodeMs.length > 30) {
+                    this.stats.decodeMs.shift();
+                }
+
+                for (const result of results) {
+                    if (result.barcodes.length > 0 && current()) {
+                        this._handleBarcodes(result.name, result.barcodes, result.frame, ctx);
                     }
                 }
-            } catch (error) {
-                console.error('Barcode detection error:', error);
             }
 
             this._onNextFrame(scanFrame);
@@ -597,25 +681,38 @@ export default class extends Controller {
         scanFrame();
     }
 
+    async _decode(name, engine, frame) {
+        const start = performance.now();
+        let barcodes = [];
+        try {
+            barcodes = await engine.detector.detect(frame.source);
+        } catch (error) {
+            console.error('Barcode detection error:', error);
+        }
+        const ms = performance.now() - start;
+
+        engine.frames++;
+        engine.decodeMs.push(ms);
+        if (engine.decodeMs.length > 30) {
+            engine.decodeMs.shift();
+        }
+        engine.region = frame;
+        engine.nextAt = performance.now() + ms;
+
+        return { name, barcodes, frame };
+    }
+
     /**
-     * The browser's detector gets the whole frame (Google asks for 720p-1080p and reads any rotation). zbar gets a
-     * centred band of what the player sees, at full resolution - a whole 1080p frame would cost it ~6x today's
-     * 640x480 - alternating with an upright band where the picture is taller than wide, so a box held sideways reads.
+     * zbar gets a centred band of what the player sees, at full resolution - a whole 1080p frame would cost it ~6x a
+     * 640x480 one - alternating with an upright band where the picture is taller than wide, so a box held sideways
+     * reads. Google's reader gets the whole frame (it asks for 720p-1080p and reads any rotation).
      *
-     * @returns {{source: CanvasImageSource|ImageData, x: number, y: number, w: number, h: number, vertical: boolean}|null}
+     * @returns {{source: ImageData, x: number, y: number, w: number, h: number, vertical: boolean}}
      */
-    _frame() {
+    _band(engine) {
         const video = this.videoTarget;
-        if (!video.videoWidth || !video.videoHeight) {
-            return null;
-        }
-
-        if (this.engine !== 'zbar') {
-            return { source: video, x: 0, y: 0, w: video.videoWidth, h: video.videoHeight, vertical: false };
-        }
-
         const visible = this._visibleRect();
-        const vertical = visible.h >= visible.w && this.stats.frames % 2 === 1;
+        const vertical = visible.h >= visible.w && engine.frames % 2 === 1;
         const band = vertical ? this._verticalBand(visible) : this._horizontalBand(visible);
 
         this._cropCanvases = this._cropCanvases || {};
@@ -709,12 +806,12 @@ export default class extends Controller {
         ctx.restore();
     }
 
-    _handleBarcodes(barcodes, frame, ctx) {
+    _handleBarcodes(name, barcodes, frame, ctx) {
         const barcode = barcodes[0];
-        const code = barcode.rawValue;
+        const code = canonicalCode(barcode.rawValue);
         const now = Date.now();
         // A frame that reads two different codes is not trusted at all: two boxes in view, or a misread
-        const sameCodeOnly = barcodes.every(b => b.rawValue === code);
+        const sameCodeOnly = barcodes.every(b => canonicalCode(b.rawValue) === code);
 
         // The camera sees a code, so it is roughly in focus: no kick for a while
         this.nextFocusKickAt = Math.max(this.nextFocusKickAt, now + FOCUS_KICK_FIRST_MS);
@@ -736,64 +833,32 @@ export default class extends Controller {
         }
 
         if (!sameCodeOnly) {
-            barcodes.filter(b => this._Barcoder.validate(b.rawValue)).forEach(b => this.codeSeenAt.set(b.rawValue, now));
+            this.acceptance.seenTogether(name, barcodes.map(b => b.rawValue).filter(c => this._Barcoder.validate(c)), now);
             return;
         }
 
-        if (!this._Barcoder.validate(code)) {
+        if (!this._Barcoder.validate(barcode.rawValue)) {
             return;
         }
 
-        this._recordSeen(code, barcode.quality);
+        this._recordSeen(name, code, barcode.quality, now);
 
-        // zbar's quality = how many scanlines read the code; the browser's detector reports none
-        if (this.engine === 'zbar' && !(barcode.quality >= 3)) {
+        const acceptedBy = this.acceptance.read(name, code, barcode.quality, now);
+        if (acceptedBy === null) {
             return;
         }
-
-        this.codeSeenAt.set(code, now);
-        this.scanBuffer.push(code);
-        if (this.scanBuffer.length > 30) {
-            this.scanBuffer.shift();
-        }
-
-        for (const [other, seenAt] of this.codeSeenAt) {
-            if (other !== code && now - seenAt < COMPETING_CODE_MS) {
-                return;
-            }
-        }
-
-        const count = this.scanBuffer.filter(c => c === code).length;
-        if (count < this._readsNeeded(code)) {
-            return;
-        }
-
-        this.scanBuffer = [];
 
         if (this.continuousValue) {
             if (this._acceptContinuous(code, now)) {
-                this._recordAccepted(code, now);
+                this._recordAccepted(code, now, acceptedBy);
             }
         } else {
-            this._recordAccepted(code, now);
+            this._recordAccepted(code, now, acceptedBy);
             this.inputTarget.value = code;
             this.inputTarget.dispatchEvent(new Event('change', { bubbles: true }));
             this._emitScanned(code);
             this.stopScanning();
         }
-    }
-
-    /**
-     * zbar's wrong reads are rare and change from frame to frame, so a few agreeing frames filter them (README §5.3);
-     * codes starting with 0 (where wrong reads cluster) and EAN-8 need more. The browser's detector keeps its 10 -
-     * its misreads repeat, more frames would not catch them (`EanList` does when a code is stored).
-     */
-    _readsNeeded(code) {
-        if (this.engine !== 'zbar') {
-            return 10;
-        }
-
-        return code.charAt(0) === '0' || code.length === 8 ? 8 : 4;
     }
 
     /**
@@ -874,29 +939,62 @@ export default class extends Controller {
         }
     }
 
-    _recordDecode(ms, frame) {
-        this.stats.frames++;
-        this.stats.decodeMs.push(ms);
-        if (this.stats.decodeMs.length > 30) {
-            this.stats.decodeMs.shift();
+    // Per code: how often each reader read it and when first - the most recent few codes
+    _recordSeen(name, code, quality, now) {
+        const seen = this.stats.seen.get(code) || { native: 0, zbar: 0, quality: null, firstAt: {} };
+        seen[name]++;
+        if (name === 'zbar') {
+            seen.quality = quality === undefined ? null : quality;
         }
-        this.stats.region = frame;
-    }
-
-    _recordSeen(code, quality) {
-        const seen = this.stats.seen.get(code) || { count: 0, quality: null };
-        seen.count++;
-        seen.quality = quality === undefined ? null : quality;
+        if (seen.firstAt[name] === undefined) {
+            seen.firstAt[name] = now;
+        }
         this.stats.seen.delete(code);
         this.stats.seen.set(code, seen);
-        if (this.stats.seen.size > 4) {
+        if (this.stats.seen.size > 6) {
             this.stats.seen.delete(this.stats.seen.keys().next().value);
         }
     }
 
-    _recordAccepted(code, now) {
+    _recordAccepted(code, now, by) {
         const first = this.stats.accepted;
         this.stats.accepted = { code, afterMs: first ? first.afterMs : now - this.startedAt, count: (first ? first.count : 0) + 1 };
+
+        if (!first) {
+            // Which reader decided, and how far each one had got with the code by then (README §5.7)
+            const seen = this.stats.seen.get(code);
+            this.stats.acceptedBy = by;
+            this.stats.firstSeenMs = {};
+            ['native', 'zbar'].forEach(name => {
+                const at = seen ? seen.firstAt[name] : undefined;
+                this.stats.firstSeenMs[name] = at === undefined ? null : at - this.startedAt;
+            });
+        }
+    }
+
+    _seenText() {
+        return [...this.stats.seen].map(([code, s]) => {
+            const parts = [];
+            if (this.engines.native || s.native) parts.push(`native x${s.native}`);
+            if (this.engines.zbar || s.zbar) parts.push(`zbar x${s.zbar}${s.quality !== null ? ` q${s.quality}` : ''}`);
+            return `${code} ${parts.join(' ')}`;
+        }).join(', ');
+    }
+
+    _engineReport(name) {
+        const engine = this.engines[name];
+        if (!engine) {
+            return null;
+        }
+
+        const decode = engine.decodeMs;
+
+        return {
+            frames: engine.frames,
+            decodeMs: decode.length ? Math.round(decode.reduce((a, b) => a + b, 0) / decode.length) : null,
+            firstSeenMs: this.stats.firstSeenMs ? this.stats.firstSeenMs[name] : null,
+            soloMs: this.acceptance.soloMs(name),
+        };
     }
 
     // The phone model, where the browser tells it (Chromium's client hints - user agents no longer carry it)
@@ -937,6 +1035,12 @@ export default class extends Controller {
             frames: this.stats.frames,
             decodeMs: decode.length ? Math.round(decode.reduce((a, b) => a + b, 0) / decode.length) : null,
             seenCodes: this.stats.seen.size,
+            // Both readers side by side (README §5.7): who decided, each one's own numbers, every code read
+            acceptedBy: this.stats.acceptedBy,
+            native: this._engineReport('native'),
+            zbar: this._engineReport('zbar'),
+            zbarMissing: !!this.zbarPlanned && !this.engines.zbar,
+            seen: this._seenText().slice(0, 300),
             camera: this.videoTrack ? this.videoTrack.label : null,
             cameraPick: this.cameraPick,
             video: video.videoWidth ? `${video.videoWidth}x${video.videoHeight}` : null,
@@ -1003,15 +1107,27 @@ export default class extends Controller {
         const round = (n) => (typeof n === 'number' ? Math.round(n * 100) / 100 : n);
         const decode = this.stats.decodeMs;
         const avg = decode.length ? Math.round(decode.reduce((a, b) => a + b, 0) / decode.length) : '-';
-        const region = this.stats.region;
         const ago = (at) => `${((Date.now() - at) / 1000).toFixed(1)} s ago`;
+        const zbar = this.engines.zbar;
+        const engineLine = (name) => {
+            const engine = this._engineReport(name);
+            if (!engine) return null;
+            const parts = [`${name}: ${engine.frames} frames, decode ${engine.decodeMs === null ? '-' : engine.decodeMs} ms`];
+            if (engine.firstSeenMs !== null) parts.push(`saw it after ${(engine.firstSeenMs / 1000).toFixed(1)} s`);
+            if (engine.soloMs !== null) parts.push(`alone after ${(engine.soloMs / 1000).toFixed(1)} s`);
+            return parts.join(', ');
+        };
+        const band = zbar && zbar.region ? `, band ${zbar.region.w}x${zbar.region.h}${zbar.region.vertical ? ' upright' : ''}` : '';
+        const loading = this.zbarPlanned && !zbar ? ' (zbar loading or unavailable)' : '';
 
         // What was read first: a pinned bar may cover the end of the panel in a screenshot
         const lines = [
-            `engine: ${this.engine || 'loading'}${this.forcedEngine ? ` (forced ${this.forcedEngine})` : ''}${region && this.engine === 'zbar' ? `, band ${region.w}x${region.h}${region.vertical ? ' upright' : ''}` : ''}`,
-            `accepted: ${this.stats.accepted ? `${this.stats.accepted.code} (${this.stats.accepted.count}x), first after ${(this.stats.accepted.afterMs / 1000).toFixed(1)} s` : '-'}`,
-            `seen: ${[...this.stats.seen].map(([code, s]) => `${code} x${s.count}${s.quality !== null ? ` q${s.quality}` : ''}`).join(', ') || '-'}`,
+            `engine: ${this.engine || 'loading'}${this.forcedEngine ? ` (forced ${this.forcedEngine})` : ''}${loading}${band}`,
+            `accepted: ${this.stats.accepted ? `${this.stats.accepted.code} (${this.stats.accepted.count}x) by ${this.stats.acceptedBy}, first after ${(this.stats.accepted.afterMs / 1000).toFixed(1)} s` : '-'}`,
+            `seen: ${this._seenText() || '-'}`,
             `frames: ${this.stats.frames}, decode ${avg} ms, running ${((Date.now() - this.startedAt) / 1000).toFixed(0)} s`,
+            engineLine('native'),
+            engineLine('zbar'),
             `device: ${this.deviceModel || '-'}`,
             `camera: ${this.videoTrack ? this.videoTrack.label : '-'} (${this.cameraPick || '-'})`,
             `cameras: ${(this.cameraLabels || []).join(' | ') || '-'}`,
@@ -1023,7 +1139,7 @@ export default class extends Controller {
             `browser: ${navigator.userAgent}`,
         ];
 
-        this.debugText.textContent = lines.join('\n');
+        this.debugText.textContent = lines.filter(line => line !== null).join('\n');
     }
 
     _copyDebug(button) {

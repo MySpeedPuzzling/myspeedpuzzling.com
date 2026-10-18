@@ -656,8 +656,9 @@ player lost the form. Shipped: limit 128M (`web-base-php85/php.ini`), photos up 
 
 - [x] Step 0 (2026-10-06): the browser's own detector is back on Android. zbar alone had cost about half of the Android
       scans (add-form lookups 169 → 92 a day, iOS flat). The plan with Steps 1-4 is in the README.
-- [ ] Vanja: test request with `/en/multiscan?scan-debug=1` (+ `&scanner=zbar`) on her Christmas Town box
-      (`4005555011897`, the misread code) - MSP draft #293, follow-up F128. Send once the Copy button is live.
+- [x] Vanja's test (2026-10-18, Galaxy S25 + Samsung Internet, Christmas Town `4005555017585`, MSP #293 / F128):
+      both readers read it; Google's still saw the parity misread ×6 and `4005555017479` ×1, zbar nothing wrong
+      (README §5.7). Led to both readers side by side.
 - [x] 2026-10-13: camera fixes in one release (README §5.6): 1080p, main lens on Android, 1.5× default zoom, focus
       kicks, torch, cropped zbar decoding, `?scan-debug=1`; the zoom pill no longer hides behind the video.
 - [x] Stephanie (Galaxy S24, Chrome, multiscan): both readers read her Ravensburger `4005556173501` after the fix,
@@ -668,9 +669,19 @@ player lost the form. Shipped: limit 128M (`web-base-php85/php.ini`), photos up 
       second jump; 10-17's 422 includes one IP with 159). iOS flat at 113-226. Tempo cannot tell what was read in
       multiscan (the code is in the Live POST body) - the beacon (Step 1) is still the only way to measure reads.
 - [x] Step 1 (2026-10-18): misread correction in the scanner lookups + `/-/scan-session` reports (README §5.1).
+- [x] 2026-10-19: Google's reader and zbar side by side on Android (README §5.7, `assets/barcode_acceptance.js`).
 - [ ] After ~5 days of `/-/scan-session` reports: read rate, time to first read and the models that never read, per
-      platform (Android Chrome, Samsung Internet, iOS) - Loki, log channel `barcode_scanner`. The baseline before any
-      default change (zbar on Android?) and the test-phone list.
+      platform (Android Chrome, Samsung Internet, iOS) - Loki, log channel `barcode_scanner` (on lily also
+      `docker logs` of the web/api containers). The reports of 2026-10-18 evening are Google-only on Android, from
+      2026-10-19 both readers.
+- [ ] ~2026-11-02, from two weeks of side-by-side reports (README §5.7 "Decision"): in how many Android sessions that
+      read did zbar see the accepted code (`zbar.first_seen_ms` not null), how much later than Google's reader, which
+      phone models only Google's reader read, and how often Google's reader saw another code (`seen`). Then decide:
+      Android drops Google's reader (one path everywhere), or both stay until Step 4.
+- [ ] Self-host zbar (`@undecaf/zbar-wasm` + the polyfill through npm, cached by the service worker) instead of
+      jsdelivr - every Android session now downloads it too; a jsdelivr outage leaves Android on Google's reader alone
+      and iOS without a scanner (README §5.3 "Web Worker").
+- [ ] Step 4's shadow mode can reuse the side-by-side frame loop (`scanLoop()` runs any number of readers).
 - [ ] *The World of Trolls* (`01947b9c-24c6-7359-972a-54f6a6d86402`) stores `045570100330`, most likely a misread of
       Ravensburger `4005556100330`. Check a box or a shop listing, then file a change proposal.
 

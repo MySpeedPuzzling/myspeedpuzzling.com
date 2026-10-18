@@ -2,7 +2,8 @@
 
 **Status:** research and proposal 2026-10-05. Step 0 shipped 2026-10-06. The camera fixes of Step 2, the resolution,
 cropped decoding and acceptance of Step 3 and the debug overlay of Step 1 shipped together on 2026-10-13 (§5.6).
-The beacon, the server net and Step 4 are not built.
+The beacon and the server net shipped on 2026-10-18 (§5.1), both readers side by side on Android on 2026-10-19 (§5.7).
+Step 4 is not built.
 **Scope:** `barcode_scanner_controller.js` and everything that reads its output: multiscan, the add-time form, the global
 search, plus the server-side EAN lookup (`SearchPuzzle::allByEan()`).
 
@@ -335,7 +336,7 @@ Small changes in `barcode_scanner_controller.js` that help any decoder:
 
 **Gate:**
 - 50/50 by session for about 5 days. Keep it when the read rate is better on Android and not worse on any group.
-- Ask Vanja to scan her Ravensburger box with `?scan-debug=1`.
+- Ask Vanja to scan her Ravensburger box with `?scan-debug=1` (done 2026-10-18, §5.7).
 - If a group gets worse, the beacon's camera labels and models show which phones; fix and repeat.
 
 ### 5.3 Step 3: frame pipeline (2-4 days to build), A/B
@@ -463,6 +464,68 @@ side in one go instead of one A/B step at a time (§5.5). What changed in `barco
 
 Not done: the beacon, so nothing measures the change yet - the Tempo count of `/puzzle-by-ean-search/` per platform
 (§1) is the check until it exists.
+
+### 5.7 Both readers side by side on Android (2026-10-19)
+
+**Why.** Vanja's test (Galaxy S25, Samsung Internet 30, multiscan, her Christmas Town box `4005555017585`,
+2026-10-18) with the camera fixes of §5.6 - main lens, 1080×1920, zoom 1.5, focus at 0.25 m:
+
+| | Google's reader (default) | zbar (`?scanner=zbar`) |
+|---|---|---|
+| right code accepted after | 0.6 s | 1.2 s |
+| right reads | 1018 in 120 s | 247 in 10 s, quality 113 |
+| wrong codes seen | `045555017585` (the parity misread) ×6, `4005555017479` ×1 | none |
+
+- The camera fixes cured what Step 0 rolled back for: zbar reads on that Android phone.
+- Google's reader still misreads at 1080p. `4005555017479` passes the check digit and is not a parity misread, so the
+  lookups' correction (§5.1) cannot catch it - only the 10 agreeing reads kept it out.
+- One flagship is not the 53 % of scans made on Android: zbar's blur wall (§3.1) bites on cheaper cameras. Switching
+  Android to zbar on her result alone would repeat 2026-10-04.
+
+So, where the browser reads EAN-13 itself, **both readers run on every camera session** instead of choosing one
+(`_enginePlan()`): Google's reader on the whole frame, zbar on the centred band. Google's reader works off the main
+thread, so zbar decodes meanwhile; next to it zbar starts a frame only once as much time has passed as its last decode
+took (at most half the time), so a slow phone keeps Google's pace. zbar is downloaded while the camera opens and joins
+when it arrives - the first frames are never held up by jsdelivr, and if it cannot be downloaded the session runs on
+Google's reader alone (`zbarMissing` in the report).
+
+**When a code is handed over** - `assets/barcode_acceptance.js`, pinned by `BarcodeAcceptanceScriptTest`:
+- **zbar** by its own rule (4 agreeing reads with quality ≥ 3, 8 for codes starting with `0` and EAN-8) while zbar saw
+  no other code in the last 2 s - exactly the rule it reads with alone on every iPhone. A code only Google's reader saw
+  does not stop it: in the browser run a reader repeating its misread on every frame blocked the right code forever.
+- **Google's reader** by its own rule (10 agreeing reads) while *neither* reader saw another code in the last 2 s - zbar
+  contradicting it stops its misread.
+- **Both agreeing**: the same code read twice by each reader, each within the last 2 s, is accepted at once - unless both
+  saw another code then (two boxes in view). One reader's stray misread does not hold it up. The two fail differently
+  (Google's repeats its misreads, zbar's change from frame to frame), so they do not agree on a wrong code.
+- Google's reader reports a code starting with `0` as its 12 UPC-A digits, zbar as 13: both are compared, and handed
+  over, as 13 digits (`canonicalCode()`), or the two would block each other on every US box.
+
+Measured in Chrome with a fake camera showing a real barcode (zbar real, Google's reader simulated):
+
+| Google's reader | before (alone) | both side by side |
+|---|---|---|
+| reads the box | 0.66 s | **0.2-0.3 s**, by both |
+| repeats the misread on every frame | the misread handed over (the lookups correct the parity kind) | the right code after 0.3 s, by zbar; the misread never |
+| reads nothing (too blurry for it) | no read | zbar, 0.3 s |
+| zbar cannot be downloaded | - | Google's reader alone, as before |
+
+`?scanner=native` keeps the old behaviour (Google's reader alone), `?scanner=zbar` zbar alone - for support cases and
+for a quick rollback test on a player's phone.
+
+**The reports** (`/-/scan-session`) say who decided (`accepted_by`: `native` / `zbar` / `both`) and give each reader's own
+numbers: frames, decode time, when it first saw the accepted code and when its rule alone would have accepted
+(`first_seen_ms`, `solo_ms`), plus every code seen per reader (`seen`, e.g. `4005555017585 native x3 zbar x2 q113,
+0045555017585 native x1 zbar x0`). Every Android session therefore compares both readers on the same frames - no
+50/50 split needed. The debug panel shows the same per reader.
+
+**Decision after about two weeks of reports** (TODO.md "Barcode scanner"):
+- the share of Android sessions where zbar saw the accepted code, and how much later than Google's reader;
+- the sessions only Google's reader read, by phone model - the test list for Step 4;
+- how often Google's reader saw a different code than the accepted one (its misread rate in the field).
+
+If zbar sees the code in practically every session that reads, Android drops Google's reader and every platform runs
+one path (requirement 3). If not, both stay until Step 4's decoder can replace Google's.
 
 ## 6. Open questions for Jan
 

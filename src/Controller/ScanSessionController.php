@@ -52,6 +52,12 @@ final class ScanSessionController extends AbstractController
                 'frames' => self::number($payload, 'frames'),
                 'decode_ms' => self::number($payload, 'decodeMs'),
                 'seen_codes' => self::number($payload, 'seenCodes'),
+                // Both readers side by side (README §5.7): who decided, and each reader's own numbers
+                'accepted_by' => self::text($payload, 'acceptedBy', 10),
+                'native' => self::engine($payload, 'native'),
+                'zbar' => self::engine($payload, 'zbar'),
+                'zbar_missing' => ($payload['zbarMissing'] ?? null) === true,
+                'seen' => self::text($payload, 'seen', 300),
                 'camera' => self::text($payload, 'camera', 100),
                 'camera_pick' => self::text($payload, 'cameraPick', 50),
                 'video' => self::text($payload, 'video', 20),
@@ -78,6 +84,26 @@ final class ScanSessionController extends AbstractController
         $value = $payload[$key] ?? null;
 
         return is_string($value) ? mb_substr($value, 0, $maxLength) : null;
+    }
+
+    /**
+     * @param array<mixed> $payload
+     * @return null|array{frames: null|int|float, decode_ms: null|int|float, first_seen_ms: null|int|float, solo_ms: null|int|float}
+     */
+    private static function engine(array $payload, string $key): null|array
+    {
+        $engine = $payload[$key] ?? null;
+
+        if (!is_array($engine)) {
+            return null;
+        }
+
+        return [
+            'frames' => self::number($engine, 'frames'),
+            'decode_ms' => self::number($engine, 'decodeMs'),
+            'first_seen_ms' => self::number($engine, 'firstSeenMs'),
+            'solo_ms' => self::number($engine, 'soloMs'),
+        ];
     }
 
     /**

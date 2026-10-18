@@ -413,11 +413,35 @@ recomputes them in minutes from the local store.
 
 ### 11.1 Raw analyzers
 
-`artwork`, `colors`, `traits` - owned by the vision PoC (`vision-analysis.md`). Requested additions for
-extract-once: in `traits`, a `grid16` object (16×16 per cell: flat 0/1, mean OKLab L, chroma, gradient magnitude -
-as 4 arrays of 256 small integers, ~3 KB), the border band stats (uniform share of the outer 1-piece ring vs the
-interior), and `piece_level` computed for the puzzle's **real** piece count (the PoC defaults to 500) plus 500 and
-1000 for comparability; a symmetry score and a line-strength score (Hough line coverage) if cheap.
+What `tools/puzzle-vision` sends (runbook [`image-pipeline.md`](./image-pipeline.md) §9; every payload with the
+envelope above, checked against the 64 KB limit before it is pushed):
+
+`artwork` (full image; vision-analysis.md §9.1, with the box under `bbox` - the field the server validates):
+```json
+{"kind":"box_front","bbox":{"x":0.12,"y":0.10,"w":0.75,"h":0.61},"corners":[[0.13,0.10],[0.87,0.11],[0.86,0.71],[0.12,0.70]],
+ "method":"vlm+quad","confidence":0.93,"kindScores":{"flat":0.04,"box":0.13,"assembled":0.08,"other":0.02},
+ "source":{"width":1500,"height":1125},"signals":{"gateMargin":-0.09,"vlmKind":"box_front","vlmBbox":{…},"quadIou":0.93}}
+```
+`kind` flat | box_front | box_angled | assembled | other; `corners` (top-left, top-right, bottom-right, bottom-left) only
+when the quad is skewed, else null; `method` trim (gate-flat → border trim) | vlm | vlm+quad (snapped to an OpenCV
+quadrilateral, IoU > 0.75); `confidence` = gate margin for trim, quad IoU for vlm+quad, 0.5 for plain vlm; `source` =
+the pixel size analysed (the ≤ 1600 px cached copy); `signals` = the raw agreement signals the crop proposals reuse.
+
+`colors` (crop): vision-analysis.md §9.2 - `palette` (8 × `{hex, share, family, oklab}`), `families`, `dominantShare`,
+`paletteEffectiveColors`, `colorEntropyBits`, `colorfulness`, `lightnessMean`, `lightnessStd`, `darkShare`,
+`lightShare`, `chromaMean`, `mutedShare`.
+
+`traits` (crop): vision-analysis.md §9.3 (`edgeDensity`, `detail`, `gradientMean`, `flatShare`, `uniformShare`,
+`largestUniformRegion`, `uniformRegions`, `smoothGradientShare`, `gradientRegions`, `largestFlatRegion`,
+`colorRegions`, `colorRegions80`, `largestColorRegion`, `textShare`, `textChars` (Apple Vision fast text, CPU-only;
+null without it), `pieceGrid`, `pieceFlatShare`, `pieceLookalikeShare`, `pieceDistinctiveness` - the piece numbers for
+the puzzle's **real** piece count, `regularity`) plus the extract-once additions:
+- `grid16` `{"flat":[256 × 0/1],"lightness":[256 × L×100],"chroma":[256 × C×500, ≤ 255],"gradient":[256 × ×500, ≤ 255]}` (~3 KB);
+- `borderBand` `{"uniformShare": featureless share of the outer ring of piece cells, "interiorUniformShare": of the rest}`;
+- `pieceLevel` `{"real": {"pieces": n, …piece numbers…}, "p500": {…}, "p1000": {…}}` (string keys - a map with number
+  keys would come back from the API as a list);
+- `symmetry` (best of left-right / top-bottom mirror correlation of lightness, 0..1) and `lineStrength` (share of edge
+  pixels on long Hough segments, 0..1).
 
 `ocr` (full image):
 ```json
@@ -426,7 +450,11 @@ interior), and `piece_level` computed for the puzzle's **real** piece count (the
  "truncated":false,"textAreaShareInArtwork":0.031}
 ```
 `b` = x, y, w, h as fractions with the origin top-left (convert from Vision's bottom-left); `inArtwork` = the line's
-centre lies inside the `artwork` crop. Cap 400 lines, sorted by area.
+centre lies inside the `artwork` crop. Cap 400 lines, sorted by area; lines cut at 200 characters and the smallest
+dropped while the payload would pass ~60 KB (`truncated: true`). **`inArtwork` and `textAreaShareInArtwork` are null
+when OCR ran before `artwork` existed** (the M1's phase A runs OCR first) - consumers (`describe`, `tags`) compute
+"inside the crop" from `b` and the `artwork` bbox. Empty maps are sent as null in every payload (the app returns `{}`
+as `[]`).
 
 `barcode` (full image): `{"codes":[{"sym":"EAN13","v":"4005556173709","b":[…],"checksumOk":true,"reader":"apple"}]}`.
 
@@ -444,20 +472,26 @@ comparable (full vs crop of the same box).
 `segmentation` (crop): `{"classes":{"sky":0.31,"tree":0.18,"grass":0.07,"sea":0.12,"building":0.05,"person":0.01,…≥0.002},
 "instances":{"person":4,"dog":1,"bird":7},"grid16":[256 class ids],"classList":"coco-panoptic-133"}`.
 
-`describe` (crop, OCR lines inside the crop passed as context, schema-constrained decoding):
+`describe` (crop, OCR lines inside the crop passed as context, schema-constrained decoding) - the §18 schema, as sent:
 ```json
-{"caption":"…2-3 factual sentences…","altText":"≤ 125 characters",
+{"caption":"…2-3 factual sentences…","altText":"≤ 140 characters",
  "themes":["landscape_nature","travel_places"],"subjects":["mountain","lake","pine tree","snow"],
  "scene":"landscape","style":"photo","season":"winter","holiday":"none","time":"day","weather":"partly_cloudy",
- "mood":["serene"],"place":"Banff National Park, Canada","characters":null,"artistSignature":null,
+ "mood":["serene"],"place":"Banff National Park, Canada","characters":[],"artistSignature":null,
  "people":"none","textInArtwork":"none","counts":{"distinctObjects":0,"animals":0,"people":0},
  "areas":{"sky":30,"water":25,"foliageGrass":35,"buildings":0,"plainBackground":10},
- "specialHints":[],"collageGrid":false,"seekAndFind":false}
+ "collageGrid":false,"seekAndFind":false,"extraTags":["alpine","glacier lake"],
+ "promptVersion":"v2.1","titleContext":true,"title":"Moraine Lake","ocrLines":2,"tokens":{"prompt":1230,"generation":305}}
 ```
-Values are restricted to the Appendix A vocabularies by the JSON schema; `subjects`, `place`, `characters` are free
-text (normalised later). Prompt: instructions in the system message, the image, then a short schema - target
-≤ 300 prompt tokens besides the image and ≤ 200 output tokens (the lab prompt was ~500 + 250 and spent 44 % in
-prefill).
+Values are restricted to the Appendix A vocabularies by the JSON schema (`none` added to `time` / `weather`);
+`subjects` (lowercased, singular, de-duplicated after decoding), `place`, `characters` (a list, ≤ 6), `artistSignature`
+and `extraTags` (≤ 8) are free text - `"none"` / `"null"` in `place` / `artistSignature` become null. No
+`specialHints` (§18 finding 6: `special` comes from box text and the catalogue). `promptVersion` "v2.1" = the §18
+system prompt v2 plus "never the puzzle brand or publisher" on the artistSignature line; `titleContext` / `title` = the
+catalogue title in the user message; `ocrLines` = how many OCR lines inside the crop went in (≤ 12); `tokens` = prompt /
+generated token counts.
+
+`segmentation` and the embeddings above are sent exactly as described.
 
 ### 11.2 Derived analyzers
 
@@ -466,7 +500,8 @@ prefill).
 "brandMentions":["Ravensburger"],"ageMin":14|null,"specialMentions":["glow_in_dark"],"seriesMentions":["Krypt"],
 "copyright":["© 2017 …"],"languages":["de","en"]}`. Raw text stays in `ocr`; only parsed facts here.
 
-`zeroshot`: `{"taxonomy":"1.0.0","prompts":"bank-1.0","scores":{"theme.pets.cats":0.83,…},"scale":"percentile"}` -
+`zeroshot`: `{"taxonomy":"1.0.0","prompts":"bank-1.0","scores":{"theme.pets.cats":0.83,…},"scale":"percentile",
+"input":"crop"|"full","corpusSize":41280}` (`input` = the embedding used: the crop's, else the whole image's) -
 percentile of the cosine within the corpus (calibrated, comparable across keys), for every key that has prompts
 (~250). Recomputed from embeddings in seconds; a new key = new prompts, no image.
 
@@ -475,7 +510,8 @@ puzzles daily (and the new puzzle inserted into the lists of its neighbours, so 
 
 `tags` (the fusion): `{"taxonomy":"1.0.0","assigned":{"theme.pets.cats":{"s":0.91,"src":["describe","zeroshot"]},…},
 "candidates":{…below threshold, for moderation queues…},"skills":{"skill.shape_sorting":0.62,…},
-"traits":{"trait.large_uniform_areas":0.34,…}}`.
+"traits":{"trait.large_uniform_areas":0.34,…},"entities":{"subjects":[…],"place":…,"characters":[…],"artist":…}}`
+(`assigned` entries may carry `"uncertain": true` when the VLM and zero-shot disagree on a style / scene).
 
 The `ImageAnalyzer` enum therefore has 15 cases (`embed_siglip2_full` added 2026-10-18); every payload stays under 64 KB.
 

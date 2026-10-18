@@ -175,8 +175,10 @@ puzzle whose picture is hidden now are never listed.** Each item: `id`, `puzzleI
 `proposedImageUrl` (the proposal's file while pending; once approved with the picture, the puzzle's new picture; null
 once rejected - a rejection deletes the proposal's file - or when it proposes no picture), `originalArchiveUrl` (below),
 `createdAt` and `decision`: null while pending, else `{outcome: approved|rejected|outdated, decidedAt, decidedBy:
-{playerId, name} | null, source: admin_ui|internal_api|automatic, note, rejectionReason}` from the decision log
-(`puzzle_moderation_decision`, its latest row of the request). The URLs are full-size originals
+{playerId, name} | null, source: admin_ui|internal_api|automatic, note, rejectionReason, image}` from the decision log
+(`puzzle_moderation_decision`, its latest row of the request). `image` is an approval's picture choice: `proposed`
+(the proposed picture was taken), `keep` or `upload` (approved without it - for the pipeline's precision that is **not**
+an accepted crop); null for rejections, `outdated` closures and approvals without a logged decision. The URLs are full-size originals
 (`{NGINX_PROXY_BASE_URL}/original/<path>`), downloadable from anywhere. One statement per page
 (`GetChangeRequestsForInternalApi`).
 
@@ -344,8 +346,10 @@ needed.
   is given - of another `analyzerVersion`; `all` (default) = every puzzle with a shown image. `analyzer` is required for
   `missing` and `stale`. Each puzzle: `puzzleId`, `name`, `piecesCount`, `manufacturer` `{id, name}` (or null),
   `imageUrl` (the full-size original, `{NGINX_PROXY_BASE_URL}/original/<path>` - downloadable from anywhere),
-  `imageFingerprint`, `imageRatio`, `analyses` `{<analyzer>: {analyzerVersion, imageFingerprint, analyzedAt,
-  receivedAt}}` (an object, `{}` when none). `nextCursor` is the next page's `after`, null on the last page. `requires`
+  `imageFingerprint`, `imageRatio`, `solvedCount` (every counted result of the puzzle - solo, pairs and teams,
+  suspicious ones left out, the catalogue's "Completed N×" from `puzzle_statistics`, 0 when nobody solved it; the
+  pipeline proposes crops of the most-solved puzzles first; same statement, no extra query), `analyses`
+  `{<analyzer>: {analyzerVersion, imageFingerprint, analyzedAt, receivedAt}}` (an object, `{}` when none). `nextCursor` is the next page's `after`, null on the last page. `requires`
   narrows any status to puzzles whose picture already has results of those analyzers (below). Unknown parameters or
   bad values: `400` with `errors`. The last, empty page of a `stale` walk reads every puzzle once
   (~0.35 s measured on 41k × 4 analyzers) - fine once a day.
@@ -433,7 +437,7 @@ curl -s -H "Authorization: Bearer $INTERNAL_API_TOKEN" \
   "https://myspeedpuzzling.com/internal-api/puzzle-images?analyzer=colors&version=colors-v2&status=stale&limit=500" | jq
 # → {"puzzles": [{"puzzleId": "018d…", "name": "…", "piecesCount": 1000, "manufacturer": {"id": "…", "name": "Ravensburger"},
 #     "imageUrl": "https://img.myspeedpuzzling.com/original/ravensburger-….jpg", "imageFingerprint": "3f2a9c0d4b1e7a65",
-#     "imageRatio": 1.38, "analyses": {"artwork": {"analyzerVersion": "crop-v1", "imageFingerprint": "3f2a9c0d4b1e7a65",
+#     "imageRatio": 1.38, "solvedCount": 42, "analyses": {"artwork": {"analyzerVersion": "crop-v1", "imageFingerprint": "3f2a9c0d4b1e7a65",
 #     "analyzedAt": "2026-10-18T05:12:00+00:00", "receivedAt": "2026-10-18T06:00:03+00:00"}}}], "nextCursor": "018d…"}
 
 # Store one

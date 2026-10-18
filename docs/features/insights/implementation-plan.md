@@ -142,7 +142,7 @@ tools/puzzle-vision/
     workstate.py      # SQLite: downloads cache index, failures, per-stage progress (temporary state only)
     lock.py           # /tmp/msp-model-lock (mkdir lock, ≥ 40 % free memory via `memory_pressure`), released on exit
     download.py       # originals → local cache, long side ≤ 1600 px, ≤ 4 req/s, retries; never re-download a fingerprint
-    stages/           # artwork.py, ocr.py (+ barcode, vision_labels), embed_siglip2.py (crop + full), embed_dinov2.py,
+    stages/           # artwork.py, apple_vision.py (ocr, barcode, vision_labels), embeddings.py (siglip2 crop + full, dinov2),
                       # segmentation.py (EoMT-L COCO panoptic, MIT), colors_traits.py (N single-thread CPU workers), describe.py
     derive/           # box_text.py, zeroshot.py, neighbours.py, tags.py, difficulty_prior.py (Phase 5 contract)
     proposals/crops.py# crop proposals (§2.5)
@@ -183,8 +183,8 @@ tools/puzzle-vision/
   - Daily mode afterwards: the same order on new / stale images, then derive + crop proposals.
   - `--hours N` caps a run (Jan also works on this machine; throughput drops 20-50 % with other GPU work).
 - **`m1-air`:**
-  - phase A (no dependencies): `ocr` + `barcode` + `vision_labels`, then `embed_siglip2_full`;
-  - phase B (requires artwork): `embed_siglip2` (crop), `embed_dinov2`, `segmentation` on the GPU, with `colors` + `traits` in CPU workers alongside;
+  - phase A (no dependencies): `ocr` + `barcode`, then `embed_siglip2_full`;
+  - phase B (requires artwork): `embed_siglip2` (crop), `embed_dinov2`, `segmentation` on the GPU, then `vision_labels` (Apple Vision on the crop - it needs `artwork`, and never runs next to a GPU stage), with `colors` + `traits` in CPU workers alongside;
   - then helps with `describe` with the same model and prompt, once `verify --describe-parity` passed (20 images on both machines must produce byte-identical JSON; otherwise the M1 never claims `describe`).
   - Runs nonstop (launchd `KeepAlive`), fanless: expect throttling, which the measurements include.
 - Expected totals: M1 phases A + B ≈ 2.4 days; M3 ≈ 6.1 days alone; **≈ 5.5 days total** with the M1 helping on describe.
@@ -201,7 +201,7 @@ tools/puzzle-vision/
 
 ### 2.5 Crop proposals + Claude Code auto-resolve
 - `propose-crops --limit N`:
-  1. Pick images whose `artwork` result is a box photo (kind ≠ flat), most-viewed / most-solved first (order by solve count from the work list).
+  1. Pick images whose `artwork` result is a box photo (kind ≠ flat), most-solved first (the work list's `solvedCount`: every counted result - solo, pairs, teams; suspicious left out).
   2. Render the perspective-corrected crop from the **full-resolution original**.
   3. Compute the **confidence from agreement signals**, never the raw model score:
      - IoU of the VLM box vs the OpenCV-snapped quad;
@@ -585,12 +585,12 @@ with a PR, and tell Jan.
 2. /image-pipeline-setup m1-air (installs uv/Python deps, downloads only the models this profile needs, asks Jan to paste
    the internal API token into the Keychain prompt himself; never print it).
 3. /image-pipeline-run with the m1-air profile, nonstop:
-   - phase A (no dependencies): ocr + barcode + vision_labels first (~3.5 h - the M3's describe waits on OCR), then
+   - phase A (no dependencies): ocr + barcode first (~3.5 h - the M3's describe waits on OCR), then
      embed_siglip2_full;
-   - phase B (requires artwork, which the M3 produces): embed_siglip2 (crop), embed_dinov2, segmentation on the GPU, with
-     colors + traits in CPU workers alongside. Expected phases A + B ≈ 2.4 days; the Air throttles under sustained
-     load, that is expected.
-4. When phase B is done: run `uv run puzzle-vision verify --describe-parity` (20 images, compares this machine's describe
+   - phase B (requires artwork, which the M3 produces): embed_siglip2 (crop), embed_dinov2, segmentation on the GPU,
+     then vision_labels (Apple Vision on the crop - it needs artwork), with colors + traits in CPU workers alongside.
+     Expected phases A + B ≈ 2.4 days; the Air throttles under sustained load, that is expected.
+4. When phase B is done: run `uv run --extra ml puzzle-vision verify --profile m1-air --describe-parity` (20 images, compares this machine's describe
    output with the M3's). Only if it passes, join `describe` claims with the same model and prompt; otherwise keep the
    Air on its own analyzers and daily mode.
 5. Report progress every few hours with /image-pipeline-status (throughput, ETA, failures). Keep at least 40 % memory

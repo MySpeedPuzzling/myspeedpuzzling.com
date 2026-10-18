@@ -51,6 +51,8 @@ final class PuzzleImageForAnalysisJson
             'imageUrl' => $imageUrl,
             'imageFingerprint' => $puzzle->imageFingerprint,
             'imageRatio' => $puzzle->imageRatio,
+            // Every counted result (solo, pairs, teams; suspicious left out) - for most-solved-first ordering
+            'solvedCount' => $puzzle->solvedCount,
             // Objects even when empty
             'analyses' => (object) $analyses,
             // Who is working on the image now, per analyzer (claims not expired)

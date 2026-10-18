@@ -55,3 +55,11 @@ translations-missing.json
 /tools/badge-art/work/
 /tools/badge-art/**/__pycache__/
 ###< tools/badge-art ###
+
+###> tools/puzzle-vision (Mac image pipeline; its caches and work state live in ~/Library, never here) ###
+/tools/puzzle-vision/.venv/
+/tools/puzzle-vision/**/__pycache__/
+/tools/puzzle-vision/.pytest_cache/
+/tools/puzzle-vision/*.egg-info/
+/tools/puzzle-vision/build/
+###< tools/puzzle-vision ###

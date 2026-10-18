@@ -1,0 +1,105 @@
+# MacBook Air M1 16 GB, fanless, nonstop - everything except artwork, then helps with describe once
+# `verify --describe-parity` passed (image-taxonomy.md §19, plan §2.3). Versions must equal m3-max.toml.
+name = "m1-air"
+description = "M1 Air 16 GB: Apple Vision + embeddings + segmentation + colours/traits, then describe after the parity check"
+
+[analyzers.ocr]
+version = "1.0.0+apple-vision-ocr3"
+requires = []
+claim_limit = 200
+seconds_per_image = 0.3
+
+[analyzers.barcode]
+version = "1.0.0+apple-vision"
+requires = []
+claim_limit = 200
+seconds_per_image = 0.1
+
+[analyzers.embed_siglip2_full]
+version = "1.0.0+so400m-14-384"
+requires = []
+claim_limit = 100
+seconds_per_image = 1.2
+
+[analyzers.embed_siglip2]
+version = "1.0.0+so400m-14-384"
+requires = ["artwork"]
+claim_limit = 100
+seconds_per_image = 1.2
+
+[analyzers.embed_dinov2]
+version = "1.0.0+dinov2-l14-224"
+requires = ["artwork"]
+claim_limit = 200
+seconds_per_image = 0.25
+
+[analyzers.segmentation]
+version = "1.0.0+eomt-l-coco640"
+requires = ["artwork"]
+claim_limit = 100
+seconds_per_image = 2.1
+
+[analyzers.vision_labels]
+version = "1.0.0+apple-vision"
+requires = ["artwork"]
+claim_limit = 200
+seconds_per_image = 0.3
+
+[analyzers.colors]
+version = "1.0.0+oklab-k8"
+requires = ["artwork"]
+claim_limit = 200
+seconds_per_image = 0.4
+workers = 3
+
+[analyzers.traits]
+version = "1.0.0+cv-grid16"
+requires = ["artwork"]
+claim_limit = 200
+seconds_per_image = 0.8
+workers = 3
+
+[analyzers.artwork]
+# not run here (the M3 owns it) - declared for status
+version = "1.0.0+siglip2-q3vl4b"
+requires = []
+
+[analyzers.describe]
+version = "1.0.0+qwen35-9b-4bit"
+requires = ["artwork", "ocr"]
+claim_limit = 5
+seconds_per_image = 57
+
+# phase A - no dependencies: OCR + barcodes first (the M3's describe waits on OCR), then the full-image embedding
+[[phases]]
+name = "A"
+stages = ["ocr", "barcode", "embed_siglip2_full"]
+
+# phase B - needs the M3's artwork: GPU stages one after another, colours + traits in CPU workers alongside,
+# Apple Vision labels last (never next to a GPU stage)
+[[phases]]
+name = "B"
+stages = ["embed_siglip2", "embed_dinov2", "segmentation", "vision_labels"]
+sidecar = ["colors", "traits"]
+
+# helps with describe - only after `verify --describe-parity` passed on this machine
+[[phases]]
+name = "describe"
+stages = ["describe"]
+gate = "describe-parity"
+
+[derived.versions]
+box_text = "1.0.0+rules"
+zeroshot = "1.0.0+so400m@tax1.0.0"
+neighbours = "1.0.0+siglip2-dinov2l"
+tags = "1.0.0+fusion@tax1.0.0"
+
+[daily]
+phases = ["A", "B"]
+derive = false
+propose_crops = 0
+
+[launchd]
+# nonstop: launchd restarts it; `run --follow` keeps claiming as new work appears
+keep_alive = true
+mode = "follow"

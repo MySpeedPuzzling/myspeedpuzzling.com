@@ -97,6 +97,15 @@ final class PuzzleImageAnalysisInternalApiTest extends WebTestCase
         self::assertSame(500, $puzzle['piecesCount']);
         self::assertIsArray($puzzle['manufacturer']);
         self::assertSame([], $puzzle['analyses']);
+
+        // solvedCount = the puzzle's counted results (puzzle_statistics), 0 for a puzzle nobody solved
+        $connection = self::getContainer()->get(Connection::class);
+        $solved = $connection->fetchOne('SELECT solved_times_count FROM puzzle_statistics WHERE puzzle_id = ?', [PuzzleFixture::PUZZLE_500_01]);
+        self::assertIsInt($solved);
+        self::assertGreaterThan(0, $solved);
+        self::assertSame($solved, $puzzle['solvedCount']);
+        self::assertFalse($connection->fetchOne('SELECT 1 FROM puzzle_statistics WHERE puzzle_id = ?', [CompetitionApiFixture::PUZZLE_VISIBLE]));
+        self::assertSame(0, $listed[CompetitionApiFixture::PUZZLE_VISIBLE]['solvedCount']);
     }
 
     public function testFiltersByWhatIsStoredForTheAnalyzer(): void

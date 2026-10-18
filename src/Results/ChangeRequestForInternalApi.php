@@ -16,7 +16,7 @@ readonly final class ChangeRequestForInternalApi
 {
     /**
      * @param list<string> $tags
-     * @param null|array{outcome: string, decidedAt: DateTimeImmutable, decidedById: null|string, decidedByName: null|string, source: null|string, note: null|string, rejectionReason: null|string} $decision
+     * @param null|array{outcome: string, decidedAt: DateTimeImmutable, decidedById: null|string, decidedByName: null|string, source: null|string, note: null|string, rejectionReason: null|string, image: null|string} $decision
      */
     public function __construct(
         public string $id,

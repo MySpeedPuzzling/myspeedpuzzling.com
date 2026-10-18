@@ -132,6 +132,8 @@ final class ListPuzzleChangeRequestsController extends AbstractController
                 'source' => $decision['source'],
                 'note' => $decision['note'],
                 'rejectionReason' => $decision['rejectionReason'],
+                // An approval's picture choice: proposed (the proposed picture was taken), keep, upload; null otherwise
+                'image' => $decision['image'],
             ] : null,
         ];
     }

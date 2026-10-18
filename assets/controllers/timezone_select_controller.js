@@ -56,6 +56,12 @@ export default class extends Controller {
             return;
         }
 
+        // Inside a closed <details> (finish_profile's "Add more") the player would save the zone without ever seeing
+        // the "Detected from your browser" note - only preselect where it is visible
+        if (this.element.closest('details:not([open])') !== null) {
+            return;
+        }
+
         const reported = browserTimeZone();
 
         if (reported === null) {

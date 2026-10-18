@@ -101,6 +101,11 @@ final class SocialRegisterConfirmController extends AbstractController
             );
         }
 
+        // Filled by the browser (timezone_detect_controller.js); the handler keeps only a listed zone. Read before the
+        // single-use registration is consumed, and never via get(): an array value would throw after the consume
+        $timezone = $request->request->all()['timezone'] ?? null;
+        $timezone = is_string($timezone) ? $timezone : null;
+
         $parked = $this->stateStore->consumeRegistration(self::tokenFrom($request));
 
         if ($parked === null) {
@@ -111,9 +116,6 @@ final class SocialRegisterConfirmController extends AbstractController
 
         $email = $parked->profile->email;
         assert($email !== null); // the resolver refuses to park email-less profiles
-
-        // Filled by the browser (timezone_detect_controller.js); the handler keeps only a listed zone
-        $timezone = $request->request->get('timezone');
 
         try {
             $envelope = $this->messageBus->dispatch(new RegisterWithOauthIdentity(

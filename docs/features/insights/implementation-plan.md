@@ -558,7 +558,7 @@ You run the MySpeedPuzzling image pipeline on this MacBook Air M1 (16 GB, fanles
 change application code and you do not commit, except fixing a genuine bug in tools/puzzle-vision/ - then on a branch
 with a PR, and tell Jan.
 
-1. Get the repo: `git clone git@github.com:MySpeedPuzzling/myspeedpuzzling.com.git ~/msp` (or `git pull` if it exists),
+1. Get the repo: `git clone https://github.com/MySpeedPuzzling/myspeedpuzzling.com.git ~/msp` (or `git pull` if it exists),
    then read docs/features/insights/image-pipeline.md (the runbook). If tools/puzzle-vision/ or the runbook is missing,
    stop and tell Jan (Phases 1 + 2 are not deployed yet).
 2. /image-pipeline-setup m1-air (installs uv/Python deps, downloads only the models this profile needs, asks Jan to paste

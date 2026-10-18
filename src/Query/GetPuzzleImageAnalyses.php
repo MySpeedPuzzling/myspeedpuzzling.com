@@ -21,6 +21,11 @@ use SpeedPuzzling\Web\Value\PuzzleImageFingerprint;
  */
 readonly final class GetPuzzleImageAnalyses
 {
+    public const int DEFAULT_PAGE_LIMIT = 500;
+
+    // An embedding row is ~3-6 KB of JSON, so a full page of them is ~3-6 MB - the most a page should carry
+    public const int MAX_PAGE_LIMIT = 1000;
+
     public function __construct(
         private Connection $database,
         private ClockInterface $clock,
@@ -122,6 +127,70 @@ SQL,
         }
 
         return $this->forPuzzles([$puzzleId])[$puzzleId] ?? [];
+    }
+
+    /**
+     * Every stored analysis of one analyzer, a page at a time in puzzle id order (keyset: `after` = the last puzzle id
+     * of the previous page) - for the pipeline reading results back in bulk (all embeddings to compute neighbours).
+     * Walks the unique (analyzer, puzzle_id) index.
+     *
+     * @return array{items: list<PuzzleImageAnalysisResult>, nextCursor: null|string}
+     */
+    public function page(ImageAnalyzer $analyzer, int $limit, null|string $after, bool $onlyCurrent): array
+    {
+        $limit = max(1, min($limit, self::MAX_PAGE_LIMIT));
+        $current = self::sqlCurrent();
+        $conditions = $onlyCurrent ? "AND {$current}" : '';
+        $parameters = [
+            'analyzer' => $analyzer->value,
+            'now' => $this->clock->now()->format('Y-m-d H:i:s'),
+            'limit' => $limit,
+        ];
+
+        if ($after !== null) {
+            $conditions .= ' AND a.puzzle_id > :after';
+            $parameters['after'] = strtolower($after);
+        }
+
+        $rows = $this->database->executeQuery(
+            <<<SQL
+SELECT
+    a.puzzle_id,
+    a.analyzer,
+    a.analyzer_version,
+    a.image_fingerprint,
+    {$current} AS current,
+    a.analyzed_at,
+    a.received_at,
+    a.result
+FROM puzzle_image_analysis a
+JOIN puzzle p ON p.id = a.puzzle_id
+WHERE a.analyzer = :analyzer
+    AND (p.hide_until IS NULL OR p.hide_until <= :now)
+    AND (p.hide_image_until IS NULL OR p.hide_image_until <= :now)
+    {$conditions}
+ORDER BY a.puzzle_id
+LIMIT :limit
+SQL,
+            $parameters,
+        )->fetchAllAssociative();
+
+        $items = [];
+        $lastPuzzleId = null;
+
+        foreach ($rows as $row) {
+            $analysis = PuzzleImageAnalysisResult::fromDatabaseRow($row);
+
+            if ($analysis !== null) {
+                $items[] = $analysis;
+                $lastPuzzleId = $analysis->puzzleId;
+            }
+        }
+
+        return [
+            'items' => $items,
+            'nextCursor' => count($rows) === $limit ? $lastPuzzleId : null,
+        ];
     }
 
     public function one(string $puzzleId, ImageAnalyzer $analyzer): null|PuzzleImageAnalysisResult

@@ -38,6 +38,9 @@ final class PuzzleImageAnalysisInternalApiTest extends WebTestCase
             ['GET', '/internal-api/puzzles/' . PuzzleFixture::PUZZLE_500_01 . '/image-analysis'],
             ['PUT', '/internal-api/puzzles/' . PuzzleFixture::PUZZLE_500_01 . '/image-analysis/colors'],
             ['POST', '/internal-api/puzzle-image-analyses'],
+            ['GET', '/internal-api/puzzle-image-analyses?analyzer=colors'],
+            ['POST', '/internal-api/puzzle-image-claims'],
+            ['POST', '/internal-api/puzzle-image-claims/release'],
             ] as [$method, $uri]
         ) {
             self::callInternalApi($browser, $method, $uri, ['items' => []], token: null);
@@ -268,6 +271,138 @@ final class PuzzleImageAnalysisInternalApiTest extends WebTestCase
 
         self::callInternalApi($browser, 'POST', '/internal-api/puzzle-image-analyses', ['analyses' => []]);
         self::assertResponseStatusCodeSame(422);
+    }
+
+    public function testWorkersClaimImagesStoreAndRelease(): void
+    {
+        $browser = self::createClient();
+        $this->giveImages();
+
+        $studio = self::callInternalApi($browser, 'POST', '/internal-api/puzzle-image-claims', [
+            'analyzer' => 'describe',
+            'version' => '1.0.0+qwen3vl8b-4bit',
+            'worker' => 'mac-studio',
+            'limit' => 2,
+            'leaseSeconds' => 600,
+        ]);
+        self::assertResponseIsSuccessful();
+        self::assertIsArray($studio['puzzles']);
+        self::assertCount(2, $studio['puzzles']);
+        $studioIds = array_map(static fn (mixed $puzzle): string => is_array($puzzle) && is_string($puzzle['puzzleId']) ? $puzzle['puzzleId'] : '', $studio['puzzles']);
+
+        // The work list's shape, with the claim on it
+        $first = $studio['puzzles'][0];
+        self::assertIsArray($first);
+        self::assertIsString($first['imageUrl']);
+        self::assertIsString($first['imageFingerprint']);
+        self::assertIsArray($first['claims']);
+        self::assertIsArray($first['claims']['describe']);
+        self::assertSame('mac-studio', $first['claims']['describe']['worker']);
+
+        $mini = self::callInternalApi($browser, 'POST', '/internal-api/puzzle-image-claims', [
+            'analyzer' => 'describe',
+            'version' => '1.0.0+qwen3vl8b-4bit',
+            'worker' => 'mac-mini',
+            'limit' => 200,
+        ]);
+        self::assertResponseIsSuccessful();
+        self::assertIsArray($mini['puzzles']);
+        $miniIds = array_map(static fn (mixed $puzzle): string => is_array($puzzle) && is_string($puzzle['puzzleId']) ? $puzzle['puzzleId'] : '', $mini['puzzles']);
+        self::assertSame([], array_intersect($studioIds, $miniIds));
+        self::assertContains(PuzzleFixture::PUZZLE_500_03, array_merge($studioIds, $miniIds));
+        self::assertNotContains(PuzzleFixture::PUZZLE_HIDDEN_IMAGE, array_merge($studioIds, $miniIds));
+
+        // The read-only list shows who holds what
+        $listed = self::callInternalApi($browser, 'GET', '/internal-api/puzzle-images?after=' . PuzzleFixture::PUZZLE_500_02 . '&limit=1');
+        self::assertIsArray($listed['puzzles']);
+        self::assertIsArray($listed['puzzles'][0]);
+        self::assertSame(PuzzleFixture::PUZZLE_500_03, $listed['puzzles'][0]['puzzleId']);
+        self::assertIsArray($listed['puzzles'][0]['claims']);
+        self::assertArrayHasKey('describe', $listed['puzzles'][0]['claims']);
+
+        // Storing a result lets go of its claim
+        $stored = $first['puzzleId'];
+        self::assertIsString($stored);
+        self::callInternalApi($browser, 'PUT', $this->putUri($stored, 'describe'), [
+            'analyzerVersion' => '1.0.0+qwen3vl8b-4bit',
+            'imageFingerprint' => $first['imageFingerprint'],
+            'result' => ['caption' => 'A lake below snowy mountains.'],
+        ]);
+        self::assertResponseIsSuccessful();
+        self::assertSame(0, $this->database()->fetchOne('SELECT COUNT(*) FROM puzzle_image_analysis_claim WHERE puzzle_id = :id', ['id' => $stored]));
+
+        $released = self::callInternalApi($browser, 'POST', '/internal-api/puzzle-image-claims/release', ['worker' => 'mac-studio', 'analyzer' => 'describe']);
+        self::assertResponseIsSuccessful();
+        self::assertSame(['released' => 1], $released);
+        self::assertSame(count($miniIds), $this->database()->fetchOne('SELECT COUNT(*) FROM puzzle_image_analysis_claim'));
+    }
+
+    public function testRefusesInvalidClaims(): void
+    {
+        $browser = self::createClient();
+
+        $answer = self::callInternalApi($browser, 'POST', '/internal-api/puzzle-image-claims', [
+            'analyzer' => 'palette',
+            'worker' => str_repeat('w', 65),
+            'limit' => 500,
+            'leaseSeconds' => 10,
+            'lease' => 60,
+        ]);
+        self::assertResponseStatusCodeSame(400);
+        self::assertIsArray($answer['errors']);
+        self::assertSame(['analyzer', 'lease', 'leaseSeconds', 'limit', 'version', 'worker'], self::sortedKeys($answer['errors']));
+
+        self::callInternalApi($browser, 'POST', '/internal-api/puzzle-image-claims/release', ['analyzer' => 'tags']);
+        self::assertResponseStatusCodeSame(400);
+    }
+
+    public function testReadsStoredResultsInBulk(): void
+    {
+        $browser = self::createClient();
+        $this->giveImages();
+
+        foreach ([PuzzleFixture::PUZZLE_500_01, PuzzleFixture::PUZZLE_500_02, PuzzleFixture::PUZZLE_500_03] as $puzzleId) {
+            self::callInternalApi($browser, 'PUT', $this->putUri($puzzleId, 'embed_dinov2'), [
+                'analyzerVersion' => '1.0.0+dinov2-l',
+                'imageFingerprint' => PuzzleImageFingerprint::of(self::IMAGES[$puzzleId]),
+                'result' => ['dim' => 1024, 'dtype' => 'f16', 'cls' => base64_encode(str_repeat("\0", 2048))],
+            ]);
+            self::assertResponseIsSuccessful();
+        }
+
+        // 500_02 gets a new picture - its embedding is of the old one
+        $this->database()->executeStatement('UPDATE puzzle SET image = :image WHERE id = :id', ['image' => 'box-500-02-new.jpg', 'id' => PuzzleFixture::PUZZLE_500_02]);
+
+        $first = self::callInternalApi($browser, 'GET', '/internal-api/puzzle-image-analyses?analyzer=embed_dinov2&limit=2');
+        self::assertResponseIsSuccessful();
+        self::assertSame('embed_dinov2', $first['analyzer']);
+        self::assertIsArray($first['items']);
+        self::assertCount(2, $first['items']);
+        self::assertIsArray($first['items'][0]);
+        self::assertSame(PuzzleFixture::PUZZLE_500_01, $first['items'][0]['puzzleId']);
+        self::assertTrue($first['items'][0]['current']);
+        self::assertIsArray($first['items'][0]['result']);
+        self::assertSame(1024, $first['items'][0]['result']['dim']);
+        self::assertIsArray($first['items'][1]);
+        self::assertFalse($first['items'][1]['current']);
+        self::assertSame(PuzzleFixture::PUZZLE_500_02, $first['nextCursor']);
+
+        $second = self::callInternalApi($browser, 'GET', '/internal-api/puzzle-image-analyses?analyzer=embed_dinov2&limit=2&after=' . PuzzleFixture::PUZZLE_500_02);
+        self::assertIsArray($second['items']);
+        self::assertCount(1, $second['items']);
+        self::assertNull($second['nextCursor']);
+
+        $current = self::callInternalApi($browser, 'GET', '/internal-api/puzzle-image-analyses?analyzer=embed_dinov2&onlyCurrent=1');
+        self::assertIsArray($current['items']);
+        self::assertSame(
+            [PuzzleFixture::PUZZLE_500_01, PuzzleFixture::PUZZLE_500_03],
+            array_map(static fn (mixed $item): mixed => is_array($item) ? $item['puzzleId'] : null, $current['items']),
+        );
+
+        $invalid = self::callInternalApi($browser, 'GET', '/internal-api/puzzle-image-analyses?limit=0&onlyCurrent=yes');
+        self::assertResponseStatusCodeSame(400);
+        self::assertIsArray($invalid['errors']);
+        self::assertSame(['analyzer', 'limit', 'onlyCurrent'], self::sortedKeys($invalid['errors']));
     }
 
     private function giveImages(): void

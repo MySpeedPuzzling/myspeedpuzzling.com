@@ -8,8 +8,10 @@ use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Puzzle;
 use SpeedPuzzling\Web\Entity\PuzzleImageAnalysis;
+use SpeedPuzzling\Web\Entity\PuzzleImageAnalysisClaim;
 use SpeedPuzzling\Web\Exceptions\PuzzleImageChangedMeanwhile;
 use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
+use SpeedPuzzling\Web\Repository\PuzzleImageAnalysisClaimRepository;
 use SpeedPuzzling\Web\Repository\PuzzleImageAnalysisRepository;
 use SpeedPuzzling\Web\Value\PuzzleImageAnalysisInput;
 use SpeedPuzzling\Web\Value\PuzzleImageFingerprint;
@@ -18,7 +20,8 @@ use SpeedPuzzling\Web\Value\PuzzleImageFingerprint;
  * The one rule for storing an image analysis (RecordPuzzleImageAnalysisHandler, RecordPuzzleImageAnalysesHandler):
  * only for a puzzle whose image is shown (a hidden one - a secret competition puzzle, a placeholder before its reveal -
  * reads as unknown), only for its current picture (PuzzleImageFingerprint), and it replaces the stored analysis of the
- * same analyzer whole. Checks everything before it changes anything.
+ * same analyzer whole; the claim on that image and analyzer (a worker's lease) is deleted with it. Checks everything
+ * before it changes anything.
  */
 readonly final class PuzzleImageAnalysisRecorder
 {
@@ -26,6 +29,7 @@ readonly final class PuzzleImageAnalysisRecorder
 
     public function __construct(
         private PuzzleImageAnalysisRepository $puzzleImageAnalysisRepository,
+        private PuzzleImageAnalysisClaimRepository $puzzleImageAnalysisClaimRepository,
         private ClockInterface $clock,
     ) {
     }
@@ -40,6 +44,7 @@ readonly final class PuzzleImageAnalysisRecorder
         PuzzleImageAnalysisInput $input,
         null|Puzzle $puzzle,
         null|PuzzleImageAnalysis $stored,
+        null|PuzzleImageAnalysisClaim $claim = null,
     ): PuzzleImageAnalysis {
         $now = $this->clock->now();
 
@@ -51,6 +56,11 @@ readonly final class PuzzleImageAnalysisRecorder
 
         if ($currentFingerprint !== $input->imageFingerprint) {
             throw new PuzzleImageChangedMeanwhile($currentFingerprint);
+        }
+
+        // The work is done - whoever held the image for this analyzer lets go of it, in the same transaction
+        if ($claim !== null) {
+            $this->puzzleImageAnalysisClaimRepository->delete($claim);
         }
 
         if ($stored !== null) {

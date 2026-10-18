@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller\InternalApi;
 
-use DateTimeInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Exceptions\InternalApiInvalidInput;
 use SpeedPuzzling\Web\Query\GetPuzzleImagesForAnalysis;
@@ -22,7 +21,9 @@ use Symfony\Component\Routing\Attribute\Route;
  * The image analysis pipeline's work list (docs/features/internal-api.md, "Puzzle image analysis"): puzzles with a
  * shown image, in id order, a page at a time - `?analyzer=&version=&status=missing|stale|all&limit=1..1000&after=`.
  * Each with the full-size original's URL to download, the picture's `imageFingerprint` to send back with the result,
- * and what is stored for it per analyzer. `nextCursor` is the `after` of the next page, null on the last one.
+ * what is stored for it and the claims held on it, per analyzer (read-only: the list ignores claims - workers take
+ * images through POST /internal-api/puzzle-image-claims). `nextCursor` is the `after` of the next page, null on the
+ * last one.
  */
 final class ListPuzzleImagesController extends AbstractController
 {
@@ -95,7 +96,10 @@ final class ListPuzzleImagesController extends AbstractController
         $page = $this->getPuzzleImagesForAnalysis->page($status, $analyzer, $version, $limit, $after);
 
         return new JsonResponse([
-            'puzzles' => array_map($this->serialize(...), $page['items']),
+            'puzzles' => array_map(
+                fn (PuzzleImageForAnalysis $puzzle): array => PuzzleImageForAnalysisJson::of($puzzle, $this->uploaderHelper->getPublicPath($puzzle->image)),
+                $page['items'],
+            ),
             'nextCursor' => $page['nextCursor'],
         ]);
     }
@@ -111,37 +115,5 @@ final class ListPuzzleImagesController extends AbstractController
         $value = trim($value);
 
         return $value !== '' ? $value : null;
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function serialize(PuzzleImageForAnalysis $puzzle): array
-    {
-        $analyses = [];
-
-        foreach ($puzzle->analyses as $analyzer => $analysis) {
-            $analyses[$analyzer] = [
-                'analyzerVersion' => $analysis['analyzerVersion'],
-                'imageFingerprint' => $analysis['imageFingerprint'],
-                'analyzedAt' => $analysis['analyzedAt']?->format(DateTimeInterface::ATOM),
-                'receivedAt' => $analysis['receivedAt']->format(DateTimeInterface::ATOM),
-            ];
-        }
-
-        return [
-            'puzzleId' => $puzzle->puzzleId,
-            'name' => $puzzle->name,
-            'piecesCount' => $puzzle->piecesCount,
-            'manufacturer' => $puzzle->manufacturerId !== null
-                ? ['id' => $puzzle->manufacturerId, 'name' => $puzzle->manufacturerName]
-                : null,
-            // The full-size original, as stored
-            'imageUrl' => $this->uploaderHelper->getPublicPath($puzzle->image),
-            'imageFingerprint' => $puzzle->imageFingerprint,
-            'imageRatio' => $puzzle->imageRatio,
-            // An object even when empty
-            'analyses' => (object) $analyses,
-        ];
     }
 }

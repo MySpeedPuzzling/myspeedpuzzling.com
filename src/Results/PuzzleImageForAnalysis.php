@@ -8,12 +8,13 @@ use DateTimeImmutable;
 
 /**
  * A puzzle with a shown image, as the image analysis pipeline lists it (GetPuzzleImagesForAnalysis): what to download
- * (`image`, the stored path) and which picture it is (`imageFingerprint`), plus what is stored for it per analyzer.
+ * (`image`, the stored path) and which picture it is (`imageFingerprint`), plus what is stored for it and who is working on it, per analyzer.
  */
 readonly final class PuzzleImageForAnalysis
 {
     /**
      * @param array<string, array{analyzerVersion: string, imageFingerprint: string, analyzedAt: null|DateTimeImmutable, receivedAt: DateTimeImmutable}> $analyses keyed by analyzer
+     * @param array<string, array{worker: string, expiresAt: DateTimeImmutable}> $claims the claims held now, keyed by analyzer
      */
     public function __construct(
         public string $puzzleId,
@@ -25,6 +26,7 @@ readonly final class PuzzleImageForAnalysis
         public string $imageFingerprint,
         public null|float $imageRatio,
         public array $analyses,
+        public array $claims = [],
     ) {
     }
 }

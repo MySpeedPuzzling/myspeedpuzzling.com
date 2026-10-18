@@ -247,7 +247,7 @@ curl -s -X POST -H "Authorization: Bearer $INTERNAL_API_TOKEN" -H 'Content-Type:
 A pipeline outside the app (Jan's Mac, local open models) analyses every puzzle box image - finds and crops the
 artwork (many images are photos of the box), computes colour and structure features, tags theme and style - and pushes
 the results here daily. They feed later pages (a personal Insights page); nothing shows them yet. Storage is generic:
-one current row per puzzle and **analyzer** (`puzzle_image_analysis`, unique `(puzzle_id, analyzer)`), the payload
+one current row per puzzle and **analyzer** (`puzzle_image_analysis`, unique `(analyzer, puzzle_id)`), the payload
 (`result`) stored as it came, versioned by `analyzerVersion` - no history, a newer push replaces the row. No reviewer
 needed.
 
@@ -257,6 +257,9 @@ needed.
 | `PUT` | `/internal-api/puzzles/{puzzleId}/image-analysis/{analyzer}` | Store one analysis → `200` with the stored row |
 | `POST` | `/internal-api/puzzle-image-analyses` | Store up to 200 analyses → `200` with an outcome per item |
 | `GET` | `/internal-api/puzzles/{puzzleId}/image-analysis` | Every stored analysis of a puzzle, payloads included (debugging) |
+| `POST` | `/internal-api/puzzle-image-claims` | A worker claims its next images (lease) → the work list's items |
+| `POST` | `/internal-api/puzzle-image-claims/release` | A worker releases its claims → `{"released": n}` |
+| `GET` | `/internal-api/puzzle-image-analyses` | Stored results of one analyzer in bulk, payloads included |
 
 - **Analyzers** (`ImageAnalyzer`, a backed enum - a new kind of analysis is one new case there; payload schemas in
   [`insights/image-taxonomy.md`](./insights/image-taxonomy.md) §11): raw, from the image - `artwork`, `colors`,
@@ -298,6 +301,24 @@ needed.
 - **Payload notes**: `result` is jsonb - the values are kept, the **order of keys is not**; an empty object nested
   inside comes back as `[]` (send null or leave the key out). Puzzle merges delete the merged puzzle's rows (the
   survivor keeps its own, stale if it takes the merged puzzle's image).
+- **Claims (several machines in parallel)**: a worker never works from the plain list - it claims.
+  `POST /internal-api/puzzle-image-claims` `{analyzer, version, worker (≤ 64), limit (1-200, 50), leaseSeconds
+  (60-7200, 1800)}` takes up to `limit` puzzles that are still to do for the analyzer (no analysis, another picture or
+  another `version`) and that no **other** worker holds (no claim, an expired one, or this worker's own - re-claiming
+  extends the lease), in puzzle id order, and answers them as `{"puzzles": [...]}` in the list's item shape
+  (`claims.<analyzer>` = `{worker, expiresAt}`). Race-safe for two machines at once: one statement (candidates
+  `FOR UPDATE SKIP LOCKED`, then `INSERT … ON CONFLICT (analyzer, puzzle_id) DO UPDATE … WHERE` the claim is expired or
+  this worker's, `RETURNING` what was really taken - `ClaimPuzzleImagesHandler`, table `puzzle_image_analysis_claim`).
+  **Storing a result (PUT or batch) deletes that puzzle's claim for the analyzer** in the same transaction - whichever
+  worker held it. `POST /internal-api/puzzle-image-claims/release` `{worker, analyzer?, puzzleIds?}` lets go of a
+  worker's own claims (on shutdown, or images it gave up on). A crashed worker's claims simply expire. The plain list
+  stays read-only and ignores claims; its items show the claims held now (`claims`, `{}` when none). `400` with
+  `errors` for invalid fields.
+- **Bulk read**: `GET /internal-api/puzzle-image-analyses?analyzer=<a>&limit=1..1000 (500)&after=<puzzleId>&onlyCurrent=1`
+  - every stored analysis of one analyzer, in puzzle id order, hidden images left out: `{"analyzer", "items": [{puzzleId,
+  analyzer, analyzerVersion, imageFingerprint, current, analyzedAt, receivedAt, result}], "nextCursor"}`. `current` =
+  it describes the picture the puzzle has now; `onlyCurrent=1` returns only those. **Mind the size**: an embedding row
+  is ~3-6 KB, so a page of 1000 is ~3-6 MB - ask for 200-500 at a time for `embed_*`.
 - **Reading them in the app**: `GetPuzzleImageAnalyses::forPuzzles($puzzleIds, onlyCurrent: true)` - decoded results
   keyed by puzzle and analyzer, one statement, hidden images left out.
 
@@ -315,6 +336,24 @@ curl -s -X PUT -H "Authorization: Bearer $INTERNAL_API_TOKEN" -H 'Content-Type: 
   -d '{"analyzerVersion": "crop-v1", "imageFingerprint": "3f2a9c0d4b1e7a65", "analyzedAt": "2026-10-18T05:12:00Z",
        "result": {"bbox": {"x": 0.04, "y": 0.11, "w": 0.92, "h": 0.71}, "isPhoto": true}}' \
   https://myspeedpuzzling.com/internal-api/puzzles/<puzzleId>/image-analysis/artwork
+
+# A worker takes its next 50 images for the caption model (another Mac calling at the same moment gets others)
+curl -s -X POST -H "Authorization: Bearer $INTERNAL_API_TOKEN" -H 'Content-Type: application/json' \
+  -d '{"analyzer": "describe", "version": "1.0.0+qwen3vl8b-4bit", "worker": "mac-mini", "limit": 50, "leaseSeconds": 1800}' \
+  https://myspeedpuzzling.com/internal-api/puzzle-image-claims
+# → {"puzzles": [{"puzzleId": "…", "imageUrl": "…", "imageFingerprint": "…", …,
+#     "claims": {"describe": {"worker": "mac-mini", "expiresAt": "2026-10-18T15:30:00+00:00"}}}]}
+
+# Shutting down - let the other Mac have the rest
+curl -s -X POST -H "Authorization: Bearer $INTERNAL_API_TOKEN" -H 'Content-Type: application/json' \
+  -d '{"worker": "mac-mini"}' https://myspeedpuzzling.com/internal-api/puzzle-image-claims/release
+# → {"released": 37}
+
+# Every current DINOv2 embedding, 500 at a time (to compute neighbours)
+curl -s -H "Authorization: Bearer $INTERNAL_API_TOKEN" \
+  "https://myspeedpuzzling.com/internal-api/puzzle-image-analyses?analyzer=embed_dinov2&onlyCurrent=1&limit=500&after=<nextCursor>"
+# → {"analyzer": "embed_dinov2", "items": [{"puzzleId": "…", "analyzerVersion": "1.0.0+dinov2-l", "current": true,
+#     "result": {"dim": 1024, "dtype": "f16", "cls": "<base64>"}, …}], "nextCursor": "…"}
 
 # Store a batch
 curl -s -X POST -H "Authorization: Bearer $INTERNAL_API_TOKEN" -H 'Content-Type: application/json' \
@@ -1157,3 +1196,4 @@ The public Swagger UI at `/api/docs` is generated by API Platform from resources
 - `src/Entity/PuzzleImageAnalysis.php`, `src/Value/ImageAnalyzer.php`, `src/Value/PuzzleImageFingerprint.php`, `src/Value/PuzzleImageAnalysisInput.php` — image analyses: storage, analyzers, which picture, the checks of a push
 - `src/Message/RecordPuzzleImageAnalysis.php`, `RecordPuzzleImageAnalyses.php` (+ handlers), `src/Services/PuzzleImageAnalysisRecorder.php` — storing them (one rule for both)
 - `src/Query/GetPuzzleImagesForAnalysis.php` (the work list), `src/Query/GetPuzzleImageAnalyses.php` (reading them back, for later pages too)
+- `src/Entity/PuzzleImageAnalysisClaim.php`, `src/Message/ClaimPuzzleImages.php`, `ReleasePuzzleImageClaims.php` (+ handlers) — the workers' claims

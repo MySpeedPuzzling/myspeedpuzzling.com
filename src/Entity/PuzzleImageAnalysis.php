@@ -28,7 +28,7 @@ use SpeedPuzzling\Web\Value\ImageAnalyzer;
  * picture). Deleted with the puzzle - a merge deletes the merged puzzle's rows, the survivor keeps its own.
  */
 #[Entity]
-#[UniqueConstraint(columns: ['puzzle_id', 'analyzer'])]
+#[UniqueConstraint(columns: ['analyzer', 'puzzle_id'])]
 class PuzzleImageAnalysis
 {
     /**

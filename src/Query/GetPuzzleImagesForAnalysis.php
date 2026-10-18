@@ -8,6 +8,7 @@ use DateTimeImmutable;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Psr\Clock\ClockInterface;
+use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Results\PuzzleImageForAnalysis;
 use SpeedPuzzling\Web\Value\ImageAnalyzer;
 use SpeedPuzzling\Web\Value\PuzzleImageAnalysisStatus;
@@ -17,7 +18,8 @@ use SpeedPuzzling\Web\Value\PuzzleImageFingerprint;
  * The image analysis pipeline's work list (GET /internal-api/puzzle-images, docs/features/internal-api.md "Puzzle
  * image analysis"): puzzles with an image that is shown now - never one hidden by hide_until / hide_image_until (a
  * secret competition puzzle, a placeholder before its reveal) - in puzzle id order, a page at a time (keyset: `after`
- * = the last id of the previous page). Two statements per page: the puzzles, then what is stored for them.
+ * = the last id of the previous page). Three statements per page: the puzzles, what is stored for them and the claims
+ * held on them (read-only - the list ignores claims; workers take images through ClaimPuzzleImages).
  *
  * The plan is a merge join of the puzzle primary key with the analyses' puzzle_id index, stopping at `limit` matches
  * (measured 2026-10-18 on 41k puzzles × 4 analyzers: a full page of `all` < 1 ms, of `stale` with 2 % to do ~100 ms,
@@ -77,6 +79,50 @@ readonly final class GetPuzzleImagesForAnalysis
 
         $where = $conditions !== [] ? 'AND ' . implode(' AND ', $conditions) : '';
 
+        $items = $this->load($where, $parameters, $join);
+
+        $lastItem = $items !== [] ? $items[array_key_last($items)] : null;
+
+        return [
+            'items' => $items,
+            'nextCursor' => count($items) === $parameters['limit'] && $lastItem !== null ? $lastItem->puzzleId : null,
+        ];
+    }
+
+    /**
+     * The listed puzzles, in id order, as the work list shows them - a puzzle hidden or without an image meanwhile is
+     * left out (the claim endpoint answers what it claimed this way).
+     *
+     * @param list<string> $puzzleIds
+     *
+     * @return list<PuzzleImageForAnalysis>
+     */
+    public function byIds(array $puzzleIds): array
+    {
+        $puzzleIds = array_values(array_unique(array_map(strtolower(...), array_filter($puzzleIds, Uuid::isValid(...)))));
+
+        if ($puzzleIds === []) {
+            return [];
+        }
+
+        return $this->load(
+            'AND p.id IN (:puzzleIds)',
+            ['now' => $this->clock->now()->format('Y-m-d H:i:s'), 'limit' => count($puzzleIds), 'puzzleIds' => $puzzleIds],
+            '',
+            ['puzzleIds' => ArrayParameterType::STRING],
+        );
+    }
+
+    /**
+     * @param array<string, mixed> $parameters
+     * @param array<string, ArrayParameterType> $types
+     *
+     * @return list<PuzzleImageForAnalysis>
+     */
+    private function load(string $where, array $parameters, string $join, array $types = []): array
+    {
+        $fingerprint = PuzzleImageFingerprint::sql('p.image');
+
         $rows = $this->database->executeQuery(
             <<<SQL
 SELECT
@@ -99,9 +145,12 @@ ORDER BY p.id
 LIMIT :limit
 SQL,
             $parameters,
+            $types,
         )->fetchAllAssociative();
 
-        $analyses = $this->analysesOf(array_values(array_filter(array_column($rows, 'puzzle_id'), is_string(...))));
+        $puzzleIds = array_values(array_filter(array_column($rows, 'puzzle_id'), is_string(...)));
+        $analyses = $this->analysesOf($puzzleIds);
+        $claims = $this->claimsOf($puzzleIds);
         $items = [];
 
         foreach ($rows as $row) {
@@ -122,15 +171,49 @@ SQL,
                 imageFingerprint: $imageFingerprint,
                 imageRatio: is_numeric($row['image_ratio']) ? (float) $row['image_ratio'] : null,
                 analyses: $analyses[$puzzleId] ?? [],
+                claims: $claims[$puzzleId] ?? [],
             );
         }
 
-        $lastItem = $items !== [] ? $items[array_key_last($items)] : null;
+        return $items;
+    }
 
-        return [
-            'items' => $items,
-            'nextCursor' => count($items) === $parameters['limit'] && $lastItem !== null ? $lastItem->puzzleId : null,
-        ];
+    /**
+     * The claims held now (not expired) on the listed puzzles.
+     *
+     * @param list<string> $puzzleIds
+     *
+     * @return array<string, array<string, array{worker: string, expiresAt: DateTimeImmutable}>>
+     */
+    private function claimsOf(array $puzzleIds): array
+    {
+        if ($puzzleIds === []) {
+            return [];
+        }
+
+        $rows = $this->database->executeQuery(
+            <<<SQL
+SELECT puzzle_id, analyzer, worker, expires_at
+FROM puzzle_image_analysis_claim
+WHERE puzzle_id IN (:puzzleIds) AND expires_at > :now
+SQL,
+            ['puzzleIds' => $puzzleIds, 'now' => $this->clock->now()->format('Y-m-d H:i:s')],
+            ['puzzleIds' => ArrayParameterType::STRING],
+        )->fetchAllAssociative();
+
+        $claims = [];
+
+        foreach ($rows as $row) {
+            $puzzleId = $row['puzzle_id'];
+            $analyzer = $row['analyzer'];
+            $worker = $row['worker'];
+            $expiresAt = $row['expires_at'];
+            assert(is_string($puzzleId) && is_string($analyzer) && is_string($worker) && is_string($expiresAt));
+
+            $claims[$puzzleId][$analyzer] = ['worker' => $worker, 'expiresAt' => new DateTimeImmutable($expiresAt)];
+        }
+
+        return $claims;
     }
 
     /**

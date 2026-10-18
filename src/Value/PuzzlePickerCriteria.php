@@ -68,7 +68,12 @@ final readonly class PuzzlePickerCriteria
 
     public const int MAX_PREDICTED_MINUTES = 1440;
 
-    /** @var list<int|string> */
+    /**
+     * A count chip filters by its class (PiecesRange::CLASSES: 500 = 495-505) - see piecesChipValues();
+     * the "Rating grind" preset keeps the exact 500 the rating counts.
+     *
+     * @var list<int|string>
+     */
     public const array PIECES_CHIPS = [54, 100, 150, 200, 300, 500, 750, 1000, 1500, '2000-'];
 
     private const string SEED_PATTERN = '/^[a-z0-9]{4,16}$/';
@@ -586,7 +591,10 @@ final readonly class PuzzlePickerCriteria
             $remaining = $this->pieces;
             unset($remaining[$index]);
 
+            $piecesClass = PiecesRange::fromBounds($min, $max)?->classCount();
+
             [$translationKey, $translationParameters] = match (true) {
+                $piecesClass !== null => ['puzzle_picker.chips.pieces.exact', ['%count%' => $piecesClass]],
                 $min !== null && $max !== null && $min === $max => ['puzzle_picker.chips.pieces.exact', ['%count%' => $min]],
                 $min !== null && $max !== null => ['puzzle_picker.chips.pieces.between', ['%min%' => $min, '%max%' => $max]],
                 $min !== null => ['puzzle_picker.chips.pieces.at_least', ['%min%' => $min]],
@@ -697,7 +705,7 @@ final readonly class PuzzlePickerCriteria
      */
     public function customPiecesRange(): null|array
     {
-        $chipValues = array_map(strval(...), self::PIECES_CHIPS);
+        $chipValues = self::piecesChipValues();
 
         foreach ($this->pieces as $range) {
             if (in_array(self::formatPiecesRange($range), $chipValues, true) === false) {
@@ -706,6 +714,19 @@ final readonly class PuzzlePickerCriteria
         }
 
         return null;
+    }
+
+    /**
+     * The `pieces[]` value of every chip: a count is its class (500 → "495-505").
+     *
+     * @return list<string>
+     */
+    public static function piecesChipValues(): array
+    {
+        return array_map(
+            static fn (int|string $chip): string => is_int($chip) ? PiecesRange::ofClass($chip)->toParam() : $chip,
+            self::PIECES_CHIPS,
+        );
     }
 
     public function defaultSource(): PuzzlePickerSource

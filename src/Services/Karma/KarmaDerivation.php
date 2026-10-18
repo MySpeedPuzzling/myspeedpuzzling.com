@@ -11,7 +11,9 @@ namespace SpeedPuzzling\Web\Services\Karma;
  * review queues) builds on the `karma_items` CTE below, so there is one rule in one place.
  *
  * The rule (Jan, 2026-10-10) - 1 karma each, no caps, no weights:
- * - an approved change request → its reporter (an EAN linked by a scan approves itself - it counts too)
+ * - an approved change request → its reporter (an EAN linked by a scan approves itself - it counts too) - except the
+ *   image pipeline's (source = image_pipeline): a machine's proposal filed in the reviewer player's name, no person's
+ *   contribution, so no proposer karma (the moderator deciding it earns the decision as for any request)
  * - an approved merge request → its reporter
  * - an approved puzzle with an EAN → whoever added it, unless it is a copy: of the puzzles a merge joined, only the
  *   earliest added one keeps the credit (merged-away puzzles are known from puzzle_merge_audit, followed through
@@ -116,6 +118,8 @@ karma_items AS (
     FROM puzzle_change_request r
     LEFT JOIN puzzle p ON p.id = r.puzzle_id
     WHERE r.status = 'approved'
+      -- the image pipeline's proposals are a machine's, filed in the reviewer player's name - nobody's contribution
+      AND r.source IS DISTINCT FROM 'image_pipeline'
       {$reporterFilter}
     UNION ALL
     -- approved merge requests, linked to the puzzle the merge lives on in
@@ -138,6 +142,8 @@ karma_items AS (
     -- also drops the backfill's decision rows for EANs linked by a scan (approved by their own reporter)
     LEFT JOIN puzzle_change_request own_change ON d.action = 'change_request_approved'
         AND own_change.id = d.change_request_id AND own_change.reporter_id = d.decided_by_id
+        -- an image pipeline proposal earns its reporter nothing, so deciding it is the decision's karma
+        AND own_change.source IS DISTINCT FROM 'image_pipeline'
     LEFT JOIN puzzle_merge_request own_merge ON d.action = 'merge_request_approved'
         AND own_merge.id = d.merge_request_id AND own_merge.reporter_id = d.decided_by_id
     LEFT JOIN karma_puzzle_items own_puzzle ON d.action = 'puzzle_approved'

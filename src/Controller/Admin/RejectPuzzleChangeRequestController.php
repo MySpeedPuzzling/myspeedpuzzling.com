@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Controller\Admin;
 
+use SpeedPuzzling\Web\Exceptions\PuzzleChangeRequestAlreadyReviewed;
+use SpeedPuzzling\Web\Exceptions\PuzzleChangeRequestNotFound;
 use SpeedPuzzling\Web\Message\RejectPuzzleChangeRequest;
+use SpeedPuzzling\Web\Query\GetPuzzleChangeRequests;
 use SpeedPuzzling\Web\Security\PuzzleModerationVoter;
 use SpeedPuzzling\Web\Services\RetrieveLoggedUserProfile;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -21,6 +24,7 @@ final class RejectPuzzleChangeRequestController extends AbstractController
         private readonly MessageBusInterface $messageBus,
         private readonly RetrieveLoggedUserProfile $retrieveLoggedUserProfile,
         private readonly TranslatorInterface $translator,
+        private readonly GetPuzzleChangeRequests $getPuzzleChangeRequests,
     ) {
     }
 
@@ -47,13 +51,23 @@ final class RejectPuzzleChangeRequestController extends AbstractController
             return $this->redirectToRoute('admin_puzzle_change_request_detail', ['id' => $id]);
         }
 
-        $this->messageBus->dispatch(
-            new RejectPuzzleChangeRequest(
-                changeRequestId: $id,
-                reviewerId: $player->playerId,
-                rejectionReason: $rejectionReason,
-            ),
-        );
+        $puzzleId = $this->getPuzzleChangeRequests->puzzleIdOf($id) ?? throw new PuzzleChangeRequestNotFound();
+
+        try {
+            $this->messageBus->dispatch(
+                new RejectPuzzleChangeRequest(
+                    changeRequestId: $id,
+                    puzzleId: $puzzleId,
+                    reviewerId: $player->playerId,
+                    rejectionReason: $rejectionReason,
+                ),
+            );
+        } catch (PuzzleChangeRequestAlreadyReviewed) {
+            // Like the approval: somebody decided it meanwhile
+            $this->addFlash('warning', $this->translator->trans('admin.puzzle_change_request.already_reviewed'));
+
+            return $this->redirectToRoute('admin_puzzle_change_request_detail', ['id' => $id]);
+        }
 
         $this->addFlash('success', $this->translator->trans('admin.puzzle_change_request.rejected'));
 

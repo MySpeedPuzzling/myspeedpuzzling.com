@@ -7,7 +7,7 @@ state, PR, merge and deploy, deviations from the plan (and why), follow-ups.
 |---|---|---|---|---|---|
 | Prerequisites | done | #254, #255 | 2026-10-18 | 2026-10-18 | time zone; image-analysis internal API (14 analyzers, claims, bulk read) |
 | Research + plan | done | - | 2026-10-18 | - | README.md, implementation-plan.md, research files, prototype.html |
-| 1 Production API for the pipeline | in progress (1a done; 1b, then 1c) | #258 (1a) | 1a: 2026-10-18 | 1a: 2026-10-18 | 1a verified on prod: 401 without token, `requires=bogus` 400, `requires=artwork` 200 |
+| 1 Production API for the pipeline | in progress (1a + 1b done; 1c) | #258 (1a), #259 (1b) | 1a, 1b: 2026-10-18 | 1a, 1b: 2026-10-18 | 1a verified: 401 without token, `requires=bogus` 400, `requires=artwork` 200. 1b verified: migration applied, list endpoint 200, source backfill 897 internal_api / 2,790 player |
 | 2 Mac pipeline | in progress | | | | stream below |
 | Backfill (M3 Max + M1 Air sessions) | not started | - | - | - | starts after 1 + 2 are deployed; ≈ 5.5 days |
 | 3 Prediction fix | in progress (3a) | | | | streams below |
@@ -57,8 +57,16 @@ Phase 3 starts as soon as a subagent slot frees (1a is small).
   token. The code paths are unit-tested with a mocked API; `setup-check`, `bench` and `verify --end-to-end` are the
   first steps of the M3 backfill session (§9.2), which reports the numbers. Recorded here instead of blocking the merge.
 
-(none yet)
+- **1b:** an `image_pipeline` proposal earns its reporter **no karma** (orchestrator, on the karma principle "a person's
+  accepted contribution": it is a machine's proposal filed in the reviewer player's name); a moderator's web decision
+  on it earns decision karma as usual. A reject's `decisionNote` lives in the decision's `details.decisionNote` (the
+  `note` column is the reason the player reads). Added after the independent review: approval re-checks the pipeline
+  fingerprint (409 `image_changed`), reject refuses a decided request (409) and takes the per-puzzle lock.
+  `SubmitPuzzleChangeRequest` is `SerializedByLock` per puzzle. Refusals carry a stable `code`.
 
 ## Follow-ups
 
-(none yet)
+- Rejected crop images are deleted like any rejected proposal's file (decision + confidence stay, which is what the
+  threshold calibration needs). Revisit only if crop-model retraining needs the rejected crops.
+- API change-request rejects before 1b read `admin_ui` in the decision log (documented in puzzle-approvals.md).
+

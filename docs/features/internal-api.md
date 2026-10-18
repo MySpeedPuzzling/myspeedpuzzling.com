@@ -100,7 +100,8 @@ number, photo).
 
 | Method | Path | Purpose |
 |---|---|---|
-| `POST` | `/internal-api/puzzle-change-requests` | File a proposal yourself (`201` + `{"changeRequestId"}`, plus the names as filed) |
+| `POST` | `/internal-api/puzzle-change-requests` | File a proposal yourself (`201` + `{"changeRequestId"}`, plus the names as filed) - the image pipeline's too |
+| `GET` | `/internal-api/puzzle-change-requests` | List requests with their metadata, decision and picture URLs, a page at a time |
 | `POST` | `/internal-api/puzzle-change-requests/{id}/reject` | Decline the proposal |
 | `POST` | `/internal-api/puzzle-change-requests/{id}/approve` | Approve the proposal, applying only the fields you list |
 
@@ -119,7 +120,7 @@ it) is in no queue, and approving a change request of it answers `409` - unless 
 (`INTERNAL_API_REVIEWER_PLAYER_ID`) is an admin: then the API approves it like the admin UI does (a correction the
 organiser asked for). Approving the puzzle itself and merges wait for the reveal for everybody. A proposal of the names only (`name`, `nameLanguage`,
 `alternativeNames` - nothing else differs) is filed regardless and holds up nothing: names apply as a diff, so several
-may wait at once. No photo. Use it for catalogue corrections found by an analysis, so they go through moderator review
+may wait at once. Use it for catalogue corrections found by an analysis, so they go through moderator review
 instead of a database write - the `puzzle-change-proposal` skill wraps it.
 
 The `201` answer also carries `recordVersion`: the puzzle's record the proposal was filed against (a fingerprint of
@@ -137,13 +138,61 @@ answer then also holds `nameLanguage` and `alternativeNames` as filed. On approv
 against the names when it was filed (added, re-tagged/edited and removed names), never as a replacement - names
 somebody else changed in between stay.
 
+**A picture and the image pipeline** ([`insights/README.md`](./insights/README.md) "Artwork crops" - the pipeline
+never changes a picture itself, it proposes one):
+
+| Field | Notes |
+|---|---|
+| `image` | The proposed picture: base64 of a JPEG, PNG or WebP (a `data:image/…;base64,` prefix is allowed), at most 15 MB decoded. Checked by the web form's own rule for a proposed photo (the constraints of `ProposePuzzleChangesFormData::$photo`) and stored the same way - optimized, as `proposal-<changeRequestId>.<ext>` with its ratio (`ProposedPuzzleImageInput` → `SubmitPuzzleChangeRequestHandler`). Anything else is a `422` with `errors.image`. **A proposal of the picture only is valid** - every other field may be left out. |
+| `source` | `"image_pipeline"` for the pipeline's proposals; left out = `internal_api`. Stored as `puzzle_change_request.source` (`PuzzleChangeRequestSource`: `player` = the web form and multiscan, `internal_api`, `image_pipeline`) |
+| `tags` | A list of at most 10 short tags (1-50 characters of letters, digits, `_ - . :`), e.g. `["artwork_crop"]` - what kind of proposal it is. Required (at least one) for `image_pipeline` |
+| `confidence` | The pipeline's confidence, a number 0..1 |
+| `modelVersion` | The producing model and its version, ≤ 100 characters, e.g. `"artwork-crop 1.0.0"` |
+| `sourceImageFingerprint` | The picture the proposal was made from: the `imageFingerprint` of the image list (16 hex of md5(`puzzle.image`), `PuzzleImageFingerprint`). Required for `image_pipeline` |
+
+Rules (`ImagePipelineProposalRules`, checked again by the handler under the puzzle's lock - `SubmitPuzzleChangeRequest`
+is `SerializedByLock` on the puzzle, so two at once never both pass):
+- A puzzle whose picture is hidden (`hide_until` / `hide_image_until` in the future) answers `404` to an `image_pipeline`
+  request and to any request with an `image`, like the image analysis API.
+- `sourceImageFingerprint` other than the puzzle's picture now: `409` with `"code": "image_changed"` - list it again.
+- **Never twice:** an `image_pipeline` request of the same puzzle, `sourceImageFingerprint` and tag already exists, in
+  **any** status (a rejected one is remembered): `409` with `"code": "already_proposed"` (the error names that request).
+  A new picture has a new fingerprint and may be proposed again.
+- An `image` counts as more than names, so a pending change request of more than its names (or a merge request) of the
+  puzzle answers `409` with `"code": "pending_proposal"` (one proposal at a time, like the web form).
+- Bad metadata (`source` other than the two, `tags`, `confidence`, `modelVersion`, `sourceImageFingerprint`, the two
+  required ones missing for `image_pipeline`): `400` with `errors`.
+
+The reviewer player is the reporter here too; the moderators' review queue shows the proposal like any other (filters
+and a before/after grid for `artwork_crop` come with the web review, plan §1.3).
+
+**List** `GET /internal-api/puzzle-change-requests?source=player|internal_api|image_pipeline&tag=&status=pending|approved|rejected|outdated|all&limit=1..500 (100)&after=<changeRequestId>`
+(`status` defaults to `all`): every request in id order (= filing order, UUIDv7), keyset paged - `nextCursor` is the
+next page's `after`, null on the last page; unknown parameters or bad values are a `400` with `errors`. **Requests of a
+puzzle whose picture is hidden now are never listed.** Each item: `id`, `puzzleId`, `puzzleName`, `status`, `source`
+(a row older than the column reads `player`), `tags` (`[]` when none), `confidence`, `modelVersion`,
+`sourceImageFingerprint`, `originalImageUrl` (the puzzle's picture when filed - an image change never deletes it),
+`proposedImageUrl` (the proposal's file while pending; once approved with the picture, the puzzle's new picture; null
+once rejected - a rejection deletes the proposal's file - or when it proposes no picture), `originalArchiveUrl` (below),
+`createdAt` and `decision`: null while pending, else `{outcome: approved|rejected|outdated, decidedAt, decidedBy:
+{playerId, name} | null, source: admin_ui|internal_api|automatic, note, rejectionReason}` from the decision log
+(`puzzle_moderation_decision`, its latest row of the request). The URLs are full-size originals
+(`{NGINX_PROXY_BASE_URL}/original/<path>`), downloadable from anywhere. One statement per page
+(`GetChangeRequestsForInternalApi`).
+
 Reject body: `rejectionReason` (required). **It is shown to the player who proposed the change**, as a notification, so
-write it for them. Only send pending requests - like the merge-request reject, it does not check the status.
+write it for them. Optional `decisionNote` (≤ 500 characters): an internal note that only the decision log keeps - its
+`note` is the rejection reason, so the internal one goes to `details.decisionNote`; the list returns it as
+`decision.note`. The decision is logged with `source = internal_api`. Only a pending request is rejected: one decided
+already answers `409` and nothing changes (no second decision, no second notification). Approve and reject of one
+request take the same per-puzzle lock (`SerializedByLock`), so they never both pass. An unknown id is a `404`.
 
 Approve body: `selectedFields` (required) - the fields to apply, any of `name`, `nameLanguage`, `alternativeNames`,
 `manufacturer`, `piecesCount`, `ean`, `identificationNumber`, `image`, like ticking them in the admin review; `[]`
 approves without touching the puzzle (a proposal something else already satisfied, e.g. a brand fix a brand merge made).
-Optional `decisionNote`. Optional corrections of the proposal, each for a selected field only (`400` otherwise):
+Optional `decisionNote` (≤ 500 characters, `400` above): the decision log's `note`, returned by the list as
+`decision.note` - e.g. `"auto: confidence 0.987, band ≥ 0.98, model artwork-crop 1.0.0"` when Claude Code approves an
+automated proposal. Optional corrections of the proposal, each for a selected field only (`400` otherwise):
 `alternativeNames` (the list as it should end up, same shape as when filing - applied as a diff against the names when
 the request was filed, like the proposal) and `nameLanguage` (a tag or `null`); they are kept in the decision's
 `details.overrides`. Optional `recordVersion`: the puzzle's record as you read it (the `201` answer of the filing) - a
@@ -153,6 +202,20 @@ them) needs `name`, `nameLanguage` and `alternativeNames` selected **together** 
 Answers `409` when the request was already approved or rejected - unlike reject, approve checks the status - or when
 the puzzle changed since `recordVersion`, and `422` when the result breaks a rule of the record (e.g. more than 20 other
 names).
+
+**A crop of an older picture is never applied:** approving an `image_pipeline` request that changes the picture (the
+proposed one, or an upload in the web review) while the puzzle has another picture than its `sourceImageFingerprint`
+(or none) answers `409` with `"code": "image_changed"` - nothing changed, nothing archived; reject it, the pipeline
+proposes the new picture. The web review shows it as a form error.
+
+**Originals are always kept.** An approved image change never deletes the picture it replaces (the new one is written
+under a new name - `PuzzleImageStorage`), whoever proposed it. On top of that, **approving an `image_pipeline` request
+that changes the picture** (the proposed one, or an upload in the web review) first copies the puzzle's current picture
+to `originals/<puzzleId>/<fingerprint>.<ext>` on the same storage (`PuzzleOriginalImageArchive`, a Flysystem copy) and
+records the path on the request (`original_archive_path`, listed as `originalArchiveUrl`) and in the decision's
+`details.originalArchivePath`. A failed copy refuses the approval - `409` with `"code": "original_not_archived"`,
+nothing changed, a warning logged (Sentry): try again later. Same picture, same path - a second copy only rewrites the
+same bytes. "Restore original picture" for moderators builds on this (web review, plan §1.4).
 
 ### Brands
 
@@ -1140,6 +1203,38 @@ curl -X POST "$APP_URL/internal-api/puzzle-merge-requests/019e32be-0000-7000-800
   -H "Authorization: Bearer $INTERNAL_API_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"rejectionReason": "These are different products - one is 500 pieces, the other 900."}'
+
+# The image pipeline proposes a cleaner picture (its artwork crop) - fingerprint from the image list
+jq -n --arg image "$(base64 < crop.jpg)" '{
+    puzzleId: "018eb4c9-d751-70db-ab5d-0b8a4e55d2a7", source: "image_pipeline", image: $image,
+    tags: ["artwork_crop"], confidence: 0.987, modelVersion: "artwork-crop 1.0.0",
+    sourceImageFingerprint: "3f2a9c0d4b1e7a65"}' \
+| curl -X POST "$APP_URL/internal-api/puzzle-change-requests" \
+  -H "Authorization: Bearer $INTERNAL_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d @-
+# → 201 {"changeRequestId": "019a…", "recordVersion": "…"}; the same picture + tag again → 409 {"code": "already_proposed"}
+
+# The pipeline's pending crops, oldest first, 100 at a time
+curl -s "$APP_URL/internal-api/puzzle-change-requests?source=image_pipeline&tag=artwork_crop&status=pending" \
+  -H "Authorization: Bearer $INTERNAL_API_TOKEN"
+# → {"changeRequests": [{"id": "019a…", "puzzleId": "…", "status": "pending", "source": "image_pipeline",
+#     "tags": ["artwork_crop"], "confidence": 0.987, "modelVersion": "artwork-crop 1.0.0",
+#     "sourceImageFingerprint": "3f2a9c0d4b1e7a65", "originalImageUrl": "https://img…/original/….jpg",
+#     "proposedImageUrl": "https://img…/original/proposal-019a….jpg", "originalArchiveUrl": null,
+#     "createdAt": "…", "decision": null}], "nextCursor": null}
+
+# Approve the picture with a note (the original is archived first - 409 "original_not_archived" if that fails)
+curl -X POST "$APP_URL/internal-api/puzzle-change-requests/019a0000-0000-7000-8000-00000000000a/approve" \
+  -H "Authorization: Bearer $INTERNAL_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"selectedFields": ["image"], "decisionNote": "auto: confidence 0.987, band ≥ 0.98, model artwork-crop 1.0.0"}'
+
+# Reject one - the reason goes to the reporter (the reviewer player), the note stays in the log
+curl -X POST "$APP_URL/internal-api/puzzle-change-requests/019a0000-0000-7000-8000-00000000000b/reject" \
+  -H "Authorization: Bearer $INTERNAL_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"rejectionReason": "The crop cuts off part of the picture.", "decisionNote": "review: crop too tight"}'
 ```
 
 ## Audit trail
@@ -1188,16 +1283,21 @@ the `fingers_crossed` one that drops info records of requests without a warning.
 | `404 Not Found` | Unknown `featureRequestId` / `mergeRequestId` / brand / puzzle / competition / round id or slug | `{"error": "..."}` |
 | `409 Conflict` | Brand already approved, or its name is taken by an approved brand, or a brand to delete is still in use; a change request already reviewed | `{"error": "..."}` |
 | `409 Conflict` | A taken competition slug; the round invariant (a puzzle in two rounds of one category); a round with results to delete; a shared tag; a competition already approved / rejected / an edition to approve; a known EAN for a new puzzle | `{"error": "..."}` |
-| `409 Conflict` | A puzzle changed since the `recordVersion(s)` sent with a merge / change-request approve; a change proposal for a puzzle with a pending one | `{"error": "..."}` |
+| `409 Conflict` | A puzzle changed since the `recordVersion(s)` sent with a merge / change-request approve; a change proposal for a puzzle with a pending one (`"code": "pending_proposal"`) | `{"error": "..."}` |
+| `409 Conflict` | A change proposal of the image pipeline made already (`already_proposed`) or of a picture the puzzle no longer has (`image_changed`); approving an image pipeline picture of a picture the puzzle no longer has (`image_changed`) or whose original could not be archived (`original_not_archived`); rejecting a change request decided already | `{"error": "...", "code": "..."}` |
+| `422 Unprocessable Entity` | A change proposal's `image` that is no JPEG / PNG / WebP of at most 15 MB | `{"error": "...", "errors": {"image": "..."}}` |
+| `200 OK` | The change request list | `{"changeRequests", "nextCursor"}` |
 | `409 Conflict` | A round change, a round delete or a puzzle removal that would reveal secret puzzles earlier than planned, sent without `"confirmReveal": true` | `{"error": "...", "revealedPuzzles": [...]}` |
 | `422 Unprocessable Entity` | A brand merge that cannot be done (survivor in its own list) | `{"error": "..."}` |
 | `200 OK` | An image analysis stored (`PUT`), a batch of them (`POST`, an outcome per item), the image list | the analysis / `{"counts", "items"}` / `{"puzzles", "nextCursor"}` |
 | `404 Not Found` | An image analysis for an unknown puzzle or a hidden image | `{"error": "..."}` |
-| `409 Conflict` | An image analysis of a picture the puzzle no longer has (`imageFingerprint`) | `{"error": "..."}` |
+| `409 Conflict` | An image analysis of a picture the puzzle no longer has (`imageFingerprint`) | `{"error": "...", "code": "image_changed"}` |
 | `422 Unprocessable Entity` | An invalid image analysis (an unknown analyzer, a `result` that is no object or over 64 KB, a bad `bbox`/`corners`), a batch that is no list of 1-200 items | `{"error": "...", "errors": {"field": "what is wrong"}}` |
 
 Every refusal is JSON, whatever the client accepts: `InternalApiErrorResponseSubscriber` renders each 4xx HTTP
-exception under `/internal-api/` (from a controller, a handler or the firewall) as `{"error": "…"}` with its status.
+exception under `/internal-api/` (from a controller, a handler or the firewall) as `{"error": "…"}` with its status -
+plus a stable `"code"` for the refusals a script branches on (exceptions implementing `InternalApiErrorCode`; never
+rename a code).
 Anything else (a bug, any 5xx) is left to Symfony and stays a reported 500. Both it and the audit log recognise the
 API by the **decoded** path, like the firewall and the router do (`InternalApiAuthenticator::isInternalApiRequest()`),
 so `/internal%2Dapi/…` is answered and logged the same.
@@ -1258,3 +1358,7 @@ The public Swagger UI at `/api/docs` is generated by API Platform from resources
 - `src/Message/RecordPuzzleImageAnalysis.php`, `RecordPuzzleImageAnalyses.php` (+ handlers), `src/Services/PuzzleImageAnalysisRecorder.php` — storing them (one rule for both)
 - `src/Query/GetPuzzleImagesForAnalysis.php` (the work list), `src/Query/GetPuzzleImageAnalyses.php` (reading them back, for later pages too)
 - `src/Entity/PuzzleImageAnalysisClaim.php`, `src/Message/ClaimPuzzleImages.php`, `ReleasePuzzleImageClaims.php` (+ handlers) — the workers' claims
+- `src/Value/PuzzleChangeRequestSource.php`, `src/Services/ImagePipelineProposalRules.php`, `src/Services/InternalApi/ProposedPuzzleImageInput.php` — change proposals with a picture and the image pipeline's metadata
+- `src/Query/GetChangeRequestsForInternalApi.php` + `src/Controller/InternalApi/ListPuzzleChangeRequestsController.php` — the change request list
+- `src/Services/PuzzleOriginalImageArchive.php` — the `originals/` archive copy before an image pipeline picture is approved
+- `tests/Controller/InternalApi/PuzzleChangeRequestPipelineInternalApiTest.php` — the pipeline's proposals, the list, decision notes, the archive

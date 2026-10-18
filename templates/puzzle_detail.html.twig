@@ -61,16 +61,16 @@
    pieces hub of every brand; an odd piece count has neither. #}
 {% if catalogue_links.linksBrandPiecesPage %}
     {% set pieces_page = {
-        url: path('brand_pieces_puzzles', {slug: catalogue_links.brandSlug, pieces: puzzle.piecesCount}),
-        name: 'brand_pieces_hub.title'|trans({'%brand%': puzzle.manufacturerName, '%pieces%': puzzle.piecesCount}),
-        label: 'puzzle_detail.breadcrumb.pieces'|trans({'%pieces%': puzzle.piecesCount}),
+        url: path('brand_pieces_puzzles', {slug: catalogue_links.brandSlug, pieces: catalogue_links.piecesCount}),
+        name: 'brand_pieces_hub.title'|trans({'%brand%': puzzle.manufacturerName, '%pieces%': catalogue_links.piecesCount}),
+        label: 'puzzle_detail.breadcrumb.pieces'|trans({'%pieces%': catalogue_links.piecesCount}),
         fixed: true,
     } %}
 {% elseif catalogue_links.linksPiecesHub %}
     {% set pieces_page = {
-        url: path('pieces_puzzles', {pieces: puzzle.piecesCount}),
-        name: 'brand_hub.pieces_link'|trans({'%pieces%': puzzle.piecesCount}),
-        label: 'brand_hub.pieces_link'|trans({'%pieces%': puzzle.piecesCount}),
+        url: path('pieces_puzzles', {pieces: catalogue_links.piecesCount}),
+        name: 'brand_hub.pieces_link'|trans({'%pieces%': catalogue_links.piecesCount}),
+        label: 'brand_hub.pieces_link'|trans({'%pieces%': catalogue_links.piecesCount}),
         fixed: true,
     } %}
 {% else %}
@@ -520,7 +520,7 @@
 
             {% if related.samePiecesCount and catalogue_links.linksBrandPiecesPage %}
                 <p class="puzzle-related-more">
-                    <a class="puzzle-related-all" href="{{ pieces_page.url }}">{{ 'brand_pieces_hub.all_puzzles'|trans({'%brand%': puzzle.manufacturerName, '%pieces%': puzzle.piecesCount}) }}<i class="bi bi-arrow-right" aria-hidden="true"></i></a>
+                    <a class="puzzle-related-all" href="{{ pieces_page.url }}">{{ 'brand_pieces_hub.all_puzzles'|trans({'%brand%': puzzle.manufacturerName, '%pieces%': catalogue_links.piecesCount}) }}<i class="bi bi-arrow-right" aria-hidden="true"></i></a>
                 </p>
             {% elseif catalogue_links.linksBrandHub %}
                 <p class="puzzle-related-more">

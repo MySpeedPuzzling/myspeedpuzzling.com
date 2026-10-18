@@ -94,7 +94,8 @@ final class ApprovePuzzleChangeRequestController extends AbstractController
                 reviewerId: $this->reviewerPlayerId,
                 selectedFields: array_values(array_unique($selectedFields)),
                 decisionSource: MergeDecisionSource::InternalApi,
-                decisionNote: InternalApiJsonBody::optionalString($body, 'decisionNote'),
+                // The decision log's note (≤ 500 characters), e.g. why an automated review approved it
+                decisionNote: InternalApiJsonBody::decisionNote($body),
                 alternativeNamesOverride: $alternativeNames,
                 nameLanguageOverride: $nameLanguage,
                 // Optional: the puzzle's recordVersion as read before deciding - a puzzle changed since refuses it

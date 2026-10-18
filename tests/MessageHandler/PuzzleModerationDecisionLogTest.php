@@ -53,6 +53,7 @@ final class PuzzleModerationDecisionLogTest extends KernelTestCase
     {
         $this->messageBus->dispatch(new RejectPuzzleChangeRequest(
             changeRequestId: PuzzleReportFixture::CHANGE_REQUEST_PENDING,
+            puzzleId: PuzzleFixture::PUZZLE_500_01,
             reviewerId: PlayerFixture::PLAYER_REGULAR,
             rejectionReason: 'Wrong edition',
         ));

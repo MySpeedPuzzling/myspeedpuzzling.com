@@ -11,6 +11,7 @@ use SpeedPuzzling\Web\Results\DifficultyRankingBrand;
 use SpeedPuzzling\Web\Results\DifficultyRankingEntry;
 use SpeedPuzzling\Web\Value\DifficultyRankingDirection;
 use SpeedPuzzling\Web\Value\MetricConfidence;
+use SpeedPuzzling\Web\Value\PiecesRange;
 
 /**
  * Read model of the public hardest / easiest puzzle lists.
@@ -46,28 +47,29 @@ SQL;
         }
 
         $condition = self::RATED_PUZZLE_CONDITION;
+        // Per piece-count class (504 counts as 500 - PiecesRange::CLASSES), like byPieces() lists them
+        $piecesClass = PiecesRange::sqlClassOf('puzzle.pieces_count');
+        $withinClasses = PiecesRange::sqlWithinClasses('puzzle.pieces_count', $piecesCounts);
 
         $query = <<<SQL
 SELECT
-    puzzle.pieces_count,
+    {$piecesClass} AS pieces_count,
     COUNT(*) AS rated_puzzles
 FROM puzzle_difficulty
 INNER JOIN puzzle ON puzzle.id = puzzle_difficulty.puzzle_id
 INNER JOIN manufacturer ON manufacturer.id = puzzle.manufacturer_id
-WHERE puzzle.pieces_count IN (:piecesCounts)
+WHERE {$withinClasses}
     AND {$condition}
-GROUP BY puzzle.pieces_count
+GROUP BY 1
 HAVING COUNT(*) >= :minimumPuzzles
-ORDER BY puzzle.pieces_count
+ORDER BY 1
 SQL;
 
         /** @var list<array{pieces_count: int|string, rated_puzzles: int|string}> $rows */
         $rows = $this->database
             ->executeQuery($query, [
-                'piecesCounts' => $piecesCounts,
                 'minimumPuzzles' => $minimumPuzzles,
             ] + $this->ratedPuzzleParameters(), [
-                'piecesCounts' => ArrayParameterType::INTEGER,
                 'confidences' => ArrayParameterType::STRING,
             ])
             ->fetchAllAssociative();
@@ -131,8 +133,11 @@ SQL;
      */
     public function byPieces(int $piecesCount, DifficultyRankingDirection $direction, int $limit): array
     {
-        return $this->ranking('puzzle.pieces_count = :piecesCount', [
-            'piecesCount' => $piecesCount,
+        $piecesClass = PiecesRange::ofClass($piecesCount);
+
+        return $this->ranking('puzzle.pieces_count BETWEEN :minPieces AND :maxPieces', [
+            'minPieces' => $piecesClass->minPieces ?? $piecesCount,
+            'maxPieces' => $piecesClass->maxPieces ?? $piecesCount,
         ], $direction, $limit);
     }
 

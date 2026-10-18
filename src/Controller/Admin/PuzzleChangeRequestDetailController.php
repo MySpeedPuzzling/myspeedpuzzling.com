@@ -9,6 +9,8 @@ use SpeedPuzzling\Web\Exceptions\InvalidPuzzleValues;
 use SpeedPuzzling\Web\Exceptions\PuzzleChangedMeanwhile;
 use SpeedPuzzling\Web\Exceptions\PuzzleIsStillSecret;
 use SpeedPuzzling\Web\Exceptions\PuzzleChangeRequestAlreadyReviewed;
+use SpeedPuzzling\Web\Exceptions\PuzzleImageChangedMeanwhile;
+use SpeedPuzzling\Web\Exceptions\PuzzleOriginalImageNotArchived;
 use SpeedPuzzling\Web\Exceptions\PuzzleChangeRequestNotFound;
 use SpeedPuzzling\Web\FormData\PuzzleRecordFormData;
 use SpeedPuzzling\Web\FormType\PuzzleRecordFormType;
@@ -112,6 +114,12 @@ final class PuzzleChangeRequestDetailController extends AbstractController
             } catch (PuzzleIsStillSecret) {
                 // A secret competition puzzle is approved, merged and edited only once revealed
                 $form->addError(new FormError($this->translator->trans('competition.reveal.puzzle_still_secret')));
+            } catch (PuzzleOriginalImageNotArchived) {
+                // The picture an image pipeline proposal replaces is archived first - storage refused the copy
+                $form->addError(new FormError($this->translator->trans('admin.puzzle_change_request.original_not_archived')));
+            } catch (PuzzleImageChangedMeanwhile) {
+                // An image pipeline proposal made from a picture the puzzle no longer has
+                $form->addError(new FormError($this->translator->trans('admin.puzzle_change_request.proposal_image_outdated')));
             } catch (PuzzleChangedMeanwhile) {
                 // The form keeps what was typed - and the version it was loaded with, so it stays refused until reloaded
                 $form->addError(new FormError($this->translator->trans('puzzle_names.record_changed_meanwhile')));

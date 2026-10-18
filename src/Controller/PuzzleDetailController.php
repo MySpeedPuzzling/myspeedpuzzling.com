@@ -27,6 +27,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Psr\Clock\ClockInterface;
+use SpeedPuzzling\Web\Value\PiecesRange;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 
 final class PuzzleDetailController extends AbstractController
@@ -100,7 +101,7 @@ final class PuzzleDetailController extends AbstractController
         // Only a brand × pieces page can be at stake, and the brand hub stats
         // (which tell whether it is indexable) are cached per brand for 6 hours
         $brandHub = null;
-        if ($puzzle->manufacturerSlug !== null && in_array($puzzle->piecesCount, PiecesPuzzlesController::ALLOWED_PIECES, true)) {
+        if ($puzzle->manufacturerSlug !== null && in_array(PiecesRange::classOf($puzzle->piecesCount), PiecesPuzzlesController::ALLOWED_PIECES, true)) {
             $brandHub = $this->catalogueStatsProvider->brandHub($puzzle->manufacturerSlug);
         }
 

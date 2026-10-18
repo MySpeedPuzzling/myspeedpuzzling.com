@@ -108,6 +108,7 @@ final class ChangeRequestCreatedBrandTest extends KernelTestCase
 
         $this->messageBus->dispatch(new RejectPuzzleChangeRequest(
             changeRequestId: $changeRequestId,
+            puzzleId: PuzzleFixture::PUZZLE_500_01,
             reviewerId: PlayerFixture::PLAYER_ADMIN,
             rejectionReason: 'The brand is spelled right.',
         ));
@@ -151,6 +152,7 @@ final class ChangeRequestCreatedBrandTest extends KernelTestCase
 
         $this->messageBus->dispatch(new RejectPuzzleChangeRequest(
             changeRequestId: $changeRequestId,
+            puzzleId: PuzzleFixture::PUZZLE_500_01,
             reviewerId: PlayerFixture::PLAYER_ADMIN,
             rejectionReason: 'Not this puzzle.',
         ));

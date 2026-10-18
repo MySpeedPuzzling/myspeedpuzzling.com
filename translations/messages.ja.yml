@@ -2915,6 +2915,8 @@ badges:
     "rejected": "変更リクエストが却下されました。"
     "rejection_reason_required": "却下理由は必須です。"
     "already_reviewed": "この変更リクエストは、すでにほかの人が審査しています。"
+    "proposal_image_outdated": "この提案の元になったパズルの画像はその後変更されたため、提案された画像はもう適用できません。現在の画像のままにするか、提案を却下してください。"
+    "original_not_archived": "現在の画像をアーカイブにコピーできなかったため、何も承認されていません。しばらくしてからもう一度お試しください。"
   "puzzle_merge_request":
     "approved": "統合リクエストが承認されました。パズルが統合されました。"
     "rejected": "統合リクエストが却下されました。"

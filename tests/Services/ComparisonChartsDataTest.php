@@ -118,7 +118,7 @@ final class ComparisonChartsDataTest extends TestCase
 
         $pace = $this->charts->paceByPieces($result);
 
-        self::assertSame(['500', '1000'], array_column($pace, 'key'));
+        self::assertSame(['495-505', '990-1010'], array_column($pace, 'key'));
         self::assertSame('500', $pace[0]['label']);
         self::assertEqualsWithDelta(-10.0, $pace[0]['subjects']['p-' . self::ME]['percent'], 1e-9);
         self::assertEqualsWithDelta(0.0, $pace[0]['subjects']['p-' . self::ANNA]['percent'], 1e-9);
@@ -239,7 +239,7 @@ final class ComparisonChartsDataTest extends TestCase
         self::assertSame('a', $all['roles']['p-' . self::ME]);
         self::assertCount(1, $all['scatter']['points']);
         self::assertSame(1, $all['leadLag']['aheadCount']);
-        self::assertSame('500', $all['pace'][0]['key']);
+        self::assertSame('495-505', $all['pace'][0]['key']);
         self::assertSame([], $all['difficulty']);
         self::assertCount(ComparisonChartsData::FORM_MONTHS, $all['form']['months']);
         self::assertSame(1, $all['matrix']['cells']['p-' . self::ME]['p-' . self::ANNA]['wins']);

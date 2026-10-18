@@ -3648,6 +3648,8 @@ admin:
     puzzle_change_request:
         approved: "Change request has been approved and puzzle updated."
         already_reviewed: "This change request had already been reviewed by someone else."
+        proposal_image_outdated: "The puzzle's picture changed after this proposal was made from it, so the proposed picture can no longer be applied. Keep the current picture or reject the proposal."
+        original_not_archived: "The current picture could not be copied to the archive, so nothing was approved. Try again in a moment."
         rejected: "Change request has been rejected."
         rejection_reason_required: "Rejection reason is required."
     puzzle_edit:

@@ -43,13 +43,13 @@ final class MarketplaceListingPiecesFilterTest extends WebTestCase
 
     public function testBoundsFromTheUrlSelectTheChip(): void
     {
-        $component = $this->createLiveComponent('MarketplaceListing', ['piecesMin' => 500, 'piecesMax' => 500], self::createClient());
+        $component = $this->createLiveComponent('MarketplaceListing', ['piecesMin' => 495, 'piecesMax' => 505], self::createClient());
         $component->setRouteLocale('en');
 
         $crawler = $component->render()->crawler();
-        self::assertNotNull($crawler->filter('#marketplace-pieces-500')->attr('checked'));
+        self::assertNotNull($crawler->filter('#marketplace-pieces-495-505')->attr('checked'));
         self::assertNull($crawler->filter('#marketplace-pieces-any')->attr('checked'));
-        self::assertSame('500', $crawler->filter('input[data-model="on(change)|piecesMin"]')->attr('value'));
+        self::assertSame('495', $crawler->filter('input[data-model="on(change)|piecesMin"]')->attr('value'));
     }
 
     private function listingOf(TestLiveComponent $component): MarketplaceListing

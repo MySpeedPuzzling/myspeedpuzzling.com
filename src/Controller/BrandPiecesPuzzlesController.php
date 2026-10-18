@@ -87,7 +87,7 @@ final class BrandPiecesPuzzlesController extends AbstractController
 
         // Unknown slug: ManufacturerNotFound (404)
         $brand = $this->catalogueStatsProvider->brandHub($slug);
-        $piecesRange = PiecesRange::between($pieces, $pieces);
+        $piecesRange = PiecesRange::ofClass($pieces);
         $puzzlesCount = $this->getCataloguePuzzles->count($brand->brandId, $piecesRange);
 
         // No visible puzzle of this piece count - there is no such page

@@ -2428,6 +2428,10 @@ badges:
     "solved_times": "Armado %count%×"
     "fastest": "más rápido %time%"
     "latest": "último %time%"
+    "solo": "Solo:"
+    "pair": "Pareja:"
+    "team": "Equipo:"
+    "relax": "%count%× relax"
   "add_puzzle_here":
     "button": "Añadir puzzle"
   "add_puzzle_form":
@@ -5989,7 +5993,6 @@ puzzle_picker:
         solved_times: "armado %count%×"
         last_solved: "la última vez %ago%"
         not_solved_yet: "Aún no has armado este puzzle"
-        no_solo_time: "Aún sin tiempo en solitario – armado en equipo"
         first_time: "Primer tiempo:"
         community: "Comunidad:"
         community_stats: "media %average% · %count% tiempos en solitario"

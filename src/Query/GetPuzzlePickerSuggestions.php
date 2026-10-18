@@ -206,6 +206,9 @@ WITH my_solves AS (
             FILTER (WHERE pst.puzzling_type = 'solo' AND pst.suspicious = false AND pst.seconds_to_solve IS NOT NULL))[1] AS first_seconds,
         (array_agg(pst.seconds_to_solve ORDER BY COALESCE(pst.finished_at, pst.tracked_at) DESC, pst.tracked_at DESC)
             FILTER (WHERE pst.puzzling_type = 'solo' AND pst.suspicious = false AND pst.seconds_to_solve IS NOT NULL))[1] AS latest_seconds,
+        min(pst.seconds_to_solve) FILTER (WHERE pst.puzzling_type = 'duo' AND pst.suspicious = false) AS fastest_pair_seconds,
+        min(pst.seconds_to_solve) FILTER (WHERE pst.puzzling_type = 'team' AND pst.suspicious = false) AS fastest_team_seconds,
+        count(*) FILTER (WHERE pst.seconds_to_solve IS NULL AND pst.pieces_placed IS NULL AND pst.suspicious = false) AS relax_solve_count,
         max(COALESCE(pst.finished_at, pst.tracked_at)) AS last_solved_at
     FROM puzzle_solving_time pst
     WHERE :playerId::uuid IS NOT NULL
@@ -216,6 +219,9 @@ my_team_solves AS (
     SELECT
         pst.puzzle_id,
         count(*) AS solve_count,
+        min(pst.seconds_to_solve) FILTER (WHERE pst.puzzling_type = 'duo' AND pst.suspicious = false) AS fastest_pair_seconds,
+        min(pst.seconds_to_solve) FILTER (WHERE pst.puzzling_type = 'team' AND pst.suspicious = false) AS fastest_team_seconds,
+        count(*) FILTER (WHERE pst.seconds_to_solve IS NULL AND pst.pieces_placed IS NULL AND pst.suspicious = false) AS relax_solve_count,
         max(COALESCE(pst.finished_at, pst.tracked_at)) AS last_solved_at
     FROM puzzle_solving_time pst
     WHERE :playerId::uuid IS NOT NULL
@@ -254,6 +260,9 @@ picked AS (
         s.fastest_seconds AS my_fastest_seconds,
         s.first_seconds AS my_first_seconds,
         s.latest_seconds AS my_latest_seconds,
+        LEAST(s.fastest_pair_seconds, ts.fastest_pair_seconds) AS my_fastest_pair_seconds,
+        LEAST(s.fastest_team_seconds, ts.fastest_team_seconds) AS my_fastest_team_seconds,
+        COALESCE(s.relax_solve_count, 0) + COALESCE(ts.relax_solve_count, 0) AS my_relax_solve_count,
         GREATEST(s.last_solved_at, ts.last_solved_at) AS my_last_solved_at,
         (mi.puzzle_id IS NOT NULL) AS in_my_collection,
         (b.puzzle_id IS NOT NULL) AS is_borrowed,
@@ -296,6 +305,9 @@ SELECT
     picked.my_fastest_seconds,
     picked.my_first_seconds,
     picked.my_latest_seconds,
+    picked.my_fastest_pair_seconds,
+    picked.my_fastest_team_seconds,
+    picked.my_relax_solve_count,
     picked.my_last_solved_at,
     picked.in_my_collection,
     picked.is_borrowed,
@@ -349,6 +361,9 @@ SQL;
              *     my_fastest_seconds: null|int|string,
              *     my_first_seconds: null|int|string,
              *     my_latest_seconds: null|int|string,
+             *     my_fastest_pair_seconds: null|int|string,
+             *     my_fastest_team_seconds: null|int|string,
+             *     my_relax_solve_count: int|string,
              *     my_last_solved_at: null|string,
              *     in_my_collection: bool,
              *     is_borrowed: bool,

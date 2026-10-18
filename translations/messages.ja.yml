@@ -2417,6 +2417,10 @@ badges:
     "solved_times": "%count%回完成"
     "fastest": "最速 %time%"
     "latest": "最新 %time%"
+    "solo": "ソロ:"
+    "pair": "ペア:"
+    "team": "チーム:"
+    "relax": "リラックス %count%回"
   "add_puzzle_here":
     "button": "パズルを追加"
   "add_puzzle_form":
@@ -5978,7 +5982,6 @@ puzzle_picker:
         solved_times: "%count%回完成"
         last_solved: "最後は%ago%"
         not_solved_yet: "このパズルはまだ組んでいません"
-        no_solo_time: "ソロのタイムはまだありません – チームで完成"
         first_time: "初回タイム："
         community: "コミュニティ："
         community_stats: "平均 %average% · ソロ%count%件"

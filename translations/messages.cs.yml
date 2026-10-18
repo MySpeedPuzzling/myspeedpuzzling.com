@@ -2528,6 +2528,10 @@ recap_progress:
     "solved_times": "Složeno %count%×"
     "fastest": "nejrychleji %time%"
     "latest": "naposledy %time%"
+    "solo": "Sólo:"
+    "pair": "Dvojice:"
+    "team": "Tým:"
+    "relax": "%count%× relax"
   "meta":
     "title": "Puzzle knihovna"
     "description": "Knihovna puzzle hráče %name% na MySpeedPuzzling: sbírky puzzle, složená i nesložená puzzle, seznam přání a puzzle na prodej či výměnu."
@@ -6089,7 +6093,6 @@ puzzle_picker:
         solved_times: "složeno %count%×"
         last_solved: "naposledy %ago%"
         not_solved_yet: "Tohle puzzle jste ještě neskládali"
-        no_solo_time: "Zatím bez sólo času – skládáno v týmu"
         first_time: "První čas:"
         community: "Komunita:"
         community_stats: "průměr %average% · %count% sólo časů"

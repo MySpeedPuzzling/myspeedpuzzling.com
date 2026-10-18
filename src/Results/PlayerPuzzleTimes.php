@@ -10,7 +10,8 @@ use DateTimeImmutable;
  * One player's history on one puzzle, as shown next to a collection item in
  * the "My times" display mode. Same semantics as the picker card: solveCountAny
  * counts every solving time of mine (solo, duo / team rows I own, team rows I
- * took part in), the times are solo, non-suspicious, timed solves only.
+ * took part in); fastest / latest are solo times, pair and team times are
+ * their own (never mixed with solo), relax solves are counted apart.
  */
 readonly final class PlayerPuzzleTimes
 {
@@ -21,6 +22,9 @@ readonly final class PlayerPuzzleTimes
         public null|int $fastestSeconds,
         public null|int $latestSeconds,
         public null|DateTimeImmutable $lastSolvedAt,
+        public null|int $fastestPairSeconds,
+        public null|int $fastestTeamSeconds,
+        public int $relaxSolveCount,
     ) {
     }
 
@@ -40,6 +44,9 @@ readonly final class PlayerPuzzleTimes
      *     solve_count_solo: int|string,
      *     fastest_seconds: null|int|string,
      *     latest_seconds: null|int|string,
+     *     fastest_pair_seconds: null|int|string,
+     *     fastest_team_seconds: null|int|string,
+     *     relax_solve_count: int|string,
      *     last_solved_at: null|string,
      * } $row
      */
@@ -52,6 +59,9 @@ readonly final class PlayerPuzzleTimes
             fastestSeconds: $row['fastest_seconds'] !== null ? (int) $row['fastest_seconds'] : null,
             latestSeconds: $row['latest_seconds'] !== null ? (int) $row['latest_seconds'] : null,
             lastSolvedAt: $row['last_solved_at'] !== null ? new DateTimeImmutable($row['last_solved_at']) : null,
+            fastestPairSeconds: $row['fastest_pair_seconds'] !== null ? (int) $row['fastest_pair_seconds'] : null,
+            fastestTeamSeconds: $row['fastest_team_seconds'] !== null ? (int) $row['fastest_team_seconds'] : null,
+            relaxSolveCount: (int) $row['relax_solve_count'],
         );
     }
 }

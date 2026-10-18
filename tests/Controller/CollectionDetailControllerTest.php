@@ -349,11 +349,20 @@ final class CollectionDetailControllerTest extends WebTestCase
         self::assertStringContainsString('fastest 01:05:50', $item->filter('.collection-my-times-fastest')->text());
         self::assertStringContainsString('latest 01:15:00', $item->filter('.collection-my-times-latest')->text());
         self::assertSame('3950', $item->attr('data-my-fastest-seconds'));
+        self::assertStringContainsString('1× relax', $item->filter('.collection-my-times-relax')->text());
+        self::assertCount(0, $item->filter('.collection-my-times-pair'));
+        self::assertCount(0, $item->filter('.collection-my-times-team'));
+
+        // A pair result is shown as a pair time - never as a solo time, never called a team
         $duo = $crawler->filter('#library-collection-' . PuzzleFixture::PUZZLE_1000_01);
         self::assertSame('Solved 1×', $duo->filter('.collection-my-times-solved')->text());
+        self::assertCount(0, $duo->filter('.collection-my-times-solo'));
         self::assertCount(0, $duo->filter('.collection-my-times-fastest'));
-        self::assertStringContainsString('No solo time yet', $duo->filter('.collection-my-times')->text());
-        self::assertSame('', $duo->attr('data-my-fastest-seconds'));
+        self::assertStringContainsString('Pair: fastest 01:00:00', $duo->filter('.collection-my-times-pair')->text());
+        self::assertCount(0, $duo->filter('.collection-my-times-team'));
+        self::assertCount(0, $duo->filter('.collection-my-times-relax'));
+        self::assertStringNotContainsString('team', $duo->filter('.collection-my-times')->text());
+        self::assertSame('', $duo->attr('data-my-fastest-seconds'), 'Sorting by my time stays solo');
 
         // Back to Off: nothing rendered, nothing computed
         $this->setDisplayMode($browser, PlayerFixture::PLAYER_REGULAR, CollectionDisplayMode::Off);

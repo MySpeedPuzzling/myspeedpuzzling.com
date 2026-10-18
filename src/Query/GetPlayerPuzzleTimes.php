@@ -14,8 +14,10 @@ use SpeedPuzzling\Web\Results\PlayerPuzzleTimes;
  * picker's my_solves / my_team_solves CTEs (GetPuzzlePickerSuggestions), so
  * "solved N×", fastest and latest mean the same thing on both pages: every
  * solving time of mine counts as a solve (incl. team rows where I am only a
- * participant), the times themselves come from solo, non-suspicious, timed
- * solves, "when" = COALESCE(finished_at, tracked_at).
+ * participant), "when" = COALESCE(finished_at, tracked_at). Times come from
+ * non-suspicious timed solves and stay apart per kind (solo / pair / team -
+ * never mixed); a relax solve is an untimed one that is not an unfinished
+ * competition result (pieces_placed).
  */
 readonly final class GetPlayerPuzzleTimes
 {
@@ -46,6 +48,9 @@ WITH my_solves AS (
         min(pst.seconds_to_solve) FILTER (WHERE pst.puzzling_type = 'solo' AND pst.suspicious = false AND pst.seconds_to_solve IS NOT NULL) AS fastest_seconds,
         (array_agg(pst.seconds_to_solve ORDER BY COALESCE(pst.finished_at, pst.tracked_at) DESC, pst.tracked_at DESC)
             FILTER (WHERE pst.puzzling_type = 'solo' AND pst.suspicious = false AND pst.seconds_to_solve IS NOT NULL))[1] AS latest_seconds,
+        min(pst.seconds_to_solve) FILTER (WHERE pst.puzzling_type = 'duo' AND pst.suspicious = false) AS fastest_pair_seconds,
+        min(pst.seconds_to_solve) FILTER (WHERE pst.puzzling_type = 'team' AND pst.suspicious = false) AS fastest_team_seconds,
+        count(*) FILTER (WHERE pst.seconds_to_solve IS NULL AND pst.pieces_placed IS NULL AND pst.suspicious = false) AS relax_solve_count,
         max(COALESCE(pst.finished_at, pst.tracked_at)) AS last_solved_at
     FROM puzzle_solving_time pst
     WHERE pst.player_id = :playerId
@@ -56,6 +61,9 @@ my_team_solves AS (
     SELECT
         pst.puzzle_id,
         count(*) AS solve_count,
+        min(pst.seconds_to_solve) FILTER (WHERE pst.puzzling_type = 'duo' AND pst.suspicious = false) AS fastest_pair_seconds,
+        min(pst.seconds_to_solve) FILTER (WHERE pst.puzzling_type = 'team' AND pst.suspicious = false) AS fastest_team_seconds,
+        count(*) FILTER (WHERE pst.seconds_to_solve IS NULL AND pst.pieces_placed IS NULL AND pst.suspicious = false) AS relax_solve_count,
         max(COALESCE(pst.finished_at, pst.tracked_at)) AS last_solved_at
     FROM puzzle_solving_time pst
     WHERE pst.puzzle_id IN (:puzzleIds)
@@ -70,6 +78,9 @@ SELECT
     COALESCE(s.solve_count_solo, 0) AS solve_count_solo,
     s.fastest_seconds,
     s.latest_seconds,
+    LEAST(s.fastest_pair_seconds, ts.fastest_pair_seconds) AS fastest_pair_seconds,
+    LEAST(s.fastest_team_seconds, ts.fastest_team_seconds) AS fastest_team_seconds,
+    COALESCE(s.relax_solve_count, 0) + COALESCE(ts.relax_solve_count, 0) AS relax_solve_count,
     GREATEST(s.last_solved_at, ts.last_solved_at) AS last_solved_at
 FROM my_solves s
 FULL OUTER JOIN my_team_solves ts ON ts.puzzle_id = s.puzzle_id
@@ -82,6 +93,9 @@ SQL;
          *     solve_count_solo: int|string,
          *     fastest_seconds: null|int|string,
          *     latest_seconds: null|int|string,
+         *     fastest_pair_seconds: null|int|string,
+         *     fastest_team_seconds: null|int|string,
+         *     relax_solve_count: int|string,
          *     last_solved_at: null|string,
          * }> $rows
          */

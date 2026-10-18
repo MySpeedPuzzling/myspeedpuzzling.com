@@ -165,27 +165,34 @@
                         {% endif %}
 
                         {# My times (+ prediction): the viewer's own results on this puzzle. "Not solved yet",
-                           or solved N× with the fastest time (and the latest one only when it is a different
-                           result); the prediction pill for members with the "times + predictions" mode. #}
+                           or solved N× with one line per kind (#256): solo fastest (and the latest one only when
+                           it is a different result), pair, team, relax - never mixed; the prediction pill for
+                           members with the "times + predictions" mode. #}
                         {% if show_my_times %}
                             <div class="fs-xs mt-1 collection-my-times">
                                 {% if my_time is null or my_time.solveCountAny == 0 %}
                                     <span class="text-muted collection-my-times-unsolved"><i class="bi bi-hourglass me-1"></i>{{ 'collections.display.not_solved_yet'|trans }}</span>
                                 {% else %}
                                     <span class="collection-my-times-solved">{{ 'collections.display.solved_times'|trans({'%count%': my_time.solveCountAny}) }}</span>
-                                    {% if my_time.fastestSeconds is not null %}
-                                        <span class="text-muted">·</span>
-                                        <span class="collection-my-times-fastest">{{ 'collections.display.fastest'|trans({'%time%': my_time.fastestSeconds|puzzlingTime}) }} <i class="bi bi-star-fill text-warning"></i></span>
-                                        {% if my_time.latestDiffersFromFastest %}
-                                            <span class="text-muted">·</span>
-                                            <span class="collection-my-times-latest">{{ 'collections.display.latest'|trans({'%time%': my_time.latestSeconds|puzzlingTime}) }}</span>
-                                        {% endif %}
-                                    {% else %}
-                                        <span class="text-muted">· {{ 'puzzle_picker.card.no_solo_time'|trans }}</span>
-                                    {% endif %}
                                     {% if my_time.lastSolvedAt is not null %}
                                         <span class="text-muted">· {{ 'puzzle_picker.card.last_solved'|trans({'%ago%': my_time.lastSolvedAt|ago}) }}</span>
                                     {% endif %}
+                                    {% if my_time.fastestSeconds is not null %}
+                                        <div class="collection-my-times-solo">
+                                            <i class="bi bi-person me-1" aria-hidden="true"></i>{{ 'collections.display.solo'|trans }}
+                                            <span class="collection-my-times-fastest">{{ 'collections.display.fastest'|trans({'%time%': my_time.fastestSeconds|puzzlingTime}) }} <i class="bi bi-star-fill text-warning"></i></span>
+                                            {% if my_time.latestDiffersFromFastest %}
+                                                <span class="text-muted">·</span>
+                                                <span class="collection-my-times-latest">{{ 'collections.display.latest'|trans({'%time%': my_time.latestSeconds|puzzlingTime}) }}</span>
+                                            {% endif %}
+                                        </div>
+                                    {% endif %}
+                                    {{ include('puzzle/_my_group_and_relax_times.html.twig', {
+                                        pair_seconds: my_time.fastestPairSeconds,
+                                        team_seconds: my_time.fastestTeamSeconds,
+                                        relax_count: my_time.relaxSolveCount,
+                                        class_prefix: 'collection-my-times',
+                                    }, with_context = false) }}
                                 {% endif %}
                                 {% if my_prediction is not null %}
                                     <span class="badge border border-primary text-primary rounded-pill collection-prediction ms-1"

@@ -249,6 +249,29 @@ final class GetPuzzlePickerSuggestionsTest extends KernelTestCase
         self::assertSame(4200, $privateOnTeamOne->myFastestSeconds);
     }
 
+    public function testPairTimesAndRelaxSolvesAreShownApartFromSoloTimes(): void
+    {
+        // team-001 on PUZZLE_1000_01 (pair, 3600 s) owned by PLAYER_REGULAR; team-002 on PUZZLE_1000_03
+        // (pair, 4000 s) where PLAYER_PRIVATE only took part
+        $regular = self::byId($this->pickAll(['source' => 'any'], PlayerFixture::PLAYER_REGULAR), PuzzleFixture::PUZZLE_1000_01);
+
+        self::assertNull($regular->myFastestSeconds);
+        self::assertSame(3600, $regular->myFastestPairSeconds);
+        self::assertNull($regular->myFastestTeamSeconds);
+        self::assertSame(0, $regular->myRelaxSolveCount);
+
+        $private = self::byId($this->pickAll(['source' => 'any'], PlayerFixture::PLAYER_PRIVATE), PuzzleFixture::PUZZLE_1000_03);
+
+        self::assertSame(4000, $private->myFastestPairSeconds);
+        self::assertNull($private->myFastestTeamSeconds);
+
+        // PLAYER_REGULAR on PUZZLE_1000_02: two solo times and an untimed relax row
+        $relax = self::byId($this->pickAll(['source' => 'mine'], PlayerFixture::PLAYER_REGULAR), PuzzleFixture::PUZZLE_1000_02);
+
+        self::assertSame(1, $relax->myRelaxSolveCount);
+        self::assertNull($relax->myFastestPairSeconds);
+    }
+
     public function testMyStatsOnARepeatedlySolvedPuzzle(): void
     {
         // PLAYER_REGULAR on PUZZLE_500_02: 36:40 (20 days ago) -> 31:40 (15) -> 28:20 (10)

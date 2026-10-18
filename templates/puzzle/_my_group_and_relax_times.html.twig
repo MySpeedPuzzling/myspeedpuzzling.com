@@ -1,0 +1,20 @@
+{#
+    The viewer's own pair, team and relax results on one puzzle, one short line each, under their solo times - the
+    collection pages' "My times" and the puzzle picker card (#256). Solo, pair and team times are never mixed: each
+    line is its own kind, a relax solve (no time) is only counted. Nothing for a kind without results.
+
+    Parameters:
+    - pair_seconds: fastest pair time, or null
+    - team_seconds: fastest team time, or null
+    - relax_count: relax solves (int)
+    - class_prefix: prefix of each line's class (`collection-my-times` → `collection-my-times-pair`, …)
+#}
+{% if pair_seconds is not null %}
+    <div class="{{ class_prefix }}-pair"><i class="bi bi-people me-1" aria-hidden="true"></i>{{ 'collections.display.pair'|trans }} {{ 'collections.display.fastest'|trans({'%time%': pair_seconds|puzzlingTime}) }}</div>
+{% endif %}
+{% if team_seconds is not null %}
+    <div class="{{ class_prefix }}-team"><i class="bi bi-people-fill me-1" aria-hidden="true"></i>{{ 'collections.display.team'|trans }} {{ 'collections.display.fastest'|trans({'%time%': team_seconds|puzzlingTime}) }}</div>
+{% endif %}
+{% if relax_count > 0 %}
+    <div class="text-muted {{ class_prefix }}-relax"><i class="bi bi-cup-hot me-1" aria-hidden="true"></i>{{ 'collections.display.relax'|trans({'%count%': relax_count}) }}</div>
+{% endif %}

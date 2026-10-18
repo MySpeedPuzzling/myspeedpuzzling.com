@@ -158,7 +158,7 @@ final class PuzzleAddFormType extends AbstractType
             'empty_data' => '0',
             'attr' => [
                 'min' => 0,
-                'max' => 99,
+                'max' => 999,
                 'class' => 'form-control text-center time-input',
                 'inputmode' => 'numeric',
                 'onfocus' => 'setTimeout(() => this.select(), 100)',

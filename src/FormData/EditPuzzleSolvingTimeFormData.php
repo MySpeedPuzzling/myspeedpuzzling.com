@@ -18,7 +18,7 @@ final class EditPuzzleSolvingTimeFormData
     public PuzzleAddMode $mode = PuzzleAddMode::SpeedPuzzling;
 
     #[PositiveOrZero]
-    #[Range(max: 99)]
+    #[Range(max: 999)]
     public int $timeHours = 0;
 
     #[PositiveOrZero]

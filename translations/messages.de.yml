@@ -2927,6 +2927,8 @@ badges:
     "rejected": "Änderungsanfrage wurde abgelehnt."
     "rejection_reason_required": "Ablehnungsgrund ist erforderlich."
     "already_reviewed": "Diese Änderungsanfrage wurde bereits von jemand anderem geprüft."
+    "proposal_image_outdated": "Das Bild des Puzzles hat sich geändert, seit dieser Vorschlag daraus erstellt wurde – das vorgeschlagene Bild kann nicht mehr übernommen werden. Behalte das aktuelle Bild oder lehne den Vorschlag ab."
+    "original_not_archived": "Das aktuelle Bild konnte nicht im Archiv gesichert werden, daher wurde nichts genehmigt. Versuche es gleich noch einmal."
   "puzzle_merge_request":
     "approved": "Zusammenführungsanfrage wurde genehmigt. Die Puzzles wurden zusammengeführt."
     "rejected": "Zusammenführungsanfrage wurde abgelehnt."

@@ -209,10 +209,16 @@ change request is deleted outright with its reporter (`ON DELETE CASCADE`).
 
 - **No foreign keys**, on purpose: requests, puzzles and brands get deleted (merges, cascades) and so do players.
   The decider's id, name and code are copied in; the puzzle's name too.
-- `source` = `admin_ui` / `internal_api` (`MergeDecisionSource`; the internal API sets it for merge approve + reject) /
+- `source` = `admin_ui` / `internal_api` (`MergeDecisionSource`; the internal API sets it for merge approve + reject and
+  change request approve + reject - a change request rejected through the API before 2026-10-18 reads `admin_ui`) /
   `automatic` (an outdated request closed by itself - `decided_by_id` null, the only rows without a decider).
-- `note` = rejection reason / the optional note of the approve and edit forms; `details` (JSON) = what changed (before/after, image choice, selected fields,
-  merged ids, brand merge counts).
+- `note` = rejection reason / the optional note of the approve and edit forms (the internal API's `decisionNote` on an
+  approval); `details` (JSON) = what changed (before/after, image choice, selected fields, merged ids, brand merge
+  counts), a change request rejected through the internal API with a `decisionNote` keeps it as `details.decisionNote`
+  (its `note` is the reason the player reads), and an approved image pipeline picture its archive copy as
+  `details.originalArchivePath` (docs/features/internal-api.md "Puzzle change requests").
+- Indexed by `decided_at`, `decided_by_id`, `puzzle_id` and `change_request_id` (a request's latest decision -
+  `GetChangeRequestsForInternalApi`).
 - Backfilled by migration `Version20260925165131` from every change / merge request decided before it existed
   (`details.backfilled = true`; a merge rejected via the internal API before the log existed shows `admin_ui`,
   since nothing recorded it).

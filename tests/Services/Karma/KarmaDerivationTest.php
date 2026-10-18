@@ -21,6 +21,7 @@ use SpeedPuzzling\Web\Services\Karma\KarmaRecalculator;
 use SpeedPuzzling\Web\Value\EanList;
 use SpeedPuzzling\Web\Value\KarmaKind;
 use SpeedPuzzling\Web\Value\MergeDecisionSource;
+use SpeedPuzzling\Web\Value\PuzzleChangeRequestSource;
 use SpeedPuzzling\Web\Value\PuzzleModerationAction;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -62,6 +63,42 @@ final class KarmaDerivationTest extends KernelTestCase
 
         self::assertSame(1, $this->karmaOf($proposer));
         self::assertSame(1, $this->getPlayerKarma->breakdown($this->id($proposer))->of(KarmaKind::ChangeRequest));
+    }
+
+    /**
+     * A machine's proposal filed in the reviewer player's name is nobody's contribution - deciding it is a decision
+     */
+    public function testAnImagePipelineProposalEarnsItsReporterNothingButItsDecisionCounts(): void
+    {
+        $reviewerPlayer = $this->player();
+        $moderator = $this->player();
+        $puzzle = $this->puzzle(null, ean: null);
+
+        $byModerator = $this->changeRequest($puzzle, $reviewerPlayer, 'approved', $moderator, source: PuzzleChangeRequestSource::ImagePipeline);
+        $this->decision($moderator, PuzzleModerationAction::ChangeRequestApproved, changeRequest: $byModerator);
+        $rejected = $this->changeRequest($puzzle, $reviewerPlayer, 'rejected', $moderator, source: PuzzleChangeRequestSource::ImagePipeline);
+        $this->decision($moderator, PuzzleModerationAction::ChangeRequestRejected, changeRequest: $rejected);
+
+        self::assertSame(0, $this->karmaOf($reviewerPlayer));
+        self::assertSame(2, $this->karmaOf($moderator));
+
+        // The reviewer player approving one in the web review: the decision counts, the proposal does not
+        $ownPipeline = $this->changeRequest($puzzle, $reviewerPlayer, 'approved', $reviewerPlayer, source: PuzzleChangeRequestSource::ImagePipeline);
+        $this->decision($reviewerPlayer, PuzzleModerationAction::ChangeRequestApproved, changeRequest: $ownPipeline);
+
+        self::assertSame(1, $this->karmaOf($reviewerPlayer));
+        self::assertSame(0, $this->getPlayerKarma->breakdown($this->id($reviewerPlayer))->of(KarmaKind::ChangeRequest));
+
+        // Approved through the internal API (auto-resolve): nobody earns anything
+        $auto = $this->changeRequest($puzzle, $reviewerPlayer, 'approved', $reviewerPlayer, source: PuzzleChangeRequestSource::ImagePipeline);
+        $this->decision($reviewerPlayer, PuzzleModerationAction::ChangeRequestApproved, changeRequest: $auto, source: MergeDecisionSource::InternalApi);
+
+        self::assertSame(1, $this->karmaOf($reviewerPlayer));
+
+        // A proposal the internal API files for an analysis still counts for the reviewer player (Jan 2026-10-12)
+        $this->changeRequest($puzzle, $reviewerPlayer, 'approved', $moderator, source: PuzzleChangeRequestSource::InternalApi);
+
+        self::assertSame(2, $this->karmaOf($reviewerPlayer));
     }
 
     public function testOnlyAnApprovedMergeRequestCountsForItsReporter(): void
@@ -389,6 +426,7 @@ final class KarmaDerivationTest extends KernelTestCase
         string $status,
         null|Player $reviewer = null,
         null|DateTimeImmutable $reviewedAt = null,
+        PuzzleChangeRequestSource $source = PuzzleChangeRequestSource::Player,
     ): PuzzleChangeRequest {
         $submittedAt = new DateTimeImmutable('2026-04-01 10:00');
         $request = new PuzzleChangeRequest(
@@ -398,6 +436,7 @@ final class KarmaDerivationTest extends KernelTestCase
             submittedAt: $submittedAt,
             proposedName: 'Proposed',
             originalName: $puzzle->name,
+            source: $source,
         );
         $this->entityManager->persist($request);
         $this->entityManager->flush();

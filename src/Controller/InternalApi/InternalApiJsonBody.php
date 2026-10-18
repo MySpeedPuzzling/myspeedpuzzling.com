@@ -119,6 +119,42 @@ final class InternalApiJsonBody
         return $code;
     }
 
+    public const int DECISION_NOTE_MAX_LENGTH = 500;
+
+    /**
+     * The optional `decisionNote` of a decision - an internal note for the decision log (never shown to the player),
+     * e.g. why an automated review decided as it did. Trimmed, blank = none, at most 500 characters.
+     *
+     * @param array<string, mixed> $body
+     */
+    public static function decisionNote(array $body): null|string
+    {
+        $value = $body['decisionNote'] ?? null;
+
+        if ($value !== null && is_string($value) === false) {
+            throw new BadRequestHttpException('"decisionNote" must be a string.');
+        }
+
+        $note = self::optionalString($body, 'decisionNote');
+
+        if ($note === null) {
+            return null;
+        }
+
+        $note = trim($note);
+
+        if (mb_strlen($note) > self::DECISION_NOTE_MAX_LENGTH) {
+            throw new BadRequestHttpException(sprintf('"decisionNote" can be at most %d characters long.', self::DECISION_NOTE_MAX_LENGTH));
+        }
+
+        // Postgres refuses a NUL character in text
+        if (str_contains($note, "\0")) {
+            throw new BadRequestHttpException('"decisionNote" must not contain NUL characters.');
+        }
+
+        return $note;
+    }
+
     /**
      * @param array<string, mixed> $body
      */

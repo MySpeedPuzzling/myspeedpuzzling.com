@@ -41,7 +41,9 @@ the puzzle's only in that form proposes nothing. The rows of `myspeedpuzzling:ca
 fields (`proposed` and `proposed_brand_codes` - every row of a puzzle carries the same), never removing a value with a
 digit - a catalogue number in the EAN field moves into `identificationNumber`, only words and placeholders ("None",
 "N/A") go. Rows whose proposal equals the current value ("(check digit)", `brand_code_prose`) need a person with the
-box. A list of blank entries is a `400`; only `[]` removes every code. No photo through the API.
+box. A list of blank entries is a `400`; only `[]` removes every code. A picture goes as base64 `image` (JPEG / PNG /
+WebP, ≤ 15 MB - the image pipeline's crops with `source: "image_pipeline"`, `tags`, `confidence`, `modelVersion`,
+`sourceImageFingerprint`; docs/features/internal-api.md "Puzzle change requests").
 
 ### Names (docs/features/puzzle-names/README.md)
 

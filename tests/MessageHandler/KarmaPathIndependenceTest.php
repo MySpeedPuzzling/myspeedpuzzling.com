@@ -121,6 +121,7 @@ final class KarmaPathIndependenceTest extends KernelTestCase
             $rejected = $this->propose(self::MODERATOR, PuzzleFixture::PUZZLE_1000_02, 'Declined own proposal ' . $round);
             $this->messageBus->dispatch(new RejectPuzzleChangeRequest(
                 changeRequestId: $rejected,
+                puzzleId: PuzzleFixture::PUZZLE_1000_02,
                 reviewerId: self::MODERATOR,
                 rejectionReason: 'Changed my mind.',
             ));

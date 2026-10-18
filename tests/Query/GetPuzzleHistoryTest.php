@@ -222,6 +222,7 @@ final class GetPuzzleHistoryTest extends KernelTestCase
         $suggestionId = self::proposeOtherName(PuzzleFixture::PUZZLE_1000_02, PlayerFixture::PLAYER_REGULAR, 'Jardín mágico', 'es');
         $this->messageBus->dispatch(new RejectPuzzleChangeRequest(
             changeRequestId: $suggestionId,
+            puzzleId: PuzzleFixture::PUZZLE_1000_02,
             reviewerId: PlayerFixture::PLAYER_ADMIN,
             rejectionReason: 'Not on any box',
         ));

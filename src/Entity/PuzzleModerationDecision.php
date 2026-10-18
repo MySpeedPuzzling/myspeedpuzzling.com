@@ -30,6 +30,8 @@ use SpeedPuzzling\Web\Value\PuzzleModerationAction;
 #[Index(columns: ['decided_at'])]
 #[Index(columns: ['decided_by_id'])]
 #[Index(columns: ['puzzle_id'])]
+// The latest decision of a change request (GetChangeRequestsForInternalApi)
+#[Index(columns: ['change_request_id'])]
 class PuzzleModerationDecision
 {
     /**

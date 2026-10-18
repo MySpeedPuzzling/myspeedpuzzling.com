@@ -13,6 +13,7 @@ use SpeedPuzzling\Web\Message\SubmitPuzzleChangeRequest;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
 use SpeedPuzzling\Web\Services\ImageOptimizer;
+use SpeedPuzzling\Web\Services\ImagePipelineProposalRules;
 use SpeedPuzzling\Web\Services\ManufacturerResolver;
 use SpeedPuzzling\Web\Value\LanguageTag;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
@@ -28,6 +29,7 @@ readonly final class SubmitPuzzleChangeRequestHandler
         private Filesystem $filesystem,
         private ClockInterface $clock,
         private ImageOptimizer $imageOptimizer,
+        private ImagePipelineProposalRules $imagePipelineProposalRules,
     ) {
     }
 
@@ -36,6 +38,15 @@ readonly final class SubmitPuzzleChangeRequestHandler
         $puzzle = $this->puzzleRepository->get($message->puzzleId);
         $reporter = $this->playerRepository->get($message->reporterId);
         $now = $this->clock->now();
+
+        // Before anything is created or stored: a hidden picture, another picture now, a picture proposed already
+        $this->imagePipelineProposalRules->check(
+            $puzzle,
+            $message->source,
+            $message->sourceImageFingerprint,
+            $message->tags,
+            proposesImage: $message->proposedPhoto !== null,
+        );
 
         // A typed name no brand matches is a new, unapproved brand right away, like on the add form - it is how a
         // misspelled brand gets its right name. The review approves it, or deletes it when it stays unused
@@ -97,6 +108,11 @@ readonly final class SubmitPuzzleChangeRequestHandler
             originalAlternativeNames: $message->originalAlternativeNames->toArray(),
             originalNameLanguage: $message->originalNameLanguage,
             createdManufacturerName: $createdManufacturerName,
+            source: $message->source,
+            tags: $message->tags !== [] ? $message->tags : null,
+            confidence: $message->confidence,
+            modelVersion: $message->modelVersion,
+            sourceImageFingerprint: $message->sourceImageFingerprint,
         );
 
         $this->entityManager->persist($changeRequest);

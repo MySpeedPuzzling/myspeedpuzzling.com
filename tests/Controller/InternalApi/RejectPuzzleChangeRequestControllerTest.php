@@ -4,9 +4,13 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\Tests\Controller\InternalApi;
 
+use Doctrine\DBAL\Connection;
 use PHPUnit\Framework\TestCase;
+use Psr\Clock\ClockInterface;
 use SpeedPuzzling\Web\Controller\InternalApi\RejectPuzzleChangeRequestController;
+use SpeedPuzzling\Web\Exceptions\PuzzleChangeRequestNotFound;
 use SpeedPuzzling\Web\Message\RejectPuzzleChangeRequest;
+use SpeedPuzzling\Web\Query\GetPuzzleChangeRequests;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
@@ -18,6 +22,8 @@ final class RejectPuzzleChangeRequestControllerTest extends TestCase
     private const string CHANGE_REQUEST_ID = '01a0edf2-532c-7084-b181-a988636d6f85';
 
     private const string REVIEWER_ID = '018b9c2b-7437-7235-b231-162cdf07d234';
+
+    private const string PUZZLE_ID = '018d0003-0000-0000-0000-000000000001';
 
     public function testDispatchesRejectionWithReason(): void
     {
@@ -32,7 +38,7 @@ final class RejectPuzzleChangeRequestControllerTest extends TestCase
             },
         );
 
-        $controller = new RejectPuzzleChangeRequestController($bus, self::REVIEWER_ID);
+        $controller = new RejectPuzzleChangeRequestController($bus, $this->changeRequests(), self::REVIEWER_ID);
 
         $response = $controller(self::CHANGE_REQUEST_ID, $this->jsonRequest([
             'rejectionReason' => 'The proposed EAN is not valid EAN barcode',
@@ -41,6 +47,7 @@ final class RejectPuzzleChangeRequestControllerTest extends TestCase
         self::assertSame(Response::HTTP_NO_CONTENT, $response->getStatusCode());
         self::assertInstanceOf(RejectPuzzleChangeRequest::class, $dispatched);
         self::assertSame(self::CHANGE_REQUEST_ID, $dispatched->changeRequestId);
+        self::assertSame(self::PUZZLE_ID, $dispatched->puzzleId, 'The rejection locks the puzzle of the change request');
         self::assertSame(self::REVIEWER_ID, $dispatched->reviewerId);
         self::assertSame('The proposed EAN is not valid EAN barcode', $dispatched->rejectionReason);
     }
@@ -50,7 +57,7 @@ final class RejectPuzzleChangeRequestControllerTest extends TestCase
         $bus = $this->createMock(MessageBusInterface::class);
         $bus->expects(self::never())->method('dispatch');
 
-        $controller = new RejectPuzzleChangeRequestController($bus, self::REVIEWER_ID);
+        $controller = new RejectPuzzleChangeRequestController($bus, $this->changeRequests(), self::REVIEWER_ID);
 
         $this->expectException(BadRequestHttpException::class);
         $this->expectExceptionMessage('"rejectionReason" is required.');
@@ -64,11 +71,31 @@ final class RejectPuzzleChangeRequestControllerTest extends TestCase
         $bus = $this->createMock(MessageBusInterface::class);
         $bus->expects(self::never())->method('dispatch');
 
-        $controller = new RejectPuzzleChangeRequestController($bus, '');
+        $controller = new RejectPuzzleChangeRequestController($bus, $this->changeRequests(), '');
 
         $this->expectException(BadRequestHttpException::class);
 
         $controller(self::CHANGE_REQUEST_ID, $this->jsonRequest(['rejectionReason' => 'The proposed EAN is not valid EAN barcode']));
+    }
+
+    public function testAnUnknownRequestIsNotFound(): void
+    {
+        $bus = $this->createMock(MessageBusInterface::class);
+        $bus->expects(self::never())->method('dispatch');
+
+        $controller = new RejectPuzzleChangeRequestController($bus, $this->changeRequests(null), self::REVIEWER_ID);
+
+        $this->expectException(PuzzleChangeRequestNotFound::class);
+
+        $controller(self::CHANGE_REQUEST_ID, $this->jsonRequest(['rejectionReason' => 'Not a valid EAN']));
+    }
+
+    private function changeRequests(null|string $puzzleId = self::PUZZLE_ID): GetPuzzleChangeRequests
+    {
+        $database = $this->createStub(Connection::class);
+        $database->method('fetchOne')->willReturn($puzzleId ?? false);
+
+        return new GetPuzzleChangeRequests($database, $this->createStub(ClockInterface::class));
     }
 
     /**

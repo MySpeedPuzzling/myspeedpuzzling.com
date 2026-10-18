@@ -16,6 +16,7 @@ use Ramsey\Uuid\Doctrine\UuidType;
 use Ramsey\Uuid\UuidInterface;
 use SpeedPuzzling\Web\Value\BrandCodeList;
 use SpeedPuzzling\Web\Value\EanList;
+use SpeedPuzzling\Web\Value\PuzzleChangeRequestSource;
 use SpeedPuzzling\Web\Value\PuzzleNames;
 use SpeedPuzzling\Web\Value\PuzzleNamesDiff;
 use SpeedPuzzling\Web\Value\PuzzleReportOutdatedReason;
@@ -50,6 +51,12 @@ class PuzzleChangeRequest
     #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
     #[Column(type: UuidType::NAME, nullable: true)]
     public null|UuidInterface $mergedFromPuzzleId = null;
+
+    // Where the puzzle's picture was copied before an approved image_pipeline proposal replaced it
+    // (originals/<puzzleId>/<fingerprint>.<ext>, PuzzleOriginalImageArchive) - null for every other request
+    #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
+    #[Column(nullable: true)]
+    public null|string $originalArchivePath = null;
 
     public function __construct(
         #[Id]
@@ -144,7 +151,39 @@ class PuzzleChangeRequest
         #[Immutable(Immutable::PRIVATE_WRITE_SCOPE)]
         #[Column(nullable: true)]
         public null|string $createdManufacturerName = null,
+        // Who filed it - null only on rows the release before the column wrote (a player's)
+        #[Immutable]
+        #[Column(type: Types::STRING, nullable: true, enumType: PuzzleChangeRequestSource::class)]
+        public null|PuzzleChangeRequestSource $source = PuzzleChangeRequestSource::Player,
+        /**
+         * What kind of proposal it is, e.g. ["artwork_crop"] (the image pipeline) - null = none
+         *
+         * @var null|list<string>
+         */
+        #[Immutable]
+        #[Column(type: Types::JSONB, nullable: true)]
+        public null|array $tags = null,
+        // The pipeline's confidence in the proposal, 0..1
+        #[Immutable]
+        #[Column(nullable: true)]
+        public null|float $confidence = null,
+        // The model / version that produced the proposal
+        #[Immutable]
+        #[Column(nullable: true)]
+        public null|string $modelVersion = null,
+        // The picture the proposal was made from (PuzzleImageFingerprint of puzzle.image then)
+        #[Immutable]
+        #[Column(length: 16, nullable: true)]
+        public null|string $sourceImageFingerprint = null,
     ) {
+    }
+
+    /**
+     * The puzzle's picture was copied to the originals archive before this proposal's image replaced it.
+     */
+    public function originalArchived(string $path): void
+    {
+        $this->originalArchivePath = $path;
     }
 
     /**

@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace SpeedPuzzling\Web\EventSubscriber;
 
+use SpeedPuzzling\Web\Exceptions\InternalApiErrorCode;
 use SpeedPuzzling\Web\Exceptions\InternalApiInvalidInput;
+use SpeedPuzzling\Web\Exceptions\InvalidProposedPuzzleImage;
 use SpeedPuzzling\Web\Exceptions\InvalidPuzzleImageAnalysis;
 use SpeedPuzzling\Web\Exceptions\SecretPuzzlesWouldBeRevealed;
 use SpeedPuzzling\Web\Security\InternalApiAuthenticator;
@@ -16,7 +18,9 @@ use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Symfony\Component\HttpKernel\KernelEvents;
 
 /**
- * Every refusal of the internal API is JSON: `{"error": "…"}` (plus `"errors": {"field": "…"}` for invalid fields - a 400, or a 422 for an image analysis -
+ * Every refusal of the internal API is JSON: `{"error": "…"}` (plus `"code": "…"` for the refusals a script tells apart -
+ * InternalApiErrorCode -, `"errors": {"field": "…"}` for invalid fields - a 400, or a 422 for an image analysis or a
+ * proposed image -
  * `"revealedPuzzles": […]` for a change that would reveal secret puzzles),
  * with the status of the HTTP exception - a 400, 401, 404 or 409 thrown by a controller, a handler (unwrapped by
  * UnwrapHttpExceptionMiddleware) or the firewall. Without this, Symfony renders its HTML error page for the
@@ -56,12 +60,17 @@ final readonly class InternalApiErrorResponseSubscriber implements EventSubscrib
         $message = $exception->getMessage() !== '' ? $exception->getMessage() : (Response::$statusTexts[$status] ?? 'Error');
         $body = ['error' => $message];
 
+        // A stable word for the refusals a script branches on (e.g. "already_proposed")
+        if ($exception instanceof InternalApiErrorCode) {
+            $body['code'] = $exception->internalApiErrorCode();
+        }
+
         // What a "confirmReveal": true would let out, so the caller can tell whether to send it
         if ($exception instanceof SecretPuzzlesWouldBeRevealed) {
             $body['revealedPuzzles'] = $exception->toArray();
         }
 
-        if ($exception instanceof InternalApiInvalidInput || $exception instanceof InvalidPuzzleImageAnalysis) {
+        if ($exception instanceof InternalApiInvalidInput || $exception instanceof InvalidPuzzleImageAnalysis || $exception instanceof InvalidProposedPuzzleImage) {
             $body['errors'] = $exception->errors;
         }
 

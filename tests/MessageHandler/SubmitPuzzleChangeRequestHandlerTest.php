@@ -14,6 +14,7 @@ use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Value\BrandCodeList;
 use SpeedPuzzling\Web\Value\EanList;
+use SpeedPuzzling\Web\Value\PuzzleChangeRequestSource;
 use SpeedPuzzling\Web\Value\PuzzleName;
 use SpeedPuzzling\Web\Value\PuzzleNames;
 use SpeedPuzzling\Web\Value\PuzzleReportStatus;
@@ -87,6 +88,12 @@ final class SubmitPuzzleChangeRequestHandlerTest extends KernelTestCase
         self::assertSame(500, $changeRequest->originalPiecesCount);
         self::assertNull($changeRequest->reviewedAt);
         self::assertNull($changeRequest->reviewedBy);
+
+        // A player's proposal (the web form, multiscan) - no image pipeline metadata
+        self::assertSame(PuzzleChangeRequestSource::Player, $changeRequest->source);
+        self::assertNull($changeRequest->tags);
+        self::assertNull($changeRequest->confidence);
+        self::assertNull($changeRequest->originalArchivePath);
     }
 
     public function testSubmittingChangeRequestWithImageUsesProposalPrefix(): void

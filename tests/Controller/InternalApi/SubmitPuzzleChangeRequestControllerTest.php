@@ -11,8 +11,11 @@ use SpeedPuzzling\Web\Query\GetPendingPuzzleProposals;
 use SpeedPuzzling\Web\Query\GetPuzzleRecord;
 use SpeedPuzzling\Web\Repository\PuzzleChangeRequestRepository;
 use SpeedPuzzling\Web\Repository\PuzzleRepository;
+use SpeedPuzzling\Web\Services\ImagePipelineProposalRules;
+use SpeedPuzzling\Web\Services\InternalApi\ProposedPuzzleImageInput;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
+use SpeedPuzzling\Web\Value\PuzzleChangeRequestSource;
 use SpeedPuzzling\Web\Value\PuzzleRecordVersion;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\HttpFoundation\Request;
@@ -51,6 +54,10 @@ final class SubmitPuzzleChangeRequestControllerTest extends KernelTestCase
         // A list equal to the puzzle's proposes nothing for the field
         self::assertNull($changeRequest->proposedIdentificationNumber);
         self::assertNull($changeRequest->proposedImage);
+        // Filed through the internal API - nothing of the image pipeline
+        self::assertSame(PuzzleChangeRequestSource::InternalApi, $changeRequest->source);
+        self::assertNull($changeRequest->tags);
+        self::assertNull($changeRequest->sourceImageFingerprint);
     }
 
     public function testTheCodesMayComeAsAListOneCodePerEntry(): void
@@ -264,6 +271,9 @@ final class SubmitPuzzleChangeRequestControllerTest extends KernelTestCase
             $container->get(MessageBusInterface::class),
             $container->get(GetPuzzleRecord::class),
             $container->get(GetPendingPuzzleProposals::class),
+            $container->get(PuzzleRepository::class),
+            $container->get(ImagePipelineProposalRules::class),
+            $container->get(ProposedPuzzleImageInput::class),
             PlayerFixture::PLAYER_ADMIN,
         );
     }

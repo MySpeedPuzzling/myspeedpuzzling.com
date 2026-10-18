@@ -10,6 +10,7 @@ use SpeedPuzzling\Web\Entity\Manufacturer;
 use SpeedPuzzling\Web\Entity\Puzzle;
 use SpeedPuzzling\Web\Entity\PuzzleChangeRequest;
 use SpeedPuzzling\Web\Exceptions\PuzzleChangeRequestNotFound;
+use SpeedPuzzling\Web\Value\PuzzleChangeRequestSource;
 use SpeedPuzzling\Web\Value\PuzzleReportStatus;
 
 readonly final class PuzzleChangeRequestRepository
@@ -50,6 +51,20 @@ readonly final class PuzzleChangeRequestRepository
                 'proposedEan' => $proposedEan,
                 'status' => PuzzleReportStatus::Pending,
             ]);
+    }
+
+    /**
+     * The image pipeline's proposals made from one picture of the puzzle, in any status (ImagePipelineProposalRules).
+     *
+     * @return list<PuzzleChangeRequest>
+     */
+    public function findImagePipelineProposals(Puzzle $puzzle, string $sourceImageFingerprint): array
+    {
+        return $this->entityManager->getRepository(PuzzleChangeRequest::class)->findBy([
+            'puzzle' => $puzzle,
+            'source' => PuzzleChangeRequestSource::ImagePipeline,
+            'sourceImageFingerprint' => $sourceImageFingerprint,
+        ]);
     }
 
     /**

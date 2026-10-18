@@ -69,6 +69,7 @@ use SpeedPuzzling\Web\Message\ScheduleRoundStart;
 use SpeedPuzzling\Web\Message\SetCompetitionRoundPuzzles;
 use SpeedPuzzling\Web\Message\StartRoundStopwatch;
 use SpeedPuzzling\Web\Message\StopRoundStopwatch;
+use SpeedPuzzling\Web\Message\SubmitPuzzleChangeRequest;
 use SpeedPuzzling\Web\Message\UndoAutoRemoval;
 use SpeedPuzzling\Web\Message\UndoParticipantCheckIn;
 use SpeedPuzzling\Web\Message\UnmarkParticipantPaid;
@@ -133,6 +134,8 @@ final class SerializedByLockMessagesTest extends TestCase
         self::assertSame($key, (new ApprovePuzzleChangeRequest('change-request', $puzzleId, 'reviewer'))->lockKey());
         self::assertSame($key, (new ApprovePuzzleMergeRequest('merge-request', 'reviewer', $puzzleId, 'Puzzle', null, null, 500, null, null))->lockKey());
         self::assertSame($key, (new LinkEanToPuzzle($puzzleId, 'player', '4005556147090'))->lockKey());
+        // An image pipeline proposal is checked against the puzzle's picture and the proposals before it
+        self::assertSame($key, (new SubmitPuzzleChangeRequest('change-request', $puzzleId, 'player', 'Puzzle', null, 500, EanList::fromStored(null), BrandCodeList::fromStored(null), null, new PuzzleNames(), null))->lockKey());
         self::assertSame($key, (new AddPuzzle(
             Uuid::fromString($puzzleId),
             'player',

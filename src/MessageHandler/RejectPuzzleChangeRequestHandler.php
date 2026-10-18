@@ -51,14 +51,16 @@ readonly final class RejectPuzzleChangeRequestHandler
         $this->puzzleModerationDecisionRecorder->record(
             action: PuzzleModerationAction::ChangeRequestRejected,
             decidedBy: $reviewer,
+            source: $message->decisionSource,
             puzzleId: $changeRequest->puzzle->id,
             puzzleName: $changeRequest->puzzle->name,
             changeRequestId: $changeRequest->id,
             note: $message->rejectionReason,
+            details: $message->decisionNote !== null ? ['decisionNote' => $message->decisionNote] : null,
         );
 
         // A brand the proposal created is deleted when nothing else uses it
-        $this->changeRequestCreatedBrandSettler->settle($changeRequest, null, $reviewer);
+        $this->changeRequestCreatedBrandSettler->settle($changeRequest, null, $reviewer, $message->decisionSource);
 
         // Delete proposal image if exists
         if ($changeRequest->proposedImage !== null && $this->filesystem->fileExists($changeRequest->proposedImage)) {

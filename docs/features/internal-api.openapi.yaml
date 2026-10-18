@@ -248,6 +248,14 @@ paths:
         as it should end up (re-read the puzzle's names first); it is proposed together
         with `nameLanguage` and applied as a diff against the names when filed.
 
+        `image` (base64 JPEG/PNG/WebP, at most 15 MB decoded) proposes a new picture, checked and
+        stored like the web form's photo; a proposal of the picture only is valid. The image
+        pipeline sends `source: image_pipeline` with `tags` (at least one), `confidence`,
+        `modelVersion` and `sourceImageFingerprint` (required): one proposal per puzzle, picture
+        and tag, ever (409 `already_proposed`, rejected ones included); a picture the puzzle no
+        longer has is a 409 `image_changed`; a puzzle with a hidden picture answers 404 (also to
+        any request with an `image`).
+
         Requires `INTERNAL_API_REVIEWER_PLAYER_ID` to be configured.
       requestBody:
         required: true
@@ -286,14 +294,79 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
         "409":
-          description: The puzzle already has a pending merge request or a pending change request of more than its names. A proposal of the names only (name, nameLanguage, alternativeNames) is never refused for this.
+          description: |
+            `pending_proposal` - the puzzle already has a pending merge request or a pending change request of
+            more than its names (a proposal of the names only is never refused for this; an `image` is more);
+            `already_proposed` - the image pipeline proposed this picture with this tag already, in any status;
+            `image_changed` - `sourceImageFingerprint` is not the puzzle's picture now.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "422":
+          description: The `image` is no JPEG / PNG / WebP of at most 15 MB (`errors.image`) - nothing is filed.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    get:
+      summary: List puzzle change requests
+      operationId: listPuzzleChangeRequests
+      description: |
+        Every change request in id order (= filing order), keyset paged, with the image pipeline's
+        metadata, its latest decision from the decision log and fetchable full-size URLs of the
+        original and the proposed picture. Requests of a puzzle whose picture is hidden now are
+        never listed. Feeds the pipeline's auto-resolve and its precision calibration.
+      parameters:
+        - name: source
+          in: query
+          schema:
+            type: string
+            enum: [player, internal_api, image_pipeline]
+        - name: tag
+          in: query
+          schema:
+            type: string
+            pattern: "^[A-Za-z0-9_.:-]{1,50}$"
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, approved, rejected, outdated, all]
+            default: all
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 500
+            default: 100
+        - name: after
+          in: query
+          description: The `nextCursor` of the previous page (a change request id).
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: A page of change requests
           content:
             application/json:
               schema:
                 type: object
+                required: [changeRequests, nextCursor]
                 properties:
-                  error:
-                    type: string
+                  changeRequests:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/PuzzleChangeRequestListItem"
+                  nextCursor:
+                    type: [string, "null"]
+                    description: The next page's `after`, null on the last page.
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
 
   /internal-api/puzzle-change-requests/{changeRequestId}/reject:
     post:
@@ -301,7 +374,9 @@ paths:
       operationId: rejectPuzzleChangeRequest
       description: |
         Declines a "suggest a change" proposal. The reason is delivered to the player
-        who proposed it, as a notification, so it should be written for them.
+        who proposed it, as a notification, so it should be written for them. An optional
+        `decisionNote` stays in the decision log only (`details.decisionNote`). The decision
+        is logged with `source = internal_api`.
         Does not check the status - send pending requests only.
 
         Requires `INTERNAL_API_REVIEWER_PLAYER_ID` to be configured.
@@ -358,7 +433,14 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
         "409":
-          description: The request was already approved or rejected, or the puzzle changed since `recordVersion` (then a JSON `error`) - nothing is applied.
+          description: |
+            The request was already approved or rejected, or the puzzle changed since `recordVersion`, or
+            (`original_not_archived`) the puzzle's picture could not be copied to
+            `originals/<puzzleId>/<fingerprint>.<ext>` before an `image_pipeline` picture replaces it - nothing is applied.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
         "422":
           description: The result breaks a rule of the record (e.g. more than 20 other names) - nothing is changed.
 
@@ -3393,6 +3475,31 @@ components:
           description: The whole list of the other names as it should end up, in order. At most 20 when it grows.
           items:
             $ref: "#/components/schemas/PuzzleName"
+        image:
+          type: string
+          description: The proposed picture - base64 of a JPEG, PNG or WebP (a `data:image/...;base64,` prefix is allowed), at most 15 MB decoded. Checked and stored like the web form's proposed photo.
+        source:
+          type: string
+          enum: [internal_api, image_pipeline]
+          default: internal_api
+        tags:
+          type: array
+          maxItems: 10
+          description: What kind of proposal it is, e.g. ["artwork_crop"]. At least one for `image_pipeline`.
+          items:
+            type: string
+            pattern: "^[A-Za-z0-9_.:-]{1,50}$"
+        confidence:
+          type: number
+          minimum: 0
+          maximum: 1
+        modelVersion:
+          type: string
+          maxLength: 100
+        sourceImageFingerprint:
+          type: string
+          pattern: "^[0-9a-f]{16}$"
+          description: The `imageFingerprint` (image list) of the picture the proposal was made from. Required for `image_pipeline`.
 
     PuzzleName:
       type: object
@@ -3420,7 +3527,8 @@ components:
             enum: [name, nameLanguage, alternativeNames, manufacturer, piecesCount, ean, identificationNumber, image]
         decisionNote:
           type: [string, "null"]
-          description: Stored as the decision's note.
+          maxLength: 500
+          description: Stored as the decision's note (e.g. why an automated review approved it).
         alternativeNames:
           type: array
           description: Corrects the proposed other names (requires `alternativeNames` in selectedFields) - the list as it should end up, applied as a diff against the names when the request was filed.
@@ -3442,6 +3550,64 @@ components:
           type: string
           minLength: 1
           description: Shown to the player who proposed the change, as a notification.
+        decisionNote:
+          type: [string, "null"]
+          maxLength: 500
+          description: An internal note kept in the decision log only (`details.decisionNote`), never shown to the player.
+
+    PuzzleChangeRequestListItem:
+      type: object
+      required: [id, puzzleId, puzzleName, status, source, tags, confidence, modelVersion, sourceImageFingerprint, originalImageUrl, proposedImageUrl, originalArchiveUrl, createdAt, decision]
+      properties:
+        id: { type: string, format: uuid }
+        puzzleId: { type: string, format: uuid }
+        puzzleName: { type: string }
+        status:
+          type: string
+          enum: [pending, approved, rejected, outdated]
+        source:
+          type: string
+          enum: [player, internal_api, image_pipeline]
+        tags:
+          type: array
+          items: { type: string }
+        confidence: { type: [number, "null"], minimum: 0, maximum: 1 }
+        modelVersion: { type: [string, "null"] }
+        sourceImageFingerprint: { type: [string, "null"] }
+        originalImageUrl:
+          type: [string, "null"]
+          description: The puzzle's picture when the request was filed, full size.
+        proposedImageUrl:
+          type: [string, "null"]
+          description: The proposal's file while pending; once approved with the picture, the puzzle's new picture; null once rejected or when no picture is proposed.
+        originalArchiveUrl:
+          type: [string, "null"]
+          description: The archive copy (`originals/…`) made before an approved image pipeline picture replaced the original.
+        createdAt: { type: string, format: date-time }
+        decision:
+          type: [object, "null"]
+          description: Null while pending.
+          required: [outcome, decidedAt, decidedBy, source, note, rejectionReason]
+          properties:
+            outcome:
+              type: string
+              enum: [approved, rejected, outdated]
+            decidedAt: { type: string, format: date-time }
+            decidedBy:
+              type: [object, "null"]
+              description: Null for what the application closed by itself.
+              properties:
+                playerId: { type: string, format: uuid }
+                name: { type: [string, "null"] }
+            source:
+              type: [string, "null"]
+              enum: [admin_ui, internal_api, automatic, null]
+            note:
+              type: [string, "null"]
+              description: The decision's internal note (an approval's `decisionNote`, a rejection's `details.decisionNote`).
+            rejectionReason:
+              type: [string, "null"]
+              description: The reason the player read - rejections only.
 
     ImageAnalyzer:
       type: string
@@ -3535,6 +3701,11 @@ components:
       properties:
         error:
           type: string
+        code:
+          type: string
+          description: |
+            A stable word for the refusals a script branches on (never renamed): `already_proposed`,
+            `image_changed`, `pending_proposal`, `original_not_archived`.
         errors:
           type: object
           description: Invalid fields (field => what is wrong) - only for a request with invalid fields.

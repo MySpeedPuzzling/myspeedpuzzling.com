@@ -9974,3 +9974,14 @@ event_duplicate:
     button: "Dupliquer"
     help: "Crée une copie en brouillon : informations, manches et contenu de la page, sans participants, puzzles ni résultats."
     flash: "Une copie a été créée en brouillon : modifiez ses dates et son lieu, puis publiez-la."
+puzzle_tags:
+    trait:
+        large_uniform_areas: "Grandes zones d'une seule couleur"
+        smooth_gradients: "Dégradés doux"
+        busy_detail: "Beaucoup de détails"
+        collage_grid: "Collage de nombreuses petites images"
+        text_heavy: "Beaucoup de texte"
+        dark: "Image sombre"
+    look:
+        photo: "Photo"
+        drawn: "Illustration ou peinture"

@@ -33,6 +33,9 @@ final class SecretPuzzleRouteCanaryTest extends KernelTestCase
         'remove_puzzle_from_collection' => 'removes the viewer\'s own collection item - none can be added before the reveal',
         'remove_puzzle_from_wish_list' => 'removes the viewer\'s own wishlist item - none can be added before the reveal',
         'sellswap_remove' => 'removes the viewer\'s own listing - none can be added before the reveal',
+        'speedpuzzling_web_internalapi_getpuzzletags__invoke' => 'internal API (admin token); a hidden image (hide_until / hide_image_until ahead) answers 404 - PuzzleTagsInternalApiTest',
+        'speedpuzzling_web_internalapi_putpuzzletagcorrection__invoke' => 'internal API (admin token); a hidden image answers 404, nothing stored - PuzzleTagsInternalApiTest',
+        'speedpuzzling_web_internalapi_deletepuzzletagcorrection__invoke' => 'internal API (admin token); a hidden image answers 404 - PuzzleTagsInternalApiTest',
         'speedpuzzling_web_internalapi_getpuzzleimageanalyses__invoke' => 'internal API (admin token); a hidden image (hide_until / hide_image_until ahead) answers 404 - PuzzleImageAnalysisInternalApiTest',
         'speedpuzzling_web_internalapi_putpuzzleimageanalysis__invoke' => 'internal API (admin token); a hidden image (hide_until / hide_image_until ahead) is refused with 404, nothing stored - PuzzleImageAnalysisInternalApiTest',
     ];

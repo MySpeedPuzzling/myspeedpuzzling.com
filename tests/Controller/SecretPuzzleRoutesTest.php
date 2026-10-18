@@ -113,6 +113,40 @@ final class SecretPuzzleRoutesTest extends WebTestCase
         }
     }
 
+    public function testAModeratorNeitherSeesNorDismissesABoxTextMismatchOfASecretPuzzle(): void
+    {
+        $browser = self::createClient();
+        $puzzleId = $this->secretPuzzle();
+        $connection = self::getContainer()->get(EntityManagerInterface::class)->getConnection();
+
+        foreach ([$puzzleId, PuzzleFixture::PUZZLE_500_01] as $mismatchPuzzleId) {
+            $connection->executeStatement(
+                "INSERT INTO box_text_mismatch (puzzle_id, field, value_key, box_values, catalogue_value, evidence, analysis_received_at, detected_at)
+                 VALUES (?, 'pieces', '999', '[\"999\"]', '1000', '[]', '2026-10-01 10:00:00', '2026-10-01 10:00:00')",
+                [$mismatchPuzzleId],
+            );
+        }
+
+        // The list shows a moderator only the public puzzle's mismatch
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
+        $crawler = $browser->request('GET', '/admin/box-text-mismatches');
+        self::assertResponseIsSuccessful();
+        self::assertStringNotContainsString(self::SECRET_NAME, (string) $browser->getResponse()->getContent());
+        self::assertCount(1, $crawler->filter('[data-testid="box-text-mismatch"]'));
+        $token = (string) $crawler->filter('form[action$="/dismiss"] input[name="_token"]')->attr('value');
+
+        // Dismissing the secret one with a valid token: no such puzzle for a moderator
+        $browser->request('POST', str_replace('{id}', $puzzleId, '/admin/box-text-mismatches/{id}/dismiss'), ['_token' => $token, 'field' => 'pieces', 'value' => '999']);
+        self::assertResponseStatusCodeSame(404, 'a moderator');
+        self::assertSame(0, $connection->fetchOne('SELECT count(*) FROM box_text_mismatch_decision WHERE puzzle_id = ?', [$puzzleId]));
+
+        // An admin sees it, marked
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+        $crawler = $browser->request('GET', '/admin/box-text-mismatches');
+        self::assertCount(2, $crawler->filter('[data-testid="box-text-mismatch"]'));
+        self::assertSelectorTextContains('body', 'Hidden now');
+    }
+
     public function testAModeratorNeitherSeesNorDecidesNorRestoresASecretPuzzlesPicture(): void
     {
         $browser = self::createClient();

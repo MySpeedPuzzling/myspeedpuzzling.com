@@ -18,6 +18,8 @@ moderators.
 | `GET /admin/puzzle-change-requests/pictures` (`admin_puzzle_change_request_pictures`) | The picture review: proposed pictures side by side, one decision per card (below) |
 | `POST /admin/puzzle-change-requests/{id}/picture-decision` (`admin_puzzle_change_request_picture_decision`) | Approve / reject one card of the picture review (CSRF `picture_proposal_decision`) |
 | `POST /admin/puzzles/{puzzleId}/history/{decisionId}/restore-image` (`admin_restore_puzzle_image`) | "Restore this picture" on the history (CSRF `restore_puzzle_image`, below) |
+| `GET /admin/box-text-mismatches?field=&sort=&page=` (`admin_box_text_mismatches`) | What the box says and the catalogue does not (below) |
+| `POST /admin/box-text-mismatches/{puzzleId}/dismiss` (`admin_box_text_mismatch_dismiss`) | "Dismiss" one mismatch (CSRF `box-text-mismatch-dismiss`, below) |
 
 Access: `PUZZLE_MODERATION_ACCESS` (admins + moderators), the same capability as change and merge requests -
 approving new puzzles is the same job of looking after the catalogue. The `access_control` rule
@@ -257,6 +259,43 @@ copy exists any more, the line replaced no picture, or the puzzle's picture is h
 no restore endpoint. A restored picture has a new file name and so a new fingerprint: the image pipeline's "never twice"
 memory is per picture (fingerprint), so it may propose a crop of the restored picture again.
 
+## Box-text mismatches
+
+`/admin/box-text-mismatches` lists what the box says - piece counts, EANs, brand codes, brand names, read from the box
+picture by the image pipeline's `box_text` analysis (OCR + barcodes, [`insights/image-taxonomy.md`](./insights/image-taxonomy.md)
+§11.2) - and the catalogue does not. Jan's decision (insights README §3): **never an automatic change proposal** (boxes
+say 500 when the puzzle really has ~550, OCR misreads): moderators look, fix the record themselves through the direct
+edit ("Edit puzzle", back to the list), or **Dismiss**.
+
+- **Detection** (`myspeedpuzzling:detect-box-text-mismatches` → `DetectBoxTextMismatches`): every puzzle's `box_text`
+  analysis of its **current** picture next to its record, compared by `BoxTextMismatchDetector`; the result replaces
+  the derived table `box_text_mismatch` (one row per puzzle and field, set-based - `BoxTextMismatchWriter`). A field
+  is a mismatch when the box names values and **none** of them is the catalogue's; nothing read is no mismatch, an
+  empty catalogue field with a value on the box is one ("Nothing" in the list).
+  - Pieces as numbers; a multi-pack "2×500" fits 500 and 1000.
+  - EANs through `EanList` - the catalogue's own form (barcodes without leading zeros: a UPC-A read with its zero is
+    the stored 11 digits), any of several stored EANs.
+  - Brand codes through `BrandCodeList` and their search form (`SearchText::code()` - case, dashes and spaces do not
+    matter), plus `BrandCodeCheckDigit::aliases()` (the EAN check digit some brands print after the code).
+  - Brands: the catalogue brand names the analysis found on the box (it only looks for those) vs the puzzle's brand,
+    after trim, collapsed whitespace and lower case.
+- **Dismiss** = `DismissBoxTextMismatch` → `box_text_mismatch_decision` (puzzle, field, `value_key` = the box's values,
+  canonical and sorted, joined; who, when). A dismissed mismatch never returns while the box reads the same; a value
+  read later is a new mismatch. Dismissing twice changes nothing. Not a catalogue decision (no
+  `puzzle_moderation_decision` row, no karma) - the record does not change.
+- **The list**: undismissed rows, most solved first (or `?sort=newest` = latest analyses), filter `?field=pieces|ean|
+  brand_code|brand`, 30 per page; each with the box picture, what the box says (with the printed text for piece
+  counts), what the catalogue says now, links to the puzzle page, "Edit puzzle" and its history. Each row is
+  re-checked against the record **as it is now** (`BoxTextMismatchDetector::stillMismatched()`), so a record fixed
+  since the last run drops out at once (the count above the list catches up with the next run).
+- **Secret puzzles**: the detection leaves out puzzles hidden now (`hide_until` / `hide_image_until` ahead);
+  moderators never see a hidden puzzle on the list and their dismiss of one is a 404, admins see one (marked "Hidden
+  now") - the picture review's convention.
+- Access: `PUZZLE_MODERATION_ACCESS`, its own `access_control` rule `^/admin/box-text-mismatches` above `^/admin`. Key
+  menu → "Box-text mismatches". English only like the other review pages.
+- **Cron (lily.srv)**, daily after the M3's nightly pass (01:30 Prague, derive at its end):
+  `45 7 * * * docker compose exec web php bin/console myspeedpuzzling:detect-box-text-mismatches`.
+
 ## Who decided - `puzzle_moderation_decision`
 
 Jan: "we must always know who approved/rejected merge request and change request and same for the approvals".
@@ -303,4 +342,6 @@ moderator in `tests/Controller/Admin/ModeratorAccessTest.php`. Direct edit + his
 `tests/Controller/Admin/RestorePuzzleImageControllerTest.php`; merge review page:
 `PuzzleMergeRequestControllerTest`. Outdated requests: `tests/Services/OutdatedPuzzleRequestsTest.php`,
 `tests/Entity/PuzzleChangeRequestTest.php`, `tests/Value/MergeRequestPuzzlesTest.php`,
-`tests/PuzzleMergeForeignKeyCoverageTest.php`.
+`tests/PuzzleMergeForeignKeyCoverageTest.php`. Box-text mismatches:
+`tests/Services/BoxText/BoxTextMismatchDetectorTest.php`, `tests/Controller/Admin/BoxTextMismatchesControllerTest.php`,
+the secret-puzzle case in `tests/Controller/SecretPuzzleRoutesTest.php`.

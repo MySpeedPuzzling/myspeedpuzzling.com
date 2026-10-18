@@ -1,0 +1,119 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Box-text mismatches{% endblock %}
+
+{% block content %}
+    <h1 class="h3 mb-2">
+        Box-text mismatches
+        {% if total > 0 %}<span class="badge bg-warning text-dark fs-6 align-middle">{{ total }}</span>{% endif %}
+    </h1>
+    <p class="text-muted small mb-3">
+        What the box says - pieces, EAN, brand code, brand, read from the box picture by the image pipeline - and the catalogue does not.
+        The reading can be wrong (boxes say 500 when a puzzle really has more, text is misread): fix the record when the box is right,
+        dismiss when it is not. A dismissed mismatch does not come back while the box reads the same. Nothing is ever changed automatically.
+    </p>
+
+    <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
+        <div class="btn-group btn-group-sm" role="group" aria-label="Field">
+            <a class="btn {{ field is null ? 'btn-primary' : 'btn-outline-primary' }}" href="{{ path('admin_box_text_mismatches', {sort: sort.value}) }}">All</a>
+            {% for field_option in fields %}
+                <a class="btn {{ field == field_option ? 'btn-primary' : 'btn-outline-primary' }}" href="{{ path('admin_box_text_mismatches', {field: field_option.value, sort: sort.value}) }}">{{ field_option.label }}</a>
+            {% endfor %}
+        </div>
+        <div class="btn-group btn-group-sm ms-auto" role="group" aria-label="Order">
+            <a class="btn {{ sort.value == 'most_solved' ? 'btn-secondary' : 'btn-outline-secondary' }}" href="{{ path('admin_box_text_mismatches', {field: field ? field.value : null, sort: 'most_solved'}) }}">Most solved first</a>
+            <a class="btn {{ sort.value == 'newest' ? 'btn-secondary' : 'btn-outline-secondary' }}" href="{{ path('admin_box_text_mismatches', {field: field ? field.value : null, sort: 'newest'}) }}">Newest first</a>
+        </div>
+    </div>
+
+    {% if mismatches is empty %}
+        <div class="alert alert-info">No mismatches {{ total > 0 ? 'left on this page' : 'to look at' }}.</div>
+    {% else %}
+        <div class="card shadow">
+            <div class="list-group list-group-flush">
+                {% for mismatch in mismatches %}
+                    {% set list_return = path('admin_box_text_mismatches', {field: field ? field.value : null, sort: sort.value, page: page}) %}
+                    <div class="list-group-item d-flex flex-wrap flex-sm-nowrap gap-3 py-3" data-testid="box-text-mismatch">
+                        <div class="flex-shrink-0 text-center" style="width: 120px;">
+                            {% if mismatch.puzzleImage %}
+                                <a href="{{ mismatch.puzzleImage|puzzle_image('puzzle_medium') }}" target="_blank" rel="noopener">
+                                    <img src="{{ mismatch.puzzleImage|puzzle_image('puzzle_small') }}" alt="" class="rounded" style="max-height: 120px; max-width: 120px;">
+                                </a>
+                            {% else %}
+                                <i class="bi bi-puzzle text-muted fs-3"></i>
+                            {% endif %}
+                        </div>
+                        <div class="flex-grow-1 min-w-0">
+                            <div class="fw-semibold text-break">
+                                <a href="{{ path('puzzle_detail', {puzzleId: mismatch.puzzleId}) }}">{{ mismatch.puzzleName }}</a>
+                                {% if mismatch.hidden %}<span class="badge bg-dark ms-1">Hidden now</span>{% endif %}
+                            </div>
+                            <div class="small text-muted text-break">
+                                {{ mismatch.catalogue.brandName ?? 'No brand' }} &bull; {{ mismatch.catalogue.piecesCount }} pcs
+                                {% if mismatch.solvedCount > 0 %}&bull; {{ mismatch.solvedCount }} {{ mismatch.solvedCount == 1 ? 'result' : 'results' }}{% endif %}
+                            </div>
+
+                            <dl class="row small mb-2 mt-2">
+                                <dt class="col-sm-3">{{ mismatch.field.label }} on the box</dt>
+                                <dd class="col-sm-9 mb-1 text-break">
+                                    <strong>{{ mismatch.boxValues|join(', ') }}</strong>
+                                    {% if mismatch.evidence is not empty %}
+                                        <span class="text-muted">(read as “{{ mismatch.evidence|join('”, “') }}”)</span>
+                                    {% endif %}
+                                </dd>
+                                <dt class="col-sm-3">In the catalogue</dt>
+                                <dd class="col-sm-9 mb-1 text-break">
+                                    {% if mismatch.catalogueValue %}
+                                        {{ mismatch.catalogueValue }}
+                                    {% else %}
+                                        <span class="badge bg-light text-dark border">Nothing</span>
+                                    {% endif %}
+                                </dd>
+                            </dl>
+                            <div class="small text-muted">Box read {{ mismatch.analysisReceivedAt|ago }}</div>
+                        </div>
+                        <div class="d-flex flex-column gap-2 flex-shrink-0">
+                            <a class="btn btn-sm btn-outline-primary" href="{{ path('admin_edit_puzzle', {puzzleId: mismatch.puzzleId, return: list_return}) }}">
+                                <i class="bi bi-pencil"></i> Edit puzzle
+                            </a>
+                            <a class="btn btn-sm btn-outline-secondary" href="{{ path('admin_puzzle_history', {puzzleId: mismatch.puzzleId}) }}">
+                                <i class="bi bi-clock-history"></i> History
+                            </a>
+                            <form method="post" action="{{ path('admin_box_text_mismatch_dismiss', {puzzleId: mismatch.puzzleId}) }}">
+                                <input type="hidden" name="_token" value="{{ csrf_token(csrf_token_id) }}">
+                                <input type="hidden" name="field" value="{{ mismatch.field.value }}">
+                                <input type="hidden" name="value" value="{{ mismatch.valueKey }}">
+                                <input type="hidden" name="list_field" value="{{ field ? field.value : '' }}">
+                                <input type="hidden" name="list_sort" value="{{ sort.value }}">
+                                <input type="hidden" name="list_page" value="{{ page }}">
+                                <button type="submit" class="btn btn-sm btn-outline-danger w-100" title="The catalogue is right - do not show this again">
+                                    <i class="bi bi-x-lg"></i> Dismiss
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+
+    {% if pages > 1 %}
+        <nav class="d-flex justify-content-between align-items-center mt-3" aria-label="Pages">
+            {% if page > 1 %}
+                <a class="btn btn-sm btn-outline-secondary" href="{{ path('admin_box_text_mismatches', {field: field ? field.value : null, sort: sort.value, page: page - 1}) }}">
+                    <i class="bi bi-chevron-left"></i> Previous
+                </a>
+            {% else %}
+                <span></span>
+            {% endif %}
+            <span class="small text-muted">Page {{ page }} of {{ pages }}</span>
+            {% if page < pages %}
+                <a class="btn btn-sm btn-outline-secondary" href="{{ path('admin_box_text_mismatches', {field: field ? field.value : null, sort: sort.value, page: page + 1}) }}">
+                    Next <i class="bi bi-chevron-right"></i>
+                </a>
+            {% else %}
+                <span></span>
+            {% endif %}
+        </nav>
+    {% endif %}
+{% endblock %}

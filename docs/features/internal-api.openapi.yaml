@@ -2385,6 +2385,87 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
+  /internal-api/puzzles/{puzzleId}/tags:
+    parameters:
+      - $ref: "#/components/parameters/PuzzleImageAnalysisPuzzleId"
+    get:
+      summary: A puzzle's stored picture tags and the corrections applied to them
+      description: |
+        `tags` = puzzle_tag as the tag writer last wrote it (docs/features/insights/tags.md): the keys the `tags`
+        analysis of the puzzle's current picture assigned, minus the keys a correction removes, plus the keys a
+        correction adds. Written daily by `myspeedpuzzling:refresh-puzzle-tags`, and for the puzzle at once after a
+        correction.
+      operationId: getPuzzleTags
+      responses:
+        "200":
+          description: The tags and the corrections
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PuzzleTags"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /internal-api/puzzles/{puzzleId}/tag-corrections/{tagKey}:
+    parameters:
+      - $ref: "#/components/parameters/PuzzleImageAnalysisPuzzleId"
+      - name: tagKey
+        in: path
+        required: true
+        description: A taxonomy key `<facet>.<key>` (`trait.dark`, `theme.pets.cats`) - one that cannot be in the taxonomy is a 422.
+        schema:
+          type: string
+          pattern: "^[a-z0-9_.]{1,100}$"
+    put:
+      summary: Correct one tag of a puzzle (admin / moderator word, survives every re-run)
+      description: |
+        Replaces an earlier correction of the same key. `add` = the puzzle has the tag whatever the analysis says
+        (on an assigned tag: a confirmation, the analysis' score is kept), `remove` = it does not. Credited to
+        `INTERNAL_API_REVIEWER_PLAYER_ID` (empty = 400). The puzzle's tags are rewritten at once.
+      operationId: putPuzzleTagCorrection
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [verdict]
+              properties:
+                verdict: { type: string, enum: [add, remove] }
+                note: { type: [string, "null"], maxLength: 500, description: Internal note - why }
+      responses:
+        "200":
+          description: The puzzle's tags and corrections after the change
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PuzzleTags"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/InvalidTagKey"
+    delete:
+      summary: Remove the correction of one tag - the analysis decides that key again
+      description: Idempotent - no correction is fine. The puzzle's tags are rewritten at once.
+      operationId: deletePuzzleTagCorrection
+      responses:
+        "200":
+          description: The puzzle's tags and remaining corrections
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PuzzleTags"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
 components:
   securitySchemes:
     InternalApiBearer:
@@ -2493,6 +2574,38 @@ components:
         format: uuid
 
   schemas:
+    PuzzleTags:
+      type: object
+      required: [puzzleId, taxonomyVersion, tags, corrections]
+      properties:
+        puzzleId: { type: string, format: uuid }
+        taxonomyVersion: { type: string, description: The taxonomy version the app's registry follows, e.g. "1.0.0" }
+        tags:
+          type: array
+          items:
+            type: object
+            required: [key, score, uncertain, source, analysisVersion, taxonomyVersion, labelKey, updatedAt]
+            properties:
+              key: { type: string, example: trait.large_uniform_areas }
+              score: { type: [number, "null"], description: The analysis' confidence 0..1 (traits - the corpus percentile); null for a tag only a correction gives }
+              uncertain: { type: boolean, description: Assigned although the analysis' sources disagree }
+              source: { type: string, enum: [analysis, correction] }
+              analysisVersion: { type: [string, "null"] }
+              taxonomyVersion: { type: [string, "null"] }
+              labelKey: { type: [string, "null"], description: Translation key of the label - null for a key no page shows yet }
+              updatedAt: { type: string, format: date-time }
+        corrections:
+          type: array
+          items:
+            type: object
+            required: [key, verdict, note, decidedById, decidedAt, taxonomyVersion]
+            properties:
+              key: { type: string }
+              verdict: { type: string, enum: [add, remove] }
+              note: { type: [string, "null"] }
+              decidedById: { type: [string, "null"], format: uuid, description: Null once that player's account is deleted }
+              decidedAt: { type: string, format: date-time }
+              taxonomyVersion: { type: string }
     CompetitionFields:
       type: object
       # No additionalProperties here - it would not see the create bodies' own fields (allOf); the request
@@ -3876,6 +3989,12 @@ components:
               answer: { type: [string, "null"], description: The moderators' answer to it }
 
   responses:
+    InvalidTagKey:
+      description: A tag key that cannot be in the taxonomy - `<facet>.<key>` of a known facet, at most 100 characters
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
     InvalidJson:
       description: Request body was present but not a valid JSON object
       content:

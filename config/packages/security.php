@@ -254,6 +254,12 @@ return App::config([
                 'path' => '^/admin/puzzle(s/|-((change|merge)-requests|approvals))',
                 'roles' => [PuzzleModerationVoter::PUZZLE_MODERATION_ACCESS],
             ],
+            // The box-text mismatch list (docs/features/puzzle-approvals.md, "Box-text mismatches") - a catalogue
+            // review queue for admins and moderators. Must stay above ^/admin as well.
+            [
+                'path' => '^/admin/box-text-mismatches',
+                'roles' => [PuzzleModerationVoter::PUZZLE_MODERATION_ACCESS],
+            ],
             // The time verification queue (docs/features/suspicious-time-review.md) - admins and moderators.
             // Must stay above ^/admin as well.
             [

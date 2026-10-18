@@ -7,7 +7,7 @@ state, PR, merge and deploy, deviations from the plan (and why), follow-ups.
 |---|---|---|---|---|---|
 | Prerequisites | done | #254, #255 | 2026-10-18 | 2026-10-18 | time zone; image-analysis internal API (14 analyzers, claims, bulk read) |
 | Research + plan | done | - | 2026-10-18 | - | README.md, implementation-plan.md, research files, prototype.html |
-| 1 Production API for the pipeline | in progress (1a, 1b, then 1c) | | | | streams below |
+| 1 Production API for the pipeline | in progress (1a done; 1b, then 1c) | #258 (1a) | 1a: 2026-10-18 | 1a: 2026-10-18 | 1a verified on prod: 401 without token, `requires=bogus` 400, `requires=artwork` 200 |
 | 2 Mac pipeline | in progress | | | | stream below |
 | Backfill (M3 Max + M1 Air sessions) | not started | - | - | - | starts after 1 + 2 are deployed; ≈ 5.5 days |
 | 3 Prediction fix | in progress (3a) | | | | streams below |
@@ -47,6 +47,10 @@ Merge order: 1a → 1b → 1c → 2 (2 is built in parallel against the document
 Phase 3 starts as soon as a subagent slot frees (1a is small).
 
 ## Deviations and decisions during the build
+
+- **1a:** an invalid `requires` answers **400** + `errors` (not the 422 of the brief): every invalid field of the claim
+  and list endpoints already answers 400; only the store endpoints answer 422. Both SigLIP 2 analyzers carry the
+  vector under `vector` (`crop` is the envelope field saying which part of the image was used).
 
 - **Phase 2 acceptance on the M3 (§2.8 `bench` ±30 % and `verify --end-to-end --limit 10`)** cannot run in the
   orchestrator session: it must never load ML models while Jan's Mac runs the backfill tooling, and has no production

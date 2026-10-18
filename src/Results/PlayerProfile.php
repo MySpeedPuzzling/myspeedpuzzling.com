@@ -84,6 +84,7 @@ use SpeedPuzzling\Web\Value\SkillTier;
  *     email_undeliverable_sub_type?: null|string,
  *     email_undeliverable_diagnostic?: null|string,
  *     email_unverified?: bool,
+ *     timezone?: null|string,
  *  }
  */
 readonly final class PlayerProfile
@@ -233,6 +234,11 @@ readonly final class PlayerProfile
          * Never together with $emailUndeliverable: a new link would bounce too
          */
         public bool $emailVerificationReminder = false,
+        /**
+         * The signed-in player's own profile only (docs/features/player-timezone.md): their IANA time zone, null while
+         * not known. Private - GetPlayerProfile::byId() never selects it, so it reaches no public page nor API.
+         */
+        public null|string $timezone = null,
     ) {
     }
 
@@ -454,6 +460,7 @@ readonly final class PlayerProfile
             skillTier: isset($row['skill_tier']) ? SkillTier::tryFrom((int) $row['skill_tier']) : null,
             emailUndeliverable: $emailUndeliverable,
             emailVerificationReminder: $emailVerificationReminder,
+            timezone: $row['timezone'] ?? null,
         );
     }
 

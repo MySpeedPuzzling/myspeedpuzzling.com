@@ -77,6 +77,8 @@
                 {{ form_row(form.termsAccepted) }}
 
                 {{ form_row(form.newsletter) }}
+                {# Hidden, filled by the browser (docs/features/player-timezone.md) #}
+                {{ form_widget(form.timezone) }}
 
                 <button type="submit" class="btn btn-primary w-100" data-auth-disclosure-target="submit" data-turbo-submits-with="{{ 'auth.register.submitting'|trans }}">
                     {{ 'auth.register.submit'|trans }}

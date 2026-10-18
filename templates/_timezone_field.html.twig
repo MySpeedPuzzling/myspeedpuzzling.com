@@ -1,0 +1,13 @@
+{#
+    The "Time zone" field of EditProfileFormType (docs/features/player-timezone.md) - edit profile and finish profile.
+    The select's id is `timezone`: other pages link to `edit_profile#timezone`. timezone_select_controller.js makes it
+    searchable and, while nothing is saved, preselects the browser's zone with the "Detected" note (saved only on Save).
+#}
+<div class="timezone-field"
+    {{ stimulus_controller('timezone-select', {aliases: field.vars.browser_aliases|default({})}) }}
+>
+    {{ form_row(field) }}
+    <p class="form-text timezone-field-detected mt-n2 mb-3" hidden {{ stimulus_target('timezone-select', 'detected') }}>
+        <i class="bi bi-magic me-1" aria-hidden="true"></i>{{ 'player_timezone.detected'|trans }}
+    </p>
+</div>

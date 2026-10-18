@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\FormType;
 
 use SpeedPuzzling\Web\FormData\EditProfileFormData;
+use SpeedPuzzling\Web\Services\TimezoneChoices;
+use SpeedPuzzling\Web\Value\TimezoneIdentifier;
 use SpeedPuzzling\Web\Value\CountryCode;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
@@ -12,6 +14,8 @@ use Symfony\Component\Form\Extension\Core\Type\FileType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
+use Symfony\Component\Form\FormInterface;
+use Symfony\Component\Form\FormView;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Component\Validator\Constraints\Image;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -21,8 +25,14 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  */
 final class EditProfileFormType extends AbstractType
 {
+    /**
+     * The settings field's id - other pages link straight to it (`edit_profile#timezone`, docs/features/player-timezone.md)
+     */
+    public const string TIMEZONE_ANCHOR = 'timezone';
+
     public function __construct(
-        readonly private TranslatorInterface $translator
+        readonly private TranslatorInterface $translator,
+        readonly private TimezoneChoices $timezoneChoices,
     ) {
     }
 
@@ -79,6 +89,20 @@ final class EditProfileFormType extends AbstractType
             'choice_translation_domain' => false,
         ]);
 
+        // Searchable through timezone_select_controller.js, which also preselects the browser's zone while none is
+        // saved ("Detected from your browser" - stored only when the player saves). An unknown value is a form error.
+        $builder->add('timezone', ChoiceType::class, [
+            'label' => 'player_timezone.label',
+            'help' => 'player_timezone.help',
+            'required' => false,
+            'placeholder' => 'player_timezone.placeholder',
+            'choices' => $this->timezoneChoices->grouped($this->translator->getLocale()),
+            'choice_translation_domain' => false,
+            'attr' => [
+                'data-timezone-select-target' => 'select',
+            ],
+        ]);
+
         $builder->add('facebook', TextType::class, [
             'label' => 'facebook',
             'required' => false,
@@ -120,6 +144,17 @@ final class EditProfileFormType extends AbstractType
                 ),
             ],
         ]);
+    }
+
+    /**
+     * @param mixed[] $options
+     */
+    public function finishView(FormView $view, FormInterface $form, array $options): void
+    {
+        // A stable id instead of `edit_profile_form_timezone`: the anchor other pages link to, on both forms using it
+        $view['timezone']->vars['id'] = self::TIMEZONE_ANCHOR;
+        // For the browser's old zone names (templates/_timezone_field.html.twig → timezone_select_controller.js)
+        $view['timezone']->vars['browser_aliases'] = TimezoneIdentifier::aliases();
     }
 
     public function configureOptions(OptionsResolver $resolver): void

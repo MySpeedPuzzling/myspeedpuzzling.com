@@ -7,6 +7,11 @@
    question, a few big answers. Anything longer than this gets skipped, so the
    explaining is left to the guide and to the "Getting started" card on the Hub. #}
 {% block content %}
+    {# The sign-up forms send the browser's time zone; should it not have arrived, the welcome screen sends it once (fills an empty value only - docs/features/player-timezone.md) #}
+    {% if logged_user.profile is not null and logged_user.profile.timezone is null %}
+        <span hidden {{ stimulus_controller('timezone-detect', {url: path('detect_timezone')}) }}></span>
+    {% endif %}
+
     <div class="onboarding-welcome mx-auto pb-4">
         <div class="text-center">
             <img class="onboarding-welcome-puzzlie" src="{{ asset('img/puzzlie-1.png') }}" alt="" width="1000" height="949">

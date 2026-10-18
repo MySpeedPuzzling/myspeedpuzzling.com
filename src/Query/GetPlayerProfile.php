@@ -203,7 +203,9 @@ SELECT
     email_suppression.bounce_sub_type AS email_undeliverable_sub_type,
     email_suppression.diagnostic_code AS email_undeliverable_diagnostic,
     -- The verification link was never clicked: after a few days a banner offers to send it again
-    (user_account.id IS NOT NULL AND user_account.email_verified_at IS NULL) AS email_unverified
+    (user_account.id IS NOT NULL AND user_account.email_verified_at IS NULL) AS email_unverified,
+    -- Private (docs/features/player-timezone.md): the owner's own row only, byId() never selects it
+    player.timezone
 FROM player
 LEFT JOIN user_account ON user_account.user_id = player.user_id
 LEFT JOIN membership ON membership.player_id = player.id

@@ -17,6 +17,7 @@ final class EditProfileFormData
     public null|string $facebook = null;
     public null|string $instagram = null;
     public null|string $twitch = null;
+    public null|string $timezone = null;
 
     public static function fromPlayerProfile(PlayerProfile $playerProfile): self
     {
@@ -28,6 +29,7 @@ final class EditProfileFormData
         $data->facebook = $playerProfile->facebook;
         $data->instagram = $playerProfile->instagram;
         $data->twitch = $playerProfile->twitch;
+        $data->timezone = $playerProfile->timezone;
 
         return $data;
     }

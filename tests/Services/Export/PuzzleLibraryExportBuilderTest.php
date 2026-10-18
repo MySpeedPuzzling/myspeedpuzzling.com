@@ -156,6 +156,19 @@ final class PuzzleLibraryExportBuilderTest extends KernelTestCase
         self::assertContains('difficulty_tier', $this->section($member, 'collection_items')->columns);
     }
 
+    public function testAboutCarriesTheOwnersTimezone(): void
+    {
+        self::bootKernel();
+        $container = self::getContainer();
+
+        // The download is the signed-in player's own: their row (byUserId) carries the time zone, byId() never does
+        $owner = $container->get(GetPlayerProfile::class)->byUserId(PlayerFixture::PLAYER_WITH_STRIPE_USER_ID);
+        self::assertSame('Europe/London', $container->get(PuzzleLibraryExportBuilder::class)->build($owner)->about['timezone']);
+
+        $public = $container->get(GetPlayerProfile::class)->byId(PlayerFixture::PLAYER_WITH_STRIPE);
+        self::assertNull($public->timezone, 'Private data stays off the public profile row');
+    }
+
     private function build(string $playerId): ExportDocument
     {
         self::bootKernel();

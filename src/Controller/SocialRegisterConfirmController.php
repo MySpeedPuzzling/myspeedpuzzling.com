@@ -101,6 +101,11 @@ final class SocialRegisterConfirmController extends AbstractController
             );
         }
 
+        // Filled by the browser (timezone_detect_controller.js); the handler keeps only a listed zone. Read before the
+        // single-use registration is consumed, and never via get(): an array value would throw after the consume
+        $timezone = $request->request->all()['timezone'] ?? null;
+        $timezone = is_string($timezone) ? $timezone : null;
+
         $parked = $this->stateStore->consumeRegistration(self::tokenFrom($request));
 
         if ($parked === null) {
@@ -122,6 +127,7 @@ final class SocialRegisterConfirmController extends AbstractController
                 locale: $parked->locale,
                 newsletter: $request->request->getBoolean('newsletter'),
                 termsAccepted: true,
+                timezone: is_string($timezone) ? $timezone : null,
             ));
         } catch (HandlerFailedException $exception) {
             $reason = $exception->getPrevious();

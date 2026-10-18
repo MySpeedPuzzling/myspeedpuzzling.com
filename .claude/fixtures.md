@@ -12,6 +12,9 @@ This document describes the test data structure defined in `tests/DataFixtures/`
 | `PLAYER_WITH_FAVORITES` | Michael Johnson | player3@speedpuzzling.cz | Berlin, DE | Has favorite players |
 | `PLAYER_WITH_STRIPE` | Sarah Williams | player4@speedpuzzling.cz | London, GB | **Has active membership**, Stripe customer, public collection |
 
+### Time zone
+Only `PLAYER_WITH_STRIPE` has a time zone (`Europe/London`, `player.timezone` - `docs/features/player-timezone.md`); every other fixture player has none.
+
 ### User accounts
 Every fixture player has a `user_account` row (`UserAccountFixture`) with the e-mail from the table above - `user_account.email` is the only place a player's address lives (the `player` table has no e-mail column since release 2 of the single-source-of-truth change). The rows mirror an Auth0 import (`legacy_auth0 = true`, verified, no password), the state `TestingLogin`/`TestingViewer` used to create on demand.
 

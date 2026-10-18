@@ -19,6 +19,9 @@ readonly final class EditProfile
         public null|string $facebook,
         public null|string $instagram,
         public null|string $twitch,
+        // The player's choice in the settings (docs/features/player-timezone.md): null clears it, an unknown value is
+        // ignored. No default on purpose - every form that sends EditProfile must carry the field, or it would clear it
+        public null|string $timezone,
     ) {
     }
 
@@ -34,6 +37,7 @@ readonly final class EditProfile
             facebook: $formData->facebook,
             instagram: $formData->instagram,
             twitch: $formData->twitch,
+            timezone: $formData->timezone,
         );
     }
 }

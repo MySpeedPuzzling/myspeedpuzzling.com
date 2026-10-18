@@ -10,6 +10,7 @@ use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
 use SpeedPuzzling\Web\Message\EditProfile;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Services\ImageOptimizer;
+use SpeedPuzzling\Web\Value\TimezoneIdentifier;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 #[AsMessageHandler]
@@ -57,5 +58,16 @@ readonly final class EditProfileHandler
             instagram: $message->instagram,
             twitch: $message->twitch,
         );
+
+        // Cleared on purpose, or a listed zone; anything else leaves the stored value as it was
+        if ($message->timezone === null || trim($message->timezone) === '') {
+            $player->changeTimezone(null);
+        } else {
+            $timezone = TimezoneIdentifier::normalize($message->timezone);
+
+            if ($timezone !== null) {
+                $player->changeTimezone($timezone);
+            }
+        }
     }
 }

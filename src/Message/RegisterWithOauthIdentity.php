@@ -26,6 +26,8 @@ final readonly class RegisterWithOauthIdentity
         public bool $newsletter = false,
         // Ticked "I agree to the Terms of service and the Privacy policy" (required by the forms)
         public bool $termsAccepted = false,
+        // What the browser reported on the confirmation page (docs/features/player-timezone.md) - stored only when listed
+        public null|string $timezone = null,
     ) {
     }
 }

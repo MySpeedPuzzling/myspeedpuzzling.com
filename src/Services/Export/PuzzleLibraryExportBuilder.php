@@ -291,6 +291,8 @@ readonly final class PuzzleLibraryExportBuilder
             'player_id' => $player->playerId,
             'player_code' => strtoupper($player->code),
             'player_name' => $player->playerName,
+            // IANA time zone, null while not known (docs/features/player-timezone.md) - own data, like the settings below
+            'timezone' => $player->timezone,
             'puzzle_collection_visibility' => $player->puzzleCollectionVisibility->value,
             'wish_list_visibility' => $player->wishListVisibility->value,
             'unsolved_puzzles_visibility' => $player->unsolvedPuzzlesVisibility->value,

@@ -35,7 +35,8 @@ Styles: `assets/styles/_onboarding.scss`. Mobile first: one column, every target
 
 Steps: create your account (ticked) → log your first puzzle → finish your profile → add a puzzle you own → add a favorite puzzler.
 On the Hub it folds once the first puzzle is logged; on the player's own profile (`PlayerProfileController`) it is shown open while
-something is left, and never in its "all set" state. "Hide" removes it from both.
+something is left, and never in its "all set" state. "Hide" removes it from both. While it is shown, the own profile
+asks nothing else - "Add your country" and "Complete your profile" (time zone, `player-timezone.md`) come after it, one at a time.
 
 
 - State is **derived, never stored**: `GetGettingStartedProgress::forPlayer()` →

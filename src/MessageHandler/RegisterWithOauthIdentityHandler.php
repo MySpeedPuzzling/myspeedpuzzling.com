@@ -20,6 +20,7 @@ use SpeedPuzzling\Web\Repository\UserAccountRepository;
 use SpeedPuzzling\Web\Services\AuthAuditRecorder;
 use SpeedPuzzling\Web\Services\GenerateUniquePlayerCode;
 use SpeedPuzzling\Web\Value\AuthAuditEventType;
+use SpeedPuzzling\Web\Value\TimezoneIdentifier;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 
 /**
@@ -91,6 +92,12 @@ final readonly class RegisterWithOauthIdentityHandler
         }
 
         $player->changeNewsletterEnabled($message->newsletter);
+
+        $timezone = TimezoneIdentifier::normalize($message->timezone);
+
+        if ($timezone !== null) {
+            $player->changeTimezone($timezone);
+        }
 
         $this->playerRepository->save($player);
 

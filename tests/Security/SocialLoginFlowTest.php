@@ -637,6 +637,36 @@ final class SocialLoginFlowTest extends WebTestCase
         $this->assertRememberMeCookieIssued($browser);
     }
 
+    /**
+     * docs/features/player-timezone.md: the confirmation carries the browser's time zone like the native form
+     */
+    public function testRule4ConfirmationStoresTheBrowsersTimezone(): void
+    {
+        $this->enableSocialLoginProvider(OauthProvider::Google);
+        $browser = self::createClient();
+
+        $suffix = bin2hex(random_bytes(4));
+        $email = "rule4tz+{$suffix}@example.com";
+
+        $state = $this->startFlow($browser, 'google', 'accounts.google.com');
+
+        $this->queueGoogleExchange("g-rule4tz-{$suffix}", $email, emailVerified: true);
+        $browser->request('GET', "/login/social/google/callback?state={$state}&code=fake-code");
+        $token = $this->registrationTokenFromLocation($browser);
+
+        $crawler = $browser->request('GET', '/register/social?token=' . $token);
+        self::assertCount(1, $crawler->filter('form[action="/register/social"] input[type="hidden"][name="timezone"][data-controller="timezone-detect"]'));
+
+        $browser->request('POST', '/register/social', ['token' => $token, 'terms' => '1', 'timezone' => 'Australia/Sydney']);
+        self::assertResponseRedirects();
+
+        $timezone = $browser->getContainer()->get(Connection::class)->fetchOne(
+            'SELECT player.timezone FROM player JOIN user_account ON user_account.user_id = player.user_id WHERE user_account.email = :email',
+            ['email' => $email],
+        );
+        self::assertSame('Australia/Sydney', $timezone);
+    }
+
     public function testRule4WithoutAgreeingToTheTermsCreatesNothingAndKeepsTheConfirmation(): void
     {
         $this->enableSocialLoginProvider(OauthProvider::Google);

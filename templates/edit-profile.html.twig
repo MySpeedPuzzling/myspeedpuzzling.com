@@ -435,6 +435,7 @@
                 {{ form_row(edit_profile_form.name) }}
                 {{ form_row(edit_profile_form.city) }}
                 {{ form_row(edit_profile_form.country) }}
+                {{ include('_timezone_field.html.twig', {field: edit_profile_form.timezone}) }}
                 {{ form_row(edit_profile_form.facebook) }}
                 {{ form_row(edit_profile_form.instagram) }}
                 {{ form_row(edit_profile_form.twitch) }}

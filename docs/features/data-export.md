@@ -63,7 +63,7 @@ lists (system collection) in the request locale. README.txt says so.
 ### `about` (JSON `export` object, XML `<about>`, XLSX/CSV a two-column key/value sheet)
 
 - `format_version` (1), `generated_at` (UTC, ISO 8601, from `ClockInterface`), `player_id`, `player_code`,
-  `player_name`, `sections` (name → row count). Bump `format_version` only on a breaking change (removed/renamed
+  `player_name`, `timezone` (IANA, null while not known - `player-timezone.md`), `sections` (name → row count). Bump `format_version` only on a breaking change (removed/renamed
   column); adding columns is not breaking.
 - **Library settings** (own data, nothing else holds them): `puzzle_collection_visibility`,
   `wish_list_visibility`, `unsolved_puzzles_visibility`, `solved_puzzles_visibility`, `lend_borrow_list_visibility`,

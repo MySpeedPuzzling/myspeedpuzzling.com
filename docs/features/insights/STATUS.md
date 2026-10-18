@@ -10,9 +10,9 @@ state, PR, merge and deploy, deviations from the plan (and why), follow-ups.
 | 1 Production API for the pipeline | **done** | #258 (1a), #259 (1b), #260 (1c) | 2026-10-18 | 2026-10-18 | verified: 401 without token, `requires` filter (400 on bogus), change-request list 200, source backfill 897 internal_api / 2,790 player, picture grid behind login |
 | 2 Mac pipeline | **done** | #261 | 2026-10-18 | 2026-10-18 | `solvedCount` live on the work list; `bench` / `verify --end-to-end` run in the M3 session (see deviations) |
 | Backfill (M3 Max + M1 Air sessions) | **ready to start** (prompts handed to Jan 2026-10-18) | - | - | - | starts after 1 + 2 are deployed; ≈ 5.5 days |
-| 3 Prediction fix | in progress (3a in review) | #263 (3a) | | | streams below |
+| 3 Prediction fix | in progress (3a done; 3b, then 3c) | #263 (3a) | 3a: 2026-10-18 | 3a: 2026-10-18 | 3a: backfill on prod 244,985 rows / 4,235 players in 33 s; first as-of batch 22 s (was 16-18 s; re-check steady state); tiers 1-6 = 249 / 1,838 / 2,956 / 891 / 400 / 225, 6,559 rated |
 | 4 Insights computation | in progress (4a) | | | | streams below |
-| 5 Image intelligence on the server | in progress (5a) | | | | streams below |
+| 5 Image intelligence on the server | in progress (5a done; 5b) | #265 (5a) | 5a: 2026-10-18 | 5a: 2026-10-18 | 5a: crons `refresh-puzzle-tags` 07:40 + `detect-box-text-mismatches` 07:45 in lily.srv (0953a4b), both ran clean on prod |
 | 6 Display behind INSIGHTS_PUBLIC | not started | | | | |
 | Launch (flag removed) | not started | | | | waits for the backfill + gates |
 
@@ -89,9 +89,17 @@ Phase 3 starts as soon as a subagent slot frees (1a is small).
   puzzles); no `baseline_type` column (derived at lookup); k = `puzzle_difficulty.sample_size` (no `index_count`).
   `MODEL_VERSION` 1 → 2 in 3a (difficulty inputs changed), so 3b bumps to 3.
 
+- **5a:** tag corrections and box-text dismissals earn no karma (they change no puzzle record; revisit with a web UI
+  for corrections). Only `assigned` tags are stored. Admin flashes English only (convention of the admin pages).
+- **Order:** 5a and 3a merged before Phase 4/5 streams that need them; Phase 4/5 parts that don't need the Phase 3
+  model started early (4a, 5a) - recorded in the Phase 4 + 5 plan above.
+
 ## Follow-ups
 
 - Rejected crop images are deleted like any rejected proposal's file (decision + confidence stay, which is what the
   threshold calibration needs). Revisit only if crop-model retraining needs the rejected crops.
 - API change-request rejects before 1b read `admin_ui` in the decision log (documented in puzzle-approvals.md).
-
+- 5a: tag-corrections web UI, bulk corrections endpoint, storing tag candidates; watch the first real
+  box-text run for brand / brand-code false positives (licensor brands, "No." prefixes) before relying on those filters.
+- 3a: `reconstructed` predictions stored before 3a stay v1 (frozen history); suspicious-time detection now sees
+  expected times ~7 % shorter (inputs changed, classifier version unchanged).

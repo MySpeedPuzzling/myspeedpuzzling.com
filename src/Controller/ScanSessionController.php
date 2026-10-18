@@ -88,7 +88,7 @@ final class ScanSessionController extends AbstractController
 
     /**
      * @param array<mixed> $payload
-     * @return null|array{frames: null|int|float, decode_ms: null|int|float, first_seen_ms: null|int|float, solo_ms: null|int|float}
+     * @return null|array{frames: null|int|float, decode_ms: null|int|float, first_seen_ms: null|int|float, solo_ms: null|int|float, baseline_ms: null|int|float, max_backoff: null|int|float}
      */
     private static function engine(array $payload, string $key): null|array
     {
@@ -103,6 +103,9 @@ final class ScanSessionController extends AbstractController
             'decode_ms' => self::number($engine, 'decodeMs'),
             'first_seen_ms' => self::number($engine, 'firstSeenMs'),
             'solo_ms' => self::number($engine, 'soloMs'),
+            // Google's reader alone per frame, and how far zbar had to step back beside it
+            'baseline_ms' => self::number($engine, 'baselineMs'),
+            'max_backoff' => self::number($engine, 'maxBackoff'),
         ];
     }
 

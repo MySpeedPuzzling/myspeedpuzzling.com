@@ -483,11 +483,23 @@ Not done: the beacon, so nothing measures the change yet - the Tempo count of `/
   Android to zbar on her result alone would repeat 2026-10-04.
 
 So, where the browser reads EAN-13 itself, **both readers run on every camera session** instead of choosing one
-(`_enginePlan()`): Google's reader on the whole frame, zbar on the centred band. Google's reader works off the main
-thread, so zbar decodes meanwhile; next to it zbar starts a frame only once as much time has passed as its last decode
-took (at most half the time), so a slow phone keeps Google's pace. zbar is downloaded while the camera opens and joins
-when it arrives - the first frames are never held up by jsdelivr, and if it cannot be downloaded the session runs on
-Google's reader alone (`zbarMissing` in the report).
+(`_enginePlan()`): Google's reader on the whole frame, zbar on the centred band, **each in its own loop**. zbar is
+downloaded while the camera opens and joins when it arrives - the first frames are never held up by jsdelivr, and if it
+cannot be downloaded the session runs on Google's reader alone (`zbarMissing` in the report).
+
+**zbar is a helper with a budget** (`HelperBudget` in `assets/barcode_acceptance.js`). The first version ran both in one
+loop, every frame waiting for both. The first production session on a mid-range phone (Galaxy A33, 2026-10-18, an hour
+after release) showed what that costs: Google's reader took **418 ms a frame instead of its 83 ms alone**, the scan
+8.4 s - both share the phone's main thread and CPU. Now:
+- Google's reader keeps its own pace, exactly as before the change;
+- zbar starts once Google's reader decoded 5 frames alone - their median is its baseline on this phone;
+- after each crop + decode zbar waits three times as long as it took (a quarter of the time at most);
+- Google's reader is judged on the average of every 5 frames: clearly slower than its baseline (more than 1.5x and
+  30 ms) = zbar waits twice as long right away, up to 32x (practically off); it comes back one step only after 3 good
+  windows in a row. A phone too slow for both scans as before the change, with Google's reader alone.
+
+Simulated in Chrome (Google's reader 350 ms slower while zbar ran in the last 300 ms): zbar backed off to 32x and
+Google's reader stayed at 41 ms a frame (baseline 40) - before the budget it averaged 204 ms.
 
 **When a code is handed over** - `assets/barcode_acceptance.js`, pinned by `BarcodeAcceptanceScriptTest`:
 - **zbar** by its own rule (4 agreeing reads with quality ≥ 3, 8 for codes starting with `0` and EAN-8) while zbar saw
@@ -505,9 +517,10 @@ Measured in Chrome with a fake camera showing a real barcode (zbar real, Google'
 
 | Google's reader | before (alone) | both side by side |
 |---|---|---|
-| reads the box | 0.66 s | **0.2-0.3 s**, by both |
-| repeats the misread on every frame | the misread handed over (the lookups correct the parity kind) | the right code after 0.3 s, by zbar; the misread never |
-| reads nothing (too blurry for it) | no read | zbar, 0.3 s |
+| reads the box | 0.66 s | **0.45-0.48 s**, by both (zbar waits for the 5 baseline frames) |
+| repeats the misread on every frame | the misread handed over (the lookups correct the parity kind) | the right code after 0.67 s, by zbar; the misread never |
+| reads nothing (too blurry for it) | no read | zbar, 0.66 s |
+| is slowed down by zbar (a slow phone) | - | zbar steps back until Google's reader keeps its pace |
 | zbar cannot be downloaded | - | Google's reader alone, as before |
 
 `?scanner=native` keeps the old behaviour (Google's reader alone), `?scanner=zbar` zbar alone - for support cases and
@@ -515,7 +528,8 @@ for a quick rollback test on a player's phone.
 
 **The reports** (`/-/scan-session`) say who decided (`accepted_by`: `native` / `zbar` / `both`) and give each reader's own
 numbers: frames, decode time, when it first saw the accepted code and when its rule alone would have accepted
-(`first_seen_ms`, `solo_ms`), plus every code seen per reader (`seen`, e.g. `4005555017585 native x3 zbar x2 q113,
+(`first_seen_ms`, `solo_ms`), Google's reader's baseline per frame (`native.baseline_ms`) and how far zbar had to step
+back (`zbar.max_backoff`), plus every code seen per reader (`seen`, e.g. `4005555017585 native x3 zbar x2 q113,
 0045555017585 native x1 zbar x0`). Every Android session therefore compares both readers on the same frames - no
 50/50 split needed. The debug panel shows the same per reader.
 

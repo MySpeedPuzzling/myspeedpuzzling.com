@@ -155,6 +155,77 @@ final class BarcodeAcceptanceScriptTest extends TestCase
         self::assertSame([null, null, null, 'zbar', null, null, null, 'zbar'], $this->accept(['zbar'], $reads)['results']);
     }
 
+    public function testZbarWaitsForGooglesReaderToSetItsPaceAndTakesAQuarterOfTheTime(): void
+    {
+        $result = $this->budget([
+            ['may', 0],
+            ['p', 80], ['p', 90], ['p', 80], ['p', 85],
+            ['may', 0],
+            ['p', 80],
+            ['may', 0],
+            // zbar's crop + decode took 150 ms, done at 1000: next at 1000 + 3 x 150
+            ['h', 150, 1000],
+            ['may', 1449],
+            ['may', 1450],
+        ]);
+
+        self::assertSame([false, null, null, null, null, false, null, true, null, false, true], $result['answers']);
+        self::assertSame(80, $result['baselineMs']);
+    }
+
+    /**
+     * The Galaxy A33 of 2026-10-18: Google's reader went from 83 to 418 ms a frame beside zbar. zbar steps back
+     * until it keeps its pace, and comes back once it does.
+     */
+    public function testZbarStepsBackWhileGooglesReaderIsSlowedDownAndReturnsAfterwards(): void
+    {
+        $slowed = [['p', 83], ['p', 80], ['p', 85], ['p', 83], ['p', 83]];
+        for ($i = 0; $i < 4; $i++) {
+            $slowed = [...$slowed, ['p', 418], ['p', 400], ['p', 420], ['p', 410], ['p', 405]];
+        }
+        $result = $this->budget([...$slowed, ['h', 200, 10000], ['may', 10000 + 200 * 3 * 16 - 1], ['may', 10000 + 200 * 3 * 16]]);
+
+        self::assertSame(16, $result['backoff']);
+        self::assertSame(16, $result['maxBackoff']);
+        self::assertSame([false, true], array_slice($result['answers'], -2));
+
+        // Two good windows are not enough to come back, the third is
+        $good = array_fill(0, 5, ['p', 88]);
+        self::assertSame(16, $this->budget([...$slowed, ...$good, ...$good])['backoff']);
+        $result = $this->budget([...$slowed, ...$good, ...$good, ...$good]);
+        self::assertSame(8, $result['backoff']);
+        self::assertSame(16, $result['maxBackoff']);
+    }
+
+    /**
+     * One slow frame in five - zbar running now and then beside it - still counts: the average decides.
+     */
+    public function testOccasionalSlowFramesCountThroughTheAverage(): void
+    {
+        $events = [['p', 40], ['p', 40], ['p', 40], ['p', 40], ['p', 40], ['p', 390], ['p', 40], ['p', 40], ['p', 40], ['p', 40]];
+
+        self::assertSame(2, $this->budget($events)['backoff']);
+    }
+
+    public function testAFewMillisecondsMoreOnAFastPhoneAreNoReasonToStepBack(): void
+    {
+        $result = $this->budget([['p', 20], ['p', 20], ['p', 20], ['p', 20], ['p', 20], ['p', 45], ['p', 48], ['p', 46], ['p', 44], ['p', 47]]);
+
+        self::assertSame(1, $result['backoff']);
+    }
+
+    /**
+     * @param list<array{0: string, 1: int, 2?: int}> $events
+     * @return array{answers: list<null|bool>, baselineMs: null|int, backoff: int, maxBackoff: int}
+     */
+    private function budget(array $events): array
+    {
+        /** @var array{answers: list<null|bool>, baselineMs: null|int, backoff: int, maxBackoff: int} $result */
+        $result = $this->harness([['budget' => $events]])[0];
+
+        return $result;
+    }
+
     /**
      * @return list<array{reader: string, code: string, quality?: int, at: int}>
      */
@@ -196,17 +267,29 @@ final class BarcodeAcceptanceScriptTest extends TestCase
      */
     private function accept(array $readers, array $reads, array $canonical = []): array
     {
+        /** @var array{results: list<null|string>, solo: array<string, null|int>, canonical: list<string>} $result */
+        $result = $this->harness([['readers' => $readers, 'reads' => $reads, 'canonical' => $canonical]])[0];
+
+        return $result;
+    }
+
+    /**
+     * @param list<array<string, mixed>> $cases
+     * @return list<mixed>
+     */
+    private function harness(array $cases): array
+    {
         $node = new ExecutableFinder()->find('node');
 
         self::assertIsString($node, 'node is required to execute the script - it is part of the base image');
 
         $process = new Process([$node, __DIR__ . '/barcode-acceptance-harness.mjs']);
-        $process->setInput(json_encode([['readers' => $readers, 'reads' => $reads, 'canonical' => $canonical]], JSON_THROW_ON_ERROR));
+        $process->setInput(json_encode($cases, JSON_THROW_ON_ERROR));
         $process->mustRun();
 
-        /** @var list<array{results: list<null|string>, solo: array<string, null|int>, canonical: list<string>}> $results */
+        /** @var list<mixed> $results */
         $results = json_decode($process->getOutput(), associative: true, flags: JSON_THROW_ON_ERROR);
 
-        return $results[0];
+        return $results;
     }
 }

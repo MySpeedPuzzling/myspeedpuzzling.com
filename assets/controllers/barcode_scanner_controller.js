@@ -1,5 +1,5 @@
 import { Controller } from '@hotwired/stimulus';
-import { ReadAcceptance, canonicalCode } from '../barcode_acceptance.js';
+import { HelperBudget, ReadAcceptance, canonicalCode } from '../barcode_acceptance.js';
 
 // docs/features/barcode-scanner/README.md (§5.2 camera, §5.3 frames and acceptance)
 const DEFAULT_ZOOM = 1.5;
@@ -471,6 +471,7 @@ export default class extends Controller {
         this.cameraPick = null;
         this.engine = null;
         this.engines = {};
+        this.zbarBudget = null;
         this.lastFocusKick = null;
         this.nextFocusKickAt = 0;
         this.stats = { frames: 0, decodeMs: [], seen: new Map(), accepted: null, acceptedBy: null };
@@ -578,7 +579,7 @@ export default class extends Controller {
     _engineState(name, detector) {
         this.acceptance.addReader(name);
 
-        return { detector, frames: 0, decodeMs: [], nextAt: 0, region: null };
+        return { detector, frames: 0, decodeMs: [], region: null };
     }
 
     _engineName() {
@@ -625,60 +626,70 @@ export default class extends Controller {
         }
 
         const ctx = this.overlayTarget.getContext('2d');
+        const video = this.videoTarget;
+        // The reader that paces the session and draws the overlay: Google's where it runs, else zbar
+        const primary = plan.native ? 'native' : 'zbar';
+        // Next to Google's reader, zbar only within a budget that keeps Google's at its own pace (HelperBudget)
+        this.zbarBudget = plan.native && plan.zbar ? new HelperBudget() : null;
 
-        const scanFrame = async () => {
-            if (!current()) {
-                return;
-            }
-
-            if (this.paused) {
-                // Keep the stream alive, skip detection while the host handles a result
-                this._onNextFrame(scanFrame);
-                return;
-            }
-
-            const now = Date.now();
-            if (now >= this.nextFocusKickAt) {
-                this.kickFocus();
-            }
-
-            this._sizeOverlay();
-            ctx.clearRect(0, 0, this.overlayTarget.width, this.overlayTarget.height);
-            this._drawGuide(ctx);
-
-            const video = this.videoTarget;
-            if (video.videoWidth && video.videoHeight) {
-                const native = this.engines.native;
-                const zbar = this.engines.zbar;
-                const start = performance.now();
-                // Google's reader works off the main thread, so zbar decodes meanwhile; next to it zbar takes at
-                // most every other frame's worth of time, so a slow phone keeps Google's pace
-                const jobs = [];
-                if (native) {
-                    jobs.push(this._decode('native', native, { source: video, x: 0, y: 0, w: video.videoWidth, h: video.videoHeight, vertical: false }));
-                }
-                if (zbar && (!native || start >= zbar.nextAt)) {
-                    jobs.push(this._decode('zbar', zbar, this._band(zbar)));
+        // One loop per reader, each at its own pace - waiting for both on every frame slowed a mid-range phone's
+        // Google reader five times
+        const loop = (name) => {
+            const step = async () => {
+                if (!current()) {
+                    return;
                 }
 
-                const results = await Promise.all(jobs);
-                this.stats.frames++;
-                this.stats.decodeMs.push(performance.now() - start);
-                if (this.stats.decodeMs.length > 30) {
-                    this.stats.decodeMs.shift();
+                const engine = this.engines[name];
+                const isPrimary = name === primary;
+
+                if (!this.paused && isPrimary) {
+                    if (Date.now() >= this.nextFocusKickAt) {
+                        this.kickFocus();
+                    }
+                    this._sizeOverlay();
+                    ctx.clearRect(0, 0, this.overlayTarget.width, this.overlayTarget.height);
+                    this._drawGuide(ctx);
                 }
 
-                for (const result of results) {
-                    if (result.barcodes.length > 0 && current()) {
-                        this._handleBarcodes(result.name, result.barcodes, result.frame, ctx);
+                // zbar next to Google's reader may not be downloaded yet - this loop then only waits
+                const ready = engine && video.videoWidth && video.videoHeight;
+                if (!this.paused && ready && (isPrimary || this.zbarBudget.mayRun(performance.now()))) {
+                    const start = performance.now();
+                    const frame = name === 'native'
+                        ? { source: video, x: 0, y: 0, w: video.videoWidth, h: video.videoHeight, vertical: false }
+                        : this._band(engine);
+                    const barcodes = await this._decode(name, engine, frame);
+                    const cost = performance.now() - start;
+
+                    if (isPrimary) {
+                        this.stats.frames++;
+                        this.stats.decodeMs.push(cost);
+                        if (this.stats.decodeMs.length > 30) {
+                            this.stats.decodeMs.shift();
+                        }
+                        if (this.zbarBudget) {
+                            this.zbarBudget.primaryDecoded(cost);
+                        }
+                    } else {
+                        this.zbarBudget.helperRan(cost, performance.now());
+                    }
+
+                    if (barcodes.length > 0 && current()) {
+                        this._handleBarcodes(name, barcodes, frame, ctx);
                     }
                 }
-            }
 
-            this._onNextFrame(scanFrame);
+                this._onNextFrame(step);
+            };
+
+            step();
         };
 
-        scanFrame();
+        loop(primary);
+        if (this.zbarBudget) {
+            loop('zbar');
+        }
     }
 
     async _decode(name, engine, frame) {
@@ -697,9 +708,8 @@ export default class extends Controller {
             engine.decodeMs.shift();
         }
         engine.region = frame;
-        engine.nextAt = performance.now() + ms;
 
-        return { name, barcodes, frame };
+        return barcodes;
     }
 
     /**
@@ -994,6 +1004,9 @@ export default class extends Controller {
             decodeMs: decode.length ? Math.round(decode.reduce((a, b) => a + b, 0) / decode.length) : null,
             firstSeenMs: this.stats.firstSeenMs ? this.stats.firstSeenMs[name] : null,
             soloMs: this.acceptance.soloMs(name),
+            // Google's reader alone, per frame; how far zbar had to step back beside it (HelperBudget)
+            baselineMs: name === 'native' && this.zbarBudget && this.zbarBudget.baselineMs !== null ? Math.round(this.zbarBudget.baselineMs) : null,
+            maxBackoff: name === 'zbar' && this.zbarBudget ? this.zbarBudget.maxBackoff : null,
         };
     }
 
@@ -1115,6 +1128,8 @@ export default class extends Controller {
             const parts = [`${name}: ${engine.frames} frames, decode ${engine.decodeMs === null ? '-' : engine.decodeMs} ms`];
             if (engine.firstSeenMs !== null) parts.push(`saw it after ${(engine.firstSeenMs / 1000).toFixed(1)} s`);
             if (engine.soloMs !== null) parts.push(`alone after ${(engine.soloMs / 1000).toFixed(1)} s`);
+            if (engine.baselineMs !== null) parts.push(`${engine.baselineMs} ms per frame before zbar started`);
+            if (name === 'zbar' && this.zbarBudget) parts.push(`backoff ${this.zbarBudget.backoff}x (max ${this.zbarBudget.maxBackoff}x)`);
             return parts.join(', ');
         };
         const band = zbar && zbar.region ? `, band ${zbar.region.w}x${zbar.region.h}${zbar.region.vertical ? ' upright' : ''}` : '';

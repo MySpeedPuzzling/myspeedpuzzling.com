@@ -147,3 +147,76 @@ export class ReadAcceptance {
         return true;
     }
 }
+
+// zbar next to Google's reader gets at most this share of the time
+export const HELPER_SHARE = 0.25;
+// Google's reader alone for this many frames first: what "not slowed down" means on this phone
+export const BASELINE_FRAMES = 5;
+const MAX_BACKOFF = 32;
+const WINDOW = 5;
+
+function median(values) {
+    const sorted = [...values].sort((a, b) => a - b);
+
+    return sorted[Math.floor(sorted.length / 2)];
+}
+
+/**
+ * How often zbar may decode next to Google's reader (README §5.7). Both work on the phone's one main thread and CPU,
+ * and on a mid-range phone zbar running beside it slowed Google's reader from 83 to 418 ms a frame (Galaxy A33,
+ * 2026-10-18) - the scan took 8 s instead of about 2. So Google's reader keeps its own pace, zbar is a helper:
+ * - it starts only once Google's reader decoded a few frames alone - its time per frame then is the baseline;
+ * - after each decode it waits three times as long as the decode took (a quarter of the time at most);
+ * - Google's reader is judged on the average of every 5 frames (the average: a frame zbar slowed down is exactly what
+ *   counts). Clearly slower than its baseline - zbar waits twice as long right away (up to 32x, which on a slow phone
+ *   means practically off); it comes back one step only after 3 good windows in a row, so it does not swing back
+ *   into the way.
+ * A phone too slow for both therefore scans as before the change, with Google's reader alone.
+ */
+export class HelperBudget {
+    constructor() {
+        this.baseline = [];
+        this.baselineMs = null;
+        this.recent = [];
+        this.goodWindows = 0;
+        this.backoff = 1;
+        this.maxBackoff = 1;
+        this.nextAt = 0;
+    }
+
+    /** Google's reader decoded a frame in `ms` */
+    primaryDecoded(ms) {
+        if (this.baselineMs === null) {
+            this.baseline.push(ms);
+            if (this.baseline.length >= BASELINE_FRAMES) {
+                this.baselineMs = median(this.baseline);
+            }
+            return;
+        }
+
+        this.recent.push(ms);
+        if (this.recent.length < WINDOW) {
+            return;
+        }
+
+        const average = this.recent.reduce((a, b) => a + b, 0) / this.recent.length;
+        this.recent = [];
+        if (average > Math.max(this.baselineMs * 1.5, this.baselineMs + 30)) {
+            this.backoff = Math.min(this.backoff * 2, MAX_BACKOFF);
+            this.maxBackoff = Math.max(this.maxBackoff, this.backoff);
+            this.goodWindows = 0;
+        } else if (average <= this.baselineMs * 1.25 && ++this.goodWindows >= 3) {
+            this.backoff = Math.max(1, this.backoff / 2);
+            this.goodWindows = 0;
+        }
+    }
+
+    mayRun(now) {
+        return this.baselineMs !== null && now >= this.nextAt;
+    }
+
+    /** zbar's crop and decode took `cost` ms, finished at `now` */
+    helperRan(cost, now) {
+        this.nextAt = now + cost * ((1 - HELPER_SHARE) / HELPER_SHARE) * this.backoff;
+    }
+}

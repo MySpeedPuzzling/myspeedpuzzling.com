@@ -61,8 +61,8 @@ final class ScanSessionControllerTest extends WebTestCase
         self::assertSame('SM-S921B Android 15.0.0', $logged[0]['context']['model']);
         self::assertSame('continuous,manual', $logged[0]['context']['focus_modes']);
         self::assertSame('both', $logged[0]['context']['accepted_by']);
-        self::assertSame(['frames' => 40, 'decode_ms' => 45, 'first_seen_ms' => 610, 'solo_ms' => null], $logged[0]['context']['native']);
-        self::assertSame(['frames' => 21, 'decode_ms' => 31, 'first_seen_ms' => 700, 'solo_ms' => 1210], $logged[0]['context']['zbar']);
+        self::assertSame(['frames' => 40, 'decode_ms' => 45, 'first_seen_ms' => 610, 'solo_ms' => null, 'baseline_ms' => 41, 'max_backoff' => null], $logged[0]['context']['native']);
+        self::assertSame(['frames' => 21, 'decode_ms' => 31, 'first_seen_ms' => 700, 'solo_ms' => 1210, 'baseline_ms' => null, 'max_backoff' => 4], $logged[0]['context']['zbar']);
         self::assertFalse($logged[0]['context']['zbar_missing']);
         self::assertSame('4005555017585 native x3 zbar x4 q113', $logged[0]['context']['seen']);
     }
@@ -104,8 +104,8 @@ final class ScanSessionControllerTest extends WebTestCase
             'decodeMs' => 18,
             'seenCodes' => 1,
             'acceptedBy' => 'both',
-            'native' => ['frames' => 40, 'decodeMs' => 45, 'firstSeenMs' => 610, 'soloMs' => null],
-            'zbar' => ['frames' => 21, 'decodeMs' => 31, 'firstSeenMs' => 700, 'soloMs' => 1210],
+            'native' => ['frames' => 40, 'decodeMs' => 45, 'firstSeenMs' => 610, 'soloMs' => null, 'baselineMs' => 41, 'maxBackoff' => null],
+            'zbar' => ['frames' => 21, 'decodeMs' => 31, 'firstSeenMs' => 700, 'soloMs' => 1210, 'baselineMs' => null, 'maxBackoff' => 4],
             'zbarMissing' => false,
             'seen' => '4005555017585 native x3 zbar x4 q113',
             'camera' => 'camera 0, facing back',

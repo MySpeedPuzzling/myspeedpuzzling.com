@@ -669,7 +669,10 @@ player lost the form. Shipped: limit 128M (`web-base-php85/php.ini`), photos up 
       second jump; 10-17's 422 includes one IP with 159). iOS flat at 113-226. Tempo cannot tell what was read in
       multiscan (the code is in the Live POST body) - the beacon (Step 1) is still the only way to measure reads.
 - [x] Step 1 (2026-10-18): misread correction in the scanner lookups + `/-/scan-session` reports (README §5.1).
-- [x] 2026-10-19: Google's reader and zbar side by side on Android (README §5.7, `assets/barcode_acceptance.js`).
+- [x] 2026-10-19: Google's reader and zbar side by side on Android (README §5.7, `assets/barcode_acceptance.js`);
+      the same night zbar became a helper with a time budget after a Galaxy A33 slowed from 83 to 418 ms a frame.
+- [ ] In the reports: phones where `zbar.max_backoff` reaches 16-32 (zbar practically off - they read like before,
+      without the misread guard) - candidates for zbar in a Web Worker (README §5.3), which takes it off the main thread.
 - [ ] After ~5 days of `/-/scan-session` reports: read rate, time to first read and the models that never read, per
       platform (Android Chrome, Samsung Internet, iOS) - Loki, log channel `barcode_scanner` (on lily also
       `docker logs` of the web/api containers). The reports of 2026-10-18 evening are Google-only on Android, from

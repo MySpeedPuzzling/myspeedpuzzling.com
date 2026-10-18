@@ -211,62 +211,79 @@ touched. `difficulty_prior` runs last (below); the nightly `--daily` run of the 
 
 ### `difficulty_prior` - picture-based difficulty estimates (plan §5.3)
 
-Not an image analyzer: it trains a ridge regression (scikit-learn, CPU, ~2 minutes for the catalogue - about 18 fits of
-~6 s at 7.6k × 2.2k) from the picture embeddings + the piece count to the puzzles' measured as-of log difficulty and
-pushes one **estimate** per puzzle plus a **model record** of the run through the endpoints below. No fine-tuning, no
-language model, nothing downloaded. Code and every decision in detail: `tools/puzzle-vision/puzzle_vision/derive/difficulty_prior.py`.
+Not an image analyzer: it trains ridge regressions (scikit-learn, CPU, ~4 minutes for the catalogue - about 17 fits of
+~6 s at 7.6k × 2.2k per model) from the picture embeddings + the piece count to the puzzles' measured as-of log
+difficulty and pushes one **estimate** per puzzle plus a **model record** per model through the endpoints below. No
+fine-tuning, no language model, nothing downloaded. Code and every decision in detail:
+`tools/puzzle-vision/puzzle_vision/derive/difficulty_prior.py`. A crash in it is logged (`log.exception`, `error` in
+the summary) and never ends the nightly run - the crop proposals still follow.
 
 - **Version** `1.0.0+ridge-siglip2-dinov2` = `model` `ridge-siglip2-dinov2`, `modelVersion` `1.0.0` (constants in the
   module, not in the profiles - it is not an `ImageAnalyzer`). Bump `MODEL_VERSION` whenever the numbers change
   (features, folds, thresholds); fixed seeds make two runs on the same data identical.
-- **Joins** on (puzzleId, imageFingerprint): the label's and every embedding row's fingerprint must be the puzzle's
-  current picture (the work list), else the row is left out and counted under `dropped`.
-- **Two models.** `ridge-siglip2-dinov2` (the model of record): SigLIP 2 crop + DINOv2 crop + ln pieces, ln pieces²,
-  size group one-hot (≤300 / 500 / 1000 / 1500+ / odd), standardised. Puzzles without the crop embeddings yet (no
-  `artwork`, or the M1 has not embedded the crop) get the fallback `ridge-siglip2-full` (the whole-image SigLIP 2
-  vector + pieces, trained on the whole-image vectors of the labelled puzzles) - their estimates carry that model name.
-  A puzzle without any SigLIP 2 vector gets no estimate.
-- **Training**: labelled puzzles with ≥ 3 indices, weighted n/(n+10); alpha by GCV inside every fit. **Fewer than
-  200 such puzzles with both crop embeddings = the run records and pushes nothing** and says so (`skipped`) - normal
-  early in the backfill.
-- **Estimates**: training puzzles get **5-fold out-of-fold** estimates (`outOfFold: true`); labelled puzzles with 1-2
-  indices get the full model, which was not trained on them (`outOfFold: true` as well); unlabelled puzzles the full
-  model (`outOfFold: false`). Intervals `logP10` / `logP90` = estimate + residual quantiles of out-of-fold residuals
-  of puzzles with ≥ 10 indices per (size group × image kind), falling back to the size group and then to all of them
-  below 50 residuals; always `logP10 ≤ logDifficulty ≤ logP90`.
+- **Inputs**: joined on (puzzleId, imageFingerprint) - the label's and every embedding row's fingerprint must be the
+  puzzle's current picture (the work list). Of each analyzer only its **newest `analyzerVersion`** is read (a version
+  bump re-runs over days; vectors of two models are never mixed), within it the most common dimension. Everything
+  left out is counted under `dropped`; the versions used are in `evaluation.inputVersions`.
+- **Two models, each with its own record, guard and estimates.** `ridge-siglip2-dinov2` (the model of record): SigLIP 2
+  crop + DINOv2 crop + ln pieces, ln pieces², size group one-hot (≤300 / 500 / 1000 / 1500+ / odd), standardised - it
+  estimates every puzzle with both crop embeddings. `ridge-siglip2-full` (fallback): the whole-image SigLIP 2 vector +
+  pieces, trained on the whole-image vectors of the labelled puzzles - it estimates the puzzles without crop
+  embeddings (no `artwork`, or the M1 has not embedded the crop yet) and, **while the model of record has fewer than
+  200 training puzzles (phase A of the backfill), every puzzle it can**. A puzzle without any SigLIP 2 vector gets no
+  estimate. `?model=ridge-siglip2-full` reads its record.
+- **Training**: labelled puzzles with ≥ 3 indices, weighted n/(n+10); alpha by GCV inside every fit. A model with
+  **fewer than 200 training puzzles records and pushes nothing** and says so (`skipped`) - normal early in the backfill.
+- **Folds**: 5-fold GroupKFold (shuffled, fixed seed) over **near-duplicate components** (SigLIP 2 cosine ≥ 0.95 between
+  training puzzles - the same artwork as another edition, size or brand is never on both sides of a fold).
+  `evaluation.folds` says how many pairs and components; when one component holds > 20 % of the rows the grouping is
+  `off: …` (plain puzzles as groups).
+- **Estimates**: training puzzles get **out-of-fold** estimates (`outOfFold: true`); labelled puzzles with 1-2 indices
+  get the full model, which was not trained on them (`outOfFold: true` as well); unlabelled puzzles the full model
+  (`outOfFold: false`). Intervals `logP10` / `logP90` = estimate + residual quantiles of out-of-fold residuals of
+  puzzles with ≥ 10 indices per (size group × image kind), falling back to the size group and then to all of them
+  below 50 residuals; **a training puzzle's interval comes from the other folds' residuals only** (never its own);
+  always `logP10 ≤ logDifficulty ≤ logP90`; a non-finite number is never pushed (`estimates.nonFinite`).
 - **Validation** (in the record's `evaluation`): `overall` + `groups` (out-of-fold on puzzles with ≥ 20 indices -
-  `testMinIndices` drops to 10 / 5 / 3 only while fewer than 30 reach it), `holdouts.brands` (GroupKFold by
-  manufacturer), `holdouts.newerFromOlder` (oldest 70 % by `addedAt` → the rest; **its Spearman is `holdoutSpearman`**,
-  `holdoutSource` says `cross_fit` when too few puzzles are dated), `intervals` (the residual quantiles used),
-  `fallback`, `guard`. Every slice: `count`, `spearman`, `mae` (log difficulty), `r2`, `tierExact` / `tierWithinOne`
-  (DifficultyTier::fromScore cut points) next to `averageTierExact` / `averageTierWithinOne` (always "Average"),
-  `window50Hit` / `window80Hit` (interval coverage) and `window80Width` (median, log). `groups` lists every
-  `sizeGroup` × `imageKind` (flat / box / assembled / other / unknown = no `artwork`) plus `all` marginals.
-- **Push guard**: before recording, it reads the current record of `ridge-siglip2-dinov2`. When the new holdout
-  Spearman is **more than 0.05 below it, nothing is recorded and nothing pushed** (the regressed run must not become
-  tomorrow's baseline): a warning `PUSH BLOCKED` in the log, `blocked` in the summary, exit code 3 from `derive`. The
-  run's full evaluation is in `~/Library/Application Support/puzzle-vision/difficulty_prior-last-run.json` (written by
-  every run). Look at what changed (a label definition, an embedding version, a burst of new puzzles of one kind);
-  when the drop is understood and accepted, a human runs
+  `testMinIndices` drops to 10 / 5 / 3 only while fewer than 30 reach it), `holdouts.brands` (GroupKFold over brand ∪
+  near-duplicate components), `holdouts.newerFromOlder` (oldest 70 % by `addedAt` → the rest, newer puzzles with a
+  near-duplicate among the older left out - `testDroppedNearDuplicates`; intervals from a cross-fit inside the older
+  set; **its Spearman is `holdoutSpearman`**, with `holdoutCount` / `holdoutTestMinIndices`; `holdoutSource` says
+  `cross_fit` when fewer than 30 newer test puzzles exist), `intervals`, `folds`, `guard`. Every slice: `count`,
+  `spearman`, `mae` (log difficulty), `r2`, `tierExact` / `tierWithinOne` (DifficultyTier::fromScore cut points)
+  next to `averageTierExact` / `averageTierWithinOne` (always "Average"), `window50Hit` / `window80Hit` (interval
+  coverage, never circular) and `window80Width` (median, log). `groups` lists every `sizeGroup` × `imageKind` (flat /
+  box / assembled / other / unknown = no `artwork`) plus `all` marginals.
+- **Push guard** (per model): it reads the model's current record and compares **only like with like** - the same
+  `holdoutSource` and `holdoutTestMinIndices`, ≥ 100 holdout test puzzles tonight and in the previous record, and a
+  training size within 25 % of the previous one. Otherwise the run is recorded with `guard.skipped` naming why (during
+  the backfill most nights - a lucky early run on 31 test puzzles has an SD of ~0.08 and must not lock the model).
+  When compared and the new holdout Spearman is **more than 0.05 below, nothing is recorded and nothing pushed for that
+  model** (the regressed run must not become tomorrow's baseline; yesterday's estimates stay): an error `PUSH
+  BLOCKED` in the log, `blocked` in the summary, exit code 3 from `derive`, and **`status` prints
+  "difficulty_prior blocked since …"** (from `~/Library/Application Support/puzzle-vision/difficulty_prior-last-run.json`,
+  written by every run that fitted a model, with the full evaluation). Look at what changed (a label definition, an
+  embedding version, a burst of new puzzles of one kind); when the drop is understood and accepted, a human runs
   `uv run puzzle-vision derive --profile m3-max --only difficulty_prior --force-model` (the record then says
   `guard.forced: true`). Never put `--force-model` into a schedule.
-- **Push order**: the model record, then the estimates in chunks of 500. Outcomes `stale_fingerprint` (the picture
+- **Push order** per model: the record, then its estimates in chunks of 500. Outcomes `stale_fingerprint` (the picture
   changed meanwhile), `hidden` (became secret) and `unknown_puzzle` (merged / deleted) are skipped and counted;
   `invalid` is a bug (warning per item). `--dry-run` computes and validates but records and pushes nothing.
 
-**Reading the model record**: `GET /internal-api/puzzle-difficulty-estimates/model?model=ridge-siglip2-dinov2` →
-`current` (the latest run): `holdoutSpearman`, `trainingSize`, `evaluation.overall`, `evaluation.groups`
-(find the size group × kind the gates care about), `evaluation.holdouts.newerFromOlder`, `evaluation.intervals`,
-`evaluation.alphaAtGridEnd` (true = widen the alpha grid). The research expects ~0.70-0.75 Spearman and R² ≈ 0.55 with
-2.5-5k labelled puzzles (`prediction-research.md` Q3). These are the Mac's numbers; the app's **gate record**
-(`myspeedpuzzling:evaluate-image-estimates`, stream 5d) decides what is shown.
+**Reading the model record**: `GET /internal-api/puzzle-difficulty-estimates/model?model=ridge-siglip2-dinov2` (or
+`ridge-siglip2-full`) → `current` (the latest run): `holdoutSpearman`, `trainingSize`, `evaluation.overall`,
+`evaluation.groups` (find the size group × kind the gates care about), `evaluation.holdouts.newerFromOlder`,
+`evaluation.intervals`, `evaluation.folds`, `evaluation.guard`, `evaluation.alphaAtGridEnd` (true = widen the alpha
+grid). The research expects ~0.70-0.75 Spearman and R² ≈ 0.55 with 2.5-5k labelled puzzles (`prediction-research.md`
+Q3). These are the Mac's numbers; the app's **gate record** (`myspeedpuzzling:evaluate-image-estimates`, stream 5d)
+decides what is shown.
 
-**Measured only on the real data (first full run on the M3 after the backfill):** throughput/runtime and memory of
-the run (expect ~2 min, < 1 GB), whether alpha lands inside the grid, Spearman / tiers / coverage per size group ×
-image kind (the pilot had almost only flat 500s), how many puzzles fall to the fallback model and how it does, how
-many label/embedding rows are dropped for another picture. Run `--dry-run` first, read
-`difficulty_prior-last-run.json`, then the real run; report `evaluation.overall`, `holdouts`, and the groups with
-≥ 50 puzzles.
+**Measured only on the real data (first full run on the M3 after the backfill):** runtime and memory of the run
+(expect ~4 min, < 1.5 GB), whether alpha lands inside the grid, how many near-duplicate pairs/components there are
+(and whether the grouping switched off), Spearman / tiers / coverage per size group × image kind (the pilot had almost
+only flat 500s), how many puzzles fall to the fallback model and how it does, how many rows are dropped for another
+picture or an older version. Run `--dry-run` first, read `difficulty_prior-last-run.json`, then the real run; report
+`evaluation.overall`, `holdouts`, `folds` and the groups with ≥ 50 puzzles of both models.
 
 ### The `difficulty_prior` server contract
 
@@ -374,8 +391,10 @@ pushed. Specifics beyond image-taxonomy.md §11:
 | M1 never runs `describe` | `verify --describe-parity` has not passed on this machine for the current describe version (20 images compared byte for byte with the M3's results). Run it after phase B; if it fails, the Air stays on its own analyzers. |
 | Throughput far below §19 | Other GPU work on the machine (20-50 % slower), the Air throttling (expected), or Apple Vision next to a GPU job. `bench --stage <s> --limit 20` compares with the measured numbers (±30 %). |
 | Images failing to decode | HEIC/AVIF are converted through `sips`; a picture failing 3 times is skipped until the next version (work state `failures`, `status`). |
-| `difficulty_prior` `skipped` "the model needs 200" | Fewer than 200 labelled puzzles (≥ 3 indices) have both crop embeddings yet - normal during the backfill; nothing was recorded or pushed. |
-| `difficulty_prior` `blocked`, exit 3 | The push guard: the holdout Spearman fell > 0.05 below the current record. Nothing recorded or pushed; read `difficulty_prior-last-run.json` (§7) and decide; override only by hand with `--force-model`. |
+| `difficulty_prior` `skipped` "the model needs 200" | Fewer than 200 labelled puzzles (≥ 3 indices) have that model's embeddings yet - normal during the backfill; nothing was recorded or pushed for it (the fallback may still have run). |
+| `difficulty_prior` `blocked`, exit 3, `status` "blocked since …" | The push guard: a comparable run's holdout Spearman fell > 0.05 below the current record. Nothing recorded or pushed for that model; read `difficulty_prior-last-run.json` (§7) and decide; override only by hand with `--force-model`. |
+| `difficulty_prior` `error` | It crashed (traceback in the log); the rest of the run went on. A bug - fix before the next night. |
+| `guard.skipped` in the record | Not compared (first run, too few test puzzles, another threshold, training size moved ≥ 25 %) - recorded and pushed normally. |
 | `ml extra` FAIL in setup-check | `uv sync --extra ml`; run model commands as `uv run --extra ml …` (a plain `uv run` uses the light set). |
 
 ## 11. Not verified before the backfill (first steps of the M3 session)

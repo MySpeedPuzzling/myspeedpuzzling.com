@@ -84,5 +84,5 @@ def test_difficulty_prior_refuses_until_phase_5(api, filled, tmp_path):
 
 def test_difficulty_prior_runs_by_default_and_says_why_it_did_nothing(api, filled, tmp_path):
     summary = Deriver(api, VERSIONS, tmp_path, text_features=fake_text).run(only=["difficulty_prior"])
-    assert "needs 200" in summary["difficulty_prior"]["skipped"]  # no labels in the fixture
+    assert "no model has 200" in summary["difficulty_prior"]["skipped"]  # no labels in the fixture
     assert not any(r["method"] in ("PUT", "POST") and r["path"].startswith("/internal-api/puzzle-difficulty-estimates") for r in filled.requests)

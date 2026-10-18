@@ -198,6 +198,9 @@ class Deriver:
                     self.api, meta=self.meta, rows=self._rows, force_model=force_model, dry_run=dry_run, report_dir=self.report_dir)
             except difficulty_prior.NotAvailableYet as e:
                 self.summary["difficulty_prior"] = {"skipped": str(e)}
+            except Exception as e:  # noqa: BLE001 - a crash here must not end the nightly run (crop proposals follow)
+                log.exception("[derive] difficulty_prior failed - nothing more of it this run")
+                self.summary["difficulty_prior"] = {"error": f"{type(e).__name__}: {e}"}
             log.info("[derive] difficulty_prior: %s", {k: v for k, v in self.summary["difficulty_prior"].items() if k != "overall"})
         self.summary["seconds"] = round(time.monotonic() - started, 1)
         return self.summary

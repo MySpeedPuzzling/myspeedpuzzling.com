@@ -207,7 +207,7 @@ def cmd_stage_worker(a: argparse.Namespace, ctx: Context) -> int:
 def cmd_status(a: argparse.Namespace, ctx: Context) -> int:
     from .status import render, report
 
-    rep = report(ctx.api, ctx.profile, ctx.workstate, all_analyzers=a.all)
+    rep = report(ctx.api, ctx.profile, ctx.workstate, all_analyzers=a.all, report_dir=ctx.settings.state_dir)
     _print(rep, a.json, render(rep))
     return 0
 

@@ -1,0 +1,49 @@
+# MacBook Pro M3 Max 36 GB - owns `artwork` (gate + VLM) and `describe` (image-taxonomy.md §19, plan §2.3).
+# Versions must equal m1-air.toml for every analyzer both run (tests pin it): one version per analyzer at a time.
+name = "m3-max"
+description = "M3 Max 36 GB: artwork (SigLIP 2 gate, then Qwen3-VL-4B on box photos) then describe (Qwen3.5-9B 4-bit)"
+
+[analyzers.artwork]
+version = "1.0.0+siglip2-q3vl4b"
+requires = []
+claim_limit = 50
+seconds_per_image = 2.6
+
+[analyzers.ocr]
+# not run here (the M1 owns it) - declared so `describe` can name it in requires and status can report it
+version = "1.0.0+apple-vision-ocr3"
+requires = []
+
+[analyzers.describe]
+version = "1.0.0+qwen35-9b-4bit"
+requires = ["artwork", "ocr"]
+claim_limit = 20
+seconds_per_image = 10.75
+
+[[phases]]
+name = "artwork"
+stages = ["artwork"]
+
+[[phases]]
+name = "describe"
+stages = ["describe"]
+
+[derived.versions]
+box_text = "1.0.0+rules"
+zeroshot = "1.0.0+so400m@tax1.0.0"
+neighbours = "1.0.0+siglip2-dinov2l"
+tags = "1.0.0+fusion@tax1.0.0"
+
+[daily]
+# new / stale images (~60 a day, ~15-20 min), then derive and a few crop proposals
+phases = ["artwork", "describe"]
+derive = true
+propose_crops = 50
+
+[launchd]
+# nightly window (Jan works on this machine by day): start 01:30, stop after 6 hours
+keep_alive = false
+start_hour = 1
+start_minute = 30
+hours = 6
+mode = "daily"

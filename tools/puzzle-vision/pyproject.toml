@@ -1,0 +1,55 @@
+[project]
+name = "puzzle-vision"
+version = "1.0.0"
+description = "MySpeedPuzzling image pipeline: analyses puzzle box images on a Mac with self-hosted open models and pushes the results through the internal API (docs/features/insights/image-pipeline.md)."
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+# The light set: everything the pure-python parts and the tests need. The model stack is the `ml` extra.
+dependencies = [
+    "numpy==2.5.4",
+    "pillow==13.0.0",
+    "opencv-python-headless==5.0.0.93",
+    "scikit-image==0.26.0",
+    "scikit-learn==1.9.1",
+    "scipy==1.18.1",
+    "httpx>=0.28,<1",
+]
+
+[project.optional-dependencies]
+# The versions the vision lab and the describe bake-off ran (image-taxonomy.md §18: mlx-vlm 0.7.8 / MLX 0.32.4).
+# Install with `uv sync --extra ml`; run with `uv run --extra ml puzzle-vision …`.
+ml = [
+    "mlx==0.32.4",
+    "mlx-vlm==0.7.8",
+    "llguidance==1.9.1",
+    "torch==2.14.1",
+    "torchvision==0.29.1",
+    "transformers==5.20.1",
+    "tokenizers==0.23.3",
+    "safetensors==0.8.0",
+    "sentencepiece==0.2.2",
+    "huggingface-hub==2.2.0",
+    "accelerate==1.15.0",
+    "pyobjc-core==12.2.2",
+    "pyobjc-framework-Cocoa==12.2.2",
+    "pyobjc-framework-Quartz==12.2.2",
+    "pyobjc-framework-Vision==12.2.2",
+    "pyobjc-framework-NaturalLanguage==12.2.2",
+]
+
+[dependency-groups]
+dev = ["pytest>=8"]
+
+[project.scripts]
+puzzle-vision = "puzzle_vision.cli:main"
+
+[build-system]
+requires = ["setuptools>=70"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["puzzle_vision*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

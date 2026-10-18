@@ -426,9 +426,11 @@ side in one go instead of one A/B step at a time (§5.5). What changed in `barco
   frame with two different codes still counts for nothing.
 - **`?scan-debug=1`** (read from the page's URL on every camera start, never remembered - a tab that once had
   the link must not keep it on other pages, 2026-10-13 fix): a panel under the picture with
-  engine and band, camera label and how it was picked, every camera's label, video size, zoom, focus mode and distance,
-  the last refocus, torch, frames and decode time, codes seen with zbar's quality, the accepted code, the device model
-  (Chromium's client hints) and the user agent. Ask a player for a screenshot of it, not for "it doesn't focus".
+  engine and band, the accepted code, codes seen with zbar's quality, frames and decode time, the device model
+  (Chromium's client hints), then camera label and how it was picked, every camera's label, video size, zoom, focus
+  mode and distance, the last refocus, torch and the user agent. What was read comes first and a "Copy" button puts
+  the whole text (+ the page URL) on the clipboard (2026-10-18): on multiscan the pinned action bar covered the end of
+  the panel in a Galaxy S24 screenshot. Ask a player for the copied text or a screenshot, not for "it doesn't focus".
 - **`?scanner=zbar` / `?scanner=native`** forces a decoder while it is in the URL (same rule; `?scanner=auto` or no
   parameter = the default; a forced native detector where the browser has none falls back to zbar). The debug panel's first line says
   `(forced …)`. Meant for comparing both decoders on one Android phone before the default changes - zbar on Android

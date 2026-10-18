@@ -895,8 +895,16 @@ export default class extends Controller {
         if (!this.debug) return;
 
         if (!this.debugPanel) {
-            this.debugPanel = document.createElement('pre');
+            this.debugPanel = document.createElement('div');
             this.debugPanel.className = 'barcode-scanner-debug';
+            // A pinned bar can cover the panel's end (multiscan on a phone), so the text can be pasted into a mail
+            const copy = document.createElement('button');
+            copy.type = 'button';
+            copy.className = 'barcode-scanner-debug-copy';
+            copy.textContent = 'Copy';
+            copy.addEventListener('click', () => this._copyDebug(copy));
+            this.debugText = document.createElement('pre');
+            this.debugPanel.append(copy, this.debugText);
             this.wrapperTarget.insertAdjacentElement('afterend', this.debugPanel);
         }
         this.debugPanel.classList.remove('d-none');
@@ -943,8 +951,13 @@ export default class extends Controller {
         const region = this.stats.region;
         const ago = (at) => `${((Date.now() - at) / 1000).toFixed(1)} s ago`;
 
+        // What was read first: a pinned bar may cover the end of the panel in a screenshot
         const lines = [
             `engine: ${this.engine || 'loading'}${this.forcedEngine ? ` (forced ${this.forcedEngine})` : ''}${region && this.engine === 'zbar' ? `, band ${region.w}x${region.h}${region.vertical ? ' upright' : ''}` : ''}`,
+            `accepted: ${this.stats.accepted ? `${this.stats.accepted.code} (${this.stats.accepted.count}x), first after ${(this.stats.accepted.afterMs / 1000).toFixed(1)} s` : '-'}`,
+            `seen: ${[...this.stats.seen].map(([code, s]) => `${code} x${s.count}${s.quality !== null ? ` q${s.quality}` : ''}`).join(', ') || '-'}`,
+            `frames: ${this.stats.frames}, decode ${avg} ms, running ${((Date.now() - this.startedAt) / 1000).toFixed(0)} s`,
+            `device: ${this.debugModel || '-'}`,
             `camera: ${this.videoTrack ? this.videoTrack.label : '-'} (${this.cameraPick || '-'})`,
             `cameras: ${(this.cameraLabels || []).join(' | ') || '-'}`,
             `video: ${video.videoWidth}x${video.videoHeight}, settings ${settings.width}x${settings.height} @${round(settings.frameRate)} fps, max ${caps.width ? caps.width.max : '-'}x${caps.height ? caps.height.max : '-'}`,
@@ -952,15 +965,33 @@ export default class extends Controller {
             `focus: ${settings.focusMode || '-'} [${(caps.focusMode || []).join(', ')}], distance ${round(settings.focusDistance)} (range ${range(caps.focusDistance)})`,
             `last refocus: ${this.lastFocusKick ? `${this.lastFocusKick.reason} ${ago(this.lastFocusKick.at)}` : '-'}`,
             `torch: ${this.torchSupported ? (this.torchOn ? 'on' : 'off') : 'not supported'}`,
-            `frames: ${this.stats.frames}, decode ${avg} ms`,
-            `seen: ${[...this.stats.seen].map(([code, s]) => `${code} x${s.count}${s.quality !== null ? ` q${s.quality}` : ''}`).join(', ') || '-'}`,
-            `accepted: ${this.stats.accepted ? `${this.stats.accepted.code} (${this.stats.accepted.count}x), first after ${(this.stats.accepted.afterMs / 1000).toFixed(1)} s` : '-'}`,
-            `running: ${((Date.now() - this.startedAt) / 1000).toFixed(0)} s`,
-            `device: ${this.debugModel || '-'}`,
             `browser: ${navigator.userAgent}`,
         ];
 
-        this.debugPanel.textContent = lines.join('\n');
+        this.debugText.textContent = lines.join('\n');
+    }
+
+    _copyDebug(button) {
+        const text = `${this.debugText.textContent}\npage: ${window.location.href}`;
+        const done = (label) => {
+            button.textContent = label;
+            window.setTimeout(() => { button.textContent = 'Copy'; }, 2000);
+        };
+
+        if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+            navigator.clipboard.writeText(text).then(() => done('Copied'), () => this._selectDebug());
+        } else {
+            this._selectDebug();
+        }
+    }
+
+    // No clipboard access: select the text, so the phone's own Copy works
+    _selectDebug() {
+        const range = document.createRange();
+        range.selectNodeContents(this.debugText);
+        const selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(range);
     }
 
     _readStorage(storage, key) {

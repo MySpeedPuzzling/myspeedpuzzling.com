@@ -23,7 +23,7 @@ store raw outputs that later categories can be computed from, instead of only th
 | 6 | `embed_siglip2` | SigLIP 2 so400m/14 @384 (Apache-2.0), 1152-d, crop + full image | crop + full | 0.15-0.45 s (measured, contended) |
 | 7 | `embed_dinov2` | DINOv2-L/14 with registers (Apache-2.0), 1024-d | crop | ~0.1 s (base measured 0.05 s) |
 | 8 | `segmentation` | EoMT-L COCO panoptic (MIT) - region shares + coarse map | crop | ~0.5 s (estimate, not measured) |
-| 9 | `describe` | Qwen3-VL-8B-Instruct 4-bit via mlx-vlm (Apache-2.0), fixed JSON schema | crop (+ OCR text as context) | **~6-12 s** (measured 12.1 s in a batch of 8 with a long prompt) |
+| 9 | `describe` | **Qwen3.5-9B 4-bit** via mlx-vlm (Apache-2.0), JSON-schema constrained decoding, prompt v2 + catalogue title (bake-off §18) | crop (+ OCR text + title as context) | **10.75 s** (measured, idle M3 Max, unbatched) |
 | 10 | `box_text` | parser (Python, rules) over `ocr` + `barcode` | - | ~0 |
 | 11 | `zeroshot` | SigLIP 2 text side over the taxonomy prompt bank, from stored embeddings | - | seconds for all 41k |
 | 12 | `neighbours` | k-NN over stored embeddings (SigLIP 2 + DINOv2) | - | minutes for all 41k |
@@ -33,8 +33,8 @@ Analyzers 10-13 are **derived**: they never touch an image and can be recomputed
 rule changes. Analyzers 1-9 are **raw** and versioned; only a new model justifies re-running one, and every one of
 them except `describe` re-runs in hours, not days.
 
-**Budget:** pass 1 (analyzers 1-8, ~2 s/image) ≈ one day; pass 2 (`describe`) ≈ 3-6 days of machine time on the
-M3 Max, resumable, can run nights only. Daily: ~60 images (p90 100, max 170) = under 40 minutes all in.
+**Budget (measured, §19):** ≈ 5.5 days wall-clock with both Macs - the M3 Max runs `artwork` (~1 day) then
+`describe` (~5 days), the M1 Air runs every other analyzer (~2.4 days) and then joins `describe`; resumable. Daily: ~60 images (p90 100, max 170) = under 40 minutes all in.
 
 **Biggest payoffs, ranked:** (1) duplicate detection and catalogue checks (786 EAN groups with 2,292 puzzles today,
 plus duplicates without an EAN); (2) a **predicted difficulty for the 31,157 puzzles that have results but no
@@ -518,9 +518,8 @@ over the rated and most-solved puzzles first (results are concentrated: 87 % of 
 puzzles), then the rest over nights. The one thing not to skip is `describe` itself - captions and subjects are the
 only raw output we cannot reconstruct later from embeddings, and alt text / search / theme pages depend on them.
 
-Before the backfill: a **50-image bake-off** Qwen3-VL-8B vs Qwen3.5-9B (vs 4B) with the final schema, measuring
-time idle (no other model running) and judging captions/subjects by hand. The lab numbers were taken while another
-agent ran models, so idle speed may be markedly better.
+The bake-off ran on 2026-10-18 (§18): `describe` = Qwen3.5-9B 4-bit, constrained decoding, 10.75 s/img; the
+measured per-stage resources and the two-machine split are in §19 (they replace the estimates above).
 
 ## 13. Difficulty explainer - the study to run once the backfill exists
 
@@ -691,20 +690,300 @@ right backbone and carries **all raw and derived payloads, embeddings included**
 
 ## 17. Open questions for Jan
 
-1. **VLM budget:** accept ~3-6 days of machine time for `describe` over all 41k (nights only, resumable), or run it
+1. *Decided (Jan, 2026-10-18): the backfill time is fine; the M1 Air joins (§19).* **VLM budget:** accept ~3-6 days of machine time for `describe` over all 41k (nights only, resumable), or run it
    on the rated / most-solved puzzles first?
-2. **Bake-off** Qwen3-VL-8B vs Qwen3.5-9B before the backfill (50 images, ~1 h) - yes?
+2. *Done 2026-10-18 (§18): Qwen3.5-9B 4-bit.* **Bake-off** Qwen3-VL-8B vs Qwen3.5-9B before the backfill (50 images, ~1 h) - yes?
 3. **pgvector on production:** fine to switch the db image to the pgvector build (same Postgres 16, same Debian)
    when a live-similarity feature comes, or keep similarity precomputed on the Mac forever?
-4. **Where the master raw store lives:** the Mac + an S3 bucket backup (proposed), or production only?
-5. **Corrections:** moderators only at first, or players' tag suggestions from day one?
-6. **Franchise pages for SEO** ("Disney puzzles", "Harry Potter puzzles"): wanted, given the trademark caution?
-7. **Showing estimated difficulty to everyone or members only** (the measured difficulty is members-only today)?
-8. **Per-player skill profile**: members-only Insights, and should players be able to hide it?
-9. **Catalogue checks** from box text (piece count, multi-pack, brand): auto-file change proposals through the
+4. *Decided: the production database (through the internal API) is the master copy; originals stay in S3.* **Where the master raw store lives:** the Mac + an S3 bucket backup (proposed), or production only?
+5. *Decided: admins and moderators correct.* **Corrections:** moderators only at first, or players' tag suggestions from day one?
+6. *Decided: yes, later, if the design is friendly and it is good for SEO.* **Franchise pages for SEO** ("Disney puzzles", "Harry Potter puzzles"): wanted, given the trademark caution?
+7. *Decided: members only, through the existing mechanisms.* **Showing estimated difficulty to everyone or members only** (the measured difficulty is members-only today)?
+8. *Decided: self-only, part of members' Insights.* **Per-player skill profile**: members-only Insights, and should players be able to hide it?
+9. *Decided: only a list for moderators with Dismiss / Ignore, never automatic proposals (boxes say 500 when it is ~550).* **Catalogue checks** from box text (piece count, multi-pack, brand): auto-file change proposals through the
    internal API (like the `puzzle-change-proposal` skill), or only list them for moderators?
 10. **Image kind**: should a box photo / assembled-puzzle photo be flagged to players as "better picture wanted"
     (crowd fix), given ~half of the images are not flat artwork?
+
+## 18. Description model bake-off (2026-10-18)
+
+The question from §12.2 / §17.2: which model and which prompting give the best data for `describe`, which runs once
+over ~41k images and cannot be rebuilt cheaply. Bake-off folder (local, not in git):
+`.claude/worktrees/insights-describe-bakeoff/` - `scripts/` (runner, schema + prompts, ground truth, scorer, stage
+benchmark), `out/runs/*.jsonl` (every raw output), `out/scores.json`, `report.html` (image | each model's output side
+by side, ground-truth misses in red).
+
+### Setup
+
+- **40 images** from the vision lab's sample, run on the pipeline's **artwork crop** (`det_final.json`): 21 flat
+  artwork, 11 box fronts / angled boxes, 8 photos of assembled puzzles. Themes: animals, pets, birds, sea, landscape,
+  city, castles, food, fantasy, fine art (Van Gogh, a 19th-century cathedral interior), collage, cartoon / Wasgij,
+  abstract, Christmas, Easter, winter, and 8 licensed sets (Disney / Pixar, Moomins, Peanuts ×2, Harry Potter, Masha
+  and the Bear, Dog Man, Snow White). The OCR lines inside the crop (Apple Vision, from the taxonomy lab) are passed as
+  context, as the pipeline will.
+- **Ground truth** made by hand for all 40 (`scripts/gt.py`): core + acceptable themes, must-have subjects (with
+  synonyms), acceptable scene / style / season / holiday / time / people values, expected place and character keywords.
+  Scores: JSON validity, schema validity (no value outside the vocabulary, all keys), theme recall (core themes found)
+  and precision (every predicted theme acceptable), subject recall, per-facet accuracy, **tag accuracy** = mean of theme
+  recall, theme precision, scene, style, season, holiday, time. Captions read by eye for hallucinations ("major" = an
+  invented object, a wrong identity or a wrong place; miscounts are minor).
+- Every config at **temperature 0**, mlx-vlm 0.7.8 / MLX 0.32.4, M3 Max, one model at a time under the shared model
+  lock (`mkdir /tmp/msp-model-lock` + ≥ 40 % free memory), a memory watchdog in the runner (abort below 25 % free).
+- Consistency: 10 images re-run with the same config.
+
+### Candidates and licences (checked on the model cards / licence files, 2026-10-18)
+
+| Model | Licence | MLX build used | Tested |
+|---|---|---|---|
+| Qwen3-VL-4B-Instruct | Apache-2.0 | `mlx-community/Qwen3-VL-4B-Instruct-4bit` (cached) | yes |
+| Qwen3-VL-8B-Instruct | Apache-2.0 | `mlx-community/Qwen3-VL-8B-Instruct-4bit` (cached) | yes |
+| **Qwen3.5-9B** (Feb 2026, image input built in, hybrid thinking - off by default in mlx-vlm) | Apache-2.0 (LICENSE file) | `mlx-community/Qwen3.5-9B-MLX-4bit` (6.0 GB, downloaded) | yes |
+| Gemma 4 12B-it | **Apache-2.0** - Gemma 4 moved to Apache 2.0 (ai.google.dev/gemma/docs/gemma_4_license); unlike Gemma 3's "Gemma Terms of Use" there is no separate use policy to accept | `lmstudio-community/gemma-4-12B-it-MLX-4bit` (6.8 GB, downloaded; `mlx-community/gemma-4-12B-4bit` is the base model) | yes |
+| InternVL3.5 | Apache-2.0 | MLX builds only at 1B, 30B-A3B and GPT-OSS-20B - no 8B-class build | no |
+| Molmo2-8B | Apache-2.0 (Ai2 responsible-use guidelines) | `mlx-community/Molmo2-8B-4bit` exists | no - strongest at pointing / counting, not captions; download budget |
+| Qwen3-VL-8B 8-bit / Qwen3.5-9B 8-bit | Apache-2.0 | 9.9 / ~10 GB | no - would have pushed downloads over the 15 GB budget (see "Open") |
+| Excluded by licence | | Qwen2.5-VL-3B (research licence), Llama 3.2 Vision (EU multimodal exclusion), LFM2.5-VL (revenue cap), Moondream 3 (BSL) | - |
+
+### Results
+
+Model comparison - **constrained decoding, 512 px, v2 prompt** (glossed vocabulary, below), Gemma 4 with the v1
+prompt (dropped before round 2: slowest and blind to franchises):
+
+| Model (4-bit MLX) | JSON / schema valid | Tag accuracy | Theme recall / precision | Subject recall | Characters found | Place found | Major caption errors / 40 | s/img M3 Max (median) | Peak memory | Fits M1 16 GB | M1 Air s/img (est., sustained) |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| **Qwen3.5-9B** | 100 % / 100 % | 0.868 | 0.86 / 0.69 | 0.86 | 0.90 | 0.22 | **0** (2 miscounts) | 10.1 | 7.4 GB | yes, tight | ~57 |
+| **Qwen3.5-9B + catalogue title** (recommended) | 100 % / 100 % | **0.880** | 0.85 / 0.71 | 0.85 | 0.90 | **0.78** | **0** | 10.75 | 7.4 GB | yes, tight | ~57 |
+| Qwen3-VL-8B | 100 % / 100 % | 0.877 | 0.85 / 0.64 | 0.88 | 0.80 | 0.11 | 2 ("Brooklyn Bridge" for a West-coast bay bridge; invented sesame seeds) | 11.2 | 6.8 GB | yes | ~57 |
+| Qwen3-VL-4B | 100 % / 100 % | 0.829 | 0.75 / 0.78 | 0.87 | 1.00 | 0.44 (2 of them wrong: Bojnice "Czech Republic", "New York City") | 3 | 6.3 | 4.1 GB | yes, comfortable | ~30 |
+| Gemma 4 12B (v1 prompt) | 100 % / 100 % | 0.842 | 0.69 / 0.73 | 0.81 | **0.50** (no Peanuts, Disney, Moomins, Masha) | 0.11 | 4 (a dog in Oz, a "grill" for a samovar, Moomins as bear / fox / rabbit) | 16.3 | 8.0 GB | borderline | ~95 |
+
+Prompting and decoding - Qwen3.5-9B unless the row says otherwise:
+
+| Config | JSON valid | Schema valid | Values outside vocab / img | Tag accuracy | s/img |
+|---|---|---|---|---|---|
+| plain JSON prompt (v1), 512 px | 97.5 % | 47.5 % | 2.9 | 0.711 | 13.3 |
+| plain - Qwen3-VL-4B / Qwen3-VL-8B | 90 % / 95 % | 0 % / 32.5 % | 4.0 / 1.4 | 0.557 / 0.825 | 9.8 / 10.8 |
+| constrained, v1 prompt (value lists, no glosses) | 100 % | 100 % | 0 | 0.852 | 10.2 |
+| constrained, **v2 prompt** (value lists + short glosses) | 100 % | 100 % | 0 | 0.868 | 10.1 |
+| constrained, v2, **768 px** | 100 % | 100 % | 0 | 0.865 | 13.1 |
+| constrained, **short prompt** (field names only, values left to the grammar) | 100 % | 100 % | 0 | **0.640** | 9.7 |
+| constrained, v2 + **catalogue title** | 100 % | 100 % | 0 | **0.880** (place 0.78) | 10.75 |
+| two-pass (free caption, then constrained JSON with the caption), v2 | 100 % | 100 % | 0 | 0.863 (subjects 0.88) | 15.5 |
+| batched (`batch_generate`, 4 or 8 letterboxed 512×512) | - | - | - | - | aborted: memory fell from 65-70 % free to 32 % (batch 4) / 17 % (batch 8) |
+
+Consistency: every re-run of 10 images at temperature 0 was **byte-identical (10/10)** - all four models, plain and
+constrained, v1 and v2, with and without the title. A run is reproducible from (model revision, prompt version, image,
+OCR lines, title).
+
+### What the numbers say
+
+1. **Schema-constrained decoding is a must.** With plain prompting every model wrote JSON with values outside the
+   vocabulary in most outputs (`"abstract"`, `"holiday"` as a theme, `"collage_collection"` as a special hint), dropped
+   keys and sometimes looped until max tokens (the 4B listing "Sniff, Sniff, …" or Peanuts names). Constrained decoding
+   (mlx-vlm's llguidance JSON-schema logits processor) gives 100 % valid output and is **faster** (compact JSON, no
+   loops: 4B 5.1 vs 9.8 s/img, 9B 10.2 vs 13.3).
+2. **The grammar only restricts; the prompt still has to teach the values.** With the value lists removed from the
+   prompt, tag accuracy fell from 0.87 to 0.64. The model ended up wherever the grammar let it (`aerial_view` and
+   `photomosaic` everywhere), and dropping ~950 prompt tokens saved only 0.4 s. Glossing the confusing values (v2)
+   added +0.016-0.07 on every model. Qwen3-VL-8B had tagged Easter eggs and Christmas cookies as
+   `licensed_entertainment` with bare keys, in plain mode too, so that was the vocabulary and not the grammar.
+3. **The catalogue title is the cheapest quality win.** With "Catalogue title (may not describe the picture): …" in
+   the user message, place recall went from 0.22 to 0.78 (Khao Phing Kan, Zámek Bojnice, Peyto Lake / Banff,
+   Aiguille Verte, Liège Cathedral, Røros, Hogwarts) and artists came through (Keith Haring, Van Gogh), for +0.6 s.
+   Without it the 8-9B models leave `place` empty ("only when sure"), and the 4B guesses, sometimes wrongly.
+4. **512 px is enough.** 768 px gave no gain with the v2 prompt (0.865 vs 0.868) and cost +30 % time.
+5. **Two-pass does not pay.** A free caption first, then the constrained JSON with it: tag accuracy 0.863 vs 0.868,
+   subject recall +0.02, at +53 % time (15.5 s). Putting `caption` first in the single-pass schema gets most of that
+   benefit for free.
+6. **Arrays get filled.** Under a grammar, models tend to fill an array to `maxItems`. `specialHints` came out as four
+   unrelated values on almost every image, so it was removed from the schema (`special` comes from box text and the
+   catalogue, §10). `themes` gets a weak third theme (often `countryside_village`). Downstream, trust themes 1-2 and
+   require zero-shot agreement for a third - the fusion rule in §10 already does this.
+7. **`artistSignature` picks up the brand** ("Galison" from the box sticker). Add "never the puzzle brand or
+   publisher" to the prompt (not re-tested), and keep artist names behind moderation (§15).
+8. **Qwen3.5-9B vs Qwen3-VL-8B**: equal tag accuracy (0.868-0.880 vs 0.877) and the same decode speed (41-45 tok/s),
+   but Qwen3.5 made no major caption error where the 8B invented two facts. It also names franchises in
+   `characters` more reliably and writes the most specific captions (counts, materials, the Wasgij "chef confronted by
+   an angry woman"). The 4B is twice as fast but makes up places and objects. Gemma 4 is the slowest (24 tok/s) and
+   does not recognise characters (safety tuning or training data), so it is out.
+9. **Batching does not work as-is.** `batch_generate` groups images by shape, so crops of different sizes run one by
+   one (4 "batched" crops: 10-12 s/img). Letterboxed to a fixed 512×512, batches of 4 and 8 pushed memory from 65-70 %
+   free down to 32 % / 17 %, and the watchdog stopped them. Plan with unbatched throughput; batching is a follow-up.
+
+### Recommendation
+
+- **Model: Qwen3.5-9B, 4-bit MLX** (`mlx-community/Qwen3.5-9B-MLX-4bit`, Apache-2.0), thinking off. Record the repo
+  revision in `model`: `analyzerVersion` `1.0.0+qwen35-9b-4bit`.
+- **Prompt: v2** (the system message below), then the user message: `Catalogue title (may not describe the picture):
+  <name>` / `Text read inside the picture (OCR, may contain errors): <up to 12 OCR lines whose centre is inside the
+  crop, by area>` / `Return the JSON object.`; the image goes in the user turn. Store `promptVersion: "v2"` and
+  `titleContext: true` in the payload.
+- **Image: the artwork crop, long side 512 px** (no letterbox).
+- **Decoding: JSON-schema constrained** (llguidance via `mlx_vlm.structured.build_json_schema_logits_processor`),
+  greedy (temperature 0), `max_tokens` 700 (median output 310 tokens), unbatched. Caption first in the schema: it acts
+  as the model's notes before the tags.
+- **Expected cost: ~10.75 s/img** on an otherwise idle M3 Max (1,150-1,400 prompt tokens at ~450 tok/s + ~310 output
+  tokens at ~44 tok/s), **7.4 GB** peak. 41,266 images ≈ **123 h ≈ 5.1 days** of M3 Max time for `describe`
+  alone. The two-machine split and the full backfill timeline are in the next section.
+- Fallback if the budget must halve: Qwen3-VL-4B with the same v2 prompt + title (6.3 s, 4.1 GB). It is faster but
+  less accurate (0.83, 3 made-up facts in 40). Not recommended for the one-off backfill.
+
+Setup in code (`scripts/run.py`, `scripts/schema.py`):
+```python
+from mlx_vlm import load, generate
+from mlx_vlm.prompt_utils import apply_chat_template
+from mlx_vlm.structured import build_json_schema_logits_processor
+model, proc = load("mlx-community/Qwen3.5-9B-MLX-4bit")
+lp = build_json_schema_logits_processor(proc.tokenizer, DESCRIBE_SCHEMA)          # once per process
+msgs = [{"role": "system", "content": SYSTEM_V2},
+        {"role": "user", "content": f"Catalogue title (may not describe the picture): {title}\n"
+                                    f"Text read inside the picture (OCR, may contain errors): {' / '.join(ocr)}\n"
+                                    "Return the JSON object."}]
+prompt = apply_chat_template(proc, model.config, msgs, num_images=1)            # enable_thinking defaults to False
+out = generate(model, proc, prompt, image=[crop_512_png], max_tokens=700, temperature=0.0,
+               logits_processors=[lp.clone()])                                    # clone = fresh matcher per image
+```
+
+`DESCRIBE_SCHEMA` (all keys required, in this order, `additionalProperties: false`): `caption` string ≤ 600 ·
+`altText` string ≤ 140 · `themes` 1-3 of the 23 theme keys · `subjects` 1-12 strings ≤ 40 · `scene` enum (18) ·
+`style` enum (16) · `season` none|spring|summer|autumn|winter · `holiday` none|christmas|halloween|easter|valentines|
+thanksgiving|new_year|other · `time` none|day|golden_hour|dusk_blue_hour|night · `weather` none|sunny|partly_cloudy|
+overcast|rain|snow|fog_mist|storm · `mood` 1-2 of the 12 moods · `place` string ≤ 80 or null · `characters` 0-6 strings
+≤ 50 · `artistSignature` string ≤ 80 or null · `people` none|few|many|crowd · `textInArtwork` none|little|lots ·
+`counts` {distinctObjects, animals, people} integers 0-999 · `areas` {sky, water, foliageGrass, buildings,
+plainBackground} integers 0-100 · `collageGrid`, `seekAndFind` booleans · `extraTags` 0-8 strings ≤ 40. Changes from
+§11.1: `none` added to `time` and `weather` (indoor / abstract pictures), `characters` is a list,
+`specialHints` removed, `extraTags` added for the long tail. Post-processing: lowercase + singularise + de-duplicate
+`subjects`, and map `"none"` / `"null"` strings in `place` / `artistSignature` to null.
+
+System prompt v2 (≈ 930 tokens):
+```text
+You catalogue jigsaw puzzle pictures. The image is the artwork of one puzzle, cropped from its box image; it may still show box edges, packaging text or a photo of the assembled puzzle - describe only the picture itself. Be factual: mention only what is clearly visible. Never name real people. Name a place, landmark or licensed character only when you are sure.
+Answer with ONE JSON object, keys in this order:
+caption: 2-3 sentences describing the picture (subject, setting, style, notable details).
+altText: one sentence, max 125 characters, for screen readers.
+themes: 1-3, what the picture is about, most important first; add a second or third only if it clearly applies. Values: animals (wild or farm animals) | pets (cats, dogs) | birds | sea_underwater (sea life, coast, harbours) | landscape_nature | flowers_garden | countryside_village (farms, cottages, villages) | city_architecture (cities, streets, buildings, castles, churches) | travel_places (a recognisable destination or landmark) | fine_art (a famous painter's or museum artwork, old masters) | illustration_design (mandalas, patterns, posters, decorative design) | fantasy_myth (dragons, fairies, magic, gothic) | space_scifi | cartoon_humour (funny comic scenes, Wasgij) | licensed_entertainment (ONLY recognisable franchise characters: Disney, Peanuts, Harry Potter...) | seasons_holidays (Christmas, Easter, Halloween, seasonal scenes) | food_drink | transport (cars, trains, ships, planes, balloons) | hobbies_sport_music (books, sport, music, games) | people_everyday (people and daily life) | maps_education | collage_collection (many separate small pictures or items) | abstract_challenge (gradients, geometric shapes, no real subject)
+subjects: up to 12 concrete visible things, singular English nouns, most prominent first, no duplicates; species or breed only when sure.
+scene: landscape | seascape | cityscape | street_level | interior (inside a room or building) | still_life (objects arranged on a table) | underwater | sky_space | garden | portrait_closeup (one person or character fills the picture) | animal_closeup | crowd_scene (many figures, busy scene) | aerial_view | allover_pattern (the same kind of thing repeated over the whole picture) | abstract | map | collage_grid (separate panels in a grid) | product_flatlay (items seen from above)
+style: photo | photo_aerial | photo_macro | painting_oil_acrylic (looks painted with a brush, incl. digital paintings) | watercolour | pencil_ink_drawing | illustration_digital (clean digital illustration) | cartoon_comic (outlined cartoon or comic characters) | vector_flat (flat shapes, no shading) | render_3d | vintage_retro_poster | collage_mixed | pattern_textile | map_cartographic | photomosaic | pixel_art
+season: none|spring|summer|autumn|winter | holiday: none|christmas|halloween|easter|valentines|thanksgiving|new_year|other | time: none|day|golden_hour|dusk_blue_hour|night (none = indoors or not shown) | weather: none|sunny|partly_cloudy|overcast|rain|snow|fog_mist|storm
+mood: 1-2 of cozy|serene|playful|dramatic|spooky|romantic|nostalgic|vibrant|majestic|melancholic|whimsical|festive
+place: named place, landmark or country if recognisable, else null
+characters: licensed franchise or named characters (e.g. Disney, Harry Potter, Snoopy), else []
+artistSignature: artist name if signed or credited in the picture, else null
+people: none|few|many|crowd (few = 1-3, many = 4-15, crowd = more) | textInArtwork: none|little|lots
+counts: {distinctObjects, animals, people} as integers
+areas: {sky, water, foliageGrass, buildings, plainBackground} as rough % of the picture
+collageGrid, seekAndFind: true/false
+extraTags: up to 8 more useful search words (art movement, era, objects, colours), else []
+```
+(For production, add "never the puzzle brand or publisher" to the `artistSignature` line - finding 7.)
+
+### Open / follow-ups
+
+- **Batching** (the only big speed lever left; decode is bandwidth-bound, so 4 streams could give ~2× throughput):
+  find the memory spike in `batch_generate`, probably prefill of the whole batch at once - try `prefill_step_size`
+  and batches of 2, on letterboxed or aspect-bucketed crops.
+- **Fewer output tokens**: the ~80 forced key / punctuation tokens of every answer each cost a decode step (mlx-vlm
+  does not fast-forward forced grammar tokens). Short keys mapped back after decoding, or dropping `areas` (the
+  segmentation analyzer measures region shares), would save ~10-20 % - re-check quality before adopting.
+- **8-bit** (Qwen3.5-9B 8-bit, ~10 GB): not tested, to stay under the 15 GB download budget. Decode would be ~1.6×
+  slower (bandwidth-bound), i.e. +2-3 days on the backfill. Worth a 40-image check only if 4-bit's errors turn out to
+  matter in the spot-check sheet.
+- **Qwen3.5-4B** (3.1 GB, Apache-2.0) was not tested (download budget). It is the natural candidate if the M1 Air is
+  ever to run `describe` at a useful speed (~25-30 s/img estimated).
+- Check that the M1 and the M3 produce identical output for the same input before letting both claim `describe`.
+- Downloads made for this bake-off: Qwen3.5-9B-MLX-4bit 5.98 GB, gemma-4-12B-it-MLX-4bit 6.77 GB (can be deleted),
+  EoMT-L COCO panoptic 1.27 GB (for the resource table) = **14.0 GB**, in `~/.cache/huggingface/hub/`.
+
+## 19. Resource use per stage and the two-machine split (2026-10-18)
+
+Measured on the M3 Max (14-core CPU / 30-core GPU, 36 GB, 300 GB/s), each stage alone in its own process under the
+shared model lock, in a **sustained loop of 2-4 minutes** over the vision lab's sample (images pre-decoded to
+≤ 1600 px like the pipeline cache, so download and decode are excluded). Script `scripts/stages.py`, raw numbers in
+`out/stages.jsonl` (bake-off folder `.claude/worktrees/insights-describe-bakeoff/`). "Throttle" = median time per
+image in the last 60 s ÷ in the first 30 s (1.0 = steady; < 1 = it got faster after warm-up). CPU cores = process CPU
+% ÷ 100; GPU % = `ioreg` IOAccelerator "Device Utilization" (no sudo needed). The compute unit was inferred from those
+two numbers plus, for Apple Vision, a forced CPU-only rerun (`usesCPUOnly`): low CPU + low GPU + faster than CPU-only
+= Neural Engine.
+
+**M1 Air estimates** (MacBook Air M1, 16 GB, 7- or 8-core GPU, 68 GB/s, fanless) are scaled, not measured:
+- GPU compute-bound work (vision encoders, segmentation, VLM prefill) **×5**: llama.cpp's Apple Silicon table gives
+  prompt processing of 118 tok/s on the M1 (8-core GPU) vs 568 tok/s on the M3 Max 30-core (7B Q4_0), = 4.8× (5.2×
+  on the 7-core GPU).
+- VLM token generation (memory-bandwidth-bound) **×4**: 14.2 vs 56.6 tok/s in the same table.
+- Neural Engine **×1.5** (11 vs 18 TOPS); CPU single thread **×1.3**, all cores **×2.4** (4P+4E vs 10P+4E).
+- **Fanless sustained**: another **×1.33** on GPU and all-core CPU work (the Air drops to roughly 70-80 % after 5-10
+  minutes of full load), ×1.1 on Neural Engine / single-thread work. These are estimates. Before the backfill, a
+  10-minute loop of `stages.py` per stage on the Air would replace them with measured numbers.
+- Memory: macOS gives the GPU about 2/3 of RAM by default (~10.7 GB on a 16 GB Mac). "Fits" below means the stage's
+  peak stays clearly under that, with room for macOS (~4-5 GB) and the downloader.
+
+| Stage (analyzer) | Runs on | Unit | M3 Max s/img (sustained) | Throttle | CPU cores | GPU % | Peak RAM | M1 Air s/img (est., sustained) | Fits M1 16 GB |
+|---|---|---|---|---|---|---|---|---|---|
+| `artwork` kind gate - SigLIP2 so400m fp16 (MPS) | full, 768 px | GPU | **0.11** (0.16 in the last minute) | 1.5 | 0.1 | 96 | 2.4 GB (MPS) | ~0.8 | yes |
+| `artwork` box - Qwen3-VL-4B 4-bit (MLX), 672 px, + OpenCV quad snap (~5 ms) | full, ~76 % of images (the rest are flat = trim only) | GPU | **2.6 per VLM image** (2.35 steady) = **~2.0 per puzzle** | 0.6 (warm-up) | 0.3 | 96 | 4.5 GB | ~15 per VLM image = ~11 per puzzle | yes |
+| `colors` + `traits` (numpy / OpenCV / scikit-image) | crop | CPU (traits also calls Apple Vision fast OCR) | 0.47 CPU-s per image single-threaded; **0.078 s/img** wall with 6 single-thread workers | 1.0-1.05 | 1 per worker (8.4 if run in one process: BLAS / k-means threads) | 0 | ~0.4 GB per worker | ~0.2 with 6 workers | yes |
+| `ocr` + `barcode` + `vision_labels` + faces + humans - Apple Vision | full (labels: crop) | **Neural Engine** (+0.7 CPU core) | **0.134** median, 0.18 mean | 1.0 | 0.7 | 6 | 1.0 GB | ~0.3 | yes |
+| same, forced CPU-only (`usesCPUOnly`) - for comparison | full | CPU | 0.20 | 1.0 | 1.0 | 0 | 1.0 GB | - | - |
+| `embed_siglip2` - SigLIP2 so400m fp16, crop + full = 2 embeddings, batches of 8 puzzles | crop + full | GPU | **0.36 per puzzle** (first 30 s 1.7: MPS warm-up per new image shape) | 0.2 (warm-up) | 0.1 | 76 | 3.5 GB (MPS) | ~2.4 | yes |
+| `embed_dinov2` - DINOv2-**base** measured (fp16, batches of 8); **L/14 ≈ 3.5× FLOPs** | crop | GPU | base 0.010; **L ≈ 0.035** (estimate) | 0.9 | 0.3 | 91 | base 1.3 GB, L ~2 GB | ~0.25 | yes |
+| `segmentation` - EoMT-L COCO panoptic 640 fp16 (MPS) + panoptic post-processing | crop | GPU | **0.31** (0.35 in the last minute) | 1.2 | 0.1 | 96 | 2.9 GB (MPS) | ~2.1 | yes |
+| `describe` - **Qwen3.5-9B 4-bit**, constrained, 512 px, v2 prompt + title (recommended) | crop + OCR lines + title | GPU | **10.75** unbatched (batching not viable: memory) | 1.0 in 7-minute runs | ~0.3 | ~95 | **7.4 GB** | **~57** (300 generated tokens at ~7.7 tok/s + prefill) | fits, tight (7.4 of ~10.7 GB GPU budget) |
+| `describe` - Qwen3-VL-4B 4-bit, same prompt (fallback) | crop | GPU | 6.3 | 1.0 | ~0.3 | ~95 | 4.1 GB | ~30 | yes, comfortable |
+
+Notes from the measurements:
+- **Apple Vision collides with GPU jobs.** During the first, accidental run, while Gemma 4 kept the GPU at 98 %,
+  Apple Vision took **14.8 s/img instead of 0.13**. The taxonomy lab saw the same thing (27-42 s stalls). So never
+  run `ocr` next to a GPU-saturating stage on the same machine. Give it its own phase, or put it on the other machine.
+- `colors` + `traits` in a single process grabs 8 threads through BLAS / k-means and gains little from them. Run them
+  as N single-threaded workers (`OMP_NUM_THREADS=1`) next to a GPU stage, where they cost the GPU nothing.
+- SigLIP2's first ~30 s are 5× slower while MPS compiles kernels for each new input shape. Feeding a fixed 384×384
+  input (the processor squashes to that size anyway) avoids recompiles in a long run.
+- In the 2-7 minute runs the M3 Max showed **no consistent thermal throttling**. The gate (1.5×) and EoMT (1.2×)
+  slowed in their last minute, and one describe run halved its token rate in its last ten images. All three coincide
+  with GPU activity outside the lock (other agents / the Docker VM), so they say more about sharing the machine than
+  about heat. For a days-long run, pin `caffeinate -i` and keep other GPU work off.
+
+**Ordering dependencies** (the claim API needs a `requires=` filter so a worker never claims what it cannot run yet):
+
+| Analyzer | Needs first |
+|---|---|
+| `ocr`, `barcode` | nothing (full image) |
+| `embed_siglip2` (full-image half) | nothing |
+| `artwork` | nothing (gate + VLM on the full image) |
+| `colors`, `traits`, `segmentation`, `embed_dinov2`, `embed_siglip2` (crop half), `vision_labels` | `artwork` (the crop) |
+| `describe` | `artwork` (crop) **and** `ocr` (the OCR lines inside the crop are prompt context) |
+| `box_text`, `zeroshot`, `neighbours`, `tags` (derived) | their raw inputs; no image |
+
+So `GET /internal-api/puzzle-images?analyzer=describe&status=stale&requires=artwork,ocr` (only puzzles whose current
+image already has those results at the current fingerprint).
+
+**Recommended split**
+
+| Machine | Claims | Order | Wall-clock for 41,266 images |
+|---|---|---|---|
+| **M3 Max** | `artwork` (gate + VLM), then `describe` | gate first (1.3 h), VLM on the non-flat ones (~23 h), then describe | artwork ~24 h + describe 41,266 × ~10.75 s ≈ 123 h → **≈ 6.1 days** alone (batching was not viable in the bake-off - memory) |
+| **M1 Air** | everything else: `ocr` + `barcode` (full), `embed_siglip2` (full + crop), `vision_labels`, `embed_dinov2`, `segmentation`, `colors` + `traits` | phase A without dependencies: OCR / barcode first (~3.5 h, so `describe` never waits on it), then SigLIP full-image (~14 h); phase B (`requires=artwork`): SigLIP crop + DINOv2-L + EoMT on the GPU (~3.6 s/img), with colors / traits in 4-6 CPU workers alongside | phase A ~17 h + phase B ~41 h ≈ **2.4 days** |
+
+Why this way round:
+- `describe` is ~80 % of all compute and has to be one model for the whole catalogue. On the Air it would take ~57 s/img,
+  i.e. 27 days alone. The M3 Max must own it.
+- `artwork` VLM is 5-6× slower on the Air (~11 s/puzzle) and gates both `describe` and the Air's own phase B, so the
+  M3 Max does it first. The Air runs its dependency-free phase A in the meantime and is never idle.
+- Everything the Air gets is small (≤ 3.5 GB peak, no stage near the 10.7 GB GPU limit). It includes **Apple Vision,
+  which then never shares a GPU with the VLM** (the 14.8 s/img stall above).
+- When the Air finishes (~day 2.4), it can join `describe` claims with the same model and prompt (Qwen3.5-9B 4-bit
+  fits in 16 GB, 7.4 GB peak). At ~57 s/img that is ~1,500 images a day next to the M3 Max's ~8,000. Of the ~30,000
+  images still open at day 2.4, it takes about 1/6, which ends the backfill ~0.5 days earlier (day ~5.5 instead of ~6.1).
+  Same model + same prompt + greedy decoding = the same output on either machine (to check: MLX on M1 vs M3 can differ
+  in rare float ties).
+
+**Total backfill with both machines: ≈ 5.5 days of wall-clock** (≈ 6.1 if the Air does not join `describe`), set by
+the M3 Max (`artwork` ~1 day + `describe` ~5 days); the M1 Air finishes all of pass 1 in ~2.4 days. Each 10 % shaved
+off `describe` (shorter output, see the bake-off follow-ups) saves ~0.5 days. The M3 Max column assumes the machine is
+otherwise idle - the lab saw 20-50 % slowdowns whenever other GPU work ran next to it. Daily volume afterwards (~60 images, p90 100) is ~15-20 minutes on the
+M3 Max alone.
 
 ## Appendix A - taxonomy v1.0.0 (keys)
 
@@ -843,3 +1122,6 @@ Total: 23 + ~115 + 16 + 18 + 34 + 10 + 22 + 26 + 24 + 10 + 10 ≈ **310 keys**.
   `vlm_*.jsonl`, `vlm_batch.log`).
 - **Downloaded:** `facebook/dinov2-base` (~350 MB) and 148 box images (117 MB). Reused from the vision PoC's cache:
   SigLIP 2 so400m, Qwen3-VL-8B/4B 4-bit. Total new model downloads ≈ 0.35 GB.
+- **Bake-off lab** (local, git-excluded): `.claude/worktrees/insights-describe-bakeoff/` - `scripts/run.py`, `scripts/schema.py`,
+  `scripts/stages.py`, outputs in `out/` (`stages.jsonl`), `report.html` (each crop next to every model's output).
+  Downloaded: Qwen3.5-9B-MLX-4bit 5.98 GB, gemma-4-12B-it-MLX-4bit 6.77 GB (deletable), EoMT-L COCO panoptic 1.27 GB.

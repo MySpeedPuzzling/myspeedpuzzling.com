@@ -40,7 +40,7 @@ final class CompetitionFormDataTest extends KernelTestCase
 
         self::assertContains('dateTo', $paths, 'A 365-day event must be rejected as placeholder dates');
         self::assertContains(
-            'The event cannot be longer than 30 days. Please enter the actual event dates.',
+            'The event cannot be longer than 92 days. Please enter the actual event dates.',
             $messages,
             'The violation message must resolve through the validators translation domain, not render as a raw key',
         );
@@ -53,6 +53,21 @@ final class CompetitionFormDataTest extends KernelTestCase
             location: 'Valladolid',
             dateFrom: new DateTimeImmutable('2026-09-15'),
             dateTo: new DateTimeImmutable('2026-09-21'),
+            isOnline: false,
+        );
+
+        $violations = $this->validator->validate($data);
+
+        self::assertCount(0, $violations);
+    }
+
+    public function testSixWeekLeagueIsAccepted(): void
+    {
+        $data = new CompetitionFormData(
+            name: 'Winter Puzzle League',
+            location: 'Pewaukee',
+            dateFrom: new DateTimeImmutable('2027-01-18'),
+            dateTo: new DateTimeImmutable('2027-02-22'),
             isOnline: false,
         );
 

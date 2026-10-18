@@ -14,7 +14,8 @@ use Symfony\Component\Validator\Context\ExecutionContextInterface;
 #[Assert\Callback('validateDates')]
 final class CompetitionFormData
 {
-    private const int MAX_DURATION_DAYS = 30;
+    // A season (a weekly league of 6-12 weeks, its weeks = rounds) fits, a placeholder year does not
+    private const int MAX_DURATION_DAYS = 92;
 
     public function __construct(
         #[Assert\NotBlank]

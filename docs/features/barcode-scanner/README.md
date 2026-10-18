@@ -541,6 +541,24 @@ back (`zbar.max_backoff`), plus every code seen per reader (`seen`, e.g. `400555
 If zbar sees the code in practically every session that reads, Android drops Google's reader and every platform runs
 one path (requirement 3). If not, both stay until Step 4's decoder can replace Google's.
 
+### 5.8 The scanner rests while there is nothing to read (2026-10-19)
+
+Allison (iPhone Pro, multiscan, 2026-10-18): "I can use it for about 2 minutes (20ish puzzles) before I'm worried about
+the temperature of my phone". The reports showed why: every iPhone session decoded **every camera frame, 25-29 a
+second, for as long as the camera was open** (her session: 3,913 frames in 208 s; another one ran 19.5 minutes), each
+costing 15-35 ms of crop and zbar - half to all of a core, nonstop. Since §5.6 the frames are 1080p, so each costs more
+than the 640×480 ones before.
+
+Now:
+- every frame is decoded only while a reader saw any code in the last second (`ACTIVE_FOR_MS`); otherwise at most 10
+  a second (`RESTING_INTERVAL_MS`). In multiscan a box taken within the cooldown, still in view, counts as nothing new;
+- the overlay (a full-size canvas) is redrawn only when the guide moved or a code's outline was drawn, not every frame.
+
+Measured in Chrome with a fake camera: nothing in view 25-29 → 8-10 decodes a second; a box appearing after 4 s read
+0.2-0.3 s after it appeared (at most 0.1 s added to the first sight); multiscan with a box held in view re-reads it
+every ~2.7 s as before, at 10-15 decodes a second instead of ~30. The reports' `frames` / `duration_ms` show the
+effect in the field.
+
 ## 6. Open questions for Jan
 
 1. OK to restore Google's detector on Android right away (§5.0), until our own decoder replaces it (§5.4)?

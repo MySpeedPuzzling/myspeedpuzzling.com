@@ -12,6 +12,11 @@ const FOCUS_KICK_DISTANCE_M = 0.25;
 const FOCUS_KICK_HOLD_MS = 250;
 const FOCUS_KICK_FIRST_MS = 2500;
 const FOCUS_KICK_EVERY_MS = 6000;
+// Every camera frame is decoded only while a reader saw a code in the last second; otherwise at most 10 a second.
+// Decoding every frame kept a phone's main core busy for as long as the camera was open - an iPhone got hot after
+// ~2 minutes of multiscan (2026-10-18, README §5.8).
+const ACTIVE_FOR_MS = 1000;
+const RESTING_INTERVAL_MS = 100;
 const FORMATS = ['ean_8', 'ean_13'];
 const ZBAR_SCRIPTS = [
     'https://cdn.jsdelivr.net/npm/@undecaf/zbar-wasm@0.9.15/dist/index.js',
@@ -579,7 +584,7 @@ export default class extends Controller {
     _engineState(name, detector) {
         this.acceptance.addReader(name);
 
-        return { detector, frames: 0, decodeMs: [], region: null };
+        return { detector, frames: 0, decodeMs: [], region: null, lastDecodeAt: -Infinity };
     }
 
     _engineName() {
@@ -629,6 +634,8 @@ export default class extends Controller {
         const video = this.videoTarget;
         // The reader that paces the session and draws the overlay: Google's where it runs, else zbar
         const primary = plan.native ? 'native' : 'zbar';
+        // The first second at full pace: the player is just pointing the camera
+        this.lastActivityAt = performance.now();
         // Next to Google's reader, zbar only within a budget that keeps Google's at its own pace (HelperBudget)
         this.zbarBudget = plan.native && plan.zbar ? new HelperBudget() : null;
 
@@ -647,14 +654,15 @@ export default class extends Controller {
                     if (Date.now() >= this.nextFocusKickAt) {
                         this.kickFocus();
                     }
-                    this._sizeOverlay();
-                    ctx.clearRect(0, 0, this.overlayTarget.width, this.overlayTarget.height);
-                    this._drawGuide(ctx);
+                    this._refreshOverlay(ctx);
                 }
 
                 // zbar next to Google's reader may not be downloaded yet - this loop then only waits
                 const ready = engine && video.videoWidth && video.videoHeight;
-                if (!this.paused && ready && (isPrimary || this.zbarBudget.mayRun(performance.now()))) {
+                const now = performance.now();
+                const due = now - this.lastActivityAt < ACTIVE_FOR_MS || now - engine.lastDecodeAt >= RESTING_INTERVAL_MS;
+                if (!this.paused && ready && due && (isPrimary || this.zbarBudget.mayRun(now))) {
+                    engine.lastDecodeAt = now;
                     const start = performance.now();
                     const frame = name === 'native'
                         ? { source: video, x: 0, y: 0, w: video.videoWidth, h: video.videoHeight, vertical: false }
@@ -781,12 +789,34 @@ export default class extends Controller {
         };
     }
 
+    /**
+     * @returns {boolean} whether it resized the overlay, which also cleared it
+     */
     _sizeOverlay() {
         const video = this.videoTarget;
         if (video.videoWidth && (this.overlayTarget.width !== video.videoWidth || this.overlayTarget.height !== video.videoHeight)) {
             this.overlayTarget.width = video.videoWidth;
             this.overlayTarget.height = video.videoHeight;
+            return true;
         }
+
+        return false;
+    }
+
+    // The guide is redrawn only when it moved or a code's outline was drawn over it - the overlay is a full-size
+    // canvas the phone composites again after every change
+    _refreshOverlay(ctx) {
+        const resized = this._sizeOverlay();
+        const band = this._horizontalBand(this._visibleRect());
+        const guide = `${band.x},${band.y},${band.w},${band.h}`;
+        if (!resized && !this.overlayMarked && guide === this.overlayGuide) {
+            return;
+        }
+
+        ctx.clearRect(0, 0, this.overlayTarget.width, this.overlayTarget.height);
+        this._drawGuide(ctx);
+        this.overlayMarked = false;
+        this.overlayGuide = guide;
     }
 
     // Corner marks of the horizontal band: where to hold the code (zbar decodes nothing outside it)
@@ -823,6 +853,11 @@ export default class extends Controller {
         // A frame that reads two different codes is not trusted at all: two boxes in view, or a misread
         const sameCodeOnly = barcodes.every(b => canonicalCode(b.rawValue) === code);
 
+        // Something to read: every frame again - unless it is only the box multiscan just took, still in view
+        if (!this.continuousValue || barcodes.some(b => now - (this.acceptedAt.get(canonicalCode(b.rawValue)) || 0) >= this.cooldownMsValue)) {
+            this.lastActivityAt = performance.now();
+        }
+
         // The camera sees a code, so it is roughly in focus: no kick for a while
         this.nextFocusKickAt = Math.max(this.nextFocusKickAt, now + FOCUS_KICK_FIRST_MS);
         // The player found the distance; the hint would only cover the picture now
@@ -840,6 +875,7 @@ export default class extends Controller {
             ctx.lineWidth = 3;
             ctx.strokeStyle = '#fe4042';
             ctx.stroke();
+            this.overlayMarked = true;
         }
 
         if (!sameCodeOnly) {
@@ -930,6 +966,7 @@ export default class extends Controller {
         ctx.clearRect(0, 0, this.overlayTarget.width, this.overlayTarget.height);
         this.overlayTarget.width = 0;
         this.overlayTarget.height = 0;
+        this.overlayGuide = null;
         this._cropCanvases = null;
 
         // Clear references to allow garbage collection

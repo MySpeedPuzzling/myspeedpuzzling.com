@@ -699,10 +699,11 @@ player lost the form. Shipped: limit 128M (`web-base-php85/php.ini`), photos up 
 - [ ] Self-host zbar (`@undecaf/zbar-wasm` + the polyfill through npm, cached by the service worker) instead of
       jsdelivr - every Android session now downloads it too; a jsdelivr outage leaves Android on Google's reader alone
       and iOS without a scanner (README §5.3 "Web Worker").
-- [ ] Scanner heat (Allison, iPhone Pro, multiscan, 2026-10-18 - MSP #321 / F143): the phone gets hot after ~2 min /
-      20 boxes. Her session: zbar ~19 decodes/s at 1080p for 3.5 min (since 10-13; 640x480 before). Idea: decode
-      every frame only while a code was seen in the last ~1 s, otherwise ~8/s; measure with `frames`/`duration_ms`.
-      Wait for her answer (new since 10-13?) first.
+- [x] Scanner heat (Allison, iPhone Pro, multiscan, 2026-10-18 - MSP #321 / F143): every session decoded every frame
+      nonstop; 2026-10-19 the scanner rests at ≤ 10 decodes/s while no code is in view (README §5.8).
+- [ ] Check the rest mode in the reports (`frames` / `duration_ms` of long iOS sessions, ~10/s idle) and ask Allison
+      whether her phone stays cooler - if it still gets hot, the 1080p camera itself is next (a lower resolution while
+      resting would need a camera restart - measure first).
 - [ ] Labels without a quiet zone: Anatolian boxes (white label tight around the bars on a black box, e.g.
       `8698543136342`, `8698543135796`) barely read or not at all - zbar needs the white margin to find the start.
       A test case for Step 4's decoder (it fits geometry, needs no quiet zone); her photo is in MSP inbox:8800.

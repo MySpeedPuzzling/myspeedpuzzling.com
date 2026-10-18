@@ -92,7 +92,49 @@ function bootstrapDatabase(string $cacheFilePath): void
         throw new LogicException('Command doctrine:fixtures:load failed');
     }
 
+    // Production has a built pace history (docs/features/puzzle-intelligence/README.md "Pace history"): its rows
+    // and the marker that lets the incremental recalculation compute difficulties from it.
+    // PaceHistoryRolloutTest deletes both to test the state right after the deploy
+    $result = $application->run(new ArrayInput([
+        'command' => 'myspeedpuzzling:backfill-pace-history',
+    ]));
+
+    if ($result !== 0) {
+        throw new LogicException('Command myspeedpuzzling:backfill-pace-history failed');
+    }
+
+    recalculateIncrementallyWithPaceHistory($kernel);
+
     $kernel->shutdown();
+}
+
+/**
+ * The fixtures' solves ran the incremental insights recalculation while they were loaded - before the
+ * pace history existed, so it kept no difficulty (PaceHistoryReadiness). Run it once more per solo
+ * time now that the history is built: the fixture database is what production looks like after
+ * those adds.
+ */
+function recalculateIncrementallyWithPaceHistory(SymfonyApplicationKernel $kernel): void
+{
+    $container = $kernel->getContainer()->get('test.service_container');
+    assert($container instanceof Symfony\Component\DependencyInjection\ContainerInterface);
+
+    $connection = $container->get(Doctrine\DBAL\Connection::class);
+    assert($connection instanceof Doctrine\DBAL\Connection);
+    $handler = $container->get(SpeedPuzzling\Web\MessageHandler\RecalculateIncrementalPuzzleIntelligenceOnSolvingTimeChange::class);
+    assert($handler instanceof SpeedPuzzling\Web\MessageHandler\RecalculateIncrementalPuzzleIntelligenceOnSolvingTimeChange);
+
+    /** @var list<array{id: string, puzzle_id: string}> $times */
+    $times = $connection->fetchAllAssociative(
+        "SELECT id, puzzle_id FROM puzzle_solving_time WHERE puzzling_type = 'solo' AND seconds_to_solve IS NOT NULL ORDER BY tracked_at, id",
+    );
+
+    foreach ($times as $time) {
+        $handler(new SpeedPuzzling\Web\Events\PuzzleSolvingTimeModified(
+            Ramsey\Uuid\Uuid::fromString($time['id']),
+            Ramsey\Uuid\Uuid::fromString($time['puzzle_id']),
+        ));
+    }
 }
 
 function createPantherTemplateDatabase(): void

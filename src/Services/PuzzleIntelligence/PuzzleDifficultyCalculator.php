@@ -136,18 +136,7 @@ final class PuzzleDifficultyCalculator implements ResetInterface
             return $this->indicesCache[$puzzleId] ?? [];
         }
 
-        $firstAttempts = [];
-
-        foreach ($this->baselineCalculator->iterateQualifyingFirstAttempts(puzzleId: $puzzleId) as $row) {
-            $firstAttempts[] = $row;
-        }
-
-        $timeline = $this->paceTimelineLoader->forLookups(array_map(static fn (array $row): array => [
-            'player_id' => $row['player_id'],
-            'pieces_count' => (int) $row['pieces_count'],
-            'solve_date' => $row['solve_date'],
-            'tracked_at' => $row['tracked_at'],
-        ], $firstAttempts));
+        [$firstAttempts, $timeline] = $this->paceTimelineLoader->forPuzzleFirstAttempts($puzzleId);
 
         $solves = [];
 

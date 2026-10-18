@@ -1,6 +1,7 @@
 import { Controller } from '@hotwired/stimulus';
 import { getComponent } from '@symfony/ux-live-component';
 import { compressedOrOriginal } from '../image_compression.js';
+import { PhotoUpload } from '../photo_upload.js';
 
 /**
  * Bridge between the continuous barcode scanner and the MultiscanTray Live
@@ -14,6 +15,9 @@ import { compressedOrOriginal } from '../image_compression.js';
  *    camera for a box photo can make the browser drop the page
  *  - quick-add photos are kept here (shrunk, one per code), never only in the file input: a failed
  *    upload or a re-render must not make anybody retake the photo
+ *  - with an upload URL, a quick-add photo uploads in the background as soon as it is taken (assets/photo_upload.js,
+ *    docs/features/photo-uploads/README.md) and "Add puzzle" sends only its token; a photo whose upload could not
+ *    work goes with the action as a file, as before
  */
 export default class extends Controller {
     static targets = ['tray', 'scanner', 'eanInput', 'typedRow', 'typedToggle'];
@@ -29,6 +33,10 @@ export default class extends Controller {
         restoredMessage: String,
         createFailedMessage: String,
         storageKey: String,
+        uploadUrl: { type: String, default: '' },
+        uploadCsrfToken: { type: String, default: '' },
+        reportUrl: { type: String, default: '' },
+        uploadTexts: { type: Object, default: {} },
     };
 
     static STALL_MS = 12000;
@@ -381,9 +389,57 @@ export default class extends Controller {
         const prepared = await compressedOrOriginal(file);
         input.value = '';
 
+        const previousToken = this.photos.get(ean)?.upload?.token || null;
         this.forgetPhoto(ean);
-        this.photos.set(ean, { file: prepared, url: URL.createObjectURL(prepared) });
-        this.renderPhoto(box, this.photos.get(ean), false);
+
+        const photo = { file: prepared, url: URL.createObjectURL(prepared), upload: null, withFile: false };
+
+        if (this.uploadUrlValue !== '') {
+            photo.upload = new PhotoUpload(prepared, {
+                startUrl: this.uploadUrlValue,
+                csrfToken: this.uploadCsrfTokenValue,
+                reportUrl: this.reportUrlValue,
+                field: 'multiscan',
+                replaces: previousToken,
+                onChange: () => this.renderUploadStatus(ean),
+            });
+        }
+
+        this.photos.set(ean, photo);
+        this.renderPhoto(box, photo, false);
+    }
+
+    /** The background upload's line under the quick-add photo - its box is data-live-ignore, so it survives re-renders */
+    renderUploadStatus(ean) {
+        const box = this.trayTarget.querySelector('.multiscan-photo');
+        const status = box ? box.querySelector('.multiscan-photo-upload') : null;
+
+        if (!status || box.getAttribute('data-multiscan-photo-for') !== ean) {
+            return;
+        }
+
+        const photo = this.photos.get(ean);
+        const upload = photo ? photo.upload : null;
+        const texts = this.uploadTextsValue;
+
+        if (!upload || photo.withFile) {
+            status.textContent = '';
+            return;
+        }
+
+        let line;
+
+        if (upload.state === 'done') {
+            line = texts.done || '';
+        } else if (upload.state === 'failed') {
+            line = texts.with_form || '';
+        } else if (upload.waitingUntil !== null) {
+            line = navigator.onLine === false ? (texts.waiting || '') : (texts.retrying || '');
+        } else {
+            line = ((upload.elapsedMs > 10000 ? texts.uploading_slow : texts.uploading) || '').replace('%percent%', String(upload.percent));
+        }
+
+        status.textContent = line;
     }
 
     async createPuzzle(event) {
@@ -405,24 +461,42 @@ export default class extends Controller {
             return;
         }
 
-        // A throw-away input per attempt: the Live Component empties the input it uploaded from after
-        // every answer, even a failed one - the photo itself stays here for the next try
-        const upload = document.createElement('input');
-        upload.type = 'file';
-        const transfer = new DataTransfer();
-        transfer.items.add(photo.file);
-        upload.files = transfer.files;
-
         this.creating = true;
         const button = event.currentTarget;
         button.disabled = true;
-        this.component.files('photo', upload);
+
+        // Uploaded in the background: wait for it (its line shows the progress), resumed if it gave up on the connection
+        let token = '';
+
+        if (photo.upload && !photo.withFile) {
+            photo.upload.resumeForSubmit();
+            await photo.upload.done;
+            token = photo.upload.state === 'done' && photo.upload.token ? photo.upload.token : '';
+        }
+
+        if (token === '') {
+            // A throw-away input per attempt: the Live Component empties the input it uploaded from after
+            // every answer, even a failed one - the photo itself stays here for the next try
+            const upload = document.createElement('input');
+            upload.type = 'file';
+            const transfer = new DataTransfer();
+            transfer.items.add(photo.file);
+            upload.files = transfer.files;
+            this.component.files('photo', upload);
+        }
 
         try {
             await Promise.race([
-                this.component.action('createPuzzle'),
+                this.component.action('createPuzzle', token !== '' ? { photoToken: token } : {}),
                 new Promise((_, reject) => window.setTimeout(() => reject(new Error('stall')), this.constructor.CREATE_STALL_MS)),
             ]);
+
+            // Still open for this code = refused; should the server not have found the uploaded photo, the next try
+            // sends the file itself
+            if (token !== '' && this.trayTarget.getAttribute('data-multiscan-sheet-ean') === ean) {
+                photo.withFile = true;
+                this.renderUploadStatus(ean);
+            }
         } catch (error) {
             if (error && error.message === 'stall') {
                 // The request hangs (connection dropped): after a reload the tray comes back from storage
@@ -454,6 +528,7 @@ export default class extends Controller {
         if (box) {
             const ean = box.getAttribute('data-multiscan-photo-for') || '';
             this.renderPhoto(box, this.photos.get(ean) || null, false);
+            this.renderUploadStatus(ean);
         }
     }
 
@@ -481,6 +556,9 @@ export default class extends Controller {
     forgetPhoto(ean) {
         const photo = this.photos.get(ean);
         if (photo) {
+            if (photo.upload && photo.upload.state === 'uploading') {
+                photo.upload.abort();
+            }
             URL.revokeObjectURL(photo.url);
             this.photos.delete(ean);
         }

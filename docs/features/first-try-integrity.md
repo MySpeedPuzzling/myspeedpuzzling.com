@@ -124,8 +124,11 @@ input. Now (`Services\PhotoStash\PhotoStash` + `FormPhotoStash`):
 3. On the next submit `FormPhotoStash::restore()` puts it back into the empty file input **before** `handleRequest()`,
    so the form validates it like a fresh upload. A newly chosen file always wins. A token that stopped working
    (expired, somebody else's) is said out loud as a field error, never saved without the photo silently.
-4. After a successful save the kept files are deleted; `myspeedpuzzling:prune-photo-stash` (daily cron, lily.srv)
-   removes whatever nobody came back for after `PhotoStash::KEEP_HOURS` (24 h). At most 6 kept photos per player.
+4. After a successful save the kept files are deleted - except on the add/edit-time form, whose photos stay until
+   they expire so a resend of the same form is answered as the saved result (docs/features/photo-uploads/README.md);
+   `myspeedpuzzling:prune-photo-stash` (daily cron, lily.srv) removes whatever is older than `PhotoStash::KEEP_HOURS`
+   (24 h). At most 20 kept photos per player. The add/edit-time form's photos usually arrive as tokens already - the
+   browser uploads them in the background, straight into the stash (photo-uploads/README.md).
 
 The preview route `GET /{_locale}/photo-stash/{token}` answers only the owner (404 for anyone else), `private,
 no-store`, `nosniff`.

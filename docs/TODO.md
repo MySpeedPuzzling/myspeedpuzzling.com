@@ -4,6 +4,21 @@ Open follow-ups, one place to come back to. Tick an item when it ships, delete a
 Feature-sized plans keep their own checklist in `docs/features/<feature>/` - this file is for the loose ends
 that would otherwise be forgotten. Newest section on top.
 
+## Photo uploads on slow connections (`docs/features/photo-uploads/README.md`)
+
+- [ ] After a week live: read the `photo_upload` channel in Loki - `event=save outcome=failed` per day (should be ~0),
+      `event=upload outcome=failed` by `reason`, how often `photos_in_form > 0` (the plain path still used) - and tune
+      the backoff / stall numbers if needed.
+- [ ] lily.srv: deny `tmp-uploads/` in the images nginx like `online/` (kept and background-uploaded photos are private
+      for 24 h; the tokens are unguessable, but nothing needs to serve them publicly).
+- [ ] lily.srv: Traefik `readTimeout` 180 s (already planned for the maintenance window) - the plain form path still
+      exists as the fallback.
+- [ ] The other photo forms (moderators' puzzle forms, "Suggest a change", a round's new puzzle, event / series logos)
+      still send photos with the form - give them the background upload when one of them shows up in the telemetry
+      (`submit_prevention_controller.js` takes the same `upload-url` values; FormPhotoStash already restores tokens).
+- [ ] Nothing typed survives closing the tab or the phone killing the browser while the camera is open - a draft of the
+      add form in sessionStorage (like multiscan's tray) would cover it; the photos are already server-side by token.
+
 ## Online competitions (`docs/features/online-competitions/`, round clock - stream D)
 
 - [ ] Open the scheduled start ("Start in 10 s", "Start at a set time", "Cancel the start") to every organiser once

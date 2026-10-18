@@ -275,7 +275,8 @@ final class EditTimeController extends AbstractController
                     ),
                 );
 
-                $this->formPhotoStash->forget($restoredPhotos, $player->playerId);
+                // The photos stay until they expire: the same form sent again (the answer got lost) must find them
+                // (docs/features/photo-uploads/README.md)
 
                 $this->addFlash('success', $this->translator->trans('flashes.time_edited'));
 

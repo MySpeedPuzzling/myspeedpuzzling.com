@@ -420,6 +420,9 @@
   "compressing_images": "Bilder werden komprimiert..."
   "photo_too_large": "Dieses Foto ist zum Hochladen zu groß (%size% MB) und wurde entfernt. Wähle ein kleineres Foto oder speichere ohne - alles andere, was du ausgefüllt hast, bleibt erhalten."
   "save_did_not_finish": "Das Speichern wurde nicht abgeschlossen - die Verbindung war zu langsam oder wurde unterbrochen. Alles, was du ausgefüllt hast, ist noch da, bitte versuche es noch einmal. Wenn es wieder passiert, probiere eine andere Verbindung (WLAN oder mobile Daten)."
+  "uploading_photos": "Fotos werden hochgeladen… %percent% %"
+  "saving_again": "Wird gespeichert… noch ein Versuch"
+  "still_saving": "Das Speichern dauert auf dieser Verbindung länger als sonst. Bitte lass diese Seite offen - alles, was du ausgefüllt hast, bleibt hier."
   "removing": "Entfernen..."
   "add": "Hinzufügen"
   "back": "Zurück"
@@ -6711,6 +6714,13 @@ duplicate_check:
         with_viewer_team: "%name% hat Ihr Team-Ergebnis mit genau %time% (%date%) bereits gespeichert – es ist in Ihrem Profil"
         teammate: "%name% hat für dieses Puzzle bereits genau %time% vom %date%"
         teammate_other_day: "%name% hat %time% für dieses Puzzle vom %date%"
+photo_upload:
+    uploading: "Foto wird hochgeladen… %percent% %"
+    uploading_slow: "Langsame Verbindung - Foto wird hochgeladen… %percent% %. Du kannst das Formular weiter ausfüllen."
+    retrying: "Die Verbindung ist abgebrochen - gleich wird es noch einmal versucht…"
+    waiting: "Gerade keine Verbindung - das Foto wird hochgeladen, sobald sie zurück ist."
+    done: "Foto hochgeladen."
+    with_form: "Das Foto wird beim Speichern zusammen mit dem Formular gesendet."
 photo_stash:
     kept: "Ihr Foto ist noch da, Sie müssen es nicht erneut auswählen."
     kept_logo: "Ihr Logo ist noch da, Sie müssen es nicht erneut auswählen."

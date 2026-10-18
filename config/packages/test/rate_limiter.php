@@ -36,6 +36,12 @@ return App::config([
                 'limit' => 100000,
                 'interval' => '1 hour',
             ],
+            // Fixture players start photo uploads in many tests and runs
+            'photo_upload' => [
+                'policy' => 'sliding_window',
+                'limit' => 100000,
+                'interval' => '1 hour',
+            ],
             // The online competitions' participant API: production counts with RedisSlidingWindowLimiterFactory
             // (config/services.php - atomic on the cache Redis, RedisSlidingWindowLimiterTest); these framework
             // limiters stand in without Redis (config/services_test.php points the API at them). Every test comes from

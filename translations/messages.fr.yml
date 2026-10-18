@@ -472,6 +472,9 @@
   "compressing_images": "Compression des images..."
   "photo_too_large": "Cette photo est trop lourde pour être envoyée (%size% Mo) et a été retirée. Choisissez une photo plus petite ou enregistrez sans elle - tout ce que vous avez saisi est conservé."
   "save_did_not_finish": "L'enregistrement n'a pas abouti : la connexion était trop lente ou a été interrompue. Tout ce que vous avez saisi est conservé, veuillez réessayer. Si cela se reproduit, essayez une autre connexion (Wi-Fi ou données mobiles)."
+  "uploading_photos": "Envoi des photos… %percent% %"
+  "saving_again": "Enregistrement… nouvel essai"
+  "still_saving": "L'enregistrement prend plus de temps que d'habitude avec cette connexion. Veuillez garder cette page ouverte : tout ce que vous avez saisi est conservé."
   "search": "Rechercher"
   "submit": "Envoyer"
   "update": "Mettre à jour"
@@ -6805,6 +6808,13 @@ duplicate_check:
         with_viewer_team: "%name% a déjà enregistré votre résultat en équipe avec exactement %time% (%date%) – il est sur votre profil"
         teammate: "%name% a déjà exactement %time% pour ce puzzle du %date%"
         teammate_other_day: "%name% a %time% pour ce puzzle du %date%"
+photo_upload:
+    uploading: "Envoi de la photo… %percent% %"
+    uploading_slow: "Connexion lente : envoi de la photo… %percent% %. Vous pouvez continuer à remplir le formulaire."
+    retrying: "La connexion a été coupée : nouvel essai dans un instant…"
+    waiting: "Pas de connexion pour le moment : la photo sera envoyée dès son retour."
+    done: "Photo envoyée."
+    with_form: "La photo sera envoyée avec le formulaire lors de l'enregistrement."
 photo_stash:
     kept: "Votre photo est toujours là, inutile de la choisir à nouveau."
     kept_logo: "Votre logo est toujours là, inutile de le choisir à nouveau."

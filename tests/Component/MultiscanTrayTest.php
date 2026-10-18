@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\Component;
 
 use Doctrine\DBAL\Connection;
+use League\Flysystem\Filesystem;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Component\MultiscanTray;
+use SpeedPuzzling\Web\Services\PhotoStash\PhotoStash;
 use SpeedPuzzling\Web\Tests\DataFixtures\CollectionFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\ManufacturerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
@@ -308,6 +310,42 @@ final class MultiscanTrayTest extends WebTestCase
         self::assertSame(PuzzleFixture::EAN_UNKNOWN, $row['ean']);
         self::assertSame('018d0002-0000-0000-0000-000000000001', $row['manufacturer_id'], 'brand prefilled from the EAN prefix');
         self::assertNotNull($row['image'], 'a new puzzle always carries its box photo');
+    }
+
+    public function testQuickAddTakesTheBoxPhotoUploadedInTheBackground(): void
+    {
+        $client = self::createClient();
+        // The uploaded photo lives in the in-memory storage of the test kernel
+        $client->disableReboot();
+        $tray = $this->tray($client);
+
+        $tray->call('scan', ['ean' => PuzzleFixture::EAN_UNKNOWN]);
+        $tray->call('toggleQuickAdd');
+        $tray->set('newName', 'Background box');
+        $tray->set('newPiecesCount', '1000');
+
+        // What the browser did when the photo was taken (docs/features/photo-uploads/README.md)
+        $photo = (string) file_get_contents(self::boxPhoto()->getPathname());
+        $stash = self::getContainer()->get(PhotoStash::class);
+        $token = $stash->reserve(PlayerFixture::PLAYER_WITH_STRIPE, 'box.jpg', 'image/jpeg', strlen($photo));
+        self::assertNotNull($token);
+        self::getContainer()->get(Filesystem::class)->write($stash->objectKey(PlayerFixture::PLAYER_WITH_STRIPE, $token), $photo);
+
+        // Another player's token is no photo
+        $theirs = $stash->reserve(PlayerFixture::PLAYER_REGULAR, 'box.jpg', 'image/jpeg', strlen($photo));
+        self::assertNotNull($theirs);
+        self::getContainer()->get(Filesystem::class)->write($stash->objectKey(PlayerFixture::PLAYER_REGULAR, $theirs), $photo);
+        $tray->call('createPuzzle', ['photoToken' => $theirs]);
+        self::assertStringContainsString('Take a photo of the box first', $tray->render()->toString());
+
+        $tray->call('createPuzzle', ['photoToken' => $token]);
+
+        self::assertStringContainsString('data-multiscan-notice="created"', $tray->render()->toString());
+
+        /** @var Connection $database */
+        $database = self::getContainer()->get(Connection::class);
+        $image = $database->fetchOne('SELECT image FROM puzzle WHERE id = :id', ['id' => self::rows($tray)[0]['puzzleId']]);
+        self::assertIsString($image, 'the new puzzle carries the uploaded box photo');
     }
 
     public function testQuickAddTypedBrandIsAnExistingBrandEvenAnotherPlayersUnapprovedOne(): void

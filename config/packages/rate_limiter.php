@@ -115,6 +115,14 @@ return App::config([
                 'limit' => 60,
                 'interval' => '1 hour',
             ],
+            // Background photo uploads straight to object storage (PhotoUploadStartController,
+            // docs/features/photo-uploads/README.md): every new place is a photo in our bucket for a day. Per player:
+            // many forms and quick-adds in a row (a re-picked photo counts again), never a free image host.
+            'photo_upload' => [
+                'policy' => 'sliding_window',
+                'limit' => 120,
+                'interval' => '1 hour',
+            ],
             // Public API catalog search (GET /api/v1/puzzles) - the only unbounded
             // read in V1, so scraping is kept to a walk. Keyed by the token owner
             // (player behind a PAT / auth-code token, client id for client_credentials);

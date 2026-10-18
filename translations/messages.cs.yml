@@ -450,6 +450,9 @@ puzzle_result:
   "compressing_images": "Komprimace fotek..."
   "photo_too_large": "Tahle fotka je na nahrání příliš velká (%size% MB), a proto jsme ji odebrali. Vyber menší fotku, nebo ulož bez ní - ostatní vyplněné údaje zůstávají."
   "save_did_not_finish": "Uložení se nedokončilo - připojení bylo příliš pomalé nebo se přerušilo. Všechny vyplněné údaje tu zůstávají, zkus to prosím znovu. Pokud se to opakuje, zkus jiné připojení (Wi-Fi nebo mobilní data)."
+  "uploading_photos": "Nahrávám fotky… %percent% %"
+  "saving_again": "Ukládám… zkouším to ještě jednou"
+  "still_saving": "Ukládání na tomhle připojení trvá déle než obvykle. Nech prosím stránku otevřenou - všechny vyplněné údaje tu zůstávají."
   "removing": "Odebírání..."
   "drop_file": "Přetáhněte sem soubor pro nahrání"
   "choose_file": "Nebo vyberte soubor"
@@ -6812,6 +6815,13 @@ duplicate_check:
         with_viewer_team: "%name% už uložil/a váš společný týmový výsledek s časem přesně %time% (%date%) – máš ho na profilu"
         teammate: "%name% už má u těchto puzzlí přesně %time% z %date%"
         teammate_other_day: "%name% má u těchto puzzlí %time% z %date%"
+photo_upload:
+    uploading: "Nahrávám fotku… %percent% %"
+    uploading_slow: "Pomalé připojení - nahrávám fotku… %percent% %. Klidně vyplňuj formulář dál."
+    retrying: "Připojení vypadlo - za chvíli to zkusím znovu…"
+    waiting: "Teď nejde internet - fotka se nahraje, jakmile se připojení vrátí."
+    done: "Fotka je nahraná."
+    with_form: "Fotka se odešle spolu s formulářem, až ho uložíš."
 photo_stash:
     kept: "Tvoje fotka tu zůstala, nemusíš ji vybírat znovu."
     kept_logo: "Tvoje logo tu zůstalo, nemusíš ho vybírat znovu."

@@ -31,6 +31,8 @@ return App::config([
             'facebook_app_id' => '%env(trim:string:FACEBOOK_APP_ID)%',
             // Pairs & teams picker rollout - see docs/features/feature_flags.md
             'pairs_teams_picker_public' => '%pairsTeamsPickerPublic%',
+            // Background photo uploads (kill switch) - see docs/features/feature_flags.md
+            'direct_photo_uploads' => '%directPhotoUploads%',
         ],
         'paths' => [
             '%kernel.project_dir%/public/img' => 'images',

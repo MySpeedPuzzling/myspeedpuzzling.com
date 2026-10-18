@@ -16,6 +16,8 @@ return App::config([
         // (NavigationFetchFailureController) - info lines meant to be counted
         // barcode_scanner: one line per camera scanner session (ScanSessionController) and per
         // misread the barcode lookup corrected (FindPuzzlesByScannedEan) - info lines meant to be counted
-        'channels' => ['sentry_sdk', 'object_storage', 'internal_api_audit', 'service_worker', 'barcode_scanner'],
+        // photo_upload: background photo uploads and add/edit-time saves as the browser saw them
+        // (PhotoUploadReportController) - info lines meant to be counted
+        'channels' => ['sentry_sdk', 'object_storage', 'internal_api_audit', 'service_worker', 'barcode_scanner', 'photo_upload'],
     ],
 ]);

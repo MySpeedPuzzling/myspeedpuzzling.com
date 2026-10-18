@@ -112,9 +112,10 @@ final class AddTimeFirstTryTest extends WebTestCase
         self::assertIsString($photo);
         self::assertTrue($container->get(Filesystem::class)->fileExists($photo));
 
-        // Saved - the kept photo is gone
+        // Saved - the kept photo stays until it expires, so the same form sent again is answered as this result
+        // (docs/features/photo-uploads/README.md)
         $browser->request('GET', '/en/photo-stash/' . $token);
-        $this->assertResponseStatusCodeSame(404);
+        $this->assertResponseIsSuccessful();
     }
 
     public function testANewlyChosenPhotoWinsOverTheKeptOne(): void

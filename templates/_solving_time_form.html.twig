@@ -35,6 +35,26 @@
             'data-ppm-validator-label-seconds-value': 'forms.seconds'|trans,
         }
     } %}
+    {# Each photo uploads in the background the moment it is picked; Save sends its token (docs/features/photo-uploads/README.md) #}
+    {% if direct_photo_uploads|default(false) %}
+        {% set form_start_options = form_start_options|merge({attr: form_start_options.attr|merge({
+            'data-submit-prevention-upload-url-value': path('photo_upload_start'),
+            'data-submit-prevention-upload-csrf-token-value': csrf_token('photo_upload'),
+            'data-submit-prevention-report-url-value': path('photo_upload_report'),
+            'data-submit-prevention-uploading-text-value': 'forms.uploading_photos'|trans,
+            'data-submit-prevention-retrying-text-value': 'forms.saving_again'|trans,
+            'data-submit-prevention-still-saving-text-value': 'forms.still_saving'|trans,
+            'data-submit-prevention-upload-texts-value': {
+                preparing: 'forms.compressing_images'|trans,
+                uploading: 'photo_upload.uploading'|trans,
+                uploading_slow: 'photo_upload.uploading_slow'|trans,
+                retrying: 'photo_upload.retrying'|trans,
+                waiting: 'photo_upload.waiting'|trans,
+                done: 'photo_upload.done'|trans,
+                with_form: 'photo_upload.with_form'|trans,
+            }|json_encode,
+        })}) %}
+    {% endif %}
     {% if form_action|default(null) %}
         {% set form_start_options = form_start_options|merge({action: form_action}) %}
     {% endif %}

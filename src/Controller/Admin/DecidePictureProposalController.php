@@ -162,6 +162,12 @@ final class DecidePictureProposalController extends AbstractController
             return $this->translator->trans('admin.puzzle_change_request.no_picture_proposed');
         }
 
+        // Approving here applies the picture only and rejecting rejects everything - more than a picture is decided on
+        // the request's own page, so no valid fix is dropped
+        if ($changeRequest->proposesOnlyAPicture() === false) {
+            return $this->translator->trans('admin.puzzle_change_request.also_proposes_other_changes');
+        }
+
         // A crop of the picture the puzzle had - approving it would replace the newer one
         if ($changeRequest->pictureChangedSinceProposed()) {
             return $this->translator->trans('admin.puzzle_change_request.proposal_image_outdated');

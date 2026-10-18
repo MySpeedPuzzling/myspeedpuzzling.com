@@ -3031,6 +3031,7 @@ recap_progress:
     "proposal_image_outdated": "Obrázek puzzle se změnil od chvíle, kdy z něj vznikl tento návrh, takže navržený obrázek už nelze použít. Ponech současný obrázek, nebo návrh zamítni."
     "original_not_archived": "Současný obrázek se nepodařilo uložit do archivu, proto se nic neschválilo. Zkus to za chvíli znovu."
     "no_picture_proposed": "Tato žádost nenavrhuje žádný obrázek – posuďte ji na její vlastní stránce."
+    "also_proposes_other_changes": "Tato žádost navrhuje víc než jen obrázek – posuďte ji na její vlastní stránce, aby se žádná z jejích změn neztratila."
   "puzzle_history":
     "restored": "Obrázek je zpět, pod novým názvem souboru. Obrázek, který nahradil, zůstává v historii."
     "restore_picture_gone": "Tento obrázek už není uložený – není co obnovit."

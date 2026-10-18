@@ -59,7 +59,7 @@
 
         <div class="row row-cols-1 row-cols-xl-2 g-3 gallery"
              data-controller="picture-review"
-             data-action="keydown@document->picture-review#key turbo:submit-start->picture-review#submitted">
+             data-action="keydown@document->picture-review#key turbo:submit-start->picture-review#submitted turbo:submit-end->picture-review#settled">
             {% for request in proposals %}
                 <div class="col">
                     {{ include('admin/_picture_proposal_card.html.twig', {request: request, grid: grid}) }}

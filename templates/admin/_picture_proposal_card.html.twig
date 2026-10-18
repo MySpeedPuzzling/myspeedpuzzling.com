@@ -9,6 +9,9 @@
 {% set message_type = message_type ?? 'success' %}
 {% set pending = request.status.value == 'pending' %}
 {% set picture_changed = request.pictureChangedSinceProposed() %}
+{# More than a picture is decided on the request's page - approving here would drop the rest, rejecting would refuse it #}
+{% set other_changes = request.otherProposedChanges() %}
+{% set decidable = other_changes is empty %}
 {% set decision_url = path('admin_puzzle_change_request_picture_decision', {id: request.id}) %}
 {% set request_url = path('admin_puzzle_change_request_detail', {id: request.id}) %}
 {% set grid_fields %}
@@ -51,6 +54,11 @@
         {% endif %}
 
         {% if pending %}
+            {% if not decidable %}
+                <div class="alert alert-info small py-2 mb-2" data-role="also-proposes">
+                    Also proposes: {{ other_changes|join(', ') }} - <a href="{{ request_url }}" target="_blank" rel="noopener">open the request</a> to decide it.
+                </div>
+            {% endif %}
             {% if picture_changed %}
                 <div class="alert alert-warning small py-2 mb-2" data-role="picture-changed">
                     The puzzle has another picture now than the one this was made from - approving is off here. Reject it, or open the request.
@@ -87,14 +95,14 @@
                 <form method="post" action="{{ decision_url }}" class="flex-fill">
                     {{ grid_fields }}
                     <input type="hidden" name="decision" value="approve">
-                    <button type="submit" class="btn btn-success w-100 picture-proposal-button" data-picture-review-action="approve" {{ picture_changed ? 'disabled' }}>
+                    <button type="submit" class="btn btn-success w-100 picture-proposal-button" data-picture-review-action="approve" {{ picture_changed or not decidable ? 'disabled' }}>
                         <i class="bi bi-check-lg me-1" aria-hidden="true"></i> Approve <kbd class="d-none d-md-inline ms-1">A</kbd>
                     </button>
                 </form>
                 <form method="post" action="{{ decision_url }}" class="flex-fill">
                     {{ grid_fields }}
                     <input type="hidden" name="decision" value="reject">
-                    <button type="submit" class="btn btn-outline-danger w-100 picture-proposal-button" data-picture-review-action="reject">
+                    <button type="submit" class="btn btn-outline-danger w-100 picture-proposal-button" data-picture-review-action="reject" {{ not decidable ? 'disabled' }}>
                         <i class="bi bi-x-lg me-1" aria-hidden="true"></i> Reject <kbd class="d-none d-md-inline ms-1">R</kbd>
                     </button>
                 </form>
@@ -108,8 +116,8 @@
                     <label class="visually-hidden" for="picture-proposal-{{ request.id }}-reason">Reason the proposer reads</label>
                     <textarea class="form-control form-control-sm" id="picture-proposal-{{ request.id }}-reason" name="rejection_reason" rows="2"
                               maxlength="{{ constant('SpeedPuzzling\\Web\\Controller\\Admin\\DecidePictureProposalController::REJECTION_REASON_MAX_LENGTH') }}"
-                              placeholder="{{ constant('SpeedPuzzling\\Web\\Controller\\Admin\\DecidePictureProposalController::DEFAULT_REJECTION_REASON') }}"></textarea>
-                    <button type="submit" class="btn btn-outline-danger btn-sm mt-2 picture-proposal-button">Reject with this reason</button>
+                              placeholder="{{ constant('SpeedPuzzling\\Web\\Controller\\Admin\\DecidePictureProposalController::DEFAULT_REJECTION_REASON') }}" {{ not decidable ? 'disabled' }}></textarea>
+                    <button type="submit" class="btn btn-outline-danger btn-sm mt-2 picture-proposal-button" data-role="reject-with-reason" {{ not decidable ? 'disabled' }}>Reject with this reason</button>
                 </form>
             </details>
         {% endif %}

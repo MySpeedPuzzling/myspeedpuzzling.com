@@ -10,6 +10,8 @@ use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Competition;
 use SpeedPuzzling\Web\Entity\CompetitionRoundPuzzle;
 use SpeedPuzzling\Web\Entity\Player;
+use SpeedPuzzling\Web\Entity\Puzzle;
+use SpeedPuzzling\Web\Entity\PuzzleChangeRequest;
 use SpeedPuzzling\Web\Exceptions\PuzzleNotFound;
 use SpeedPuzzling\Web\Exceptions\PuzzleNotRevealedYet;
 use SpeedPuzzling\Web\Message\AddPuzzleToCompetitionRound;
@@ -109,6 +111,36 @@ final class SecretPuzzleRoutesTest extends WebTestCase
             $browser->request('GET', $url);
             self::assertResponseIsSuccessful('an admin: ' . $path);
         }
+    }
+
+    public function testAModeratorNeitherSeesNorDecidesNorRestoresASecretPuzzlesPicture(): void
+    {
+        $browser = self::createClient();
+        $secretPuzzleId = $this->secretPuzzle();
+        $secretProposal = $this->pictureProposal($secretPuzzleId);
+        $publicProposal = $this->pictureProposal(PuzzleFixture::PUZZLE_1000_04);
+
+        // The picture review lists only the public puzzle's proposal to a moderator (an admin sees both)
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_WITH_STRIPE);
+        $crawler = $browser->request('GET', '/admin/puzzle-change-requests/pictures');
+        self::assertResponseIsSuccessful();
+        self::assertSame(['picture-proposal-' . $publicProposal], $crawler->filter('[data-testid="picture-proposal"]')->extract(['id']));
+        $token = $crawler->filter('#picture-proposal-' . $publicProposal . ' input[name="_token"]')->attr('value');
+
+        // Deciding it with a valid token: no such request for a moderator
+        $browser->request('POST', '/admin/puzzle-change-requests/' . $secretProposal . '/picture-decision', [
+            '_token' => $token,
+            'decision' => 'reject',
+        ]);
+        self::assertResponseStatusCodeSame(404);
+
+        // "Restore this picture" on its history neither
+        $browser->request('POST', str_replace(['{id}', '{decisionId}'], [$secretPuzzleId, Uuid::uuid7()->toString()], '/admin/puzzles/{id}/history/{decisionId}/restore-image'));
+        self::assertResponseStatusCodeSame(404);
+
+        TestingLogin::asPlayer($browser, PlayerFixture::PLAYER_ADMIN);
+        $browser->request('GET', '/admin/puzzle-change-requests/pictures');
+        self::assertSelectorExists('#picture-proposal-' . $secretProposal);
     }
 
     public function testWritesRefuseASecretPuzzleWhoeverSendsThem(): void
@@ -247,6 +279,43 @@ final class SecretPuzzleRoutesTest extends WebTestCase
         $browser->request('GET', '/en/puzzle-by-ean-search/' . self::SECRET_EAN);
         self::assertResponseIsSuccessful();
         self::assertStringNotContainsString(self::SECRET_NAME, (string) $browser->getResponse()->getContent());
+    }
+
+    /**
+     * A pending proposal of a new picture (an artwork crop) of the puzzle - nothing is decided with it here.
+     */
+    private function pictureProposal(string $puzzleId): string
+    {
+        $entityManager = self::getContainer()->get(EntityManagerInterface::class);
+        $puzzle = $entityManager->find(Puzzle::class, $puzzleId);
+        $reporter = $entityManager->find(Player::class, PlayerFixture::PLAYER_ADMIN);
+        self::assertNotNull($puzzle);
+        self::assertNotNull($reporter);
+        $id = Uuid::uuid7();
+
+        $entityManager->persist(new PuzzleChangeRequest(
+            id: $id,
+            puzzle: $puzzle,
+            reporter: $reporter,
+            submittedAt: new DateTimeImmutable(),
+            proposedName: $puzzle->name,
+            proposedManufacturer: $puzzle->manufacturer,
+            proposedPiecesCount: $puzzle->piecesCount,
+            proposedEan: $puzzle->ean,
+            proposedIdentificationNumber: $puzzle->identificationNumber,
+            proposedImage: 'proposal-' . $id->toString() . '.jpg',
+            originalName: $puzzle->name,
+            originalManufacturerId: $puzzle->manufacturer?->id,
+            originalPiecesCount: $puzzle->piecesCount,
+            originalEan: $puzzle->ean,
+            originalIdentificationNumber: $puzzle->identificationNumber,
+            originalImage: $puzzle->image,
+            tags: ['artwork_crop'],
+            confidence: 0.9,
+        ));
+        $entityManager->flush();
+
+        return $id->toString();
     }
 
     private function secretPuzzle(PuzzleHideMode $hideMode = PuzzleHideMode::Entirely): string

@@ -209,13 +209,52 @@ final class PictureProposalReviewControllerTest extends WebTestCase
         self::assertSame(PuzzleReportStatus::Pending, $this->changeRequests()->get($changeRequestId)->status);
     }
 
+    public function testARequestProposingMoreThanAPictureIsDecidedOnItsOwnPageOnly(): void
+    {
+        $changeRequestId = $this->pipelineProposal(self::PUZZLE, 0.9, proposedName: 'A better name');
+        $this->signInModerator();
+
+        $crawler = $this->browser->request('GET', '/admin/puzzle-change-requests/pictures');
+        $card = '#picture-proposal-' . $changeRequestId;
+        self::assertSelectorTextContains($card . ' [data-role="also-proposes"]', 'Also proposes: Name');
+        self::assertSelectorExists($card . ' [data-role="also-proposes"] a[href$="/admin/puzzle-change-requests/' . $changeRequestId . '"]');
+        self::assertSelectorExists($card . ' button[data-picture-review-action="approve"][disabled]');
+        self::assertSelectorExists($card . ' button[data-picture-review-action="reject"][disabled]');
+        self::assertSelectorExists($card . ' button[data-role="reject-with-reason"][disabled]');
+        self::assertSelectorExists($card . ' textarea[name="rejection_reason"][disabled]');
+
+        // Sent anyway - neither approve (the name would be dropped) nor reject (the name would be refused) goes through
+        foreach (['approve', 'reject'] as $decision) {
+            $form = $crawler->filter($card . ' form:has(input[name="decision"][value="' . $decision . '"])')->first()->form();
+            $this->browser->submit($form, [], ['HTTP_ACCEPT' => 'text/vnd.turbo-stream.html, text/html']);
+            self::assertResponseStatusCodeSame(422);
+            self::assertStringContainsString('proposes more than a picture', (string) $this->browser->getResponse()->getContent());
+        }
+
+        self::assertSame(PuzzleReportStatus::Pending, $this->changeRequests()->get($changeRequestId)->status);
+    }
+
+    public function testADecisionWithoutAValidTokenIsRefused(): void
+    {
+        $changeRequestId = $this->pipelineProposal(self::PUZZLE, 0.9);
+        $this->signInModerator();
+
+        $this->browser->request('POST', '/admin/puzzle-change-requests/' . $changeRequestId . '/picture-decision', [
+            '_token' => 'not-the-token',
+            'decision' => 'approve',
+        ]);
+
+        self::assertResponseStatusCodeSame(403);
+        self::assertSame(PuzzleReportStatus::Pending, $this->changeRequests()->get($changeRequestId)->status);
+    }
+
     private function signInModerator(): void
     {
         self::getContainer()->get(MessageBusInterface::class)->dispatch(new GrantModeratorRole(PlayerFixture::PLAYER_REGULAR));
         TestingLogin::asPlayer($this->browser, PlayerFixture::PLAYER_REGULAR);
     }
 
-    private function pipelineProposal(string $puzzleId, float $confidence, null|string $fingerprint = null): string
+    private function pipelineProposal(string $puzzleId, float $confidence, null|string $fingerprint = null, null|string $proposedName = null): string
     {
         $puzzle = $this->puzzles()->get($puzzleId);
         $id = Uuid::uuid7();
@@ -228,7 +267,7 @@ final class PictureProposalReviewControllerTest extends WebTestCase
             puzzle: $puzzle,
             reporter: self::getContainer()->get(PlayerRepository::class)->get(PlayerFixture::PLAYER_ADMIN),
             submittedAt: new \DateTimeImmutable(),
-            proposedName: $puzzle->name,
+            proposedName: $proposedName ?? $puzzle->name,
             proposedManufacturer: $puzzle->manufacturer,
             proposedPiecesCount: $puzzle->piecesCount,
             proposedEan: $puzzle->ean,

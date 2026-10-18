@@ -134,13 +134,18 @@ first** (no confidence last, then by filing), 24 a page. Admins and moderators (
   pipeline's picture is archived first, a crop of a picture the puzzle no longer has is refused - the card says so and
   shows Approve disabled); reject = `RejectPuzzleChangeRequest` with the moderator's reason, or the default
   "Thank you - the current picture stays." (`DecidePictureProposalController::DEFAULT_REJECTION_REASON`).
+- **A picture only.** A request that proposes more than a picture (a player's photo together with a name, pieces, EAN,
+  brand or brand code) shows "Also proposes: … - open the request" and no active buttons, and the decision endpoint
+  refuses it (`PuzzleChangeRequestOverview::proposesOnlyAPicture()`): approving here would apply only the picture and
+  rejecting would refuse the valid fixes with it.
 - **No page reload:** Turbo submits the card's form and the answer is a Turbo Stream replacing only that card (decided,
   or still pending with what stopped it - 422). Without JavaScript it redirects back to the same grid page with a flash
   (303). A decided card stays until the page is loaded again.
 - **Keys** (`picture_review_controller.js`, hints above the grid from 768 px): <kbd>J</kbd>/<kbd>→</kbd> next card,
   <kbd>K</kbd>/<kbd>←</kbd> previous, <kbd>A</kbd> approve, <kbd>R</kbd> reject with the default reason, <kbd>O</kbd>
-  open the request. A and R act on the focused card and move the focus to the next pending one at once; nothing reacts
-  while typing in a field or with a modifier key, and up/down keep scrolling.
+  open the request. A and R act on the focused card and move the focus to the next pending one at once; a held key does
+  not repeat, a card whose decision is on its way is not decided again, nothing reacts while typing in a field or with a
+  modifier key, and up/down keep scrolling.
 
 ## Editing a puzzle directly
 
@@ -249,7 +254,8 @@ every other field as the puzzle has it now; only an admin for a secret puzzle), 
 it as **"Picture restored"** (`PuzzleHistoryEntryKind::ImageRestored`), itself restorable, and it counts as a direct
 edit for karma. Refused with nothing changed (`PuzzleImageNotRestorable`, a flash) when neither the object nor an archive
 copy exists any more, the line replaced no picture, or the puzzle's picture is hidden. Web only - the internal API has
-no restore endpoint.
+no restore endpoint. A restored picture has a new file name and so a new fingerprint: the image pipeline's "never twice"
+memory is per picture (fingerprint), so it may propose a crop of the restored picture again.
 
 ## Who decided - `puzzle_moderation_decision`
 

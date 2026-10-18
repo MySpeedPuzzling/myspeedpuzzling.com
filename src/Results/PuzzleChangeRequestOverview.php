@@ -345,6 +345,32 @@ readonly final class PuzzleChangeRequestOverview
         return $this->proposedImage !== null;
     }
 
+    /**
+     * What else the request proposes besides a picture, as the queue's labels - empty when it is a picture only.
+     *
+     * @return list<string>
+     */
+    public function otherProposedChanges(): array
+    {
+        return array_keys(array_filter([
+            'Name' => $this->hasNameChange(),
+            'Other names' => $this->hasNameLanguageChange() || $this->hasAlternativeNamesChange(),
+            'Brand' => $this->hasManufacturerChange() || $this->proposesCreatedManufacturer(),
+            'Pieces' => $this->hasPiecesCountChange(),
+            'EAN' => $this->hasEanChange(),
+            'Brand code' => $this->hasIdentificationNumberChange(),
+        ]));
+    }
+
+    /**
+     * A new picture and nothing else - what the picture review decides on its own (approving there applies the picture
+     * only, rejecting rejects the whole request, so anything more is reviewed on the request's page).
+     */
+    public function proposesOnlyAPicture(): bool
+    {
+        return $this->hasImageChange() && $this->otherProposedChanges() === [];
+    }
+
     public function hasAnyChange(): bool
     {
         return $this->hasNamesProposal()

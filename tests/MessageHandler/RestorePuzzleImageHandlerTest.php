@@ -126,6 +126,25 @@ final class RestorePuzzleImageHandlerTest extends KernelTestCase
         self::assertSame($decisions, $this->decisionCount());
     }
 
+    public function testThePictureThePuzzleHasNowIsNotRestoredAgain(): void
+    {
+        [, $approvalDecisionId] = $this->approvedPipelineCrop();
+        // The original is the puzzle's picture again (put back outside the app)
+        self::getContainer()->get(Connection::class)->executeStatement('UPDATE puzzle SET image = :image WHERE id = :id', ['image' => self::ORIGINAL, 'id' => self::PUZZLE]);
+        self::getContainer()->get(EntityManagerInterface::class)->clear();
+        $decisions = $this->decisionCount();
+
+        try {
+            $this->restore($approvalDecisionId);
+            self::fail('The puzzle has this picture now');
+        } catch (PuzzleImageNotRestorable $exception) {
+            self::assertSame('restore_already_current', $exception->reason);
+        }
+
+        self::assertSame(self::ORIGINAL, $this->puzzle()->image);
+        self::assertSame($decisions, $this->decisionCount());
+    }
+
     public function testADecisionThatReplacedNoPictureOfThePuzzleRestoresNothing(): void
     {
         $this->expectException(PuzzleImageNotRestorable::class);

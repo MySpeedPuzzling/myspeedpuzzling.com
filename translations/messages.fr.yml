@@ -3021,6 +3021,7 @@ competition_referees:
     "rejected": "La demande de modification a été rejetée."
     "rejection_reason_required": "Le motif de rejet est requis."
     "no_picture_proposed": "Cette demande ne propose aucune image – examinez-la sur sa propre page."
+    "also_proposes_other_changes": "Cette demande propose plus qu'une image – décidez-la sur sa propre page, afin qu'aucune de ses modifications ne se perde."
   "puzzle_history":
     "restored": "L'image est de retour, sous un nouveau nom de fichier. L'image qu'elle remplace reste dans l'historique."
     "restore_picture_gone": "Cette image n'est plus stockée – il n'y a rien à restaurer."

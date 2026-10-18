@@ -266,7 +266,16 @@
   margin: 0;
 }
 
-@media (max-width: 400px) {
+// The button goes under the text whenever the list is too narrow for badge,
+// readable text and the button side by side. Measured on the list itself, not
+// the viewport: the card's padding and the longest locale's button ("Continuer
+// avec Facebook") decide, and a 402 px iPhone left the name ~2 letters wide
+// beside the button with a viewport breakpoint at 400 px.
+.social-identity-list {
+  container: social-identities / inline-size;
+}
+
+@container social-identities (max-width: 34rem) {
   .social-identity {
     flex-wrap: wrap;
   }

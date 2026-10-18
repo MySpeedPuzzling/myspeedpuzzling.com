@@ -7,10 +7,10 @@ state, PR, merge and deploy, deviations from the plan (and why), follow-ups.
 |---|---|---|---|---|---|
 | Prerequisites | done | #254, #255 | 2026-10-18 | 2026-10-18 | time zone; image-analysis internal API (14 analyzers, claims, bulk read) |
 | Research + plan | done | - | 2026-10-18 | - | README.md, implementation-plan.md, research files, prototype.html |
-| 1 Production API for the pipeline | in progress (1a + 1b done; 1c) | #258 (1a), #259 (1b) | 1a, 1b: 2026-10-18 | 1a, 1b: 2026-10-18 | 1a verified: 401 without token, `requires=bogus` 400, `requires=artwork` 200. 1b verified: migration applied, list endpoint 200, source backfill 897 internal_api / 2,790 player |
-| 2 Mac pipeline | in progress | | | | stream below |
-| Backfill (M3 Max + M1 Air sessions) | not started | - | - | - | starts after 1 + 2 are deployed; ≈ 5.5 days |
-| 3 Prediction fix | in progress (3a) | | | | streams below |
+| 1 Production API for the pipeline | **done** | #258 (1a), #259 (1b), #260 (1c) | 2026-10-18 | 2026-10-18 | verified: 401 without token, `requires` filter (400 on bogus), change-request list 200, source backfill 897 internal_api / 2,790 player, picture grid behind login |
+| 2 Mac pipeline | **done** | #261 | 2026-10-18 | 2026-10-18 | `solvedCount` live on the work list; `bench` / `verify --end-to-end` run in the M3 session (see deviations) |
+| Backfill (M3 Max + M1 Air sessions) | **ready to start** (prompts handed to Jan 2026-10-18) | - | - | - | starts after 1 + 2 are deployed; ≈ 5.5 days |
+| 3 Prediction fix | in progress (3a in review) | #263 (3a) | | | streams below |
 | 4 Insights computation | in progress (4a) | | | | streams below |
 | 5 Image intelligence on the server | in progress (5a) | | | | streams below |
 | 6 Display behind INSIGHTS_PUBLIC | not started | | | | |
@@ -78,6 +78,16 @@ Phase 3 starts as soon as a subagent slot frees (1a is small).
   `note` column is the reason the player reads). Added after the independent review: approval re-checks the pipeline
   fingerprint (409 `image_changed`), reject refuses a decided request (409) and takes the per-puzzle lock.
   `SubmitPuzzleChangeRequest` is `SerializedByLock` per puzzle. Refusals carry a stable `code`.
+
+- **1c:** a restore is logged as a `puzzle_edited` decision with `details.restoredFromDecisionId` (no new decision
+  type; shown as its own "Picture restored" history line). The picture grid refuses requests that propose more than
+  a picture (they need the full review page). Review pages stay English like every admin review page.
+- **2:** `vision_labels` runs in M1 phase B (it needs `artwork`); §2.3/§9.3 updated. Human crop decisions = decisions
+  made in the moderators' web review (`decision.source == admin_ui`); an approval with image choice `keep`/`upload`
+  counts as a rejected crop (`decision.image` exposed in the list). The Keychain token is only ever sent to production.
+- **3a:** solves with no earlier pace use the solver's first pace (dropping them lost 14 % of indices / ~800 rated
+  puzzles); no `baseline_type` column (derived at lookup); k = `puzzle_difficulty.sample_size` (no `index_count`).
+  `MODEL_VERSION` 1 → 2 in 3a (difficulty inputs changed), so 3b bumps to 3.
 
 ## Follow-ups
 

@@ -3016,6 +3016,8 @@ competition_referees:
   "puzzle_change_request":
     "approved": "La demande de modification a été approuvée et le puzzle mis à jour."
     "already_reviewed": "Cette demande de modification avait déjà été examinée par quelqu'un d'autre."
+    "proposal_image_outdated": "L'image du puzzle a changé depuis que cette proposition a été faite à partir d'elle : l'image proposée ne peut plus être appliquée. Garde l'image actuelle ou rejette la proposition."
+    "original_not_archived": "L'image actuelle n'a pas pu être copiée dans l'archive, rien n'a donc été approuvé. Réessaie dans un instant."
     "rejected": "La demande de modification a été rejetée."
     "rejection_reason_required": "Le motif de rejet est requis."
   "puzzle_edit":

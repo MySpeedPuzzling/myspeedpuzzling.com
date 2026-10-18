@@ -63,6 +63,7 @@ final class KarmaWiringTest extends KernelTestCase
     {
         $this->messageBus->dispatch(new RejectPuzzleChangeRequest(
             changeRequestId: PuzzleReportFixture::CHANGE_REQUEST_PENDING,
+            puzzleId: PuzzleFixture::PUZZLE_500_01,
             reviewerId: PlayerFixture::PLAYER_ADMIN,
             rejectionReason: 'Not this puzzle.',
         ));

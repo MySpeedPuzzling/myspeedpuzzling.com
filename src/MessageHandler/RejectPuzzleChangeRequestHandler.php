@@ -10,11 +10,13 @@ use Psr\Clock\ClockInterface;
 use Ramsey\Uuid\Uuid;
 use SpeedPuzzling\Web\Entity\Notification;
 use SpeedPuzzling\Web\Exceptions\PlayerNotFound;
+use SpeedPuzzling\Web\Exceptions\PuzzleChangeRequestAlreadyReviewed;
 use SpeedPuzzling\Web\Exceptions\PuzzleChangeRequestNotFound;
 use SpeedPuzzling\Web\Message\RejectPuzzleChangeRequest;
 use SpeedPuzzling\Web\Repository\PlayerRepository;
 use SpeedPuzzling\Web\Repository\PuzzleChangeRequestRepository;
 use SpeedPuzzling\Web\Value\NotificationType;
+use SpeedPuzzling\Web\Value\PuzzleReportStatus;
 use SpeedPuzzling\Web\Services\ChangeRequestCreatedBrandSettler;
 use SpeedPuzzling\Web\Services\PuzzleModerationDecisionRecorder;
 use SpeedPuzzling\Web\Value\PuzzleModerationAction;
@@ -39,11 +41,22 @@ readonly final class RejectPuzzleChangeRequestHandler
 
     /**
      * @throws PuzzleChangeRequestNotFound
+     * @throws PuzzleChangeRequestAlreadyReviewed
      * @throws PlayerNotFound
      */
     public function __invoke(RejectPuzzleChangeRequest $message): void
     {
         $changeRequest = $this->puzzleChangeRequestRepository->get($message->changeRequestId);
+
+        // The message was locked on this puzzle - another one would not keep concurrent decisions apart
+        if ($changeRequest->puzzle->id->toString() !== strtolower($message->puzzleId)) {
+            throw new PuzzleChangeRequestNotFound();
+        }
+
+        // Only a pending request is decided - a second decision would flip it, log it and notify the player again
+        if ($changeRequest->status !== PuzzleReportStatus::Pending) {
+            throw new PuzzleChangeRequestAlreadyReviewed();
+        }
         $reviewer = $this->playerRepository->get($message->reviewerId);
 
         $changeRequest->reject($reviewer, $this->clock->now(), $message->rejectionReason);

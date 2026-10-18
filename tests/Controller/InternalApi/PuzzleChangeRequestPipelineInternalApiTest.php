@@ -328,6 +328,42 @@ final class PuzzleChangeRequestPipelineInternalApiTest extends WebTestCase
         self::assertSame($archivePath, $this->decisionOf($answer['changeRequestId'])->details['originalArchivePath'] ?? null);
     }
 
+    public function testACropOfAPictureThePuzzleNoLongerHasIsNeverApproved(): void
+    {
+        $answer = $this->propose(self::PUZZLE);
+        self::assertIsString($answer['changeRequestId']);
+
+        // The puzzle got another picture after the pipeline cropped the old one
+        $this->database()->executeStatement("UPDATE puzzle SET image = 'box-1000-03-replaced.jpg' WHERE id = :id", ['id' => self::PUZZLE]);
+
+        $refused = self::callInternalApi($this->browser, 'POST', '/internal-api/puzzle-change-requests/' . $answer['changeRequestId'] . '/approve', [
+            'selectedFields' => ['image'],
+        ]);
+
+        self::assertResponseStatusCodeSame(409);
+        self::assertSame('image_changed', $refused['code']);
+
+        $this->entityManager()->clear();
+        self::assertSame('box-1000-03-replaced.jpg', $this->puzzles()->get(self::PUZZLE)->image);
+        $changeRequest = $this->changeRequests()->get($answer['changeRequestId']);
+        self::assertSame(PuzzleReportStatus::Pending, $changeRequest->status);
+        self::assertNull($changeRequest->originalArchivePath);
+        self::assertFalse($this->filesystem()->fileExists(PuzzleOriginalImageArchive::pathFor(self::PUZZLE, 'box-1000-03-replaced.jpg')));
+
+        // Rejecting it stays possible - once
+        $reject = ['rejectionReason' => 'The picture changed since.'];
+        self::callInternalApi($this->browser, 'POST', '/internal-api/puzzle-change-requests/' . $answer['changeRequestId'] . '/reject', $reject);
+        self::assertResponseStatusCodeSame(204);
+
+        $again = self::callInternalApi($this->browser, 'POST', '/internal-api/puzzle-change-requests/' . $answer['changeRequestId'] . '/reject', $reject);
+        self::assertResponseStatusCodeSame(409);
+        self::assertIsString($again['error']);
+        self::assertSame([1], $this->database()->fetchFirstColumn(
+            'SELECT COUNT(*) FROM puzzle_moderation_decision WHERE change_request_id = :id',
+            ['id' => $answer['changeRequestId']],
+        ));
+    }
+
     public function testAFailedArchiveCopyRefusesTheApproval(): void
     {
         $answer = $this->propose(self::PUZZLE);

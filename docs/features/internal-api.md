@@ -183,8 +183,9 @@ once rejected - a rejection deletes the proposal's file - or when it proposes no
 Reject body: `rejectionReason` (required). **It is shown to the player who proposed the change**, as a notification, so
 write it for them. Optional `decisionNote` (≤ 500 characters): an internal note that only the decision log keeps - its
 `note` is the rejection reason, so the internal one goes to `details.decisionNote`; the list returns it as
-`decision.note`. The decision is logged with `source = internal_api`. Only send pending requests - like the
-merge-request reject, it does not check the status.
+`decision.note`. The decision is logged with `source = internal_api`. Only a pending request is rejected: one decided
+already answers `409` and nothing changes (no second decision, no second notification). Approve and reject of one
+request take the same per-puzzle lock (`SerializedByLock`), so they never both pass. An unknown id is a `404`.
 
 Approve body: `selectedFields` (required) - the fields to apply, any of `name`, `nameLanguage`, `alternativeNames`,
 `manufacturer`, `piecesCount`, `ean`, `identificationNumber`, `image`, like ticking them in the admin review; `[]`
@@ -201,6 +202,11 @@ them) needs `name`, `nameLanguage` and `alternativeNames` selected **together** 
 Answers `409` when the request was already approved or rejected - unlike reject, approve checks the status - or when
 the puzzle changed since `recordVersion`, and `422` when the result breaks a rule of the record (e.g. more than 20 other
 names).
+
+**A crop of an older picture is never applied:** approving an `image_pipeline` request that changes the picture (the
+proposed one, or an upload in the web review) while the puzzle has another picture than its `sourceImageFingerprint`
+(or none) answers `409` with `"code": "image_changed"` - nothing changed, nothing archived; reject it, the pipeline
+proposes the new picture. The web review shows it as a form error.
 
 **Originals are always kept.** An approved image change never deletes the picture it replaces (the new one is written
 under a new name - `PuzzleImageStorage`), whoever proposed it. On top of that, **approving an `image_pipeline` request
@@ -1261,7 +1267,7 @@ the `fingers_crossed` one that drops info records of requests without a warning.
 | `409 Conflict` | Brand already approved, or its name is taken by an approved brand, or a brand to delete is still in use; a change request already reviewed | `{"error": "..."}` |
 | `409 Conflict` | A taken competition slug; the round invariant (a puzzle in two rounds of one category); a round with results to delete; a shared tag; a competition already approved / rejected / an edition to approve; a known EAN for a new puzzle | `{"error": "..."}` |
 | `409 Conflict` | A puzzle changed since the `recordVersion(s)` sent with a merge / change-request approve; a change proposal for a puzzle with a pending one (`"code": "pending_proposal"`) | `{"error": "..."}` |
-| `409 Conflict` | A change proposal of the image pipeline made already (`already_proposed`) or of a picture the puzzle no longer has (`image_changed`); approving an image pipeline picture whose original could not be archived (`original_not_archived`) | `{"error": "...", "code": "..."}` |
+| `409 Conflict` | A change proposal of the image pipeline made already (`already_proposed`) or of a picture the puzzle no longer has (`image_changed`); approving an image pipeline picture of a picture the puzzle no longer has (`image_changed`) or whose original could not be archived (`original_not_archived`); rejecting a change request decided already | `{"error": "...", "code": "..."}` |
 | `422 Unprocessable Entity` | A change proposal's `image` that is no JPEG / PNG / WebP of at most 15 MB | `{"error": "...", "errors": {"image": "..."}}` |
 | `200 OK` | The change request list | `{"changeRequests", "nextCursor"}` |
 | `409 Conflict` | A round change, a round delete or a puzzle removal that would reveal secret puzzles earlier than planned, sent without `"confirmReveal": true` | `{"error": "...", "revealedPuzzles": [...]}` |

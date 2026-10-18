@@ -376,8 +376,8 @@ paths:
         Declines a "suggest a change" proposal. The reason is delivered to the player
         who proposed it, as a notification, so it should be written for them. An optional
         `decisionNote` stays in the decision log only (`details.decisionNote`). The decision
-        is logged with `source = internal_api`.
-        Does not check the status - send pending requests only.
+        is logged with `source = internal_api`. Only a pending request is rejected - one decided
+        already answers 409 and nothing changes.
 
         Requires `INTERNAL_API_REVIEWER_PLAYER_ID` to be configured.
       parameters:
@@ -397,6 +397,12 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "404":
           $ref: "#/components/responses/NotFound"
+        "409":
+          description: The request was already approved, rejected or closed - nothing changes.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
 
   /internal-api/puzzle-change-requests/{changeRequestId}/approve:
     post:
@@ -435,6 +441,7 @@ paths:
         "409":
           description: |
             The request was already approved or rejected, or the puzzle changed since `recordVersion`, or
+            (`image_changed`) an `image_pipeline` picture change of a picture the puzzle no longer has, or
             (`original_not_archived`) the puzzle's picture could not be copied to
             `originals/<puzzleId>/<fingerprint>.<ext>` before an `image_pipeline` picture replaces it - nothing is applied.
           content:

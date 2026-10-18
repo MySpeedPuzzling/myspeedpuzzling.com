@@ -23,7 +23,9 @@ use SpeedPuzzling\Web\Repository\PuzzleRepository;
 use SpeedPuzzling\Web\Services\ChangeRequestCreatedBrandSettler;
 use SpeedPuzzling\Web\Services\PuzzleModerationDecisionRecorder;
 use SpeedPuzzling\Web\Services\PuzzleOriginalImageArchive;
+use SpeedPuzzling\Web\Exceptions\PuzzleImageChangedMeanwhile;
 use SpeedPuzzling\Web\Exceptions\PuzzleOriginalImageNotArchived;
+use SpeedPuzzling\Web\Value\PuzzleImageFingerprint;
 use SpeedPuzzling\Web\Value\PuzzleChangeRequestSource;
 use SpeedPuzzling\Web\Services\PuzzleRecordUpdater;
 use SpeedPuzzling\Web\Value\BrandCodeList;
@@ -74,6 +76,7 @@ readonly final class ApprovePuzzleChangeRequestHandler
      * @throws PlayerNotFound
      * @throws ManufacturerNotFound
      * @throws InvalidPuzzleValues
+     * @throws PuzzleImageChangedMeanwhile an image pipeline proposal of a picture the puzzle no longer has
      * @throws PuzzleOriginalImageNotArchived
      */
     public function __invoke(ApprovePuzzleChangeRequest $message): void
@@ -98,15 +101,23 @@ readonly final class ApprovePuzzleChangeRequestHandler
 
         $brandBefore = $puzzle->manufacturer;
 
+        $archivePath = null;
+        $pipelinePictureChange = $changeRequest->source === PuzzleChangeRequestSource::ImagePipeline
+            && $values->image !== PuzzleImageChoice::Keep;
+
+        // The image pipeline's proposal was made from one picture (a crop of it) - a puzzle with another picture by now
+        // (or none) must not get it: refused before anything changed
+        if ($pipelinePictureChange && $changeRequest->sourceImageFingerprint !== null) {
+            $currentFingerprint = $puzzle->image !== null ? PuzzleImageFingerprint::of($puzzle->image) : null;
+
+            if ($currentFingerprint !== $changeRequest->sourceImageFingerprint) {
+                throw new PuzzleImageChangedMeanwhile($currentFingerprint);
+            }
+        }
+
         // An automated proposal replaces a picture only once it is kept in the originals archive - a failed copy refuses
         // the approval before anything changed (a copy left behind by a refusal further on only keeps the same picture)
-        $archivePath = null;
-
-        if (
-            $changeRequest->source === PuzzleChangeRequestSource::ImagePipeline
-            && $values->image !== PuzzleImageChoice::Keep
-            && $puzzle->image !== null
-        ) {
+        if ($pipelinePictureChange && $puzzle->image !== null) {
             $archivePath = $this->puzzleOriginalImageArchive->archive($puzzle);
         }
 

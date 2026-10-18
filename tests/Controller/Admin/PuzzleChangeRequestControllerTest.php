@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace SpeedPuzzling\Web\Tests\Controller\Admin;
 
 use DateTimeImmutable;
+use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use League\Flysystem\Filesystem;
 use Ramsey\Uuid\Uuid;
@@ -22,6 +23,8 @@ use SpeedPuzzling\Web\Tests\DataFixtures\PlayerFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleFixture;
 use SpeedPuzzling\Web\Tests\DataFixtures\PuzzleReportFixture;
 use SpeedPuzzling\Web\Tests\TestingLogin;
+use SpeedPuzzling\Web\Value\PuzzleChangeRequestSource;
+use SpeedPuzzling\Web\Value\PuzzleImageFingerprint;
 use SpeedPuzzling\Web\Value\PuzzleRecordVersion;
 use SpeedPuzzling\Web\Value\PuzzleReportStatus;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
@@ -382,6 +385,71 @@ final class PuzzleChangeRequestControllerTest extends WebTestCase
         self::assertSelectorExists('[data-role="outdated"]');
         self::assertSelectorTextContains('.col-lg-4', 'Closed automatically');
         self::assertSelectorNotExists('form[data-controller~="puzzle-record"]');
+    }
+
+    public function testAnImagePipelinePictureOfAnOlderPictureIsRefusedWithTheFormKept(): void
+    {
+        $browser = $this->signedInAdmin();
+        $container = $browser->getContainer();
+        $container->get(Connection::class)->executeStatement("UPDATE puzzle SET image = 'box-1000-03-now.jpg' WHERE id = :id", ['id' => PuzzleFixture::PUZZLE_1000_03]);
+        $puzzle = $container->get(PuzzleRepository::class)->get(PuzzleFixture::PUZZLE_1000_03);
+        $proposal = 'proposal-stale-crop.jpg';
+        $container->get(Filesystem::class)->write($proposal, 'a crop of the previous picture');
+
+        // The pipeline cropped the picture the puzzle had before
+        $request = new PuzzleChangeRequest(
+            id: Uuid::uuid7(),
+            puzzle: $puzzle,
+            reporter: $container->get(PlayerRepository::class)->get(PlayerFixture::PLAYER_ADMIN),
+            submittedAt: new DateTimeImmutable(),
+            proposedName: $puzzle->name,
+            proposedPiecesCount: $puzzle->piecesCount,
+            proposedImage: $proposal,
+            proposedImageRatio: 1.4,
+            originalName: $puzzle->name,
+            originalPiecesCount: $puzzle->piecesCount,
+            originalImage: 'box-1000-03-before.jpg',
+            source: PuzzleChangeRequestSource::ImagePipeline,
+            tags: ['artwork_crop'],
+            confidence: 0.9,
+            sourceImageFingerprint: PuzzleImageFingerprint::of('box-1000-03-before.jpg'),
+        );
+        $container->get(EntityManagerInterface::class)->persist($request);
+        $container->get(EntityManagerInterface::class)->flush();
+        $url = '/admin/puzzle-change-requests/' . $request->id->toString();
+
+        $form = $browser->request('GET', $url)->filter('form[data-controller~="puzzle-record"]')->form();
+        $browser->submit($form, ['puzzle_record_form[image]' => 'proposed']);
+
+        self::assertResponseStatusCodeSame(Response::HTTP_UNPROCESSABLE_ENTITY);
+        self::assertSelectorTextContains('form', 'The puzzle\'s picture changed after this proposal was made from it');
+        self::assertSame('box-1000-03-now.jpg', $this->puzzle(PuzzleFixture::PUZZLE_1000_03)->image);
+        self::assertSame(
+            PuzzleReportStatus::Pending,
+            $browser->getContainer()->get(PuzzleChangeRequestRepository::class)->get($request->id->toString())->status,
+        );
+    }
+
+    public function testADecidedRequestIsNotRejectedAgain(): void
+    {
+        $browser = $this->signedInAdmin();
+        $changeRequestId = $this->suggestName('Jardín mágico', 'es');
+        $url = '/admin/puzzle-change-requests/' . $changeRequestId;
+
+        $browser->request('POST', $url . '/reject', ['rejection_reason' => 'Not on any box']);
+        self::assertResponseRedirects('/admin/puzzle-change-requests');
+
+        $browser->request('POST', $url . '/reject', ['rejection_reason' => 'Still not on any box']);
+        self::assertResponseRedirects($url);
+        $browser->followRedirect();
+        self::assertSelectorTextContains('body', 'This change request had already been reviewed by someone else.');
+
+        $changeRequest = $browser->getContainer()->get(PuzzleChangeRequestRepository::class)->get($changeRequestId);
+        self::assertSame('Not on any box', $changeRequest->rejectionReason);
+        self::assertSame([1], $browser->getContainer()->get(Connection::class)->fetchFirstColumn(
+            'SELECT COUNT(*) FROM puzzle_moderation_decision WHERE change_request_id = :id',
+            ['id' => $changeRequestId],
+        ));
     }
 
     private function photo(): UploadedFile

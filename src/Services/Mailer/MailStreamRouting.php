@@ -32,9 +32,11 @@ use Symfony\Component\Mime\RawMessage;
  * - with MAILER_SES_DSN set, every stream goes through Amazon SES first. A failed attempt is tried once more right
  *   away (a fresh connection - SES replaces the machines behind its endpoint), after a second failure SES is left
  *   alone for SES_PAUSE_SECONDS (an outage costs one wait, not one per e-mail), and only **transactional** mail then
- *   falls back to its stream's own transport (Seznam). Notifications never do: they are queued and tried again
- *   later (Messenger's retry, the digest's own deferral) - bulk mail must never land on the fallback's daily limit,
- *   which is what took the fallback down on 2026-10-19. Primary first for every message, unlike Symfony's
+ *   falls back to its stream's own transport - and only while MAILER_TRANSACTIONAL_DSN is a real one. Production
+ *   runs SES only (MAILER_TRANSACTIONAL_DSN null://null since 2026-10-19, Seznam blocked the account for the
+ *   digest it was handed): every e-mail is a Messenger message, so a failure is simply sent again by the retry
+ *   (30 s, 2 min, 8 min, 30 min). Notifications never fall back: bulk mail must never land on a mailbox provider's
+ *   account, which is what got it blocked on 2026-10-19. Primary first for every message, unlike Symfony's
  *   failover(), which stays on the second transport after one hiccup and answers "No transports found" once both
  *   failed within a minute;
  * - MAILER_SES_DSN null://null = SES off: every stream on its own transport (the rollback).
@@ -55,6 +57,7 @@ final class MailStreamRouting implements TransportInterface
         private readonly LoggerInterface $logger,
         private readonly ClockInterface $clock,
         private readonly string $sesDsn,
+        private readonly string $transactionalDsn,
     ) {
     }
 
@@ -89,7 +92,7 @@ final class MailStreamRouting implements TransportInterface
         try {
             return $this->sendThroughSes($message, $envelope);
         } catch (TransportExceptionInterface $sesFailure) {
-            if ($stream !== MailStream::Transactional || self::isRecipientRejection($sesFailure)) {
+            if ($stream !== MailStream::Transactional || !self::isRealTransport($this->transactionalDsn) || self::isRecipientRejection($sesFailure)) {
                 throw $sesFailure;
             }
 
@@ -172,7 +175,12 @@ final class MailStreamRouting implements TransportInterface
 
     private function isSesConfigured(): bool
     {
-        return $this->sesDsn !== '' && !str_starts_with($this->sesDsn, 'null://');
+        return self::isRealTransport($this->sesDsn);
+    }
+
+    private static function isRealTransport(string $dsn): bool
+    {
+        return $dsn !== '' && !str_starts_with($dsn, 'null://');
     }
 
     /**

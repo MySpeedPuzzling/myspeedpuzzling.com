@@ -357,6 +357,7 @@ return static function (ContainerConfigurator $configurator): void {
         ->args([
             '$inner' => service('.inner'),
             '$sesDsn' => env('MAILER_SES_DSN'),
+            '$transactionalDsn' => env('MAILER_TRANSACTIONAL_DSN'),
         ]);
 
     // ses+https (MAILER_SES_DSN): Symfony's factory hands AsyncAws the framework's HTTP client, and AsyncAws adds its

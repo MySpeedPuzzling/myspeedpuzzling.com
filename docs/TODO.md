@@ -123,9 +123,11 @@ that would otherwise be forgotten. Newest section on top.
       sticky `failover()` moved the digest to Seznam, Seznam refused the account (README "Reliability"). Fixed: SES
       API + `MailStreamRouting` retry/pause/fallback, Listmonk idle_timeout 5 s.
 - [ ] Watch a week after the SES API switch (2026-10-19): `email_audit_log` failures per transport, the "Amazon SES
-      failed twice in a row" warning in Sentry (should never appear), no Seznam rows but transactional fallbacks.
-- [ ] Seznam `notify@` refused AUTH (525) after the 2026-10-19 digest: check it works again (it is only the rollback
-      transport for notifications now; `robot@` is transactional's fallback).
+      failed twice in a row" warning in Sentry (should never appear), no Seznam rows at all (SES only since 2026-10-19).
+- [ ] Seznam blocked `notify@` ("bulk unsolicited mail") after the 2026-10-19 digest - Jan is asking them to unblock
+      it. Production sends SES only; Seznam stays the rollback (`infisical_mail.py seznam-fallback`) at most, never
+      for bulk mail. Decide inbound mail for `mail.` / `notify.` / the apex (MX on Seznam): Cloudflare Email Routing
+      (forward only) vs a mailbox provider - see the 2026-10-19 session notes in project memory.
 - [x] Privacy policy: AWS listed (0a01bd8d, 2026-10-14).
 - [x] Google Postmaster Tools: the three domains were already there (Jan, 2026-10-14).
 - [x] CloudWatch alarms bounce rate >= 4 % / complaint rate >= 0.08 % → e-mail to Jan (`aws-setup.sh alarms`,

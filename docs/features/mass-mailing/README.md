@@ -211,7 +211,11 @@ with Sentry WEB-E5 "No transports found" and the digest breaker's warning. `emai
     endpoint's machines are replaced behind its load balancer);
   - SES failing twice in a row → **paused 60 s** (`SES_PAUSE_SECONDS`, one warning → Sentry) so an outage costs one
     wait, not one per e-mail; then SES is first again;
-  - **transactional** then falls back to Seznam (`MAILER_TRANSACTIONAL_DSN`) - a sign-in link must arrive;
+  - **transactional** then falls back to `MAILER_TRANSACTIONAL_DSN` - **only while it is a real transport**. Since
+    the afternoon of 2026-10-19 production runs **SES only** (`MAILER_TRANSACTIONAL_DSN` = `MAILER_NOTIFICATIONS_DSN`
+    = `null://null`, Jan: Seznam blocked `notify@` for "bulk unsolicited mail", we must not rely on it): every e-mail
+    is a Messenger message, so a failed send is sent again by the `async` retry (30 s, 2 min, 8 min, 30 min) after
+    AsyncAws' 2 retries and our own one. A `null://` fallback is never used (it would "send" into nothing);
   - **notifications never fall back**: they fail and are tried later (Messenger's `async` retry 30 s → 30 min; the
     digest's own deferral 10 / 30 min + breaker). Bulk mail must never hit Seznam's limit again - that is what took
     the transactional fallback down with it;
@@ -220,6 +224,13 @@ with Sentry WEB-E5 "No transports found" and the digest breaker's warning. `emai
   - both failing = one exception naming both causes, never "No transports found".
 - **Listmonk:** SES server `idle_timeout` 15 s → **5 s** (below SES's 10 s), `max_msg_retries` 3 kept. Written in its
   `settings` row + restart (no campaign running); backup `/root/listmonk-smtp-settings-backup-2026-10-19.json`.
+- **SES only (afternoon):** `ses+https` LIVE 11:06 UTC (IAM user `ses-api-app`: `ses:SendEmail` + `ses:SendRawEmail`,
+  From `@mail.` / `@notify.` only; key in Infisical `MAILER_SES_API_DSN`, never printed), then the stream DSNs
+  `null://null` (box script `/root/infisical_mail.py ses-only`; back: `seznam-fallback`). Checked the same day: account
+  HEALTHY, production access, 50,000/day, 14/s; bounce rate ≤ 0.03 %, complaints 0 (AWS reviews at 5 % / 0.1 %);
+  DKIM + custom MAIL FROM `bounce.<domain>` + DMARC `p=reject` on `mail.` / `notify.` / `news.`; CloudWatch alarms →
+  `ses-alarms` → Jan. One SES account carries every stream, so the newsletter's complaints matter for sign-in links
+  too: Listmonk blocklists after one complaint or hard bounce (`news.` identity → SNS `ses-events-newsletter`).
 - **Preview:** `myspeedpuzzling:send-content-digest-preview <email> [--player=] [--period=] [--kind=]` sends a
   player's real digest through the same path (content-digest README "Sending").
 
@@ -240,6 +251,7 @@ Steps 1-2 on AWS are scripted: [`aws-setup.sh`](aws-setup.sh) `identities` (prin
 | 7 | Listmonk | SMTP server → SES (+ `X-SES-CONFIGURATION-SET: newsletter` header), SES bounce webhook on, POP scanner off, keep the rate under the SES per-second quota (Listmonk never retries a 454) | old SMTP server |
 | 8 | cleanup | `SES_TEST_RECIPIENTS` / `MAILER_SES_DSN` emptied | - |
 | 9 | 2026-10-19 | Reliability: `MAILER_SES_DSN` = SES API, stream DSNs = Seznam only, Listmonk `idle_timeout` 5 s | `MAILER_SES_DSN` = `MAILER_SES_SMTP_DSN` (SES over SMTP) or `null://null` + the old `failover(...)` DSNs |
+| 10 | 2026-10-19 | SES only: stream DSNs `null://null`, no Seznam behind anything | `infisical_mail.py seznam-fallback` (once Seznam unblocked `notify@`); SES off needs the stream DSNs real first |
 
 ## Open (docs/TODO.md)
 

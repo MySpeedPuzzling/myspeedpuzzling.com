@@ -21,6 +21,7 @@ use Symfony\Contracts\HttpClient\ResponseInterface;
 final class MailStreamRoutingTest extends TestCase
 {
     private const string SES_DSN = 'ses+https://key:secret@default?region=eu-north-1';
+    private const string SEZNAM_DSN = 'smtp://robot:secret@smtp.seznam.cz:587';
 
     public function testWithSesOffEverythingStaysOnItsOwnTransport(): void
     {
@@ -75,6 +76,21 @@ final class MailStreamRoutingTest extends TestCase
         $clock->sleep(2);
         $routing->send($this->email('player@example.com'));
         self::assertSame(['ses', 'ses', 'transactional', 'transactional', 'ses'], $transports->attempts);
+    }
+
+    public function testWithoutARealTransactionalTransportSesIsTheOnlyOneAndAFailureIsLeftToMessengersRetry(): void
+    {
+        $transports = new ScriptedTransports(ses: [self::staleConnection(), self::staleConnection()]);
+        $routing = $this->routing($transports, transactionalDsn: 'null://null');
+
+        try {
+            $routing->send($this->email('player@example.com'));
+            self::fail('Expected the SES failure - never a "sent" into null://');
+        } catch (TransportExceptionInterface $exception) {
+            self::assertStringContainsString('451', $exception->getMessage());
+        }
+
+        self::assertSame(['ses', 'ses'], $transports->attempts);
     }
 
     public function testNotificationsNeverFallBackTheyFailToBeTriedLater(): void
@@ -149,7 +165,7 @@ final class MailStreamRoutingTest extends TestCase
         $transports = new ScriptedTransports();
         $suppressions = $this->createStub(EmailSuppressionRepository::class);
         $suppressions->method('isSuppressed')->willReturnCallback(static fn (string $email): bool => $email === 'gone@example.com');
-        $routing = new MailStreamRouting($transports, $suppressions, new NullLogger(), new MockClock(), self::SES_DSN);
+        $routing = new MailStreamRouting($transports, $suppressions, new NullLogger(), new MockClock(), self::SES_DSN, self::SEZNAM_DSN);
 
         self::assertNull($routing->send($this->email('gone@example.com', 'notifications')));
         $routing->send($this->email('gone@example.com'));
@@ -167,12 +183,12 @@ final class MailStreamRoutingTest extends TestCase
         self::assertSame('smtp://smtp.seznam.cz:587', SesMessageHeaders::transportLabel('smtp://smtp.seznam.cz:587'));
     }
 
-    private function routing(ScriptedTransports $transports, string $sesDsn = self::SES_DSN, null|MockClock $clock = null): MailStreamRouting
+    private function routing(ScriptedTransports $transports, string $sesDsn = self::SES_DSN, null|MockClock $clock = null, string $transactionalDsn = self::SEZNAM_DSN): MailStreamRouting
     {
         $suppressions = $this->createStub(EmailSuppressionRepository::class);
         $suppressions->method('isSuppressed')->willReturn(false);
 
-        return new MailStreamRouting($transports, $suppressions, new NullLogger(), $clock ?? new MockClock(), $sesDsn);
+        return new MailStreamRouting($transports, $suppressions, new NullLogger(), $clock ?? new MockClock(), $sesDsn, $transactionalDsn);
     }
 
     private function email(string $to, null|string $transport = null): Email

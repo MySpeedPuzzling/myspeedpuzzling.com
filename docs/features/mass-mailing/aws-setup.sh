@@ -7,6 +7,7 @@
 #   ./aws-setup.sh streams      # configuration sets, SNS topics, event destinations, suppression
 #   ./aws-setup.sh subscribe    # SNS → https://myspeedpuzzling.com/-/ses-events (+ Listmonk)
 #   ./aws-setup.sh alarms       # bounce/complaint rate alarms → e-mail (the address confirms the subscription)
+#   ./aws-setup.sh dlq          # SNS retries ~1 h, then SQS ses-events-dlq + its alarm (after "subscribe" + "alarms")
 #   ./aws-setup.sh show         # what exists now
 #
 # "subscribe" only after a deploy with SES_EVENTS_TOPIC_ARNS set to the two topic ARNs "streams" printed - the
@@ -44,7 +45,8 @@ identities() {
             echo "CNAME ${token}._domainkey.${domain} -> ${token}.dkim.amazonses.com"
         done
         echo "MX    bounce.${domain} -> 10 feedback-smtp.${REGION}.amazonses.com"
-        echo "TXT   bounce.${domain} -> \"v=spf1 include:amazonses.com ~all\""
+        echo "TXT   bounce.${domain} -> \"v=spf1 include:amazonses.com -all\""
+        echo "TXT   ${domain} -> \"v=spf1 include:amazonses.com -all\"  (SES only - nothing else sends for it)"
     done
 }
 
@@ -103,10 +105,12 @@ subscribe() {
         --notification-endpoint "$LISTMONK_ENDPOINT"
 }
 
-# AWS reviews an account at 5 % bounces / 0.1 % complaints and pauses it at 10 % / 0.5 % - warn before the review
+# AWS reviews an account at 5 % bounces / 0.1 % complaints and pauses it at 10 % / 0.5 % - warn before the review.
+# A fifth argument = one configuration set (stream), so a stream cannot hide in the account average
 alarm() {
     aws cloudwatch put-metric-alarm --alarm-name "$1" --alarm-description "$2" \
         --namespace AWS/SES --metric-name "$3" --statistic Maximum --period 3600 --evaluation-periods 1 \
+        ${5:+--dimensions Name=ses:configuration-set,Value=$5} \
         --threshold "$4" --comparison-operator GreaterThanOrEqualToThreshold --treat-missing-data notBreaching \
         --alarm-actions "$(topic_arn "$ALARMS_TOPIC")" --ok-actions "$(topic_arn "$ALARMS_TOPIC")"
 }
@@ -118,6 +122,42 @@ alarms() {
         Reputation.BounceRate 0.04
     alarm ses-complaint-rate-0.08pct "SES account complaint rate >= 0.08 % (AWS reviews at 0.1 %, pauses at 0.5 %)" \
         Reputation.ComplaintRate 0.0008
+    for stream in "${APP_STREAMS[@]}" "$NEWSLETTER_STREAM"; do
+        alarm "ses-${stream}-complaint-rate-0.1pct" "Stream ${stream}: complaint rate over 0.1 % (Gmail/Yahoo want under 0.1 %)" \
+            Reputation.ComplaintRate 0.001 "$stream"
+        alarm "ses-${stream}-bounce-rate-2pct" "Stream ${stream}: bounce rate over 2 % (usually a list of dead addresses)" \
+            Reputation.BounceRate 0.02 "$stream"
+    done
+}
+
+# The SNS default retries an HTTPS endpoint for ~20 s only - an app outage longer than that lost the event
+dlq() {
+    local queue_url queue_arn
+    queue_url=$(aws sqs create-queue --queue-name ses-events-dlq \
+        --attributes MessageRetentionPeriod=1209600,SqsManagedSseEnabled=true --query QueueUrl --output text)
+    queue_arn=$(aws sqs get-queue-attributes --queue-url "$queue_url" --attribute-names QueueArn \
+        --query Attributes.QueueArn --output text)
+    aws sqs set-queue-attributes --queue-url "$queue_url" --attributes "$(python3 -I -c 'import json, sys
+print(json.dumps({"Policy": json.dumps({"Version": "2012-10-17", "Statement": [{"Effect": "Allow",
+    "Principal": {"Service": "sns.amazonaws.com"}, "Action": "sqs:SendMessage", "Resource": sys.argv[1],
+    "Condition": {"ArnEquals": {"aws:SourceArn": sys.argv[2:]}}}]})}))' \
+        "$queue_arn" "$(topic_arn "$EVENTS_TOPIC")" "$(topic_arn "$NEWSLETTER_TOPIC")")"
+    local policy='{"healthyRetryPolicy":{"numRetries":40,"numNoDelayRetries":0,"minDelayTarget":10,"maxDelayTarget":120,"numMinDelayRetries":2,"numMaxDelayRetries":20,"backoffFunction":"exponential"}}'
+    for topic in "$EVENTS_TOPIC" "$NEWSLETTER_TOPIC"; do
+        for subscription in $(aws sns list-subscriptions-by-topic --topic-arn "$(topic_arn "$topic")" \
+            --query "Subscriptions[?Protocol=='https'].SubscriptionArn" --output text); do
+            aws sns set-subscription-attributes --subscription-arn "$subscription" \
+                --attribute-name DeliveryPolicy --attribute-value "$policy"
+            aws sns set-subscription-attributes --subscription-arn "$subscription" \
+                --attribute-name RedrivePolicy --attribute-value "{\"deadLetterTargetArn\":\"${queue_arn}\"}"
+        done
+    done
+    aws cloudwatch put-metric-alarm --alarm-name ses-events-dlq-not-empty \
+        --alarm-description "SES events parked in SQS ses-events-dlq - replay: tools/ses-events-dlq-replay.py (README)" \
+        --namespace AWS/SQS --metric-name ApproximateNumberOfMessagesVisible --dimensions Name=QueueName,Value=ses-events-dlq \
+        --statistic Maximum --period 300 --evaluation-periods 1 --threshold 0 --comparison-operator GreaterThanThreshold \
+        --treat-missing-data notBreaching \
+        --alarm-actions "$(topic_arn "$ALARMS_TOPIC")" --ok-actions "$(topic_arn "$ALARMS_TOPIC")"
 }
 
 show() {
@@ -132,6 +172,6 @@ show() {
 }
 
 case "${1:-}" in
-    identities|streams|subscribe|alarms|show) "$1" ;;
-    *) sed -n '2,13p' "$0"; exit 1 ;;
+    identities|streams|subscribe|alarms|dlq|show) "$1" ;;
+    *) sed -n '2,14p' "$0"; exit 1 ;;
 esac

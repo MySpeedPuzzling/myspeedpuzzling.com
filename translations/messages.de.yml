@@ -2060,9 +2060,6 @@ badges:
   "performance":
     "your_time": "Deine Zeit"
     "ppm": "%ppm% Teile pro Minute"
-    "faster_than_predicted": "%percent%% schneller als vorhergesagt!"
-    "slower_than_predicted": "%percent%% langsamer als vorhergesagt"
-    "on_target": "Genau im Ziel!"
     "prediction_unavailable_baseline": "Löse mehr Erstversuche mit %pieces%-Teile-Puzzles, um Zeitvorhersagen freizuschalten."
     "prediction_unavailable_difficulty": "Noch nicht genügend Löser haben dieses Puzzle abgeschlossen, um Vorhersagen zu erstellen."
     "prediction_unavailable_opted_out": "Ranking ist in deinen Profileinstellungen deaktiviert."
@@ -3621,7 +3618,6 @@ puzzle_intelligence:
         elo_example_player_b_score: "Wert: 0,75 × 0,70 + 0,25 × 1,12 = <strong>0,81</strong>"
         elo_example_conclusion: "Spieler A gewinnt deutlich — rohes Kaltlöser-Talent führt, aber B bekommt Teilpunkte für Verbesserung."
         section_prediction_title: "Zeitvorhersage"
-        section_prediction_formula: "Der Bereich zeigt, wo 50%% der Löser mit deiner Geschwindigkeit landen (P25-P75). Für Wiederholungslöser basierend auf deiner persönlichen Geschichte."
         prediction_intro: "Wir verwenden ein mehrschichtiges Vorhersagesystem. Wenn du das Puzzle schon einmal gelöst hast, bekommst du eine <strong>persönliche Vorhersage</strong> basierend auf deiner Verbesserungshistorie und datengestützten Verbesserungsverhältnissen. Andernfalls bekommst du eine <strong>statistische Vorhersage</strong> basierend auf deiner Baseline und der Puzzle-Schwierigkeit."
         prediction_ratios_title: "Verbesserungsverhältnisse"
         prediction_ratios_desc: "Wir berechnen <strong>Verbesserungsverhältnisse</strong> — wie viel schneller Spieler typischerweise zwischen aufeinanderfolgenden Versuchen werden (1.→2., 2.→3. usw.). Diese werden aus echten Daten aller Spieler und Puzzles berechnet, stratifiziert nach dem Zeitabstand zwischen Versuchen."
@@ -3638,7 +3634,7 @@ puzzle_intelligence:
         prediction_statistical_example_baseline: "Deine 500-Teile-Baseline:"
         prediction_statistical_example_difficulty: "Puzzle-Schwierigkeit:"
         prediction_statistical_example_predicted: "Vorhergesagte Zeit:"
-        prediction_statistical_range: "Der Bereich verwendet P25–P75 der Schwierigkeitsindizes des Puzzles: Baseline × P25 bis Baseline × P75. Sicherheitsgrenzen halten den Bereich zwischen 30%% und 300%% der vorhergesagten Zeit."
+        prediction_statistical_range: "Der Bereich ist der wahrscheinliche: Die Hälfte aller Lösungen landet darin. Seine Breite hängt davon ab, wie gleichmäßig deine letzten Zeiten sind und wie sicher wir uns bei der Schwierigkeit des Puzzles sind (weniger Lösungen = breiter); er wird jede Nacht an echten Ergebnissen neu abgestimmt. Angezeigt auf volle Minuten gerundet (bei breiten Bereichen auf 5 oder 10 Minuten, bei Vorhersagen unter 3 Minuten auf 10 Sekunden)."
         section_data_quality_title: "Datenqualität"
         section_data_quality_solo: "<strong>Nur Solo:</strong> Paar- und Team-Lösungen sind ausgeschlossen"
         section_data_quality_first: "<strong>Erstversuche:</strong> Nur erste Begegnungen mit jedem Puzzle zählen für Schwierigkeit und Baselines"
@@ -3679,7 +3675,14 @@ puzzle_intelligence:
     prediction:
         title: "Deine Vorhersage"
         estimated_time: "Geschätzte Zeit"
-        range: "%low% - %high%"
+        window:
+            likely: "Wahrscheinlich %range%"
+            likely_half: "Wahrscheinlich %range% · die Hälfte aller Lösungen landet hier"
+            hit: "In deinem wahrscheinlichen Bereich – das schafft nur die Hälfte aller Lösungen"
+            hit_uncalibrated: "In deinem wahrscheinlichen Bereich"
+            faster: "%margin% schneller als wahrscheinlich"
+            slower: "%margin% langsamer als wahrscheinlich"
+            first_try_faster: "Dein Vorsprung: %margin% schneller als wahrscheinlich"
         explanation: "Basierend auf deiner persönlichen Lösungsgeschichte und der Schwierigkeit dieses Puzzles, hier ist unsere Schätzung."
         not_available: "Löse %count% weitere %pieces%-Teile-Puzzles, um Vorhersagen freizuschalten"
         predicted_label: "Vorhersage"
@@ -3718,15 +3721,6 @@ puzzle_intelligence:
             expert: "Experte"
             master: "Meister"
             legend: "Legende"
-    solve_analysis:
-        title: "Lösungsanalyse"
-        your_time: "Deine Zeit"
-        predicted_range: "Vorhergesagter Bereich"
-        puzzle_difficulty: "Puzzle-Schwierigkeit"
-        percentile_on_puzzle: "Top %percentile%% bei diesem Puzzle"
-        result_faster: "%percent%% schneller als vorhergesagt!"
-        result_on_target: "Genau im Ziel!"
-        result_slower: "%percent%% langsamer als vorhergesagt"
 
 qr_code:
     button: "QR-Code"

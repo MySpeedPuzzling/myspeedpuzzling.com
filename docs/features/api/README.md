@@ -173,7 +173,8 @@ No filter at all lists the whole catalog (most solved first) - the catalog is pu
                   "duo":  { "count": 8,  "fastest_seconds": 1180, "average_seconds": 1320, "slowest_seconds": 1700, "median_seconds": 1290 },
                   "team": { "count": 3,  "fastest_seconds": null, "average_seconds": null, "slowest_seconds": null, "median_seconds": null } },
   "difficulty": { "score": 1.18, "level": "challenging", "confidence": "medium", "sample_size": 14 },
-  "prediction": { "predicted_seconds": 1890, "range_low_seconds": 1607, "range_high_seconds": 2174,
+  "prediction": { "predicted_seconds": 1890, "range_low_seconds": 1790, "range_high_seconds": 2010,
+                  "range80_low_seconds": 1690, "range80_high_seconds": 2140,
                   "is_personalized": true, "personal_solve_count": 3, "predicted_attempt_number": 4, "last_time_seconds": 2100 },
   "solves": { "solo": { "count": 3, "best_time_seconds": 1700, "last_time_seconds": 1700, "first_solved_at": "2026-07-30T10:12:45+00:00", "last_solved_at": "2026-08-09T14:30:00+00:00" },
               "duo":  { "count": 0, "best_time_seconds": null, "last_time_seconds": null, "first_solved_at": null, "last_solved_at": null },
@@ -276,7 +277,7 @@ The four objects are gated exactly as on `/players/{id}/collections/{cid}/items`
 The API twin of the Puzzle Insights block on the puzzle detail page (`PuzzleDetailController`), same gates. The flat shape predates the insight objects of `GET /api/v1/puzzles` and `GET /api/v1/puzzles/{puzzleId}` and stays as it is (no BC breaks); since PR 2 it is a projection of the very same objects - `MyPredictedTimeResponseProvider` gates through `ApiTokenOwner` and flattens `TimePredictionResponse` / `PuzzleDifficultyResponse` via `PredictedTimeResponse::fromInsights()` (a puzzle without a difficulty row is still `null` here, not `"insufficient"`):
 
 - **Not a member** → every field except `puzzle_id` is `null` (`is_personalized: false`), 200.
-- **Member** → `difficulty_score` / `difficulty_level` (`very_easy|easy|average|challenging|hard|very_hard`) / `difficulty_confidence` (`insufficient|low|medium|high`) whenever the puzzle has a difficulty row (`null` otherwise). The prediction (`predicted_seconds`, `range_low_seconds`, `range_high_seconds`, `is_personalized`, `personal_solve_count`, `last_time_seconds`) comes from `GetPlayerPrediction` — personalized when the owner has solo solves of the puzzle, otherwise the statistical baseline × difficulty estimate, `null` when there is nothing to predict from. Since prediction model v3 (2026-10) `range_low_seconds` / `range_high_seconds` are the calibrated 50 % "likely" window (half of solves land inside it), not the p25-p75 of the difficulty indices any more; puzzles with 1-4 solves get a prediction too.
+- **Member** → `difficulty_score` / `difficulty_level` (`very_easy|easy|average|challenging|hard|very_hard`) / `difficulty_confidence` (`insufficient|low|medium|high`) whenever the puzzle has a difficulty row (`null` otherwise). The prediction (`predicted_seconds`, `range_low_seconds`, `range_high_seconds`, `range80_low_seconds`, `range80_high_seconds`, `is_personalized`, `personal_solve_count`, `last_time_seconds`) comes from `GetPlayerPrediction` — personalized when the owner has solo solves of the puzzle, otherwise the statistical baseline × difficulty estimate, `null` when there is nothing to predict from. Since prediction model v3 (2026-10) `range_low_seconds` / `range_high_seconds` are the calibrated 50 % "likely" window (half of solves land inside it), not the p25-p75 of the difficulty indices any more; puzzles with 1-4 solves get a prediction too. `range80_low_seconds` / `range80_high_seconds` (added 2026-10, additive) are the 80 % range around it - `null` on a prediction stored before model v3 (the `prediction` of `POST /me/solving-times` reads the stored one). Every range is raw seconds; the website rounds windows for display ("Likely 57–64 min", `docs/features/puzzle-intelligence/prediction-history.md` "How windows are shown"), the API never does. The same two fields are in every `prediction` object (puzzle list/detail, the puzzle library endpoints, `POST /me/solving-times`).
 - **Member who opted out of time predictions** → prediction fields `null`, difficulty still returned (same split as `templates/puzzle/_difficulty_section.html.twig`).
 - Unknown or malformed puzzle id → 404. Fixed number of queries per call (no per-item fan-out).
 
@@ -350,7 +351,8 @@ Response (`SolvingTimeResponse`, shared with `PUT …/solving-times/{timeId}`):
     "time_id": "uuid", "puzzle_id": "uuid", "time_seconds": 5025, "finished_at": "2025-12-01T14:30:00+00:00",
     "first_attempt": true, "unboxed": false, "comment": "Optional comment",
     "round_id": null, "competition_id": null, "series_id": null,
-    "prediction": { "predicted_seconds": 1890, "range_low_seconds": 1607, "range_high_seconds": 2174,
+    "prediction": { "predicted_seconds": 1890, "range_low_seconds": 1790, "range_high_seconds": 2010,
+                    "range80_low_seconds": 1690, "range80_high_seconds": 2140,
                     "is_personalized": true, "personal_solve_count": 1, "predicted_attempt_number": 2, "last_time_seconds": 2100 }
 }
 ```

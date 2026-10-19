@@ -196,7 +196,7 @@
                                 {% endif %}
                                 {% if my_prediction is not null %}
                                     <span class="badge border border-primary text-primary rounded-pill collection-prediction ms-1"
-                                          title="{{ 'puzzle_picker.card.prediction'|trans }} {{ 'puzzle_intelligence.prediction.range'|trans({'%low%': my_prediction.rangeLowSeconds|compactTime, '%high%': my_prediction.rangeHighSeconds|compactTime}) }} · {{ my_prediction.isPersonalized ? 'puzzle_intelligence.prediction.personal_explanation'|trans({'%count%': my_prediction.personalSolveCount}) : 'puzzle_intelligence.prediction.explanation'|trans }}">
+                                          title="{{ 'puzzle_picker.card.prediction'|trans }} ~{{ my_prediction.predictedSeconds|compactTime }} · {{ 'puzzle_intelligence.prediction.window.likely_half'|trans({'%range%': prediction_window(my_prediction)|prediction_window_range}) }} · {{ my_prediction.isPersonalized ? 'puzzle_intelligence.prediction.personal_explanation'|trans({'%count%': my_prediction.personalSolveCount}) : 'puzzle_intelligence.prediction.explanation'|trans }}">
                                         <i class="bi bi-clock-history"></i> ~{{ my_prediction.predictedSeconds|compactTime }} <i class="bi {{ my_prediction.isPersonalized ? 'bi-person-check' : 'bi-graph-up' }}"></i>
                                     </span>
                                 {% endif %}

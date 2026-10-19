@@ -390,6 +390,7 @@ final class CollectionDetailControllerTest extends WebTestCase
         self::assertCount(1, $pill);
         self::assertMatchesRegularExpression('/~\d+min/', $pill->text());
         self::assertStringContainsString('Your prediction:', (string) $pill->attr('title'));
+        self::assertMatchesRegularExpression('/Likely .+ · half of solves land inside/u', (string) $pill->attr('title'));
         self::assertStringContainsString('Based on your 1 previous solves', (string) $pill->attr('title'));
         self::assertCount(1, $pill->filter('.bi-person-check'), 'personalised marker');
         self::assertMatchesRegularExpression('/^\d+$/', (string) $item->attr('data-predicted-seconds'));

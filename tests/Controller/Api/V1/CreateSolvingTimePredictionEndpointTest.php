@@ -47,7 +47,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  * prediction history (2026-09-30) every solo create also records its live prediction in
  * the handler - for everybody, members or not - which LIVE_PREDICTION_RECORDING covers.
  *
- * @phpstan-type Prediction array{predicted_seconds: null|int, range_low_seconds: null|int, range_high_seconds: null|int, is_personalized: bool, personal_solve_count: null|int, predicted_attempt_number: null|int, last_time_seconds: null|int}
+ * @phpstan-type Prediction array{predicted_seconds: null|int, range_low_seconds: null|int, range_high_seconds: null|int, range80_low_seconds: null|int, range80_high_seconds: null|int, is_personalized: bool, personal_solve_count: null|int, predicted_attempt_number: null|int, last_time_seconds: null|int}
  * @phpstan-type SolvingTimeResponse array{time_id: string, puzzle_id: string, time_seconds: null|int, finished_at: null|string, first_attempt: bool, unboxed: bool, comment: null|string, round_id: null|string}
  */
 final class CreateSolvingTimePredictionEndpointTest extends WebTestCase
@@ -201,6 +201,11 @@ final class CreateSolvingTimePredictionEndpointTest extends WebTestCase
         $this->assertGreaterThan(0, $prediction['predicted_seconds']);
         $this->assertIsInt($prediction['range_low_seconds']);
         $this->assertIsInt($prediction['range_high_seconds']);
+        // The stored 80 % range (model v3) around the 50 % window
+        $this->assertIsInt($prediction['range80_low_seconds']);
+        $this->assertIsInt($prediction['range80_high_seconds']);
+        $this->assertLessThanOrEqual($prediction['range_low_seconds'], $prediction['range80_low_seconds']);
+        $this->assertGreaterThanOrEqual($prediction['range_high_seconds'], $prediction['range80_high_seconds']);
     }
 
     /**

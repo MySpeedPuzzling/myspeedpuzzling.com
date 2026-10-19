@@ -135,7 +135,8 @@
                 <div class="mt-1 puzzle-picker-prediction">
                     <span class="text-muted"><i class="bi bi-clock-history me-1"></i>{{ 'puzzle_picker.card.prediction'|trans }}</span>
                     <span class="fw-bold">~{{ prediction.predictedSeconds|compactTime }}</span>
-                    <span class="text-muted">({{ 'puzzle_intelligence.prediction.range'|trans({'%low%': prediction.rangeLowSeconds|compactTime, '%high%': prediction.rangeHighSeconds|compactTime}) }})</span>
+                    {# The calibrated 50 % "likely" window, rounded (PredictionWindow) - docs/features/insights/README.md §3 #}
+                    <span class="text-muted puzzle-picker-prediction-window">· {{ 'puzzle_intelligence.prediction.window.likely'|trans({'%range%': prediction_window(prediction)|prediction_window_range}) }}</span>
                 </div>
                 <div class="text-muted small">
                     {% if prediction.isPersonalized and prediction.predictedAttemptNumber is not null %}

@@ -19,6 +19,8 @@ use ApiPlatform\OpenApi\Model\Operation as OpenApiOperation;
                 description: 'Puzzle Insights are members-only, exactly as on the website: without an active membership every field except puzzle_id is null. '
                     . 'The prediction additionally honours the owner\'s "time predictions" opt-out and is null when there is not enough data to predict from; '
                     . 'the difficulty fields depend only on the membership. '
+                    . 'range_low_seconds / range_high_seconds are the calibrated 50 % "likely" window (half of solves land inside it), '
+                    . 'range80_low_seconds / range80_high_seconds the 80 % range around it (null when there is no 80 % range); raw seconds, never rounded. '
                     . 'difficulty_level is one of very_easy, easy, average, challenging, hard, very_hard; '
                     . 'difficulty_confidence is one of insufficient, low, medium, high.',
             ),
@@ -34,6 +36,8 @@ final class PredictedTimeResponse
         public null|int $predictedSeconds,
         public null|int $rangeLowSeconds,
         public null|int $rangeHighSeconds,
+        public null|int $range80LowSeconds,
+        public null|int $range80HighSeconds,
         public bool $isPersonalized,
         public null|int $personalSolveCount,
         public null|int $lastTimeSeconds,
@@ -54,6 +58,8 @@ final class PredictedTimeResponse
             predictedSeconds: null,
             rangeLowSeconds: null,
             rangeHighSeconds: null,
+            range80LowSeconds: null,
+            range80HighSeconds: null,
             isPersonalized: false,
             personalSolveCount: null,
             lastTimeSeconds: null,
@@ -80,6 +86,8 @@ final class PredictedTimeResponse
             predictedSeconds: $prediction->predictedSeconds,
             rangeLowSeconds: $prediction->rangeLowSeconds,
             rangeHighSeconds: $prediction->rangeHighSeconds,
+            range80LowSeconds: $prediction->range80LowSeconds,
+            range80HighSeconds: $prediction->range80HighSeconds,
             isPersonalized: $prediction->isPersonalized,
             personalSolveCount: $prediction->personalSolveCount,
             lastTimeSeconds: $prediction->lastTimeSeconds,

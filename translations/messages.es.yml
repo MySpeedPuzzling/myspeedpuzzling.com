@@ -2076,9 +2076,6 @@ badges:
   "performance":
     "your_time": "Tu Tiempo"
     "ppm": "%ppm% piezas por minuto"
-    "faster_than_predicted": "¡%percent%% más rápido de lo predicho!"
-    "slower_than_predicted": "%percent%% más lento de lo predicho"
-    "on_target": "¡Justo en el objetivo!"
     "prediction_unavailable_baseline": "Completa más resoluciones de primer intento en puzzles de %pieces% piezas para desbloquear predicciones de tiempo."
     "prediction_unavailable_difficulty": "Aún no hay suficientes resolutores que hayan completado este puzzle para generar predicciones."
     "prediction_unavailable_opted_out": "La clasificación está desactivada en los ajustes de tu perfil."
@@ -3622,7 +3619,6 @@ puzzle_intelligence:
         elo_example_player_b_score: "Puntuación: 0.75 × 0.70 + 0.25 × 1.12 = <strong>0.81</strong>"
         elo_example_conclusion: "El Jugador A gana decisivamente — el talento puro de resolución en frío lidera, pero B obtiene crédito parcial por la mejora."
         section_prediction_title: "Predicción de Tiempo"
-        section_prediction_formula: "El rango muestra dónde cae el 50%% de los resolutores con tu velocidad (P25-P75). Para resolutores repetidos, basado en tu historial personal."
         prediction_intro: "Usamos un sistema de predicción por capas. Si ya resolviste el puzzle antes, obtienes una <strong>predicción personal</strong> usando tu historial de mejora y ratios de mejora basados en datos. De lo contrario, obtienes una <strong>predicción estadística</strong> basada en tu línea base y la dificultad del puzzle."
         prediction_ratios_title: "Ratios de mejora"
         prediction_ratios_desc: "Calculamos <strong>ratios de mejora</strong> — cuánto más rápidos son los jugadores típicamente entre intentos consecutivos (1.°→2.°, 2.°→3.°, etc.). Se calculan a partir de datos reales de todos los jugadores y puzzles, estratificados por el intervalo de tiempo entre intentos."
@@ -3639,7 +3635,7 @@ puzzle_intelligence:
         prediction_statistical_example_baseline: "Tu línea base de 500 piezas:"
         prediction_statistical_example_difficulty: "Dificultad del puzzle:"
         prediction_statistical_example_predicted: "Tiempo predicho:"
-        prediction_statistical_range: "El rango usa P25–P75 de los índices de dificultad del puzzle: línea base × P25 a línea base × P75. Los límites de seguridad mantienen el rango entre 30%% y 300%% del tiempo predicho."
+        prediction_statistical_range: "El rango es el probable: la mitad de las resoluciones caen dentro. Su anchura depende de lo constantes que sean tus tiempos recientes y de lo seguros que estemos de la dificultad del puzzle (menos resoluciones = más ancho); se ajusta cada noche con resultados reales. Se muestra redondeado al minuto (a 5 o 10 minutos en rangos amplios, a 10 segundos en predicciones de menos de 3 minutos)."
         section_data_quality_title: "Calidad de Datos"
         section_data_quality_solo: "<strong>Solo en solitario:</strong> Las resoluciones en pareja y en equipo se excluyen"
         section_data_quality_first: "<strong>Primeros intentos:</strong> Solo los primeros encuentros con cada puzzle cuentan para dificultad y líneas base"
@@ -3680,7 +3676,14 @@ puzzle_intelligence:
     prediction:
         title: "Tu Predicción"
         estimated_time: "Tiempo estimado"
-        range: "%low% - %high%"
+        window:
+            likely: "Probablemente %range%"
+            likely_half: "Probablemente %range% · la mitad de las resoluciones caen aquí"
+            hit: "Dentro de tu rango probable: solo la mitad de las resoluciones lo logran"
+            hit_uncalibrated: "Dentro de tu rango probable"
+            faster: "%margin% más rápido de lo probable"
+            slower: "%margin% más lento de lo probable"
+            first_try_faster: "Tu margen: %margin% más rápido de lo probable"
         explanation: "Basado en tu historial personal de resolución y la dificultad de este puzzle, aquí está nuestra estimación."
         not_available: "Resuelve %count% puzzles más de %pieces% piezas para desbloquear predicciones"
         predicted_label: "Predicción"
@@ -3719,15 +3722,6 @@ puzzle_intelligence:
             expert: "Experto"
             master: "Maestro"
             legend: "Leyenda"
-    solve_analysis:
-        title: "Análisis de Resolución"
-        your_time: "Tu tiempo"
-        predicted_range: "Rango predicho"
-        puzzle_difficulty: "Dificultad del puzzle"
-        percentile_on_puzzle: "Top %percentile%% en este puzzle"
-        result_faster: "¡%percent%% más rápido de lo predicho!"
-        result_on_target: "¡Justo en el objetivo!"
-        result_slower: "%percent%% más lento de lo predicho"
 
 qr_code:
     button: "Código QR"

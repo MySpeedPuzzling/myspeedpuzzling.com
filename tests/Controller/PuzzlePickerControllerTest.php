@@ -281,6 +281,9 @@ final class PuzzlePickerControllerTest extends WebTestCase
         self::assertCount(0, $crawler->filter('.puzzle-picker-prediction-opted-out'));
         self::assertStringContainsString('Your prediction:', $content);
         self::assertStringContainsString('previous solve', $content, 'Personalised wording');
+        // The calibrated 50 % window, rounded (PredictionWindow), in the "Likely" wording
+        self::assertCount(3, $crawler->filter('.puzzle-picker-card .puzzle-picker-prediction-window'), 'One window per prediction row');
+        self::assertMatchesRegularExpression('/^· Likely (\d+–\d+ min|\S+( \S+)? – \S+( \S+)?)$/u', $crawler->filter('.puzzle-picker-prediction-window')->first()->text());
         self::assertMatchesRegularExpression('/(slower than your best|could beat your record|right at your best)/', $content);
 
         // Filters modal: insights group unlocked, prediction controls enabled, personal budget engine

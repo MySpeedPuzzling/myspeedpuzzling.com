@@ -2106,9 +2106,6 @@ competition_referees:
   "performance":
     "your_time": "Votre temps"
     "ppm": "%ppm% pièces par minute"
-    "faster_than_predicted": "%percent%% plus rapide que prévu !"
-    "slower_than_predicted": "%percent%% plus lent que prévu"
-    "on_target": "Pile dans le mille !"
     "prediction_unavailable_baseline": "Complétez davantage de premières tentatives sur des puzzles de %pieces% pièces pour débloquer les prédictions de temps."
     "prediction_unavailable_difficulty": "Pas assez de joueurs ont complété ce puzzle pour générer des prédictions."
     "prediction_unavailable_opted_out": "Le classement est désactivé dans les paramètres de votre profil."
@@ -3714,7 +3711,6 @@ puzzle_intelligence:
         elo_example_player_b_score: "Score : 0.75 × 0.70 + 0.25 × 1.12 = <strong>0.81</strong>"
         elo_example_conclusion: "Le Joueur A l'emporte nettement — le talent brut à froid prime, mais B obtient un crédit partiel pour son amélioration."
         section_prediction_title: "Prédiction de temps"
-        section_prediction_formula: "La fourchette montre où 50%% des joueurs avec votre vitesse se situent (P25-P75). Pour les joueurs récurrents, basée sur votre historique personnel."
         prediction_intro: "Nous utilisons un système de prédiction en couches. Si vous avez déjà résolu le puzzle, vous obtenez une <strong>prédiction personnelle</strong> utilisant votre historique d'amélioration et des ratios d'amélioration basés sur les données. Sinon, vous obtenez une <strong>prédiction statistique</strong> basée sur votre référence et la difficulté du puzzle."
         prediction_ratios_title: "Ratios d'amélioration"
         prediction_ratios_desc: "Nous calculons des <strong>ratios d'amélioration</strong> — combien les joueurs s'améliorent typiquement entre tentatives consécutives (1re→2e, 2e→3e, etc.). Ceux-ci sont calculés à partir de données réelles de tous les joueurs et puzzles, stratifiés par l'intervalle entre les tentatives."
@@ -3731,7 +3727,7 @@ puzzle_intelligence:
         prediction_statistical_example_baseline: "Votre référence 500 pièces :"
         prediction_statistical_example_difficulty: "Difficulté du puzzle :"
         prediction_statistical_example_predicted: "Temps prévu :"
-        prediction_statistical_range: "La fourchette utilise P25–P75 des indices de difficulté du puzzle : référence × P25 à référence × P75. Des bornes de sécurité maintiennent la fourchette entre 30%% et 300%% du temps prévu."
+        prediction_statistical_range: "La fourchette est la fourchette probable : la moitié des résolutions tombent dedans. Sa largeur dépend de la régularité de vos temps récents et de notre certitude sur la difficulté du puzzle (moins de résolutions = plus large) ; elle est recalibrée chaque nuit sur des résultats réels. Affichée arrondie à la minute (à 5 ou 10 minutes pour les fourchettes larges, à 10 secondes pour les prédictions de moins de 3 minutes)."
         section_data_quality_title: "Qualité des données"
         section_data_quality_solo: "<strong>Solo uniquement :</strong> Les résolutions en duo et en équipe sont exclues"
         section_data_quality_first: "<strong>Premières tentatives :</strong> Seules les premières rencontres avec chaque puzzle comptent pour la difficulté et les références"
@@ -3772,7 +3768,14 @@ puzzle_intelligence:
     prediction:
         title: "Votre prédiction"
         estimated_time: "Temps estimé"
-        range: "%low% - %high%"
+        window:
+            likely: "Probablement %range%"
+            likely_half: "Probablement %range% · la moitié des résolutions tombent dans cette fourchette"
+            hit: "Dans votre fourchette probable – seule la moitié des résolutions y parviennent"
+            hit_uncalibrated: "Dans votre fourchette probable"
+            faster: "%margin% plus rapide que la fourchette probable"
+            slower: "%margin% plus lent que la fourchette probable"
+            first_try_faster: "Votre marge : %margin% plus rapide que la fourchette probable"
         explanation: "Basé sur votre historique personnel de résolution et la difficulté de ce puzzle, voici notre estimation."
         not_available: "Résolvez %count% puzzles de %pieces% pièces supplémentaires pour débloquer les prédictions"
         predicted_label: "Prédiction"
@@ -3811,15 +3814,6 @@ puzzle_intelligence:
             expert: "Expert"
             master: "Maître"
             legend: "Légende"
-    solve_analysis:
-        title: "Analyse de la résolution"
-        your_time: "Votre temps"
-        predicted_range: "Fourchette prévue"
-        puzzle_difficulty: "Difficulté du puzzle"
-        percentile_on_puzzle: "Top %percentile%% sur ce puzzle"
-        result_faster: "%percent%% plus rapide que prévu !"
-        result_on_target: "Pile dans le mille !"
-        result_slower: "%percent%% plus lent que prévu"
 
 qr_code:
     button: "Code QR"

@@ -2112,9 +2112,6 @@ badges:
   "performance":
     "your_time": "Váš čas"
     "ppm": "%ppm% dílků za minutu"
-    "faster_than_predicted": "O %percent%% rychlejší než předpověď!"
-    "slower_than_predicted": "O %percent%% pomalejší než předpověď"
-    "on_target": "Přesně v cíli!"
     "prediction_unavailable_baseline": "Složte více prvních pokusů na %pieces%-dílkových puzzlích pro odemknutí predikcí časů."
     "prediction_unavailable_difficulty": "Toto puzzle zatím nesložilo dostatek hráčů pro generování predikcí."
     "prediction_unavailable_opted_out": "Hodnocení je vypnuté v nastavení vašeho profilu."
@@ -3652,7 +3649,6 @@ puzzle_intelligence:
         elo_example_player_b_score: "Skóre: 0.75 × 0.70 + 0.25 × 1.12 = <strong>0.81</strong>"
         elo_example_conclusion: "Hráč A jasně vítězí — surový talent při skládání napoprvé vede, ale B dostává částečný kredit za zlepšení."
         section_prediction_title: "Predikce času"
-        section_prediction_formula: "Rozmezí ukazuje, kam spadá 50%% hráčů s vaší rychlostí (P25-P75). Pro opakované hráče na základě vaší osobní historie."
         prediction_intro: "Používáme vrstvený systém predikcí. Pokud jste puzzle již skládali, dostanete <strong>osobní predikci</strong> využívající vaši historii zlepšování a datově podložené poměry zlepšení. Jinak dostanete <strong>statistickou predikci</strong> na základě vašeho základu a obtížnosti puzzle."
         prediction_ratios_title: "Poměry zlepšení"
         prediction_ratios_desc: "Počítáme <strong>poměry zlepšení</strong> — o kolik jsou hráči typicky rychlejší mezi po sobě jdoucími pokusy (1.→2., 2.→3. atd.). Tyto poměry jsou vypočítány ze skutečných dat všech hráčů a puzzlí, rozvrstvené podle časového odstupu mezi pokusy."
@@ -3669,7 +3665,7 @@ puzzle_intelligence:
         prediction_statistical_example_baseline: "Váš základ pro 500 dílků:"
         prediction_statistical_example_difficulty: "Obtížnost puzzle:"
         prediction_statistical_example_predicted: "Předpovězený čas:"
-        prediction_statistical_range: "Rozmezí používá P25–P75 indexů obtížnosti puzzle: základ × P25 až základ × P75. Bezpečnostní hranice udržují rozmezí mezi 30%% a 300%% předpovězeného času."
+        prediction_statistical_range: "Rozmezí je to pravděpodobné: vejde se do něj polovina složení. Jeho šířka vychází z toho, jak vyrovnané jsou vaše poslední časy a jak jistí si jsme obtížností puzzle (méně složení = širší rozmezí); každou noc se dolaďuje podle skutečných výsledků. Zobrazuje se zaokrouhlené na celé minuty (u širokých rozmezí na 5 nebo 10 minut, u predikcí pod 3 minuty na 10 sekund)."
         section_data_quality_title: "Kvalita dat"
         section_data_quality_solo: "<strong>Pouze sólo:</strong> Dvojice a týmová složení jsou vyloučena"
         section_data_quality_first: "<strong>První pokusy:</strong> Pro obtížnost a základy se počítají pouze první setkání s puzzlem"
@@ -3710,7 +3706,14 @@ puzzle_intelligence:
     prediction:
         title: "Vaše predikce"
         estimated_time: "Odhadovaný čas"
-        range: "%low% - %high%"
+        window:
+            likely: "Pravděpodobně %range%"
+            likely_half: "Pravděpodobně %range% · vejde se sem polovina složení"
+            hit: "Ve vašem pravděpodobném rozmezí – to se podaří jen polovině složení"
+            hit_uncalibrated: "Ve vašem pravděpodobném rozmezí"
+            faster: "O %margin% rychleji, než je pravděpodobné"
+            slower: "O %margin% pomaleji, než je pravděpodobné"
+            first_try_faster: "Vaše rezerva: o %margin% rychleji, než je pravděpodobné"
         explanation: "Na základě vaší historie skládání a obtížnosti tohoto puzzle je zde náš odhad."
         not_available: "Složte ještě %count% %pieces%-dílkových puzzlí pro odemknutí predikcí"
         predicted_label: "Predikce"
@@ -3749,15 +3752,6 @@ puzzle_intelligence:
             expert: "Expert"
             master: "Mistr"
             legend: "Legenda"
-    solve_analysis:
-        title: "Analýza složení"
-        your_time: "Váš čas"
-        predicted_range: "Předpovězené rozmezí"
-        puzzle_difficulty: "Obtížnost puzzle"
-        percentile_on_puzzle: "Top %percentile%% na tomto puzzle"
-        result_faster: "O %percent%% rychlejší než předpověď!"
-        result_on_target: "Přesně v cíli!"
-        result_slower: "O %percent%% pomalejší než předpověď"
 
 feature_requests:
     title: "Návrhy funkcí"

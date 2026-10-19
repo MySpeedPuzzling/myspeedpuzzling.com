@@ -12,6 +12,11 @@ use SpeedPuzzling\Web\Results\TimePredictionResult;
  * null for this object when the owner is not entitled (not a member, opted out
  * of time predictions, machine token, no results:read); when present, every
  * field is null and is_personalized false if there is nothing to predict from.
+ *
+ * range_low/high_seconds = the calibrated 50 % "likely" window (half of solves
+ * land inside it), range80_low/high_seconds = the 80 % range around it (null for
+ * predictions stored before model v3, which have no 80 % range). Both raw seconds -
+ * the website rounds them for display, the API never does.
  */
 final class TimePredictionResponse
 {
@@ -19,6 +24,8 @@ final class TimePredictionResponse
         public null|int $predictedSeconds,
         public null|int $rangeLowSeconds,
         public null|int $rangeHighSeconds,
+        public null|int $range80LowSeconds,
+        public null|int $range80HighSeconds,
         public bool $isPersonalized,
         public null|int $personalSolveCount,
         public null|int $predictedAttemptNumber,
@@ -32,6 +39,8 @@ final class TimePredictionResponse
             predictedSeconds: $prediction?->predictedSeconds,
             rangeLowSeconds: $prediction?->rangeLowSeconds,
             rangeHighSeconds: $prediction?->rangeHighSeconds,
+            range80LowSeconds: $prediction?->range80LowSeconds,
+            range80HighSeconds: $prediction?->range80HighSeconds,
             isPersonalized: $prediction !== null && $prediction->isPersonalized,
             personalSolveCount: $prediction?->personalSolveCount,
             predictedAttemptNumber: $prediction?->predictedAttemptNumber,

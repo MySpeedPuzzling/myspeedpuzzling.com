@@ -30,9 +30,7 @@
             </row>
 
             {{ include('emails/content_digest/_community.html.twig') }}
-            {{ include('emails/content_digest/_settings.html.twig', {footer_key: 'activity_digest.miss_you.footer'}) }}
-
-            {{ include('emails/_footer.html.twig') }}
+            {{ include('emails/_footer.html.twig', {note: include('emails/content_digest/_settings.html.twig', {footer_key: 'activity_digest.miss_you.footer'})}) }}
         </container>
     </wrapper>
 {% endapply %}

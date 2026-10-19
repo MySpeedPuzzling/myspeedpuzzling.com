@@ -375,9 +375,9 @@ organization_rejected:
 activity_digest:
     puzzler: "puzzleur"
     subject:
-        week: "Votre semaine du %dates% sur MySpeedPuzzling"
-        two_weeks: "Vos deux semaines du %dates% sur MySpeedPuzzling"
-        month: "Votre %month% sur MySpeedPuzzling"
+        week: "Votre semaine en puzzles : %dates%"
+        two_weeks: "Vos deux semaines en puzzles : %dates%"
+        month: "Votre %month% en puzzles"
     preheader:
         achievement: "Nouveau succès : %achievement% – et le reste de votre semaine."
         achievement_locked: "Vous avez obtenu un succès – et voici le reste de votre semaine."

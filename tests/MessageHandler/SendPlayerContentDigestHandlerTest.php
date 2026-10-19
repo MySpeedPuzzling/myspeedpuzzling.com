@@ -70,7 +70,7 @@ final class SendPlayerContentDigestHandlerTest extends KernelTestCase
         $email = $transport->sent[0];
         self::assertInstanceOf(TemplatedEmail::class, $email);
         self::assertSame('emails/content_digest_activity.html.twig', $email->getHtmlTemplate());
-        self::assertSame('Your week 4–10 Mar on MySpeedPuzzling', $email->getSubject(), 'Short: the period and the site, no numbers');
+        self::assertSame('Your week in puzzles: 4–10 Mar', $email->getSubject(), 'Short: the period only, no numbers, no site name');
         self::assertSame('List-Unsubscribe=One-Click', $email->getHeaders()->get('List-Unsubscribe-Post')?->getBodyAsString());
         self::assertSame('notifications', $email->getHeaders()->get('X-Transport')?->getBodyAsString());
         self::assertSame('bulk', $email->getHeaders()->get('Precedence')?->getBodyAsString());

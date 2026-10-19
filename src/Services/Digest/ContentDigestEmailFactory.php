@@ -76,8 +76,8 @@ readonly final class ContentDigestEmailFactory
     }
 
     /**
-     * Short, the period and the site only: "Your week 12–18 Oct on MySpeedPuzzling", "Your October on MySpeedPuzzling"
-     * (Jan 2026-10-19: no numbers - they made it too long). Dates by ICU skeletons in the e-mail's locale.
+     * Short and natural: "Your week in puzzles: 12–18 Oct", "Your October in puzzles" (Jan 2026-10-19: no numbers and
+     * no site name - both made it too long). Dates by ICU skeletons in the e-mail's locale.
      */
     private function activitySubject(DigestPeriod $period, string $locale): string
     {

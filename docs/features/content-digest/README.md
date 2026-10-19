@@ -188,7 +188,7 @@ e-mail, in order (`templates/emails/content_digest_activity.html.twig`):
 
 | Line | Shown when | Links to |
 |---|---|---|
-| Subject "Your week 12–18 Oct on MySpeedPuzzling" / "Your two weeks …" / "Your October on MySpeedPuzzling" (ICU skeleton `MMMd` / `MMMM`, e-mail locale; no numbers - Jan 2026-10-19) | always | - |
+| Subject "Your week in puzzles: 12–18 Oct" / "Your two weeks in puzzles: …" / "Your October in puzzles" (ICU skeleton `MMMd` / `MMMM` = the standalone month name, e-mail locale; no numbers, no site name - Jan 2026-10-19) | always | - |
 | "Your week, Name" + the dates (ICU skeleton, e-mail locale) | always | - |
 | puzzles · pieces (each with "+3 vs last week" against the period before, `previousPeriodTotals()`; nothing when that one was empty or equal) · time puzzling (`compactTime`, when > 0) · day streak | always (streak > 1, not opted out) | - |
 | Level block: "Level N → M" · "+X XP this week", a bar toward the next level (table cells) and "N XP to Level M+1" (no bar at Level 50) | XP visible | XP history (`xp_history`) |
@@ -200,7 +200,7 @@ e-mail, in order (`templates/emails/content_digest_activity.html.twig`):
 | Highlights: up to 3 results, PB / first try first, each with its place on the puzzle's solo leaderboard ("#4 of 210", `GetRanking::forPuzzles()` for the period's puzzles - one statement) | results | the puzzle |
 | **See your week** (44 px Inky button) | always | `my_activity` with the period key |
 | Most solved by the community | ≥ 3 puzzlers solved one puzzle | the puzzle |
-| You get this every Monday · Change e-mails · Unsubscribe | always | token preferences page (no sign-in) / one-click unsubscribe |
+| You get this every Monday · Change e-mails · Unsubscribe - in the footer, under its rule, centred (`_footer.html.twig` `note`) | always | token preferences page (no sign-in) / one-click unsubscribe |
 
 Preheader = the best thing of the period: a member's new achievement > "you earned an achievement" > a level-up > a
 personal best > MSP Rating places gained > "N puzzles, N pieces". Subjects per period length. Achievements give no XP

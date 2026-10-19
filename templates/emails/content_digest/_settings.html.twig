@@ -1,13 +1,7 @@
 {% trans_default_domain 'emails' %}
-{# How often this comes + the token preferences page (no sign-in) + the one-click unsubscribe #}
-<row>
-    <columns>
-        <spacer size-sm="16"></spacer>
-        <p class="small-print">
-            {{ (footer_key ?? ('activity_digest.footer.' ~ frequency.value))|trans }}
-            <a href="{{ preferencesUrl }}">{{ 'activity_digest.footer.change'|trans }}</a>
-            ·
-            <a href="{{ unsubscribeUrl }}">{{ 'activity_digest.footer.unsubscribe'|trans }}</a>
-        </p>
-    </columns>
-</row>
+{# How often this comes + the token preferences page (no sign-in) + the one-click unsubscribe - rendered inside the
+   footer, under its rule, apart from the e-mail's content (emails/_footer.html.twig `note`) #}
+{{ (footer_key ?? ('activity_digest.footer.' ~ frequency.value))|trans }}
+<a href="{{ preferencesUrl }}">{{ 'activity_digest.footer.change'|trans }}</a>
+·
+<a href="{{ unsubscribeUrl }}">{{ 'activity_digest.footer.unsubscribe'|trans }}</a>

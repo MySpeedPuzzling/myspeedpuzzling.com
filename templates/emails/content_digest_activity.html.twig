@@ -225,9 +225,7 @@
             </row>
 
             {{ include('emails/content_digest/_community.html.twig') }}
-            {{ include('emails/content_digest/_settings.html.twig') }}
-
-            {{ include('emails/_footer.html.twig') }}
+            {{ include('emails/_footer.html.twig', {note: include('emails/content_digest/_settings.html.twig')}) }}
         </container>
     </wrapper>
 {% endapply %}

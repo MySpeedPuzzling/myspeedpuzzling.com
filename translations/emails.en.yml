@@ -382,9 +382,9 @@ organization_rejected:
 activity_digest:
     puzzler: "puzzler"
     subject:
-        week: "Your week %dates% on MySpeedPuzzling"
-        two_weeks: "Your two weeks %dates% on MySpeedPuzzling"
-        month: "Your %month% on MySpeedPuzzling"
+        week: "Your week in puzzles: %dates%"
+        two_weeks: "Your two weeks in puzzles: %dates%"
+        month: "Your %month% in puzzles"
     preheader:
         achievement: "New achievement: %achievement% – and the rest of your week."
         achievement_locked: "You earned an achievement – and here is the rest of your week."

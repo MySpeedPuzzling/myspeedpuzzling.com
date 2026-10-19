@@ -375,9 +375,9 @@ organization_rejected:
 activity_digest:
     puzzler: "puzzler"
     subject:
-        week: "Tvůj týden %dates% na MySpeedPuzzling"
-        two_weeks: "Tvoje dva týdny %dates% na MySpeedPuzzling"
-        month: "Tvůj %month% na MySpeedPuzzling"
+        week: "Tvůj puzzlový týden: %dates%"
+        two_weeks: "Tvoje dva puzzlové týdny: %dates%"
+        month: "Tvůj puzzlový %month%"
     preheader:
         achievement: "Nový úspěch: %achievement% – a k tomu zbytek tvého týdne."
         achievement_locked: "Máš nový úspěch – a tady je zbytek tvého týdne."

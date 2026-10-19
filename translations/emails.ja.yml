@@ -375,9 +375,9 @@ organization_rejected:
 activity_digest:
     puzzler: "パズラー"
     subject:
-        week: "MySpeedPuzzlingでのあなたの1週間（%dates%）"
-        two_weeks: "MySpeedPuzzlingでのあなたの2週間（%dates%）"
-        month: "MySpeedPuzzlingでのあなたの%month%"
+        week: "1週間のパズル記録（%dates%）"
+        two_weeks: "2週間のパズル記録（%dates%）"
+        month: "%month%のパズル記録"
     preheader:
         achievement: "新しい実績：%achievement% – 今週のまとめもどうぞ。"
         achievement_locked: "実績を獲得しました – 今週のまとめもどうぞ。"

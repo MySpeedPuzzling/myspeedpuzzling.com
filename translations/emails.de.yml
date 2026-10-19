@@ -439,9 +439,9 @@ activity_digest:
         streak: "Tage in Folge"
         time: "gepuzzelt"
     subject:
-        month: "Dein %month% auf MySpeedPuzzling"
-        two_weeks: "Deine zwei Wochen %dates% auf MySpeedPuzzling"
-        week: "Deine Woche %dates% auf MySpeedPuzzling"
+        month: "Dein Puzzle-%month%"
+        two_weeks: "Deine zwei Puzzlewochen: %dates%"
+        week: "Deine Puzzlewoche: %dates%"
     title:
         month: "Dein Monat, %name%"
         two_weeks: "Deine zwei Wochen, %name%"
